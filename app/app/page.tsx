@@ -7,6 +7,7 @@ import {
   PageTitle,
   SectionHeader,
 } from "@/components/brand"
+import { ActivityFeed } from "@/components/data"
 import { Button } from "@/components/ui/button"
 import { capturePostHogEvent } from "@/lib/analytics/events"
 import { getMerchantDashboardData } from "@/lib/merchant/dashboard"
@@ -104,84 +105,76 @@ export default async function MerchantAppPage() {
             </Button>
           }
         />
-        {dashboard.recentActivity.length ? (
-          <div className="divide-y">
-            {dashboard.recentActivity.map((item) => (
-              <ActivityRow key={item.id} item={item} />
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            title="No activity yet"
-            description="Activity will appear here after customers join, stamps are issued, rewards are redeemed, or QR assets are downloaded."
-            className="bg-background"
-          />
-        )}
+        <ActivityFeed
+          items={dashboard.recentActivity.map(ActivityRow)}
+          className="border-0 bg-background shadow-none"
+          emptyState={
+            <EmptyState
+              title="No activity yet"
+              description="Activity will appear here after customers join, stamps are issued, rewards are redeemed, or QR assets are downloaded."
+              className="bg-background"
+            />
+          }
+        />
       </section>
     </div>
   )
 }
 
 function BillingNotice({ status }: { status: string }) {
-  if (!["past_due", "cancelled", "suspended"].includes(status)) return null
-
-  const disabled = ["cancelled", "suspended"].includes(status)
+  const billing = billingStateCopy(status)
 
   return (
-    <section className="rounded-3xl border border-destructive/30 bg-destructive/10 p-5">
+    <section className={billing.className}>
       <SectionHeader
         title={
-          <span className="text-destructive">
-            Billing {formatStatus(status)}
-          </span>
+          <span className={billing.titleClassName}>{billing.title}</span>
         }
-        description={
-          disabled
-            ? "New customer actions are disabled until billing is restored."
-            : "Payment needs attention. Loyalty remains visible, but billing should be resolved."
+        description={billing.description}
+        actions={
+          billing.actionHref ? (
+            <Button asChild variant={billing.actionVariant} size="sm">
+              <Link href={billing.actionHref}>{billing.actionLabel}</Link>
+            </Button>
+          ) : null
         }
       />
     </section>
   )
 }
 
-function ActivityRow({
-  item,
-}: {
-  item: { event_name: string; created_at: string }
+function ActivityRow(item: {
+  id: string
+  event_name: string
+  created_at: string
+  metadata: Record<string, unknown>
 }) {
-  return (
-    <div className="flex items-center justify-between gap-3 py-3 text-sm">
-      <span className="font-bold">{activityLabel(item.event_name)}</span>
-      <time className="text-muted-foreground" dateTime={item.created_at}>
-        {formatDate(item.created_at)}
-      </time>
-    </div>
-  )
+  return {
+    id: item.id,
+    title: activityLabel(item.event_name),
+    timestamp: item.created_at,
+    metadata: activityMetadata(item.metadata),
+  }
 }
 
 function activityLabel(eventName: string) {
   const labels: Record<string, string> = {
+    qr_scanned: "QR scanned",
     customer_joined: "Customer joined",
+    stamp_claim_started: "Stamp claim started",
     stamp_issued: "Stamp issued",
+    reward_unlocked: "Reward unlocked",
     reward_redeemed: "Reward redeemed",
     qr_downloaded: "QR downloaded",
     qr_created: "QR created",
     loyalty_card_created: "Card created",
     loyalty_card_updated: "Card updated",
     merchant_signed_up: "Merchant signed up",
+    subscription_started: "Subscription started",
+    subscription_cancelled: "Subscription cancelled",
   }
 
   return labels[eventName] ?? eventName.replaceAll("_", " ")
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value))
 }
 
 function formatPence(pence: number) {
@@ -193,4 +186,104 @@ function formatPence(pence: number) {
 
 function formatStatus(status: string) {
   return status.replaceAll("_", " ")
+}
+
+function activityMetadata(metadata: Record<string, unknown> | null) {
+  if (!metadata?.asset_type && !metadata?.status && !metadata?.plan) return null
+
+  return [
+    metadata.asset_type ? `Asset: ${String(metadata.asset_type)}` : null,
+    metadata.status ? `Status: ${String(metadata.status)}` : null,
+    metadata.plan ? `Plan: ${String(metadata.plan)}` : null,
+  ]
+    .filter((item): item is string => Boolean(item))
+    .join(" · ")
+}
+
+function billingStateCopy(status: string) {
+  const state = status === "trial" ? "trialing" : status
+  const baseClassName = "rounded-3xl border p-5 shadow-xs"
+
+  const states: Record<
+    string,
+    {
+      title: string
+      description: string
+      className: string
+      titleClassName?: string
+      actionHref?: string
+      actionLabel?: string
+      actionVariant?: "default" | "secondary"
+    }
+  > = {
+    not_started: {
+      title: "Billing not started",
+      description:
+        "Start checkout when the venue is ready. Customers can be configured, but billing should be activated before launch.",
+      className: `${baseClassName} border-primary/30 bg-primary/10`,
+      actionHref: "/app/billing",
+      actionLabel: "Start billing",
+      actionVariant: "default",
+    },
+    trialing: {
+      title: "Trial active",
+      description:
+        "The 30-day Growth Plan pilot is running with full MVP access.",
+      className: `${baseClassName} border-reward/30 bg-accent`,
+      actionHref: "/app/billing",
+      actionLabel: "View billing",
+      actionVariant: "secondary",
+    },
+    active: {
+      title: "Billing active",
+      description:
+        "Stripe marks this merchant as active. Loyalty participation and staff stamping stay enabled.",
+      className: `${baseClassName} border-reward/30 bg-reward/10`,
+      actionHref: "/app/billing",
+      actionLabel: "Manage billing",
+      actionVariant: "secondary",
+    },
+    past_due: {
+      title: `Billing ${formatStatus(status)}`,
+      description:
+        "Payment needs attention. Loyalty remains visible, but billing should be resolved.",
+      className: `${baseClassName} border-destructive/30 bg-destructive/10`,
+      titleClassName: "text-destructive",
+      actionHref: "/app/billing",
+      actionLabel: "Resolve billing",
+      actionVariant: "default",
+    },
+    cancelled: {
+      title: `Billing ${formatStatus(status)}`,
+      description:
+        "New customer actions are disabled until billing is restored.",
+      className: `${baseClassName} border-destructive/30 bg-destructive/10`,
+      titleClassName: "text-destructive",
+      actionHref: "/app/billing",
+      actionLabel: "Restart billing",
+      actionVariant: "default",
+    },
+    suspended: {
+      title: `Billing ${formatStatus(status)}`,
+      description:
+        "New customer actions are disabled until billing is restored.",
+      className: `${baseClassName} border-destructive/30 bg-destructive/10`,
+      titleClassName: "text-destructive",
+      actionHref: "/app/billing",
+      actionLabel: "Restore access",
+      actionVariant: "default",
+    },
+  }
+
+  return (
+    states[state] ?? {
+      title: `Billing ${formatStatus(status)}`,
+      description:
+        "Billing status is available for support review. Check Stripe before changing customer access.",
+      className: `${baseClassName} border-border bg-card`,
+      actionHref: "/app/billing",
+      actionLabel: "Review billing",
+      actionVariant: "secondary",
+    }
+  )
 }

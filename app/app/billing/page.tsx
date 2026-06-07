@@ -6,6 +6,12 @@ import {
 } from "@/app/app/billing/actions"
 import { PageTitle } from "@/components/brand"
 import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
@@ -27,7 +33,9 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
   const supabase = createSupabaseServiceRoleClient()
   const { data: billing, error } = await supabase
     .from("billing_customers")
-    .select("status, current_period_end, stripe_subscription_id")
+    .select(
+      "status, current_period_end, stripe_customer_id, stripe_subscription_id"
+    )
     .eq("merchant_id", merchant.id)
     .maybeSingle()
 
@@ -45,47 +53,95 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
         description="First 30 days free, then GBP 29/month per location through Stripe Billing."
       />
 
-      {params.checkout === "success" ? (
-        <p className="rounded-2xl border border-reward/30 bg-accent px-4 py-3 text-sm text-accent-foreground">
-          Checkout completed. Billing access updates after Stripe webhook sync.
-        </p>
-      ) : null}
-      {params.portal === "missing" ? (
-        <p className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          Start a subscription before opening the Stripe portal.
-        </p>
-      ) : null}
+      <BillingOutcomeMessages
+        checkout={params.checkout}
+        portal={params.portal}
+      />
 
-      <section className="grid gap-5 rounded-3xl border bg-card p-5 shadow-xs">
-        <div className="grid gap-2">
-          <p className="text-xs font-bold text-muted-foreground uppercase">
-            Current billing state
-          </p>
-          <p className="text-2xl font-extrabold">{formatStatus(status)}</p>
+      <Card className="surface-card">
+        <CardHeader>
+          <p className="eyebrow">Current billing state</p>
+          <CardTitle className="numeric-tabular text-3xl font-extrabold">
+            {formatStatus(status)}
+          </CardTitle>
           {billing?.current_period_end ? (
             <p className="text-sm text-muted-foreground">
               Current period ends {formatDate(billing.current_period_end)}.
             </p>
-          ) : null}
-        </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No current Stripe period has been synced yet.
+            </p>
+          )}
+        </CardHeader>
 
-        <BillingAccessNote status={status} />
+        <CardContent className="grid gap-5">
+          <BillingAccessNote status={status} />
 
-        <div className="flex flex-wrap gap-2">
-          <form action={startCheckoutAction}>
-            <Button type="submit">Start checkout</Button>
-          </form>
-          <form action={openCustomerPortalAction}>
-            <Button
-              type="submit"
-              variant="secondary"
-              disabled={!billing?.stripe_subscription_id}
-            >
-              Open Stripe portal
-            </Button>
-          </form>
-        </div>
-      </section>
+          <div className="grid gap-3 rounded-2xl bg-secondary/60 p-4 text-sm text-secondary-foreground sm:grid-cols-2">
+            <div>
+              <p className="font-bold">Stripe customer</p>
+              <p className="text-muted-foreground">
+                {billing?.stripe_customer_id
+                  ? "Portal access is available."
+                  : "Create a Stripe customer through checkout first."}
+              </p>
+            </div>
+            <div>
+              <p className="font-bold">Stripe subscription</p>
+              <p className="text-muted-foreground">
+                {billing?.stripe_subscription_id
+                  ? "Subscription record synced."
+                  : "No subscription record synced yet."}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <form action={startCheckoutAction}>
+              <Button type="submit">Start checkout</Button>
+            </form>
+            <form action={openCustomerPortalAction}>
+              <Button
+                type="submit"
+                variant="secondary"
+                disabled={!billing?.stripe_customer_id}
+              >
+                Open Stripe portal
+              </Button>
+            </form>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function BillingOutcomeMessages({
+  checkout,
+  portal,
+}: {
+  checkout?: string
+  portal?: string
+}) {
+  return (
+    <div className="grid gap-3">
+      {checkout === "success" ? (
+        <p className="rounded-2xl border border-reward/30 bg-accent px-4 py-3 text-sm text-accent-foreground">
+          Checkout completed. Billing access updates after Stripe webhook sync.
+        </p>
+      ) : null}
+      {checkout === "cancelled" ? (
+        <p className="rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-foreground">
+          Checkout was cancelled. You can restart the Growth Plan checkout when
+          you are ready.
+        </p>
+      ) : null}
+      {portal === "missing" ? (
+        <p className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          Start checkout before opening the Stripe portal.
+        </p>
+      ) : null}
     </div>
   )
 }
@@ -119,7 +175,8 @@ function BillingAccessNote({ status }: { status: string }) {
 
   return (
     <p className="rounded-2xl bg-secondary px-4 py-3 text-sm text-secondary-foreground">
-      Trialing and active billing states have full MVP access.
+      Not-started, trialing, and active billing states keep merchant readbacks
+      available while Stripe setup is completed.
     </p>
   )
 }
