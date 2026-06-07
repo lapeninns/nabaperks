@@ -76,7 +76,7 @@ export function AuthForm({ action, mode, next = "/app" }: AuthFormProps) {
         {isSignUp ? "Already have an account?" : "New to Stampiee?"}{" "}
         <Link
           href={isSignUp ? "/login" : "/signup"}
-          className="font-bold text-primary underline-offset-4 hover:underline"
+          className="inline-flex min-h-11 items-center rounded-full px-3 py-2 font-bold text-primary underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
         >
           {isSignUp ? "Log in" : "Create an account"}
         </Link>

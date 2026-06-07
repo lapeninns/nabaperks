@@ -103,6 +103,8 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
     }
 
     expect(authForm).toContain('href={isSignUp ? "/login" : "/signup"}')
+    expect(authForm).toContain("inline-flex min-h-11 items-center")
+    expect(authForm).toContain("focus-visible:ring-3")
     expect(login).toContain("next={params.next}")
     expect(login).toContain("Verification link could not be used")
     expect(signup).toContain("mode=\"sign-up\"")
