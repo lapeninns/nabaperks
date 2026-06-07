@@ -1,5 +1,10 @@
 import { logPilotNoteAction } from "@/app/admin/actions"
-import { EmptyState, PageTitle, SectionHeader } from "@/components/brand"
+import {
+  EmptyState,
+  MetricTile,
+  PageTitle,
+  SectionHeader,
+} from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import { getAdminPilotMerchants, getAdminPilotReport } from "@/lib/admin/data"
 
@@ -19,19 +24,17 @@ export default async function AdminPilotPage() {
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {report.checklist.map((item) => (
-          <article
+          <MetricTile
             key={item.item}
-            className="grid gap-2 rounded-3xl border bg-card p-4 shadow-xs"
-          >
-            <p className="text-xs font-bold text-muted-foreground uppercase">
-              {item.item}
-            </p>
-            <p className="text-2xl font-extrabold">{item.value}</p>
-            <p className="text-sm text-muted-foreground">{item.target}</p>
-            <p className="font-mono text-xs text-muted-foreground">
-              {item.source}
-            </p>
-          </article>
+            label={item.item}
+            value={item.value}
+            helper={
+              <>
+                <span className="block">{item.target}</span>
+                <span className="mt-2 block font-mono">{item.source}</span>
+              </>
+            }
+          />
         ))}
       </section>
 

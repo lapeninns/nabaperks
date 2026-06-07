@@ -129,14 +129,18 @@ function BillingNotice({ status }: { status: string }) {
 
   return (
     <section className="rounded-3xl border border-destructive/30 bg-destructive/10 p-5">
-      <h2 className="text-lg font-extrabold text-destructive">
-        Billing {formatStatus(status)}
-      </h2>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">
-        {disabled
-          ? "New customer actions are disabled until billing is restored."
-          : "Payment needs attention. Loyalty remains visible, but billing should be resolved."}
-      </p>
+      <SectionHeader
+        title={
+          <span className="text-destructive">
+            Billing {formatStatus(status)}
+          </span>
+        }
+        description={
+          disabled
+            ? "New customer actions are disabled until billing is restored."
+            : "Payment needs attention. Loyalty remains visible, but billing should be resolved."
+        }
+      />
     </section>
   )
 }

@@ -267,6 +267,30 @@ describe("00/01 foundation micro-specs", () => {
     }
   })
 
+  it("keeps dashboard status and pilot checklist hierarchy centralized", () => {
+    const merchantDashboard = readProjectFile("app/app/page.tsx")
+    const adminPilotPage = readProjectFile("app/admin/pilot/page.tsx")
+
+    const billingNotice = merchantDashboard.match(
+      /function BillingNotice[\s\S]*?(?=\nfunction ActivityRow)/
+    )?.[0]
+    expect(billingNotice).toBeDefined()
+    expect(billingNotice).toContain("<SectionHeader")
+    expect(billingNotice).not.toContain("<h2")
+
+    const pilotChecklist = adminPilotPage.match(
+      /report\.checklist\.map\(\(item\) => \([\s\S]*?\)\)}/
+    )?.[0]
+    expect(pilotChecklist).toBeDefined()
+    expect(pilotChecklist).toContain("<MetricTile")
+    expect(pilotChecklist).toContain("label={item.item}")
+    expect(pilotChecklist).toContain("value={item.value}")
+    expect(pilotChecklist).toContain("item.target")
+    expect(pilotChecklist).toContain("item.source")
+    expect(pilotChecklist).not.toContain("<article")
+    expect(pilotChecklist).not.toContain("text-2xl font-extrabold")
+  })
+
   it("constrains motion and icon imports to approved packages", () => {
     const packageFile = readProjectFile("package.json")
     const sourceFiles = [
