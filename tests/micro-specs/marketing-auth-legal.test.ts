@@ -223,9 +223,40 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
     })
 
     const confirmRoute = readProjectFile("app/auth/confirm/route.ts")
-    expect(confirmRoute).toContain('next.startsWith("/")')
-    expect(confirmRoute).toContain('next.startsWith("//")')
+    expect(confirmRoute).toContain("new URL(next, origin)")
+    expect(confirmRoute).toContain("url.origin !== origin")
     expect(confirmRoute).toContain('"/login?error=verification"')
+  })
+
+  it("keeps auth confirm redirects on the request origin", async () => {
+    vi.resetModules()
+    const exchangeCodeForSession = vi.fn(async () => ({ error: null }))
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseRouteHandlerClient: vi.fn(() => ({
+        auth: { exchangeCodeForSession },
+      })),
+    }))
+    const { GET } = await import("@/app/auth/confirm/route")
+
+    const backslashResponse = await GET(
+      new Request(
+        "https://stampiee.test/auth/confirm?code=ok&next=/%5Cevil.test/app"
+      ) as never
+    )
+    expect(backslashResponse.headers.get("Location")).toBe(
+      "https://stampiee.test/app/onboarding"
+    )
+
+    const validResponse = await GET(
+      new Request(
+        `https://stampiee.test/auth/confirm?code=ok&next=${encodeURIComponent(
+          "/app/qr?created=1"
+        )}`
+      ) as never
+    )
+    expect(validResponse.headers.get("Location")).toBe(
+      "https://stampiee.test/app/qr?created=1"
+    )
   })
 
   it("keeps sign-in next redirects relative-only after valid credentials", async () => {
@@ -247,6 +278,28 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
           email: "merchant@example.test",
           password: "password123",
           next: "https://evil.test/app",
+        })
+      )
+    ).rejects.toThrow("NEXT_REDIRECT:/app")
+
+    await expect(
+      signInAction(
+        {},
+        form({
+          email: "merchant@example.test",
+          password: "password123",
+          next: "/\\evil.test/app",
+        })
+      )
+    ).rejects.toThrow("NEXT_REDIRECT:/app")
+
+    await expect(
+      signInAction(
+        {},
+        form({
+          email: "merchant@example.test",
+          password: "password123",
+          next: "//evil.test/app",
         })
       )
     ).rejects.toThrow("NEXT_REDIRECT:/app")

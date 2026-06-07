@@ -556,7 +556,12 @@ describe("02 merchant and QR micro-specs", () => {
     vi.resetModules()
     const redirect = redirectMock()
     const supabase = createSupabaseMock({
-      rpc: { set_qr_active: [{ data: null, error: null }] },
+      rpc: {
+        set_qr_active: [
+          { data: null, error: null },
+          { data: null, error: null },
+        ],
+      },
     })
     vi.doMock("next/navigation", () => ({ redirect }))
     vi.doMock("@/lib/merchant/qr-code", () => ({
@@ -580,6 +585,18 @@ describe("02 merchant and QR micro-specs", () => {
         p_merchant_id: "merchant-1",
         p_qr_code_id: "qr-row-1",
         p_is_active: false,
+      },
+    })
+
+    await expect(
+      setQrActiveAction(form({ qrCodeId: "qr-row-1", nextActive: "true" }))
+    ).rejects.toThrow("NEXT_REDIRECT:/app/qr?enabled=1")
+    expect(supabase.rpcCalls[1]).toEqual({
+      name: "set_qr_active",
+      params: {
+        p_merchant_id: "merchant-1",
+        p_qr_code_id: "qr-row-1",
+        p_is_active: true,
       },
     })
 

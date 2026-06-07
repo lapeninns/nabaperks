@@ -595,6 +595,49 @@ describe("03 customer micro-specs", () => {
     )
   })
 
+  it("maps join membership backend failures to safe customer copy", async () => {
+    vi.resetModules()
+    const supabase = createSupabaseMock({
+      rpc: {
+        join_customer_membership: [
+          {
+            data: null,
+            error: { message: "internal Supabase policy detail" },
+          },
+        ],
+      },
+    })
+    vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
+    vi.doMock("@/lib/auth/session", () => ({
+      getCurrentUser: vi.fn(async () => ({ id: "customer-user-1" })),
+    }))
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServerClient: vi.fn(async () => supabase.client),
+    }))
+    vi.doMock("@/lib/analytics/events", () => ({
+      capturePostHogEvent: vi.fn(),
+    }))
+    const { joinRewardsAction } = await import(
+      "@/app/m/[merchantSlug]/join/actions"
+    )
+
+    await expect(
+      joinRewardsAction(
+        {},
+        form({
+          merchantSlug: "the-bell",
+          qrId: "qr-public",
+          loyaltyTerms: true,
+          marketingOptIn: false,
+        })
+      )
+    ).resolves.toEqual({
+      errors: {
+        form: "Rewards could not be joined. Try again or ask the venue team.",
+      },
+    })
+  })
+
   it("resolves a QR join context as unavailable when billing is suspended", async () => {
     vi.resetModules()
     const recordProductEvent = vi.fn()
@@ -654,6 +697,156 @@ describe("03 customer micro-specs", () => {
         merchantId: "merchant-1",
         qrCodeId: "qr-row-1",
         metadata: expect.objectContaining({ available: false }),
+      })
+    )
+  })
+
+  it("keeps merchant QR enable/disable coupled to public QR availability", async () => {
+    vi.resetModules()
+    const recordProductEvent = vi.fn()
+    const baseQr = {
+      id: "qr-row-1",
+      qr_id: "qr-public",
+      destination_type: "join",
+      merchants: {
+        id: "merchant-1",
+        business_name: "The Bell",
+        business_slug: "the-bell",
+        email: "owner@example.test",
+        phone: null,
+      },
+      loyalty_cards: {
+        id: "card-1",
+        card_name: "Mystery Visit Card",
+        reward_name: "Surprise reward",
+        stamps_required: 3,
+        reward_terms: "Reward reveals after three visits.",
+        min_spend_pence: null,
+        is_active: true,
+      },
+    }
+    const supabase = createSupabaseMock({
+      from: {
+        qr_codes: [
+          { data: { ...baseQr, is_active: false }, error: null },
+          { data: { ...baseQr, is_active: true }, error: null },
+        ],
+        billing_customers: [
+          { data: { status: "active" }, error: null },
+          { data: { status: "active" }, error: null },
+        ],
+      },
+    })
+    vi.doMock("@/lib/security/rate-limit", async () => {
+      const actual = await vi.importActual<typeof import("@/lib/security/rate-limit")>(
+        "@/lib/security/rate-limit"
+      )
+      return actual
+    })
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
+    }))
+    vi.doMock("@/lib/auth/session", () => ({ getCurrentUser: vi.fn() }))
+    vi.doMock("@/lib/analytics/events", () => ({ recordProductEvent }))
+    const { resolveQrForJoin } = await import("@/lib/customer/join")
+
+    await expect(resolveQrForJoin("qr-public")).resolves.toMatchObject({
+      available: false,
+      qrId: "qr-public",
+    })
+    await expect(resolveQrForJoin("qr-public")).resolves.toMatchObject({
+      available: true,
+      qrId: "qr-public",
+      merchant: { business_slug: "the-bell" },
+    })
+
+    expect(recordProductEvent).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        eventName: "qr_scanned",
+        qrCodeId: "qr-row-1",
+        metadata: expect.objectContaining({ available: false }),
+      })
+    )
+    expect(recordProductEvent).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        eventName: "qr_scanned",
+        qrCodeId: "qr-row-1",
+        metadata: expect.objectContaining({ available: true }),
+      })
+    )
+  })
+
+  it("records QR scan analytics at the public resolver without double-counting the join page", async () => {
+    vi.resetModules()
+    const recordProductEvent = vi.fn()
+    const qrData = {
+      id: "qr-row-1",
+      qr_id: "qr-public",
+      is_active: true,
+      destination_type: "join",
+      merchants: {
+        id: "merchant-1",
+        business_name: "The Bell",
+        business_slug: "the-bell",
+        email: "owner@example.test",
+        phone: null,
+      },
+      loyalty_cards: {
+        id: "card-1",
+        card_name: "Mystery Visit Card",
+        reward_name: "Surprise reward",
+        stamps_required: 3,
+        reward_terms: "Reward reveals after three visits.",
+        min_spend_pence: null,
+        is_active: true,
+      },
+    }
+    const supabase = createSupabaseMock({
+      from: {
+        qr_codes: [
+          { data: qrData, error: null },
+          { data: qrData, error: null },
+        ],
+        billing_customers: [
+          { data: { status: "active" }, error: null },
+          { data: { status: "active" }, error: null },
+        ],
+      },
+    })
+    vi.doMock("@/lib/security/rate-limit", async () => {
+      const actual = await vi.importActual<typeof import("@/lib/security/rate-limit")>(
+        "@/lib/security/rate-limit"
+      )
+      return actual
+    })
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
+    }))
+    vi.doMock("@/lib/auth/session", () => ({ getCurrentUser: vi.fn() }))
+    vi.doMock("@/lib/analytics/events", () => ({ recordProductEvent }))
+    const { getMerchantJoinContext, resolveQrForJoin } = await import(
+      "@/lib/customer/join"
+    )
+
+    await expect(resolveQrForJoin("qr-public")).resolves.toMatchObject({
+      available: true,
+      qrId: "qr-public",
+    })
+    await expect(
+      getMerchantJoinContext("the-bell", "qr-public")
+    ).resolves.toMatchObject({
+      available: true,
+      qrId: "qr-public",
+      merchant: { business_slug: "the-bell" },
+    })
+
+    expect(recordProductEvent).toHaveBeenCalledTimes(1)
+    expect(recordProductEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: "qr_scanned",
+        qrCodeId: "qr-row-1",
       })
     )
   })

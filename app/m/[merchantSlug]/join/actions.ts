@@ -192,7 +192,11 @@ export async function joinRewardsAction(
   })
 
   if (error) {
-    return { errors: { form: `Rewards could not be joined: ${error.message}` } }
+    return {
+      errors: {
+        form: "Rewards could not be joined. Try again or ask the venue team.",
+      },
+    }
   }
 
   const membershipId = data?.[0]?.membership_id
