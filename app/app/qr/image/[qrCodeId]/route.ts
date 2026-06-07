@@ -27,7 +27,7 @@ export async function GET(_request: Request, context: QrImageRouteContext) {
   return new NextResponse(toArrayBuffer(png), {
     headers: {
       "Content-Type": "image/png",
-      "Cache-Control": "private, max-age=60",
+      "Cache-Control": "private, no-store",
     },
   })
 }

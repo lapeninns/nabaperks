@@ -704,6 +704,76 @@ describe("02 merchant and QR micro-specs", () => {
     )
   })
 
+  it("keeps QR renderer options scanner-safe and QR wrappers explicitly white", async () => {
+    vi.resetModules()
+    const toDataURL = vi.fn(async () => "data:image/png;base64,AQID")
+    vi.doMock("qrcode", () => ({
+      default: { toDataURL },
+    }))
+    const { renderQrCodePng } = await import("@/lib/qr/assets")
+
+    await expect(
+      renderQrCodePng("https://stampiee.test/q/qr-public", 512)
+    ).resolves.toBeInstanceOf(Buffer)
+
+    expect(toDataURL).toHaveBeenCalledWith(
+      "https://stampiee.test/q/qr-public",
+      expect.objectContaining({
+        errorCorrectionLevel: "H",
+        margin: 4,
+        width: 512,
+        color: {
+          dark: "#000000",
+          light: "#ffffff",
+        },
+      })
+    )
+
+    const assets = readProjectFile("lib/qr/assets.ts")
+    expect(assets).toContain('class="qr-frame"')
+    expect(assets).toContain('class="qr-safe-zone"')
+    expect(assets).toContain("fill: #ffffff;")
+    expect(assets).toContain("Scan. Stamp. Reveal.")
+  })
+
+  it("keeps merchant QR page lifecycle links and raw preview scanner-safe", () => {
+    const qrPage = readProjectFile("app/app/qr/page.tsx")
+
+    expect(qrPage).toContain("QrFrame")
+    expect(qrPage).toContain("bg-white")
+    expect(qrPage).toContain("/app/qr/image/${qrCode.id}")
+    expect(qrPage).toContain("/app/qr/download/poster?qr=${qrCode.id}")
+    expect(qrPage).toContain("/app/qr/download/till-card?qr=${qrCode.id}")
+    expect(qrPage).toContain("/app/qr/download/sticker?qr=${qrCode.id}")
+    expect(qrPage).toContain('name="qrCodeId"')
+    expect(qrPage).toContain('name="nextActive"')
+  })
+
+  it("renders refreshed poster, till-card, and sticker buffers without changing payloads", async () => {
+    vi.resetModules()
+    vi.doUnmock("qrcode")
+    const { renderQrAssetPng, renderQrPosterPdf } = await import("@/lib/qr/assets")
+    const context = {
+      shareUrl: "https://stampiee.test/q/qr-public",
+      qrPublicId: "qr-public",
+      merchantName: "The Bell",
+      locationName: "Main bar",
+      cardName: "Mystery Visit Card",
+      rewardName: "Surprise reward",
+      isActive: true,
+    }
+
+    const [tillCard, sticker, poster] = await Promise.all([
+      renderQrAssetPng("till_card_png", context),
+      renderQrAssetPng("sticker_png", context),
+      renderQrPosterPdf(context),
+    ])
+
+    expect(tillCard.byteLength).toBeGreaterThan(1000)
+    expect(sticker.byteLength).toBeGreaterThan(1000)
+    expect(poster.byteLength).toBeGreaterThan(1000)
+  })
+
   it("records QR downloads before returning a private asset response", async () => {
     vi.resetModules()
     const supabase = createSupabaseMock({
@@ -761,5 +831,229 @@ describe("02 merchant and QR micro-specs", () => {
         qrCodeId: "qr-row-1",
       })
     )
+  })
+
+  it("preserves successful download contracts for every QR asset slug", async () => {
+    const cases = [
+      {
+        slug: "poster",
+        kind: "poster_pdf",
+        contentType: "application/pdf",
+        filename: "stampiee-poster-pdf-qr-public.pdf",
+      },
+      {
+        slug: "till-card",
+        kind: "till_card_png",
+        contentType: "image/png",
+        filename: "stampiee-till-card-png-qr-public.png",
+      },
+      {
+        slug: "sticker",
+        kind: "sticker_png",
+        contentType: "image/png",
+        filename: "stampiee-sticker-png-qr-public.png",
+      },
+    ] as const
+
+    for (const assetCase of cases) {
+      vi.resetModules()
+      const supabase = createSupabaseMock({
+        rpc: { record_qr_download: [{ data: null, error: null }] },
+      })
+      const capturePostHogEvent = vi.fn()
+      const renderQrAssetPng = vi.fn(async () => new Uint8Array([1, 2, 3]))
+      const renderQrPosterPdf = vi.fn(async () => new Uint8Array([4, 5, 6]))
+      vi.doMock("@/lib/env/server", () => ({
+        getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://stampiee.test" }),
+      }))
+      vi.doMock("@/lib/merchant/qr-code", () => ({
+        getOwnedQrAssetContext: vi.fn(async () => ({
+          merchant: { id: "merchant-1", business_name: "The Bell" },
+          location: { name: "Main bar" },
+          activeCard: {
+            card_name: "Mystery Visit Card",
+            reward_name: "Surprise reward",
+          },
+          qrCode: { id: "qr-row-1", qr_id: "qr-public", is_active: true },
+        })),
+      }))
+      vi.doMock("@/lib/analytics/events", () => ({ capturePostHogEvent }))
+      vi.doMock("@/lib/supabase/server", () => ({
+        createSupabaseServerClient: vi.fn(async () => supabase.client),
+      }))
+      vi.doMock("@/lib/qr/assets", async () => {
+        const actual = await vi.importActual<typeof import("@/lib/qr/assets")>(
+          "@/lib/qr/assets"
+        )
+        return {
+          ...actual,
+          renderQrAssetPng,
+          renderQrPosterPdf,
+        }
+      })
+      const { GET } = await import("@/app/app/qr/download/[asset]/route")
+
+      const response = await GET(
+        new Request(
+          `https://stampiee.test/app/qr/download/${assetCase.slug}?qr=qr-row-1`
+        ),
+        { params: Promise.resolve({ asset: assetCase.slug }) }
+      )
+
+      expect(response.status).toBe(200)
+      expect(response.headers.get("Content-Type")).toBe(assetCase.contentType)
+      expect(response.headers.get("Cache-Control")).toBe("private, no-store")
+      expect(response.headers.get("Content-Disposition")).toContain(
+        assetCase.filename
+      )
+      expect(supabase.rpcCalls[0]).toEqual({
+        name: "record_qr_download",
+        params: {
+          p_merchant_id: "merchant-1",
+          p_qr_code_id: "qr-row-1",
+          p_asset_type: assetCase.kind,
+        },
+      })
+      expect(capturePostHogEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventName: "qr_downloaded",
+          qrCodeId: "qr-row-1",
+          metadata: { asset_type: assetCase.kind },
+        })
+      )
+
+      if (assetCase.kind === "poster_pdf") {
+        expect(renderQrPosterPdf).toHaveBeenCalledWith(
+          expect.objectContaining({
+            shareUrl: "https://stampiee.test/q/qr-public",
+            qrPublicId: "qr-public",
+          })
+        )
+        expect(renderQrAssetPng).not.toHaveBeenCalled()
+      } else {
+        expect(renderQrAssetPng).toHaveBeenCalledWith(
+          assetCase.kind,
+          expect.objectContaining({
+            shareUrl: "https://stampiee.test/q/qr-public",
+            qrPublicId: "qr-public",
+          })
+        )
+        expect(renderQrPosterPdf).not.toHaveBeenCalled()
+      }
+    }
+  })
+
+  it("returns 404 for malformed or unowned QR downloads before accounting and rendering", async () => {
+    vi.resetModules()
+    const createSupabaseServerClient = vi.fn()
+    const getOwnedQrAssetContext = vi.fn(async () => null)
+    const renderQrAssetPng = vi.fn()
+    const renderQrPosterPdf = vi.fn()
+    const capturePostHogEvent = vi.fn()
+    vi.doMock("@/lib/env/server", () => ({
+      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://stampiee.test" }),
+    }))
+    vi.doMock("@/lib/merchant/qr-code", () => ({ getOwnedQrAssetContext }))
+    vi.doMock("@/lib/analytics/events", () => ({ capturePostHogEvent }))
+    vi.doMock("@/lib/supabase/server", () => ({ createSupabaseServerClient }))
+    vi.doMock("@/lib/qr/assets", async () => {
+      const actual = await vi.importActual<typeof import("@/lib/qr/assets")>(
+        "@/lib/qr/assets"
+      )
+      return {
+        ...actual,
+        renderQrAssetPng,
+        renderQrPosterPdf,
+      }
+    })
+    const { GET } = await import("@/app/app/qr/download/[asset]/route")
+
+    const malformedRequests = [
+      {
+        asset: "unknown",
+        url: "https://stampiee.test/app/qr/download/unknown?qr=qr-row-1",
+      },
+      {
+        asset: "poster",
+        url: "https://stampiee.test/app/qr/download/poster",
+      },
+      {
+        asset: "poster",
+        url: "https://stampiee.test/app/qr/download/poster?qr=",
+      },
+    ]
+
+    for (const requestCase of malformedRequests) {
+      const response = await GET(new Request(requestCase.url), {
+        params: Promise.resolve({ asset: requestCase.asset }),
+      })
+
+      expect(response.status).toBe(404)
+    }
+
+    expect(getOwnedQrAssetContext).not.toHaveBeenCalled()
+
+    const unownedResponse = await GET(
+      new Request("https://stampiee.test/app/qr/download/poster?qr=missing-qr"),
+      { params: Promise.resolve({ asset: "poster" }) }
+    )
+
+    expect(unownedResponse.status).toBe(404)
+    expect(getOwnedQrAssetContext).toHaveBeenCalledTimes(1)
+    expect(getOwnedQrAssetContext).toHaveBeenCalledWith("missing-qr")
+    expect(createSupabaseServerClient).not.toHaveBeenCalled()
+    expect(capturePostHogEvent).not.toHaveBeenCalled()
+    expect(renderQrAssetPng).not.toHaveBeenCalled()
+    expect(renderQrPosterPdf).not.toHaveBeenCalled()
+  })
+
+  it("preserves raw merchant QR image route payload, content type, and private cache policy", async () => {
+    vi.resetModules()
+    const renderQrCodePng = vi.fn(async () => new Uint8Array([1, 2, 3]))
+    const getOwnedQrAssetContext = vi.fn(async () => ({
+      qrCode: { qr_id: "qr-public" },
+    }))
+    vi.doMock("@/lib/env/server", () => ({
+      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://stampiee.test" }),
+    }))
+    vi.doMock("@/lib/merchant/qr-code", () => ({ getOwnedQrAssetContext }))
+    vi.doMock("@/lib/qr/assets", () => ({ renderQrCodePng }))
+    const { GET } = await import("@/app/app/qr/image/[qrCodeId]/route")
+
+    const response = await GET(
+      new Request("https://stampiee.test/app/qr/image/qr-row-1"),
+      { params: Promise.resolve({ qrCodeId: "qr-row-1" }) }
+    )
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get("Content-Type")).toBe("image/png")
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store")
+    expect(getOwnedQrAssetContext).toHaveBeenCalledWith("qr-row-1")
+    expect(renderQrCodePng).toHaveBeenCalledWith(
+      "https://stampiee.test/q/qr-public"
+    )
+
+    vi.resetModules()
+    const missingRenderQrCodePng = vi.fn()
+    const missingGetOwnedQrAssetContext = vi.fn(async () => null)
+    vi.doMock("@/lib/env/server", () => ({
+      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://stampiee.test" }),
+    }))
+    vi.doMock("@/lib/merchant/qr-code", () => ({
+      getOwnedQrAssetContext: missingGetOwnedQrAssetContext,
+    }))
+    vi.doMock("@/lib/qr/assets", () => ({
+      renderQrCodePng: missingRenderQrCodePng,
+    }))
+    const { GET: missingGET } = await import(
+      "@/app/app/qr/image/[qrCodeId]/route"
+    )
+    const missingResponse = await missingGET(
+      new Request("https://stampiee.test/app/qr/image/missing-qr"),
+      { params: Promise.resolve({ qrCodeId: "missing-qr" }) }
+    )
+
+    expect(missingResponse.status).toBe(404)
+    expect(missingRenderQrCodePng).not.toHaveBeenCalled()
   })
 })
