@@ -266,4 +266,106 @@ describe("00/01 foundation micro-specs", () => {
     expect(sonner).toContain('theme={theme as ToasterProps["theme"]}')
     expect(sonner).toContain("--normal-bg")
   })
+
+  it("exposes shared layout shells while preserving server access gates", () => {
+    for (const shell of [
+      "components/layout/marketing-layout.tsx",
+      "components/layout/merchant-app-shell.tsx",
+      "components/layout/admin-shell.tsx",
+      "components/layout/customer-shell.tsx",
+      "components/layout/staff-shell.tsx",
+    ]) {
+      expect(existsSync(shell)).toBe(true)
+    }
+
+    const merchantLayout = readProjectFile("app/app/layout.tsx")
+    expect(merchantLayout).toContain("getCurrentUser")
+    expect(merchantLayout).toContain('redirect("/login?next=/app")')
+    expect(merchantLayout).toContain("MerchantAppShell")
+    expect(merchantLayout).toContain("signOutAction")
+    expect(merchantLayout).not.toContain('"use client"')
+
+    const merchantShell = readProjectFile("components/layout/merchant-app-shell.tsx")
+    for (const href of [
+      'href: "/app"',
+      'href: "/app/card"',
+      'href: "/app/qr"',
+      'href: "/app/customers"',
+      'href: "/app/activity"',
+      'href: "/app/settings"',
+      'href: "/app/billing"',
+    ]) {
+      expect(merchantShell).toContain(href)
+    }
+    expect(merchantShell).toContain("<form action={signOutAction}>")
+
+    const adminLayout = readProjectFile("app/admin/layout.tsx")
+    expect(adminLayout).toContain("getAdminAccess")
+    expect(adminLayout).toContain('access.status !== "allowed"')
+    expect(adminLayout).toContain("AdminShell")
+    expect(adminLayout).not.toContain('"use client"')
+
+    const adminShell = readProjectFile("components/layout/admin-shell.tsx")
+    for (const href of [
+      'href: "/admin/pilot"',
+      'href: "/admin/merchants"',
+      'href: "/admin/customers"',
+      'href: "/admin/billing"',
+      'href: "/admin/privacy"',
+      'href: "/admin/fraud"',
+      'href: "/admin/audit"',
+    ]) {
+      expect(adminShell).toContain(href)
+    }
+    expect(adminShell).toContain("MFA enforcement is enabled for this admin session.")
+
+    const shellNavigation = readProjectFile("components/layout/shell-navigation.tsx")
+    expect(shellNavigation).toContain("SheetTitle")
+    expect(shellNavigation).toContain("aria-current")
+    expect(shellNavigation).toContain("usePathname")
+  })
+
+  it("centralizes brand hierarchy and initial domain primitives", () => {
+    const brandIndex = readProjectFile("components/brand/index.ts")
+    for (const component of [
+      "Logo",
+      "Eyebrow",
+      "PageTitle",
+      "SectionHeader",
+      "MetricTile",
+      "EmptyState",
+    ]) {
+      expect(brandIndex).toContain(component)
+    }
+
+    const brandTypography = readProjectFile("components/brand/typography.tsx")
+    expect(brandTypography).toContain("numeric-tabular")
+    expect(brandTypography).toContain("<h1")
+    expect(brandTypography).toContain("<h2")
+    expect(brandTypography).toContain("EmptyTitle")
+
+    const loyaltyIndex = readProjectFile("components/loyalty/index.ts")
+    for (const component of [
+      "StampGrid",
+      "StampDot",
+      "ProgressTrack",
+      "RewardTeaser",
+      "QrFrame",
+      "StatusBanner",
+    ]) {
+      expect(loyaltyIndex).toContain(component)
+    }
+    expect(readProjectFile("components/loyalty/qr-frame.tsx")).toContain("bg-white")
+    expect(readProjectFile("components/loyalty/stamp-grid.tsx")).toContain("aria-label")
+
+    const formIndex = readProjectFile("components/forms/index.ts")
+    expect(formIndex).toContain("FormField")
+    expect(formIndex).toContain("FormMessage")
+    expect(formIndex).toContain("OtpInput")
+
+    const dataIndex = readProjectFile("components/data/index.ts")
+    expect(dataIndex).toContain("DataTable")
+    expect(dataIndex).toContain("ActivityFeed")
+    expect(dataIndex).toContain("FunnelChart")
+  })
 })
