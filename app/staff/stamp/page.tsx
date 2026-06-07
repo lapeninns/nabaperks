@@ -3,7 +3,7 @@ import Link from "next/link"
 import { StaffPinForm } from "@/components/staff/staff-pin-form"
 import { Eyebrow } from "@/components/brand"
 import { StaffShell } from "@/components/layout"
-import { ProgressTrack } from "@/components/loyalty"
+import { ProgressTrack, StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { recordProductEvent } from "@/lib/analytics/events"
 import { getCustomerCardState } from "@/lib/customer/card"
@@ -99,10 +99,10 @@ export default async function StaffStampPage({
 
   return (
     <StaffShell>
-      <section className="grid gap-5 rounded-3xl border bg-card p-6 shadow-xs">
+      <section className="surface-card grid gap-5 rounded-[2rem] border bg-card p-6 shadow-xs">
         <div className="grid gap-2 text-center">
           <Eyebrow>Staff approval</Eyebrow>
-          <h1 className="text-3xl font-extrabold leading-tight">
+          <h1 className="text-3xl font-extrabold leading-tight text-balance">
             Issue stamp
           </h1>
           <p className="text-sm leading-6 text-muted-foreground">
@@ -139,12 +139,18 @@ function StampState({
   cta?: string
 }) {
   return (
-    <section className="rounded-3xl border bg-card p-6 text-center shadow-xs">
-      <Eyebrow>Stampiee loyalty</Eyebrow>
-      <h1 className="mt-2 text-3xl font-extrabold leading-tight">{title}</h1>
-      <p className="mt-3 text-sm leading-6 text-muted-foreground">{message}</p>
+    <section className="surface-card grid gap-5 rounded-[2rem] border bg-card p-6 text-center shadow-xs">
+      <div className="grid gap-2">
+        <Eyebrow>Stampiee loyalty</Eyebrow>
+        <h1 className="text-3xl font-extrabold leading-tight text-balance">
+          {title}
+        </h1>
+      </div>
+      <StatusBanner title={title} tone="neutral">
+        {message}
+      </StatusBanner>
       {href ? (
-        <Button asChild className="mt-5 w-full">
+        <Button asChild size="lg" className="w-full">
           <Link href={href}>{cta}</Link>
         </Button>
       ) : null}

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 
 import { EmptyState } from "@/components/brand"
+import { CustomerShell } from "@/components/layout"
 import {
   getExistingMembershipForCurrentUser,
   resolveQrForJoin,
@@ -24,7 +25,7 @@ export default async function PublicQrPage({ params }: PublicQrPageProps) {
       return <UnavailableQr />
     }
 
-    throw error
+    return <UnavailableQr />
   }
 
   if (!qrContext || !qrContext.available) {
@@ -45,13 +46,15 @@ export default async function PublicQrPage({ params }: PublicQrPageProps) {
 
 function UnavailableQr() {
   return (
-    <main className="flex min-h-svh items-center justify-center px-6 py-10">
-      <EmptyState
-        title="This loyalty card is unavailable"
-        description="Ask a team member for the current loyalty QR."
-        headingLevel={1}
-        className="w-full max-w-sm"
-      />
-    </main>
+    <CustomerShell className="grid content-center">
+      <section className="surface-card grid gap-4 rounded-[2rem] border bg-card p-6 text-center shadow-xs">
+        <EmptyState
+          title="This loyalty card is unavailable"
+          description="Ask a team member for the current loyalty QR."
+          headingLevel={1}
+          className="w-full"
+        />
+      </section>
+    </CustomerShell>
   )
 }

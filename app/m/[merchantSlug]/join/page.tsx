@@ -6,7 +6,13 @@ import {
 } from "@/components/customer/join-forms"
 import { Eyebrow } from "@/components/brand"
 import { CustomerShell } from "@/components/layout"
-import { RewardTeaser, StampGrid } from "@/components/loyalty"
+import {
+  ProgressTrack,
+  RewardTeaser,
+  StampGrid,
+  StatusBanner,
+} from "@/components/loyalty"
+import { Button } from "@/components/ui/button"
 import { getCurrentUser } from "@/lib/auth/session"
 import {
   getExistingMembershipForCurrentUser,
@@ -29,7 +35,13 @@ export default async function MerchantJoinPage({
 }: MerchantJoinPageProps) {
   const { merchantSlug } = await params
   const query = await searchParams
-  const context = await getMerchantJoinContext(merchantSlug, query.qr)
+  let context: Awaited<ReturnType<typeof getMerchantJoinContext>>
+
+  try {
+    context = await getMerchantJoinContext(merchantSlug, query.qr)
+  } catch {
+    return <UnavailableJoin />
+  }
 
   if (!context?.available) {
     return <UnavailableJoin />
@@ -43,10 +55,10 @@ export default async function MerchantJoinPage({
 
   return (
     <CustomerShell className="grid content-center">
-      <section className="grid gap-5 rounded-3xl border bg-card p-6 shadow-xs">
+      <section className="surface-card grid gap-5 rounded-[2rem] border bg-card p-6 shadow-xs">
         <div className="grid gap-2 text-center">
           <Eyebrow>No app loyalty</Eyebrow>
-          <h1 className="text-3xl font-extrabold leading-tight">
+          <h1 className="text-3xl font-extrabold leading-tight text-balance">
             Join {context.merchant.business_name} Rewards - no app needed.
           </h1>
           <p className="text-sm leading-6 text-muted-foreground">
@@ -55,13 +67,20 @@ export default async function MerchantJoinPage({
           </p>
         </div>
 
-        <div className="rounded-3xl border bg-background p-4 text-sm">
-          <p className="font-bold">Mystery visit summary</p>
-          <p className="mt-2 leading-6 text-muted-foreground">
-            Collect {context.loyaltyCard.stamps_required} visit stamps. Your
-            assigned reward stays hidden until the final stamp and can be
-            redeemed from the next UK business day.
-          </p>
+        <div className="grid gap-4 rounded-3xl border bg-background p-4 text-sm">
+          <div>
+            <p className="font-bold">Mystery visit summary</p>
+            <p className="mt-2 leading-6 text-muted-foreground">
+              Collect {context.loyaltyCard.stamps_required} visit stamps. Your
+              assigned reward stays hidden until the final stamp and can be
+              redeemed from the next UK business day.
+            </p>
+          </div>
+          <ProgressTrack
+            current={0}
+            total={context.loyaltyCard.stamps_required}
+            label="Visits to reveal"
+          />
           {context.loyaltyCard.min_spend_pence !== null ? (
             <p className="mt-2 font-mono text-xs text-muted-foreground">
               Minimum spend {formatPence(context.loyaltyCard.min_spend_pence)}.
@@ -77,6 +96,7 @@ export default async function MerchantJoinPage({
 
         {membership ? (
           <CustomerCardSummary
+            membershipId={membership.id}
             stampsRequired={context.loyaltyCard.stamps_required}
             currentStampCount={membership.current_stamp_count}
           />
@@ -95,15 +115,25 @@ export default async function MerchantJoinPage({
 }
 
 function CustomerCardSummary({
+  membershipId,
   stampsRequired,
   currentStampCount,
 }: {
+  membershipId: string
   stampsRequired: number
   currentStampCount: number
 }) {
   return (
     <div className="grid gap-4">
+      <StatusBanner title="You're already joined" tone="success">
+        Your stamp card is ready. Continue from your current progress.
+      </StatusBanner>
       <StampGrid current={currentStampCount} total={stampsRequired} />
+      <ProgressTrack
+        current={currentStampCount}
+        total={stampsRequired}
+        label="Current progress"
+      />
       <RewardTeaser
         locked
         title={`Locked until visit ${stampsRequired}`}
@@ -113,6 +143,9 @@ function CustomerCardSummary({
           </>
         }
       />
+      <Button asChild size="lg" className="w-full">
+        <Link href={`/card/${membershipId}`}>Open your stamp card</Link>
+      </Button>
     </div>
   )
 }
@@ -120,15 +153,13 @@ function CustomerCardSummary({
 function UnavailableJoin() {
   return (
     <CustomerShell className="grid content-center">
-      <section className="rounded-3xl border bg-card p-6 text-center shadow-xs">
-        <Eyebrow>Stampiee loyalty</Eyebrow>
-        <h1 className="mt-2 text-3xl font-extrabold leading-tight">
-          This loyalty card is unavailable
-        </h1>
-        <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          Ask a team member for the current loyalty QR.
-        </p>
-      </section>
+      <StatusBanner
+        title="This loyalty card is unavailable"
+        tone="neutral"
+        className="text-center"
+      >
+        Ask a team member for the current loyalty QR.
+      </StatusBanner>
     </CustomerShell>
   )
 }
