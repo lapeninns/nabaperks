@@ -1,6 +1,6 @@
 import Link from "next/link"
 
-import { Eyebrow, MetricTile } from "@/components/brand"
+import { MetricTile, PageTitle, SectionHeader } from "@/components/brand"
 import { MarketingLayout } from "@/components/layout"
 import { QrFrame, StampGrid } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
@@ -37,16 +37,13 @@ export default function Page() {
     <MarketingLayout>
       <section className="mx-auto grid min-h-[calc(100svh-73px)] w-full max-w-7xl content-center gap-10 px-6 py-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(420px,1.05fr)] lg:items-center">
         <div className="grid gap-8">
-          <div className="grid gap-5">
-            <Eyebrow>No-app loyalty for local venues</Eyebrow>
-            <h1 className="max-w-3xl text-5xl leading-[1.05] font-extrabold sm:text-6xl">
-              Scan, join, stamp, reward.
-            </h1>
-            <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-              Stampiee gives pubs, cafes, and local counters a QR loyalty card
-              that customers can use in the browser without downloading an app.
-            </p>
-          </div>
+          <PageTitle
+            eyebrow="No-app loyalty for local venues"
+            title="Scan, join, stamp, reward."
+            description="Stampiee gives pubs, cafes, and local counters a QR loyalty card that customers can use in the browser without downloading an app."
+            titleClassName="text-5xl leading-[1.05] sm:text-6xl"
+            descriptionClassName="text-base leading-7"
+          />
 
           <div className="flex flex-wrap gap-3">
             <Button asChild size="lg">
@@ -70,14 +67,11 @@ export default function Page() {
         <div className="grid gap-4">
           <div className="grid gap-5 rounded-[2rem] border bg-card p-5 shadow-xs">
             <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="font-mono text-xs text-muted-foreground uppercase">
-                  Live flow
-                </p>
-                <h2 className="mt-1 text-2xl font-extrabold">
-                  Counter-ready QR card
-                </h2>
-              </div>
+              <SectionHeader
+                eyebrow="Live flow"
+                title="Counter-ready QR card"
+                className="flex-1"
+              />
               <span className="rounded-full bg-accent px-3 py-1 text-xs font-bold text-accent-foreground">
                 Browser first
               </span>
@@ -126,7 +120,7 @@ export default function Page() {
               <Link
                 key={action.href}
                 href={action.href}
-                className="grid gap-2 rounded-2xl border bg-card p-4 shadow-xs transition hover:-translate-y-0.5 hover:border-primary/50"
+                className="pressable grid gap-2 rounded-2xl border bg-card p-4 shadow-xs transition hover:-translate-y-0.5 hover:border-primary/50"
               >
                 <span className="text-sm font-extrabold">{action.title}</span>
                 <span className="text-sm leading-6 text-muted-foreground">

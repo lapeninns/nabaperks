@@ -32,22 +32,41 @@ export function PageTitle({
   description,
   actions,
   className,
+  titleClassName,
+  descriptionClassName,
 }: {
   eyebrow?: ReactNode
   title: ReactNode
   description?: ReactNode
   actions?: ReactNode
   className?: string
+  titleClassName?: string
+  descriptionClassName?: string
 }) {
   return (
-    <section className={cn("grid gap-4 md:grid-cols-[1fr_auto] md:items-end", className)}>
+    <section
+      className={cn(
+        "grid gap-4 md:grid-cols-[1fr_auto] md:items-end",
+        className
+      )}
+    >
       <div className="grid gap-3">
         {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-        <h1 className="max-w-3xl text-3xl font-extrabold leading-tight tracking-tight text-foreground sm:text-4xl">
+        <h1
+          className={cn(
+            "max-w-3xl text-3xl font-extrabold leading-tight tracking-tight text-foreground sm:text-4xl",
+            titleClassName
+          )}
+        >
           {title}
         </h1>
         {description ? (
-          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+          <p
+            className={cn(
+              "max-w-2xl text-sm leading-6 text-muted-foreground",
+              descriptionClassName
+            )}
+          >
             {description}
           </p>
         ) : null}
@@ -71,7 +90,12 @@ export function SectionHeader({
   className?: string
 }) {
   return (
-    <div className={cn("flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between", className)}>
+    <div
+      className={cn(
+        "flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between",
+        className
+      )}
+    >
       <div className="grid gap-2">
         {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
         <h2 className="text-lg font-extrabold leading-snug text-foreground">
@@ -123,16 +147,25 @@ export function EmptyState({
   description,
   actions,
   className,
+  headingLevel = 2,
 }: {
   title: ReactNode
   description?: ReactNode
   actions?: ReactNode
   className?: string
+  headingLevel?: 1 | 2 | 3
 }) {
   return (
-    <Empty className={cn("rounded-3xl border bg-card p-6 text-center shadow-xs", className)}>
+    <Empty
+      className={cn(
+        "rounded-3xl border bg-card p-6 text-center shadow-xs",
+        className
+      )}
+    >
       <EmptyHeader>
-        <EmptyTitle>{title}</EmptyTitle>
+        <EmptyTitle role="heading" aria-level={headingLevel}>
+          {title}
+        </EmptyTitle>
         {description ? <EmptyDescription>{description}</EmptyDescription> : null}
       </EmptyHeader>
       {actions ? <EmptyContent>{actions}</EmptyContent> : null}

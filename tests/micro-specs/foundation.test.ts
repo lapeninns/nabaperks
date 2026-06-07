@@ -199,6 +199,7 @@ describe("00/01 foundation micro-specs", () => {
   it("keeps Button stamp/reward variants, shadcn compatibility, and tactile sizing", () => {
     const button = readProjectFile("components/ui/button.tsx")
 
+    expect(button).toContain("pressable")
     expect(button).toContain("stamp:")
     expect(button).toContain("reward:")
     expect(button).toContain('rounded-full')
@@ -208,6 +209,31 @@ describe("00/01 foundation micro-specs", () => {
     expect(button).toContain("asChild")
     expect(button).toContain("Slot.Root")
     expect(button).toContain("buttonVariants")
+  })
+
+  it("applies tactile and brand hierarchy primitives on representative real surfaces", () => {
+    const logo = readProjectFile("components/brand/logo.tsx")
+    const homePage = readProjectFile("app/page.tsx")
+    const merchantDashboard = readProjectFile("app/app/page.tsx")
+    const adminHome = readProjectFile("app/admin/page.tsx")
+    const activityPage = readProjectFile("app/app/activity/page.tsx")
+    const auditPage = readProjectFile("app/admin/audit/page.tsx")
+    const qrPage = readProjectFile("app/q/[qrId]/page.tsx")
+
+    expect(logo).toContain("pressable")
+    expect(homePage).toContain("PageTitle")
+    expect(homePage).toContain("SectionHeader")
+    expect(homePage).toContain("pressable")
+
+    for (const source of [merchantDashboard, adminHome]) {
+      expect(source).toContain("PageTitle")
+      expect(source).toContain("SectionHeader")
+      expect(source).toContain("MetricTile")
+    }
+
+    for (const source of [merchantDashboard, activityPage, auditPage, qrPage]) {
+      expect(source).toContain("EmptyState")
+    }
   })
 
   it("constrains motion and icon imports to approved packages", () => {
