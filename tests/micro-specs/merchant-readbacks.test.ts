@@ -13,6 +13,38 @@ function redirectMock() {
   })
 }
 
+function collectReactText(value: unknown): string {
+  if (value == null || typeof value === "boolean") {
+    return ""
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value)
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(collectReactText).join(" ")
+  }
+
+  if (typeof value === "object" && "props" in value) {
+    return collectReactText(
+      (value as { props?: { children?: unknown } }).props?.children
+    )
+  }
+
+  return ""
+}
+
+async function captureErrorMessage(action: () => Promise<unknown>) {
+  try {
+    await action()
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error)
+  }
+
+  throw new Error("Expected action to fail")
+}
+
 describe("05 merchant shell, dashboard, customers, activity, and billing readbacks", () => {
   it("keeps the merchant app protected shell and responsive navigation contract", () => {
     const layout = readProjectFile("app/app/layout.tsx")
@@ -275,6 +307,36 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     expect(billingPage).toContain("Open Stripe portal")
   })
 
+  it("renders safe billing load failure copy without raw Supabase details", async () => {
+    vi.resetModules()
+    const internalSupabaseMessage =
+      "SUPABASE-INTERNAL billing_customers policy stack trace 42"
+    const supabase = createSupabaseMock({
+      from: {
+        billing_customers: [
+          { data: null, error: { message: internalSupabaseMessage } },
+        ],
+      },
+    })
+
+    vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
+    vi.doMock("@/lib/auth/session", () => ({
+      getCurrentMerchant: vi.fn(async () => ({ id: "merchant-1" })),
+    }))
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
+    }))
+
+    const { default: BillingPage } = await import("@/app/app/billing/page")
+    const output = await BillingPage({ searchParams: Promise.resolve({}) })
+    const renderedText = collectReactText(output)
+
+    expect(renderedText).toContain(
+      "Billing details could not be loaded. Try again."
+    )
+    expect(renderedText).not.toContain(internalSupabaseMessage)
+  })
+
   it("opens the Stripe portal whenever a billing row has a Stripe customer id", async () => {
     vi.resetModules()
     const redirect = redirectMock()
@@ -312,6 +374,87 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     await expect(openCustomerPortalAction()).rejects.toThrow(
       "NEXT_REDIRECT:https://stripe.test/portal/session"
     )
+    expect(createPortalSession).toHaveBeenCalledWith({
+      customer: "cus_123",
+      return_url: "https://stampiee.test/app/billing",
+    })
+  })
+
+  it("maps portal billing lookup errors to safe copy without raw Supabase details", async () => {
+    vi.resetModules()
+    const internalSupabaseMessage =
+      "SUPABASE-INTERNAL portal lookup leaked table names"
+    const getStripe = vi.fn()
+    const supabase = createSupabaseMock({
+      from: {
+        billing_customers: [
+          { data: null, error: { message: internalSupabaseMessage } },
+        ],
+      },
+    })
+
+    vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
+    vi.doMock("@/lib/auth/session", () => ({
+      getCurrentMerchant: vi.fn(async () => ({ id: "merchant-1" })),
+    }))
+    vi.doMock("@/lib/env/server", () => ({
+      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://stampiee.test" }),
+    }))
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
+    }))
+    vi.doMock("@/lib/stripe/server", () => ({ getStripe }))
+
+    const { openCustomerPortalAction } = await import(
+      "@/app/app/billing/actions"
+    )
+
+    const errorMessage = await captureErrorMessage(openCustomerPortalAction)
+
+    expect(errorMessage).toBe("Billing action could not be completed. Try again.")
+    expect(errorMessage).not.toContain(internalSupabaseMessage)
+    expect(getStripe).not.toHaveBeenCalled()
+  })
+
+  it("maps Stripe portal exceptions to safe copy without raw Stripe details", async () => {
+    vi.resetModules()
+    const internalStripeMessage =
+      "STRIPE-INTERNAL portal session request id req_secret"
+    const createPortalSession = vi.fn(async () => {
+      throw new Error(internalStripeMessage)
+    })
+    const supabase = createSupabaseMock({
+      from: {
+        billing_customers: [
+          { data: { stripe_customer_id: "cus_123" }, error: null },
+        ],
+      },
+    })
+
+    vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
+    vi.doMock("@/lib/auth/session", () => ({
+      getCurrentMerchant: vi.fn(async () => ({ id: "merchant-1" })),
+    }))
+    vi.doMock("@/lib/env/server", () => ({
+      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://stampiee.test" }),
+    }))
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
+    }))
+    vi.doMock("@/lib/stripe/server", () => ({
+      getStripe: vi.fn(() => ({
+        billingPortal: { sessions: { create: createPortalSession } },
+      })),
+    }))
+
+    const { openCustomerPortalAction } = await import(
+      "@/app/app/billing/actions"
+    )
+
+    const errorMessage = await captureErrorMessage(openCustomerPortalAction)
+
+    expect(errorMessage).toBe("Billing action could not be completed. Try again.")
+    expect(errorMessage).not.toContain(internalStripeMessage)
     expect(createPortalSession).toHaveBeenCalledWith({
       customer: "cus_123",
       return_url: "https://stampiee.test/app/billing",

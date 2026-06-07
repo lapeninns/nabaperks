@@ -16,60 +16,78 @@ export async function startCheckoutAction() {
     redirect("/app/onboarding")
   }
 
-  const env = getServerEnv()
-  const stripe = getStripe()
-  const supabase = createSupabaseServiceRoleClient()
-  const { data: billing, error } = await supabase
-    .from("billing_customers")
-    .select("stripe_customer_id")
-    .eq("merchant_id", merchant.id)
-    .maybeSingle()
+  let env: ReturnType<typeof getServerEnv>
+  let billingCustomerId: string | null | undefined
 
-  if (error) {
+  try {
+    env = getServerEnv()
+
+    const supabase = createSupabaseServiceRoleClient()
+    const { data: billing, error } = await supabase
+      .from("billing_customers")
+      .select("stripe_customer_id")
+      .eq("merchant_id", merchant.id)
+      .maybeSingle()
+
+    if (error) {
+      throw new Error(BILLING_ACTION_ERROR)
+    }
+
+    billingCustomerId = billing?.stripe_customer_id
+  } catch {
     throw new Error(BILLING_ACTION_ERROR)
   }
 
-  const customer =
-    billing?.stripe_customer_id ??
-    (
-      await stripe.customers.create({
-        email: merchant.email,
-        name: merchant.business_name,
+  let checkoutUrl: string
+
+  try {
+    const stripe = getStripe()
+    const customer =
+      billingCustomerId ??
+      (
+        await stripe.customers.create({
+          email: merchant.email,
+          name: merchant.business_name,
+          metadata: {
+            merchant_id: merchant.id,
+          },
+        })
+      ).id
+
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      customer,
+      line_items: [
+        {
+          price: env.STRIPE_GROWTH_PRICE_ID,
+          quantity: 1,
+        },
+      ],
+      subscription_data: {
+        trial_period_days: 30,
         metadata: {
           merchant_id: merchant.id,
+          plan: "growth",
         },
-      })
-    ).id
-
-  const session = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    customer,
-    line_items: [
-      {
-        price: env.STRIPE_GROWTH_PRICE_ID,
-        quantity: 1,
       },
-    ],
-    subscription_data: {
-      trial_period_days: 30,
       metadata: {
         merchant_id: merchant.id,
         plan: "growth",
       },
-    },
-    metadata: {
-      merchant_id: merchant.id,
-      plan: "growth",
-    },
-    success_url: `${env.NEXT_PUBLIC_APP_URL}/app/billing?checkout=success`,
-    cancel_url: `${env.NEXT_PUBLIC_APP_URL}/app/billing?checkout=cancelled`,
-  })
+      success_url: `${env.NEXT_PUBLIC_APP_URL}/app/billing?checkout=success`,
+      cancel_url: `${env.NEXT_PUBLIC_APP_URL}/app/billing?checkout=cancelled`,
+    })
 
-  if (!session.url) {
+    if (!session.url) {
+      throw new Error(BILLING_ACTION_ERROR)
+    }
+
+    checkoutUrl = session.url
+  } catch {
     throw new Error(BILLING_ACTION_ERROR)
   }
 
-  redirect(session.url)
+  redirect(checkoutUrl)
 }
 
 export async function openCustomerPortalAction() {
@@ -79,27 +97,49 @@ export async function openCustomerPortalAction() {
     redirect("/app/onboarding")
   }
 
-  const env = getServerEnv()
-  const supabase = createSupabaseServiceRoleClient()
-  const { data: billing, error } = await supabase
-    .from("billing_customers")
-    .select("stripe_customer_id")
-    .eq("merchant_id", merchant.id)
-    .maybeSingle()
+  let env: ReturnType<typeof getServerEnv>
+  let billingCustomerId: string | null | undefined
 
-  if (error) {
+  try {
+    env = getServerEnv()
+
+    const supabase = createSupabaseServiceRoleClient()
+    const { data: billing, error } = await supabase
+      .from("billing_customers")
+      .select("stripe_customer_id")
+      .eq("merchant_id", merchant.id)
+      .maybeSingle()
+
+    if (error) {
+      throw new Error(BILLING_ACTION_ERROR)
+    }
+
+    billingCustomerId = billing?.stripe_customer_id
+  } catch {
     throw new Error(BILLING_ACTION_ERROR)
   }
 
-  if (!billing?.stripe_customer_id) {
+  if (!billingCustomerId) {
     redirect("/app/billing?portal=missing")
   }
 
-  const stripe = getStripe()
-  const portal = await stripe.billingPortal.sessions.create({
-    customer: billing.stripe_customer_id,
-    return_url: `${env.NEXT_PUBLIC_APP_URL}/app/billing`,
-  })
+  let portalUrl: string
 
-  redirect(portal.url)
+  try {
+    const stripe = getStripe()
+    const portal = await stripe.billingPortal.sessions.create({
+      customer: billingCustomerId,
+      return_url: `${env.NEXT_PUBLIC_APP_URL}/app/billing`,
+    })
+
+    if (!portal.url) {
+      throw new Error(BILLING_ACTION_ERROR)
+    }
+
+    portalUrl = portal.url
+  } catch {
+    throw new Error(BILLING_ACTION_ERROR)
+  }
+
+  redirect(portalUrl)
 }

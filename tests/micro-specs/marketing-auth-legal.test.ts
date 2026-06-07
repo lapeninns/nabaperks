@@ -23,6 +23,16 @@ function redirectMock() {
   })
 }
 
+async function captureErrorMessage(action: () => Promise<unknown>) {
+  try {
+    await action()
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error)
+  }
+
+  throw new Error("Expected action to fail")
+}
+
 describe("02 marketing auth and legal redesign micro-specs", () => {
   it("keeps marketing routes composed through MarketingLayout with semantic journeys", () => {
     const home = readProjectFile("app/page.tsx")
@@ -335,6 +345,154 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
           metadata: { merchant_id: "merchant-1", plan: "growth" },
         }),
         metadata: { merchant_id: "merchant-1", plan: "growth" },
+        success_url: "https://stampiee.test/app/billing?checkout=success",
+        cancel_url: "https://stampiee.test/app/billing?checkout=cancelled",
+      })
+    )
+  })
+
+  it("maps checkout billing lookup errors to safe copy without raw Supabase details", async () => {
+    vi.resetModules()
+    const internalSupabaseMessage =
+      "SUPABASE-INTERNAL checkout lookup exposed schema detail"
+    const getStripe = vi.fn()
+    const supabase = createSupabaseMock({
+      from: {
+        billing_customers: [
+          { data: null, error: { message: internalSupabaseMessage } },
+        ],
+      },
+    })
+
+    vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
+    vi.doMock("@/lib/auth/session", () => ({
+      getCurrentMerchant: vi.fn(async () => ({
+        id: "merchant-1",
+        email: "merchant@example.test",
+        business_name: "Bean & Batch",
+      })),
+    }))
+    vi.doMock("@/lib/env/server", () => ({
+      getServerEnv: vi.fn(() => ({
+        NEXT_PUBLIC_APP_URL: "https://stampiee.test",
+        STRIPE_GROWTH_PRICE_ID: "price_growth",
+      })),
+    }))
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
+    }))
+    vi.doMock("@/lib/stripe/server", () => ({ getStripe }))
+
+    const { startCheckoutAction } = await import("@/app/app/billing/actions")
+    const errorMessage = await captureErrorMessage(startCheckoutAction)
+
+    expect(errorMessage).toBe("Billing action could not be completed. Try again.")
+    expect(errorMessage).not.toContain(internalSupabaseMessage)
+    expect(getStripe).not.toHaveBeenCalled()
+  })
+
+  it("maps Stripe customer exceptions to safe checkout copy without raw details", async () => {
+    vi.resetModules()
+    const internalStripeMessage =
+      "STRIPE-INTERNAL customer create request id req_secret"
+    const supabase = createSupabaseMock({
+      from: {
+        billing_customers: [{ data: { stripe_customer_id: null }, error: null }],
+      },
+    })
+    const createCustomer = vi.fn(async () => {
+      throw new Error(internalStripeMessage)
+    })
+    const createSession = vi.fn()
+
+    vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
+    vi.doMock("@/lib/auth/session", () => ({
+      getCurrentMerchant: vi.fn(async () => ({
+        id: "merchant-1",
+        email: "merchant@example.test",
+        business_name: "Bean & Batch",
+      })),
+    }))
+    vi.doMock("@/lib/env/server", () => ({
+      getServerEnv: vi.fn(() => ({
+        NEXT_PUBLIC_APP_URL: "https://stampiee.test",
+        STRIPE_GROWTH_PRICE_ID: "price_growth",
+      })),
+    }))
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
+    }))
+    vi.doMock("@/lib/stripe/server", () => ({
+      getStripe: vi.fn(() => ({
+        customers: { create: createCustomer },
+        checkout: { sessions: { create: createSession } },
+      })),
+    }))
+
+    const { startCheckoutAction } = await import("@/app/app/billing/actions")
+    const errorMessage = await captureErrorMessage(startCheckoutAction)
+
+    expect(errorMessage).toBe("Billing action could not be completed. Try again.")
+    expect(errorMessage).not.toContain(internalStripeMessage)
+    expect(createCustomer).toHaveBeenCalledWith({
+      email: "merchant@example.test",
+      name: "Bean & Batch",
+      metadata: { merchant_id: "merchant-1" },
+    })
+    expect(createSession).not.toHaveBeenCalled()
+  })
+
+  it("maps Stripe checkout exceptions to safe checkout copy without raw details", async () => {
+    vi.resetModules()
+    const internalStripeMessage =
+      "STRIPE-INTERNAL checkout create request id req_secret"
+    const supabase = createSupabaseMock({
+      from: {
+        billing_customers: [
+          { data: { stripe_customer_id: "cus_existing" }, error: null },
+        ],
+      },
+    })
+    const createCustomer = vi.fn()
+    const createSession = vi.fn(async () => {
+      throw new Error(internalStripeMessage)
+    })
+
+    vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
+    vi.doMock("@/lib/auth/session", () => ({
+      getCurrentMerchant: vi.fn(async () => ({
+        id: "merchant-1",
+        email: "merchant@example.test",
+        business_name: "Bean & Batch",
+      })),
+    }))
+    vi.doMock("@/lib/env/server", () => ({
+      getServerEnv: vi.fn(() => ({
+        NEXT_PUBLIC_APP_URL: "https://stampiee.test",
+        STRIPE_GROWTH_PRICE_ID: "price_growth",
+      })),
+    }))
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
+    }))
+    vi.doMock("@/lib/stripe/server", () => ({
+      getStripe: vi.fn(() => ({
+        customers: { create: createCustomer },
+        checkout: { sessions: { create: createSession } },
+      })),
+    }))
+
+    const { startCheckoutAction } = await import("@/app/app/billing/actions")
+    const errorMessage = await captureErrorMessage(startCheckoutAction)
+
+    expect(errorMessage).toBe("Billing action could not be completed. Try again.")
+    expect(errorMessage).not.toContain(internalStripeMessage)
+    expect(createCustomer).not.toHaveBeenCalled()
+    expect(createSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: "subscription",
+        customer: "cus_existing",
+        line_items: [{ price: "price_growth", quantity: 1 }],
         success_url: "https://stampiee.test/app/billing?checkout=success",
         cancel_url: "https://stampiee.test/app/billing?checkout=cancelled",
       })

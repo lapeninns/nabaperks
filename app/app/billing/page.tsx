@@ -15,11 +15,20 @@ import {
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
+const BILLING_PAGE_ERROR = "Billing details could not be loaded. Try again."
+
 type BillingPageProps = {
   searchParams: Promise<{
     checkout?: string
     portal?: string
   }>
+}
+
+type BillingRecord = {
+  status: string | null
+  current_period_end: string | null
+  stripe_customer_id: string | null
+  stripe_subscription_id: string | null
 }
 
 export default async function BillingPage({ searchParams }: BillingPageProps) {
@@ -30,17 +39,26 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
     redirect("/app/onboarding")
   }
 
-  const supabase = createSupabaseServiceRoleClient()
-  const { data: billing, error } = await supabase
-    .from("billing_customers")
-    .select(
-      "status, current_period_end, stripe_customer_id, stripe_subscription_id"
-    )
-    .eq("merchant_id", merchant.id)
-    .maybeSingle()
+  let billing: BillingRecord | null = null
+  let billingLoadFailed = false
 
-  if (error) {
-    throw new Error(`Unable to load billing record: ${error.message}`)
+  try {
+    const supabase = createSupabaseServiceRoleClient()
+    const { data, error } = await supabase
+      .from("billing_customers")
+      .select(
+        "status, current_period_end, stripe_customer_id, stripe_subscription_id"
+      )
+      .eq("merchant_id", merchant.id)
+      .maybeSingle()
+
+    if (error) {
+      billingLoadFailed = true
+    } else {
+      billing = data as BillingRecord | null
+    }
+  } catch {
+    billingLoadFailed = true
   }
 
   const status = billing?.status ?? "not_started"
@@ -57,6 +75,12 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
         checkout={params.checkout}
         portal={params.portal}
       />
+
+      {billingLoadFailed ? (
+        <p className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {BILLING_PAGE_ERROR}
+        </p>
+      ) : null}
 
       <Card className="surface-card">
         <CardHeader>
