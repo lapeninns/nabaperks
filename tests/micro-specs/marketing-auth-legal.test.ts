@@ -141,6 +141,32 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
     }
   })
 
+  it("keeps mobile marketing navigation contained and legal links touch-safe", () => {
+    const marketingLayout = readProjectFile("components/layout/marketing-layout.tsx")
+    const terms = readProjectFile("app/terms/page.tsx")
+    const privacy = readProjectFile("app/privacy/page.tsx")
+
+    for (const required of [
+      "overflow-x-clip",
+      "grid-cols-[auto_minmax(0,1fr)]",
+      "flex-wrap",
+      "hidden min-[430px]:inline-flex",
+      "min-[430px]:hidden",
+      'href="/signup"',
+      "min-h-11 items-center rounded-full px-3",
+    ]) {
+      expect(marketingLayout).toContain(required)
+    }
+
+    expect(marketingLayout).toContain('href="/terms"')
+    expect(marketingLayout).toContain('href="/privacy"')
+
+    for (const source of [terms, privacy]) {
+      expect(source).toContain("inline-flex min-h-11 items-center")
+      expect(source).toContain("focus-visible:ring-3")
+    }
+  })
+
   it("uses the own-origin verification path and safe relative auth redirects", async () => {
     vi.resetModules()
     const signUp = vi.fn(async () => ({
