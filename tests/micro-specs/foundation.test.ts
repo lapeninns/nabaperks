@@ -202,9 +202,9 @@ describe("00/01 foundation micro-specs", () => {
     expect(button).toContain("pressable")
     expect(button).toContain("stamp:")
     expect(button).toContain("reward:")
-    expect(button).toContain('rounded-full')
-    expect(button).toContain('h-11')
-    expect(button).toContain('motion-safe:active:scale-[0.96]')
+    expect(button).toContain("rounded-full")
+    expect(button).toContain("h-11")
+    expect(button).toContain("motion-safe:active:scale-[0.96]")
     expect(button).toContain("focus-visible:ring-3")
     expect(button).toContain("asChild")
     expect(button).toContain("Slot.Root")
@@ -219,6 +219,13 @@ describe("00/01 foundation micro-specs", () => {
     const activityPage = readProjectFile("app/app/activity/page.tsx")
     const auditPage = readProjectFile("app/admin/audit/page.tsx")
     const qrPage = readProjectFile("app/q/[qrId]/page.tsx")
+    const merchantCustomersPage = readProjectFile("app/app/customers/page.tsx")
+    const adminPilotPage = readProjectFile("app/admin/pilot/page.tsx")
+    const adminPrivacyPage = readProjectFile("app/admin/privacy/page.tsx")
+    const adminFraudPage = readProjectFile("app/admin/fraud/page.tsx")
+    const adminBillingPage = readProjectFile("app/admin/billing/page.tsx")
+    const adminCustomersPage = readProjectFile("app/admin/customers/page.tsx")
+    const adminMerchantsPage = readProjectFile("app/admin/merchants/page.tsx")
 
     expect(logo).toContain("pressable")
     expect(homePage).toContain("PageTitle")
@@ -233,6 +240,30 @@ describe("00/01 foundation micro-specs", () => {
 
     for (const source of [merchantDashboard, activityPage, auditPage, qrPage]) {
       expect(source).toContain("EmptyState")
+    }
+
+    for (const source of [
+      merchantCustomersPage,
+      adminPilotPage,
+      adminPrivacyPage,
+      adminFraudPage,
+      adminBillingPage,
+      adminCustomersPage,
+      adminMerchantsPage,
+    ]) {
+      expect(source).toContain("PageTitle")
+      expect(source).toContain("EmptyState")
+      expect(source).not.toContain("function Header(")
+    }
+
+    for (const source of [
+      adminPilotPage,
+      adminPrivacyPage,
+      adminFraudPage,
+      adminCustomersPage,
+      adminMerchantsPage,
+    ]) {
+      expect(source).toContain("SectionHeader")
     }
   })
 
@@ -285,7 +316,9 @@ describe("00/01 foundation micro-specs", () => {
     expect(layout).toContain('lang="en-GB"')
     expect(layout).toContain('variable: "--font-nunito-sans"')
     expect(layout).toContain('variable: "--font-geist-mono"')
-    expect(layout).toContain('className={`${nunitoSans.variable} ${geistMono.variable} antialiased`}')
+    expect(layout).toContain(
+      "className={`${nunitoSans.variable} ${geistMono.variable} antialiased`}"
+    )
     expect(layout).toContain('<body className="font-sans">')
     expect(layout).toContain("<ThemeProvider>")
     expect(layout).toContain("<Toaster")
@@ -311,7 +344,9 @@ describe("00/01 foundation micro-specs", () => {
     expect(merchantLayout).toContain("signOutAction")
     expect(merchantLayout).not.toContain('"use client"')
 
-    const merchantShell = readProjectFile("components/layout/merchant-app-shell.tsx")
+    const merchantShell = readProjectFile(
+      "components/layout/merchant-app-shell.tsx"
+    )
     for (const href of [
       'href: "/app"',
       'href: "/app/card"',
@@ -343,9 +378,13 @@ describe("00/01 foundation micro-specs", () => {
     ]) {
       expect(adminShell).toContain(href)
     }
-    expect(adminShell).toContain("MFA enforcement is enabled for this admin session.")
+    expect(adminShell).toContain(
+      "MFA enforcement is enabled for this admin session."
+    )
 
-    const shellNavigation = readProjectFile("components/layout/shell-navigation.tsx")
+    const shellNavigation = readProjectFile(
+      "components/layout/shell-navigation.tsx"
+    )
     expect(shellNavigation).toContain("SheetTitle")
     expect(shellNavigation).toContain("aria-current")
     expect(shellNavigation).toContain("usePathname")
@@ -381,8 +420,12 @@ describe("00/01 foundation micro-specs", () => {
     ]) {
       expect(loyaltyIndex).toContain(component)
     }
-    expect(readProjectFile("components/loyalty/qr-frame.tsx")).toContain("bg-white")
-    expect(readProjectFile("components/loyalty/stamp-grid.tsx")).toContain("aria-label")
+    expect(readProjectFile("components/loyalty/qr-frame.tsx")).toContain(
+      "bg-white"
+    )
+    expect(readProjectFile("components/loyalty/stamp-grid.tsx")).toContain(
+      "aria-label"
+    )
 
     const formIndex = readProjectFile("components/forms/index.ts")
     expect(formIndex).toContain("FormField")
