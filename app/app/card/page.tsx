@@ -2,11 +2,13 @@ import { redirect } from "next/navigation"
 
 import { PageTitle } from "@/components/brand"
 import { LoyaltyCardForm } from "@/components/merchant/loyalty-card-form"
+import { StatusBanner } from "@/components/loyalty/status-banner"
 import { getLoyaltyCardSetup } from "@/lib/merchant/loyalty-card"
 
 type CardPageProps = {
   searchParams: Promise<{
     saved?: string
+    error?: string
   }>
 }
 
@@ -33,11 +35,7 @@ export default async function LoyaltyCardPage({ searchParams }: CardPageProps) {
 
   return (
     <div className="grid gap-5">
-      {params.saved ? (
-        <p className="rounded-2xl border border-reward/30 bg-accent px-4 py-3 text-sm text-accent-foreground">
-          Mystery card saved.
-        </p>
-      ) : null}
+      <CardStatus params={params} />
       <LoyaltyCardForm
         merchantName={merchant.business_name}
         locationName={location.name}
@@ -64,4 +62,32 @@ export default async function LoyaltyCardPage({ searchParams }: CardPageProps) {
       />
     </div>
   )
+}
+
+function CardStatus({ params }: { params: Awaited<CardPageProps["searchParams"]> }) {
+  if (params.saved === "1") {
+    return (
+      <StatusBanner tone="success" title="Mystery card saved.">
+        Your visit-card settings are ready for customer previews.
+      </StatusBanner>
+    )
+  }
+
+  if (params.saved === "pool") {
+    return (
+      <StatusBanner tone="success" title="Reward pool saved.">
+        Launch eligibility has been refreshed with your latest reward changes.
+      </StatusBanner>
+    )
+  }
+
+  if (params.error) {
+    return (
+      <StatusBanner tone="error" title="Reward update failed.">
+        Unable to update reward. Check the reward and try again.
+      </StatusBanner>
+    )
+  }
+
+  return null
 }

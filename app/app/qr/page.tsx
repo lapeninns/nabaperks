@@ -3,6 +3,8 @@ import { redirect } from "next/navigation"
 
 import { generateQrCodeAction, setQrActiveAction } from "@/app/app/qr/actions"
 import { PageTitle } from "@/components/brand"
+import { QrFrame } from "@/components/loyalty/qr-frame"
+import { StatusBanner } from "@/components/loyalty/status-banner"
 import { CopyUrlButton } from "@/components/merchant/copy-url-button"
 import { Button } from "@/components/ui/button"
 import { getServerEnv } from "@/lib/env/server"
@@ -60,14 +62,23 @@ export default async function QrPage({ searchParams }: QrPageProps) {
           }
           titleClassName="sm:text-3xl"
         />
-        {params.error ? (
-          <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {params.error}
-          </p>
+        <QrErrorBanner error={params.error} />
+        {activeRewardPoolItemCount < 1 ? (
+          <StatusBanner tone="warning" title="Add a reward before launch.">
+            The QR stays blocked until at least one active mystery reward is in
+            the pool.{" "}
+            <Link href="/app/card" className="font-bold underline underline-offset-4">
+              Add or activate a reward
+            </Link>
+            .
+          </StatusBanner>
         ) : null}
-        <form action={generateQrCodeAction}>
+        <form action={generateQrCodeAction} className="flex flex-wrap gap-2">
           <Button type="submit" disabled={activeRewardPoolItemCount < 1}>
             Generate QR
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/app/card">Review card builder</Link>
           </Button>
         </form>
       </section>
@@ -82,14 +93,14 @@ export default async function QrPage({ searchParams }: QrPageProps) {
       {statusMessage(params)}
       <section className="grid gap-6 rounded-3xl border bg-card p-6 shadow-xs lg:grid-cols-[360px_minmax(0,1fr)]">
         <div className="grid gap-4">
-          <div className="rounded-3xl border bg-white p-5 shadow-xs">
+          <QrFrame label={`Scanner-safe QR code for ${activeCard.card_name}`}>
             {/* eslint-disable-next-line @next/next/no-img-element -- protected QR images need merchant cookies */}
             <img
               src={`/app/qr/image/${qrCode.id}`}
               alt={`QR code for ${activeCard.card_name}`}
               className="aspect-square w-full rounded-2xl bg-white"
             />
-          </div>
+          </QrFrame>
           <p className="font-mono text-xs text-muted-foreground uppercase">
             {qrCode.is_active ? "Active customer entry" : "Disabled"}
           </p>
@@ -103,11 +114,7 @@ export default async function QrPage({ searchParams }: QrPageProps) {
             titleClassName="sm:text-3xl"
           />
 
-          {params.error ? (
-            <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {params.error}
-            </p>
-          ) : null}
+          <QrErrorBanner error={params.error} />
 
           <div className="grid gap-2 rounded-2xl border bg-secondary/50 p-4">
             <p className="text-sm font-bold">Shareable URL</p>
@@ -216,8 +223,26 @@ function statusMessage(params: Awaited<QrPageProps["searchParams"]>) {
   if (!message) return null
 
   return (
-    <p className="rounded-2xl border border-reward/30 bg-accent px-4 py-3 text-sm text-accent-foreground">
+    <StatusBanner tone="success" title={message}>
+      The permanent <code>/q/{"{qr_id}"}</code> resolver, share URL, and
+      downloads remain unchanged.
+    </StatusBanner>
+  )
+}
+
+function QrErrorBanner({ error }: { error?: string }) {
+  if (!error) return null
+
+  const message =
+    error === "Add at least one active mystery reward before launching the QR."
+      ? error
+      : error === "Unable to update QR"
+        ? "Unable to update QR. Check the QR status and try again."
+        : "Unable to create QR. Check your card and reward setup, then try again."
+
+  return (
+    <StatusBanner tone="error" title="QR action failed.">
       {message}
-    </p>
+    </StatusBanner>
   )
 }
