@@ -3,7 +3,14 @@ import Link from "next/link"
 import { MetricTile, PageTitle, SectionHeader } from "@/components/brand"
 import { MarketingLayout } from "@/components/layout"
 import { QrFrame, StampGrid } from "@/components/loyalty"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 
 const qrCells = [
   1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0,
@@ -32,22 +39,60 @@ const actions = [
   },
 ]
 
+const heroStages = [
+  {
+    label: "Scan",
+    copy: "Customer points their camera at your counter QR.",
+  },
+  {
+    label: "Join",
+    copy: "They verify in the browser — no app store detour.",
+  },
+  {
+    label: "Stamp",
+    copy: "Staff confirm visits with a private PIN.",
+  },
+  {
+    label: "Reward",
+    copy: "The mystery reward unlocks after the target visit.",
+  },
+]
+
+const features = [
+  {
+    title: "No app, no plastic",
+    copy: "Every loyalty card opens from a QR link and stays usable from the customer's browser.",
+  },
+  {
+    title: "Counter-safe controls",
+    copy: "Staff PIN stamping keeps visit approval fast without exposing merchant settings.",
+  },
+  {
+    title: "Mystery rewards",
+    copy: "Customers see progress first, then reveal the assigned reward when it is earned.",
+  },
+  {
+    title: "Merchant setup path",
+    copy: "Start with account creation, add your venue details, then download QR assets.",
+  },
+]
+
 export default function Page() {
   return (
     <MarketingLayout>
-      <section className="mx-auto grid min-h-[calc(100svh-73px)] w-full max-w-7xl content-center gap-10 px-6 py-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(420px,1.05fr)] lg:items-center">
+      <section className="mx-auto grid min-h-[calc(100svh-73px)] w-full max-w-7xl content-center gap-10 px-6 py-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(420px,1.05fr)] lg:items-center lg:py-16">
         <div className="grid gap-8">
           <PageTitle
             eyebrow="No-app loyalty for local venues"
-            title="Scan, join, stamp, reward."
-            description="Stampiee gives pubs, cafes, and local counters a QR loyalty card that customers can use in the browser without downloading an app."
-            titleClassName="text-5xl leading-[1.05] sm:text-6xl"
+            title="A warm QR loyalty card customers can use before their coffee cools."
+            description="Stampiee gives pubs, cafes, salons, and local counters a browser-based loyalty card: scan a QR, join without an app, collect staff-approved stamps, and unlock a mystery reward."
+            titleClassName="text-5xl leading-[1.02] sm:text-6xl"
             descriptionClassName="text-base leading-7"
           />
 
           <div className="flex flex-wrap gap-3">
             <Button asChild size="lg">
-              <Link href="/signup">Create merchant account</Link>
+              <Link href="/signup">Start a merchant trial</Link>
             </Button>
             <Button asChild variant="secondary" size="lg">
               <Link href="/pricing">View pricing</Link>
@@ -65,20 +110,21 @@ export default function Page() {
         </div>
 
         <div className="grid gap-4">
-          <div className="grid gap-5 rounded-[2rem] border bg-card p-5 shadow-xs">
+          <Card className="surface-card gap-5 rounded-[2rem] p-1 shadow-xs">
             <div className="flex items-center justify-between gap-4">
               <SectionHeader
                 eyebrow="Live flow"
-                title="Counter-ready QR card"
+                title="Scan, join, stamp, reward"
+                description="The four-step flow is readable as a static guide and gently highlighted for motion-safe users."
                 className="flex-1"
               />
-              <span className="rounded-full bg-accent px-3 py-1 text-xs font-bold text-accent-foreground">
+              <Badge variant="secondary" className="hidden sm:inline-flex">
                 Browser first
-              </span>
+              </Badge>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-[220px_minmax(0,1fr)]">
-              <QrFrame>
+              <QrFrame label="Demo QR code for joining a no-app loyalty card">
                 <div className="grid aspect-square grid-cols-10 gap-1 rounded-2xl bg-white p-2">
                   {qrCells.map((cell, index) => (
                     <span
@@ -113,7 +159,31 @@ export default function Page() {
                 </div>
               </div>
             </div>
-          </div>
+            <div className="grid gap-2 sm:grid-cols-4">
+              {heroStages.map((stage, index) => (
+                <div
+                  key={stage.label}
+                  className="rounded-2xl border bg-background p-3 text-sm shadow-xs"
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={
+                        index === 2
+                          ? "grid size-7 motion-safe:animate-pulse place-items-center rounded-full bg-primary text-xs font-extrabold text-primary-foreground motion-reduce:animate-none"
+                          : "grid size-7 place-items-center rounded-full bg-accent text-xs font-extrabold text-accent-foreground"
+                      }
+                    >
+                      {index + 1}
+                    </span>
+                    <span className="font-extrabold">{stage.label}</span>
+                  </div>
+                  <p className="mt-2 leading-5 text-muted-foreground">
+                    {stage.copy}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </Card>
 
           <div className="grid gap-3 sm:grid-cols-3">
             {actions.map((action) => (
@@ -129,6 +199,30 @@ export default function Page() {
               </Link>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="mx-auto grid w-full max-w-7xl gap-6 px-6 pb-16">
+        <SectionHeader
+          eyebrow="Built for the counter"
+          title="Everything visitors need to understand the product without a demo call."
+          description="The homepage keeps the no-app QR proposition, merchant setup path, pricing route, and login route available from semantic links."
+        />
+        <div className="grid gap-4 md:grid-cols-4">
+          {features.map((feature) => (
+            <Card key={feature.title} className="surface-card">
+              <CardHeader>
+                <CardTitle className="text-lg font-extrabold">
+                  {feature.title}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  {feature.copy}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </section>
     </MarketingLayout>
