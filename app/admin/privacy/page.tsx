@@ -2,7 +2,18 @@ import {
   logDataRequestAction,
   recordConsentOptOutAction,
 } from "@/app/admin/actions"
+import {
+  AdminField,
+  AdminPanel,
+  SourceLabel,
+  StatusPill,
+  adminInputClasses,
+  first,
+  formatAdminDate,
+  maskAdminContact,
+} from "@/components/admin/support"
 import { EmptyState, PageTitle, SectionHeader } from "@/components/brand"
+import { DataTable } from "@/components/data/data-table"
 import { Button } from "@/components/ui/button"
 import {
   getAdminConsentRecords,
@@ -23,10 +34,11 @@ export default async function AdminPrivacyPage() {
         description="Consent readback and audited support actions for privacy, export, deletion, and opt-out requests."
       />
 
-      <section className="grid gap-4 rounded-3xl border bg-card p-5 shadow-xs">
+      <AdminPanel>
         <SectionHeader
           title="Data request workflow"
           description="Verify the requester outside this console, identify the relevant customer and merchant row, log the request, then handle export, deletion, or consent follow-up manually until self-service exists."
+          actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
         />
         {supportRows.length ? (
           <div className="grid gap-3">
@@ -40,7 +52,7 @@ export default async function AdminPrivacyPage() {
                 >
                   <div>
                     <p className="font-bold">
-                      {maskContact(customer?.email ?? customer?.phone)}
+                      {maskAdminContact(customer?.email ?? customer?.phone)}
                     </p>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {merchant?.business_name ?? "Merchant"}
@@ -75,20 +87,26 @@ export default async function AdminPrivacyPage() {
                       name="policyVersion"
                       value="2026-06-06"
                     />
-                    <select
-                      name="channel"
-                      className="h-10 rounded-xl border border-input bg-secondary/60 px-3 text-sm"
-                    >
-                      <option value="email">Email</option>
-                      <option value="sms">SMS</option>
-                      <option value="whatsapp">WhatsApp</option>
-                    </select>
-                    <input
-                      name="reason"
-                      placeholder="Opt-out reason"
-                      className="h-10 rounded-xl border border-input bg-secondary/60 px-3 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/25"
-                    />
-                    <Button type="submit" size="sm">
+                    <AdminField label="Channel">
+                      <select
+                        name="channel"
+                        required
+                        className={adminInputClasses}
+                      >
+                        <option value="email">Email</option>
+                        <option value="sms">SMS</option>
+                        <option value="whatsapp">WhatsApp</option>
+                      </select>
+                    </AdminField>
+                    <AdminField label="Reason">
+                      <input
+                        name="reason"
+                        required
+                        minLength={4}
+                        className={adminInputClasses}
+                      />
+                    </AdminField>
+                    <Button type="submit">
                       Record opt-out
                     </Button>
                   </form>
@@ -104,32 +122,41 @@ export default async function AdminPrivacyPage() {
                       value={row.merchant_id}
                     />
                     <div className="grid grid-cols-2 gap-2">
-                      <select
-                        name="requestType"
-                        className="h-10 rounded-xl border border-input bg-secondary/60 px-3 text-sm"
-                      >
-                        <option value="access">Access</option>
-                        <option value="export">Export</option>
-                        <option value="deletion">Deletion</option>
-                        <option value="rectification">Rectification</option>
-                        <option value="consent">Consent</option>
-                      </select>
-                      <select
-                        name="channel"
-                        className="h-10 rounded-xl border border-input bg-secondary/60 px-3 text-sm"
-                      >
-                        <option value="email">Email</option>
-                        <option value="phone">Phone</option>
-                        <option value="in_person">In person</option>
-                        <option value="other">Other</option>
-                      </select>
+                      <AdminField label="Request type">
+                        <select
+                          name="requestType"
+                          required
+                          className={adminInputClasses}
+                        >
+                          <option value="access">Access</option>
+                          <option value="export">Export</option>
+                          <option value="deletion">Deletion</option>
+                          <option value="rectification">Rectification</option>
+                          <option value="consent">Consent</option>
+                        </select>
+                      </AdminField>
+                      <AdminField label="Channel">
+                        <select
+                          name="channel"
+                          required
+                          className={adminInputClasses}
+                        >
+                          <option value="email">Email</option>
+                          <option value="phone">Phone</option>
+                          <option value="in_person">In person</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </AdminField>
                     </div>
-                    <input
-                      name="notes"
-                      placeholder="Request notes"
-                      className="h-10 rounded-xl border border-input bg-secondary/60 px-3 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/25"
-                    />
-                    <Button type="submit" size="sm" variant="secondary">
+                    <AdminField label="Notes">
+                      <input
+                        name="notes"
+                        required
+                        minLength={4}
+                        className={adminInputClasses}
+                      />
+                    </AdminField>
+                    <Button type="submit" variant="secondary">
                       Log request
                     </Button>
                   </form>
@@ -144,84 +171,81 @@ export default async function AdminPrivacyPage() {
             className="rounded-none border-0 p-0 shadow-none"
           />
         )}
-      </section>
+      </AdminPanel>
 
-      <section className="overflow-hidden rounded-3xl border bg-card shadow-xs">
+      <AdminPanel className="p-0">
         <div className="border-b p-5">
           <SectionHeader
             title="Consent log"
             description="Historical opt-in and opt-out records are retained as evidence."
+            actions={<SourceLabel>Source: consent_records</SourceLabel>}
           />
         </div>
-        {consentRecords.length ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left text-sm">
-              <thead className="bg-secondary text-xs text-muted-foreground uppercase">
-                <tr>
-                  <th className="px-4 py-3">Customer</th>
-                  <th className="px-4 py-3">Merchant</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Channel</th>
-                  <th className="px-4 py-3">Source</th>
-                  <th className="px-4 py-3">Policy</th>
-                  <th className="px-4 py-3">When</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {consentRecords.map((record) => {
-                  const customer = first(record.customers)
-                  const merchant = first(record.merchants)
-                  return (
-                    <tr key={record.id}>
-                      <td className="px-4 py-3">
-                        {maskContact(customer?.email ?? customer?.phone)}
-                      </td>
-                      <td className="px-4 py-3">
-                        {merchant?.business_name ?? "Merchant"}
-                      </td>
-                      <td className="px-4 py-3 font-bold">
-                        {record.consent_status.replaceAll("_", " ")}
-                      </td>
-                      <td className="px-4 py-3">{record.channel}</td>
-                      <td className="px-4 py-3">{record.source}</td>
-                      <td className="px-4 py-3">{record.policy_version}</td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {formatDate(record.created_at)}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <EmptyState
-            title="No consent records yet"
-            className="rounded-none border-0 shadow-none"
-          />
-        )}
-      </section>
+        <DataTable
+          caption="Admin consent support readback"
+          className="rounded-none border-0 shadow-none"
+          rows={consentRecords}
+          getRowKey={(record) => record.id}
+          emptyState={
+            <EmptyState
+              title="No consent records yet"
+              className="rounded-none border-0 shadow-none"
+            />
+          }
+          columns={[
+            {
+              key: "customer",
+              header: "Customer",
+              cell: (record) => {
+                const customer = first(record.customers)
+                return maskAdminContact(customer?.email ?? customer?.phone)
+              },
+            },
+            {
+              key: "merchant",
+              header: "Merchant",
+              cell: (record) => {
+                const merchant = first(record.merchants)
+                return merchant?.business_name ?? "Merchant"
+              },
+            },
+            {
+              key: "status",
+              header: "Status",
+              cell: (record) => (
+                <StatusPill>{record.consent_status.replaceAll("_", " ")}</StatusPill>
+              ),
+            },
+            {
+              key: "channel",
+              header: "Channel",
+              cell: (record) => record.channel,
+            },
+            {
+              key: "source",
+              header: "Source",
+              cell: (record) => <SourceLabel>Source: {record.source}</SourceLabel>,
+            },
+            {
+              key: "policy",
+              header: "Policy",
+              cell: (record) => record.policy_version,
+            },
+            {
+              key: "when",
+              header: "When",
+              cell: (record) => (
+                <time
+                  className="text-muted-foreground"
+                  dateTime={record.created_at}
+                >
+                  {formatAdminDate(record.created_at)}
+                </time>
+              ),
+            },
+          ]}
+        />
+      </AdminPanel>
     </div>
   )
-}
-
-function first<T>(value: T | T[] | null | undefined) {
-  if (!value) return undefined
-  return Array.isArray(value) ? value[0] : value
-}
-
-function maskContact(value?: string | null) {
-  if (!value) return "Customer"
-  if (value.includes("@")) {
-    const [name, domain] = value.split("@")
-    return `${name.slice(0, 2)}***@${domain}`
-  }
-  return `${value.slice(0, 4)}***${value.slice(-2)}`
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-GB", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value))
 }

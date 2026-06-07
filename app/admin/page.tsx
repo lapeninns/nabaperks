@@ -1,6 +1,8 @@
 import Link from "next/link"
 
+import { AdminPanel, SourceLabel } from "@/components/admin/support"
 import { MetricTile, PageTitle, SectionHeader } from "@/components/brand"
+import { FunnelChart } from "@/components/data/funnel-chart"
 import { Button } from "@/components/ui/button"
 import { getPilotFunnelCounts } from "@/lib/analytics/funnels"
 import { getAdminOverview } from "@/lib/admin/data"
@@ -25,17 +27,24 @@ export default async function AdminHomePage() {
         <MetricTile label="Billing issues" value={overview.billingIssues} />
       </section>
 
-      <section className="grid gap-4 rounded-3xl border bg-card p-5 shadow-xs">
+      <AdminPanel>
         <SectionHeader
           title="Pilot funnel readback"
           description="Source-of-truth event counts from Supabase product events."
+          actions={<SourceLabel>Source: product_events</SourceLabel>}
+        />
+        <FunnelChart
+          items={Object.entries(funnelCounts).map(([label, value]) => ({
+            label,
+            value,
+          }))}
         />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {Object.entries(funnelCounts).map(([eventName, count]) => (
             <MetricTile key={eventName} label={eventName} value={count} />
           ))}
         </div>
-      </section>
+      </AdminPanel>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
         {[

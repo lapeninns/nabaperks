@@ -1,5 +1,15 @@
 import { regenerateQrAction, setQrActiveAction } from "@/app/admin/actions"
+import {
+  AdminField,
+  AdminPanel,
+  SourceLabel,
+  StatusPill,
+  adminInputClasses,
+  first,
+  formatAdminDate,
+} from "@/components/admin/support"
 import { EmptyState, PageTitle, SectionHeader } from "@/components/brand"
+import { DataTable } from "@/components/data/data-table"
 import { Button } from "@/components/ui/button"
 import { getAdminMerchants, getAdminQrCodes } from "@/lib/admin/data"
 
@@ -17,42 +27,85 @@ export default async function AdminMerchantsPage() {
         description="Merchant account, plan status, and QR support controls."
       />
 
-      <section className="overflow-hidden rounded-3xl border bg-card shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-sm">
-            <thead className="bg-secondary text-xs text-muted-foreground uppercase">
-              <tr>
-                <th className="px-4 py-3">Merchant</th>
-                <th className="px-4 py-3">Email</th>
-                <th className="px-4 py-3">Account</th>
-                <th className="px-4 py-3">Billing</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {merchants.map((merchant) => {
+      <AdminPanel className="p-0">
+        <div className="border-b p-5">
+          <SectionHeader
+            title="Merchant accounts"
+            description="Service-role admin readback of account status and billing joins."
+            actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
+          />
+        </div>
+        <DataTable
+          caption="Admin merchant account readback"
+          className="rounded-none border-0 shadow-none"
+          rows={merchants}
+          getRowKey={(merchant) => merchant.id}
+          emptyState={
+            <EmptyState
+              title="No merchants yet"
+              description="Merchant accounts will appear once onboarding creates records."
+              className="rounded-none border-0 shadow-none"
+            />
+          }
+          columns={[
+            {
+              key: "merchant",
+              header: "Merchant",
+              cell: (merchant) => (
+                <div className="grid gap-1">
+                  <span className="font-bold">{merchant.business_name}</span>
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {merchant.business_slug}
+                  </span>
+                </div>
+              ),
+            },
+            {
+              key: "email",
+              header: "Email",
+              cell: (merchant) => (
+                <span className="text-muted-foreground">{merchant.email}</span>
+              ),
+            },
+            {
+              key: "account",
+              header: "Account",
+              cell: (merchant) => <StatusPill>{merchant.status}</StatusPill>,
+            },
+            {
+              key: "billing",
+              header: "Billing",
+              cell: (merchant) => {
                 const billing = first(merchant.billing_customers)
                 return (
-                  <tr key={merchant.id}>
-                    <td className="px-4 py-3 font-bold">
-                      {merchant.business_name}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {merchant.email}
-                    </td>
-                    <td className="px-4 py-3">{merchant.status}</td>
-                    <td className="px-4 py-3">
-                      {billing?.status ?? "not started"}
-                    </td>
-                  </tr>
+                  <span className="text-muted-foreground">
+                    {billing?.status ?? "not started"}
+                  </span>
                 )
-              })}
-            </tbody>
-          </table>
-        </div>
-      </section>
+              },
+            },
+            {
+              key: "created",
+              header: "Created",
+              cell: (merchant) => (
+                <time
+                  className="text-muted-foreground"
+                  dateTime={merchant.created_at}
+                >
+                  {formatAdminDate(merchant.created_at)}
+                </time>
+              ),
+            },
+          ]}
+        />
+      </AdminPanel>
 
-      <section className="grid gap-4 rounded-3xl border bg-card p-5 shadow-xs">
-        <SectionHeader title="QR records" />
+      <AdminPanel>
+        <SectionHeader
+          title="QR records"
+          description="Audited QR activation and regeneration controls. Reasons are required before mutation."
+          actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
+        />
         {qrCodes.length ? (
           <div className="grid gap-3">
             {qrCodes.map((qrCode) => {
@@ -68,7 +121,8 @@ export default async function AdminMerchantsPage() {
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {merchant?.business_name ?? "Merchant"} ·{" "}
-                      {qrCode.is_active ? "active" : "inactive"}
+                      {qrCode.is_active ? "active" : "inactive"} ·{" "}
+                      {formatAdminDate(qrCode.created_at)}
                     </p>
                   </div>
                   <div className="grid gap-2 lg:grid-cols-2">
@@ -88,7 +142,7 @@ export default async function AdminMerchantsPage() {
             className="rounded-none border-0 p-0 shadow-none"
           />
         )}
-      </section>
+      </AdminPanel>
     </div>
   )
 }
@@ -104,15 +158,17 @@ function QrStateForm({
     <form action={setQrActiveAction} className="grid gap-2">
       <input type="hidden" name="qrCodeId" value={qrCodeId} />
       <input type="hidden" name="isActive" value={String(nextActive)} />
-      <input
-        name="reason"
-        placeholder="Reason"
-        className="h-10 rounded-xl border border-input bg-secondary/60 px-3 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/25"
-      />
+      <AdminField label="Reason">
+        <input
+          name="reason"
+          required
+          minLength={4}
+          className={adminInputClasses}
+        />
+      </AdminField>
       <Button
         type="submit"
         variant={nextActive ? "secondary" : "destructive"}
-        size="sm"
       >
         {nextActive ? "Enable QR" : "Disable QR"}
       </Button>
@@ -124,19 +180,17 @@ function RegenerateQrForm({ qrCodeId }: { qrCodeId: string }) {
   return (
     <form action={regenerateQrAction} className="grid gap-2">
       <input type="hidden" name="qrCodeId" value={qrCodeId} />
-      <input
-        name="reason"
-        placeholder="Reason"
-        className="h-10 rounded-xl border border-input bg-secondary/60 px-3 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/25"
-      />
-      <Button type="submit" variant="secondary" size="sm">
+      <AdminField label="Reason">
+        <input
+          name="reason"
+          required
+          minLength={4}
+          className={adminInputClasses}
+        />
+      </AdminField>
+      <Button type="submit" variant="secondary">
         Regenerate QR
       </Button>
     </form>
   )
-}
-
-function first<T>(value: T | T[] | null | undefined) {
-  if (!value) return undefined
-  return Array.isArray(value) ? value[0] : value
 }

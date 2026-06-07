@@ -1,10 +1,20 @@
 import { logPilotNoteAction } from "@/app/admin/actions"
 import {
+  AdminField,
+  AdminPanel,
+  SourceLabel,
+  adminInputClasses,
+  adminTextareaClasses,
+  first,
+  formatAdminDate,
+} from "@/components/admin/support"
+import {
   EmptyState,
   MetricTile,
   PageTitle,
   SectionHeader,
 } from "@/components/brand"
+import { DataTable } from "@/components/data/data-table"
 import { Button } from "@/components/ui/button"
 import { getAdminPilotMerchants, getAdminPilotReport } from "@/lib/admin/data"
 
@@ -38,45 +48,59 @@ export default async function AdminPilotPage() {
         ))}
       </section>
 
-      <section className="overflow-hidden rounded-3xl border bg-card shadow-xs">
-        <div className="grid gap-1 border-b p-5">
+      <AdminPanel className="overflow-hidden p-0">
+        <div className="grid gap-3 border-b p-5">
           <SectionHeader
             title="Pilot report"
             description="Event counts come from Supabase product events. Derived rates, billing state, and interview notes are labelled separately."
+            actions={
+              <div className="flex flex-wrap gap-2">
+                <SourceLabel>Source: product_events</SourceLabel>
+                <SourceLabel>Source: merchants table</SourceLabel>
+                <SourceLabel>Source: billing_customers</SourceLabel>
+              </div>
+            }
           />
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-left text-sm">
-            <thead className="bg-secondary text-xs text-muted-foreground uppercase">
-              <tr>
-                <th className="px-4 py-3">Metric</th>
-                <th className="px-4 py-3">Value</th>
-                <th className="px-4 py-3">Pilot target</th>
-                <th className="px-4 py-3">Source</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {report.metrics.map((metric) => (
-                <tr key={metric.label}>
-                  <td className="px-4 py-3 font-bold">{metric.label}</td>
-                  <td className="px-4 py-3">{metric.value}</td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {metric.target}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                    {metric.source}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+        <DataTable
+          caption="Pilot readiness source-labelled metrics"
+          className="rounded-none border-0 shadow-none"
+          rows={report.metrics}
+          getRowKey={(metric) => metric.label}
+          columns={[
+            {
+              key: "metric",
+              header: "Metric",
+              cell: (metric) => <span className="font-bold">{metric.label}</span>,
+            },
+            {
+              key: "value",
+              header: "Value",
+              cell: (metric) => (
+                <span className="numeric-tabular">{metric.value}</span>
+              ),
+            },
+            {
+              key: "target",
+              header: "Pilot target",
+              cell: (metric) => (
+                <span className="text-muted-foreground">{metric.target}</span>
+              ),
+            },
+            {
+              key: "source",
+              header: "Source",
+              cell: (metric) => <SourceLabel>Source: {metric.source}</SourceLabel>,
+            },
+          ]}
+        />
+      </AdminPanel>
 
-      <section className="grid gap-4 rounded-3xl border bg-card p-5 shadow-xs">
+      <AdminPanel>
         <SectionHeader
           title="Pilot merchant notes"
           description="Capture support notes, cancellation reasons, payment objections, and timed staff-training proof as audited admin records."
+          actions={<SourceLabel>Source: audit_logs</SourceLabel>}
         />
 
         {merchants.length ? (
@@ -97,7 +121,7 @@ export default async function AdminPilotPage() {
                     </div>
                     <p className="text-sm text-muted-foreground">
                       {billing?.status ?? "no billing record"} ·{" "}
-                      {formatDate(merchant.created_at)}
+                      {formatAdminDate(merchant.created_at)}
                     </p>
                   </div>
 
@@ -110,11 +134,11 @@ export default async function AdminPilotPage() {
                       name="merchantId"
                       value={merchant.id}
                     />
-                    <label className="grid gap-1 text-sm font-bold">
-                      Note type
+                    <AdminField label="Note type">
                       <select
                         name="noteType"
-                        className="h-10 rounded-xl border bg-background px-3 text-sm font-normal"
+                        required
+                        className={adminInputClasses}
                         defaultValue="support"
                       >
                         <option value="support">Support note</option>
@@ -129,29 +153,27 @@ export default async function AdminPilotPage() {
                           Staff training proof
                         </option>
                       </select>
-                    </label>
-                    <label className="grid gap-1 text-sm font-bold">
-                      Minutes
+                    </AdminField>
+                    <AdminField label="Training minutes" helper="Required only for timed staff-training proof.">
                       <input
                         name="trainingMinutes"
                         type="number"
                         min={1}
                         max={3}
-                        className="h-10 rounded-xl border bg-background px-3 text-sm font-normal"
+                        className={adminInputClasses}
                         placeholder="1-3"
                       />
-                    </label>
-                    <label className="grid gap-1 text-sm font-bold">
-                      Notes
+                    </AdminField>
+                    <AdminField label="Notes">
                       <textarea
                         name="notes"
                         required
                         minLength={4}
                         rows={2}
-                        className="min-h-10 rounded-xl border bg-background px-3 py-2 text-sm font-normal"
+                        className={adminTextareaClasses}
                         placeholder="What happened, source, and next action"
                       />
-                    </label>
+                    </AdminField>
                     <Button type="submit" className="self-end">
                       Save note
                     </Button>
@@ -166,18 +188,7 @@ export default async function AdminPilotPage() {
             className="rounded-none border-0 p-0 shadow-none"
           />
         )}
-      </section>
+      </AdminPanel>
     </div>
-  )
-}
-
-function first<T>(value: T | T[] | null | undefined) {
-  if (!value) return undefined
-  return Array.isArray(value) ? value[0] : value
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }).format(
-    new Date(value)
   )
 }

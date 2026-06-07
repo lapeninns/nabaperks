@@ -66,7 +66,7 @@ export function ShellNavigation({
 
       <Sheet>
         <SheetTrigger asChild>
-          <Button variant="secondary" size="sm" className="md:hidden">
+          <Button variant="secondary" className="md:hidden">
             Menu
           </Button>
         </SheetTrigger>
