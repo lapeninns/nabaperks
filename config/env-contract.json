@@ -1,0 +1,84 @@
+[
+  {
+    "name": "NEXT_PUBLIC_APP_URL",
+    "visibility": "public",
+    "kind": "url",
+    "description": "Canonical app origin for links, QR redirects, Stripe return URLs, and local development."
+  },
+  {
+    "name": "NEXT_PUBLIC_SUPABASE_URL",
+    "visibility": "public",
+    "kind": "url",
+    "description": "Public Supabase project URL used by browser and server clients."
+  },
+  {
+    "name": "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "visibility": "public",
+    "kind": "string",
+    "description": "Supabase anon key safe for browser usage with Row Level Security."
+  },
+  {
+    "name": "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+    "visibility": "public",
+    "kind": "string",
+    "description": "Stripe publishable key used by client-side Stripe flows."
+  },
+  {
+    "name": "NEXT_PUBLIC_POSTHOG_KEY",
+    "visibility": "public",
+    "kind": "string",
+    "description": "Optional PostHog project key for product analytics capture.",
+    "optional": true
+  },
+  {
+    "name": "NEXT_PUBLIC_POSTHOG_HOST",
+    "visibility": "public",
+    "kind": "url",
+    "description": "Optional PostHog host, for example https://app.posthog.com or a regional endpoint.",
+    "optional": true
+  },
+  {
+    "name": "SUPABASE_SERVICE_ROLE_KEY",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Privileged Supabase service-role key for trusted server-side jobs only."
+  },
+  {
+    "name": "SUPABASE_DB_URL",
+    "visibility": "server",
+    "kind": "url",
+    "description": "Optional Postgres connection URL used only for applying migrations, seeding fixtures, and running SQL RLS tests.",
+    "optional": true
+  },
+  {
+    "name": "SUPABASE_DB_PASSWORD",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Optional database password used with linked Supabase pooler metadata when SUPABASE_DB_URL is not set.",
+    "optional": true
+  },
+  {
+    "name": "STRIPE_SECRET_KEY",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Stripe secret key for server-side billing and portal calls."
+  },
+  {
+    "name": "STRIPE_GROWTH_PRICE_ID",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Stripe recurring Price ID for the Growth Plan at GBP 29/month."
+  },
+  {
+    "name": "STRIPE_WEBHOOK_SECRET",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Stripe webhook signing secret used to verify webhook requests."
+  },
+  {
+    "name": "RESEND_API_KEY",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Resend API key for transactional email from trusted server code."
+  }
+]
