@@ -1,0 +1,314 @@
+{
+  "plugins": [
+    "react",
+    "import"
+  ],
+  "rules": {
+    "react/forbid-elements": [
+      "warn",
+      {
+        "forbid": []
+      }
+    ],
+    "no-restricted-imports": [
+      "warn",
+      {
+        "patterns": [
+          {
+            "group": [
+              "components/core/**",
+              "components/forms/**",
+              "components/loyalty/**",
+              "components/surfaces/**",
+              "v2/**"
+            ],
+            "message": "Import design-system components from 'index.js', not component internals."
+          }
+        ]
+      }
+    ],
+    "no-restricted-syntax": [
+      "warn",
+      {
+        "selector": "Literal[value=/#[0-9a-fA-F]{3,8}\\b/]",
+        "message": "Raw hex color — use a design-system color token via var()."
+      },
+      {
+        "selector": "Literal[value=/\\b\\d+px\\b/]",
+        "message": "Raw px value — use a design-system spacing token via var()."
+      },
+      {
+        "selector": "Literal[value=/font-family\\s*:\\s*(?!['\\\"]?(?:Bricolage Grotesque|Space Mono))/i]",
+        "message": "Font not provided by the design system. Available: Bricolage Grotesque, Space Mono."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='CelebrationBits'] > JSXAttribute > JSXIdentifier[name!=/^(?:type|mo|seed|key|ref|className|style|children)$/]",
+        "message": "<CelebrationBits> doesn't accept that prop. Declared props: type, mo, seed."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='CelebrationBits'] > JSXAttribute[name.name='type'] > Literal[value!=/^(?:Slam|Ripple|Burst)$/]",
+        "message": "<CelebrationBits> type must be one of 'Slam' | 'Ripple' | 'Burst'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='GhostLink'] > JSXAttribute > JSXIdentifier[name!=/^(?:children|key|ref|className|style|children)$/]",
+        "message": "<GhostLink> doesn't accept that prop. Declared props: children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='InkButton'] > JSXAttribute > JSXIdentifier[name!=/^(?:variant|size|full|disabled|children|key|ref|className|style|children)$/]",
+        "message": "<InkButton> doesn't accept that prop. Declared props: variant, size, full, disabled, children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='InkButton'] > JSXAttribute[name.name='variant'] > Literal[value!=/^(?:primary|dark|outline)$/]",
+        "message": "<InkButton> variant must be one of 'primary' | 'dark' | 'outline'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='InkButton'] > JSXAttribute[name.name='size'] > Literal[value!=/^(?:lg|md|sm)$/]",
+        "message": "<InkButton> size must be one of 'lg' | 'md' | 'sm'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='MonoTag'] > JSXAttribute > JSXIdentifier[name!=/^(?:tone|children|style|key|ref|className|style|children)$/]",
+        "message": "<MonoTag> doesn't accept that prop. Declared props: tone, children, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='MonoTag'] > JSXAttribute[name.name='tone'] > Literal[value!=/^(?:plain|accent|ink)$/]",
+        "message": "<MonoTag> tone must be one of 'plain' | 'accent' | 'ink'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='OtpBoxes'] > JSXAttribute > JSXIdentifier[name!=/^(?:length|value|onChange|key|ref|className|style|children)$/]",
+        "message": "<OtpBoxes> doesn't accept that prop. Declared props: length, value, onChange."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='PinPad'] > JSXAttribute > JSXIdentifier[name!=/^(?:onDone|label|sublabel|note|key|ref|className|style|children)$/]",
+        "message": "<PinPad> doesn't accept that prop. Declared props: onDone, label, sublabel, note."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ProgressLine'] > JSXAttribute > JSXIdentifier[name!=/^(?:current|total|label|key|ref|className|style|children)$/]",
+        "message": "<ProgressLine> doesn't accept that prop. Declared props: current, total, label."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ReceiptCard'] > JSXAttribute > JSXIdentifier[name!=/^(?:children|style|shaking|mo|key|ref|className|style|children)$/]",
+        "message": "<ReceiptCard> doesn't accept that prop. Declared props: children, style, shaking, mo."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Seal'] > JSXAttribute > JSXIdentifier[name!=/^(?:mode|onBroken|mo|size|key|ref|className|style|children)$/]",
+        "message": "<Seal> doesn't accept that prop. Declared props: mode, onBroken, mo, size."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Seal'] > JSXAttribute[name.name='mode'] > Literal[value!=/^(?:Hold|Tap)$/]",
+        "message": "<Seal> mode must be one of 'Hold' | 'Tap'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Sheet'] > JSXAttribute > JSXIdentifier[name!=/^(?:open|onClose|children|mo|key|ref|className|style|children)$/]",
+        "message": "<Sheet> doesn't accept that prop. Declared props: open, onClose, children, mo."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='StampDisc'] > JSXAttribute > JSXIdentifier[name!=/^(?:filled|index|slammed|celebration|mo|size|date|key|ref|className|style|children)$/]",
+        "message": "<StampDisc> doesn't accept that prop. Declared props: filled, index, slammed, celebration, mo, size, date."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='StampDisc'] > JSXAttribute[name.name='celebration'] > Literal[value!=/^(?:Slam|Ripple|Burst)$/]",
+        "message": "<StampDisc> celebration must be one of 'Slam' | 'Ripple' | 'Burst'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='VenueMark'] > JSXAttribute > JSXIdentifier[name!=/^(?:initials|caption|size|color|angle|key|ref|className|style|children)$/]",
+        "message": "<VenueMark> doesn't accept that prop. Declared props: initials, caption, size, color, angle."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/index.js"
+      ],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ],
+  "x-omelette": {
+    "components": {
+      "CelebrationBits": {
+        "replaces": []
+      },
+      "GhostLink": {
+        "replaces": []
+      },
+      "InkButton": {
+        "replaces": []
+      },
+      "MonoTag": {
+        "replaces": []
+      },
+      "OtpBoxes": {
+        "replaces": []
+      },
+      "PinPad": {
+        "replaces": []
+      },
+      "ProgressLine": {
+        "replaces": []
+      },
+      "ReceiptCard": {
+        "replaces": []
+      },
+      "Seal": {
+        "replaces": []
+      },
+      "Sheet": {
+        "replaces": []
+      },
+      "StampDisc": {
+        "replaces": []
+      },
+      "VenueMark": {
+        "replaces": []
+      }
+    },
+    "tokens": [
+      "--background",
+      "--border",
+      "--card",
+      "--card-foreground",
+      "--destructive",
+      "--font-heading",
+      "--font-mono",
+      "--font-sans",
+      "--foreground",
+      "--info",
+      "--layout-customer-max",
+      "--layout-marketing-max",
+      "--layout-merchant-max",
+      "--muted",
+      "--muted-foreground",
+      "--primary",
+      "--primary-foreground",
+      "--qr",
+      "--qr-bg",
+      "--reward-ready",
+      "--ring",
+      "--seal",
+      "--space-1",
+      "--space-10",
+      "--space-2",
+      "--space-3",
+      "--space-4",
+      "--space-5",
+      "--space-6",
+      "--space-8",
+      "--stamp",
+      "--stamp-empty",
+      "--success",
+      "--text-body",
+      "--text-h1",
+      "--text-h2",
+      "--text-hero",
+      "--text-mono-id",
+      "--text-mono-meta",
+      "--text-small",
+      "--w-accent",
+      "--w-accent-ink",
+      "--w-border",
+      "--w-border-dashed",
+      "--w-card",
+      "--w-cobalt",
+      "--w-display",
+      "--w-dur-move",
+      "--w-dur-press",
+      "--w-dur-slam",
+      "--w-ease",
+      "--w-ease-slam",
+      "--w-ink",
+      "--w-ink-soft",
+      "--w-leaf",
+      "--w-line",
+      "--w-mo",
+      "--w-mono",
+      "--w-paper",
+      "--w-paper-2",
+      "--w-r",
+      "--w-r-sheet",
+      "--w-shadow",
+      "--w-shadow-pressed",
+      "--w-shadow-sm",
+      "--w-sun",
+      "--weight-body",
+      "--weight-bold",
+      "--weight-display"
+    ],
+    "tokenKinds": {
+      "--w-paper": "color",
+      "--w-paper-2": "color",
+      "--w-card": "color",
+      "--w-ink": "color",
+      "--w-ink-soft": "color",
+      "--w-line": "color",
+      "--w-accent": "color",
+      "--w-accent-ink": "color",
+      "--w-cobalt": "color",
+      "--w-leaf": "color",
+      "--w-sun": "color",
+      "--background": "color",
+      "--foreground": "color",
+      "--card": "color",
+      "--card-foreground": "color",
+      "--primary": "color",
+      "--primary-foreground": "color",
+      "--muted": "color",
+      "--muted-foreground": "color",
+      "--border": "color",
+      "--ring": "color",
+      "--destructive": "color",
+      "--success": "color",
+      "--info": "color",
+      "--stamp": "color",
+      "--stamp-empty": "color",
+      "--seal": "color",
+      "--reward-ready": "color",
+      "--qr": "color",
+      "--qr-bg": "color",
+      "--w-display": "font",
+      "--w-mono": "font",
+      "--font-sans": "font",
+      "--font-heading": "font",
+      "--font-mono": "font",
+      "--text-hero": "font",
+      "--text-h1": "font",
+      "--text-h2": "font",
+      "--text-body": "font",
+      "--text-small": "font",
+      "--text-mono-meta": "font",
+      "--text-mono-id": "font",
+      "--weight-display": "font",
+      "--weight-bold": "font",
+      "--weight-body": "font",
+      "--space-1": "spacing",
+      "--space-2": "spacing",
+      "--space-3": "spacing",
+      "--space-4": "spacing",
+      "--space-5": "spacing",
+      "--space-6": "spacing",
+      "--space-8": "spacing",
+      "--space-10": "spacing",
+      "--layout-customer-max": "spacing",
+      "--layout-merchant-max": "spacing",
+      "--layout-marketing-max": "spacing",
+      "--w-r": "spacing",
+      "--w-r-sheet": "spacing",
+      "--w-border": "color",
+      "--w-border-dashed": "color",
+      "--w-shadow": "shadow",
+      "--w-shadow-sm": "shadow",
+      "--w-shadow-pressed": "shadow",
+      "--w-ease": "other",
+      "--w-ease-slam": "other",
+      "--w-dur-press": "other",
+      "--w-dur-move": "other",
+      "--w-dur-slam": "other",
+      "--w-mo": "other"
+    },
+    "fontFamilies": [
+      "Bricolage Grotesque",
+      "Space Mono"
+    ]
+  }
+}

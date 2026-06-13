@@ -1,0 +1,41 @@
+/* ============================================================
+   Wet Ink — spacing, shape, elevation, motion
+   Sharp-ish print shapes, 2px ink borders, HARD offset shadows
+   (never blurred). Stamps & seals are the only circles.
+   ============================================================ */
+
+:root {
+  /* spacing — 4px base */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* layout */
+  --layout-customer-max: 410px;  /* customer column incl. padding */
+  --layout-merchant-max: 1060px;
+  --layout-marketing-max: 1100px;
+
+  /* shape */
+  --w-r: 10px;            /* default radius: buttons, inputs, cards, keys */
+  --w-r-sheet: 18px;      /* bottom sheets, large panels (top corners) */
+  --w-border: 2px solid var(--w-ink);     /* THE border */
+  --w-border-dashed: 2px dashed var(--w-line); /* receipt rules, empty slots */
+
+  /* elevation — hard offset, no blur */
+  --w-shadow: 4px 4px 0 var(--w-ink);
+  --w-shadow-sm: 3px 3px 0 var(--w-ink);
+  --w-shadow-pressed: 1px 1px 0 var(--w-ink);
+
+  /* motion */
+  --w-ease: cubic-bezier(0.2, 0, 0, 1); /* @kind other */        /* standard moves */
+  --w-ease-slam: cubic-bezier(0.16, 1.2, 0.3, 1); /* @kind other */ /* the stamp slam overshoot */
+  --w-dur-press: 90ms; /* @kind other */     /* button press */
+  --w-dur-move: 320ms; /* @kind other */     /* sheets, transitions */
+  --w-dur-slam: 380ms; /* @kind other */     /* stamp landing */
+  --w-mo: 1; /* @kind other */               /* motion intensity multiplier */
+}

@@ -1,0 +1,25 @@
+<!-- @dsCard group="Colors" viewport="700x180" name="Loyalty semantics" subtitle="What each ink means on the card — QR always on pure white" -->
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+body { padding: 18px 22px; display: flex; gap: 18px; align-items: center; }
+.item { display: flex; gap: 10px; align-items: center; flex: 1; }
+.lab { font-family: var(--w-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--w-ink-soft); line-height: 1.6; }
+.disc { width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--w-ink); flex-shrink: 0; display: grid; place-items: center; font-family: var(--w-display); font-weight: 800; font-size: 20px; transform: rotate(-6deg); }
+.empty { border: 2px dashed var(--w-line); background: transparent; color: var(--w-ink-soft); font-family: var(--w-mono); font-size: 14px; transform: none; }
+.qr { width: 52px; height: 52px; background: #fff; border: 2px solid var(--w-ink); border-radius: 8px; display: grid; place-items: center; }
+.qr div { width: 28px; height: 28px; background:
+  conic-gradient(var(--qr) 25%, transparent 0 50%, var(--qr) 0 75%, transparent 0); }
+</style>
+</head>
+<body>
+<div class="item"><div class="disc" style="background: var(--stamp); color: #fff;">✱</div><div class="lab">--stamp<br/>collected visit</div></div>
+<div class="item"><div class="disc empty">2</div><div class="lab">--stamp-empty<br/>dashed slot</div></div>
+<div class="item"><div class="disc" style="background: var(--seal);">?</div><div class="lab">--seal<br/>unbroken mystery</div></div>
+<div class="item"><div class="disc" style="border-color: var(--reward-ready); color: var(--reward-ready); background: transparent;">✓</div><div class="lab">--reward-ready<br/>redeemable</div></div>
+<div class="item"><div class="qr"><div></div></div><div class="lab">--qr on --qr-bg<br/>always pure white</div></div>
+</body>
+</html>

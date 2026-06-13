@@ -1,0 +1,28 @@
+/* ============================================================
+   Wet Ink — typography
+   Bricolage Grotesque for everything spoken; Space Mono for
+   everything printed (receipts, IDs, codes, eyebrows, meta).
+   ============================================================ */
+
+:root {
+  --w-display: "Bricolage Grotesque", system-ui, sans-serif; /* @kind font */
+  --w-mono: "Space Mono", ui-monospace, SFMono-Regular, Menlo, monospace; /* @kind font */
+
+  /* aliases */
+  --font-sans: var(--w-display);
+  --font-heading: var(--w-display);
+  --font-mono: var(--w-mono);
+
+  /* scale (mobile-first; customer column is ~384px wide) */
+  --text-hero: 56px;        /* marketing display; clamp() up to 76px */
+  --text-h1: 34px;          /* screen titles — weight 800, line-height 1.05 */
+  --text-h2: 21px;          /* card titles — weight 800 */
+  --text-body: 15px;        /* body — line-height 22-23px */
+  --text-small: 13.5px;
+  --text-mono-meta: 11.5px; /* uppercase mono meta, letter-spacing 0.06em */
+  --text-mono-id: 10px;     /* card numbers, footnotes */
+
+  --weight-display: 800;    /* headings are always ExtraBold */
+  --weight-bold: 700;
+  --weight-body: 500;
+}

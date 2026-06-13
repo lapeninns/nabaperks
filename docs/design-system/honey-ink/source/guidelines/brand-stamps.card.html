@@ -1,0 +1,47 @@
+<!-- @dsCard group="Brand" viewport="700x190" name="Stamp marks" subtitle="The identity system: rotated rubber stamps, dashed rings, ✱" -->
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+body { padding: 20px 24px; display: flex; gap: 30px; align-items: center; }
+.mark { border-radius: 50%; display: grid; place-items: center; position: relative; transform: rotate(-8deg); }
+.mark .ring { position: absolute; inset: 4px; border-radius: 50%; opacity: 0.75; }
+.c { text-align: center; line-height: 1; }
+.lab { font-family: var(--w-mono); font-size: 9.5px; text-transform: uppercase; color: var(--w-ink-soft); margin-top: 10px; text-align: center; }
+.word { display: flex; align-items: center; gap: 9px; }
+</style>
+</head>
+<body>
+<div>
+  <div class="word">
+    <span style="width: 30px; height: 30px; border-radius: 50%; background: var(--w-accent); border: 2px solid var(--w-ink); display: inline-grid; place-items: center; color: #fff; font-family: var(--w-display); font-weight: 800; font-size: 15px; transform: rotate(-6deg);">✱</span>
+    <span style="font-family: var(--w-display); font-weight: 800; font-size: 22px; letter-spacing: -0.01em;">nabaperks</span>
+  </div>
+  <div class="lab">wordmark — disc + lowercase 800</div>
+</div>
+<div>
+  <div class="mark" style="width: 76px; height: 76px; border: 2.5px solid var(--w-accent); color: var(--w-accent);">
+    <div class="ring" style="border: 1.5px dashed var(--w-accent);"></div>
+    <div class="c"><div style="font-family: var(--w-display); font-weight: 800; font-size: 25px;">OC</div><div style="font-family: var(--w-mono); font-size: 6.5px; margin-top: 3px;">OLD CROWN</div></div>
+  </div>
+  <div class="lab">venue mark (VenueMark)</div>
+</div>
+<div>
+  <div class="mark" style="width: 76px; height: 76px; background: var(--w-accent); border: 2px solid var(--w-ink); color: #fff; transform: rotate(-6deg);">
+    <div class="ring" style="border: 1.5px dashed rgba(255,255,255,0.65); inset: 5px;"></div>
+    <div class="c"><div style="font-family: var(--w-display); font-weight: 800; font-size: 28px;">✱</div><div style="font-family: var(--w-mono); font-size: 8px; margin-top: 2px;">12 JUN</div></div>
+  </div>
+  <div class="lab">the stamp (StampDisc)</div>
+</div>
+<div>
+  <div class="mark" style="width: 76px; height: 76px; background: var(--w-sun); border: 2px solid var(--w-ink); transform: rotate(-6deg); box-shadow: var(--w-shadow-sm);">
+    <div class="ring" style="border: 1.5px dashed rgba(33,28,22,0.5); inset: 6px;"></div>
+    <div style="font-family: var(--w-display); font-weight: 800; font-size: 30px;">?</div>
+  </div>
+  <div class="lab">the mystery seal (Seal)</div>
+</div>
+<div style="flex: 1;" class="lab">rules: always rotated -6° to -8° ·<br/>dashed inner ring · circles are<br/>reserved for stamp-family marks</div>
+</body>
+</html>

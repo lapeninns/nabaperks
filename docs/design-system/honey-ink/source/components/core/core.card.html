@@ -1,0 +1,44 @@
+<!-- @dsCard group="Components" viewport="700x300" name="Core" subtitle="InkButton, GhostLink, MonoTag, MonoLine" -->
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../../styles.css" />
+<script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body { padding: 18px 22px; } .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { InkButton, GhostLink, MonoTag, MonoLine } = window.NabaperksDesignSystemHoneyInk_4fb4ef;
+function Demo() {
+  return (
+    <div>
+      <div className="row">
+        <InkButton size="md">Collect my first stamp</InkButton>
+        <InkButton variant="dark" size="md">Stamp it</InkButton>
+        <InkButton variant="outline" size="md">Reprint poster</InkButton>
+        <InkButton size="md" disabled>Save my card</InkButton>
+      </div>
+      <div className="row">
+        <InkButton size="lg">Large</InkButton>
+        <InkButton size="md">Medium</InkButton>
+        <InkButton size="sm">Small</InkButton>
+        <GhostLink>Maybe later</GhostLink>
+      </div>
+      <div className="row">
+        <MonoTag>Browser first</MonoTag>
+        <MonoTag tone="accent">Stamped</MonoTag>
+        <MonoTag tone="ink">Saved</MonoTag>
+        <MonoLine>The Old Crown · Bristol · Card Nº OC-0248</MonoLine>
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script>
+</body>
+</html>

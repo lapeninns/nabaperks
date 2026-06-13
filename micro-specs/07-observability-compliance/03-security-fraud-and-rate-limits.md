@@ -1,0 +1,88 @@
+# Micro-Spec: Security, Fraud, and Rate Limits
+
+## Exact Goal and User-Visible Outcomes
+
+Nabaperks's MVP has baseline abuse protection for QR scans, staff PIN attempts, stamp issuing, reward redemption, admin access, and Stripe webhooks. Legitimate merchants and customers can use the product quickly, while obvious fraud and unsafe access paths are blocked and logged.
+
+## Blast Radius
+
+In scope:
+
+- Rate limits for QR scans, PIN attempts, stamp issuing, auth-sensitive endpoints, and redemption attempts.
+- Fraud flags for abnormal stamp/reward activity.
+- Admin fraud review page support.
+- Webhook signature verification checks.
+- Audit logging for sensitive actions.
+- Security-focused tests around access and mutation boundaries.
+
+Out of scope:
+
+- Full fraud machine-learning.
+- Device fingerprinting unless explicitly approved.
+- Sentry integration.
+- SMS/WhatsApp abuse controls.
+
+## Strict Constraints and Assumptions
+
+- Staff PIN is a known fraud risk and must be protected by rate limits and audit logs.
+- Duplicate reward redemption must be impossible through normal and concurrent requests.
+- QR codes can be disabled when compromised.
+- Admin access requires RBAC and MFA before production.
+- Runtime rate-limit buckets must use server-side durable storage rather than process-local memory.
+- Service-role keys never reach client code.
+- Input validation is required for all mutation endpoints.
+
+## Decisions Already Made
+
+Must-have controls:
+
+- HTTPS.
+- Supabase RLS.
+- RBAC.
+- Admin MFA.
+- Rate limits.
+- Audit logs.
+- Service-role isolation.
+- Stripe webhook verification.
+- Input validation.
+- Data minimisation.
+- Supabase daily backups.
+- PostHog Error Tracking/Logs, Sentry later if needed.
+
+## Behavioral Requirements
+
+- WHEN a staff PIN is submitted incorrectly too many times, THE system SHALL rate-limit further attempts.
+- WHEN QR scans or customer identity requests are rate-limited, THE system SHALL store hashed bucket keys in durable server-side storage.
+- WHEN a customer requests multiple stamps inside the cooldown window, THE system SHALL reject duplicates.
+- WHEN stamp volume is unusually high for a merchant or time window, THE system SHALL create a fraud flag for admin review.
+- WHEN reward redemption is attempted concurrently, THE system SHALL allow at most one successful redemption.
+- WHEN a QR code is disabled, THE system SHALL block future scan-to-join flows and keep historical scan data.
+- WHEN admin MFA enforcement is enabled, THE system SHALL require a Supabase AAL2 session before serving internal admin routes or actions.
+- WHEN an unauthorised role attempts a privileged action, THE system SHALL deny it and record a security-relevant audit event where appropriate.
+- WHEN a Stripe webhook signature is invalid, THE system SHALL reject the webhook without mutating billing state.
+
+## Verification Criteria
+
+Acceptance criteria:
+
+- PIN attempts and stamp issuing are rate-limited.
+- QR scan and customer identity request limits survive serverless instance rotation.
+- Duplicate redemption is prevented under repeated/concurrent attempts.
+- Fraud flags appear for configured abnormal activity thresholds.
+- Privileged server-only secrets are not available to client code.
+- Security tests cover tenant isolation and role denial.
+
+Manual QA:
+
+- Trigger PIN rate limit.
+- Attempt duplicate stamp inside cooldown.
+- Attempt duplicate redemption from two sessions.
+- Disable QR and confirm customer-facing block.
+- Submit invalid Stripe webhook signature and confirm no data change.
+
+Task breakdown:
+
+- Define rate-limit and fraud thresholds for MVP.
+- Implement enforcement around sensitive flows.
+- Add fraud flag persistence and admin readback.
+- Verify concurrent and unauthorized failure paths.
