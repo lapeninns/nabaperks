@@ -37,8 +37,8 @@ export async function StaffPanel() {
         </h2>
         <p className="max-w-prose text-sm leading-6 text-muted-foreground">
           Customers show a short-lived code; your team approves it on a paired
-          counter station. Each stamp is signed with a staff name — no shared
-          PINs typed on customer phones.
+          counter station. Each stamp is signed with a staff name, with no
+          approval codes entered into customer browsers.
         </p>
       </header>
 

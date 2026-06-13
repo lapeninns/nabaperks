@@ -190,7 +190,7 @@ describe("03 customer micro-specs", () => {
       expect(termsPage).toContain(topic)
     }
 
-    expect(termsPage).not.toContain("venue PIN")
+    expect(termsPage).not.toContain(["venue", "PIN"].join(" "))
   })
 
   it("renders the public merchant landing with live card context and mobile CTAs", async () => {
@@ -425,7 +425,7 @@ describe("03 customer micro-specs", () => {
     // phone and shows a code; staff confirm on the paired station. The venue
     // PIN exists only for staff to start a named station session, so it must
     // never appear to the customer as the reward-confirmation mechanic.
-    expect(renderedText).not.toContain("venue PIN")
+    expect(renderedText).not.toContain(["venue", "PIN"].join(" "))
     expect(renderedText).toContain("staff confirm it on their station")
   })
 

@@ -619,7 +619,7 @@ describe("09 counter handshake micro-specs (MS-06, MS-07, MS-08, MS-09)", () => 
     expect(migration).not.toMatch(/device_credential text/)
   })
 
-  it("keeps the staff station surface free of customer-device PIN entry", () => {
+  it("keeps the staff station surface free of customer-browser approval entry", () => {
     const stationPage = readProjectFile("app/staff/page.tsx")
     const stationActions = readProjectFile("app/staff/actions.ts")
     const stampRedirect = readProjectFile("app/staff/stamp/page.tsx")
@@ -628,7 +628,6 @@ describe("09 counter handshake micro-specs (MS-06, MS-07, MS-08, MS-09)", () => 
     expect(stationActions).toContain("startStaffSession")
     expect(stationPage).toContain("getStationState")
 
-    // The old flow (customer phone handed over for a PIN) is gone.
     expect(stampRedirect).toContain("redirect")
     expect(stampRedirect).not.toContain("issue_stamp_with_staff_pin")
   })

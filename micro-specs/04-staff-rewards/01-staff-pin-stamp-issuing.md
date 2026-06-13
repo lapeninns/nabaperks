@@ -33,7 +33,7 @@ Out of scope:
 ## Decisions Already Made
 
 - Staff workflow starts when customer taps "Claim stamp."
-- Staff enters merchant PIN.
+- Staff starts a named session on a paired station.
 - Event type for normal stamp is `earned`.
 - Dashboard metrics derive from stamp events and membership totals.
 
@@ -64,7 +64,7 @@ Manual QA:
 - Try three invalid PIN attempts and confirm rate-limit behaviour.
 - Attempt a second stamp inside cooldown.
 - Confirm event and audit readback.
-- Confirm another merchant's PIN cannot approve this customer's stamp.
+- Confirm another merchant's station session cannot approve this customer's stamp.
 
 Task breakdown:
 

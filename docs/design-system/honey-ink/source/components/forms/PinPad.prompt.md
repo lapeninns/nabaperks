@@ -1,10 +1,10 @@
-Staff PIN pad for the shared-phone counter moment — stamping and redemption both go through it, usually inside a `Sheet`.
+Staff session PIN pad for the paired-station counter moment — stamping and redemption approvals happen on the counter station, usually inside a `Sheet`.
 
 ```jsx
 <Sheet open={open} onClose={close}>
-  <PinPad label="Staff: stamp this card"
-          sublabel="Customer hands the phone across the counter"
-          onDone={(pin) => issueStamp(pin)} />
+  <PinPad label="Staff: start session"
+          sublabel="Use the paired counter station"
+          onDone={(pin) => startStaffSession(pin)} />
 </Sheet>
 ```
 

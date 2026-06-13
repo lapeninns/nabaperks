@@ -391,7 +391,7 @@
       "pageTitle": {
         "eyebrow": "Staff & stations",
         "title": "Who stamps, and where",
-        "description": "Customers show a short-lived code; your team approves it on a paired counter station. Each stamp is signed with a staff name — no shared PINs typed on customer phones."
+        "description": "Customers show a short-lived code; your team approves it on a paired counter station. Each stamp is signed with a staff name — no approval codes entered into customer browsers."
       },
       "sections": [
         {

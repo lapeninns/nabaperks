@@ -23,7 +23,7 @@ The core promise is:
 
 The main product decision:
 
-> **The customer never hands over an unlocked phone, and staff never type a reusable shared PIN on a customer device.**
+> **The customer keeps their phone, and staff approvals happen only from paired counter stations.**
 
 ---
 
@@ -999,7 +999,7 @@ A customer gets a stamp only after showing a short-lived code or QR to staff, an
 * Reward redemption
 * Offline mode
 * POS integration
-* Staff daily shared PIN
+* Venue-wide approval code
 * Customer marketing consent
 
 ## Strict constraints and assumptions
@@ -2118,7 +2118,7 @@ Marketing claims must be substantiated.
 
 Demo data must be clearly marked as demo.
 
-The site must explain no app, no plastic, no phone handover, and recoverable cards.
+The site must explain no app, no plastic, customer-held phones, and recoverable cards.
 
 The site must not promise a specific reward unless the demo configuration uses that exact fixed reward.
 

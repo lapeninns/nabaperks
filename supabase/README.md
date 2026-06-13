@@ -13,7 +13,7 @@ intended to be applied to a Supabase project where `auth.users`,
 
 The revocation migration removes direct `anon` access inherited from Supabase
 defaults so unauthenticated users cannot query public tables directly. Later
-migrations add the station handshake tables and remove obsolete shared-PIN
+migrations add the station handshake tables and remove obsolete venue-wide
 approval surfaces.
 
 ## Local Fixtures

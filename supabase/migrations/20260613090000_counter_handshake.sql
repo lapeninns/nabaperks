@@ -1,10 +1,7 @@
 -- Counter handshake (MS-06, MS-07, MS-08, MS-09)
 --
--- Replaces the handed-phone staff PIN flow with the v3 trust model:
 -- the customer shows a short-lived single-use code, and a paired counter
 -- station with a named staff session approves the stamp or redemption.
--- The customer never hands over an unlocked phone; staff never type a PIN
--- on a customer device.
 
 -- ---------------------------------------------------------------------------
 -- Tables

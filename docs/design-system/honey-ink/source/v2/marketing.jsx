@@ -82,7 +82,7 @@ function MarketingSite({ t }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 18 }}>
           {[
             { n: "01", t: "Scan", c: "Customers point a camera at your till card. The stamp card opens in the browser — nothing to install." },
-            { n: "02", t: "Stamp", c: "They hand the phone over; staff type a 4-digit PIN. A rubber stamp slams down. That's the whole transaction." },
+            { n: "02", t: "Stamp", c: "They show a code; staff approve it at the counter station. A rubber stamp slams down. That's the whole transaction." },
             { n: "03", t: "Unseal", c: "Visit three breaks a wax seal on a mystery reward from your pool. Redeemable from the next day." },
           ].map((s, i) => (
             <div key={s.n} style={{

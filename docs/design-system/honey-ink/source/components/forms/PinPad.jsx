@@ -1,11 +1,6 @@
 import React from "react"
 
-/**
- * 4-digit staff PIN pad — THE counter moment. The customer's phone is
- * handed across the counter; staff type the venue PIN to stamp or redeem.
- * Auto-submits on the 4th digit.
- */
-export function PinPad({ onDone, label = "Staff PIN", sublabel = "Hand the phone to staff", note }) {
+export function PinPad({ onDone, label = "Staff PIN", sublabel = "Use the paired counter station", note }) {
   const [digits, setDigits] = React.useState("")
   React.useEffect(() => {
     if (digits.length === 4) {

@@ -247,14 +247,13 @@ Object.assign(__ds_scope, { OtpBoxes });
 // components/forms/PinPad.jsx
 try { (() => {
 /**
- * 4-digit staff PIN pad — THE counter moment. The customer's phone is
- * handed across the counter; staff type the venue PIN to stamp or redeem.
+ * 4-digit staff session PIN pad for the paired counter station.
  * Auto-submits on the 4th digit.
  */
 function PinPad({
   onDone,
   label = "Staff PIN",
-  sublabel = "Hand the phone to staff",
+  sublabel = "Use the paired counter station",
   note
 }) {
   const [digits, setDigits] = React.useState("");
@@ -1788,7 +1787,7 @@ function MarketingSite({
   }, {
     n: "02",
     t: "Stamp",
-    c: "They hand the phone over; staff type a 4-digit PIN. A rubber stamp slams down. That's the whole transaction."
+    c: "They show a code; staff approve it at the counter station. A rubber stamp slams down. That's the whole transaction."
   }, {
     n: "03",
     t: "Unseal",
@@ -2892,7 +2891,7 @@ function ProgressLine({
 function PinPad({
   onDone,
   label = "Staff PIN",
-  sublabel = "Hand the phone to staff"
+  sublabel = "Use the paired counter station"
 }) {
   const [digits, setDigits] = useState("");
   useEffect(() => {

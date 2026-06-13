@@ -261,7 +261,7 @@ function ProgressLine({ current, total, label = "Visits" }) {
 
 /* ---------- staff PIN pad ---------- */
 
-function PinPad({ onDone, label = "Staff PIN", sublabel = "Hand the phone to staff" }) {
+function PinPad({ onDone, label = "Staff PIN", sublabel = "Use the paired counter station" }) {
   const [digits, setDigits] = useState("");
   useEffect(() => {
     if (digits.length === 4) {

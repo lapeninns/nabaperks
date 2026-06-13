@@ -36,10 +36,10 @@ Project context and stack decisions for AI agents working in this repo.
 - Currency GBP; default timezone `Europe/London`. Phone-first customer
   identity: accept `07...`, store E.164. Browser storage is cache only — the
   server is the source of truth.
-- The core trust mechanic: **the customer never hands over an unlocked phone,
-  and staff never type a reusable shared PIN on a customer device.** The
-  customer shows a short-lived single-use code; a paired counter station with a
-  named staff session approves it.
+- The core trust mechanic: **the customer keeps their phone, and staff approve
+  short-lived codes only from paired counter stations.** The customer shows a
+  short-lived single-use code; a paired counter station with a named staff
+  session approves it.
 
 ### Architectural constraints
 

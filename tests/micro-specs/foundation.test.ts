@@ -96,7 +96,7 @@ describe("00/01 foundation micro-specs", () => {
     }
   })
 
-  it("keeps obsolete Druto captures and shared-PIN reveal surfaces out of the repo", () => {
+  it("keeps obsolete Druto captures and venue-code reveal surfaces out of the repo", () => {
     for (const path of [
       "druto-screenshots",
       "druto-mock-demo-screenshots",

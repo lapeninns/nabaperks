@@ -20,14 +20,14 @@ Read `readme.md` in this skill for the full design guide, then explore the other
 - **Motion:** the stamp **slam** (380ms overshoot + paper shake), buttons whose
   shadow collapses into the paper on press, one-shot celebration particles.
 - **UX doctrine:** value before friction (first stamp before signup; "Keep your
-  card", never "register") and the shared-phone **counter moment** (staff PIN pad
-  in a bottom sheet over the customer's card).
+  card", never "register") and the paired-station **counter moment** (customer
+  code shown to staff, approval completed at the counter station).
 - **Icons:** none — ✱ stamps, ?/✓ seals, status dots, dashed circles. No emoji.
 
 **Token & component entry points**
 - Link `styles.css` (it `@import`s everything in `tokens/`, incl. all keyframes).
 - Components live in `components/` and bundle to `window.NabaperksDesignSystemHoneyInk_4fb4ef`
-  (stable legacy namespace) via the generated `_ds_bundle.js`:
+  (stable namespace) via the generated `_ds_bundle.js`:
   InkButton, GhostLink, MonoTag/MonoLine, PinPad, OtpBoxes, ReceiptCard/ReceiptRule,
   Sheet, StampRow/StampDisc, ProgressLine, Seal, VenueMark, CelebrationBits.
 - Foundation specimens: `guidelines/`. Screen recreations: `ui_kits/`.
