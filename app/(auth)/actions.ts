@@ -29,7 +29,7 @@ function validateEmail(email: string) {
 }
 
 function safeNextPath(next: string) {
-  const appOrigin = "https://stampiee.local"
+  const appOrigin = "https://nabaperks.local"
 
   try {
     const url = new URL(next, appOrigin)

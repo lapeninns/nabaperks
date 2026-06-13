@@ -160,7 +160,7 @@ export async function saveLoyaltyCardAction(
     actorId: merchant.id,
   })
 
-  redirect("/app/card?saved=1")
+  redirect("/app/launch?tab=card&saved=1")
 }
 
 export async function saveRewardPoolItemAction(
@@ -256,7 +256,7 @@ export async function saveRewardPoolItemAction(
     metadata: { loyalty_card_id: fields.loyaltyCardId },
   })
 
-  redirect("/app/card?saved=pool")
+  redirect("/app/launch?tab=card&saved=pool")
 }
 
 export async function deleteRewardPoolItemAction(formData: FormData) {
@@ -264,7 +264,9 @@ export async function deleteRewardPoolItemAction(formData: FormData) {
   const rewardPoolItemId = value(formData, "rewardPoolItemId")
 
   if (!merchant || !rewardPoolItemId) {
-    redirect(`/app/card?error=${encodeURIComponent(REWARD_UPDATE_ERROR)}`)
+    redirect(
+      `/app/launch?tab=card&error=${encodeURIComponent(REWARD_UPDATE_ERROR)}`
+    )
   }
 
   const supabase = await createSupabaseServerClient()
@@ -274,7 +276,9 @@ export async function deleteRewardPoolItemAction(formData: FormData) {
   })
 
   if (error) {
-    redirect(`/app/card?error=${encodeURIComponent(REWARD_UPDATE_ERROR)}`)
+    redirect(
+      `/app/launch?tab=card&error=${encodeURIComponent(REWARD_UPDATE_ERROR)}`
+    )
   }
 
   await capturePostHogEvent({
@@ -287,5 +291,5 @@ export async function deleteRewardPoolItemAction(formData: FormData) {
     metadata: { reward_pool_item_id: rewardPoolItemId },
   })
 
-  redirect("/app/card?saved=pool")
+  redirect("/app/launch?tab=card&saved=pool")
 }

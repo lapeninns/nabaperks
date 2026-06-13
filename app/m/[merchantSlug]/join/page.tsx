@@ -4,7 +4,7 @@ import {
   CustomerIdentityForm,
   CustomerJoinForm,
 } from "@/components/customer/join-forms"
-import { Eyebrow } from "@/components/brand"
+import { Eyebrow, ReceiptCard, VenueMark } from "@/components/brand"
 import { CustomerShell } from "@/components/layout"
 import {
   ProgressTrack,
@@ -55,7 +55,7 @@ export default async function MerchantJoinPage({
 
   return (
     <CustomerShell className="grid content-center">
-      <section className="surface-card grid gap-5 rounded-[2rem] border bg-card p-6 shadow-xs">
+      <ReceiptCard edge className="grid gap-5">
         <div className="grid gap-2 text-center">
           <Eyebrow>No app loyalty</Eyebrow>
           <h1 className="text-3xl font-extrabold leading-tight text-balance">
@@ -67,31 +67,42 @@ export default async function MerchantJoinPage({
           </p>
         </div>
 
-        <div className="grid gap-4 rounded-3xl border bg-background p-4 text-sm">
-          <div>
-            <p className="font-bold">Mystery visit summary</p>
-            <p className="mt-2 leading-6 text-muted-foreground">
-              Collect {context.loyaltyCard.stamps_required} visit stamps. Your
-              assigned reward stays hidden until the final stamp and can be
+        <div>
+          <ReceiptCard edge className="grid gap-4 text-sm">
+            <div className="flex items-start justify-between gap-4">
+              <div className="grid gap-1">
+                <Eyebrow>Mystery visit summary</Eyebrow>
+                <p className="text-base leading-tight font-extrabold">
+                  Collect {context.loyaltyCard.stamps_required} visit stamps
+                </p>
+              </div>
+              <VenueMark size={48} name={context.merchant.business_name} />
+            </div>
+
+            <StampGrid current={0} total={context.loyaltyCard.stamps_required} />
+
+            <p className="leading-6 text-muted-foreground">
+              Your assigned reward stays hidden until the final stamp and can be
               redeemed from the next UK business day.
             </p>
-          </div>
-          <ProgressTrack
-            current={0}
-            total={context.loyaltyCard.stamps_required}
-            label="Visits to reveal"
-          />
-          {context.loyaltyCard.min_spend_pence !== null ? (
-            <p className="mt-2 font-mono text-xs text-muted-foreground">
-              Minimum spend {formatPence(context.loyaltyCard.min_spend_pence)}.
-            </p>
-          ) : null}
-          <Link
-            className="mt-3 inline-flex text-xs font-bold underline underline-offset-4"
-            href={merchantTermsUrl}
-          >
-            View full venue terms
-          </Link>
+
+            <ProgressTrack
+              current={0}
+              total={context.loyaltyCard.stamps_required}
+              label="Visits to reveal"
+            />
+            {context.loyaltyCard.min_spend_pence !== null ? (
+              <p className="font-mono text-xs text-muted-foreground">
+                Minimum spend {formatPence(context.loyaltyCard.min_spend_pence)}.
+              </p>
+            ) : null}
+            <Link
+              className="inline-flex w-fit text-xs font-bold underline underline-offset-4"
+              href={merchantTermsUrl}
+            >
+              View full venue terms
+            </Link>
+          </ReceiptCard>
         </div>
 
         {membership ? (
@@ -109,7 +120,7 @@ export default async function MerchantJoinPage({
         ) : (
           <CustomerIdentityForm merchantSlug={merchantSlug} qrId={query.qr} />
         )}
-      </section>
+      </ReceiptCard>
     </CustomerShell>
   )
 }
@@ -170,3 +181,4 @@ function formatPence(pence: number) {
     currency: "GBP",
   }).format(pence / 100)
 }
+

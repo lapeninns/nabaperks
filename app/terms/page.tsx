@@ -1,6 +1,6 @@
 import Link from "next/link"
 
-import { PageTitle } from "@/components/brand"
+import { Eyebrow, PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout } from "@/components/layout"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -24,7 +24,7 @@ const sections = [
   {
     id: "abuse",
     title: "Abuse and fraud prevention",
-    body: "Stampiee and merchants may investigate suspicious activity, incorrect staff PIN use, duplicate claims, QR misuse, manual adjustments, or fraud signals. Audited support actions preserve event history rather than deleting earned history silently.",
+    body: "Nabaperks and merchants may investigate suspicious activity, duplicate claims, QR misuse, manual adjustments, or fraud signals. Stamps are confirmed by a staff member at the counter station, and audited support actions preserve event history rather than deleting earned history silently.",
   },
   {
     id: "availability",
@@ -37,9 +37,9 @@ export default function TermsPage() {
   return (
     <MarketingLayout>
       <section className="mx-auto grid w-full max-w-6xl gap-8 px-6 py-12 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start">
-        <aside className="rounded-3xl border bg-card p-4 shadow-xs lg:sticky lg:top-24">
-          <p className="mb-3 text-sm font-extrabold">On this page</p>
-          <nav aria-label="Terms sections" className="grid gap-2">
+        <aside className="surface-card p-4 lg:sticky lg:top-24">
+          <Eyebrow className="mb-3">On this page</Eyebrow>
+          <nav aria-label="Terms sections" className="grid gap-1">
             {sections.map((section) => (
               <a
                 key={section.id}
@@ -54,13 +54,20 @@ export default function TermsPage() {
 
         <article className="grid gap-6">
           <PageTitle
-            eyebrow="Platform terms"
-            title="Stampiee MVP terms"
-            description="Basic pilot terms for no-app QR loyalty participation. They are structured for readability and require legal review before launch."
-            titleClassName="text-4xl sm:text-5xl"
+            eyebrow="Plain English summary · not the full legal text"
+            title="The small print, kept legible."
+            description="Pilot terms for no-app QR loyalty participation, structured for readability. The full text travels with your merchant agreement and requires legal review before launch."
+            titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
+            className="md:grid-cols-1"
           />
 
-          <section className="grid gap-4 rounded-[2rem] border bg-card p-6 shadow-xs">
+          <ReceiptCard edge className="grid gap-0">
+            <div className="flex items-baseline justify-between gap-4">
+              <p className="text-xl font-extrabold">Terms, condensed</p>
+              <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+                Nº T-2026
+              </span>
+            </div>
             {sections.map((section) => (
               <TermsBlock
                 key={section.id}
@@ -69,12 +76,10 @@ export default function TermsPage() {
                 body={section.body}
               />
             ))}
-          </section>
+          </ReceiptCard>
 
           <Alert className="border-destructive/30 bg-destructive/10">
-            <AlertTitle className="text-destructive">
-              Review required
-            </AlertTitle>
+            <AlertTitle className="text-destructive">Review required</AlertTitle>
             <AlertDescription>
               These terms are not final legal wording. UK GDPR, PECR,
               promotional marketing, and consumer protection obligations need
@@ -104,9 +109,11 @@ function TermsBlock({
     <section
       id={id}
       tabIndex={-1}
-      className="scroll-mt-28 grid gap-2 border-b pb-4 outline-none last:border-b-0 last:pb-0 focus-visible:ring-3 focus-visible:ring-ring/35"
+      className="w-rule scroll-mt-28 grid gap-2 pt-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
     >
-      <h2 className="text-lg font-extrabold">{title}</h2>
+      <p className="font-mono text-[0.7rem] font-bold tracking-[0.08em] text-foreground uppercase">
+        {title}
+      </p>
       <p className="text-sm leading-6 text-muted-foreground">{body}</p>
     </section>
   )

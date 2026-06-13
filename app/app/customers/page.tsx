@@ -5,14 +5,30 @@ import { CustomerReadbackTable } from "@/components/merchant/customer-readback-t
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { getMerchantCustomers } from "@/lib/merchant/dashboard"
 
-export default async function MerchantCustomersPage() {
+type CustomersPageProps = {
+  searchParams?: Promise<{
+    highlight?: string | string[]
+  }>
+}
+
+type CustomersSearchParams = Awaited<
+  NonNullable<CustomersPageProps["searchParams"]>
+>
+
+export default async function MerchantCustomersPage({
+  searchParams,
+}: CustomersPageProps) {
   const merchant = await getCurrentMerchant()
 
   if (!merchant) {
     redirect("/app/onboarding")
   }
 
+  const params = searchParams
+    ? await searchParams
+    : ({} satisfies CustomersSearchParams)
   const customers = await getMerchantCustomers(merchant.id)
+  const highlightedMembershipId = firstParam(params.highlight)
 
   return (
     <div className="grid gap-6">
@@ -24,6 +40,7 @@ export default async function MerchantCustomersPage() {
 
       <CustomerReadbackTable
         customers={customers}
+        highlightedMembershipId={highlightedMembershipId}
         emptyState={
           <EmptyState
             title="No customers yet"
@@ -33,4 +50,8 @@ export default async function MerchantCustomersPage() {
       />
     </div>
   )
+}
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value
 }

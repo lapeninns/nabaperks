@@ -110,7 +110,7 @@ export default async function AdminPilotPage() {
               return (
                 <article
                   key={merchant.id}
-                  className="grid gap-4 rounded-2xl border bg-background p-4"
+                  className="grid gap-4 rounded-lg border bg-background p-4"
                 >
                   <div className="grid gap-1 sm:grid-cols-[1fr_auto]">
                     <div>

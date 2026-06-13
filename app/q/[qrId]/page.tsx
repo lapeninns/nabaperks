@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 
-import { EmptyState } from "@/components/brand"
+import { EmptyState, ReceiptCard } from "@/components/brand"
 import { CustomerShell } from "@/components/layout"
 import {
   getExistingMembershipForCurrentUser,
@@ -47,14 +47,14 @@ export default async function PublicQrPage({ params }: PublicQrPageProps) {
 function UnavailableQr() {
   return (
     <CustomerShell className="grid content-center">
-      <section className="surface-card grid gap-4 rounded-[2rem] border bg-card p-6 text-center shadow-xs">
+      <ReceiptCard edge className="grid gap-4 text-center">
         <EmptyState
           title="This loyalty card is unavailable"
           description="Ask a team member for the current loyalty QR."
           headingLevel={1}
           className="w-full"
         />
-      </section>
+      </ReceiptCard>
     </CustomerShell>
   )
 }

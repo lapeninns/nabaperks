@@ -48,7 +48,7 @@ export default async function AdminPrivacyPage() {
               return (
                 <article
                   key={row.id}
-                  className="grid gap-4 rounded-2xl border p-4 xl:grid-cols-[1fr_360px_360px]"
+                  className="grid gap-4 rounded-lg border p-4 xl:grid-cols-[1fr_360px_360px]"
                 >
                   <div>
                     <p className="font-bold">

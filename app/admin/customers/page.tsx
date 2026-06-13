@@ -36,7 +36,7 @@ export default async function AdminCustomersPage() {
         />
         <DataTable
           caption="Admin customer membership support readback"
-          className="rounded-2xl shadow-none"
+          className="rounded-lg shadow-none"
           rows={customers}
           getRowKey={(row) => row.id}
           emptyState={
@@ -108,7 +108,7 @@ export default async function AdminCustomersPage() {
         />
         <DataTable
           caption="Admin reward support readback"
-          className="rounded-2xl shadow-none"
+          className="rounded-lg shadow-none"
           rows={rewards}
           getRowKey={(reward) => reward.id}
           emptyState={

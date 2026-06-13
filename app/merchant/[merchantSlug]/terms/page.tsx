@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 
-import { Eyebrow } from "@/components/brand"
+import { Eyebrow, ReceiptCard } from "@/components/brand"
 import { CustomerShell } from "@/components/layout"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
@@ -39,7 +39,7 @@ export default async function MerchantTermsPage({
         </p>
       </section>
 
-      <section className="surface-card grid gap-4 rounded-[2rem] border bg-card p-6 shadow-xs">
+      <ReceiptCard edge className="grid gap-4">
         <Term
           label="Reward"
           value="A mystery reward is assigned from the venue reward pool when the customer earns the final visit stamp."
@@ -55,7 +55,7 @@ export default async function MerchantTermsPage({
         />
         <Term
           label="Redemption"
-          value="The assigned reward can be redeemed from the next UK business day after it is revealed. Ask staff to confirm with the venue PIN."
+          value="The assigned reward can be redeemed from the next UK business day after it is revealed. Show your code at the counter and staff confirm it on their station."
         />
         <Term
           label="Exclusions"
@@ -69,7 +69,7 @@ export default async function MerchantTermsPage({
           label="Merchant contact"
           value={contact || "Ask the venue team"}
         />
-      </section>
+      </ReceiptCard>
 
       <StatusBanner title="Review required" tone="warning">
         These terms support pilot operation only. Legal, promotional, and data

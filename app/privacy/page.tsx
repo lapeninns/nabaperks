@@ -1,6 +1,6 @@
 import Link from "next/link"
 
-import { PageTitle } from "@/components/brand"
+import { Eyebrow, PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout } from "@/components/layout"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -9,7 +9,7 @@ const sections = [
   {
     id: "data-collected",
     title: "Data collected",
-    body: "Stampiee stores the email address or phone number used to verify a customer, merchant loyalty membership records, stamp events, reward events, consent records, QR and billing status signals, and support audit logs.",
+    body: "Nabaperks stores the email address or phone number used to verify a customer, merchant loyalty membership records, stamp events, reward events, consent records, QR and billing status signals, and support audit logs.",
   },
   {
     id: "purposes",
@@ -24,7 +24,7 @@ const sections = [
   {
     id: "sharing-and-scoping",
     title: "Sharing, scoping, and support access",
-    body: "Customer loyalty data is scoped to the relevant merchant and Stampiee support administrators. Admin access is used for support, fraud review, privacy requests, and audited operational tasks. PostHog analytics receives minimized event properties where configured.",
+    body: "Customer loyalty data is scoped to the relevant merchant and Nabaperks support administrators. Admin access is used for support, fraud review, privacy requests, and audited operational tasks. PostHog analytics receives minimized event properties where configured.",
   },
   {
     id: "data-requests",
@@ -42,9 +42,9 @@ export default function PrivacyPage() {
   return (
     <MarketingLayout>
       <section className="mx-auto grid w-full max-w-6xl gap-8 px-6 py-12 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start">
-        <aside className="rounded-3xl border bg-card p-4 shadow-xs lg:sticky lg:top-24">
-          <p className="mb-3 text-sm font-extrabold">On this page</p>
-          <nav aria-label="Privacy sections" className="grid gap-2">
+        <aside className="surface-card p-4 lg:sticky lg:top-24">
+          <Eyebrow className="mb-3">On this page</Eyebrow>
+          <nav aria-label="Privacy sections" className="grid gap-1">
             {sections.map((section) => (
               <a
                 key={section.id}
@@ -59,13 +59,20 @@ export default function PrivacyPage() {
 
         <article className="grid gap-6">
           <PageTitle
-            eyebrow="Privacy notice"
-            title="How Stampiee handles loyalty data"
-            description="MVP privacy wording for pilot support, consent separation, admin support scoping, and audit records. It needs legal review before public launch."
-            titleClassName="text-4xl sm:text-5xl"
+            eyebrow="Plain English summary · not the full legal text"
+            title="What happens to the data."
+            description="MVP privacy wording for pilot support, consent separation, admin support scoping, and audit records. The full notice travels with your merchant agreement and needs legal review before launch."
+            titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
+            className="md:grid-cols-1"
           />
 
-          <section className="grid gap-4 rounded-[2rem] border bg-card p-6 shadow-xs">
+          <ReceiptCard edge className="grid gap-0">
+            <div className="flex items-baseline justify-between gap-4">
+              <p className="text-xl font-extrabold">Privacy, condensed</p>
+              <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+                Nº P-2026
+              </span>
+            </div>
             {sections.map((section) => (
               <PolicyBlock
                 key={section.id}
@@ -74,16 +81,14 @@ export default function PrivacyPage() {
                 body={section.body}
               />
             ))}
-          </section>
+          </ReceiptCard>
 
           <Alert className="border-destructive/30 bg-destructive/10">
-            <AlertTitle className="text-destructive">
-              Review required
-            </AlertTitle>
+            <AlertTitle className="text-destructive">Review required</AlertTitle>
             <AlertDescription>
-              This page is not final legal wording. UK GDPR, PECR,
-              promotional marketing, and consumer protection terms must be
-              reviewed before launch.
+              This page is not final legal wording. UK GDPR, PECR, promotional
+              marketing, and consumer protection terms must be reviewed before
+              launch.
             </AlertDescription>
           </Alert>
 
@@ -109,9 +114,11 @@ function PolicyBlock({
     <section
       id={id}
       tabIndex={-1}
-      className="scroll-mt-28 grid gap-2 border-b pb-4 outline-none last:border-b-0 last:pb-0 focus-visible:ring-3 focus-visible:ring-ring/35"
+      className="w-rule scroll-mt-28 grid gap-2 pt-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
     >
-      <h2 className="text-lg font-extrabold">{title}</h2>
+      <p className="font-mono text-[0.7rem] font-bold tracking-[0.08em] text-foreground uppercase">
+        {title}
+      </p>
       <p className="text-sm leading-6 text-muted-foreground">{body}</p>
     </section>
   )

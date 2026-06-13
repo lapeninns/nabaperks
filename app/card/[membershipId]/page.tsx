@@ -1,5 +1,6 @@
 import Link from "next/link"
 
+import { Eyebrow, ReceiptCard, VenueMark } from "@/components/brand"
 import { CustomerShell } from "@/components/layout"
 import {
   ProgressTrack,
@@ -7,6 +8,7 @@ import {
   StampGrid,
   StatusBanner,
 } from "@/components/loyalty"
+import { StampCelebration } from "@/components/motion"
 import { Button } from "@/components/ui/button"
 import { getCustomerCardState } from "@/lib/customer/card"
 
@@ -51,11 +53,17 @@ export default async function CustomerCardPage({
 
   return (
     <CardShell>
-      <section className="surface-card grid gap-5 rounded-[2rem] border bg-card p-6 shadow-xs">
+      <div className="grid gap-4">
         {stamp === "issued" ? (
-          <StatusBanner title="Stamp added." tone="success" className="text-center">
-            Your progress has been updated.
-          </StatusBanner>
+          <StampCelebration>
+            <StatusBanner
+              title="Stamp added."
+              tone="success"
+              className="text-center"
+            >
+              That&apos;s one. Your progress has been updated.
+            </StatusBanner>
+          </StampCelebration>
         ) : null}
         {reward === "redeemed" ? (
           <StatusBanner
@@ -67,55 +75,74 @@ export default async function CustomerCardPage({
           </StatusBanner>
         ) : null}
 
-        <div className="grid gap-2 text-center">
-          <p className="font-mono text-xs uppercase text-muted-foreground">
-            Digital stamp card
-          </p>
-          <h1 className="text-3xl font-extrabold leading-tight text-balance">
-            {merchant.business_name}
-          </h1>
-          <p className="text-sm leading-6 text-muted-foreground">
-            {loyaltyCard.card_name}
-          </p>
-        </div>
+        <ReceiptCard edge className="grid gap-5" aria-label="Stamp card">
+            <div className="flex items-start justify-between gap-4">
+              <div className="grid gap-1">
+                <Eyebrow>Digital stamp card</Eyebrow>
+                <h1 className="text-2xl leading-tight font-extrabold text-balance">
+                  {merchant.business_name}
+                </h1>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  {loyaltyCard.card_name}
+                </p>
+              </div>
+              <VenueMark size={56} name={merchant.business_name} />
+            </div>
 
-        <StampGrid current={current} total={target} />
+            <hr className="w-rule" />
 
-        <ProgressTrack
-          current={current}
-          total={target}
-          label="Reward progress"
-          className="rounded-3xl bg-accent p-4"
-        />
+            <StampGrid
+              current={current}
+              total={target}
+              slamIndex={stamp === "issued" ? current - 1 : -1}
+            />
 
-        <RewardState
-          teaserName={loyaltyCard.reward_name}
-          teaserTerms={loyaltyCard.reward_terms}
-          latestReward={latestReward}
-          rewardRedeemable={Boolean(rewardRedeemable)}
-        />
+            <ProgressTrack
+              current={current}
+              total={target}
+              label="Reward progress"
+              className="rounded-lg bg-accent p-4"
+            />
 
-        {cardState.unavailableReason ? (
-          <UnavailableCard message={cardState.unavailableReason} />
-        ) : rewardUnlocked && rewardRedeemable ? (
-          <Button asChild size="lg" variant="reward" className="w-full">
-            <Link href={`/reward/${latestReward.id}`}>Redeem reward</Link>
-          </Button>
-        ) : rewardUnlocked ? (
-          <StatusNotice message="Come back from the next UK business day to redeem." />
-        ) : stampsBlocked ? (
-          <StatusNotice message="This merchant is not accepting new stamps right now." />
-        ) : (
-          <Button asChild size="lg" className="w-full">
-            <Link href={`/staff/stamp?membership=${membership.id}`}>
-              Claim stamp
-            </Link>
-          </Button>
-        )}
-      </section>
+            <RewardState
+              teaserName={loyaltyCard.reward_name}
+              teaserTerms={loyaltyCard.reward_terms}
+              latestReward={latestReward}
+              rewardRedeemable={Boolean(rewardRedeemable)}
+            />
+
+            {cardState.unavailableReason ? (
+              <UnavailableCard message={cardState.unavailableReason} />
+            ) : rewardUnlocked && rewardRedeemable ? (
+              <Button asChild size="lg" variant="reward" className="w-full">
+                <Link href={`/reward/${latestReward.id}`}>Redeem reward</Link>
+              </Button>
+            ) : rewardUnlocked ? (
+              <StatusNotice message="Come back from the next UK business day to redeem." />
+            ) : stampsBlocked ? (
+              <StatusNotice message="This merchant is not accepting new stamps right now." />
+            ) : (
+              <Button asChild size="lg" className="w-full">
+                <Link href={`/card/${membership.id}/stamp`}>
+                  Get today&apos;s stamp
+                </Link>
+              </Button>
+            )}
+
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+                Nabaperks loyalty
+              </span>
+              <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+                One stamp per day
+              </span>
+            </div>
+        </ReceiptCard>
+      </div>
     </CardShell>
   )
 }
+
 
 function RewardState({
   teaserName,
@@ -196,9 +223,9 @@ function CardAccessState({
 
   return (
     <CardShell>
-      <section className="surface-card rounded-[2rem] border bg-card p-6 text-center shadow-xs">
+      <section className="surface-card p-6 text-center">
         <p className="font-mono text-xs uppercase text-muted-foreground">
-          Stampiee loyalty
+          Nabaperks loyalty
         </p>
         <h1 className="mt-2 text-3xl font-extrabold leading-tight">
           Card unavailable

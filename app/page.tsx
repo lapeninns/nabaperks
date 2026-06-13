@@ -1,16 +1,19 @@
 import Link from "next/link"
 
-import { MetricTile, PageTitle, SectionHeader } from "@/components/brand"
+import {
+  Eyebrow,
+  MetricTile,
+  MonoTag,
+  PageTitle,
+  ReceiptCard,
+  SectionHeader,
+  VenueMark,
+} from "@/components/brand"
 import { MarketingLayout } from "@/components/layout"
 import { QrFrame, StampGrid } from "@/components/loyalty"
-import { Badge } from "@/components/ui/badge"
+import { MotionReveal } from "@/components/motion"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 const qrCells = [
   1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0,
@@ -19,42 +22,72 @@ const qrCells = [
   0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1,
 ]
 
-const actions = [
-  {
-    href: "/signup",
-    title: "Start a merchant trial",
-    description:
-      "Create the account, add the business profile, and build the first mystery card.",
-  },
-  {
-    href: "/login",
-    title: "Open merchant setup",
-    description:
-      "Continue onboarding, QR downloads, staff PINs, and dashboard readback.",
-  },
-  {
-    href: "/pricing",
-    title: "Check pilot pricing",
-    description: "30 days free for pilots, then GBP 29/month per location.",
-  },
-]
-
-const heroStages = [
+const journey = [
   {
     label: "Scan",
-    copy: "Customer points their camera at your counter QR.",
+    copy: "Customers point a camera at your till card. The card opens in the browser — nothing to install.",
   },
   {
     label: "Join",
-    copy: "They verify in the browser — no app store detour.",
+    copy: "They save it to their phone with one text. No app to download, no password to forget.",
   },
   {
     label: "Stamp",
-    copy: "Staff confirm visits with a private PIN.",
+    copy: "They show a short code at the counter; staff confirm it on the station. The phone never leaves their hand.",
   },
   {
     label: "Reward",
-    copy: "The mystery reward unlocks after the target visit.",
+    copy: "The third visit breaks a wax seal on a mystery reward from your pool. Redeemable the next day.",
+  },
+]
+
+const beats = [
+  {
+    n: "01",
+    title: "Scan",
+    copy: "Camera up at the till card. The stamp card opens in the browser in about two seconds — no app-store detour.",
+  },
+  {
+    n: "02",
+    title: "Show",
+    copy: "The customer taps for a short code. It sits on their screen with a countdown; the phone stays in their hand.",
+  },
+  {
+    n: "03",
+    title: "Confirm",
+    copy: "Staff read the code on the counter station and approve. One stamp, attributable to a named session.",
+  },
+  {
+    n: "04",
+    title: "Unseal",
+    copy: "On the third visit a wax seal breaks over a mystery reward. Give it a day to breathe, then redeem.",
+  },
+]
+
+const quotes = [
+  {
+    quote:
+      "Regulars have their code up before they've even ordered. It's the bit of theatre our counter was missing.",
+    who: "Maya · Manager",
+    venue: "The Old Crown, Bristol",
+    initials: "OC",
+    tilt: "-rotate-1",
+  },
+  {
+    quote:
+      "Set up between the lunch rush and the school run. Nobody has once asked where the app is.",
+    who: "Fern · Owner",
+    venue: "Fern & Loaf, Bath",
+    initials: "FL",
+    tilt: "rotate-1",
+  },
+  {
+    quote:
+      "The seal is silly and brilliant. People book a third cut just to break the thing open.",
+    who: "Marlowe · Barber",
+    venue: "Marlowe's, Leeds",
+    initials: "ML",
+    tilt: "-rotate-1",
   },
 ]
 
@@ -64,30 +97,50 @@ const features = [
     copy: "Every loyalty card opens from a QR link and stays usable from the customer's browser.",
   },
   {
-    title: "Counter-safe controls",
-    copy: "Staff PIN stamping keeps visit approval fast without exposing merchant settings.",
+    title: "The phone never crosses the counter",
+    copy: "Customers show a short, single-use code; staff confirm it on a paired station with a named session.",
   },
   {
     title: "Mystery rewards",
-    copy: "Customers see progress first, then reveal the assigned reward when it is earned.",
+    copy: "Customers see progress first, then a sealed reward breaks open when the target visit is earned.",
   },
   {
-    title: "Merchant setup path",
-    copy: "Start with account creation, add your venue details, then download QR assets.",
+    title: "Set up in an afternoon",
+    copy: "Account, venue details, reward pool, then download your printed QR kit — poster, till card, sticker.",
+  },
+]
+
+const waysIn = [
+  {
+    href: "/signup",
+    title: "Start a merchant trial",
+    copy: "Create the account, add your venue, and build the first mystery card.",
+  },
+  {
+    href: "/login",
+    title: "Open merchant setup",
+    copy: "Continue onboarding, QR downloads, the counter station, and dashboards.",
+  },
+  {
+    href: "/pricing",
+    title: "Check pilot pricing",
+    copy: "30 days free for pilots, then GBP 29/month per venue.",
   },
 ]
 
 export default function Page() {
   return (
     <MarketingLayout>
-      <section className="mx-auto grid min-h-[calc(100svh-73px)] w-full max-w-7xl content-center gap-10 px-6 py-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(420px,1.05fr)] lg:items-center lg:py-16">
-        <div className="grid gap-8">
+      {/* Hero */}
+      <section className="mx-auto grid w-full max-w-7xl content-center gap-10 px-6 py-12 lg:grid-cols-[minmax(0,0.95fr)_minmax(380px,1fr)] lg:items-center lg:py-16">
+        <div className="grid gap-7">
           <PageTitle
-            eyebrow="No-app loyalty for local venues"
-            title="A warm QR loyalty card customers can use before their coffee cools."
-            description="Stampiee gives pubs, cafes, salons, and local counters a browser-based loyalty card: scan a QR, join without an app, collect staff-approved stamps, and unlock a mystery reward."
-            titleClassName="text-5xl leading-[1.02] sm:text-6xl"
-            descriptionClassName="text-base leading-7"
+            eyebrow="No-app loyalty for UK counters"
+            title="Loyalty, stamped before the coffee cools."
+            description="A browser-based loyalty card that lives on your customer's phone. They scan your till QR, show a short code at the counter, and a mystery reward unseals on the third visit."
+            titleClassName="max-w-[15ch] text-[clamp(2.6rem,6vw,4.6rem)] leading-[0.98] tracking-[-0.02em]"
+            descriptionClassName="max-w-[40ch] text-base leading-7"
+            className="md:grid-cols-1"
           />
 
           <div className="flex flex-wrap gap-3">
@@ -107,110 +160,201 @@ export default function Page() {
             <MetricTile label="Staff training" value="<3 min" />
             <MetricTile label="Pilot offer" value="30 days free" />
           </div>
+          <p className="font-mono text-[0.7rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+            £29/month after the pilot · one price, one venue
+          </p>
         </div>
 
-        <div className="grid gap-4">
-          <Card className="surface-card gap-5 rounded-[2rem] p-1 shadow-xs">
-            <div className="flex items-center justify-between gap-4">
-              <SectionHeader
-                eyebrow="Live flow"
-                title="Scan, join, stamp, reward"
-                description="The four-step flow is readable as a static guide and gently highlighted for motion-safe users."
-                className="flex-1"
-              />
-              <Badge variant="secondary" className="hidden sm:inline-flex">
-                Browser first
-              </Badge>
-            </div>
+        {/* Live receipt + join QR demo */}
+        <MotionReveal className="grid gap-4" delay={0.08}>
+          <div className="-rotate-1">
+            <Card className="gap-4 p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div className="grid gap-1">
+                  <Eyebrow>The Old Crown · Bristol</Eyebrow>
+                  <p className="text-xl leading-tight font-extrabold">
+                    Free hot drink after 3 visits
+                  </p>
+                </div>
+                <VenueMark size={54} />
+              </div>
+              <hr className="w-rule" />
+              <StampGrid current={2} total={3} className="max-w-64" />
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+                  Card Nº OC-0248
+                </span>
+                <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-primary uppercase">
+                  1 visit to the seal
+                </span>
+              </div>
+              <div className="receipt-edge -mx-5 -mb-5" />
+            </Card>
+          </div>
 
-            <div className="grid gap-4 sm:grid-cols-[220px_minmax(0,1fr)]">
+          <div className="rotate-1 justify-self-end">
+            <div className="surface-card flex items-center gap-4 p-4">
               <QrFrame label="Demo QR code for joining a no-app loyalty card">
-                <div className="grid aspect-square grid-cols-10 gap-1 rounded-2xl bg-white p-2">
+                <div className="grid aspect-square w-24 grid-cols-10 gap-[2px] rounded-md bg-white p-1.5">
                   {qrCells.map((cell, index) => (
                     <span
                       key={index}
-                      className={
-                        cell
-                          ? "rounded-[3px] bg-qr"
-                          : "rounded-[3px] bg-transparent"
-                      }
+                      className={cell ? "rounded-[1px] bg-qr" : "bg-transparent"}
                     />
                   ))}
                 </div>
               </QrFrame>
-
-              <div className="grid content-between gap-4 rounded-3xl bg-secondary/60 p-4">
-                <div>
-                  <p className="text-sm font-bold text-muted-foreground">
-                    Old Crown Mystery Card
-                  </p>
-                  <p className="mt-1 text-3xl leading-tight font-extrabold">
-                    3 visits reveal a reward
-                  </p>
-                </div>
-                <StampGrid current={2} total={3} />
-                <div className="rounded-2xl bg-card p-3">
-                  <p className="text-xs font-bold text-muted-foreground uppercase">
-                    Next action
-                  </p>
-                  <p className="mt-1 text-sm font-bold">
-                    Staff approves the visit and keeps the reward locked.
-                  </p>
-                </div>
+              <div className="grid gap-1">
+                <Eyebrow>Scan to join</Eyebrow>
+                <p className="max-w-[18ch] text-sm leading-5 font-bold">
+                  One scan opens the card. No app store in the way.
+                </p>
               </div>
             </div>
-            <div className="grid gap-2 sm:grid-cols-4">
-              {heroStages.map((stage, index) => (
-                <div
-                  key={stage.label}
-                  className="rounded-2xl border bg-background p-3 text-sm shadow-xs"
-                >
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={
-                        index === 2
-                          ? "grid size-7 motion-safe:animate-pulse place-items-center rounded-full bg-primary text-xs font-extrabold text-primary-foreground motion-reduce:animate-none"
-                          : "grid size-7 place-items-center rounded-full bg-accent text-xs font-extrabold text-accent-foreground"
-                      }
-                    >
-                      {index + 1}
-                    </span>
-                    <span className="font-extrabold">{stage.label}</span>
-                  </div>
-                  <p className="mt-2 leading-5 text-muted-foreground">
-                    {stage.copy}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </Card>
+          </div>
+        </MotionReveal>
+      </section>
 
-          <div className="grid gap-3 sm:grid-cols-3">
-            {actions.map((action) => (
-              <Link
-                key={action.href}
-                href={action.href}
-                className="pressable grid gap-2 rounded-2xl border bg-card p-4 shadow-xs transition hover:-translate-y-0.5 hover:border-primary/50"
+      {/* Four-stage journey */}
+      <section className="mx-auto w-full max-w-7xl px-6 pb-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {journey.map((stage, index) => {
+            const active = index === 2
+            return (
+              <div
+                key={stage.label}
+                className="surface-card grid gap-2 p-4 shadow-xs"
               >
-                <span className="text-sm font-extrabold">{action.title}</span>
-                <span className="text-sm leading-6 text-muted-foreground">
-                  {action.description}
-                </span>
-              </Link>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={
+                      active
+                        ? "grid size-7 place-items-center rounded-full bg-primary text-xs font-extrabold text-primary-foreground shadow-xs motion-safe:animate-pulse motion-reduce:animate-none"
+                        : "grid size-7 place-items-center rounded-full border-2 border-ink bg-accent text-xs font-extrabold text-accent-foreground"
+                    }
+                  >
+                    {index + 1}
+                  </span>
+                  <span className="font-extrabold">{stage.label}</span>
+                </div>
+                <p className="text-sm leading-5 text-muted-foreground">
+                  {stage.copy}
+                </p>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* The counter moment — dark ink band */}
+      <section className="my-10 border-y-2 border-ink bg-ink text-paper">
+        <div className="mx-auto w-full max-w-7xl px-6 py-14">
+          <div className="mb-10 flex flex-wrap items-center justify-between gap-6">
+            <div className="max-w-[46ch] grid gap-3">
+              <span className="font-mono text-[0.7rem] font-bold tracking-[0.1em] text-primary uppercase">
+                The counter moment
+              </span>
+              <h2 className="text-[clamp(1.9rem,4vw,2.9rem)] leading-[1.04] font-extrabold text-paper">
+                Four beats, under ten seconds.
+              </h2>
+              <p className="text-[0.95rem] leading-6 text-paper/65">
+                The whole product is one small piece of theatre at the till,
+                choreographed so the queue never notices — and the customer
+                keeps their phone the entire time.
+              </p>
+            </div>
+            <VenueMark size={92} caption="The Old Crown" className="[&_span:last-child]:text-paper/60" />
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {beats.map((beat) => (
+              <div key={beat.n} className="border-t-2 border-dashed border-paper/30 pt-4">
+                <div className="font-mono text-[0.7rem] font-bold tracking-[0.1em] text-primary">
+                  BEAT {beat.n}
+                </div>
+                <div className="mt-2 text-xl font-extrabold text-paper">
+                  {beat.title}
+                </div>
+                <p className="mt-2 text-[0.85rem] leading-5 text-paper/60">
+                  {beat.copy}
+                </p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
+      {/* Social proof */}
+      <section className="mx-auto w-full max-w-7xl px-6 pb-4">
+        <div className="mb-7 grid justify-items-center gap-3 text-center">
+          <MonoTag tone="plain">From the pilot</MonoTag>
+          <h2 className="text-[clamp(1.7rem,3.6vw,2.4rem)] leading-tight font-extrabold">
+            Counters that kept it.
+          </h2>
+        </div>
+        <div className="grid gap-5 md:grid-cols-3">
+          {quotes.map((item) => (
+            <figure key={item.initials} className={item.tilt}>
+              <ReceiptCard className="grid gap-4">
+                <blockquote className="text-[1.05rem] leading-6 font-bold text-balance">
+                  &ldquo;{item.quote}&rdquo;
+                </blockquote>
+                <hr className="w-rule" />
+                <figcaption className="flex items-center justify-between gap-3">
+                  <div className="grid gap-1">
+                    <span className="font-mono text-[0.65rem] font-bold tracking-[0.08em] text-foreground uppercase">
+                      {item.who}
+                    </span>
+                    <span className="font-mono text-[0.6rem] tracking-[0.08em] text-muted-foreground uppercase">
+                      {item.venue}
+                    </span>
+                  </div>
+                  <VenueMark size={42} initials={item.initials} />
+                </figcaption>
+              </ReceiptCard>
+            </figure>
+          ))}
+        </div>
+      </section>
+
+      {/* Pricing teaser */}
+      <section className="mx-auto w-full max-w-xl px-6 py-12">
+        <div className="-rotate-1">
+          <Card className="gap-3 p-6 text-center">
+            <Eyebrow>After the 30-day pilot</Eyebrow>
+            <p className="text-5xl leading-none font-extrabold">
+              £29
+              <span className="text-lg font-bold text-muted-foreground">
+                /month
+              </span>
+            </p>
+            <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+              One price · one venue · no contracts
+            </span>
+            <hr className="w-rule" />
+            <p className="text-sm leading-6 text-muted-foreground">
+              Unlimited stamps, the mystery pool, and the printed QR kit —
+              everything, no tiers.
+            </p>
+            <Button asChild size="lg" className="w-full">
+              <Link href="/pricing">See what&apos;s included</Link>
+            </Button>
+            <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+              No card to start the pilot
+            </span>
+          </Card>
+        </div>
+      </section>
+
+      {/* Closing feature grid */}
       <section className="mx-auto grid w-full max-w-7xl gap-6 px-6 pb-16">
         <SectionHeader
           eyebrow="Built for the counter"
-          title="Everything visitors need to understand the product without a demo call."
-          description="The homepage keeps the no-app QR proposition, merchant setup path, pricing route, and login route available from semantic links."
+          title="Everything a venue needs to understand the product without a demo call."
+          description="The homepage keeps the no-app QR proposition, the counter-handshake stamp model, pricing route, and login route available from semantic links."
         />
         <div className="grid gap-4 md:grid-cols-4">
           {features.map((feature) => (
-            <Card key={feature.title} className="surface-card">
+            <Card key={feature.title}>
               <CardHeader>
                 <CardTitle className="text-lg font-extrabold">
                   {feature.title}
@@ -222,6 +366,21 @@ export default function Page() {
                 </p>
               </CardContent>
             </Card>
+          ))}
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          {waysIn.map((step) => (
+            <Link
+              key={step.href}
+              href={step.href}
+              className="pressable surface-card grid gap-2 p-5 shadow-xs transition-colors hover:border-primary"
+            >
+              <span className="font-extrabold">{step.title}</span>
+              <span className="text-sm leading-6 text-muted-foreground">
+                {step.copy}
+              </span>
+            </Link>
           ))}
         </div>
       </section>

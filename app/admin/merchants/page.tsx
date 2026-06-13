@@ -113,7 +113,7 @@ export default async function AdminMerchantsPage() {
               return (
                 <article
                   key={qrCode.id}
-                  className="grid gap-3 rounded-2xl border p-4"
+                  className="grid gap-3 rounded-lg border p-4"
                 >
                   <div className="grid gap-1">
                     <p className="font-mono text-sm font-bold">

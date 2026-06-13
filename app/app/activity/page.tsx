@@ -1,112 +1,89 @@
 import { redirect } from "next/navigation"
+import { Suspense } from "react"
 
 import { EmptyState, PageTitle } from "@/components/brand"
-import { ActivityFeed } from "@/components/data"
+import { ActivityDetailFeed } from "@/components/merchant/activity-detail-feed"
 import { getCurrentMerchant } from "@/lib/auth/session"
-import { getMerchantActivity } from "@/lib/merchant/dashboard"
+import {
+  type ActivityCategory,
+  getEnrichedMerchantActivity,
+} from "@/lib/merchant/activity"
 
-export default async function MerchantActivityPage() {
+type MerchantActivitySearchParams = {
+  filter?: string | string[]
+  q?: string | string[]
+  limit?: string | string[]
+}
+
+export default async function MerchantActivityPage({
+  searchParams,
+}: {
+  searchParams?: Promise<MerchantActivitySearchParams>
+}) {
+  const query = await searchParams
   const merchant = await getCurrentMerchant()
 
   if (!merchant) {
     redirect("/app/onboarding")
   }
 
-  const activity = await getMerchantActivity(merchant.id)
+  const filter = normalizeActivityFilter(firstParam(query?.filter))
+  const searchQuery = firstParam(query?.q) ?? ""
+  const limit = parseActivityLimit(firstParam(query?.limit))
+  const activity = await getEnrichedMerchantActivity(merchant.id, { limit })
 
   return (
     <div className="grid gap-6">
       <PageTitle
         eyebrow="Activity"
-        title="Recent activity"
-        description="Stamps, rewards, joins, QR downloads, and account events for this merchant."
+        title="Activity log"
+        description="Recent operational events."
       />
 
-      <ActivityFeed
-        items={activity.map((item) => ({
-          id: item.id,
-          title: activityLabel(item.event_name),
-          description: activityDescription(item.event_name),
-          timestamp: item.created_at,
-          metadata: <ActivityMetadata metadata={item.metadata} />,
-        }))}
-        emptyState={
-          <EmptyState
-            title="No activity yet"
-            description="Activity will appear after customers join, staff issue stamps, rewards are redeemed, or QR assets are downloaded."
-          />
-        }
-      />
+      <Suspense fallback={null}>
+        <ActivityDetailFeed
+          rows={activity.rows}
+          totalCount={activity.totalCount}
+          loadedCount={activity.loadedCount}
+          limit={activity.limit}
+          initialFilter={filter}
+          initialQuery={searchQuery}
+          emptyState={
+            <EmptyState
+              title="No activity yet"
+              description="Activity will appear after customers join, staff issue stamps, rewards are redeemed, or QR assets are downloaded."
+            />
+          }
+        />
+      </Suspense>
     </div>
   )
 }
 
-function activityLabel(eventName: string) {
-  const labels: Record<string, string> = {
-    qr_scanned: "QR scanned",
-    customer_joined: "Customer joined",
-    stamp_claim_started: "Stamp claim started",
-    stamp_issued: "Stamp issued",
-    reward_unlocked: "Reward unlocked",
-    reward_redeemed: "Reward redeemed",
-    qr_downloaded: "QR downloaded",
-    qr_created: "QR created",
-    loyalty_card_created: "Card created",
-    loyalty_card_updated: "Card updated",
-    merchant_signed_up: "Merchant signed up",
-    subscription_started: "Subscription started",
-    subscription_cancelled: "Subscription cancelled",
-  }
-
-  return labels[eventName] ?? eventName.replaceAll("_", " ")
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value
 }
 
-function activityDescription(eventName: string) {
-  const descriptions: Record<string, string> = {
-    qr_scanned: "A customer opened the venue QR resolver.",
-    customer_joined: "A customer joined this merchant loyalty card.",
-    stamp_claim_started: "A customer opened staff approval from their card.",
-    stamp_issued: "Staff issued a visit stamp.",
-    reward_unlocked: "A customer reached the stamp target and unlocked a reward.",
-    reward_redeemed: "Staff confirmed a reward redemption.",
-    qr_downloaded: "A merchant QR asset was downloaded.",
-    qr_created: "A permanent venue QR was generated.",
-    loyalty_card_created: "The merchant loyalty card was created.",
-    loyalty_card_updated: "The merchant loyalty card was updated.",
-    merchant_signed_up: "The merchant account completed onboarding.",
-    subscription_started: "Stripe marked the Growth Plan subscription as started.",
-    subscription_cancelled: "Stripe marked the Growth Plan subscription as cancelled.",
-  }
+function parseActivityLimit(value: string | undefined) {
+  if (!value) return 25
 
-  return descriptions[eventName] ?? "Merchant activity event."
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return 25
+  return Math.min(Math.max(Math.floor(parsed), 1), 250)
 }
 
-function ActivityMetadata({
-  metadata,
-}: {
-  metadata: Record<string, unknown> | null
-}) {
-  if (!metadata) return null
+function normalizeActivityFilter(
+  value: string | undefined
+): "all" | ActivityCategory {
+  if (
+    value === "customer" ||
+    value === "stamp" ||
+    value === "reward" ||
+    value === "qr" ||
+    value === "account"
+  ) {
+    return value
+  }
 
-  const safeItems = [
-    metadata.asset_type ? `Asset: ${String(metadata.asset_type)}` : null,
-    metadata.status ? `Status: ${String(metadata.status)}` : null,
-    metadata.plan ? `Plan: ${String(metadata.plan)}` : null,
-    metadata.source ? `Source: ${String(metadata.source)}` : null,
-  ].filter(Boolean)
-
-  if (!safeItems.length) return null
-
-  return (
-    <ul className="flex flex-wrap gap-2" aria-label="Activity metadata">
-      {safeItems.map((item) => (
-        <li
-          key={item}
-          className="rounded-full bg-secondary px-2 py-1 text-secondary-foreground"
-        >
-          {item}
-        </li>
-      ))}
-    </ul>
-  )
+  return "all"
 }

@@ -11,11 +11,11 @@ export default async function AdminLayout({
   if (access.status !== "allowed") {
     return (
       <main className="flex min-h-svh items-center justify-center px-6 py-10">
-        <section className="w-full max-w-sm rounded-3xl border bg-card p-6 text-center shadow-xs">
-          <p className="font-mono text-xs uppercase text-muted-foreground">
+        <section className="w-full max-w-sm rounded-lg border bg-card p-6 text-center shadow-xs">
+          <p className="font-mono text-xs text-muted-foreground uppercase">
             Internal admin
           </p>
-          <h1 className="mt-2 text-3xl font-extrabold leading-tight">
+          <h1 className="mt-2 text-3xl leading-tight font-extrabold">
             Access denied
           </h1>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
@@ -26,5 +26,9 @@ export default async function AdminLayout({
     )
   }
 
-  return <AdminShell mfaRequired={access.mfaRequired}>{children}</AdminShell>
+  return (
+    <AdminShell operatorEmail={access.email} mfaRequired={access.mfaRequired}>
+      {children}
+    </AdminShell>
+  )
 }

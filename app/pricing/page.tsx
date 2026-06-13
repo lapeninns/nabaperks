@@ -1,7 +1,7 @@
 import Link from "next/link"
 
 import { startCheckoutAction } from "@/app/app/billing/actions"
-import { PageTitle, SectionHeader } from "@/components/brand"
+import { Eyebrow, PageTitle } from "@/components/brand"
 import { MarketingLayout } from "@/components/layout"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -13,6 +13,37 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+
+const planIncludes = [
+  "Unlimited stamps and members",
+  "Mystery reward pool — you pick the prizes",
+  "Printed QR kit: A4 poster, till card, sticker",
+  "A paired counter station with named staff sessions",
+  "Weekly digest of visits, regulars, and redemptions",
+]
+
+const faqs = [
+  {
+    q: "Is there a contract?",
+    a: "No. It is month to month after the pilot — GBP 29, one venue, one month's notice to leave. The pilot itself needs no card at all.",
+  },
+  {
+    q: "Do I need any hardware?",
+    a: "None for customers — they use their own phones. Staff approve from a paired counter station, which can be any spare tablet or phone in the venue, by confirming a short code. The only kit is printed paper, and we send print-ready files.",
+  },
+  {
+    q: "Who owns the customer data?",
+    a: "You do, scoped to your venue. Phone numbers are stored hashed and shown masked, nothing is sold, and marketing texts only ever go to customers who tick the separate opt-in. UK GDPR throughout.",
+  },
+  {
+    q: "What counts as a visit?",
+    a: "One stamp per customer per business day, confirmed by a staff member at the counter station. The customer shows a single-use code, so there is no drive-by stamping from the bus stop.",
+  },
+  {
+    q: "What if I want to cancel?",
+    a: "One month's notice from your billing page, any time. Earned rewards stay redeemable while things wind down, so no regular is left holding a broken seal.",
+  },
+]
 
 type PricingPageProps = {
   searchParams?: Promise<{
@@ -37,89 +68,144 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
 
   return (
     <MarketingLayout>
-      <section className="mx-auto grid min-h-[calc(100svh-73px)] w-full max-w-6xl content-center gap-8 px-6 py-12 lg:grid-cols-[minmax(0,0.85fr)_minmax(360px,0.65fr)] lg:items-center">
-        <div className="grid gap-6">
-          <PageTitle
-            eyebrow="Pricing"
-            title="Growth Plan for local loyalty pilots"
-            description="Start with a 30-day free pilot, then keep Stampiee running for GBP 29/month per location. Checkout and account creation stay separate so teams can create an account before billing."
-            titleClassName="text-4xl sm:text-5xl"
-            descriptionClassName="text-base leading-7"
-          />
+      <section className="mx-auto w-full max-w-6xl px-6 py-12">
+        <PageTitle
+          eyebrow="Pricing"
+          title="One price. The whole machine."
+          description="A 30-day free pilot, then GBP 29/month per venue. No tiers, no seats, no contact-sales. Checkout and account creation stay separate, so a team can create an account before billing."
+          titleClassName="text-[clamp(2.3rem,5vw,3.5rem)]"
+          descriptionClassName="text-base leading-7"
+          className="md:grid-cols-1"
+        />
 
-          {checkoutMessage ? (
-            <Alert className="max-w-2xl border-primary/30 bg-primary/10">
-              <AlertTitle>{checkoutMessage.title}</AlertTitle>
-              <AlertDescription>{checkoutMessage.body}</AlertDescription>
-            </Alert>
-          ) : null}
+        {checkoutMessage ? (
+          <Alert className="mt-6 max-w-2xl border-primary/30 bg-primary/10">
+            <AlertTitle>{checkoutMessage.title}</AlertTitle>
+            <AlertDescription>{checkoutMessage.body}</AlertDescription>
+          </Alert>
+        ) : null}
 
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-3xl border bg-card p-4 shadow-xs">
-              <p className="text-sm font-bold text-muted-foreground">
-                Included cards
+        <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,0.55fr)_minmax(0,0.45fr)] lg:items-start">
+          {/* The plan receipt */}
+          <div className="lg:-rotate-1">
+            <Card>
+              <CardHeader>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <CardTitle className="text-2xl font-extrabold">
+                    Growth Plan
+                  </CardTitle>
+                  <Badge>30-day free pilot</Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="grid gap-5">
+                <div>
+                  <p className="text-5xl leading-none font-extrabold">
+                    £29
+                    <span className="text-lg font-bold text-muted-foreground">
+                      /month
+                    </span>
+                  </p>
+                  <p className="mt-2 font-mono text-[0.7rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+                    GBP 29/month · billed monthly through Stripe · per venue
+                  </p>
+                </div>
+                <hr className="w-rule" />
+                <div>
+                  <Eyebrow className="mb-3">Everything included</Eyebrow>
+                  <ul className="grid gap-3">
+                    {planIncludes.map((item) => (
+                      <li key={item} className="flex items-baseline gap-3">
+                        <span
+                          aria-hidden="true"
+                          className="text-base font-extrabold text-primary"
+                        >
+                          ✱
+                        </span>
+                        <span className="text-[0.95rem] leading-snug font-bold">
+                          {item}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </CardContent>
+              <CardFooter className="flex-col items-stretch gap-3 border-t-2 border-dashed">
+                <form action={startCheckoutAction}>
+                  <Button type="submit" size="lg" className="w-full">
+                    Start checkout
+                  </Button>
+                </form>
+                <Button asChild variant="secondary" size="lg" className="w-full">
+                  <Link href="/signup">Create account</Link>
+                </Button>
+                <p className="text-center font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+                  No card to start · cancel any time
+                </p>
+              </CardFooter>
+            </Card>
+          </div>
+
+          {/* Pilot explainer */}
+          <div className="grid gap-5 pt-2">
+            <div className="grid gap-3">
+              <Eyebrow>The pilot</Eyebrow>
+              <h2 className="text-[clamp(1.6rem,3vw,2.2rem)] leading-tight font-extrabold">
+                30 days free. No card. If it doesn&apos;t earn its keep, walk
+                away.
+              </h2>
+              <p className="max-w-[46ch] text-[0.95rem] leading-6 text-muted-foreground">
+                Most venues see their first repeat visit inside the first week,
+                so you will know long before day 30. Your dashboard counts the
+                regulars; you do the maths.
               </p>
-              <p className="mt-2 text-2xl font-extrabold">1 active card</p>
             </div>
-            <div className="rounded-3xl border bg-card p-4 shadow-xs">
-              <p className="text-sm font-bold text-muted-foreground">
-                QR assets
+            <div className="rounded-lg border-2 border-dashed border-border p-5">
+              <Eyebrow className="mb-2 text-foreground">After day 30</Eyebrow>
+              <p className="text-sm leading-6 text-muted-foreground">
+                Add a card in Stripe and carry on. Leaving later takes one
+                month&apos;s notice from your billing page — earned rewards stay
+                good for your regulars.
               </p>
-              <p className="mt-2 text-2xl font-extrabold">3 downloads</p>
-            </div>
-            <div className="rounded-3xl border bg-card p-4 shadow-xs">
-              <p className="text-sm font-bold text-muted-foreground">
-                Staff approval
-              </p>
-              <p className="mt-2 text-2xl font-extrabold">PIN stamping</p>
             </div>
           </div>
         </div>
 
-        <Card className="surface-card rounded-[2rem] border-primary/20 bg-card shadow-sm">
-          <CardHeader>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <CardTitle className="text-2xl font-extrabold">
-                Growth Plan
-              </CardTitle>
-              <Badge>30-day free pilot</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="grid gap-6">
-            <div className="grid gap-2 rounded-3xl bg-secondary/60 p-5">
-              <p className="text-sm font-bold text-muted-foreground">
-                First 30 days
-              </p>
-              <p className="text-5xl font-extrabold tracking-tight">Free</p>
-            </div>
-            <div className="grid gap-2 rounded-3xl bg-primary/10 p-5">
-              <p className="text-sm font-bold text-muted-foreground">
-                After the pilot
-              </p>
-              <p className="text-5xl font-extrabold tracking-tight">
-                GBP 29/month
-              </p>
-              <p className="text-sm leading-6 text-muted-foreground">
-                Per location, billed through the existing Stripe checkout.
-              </p>
-            </div>
-            <SectionHeader
-              eyebrow="What is included"
-              title="The QR loyalty MVP stack"
-              description="One active loyalty card, dynamic QR image/downloads, staff PIN stamp issuing, reward unlocks, dashboard metrics, and access to the Stripe billing portal."
-            />
-          </CardContent>
-          <CardFooter className="flex-col items-stretch gap-3 border-t sm:flex-row sm:items-center">
-            <form action={startCheckoutAction}>
-              <Button type="submit" className="w-full sm:w-auto">
-                Start checkout
-              </Button>
-            </form>
-            <Button asChild variant="secondary" className="w-full sm:w-auto">
-              <Link href="/signup">Create account</Link>
+        {/* FAQ */}
+        <div className="mx-auto mt-16 max-w-2xl">
+          <h2 className="mb-2 text-[clamp(1.5rem,3vw,2rem)] font-extrabold">
+            Asked at the counter
+          </h2>
+          <div className="border-b-2 border-dashed border-border">
+            {faqs.map((faq) => (
+              <details
+                key={faq.q}
+                className="group border-t-2 border-dashed border-border [&_summary::-webkit-details-marker]:hidden"
+              >
+                <summary className="pressable flex cursor-pointer items-center justify-between gap-4 py-4 outline-none">
+                  <span className="text-[1.05rem] font-extrabold">{faq.q}</span>
+                  <span
+                    aria-hidden="true"
+                    className="grid size-7 shrink-0 -rotate-6 place-items-center rounded-full border-2 border-ink bg-card font-mono text-base font-bold group-open:bg-primary group-open:text-primary-foreground"
+                  >
+                    <span className="group-open:hidden">+</span>
+                    <span className="hidden group-open:inline">–</span>
+                  </span>
+                </summary>
+                <p className="max-w-[62ch] pb-4 text-sm leading-6 text-muted-foreground">
+                  {faq.a}
+                </p>
+              </details>
+            ))}
+          </div>
+          <div className="mt-10 grid justify-items-center gap-3 text-center">
+            <Button asChild size="lg">
+              <Link href="/signup">Start your 30-day pilot</Link>
             </Button>
-          </CardFooter>
-        </Card>
+            <p className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+              No card to start · GBP 29/month after · one month&apos;s notice
+            </p>
+          </div>
+        </div>
       </section>
     </MarketingLayout>
   )

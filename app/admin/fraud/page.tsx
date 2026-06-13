@@ -18,7 +18,7 @@ export default async function AdminFraudPage() {
       <PageTitle
         eyebrow="Internal admin"
         title="Fraud"
-        description="Fraud flags, PIN attempts, and security-related product events."
+        description="Fraud flags, station PIN attempts, and security-related product events."
       />
 
       <AdminPanel>
@@ -29,7 +29,7 @@ export default async function AdminFraudPage() {
         />
         <DataTable
           caption="Admin fraud flag readback"
-          className="rounded-2xl shadow-none"
+          className="rounded-lg shadow-none"
           rows={fraud.fraudFlags}
           getRowKey={(flag) => flag.id}
           emptyState={
@@ -90,12 +90,12 @@ export default async function AdminFraudPage() {
       <AdminPanel>
         <SectionHeader
           title="Staff PIN attempts"
-          description="Counter-side PIN attempt telemetry for support review."
+          description="Station-side staff PIN attempt telemetry for support review."
           actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
         />
         <DataTable
-          caption="Admin staff PIN attempt readback"
-          className="rounded-2xl shadow-none"
+          caption="Admin station PIN attempt readback"
+          className="rounded-lg shadow-none"
           rows={fraud.pinAttempts}
           getRowKey={(attempt) => attempt.id}
           emptyState={
@@ -146,7 +146,7 @@ export default async function AdminFraudPage() {
         />
         <DataTable
           caption="Admin redemption failure event readback"
-          className="rounded-2xl shadow-none"
+          className="rounded-lg shadow-none"
           rows={fraud.failures}
           getRowKey={(event) => event.id}
           emptyState={

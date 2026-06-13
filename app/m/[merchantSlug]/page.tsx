@@ -1,9 +1,14 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 
-import { Eyebrow } from "@/components/brand"
+import { Eyebrow, MonoTag, ReceiptCard, VenueMark } from "@/components/brand"
 import { CustomerShell } from "@/components/layout"
-import { ProgressTrack, RewardTeaser, StatusBanner } from "@/components/loyalty"
+import {
+  ProgressTrack,
+  RewardTeaser,
+  StampGrid,
+  StatusBanner,
+} from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { getMerchantJoinContext } from "@/lib/customer/join"
 
@@ -33,50 +38,81 @@ export default async function MerchantRewardsPage({
     return <UnavailableLanding />
   }
 
+  const { merchant, loyaltyCard } = context
+
   return (
-    <CustomerShell className="grid content-center">
-      <section className="surface-card grid gap-5 rounded-[2rem] border bg-card p-6 text-center shadow-xs">
-        <div className="grid gap-2">
-          <Eyebrow>No app loyalty</Eyebrow>
-          <h1 className="text-3xl font-extrabold leading-tight text-balance">
-            {context.merchant.business_name} Rewards
-          </h1>
-          <p className="text-sm leading-6 text-muted-foreground">
-            Scan, join, and collect visit stamps from your browser — no app
-            download needed.
-          </p>
-        </div>
+    <CustomerShell className="grid content-center gap-5">
+      <div className="grid gap-2 text-center">
+        <Eyebrow>No app loyalty</Eyebrow>
+        <h1 className="text-3xl leading-tight font-extrabold text-balance">
+          {merchant.business_name} Rewards
+        </h1>
+        <p className="text-sm leading-6 text-muted-foreground">
+          Your first stamp is waiting. Scan, join, and collect visit stamps from
+          your browser — no app to download.
+        </p>
+      </div>
 
-        <RewardTeaser
-          locked
-          title={context.loyaltyCard.card_name}
-          description={
-            <>
-              Collect {context.loyaltyCard.stamps_required} stamps to reveal a
-              mystery reward at the counter.
-            </>
-          }
-          className="text-left"
-        />
+      <ReceiptCard
+        edge
+        wrapperClassName="w-full"
+        className="grid gap-5"
+        aria-label="Loyalty card preview"
+      >
+          <div className="flex items-start justify-between gap-4">
+            <div className="grid gap-1 text-left">
+              <Eyebrow>{merchant.business_name}</Eyebrow>
+              <p className="text-xl leading-tight font-extrabold">
+                {loyaltyCard.card_name}
+              </p>
+            </div>
+            <div className="grid justify-items-end gap-2">
+              <VenueMark size={56} name={merchant.business_name} />
+              <MonoTag tone="sun">Mystery</MonoTag>
+            </div>
+          </div>
 
-        <ProgressTrack
-          current={0}
-          total={context.loyaltyCard.stamps_required}
-          label="Visits to reward"
-          className="rounded-3xl border bg-background p-4 text-left"
-        />
+          <hr className="w-rule" />
 
-        <div className="grid gap-3">
-          <Button asChild size="lg" className="w-full">
-            <Link href={`/m/${merchantSlug}/join`}>Join rewards</Link>
-          </Button>
-          <Button asChild size="lg" variant="secondary" className="w-full">
-            <Link href={`/merchant/${merchantSlug}/terms`}>
-              View reward terms
-            </Link>
-          </Button>
-        </div>
-      </section>
+          <StampGrid current={0} total={loyaltyCard.stamps_required} />
+
+          <ProgressTrack
+            current={0}
+            total={loyaltyCard.stamps_required}
+            label="Visits to reward"
+            className="rounded-lg bg-accent p-4"
+          />
+
+          <RewardTeaser
+            locked
+            title={loyaltyCard.card_name}
+            description={
+              <>
+                Collect {loyaltyCard.stamps_required} stamps to reveal a mystery
+                reward at the counter.
+              </>
+            }
+            className="text-left"
+          />
+
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+              Nabaperks loyalty
+            </span>
+            <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+              No app · no plastic
+            </span>
+          </div>
+      </ReceiptCard>
+
+      <div className="grid gap-3">
+        <Button asChild size="lg" className="w-full">
+          <Link href={`/m/${merchantSlug}/join`}>Join rewards</Link>
+        </Button>
+        <Button asChild size="lg" variant="secondary" className="w-full">
+          <Link href={`/merchant/${merchantSlug}/terms`}>View reward terms</Link>
+        </Button>
+      </div>
     </CustomerShell>
   )
 }
@@ -94,3 +130,4 @@ function UnavailableLanding() {
     </CustomerShell>
   )
 }
+

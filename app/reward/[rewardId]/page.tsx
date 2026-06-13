@@ -1,10 +1,14 @@
 import Link from "next/link"
 
-import { RewardRedemptionForm } from "@/components/customer/reward-redemption-form"
+import { ReceiptCard } from "@/components/brand"
+import { StampCodePanel } from "@/components/customer/stamp-code-panel"
 import { CustomerShell } from "@/components/layout"
 import { RewardTeaser, StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { getCustomerRewardState } from "@/lib/customer/reward"
+import { createRedeemCode } from "@/lib/customer/stamp-code"
+
+export const dynamic = "force-dynamic"
 
 type RewardPageProps = {
   params: Promise<{
@@ -29,7 +33,7 @@ export default async function RewardPage({ params }: RewardPageProps) {
 
   return (
     <RewardShell>
-      <section className="surface-card grid gap-5 rounded-[2rem] border bg-card p-6 shadow-xs">
+      <ReceiptCard edge className="grid gap-5">
         <div className="grid gap-2 text-center">
           <p className="font-mono text-xs uppercase text-muted-foreground">
             Reward
@@ -43,7 +47,7 @@ export default async function RewardPage({ params }: RewardPageProps) {
         </div>
 
         <RewardTeaser
-          locked={reward.status !== "unlocked"}
+          locked={false}
           title={assignedReward.reward_name}
           description={
             <>
@@ -66,13 +70,16 @@ export default async function RewardPage({ params }: RewardPageProps) {
         />
 
         {redeemable ? (
-          <RewardRedemptionForm rewardId={reward.id} />
+          <RedemptionCode
+            membershipId={reward.membership_id}
+            rewardId={reward.id}
+          />
         ) : (
           <Button asChild size="lg" variant="secondary" className="w-full">
             <Link href={`/card/${reward.membership_id}`}>Return to card</Link>
           </Button>
         )}
-      </section>
+      </ReceiptCard>
     </RewardShell>
   )
 }
@@ -133,9 +140,37 @@ function RewardStatusPanel({
   }
 
   return (
-    <StatusBanner title="Ready for staff confirmation." tone="success">
-      Ask a team member to enter the venue staff PIN.
+    <StatusBanner title="Ready to redeem." tone="success">
+      Show the code below at the counter — staff confirm it on their station.
     </StatusBanner>
+  )
+}
+
+async function RedemptionCode({
+  membershipId,
+  rewardId,
+}: {
+  membershipId: string
+  rewardId: string
+}) {
+  const result = await createRedeemCode(membershipId, rewardId)
+
+  if (result.status === "blocked") {
+    return (
+      <StatusBanner title="No code right now" tone="warning">
+        {result.reason}
+      </StatusBanner>
+    )
+  }
+
+  return (
+    <StampCodePanel
+      tokenId={result.tokenId}
+      code={result.code}
+      expiresAt={result.expiresAt}
+      kind="redeem"
+      doneHref={`/card/${membershipId}?reward=redeemed`}
+    />
   )
 }
 
@@ -153,9 +188,9 @@ function RewardAccessState({
 
   return (
     <RewardShell>
-      <section className="surface-card rounded-[2rem] border bg-card p-6 text-center shadow-xs">
+      <ReceiptCard edge className="text-center">
         <p className="font-mono text-xs uppercase text-muted-foreground">
-          Stampiee loyalty
+          Nabaperks loyalty
         </p>
         <h1 className="mt-2 text-3xl font-extrabold leading-tight">
           Reward unavailable
@@ -163,7 +198,7 @@ function RewardAccessState({
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
           {message}
         </p>
-      </section>
+      </ReceiptCard>
     </RewardShell>
   )
 }

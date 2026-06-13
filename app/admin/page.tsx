@@ -46,7 +46,7 @@ export default async function AdminHomePage() {
         </div>
       </AdminPanel>
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
         {[
           ["/admin/pilot", "Pilot"],
           ["/admin/merchants", "Merchants"],
