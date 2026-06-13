@@ -146,8 +146,8 @@ export async function getAdminFraudSignals() {
         .order("created_at", { ascending: false })
         .limit(100),
       supabase
-        .from("staff_pin_attempts")
-        .select("id, success, created_at, merchants(business_name)")
+        .from("station_pin_attempts")
+        .select("id, success, created_at, merchants(business_name), stations(station_name)")
         .order("created_at", { ascending: false })
         .limit(100),
       supabase

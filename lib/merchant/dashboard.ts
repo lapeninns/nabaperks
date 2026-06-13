@@ -11,9 +11,12 @@ const activityEvents = [
   "reward_redeemed",
   "qr_downloaded",
   "qr_created",
+  "qr_enabled",
+  "qr_disabled",
   "loyalty_card_created",
   "loyalty_card_updated",
   "merchant_signed_up",
+  "staff_session_started",
   "subscription_started",
   "subscription_cancelled",
 ]
