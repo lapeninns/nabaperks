@@ -31,7 +31,7 @@ export function RoiSettingsForm({
   const fields = state.fields ?? initialState.fields
 
   return (
-    <form action={action} className="grid gap-4 rounded-3xl border bg-card p-5 shadow-xs">
+    <form action={action} className="surface-card grid gap-4 p-5">
       <MoneyField
         id="averageOrderValue"
         label="Average order value"
@@ -81,10 +81,10 @@ function MoneyField({
 }) {
   return (
     <div className="grid gap-2">
-      <label htmlFor={id} className="text-sm font-bold">
+      <label htmlFor={id} className="eyebrow">
         {label}
       </label>
-      <div className="flex h-12 items-center rounded-xl border border-input bg-secondary/60 px-4 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/25">
+      <div className="flex h-12 items-center rounded-xl border-2 border-ink bg-secondary/60 px-4 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/25">
         <span className="font-mono text-sm text-muted-foreground">£</span>
         <input
           id={id}
@@ -117,10 +117,10 @@ function NumberField({
 }) {
   return (
     <div className="grid gap-2">
-      <label htmlFor={id} className="text-sm font-bold">
+      <label htmlFor={id} className="eyebrow">
         {label}
       </label>
-      <div className="flex h-12 items-center rounded-xl border border-input bg-secondary/60 px-4 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/25">
+      <div className="flex h-12 items-center rounded-xl border-2 border-ink bg-secondary/60 px-4 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/25">
         <input
           id={id}
           name={id}

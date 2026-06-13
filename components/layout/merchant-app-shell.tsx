@@ -4,14 +4,19 @@ import { Logo } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import { ShellNavigation, type ShellNavItem } from "./shell-navigation"
 
+// Primary nav: the daily-use destinations. Setup (card/staff/qr) lives inside
+// the Launch hub; billing + ROI settings are demoted to the account group below.
 const merchantNavItems: ShellNavItem[] = [
-  { href: "/app", label: "Dashboard" },
-  { href: "/app/card", label: "Card" },
-  { href: "/app/qr", label: "QR" },
+  { href: "/app", label: "Home" },
+  { href: "/app/launch", label: "Launch" },
   { href: "/app/customers", label: "Customers" },
-  { href: "/app/activity", label: "Activity" },
-  { href: "/app/settings", label: "Settings" },
+]
+
+// Account group — reachable but visually demoted, matching SMB-loyalty convention
+// (Square/Loyverse/Smile all keep billing out of primary task nav).
+const merchantAccountItems: ShellNavItem[] = [
   { href: "/app/billing", label: "Billing" },
+  { href: "/app/settings", label: "ROI settings" },
 ]
 
 export function MerchantAppShell({
@@ -23,14 +28,16 @@ export function MerchantAppShell({
 }) {
   return (
     <div className="min-h-svh bg-background">
-      <header className="sticky top-0 z-40 border-b bg-card/85 backdrop-blur supports-backdrop-filter:bg-card/75">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-3">
+      <header className="sticky top-0 z-40 border-b-2 border-ink bg-card">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <Logo href="/app" />
           <div className="flex items-center gap-2">
             <ShellNavigation
               items={merchantNavItems}
+              secondaryItems={merchantAccountItems}
+              secondaryLabel="Account"
               mobileTitle="Merchant navigation"
-              mobileDescription="Move between dashboard, setup, QR, customers, activity, settings, and billing."
+              mobileDescription="Move between home, launch setup, and customers. Billing and ROI settings sit under Account."
               desktopClassName="md:flex"
             />
             <form action={signOutAction}>
@@ -41,9 +48,9 @@ export function MerchantAppShell({
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl px-6 py-8">{children}</main>
+      <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">{children}</main>
     </div>
   )
 }
 
-export { merchantNavItems }
+export { merchantNavItems, merchantAccountItems }

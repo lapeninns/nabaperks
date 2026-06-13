@@ -1,3 +1,4 @@
+import { Eyebrow } from "@/components/brand"
 import { cn } from "@/lib/utils"
 
 export type FunnelChartItem = {
@@ -22,12 +23,14 @@ export function FunnelChart({
         return (
           <div key={item.label} role="listitem" className="grid gap-1">
             <div className="flex items-center justify-between gap-3 text-sm">
-              <span className="font-bold">{item.label}</span>
+              <Eyebrow className="normal-case tracking-normal text-foreground">
+                {item.label}
+              </Eyebrow>
               <span className="numeric-tabular text-muted-foreground">
                 {item.value}
               </span>
             </div>
-            <div className="h-3 rounded-full bg-accent">
+            <div className="h-3 rounded-full border-2 border-ink bg-accent">
               <div
                 className="h-full rounded-full bg-reward"
                 style={{ width }}

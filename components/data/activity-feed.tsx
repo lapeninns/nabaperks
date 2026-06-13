@@ -24,7 +24,12 @@ export function ActivityFeed({
   }
 
   return (
-    <ol className={cn("divide-y rounded-3xl border bg-card shadow-xs", className)}>
+    <ol
+      className={cn(
+        "surface-card overflow-hidden [&>li+li]:border-t-2 [&>li+li]:border-dashed [&>li+li]:border-ink/15",
+        className
+      )}
+    >
       {items.map((item) => (
         <li key={item.id} className="grid gap-2 p-4 sm:grid-cols-[1fr_auto] sm:items-start">
           <div className="grid gap-1">

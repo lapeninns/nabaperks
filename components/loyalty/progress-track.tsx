@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils"
+import { MonoTag } from "@/components/brand"
 import { Progress } from "@/components/ui/progress"
 
 export function ProgressTrack({
@@ -16,11 +17,11 @@ export function ProgressTrack({
 
   return (
     <div className={cn("grid gap-2", className)}>
-      <div className="flex items-center justify-between gap-3 text-sm">
-        <span className="font-bold">{label}</span>
-        <span className="numeric-tabular text-muted-foreground">
+      <div className="flex items-center justify-between gap-3">
+        <span className="eyebrow">{label}</span>
+        <MonoTag tone="leaf" className="numeric-tabular">
           {current} / {total}
-        </span>
+        </MonoTag>
       </div>
       <Progress
         value={value}

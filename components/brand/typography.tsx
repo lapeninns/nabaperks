@@ -54,7 +54,7 @@ export function PageTitle({
         {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
         <h1
           className={cn(
-            "max-w-3xl text-3xl font-extrabold leading-tight tracking-tight text-foreground sm:text-4xl",
+            "max-w-3xl text-3xl font-extrabold leading-tight text-foreground sm:text-4xl",
             titleClassName
           )}
         >
@@ -126,10 +126,10 @@ export function MetricTile({
   return (
     <Card className={cn("surface-card shadow-xs", className)} size="sm">
       <CardHeader>
-        <CardDescription className="text-xs font-bold uppercase tracking-wide">
+        <CardDescription className="text-xs font-bold uppercase">
           {label}
         </CardDescription>
-        <CardTitle className="numeric-tabular text-2xl font-extrabold tracking-tight">
+        <CardTitle className="numeric-tabular text-2xl font-extrabold">
           {value}
         </CardTitle>
       </CardHeader>
@@ -158,7 +158,7 @@ export function EmptyState({
   return (
     <Empty
       className={cn(
-        "rounded-3xl border bg-card p-6 text-center shadow-xs",
+        "border-2 bg-card p-6 text-center",
         className
       )}
     >

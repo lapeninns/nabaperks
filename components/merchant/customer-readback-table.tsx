@@ -11,9 +11,11 @@ type CustomerIdentity = {
 export function CustomerReadbackTable({
   customers,
   emptyState,
+  highlightedMembershipId,
 }: {
   customers: MerchantCustomerRow[]
   emptyState: ReactNode
+  highlightedMembershipId?: string
 }) {
   const columns: DataTableColumn<MerchantCustomerRow>[] = [
     {
@@ -70,6 +72,11 @@ export function CustomerReadbackTable({
       rows={customers}
       getRowKey={(row) => row.id}
       emptyState={emptyState}
+      rowClassName={(row) =>
+        row.id === highlightedMembershipId
+          ? "bg-primary/10 ring-1 ring-inset ring-primary/30"
+          : undefined
+      }
     />
   )
 }

@@ -6,16 +6,20 @@ import {
   completeOnboardingAction,
   type OnboardingActionState,
 } from "@/app/app/onboarding/actions"
+import { Eyebrow, VenueMark } from "@/components/brand"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 const initialState: OnboardingActionState = {}
-const draftStorageKey = "stampiee:onboarding-draft"
+const draftStorageKey = "nabaperks:onboarding-draft"
 
 type OnboardingDraft = NonNullable<OnboardingActionState["fields"]>
 
 export function OnboardingForm({
+  className,
   initialFields = {},
 }: {
+  className?: string
   initialFields?: OnboardingDraft
 }) {
   const hasInitialFields = Object.values(initialFields).some(Boolean)
@@ -58,7 +62,19 @@ export function OnboardingForm({
   }
 
   return (
-    <form ref={formRef} action={action} className="grid gap-4">
+    <form
+      ref={formRef}
+      action={action}
+      className={cn(
+        "surface-card grid gap-4 p-6",
+        className
+      )}
+    >
+      <div className="flex items-center gap-3">
+        <VenueMark name="Nabaperks" size={48} />
+        <Eyebrow>Merchant setup</Eyebrow>
+      </div>
+      <hr className="w-rule" />
       <Field
         id="businessName"
         label="Business name"
@@ -68,7 +84,7 @@ export function OnboardingForm({
         error={state.errors?.businessName}
       />
       <div className="grid gap-2">
-        <label htmlFor="businessType" className="text-sm font-bold">
+        <label htmlFor="businessType" className="eyebrow">
           Business type
         </label>
         <select
@@ -76,7 +92,7 @@ export function OnboardingForm({
           name="businessType"
           defaultValue={state.fields?.businessType ?? ""}
           onChange={(event) => updateDraft("businessType", event.target.value)}
-          className="h-12 rounded-xl border border-input bg-secondary/60 px-4 text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
+          className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
           aria-invalid={Boolean(state.errors?.businessType)}
           aria-describedby={
             state.errors?.businessType ? "businessType-error" : undefined
@@ -153,12 +169,12 @@ function Field({
 }) {
   return (
     <div className="grid gap-2">
-      <label htmlFor={id} className="text-sm font-bold">
+      <label htmlFor={id} className="eyebrow">
         {label}
       </label>
       <input
         id={id}
-        className="h-12 rounded-xl border border-input bg-secondary/60 px-4 text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
+        className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
         {...props}

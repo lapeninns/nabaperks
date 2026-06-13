@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useActionState } from "react"
 
 import type { AuthActionState } from "@/app/(auth)/actions"
+import { Eyebrow, VenueMark } from "@/components/brand"
 import { FormField } from "@/components/forms/form-field"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -26,6 +27,10 @@ export function AuthForm({ action, mode, next = "/app" }: AuthFormProps) {
 
   return (
     <form action={formAction} className="grid gap-4">
+      <div className="grid justify-items-center gap-2 pb-1">
+        <VenueMark name="Nabaperks" caption={isSignUp ? "New venue" : "Counter"} />
+        <Eyebrow>{isSignUp ? "Open the till" : "Back to the counter"}</Eyebrow>
+      </div>
       {isSignUp ? (
         <Field
           id="name"
@@ -73,7 +78,7 @@ export function AuthForm({ action, mode, next = "/app" }: AuthFormProps) {
         {pending ? "Working..." : isSignUp ? "Create merchant account" : "Log in"}
       </Button>
       <p className="text-center text-sm text-muted-foreground">
-        {isSignUp ? "Already have an account?" : "New to Stampiee?"}{" "}
+        {isSignUp ? "Already have an account?" : "New to Nabaperks?"}{" "}
         <Link
           href={isSignUp ? "/login" : "/signup"}
           className="inline-flex min-h-11 items-center rounded-full px-3 py-2 font-bold text-primary underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
@@ -96,10 +101,10 @@ function Field({
   error?: string
 }) {
   return (
-    <FormField id={id} label={label} error={error}>
+    <FormField id={id} label={<Eyebrow>{label}</Eyebrow>} error={error}>
       <Input
         id={id}
-        className="h-12 rounded-xl border-input bg-secondary/60 px-4 text-sm"
+        className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm"
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
         {...props}

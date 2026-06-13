@@ -1,12 +1,13 @@
 import type { ReactNode } from "react"
 
 import { cn } from "@/lib/utils"
+import { Eyebrow, MonoTag } from "@/components/brand"
 
 export const adminInputClasses =
-  "min-h-11 rounded-xl border border-input bg-secondary/60 px-3 text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
+  "min-h-11 rounded-xl border-2 border-ink bg-secondary/60 px-3 text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
 
 export const adminTextareaClasses =
-  "min-h-24 rounded-xl border border-input bg-secondary/60 px-3 py-2 text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
+  "min-h-24 rounded-xl border-2 border-ink bg-secondary/60 px-3 py-2 text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
 
 export function AdminPanel({
   children,
@@ -18,7 +19,7 @@ export function AdminPanel({
   return (
     <section
       className={cn(
-        "surface-card grid gap-4 rounded-3xl border bg-card p-5 shadow-xs",
+        "surface-card grid gap-4 p-5",
         className
       )}
     >
@@ -40,7 +41,7 @@ export function AdminField({
 }) {
   return (
     <label className={cn("grid gap-1.5 text-sm font-bold", className)}>
-      <span>{label}</span>
+      <Eyebrow>{label}</Eyebrow>
       {children}
       {helper ? (
         <span className="text-xs leading-5 font-normal text-muted-foreground">
@@ -59,14 +60,12 @@ export function SourceLabel({
   className?: string
 }) {
   return (
-    <span
-      className={cn(
-        "inline-flex w-fit items-center rounded-full border bg-secondary px-3 py-1 font-mono text-[11px] font-semibold text-muted-foreground",
-        className
-      )}
+    <MonoTag
+      tone="plain"
+      className={cn("border-ink bg-secondary text-muted-foreground", className)}
     >
       {children}
-    </span>
+    </MonoTag>
   )
 }
 
@@ -78,9 +77,10 @@ export function StatusPill({
   tone?: "neutral" | "good" | "warning" | "danger"
 }) {
   return (
-    <span
+    <MonoTag
+      tone="plain"
       className={cn(
-        "inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-bold capitalize",
+        "border-ink capitalize",
         tone === "good" && "bg-reward/15 text-reward-foreground",
         tone === "warning" && "bg-primary/15 text-primary",
         tone === "danger" && "bg-destructive/15 text-destructive",
@@ -88,7 +88,7 @@ export function StatusPill({
       )}
     >
       {children}
-    </span>
+    </MonoTag>
   )
 }
 

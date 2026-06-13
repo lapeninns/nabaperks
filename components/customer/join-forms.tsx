@@ -10,6 +10,7 @@ import {
   type CustomerJoinState,
   verifyCustomerPhoneOtpAction,
 } from "@/app/m/[merchantSlug]/join/actions"
+import { Eyebrow, VenueMark } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 
 const identityInitialState: CustomerIdentityState = {}
@@ -39,8 +40,12 @@ export function CustomerIdentityForm({
       <form action={requestAction} className="grid gap-4">
         <input type="hidden" name="merchantSlug" value={merchantSlug} />
         <input type="hidden" name="qrId" value={qrId ?? ""} />
+        <div className="grid justify-items-center gap-2 pb-1">
+          <VenueMark name="Nabaperks" caption="Join card" />
+          <Eyebrow>Stamp your first visit</Eyebrow>
+        </div>
         <div className="grid gap-2">
-          <label htmlFor="contact" className="text-sm font-bold">
+          <label htmlFor="contact" className="eyebrow">
             Email or phone
           </label>
           <input
@@ -50,7 +55,7 @@ export function CustomerIdentityForm({
             inputMode="email"
             placeholder="you@example.com or +447..."
             defaultValue={state.fields?.contact}
-            className="h-12 rounded-xl border border-input bg-secondary/60 px-4 text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
+            className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
             aria-invalid={Boolean(state.errors?.contact)}
             aria-describedby={state.errors?.contact ? "contact-error" : undefined}
           />
@@ -89,14 +94,14 @@ export function CustomerIdentityForm({
           <input type="hidden" name="merchantSlug" value={merchantSlug} />
           <input type="hidden" name="qrId" value={qrId ?? ""} />
           <div className="grid gap-2">
-            <label htmlFor="otp" className="text-sm font-bold">
+            <label htmlFor="otp" className="eyebrow">
               Phone code
             </label>
             <input
               id="otp"
               name="otp"
               inputMode="numeric"
-              className="h-12 rounded-xl border border-input bg-secondary/60 px-4 font-mono text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
+              className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 font-mono text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
               aria-invalid={Boolean(state.errors?.otp)}
             />
             {state.errors?.otp ? (
@@ -130,8 +135,8 @@ export function CustomerJoinForm({
     <form action={action} className="grid gap-4">
       <input type="hidden" name="merchantSlug" value={merchantSlug} />
       <input type="hidden" name="qrId" value={qrId ?? ""} />
-      <label className="grid gap-2 rounded-2xl border bg-secondary/50 p-4 text-sm">
-        <span className="font-bold">Loyalty terms</span>
+      <label className="surface-card grid gap-2 p-4 text-sm">
+        <Eyebrow>Loyalty terms</Eyebrow>
         <span className="leading-6 text-muted-foreground">
           I agree to join this loyalty card and understand stamps and rewards
           are subject to the venue terms, platform terms, and privacy notice.
@@ -152,8 +157,8 @@ export function CustomerJoinForm({
       {state.errors?.loyaltyTerms ? (
         <p className="text-sm text-destructive">{state.errors.loyaltyTerms}</p>
       ) : null}
-      <label className="grid gap-2 rounded-2xl border bg-card p-4 text-sm">
-        <span className="font-bold">Marketing updates</span>
+      <label className="surface-card grid gap-2 p-4 text-sm">
+        <Eyebrow>Marketing updates</Eyebrow>
         <span className="leading-6 text-muted-foreground">
           Send me occasional offers from this business. This is optional.
         </span>

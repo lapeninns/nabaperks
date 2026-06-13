@@ -15,11 +15,11 @@ export function QrFrame({
     <figure
       aria-label={label}
       className={cn(
-        "rounded-[2rem] bg-white p-4 text-black shadow-sm ring-1 ring-black/10",
+        "rounded-lg border-2 border-ink bg-white p-4 text-black shadow-[4px_4px_0_var(--w-shadow-color)]",
         className
       )}
     >
-      <div className="rounded-3xl bg-white p-2">{children}</div>
+      <div className="rounded-md bg-white p-2">{children}</div>
     </figure>
   )
 }

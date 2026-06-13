@@ -9,7 +9,14 @@ import {
   type LoyaltyCardActionState,
   type RewardPoolItemActionState,
 } from "@/app/app/card/actions"
-import { EmptyState, PageTitle, SectionHeader } from "@/components/brand"
+import {
+  EmptyState,
+  Eyebrow,
+  MonoTag,
+  PageTitle,
+  SectionHeader,
+  VenueMark,
+} from "@/components/brand"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Button } from "@/components/ui/button"
 
@@ -66,7 +73,7 @@ export function LoyaltyCardForm({
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
       <div className="grid gap-6">
-        <form action={action} className="grid gap-5 rounded-3xl border bg-card p-6 shadow-xs">
+        <form action={action} className="surface-card grid gap-5 p-6">
           <input type="hidden" name="cardId" value={draft.cardId ?? ""} />
           <input type="hidden" name="minSpendPence" value={draft.minSpendPence} />
           <PageTitle
@@ -105,7 +112,7 @@ export function LoyaltyCardForm({
             error={state.errors?.rewardTerms}
           />
 
-          <label className="flex items-center justify-between gap-4 rounded-2xl border bg-secondary/50 px-4 py-3 text-sm font-bold">
+          <label className="flex items-center justify-between gap-4 rounded-2xl border-2 border-ink bg-secondary/50 px-4 py-3 text-sm font-bold">
             <span>Card active</span>
             <input
               name="isActive"
@@ -131,7 +138,7 @@ export function LoyaltyCardForm({
           </Button>
         </form>
 
-        <section className="grid gap-4 rounded-3xl border bg-card p-6 shadow-xs">
+        <section className="surface-card grid gap-4 p-6">
           <SectionHeader
             eyebrow="Reward pool"
             title="Custom surprise rewards"
@@ -224,22 +231,22 @@ function RewardPoolItemForm({
   }
 
   return (
-    <div className="grid gap-4 rounded-2xl border bg-background p-4">
+    <div className="surface-card grid gap-4 p-4">
       {!isNew ? (
-        <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl bg-secondary/50 px-4 py-3">
+        <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border-2 border-dashed border-ink/15 bg-secondary/50 px-4 py-3">
           <div>
             <p className="text-sm font-extrabold">
               {draft.rewardName || "Untitled reward"}
             </p>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            <p className="mt-1 font-mono text-xs leading-5 text-muted-foreground">
               Minimum spend:{" "}
               {draft.minSpendPence ? `£${formatPence(draft.minSpendPence)}` : "None"} ·
               Weight: {draft.weight || "1"} · Order: {draft.displayOrder || "0"}
             </p>
           </div>
-          <span className="rounded-full bg-background px-3 py-1 font-mono text-xs uppercase text-muted-foreground">
+          <MonoTag tone={draft.isActive ? "leaf" : "plain"}>
             {draft.isActive ? "Active reward" : "Inactive reward"}
-          </span>
+          </MonoTag>
         </div>
       ) : null}
       <form action={action} className="grid gap-4">
@@ -298,7 +305,7 @@ function RewardPoolItemForm({
             onChange={(event) => updateDraft("displayOrder", event.target.value)}
             error={state.errors?.displayOrder}
           />
-          <label className="flex items-center justify-between gap-3 rounded-xl border bg-secondary/50 px-3 py-2 text-sm font-bold sm:self-end">
+          <label className="flex items-center justify-between gap-3 rounded-xl border-2 border-ink bg-secondary/50 px-3 py-2 text-sm font-bold sm:self-end">
             <span>Active</span>
             <input
               name="isActive"
@@ -350,12 +357,12 @@ function Field({
 }) {
   return (
     <div className="grid gap-2">
-      <label htmlFor={id} className="text-sm font-bold">
+      <label htmlFor={id} className="eyebrow">
         {label}
       </label>
       <input
         id={id}
-        className="h-12 rounded-xl border border-input bg-secondary/60 px-4 text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
+        className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
         {...props}
@@ -382,13 +389,13 @@ function TextareaField({
 }) {
   return (
     <div className="grid gap-2">
-      <label htmlFor={id} className="text-sm font-bold">
+      <label htmlFor={id} className="eyebrow">
         {label}
       </label>
       <textarea
         id={id}
         rows={rows}
-        className="resize-none rounded-xl border border-input bg-secondary/60 px-4 py-3 text-sm leading-6 outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
+        className="resize-none rounded-xl border-2 border-ink bg-secondary/60 px-4 py-3 text-sm leading-6 outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
         {...props}
@@ -417,17 +424,21 @@ function StampCardPreview({
   const earnedPreviewCount = Math.min(stampsRequired - 1, 2)
 
   return (
-    <aside className="grid h-fit gap-4 rounded-4xl border bg-card p-5 shadow-xs">
-      <div className="grid gap-1">
-        <p className="font-mono text-xs uppercase text-muted-foreground">
-          Customer preview
-        </p>
-        <h2 className="text-2xl font-extrabold leading-tight">
-          {draft.cardName || "Mystery Visit Card"}
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          {merchantName} · {locationName}
-        </p>
+    <div className="h-fit">
+    <aside className="surface-card grid gap-4 p-5">
+      <div className="grid gap-2">
+        <div className="flex items-start gap-3">
+          <VenueMark name={merchantName} size={48} />
+          <div className="grid gap-1">
+            <Eyebrow>Customer preview</Eyebrow>
+            <h2 className="text-2xl font-extrabold leading-tight">
+              {draft.cardName || "Mystery Visit Card"}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {merchantName} · {locationName}
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2">
@@ -438,8 +449,8 @@ function StampCardPreview({
               key={index}
               className={
                 earned
-                  ? "aspect-square rounded-full bg-primary shadow-xs"
-                  : "aspect-square rounded-full border border-dashed border-border bg-background"
+                  ? "aspect-square rounded-full border-2 border-ink bg-primary shadow-xs"
+                  : "aspect-square rounded-full border-2 border-dashed border-ink bg-background"
               }
               aria-label={earned ? "Earned stamp" : "Empty stamp"}
             />
@@ -453,10 +464,8 @@ function StampCardPreview({
         </p>
       ) : null}
 
-      <div className="rounded-3xl bg-accent p-4">
-        <p className="text-xs font-bold uppercase text-muted-foreground">
-          Locked reward
-        </p>
+      <div className="rounded-2xl border-2 border-ink bg-accent p-4">
+        <Eyebrow>Locked reward</Eyebrow>
         <p className="mt-1 text-lg font-extrabold">Surprise reward</p>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
           Complete {stampsRequired} visits to reveal your surprise reward.
@@ -466,12 +475,16 @@ function StampCardPreview({
         </p>
       </div>
 
-      <p className="font-mono text-xs uppercase text-muted-foreground">
+      <hr className="w-rule" />
+
+      <Eyebrow>
         {draft.isActive ? "Active for new stamps" : "Inactive: no new stamps"}
-      </p>
-      <p className="font-mono text-xs uppercase text-muted-foreground">
+      </Eyebrow>
+      <Eyebrow>
         {activeRewardCount} active pool reward{activeRewardCount === 1 ? "" : "s"}
-      </p>
+      </Eyebrow>
     </aside>
+    <div aria-hidden className="receipt-edge" />
+    </div>
   )
 }

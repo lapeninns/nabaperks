@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 
+import { Eyebrow } from "@/components/brand"
 import { cn } from "@/lib/utils"
 import {
   Table,
@@ -14,6 +15,7 @@ export type DataTableColumn<T> = {
   key: string
   header: ReactNode
   cell: (row: T) => ReactNode
+  className?: string
 }
 
 export function DataTable<T>({
@@ -23,6 +25,7 @@ export function DataTable<T>({
   getRowKey,
   emptyState,
   className,
+  rowClassName,
 }: {
   caption: string
   columns: DataTableColumn<T>[]
@@ -30,27 +33,55 @@ export function DataTable<T>({
   getRowKey: (row: T, index: number) => string
   emptyState?: ReactNode
   className?: string
+  rowClassName?: (row: T, index: number) => string | undefined
 }) {
   if (!rows.length && emptyState) {
     return <>{emptyState}</>
   }
 
   return (
-    <div className={cn("overflow-x-auto rounded-3xl border bg-card shadow-xs", className)}>
-      <Table>
+    <div
+      className={cn(
+        "surface-card overflow-x-auto",
+        className
+      )}
+    >
+      <Table className="min-w-full text-sm">
         <caption className="sr-only">{caption}</caption>
-        <TableHeader>
-          <TableRow>
+        <TableHeader className="bg-secondary/60">
+          <TableRow className="border-b-2 border-ink hover:bg-transparent">
             {columns.map((column) => (
-              <TableHead key={column.key}>{column.header}</TableHead>
+              <TableHead
+                key={column.key}
+                className={cn(
+                  "h-10 whitespace-nowrap px-4 text-xs font-extrabold uppercase text-muted-foreground",
+                  column.className
+                )}
+              >
+                <Eyebrow className="text-[0.7rem]">{column.header}</Eyebrow>
+              </TableHead>
             ))}
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.map((row, index) => (
-            <TableRow key={getRowKey(row, index)}>
+            <TableRow
+              key={getRowKey(row, index)}
+              className={cn(
+                "transition-colors hover:bg-secondary/35",
+                rowClassName?.(row, index)
+              )}
+            >
               {columns.map((column) => (
-                <TableCell key={column.key}>{column.cell(row)}</TableCell>
+                <TableCell
+                  key={column.key}
+                  className={cn(
+                    "px-4 py-3 align-top text-sm",
+                    column.className
+                  )}
+                >
+                  {column.cell(row)}
+                </TableCell>
               ))}
             </TableRow>
           ))}
