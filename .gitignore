@@ -21,6 +21,10 @@
 # misc
 .DS_Store
 *.pem
+.tmp/
+.claude/
+.firecrawl/
+supabase/.temp/
 
 # debug
 npm-debug.log*
@@ -30,7 +34,9 @@ pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.vercel
