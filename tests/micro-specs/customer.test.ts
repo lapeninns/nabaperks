@@ -76,21 +76,21 @@ describe("03 customer micro-specs", () => {
     vi.doUnmock("@/lib/customer/join")
     vi.doUnmock("@/lib/customer/card")
     vi.doUnmock("@/lib/customer/reward")
+    vi.doUnmock("@/lib/customer/stamp-code")
     vi.doUnmock("@/lib/auth/session")
     vi.doUnmock("@/components/customer/join-forms")
-    vi.doUnmock("@/components/customer/reward-redemption-form")
+    vi.doUnmock("@/components/customer/stamp-code-panel")
     vi.doUnmock("next/navigation")
   })
 
   it("preserves customer, staff, and reward form/action contracts after the mobile redesign", () => {
     const joinForms = readProjectFile("components/customer/join-forms.tsx")
     const joinActions = readProjectFile("app/m/[merchantSlug]/join/actions.ts")
-    const rewardForm = readProjectFile(
-      "components/customer/reward-redemption-form.tsx"
+    const rewardPage = readProjectFile("app/reward/[rewardId]/page.tsx")
+    const stationConsole = readProjectFile(
+      "components/staff/station-console.tsx"
     )
-    const rewardActions = readProjectFile("app/reward/[rewardId]/actions.ts")
-    const staffForm = readProjectFile("components/staff/staff-pin-form.tsx")
-    const staffActions = readProjectFile("app/staff/stamp/actions.ts")
+    const staffActions = readProjectFile("app/staff/actions.ts")
 
     for (const field of [
       "merchantSlug",
@@ -107,27 +107,24 @@ describe("03 customer micro-specs", () => {
       expect(joinActions).toContain(`formData.get("${checkbox}")`)
     }
 
-    expect(rewardForm).toContain(`name="rewardId"`)
-    expect(rewardForm).toContain(`name="pin"`)
-    expect(rewardForm).toContain(`type="password"`)
-    expect(rewardForm).toContain(`inputMode="numeric"`)
-    expect(rewardActions).toContain(`value(formData, "rewardId")`)
-    expect(rewardActions).toContain(`value(formData, "pin")`)
-    expect(rewardActions).toContain(`"redeem_reward_with_staff_pin"`)
-    expect(rewardActions).toContain(`p_reward_id: rewardId`)
-    expect(rewardActions).toContain(`p_pin: pin`)
+    // Redemption shows a short-lived code; the customer device never
+    // collects a staff PIN.
+    expect(rewardPage).toContain("StampCodePanel")
+    expect(rewardPage).toContain("createRedeemCode")
+    expect(rewardPage).toContain(`kind="redeem"`)
+    expect(rewardPage).not.toContain(`name="pin"`)
 
-    expect(staffForm).toContain(`name="membershipId"`)
-    expect(staffForm).toContain(`name="pin"`)
-    expect(staffForm).toContain(`type="password"`)
-    expect(staffForm).toContain(`inputMode="numeric"`)
-    expect(staffForm).toContain(`size="lg"`)
-    expect(staffActions).toContain(`value(formData, "membershipId")`)
-    expect(staffActions).toContain(`value(formData, "pin")`)
-    expect(staffActions).toContain(`"issue_stamp_with_staff_pin"`)
-    expect(staffActions).toContain(`p_membership_id: membershipId`)
-    expect(staffActions).toContain(`p_pin: pin`)
-    expect(staffActions).toContain("`/card/${membershipId}?stamp=issued`")
+    // Staff PINs exist only on the paired station, to start a named session.
+    expect(stationConsole).toContain(`name="pin"`)
+    expect(stationConsole).toContain(`type="password"`)
+    expect(stationConsole).toContain(`inputMode="numeric"`)
+    expect(stationConsole).toContain(`name="code"`)
+    expect(staffActions).toContain(`value(formData, "code")`)
+    expect(staffActions).toContain(`value(formData, "pairingCode")`)
+    expect(staffActions).toContain("startStaffSession")
+    expect(staffActions).toContain("approveStamp")
+    expect(staffActions).toContain("redeemRewardToken")
+    expect(staffActions).toContain("undoStamp")
   })
 
   it("keeps customer and staff pages mobile-first with loyalty primitives and safe state copy", () => {
@@ -135,7 +132,8 @@ describe("03 customer micro-specs", () => {
     const joinPage = readProjectFile("app/m/[merchantSlug]/join/page.tsx")
     const cardPage = readProjectFile("app/card/[membershipId]/page.tsx")
     const rewardPage = readProjectFile("app/reward/[rewardId]/page.tsx")
-    const staffPage = readProjectFile("app/staff/stamp/page.tsx")
+    const stationPage = readProjectFile("app/staff/page.tsx")
+    const stampRedirectPage = readProjectFile("app/staff/stamp/page.tsx")
     const qrPage = readProjectFile("app/q/[qrId]/page.tsx")
     const termsPage = readProjectFile("app/merchant/[merchantSlug]/terms/page.tsx")
 
@@ -157,7 +155,7 @@ describe("03 customer micro-specs", () => {
     expect(cardPage).toContain("ProgressTrack")
     expect(cardPage).toContain("RewardTeaser")
     expect(cardPage).toContain("Stamp added.")
-    expect(cardPage).toContain("Claim stamp")
+    expect(cardPage).toContain("Get today&apos;s stamp")
     expect(cardPage).toContain("Redeem reward")
 
     expect(rewardPage).toContain("CustomerShell")
@@ -165,12 +163,12 @@ describe("03 customer micro-specs", () => {
     expect(rewardPage).toContain(
       "Come back from the next UK business day to redeem this reward."
     )
-    expect(rewardPage).toContain("Ready for staff confirmation.")
+    expect(rewardPage).toContain("Ready to redeem.")
 
-    expect(staffPage).toContain("StaffShell")
-    expect(staffPage).toContain("ProgressTrack")
-    expect(staffPage).toContain("Open from a customer card")
-    expect(staffPage).toContain("Start a stamp claim from the customer's digital card.")
+    expect(stationPage).toContain("StaffShell")
+    expect(stationPage).toContain("getStationState")
+    expect(stationPage).toContain("Pair this station")
+    expect(stampRedirectPage).toContain(`redirect("/staff")`)
 
     expect(qrPage).toContain("This loyalty card is unavailable")
     expect(qrPage).toContain("Ask a team member for the current loyalty QR.")
@@ -191,6 +189,8 @@ describe("03 customer micro-specs", () => {
     ]) {
       expect(termsPage).toContain(topic)
     }
+
+    expect(termsPage).not.toContain("venue PIN")
   })
 
   it("renders the public merchant landing with live card context and mobile CTAs", async () => {
@@ -324,11 +324,14 @@ describe("03 customer micro-specs", () => {
     expect(cardText).toContain("2")
     expect(cardText).toContain("3")
     expect(cardText).toContain("Mystery reward")
-    expect(cardText).toContain("Claim stamp")
+    expect(cardText).toContain("Get today's stamp")
 
     vi.resetModules()
-    vi.doMock("@/components/customer/reward-redemption-form", () => ({
-      RewardRedemptionForm: () => "PIN form",
+    vi.doMock("@/components/customer/stamp-code-panel", () => ({
+      StampCodePanel: () => "CODE PANEL",
+    }))
+    vi.doMock("@/lib/customer/stamp-code", () => ({
+      createRedeemCode: vi.fn(),
     }))
     vi.doMock("@/lib/customer/reward", () => ({
       getCustomerRewardState: vi.fn(async () => ({
@@ -378,7 +381,7 @@ describe("03 customer micro-specs", () => {
       "Come back from the next UK business day to redeem this reward."
     )
     expect(rewardText).toContain("Return to card")
-    expect(rewardText).not.toContain("PIN form")
+    expect(rewardText).not.toContain("CODE PANEL")
   })
 
   it("renders merchant-specific terms with the safe contact fallback", async () => {
@@ -417,13 +420,20 @@ describe("03 customer micro-specs", () => {
     expect(renderedText).toContain("Ask the venue team")
     expect(renderedText).toContain("Join rewards")
     expect(renderedText).toContain("Privacy notice")
+
+    // Counter-handshake redemption (MS-06/MS-07): the customer keeps their
+    // phone and shows a code; staff confirm on the paired station. The venue
+    // PIN exists only for staff to start a named station session, so it must
+    // never appear to the customer as the reward-confirmation mechanic.
+    expect(renderedText).not.toContain("venue PIN")
+    expect(renderedText).toContain("staff confirm it on their station")
   })
 
   it("rejects invalid customer identity input before sending OTP", async () => {
     vi.resetModules()
     vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
     vi.doMock("@/lib/env/server", () => ({
-      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://stampiee.test" }),
+      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://nabaperks.test" }),
     }))
     vi.doMock("@/lib/security/rate-limit", async () => {
       const actual = await vi.importActual<typeof import("@/lib/security/rate-limit")>(
@@ -471,7 +481,7 @@ describe("03 customer micro-specs", () => {
     })
     vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
     vi.doMock("@/lib/env/server", () => ({
-      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://stampiee.test" }),
+      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://nabaperks.test" }),
     }))
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServerClient: vi.fn(async () => supabase.client),
@@ -501,7 +511,7 @@ describe("03 customer micro-specs", () => {
       email: "guest@example.test",
       options: {
         emailRedirectTo: expect.stringContaining(
-          "https://stampiee.test/auth/confirm?next="
+          "https://nabaperks.test/auth/confirm?next="
         ),
       },
     })
@@ -521,7 +531,7 @@ describe("03 customer micro-specs", () => {
       createSupabaseServerClient: vi.fn(),
     }))
     vi.doMock("@/lib/env/server", () => ({
-      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://stampiee.test" }),
+      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://nabaperks.test" }),
     }))
     vi.doMock("@/lib/analytics/events", () => ({
       capturePostHogEvent: vi.fn(),
@@ -556,7 +566,7 @@ describe("03 customer micro-specs", () => {
       createSupabaseServerClient: vi.fn(async () => supabase.client),
     }))
     vi.doMock("@/lib/env/server", () => ({
-      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://stampiee.test" }),
+      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://nabaperks.test" }),
     }))
     vi.doMock("@/lib/analytics/events", () => ({ capturePostHogEvent }))
     const { joinRewardsAction } = await import(
@@ -1086,7 +1096,8 @@ describe("03 customer micro-specs", () => {
     vi.resetModules()
     const supabase = createSupabaseMock({
       rpc: {
-        redeem_reward_with_staff_pin: [
+        enforce_rate_limit: [{ data: null, error: null }],
+        create_verification_token: [
           {
             data: null,
             error: {
@@ -1097,24 +1108,18 @@ describe("03 customer micro-specs", () => {
         ],
       },
     })
-    vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServerClient: vi.fn(async () => supabase.client),
+      createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
     }))
-    vi.doMock("@/lib/analytics/events", () => ({
-      capturePostHogEvent: vi.fn(),
-    }))
-    const { redeemRewardAction } = await import(
-      "@/app/reward/[rewardId]/actions"
-    )
+    const { createRedeemCode } = await import("@/lib/customer/stamp-code")
 
     await expect(
-      redeemRewardAction({}, form({ rewardId: "reward-1", pin: "1234" }))
-    ).resolves.toMatchObject({
-      fields: { rewardId: "reward-1" },
-      errors: {
-        form: "Come back from the next UK business day to redeem this reward.",
-      },
+      createRedeemCode("membership-1", "reward-1")
+    ).resolves.toEqual({
+      status: "blocked",
+      reason:
+        "Give it a day to breathe — redeemable from the next UK business day.",
     })
   })
 })

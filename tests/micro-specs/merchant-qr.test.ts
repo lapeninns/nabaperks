@@ -38,9 +38,8 @@ describe("02 merchant and QR micro-specs", () => {
     vi.doMock("@/lib/analytics/events", () => ({
       capturePostHogEvent: vi.fn(),
     }))
-    const { completeOnboardingAction } = await import(
-      "@/app/app/onboarding/actions"
-    )
+    const { completeOnboardingAction } =
+      await import("@/app/app/onboarding/actions")
 
     await expect(
       completeOnboardingAction({}, form({ businessName: "The Bell" }))
@@ -72,9 +71,8 @@ describe("02 merchant and QR micro-specs", () => {
       createSupabaseServerClient: vi.fn(async () => supabase.client),
     }))
     vi.doMock("@/lib/analytics/events", () => ({ capturePostHogEvent }))
-    const { completeOnboardingAction } = await import(
-      "@/app/app/onboarding/actions"
-    )
+    const { completeOnboardingAction } =
+      await import("@/app/app/onboarding/actions")
 
     await expect(
       completeOnboardingAction(
@@ -151,7 +149,8 @@ describe("02 merchant and QR micro-specs", () => {
         },
       })),
     }))
-    const { default: OnboardingPage } = await import("@/app/app/onboarding/page")
+    const { default: OnboardingPage } =
+      await import("@/app/app/onboarding/page")
 
     const page = (await OnboardingPage()) as {
       props: { children: [unknown, { props: { initialFields: unknown } }] }
@@ -226,7 +225,7 @@ describe("02 merchant and QR micro-specs", () => {
           isActive: true,
         })
       )
-    ).rejects.toThrow("NEXT_REDIRECT:/app/card?saved=1")
+    ).rejects.toThrow("NEXT_REDIRECT:/app/launch?tab=card&saved=1")
 
     expect(supabase.rpcCalls[0]).toEqual({
       name: "save_loyalty_card",
@@ -290,7 +289,7 @@ describe("02 merchant and QR micro-specs", () => {
           isActive: true,
         })
       )
-    ).rejects.toThrow("NEXT_REDIRECT:/app/card?saved=pool")
+    ).rejects.toThrow("NEXT_REDIRECT:/app/launch?tab=card&saved=pool")
 
     expect(supabase.rpcCalls[0]).toEqual({
       name: "upsert_reward_pool_item",
@@ -309,12 +308,18 @@ describe("02 merchant and QR micro-specs", () => {
   })
 
   it("keeps merchant workflow form field names and safe status banners visible", () => {
-    const onboardingForm = readProjectFile("components/merchant/onboarding-form.tsx")
-    const cardForm = readProjectFile("components/merchant/loyalty-card-form.tsx")
-    const cardPage = readProjectFile("app/app/card/page.tsx")
-    const qrPage = readProjectFile("app/app/qr/page.tsx")
-    const staffPinForm = readProjectFile(
-      "components/merchant/staff-pin-settings-form.tsx"
+    const onboardingForm = readProjectFile(
+      "components/merchant/onboarding-form.tsx"
+    )
+    const cardForm = readProjectFile(
+      "components/merchant/loyalty-card-form.tsx"
+    )
+    const cardPage = readProjectFile(
+      "components/merchant/launch/card-panel.tsx"
+    )
+    const qrPage = readProjectFile("components/merchant/launch/qr-panel.tsx")
+    const staffStationForms = readProjectFile(
+      "components/merchant/staff-station-forms.tsx"
     )
     const roiForm = readProjectFile("components/merchant/roi-settings-form.tsx")
 
@@ -352,15 +357,17 @@ describe("02 merchant and QR micro-specs", () => {
 
     expect(qrPage).toContain("QrFrame")
     expect(qrPage).toContain("Add or activate a reward")
+    expect(qrPage).toContain("Staff members:")
+    expect(qrPage).toContain("Counter station:")
+    expect(qrPage).toContain('href="/app/launch?tab=staff"')
     expect(qrPage).toContain('name="qrCodeId"')
     expect(qrPage).toContain('name="nextActive"')
 
-    for (const fieldName of ["pin", "confirmPin"]) {
-      expect(staffPinForm).toContain(`name={id}`)
-      expect(staffPinForm).toContain(`id="${fieldName}"`)
+    for (const fieldName of ["displayName", "pin", "stationName"]) {
+      expect(staffStationForms).toContain(`name="${fieldName}"`)
     }
-    expect(staffPinForm).toContain('type="password"')
-    expect(staffPinForm).toContain('inputMode="numeric"')
+    expect(staffStationForms).toContain('inputMode="numeric"')
+    expect(staffStationForms).toContain("Pairing code for")
 
     for (const fieldName of [
       "averageOrderValue",
@@ -396,9 +403,8 @@ describe("02 merchant and QR micro-specs", () => {
     vi.doMock("@/lib/analytics/events", () => ({
       capturePostHogEvent: vi.fn(),
     }))
-    const { completeOnboardingAction } = await import(
-      "@/app/app/onboarding/actions"
-    )
+    const { completeOnboardingAction } =
+      await import("@/app/app/onboarding/actions")
 
     await expect(
       completeOnboardingAction(
@@ -489,7 +495,9 @@ describe("02 merchant and QR micro-specs", () => {
 
     await expect(
       deleteRewardPoolItemAction(form({ rewardPoolItemId: "pool-1" }))
-    ).rejects.toThrow("NEXT_REDIRECT:/app/card?error=Unable%20to%20update%20reward")
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/app/launch?tab=card&error=Unable%20to%20update%20reward"
+    )
   })
 
   it("requires at least one active reward pool item before launching the permanent venue QR", async () => {
@@ -508,7 +516,7 @@ describe("02 merchant and QR micro-specs", () => {
     const { generateQrCodeAction } = await import("@/app/app/qr/actions")
 
     await expect(generateQrCodeAction()).rejects.toThrow(
-      "NEXT_REDIRECT:/app/qr?error=Add%20at%20least%20one%20active%20mystery%20reward%20before%20launching%20the%20QR."
+      "NEXT_REDIRECT:/app/launch?tab=qr&error=Add%20at%20least%20one%20active%20mystery%20reward%20before%20launching%20the%20QR."
     )
   })
 
@@ -534,7 +542,7 @@ describe("02 merchant and QR micro-specs", () => {
     const { generateQrCodeAction } = await import("@/app/app/qr/actions")
 
     await expect(generateQrCodeAction()).rejects.toThrow(
-      "NEXT_REDIRECT:/app/qr?created=1"
+      "NEXT_REDIRECT:/app/launch?tab=qr&created=1"
     )
     expect(supabase.rpcCalls[0]).toEqual({
       name: "create_or_get_join_qr",
@@ -569,16 +577,38 @@ describe("02 merchant and QR micro-specs", () => {
         merchant: { id: "merchant-1" },
       })),
     }))
+    vi.doMock("@/lib/merchant/staff-members", () => ({
+      listStaffMembers: vi.fn(async () => [
+        {
+          id: "staff-1",
+          displayName: "Maya",
+          role: "staff",
+          isActive: true,
+          createdAt: "2026-06-13T09:00:00Z",
+        },
+      ]),
+    }))
+    vi.doMock("@/lib/merchant/stations", () => ({
+      listStations: vi.fn(async () => [
+        {
+          id: "station-1",
+          stationName: "Front till",
+          status: "active",
+          pairingCode: null,
+          pairingExpiresAt: null,
+          pairedAt: "2026-06-13T09:05:00Z",
+          lastSeenAt: "2026-06-13T09:10:00Z",
+        },
+      ]),
+    }))
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServerClient: vi.fn(async () => supabase.client),
     }))
     const { setQrActiveAction } = await import("@/app/app/qr/actions")
 
     await expect(
-      setQrActiveAction(
-        form({ qrCodeId: "qr-row-1", nextActive: "false" })
-      )
-    ).rejects.toThrow("NEXT_REDIRECT:/app/qr?disabled=1")
+      setQrActiveAction(form({ qrCodeId: "qr-row-1", nextActive: "false" }))
+    ).rejects.toThrow("NEXT_REDIRECT:/app/launch?tab=qr&disabled=1")
     expect(supabase.rpcCalls[0]).toEqual({
       name: "set_qr_active",
       params: {
@@ -590,7 +620,7 @@ describe("02 merchant and QR micro-specs", () => {
 
     await expect(
       setQrActiveAction(form({ qrCodeId: "qr-row-1", nextActive: "true" }))
-    ).rejects.toThrow("NEXT_REDIRECT:/app/qr?enabled=1")
+    ).rejects.toThrow("NEXT_REDIRECT:/app/launch?tab=qr&enabled=1")
     expect(supabase.rpcCalls[1]).toEqual({
       name: "set_qr_active",
       params: {
@@ -614,18 +644,72 @@ describe("02 merchant and QR micro-specs", () => {
         merchant: { id: "merchant-1" },
       })),
     }))
+    vi.doMock("@/lib/merchant/staff-members", () => ({
+      listStaffMembers: vi.fn(async () => [
+        {
+          id: "staff-1",
+          displayName: "Maya",
+          role: "staff",
+          isActive: true,
+          createdAt: "2026-06-13T09:00:00Z",
+        },
+      ]),
+    }))
+    vi.doMock("@/lib/merchant/stations", () => ({
+      listStations: vi.fn(async () => [
+        {
+          id: "station-1",
+          stationName: "Front till",
+          status: "active",
+          pairingCode: null,
+          pairingExpiresAt: null,
+          pairedAt: "2026-06-13T09:05:00Z",
+          lastSeenAt: "2026-06-13T09:10:00Z",
+        },
+      ]),
+    }))
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServerClient: vi.fn(async () => failingSupabase.client),
     }))
-    const { setQrActiveAction: failingSetQrActiveAction } = await import(
-      "@/app/app/qr/actions"
-    )
+    const { setQrActiveAction: failingSetQrActiveAction } =
+      await import("@/app/app/qr/actions")
 
     await expect(
       failingSetQrActiveAction(
         form({ qrCodeId: "qr-row-1", nextActive: "true" })
       )
-    ).rejects.toThrow("NEXT_REDIRECT:/app/qr?error=Unable%20to%20update%20QR")
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/app/launch?tab=qr&error=Unable%20to%20update%20QR"
+    )
+  })
+
+  it("blocks QR launch until named staff and an active counter station exist", async () => {
+    vi.resetModules()
+    const redirect = redirectMock()
+    const supabase = createSupabaseMock()
+    vi.doMock("next/navigation", () => ({ redirect }))
+    vi.doMock("@/lib/merchant/qr-code", () => ({
+      getQrSetup: vi.fn(async () => ({
+        merchant: { id: "merchant-1" },
+      })),
+    }))
+    vi.doMock("@/lib/merchant/staff-members", () => ({
+      listStaffMembers: vi.fn(async () => []),
+    }))
+    vi.doMock("@/lib/merchant/stations", () => ({
+      listStations: vi.fn(async () => []),
+    }))
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServerClient: vi.fn(async () => supabase.client),
+    }))
+    const { setQrActiveAction } = await import("@/app/app/qr/actions")
+
+    await expect(
+      setQrActiveAction(form({ qrCodeId: "qr-row-1", nextActive: "true" }))
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/app/launch?tab=qr&error=Add%20at%20least%20one%20staff%20member%20and%20active%20counter%20station%20before%20launching%20the%20QR."
+    )
+    expect(supabase.rpcCalls).toEqual([])
   })
 
   it("saves ROI settings to dashboard-estimate fields and revalidates readbacks", async () => {
@@ -641,9 +725,7 @@ describe("02 merchant and QR micro-specs", () => {
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServerClient: vi.fn(async () => supabase.client),
     }))
-    const { saveRoiSettingsAction } = await import(
-      "@/app/app/settings/actions"
-    )
+    const { saveRoiSettingsAction } = await import("@/app/app/settings/actions")
 
     await expect(
       saveRoiSettingsAction(
@@ -714,10 +796,10 @@ describe("02 merchant and QR micro-specs", () => {
     expect(assetKindFromSlug("sticker")).toBe("sticker_png")
     expect(assetKindFromSlug("unknown")).toBeNull()
     expect(assetFilename("poster_pdf", "qr-live")).toBe(
-      "stampiee-poster-pdf-qr-live.pdf"
+      "nabaperks-poster-pdf-qr-live.pdf"
     )
     expect(assetFilename("sticker_png", "qr-live")).toBe(
-      "stampiee-sticker-png-qr-live.png"
+      "nabaperks-sticker-png-qr-live.png"
     )
   })
 
@@ -730,11 +812,11 @@ describe("02 merchant and QR micro-specs", () => {
     const { renderQrCodePng } = await import("@/lib/qr/assets")
 
     await expect(
-      renderQrCodePng("https://stampiee.test/q/qr-public", 512)
+      renderQrCodePng("https://nabaperks.test/q/qr-public", 512)
     ).resolves.toBeInstanceOf(Buffer)
 
     expect(toDataURL).toHaveBeenCalledWith(
-      "https://stampiee.test/q/qr-public",
+      "https://nabaperks.test/q/qr-public",
       expect.objectContaining({
         errorCorrectionLevel: "H",
         margin: 4,
@@ -754,11 +836,14 @@ describe("02 merchant and QR micro-specs", () => {
   })
 
   it("keeps merchant QR page lifecycle links and raw preview scanner-safe", () => {
-    const qrPage = readProjectFile("app/app/qr/page.tsx")
+    const qrPage = readProjectFile("components/merchant/launch/qr-panel.tsx")
 
     expect(qrPage).toContain("QrFrame")
     expect(qrPage).toContain("bg-white")
     expect(qrPage).toContain("/app/qr/image/${qrCode.id}")
+    expect(qrPage).toContain("/app/qr/preview/poster?qr=${qrCode.id}")
+    expect(qrPage).toContain("/app/qr/preview/till-card?qr=${qrCode.id}")
+    expect(qrPage).toContain("/app/qr/preview/sticker?qr=${qrCode.id}")
     expect(qrPage).toContain("/app/qr/download/poster?qr=${qrCode.id}")
     expect(qrPage).toContain("/app/qr/download/till-card?qr=${qrCode.id}")
     expect(qrPage).toContain("/app/qr/download/sticker?qr=${qrCode.id}")
@@ -769,9 +854,10 @@ describe("02 merchant and QR micro-specs", () => {
   it("renders refreshed poster, till-card, and sticker buffers without changing payloads", async () => {
     vi.resetModules()
     vi.doUnmock("qrcode")
-    const { renderQrAssetPng, renderQrPosterPdf } = await import("@/lib/qr/assets")
+    const { renderQrAssetPng, renderQrPosterPdf } =
+      await import("@/lib/qr/assets")
     const context = {
-      shareUrl: "https://stampiee.test/q/qr-public",
+      shareUrl: "https://nabaperks.test/q/qr-public",
       qrPublicId: "qr-public",
       merchantName: "The Bell",
       locationName: "Main bar",
@@ -798,7 +884,7 @@ describe("02 merchant and QR micro-specs", () => {
     })
     const capturePostHogEvent = vi.fn()
     vi.doMock("@/lib/env/server", () => ({
-      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://stampiee.test" }),
+      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://nabaperks.test" }),
     }))
     vi.doMock("@/lib/merchant/qr-code", () => ({
       getOwnedQrAssetContext: vi.fn(async () => ({
@@ -816,7 +902,7 @@ describe("02 merchant and QR micro-specs", () => {
       createSupabaseServerClient: vi.fn(async () => supabase.client),
     }))
     vi.doMock("@/lib/qr/assets", () => ({
-      assetFilename: () => "stampiee-till-card-png-qr-public.png",
+      assetFilename: () => "nabaperks-till-card-png-qr-public.png",
       assetKindFromSlug: () => "till_card_png",
       renderQrAssetPng: vi.fn(async () => new Uint8Array([1, 2, 3])),
       renderQrPosterPdf: vi.fn(),
@@ -824,7 +910,9 @@ describe("02 merchant and QR micro-specs", () => {
     const { GET } = await import("@/app/app/qr/download/[asset]/route")
 
     const response = await GET(
-      new Request("https://stampiee.test/app/qr/download/till-card?qr=qr-row-1"),
+      new Request(
+        "https://nabaperks.test/app/qr/download/till-card?qr=qr-row-1"
+      ),
       { params: Promise.resolve({ asset: "till-card" }) }
     )
 
@@ -832,7 +920,7 @@ describe("02 merchant and QR micro-specs", () => {
     expect(response.headers.get("Content-Type")).toBe("image/png")
     expect(response.headers.get("Cache-Control")).toBe("private, no-store")
     expect(response.headers.get("Content-Disposition")).toContain(
-      "stampiee-till-card-png-qr-public.png"
+      "nabaperks-till-card-png-qr-public.png"
     )
     expect(supabase.rpcCalls[0]).toEqual({
       name: "record_qr_download",
@@ -856,19 +944,19 @@ describe("02 merchant and QR micro-specs", () => {
         slug: "poster",
         kind: "poster_pdf",
         contentType: "application/pdf",
-        filename: "stampiee-poster-pdf-qr-public.pdf",
+        filename: "nabaperks-poster-pdf-qr-public.pdf",
       },
       {
         slug: "till-card",
         kind: "till_card_png",
         contentType: "image/png",
-        filename: "stampiee-till-card-png-qr-public.png",
+        filename: "nabaperks-till-card-png-qr-public.png",
       },
       {
         slug: "sticker",
         kind: "sticker_png",
         contentType: "image/png",
-        filename: "stampiee-sticker-png-qr-public.png",
+        filename: "nabaperks-sticker-png-qr-public.png",
       },
     ] as const
 
@@ -881,7 +969,7 @@ describe("02 merchant and QR micro-specs", () => {
       const renderQrAssetPng = vi.fn(async () => new Uint8Array([1, 2, 3]))
       const renderQrPosterPdf = vi.fn(async () => new Uint8Array([4, 5, 6]))
       vi.doMock("@/lib/env/server", () => ({
-        getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://stampiee.test" }),
+        getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://nabaperks.test" }),
       }))
       vi.doMock("@/lib/merchant/qr-code", () => ({
         getOwnedQrAssetContext: vi.fn(async () => ({
@@ -899,9 +987,10 @@ describe("02 merchant and QR micro-specs", () => {
         createSupabaseServerClient: vi.fn(async () => supabase.client),
       }))
       vi.doMock("@/lib/qr/assets", async () => {
-        const actual = await vi.importActual<typeof import("@/lib/qr/assets")>(
-          "@/lib/qr/assets"
-        )
+        const actual =
+          await vi.importActual<typeof import("@/lib/qr/assets")>(
+            "@/lib/qr/assets"
+          )
         return {
           ...actual,
           renderQrAssetPng,
@@ -912,7 +1001,7 @@ describe("02 merchant and QR micro-specs", () => {
 
       const response = await GET(
         new Request(
-          `https://stampiee.test/app/qr/download/${assetCase.slug}?qr=qr-row-1`
+          `https://nabaperks.test/app/qr/download/${assetCase.slug}?qr=qr-row-1`
         ),
         { params: Promise.resolve({ asset: assetCase.slug }) }
       )
@@ -942,7 +1031,7 @@ describe("02 merchant and QR micro-specs", () => {
       if (assetCase.kind === "poster_pdf") {
         expect(renderQrPosterPdf).toHaveBeenCalledWith(
           expect.objectContaining({
-            shareUrl: "https://stampiee.test/q/qr-public",
+            shareUrl: "https://nabaperks.test/q/qr-public",
             qrPublicId: "qr-public",
           })
         )
@@ -951,11 +1040,105 @@ describe("02 merchant and QR micro-specs", () => {
         expect(renderQrAssetPng).toHaveBeenCalledWith(
           assetCase.kind,
           expect.objectContaining({
-            shareUrl: "https://stampiee.test/q/qr-public",
+            shareUrl: "https://nabaperks.test/q/qr-public",
             qrPublicId: "qr-public",
           })
         )
         expect(renderQrPosterPdf).not.toHaveBeenCalled()
+      }
+    }
+  })
+
+  it("returns inline PNG previews for every QR asset without recording downloads", async () => {
+    const cases = [
+      {
+        slug: "poster",
+        kind: "poster_pdf",
+        filename: "preview-nabaperks-poster-pdf-qr-public.png",
+      },
+      {
+        slug: "till-card",
+        kind: "till_card_png",
+        filename: "preview-nabaperks-till-card-png-qr-public.png",
+      },
+      {
+        slug: "sticker",
+        kind: "sticker_png",
+        filename: "preview-nabaperks-sticker-png-qr-public.png",
+      },
+    ] as const
+
+    for (const assetCase of cases) {
+      vi.resetModules()
+      const createSupabaseServerClient = vi.fn()
+      const capturePostHogEvent = vi.fn()
+      const renderQrAssetPng = vi.fn(async () => new Uint8Array([1, 2, 3]))
+      const renderQrPosterPng = vi.fn(async () => new Uint8Array([4, 5, 6]))
+      vi.doMock("@/lib/env/server", () => ({
+        getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://nabaperks.test" }),
+      }))
+      vi.doMock("@/lib/merchant/qr-code", () => ({
+        getOwnedQrAssetContext: vi.fn(async () => ({
+          merchant: { id: "merchant-1", business_name: "The Bell" },
+          location: { name: "Main bar" },
+          activeCard: {
+            card_name: "Mystery Visit Card",
+            reward_name: "Surprise reward",
+          },
+          qrCode: { id: "qr-row-1", qr_id: "qr-public", is_active: true },
+        })),
+      }))
+      vi.doMock("@/lib/analytics/events", () => ({ capturePostHogEvent }))
+      vi.doMock("@/lib/supabase/server", () => ({
+        createSupabaseServerClient,
+      }))
+      vi.doMock("@/lib/qr/assets", async () => {
+        const actual =
+          await vi.importActual<typeof import("@/lib/qr/assets")>(
+            "@/lib/qr/assets"
+          )
+        return {
+          ...actual,
+          renderQrAssetPng,
+          renderQrPosterPng,
+        }
+      })
+      const { GET } = await import("@/app/app/qr/preview/[asset]/route")
+
+      const response = await GET(
+        new Request(
+          `https://nabaperks.test/app/qr/preview/${assetCase.slug}?qr=qr-row-1`
+        ),
+        { params: Promise.resolve({ asset: assetCase.slug }) }
+      )
+
+      expect(response.status).toBe(200)
+      expect(response.headers.get("Content-Type")).toBe("image/png")
+      expect(response.headers.get("Cache-Control")).toBe("private, no-store")
+      expect(response.headers.get("Content-Disposition")).toContain("inline")
+      expect(response.headers.get("Content-Disposition")).toContain(
+        assetCase.filename
+      )
+      expect(createSupabaseServerClient).not.toHaveBeenCalled()
+      expect(capturePostHogEvent).not.toHaveBeenCalled()
+
+      if (assetCase.kind === "poster_pdf") {
+        expect(renderQrPosterPng).toHaveBeenCalledWith(
+          expect.objectContaining({
+            shareUrl: "https://nabaperks.test/q/qr-public",
+            qrPublicId: "qr-public",
+          })
+        )
+        expect(renderQrAssetPng).not.toHaveBeenCalled()
+      } else {
+        expect(renderQrAssetPng).toHaveBeenCalledWith(
+          assetCase.kind,
+          expect.objectContaining({
+            shareUrl: "https://nabaperks.test/q/qr-public",
+            qrPublicId: "qr-public",
+          })
+        )
+        expect(renderQrPosterPng).not.toHaveBeenCalled()
       }
     }
   })
@@ -968,15 +1151,16 @@ describe("02 merchant and QR micro-specs", () => {
     const renderQrPosterPdf = vi.fn()
     const capturePostHogEvent = vi.fn()
     vi.doMock("@/lib/env/server", () => ({
-      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://stampiee.test" }),
+      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://nabaperks.test" }),
     }))
     vi.doMock("@/lib/merchant/qr-code", () => ({ getOwnedQrAssetContext }))
     vi.doMock("@/lib/analytics/events", () => ({ capturePostHogEvent }))
     vi.doMock("@/lib/supabase/server", () => ({ createSupabaseServerClient }))
     vi.doMock("@/lib/qr/assets", async () => {
-      const actual = await vi.importActual<typeof import("@/lib/qr/assets")>(
-        "@/lib/qr/assets"
-      )
+      const actual =
+        await vi.importActual<typeof import("@/lib/qr/assets")>(
+          "@/lib/qr/assets"
+        )
       return {
         ...actual,
         renderQrAssetPng,
@@ -988,15 +1172,15 @@ describe("02 merchant and QR micro-specs", () => {
     const malformedRequests = [
       {
         asset: "unknown",
-        url: "https://stampiee.test/app/qr/download/unknown?qr=qr-row-1",
+        url: "https://nabaperks.test/app/qr/download/unknown?qr=qr-row-1",
       },
       {
         asset: "poster",
-        url: "https://stampiee.test/app/qr/download/poster",
+        url: "https://nabaperks.test/app/qr/download/poster",
       },
       {
         asset: "poster",
-        url: "https://stampiee.test/app/qr/download/poster?qr=",
+        url: "https://nabaperks.test/app/qr/download/poster?qr=",
       },
     ]
 
@@ -1011,7 +1195,7 @@ describe("02 merchant and QR micro-specs", () => {
     expect(getOwnedQrAssetContext).not.toHaveBeenCalled()
 
     const unownedResponse = await GET(
-      new Request("https://stampiee.test/app/qr/download/poster?qr=missing-qr"),
+      new Request("https://nabaperks.test/app/qr/download/poster?qr=missing-qr"),
       { params: Promise.resolve({ asset: "poster" }) }
     )
 
@@ -1031,14 +1215,14 @@ describe("02 merchant and QR micro-specs", () => {
       qrCode: { qr_id: "qr-public" },
     }))
     vi.doMock("@/lib/env/server", () => ({
-      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://stampiee.test" }),
+      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://nabaperks.test" }),
     }))
     vi.doMock("@/lib/merchant/qr-code", () => ({ getOwnedQrAssetContext }))
     vi.doMock("@/lib/qr/assets", () => ({ renderQrCodePng }))
     const { GET } = await import("@/app/app/qr/image/[qrCodeId]/route")
 
     const response = await GET(
-      new Request("https://stampiee.test/app/qr/image/qr-row-1"),
+      new Request("https://nabaperks.test/app/qr/image/qr-row-1"),
       { params: Promise.resolve({ qrCodeId: "qr-row-1" }) }
     )
 
@@ -1047,14 +1231,14 @@ describe("02 merchant and QR micro-specs", () => {
     expect(response.headers.get("Cache-Control")).toBe("private, no-store")
     expect(getOwnedQrAssetContext).toHaveBeenCalledWith("qr-row-1")
     expect(renderQrCodePng).toHaveBeenCalledWith(
-      "https://stampiee.test/q/qr-public"
+      "https://nabaperks.test/q/qr-public"
     )
 
     vi.resetModules()
     const missingRenderQrCodePng = vi.fn()
     const missingGetOwnedQrAssetContext = vi.fn(async () => null)
     vi.doMock("@/lib/env/server", () => ({
-      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://stampiee.test" }),
+      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://nabaperks.test" }),
     }))
     vi.doMock("@/lib/merchant/qr-code", () => ({
       getOwnedQrAssetContext: missingGetOwnedQrAssetContext,
@@ -1062,11 +1246,10 @@ describe("02 merchant and QR micro-specs", () => {
     vi.doMock("@/lib/qr/assets", () => ({
       renderQrCodePng: missingRenderQrCodePng,
     }))
-    const { GET: missingGET } = await import(
-      "@/app/app/qr/image/[qrCodeId]/route"
-    )
+    const { GET: missingGET } =
+      await import("@/app/app/qr/image/[qrCodeId]/route")
     const missingResponse = await missingGET(
-      new Request("https://stampiee.test/app/qr/image/missing-qr"),
+      new Request("https://nabaperks.test/app/qr/image/missing-qr"),
       { params: Promise.resolve({ qrCodeId: "missing-qr" }) }
     )
 

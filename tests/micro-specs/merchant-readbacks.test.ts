@@ -59,21 +59,24 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
 
     for (const href of [
       'href: "/app"',
-      'href: "/app/card"',
-      'href: "/app/qr"',
+      'href: "/app/launch"',
       'href: "/app/customers"',
-      'href: "/app/activity"',
-      'href: "/app/settings"',
       'href: "/app/billing"',
+      'href: "/app/settings"',
     ]) {
       expect(shell).toContain(href)
     }
+    expect(shell).toContain("merchantAccountItems")
+    expect(shell).toContain("secondaryItems={merchantAccountItems}")
 
     expect(shell).toContain("<form action={signOutAction}")
     expect(navigation).toContain("SheetTitle")
     expect(navigation).toContain("SheetDescription")
     expect(navigation).toContain("aria-current")
-    expect(navigation).toContain('aria-label={`${mobileTitle} mobile`}')
+    expect(navigation).toContain("aria-label={`${mobileTitle} mobile`}")
+    // Account group renders alongside the primary nav on mobile and desktop.
+    expect(navigation).toContain("secondaryItems")
+    expect(navigation).toContain("aria-label={`${secondaryLabel} mobile`}")
   })
 
   it("preserves the dashboard onboarding gate, merchant-scoped read, and analytics event", async () => {
@@ -100,6 +103,13 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
       billingStatus: "active",
       recentActivity: [],
     }))
+    const getEnrichedMerchantActivity = vi.fn(async () => ({
+      rows: [],
+      totalCount: 0,
+      loadedCount: 0,
+      limit: 6,
+      hasMore: false,
+    }))
     const capturePostHogEvent = vi.fn()
 
     vi.doMock("next/navigation", () => ({ redirect }))
@@ -112,6 +122,19 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     vi.doMock("@/lib/merchant/dashboard", () => ({
       getMerchantDashboardData,
     }))
+    vi.doMock("@/lib/merchant/launch-readiness", () => ({
+      getMerchantLaunchReadiness: vi.fn(async () => ({
+        completed: 5,
+        total: 5,
+        launchReady: true,
+        nextStep: null,
+        tabs: { card: true, staff: true, qr: true },
+        steps: [],
+      })),
+    }))
+    vi.doMock("@/lib/merchant/activity", () => ({
+      getEnrichedMerchantActivity,
+    }))
     vi.doMock("@/lib/analytics/events", () => ({ capturePostHogEvent }))
 
     const { default: MerchantAppPage } = await import("@/app/app/page")
@@ -119,6 +142,9 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     await expect(MerchantAppPage()).resolves.toBeDefined()
     expect(redirect).not.toHaveBeenCalled()
     expect(getMerchantDashboardData).toHaveBeenCalledWith(merchant)
+    expect(getEnrichedMerchantActivity).toHaveBeenCalledWith("merchant-1", {
+      limit: 6,
+    })
     expect(capturePostHogEvent).toHaveBeenCalledWith({
       eventName: "dashboard_viewed",
       merchantId: "merchant-1",
@@ -143,6 +169,7 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
       "QR downloads",
       "Billing status",
       "Estimated repeat revenue",
+      "LaunchReadinessPanel",
       "Recent activity",
     ]) {
       expect(dashboard).toContain(text)
@@ -159,7 +186,8 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
       expect(dashboard).toContain(status)
     }
     expect(dashboard).toContain("Estimate only")
-    expect(dashboard).toContain("dashboard.recentActivity")
+    expect(dashboard).toContain("ActivityCompactFeed")
+    expect(dashboard).toContain("getEnrichedMerchantActivity")
   })
 
   it("fetches dashboard metrics, customers, and activity only for the current merchant", async () => {
@@ -231,10 +259,201 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     vi.useRealTimers()
   })
 
-  it("keeps customer readbacks privacy-safe with email, phone, and fallback identifiers", async () => {
-    const { formatMerchantCustomerIdentifier } = await import(
-      "@/components/merchant/customer-readback-table"
+  it("threads stamp claim and issue events into merchant-safe activity rows", async () => {
+    vi.resetModules()
+    vi.doUnmock("@/lib/merchant/activity")
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-06-06T12:00:00.000Z"))
+    const supabase = createSupabaseMock({
+      from: {
+        product_events: [
+          {
+            count: 2,
+            data: [
+              {
+                id: "issued-event",
+                event_name: "stamp_issued",
+                created_at: "2026-06-06T10:05:00.000Z",
+                actor_type: "staff",
+                actor_id: "staff-1",
+                customer_id: "customer-1",
+                membership_id: "membership-1",
+                qr_code_id: null,
+                metadata: { new_stamp_count: 2, business_date: "2026-06-06" },
+                customers: { email: "sam@example.test", phone: null },
+                customer_memberships: {
+                  id: "membership-1",
+                  current_stamp_count: 2,
+                  total_stamps_earned: 2,
+                  total_rewards_redeemed: 0,
+                },
+                qr_codes: null,
+              },
+              {
+                id: "claim-event",
+                event_name: "stamp_claim_started",
+                created_at: "2026-06-06T10:02:00.000Z",
+                actor_type: "customer",
+                actor_id: "customer-1",
+                customer_id: "customer-1",
+                membership_id: "membership-1",
+                qr_code_id: null,
+                metadata: {},
+                customers: { email: "sam@example.test", phone: null },
+                customer_memberships: {
+                  id: "membership-1",
+                  current_stamp_count: 1,
+                  total_stamps_earned: 1,
+                  total_rewards_redeemed: 0,
+                },
+                qr_codes: null,
+              },
+            ],
+            error: null,
+          },
+        ],
+        staff_users: [
+          {
+            data: [{ id: "staff-1", display_name: "Mia", role: "owner" }],
+            error: null,
+          },
+        ],
+      },
+    })
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
+    }))
+
+    const { getEnrichedMerchantActivity, summarizeActivity } =
+      await import("@/lib/merchant/activity")
+
+    const activity = await getEnrichedMerchantActivity("merchant-1", {
+      limit: 100,
+    })
+
+    expect(activity.totalCount).toBe(2)
+    expect(activity.loadedCount).toBe(2)
+    expect(activity.rows).toHaveLength(1)
+    expect(activity.rows[0].headline).toBe("sam@example.test collected stamp 2")
+    expect(activity.rows[0].summary).toContain("grouped into one visit")
+    expect(activity.rows[0].details.map((detail) => detail.label)).toContain(
+      "Claim opened"
     )
+    expect(activity.rows[0].primaryAction).toEqual({
+      label: "View customer",
+      href: "/app/customers?highlight=membership-1",
+    })
+    expect(activity.rows[0].secondaryAction).toEqual({
+      label: "Open staff station",
+      href: "/staff",
+    })
+    expect(JSON.stringify(activity.rows)).not.toContain("/card/")
+    expect(summarizeActivity(activity.rows).stamps).toBe(1)
+    vi.useRealTimers()
+  })
+
+  it("keeps activity headlines short and event-led", async () => {
+    vi.resetModules()
+    vi.doUnmock("@/lib/merchant/activity")
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-06-06T12:00:00.000Z"))
+    const supabase = createSupabaseMock({
+      from: {
+        product_events: [
+          {
+            count: 3,
+            data: [
+              {
+                id: "redeemed-event",
+                event_name: "reward_redeemed",
+                created_at: "2026-06-06T11:00:00.000Z",
+                actor_type: "staff",
+                actor_id: "staff-1",
+                customer_id: "customer-1",
+                membership_id: "membership-1",
+                qr_code_id: null,
+                metadata: { reward_name: "Free coffee", new_stamp_count: 0 },
+                customers: { email: "sam@example.test", phone: null },
+                customer_memberships: {
+                  id: "membership-1",
+                  current_stamp_count: 0,
+                  total_stamps_earned: 3,
+                  total_rewards_redeemed: 1,
+                },
+                qr_codes: null,
+              },
+              {
+                id: "joined-event",
+                event_name: "customer_joined",
+                created_at: "2026-06-06T10:00:00.000Z",
+                actor_type: "customer",
+                actor_id: "customer-2",
+                customer_id: "customer-2",
+                membership_id: "membership-2",
+                qr_code_id: "qr-1",
+                metadata: { marketing_opt_in: true },
+                customers: { email: "mina@example.test", phone: null },
+                customer_memberships: {
+                  id: "membership-2",
+                  current_stamp_count: 0,
+                  total_stamps_earned: 0,
+                  total_rewards_redeemed: 0,
+                },
+                qr_codes: { qr_id: "qr-main", destination_type: "join" },
+              },
+              {
+                id: "stamp-event",
+                event_name: "stamp_issued",
+                created_at: "2026-06-06T09:00:00.000Z",
+                actor_type: "staff",
+                actor_id: "staff-1",
+                customer_id: "customer-3",
+                membership_id: "membership-3",
+                qr_code_id: null,
+                metadata: { new_stamp_count: 3, business_date: "2026-06-06" },
+                customers: { email: "alex@example.test", phone: null },
+                customer_memberships: {
+                  id: "membership-3",
+                  current_stamp_count: 3,
+                  total_stamps_earned: 3,
+                  total_rewards_redeemed: 0,
+                },
+                qr_codes: null,
+              },
+            ],
+            error: null,
+          },
+        ],
+        staff_users: [
+          {
+            data: [{ id: "staff-1", display_name: "Mia", role: "owner" }],
+            error: null,
+          },
+        ],
+      },
+    })
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
+    }))
+
+    const { getEnrichedMerchantActivity } =
+      await import("@/lib/merchant/activity")
+
+    const activity = await getEnrichedMerchantActivity("merchant-1", {
+      limit: 25,
+    })
+
+    expect(activity.rows.map((row) => row.headline)).toEqual([
+      "sam@example.test redeemed Free coffee",
+      "mina@example.test joined",
+      "alex@example.test collected stamp 3",
+    ])
+    vi.useRealTimers()
+  })
+
+  it("keeps customer readbacks privacy-safe with email, phone, and fallback identifiers", async () => {
+    const { formatMerchantCustomerIdentifier } =
+      await import("@/components/merchant/customer-readback-table")
 
     expect(
       formatMerchantCustomerIdentifier({
@@ -269,12 +488,16 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
       "components/merchant/customer-readback-table.tsx"
     )
     const activityPage = readProjectFile("app/app/activity/page.tsx")
-    const activityFeed = readProjectFile("components/data/activity-feed.tsx")
+    const activityFeed = readProjectFile(
+      "components/merchant/activity-detail-feed.tsx"
+    )
 
     expect(customersPage).toContain("getCurrentMerchant")
     expect(customersPage).toContain("getMerchantCustomers(merchant.id)")
     expect(customersPage).toContain("CustomerReadbackTable")
+    expect(customersPage).toContain("highlightedMembershipId")
     expect(customerTable).toContain("DataTable")
+    expect(customerTable).toContain("rowClassName")
     for (const header of [
       "Customer",
       "Current stamps",
@@ -286,10 +509,14 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     }
 
     expect(activityPage).toContain("getCurrentMerchant")
-    expect(activityPage).toContain("getMerchantActivity(merchant.id)")
-    expect(activityPage).toContain("ActivityFeed")
+    expect(activityPage).toContain(
+      "getEnrichedMerchantActivity(merchant.id, { limit })"
+    )
+    expect(activityPage).toContain("ActivityDetailFeed")
     expect(activityFeed).toContain("<time")
-    expect(activityPage).toContain("metadata.asset_type")
+    expect(activityFeed).toContain("aria-pressed")
+    expect(activityFeed).toContain("Load more")
+    expect(activityFeed).not.toContain("/card/")
     expect(activityPage).not.toContain("JSON.stringify")
   })
 
@@ -302,7 +529,9 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     expect(billingPage).toContain('checkout === "cancelled"')
     expect(billingPage).toContain('portal === "missing"')
     expect(billingPage).toContain("disabled={!billing?.stripe_customer_id}")
-    expect(billingPage).not.toContain("disabled={!billing?.stripe_subscription_id}")
+    expect(billingPage).not.toContain(
+      "disabled={!billing?.stripe_subscription_id}"
+    )
     expect(billingPage).toContain("Start checkout")
     expect(billingPage).toContain("Open Stripe portal")
   })
@@ -356,7 +585,7 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
       getCurrentMerchant: vi.fn(async () => ({ id: "merchant-1" })),
     }))
     vi.doMock("@/lib/env/server", () => ({
-      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://stampiee.test" }),
+      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://nabaperks.test" }),
     }))
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
@@ -367,16 +596,15 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
       })),
     }))
 
-    const { openCustomerPortalAction } = await import(
-      "@/app/app/billing/actions"
-    )
+    const { openCustomerPortalAction } =
+      await import("@/app/app/billing/actions")
 
     await expect(openCustomerPortalAction()).rejects.toThrow(
       "NEXT_REDIRECT:https://stripe.test/portal/session"
     )
     expect(createPortalSession).toHaveBeenCalledWith({
       customer: "cus_123",
-      return_url: "https://stampiee.test/app/billing",
+      return_url: "https://nabaperks.test/app/billing",
     })
   })
 
@@ -398,20 +626,21 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
       getCurrentMerchant: vi.fn(async () => ({ id: "merchant-1" })),
     }))
     vi.doMock("@/lib/env/server", () => ({
-      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://stampiee.test" }),
+      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://nabaperks.test" }),
     }))
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
     }))
     vi.doMock("@/lib/stripe/server", () => ({ getStripe }))
 
-    const { openCustomerPortalAction } = await import(
-      "@/app/app/billing/actions"
-    )
+    const { openCustomerPortalAction } =
+      await import("@/app/app/billing/actions")
 
     const errorMessage = await captureErrorMessage(openCustomerPortalAction)
 
-    expect(errorMessage).toBe("Billing action could not be completed. Try again.")
+    expect(errorMessage).toBe(
+      "Billing action could not be completed. Try again."
+    )
     expect(errorMessage).not.toContain(internalSupabaseMessage)
     expect(getStripe).not.toHaveBeenCalled()
   })
@@ -436,7 +665,7 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
       getCurrentMerchant: vi.fn(async () => ({ id: "merchant-1" })),
     }))
     vi.doMock("@/lib/env/server", () => ({
-      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://stampiee.test" }),
+      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://nabaperks.test" }),
     }))
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
@@ -447,17 +676,18 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
       })),
     }))
 
-    const { openCustomerPortalAction } = await import(
-      "@/app/app/billing/actions"
-    )
+    const { openCustomerPortalAction } =
+      await import("@/app/app/billing/actions")
 
     const errorMessage = await captureErrorMessage(openCustomerPortalAction)
 
-    expect(errorMessage).toBe("Billing action could not be completed. Try again.")
+    expect(errorMessage).toBe(
+      "Billing action could not be completed. Try again."
+    )
     expect(errorMessage).not.toContain(internalStripeMessage)
     expect(createPortalSession).toHaveBeenCalledWith({
       customer: "cus_123",
-      return_url: "https://stampiee.test/app/billing",
+      return_url: "https://nabaperks.test/app/billing",
     })
   })
 
@@ -476,7 +706,7 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
       getCurrentMerchant: vi.fn(async () => ({ id: "merchant-1" })),
     }))
     vi.doMock("@/lib/env/server", () => ({
-      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://stampiee.test" }),
+      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://nabaperks.test" }),
     }))
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
@@ -484,9 +714,8 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     vi.doMock("@/lib/stripe/server", () => ({
       getStripe: vi.fn(),
     }))
-    const { openCustomerPortalAction } = await import(
-      "@/app/app/billing/actions"
-    )
+    const { openCustomerPortalAction } =
+      await import("@/app/app/billing/actions")
 
     await expect(openCustomerPortalAction()).rejects.toThrow(
       "NEXT_REDIRECT:/app/billing?portal=missing"

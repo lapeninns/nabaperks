@@ -83,6 +83,8 @@ describe("05/07 analytics, dashboard, and compliance micro-specs", () => {
       "loyalty_card_created",
       "qr_created",
       "qr_downloaded",
+      "qr_enabled",
+      "qr_disabled",
       "subscription_started",
       "subscription_cancelled",
     ])
@@ -109,7 +111,7 @@ describe("05/07 analytics, dashboard, and compliance micro-specs", () => {
       customer_joined: 2,
       reward_redeemed: 6,
       qr_created: 9,
-      subscription_cancelled: 12,
+      subscription_cancelled: 14,
     })
     expect(
       supabase.queryCalls.filter((call) => call.method === "eq")
@@ -153,7 +155,8 @@ describe("05/07 analytics, dashboard, and compliance micro-specs", () => {
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
     }))
-    const { getMerchantDashboardData } = await import("@/lib/merchant/dashboard")
+    const { getMerchantDashboardData } =
+      await import("@/lib/merchant/dashboard")
 
     await expect(
       getMerchantDashboardData({

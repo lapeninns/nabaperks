@@ -187,7 +187,7 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
     }))
     vi.doMock("@/lib/env/server", () => ({
       getServerEnv: vi.fn(() => ({
-        NEXT_PUBLIC_APP_URL: "https://stampiee.test",
+        NEXT_PUBLIC_APP_URL: "https://nabaperks.test",
       })),
     }))
     vi.doMock("@/lib/supabase/server", () => ({
@@ -218,7 +218,7 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
       options: {
         data: { name: "Ada Merchant" },
         emailRedirectTo:
-          "https://stampiee.test/auth/confirm?next=/app/onboarding",
+          "https://nabaperks.test/auth/confirm?next=/app/onboarding",
       },
     })
 
@@ -240,22 +240,22 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
 
     const backslashResponse = await GET(
       new Request(
-        "https://stampiee.test/auth/confirm?code=ok&next=/%5Cevil.test/app"
+        "https://nabaperks.test/auth/confirm?code=ok&next=/%5Cevil.test/app"
       ) as never
     )
     expect(backslashResponse.headers.get("Location")).toBe(
-      "https://stampiee.test/app/onboarding"
+      "https://nabaperks.test/app/onboarding"
     )
 
     const validResponse = await GET(
       new Request(
-        `https://stampiee.test/auth/confirm?code=ok&next=${encodeURIComponent(
+        `https://nabaperks.test/auth/confirm?code=ok&next=${encodeURIComponent(
           "/app/qr?created=1"
         )}`
       ) as never
     )
     expect(validResponse.headers.get("Location")).toBe(
-      "https://stampiee.test/app/qr?created=1"
+      "https://nabaperks.test/app/qr?created=1"
     )
   })
 
@@ -325,7 +325,7 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
     }))
     vi.doMock("@/lib/env/server", () => ({
       getServerEnv: vi.fn(() => ({
-        NEXT_PUBLIC_APP_URL: "https://stampiee.test",
+        NEXT_PUBLIC_APP_URL: "https://nabaperks.test",
         STRIPE_GROWTH_PRICE_ID: "price_growth",
       })),
     }))
@@ -365,7 +365,7 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
     }))
     vi.doMock("@/lib/env/server", () => ({
       getServerEnv: vi.fn(() => ({
-        NEXT_PUBLIC_APP_URL: "https://stampiee.test",
+        NEXT_PUBLIC_APP_URL: "https://nabaperks.test",
         STRIPE_GROWTH_PRICE_ID: "price_growth",
       })),
     }))
@@ -398,8 +398,8 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
           metadata: { merchant_id: "merchant-1", plan: "growth" },
         }),
         metadata: { merchant_id: "merchant-1", plan: "growth" },
-        success_url: "https://stampiee.test/app/billing?checkout=success",
-        cancel_url: "https://stampiee.test/app/billing?checkout=cancelled",
+        success_url: "https://nabaperks.test/app/billing?checkout=success",
+        cancel_url: "https://nabaperks.test/app/billing?checkout=cancelled",
       })
     )
   })
@@ -427,7 +427,7 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
     }))
     vi.doMock("@/lib/env/server", () => ({
       getServerEnv: vi.fn(() => ({
-        NEXT_PUBLIC_APP_URL: "https://stampiee.test",
+        NEXT_PUBLIC_APP_URL: "https://nabaperks.test",
         STRIPE_GROWTH_PRICE_ID: "price_growth",
       })),
     }))
@@ -468,7 +468,7 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
     }))
     vi.doMock("@/lib/env/server", () => ({
       getServerEnv: vi.fn(() => ({
-        NEXT_PUBLIC_APP_URL: "https://stampiee.test",
+        NEXT_PUBLIC_APP_URL: "https://nabaperks.test",
         STRIPE_GROWTH_PRICE_ID: "price_growth",
       })),
     }))
@@ -521,7 +521,7 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
     }))
     vi.doMock("@/lib/env/server", () => ({
       getServerEnv: vi.fn(() => ({
-        NEXT_PUBLIC_APP_URL: "https://stampiee.test",
+        NEXT_PUBLIC_APP_URL: "https://nabaperks.test",
         STRIPE_GROWTH_PRICE_ID: "price_growth",
       })),
     }))
@@ -546,8 +546,8 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
         mode: "subscription",
         customer: "cus_existing",
         line_items: [{ price: "price_growth", quantity: 1 }],
-        success_url: "https://stampiee.test/app/billing?checkout=success",
-        cancel_url: "https://stampiee.test/app/billing?checkout=cancelled",
+        success_url: "https://nabaperks.test/app/billing?checkout=success",
+        cancel_url: "https://nabaperks.test/app/billing?checkout=cancelled",
       })
     )
   })

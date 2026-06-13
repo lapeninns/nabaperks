@@ -96,6 +96,54 @@ describe("00/01 foundation micro-specs", () => {
     }
   })
 
+  it("keeps obsolete Druto captures and shared-PIN reveal surfaces out of the repo", () => {
+    for (const path of [
+      "druto-screenshots",
+      "druto-mock-demo-screenshots",
+      "druto-complete-mock-demo-screenshots",
+      "druto-httrack-style-capture",
+      "components/merchant/staff-pin-settings-form.tsx",
+      "components/merchant/staff-pin-reveal.tsx",
+      "lib/merchant/staff-pin.ts",
+      "lib/merchant/staff-pin-rotation.ts",
+      "lib/security/pin-cipher.ts",
+      "app/api/cron/staff-pin-rotation/route.ts",
+    ]) {
+      expect(existsSync(path), path).toBe(false)
+    }
+
+    const bannedNeedles = [
+      "STAFF_PIN_ENCRYPTION_KEY",
+      "staff_pin_revealed",
+      "get_merchant_staff_pin_ciphertext",
+      "upsert_merchant_staff_pin",
+      "rotate_staff_pin_system",
+      "staff-pin-rotation",
+    ]
+    const currentSourcePaths = [
+      ".env.example",
+      "config/env-contract.json",
+      "docs/ENV_KEYS.md",
+      "docs/ARCHITECTURE.md",
+      "docs/PROJECT_SPEC.md",
+      "scripts/verify-supabase-schema.mjs",
+      "supabase/README.md",
+      "vercel.json",
+      "lib/merchant/activity.ts",
+      "lib/merchant/dashboard.ts",
+    ]
+
+    for (const path of currentSourcePaths) {
+      if (!existsSync(path)) continue
+
+      const source = readProjectFile(path)
+
+      for (const needle of bannedNeedles) {
+        expect(source, `${path} still contains ${needle}`).not.toContain(needle)
+      }
+    }
+  })
+
   it("passes schema/RLS/audit verification for the Supabase backbone", () => {
     const result = runScript("scripts/verify-supabase-schema.mjs")
 
@@ -272,7 +320,7 @@ describe("00/01 foundation micro-specs", () => {
     const adminPilotPage = readProjectFile("app/admin/pilot/page.tsx")
 
     const billingNotice = merchantDashboard.match(
-      /function BillingNotice[\s\S]*?(?=\nfunction ActivityRow)/
+      /function BillingNotice[\s\S]*?(?=\nfunction formatPence)/
     )?.[0]
     expect(billingNotice).toBeDefined()
     expect(billingNotice).toContain("<SectionHeader")
@@ -338,10 +386,10 @@ describe("00/01 foundation micro-specs", () => {
     const sonner = readProjectFile("components/ui/sonner.tsx")
 
     expect(layout).toContain('lang="en-GB"')
-    expect(layout).toContain('variable: "--font-nunito-sans"')
-    expect(layout).toContain('variable: "--font-geist-mono"')
+    expect(layout).toContain('variable: "--font-bricolage-grotesque"')
+    expect(layout).toContain('variable: "--font-space-mono"')
     expect(layout).toContain(
-      "className={`${nunitoSans.variable} ${geistMono.variable} antialiased`}"
+      "className={`${bricolageGrotesque.variable} ${spaceMono.variable} antialiased`}"
     )
     expect(layout).toContain('<body className="font-sans">')
     expect(layout).toContain("<ThemeProvider>")
@@ -371,18 +419,54 @@ describe("00/01 foundation micro-specs", () => {
     const merchantShell = readProjectFile(
       "components/layout/merchant-app-shell.tsx"
     )
+    // Primary nav is the lean daily-use set; billing + ROI settings are demoted
+    // to the account group; setup routes move into the Launch hub.
     for (const href of [
       'href: "/app"',
-      'href: "/app/card"',
-      'href: "/app/qr"',
+      'href: "/app/launch"',
       'href: "/app/customers"',
-      'href: "/app/activity"',
-      'href: "/app/settings"',
       'href: "/app/billing"',
+      'href: "/app/settings"',
     ]) {
       expect(merchantShell).toContain(href)
     }
     expect(merchantShell).toContain("<form action={signOutAction}>")
+
+    // Phase 2 URL merge: card/staff/QR are consolidated into the Launch hub as
+    // tabs, and the old standalone pages are deleted in favour of 301s.
+    const launchHub = readProjectFile("app/app/launch/page.tsx")
+    for (const marker of [
+      "CardPanel",
+      "StaffPanel",
+      "QrPanel",
+      'id: "card"',
+      'id: "staff"',
+      'id: "qr"',
+      "/app/launch?tab=",
+    ]) {
+      expect(launchHub).toContain(marker)
+    }
+    for (const deletedPage of [
+      "app/app/card/page.tsx",
+      "app/app/staff/page.tsx",
+      "app/app/qr/page.tsx",
+    ]) {
+      expect(existsSync(deletedPage)).toBe(false)
+    }
+
+    // The merged URLs 301 to the Launch hub; QR asset routes stay live, so the
+    // /app/qr redirect must be exact (no wildcard).
+    const nextConfigSource = readProjectFile("next.config.ts")
+    for (const fragment of [
+      "async redirects()",
+      'source: "/app/card"',
+      'destination: "/app/launch?tab=card"',
+      'source: "/app/staff"',
+      'source: "/app/qr"',
+      "permanent: true",
+    ]) {
+      expect(nextConfigSource).toContain(fragment)
+    }
 
     const adminLayout = readProjectFile("app/admin/layout.tsx")
     expect(adminLayout).toContain("getAdminAccess")
