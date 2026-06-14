@@ -27,7 +27,7 @@ The MVP supports one location and one active loyalty card per merchant account. 
 - Payments: Stripe Checkout, Stripe Billing, Stripe Customer Portal, and Stripe webhooks.
 - Analytics: Supabase product event tables as source of truth, plus PostHog for funnels and product analytics.
 - Email: Resend for transactional email.
-- Design: `DESIGN.md` "Honey & Ink" / "Tactile Modernism" system.
+- Design: `DESIGN.md` Wet Ink system.
 - UI components: existing local components and shadcn/ui conventions.
 
 ## Next.js Guidance
@@ -73,8 +73,8 @@ Customer flows are mobile-first and optimized for use at a checkout counter. Kee
 
 Use the `DESIGN.md` tokens and conventions:
 
-- Honey Amber for primary reward/action moments.
 - Paper Cream and Espresso Ink for warm high-contrast surfaces and text.
+- Reward and QR spot inks for primary action moments.
 - Fresh Green/Mint for success and progress.
 - Rounded, tactile controls with accessible tap targets.
 - QR codes must always render on high-contrast white backgrounds.

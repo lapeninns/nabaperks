@@ -31,24 +31,24 @@ Project context and stack decisions for AI agents working in this repo.
 
 ### Product assumptions
 
-- UK small/mid local businesses; web-first MVP. Customers need no app, staff
-  use a web counter station, merchants a web console, operators an admin console.
+- UK small/mid local businesses; web-first MVP. Customers need no app,
+  merchants use a web console, operators an admin console.
 - Currency GBP; default timezone `Europe/London`. Phone-first customer
   identity: accept `07...`, store E.164. Browser storage is cache only — the
   server is the source of truth.
-- The core trust mechanic: **the customer keeps their phone, and staff approve
-  short-lived codes only from paired counter stations.** The customer shows a
-  short-lived single-use code; a paired counter station with a named staff
-  session approves it.
+- The core trust mechanic: **the customer keeps their phone and collects stamps
+  from the permanent venue QR.** Postgres enforces one stamp per UK business
+  day; optional venue-location checks write review signals without blocking the
+  customer by default.
 
 ### Architectural constraints
 
 - Every loyalty-affecting action is an auditable server-side event; customer
   card state is recoverable from server state.
-- Every venue action is attributable to venue, station, staff session,
+- Every loyalty-affecting action is attributable to venue, customer session,
   timestamp, and action type.
-- Tokens are short-lived single-use Postgres rows consumed by an atomic
-  conditional update; the approval idempotency key is the token id.
+- Self-service stamp and reward actions are Postgres RPC mutations with
+  server-side ownership, rate-limit, and idempotency checks.
 - No shared staff secrets as primary verification; no customer ID documents;
   no raw phone numbers exposed to merchants by default; no marketing without
   explicit opt-in; no reward promise mismatch between poster, QR landing,
@@ -61,7 +61,6 @@ The spec pack's monorepo domains map onto this single Next.js app:
 | Spec domain                            | Here                                  |
 | -------------------------------------- | ------------------------------------- |
 | `apps/customer-web`                    | `app/q`, `app/m`, `app/card`, `app/reward` |
-| `apps/staff-station`                   | `app/staff`                           |
 | `apps/merchant-console`                | `app/app`                             |
 | `apps/admin-console`                   | `app/admin`                           |
 | `packages/api`                         | server actions + `app/api`            |

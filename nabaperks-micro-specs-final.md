@@ -15,7 +15,7 @@
 
 **Nabaperks UK** is a web-first loyalty product where:
 
-> A customer scans a venue QR, shows a short-lived code to staff, customer taps the purchase on a venue QR flow, the customer's card is stamped, and all stamps/rewards are recoverable by phone number without downloading an app.
+> A customer scans a venue QR, verifies by phone when needed, taps to stamp or redeem in the venue QR flow, and all stamps/rewards are recoverable by phone number without downloading an app.
 
 The core promise is:
 
@@ -2154,13 +2154,10 @@ WHEN a visitor clicks "Start," THE system SHALL route to merchant onboarding.
 1. Scans venue QR.
 2. Sees venue and reward promise.
 3. Taps **Get today's stamp**.
-4. Sees a short-lived code.
-5. Shows code to staff.
-6. customers approves from venue QR flow.
-7. Stamp lands.
-8. Customer saves card by phone.
-9. Customer returns and repeats.
-10. Reward is issued and redeemed through self-service flow.
+4. Stamp lands after the server validates the QR context and one-per-day rule.
+5. Customer saves card by phone.
+6. Customer returns and repeats.
+7. Reward is issued and redeemed through self-service flow.
 
 ## Merchant
 

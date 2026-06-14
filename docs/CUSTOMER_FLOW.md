@@ -44,26 +44,20 @@ fraud surfaces are mentioned only when they change what the customer sees.
   - `lib/customer/activity.ts`
   - `lib/customer/profile.ts`
 
-## Important Source Conflict
+## Current Source Of Truth
 
-There is a product-flow conflict that should be resolved before building more
-customer UX on top of this:
+The implemented app uses the self-service QR model:
 
-- The HTML prototype includes a counter moment where staff interact with a PIN
-  or redeem action.
-- The root agent guide describes a paired counter-station / short-lived-code
-  trust mechanic.
-- The current as-built app and `docs/PROJECT_SPEC.md` describe self-service QR
-  stamping and self-service reward redemption. Current routes and actions match
-  this self-service model.
+- Customers keep their own phone.
+- The permanent venue QR supplies stamp context.
+- The customer taps to add a stamp or redeem a reward.
+- Server-side RPCs enforce ownership, one stamp per UK business day, reward
+  state, rate limits, and optional location review signals.
 
 This document maps the current implemented customer routes as the source of
-truth, while calling out where the HTML prototype or older counter-approval
-model implies a different journey.
-
-Do not reintroduce legacy "customer hands phone to staff", shared staff PIN, or
-customer-device PIN language into customer-facing copy unless the product owner
-explicitly reverses that decision.
+truth. Do not reintroduce legacy approval-code, device-sharing, or venue-secret
+language into customer-facing copy unless the product owner explicitly reverses
+that decision.
 
 ## Customer State Model
 
@@ -348,14 +342,13 @@ If those are blended, the customer may try to redeem too early and feel blocked.
 | Reward cancelled/expired          | Shows unavailable.                                       | Correct.                                                                 |
 | Merchant/card/billing unavailable | Shows reward unavailable.                                | Customer may need venue support.                                         |
 | Location denied/unavailable       | Action continues and may be flagged.                     | Good customer continuity, but potential fraud-review load.               |
-| Staff need to verify redemption   | Customer can self-redeem.                                | Missing operational acceptance flow if the venue expects staff approval. |
+| Venue asks for redemption proof   | Customer can self-redeem.                                | Post-redeem proof copy can be clearer without adding an approval gate.    |
 
 ### Missing Flow
 
-There is no explicit customer-facing "show this redeemed state to staff" screen
-with timestamp, venue, reward id, and anti-replay cues. The reward page says to
-tap redeem and show the redeemed card if asked, but the post-redeem proof moment
-could be more explicit.
+There is no explicit customer-facing proof screen with timestamp, venue, reward
+id, and anti-replay cues. The reward page says to tap redeem and show the
+redeemed card if asked, but the post-redeem proof moment could be more explicit.
 
 ## Primary Use Case 6: Customer Opens Wallet Later
 
@@ -507,26 +500,23 @@ Ready rewards link to `/reward/[rewardId]`.
 ### Critical
 
 1. **First stamp continuity is incomplete.**
-   The HTML flow promises the first stamp in the initial counter moment. Current
+   The HTML flow promises the first stamp in the initial visit moment. Current
    code joins the customer and redirects to the card, but the stamp action still
    needs a fresh QR context. This can leave a new customer with a zero-stamp card
    after the first visit.
 
-2. **Trust model sources conflict.**
-   Current app behavior is self-service QR stamping and redemption. Some source
-   material still references staff PINs, counter approval, or phone handover.
-   The product needs one explicit trust model before copy, flows, tests, and
-   docs can be fully aligned.
+2. **Trust model is self-service QR.**
+   Current app behavior is self-service QR stamping and redemption. Copy, flows,
+   tests, and docs should stay aligned to that model.
 
 3. **Phone input contract now matches UK customer expectations.**
    Customer and wallet actions parse national numbers using the request country
    header with GB fallback, store only protected phone lookup/display fields for
    new customers, and keep raw phone numbers out of new customer writes.
 
-4. **Reward redemption lacks an explicit staff-proof moment.**
-   Current redemption is self-service. If the venue expects staff to accept the
-   reward, the customer needs a clear post-redeem proof screen with timestamp,
-   reward id, venue, and one-time/redeemed state.
+4. **Reward redemption lacks an explicit proof moment.**
+   Current redemption is self-service. The customer needs a clear post-redeem
+   proof screen with timestamp, reward id, venue, and redeemed state.
 
 ### High
 
@@ -579,10 +569,8 @@ Ready rewards link to `/reward/[rewardId]`.
 
 ## Recommended Customer Flow Decisions
 
-1. **Decide the stamping trust model.**
-   Pick one for MVP:
-   - self-service QR stamp with soft geofence review, or
-   - paired counter-station approval with short-lived customer code.
+1. **Keep the stamping trust model fixed.**
+   Use self-service QR stamping with soft geofence review for MVP.
 
 2. **Fix first-stamp continuity.**
    Recommended current-architecture path:
@@ -628,5 +616,5 @@ Ready rewards link to `/reward/[rewardId]`.
 - Customer can sign back in from a new device and see all cards/rewards.
 - Customer can understand unavailable states without internal billing/security
   details leaking.
-- No customer-facing flow uses shared staff PINs, customer phone handover, or
-  raw phone exposure to merchants.
+- No customer-facing flow uses venue secrets, customer-device sharing, or raw
+  phone exposure to merchants.

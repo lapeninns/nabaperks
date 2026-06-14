@@ -96,10 +96,11 @@ its token names survive as compatibility aliases.
 **Voice:** plain, warm, **British** (en-GB). The product talks like a good
 barista, not a SaaS.
 
-**Source package:** the downloaded Honey & Ink design-system package is mirrored
-at `docs/design-system/honey-ink/source`. Use that folder for original tokens,
-specimen cards, templates, UI kits, and the v2 prototype before translating
-ideas into production app code.
+**Source of truth:** production tokens, wrappers, and route composition are the
+authoritative design system. The old downloaded Honey & Ink source package is
+not required at runtime and is no longer mirrored in the repo; use this guide,
+`app/globals.css`, `components/brand`, and `components/customer` as the
+implementation references.
 
 - **Value before friction, in copy too.** "Your first stamp is waiting."
   leads; signup language is banned — it's "Keep your card", "Save my card",
