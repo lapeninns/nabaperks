@@ -305,6 +305,8 @@ function pushVercelEnv() {
     process.exit(1)
   }
 
+  assertVercelProductionEnvSafe(environment, localValues)
+
   const existingNames = readVercelEnvNames(environment)
   const pushed = []
   const skipped = []
@@ -335,6 +337,48 @@ function pushVercelEnv() {
     console.log(`Skipped existing: ${skipped.join(", ")}`)
     console.log("Re-run with --replace to rotate existing values.")
   }
+}
+
+function assertVercelProductionEnvSafe(environment, localValues) {
+  if (environment !== "production") return
+
+  const appUrl = localValues.NEXT_PUBLIC_APP_URL?.trim()
+
+  if (!appUrl) return
+
+  let url
+
+  try {
+    url = new URL(appUrl)
+  } catch {
+    console.error("Production NEXT_PUBLIC_APP_URL must be a valid HTTPS URL.")
+    process.exit(1)
+  }
+
+  if (url.protocol !== "https:" || isLocalHost(url.hostname)) {
+    console.error(
+      "Production NEXT_PUBLIC_APP_URL must be a public HTTPS origin, not localhost or a private network URL."
+    )
+    console.error(
+      "Set NEXT_PUBLIC_APP_URL=https://nabaperks.com before pushing production env."
+    )
+    process.exit(1)
+  }
+}
+
+function isLocalHost(hostname) {
+  const host = hostname.toLowerCase()
+
+  return (
+    host === "localhost" ||
+    host.endsWith(".localhost") ||
+    host === "127.0.0.1" ||
+    host === "0.0.0.0" ||
+    host === "[::1]" ||
+    host.startsWith("10.") ||
+    host.startsWith("192.168.") ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(host)
+  )
 }
 
 function mergeLocalEnv(updates) {

@@ -155,8 +155,15 @@ pnpm env:push-vercel production
 ```
 
 That command adds values missing from the target environment and skips existing
-names. To intentionally rotate or overwrite existing Vercel values from
-`.env.local`, run:
+names. Production pushes reject localhost or private `NEXT_PUBLIC_APP_URL`
+origins; set it to the live domain first:
+
+```bash
+NEXT_PUBLIC_APP_URL=https://nabaperks.com
+```
+
+To intentionally rotate or overwrite existing Vercel values from `.env.local`,
+run:
 
 ```bash
 pnpm env:push-vercel production --replace
