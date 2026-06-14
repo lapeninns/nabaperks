@@ -13,8 +13,12 @@ const activeSourcePrefixes = [
   "supabase/tests/",
 ] as const
 const activeSourceFiles = [
+  "AGENTS.md",
+  "DESIGN.md",
   "nabaperks-micro-specs-final.md",
   "docs/ARCHITECTURE.md",
+  "docs/CUSTOMER_FLOW.md",
+  "docs/CUSTOMER_FLOW_SCREENSHOT_RUNBOOK.md",
   "docs/PROJECT_SPEC.md",
   "docs/ENV_KEYS.md",
   "supabase/README.md",
@@ -82,10 +86,14 @@ const bannedNamingPatterns = [
 ] as const
 
 function projectFiles() {
-  const result = spawnSync("git", ["ls-files", "--others", "--exclude-standard"], {
-    cwd: process.cwd(),
-    encoding: "utf8",
-  })
+  const result = spawnSync(
+    "git",
+    ["ls-files", "--cached", "--others", "--exclude-standard"],
+    {
+      cwd: process.cwd(),
+      encoding: "utf8",
+    }
+  )
 
   expect(result.status, result.stderr).toBe(0)
 
@@ -93,6 +101,7 @@ function projectFiles() {
     .split("\n")
     .filter((path) => path.length > 0)
     .filter((path) => !excludedActivePaths.some((excluded) => excluded === path))
+    .filter((path) => existsSync(path))
     .filter(
       (path) =>
         activeSourceFiles.some((file) => file === path) ||

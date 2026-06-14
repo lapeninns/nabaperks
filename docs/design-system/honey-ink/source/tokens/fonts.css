@@ -1,6 +1,0 @@
-/* Wet Ink webfonts — served from Google Fonts (matching the prototype).
-   Bricolage Grotesque: display & UI. Space Mono: receipt/meta/IDs.
-   For self-hosted binaries, replace this @import with @font-face rules
-   pointing at assets/fonts/*.woff2. */
-
-@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap");

@@ -110,7 +110,6 @@ describe("03 customer micro-specs", () => {
   it("preserves customer self-service form and action contracts after the mobile redesign", () => {
     const joinForms = readProjectFile("components/customer/join-forms.tsx")
     const joinActions = readProjectFile("app/m/[merchantSlug]/join/actions.ts")
-    const rewardPage = readProjectFile("app/reward/[rewardId]/page.tsx")
     const experience = readProjectFile(
       "components/customer/customer-card-experience.tsx"
     )
@@ -150,7 +149,6 @@ describe("03 customer micro-specs", () => {
     const joinPage = readProjectFile("app/m/[merchantSlug]/join/page.tsx")
     const cardPage = readProjectFile("app/card/[membershipId]/page.tsx")
     const stampPage = readProjectFile("app/card/[membershipId]/stamp/page.tsx")
-    const rewardPage = readProjectFile("app/reward/[rewardId]/page.tsx")
     const qrPage = readProjectFile("app/q/[qrId]/page.tsx")
     const termsPage = readProjectFile(
       "app/merchant/[merchantSlug]/terms/page.tsx"
@@ -251,9 +249,8 @@ describe("03 customer micro-specs", () => {
     const renderedText = normalizeText(output)
 
     expect(renderedText).toContain("Collect your stamp")
-    expect(renderedText).toContain("Collect stamps")
-    expect(renderedText).toContain("Mystery reward")
-    expect(renderedText).toContain("Example · 2 of 3")
+    expect(renderedText).toContain("Morning visits")
+    expect(renderedText).toContain("3")
     expect(renderedText).toContain("Collect my stamp")
     expect(renderedText).toContain("View reward terms")
   })

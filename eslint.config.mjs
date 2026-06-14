@@ -14,7 +14,6 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Non-app artifacts.
     "docs/**/*.tsx",
-    "docs/design-system/honey-ink/source/**",
     ".tmp/**",
   ]),
 ])

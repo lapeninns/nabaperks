@@ -49,7 +49,6 @@ describe("customer flow Wet Ink redesign", () => {
   })
 
   it("uses value-first Wet Ink copy and physical loyalty motifs", () => {
-    const designSource = read("docs/design-system/honey-ink/source/readme.md")
     const flowSystem = read("components/customer/customer-flow-system.tsx")
     const joinPage = read("app/m/[merchantSlug]/join/page.tsx")
     const experience = read(
@@ -57,7 +56,7 @@ describe("customer flow Wet Ink redesign", () => {
     )
     const copy = read("lib/customer/experience/copy.ts")
 
-    expect(designSource).toContain("Your first stamp is waiting.")
+    expect(read("DESIGN.md")).toContain("Your first stamp is waiting.")
     // The value-first hero headline lives in the experience copy. The QR-scan
     // welcome stays neutral ("Save your stamp card") because it is shown to
     // logged-out returning members too; "first stamp" copy is reserved for the

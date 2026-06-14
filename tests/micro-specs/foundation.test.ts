@@ -454,12 +454,13 @@ describe("00/01 foundation micro-specs", () => {
       "async redirects()",
       'source: "/app/card"',
       'destination: "/app/launch?tab=card"',
-      'source: "/app/staff"',
       'source: "/app/qr"',
       "permanent: true",
     ]) {
       expect(nextConfigSource).toContain(fragment)
     }
+
+    expect(nextConfigSource).not.toContain('source: "/app/staff"')
 
     const adminLayout = readProjectFile("app/admin/layout.tsx")
     expect(adminLayout).toContain("getAdminAccess")

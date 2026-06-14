@@ -368,7 +368,6 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
 
   it("keeps customer pages self-service and removes short-lived code panels", () => {
     const stampPage = readProjectFile("app/card/[membershipId]/stamp/page.tsx")
-    const rewardPage = readProjectFile("app/reward/[rewardId]/page.tsx")
     // Card / stamp / reward UI + copy live in the shared experience layer; the
     // routes are thin wrappers that derive an experience and render it.
     const experience = readProjectFile(

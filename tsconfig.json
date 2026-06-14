@@ -34,7 +34,6 @@
   ],
   "exclude": [
     "node_modules",
-    "docs/**/*.tsx",
-    "docs/design-system/honey-ink/source/**"
+    "docs/**/*.tsx"
   ]
 }
