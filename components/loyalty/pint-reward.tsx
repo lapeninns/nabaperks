@@ -1,6 +1,5 @@
 "use client"
 
-import type { ReactNode } from "react"
 import { motion, useReducedMotion } from "motion/react"
 
 import { cn } from "@/lib/utils"
@@ -11,6 +10,10 @@ const ease = [0.2, 0, 0, 1] as const
  * Pint glass illustration in the Wet Ink palette — amber fill (`--seal`), a cream
  * foam head, and an ink outline. With `pour`, the beer rises from the base and the
  * foam pops on mount; `prefers-reduced-motion` renders the full pint statically.
+ *
+ * This is the *optional* beverage flourish only — the default reward hero is the
+ * merchant-agnostic {@link RewardTicket}. Use a pint pour only when the reward is
+ * a drink, never as the generic reward visual.
  */
 export function PintGlass({
   size = 96,
@@ -77,7 +80,7 @@ export function PintGlass({
   )
 }
 
-/** Pint glass with a mono caption — the reward visual on the reward screens. */
+/** Optional captioned pint — beverage rewards only, never the default hero. */
 export function PintReward({
   caption,
   pour = false,
@@ -96,61 +99,5 @@ export function PintReward({
         {caption}
       </span>
     </div>
-  )
-}
-
-const confetti = [
-  { x: -58, y: -8, tone: "bg-primary", size: "size-2" },
-  { x: -40, y: -38, tone: "bg-seal", size: "size-2.5" },
-  { x: -14, y: -52, tone: "bg-reward", size: "size-2" },
-  { x: 16, y: -50, tone: "bg-primary", size: "size-2.5" },
-  { x: 42, y: -36, tone: "bg-seal", size: "size-2" },
-  { x: 58, y: -6, tone: "bg-reward", size: "size-2.5" },
-]
-
-/**
- * Card-complete celebration — the "all stamps collected" moment. The pint pours
- * and a short confetti burst fires once on mount. Reduced-motion shows the
- * finished pint and copy without animation.
- */
-export function PintRewardCelebration({
-  title,
-  message,
-}: {
-  title: ReactNode
-  message: ReactNode
-}) {
-  const reduce = useReducedMotion()
-
-  return (
-    <motion.section
-      aria-label="Card complete"
-      className="relative grid justify-items-center gap-3 rounded-2xl border-2 border-ink bg-reward/12 px-5 py-6 text-center"
-      initial={reduce ? false : { opacity: 0, scale: 0.95 }}
-      animate={reduce ? undefined : { opacity: 1, scale: 1 }}
-      transition={{ duration: 0.34, ease }}
-    >
-      {reduce ? null : (
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute top-10 left-1/2 block size-0"
-        >
-          {confetti.map((dot, index) => (
-            <motion.span
-              key={index}
-              className={cn("absolute rounded-full", dot.tone, dot.size)}
-              initial={{ opacity: 0, x: 0, y: 0, scale: 0.3 }}
-              animate={{ opacity: [0, 1, 0], x: dot.x, y: dot.y, scale: 1 }}
-              transition={{ duration: 0.7, delay: 0.5 + 0.04 * index, ease }}
-            />
-          ))}
-        </span>
-      )}
-      <PintGlass size={104} pour />
-      <div className="grid gap-1">
-        <p className="text-lg leading-tight font-extrabold">{title}</p>
-        <p className="text-sm leading-6 text-muted-foreground">{message}</p>
-      </div>
-    </motion.section>
   )
 }

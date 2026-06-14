@@ -14,10 +14,18 @@ import {
   CustomerJoinForm,
   CustomerOtpForm,
 } from "@/components/customer/join-forms"
-import { RewardTeaser, StatusBanner } from "@/components/loyalty"
+import { CustomerVenueTermsSheet } from "@/components/customer/legal-sheet"
+import {
+  RewardTicket,
+  StampGrid,
+  StampJourneyPreview,
+  StatusBanner,
+} from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import {
   getCustomerExperienceViewModel,
+  JOIN_WELCOME_HOW_IT_WORKS,
+  joinUnlockingRewardHook,
   type CustomerExperienceViewModel,
 } from "@/lib/customer/experience/copy"
 import type {
@@ -30,7 +38,7 @@ import type {
  * Step wizard for the join flow — one job per screen (welcome → phone → code →
  * terms), plus the returning-member and unavailable states. The route page
  * derives a join {@link CustomerExperience}; this maps it to chrome + the step.
- * The backend order is unchanged: verify phone → terms → membership → first stamp.
+ * Backend order: verify phone → terms → membership + first stamp (via QR join).
  */
 export function JoinWizard({
   experience,
@@ -57,13 +65,6 @@ export function JoinWizard({
 
 const ONBOARDING_STEPS = 3
 
-/** The three onboarding steps, phrased as a borderless typographic list. */
-const HOW_IT_WORKS: string[] = [
-  "Save the card to your mobile number",
-  "Verify with a single text code",
-  "Collect stamps in store — no app needed",
-]
-
 function WelcomeStep({
   exp,
   vm,
@@ -75,12 +76,15 @@ function WelcomeStep({
     <JoinShell vm={vm} progress={joinProgress("join_welcome")} dense centered>
       <JoinWelcomeCard merchant={exp.merchant} card={exp.card} />
       <HowItWorksList />
-      <Link
-        className="inline-flex w-fit text-xs font-bold underline underline-offset-4"
-        href={exp.merchant.termsUrl}
-      >
-        View full venue terms
-      </Link>
+      <CustomerVenueTermsSheet
+        venueTerms={{
+          merchantName: exp.merchant.name,
+          stampsRequired: exp.card.stampsRequired,
+          rewardTerms: exp.card.rewardTerms,
+        }}
+        triggerLabel="View full venue terms"
+        triggerClassName="inline-flex w-fit text-xs font-bold underline underline-offset-4"
+      />
       {vm.primaryAction ? (
         <Button asChild size="lg" className="w-full">
           <Link href={vm.primaryAction.href}>{vm.primaryAction.label}</Link>
@@ -91,11 +95,9 @@ function WelcomeStep({
 }
 
 /**
- * Compact identity card for the QR-scan landing. Deliberately omits the stamp
- * grid: the welcome is shown to logged-out visitors whose progress is unknown,
- * so an empty "0 of N" row would mislead returning members. It shows the venue,
- * the card name, and the mystery reward they are working toward — the real grid
- * with their actual progress appears after they verify.
+ * Compact identity card for the QR-scan landing. The stamp row animates through
+ * an example journey (empty → slam 1, 2, 3 → gift reveal), then the mystery
+ * reward copy sits beneath — live progress replaces this after join.
  */
 function JoinWelcomeCard({
   merchant,
@@ -111,9 +113,10 @@ function JoinWelcomeCard({
       eyebrow={merchant.name}
       hideFooter
     >
-      <RewardTeaser
-        locked
-        title="Mystery reward, sealed"
+      <StampJourneyPreview total={card.stampsRequired} className="py-1" />
+      <RewardTicket
+        state="sealed"
+        name="Mystery reward, sealed"
         description={
           <>
             Collect {card.stampsRequired} stamps to unlock a surprise reward,
@@ -138,7 +141,7 @@ function HowItWorksList() {
     <section className="grid gap-2 text-left">
       <p className="eyebrow text-muted-foreground">How it works</p>
       <ol className="grid gap-2">
-        {HOW_IT_WORKS.map((step, index) => (
+        {JOIN_WELCOME_HOW_IT_WORKS.map((step, index) => (
           <li key={index} className="flex items-start gap-3">
             <span
               aria-hidden="true"
@@ -197,7 +200,8 @@ function TermsStep({
       <CustomerJoinForm
         merchantSlug={exp.merchant.slug}
         qrId={exp.qrId}
-        merchantTermsUrl={exp.merchant.termsUrl}
+        merchantName={exp.merchant.name}
+        card={exp.card}
         requireGeofence={exp.location.requireGeofence}
         geofenceRadiusMeters={exp.location.geofenceRadiusMeters}
       />
@@ -208,10 +212,12 @@ function TermsStep({
 /**
  * Compact "you're unlocking" strip that keeps the reward in view through the
  * phone → code → terms steps, so the value exchange stays clear once the stamp
- * card itself scrolls away. A small VenueMark, not a second full card, so the
- * primary CTA stays inside the keyboard-shrunk viewport.
+ * card itself scrolls away. It restores *why* — the reward hook plus a static,
+ * un-animated mini stamp row (no progress yet) — without the full welcome card,
+ * so the primary CTA still sits inside the keyboard-shrunk viewport. Shared by
+ * production and the dev preview so step 2 stays one source of truth.
  */
-function UnlockingReminder({
+export function UnlockingReminder({
   merchant,
   card,
 }: {
@@ -219,14 +225,28 @@ function UnlockingReminder({
   card: JoinCard
 }) {
   return (
-    <div className="surface-card flex items-center gap-3 p-3 text-left">
-      <VenueMark size={40} name={merchant.name} />
-      <div className="grid min-w-0 gap-0.5">
-        <span className="eyebrow text-muted-foreground">You&apos;re unlocking</span>
-        <span className="truncate text-sm leading-tight font-extrabold">
-          {merchant.name} · {card.name}
-        </span>
+    <div className="surface-card grid gap-3 p-3 text-left">
+      <div className="flex items-center gap-3">
+        <VenueMark size={40} name={merchant.name} />
+        <div className="grid min-w-0 gap-0.5">
+          <span className="eyebrow text-muted-foreground">
+            You&apos;re unlocking
+          </span>
+          <span className="truncate text-sm leading-tight font-extrabold">
+            {merchant.name} · {card.name}
+          </span>
+        </div>
       </div>
+      <p className="text-xs leading-snug text-muted-foreground">
+        {joinUnlockingRewardHook(card.stampsRequired)}
+      </p>
+      <StampGrid
+        current={0}
+        total={card.stampsRequired}
+        showEmptySlotNumbers
+        rewardSlot="locked"
+        compact
+      />
     </div>
   )
 }
@@ -280,17 +300,19 @@ function JoinHeroCard({
       current={current}
       total={card.stampsRequired}
       hideFooter
-      rewardLocked
-      rewardTitle="Mystery reward, sealed"
-      rewardDescription={
-        <>
-          Your assigned reward stays hidden until the final stamp and can be
-          redeemed from the next UK business day.
-          {card.minSpendPence !== null ? (
-            <> Minimum spend {formatPence(card.minSpendPence)}.</>
-          ) : null}
-        </>
-      }
+      reward={{
+        state: "sealed",
+        name: "Mystery reward, sealed",
+        description: (
+          <>
+            Your assigned reward stays hidden until the final stamp and can be
+            redeemed from the next UK business day.
+            {card.minSpendPence !== null ? (
+              <> Minimum spend {formatPence(card.minSpendPence)}.</>
+            ) : null}
+          </>
+        ),
+      }}
     >
       {children}
     </CustomerStampCard>

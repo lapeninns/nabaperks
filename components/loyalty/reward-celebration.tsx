@@ -1,0 +1,53 @@
+import type { ReactNode } from "react"
+
+import { cn } from "@/lib/utils"
+
+import { RewardSeal } from "./reward-seal"
+
+/** Hard-edged riso confetti — a few flat dots in the spot inks, not a shower. */
+const CONFETTI = [
+  { className: "top-4 left-7 bg-primary", delay: "80ms" },
+  { className: "top-3 left-1/3 rounded-full bg-seal", delay: "200ms" },
+  { className: "top-5 right-10 bg-reward", delay: "120ms" },
+  { className: "top-8 right-1/3 rounded-full bg-ink", delay: "300ms" },
+  { className: "top-10 left-10 rounded-full bg-reward", delay: "260ms" },
+] as const
+
+/**
+ * Card-complete celebration — the peak beat when the final stamp lands and the
+ * seal lifts. The mystery seal pops in and a short, hard-edged riso burst fires
+ * once. No pint, no party-app shower; a few flat spot-ink dots. Reduced motion
+ * shows the finished seal and copy with no animation.
+ */
+export function RewardCelebration({
+  title,
+  message,
+}: {
+  title: ReactNode
+  message: ReactNode
+}) {
+  return (
+    <section
+      aria-label="Card complete"
+      className="relative grid justify-items-center gap-3 overflow-hidden rounded-2xl border-2 border-ink bg-reward/12 px-5 py-6 text-center"
+    >
+      <span aria-hidden="true" className="pointer-events-none absolute inset-0">
+        {CONFETTI.map((dot, index) => (
+          <span
+            key={index}
+            style={{ animationDelay: dot.delay }}
+            className={cn(
+              "absolute size-2 border-2 border-ink motion-safe:animate-[w-pop_700ms_var(--w-ease-slam)_both]",
+              dot.className
+            )}
+          />
+        ))}
+      </span>
+      <RewardSeal state="sealed" size="lg" slammed />
+      <div className="grid gap-1">
+        <p className="text-lg leading-tight font-extrabold">{title}</p>
+        <p className="text-sm leading-6 text-muted-foreground">{message}</p>
+      </div>
+    </section>
+  )
+}

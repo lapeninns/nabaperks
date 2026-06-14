@@ -1,6 +1,11 @@
 import { existsSync, readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
 
+import {
+  JOIN_PHONE_BACK_LABEL,
+  JOIN_PHONE_CODE_HINT,
+} from "@/lib/customer/experience/copy"
+
 function read(path: string) {
   return readFileSync(path, "utf8")
 }
@@ -57,11 +62,19 @@ describe("customer flow Wet Ink redesign", () => {
     const copy = read("lib/customer/experience/copy.ts")
 
     expect(read("DESIGN.md")).toContain("Your first stamp is waiting.")
-    // The value-first hero headline lives in the experience copy. The QR-scan
-    // welcome stays neutral ("Save your stamp card") because it is shown to
-    // logged-out returning members too; "first stamp" copy is reserved for the
-    // merchant preview and the terms step, where the new-user context is known.
-    expect(copy).toContain("Save your stamp card")
+    expect(copy).toContain("Keep your card on your phone")
+    expect(copy).toContain("Accept the terms and your first stamp prints onto the card")
+    expect(copy).toContain(JOIN_PHONE_CODE_HINT)
+    expect(copy).toContain(JOIN_PHONE_BACK_LABEL)
+    expect(read("components/customer/join-forms.tsx")).toContain("JOIN_PHONE_CODE_HINT")
+    expect(read("components/customer/join-forms.tsx")).toContain("JOIN_PHONE_BACK_LABEL")
+    expect(read("components/customer/join-forms.tsx")).toContain("joinWelcomeHref")
+    expect(read("components/customer/join-wizard.tsx")).toContain(
+      "JOIN_WELCOME_HOW_IT_WORKS"
+    )
+    expect(read("components/customer/join-wizard.tsx")).toContain(
+      "StampJourneyPreview"
+    )
     expect(joinPage).not.toContain(
       "Join {context.merchant.business_name} Rewards"
     )
@@ -79,5 +92,71 @@ describe("customer flow Wet Ink redesign", () => {
     expect(experience).toContain("Something's under there.")
     expect(copy).toContain("Stamp it here")
     expect(experience).toContain("Give it a day to breathe")
+  })
+})
+
+describe("unified reward ticket system", () => {
+  it("collapses the reward into one ticket plus one seal vocabulary", () => {
+    expect(existsSync("components/loyalty/reward-ticket.tsx")).toBe(true)
+    expect(existsSync("components/loyalty/reward-seal.tsx")).toBe(true)
+
+    const index = read("components/loyalty/index.ts")
+    expect(index).toContain("RewardTicket")
+    expect(index).toContain("RewardSeal")
+
+    // The stamp-row gift box is retired for the mini ticket chip — one object,
+    // three sizes (row chip → ticket → celebration beat).
+    const grid = read("components/loyalty/stamp-grid.tsx")
+    expect(grid).not.toContain("GiftBox")
+    expect(grid).toContain("RewardChip")
+
+    // One seal component at multiple sizes, and ✓ is earned (redeemed) only.
+    const seal = read("components/loyalty/reward-seal.tsx")
+    for (const size of ['"sm"', '"md"', '"lg"']) {
+      expect(seal, size).toContain(size)
+    }
+    expect(seal).toContain("redeemed")
+  })
+
+  it("prints the ticket across sealed, waiting, ready and redeemed states", () => {
+    const ticket = read("components/loyalty/reward-ticket.tsx")
+    for (const state of ['"sealed"', '"waiting"', '"ready"', '"redeemed"']) {
+      expect(ticket, state).toContain(state)
+    }
+    // Perforated chit, not a flat accent panel.
+    expect(ticket).toContain("perforation")
+  })
+
+  it("retires the pint-specific hero for the merchant-agnostic ticket", () => {
+    const experience = read("components/customer/customer-card-experience.tsx")
+    expect(experience).not.toContain("PintReward")
+    expect(experience).toContain("RewardTicket")
+    expect(experience).toContain("RewardCelebration")
+    // Celebration copy is reward-agnostic, never beverage-specific.
+    expect(experience).toContain("That's the full card.")
+    expect(experience).not.toContain("Pint unlocked")
+  })
+})
+
+describe("join step 2 motivation layer", () => {
+  it("keeps the reward in view on the phone step", () => {
+    const copy = read("lib/customer/experience/copy.ts")
+    expect(copy).toContain("joinUnlockingRewardHook")
+    expect(copy).toContain("mystery reward")
+    // The back link points at the value, not just the card preview.
+    expect(copy).toContain("See how stamps and rewards work")
+
+    // UnlockingReminder restores the reward hook + a static (un-animated) mini
+    // stamp row, and is shared with the dev preview as one source of truth.
+    const joinWizard = read("components/customer/join-wizard.tsx")
+    expect(joinWizard).toContain("export function UnlockingReminder")
+    expect(joinWizard).toContain("joinUnlockingRewardHook")
+    // The reminder uses the static StampGrid (current=0), not the animation.
+    expect(joinWizard).toContain('current={0}')
+    expect(joinWizard).toContain("StampGrid")
+
+    expect(read("app/dev/customer-flow/preview/screens.tsx")).toContain(
+      "UnlockingReminder"
+    )
   })
 })

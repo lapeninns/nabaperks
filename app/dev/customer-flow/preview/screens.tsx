@@ -15,14 +15,23 @@ import {
   PreviewRedeemButton,
   PreviewStampButton,
 } from "@/app/dev/customer-flow/preview/mock-forms"
+import { UnlockingReminder } from "@/components/customer/join-wizard"
 import {
-  PintReward,
-  PintRewardCelebration,
-  RewardTeaser,
+  RewardCelebration,
+  RewardTicket,
+  StampJourneyPreview,
   StatusBanner,
 } from "@/components/loyalty"
 import { StampCelebration } from "@/components/motion"
 import { Button } from "@/components/ui/button"
+import { getCustomerExperienceViewModel } from "@/lib/customer/experience/copy"
+import type { JoinCard, JoinMerchant } from "@/lib/customer/experience/types"
+import {
+  addUkCalendarDays,
+  formatStampDisplayDateFromIso,
+  stampDisplayDates,
+  ukTodayIso,
+} from "@/lib/customer/uk-calendar"
 import {
   CUSTOMER_FLOW_DEMO,
   customerFlowStatusFromRow,
@@ -33,6 +42,26 @@ import {
   formatMockPence,
   type CustomerFlowPreviewStepId,
 } from "@/lib/dev/customer-flow-preview"
+
+const PREVIEW_JOIN_MERCHANT: JoinMerchant = {
+  name: CUSTOMER_FLOW_MOCK.merchantName,
+  slug: CUSTOMER_FLOW_MOCK.merchantSlug,
+  termsUrl: CUSTOMER_FLOW_MOCK.merchantTermsUrl,
+}
+
+const PREVIEW_JOIN_CARD: JoinCard = {
+  name: CUSTOMER_FLOW_MOCK.cardName,
+  stampsRequired: CUSTOMER_FLOW_MOCK.stampsRequired,
+  minSpendPence: CUSTOMER_FLOW_MOCK.minSpendPence,
+  rewardTerms: CUSTOMER_FLOW_MOCK.rewardTerms,
+}
+
+const PREVIEW_JOIN_WELCOME = getCustomerExperienceViewModel({
+  kind: "join_welcome",
+  merchant: PREVIEW_JOIN_MERCHANT,
+  card: PREVIEW_JOIN_CARD,
+  qrId: CUSTOMER_FLOW_MOCK.qrId,
+})
 
 export function CustomerFlowPreviewScreen({
   stepId,
@@ -105,39 +134,59 @@ function PreviewJoinScreen({
 }: {
   readonly variant: "hero" | "phone" | "otp" | "terms"
 }) {
+  // Welcome — the full animated card + how-it-works.
+  if (variant === "hero") {
+    return (
+      <CustomerFlowShell
+        eyebrow={PREVIEW_JOIN_WELCOME.eyebrow}
+        title={PREVIEW_JOIN_WELCOME.headline}
+        description={PREVIEW_JOIN_WELCOME.supportLine}
+        className="content-center"
+        screenLabel="Customer join"
+      >
+        <CustomerReceipt
+          venueName={CUSTOMER_FLOW_MOCK.merchantName}
+          title={CUSTOMER_FLOW_MOCK.cardName}
+          eyebrow={CUSTOMER_FLOW_MOCK.merchantName}
+          hideFooter
+        >
+          <StampJourneyPreview
+            total={CUSTOMER_FLOW_MOCK.stampsRequired}
+            className="py-1"
+          />
+          <RewardTicket
+            state="sealed"
+            name="Mystery reward, sealed"
+            description={
+              <>
+                Collect {CUSTOMER_FLOW_MOCK.stampsRequired} stamps to unlock a
+                surprise reward, yours from the next UK business day.
+                <PreviewMinSpendNote />
+              </>
+            }
+          />
+        </CustomerReceipt>
+        <PreviewJoinHeroNote />
+        <PreviewIdentityForm variant="empty" />
+      </CustomerFlowShell>
+    )
+  }
+
+  // Phone / code / terms — the compact UnlockingReminder + step copy, exactly
+  // as production renders steps 2+ (no full welcome card on the keyboard steps).
+  const stepVm = previewJoinStepVm(variant)
   return (
     <CustomerFlowShell
-      eyebrow="Scanned at the counter"
-      title="Save your stamp card"
-      description={`Save ${CUSTOMER_FLOW_MOCK.merchantName}'s card to your number — new or returning, your stamps stay put. No app, no plastic.`}
-      className="content-center"
+      eyebrow={stepVm.eyebrow}
+      title={stepVm.headline}
+      description={stepVm.supportLine}
+      dense
       screenLabel="Customer join"
     >
-      {/* Compact identity card — no presumptuous "0 of N" grid (mirrors the
-          shipped QR-scan welcome shown to logged-out returning members). */}
-      <CustomerReceipt
-        venueName={CUSTOMER_FLOW_MOCK.merchantName}
-        title={CUSTOMER_FLOW_MOCK.cardName}
-        eyebrow={CUSTOMER_FLOW_MOCK.merchantName}
-        hideFooter
-      >
-        <RewardTeaser
-          locked
-          title="Mystery reward, sealed"
-          description={
-            <>
-              Collect {CUSTOMER_FLOW_MOCK.stampsRequired} stamps to unlock a
-              surprise reward, yours from the next UK business day.
-              <PreviewMinSpendNote />
-            </>
-          }
-        />
-      </CustomerReceipt>
-      <PreviewJoinHeroNote />
-
-      {variant === "hero" ? (
-        <PreviewIdentityForm variant="empty" />
-      ) : null}
+      <UnlockingReminder
+        merchant={PREVIEW_JOIN_MERCHANT}
+        card={PREVIEW_JOIN_CARD}
+      />
       {variant === "phone" ? (
         <PreviewIdentityForm variant="phone-filled" />
       ) : null}
@@ -147,6 +196,33 @@ function PreviewJoinScreen({
       {variant === "terms" ? <PreviewJoinTermsForm /> : null}
     </CustomerFlowShell>
   )
+}
+
+/** Step-specific view model for the preview, mirroring production copy. */
+function previewJoinStepVm(variant: "phone" | "otp" | "terms") {
+  if (variant === "otp") {
+    return getCustomerExperienceViewModel({
+      kind: "join_otp",
+      merchant: PREVIEW_JOIN_MERCHANT,
+      card: PREVIEW_JOIN_CARD,
+      qrId: CUSTOMER_FLOW_MOCK.qrId,
+    })
+  }
+  if (variant === "terms") {
+    return getCustomerExperienceViewModel({
+      kind: "join_terms",
+      merchant: PREVIEW_JOIN_MERCHANT,
+      card: PREVIEW_JOIN_CARD,
+      qrId: CUSTOMER_FLOW_MOCK.qrId,
+      location: { requireGeofence: false, geofenceRadiusMeters: 150 },
+    })
+  }
+  return getCustomerExperienceViewModel({
+    kind: "join_phone",
+    merchant: PREVIEW_JOIN_MERCHANT,
+    card: PREVIEW_JOIN_CARD,
+    qrId: CUSTOMER_FLOW_MOCK.qrId,
+  })
 }
 
 function PreviewStampConfirmScreen() {
@@ -195,9 +271,12 @@ function PreviewCardScreen({
   readonly rewardRedeemed?: boolean
 }) {
   const target = CUSTOMER_FLOW_MOCK.stampsRequired
-  const rewardTitle = rewardUnlocked
+  const rewardName = rewardUnlocked
     ? CUSTOMER_FLOW_MOCK.assignedRewardName
     : "Something's under there."
+  const rewardReadyDate = rewardUnlocked
+    ? formatStampDisplayDateFromIso(addUkCalendarDays(ukTodayIso(), 1))
+    : null
   const rewardDescription = rewardUnlocked ? (
     <>
       {CUSTOMER_FLOW_MOCK.assignedRewardTerms}
@@ -230,10 +309,10 @@ function PreviewCardScreen({
         </Link>
 
         {current >= target && rewardUnlocked ? (
-          // All stamps collected — the headline moment. Pour the pint.
-          <PintRewardCelebration
-            title="Pint unlocked!"
-            message="That's the full card. Your pint is yours from opening time on the next UK business day."
+          // All stamps collected — the headline beat: the seal lifts.
+          <RewardCelebration
+            title="That's the full card."
+            message="Your reward is yours from opening time on the next UK business day."
           />
         ) : stampIssued ? (
           <StampCelebration>
@@ -263,9 +342,13 @@ function PreviewCardScreen({
           current={current}
           total={target}
           slamIndex={stampIssued ? current - 1 : -1}
-          rewardLocked={!rewardUnlocked}
-          rewardTitle={rewardTitle}
-          rewardDescription={rewardDescription}
+          stampDates={stampDisplayDates(current).slice(0, current)}
+          reward={{
+            state: rewardUnlocked ? "waiting" : "sealed",
+            name: rewardName,
+            description: rewardDescription,
+            readyDate: rewardReadyDate,
+          }}
           hideFooter
         >
           {rewardUnlocked ? (
@@ -339,13 +422,16 @@ function PreviewRewardScreen({
         eyebrow="Mystery reward"
         footerLeft={`CARD Nº ${CUSTOMER_FLOW_MOCK.membershipId.slice(0, 8).toUpperCase()}`}
       >
-        <PintReward
-          pour
-          caption={redeemable ? "Ready to pour" : "Pouring soon"}
-        />
-        <RewardTeaser
-          locked={false}
-          title={CUSTOMER_FLOW_MOCK.assignedRewardName}
+        <RewardTicket
+          state={redeemable ? "ready" : "waiting"}
+          name={CUSTOMER_FLOW_MOCK.assignedRewardName}
+          readyDate={
+            redeemable
+              ? null
+              : formatStampDisplayDateFromIso(
+                  addUkCalendarDays(ukTodayIso(), 1)
+                )
+          }
           description={
             <>
               {CUSTOMER_FLOW_MOCK.assignedRewardTerms}
@@ -359,13 +445,6 @@ function PreviewRewardScreen({
             </>
           }
         />
-        <CustomerActionNote
-          title="Counter check"
-          tone={redeemable ? "leaf" : "sun"}
-        >
-          Rewards become redeemable from the next UK business day after the final
-          stamp.
-        </CustomerActionNote>
 
         {redeemable ? (
           <>

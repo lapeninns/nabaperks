@@ -13,10 +13,10 @@ import {
   SelfServiceStampForm,
 } from "@/components/customer/self-service-forms"
 import {
-  PintReward,
-  PintRewardCelebration,
-  RewardTeaser,
+  RewardCelebration,
+  RewardTicket,
   StatusBanner,
+  type RewardTicketState,
 } from "@/components/loyalty"
 import { StampCelebration } from "@/components/motion"
 import { Button } from "@/components/ui/button"
@@ -24,6 +24,7 @@ import {
   getCustomerExperienceViewModel,
   type CustomerExperienceViewModel,
 } from "@/lib/customer/experience/copy"
+import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
 import type {
   CustomerExperience,
   CustomerExperienceKind,
@@ -93,23 +94,34 @@ function CardProgressPanel({
   exp: Extract<CustomerExperience, { kind: "card_collecting" }>
 }) {
   const cardComplete = exp.total > 0 && exp.current >= exp.total
-  const rewardLocked = exp.reward === "none"
-  const rewardTitle = rewardLocked
-    ? "Something's under there."
-    : (exp.rewardName ?? "Your reward")
-  const rewardDescription = rewardLocked ? (
-    <>Mystery reward stays sealed until the final stamp. {exp.rewardTerms}</>
-  ) : (
-    <>
-      {exp.rewardTerms}
-      {exp.minSpendPence !== null ? (
-        <> Minimum spend {formatPence(exp.minSpendPence)}.</>
-      ) : null}
-      {exp.reward === "ready"
-        ? " Reward ready to redeem."
-        : " Give it a day to breathe - it's yours from opening time tomorrow."}
-    </>
-  )
+  const rewardState: RewardTicketState =
+    exp.reward === "ready"
+      ? "ready"
+      : exp.reward === "waiting"
+        ? "waiting"
+        : "sealed"
+  const rewardName =
+    rewardState === "sealed"
+      ? "Something's under there."
+      : (exp.rewardName ?? "Your reward")
+  const rewardReadyDate =
+    rewardState === "waiting" && exp.rewardRedeemableFrom
+      ? formatStampDisplayDateFromIso(exp.rewardRedeemableFrom)
+      : null
+  const rewardDescription =
+    rewardState === "sealed" ? (
+      <>Mystery reward stays sealed until the final stamp. {exp.rewardTerms}</>
+    ) : (
+      <>
+        {exp.rewardTerms}
+        {exp.minSpendPence !== null ? (
+          <> Minimum spend {formatPence(exp.minSpendPence)}.</>
+        ) : null}
+        {rewardState === "ready"
+          ? " Reward ready to redeem."
+          : " Give it a day to breathe - it's yours from opening time tomorrow."}
+      </>
+    )
 
   return (
     <div className="grid gap-4">
@@ -121,13 +133,14 @@ function CardProgressPanel({
       </Link>
 
       {exp.justStamped && cardComplete ? (
-        // All stamps collected — the headline moment. Pour the pint.
-        <PintRewardCelebration
-          title="Pint unlocked!"
+        // All stamps collected — the headline beat: the seal lifts, and the
+        // ticket below shows the now-revealed reward.
+        <RewardCelebration
+          title="That's the full card."
           message={
             exp.reward === "ready"
-              ? "That's the full card. Claim your pint at the counter while you're here."
-              : "That's the full card. Your pint is yours from opening time on the next UK business day."
+              ? "Your reward is ready — claim it at the counter while you're here."
+              : "Your reward is yours from opening time on the next UK business day."
           }
         />
       ) : exp.justJoined ? (
@@ -168,9 +181,13 @@ function CardProgressPanel({
         current={exp.current}
         total={exp.total}
         slamIndex={exp.slamIndex}
-        rewardLocked={rewardLocked}
-        rewardTitle={rewardTitle}
-        rewardDescription={rewardDescription}
+        stampDates={exp.stampDates}
+        reward={{
+          state: rewardState,
+          name: rewardName,
+          description: rewardDescription,
+          readyDate: rewardReadyDate,
+        }}
         hideFooter
       >
         {exp.reward === "ready" && exp.rewardId ? (
@@ -295,22 +312,22 @@ function RewardWaitingPanel({
 }: {
   exp: Extract<CustomerExperience, { kind: "reward_waiting" }>
 }) {
+  const readyDate = exp.reward.redeemableFrom
+    ? formatStampDisplayDateFromIso(exp.reward.redeemableFrom)
+    : null
+
   return (
     <CustomerReceipt
       venueName={exp.merchantName}
       eyebrow="Mystery reward"
       footerLeft={cardNumber(exp.reward.membershipId)}
     >
-      <PintReward caption="Pouring soon" pour />
-      <RewardTeaser
-        locked={false}
-        title={exp.reward.rewardName}
+      <RewardTicket
+        state="waiting"
+        name={exp.reward.rewardName}
         description={rewardTermsNode(exp.reward)}
+        readyDate={readyDate}
       />
-      <CustomerActionNote title="Counter check" tone="sun">
-        Rewards become redeemable from the next UK business day after the final
-        stamp.
-      </CustomerActionNote>
       <StatusBanner title="Give it a day to breathe" tone="warning">
         It&apos;s yours from opening time tomorrow.
       </StatusBanner>
@@ -332,16 +349,11 @@ function RewardReadyPanel({
       eyebrow="Mystery reward"
       footerLeft={cardNumber(exp.reward.membershipId)}
     >
-      <PintReward caption="Ready to pour" pour />
-      <RewardTeaser
-        locked={false}
-        title={exp.reward.rewardName}
+      <RewardTicket
+        state="ready"
+        name={exp.reward.rewardName}
         description={rewardTermsNode(exp.reward)}
       />
-      <CustomerActionNote title="Counter check" tone="leaf">
-        Rewards become redeemable from the next UK business day after the final
-        stamp.
-      </CustomerActionNote>
       <StatusBanner title="Ready to redeem." tone="success">
         Tap redeem while you are at the venue, then show the redeemed card if
         asked.
@@ -370,10 +382,9 @@ function RedeemedProofPanel({
         footerLeft={cardNumber(exp.reward.membershipId)}
         footerRight="REDEEMED"
       >
-        <PintReward caption="Cheers — redeemed" />
-        <RewardTeaser
-          locked={false}
-          title={exp.reward.rewardName}
+        <RewardTicket
+          state="redeemed"
+          name={exp.reward.rewardName}
           description={rewardTermsNode(exp.reward)}
         />
         <StatusBanner title="Reward redeemed." tone="success">

@@ -1,7 +1,12 @@
 import "server-only"
 
-import { getCustomerCardState } from "@/lib/customer/card"
-import { isRedeemableFrom } from "@/lib/customer/uk-date"
+import {
+  getCustomerCardState,
+  getMembershipStampDisplayDates,
+  reconcileCardStampCount,
+} from "@/lib/customer/card"
+import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
+import { isRedeemableFrom, ukTodayIso } from "@/lib/customer/uk-date"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 
 import type { CardContext } from "./derive"
@@ -59,6 +64,21 @@ export async function loadCardExperienceContext(
   }
 
   const target = loyaltyCard.stamps_required
+  const stampDates = await getMembershipStampDisplayDates(membership.id, target)
+  const current = reconcileCardStampCount({
+    membershipCount: membership.current_stamp_count,
+    stampDateCount: stampDates.length,
+    total: target,
+  })
+  const dates =
+    justStamped && current > stampDates.length
+      ? [
+          ...stampDates,
+          ...Array.from({ length: current - stampDates.length }, () =>
+            formatStampDisplayDateFromIso(ukTodayIso())
+          ),
+        ]
+      : stampDates.slice(0, current)
   const reward =
     latestReward?.status === "unlocked"
       ? {
@@ -75,11 +95,12 @@ export async function loadCardExperienceContext(
     membershipId: membership.id,
     merchantName: merchant.business_name,
     cardName: loyaltyCard.card_name,
-    current: Math.min(membership.current_stamp_count, target),
+    current,
     total: target,
     stampsBlocked: cardState.billingStatus === "cancelled",
     reward,
     rewardTerms: loyaltyCard.reward_terms,
+    stampDates: dates,
     justStamped,
     justJoined,
     geoFlagged,
@@ -108,6 +129,7 @@ function baseUnavailable(
     stampsBlocked: false,
     reward: null,
     rewardTerms: "",
+    stampDates: [],
     justStamped: flags.justStamped,
     justJoined: flags.justJoined,
     geoFlagged: flags.geoFlagged,

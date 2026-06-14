@@ -5,7 +5,8 @@ import {
   CustomerFlowShell,
   CustomerReceipt,
 } from "@/components/customer/customer-flow-system"
-import { RewardTeaser, StatusBanner } from "@/components/loyalty"
+import { CustomerVenueTermsSheet } from "@/components/customer/legal-sheet"
+import { RewardTeaser, StampJourneyPreview, StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { getMerchantJoinContext } from "@/lib/customer/join"
 
@@ -54,8 +55,13 @@ export default async function MerchantRewardsPage({
         eyebrow={merchant.business_name}
         hideFooter
       >
+        <StampJourneyPreview
+          total={loyaltyCard.stamps_required}
+          className="py-1"
+        />
         <RewardTeaser
           locked
+          hideSeal
           title="Mystery reward, sealed"
           description={
             <>
@@ -73,11 +79,16 @@ export default async function MerchantRewardsPage({
         <Button asChild size="lg" className="w-full">
           <Link href={`/m/${merchantSlug}/join`}>Collect my stamp</Link>
         </Button>
-        <Button asChild size="lg" variant="secondary" className="w-full">
-          <Link href={`/merchant/${merchantSlug}/terms`}>
-            View reward terms
-          </Link>
-        </Button>
+        <CustomerVenueTermsSheet
+          venueTerms={{
+            merchantName: merchant.business_name,
+            stampsRequired: loyaltyCard.stamps_required,
+            rewardTerms: loyaltyCard.reward_terms,
+            contact: [merchant.email, merchant.phone].filter(Boolean).join(" · "),
+          }}
+          triggerLabel="View reward terms"
+          triggerClassName="inline-flex h-12 w-full items-center justify-center rounded-xl border-2 border-ink bg-secondary px-4 text-sm font-bold no-underline shadow-sm transition hover:bg-secondary/80"
+        />
       </div>
     </CustomerFlowShell>
   )

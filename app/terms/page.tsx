@@ -4,34 +4,10 @@ import { Eyebrow, PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout } from "@/components/layout"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-
-const sections = [
-  {
-    id: "participation",
-    title: "Participation",
-    body: "Customers may join a merchant loyalty card after verifying their phone number and accepting the loyalty terms. The card is browser-based and does not require a downloaded app or physical plastic card.",
-  },
-  {
-    id: "merchant-reward-terms",
-    title: "Merchant-controlled reward terms",
-    body: "Each merchant controls its reward description, earning rules, minimum spend, exclusions, and venue-specific participation terms. Merchant reward terms are shown before joining and on the merchant terms page.",
-  },
-  {
-    id: "marketing",
-    title: "Optional marketing opt-in",
-    body: "Marketing opt-in is optional and separate from loyalty participation. Declining marketing does not stop a customer collecting stamps, seeing progress, or redeeming earned rewards.",
-  },
-  {
-    id: "abuse",
-    title: "Abuse and fraud prevention",
-    body: "Nabaperks and merchants may investigate suspicious activity, duplicate claims, QR misuse, manual adjustments, soft geofence anomalies, or fraud signals. One stamp can be issued per customer per UK business day, and audited support actions preserve event history rather than deleting earned history silently.",
-  },
-  {
-    id: "availability",
-    title: "Availability restrictions",
-    body: "The MVP may restrict new joins, stamps, QR scans, or redemptions when a merchant loyalty card is inactive, QR access is disabled, a reward is not yet redeemable, or billing is suspended.",
-  },
-]
+import {
+  PLATFORM_TERMS_META,
+  PLATFORM_TERMS_SECTIONS,
+} from "@/lib/legal/content"
 
 export default function TermsPage() {
   return (
@@ -40,7 +16,7 @@ export default function TermsPage() {
         <aside className="surface-card p-4 lg:sticky lg:top-24">
           <Eyebrow className="mb-3">On this page</Eyebrow>
           <nav aria-label="Terms sections" className="grid gap-1">
-            {sections.map((section) => (
+            {PLATFORM_TERMS_SECTIONS.map((section) => (
               <a
                 key={section.id}
                 href={`#${section.id}`}
@@ -54,21 +30,23 @@ export default function TermsPage() {
 
         <article className="grid gap-6">
           <PageTitle
-            eyebrow="Plain English summary · not the full legal text"
-            title="The small print, kept legible."
-            description="Pilot terms for no-app QR loyalty participation, structured for readability. The full text travels with your merchant agreement and requires legal review before launch."
+            eyebrow={PLATFORM_TERMS_META.eyebrow}
+            title={PLATFORM_TERMS_META.title}
+            description={PLATFORM_TERMS_META.description}
             titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
             className="md:grid-cols-1"
           />
 
           <ReceiptCard edge className="grid gap-0">
             <div className="flex items-baseline justify-between gap-4">
-              <p className="text-xl font-extrabold">Terms, condensed</p>
+              <p className="text-xl font-extrabold">
+                {PLATFORM_TERMS_META.cardTitle}
+              </p>
               <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
-                Nº T-2026
+                Nº {PLATFORM_TERMS_META.docNumber}
               </span>
             </div>
-            {sections.map((section) => (
+            {PLATFORM_TERMS_SECTIONS.map((section) => (
               <TermsBlock
                 key={section.id}
                 id={section.id}

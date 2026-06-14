@@ -124,6 +124,7 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
   it("keeps legal topic coverage, review caveats, TOCs, and cross-links", () => {
     const terms = readProjectFile("app/terms/page.tsx")
     const privacy = readProjectFile("app/privacy/page.tsx")
+    const legalContent = readProjectFile("lib/legal/content.ts")
 
     for (const required of [
       "Participation",
@@ -131,9 +132,15 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
       "Optional marketing opt-in",
       "Abuse and fraud prevention",
       "Availability restrictions",
+    ]) {
+      expect(legalContent).toContain(required)
+    }
+
+    for (const required of [
       "Review required",
       'href="/privacy"',
       "Terms sections",
+      "PLATFORM_TERMS_SECTIONS",
     ]) {
       expect(terms).toContain(required)
     }
@@ -145,9 +152,15 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
       "Sharing, scoping, and support access",
       "Data requests",
       "Audit and support records",
+    ]) {
+      expect(legalContent).toContain(required)
+    }
+
+    for (const required of [
       "Review required",
       'href="/terms"',
       "Privacy sections",
+      "PRIVACY_SECTIONS",
     ]) {
       expect(privacy).toContain(required)
     }

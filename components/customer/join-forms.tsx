@@ -11,12 +11,19 @@ import {
   verifyCustomerOtpAction,
 } from "@/app/m/[merchantSlug]/join/actions"
 import { Eyebrow, MonoTag } from "@/components/brand"
+import { CustomerLegalConsentLinks } from "@/components/customer/legal-sheet"
 import {
   GeoFields,
   LocationNote,
   useOptionalGeolocation,
 } from "@/components/customer/self-service-forms"
+import type { JoinCard } from "@/lib/customer/experience/types"
 import { Button } from "@/components/ui/button"
+import {
+  JOIN_PHONE_BACK_LABEL,
+  JOIN_PHONE_CODE_HINT,
+  joinWelcomeHref,
+} from "@/lib/customer/experience/copy"
 
 const identityInitialState: CustomerIdentityState = {}
 const joinInitialState: CustomerJoinState = {}
@@ -63,14 +70,21 @@ export function CustomerIdentityForm({
             className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm transition outline-none focus:border-ring focus:ring-3 focus:ring-ring/25"
             aria-invalid={Boolean(state.errors?.contact)}
             aria-describedby={
-              state.errors?.contact ? "contact-error" : undefined
+              state.errors?.contact ? "contact-error" : "contact-hint"
             }
           />
           {state.errors?.contact ? (
             <p id="contact-error" className="text-sm text-destructive">
               {state.errors.contact}
             </p>
-          ) : null}
+          ) : (
+            <p
+              id="contact-hint"
+              className="text-xs leading-5 text-muted-foreground"
+            >
+              {JOIN_PHONE_CODE_HINT}
+            </p>
+          )}
         </div>
         {state.errors?.form ? (
           <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -122,6 +136,14 @@ export function CustomerIdentityForm({
             {verifyPending ? "Checking..." : "Save my card"}
           </Button>
         </form>
+      ) : null}
+      {qrId && !phoneOtpSent ? (
+        <Link
+          href={joinWelcomeHref(merchantSlug, qrId)}
+          className="text-center text-xs font-bold underline underline-offset-4"
+        >
+          {JOIN_PHONE_BACK_LABEL}
+        </Link>
       ) : null}
     </div>
   )
@@ -185,13 +207,15 @@ export function CustomerOtpForm({
 export function CustomerJoinForm({
   merchantSlug,
   qrId,
-  merchantTermsUrl,
+  merchantName,
+  card,
   requireGeofence,
   geofenceRadiusMeters,
 }: {
   merchantSlug: string
   qrId?: string
-  merchantTermsUrl: string
+  merchantName: string
+  card: JoinCard
   requireGeofence: boolean
   geofenceRadiusMeters: number
 }) {
@@ -228,20 +252,13 @@ export function CustomerJoinForm({
             <span className="leading-6 text-muted-foreground">
               I agree to keep this loyalty card and that stamps and rewards
               follow the{" "}
-              <Link
-                className="underline underline-offset-4"
-                href={merchantTermsUrl}
-              >
-                venue
-              </Link>
-              ,{" "}
-              <Link className="underline underline-offset-4" href="/terms">
-                platform
-              </Link>{" "}
-              and{" "}
-              <Link className="underline underline-offset-4" href="/privacy">
-                privacy
-              </Link>{" "}
+              <CustomerLegalConsentLinks
+                venueTerms={{
+                  merchantName,
+                  stampsRequired: card.stampsRequired,
+                  rewardTerms: card.rewardTerms,
+                }}
+              />{" "}
               terms.
             </span>
           </span>

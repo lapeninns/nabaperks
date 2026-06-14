@@ -1,7 +1,12 @@
 import type { ReactNode } from "react"
 
 import { Eyebrow, MonoTag, ReceiptCard, VenueMark } from "@/components/brand"
-import { RewardTeaser, StampGrid } from "@/components/loyalty"
+import {
+  RewardSeal,
+  RewardTicket,
+  StampGrid,
+  type RewardTicketState,
+} from "@/components/loyalty"
 import { cn } from "@/lib/utils"
 
 type FlowTone = "accent" | "ink" | "leaf" | "sun" | "plain"
@@ -206,10 +211,9 @@ export function CustomerStampCard({
   cardName,
   current,
   total,
-  rewardTitle,
-  rewardDescription,
-  rewardLocked,
+  reward,
   slamIndex = -1,
+  stampDates,
   metaLines,
   hideFooter = false,
   children,
@@ -218,10 +222,15 @@ export function CustomerStampCard({
   cardName: ReactNode
   current: number
   total: number
-  rewardTitle: ReactNode
-  rewardDescription?: ReactNode
-  rewardLocked: boolean
+  /** The reward as one prize ticket — sealed while collecting, then revealed. */
+  reward: {
+    state: RewardTicketState
+    name: ReactNode
+    description?: ReactNode
+    readyDate?: string | null
+  }
   slamIndex?: number
+  stampDates?: string[]
   metaLines?: ReactNode
   /** Drop the receipt's mono footer (card number + stamp-rule line). */
   hideFooter?: boolean
@@ -229,6 +238,8 @@ export function CustomerStampCard({
 }) {
   // The StampGrid already shows current/total progress, so a separate
   // ProgressTrack underneath was a duplicate readout — one progress signal only.
+  // The sealed mystery shows once: as the row's end chip *or*, once revealed,
+  // only on the ticket below — never two seals competing in one view.
   return (
     <CustomerReceipt
       venueName={venueName}
@@ -240,14 +251,17 @@ export function CustomerStampCard({
       <StampGrid
         current={current}
         total={total}
+        dates={stampDates}
         slamIndex={slamIndex}
+        showEmptySlotNumbers
+        rewardSlot={reward.state === "sealed" ? "locked" : undefined}
         className="py-1"
       />
-      <RewardTeaser
-        locked={rewardLocked}
-        title={rewardTitle}
-        description={rewardDescription}
-        className="text-left"
+      <RewardTicket
+        state={reward.state}
+        name={reward.name}
+        description={reward.description}
+        readyDate={reward.readyDate}
       />
       {children}
     </CustomerReceipt>
@@ -265,17 +279,7 @@ export function CustomerRewardSeal({
 }) {
   return (
     <div className={cn("grid justify-items-center gap-3", className)}>
-      <span
-        aria-hidden="true"
-        className={cn(
-          "grid size-24 -rotate-6 place-items-center rounded-full border-2 border-ink text-4xl font-extrabold shadow-sm",
-          revealed
-            ? "bg-reward text-reward-foreground"
-            : "bg-seal text-seal-foreground"
-        )}
-      >
-        {revealed ? "✓" : "?"}
-      </span>
+      <RewardSeal state={revealed ? "redeemed" : "sealed"} size="lg" />
       <span className="font-mono text-[0.68rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
         {caption}
       </span>

@@ -43,6 +43,7 @@ export type CardContext =
         redeemable: boolean
       } | null
       rewardTerms: string
+      stampDates: string[]
       justStamped: boolean
       justJoined: boolean
       geoFlagged: boolean
@@ -146,6 +147,7 @@ function deriveCard(context: CardContext): CustomerExperience {
     minSpendPence: reward?.minSpendPence ?? null,
     rewardRedeemableFrom: reward?.redeemableFrom ?? null,
     stampsBlocked: context.stampsBlocked,
+    stampDates: context.stampDates,
     justStamped: context.justStamped,
     justJoined: context.justJoined,
     geoFlagged: context.geoFlagged,

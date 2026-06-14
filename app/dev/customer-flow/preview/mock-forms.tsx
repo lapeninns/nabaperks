@@ -1,7 +1,17 @@
 import Link from "next/link"
 
 import { Eyebrow, MonoTag, VenueMark } from "@/components/brand"
+import {
+  CustomerLegalConsentLinks,
+  CustomerVenueTermsSheet,
+} from "@/components/customer/legal-sheet"
 import { Button } from "@/components/ui/button"
+import {
+  JOIN_PHONE_BACK_LABEL,
+  JOIN_PHONE_CODE_HINT,
+  JOIN_WELCOME_HOW_IT_WORKS,
+  joinWelcomeHref,
+} from "@/lib/customer/experience/copy"
 import {
   CUSTOMER_FLOW_MOCK,
   formatMockPence,
@@ -42,6 +52,11 @@ export function PreviewIdentityForm({
             readOnly
             className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none"
           />
+          {!phoneOtpSent ? (
+            <p className="text-xs leading-5 text-muted-foreground">
+              {JOIN_PHONE_CODE_HINT}
+            </p>
+          ) : null}
         </div>
         <Button type="button" disabled={phoneOtpSent}>
           {phoneOtpSent ? "Verification sent" : "Text me the code"}
@@ -69,6 +84,17 @@ export function PreviewIdentityForm({
           <Button type="button">Save my card</Button>
         </form>
       ) : null}
+      {!phoneOtpSent ? (
+        <Link
+          href={joinWelcomeHref(
+            CUSTOMER_FLOW_MOCK.merchantSlug,
+            CUSTOMER_FLOW_MOCK.qrId
+          )}
+          className="text-center text-xs font-bold underline underline-offset-4"
+        >
+          {JOIN_PHONE_BACK_LABEL}
+        </Link>
+      ) : null}
     </div>
   )
 }
@@ -95,20 +121,13 @@ export function PreviewJoinTermsForm() {
             <span className="leading-6 text-muted-foreground">
               I agree to keep this loyalty card and that stamps and rewards
               follow the{" "}
-              <Link
-                className="underline underline-offset-4"
-                href={CUSTOMER_FLOW_MOCK.merchantTermsUrl}
-              >
-                venue
-              </Link>
-              ,{" "}
-              <Link className="underline underline-offset-4" href="/terms">
-                platform
-              </Link>{" "}
-              and{" "}
-              <Link className="underline underline-offset-4" href="/privacy">
-                privacy
-              </Link>{" "}
+              <CustomerLegalConsentLinks
+                venueTerms={{
+                  merchantName: CUSTOMER_FLOW_MOCK.merchantName,
+                  stampsRequired: CUSTOMER_FLOW_MOCK.stampsRequired,
+                  rewardTerms: CUSTOMER_FLOW_MOCK.rewardTerms,
+                }}
+              />{" "}
               terms.
             </span>
           </span>
@@ -159,19 +178,13 @@ export function PreviewRedeemButton() {
 }
 
 export function PreviewJoinHeroNote() {
-  const steps = [
-    "Save the card to your mobile number",
-    "Verify with a single text code",
-    "Collect your first stamp — no app needed",
-  ]
-
   return (
     <>
       {/* Borderless "how it works" list — mirrors the shipped welcome screen. */}
       <section className="grid gap-2 text-left">
         <p className="eyebrow text-muted-foreground">How it works</p>
         <ol className="grid gap-2">
-          {steps.map((step, index) => (
+          {JOIN_WELCOME_HOW_IT_WORKS.map((step, index) => (
             <li key={index} className="flex items-start gap-3">
               <span
                 aria-hidden="true"
@@ -184,12 +197,15 @@ export function PreviewJoinHeroNote() {
           ))}
         </ol>
       </section>
-      <Link
-        className="inline-flex w-fit text-xs font-bold underline underline-offset-4"
-        href={CUSTOMER_FLOW_MOCK.merchantTermsUrl}
-      >
-        View full venue terms
-      </Link>
+      <CustomerVenueTermsSheet
+        venueTerms={{
+          merchantName: CUSTOMER_FLOW_MOCK.merchantName,
+          stampsRequired: CUSTOMER_FLOW_MOCK.stampsRequired,
+          rewardTerms: CUSTOMER_FLOW_MOCK.rewardTerms,
+        }}
+        triggerLabel="View full venue terms"
+        triggerClassName="inline-flex w-fit text-xs font-bold underline underline-offset-4"
+      />
     </>
   )
 }

@@ -17,18 +17,40 @@ export type CustomerExperienceViewModel = {
   primaryAction?: { label: string; href: string }
 }
 
+/** QR-scan welcome — mirrors join-with-first-stamp: scan → verify → terms → stamp. */
+export const JOIN_WELCOME_HOW_IT_WORKS = [
+  "You scanned the venue QR at the counter",
+  "Save the card to your number with one text — no app",
+  "Accept the terms and your first stamp prints onto the card",
+] as const
+
+/** Shown under the phone field on step 2 — sets expectation before the SMS arrives. */
+export const JOIN_PHONE_CODE_HINT =
+  "We'll send a one-time code by text." as const
+
+/** Returns to the QR welcome card when the customer wants the full preview again. */
+export const JOIN_PHONE_BACK_LABEL = "See how stamps and rewards work" as const
+
+/** Step-2 reward hook — keeps *why* in one line beside the phone field. */
+export function joinUnlockingRewardHook(stampsRequired: number): string {
+  const stamps = Math.max(stampsRequired, 1)
+  return stamps === 1
+    ? "1 stamp unlocks a mystery reward"
+    : `${stamps} stamps unlock a mystery reward`
+}
+
 export function getCustomerExperienceViewModel(
   exp: CustomerExperience
 ): CustomerExperienceViewModel {
   switch (exp.kind) {
     case "join_welcome":
-      // Shown to anyone who scans the venue QR while logged out — we cannot yet
-      // tell a first-timer from a returning member, so the copy stays neutral
-      // (no "first stamp") and the phone step routes each to the right place.
+      // Shown to anyone who scans the venue QR while logged out. Returning
+      // members verify and route to their card; new members finish terms and
+      // earn stamp #1 in the same onboarding call.
       return {
         eyebrow: "Scanned at the counter",
-        headline: "Save your stamp card",
-        supportLine: `Save ${exp.merchant.name}'s card to your number — new or returning, your stamps stay put. No app, no plastic.`,
+        headline: "Keep your card on your phone",
+        supportLine: `One text saves ${exp.merchant.name}'s card to your number. New here? Your first stamp lands when you accept the terms.`,
         primaryAction: {
           label: "Get started",
           href: joinHref(exp.merchant.slug, exp.qrId, "phone"),
@@ -38,7 +60,7 @@ export function getCustomerExperienceViewModel(
       return {
         eyebrow: "One text, no password",
         headline: "Save your card to your number",
-        supportLine: "Keep this stamp card safe with your UK mobile number.",
+        supportLine: `Save ${exp.merchant.name}'s card to your number — ${joinUnlockingRewardHook(exp.card.stampsRequired)}.`,
       }
     case "join_otp":
       return {
@@ -127,5 +149,11 @@ function joinHref(slug: string, qrId: string | undefined, step: string): string 
   const params = new URLSearchParams()
   if (qrId) params.set("qr", qrId)
   params.set("step", step)
+  return `/m/${slug}/join?${params.toString()}`
+}
+
+export function joinWelcomeHref(slug: string, qrId: string): string {
+  const params = new URLSearchParams()
+  params.set("qr", qrId)
   return `/m/${slug}/join?${params.toString()}`
 }

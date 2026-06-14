@@ -113,6 +113,7 @@ export type CustomerExperience =
       minSpendPence: number | null
       rewardRedeemableFrom: string | null
       stampsBlocked: boolean
+      stampDates: string[]
       justStamped: boolean
       justJoined: boolean
       geoFlagged: boolean

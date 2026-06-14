@@ -28,7 +28,7 @@ test("captures the Bean & Batch QR to reward customer journey", async ({
 
   await page.goto("/q/bean-test-qr")
   await expect(
-    page.getByRole("heading", { name: "Save your stamp card" })
+    page.getByRole("heading", { name: "Keep your card on your phone" })
   ).toBeVisible()
   await capture(page, "01-join/01-join-hero.png")
   await page.getByRole("link", { name: "Get started" }).click()

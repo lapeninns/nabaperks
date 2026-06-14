@@ -167,7 +167,7 @@ describe("03 customer micro-specs", () => {
     expect(landingPage).toContain("getMerchantJoinContext")
     expect(landingPage).toContain("No app loyalty")
     expect(landingPage).toContain("`/m/${merchantSlug}/join`")
-    expect(landingPage).toContain("`/merchant/${merchantSlug}/terms`")
+    expect(landingPage).toContain("CustomerVenueTermsSheet")
 
     expect(joinPage).toContain("JoinWizard")
     expect(joinWizard).toContain("CustomerFlowShell")
@@ -192,7 +192,7 @@ describe("03 customer micro-specs", () => {
     expect(loadStamp).toContain("isRedeemableFrom")
     expect(stampPage).toContain("/reward/")
 
-    expect(experience).toContain("RewardTeaser")
+    expect(experience).toContain("RewardTicket")
     expect(experience).toContain("Give it a day to breathe")
     expect(experience).toContain("Ready to redeem.")
     expect(experience).toContain("SelfServiceRedeemForm")
@@ -309,6 +309,10 @@ describe("03 customer micro-specs", () => {
   it("renders card and reward status messaging without exposing unsafe mutation controls", async () => {
     vi.resetModules()
     vi.doMock("@/lib/customer/card", () => ({
+      getMembershipStampDisplayDates: vi.fn(async () => []),
+      reconcileCardStampCount: vi.fn(
+        ({ membershipCount }: { membershipCount: number }) => membershipCount
+      ),
       getCustomerCardState: vi.fn(async () => ({
         status: "ready",
         membership: {

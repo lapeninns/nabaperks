@@ -1,6 +1,7 @@
 import "server-only"
 
 import { getCurrentCustomer } from "@/lib/customer/identity"
+import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type CustomerCardState =
@@ -55,6 +56,101 @@ type RawMembership = {
         business_slug: string
         status: string
       }>
+}
+
+type RawMembershipStampEvent = {
+  membership_id: string
+  earned_business_date: string | null
+}
+
+export type MembershipStampDisplayDates = {
+  readonly stampDates: string[]
+  readonly latestBusinessDate: string | null
+}
+
+/** Receipt-style labels for earned stamps, oldest first. */
+export async function getMembershipStampDisplayDates(
+  membershipId: string,
+  limit: number
+): Promise<string[]> {
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase
+    .from("stamp_events")
+    .select("earned_business_date")
+    .eq("membership_id", membershipId)
+    .eq("event_type", "earned")
+    .order("earned_business_date", { ascending: true })
+    .limit(limit)
+
+  if (error) {
+    throw new Error(`Unable to load stamp dates: ${error.message}`)
+  }
+
+  return (data ?? [])
+    .map((row) => row.earned_business_date)
+    .filter((date): date is string => typeof date === "string")
+    .map(formatStampDisplayDateFromIso)
+}
+
+export async function getMembershipStampDisplayDatesByMembership(
+  membershipIds: readonly string[],
+  limitByMembership: number
+): Promise<Map<string, MembershipStampDisplayDates>> {
+  const uniqueMembershipIds = [...new Set(membershipIds)]
+  const stampDatesByMembership = new Map<string, MembershipStampDisplayDates>()
+
+  for (const membershipId of uniqueMembershipIds) {
+    stampDatesByMembership.set(membershipId, {
+      stampDates: [],
+      latestBusinessDate: null,
+    })
+  }
+
+  if (uniqueMembershipIds.length === 0) return stampDatesByMembership
+
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase
+    .from("stamp_events")
+    .select("membership_id, earned_business_date")
+    .in("membership_id", uniqueMembershipIds)
+    .eq("event_type", "earned")
+    .order("earned_business_date", { ascending: true })
+
+  if (error) {
+    throw new Error(`Unable to load stamp dates: ${error.message}`)
+  }
+
+  const rawDatesByMembership = new Map<string, string[]>()
+  for (const row of (data ?? []) as RawMembershipStampEvent[]) {
+    if (typeof row.earned_business_date !== "string") continue
+
+    const dates = rawDatesByMembership.get(row.membership_id) ?? []
+    if (dates.length < limitByMembership) {
+      dates.push(row.earned_business_date)
+      rawDatesByMembership.set(row.membership_id, dates)
+    }
+  }
+
+  for (const [membershipId, rawDates] of rawDatesByMembership) {
+    stampDatesByMembership.set(membershipId, {
+      stampDates: rawDates.map(formatStampDisplayDateFromIso),
+      latestBusinessDate: rawDates.at(-1) ?? null,
+    })
+  }
+
+  return stampDatesByMembership
+}
+
+export function reconcileCardStampCount({
+  membershipCount,
+  stampDateCount,
+  total,
+}: {
+  membershipCount: number
+  stampDateCount: number
+  total: number
+}) {
+  return Math.min(Math.max(membershipCount, stampDateCount), total)
 }
 
 export async function getCustomerCardState(

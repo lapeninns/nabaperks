@@ -4,39 +4,7 @@ import { Eyebrow, PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout } from "@/components/layout"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-
-const sections = [
-  {
-    id: "data-collected",
-    title: "Data collected",
-    body: "Nabaperks stores the verified phone identity used by a customer, merchant loyalty membership records, stamp events, reward events, consent records, QR and billing status signals, and support audit logs. Customer phone numbers are stored for lookup and display using protected server-side helpers.",
-  },
-  {
-    id: "purposes",
-    title: "Purposes",
-    body: "Data is used to provide the loyalty card, show progress, unlock and redeem rewards, prevent misuse, support merchants and customers, keep audit evidence, and measure whether the MVP works.",
-  },
-  {
-    id: "marketing-consent",
-    title: "Marketing consent separation",
-    body: "Loyalty participation is separate from marketing. Customers can collect stamps without opting in to marketing, and marketing opt-in or opt-out evidence is kept in consent records.",
-  },
-  {
-    id: "sharing-and-scoping",
-    title: "Sharing, scoping, and support access",
-    body: "Customer loyalty data is scoped to the relevant merchant and Nabaperks support administrators. Admin access is used for support, fraud review, privacy requests, and audited operational tasks. PostHog analytics receives minimized event properties where configured.",
-  },
-  {
-    id: "data-requests",
-    title: "Data requests",
-    body: "Customers can ask for privacy, access, deletion, export, or consent support. Internal admins use audited lookup tools to identify the relevant customer and merchant records and record the request channel.",
-  },
-  {
-    id: "audit-records",
-    title: "Audit and support records",
-    body: "Support notes, consent records, fraud signals, manual adjustments, and admin actions may be retained as audit evidence so reward history and support decisions remain accountable.",
-  },
-]
+import { PRIVACY_META, PRIVACY_SECTIONS } from "@/lib/legal/content"
 
 export default function PrivacyPage() {
   return (
@@ -45,7 +13,7 @@ export default function PrivacyPage() {
         <aside className="surface-card p-4 lg:sticky lg:top-24">
           <Eyebrow className="mb-3">On this page</Eyebrow>
           <nav aria-label="Privacy sections" className="grid gap-1">
-            {sections.map((section) => (
+            {PRIVACY_SECTIONS.map((section) => (
               <a
                 key={section.id}
                 href={`#${section.id}`}
@@ -59,21 +27,21 @@ export default function PrivacyPage() {
 
         <article className="grid gap-6">
           <PageTitle
-            eyebrow="Plain English summary · not the full legal text"
-            title="What happens to the data."
-            description="MVP privacy wording for pilot support, consent separation, admin support scoping, and audit records. The full notice travels with your merchant agreement and needs legal review before launch."
+            eyebrow={PRIVACY_META.eyebrow}
+            title={PRIVACY_META.title}
+            description={PRIVACY_META.description}
             titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
             className="md:grid-cols-1"
           />
 
           <ReceiptCard edge className="grid gap-0">
             <div className="flex items-baseline justify-between gap-4">
-              <p className="text-xl font-extrabold">Privacy, condensed</p>
+              <p className="text-xl font-extrabold">{PRIVACY_META.cardTitle}</p>
               <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
-                Nº P-2026
+                Nº {PRIVACY_META.docNumber}
               </span>
             </div>
-            {sections.map((section) => (
+            {PRIVACY_SECTIONS.map((section) => (
               <PolicyBlock
                 key={section.id}
                 id={section.id}

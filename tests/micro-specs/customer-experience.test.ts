@@ -4,7 +4,10 @@ import {
   blockReasonCopy,
   toStampBlockReason,
 } from "@/lib/customer/experience/block-reasons"
-import { getCustomerExperienceViewModel } from "@/lib/customer/experience/copy"
+import {
+  getCustomerExperienceViewModel,
+  joinWelcomeHref,
+} from "@/lib/customer/experience/copy"
 import {
   deriveCustomerExperience,
   type CardContext,
@@ -46,6 +49,7 @@ function cardFacts(overrides: Partial<Extract<CardContext, { membershipId: strin
     stampsBlocked: false,
     reward: null,
     rewardTerms: "Reveals after the final stamp.",
+    stampDates: ["14 JUN"],
     justStamped: false,
     justJoined: false,
     geoFlagged: false,
@@ -94,6 +98,19 @@ function joinFacts(overrides: Partial<Extract<JoinContext, { merchant: unknown }
 }
 
 describe("deriveCustomerExperience — card route", () => {
+  it("passes earned stamp dates through to the card grid", () => {
+    const exp = deriveCustomerExperience({
+      entry: "card",
+      context: cardFacts({ stampDates: ["14 JUN", "19 JUN"], current: 2 }),
+    })
+
+    expect(exp).toMatchObject({
+      kind: "card_collecting",
+      current: 2,
+      stampDates: ["14 JUN", "19 JUN"],
+    })
+  })
+
   it("shows the collecting card with no reward", () => {
     const exp = deriveCustomerExperience({ entry: "card", context: cardFacts() })
     expect(exp).toMatchObject({ kind: "card_collecting", current: 1, total: 3, reward: "none" })
@@ -293,9 +310,22 @@ describe("getCustomerExperienceViewModel", () => {
     expect(vm.primaryAction).toEqual({ label: "View card", href: "/card/membership-1" })
   })
 
+  it("motivates the phone step with the merchant, stamp count and mystery reward", () => {
+    const vm = getCustomerExperienceViewModel({ kind: "join_phone", merchant, card, qrId: "qr-1" })
+    expect(vm.supportLine).toContain(merchant.name)
+    expect(vm.supportLine).toContain(String(card.stampsRequired))
+    expect(vm.supportLine).toContain("mystery reward")
+  })
+
   it("carries the QR through the welcome CTA", () => {
     const vm = getCustomerExperienceViewModel({ kind: "join_welcome", merchant, card, qrId: "qr-1" })
     expect(vm.primaryAction?.href).toBe("/m/bean-and-batch/join?qr=qr-1&step=phone")
+  })
+
+  it("returns to the welcome card preview without step=phone", () => {
+    expect(joinWelcomeHref("bean-and-batch", "qr-1")).toBe(
+      "/m/bean-and-batch/join?qr=qr-1"
+    )
   })
 
   it("offers customer recovery on an unavailable state with recovery", () => {
@@ -316,7 +346,7 @@ describe("getCustomerExperienceViewModel", () => {
       { kind: "join_returning", merchant, card, membershipId: "m", current: 1, total: 3 },
       { kind: "stamp_confirm", membershipId: "m", merchantName: "x", qrId: "q", location },
       { kind: "card_stamped_today", membershipId: "m", merchantName: "x" },
-      { kind: "card_collecting", membershipId: "m", merchantName: "x", cardName: "c", current: 1, total: 3, slamIndex: -1, reward: "none", rewardTerms: "t", minSpendPence: null, rewardRedeemableFrom: null, stampsBlocked: false, justStamped: false, justJoined: false, geoFlagged: false, justRedeemed: false },
+      { kind: "card_collecting", membershipId: "m", merchantName: "x", cardName: "c", current: 1, total: 3, slamIndex: -1, reward: "none", rewardTerms: "t", minSpendPence: null, rewardRedeemableFrom: null, stampsBlocked: false, stampDates: [], justStamped: false, justJoined: false, geoFlagged: false, justRedeemed: false },
       { kind: "reward_waiting", reward: rewardView, merchantName: "x", fromCard: true },
       { kind: "reward_ready", reward: rewardView, merchantName: "x", location, fromCard: true },
       { kind: "redeemed_proof", reward: rewardView, merchantName: "x" },
