@@ -169,7 +169,7 @@ describe("00/01 foundation micro-specs", () => {
       "02-merchant/03-dynamic-qr-generation-and-downloads.md",
       "03-customer/01-qr-resolver-and-customer-join.md",
       "03-customer/02-digital-stamp-card.md",
-      "04-staff-rewards/01-staff-pin-stamp-issuing.md",
+      "04-staff-rewards/01-self-service-stamp-issuing.md",
       "04-staff-rewards/02-reward-unlock-and-redemption.md",
       "05-merchant-value/01-merchant-dashboard-activity-and-roi.md",
       "06-admin-billing/01-stripe-billing-and-access-control.md",

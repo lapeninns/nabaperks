@@ -1,12 +1,30 @@
 ### Instruction: Use a Disciplined TDD Workflow to Implement Micro-Specs
 
-Once Micro-Specs have been defined as granular, failing tests, shift from design to implementation. Use a Test-Driven Development workflow that prioritizes correctness first, then structural refinement.
+Once a Micro-Spec's requirements have been turned into granular, failing tests, shift from design to implementation. Use a Test-Driven Development workflow that prioritizes correctness first, then structural refinement.
+
+## Vocabulary and Handoff
+
+Micro-Specs are authored per `Instructions_MircroSpecsCreation.md` (the WHAT); this workflow implements them test-first (the HOW). Keep the three terms distinct:
+
+* A **Micro-Spec** is the source document.
+* A **requirement** is one EARS line inside it.
+* A **test** is a failing check derived from a requirement.
+
+The handoff is explicit: **each in-scope EARS requirement becomes one or more failing tests before any production code is written.** Where a step below says "make a Micro-Spec pass," read it as "make the tests for its requirements pass."
 
 Follow the cycle:
 
 > Red → Green → Refactor
 
 The goal is to make each Micro-Spec pass with the smallest possible implementation, then improve the design only after the behavior is protected by tests.
+
+---
+
+## 0. Narrow Before You Start
+
+A Micro-Spec describes the target end state; it is not proof the work is unstarted. Before writing tests, inspect the live code and reduce the task to the in-scope requirements that are not already satisfied — do not re-implement existing behavior. (See `micro-specs/README.md`, "Working Rule".)
+
+If an in-scope requirement is ambiguous, contradicts live code, or cannot be satisfied without editing a file outside the Micro-Spec's blast radius, adding a dependency, or making a product decision: **stop and surface the question first.** Do not invent product behavior, silently widen the blast radius, or skip the requirement under the cover of TDD. Record the assumption you would otherwise have made so a human can confirm or correct it.
 
 ---
 
@@ -30,13 +48,19 @@ When the correct implementation is not yet clear, use the **Fake It** strategy:
 
 This is acceptable because the purpose of the first implementation is to satisfy the test, not to produce the final design.
 
+Three rules protect this phase:
+
+* **What counts as Red.** A legitimate failing test fails on its behavioral assertion — the asserted outcome is genuinely absent — not on a compile or import error, a missing symbol you are about to create, or a tautology such as `expect(true).toBe(false)`. Observe the test fail for the right reason before you write code.
+* **The test is the fixed target.** Green may change production code only. Do not edit a test's assertions, relax its expectations, mark it `.skip`/`.only`/`.todo`, or delete it to reach green. A test change is a spec change and needs the same approval as widening blast radius; if a test looks wrong, stop.
+* **Choose the right test tier in Red.** Behavioral and branching logic can be proven with the database mocked. Invariants a mock cannot enforce — tenant isolation/RLS, atomicity, idempotency, ledger consistency — must be tested against the real database (`supabase/tests/`); a passing mocked test is not evidence such an invariant holds.
+
 ---
 
 ## 2. Use Triangulation to Force Generalization
 
 Do not leave hardcoded or fake implementations in place.
 
-After using the Fake It strategy, create a second Micro-Spec for the same behavior using a different input, state, or edge case.
+After using the Fake It strategy, create a second test for the same behavior using a different input, state, or edge case.
 
 The new test should fail against the hardcoded implementation.
 
@@ -50,6 +74,8 @@ Use triangulation when:
 * You need confidence that the behavior works for more than one case.
 
 The implementation should only become more generic when the tests demand it.
+
+One EARS requirement usually needs more than one test. Cover each clause and outcome it asserts — the success path, every named failure or error path, and any "ignored until…" or boundary condition — as its own test. Triangulation is not only for defeating a fake; use it to pin every branch the requirement promises.
 
 ---
 
@@ -88,7 +114,7 @@ During refactoring:
 * Introduce abstractions only when they clarify the design.
 * Preserve all existing behavior.
 
-The refactor phase must not add new functionality. Any new behavior requires a new failing Micro-Spec first.
+The refactor phase must not add new functionality. Any new behavior requires a new failing test first. If the behavior is within the current Micro-Spec's blast radius and settled decisions, write the test and continue; if it requires touching files outside the blast radius, a new dependency, a schema change, or a product decision, stop and amend the Micro-Spec for approval before writing the test — do not widen scope under the cover of refactoring.
 
 ---
 
@@ -135,21 +161,24 @@ Do not take steps so small that they slow down trivial work. Do not take steps s
 
 When implementing a Micro-Spec, follow this sequence:
 
-1. Start with a failing Micro-Spec.
+0. Narrow first: inspect live code and select only the in-scope requirements not already satisfied.
+1. Start with a failing test for one requirement, and confirm it fails for the right reason.
 2. Write the smallest amount of production code needed to pass it.
 3. Use Fake It when the solution is unclear.
-4. Add another Micro-Spec to triangulate and force generalization.
+4. Add another test to triangulate and force generalization.
 5. Use Obvious Implementation when the solution is trivial.
 6. Once green, refactor internal structure without changing behavior.
 7. Apply the Rule of Three before extracting abstractions.
 8. Adjust step size based on problem complexity.
-9. Repeat until all Micro-Specs pass.
+9. Repeat until every in-scope requirement has a passing test.
 
 ---
 
 ## What to Avoid
 
-Do not write production code without a failing Micro-Spec.
+Do not write production code without a failing test.
+
+Do not reach green by weakening, skipping, or removing a test instead of writing code.
 
 Do not generalize before tests require it.
 
@@ -171,9 +200,11 @@ Do not make large implementation jumps when the problem is uncertain.
 
 The implementation is complete when:
 
-* All Micro-Specs pass.
+* Every in-scope EARS requirement maps to at least one passing test; a green suite with an uncovered in-scope requirement is not done.
+* All tests pass.
 * The production code satisfies only the required behavior.
 * Fake implementations have been replaced through triangulation where needed.
 * Refactoring has improved structure without changing behavior.
 * Duplication has been handled according to the Rule of Three.
+* Only files within the Micro-Spec's declared blast radius were created or modified; any change outside it was approved first.
 * No untested behavior, unnecessary abstraction, or unauthorized functionality has been introduced.

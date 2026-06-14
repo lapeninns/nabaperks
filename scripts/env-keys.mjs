@@ -441,10 +441,27 @@ function parseEnvFile(path) {
 
     if (equalsIndex === -1) continue
 
-    parsed[trimmed.slice(0, equalsIndex)] = trimmed.slice(equalsIndex + 1)
+    parsed[trimmed.slice(0, equalsIndex)] = unquoteEnvValue(
+      trimmed.slice(equalsIndex + 1)
+    )
   }
 
   return parsed
+}
+
+// Strip a single layer of matching surrounding quotes, mirroring how dotenv
+// (and Next.js) load .env files. Without this, quoted values are pushed to
+// Vercel with literal quote characters, corrupting secrets like API keys.
+function unquoteEnvValue(value) {
+  if (value.length < 2) return value
+
+  const first = value[0]
+
+  if ((first === '"' || first === "'") && value[value.length - 1] === first) {
+    return value.slice(1, -1)
+  }
+
+  return value
 }
 
 function parseVercelEnvironment() {
@@ -483,7 +500,10 @@ function readVercelEnvNames(environment) {
 }
 
 function addVercelEnv(name, value, environment) {
-  const result = runVercel(["env", "add", name, environment], value)
+  const result = runVercel(
+    ["env", "add", name, environment, "--value", value, "--yes"],
+    ""
+  )
 
   if (result.status !== 0) {
     console.error(`Unable to add Vercel env variable ${name}.`)

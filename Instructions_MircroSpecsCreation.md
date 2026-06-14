@@ -4,6 +4,8 @@ When creating a Micro-Spec, do not write step-by-step coding instructions. Inste
 
 A Micro-Spec must be **small, focused, declarative, and executable**. It should describe **what must be true when the work is complete**, not exactly how the code must be written.
 
+Implementation of a Micro-Spec is governed by `Instructions_tdd.md` (binding, Red → Green → Refactor): each in-scope EARS requirement becomes a failing test before any production code. Author the spec so that handoff is clean — this document owns the WHAT, that one owns the HOW.
+
 Each Micro-Spec must include the following elements:
 
 ---
@@ -95,6 +97,18 @@ Example:
 
 > WHEN the user clicks SUBMIT, THE system SHALL transition to the LOADING state and the SUBMIT event SHALL be ignored until the request completes.
 
+`WHEN/SHALL` is only one of EARS' five forms. Pick the simplest form that fits the requirement:
+
+| Use when | Pattern |
+|---|---|
+| Always-true invariant | THE `[system]` SHALL `[response]`. |
+| Active only in a state | WHILE `[state]`, THE `[system]` SHALL `[response]`. |
+| Triggered by an event | WHEN `[trigger]`, THE `[system]` SHALL `[response]`. |
+| Behind an optional feature or flag | WHERE `[feature]`, THE `[system]` SHALL `[response]`. |
+| Guarding against unwanted input or condition | IF `[condition]`, THEN THE `[system]` SHALL `[response]`. |
+
+Express invariants (e.g. ledger or tenant constraints such as "one stamp per UK business day") as ubiquitous statements, and rejection rules as `IF…THEN`. These are exactly the cases your real-database tests cover, and they are easy to lose if forced into a `WHEN` event.
+
 Use EARS statements for:
 
 * User interactions
@@ -122,6 +136,8 @@ Include:
 * Expected success states
 * Expected failure states
 
+Express required tests as observable behaviors to verify (e.g. "a second stamp on the same UK business day is rejected"), not as test file names or function signatures — the TDD workflow chooses the test form.
+
 Break the work into small, discrete tasks that the AI agent can complete iteratively.
 
 Avoid asking the AI to implement a large feature in one pass. The task breakdown should allow the agent to implement, verify, and adjust one piece at a time.
@@ -148,12 +164,13 @@ If something matters, state it explicitly.
 
 Do not repeat broad engineering rules in every Micro-Spec.
 
-Move reusable project-wide rules into a Global Context file, such as:
+Move reusable project-wide rules into a Global Context file. In this repo, Global Context lives in:
 
-* `.cursorrules`
-* `constitution.md`
-* `AGENTS.md`
-* project engineering guidelines
+* `AGENTS.md` — stack and governance index
+* `micro-specs/GLOBAL_CONTEXT.md` — product, stack, security, and verification baselines
+* `nabaperks-micro-specs-final.md` — the binding spec pack's "Global Context for AI Agents"
+
+Read those before authoring, and never restate their stack, security, or verification rules in an individual spec.
 
 Use Global Context for rules such as:
 
@@ -165,3 +182,9 @@ Use Global Context for rules such as:
 * Follow existing naming conventions.
 
 The Micro-Spec should focus on the specific business logic and behavior for the current change, while Global Context should enforce the broader engineering culture.
+
+---
+
+## A Complete Example
+
+For all six elements assembled into one coherent Micro-Spec, see `micro-specs/03-customer/02-digital-stamp-card.md`. Match its heading set and ordering so newly authored specs stay consistent with the existing corpus.
