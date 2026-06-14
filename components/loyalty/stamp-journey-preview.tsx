@@ -3,10 +3,15 @@
 import { useEffect, useState } from "react"
 import { useReducedMotion } from "motion/react"
 
+import type { CSSProperties } from "react"
+
 import { stampDisplayDates } from "@/lib/customer/uk-calendar"
 import { cn } from "@/lib/utils"
 
 import { RewardChip, StampDot } from "./stamp-grid"
+
+/** Same hand-stamped tilt cycle as the live StampGrid, seeded by slot index. */
+const PREVIEW_TILTS = ["-7deg", "-5deg", "-8deg", "-6deg"] as const
 
 const INITIAL_DELAY_MS = 520
 const STAMP_STEP_MS = 780
@@ -19,9 +24,11 @@ const LOOP_PAUSE_MS = 2600
  */
 export function StampJourneyPreview({
   total,
+  venueName,
   className,
 }: {
   total: number
+  venueName?: string
   className?: string
 }) {
   const shouldReduceMotion = useReducedMotion() ?? false
@@ -104,7 +111,17 @@ export function StampJourneyPreview({
         const earned = index < renderEarnedCount
 
         return (
-          <span key={index} role="listitem">
+          <span
+            key={index}
+            role="listitem"
+            style={
+              earned
+                ? ({
+                    "--stamp-rot": PREVIEW_TILTS[index % PREVIEW_TILTS.length],
+                  } as CSSProperties)
+                : undefined
+            }
+          >
             <StampDot
               earned={earned}
               label={`Stamp ${index + 1} ${earned ? "earned" : "empty"}`}
@@ -112,6 +129,7 @@ export function StampJourneyPreview({
               slotNumber={index + 1}
               showEmptySlotNumber={!earned}
               slammed={index === slamIndex}
+              venueName={venueName}
             />
           </span>
         )

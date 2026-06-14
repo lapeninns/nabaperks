@@ -49,6 +49,7 @@ export function HomeCardTile({ card }: { card: HomeCard }) {
             dates={card.stampDates}
             showEmptySlotNumbers
             rewardSlot={card.primaryRewardId ? "ready" : "locked"}
+            venueName={card.businessName}
             compact
             className="rounded-lg bg-accent p-3"
           />

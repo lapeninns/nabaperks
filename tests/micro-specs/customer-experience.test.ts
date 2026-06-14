@@ -262,8 +262,14 @@ describe("deriveCustomerExperience — join route", () => {
   })
 
   it("shows the OTP step while a verification is pending", () => {
-    const exp = deriveCustomerExperience({ entry: "join", context: joinFacts({ pendingOtp: true }) })
-    expect(exp).toMatchObject({ kind: "join_otp" })
+    const exp = deriveCustomerExperience({
+      entry: "join",
+      context: joinFacts({ pendingOtp: true, pendingPhone: "+447400123456" }),
+    })
+    expect(exp).toMatchObject({
+      kind: "join_otp",
+      contact: "+447400123456",
+    })
   })
 
   it("asks a verified customer to accept terms", () => {
@@ -299,7 +305,47 @@ describe("priority tables", () => {
   })
 })
 
+function collectingExp(
+  overrides: Partial<Extract<CustomerExperience, { kind: "card_collecting" }>> = {}
+): Extract<CustomerExperience, { kind: "card_collecting" }> {
+  return {
+    kind: "card_collecting",
+    membershipId: "membership-1",
+    merchantName: "Bean & Batch",
+    cardName: "Morning Ritual",
+    current: 1,
+    total: 3,
+    slamIndex: -1,
+    reward: "none",
+    rewardTerms: "Reveals after the final stamp.",
+    minSpendPence: null,
+    rewardRedeemableFrom: null,
+    stampsBlocked: false,
+    stampDates: [],
+    justStamped: false,
+    justJoined: false,
+    geoFlagged: false,
+    justRedeemed: false,
+    ...overrides,
+  }
+}
+
 describe("getCustomerExperienceViewModel", () => {
+  it("leads the collecting card with the card name and merchant tag", () => {
+    const vm = getCustomerExperienceViewModel(collectingExp())
+    expect(vm.eyebrow).toBe("Bean & Batch")
+    expect(vm.headline).toBe("Morning Ritual")
+    expect(vm.supportLine).toBeUndefined()
+  })
+
+  it("welcomes a freshly joined card and carries the card name once", () => {
+    const vm = getCustomerExperienceViewModel(
+      collectingExp({ justJoined: true, justStamped: true })
+    )
+    expect(vm.headline).toBe("Welcome to Bean & Batch")
+    expect(vm.supportLine).toBe("Morning Ritual")
+  })
+
   it("phrases the already-stamped state calmly with a view-card action", () => {
     const vm = getCustomerExperienceViewModel({
       kind: "card_stamped_today",
@@ -341,7 +387,7 @@ describe("getCustomerExperienceViewModel", () => {
     const samples: CustomerExperience[] = [
       { kind: "join_welcome", merchant, card, qrId: "q" },
       { kind: "join_phone", merchant, card },
-      { kind: "join_otp", merchant, card },
+      { kind: "join_otp", merchant, card, contact: "+447400123456" },
       { kind: "join_terms", merchant, card, location },
       { kind: "join_returning", merchant, card, membershipId: "m", current: 1, total: 3 },
       { kind: "stamp_confirm", membershipId: "m", merchantName: "x", qrId: "q", location },

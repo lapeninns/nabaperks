@@ -27,6 +27,49 @@ export function PreviewIdentityForm({
   const phoneOtpSent = variant === "otp-sent"
   const phoneValue = variant === "empty" ? "" : CUSTOMER_FLOW_MOCK.phone
 
+  if (phoneOtpSent) {
+    return (
+      <div className="grid gap-4">
+        <form className="grid gap-4">
+          <div className="grid gap-2">
+            <label htmlFor="otp" className="eyebrow">
+              Text code
+            </label>
+            <input
+              id="otp"
+              name="otp"
+              inputMode="numeric"
+              defaultValue="424242"
+              readOnly
+              className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 font-mono text-sm outline-none"
+            />
+            <p className="text-xs leading-5 text-muted-foreground">
+              Enter the verification code sent to your phone.
+            </p>
+          </div>
+          <Button type="button" size="lg" className="w-full">
+            Save my card
+          </Button>
+        </form>
+        <div className="surface-card grid gap-2 p-3 text-left">
+          <div className="flex items-center justify-between gap-3">
+            <span className="eyebrow text-muted-foreground">Sent to</span>
+            <Button type="button" variant="link" size="xs" className="text-xs">
+              Resend code
+            </Button>
+          </div>
+          <p className="text-sm font-bold tabular-nums">{phoneValue}</p>
+          <Link
+            href={`/m/${CUSTOMER_FLOW_MOCK.merchantSlug}/join?qr=${CUSTOMER_FLOW_MOCK.qrId}&step=phone`}
+            className="w-fit text-xs font-bold underline underline-offset-4"
+          >
+            Use a different number
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="grid gap-4">
       <form className="grid gap-4">
@@ -52,49 +95,23 @@ export function PreviewIdentityForm({
             readOnly
             className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none"
           />
-          {!phoneOtpSent ? (
-            <p className="text-xs leading-5 text-muted-foreground">
-              {JOIN_PHONE_CODE_HINT}
-            </p>
-          ) : null}
+          <p className="text-xs leading-5 text-muted-foreground">
+            {JOIN_PHONE_CODE_HINT}
+          </p>
         </div>
-        <Button type="button" disabled={phoneOtpSent}>
-          {phoneOtpSent ? "Verification sent" : "Text me the code"}
+        <Button type="button" size="lg" className="w-full">
+          Text me the code
         </Button>
       </form>
-
-      {phoneOtpSent ? (
-        <form className="grid gap-4">
-          <p className="text-sm leading-6 text-muted-foreground">
-            Enter the verification code sent to your phone.
-          </p>
-          <div className="grid gap-2">
-            <label htmlFor="otp" className="eyebrow">
-              Text code
-            </label>
-            <input
-              id="otp"
-              name="otp"
-              inputMode="numeric"
-              defaultValue="424242"
-              readOnly
-              className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 font-mono text-sm outline-none"
-            />
-          </div>
-          <Button type="button">Save my card</Button>
-        </form>
-      ) : null}
-      {!phoneOtpSent ? (
-        <Link
-          href={joinWelcomeHref(
-            CUSTOMER_FLOW_MOCK.merchantSlug,
-            CUSTOMER_FLOW_MOCK.qrId
-          )}
-          className="text-center text-xs font-bold underline underline-offset-4"
-        >
-          {JOIN_PHONE_BACK_LABEL}
-        </Link>
-      ) : null}
+      <Link
+        href={joinWelcomeHref(
+          CUSTOMER_FLOW_MOCK.merchantSlug,
+          CUSTOMER_FLOW_MOCK.qrId
+        )}
+        className="text-center text-xs font-bold underline underline-offset-4"
+      >
+        {JOIN_PHONE_BACK_LABEL}
+      </Link>
     </div>
   )
 }

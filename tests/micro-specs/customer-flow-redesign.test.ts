@@ -138,6 +138,45 @@ describe("unified reward ticket system", () => {
   })
 })
 
+describe("card page information hierarchy", () => {
+  it("carries identity once: card name leads, no generic 'Your card' headline", () => {
+    const copy = read("lib/customer/experience/copy.ts")
+    // The collecting card headline is the card name (or a welcome greeting),
+    // never the generic placeholder, and the merchant is no longer repeated in
+    // a support line for the steady state.
+    expect(copy).not.toContain('"Your card"')
+    expect(copy).toContain("Welcome to ${exp.merchantName}")
+  })
+
+  it("gives CustomerStampCard a hideHeaderText flag and an afterGrid slot", () => {
+    const flowSystem = read("components/customer/customer-flow-system.tsx")
+    expect(flowSystem).toContain("hideHeaderText")
+    expect(flowSystem).toContain("afterGrid")
+    // The slot renders between the grid and the reward ticket.
+    const stampCard = flowSystem.slice(flowSystem.indexOf("function CustomerStampCard"))
+    const gridIndex = stampCard.indexOf("<StampGrid")
+    const afterGridIndex = stampCard.indexOf("{afterGrid}")
+    const ticketIndex = stampCard.indexOf("<RewardTicket")
+    expect(gridIndex).toBeGreaterThan(-1)
+    expect(afterGridIndex).toBeGreaterThan(gridIndex)
+    expect(ticketIndex).toBeGreaterThan(afterGridIndex)
+  })
+
+  it("renders card celebrations inside the receipt via afterGrid, not above it", () => {
+    const experience = read("components/customer/customer-card-experience.tsx")
+    const panel = experience.slice(experience.indexOf("function CardProgressPanel"))
+    const beforeStampCard = panel.slice(0, panel.indexOf("<CustomerStampCard"))
+    // Celebrations no longer sit above the stamp card.
+    expect(beforeStampCard).not.toContain("RewardCelebration")
+    expect(beforeStampCard).not.toContain("StampCelebration")
+    // They move into the receipt's afterGrid slot, below the stamp grid.
+    expect(panel).toContain("hideHeaderText")
+    const afterGrid = panel.slice(panel.indexOf("afterGrid="))
+    expect(afterGrid).toContain("RewardCelebration")
+    expect(afterGrid).toContain("StampCelebration")
+  })
+})
+
 describe("join step 2 motivation layer", () => {
   it("keeps the reward in view on the phone step", () => {
     const copy = read("lib/customer/experience/copy.ts")
@@ -146,14 +185,13 @@ describe("join step 2 motivation layer", () => {
     // The back link points at the value, not just the card preview.
     expect(copy).toContain("See how stamps and rewards work")
 
-    // UnlockingReminder restores the reward hook + a static (un-animated) mini
-    // stamp row, and is shared with the dev preview as one source of truth.
+    // UnlockingReminder restores the reward hook + the same animated journey
+    // preview as the welcome card, shared with the dev preview as one source.
     const joinWizard = read("components/customer/join-wizard.tsx")
     expect(joinWizard).toContain("export function UnlockingReminder")
     expect(joinWizard).toContain("joinUnlockingRewardHook")
-    // The reminder uses the static StampGrid (current=0), not the animation.
-    expect(joinWizard).toContain('current={0}')
-    expect(joinWizard).toContain("StampGrid")
+    expect(joinWizard).toContain("StampJourneyPreview")
+    expect(joinWizard).not.toContain("StampGrid")
 
     expect(read("app/dev/customer-flow/preview/screens.tsx")).toContain(
       "UnlockingReminder"

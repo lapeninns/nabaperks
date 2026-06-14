@@ -71,7 +71,13 @@ export type CustomerExperience =
   // --- Join wizard (one job per screen) ---
   | { kind: "join_welcome"; merchant: JoinMerchant; card: JoinCard; qrId: string }
   | { kind: "join_phone"; merchant: JoinMerchant; card: JoinCard; qrId?: string }
-  | { kind: "join_otp"; merchant: JoinMerchant; card: JoinCard; qrId?: string }
+  | {
+      kind: "join_otp"
+      merchant: JoinMerchant
+      card: JoinCard
+      qrId?: string
+      contact: string
+    }
   | {
       kind: "join_terms"
       merchant: JoinMerchant

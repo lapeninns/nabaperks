@@ -104,11 +104,19 @@ export function getCustomerExperienceViewModel(
         },
       }
     case "card_collecting":
-      return {
-        eyebrow: "Nabaperks loyalty",
-        headline: "Your card",
-        supportLine: `${exp.merchantName} - ${exp.cardName}`,
-      }
+      // Identity reads once: the merchant as the mono tag, the card as the
+      // headline. On the welcome moment the headline turns to a greeting and the
+      // card name moves to the support line so it still shows exactly once.
+      return exp.justJoined
+        ? {
+            eyebrow: exp.merchantName,
+            headline: `Welcome to ${exp.merchantName}`,
+            supportLine: exp.cardName,
+          }
+        : {
+            eyebrow: exp.merchantName,
+            headline: exp.cardName,
+          }
     case "reward_waiting":
       return {
         eyebrow: "Reward",

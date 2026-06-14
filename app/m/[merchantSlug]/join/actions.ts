@@ -8,6 +8,7 @@ import {
   getCurrentCustomer,
   getOrCreateCustomerByVerifiedPhone,
 } from "@/lib/customer/identity"
+import { destinationForReturningQrVisit } from "@/lib/customer/returning-qr-redirect"
 import { defaultCountryFromHeaders, normalizePhone } from "@/lib/customer/phone"
 import {
   clearPendingPhoneVerification,
@@ -105,10 +106,9 @@ export async function requestCustomerIdentityAction(
     }
   }
 
-  return {
-    fields: { contact, merchantSlug, qrId, phoneOtpSent: true },
-    message: "Enter the verification code sent to your phone.",
-  }
+  redirect(
+    `/m/${merchantSlug}/join${qrId ? `?qr=${encodeURIComponent(qrId)}` : ""}`
+  )
 }
 
 function logVerificationSendFailure(scope: "join", error: unknown): void {
@@ -156,6 +156,14 @@ export async function verifyCustomerOtpAction(
   })
   await setCustomerSession(customer.id)
   await clearPendingPhoneVerification()
+
+  if (qrId) {
+    const destination = await destinationForReturningQrVisit(merchantSlug, qrId, {
+      issueStamp: true,
+    })
+    if (destination) redirect(destination)
+  }
+
   redirect(`/m/${merchantSlug}/join${qrId ? `?qr=${qrId}` : ""}`)
 }
 

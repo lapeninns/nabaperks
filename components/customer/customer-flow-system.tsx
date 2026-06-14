@@ -216,6 +216,8 @@ export function CustomerStampCard({
   stampDates,
   metaLines,
   hideFooter = false,
+  hideHeaderText = false,
+  afterGrid,
   children,
 }: {
   venueName: string
@@ -234,6 +236,15 @@ export function CustomerStampCard({
   metaLines?: ReactNode
   /** Drop the receipt's mono footer (card number + stamp-rule line). */
   hideFooter?: boolean
+  /**
+   * Drop the receipt's headline text (card name + merchant eyebrow) when the
+   * shell already carries that identity, so the stamp grid is the first thing
+   * read inside the receipt. The {@link VenueMark} stays as the venue anchor.
+   */
+  hideHeaderText?: boolean
+  /** Slot rendered between the stamp grid and the reward ticket — used for
+   * celebrations so the grid stays the receipt's first focal point. */
+  afterGrid?: ReactNode
   children?: ReactNode
 }) {
   // The StampGrid already shows current/total progress, so a separate
@@ -243,8 +254,8 @@ export function CustomerStampCard({
   return (
     <CustomerReceipt
       venueName={venueName}
-      title={cardName}
-      eyebrow={venueName}
+      title={hideHeaderText ? undefined : cardName}
+      eyebrow={hideHeaderText ? undefined : venueName}
       metaLines={metaLines}
       hideFooter={hideFooter}
     >
@@ -255,8 +266,10 @@ export function CustomerStampCard({
         slamIndex={slamIndex}
         showEmptySlotNumbers
         rewardSlot={reward.state === "sealed" ? "locked" : undefined}
+        venueName={venueName}
         className="py-1"
       />
+      {afterGrid}
       <RewardTicket
         state={reward.state}
         name={reward.name}

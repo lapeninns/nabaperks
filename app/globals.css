@@ -468,6 +468,67 @@ body[data-grain="true"]::after {
   background: rgba(33, 28, 22, 0.5);
 }
 
+/* Earned stamp — Penny Post: postage perforation + double ring from one hook.
+   The disc itself carries the vermillion fill, letterpress sheen and resting
+   tilt; ::before is the punched perforation ring, ::after the inner hairline
+   ring. Shared by StampDot and the VenueMark roundel so they read as one
+   stamp at three scales. Dashes belong to empty slots only. */
+[data-stamp-earned="true"] {
+  background:
+    radial-gradient(
+      circle at 32% 28%,
+      color-mix(in oklch, var(--stamp-foreground) 16%, transparent) 0%,
+      transparent 55%
+    ),
+    var(--stamp);
+  /* Resting tilt: the grid seeds --stamp-rot per slot; a lone disc (e.g. the
+     VenueMark roundel) falls back to -6deg. Declared via the var() fallback so
+     the per-slot value inherits from the slot wrapper instead of being reset. */
+  transform: rotate(var(--stamp-rot, -6deg));
+}
+
+[data-stamp-earned="true"]::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.92;
+  background: repeating-conic-gradient(
+    from 0deg,
+    var(--stamp-foreground) 0deg 1.4deg,
+    transparent 1.4deg 16.36deg
+  );
+  mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - 3px),
+    #000 calc(100% - 3px)
+  );
+  -webkit-mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - 3px),
+    #000 calc(100% - 3px)
+  );
+}
+
+[data-stamp-earned="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  pointer-events: none;
+  border: 1px solid color-mix(in oklch, var(--stamp-foreground) 50%, transparent);
+}
+
+/* Compact discs (≈36px) shed the perforation and tighten the inner ring so the
+   monogram stays legible — the date drops to its day number in the component. */
+[data-stamp-earned="true"][data-compact="true"]::before {
+  display: none;
+}
+[data-stamp-earned="true"][data-compact="true"]::after {
+  inset: 4px;
+}
+
 /* ---------- the motion vocabulary ---------- */
 
 @keyframes w-rise {
@@ -494,7 +555,7 @@ body[data-grain="true"]::after {
   }
   100% {
     opacity: 1;
-    transform: scale(1) rotate(-6deg);
+    transform: scale(1) rotate(var(--stamp-rot, -6deg));
   }
 }
 @keyframes w-soft-stamp {

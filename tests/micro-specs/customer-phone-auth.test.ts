@@ -235,7 +235,9 @@ describe("customer global phone auth", () => {
       }
     })
     vi.doMock("next/navigation", () => ({
-      redirect: vi.fn(),
+      redirect: vi.fn((url: string) => {
+        throw new Error(`NEXT_REDIRECT:${url}`)
+      }),
     }))
     vi.doMock("@/lib/analytics/events", () => ({
       capturePostHogEvent: vi.fn(),
@@ -252,10 +254,9 @@ describe("customer global phone auth", () => {
           qrId: "bean-test-qr",
         })
       )
-    ).resolves.toMatchObject({
-      fields: { contact: "+12133734253", phoneOtpSent: true },
-      message: "Enter the verification code sent to your phone.",
-    })
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/m/bean-and-batch/join?qr=bean-test-qr"
+    )
     expect(startCustomerPhoneVerification).toHaveBeenCalledWith("+12133734253")
     expect(setPendingPhoneVerification).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -274,9 +275,9 @@ describe("customer global phone auth", () => {
       "utf8"
     )
 
-    expect(joinForms).toContain("phoneOtpSent")
+    expect(joinForms).toContain("JoinCodeVerificationForm")
     expect(joinForms).toContain('"Resend code"')
-    expect(joinForms).not.toContain("requestPending || phoneOtpSent")
+    expect(joinForms).toContain("Sent to")
     expect(customerLoginForm).toContain("otpSent")
     expect(customerLoginForm).toContain('"Resend code"')
     expect(customerLoginForm).not.toContain("requestPending || otpSent")

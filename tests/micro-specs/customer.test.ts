@@ -549,7 +549,8 @@ describe("03 customer micro-specs", () => {
       status: "sent",
     }))
     const setPendingPhoneVerification = vi.fn(async () => {})
-    vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
+    const redirect = redirectMock()
+    vi.doMock("next/navigation", () => ({ redirect }))
     vi.doMock("next/headers", () => ({
       headers: vi.fn(async () => new Headers({ "x-vercel-ip-country": "GB" })),
     }))
@@ -590,10 +591,7 @@ describe("03 customer micro-specs", () => {
           qrId: "qr-public",
         })
       )
-    ).resolves.toMatchObject({
-      fields: { contact: "+447400123456", phoneOtpSent: true },
-      message: "Enter the verification code sent to your phone.",
-    })
+    ).rejects.toThrow("NEXT_REDIRECT:/m/the-bell/join?qr=qr-public")
     expect(startCustomerPhoneVerification).toHaveBeenCalledWith("+447400123456")
     expect(setPendingPhoneVerification).toHaveBeenCalledWith(
       expect.objectContaining({

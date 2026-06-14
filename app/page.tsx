@@ -179,7 +179,12 @@ export default function Page() {
                 <VenueMark size={54} />
               </div>
               <hr className="w-rule" />
-              <StampGrid current={2} total={3} className="max-w-64" />
+              <StampGrid
+                current={2}
+                total={3}
+                venueName="The Old Crown"
+                className="max-w-64"
+              />
               <div className="flex items-center justify-between">
                 <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
                   Card Nº OC-0248

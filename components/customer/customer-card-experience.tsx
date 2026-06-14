@@ -108,20 +108,52 @@ function CardProgressPanel({
     rewardState === "waiting" && exp.rewardRedeemableFrom
       ? formatStampDisplayDateFromIso(exp.rewardRedeemableFrom)
       : null
-  const rewardDescription =
-    rewardState === "sealed" ? (
-      <>Mystery reward stays sealed until the final stamp. {exp.rewardTerms}</>
+  // The bottom band is purely informational only in the "stamp secured" case;
+  // every other branch (redeem, waiting, blocked, scan prompt) is an instruction
+  // the customer should act on, so the reward copy steps back to let it win.
+  const stampSecuredOnly =
+    exp.justStamped &&
+    !(exp.reward === "ready" && exp.rewardId) &&
+    exp.reward !== "waiting" &&
+    !exp.stampsBlocked
+  const hasPrimaryAction = !stampSecuredOnly
+
+  const rewardDetails = (
+    <>
+      {exp.rewardTerms}
+      {exp.minSpendPence !== null ? (
+        <> Minimum spend {formatPence(exp.minSpendPence)}.</>
+      ) : null}
+    </>
+  )
+  let rewardDescription: ReactNode
+  if (rewardState === "sealed") {
+    // Show the longer mystery terms only when the action band is informational
+    // (stamp secured), not while it is instructing the customer to act.
+    rewardDescription = hasPrimaryAction ? (
+      "Mystery reward stays sealed until the final stamp."
     ) : (
+      <>Mystery reward stays sealed until the final stamp. {exp.rewardTerms}</>
+    )
+  } else if (rewardState === "waiting") {
+    // The waiting notice in the action band already explains the wait.
+    rewardDescription = hasPrimaryAction ? undefined : (
       <>
-        {exp.rewardTerms}
-        {exp.minSpendPence !== null ? (
-          <> Minimum spend {formatPence(exp.minSpendPence)}.</>
-        ) : null}
-        {rewardState === "ready"
-          ? " Reward ready to redeem."
-          : " Give it a day to breathe - it's yours from opening time tomorrow."}
+        {rewardDetails}
+        {" Give it a day to breathe - it's yours from opening time tomorrow."}
       </>
     )
+  } else {
+    // ready — the redeem button carries the action, so drop the ready sentence.
+    rewardDescription = hasPrimaryAction ? (
+      rewardDetails
+    ) : (
+      <>
+        {rewardDetails}
+        {" Reward ready to redeem."}
+      </>
+    )
+  }
 
   return (
     <div className="grid gap-4">
@@ -131,49 +163,6 @@ function CardProgressPanel({
       >
         <span aria-hidden="true">←</span> Your cards
       </Link>
-
-      {exp.justStamped && cardComplete ? (
-        // All stamps collected — the headline beat: the seal lifts, and the
-        // ticket below shows the now-revealed reward.
-        <RewardCelebration
-          title="That's the full card."
-          message={
-            exp.reward === "ready"
-              ? "Your reward is ready — claim it at the counter while you're here."
-              : "Your reward is yours from opening time on the next UK business day."
-          }
-        />
-      ) : exp.justJoined ? (
-        <StampCelebration>
-          <StatusBanner
-            title={`Welcome to ${exp.merchantName}.`}
-            tone="success"
-            className="text-center"
-          >
-            {exp.justStamped
-              ? "You're in — your first stamp is on the card."
-              : "You're in. Scan the venue QR in store to collect your first stamp."}
-            {exp.justStamped && exp.geoFlagged
-              ? " Location could not be confirmed, so the venue may review it."
-              : null}
-          </StatusBanner>
-        </StampCelebration>
-      ) : exp.justStamped ? (
-        <StampCelebration>
-          <StatusBanner title="Stamp added." tone="success" className="text-center">
-            That&apos;s one. Your progress has been updated.
-            {exp.geoFlagged
-              ? " Location could not be confirmed, so the venue may review it."
-              : null}
-          </StatusBanner>
-        </StampCelebration>
-      ) : null}
-
-      {exp.justRedeemed ? (
-        <StatusBanner title="Reward redeemed." tone="success" className="text-center">
-          New stamp cycle started.
-        </StatusBanner>
-      ) : null}
 
       <CustomerStampCard
         venueName={exp.merchantName}
@@ -189,6 +178,63 @@ function CardProgressPanel({
           readyDate: rewardReadyDate,
         }}
         hideFooter
+        hideHeaderText
+        afterGrid={
+          // Celebrations sit below the grid, inside the receipt, so the stamp
+          // progress stays the first focal point rather than being pushed down.
+          <>
+            {exp.justStamped && cardComplete ? (
+              // All stamps collected — the headline beat: the seal lifts, and
+              // the ticket below shows the now-revealed reward.
+              <RewardCelebration
+                title="That's the full card."
+                message={
+                  exp.reward === "ready"
+                    ? "Your reward is ready — claim it at the counter while you're here."
+                    : "Your reward is yours from opening time on the next UK business day."
+                }
+              />
+            ) : exp.justJoined ? (
+              <StampCelebration>
+                <StatusBanner
+                  title={`Welcome to ${exp.merchantName}.`}
+                  tone="success"
+                  className="text-center"
+                >
+                  {exp.justStamped
+                    ? "You're in — your first stamp is on the card."
+                    : "You're in. Scan the venue QR in store to collect your first stamp."}
+                  {exp.justStamped && exp.geoFlagged
+                    ? " Location could not be confirmed, so the venue may review it."
+                    : null}
+                </StatusBanner>
+              </StampCelebration>
+            ) : exp.justStamped ? (
+              <StampCelebration>
+                <StatusBanner
+                  title="Stamp added."
+                  tone="success"
+                  className="text-center"
+                >
+                  That&apos;s one. Your progress has been updated.
+                  {exp.geoFlagged
+                    ? " Location could not be confirmed, so the venue may review it."
+                    : null}
+                </StatusBanner>
+              </StampCelebration>
+            ) : null}
+
+            {exp.justRedeemed ? (
+              <StatusBanner
+                title="Reward redeemed."
+                tone="success"
+                className="text-center"
+              >
+                New stamp cycle started.
+              </StatusBanner>
+            ) : null}
+          </>
+        }
       >
         {exp.reward === "ready" && exp.rewardId ? (
           <Button asChild size="lg" variant="reward" className="w-full">

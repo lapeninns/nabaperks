@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils"
 
-function deriveInitials(name: string) {
+/** Two-letter venue roundel text from a business name, e.g. "Bean & Batch" → B&. */
+export function deriveVenueInitials(name: string) {
   const letters = name
     .split(/\s+/)
     .filter(Boolean)
@@ -29,7 +30,7 @@ export function VenueMark({
   size?: number
   className?: string
 }) {
-  const text = initials ?? (name ? deriveInitials(name) : "OC")
+  const text = initials ?? (name ? deriveVenueInitials(name) : "OC")
 
   return (
     <span
@@ -37,10 +38,11 @@ export function VenueMark({
     >
       <span
         aria-hidden="true"
-        className="grid -rotate-6 place-items-center rounded-full border-2 border-ink bg-primary font-extrabold tracking-tight text-primary-foreground shadow-xs"
-        style={{ width: size, height: size, fontSize: Math.round(size * 0.34) }}
+        data-stamp-earned="true"
+        className="relative grid place-items-center overflow-hidden rounded-full border-2 border-ink bg-stamp font-mono font-bold text-stamp-foreground shadow-xs"
+        style={{ width: size, height: size, fontSize: Math.round(size * 0.32) }}
       >
-        {text}
+        <span className="relative z-[1] tracking-[0.02em]">{text}</span>
       </span>
       {caption ? (
         <span className="font-mono text-[0.6rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">

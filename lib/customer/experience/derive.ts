@@ -88,6 +88,7 @@ export type JoinContext =
       step?: string
       hasSession: boolean
       pendingOtp: boolean
+      pendingPhone?: string
       membership: { id: string; current: number } | null
       location: LocationRequirement
     }
@@ -308,6 +309,7 @@ function deriveJoin(context: JoinContext): CustomerExperience {
         merchant: context.merchant,
         card: context.card,
         qrId: context.qrId,
+        contact: context.pendingPhone ?? "",
       }
     case "join_welcome":
       return {

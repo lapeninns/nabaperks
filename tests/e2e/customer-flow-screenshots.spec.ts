@@ -23,7 +23,7 @@ test("captures the Bean & Batch QR to reward customer journey", async ({
 }) => {
   runDemo("reset")
   await page.addInitScript(() => {
-    window.localStorage.setItem("nabaperks:pwa-install-dismissed", "1")
+    window.localStorage.setItem("nabaperks:pwa-install-dismissed:v2", "1")
   })
 
   await page.goto("/q/bean-test-qr")

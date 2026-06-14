@@ -93,5 +93,11 @@ export async function loadJoinExperienceContext(
   const pendingOtp =
     searchParams.step !== "phone" && pending?.purpose === "join"
 
-  return { ...base, hasSession: false, pendingOtp, membership: null }
+  return {
+    ...base,
+    hasSession: false,
+    pendingOtp,
+    pendingPhone: pendingOtp ? pending.phone : undefined,
+    membership: null,
+  }
 }

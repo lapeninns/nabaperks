@@ -63,7 +63,7 @@ export const CUSTOMER_FLOW_PREVIEW_STEPS = [
     id: "card-1-of-3",
     screenshot: "02-stamp-day-1/02-card-1-of-3.png",
     screenLabel: "Customer card",
-    heading: "Your card",
+    heading: CUSTOMER_FLOW_MOCK.cardName,
   },
   {
     id: "stamp-day-2-confirm",
@@ -75,7 +75,7 @@ export const CUSTOMER_FLOW_PREVIEW_STEPS = [
     id: "card-2-of-3",
     screenshot: "03-stamp-day-2/02-card-2-of-3.png",
     screenLabel: "Customer card",
-    heading: "Your card",
+    heading: CUSTOMER_FLOW_MOCK.cardName,
   },
   {
     id: "stamp-day-3-confirm",
@@ -87,7 +87,7 @@ export const CUSTOMER_FLOW_PREVIEW_STEPS = [
     id: "card-3-of-3-unlocked",
     screenshot: "04-stamp-day-3/02-card-3-of-3-unlocked.png",
     screenLabel: "Customer card",
-    heading: "Your card",
+    heading: CUSTOMER_FLOW_MOCK.cardName,
   },
   {
     id: "reward-waiting",
@@ -105,7 +105,7 @@ export const CUSTOMER_FLOW_PREVIEW_STEPS = [
     id: "card-redeemed",
     screenshot: "06-redeem/02-card-reset-cycle.png",
     screenLabel: "Customer card",
-    heading: "Your card",
+    heading: CUSTOMER_FLOW_MOCK.cardName,
   },
 ] as const
 

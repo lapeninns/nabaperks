@@ -17,7 +17,6 @@ import {
 import { CustomerVenueTermsSheet } from "@/components/customer/legal-sheet"
 import {
   RewardTicket,
-  StampGrid,
   StampJourneyPreview,
   StatusBanner,
 } from "@/components/loyalty"
@@ -113,7 +112,7 @@ function JoinWelcomeCard({
       eyebrow={merchant.name}
       hideFooter
     >
-      <StampJourneyPreview total={card.stampsRequired} className="py-1" />
+      <StampJourneyPreview total={card.stampsRequired} venueName={merchant.name} className="py-1" />
       <RewardTicket
         state="sealed"
         name="Mystery reward, sealed"
@@ -181,8 +180,11 @@ function OtpStep({
 }) {
   return (
     <JoinShell vm={vm} progress={joinProgress("join_otp")} dense>
-      <UnlockingReminder merchant={exp.merchant} card={exp.card} />
-      <CustomerOtpForm merchantSlug={exp.merchant.slug} qrId={exp.qrId} />
+      <CustomerOtpForm
+        merchantSlug={exp.merchant.slug}
+        qrId={exp.qrId}
+        contact={exp.contact}
+      />
     </JoinShell>
   )
 }
@@ -212,10 +214,10 @@ function TermsStep({
 /**
  * Compact "you're unlocking" strip that keeps the reward in view through the
  * phone → code → terms steps, so the value exchange stays clear once the stamp
- * card itself scrolls away. It restores *why* — the reward hook plus a static,
- * un-animated mini stamp row (no progress yet) — without the full welcome card,
- * so the primary CTA still sits inside the keyboard-shrunk viewport. Shared by
- * production and the dev preview so step 2 stays one source of truth.
+ * card itself scrolls away. It restores *why* — the reward hook plus the same
+ * looping stamp journey preview as the welcome card — without the full welcome
+ * card, so the primary CTA still sits inside the keyboard-shrunk viewport.
+ * Shared by production and the dev preview so step 2 stays one source of truth.
  */
 export function UnlockingReminder({
   merchant,
@@ -240,12 +242,9 @@ export function UnlockingReminder({
       <p className="text-xs leading-snug text-muted-foreground">
         {joinUnlockingRewardHook(card.stampsRequired)}
       </p>
-      <StampGrid
-        current={0}
+      <StampJourneyPreview
         total={card.stampsRequired}
-        showEmptySlotNumbers
-        rewardSlot="locked"
-        compact
+        venueName={merchant.name}
       />
     </div>
   )

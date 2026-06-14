@@ -172,8 +172,8 @@ function PreviewJoinScreen({
     )
   }
 
-  // Phone / code / terms — the compact UnlockingReminder + step copy, exactly
-  // as production renders steps 2+ (no full welcome card on the keyboard steps).
+  // Phone / code / terms — UnlockingReminder only on phone and terms so the
+  // code step keeps one headline, one field, and one primary CTA.
   const stepVm = previewJoinStepVm(variant)
   return (
     <CustomerFlowShell
@@ -183,10 +183,12 @@ function PreviewJoinScreen({
       dense
       screenLabel="Customer join"
     >
-      <UnlockingReminder
-        merchant={PREVIEW_JOIN_MERCHANT}
-        card={PREVIEW_JOIN_CARD}
-      />
+      {variant !== "otp" ? (
+        <UnlockingReminder
+          merchant={PREVIEW_JOIN_MERCHANT}
+          card={PREVIEW_JOIN_CARD}
+        />
+      ) : null}
       {variant === "phone" ? (
         <PreviewIdentityForm variant="phone-filled" />
       ) : null}
@@ -206,6 +208,7 @@ function previewJoinStepVm(variant: "phone" | "otp" | "terms") {
       merchant: PREVIEW_JOIN_MERCHANT,
       card: PREVIEW_JOIN_CARD,
       qrId: CUSTOMER_FLOW_MOCK.qrId,
+      contact: CUSTOMER_FLOW_MOCK.phone,
     })
   }
   if (variant === "terms") {
@@ -277,27 +280,24 @@ function PreviewCardScreen({
   const rewardReadyDate = rewardUnlocked
     ? formatStampDisplayDateFromIso(addUkCalendarDays(ukTodayIso(), 1))
     : null
-  const rewardDescription = rewardUnlocked ? (
-    <>
-      {CUSTOMER_FLOW_MOCK.assignedRewardTerms}
-      {CUSTOMER_FLOW_MOCK.assignedRewardMinSpendPence !== null ? (
-        <>
-          {" "}
-          Minimum spend{" "}
-          {formatMockPence(CUSTOMER_FLOW_MOCK.assignedRewardMinSpendPence)}.
-        </>
-      ) : null}
-      Give it a day to breathe - it&apos;s yours from opening time tomorrow.
-    </>
-  ) : (
-    <>Mystery reward stays sealed until the final stamp. {CUSTOMER_FLOW_MOCK.rewardTerms}</>
-  )
+  // Mirror the shipped panel: the action band wins, so the reward copy condenses
+  // unless the band is purely informational (a freshly issued stamp).
+  const hasPrimaryAction = rewardUnlocked || !stampIssued
+  const rewardDescription = rewardUnlocked
+    ? undefined
+    : hasPrimaryAction
+      ? "Mystery reward stays sealed until the final stamp."
+      : (
+          <>
+            Mystery reward stays sealed until the final stamp.{" "}
+            {CUSTOMER_FLOW_MOCK.rewardTerms}
+          </>
+        )
 
   return (
     <CustomerFlowShell
-      eyebrow="Nabaperks loyalty"
-      title="Your card"
-      description={`${CUSTOMER_FLOW_MOCK.merchantName} - ${CUSTOMER_FLOW_MOCK.cardName}`}
+      eyebrow={CUSTOMER_FLOW_MOCK.merchantName}
+      title={CUSTOMER_FLOW_MOCK.cardName}
       screenLabel="Customer card"
     >
       <div className="grid gap-4">
@@ -307,34 +307,6 @@ function PreviewCardScreen({
         >
           <span aria-hidden="true">←</span> Dev playbook
         </Link>
-
-        {current >= target && rewardUnlocked ? (
-          // All stamps collected — the headline beat: the seal lifts.
-          <RewardCelebration
-            title="That's the full card."
-            message="Your reward is yours from opening time on the next UK business day."
-          />
-        ) : stampIssued ? (
-          <StampCelebration>
-            <StatusBanner
-              title="Stamp added."
-              tone="success"
-              className="text-center"
-            >
-              That&apos;s one. Your progress has been updated.
-            </StatusBanner>
-          </StampCelebration>
-        ) : null}
-
-        {rewardRedeemed ? (
-          <StatusBanner
-            title="Reward redeemed."
-            tone="success"
-            className="text-center"
-          >
-            New stamp cycle started.
-          </StatusBanner>
-        ) : null}
 
         <CustomerStampCard
           venueName={CUSTOMER_FLOW_MOCK.merchantName}
@@ -350,6 +322,40 @@ function PreviewCardScreen({
             readyDate: rewardReadyDate,
           }}
           hideFooter
+          hideHeaderText
+          afterGrid={
+            // Celebrations sit below the grid, inside the receipt (mirrors the
+            // shipped card panel).
+            <>
+              {current >= target && rewardUnlocked ? (
+                // All stamps collected — the headline beat: the seal lifts.
+                <RewardCelebration
+                  title="That's the full card."
+                  message="Your reward is yours from opening time on the next UK business day."
+                />
+              ) : stampIssued ? (
+                <StampCelebration>
+                  <StatusBanner
+                    title="Stamp added."
+                    tone="success"
+                    className="text-center"
+                  >
+                    That&apos;s one. Your progress has been updated.
+                  </StatusBanner>
+                </StampCelebration>
+              ) : null}
+
+              {rewardRedeemed ? (
+                <StatusBanner
+                  title="Reward redeemed."
+                  tone="success"
+                  className="text-center"
+                >
+                  New stamp cycle started.
+                </StatusBanner>
+              ) : null}
+            </>
+          }
         >
           {rewardUnlocked ? (
             <StatusBanner title="Give it a day to breathe" tone="warning">

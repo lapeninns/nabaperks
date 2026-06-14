@@ -1,8 +1,16 @@
+import type { CSSProperties } from "react"
+
 import { cn } from "@/lib/utils"
+
+import { deriveVenueInitials } from "@/components/brand/venue-mark"
 
 import { RewardSeal, type RewardSealState } from "./reward-seal"
 
 export type RewardSlotState = "locked" | "ready" | "revealed"
+
+/** Resting tilts cycled by slot index so a row reads hand-stamped, not machine
+ * perfect. Seeded by index (not random) to stay stable across SSR/renders. */
+const STAMP_TILTS = ["-7deg", "-5deg", "-8deg", "-6deg"] as const
 
 export function StampDot({
   earned,
@@ -12,6 +20,8 @@ export function StampDot({
   showEmptySlotNumber = false,
   slammed = false,
   compact = false,
+  venueName,
+  venueInitials,
   className,
 }: {
   earned: boolean
@@ -24,10 +34,19 @@ export function StampDot({
   slammed?: boolean
   /** Shrink the slot (~36px) for dense, non-interactive preview rows. */
   compact?: boolean
+  /** Derive venue initials for earned stamps — matches the receipt VenueMark. */
+  venueName?: string
+  venueInitials?: string
   className?: string
 }) {
   const emptyLabel =
     showEmptySlotNumber && slotNumber !== undefined ? String(slotNumber) : ""
+  const earnedMark =
+    venueInitials ?? (venueName ? deriveVenueInitials(venueName) : "✱")
+  // Normal discs print the full visit date; compact ones (≈36px) keep only the
+  // day number so the monogram stays the legible hero. Screen readers still
+  // hear the full date via aria-label.
+  const dateText = date ? (compact ? date.split(" ")[0] : date) : undefined
 
   return (
     <span className="grid justify-items-center gap-1">
@@ -35,6 +54,8 @@ export function StampDot({
         role="img"
         aria-label={date && earned ? `${label}, ${date}` : label}
         data-earned={earned}
+        data-stamp-earned={earned ? "true" : undefined}
+        data-compact={earned && compact ? "true" : undefined}
         data-slammed={earned && slammed ? true : undefined}
         style={
           earned && slammed
@@ -45,33 +66,36 @@ export function StampDot({
           "relative grid aspect-square w-full place-items-center overflow-hidden rounded-full border-2 transition-[background-color,border-color,transform] duration-[var(--duration-reveal)] ease-[var(--ease-stamp)] motion-reduce:transition-none",
           compact ? "min-h-9" : "min-h-11",
           earned
-            ? "-rotate-6 border-ink bg-stamp text-stamp-foreground shadow-xs"
+            ? "border-ink bg-stamp text-stamp-foreground shadow-sm"
             : "border-dashed border-border bg-background text-muted-foreground",
           className
         )}
       >
         {earned ? (
-          <>
+          <span className="relative z-[1] flex flex-col items-center justify-center gap-px px-1">
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute inset-[5px] rounded-full border border-dashed border-stamp-foreground/90"
-            />
-            <span className="absolute inset-[9px] flex flex-col items-center justify-between py-0.5">
-              <span className="flex flex-1 items-center justify-center">
-                <span
-                  aria-hidden="true"
-                  className="text-[1.25rem] leading-none font-extrabold"
-                >
-                  ✱
-                </span>
-              </span>
-              {date ? (
-                <span className="shrink-0 text-[0.46rem] leading-none font-extrabold tracking-[0.05em] uppercase">
-                  {date}
-                </span>
-              ) : null}
+              className={cn(
+                "font-mono leading-none font-bold tracking-[0.02em] uppercase",
+                compact ? "text-[0.69rem]" : "text-[0.81rem]"
+              )}
+            >
+              {earnedMark}
             </span>
-          </>
+            {dateText ? (
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "font-mono leading-none font-bold uppercase",
+                  compact
+                    ? "text-[0.44rem] tracking-[0.04em]"
+                    : "mt-px border-t border-stamp-foreground/40 pt-px text-[0.44rem] tracking-[0.09em]"
+                )}
+              >
+                {dateText}
+              </span>
+            ) : null}
+          </span>
         ) : (
           <span
             aria-hidden="true"
@@ -160,6 +184,8 @@ export function StampGrid({
   rewardSlot,
   previewJourney = false,
   compact = false,
+  venueName,
+  venueInitials,
   className,
 }: {
   current: number
@@ -173,6 +199,8 @@ export function StampGrid({
   previewJourney?: boolean
   /** Shrink slots (~36px) and tighten gaps for dense preview rows. */
   compact?: boolean
+  venueName?: string
+  venueInitials?: string
   className?: string
 }) {
   const safeTotal = Math.max(total, 0)
@@ -195,7 +223,17 @@ export function StampGrid({
         const earned = index < safeCurrent
 
         return (
-          <span key={index} role="listitem">
+          <span
+            key={index}
+            role="listitem"
+            style={
+              earned
+                ? ({
+                    "--stamp-rot": STAMP_TILTS[index % STAMP_TILTS.length],
+                  } as CSSProperties)
+                : undefined
+            }
+          >
             <StampDot
               earned={earned}
               label={`Stamp ${index + 1} ${earned ? "earned" : "empty"}`}
@@ -204,6 +242,8 @@ export function StampGrid({
               showEmptySlotNumber={showEmptySlotNumbers}
               slammed={index === slamIndex}
               compact={compact}
+              venueName={venueName}
+              venueInitials={venueInitials}
             />
           </span>
         )

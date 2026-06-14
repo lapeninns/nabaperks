@@ -35,20 +35,10 @@ export function CustomerIdentityForm({
   merchantSlug: string
   qrId?: string
 }) {
-  const [requestState, requestAction, requestPending] = useActionState(
+  const [state, requestAction, requestPending] = useActionState(
     requestCustomerIdentityAction,
     identityInitialState
   )
-  const [verifyState, verifyAction, verifyPending] = useActionState(
-    verifyCustomerOtpAction,
-    identityInitialState
-  )
-  const state = {
-    fields: { ...requestState.fields, ...verifyState.fields },
-    errors: { ...requestState.errors, ...verifyState.errors },
-    message: requestState.message,
-  }
-  const phoneOtpSent = state.fields?.phoneOtpSent
 
   return (
     <div className="grid gap-4">
@@ -91,53 +81,12 @@ export function CustomerIdentityForm({
             {state.errors.form}
           </p>
         ) : null}
-        {state.message ? (
-          <div className="grid gap-1 rounded-xl border border-reward/30 bg-accent px-3 py-2 text-sm text-accent-foreground">
-            <p>{state.message}</p>
-            <p className="text-xs leading-5">
-              If it does not arrive, check the number and resend the code.
-            </p>
-          </div>
-        ) : null}
-        <Button type="submit" disabled={requestPending}>
-          {requestPending
-            ? "Sending..."
-            : phoneOtpSent
-              ? "Resend code"
-              : "Text me the code"}
+        <Button type="submit" size="lg" className="w-full" disabled={requestPending}>
+          {requestPending ? "Sending..." : "Text me the code"}
         </Button>
       </form>
 
-      {phoneOtpSent ? (
-        <form action={verifyAction} className="grid gap-4">
-          <input
-            type="hidden"
-            name="contact"
-            value={state.fields?.contact ?? ""}
-          />
-          <input type="hidden" name="merchantSlug" value={merchantSlug} />
-          <input type="hidden" name="qrId" value={qrId ?? ""} />
-          <div className="grid gap-2">
-            <label htmlFor="otp" className="eyebrow">
-              Text code
-            </label>
-            <input
-              id="otp"
-              name="otp"
-              inputMode="numeric"
-              className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 font-mono text-sm transition outline-none focus:border-ring focus:ring-3 focus:ring-ring/25"
-              aria-invalid={Boolean(state.errors?.otp)}
-            />
-            {state.errors?.otp ? (
-              <p className="text-sm text-destructive">{state.errors.otp}</p>
-            ) : null}
-          </div>
-          <Button type="submit" disabled={verifyPending}>
-            {verifyPending ? "Checking..." : "Save my card"}
-          </Button>
-        </form>
-      ) : null}
-      {qrId && !phoneOtpSent ? (
+      {qrId ? (
         <Link
           href={joinWelcomeHref(merchantSlug, qrId)}
           className="text-center text-xs font-bold underline underline-offset-4"
@@ -149,58 +98,111 @@ export function CustomerIdentityForm({
   )
 }
 
-export function CustomerOtpForm({
+function JoinCodeVerificationForm({
   merchantSlug,
   qrId,
+  contact,
 }: {
   merchantSlug: string
   qrId?: string
+  contact: string
 }) {
-  const [state, action, pending] = useActionState(
+  const [verifyState, verifyAction, verifyPending] = useActionState(
     verifyCustomerOtpAction,
     identityInitialState
   )
+  const [, requestAction, requestPending] = useActionState(
+    requestCustomerIdentityAction,
+    identityInitialState
+  )
+  const state = verifyState
 
   return (
-    <form action={action} className="grid gap-4">
-      <input type="hidden" name="merchantSlug" value={merchantSlug} />
-      <input type="hidden" name="qrId" value={qrId ?? ""} />
-      <div className="grid gap-2">
-        <label htmlFor="otp" className="eyebrow">
-          Text code
-        </label>
-        <input
-          id="otp"
-          name="otp"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 font-mono text-sm transition outline-none focus:border-ring focus:ring-3 focus:ring-ring/25"
-          aria-invalid={Boolean(state.errors?.otp)}
-        />
-        {state.errors?.otp ? (
-          <p className="text-sm text-destructive">{state.errors.otp}</p>
+    <div className="grid gap-4">
+      <form action={verifyAction} className="grid gap-4">
+        <input type="hidden" name="merchantSlug" value={merchantSlug} />
+        <input type="hidden" name="qrId" value={qrId ?? ""} />
+        <div className="grid gap-2">
+          <label htmlFor="otp" className="eyebrow">
+            Text code
+          </label>
+          <input
+            id="otp"
+            name="otp"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            autoFocus
+            className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 font-mono text-sm transition outline-none focus:border-ring focus:ring-3 focus:ring-ring/25"
+            aria-invalid={Boolean(state.errors?.otp)}
+          />
+          {state.errors?.otp ? (
+            <p className="text-sm text-destructive">{state.errors.otp}</p>
+          ) : (
+            <p className="text-xs leading-5 text-muted-foreground">
+              Enter the verification code sent to your phone.
+            </p>
+          )}
+        </div>
+        {state.errors?.form ? (
+          <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {state.errors.form}
+          </p>
         ) : null}
-      </div>
-      {state.errors?.form ? (
-        <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {state.errors.form}
-        </p>
-      ) : null}
-      {state.errors?.contact ? (
-        <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {state.errors.contact}
-        </p>
-      ) : null}
-      <Button type="submit" disabled={pending}>
-        {pending ? "Checking..." : "Save my card"}
-      </Button>
-      <Link
-        href={`/m/${merchantSlug}/join?${qrId ? `qr=${qrId}&` : ""}step=phone`}
-        className="text-center text-xs font-bold underline underline-offset-4"
-      >
-        Use a different number
-      </Link>
-    </form>
+        {state.errors?.contact ? (
+          <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {state.errors.contact}
+          </p>
+        ) : null}
+        <Button type="submit" size="lg" className="w-full" disabled={verifyPending}>
+          {verifyPending ? "Checking..." : "Save my card"}
+        </Button>
+      </form>
+
+      <form action={requestAction} className="grid gap-3">
+        <input type="hidden" name="merchantSlug" value={merchantSlug} />
+        <input type="hidden" name="qrId" value={qrId ?? ""} />
+        <input type="hidden" name="contact" value={contact} />
+        <div className="surface-card grid gap-2 p-3 text-left">
+          <div className="flex items-center justify-between gap-3">
+            <span className="eyebrow text-muted-foreground">Sent to</span>
+            <Button
+              type="submit"
+              variant="link"
+              size="xs"
+              className="shrink-0 text-xs"
+              disabled={requestPending}
+            >
+              {requestPending ? "Sending..." : "Resend code"}
+            </Button>
+          </div>
+          <p className="text-sm font-bold tabular-nums">{contact}</p>
+          <Link
+            href={`/m/${merchantSlug}/join?${qrId ? `qr=${qrId}&` : ""}step=phone`}
+            className="w-fit text-xs font-bold underline underline-offset-4"
+          >
+            Use a different number
+          </Link>
+        </div>
+      </form>
+    </div>
+  )
+}
+
+export function CustomerOtpForm({
+  merchantSlug,
+  qrId,
+  contact,
+}: {
+  merchantSlug: string
+  qrId?: string
+  contact: string
+}) {
+  return (
+    <JoinCodeVerificationForm
+      merchantSlug={merchantSlug}
+      qrId={qrId}
+      contact={contact}
+    />
   )
 }
 
