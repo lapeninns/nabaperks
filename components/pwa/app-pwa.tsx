@@ -25,9 +25,11 @@ type InstallCopy = {
   readonly description: string
 }
 
-const DISMISS_STORAGE_KEY = "nabaperks:pwa-install-dismissed"
+const DISMISS_STORAGE_KEY = "nabaperks:pwa-install-dismissed:v2"
 const CUSTOMER_PREFIXES = ["/wallet", "/card", "/reward", "/m", "/q"] as const
 const MERCHANT_PREFIXES = ["/app", "/login", "/signup"] as const
+const IOS_INSTALL_DESCRIPTION =
+  "On iPhone, open Safari's Share menu, then choose Add to Home Screen."
 
 function isBeforeInstallPromptEvent(
   event: Event
@@ -56,7 +58,8 @@ function installCopy(surface: AppSurface): InstallCopy {
     case "admin":
       return {
         title: "Install Nabaperks admin",
-        description: "Open support tools from your device without finding a tab.",
+        description:
+          "Open support tools from your device without finding a tab.",
       }
     case "customer":
       return {
@@ -108,6 +111,20 @@ function isIosDevice(): boolean {
   )
 }
 
+function isAppleStandalone(): boolean {
+  const navigator = window.navigator as Navigator & {
+    readonly standalone?: boolean
+  }
+
+  return navigator.standalone === true
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+
+  return target.matches("input, textarea, select, [contenteditable='true']")
+}
+
 export function AppPwa() {
   const pathname = usePathname()
   const [hasMounted, setHasMounted] = useState(false)
@@ -115,6 +132,7 @@ export function AppPwa() {
     useState<BeforeInstallPromptEvent | null>(null)
   const [isStandalone, setIsStandalone] = useState(false)
   const [isIos, setIsIos] = useState(false)
+  const [isEditingText, setIsEditingText] = useState(false)
   const [dismissed, setDismissed] = useState(false)
 
   const copy = useMemo(() => installCopy(routeSurface(pathname)), [pathname])
@@ -125,7 +143,7 @@ export function AppPwa() {
       setHasMounted(true)
       setIsIos(isIosDevice())
       setDismissed(readDismissedPreference())
-      setIsStandalone(displayModeQuery.matches)
+      setIsStandalone(displayModeQuery.matches || isAppleStandalone())
     }
     const browserStateTimer = window.setTimeout(syncBrowserState, 0)
 
@@ -149,7 +167,7 @@ export function AppPwa() {
     }
 
     const updateStandaloneState = () => {
-      setIsStandalone(displayModeQuery.matches)
+      setIsStandalone(displayModeQuery.matches || isAppleStandalone())
     }
 
     displayModeQuery.addEventListener("change", updateStandaloneState)
@@ -157,6 +175,25 @@ export function AppPwa() {
     return () => {
       window.clearTimeout(browserStateTimer)
       displayModeQuery.removeEventListener("change", updateStandaloneState)
+    }
+  }, [])
+
+  useEffect(() => {
+    const onFocusIn = (event: FocusEvent) => {
+      setIsEditingText(isEditableTarget(event.target))
+    }
+    const onFocusOut = () => {
+      window.setTimeout(() => {
+        setIsEditingText(isEditableTarget(document.activeElement))
+      }, 0)
+    }
+
+    window.addEventListener("focusin", onFocusIn)
+    window.addEventListener("focusout", onFocusOut)
+
+    return () => {
+      window.removeEventListener("focusin", onFocusIn)
+      window.removeEventListener("focusout", onFocusOut)
     }
   }, [])
 
@@ -175,7 +212,13 @@ export function AppPwa() {
     }
   }, [])
 
-  if (!hasMounted || pathname === "/offline" || isStandalone || dismissed) {
+  if (
+    !hasMounted ||
+    pathname === "/offline" ||
+    isStandalone ||
+    isEditingText ||
+    dismissed
+  ) {
     return null
   }
   if (!deferredPrompt && !isIos) return null
@@ -196,7 +239,7 @@ export function AppPwa() {
   return (
     <aside
       aria-label="Install Nabaperks"
-      className="fixed right-3 bottom-3 left-3 z-50 mx-auto grid max-w-md gap-3 rounded-lg border-2 border-ink bg-card p-4 text-foreground shadow-xs sm:right-5 sm:bottom-5 sm:left-auto sm:w-[24rem]"
+      className="fixed right-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-3 z-50 mx-auto grid max-w-md gap-3 rounded-lg border-2 border-ink bg-card p-4 text-foreground shadow-xs sm:right-5 sm:left-auto sm:w-[24rem]"
     >
       <div className="flex items-start gap-3">
         <span
@@ -208,12 +251,20 @@ export function AppPwa() {
         <div className="grid gap-1">
           <p className="text-sm leading-tight font-extrabold">{copy.title}</p>
           <p className="text-sm leading-5 text-muted-foreground">
-            {isIos
-              ? "On iPhone or iPad, use Share, then Add to Home Screen."
-              : copy.description}
+            {isIos ? IOS_INSTALL_DESCRIPTION : copy.description}
           </p>
         </div>
       </div>
+      {isIos && !deferredPrompt ? (
+        <div className="grid grid-cols-2 gap-2 text-xs font-bold">
+          <span className="rounded-md border border-ink/20 bg-secondary px-3 py-2">
+            1. Tap Share
+          </span>
+          <span className="rounded-md border border-ink/20 bg-secondary px-3 py-2">
+            2. Add to Home Screen
+          </span>
+        </div>
+      ) : null}
       <div className="flex justify-end gap-2">
         <Button type="button" variant="ghost" size="sm" onClick={dismiss}>
           Not now

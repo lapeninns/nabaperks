@@ -56,12 +56,19 @@ export function WalletLoginForm() {
           </p>
         ) : null}
         {state.message ? (
-          <p className="rounded-xl border border-reward/30 bg-accent px-3 py-2 text-sm text-accent-foreground">
-            {state.message}
-          </p>
+          <div className="grid gap-1 rounded-xl border border-reward/30 bg-accent px-3 py-2 text-sm text-accent-foreground">
+            <p>{state.message}</p>
+            <p className="text-xs leading-5">
+              If it does not arrive, check the number and resend the code.
+            </p>
+          </div>
         ) : null}
-        <Button type="submit" disabled={requestPending || otpSent}>
-          {requestPending ? "Sending..." : otpSent ? "Code sent" : "Send code"}
+        <Button type="submit" disabled={requestPending}>
+          {requestPending
+            ? "Sending..."
+            : otpSent
+              ? "Resend code"
+              : "Send code"}
         </Button>
       </form>
 

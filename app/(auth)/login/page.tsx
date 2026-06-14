@@ -16,7 +16,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <MarketingLayout>
-      <section className="mx-auto grid min-h-[calc(100svh-73px)] w-full max-w-5xl content-center gap-10 px-6 py-12 lg:grid-cols-[minmax(0,1fr)_minmax(340px,420px)] lg:items-center">
+      <section className="mx-auto grid min-h-[calc(100dvh-73px)] w-full max-w-5xl content-start gap-10 px-6 py-6 sm:py-10 lg:grid-cols-[minmax(0,1fr)_minmax(340px,420px)] lg:content-center lg:items-center">
         <div className="grid gap-6">
           <PageTitle
             eyebrow="Merchant access"

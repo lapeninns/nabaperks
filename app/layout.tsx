@@ -25,6 +25,27 @@ export const metadata: Metadata = {
   title: "Nabaperks",
   description: "No-app digital loyalty cards for local businesses.",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      {
+        url: "/icons/nabaperks-icon-192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: "/icons/nabaperks-icon-512.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+    ],
+    apple: [
+      {
+        url: "/icons/nabaperks-icon-192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+    ],
+  },
   appleWebApp: {
     capable: true,
     title: "Nabaperks",

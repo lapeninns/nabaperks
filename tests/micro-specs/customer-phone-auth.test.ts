@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
+import { readFileSync } from "node:fs"
 
 function form(values: Record<string, string>) {
   const data = new FormData()
@@ -264,5 +265,20 @@ describe("customer global phone auth", () => {
       })
     )
     expect(signInWithOtp).not.toHaveBeenCalled()
+  })
+
+  it("keeps customer and wallet code request forms resendable after the first SMS", () => {
+    const joinForms = readFileSync("components/customer/join-forms.tsx", "utf8")
+    const walletLoginForm = readFileSync(
+      "components/customer/wallet-login-form.tsx",
+      "utf8"
+    )
+
+    expect(joinForms).toContain("phoneOtpSent")
+    expect(joinForms).toContain('"Resend code"')
+    expect(joinForms).not.toContain("requestPending || phoneOtpSent")
+    expect(walletLoginForm).toContain("otpSent")
+    expect(walletLoginForm).toContain('"Resend code"')
+    expect(walletLoginForm).not.toContain("requestPending || otpSent")
   })
 })

@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function OfflinePage() {
   return (
-    <main className="flex min-h-svh items-center justify-center bg-background px-4 py-10">
+    <main className="flex min-h-[100dvh] items-center justify-center bg-background px-4 py-10">
       <section className="w-full max-w-md rounded-lg border-2 border-ink bg-card p-6 text-center shadow-xs">
         <EmptyState
           title="You're offline"

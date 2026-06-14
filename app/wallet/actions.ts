@@ -92,7 +92,9 @@ export async function requestWalletOtpAction(
       country: normalized.phone.country,
       customerId: customer.id,
     })
-  } catch {
+  } catch (error) {
+    logVerificationSendFailure("wallet", error)
+
     return {
       fields: { contact },
       errors: {
@@ -105,6 +107,13 @@ export async function requestWalletOtpAction(
     fields: { contact, otpSent: true },
     message: "Enter the code we sent to your phone.",
   }
+}
+
+function logVerificationSendFailure(scope: "wallet", error: unknown): void {
+  console.error("Customer verification send failed", {
+    scope,
+    reason: error instanceof Error ? error.message : "Unknown error",
+  })
 }
 
 export async function verifyWalletOtpAction(

@@ -15,7 +15,7 @@ const legalLinkClass =
 
 export function MarketingLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-svh overflow-x-clip bg-background">
+    <div className="min-h-[100dvh] overflow-x-clip bg-background">
       <Marquee />
       <header className="sticky top-0 z-40 border-b-2 border-ink bg-card">
         <div className="mx-auto grid w-full max-w-7xl grid-cols-[auto_minmax(0,1fr)] items-center gap-3 px-4 py-3 sm:px-6">
@@ -29,7 +29,11 @@ export function MarketingLayout({ children }: { children: ReactNode }) {
                 <Link href={item.href}>{item.label}</Link>
               </Button>
             ))}
-            <Button asChild size="sm" className="hidden min-[430px]:inline-flex">
+            <Button
+              asChild
+              size="sm"
+              className="hidden min-[430px]:inline-flex"
+            >
               <Link href="/signup">Start trial</Link>
             </Button>
             <Button

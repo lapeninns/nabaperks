@@ -94,7 +94,9 @@ export async function requestCustomerIdentityAction(
       phone: contact,
       country: normalized.phone.country,
     })
-  } catch {
+  } catch (error) {
+    logVerificationSendFailure("join", error)
+
     return {
       fields: { contact, merchantSlug, qrId },
       errors: {
@@ -107,6 +109,13 @@ export async function requestCustomerIdentityAction(
     fields: { contact, merchantSlug, qrId, phoneOtpSent: true },
     message: "Enter the verification code sent to your phone.",
   }
+}
+
+function logVerificationSendFailure(scope: "join", error: unknown): void {
+  console.error("Customer verification send failed", {
+    scope,
+    reason: error instanceof Error ? error.message : "Unknown error",
+  })
 }
 
 export async function verifyCustomerOtpAction(

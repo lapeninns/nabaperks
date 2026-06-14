@@ -78,15 +78,18 @@ export function CustomerIdentityForm({
           </p>
         ) : null}
         {state.message ? (
-          <p className="rounded-xl border border-reward/30 bg-accent px-3 py-2 text-sm text-accent-foreground">
-            {state.message}
-          </p>
+          <div className="grid gap-1 rounded-xl border border-reward/30 bg-accent px-3 py-2 text-sm text-accent-foreground">
+            <p>{state.message}</p>
+            <p className="text-xs leading-5">
+              If it does not arrive, check the number and resend the code.
+            </p>
+          </div>
         ) : null}
-        <Button type="submit" disabled={requestPending || phoneOtpSent}>
+        <Button type="submit" disabled={requestPending}>
           {requestPending
             ? "Sending..."
             : phoneOtpSent
-              ? "Verification sent"
+              ? "Resend code"
               : "Text me the code"}
         </Button>
       </form>
@@ -225,7 +228,10 @@ export function CustomerJoinForm({
             <span className="leading-6 text-muted-foreground">
               I agree to keep this loyalty card and that stamps and rewards
               follow the{" "}
-              <Link className="underline underline-offset-4" href={merchantTermsUrl}>
+              <Link
+                className="underline underline-offset-4"
+                href={merchantTermsUrl}
+              >
                 venue
               </Link>
               ,{" "}

@@ -54,11 +54,42 @@ describe("full-app PWA", () => {
     expect(layout).toContain("export const viewport")
     expect(layout).toContain("themeColor")
     expect(layout).toContain("appleWebApp")
+    expect(layout).toContain("icons")
+    expect(layout).toContain("apple")
     expect(layout).toContain("AppPwa")
     expect(layout).toContain("<AppPwa />")
     expect(pwaBootstrap).toContain("hasMounted")
     expect(pwaBootstrap).toContain("setHasMounted(true)")
-    expect(pwaBootstrap).toContain("if (!hasMounted")
+    expect(pwaBootstrap).toContain("!hasMounted")
+    expect(pwaBootstrap).toContain("Add to Home Screen")
+    expect(pwaBootstrap).toContain("isEditableTarget")
+  })
+
+  it("uses keyboard-safe dynamic viewport shells on mobile auth surfaces", () => {
+    const customerShell = readProjectFile(
+      "components/layout/customer-shell.tsx"
+    )
+    const marketingLayout = readProjectFile(
+      "components/layout/marketing-layout.tsx"
+    )
+    const merchantLogin = readProjectFile("app/(auth)/login/page.tsx")
+    const merchantSignup = readProjectFile("app/(auth)/signup/page.tsx")
+    const offlinePage = readProjectFile("app/offline/page.tsx")
+
+    for (const source of [
+      customerShell,
+      marketingLayout,
+      merchantLogin,
+      merchantSignup,
+      offlinePage,
+    ]) {
+      expect(source).toContain("100dvh")
+      expect(source).not.toContain("min-h-svh")
+      expect(source).not.toContain("100svh")
+    }
+
+    expect(merchantLogin).toContain("content-start")
+    expect(merchantSignup).toContain("content-start")
   })
 
   it("keeps the service worker online-first and away from offline mutations", () => {
@@ -70,7 +101,7 @@ describe("full-app PWA", () => {
 
     expect(serviceWorker).toContain("NETWORK_ONLY_PREFIXES")
     expect(serviceWorker).toContain("/offline")
-    expect(serviceWorker).toContain("event.request.mode === \"navigate\"")
+    expect(serviceWorker).toContain('event.request.mode === "navigate"')
     expect(serviceWorker).not.toContain('addEventListener("sync"')
     expect(serviceWorker).not.toContain('addEventListener("periodicsync"')
     expect(serviceWorker).not.toContain("backgroundSync")
@@ -94,7 +125,9 @@ describe("full-app PWA", () => {
     const offlinePage = readProjectFile("app/offline/page.tsx")
 
     expect(offlinePage).toContain("You're offline")
-    expect(offlinePage).toContain("Cards, stamps, rewards, merchant tools, and admin tools need a connection")
+    expect(offlinePage).toContain(
+      "Cards, stamps, rewards, merchant tools, and admin tools need a connection"
+    )
     expect(offlinePage).toContain("server")
   })
 

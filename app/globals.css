@@ -225,11 +225,15 @@
   }
   html {
     @apply scroll-smooth font-sans antialiased;
+    min-height: 100%;
+    overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
   body {
     @apply bg-background text-foreground;
+    min-height: 100%;
+    overflow-x: hidden;
     text-rendering: optimizeLegibility;
   }
   h1,
