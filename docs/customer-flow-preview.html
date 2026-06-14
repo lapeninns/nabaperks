@@ -1,0 +1,1605 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nabaperks Customer Storyboard and Mocks</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #f8f1e5;
+        --paper-strong: #fffaf0;
+        --ink: #211d18;
+        --muted: #7f766a;
+        --line: #d7cbbb;
+        --dash: #b9ad9e;
+        --accent: #d6532f;
+        --accent-dark: #9d3821;
+        --good: #24694b;
+        --warn: #ad691f;
+        --blue: #275c78;
+        --violet: #5b4b77;
+        --shadow: 8px 8px 0 rgba(33, 29, 24, 0.92);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+      }
+
+      body {
+        margin: 0;
+        overflow: hidden;
+        background:
+          linear-gradient(rgba(33, 29, 24, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(33, 29, 24, 0.025) 1px, transparent 1px),
+          radial-gradient(circle at 12% 10%, rgba(214, 83, 47, 0.13), transparent 28%),
+          radial-gradient(circle at 84% 18%, rgba(39, 92, 120, 0.12), transparent 24%),
+          var(--paper);
+        background-size: 28px 28px, 28px 28px, auto, auto, auto;
+        color: var(--ink);
+        font-family:
+          "Courier New", Courier, ui-monospace, SFMono-Regular, Menlo, Consolas,
+          monospace;
+      }
+
+      body::before {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        content: "";
+        opacity: 0.16;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E");
+      }
+
+      .page {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        height: 100vh;
+      }
+
+      .topbar {
+        position: relative;
+        z-index: 8;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 28px;
+        padding: 22px 34px 18px;
+        border-bottom: 3px solid var(--ink);
+        background: rgba(248, 241, 229, 0.94);
+        box-shadow: 0 12px 24px rgba(33, 29, 24, 0.08);
+      }
+
+      .title-block {
+        display: grid;
+        gap: 8px;
+      }
+
+      .kicker {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--accent);
+        font-size: 13px;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .kicker::before {
+        width: 34px;
+        height: 12px;
+        border: 2px solid var(--ink);
+        border-radius: 999px;
+        background: repeating-linear-gradient(
+          90deg,
+          var(--ink) 0 5px,
+          transparent 5px 10px
+        );
+        content: "";
+      }
+
+      h1 {
+        margin: 0;
+        max-width: 1160px;
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        font-size: clamp(28px, 4vw, 54px);
+        line-height: 0.98;
+        letter-spacing: 0;
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 10px;
+        max-width: 780px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 30px;
+        padding: 7px 13px;
+        border: 2px solid var(--ink);
+        border-radius: 999px;
+        background: var(--paper-strong);
+        color: var(--ink);
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .pill.hot {
+        background: var(--accent);
+        color: #fffaf0;
+      }
+
+      .pill.blue {
+        background: var(--blue);
+        color: #fffaf0;
+      }
+
+      .stage {
+        position: relative;
+        overflow: auto;
+        padding: 34px 54px 82px;
+      }
+
+      .stage::-webkit-scrollbar {
+        height: 16px;
+        width: 16px;
+      }
+
+      .stage::-webkit-scrollbar-thumb {
+        border: 3px solid var(--paper);
+        border-radius: 999px;
+        background: var(--ink);
+      }
+
+      .stage::-webkit-scrollbar-track {
+        background: rgba(33, 29, 24, 0.12);
+      }
+
+      .board {
+        position: relative;
+        width: 4920px;
+        min-height: 2060px;
+        padding: 18px 0 96px;
+      }
+
+      .board-note {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: end;
+        gap: 28px;
+        width: 1340px;
+        margin: 0 0 36px;
+      }
+
+      .board-note p {
+        margin: 0;
+        max-width: 860px;
+        color: var(--muted);
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        font-size: 19px;
+        line-height: 1.45;
+      }
+
+      .big-count {
+        display: grid;
+        grid-template-columns: repeat(4, auto);
+        gap: 10px;
+      }
+
+      .lane {
+        position: relative;
+        margin: 0 0 94px;
+      }
+
+      .lane-head {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin: 0 0 22px;
+      }
+
+      .lane-label {
+        display: inline-flex;
+        align-items: center;
+        min-height: 42px;
+        padding: 9px 17px;
+        border: 3px solid var(--ink);
+        border-radius: 999px;
+        background: var(--ink);
+        color: #fffaf0;
+        font-size: 14px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .lane-meta {
+        flex: 1;
+        min-width: 0;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .lane-meta::after {
+        display: inline-block;
+        width: calc(100% - 24px);
+        margin-left: 18px;
+        border-top: 3px dashed var(--dash);
+        vertical-align: middle;
+        content: "";
+      }
+
+      .flow-row {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: 256px;
+        gap: 32px;
+        align-items: start;
+      }
+
+      .flow-card {
+        position: relative;
+        min-height: 184px;
+        padding: 24px 22px 26px;
+        border: 4px solid var(--ink);
+        border-radius: 16px 16px 7px 7px;
+        background: rgba(255, 250, 240, 0.9);
+        box-shadow: var(--shadow);
+      }
+
+      .flow-card::after {
+        position: absolute;
+        left: -3px;
+        right: -3px;
+        bottom: -8px;
+        height: 13px;
+        border-left: 4px solid var(--ink);
+        border-right: 4px solid var(--ink);
+        background:
+          repeating-linear-gradient(
+            135deg,
+            var(--ink) 0 7px,
+            transparent 7px 14px
+          ),
+          var(--paper-strong);
+        content: "";
+      }
+
+      .flow-card.branch {
+        min-height: 204px;
+        border-style: dashed;
+        box-shadow: 6px 6px 0 rgba(33, 29, 24, 0.82);
+      }
+
+      .flow-card.mock-linked {
+        border-color: var(--accent-dark);
+        box-shadow: 8px 8px 0 rgba(157, 56, 33, 0.88);
+      }
+
+      .flow-card.done {
+        border-color: var(--good);
+      }
+
+      .flow-card.warn {
+        border-color: var(--warn);
+      }
+
+      .flow-card h2,
+      .flow-card h3 {
+        margin: 16px 0 9px;
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        font-size: 21px;
+        line-height: 1.08;
+        letter-spacing: 0;
+      }
+
+      .flow-card p {
+        margin: 0;
+        color: var(--muted);
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        font-size: 15px;
+        font-weight: 650;
+        line-height: 1.38;
+      }
+
+      .flow-card ul {
+        display: grid;
+        gap: 8px;
+        margin: 10px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .flow-card li {
+        color: var(--muted);
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.34;
+      }
+
+      .number {
+        display: inline-flex;
+        color: var(--accent);
+        font-size: 14px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .icon {
+        position: absolute;
+        top: 17px;
+        right: 17px;
+        display: grid;
+        place-items: center;
+        width: 42px;
+        height: 36px;
+        border: 3px solid var(--ink);
+        border-radius: 7px;
+        background: var(--paper-strong);
+        color: var(--ink);
+        font-size: 20px;
+        font-weight: 900;
+      }
+
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        max-width: 100%;
+        margin-top: 14px;
+        padding: 6px 10px;
+        border: 2px solid var(--ink);
+        border-radius: 999px;
+        background: var(--accent);
+        color: #fffaf0;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+      }
+
+      .tag.good {
+        background: var(--good);
+      }
+
+      .tag.warn {
+        background: var(--warn);
+      }
+
+      .connector {
+        position: absolute;
+        top: 116px;
+        left: 236px;
+        width: 56px;
+        height: 24px;
+        color: var(--ink);
+        font-size: 35px;
+        font-weight: 900;
+        line-height: 24px;
+      }
+
+      .connector.down {
+        top: auto;
+        left: 119px;
+        bottom: -72px;
+        width: 18px;
+        height: 56px;
+        border-left: 4px dashed var(--accent);
+      }
+
+      .connector.down::after {
+        position: absolute;
+        bottom: -9px;
+        left: -10px;
+        color: var(--accent);
+        content: "v";
+      }
+
+      .loop {
+        position: absolute;
+        left: 80px;
+        top: 456px;
+        width: 3160px;
+        height: 154px;
+        border-right: 4px dashed var(--accent);
+        border-bottom: 4px dashed var(--accent);
+        border-left: 4px dashed var(--accent);
+        border-radius: 0 0 34px 34px;
+        pointer-events: none;
+      }
+
+      .loop-label {
+        position: absolute;
+        left: 1520px;
+        bottom: -23px;
+        display: inline-flex;
+        align-items: center;
+        min-height: 40px;
+        padding: 10px 18px;
+        border: 3px solid var(--ink);
+        border-radius: 999px;
+        background: var(--accent);
+        color: #fffaf0;
+        font-size: 13px;
+        font-weight: 900;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+      }
+
+      .mock-area {
+        display: grid;
+        grid-template-columns: 390px 390px 430px 1fr;
+        gap: 30px;
+        align-items: start;
+        width: 1940px;
+      }
+
+      .mock-panel,
+      .phone-shell,
+      .state-panel,
+      .pitfall-panel {
+        border: 4px solid var(--ink);
+        border-radius: 18px 18px 8px 8px;
+        background: rgba(255, 250, 240, 0.92);
+        box-shadow: var(--shadow);
+      }
+
+      .mock-panel {
+        padding: 22px;
+      }
+
+      .panel-title {
+        margin: 0 0 14px;
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        font-size: 22px;
+        line-height: 1.08;
+        letter-spacing: 0;
+      }
+
+      .panel-copy {
+        margin: 0 0 18px;
+        color: var(--muted);
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.42;
+      }
+
+      .mock-buttons {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 9px;
+      }
+
+      .mock-button {
+        min-height: 48px;
+        padding: 9px 10px;
+        border: 3px solid var(--ink);
+        border-radius: 9px;
+        background: var(--paper-strong);
+        color: var(--ink);
+        cursor: pointer;
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        font-size: 13px;
+        font-weight: 900;
+        line-height: 1.08;
+        text-align: left;
+      }
+
+      .mock-button:hover,
+      .mock-button.active {
+        background: var(--ink);
+        color: #fffaf0;
+      }
+
+      .mock-button:focus-visible {
+        outline: 4px solid rgba(214, 83, 47, 0.35);
+        outline-offset: 2px;
+      }
+
+      .mock-tools {
+        display: grid;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .tool-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 11px 12px;
+        border: 2px solid var(--line);
+        border-radius: 8px;
+        background: rgba(248, 241, 229, 0.7);
+      }
+
+      .tool-row span {
+        color: var(--muted);
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        font-size: 13px;
+        font-weight: 850;
+        line-height: 1.2;
+      }
+
+      .tool-row strong {
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .phone-shell {
+        overflow: hidden;
+        padding: 14px;
+        border-radius: 36px;
+        background: #1f1c18;
+        box-shadow: 10px 10px 0 rgba(33, 29, 24, 0.92);
+      }
+
+      .phone-screen {
+        min-height: 690px;
+        overflow: hidden;
+        border: 3px solid #070605;
+        border-radius: 26px;
+        background:
+          linear-gradient(rgba(33, 29, 24, 0.035) 1px, transparent 1px),
+          var(--paper-strong);
+        background-size: 18px 18px, auto;
+      }
+
+      .phone-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 15px 17px;
+        border-bottom: 3px solid var(--ink);
+        background: var(--paper);
+      }
+
+      .phone-top strong {
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        font-size: 15px;
+        line-height: 1.1;
+      }
+
+      .signal {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+      }
+
+      .signal i {
+        display: block;
+        width: 5px;
+        background: var(--ink);
+        border-radius: 999px;
+      }
+
+      .signal i:nth-child(1) {
+        height: 8px;
+      }
+
+      .signal i:nth-child(2) {
+        height: 12px;
+      }
+
+      .signal i:nth-child(3) {
+        height: 16px;
+      }
+
+      .phone-body {
+        display: grid;
+        gap: 17px;
+        padding: 22px;
+      }
+
+      .route-pill {
+        display: inline-flex;
+        width: fit-content;
+        max-width: 100%;
+        padding: 7px 10px;
+        border: 2px solid var(--ink);
+        border-radius: 999px;
+        background: var(--ink);
+        color: #fffaf0;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.06em;
+        overflow-wrap: anywhere;
+      }
+
+      .mock-title {
+        margin: 0;
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        font-size: 30px;
+        line-height: 1.02;
+        letter-spacing: 0;
+      }
+
+      .mock-copy {
+        margin: 0;
+        color: var(--muted);
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        font-size: 15px;
+        font-weight: 720;
+        line-height: 1.42;
+      }
+
+      .screen-art {
+        display: grid;
+        gap: 12px;
+        min-height: 242px;
+        padding: 15px;
+        border: 3px solid var(--ink);
+        border-radius: 15px;
+        background: rgba(248, 241, 229, 0.72);
+      }
+
+      .qr-frame {
+        display: grid;
+        place-items: center;
+        height: 214px;
+        border: 3px dashed var(--ink);
+        border-radius: 12px;
+        background:
+          repeating-linear-gradient(
+            45deg,
+            rgba(33, 29, 24, 0.09) 0 12px,
+            transparent 12px 24px
+          ),
+          var(--paper-strong);
+      }
+
+      .qr-mark {
+        display: grid;
+        grid-template-columns: repeat(5, 20px);
+        grid-template-rows: repeat(5, 20px);
+        gap: 5px;
+      }
+
+      .qr-mark b {
+        display: block;
+        border: 2px solid var(--ink);
+        background: var(--ink);
+      }
+
+      .form-lines {
+        display: grid;
+        gap: 10px;
+      }
+
+      .form-line {
+        display: grid;
+        gap: 6px;
+      }
+
+      .form-line label {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .fake-input {
+        min-height: 48px;
+        padding: 12px 13px;
+        border: 3px solid var(--ink);
+        border-radius: 9px;
+        background: var(--paper-strong);
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        font-size: 16px;
+        font-weight: 900;
+      }
+
+      .otp-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 6px;
+      }
+
+      .otp-grid span {
+        display: grid;
+        place-items: center;
+        min-height: 40px;
+        border: 3px solid var(--ink);
+        border-radius: 8px;
+        background: var(--paper-strong);
+        font-weight: 900;
+      }
+
+      .stamp-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 11px;
+      }
+
+      .stamp {
+        display: grid;
+        place-items: center;
+        min-height: 92px;
+        border: 3px solid var(--ink);
+        border-radius: 14px;
+        background: var(--paper-strong);
+        color: var(--muted);
+        font-size: 28px;
+        font-weight: 900;
+      }
+
+      .stamp.filled {
+        background:
+          repeating-linear-gradient(
+            -45deg,
+            rgba(214, 83, 47, 0.18) 0 8px,
+            transparent 8px 16px
+          ),
+          var(--paper-strong);
+        color: var(--accent);
+      }
+
+      .stamp.reward {
+        background: var(--ink);
+        color: #fffaf0;
+      }
+
+      .screen-cta {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 50px;
+        padding: 12px;
+        border: 3px solid var(--ink);
+        border-radius: 999px;
+        background: var(--accent);
+        color: #fffaf0;
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        font-size: 14px;
+        font-weight: 950;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        text-align: center;
+      }
+
+      .screen-cta.good {
+        background: var(--good);
+      }
+
+      .screen-cta.blue {
+        background: var(--blue);
+      }
+
+      .info-stack {
+        display: grid;
+        gap: 9px;
+      }
+
+      .info-row {
+        display: grid;
+        grid-template-columns: 118px minmax(0, 1fr);
+        gap: 10px;
+        padding: 10px 0;
+        border-bottom: 2px dashed var(--dash);
+      }
+
+      .info-row:last-child {
+        border-bottom: 0;
+      }
+
+      .info-row span {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .info-row strong {
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        font-size: 14px;
+        line-height: 1.25;
+      }
+
+      .state-panel,
+      .pitfall-panel {
+        padding: 22px;
+      }
+
+      .state-box {
+        display: grid;
+        gap: 14px;
+      }
+
+      .state-list {
+        display: grid;
+        gap: 12px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .state-list li {
+        display: grid;
+        gap: 5px;
+        padding: 12px;
+        border: 2px solid var(--line);
+        border-radius: 9px;
+        background: rgba(248, 241, 229, 0.68);
+      }
+
+      .state-list span {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .state-list strong {
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        font-size: 15px;
+        line-height: 1.24;
+      }
+
+      .matrix {
+        display: grid;
+        grid-template-columns: repeat(4, 256px);
+        gap: 32px;
+      }
+
+      .bottom-nav {
+        position: fixed;
+        left: 50%;
+        bottom: 22px;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transform: translateX(-50%);
+        padding: 8px;
+        border: 3px solid var(--ink);
+        border-radius: 999px;
+        background: rgba(33, 29, 24, 0.94);
+        box-shadow: 0 14px 34px rgba(33, 29, 24, 0.25);
+      }
+
+      .bottom-nav a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 38px;
+        min-width: 104px;
+        padding: 10px 15px;
+        border-radius: 999px;
+        color: rgba(255, 250, 240, 0.58);
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.1em;
+        text-decoration: none;
+        text-transform: uppercase;
+      }
+
+      .bottom-nav a:hover,
+      .bottom-nav a.active {
+        background: var(--paper-strong);
+        color: var(--ink);
+      }
+
+      @media (max-width: 900px) {
+        .topbar {
+          grid-template-columns: 1fr;
+          padding: 18px;
+        }
+
+        .legend {
+          justify-content: flex-start;
+        }
+
+        .stage {
+          padding: 22px 20px 84px;
+        }
+
+        .board {
+          width: 4920px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="topbar">
+        <div class="title-block">
+          <div class="kicker">Customer-only storyboard with live mocks</div>
+          <h1>Nabaperks customer flow: scan, join, stamp, reward, redeem, repeat.</h1>
+        </div>
+        <div class="legend" aria-label="Storyboard legend">
+          <span class="pill hot">Updated QR loop</span>
+          <span class="pill">New user first</span>
+          <span class="pill blue">Mock support</span>
+          <span class="pill">Scroll sideways</span>
+        </div>
+      </header>
+
+      <section class="stage" aria-label="Nabaperks customer storyboard canvas">
+        <div class="board">
+          <div class="board-note">
+            <p>
+              This preview treats the customer as a new visitor. The happy path starts with a venue QR,
+              keeps value visible before account work, gives the first stamp without a second scan,
+              then loops through return visits, reward reveal, redemption proof, and wallet recovery.
+            </p>
+            <div class="big-count">
+              <span class="pill">11 main beats</span>
+              <span class="pill">10 mocks</span>
+              <span class="pill">8 branches</span>
+              <span class="pill hot">1 customer loop</span>
+            </div>
+          </div>
+
+          <section id="storyboard" class="lane" aria-label="Main customer loop">
+            <div class="lane-head">
+              <span class="lane-label">Main loop</span>
+              <span class="lane-meta">new customer -> daily use -> reward -> next cycle</span>
+            </div>
+            <div class="flow-row">
+              <article class="flow-card mock-linked">
+                <span class="number">No. 01</span>
+                <span class="icon">QR</span>
+                <h2>Scan venue QR</h2>
+                <p>The table, till, poster, or receipt QR opens `/q/[qrId]` and resolves the venue.</p>
+                <span class="tag">mock: scan QR</span>
+                <span class="connector">-&gt;</span>
+              </article>
+
+              <article class="flow-card">
+                <span class="number">No. 02</span>
+                <span class="icon">VP</span>
+                <h2>See the promise</h2>
+                <p>Customer sees reward terms before typing anything. Poster, QR landing, and card must match.</p>
+                <span class="connector">-&gt;</span>
+              </article>
+
+              <article class="flow-card mock-linked">
+                <span class="number">No. 03</span>
+                <span class="icon">07</span>
+                <h2>Join with one code</h2>
+                <p>Phone or email OTP creates the membership. Terms are required; marketing remains separate.</p>
+                <span class="tag">mock: join and OTP</span>
+                <span class="connector">-&gt;</span>
+              </article>
+
+              <article class="flow-card mock-linked">
+                <span class="number">No. 04</span>
+                <span class="icon">1</span>
+                <h2>First stamp continues</h2>
+                <p>After join, the same valid QR lands on `/card/[id]/stamp?qr=...`. No rescan dead end.</p>
+                <span class="tag">mock: first stamp</span>
+                <span class="connector">-&gt;</span>
+              </article>
+
+              <article class="flow-card mock-linked">
+                <span class="number">No. 05</span>
+                <span class="icon">W</span>
+                <h2>Save the card</h2>
+                <p>The card shows progress, venue name, reward terms, wallet save, and recovery entry.</p>
+                <span class="tag">mock: saved card</span>
+                <span class="connector">-&gt;</span>
+              </article>
+
+              <article class="flow-card">
+                <span class="number">No. 06</span>
+                <span class="icon">D</span>
+                <h2>Return next day</h2>
+                <p>Customer scans the same style QR. Server checks venue, membership, date, and reward state.</p>
+                <span class="connector">-&gt;</span>
+              </article>
+
+              <article class="flow-card mock-linked warn">
+                <span class="number">No. 07</span>
+                <span class="icon">24</span>
+                <h2>Only one today</h2>
+                <p>If already stamped for the UK business day, the screen explains when the next stamp opens.</p>
+                <span class="tag warn">mock: already stamped</span>
+                <span class="connector">-&gt;</span>
+              </article>
+
+              <article class="flow-card mock-linked">
+                <span class="number">No. 08</span>
+                <span class="icon">3</span>
+                <h2>Reward appears</h2>
+                <p>At threshold, the reward is created and shown as sealed or revealed according to config.</p>
+                <span class="tag">mock: reward sealed</span>
+                <span class="connector">-&gt;</span>
+              </article>
+
+              <article class="flow-card mock-linked">
+                <span class="number">No. 09</span>
+                <span class="icon">R</span>
+                <h2>Ready to redeem</h2>
+                <p>When allowed, the screen changes from locked to redeemable with exact reward wording.</p>
+                <span class="tag">mock: ready</span>
+                <span class="connector">-&gt;</span>
+              </article>
+
+              <article class="flow-card mock-linked done">
+                <span class="number">No. 10</span>
+                <span class="icon">OK</span>
+                <h2>Redeem once</h2>
+                <p>Redemption creates a final proof screen with timestamp, venue, reward, and event id.</p>
+                <span class="tag good">mock: proof</span>
+                <span class="connector">-&gt;</span>
+              </article>
+
+              <article class="flow-card mock-linked">
+                <span class="number">No. 11</span>
+                <span class="icon">L</span>
+                <h2>Wallet or next scan</h2>
+                <p>The next open action is either wallet recovery, another card, or a fresh QR scan.</p>
+                <span class="tag">mock: wallet recovery</span>
+              </article>
+            </div>
+            <div class="loop" aria-hidden="true">
+              <span class="loop-label">redeemed proof -> next scan -> next card cycle</span>
+            </div>
+          </section>
+
+          <section id="mocks" class="lane" aria-label="Customer screen mocks">
+            <div class="lane-head">
+              <span class="lane-label">Mock support</span>
+              <span class="lane-meta">click a preset to preview the customer screen and expected state</span>
+            </div>
+            <div class="mock-area">
+              <aside class="mock-panel">
+                <h2 class="panel-title">Customer screen presets</h2>
+                <p class="panel-copy">
+                  These presets mirror the storyboard. Selection persists in local storage so the preview
+                  can reopen exactly where the review stopped.
+                </p>
+                <div class="mock-buttons" role="group" aria-label="Customer mock presets">
+                  <button class="mock-button active" type="button" data-mock="scanQr">Scan QR</button>
+                  <button class="mock-button" type="button" data-mock="joinOtp">Join and OTP</button>
+                  <button class="mock-button" type="button" data-mock="firstStamp">First stamp</button>
+                  <button class="mock-button" type="button" data-mock="savedCard">Saved card</button>
+                  <button class="mock-button" type="button" data-mock="alreadyStamped">Already stamped</button>
+                  <button class="mock-button" type="button" data-mock="rewardSealed">Reward sealed</button>
+                  <button class="mock-button" type="button" data-mock="rewardReady">Ready to redeem</button>
+                  <button class="mock-button" type="button" data-mock="redeemedProof">Redeemed proof</button>
+                  <button class="mock-button" type="button" data-mock="walletRecovery">Wallet recovery</button>
+                  <button class="mock-button" type="button" data-mock="unknownQr">Unknown QR</button>
+                </div>
+                <div class="mock-tools" aria-label="Mock review controls">
+                  <div class="tool-row">
+                    <span>Local state key</span>
+                    <strong>np_customer_mock_state</strong>
+                  </div>
+                  <div class="tool-row">
+                    <span>Identity rule</span>
+                    <strong>existing or QR first</strong>
+                  </div>
+                  <div class="tool-row">
+                    <span>Time basis</span>
+                    <strong>Europe/London</strong>
+                  </div>
+                </div>
+              </aside>
+
+              <section class="phone-shell" aria-label="Customer phone mock">
+                <div class="phone-screen">
+                  <div class="phone-top">
+                    <strong>The Old Crown Perks</strong>
+                    <span class="signal" aria-hidden="true"><i></i><i></i><i></i></span>
+                  </div>
+                  <div class="phone-body">
+                    <span id="mock-route" class="route-pill">/q/old-crown-counter</span>
+                    <h2 id="mock-title" class="mock-title">Scan the venue QR</h2>
+                    <p id="mock-copy" class="mock-copy">
+                      The QR opens the reward promise before the customer has to join.
+                    </p>
+                    <div id="screen-art" class="screen-art" aria-label="Current mock screen"></div>
+                    <div id="screen-cta" class="screen-cta">Continue</div>
+                  </div>
+                </div>
+              </section>
+
+              <aside class="state-panel" aria-label="Current customer state">
+                <h2 class="panel-title">Current mock state</h2>
+                <div class="state-box">
+                  <ul class="state-list">
+                    <li>
+                      <span>Customer action</span>
+                      <strong id="mock-action">Scan the QR and read the offer.</strong>
+                    </li>
+                    <li>
+                      <span>Server state</span>
+                      <strong id="mock-state">No membership yet. QR resolved to venue.</strong>
+                    </li>
+                    <li>
+                      <span>Success condition</span>
+                      <strong id="mock-success">Customer understands the reward before joining.</strong>
+                    </li>
+                    <li>
+                      <span>Main pitfall</span>
+                      <strong id="mock-pitfall">If QR resolution fails, do not send the customer to a blank join form.</strong>
+                    </li>
+                  </ul>
+                </div>
+              </aside>
+
+              <aside class="pitfall-panel" aria-label="Flow analysis">
+                <h2 class="panel-title">What this catches</h2>
+                <p class="panel-copy">
+                  Use the mocks to review copy, missing states, and loop breaks. The highest-risk break is
+                  after first join: the customer must not finish account creation and then lose the scan context.
+                </p>
+                <ul class="state-list">
+                  <li>
+                    <span>Continuity</span>
+                    <strong>Carry `qrId`, venue, and intended stamp action through OTP and terms.</strong>
+                  </li>
+                  <li>
+                    <span>Consent</span>
+                    <strong>Required terms and optional marketing must remain visibly separate.</strong>
+                  </li>
+                  <li>
+                    <span>Recovery</span>
+                    <strong>Wallet login should recover existing cards only, not create hidden accounts.</strong>
+                  </li>
+                </ul>
+              </aside>
+            </div>
+          </section>
+
+          <section id="branches" class="lane" aria-label="Customer branches and edge cases">
+            <div class="lane-head">
+              <span class="lane-label">Branches</span>
+              <span class="lane-meta">customer-only alternate paths and missing-state checks</span>
+            </div>
+            <div class="matrix">
+              <article class="flow-card branch warn">
+                <span class="number">B.01</span>
+                <span class="icon">?</span>
+                <h3>Unknown QR</h3>
+                <p>Show a branded error, venue search fallback, and retry. Never drop into a generic join screen.</p>
+              </article>
+
+              <article class="flow-card branch">
+                <span class="number">B.02</span>
+                <span class="icon">ID</span>
+                <h3>Existing member scans</h3>
+                <p>Recognise the contact after OTP and open the current card instead of creating a duplicate.</p>
+              </article>
+
+              <article class="flow-card branch warn">
+                <span class="number">B.03</span>
+                <span class="icon">OTP</span>
+                <h3>Code delay or rate limit</h3>
+                <p>Give resend timing, edit contact, and calm retry copy. Avoid dead-end account creation.</p>
+              </article>
+
+              <article class="flow-card branch">
+                <span class="number">B.04</span>
+                <span class="icon">LOC</span>
+                <h3>Location unavailable</h3>
+                <p>Soft-check only. Explain why it helps, then allow scan-based eligibility when policy permits.</p>
+              </article>
+
+              <article class="flow-card branch warn">
+                <span class="number">B.05</span>
+                <span class="icon">DUP</span>
+                <h3>Duplicate same day</h3>
+                <p>Show the last stamp time, next eligible day, and card progress so the customer is not punished.</p>
+              </article>
+
+              <article class="flow-card branch">
+                <span class="number">B.06</span>
+                <span class="icon">RW</span>
+                <h3>Reward blocks stamping</h3>
+                <p>If a reward is ready, make redemption the primary action and explain why new stamps pause.</p>
+              </article>
+
+              <article class="flow-card branch">
+                <span class="number">B.07</span>
+                <span class="icon">LO</span>
+                <h3>Signed out deep link</h3>
+                <p>Return to the exact intended route after OTP: card, stamp confirmation, or reward proof.</p>
+              </article>
+
+              <article class="flow-card branch warn">
+                <span class="number">B.08</span>
+                <span class="icon">SUP</span>
+                <h3>Lost access</h3>
+                <p>Customer support path should verify contact ownership and recover cards without exposing raw phone data.</p>
+              </article>
+            </div>
+          </section>
+
+          <section id="checklist" class="lane" aria-label="Customer flow checklist">
+            <div class="lane-head">
+              <span class="lane-label">Checklist</span>
+              <span class="lane-meta">what must exist before this flow is complete</span>
+            </div>
+            <div class="matrix">
+              <article class="flow-card done">
+                <span class="number">C.01</span>
+                <span class="icon">OK</span>
+                <h3>First scan continuity</h3>
+                <ul>
+                  <li>Persist QR intent through OTP.</li>
+                  <li>Redirect new users to stamp confirm.</li>
+                  <li>Never require a second scan after joining.</li>
+                </ul>
+              </article>
+
+              <article class="flow-card">
+                <span class="number">C.02</span>
+                <span class="icon">TXT</span>
+                <h3>Copy alignment</h3>
+                <ul>
+                  <li>Poster promise matches landing.</li>
+                  <li>Landing promise matches card.</li>
+                  <li>Reward proof matches final redemption.</li>
+                </ul>
+              </article>
+
+              <article class="flow-card">
+                <span class="number">C.03</span>
+                <span class="icon">SRV</span>
+                <h3>Server authority</h3>
+                <ul>
+                  <li>Browser storage is cache only.</li>
+                  <li>Daily limits come from server events.</li>
+                  <li>Reward state survives refresh.</li>
+                </ul>
+              </article>
+
+              <article class="flow-card warn">
+                <span class="number">C.04</span>
+                <span class="icon">GAP</span>
+                <h3>Missing states to design</h3>
+                <ul>
+                  <li>Expired QR.</li>
+                  <li>Venue paused.</li>
+                  <li>Contact changed.</li>
+                </ul>
+              </article>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <nav class="bottom-nav" aria-label="Storyboard sections">
+        <a class="active" href="#storyboard">Storyboard</a>
+        <a href="#mocks">Mocks</a>
+        <a href="#branches">Branches</a>
+        <a href="#checklist">Checklist</a>
+      </nav>
+    </main>
+
+    <script>
+      const STORAGE_KEY = "np_customer_mock_state";
+
+      const stampArt = (filled, reward) => {
+        const total = 3;
+        return `
+          <div class="stamp-grid" aria-label="Card stamp progress">
+            ${Array.from({ length: total }, (_, index) => {
+              const stampNo = index + 1;
+              const classes = [
+                "stamp",
+                stampNo <= filled ? "filled" : "",
+                reward && stampNo === total ? "reward" : "",
+              ]
+                .filter(Boolean)
+                .join(" ");
+              return `<span class="${classes}">${reward && stampNo === total ? "R" : stampNo}</span>`;
+            }).join("")}
+          </div>
+        `;
+      };
+
+      const mocks = {
+        scanQr: {
+          route: "/q/old-crown-counter",
+          title: "Scan the venue QR",
+          copy: "The QR opens the reward promise before the customer has to join.",
+          cta: "See reward",
+          ctaClass: "",
+          action: "Scan the QR and read the offer.",
+          state: "No membership yet. QR resolved to venue.",
+          success: "Customer understands the reward before joining.",
+          pitfall: "If QR resolution fails, do not send the customer to a blank join form.",
+          art: `
+            <div class="qr-frame">
+              <div class="qr-mark" aria-hidden="true">
+                <b></b><span></span><b></b><span></span><b></b>
+                <span></span><b></b><span></span><b></b><span></span>
+                <b></b><span></span><b></b><span></span><b></b>
+                <span></span><b></b><span></span><b></b><span></span>
+                <b></b><span></span><b></b><span></span><b></b>
+              </div>
+            </div>
+          `,
+        },
+        joinOtp: {
+          route: "/m/old-crown/join?qr=old-crown-counter",
+          title: "Join with one code",
+          copy: "Phone or email verification creates or finds the customer record.",
+          cta: "Verify and continue",
+          ctaClass: "",
+          action: "Enter contact, receive OTP, accept terms, decide marketing.",
+          state: "Pending customer identity. QR intent stays attached to the session.",
+          success: "Existing customers recover the card; new customers continue to first stamp.",
+          pitfall: "Terms and marketing consent must never be collapsed into one checkbox.",
+          art: `
+            <div class="form-lines">
+              <div class="form-line">
+                <label>Mobile or email</label>
+                <div class="fake-input">07123 456789</div>
+              </div>
+              <div class="form-line">
+                <label>One-time code</label>
+                <div class="otp-grid"><span>4</span><span>8</span><span>1</span><span>0</span><span>2</span><span>7</span></div>
+              </div>
+              <div class="info-stack">
+                <div class="info-row"><span>Terms</span><strong>Required and timestamped.</strong></div>
+                <div class="info-row"><span>Marketing</span><strong>Optional, off by default.</strong></div>
+              </div>
+            </div>
+          `,
+        },
+        firstStamp: {
+          route: "/card/mem_7f2/stamp?qr=old-crown-counter",
+          title: "First stamp is ready",
+          copy: "The customer lands here immediately after joining. The original scan context is still present.",
+          cta: "Add today's stamp",
+          ctaClass: "",
+          action: "Tap the stamp confirmation.",
+          state: "Membership exists; no loyalty event has been written yet for today.",
+          success: "One auditable stamp event is created for the venue and customer.",
+          pitfall: "Do not bounce the customer to the plain card before the first stamp is secured.",
+          art: `
+            ${stampArt(0, false)}
+            <div class="info-stack">
+              <div class="info-row"><span>QR</span><strong>old-crown-counter</strong></div>
+              <div class="info-row"><span>Limit</span><strong>One stamp per UK business day.</strong></div>
+            </div>
+          `,
+        },
+        savedCard: {
+          route: "/card/mem_7f2",
+          title: "Card saved",
+          copy: "Progress, reward terms, wallet save, and recovery path are visible without extra explanation.",
+          cta: "Save to wallet",
+          ctaClass: "blue",
+          action: "Save card or close the browser tab.",
+          state: "One stamp recorded. Browser storage can cache, but server state is authoritative.",
+          success: "Customer can return later by wallet, link, or QR scan.",
+          pitfall: "If the card depends only on browser storage, lost devices will lose trust.",
+          art: `
+            ${stampArt(1, false)}
+            <div class="info-stack">
+              <div class="info-row"><span>Reward</span><strong>3 visits earns a free flat white.</strong></div>
+              <div class="info-row"><span>Saved</span><strong>Wallet link and SMS/email recovery available.</strong></div>
+            </div>
+          `,
+        },
+        alreadyStamped: {
+          route: "/card/mem_7f2/stamp?qr=old-crown-counter",
+          title: "Today's stamp is done",
+          copy: "The duplicate state should feel calm and useful, not like an error.",
+          cta: "View card",
+          ctaClass: "blue",
+          action: "Review progress and come back on the next eligible day.",
+          state: "Stamp event already exists for this customer, venue, and UK business day.",
+          success: "Customer sees the exact next eligible moment and current progress.",
+          pitfall: "A generic error here creates counter disputes and repeat scans.",
+          art: `
+            ${stampArt(2, false)}
+            <div class="info-stack">
+              <div class="info-row"><span>Last stamp</span><strong>13 Jun 2026, 10:24</strong></div>
+              <div class="info-row"><span>Next open</span><strong>Tomorrow in Europe/London.</strong></div>
+            </div>
+          `,
+        },
+        rewardSealed: {
+          route: "/reward/rw_7f2",
+          title: "Reward unlocked",
+          copy: "The threshold is reached. The card can show a sealed state before the final reward wording appears.",
+          cta: "Break open",
+          ctaClass: "",
+          action: "Open the reward reveal.",
+          state: "Reward row exists and is linked to the completed card cycle.",
+          success: "Reward copy exactly matches the public promise.",
+          pitfall: "Changing the reward wording here creates promise mismatch risk.",
+          art: `
+            ${stampArt(3, true)}
+            <div class="qr-frame">
+              <strong style="font-family: ui-sans-serif, system-ui; font-size: 26px;">SEALED REWARD</strong>
+            </div>
+          `,
+        },
+        rewardReady: {
+          route: "/reward/rw_7f2",
+          title: "Free flat white",
+          copy: "The reward is ready to redeem once the configured hold or timing rule has passed.",
+          cta: "Redeem now",
+          ctaClass: "good",
+          action: "Redeem when at the venue and ready to use the reward.",
+          state: "Reward is unredeemed and eligible.",
+          success: "A single redemption event can be created and then shown as proof.",
+          pitfall: "The redeem button must not be reusable after the event is consumed.",
+          art: `
+            <div class="info-stack">
+              <div class="info-row"><span>Reward</span><strong>Free flat white.</strong></div>
+              <div class="info-row"><span>Status</span><strong>Ready now.</strong></div>
+              <div class="info-row"><span>Cycle</span><strong>Card resets after redemption proof.</strong></div>
+            </div>
+          `,
+        },
+        redeemedProof: {
+          route: "/reward/rw_7f2/proof",
+          title: "Reward redeemed",
+          copy: "The proof screen is the final customer-facing receipt for this reward cycle.",
+          cta: "Start next card",
+          ctaClass: "good",
+          action: "Show proof if needed, then continue to next scan or wallet.",
+          state: "Reward consumed once. Refresh should keep the redeemed proof state.",
+          success: "Proof is clear, timestamped, and cannot be mistaken for an active reward.",
+          pitfall: "If refresh reopens redeem, the system can double-spend the reward.",
+          art: `
+            <div class="info-stack">
+              <div class="info-row"><span>Reward</span><strong>Free flat white.</strong></div>
+              <div class="info-row"><span>Time</span><strong>13 Jun 2026, 14:16.</strong></div>
+              <div class="info-row"><span>Event id</span><strong>redeem_evt_7f2c.</strong></div>
+              <div class="info-row"><span>Status</span><strong>Already redeemed.</strong></div>
+            </div>
+          `,
+        },
+        walletRecovery: {
+          route: "/wallet/login",
+          title: "Find my cards",
+          copy: "Wallet recovery finds existing memberships. It should not silently create a customer account.",
+          cta: "Send login code",
+          ctaClass: "blue",
+          action: "Enter contact and verify ownership.",
+          state: "Existing customer lookup only. Unknown contacts are sent to scan a venue QR first.",
+          success: "Customer sees all recoverable cards, rewards, and recent activity.",
+          pitfall: "Hidden account creation here breaks consent and creates duplicate identities.",
+          art: `
+            <div class="form-lines">
+              <div class="form-line">
+                <label>Mobile or email</label>
+                <div class="fake-input">asha@example.com</div>
+              </div>
+              <div class="info-stack">
+                <div class="info-row"><span>Cards</span><strong>The Old Crown, Bean & Batch.</strong></div>
+                <div class="info-row"><span>Rewards</span><strong>1 ready, 2 in progress.</strong></div>
+              </div>
+            </div>
+          `,
+        },
+        unknownQr: {
+          route: "/q/unknown-or-paused",
+          title: "This QR needs help",
+          copy: "The customer gets a recoverable error instead of a broken or generic join journey.",
+          cta: "Try again",
+          ctaClass: "",
+          action: "Retry scan, choose venue search, or open wallet recovery.",
+          state: "QR cannot be resolved, is inactive, or belongs to a paused venue.",
+          success: "Customer can recover without creating the wrong card.",
+          pitfall: "A blank error erodes trust before the customer understands the product.",
+          art: `
+            <div class="qr-frame">
+              <strong style="font-family: ui-sans-serif, system-ui; font-size: 24px;">QR NOT FOUND</strong>
+            </div>
+            <div class="info-stack">
+              <div class="info-row"><span>Fallback</span><strong>Retry, search venue, or recover wallet.</strong></div>
+            </div>
+          `,
+        },
+      };
+
+      const elements = {
+        route: document.querySelector("#mock-route"),
+        title: document.querySelector("#mock-title"),
+        copy: document.querySelector("#mock-copy"),
+        art: document.querySelector("#screen-art"),
+        cta: document.querySelector("#screen-cta"),
+        action: document.querySelector("#mock-action"),
+        state: document.querySelector("#mock-state"),
+        success: document.querySelector("#mock-success"),
+        pitfall: document.querySelector("#mock-pitfall"),
+        buttons: Array.from(document.querySelectorAll("[data-mock]")),
+      };
+
+      function renderMock(key) {
+        const nextKey = mocks[key] ? key : "scanQr";
+        const mock = mocks[nextKey];
+
+        elements.route.textContent = mock.route;
+        elements.title.textContent = mock.title;
+        elements.copy.textContent = mock.copy;
+        elements.art.innerHTML = mock.art;
+        elements.cta.textContent = mock.cta;
+        elements.cta.className = ["screen-cta", mock.ctaClass].filter(Boolean).join(" ");
+        elements.action.textContent = mock.action;
+        elements.state.textContent = mock.state;
+        elements.success.textContent = mock.success;
+        elements.pitfall.textContent = mock.pitfall;
+
+        elements.buttons.forEach((button) => {
+          const active = button.dataset.mock === nextKey;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-pressed", String(active));
+        });
+
+        localStorage.setItem(STORAGE_KEY, nextKey);
+      }
+
+      elements.buttons.forEach((button) => {
+        button.addEventListener("click", () => renderMock(button.dataset.mock));
+      });
+
+      document.querySelectorAll(".bottom-nav a").forEach((link) => {
+        link.addEventListener("click", () => {
+          document
+            .querySelectorAll(".bottom-nav a")
+            .forEach((item) => item.classList.toggle("active", item === link));
+        });
+      });
+
+      renderMock(localStorage.getItem(STORAGE_KEY) || "scanQr");
+    </script>
+  </body>
+</html>

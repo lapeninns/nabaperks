@@ -23,7 +23,7 @@ The MVP supports one location and one active loyalty card per merchant account. 
 - Frontend: Next.js App Router with React, hosted on Vercel.
 - Backend: Next.js Route Handlers, Server Actions, and Vercel Functions.
 - Database: Supabase Postgres.
-- Auth: Supabase Auth with Row Level Security.
+- Auth: Supabase Auth with Row Level Security for merchant/admin actors; customer identity uses Twilio Verify plus signed first-party sessions.
 - Payments: Stripe Checkout, Stripe Billing, Stripe Customer Portal, and Stripe webhooks.
 - Analytics: Supabase product event tables as source of truth, plus PostHog for funnels and product analytics.
 - Email: Resend for transactional email.

@@ -80,5 +80,84 @@
     "visibility": "server",
     "kind": "string",
     "description": "Resend API key for transactional email from trusted server code."
+  },
+  {
+    "name": "RESEND_FROM",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Verified Resend sender for Supabase Send Email auth hook messages, e.g. 'Nabaperks <login@your-domain>'. Used for merchant/admin email auth.",
+    "optional": true
+  },
+  {
+    "name": "TWILIO_ACCOUNT_SID",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Twilio Account SID used by customer Twilio Verify phone OTPs and any legacy Supabase SMS hook usage."
+  },
+  {
+    "name": "TWILIO_AUTH_TOKEN",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Optional Twilio Auth Token used by direct customer Twilio Verify API calls. If omitted, TWILIO_API_KEY_SID and TWILIO_API_KEY_SECRET are required.",
+    "optional": true
+  },
+  {
+    "name": "TWILIO_VERIFY_SERVICE_SID",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Twilio Verify Service SID used for customer phone OTP start/check flows."
+  },
+  {
+    "name": "CUSTOMER_SESSION_SECRET",
+    "visibility": "server",
+    "kind": "string",
+    "description": "High-entropy secret for signing first-party customer pending-phone and 30-day session cookies."
+  },
+  {
+    "name": "CUSTOMER_PHONE_HMAC_SECRET",
+    "visibility": "server",
+    "kind": "string",
+    "description": "High-entropy secret for deterministic HMAC lookup of verified customer phone numbers."
+  },
+  {
+    "name": "CUSTOMER_PHONE_ENCRYPTION_KEY",
+    "visibility": "server",
+    "kind": "string",
+    "description": "High-entropy key material used to derive AES-GCM encryption keys for stored customer phone ciphertext."
+  },
+  {
+    "name": "TWILIO_API_KEY_SID",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Twilio API key SID for customer Twilio Verify OTPs when TWILIO_AUTH_TOKEN is not set, and for legacy Supabase Send SMS hook usage.",
+    "optional": true
+  },
+  {
+    "name": "TWILIO_API_KEY_SECRET",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Twilio API key secret for customer Twilio Verify OTPs when TWILIO_AUTH_TOKEN is not set, and for legacy Supabase Send SMS hook usage.",
+    "optional": true
+  },
+  {
+    "name": "TWILIO_MESSAGING_SERVICE_SID",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Legacy Twilio Messaging Service SID for the Supabase Send SMS auth hook. Not used by customer OTP.",
+    "optional": true
+  },
+  {
+    "name": "SUPABASE_SEND_EMAIL_HOOK_SECRET",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Standard Webhooks signing secret (v1,whsec_...) for the Supabase send-email auth hook. Must match the secret configured in the Supabase dashboard.",
+    "optional": true
+  },
+  {
+    "name": "SUPABASE_SEND_SMS_HOOK_SECRET",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Legacy Standard Webhooks signing secret for the Supabase Send SMS auth hook. Customer OTP does not use this hook.",
+    "optional": true
   }
 ]

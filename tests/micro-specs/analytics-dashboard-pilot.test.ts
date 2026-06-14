@@ -321,10 +321,10 @@ describe("08 pilot readiness micro-spec", () => {
     )
     expect(report.checklist).toContainEqual(
       expect.objectContaining({
-        item: "Staff training proof",
-        target: "<3 minutes",
+        item: "Self-service launch proof",
+        target: "QR and venue checks complete",
         value: 2,
-        source: "audit_logs.staff_training_timed",
+        source: "audit_logs.launch_self_service_checked",
       })
     )
     expect(report.metrics).toContainEqual(

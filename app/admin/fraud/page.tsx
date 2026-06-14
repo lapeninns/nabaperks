@@ -18,7 +18,7 @@ export default async function AdminFraudPage() {
       <PageTitle
         eyebrow="Internal admin"
         title="Fraud"
-        description="Fraud flags, station PIN attempts, and security-related product events."
+        description="Fraud flags, soft geofence anomalies, and security-related product events."
       />
 
       <AdminPanel>
@@ -80,57 +80,6 @@ export default async function AdminFraudPage() {
               cell: (flag) => (
                 <time className="text-muted-foreground" dateTime={flag.created_at}>
                   {formatAdminDate(flag.created_at)}
-                </time>
-              ),
-            },
-          ]}
-        />
-      </AdminPanel>
-
-      <AdminPanel>
-        <SectionHeader
-          title="Staff PIN attempts"
-          description="Station-side staff PIN attempt telemetry for support review."
-          actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
-        />
-        <DataTable
-          caption="Admin station PIN attempt readback"
-          className="rounded-lg shadow-none"
-          rows={fraud.pinAttempts}
-          getRowKey={(attempt) => attempt.id}
-          emptyState={
-            <EmptyState
-              title="No PIN attempts yet"
-              className="rounded-none border-0 p-0 shadow-none"
-            />
-          }
-          columns={[
-            {
-              key: "result",
-              header: "Result",
-              cell: (attempt) => (
-                <StatusPill tone={attempt.success ? "good" : "danger"}>
-                  {attempt.success ? "Successful PIN" : "Failed PIN"}
-                </StatusPill>
-              ),
-            },
-            {
-              key: "merchant",
-              header: "Merchant",
-              cell: (attempt) => {
-                const merchant = first(attempt.merchants)
-                return merchant?.business_name ?? "Merchant"
-              },
-            },
-            {
-              key: "when",
-              header: "When",
-              cell: (attempt) => (
-                <time
-                  className="text-muted-foreground"
-                  dateTime={attempt.created_at}
-                >
-                  {formatAdminDate(attempt.created_at)}
                 </time>
               ),
             },

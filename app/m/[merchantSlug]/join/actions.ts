@@ -1,19 +1,32 @@
 "use server"
 
+import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
 import { capturePostHogEvent } from "@/lib/analytics/events"
-import { getCurrentUser } from "@/lib/auth/session"
-import { getServerEnv } from "@/lib/env/server"
+import {
+  getCurrentCustomer,
+  getOrCreateCustomerByVerifiedPhone,
+} from "@/lib/customer/identity"
+import { defaultCountryFromHeaders, normalizePhone } from "@/lib/customer/phone"
+import {
+  clearPendingPhoneVerification,
+  getPendingPhoneVerification,
+  setCustomerSession,
+  setPendingPhoneVerification,
+} from "@/lib/customer/session"
+import {
+  checkCustomerPhoneVerification,
+  startCustomerPhoneVerification,
+} from "@/lib/customer/verification"
 import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type CustomerIdentityState = {
   fields?: {
     contact?: string
     merchantSlug?: string
     qrId?: string
-    emailOtpSent?: boolean
     phoneOtpSent?: boolean
   }
   errors?: {
@@ -38,36 +51,24 @@ function value(formData: FormData, key: string) {
   return typeof raw === "string" ? raw.trim() : ""
 }
 
-function isEmail(input: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input)
-}
-
-function isPhone(input: string) {
-  return /^\+[1-9]\d{7,14}$/.test(input)
-}
-
-function formatAuthError(message: string) {
-  if (/email rate limit exceeded/i.test(message)) {
-    return "Too many verification emails were sent. Check your inbox for an earlier link, or wait about an hour before trying again."
-  }
-
-  return message
-}
-
 export async function requestCustomerIdentityAction(
   _state: CustomerIdentityState,
   formData: FormData
 ): Promise<CustomerIdentityState> {
-  const contact = value(formData, "contact")
+  const rawContact = value(formData, "contact")
   const merchantSlug = value(formData, "merchantSlug")
   const qrId = value(formData, "qrId")
+  const country = defaultCountryFromHeaders(await headers())
+  const normalized = normalizePhone(rawContact, country)
 
-  if (!isEmail(contact) && !isPhone(contact)) {
+  if (!normalized.ok) {
     return {
-      fields: { contact, merchantSlug, qrId },
-      errors: { contact: "Enter an email address or E.164 phone number." },
+      fields: { contact: rawContact, merchantSlug, qrId },
+      errors: { contact: normalized.error },
     }
   }
+
+  const contact = normalized.phone.e164
 
   try {
     await enforceRateLimit({
@@ -86,39 +87,19 @@ export async function requestCustomerIdentityAction(
     throw error
   }
 
-  const supabase = await createSupabaseServerClient()
-  const env = getServerEnv()
-  const next = `/m/${merchantSlug}/join${qrId ? `?qr=${qrId}` : ""}`
-
-  if (isEmail(contact)) {
-    const { error } = await supabase.auth.signInWithOtp({
-      email: contact.toLowerCase(),
-      options: {
-        emailRedirectTo: `${env.NEXT_PUBLIC_APP_URL}/auth/confirm?next=${encodeURIComponent(
-          next
-        )}`,
-      },
+  try {
+    await startCustomerPhoneVerification(contact)
+    await setPendingPhoneVerification({
+      purpose: "join",
+      phone: contact,
+      country: normalized.phone.country,
     })
-
-    if (error) {
-      return {
-        fields: { contact, merchantSlug, qrId },
-        errors: { form: formatAuthError(error.message) },
-      }
-    }
-
-    return {
-      fields: { contact, merchantSlug, qrId, emailOtpSent: true },
-      message: "Check your email to continue joining rewards.",
-    }
-  }
-
-  const { error } = await supabase.auth.signInWithOtp({ phone: contact })
-
-  if (error) {
+  } catch {
     return {
       fields: { contact, merchantSlug, qrId },
-      errors: { form: error.message },
+      errors: {
+        form: "Verification code could not be sent. Try again shortly.",
+      },
     }
   }
 
@@ -128,18 +109,20 @@ export async function requestCustomerIdentityAction(
   }
 }
 
-export async function verifyCustomerPhoneOtpAction(
+export async function verifyCustomerOtpAction(
   _state: CustomerIdentityState,
   formData: FormData
 ): Promise<CustomerIdentityState> {
-  const contact = value(formData, "contact")
   const merchantSlug = value(formData, "merchantSlug")
   const qrId = value(formData, "qrId")
   const otp = value(formData, "otp")
+  const pending = await getPendingPhoneVerification()
 
-  if (!isPhone(contact)) {
-    return { errors: { contact: "Enter the phone number again." } }
+  if (!pending || pending.purpose !== "join") {
+    return { errors: { contact: "Request a new phone code." } }
   }
+
+  const contact = pending.phone
 
   if (!/^\d{4,8}$/.test(otp)) {
     return {
@@ -148,20 +131,22 @@ export async function verifyCustomerPhoneOtpAction(
     }
   }
 
-  const supabase = await createSupabaseServerClient()
-  const { error } = await supabase.auth.verifyOtp({
-    phone: contact,
-    token: otp,
-    type: "sms",
-  })
+  const verification = await checkCustomerPhoneVerification(contact, otp)
 
-  if (error) {
+  if (verification.status !== "approved") {
     return {
       fields: { contact, merchantSlug, qrId, phoneOtpSent: true },
       errors: { form: "That code was not accepted." },
     }
   }
 
+  const customer = await getOrCreateCustomerByVerifiedPhone({
+    e164: pending.phone,
+    country: pending.country,
+    last4: pending.phone.slice(-4),
+  })
+  await setCustomerSession(customer.id)
+  await clearPendingPhoneVerification()
   redirect(`/m/${merchantSlug}/join${qrId ? `?qr=${qrId}` : ""}`)
 }
 
@@ -169,27 +154,36 @@ export async function joinRewardsAction(
   _state: CustomerJoinState,
   formData: FormData
 ): Promise<CustomerJoinState> {
-  const user = await getCurrentUser()
+  const customer = await getCurrentCustomer()
   const merchantSlug = value(formData, "merchantSlug")
   const qrId = value(formData, "qrId")
   const acceptedTerms = formData.get("loyaltyTerms") === "on"
   const marketingOptIn = formData.get("marketingOptIn") === "on"
 
-  if (!user) {
-    return { errors: { form: "Verify your email or phone before joining." } }
+  if (!customer) {
+    return { errors: { form: "Verify your phone before joining." } }
   }
 
   if (!acceptedTerms) {
     return { errors: { loyaltyTerms: "Accept the loyalty terms to join." } }
   }
 
-  const supabase = await createSupabaseServerClient()
-  const { data, error } = await supabase.rpc("join_customer_membership", {
-    p_merchant_slug: merchantSlug,
-    p_qr_id: qrId || null,
-    p_marketing_opt_in: marketingOptIn,
-    p_policy_version: policyVersion,
-  })
+  const latitude = numberValue(formData, "latitude")
+  const longitude = numberValue(formData, "longitude")
+
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase.rpc(
+    "join_customer_membership_with_first_stamp",
+    {
+      p_customer_id: customer.id,
+      p_merchant_slug: merchantSlug,
+      p_qr_id: qrId || null,
+      p_marketing_opt_in: marketingOptIn,
+      p_policy_version: policyVersion,
+      p_latitude: latitude,
+      p_longitude: longitude,
+    }
+  )
 
   if (error) {
     return {
@@ -199,21 +193,55 @@ export async function joinRewardsAction(
     }
   }
 
-  const membershipId = data?.[0]?.membership_id
+  const row = data?.[0]
+  const membershipId = row?.membership_id
+  const firstStampIssued = row?.first_stamp_issued === true
+  const geoFlagged = row?.geo_flagged === true
 
   if (membershipId) {
     await capturePostHogEvent({
       eventName: "customer_joined",
       membershipId,
       actorType: "customer",
-      actorId: user.id,
+      actorId: customer.id,
       metadata: {
         merchant_slug: merchantSlug,
         marketing_opt_in: marketingOptIn,
       },
     })
-    redirect(`/card/${membershipId}`)
+
+    if (firstStampIssued) {
+      await capturePostHogEvent({
+        eventName: "stamp_issued",
+        membershipId,
+        actorType: "customer",
+        actorId: customer.id,
+        metadata: {
+          merchant_slug: merchantSlug,
+          source: "onboarding_first_stamp",
+          geo_flagged: geoFlagged,
+        },
+      })
+    }
+
+    // Onboarding completes onto the card itself: a freshly issued first stamp
+    // celebrates with `welcome=1&stamp=issued`; a no-QR/direct join lands on a
+    // 0-stamp welcome card that invites scanning the venue QR.
+    const params = new URLSearchParams({ welcome: "1" })
+    if (firstStampIssued) params.set("stamp", "issued")
+    if (geoFlagged) params.set("geo", "flagged")
+    redirect(`/card/${membershipId}?${params.toString()}`)
   }
 
-  redirect(`/m/${merchantSlug}/join${qrId ? `?qr=${qrId}&` : "?"}membership=existing`)
+  redirect(
+    `/m/${merchantSlug}/join${qrId ? `?qr=${qrId}&` : "?"}membership=existing`
+  )
+}
+
+function numberValue(formData: FormData, key: string): number | null {
+  const raw = value(formData, key)
+  if (!raw) return null
+
+  const parsed = Number(raw)
+  return Number.isFinite(parsed) ? parsed : null
 }

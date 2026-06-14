@@ -69,6 +69,29 @@ function normalizeText(value: unknown) {
   return collectReactText(value).replace(/\s+/g, " ").trim()
 }
 
+function mockCurrentCustomer(id = "customer-1") {
+  vi.doMock("@/lib/customer/identity", () => ({
+    getCurrentCustomer: vi.fn(async () => ({
+      id,
+      authUserId: null,
+      email: null,
+      phone: "Phone ending 3456",
+      phoneLast4: "3456",
+      phoneCountry: "GB",
+      createdAt: "2026-06-13T12:00:00.000Z",
+    })),
+    getOrCreateCustomerByVerifiedPhone: vi.fn(async () => ({
+      id,
+      authUserId: null,
+      email: null,
+      phone: "Phone ending 3456",
+      phoneLast4: "3456",
+      phoneCountry: "GB",
+      createdAt: "2026-06-13T12:00:00.000Z",
+    })),
+  }))
+}
+
 describe("03 customer micro-specs", () => {
   afterEach(() => {
     vi.resetModules()
@@ -76,28 +99,28 @@ describe("03 customer micro-specs", () => {
     vi.doUnmock("@/lib/customer/join")
     vi.doUnmock("@/lib/customer/card")
     vi.doUnmock("@/lib/customer/reward")
-    vi.doUnmock("@/lib/customer/stamp-code")
+    vi.doUnmock("@/lib/customer/stamp")
+    vi.doUnmock("@/lib/customer/identity")
     vi.doUnmock("@/lib/auth/session")
     vi.doUnmock("@/components/customer/join-forms")
-    vi.doUnmock("@/components/customer/stamp-code-panel")
+    vi.doUnmock("@/components/customer/self-service-forms")
     vi.doUnmock("next/navigation")
   })
 
-  it("preserves customer, staff, and reward form/action contracts after the mobile redesign", () => {
+  it("preserves customer self-service form and action contracts after the mobile redesign", () => {
     const joinForms = readProjectFile("components/customer/join-forms.tsx")
     const joinActions = readProjectFile("app/m/[merchantSlug]/join/actions.ts")
     const rewardPage = readProjectFile("app/reward/[rewardId]/page.tsx")
-    const stationConsole = readProjectFile(
-      "components/staff/station-console.tsx"
+    const experience = readProjectFile(
+      "components/customer/customer-card-experience.tsx"
     )
-    const staffActions = readProjectFile("app/staff/actions.ts")
+    const stampActions = readProjectFile("app/card/[membershipId]/actions.ts")
+    const rewardActions = readProjectFile("app/reward/[rewardId]/actions.ts")
+    const selfServiceForms = readProjectFile(
+      "components/customer/self-service-forms.tsx"
+    )
 
-    for (const field of [
-      "merchantSlug",
-      "qrId",
-      "contact",
-      "otp",
-    ]) {
+    for (const field of ["merchantSlug", "qrId", "contact", "otp"]) {
       expect(joinForms).toContain(`name="${field}"`)
       expect(joinActions).toContain(`value(formData, "${field}")`)
     }
@@ -107,71 +130,74 @@ describe("03 customer micro-specs", () => {
       expect(joinActions).toContain(`formData.get("${checkbox}")`)
     }
 
-    // Redemption shows a short-lived code; the customer device never
-    // collects a staff PIN.
-    expect(rewardPage).toContain("StampCodePanel")
-    expect(rewardPage).toContain("createRedeemCode")
-    expect(rewardPage).toContain(`kind="redeem"`)
-    expect(rewardPage).not.toContain(`name="pin"`)
+    expect(experience).toContain("SelfServiceRedeemForm")
+    expect(rewardActions).toContain("selfRedeemAction")
+    expect(rewardActions).toContain("redeemSelfServiceReward")
+    expect(experience).not.toContain(`name="pin"`)
 
-    // Staff PINs exist only on the paired station, to start a named session.
-    expect(stationConsole).toContain(`name="pin"`)
-    expect(stationConsole).toContain(`type="password"`)
-    expect(stationConsole).toContain(`inputMode="numeric"`)
-    expect(stationConsole).toContain(`name="code"`)
-    expect(staffActions).toContain(`value(formData, "code")`)
-    expect(staffActions).toContain(`value(formData, "pairingCode")`)
-    expect(staffActions).toContain("startStaffSession")
-    expect(staffActions).toContain("approveStamp")
-    expect(staffActions).toContain("redeemRewardToken")
-    expect(staffActions).toContain("undoStamp")
+    expect(stampActions).toContain("selfStampAction")
+    expect(stampActions).toContain("issueSelfServiceStamp")
+    expect(stampActions).toContain("Scan the venue code to add your stamp.")
+
+    for (const field of ["membershipId", "qrId", "latitude", "longitude"]) {
+      expect(selfServiceForms).toContain(`name="${field}"`)
+    }
+    expect(selfServiceForms).toContain("navigator.geolocation")
   })
 
-  it("keeps customer and staff pages mobile-first with loyalty primitives and safe state copy", () => {
+  it("keeps customer pages mobile-first with loyalty primitives and safe state copy", () => {
     const landingPage = readProjectFile("app/m/[merchantSlug]/page.tsx")
     const joinPage = readProjectFile("app/m/[merchantSlug]/join/page.tsx")
     const cardPage = readProjectFile("app/card/[membershipId]/page.tsx")
+    const stampPage = readProjectFile("app/card/[membershipId]/stamp/page.tsx")
     const rewardPage = readProjectFile("app/reward/[rewardId]/page.tsx")
-    const stationPage = readProjectFile("app/staff/page.tsx")
-    const stampRedirectPage = readProjectFile("app/staff/stamp/page.tsx")
     const qrPage = readProjectFile("app/q/[qrId]/page.tsx")
-    const termsPage = readProjectFile("app/merchant/[merchantSlug]/terms/page.tsx")
+    const termsPage = readProjectFile(
+      "app/merchant/[merchantSlug]/terms/page.tsx"
+    )
+    // Card / stamp / reward routes are thin wrappers; their UI + copy live in the
+    // shared experience layer. The join route wraps the join wizard.
+    const experience = readProjectFile(
+      "components/customer/customer-card-experience.tsx"
+    )
+    const joinWizard = readProjectFile("components/customer/join-wizard.tsx")
+    const copy = readProjectFile("lib/customer/experience/copy.ts")
+    const loadStamp = readProjectFile("lib/customer/experience/load-stamp.ts")
 
-    expect(landingPage).toContain("CustomerShell")
+    expect(landingPage).toContain("CustomerFlowShell")
     expect(landingPage).toContain("getMerchantJoinContext")
     expect(landingPage).toContain("No app loyalty")
     expect(landingPage).toContain("`/m/${merchantSlug}/join`")
     expect(landingPage).toContain("`/merchant/${merchantSlug}/terms`")
 
-    expect(joinPage).toContain("CustomerShell")
-    expect(joinPage).toContain("StampGrid")
-    expect(joinPage).toContain("ProgressTrack")
-    expect(joinPage).toContain("This loyalty card is unavailable")
-    expect(joinPage).toContain("Ask a team member for the current loyalty QR.")
-    expect(joinPage).toContain("Open your stamp card")
+    expect(joinPage).toContain("JoinWizard")
+    expect(joinWizard).toContain("CustomerFlowShell")
+    expect(joinWizard).toContain("CustomerStampCard")
+    expect(joinWizard).toContain("This loyalty card is unavailable")
+    expect(joinWizard).toContain("Ask a team member for the current loyalty QR.")
+    expect(copy).toContain("Open your stamp card")
 
-    expect(cardPage).toContain("CustomerShell")
-    expect(cardPage).toContain("StampGrid")
-    expect(cardPage).toContain("ProgressTrack")
-    expect(cardPage).toContain("RewardTeaser")
-    expect(cardPage).toContain("Stamp added.")
-    expect(cardPage).toContain("Get today&apos;s stamp")
-    expect(cardPage).toContain("Redeem reward")
+    expect(cardPage).toContain("CustomerCardExperience")
+    expect(experience).toContain("CustomerFlowShell")
+    expect(experience).toContain("CustomerStampCard")
+    expect(experience).toContain("Stamp added.")
+    expect(experience).toContain("Scan the venue code to add your stamp.")
+    expect(experience).toContain("Redeem reward")
 
-    expect(rewardPage).toContain("CustomerShell")
-    expect(rewardPage).toContain("RewardTeaser")
-    expect(rewardPage).toContain(
-      "Come back from the next UK business day to redeem this reward."
-    )
-    expect(rewardPage).toContain("Ready to redeem.")
+    expect(experience).toContain("SelfServiceStampForm")
+    expect(loadStamp).toContain("getMembershipLocationRequirement")
+    // A ready reward routes to redeem instead of letting a tap hit a block.
+    expect(loadStamp).toContain("isRedeemableFrom")
+    expect(stampPage).toContain("/reward/")
 
-    expect(stationPage).toContain("StaffShell")
-    expect(stationPage).toContain("getStationState")
-    expect(stationPage).toContain("Pair this station")
-    expect(stampRedirectPage).toContain(`redirect("/staff")`)
+    expect(experience).toContain("RewardTeaser")
+    expect(experience).toContain("Give it a day to breathe")
+    expect(experience).toContain("Ready to redeem.")
+    expect(experience).toContain("SelfServiceRedeemForm")
 
     expect(qrPage).toContain("This loyalty card is unavailable")
     expect(qrPage).toContain("Ask a team member for the current loyalty QR.")
+    expect(qrPage).toContain("/stamp?qr=")
     expect(qrPage).not.toContain("throw error")
 
     for (const topic of [
@@ -216,19 +242,19 @@ describe("03 customer micro-specs", () => {
         },
       })),
     }))
-    const { default: MerchantRewardsPage } = await import(
-      "@/app/m/[merchantSlug]/page"
-    )
+    const { default: MerchantRewardsPage } =
+      await import("@/app/m/[merchantSlug]/page")
 
     const output = await MerchantRewardsPage({
       params: Promise.resolve({ merchantSlug: "bean-and-batch" }),
     })
     const renderedText = normalizeText(output)
 
-    expect(renderedText).toContain("Bean & Batch Rewards")
-    expect(renderedText).toContain("Morning visits")
-    expect(renderedText).toContain("3")
-    expect(renderedText).toContain("Join rewards")
+    expect(renderedText).toContain("Collect your stamp")
+    expect(renderedText).toContain("Collect stamps")
+    expect(renderedText).toContain("Mystery reward")
+    expect(renderedText).toContain("Example · 2 of 3")
+    expect(renderedText).toContain("Collect my stamp")
     expect(renderedText).toContain("View reward terms")
   })
 
@@ -238,9 +264,7 @@ describe("03 customer micro-specs", () => {
       CustomerIdentityForm: () => null,
       CustomerJoinForm: () => null,
     }))
-    vi.doMock("@/lib/auth/session", () => ({
-      getCurrentUser: vi.fn(async () => ({ id: "user-1" })),
-    }))
+    mockCurrentCustomer()
     vi.doMock("@/lib/customer/join", () => ({
       getMerchantJoinContext: vi.fn(async () => ({
         available: true,
@@ -266,9 +290,8 @@ describe("03 customer micro-specs", () => {
         total_rewards_redeemed: 0,
       })),
     }))
-    const { default: MerchantJoinPage } = await import(
-      "@/app/m/[merchantSlug]/join/page"
-    )
+    const { default: MerchantJoinPage } =
+      await import("@/app/m/[merchantSlug]/join/page")
 
     const output = await MerchantJoinPage({
       params: Promise.resolve({ merchantSlug: "bean-and-batch" }),
@@ -310,9 +333,8 @@ describe("03 customer micro-specs", () => {
         billingStatus: "active",
       })),
     }))
-    const { default: CustomerCardPage } = await import(
-      "@/app/card/[membershipId]/page"
-    )
+    const { default: CustomerCardPage } =
+      await import("@/app/card/[membershipId]/page")
 
     const cardOutput = await CustomerCardPage({
       params: Promise.resolve({ membershipId: "membership-1" }),
@@ -324,14 +346,20 @@ describe("03 customer micro-specs", () => {
     expect(cardText).toContain("2")
     expect(cardText).toContain("3")
     expect(cardText).toContain("Mystery reward")
-    expect(cardText).toContain("Get today's stamp")
+    // A freshly issued stamp confirms itself — it must not also prompt another
+    // scan, which read as a failure (audit: success/scan contradiction).
+    expect(cardText).toContain("Stamp secured.")
+    expect(cardText).not.toContain("Scan the venue code to add your stamp.")
 
     vi.resetModules()
-    vi.doMock("@/components/customer/stamp-code-panel", () => ({
-      StampCodePanel: () => "CODE PANEL",
+    vi.doMock("@/components/customer/self-service-forms", () => ({
+      SelfServiceRedeemForm: () => "REDEEM FORM",
     }))
-    vi.doMock("@/lib/customer/stamp-code", () => ({
-      createRedeemCode: vi.fn(),
+    vi.doMock("@/lib/customer/stamp", () => ({
+      getRewardLocationRequirement: vi.fn(async () => ({
+        requireGeofence: false,
+        geofenceRadiusMeters: 150,
+      })),
     }))
     vi.doMock("@/lib/customer/reward", () => ({
       getCustomerRewardState: vi.fn(async () => ({
@@ -373,15 +401,14 @@ describe("03 customer micro-specs", () => {
     const { default: RewardPage } = await import("@/app/reward/[rewardId]/page")
     const rewardOutput = await RewardPage({
       params: Promise.resolve({ rewardId: "reward-1" }),
+      searchParams: Promise.resolve({}),
     })
     const rewardText = normalizeText(rewardOutput)
 
     expect(rewardText).toContain("Cake slice")
-    expect(rewardText).toContain(
-      "Come back from the next UK business day to redeem this reward."
-    )
+    expect(rewardText).toContain("Give it a day to breathe")
     expect(rewardText).toContain("Return to card")
-    expect(rewardText).not.toContain("CODE PANEL")
+    expect(rewardText).not.toContain("REDEEM FORM")
   })
 
   it("renders merchant-specific terms with the safe contact fallback", async () => {
@@ -407,9 +434,8 @@ describe("03 customer micro-specs", () => {
         },
       })),
     }))
-    const { default: MerchantTermsPage } = await import(
-      "@/app/merchant/[merchantSlug]/terms/page"
-    )
+    const { default: MerchantTermsPage } =
+      await import("@/app/merchant/[merchantSlug]/terms/page")
 
     const output = await MerchantTermsPage({
       params: Promise.resolve({ merchantSlug: "bean-and-batch" }),
@@ -418,39 +444,47 @@ describe("03 customer micro-specs", () => {
 
     expect(renderedText).toContain("Bean & Batch loyalty terms")
     expect(renderedText).toContain("Ask the venue team")
-    expect(renderedText).toContain("Join rewards")
+    expect(renderedText).toContain("Close")
     expect(renderedText).toContain("Privacy notice")
 
-    // Counter-handshake redemption (MS-06/MS-07): the customer keeps their
-    // phone and shows a code; staff confirm on the paired station. The venue
-    // PIN exists only for staff to start a named station session, so it must
-    // never appear to the customer as the reward-confirmation mechanic.
+    expect(renderedText).not.toContain("Join rewards")
     expect(renderedText).not.toContain(["venue", "PIN"].join(" "))
-    expect(renderedText).toContain("staff confirm it on their station")
+    expect(renderedText).toContain("Tap redeem from your reward page")
   })
 
   it("rejects invalid customer identity input before sending OTP", async () => {
     vi.resetModules()
     vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
-    vi.doMock("@/lib/env/server", () => ({
-      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://nabaperks.test" }),
+    vi.doMock("next/headers", () => ({
+      headers: vi.fn(async () => new Headers({ "x-vercel-ip-country": "GB" })),
     }))
-    vi.doMock("@/lib/security/rate-limit", async () => {
-      const actual = await vi.importActual<typeof import("@/lib/security/rate-limit")>(
-        "@/lib/security/rate-limit"
-      )
-      return actual
+    vi.doMock("@/lib/security/rate-limit", () => {
+      class RateLimitError extends Error {}
+
+      return {
+        enforceRateLimit: vi.fn(async () => undefined),
+        RateLimitError,
+      }
     })
-    vi.doMock("@/lib/supabase/server", () => ({
-      createSupabaseServerClient: vi.fn(),
+    vi.doMock("@/lib/customer/verification", () => ({
+      checkCustomerPhoneVerification: vi.fn(),
+      startCustomerPhoneVerification: vi.fn(),
     }))
-    vi.doMock("@/lib/auth/session", () => ({ getCurrentUser: vi.fn() }))
+    vi.doMock("@/lib/customer/session", () => ({
+      clearPendingPhoneVerification: vi.fn(),
+      getPendingPhoneVerification: vi.fn(),
+      setCustomerSession: vi.fn(),
+      setPendingPhoneVerification: vi.fn(),
+    }))
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: vi.fn(() => createSupabaseMock().client),
+    }))
+    mockCurrentCustomer()
     vi.doMock("@/lib/analytics/events", () => ({
       capturePostHogEvent: vi.fn(),
     }))
-    const { requestCustomerIdentityAction } = await import(
-      "@/app/m/[merchantSlug]/join/actions"
-    )
+    const { requestCustomerIdentityAction } =
+      await import("@/app/m/[merchantSlug]/join/actions")
 
     await expect(
       requestCustomerIdentityAction(
@@ -458,42 +492,36 @@ describe("03 customer micro-specs", () => {
         form({ contact: "not-contact", merchantSlug: "the-bell", qrId: "qr-1" })
       )
     ).resolves.toMatchObject({
-      errors: { contact: "Enter an email address or E.164 phone number." },
+      errors: { contact: "Enter a valid phone number." },
     })
   })
 
-  it("sends email OTP with an own-domain join return URL", async () => {
+  it("rejects email identity because customer join is phone-only", async () => {
     vi.resetModules()
-    vi.doUnmock("@/lib/security/rate-limit")
-    vi.doUnmock("@/lib/supabase/server")
-    const signInWithOtp = vi.fn(
-      async (payload: {
-        email?: string
-        phone?: string
-        options?: { emailRedirectTo?: string }
-      }) => {
-        void payload
-        return { error: null }
-      }
-    )
-    const supabase = createSupabaseMock({
-      auth: { signInWithOtp },
-    })
+    const startCustomerPhoneVerification = vi.fn()
     vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
-    vi.doMock("@/lib/env/server", () => ({
-      getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://nabaperks.test" }),
+    vi.doMock("next/headers", () => ({
+      headers: vi.fn(async () => new Headers({ "x-vercel-ip-country": "GB" })),
+    }))
+    vi.doMock("@/lib/customer/verification", () => ({
+      checkCustomerPhoneVerification: vi.fn(),
+      startCustomerPhoneVerification,
+    }))
+    vi.doMock("@/lib/customer/session", () => ({
+      clearPendingPhoneVerification: vi.fn(),
+      getPendingPhoneVerification: vi.fn(),
+      setCustomerSession: vi.fn(),
+      setPendingPhoneVerification: vi.fn(),
     }))
     vi.doMock("@/lib/supabase/server", () => ({
-      createSupabaseServerClient: vi.fn(async () => supabase.client),
       createSupabaseServiceRoleClient: vi.fn(() => createSupabaseMock().client),
     }))
-    vi.doMock("@/lib/auth/session", () => ({ getCurrentUser: vi.fn() }))
+    mockCurrentCustomer()
     vi.doMock("@/lib/analytics/events", () => ({
       capturePostHogEvent: vi.fn(),
     }))
-    const { requestCustomerIdentityAction } = await import(
-      "@/app/m/[merchantSlug]/join/actions"
-    )
+    const { requestCustomerIdentityAction } =
+      await import("@/app/m/[merchantSlug]/join/actions")
 
     await expect(
       requestCustomerIdentityAction(
@@ -505,30 +533,81 @@ describe("03 customer micro-specs", () => {
         })
       )
     ).resolves.toMatchObject({
-      message: "Check your email to continue joining rewards.",
+      errors: { contact: "Enter a valid phone number." },
     })
-    expect(signInWithOtp).toHaveBeenCalledWith({
-      email: "guest@example.test",
-      options: {
-        emailRedirectTo: expect.stringContaining(
-          "https://nabaperks.test/auth/confirm?next="
-        ),
-      },
+    expect(startCustomerPhoneVerification).not.toHaveBeenCalled()
+  })
+
+  it("normalizes a UK mobile to E.164 before starting Twilio Verify", async () => {
+    vi.resetModules()
+    const startCustomerPhoneVerification = vi.fn(async () => ({
+      status: "sent",
+    }))
+    const setPendingPhoneVerification = vi.fn(async () => {})
+    vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
+    vi.doMock("next/headers", () => ({
+      headers: vi.fn(async () => new Headers({ "x-vercel-ip-country": "GB" })),
+    }))
+    vi.doMock("@/lib/security/rate-limit", () => {
+      class RateLimitError extends Error {}
+
+      return {
+        enforceRateLimit: vi.fn(async () => undefined),
+        RateLimitError,
+      }
     })
-    const otpPayload = signInWithOtp.mock.calls[0]?.[0]
-    expect(otpPayload?.options?.emailRedirectTo).toContain(
-      encodeURIComponent("/m/the-bell/join?qr=qr-public")
+    vi.doMock("@/lib/customer/verification", () => ({
+      checkCustomerPhoneVerification: vi.fn(),
+      startCustomerPhoneVerification,
+    }))
+    vi.doMock("@/lib/customer/session", () => ({
+      clearPendingPhoneVerification: vi.fn(),
+      getPendingPhoneVerification: vi.fn(),
+      setCustomerSession: vi.fn(),
+      setPendingPhoneVerification,
+    }))
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: vi.fn(() => createSupabaseMock().client),
+    }))
+    mockCurrentCustomer()
+    vi.doMock("@/lib/analytics/events", () => ({
+      capturePostHogEvent: vi.fn(),
+    }))
+    const { requestCustomerIdentityAction } =
+      await import("@/app/m/[merchantSlug]/join/actions")
+
+    await expect(
+      requestCustomerIdentityAction(
+        {},
+        form({
+          contact: "07400 123456",
+          merchantSlug: "the-bell",
+          qrId: "qr-public",
+        })
+      )
+    ).resolves.toMatchObject({
+      fields: { contact: "+447400123456", phoneOtpSent: true },
+      message: "Enter the verification code sent to your phone.",
+    })
+    expect(startCustomerPhoneVerification).toHaveBeenCalledWith("+447400123456")
+    expect(setPendingPhoneVerification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        purpose: "join",
+        phone: "+447400123456",
+        country: "GB",
+      })
     )
   })
 
   it("requires verified identity and loyalty terms before joining rewards", async () => {
     vi.resetModules()
     vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
-    vi.doMock("@/lib/auth/session", () => ({
-      getCurrentUser: vi.fn(async () => null),
+    vi.doMock("@/lib/customer/identity", () => ({
+      getCurrentCustomer: vi.fn(async () => null),
+      getOrCreateCustomerByVerifiedPhone: vi.fn(),
     }))
     vi.doMock("@/lib/supabase/server", () => ({
-      createSupabaseServerClient: vi.fn(),
+      createSupabaseServiceRoleClient: vi.fn(() => createSupabaseMock().client),
     }))
     vi.doMock("@/lib/env/server", () => ({
       getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://nabaperks.test" }),
@@ -536,14 +615,13 @@ describe("03 customer micro-specs", () => {
     vi.doMock("@/lib/analytics/events", () => ({
       capturePostHogEvent: vi.fn(),
     }))
-    const { joinRewardsAction } = await import(
-      "@/app/m/[merchantSlug]/join/actions"
-    )
+    const { joinRewardsAction } =
+      await import("@/app/m/[merchantSlug]/join/actions")
 
     await expect(
       joinRewardsAction({}, form({ merchantSlug: "the-bell" }))
     ).resolves.toEqual({
-      errors: { form: "Verify your email or phone before joining." },
+      errors: { form: "Verify your phone before joining." },
     })
   })
 
@@ -553,25 +631,34 @@ describe("03 customer micro-specs", () => {
     const capturePostHogEvent = vi.fn()
     const supabase = createSupabaseMock({
       rpc: {
-        join_customer_membership: [
-          { data: [{ membership_id: "membership-1" }], error: null },
+        join_customer_membership_with_first_stamp: [
+          {
+            data: [
+              {
+                membership_id: "membership-1",
+                created_membership: true,
+                first_stamp_issued: true,
+                new_stamp_count: 1,
+                reward_unlocked: false,
+                geo_flagged: false,
+              },
+            ],
+            error: null,
+          },
         ],
       },
     })
     vi.doMock("next/navigation", () => ({ redirect }))
-    vi.doMock("@/lib/auth/session", () => ({
-      getCurrentUser: vi.fn(async () => ({ id: "customer-user-1" })),
-    }))
+    mockCurrentCustomer()
     vi.doMock("@/lib/supabase/server", () => ({
-      createSupabaseServerClient: vi.fn(async () => supabase.client),
+      createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
     }))
     vi.doMock("@/lib/env/server", () => ({
       getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://nabaperks.test" }),
     }))
     vi.doMock("@/lib/analytics/events", () => ({ capturePostHogEvent }))
-    const { joinRewardsAction } = await import(
-      "@/app/m/[merchantSlug]/join/actions"
-    )
+    const { joinRewardsAction } =
+      await import("@/app/m/[merchantSlug]/join/actions")
 
     await expect(
       joinRewardsAction(
@@ -583,20 +670,24 @@ describe("03 customer micro-specs", () => {
           marketingOptIn: true,
         })
       )
-    ).rejects.toThrow("NEXT_REDIRECT:/card/membership-1")
+    ).rejects.toThrow("NEXT_REDIRECT:/card/membership-1?welcome=1&stamp=issued")
     expect(supabase.rpcCalls[0]).toEqual({
-      name: "join_customer_membership",
+      name: "join_customer_membership_with_first_stamp",
       params: {
+        p_customer_id: "customer-1",
         p_merchant_slug: "the-bell",
         p_qr_id: "qr-public",
         p_marketing_opt_in: true,
         p_policy_version: "2026-06-06",
+        p_latitude: null,
+        p_longitude: null,
       },
     })
     expect(capturePostHogEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         eventName: "customer_joined",
         membershipId: "membership-1",
+        actorId: "customer-1",
         metadata: {
           merchant_slug: "the-bell",
           marketing_opt_in: true,
@@ -609,7 +700,7 @@ describe("03 customer micro-specs", () => {
     vi.resetModules()
     const supabase = createSupabaseMock({
       rpc: {
-        join_customer_membership: [
+        join_customer_membership_with_first_stamp: [
           {
             data: null,
             error: { message: "internal Supabase policy detail" },
@@ -618,18 +709,15 @@ describe("03 customer micro-specs", () => {
       },
     })
     vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
-    vi.doMock("@/lib/auth/session", () => ({
-      getCurrentUser: vi.fn(async () => ({ id: "customer-user-1" })),
-    }))
+    mockCurrentCustomer()
     vi.doMock("@/lib/supabase/server", () => ({
-      createSupabaseServerClient: vi.fn(async () => supabase.client),
+      createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
     }))
     vi.doMock("@/lib/analytics/events", () => ({
       capturePostHogEvent: vi.fn(),
     }))
-    const { joinRewardsAction } = await import(
-      "@/app/m/[merchantSlug]/join/actions"
-    )
+    const { joinRewardsAction } =
+      await import("@/app/m/[merchantSlug]/join/actions")
 
     await expect(
       joinRewardsAction(
@@ -684,9 +772,9 @@ describe("03 customer micro-specs", () => {
       },
     })
     vi.doMock("@/lib/security/rate-limit", async () => {
-      const actual = await vi.importActual<typeof import("@/lib/security/rate-limit")>(
-        "@/lib/security/rate-limit"
-      )
+      const actual = await vi.importActual<
+        typeof import("@/lib/security/rate-limit")
+      >("@/lib/security/rate-limit")
       return actual
     })
     vi.doMock("@/lib/supabase/server", () => ({
@@ -748,9 +836,9 @@ describe("03 customer micro-specs", () => {
       },
     })
     vi.doMock("@/lib/security/rate-limit", async () => {
-      const actual = await vi.importActual<typeof import("@/lib/security/rate-limit")>(
-        "@/lib/security/rate-limit"
-      )
+      const actual = await vi.importActual<
+        typeof import("@/lib/security/rate-limit")
+      >("@/lib/security/rate-limit")
       return actual
     })
     vi.doMock("@/lib/supabase/server", () => ({
@@ -826,9 +914,9 @@ describe("03 customer micro-specs", () => {
       },
     })
     vi.doMock("@/lib/security/rate-limit", async () => {
-      const actual = await vi.importActual<typeof import("@/lib/security/rate-limit")>(
-        "@/lib/security/rate-limit"
-      )
+      const actual = await vi.importActual<
+        typeof import("@/lib/security/rate-limit")
+      >("@/lib/security/rate-limit")
       return actual
     })
     vi.doMock("@/lib/supabase/server", () => ({
@@ -836,9 +924,8 @@ describe("03 customer micro-specs", () => {
     }))
     vi.doMock("@/lib/auth/session", () => ({ getCurrentUser: vi.fn() }))
     vi.doMock("@/lib/analytics/events", () => ({ recordProductEvent }))
-    const { getMerchantJoinContext, resolveQrForJoin } = await import(
-      "@/lib/customer/join"
-    )
+    const { getMerchantJoinContext, resolveQrForJoin } =
+      await import("@/lib/customer/join")
 
     await expect(resolveQrForJoin("qr-public")).resolves.toMatchObject({
       available: true,
@@ -902,7 +989,6 @@ describe("03 customer micro-specs", () => {
               customer_id: "customer-1",
               current_stamp_count: 3,
               total_rewards_redeemed: 1,
-              customers: { auth_user_id: "user-1" },
               merchants: {
                 business_name: "The Bell",
                 business_slug: "the-bell",
@@ -942,9 +1028,7 @@ describe("03 customer micro-specs", () => {
         billing_customers: [{ data: { status: "active" }, error: null }],
       },
     })
-    vi.doMock("@/lib/auth/session", () => ({
-      getCurrentUser: vi.fn(async () => ({ id: "user-1" })),
-    }))
+    mockCurrentCustomer()
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
     }))
@@ -975,7 +1059,6 @@ describe("03 customer micro-specs", () => {
               customer_id: "customer-1",
               current_stamp_count: 0,
               total_rewards_redeemed: 1,
-              customers: { auth_user_id: "user-1" },
               merchants: {
                 business_name: "The Bell",
                 business_slug: "the-bell",
@@ -1003,9 +1086,7 @@ describe("03 customer micro-specs", () => {
         billing_customers: [{ data: { status: "active" }, error: null }],
       },
     })
-    vi.doMock("@/lib/auth/session", () => ({
-      getCurrentUser: vi.fn(async () => ({ id: "user-1" })),
-    }))
+    mockCurrentCustomer()
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
     }))
@@ -1038,10 +1119,10 @@ describe("03 customer micro-specs", () => {
               created_at: "2026-06-06T12:00:00.000Z",
               redeemed_at: null,
               reward_name: "Cake slice",
-              reward_terms: "Valid on one cake slice from the next business day.",
+              reward_terms:
+                "Valid on one cake slice from the next business day.",
               min_spend_pence: 500,
               redeemable_from: "2026-06-08",
-              customers: { auth_user_id: "user-1" },
               customer_memberships: {
                 current_stamp_count: 3,
                 total_rewards_redeemed: 0,
@@ -1067,9 +1148,7 @@ describe("03 customer micro-specs", () => {
         billing_customers: [{ data: { status: "active" }, error: null }],
       },
     })
-    vi.doMock("@/lib/auth/session", () => ({
-      getCurrentUser: vi.fn(async () => ({ id: "user-1" })),
-    }))
+    mockCurrentCustomer()
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
     }))
@@ -1096,8 +1175,7 @@ describe("03 customer micro-specs", () => {
     vi.resetModules()
     const supabase = createSupabaseMock({
       rpc: {
-        enforce_rate_limit: [{ data: null, error: null }],
-        create_verification_token: [
+        redeem_self_service_reward: [
           {
             data: null,
             error: {
@@ -1108,18 +1186,38 @@ describe("03 customer micro-specs", () => {
         ],
       },
     })
+    mockCurrentCustomer()
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServerClient: vi.fn(async () => supabase.client),
       createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
     }))
-    const { createRedeemCode } = await import("@/lib/customer/stamp-code")
+    const { redeemSelfServiceReward } = await import("@/lib/customer/stamp")
 
-    await expect(
-      createRedeemCode("membership-1", "reward-1")
-    ).resolves.toEqual({
+    await expect(redeemSelfServiceReward("reward-1")).resolves.toEqual({
       status: "blocked",
       reason:
-        "Give it a day to breathe — redeemable from the next UK business day.",
+        "Give it a day to breathe - redeemable from the next UK business day.",
     })
+  })
+})
+
+describe("normalizeUkPhone", () => {
+  it("converts the UK shapes customers type into E.164", async () => {
+    const { normalizeUkPhone } = await import("@/lib/customer/phone")
+
+    expect(normalizeUkPhone("07400123456")).toBe("+447400123456")
+    expect(normalizeUkPhone("07400 123 456")).toBe("+447400123456")
+    expect(normalizeUkPhone("(07400) 123-456")).toBe("+447400123456")
+    expect(normalizeUkPhone("447400123456")).toBe("+447400123456")
+    expect(normalizeUkPhone("7400123456")).toBe("+447400123456")
+  })
+
+  it("leaves E.164 input and unrecognized input for the caller to validate", async () => {
+    const { normalizeUkPhone } = await import("@/lib/customer/phone")
+
+    expect(normalizeUkPhone("+447400123456")).toBe("+447400123456")
+    expect(normalizeUkPhone("+15551234567")).toBe("+15551234567")
+    expect(normalizeUkPhone("not-a-number")).toBe("notanumber")
+    expect(normalizeUkPhone("0770090")).toBe("0770090")
   })
 })

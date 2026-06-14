@@ -1,6 +1,6 @@
 import "server-only"
 
-import { getCurrentUser } from "@/lib/auth/session"
+import { getCurrentCustomer } from "@/lib/customer/identity"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type CustomerRewardState =
@@ -57,11 +57,6 @@ type RawReward = {
   reward_terms: string
   min_spend_pence: number | null
   redeemable_from: string | null
-  customers:
-    | { auth_user_id: string }
-    | Array<{
-        auth_user_id: string
-      }>
   customer_memberships:
     | {
         current_stamp_count: number
@@ -104,15 +99,15 @@ type RawReward = {
 export async function getCustomerRewardState(
   rewardId: string
 ): Promise<CustomerRewardState> {
-  const user = await getCurrentUser()
+  const currentCustomer = await getCurrentCustomer()
 
-  if (!user) return { status: "unauthenticated" }
+  if (!currentCustomer) return { status: "unauthenticated" }
 
   const supabase = createSupabaseServiceRoleClient()
   const { data, error } = await supabase
     .from("reward_events")
     .select(
-      "id, status, membership_id, merchant_id, customer_id, created_at, redeemed_at, reward_name, reward_terms, min_spend_pence, redeemable_from, customers(auth_user_id), customer_memberships!reward_events_membership_id_fkey(current_stamp_count, total_rewards_redeemed), merchants(business_name, business_slug, status), loyalty_cards(card_name, stamps_required, reward_name, reward_terms, min_spend_pence, is_active)"
+      "id, status, membership_id, merchant_id, customer_id, created_at, redeemed_at, reward_name, reward_terms, min_spend_pence, redeemable_from, customer_memberships!reward_events_membership_id_fkey(current_stamp_count, total_rewards_redeemed), merchants(business_name, business_slug, status), loyalty_cards(card_name, stamps_required, reward_name, reward_terms, min_spend_pence, is_active)"
     )
     .eq("id", rewardId)
     .maybeSingle()
@@ -124,12 +119,11 @@ export async function getCustomerRewardState(
   if (!data) return { status: "not_found" }
 
   const reward = data as RawReward
-  const customer = first(reward.customers)
   const membership = first(reward.customer_memberships)
   const merchant = first(reward.merchants)
   const loyaltyCard = first(reward.loyalty_cards)
 
-  if (customer.auth_user_id !== user.id) {
+  if (reward.customer_id !== currentCustomer.id) {
     return { status: "unauthorized" }
   }
 

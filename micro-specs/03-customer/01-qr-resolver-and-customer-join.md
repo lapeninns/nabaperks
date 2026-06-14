@@ -11,7 +11,7 @@ In scope:
 - `/q/[qr_id]`
 - `/m/[merchant_slug]`
 - `/m/[merchant_slug]/join`
-- Customer auth/identity flow using Supabase Auth.
+- Customer phone identity flow using Twilio Verify and signed customer sessions.
 - `customers`, `customer_memberships`, and `consent_records` writes.
 - QR scan and customer join events.
 
@@ -25,7 +25,7 @@ Out of scope:
 
 ## Strict Constraints and Assumptions
 
-- Customer identity is email or phone-based through Supabase Auth.
+- Customer identity is phone-first. Customer OTP is sent and checked through Twilio Verify, then stored in a first-party signed customer session cookie.
 - Customers can join loyalty without accepting marketing.
 - The join flow must be fast and mobile-first.
 - Inactive QR or inactive card must not create a membership.
@@ -43,7 +43,7 @@ Out of scope:
 - WHEN a customer scans an active QR, THE resolver SHALL look up the QR record server-side.
 - WHEN a QR is inactive or unknown, THE resolver SHALL show that the loyalty card is unavailable.
 - WHEN an active QR is scanned, THE system SHALL record `qr_scanned`.
-- WHEN an unauthenticated customer reaches join, THE app SHALL request email or phone identity verification.
+- WHEN an unauthenticated customer reaches join, THE app SHALL request phone identity verification using the visitor IP country as the national-number parsing default and GB as fallback.
 - WHEN a customer accepts loyalty terms and completes identity verification, THE system SHALL create or reuse their customer profile and merchant membership.
 - WHEN the marketing opt-in checkbox is not selected, THE system SHALL create no opted-in marketing consent.
 - WHEN marketing opt-in is selected, THE system SHALL record consent with source and policy version.

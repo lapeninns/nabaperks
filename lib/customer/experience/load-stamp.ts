@@ -1,0 +1,153 @@
+import "server-only"
+
+import { getCustomerCardState } from "@/lib/customer/card"
+import { getStampQrContextForMembership } from "@/lib/customer/join"
+import { getMembershipLocationRequirement } from "@/lib/customer/stamp"
+import { isRedeemableFrom, ukTodayIso } from "@/lib/customer/uk-date"
+import { walletLoginHref } from "@/lib/navigation/safe-next-path"
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+
+import type { StampContext } from "./derive"
+
+const DEFAULT_LOCATION = { requireGeofence: false, geofenceRadiusMeters: 150 }
+
+/**
+ * Impure loader for the stamp route. Resolves card state, an unlocked reward (so
+ * a ready reward is routed to redeem instead of a confusing block), whether the
+ * customer is already stamped for the UK business day, and the scanned QR — then
+ * hands pure facts to {@link deriveCustomerExperience}.
+ */
+export async function loadStampExperienceContext(
+  membershipId: string,
+  qr: string | undefined
+): Promise<StampContext> {
+  const cardState = await getCustomerCardState(membershipId)
+
+  if (cardState.status !== "ready") {
+    return {
+      access: cardState.status,
+      recovery:
+        cardState.status === "unauthenticated"
+          ? {
+              loginHref: walletLoginHref(
+                `/card/${membershipId}/stamp${qr ? `?qr=${qr}` : ""}`
+              ),
+            }
+          : undefined,
+    }
+  }
+
+  const merchantName = cardState.merchant.business_name
+
+  if (cardState.unavailableReason) {
+    return {
+      unavailableReason: cardState.unavailableReason,
+      membershipId,
+      merchantName,
+      unlockedReward: null,
+      alreadyStampedToday: false,
+      qrValid: false,
+      qrMissing: !qr,
+      location: DEFAULT_LOCATION,
+    }
+  }
+
+  // An unlocked reward blocks new stamps until redeemed — surface it first so a
+  // tap routes to redeem (when redeemable) or a calm wait, never a block.
+  const unlocked = cardState.latestReward
+  if (unlocked && unlocked.status === "unlocked") {
+    return {
+      membershipId,
+      merchantName,
+      unlockedReward: {
+        rewardId: unlocked.id,
+        membershipId,
+        rewardName: unlocked.reward_name,
+        rewardTerms: unlocked.reward_terms,
+        minSpendPence: unlocked.min_spend_pence,
+        redeemableFrom: unlocked.redeemable_from,
+        redeemable: isRedeemableFrom(unlocked.redeemable_from),
+      },
+      alreadyStampedToday: false,
+      qrValid: false,
+      qrMissing: !qr,
+      location: DEFAULT_LOCATION,
+    }
+  }
+
+  if (await isStampedToday(membershipId)) {
+    return {
+      membershipId,
+      merchantName,
+      unlockedReward: null,
+      alreadyStampedToday: true,
+      qrValid: false,
+      qrMissing: !qr,
+      location: DEFAULT_LOCATION,
+    }
+  }
+
+  if (!qr) {
+    return {
+      membershipId,
+      merchantName,
+      unlockedReward: null,
+      alreadyStampedToday: false,
+      qrValid: false,
+      qrMissing: true,
+      location: DEFAULT_LOCATION,
+    }
+  }
+
+  const qrContext = await getStampQrContextForMembership(membershipId, qr)
+
+  if (!qrContext) {
+    return {
+      membershipId,
+      merchantName,
+      unlockedReward: null,
+      alreadyStampedToday: false,
+      qrValid: false,
+      qrMissing: false,
+      qrId: qr,
+      location: DEFAULT_LOCATION,
+    }
+  }
+
+  const location = await getMembershipLocationRequirement(membershipId)
+
+  return {
+    membershipId,
+    merchantName,
+    unlockedReward: null,
+    alreadyStampedToday: false,
+    qrValid: true,
+    qrMissing: false,
+    qrId: qrContext.qrId ?? qr,
+    location,
+  }
+}
+
+/** True when the membership already has an `earned` stamp for today's UK date. */
+async function isStampedToday(membershipId: string): Promise<boolean> {
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase
+    .from("stamp_events")
+    .select("earned_business_date")
+    .eq("membership_id", membershipId)
+    .eq("event_type", "earned")
+    .order("earned_business_date", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(`Unable to load latest stamp: ${error.message}`)
+  }
+
+  const latest =
+    data && typeof data.earned_business_date === "string"
+      ? data.earned_business_date
+      : null
+
+  return latest !== null && latest === ukTodayIso()
+}

@@ -1,7 +1,7 @@
 import "server-only"
 
-import { getCurrentUser } from "@/lib/auth/session"
 import { recordProductEvent } from "@/lib/analytics/events"
+import { getCurrentCustomer } from "@/lib/customer/identity"
 import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
@@ -197,22 +197,10 @@ export async function getMerchantJoinContext(
 }
 
 export async function getExistingMembershipForCurrentUser(merchantId: string) {
-  const user = await getCurrentUser()
-  if (!user) return null
-
-  const supabase = createSupabaseServiceRoleClient()
-  const { data: customer, error: customerError } = await supabase
-    .from("customers")
-    .select("id")
-    .eq("auth_user_id", user.id)
-    .maybeSingle()
-
-  if (customerError) {
-    throw new Error(`Unable to load customer profile: ${customerError.message}`)
-  }
-
+  const customer = await getCurrentCustomer()
   if (!customer) return null
 
+  const supabase = createSupabaseServiceRoleClient()
   const { data: membership, error: membershipError } = await supabase
     .from("customer_memberships")
     .select("id, current_stamp_count, total_rewards_redeemed")
@@ -225,6 +213,26 @@ export async function getExistingMembershipForCurrentUser(merchantId: string) {
   }
 
   return membership
+}
+
+export async function getStampQrContextForMembership(
+  membershipId: string,
+  qrId: string
+) {
+  const qrContext = await resolveQrForJoin(qrId, {
+    enforceScanRateLimit: false,
+    recordScan: false,
+  })
+
+  if (!qrContext || !qrContext.available) return null
+
+  const membership = await getExistingMembershipForCurrentUser(
+    qrContext.merchant.id
+  )
+
+  if (!membership || membership.id !== membershipId) return null
+
+  return qrContext
 }
 
 async function isMerchantBillingSuspended(merchantId: string) {

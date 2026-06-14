@@ -1,0 +1,67 @@
+import type { MetadataRoute } from "next"
+
+const iconPurpose = "any" as const
+const maskablePurpose = "maskable" as const
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: "Nabaperks",
+    short_name: "Nabaperks",
+    description:
+      "No-app digital loyalty cards and merchant tools for local businesses.",
+    start_url: "/",
+    scope: "/",
+    display: "standalone",
+    background_color: "#f6f1e6",
+    theme_color: "#e8430f",
+    icons: [
+      {
+        src: "/icons/nabaperks-icon-192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: iconPurpose,
+      },
+      {
+        src: "/icons/nabaperks-icon-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: iconPurpose,
+      },
+      {
+        src: "/icons/nabaperks-maskable-192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: maskablePurpose,
+      },
+      {
+        src: "/icons/nabaperks-maskable-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: maskablePurpose,
+      },
+    ],
+    shortcuts: [
+      {
+        name: "Customer wallet",
+        short_name: "Wallet",
+        description: "Open saved loyalty cards and rewards.",
+        url: "/wallet",
+        icons: [{ src: "/icons/nabaperks-icon-192.png", sizes: "192x192" }],
+      },
+      {
+        name: "Merchant console",
+        short_name: "Merchant",
+        description: "Open the merchant launch and customer readback tools.",
+        url: "/app",
+        icons: [{ src: "/icons/nabaperks-icon-192.png", sizes: "192x192" }],
+      },
+      {
+        name: "Admin console",
+        short_name: "Admin",
+        description: "Open internal Nabaperks support tools.",
+        url: "/admin",
+        icons: [{ src: "/icons/nabaperks-icon-192.png", sizes: "192x192" }],
+      },
+    ],
+  }
+}

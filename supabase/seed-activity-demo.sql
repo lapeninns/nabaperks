@@ -189,7 +189,6 @@ insert into public.stamp_events (
   location_id,
   event_type,
   stamps_delta,
-  approved_by_staff_id,
   earned_business_date,
   created_at
 )
@@ -203,7 +202,6 @@ values
     '11000000-0000-0000-0000-000000000001',
     'earned',
     1,
-    '12000000-0000-0000-0000-000000000001',
     public.uk_business_date(now() - interval '7 days'),
     now() - interval '7 days'
   ),
@@ -216,7 +214,6 @@ values
     '11000000-0000-0000-0000-000000000001',
     'earned',
     1,
-    '12000000-0000-0000-0000-000000000001',
     public.uk_business_date(now() - interval '10 days'),
     now() - interval '10 days'
   ),
@@ -229,7 +226,6 @@ values
     '11000000-0000-0000-0000-000000000001',
     'earned',
     1,
-    '12000000-0000-0000-0000-000000000001',
     public.uk_business_date(now() - interval '8 days'),
     now() - interval '8 days'
   ),
@@ -242,7 +238,6 @@ values
     '11000000-0000-0000-0000-000000000001',
     'earned',
     1,
-    '12000000-0000-0000-0000-000000000001',
     public.uk_business_date(now() - interval '6 days'),
     now() - interval '6 days'
   )
@@ -262,7 +257,6 @@ insert into public.reward_events (
   min_spend_pence,
   redeemable_from,
   status,
-  redeemed_by_staff_id,
   redeemed_at,
   created_at
 )
@@ -278,14 +272,12 @@ values (
   350,
   public.uk_business_date(now() - interval '5 days'),
   'redeemed',
-  '12000000-0000-0000-0000-000000000001',
   now() - interval '1 day',
   now() - interval '6 days'
 )
 on conflict (id) do update
 set status = excluded.status,
-    redeemed_at = excluded.redeemed_at,
-    redeemed_by_staff_id = excluded.redeemed_by_staff_id;
+    redeemed_at = excluded.redeemed_at;
 
 insert into public.consent_records (
   id,

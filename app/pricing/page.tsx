@@ -18,7 +18,7 @@ const planIncludes = [
   "Unlimited stamps and members",
   "Mystery reward pool — you pick the prizes",
   "Printed QR kit: A4 poster, till card, sticker",
-  "A paired counter station with named staff sessions",
+  "Optional soft GPS checks with geocoded venue address",
   "Weekly digest of visits, regulars, and redemptions",
 ]
 
@@ -29,7 +29,7 @@ const faqs = [
   },
   {
     q: "Do I need any hardware?",
-    a: "None for customers — they use their own phones. Staff approve from a paired counter station, which can be any spare tablet or phone in the venue, by confirming a short code. The only kit is printed paper, and we send print-ready files.",
+    a: "No. Customers use their own phones and the permanent printed QR kit. If you turn on GPS checks, the app uses the phone location as a soft fraud signal.",
   },
   {
     q: "Who owns the customer data?",
@@ -37,7 +37,7 @@ const faqs = [
   },
   {
     q: "What counts as a visit?",
-    a: "One stamp per customer per business day, confirmed by a staff member at the counter station. The customer shows a single-use code, so there is no drive-by stamping from the bus stop.",
+    a: "One stamp per customer per UK business day from the venue QR. Optional GPS checks can flag out-of-range or unavailable location without blocking legitimate customers.",
   },
   {
     q: "What if I want to cancel?",

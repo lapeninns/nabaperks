@@ -119,7 +119,6 @@ insert into public.stamp_events (
   location_id,
   event_type,
   stamps_delta,
-  approved_by_staff_id,
   earned_business_date,
   created_at
 )
@@ -133,7 +132,6 @@ values
     '11000000-0000-0000-0000-000000000001',
     'earned',
     1,
-    '12000000-0000-0000-0000-000000000001',
     public.uk_business_date(now() - interval '3 days'),
     now() - interval '3 days'
   ),
@@ -146,7 +144,6 @@ values
     '11000000-0000-0000-0000-000000000001',
     'earned',
     1,
-    '12000000-0000-0000-0000-000000000001',
     public.uk_business_date(now() - interval '1 day'),
     now() - interval '1 day'
   )

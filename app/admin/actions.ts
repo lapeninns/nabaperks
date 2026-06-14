@@ -200,9 +200,10 @@ export async function logPilotNoteAction(formData: FormData) {
   const merchantId = value(formData, "merchantId")
   const noteType = value(formData, "noteType")
   const notes = value(formData, "notes")
-  const trainingMinutesValue = value(formData, "trainingMinutes")
-  const trainingMinutes = trainingMinutesValue
-    ? Number.parseInt(trainingMinutesValue, 10)
+  const setupMinutesValue =
+    value(formData, "setupMinutes") || value(formData, "trainingMinutes")
+  const setupMinutes = setupMinutesValue
+    ? Number.parseInt(setupMinutesValue, 10)
     : null
 
   if (!merchantId) {
@@ -211,14 +212,11 @@ export async function logPilotNoteAction(formData: FormData) {
   requireValue(noteType, "Note type is required.")
   requireValue(notes, "Support notes are required.")
 
-  if (trainingMinutes !== null && Number.isNaN(trainingMinutes)) {
-    throw new Error("Training minutes must be a number.")
+  if (setupMinutes !== null && Number.isNaN(setupMinutes)) {
+    throw new Error("Setup check minutes must be a number.")
   }
-  if (
-    trainingMinutes !== null &&
-    (trainingMinutes < 1 || trainingMinutes > 3)
-  ) {
-    throw new Error("Training minutes must be between 1 and 3.")
+  if (setupMinutes !== null && (setupMinutes < 1 || setupMinutes > 3)) {
+    throw new Error("Setup check minutes must be between 1 and 3.")
   }
 
   const supabase = await createSupabaseServerClient()
@@ -226,7 +224,7 @@ export async function logPilotNoteAction(formData: FormData) {
     p_merchant_id: merchantId,
     p_note_type: noteType,
     p_notes: notes,
-    p_training_minutes: trainingMinutes,
+    p_training_minutes: setupMinutes,
   })
 
   assertAdminRpcSuccess(

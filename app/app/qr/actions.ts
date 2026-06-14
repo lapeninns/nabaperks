@@ -4,14 +4,10 @@ import { redirect } from "next/navigation"
 
 import { capturePostHogEvent } from "@/lib/analytics/events"
 import { getQrSetup } from "@/lib/merchant/qr-code"
-import { listStaffMembers } from "@/lib/merchant/staff-members"
-import { listStations } from "@/lib/merchant/stations"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 const QR_REWARD_POOL_ERROR =
   "Add at least one active mystery reward before launching the QR."
-const QR_STAFF_SETUP_ERROR =
-  "Add at least one staff member and active counter station before launching the QR."
 const QR_CREATE_ERROR = "Unable to create QR"
 const QR_UPDATE_ERROR = "Unable to update QR"
 
@@ -60,23 +56,6 @@ export async function setQrActiveAction(formData: FormData) {
 
   if (!merchant || typeof qrCodeId !== "string") {
     redirect(`/app/launch?tab=qr&error=${encodeURIComponent(QR_UPDATE_ERROR)}`)
-  }
-
-  if (nextActive) {
-    const [staffMembers, stations] = await Promise.all([
-      listStaffMembers(),
-      listStations(),
-    ])
-    const hasActiveStaff = staffMembers.some((member) => member.isActive)
-    const hasActiveStation = stations.some(
-      (station) => station.status === "active"
-    )
-
-    if (!hasActiveStaff || !hasActiveStation) {
-      redirect(
-        `/app/launch?tab=qr&error=${encodeURIComponent(QR_STAFF_SETUP_ERROR)}`
-      )
-    }
   }
 
   const supabase = await createSupabaseServerClient()

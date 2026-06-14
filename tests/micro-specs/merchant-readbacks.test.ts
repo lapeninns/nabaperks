@@ -344,8 +344,8 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
       href: "/app/customers?highlight=membership-1",
     })
     expect(activity.rows[0].secondaryAction).toEqual({
-      label: "Open staff station",
-      href: "/staff",
+      label: "Open QR setup",
+      href: "/app/launch?tab=qr",
     })
     expect(JSON.stringify(activity.rows)).not.toContain("/card/")
     expect(summarizeActivity(activity.rows).stamps).toBe(1)

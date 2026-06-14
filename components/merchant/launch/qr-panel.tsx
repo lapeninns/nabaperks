@@ -9,8 +9,6 @@ import { CopyUrlButton } from "@/components/merchant/copy-url-button"
 import { Button } from "@/components/ui/button"
 import { getServerEnv } from "@/lib/env/server"
 import { getQrSetup } from "@/lib/merchant/qr-code"
-import { listStaffMembers } from "@/lib/merchant/staff-members"
-import { listStations } from "@/lib/merchant/stations"
 
 export type QrPanelParams = {
   created?: string
@@ -20,11 +18,8 @@ export type QrPanelParams = {
 }
 
 export async function QrPanel({ params }: { params: QrPanelParams }) {
-  const [
-    { merchant, activeCard, activeRewardPoolItemCount, qrCode },
-    staffMembers,
-    stations,
-  ] = await Promise.all([getQrSetup(), listStaffMembers(), listStations()])
+  const { merchant, activeCard, activeRewardPoolItemCount, qrCode, location } =
+    await getQrSetup()
 
   if (!merchant) {
     redirect("/app/onboarding")
@@ -89,14 +84,11 @@ export async function QrPanel({ params }: { params: QrPanelParams }) {
 
   const env = getServerEnv()
   const shareUrl = `${env.NEXT_PUBLIC_APP_URL}/q/${qrCode.qr_id}`
-  const activeStaffCount = staffMembers.filter((member) => member.isActive).length
-  const hasActiveStation = stations.some((station) => station.status === "active")
-  const staffStationReady = activeStaffCount > 0 && hasActiveStation
   const downloads = [
     {
       href: `/app/qr/download/poster?qr=${qrCode.id}`,
       previewHref: `/app/qr/preview/poster?qr=${qrCode.id}`,
-      title: "Counter poster PDF",
+      title: "Venue poster PDF",
       description: "A4 print piece for tills, tables, and entrance boards.",
       format: "PDF",
       shape: "aspect-[3/4]",
@@ -105,7 +97,7 @@ export async function QrPanel({ params }: { params: QrPanelParams }) {
       href: `/app/qr/download/till-card?qr=${qrCode.id}`,
       previewHref: `/app/qr/preview/till-card?qr=${qrCode.id}`,
       title: "Till card PNG",
-      description: "Small counter card for staff to place beside payment.",
+      description: "Small card to place beside payment.",
       format: "PNG",
       shape: "aspect-[5/3]",
     },
@@ -141,25 +133,21 @@ export async function QrPanel({ params }: { params: QrPanelParams }) {
           <PageTitle
             eyebrow="Permanent venue QR"
             title={activeCard.card_name}
-            description="Customers scan this permanent URL to collect visit stamps and unlock a surprise reward. Disabled QR codes remain in history but stop new customer entry."
+            description="Customers scan this permanent URL to join, collect today's stamp, and unlock a surprise reward. Disabled QR codes remain in history but stop new customer entry."
             titleClassName="sm:text-3xl"
           />
 
           <QrErrorBanner error={params.error} />
-          {!staffStationReady ? (
-            <StatusBanner
-              tone="warning"
-              title="Finish staff station setup before launch."
-            >
-              Add at least one named staff member and pair one active counter
-              station from{" "}
+          {!location?.address ? (
+            <StatusBanner tone="warning" title="Save venue checks before print.">
+              Add the venue address from{" "}
               <Link
-                href="/app/launch?tab=staff"
+                href="/app/launch?tab=venue"
                 className="font-bold underline underline-offset-4"
               >
-                Staff station
-              </Link>
-              .
+                Venue checks
+              </Link>{" "}
+              so self-service stamps have the right context.
             </StatusBanner>
           ) : null}
 
@@ -227,53 +215,31 @@ export async function QrPanel({ params }: { params: QrPanelParams }) {
             <ul className="grid gap-2 text-sm leading-6 text-muted-foreground">
               <li>Card active: {activeCard.card_name}</li>
               <li>Active mystery rewards: {activeRewardPoolItemCount}</li>
+              <li>
+                Venue checks:{" "}
+                {location?.address ? "address saved" : "address needed"}
+              </li>
               <li>QR status: {qrCode.is_active ? "enabled" : "disabled"}</li>
-              <li>
-                Staff members:{" "}
-                {activeStaffCount > 0 ? (
-                  `${activeStaffCount} active`
-                ) : (
-                  <Link
-                    href="/app/launch?tab=staff"
-                    className="font-bold text-foreground underline underline-offset-4"
-                  >
-                    Add staff
-                  </Link>
-                )}
-              </li>
-              <li>
-                Counter station:{" "}
-                {hasActiveStation ? (
-                  "active"
-                ) : (
-                  <Link
-                    href="/app/launch?tab=staff"
-                    className="font-bold text-foreground underline underline-offset-4"
-                  >
-                    Pair station
-                  </Link>
-                )}
-              </li>
               <li>Print the counter poster and till card before launch.</li>
-              <li>Run the staff flow once before the first customer scan.</li>
+              <li>Scan the QR once before the first customer launch.</li>
             </ul>
           </div>
 
           <div className="grid gap-3 rounded-lg border bg-background p-4">
-            <p className="text-sm font-bold">Staff training</p>
+            <p className="text-sm font-bold">Customer flow</p>
             <ol className="grid list-decimal gap-2 pl-5 text-sm leading-6 text-muted-foreground">
-              <li>Customer opens their card and taps for a stamp code.</li>
+              <li>New customers scan the QR and join with their phone.</li>
               <li>
-                They read the short code to staff at the counter station — the
-                phone stays in their hand.
+                Existing customers scan the same QR and tap to add today&apos;s
+                stamp.
               </li>
               <li>
-                Staff confirm the code on the station. On the third visit the
-                reward unseals, redeemable from the next business day.
+                On the final visit the reward unseals, redeemable from the next
+                business day.
               </li>
             </ol>
             <p className="text-sm font-bold text-foreground">
-              Target: train one staff member in under 3 minutes.
+              Target: first scan checked in under 3 minutes.
             </p>
           </div>
 
@@ -287,7 +253,6 @@ export async function QrPanel({ params }: { params: QrPanelParams }) {
             <Button
               type="submit"
               variant={qrCode.is_active ? "destructive" : "reward"}
-              disabled={!qrCode.is_active && !staffStationReady}
             >
               {qrCode.is_active ? "Disable QR" : "Enable QR"}
             </Button>

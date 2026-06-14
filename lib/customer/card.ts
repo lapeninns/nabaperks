@@ -1,6 +1,6 @@
 import "server-only"
 
-import { getCurrentUser } from "@/lib/auth/session"
+import { getCurrentCustomer } from "@/lib/customer/identity"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type CustomerCardState =
@@ -44,11 +44,6 @@ type RawMembership = {
   customer_id: string
   current_stamp_count: number
   total_rewards_redeemed: number
-  customers:
-    | { auth_user_id: string }
-    | Array<{
-        auth_user_id: string
-      }>
   merchants:
     | {
         business_name: string
@@ -65,15 +60,15 @@ type RawMembership = {
 export async function getCustomerCardState(
   membershipId: string
 ): Promise<CustomerCardState> {
-  const user = await getCurrentUser()
+  const currentCustomer = await getCurrentCustomer()
 
-  if (!user) return { status: "unauthenticated" }
+  if (!currentCustomer) return { status: "unauthenticated" }
 
   const supabase = createSupabaseServiceRoleClient()
   const { data, error } = await supabase
     .from("customer_memberships")
     .select(
-      "id, merchant_id, customer_id, current_stamp_count, total_rewards_redeemed, customers(auth_user_id), merchants(business_name, business_slug, status)"
+      "id, merchant_id, customer_id, current_stamp_count, total_rewards_redeemed, merchants(business_name, business_slug, status)"
     )
     .eq("id", membershipId)
     .maybeSingle()
@@ -85,10 +80,9 @@ export async function getCustomerCardState(
   if (!data) return { status: "not_found" }
 
   const membership = data as RawMembership
-  const customer = first(membership.customers)
   const merchant = first(membership.merchants)
 
-  if (customer.auth_user_id !== user.id) {
+  if (membership.customer_id !== currentCustomer.id) {
     return { status: "unauthorized" }
   }
 
@@ -109,7 +103,9 @@ export async function getCustomerCardState(
 
   const { data: latestReward, error: rewardError } = await supabase
     .from("reward_events")
-    .select("id, status, reward_name, reward_terms, min_spend_pence, redeemable_from")
+    .select(
+      "id, status, reward_name, reward_terms, min_spend_pence, redeemable_from"
+    )
     .eq("membership_id", membership.id)
     .eq("status", "unlocked")
     .order("created_at", { ascending: false })
@@ -165,7 +161,7 @@ export async function getCustomerCardState(
   }
 }
 
-function unavailableMessage(
+export function unavailableMessage(
   merchantStatus: string,
   cardActive: boolean,
   billingStatus: string | null

@@ -9,7 +9,7 @@ const sections = [
   {
     id: "participation",
     title: "Participation",
-    body: "Customers may join a merchant loyalty card after verifying their email address or phone number and accepting the loyalty terms. The card is browser-based and does not require a downloaded app or physical plastic card.",
+    body: "Customers may join a merchant loyalty card after verifying their phone number and accepting the loyalty terms. The card is browser-based and does not require a downloaded app or physical plastic card.",
   },
   {
     id: "merchant-reward-terms",
@@ -24,7 +24,7 @@ const sections = [
   {
     id: "abuse",
     title: "Abuse and fraud prevention",
-    body: "Nabaperks and merchants may investigate suspicious activity, duplicate claims, QR misuse, manual adjustments, or fraud signals. Stamps are confirmed by a staff member at the counter station, and audited support actions preserve event history rather than deleting earned history silently.",
+    body: "Nabaperks and merchants may investigate suspicious activity, duplicate claims, QR misuse, manual adjustments, soft geofence anomalies, or fraud signals. One stamp can be issued per customer per UK business day, and audited support actions preserve event history rather than deleting earned history silently.",
   },
   {
     id: "availability",
@@ -79,7 +79,9 @@ export default function TermsPage() {
           </ReceiptCard>
 
           <Alert className="border-destructive/30 bg-destructive/10">
-            <AlertTitle className="text-destructive">Review required</AlertTitle>
+            <AlertTitle className="text-destructive">
+              Review required
+            </AlertTitle>
             <AlertDescription>
               These terms are not final legal wording. UK GDPR, PECR,
               promotional marketing, and consumer protection obligations need
@@ -109,7 +111,7 @@ function TermsBlock({
     <section
       id={id}
       tabIndex={-1}
-      className="w-rule scroll-mt-28 grid gap-2 pt-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+      className="w-rule grid scroll-mt-28 gap-2 pt-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
     >
       <p className="font-mono text-[0.7rem] font-bold tracking-[0.08em] text-foreground uppercase">
         {title}

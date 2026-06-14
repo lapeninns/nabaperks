@@ -4,19 +4,17 @@ import { redirect } from "next/navigation"
 import { MonoTag, PageTitle } from "@/components/brand"
 import { CardPanel } from "@/components/merchant/launch/card-panel"
 import { QrPanel } from "@/components/merchant/launch/qr-panel"
-import { StaffPanel } from "@/components/merchant/launch/staff-panel"
+import { VenuePanel } from "@/components/merchant/launch/venue-panel"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { buildLaunchReadiness } from "@/lib/merchant/launch-readiness"
 import { getQrSetup } from "@/lib/merchant/qr-code"
-import { listStaffMembers } from "@/lib/merchant/staff-members"
-import { listStations } from "@/lib/merchant/stations"
 import { cn } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
 
 const TABS = [
   { id: "card", label: "Card & rewards" },
-  { id: "staff", label: "Staff & station" },
+  { id: "venue", label: "Venue checks" },
   { id: "qr", label: "QR & print" },
 ] as const
 
@@ -41,23 +39,17 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
     redirect("/app/onboarding")
   }
 
-  // Readiness drives the per-tab status chips and the default tab. Panels fetch
-  // their own detailed data; this summary mirrors the QR launch gate.
-  const [
-    { activeCard, activeRewardPoolItemCount, qrCode },
-    staffMembers,
-    stations,
-  ] = await Promise.all([getQrSetup(), listStaffMembers(), listStations()])
+  const { activeCard, activeRewardPoolItemCount, qrCode, location } =
+    await getQrSetup()
 
   const launchReadiness = buildLaunchReadiness({
     activeCard,
     activeRewardPoolItemCount,
     qrCode,
-    staffMembers,
-    stations,
+    location,
   })
   const ready = launchReadiness.tabs
-  const completed = Object.values(ready).filter(Boolean).length
+  const completed = launchReadiness.completed
   const firstIncomplete = launchReadiness.nextStep?.tab ?? "card"
   const requested = params.tab
   const activeTab: TabId = isTabId(requested) ? requested : firstIncomplete
@@ -67,10 +59,10 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
       <PageTitle
         eyebrow="Merchant setup"
         title="Launch checklist"
-        description="Everything to go live, in one place: build the card, set up who stamps and where, then generate and print the venue QR."
+        description="Everything to go live, in one place: build the card, set the venue checks, then generate and print the venue QR."
         actions={
-          <MonoTag tone={completed === TABS.length ? "leaf" : "ink"}>
-            {completed} of {TABS.length} ready
+          <MonoTag tone={launchReadiness.launchReady ? "leaf" : "ink"}>
+            {completed} of {launchReadiness.total} ready
           </MonoTag>
         }
       />
@@ -114,8 +106,8 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
 
       {activeTab === "card" ? (
         <CardPanel params={params} />
-      ) : activeTab === "staff" ? (
-        <StaffPanel />
+      ) : activeTab === "venue" ? (
+        <VenuePanel />
       ) : (
         <QrPanel params={params} />
       )}

@@ -1,3 +1,4 @@
+export { PintGlass, PintReward, PintRewardCelebration } from "./pint-reward"
 export { ProgressTrack } from "./progress-track"
 export { QrFrame } from "./qr-frame"
 export { RewardTeaser } from "./reward-teaser"

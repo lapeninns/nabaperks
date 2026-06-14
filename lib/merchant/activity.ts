@@ -16,7 +16,6 @@ const activityEvents = [
   "loyalty_card_created",
   "loyalty_card_updated",
   "merchant_signed_up",
-  "staff_session_started",
   "subscription_started",
   "subscription_cancelled",
 ] as const
@@ -293,19 +292,18 @@ function toActivityDisplayRow(
         category,
         badgeLabel: "Stamp requested",
         headline: `${customerName(customerLabel)} requested a stamp`,
-        summary:
-          "The customer opened a short-lived verification code from their card.",
+        summary: "The customer opened the stamp-confirm screen from the venue QR.",
         timestamp,
         ...base,
         details: [
           ...sharedDetails,
           {
             label: "How",
-            value: "Opened staff stamp screen from digital card",
+            value: "Opened self-service stamp screen",
           },
           membership
             ? {
-                label: "Stamps before approval",
+                label: "Stamps before stamp",
                 value: String(membership.current_stamp_count),
               }
             : null,
@@ -319,14 +317,14 @@ function toActivityDisplayRow(
         category,
         badgeLabel: "Stamp collected",
         headline: `${customerName(customerLabel)} collected ${stampLabel(row, membership)}`,
-        summary: staff
-          ? `${staff.display_name} approved the stamp at a paired station.`
-          : "Staff approved the stamp at a paired station.",
+        summary: metadata.geo_flagged
+          ? "Customer stamp was issued and a location anomaly was flagged."
+          : "Customer stamp was issued from the venue QR.",
         timestamp,
         ...base,
         details: [
           ...sharedDetails,
-          { label: "How", value: "Station verification code approval" },
+          { label: "How", value: "Self-service QR stamp" },
           metadata.new_stamp_count != null
             ? {
                 label: "Stamps now",
@@ -344,7 +342,9 @@ function toActivityDisplayRow(
                 value: String(metadata.business_date),
               }
             : null,
-          staff ? { label: "Approved by", value: staff.display_name } : null,
+          metadata.geo_status
+            ? { label: "Location check", value: String(metadata.geo_status) }
+            : null,
           membership
             ? {
                 label: "Lifetime stamps",
@@ -394,13 +394,13 @@ function toActivityDisplayRow(
         badgeLabel: "Reward redeemed",
         headline: `${customerName(customerLabel)} redeemed ${rewardLabel(rewardName)}`,
         summary: metadata.reward_name
-          ? `${String(metadata.reward_name)} was confirmed at the till.`
-          : "Staff confirmed a reward redemption.",
+          ? `${String(metadata.reward_name)} was redeemed by the customer.`
+          : "The customer redeemed a reward.",
         timestamp,
         ...base,
         details: [
           ...sharedDetails,
-          { label: "How", value: "Station redemption code approval" },
+          { label: "How", value: "Customer self-service redemption" },
           metadata.reward_name
             ? { label: "Reward", value: String(metadata.reward_name) }
             : null,
@@ -600,24 +600,6 @@ function toActivityDisplayRow(
         ].filter(isDetail),
       }
 
-    case "staff_session_started":
-      return {
-        id: row.id,
-        eventName,
-        category,
-        badgeLabel: "Station",
-        headline: "Staff session started",
-        summary: "A named staff member signed in on a paired counter station.",
-        timestamp,
-        ...base,
-        details: [
-          ...sharedDetails,
-          metadata.station_id
-            ? { label: "Station", value: String(metadata.station_id) }
-            : null,
-        ].filter(isDetail),
-      }
-
     case "subscription_started":
       return {
         id: row.id,
@@ -737,7 +719,7 @@ function toThreadedStampRow(
   return {
     ...issued,
     id: `${issuedRow.id}:${claimRow.id}`,
-    summary: "Stamp request and station approval are grouped into one visit.",
+    summary: "Stamp request and stamp issue are grouped into one visit.",
     details: [
       { label: "Claim opened", value: claimOpenedAt },
       { label: "Approved", value: issuedAt },
@@ -854,8 +836,8 @@ function secondaryActivityAction(
       row.event_name === "stamp_issued")
   ) {
     return {
-      label: "Open staff station",
-      href: "/staff",
+      label: "Open QR setup",
+      href: "/app/launch?tab=qr",
     }
   }
 

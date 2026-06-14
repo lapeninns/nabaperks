@@ -22,6 +22,12 @@ export type QrSetup = {
   location: {
     id: string
     name: string
+    address: string | null
+    latitude: number | null
+    longitude: number | null
+    geofence_radius_meters: number
+    require_geofence: boolean
+    geocoded_at: string | null
   } | null
   activeCard: ActiveCardSummary | null
   activeRewardPoolItemCount: number
@@ -44,7 +50,9 @@ export async function getQrSetup(): Promise<QrSetup> {
   const supabase = await createSupabaseServerClient()
   const { data: location, error: locationError } = await supabase
     .from("merchant_locations")
-    .select("id, name")
+    .select(
+      "id, name, address, latitude, longitude, geofence_radius_meters, require_geofence, geocoded_at"
+    )
     .eq("merchant_id", merchant.id)
     .order("is_primary", { ascending: false })
     .order("created_at", { ascending: true })

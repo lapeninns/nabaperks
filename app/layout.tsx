@@ -1,7 +1,8 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Bricolage_Grotesque, Space_Mono } from "next/font/google"
 
 import "./globals.css"
+import { AppPwa } from "@/components/pwa/app-pwa"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 
@@ -20,8 +21,19 @@ const spaceMono = Space_Mono({
 })
 
 export const metadata: Metadata = {
+  applicationName: "Nabaperks",
   title: "Nabaperks",
   description: "No-app digital loyalty cards for local businesses.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Nabaperks",
+    statusBarStyle: "default",
+  },
+}
+
+export const viewport: Viewport = {
+  themeColor: "#e8430f",
 }
 
 export default function RootLayout({
@@ -39,6 +51,7 @@ export default function RootLayout({
       <body className="font-sans">
         <ThemeProvider>
           {children}
+          <AppPwa />
           <Toaster richColors closeButton />
         </ThemeProvider>
       </body>

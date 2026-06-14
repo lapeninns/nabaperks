@@ -1,0 +1,78 @@
+"use client"
+
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { HugeiconsIcon } from "@hugeicons/react"
+import {
+  Activity03Icon,
+  GiftIcon,
+  UserCircleIcon,
+  Wallet01Icon,
+} from "@hugeicons/core-free-icons"
+
+import { cn } from "@/lib/utils"
+
+type TabItem = {
+  href: string
+  label: string
+  icon: typeof Wallet01Icon
+}
+
+const tabs: TabItem[] = [
+  { href: "/wallet", label: "Wallet", icon: Wallet01Icon },
+  { href: "/wallet/rewards", label: "Rewards", icon: GiftIcon },
+  { href: "/wallet/activity", label: "Activity", icon: Activity03Icon },
+  { href: "/wallet/profile", label: "Profile", icon: UserCircleIcon },
+]
+
+function isActive(pathname: string, href: string) {
+  if (href === "/wallet") return pathname === "/wallet"
+  return pathname === href || pathname.startsWith(`${href}/`)
+}
+
+/**
+ * Fixed bottom tab bar for the customer wallet — the mobile-first equivalent of
+ * the merchant top pill nav. Active = ink fill / paper text, same Wet Ink
+ * vocabulary as `ShellNavigation`.
+ */
+export function CustomerTabBar() {
+  const pathname = usePathname()
+
+  return (
+    <nav
+      aria-label="Wallet navigation"
+      className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-ink bg-card pb-[env(safe-area-inset-bottom)]"
+    >
+      <div className="mx-auto grid w-full max-w-md grid-cols-4">
+        {tabs.map((tab) => {
+          const active = isActive(pathname, tab.href)
+
+          return (
+            <Link
+              key={tab.href}
+              href={tab.href}
+              aria-current={active ? "page" : undefined}
+              data-active={active}
+              className={cn(
+                "group flex min-h-14 flex-col items-center justify-center gap-1 text-[0.6875rem] font-bold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/35",
+                active ? "text-foreground" : "text-ink-soft hover:text-foreground"
+              )}
+            >
+              <span
+                className={cn(
+                  "grid size-9 place-items-center rounded-full border-2 transition-colors",
+                  active
+                    ? "border-ink bg-ink text-paper shadow-xs"
+                    : "border-transparent text-ink-soft group-hover:border-ink/30"
+                )}
+              >
+                <HugeiconsIcon icon={tab.icon} size={20} strokeWidth={2} />
+              </span>
+              {tab.label}
+            </Link>
+          )
+        })}
+      </div>
+    </nav>
+  )
+}

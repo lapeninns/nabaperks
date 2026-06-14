@@ -21,7 +21,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <PageTitle
             eyebrow="Merchant access"
             title="Welcome back to your loyalty counter."
-            description="Log in to continue onboarding, launch QR downloads, manage your counter station, and check loyalty readbacks."
+            description="Log in to continue onboarding, launch QR downloads, manage venue checks, and review loyalty activity."
             titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
             descriptionClassName="text-base leading-7"
             className="md:grid-cols-1"

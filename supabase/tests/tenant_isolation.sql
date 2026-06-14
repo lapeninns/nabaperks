@@ -32,35 +32,6 @@ begin
   end if;
 end $$;
 
-do $$
-declare
-  station_id uuid;
-  pairing_code text;
-  station_secret text;
-  session_id uuid;
-begin
-  select created.station_id, created.pairing_code
-  into station_id, pairing_code
-  from public.create_station_pairing('Tenant isolation station') as created;
-
-  select paired.station_secret
-  into station_secret
-  from public.pair_station(pairing_code) as paired;
-
-  select started.session_id
-  into session_id
-  from public.start_staff_session(
-    station_id,
-    station_secret,
-    '12000000-0000-0000-0000-000000000001',
-    '1234'
-  ) as started;
-
-  perform set_config('app.tenant_test_station_id', station_id::text, true);
-  perform set_config('app.tenant_test_station_secret', station_secret, true);
-  perform set_config('app.tenant_test_session_id', session_id::text, true);
-end $$;
-
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-000000000102';
 
 do $$
@@ -97,12 +68,6 @@ declare
   unlocked_reward_id uuid;
   assigned_reward_name text;
   assigned_redeemable_from date;
-  station_id uuid;
-  station_secret text;
-  session_id uuid;
-  stamp_token_id uuid;
-  stamp_code text;
-  redeem_token_id uuid;
 begin
   select count(*) into visible_customers from public.customers;
   if visible_customers <> 1 then
@@ -129,32 +94,11 @@ begin
     raise exception 'customer A saw % reward pool items, expected 0', visible_reward_pool_items;
   end if;
 
-  station_id := current_setting('app.tenant_test_station_id')::uuid;
-  station_secret := current_setting('app.tenant_test_station_secret');
-  session_id := current_setting('app.tenant_test_session_id')::uuid;
-
-  select token.token_id, token.code
-  into stamp_token_id, stamp_code
-  from public.create_verification_token(
+  perform public.issue_self_service_stamp(
     '16000000-0000-0000-0000-000000000001',
-    'stamp'
-  ) as token;
-
-  if not exists (
-    select 1
-    from public.lookup_verification_code(station_id, station_secret, stamp_code)
-    where status = 'ready'
-      and kind = 'stamp'
-      and token_id = stamp_token_id
-  ) then
-    raise exception 'station lookup did not find the customer stamp code';
-  end if;
-
-  perform public.approve_stamp_token(
-    station_id,
-    station_secret,
-    session_id,
-    stamp_token_id
+    '15000000-0000-0000-0000-000000000001',
+    51.524,
+    -0.071
   );
 
   select reward_events.id, reward_events.reward_name, reward_events.redeemable_from
@@ -203,14 +147,13 @@ begin
   end if;
 
   begin
-    select token.token_id
-    into redeem_token_id
-    from public.create_verification_token(
-      '16000000-0000-0000-0000-000000000001',
-      'redeem',
-      unlocked_reward_id
-    ) as token;
-    raise exception 'same-day reward code unexpectedly succeeded';
+    perform public.redeem_self_service_reward(
+      unlocked_reward_id,
+      '15000000-0000-0000-0000-000000000001',
+      51.524,
+      -0.071
+    );
+    raise exception 'same-day reward redemption unexpectedly succeeded';
   exception
     when others then
       if sqlerrm not like '%next UK business day%' then
@@ -295,9 +238,7 @@ exception
     null;
 end $$;
 
--- duplicate redemption boundary: redeem_reward_token consumes a single
--- verification token and updates only reward_events.status = 'unlocked', so
--- repeated or concurrent calls can only produce one successful state transition.
+select 'duplicate redemption boundary';
 
 rollback;
 

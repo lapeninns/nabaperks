@@ -404,7 +404,6 @@ describe("00/01 foundation micro-specs", () => {
       "components/layout/merchant-app-shell.tsx",
       "components/layout/admin-shell.tsx",
       "components/layout/customer-shell.tsx",
-      "components/layout/staff-shell.tsx",
     ]) {
       expect(existsSync(shell)).toBe(true)
     }
@@ -419,8 +418,6 @@ describe("00/01 foundation micro-specs", () => {
     const merchantShell = readProjectFile(
       "components/layout/merchant-app-shell.tsx"
     )
-    // Primary nav is the lean daily-use set; billing + ROI settings are demoted
-    // to the account group; setup routes move into the Launch hub.
     for (const href of [
       'href: "/app"',
       'href: "/app/launch"',
@@ -432,15 +429,13 @@ describe("00/01 foundation micro-specs", () => {
     }
     expect(merchantShell).toContain("<form action={signOutAction}>")
 
-    // Phase 2 URL merge: card/staff/QR are consolidated into the Launch hub as
-    // tabs, and the old standalone pages are deleted in favour of 301s.
     const launchHub = readProjectFile("app/app/launch/page.tsx")
     for (const marker of [
       "CardPanel",
-      "StaffPanel",
+      "VenuePanel",
       "QrPanel",
       'id: "card"',
-      'id: "staff"',
+      'id: "venue"',
       'id: "qr"',
       "/app/launch?tab=",
     ]) {
@@ -454,8 +449,6 @@ describe("00/01 foundation micro-specs", () => {
       expect(existsSync(deletedPage)).toBe(false)
     }
 
-    // The merged URLs 301 to the Launch hub; QR asset routes stay live, so the
-    // /app/qr redirect must be exact (no wildcard).
     const nextConfigSource = readProjectFile("next.config.ts")
     for (const fragment of [
       "async redirects()",

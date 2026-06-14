@@ -79,7 +79,7 @@ export function LoyaltyCardForm({
           <PageTitle
             eyebrow="Mystery card setup"
             title="Build your visit card"
-            description={`One active card for ${locationName}, with rewards revealed after the final approved visit.`}
+            description={`One active card for ${locationName}, with rewards revealed after the final qualifying visit.`}
             titleClassName="sm:text-3xl"
           />
 

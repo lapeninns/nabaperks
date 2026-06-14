@@ -7,17 +7,26 @@ const secretNames = [
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
   "RESEND_API_KEY",
+  "TWILIO_AUTH_TOKEN",
+  "TWILIO_API_KEY_SECRET",
+  "TWILIO_VERIFY_SERVICE_SID",
+  "CUSTOMER_SESSION_SECRET",
+  "CUSTOMER_PHONE_HMAC_SECRET",
+  "CUSTOMER_PHONE_ENCRYPTION_KEY",
 ]
 
 for (const file of listFiles("app").concat(listFiles("components"))) {
   const source = readFileSync(file, "utf8")
-  const isClientFile = source.startsWith('"use client"') || source.startsWith("'use client'")
+  const isClientFile =
+    source.startsWith('"use client"') || source.startsWith("'use client'")
 
   if (!isClientFile) continue
 
   for (const secretName of secretNames) {
     if (source.includes(secretName)) {
-      failures.push(`client file references server secret ${secretName}: ${file}`)
+      failures.push(
+        `client file references server secret ${secretName}: ${file}`
+      )
     }
   }
 }
@@ -33,19 +42,62 @@ const rateLimit = readFileSync("lib/security/rate-limit.ts", "utf8")
 const customerJoin = readFileSync("lib/customer/join.ts", "utf8")
 const authActions = readFileSync("app/m/[merchantSlug]/join/actions.ts", "utf8")
 
-requireMarker(migrations, "station_pin_attempts_station_recent_idx", "station PIN rate-limit index")
-requireMarker(migrations, "expires_at <= now()", "verification token expiry guard")
-requireMarker(migrations, "and reward_events.status = 'unlocked'", "duplicate redemption guard")
+requireMarker(
+  migrations,
+  "and reward_events.status = 'unlocked'",
+  "duplicate redemption guard"
+)
 requireMarker(migrations, "high_stamp_velocity", "fraud velocity signal")
+requireMarker(
+  migrations,
+  "self_service_geofence_out_of_range",
+  "soft geofence out-of-range signal"
+)
+requireMarker(
+  migrations,
+  "self_service_geofence_unknown",
+  "soft geofence unknown-location signal"
+)
+requireMarker(migrations, "selfstamp:", "self-service stamp rate-limit key")
 requireMarker(migrations, "rate_limit_buckets", "durable rate-limit buckets")
 requireMarker(migrations, "enforce_rate_limit", "durable rate-limit RPC")
-requireMarker(webhook, "stripe.webhooks.constructEvent", "Stripe signature verification")
-requireMarker(rateLimit, "createHash(\"sha256\")", "hashed rate-limit keys")
-requireMarker(rateLimit, "createSupabaseServiceRoleClient", "server-side durable rate-limit client")
+requireMarker(
+  webhook,
+  "stripe.webhooks.constructEvent",
+  "Stripe signature verification"
+)
+requireMarker(rateLimit, 'createHash("sha256")', "hashed rate-limit keys")
+requireMarker(
+  rateLimit,
+  "createSupabaseServiceRoleClient",
+  "server-side durable rate-limit client"
+)
 requireMarker(customerJoin, "qr-scan:", "QR scan rate limit")
 requireMarker(authActions, "customer-identity:", "auth request rate limit")
-requireMarker(tenantTest, "role denial unexpectedly succeeded", "role-denial test marker")
-requireMarker(tenantTest, "duplicate redemption boundary", "duplicate-redemption test marker")
+requireMarker(
+  authActions,
+  "startCustomerPhoneVerification",
+  "customer Twilio Verify start"
+)
+requireMarker(
+  authActions,
+  "setPendingPhoneVerification",
+  "signed pending phone session"
+)
+requireMarker(
+  tenantTest,
+  "role denial unexpectedly succeeded",
+  "role-denial test marker"
+)
+requireMarker(
+  tenantTest,
+  "duplicate redemption boundary",
+  "duplicate-redemption test marker"
+)
+
+if (authActions.includes("signInWithOtp")) {
+  failures.push("customer join action still starts Supabase Auth OTP")
+}
 
 if (failures.length) {
   console.error("Security verification failed:")

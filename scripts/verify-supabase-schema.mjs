@@ -23,10 +23,6 @@ const tables = [
   "customer_memberships",
   "stamp_events",
   "reward_events",
-  "stations",
-  "staff_sessions",
-  "station_pin_attempts",
-  "verification_tokens",
   "fraud_flags",
   "rate_limit_buckets",
   "consent_records",
@@ -35,10 +31,7 @@ const tables = [
   "product_events",
 ]
 
-const serviceRoleOnlyTables = new Set([
-  "station_pin_attempts",
-  "verification_tokens",
-])
+const serviceRoleOnlyTables = new Set()
 
 const requiredHelpers = [
   "is_internal_admin",
@@ -58,23 +51,12 @@ const requiredHelpers = [
   "set_qr_active",
   "record_qr_download",
   "join_customer_membership",
-  "generate_verification_code",
-  "create_station_pairing",
-  "revoke_station",
   "add_staff_member",
   "set_staff_member_active",
-  "pair_station",
-  "station_authenticate",
-  "station_active_session",
-  "start_staff_session",
-  "end_staff_session",
-  "get_station_state",
-  "create_verification_token",
-  "get_verification_token_status",
-  "lookup_verification_code",
-  "approve_stamp_token",
-  "redeem_reward_token",
-  "undo_recent_stamp",
+  "geo_distance_meters",
+  "record_self_service_geo_flag",
+  "issue_self_service_stamp",
+  "redeem_self_service_reward",
   "admin_adjust_membership_stamps",
   "admin_cancel_reward",
   "admin_set_qr_active",
@@ -243,36 +225,8 @@ if (!migration.includes("reward_redemption_failed")) {
   failures.push("missing reward redemption failure event")
 }
 
-if (!migrations.includes("stations_active_pairing_code_idx")) {
-  failures.push("missing active station pairing-code index")
-}
-
-if (!migrations.includes("staff_sessions_station_open_idx")) {
-  failures.push("missing open station session index")
-}
-
-if (!migrations.includes("station_pin_attempts_station_recent_idx")) {
-  failures.push("missing station PIN failed-attempt index")
-}
-
-if (!migrations.includes("verification_tokens_active_code_idx")) {
-  failures.push("missing active verification code index")
-}
-
-if (!migrations.includes("stamp_events_verification_token_idx")) {
-  failures.push("missing stamp idempotency token index")
-}
-
-if (!migrations.includes("station_pairing_created")) {
-  failures.push("missing station pairing audit action")
-}
-
 if (!migrations.includes("staff_member_added")) {
   failures.push("missing named staff audit action")
-}
-
-if (!migrations.includes("staff_session_started")) {
-  failures.push("missing staff session product event")
 }
 
 if (!migration.includes("stamp_adjusted")) {
@@ -299,8 +253,8 @@ if (!migration.includes("pilot_note_logged")) {
   failures.push("missing pilot note audit action")
 }
 
-if (!migration.includes("staff_training_timed")) {
-  failures.push("missing staff training timed pilot proof action")
+if (!migrations.includes("launch_self_service_checked")) {
+  failures.push("missing self-service launch proof action")
 }
 
 if (!migration.includes("merchant_cancel_reason_recorded")) {
@@ -321,10 +275,6 @@ if (
   failures.push("missing durable rate-limit RPC grant")
 }
 
-if (!migrations.includes("station_pin_attempts_station_recent_idx")) {
-  failures.push("missing station PIN attempt reporting index")
-}
-
 if (!migration.includes("fraud_flags_merchant_status_created_at_idx")) {
   failures.push("missing fraud flags reporting index")
 }
@@ -335,6 +285,45 @@ if (!migration.includes("high_stamp_velocity")) {
 
 if (!migration.includes("fraud_flag_created")) {
   failures.push("missing fraud flag audit action")
+}
+
+for (const marker of [
+  "latitude numeric",
+  "longitude numeric",
+  "geofence_radius_meters",
+  "require_geofence",
+  "selfstamp:",
+  "geo_flagged",
+  "self_service_geofence_out_of_range",
+  "self_service_geofence_unknown",
+  "drop table if exists public.verification_tokens",
+  "drop table if exists public.stations",
+  "drop table if exists public.staff_sessions",
+  "drop table if exists public.station_pin_attempts",
+  "drop function if exists public.approve_stamp_token",
+  "drop function if exists public.redeem_reward_token",
+]) {
+  if (!migrations.includes(marker)) {
+    failures.push(`missing self-service migration marker: ${marker}`)
+  }
+}
+
+for (const marker of [
+  "phone_hmac text",
+  "phone_ciphertext text",
+  "phone_last4 text",
+  "phone_country text",
+  "phone_verified_at timestamptz",
+  "customers_phone_hmac_unique_idx",
+  "function public.is_service_role_request()",
+  "function public.join_customer_membership(\n  p_customer_id uuid",
+  "function public.issue_self_service_stamp(\n  p_membership_id uuid,\n  p_customer_id uuid",
+  "function public.redeem_self_service_reward(\n  p_reward_event_id uuid,\n  p_customer_id uuid",
+  "if not public.is_service_role_request() then",
+]) {
+  if (!migrations.includes(marker)) {
+    failures.push(`missing customer phone identity migration marker: ${marker}`)
+  }
 }
 
 if (failures.length) {

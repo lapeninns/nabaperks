@@ -106,7 +106,7 @@ describe("admin console redesign contracts", () => {
       'name="requestType"',
       'name="notes"',
       'name="noteType"',
-      'name="trainingMinutes"',
+      'name="setupMinutes"',
     ]) {
       expect(combined).toContain(field)
     }
@@ -118,7 +118,7 @@ describe("admin console redesign contracts", () => {
       '<AdminField label="Request type"',
       '<AdminField label="Notes"',
       '<AdminField label="Note type"',
-      '<AdminField label="Training minutes"',
+      '<AdminField label="Setup check minutes"',
     ]) {
       expect(combined).toContain(accessibleField)
     }
@@ -265,9 +265,9 @@ describe("admin console redesign contracts", () => {
     await actions.logPilotNoteAction(
       form({
         merchantId: "merchant-1",
-        noteType: "staff_training_timed",
-        trainingMinutes: "2",
-        notes: "Timed the counter team issuing a stamp.",
+        noteType: "launch_self_service_checked",
+        setupMinutes: "2",
+        notes: "Checked QR scan, stamp, and reward self-service.",
       })
     )
 
@@ -327,8 +327,8 @@ describe("admin console redesign contracts", () => {
         name: "admin_log_pilot_note",
         params: {
           p_merchant_id: "merchant-1",
-          p_note_type: "staff_training_timed",
-          p_notes: "Timed the counter team issuing a stamp.",
+          p_note_type: "launch_self_service_checked",
+          p_notes: "Checked QR scan, stamp, and reward self-service.",
           p_training_minutes: 2,
         },
       },
@@ -384,12 +384,12 @@ describe("admin console redesign contracts", () => {
       actions.logPilotNoteAction(
         form({
           merchantId: "merchant-1",
-          noteType: "staff_training_timed",
-          trainingMinutes: "9",
+          noteType: "launch_self_service_checked",
+          setupMinutes: "9",
           notes: "Too long.",
         })
       )
-    ).rejects.toThrow("Training minutes must be between 1 and 3.")
+    ).rejects.toThrow("Setup check minutes must be between 1 and 3.")
     expect(supabase.rpcCalls).toEqual([])
 
     await expect(

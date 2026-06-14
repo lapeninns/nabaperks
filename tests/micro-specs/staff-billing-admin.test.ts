@@ -18,331 +18,6 @@ function redirectMock() {
   })
 }
 
-function stationLibMock(overrides: Record<string, unknown> = {}) {
-  return {
-    STATION_COOKIE: "nb_station",
-    parseStationCookie: (value?: string) => {
-      if (!value) return null
-      const separator = value.indexOf(".")
-      if (separator <= 0) return null
-      return {
-        stationId: value.slice(0, separator),
-        stationSecret: value.slice(separator + 1),
-      }
-    },
-    serializeStationCookie: (credentials: {
-      stationId: string
-      stationSecret: string
-    }) => `${credentials.stationId}.${credentials.stationSecret}`,
-    pairStation: vi.fn(),
-    getStationState: vi.fn(),
-    startStaffSession: vi.fn(),
-    endStaffSession: vi.fn(),
-    lookupCode: vi.fn(),
-    approveStamp: vi.fn(),
-    redeemRewardToken: vi.fn(),
-    undoStamp: vi.fn(),
-    ...overrides,
-  }
-}
-
-function mockStationRequest(stationLib: Record<string, unknown>) {
-  vi.doMock("next/headers", () => ({
-    cookies: vi.fn(async () => ({
-      get: () => ({ value: "station-1.secret-1" }),
-      set: vi.fn(),
-      getAll: () => [],
-    })),
-  }))
-  vi.doMock("next/cache", () => ({ revalidatePath: vi.fn() }))
-  vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
-  vi.doMock("@/lib/staff/station", () => stationLib)
-}
-
-describe("04 staff and reward micro-specs", () => {
-  it("validates named staff setup before calling the staff RPC", async () => {
-    vi.resetModules()
-    const addStaffMember = vi.fn()
-    vi.doMock("next/cache", () => ({ revalidatePath: vi.fn() }))
-    vi.doMock("@/lib/merchant/staff-members", () => ({
-      addStaffMember,
-      setStaffMemberActive: vi.fn(),
-    }))
-    vi.doMock("@/lib/merchant/stations", () => ({
-      createStationPairing: vi.fn(),
-      revokeStation: vi.fn(),
-    }))
-    const { addStaffMemberAction } = await import("@/app/app/staff/actions")
-
-    await expect(
-      addStaffMemberAction({}, form({ displayName: "", pin: "1234" }))
-    ).resolves.toEqual({
-      errors: { displayName: "Give the staff member a name." },
-    })
-
-    await expect(
-      addStaffMemberAction({}, form({ displayName: "Maya", pin: "123" }))
-    ).resolves.toEqual({ errors: { pin: "PIN must be 4 to 6 digits." } })
-    expect(addStaffMember).not.toHaveBeenCalled()
-  })
-
-  it("adds a named staff member for paired station sessions", async () => {
-    vi.resetModules()
-    const revalidatePath = vi.fn()
-    const addStaffMember = vi.fn(async () => ({
-      status: "created" as const,
-      staffId: "staff-1",
-    }))
-    vi.doMock("next/cache", () => ({ revalidatePath }))
-    vi.doMock("@/lib/merchant/staff-members", () => ({
-      addStaffMember,
-      setStaffMemberActive: vi.fn(),
-    }))
-    vi.doMock("@/lib/merchant/stations", () => ({
-      createStationPairing: vi.fn(),
-      revokeStation: vi.fn(),
-    }))
-    const { addStaffMemberAction } = await import("@/app/app/staff/actions")
-
-    await expect(
-      addStaffMemberAction({}, form({ displayName: "Maya", pin: "5678" }))
-    ).resolves.toEqual({ added: "Maya" })
-    expect(addStaffMember).toHaveBeenCalledWith("Maya", "5678")
-    expect(revalidatePath).toHaveBeenCalledWith("/app/launch")
-  })
-
-  it("creates a counter station pairing code for the staff station surface", async () => {
-    vi.resetModules()
-    const revalidatePath = vi.fn()
-    const createStationPairing = vi.fn(async () => ({
-      status: "created" as const,
-      stationId: "station-1",
-      stationName: "Front till",
-      pairingCode: "K7F3RW88",
-      pairingExpiresAt: "2026-06-13T10:15:00Z",
-    }))
-    vi.doMock("next/cache", () => ({ revalidatePath }))
-    vi.doMock("@/lib/merchant/staff-members", () => ({
-      addStaffMember: vi.fn(),
-      setStaffMemberActive: vi.fn(),
-    }))
-    vi.doMock("@/lib/merchant/stations", () => ({
-      createStationPairing,
-      revokeStation: vi.fn(),
-    }))
-    const { createStationAction } = await import("@/app/app/staff/actions")
-
-    await expect(
-      createStationAction({}, form({ stationName: "Front till" }))
-    ).resolves.toEqual({
-      pairing: {
-        stationName: "Front till",
-        pairingCode: "K7F3RW88",
-        pairingExpiresAt: "2026-06-13T10:15:00Z",
-      },
-    })
-    expect(createStationPairing).toHaveBeenCalledWith("Front till")
-    expect(revalidatePath).toHaveBeenCalledWith("/app/launch")
-  })
-
-  it("validates the staff PIN before any station session attempt", async () => {
-    vi.resetModules()
-    const startStaffSession = vi.fn()
-    mockStationRequest(stationLibMock({ startStaffSession }))
-    vi.doMock("@/lib/analytics/events", () => ({
-      capturePostHogEvent: vi.fn(),
-    }))
-    const { startStaffSessionAction } = await import("@/app/staff/actions")
-
-    await expect(
-      startStaffSessionAction({}, form({ staffUserId: "staff-1", pin: "12" }))
-    ).resolves.toEqual({
-      errors: { pin: "Enter your staff PIN." },
-    })
-    expect(startStaffSession).not.toHaveBeenCalled()
-  })
-
-  it("creates a short-lived stamp code when the customer opens the code screen", async () => {
-    vi.resetModules()
-    const createStampCode = vi.fn(async () => ({
-      status: "created" as const,
-      tokenId: "token-1",
-      code: "K7F3",
-      expiresAt: "2026-06-13T10:02:00Z",
-    }))
-    vi.doMock("@/components/customer/stamp-code-panel", () => ({
-      StampCodePanel: () => null,
-    }))
-    vi.doMock("@/lib/customer/card", () => ({
-      getCustomerCardState: vi.fn(async () => ({
-        status: "ready",
-        merchant: {
-          id: "merchant-1",
-          business_name: "The Bell",
-          business_slug: "the-bell",
-          status: "active",
-        },
-        membership: {
-          id: "membership-1",
-          current_stamp_count: 1,
-          total_rewards_redeemed: 0,
-        },
-        loyaltyCard: {
-          card_name: "Mystery Visit Card",
-          stamps_required: 3,
-          reward_name: "Mystery reward",
-          reward_terms: "Terms.",
-          min_spend_pence: null,
-          is_active: true,
-        },
-        latestReward: null,
-        billingStatus: "active",
-      })),
-    }))
-    vi.doMock("@/lib/customer/stamp-code", () => ({ createStampCode }))
-    const { default: StampCodePage } = await import(
-      "@/app/card/[membershipId]/stamp/page"
-    )
-
-    await StampCodePage({
-      params: Promise.resolve({ membershipId: "membership-1" }),
-    })
-
-    expect(createStampCode).toHaveBeenCalledWith("membership-1")
-  })
-
-  it("maps approval failures to safe station-facing messages", async () => {
-    vi.resetModules()
-    const approveStamp = vi.fn(async () => ({
-      status: "blocked" as const,
-      reason: "Already stamped today — one stamp per UK business day.",
-    }))
-    mockStationRequest(stationLibMock({ approveStamp }))
-    vi.doMock("@/lib/analytics/events", () => ({
-      capturePostHogEvent: vi.fn(),
-    }))
-    const { approveStampAction } = await import("@/app/staff/actions")
-
-    await expect(
-      approveStampAction(
-        {},
-        form({ tokenId: "token-1", sessionId: "session-1" })
-      )
-    ).resolves.toEqual({
-      result: {
-        status: "blocked",
-        reason: "Already stamped today — one stamp per UK business day.",
-      },
-    })
-    expect(approveStamp).toHaveBeenCalledWith(
-      { stationId: "station-1", stationSecret: "secret-1" },
-      "session-1",
-      "token-1"
-    )
-  })
-
-  it("approves a stamp once and records analytics only for fresh approvals", async () => {
-    vi.resetModules()
-    const capturePostHogEvent = vi.fn()
-    const approveStamp = vi
-      .fn()
-      .mockResolvedValueOnce({
-        status: "approved",
-        stampEventId: "stamp-1",
-        newStampCount: 3,
-        rewardUnlocked: true,
-        replayed: false,
-      })
-      .mockResolvedValueOnce({
-        status: "approved",
-        stampEventId: "stamp-1",
-        newStampCount: 3,
-        rewardUnlocked: true,
-        replayed: true,
-      })
-    mockStationRequest(stationLibMock({ approveStamp }))
-    vi.doMock("@/lib/analytics/events", () => ({ capturePostHogEvent }))
-    const { approveStampAction } = await import("@/app/staff/actions")
-
-    const fresh = await approveStampAction(
-      {},
-      form({ tokenId: "token-1", sessionId: "session-1" })
-    )
-    expect(fresh.result).toMatchObject({
-      status: "approved",
-      newStampCount: 3,
-      rewardUnlocked: true,
-      replayed: false,
-    })
-    expect(capturePostHogEvent).toHaveBeenCalledTimes(1)
-    expect(capturePostHogEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ eventName: "stamp_issued" })
-    )
-
-    // A retry with the same token id replays the result without a second event.
-    const replay = await approveStampAction(
-      {},
-      form({ tokenId: "token-1", sessionId: "session-1" })
-    )
-    expect(replay.result).toMatchObject({ status: "approved", replayed: true })
-    expect(capturePostHogEvent).toHaveBeenCalledTimes(1)
-  })
-
-  it("prevents duplicate reward redemption with a safe message", async () => {
-    vi.resetModules()
-    const redeemRewardToken = vi.fn(async () => ({
-      status: "already_redeemed" as const,
-      redeemedAt: null,
-    }))
-    mockStationRequest(stationLibMock({ redeemRewardToken }))
-    vi.doMock("@/lib/analytics/events", () => ({
-      capturePostHogEvent: vi.fn(),
-    }))
-    const { redeemRewardAction } = await import("@/app/staff/actions")
-
-    await expect(
-      redeemRewardAction(
-        {},
-        form({ tokenId: "token-9", sessionId: "session-1" })
-      )
-    ).resolves.toEqual({
-      result: { status: "already_redeemed", redeemedAt: null },
-    })
-  })
-
-  it("records reward redemption once and returns the customer card to a new cycle", async () => {
-    vi.resetModules()
-    const capturePostHogEvent = vi.fn()
-    const redeemRewardToken = vi.fn(async () => ({
-      status: "redeemed" as const,
-      rewardId: "reward-9",
-      rewardName: "Slice of cake",
-      membershipId: "membership-1",
-      newStampCount: 0,
-      replayed: false,
-    }))
-    mockStationRequest(stationLibMock({ redeemRewardToken }))
-    vi.doMock("@/lib/analytics/events", () => ({ capturePostHogEvent }))
-    const { redeemRewardAction } = await import("@/app/staff/actions")
-
-    const result = await redeemRewardAction(
-      {},
-      form({ tokenId: "token-9", sessionId: "session-1" })
-    )
-
-    expect(result.result).toMatchObject({
-      status: "redeemed",
-      newStampCount: 0,
-    })
-    expect(capturePostHogEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        eventName: "reward_redeemed",
-        membershipId: "membership-1",
-      })
-    )
-  })
-})
-
 describe("06 billing and internal admin micro-specs", () => {
   it("requires Supabase AAL2 before allowing admins when MFA enforcement is enabled", async () => {
     vi.resetModules()
@@ -555,7 +230,7 @@ describe("06 billing and internal admin micro-specs", () => {
       form({
         merchantId: "merchant-1",
         noteType: "cancellation_reason",
-        notes: "No staff time to run the pilot.",
+        notes: "No time to run the pilot.",
       })
     )
     expect(supabase.rpcCalls[0]).toEqual({
@@ -563,7 +238,7 @@ describe("06 billing and internal admin micro-specs", () => {
       params: {
         p_merchant_id: "merchant-1",
         p_note_type: "cancellation_reason",
-        p_notes: "No staff time to run the pilot.",
+        p_notes: "No time to run the pilot.",
         p_training_minutes: null,
       },
     })
@@ -571,7 +246,7 @@ describe("06 billing and internal admin micro-specs", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/admin/audit")
   })
 
-  it("logs timed staff-training proof for pilot readiness", async () => {
+  it("logs self-service launch proof for pilot readiness", async () => {
     vi.resetModules()
     const revalidatePath = vi.fn()
     const supabase = createSupabaseMock({
@@ -589,17 +264,17 @@ describe("06 billing and internal admin micro-specs", () => {
     await logPilotNoteAction(
       form({
         merchantId: "merchant-1",
-        noteType: "staff_training_timed",
-        trainingMinutes: "2",
-        notes: "Staff completed QR scan and stamp issue walkthrough.",
+        noteType: "launch_self_service_checked",
+        setupMinutes: "2",
+        notes: "Checked QR scan, stamp, and reward self-service.",
       })
     )
     expect(supabase.rpcCalls[0]).toEqual({
       name: "admin_log_pilot_note",
       params: {
         p_merchant_id: "merchant-1",
-        p_note_type: "staff_training_timed",
-        p_notes: "Staff completed QR scan and stamp issue walkthrough.",
+        p_note_type: "launch_self_service_checked",
+        p_notes: "Checked QR scan, stamp, and reward self-service.",
         p_training_minutes: 2,
       },
     })

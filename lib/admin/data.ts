@@ -134,7 +134,6 @@ export async function getAdminFraudSignals() {
   const supabase = createSupabaseServiceRoleClient()
   const [
     { data: fraudFlags, error: flagsError },
-    { data: pinAttempts, error: pinError },
     { data: failures, error: failureError },
   ] =
     await Promise.all([
@@ -143,11 +142,6 @@ export async function getAdminFraudSignals() {
         .select(
           "id, signal, severity, status, metadata, created_at, merchants(business_name), customers(email, phone)"
         )
-        .order("created_at", { ascending: false })
-        .limit(100),
-      supabase
-        .from("station_pin_attempts")
-        .select("id, success, created_at, merchants(business_name), stations(station_name)")
         .order("created_at", { ascending: false })
         .limit(100),
       supabase
@@ -162,17 +156,12 @@ export async function getAdminFraudSignals() {
     throw new Error(`Unable to load fraud flags: ${flagsError.message}`)
   }
 
-  if (pinError) {
-    throw new Error(`Unable to load PIN attempts: ${pinError.message}`)
-  }
-
   if (failureError) {
     throw new Error(`Unable to load fraud events: ${failureError.message}`)
   }
 
   return {
     fraudFlags: fraudFlags ?? [],
-    pinAttempts: pinAttempts ?? [],
     failures: failures ?? [],
   }
 }
@@ -195,7 +184,7 @@ export async function getAdminPilotReport() {
     cancelledBilling,
     supportActions,
     cancellationNotes,
-    staffTrainingProof,
+    launchSelfServiceProof,
     paidLaunchProofMerchants,
   ] = await Promise.all([
     countProductEvents("merchant_signed_up"),
@@ -221,7 +210,7 @@ export async function getAdminPilotReport() {
       "consent_opt_out_recorded",
     ]),
     countAuditActions(["merchant_cancel_reason_recorded"]),
-    countAuditActions(["staff_training_timed"]),
+    countAuditActions(["launch_self_service_checked"]),
     countPaidLaunchProofMerchants(),
   ])
 
@@ -250,10 +239,10 @@ export async function getAdminPilotReport() {
         source: "merchants.created_at",
       },
       {
-        item: "Staff training proof",
-        target: "<3 minutes",
-        value: staffTrainingProof,
-        source: "audit_logs.staff_training_timed",
+        item: "Self-service launch proof",
+        target: "QR and venue checks complete",
+        value: launchSelfServiceProof,
+        source: "audit_logs.launch_self_service_checked",
       },
     ],
     metrics: [

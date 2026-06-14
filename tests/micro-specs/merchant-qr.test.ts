@@ -318,8 +318,8 @@ describe("02 merchant and QR micro-specs", () => {
       "components/merchant/launch/card-panel.tsx"
     )
     const qrPage = readProjectFile("components/merchant/launch/qr-panel.tsx")
-    const staffStationForms = readProjectFile(
-      "components/merchant/staff-station-forms.tsx"
+    const venueLocationForm = readProjectFile(
+      "components/merchant/launch/venue-location-form.tsx"
     )
     const roiForm = readProjectFile("components/merchant/roi-settings-form.tsx")
 
@@ -357,17 +357,20 @@ describe("02 merchant and QR micro-specs", () => {
 
     expect(qrPage).toContain("QrFrame")
     expect(qrPage).toContain("Add or activate a reward")
-    expect(qrPage).toContain("Staff members:")
-    expect(qrPage).toContain("Counter station:")
-    expect(qrPage).toContain('href="/app/launch?tab=staff"')
+    expect(qrPage).toContain("Save venue checks before print.")
+    expect(qrPage).toContain('href="/app/launch?tab=venue"')
     expect(qrPage).toContain('name="qrCodeId"')
     expect(qrPage).toContain('name="nextActive"')
 
-    for (const fieldName of ["displayName", "pin", "stationName"]) {
-      expect(staffStationForms).toContain(`name="${fieldName}"`)
+    for (const fieldName of [
+      "venueName",
+      "address",
+      "requireGeofence",
+      "geofenceRadiusMeters",
+    ]) {
+      expect(venueLocationForm).toContain(`name="${fieldName}"`)
     }
-    expect(staffStationForms).toContain('inputMode="numeric"')
-    expect(staffStationForms).toContain("Pairing code for")
+    expect(venueLocationForm).toContain("GPS anomaly checks")
 
     for (const fieldName of [
       "averageOrderValue",
@@ -577,30 +580,6 @@ describe("02 merchant and QR micro-specs", () => {
         merchant: { id: "merchant-1" },
       })),
     }))
-    vi.doMock("@/lib/merchant/staff-members", () => ({
-      listStaffMembers: vi.fn(async () => [
-        {
-          id: "staff-1",
-          displayName: "Maya",
-          role: "staff",
-          isActive: true,
-          createdAt: "2026-06-13T09:00:00Z",
-        },
-      ]),
-    }))
-    vi.doMock("@/lib/merchant/stations", () => ({
-      listStations: vi.fn(async () => [
-        {
-          id: "station-1",
-          stationName: "Front till",
-          status: "active",
-          pairingCode: null,
-          pairingExpiresAt: null,
-          pairedAt: "2026-06-13T09:05:00Z",
-          lastSeenAt: "2026-06-13T09:10:00Z",
-        },
-      ]),
-    }))
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServerClient: vi.fn(async () => supabase.client),
     }))
@@ -644,30 +623,6 @@ describe("02 merchant and QR micro-specs", () => {
         merchant: { id: "merchant-1" },
       })),
     }))
-    vi.doMock("@/lib/merchant/staff-members", () => ({
-      listStaffMembers: vi.fn(async () => [
-        {
-          id: "staff-1",
-          displayName: "Maya",
-          role: "staff",
-          isActive: true,
-          createdAt: "2026-06-13T09:00:00Z",
-        },
-      ]),
-    }))
-    vi.doMock("@/lib/merchant/stations", () => ({
-      listStations: vi.fn(async () => [
-        {
-          id: "station-1",
-          stationName: "Front till",
-          status: "active",
-          pairingCode: null,
-          pairingExpiresAt: null,
-          pairedAt: "2026-06-13T09:05:00Z",
-          lastSeenAt: "2026-06-13T09:10:00Z",
-        },
-      ]),
-    }))
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServerClient: vi.fn(async () => failingSupabase.client),
     }))
@@ -681,35 +636,6 @@ describe("02 merchant and QR micro-specs", () => {
     ).rejects.toThrow(
       "NEXT_REDIRECT:/app/launch?tab=qr&error=Unable%20to%20update%20QR"
     )
-  })
-
-  it("blocks QR launch until named staff and an active counter station exist", async () => {
-    vi.resetModules()
-    const redirect = redirectMock()
-    const supabase = createSupabaseMock()
-    vi.doMock("next/navigation", () => ({ redirect }))
-    vi.doMock("@/lib/merchant/qr-code", () => ({
-      getQrSetup: vi.fn(async () => ({
-        merchant: { id: "merchant-1" },
-      })),
-    }))
-    vi.doMock("@/lib/merchant/staff-members", () => ({
-      listStaffMembers: vi.fn(async () => []),
-    }))
-    vi.doMock("@/lib/merchant/stations", () => ({
-      listStations: vi.fn(async () => []),
-    }))
-    vi.doMock("@/lib/supabase/server", () => ({
-      createSupabaseServerClient: vi.fn(async () => supabase.client),
-    }))
-    const { setQrActiveAction } = await import("@/app/app/qr/actions")
-
-    await expect(
-      setQrActiveAction(form({ qrCodeId: "qr-row-1", nextActive: "true" }))
-    ).rejects.toThrow(
-      "NEXT_REDIRECT:/app/launch?tab=qr&error=Add%20at%20least%20one%20staff%20member%20and%20active%20counter%20station%20before%20launching%20the%20QR."
-    )
-    expect(supabase.rpcCalls).toEqual([])
   })
 
   it("saves ROI settings to dashboard-estimate fields and revalidates readbacks", async () => {

@@ -9,7 +9,7 @@ const sections = [
   {
     id: "data-collected",
     title: "Data collected",
-    body: "Nabaperks stores the email address or phone number used to verify a customer, merchant loyalty membership records, stamp events, reward events, consent records, QR and billing status signals, and support audit logs.",
+    body: "Nabaperks stores the verified phone identity used by a customer, merchant loyalty membership records, stamp events, reward events, consent records, QR and billing status signals, and support audit logs. Customer phone numbers are stored for lookup and display using protected server-side helpers.",
   },
   {
     id: "purposes",
@@ -84,7 +84,9 @@ export default function PrivacyPage() {
           </ReceiptCard>
 
           <Alert className="border-destructive/30 bg-destructive/10">
-            <AlertTitle className="text-destructive">Review required</AlertTitle>
+            <AlertTitle className="text-destructive">
+              Review required
+            </AlertTitle>
             <AlertDescription>
               This page is not final legal wording. UK GDPR, PECR, promotional
               marketing, and consumer protection terms must be reviewed before
@@ -114,7 +116,7 @@ function PolicyBlock({
     <section
       id={id}
       tabIndex={-1}
-      className="w-rule scroll-mt-28 grid gap-2 pt-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+      className="w-rule grid scroll-mt-28 gap-2 pt-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
     >
       <p className="font-mono text-[0.7rem] font-bold tracking-[0.08em] text-foreground uppercase">
         {title}

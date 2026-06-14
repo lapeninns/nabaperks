@@ -18,7 +18,7 @@ export function LaunchReadinessPanel({
       <SectionHeader
         eyebrow="Ink progress"
         title="Launch readiness"
-        description="A live checklist from card, reward, staff, station, and QR records."
+        description="A live checklist from card, reward, venue, and QR records."
         actions={
           <MonoTag tone={readiness.launchReady ? "leaf" : "sun"}>
             {readiness.completed} of {readiness.total} ready
@@ -37,7 +37,7 @@ export function LaunchReadinessPanel({
         <div className="h-full bg-reward" style={{ width: `${progress}%` }} />
       </div>
 
-      <ol className="grid gap-2 sm:grid-cols-5">
+      <ol className="grid gap-2 sm:grid-cols-4">
         {readiness.steps.map((step, index) => (
           <li
             key={step.id}

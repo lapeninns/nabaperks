@@ -2,9 +2,9 @@
 
 ## Exact Goal and User-Visible Outcomes
 
-The database can safely store Nabaperks's MVP merchants, locations, staff approval records, loyalty cards, QR codes, customers, memberships, stamp events, reward events, consent records, billing state, product events, and audit logs.
+The database can safely store Nabaperks's MVP merchants, locations, QR context, loyalty cards, QR codes, customers, memberships, stamp events, reward events, consent records, billing state, product events, and audit logs.
 
-Merchants, customers, staff, and admins only see or mutate the data their role permits.
+Merchants, customers, admins, and trusted server code only see or mutate the data their role permits.
 
 ## Blast Radius
 
@@ -13,7 +13,7 @@ In scope:
 - Supabase migrations and seed data.
 - Database types generated from Supabase, if the repo uses generated types.
 - Server-side data access helpers.
-- RLS policies for merchant, staff, customer, admin, billing, event, and audit tables.
+- RLS policies for merchant, customer, admin, billing, event, and audit tables.
 - Test fixtures for tenant isolation and audit/event readback.
 
 Out of scope:
@@ -38,7 +38,7 @@ Core entities:
 
 - `merchants`
 - `merchant_locations`
-- `staff_users` or staff PIN records
+- `fraud_flags`
 - `loyalty_cards`
 - `qr_codes`
 - `customers`
@@ -53,7 +53,6 @@ Core entities:
 Roles:
 
 - Merchant owner
-- Staff
 - Customer
 - Internal admin
 - System
@@ -61,7 +60,6 @@ Roles:
 ## Behavioral Requirements
 
 - WHEN a merchant owner queries merchant data, THE database SHALL return only records for that merchant.
-- WHEN staff access stamp or redemption functions, THE database SHALL restrict them to their assigned merchant/location.
 - WHEN a customer views loyalty data, THE database SHALL return only their own customer profile, memberships, stamps, and rewards.
 - WHEN an internal admin performs a support action, THE system SHALL write an audit log.
 - WHEN a billing, stamp, reward, consent, QR, or admin mutation succeeds, THE system SHALL write the appropriate audit or product event.

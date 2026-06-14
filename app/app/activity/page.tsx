@@ -51,7 +51,7 @@ export default async function MerchantActivityPage({
           emptyState={
             <EmptyState
               title="No activity yet"
-              description="Activity will appear after customers join, staff issue stamps, rewards are redeemed, or QR assets are downloaded."
+              description="Activity will appear after customers join, add stamps, redeem rewards, or download QR assets."
             />
           }
         />

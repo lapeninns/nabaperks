@@ -191,7 +191,7 @@ function billingStateCopy(status: string) {
     active: {
       title: "Billing active",
       description:
-        "Stripe marks this merchant as active. Loyalty participation and staff stamping stay enabled.",
+        "Stripe marks this merchant as active. Loyalty participation and self-service stamping stay enabled.",
       className: `${baseClassName} border-reward/30 bg-reward/10`,
       actionHref: "/app/billing",
       actionLabel: "Manage billing",

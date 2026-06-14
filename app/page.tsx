@@ -33,7 +33,7 @@ const journey = [
   },
   {
     label: "Stamp",
-    copy: "They show a short code at the counter; staff confirm it on the station. The phone never leaves their hand.",
+    copy: "They scan the venue QR again and tap to add today's stamp. The phone never leaves their hand.",
   },
   {
     label: "Reward",
@@ -49,13 +49,13 @@ const beats = [
   },
   {
     n: "02",
-    title: "Show",
-    copy: "The customer taps for a short code. It sits on their screen with a countdown; the phone stays in their hand.",
+    title: "Tap",
+    copy: "The customer lands on a stamp-confirm screen and adds one visit for the UK business day.",
   },
   {
     n: "03",
-    title: "Confirm",
-    copy: "Staff read the code on the counter station and approve. One stamp, attributable to a named session.",
+    title: "Check",
+    copy: "Optional GPS checks stay soft: in range is quiet, out of range or unavailable is stamped and flagged.",
   },
   {
     n: "04",
@@ -98,7 +98,7 @@ const features = [
   },
   {
     title: "The phone never crosses the counter",
-    copy: "Customers show a short, single-use code; staff confirm it on a paired station with a named session.",
+    copy: "Customers scan the printed venue QR and add one audited stamp per UK business day.",
   },
   {
     title: "Mystery rewards",
@@ -119,7 +119,7 @@ const waysIn = [
   {
     href: "/login",
     title: "Open merchant setup",
-    copy: "Continue onboarding, QR downloads, the counter station, and dashboards.",
+    copy: "Continue onboarding, QR downloads, venue checks, and dashboards.",
   },
   {
     href: "/pricing",
@@ -137,7 +137,7 @@ export default function Page() {
           <PageTitle
             eyebrow="No-app loyalty for UK counters"
             title="Loyalty, stamped before the coffee cools."
-            description="A browser-based loyalty card that lives on your customer's phone. They scan your till QR, show a short code at the counter, and a mystery reward unseals on the third visit."
+            description="A browser-based loyalty card that lives on your customer's phone. They scan your till QR, tap to stamp at the venue, and a mystery reward unseals on the third visit."
             titleClassName="max-w-[15ch] text-[clamp(2.6rem,6vw,4.6rem)] leading-[0.98] tracking-[-0.02em]"
             descriptionClassName="max-w-[40ch] text-base leading-7"
             className="md:grid-cols-1"
@@ -157,7 +157,7 @@ export default function Page() {
 
           <div className="grid gap-3 sm:grid-cols-3">
             <MetricTile label="Setup target" value="<5 min" />
-            <MetricTile label="Staff training" value="<3 min" />
+            <MetricTile label="Stamp flow" value="<10 sec" />
             <MetricTile label="Pilot offer" value="30 days free" />
           </div>
           <p className="font-mono text-[0.7rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">

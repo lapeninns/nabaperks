@@ -4,16 +4,12 @@ import { Logo } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import { ShellNavigation, type ShellNavItem } from "./shell-navigation"
 
-// Primary nav: the daily-use destinations. Setup (card/staff/qr) lives inside
-// the Launch hub; billing + ROI settings are demoted to the account group below.
 const merchantNavItems: ShellNavItem[] = [
   { href: "/app", label: "Home" },
   { href: "/app/launch", label: "Launch" },
   { href: "/app/customers", label: "Customers" },
 ]
 
-// Account group — reachable but visually demoted, matching SMB-loyalty convention
-// (Square/Loyverse/Smile all keep billing out of primary task nav).
 const merchantAccountItems: ShellNavItem[] = [
   { href: "/app/billing", label: "Billing" },
   { href: "/app/settings", label: "ROI settings" },

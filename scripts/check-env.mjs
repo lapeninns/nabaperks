@@ -88,6 +88,14 @@ for (const entry of envContract) {
   }
 }
 
+if (
+  values.TWILIO_VERIFY_SERVICE_SID?.trim() &&
+  !values.TWILIO_AUTH_TOKEN?.trim() &&
+  !(values.TWILIO_API_KEY_SID?.trim() && values.TWILIO_API_KEY_SECRET?.trim())
+) {
+  missing.push("TWILIO_AUTH_TOKEN or TWILIO_API_KEY_SID/TWILIO_API_KEY_SECRET")
+}
+
 if (missing.length || invalid.length) {
   console.error("Nabaperks environment configuration is incomplete.")
 

@@ -27,7 +27,7 @@ Read `GLOBAL_CONTEXT.md` before any individual spec. It contains reusable projec
 | 2 | `02-merchant/03-dynamic-qr-generation-and-downloads.md` | Generate one permanent venue QR and downloadable merchant assets. |
 | 3 | `03-customer/01-qr-resolver-and-customer-join.md` | Resolve `/q/{qr_id}` and let customers join without an app. |
 | 3 | `03-customer/02-digital-stamp-card.md` | Show a mobile customer visit card with locked and revealed reward states. |
-| 4 | `04-staff-rewards/01-staff-pin-stamp-issuing.md` | Let staff approve one visit stamp per UK date with PIN validation and fraud controls. |
+| 4 | `04-staff-rewards/01-staff-pin-stamp-issuing.md` | Let customers approve one visit stamp per UK date with PIN validation and fraud controls. |
 | 4 | `04-staff-rewards/02-reward-unlock-and-redemption.md` | Reveal assigned rewards and redeem them once from the next UK business day. |
 | 5 | `05-merchant-value/01-merchant-dashboard-activity-and-roi.md` | Prove merchant value through members, repeats, activity, and ROI estimates. |
 | 6 | `06-admin-billing/01-stripe-billing-and-access-control.md` | Start subscriptions, sync Stripe state, and enforce billing access. |

@@ -2,9 +2,9 @@
 
 ## Exact Goal and User-Visible Outcomes
 
-The project has a single source of truth for what the Nabaperks MVP includes, excludes, and must prove before a pilot. A merchant, customer, staff member, admin, or implementation agent can read this scope and understand the first release without guessing.
+The project has a single source of truth for what the Nabaperks MVP includes, excludes, and must prove before a pilot. A merchant, customer, admin, or implementation agent can read this scope and understand the first release without guessing.
 
-The MVP outcome is a no-app QR mystery visit card product where a UK local business can sign up, create one 3-visit digital card, manage a custom surprise reward pool, print/download one permanent venue QR code, let customers join from mobile web, issue one staff-approved stamp per UK date, reveal an assigned reward on visit 3, redeem it from the next UK business day, view value metrics, and pay GBP 29/month through Stripe.
+The MVP outcome is a no-app QR mystery visit card product where a UK local business can sign up, create one 3-visit digital card, manage a custom surprise reward pool, print/download one permanent venue QR code, let customers join from mobile web, issue one self-service stamp per UK date, reveal an assigned reward on visit 3, redeem it from the next UK business day, view value metrics, and pay GBP 29/month through Stripe.
 
 ## Blast Radius
 
@@ -12,7 +12,7 @@ In scope:
 
 - Project documentation under `micro-specs/`.
 - Any future implementation files needed to satisfy the specific downstream micro-spec being executed.
-- MVP route families listed in the blueprint: `/`, `/pricing`, `/q/[qr_id]`, `/m/[merchant_slug]`, `/m/[merchant_slug]/join`, `/card/[membership_id]`, `/reward/[reward_id]`, `/app`, `/staff`, and `/admin`.
+- MVP route families listed in the blueprint: `/`, `/pricing`, `/q/[qr_id]`, `/m/[merchant_slug]`, `/m/[merchant_slug]/join`, `/card/[membership_id]`, `/reward/[reward_id]`, `/app`, and `/admin`.
 
 Out of scope:
 
@@ -32,7 +32,7 @@ Out of scope:
 - The MVP must stay focused on proving merchant willingness to pay for a paper-card replacement.
 - The first pricing model is one plan: Growth Plan at GBP 29/month per location, first 30 days free for pilot.
 - The customer experience must remain app-free and mobile-web first.
-- Staff PIN approval is the MVP fraud-control model; full staff accounts may exist later but must not block checkout-counter speed.
+- soft GPS classification is the MVP fraud-control model; full staff accounts may exist later but must not block checkout-counter speed.
 - Legal/compliance references in the blueprint are not legal advice and require review before public launch.
 
 ## Decisions Already Made
@@ -50,7 +50,7 @@ Out of scope:
 - WHEN an implementation agent proposes a feature outside the MVP boundary, THE product plan SHALL reject it unless a new approved micro-spec explicitly adds it.
 - WHEN a merchant completes onboarding, THE system SHALL support one active location and one active loyalty card for MVP.
 - WHEN a customer joins a card, THE system SHALL not require a mobile app download.
-- WHEN staff issue stamps, THE system SHALL require staff approval, enforce one earned stamp per membership/location/UK date, and record the action.
+- WHEN customers add stamps, THE system SHALL require a valid venue QR context, enforce one earned stamp per membership/location/UK date, and record the action.
 - WHEN the third visit stamp is issued, THE system SHALL assign exactly one active reward pool item and persist the assigned reward details.
 - WHEN a reward is revealed, THE system SHALL block redemption until the next UK business day.
 - WHEN the MVP is evaluated for pilot readiness, THE project SHALL check every release gate in this spec.

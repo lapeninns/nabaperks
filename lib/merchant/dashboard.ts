@@ -16,7 +16,6 @@ const activityEvents = [
   "loyalty_card_created",
   "loyalty_card_updated",
   "merchant_signed_up",
-  "staff_session_started",
   "subscription_started",
   "subscription_cancelled",
 ]

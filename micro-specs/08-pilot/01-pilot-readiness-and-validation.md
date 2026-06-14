@@ -59,7 +59,7 @@ Pilot success targets:
 Acceptance criteria:
 
 - End-to-end pilot path works for at least one test merchant from signup to paid billing.
-- Timed staff-training proof is audited and appears in the pilot readiness checklist.
+- Self-service launch checks are audited and appear in the pilot readiness checklist.
 - Paid pilot proof is backed by active billing state plus product-event evidence, not a manual claim.
 - Pilot metrics are backed by Supabase product events.
 - Merchant-facing setup and staff instruction surfaces exist.
@@ -77,5 +77,5 @@ Task breakdown:
 
 - Define pilot checklist.
 - Add pilot reporting metrics.
-- Verify full merchant/customer/staff/admin/billing loop.
+- Verify full merchant/customer/admin/billing loop.
 - Prepare interview, timed training, payment-objection, and cancellation-reason capture.

@@ -15,7 +15,7 @@
 
 **Nabaperks UK** is a web-first loyalty product where:
 
-> A customer scans a venue QR, shows a short-lived code to staff, staff confirms the purchase on a counter station, the customer's card is stamped, and all stamps/rewards are recoverable by phone number without downloading an app.
+> A customer scans a venue QR, shows a short-lived code to staff, customer taps the purchase on a venue QR flow, the customer's card is stamped, and all stamps/rewards are recoverable by phone number without downloading an app.
 
 The core promise is:
 
@@ -23,7 +23,7 @@ The core promise is:
 
 The main product decision:
 
-> **The customer keeps their phone, and staff approvals happen only from paired counter stations.**
+> **The customer keeps their phone, scans the permanent venue QR, and taps to stamp or redeem without staff approval.**
 
 ---
 
@@ -33,7 +33,7 @@ Place this in `AGENTS.md`, `constitution.md`, or equivalent.
 
 ## Product assumptions
 
-The product is for UK small and mid-sized local businesses. The MVP is web-first. Customers do not need a native app. Staff use a web-based counter station. Merchants use a web console. Platform operators use an admin console.
+The product is for UK small and mid-sized local businesses. The MVP is web-first. Customers do not need a native app. Customers stamp and redeem from their own browser. Merchants use a web console. Platform operators use an admin console.
 
 Currency is GBP. Default timezone is `Europe/London`. Do not use "UK business day" as a default visit rule; venues may trade heavily on weekends.
 
@@ -61,19 +61,19 @@ Use WCAG 2.2 AA as the accessibility quality baseline, even if the product is pr
 
 Use these domain boundaries for the micro-specs. If the actual repo differs, map these one-to-one and do not widen scope without approval.
 
-* `apps/customer-web`
-* `apps/staff-station`
-* `apps/merchant-console`
-* `apps/admin-console`
-* `packages/api`
-* `packages/domain`
-* `packages/db`
-* `packages/ui`
-* `packages/messaging`
-* `packages/risk`
-* `packages/billing`
-* `packages/compliance`
-* `packages/analytics`
+- `apps/customer-web`
+- `apps/self-service`
+- `apps/merchant-console`
+- `apps/admin-console`
+- `packages/api`
+- `packages/domain`
+- `packages/db`
+- `packages/ui`
+- `packages/messaging`
+- `packages/risk`
+- `packages/billing`
+- `packages/compliance`
+- `packages/analytics`
 
 `packages/wallet` is intentionally absent: wallet passes are deferred (see MS-13).
 
@@ -85,7 +85,7 @@ All customer-visible card state must be recoverable from server state.
 
 Every tenant-owned entity must include tenant isolation.
 
-Every venue action must be attributable to venue, station, staff session where applicable, timestamp, and action type.
+Every venue action must be attributable to venue, customer or operator where applicable, timestamp, and action type.
 
 Do not introduce shared staff secrets as the primary verification mechanism.
 
@@ -131,7 +131,7 @@ Make each behavior pass with the smallest possible implementation, then improve 
 
 ### How TDD maps onto this pack
 
-In this pack, a micro-spec (MS-xx) is a feature spec containing many behaviors. The unit of the TDD loop is a **test derived from a single EARS requirement or acceptance criterion** — not the MS document. Where the TDD instruction says "create a second Micro-Spec to triangulate," that means *add another test case for the same behavior with a different input, state, or edge case*. It never means creating a new MS-xx document.
+In this pack, a micro-spec (MS-xx) is a feature spec containing many behaviors. The unit of the TDD loop is a **test derived from a single EARS requirement or acceptance criterion** — not the MS document. Where the TDD instruction says "create a second Micro-Spec to triangulate," that means _add another test case for the same behavior with a different input, state, or edge case_. It never means creating a new MS-xx document.
 
 Work through each spec's Task breakdown in order. For the current task:
 
@@ -145,10 +145,10 @@ The per-spec Definition of Done (below) gates moving on to the next spec in the 
 
 ### Two feedback loops
 
-* **Inner loop — Vitest** on `packages/domain`, `packages/api`, and `packages/db` logic. Runs on every step. This is where Fake It and Triangulation happen.
-* **Outer loop — Playwright** dual-context E2E (customer browser + station browser) and axe checks. Written from the journey-level EARS requirements, run at task or spec completion, not on every step.
+- **Inner loop — Vitest** on `packages/domain`, `packages/api`, and `packages/db` logic. Runs on every step. This is where Fake It and Triangulation happen.
+- **Outer loop — Playwright** customer QR join, stamp-confirm, reward redeem, merchant launch, and axe checks. Written from the journey-level EARS requirements, run at task or spec completion, not on every step.
 
-Tests for database-enforced invariants — append-only trigger guards, composite-key tenancy, RLS policies, atomic token consumption — run against a real Postgres instance, never mocks. A mocked database cannot fail the way these invariants are designed to fail.
+Tests for database-enforced invariants — append-only trigger guards, composite-key tenancy, RLS policies, duplicate-day constraints, and reward status transitions — run against a real Postgres instance, never mocks. A mocked database cannot fail the way these invariants are designed to fail.
 
 ### Reach Green as simply as possible
 
@@ -176,32 +176,32 @@ Do not remove duplication the moment it appears. Allow minor duplication to exis
 
 ### Adjust stride to problem difficulty
 
-* Hard or unclear problems — atomic token consumption (MS-07), the merge and dormant-identity flows (MS-05), the entitlement state machine (MS-14), outbox atomicity (MS-00) — use baby steps: write 1 to 3 lines of production code, run the tests, confirm, and continue only after feedback.
-* Simple or obvious problems — display formatting, masking helpers, copy rendering — use larger steps: 4 to 7 lines, then run the tests.
+- Hard or unclear problems — atomic token consumption (MS-07), the merge and dormant-identity flows (MS-05), the entitlement state machine (MS-14), outbox atomicity (MS-00) — use baby steps: write 1 to 3 lines of production code, run the tests, confirm, and continue only after feedback.
+- Simple or obvious problems — display formatting, masking helpers, copy rendering — use larger steps: 4 to 7 lines, then run the tests.
 
 Do not take steps so small they slow down trivial work, or so large that debugging becomes difficult.
 
 ### Prohibited
 
-* Production code without a failing test.
-* Generalizing before tests require it.
-* Refactoring while tests are red.
-* Optimizing during the green phase.
-* Removing duplication before the Rule of Three is met.
-* Abstractions based on speculation.
-* Behavior added because it "might be useful later." If it falls outside the current spec's blast radius, it is also an unauthorized scope change — stop and request approval.
+- Production code without a failing test.
+- Generalizing before tests require it.
+- Refactoring while tests are red.
+- Optimizing during the green phase.
+- Removing duplication before the Rule of Three is met.
+- Abstractions based on speculation.
+- Behavior added because it "might be useful later." If it falls outside the current spec's blast radius, it is also an unauthorized scope change — stop and request approval.
 
 ### Definition of Done (per micro-spec)
 
 A micro-spec is complete when:
 
-* All Required tests pass and all acceptance criteria are verified.
-* Every in-scope EARS requirement is covered by at least one automated test, or is explicitly listed under Manual QA.
-* All Fake It implementations have been replaced through triangulation.
-* Refactoring has improved structure without changing behavior.
-* Duplication has been handled according to the Rule of Three.
-* No untested behavior, unnecessary abstraction, or unauthorized functionality has been introduced.
-* The spec's Manual QA steps have been executed, or handed over with notes where they require a human or a real device.
+- All Required tests pass and all acceptance criteria are verified.
+- Every in-scope EARS requirement is covered by at least one automated test, or is explicitly listed under Manual QA.
+- All Fake It implementations have been replaced through triangulation.
+- Refactoring has improved structure without changing behavior.
+- Duplication has been handled according to the Rule of Three.
+- No untested behavior, unnecessary abstraction, or unauthorized functionality has been introduced.
+- The spec's Manual QA steps have been executed, or handed over with notes where they require a human or a real device.
 
 ---
 
@@ -215,30 +215,30 @@ A micro-spec is complete when:
 3. MS-03 — Reward promise builder
 4. MS-04 — Customer QR entry and card creation
 5. MS-05 — Phone save and recovery
-6. MS-06 — Staff station pairing and staff sessions
-7. MS-07 — Customer-code to staff-station stamp approval
+6. MS-06 — Venue location and soft geofence configuration
+7. MS-07 — Static venue QR self-service stamping
 8. MS-08 — Reward redemption
 9. MS-09 — Undo, adjustment, and missing-stamp dispute
 10. MS-10 — Consent and service/marketing messaging
 
 ## P1 — Business confidence
 
-* MS-11 — Merchant dashboard
-* MS-12 — Risk flags and admin case workflow
-* MS-14 — Billing and VAT invoice records
-* MS-15 — Privacy rights centre
+- MS-11 — Merchant dashboard
+- MS-12 — Risk flags and admin case workflow
+- MS-14 — Billing and VAT invoice records
+- MS-15 — Privacy rights centre
 
 ## P2 — Scale
 
-* MS-16 — Multi-venue customer wallet
-* MS-17 — Campaigns and winback
-* MS-18 — Offline/degraded operations
-* MS-19 — Accessibility and motion QA gate
-* MS-20 — Marketing site and demo mode
+- MS-16 — Multi-venue customer wallet
+- MS-17 — Campaigns and winback
+- MS-18 — Offline/degraded operations
+- MS-19 — Accessibility and motion QA gate
+- MS-20 — Marketing site and demo mode
 
 ## Deferred
 
-* MS-13 — Wallet pass issuance (out of scope; number reserved, see tombstone)
+- MS-13 — Wallet pass issuance (out of scope; number reserved, see tombstone)
 
 ---
 
@@ -248,57 +248,57 @@ This spec sits before MS-01. It binds the vendor and infrastructure choices ever
 
 ## Stack
 
-| Layer | Choice | Notes |
-| --- | --- | --- |
-| Monorepo | Turborepo + pnpm, TypeScript end-to-end | `apps/*` and `packages/*` map 1:1 to the repo domains in the Global Context |
-| Frontend | Next.js (App Router) on Vercel | Four apps: `customer-web`, `staff-station`, `merchant-console`, `admin-console`. Node runtime by default (Stripe SDK, crypto) |
-| API layer | Next.js Route Handlers calling `packages/api` → `packages/domain` | Loyalty-affecting writes are explicit POST endpoints with idempotency keys. Server Actions are allowed for console CRUD only — never for stamps, redemptions, or adjustments |
-| Database | Supabase Postgres | Append-only event tables (trigger-guarded), card projections, `pg_cron`, `pgmq` (Supabase Queues) |
-| Auth — merchant/admin | Supabase Auth, email + TOTP MFA | MFA mandatory for admin console, strongly encouraged for merchant owners. Role claims drive RBAC |
-| Auth — customer | Platform-owned identity, phone-first, OTP via Twilio Verify | Not Supabase Auth users. Enables the MS-05 merge flow, masked display (MS-11), and the MS-15 erasure workflow without fighting `auth.users` |
-| Auth — staff station | Pairing flow → station device credential (httpOnly cookie) bound to one venue + per-staff PIN sessions | PINs are argon2-hashed, but a 4–6 digit PIN's real security is server-side rate limiting + station binding (MS-06), not the hash |
-| Authorization | RLS deny-by-default as defense-in-depth; explicit tenant/actor checks in server code for all writes | RLS cannot express token consumption, cooldown windows, or transactional ledger appends |
-| Tokens | Short-lived single-use codes as Postgres rows; atomic conditional-update consume | Approval idempotency key = token id (MS-07, MS-18) |
-| QR | Dynamic `/q/{qr_id}` on a short dedicated domain; opaque ids; status field for reprint rotation | Server-side scan log feeds MS-11 QR health. Print at ECC level Q/H for laminated counters. Station scans customer codes via web camera (BarcodeDetector with a zxing fallback); manual short-code entry always available |
-| SMS | Twilio at MVP: Verify for OTP, Programmable Messaging for service sends | MS-05 is P0 — SMS cannot be deferred. Verify ships rate limiting and SMS-pumping fraud protection. Marketing SMS is P2 (MS-17), sent from a long virtual number so STOP replies work, gated by `packages/messaging` consent checks |
-| Email | Resend | Merchant transactional only (onboarding, billing, risk alerts). Customers are phone-first; customer email is out of MVP scope |
-| Payments | Stripe Billing + Customer Portal + Stripe Tax; verified, idempotent webhooks | Webhooks drive the entitlement state machine (AD-07) implementing the MS-14 grace/suspension gates. Invoice PDFs are mirrored to Supabase Storage as durable records independent of Stripe account access |
-| Jobs & scheduling | Transactional outbox on `pgmq` + `pg_cron` sweeps; Vercel Cron (plus an inline kick after enqueue) drains the queue | Side effects — SMS sends, exports, campaign fan-out, risk evaluation — enqueue in the same transaction as the ledger event |
-| Realtime | Polling-first (1–2 s during the code window); Supabase Realtime as a later enhancement | Polling is robust on café Wi-Fi and trivially testable. Realtime authorization for non-Supabase-Auth users requires minting custom JWTs — defer |
-| File storage | Supabase Storage | Invoice mirrors, DSAR export bundles (signed URLs with TTL), print/poster assets |
-| Product analytics | Postgres event tables = source of truth; PostHog (EU hosting) on merchant, staff, and admin surfaces only | No third-party analytics or non-essential client storage on `customer-web` at MVP (PECR, per the Global Context). The MS-11 dashboard reads SQL views over the ledger, not PostHog |
-| Errors & observability | PostHog Error Tracking (EU hosting) from day one, server and client, across all four apps; correlation ids end-to-end | Single vendor for analytics and errors. On `customer-web` the SDK runs cookieless: memory persistence, autocapture off, session replay off, exception capture only — recorded in `packages/compliance` as strictly necessary diagnostics |
-| Rate limiting | Postgres-backed counters for OTP and PIN attempts | Durable and auditable, which satisfies MS-06's "increment a server-side rate limit". Per-IP/WAF limiting later if abuse appears |
-| PII handling | Phones stored E.164: deterministic HMAC-SHA-256 index column (key in Supabase Vault) for lookup + ciphertext at rest; masked display helpers in `packages/domain` | Ledger event payloads carry `customer_id` only (MS-01 constraint) |
-| Backups / DR | PITR from day one; restore runbook written and rehearsed before pilot | "No lost stamps" is the headline promise — data-loss tolerance is already low at pilot |
-| Environments | Production + staging Supabase projects; Vercel preview deployments; Supabase CLI migrations in `packages/db`, applied via CI | Optional: Supabase branching for preview databases |
-| Demo isolation | `is_demo` flag on tenant, hard-filtered from production metrics and merchant views; scheduled purge job | MS-20 |
-| Security baseline | HTTPS/HSTS, CSP, httpOnly cookies, RLS, RBAC, MFA, service-role key server-only, secrets in Vercel env + Supabase Vault, append-only ledger as the audit log | |
-| Testing gates | Vitest on `packages/domain`; Playwright dual-context E2E (customer browser + station browser running the MS-07 handshake); axe accessibility checks per MS-19 | The dual-context handshake E2E is the money test for this product |
+| Layer                             | Choice                                                                                                                                                            | Notes                                                                                                                                                                                                                                    |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Monorepo                          | Turborepo + pnpm, TypeScript end-to-end                                                                                                                           | `apps/*` and `packages/*` map 1:1 to the repo domains in the Global Context                                                                                                                                                              |
+| Frontend                          | Next.js (App Router) on Vercel                                                                                                                                    | Four apps: `customer-web`, `self-service`, `merchant-console`, `admin-console`. Node runtime by default (Stripe SDK, crypto)                                                                                                             |
+| API layer                         | Next.js Route Handlers calling `packages/api` → `packages/domain`                                                                                                 | Loyalty-affecting writes are explicit POST endpoints with idempotency keys. Server Actions are allowed for console CRUD only — never for stamps, redemptions, or adjustments                                                             |
+| Database                          | Supabase Postgres                                                                                                                                                 | Append-only event tables (trigger-guarded), card projections, `pg_cron`, `pgmq` (Supabase Queues)                                                                                                                                        |
+| Auth — merchant/admin             | Supabase Auth, email + TOTP MFA                                                                                                                                   | MFA mandatory for admin console, strongly encouraged for merchant owners. Role claims drive RBAC                                                                                                                                         |
+| Auth — customer                   | Platform-owned identity, phone-first, OTP via Twilio Verify                                                                                                       | Not Supabase Auth users. Enables the MS-05 merge flow, masked display (MS-11), and the MS-15 erasure workflow without fighting `auth.users`                                                                                              |
+| Auth — customer self-service flow | Signed first-party customer session plus venue QR context                                                                                                         | The server verifies membership ownership, active card/reward setup, and QR context before stamping or redeeming                                                                                                                          |
+| Authorization                     | RLS deny-by-default as defense-in-depth; explicit tenant/actor checks in server code for all writes                                                               | RLS cannot express token consumption, cooldown windows, or transactional ledger appends                                                                                                                                                  |
+| Self-service writes               | Customer-triggered RPCs with server-side ownership checks and duplicate-day guards                                                                                | Idempotency is enforced by unique earned-stamp constraints and reward status transitions                                                                                                                                                 |
+| QR                                | Permanent `/q/{qr_id}` on a short dedicated domain; opaque ids; status field for reprint rotation                                                                 | Server-side routing sends new visitors to join and existing members to stamp-confirm. Print at ECC level Q/H for laminated counters                                                                                                      |
+| SMS                               | Twilio at MVP: Verify for OTP, Programmable Messaging for service sends                                                                                           | MS-05 is P0 — SMS cannot be deferred. Verify ships rate limiting and SMS-pumping fraud protection. Marketing SMS is P2 (MS-17), sent from a long virtual number so STOP replies work, gated by `packages/messaging` consent checks       |
+| Email                             | Resend                                                                                                                                                            | Merchant transactional only (onboarding, billing, risk alerts). Customers are phone-first; customer email is out of MVP scope                                                                                                            |
+| Payments                          | Stripe Billing + Customer Portal + Stripe Tax; verified, idempotent webhooks                                                                                      | Webhooks drive the entitlement state machine (AD-07) implementing the MS-14 grace/suspension gates. Invoice PDFs are mirrored to Supabase Storage as durable records independent of Stripe account access                                |
+| Jobs & scheduling                 | Transactional outbox on `pgmq` + `pg_cron` sweeps; Vercel Cron (plus an inline kick after enqueue) drains the queue                                               | Side effects — SMS sends, exports, campaign fan-out, risk evaluation — enqueue in the same transaction as the ledger event                                                                                                               |
+| Realtime                          | Not required for self-service stamping                                                                                                                            | The customer tap receives the stamp/redeem result synchronously, with normal retry/error states for weak connectivity                                                                                                                    |
+| File storage                      | Supabase Storage                                                                                                                                                  | Invoice mirrors, DSAR export bundles (signed URLs with TTL), print/poster assets                                                                                                                                                         |
+| Product analytics                 | Postgres event tables = source of truth; PostHog (EU hosting) on merchant and admin surfaces only                                                                 | No third-party analytics or non-essential client storage on `customer-web` at MVP (PECR, per the Global Context). The MS-11 dashboard reads SQL views over the ledger, not PostHog                                                       |
+| Errors & observability            | PostHog Error Tracking (EU hosting) from day one, server and client, across all four apps; correlation ids end-to-end                                             | Single vendor for analytics and errors. On `customer-web` the SDK runs cookieless: memory persistence, autocapture off, session replay off, exception capture only — recorded in `packages/compliance` as strictly necessary diagnostics |
+| Rate limiting                     | Postgres-backed counters for OTP, self-stamp, and redeem attempts                                                                                                 | Durable and auditable. Per-IP/WAF limiting later if abuse appears                                                                                                                                                                        |
+| PII handling                      | Phones stored E.164: deterministic HMAC-SHA-256 index column (key in Supabase Vault) for lookup + ciphertext at rest; masked display helpers in `packages/domain` | Ledger event payloads carry `customer_id` only (MS-01 constraint)                                                                                                                                                                        |
+| Backups / DR                      | PITR from day one; restore runbook written and rehearsed before pilot                                                                                             | "No lost stamps" is the headline promise — data-loss tolerance is already low at pilot                                                                                                                                                   |
+| Environments                      | Production + staging Supabase projects; Vercel preview deployments; Supabase CLI migrations in `packages/db`, applied via CI                                      | Optional: Supabase branching for preview databases                                                                                                                                                                                       |
+| Demo isolation                    | `is_demo` flag on tenant, hard-filtered from production metrics and merchant views; scheduled purge job                                                           | MS-20                                                                                                                                                                                                                                    |
+| Security baseline                 | HTTPS/HSTS, CSP, httpOnly cookies, RLS, RBAC, MFA, service-role key server-only, secrets in Vercel env + Supabase Vault, append-only ledger as the audit log      |                                                                                                                                                                                                                                          |
+| Testing gates                     | Vitest on `packages/domain`; Playwright E2E for customer QR join, stamp-confirm, and reward redeem; axe accessibility checks per MS-19                            | The QR-to-stamp path is the money test for this product                                                                                                                                                                                  |
 
 ## Goal and user-visible outcomes
 
-Nothing in this spec is directly user-visible. The outcome is that every feature micro-spec can be implemented without inventing platform behaviour, and the pack's four invariants — recoverable customer card, venue-specific context, staff/station confirmation, auditable event — are enforced by infrastructure rather than by convention.
+Nothing in this spec is directly user-visible. The outcome is that every feature micro-spec can be implemented without inventing platform behaviour, and the pack's four invariants — recoverable customer card, venue-specific context, QR confirmation, auditable event — are enforced by infrastructure rather than by convention.
 
 ## Blast radius
 
 **In scope**
 
-* Repo scaffold and deployment topology
-* `packages/db` baseline schema, migrations tooling, append-only guards, outbox
-* `packages/api` transport conventions (idempotency, correlation ids, error shapes)
-* `packages/messaging` transport bindings (Twilio, Resend)
-* `packages/compliance` client-storage posture
-* Vendor configuration: Vercel, Supabase, Stripe, Twilio, Resend, PostHog
-* CI gates
+- Repo scaffold and deployment topology
+- `packages/db` baseline schema, migrations tooling, append-only guards, outbox
+- `packages/api` transport conventions (idempotency, correlation ids, error shapes)
+- `packages/messaging` transport bindings (Twilio, Resend)
+- `packages/compliance` client-storage posture
+- Vendor configuration: Vercel, Supabase, Stripe, Twilio, Resend, PostHog
+- CI gates
 
 **Out of scope**
 
-* All feature flows in MS-01 through MS-20
-* Wallet passes (deferred, MS-13)
-* POS integration
-* Native apps
-* Machine-learning risk models
+- All feature flows in MS-01 through MS-20
+- Wallet passes (deferred, MS-13)
+- POS integration
+- Native apps
+- Machine-learning risk models
 
 ## Strict constraints and assumptions
 
@@ -320,9 +320,9 @@ PITR is enabled before the first pilot stamp is granted.
 
 **AD-03 — Customer identity is platform-owned.** A `customers` table keyed by phone HMAC, verified through Twilio Verify. Customers are not Supabase Auth users: this keeps the MS-05 same-venue merge a plain data operation, keeps phone exposure masked by default, and makes the MS-15 erasure workflow a domain concern rather than an `auth.users` surgery.
 
-**AD-04 — Station and staff session model.** Pairing creates a station row bound to one venue and sets an httpOnly device credential on the station browser. Staff sessions are rows referencing a staff profile, started by PIN. PIN verification happens server-side against an argon2 hash with Postgres-backed attempt counters; the PIN is only meaningful in combination with the station credential.
+**AD-04 — Static QR self-service model.** A venue has one permanent QR entry point. The server routes new visitors to join and existing members to stamp-confirm, then verifies customer ownership and QR context before any loyalty-affecting write.
 
-**AD-05 — Token semantics.** Stamp and redemption codes are rows `{id, card_id, venue_id, kind, expires_at, consumed_at}`. Consumption is a single conditional `UPDATE ... WHERE consumed_at IS NULL RETURNING *` — atomic single-use with no lock choreography. The approval request carries the token id as its idempotency key, which makes MS-18 retries safe by construction.
+**AD-05 — Duplicate and idempotency semantics.** Earned stamps are guarded by one earned stamp per membership/location/UK business date. Reward redemption is guarded by the reward event status transition. Retries must resolve current server state before offering another action.
 
 **AD-06 — Transactional outbox on pgmq.** Side effects are enqueued in the same transaction as the event that caused them, so an event without its jobs (or jobs without their event) cannot exist. Delivery is at-least-once; every consumer is idempotent. A Vercel Cron drain plus an inline fire-and-forget kick after enqueue keeps latency low without long-running functions.
 
@@ -330,7 +330,7 @@ PITR is enabled before the first pilot stamp is granted.
 
 **AD-08 — Analytics and error posture: one vendor, PostHog, EU hosting.** Product truth lives in the ledger and projections; the MS-11 dashboard is SQL views (materialized where needed, refreshed by pg_cron). PostHog product analytics runs on merchant, staff, and admin surfaces. PostHog error tracking runs everywhere, including server code; on `customer-web` the client SDK is configured cookieless — memory persistence, no autocapture, no session replay — and captures exceptions only, so no non-essential storage is set before consent.
 
-**AD-09 — Polling-first realtime.** During the code window the customer page polls every 1–2 seconds; the station polls approval status the same way. Supabase Realtime is a later enhancement because authorizing it for non-Supabase-Auth customers means minting custom JWTs — not worth it for MVP.
+**AD-09 — Synchronous self-service feedback.** Stamp and redeem taps return success, duplicate, flagged, or recoverable error states directly. Supabase Realtime is not required for the MVP loyalty write path.
 
 **AD-10 — Tenancy enforcement in the schema.** `tenant_id` on every tenant-owned row; composite foreign keys `(tenant_id, id)` so a cross-tenant reference fails at the schema layer, not just in tests. RLS read predicates keyed on tenant claims for console reads. The per-spec tenant-isolation tests remain mandatory.
 
@@ -364,34 +364,34 @@ WHEN a billing state transition occurs, THE system SHALL update the entitlement 
 
 **Acceptance criteria**
 
-* `UPDATE`/`DELETE` on any event table fails for every application role, including service role.
-* An event append and its outbox jobs cannot exist independently of each other.
-* A replayed Stripe event id produces exactly one state transition.
-* OTP and PIN attempts hit server-side limits and lock out correctly.
-* A cross-tenant composite-FK insert fails at the schema layer.
-* One staging PITR restore has been performed and the runbook updated from it.
-* Demo tenants never appear in production metrics or merchant views.
+- `UPDATE`/`DELETE` on any event table fails for every application role, including service role.
+- An event append and its outbox jobs cannot exist independently of each other.
+- A replayed Stripe event id produces exactly one state transition.
+- OTP and PIN attempts hit server-side limits and lock out correctly.
+- A cross-tenant composite-FK insert fails at the schema layer.
+- One staging PITR restore has been performed and the runbook updated from it.
+- Demo tenants never appear in production metrics or merchant views.
 
 **Required tests**
 
-* Trigger-guard tests on event tables.
-* Outbox atomicity tests (forced rollback leaves neither event nor job).
-* Webhook signature and replay tests.
-* OTP/PIN rate-limit tests.
-* Composite-key tenancy tests.
-* Demo isolation tests.
-* Correlation-id propagation tests.
+- Trigger-guard tests on event tables.
+- Outbox atomicity tests (forced rollback leaves neither event nor job).
+- Webhook signature and replay tests.
+- OTP/PIN rate-limit tests.
+- Composite-key tenancy tests.
+- Demo isolation tests.
+- Correlation-id propagation tests.
 
 **Manual QA**
 
-* Run the full MS-07 handshake on staging with the PostHog error feed open in another tab.
-* Kill the station's network mid-approval; confirm unknown-state handling and that no duplicate stamp lands. This rehearses MS-18 before MS-18 is built.
+- Run the full MS-07 QR-to-stamp path on staging with the PostHog error feed open in another tab.
+- Drop the customer network during stamp submission; confirm unknown-state handling and that no duplicate stamp lands. This rehearses MS-18 before MS-18 is built.
 
 **Task breakdown**
 
 1. Scaffold the monorepo (Turborepo, pnpm), four apps, shared packages.
 2. Baseline schema and migrations: tenants, venues, customers, cards, event tables with guards, outbox.
-3. Auth surfaces: Supabase Auth for merchant/admin with MFA; customer identity plus Twilio Verify; station pairing and staff sessions.
+3. Auth surfaces: Supabase Auth for merchant/admin with MFA; customer identity plus Twilio Verify; venue QR setup and customer self-service sessions.
 4. Outbox drain worker, pg_cron sweeps, Vercel Cron wiring.
 5. Stripe Billing, Tax, Portal; webhook handler into the entitlement state machine; invoice mirroring.
 6. Messaging bindings: Verify OTP, service sends, the consent-gate stub MS-10 will fill in.
@@ -400,28 +400,28 @@ WHEN a billing state transition occurs, THE system SHALL update the entitlement 
 
 ## Stack-to-spec mapping
 
-| Spec | Platform components it leans on |
-| --- | --- |
-| MS-01 | Event tables + trigger guards, projections, correlation ids, tenancy schema |
-| MS-02 | Supabase Auth (merchant), setup-state tables, RLS read policies |
-| MS-03 | `packages/domain/rewards` validation, copy-consistency checks in `packages/compliance` |
-| MS-04 | `/q/{id}` resolver + scan log, strictly-necessary card session token |
-| MS-05 | Customer identity tables, HMAC index, Twilio Verify, merge transaction, dormancy check |
-| MS-06 | Station device credential, staff PIN hashes, Postgres rate counters |
-| MS-07 | Token rows + atomic consume, polling endpoints, station camera scanning |
-| MS-08 | Reward lifecycle states, outbox (reward-ready service message via the MS-10 gate) |
-| MS-09 | Adjustment events — the append-only model makes undo a reversing event by construction |
-| MS-10 | Consent event tables, eligibility gate in `packages/messaging`, Twilio STOP webhooks |
-| MS-11 | SQL/materialized views over the ledger (pg_cron refresh), masking helpers |
-| MS-12 | pg_cron risk sweeps over event tables, admin console on Supabase Auth + mandatory MFA |
-| MS-13 | Deferred — wallet passes are out of scope; no platform components are provisioned |
-| MS-14 | Stripe webhooks → entitlement state machine, invoice mirror in Storage |
+| Spec  | Platform components it leans on                                                             |
+| ----- | ------------------------------------------------------------------------------------------- |
+| MS-01 | Event tables + trigger guards, projections, correlation ids, tenancy schema                 |
+| MS-02 | Supabase Auth (merchant), setup-state tables, RLS read policies                             |
+| MS-03 | `packages/domain/rewards` validation, copy-consistency checks in `packages/compliance`      |
+| MS-04 | `/q/{id}` resolver + scan log, strictly-necessary card session token                        |
+| MS-05 | Customer identity tables, HMAC index, Twilio Verify, merge transaction, dormancy check      |
+| MS-06 | Venue address/geofence columns, geocode action, soft GPS fraud flags                        |
+| MS-07 | Static QR routing, self-service stamp RPC, duplicate-day guard                              |
+| MS-08 | Reward lifecycle states, outbox (reward-ready service message via the MS-10 gate)           |
+| MS-09 | Adjustment and missing-stamp events with audit reasons                                      |
+| MS-10 | Consent event tables, eligibility gate in `packages/messaging`, Twilio STOP webhooks        |
+| MS-11 | SQL/materialized views over the ledger (pg_cron refresh), masking helpers                   |
+| MS-12 | pg_cron risk sweeps over event tables, admin console on Supabase Auth + mandatory MFA       |
+| MS-13 | Deferred — wallet passes are out of scope; no platform components are provisioned           |
+| MS-14 | Stripe webhooks → entitlement state machine, invoice mirror in Storage                      |
 | MS-15 | Export jobs → Storage signed URLs; erasure = ciphertext/HMAC deletion + anonymised identity |
-| MS-16 | Identity → memberships query, RLS tenancy isolation |
-| MS-17 | Campaign tables, consent-gated fan-out through pgmq, long-number STOP handling |
-| MS-18 | Idempotency keys, token status re-check endpoint, health endpoint |
-| MS-19 | `packages/ui` tokens, reduced-motion utilities, axe CI gate |
-| MS-20 | `is_demo` tenant flag, metric exclusion, scheduled purge |
+| MS-16 | Identity → memberships query, RLS tenancy isolation                                         |
+| MS-17 | Campaign tables, consent-gated fan-out through pgmq, long-number STOP handling              |
+| MS-18 | Idempotency keys, token status re-check endpoint, health endpoint                           |
+| MS-19 | `packages/ui` tokens, reduced-motion utilities, axe CI gate                                 |
+| MS-20 | `is_demo` tenant flag, metric exclusion, scheduled purge                                    |
 
 ---
 
@@ -435,18 +435,18 @@ A customer's stamps, rewards, redemptions, and recovery state are stored server-
 
 **In scope**
 
-* `packages/domain/loyalty`
-* `packages/db/migrations`
-* `packages/api/loyalty`
-* `packages/compliance/audit`
+- `packages/domain/loyalty`
+- `packages/db/migrations`
+- `packages/api/loyalty`
+- `packages/compliance/audit`
 
 **Out of scope**
 
-* Customer UI
-* Merchant dashboard UI
-* Billing
-* SMS sending
-* Fraud scoring beyond basic event recording
+- Customer UI
+- Merchant dashboard UI
+- Billing
+- SMS sending
+- Fraud scoring beyond basic event recording
 
 ## Strict constraints and assumptions
 
@@ -462,21 +462,21 @@ Phone numbers must not be stored in plaintext inside the loyalty event ledger.
 
 ## Decisions already made
 
-The product supports tenants, venues, customers, memberships, cards, stamps, reward rules, reward instances, redemptions, staff members, stations, and audit events.
+The product supports tenants, venues, customers, memberships, cards, stamps, reward rules, reward instances, redemptions, fraud flags, and audit events.
 
 A customer may hold cards at multiple venues.
 
 A merchant may own multiple venues.
 
-A stamp is not valid unless it is confirmed by a staff station or approved adjustment.
+A stamp is not valid unless it is confirmed by a self-service flow or approved adjustment.
 
 ## EARS requirements
 
-WHEN a stamp is approved, THE system SHALL create an immutable `STAMP_GRANTED` event.
+WHEN a stamp is issued, THE system SHALL create an immutable `STAMP_GRANTED` event.
 
 WHEN a reward is earned, THE system SHALL create a `REWARD_ISSUED` event linked to the stamp/card that triggered it.
 
-WHEN a reward is redeemed, THE system SHALL create a `REWARD_REDEEMED` event linked to the reward instance and staff session.
+WHEN a reward is redeemed, THE system SHALL create a `REWARD_REDEEMED` event linked to the reward instance and customer action.
 
 WHEN an event is created, THE system SHALL include tenant ID, venue ID, event type, event timestamp, and correlation ID.
 
@@ -488,22 +488,22 @@ WHEN a card projection disagrees with the ledger, THE system SHALL prefer the le
 
 **Acceptance criteria**
 
-* A card can be reconstructed from ledger events.
-* A stamp cannot exist without an event.
-* A reward cannot be redeemed twice.
-* Tenant A cannot query Tenant B's cards or events.
+- A card can be reconstructed from ledger events.
+- A stamp cannot exist without an event.
+- A reward cannot be redeemed twice.
+- Tenant A cannot query Tenant B's cards or events.
 
 **Required tests**
 
-* Ledger append tests.
-* Projection rebuild tests.
-* Tenant isolation tests.
-* Duplicate redemption prevention tests.
+- Ledger append tests.
+- Projection rebuild tests.
+- Tenant isolation tests.
+- Duplicate redemption prevention tests.
 
 **Manual QA**
 
-* Create a tenant, venue, customer card, stamp, reward, and redemption.
-* Confirm the audit trail shows the full chain.
+- Create a tenant, venue, customer card, stamp, reward, and redemption.
+- Confirm the audit trail shows the full chain.
 
 **Task breakdown**
 
@@ -524,18 +524,18 @@ A UK business owner can create a merchant account, add a venue, enter basic busi
 
 **In scope**
 
-* `apps/merchant-console/onboarding`
-* `packages/api/merchant`
-* `packages/domain/merchant`
-* `packages/db/migrations`
+- `apps/merchant-console/onboarding`
+- `packages/api/merchant`
+- `packages/domain/merchant`
+- `packages/db/migrations`
 
 **Out of scope**
 
-* Billing collection
-* Reward configuration
-* Staff setup
-* Customer QR activation
-* Public marketing site
+- Billing collection
+- Reward configuration
+- Staff setup
+- Customer QR activation
+- Public marketing site
 
 ## Strict constraints and assumptions
 
@@ -547,7 +547,7 @@ VAT number is optional at onboarding.
 
 Venue opening days are informational and must not block stamps unless a reward rule explicitly uses them.
 
-The merchant cannot go live until reward rules, QR preview, and staff station setup are complete.
+The merchant cannot go live until reward rules, QR preview, and self-service flow setup are complete.
 
 ## Decisions already made
 
@@ -575,22 +575,22 @@ WHEN the merchant attempts to activate the programme before completing required 
 
 **Acceptance criteria**
 
-* Merchant can create a tenant and venue.
-* Setup checklist persists across refresh.
-* Venue cannot be activated before required steps.
+- Merchant can create a tenant and venue.
+- Setup checklist persists across refresh.
+- Venue cannot be activated before required steps.
 
 **Required tests**
 
-* Required field validation.
-* UK postcode normalization.
-* Setup-state transition tests.
-* Tenant isolation tests.
+- Required field validation.
+- UK postcode normalization.
+- Setup-state transition tests.
+- Tenant isolation tests.
 
 **Manual QA**
 
-* Create a venue with a London postcode.
-* Refresh the browser.
-* Confirm the setup checklist remains accurate.
+- Create a venue with a London postcode.
+- Refresh the browser.
+- Confirm the setup checklist remains accurate.
 
 **Task breakdown**
 
@@ -611,18 +611,18 @@ A merchant can configure a reward programme whose public promise exactly matches
 
 **In scope**
 
-* `apps/merchant-console/rewards`
-* `apps/customer-web/reward-summary`
-* `packages/domain/rewards`
-* `packages/api/rewards`
-* `packages/compliance/promotions`
+- `apps/merchant-console/rewards`
+- `apps/customer-web/reward-summary`
+- `packages/domain/rewards`
+- `packages/api/rewards`
+- `packages/compliance/promotions`
 
 **Out of scope**
 
-* Reward redemption flow
-* Billing
-* Marketing campaigns
-* Advanced randomization analytics
+- Reward redemption flow
+- Billing
+- Marketing campaigns
+- Advanced randomization analytics
 
 ## Strict constraints and assumptions
 
@@ -666,22 +666,22 @@ WHEN a reward is age-restricted, THE system SHALL require staff age-check gating
 
 **Acceptance criteria**
 
-* Fixed reward cannot contain random outcomes.
-* Mystery reward cannot be advertised as guaranteed.
-* Customer preview updates with the exact configured promise.
-* Reward terms appear in poster preview, landing page, and card view.
+- Fixed reward cannot contain random outcomes.
+- Mystery reward cannot be advertised as guaranteed.
+- Customer preview updates with the exact configured promise.
+- Reward terms appear in poster preview, landing page, and card view.
 
 **Required tests**
 
-* Reward model validation.
-* Copy consistency tests.
-* Expiry/exclusion rendering tests.
-* Age-restricted reward validation.
+- Reward model validation.
+- Copy consistency tests.
+- Expiry/exclusion rendering tests.
+- Age-restricted reward validation.
 
 **Manual QA**
 
-* Try to create "Free coffee after 3 visits" with a 20% discount mystery outcome.
-* Confirm the system blocks it.
+- Try to create "Free coffee after 3 visits" with a 20% discount mystery outcome.
+- Confirm the system blocks it.
 
 **Task breakdown**
 
@@ -702,17 +702,17 @@ A customer scans a venue QR and lands on a venue-specific card page. The custome
 
 **In scope**
 
-* `apps/customer-web/venue-entry`
-* `apps/customer-web/card`
-* `packages/api/customer-card`
-* `packages/domain/loyalty`
+- `apps/customer-web/venue-entry`
+- `apps/customer-web/card`
+- `packages/api/customer-card`
+- `packages/domain/loyalty`
 
 **Out of scope**
 
-* Phone OTP recovery
-* Staff station approval
-* Reward redemption
-* Marketing consent
+- Phone OTP recovery
+- Self-service stamp submission
+- Reward redemption
+- Marketing consent
 
 ## Strict constraints and assumptions
 
@@ -752,23 +752,23 @@ WHEN the QR is invalid or expired, THE customer web app SHALL show a non-technic
 
 **Acceptance criteria**
 
-* QR scan opens venue landing.
-* No stamp is granted by scan alone.
-* Unsaved card state is visibly marked.
-* Invalid QR fails safely.
+- QR scan opens venue landing.
+- No stamp is granted by scan alone.
+- Unsaved card state is visibly marked.
+- Invalid QR fails safely.
 
 **Required tests**
 
-* Valid QR route.
-* Invalid QR route.
-* No-stamp-on-scan test.
-* Unsaved-card warning test.
+- Valid QR route.
+- Invalid QR route.
+- No-stamp-on-scan test.
+- Unsaved-card warning test.
 
 **Manual QA**
 
-* Scan a venue QR on iOS Safari and Chrome.
-* Confirm the same venue copy appears.
-* Confirm no stamp appears before staff approval.
+- Scan a venue QR on iOS Safari and Chrome.
+- Confirm the same venue copy appears.
+- Confirm no stamp appears before the customer taps to stamp.
 
 **Task breakdown**
 
@@ -789,18 +789,18 @@ A customer can save their card with a UK mobile number, verify by OTP, recover s
 
 **In scope**
 
-* `apps/customer-web/save-recover`
-* `packages/api/identity`
-* `packages/messaging/otp`
-* `packages/domain/customer`
-* `packages/db/migrations`
+- `apps/customer-web/save-recover`
+- `packages/api/identity`
+- `packages/messaging/otp`
+- `packages/domain/customer`
+- `packages/db/migrations`
 
 **Out of scope**
 
-* Email login
-* Social login
-* Passwords
-* Marketing campaigns
+- Email login
+- Social login
+- Passwords
+- Marketing campaigns
 
 ## Strict constraints and assumptions
 
@@ -846,34 +846,34 @@ WHEN the dormant-identity confirmation fails, THE system SHALL NOT restore cards
 
 WHEN an unsaved card has stamps and the verified phone number already has a card for the same venue, THE system SHALL offer a merge path rather than silently creating a duplicate.
 
-WHEN the customer attempts a second stamp on an unsaved card, THE system SHALL require save or recovery before showing the staff confirmation code.
+WHEN the customer attempts a second stamp on an unsaved card, THE system SHALL require save or recovery before showing the self-service stamp confirmation.
 
 ## Verification criteria and task breakdown
 
 **Acceptance criteria**
 
-* First card can be saved by OTP.
-* Saved card can be recovered on another device.
-* Duplicate cards can be merged safely.
-* OTP errors do not disclose account existence.
-* Dormant identities are not restored by OTP alone.
+- First card can be saved by OTP.
+- Saved card can be recovered on another device.
+- Duplicate cards can be merged safely.
+- OTP errors do not disclose account existence.
+- Dormant identities are not restored by OTP alone.
 
 **Required tests**
 
-* Phone normalization tests.
-* OTP success/failure tests.
-* Rate-limit tests.
-* Card recovery tests.
-* Merge tests.
-* Dormant-identity recovery tests.
+- Phone normalization tests.
+- OTP success/failure tests.
+- Rate-limit tests.
+- Card recovery tests.
+- Merge tests.
+- Dormant-identity recovery tests.
 
 **Manual QA**
 
-* First stamp unsaved.
-* Save with phone.
-* Open private browser.
-* Recover card with same phone.
-* Confirm stamps remain.
+- First stamp unsaved.
+- Save with phone.
+- Open private browser.
+- Recover card with same phone.
+- Confirm stamps remain.
 
 **Task breakdown**
 
@@ -886,194 +886,182 @@ WHEN the customer attempts a second stamp on an unsaved card, THE system SHALL r
 
 ---
 
-# MS-06 — Staff Station Pairing and Staff Sessions
+# MS-06 — Venue Location and Soft Geofence Configuration
 
 ## Goal and user-visible outcomes
 
-A merchant can pair a counter station to a venue. Staff can start a named session on that station, so stamps and redemptions are attributable without requiring staff to handle customer phones.
+A merchant can save the venue address, let the system geocode it, and optionally enable a soft GPS check. Customers are never blocked only because GPS is denied, unavailable, or outside the radius; those cases become fraud signals.
 
 ## Blast radius
 
 **In scope**
 
-* `apps/staff-station`
-* `apps/merchant-console/staff`
-* `packages/api/staff`
-* `packages/domain/staff`
-* `packages/db/migrations`
+- `apps/merchant-console/launch`
+- `packages/api/merchant-location`
+- `packages/api/stamping`
+- `packages/domain/stamping`
+- `packages/db/migrations`
 
 **Out of scope**
 
-* Customer card UI
-* Stamp approval logic
-* Payroll/timekeeping
-* Staff email accounts
-* Admin fraud case workflow
+- Customer card UI
+- Hard location enforcement
+- Payroll/timekeeping
+- Admin fraud case workflow
 
 ## Strict constraints and assumptions
 
-A station belongs to one venue.
+Venue coordinates are produced at configuration time from the merchant address.
 
-A station must be paired by a manager or merchant owner.
+The default geofence radius is generous because the signal is advisory.
 
-Staff authentication on a paired station may use individual staff PINs, but those PINs are valid only on the paired station surface.
+Geofence checks must never be the only gate for stamping or redemption.
 
-Shared daily PINs are not allowed as the primary flow.
-
-A staff member can be deactivated by a manager.
+The only hard customer stamp gate is one earned stamp per membership/location/UK business date.
 
 ## Decisions already made
 
-Each stamp or redemption must record the station and active staff session.
+OpenStreetMap Nominatim is the default keyless geocoder for rare config-time lookups.
 
-Staff names may be display names only.
+Location denied, unavailable, or out-of-range still allows the action and writes a `fraud_flags` row.
 
-MVP does not require staff email addresses.
+Saved venue address, coordinates, radius, and soft-check setting are part of launch readiness.
 
 ## EARS requirements
 
-WHEN a merchant creates a station, THE system SHALL generate a pairing flow for one venue.
+WHEN a merchant saves a venue address, THE system SHALL geocode the address server-side and persist latitude, longitude, radius, and the soft-check setting.
 
-WHEN a station is paired, THE staff station SHALL show the venue name and station name.
+WHEN geocoding fails, THE merchant console SHALL show a retryable error and SHALL NOT mark venue checks ready.
 
-WHEN staff start a session, THE system SHALL require selection of a staff profile and that profile's station PIN.
+WHEN soft GPS checks are enabled and customer coordinates are in range, THE system SHALL allow the action without a geofence fraud flag.
 
-WHEN a staff PIN is incorrect, THE staff station SHALL show a generic error and increment a server-side rate limit.
+WHEN soft GPS checks are enabled and customer coordinates are out of range or unknown, THE system SHALL allow the action and create a geofence fraud flag.
 
-WHEN a staff member is deactivated, THE system SHALL prevent new sessions for that staff profile.
-
-WHEN no active staff session exists, THE staff station SHALL block stamp and redemption approval actions.
-
-WHEN a staff session is active, THE station SHALL show the active staff display name and a clear "end session" action.
+WHEN soft GPS checks are disabled, THE system SHALL allow the action without requesting customer coordinates.
 
 ## Verification criteria and task breakdown
 
 **Acceptance criteria**
 
-* Station can be paired to venue.
-* Staff session can be started and ended.
-* Deactivated staff cannot approve actions.
-* Staff session is attached to stamp/redemption events.
+- Venue address saves with geocoded coordinates.
+- Launch readiness includes venue checks.
+- In-range GPS creates no geofence flag.
+- Out-of-range and unknown GPS create geofence flags but do not block.
 
 **Required tests**
 
-* Station pairing tests.
-* Staff session tests.
-* Deactivated staff tests.
-* Staff PIN rate-limit tests.
+- Geocode parsing tests.
+- Venue-location save action tests.
+- In-range, out-of-range, and unknown geofence tests.
+- Launch-readiness tests.
 
 **Manual QA**
 
-* Pair a tablet browser.
-* Start a session as a staff member.
-* Deactivate the staff member in merchant console.
-* Confirm the station blocks new session start.
+- Save a real venue address.
+- Enable soft GPS checks.
+- Stamp in range, outside range, and with location denied.
+- Confirm only the latter two create fraud flags.
 
 **Task breakdown**
 
-1. Build station entity and pairing flow.
-2. Build staff profile management.
-3. Build station session state.
-4. Add rate limits and deactivation handling.
+1. Add venue location columns and soft-geofence helpers.
+2. Build config-time geocoding.
+3. Add venue section to launch setup.
+4. Add geofence classification tests and fraud flag readbacks.
 
 ---
 
-# MS-07 — Counter Handshake: Customer Code to Staff Approval
+# MS-07 — Static Venue QR Self-Service Stamping
 
 ## Goal and user-visible outcomes
 
-A customer gets a stamp only after showing a short-lived code or QR to staff, and staff approve the stamp on the counter station. The customer keeps their phone.
+A customer scans the permanent venue QR. New visitors join the card; existing members land on a stamp-confirm screen and tap once to add today's stamp. The customer keeps their phone, and the flow has no station, code, or polling step.
 
 ## Blast radius
 
 **In scope**
 
-* `apps/customer-web/stamp-code`
-* `apps/staff-station/stamp`
-* `packages/api/stamps`
-* `packages/domain/loyalty`
-* `packages/risk/basic-rules`
+- `apps/customer-web/q`
+- `apps/customer-web/card`
+- `packages/api/stamps`
+- `packages/domain/loyalty`
+- `packages/risk/basic-rules`
 
 **Out of scope**
 
-* Reward redemption
-* Offline mode
-* POS integration
-* Venue-wide approval code
-* Customer marketing consent
+- Reward redemption
+- Offline mode
+- POS integration
+- Hard GPS enforcement
+- Customer marketing consent
 
 ## Strict constraints and assumptions
 
-A customer confirmation code must be short-lived.
+Scanning the venue QR alone must not create a stamp.
 
-A confirmation code must be single-use.
+A stamp requires an authenticated customer membership, active card, active reward programme, and the QR context for that venue.
 
-A stamp requires customer card, venue, active reward programme, active staff session, and active station.
+The one-stamp-per-UK-business-day unique index is the hard duplicate guard.
 
-The station must show enough card state to avoid accidental duplicate stamping.
-
-The customer app must update after approval without requiring a page refresh where technically possible.
+The customer app must show success, already-stamped, geofence-flagged, and recoverable error states clearly.
 
 ## Decisions already made
 
-Customer code expires after a short visible countdown.
+The permanent `/q/{qr_id}` resolver routes new visitors to join and existing members to stamp-confirm.
 
-Staff can enter a short code manually or scan a QR.
+Soft GPS is advisory only: in-range stamps normally; out-of-range or unknown stamps and writes a fraud flag.
 
-One customer may not receive multiple normal stamps for the same venue within the configured cooldown window unless a manager override exists.
-
-The default cooldown is one stamp per card per venue per 2 hours, merchant-configurable within platform limits.
+Rewards unlock server-side when the stamp threshold is reached and are redeemable from the next UK business day.
 
 ## EARS requirements
 
-WHEN a customer requests a stamp code, THE system SHALL create a short-lived, single-use verification token linked to the card and venue.
+WHEN a valid venue QR is opened by a new visitor, THE customer web app SHALL route to the venue join flow.
 
-WHEN the token expires, THE customer web app SHALL show "Code expired" and allow generating a new code.
+WHEN a valid venue QR is opened by an existing member, THE customer web app SHALL route to stamp-confirm carrying the QR context.
 
-WHEN staff enters or scans a valid token, THE staff station SHALL show the venue, current stamp count, saved/unsaved status, and duplicate warnings.
+WHEN a member taps to add today's stamp with valid QR context, THE system SHALL grant exactly one earned stamp for that UK business date.
 
-WHEN staff approves a valid token, THE system SHALL grant exactly one stamp and consume the token.
+WHEN the membership already has an earned stamp for that location and UK business date, THE system SHALL show an already-stamped message and SHALL NOT create a second earned stamp.
 
-WHEN a token has already been consumed, THE staff station SHALL reject it as already used.
+WHEN soft GPS checks are enabled and coordinates are out of range or unknown, THE system SHALL still grant the stamp and SHALL create a geofence fraud flag.
 
-WHEN a card has already been stamped within the cooldown window, THE staff station SHALL block normal approval and show the reason.
+WHEN the stamp threshold is reached, THE system SHALL unlock a reward server-side and set `redeemable_from` to the next UK business day.
 
-WHEN approval succeeds, THE customer web app SHALL show the stamp animation and updated progress.
-
-WHEN approval fails, THE customer web app SHALL show a recoverable error and SHALL NOT show a fake stamp.
+WHEN stamping fails for any other reason, THE customer web app SHALL show a recoverable error and SHALL NOT show a fake stamp.
 
 ## Verification criteria and task breakdown
 
 **Acceptance criteria**
 
-* QR scan alone does not stamp.
-* Valid staff approval grants one stamp.
-* Expired, reused, or wrong-venue codes fail.
-* Duplicate same-window stamp is blocked.
-* Customer card updates after approval.
+- QR scan alone does not stamp.
+- Existing member QR route opens stamp-confirm.
+- Customer tap grants one stamp.
+- Duplicate same-day stamp is blocked.
+- Soft GPS anomalies create fraud flags without blocking.
+- Customer card updates after stamping.
 
 **Required tests**
 
-* Token expiry tests.
-* Single-use token tests.
-* Wrong venue tests.
-* Duplicate cooldown tests.
-* Stamp ledger tests.
+- QR resolver tests.
+- Self-service stamp action tests.
+- Duplicate day tests.
+- Geofence soft-flag tests.
+- Stamp ledger tests.
 
 **Manual QA**
 
-* Customer requests code.
-* Staff approves.
-* Attempt to reuse same code.
-* Confirm reuse fails.
+- Scan a seeded venue QR as a new visitor.
+- Scan the same QR as an existing member.
+- Tap to stamp in range, out of range, and with location denied.
+- Attempt a second stamp on the same UK business day.
 
 **Task breakdown**
 
-1. Build token generation and expiry.
-2. Build staff token lookup.
-3. Build approval event.
-4. Build customer live update/polling.
-5. Add duplicate protection tests.
+1. Route `/q/{qr_id}` by customer membership state.
+2. Build stamp-confirm page and self-service stamp action.
+3. Add self-service stamp RPC.
+4. Add soft geofence fraud flagging.
+5. Add duplicate-day and reward-unlock tests.
 
 ---
 
@@ -1081,25 +1069,25 @@ WHEN approval fails, THE customer web app SHALL show a recoverable error and SHA
 
 ## Goal and user-visible outcomes
 
-When a customer completes the required number of visits, the system issues a reward. The customer can show the reward to staff, and staff can redeem it once through the counter station.
+When a customer completes the required number of visits, the system issues a reward. The customer opens the reward page and taps once to redeem it, with the same optional soft GPS classification used for stamping.
 
 ## Blast radius
 
 **In scope**
 
-* `apps/customer-web/rewards`
-* `apps/staff-station/redeem`
-* `packages/api/rewards`
-* `packages/domain/rewards`
-* `packages/risk/basic-rules`
+- `apps/customer-web/rewards`
+- `apps/customer-web/reward`
+- `packages/api/rewards`
+- `packages/domain/rewards`
+- `packages/risk/basic-rules`
 
 **Out of scope**
 
-* Reward builder
-* Marketing SMS
-* Billing
-* POS integration
-* Admin case workflow
+- Reward builder
+- Marketing SMS
+- Billing
+- POS integration
+- Admin case workflow
 
 ## Strict constraints and assumptions
 
@@ -1107,19 +1095,19 @@ Reward issuance is triggered by server-side card state, not client-side animatio
 
 A reward instance has status: `ISSUED`, `AVAILABLE`, `REDEEMED`, `EXPIRED`, or `VOIDED`.
 
-Default redemption timing is immediate.
+Default redemption timing is the next UK business day after unlock.
 
 A reward can be redeemed only once.
 
 The customer-facing reward screen must show expiry, exclusions, and availability.
 
-Age-restricted rewards require staff age-check confirmation.
+Age-restricted rewards require a future staff-controlled age-check gate before those reward types are enabled.
 
 ## Decisions already made
 
 Reward reveal animation is presentation only.
 
-The staff station is the redemption authority.
+The customer reward page is the redemption authority.
 
 The customer phone does not contain a staff secret.
 
@@ -1127,50 +1115,48 @@ The customer phone does not contain a staff secret.
 
 WHEN a stamp completes the reward threshold, THE system SHALL issue a reward instance.
 
-WHEN a reward is issued, THE customer web app SHALL show the reward title, availability, expiry, and redemption instructions.
+WHEN a reward is issued, THE customer web app SHALL show the reward title, availability, expiry, and self-redeem instructions.
 
-WHEN a customer opens a reward, THE customer web app SHALL show a short-lived redemption code.
+WHEN a customer opens a reward before `redeemable_from`, THE customer web app SHALL show the next eligible UK business date and SHALL NOT redeem it.
 
-WHEN staff scans or enters a valid redemption code, THE staff station SHALL show reward details and restrictions before redemption.
+WHEN customer taps redemption, THE system SHALL mark the reward as redeemed and create a redemption event.
 
-WHEN staff confirms redemption, THE system SHALL mark the reward as redeemed and create a redemption event.
+WHEN an already-redeemed reward is opened again, THE customer web app SHALL show "Already redeemed" with the redemption time.
 
-WHEN a redeemed reward code is scanned again, THE staff station SHALL show "Already redeemed" with the redemption time.
+WHEN a reward is expired, THE customer web app SHALL show expired state and SHALL NOT show an active redeem action.
 
-WHEN a reward is expired, THE customer web app SHALL show expired state and SHALL NOT show an active redemption code.
-
-WHEN a reward is age-restricted, THE staff station SHALL require an age-check confirmation before enabling the redeem action.
+WHEN soft GPS checks are enabled and coordinates are out of range or unknown, THE system SHALL still redeem the reward and SHALL create a geofence fraud flag.
 
 ## Verification criteria and task breakdown
 
 **Acceptance criteria**
 
-* Reward is issued at threshold.
-* Reward is redeemable once.
-* Expired rewards cannot be redeemed.
-* Staff can see restrictions before redeeming.
-* Customer sees redeemed state after redemption.
+- Reward is issued at threshold.
+- Reward is redeemable once.
+- Expired rewards cannot be redeemed.
+- Customer can see restrictions before redeeming.
+- Customer sees redeemed state after redemption.
 
 **Required tests**
 
-* Threshold issuance tests.
-* Single redemption tests.
-* Expiry tests.
-* Age-gate tests.
-* Ledger event tests.
+- Threshold issuance tests.
+- Single redemption tests.
+- Expiry tests.
+- Next-business-day and geofence soft-flag tests.
+- Ledger event tests.
 
 **Manual QA**
 
-* Stamp a card to completion.
-* Redeem reward.
-* Try to redeem again.
-* Confirm second attempt fails clearly.
+- Stamp a card to completion.
+- Redeem reward.
+- Try to redeem again.
+- Confirm second attempt fails clearly.
 
 **Task breakdown**
 
 1. Build reward instance lifecycle.
 2. Build customer reward view.
-3. Build staff redemption lookup.
+3. Build customer redemption action.
 4. Build redemption confirmation.
 5. Add expiry and duplicate tests.
 
@@ -1180,29 +1166,27 @@ WHEN a reward is age-restricted, THE staff station SHALL require an age-check co
 
 ## Goal and user-visible outcomes
 
-Staff can undo a recent mistake, managers can adjust a card with a reason, and customers can report a missing stamp without contacting platform support first.
+Managers and operators can adjust a card with a reason, and customers can report a missing stamp without contacting platform support first. Staff undo is not part of the self-service MVP.
 
 ## Blast radius
 
 **In scope**
 
-* `apps/staff-station/undo`
-* `apps/merchant-console/customers`
-* `apps/customer-web/support`
-* `packages/api/adjustments`
-* `packages/domain/loyalty`
-* `packages/compliance/audit`
+- `apps/merchant-console/customers`
+- `apps/customer-web/support`
+- `packages/api/adjustments`
+- `packages/domain/loyalty`
+- `packages/compliance/audit`
 
 **Out of scope**
 
-* Admin fraud investigation
-* Refunds
-* POS evidence upload
-* Automated customer compensation
+- Admin fraud investigation
+- Refunds
+- POS evidence upload
+- Automated customer compensation
+- Staff undo flows
 
 ## Strict constraints and assumptions
-
-Undo is time-limited and available only for recent actions from the same station.
 
 Manager adjustment requires a reason.
 
@@ -1212,19 +1196,11 @@ Customers can submit missing-stamp claims, but claims do not automatically grant
 
 ## Decisions already made
 
-Staff undo window is short.
-
 Manager adjustment is available in merchant console.
 
 All manual changes are auditable.
 
 ## EARS requirements
-
-WHEN staff grants a stamp, THE staff station SHALL show an undo action for a limited time.
-
-WHEN staff taps undo within the allowed window, THE system SHALL create a reversing adjustment event and update the customer card.
-
-WHEN the undo window expires, THE staff station SHALL hide or disable undo.
 
 WHEN a manager adjusts a card, THE merchant console SHALL require adjustment type, reason, and manager confirmation.
 
@@ -1238,33 +1214,28 @@ WHEN a missing-stamp claim is rejected, THE system SHALL show a neutral status w
 
 **Acceptance criteria**
 
-* Recent staff stamp can be undone.
-* Old stamp cannot be undone by staff.
-* Manager can add/remove stamp with reason.
-* Customer can file missing-stamp claim.
-* Adjustments appear in audit trail.
+- Manager can add/remove stamp with reason.
+- Customer can file missing-stamp claim.
+- Adjustments appear in audit trail.
 
 **Required tests**
 
-* Undo window tests.
-* Adjustment reason validation.
-* Missing-stamp claim tests.
-* Audit trail tests.
+- Adjustment reason validation.
+- Missing-stamp claim tests.
+- Audit trail tests.
 
 **Manual QA**
 
-* Staff approves wrong stamp.
-* Undo immediately.
-* Confirm customer card decreases by one.
-* Manager adds a manual stamp with reason.
+- Customer reports a missing stamp.
+- Manager adds a manual stamp with reason.
+- Confirm customer card increases by one.
 
 **Task breakdown**
 
-1. Build undo event model.
-2. Build staff undo UI.
-3. Build manager adjustment UI.
-4. Build customer missing-stamp claim.
-5. Add audit display.
+1. Build adjustment event model.
+2. Build manager adjustment UI.
+3. Build customer missing-stamp claim.
+4. Add audit display.
 
 ---
 
@@ -1278,19 +1249,19 @@ Customers understand why their phone number is collected. They can receive OTP a
 
 **In scope**
 
-* `apps/customer-web/consent`
-* `apps/merchant-console/customers`
-* `packages/messaging`
-* `packages/compliance/consent`
-* `packages/api/preferences`
+- `apps/customer-web/consent`
+- `apps/merchant-console/customers`
+- `packages/messaging`
+- `packages/compliance/consent`
+- `packages/api/preferences`
 
 **Out of scope**
 
-* Campaign composer
-* Segmentation
-* Email marketing
-* Third-party ad audiences
-* Push notifications
+- Campaign composer
+- Segmentation
+- Email marketing
+- Third-party ad audiences
+- Push notifications
 
 ## Strict constraints and assumptions
 
@@ -1332,24 +1303,24 @@ WHEN a message is promotional and no valid consent exists, THE messaging service
 
 **Acceptance criteria**
 
-* Customer can save card without marketing opt-in.
-* Marketing opt-in is recorded as separate consent.
-* Opt-out blocks future marketing.
-* Merchant cannot send promotional messages to non-consented customers.
+- Customer can save card without marketing opt-in.
+- Marketing opt-in is recorded as separate consent.
+- Opt-out blocks future marketing.
+- Merchant cannot send promotional messages to non-consented customers.
 
 **Required tests**
 
-* Consent recording tests.
-* Opt-out tests.
-* Service vs marketing message validation.
-* Merchant permission tests.
+- Consent recording tests.
+- Opt-out tests.
+- Service vs marketing message validation.
+- Merchant permission tests.
 
 **Manual QA**
 
-* Save card without checking marketing.
-* Confirm reward-ready service message can send.
-* Attempt merchant campaign send.
-* Confirm blocked.
+- Save card without checking marketing.
+- Confirm reward-ready service message can send.
+- Attempt merchant campaign send.
+- Confirm blocked.
 
 **Task breakdown**
 
@@ -1371,18 +1342,18 @@ A merchant can see whether the loyalty programme is working today, what needs at
 
 **In scope**
 
-* `apps/merchant-console/dashboard`
-* `packages/api/merchant-analytics`
-* `packages/analytics`
-* `packages/domain/loyalty`
+- `apps/merchant-console/dashboard`
+- `packages/api/merchant-analytics`
+- `packages/analytics`
+- `packages/domain/loyalty`
 
 **Out of scope**
 
-* Advanced cohort analysis
-* Campaign sending
-* Billing
-* Admin risk case decisions
-* POS integration
+- Advanced cohort analysis
+- Campaign sending
+- Billing
+- Admin risk case decisions
+- POS integration
 
 ## Strict constraints and assumptions
 
@@ -1408,7 +1379,7 @@ WHEN a QR has unusually low scans after launch, THE dashboard SHALL show a QR he
 
 WHEN rewards are issued but not redeemed, THE dashboard SHALL show outstanding reward count and estimated cost.
 
-WHEN staff station activity exists, THE dashboard SHALL show active/recent stations.
+WHEN self-service activity exists, THE dashboard SHALL show recent joins, stamps, redemptions, and geofence flags.
 
 WHEN a metric cannot be calculated, THE dashboard SHALL show an unavailable state rather than zero.
 
@@ -1418,24 +1389,24 @@ WHEN customer data is shown, THE dashboard SHALL mask phone numbers and avoid cr
 
 **Acceptance criteria**
 
-* Merchant sees today's activity.
-* Merchant sees outstanding reward liability.
-* Merchant sees setup/QR/staff warnings.
-* Metrics respect tenant and venue boundaries.
+- Merchant sees today's activity.
+- Merchant sees outstanding reward liability.
+- Merchant sees setup/venue/QR warnings.
+- Metrics respect tenant and venue boundaries.
 
 **Required tests**
 
-* Metric aggregation tests.
-* Empty-state tests.
-* Tenant isolation tests.
-* Masked customer display tests.
+- Metric aggregation tests.
+- Empty-state tests.
+- Tenant isolation tests.
+- Masked customer display tests.
 
 **Manual QA**
 
-* Generate stamps and redemptions.
-* Confirm dashboard updates.
-* Create another tenant.
-* Confirm no cross-tenant metrics appear.
+- Generate stamps and redemptions.
+- Confirm dashboard updates.
+- Create another tenant.
+- Confirm no cross-tenant metrics appear.
 
 **Task breakdown**
 
@@ -1457,17 +1428,17 @@ Platform admins can see suspicious stamp or redemption patterns as reviewable ca
 
 **In scope**
 
-* `apps/admin-console/risk`
-* `packages/risk`
-* `packages/api/admin-risk`
-* `packages/compliance/audit`
+- `apps/admin-console/risk`
+- `packages/risk`
+- `packages/api/admin-risk`
+- `packages/compliance/audit`
 
 **Out of scope**
 
-* Machine-learning fraud models
-* Automatic account bans
-* Police/law-enforcement workflows
-* Customer-facing accusation copy
+- Machine-learning fraud models
+- Automatic account bans
+- Police/law-enforcement workflows
+- Customer-facing accusation copy
 
 ## Strict constraints and assumptions
 
@@ -1485,7 +1456,7 @@ No risk flag may silently delete customer rewards.
 
 Initial risk rules are rule-based.
 
-Examples: stamp velocity, repeated failed code entry, staff anomaly, same station excessive activity, repeated redemption attempts.
+Examples: stamp velocity, repeated duplicate-day attempts, geofence anomalies, repeated redemption attempts, and unusual QR scan patterns.
 
 ## EARS requirements
 
@@ -1493,7 +1464,7 @@ WHEN stamp velocity exceeds configured limits, THE risk service SHALL create or 
 
 WHEN a risk signal is created, THE admin console SHALL show affected tenant, venue, time window, event evidence, and suggested next action.
 
-WHEN an admin opens a risk case, THE admin console SHALL show timeline, impacted cards, impacted staff sessions, and current status.
+WHEN an admin opens a risk case, THE admin console SHALL show timeline, impacted cards, geofence evidence where applicable, and current status.
 
 WHEN an admin resolves a case, THE system SHALL require resolution category and note.
 
@@ -1505,24 +1476,24 @@ WHEN a risk case is unresolved, THE merchant dashboard MAY show a non-accusatory
 
 **Acceptance criteria**
 
-* Risk signals are generated from event patterns.
-* Admin can review evidence.
-* Admin can resolve cases.
-* Reversal actions are audited.
+- Risk signals are generated from event patterns.
+- Admin can review evidence.
+- Admin can resolve cases.
+- Reversal actions are audited.
 
 **Required tests**
 
-* Risk rule tests.
-* Admin permission tests.
-* Case lifecycle tests.
-* Adjustment audit tests.
+- Risk rule tests.
+- Admin permission tests.
+- Case lifecycle tests.
+- Adjustment audit tests.
 
 **Manual QA**
 
-* Generate repeated stamps from one station.
-* Confirm a risk case appears.
-* Resolve it with note.
-* Confirm audit trail.
+- Generate repeated duplicate-day stamp attempts and out-of-range geofence flags.
+- Confirm a risk case appears.
+- Resolve it with note.
+- Confirm audit trail.
 
 **Task breakdown**
 
@@ -1540,10 +1511,10 @@ Wallet passes (Apple Wallet / Google Wallet) are explicitly out of scope for the
 
 **Rules while deferred:**
 
-* Do not implement any wallet pass functionality.
-* Do not add wallet-related dependencies, certificates, or vendor accounts.
-* Do not create `packages/wallet`.
-* Phone-number recovery (MS-05) and the multi-venue customer wallet (MS-16) are the only card re-access surfaces.
+- Do not implement any wallet pass functionality.
+- Do not add wallet-related dependencies, certificates, or vendor accounts.
+- Do not create `packages/wallet`.
+- Phone-number recovery (MS-05) and the multi-venue customer wallet (MS-16) are the only card re-access surfaces.
 
 When wallet passes are re-scoped, a full micro-spec will replace this placeholder. Until then, any agent encountering a wallet-related requirement must stop and request approval rather than implement.
 
@@ -1559,18 +1530,18 @@ A merchant can see subscription status, billing history, downloadable invoices, 
 
 **In scope**
 
-* `apps/merchant-console/billing`
-* `packages/billing`
-* `packages/api/billing`
-* `packages/domain/merchant`
+- `apps/merchant-console/billing`
+- `packages/billing`
+- `packages/api/billing`
+- `packages/domain/merchant`
 
 **Out of scope**
 
-* Customer payments
-* POS payments
-* Payroll
-* Accounting integrations
-* Tax advice
+- Customer payments
+- POS payments
+- Payroll
+- Accounting integrations
+- Tax advice
 
 ## Strict constraints and assumptions
 
@@ -1614,25 +1585,25 @@ WHEN a verified Stripe webhook reports a subscription change, THE system SHALL t
 
 **Acceptance criteria**
 
-* Merchant sees billing status.
-* Invoices are accessible.
-* Failed billing does not delete customer card state.
-* Suspension policy is visible.
+- Merchant sees billing status.
+- Invoices are accessible.
+- Failed billing does not delete customer card state.
+- Suspension policy is visible.
 
 **Required tests**
 
-* Billing status tests.
-* Invoice access tests.
-* Grace/suspension state tests.
-* Webhook replay/idempotency tests.
-* Customer visibility tests during billing failure.
+- Billing status tests.
+- Invoice access tests.
+- Grace/suspension state tests.
+- Webhook replay/idempotency tests.
+- Customer visibility tests during billing failure.
 
 **Manual QA**
 
-* Simulate failed payment.
-* Open merchant console.
-* Open customer card.
-* Confirm earned stamps still show.
+- Simulate failed payment.
+- Open merchant console.
+- Open customer card.
+- Confirm earned stamps still show.
 
 **Task breakdown**
 
@@ -1654,17 +1625,17 @@ A customer can see what phone number their card is saved to, manage marketing pr
 
 **In scope**
 
-* `apps/customer-web/privacy`
-* `packages/api/privacy`
-* `packages/compliance/privacy`
-* `packages/domain/customer`
+- `apps/customer-web/privacy`
+- `packages/api/privacy`
+- `packages/compliance/privacy`
+- `packages/domain/customer`
 
 **Out of scope**
 
-* Legal ticketing integrations
-* Full DSAR automation beyond MVP export request
-* Merchant billing data
-* Staff HR data
+- Legal ticketing integrations
+- Full DSAR automation beyond MVP export request
+- Merchant billing data
+- Staff HR data
 
 ## Strict constraints and assumptions
 
@@ -1706,25 +1677,25 @@ WHEN deletion is completed, THE system SHALL prevent future recovery with that p
 
 **Acceptance criteria**
 
-* Customer can manage preferences.
-* Export request can be created.
-* Deletion request can be created.
-* Loyalty opt-out and marketing opt-out are separate.
+- Customer can manage preferences.
+- Export request can be created.
+- Deletion request can be created.
+- Loyalty opt-out and marketing opt-out are separate.
 
 **Required tests**
 
-* Verified access tests.
-* Marketing opt-out tests.
-* Export request tests.
-* Deletion workflow tests.
-* Anonymisation tests.
+- Verified access tests.
+- Marketing opt-out tests.
+- Export request tests.
+- Deletion workflow tests.
+- Anonymisation tests.
 
 **Manual QA**
 
-* Recover card by phone.
-* Open privacy centre.
-* Opt out of marketing.
-* Confirm card still works.
+- Recover card by phone.
+- Open privacy centre.
+- Opt out of marketing.
+- Confirm card still works.
 
 **Task breakdown**
 
@@ -1747,18 +1718,18 @@ A customer with cards at multiple businesses can recover and view all active car
 
 **In scope**
 
-* `apps/customer-web/wallet`
-* `packages/api/customer-wallet`
-* `packages/domain/customer`
-* `packages/domain/loyalty`
+- `apps/customer-web/wallet`
+- `packages/api/customer-wallet`
+- `packages/domain/customer`
+- `packages/domain/loyalty`
 
 **Out of scope**
 
-* Cross-merchant campaigns
-* Shared customer profiles exposed to merchants
-* Marketplace discovery
-* Payment wallet
-* Apple/Google wallet passes (deferred, MS-13)
+- Cross-merchant campaigns
+- Shared customer profiles exposed to merchants
+- Marketplace discovery
+- Payment wallet
+- Apple/Google wallet passes (deferred, MS-13)
 
 ## Strict constraints and assumptions
 
@@ -1794,24 +1765,24 @@ WHEN a venue programme is paused, THE wallet SHALL show paused state without del
 
 **Acceptance criteria**
 
-* Customer can see cards across venues.
-* Merchant cannot see cross-venue wallet data.
-* Paused cards remain visible.
-* Empty state is clear.
+- Customer can see cards across venues.
+- Merchant cannot see cross-venue wallet data.
+- Paused cards remain visible.
+- Empty state is clear.
 
 **Required tests**
 
-* Multi-venue wallet tests.
-* Tenant isolation tests.
-* Paused programme tests.
-* Empty-state tests.
+- Multi-venue wallet tests.
+- Tenant isolation tests.
+- Paused programme tests.
+- Empty-state tests.
 
 **Manual QA**
 
-* Create cards at two venues.
-* Recover by phone.
-* Confirm both appear in customer wallet.
-* Confirm each merchant sees only its own card.
+- Create cards at two venues.
+- Recover by phone.
+- Confirm both appear in customer wallet.
+- Confirm each merchant sees only its own card.
 
 **Task breakdown**
 
@@ -1832,18 +1803,18 @@ A merchant can send simple SMS campaigns only to customers who explicitly opted 
 
 **In scope**
 
-* `apps/merchant-console/campaigns`
-* `packages/messaging`
-* `packages/api/campaigns`
-* `packages/compliance/consent`
+- `apps/merchant-console/campaigns`
+- `packages/messaging`
+- `packages/api/campaigns`
+- `packages/compliance/consent`
 
 **Out of scope**
 
-* Email campaigns
-* Social ad audiences
-* Automated segmentation beyond MVP
-* AI copy generation
-* Cross-merchant campaigns
+- Email campaigns
+- Social ad audiences
+- Automated segmentation beyond MVP
+- AI copy generation
+- Cross-merchant campaigns
 
 ## Strict constraints and assumptions
 
@@ -1883,23 +1854,23 @@ WHEN campaign copy mentions a reward, THE system SHALL require selection of the 
 
 **Acceptance criteria**
 
-* Campaign cannot send without opt-in audience.
-* Campaign sends only to consented recipients.
-* Opt-out suppresses future sends.
-* Reward copy warning appears.
+- Campaign cannot send without opt-in audience.
+- Campaign sends only to consented recipients.
+- Opt-out suppresses future sends.
+- Reward copy warning appears.
 
 **Required tests**
 
-* Consent eligibility tests.
-* Tenant isolation tests.
-* Opt-out suppression tests.
-* Campaign validation tests.
+- Consent eligibility tests.
+- Tenant isolation tests.
+- Opt-out suppression tests.
+- Campaign validation tests.
 
 **Manual QA**
 
-* Create one opted-in customer and one non-opted customer.
-* Send campaign.
-* Confirm only opted-in customer receives it.
+- Create one opted-in customer and one non-opted customer.
+- Send campaign.
+- Confirm only opted-in customer receives it.
 
 **Task breakdown**
 
@@ -1915,23 +1886,23 @@ WHEN campaign copy mentions a reward, THE system SHALL require selection of the 
 
 ## Goal and user-visible outcomes
 
-When the counter station or customer phone has weak connectivity, the product fails safely, explains what happened, and provides a recovery path without issuing unaudited client-only stamps.
+When the venue QR flow or customer phone has weak connectivity, the product fails safely, explains what happened, and provides a recovery path without issuing unaudited client-only stamps.
 
 ## Blast radius
 
 **In scope**
 
-* `apps/customer-web/error-states`
-* `apps/staff-station/error-states`
-* `packages/api/health`
-* `packages/domain/support`
+- `apps/customer-web/error-states`
+- `apps/self-service/error-states`
+- `packages/api/health`
+- `packages/domain/support`
 
 **Out of scope**
 
-* Fully offline stamp issuance
-* Local-only ledgers
-* POS integration
-* Bluetooth/NFC fallback
+- Fully offline stamp issuance
+- Local-only ledgers
+- POS integration
+- Bluetooth/NFC fallback
 
 ## Strict constraints and assumptions
 
@@ -1949,53 +1920,53 @@ MVP uses safe failure, not offline stamping.
 
 Manual missing-stamp claim is the recovery path.
 
-Station health is visible to staff.
+Customer retry state is visible after weak connectivity.
 
-The approval request's idempotency key is the verification token id (MS-00, AD-05). Retries reuse the same key.
+Retry behavior resolves current server state before offering another stamp or redeem action.
 
 ## EARS requirements
 
-WHEN the customer cannot generate a stamp code due to network failure, THE customer web app SHALL show a retry state and missing-stamp guidance.
+WHEN the customer cannot submit a stamp due to network failure, THE customer web app SHALL show a retry state and missing-stamp guidance.
 
-WHEN staff station loses connectivity before approval, THE staff station SHALL show offline state and disable approve/redeem actions.
+WHEN the customer flow loses connectivity before submission completes, THE customer web app SHALL show offline state and disable stamp/redeem actions.
 
-WHEN staff submits an approval request, THE request SHALL carry the verification token id as its idempotency key.
+WHEN a customer retries after an unknown state, THE system SHALL resolve whether the stamp or redemption already succeeded before accepting another submission.
 
-WHEN staff submits an approval and response is unknown, THE staff station SHALL show "checking status" before allowing another attempt.
+WHEN a customer submission response is unknown, THE customer web app SHALL show "checking status" before allowing another attempt.
 
-WHEN the system confirms no stamp was created, THE staff station SHALL allow retry with the same valid token if not expired.
+WHEN the system confirms no stamp was created, THE customer web app SHALL allow a retry if the QR context is still valid.
 
-WHEN the system confirms a stamp was created, THE staff station SHALL show success and SHALL NOT allow duplicate approval.
+WHEN the system confirms a stamp was created, THE customer web app SHALL show success and SHALL NOT allow duplicate submission.
 
-WHEN customer and staff disagree on state, THE customer web app SHALL provide a "report missing stamp" action.
+WHEN customer-visible state and server state disagree, THE customer web app SHALL provide a "report missing stamp" action.
 
 ## Verification criteria and task breakdown
 
 **Acceptance criteria**
 
-* Offline station cannot approve stamps.
-* Unknown state resolves before retry.
-* No duplicate stamp from retry.
-* Missing-stamp flow is reachable.
+- Offline customer submission cannot create duplicate stamps.
+- Unknown state resolves before retry.
+- No duplicate stamp from retry.
+- Missing-stamp flow is reachable.
 
 **Required tests**
 
-* Network failure tests.
-* Unknown response tests.
-* Retry idempotency tests (same idempotency key, single stamp).
-* Missing-stamp fallback tests.
+- Network failure tests.
+- Unknown response tests.
+- Retry idempotency tests (same idempotency key, single stamp).
+- Missing-stamp fallback tests.
 
 **Manual QA**
 
-* Simulate network drop during approval.
-* Confirm no duplicate stamp appears.
-* Confirm customer can report missing stamp.
+- Simulate network drop during stamp submission.
+- Confirm no duplicate stamp appears.
+- Confirm customer can report missing stamp.
 
 **Task breakdown**
 
 1. Build health detection.
 2. Build customer failure states.
-3. Build station failure states.
+3. Build customer submission failure states.
 4. Add idempotency handling.
 5. Add tests.
 
@@ -2011,18 +1982,18 @@ Customer, staff, and merchant flows are usable with keyboard, screen readers, hi
 
 **In scope**
 
-* `packages/ui`
-* `apps/customer-web`
-* `apps/staff-station`
-* `apps/merchant-console`
-* `packages/testing/accessibility`
+- `packages/ui`
+- `apps/customer-web`
+- `apps/self-service`
+- `apps/merchant-console`
+- `packages/testing/accessibility`
 
 **Out of scope**
 
-* Full external accessibility audit
-* Native app accessibility
-* Brand redesign
-* Non-English localisation
+- Full external accessibility audit
+- Native app accessibility
+- Brand redesign
+- Non-English localisation
 
 ## Strict constraints and assumptions
 
@@ -2032,7 +2003,7 @@ State changes must not rely on animation alone.
 
 Reduced-motion preference must be respected.
 
-Staff station must prioritize clarity over decorative brand effects.
+self-service flow must prioritize clarity over decorative brand effects.
 
 Colour cannot be the only indicator of status.
 
@@ -2052,7 +2023,7 @@ WHEN a form field has an error, THE UI SHALL expose the error text visually and 
 
 WHEN a user navigates by keyboard, THE UI SHALL show visible focus states for all controls.
 
-WHEN staff station shows approve/redeem actions, THE primary action SHALL have clear text, state, and disabled reason where applicable.
+WHEN self-service flow shows approve/redeem actions, THE primary action SHALL have clear text, state, and disabled reason where applicable.
 
 WHEN colour indicates success, warning, or error, THE UI SHALL also provide text or icon labeling.
 
@@ -2060,23 +2031,23 @@ WHEN colour indicates success, warning, or error, THE UI SHALL also provide text
 
 **Acceptance criteria**
 
-* Keyboard path works across core flows.
-* Reduced motion suppresses major animations.
-* Screen reader labels exist for primary actions.
-* Operational screens remain legible without colour.
+- Keyboard path works across core flows.
+- Reduced motion suppresses major animations.
+- Screen reader labels exist for primary actions.
+- Operational screens remain legible without colour.
 
 **Required tests**
 
-* Automated accessibility checks for key routes.
-* Reduced-motion snapshot/manual tests.
-* Keyboard navigation tests.
-* Form error accessibility tests.
+- Automated accessibility checks for key routes.
+- Reduced-motion snapshot/manual tests.
+- Keyboard navigation tests.
+- Form error accessibility tests.
 
 **Manual QA**
 
-* Complete customer stamp flow with keyboard.
-* Enable reduced motion.
-* Confirm stamp state remains understandable.
+- Complete customer stamp flow with keyboard.
+- Enable reduced motion.
+- Confirm stamp state remains understandable.
 
 **Task breakdown**
 
@@ -2092,25 +2063,25 @@ WHEN colour indicates success, warning, or error, THE UI SHALL also provide text
 
 ## Goal and user-visible outcomes
 
-A UK business owner can understand the product, see how counter verification works, preview the customer/staff journey, and start onboarding without misleading reward or ROI claims.
+A UK business owner can understand the product, see how static QR stamping works, preview the customer/merchant journey, and start onboarding without misleading reward or ROI claims.
 
 ## Blast radius
 
 **In scope**
 
-* `apps/merchant-console/demo`
-* `apps/customer-web/demo`
-* `apps/staff-station/demo`
-* `apps/public-marketing`
-* `packages/compliance/promotions`
+- `apps/merchant-console/demo`
+- `apps/customer-web/demo`
+- `apps/self-service/demo`
+- `apps/public-marketing`
+- `packages/compliance/promotions`
 
 **Out of scope**
 
-* Paid ads
-* SEO blog
-* Case studies without evidence
-* AI-generated testimonials
-* Pricing experiments beyond approved copy
+- Paid ads
+- SEO blog
+- Case studies without evidence
+- AI-generated testimonials
+- Pricing experiments beyond approved copy
 
 ## Strict constraints and assumptions
 
@@ -2124,7 +2095,7 @@ The site must not promise a specific reward unless the demo configuration uses t
 
 ## Decisions already made
 
-Primary product differentiator is "customer code, staff confirms."
+Primary product differentiator is "customer code, customer taps."
 
 Wet Ink remains a brand style, not a security mechanic.
 
@@ -2132,7 +2103,7 @@ Demo mode should show customer and staff side-by-side.
 
 ## EARS requirements
 
-WHEN a visitor opens the marketing site, THE site SHALL explain the counter-station handshake in plain language.
+WHEN a visitor opens the marketing site, THE site SHALL explain the static QR self-service flow in plain language.
 
 WHEN a demo reward is shown, THE site SHALL show whether it is fixed or mystery.
 
@@ -2148,28 +2119,28 @@ WHEN a visitor clicks "Start," THE system SHALL route to merchant onboarding.
 
 **Acceptance criteria**
 
-* Marketing explains the redesigned flow.
-* Demo does not create real loyalty events.
-* Reward copy is consistent.
-* No unsupported ROI claims appear.
+- Marketing explains the redesigned flow.
+- Demo does not create real loyalty events.
+- Reward copy is consistent.
+- No unsupported ROI claims appear.
 
 **Required tests**
 
-* Demo data isolation tests.
-* Marketing copy consistency tests.
-* Onboarding route tests.
-* Reward claim validation tests.
+- Demo data isolation tests.
+- Marketing copy consistency tests.
+- Onboarding route tests.
+- Reward claim validation tests.
 
 **Manual QA**
 
-* Run demo as business owner.
-* Confirm customer and staff sides are understandable.
-* Confirm demo events do not appear in merchant production data.
+- Run demo as business owner.
+- Confirm customer and staff sides are understandable.
+- Confirm demo events do not appear in merchant production data.
 
 **Task breakdown**
 
 1. Build public explanation page.
-2. Build demo customer/staff simulation.
+2. Build demo customer/merchant simulation.
 3. Add demo data isolation.
 4. Add compliant copy checks.
 5. Route to onboarding.
@@ -2185,28 +2156,26 @@ WHEN a visitor clicks "Start," THE system SHALL route to merchant onboarding.
 3. Taps **Get today's stamp**.
 4. Sees a short-lived code.
 5. Shows code to staff.
-6. Staff approves from counter station.
+6. customers approves from venue QR flow.
 7. Stamp lands.
 8. Customer saves card by phone.
 9. Customer returns and repeats.
-10. Reward is issued and redeemed through staff station.
+10. Reward is issued and redeemed through self-service flow.
 
-## Staff
+## Merchant
 
-1. Opens paired station.
-2. Starts named staff session.
-3. Scans or enters customer code.
-4. Sees customer card state and duplicate warnings.
-5. Approves stamp or redeems reward.
-6. Can undo recent mistake.
-7. Ends session at shift change.
+1. Opens launch setup.
+2. Saves venue address and optional soft GPS checks.
+3. Generates the permanent venue QR.
+4. Prints the poster, till card, or sticker.
+5. Reviews customer joins, stamps, rewards, and fraud flags in the console.
 
 ## Merchant
 
 1. Creates venue.
 2. Chooses fixed or mystery reward.
 3. Reviews exact customer promise.
-4. Sets staff and station.
+4. Sets venue address and optional soft GPS checks.
 5. Tests QR-to-stamp-to-reward flow.
 6. Goes live.
 7. Monitors programme health, reward liability, and risk.
@@ -2233,7 +2202,7 @@ That means every stamp needs four things:
 
 1. A recoverable customer card.
 2. A venue-specific context.
-3. A staff/station confirmation.
+3. A QR confirmation.
 4. An auditable event.
 
 Everything else — Wet Ink, slam animation, sealed reward, confetti, posters — should sit on top of that trust system, not replace it.

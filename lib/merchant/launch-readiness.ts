@@ -5,19 +5,9 @@ import {
   type ActiveCardSummary,
   type QrCodeSummary,
 } from "@/lib/merchant/qr-code"
-import {
-  listStaffMembers,
-  type StaffMember,
-} from "@/lib/merchant/staff-members"
-import { listStations, type StationSummary } from "@/lib/merchant/stations"
 
-export type LaunchReadinessTab = "card" | "staff" | "qr"
-export type LaunchReadinessStepId =
-  | "card"
-  | "rewards"
-  | "staff"
-  | "station"
-  | "qr"
+export type LaunchReadinessTab = "card" | "venue" | "qr"
+export type LaunchReadinessStepId = "card" | "rewards" | "venue" | "qr"
 
 export type LaunchReadinessStep = {
   id: LaunchReadinessStepId
@@ -42,25 +32,31 @@ type BuildLaunchReadinessInput = {
   activeCard: ActiveCardSummary | null
   activeRewardPoolItemCount: number
   qrCode: QrCodeSummary | null
-  staffMembers: StaffMember[]
-  stations: StationSummary[]
+  location: {
+    id: string
+    name: string
+    address: string | null
+    latitude: number | null
+    longitude: number | null
+    geofence_radius_meters: number
+    require_geofence: boolean
+    geocoded_at: string | null
+  } | null
 }
 
 export function buildLaunchReadiness({
   activeCard,
   activeRewardPoolItemCount,
   qrCode,
-  staffMembers,
-  stations,
+  location,
 }: BuildLaunchReadinessInput): LaunchReadiness {
-  const activeStaffCount = staffMembers.filter(
-    (member) => member.isActive
-  ).length
-  const hasActiveStation = stations.some(
-    (station) => station.status === "active"
-  )
   const hasQr = Boolean(qrCode)
   const qrIsActive = Boolean(qrCode?.is_active)
+  const venueReady = Boolean(
+    location?.address &&
+      (!location.require_geofence ||
+        (location.latitude !== null && location.longitude !== null))
+  )
   const steps: LaunchReadinessStep[] = [
     {
       id: "card",
@@ -86,27 +82,17 @@ export function buildLaunchReadiness({
       actionLabel: "Add reward",
     },
     {
-      id: "staff",
-      tab: "staff",
-      label: "Staff named",
-      summary:
-        activeStaffCount > 0
-          ? `${activeStaffCount} active staff member${activeStaffCount === 1 ? "" : "s"}`
-          : "Add the people who can approve stamps.",
-      ready: activeStaffCount > 0,
-      href: "/app/launch?tab=staff",
-      actionLabel: "Add staff",
-    },
-    {
-      id: "station",
-      tab: "staff",
-      label: "Station paired",
-      summary: hasActiveStation
-        ? "A counter station is paired and ready."
-        : "Pair one till or counter device.",
-      ready: hasActiveStation,
-      href: "/app/launch?tab=staff",
-      actionLabel: "Pair station",
+      id: "venue",
+      tab: "venue",
+      label: "Venue set",
+      summary: venueReady
+        ? location?.require_geofence
+          ? "Venue address is geocoded for GPS anomaly checks."
+          : "Venue address is saved for printed QR checks."
+        : "Save and geocode the venue address.",
+      ready: venueReady,
+      href: "/app/launch?tab=venue",
+      actionLabel: "Save venue",
     },
     {
       id: "qr",
@@ -115,7 +101,7 @@ export function buildLaunchReadiness({
       summary: qrIsActive
         ? `Permanent QR ${qrCode?.qr_id ?? ""} is accepting scans.`
         : hasQr
-          ? "Enable the permanent venue QR when staff are ready."
+          ? "Enable the permanent venue QR when venue setup is ready."
           : "Generate the permanent venue QR.",
       ready: qrIsActive,
       href: "/app/launch?tab=qr",
@@ -127,8 +113,8 @@ export function buildLaunchReadiness({
     card: steps
       .filter((step) => step.tab === "card")
       .every((step) => step.ready),
-    staff: steps
-      .filter((step) => step.tab === "staff")
+    venue: steps
+      .filter((step) => step.tab === "venue")
       .every((step) => step.ready),
     qr: steps.filter((step) => step.tab === "qr").every((step) => step.ready),
   }
@@ -144,17 +130,12 @@ export function buildLaunchReadiness({
 }
 
 export async function getMerchantLaunchReadiness() {
-  const [setup, staffMembers, stations] = await Promise.all([
-    getQrSetup(),
-    listStaffMembers(),
-    listStations(),
-  ])
+  const setup = await getQrSetup()
 
   return buildLaunchReadiness({
     activeCard: setup.activeCard,
     activeRewardPoolItemCount: setup.activeRewardPoolItemCount,
     qrCode: setup.qrCode,
-    staffMembers,
-    stations,
+    location: setup.location,
   })
 }

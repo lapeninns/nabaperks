@@ -1,11 +1,37 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
+  async headers() {
+    return [
+      {
+        source: "/sw.js",
+        headers: [
+          {
+            key: "Content-Type",
+            value: "application/javascript; charset=utf-8",
+          },
+          {
+            key: "Cache-Control",
+            value: "no-cache, no-store, must-revalidate",
+          },
+          {
+            key: "Service-Worker-Allowed",
+            value: "/",
+          },
+        ],
+      },
+      {
+        source: "/icons/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+    ]
+  },
   async redirects() {
-    // Phase 2 URL merge: the card/staff/QR setup pages now live as tabs inside
-    // the Launch hub. Exact-path 301s preserve bookmarks and search equity.
-    // NOTE: `source: "/app/qr"` is exact — it must NOT match the QR asset
-    // routes (/app/qr/image|preview|download/*), which stay live.
     return [
       {
         source: "/app/card",
@@ -14,7 +40,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/app/staff",
-        destination: "/app/launch?tab=staff",
+        destination: "/app/launch?tab=venue",
         permanent: true,
       },
       {

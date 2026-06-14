@@ -46,7 +46,7 @@ export default async function MerchantTermsPage({
         />
         <Term
           label="Earning rule"
-          value={`Collect ${loyaltyCard.stamps_required} staff-approved visit stamps. One stamp may be issued per UK date.`}
+          value={`Collect ${loyaltyCard.stamps_required} visit stamps from the venue QR. One stamp may be issued per UK date.`}
         />
         <Term label="Stamps needed" value={`${loyaltyCard.stamps_required} stamps`} />
         <Term
@@ -55,7 +55,7 @@ export default async function MerchantTermsPage({
         />
         <Term
           label="Redemption"
-          value="The assigned reward can be redeemed from the next UK business day after it is revealed. Show your code at the counter and staff confirm it on their station."
+          value="The assigned reward can be redeemed from the next UK business day after it is revealed. Tap redeem from your reward page while you are at the venue."
         />
         <Term
           label="Exclusions"
@@ -63,7 +63,7 @@ export default async function MerchantTermsPage({
         />
         <Term
           label="Fraud and abuse"
-          value="The merchant may refuse, cancel, or adjust stamps and rewards where abuse, duplicate claims, or staff PIN misuse is suspected."
+          value="The merchant may refuse, cancel, or adjust stamps and rewards where abuse, duplicate claims, QR misuse, or location anomalies are suspected."
         />
         <Term
           label="Merchant contact"
@@ -78,7 +78,7 @@ export default async function MerchantTermsPage({
 
       <div className="grid gap-3">
         <Button asChild size="lg" className="w-full">
-          <Link href={`/m/${merchantSlug}/join`}>Join rewards</Link>
+          <Link href={`/m/${merchantSlug}`}>Close</Link>
         </Button>
         <Button asChild size="lg" variant="secondary" className="w-full">
           <Link href="/privacy">Privacy notice</Link>

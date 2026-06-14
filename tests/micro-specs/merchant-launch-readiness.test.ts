@@ -6,7 +6,7 @@ function readProjectFile(path: string) {
 }
 
 describe("05 merchant launch readiness readback", () => {
-  it("derives a five-step backend launch checklist with a single next action", async () => {
+  it("derives a four-step self-service launch checklist with a single next action", async () => {
     const { buildLaunchReadiness } =
       await import("@/lib/merchant/launch-readiness")
 
@@ -24,43 +24,33 @@ describe("05 merchant launch readiness readback", () => {
         destination_type: "join",
         is_active: false,
       },
-      staffMembers: [
-        {
-          id: "staff-1",
-          displayName: "Maya",
-          role: "staff",
-          isActive: true,
-          createdAt: "2026-06-13T09:00:00.000Z",
-        },
-      ],
-      stations: [
-        {
-          id: "station-1",
-          stationName: "Front till",
-          status: "unpaired",
-          pairingCode: "123456",
-          pairingExpiresAt: "2026-06-13T09:15:00.000Z",
-          pairedAt: null,
-          lastSeenAt: null,
-        },
-      ],
+      location: {
+        id: "location-1",
+        name: "Main venue",
+        address: "1 High Street, London",
+        latitude: null,
+        longitude: null,
+        geofence_radius_meters: 150,
+        require_geofence: true,
+        geocoded_at: null,
+      },
     })
 
-    expect(readiness.completed).toBe(3)
-    expect(readiness.total).toBe(5)
+    expect(readiness.completed).toBe(2)
+    expect(readiness.total).toBe(4)
     expect(readiness.launchReady).toBe(false)
     expect(readiness.nextStep).toMatchObject({
-      id: "station",
-      actionLabel: "Pair station",
-      href: "/app/launch?tab=staff",
+      id: "venue",
+      actionLabel: "Save venue",
+      href: "/app/launch?tab=venue",
     })
     expect(readiness.steps.map((step) => [step.id, step.ready])).toEqual([
       ["card", true],
       ["rewards", true],
-      ["staff", true],
-      ["station", false],
+      ["venue", false],
       ["qr", false],
     ])
+    expect(readiness.tabs).toEqual({ card: true, venue: false, qr: false })
   })
 
   it("threads launch readiness into the merchant dashboard and launch hub", () => {

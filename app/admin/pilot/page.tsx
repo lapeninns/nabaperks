@@ -99,7 +99,7 @@ export default async function AdminPilotPage() {
       <AdminPanel>
         <SectionHeader
           title="Pilot merchant notes"
-          description="Capture support notes, cancellation reasons, payment objections, and timed staff-training proof as audited admin records."
+          description="Capture support notes, cancellation reasons, payment objections, and self-service launch checks as audited admin records."
           actions={<SourceLabel>Source: audit_logs</SourceLabel>}
         />
 
@@ -149,14 +149,14 @@ export default async function AdminPilotPage() {
                         <option value="cancellation_reason">
                           Cancellation reason
                         </option>
-                        <option value="staff_training_timed">
-                          Staff training proof
+                        <option value="launch_self_service_checked">
+                          Self-service launch check
                         </option>
                       </select>
                     </AdminField>
-                    <AdminField label="Training minutes" helper="Required only for timed staff-training proof.">
+                    <AdminField label="Setup check minutes" helper="Optional for self-service launch checks.">
                       <input
-                        name="trainingMinutes"
+                        name="setupMinutes"
                         type="number"
                         min={1}
                         max={3}

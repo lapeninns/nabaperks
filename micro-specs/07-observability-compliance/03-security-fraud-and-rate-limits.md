@@ -2,13 +2,13 @@
 
 ## Exact Goal and User-Visible Outcomes
 
-Nabaperks's MVP has baseline abuse protection for QR scans, staff PIN attempts, stamp issuing, reward redemption, admin access, and Stripe webhooks. Legitimate merchants and customers can use the product quickly, while obvious fraud and unsafe access paths are blocked and logged.
+Nabaperks's MVP has baseline abuse protection for QR scans, soft GPS check attempts, stamp issuing, reward redemption, admin access, and Stripe webhooks. Legitimate merchants and customers can use the product quickly, while obvious fraud and unsafe access paths are blocked and logged.
 
 ## Blast Radius
 
 In scope:
 
-- Rate limits for QR scans, PIN attempts, stamp issuing, auth-sensitive endpoints, and redemption attempts.
+- Rate limits for QR scans, stamp issuing, auth-sensitive endpoints, and redemption attempts.
 - Fraud flags for abnormal stamp/reward activity.
 - Admin fraud review page support.
 - Webhook signature verification checks.
@@ -24,7 +24,7 @@ Out of scope:
 
 ## Strict Constraints and Assumptions
 
-- Staff PIN is a known fraud risk and must be protected by rate limits and audit logs.
+- Soft GPS review is a known fraud signal and must be protected by rate limits and audit logs.
 - Duplicate reward redemption must be impossible through normal and concurrent requests.
 - QR codes can be disabled when compromised.
 - Admin access requires RBAC and MFA before production.
@@ -51,7 +51,7 @@ Must-have controls:
 
 ## Behavioral Requirements
 
-- WHEN a staff PIN is submitted incorrectly too many times, THE system SHALL rate-limit further attempts.
+- WHEN self-service stamp attempts are repeated too quickly, THE system SHALL rate-limit further attempts.
 - WHEN QR scans or customer identity requests are rate-limited, THE system SHALL store hashed bucket keys in durable server-side storage.
 - WHEN a customer requests multiple stamps inside the cooldown window, THE system SHALL reject duplicates.
 - WHEN stamp volume is unusually high for a merchant or time window, THE system SHALL create a fraud flag for admin review.
@@ -65,7 +65,7 @@ Must-have controls:
 
 Acceptance criteria:
 
-- PIN attempts and stamp issuing are rate-limited.
+- Stamp issuing and redemption attempts are rate-limited.
 - QR scan and customer identity request limits survive serverless instance rotation.
 - Duplicate redemption is prevented under repeated/concurrent attempts.
 - Fraud flags appear for configured abnormal activity thresholds.

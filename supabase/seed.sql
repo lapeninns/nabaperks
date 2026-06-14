@@ -313,7 +313,7 @@ values
     'Morning Ritual Mystery Card',
     3,
     'Surprise reward',
-    'Collect 3 qualifying visits to reveal a surprise reward. Redeemable from the next UK business day on hot drinks and bakes.',
+    'Collect 3 qualifying visits to reveal a surprise reward, redeemable from the next UK business day.',
     350
   ),
   (
@@ -352,9 +352,9 @@ values
     '10000000-0000-0000-0000-000000000001',
     '11000000-0000-0000-0000-000000000001',
     '13000000-0000-0000-0000-000000000001',
-    'Coffee upgrade',
-    'Free size upgrade on any hot drink. Valid from the next UK business day.',
-    350,
+    'Free pint',
+    'A pint of any cask ale or lager on the house. Valid from the next UK business day.',
+    null,
     4,
     true,
     1
@@ -368,7 +368,7 @@ values
     'Any single cake slice from the counter. Valid from the next UK business day.',
     500,
     2,
-    true,
+    false,
     2
   ),
   (
@@ -474,7 +474,6 @@ insert into public.stamp_events (
   location_id,
   event_type,
   stamps_delta,
-  approved_by_staff_id,
   earned_business_date
 )
 values
@@ -487,7 +486,6 @@ values
     '11000000-0000-0000-0000-000000000001',
     'earned',
     1,
-    '12000000-0000-0000-0000-000000000001',
     public.uk_business_date(now() - interval '1 day')
   ),
   (
@@ -499,7 +497,6 @@ values
     '11000000-0000-0000-0000-000000000002',
     'earned',
     1,
-    '12000000-0000-0000-0000-000000000002',
     public.uk_business_date(now() - interval '1 day')
 )
 on conflict (id) do update
