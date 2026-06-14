@@ -5,8 +5,7 @@ import {
   CustomerFlowShell,
   CustomerReceipt,
 } from "@/components/customer/customer-flow-system"
-import { LoyaltyJourneyIllustration } from "@/components/customer/loyalty-journey-illustration"
-import { StatusBanner } from "@/components/loyalty"
+import { RewardTeaser, StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { getMerchantJoinContext } from "@/lib/customer/join"
 
@@ -55,12 +54,17 @@ export default async function MerchantRewardsPage({
         eyebrow={merchant.business_name}
         hideFooter
       >
-        <LoyaltyJourneyIllustration
-          stampsRequired={loyaltyCard.stamps_required}
-          minSpendLabel={
-            loyaltyCard.min_spend_pence !== null
-              ? `Minimum spend ${formatPence(loyaltyCard.min_spend_pence)}.`
-              : undefined
+        <RewardTeaser
+          locked
+          title="Mystery reward, sealed"
+          description={
+            <>
+              Collect {loyaltyCard.stamps_required} stamps to unseal a surprise
+              reward, yours from the next UK business day.
+              {loyaltyCard.min_spend_pence !== null ? (
+                <> Minimum spend {formatPence(loyaltyCard.min_spend_pence)}.</>
+              ) : null}
+            </>
           }
         />
       </CustomerReceipt>
