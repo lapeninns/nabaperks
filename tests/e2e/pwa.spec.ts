@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test"
 
 test("exposes full-app PWA assets and offline fallback", async ({ page }) => {
-  await page.goto("/wallet/login")
+  await page.goto("/home/login")
 
   const manifestHref = await page
     .locator('link[rel="manifest"]')

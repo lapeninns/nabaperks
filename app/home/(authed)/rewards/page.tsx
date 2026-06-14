@@ -9,14 +9,14 @@ export const metadata = {
   title: "Your rewards — Nabaperks",
 }
 
-export default async function WalletRewardsPage() {
+export default async function HomeRewardsPage() {
   const { redeemable, upcoming, redeemed } = await getCustomerRewards()
   const hasAny = redeemable.length + upcoming.length + redeemed.length > 0
 
   return (
     <div className="grid gap-6">
       <PageTitle
-        eyebrow="Your wallet"
+        eyebrow="My Nabaperks"
         title="Rewards"
         description="Rewards you've earned across every venue — ready to redeem, on the way, and ones you've enjoyed."
       />

@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation"
 
-import { signOutCustomerAction } from "@/app/wallet/actions"
+import { signOutCustomerAction } from "@/app/home/actions"
 import { CustomerAppShell } from "@/components/layout"
 import { getCustomerSession } from "@/lib/customer/session"
 
-export default async function WalletLayout({
+export default async function HomeLayout({
   children,
 }: {
   children: React.ReactNode
@@ -12,7 +12,7 @@ export default async function WalletLayout({
   const session = await getCustomerSession()
 
   if (!session) {
-    redirect("/wallet/login?next=/wallet")
+    redirect("/home/login?next=/home")
   }
 
   return (

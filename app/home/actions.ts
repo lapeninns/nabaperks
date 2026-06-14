@@ -18,7 +18,7 @@ import {
 } from "@/lib/customer/verification"
 import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit"
 
-export type WalletOtpState = {
+export type CustomerLoginOtpState = {
   fields?: {
     contact?: string
     /** A code has been sent — show the code entry step. */
@@ -37,12 +37,12 @@ function value(formData: FormData, key: string) {
   return typeof raw === "string" ? raw.trim() : ""
 }
 
-const NEXT_PATH = "/wallet"
+const NEXT_PATH = "/home"
 
-export async function requestWalletOtpAction(
-  _state: WalletOtpState,
+export async function requestCustomerLoginOtpAction(
+  _state: CustomerLoginOtpState,
   formData: FormData
-): Promise<WalletOtpState> {
+): Promise<CustomerLoginOtpState> {
   const rawContact = value(formData, "contact")
   const country = defaultCountryFromHeaders(await headers())
   const normalized = normalizePhone(rawContact, country)
@@ -58,7 +58,7 @@ export async function requestWalletOtpAction(
 
   try {
     await enforceRateLimit({
-      key: `wallet-login:${contact.toLowerCase()}`,
+      key: `customer-login:${contact.toLowerCase()}`,
       limit: 5,
       windowMs: 15 * 60_000,
     })
@@ -79,7 +79,7 @@ export async function requestWalletOtpAction(
     return {
       fields: { contact },
       errors: {
-        form: "We couldn't find a wallet for that phone. Scan a venue's QR code to join first.",
+        form: "We couldn't find an account for that phone. Scan a venue's QR code to join first.",
       },
     }
   }
@@ -116,10 +116,10 @@ function logVerificationSendFailure(scope: "wallet", error: unknown): void {
   })
 }
 
-export async function verifyWalletOtpAction(
-  _state: WalletOtpState,
+export async function verifyCustomerLoginOtpAction(
+  _state: CustomerLoginOtpState,
   formData: FormData
-): Promise<WalletOtpState> {
+): Promise<CustomerLoginOtpState> {
   const otp = value(formData, "otp")
   const pending = await getPendingPhoneVerification()
 
@@ -152,5 +152,5 @@ export async function verifyWalletOtpAction(
 
 export async function signOutCustomerAction() {
   await clearCustomerSession()
-  redirect("/wallet/login")
+  redirect("/home/login")
 }

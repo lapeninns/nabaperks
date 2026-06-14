@@ -1,17 +1,17 @@
 /**
- * Guard a `next` redirect target so wallet sign-in links can only ever return to
- * an in-app path. Anything that could leave the origin — a protocol-relative
+ * Guard a `next` redirect target so customer sign-in links can only ever return
+ * to an in-app path. Anything that could leave the origin — a protocol-relative
  * `//evil.test` URL, an absolute `https://…`, or a non-path string — collapses to
- * the wallet home. Used to build `/wallet/login?next=…` recovery links.
+ * the customer home. Used to build `/home/login?next=…` recovery links.
  */
 export function safeNextPath(path: string): string {
-  if (!path.startsWith("/")) return "/wallet"
-  if (path.startsWith("//")) return "/wallet"
-  if (path.startsWith("/\\")) return "/wallet"
+  if (!path.startsWith("/")) return "/home"
+  if (path.startsWith("//")) return "/home"
+  if (path.startsWith("/\\")) return "/home"
   return path
 }
 
-/** Build a wallet login link that returns to `path` after authentication. */
-export function walletLoginHref(path: string): string {
-  return `/wallet/login?next=${encodeURIComponent(safeNextPath(path))}`
+/** Build a customer login link that returns to `path` after authentication. */
+export function customerLoginHref(path: string): string {
+  return `/home/login?next=${encodeURIComponent(safeNextPath(path))}`
 }

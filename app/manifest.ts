@@ -9,7 +9,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Nabaperks",
     description:
       "No-app digital loyalty cards and merchant tools for local businesses.",
-    start_url: "/",
+    start_url: "/start",
     scope: "/",
     display: "standalone",
     background_color: "#f6f1e6",
@@ -42,10 +42,10 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     shortcuts: [
       {
-        name: "Customer wallet",
-        short_name: "Wallet",
+        name: "My Nabaperks",
+        short_name: "Home",
         description: "Open saved loyalty cards and rewards.",
-        url: "/wallet",
+        url: "/home",
         icons: [{ src: "/icons/nabaperks-icon-192.png", sizes: "192x192" }],
       },
       {

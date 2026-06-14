@@ -8,11 +8,13 @@ const shouldApply = args.has("--apply")
 const shouldSeed = args.has("--seed")
 const shouldTest = args.has("--test")
 const shouldReset = args.has("--reset")
+const shouldResetCustomers = args.has("--reset-customers")
+const shouldResetTodayStamps = args.has("--reset-today-stamps")
 const force = args.has("--force")
 
-if (!shouldApply && !shouldSeed && !shouldTest && !shouldReset) {
+if (!shouldApply && !shouldSeed && !shouldTest && !shouldReset && !shouldResetCustomers && !shouldResetTodayStamps) {
   console.error(
-    "Usage: node scripts/run-supabase-sql.mjs [--apply] [--seed] [--test] [--reset] [--force]"
+    "Usage: node scripts/run-supabase-sql.mjs [--apply] [--seed] [--test] [--reset] [--reset-customers] [--reset-today-stamps] [--force]"
   )
   process.exit(1)
 }
@@ -44,6 +46,14 @@ try {
 
   if (shouldReset) {
     await runFile("supabase/reset.sql", "Database reset")
+  }
+
+  if (shouldResetCustomers) {
+    await runFile("supabase/reset-customers.sql", "Customer data reset")
+  }
+
+  if (shouldResetTodayStamps) {
+    await runFile("supabase/reset-today-stamps.sql", "Today stamp reset")
   }
 
   if (shouldApply) {

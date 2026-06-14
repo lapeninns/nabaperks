@@ -5,7 +5,7 @@ import "server-only"
  *
  * Reward `redeemable_from` values are stored as UK business dates, and the
  * customer card view compares them lexically against this string — we mirror
- * that here so the wallet and reward views agree on what is redeemable.
+ * that here so the home and reward views agree on what is redeemable.
  */
 export function ukTodayIso() {
   const parts = new Intl.DateTimeFormat("en-GB", {

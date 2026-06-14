@@ -2,19 +2,19 @@ import Link from "next/link"
 
 import { Eyebrow, EmptyState, MonoTag, PageTitle, ReceiptCard, VenueMark } from "@/components/brand"
 import { ProgressTrack } from "@/components/loyalty"
-import { getCustomerWallet, type WalletCard } from "@/lib/customer/wallet"
+import { getCustomerHome, type HomeCard } from "@/lib/customer/home"
 
 export const metadata = {
-  title: "Your cards — Nabaperks",
+  title: "My Nabaperks",
 }
 
-export default async function WalletDashboardPage() {
-  const { cards } = await getCustomerWallet()
+export default async function HomeDashboardPage() {
+  const { cards } = await getCustomerHome()
 
   return (
     <div className="grid gap-6">
       <PageTitle
-        eyebrow="Your wallet"
+        eyebrow="My Nabaperks"
         title="Your cards"
         description="Every loyalty card you've collected, in one place. Tap a card to add a stamp or redeem."
       />
@@ -27,7 +27,7 @@ export default async function WalletDashboardPage() {
       ) : (
         <div className="grid gap-4">
           {cards.map((card) => (
-            <WalletCardTile key={card.membershipId} card={card} />
+            <HomeCardTile key={card.membershipId} card={card} />
           ))}
         </div>
       )}
@@ -35,7 +35,7 @@ export default async function WalletDashboardPage() {
   )
 }
 
-function WalletCardTile({ card }: { card: WalletCard }) {
+function HomeCardTile({ card }: { card: HomeCard }) {
   const rewardTag =
     card.redeemableRewards > 0
       ? { tone: "leaf" as const, label: "Reward ready" }

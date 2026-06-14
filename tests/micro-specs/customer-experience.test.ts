@@ -149,9 +149,9 @@ describe("deriveCustomerExperience — card route", () => {
   it("routes an access problem to unavailable with recovery", () => {
     const exp = deriveCustomerExperience({
       entry: "card",
-      context: { access: "unauthenticated", recovery: { loginHref: "/wallet/login?next=%2Fcard%2Fmembership-1" } },
+      context: { access: "unauthenticated", recovery: { loginHref: "/home/login?next=%2Fcard%2Fmembership-1" } },
     })
-    expect(exp).toMatchObject({ kind: "unavailable", recovery: { loginHref: "/wallet/login?next=%2Fcard%2Fmembership-1" } })
+    expect(exp).toMatchObject({ kind: "unavailable", recovery: { loginHref: "/home/login?next=%2Fcard%2Fmembership-1" } })
   })
 })
 
@@ -298,13 +298,13 @@ describe("getCustomerExperienceViewModel", () => {
     expect(vm.primaryAction?.href).toBe("/m/bean-and-batch/join?qr=qr-1&step=phone")
   })
 
-  it("offers wallet recovery on an unavailable state with recovery", () => {
+  it("offers customer recovery on an unavailable state with recovery", () => {
     const vm = getCustomerExperienceViewModel({
       kind: "unavailable",
       reason: "x",
-      recovery: { loginHref: "/wallet/login?next=%2Fcard%2F1" },
+      recovery: { loginHref: "/home/login?next=%2Fcard%2F1" },
     })
-    expect(vm.primaryAction).toEqual({ label: "Open your wallet", href: "/wallet/login?next=%2Fcard%2F1" })
+    expect(vm.primaryAction).toEqual({ label: "Open my cards", href: "/home/login?next=%2Fcard%2F1" })
   })
 
   it("covers every experience kind without throwing", () => {

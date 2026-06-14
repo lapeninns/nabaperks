@@ -38,7 +38,7 @@ export async function issueSelfServiceStamp(
   coordinates?: GeoCoordinates
 ): Promise<IssueSelfServiceStampResult> {
   const customer = await getCurrentCustomer()
-  if (!customer) return { status: "blocked", reason: "Open your wallet first." }
+  if (!customer) return { status: "blocked", reason: "Open your cards first." }
 
   const supabase = createSupabaseServiceRoleClient()
   const { data, error } = await supabase.rpc("issue_self_service_stamp", {
@@ -83,7 +83,7 @@ export async function redeemSelfServiceReward(
   coordinates?: GeoCoordinates
 ): Promise<RedeemSelfServiceRewardResult> {
   const customer = await getCurrentCustomer()
-  if (!customer) return { status: "blocked", reason: "Open your wallet first." }
+  if (!customer) return { status: "blocked", reason: "Open your cards first." }
 
   const supabase = createSupabaseServiceRoleClient()
   const { data, error } = await supabase.rpc("redeem_self_service_reward", {

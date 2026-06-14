@@ -5,7 +5,7 @@ import { unavailableMessage } from "@/lib/customer/card"
 import { firstOf, getCurrentCustomer } from "@/lib/customer/identity"
 import { isRedeemableFrom } from "@/lib/customer/uk-date"
 
-export type WalletCard = {
+export type HomeCard = {
   membershipId: string
   businessName: string
   businessSlug: string
@@ -19,11 +19,11 @@ export type WalletCard = {
   unavailableReason?: string
 }
 
-export type CustomerWallet = {
-  cards: WalletCard[]
+export type CustomerHome = {
+  cards: HomeCard[]
 }
 
-type RawWalletMembership = {
+type RawHomeMembership = {
   id: string
   merchant_id: string
   current_stamp_count: number
@@ -43,10 +43,10 @@ type RawLoyaltyCard = {
 
 /**
  * Every loyalty card the signed-in customer holds, across all merchants, with
- * live stamp progress and unlocked-reward counts. Powers the wallet dashboard.
- * Returns an empty wallet for a signed-in user who has not joined anything yet.
+ * live stamp progress and unlocked-reward counts. Powers the home dashboard.
+ * Returns an empty list for a signed-in user who has not joined anything yet.
  */
-export async function getCustomerWallet(): Promise<CustomerWallet> {
+export async function getCustomerHome(): Promise<CustomerHome> {
   const customer = await getCurrentCustomer()
 
   if (!customer) return { cards: [] }
@@ -62,10 +62,10 @@ export async function getCustomerWallet(): Promise<CustomerWallet> {
     .order("last_visit_at", { ascending: false, nullsFirst: false })
 
   if (error) {
-    throw new Error(`Unable to load wallet: ${error.message}`)
+    throw new Error(`Unable to load cards: ${error.message}`)
   }
 
-  const memberships = (membershipRows ?? []) as RawWalletMembership[]
+  const memberships = (membershipRows ?? []) as RawHomeMembership[]
 
   if (memberships.length === 0) return { cards: [] }
 
@@ -123,7 +123,7 @@ export async function getCustomerWallet(): Promise<CustomerWallet> {
     rewardsByMembership.set(row.membership_id, entry)
   }
 
-  const cards: WalletCard[] = memberships.map((membership) => {
+  const cards: HomeCard[] = memberships.map((membership) => {
     const merchant = firstOf(membership.merchants)
     const card = cardByMerchant.get(membership.merchant_id) ?? null
     const billingStatus = billingByMerchant.get(membership.merchant_id) ?? null

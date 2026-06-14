@@ -115,7 +115,7 @@ export function getCustomerExperienceViewModel(
         headline: "Card unavailable",
         supportLine: exp.reason,
         primaryAction: exp.recovery
-          ? { label: "Open your wallet", href: exp.recovery.loginHref }
+          ? { label: "Open my cards", href: exp.recovery.loginHref }
           : undefined,
       }
     default:

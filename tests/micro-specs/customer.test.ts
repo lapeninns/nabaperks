@@ -158,6 +158,7 @@ describe("03 customer micro-specs", () => {
     const experience = readProjectFile(
       "components/customer/customer-card-experience.tsx"
     )
+    const customerTabBar = readProjectFile("components/layout/customer-tab-bar.tsx")
     const joinWizard = readProjectFile("components/customer/join-wizard.tsx")
     const copy = readProjectFile("lib/customer/experience/copy.ts")
     const loadStamp = readProjectFile("lib/customer/experience/load-stamp.ts")
@@ -177,10 +178,13 @@ describe("03 customer micro-specs", () => {
 
     expect(cardPage).toContain("CustomerCardExperience")
     expect(experience).toContain("CustomerFlowShell")
+    expect(experience).toContain("CustomerTabBar")
     expect(experience).toContain("CustomerStampCard")
     expect(experience).toContain("Stamp added.")
     expect(experience).toContain("Scan the venue code to add your stamp.")
     expect(experience).toContain("Redeem reward")
+    expect(customerTabBar).toContain('pathname.startsWith("/card/")')
+    expect(customerTabBar).toContain('pathname.startsWith("/reward/")')
 
     expect(experience).toContain("SelfServiceStampForm")
     expect(loadStamp).toContain("getMembershipLocationRequirement")

@@ -4,7 +4,7 @@ import { getCustomerCardState } from "@/lib/customer/card"
 import { getStampQrContextForMembership } from "@/lib/customer/join"
 import { getMembershipLocationRequirement } from "@/lib/customer/stamp"
 import { isRedeemableFrom, ukTodayIso } from "@/lib/customer/uk-date"
-import { walletLoginHref } from "@/lib/navigation/safe-next-path"
+import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 import type { StampContext } from "./derive"
@@ -29,7 +29,7 @@ export async function loadStampExperienceContext(
       recovery:
         cardState.status === "unauthenticated"
           ? {
-              loginHref: walletLoginHref(
+              loginHref: customerLoginHref(
                 `/card/${membershipId}/stamp${qr ? `?qr=${qr}` : ""}`
               ),
             }

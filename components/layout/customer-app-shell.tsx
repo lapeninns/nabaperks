@@ -15,7 +15,7 @@ export function CustomerAppShell({
     <div className="min-h-svh bg-background">
       <header className="sticky top-0 z-40 border-b-2 border-ink bg-card">
         <div className="mx-auto flex w-full max-w-md items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <Logo href="/wallet" />
+          <Logo href="/home" />
           <form action={signOutAction}>
             <Button type="submit" variant="secondary" size="sm">
               Log out

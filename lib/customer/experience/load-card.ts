@@ -2,7 +2,7 @@ import "server-only"
 
 import { getCustomerCardState } from "@/lib/customer/card"
 import { isRedeemableFrom } from "@/lib/customer/uk-date"
-import { walletLoginHref } from "@/lib/navigation/safe-next-path"
+import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 
 import type { CardContext } from "./derive"
 
@@ -29,7 +29,7 @@ export async function loadCardExperienceContext(
       access: cardState.status,
       recovery:
         cardState.status === "unauthenticated"
-          ? { loginHref: walletLoginHref(`/card/${membershipId}`) }
+          ? { loginHref: customerLoginHref(`/card/${membershipId}`) }
           : undefined,
     }
   }

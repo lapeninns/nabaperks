@@ -1,30 +1,30 @@
 import { redirect } from "next/navigation"
 
 import { Eyebrow, ReceiptCard, VenueMark } from "@/components/brand"
-import { WalletLoginForm } from "@/components/customer/wallet-login-form"
+import { CustomerLoginForm } from "@/components/customer/customer-login-form"
 import { CustomerShell } from "@/components/layout"
 import { getCustomerSession } from "@/lib/customer/session"
 
 export const metadata = {
-  title: "Open your wallet — Nabaperks",
+  title: "My Nabaperks — sign in",
 }
 
-export default async function WalletLoginPage() {
+export default async function HomeLoginPage() {
   const session = await getCustomerSession()
 
   if (session) {
-    redirect("/wallet")
+    redirect("/home")
   }
 
   return (
     <CustomerShell>
       <ReceiptCard edge className="grid gap-6">
         <div className="grid justify-items-center gap-3 text-center">
-          <VenueMark size={56} name="Nabaperks" caption="Your wallet" />
+          <VenueMark size={56} name="Nabaperks" caption="My Nabaperks" />
           <div className="grid gap-1">
-            <Eyebrow>Nabaperks wallet</Eyebrow>
+            <Eyebrow>My Nabaperks</Eyebrow>
             <h1 className="text-2xl leading-tight font-extrabold text-balance">
-              Open your wallet
+              Welcome back
             </h1>
             <p className="text-sm leading-6 text-muted-foreground">
               Sign in to see every loyalty card you&apos;ve collected, track your
@@ -33,11 +33,11 @@ export default async function WalletLoginPage() {
           </div>
         </div>
 
-        <WalletLoginForm />
+        <CustomerLoginForm />
 
         <p className="border-t-2 border-ink/15 pt-4 text-center text-sm leading-6 text-muted-foreground">
           New here? Scan a venue&apos;s QR code to collect your first stamp — your
-          wallet is created automatically.
+          first card is created automatically.
         </p>
       </ReceiptCard>
     </CustomerShell>

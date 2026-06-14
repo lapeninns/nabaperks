@@ -56,9 +56,9 @@ export function MarketingLayout({ children }: { children: ReactNode }) {
               © {new Date().getFullYear()} · Stamped, not tracked
             </span>
           </div>
-          <nav aria-label="Customer wallet" className="flex flex-wrap gap-2">
-            <Link className={legalLinkClass} href="/wallet">
-              Your wallet
+          <nav aria-label="My Nabaperks" className="flex flex-wrap gap-2">
+            <Link className={legalLinkClass} href="/home">
+              My Nabaperks
             </Link>
           </nav>
           <nav aria-label="Legal links" className="flex flex-wrap gap-2">

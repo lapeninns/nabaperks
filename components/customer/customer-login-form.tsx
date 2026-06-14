@@ -3,21 +3,21 @@
 import { useActionState } from "react"
 
 import {
-  requestWalletOtpAction,
-  verifyWalletOtpAction,
-  type WalletOtpState,
-} from "@/app/wallet/actions"
+  requestCustomerLoginOtpAction,
+  verifyCustomerLoginOtpAction,
+  type CustomerLoginOtpState,
+} from "@/app/home/actions"
 import { Button } from "@/components/ui/button"
 
-const initialState: WalletOtpState = {}
+const initialState: CustomerLoginOtpState = {}
 
-export function WalletLoginForm() {
+export function CustomerLoginForm() {
   const [state, requestAction, requestPending] = useActionState(
-    requestWalletOtpAction,
+    requestCustomerLoginOtpAction,
     initialState
   )
   const [, verifyAction, verifyPending] = useActionState(
-    verifyWalletOtpAction,
+    verifyCustomerLoginOtpAction,
     initialState
   )
 
@@ -96,7 +96,7 @@ export function WalletLoginForm() {
             ) : null}
           </div>
           <Button type="submit" disabled={verifyPending}>
-            {verifyPending ? "Checking..." : "Open wallet"}
+            {verifyPending ? "Checking..." : "Open my cards"}
           </Button>
         </form>
       ) : null}

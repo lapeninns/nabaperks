@@ -7,7 +7,7 @@ import {
   Activity03Icon,
   GiftIcon,
   UserCircleIcon,
-  Wallet01Icon,
+  Home01Icon,
 } from "@hugeicons/core-free-icons"
 
 import { cn } from "@/lib/utils"
@@ -15,23 +15,30 @@ import { cn } from "@/lib/utils"
 type TabItem = {
   href: string
   label: string
-  icon: typeof Wallet01Icon
+  icon: typeof Home01Icon
 }
 
 const tabs: TabItem[] = [
-  { href: "/wallet", label: "Wallet", icon: Wallet01Icon },
-  { href: "/wallet/rewards", label: "Rewards", icon: GiftIcon },
-  { href: "/wallet/activity", label: "Activity", icon: Activity03Icon },
-  { href: "/wallet/profile", label: "Profile", icon: UserCircleIcon },
+  { href: "/home", label: "Home", icon: Home01Icon },
+  { href: "/home/rewards", label: "Rewards", icon: GiftIcon },
+  { href: "/home/activity", label: "Activity", icon: Activity03Icon },
+  { href: "/home/profile", label: "Profile", icon: UserCircleIcon },
 ]
 
 function isActive(pathname: string, href: string) {
-  if (href === "/wallet") return pathname === "/wallet"
+  if (href === "/home") {
+    return (
+      pathname === "/home" ||
+      pathname.startsWith("/card/") ||
+      pathname.startsWith("/reward/")
+    )
+  }
+
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
 /**
- * Fixed bottom tab bar for the customer wallet — the mobile-first equivalent of
+ * Fixed bottom tab bar for the customer home — the mobile-first equivalent of
  * the merchant top pill nav. Active = ink fill / paper text, same Wet Ink
  * vocabulary as `ShellNavigation`.
  */
@@ -40,7 +47,7 @@ export function CustomerTabBar() {
 
   return (
     <nav
-      aria-label="Wallet navigation"
+      aria-label="Home navigation"
       className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-ink bg-card pb-[env(safe-area-inset-bottom)]"
     >
       <div className="mx-auto grid w-full max-w-md grid-cols-4">

@@ -37,7 +37,7 @@ export type LocationRequirement = {
   geofenceRadiusMeters: number
 }
 
-/** Recovery target for unavailable/unauthenticated panels (wallet sign-in). */
+/** Recovery target for unavailable/unauthenticated panels (customer sign-in). */
 export type AccessRecovery = {
   /** Pre-validated `next` path (see lib/navigation/safe-next-path). */
   loginHref: string

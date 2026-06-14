@@ -26,7 +26,7 @@ type InstallCopy = {
 }
 
 const DISMISS_STORAGE_KEY = "nabaperks:pwa-install-dismissed:v2"
-const CUSTOMER_PREFIXES = ["/wallet", "/card", "/reward", "/m", "/q"] as const
+const CUSTOMER_PREFIXES = ["/home", "/card", "/reward", "/m", "/q"] as const
 const MERCHANT_PREFIXES = ["/app", "/login", "/signup"] as const
 const IOS_INSTALL_DESCRIPTION =
   "On iPhone, open Safari's Share menu, then choose Add to Home Screen."
@@ -63,7 +63,7 @@ function installCopy(surface: AppSurface): InstallCopy {
       }
     case "customer":
       return {
-        title: "Install your Nabaperks wallet",
+        title: "Install My Nabaperks",
         description: "Keep your loyalty cards one tap from the home screen.",
       }
     case "merchant":

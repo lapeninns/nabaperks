@@ -15,7 +15,8 @@ const NETWORK_ONLY_PREFIXES = [
   "/reward",
   "/q",
   "/m",
-  "/wallet",
+  "/home",
+  "/start",
 ]
 
 self.addEventListener("install", (event) => {

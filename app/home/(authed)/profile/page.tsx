@@ -1,4 +1,4 @@
-import { signOutCustomerAction } from "@/app/wallet/actions"
+import { signOutCustomerAction } from "@/app/home/actions"
 import { Eyebrow, EmptyState, MetricTile, MonoTag, PageTitle } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import { getCustomerProfile, type CustomerConsent } from "@/lib/customer/profile"
@@ -14,13 +14,13 @@ const channelLabels: Record<CustomerConsent["channel"], string> = {
   whatsapp: "WhatsApp",
 }
 
-export default async function WalletProfilePage() {
+export default async function HomeProfilePage() {
   const profile = await getCustomerProfile()
 
   return (
     <div className="grid gap-6">
       <PageTitle
-        eyebrow="Your wallet"
+        eyebrow="My Nabaperks"
         title="Profile"
         description="Your account details and how venues can reach you."
       />
@@ -28,7 +28,7 @@ export default async function WalletProfilePage() {
       {!profile ? (
         <EmptyState
           title="No profile yet"
-          description="Scan a venue's QR code to join your first loyalty card and set up your wallet."
+          description="Scan a venue's QR code to join your first loyalty card and set up your account."
         />
       ) : (
         <div className="grid gap-6">

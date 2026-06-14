@@ -3,7 +3,7 @@ import "server-only"
 import { getCustomerRewardState } from "@/lib/customer/reward"
 import { getRewardLocationRequirement } from "@/lib/customer/stamp"
 import { isRedeemableFrom } from "@/lib/customer/uk-date"
-import { walletLoginHref } from "@/lib/navigation/safe-next-path"
+import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 
 import type { RewardContext } from "./derive"
 
@@ -27,7 +27,7 @@ export async function loadRewardExperienceContext(
       access: rewardState.status,
       recovery:
         rewardState.status === "unauthenticated"
-          ? { loginHref: walletLoginHref(`/reward/${rewardId}`) }
+          ? { loginHref: customerLoginHref(`/reward/${rewardId}`) }
           : undefined,
     }
   }

@@ -7,6 +7,7 @@ import {
   CustomerReceipt,
   CustomerStampCard,
 } from "@/components/customer/customer-flow-system"
+import { CustomerTabBar } from "@/components/layout"
 import {
   SelfServiceRedeemForm,
   SelfServiceStampForm,
@@ -43,14 +44,18 @@ export function CustomerCardExperience({
   const vm = getCustomerExperienceViewModel(experience)
 
   return (
-    <CustomerFlowShell
-      eyebrow={vm.eyebrow}
-      title={vm.headline}
-      description={vm.supportLine}
-      screenLabel={screenLabelFor(experience.kind)}
-    >
-      <ExperiencePanel experience={experience} vm={vm} />
-    </CustomerFlowShell>
+    <>
+      <CustomerFlowShell
+        eyebrow={vm.eyebrow}
+        title={vm.headline}
+        description={vm.supportLine}
+        className="pb-28"
+        screenLabel={screenLabelFor(experience.kind)}
+      >
+        <ExperiencePanel experience={experience} vm={vm} />
+      </CustomerFlowShell>
+      <CustomerTabBar />
+    </>
   )
 }
 
@@ -109,7 +114,7 @@ function CardProgressPanel({
   return (
     <div className="grid gap-4">
       <Link
-        href="/wallet"
+        href="/home"
         className="inline-flex w-fit items-center gap-1 text-sm font-bold text-ink-soft underline-offset-4 transition-colors hover:text-foreground hover:underline"
       >
         <span aria-hidden="true">←</span> Your cards
@@ -394,8 +399,8 @@ function UnavailablePanel({
           {exp.reason}
         </StatusBanner>
         <CustomerActionNote title="Need a hand?" tone="plain">
-          Ask a team member for the current loyalty QR, or open your wallet to
-          find your cards.
+          Ask a team member for the current loyalty QR, or open your cards to
+          find them.
         </CustomerActionNote>
       </CustomerReceipt>
       <PrimaryLink action={vm.primaryAction} variant="secondary" />

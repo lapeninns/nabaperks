@@ -16,13 +16,13 @@ const toneByCategory: Record<CustomerActivityCategory, "accent" | "ink" | "leaf"
   reward: "leaf",
 }
 
-export default async function WalletActivityPage() {
+export default async function HomeActivityPage() {
   const items = await getCustomerActivity()
 
   return (
     <div className="grid gap-6">
       <PageTitle
-        eyebrow="Your wallet"
+        eyebrow="My Nabaperks"
         title="Activity"
         description="Every stamp and reward across your cards, newest first."
       />

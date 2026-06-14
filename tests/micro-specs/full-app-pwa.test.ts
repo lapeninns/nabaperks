@@ -13,7 +13,7 @@ describe("full-app PWA", () => {
 
     expect(appManifest.name).toBe("Nabaperks")
     expect(appManifest.short_name).toBe("Nabaperks")
-    expect(appManifest.start_url).toBe("/")
+    expect(appManifest.start_url).toBe("/start")
     expect(appManifest.scope).toBe("/")
     expect(appManifest.display).toBe("standalone")
     expect(appManifest.background_color).toBe("#f6f1e6")
@@ -40,7 +40,7 @@ describe("full-app PWA", () => {
 
     expect(appManifest.shortcuts).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ name: "Customer wallet", url: "/wallet" }),
+        expect.objectContaining({ name: "My Nabaperks", url: "/home" }),
         expect.objectContaining({ name: "Merchant console", url: "/app" }),
         expect.objectContaining({ name: "Admin console", url: "/admin" }),
       ])
@@ -115,7 +115,8 @@ describe("full-app PWA", () => {
       "/reward",
       "/q",
       "/m",
-      "/wallet",
+      "/home",
+      "/start",
     ]) {
       expect(serviceWorker, pathPrefix).toContain(`"${pathPrefix}"`)
     }
