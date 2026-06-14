@@ -17,6 +17,7 @@
     "env:pull-supabase": "node scripts/env-keys.mjs pull-supabase",
     "env:set-posthog": "node scripts/env-keys.mjs set-posthog",
     "env:set-resend": "node scripts/env-keys.mjs set-resend",
+    "env:push-vercel": "node scripts/env-keys.mjs push-vercel",
     "env:write-local": "node scripts/env-keys.mjs write-local",
     "customer-flow:reset": "node scripts/customer-flow-demo.mjs reset",
     "customer-flow:status": "node scripts/customer-flow-demo.mjs status",

@@ -20,9 +20,11 @@ if (command === "status") {
   setPostHog()
 } else if (command === "set-resend") {
   setResend()
+} else if (command === "push-vercel") {
+  pushVercelEnv()
 } else {
   console.error(
-    "Usage: pnpm env:keys | pnpm env:write-local [--force] | pnpm env:pull-supabase <project-ref> | pnpm env:set-posthog | pnpm env:set-resend"
+    "Usage: pnpm env:keys | pnpm env:write-local [--force] | pnpm env:pull-supabase <project-ref> | pnpm env:set-posthog | pnpm env:set-resend | pnpm env:push-vercel [production|preview|development] [--replace]"
   )
   process.exit(1)
 }
@@ -86,6 +88,7 @@ function printStatus() {
   console.log("  pnpm dlx vercel link")
   console.log("  pnpm dlx vercel env pull .env.local")
   console.log("  pnpm dlx vercel env add <NAME> production")
+  console.log("  pnpm env:push-vercel production --replace")
   console.log("")
   console.log("After exporting values in your shell, write .env.local with:")
   console.log("  pnpm env:write-local")
@@ -96,7 +99,9 @@ function printStatus() {
   console.log("To merge a Resend key from your shell without printing it:")
   console.log("  RESEND_API_KEY=re_... pnpm env:set-resend")
   console.log("")
-  console.log("To merge PostHog browser analytics values without printing them:")
+  console.log(
+    "To merge PostHog browser analytics values without printing them:"
+  )
   console.log(
     "  NEXT_PUBLIC_POSTHOG_KEY=phc_... NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com pnpm env:set-posthog"
   )
@@ -243,7 +248,9 @@ function setPostHog() {
   }
 
   if (!postHogKey.startsWith("phc_")) {
-    console.error("NEXT_PUBLIC_POSTHOG_KEY should be the public project key and start with phc_.")
+    console.error(
+      "NEXT_PUBLIC_POSTHOG_KEY should be the public project key and start with phc_."
+    )
     console.error("Do not use a personal API token that starts with phx_.")
     process.exit(1)
   }
@@ -263,6 +270,71 @@ function setPostHog() {
   console.log("- NEXT_PUBLIC_POSTHOG_KEY")
   console.log("- NEXT_PUBLIC_POSTHOG_HOST")
   console.log("Run pnpm env:check to validate the full contract.")
+}
+
+function pushVercelEnv() {
+  const environment = parseVercelEnvironment()
+  const replace = process.argv.includes("--replace")
+  const source = join(projectDir, ".env.local")
+
+  if (!existsSync(source)) {
+    console.error(".env.local does not exist. Pull or write local env first.")
+    process.exit(1)
+  }
+
+  const localValues = parseEnvFile(source)
+  const names = contract
+    .map((entry) => entry.name)
+    .filter((name) => localValues[name]?.trim())
+
+  const missing = contract
+    .filter((entry) => !entry.optional)
+    .filter((entry) => !localValues[entry.name]?.trim())
+    .map((entry) => entry.name)
+
+  if (missing.length) {
+    console.error("Cannot push incomplete local env. Missing:")
+    for (const name of missing) {
+      console.error(`- ${name}`)
+    }
+    process.exit(1)
+  }
+
+  if (!names.length) {
+    console.error("No contract values found in .env.local.")
+    process.exit(1)
+  }
+
+  const existingNames = readVercelEnvNames(environment)
+  const pushed = []
+  const skipped = []
+
+  for (const name of names) {
+    const exists = existingNames.has(name)
+
+    if (exists && !replace) {
+      skipped.push(name)
+      continue
+    }
+
+    if (exists) {
+      removeVercelEnv(name, environment)
+    }
+
+    addVercelEnv(name, localValues[name], environment)
+    pushed.push(name)
+  }
+
+  console.log(`Vercel ${environment} env sync complete.`)
+
+  if (pushed.length) {
+    console.log(`Added/replaced: ${pushed.join(", ")}`)
+  }
+
+  if (skipped.length) {
+    console.log(`Skipped existing: ${skipped.join(", ")}`)
+    console.log("Re-run with --replace to rotate existing values.")
+  }
 }
 
 function mergeLocalEnv(updates) {
@@ -329,6 +401,80 @@ function parseEnvFile(path) {
   }
 
   return parsed
+}
+
+function parseVercelEnvironment() {
+  const environment = process.argv.slice(3).find((arg) => !arg.startsWith("--"))
+
+  if (!environment) return "production"
+
+  if (!["production", "preview", "development"].includes(environment)) {
+    console.error(
+      "Vercel environment must be production, preview, or development."
+    )
+    process.exit(1)
+  }
+
+  return environment
+}
+
+function readVercelEnvNames(environment) {
+  const result = runVercel(["env", "ls", environment], "")
+
+  if (result.status !== 0) {
+    console.error(`Unable to list Vercel ${environment} environment variables.`)
+    printVercelError(result)
+    process.exit(result.status ?? 1)
+  }
+
+  const names = new Set()
+
+  for (const line of result.stdout.split(/\r?\n/)) {
+    const match = line.match(/^\s*([A-Z][A-Z0-9_]*)\s+/)
+
+    if (match) names.add(match[1])
+  }
+
+  return names
+}
+
+function addVercelEnv(name, value, environment) {
+  const result = runVercel(["env", "add", name, environment], value)
+
+  if (result.status !== 0) {
+    console.error(`Unable to add Vercel env variable ${name}.`)
+    printVercelError(result)
+    process.exit(result.status ?? 1)
+  }
+}
+
+function removeVercelEnv(name, environment) {
+  const result = runVercel(["env", "rm", name, environment, "--yes"], "")
+
+  if (result.status !== 0) {
+    console.error(`Unable to remove existing Vercel env variable ${name}.`)
+    printVercelError(result)
+    process.exit(result.status ?? 1)
+  }
+}
+
+function runVercel(args, input) {
+  return spawnSync("pnpm", ["dlx", "vercel", ...args], {
+    cwd: projectDir,
+    encoding: "utf8",
+    input,
+    stdio: ["pipe", "pipe", "pipe"],
+  })
+}
+
+function printVercelError(result) {
+  const output = `${result.stdout}\n${result.stderr}`
+    .split(/\r?\n/)
+    .filter((line) => !line.includes("Linked to"))
+    .join("\n")
+    .trim()
+
+  if (output) console.error(output)
 }
 
 function parseJsonFromOutput(output) {

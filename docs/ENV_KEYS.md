@@ -146,3 +146,18 @@ pnpm dlx vercel env add <NAME> preview
 ```
 
 Use the same variable names as `.env.example`.
+
+To sync all non-empty contract values from `.env.local` into the linked Vercel
+project without printing secret values:
+
+```bash
+pnpm env:push-vercel production
+```
+
+That command adds values missing from the target environment and skips existing
+names. To intentionally rotate or overwrite existing Vercel values from
+`.env.local`, run:
+
+```bash
+pnpm env:push-vercel production --replace
+```
