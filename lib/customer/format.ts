@@ -11,6 +11,15 @@ const monthYearFormatter = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Europe/London",
 })
 
+// A date of birth is a plain calendar date, not an instant — format it in UTC so
+// the day never slips when a bare ISO date ("1990-01-01") is read as midnight.
+const dateOfBirthFormatter = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+})
+
 export function formatPence(pence: number) {
   return new Intl.NumberFormat("en-GB", {
     style: "currency",
@@ -24,6 +33,11 @@ export function formatDate(iso: string) {
 
 export function formatMonthYear(iso: string) {
   return monthYearFormatter.format(new Date(iso))
+}
+
+/** Human birthdate from a bare ISO date ("1990-01-01" -> "1 Jan 1990"). */
+export function formatDateOfBirth(iso: string) {
+  return dateOfBirthFormatter.format(new Date(iso))
 }
 
 /** Compact relative time ("2h ago", "3d ago"), falling back to a date. */

@@ -5,15 +5,19 @@ import { cookies } from "next/headers"
 import { customerPhoneHmac } from "@/lib/customer/phone-pii"
 import {
   createCustomerSessionCookieValue,
+  createPendingEmailCookieValue,
   createPendingPhoneCookieValue,
   readCustomerSessionCookieValue,
+  readPendingEmailCookieValue,
   readPendingPhoneCookieValue,
   type CustomerSessionPayload,
+  type PendingEmailPayload,
   type PendingPhonePayload,
   type PendingPhonePurpose,
 } from "@/lib/customer/session-cookie"
 
 export const pendingPhoneCookieName = "nabaperks_pending_phone"
+export const pendingEmailCookieName = "nabaperks_pending_email"
 export const customerSessionCookieName = "nabaperks_customer_session"
 
 type PendingPhoneInput = {
@@ -23,7 +27,13 @@ type PendingPhoneInput = {
   customerId?: string | null
 }
 
+type PendingEmailInput = {
+  email: string
+  codeHmac: string
+}
+
 const pendingPhoneTtlSeconds = 10 * 60
+const pendingEmailTtlSeconds = 10 * 60
 const customerSessionTtlSeconds = 30 * 24 * 60 * 60
 
 export async function setPendingPhoneVerification(
@@ -66,6 +76,45 @@ export async function getPendingPhoneVerification(): Promise<PendingPhonePayload
 export async function clearPendingPhoneVerification(): Promise<void> {
   const cookieStore = await cookies()
   cookieStore.delete(pendingPhoneCookieName)
+}
+
+export async function setPendingEmailVerification(
+  input: PendingEmailInput
+): Promise<PendingEmailPayload> {
+  const issuedAt = nowSeconds()
+  const payload: PendingEmailPayload = {
+    version: 1,
+    email: input.email,
+    codeHmac: input.codeHmac,
+    issuedAt,
+    expiresAt: issuedAt + pendingEmailTtlSeconds,
+  }
+  const cookieStore = await cookies()
+  cookieStore.set(
+    pendingEmailCookieName,
+    createPendingEmailCookieValue(payload, customerSessionSecret()),
+    cookieOptions(pendingEmailTtlSeconds)
+  )
+
+  return payload
+}
+
+export async function getPendingEmailVerification(): Promise<PendingEmailPayload | null> {
+  const cookieStore = await cookies()
+  const value = cookieStore.get(pendingEmailCookieName)?.value
+  if (!value) return null
+
+  const result = readPendingEmailCookieValue(
+    value,
+    customerSessionSecret(),
+    nowSeconds()
+  )
+  return result.ok ? result.payload : null
+}
+
+export async function clearPendingEmailVerification(): Promise<void> {
+  const cookieStore = await cookies()
+  cookieStore.delete(pendingEmailCookieName)
 }
 
 export async function setCustomerSession(

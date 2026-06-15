@@ -15,6 +15,8 @@ const eslintConfig = defineConfig([
     // Non-app artifacts.
     "docs/**/*.tsx",
     ".tmp/**",
+    // Ephemeral agent worktree scratch space.
+    ".claude/**",
   ]),
 ])
 

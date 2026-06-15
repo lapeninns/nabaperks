@@ -8,6 +8,7 @@ import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 import type { StampContext } from "./derive"
+import { loadProfileGate } from "./load-profile-gate"
 
 const DEFAULT_LOCATION = { requireGeofence: false, geofenceRadiusMeters: 150 }
 
@@ -56,6 +57,7 @@ export async function loadStampExperienceContext(
   // tap routes to redeem (when redeemable) or a calm wait, never a block.
   const unlocked = cardState.latestReward
   if (unlocked && unlocked.status === "unlocked") {
+    const redeemable = isRedeemableFrom(unlocked.redeemable_from)
     return {
       membershipId,
       merchantName,
@@ -66,12 +68,14 @@ export async function loadStampExperienceContext(
         rewardTerms: unlocked.reward_terms,
         minSpendPence: unlocked.min_spend_pence,
         redeemableFrom: unlocked.redeemable_from,
-        redeemable: isRedeemableFrom(unlocked.redeemable_from),
+        redeemable,
       },
       alreadyStampedToday: false,
       qrValid: false,
       qrMissing: !qr,
       location: DEFAULT_LOCATION,
+      // The gate only governs a ready reward — skip the profile lookup otherwise.
+      profileGate: redeemable ? await loadProfileGate() : undefined,
     }
   }
 

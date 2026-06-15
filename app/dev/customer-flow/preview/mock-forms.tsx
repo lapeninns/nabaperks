@@ -1,10 +1,12 @@
+import type { ReactNode } from "react"
 import Link from "next/link"
 
-import { Eyebrow, MonoTag, VenueMark } from "@/components/brand"
+import { Eyebrow, MonoTag, SectionHeader, VenueMark } from "@/components/brand"
 import {
   CustomerLegalConsentLinks,
   CustomerVenueTermsSheet,
 } from "@/components/customer/legal-sheet"
+import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import {
   JOIN_PHONE_BACK_LABEL,
@@ -194,6 +196,43 @@ export function PreviewRedeemButton() {
   )
 }
 
+const previewInputClass =
+  "h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none"
+
+/** Mock of the redeem-time profile gate — Name + DOB required, email optional. */
+export function PreviewProfileGate() {
+  return (
+    <div className="grid gap-4">
+      <div className="grid gap-2 text-left">
+        <Eyebrow>Full name</Eyebrow>
+        <input
+          className={previewInputClass}
+          defaultValue="Sam Taylor"
+          readOnly
+        />
+      </div>
+      <div className="grid gap-2 text-left">
+        <Eyebrow>Date of birth</Eyebrow>
+        <input className={previewInputClass} defaultValue="1990-01-01" readOnly />
+      </div>
+      <div className="grid gap-2 text-left">
+        <Eyebrow>Email (optional)</Eyebrow>
+        <input
+          className={previewInputClass}
+          placeholder="you@example.com"
+          readOnly
+        />
+        <p className="text-xs leading-5 text-muted-foreground">
+          We&apos;ll send a code to confirm it.
+        </p>
+      </div>
+      <Button type="button" size="lg" className="w-full">
+        Save my details
+      </Button>
+    </div>
+  )
+}
+
 export function PreviewJoinHeroNote() {
   return (
     <>
@@ -233,5 +272,185 @@ export function PreviewMinSpendNote() {
       {" "}
       Minimum spend {formatMockPence(CUSTOMER_FLOW_MOCK.minSpendPence)}.
     </>
+  )
+}
+
+// --- Profile harness mocks (mirror /home/profile) ---------------------------
+
+function PreviewDetailRow({
+  label,
+  value,
+  tag,
+}: {
+  label: string
+  value: string
+  tag?: ReactNode
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <dt className="text-sm text-muted-foreground">{label}</dt>
+      <dd className="flex items-center gap-2 text-right text-sm font-bold break-all">
+        <span>{value}</span>
+        {tag}
+      </dd>
+    </div>
+  )
+}
+
+/** View mode: read-only summary with a single "Edit details" action. */
+export function PreviewProfileAboutYouView() {
+  return (
+    <section className="surface-card grid gap-4 p-5 text-left">
+      <SectionHeader eyebrow="About you" title="Your contact details" />
+      <dl className="grid gap-3">
+        <PreviewDetailRow
+          label="Phone"
+          value={CUSTOMER_FLOW_MOCK.phone}
+          tag={<MonoTag tone="leaf">Verified</MonoTag>}
+        />
+        <PreviewDetailRow label="Full name" value="Sam Taylor" />
+        <PreviewDetailRow label="Date of birth" value="1 Jan 1990" />
+        <PreviewDetailRow
+          label="Email"
+          value="sam@example.com"
+          tag={<MonoTag tone="leaf">Verified</MonoTag>}
+        />
+      </dl>
+      <p className="text-xs leading-5 text-muted-foreground">
+        To change your phone number, scan a venue QR with your new phone.
+      </p>
+      <Button type="button" variant="secondary" className="w-full">
+        Edit details
+      </Button>
+    </section>
+  )
+}
+
+/** Edit mode: the form with empty name/DOB (incomplete profile). */
+export function PreviewProfileAboutYouEdit() {
+  return (
+    <section className="surface-card grid gap-4 p-5 text-left">
+      <SectionHeader eyebrow="About you" title="Your contact details" />
+      <form className="grid gap-4">
+        <div className="grid gap-2">
+          <label className="eyebrow">Full name</label>
+          <input className={previewInputClass} placeholder="Sam Taylor" readOnly />
+        </div>
+        <div className="grid gap-2">
+          <label className="eyebrow">Date of birth</label>
+          <input className={previewInputClass} type="date" readOnly />
+        </div>
+        <div className="grid gap-2">
+          <label className="eyebrow">Email (optional)</label>
+          <input
+            className={previewInputClass}
+            placeholder="you@example.com"
+            readOnly
+          />
+          <p className="text-xs leading-5 text-muted-foreground">
+            Add one to get reward updates. We&apos;ll send a code to confirm it.
+          </p>
+        </div>
+        <div className="grid gap-2">
+          <Button type="button" size="lg" className="w-full">
+            Save changes
+          </Button>
+          <Button type="button" variant="ghost" className="w-full">
+            Cancel
+          </Button>
+        </div>
+      </form>
+    </section>
+  )
+}
+
+/** Verify mode: the email-confirm step takes over the card. */
+export function PreviewProfileEmailVerify() {
+  return (
+    <section className="surface-card grid gap-4 p-5 text-left">
+      <SectionHeader eyebrow="About you" title="Your contact details" />
+      <div className="grid gap-3">
+        <StatusBanner title="Confirm your email" tone="neutral">
+          Enter the code we sent to sam@example.com to verify it.
+        </StatusBanner>
+        <form className="grid gap-3">
+          <div className="grid gap-2">
+            <label className="eyebrow">Email code</label>
+            <input
+              className={`${previewInputClass} font-mono`}
+              inputMode="numeric"
+              defaultValue="424242"
+              readOnly
+            />
+          </div>
+          <Button type="button" size="lg" className="w-full">
+            Confirm email
+          </Button>
+        </form>
+        <div className="flex items-center justify-between gap-3">
+          <Button type="button" variant="link" size="xs" className="text-xs">
+            Email me a new code
+          </Button>
+          <Button type="button" variant="link" size="xs" className="text-xs">
+            Continue without email
+          </Button>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/** Editable global marketing toggles (Email on, SMS/WhatsApp off). */
+export function PreviewProfileMarketing() {
+  const rows = [
+    { label: "Email", helper: "Reward updates and offers by email.", checked: true },
+    { label: "SMS", helper: "Occasional offers by text message.", checked: false },
+    {
+      label: "WhatsApp",
+      helper: "Updates and offers on WhatsApp.",
+      checked: false,
+    },
+  ]
+
+  return (
+    <section className="surface-card grid gap-4 p-5 text-left">
+      <SectionHeader eyebrow="Marketing" title="Updates from your venues" />
+      <p className="text-sm leading-6 text-muted-foreground">
+        Optional. Turning these off won&apos;t affect stamps or rewards.
+      </p>
+      <ul className="grid gap-3">
+        {rows.map((row) => (
+          <li
+            key={row.label}
+            className="flex items-start justify-between gap-4"
+          >
+            <div className="grid gap-1">
+              <Eyebrow>{row.label}</Eyebrow>
+              <p className="text-sm leading-6 text-muted-foreground">
+                {row.helper}
+              </p>
+            </div>
+            <label className="mt-0.5 inline-flex shrink-0 cursor-pointer items-center">
+              <span className="sr-only">Receive {row.label} updates</span>
+              <input
+                type="checkbox"
+                defaultChecked={row.checked}
+                readOnly
+                className="size-5 shrink-0 accent-primary"
+              />
+            </label>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+/** Quiet mono receipt line beneath the cards. */
+export function PreviewProfileMeta() {
+  return (
+    <p className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+      Member since June 2026 · 2 venues
+    </p>
   )
 }

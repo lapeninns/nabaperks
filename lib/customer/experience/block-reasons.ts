@@ -29,6 +29,10 @@ export function toStampBlockReason(message: string): StampBlockReason {
     return "unauthenticated"
   }
 
+  if (message.includes("Complete your profile")) {
+    return "profile_incomplete"
+  }
+
   if (message.includes("not active") || message.includes("unavailable")) {
     return "unavailable"
   }
@@ -50,6 +54,8 @@ export function blockReasonCopy(reason: StampBlockReason): string {
       return "Scan the venue code again to add your stamp."
     case "unauthenticated":
       return "Verify your identity from the venue QR before continuing."
+    case "profile_incomplete":
+      return "Add your details to redeem - a name and date of birth, plus a verified email if you add one."
     case "unavailable":
       return "This loyalty programme is unavailable right now."
     case "unknown":

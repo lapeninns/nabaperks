@@ -6,6 +6,7 @@ import { isRedeemableFrom } from "@/lib/customer/uk-date"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 
 import type { RewardContext } from "./derive"
+import { loadProfileGate } from "./load-profile-gate"
 
 type RewardSearchParams = {
   redeemed?: string
@@ -40,6 +41,8 @@ export async function loadRewardExperienceContext(
     !rewardState.unavailableReason &&
     membership.current_stamp_count >= loyaltyCard.stamps_required &&
     isRedeemableFrom(reward.redeemable_from)
+  // The gate only governs a ready reward — skip the profile lookup otherwise.
+  const profileGate = redeemable ? await loadProfileGate() : undefined
 
   return {
     reward: {
@@ -56,5 +59,6 @@ export async function loadRewardExperienceContext(
     redeemedProof: searchParams.redeemed === "1",
     location,
     unavailableReason: rewardState.unavailableReason,
+    profileGate,
   }
 }

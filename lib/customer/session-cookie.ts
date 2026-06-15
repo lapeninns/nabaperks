@@ -22,6 +22,15 @@ export type CustomerSessionPayload = {
   expiresAt: number
 }
 
+export type PendingEmailPayload = {
+  version: 1
+  email: string
+  /** HMAC of the emailed code, bound to the address — never the code itself. */
+  codeHmac: string
+  issuedAt: number
+  expiresAt: number
+}
+
 export type CookieReadResult<T> =
   | { ok: true; payload: T }
   | { ok: false; reason: "malformed" | "invalid_signature" | "expired" }
@@ -39,6 +48,21 @@ export function readPendingPhoneCookieValue(
   nowSeconds: number
 ): CookieReadResult<PendingPhonePayload> {
   return readSignedPayload(value, secret, nowSeconds, parsePendingPhonePayload)
+}
+
+export function createPendingEmailCookieValue(
+  payload: PendingEmailPayload,
+  secret: string
+): string {
+  return signPayload(payload, secret)
+}
+
+export function readPendingEmailCookieValue(
+  value: string,
+  secret: string,
+  nowSeconds: number
+): CookieReadResult<PendingEmailPayload> {
+  return readSignedPayload(value, secret, nowSeconds, parsePendingEmailPayload)
 }
 
 export function createCustomerSessionCookieValue(
@@ -142,6 +166,24 @@ function parsePendingPhonePayload(value: unknown): PendingPhonePayload | null {
     issuedAt,
     expiresAt,
   }
+}
+
+function parsePendingEmailPayload(value: unknown): PendingEmailPayload | null {
+  if (!isRecord(value)) return null
+
+  const version = value.version
+  const email = value.email
+  const codeHmac = value.codeHmac
+  const issuedAt = value.issuedAt
+  const expiresAt = value.expiresAt
+
+  if (version !== 1) return null
+  if (typeof email !== "string") return null
+  if (typeof codeHmac !== "string") return null
+  if (typeof issuedAt !== "number") return null
+  if (typeof expiresAt !== "number") return null
+
+  return { version, email, codeHmac, issuedAt, expiresAt }
 }
 
 function parseCustomerSessionPayload(

@@ -13,11 +13,17 @@ export type CurrentCustomer = {
   id: string
   authUserId: string | null
   email: string | null
+  emailVerifiedAt: string | null
+  fullName: string | null
+  dateOfBirth: string | null
   phone: string | null
   phoneLast4: string | null
   phoneCountry: string | null
   createdAt: string
 }
+
+const CUSTOMER_COLUMNS =
+  "id, auth_user_id, email, email_verified_at, full_name, date_of_birth, phone, phone_last4, phone_country, created_at"
 
 export async function getCurrentCustomer(): Promise<CurrentCustomer | null> {
   const session = await getCustomerSession()
@@ -27,9 +33,7 @@ export async function getCurrentCustomer(): Promise<CurrentCustomer | null> {
   const supabase = createSupabaseServiceRoleClient()
   const { data, error } = await supabase
     .from("customers")
-    .select(
-      "id, auth_user_id, email, phone, phone_last4, phone_country, created_at"
-    )
+    .select(CUSTOMER_COLUMNS)
     .eq("id", session.customerId)
     .maybeSingle()
 
@@ -49,9 +53,7 @@ export async function findCustomerByVerifiedPhone(
   const phoneHmac = customerPhoneHmac(phone.e164)
   const { data, error } = await supabase
     .from("customers")
-    .select(
-      "id, auth_user_id, email, phone, phone_last4, phone_country, created_at"
-    )
+    .select(CUSTOMER_COLUMNS)
     .eq("phone_hmac", phoneHmac)
     .maybeSingle()
 
@@ -82,9 +84,7 @@ export async function getOrCreateCustomerByVerifiedPhone(
       phone_country: phone.country,
       phone_verified_at: new Date().toISOString(),
     })
-    .select(
-      "id, auth_user_id, email, phone, phone_last4, phone_country, created_at"
-    )
+    .select(CUSTOMER_COLUMNS)
     .single()
 
   if (error) {
@@ -123,6 +123,9 @@ function toCurrentCustomer(row: unknown): CurrentCustomer | null {
     id,
     authUserId: nullableString(row.auth_user_id),
     email: nullableString(row.email),
+    emailVerifiedAt: nullableString(row.email_verified_at),
+    fullName: nullableString(row.full_name),
+    dateOfBirth: nullableString(row.date_of_birth),
     phone: phone ?? maskedPhoneFromLast4(phoneLast4),
     phoneLast4,
     phoneCountry: nullableString(row.phone_country),

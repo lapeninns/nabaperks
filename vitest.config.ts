@@ -7,7 +7,7 @@ const rootDir = dirname(fileURLToPath(import.meta.url))
 export default defineConfig({
   test: {
     environment: "node",
-    exclude: ["tests/e2e/**", "node_modules/**"],
+    exclude: ["tests/e2e/**", "node_modules/**", ".claude/**"],
     globals: true,
     restoreMocks: true,
     unstubEnvs: true,

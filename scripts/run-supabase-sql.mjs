@@ -68,6 +68,18 @@ try {
 
   if (shouldTest) {
     await runFile("supabase/tests/tenant_isolation.sql", "Tenant isolation SQL test")
+    await runFile(
+      "supabase/tests/profile_completion_gate.sql",
+      "Profile completion gate SQL test"
+    )
+    await runFile(
+      "supabase/tests/reward_redemption_cycles.sql",
+      "Reward redemption cycles SQL test"
+    )
+    await runFile(
+      "supabase/tests/customer_marketing_consent.sql",
+      "Customer marketing consent SQL test"
+    )
   }
 
   console.log("Supabase SQL workflow completed.")
