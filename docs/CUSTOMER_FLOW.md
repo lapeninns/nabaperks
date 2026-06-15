@@ -394,14 +394,16 @@ Ready rewards link to `/reward/[rewardId]`.
 
 ### Profile
 
-`/wallet/profile` shows:
+`/home/profile` is a low-cognitive-load settings surface — two cards and a quiet
+meta line, no page-level logout (the header owns logout):
 
-- email,
-- phone,
-- venues joined,
-- member since,
-- latest marketing consent state per channel,
-- logout.
+- **About you** card with three modes: a read-only summary (phone + name + date of
+  birth + email), an edit form, and a dedicated email-verify step. It opens in edit
+  when name/DOB are missing, in verify when an entered email is unconfirmed, else in
+  view. A top status banner prompts completion when name/DOB are missing.
+- **Marketing** card with editable per-channel toggles (Email / SMS / WhatsApp).
+  Each toggle is global across every venue and posts on change (no Save button).
+- a mono receipt line: member since + venue count.
 
 ### Wallet Pitfalls
 
@@ -410,7 +412,7 @@ Ready rewards link to `/reward/[rewardId]`.
 | Wallet exists, but the original micro-spec text previously treated wallet as out of scope. | Docs and product scope should be reconciled so agents do not remove or ignore wallet routes.               |
 | Wallet login accepts existing members only.                                                | New customers must understand they cannot create a wallet from `/wallet/login`; they must scan a venue QR. |
 | Wallet card page cannot add a stamp without fresh QR context.                              | Customer may tap an old saved card at home and expect to stamp. Copy must keep "scan at venue" clear.      |
-| Profile marketing consent is read-only.                                                    | Customer cannot self-manage opt-in/out from profile yet.                                                   |
+| Profile marketing toggles write global per-channel consent.                                | Each toggle appends one `consent_records` row per membership via `record_customer_marketing_consent`, so every merchant's audit trail stays complete while the customer manages one switch per channel. |
 | No self-service data export/delete flow.                                                   | Privacy requests depend on admin/support paths.                                                            |
 
 ## Direct URL And Recovery Use Cases
@@ -533,9 +535,11 @@ Ready rewards link to `/reward/[rewardId]`.
    Wallet routes now exist, but some spec wording may still describe wallet as
    deferred. Agents may make wrong assumptions unless docs are aligned.
 
-8. **Profile consent is read-only.**
-   Customer can see consent state but cannot update it. That is acceptable for a
-   pilot only if support/admin has a clear process.
+8. **Profile consent is self-service.**
+   Customers manage global per-channel marketing toggles from `/home/profile`. Each
+   change appends one `consent_records` row per membership (source
+   `customer_profile`), so the per-merchant audit trail stays intact. Per-venue
+   consent breakdown remains an admin/support concern.
 
 9. **Reward-ready blocks future stamps.**
    This is a correct rule, but customers scanning the QR again should be guided

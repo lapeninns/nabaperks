@@ -76,6 +76,10 @@ try {
       "supabase/tests/reward_redemption_cycles.sql",
       "Reward redemption cycles SQL test"
     )
+    await runFile(
+      "supabase/tests/customer_marketing_consent.sql",
+      "Customer marketing consent SQL test"
+    )
   }
 
   console.log("Supabase SQL workflow completed.")

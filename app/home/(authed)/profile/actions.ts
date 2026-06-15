@@ -3,6 +3,11 @@
 import { revalidatePath } from "next/cache"
 
 import {
+  isMarketingChannel,
+  updateCustomerMarketingConsent,
+  type MarketingChannel,
+} from "@/lib/customer/consent"
+import {
   checkCustomerEmailVerification,
   startCustomerEmailVerification,
 } from "@/lib/customer/email-verification"
@@ -107,6 +112,42 @@ export async function verifyHomeProfileEmailAction(
 
   revalidatePath(PROFILE_PATH)
   return { message: "Your email is confirmed." }
+}
+
+export type MarketingConsentState = {
+  channel?: MarketingChannel
+  optedIn?: boolean
+  error?: string
+}
+
+/**
+ * Toggles one global marketing channel for the signed-in customer. Each profile
+ * toggle posts here on change (no Save button); the RPC writes an append-only
+ * record per membership and the page revalidates to reflect the new standing.
+ */
+export async function updateHomeMarketingConsentAction(
+  _state: MarketingConsentState,
+  formData: FormData
+): Promise<MarketingConsentState> {
+  const channel = value(formData, "channel")
+  if (!isMarketingChannel(channel)) {
+    return { error: "We couldn't update that preference." }
+  }
+
+  const optedIn = formData.get("optedIn") === "on"
+
+  try {
+    await updateCustomerMarketingConsent({ channel, optedIn })
+  } catch {
+    return {
+      channel,
+      optedIn: !optedIn,
+      error: "We couldn't save that preference. Try again.",
+    }
+  }
+
+  revalidatePath(PROFILE_PATH)
+  return { channel, optedIn }
 }
 
 export async function resendHomeProfileEmailAction(): Promise<void> {

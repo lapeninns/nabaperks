@@ -153,9 +153,10 @@ export async function clearCustomerEmail(): Promise<void> {
 
 /**
  * Account-level detail for the signed-in customer: contact channels, when they
- * joined, how many venues they belong to, and their latest marketing-consent
- * state per channel (read-only in this pass). Returns `null` for a signed-in
- * user with no `customers` row yet.
+ * joined, how many venues they belong to, and their global marketing-consent state
+ * per channel — the latest `consent_records` row per channel (writes go through
+ * `updateCustomerMarketingConsent`). Returns `null` for a signed-in user with no
+ * `customers` row yet.
  */
 export async function getCustomerProfile(): Promise<CustomerProfile | null> {
   const customer = await getCurrentCustomer()

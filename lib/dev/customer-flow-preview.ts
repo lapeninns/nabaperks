@@ -113,6 +113,24 @@ export const CUSTOMER_FLOW_PREVIEW_STEPS = [
     screenLabel: "Customer card",
     heading: CUSTOMER_FLOW_MOCK.cardName,
   },
+  {
+    id: "profile-complete",
+    screenshot: "07-profile/01-complete.png",
+    screenLabel: "Customer profile",
+    heading: "Your details",
+  },
+  {
+    id: "profile-incomplete",
+    screenshot: "07-profile/02-incomplete.png",
+    screenLabel: "Customer profile",
+    heading: "Your details",
+  },
+  {
+    id: "profile-email-verify",
+    screenshot: "07-profile/03-email-verify.png",
+    screenLabel: "Customer profile",
+    heading: "Your details",
+  },
 ] as const
 
 const previewStepIds = new Set(
