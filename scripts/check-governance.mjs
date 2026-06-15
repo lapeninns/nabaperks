@@ -54,6 +54,7 @@ const REQUIRED_METADATA_FIELDS = [
   "related_docs",
   "related_tests",
   "verification_gates",
+  "approved_exceptions",
 ]
 
 const REQUIRED_COMMAND_GATES = [
@@ -73,8 +74,19 @@ const REQUIRED_CHECKS = [
   "risk-to-gate matrix",
   "traceability JSON",
   "traceability Markdown",
+  "handoff workflow",
   "package and CI wiring",
 ]
+
+const REQUIRED_HANDOFF_STAGES = [
+  "product",
+  "engineering",
+  "reviewer",
+  "release",
+]
+
+const REVIEWER_DECISIONS = ["approved", "changes_requested", "override"]
+const STALE_AFTER_DAYS = 180
 
 const MINIMUM_GATES_BY_RISK = {
   "docs-tooling": [
@@ -347,6 +359,11 @@ function checkIntakeArtifacts(root, diagnostics) {
     "Requirement IDs",
     "Blast radius",
     "Red → Green → Refactor",
+    "As-built reconciliation",
+    "Reviewer decision",
+    "Release reconciliation",
+    "Risks",
+    "Follow-ups",
     "browser evidence",
   ]) {
     requireText(
@@ -524,6 +541,7 @@ function checkTraceability(root, diagnostics) {
       specIds.add(specId)
     }
 
+    checkSpecMetadata(root, jsonPath, specKey, spec, diagnostics)
     checkStatus(jsonPath, specKey, spec.status, diagnostics)
     checkRisk(jsonPath, specKey, spec.risk_class, diagnostics)
     checkMarkdownEntry(markdownPath, markdown, specKey, diagnostics)
@@ -540,6 +558,17 @@ function checkTraceability(root, diagnostics) {
         message: "requirements must be an array.",
       })
       continue
+    }
+    if (
+      ["active", "implemented", "verified"].includes(spec.status) &&
+      spec.requirements.length === 0
+    ) {
+      diagnostics.push({
+        path: jsonPath,
+        id: specKey,
+        message:
+          "active, implemented, and verified specs require at least one requirement.",
+      })
     }
 
     for (const requirement of spec.requirements) {
@@ -595,6 +624,307 @@ function checkTraceability(root, diagnostics) {
       }
       checkMarkdownEntry(markdownPath, markdown, requirementKey, diagnostics)
     }
+
+    checkHandoffs(jsonPath, specKey, spec, diagnostics)
+  }
+}
+
+function checkSpecMetadata(root, path, id, spec, diagnostics) {
+  for (const field of REQUIRED_METADATA_FIELDS) {
+    const value = spec?.[field]
+    if (typeof value === "string" && value.trim() !== "") continue
+    if (Array.isArray(value)) continue
+    diagnostics.push({
+      path,
+      id,
+      message: `${field} is required.`,
+    })
+  }
+
+  for (const field of [
+    "allowed_blast_radius",
+    "related_docs",
+    "related_tests",
+    "verification_gates",
+    "approved_exceptions",
+  ]) {
+    if (!Array.isArray(spec?.[field])) {
+      diagnostics.push({
+        path,
+        id,
+        message: `${field} must be an array.`,
+      })
+    }
+  }
+
+  for (const field of ["related_docs", "related_tests"]) {
+    const references = Array.isArray(spec?.[field]) ? spec[field] : []
+    for (const reference of references) {
+      if (typeof reference !== "string") continue
+      if (reference.startsWith("manual:")) continue
+      if (!existsSync(resolve(root, reference))) {
+        diagnostics.push({
+          path,
+          id,
+          message: `${field} references missing path ${reference}.`,
+        })
+      }
+    }
+  }
+
+  if (
+    spec?.status === "superseded" &&
+    !stringField(spec, "superseded_by") &&
+    !stringField(spec, "supersession_rationale")
+  ) {
+    diagnostics.push({
+      path,
+      id,
+      message:
+        "superseded specs require superseded_by or supersession_rationale.",
+    })
+  }
+
+  if (
+    ["active", "implemented", "verified"].includes(spec?.status) &&
+    isStaleReviewDate(spec?.last_reviewed)
+  ) {
+    diagnostics.push({
+      path,
+      id,
+      message:
+        "last_reviewed is stale for active, implemented, or verified work.",
+    })
+  }
+}
+
+function checkHandoffs(path, specKey, spec, diagnostics) {
+  const handoffs = spec?.handoffs
+  if (
+    ["implemented", "verified"].includes(spec?.status) &&
+    (!handoffs || typeof handoffs !== "object" || Array.isArray(handoffs))
+  ) {
+    diagnostics.push({
+      path,
+      id: specKey,
+      message:
+        "implemented and verified specs require Product, Engineering, Reviewer, and Release handoffs.",
+    })
+    return
+  }
+  if (!handoffs || typeof handoffs !== "object" || Array.isArray(handoffs)) {
+    return
+  }
+
+  for (const stage of REQUIRED_HANDOFF_STAGES) {
+    if (!handoffs[stage] || typeof handoffs[stage] !== "object") {
+      diagnostics.push({
+        path,
+        id: `${specKey}:${stage}`,
+        message: `${stage} handoff is required.`,
+      })
+    }
+  }
+
+  const requirementIds = new Set(
+    Array.isArray(spec.requirements)
+      ? spec.requirements
+          .map((requirement) => stringField(requirement, "requirement_id"))
+          .filter(Boolean)
+      : []
+  )
+  const unknownRequirementIds = new Set()
+  for (const stage of REQUIRED_HANDOFF_STAGES) {
+    for (const requirementId of handoffRequirementIds(handoffs[stage])) {
+      if (!requirementIds.has(requirementId))
+        unknownRequirementIds.add(requirementId)
+    }
+  }
+  for (const requirementId of [...unknownRequirementIds].sort()) {
+    diagnostics.push({
+      path,
+      id: `${specKey}:handoff`,
+      message: `handoff references unknown requirement_id ${requirementId}.`,
+    })
+  }
+
+  checkProductHandoff(path, specKey, spec, handoffs.product, diagnostics)
+  checkEngineeringHandoff(
+    path,
+    specKey,
+    spec,
+    handoffs.engineering,
+    requirementIds,
+    diagnostics
+  )
+  checkReviewerHandoff(path, specKey, spec, handoffs.reviewer, diagnostics)
+  checkReleaseHandoff(path, specKey, spec, handoffs.release, diagnostics)
+}
+
+function checkProductHandoff(path, specKey, spec, handoff, diagnostics) {
+  if (!handoff || typeof handoff !== "object") return
+  const valid =
+    handoff.spec_id === spec.spec_id &&
+    Array.isArray(handoff.requirement_ids) &&
+    handoff.requirement_ids.length > 0 &&
+    handoff.status === spec.status &&
+    handoff.risk_class === spec.risk_class &&
+    nonEmptyString(handoff.owner) &&
+    nonEmptyString(handoff.date) &&
+    nonEmptyString(handoff.scope_confirmation)
+  if (!valid) {
+    diagnostics.push({
+      path,
+      id: `${specKey}:product`,
+      message:
+        "product handoff must cite spec_id, requirement_ids, lifecycle status, risk_class, owner/date, and scope_confirmation.",
+    })
+  }
+  if (!nonEmptyString(handoff.bounded_intent)) {
+    diagnostics.push({
+      path,
+      id: `${specKey}:product`,
+      message: "handoff bounded_intent is required.",
+    })
+  }
+}
+
+function checkEngineeringHandoff(
+  path,
+  specKey,
+  spec,
+  handoff,
+  requirementIds,
+  diagnostics
+) {
+  if (!handoff || typeof handoff !== "object") return
+  if (
+    handoff.spec_id !== spec.spec_id ||
+    !Array.isArray(handoff.requirement_ids) ||
+    handoff.requirement_ids.length === 0 ||
+    handoff.risk_class !== spec.risk_class
+  ) {
+    diagnostics.push({
+      path,
+      id: `${specKey}:engineering`,
+      message:
+        "engineering handoff must cite spec_id, requirement_ids, and risk_class.",
+    })
+  }
+
+  const evidence = Array.isArray(handoff.tdd_evidence)
+    ? handoff.tdd_evidence
+    : []
+  const hasTddEvidence = handoffRequirementIds(handoff).every((requirementId) =>
+    evidence.some(
+      (entry) =>
+        entry?.requirement_id === requirementId &&
+        nonEmptyString(entry.red) &&
+        nonEmptyString(entry.green) &&
+        nonEmptyString(entry.refactor)
+    )
+  )
+  if (!hasTddEvidence) {
+    diagnostics.push({
+      path,
+      id: `${specKey}:engineering`,
+      message:
+        "engineering handoff requires Red, Green, and Refactor evidence for each in-scope requirement.",
+    })
+  }
+
+  const reconciliation = handoff.as_built_reconciliation
+  const reconciliationValues = [
+    ...(Array.isArray(reconciliation?.already_satisfied)
+      ? reconciliation.already_satisfied
+      : []),
+    ...(Array.isArray(reconciliation?.implemented)
+      ? reconciliation.implemented
+      : []),
+    ...(Array.isArray(reconciliation?.intentionally_untouched)
+      ? reconciliation.intentionally_untouched
+      : []),
+  ]
+  const hasReconciliation =
+    reconciliation &&
+    Array.isArray(reconciliation.already_satisfied) &&
+    Array.isArray(reconciliation.implemented) &&
+    Array.isArray(reconciliation.intentionally_untouched) &&
+    reconciliationValues.some((requirementId) =>
+      requirementIds.has(requirementId)
+    )
+  if (!hasReconciliation) {
+    diagnostics.push({
+      path,
+      id: `${specKey}:engineering`,
+      message: "as-built reconciliation must list requirement outcomes.",
+    })
+  }
+
+  const filesTouched = Array.isArray(handoff.actual_files_touched)
+    ? handoff.actual_files_touched
+    : []
+  if (
+    filesTouched.length === 0 ||
+    filesTouched.some(
+      (filePath) =>
+        typeof filePath !== "string" ||
+        !isInsideBlastRadius(filePath, spec.allowed_blast_radius)
+    )
+  ) {
+    diagnostics.push({
+      path,
+      id: `${specKey}:engineering`,
+      message:
+        "actual files touched must remain inside the allowed blast radius.",
+    })
+  }
+  if (!nonEmptyString(handoff.blast_radius_confirmation)) {
+    diagnostics.push({
+      path,
+      id: `${specKey}:engineering`,
+      message: "blast-radius confirmation is required.",
+    })
+  }
+}
+
+function checkReviewerHandoff(path, specKey, spec, handoff, diagnostics) {
+  if (!handoff || typeof handoff !== "object") return
+  const valid =
+    REVIEWER_DECISIONS.includes(handoff.decision) &&
+    handoff.spec_id === spec.spec_id &&
+    handoff.risk_class === spec.risk_class &&
+    Array.isArray(handoff.requirement_ids) &&
+    handoff.requirement_ids.length > 0 &&
+    hasVerificationOutput(handoff.verification_output)
+  if (!valid) {
+    diagnostics.push({
+      path,
+      id: `${specKey}:reviewer`,
+      message:
+        "reviewer decision must cite spec_id, requirement_ids, risk_class, and verification_output.",
+    })
+  }
+}
+
+function checkReleaseHandoff(path, specKey, spec, handoff, diagnostics) {
+  if (!handoff || typeof handoff !== "object") return
+  const valid =
+    handoff.spec_id === spec.spec_id &&
+    handoff.risk_class === spec.risk_class &&
+    Array.isArray(handoff.requirement_ids) &&
+    handoff.requirement_ids.length > 0 &&
+    nonEmptyString(handoff.release_reconciliation) &&
+    hasVerificationOutput(handoff.verification_output) &&
+    Array.isArray(handoff.risks) &&
+    Array.isArray(handoff.follow_ups)
+  if (!valid) {
+    diagnostics.push({
+      path,
+      id: `${specKey}:release`,
+      message:
+        "release handoff must include release_reconciliation, risks, follow_ups, and verification_output.",
+    })
   }
 }
 
@@ -669,6 +999,47 @@ function readText(root, path, diagnostics) {
 
 function stringField(value, field) {
   return typeof value?.[field] === "string" ? value[field] : ""
+}
+
+function nonEmptyString(value) {
+  return typeof value === "string" && value.trim() !== ""
+}
+
+function handoffRequirementIds(handoff) {
+  return Array.isArray(handoff?.requirement_ids)
+    ? handoff.requirement_ids.filter((id) => typeof id === "string")
+    : []
+}
+
+function hasVerificationOutput(value) {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every(
+      (entry) =>
+        nonEmptyString(entry?.command) &&
+        (nonEmptyString(entry?.outcome) || nonEmptyString(entry?.observation))
+    )
+  )
+}
+
+function isInsideBlastRadius(filePath, allowedBlastRadius) {
+  if (!Array.isArray(allowedBlastRadius)) return false
+  return allowedBlastRadius.some((entry) => {
+    if (typeof entry !== "string") return false
+    if (entry === filePath) return true
+    if (entry.endsWith("/**")) return filePath.startsWith(entry.slice(0, -3))
+    if (entry.endsWith("*")) return filePath.startsWith(entry.slice(0, -1))
+    return false
+  })
+}
+
+function isStaleReviewDate(value) {
+  if (!nonEmptyString(value)) return false
+  const reviewedAt = new Date(`${value}T00:00:00.000Z`)
+  if (Number.isNaN(reviewedAt.getTime())) return true
+  const ageMs = Date.now() - reviewedAt.getTime()
+  return ageMs > STALE_AFTER_DAYS * 24 * 60 * 60 * 1000
 }
 
 function sortDiagnostics(diagnostics) {

@@ -97,7 +97,367 @@
             "tests/micro-specs/ai-governance.test.ts"
           ]
         }
-      ]
+      ],
+      "handoffs": {
+        "product": {
+          "spec_id": "GOV-GOVERNANCE-FOUNDATION",
+          "requirement_ids": [
+            "GOV-GOVERNANCE-FOUNDATION-001",
+            "GOV-GOVERNANCE-FOUNDATION-002",
+            "GOV-GOVERNANCE-FOUNDATION-003",
+            "GOV-GOVERNANCE-FOUNDATION-004",
+            "GOV-GOVERNANCE-FOUNDATION-005"
+          ],
+          "status": "implemented",
+          "risk_class": "docs-tooling",
+          "owner": "factory-droid",
+          "date": "2026-06-15",
+          "bounded_intent": "Establish strict governance validation for existing foundation artifacts.",
+          "scope_confirmation": "Foundation work is limited to governance docs, scripts, tests, package scripts, CI, and traceability."
+        },
+        "engineering": {
+          "spec_id": "GOV-GOVERNANCE-FOUNDATION",
+          "requirement_ids": [
+            "GOV-GOVERNANCE-FOUNDATION-001",
+            "GOV-GOVERNANCE-FOUNDATION-002",
+            "GOV-GOVERNANCE-FOUNDATION-003",
+            "GOV-GOVERNANCE-FOUNDATION-004",
+            "GOV-GOVERNANCE-FOUNDATION-005"
+          ],
+          "risk_class": "docs-tooling",
+          "tdd_evidence": [
+            {
+              "requirement_id": "GOV-GOVERNANCE-FOUNDATION-001",
+              "red": "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+              "green": "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+              "refactor": "Governance hierarchy checks were retained in scripts/check-governance.mjs."
+            },
+            {
+              "requirement_id": "GOV-GOVERNANCE-FOUNDATION-002",
+              "red": "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+              "green": "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+              "refactor": "Lifecycle and risk checks were kept deterministic."
+            },
+            {
+              "requirement_id": "GOV-GOVERNANCE-FOUNDATION-003",
+              "red": "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+              "green": "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+              "refactor": "Traceability checks were kept in the single governance validator."
+            },
+            {
+              "requirement_id": "GOV-GOVERNANCE-FOUNDATION-004",
+              "red": "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+              "green": "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+              "refactor": "Package and CI checks were kept stable and read-only."
+            },
+            {
+              "requirement_id": "GOV-GOVERNANCE-FOUNDATION-005",
+              "red": "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+              "green": "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+              "refactor": "CLI-first policy checks were kept in governance docs validation."
+            }
+          ],
+          "as_built_reconciliation": {
+            "already_satisfied": [],
+            "implemented": [
+              "GOV-GOVERNANCE-FOUNDATION-001",
+              "GOV-GOVERNANCE-FOUNDATION-002",
+              "GOV-GOVERNANCE-FOUNDATION-003",
+              "GOV-GOVERNANCE-FOUNDATION-004",
+              "GOV-GOVERNANCE-FOUNDATION-005"
+            ],
+            "intentionally_untouched": []
+          },
+          "actual_files_touched": [
+            "micro-specs/README.md",
+            "micro-specs/TRACEABILITY.md",
+            "micro-specs/traceability.json",
+            "scripts/check-governance.mjs",
+            "tests/micro-specs/ai-governance.test.ts",
+            ".github/pull_request_template.md"
+          ],
+          "blast_radius_confirmation": "Foundation handoff evidence stays inside the declared governance blast radius."
+        },
+        "reviewer": {
+          "decision": "approved",
+          "spec_id": "GOV-GOVERNANCE-FOUNDATION",
+          "requirement_ids": [
+            "GOV-GOVERNANCE-FOUNDATION-001",
+            "GOV-GOVERNANCE-FOUNDATION-002",
+            "GOV-GOVERNANCE-FOUNDATION-003",
+            "GOV-GOVERNANCE-FOUNDATION-004",
+            "GOV-GOVERNANCE-FOUNDATION-005"
+          ],
+          "risk_class": "docs-tooling",
+          "verification_output": [
+            {
+              "command": "pnpm governance",
+              "outcome": "passed"
+            }
+          ]
+        },
+        "release": {
+          "spec_id": "GOV-GOVERNANCE-FOUNDATION",
+          "requirement_ids": [
+            "GOV-GOVERNANCE-FOUNDATION-001",
+            "GOV-GOVERNANCE-FOUNDATION-002",
+            "GOV-GOVERNANCE-FOUNDATION-003",
+            "GOV-GOVERNANCE-FOUNDATION-004",
+            "GOV-GOVERNANCE-FOUNDATION-005"
+          ],
+          "risk_class": "docs-tooling",
+          "release_reconciliation": "Foundation governance evidence is reconciled through pnpm governance, lint, typecheck, test, and quality gates.",
+          "verification_output": [
+            {
+              "command": "pnpm governance",
+              "outcome": "passed"
+            },
+            {
+              "command": "pnpm quality",
+              "outcome": "passed"
+            }
+          ],
+          "risks": [],
+          "follow_ups": []
+        }
+      }
+    },
+    {
+      "spec_id": "GOV-HANDOFF-FIXTURES-TESTS",
+      "title": "Governance handoff fixtures and tests",
+      "status": "implemented",
+      "risk_class": "docs-tooling",
+      "owner": "factory-droid",
+      "last_reviewed": "2026-06-15",
+      "allowed_blast_radius": [
+        "scripts/check-governance.mjs",
+        "tests/micro-specs/ai-governance.test.ts",
+        "tests/fixtures/governance/**",
+        "micro-specs/TRACEABILITY.md",
+        "micro-specs/traceability.json",
+        ".github/**"
+      ],
+      "related_docs": [
+        "micro-specs/README.md",
+        "Instructions_MircroSpecsCreation.md",
+        "Instructions_tdd.md"
+      ],
+      "related_tests": [
+        "tests/micro-specs/ai-governance.test.ts",
+        "tests/fixtures/governance/handoff-workflows.json"
+      ],
+      "verification_gates": [
+        "pnpm governance",
+        "pnpm lint",
+        "pnpm typecheck",
+        "pnpm test"
+      ],
+      "approved_exceptions": [],
+      "requirements": [
+        {
+          "requirement_id": "GOV-HANDOFF-FIXTURES-TESTS-001",
+          "summary": "Malformed lifecycle fixtures fail for missing metadata, invalid status, duplicate IDs, invalid risk class, missing supersession, and stale references.",
+          "gates": ["pnpm governance", "pnpm test"],
+          "evidence": [
+            "tests/fixtures/governance/handoff-workflows.json",
+            "tests/micro-specs/ai-governance.test.ts",
+            "scripts/check-governance.mjs"
+          ]
+        },
+        {
+          "requirement_id": "GOV-HANDOFF-FIXTURES-TESTS-002",
+          "summary": "Governance automation rejects missing metadata, duplicate IDs, invalid risk class, broken traceability, and soft-fail CI configuration.",
+          "gates": ["pnpm governance", "pnpm test"],
+          "evidence": [
+            "tests/micro-specs/ai-governance.test.ts",
+            "scripts/check-governance.mjs",
+            ".github/workflows/ci.yml"
+          ]
+        },
+        {
+          "requirement_id": "GOV-HANDOFF-FIXTURES-TESTS-003",
+          "summary": "Compliant handoff fixtures demonstrate Product to Engineering to Reviewer to Release evidence without widening scope.",
+          "gates": ["pnpm governance", "pnpm test"],
+          "evidence": [
+            "tests/fixtures/governance/handoff-workflows.json",
+            "tests/micro-specs/ai-governance.test.ts"
+          ]
+        },
+        {
+          "requirement_id": "GOV-HANDOFF-FIXTURES-TESTS-004",
+          "summary": "Malformed workflow fixtures fail for missing handoff fields, missing TDD evidence, missing as-built reconciliation, missing blast-radius confirmation, and broken traceability.",
+          "gates": ["pnpm governance", "pnpm test"],
+          "evidence": [
+            "tests/fixtures/governance/handoff-workflows.json",
+            "tests/micro-specs/ai-governance.test.ts",
+            "scripts/check-governance.mjs"
+          ]
+        },
+        {
+          "requirement_id": "GOV-HANDOFF-FIXTURES-TESTS-005",
+          "summary": "Reviewer decisions cite spec IDs, requirement IDs, risk class, and verification output.",
+          "gates": ["pnpm governance", "pnpm test"],
+          "evidence": [
+            "tests/fixtures/governance/handoff-workflows.json",
+            "scripts/check-governance.mjs"
+          ]
+        },
+        {
+          "requirement_id": "GOV-HANDOFF-FIXTURES-TESTS-006",
+          "summary": "Release handoff evidence reconciles governance, quality, lint, typecheck, tests, and risk-specific gates while keeping risks and follow-ups separate.",
+          "gates": ["pnpm governance", "pnpm test"],
+          "evidence": [
+            "tests/fixtures/governance/handoff-workflows.json",
+            "micro-specs/traceability.json",
+            "scripts/check-governance.mjs"
+          ]
+        }
+      ],
+      "handoffs": {
+        "product": {
+          "spec_id": "GOV-HANDOFF-FIXTURES-TESTS",
+          "requirement_ids": [
+            "GOV-HANDOFF-FIXTURES-TESTS-001",
+            "GOV-HANDOFF-FIXTURES-TESTS-002",
+            "GOV-HANDOFF-FIXTURES-TESTS-003",
+            "GOV-HANDOFF-FIXTURES-TESTS-004",
+            "GOV-HANDOFF-FIXTURES-TESTS-005",
+            "GOV-HANDOFF-FIXTURES-TESTS-006"
+          ],
+          "status": "implemented",
+          "risk_class": "docs-tooling",
+          "owner": "factory-droid",
+          "date": "2026-06-15",
+          "bounded_intent": "Add local governance fixtures and tests for lifecycle, traceability, PR handoff, reviewer, and release workflow evidence.",
+          "scope_confirmation": "The feature is limited to governance validator code, tests, fixtures, traceability, and PR handoff artifacts."
+        },
+        "engineering": {
+          "spec_id": "GOV-HANDOFF-FIXTURES-TESTS",
+          "requirement_ids": [
+            "GOV-HANDOFF-FIXTURES-TESTS-001",
+            "GOV-HANDOFF-FIXTURES-TESTS-002",
+            "GOV-HANDOFF-FIXTURES-TESTS-003",
+            "GOV-HANDOFF-FIXTURES-TESTS-004",
+            "GOV-HANDOFF-FIXTURES-TESTS-005",
+            "GOV-HANDOFF-FIXTURES-TESTS-006"
+          ],
+          "risk_class": "docs-tooling",
+          "tdd_evidence": [
+            {
+              "requirement_id": "GOV-HANDOFF-FIXTURES-TESTS-001",
+              "red": "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+              "green": "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+              "refactor": "Lifecycle fixture checks were consolidated in metadata validation helpers."
+            },
+            {
+              "requirement_id": "GOV-HANDOFF-FIXTURES-TESTS-002",
+              "red": "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+              "green": "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+              "refactor": "CI soft-fail and traceability checks remain deterministic."
+            },
+            {
+              "requirement_id": "GOV-HANDOFF-FIXTURES-TESTS-003",
+              "red": "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+              "green": "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+              "refactor": "Workflow fixture validation was kept data-driven."
+            },
+            {
+              "requirement_id": "GOV-HANDOFF-FIXTURES-TESTS-004",
+              "red": "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+              "green": "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+              "refactor": "Malformed workflow diagnostics were grouped by handoff stage."
+            },
+            {
+              "requirement_id": "GOV-HANDOFF-FIXTURES-TESTS-005",
+              "red": "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+              "green": "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+              "refactor": "Reviewer citation requirements were expressed as schema checks."
+            },
+            {
+              "requirement_id": "GOV-HANDOFF-FIXTURES-TESTS-006",
+              "red": "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+              "green": "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+              "refactor": "Release reconciliation checks were kept separate from completed evidence checks."
+            }
+          ],
+          "as_built_reconciliation": {
+            "already_satisfied": ["GOV-HANDOFF-FIXTURES-TESTS-002"],
+            "implemented": [
+              "GOV-HANDOFF-FIXTURES-TESTS-001",
+              "GOV-HANDOFF-FIXTURES-TESTS-003",
+              "GOV-HANDOFF-FIXTURES-TESTS-004",
+              "GOV-HANDOFF-FIXTURES-TESTS-005",
+              "GOV-HANDOFF-FIXTURES-TESTS-006"
+            ],
+            "intentionally_untouched": []
+          },
+          "actual_files_touched": [
+            "scripts/check-governance.mjs",
+            "tests/micro-specs/ai-governance.test.ts",
+            "tests/fixtures/governance/handoff-workflows.json",
+            "micro-specs/traceability.json",
+            "micro-specs/TRACEABILITY.md",
+            ".github/pull_request_template.md"
+          ],
+          "blast_radius_confirmation": "All touched files are governance validator, fixture, traceability, or PR handoff artifacts in the allowed blast radius."
+        },
+        "reviewer": {
+          "decision": "approved",
+          "spec_id": "GOV-HANDOFF-FIXTURES-TESTS",
+          "requirement_ids": [
+            "GOV-HANDOFF-FIXTURES-TESTS-001",
+            "GOV-HANDOFF-FIXTURES-TESTS-002",
+            "GOV-HANDOFF-FIXTURES-TESTS-003",
+            "GOV-HANDOFF-FIXTURES-TESTS-004",
+            "GOV-HANDOFF-FIXTURES-TESTS-005",
+            "GOV-HANDOFF-FIXTURES-TESTS-006"
+          ],
+          "risk_class": "docs-tooling",
+          "verification_output": [
+            {
+              "command": "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+              "outcome": "passed"
+            }
+          ]
+        },
+        "release": {
+          "spec_id": "GOV-HANDOFF-FIXTURES-TESTS",
+          "requirement_ids": [
+            "GOV-HANDOFF-FIXTURES-TESTS-001",
+            "GOV-HANDOFF-FIXTURES-TESTS-002",
+            "GOV-HANDOFF-FIXTURES-TESTS-003",
+            "GOV-HANDOFF-FIXTURES-TESTS-004",
+            "GOV-HANDOFF-FIXTURES-TESTS-005",
+            "GOV-HANDOFF-FIXTURES-TESTS-006"
+          ],
+          "risk_class": "docs-tooling",
+          "release_reconciliation": "Release evidence reconciles pnpm governance, pnpm quality, lint, typecheck, and Vitest before declaring the governance fixture work done.",
+          "verification_output": [
+            {
+              "command": "pnpm governance",
+              "outcome": "passed"
+            },
+            {
+              "command": "pnpm lint",
+              "outcome": "passed"
+            },
+            {
+              "command": "pnpm typecheck",
+              "outcome": "passed"
+            },
+            {
+              "command": "pnpm test",
+              "outcome": "passed"
+            },
+            {
+              "command": "pnpm quality",
+              "outcome": "passed"
+            }
+          ],
+          "risks": [],
+          "follow_ups": []
+        }
+      }
     }
   ]
 }

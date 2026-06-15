@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs"
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
@@ -43,20 +43,40 @@ describe("AI governance foundation", () => {
         specs: [
           {
             spec_id: "GOV-002",
+            title: "Invalid governance fixture",
             status: "parked",
             risk_class: "unknown-risk",
-            requirements: [],
-          },
-          {
-            spec_id: "GOV-001",
-            status: "draft",
-            risk_class: "docs-tooling",
+            owner: "factory-droid",
+            last_reviewed: "2026-06-15",
+            allowed_blast_radius: ["tests/micro-specs/**"],
+            related_docs: ["micro-specs/README.md"],
+            related_tests: ["tests/micro-specs/ai-governance.test.ts"],
             verification_gates: [
               "pnpm governance",
               "pnpm lint",
               "pnpm typecheck",
               "pnpm test",
             ],
+            approved_exceptions: [],
+            requirements: [],
+          },
+          {
+            spec_id: "GOV-001",
+            title: "Deterministic governance fixture",
+            status: "draft",
+            risk_class: "docs-tooling",
+            owner: "factory-droid",
+            last_reviewed: "2026-06-15",
+            allowed_blast_radius: ["tests/micro-specs/**"],
+            related_docs: ["micro-specs/README.md"],
+            related_tests: ["tests/micro-specs/ai-governance.test.ts"],
+            verification_gates: [
+              "pnpm governance",
+              "pnpm lint",
+              "pnpm typecheck",
+              "pnpm test",
+            ],
+            approved_exceptions: [],
             requirements: [
               {
                 requirement_id: "REQ-002",
@@ -129,13 +149,131 @@ describe("AI governance foundation", () => {
       ])
     )
   })
+
+  it("accepts a compliant Product to Engineering to Reviewer release workflow fixture", async () => {
+    const { validateGovernance } =
+      await import("../../scripts/check-governance.mjs")
+    const scenario = governanceFixtureScenario("compliantWorkflow")
+    const fixture = makeGovernanceFixture({
+      traceabilityJson: scenario.traceabilityJson,
+      traceabilityMarkdown: scenario.traceabilityMarkdown,
+    })
+
+    expect(validateGovernance({ rootDir: fixture }).diagnostics).toEqual([])
+  })
+
+  it("rejects malformed lifecycle fixtures with clear diagnostics", async () => {
+    const { validateGovernance } =
+      await import("../../scripts/check-governance.mjs")
+    const scenario = governanceFixtureScenario("malformedLifecycle")
+    const fixture = makeGovernanceFixture({
+      traceabilityJson: scenario.traceabilityJson,
+      traceabilityMarkdown: scenario.traceabilityMarkdown,
+    })
+
+    expect(validateGovernance({ rootDir: fixture }).diagnostics).toEqual(
+      expect.arrayContaining([
+        {
+          path: "micro-specs/traceability.json",
+          id: "unknown-spec",
+          message: "owner is required.",
+        },
+        {
+          path: "micro-specs/traceability.json",
+          id: "GOV-BAD-STATUS",
+          message: "invalid status parked.",
+        },
+        {
+          path: "micro-specs/traceability.json",
+          id: "GOV-DUPLICATE",
+          message: "duplicate spec_id.",
+        },
+        {
+          path: "micro-specs/traceability.json",
+          id: "GOV-DUPLICATE-001",
+          message: "duplicate requirement_id.",
+        },
+        {
+          path: "micro-specs/traceability.json",
+          id: "GOV-BAD-RISK",
+          message: "invalid risk_class unknown-risk.",
+        },
+        {
+          path: "micro-specs/traceability.json",
+          id: "GOV-MISSING-SUPERSESSION",
+          message:
+            "superseded specs require superseded_by or supersession_rationale.",
+        },
+        {
+          path: "micro-specs/traceability.json",
+          id: "GOV-STALE-REFERENCES",
+          message:
+            "last_reviewed is stale for active, implemented, or verified work.",
+        },
+      ])
+    )
+  })
+
+  it("rejects malformed handoff fixtures and broken traceability links", async () => {
+    const { validateGovernance } =
+      await import("../../scripts/check-governance.mjs")
+    const scenario = governanceFixtureScenario("malformedWorkflow")
+    const fixture = makeGovernanceFixture({
+      traceabilityJson: scenario.traceabilityJson,
+      traceabilityMarkdown: scenario.traceabilityMarkdown,
+    })
+
+    expect(validateGovernance({ rootDir: fixture }).diagnostics).toEqual(
+      expect.arrayContaining([
+        {
+          path: "micro-specs/traceability.json",
+          id: "GOV-BROKEN-WORKFLOW:product",
+          message: "handoff bounded_intent is required.",
+        },
+        {
+          path: "micro-specs/traceability.json",
+          id: "GOV-BROKEN-WORKFLOW:engineering",
+          message:
+            "engineering handoff requires Red, Green, and Refactor evidence for each in-scope requirement.",
+        },
+        {
+          path: "micro-specs/traceability.json",
+          id: "GOV-BROKEN-WORKFLOW:engineering",
+          message: "as-built reconciliation must list requirement outcomes.",
+        },
+        {
+          path: "micro-specs/traceability.json",
+          id: "GOV-BROKEN-WORKFLOW:engineering",
+          message:
+            "actual files touched must remain inside the allowed blast radius.",
+        },
+        {
+          path: "micro-specs/traceability.json",
+          id: "GOV-BROKEN-WORKFLOW:reviewer",
+          message:
+            "reviewer decision must cite spec_id, requirement_ids, risk_class, and verification_output.",
+        },
+        {
+          path: "micro-specs/traceability.json",
+          id: "GOV-BROKEN-WORKFLOW:release",
+          message:
+            "release handoff must include release_reconciliation, risks, follow_ups, and verification_output.",
+        },
+        {
+          path: "micro-specs/traceability.json",
+          id: "GOV-BROKEN-WORKFLOW:handoff",
+          message: "handoff references unknown requirement_id GOV-MISSING-999.",
+        },
+      ])
+    )
+  })
 })
 
 function makeGovernanceFixture(
   overrides: {
     packageJson?: string
     ciWorkflow?: string
-    traceabilityJson?: string
+    traceabilityJson?: string | object
     traceabilityMarkdown?: string
   } = {}
 ) {
@@ -147,6 +285,7 @@ function makeGovernanceFixture(
     "docs",
     "micro-specs",
     "scripts",
+    "tests/fixtures/governance",
     "tests/micro-specs",
   ]
 
@@ -175,7 +314,7 @@ function makeGovernanceFixture(
   )
   writeFileSync(
     join(root, ".github/pull_request_template.md"),
-    "Micro-Spec outcome and scope\nSpec ID\nRisk class\nRequirement IDs\nBlast radius\nRed → Green → Refactor\nBrowser evidence\nVerification\n"
+    "Micro-Spec outcome and scope\nSpec ID\nRisk class\nRequirement IDs\nBlast radius\nRed → Green → Refactor\nAs-built reconciliation\nReviewer decision\nRelease reconciliation\nRisks\nFollow-ups\nBrowser evidence\nVerification\n"
   )
   writeFileSync(
     join(root, ".github/ISSUE_TEMPLATE/feature_request.yml"),
@@ -188,25 +327,106 @@ function makeGovernanceFixture(
   writeGovernanceDocs(root)
   writeFileSync(
     join(root, "micro-specs/traceability.json"),
-    overrides.traceabilityJson ??
-      JSON.stringify({
-        version: 1,
-        scope: "foundation",
-        specs: [
-          {
-            spec_id: "GOV-001",
-            status: "draft",
-            risk_class: "docs-tooling",
-            requirements: [
+    typeof overrides.traceabilityJson === "string"
+      ? overrides.traceabilityJson
+      : JSON.stringify(
+          overrides.traceabilityJson ?? {
+            version: 1,
+            scope: "foundation",
+            specs: [
               {
-                requirement_id: "REQ-001",
-                gates: ["pnpm lint"],
-                evidence: ["tests/micro-specs/ai-governance.test.ts"],
+                spec_id: "GOV-001",
+                title: "Governance fixture",
+                status: "implemented",
+                risk_class: "docs-tooling",
+                owner: "factory-droid",
+                last_reviewed: "2026-06-15",
+                allowed_blast_radius: ["tests/micro-specs/**"],
+                related_docs: ["micro-specs/README.md"],
+                related_tests: ["tests/micro-specs/ai-governance.test.ts"],
+                verification_gates: [
+                  "pnpm governance",
+                  "pnpm lint",
+                  "pnpm typecheck",
+                  "pnpm test",
+                ],
+                approved_exceptions: [],
+                requirements: [
+                  {
+                    requirement_id: "REQ-001",
+                    gates: ["pnpm test"],
+                    evidence: ["tests/micro-specs/ai-governance.test.ts"],
+                  },
+                ],
+                handoffs: {
+                  product: {
+                    spec_id: "GOV-001",
+                    requirement_ids: ["REQ-001"],
+                    status: "implemented",
+                    risk_class: "docs-tooling",
+                    owner: "factory-droid",
+                    date: "2026-06-15",
+                    bounded_intent: "Validate fixture governance.",
+                    scope_confirmation:
+                      "Fixture remains limited to governance tests.",
+                  },
+                  engineering: {
+                    spec_id: "GOV-001",
+                    requirement_ids: ["REQ-001"],
+                    risk_class: "docs-tooling",
+                    tdd_evidence: [
+                      {
+                        requirement_id: "REQ-001",
+                        red: "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+                        green:
+                          "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+                        refactor: "No refactor needed.",
+                      },
+                    ],
+                    as_built_reconciliation: {
+                      already_satisfied: [],
+                      implemented: ["REQ-001"],
+                      intentionally_untouched: [],
+                    },
+                    actual_files_touched: [
+                      "tests/micro-specs/ai-governance.test.ts",
+                    ],
+                    blast_radius_confirmation:
+                      "Actual files are inside allowed blast radius.",
+                  },
+                  reviewer: {
+                    decision: "approved",
+                    spec_id: "GOV-001",
+                    requirement_ids: ["REQ-001"],
+                    risk_class: "docs-tooling",
+                    verification_output: [
+                      {
+                        command:
+                          "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+                        outcome: "passed",
+                      },
+                    ],
+                  },
+                  release: {
+                    spec_id: "GOV-001",
+                    requirement_ids: ["REQ-001"],
+                    risk_class: "docs-tooling",
+                    release_reconciliation:
+                      "Governance fixture is release-ready.",
+                    verification_output: [
+                      {
+                        command: "pnpm governance",
+                        outcome: "passed",
+                      },
+                    ],
+                    risks: [],
+                    follow_ups: [],
+                  },
+                },
               },
             ],
-          },
-        ],
-      })
+          }
+        )
   )
   writeFileSync(
     join(root, "micro-specs/TRACEABILITY.md"),
@@ -214,8 +434,22 @@ function makeGovernanceFixture(
       "# Traceability\n\n- `GOV-001`\n- `REQ-001`\n"
   )
   writeFileSync(join(root, "tests/micro-specs/ai-governance.test.ts"), "")
+  writeFileSync(
+    join(root, "tests/fixtures/governance/handoff-workflows.json"),
+    ""
+  )
 
   return root
+}
+
+function governanceFixtureScenario(name: string) {
+  const scenarios = JSON.parse(
+    readFileSync(
+      join(process.cwd(), "tests/fixtures/governance/handoff-workflows.json"),
+      "utf8"
+    )
+  )
+  return scenarios[name]
 }
 
 function writeGovernanceDocs(root: string) {

@@ -19,6 +19,13 @@ Closes #
 
 <!-- Red → Green → Refactor. Which EARS requirements got a failing test first? -->
 
+## As-built reconciliation
+
+- Already satisfied:
+- Implemented:
+- Intentionally untouched:
+- Blast-radius confirmation:
+
 ## Verification
 
 - [ ] `pnpm lint`
@@ -35,6 +42,20 @@ Closes #
 - [ ] Copy is plain, warm, British (en-GB); no emoji, no exclamation marks
 - [ ] No new shared staff secrets; loyalty mutations still go through the RPCs
 - [ ] Blast radius matches the Micro-Spec; no out-of-scope behaviour added
+
+## Reviewer decision
+
+- Decision: approved / changes requested / override
+- Spec ID:
+- Requirement IDs:
+- Risk class:
+- Verification output:
+
+## Release reconciliation
+
+- CI and governance evidence:
+- Risks:
+- Follow-ups:
 
 ## Notes for reviewers
 
