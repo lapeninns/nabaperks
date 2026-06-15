@@ -8,14 +8,14 @@ import {
   CustomerStampCard,
 } from "@/components/customer/customer-flow-system"
 import { CustomerTabBar } from "@/components/layout"
-import { CustomerProfileGateForm } from "@/components/customer/profile-gate-forms"
+import { SelfServiceStampForm } from "@/components/customer/self-service-forms"
 import {
-  SelfServiceRedeemForm,
-  SelfServiceStampForm,
-} from "@/components/customer/self-service-forms"
+  RedeemedProofPanel,
+  RewardReadyPanel,
+  RewardWaitingPanel,
+} from "@/components/customer/reward-panels"
 import {
   RewardCelebration,
-  RewardTicket,
   StatusBanner,
   type RewardTicketState,
 } from "@/components/loyalty"
@@ -29,7 +29,6 @@ import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
 import type {
   CustomerExperience,
   CustomerExperienceKind,
-  RewardView,
 } from "@/lib/customer/experience/types"
 
 /**
@@ -85,7 +84,12 @@ function ExperiencePanel({
       return <UnavailablePanel exp={experience} vm={vm} />
     default:
       // Join states never reach this surface; render the calm fallback.
-      return <UnavailablePanel exp={{ kind: "unavailable", reason: vm.supportLine ?? "" }} vm={vm} />
+      return (
+        <UnavailablePanel
+          exp={{ kind: "unavailable", reason: vm.supportLine ?? "" }}
+          vm={vm}
+        />
+      )
   }
 }
 
@@ -354,104 +358,6 @@ function StampConfirmPanel({
   )
 }
 
-function RewardWaitingPanel({
-  exp,
-}: {
-  exp: Extract<CustomerExperience, { kind: "reward_waiting" }>
-}) {
-  const readyDate = exp.reward.redeemableFrom
-    ? formatStampDisplayDateFromIso(exp.reward.redeemableFrom)
-    : null
-
-  return (
-    <CustomerReceipt
-      venueName={exp.merchantName}
-      eyebrow="Mystery reward"
-      footerLeft={cardNumber(exp.reward.membershipId)}
-    >
-      <RewardTicket
-        state="waiting"
-        name={exp.reward.rewardName}
-        description={rewardTermsNode(exp.reward)}
-        readyDate={readyDate}
-      />
-      <StatusBanner title="Give it a day to breathe" tone="warning">
-        It&apos;s yours from opening time tomorrow.
-      </StatusBanner>
-      <Button asChild size="lg" variant="secondary" className="w-full">
-        <Link href={`/card/${exp.reward.membershipId}`}>Return to card</Link>
-      </Button>
-    </CustomerReceipt>
-  )
-}
-
-function RewardReadyPanel({
-  exp,
-}: {
-  exp: Extract<CustomerExperience, { kind: "reward_ready" }>
-}) {
-  return (
-    <CustomerReceipt
-      venueName={exp.merchantName}
-      eyebrow="Mystery reward"
-      footerLeft={cardNumber(exp.reward.membershipId)}
-    >
-      <RewardTicket
-        state="ready"
-        name={exp.reward.rewardName}
-        description={rewardTermsNode(exp.reward)}
-      />
-      {exp.profileGate.complete ? (
-        <>
-          <StatusBanner title="Ready to redeem." tone="success">
-            Tap redeem while you are at the venue, then show the redeemed card if
-            asked.
-          </StatusBanner>
-          <SelfServiceRedeemForm
-            rewardId={exp.reward.rewardId}
-            requireGeofence={exp.location.requireGeofence}
-            geofenceRadiusMeters={exp.location.geofenceRadiusMeters}
-          />
-        </>
-      ) : (
-        <CustomerProfileGateForm
-          rewardId={exp.reward.rewardId}
-          gate={exp.profileGate}
-        />
-      )}
-    </CustomerReceipt>
-  )
-}
-
-function RedeemedProofPanel({
-  exp,
-  vm,
-}: {
-  exp: Extract<CustomerExperience, { kind: "redeemed_proof" }>
-  vm: CustomerExperienceViewModel
-}) {
-  return (
-    <section className="grid gap-5">
-      <CustomerReceipt
-        venueName={exp.merchantName}
-        eyebrow="Redeemed"
-        footerLeft={cardNumber(exp.reward.membershipId)}
-        footerRight="REDEEMED"
-      >
-        <RewardTicket
-          state="redeemed"
-          name={exp.reward.rewardName}
-          description={rewardTermsNode(exp.reward)}
-        />
-        <StatusBanner title="Reward redeemed." tone="success">
-          Show this screen at the counter. A new stamp cycle has started.
-        </StatusBanner>
-      </CustomerReceipt>
-      <PrimaryLink action={vm.primaryAction} />
-    </section>
-  )
-}
-
 function UnavailablePanel({
   exp,
   vm,
@@ -502,17 +408,6 @@ function StatusNotice({
     <StatusBanner title={title} tone="warning">
       {message}
     </StatusBanner>
-  )
-}
-
-function rewardTermsNode(reward: RewardView): ReactNode {
-  return (
-    <>
-      {reward.rewardTerms}
-      {reward.minSpendPence !== null ? (
-        <> Minimum spend {formatPence(reward.minSpendPence)}.</>
-      ) : null}
-    </>
   )
 }
 

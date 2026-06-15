@@ -21,8 +21,8 @@ type TabItem = {
 
 const tabs: TabItem[] = [
   { href: "/home", label: "Home", icon: Home01Icon },
-  { href: "/scan", label: "Scan", icon: QrCode01Icon },
   { href: "/home/rewards", label: "Rewards", icon: GiftIcon },
+  { href: "/scan", label: "Scan", icon: QrCode01Icon },
   { href: "/home/activity", label: "Activity", icon: Activity03Icon },
   { href: "/home/profile", label: "Profile", icon: UserCircleIcon },
 ]

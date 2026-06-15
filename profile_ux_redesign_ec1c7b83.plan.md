@@ -1,6 +1,6 @@
 ---
 name: Profile UX redesign
-overview: "Restructure `/home/profile` from a stacked redeem-gate clone into a low-cognitive-load settings surface: view-first personal details, a dedicated email-verify step, editable global marketing toggles (backed by a new consent RPC), and visual hierarchy aligned with Rewards/Activity tabs."
+overview: "Restructure `/home/profile` from a stacked redeem-gate clone into a low-cognitive-load settings surface: view-first personal details, a dedicated email-verify step, editable global marketing toggles (backed by a new consent RPC), visual hierarchy aligned with Rewards/Activity tabs, and centre Scan in the bottom tab bar."
 todos:
   - id: page-shell
     content: "Restructure profile page.tsx: new copy, remove MetricTiles + duplicate logout, add meta footer + incomplete banner"
@@ -22,6 +22,9 @@ todos:
     status: pending
   - id: tests-docs
     content: Extend home-profile Vitest for consent action; update CUSTOMER_FLOW.md
+    status: pending
+  - id: tab-bar-scan-center
+    content: "Reorder customer tab bar: Home · Rewards · Scan (center) · Activity · Profile"
     status: pending
 isProject: false
 ---
@@ -200,6 +203,29 @@ Update [`docs/CUSTOMER_FLOW.md`](docs/CUSTOMER_FLOW.md) Profile section and remo
 
 ---
 
+## 7. Tab bar — Scan in the centre
+
+**File:** [`components/layout/customer-tab-bar.tsx`](components/layout/customer-tab-bar.tsx)
+
+Current order (5-column grid): **Home · Scan · Rewards · Activity · Profile** — Scan is 2nd (left of centre).
+
+**Target order:** **Home · Rewards · Scan · Activity · Profile** — swap Scan and Rewards so Scan sits in the **centre slot** (3rd of 5), matching the product’s core verb (scan at the counter).
+
+```text
+[ Home ] [ Rewards ] [ Scan ] [ Activity ] [ Profile ]
+                      ^^^^^
+                      centre
+```
+
+Implementation:
+- Reorder the `tabs` array only — no layout/CSS change (`grid-cols-5` stays).
+- `isActive` logic for `/scan` is already isolated; no behaviour change beyond position.
+- Optional (nice-to-have, same slice): slightly emphasise the centre Scan tab — e.g. `size-10` icon circle or vermillion accent on the icon when inactive — **only if** it stays within Wet Ink (no floating FAB). Default: position swap alone unless it reads too flat in manual check.
+
+No new routes or tests required; smoke-check tab order on mobile viewport after change.
+
+---
+
 ## Out of scope (explicit)
 
 - Per-venue consent breakdown UI (correct but heavy; defer unless compliance asks).
@@ -224,3 +250,6 @@ Manual on `http://localhost:3000/home/profile`:
 3. Marketing toggles persist across refresh.
 4. Single logout (header only).
 5. Compare scroll depth vs before — target ≤2 cards + 1 meta line.
+
+Manual tab bar:
+6. Bottom nav reads **Home · Rewards · Scan · Activity · Profile** with Scan visually centred.

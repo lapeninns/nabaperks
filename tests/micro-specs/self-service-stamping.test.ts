@@ -376,6 +376,12 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     const experience = readProjectFile(
       "components/customer/customer-card-experience.tsx"
     )
+    const rewardPanels = readProjectFile(
+      "components/customer/reward-panels.tsx"
+    )
+    const rewardCollectionQr = readProjectFile(
+      "components/customer/reward-collection-qr.tsx"
+    )
 
     expect(experience).toContain("Scan the venue code to add your stamp.")
     expect(experience).not.toContain("Get today&apos;s stamp")
@@ -384,7 +390,10 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     expect(stampPage).toContain("searchParams")
     expect(experience).not.toContain("createStampCode")
 
-    expect(experience).toContain("SelfServiceRedeemForm")
+    expect(experience).toContain("RewardReadyPanel")
+    expect(experience).not.toContain("SelfServiceRedeemForm")
+    expect(rewardPanels).toContain("RewardCollectionQr")
+    expect(rewardCollectionQr).toContain("Merchant scans this QR")
     expect(experience).not.toContain("StampCodePanel")
     expect(experience).not.toContain("createRedeemCode")
   })

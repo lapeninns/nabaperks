@@ -117,7 +117,15 @@ describe("03 customer micro-specs", () => {
       "components/customer/customer-card-experience.tsx"
     )
     const stampActions = readProjectFile("app/card/[membershipId]/actions.ts")
-    const rewardActions = readProjectFile("app/reward/[rewardId]/actions.ts")
+    const merchantRewardActions = readProjectFile(
+      "app/app/rewards/scan/[rewardId]/actions.ts"
+    )
+    const rewardPanels = readProjectFile(
+      "components/customer/reward-panels.tsx"
+    )
+    const rewardCollectionQr = readProjectFile(
+      "components/customer/reward-collection-qr.tsx"
+    )
     const selfServiceForms = readProjectFile(
       "components/customer/self-service-forms.tsx"
     )
@@ -132,9 +140,14 @@ describe("03 customer micro-specs", () => {
       expect(joinActions).toContain(`formData.get("${checkbox}")`)
     }
 
-    expect(experience).toContain("SelfServiceRedeemForm")
-    expect(rewardActions).toContain("selfRedeemAction")
-    expect(rewardActions).toContain("redeemSelfServiceReward")
+    expect(experience).toContain("RewardReadyPanel")
+    expect(experience).not.toContain("SelfServiceRedeemForm")
+    expect(rewardPanels).toContain("RewardCollectionQr")
+    expect(rewardCollectionQr).toContain("Merchant scans this QR")
+    expect(merchantRewardActions).toContain(
+      "confirmMerchantRewardCollectionAction"
+    )
+    expect(merchantRewardActions).toContain("collectMerchantScannedReward")
     expect(experience).not.toContain(`name="pin"`)
 
     expect(stampActions).toContain("selfStampAction")
@@ -161,7 +174,12 @@ describe("03 customer micro-specs", () => {
     const experience = readProjectFile(
       "components/customer/customer-card-experience.tsx"
     )
-    const customerTabBar = readProjectFile("components/layout/customer-tab-bar.tsx")
+    const rewardPanels = readProjectFile(
+      "components/customer/reward-panels.tsx"
+    )
+    const customerTabBar = readProjectFile(
+      "components/layout/customer-tab-bar.tsx"
+    )
     const joinWizard = readProjectFile("components/customer/join-wizard.tsx")
     const copy = readProjectFile("lib/customer/experience/copy.ts")
     const loadStamp = readProjectFile("lib/customer/experience/load-stamp.ts")
@@ -176,7 +194,9 @@ describe("03 customer micro-specs", () => {
     expect(joinWizard).toContain("CustomerFlowShell")
     expect(joinWizard).toContain("CustomerStampCard")
     expect(joinWizard).toContain("This loyalty card is unavailable")
-    expect(joinWizard).toContain("Ask a team member for the current loyalty QR.")
+    expect(joinWizard).toContain(
+      "Ask a team member for the current loyalty QR."
+    )
     expect(copy).toContain("Open your stamp card")
 
     expect(cardPage).toContain("CustomerCardExperience")
@@ -195,10 +215,11 @@ describe("03 customer micro-specs", () => {
     expect(loadStamp).toContain("isRedeemableFrom")
     expect(stampPage).toContain("/reward/")
 
-    expect(experience).toContain("RewardTicket")
-    expect(experience).toContain("Give it a day to breathe")
-    expect(experience).toContain("Ready to redeem.")
-    expect(experience).toContain("SelfServiceRedeemForm")
+    expect(rewardPanels).toContain("RewardTicket")
+    expect(rewardPanels).toContain("Give it a day to breathe")
+    expect(rewardPanels).toContain("Ready for merchant scan.")
+    expect(rewardPanels).toContain("RewardCollectionQr")
+    expect(experience).not.toContain("SelfServiceRedeemForm")
 
     expect(qrPage).toContain("This loyalty card is unavailable")
     expect(qrPage).toContain("Ask a team member for the current loyalty QR.")
