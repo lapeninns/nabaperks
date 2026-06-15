@@ -22,5 +22,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      - name: Repeat-run the suite
-        run: pnpm test:flaky --runs=${{ github.event.inputs.runs || '5' }}
+      - name: Repeat-run the suite (shuffled)
+        run: pnpm test:flaky --runs=${{ github.event.inputs.runs || '5' }} --sequence.shuffle

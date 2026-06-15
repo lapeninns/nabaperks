@@ -5,6 +5,8 @@ import {
   formatAdminDate,
   maskAdminContact,
 } from "@/components/admin/support"
+import { SecurityCheckIcon } from "@hugeicons/core-free-icons"
+
 import { EmptyState, PageTitle } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { getAdminAuditLogs } from "@/lib/admin/data"
@@ -31,6 +33,7 @@ export default async function AdminAuditPage() {
           getRowKey={(log) => log.id}
           emptyState={
             <EmptyState
+              icon={SecurityCheckIcon}
               title="No audit logs yet"
               description="Audited support and security-sensitive actions will appear here."
               className="rounded-none border-0 shadow-none"

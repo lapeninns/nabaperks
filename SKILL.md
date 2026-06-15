@@ -35,8 +35,10 @@ operational checklist.
 - Fake It (hardcode) when the algorithm is unclear, then Triangulate with a
   second input. Obvious Implementation only for trivial behaviour.
 - Honour the design system: theme via `app/globals.css` tokens + the Wet Ink
-  `data-slot` layer; never restyle `components/ui/` primitives. No icon library,
-  no emoji, no exclamation marks. Copy is plain, warm, en-GB.
+  `data-slot` layer; never restyle `components/ui/` primitives. Icons use the
+  `@hugeicons` free set via the brand `Icon` wrapper (the `✱` disc stays the
+  logo signature only). No emoji, no exclamation marks. Copy is plain, warm,
+  en-GB.
 
 ## 4. Refactor under green
 

@@ -1,16 +1,25 @@
 import type { ReactNode } from "react"
+import {
+  AlertDiamondIcon,
+  AnalyticsUpIcon,
+  CreditCardIcon,
+  SecurityCheckIcon,
+  Shield01Icon,
+  Store01Icon,
+  UserMultiple02Icon,
+} from "@hugeicons/core-free-icons"
 
 import { Logo, MonoTag } from "@/components/brand"
 import { ShellNavigation, type ShellNavItem } from "./shell-navigation"
 
 const adminNavItems: ShellNavItem[] = [
-  { href: "/admin/pilot", label: "Pilot" },
-  { href: "/admin/merchants", label: "Merchants" },
-  { href: "/admin/customers", label: "Customers" },
-  { href: "/admin/billing", label: "Billing" },
-  { href: "/admin/privacy", label: "Privacy" },
-  { href: "/admin/fraud", label: "Fraud" },
-  { href: "/admin/audit", label: "Audit" },
+  { href: "/admin/pilot", label: "Pilot", icon: AnalyticsUpIcon },
+  { href: "/admin/merchants", label: "Merchants", icon: Store01Icon },
+  { href: "/admin/customers", label: "Customers", icon: UserMultiple02Icon },
+  { href: "/admin/billing", label: "Billing", icon: CreditCardIcon },
+  { href: "/admin/privacy", label: "Privacy", icon: Shield01Icon },
+  { href: "/admin/fraud", label: "Fraud", icon: AlertDiamondIcon },
+  { href: "/admin/audit", label: "Audit", icon: SecurityCheckIcon },
 ]
 
 const supportStatusItems = [

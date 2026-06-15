@@ -12,6 +12,8 @@ import {
   formatAdminDate,
   maskAdminContact,
 } from "@/components/admin/support"
+import { FileValidationIcon, Shield01Icon } from "@hugeicons/core-free-icons"
+
 import { EmptyState, PageTitle, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { Button } from "@/components/ui/button"
@@ -166,6 +168,7 @@ export default async function AdminPrivacyPage() {
           </div>
         ) : (
           <EmptyState
+            icon={Shield01Icon}
             title="No privacy support rows yet"
             description="No customer memberships are available for privacy support yet."
             className="rounded-none border-0 p-0 shadow-none"
@@ -188,6 +191,7 @@ export default async function AdminPrivacyPage() {
           getRowKey={(record) => record.id}
           emptyState={
             <EmptyState
+              icon={FileValidationIcon}
               title="No consent records yet"
               className="rounded-none border-0 shadow-none"
             />

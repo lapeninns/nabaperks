@@ -5,6 +5,8 @@ import {
   first,
   formatAdminDate,
 } from "@/components/admin/support"
+import { CreditCardIcon } from "@hugeicons/core-free-icons"
+
 import { EmptyState, PageTitle } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { getAdminBillingRecords } from "@/lib/admin/data"
@@ -31,6 +33,7 @@ export default async function AdminBillingPage() {
           getRowKey={(row) => row.id}
           emptyState={
             <EmptyState
+              icon={CreditCardIcon}
               title="No billing records yet"
               className="rounded-none border-0 shadow-none"
             />

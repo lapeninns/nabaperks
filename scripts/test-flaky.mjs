@@ -1,20 +1,34 @@
 // Flaky-test detector — runs the Vitest suite repeatedly and fails if any run is
 // non-deterministic (timers, randomness, unmocked network, shared mutable state
-// that varies run to run). Default 3 runs in the suite's configured order, which
-// is the order CI uses.
+// that varies run to run). Runs are shuffled (`--sequence.shuffle`) by default,
+// a stricter check that also surfaces order-coupling between tests — module-mock
+// leakage that used to make shuffling fail is now auto-cleaned by
+// `tests/helpers/reset-module-mocks.ts`, so the suite is order-independent.
 //
-// Pass `--shuffle` to additionally randomise test order — a stricter check that
-// surfaces order-coupling between tests. The suite has known pre-existing
-// order-coupling (global fetch / module-mock assumptions), so `--shuffle` is
-// opt-in rather than the default gate. Override the count with `--runs=N`.
+// Default 3 runs; override with `--runs=N`. Pass `--no-shuffle` to run in the
+// suite's configured order instead. Any other flags (e.g. `--sequence.seed=…`)
+// are forwarded straight to Vitest.
 import { spawnSync } from "node:child_process"
 
 const runsArg = process.argv.find((value) => value.startsWith("--runs="))
 const runs = runsArg ? Math.max(1, Number.parseInt(runsArg.slice(7), 10)) : 3
-const shuffle = process.argv.includes("--shuffle")
+const shuffle = !process.argv.includes("--no-shuffle")
+
+// Forward any remaining flags (seeds, reporters, etc.) straight to Vitest.
+const passthrough = process.argv
+  .slice(2)
+  .filter(
+    (value) =>
+      value !== "--shuffle" &&
+      value !== "--no-shuffle" &&
+      !value.startsWith("--runs=")
+  )
 
 const args = ["vitest", "run", "--reporter=dot"]
-if (shuffle) args.push("--sequence.shuffle")
+if (shuffle && !passthrough.includes("--sequence.shuffle")) {
+  args.push("--sequence.shuffle")
+}
+args.push(...passthrough)
 
 let failedRun = 0
 

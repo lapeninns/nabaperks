@@ -1,3 +1,11 @@
+import {
+  Cancel01Icon,
+  QrCode01Icon,
+  RefreshIcon,
+  Store01Icon,
+  ToggleOnIcon,
+} from "@hugeicons/core-free-icons"
+
 import { regenerateQrAction, setQrActiveAction } from "@/app/admin/actions"
 import {
   AdminField,
@@ -8,7 +16,7 @@ import {
   first,
   formatAdminDate,
 } from "@/components/admin/support"
-import { EmptyState, PageTitle, SectionHeader } from "@/components/brand"
+import { EmptyState, Icon, PageTitle, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { Button } from "@/components/ui/button"
 import { getAdminMerchants, getAdminQrCodes } from "@/lib/admin/data"
@@ -42,6 +50,7 @@ export default async function AdminMerchantsPage() {
           getRowKey={(merchant) => merchant.id}
           emptyState={
             <EmptyState
+              icon={Store01Icon}
               title="No merchants yet"
               description="Merchant accounts will appear once onboarding creates records."
               className="rounded-none border-0 shadow-none"
@@ -138,6 +147,7 @@ export default async function AdminMerchantsPage() {
           </div>
         ) : (
           <EmptyState
+            icon={QrCode01Icon}
             title="No QR records yet"
             className="rounded-none border-0 p-0 shadow-none"
           />
@@ -170,6 +180,7 @@ function QrStateForm({
         type="submit"
         variant={nextActive ? "secondary" : "destructive"}
       >
+        <Icon icon={nextActive ? ToggleOnIcon : Cancel01Icon} size={16} />
         {nextActive ? "Enable QR" : "Disable QR"}
       </Button>
     </form>
@@ -189,6 +200,7 @@ function RegenerateQrForm({ qrCodeId }: { qrCodeId: string }) {
         />
       </AdminField>
       <Button type="submit" variant="secondary">
+        <Icon icon={RefreshIcon} size={16} />
         Regenerate QR
       </Button>
     </form>

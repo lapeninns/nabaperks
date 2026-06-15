@@ -1,3 +1,5 @@
+import { Activity03Icon } from "@hugeicons/core-free-icons"
+
 import { EmptyState, MonoTag, PageTitle } from "@/components/brand"
 import {
   getCustomerActivity,
@@ -31,6 +33,7 @@ export default async function HomeActivityPage() {
         <EmptyState
           title="Nothing here yet"
           description="Your stamps and rewards will appear here once you start visiting venues."
+          icon={Activity03Icon}
         />
       ) : (
         <ol className="grid gap-3">

@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { QrCode01Icon } from "@hugeicons/core-free-icons"
 
 import { EmptyState, MonoTag, ReceiptCard } from "@/components/brand"
 import { Button } from "@/components/ui/button"
@@ -9,6 +10,7 @@ export function HomeEmptyState() {
     <EmptyState
       title="No cards yet"
       description="Scan a venue QR and your first card will appear here."
+      icon={QrCode01Icon}
       actions={
         <ReceiptCard className="w-full max-w-xl text-left" padding="sm">
           <div className="grid gap-4">

@@ -1,4 +1,13 @@
 import Link from "next/link"
+import {
+  Activity03Icon,
+  CheckmarkBadge04Icon,
+  Download01Icon,
+  GiftIcon,
+  RefreshIcon,
+  UserAdd01Icon,
+  UserMultiple02Icon,
+} from "@hugeicons/core-free-icons"
 
 import {
   EmptyState,
@@ -35,11 +44,31 @@ export async function MerchantDashboardStream({
   ])
   const metrics = dashboard.metrics
   const secondaryMetrics = [
-    { label: "New members (7d)", value: metrics.newMembers.toString() },
-    { label: "Stamps issued", value: metrics.stampsIssued.toString() },
-    { label: "Repeat customers", value: metrics.repeatCustomers.toString() },
-    { label: "Rewards redeemed", value: metrics.rewardsRedeemed.toString() },
-    { label: "QR downloads", value: metrics.qrDownloads.toString() },
+    {
+      label: "New members (7d)",
+      value: metrics.newMembers.toString(),
+      icon: UserAdd01Icon,
+    },
+    {
+      label: "Stamps issued",
+      value: metrics.stampsIssued.toString(),
+      icon: CheckmarkBadge04Icon,
+    },
+    {
+      label: "Repeat customers",
+      value: metrics.repeatCustomers.toString(),
+      icon: RefreshIcon,
+    },
+    {
+      label: "Rewards redeemed",
+      value: metrics.rewardsRedeemed.toString(),
+      icon: GiftIcon,
+    },
+    {
+      label: "QR downloads",
+      value: metrics.qrDownloads.toString(),
+      icon: Download01Icon,
+    },
   ]
 
   return (
@@ -53,6 +82,7 @@ export async function MerchantDashboardStream({
         <EmptyState
           title="No members yet"
           description="Generate the venue QR and place it at the till so customers can join before their next order."
+          icon={UserMultiple02Icon}
           actions={
             <div className="flex flex-wrap justify-center gap-2">
               <Button asChild size="sm">
@@ -95,7 +125,11 @@ export async function MerchantDashboardStream({
               delay={index * 0.045}
               distance={12}
             >
-              <MetricTile label={metric.label} value={metric.value} />
+              <MetricTile
+                label={metric.label}
+                value={metric.value}
+                icon={metric.icon}
+              />
             </MotionReveal>
           ))}
         </div>
@@ -131,6 +165,7 @@ export async function MerchantCompactActivityStream({
           <EmptyState
             title="No activity yet"
             description="Activity will appear here after customers join, stamps are issued, rewards are redeemed, or QR assets are downloaded."
+            icon={Activity03Icon}
             className="bg-background"
           />
         }

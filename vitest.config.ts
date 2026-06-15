@@ -13,6 +13,9 @@ export default defineConfig({
     environment: "node",
     exclude: ["tests/e2e/**", "node_modules/**", ".claude/**"],
     globals: true,
+    // Auto-unregisters `vi.doMock` mocks after every test so leaked module mocks
+    // cannot make the suite order-dependent under `--sequence.shuffle`.
+    setupFiles: ["./tests/helpers/reset-module-mocks.ts"],
     restoreMocks: true,
     unstubEnvs: true,
     unstubGlobals: true,

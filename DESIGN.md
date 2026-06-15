@@ -183,11 +183,20 @@ One slam easing (`--w-ease-slam`, overshoot) for stamps; one standard easing
 
 ## Iconography
 
-**No icon library.** The brand communicates with its own geometric
-vocabulary: **✱** the stamp glyph (collected visits, the wordmark disc),
-**? / ✓** seal states set in Bricolage 800, 11px ink-bordered status dots in
-spot inks, dashed circles for empty slots, and unicode glyphs (→ ⌫ ·) inline
-with text. Emoji are never used.
+**Icon library = [@hugeicons](https://hugeicons.com) (the free set).** Render
+every icon through the brand `Icon` wrapper (`components/brand/icon.tsx`), which
+applies the house defaults — 2px stroke, `currentColor`, decorative
+(`aria-hidden`) unless given a `label`. Pull glyphs from
+`@hugeicons/core-free-icons` and prefer the shared semantic maps in
+`components/brand/icons.ts` (`STATUS_ICON`, `ACTIVITY_CATEGORY_ICON`) so the same
+meaning always reaches for the same glyph.
+
+The **✱** disc remains the brand signature: it is the wordmark/logo (`Logo`, the
+customer-flow header, the marquee), **not** a general-purpose icon — do not swap
+it for a Hugeicons glyph. Everything else functional (navigation, buttons, stamp
+fills, reward seals, status pills, empty states, the activity feed) uses
+`Icon`. Status dots and the dashed empty-slot ring stay as structural CSS.
+**Emoji are never used; no exclamation marks** (these tone rules are unchanged).
 
 ## Components
 

@@ -1,15 +1,18 @@
+import { CheckmarkBadge04Icon } from "@hugeicons/core-free-icons"
+
 import { cn } from "@/lib/utils"
 
-/** Two-letter venue roundel text from a business name, e.g. "Bean & Batch" → B&. */
+import { Icon } from "./icon"
+
+/** Two-letter venue roundel text from a business name, e.g. "Bean & Batch" → B&.
+ * Returns "" when no letters can be derived — callers render the stamp icon. */
 export function deriveVenueInitials(name: string) {
-  const letters = name
+  return name
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
     .map((word) => word[0]?.toUpperCase() ?? "")
     .join("")
-
-  return letters || "✱"
 }
 
 /**
@@ -30,7 +33,8 @@ export function VenueMark({
   size?: number
   className?: string
 }) {
-  const text = initials ?? (name ? deriveVenueInitials(name) : "OC")
+  const derived = initials ?? (name ? deriveVenueInitials(name) : "")
+  const text = derived.length > 0 ? derived : null
 
   return (
     <span
@@ -42,7 +46,15 @@ export function VenueMark({
         className="relative grid place-items-center overflow-hidden rounded-full border-2 border-ink bg-stamp font-mono font-bold text-stamp-foreground shadow-xs"
         style={{ width: size, height: size, fontSize: Math.round(size * 0.32) }}
       >
-        <span className="relative z-[1] tracking-[0.02em]">{text}</span>
+        {text ? (
+          <span className="relative z-[1] tracking-[0.02em]">{text}</span>
+        ) : (
+          <Icon
+            icon={CheckmarkBadge04Icon}
+            size={Math.round(size * 0.5)}
+            className="relative z-[1]"
+          />
+        )}
       </span>
       {caption ? (
         <span className="font-mono text-[0.6rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">

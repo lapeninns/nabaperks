@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation"
 
+import { AlertDiamondIcon } from "@hugeicons/core-free-icons"
+
 import { EmptyState } from "@/components/brand"
 import {
   CustomerFlowShell,
@@ -62,6 +64,7 @@ function UnavailableQr() {
         eyebrow="QR unavailable"
       >
         <EmptyState
+          icon={AlertDiamondIcon}
           title="This loyalty card is unavailable"
           description="Ask a team member for the current loyalty QR."
           headingLevel={1}

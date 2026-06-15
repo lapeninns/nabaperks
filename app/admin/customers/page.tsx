@@ -1,3 +1,10 @@
+import {
+  Cancel01Icon,
+  GiftIcon,
+  PlusSignIcon,
+  UserMultiple02Icon,
+} from "@hugeicons/core-free-icons"
+
 import { adjustStampsAction, cancelRewardAction } from "@/app/admin/actions"
 import {
   AdminField,
@@ -9,7 +16,7 @@ import {
   formatAdminDate,
   maskAdminContact,
 } from "@/components/admin/support"
-import { EmptyState, PageTitle, SectionHeader } from "@/components/brand"
+import { EmptyState, Icon, PageTitle, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { Button } from "@/components/ui/button"
 import { getAdminCustomers, getAdminRewards } from "@/lib/admin/data"
@@ -41,6 +48,7 @@ export default async function AdminCustomersPage() {
           getRowKey={(row) => row.id}
           emptyState={
             <EmptyState
+              icon={UserMultiple02Icon}
               title="No customer memberships yet"
               className="rounded-none border-0 p-0 shadow-none"
             />
@@ -113,6 +121,7 @@ export default async function AdminCustomersPage() {
           getRowKey={(reward) => reward.id}
           emptyState={
             <EmptyState
+              icon={GiftIcon}
               title="No rewards yet"
               className="rounded-none border-0 p-0 shadow-none"
             />
@@ -202,7 +211,10 @@ function StampAdjustmentForm({ membershipId }: { membershipId: string }) {
           />
         </AdminField>
       </div>
-      <Button type="submit">Adjust stamps</Button>
+      <Button type="submit">
+        <Icon icon={PlusSignIcon} size={16} />
+        Adjust stamps
+      </Button>
     </form>
   )
 }
@@ -220,6 +232,7 @@ function RewardCancelForm({ rewardId }: { rewardId: string }) {
         />
       </AdminField>
       <Button type="submit" variant="destructive">
+        <Icon icon={Cancel01Icon} size={16} />
         Cancel reward
       </Button>
     </form>

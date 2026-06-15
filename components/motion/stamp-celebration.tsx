@@ -1,7 +1,10 @@
 "use client"
 
 import type { ReactNode } from "react"
+import { CheckmarkBadge04Icon } from "@hugeicons/core-free-icons"
 import { motion, useReducedMotion } from "motion/react"
+
+import { Icon } from "@/components/brand"
 
 const stampEase = [0.2, 0, 0, 1] as const
 
@@ -33,12 +36,12 @@ export function StampCelebration({ children }: { children: ReactNode }) {
         className="pointer-events-none absolute inset-x-0 top-4 mx-auto block size-1"
       >
         <motion.span
-          className="absolute left-1/2 top-1/2 -ml-3 -mt-3 -rotate-6 select-none text-2xl leading-none font-extrabold text-primary"
+          className="absolute left-1/2 top-1/2 -ml-3.5 -mt-3.5 -rotate-6 select-none leading-none text-primary"
           initial={{ opacity: 0, scale: 0.4 }}
           animate={{ opacity: [0, 1, 0], scale: [0.4, 1.1, 0.9] }}
           transition={{ duration: 0.58, ease: stampEase }}
         >
-          ✱
+          <Icon icon={CheckmarkBadge04Icon} size={28} strokeWidth={2.5} />
         </motion.span>
         {burstDots.map((dot, index) => (
           <motion.span

@@ -1,6 +1,8 @@
 "use client"
 
-import { MonoTag } from "@/components/brand"
+import { ArrowDown01Icon, HelpCircleIcon } from "@hugeicons/core-free-icons"
+
+import { Icon, MonoTag } from "@/components/brand"
 import { PintGlass, StampGrid } from "@/components/loyalty"
 import { cn } from "@/lib/utils"
 
@@ -45,7 +47,7 @@ export function LoyaltyJourneyIllustration({
         className="grid justify-items-center gap-1 text-muted-foreground"
       >
         <span className="h-4 w-px bg-border" />
-        <span className="text-sm leading-none">↓</span>
+        <Icon icon={ArrowDown01Icon} size={16} />
         <span className="h-4 w-px bg-border" />
       </div>
 
@@ -56,9 +58,9 @@ export function LoyaltyJourneyIllustration({
             <PintGlass size={84} className="-rotate-3" />
             <span
               aria-hidden="true"
-              className="absolute -top-1 -right-1 grid size-9 -rotate-6 place-items-center rounded-full border-2 border-ink bg-seal text-base font-extrabold text-seal-foreground shadow-xs"
+              className="absolute -top-1 -right-1 grid size-9 -rotate-6 place-items-center rounded-full border-2 border-ink bg-seal text-seal-foreground shadow-xs"
             >
-              ?
+              <Icon icon={HelpCircleIcon} size={20} strokeWidth={2.25} />
             </span>
           </div>
           <div className="grid gap-2 text-center sm:text-left">
