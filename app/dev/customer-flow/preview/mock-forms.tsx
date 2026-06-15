@@ -194,6 +194,43 @@ export function PreviewRedeemButton() {
   )
 }
 
+const previewInputClass =
+  "h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none"
+
+/** Mock of the redeem-time profile gate — Name + DOB required, email optional. */
+export function PreviewProfileGate() {
+  return (
+    <div className="grid gap-4">
+      <div className="grid gap-2 text-left">
+        <Eyebrow>Full name</Eyebrow>
+        <input
+          className={previewInputClass}
+          defaultValue="Sam Taylor"
+          readOnly
+        />
+      </div>
+      <div className="grid gap-2 text-left">
+        <Eyebrow>Date of birth</Eyebrow>
+        <input className={previewInputClass} defaultValue="1990-01-01" readOnly />
+      </div>
+      <div className="grid gap-2 text-left">
+        <Eyebrow>Email (optional)</Eyebrow>
+        <input
+          className={previewInputClass}
+          placeholder="you@example.com"
+          readOnly
+        />
+        <p className="text-xs leading-5 text-muted-foreground">
+          We&apos;ll send a code to confirm it.
+        </p>
+      </div>
+      <Button type="button" size="lg" className="w-full">
+        Save my details
+      </Button>
+    </div>
+  )
+}
+
 export function PreviewJoinHeroNote() {
   return (
     <>

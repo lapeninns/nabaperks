@@ -96,6 +96,12 @@ export const CUSTOMER_FLOW_PREVIEW_STEPS = [
     heading: "Coffee upgrade",
   },
   {
+    id: "reward-ready-profile",
+    screenshot: "06-redeem/00-profile-gate.png",
+    screenLabel: "Customer reward",
+    heading: "Coffee upgrade",
+  },
+  {
     id: "reward-ready",
     screenshot: "06-redeem/01-reward-ready.png",
     screenLabel: "Customer reward",

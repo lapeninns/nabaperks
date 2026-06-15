@@ -13,6 +13,7 @@ export type CustomerCardState =
         id: string
         current_stamp_count: number
         total_rewards_redeemed: number
+        active_cycle_number: number
       }
       merchant: {
         id: string
@@ -45,6 +46,7 @@ type RawMembership = {
   customer_id: string
   current_stamp_count: number
   total_rewards_redeemed: number
+  active_cycle_number: number
   merchants:
     | {
         business_name: string
@@ -61,6 +63,7 @@ type RawMembership = {
 type RawMembershipStampEvent = {
   membership_id: string
   earned_business_date: string | null
+  cycle_number: number | null
 }
 
 export type MembershipStampDisplayDates = {
@@ -68,17 +71,29 @@ export type MembershipStampDisplayDates = {
   readonly latestBusinessDate: string | null
 }
 
-/** Receipt-style labels for earned stamps, oldest first. */
+/**
+ * Receipt-style labels for earned stamps, oldest first. When a cycle is given,
+ * only stamps from that loyalty cycle are returned, so a card that has rolled
+ * into a new cycle after a redemption shows the active cycle's progress, not the
+ * lifetime stamp history.
+ */
 export async function getMembershipStampDisplayDates(
   membershipId: string,
-  limit: number
+  limit: number,
+  cycleNumber?: number | null
 ): Promise<string[]> {
   const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase
+  let query = supabase
     .from("stamp_events")
     .select("earned_business_date")
     .eq("membership_id", membershipId)
     .eq("event_type", "earned")
+
+  if (typeof cycleNumber === "number" && Number.isFinite(cycleNumber)) {
+    query = query.eq("cycle_number", cycleNumber)
+  }
+
+  const { data, error } = await query
     .order("earned_business_date", { ascending: true })
     .limit(limit)
 
@@ -94,7 +109,8 @@ export async function getMembershipStampDisplayDates(
 
 export async function getMembershipStampDisplayDatesByMembership(
   membershipIds: readonly string[],
-  limitByMembership: number
+  limitByMembership: number,
+  activeCycleByMembership?: ReadonlyMap<string, number>
 ): Promise<Map<string, MembershipStampDisplayDates>> {
   const uniqueMembershipIds = [...new Set(membershipIds)]
   const stampDatesByMembership = new Map<string, MembershipStampDisplayDates>()
@@ -111,7 +127,7 @@ export async function getMembershipStampDisplayDatesByMembership(
   const supabase = createSupabaseServiceRoleClient()
   const { data, error } = await supabase
     .from("stamp_events")
-    .select("membership_id, earned_business_date")
+    .select("membership_id, earned_business_date, cycle_number")
     .in("membership_id", uniqueMembershipIds)
     .eq("event_type", "earned")
     .order("earned_business_date", { ascending: true })
@@ -123,6 +139,11 @@ export async function getMembershipStampDisplayDatesByMembership(
   const rawDatesByMembership = new Map<string, string[]>()
   for (const row of (data ?? []) as RawMembershipStampEvent[]) {
     if (typeof row.earned_business_date !== "string") continue
+
+    // Only count stamps from the membership's active cycle — earlier cycles are
+    // historical and stay out of live card progress.
+    const activeCycle = activeCycleByMembership?.get(row.membership_id)
+    if (activeCycle !== undefined && row.cycle_number !== activeCycle) continue
 
     const dates = rawDatesByMembership.get(row.membership_id) ?? []
     if (dates.length < limitByMembership) {
@@ -164,7 +185,7 @@ export async function getCustomerCardState(
   const { data, error } = await supabase
     .from("customer_memberships")
     .select(
-      "id, merchant_id, customer_id, current_stamp_count, total_rewards_redeemed, merchants(business_name, business_slug, status)"
+      "id, merchant_id, customer_id, current_stamp_count, total_rewards_redeemed, active_cycle_number, merchants(business_name, business_slug, status)"
     )
     .eq("id", membershipId)
     .maybeSingle()
@@ -235,6 +256,7 @@ export async function getCustomerCardState(
       id: membership.id,
       current_stamp_count: membership.current_stamp_count,
       total_rewards_redeemed: membership.total_rewards_redeemed,
+      active_cycle_number: membership.active_cycle_number,
     },
     merchant: {
       id: membership.merchant_id,

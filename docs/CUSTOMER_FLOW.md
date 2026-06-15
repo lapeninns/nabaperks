@@ -73,7 +73,7 @@ The customer can be in one of these states:
 | Reward locked                   | Has fewer than the required stamps.                                                              | `/card/[membershipId]`                       |
 | Reward unlocked, not redeemable | Required stamps reached, reward assigned, but redeemable date is in the future.                  | `/card/[membershipId]`, `/wallet/rewards`    |
 | Reward ready                    | Reward is unlocked and redeemable from today.                                                    | `/reward/[rewardId]`, `/wallet/rewards`      |
-| Reward redeemed                 | Reward was redeemed once and the visible stamp cycle starts again.                               | `/card/[membershipId]?reward=redeemed`       |
+| Reward redeemed                 | Reward was redeemed once; redemption lands on the proof page and the active card starts the next cycle. | `/reward/[rewardId]?redeemed=1`, then `/card/[membershipId]` |
 | Wallet user                     | Has joined at least one venue and can sign back in to see cards, rewards, activity, and profile. | `/wallet/*`                                  |
 
 ## North-Star Customer Journey
@@ -132,7 +132,7 @@ flowchart TD
 | `sealed`           | Three visits earned; reward is sealed.                                     | At required stamp count, `issue_self_service_stamp` creates an unlocked `reward_event`.                                                                              | Concept matches, though implementation reveals assigned reward details from the event.                             |
 | `revealed`         | Customer opens/reveals the mystery reward.                                 | Card/reward page shows assigned reward from `reward_events`.                                                                                                         | Matches reward-snapshot principle.                                                                                 |
 | `ready`            | Reward becomes ready next day.                                             | `redeemable_from` is set to next UK business day.                                                                                                                    | Matches.                                                                                                           |
-| `redeemed`         | Reward redeemed once; card starts again.                                   | `/reward/[rewardId]` self-service redeem redirects to `/card/[membershipId]?reward=redeemed`.                                                                        | Matches, but there is no explicit customer-to-staff acceptance confirmation beyond redeemed state.                 |
+| `redeemed`         | Reward redeemed once; card starts again.                                   | `/reward/[rewardId]` self-service redeem lands on the proof page `/reward/[rewardId]?redeemed=1` and revalidates the card; the membership's `active_cycle_number` advances so the card starts the next cycle. | Matches, but there is no explicit customer-to-staff acceptance confirmation beyond redeemed state.                 |
 
 ## Primary Use Case 1: New Customer Joins From Venue QR
 
@@ -329,9 +329,9 @@ If those are blended, the customer may try to redeem too early and feel blocked.
 3. Customer sees assigned reward name, terms, and minimum spend.
 4. Customer taps "Redeem reward" while at the venue.
 5. Optional location check runs if enabled.
-6. `redeem_self_service_reward` marks the reward redeemed once.
-7. Customer is redirected to `/card/[membershipId]?reward=redeemed`.
-8. Card shows the next visible stamp cycle.
+6. `redeem_self_service_reward` marks the reward redeemed once and advances the membership's `active_cycle_number`.
+7. Customer is redirected to the proof page `/reward/[rewardId]?redeemed=1`; the card route is revalidated.
+8. Returning to `/card/[membershipId]` (or home) shows the new cycle — only stamps from the active cycle count, so the card reads `0 of N` while the redeemed reward stays in reward/activity history.
 
 ### Edge Cases
 

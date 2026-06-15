@@ -92,6 +92,24 @@ test("captures the Bean & Batch QR to reward customer journey", async ({
   await page.waitForURL(/\/reward\/[^/]+\?redeemed=1/)
   await expect(page.getByText("Reward redeemed.")).toBeVisible()
   await capture(page, "06-redeem/02-reward-redeemed-proof.png")
+
+  // Returning to the card shows the next cycle: only the active cycle's stamps
+  // count, so the redeemed card no longer reads as full.
+  const membershipId = waitingStatus.membershipId
+  if (!membershipId) {
+    throw new Error("Expected a membership id from the customer-flow status.")
+  }
+  await page.goto(`/card/${membershipId}`)
+  await expect(
+    page.getByRole("list", { name: "0 of 3 stamps earned" })
+  ).toBeVisible()
+  await capture(page, "06-redeem/03-card-next-cycle.png")
+
+  // Home shows the card collecting again, not reward-ready/full.
+  await page.goto("/home")
+  await expect(page.getByText("0 of 3 stamps").first()).toBeVisible()
+  await expect(page.getByText("Redeem reward")).toHaveCount(0)
+  await capture(page, "06-redeem/04-home-next-cycle.png")
 })
 
 async function addStamp(page: Page): Promise<void> {

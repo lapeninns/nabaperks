@@ -35,6 +35,7 @@ type RawHomeMembership = {
   id: string
   merchant_id: string
   current_stamp_count: number
+  active_cycle_number: number
   last_visit_at: string | null
   merchants:
     | { business_name: string; business_slug: string; status: string }
@@ -77,7 +78,7 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
   const { data: membershipRows, error } = await supabase
     .from("customer_memberships")
     .select(
-      "id, merchant_id, current_stamp_count, last_visit_at, merchants(business_name, business_slug, status)"
+      "id, merchant_id, current_stamp_count, active_cycle_number, last_visit_at, merchants(business_name, business_slug, status)"
     )
     .eq("customer_id", customer.id)
     .order("last_visit_at", { ascending: false, nullsFirst: false })
@@ -92,6 +93,11 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
 
   const merchantIds = [...new Set(memberships.map((m) => m.merchant_id))]
   const membershipIds = memberships.map((m) => m.id)
+  // Live card progress counts only the active cycle's stamps, so a card that has
+  // rolled over after a redemption shows the new cycle, not lifetime history.
+  const activeCycleByMembership = new Map(
+    memberships.map((m) => [m.id, m.active_cycle_number])
+  )
 
   const [
     cardsResult,
@@ -119,7 +125,8 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
       .in("merchant_id", merchantIds),
     getMembershipStampDisplayDatesByMembership(
       membershipIds,
-      HOME_STAMP_EVENT_LIMIT
+      HOME_STAMP_EVENT_LIMIT,
+      activeCycleByMembership
     ),
     getCustomerActivity(3),
   ])

@@ -64,7 +64,11 @@ export async function loadCardExperienceContext(
   }
 
   const target = loyaltyCard.stamps_required
-  const stampDates = await getMembershipStampDisplayDates(membership.id, target)
+  const stampDates = await getMembershipStampDisplayDates(
+    membership.id,
+    target,
+    membership.active_cycle_number
+  )
   const current = reconcileCardStampCount({
     membershipCount: membership.current_stamp_count,
     stampDateCount: stampDates.length,

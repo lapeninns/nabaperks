@@ -8,6 +8,7 @@ import {
   CustomerStampCard,
 } from "@/components/customer/customer-flow-system"
 import { CustomerTabBar } from "@/components/layout"
+import { CustomerProfileGateForm } from "@/components/customer/profile-gate-forms"
 import {
   SelfServiceRedeemForm,
   SelfServiceStampForm,
@@ -400,15 +401,24 @@ function RewardReadyPanel({
         name={exp.reward.rewardName}
         description={rewardTermsNode(exp.reward)}
       />
-      <StatusBanner title="Ready to redeem." tone="success">
-        Tap redeem while you are at the venue, then show the redeemed card if
-        asked.
-      </StatusBanner>
-      <SelfServiceRedeemForm
-        rewardId={exp.reward.rewardId}
-        requireGeofence={exp.location.requireGeofence}
-        geofenceRadiusMeters={exp.location.geofenceRadiusMeters}
-      />
+      {exp.profileGate.complete ? (
+        <>
+          <StatusBanner title="Ready to redeem." tone="success">
+            Tap redeem while you are at the venue, then show the redeemed card if
+            asked.
+          </StatusBanner>
+          <SelfServiceRedeemForm
+            rewardId={exp.reward.rewardId}
+            requireGeofence={exp.location.requireGeofence}
+            geofenceRadiusMeters={exp.location.geofenceRadiusMeters}
+          />
+        </>
+      ) : (
+        <CustomerProfileGateForm
+          rewardId={exp.reward.rewardId}
+          gate={exp.profileGate}
+        />
+      )}
     </CustomerReceipt>
   )
 }

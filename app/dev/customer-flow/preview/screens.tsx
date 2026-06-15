@@ -12,6 +12,7 @@ import {
   PreviewJoinHeroNote,
   PreviewJoinTermsForm,
   PreviewMinSpendNote,
+  PreviewProfileGate,
   PreviewRedeemButton,
   PreviewStampButton,
 } from "@/app/dev/customer-flow/preview/mock-forms"
@@ -91,6 +92,8 @@ export function CustomerFlowPreviewScreen({
       return <PreviewCardScreen current={3} rewardUnlocked />
     case "reward-waiting":
       return <PreviewRewardScreen redeemable={false} />
+    case "reward-ready-profile":
+      return <PreviewRewardScreen redeemable profileIncomplete />
     case "reward-ready":
       return <PreviewRewardScreen redeemable />
     case "card-redeemed":
@@ -413,8 +416,10 @@ function PreviewCardDetails() {
 
 function PreviewRewardScreen({
   redeemable,
+  profileIncomplete = false,
 }: {
   readonly redeemable: boolean
+  readonly profileIncomplete?: boolean
 }) {
   return (
     <CustomerFlowShell
@@ -452,7 +457,18 @@ function PreviewRewardScreen({
           }
         />
 
-        {redeemable ? (
+        {redeemable && profileIncomplete ? (
+          <>
+            <StatusBanner
+              title="A few details before this one's yours"
+              tone="neutral"
+            >
+              Add your name and date of birth to redeem. Email is optional - add
+              one to get reward updates.
+            </StatusBanner>
+            <PreviewProfileGate />
+          </>
+        ) : redeemable ? (
           <>
             <StatusBanner title="Ready to redeem." tone="success">
               Tap redeem while you are at the venue, then show the redeemed card if

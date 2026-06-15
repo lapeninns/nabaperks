@@ -1,5 +1,6 @@
 import { signOutCustomerAction } from "@/app/home/actions"
 import { Eyebrow, EmptyState, MetricTile, MonoTag, PageTitle } from "@/components/brand"
+import { CustomerProfileEditForm } from "@/components/customer/profile-edit-form"
 import { Button } from "@/components/ui/button"
 import { getCustomerProfile, type CustomerConsent } from "@/lib/customer/profile"
 import { formatMonthYear } from "@/lib/customer/format"
@@ -32,12 +33,25 @@ export default async function HomeProfilePage() {
         />
       ) : (
         <div className="grid gap-6">
+          <CustomerProfileEditForm
+            profile={{
+              fullName: profile.fullName,
+              dateOfBirth: profile.dateOfBirth,
+              email: profile.email,
+              emailVerified: profile.emailVerified,
+              needsEmailVerification: profile.needsEmailVerification,
+            }}
+          />
+
           <section className="surface-card grid gap-4 p-5">
-            <Eyebrow>Contact</Eyebrow>
+            <Eyebrow>Phone</Eyebrow>
             <dl className="grid gap-3">
-              <Detail label="Email" value={profile.email ?? "—"} />
-              <Detail label="Phone" value={profile.phone ?? "—"} />
+              <Detail label="Verified number" value={profile.phone ?? "—"} />
             </dl>
+            <p className="text-xs leading-5 text-muted-foreground">
+              Your phone is your sign-in. To change it, join again with the new
+              number from a venue QR.
+            </p>
           </section>
 
           <div className="grid grid-cols-2 gap-4">
