@@ -1,11 +1,14 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import { Download01Icon, PrinterIcon } from "@hugeicons/core-free-icons"
 
 import { generateQrCodeAction, setQrActiveAction } from "@/app/app/qr/actions"
-import { PageTitle, ReceiptCard } from "@/components/brand"
+import { Icon, PageTitle, ReceiptCard } from "@/components/brand"
 import { QrFrame } from "@/components/loyalty/qr-frame"
+import { RewardSeal } from "@/components/loyalty/reward-seal"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { CopyUrlButton } from "@/components/merchant/copy-url-button"
+import { Disclosure } from "@/components/merchant/launch/disclosure"
 import { Button } from "@/components/ui/button"
 import { getServerEnv } from "@/lib/env/server"
 import { getQrSetup } from "@/lib/merchant/qr-code"
@@ -29,8 +32,8 @@ export async function QrPanel({ params }: { params: QrPanelParams }) {
     return (
       <ReceiptCard className="grid gap-4">
         <PageTitle
-          eyebrow="Dynamic QR"
-          title="Create an active card first"
+          eyebrow="Step 4 · Print"
+          title="Build your card first"
           description="Nabaperks needs one active mystery visit card before it can generate a permanent venue QR for customers."
           titleClassName="sm:text-3xl"
         />
@@ -45,7 +48,7 @@ export async function QrPanel({ params }: { params: QrPanelParams }) {
     return (
       <ReceiptCard className="grid gap-5">
         <PageTitle
-          eyebrow="Permanent venue QR"
+          eyebrow="Step 4 · Print"
           title="Generate your venue QR"
           description={
             <>
@@ -84,15 +87,13 @@ export async function QrPanel({ params }: { params: QrPanelParams }) {
 
   const env = getServerEnv()
   const shareUrl = `${env.NEXT_PUBLIC_APP_URL}/q/${qrCode.qr_id}`
-  const downloads = [
-    {
-      href: `/app/qr/download/poster?qr=${qrCode.id}`,
-      previewHref: `/app/qr/preview/poster?qr=${qrCode.id}`,
-      title: "Venue poster PDF",
-      description: "A4 print piece for tills, tables, and entrance boards.",
-      format: "PDF",
-      shape: "aspect-[3/4]",
-    },
+  const poster = {
+    href: `/app/qr/download/poster?qr=${qrCode.id}`,
+    previewHref: `/app/qr/preview/poster?qr=${qrCode.id}`,
+    title: "Venue poster PDF",
+    description: "A4 print piece for tills, tables, and entrance boards.",
+  }
+  const moreAssets = [
     {
       href: `/app/qr/download/till-card?qr=${qrCode.id}`,
       previewHref: `/app/qr/preview/till-card?qr=${qrCode.id}`,
@@ -114,8 +115,8 @@ export async function QrPanel({ params }: { params: QrPanelParams }) {
   return (
     <div className="grid gap-5">
       {statusMessage(params)}
-      <ReceiptCard className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <div className="grid gap-4">
+      <ReceiptCard className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
+        <div className="grid h-fit content-start gap-4">
           <QrFrame label={`Scanner-safe QR code for ${activeCard.card_name}`}>
             {/* eslint-disable-next-line @next/next/no-img-element -- protected QR images need merchant cookies */}
             <img
@@ -124,34 +125,46 @@ export async function QrPanel({ params }: { params: QrPanelParams }) {
               className="aspect-square w-full rounded-lg bg-white"
             />
           </QrFrame>
-          <p className="font-mono text-xs text-muted-foreground uppercase">
-            {qrCode.is_active ? "Active customer entry" : "Disabled"}
-          </p>
+          {qrCode.is_active ? (
+            <div className="flex items-center gap-3 rounded-lg border-2 border-reward bg-reward/10 px-3 py-2">
+              <RewardSeal state="redeemed" size="sm" label="QR is live" />
+              <span className="font-mono text-xs font-bold tracking-[0.06em] text-reward uppercase">
+                Live · accepting scans
+              </span>
+            </div>
+          ) : (
+            <p className="font-mono text-xs text-muted-foreground uppercase">
+              Disabled · no new customer entry
+            </p>
+          )}
         </div>
 
         <div className="grid content-start gap-5">
           <PageTitle
-            eyebrow="Permanent venue QR"
+            eyebrow="Step 4 · Print"
             title={activeCard.card_name}
-            description="Customers scan this permanent URL to join, collect today's stamp, and unlock a surprise reward. Disabled QR codes remain in history but stop new customer entry."
+            description="Customers scan this permanent code to join, collect today's stamp, and unlock a surprise reward."
             titleClassName="sm:text-3xl"
           />
 
           <QrErrorBanner error={params.error} />
           {!location?.address ? (
-            <StatusBanner tone="warning" title="Save venue checks before print.">
+            <StatusBanner
+              tone="warning"
+              title="Save venue checks before print."
+            >
               Add the venue address from{" "}
               <Link
                 href="/app/launch?tab=venue"
                 className="font-bold underline underline-offset-4"
               >
-                Venue checks
+                your venue step
               </Link>{" "}
               so stamps are tied to the right venue.
             </StatusBanner>
           ) : null}
 
-          <div className="grid gap-2 rounded-lg border bg-secondary/50 p-4">
+          <div className="grid gap-2 rounded-lg border-2 border-ink bg-secondary/50 p-4">
             <p className="text-sm font-bold">Shareable URL</p>
             <p className="font-mono text-sm break-all text-muted-foreground">
               {shareUrl}
@@ -166,67 +179,77 @@ export async function QrPanel({ params }: { params: QrPanelParams }) {
             </div>
           </div>
 
-          <div className="grid gap-3">
-            <p className="text-sm font-bold">Preview and download assets</p>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {downloads.map((download) => (
+          <div className="grid gap-3 rounded-lg border-2 border-ink bg-background p-4">
+            <div className="flex items-center gap-2">
+              <Icon icon={PrinterIcon} size={18} />
+              <p className="text-sm font-extrabold">Print the counter poster</p>
+            </div>
+            <p className="text-sm leading-6 text-muted-foreground">
+              {poster.description} Put it where customers pay, then scan it once
+              yourself before the first customer.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild>
+                <Link href={poster.href}>
+                  <Icon icon={Download01Icon} size={16} />
+                  Download poster
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href={poster.previewHref} target="_blank">
+                  Preview poster
+                </Link>
+              </Button>
+            </div>
+          </div>
+
+          <Disclosure label="More print assets">
+            <p className="text-xs leading-5 text-muted-foreground">
+              Same QR, smaller formats for tills and windows.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {moreAssets.map((asset) => (
                 <article
-                  key={download.href}
-                  className="grid content-between gap-4 rounded-lg border bg-background p-4 shadow-xs"
+                  key={asset.href}
+                  className="grid content-between gap-4 rounded-lg border-2 border-ink bg-card p-4 shadow-xs"
                 >
                   <span className="grid gap-2">
                     <span
-                      className={`grid ${download.shape} overflow-hidden rounded-lg border border-border/80 bg-card p-2`}
+                      className={`grid ${asset.shape} overflow-hidden rounded-lg border border-border/80 bg-card p-2`}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element -- preview route is protected by merchant cookies */}
                       <img
-                        src={download.previewHref}
-                        alt={`${download.title} preview`}
+                        src={asset.previewHref}
+                        alt={`${asset.title} preview`}
                         className="h-full w-full rounded-lg bg-white object-contain shadow-xs"
                       />
                     </span>
                     <span className="inline-flex w-fit rounded-full bg-secondary px-3 py-1 font-mono text-xs font-bold text-muted-foreground">
-                      {download.format}
+                      {asset.format}
                     </span>
                     <span className="text-sm font-extrabold">
-                      {download.title}
+                      {asset.title}
                     </span>
                     <span className="text-sm leading-6 text-muted-foreground">
-                      {download.description}
+                      {asset.description}
                     </span>
                   </span>
                   <span className="flex flex-wrap gap-2">
                     <Button asChild variant="outline" size="sm">
-                      <Link href={download.previewHref} target="_blank">
+                      <Link href={asset.previewHref} target="_blank">
                         Preview
                       </Link>
                     </Button>
                     <Button asChild variant="secondary" size="sm">
-                      <Link href={download.href}>Download</Link>
+                      <Link href={asset.href}>Download</Link>
                     </Button>
                   </span>
                 </article>
               ))}
             </div>
-          </div>
+          </Disclosure>
 
-          <div className="grid gap-3 rounded-lg border bg-background p-4">
-            <p className="text-sm font-bold">Setup checklist</p>
-            <ul className="grid gap-2 text-sm leading-6 text-muted-foreground">
-              <li>Card active: {activeCard.card_name}</li>
-              <li>Active mystery rewards: {activeRewardPoolItemCount}</li>
-              <li>
-                Venue checks:{" "}
-                {location?.address ? "address saved" : "address needed"}
-              </li>
-              <li>QR status: {qrCode.is_active ? "enabled" : "disabled"}</li>
-              <li>Print the counter poster and till card before launch.</li>
-              <li>Scan the QR once before the first customer launch.</li>
-            </ul>
-          </div>
-
-          <div className="grid gap-3 rounded-lg border bg-background p-4">
-            <p className="text-sm font-bold">Customer flow</p>
+          <Disclosure label="How customers use this">
             <ol className="grid list-decimal gap-2 pl-5 text-sm leading-6 text-muted-foreground">
               <li>New customers scan the QR and join with their phone.</li>
               <li>
@@ -238,10 +261,7 @@ export async function QrPanel({ params }: { params: QrPanelParams }) {
                 business day.
               </li>
             </ol>
-            <p className="text-sm font-bold text-foreground">
-              Target: first scan checked in under 3 minutes.
-            </p>
-          </div>
+          </Disclosure>
 
           <form action={setQrActiveAction}>
             <input type="hidden" name="qrCodeId" value={qrCode.id} />
@@ -252,7 +272,7 @@ export async function QrPanel({ params }: { params: QrPanelParams }) {
             />
             <Button
               type="submit"
-              variant={qrCode.is_active ? "destructive" : "reward"}
+              variant={qrCode.is_active ? "outline" : "reward"}
             >
               {qrCode.is_active ? "Disable QR" : "Enable QR"}
             </Button>

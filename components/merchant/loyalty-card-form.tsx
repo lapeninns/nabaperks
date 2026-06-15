@@ -18,6 +18,7 @@ import {
   SectionHeader,
   VenueMark,
 } from "@/components/brand"
+import { Disclosure } from "@/components/merchant/launch/disclosure"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Button } from "@/components/ui/button"
 
@@ -69,18 +70,24 @@ export function LoyaltyCardForm({
     setDraft((currentDraft) => ({ ...currentDraft, [field]: value }))
   }
 
-  const activeRewardCount = rewardPoolItems.filter((item) => item.isActive).length
+  const activeRewardCount = rewardPoolItems.filter(
+    (item) => item.isActive
+  ).length
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
       <div className="grid gap-6">
         <form action={action} className="surface-card grid gap-5 p-6">
           <input type="hidden" name="cardId" value={draft.cardId ?? ""} />
-          <input type="hidden" name="minSpendPence" value={draft.minSpendPence} />
+          <input
+            type="hidden"
+            name="minSpendPence"
+            value={draft.minSpendPence}
+          />
           <PageTitle
-            eyebrow="Mystery card setup"
+            eyebrow="Step 1 · Build card"
             title="Build your visit card"
-            description={`One active card for ${locationName}, with rewards revealed after the final qualifying visit.`}
+            description={`One active card for ${locationName}, with a reward revealed after the final qualifying visit.`}
             titleClassName="sm:text-3xl"
           />
 
@@ -100,7 +107,9 @@ export function LoyaltyCardForm({
             inputMode="numeric"
             pattern="[0-9]*"
             value={draft.stampsRequired}
-            onChange={(event) => updateDraft("stampsRequired", event.target.value)}
+            onChange={(event) =>
+              updateDraft("stampsRequired", event.target.value)
+            }
             error={state.errors?.stampsRequired}
           />
 
@@ -113,37 +122,35 @@ export function LoyaltyCardForm({
             error={state.errors?.rewardTerms}
           />
 
-          <label className="flex items-center justify-between gap-4 rounded-2xl border-2 border-ink bg-secondary/50 px-4 py-3 text-sm font-bold">
+          <label className="flex items-center justify-between gap-4 rounded-lg border-2 border-ink bg-secondary/50 px-4 py-3 text-sm font-bold">
             <span>Card active</span>
             <input
               name="isActive"
               type="checkbox"
               checked={draft.isActive}
-              onChange={(event) => updateDraft("isActive", event.target.checked)}
+              onChange={(event) =>
+                updateDraft("isActive", event.target.checked)
+              }
               className="size-5 accent-primary"
             />
           </label>
 
           {state.errors?.form ? (
-            <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {state.errors.form}
             </p>
           ) : null}
 
           <Button type="submit" disabled={pending} className="w-full">
-            {pending
-              ? "Saving..."
-              : draft.cardId
-                ? "Save mystery card"
-                : "Create mystery card"}
+            {pending ? "Saving..." : draft.cardId ? "Save card" : "Create card"}
           </Button>
         </form>
 
         <section className="surface-card grid gap-4 p-6">
           <SectionHeader
-            eyebrow="Reward pool"
-            title="Custom surprise rewards"
-            description="At least one active reward is required before the venue QR can launch or a final stamp can reveal a prize."
+            eyebrow="Step 2 · Reward"
+            title="Add a surprise reward"
+            description="At least one active reward is needed before the venue QR can launch or a final stamp can reveal a prize."
           />
 
           {draft.cardId ? (
@@ -232,18 +239,27 @@ function RewardPoolItemForm({
     setDraft((currentDraft) => ({ ...currentDraft, [field]: value }))
   }
 
+  const advancedTouched =
+    Boolean(state.errors?.weight) ||
+    Boolean(state.errors?.displayOrder) ||
+    Boolean(state.errors?.minSpendPence) ||
+    draft.minSpendPence !== ""
+
   return (
     <div className="surface-card grid gap-4 p-4">
       {!isNew ? (
-        <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border-2 border-dashed border-ink/15 bg-secondary/50 px-4 py-3">
+        <div className="flex flex-wrap items-start justify-between gap-3 rounded-lg border-2 border-dashed border-ink/15 bg-secondary/50 px-4 py-3">
           <div>
             <p className="text-sm font-extrabold">
               {draft.rewardName || "Untitled reward"}
             </p>
             <p className="mt-1 font-mono text-xs leading-5 text-muted-foreground">
               Minimum spend:{" "}
-              {draft.minSpendPence ? `£${formatPence(draft.minSpendPence)}` : "None"} ·
-              Weight: {draft.weight || "1"} · Order: {draft.displayOrder || "0"}
+              {draft.minSpendPence
+                ? `£${formatPence(draft.minSpendPence)}`
+                : "None"}{" "}
+              · Weight: {draft.weight || "1"} · Order:{" "}
+              {draft.displayOrder || "0"}
             </p>
           </div>
           <MonoTag tone={draft.isActive ? "leaf" : "plain"}>
@@ -254,29 +270,14 @@ function RewardPoolItemForm({
       <form action={action} className="grid gap-4">
         <input type="hidden" name="loyaltyCardId" value={loyaltyCardId} />
         <input type="hidden" name="rewardPoolItemId" value={draft.id ?? ""} />
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field
-            id={`${draft.id ?? "new"}-rewardName`}
-            label="Reward name"
-            name="rewardName"
-            value={draft.rewardName}
-            onChange={(event) => updateDraft("rewardName", event.target.value)}
-            error={state.errors?.rewardName}
-          />
-          <Field
-            id={`${draft.id ?? "new"}-minSpendPence`}
-            label="Minimum spend"
-            name="minSpendPence"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            placeholder="Optional pence"
-            value={draft.minSpendPence}
-            onChange={(event) =>
-              updateDraft("minSpendPence", event.target.value)
-            }
-            error={state.errors?.minSpendPence}
-          />
-        </div>
+        <Field
+          id={`${draft.id ?? "new"}-rewardName`}
+          label="Reward name"
+          name="rewardName"
+          value={draft.rewardName}
+          onChange={(event) => updateDraft("rewardName", event.target.value)}
+          error={state.errors?.rewardName}
+        />
         <TextareaField
           id={`${draft.id ?? "new"}-rewardTerms`}
           label="Reward terms"
@@ -286,40 +287,66 @@ function RewardPoolItemForm({
           onChange={(event) => updateDraft("rewardTerms", event.target.value)}
           error={state.errors?.rewardTerms}
         />
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Field
-            id={`${draft.id ?? "new"}-weight`}
-            label="Weight"
-            name="weight"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            value={draft.weight}
-            onChange={(event) => updateDraft("weight", event.target.value)}
-            error={state.errors?.weight}
+        <label className="flex items-center justify-between gap-3 rounded-lg border-2 border-ink bg-secondary/50 px-4 py-3 text-sm font-bold">
+          <span>Active reward</span>
+          <input
+            name="isActive"
+            type="checkbox"
+            checked={draft.isActive}
+            onChange={(event) => updateDraft("isActive", event.target.checked)}
+            className="size-5 accent-primary"
           />
-          <Field
-            id={`${draft.id ?? "new"}-displayOrder`}
-            label="Order"
-            name="displayOrder"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            value={draft.displayOrder}
-            onChange={(event) => updateDraft("displayOrder", event.target.value)}
-            error={state.errors?.displayOrder}
-          />
-          <label className="flex items-center justify-between gap-3 rounded-xl border-2 border-ink bg-secondary/50 px-3 py-2 text-sm font-bold sm:self-end">
-            <span>Active</span>
-            <input
-              name="isActive"
-              type="checkbox"
-              checked={draft.isActive}
-              onChange={(event) => updateDraft("isActive", event.target.checked)}
-              className="size-5 accent-primary"
+        </label>
+
+        <Disclosure
+          label="Weighting, order and spend"
+          defaultOpen={advancedTouched}
+        >
+          <p className="text-xs leading-5 text-muted-foreground">
+            Defaults are fine to launch. Weight makes a reward more likely;
+            order sorts the list; minimum spend is optional.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field
+              id={`${draft.id ?? "new"}-weight`}
+              label="Weight"
+              name="weight"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={draft.weight}
+              onChange={(event) => updateDraft("weight", event.target.value)}
+              error={state.errors?.weight}
             />
-          </label>
-        </div>
+            <Field
+              id={`${draft.id ?? "new"}-displayOrder`}
+              label="Order"
+              name="displayOrder"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={draft.displayOrder}
+              onChange={(event) =>
+                updateDraft("displayOrder", event.target.value)
+              }
+              error={state.errors?.displayOrder}
+            />
+            <Field
+              id={`${draft.id ?? "new"}-minSpendPence`}
+              label="Min spend"
+              name="minSpendPence"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              placeholder="Optional pence"
+              value={draft.minSpendPence}
+              onChange={(event) =>
+                updateDraft("minSpendPence", event.target.value)
+              }
+              error={state.errors?.minSpendPence}
+            />
+          </div>
+        </Disclosure>
+
         {state.errors?.form ? (
-          <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {state.errors.form}
           </p>
         ) : null}
@@ -364,7 +391,7 @@ function Field({
       </label>
       <input
         id={id}
-        className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
+        className="h-12 rounded-lg border-2 border-ink bg-secondary/60 px-4 text-sm transition outline-none focus:border-ring focus:ring-3 focus:ring-ring/25"
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
         {...props}
@@ -397,7 +424,7 @@ function TextareaField({
       <textarea
         id={id}
         rows={rows}
-        className="resize-none rounded-xl border-2 border-ink bg-secondary/60 px-4 py-3 text-sm leading-6 outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
+        className="resize-none rounded-lg border-2 border-ink bg-secondary/60 px-4 py-3 text-sm leading-6 transition outline-none focus:border-ring focus:ring-3 focus:ring-ring/25"
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
         {...props}
@@ -422,71 +449,77 @@ function StampCardPreview({
   draft: LoyaltyCardFormValues
   activeRewardCount: number
 }) {
-  const stampsRequired = Math.max(Number.parseInt(draft.stampsRequired, 10) || 3, 1)
+  const stampsRequired = Math.max(
+    Number.parseInt(draft.stampsRequired, 10) || 3,
+    1
+  )
   const earnedPreviewCount = Math.min(stampsRequired - 1, 2)
 
   return (
-    <div className="h-fit">
-    <aside className="surface-card grid gap-4 p-5">
-      <div className="grid gap-2">
-        <div className="flex items-start gap-3">
-          <VenueMark name={merchantName} size={48} />
-          <div className="grid gap-1">
-            <Eyebrow>Customer preview</Eyebrow>
-            <h2 className="text-2xl font-extrabold leading-tight">
-              {draft.cardName || "Mystery Visit Card"}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {merchantName} · {locationName}
-            </p>
+    <div className="h-fit lg:sticky lg:top-4">
+      <aside className="surface-card grid gap-4 p-5">
+        <div className="grid gap-2">
+          <div className="flex items-start gap-3">
+            <VenueMark name={merchantName} size={48} />
+            <div className="grid gap-1">
+              <Eyebrow>Customer preview</Eyebrow>
+              <h2 className="text-2xl leading-tight font-extrabold">
+                {draft.cardName || "Mystery Visit Card"}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {merchantName} · {locationName}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-3 gap-2">
-        {Array.from({ length: Math.min(stampsRequired, 12) }).map((_, index) => {
-          const earned = index < earnedPreviewCount
-          return (
-            <span
-              key={index}
-              className={
-                earned
-                  ? "aspect-square rounded-full border-2 border-ink bg-primary shadow-xs"
-                  : "aspect-square rounded-full border-2 border-dashed border-ink bg-background"
-              }
-              aria-label={earned ? "Earned stamp" : "Empty stamp"}
-            />
-          )
-        })}
-      </div>
+        <div className="grid grid-cols-3 gap-2">
+          {Array.from({ length: Math.min(stampsRequired, 12) }).map(
+            (_, index) => {
+              const earned = index < earnedPreviewCount
+              return (
+                <span
+                  key={index}
+                  className={
+                    earned
+                      ? "aspect-square rounded-full border-2 border-ink bg-primary shadow-xs"
+                      : "aspect-square rounded-full border-2 border-dashed border-ink bg-background"
+                  }
+                  aria-label={earned ? "Earned stamp" : "Empty stamp"}
+                />
+              )
+            }
+          )}
+        </div>
 
-      {stampsRequired > 12 ? (
-        <p className="text-xs text-muted-foreground">
-          Preview shows 12 of {stampsRequired} visit slots.
-        </p>
-      ) : null}
+        {stampsRequired > 12 ? (
+          <p className="text-xs text-muted-foreground">
+            Preview shows 12 of {stampsRequired} visit slots.
+          </p>
+        ) : null}
 
-      <div className="rounded-2xl border-2 border-ink bg-accent p-4">
-        <Eyebrow>Locked reward</Eyebrow>
-        <p className="mt-1 text-lg font-extrabold">Surprise reward</p>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Complete {stampsRequired} visits to reveal your surprise reward.
-        </p>
-        <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          {draft.rewardTerms}
-        </p>
-      </div>
+        <div className="rounded-lg border-2 border-ink bg-accent p-4">
+          <Eyebrow>Locked reward</Eyebrow>
+          <p className="mt-1 text-lg font-extrabold">Surprise reward</p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            Complete {stampsRequired} visits to reveal your surprise reward.
+          </p>
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">
+            {draft.rewardTerms}
+          </p>
+        </div>
 
-      <hr className="w-rule" />
+        <hr className="w-rule" />
 
-      <Eyebrow>
-        {draft.isActive ? "Active for new stamps" : "Inactive: no new stamps"}
-      </Eyebrow>
-      <Eyebrow>
-        {activeRewardCount} active pool reward{activeRewardCount === 1 ? "" : "s"}
-      </Eyebrow>
-    </aside>
-    <div aria-hidden className="receipt-edge" />
+        <Eyebrow>
+          {draft.isActive ? "Active for new stamps" : "Inactive: no new stamps"}
+        </Eyebrow>
+        <Eyebrow>
+          {activeRewardCount} active pool reward
+          {activeRewardCount === 1 ? "" : "s"}
+        </Eyebrow>
+      </aside>
+      <div aria-hidden className="receipt-edge" />
     </div>
   )
 }
