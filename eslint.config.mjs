@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated reports and artifacts.
+    "coverage/**",
+    "test-results/**",
+    "playwright-report/**",
+    ".jscpd/**",
     // Non-app artifacts.
     "docs/**/*.tsx",
     ".tmp/**",

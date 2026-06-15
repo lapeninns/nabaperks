@@ -31,10 +31,31 @@
     "security:verify": "node scripts/verify-security.mjs",
     "start": "next start",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:flaky": "node scripts/test-flaky.mjs",
     "lint": "eslint",
+    "lint:quality": "eslint --config eslint.quality.config.mjs --max-warnings 31 app lib components",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "analyze": "ANALYZE=true next build",
+    "deadcode": "knip",
+    "duplication": "jscpd",
+    "deps:analyze": "node scripts/analyze-deps.mjs",
+    "bundle:size": "node scripts/check-bundle-size.mjs",
+    "scan:todos": "node scripts/scan-todos.mjs",
+    "check:naming": "node scripts/check-naming.mjs",
+    "check:nplus1": "node scripts/check-nplus1.mjs",
+    "check:agents": "node scripts/check-agents-md.mjs",
+    "docs:routes": "node scripts/generate-route-contract.mjs",
+    "docs:routes:check": "node scripts/generate-route-contract.mjs --check",
+    "quality": "pnpm check:naming && pnpm scan:todos && pnpm check:nplus1 && pnpm check:agents && pnpm lint:quality && pnpm docs:routes:check && pnpm deadcode && pnpm duplication",
+    "prepare": "husky"
   },
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "packageManager": "pnpm@10.28.0",
   "dependencies": {
     "@hugeicons/core-free-icons": "^4.2.0",
     "@hugeicons/react": "^1.1.6",
@@ -61,19 +82,26 @@
     "tw-animate-css": "^1.4.0"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
+    "@next/bundle-analyzer": "^16.2.9",
     "@playwright/test": "^1.51.1",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "4.1.9",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "husky": "^9.1.7",
+    "jscpd": "^5.0.9",
+    "knip": "^6.16.1",
+    "lint-staged": "^17.0.7",
     "postgres": "^3.4.9",
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^4.1.8"
+    "typescript-eslint": "^8.61.0",
+    "vitest": "^4.1.9"
   }
 }

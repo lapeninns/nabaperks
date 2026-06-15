@@ -1,0 +1,19 @@
+# Code ownership for review routing and branch-protection "require review from
+# Code Owners". Default owner for everything not matched below.
+* @lapeninns
+
+# Governance, CI, and agent guidance — change with extra care.
+/.github/ @lapeninns
+/AGENTS.md @lapeninns
+/CLAUDE.md @lapeninns
+/DESIGN.md @lapeninns
+/micro-specs/ @lapeninns
+
+# Trust boundary: data model, RLS, and the security-definer RPCs.
+/supabase/ @lapeninns
+/lib/supabase/ @lapeninns
+/lib/security/ @lapeninns
+
+# Billing and external integrations.
+/lib/stripe/ @lapeninns
+/app/api/ @lapeninns

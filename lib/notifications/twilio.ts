@@ -1,5 +1,7 @@
 import "server-only"
 
+import { resilientFetch } from "@/lib/observability/resilience"
+
 async function safeDetail(res: Response) {
   try {
     return (await res.text()).slice(0, 500)
@@ -34,7 +36,7 @@ export async function sendSmsOtp({ to, code }: { to: string; code: string }) {
     Body: `Your Nabaperks verification code is ${code}`,
   })
 
-  const res = await fetch(endpoint, {
+  const res = await resilientFetch("twilio", endpoint, {
     method: "POST",
     headers: {
       Authorization: `Basic ${auth}`,
@@ -44,6 +46,8 @@ export async function sendSmsOtp({ to, code }: { to: string; code: string }) {
   })
 
   if (!res.ok) {
-    throw new Error(`Twilio send failed (${res.status}): ${await safeDetail(res)}`)
+    throw new Error(
+      `Twilio send failed (${res.status}): ${await safeDetail(res)}`
+    )
   }
 }

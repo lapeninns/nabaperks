@@ -1,5 +1,7 @@
 import "server-only"
 
+import { resilientFetch } from "@/lib/observability/resilience"
+
 const RESEND_ENDPOINT = "https://api.resend.com/emails"
 
 async function safeDetail(res: Response) {
@@ -39,7 +41,7 @@ export async function sendEmailOtp({ to, code }: { to: string; code: string }) {
     throw new Error("Resend is not configured (RESEND_API_KEY / RESEND_FROM).")
   }
 
-  const res = await fetch(RESEND_ENDPOINT, {
+  const res = await resilientFetch("resend", RESEND_ENDPOINT, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -55,6 +57,8 @@ export async function sendEmailOtp({ to, code }: { to: string; code: string }) {
   })
 
   if (!res.ok) {
-    throw new Error(`Resend send failed (${res.status}): ${await safeDetail(res)}`)
+    throw new Error(
+      `Resend send failed (${res.status}): ${await safeDetail(res)}`
+    )
   }
 }

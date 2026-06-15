@@ -58,14 +58,14 @@ apply to all work in this repo; the essentials:
 
 The spec pack's monorepo domains map onto this single Next.js app:
 
-| Spec domain                            | Here                                  |
-| -------------------------------------- | ------------------------------------- |
-| `apps/customer-web`                    | `app/q`, `app/m`, `app/card`, `app/reward` |
-| `apps/merchant-console`                | `app/app`                             |
-| `apps/admin-console`                   | `app/admin`                           |
-| `packages/api`                         | server actions + `app/api`            |
-| `packages/domain` / `db`               | `lib/*` + `supabase/migrations`       |
-| `packages/risk` / `compliance` / etc.  | `lib/security`, `lib/analytics`, ...  |
+| Spec domain                           | Here                                       |
+| ------------------------------------- | ------------------------------------------ |
+| `apps/customer-web`                   | `app/q`, `app/m`, `app/card`, `app/reward` |
+| `apps/merchant-console`               | `app/app`                                  |
+| `apps/admin-console`                  | `app/admin`                                |
+| `packages/api`                        | server actions + `app/api`                 |
+| `packages/domain` / `db`              | `lib/*` + `supabase/migrations`            |
+| `packages/risk` / `compliance` / etc. | `lib/security`, `lib/analytics`, ...       |
 
 Do not widen a micro-spec's blast radius without approval.
 
@@ -82,10 +82,12 @@ mocks cannot exercise).
 
 ## Related Docs
 
-| Doc                    | Purpose                                                                                           |
-| ---------------------- | ------------------------------------------------------------------------------------------------- |
-| `docs/ARCHITECTURE.md` | As-built architecture map for routes, data/RLS, flows, integrations, traceability, and known gaps |
-| `DESIGN.md`            | Design system — tokens, typography, components, UI conventions                                    |
+| Doc                     | Purpose                                                                                           |
+| ----------------------- | ------------------------------------------------------------------------------------------------- |
+| `docs/ARCHITECTURE.md`  | As-built architecture map for routes, data/RLS, flows, integrations, traceability, and known gaps |
+| `docs/ROUTES.md`        | Generated route contract — pages, route handlers + methods, and server-action modules             |
+| `docs/OBSERVABILITY.md` | Request/trace ids, structured logging, error tracking, health probe, resilience, and alerting     |
+| `DESIGN.md`             | Design system — tokens, typography, components, UI conventions                                    |
 
 ---
 
