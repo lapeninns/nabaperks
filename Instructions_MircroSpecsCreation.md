@@ -168,7 +168,6 @@ Move reusable project-wide rules into a Global Context file. In this repo, Globa
 
 * `AGENTS.md` — stack and governance index
 * `micro-specs/GLOBAL_CONTEXT.md` — product, stack, security, and verification baselines
-* `nabaperks-micro-specs-final.md` — the binding spec pack's "Global Context for AI Agents"
 
 Read those before authoring, and never restate their stack, security, or verification rules in an individual spec.
 

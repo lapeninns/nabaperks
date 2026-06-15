@@ -1,6 +1,10 @@
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { createSupabaseMock } from "../helpers/supabase"
+
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 describe("05/07 analytics, dashboard, and compliance micro-specs", () => {
   it("persists product events to Supabase and sends sanitized best-effort PostHog payloads", async () => {
@@ -74,7 +78,12 @@ describe("05/07 analytics, dashboard, and compliance micro-specs", () => {
 
     expect(productEventNames).toEqual([
       "qr_scanned",
+      "join_page_viewed",
+      "join_phone_requested",
+      "join_otp_verified",
+      "join_terms_accepted",
       "customer_joined",
+      "customer_card_viewed",
       "stamp_claim_started",
       "stamp_issued",
       "reward_unlocked",
@@ -108,10 +117,10 @@ describe("05/07 analytics, dashboard, and compliance micro-specs", () => {
 
     await expect(getPilotFunnelCounts()).resolves.toMatchObject({
       qr_scanned: 1,
-      customer_joined: 2,
-      reward_redeemed: 6,
-      qr_created: 9,
-      subscription_cancelled: 14,
+      customer_joined: 6,
+      reward_redeemed: 11,
+      qr_created: 14,
+      subscription_cancelled: 19,
     })
     expect(
       supabase.queryCalls.filter((call) => call.method === "eq")

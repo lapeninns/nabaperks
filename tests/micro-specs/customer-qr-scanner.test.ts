@@ -60,16 +60,32 @@ describe("customer QR scanner", () => {
   it("ships a focused scanner route and client lifecycle component", () => {
     // Given: the customer scanner surface is part of the app.
     const pagePath = "app/scan/page.tsx"
+    const wrapperPath = "components/customer/customer-qr-scanner-loader.tsx"
     const scannerPath = "components/customer/customer-qr-scanner.tsx"
 
     // When: the source files are inspected.
     expect(existsSync(pagePath)).toBe(true)
+    expect(existsSync(wrapperPath)).toBe(true)
     expect(existsSync(scannerPath)).toBe(true)
     const page = readProjectFile(pagePath)
+    const wrapper = readProjectFile(wrapperPath)
     const scanner = readProjectFile(scannerPath)
 
-    // Then: the route renders the scanner, and the client owns camera cleanup.
-    expect(page).toContain("CustomerQrScanner")
+    // Then: the route renders a lightweight client-only wrapper, and the
+    // scanner component owns camera cleanup.
+    expect(page).toContain("CustomerQrScannerLoader")
+    expect(page).toContain(
+      'from "@/components/customer/customer-qr-scanner-loader"'
+    )
+    expect(page).not.toContain("html5-qrcode")
+    expect(page).not.toContain(
+      'from "@/components/customer/customer-qr-scanner"'
+    )
+    expect(wrapper).toContain('"use client"')
+    expect(wrapper).toContain("dynamic(")
+    expect(wrapper).toContain("ssr: false")
+    expect(wrapper).toContain("loading:")
+    expect(wrapper).toContain("./customer-qr-scanner")
     expect(scanner).toContain('"use client"')
     expect(scanner).toContain("Html5Qrcode")
     expect(scanner).toContain("Html5QrcodeSupportedFormats.QR_CODE")

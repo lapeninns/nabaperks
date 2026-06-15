@@ -80,6 +80,10 @@ try {
       "supabase/tests/customer_marketing_consent.sql",
       "Customer marketing consent SQL test"
     )
+    await runFile(
+      "supabase/tests/performance_indexes.sql",
+      "Performance indexes SQL test"
+    )
   }
 
   console.log("Supabase SQL workflow completed.")

@@ -1,5 +1,7 @@
 import "server-only"
 
+import { cache } from "react"
+
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
@@ -35,7 +37,7 @@ export type LoyaltyCardSetup = {
   rewardPoolItems: RewardPoolItemSummary[]
 }
 
-export async function getLoyaltyCardSetup(): Promise<LoyaltyCardSetup> {
+async function getLoyaltyCardSetupUncached(): Promise<LoyaltyCardSetup> {
   const merchant = await getCurrentMerchant()
 
   if (!merchant) {
@@ -102,3 +104,5 @@ export async function getLoyaltyCardSetup(): Promise<LoyaltyCardSetup> {
     rewardPoolItems: rewardPoolItems ?? [],
   }
 }
+
+export const getLoyaltyCardSetup = cache(getLoyaltyCardSetupUncached)

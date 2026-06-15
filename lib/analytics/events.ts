@@ -54,7 +54,7 @@ export async function recordProductEvent(input: ProductEventInput) {
     throw new Error(`Unable to record product event: ${error.message}`)
   }
 
-  await capturePostHogEvent(input)
+  void capturePostHogEvent(input)
 }
 
 export async function capturePostHogEvent(input: ProductEventInput) {

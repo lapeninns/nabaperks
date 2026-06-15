@@ -15,7 +15,6 @@ const activeSourcePrefixes = [
 const activeSourceFiles = [
   "AGENTS.md",
   "DESIGN.md",
-  "nabaperks-micro-specs-final.md",
   "docs/ARCHITECTURE.md",
   "docs/CUSTOMER_FLOW.md",
   "docs/CUSTOMER_FLOW_SCREENSHOT_RUNBOOK.md",

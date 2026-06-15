@@ -5,6 +5,12 @@ function readProjectFile(path: string) {
   return readFileSync(path, "utf8")
 }
 
+function readMerchantDashboardSurface() {
+  return `${readProjectFile("app/app/page.tsx")}\n${readProjectFile(
+    "components/merchant/dashboard-home-streams.tsx"
+  )}`
+}
+
 describe("05 merchant launch readiness readback", () => {
   it("derives a four-step self-service launch checklist with a single next action", async () => {
     const { buildLaunchReadiness } =
@@ -54,7 +60,7 @@ describe("05 merchant launch readiness readback", () => {
   })
 
   it("threads launch readiness into the merchant dashboard and launch hub", () => {
-    const dashboardPage = readProjectFile("app/app/page.tsx")
+    const dashboardPage = readMerchantDashboardSurface()
     const launchPage = readProjectFile("app/app/launch/page.tsx")
     const panel = readProjectFile(
       "components/merchant/launch-readiness-panel.tsx"

@@ -2,9 +2,10 @@
 
 Last reviewed: 2026-06-15
 
-`nabaperks-micro-specs-final.md` is the binding product specification. This
-document summarizes the current repo shape after the static-QR self-service
-stamp model replaced the older approval flow.
+This document is the source-of-truth product specification (as-built). It
+summarizes the current repo shape after the static-QR self-service stamp model
+replaced the older approval flow. Binding cross-cutting rules live in
+`micro-specs/GLOBAL_CONTEXT.md`.
 
 ## 1. Product Summary
 

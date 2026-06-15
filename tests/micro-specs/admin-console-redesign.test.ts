@@ -46,7 +46,7 @@ describe("admin console redesign contracts", () => {
     expect(shellNavigation).toContain("SheetTitle")
     expect(shellNavigation).toContain("SheetDescription")
     expect(shellNavigation).toContain("aria-current")
-    expect(shellNavigation).toContain("className=\"justify-start")
+    expect(shellNavigation).toContain("justify-start")
   })
 
   it("uses shared data primitives and source-labelled support readbacks across admin pages", () => {

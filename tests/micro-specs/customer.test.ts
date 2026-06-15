@@ -213,7 +213,7 @@ describe("03 customer micro-specs", () => {
     expect(customerTabBar).toContain('pathname.startsWith("/reward/")')
 
     expect(experience).toContain("SelfServiceStampForm")
-    expect(loadStamp).toContain("getMembershipLocationRequirement")
+    expect(loadStamp).toContain("getMerchantStampLocationRequirement")
     expect(loadStamp).toContain("isRedeemableFrom")
     expect(stampPage).toContain("/reward/")
 

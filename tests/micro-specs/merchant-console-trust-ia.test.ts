@@ -1,10 +1,20 @@
 import { readFileSync } from "node:fs"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { createSupabaseMock } from "../helpers/supabase"
 
+afterEach(() => {
+  vi.useRealTimers()
+})
+
 function readProjectFile(path: string) {
   return readFileSync(path, "utf8")
+}
+
+function readMerchantDashboardSurface() {
+  return `${readProjectFile("app/app/page.tsx")}\n${readProjectFile(
+    "components/merchant/dashboard-home-streams.tsx"
+  )}`
 }
 
 describe("05 merchant console trust and IA cleanup", () => {
@@ -13,12 +23,12 @@ describe("05 merchant console trust and IA cleanup", () => {
       "micro-specs/05-merchant-value/02-merchant-console-trust-and-ia-cleanup.md"
     )
 
-    expect(spec).toContain("Do not use `nabaperks-micro-specs-final.md`")
+    expect(spec).toContain("as the source of truth for this work")
     expect(spec).toContain("Activity is a primary merchant navigation item")
     expect(spec).toContain("Merchant pages must not expose raw full phone")
     expect(spec).toContain("No new dependencies")
-    expect(spec).toContain("Counter handshakes")
-    expect(spec).toContain("outdated")
+    expect(spec).toContain("Alternate stamp verification mechanics")
+    expect(spec).toContain("do not override current code")
   })
 
   it("promotes Activity into primary merchant navigation and simplifies settings", () => {
@@ -32,7 +42,7 @@ describe("05 merchant console trust and IA cleanup", () => {
   })
 
   it("keeps healthy billing state out of dashboard KPI noise", () => {
-    const dashboard = readProjectFile("app/app/page.tsx")
+    const dashboard = readMerchantDashboardSurface()
 
     expect(dashboard).not.toContain('"Billing status"')
     expect(dashboard).toContain("MerchantBillingNotice")
@@ -41,7 +51,7 @@ describe("05 merchant console trust and IA cleanup", () => {
   })
 
   it("uses one billing status copy model across dashboard and billing pages", () => {
-    const dashboard = readProjectFile("app/app/page.tsx")
+    const dashboard = readMerchantDashboardSurface()
     const billingPage = readProjectFile("app/app/billing/page.tsx")
 
     expect(dashboard).toContain("MerchantBillingNotice")

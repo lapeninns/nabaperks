@@ -2,7 +2,7 @@ import "server-only"
 
 import { getCustomerCardState } from "@/lib/customer/card"
 import { getStampQrContextForMembership } from "@/lib/customer/join"
-import { getMembershipLocationRequirement } from "@/lib/customer/stamp"
+import { getMerchantStampLocationRequirement } from "@/lib/customer/stamp"
 import { isRedeemableFrom, ukTodayIso } from "@/lib/customer/uk-date"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
@@ -117,7 +117,9 @@ export async function loadStampExperienceContext(
     }
   }
 
-  const location = await getMembershipLocationRequirement(membershipId)
+  const location = await getMerchantStampLocationRequirement(
+    cardState.merchant.id
+  )
 
   return {
     membershipId,

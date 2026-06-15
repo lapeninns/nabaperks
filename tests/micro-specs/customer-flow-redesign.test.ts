@@ -69,10 +69,10 @@ describe("customer flow Wet Ink redesign", () => {
     expect(read("components/customer/join-forms.tsx")).toContain("JOIN_PHONE_CODE_HINT")
     expect(read("components/customer/join-forms.tsx")).toContain("JOIN_PHONE_BACK_LABEL")
     expect(read("components/customer/join-forms.tsx")).toContain("joinWelcomeHref")
-    expect(read("components/customer/join-wizard.tsx")).toContain(
+    expect(read("components/customer/join-welcome-step.tsx")).toContain(
       "JOIN_WELCOME_HOW_IT_WORKS"
     )
-    expect(read("components/customer/join-wizard.tsx")).toContain(
+    expect(read("components/customer/join-welcome-step.tsx")).toContain(
       "StampJourneyPreview"
     )
     expect(joinPage).not.toContain(

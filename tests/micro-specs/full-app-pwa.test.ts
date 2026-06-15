@@ -64,6 +64,10 @@ describe("full-app PWA", () => {
     expect(pwaBootstrap).toContain("!hasMounted")
     expect(pwaBootstrap).toContain("Add to Home Screen")
     expect(pwaBootstrap).toContain("isEditableTarget")
+    expect(pwaBootstrap).toContain("requestIdleCallback")
+    expect(pwaBootstrap).toContain('addEventListener("load"')
+    expect(pwaBootstrap).toContain('removeEventListener("load"')
+    expect(pwaBootstrap).toContain("cancelIdleCallback")
   })
 
   it("uses keyboard-safe dynamic viewport shells on mobile auth surfaces", () => {

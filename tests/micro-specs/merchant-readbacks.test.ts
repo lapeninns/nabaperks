@@ -1,10 +1,20 @@
 import { readFileSync } from "node:fs"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { createSupabaseMock } from "../helpers/supabase"
 
+afterEach(() => {
+  vi.useRealTimers()
+})
+
 function readProjectFile(path: string) {
   return readFileSync(path, "utf8")
+}
+
+function readMerchantDashboardSurface() {
+  return `${readProjectFile("app/app/page.tsx")}\n${readProjectFile(
+    "components/merchant/dashboard-home-streams.tsx"
+  )}`
 }
 
 function redirectMock() {
@@ -48,6 +58,7 @@ async function captureErrorMessage(action: () => Promise<unknown>) {
 describe("05 merchant shell, dashboard, customers, activity, and billing readbacks", () => {
   it("keeps the merchant app protected shell and responsive navigation contract", () => {
     const layout = readProjectFile("app/app/layout.tsx")
+    const loading = readProjectFile("app/app/loading.tsx")
     const shell = readProjectFile("components/layout/merchant-app-shell.tsx")
     const navigation = readProjectFile("components/layout/shell-navigation.tsx")
 
@@ -80,6 +91,21 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     // Account group renders alongside the primary nav on mobile and desktop.
     expect(navigation).toContain("secondaryItems")
     expect(navigation).toContain("aria-label={`${secondaryLabel} mobile`}")
+    expect(navigation).toContain(
+      'import Link, { useLinkStatus } from "next/link"'
+    )
+    expect(navigation).toContain("function NavPendingIndicator")
+    expect(navigation).toContain("useLinkStatus()")
+    expect(navigation).toContain("<NavPendingIndicator />")
+    expect(navigation).toContain("size-1.5")
+    expect(navigation).toContain("opacity-0")
+
+    expect(loading).toContain(
+      'import { Skeleton } from "@/components/ui/skeleton"'
+    )
+    expect(loading).toContain('aria-label="Loading merchant workspace"')
+    expect(loading).toContain("min-h-[")
+    expect(loading).not.toContain("Card")
   })
 
   it("preserves the dashboard onboarding gate, merchant-scoped read, and analytics event", async () => {
@@ -141,8 +167,14 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     vi.doMock("@/lib/analytics/events", () => ({ capturePostHogEvent }))
 
     const { default: MerchantAppPage } = await import("@/app/app/page")
+    const { MerchantCompactActivityStream, MerchantDashboardStream } =
+      await import("@/components/merchant/dashboard-home-streams")
 
     await expect(MerchantAppPage()).resolves.toBeDefined()
+    await expect(MerchantDashboardStream({ merchant })).resolves.toBeDefined()
+    await expect(
+      MerchantCompactActivityStream({ merchantId: merchant.id })
+    ).resolves.toBeDefined()
     expect(redirect).not.toHaveBeenCalled()
     expect(getMerchantDashboardData).toHaveBeenCalledWith(merchant)
     expect(getEnrichedMerchantActivity).toHaveBeenCalledWith("merchant-1", {
@@ -157,7 +189,7 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
   })
 
   it("renders dashboard KPI, billing state, empty, launch QR, and activity readback copy", () => {
-    const dashboard = readProjectFile("app/app/page.tsx")
+    const dashboard = readMerchantDashboardSurface()
     const billingStatus = readProjectFile(
       "components/merchant/billing-status.tsx"
     )
@@ -195,6 +227,11 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     expect(dashboard).toContain("Estimate only")
     expect(dashboard).toContain("ActivityCompactFeed")
     expect(dashboard).toContain("getEnrichedMerchantActivity")
+    expect(dashboard).toContain(
+      "<Suspense fallback={<MerchantDashboardSkeleton />}>"
+    )
+    expect(dashboard).toContain("<MerchantDashboardStream")
+    expect(dashboard).toContain("<MerchantCompactActivityStream")
   })
 
   it("fetches dashboard metrics, customers, and activity only for the current merchant", async () => {
@@ -341,7 +378,9 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     expect(activity.totalCount).toBe(2)
     expect(activity.loadedCount).toBe(2)
     expect(activity.rows).toHaveLength(1)
-    expect(activity.rows[0].headline).toBe("s***@example.test collected stamp 2")
+    expect(activity.rows[0].headline).toBe(
+      "s***@example.test collected stamp 2"
+    )
     expect(activity.rows[0].summary).toContain("grouped into one visit")
     expect(activity.rows[0].details.map((detail) => detail.label)).toContain(
       "Claim opened"
@@ -518,8 +557,13 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
 
     expect(activityPage).toContain("getCurrentMerchant")
     expect(activityPage).toContain(
-      "getEnrichedMerchantActivity(merchant.id, { limit })"
+      "getEnrichedMerchantActivity(merchantId, { limit })"
     )
+    expect(activityPage).toContain("async function ActivityFeedStream")
+    expect(activityPage).toContain(
+      "<Suspense fallback={<ActivityFeedSkeleton />}>"
+    )
+    expect(activityPage).toContain("<ActivityFeedStream")
     expect(activityPage).toContain("ActivityDetailFeed")
     expect(activityFeed).toContain("<time")
     expect(activityFeed).toContain("aria-pressed")

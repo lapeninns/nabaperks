@@ -9,7 +9,7 @@ describe("customer legal sheets", () => {
   it("keeps join consent links in scrollable sheets instead of route hops", () => {
     const legalSheet = read("components/customer/legal-sheet.tsx")
     const joinForms = read("components/customer/join-forms.tsx")
-    const joinWizard = read("components/customer/join-wizard.tsx")
+    const joinWelcomeStep = read("components/customer/join-welcome-step.tsx")
     const landingPage = read("app/m/[merchantSlug]/page.tsx")
 
     expect(legalSheet).toContain('"use client"')
@@ -21,8 +21,8 @@ describe("customer legal sheets", () => {
     expect(joinForms).not.toContain('href="/terms"')
     expect(joinForms).not.toContain('href="/privacy"')
 
-    expect(joinWizard).toContain("CustomerVenueTermsSheet")
-    expect(joinWizard).not.toContain("exp.merchant.termsUrl")
+    expect(joinWelcomeStep).toContain("CustomerVenueTermsSheet")
+    expect(joinWelcomeStep).not.toContain("exp.merchant.termsUrl")
 
     expect(landingPage).toContain("CustomerVenueTermsSheet")
     expect(landingPage).not.toContain("`/merchant/${merchantSlug}/terms`")

@@ -1,5 +1,7 @@
 import "server-only"
 
+import { cache } from "react"
+
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
@@ -34,7 +36,7 @@ export type QrSetup = {
   qrCode: QrCodeSummary | null
 }
 
-export async function getQrSetup(): Promise<QrSetup> {
+async function getQrSetupUncached(): Promise<QrSetup> {
   const merchant = await getCurrentMerchant()
 
   if (!merchant) {
@@ -97,41 +99,46 @@ export async function getQrSetup(): Promise<QrSetup> {
     }
   }
 
-  const { count: activeRewardPoolItemCount, error: poolError } = await supabase
-    .from("reward_pool_items")
-    .select("id", { count: "exact", head: true })
-    .eq("merchant_id", merchant.id)
-    .eq("location_id", location.id)
-    .eq("loyalty_card_id", activeCard.id)
-    .eq("is_active", true)
+  const [rewardPoolStatus, qrCodeStatus] = await Promise.all([
+    supabase
+      .from("reward_pool_items")
+      .select("id", { count: "exact", head: true })
+      .eq("merchant_id", merchant.id)
+      .eq("location_id", location.id)
+      .eq("loyalty_card_id", activeCard.id)
+      .eq("is_active", true),
+    supabase
+      .from("qr_codes")
+      .select("id, qr_id, destination_type, is_active")
+      .eq("merchant_id", merchant.id)
+      .eq("location_id", location.id)
+      .eq("destination_type", "join")
+      .order("is_active", { ascending: false })
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ])
 
-  if (poolError) {
-    throw new Error(`Unable to load reward pool status: ${poolError.message}`)
+  if (rewardPoolStatus.error) {
+    throw new Error(
+      `Unable to load reward pool status: ${rewardPoolStatus.error.message}`
+    )
   }
 
-  const { data: qrCode, error: qrError } = await supabase
-    .from("qr_codes")
-    .select("id, qr_id, destination_type, is_active")
-    .eq("merchant_id", merchant.id)
-    .eq("location_id", location.id)
-    .eq("destination_type", "join")
-    .order("is_active", { ascending: false })
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle()
-
-  if (qrError) {
-    throw new Error(`Unable to load QR code: ${qrError.message}`)
+  if (qrCodeStatus.error) {
+    throw new Error(`Unable to load QR code: ${qrCodeStatus.error.message}`)
   }
 
   return {
     merchant,
     location,
     activeCard,
-    activeRewardPoolItemCount: activeRewardPoolItemCount ?? 0,
-    qrCode,
+    activeRewardPoolItemCount: rewardPoolStatus.count ?? 0,
+    qrCode: qrCodeStatus.data,
   }
 }
+
+export const getQrSetup = cache(getQrSetupUncached)
 
 export async function getOwnedQrAssetContext(qrCodeId: string) {
   const { merchant, location, activeCard } = await getQrSetup()

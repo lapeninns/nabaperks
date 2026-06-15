@@ -21,15 +21,16 @@ In scope:
 Out of scope:
 
 - New schema, migrations, or customer identity collection changes.
-- Counter handshakes, staff secrets, or alternate stamp mechanics.
+- Alternate stamp verification mechanics or staff secrets.
 - Invoice history, Stripe portal redesign, or billing plan changes.
 - CRM segmentation, campaigns, exports, or advanced analytics.
 - Redesigning QR, card, reward, or customer-facing flows.
 
 ## Strict Constraints and Assumptions
 
-- Do not use `nabaperks-micro-specs-final.md` as the source of truth for this
-  work because it is outdated.
+- Use live code and the as-built docs (`docs/ARCHITECTURE.md`,
+  `docs/PROJECT_SPEC.md`) as the source of truth for this work. Older specs
+  do not override current code.
 - Preserve the permanent venue QR and self-service customer flow.
 - Merchant pages must not expose raw full phone numbers or raw email addresses
   by default.

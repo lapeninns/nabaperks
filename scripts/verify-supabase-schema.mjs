@@ -1,5 +1,12 @@
 import { readdirSync, readFileSync } from "node:fs"
 
+import {
+  requiredHelpers,
+  requiredPerformanceIndexes,
+  requiredTestMarkers,
+  tables,
+} from "./verify-supabase-schema-rules.mjs"
+
 const migration = readFileSync(
   "supabase/migrations/20260606142000_initial_schema_rls.sql",
   "utf8"
@@ -11,69 +18,7 @@ const migrations = readdirSync("supabase/migrations")
   .join("\n")
 const tenantTest = readFileSync("supabase/tests/tenant_isolation.sql", "utf8")
 
-const tables = [
-  "internal_admins",
-  "merchants",
-  "merchant_locations",
-  "staff_users",
-  "loyalty_cards",
-  "reward_pool_items",
-  "qr_codes",
-  "customers",
-  "customer_memberships",
-  "stamp_events",
-  "reward_events",
-  "fraud_flags",
-  "rate_limit_buckets",
-  "consent_records",
-  "billing_customers",
-  "audit_logs",
-  "product_events",
-]
-
 const serviceRoleOnlyTables = new Set()
-
-const requiredHelpers = [
-  "is_internal_admin",
-  "is_merchant_owner",
-  "is_customer_owner",
-  "is_staff_for_merchant",
-  "customer_has_membership",
-  "merchant_can_access_customer",
-  "uk_business_date",
-  "next_uk_business_date",
-  "enforce_rate_limit",
-  "create_merchant_onboarding",
-  "save_loyalty_card",
-  "upsert_reward_pool_item",
-  "delete_reward_pool_item",
-  "create_or_get_join_qr",
-  "set_qr_active",
-  "record_qr_download",
-  "join_customer_membership",
-  "add_staff_member",
-  "set_staff_member_active",
-  "geo_distance_meters",
-  "record_self_service_geo_flag",
-  "issue_self_service_stamp",
-  "redeem_self_service_reward",
-  "admin_adjust_membership_stamps",
-  "admin_cancel_reward",
-  "admin_set_qr_active",
-  "admin_regenerate_qr_code",
-  "admin_record_consent_opt_out",
-  "admin_log_data_request",
-  "admin_log_pilot_note",
-]
-
-const requiredTestMarkers = [
-  "merchant owner A saw",
-  "merchant owner B saw",
-  "customer A saw",
-  "customer B saw",
-  "admin audit readback",
-  "anon direct table access unexpectedly succeeded",
-]
 
 const failures = []
 
@@ -116,6 +61,12 @@ for (const helper of requiredHelpers) {
 for (const marker of requiredTestMarkers) {
   if (!tenantTest.includes(marker)) {
     failures.push(`tenant test missing marker: ${marker}`)
+  }
+}
+
+for (const indexName of requiredPerformanceIndexes) {
+  if (!migrations.includes(indexName)) {
+    failures.push(`missing performance index: ${indexName}`)
   }
 }
 

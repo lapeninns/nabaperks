@@ -2,8 +2,9 @@
 
 Last reviewed: 2026-06-15
 
-This map reflects the static-QR self-service stamp implementation. The binding
-spec remains `nabaperks-micro-specs-final.md`.
+This map reflects the static-QR self-service stamp implementation and is the
+as-built source of truth for the system. Binding cross-cutting rules live in
+`micro-specs/GLOBAL_CONTEXT.md`; the `micro-specs/` folder is the intent backlog.
 
 ## 1. System Summary
 

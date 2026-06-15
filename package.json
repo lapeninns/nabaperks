@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "perf:routes": "node scripts/perf-routes.mjs",
     "db:migrate": "node scripts/run-supabase-sql.mjs --apply",
     "db:reset": "node scripts/run-supabase-sql.mjs --reset",
     "db:clean:customers": "node scripts/run-supabase-sql.mjs --reset-customers",

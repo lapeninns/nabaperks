@@ -1,6 +1,6 @@
 "use client"
 
-import Link from "next/link"
+import Link, { useLinkStatus } from "next/link"
 import { usePathname } from "next/navigation"
 
 import { cn } from "@/lib/utils"
@@ -44,7 +44,8 @@ export function ShellNavigation({
   desktopClassName?: string
 }) {
   const pathname = usePathname()
-  const hasSecondary = Boolean(secondaryItems && secondaryItems.length > 0)
+  const secondaryNavItems = secondaryItems ?? []
+  const hasSecondary = secondaryNavItems.length > 0
 
   return (
     <>
@@ -60,19 +61,12 @@ export function ShellNavigation({
           const active = isActivePath(pathname, item.href)
 
           return (
-            <Link
+            <ShellNavLink
               key={item.href}
-              href={item.href}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "inline-flex items-center rounded-full px-3 py-1.5 text-sm font-bold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/35",
-                active
-                  ? "bg-ink text-paper"
-                  : "text-ink-soft hover:bg-accent hover:text-foreground"
-              )}
-            >
-              {item.label}
-            </Link>
+              item={item}
+              active={active}
+              className="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-bold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+            />
           )
         })}
       </nav>
@@ -86,23 +80,16 @@ export function ShellNavigation({
             desktopClassName
           )}
         >
-          {secondaryItems!.map((item) => {
+          {secondaryNavItems.map((item) => {
             const active = isActivePath(pathname, item.href)
 
             return (
-              <Link
+              <ShellNavLink
                 key={item.href}
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "inline-flex items-center rounded-full px-3 py-1.5 text-sm font-bold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/35",
-                  active
-                    ? "bg-ink text-paper"
-                    : "text-ink-soft hover:bg-accent hover:text-foreground"
-                )}
-              >
-                {item.label}
-              </Link>
+                item={item}
+                active={active}
+                className="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-bold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+              />
             )
           })}
         </nav>
@@ -125,14 +112,12 @@ export function ShellNavigation({
 
               return (
                 <SheetClose key={item.href} asChild>
-                  <Link
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    data-active={active}
-                    className="justify-start inline-flex min-h-11 w-full items-center rounded-full px-4 text-sm font-bold text-ink-soft transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/35 data-[active=true]:bg-ink data-[active=true]:text-paper"
-                  >
-                    {item.label}
-                  </Link>
+                  <ShellNavLink
+                    item={item}
+                    active={active}
+                    className="inline-flex min-h-11 w-full items-center justify-start rounded-full px-4 text-sm font-bold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+                    mobile
+                  />
                 </SheetClose>
               )
             })}
@@ -143,22 +128,20 @@ export function ShellNavigation({
               aria-label={`${secondaryLabel} mobile`}
               className="mt-4 grid gap-1 border-t-2 border-ink/15 px-6 pt-4"
             >
-              <p className="px-4 pb-1 font-mono text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+              <p className="px-4 pb-1 font-mono text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
                 {secondaryLabel}
               </p>
-              {secondaryItems!.map((item) => {
+              {secondaryNavItems.map((item) => {
                 const active = isActivePath(pathname, item.href)
 
                 return (
                   <SheetClose key={item.href} asChild>
-                    <Link
-                      href={item.href}
-                      aria-current={active ? "page" : undefined}
-                      data-active={active}
-                      className="justify-start inline-flex min-h-11 w-full items-center rounded-full px-4 text-sm font-bold text-ink-soft transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/35 data-[active=true]:bg-ink data-[active=true]:text-paper"
-                    >
-                      {item.label}
-                    </Link>
+                    <ShellNavLink
+                      item={item}
+                      active={active}
+                      className="inline-flex min-h-11 w-full items-center justify-start rounded-full px-4 text-sm font-bold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+                      mobile
+                    />
                   </SheetClose>
                 )
               })}
@@ -167,5 +150,47 @@ export function ShellNavigation({
         </SheetContent>
       </Sheet>
     </>
+  )
+}
+
+function ShellNavLink({
+  item,
+  active,
+  className,
+  mobile = false,
+}: {
+  item: ShellNavItem
+  active: boolean
+  className: string
+  mobile?: boolean
+}) {
+  return (
+    <Link
+      href={item.href}
+      aria-current={active ? "page" : undefined}
+      data-active={active}
+      className={cn(
+        className,
+        active
+          ? "bg-ink text-paper"
+          : "text-ink-soft hover:bg-accent hover:text-foreground",
+        mobile && "gap-2"
+      )}
+    >
+      <span className="truncate">{item.label}</span>
+      <NavPendingIndicator />
+    </Link>
+  )
+}
+
+function NavPendingIndicator() {
+  const { pending } = useLinkStatus()
+
+  return (
+    <span
+      aria-hidden="true"
+      data-pending={pending}
+      className="ml-1 size-1.5 shrink-0 rounded-full bg-current opacity-0 transition-opacity delay-100 duration-150 data-[pending=true]:opacity-60"
+    />
   )
 }

@@ -20,16 +20,31 @@ type BeforeInstallPromptEvent = Event & {
 
 type AppSurface = "admin" | "customer" | "marketing" | "merchant"
 
-type InstallCopy = {
-  readonly title: string
-  readonly description: string
-}
+type InstallCopy = { readonly title: string; readonly description: string }
 
 const DISMISS_STORAGE_KEY = "nabaperks:pwa-install-dismissed:v2"
 const CUSTOMER_PREFIXES = ["/home", "/card", "/reward", "/m", "/q"] as const
 const MERCHANT_PREFIXES = ["/app", "/login", "/signup"] as const
 const IOS_INSTALL_DESCRIPTION =
   "On iPhone, open Safari's Share menu, then choose Add to Home Screen."
+const INSTALL_COPY = {
+  admin: {
+    title: "Install Nabaperks admin",
+    description: "Open support tools from your device without finding a tab.",
+  },
+  customer: {
+    title: "Install My Nabaperks",
+    description: "Keep your loyalty cards one tap from the home screen.",
+  },
+  marketing: {
+    title: "Install Nabaperks",
+    description: "Keep Nabaperks handy on this device.",
+  },
+  merchant: {
+    title: "Install Nabaperks merchant",
+    description: "Keep the counter console ready on this device.",
+  },
+} as const satisfies Record<AppSurface, InstallCopy>
 
 function isBeforeInstallPromptEvent(
   event: Event
@@ -51,32 +66,6 @@ function routeSurface(pathname: string): AppSurface {
   }
 
   return "marketing"
-}
-
-function installCopy(surface: AppSurface): InstallCopy {
-  switch (surface) {
-    case "admin":
-      return {
-        title: "Install Nabaperks admin",
-        description:
-          "Open support tools from your device without finding a tab.",
-      }
-    case "customer":
-      return {
-        title: "Install My Nabaperks",
-        description: "Keep your loyalty cards one tap from the home screen.",
-      }
-    case "merchant":
-      return {
-        title: "Install Nabaperks merchant",
-        description: "Keep the counter console ready on this device.",
-      }
-    case "marketing":
-      return {
-        title: "Install Nabaperks",
-        description: "Keep Nabaperks handy on this device.",
-      }
-  }
 }
 
 function readDismissedPreference(): boolean {
@@ -112,11 +101,9 @@ function isIosDevice(): boolean {
 }
 
 function isAppleStandalone(): boolean {
-  const navigator = window.navigator as Navigator & {
-    readonly standalone?: boolean
-  }
-
-  return navigator.standalone === true
+  return (
+    "standalone" in window.navigator && window.navigator.standalone === true
+  )
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -135,7 +122,7 @@ export function AppPwa() {
   const [isEditingText, setIsEditingText] = useState(false)
   const [dismissed, setDismissed] = useState(false)
 
-  const copy = useMemo(() => installCopy(routeSurface(pathname)), [pathname])
+  const copy = useMemo(() => INSTALL_COPY[routeSurface(pathname)], [pathname])
 
   useEffect(() => {
     const displayModeQuery = window.matchMedia("(display-mode: standalone)")
@@ -146,24 +133,36 @@ export function AppPwa() {
       setIsStandalone(displayModeQuery.matches || isAppleStandalone())
     }
     const browserStateTimer = window.setTimeout(syncBrowserState, 0)
+    let serviceWorkerTimer: number | null = null
+    let serviceWorkerIdleHandle: number | null = null
 
-    async function registerServiceWorker(): Promise<void> {
-      try {
-        await window.navigator.serviceWorker.register("/sw.js", {
-          scope: "/",
-          updateViaCache: "none",
+    const registerServiceWorker = () => {
+      void window.navigator.serviceWorker
+        .register("/sw.js", { scope: "/", updateViaCache: "none" })
+        .catch((error: unknown) => {
+          if (!(error instanceof Error)) throw error
         })
-      } catch (error) {
-        if (error instanceof Error) {
-          return
-        }
-
-        throw error
-      }
     }
 
-    if ("serviceWorker" in window.navigator) {
-      void registerServiceWorker()
+    const scheduleServiceWorkerRegistration = () => {
+      if (!("serviceWorker" in window.navigator)) return
+
+      if (typeof window.requestIdleCallback === "function") {
+        serviceWorkerIdleHandle = window.requestIdleCallback(
+          registerServiceWorker
+        )
+        return
+      }
+
+      serviceWorkerTimer = window.setTimeout(registerServiceWorker, 1)
+    }
+
+    if (document.readyState === "complete") {
+      scheduleServiceWorkerRegistration()
+    } else {
+      window.addEventListener("load", scheduleServiceWorkerRegistration, {
+        once: true,
+      })
     }
 
     const updateStandaloneState = () => {
@@ -174,24 +173,33 @@ export function AppPwa() {
 
     return () => {
       window.clearTimeout(browserStateTimer)
+      window.removeEventListener("load", scheduleServiceWorkerRegistration)
+      if (serviceWorkerIdleHandle !== null)
+        window.cancelIdleCallback(serviceWorkerIdleHandle)
+      if (serviceWorkerTimer !== null) window.clearTimeout(serviceWorkerTimer)
       displayModeQuery.removeEventListener("change", updateStandaloneState)
     }
   }, [])
 
   useEffect(() => {
+    let focusOutTimer: number | null = null
+    const updateEditingState = () => {
+      focusOutTimer = null
+      setIsEditingText(isEditableTarget(document.activeElement))
+    }
     const onFocusIn = (event: FocusEvent) => {
       setIsEditingText(isEditableTarget(event.target))
     }
     const onFocusOut = () => {
-      window.setTimeout(() => {
-        setIsEditingText(isEditableTarget(document.activeElement))
-      }, 0)
+      if (focusOutTimer !== null) window.clearTimeout(focusOutTimer)
+      focusOutTimer = window.setTimeout(updateEditingState, 0)
     }
 
     window.addEventListener("focusin", onFocusIn)
     window.addEventListener("focusout", onFocusOut)
 
     return () => {
+      if (focusOutTimer !== null) window.clearTimeout(focusOutTimer)
       window.removeEventListener("focusin", onFocusIn)
       window.removeEventListener("focusout", onFocusOut)
     }

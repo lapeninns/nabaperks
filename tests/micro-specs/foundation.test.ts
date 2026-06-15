@@ -17,6 +17,12 @@ function readProjectFile(path: string) {
   return readFileSync(path, "utf8")
 }
 
+function readMerchantDashboardSurface() {
+  return `${readProjectFile("app/app/page.tsx")}\n${readProjectFile(
+    "components/merchant/dashboard-home-streams.tsx"
+  )}`
+}
+
 function runScript(path: string) {
   return spawnSync(process.execPath, [path], {
     cwd: projectDir,
@@ -262,7 +268,7 @@ describe("00/01 foundation micro-specs", () => {
   it("applies tactile and brand hierarchy primitives on representative real surfaces", () => {
     const logo = readProjectFile("components/brand/logo.tsx")
     const homePage = readProjectFile("app/page.tsx")
-    const merchantDashboard = readProjectFile("app/app/page.tsx")
+    const merchantDashboard = readMerchantDashboardSurface()
     const adminHome = readProjectFile("app/admin/page.tsx")
     const activityPage = readProjectFile("app/app/activity/page.tsx")
     const auditPage = readProjectFile("app/admin/audit/page.tsx")

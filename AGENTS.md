@@ -26,8 +26,8 @@ Project context and stack decisions for AI agents working in this repo.
 
 ## Spec pack and global context
 
-`nabaperks-micro-specs-final.md` (v3) is the binding micro-spec pack. Its
-"Global Context for AI Agents" applies to all work in this repo; the essentials:
+`micro-specs/GLOBAL_CONTEXT.md` holds the binding cross-cutting rules that
+apply to all work in this repo; the essentials:
 
 ### Product assumptions
 
