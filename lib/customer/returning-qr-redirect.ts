@@ -8,12 +8,16 @@ import {
   getMerchantJoinContext,
   getStampQrContextForMembership,
 } from "@/lib/customer/join"
-import { issueSelfServiceStamp } from "@/lib/customer/stamp"
+import {
+  issueSelfServiceStamp,
+  type GeoCoordinates,
+} from "@/lib/customer/stamp"
 import { isRedeemableFrom } from "@/lib/customer/uk-date"
 
 type ReturningQrRedirectOptions = {
   /** When true, issue today's stamp immediately after QR identity verification. */
   readonly issueStamp: boolean
+  readonly coordinates?: GeoCoordinates
 }
 
 /**
@@ -38,7 +42,9 @@ export async function destinationForReturningQrVisit(
 
   if (!context?.available) return null
 
-  const membership = await getExistingMembershipForCurrentUser(context.merchant.id)
+  const membership = await getExistingMembershipForCurrentUser(
+    context.merchant.id
+  )
   if (!membership) return null
 
   const stampPath = `/card/${membership.id}/stamp?qr=${encodeURIComponent(qrId)}`
@@ -52,7 +58,10 @@ export async function destinationForReturningQrVisit(
   if (!qrContext) return cardPath
 
   const cardState = await getCustomerCardState(membership.id)
-  if (cardState.status === "ready" && cardState.latestReward?.status === "unlocked") {
+  if (
+    cardState.status === "ready" &&
+    cardState.latestReward?.status === "unlocked"
+  ) {
     if (isRedeemableFrom(cardState.latestReward.redeemable_from)) {
       return `/reward/${cardState.latestReward.id}`
     }
@@ -60,7 +69,7 @@ export async function destinationForReturningQrVisit(
     return cardPath
   }
 
-  const result = await issueSelfServiceStamp(membership.id)
+  const result = await issueSelfServiceStamp(membership.id, options.coordinates)
 
   if (result.status === "issued") {
     await capturePostHogEvent({

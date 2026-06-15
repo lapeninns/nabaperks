@@ -43,7 +43,7 @@ export default async function HomeProfilePage() {
 
       {incomplete ? (
         <StatusBanner title="Finish your details" tone="warning">
-          Add your name and date of birth so you&apos;re ready to redeem.
+          Add your name and date of birth so rewards are ready for collection.
         </StatusBanner>
       ) : null}
 

@@ -135,20 +135,7 @@ describe("05/07 analytics, dashboard, and compliance micro-specs", () => {
         ],
         stamp_events: [{ count: 18, error: null }],
         reward_events: [{ count: 3, error: null }],
-        product_events: [
-          { count: 5, error: null },
-          {
-            data: [
-              {
-                id: "event-1",
-                event_name: "stamp_issued",
-                created_at: "2026-06-06T11:00:00.000Z",
-                metadata: { approved_by: "staff_pin" },
-              },
-            ],
-            error: null,
-          },
-        ],
+        product_events: [{ count: 5, error: null }],
         billing_customers: [{ data: { status: "active" }, error: null }],
       },
     })
@@ -178,12 +165,16 @@ describe("05/07 analytics, dashboard, and compliance micro-specs", () => {
         estimatedRepeatRevenuePence: 4800,
       },
       billingStatus: "active",
-      recentActivity: [{ id: "event-1", event_name: "stamp_issued" }],
     })
     expect(supabase.queryCalls).toContainEqual({
       table: "customer_memberships",
       method: "gte",
       args: ["created_at", "2026-05-30T12:00:00.000Z"],
+    })
+    expect(supabase.queryCalls).not.toContainEqual({
+      table: "product_events",
+      method: "limit",
+      args: [6],
     })
     vi.useRealTimers()
   })

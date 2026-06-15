@@ -18,7 +18,7 @@ import {
   PreviewProfileGate,
   PreviewProfileMarketing,
   PreviewProfileMeta,
-  PreviewRedeemButton,
+  PreviewRewardQrButton,
   PreviewStampButton,
 } from "@/app/dev/customer-flow/preview/mock-forms"
 import { UnlockingReminder } from "@/components/customer/join-wizard"
@@ -129,7 +129,7 @@ function PreviewProfileScreen({
       <div className="grid gap-6">
         {variant === "incomplete" ? (
           <StatusBanner title="Finish your details" tone="warning">
-            Add your name and date of birth so you&apos;re ready to redeem.
+            Add your name and date of birth so rewards are ready for collection.
           </StatusBanner>
         ) : null}
 
@@ -236,9 +236,7 @@ function PreviewJoinScreen({
       {variant === "phone" ? (
         <PreviewIdentityForm variant="phone-filled" />
       ) : null}
-      {variant === "otp" ? (
-        <PreviewIdentityForm variant="otp-sent" />
-      ) : null}
+      {variant === "otp" ? <PreviewIdentityForm variant="otp-sent" /> : null}
       {variant === "terms" ? <PreviewJoinTermsForm /> : null}
     </CustomerFlowShell>
   )
@@ -253,6 +251,7 @@ function previewJoinStepVm(variant: "phone" | "otp" | "terms") {
       card: PREVIEW_JOIN_CARD,
       qrId: CUSTOMER_FLOW_MOCK.qrId,
       contact: CUSTOMER_FLOW_MOCK.phone,
+      location: { requireGeofence: false, geofenceRadiusMeters: 150 },
     })
   }
   if (variant === "terms") {
@@ -286,8 +285,8 @@ function PreviewStampConfirmScreen() {
           eyebrow="Today's visit"
         >
           <StatusBanner title="Ready to add today's stamp." tone="success">
-            Tap once while you are at the venue. Stamps are limited to one per UK
-            business day.
+            Tap once while you are at the venue. Stamps are limited to one per
+            UK business day.
           </StatusBanner>
           <CustomerActionNote
             title="The printed QR ties this to the venue"
@@ -299,7 +298,9 @@ function PreviewStampConfirmScreen() {
           <PreviewStampButton />
         </CustomerReceipt>
         <Button asChild size="lg" variant="secondary" className="w-full">
-          <Link href={customerFlowPreviewPath("card-1-of-3")}>Back to card</Link>
+          <Link href={customerFlowPreviewPath("card-1-of-3")}>
+            Back to card
+          </Link>
         </Button>
       </section>
     </CustomerFlowShell>
@@ -327,16 +328,14 @@ function PreviewCardScreen({
   // Mirror the shipped panel: the action band wins, so the reward copy condenses
   // unless the band is purely informational (a freshly issued stamp).
   const hasPrimaryAction = rewardUnlocked || !stampIssued
-  const rewardDescription = rewardUnlocked
-    ? undefined
-    : hasPrimaryAction
-      ? "Mystery reward stays sealed until the final stamp."
-      : (
-          <>
-            Mystery reward stays sealed until the final stamp.{" "}
-            {CUSTOMER_FLOW_MOCK.rewardTerms}
-          </>
-        )
+  const rewardDescription = rewardUnlocked ? undefined : hasPrimaryAction ? (
+    "Mystery reward stays sealed until the final stamp."
+  ) : (
+    <>
+      Mystery reward stays sealed until the final stamp.{" "}
+      {CUSTOMER_FLOW_MOCK.rewardTerms}
+    </>
+  )
 
   return (
     <CustomerFlowShell
@@ -491,7 +490,10 @@ function PreviewRewardScreen({
                 <>
                   {" "}
                   Minimum spend{" "}
-                  {formatMockPence(CUSTOMER_FLOW_MOCK.assignedRewardMinSpendPence)}.
+                  {formatMockPence(
+                    CUSTOMER_FLOW_MOCK.assignedRewardMinSpendPence
+                  )}
+                  .
                 </>
               ) : null}
             </>
@@ -504,18 +506,18 @@ function PreviewRewardScreen({
               title="A few details before this one's yours"
               tone="neutral"
             >
-              Add your name and date of birth to redeem. Email is optional - add
-              one to get reward updates.
+              Add your name and date of birth before collection. Email is
+              optional - add one to get reward updates.
             </StatusBanner>
             <PreviewProfileGate />
           </>
         ) : redeemable ? (
           <>
-            <StatusBanner title="Ready to redeem." tone="success">
-              Tap redeem while you are at the venue, then show the redeemed card if
-              asked.
+            <StatusBanner title="Ready for merchant scan." tone="success">
+              Show this QR while you are at the venue. The merchant scans it
+              from their device.
             </StatusBanner>
-            <PreviewRedeemButton />
+            <PreviewRewardQrButton />
           </>
         ) : (
           <>

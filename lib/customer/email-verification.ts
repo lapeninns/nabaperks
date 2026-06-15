@@ -15,10 +15,11 @@ type EmailVerificationCheckResult =
   | { status: "rejected" }
 
 /**
- * Email verification for the redeem-time profile gate. Email is optional, but a
- * customer who enters one must confirm it before redeeming. Mirrors the phone
- * flow: a one-time code is sent (here via Resend) and the pending state lives in a
- * short-lived signed cookie — we store the code's HMAC, never the code itself.
+ * Email verification for the reward-collection profile gate. Email is optional,
+ * but a customer who enters one must confirm it before collection. Mirrors the
+ * phone flow: a one-time code is sent (here via Resend) and the pending state
+ * lives in a short-lived signed cookie — we store the code's HMAC, never the
+ * code itself.
  */
 export async function startCustomerEmailVerification(
   email: string
@@ -54,7 +55,11 @@ export function emailCodeHmac(email: string, code: string): string {
     .digest("hex")
 }
 
-function codeMatches(email: string, code: string, expectedHmac: string): boolean {
+function codeMatches(
+  email: string,
+  code: string,
+  expectedHmac: string
+): boolean {
   if (isApprovedDevOtp(code)) return true
 
   const actual = Buffer.from(emailCodeHmac(email, code), "hex")
@@ -74,7 +79,9 @@ function isApprovedDevOtp(code: string): boolean {
   const devCode = process.env.CUSTOMER_DEV_OTP_CODE?.trim()
 
   return (
-    process.env.NODE_ENV !== "production" && Boolean(devCode) && code === devCode
+    process.env.NODE_ENV !== "production" &&
+    Boolean(devCode) &&
+    code === devCode
   )
 }
 

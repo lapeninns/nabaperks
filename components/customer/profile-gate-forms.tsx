@@ -18,12 +18,6 @@ const initialState: ProfileGateActionState = {}
 const inputClass =
   "h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm transition outline-none focus:border-ring focus:ring-3 focus:ring-ring/25 aria-invalid:border-destructive"
 
-/**
- * Redeem-time profile gate. A ready reward shows this in place of the redeem
- * button until the customer has a name, a date of birth, and — if they add an
- * email — a verified one. The reward page re-renders after each step, so the
- * gate clears itself once the profile is complete.
- */
 export function CustomerProfileGateForm({
   rewardId,
   gate,
@@ -54,9 +48,12 @@ function ProfileDetailsStep({
     <form action={action} className="grid gap-4">
       <input type="hidden" name="rewardId" value={rewardId} />
 
-      <StatusBanner title="A few details before this one's yours" tone="neutral">
-        Add your name and date of birth to redeem. Email is optional - add one to
-        get reward updates.
+      <StatusBanner
+        title="A few details before this one's yours"
+        tone="neutral"
+      >
+        Add your name and date of birth before collection. Email is optional -
+        add one to get reward updates.
       </StatusBanner>
 
       <Field
@@ -113,7 +110,8 @@ function ProfileEmailStep({
   return (
     <div className="grid gap-4">
       <StatusBanner title="Confirm your email" tone="neutral">
-        Enter the code we sent{email ? ` to ${email}` : ""} to finish your profile.
+        Enter the code we sent{email ? ` to ${email}` : ""} to finish your
+        profile.
       </StatusBanner>
 
       <form action={action} className="grid gap-4">
@@ -181,7 +179,11 @@ function Field({
   autoComplete?: string
   inputMode?: "email" | "numeric"
 }) {
-  const describedBy = error ? `${name}-error` : hint ? `${name}-hint` : undefined
+  const describedBy = error
+    ? `${name}-error`
+    : hint
+      ? `${name}-hint`
+      : undefined
 
   return (
     <div className="grid gap-2">
@@ -202,7 +204,10 @@ function Field({
           {error}
         </p>
       ) : hint ? (
-        <p id={`${name}-hint`} className="text-xs leading-5 text-muted-foreground">
+        <p
+          id={`${name}-hint`}
+          className="text-xs leading-5 text-muted-foreground"
+        >
           {hint}
         </p>
       ) : null}

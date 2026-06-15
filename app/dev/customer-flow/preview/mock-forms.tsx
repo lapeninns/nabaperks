@@ -186,11 +186,11 @@ export function PreviewStampButton() {
   )
 }
 
-export function PreviewRedeemButton() {
+export function PreviewRewardQrButton() {
   return (
     <div className="grid gap-4">
       <Button type="button" size="lg" variant="reward" className="w-full">
-        Redeem reward
+        Open reward QR
       </Button>
     </div>
   )
@@ -199,7 +199,6 @@ export function PreviewRedeemButton() {
 const previewInputClass =
   "h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none"
 
-/** Mock of the redeem-time profile gate — Name + DOB required, email optional. */
 export function PreviewProfileGate() {
   return (
     <div className="grid gap-4">
@@ -213,7 +212,11 @@ export function PreviewProfileGate() {
       </div>
       <div className="grid gap-2 text-left">
         <Eyebrow>Date of birth</Eyebrow>
-        <input className={previewInputClass} defaultValue="1990-01-01" readOnly />
+        <input
+          className={previewInputClass}
+          defaultValue="1990-01-01"
+          readOnly
+        />
       </div>
       <div className="grid gap-2 text-left">
         <Eyebrow>Email (optional)</Eyebrow>
@@ -268,10 +271,7 @@ export function PreviewJoinHeroNote() {
 
 export function PreviewMinSpendNote() {
   return (
-    <>
-      {" "}
-      Minimum spend {formatMockPence(CUSTOMER_FLOW_MOCK.minSpendPence)}.
-    </>
+    <> Minimum spend {formatMockPence(CUSTOMER_FLOW_MOCK.minSpendPence)}.</>
   )
 }
 
@@ -334,7 +334,11 @@ export function PreviewProfileAboutYouEdit() {
       <form className="grid gap-4">
         <div className="grid gap-2">
           <label className="eyebrow">Full name</label>
-          <input className={previewInputClass} placeholder="Sam Taylor" readOnly />
+          <input
+            className={previewInputClass}
+            placeholder="Sam Taylor"
+            readOnly
+          />
         </div>
         <div className="grid gap-2">
           <label className="eyebrow">Date of birth</label>
@@ -403,8 +407,16 @@ export function PreviewProfileEmailVerify() {
 /** Editable global marketing toggles (Email on, SMS/WhatsApp off). */
 export function PreviewProfileMarketing() {
   const rows = [
-    { label: "Email", helper: "Reward updates and offers by email.", checked: true },
-    { label: "SMS", helper: "Occasional offers by text message.", checked: false },
+    {
+      label: "Email",
+      helper: "Reward updates and offers by email.",
+      checked: true,
+    },
+    {
+      label: "SMS",
+      helper: "Occasional offers by text message.",
+      checked: false,
+    },
     {
       label: "WhatsApp",
       helper: "Updates and offers on WhatsApp.",

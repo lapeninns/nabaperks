@@ -50,7 +50,8 @@ The implemented app uses the self-service QR model:
 
 - Customers keep their own phone.
 - The permanent venue QR supplies stamp context.
-- The customer taps to add a stamp or redeem a reward.
+- The customer taps to add a stamp. Reward pages show a merchant-scan QR for
+  venue-assisted collection.
 - Server-side RPCs enforce ownership, one stamp per UK business day, reward
   state, rate limits, and optional location review signals.
 
@@ -63,18 +64,18 @@ that decision.
 
 The customer can be in one of these states:
 
-| State                           | Meaning                                                                                          | Primary route or surface                     |
-| ------------------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------- |
-| New visitor                     | Has not joined this venue and may not have a signed customer session.                            | `/q/[qrId]`, `/m/[merchantSlug]/join`        |
-| Identity pending                | Has entered a phone number and is waiting for OTP verification.                                  | `/m/[merchantSlug]/join`                     |
-| Joined, unstamped               | Has a membership, but today's stamp has not been issued.                                         | `/card/[membershipId]`                       |
-| Stamp-confirm ready             | Reached card through a valid fresh venue QR context.                                             | `/card/[membershipId]/stamp?qr=...`          |
-| Stamped today                   | Already received a stamp for the current UK business day.                                        | `/card/[membershipId]` or stamp action error |
-| Reward locked                   | Has fewer than the required stamps.                                                              | `/card/[membershipId]`                       |
-| Reward unlocked, not redeemable | Required stamps reached, reward assigned, but redeemable date is in the future.                  | `/card/[membershipId]`, `/wallet/rewards`    |
-| Reward ready                    | Reward is unlocked and redeemable from today.                                                    | `/reward/[rewardId]`, `/wallet/rewards`      |
-| Reward redeemed                 | Reward was redeemed once; redemption lands on the proof page and the active card starts the next cycle. | `/reward/[rewardId]?redeemed=1`, then `/card/[membershipId]` |
-| Wallet user                     | Has joined at least one venue and can sign back in to see cards, rewards, activity, and profile. | `/wallet/*`                                  |
+| State                           | Meaning                                                                                          | Primary route or surface                                     |
+| ------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| New visitor                     | Has not joined this venue and may not have a signed customer session.                            | `/q/[qrId]`, `/m/[merchantSlug]/join`                        |
+| Identity pending                | Has entered a phone number and is waiting for OTP verification.                                  | `/m/[merchantSlug]/join`                                     |
+| Joined, unstamped               | Has a membership, but today's stamp has not been issued.                                         | `/card/[membershipId]`                                       |
+| Stamp-confirm ready             | Reached card through a valid fresh venue QR context.                                             | `/card/[membershipId]/stamp?qr=...`                          |
+| Stamped today                   | Already received a stamp for the current UK business day.                                        | `/card/[membershipId]` or stamp action error                 |
+| Reward locked                   | Has fewer than the required stamps.                                                              | `/card/[membershipId]`                                       |
+| Reward unlocked, not redeemable | Required stamps reached, reward assigned, but redeemable date is in the future.                  | `/card/[membershipId]`, `/wallet/rewards`                    |
+| Reward ready                    | Reward is unlocked and redeemable from today.                                                    | `/reward/[rewardId]`, `/wallet/rewards`                      |
+| Reward redeemed                 | Reward was collected once by the merchant scan flow and the active card starts the next cycle.   | `/reward/[rewardId]?redeemed=1`, then `/card/[membershipId]` |
+| Wallet user                     | Has joined at least one venue and can sign back in to see cards, rewards, activity, and profile. | `/wallet/*`                                                  |
 
 ## North-Star Customer Journey
 
@@ -103,7 +104,7 @@ flowchart TD
   P --> O
   O --> Q{"Can stamp today?"}
   Q -- "No, already stamped" --> R["Already stamped today"]
-  Q -- "No, reward ready" --> S["Redeem reward before more stamps"]
+  Q -- "No, reward ready" --> S["Collect reward before more stamps"]
   Q -- "Yes" --> T["Add today's stamp"]
   T --> V{"Required stamp count reached?"}
   V -- "No" --> N
@@ -112,27 +113,28 @@ flowchart TD
   X -- "No" --> Y["Come back next UK business day"]
   X -- "Yes" --> Z["Reward page: /reward/{rewardId}"]
   Y --> Z
-  Z --> AA{"Redeem action accepted?"}
-  AA -- "No" --> AB["Show blocked/unavailable reason"]
-  AA -- "Yes" --> AC["Reward redeemed once"]
-  AC --> AD["Return to card and start next cycle"]
+  Z --> AA["Customer shows merchant-scan QR"]
+  AA --> AB{"Merchant scan accepted?"}
+  AB -- "No" --> AC["Show blocked/unavailable reason"]
+  AB -- "Yes" --> AD["Reward collected once"]
+  AD --> AE["Return to card and start next cycle"]
 ```
 
 ## Reference HTML Flow Mapped To Current App
 
-| HTML customer step | Prototype intent                                                           | Current implemented equivalent                                                                                                                                       | Analysis                                                                                                           |
-| ------------------ | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `scan`             | Customer points camera at till card.                                       | Customer scans a printed QR to `/q/[qrId]`.                                                                                                                          | Matches current entry point.                                                                                       |
-| `landing`          | "Your first stamp is waiting." Card value is shown before asking anything. | New customer goes to `/m/[merchantSlug]/join?qr=...`; existing member goes to stamp confirmation.                                                                    | Partially matches. Current join is identity-first; the first-stamp promise is not completed automatically.         |
-| `firstStamp`       | First stamp lands immediately in the first-visit flow.                     | Customer must reach `/card/[membershipId]/stamp?qr=...` and tap "Add today's stamp".                                                                                 | Gap. Join redirects to `/card/[membershipId]`, which loses stamp context unless customer scans again.              |
-| `save`             | Customer saves the card with a phone number after first stamp.             | Customer verifies phone before joining; wallet login exists later at `/wallet/login`.                                                                                | Order differs. Current app protects ownership earlier, but may feel slower than the prototype.                     |
-| `otp`              | One text, no password; code saves the card.                                | Twilio Verify checks the customer phone code and the app sets a signed customer session cookie. Wallet login uses the same phone-only OTP flow for existing members. | Concept matches. National numbers are parsed from IP country with GB fallback.                                     |
-| `card`             | Customer sees progress, dates, and sealed mystery reward.                  | `/card/[membershipId]` shows progress, reward teaser, reward state, and wallet link.                                                                                 | Matches.                                                                                                           |
-| `alreadyStamped`   | Calm one-per-day message.                                                  | `issue_self_service_stamp` blocks repeat stamp for same UK business day.                                                                                             | Backend matches. The visible branch currently appears as a form error or card status, not a dedicated rich screen. |
-| `sealed`           | Three visits earned; reward is sealed.                                     | At required stamp count, `issue_self_service_stamp` creates an unlocked `reward_event`.                                                                              | Concept matches, though implementation reveals assigned reward details from the event.                             |
-| `revealed`         | Customer opens/reveals the mystery reward.                                 | Card/reward page shows assigned reward from `reward_events`.                                                                                                         | Matches reward-snapshot principle.                                                                                 |
-| `ready`            | Reward becomes ready next day.                                             | `redeemable_from` is set to next UK business day.                                                                                                                    | Matches.                                                                                                           |
-| `redeemed`         | Reward redeemed once; card starts again.                                   | `/reward/[rewardId]` self-service redeem lands on the proof page `/reward/[rewardId]?redeemed=1` and revalidates the card; the membership's `active_cycle_number` advances so the card starts the next cycle. | Matches, but there is no explicit customer-to-staff acceptance confirmation beyond redeemed state.                 |
+| HTML customer step | Prototype intent                                                           | Current implemented equivalent                                                                                                                                                              | Analysis                                                                                                           |
+| ------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `scan`             | Customer points camera at till card.                                       | Customer scans a printed QR to `/q/[qrId]`.                                                                                                                                                 | Matches current entry point.                                                                                       |
+| `landing`          | "Your first stamp is waiting." Card value is shown before asking anything. | New customer goes to `/m/[merchantSlug]/join?qr=...`; existing member goes to stamp confirmation.                                                                                           | Partially matches. Current join is identity-first; the first-stamp promise is not completed automatically.         |
+| `firstStamp`       | First stamp lands immediately in the first-visit flow.                     | Customer must reach `/card/[membershipId]/stamp?qr=...` and tap "Add today's stamp".                                                                                                        | Gap. Join redirects to `/card/[membershipId]`, which loses stamp context unless customer scans again.              |
+| `save`             | Customer saves the card with a phone number after first stamp.             | Customer verifies phone before joining; wallet login exists later at `/wallet/login`.                                                                                                       | Order differs. Current app protects ownership earlier, but may feel slower than the prototype.                     |
+| `otp`              | One text, no password; code saves the card.                                | Twilio Verify checks the customer phone code and the app sets a signed customer session cookie. Wallet login uses the same phone-only OTP flow for existing members.                        | Concept matches. National numbers are parsed from IP country with GB fallback.                                     |
+| `card`             | Customer sees progress, dates, and sealed mystery reward.                  | `/card/[membershipId]` shows progress, reward teaser, reward state, and wallet link.                                                                                                        | Matches.                                                                                                           |
+| `alreadyStamped`   | Calm one-per-day message.                                                  | `issue_self_service_stamp` blocks repeat stamp for same UK business day.                                                                                                                    | Backend matches. The visible branch currently appears as a form error or card status, not a dedicated rich screen. |
+| `sealed`           | Three visits earned; reward is sealed.                                     | At required stamp count, `issue_self_service_stamp` creates an unlocked `reward_event`.                                                                                                     | Concept matches, though implementation reveals assigned reward details from the event.                             |
+| `revealed`         | Customer opens/reveals the mystery reward.                                 | Card/reward page shows assigned reward from `reward_events`.                                                                                                                                | Matches reward-snapshot principle.                                                                                 |
+| `ready`            | Reward becomes ready next day.                                             | `redeemable_from` is set to next UK business day.                                                                                                                                           | Matches.                                                                                                           |
+| `redeemed`         | Reward collected once; card starts again.                                  | `/reward/[rewardId]` shows a merchant-scan QR. The logged-in merchant scan route collects the reward and the membership's `active_cycle_number` advances so the card starts the next cycle. | Matches the merchant-assisted collection model; customer proof copy should stay explicit.                          |
 
 ## Primary Use Case 1: New Customer Joins From Venue QR
 
@@ -277,7 +279,7 @@ merging identity/consent and loyalty mutation into one action.
 | QR does not belong to membership merchant | Stamp context rejected.                                                  | Correct anti-abuse behavior.                                                    |
 | Location allowed                          | Coordinates submitted with action.                                       | Fine.                                                                           |
 | Location denied/unavailable               | Action continues and can be reviewed.                                    | Customer is not blocked, but trust model should be clear.                       |
-| Reward already ready                      | More stamps blocked until reward is redeemed.                            | Good rule, but customer needs a clear redeem CTA.                               |
+| Reward already ready                      | More stamps blocked until reward is collected.                           | Good rule, but customer needs a clear collection CTA.                           |
 | Billing cancelled/suspended               | Stamp unavailable.                                                       | Customer may blame venue/Nabaperks; copy should avoid exposing billing details. |
 
 ## Primary Use Case 4: Customer Unlocks A Mystery Reward
@@ -302,7 +304,8 @@ delayed until the next UK business day. Copy must separate:
 - "You earned/revealed this reward."
 - "You can redeem it from tomorrow."
 
-If those are blended, the customer may try to redeem too early and feel blocked.
+If those are blended, the customer may try to collect too early and feel
+blocked.
 
 ### Edge Cases
 
@@ -327,28 +330,27 @@ If those are blended, the customer may try to redeem too early and feel blocked.
    - membership still has enough stamps,
    - merchant/card/billing still available.
 3. Customer sees assigned reward name, terms, and minimum spend.
-4. Customer taps "Redeem reward" while at the venue.
-5. Optional location check runs if enabled.
+4. Customer shows the merchant-scan QR while at the venue.
+5. The logged-in merchant scans `/app/rewards/scan/[rewardId]`.
 6. `redeem_self_service_reward` marks the reward redeemed once and advances the membership's `active_cycle_number`.
-7. Customer is redirected to the proof page `/reward/[rewardId]?redeemed=1`; the card route is revalidated.
-8. Returning to `/card/[membershipId]` (or home) shows the new cycle — only stamps from the active cycle count, so the card reads `0 of N` while the redeemed reward stays in reward/activity history.
+7. Customer can return to the card to see the new cycle — only stamps from the active cycle count, so the card reads `0 of N` while the redeemed reward stays in reward/activity history.
 
 ### Edge Cases
 
-| Case                              | Current behavior                                         | Customer impact                                                          |
-| --------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------ |
-| Too early                         | Blocks with next-business-day message.                   | Correct.                                                                 |
-| Already redeemed                  | Duplicate attempt is safely handled as already redeemed. | Correct.                                                                 |
-| Reward cancelled/expired          | Shows unavailable.                                       | Correct.                                                                 |
-| Merchant/card/billing unavailable | Shows reward unavailable.                                | Customer may need venue support.                                         |
-| Location denied/unavailable       | Action continues and may be flagged.                     | Good customer continuity, but potential fraud-review load.               |
-| Venue asks for redemption proof   | Customer can self-redeem.                                | Post-redeem proof copy can be clearer without adding an approval gate.    |
+| Case                              | Current behavior                                         | Customer impact                                                   |
+| --------------------------------- | -------------------------------------------------------- | ----------------------------------------------------------------- |
+| Too early                         | Blocks with next-business-day message.                   | Correct.                                                          |
+| Already redeemed                  | Duplicate attempt is safely handled as already redeemed. | Correct.                                                          |
+| Reward cancelled/expired          | Shows unavailable.                                       | Correct.                                                          |
+| Merchant/card/billing unavailable | Shows reward unavailable.                                | Customer may need venue support.                                  |
+| Location denied/unavailable       | Action continues and may be flagged.                     | Good customer continuity, but potential fraud-review load.        |
+| Venue asks for redemption proof   | Customer shows the merchant-scan QR.                     | Collection proof copy should stay clear after the merchant scans. |
 
 ### Missing Flow
 
 There is no explicit customer-facing proof screen with timestamp, venue, reward
-id, and anti-replay cues. The reward page says to tap redeem and show the
-redeemed card if asked, but the post-redeem proof moment could be more explicit.
+id, and anti-replay cues. The reward page now uses a merchant-scan QR, but the
+post-collection proof moment could be more explicit.
 
 ## Primary Use Case 6: Customer Opens Wallet Later
 
@@ -356,8 +358,11 @@ redeemed card if asked, but the post-redeem proof moment could be more explicit.
 
 1. Customer visits `/wallet/login`.
 2. Customer enters the same phone used to join.
-3. System requests Twilio Verify OTP only if that verified phone already belongs to a customer.
-4. If contact is unknown, customer is told to scan a venue QR first.
+3. System keeps the response neutral: known numbers receive an OTP, while
+   unknown numbers see the same code-entry shape without an account-existence
+   disclosure.
+4. If the number has no cards, the recovery copy points the customer back to a
+   venue QR without saying whether an account exists.
 5. Customer enters OTP.
 6. System redirects to `/wallet`.
 
@@ -377,7 +382,7 @@ Tapping a card opens `/card/[membershipId]`.
 
 `/wallet/rewards` groups rewards into:
 
-- ready to redeem,
+- ready for merchant scan,
 - coming soon,
 - redeemed history.
 
@@ -407,13 +412,13 @@ meta line, no page-level logout (the header owns logout):
 
 ### Wallet Pitfalls
 
-| Pitfall                                                                                    | Why it matters                                                                                             |
-| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| Wallet exists, but the original micro-spec text previously treated wallet as out of scope. | Docs and product scope should be reconciled so agents do not remove or ignore wallet routes.               |
-| Wallet login accepts existing members only.                                                | New customers must understand they cannot create a wallet from `/wallet/login`; they must scan a venue QR. |
-| Wallet card page cannot add a stamp without fresh QR context.                              | Customer may tap an old saved card at home and expect to stamp. Copy must keep "scan at venue" clear.      |
+| Pitfall                                                                                    | Why it matters                                                                                                                                                                                          |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Wallet exists, but the original micro-spec text previously treated wallet as out of scope. | Docs and product scope should be reconciled so agents do not remove or ignore wallet routes.                                                                                                            |
+| Wallet login accepts existing members only.                                                | New customers must understand they cannot create a wallet from `/wallet/login`; they must scan a venue QR.                                                                                              |
+| Wallet card page cannot add a stamp without fresh QR context.                              | Customer may tap an old saved card at home and expect to stamp. Copy must keep "scan at venue" clear.                                                                                                   |
 | Profile marketing toggles write global per-channel consent.                                | Each toggle appends one `consent_records` row per membership via `record_customer_marketing_consent`, so every merchant's audit trail stays complete while the customer manages one switch per channel. |
-| No self-service data export/delete flow.                                                   | Privacy requests depend on admin/support paths.                                                            |
+| No self-service data export/delete flow.                                                   | Privacy requests depend on admin/support paths.                                                                                                                                                         |
 
 ## Direct URL And Recovery Use Cases
 
@@ -470,13 +475,13 @@ meta line, no page-level logout (the header owns logout):
 
 - Customer reaches required stamp count.
 - Customer sees reward revealed.
-- Customer tries to redeem same day before `redeemable_from`.
+- Customer tries to collect same day before `redeemable_from`.
 - Customer returns next UK business day and redeems.
-- Customer sees minimum spend and terms before redeeming.
+- Customer sees minimum spend and terms before collection.
 - Customer tries duplicate redemption.
-- Customer tries to redeem cancelled/expired reward.
-- Customer tries to redeem when merchant/card/billing is unavailable.
-- Customer needs to show proof to staff after redeeming.
+- Customer tries to collect a cancelled/expired reward.
+- Customer tries to collect when merchant/card/billing is unavailable.
+- Customer needs proof after merchant collection.
 - Customer starts next stamp cycle after redemption.
 
 ### Wallet And Account
@@ -507,18 +512,19 @@ meta line, no page-level logout (the header owns logout):
    needs a fresh QR context. This can leave a new customer with a zero-stamp card
    after the first visit.
 
-2. **Trust model is self-service QR.**
-   Current app behavior is self-service QR stamping and redemption. Copy, flows,
-   tests, and docs should stay aligned to that model.
+2. **Trust model is self-service QR stamping plus merchant-scanned rewards.**
+   Current app behavior is self-service QR stamping and merchant-scanned reward
+   collection. Copy, flows, tests, and docs should stay aligned to that model.
 
 3. **Phone input contract now matches UK customer expectations.**
    Customer and wallet actions parse national numbers using the request country
    header with GB fallback, store only protected phone lookup/display fields for
    new customers, and keep raw phone numbers out of new customer writes.
 
-4. **Reward redemption lacks an explicit proof moment.**
-   Current redemption is self-service. The customer needs a clear post-redeem
-   proof screen with timestamp, reward id, venue, and redeemed state.
+4. **Reward collection lacks an explicit proof moment.**
+   Current collection is merchant-scanned. The customer needs a clear
+   post-collection proof screen with timestamp, reward id, venue, and collected
+   state.
 
 ### High
 
@@ -543,7 +549,7 @@ meta line, no page-level logout (the header owns logout):
 
 9. **Reward-ready blocks future stamps.**
    This is a correct rule, but customers scanning the QR again should be guided
-   directly to redeem instead of simply seeing a blocked stamp action.
+   directly to the reward QR instead of simply seeing a blocked stamp action.
 
 ### Medium
 

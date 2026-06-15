@@ -19,10 +19,15 @@ export type CustomerExperienceViewModel = {
 
 /** QR-scan welcome — mirrors join-with-first-stamp: scan → verify → terms → stamp. */
 export const JOIN_WELCOME_HOW_IT_WORKS = [
-  "You scanned the venue QR at the counter",
+  "You scanned the venue QR",
   "Save the card to your number with one text — no app",
   "Accept the terms and your first stamp prints onto the card",
 ] as const
+
+export const JOIN_WELCOME_HOW_IT_WORKS_LABEL = "How it works" as const
+
+export const JOIN_WELCOME_ALREADY_HAVE_CARD_LABEL =
+  "Already have a card? Use your number and we'll find it." as const
 
 /** Shown under the phone field on step 2 — sets expectation before the SMS arrives. */
 export const JOIN_PHONE_CODE_HINT =
@@ -48,11 +53,11 @@ export function getCustomerExperienceViewModel(
       // members verify and route to their card; new members finish terms and
       // earn stamp #1 in the same onboarding call.
       return {
-        eyebrow: "Scanned at the counter",
+        eyebrow: "Venue QR scanned",
         headline: "Keep your card on your phone",
         supportLine: `One text saves ${exp.merchant.name}'s card to your number. New here? Your first stamp lands when you accept the terms.`,
         primaryAction: {
-          label: "Get started",
+          label: "Get today's stamp",
           href: joinHref(exp.merchant.slug, exp.qrId, "phone"),
         },
       }
@@ -153,15 +158,24 @@ export function getCustomerExperienceViewModel(
   }
 }
 
-function joinHref(slug: string, qrId: string | undefined, step: string): string {
+function joinHref(
+  slug: string,
+  qrId: string | undefined,
+  step: string
+): string {
   const params = new URLSearchParams()
   if (qrId) params.set("qr", qrId)
   params.set("step", step)
   return `/m/${slug}/join?${params.toString()}`
 }
 
-export function joinWelcomeHref(slug: string, qrId: string): string {
+export function joinWelcomeHref(
+  slug: string,
+  qrId: string | undefined,
+  step?: string
+): string {
   const params = new URLSearchParams()
-  params.set("qr", qrId)
+  if (qrId) params.set("qr", qrId)
+  if (step) params.set("step", step)
   return `/m/${slug}/join?${params.toString()}`
 }

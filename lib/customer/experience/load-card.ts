@@ -5,6 +5,7 @@ import {
   getMembershipStampDisplayDates,
   reconcileCardStampCount,
 } from "@/lib/customer/card"
+import { captureJoinFunnelEvent } from "@/lib/customer/join-funnel"
 import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
 import { isRedeemableFrom, ukTodayIso } from "@/lib/customer/uk-date"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
@@ -40,6 +41,16 @@ export async function loadCardExperienceContext(
   }
 
   const { membership, merchant, loyaltyCard, latestReward } = cardState
+  await captureJoinFunnelEvent({
+    eventName: "customer_card_viewed",
+    merchantId: merchant.id,
+    membershipId: membership.id,
+    merchantSlug: merchant.business_slug,
+    metadata: {
+      source: "card_route",
+    },
+  })
+
   const justStamped = searchParams.stamp === "issued"
   const justRedeemed = searchParams.reward === "redeemed"
   const geoFlagged = searchParams.geo === "flagged"

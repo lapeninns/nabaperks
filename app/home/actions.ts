@@ -76,11 +76,17 @@ export async function requestCustomerLoginOtpAction(
   const customer = await findCustomerByVerifiedPhone(normalized.phone)
 
   if (!customer) {
+    await setPendingPhoneVerification({
+      purpose: "wallet",
+      phone: contact,
+      country: normalized.phone.country,
+      customerId: null,
+    })
+
     return {
-      fields: { contact },
-      errors: {
-        form: "We couldn't find an account for that phone. Scan a venue's QR code to join first.",
-      },
+      fields: { contact, otpSent: true },
+      message:
+        "If that number has Nabaperks cards, enter the code we sent. Otherwise scan a venue QR to join first.",
     }
   }
 
@@ -123,7 +129,7 @@ export async function verifyCustomerLoginOtpAction(
   const otp = value(formData, "otp")
   const pending = await getPendingPhoneVerification()
 
-  if (!pending || pending.purpose !== "wallet" || !pending.customerId) {
+  if (!pending || pending.purpose !== "wallet") {
     return { errors: { contact: "Request a new phone code." } }
   }
 
@@ -133,6 +139,13 @@ export async function verifyCustomerLoginOtpAction(
     return {
       fields: { contact, otpSent: true },
       errors: { otp: "Enter the verification code." },
+    }
+  }
+
+  if (!pending.customerId) {
+    return {
+      fields: { contact, otpSent: true },
+      errors: { form: "That code was not accepted." },
     }
   }
 

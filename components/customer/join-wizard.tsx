@@ -5,25 +5,19 @@ import { VenueMark } from "@/components/brand"
 import {
   CustomerActionNote,
   CustomerFlowShell,
-  CustomerReceipt,
   CustomerStampCard,
   type FlowProgress,
 } from "@/components/customer/customer-flow-system"
 import {
   CustomerIdentityForm,
   CustomerJoinForm,
-  CustomerOtpForm,
 } from "@/components/customer/join-forms"
-import { CustomerVenueTermsSheet } from "@/components/customer/legal-sheet"
-import {
-  RewardTicket,
-  StampJourneyPreview,
-  StatusBanner,
-} from "@/components/loyalty"
+import { CustomerOtpForm } from "@/components/customer/join-otp-form"
+import { WelcomeStep } from "@/components/customer/join-welcome-step"
+import { StampJourneyPreview, StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import {
   getCustomerExperienceViewModel,
-  JOIN_WELCOME_HOW_IT_WORKS,
   joinUnlockingRewardHook,
   type CustomerExperienceViewModel,
 } from "@/lib/customer/experience/copy"
@@ -39,11 +33,7 @@ import type {
  * derives a join {@link CustomerExperience}; this maps it to chrome + the step.
  * Backend order: verify phone → terms → membership + first stamp (via QR join).
  */
-export function JoinWizard({
-  experience,
-}: {
-  experience: CustomerExperience
-}) {
+export function JoinWizard({ experience }: { experience: CustomerExperience }) {
   const vm = getCustomerExperienceViewModel(experience)
 
   switch (experience.kind) {
@@ -63,98 +53,6 @@ export function JoinWizard({
 }
 
 const ONBOARDING_STEPS = 3
-
-function WelcomeStep({
-  exp,
-  vm,
-}: {
-  exp: Extract<CustomerExperience, { kind: "join_welcome" }>
-  vm: CustomerExperienceViewModel
-}) {
-  return (
-    <JoinShell vm={vm} progress={joinProgress("join_welcome")} dense centered>
-      <JoinWelcomeCard merchant={exp.merchant} card={exp.card} />
-      <HowItWorksList />
-      <CustomerVenueTermsSheet
-        venueTerms={{
-          merchantName: exp.merchant.name,
-          stampsRequired: exp.card.stampsRequired,
-          rewardTerms: exp.card.rewardTerms,
-        }}
-        triggerLabel="View full venue terms"
-        triggerClassName="inline-flex w-fit text-xs font-bold underline underline-offset-4"
-      />
-      {vm.primaryAction ? (
-        <Button asChild size="lg" className="w-full">
-          <Link href={vm.primaryAction.href}>{vm.primaryAction.label}</Link>
-        </Button>
-      ) : null}
-    </JoinShell>
-  )
-}
-
-/**
- * Compact identity card for the QR-scan landing. The stamp row animates through
- * an example journey (empty → slam 1, 2, 3 → gift reveal), then the mystery
- * reward copy sits beneath — live progress replaces this after join.
- */
-function JoinWelcomeCard({
-  merchant,
-  card,
-}: {
-  merchant: JoinMerchant
-  card: JoinCard
-}) {
-  return (
-    <CustomerReceipt
-      venueName={merchant.name}
-      title={card.name}
-      eyebrow={merchant.name}
-      hideFooter
-    >
-      <StampJourneyPreview total={card.stampsRequired} venueName={merchant.name} className="py-1" />
-      <RewardTicket
-        state="sealed"
-        name="Mystery reward, sealed"
-        description={
-          <>
-            Collect {card.stampsRequired} stamps to unlock a surprise reward,
-            yours from the next UK business day.
-            {card.minSpendPence !== null ? (
-              <> Minimum spend {formatPence(card.minSpendPence)}.</>
-            ) : null}
-          </>
-        }
-      />
-    </CustomerReceipt>
-  )
-}
-
-/**
- * "How it works" rendered flat — a borderless, numbered list that groups the
- * three steps by typography rather than another nested dashed container, so the
- * welcome card carries one fewer border level.
- */
-function HowItWorksList() {
-  return (
-    <section className="grid gap-2 text-left">
-      <p className="eyebrow text-muted-foreground">How it works</p>
-      <ol className="grid gap-2">
-        {JOIN_WELCOME_HOW_IT_WORKS.map((step, index) => (
-          <li key={index} className="flex items-start gap-3">
-            <span
-              aria-hidden="true"
-              className="mt-0.5 grid size-5 shrink-0 -rotate-6 place-items-center rounded-full border-2 border-ink bg-primary text-[0.7rem] leading-none font-extrabold text-primary-foreground"
-            >
-              {index + 1}
-            </span>
-            <span className="text-sm leading-snug font-medium">{step}</span>
-          </li>
-        ))}
-      </ol>
-    </section>
-  )
-}
 
 function PhoneStep({
   exp,
@@ -184,6 +82,7 @@ function OtpStep({
         merchantSlug={exp.merchant.slug}
         qrId={exp.qrId}
         contact={exp.contact}
+        location={exp.location}
       />
     </JoinShell>
   )

@@ -9,6 +9,8 @@ import {
   SectionHeader,
 } from "@/components/brand"
 import { ActivityCompactFeed } from "@/components/merchant/activity-compact-feed"
+import { MerchantBillingNotice } from "@/components/merchant/billing-status"
+import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
 import { MotionReveal } from "@/components/motion"
 import { Button } from "@/components/ui/button"
 import { capturePostHogEvent } from "@/lib/analytics/events"
@@ -16,7 +18,6 @@ import { getEnrichedMerchantActivity } from "@/lib/merchant/activity"
 import { getMerchantDashboardData } from "@/lib/merchant/dashboard"
 import { getMerchantLaunchReadiness } from "@/lib/merchant/launch-readiness"
 import { getMerchantOnboardingStatus } from "@/lib/merchant/onboarding"
-import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
 
 export default async function MerchantAppPage() {
   const setup = await getMerchantOnboardingStatus()
@@ -38,7 +39,6 @@ export default async function MerchantAppPage() {
     { label: "Repeat customers", value: metrics.repeatCustomers.toString() },
     { label: "Rewards redeemed", value: metrics.rewardsRedeemed.toString() },
     { label: "QR downloads", value: metrics.qrDownloads.toString() },
-    { label: "Billing status", value: formatStatus(dashboard.billingStatus) },
   ]
 
   await capturePostHogEvent({
@@ -61,7 +61,7 @@ export default async function MerchantAppPage() {
         }
       />
 
-      <BillingNotice status={dashboard.billingStatus} />
+      <MerchantBillingNotice status={dashboard.billingStatus} />
       {!launchReadiness.launchReady ? (
         <LaunchReadinessPanel readiness={launchReadiness} />
       ) : null}
@@ -138,121 +138,9 @@ export default async function MerchantAppPage() {
   )
 }
 
-function BillingNotice({ status }: { status: string }) {
-  const billing = billingStateCopy(status)
-
-  return (
-    <section className={billing.className}>
-      <SectionHeader
-        title={<span className={billing.titleClassName}>{billing.title}</span>}
-        description={billing.description}
-        actions={
-          billing.actionHref ? (
-            <Button asChild variant={billing.actionVariant} size="sm">
-              <Link href={billing.actionHref}>{billing.actionLabel}</Link>
-            </Button>
-          ) : null
-        }
-      />
-    </section>
-  )
-}
-
 function formatPence(pence: number) {
   return new Intl.NumberFormat("en-GB", {
     style: "currency",
     currency: "GBP",
   }).format(pence / 100)
-}
-
-function formatStatus(status: string) {
-  return status.replaceAll("_", " ")
-}
-
-function billingStateCopy(status: string) {
-  const state = status === "trial" ? "trialing" : status
-  const baseClassName = "rounded-lg border-2 p-5 shadow-sm"
-
-  const states: Record<
-    string,
-    {
-      title: string
-      description: string
-      className: string
-      titleClassName?: string
-      actionHref?: string
-      actionLabel?: string
-      actionVariant?: "default" | "secondary"
-    }
-  > = {
-    not_started: {
-      title: "Billing not started",
-      description:
-        "Start your subscription when you are ready to go live. You can set everything else up first.",
-      className: `${baseClassName} border-primary/30 bg-primary/10`,
-      actionHref: "/app/billing",
-      actionLabel: "Start billing",
-      actionVariant: "default",
-    },
-    trialing: {
-      title: "Free trial active",
-      description:
-        "Your 30-day free trial is running, with everything switched on.",
-      className: `${baseClassName} border-reward/30 bg-accent`,
-      actionHref: "/app/billing",
-      actionLabel: "View billing",
-      actionVariant: "secondary",
-    },
-    active: {
-      title: "Billing active",
-      description:
-        "Your subscription is active. Customers can join, collect stamps, and redeem rewards.",
-      className: `${baseClassName} border-reward/30 bg-reward/10`,
-      actionHref: "/app/billing",
-      actionLabel: "Manage billing",
-      actionVariant: "secondary",
-    },
-    past_due: {
-      title: `Billing ${formatStatus(status)}`,
-      description:
-        "A payment needs attention. Your card still works for now, but please sort billing soon.",
-      className: `${baseClassName} border-destructive/30 bg-destructive/10`,
-      titleClassName: "text-destructive",
-      actionHref: "/app/billing",
-      actionLabel: "Resolve billing",
-      actionVariant: "default",
-    },
-    cancelled: {
-      title: `Billing ${formatStatus(status)}`,
-      description:
-        "New stamps and rewards are paused until billing is restored.",
-      className: `${baseClassName} border-destructive/30 bg-destructive/10`,
-      titleClassName: "text-destructive",
-      actionHref: "/app/billing",
-      actionLabel: "Restart billing",
-      actionVariant: "default",
-    },
-    suspended: {
-      title: `Billing ${formatStatus(status)}`,
-      description:
-        "New stamps and rewards are paused until billing is restored.",
-      className: `${baseClassName} border-destructive/30 bg-destructive/10`,
-      titleClassName: "text-destructive",
-      actionHref: "/app/billing",
-      actionLabel: "Restore access",
-      actionVariant: "default",
-    },
-  }
-
-  return (
-    states[state] ?? {
-      title: `Billing ${formatStatus(status)}`,
-      description:
-        "We could not read your billing status just now. Refresh the page, or open billing to check.",
-      className: `${baseClassName} border-border bg-card`,
-      actionHref: "/app/billing",
-      actionLabel: "Review billing",
-      actionVariant: "secondary",
-    }
-  )
 }

@@ -62,7 +62,6 @@ export async function getMerchantDashboardData(
     rewardsRedeemed,
     qrDownloads,
     billingStatus,
-    recentActivity,
   ] = await Promise.all([
     countRows("customer_memberships", merchant.id),
     countNewMembers(merchant.id, since),
@@ -71,7 +70,6 @@ export async function getMerchantDashboardData(
     countRewardsRedeemed(merchant.id),
     countQrDownloads(merchant.id),
     getBillingStatus(merchant.id, merchant.status),
-    getRecentActivity(merchant.id, 6),
   ])
 
   return {
@@ -86,7 +84,6 @@ export async function getMerchantDashboardData(
         repeatCustomers * merchant.average_order_value_pence,
     },
     billingStatus,
-    recentActivity,
   }
 }
 

@@ -9,7 +9,12 @@
  */
 
 /** Which route the customer entered from. Same facts can mean different UI. */
-export type CustomerExperienceEntry = "qr" | "join" | "card" | "stamp" | "reward"
+export type CustomerExperienceEntry =
+  | "qr"
+  | "join"
+  | "card"
+  | "stamp"
+  | "reward"
 
 /** Identity/access failures that short-circuit every route to a recovery panel. */
 export type AccessProblem = "unauthenticated" | "unauthorized" | "not_found"
@@ -84,14 +89,25 @@ export type RewardView = {
 
 export type CustomerExperience =
   // --- Join wizard (one job per screen) ---
-  | { kind: "join_welcome"; merchant: JoinMerchant; card: JoinCard; qrId: string }
-  | { kind: "join_phone"; merchant: JoinMerchant; card: JoinCard; qrId?: string }
+  | {
+      kind: "join_welcome"
+      merchant: JoinMerchant
+      card: JoinCard
+      qrId: string
+    }
+  | {
+      kind: "join_phone"
+      merchant: JoinMerchant
+      card: JoinCard
+      qrId?: string
+    }
   | {
       kind: "join_otp"
       merchant: JoinMerchant
       card: JoinCard
       qrId?: string
       contact: string
+      location: LocationRequirement
     }
   | {
       kind: "join_terms"

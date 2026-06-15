@@ -5,6 +5,10 @@ import {
   startCheckoutAction,
 } from "@/app/app/billing/actions"
 import { PageTitle, ReceiptCard, SectionHeader } from "@/components/brand"
+import {
+  formatMerchantBillingStatus,
+  MerchantBillingAccessNote,
+} from "@/components/merchant/billing-status"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -100,7 +104,7 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
           <div>
             <p className="eyebrow">Current state</p>
             <p className="mt-3 numeric-tabular text-3xl font-extrabold">
-              {formatStatus(status)}
+              {formatMerchantBillingStatus(status)}
             </p>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {billing?.current_period_end
@@ -108,7 +112,7 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
                 : "Your billing period will show here once checkout is done."}
             </p>
           </div>
-          <BillingAccessNote status={status} />
+          <MerchantBillingAccessNote status={status} />
         </div>
       </section>
 
@@ -196,45 +200,6 @@ function BillingOutcomeMessages({
       ) : null}
     </div>
   )
-}
-
-function BillingAccessNote({ status }: { status: string }) {
-  if (status === "past_due") {
-    return (
-      <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-        A payment is past due. Your dashboard stays available while you sort it
-        out.
-      </p>
-    )
-  }
-
-  if (status === "cancelled") {
-    return (
-      <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-        Your subscription is cancelled. You can still see your data, but new
-        stamps are paused.
-      </p>
-    )
-  }
-
-  if (status === "suspended") {
-    return (
-      <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-        Your subscription is suspended. The customer card is paused until it is
-        restored.
-      </p>
-    )
-  }
-
-  return (
-    <p className="rounded-lg bg-secondary px-4 py-3 text-sm text-secondary-foreground">
-      Your dashboard stays fully available while you finish setting up billing.
-    </p>
-  )
-}
-
-function formatStatus(status: string) {
-  return status.replaceAll("_", " ")
 }
 
 function formatDate(value: string) {

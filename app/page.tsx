@@ -204,7 +204,9 @@ export default function Page() {
                   {qrCells.map((cell, index) => (
                     <span
                       key={index}
-                      className={cell ? "rounded-[1px] bg-qr" : "bg-transparent"}
+                      className={
+                        cell ? "rounded-[1px] bg-qr" : "bg-transparent"
+                      }
                     />
                   ))}
                 </div>
@@ -255,7 +257,7 @@ export default function Page() {
       <section className="my-10 border-y-2 border-ink bg-ink text-paper">
         <div className="mx-auto w-full max-w-7xl px-6 py-14">
           <div className="mb-10 flex flex-wrap items-center justify-between gap-6">
-            <div className="max-w-[46ch] grid gap-3">
+            <div className="grid max-w-[46ch] gap-3">
               <span className="font-mono text-[0.7rem] font-bold tracking-[0.1em] text-primary uppercase">
                 The counter moment
               </span>
@@ -268,11 +270,18 @@ export default function Page() {
                 keeps their phone the entire time.
               </p>
             </div>
-            <VenueMark size={92} caption="The Old Crown" className="[&_span:last-child]:text-paper/60" />
+            <VenueMark
+              size={92}
+              caption="The Old Crown"
+              className="[&_span:last-child]:text-paper/60"
+            />
           </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {beats.map((beat) => (
-              <div key={beat.n} className="border-t-2 border-dashed border-paper/30 pt-4">
+              <div
+                key={beat.n}
+                className="border-t-2 border-dashed border-paper/30 pt-4"
+              >
                 <div className="font-mono text-[0.7rem] font-bold tracking-[0.1em] text-primary">
                   BEAT {beat.n}
                 </div>
@@ -355,7 +364,7 @@ export default function Page() {
         <SectionHeader
           eyebrow="Built for the counter"
           title="Everything a venue needs to understand the product without a demo call."
-          description="The homepage keeps the no-app QR proposition, the counter-handshake stamp model, pricing route, and login route available from semantic links."
+          description="The homepage keeps the no-app QR proposition, permanent venue QR stamping, pricing route, and login route available from semantic links."
         />
         <div className="grid gap-4 md:grid-cols-4">
           {features.map((feature) => (

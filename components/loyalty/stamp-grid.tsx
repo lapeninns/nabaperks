@@ -164,7 +164,7 @@ export function RewardChip({
         <RewardSeal
           state={sealState}
           size="sm"
-          label={`${label}, ${ready ? "ready to redeem" : "sealed"}`}
+          label={`${label}, ${ready ? "ready for merchant scan" : "sealed"}`}
           wiggle={placeholder && slotState === "locked"}
         />
       </span>
@@ -207,8 +207,7 @@ export function StampGrid({
   const safeCurrent = previewJourney
     ? Math.min(Math.max(safeTotal - 1, 0), safeTotal)
     : Math.min(Math.max(current, 0), safeTotal)
-  const columnCount =
-    Math.min(Math.max(safeTotal, 1), 6) + (rewardSlot ? 1 : 0)
+  const columnCount = Math.min(Math.max(safeTotal, 1), 6) + (rewardSlot ? 1 : 0)
 
   return (
     <div

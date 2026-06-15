@@ -149,13 +149,12 @@ function CardProgressPanel({
       </>
     )
   } else {
-    // ready — the redeem button carries the action, so drop the ready sentence.
     rewardDescription = hasPrimaryAction ? (
       rewardDetails
     ) : (
       <>
         {rewardDetails}
-        {" Reward ready to redeem."}
+        {" Reward ready for merchant scan."}
       </>
     )
   }
@@ -243,7 +242,7 @@ function CardProgressPanel({
       >
         {exp.reward === "ready" && exp.rewardId ? (
           <Button asChild size="lg" variant="reward" className="w-full">
-            <Link href={`/reward/${exp.rewardId}`}>Redeem reward</Link>
+            <Link href={`/reward/${exp.rewardId}`}>Open reward QR</Link>
           </Button>
         ) : exp.reward === "waiting" ? (
           <StatusNotice

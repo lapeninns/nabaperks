@@ -35,10 +35,6 @@ type RawRewardEvent = {
   merchants: { business_name: string } | Array<{ business_name: string }> | null
 }
 
-/**
- * Every reward the signed-in customer has earned, grouped by what they can do
- * with it now: ready to redeem, unlocked-but-not-yet-redeemable, and history.
- */
 export async function getCustomerRewards(): Promise<CustomerRewards> {
   const customer = await getCurrentCustomer()
 
@@ -86,7 +82,9 @@ export async function getCustomerRewards(): Promise<CustomerRewards> {
     }
   }
 
-  redeemed.sort((a, b) => (b.redeemedAt ?? b.createdAt).localeCompare(a.redeemedAt ?? a.createdAt))
+  redeemed.sort((a, b) =>
+    (b.redeemedAt ?? b.createdAt).localeCompare(a.redeemedAt ?? a.createdAt)
+  )
 
   return { redeemable, upcoming, redeemed }
 }

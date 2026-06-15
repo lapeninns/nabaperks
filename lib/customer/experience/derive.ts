@@ -68,7 +68,7 @@ export type StampContext =
       unavailableReason?: string
       membershipId: string
       merchantName: string
-      unlockedReward: RewardView & { redeemable: boolean } | null
+      unlockedReward: (RewardView & { redeemable: boolean }) | null
       alreadyStampedToday: boolean
       qrValid: boolean
       qrMissing: boolean
@@ -325,6 +325,7 @@ function deriveJoin(context: JoinContext): CustomerExperience {
         card: context.card,
         qrId: context.qrId,
         contact: context.pendingPhone ?? "",
+        location: context.location,
       }
     case "join_welcome":
       return {
@@ -363,7 +364,9 @@ function accessProblemReason(access: AccessProblem): string {
   }
 }
 
-function stripRedeemable(reward: RewardView & { redeemable: boolean }): RewardView {
+function stripRedeemable(
+  reward: RewardView & { redeemable: boolean }
+): RewardView {
   return {
     rewardId: reward.rewardId,
     membershipId: reward.membershipId,

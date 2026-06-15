@@ -1,6 +1,7 @@
 import "server-only"
 
 import { getCurrentMerchant } from "@/lib/auth/session"
+import { formatMerchantCustomerIdentifier } from "@/lib/merchant/customer-identity-display"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type MerchantRewardScanContext =
@@ -205,22 +206,13 @@ function scanContext(
     minSpendPence: numberField(row, "min_spend_pence"),
     membershipId,
     currentStampCount,
-    customerLabel: customerLabel(customer),
+    customerLabel: formatMerchantCustomerIdentifier({
+      email: stringField(customer, "email"),
+      phone: stringField(customer, "phone"),
+      phoneLast4: stringField(customer, "phone_last4"),
+    }),
     blockedReason: options.blockedReason,
   }
-}
-
-function customerLabel(customer: Record<string, unknown> | null) {
-  const email = stringField(customer, "email")
-  if (email) return email
-
-  const phone = stringField(customer, "phone")
-  if (phone) return phone
-
-  const last4 = stringField(customer, "phone_last4")
-  if (last4) return `Phone ending ${last4}`
-
-  return "Customer"
 }
 
 function firstRecord(value: unknown): Record<string, unknown> | null {
