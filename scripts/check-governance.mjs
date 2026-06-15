@@ -76,6 +76,8 @@ const REQUIRED_CHECKS = [
   "Micro-Spec corpus metadata",
   "traceability JSON",
   "traceability Markdown",
+  "traceability ordering",
+  "traceability evidence map",
   "handoff workflow",
   "package and CI wiring",
 ]
@@ -89,6 +91,7 @@ const REQUIRED_HANDOFF_STAGES = [
 
 const REVIEWER_DECISIONS = ["approved", "changes_requested", "override"]
 const STALE_AFTER_DAYS = 180
+const CHANGE_STATES = ["current", "changed", "superseded", "historical"]
 
 const MINIMUM_GATES_BY_RISK = {
   "docs-tooling": [
@@ -700,6 +703,16 @@ function checkTraceability(root, diagnostics, microSpecs = []) {
 
   const specIds = new Set()
   const requirementIds = new Set()
+  const orderedSpecIds = traceability.specs
+    .map((spec) => stringField(spec, "spec_id"))
+    .filter(Boolean)
+  if (!isSorted(orderedSpecIds)) {
+    diagnostics.push({
+      path: jsonPath,
+      id: "spec-order",
+      message: "specs must be ordered by spec_id.",
+    })
+  }
 
   for (const spec of traceability.specs) {
     const specId = stringField(spec, "spec_id")
@@ -724,6 +737,13 @@ function checkTraceability(root, diagnostics, microSpecs = []) {
     checkStatus(jsonPath, specKey, spec.status, diagnostics)
     checkRisk(jsonPath, specKey, spec.risk_class, diagnostics)
     checkMarkdownEntry(markdownPath, markdown, specKey, diagnostics)
+    checkTraceabilityChangeState(
+      jsonPath,
+      specKey,
+      spec.change_state,
+      diagnostics
+    )
+    checkMarkdownSpecSync(markdownPath, markdown, spec, diagnostics)
 
     const gates = Array.isArray(spec.verification_gates)
       ? spec.verification_gates
@@ -737,6 +757,16 @@ function checkTraceability(root, diagnostics, microSpecs = []) {
         message: "requirements must be an array.",
       })
       continue
+    }
+    const orderedRequirementIds = spec.requirements
+      .map((requirement) => stringField(requirement, "requirement_id"))
+      .filter(Boolean)
+    if (!isSorted(orderedRequirementIds)) {
+      diagnostics.push({
+        path: jsonPath,
+        id: specKey,
+        message: "requirements must be ordered by requirement_id.",
+      })
     }
     if (
       ["active", "implemented", "verified"].includes(spec.status) &&
@@ -779,6 +809,14 @@ function checkTraceability(root, diagnostics, microSpecs = []) {
           message: "requirement must list at least one gate.",
         })
       }
+      checkRequirementTraceabilityFields(
+        root,
+        jsonPath,
+        spec,
+        requirement,
+        requirementKey,
+        diagnostics
+      )
       const evidence = Array.isArray(requirement.evidence)
         ? requirement.evidence
         : []
@@ -802,6 +840,13 @@ function checkTraceability(root, diagnostics, microSpecs = []) {
         }
       }
       checkMarkdownEntry(markdownPath, markdown, requirementKey, diagnostics)
+      checkMarkdownRequirementSync(
+        markdownPath,
+        markdown,
+        spec,
+        requirement,
+        diagnostics
+      )
     }
 
     checkHandoffs(jsonPath, specKey, spec, diagnostics)
@@ -825,6 +870,264 @@ function checkTraceability(root, diagnostics, microSpecs = []) {
       }
     }
   }
+}
+
+function checkRequirementTraceabilityFields(
+  root,
+  path,
+  spec,
+  requirement,
+  requirementKey,
+  diagnostics
+) {
+  if (requirement.status !== spec.status) {
+    diagnostics.push({
+      path,
+      id: requirementKey,
+      message: "requirement status must match its spec status.",
+    })
+  }
+  if (requirement.risk_class !== spec.risk_class) {
+    diagnostics.push({
+      path,
+      id: requirementKey,
+      message: "requirement risk_class must match its spec risk_class.",
+    })
+  }
+
+  for (const field of [
+    "required_test_tier",
+    "verification_commands",
+    "implementation_surfaces",
+    "related_tests",
+    "manual_rationale",
+  ]) {
+    if (!Array.isArray(requirement[field])) {
+      diagnostics.push({
+        path,
+        id: requirementKey,
+        message:
+          field === "manual_rationale"
+            ? `${field} must be an array.`
+            : `${field} must be a non-empty array.`,
+      })
+      continue
+    }
+    if (field !== "manual_rationale" && requirement[field].length === 0) {
+      diagnostics.push({
+        path,
+        id: requirementKey,
+        message: `${field} must be a non-empty array.`,
+      })
+    }
+  }
+
+  checkTraceabilityChangeState(
+    path,
+    requirementKey,
+    requirement.change_state,
+    diagnostics
+  )
+
+  const requiredTestTier = Array.isArray(requirement.required_test_tier)
+    ? requirement.required_test_tier
+    : []
+  const verificationCommands = Array.isArray(requirement.verification_commands)
+    ? requirement.verification_commands
+    : []
+  const relatedTests = Array.isArray(requirement.related_tests)
+    ? requirement.related_tests
+    : []
+  const implementationSurfaces = Array.isArray(
+    requirement.implementation_surfaces
+  )
+    ? requirement.implementation_surfaces
+    : []
+  const manualRationale = Array.isArray(requirement.manual_rationale)
+    ? requirement.manual_rationale
+    : []
+  const evidence = Array.isArray(requirement.evidence)
+    ? requirement.evidence
+    : []
+  const gates = Array.isArray(requirement.gates) ? requirement.gates : []
+
+  for (const gate of gates) {
+    if (!verificationCommands.includes(gate)) {
+      diagnostics.push({
+        path,
+        id: requirementKey,
+        message: `verification_commands is missing gate ${gate}.`,
+      })
+    }
+  }
+
+  for (const tier of expectedTiersForGates(gates)) {
+    if (!requiredTestTier.includes(tier)) {
+      diagnostics.push({
+        path,
+        id: requirementKey,
+        message: `required_test_tier is missing tier ${tier}.`,
+      })
+    }
+  }
+
+  if (
+    implementationSurfaces.some(
+      (surface) =>
+        typeof surface !== "string" ||
+        !Array.isArray(spec.implementation_surfaces) ||
+        !spec.implementation_surfaces.includes(surface)
+    )
+  ) {
+    diagnostics.push({
+      path,
+      id: requirementKey,
+      message:
+        "requirement implementation_surfaces must be drawn from its spec implementation_surfaces.",
+    })
+  }
+
+  for (const testPath of relatedTests) {
+    if (typeof testPath !== "string") continue
+    if (testPath.startsWith("manual:")) continue
+    if (!existsSync(resolve(root, testPath))) {
+      diagnostics.push({
+        path,
+        id: requirementKey,
+        message: `references missing related test path ${testPath}.`,
+      })
+    }
+  }
+
+  const manualEvidence = evidence.filter(
+    (entry) => typeof entry === "string" && entry.startsWith("manual:")
+  )
+  const automatedEvidence = evidence.filter(
+    (entry) => typeof entry === "string" && !entry.startsWith("manual:")
+  )
+  if (manualEvidence.length > 0 && manualRationale.length === 0) {
+    diagnostics.push({
+      path,
+      id: requirementKey,
+      message: "manual evidence requires an approved manual_rationale entry.",
+    })
+  }
+  if (
+    !["docs-tooling", "ui-only"].includes(spec.risk_class) &&
+    automatedEvidence.length === 0
+  ) {
+    diagnostics.push({
+      path,
+      id: requirementKey,
+      message:
+        "this risk class requires automated evidence in addition to manual rationale.",
+    })
+  }
+}
+
+function checkTraceabilityChangeState(path, id, value, diagnostics) {
+  if (!nonEmptyString(value)) {
+    diagnostics.push({
+      path,
+      id,
+      message: "change_state is required.",
+    })
+    return
+  }
+  if (!CHANGE_STATES.includes(value)) {
+    diagnostics.push({
+      path,
+      id,
+      message: `invalid change_state ${String(value)}.`,
+    })
+  }
+}
+
+function expectedTiersForGates(gates) {
+  const tiers = new Set()
+  for (const gate of gates) {
+    if (gate === "pnpm governance") tiers.add("governance")
+    if (gate === "pnpm lint") tiers.add("lint")
+    if (gate === "pnpm typecheck") tiers.add("typecheck")
+    if (gate === "pnpm test") tiers.add("unit")
+    if (gate === "pnpm db:verify") tiers.add("sql-rls")
+    if (gate === "pnpm security:verify") tiers.add("security")
+    if (gate === "npx playwright test") tiers.add("browser")
+    if (gate === "pnpm test:coverage") tiers.add("coverage")
+    if (gate === "pnpm build") tiers.add("build")
+  }
+  return [...tiers].sort()
+}
+
+function checkMarkdownSpecSync(path, markdown, spec, diagnostics) {
+  if (!markdown || !nonEmptyString(spec?.spec_id)) return
+  const section = markdownSection(markdown, spec.spec_id)
+  if (!section) return
+  const requiredTokens = [
+    ["status", spec.status],
+    ["risk", spec.risk_class],
+    ["change_state", spec.change_state],
+    ...arrayTokens("test", spec.related_tests),
+    ...arrayTokens("gate", spec.verification_gates),
+    ...arrayTokens("implementation surface", spec.implementation_surfaces),
+  ]
+  for (const [label, token] of requiredTokens) {
+    if (!nonEmptyString(token)) continue
+    if (!section.includes(token)) {
+      diagnostics.push({
+        path,
+        id: spec.spec_id,
+        message: `Markdown traceability is missing ${label} ${token}.`,
+      })
+    }
+  }
+}
+
+function checkMarkdownRequirementSync(
+  path,
+  markdown,
+  spec,
+  requirement,
+  diagnostics
+) {
+  if (!markdown || !nonEmptyString(spec?.spec_id)) return
+  const requirementId = stringField(requirement, "requirement_id")
+  if (!requirementId) return
+  const section = markdownSection(markdown, spec.spec_id)
+  if (!section) return
+  const requiredTokens = [
+    ["status", requirement.status],
+    ["risk", requirement.risk_class],
+    ["test tier", ...(requirement.required_test_tier ?? [])],
+    ["evidence", ...(requirement.evidence ?? [])],
+    ["verification command", ...(requirement.verification_commands ?? [])],
+    ["implementation surface", ...(requirement.implementation_surfaces ?? [])],
+    ["change_state", requirement.change_state],
+  ]
+  for (const [label, ...tokens] of requiredTokens) {
+    for (const token of tokens) {
+      if (!nonEmptyString(token)) continue
+      if (!section.includes(token)) {
+        diagnostics.push({
+          path,
+          id: requirementId,
+          message: `Markdown traceability is missing ${label} ${token}.`,
+        })
+      }
+    }
+  }
+}
+
+function markdownSection(markdown, specId) {
+  const heading = `## ${specId}`
+  const start = markdown.indexOf(heading)
+  if (start === -1) return ""
+  const next = markdown.indexOf("\n## ", start + heading.length)
+  return markdown.slice(start, next === -1 ? undefined : next)
+}
+
+function arrayTokens(label, values) {
+  return Array.isArray(values) ? values.map((value) => [label, value]) : []
 }
 
 function checkSpecMetadata(root, path, id, spec, diagnostics) {
@@ -1239,6 +1542,12 @@ function isStaleReviewDate(value) {
   if (Number.isNaN(reviewedAt.getTime())) return true
   const ageMs = Date.now() - reviewedAt.getTime()
   return ageMs > STALE_AFTER_DAYS * 24 * 60 * 60 * 1000
+}
+
+function isSorted(values) {
+  return values.every(
+    (value, index) => index === 0 || values[index - 1] <= value
+  )
 }
 
 function sortDiagnostics(diagnostics) {

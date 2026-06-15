@@ -42,26 +42,6 @@ describe("AI governance foundation", () => {
         scope: "foundation",
         specs: [
           {
-            spec_id: "GOV-002",
-            title: "Invalid governance fixture",
-            status: "parked",
-            risk_class: "unknown-risk",
-            owner: "factory-droid",
-            last_reviewed: "2026-06-15",
-            allowed_blast_radius: ["tests/micro-specs/**"],
-            implementation_surfaces: ["tests/micro-specs/**"],
-            related_docs: ["micro-specs/README.md"],
-            related_tests: ["tests/micro-specs/ai-governance.test.ts"],
-            verification_gates: [
-              "pnpm governance",
-              "pnpm lint",
-              "pnpm typecheck",
-              "pnpm test",
-            ],
-            approved_exceptions: [],
-            requirements: [],
-          },
-          {
             spec_id: "GOV-001",
             title: "Deterministic governance fixture",
             status: "draft",
@@ -79,23 +59,61 @@ describe("AI governance foundation", () => {
               "pnpm test",
             ],
             approved_exceptions: [],
+            change_state: "current",
             requirements: [
               {
-                requirement_id: "REQ-002",
-                gates: ["pnpm lint"],
-                evidence: ["tests/micro-specs/ai-governance.test.ts"],
+                requirement_id: "REQ-001",
+                status: "draft",
+                risk_class: "docs-tooling",
+                required_test_tier: ["unit"],
+                gates: ["pnpm test"],
+                verification_commands: ["pnpm test"],
+                evidence: ["missing.test.ts"],
+                related_tests: ["tests/micro-specs/ai-governance.test.ts"],
+                implementation_surfaces: ["tests/micro-specs/**"],
+                manual_rationale: [],
+                change_state: "current",
               },
               {
-                requirement_id: "REQ-001",
-                gates: ["pnpm test"],
-                evidence: ["missing.test.ts"],
+                requirement_id: "REQ-002",
+                status: "draft",
+                risk_class: "docs-tooling",
+                required_test_tier: ["lint"],
+                gates: ["pnpm lint"],
+                verification_commands: ["pnpm lint"],
+                evidence: ["tests/micro-specs/ai-governance.test.ts"],
+                related_tests: ["tests/micro-specs/ai-governance.test.ts"],
+                implementation_surfaces: ["tests/micro-specs/**"],
+                manual_rationale: [],
+                change_state: "current",
               },
             ],
+          },
+          {
+            spec_id: "GOV-002",
+            title: "Invalid governance fixture",
+            status: "parked",
+            risk_class: "unknown-risk",
+            owner: "factory-droid",
+            last_reviewed: "2026-06-15",
+            allowed_blast_radius: ["tests/micro-specs/**"],
+            implementation_surfaces: ["tests/micro-specs/**"],
+            related_docs: ["micro-specs/README.md"],
+            related_tests: ["tests/micro-specs/ai-governance.test.ts"],
+            verification_gates: [
+              "pnpm governance",
+              "pnpm lint",
+              "pnpm typecheck",
+              "pnpm test",
+            ],
+            approved_exceptions: [],
+            change_state: "current",
+            requirements: [],
           },
         ],
       }),
       traceabilityMarkdown:
-        "# Traceability\n\n- `GOV-001`\n- `GOV-002`\n- `REQ-002`\n",
+        "# Traceability\n\n## GOV-001\n\nStatus draft\nRisk docs-tooling\nChange current\ntests/micro-specs/ai-governance.test.ts\npnpm governance\npnpm lint\npnpm typecheck\npnpm test\ntests/micro-specs/**\nREQ-002\nlint\n\n## GOV-002\n\nStatus parked\nRisk unknown-risk\nChange current\ntests/micro-specs/ai-governance.test.ts\npnpm governance\npnpm lint\npnpm typecheck\npnpm test\ntests/micro-specs/**\n",
     })
 
     const first = formatDiagnostics(validateGovernance({ rootDir: fixture }))
@@ -106,6 +124,8 @@ describe("AI governance foundation", () => {
       "micro-specs/traceability.json [GOV-002] invalid risk_class unknown-risk.",
       "micro-specs/traceability.json [GOV-002] invalid status parked.",
       "micro-specs/traceability.json [REQ-001] references missing evidence path missing.test.ts.",
+      "micro-specs/TRACEABILITY.md [REQ-001] Markdown traceability is missing evidence missing.test.ts.",
+      "micro-specs/TRACEABILITY.md [REQ-001] Markdown traceability is missing test tier unit.",
       "micro-specs/TRACEABILITY.md [REQ-001] missing Markdown traceability entry.",
     ])
   })
@@ -335,6 +355,148 @@ describe("AI governance foundation", () => {
       ])
     )
   })
+
+  it("rejects traceability drift, missing test tiers, and missing change state", async () => {
+    const { validateGovernance } =
+      await import("../../scripts/check-governance.mjs")
+    const fixture = makeGovernanceFixture({
+      traceabilityJson: {
+        version: 1,
+        scope: "full-micro-spec-corpus",
+        specs: [
+          {
+            spec_id: "GOV-TRACEABILITY-DRIFT",
+            title: "Traceability drift fixture",
+            status: "implemented",
+            risk_class: "docs-tooling",
+            owner: "factory-droid",
+            last_reviewed: "2026-06-15",
+            allowed_blast_radius: ["tests/micro-specs/**"],
+            implementation_surfaces: ["tests/micro-specs/**"],
+            related_docs: ["micro-specs/README.md"],
+            related_tests: ["tests/micro-specs/ai-governance.test.ts"],
+            verification_gates: [
+              "pnpm governance",
+              "pnpm lint",
+              "pnpm typecheck",
+              "pnpm test",
+            ],
+            approved_exceptions: [],
+            requirements: [
+              {
+                requirement_id: "GOV-TRACEABILITY-DRIFT-001",
+                summary: "Traceability entry missing required tier fields.",
+                gates: ["pnpm governance"],
+                evidence: ["tests/micro-specs/ai-governance.test.ts"],
+              },
+            ],
+            handoffs: {
+              product: {
+                spec_id: "GOV-TRACEABILITY-DRIFT",
+                requirement_ids: ["GOV-TRACEABILITY-DRIFT-001"],
+                status: "implemented",
+                risk_class: "docs-tooling",
+                owner: "factory-droid",
+                date: "2026-06-15",
+                bounded_intent: "Validate traceability schema strictness.",
+                scope_confirmation:
+                  "Fixture remains limited to governance tests.",
+              },
+              engineering: {
+                spec_id: "GOV-TRACEABILITY-DRIFT",
+                requirement_ids: ["GOV-TRACEABILITY-DRIFT-001"],
+                risk_class: "docs-tooling",
+                tdd_evidence: [
+                  {
+                    requirement_id: "GOV-TRACEABILITY-DRIFT-001",
+                    red: "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+                    green:
+                      "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+                    refactor: "No refactor needed.",
+                  },
+                ],
+                as_built_reconciliation: {
+                  already_satisfied: [],
+                  implemented: ["GOV-TRACEABILITY-DRIFT-001"],
+                  intentionally_untouched: [],
+                },
+                actual_files_touched: [
+                  "tests/micro-specs/ai-governance.test.ts",
+                ],
+                blast_radius_confirmation:
+                  "Actual files are inside allowed blast radius.",
+              },
+              reviewer: {
+                decision: "approved",
+                spec_id: "GOV-TRACEABILITY-DRIFT",
+                requirement_ids: ["GOV-TRACEABILITY-DRIFT-001"],
+                risk_class: "docs-tooling",
+                verification_output: [
+                  {
+                    command:
+                      "pnpm vitest run tests/micro-specs/ai-governance.test.ts",
+                    outcome: "passed",
+                  },
+                ],
+              },
+              release: {
+                spec_id: "GOV-TRACEABILITY-DRIFT",
+                requirement_ids: ["GOV-TRACEABILITY-DRIFT-001"],
+                risk_class: "docs-tooling",
+                release_reconciliation: "Governance fixture is release-ready.",
+                verification_output: [
+                  {
+                    command: "pnpm governance",
+                    outcome: "passed",
+                  },
+                ],
+                risks: [],
+                follow_ups: [],
+              },
+            },
+          },
+        ],
+      },
+      traceabilityMarkdown:
+        "# Traceability\n\n## GOV-TRACEABILITY-DRIFT\n\n- `GOV-TRACEABILITY-DRIFT-001`\n",
+    })
+
+    expect(validateGovernance({ rootDir: fixture }).diagnostics).toEqual(
+      expect.arrayContaining([
+        {
+          path: "micro-specs/traceability.json",
+          id: "GOV-TRACEABILITY-DRIFT",
+          message: "change_state is required.",
+        },
+        {
+          path: "micro-specs/traceability.json",
+          id: "GOV-TRACEABILITY-DRIFT-001",
+          message: "required_test_tier must be a non-empty array.",
+        },
+        {
+          path: "micro-specs/traceability.json",
+          id: "GOV-TRACEABILITY-DRIFT-001",
+          message: "verification_commands must be a non-empty array.",
+        },
+        {
+          path: "micro-specs/traceability.json",
+          id: "GOV-TRACEABILITY-DRIFT-001",
+          message: "change_state is required.",
+        },
+        {
+          path: "micro-specs/TRACEABILITY.md",
+          id: "GOV-TRACEABILITY-DRIFT",
+          message: "Markdown traceability is missing status implemented.",
+        },
+        {
+          path: "micro-specs/TRACEABILITY.md",
+          id: "GOV-TRACEABILITY-DRIFT-001",
+          message:
+            "Markdown traceability is missing evidence tests/micro-specs/ai-governance.test.ts.",
+        },
+      ])
+    )
+  })
 })
 
 function makeGovernanceFixture(
@@ -420,11 +582,20 @@ function makeGovernanceFixture(
                   "pnpm test",
                 ],
                 approved_exceptions: [],
+                change_state: "current",
                 requirements: [
                   {
                     requirement_id: "REQ-001",
+                    status: "implemented",
+                    risk_class: "docs-tooling",
+                    required_test_tier: ["unit"],
                     gates: ["pnpm test"],
+                    verification_commands: ["pnpm test"],
                     evidence: ["tests/micro-specs/ai-governance.test.ts"],
+                    related_tests: ["tests/micro-specs/ai-governance.test.ts"],
+                    implementation_surfaces: ["tests/micro-specs/**"],
+                    manual_rationale: [],
+                    change_state: "current",
                   },
                 ],
                 handoffs: {
@@ -500,7 +671,7 @@ function makeGovernanceFixture(
   writeFileSync(
     join(root, "micro-specs/TRACEABILITY.md"),
     overrides.traceabilityMarkdown ??
-      "# Traceability\n\n- `GOV-001`\n- `REQ-001`\n"
+      "# Traceability\n\n## GOV-001\n\nStatus implemented\nRisk docs-tooling\nChange current\ntests/micro-specs/ai-governance.test.ts\npnpm governance\npnpm lint\npnpm typecheck\npnpm test\ntests/micro-specs/**\nREQ-001\nunit\n"
   )
   writeFileSync(join(root, "tests/micro-specs/ai-governance.test.ts"), "")
   writeFileSync(
