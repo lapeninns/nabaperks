@@ -6,6 +6,15 @@
 
 Closes #
 
+## Governance
+
+- Spec ID:
+- Risk class:
+- Requirement IDs:
+- Blast radius:
+- Micro-Spec outcome and scope:
+- Browser evidence: required / not required because this is governance-only or non-runtime work
+
 ## How it was built (TDD)
 
 <!-- Red → Green → Refactor. Which EARS requirements got a failing test first? -->
@@ -15,6 +24,7 @@ Closes #
 - [ ] `pnpm lint`
 - [ ] `pnpm typecheck`
 - [ ] `pnpm test` (and `pnpm test:coverage` if touching `lib/`)
+- [ ] `pnpm governance`
 - [ ] `pnpm quality` (naming, debt, N+1, AGENTS.md, complexity, routes, dead/dup code)
 - [ ] `pnpm build`
 - [ ] Relevant `supabase/tests` SQL or Playwright smoke, if the surface changed

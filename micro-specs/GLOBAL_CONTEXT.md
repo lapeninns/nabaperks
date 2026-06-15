@@ -2,6 +2,11 @@
 
 These constraints apply to every micro-spec unless a deeper project instruction or a specific spec explicitly overrides them.
 
+Governance source hierarchy, lifecycle status vocabulary, risk_class, and
+CLI-first validation policy live in `micro-specs/README.md`. Product runtime
+changes must follow the risk-to-gate mapping there, including browser evidence
+when the risk class requires it.
+
 ## Product Positioning
 
 Nabaperks is a UK no-app QR loyalty platform for independent local businesses. The MVP must prove that merchants will pay monthly for a simple replacement for paper loyalty cards.

@@ -4,7 +4,24 @@ labels: ["type: bug", "needs triage"]
 body:
   - type: markdown
     attributes:
-      value: Thanks for the report. Please do not include real customer phone numbers or other personal data.
+      value: Thanks for the report. Please do not include real customer phone numbers or other personal data. Triage will map this into a Micro-Spec outcome, scope, risk class, and verification plan before implementation.
+  - type: dropdown
+    id: risk-class
+    attributes:
+      label: Governance risk class
+      description: Pick the closest class so required evidence is clear.
+      options:
+        - docs-tooling
+        - ui-only
+        - product-analytics
+        - customer-pii
+        - auth-session
+        - billing
+        - webhooks
+        - rls-rpc-ledger
+        - migrations
+    validations:
+      required: true
   - type: dropdown
     id: surface
     attributes:
@@ -22,14 +39,14 @@ body:
   - type: textarea
     id: what-happened
     attributes:
-      label: What happened
+      label: What happened / outcome needed
       description: A clear description of the bug and what you expected instead.
     validations:
       required: true
   - type: textarea
     id: steps
     attributes:
-      label: Steps to reproduce
+      label: Steps to reproduce and scope
       value: |
         1.
         2.
@@ -46,7 +63,7 @@ body:
   - type: textarea
     id: evidence
     attributes:
-      label: Logs, request id, or screenshots
+      label: Logs, request id, screenshots, or verification evidence
       description: Include the `x-request-id` response header if you have it — it correlates server logs.
     validations:
       required: false

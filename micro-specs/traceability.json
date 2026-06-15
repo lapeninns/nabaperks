@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "scope": "foundation",
+  "governance_contract": "micro-specs/README.md#ai-governance-contract",
+  "specs": [
+    {
+      "spec_id": "GOV-GOVERNANCE-FOUNDATION",
+      "title": "Governance contract validator foundation",
+      "status": "implemented",
+      "risk_class": "docs-tooling",
+      "owner": "factory-droid",
+      "last_reviewed": "2026-06-15",
+      "allowed_blast_radius": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        "SKILL.md",
+        "Instructions_MircroSpecsCreation.md",
+        "Instructions_tdd.md",
+        "micro-specs/README.md",
+        "micro-specs/GLOBAL_CONTEXT.md",
+        "micro-specs/TRACEABILITY.md",
+        "micro-specs/traceability.json",
+        "scripts/check-governance.mjs",
+        "tests/micro-specs/ai-governance.test.ts",
+        "package.json",
+        ".github/**"
+      ],
+      "related_docs": [
+        "micro-specs/README.md",
+        "Instructions_MircroSpecsCreation.md",
+        "Instructions_tdd.md",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "SKILL.md"
+      ],
+      "related_tests": ["tests/micro-specs/ai-governance.test.ts"],
+      "verification_gates": [
+        "pnpm governance",
+        "pnpm lint",
+        "pnpm typecheck",
+        "pnpm test"
+      ],
+      "approved_exceptions": [],
+      "requirements": [
+        {
+          "requirement_id": "GOV-GOVERNANCE-FOUNDATION-001",
+          "summary": "Canonical governance hierarchy is documented and validated.",
+          "gates": ["pnpm governance", "pnpm test"],
+          "evidence": [
+            "micro-specs/README.md",
+            "tests/micro-specs/ai-governance.test.ts"
+          ]
+        },
+        {
+          "requirement_id": "GOV-GOVERNANCE-FOUNDATION-002",
+          "summary": "Lifecycle status, transition, risk, and gate vocabulary is documented and validated.",
+          "gates": ["pnpm governance", "pnpm test"],
+          "evidence": [
+            "micro-specs/README.md",
+            "tests/micro-specs/ai-governance.test.ts"
+          ]
+        },
+        {
+          "requirement_id": "GOV-GOVERNANCE-FOUNDATION-003",
+          "summary": "Traceability JSON and Markdown are present and synchronized for the foundation scope.",
+          "gates": ["pnpm governance", "pnpm test"],
+          "evidence": [
+            "micro-specs/traceability.json",
+            "micro-specs/TRACEABILITY.md",
+            "tests/micro-specs/ai-governance.test.ts"
+          ]
+        },
+        {
+          "requirement_id": "GOV-GOVERNANCE-FOUNDATION-004",
+          "summary": "Governance validation is pnpm aligned, deterministic, read-only, and not soft-failed.",
+          "gates": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test"
+          ],
+          "evidence": [
+            "scripts/check-governance.mjs",
+            "package.json",
+            ".github/workflows/ci.yml",
+            ".github/actions/setup/action.yml",
+            "tests/micro-specs/ai-governance.test.ts"
+          ]
+        },
+        {
+          "requirement_id": "GOV-GOVERNANCE-FOUNDATION-005",
+          "summary": "Governance-only work is CLI-first and browser evidence is required only when product runtime risk calls for it.",
+          "gates": ["pnpm governance", "pnpm test"],
+          "evidence": [
+            "micro-specs/README.md",
+            ".github/pull_request_template.md",
+            "tests/micro-specs/ai-governance.test.ts"
+          ]
+        }
+      ]
+    }
+  ]
+}

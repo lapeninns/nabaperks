@@ -4,7 +4,24 @@ labels: ["type: feature", "needs triage"]
 body:
   - type: markdown
     attributes:
-      value: Frame the request as the end state ("what must be true"), not the implementation.
+      value: Frame the request as a Micro-Spec outcome ("what must be true"), not the implementation.
+  - type: dropdown
+    id: risk-class
+    attributes:
+      label: Governance risk class
+      description: Pick the closest risk class from micro-specs/README.md.
+      options:
+        - docs-tooling
+        - ui-only
+        - product-analytics
+        - customer-pii
+        - auth-session
+        - billing
+        - webhooks
+        - rls-rpc-ledger
+        - migrations
+    validations:
+      required: true
   - type: textarea
     id: outcome
     attributes:
@@ -32,7 +49,7 @@ body:
   - type: input
     id: blast-radius
     attributes:
-      label: Blast radius
+      label: Blast radius / scope
       description: Which files / directories should this touch?
     validations:
       required: false
