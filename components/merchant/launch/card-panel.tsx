@@ -23,7 +23,7 @@ export async function CardPanel({ params }: { params: CardPanelParams }) {
       <ReceiptCard>
         <PageTitle
           title="Finish onboarding first"
-          description="A primary location is required before creating an MVP loyalty card."
+          description="Add your venue before you build your loyalty card."
           titleClassName="sm:text-3xl"
         />
       </ReceiptCard>

@@ -67,7 +67,7 @@ export function CustomerReadbackTable({
 
   return (
     <DataTable
-      caption="Merchant loyalty customer readbacks"
+      caption="Your loyalty members and their stamp progress"
       columns={columns}
       rows={customers}
       getRowKey={(row) => row.id}

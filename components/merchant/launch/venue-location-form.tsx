@@ -46,13 +46,13 @@ export function VenueLocationForm({
       <PageTitle
         eyebrow="Venue location"
         title="Set where scans happen"
-        description="The printed QR is static. GPS can be required as a soft anomaly signal, but it never blocks a customer stamp."
+        description="Your printed QR never changes. You can ask for GPS as a light extra check, but it never blocks a customer's stamp."
         titleClassName="sm:text-3xl"
       />
 
       {state.saved ? (
         <StatusBanner tone="success" title="Venue location saved.">
-          QR and self-service stamp checks now use this venue address.
+          Your QR and stamp checks now use this address.
         </StatusBanner>
       ) : null}
 

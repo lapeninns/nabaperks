@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 
-import { EmptyState, PageTitle } from "@/components/brand"
+import { EmptyState, MonoTag, PageTitle } from "@/components/brand"
 import { CustomerReadbackTable } from "@/components/merchant/customer-readback-table"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { getMerchantCustomers } from "@/lib/merchant/dashboard"
@@ -35,7 +35,14 @@ export default async function MerchantCustomersPage({
       <PageTitle
         eyebrow="Customers"
         title="Loyalty members"
-        description="Current stamp progress and reward totals for this merchant."
+        description="Stamp progress and rewards for everyone who has joined your card."
+        actions={
+          customers.length > 0 ? (
+            <MonoTag tone="ink">
+              {customers.length} {customers.length === 1 ? "member" : "members"}
+            </MonoTag>
+          ) : undefined
+        }
       />
 
       <CustomerReadbackTable

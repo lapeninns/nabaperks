@@ -18,7 +18,7 @@ export function LaunchReadinessPanel({
       <SectionHeader
         eyebrow="Ink progress"
         title="Launch readiness"
-        description="A live checklist from card, reward, venue, and QR records."
+        description="What is left before customers can start collecting stamps."
         actions={
           <MonoTag tone={readiness.launchReady ? "leaf" : "sun"}>
             {readiness.completed} of {readiness.total} ready
@@ -75,10 +75,10 @@ export function LaunchReadinessPanel({
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border-2 border-ink bg-ink px-4 py-3 text-paper">
         <p className="max-w-xl text-sm leading-6 text-paper/80">
           {readiness.launchReady
-            ? "The venue can accept scans, issue stamps, and redeem rewards."
+            ? "Your venue can accept scans, give stamps, and redeem rewards."
             : nextStep
-              ? `${nextStep.label} is the next launch blocker.`
-              : "Review the launch checklist before printing."}
+              ? `${nextStep.label} is the next thing to set up.`
+              : "Run through the checklist before you print."}
         </p>
         <Button asChild variant="secondary" size="sm">
           <Link href={nextStep?.href ?? "/app/launch"}>

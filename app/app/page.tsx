@@ -32,19 +32,13 @@ export default async function MerchantAppPage() {
     getMerchantLaunchReadiness(),
   ])
   const metrics = dashboard.metrics
-  const metricTiles = [
-    { label: "Members", value: metrics.members.toString() },
+  const secondaryMetrics = [
     { label: "New members (7d)", value: metrics.newMembers.toString() },
     { label: "Stamps issued", value: metrics.stampsIssued.toString() },
     { label: "Repeat customers", value: metrics.repeatCustomers.toString() },
     { label: "Rewards redeemed", value: metrics.rewardsRedeemed.toString() },
     { label: "QR downloads", value: metrics.qrDownloads.toString() },
     { label: "Billing status", value: formatStatus(dashboard.billingStatus) },
-    {
-      label: "Estimated repeat revenue",
-      value: formatPence(metrics.estimatedRepeatRevenuePence),
-      helper: "Estimate only: repeat customers x average order value.",
-    },
   ]
 
   await capturePostHogEvent({
@@ -57,9 +51,9 @@ export default async function MerchantAppPage() {
   return (
     <div className="grid gap-6">
       <PageTitle
-        eyebrow="Merchant dashboard"
+        eyebrow="Your venue"
         title={merchant.business_name}
-        description="Current MVP metrics for this merchant only."
+        description="A quick read on how your loyalty card is doing — members, repeat visits, and rewards."
         actions={
           <Button asChild>
             <Link href="/app/launch">Launch QR</Link>
@@ -68,7 +62,9 @@ export default async function MerchantAppPage() {
       />
 
       <BillingNotice status={dashboard.billingStatus} />
-      <LaunchReadinessPanel readiness={launchReadiness} />
+      {!launchReadiness.launchReady ? (
+        <LaunchReadinessPanel readiness={launchReadiness} />
+      ) : null}
 
       {metrics.members === 0 ? (
         <EmptyState
@@ -87,16 +83,35 @@ export default async function MerchantAppPage() {
         />
       ) : null}
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {metricTiles.map((metric, index) => (
-          <MotionReveal key={metric.label} delay={index * 0.045} distance={12}>
-            <MetricTile
-              label={metric.label}
-              value={metric.value}
-              helper={metric.helper}
-            />
-          </MotionReveal>
-        ))}
+      <section className="grid gap-3">
+        <div className="grid overflow-hidden rounded-lg border-2 border-ink bg-card shadow-sm sm:grid-cols-2">
+          <div className="grid content-start gap-2 border-b-2 border-ink p-6 sm:border-r-2 sm:border-b-0">
+            <p className="eyebrow">Members</p>
+            <p className="numeric-tabular text-4xl font-extrabold leading-none sm:text-5xl">
+              {metrics.members}
+            </p>
+            <p className="text-xs leading-5 text-muted-foreground">
+              People carrying your card right now.
+            </p>
+          </div>
+          <div className="grid content-start gap-2 p-6">
+            <p className="eyebrow">Estimated repeat revenue</p>
+            <p className="numeric-tabular text-4xl font-extrabold leading-none sm:text-5xl">
+              {formatPence(metrics.estimatedRepeatRevenuePence)}
+            </p>
+            <p className="text-xs leading-5 text-muted-foreground">
+              Estimate only, from repeat visits at your average order value.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {secondaryMetrics.map((metric, index) => (
+            <MotionReveal key={metric.label} delay={index * 0.045} distance={12}>
+              <MetricTile label={metric.label} value={metric.value} />
+            </MotionReveal>
+          ))}
+        </div>
       </section>
 
       <ReceiptCard className="grid gap-4">
@@ -156,7 +171,7 @@ function formatStatus(status: string) {
 
 function billingStateCopy(status: string) {
   const state = status === "trial" ? "trialing" : status
-  const baseClassName = "rounded-lg border-2 p-5 shadow-md"
+  const baseClassName = "rounded-lg border-2 p-5 shadow-sm"
 
   const states: Record<
     string,
@@ -173,16 +188,16 @@ function billingStateCopy(status: string) {
     not_started: {
       title: "Billing not started",
       description:
-        "Start checkout when the venue is ready. Customers can be configured, but billing should be activated before launch.",
+        "Start your subscription when you are ready to go live. You can set everything else up first.",
       className: `${baseClassName} border-primary/30 bg-primary/10`,
       actionHref: "/app/billing",
       actionLabel: "Start billing",
       actionVariant: "default",
     },
     trialing: {
-      title: "Trial active",
+      title: "Free trial active",
       description:
-        "The 30-day Growth Plan pilot is running with full MVP access.",
+        "Your 30-day free trial is running, with everything switched on.",
       className: `${baseClassName} border-reward/30 bg-accent`,
       actionHref: "/app/billing",
       actionLabel: "View billing",
@@ -191,7 +206,7 @@ function billingStateCopy(status: string) {
     active: {
       title: "Billing active",
       description:
-        "Stripe marks this merchant as active. Loyalty participation and self-service stamping stay enabled.",
+        "Your subscription is active. Customers can join, collect stamps, and redeem rewards.",
       className: `${baseClassName} border-reward/30 bg-reward/10`,
       actionHref: "/app/billing",
       actionLabel: "Manage billing",
@@ -200,7 +215,7 @@ function billingStateCopy(status: string) {
     past_due: {
       title: `Billing ${formatStatus(status)}`,
       description:
-        "Payment needs attention. Loyalty remains visible, but billing should be resolved.",
+        "A payment needs attention. Your card still works for now, but please sort billing soon.",
       className: `${baseClassName} border-destructive/30 bg-destructive/10`,
       titleClassName: "text-destructive",
       actionHref: "/app/billing",
@@ -210,7 +225,7 @@ function billingStateCopy(status: string) {
     cancelled: {
       title: `Billing ${formatStatus(status)}`,
       description:
-        "New customer actions are disabled until billing is restored.",
+        "New stamps and rewards are paused until billing is restored.",
       className: `${baseClassName} border-destructive/30 bg-destructive/10`,
       titleClassName: "text-destructive",
       actionHref: "/app/billing",
@@ -220,7 +235,7 @@ function billingStateCopy(status: string) {
     suspended: {
       title: `Billing ${formatStatus(status)}`,
       description:
-        "New customer actions are disabled until billing is restored.",
+        "New stamps and rewards are paused until billing is restored.",
       className: `${baseClassName} border-destructive/30 bg-destructive/10`,
       titleClassName: "text-destructive",
       actionHref: "/app/billing",
@@ -233,7 +248,7 @@ function billingStateCopy(status: string) {
     states[state] ?? {
       title: `Billing ${formatStatus(status)}`,
       description:
-        "Billing status is available for support review. Check Stripe before changing customer access.",
+        "We could not read your billing status just now. Refresh the page, or open billing to check.",
       className: `${baseClassName} border-border bg-card`,
       actionHref: "/app/billing",
       actionLabel: "Review billing",

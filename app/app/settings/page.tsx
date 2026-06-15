@@ -15,14 +15,14 @@ export default async function MerchantSettingsPage() {
     <div className="grid gap-6">
       <PageTitle
         eyebrow="Settings"
-        title="Merchant settings"
-        description="Manage the estimate values used for pilot dashboard readback."
+        title="Your settings"
+        description="Set the figures we use to estimate repeat revenue on your dashboard."
       />
 
       <section className="grid gap-4">
         <SectionHeader
-          title="ROI estimate settings"
-          description="These values power estimated dashboard figures only. Nabaperks does not claim guaranteed revenue attribution."
+          title="Revenue estimate"
+          description="These figures only shape the estimate shown on your dashboard. They are not a promise of revenue."
         />
         <div className="grid gap-6 lg:grid-cols-[minmax(0,420px)_1fr]">
           <RoiSettingsForm
@@ -30,12 +30,12 @@ export default async function MerchantSettingsPage() {
             estimatedGrossMarginBps={merchant.estimated_gross_margin_bps}
             rewardCostPence={merchant.reward_cost_pence}
           />
-          <section className="rounded-lg border bg-card p-5 shadow-xs">
-            <h3 className="text-lg font-extrabold">Estimate formula</h3>
+          <section className="surface-card p-5 shadow-xs">
+            <h3 className="text-lg font-extrabold">How the estimate works</h3>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              Estimated repeat revenue = repeat customers x average order value.
-              Gross margin and reward cost are stored now for pilot readback and
-              later profitability reporting.
+              We estimate repeat revenue as repeat customers multiplied by your
+              average order value. Gross margin and reward cost are saved for
+              fuller reporting later on.
             </p>
           </section>
         </div>

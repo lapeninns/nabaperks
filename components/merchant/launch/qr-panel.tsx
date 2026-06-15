@@ -147,7 +147,7 @@ export async function QrPanel({ params }: { params: QrPanelParams }) {
               >
                 Venue checks
               </Link>{" "}
-              so self-service stamps have the right context.
+              so stamps are tied to the right venue.
             </StatusBanner>
           ) : null}
 
@@ -211,7 +211,7 @@ export async function QrPanel({ params }: { params: QrPanelParams }) {
           </div>
 
           <div className="grid gap-3 rounded-lg border bg-background p-4">
-            <p className="text-sm font-bold">Pilot setup checklist</p>
+            <p className="text-sm font-bold">Setup checklist</p>
             <ul className="grid gap-2 text-sm leading-6 text-muted-foreground">
               <li>Card active: {activeCard.card_name}</li>
               <li>Active mystery rewards: {activeRewardPoolItemCount}</li>

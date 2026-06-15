@@ -36,8 +36,8 @@ export default async function MerchantActivityPage({
     <div className="grid gap-6">
       <PageTitle
         eyebrow="Activity"
-        title="Activity log"
-        description="Recent operational events."
+        title="Activity"
+        description="Everything happening on your loyalty card — joins, stamps, rewards, and QR downloads."
       />
 
       <Suspense fallback={null}>

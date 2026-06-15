@@ -26,9 +26,9 @@ export async function VenuePanel() {
       />
       <ReceiptCard className="grid content-start gap-4 p-6">
         <SectionHeader
-          eyebrow="Self-service checks"
+          eyebrow="Venue checks"
           title="GPS stays soft"
-          description="A stamp or redemption still completes if location is denied, unavailable, or outside the radius. Nabaperks records a review flag instead."
+          description="A stamp or reward still goes through if location is off, denied, or out of range — we just note it for review instead."
           actions={
             <MonoTag tone={location?.require_geofence ? "sun" : "plain"}>
               {location?.require_geofence ? "GPS review on" : "GPS review off"}

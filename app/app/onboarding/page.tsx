@@ -7,15 +7,15 @@ import { getMerchantOnboardingStatus } from "@/lib/merchant/onboarding"
 const setupSteps = [
   {
     title: "Business profile",
-    description: "Name, type, and the first public-facing venue details.",
+    description: "Your name, your type of venue, and where customers find you.",
   },
   {
     title: "Mystery card",
-    description: "Set the visit target and reward pool after onboarding.",
+    description: "Choose how many visits earn a reward, and what is in the pool.",
   },
   {
     title: "Launch QR",
-    description: "Download the poster, till card, and sticker from the QR page.",
+    description: "Print the poster, till card, and sticker from the QR page.",
   },
 ]
 
@@ -34,8 +34,8 @@ export default async function OnboardingPage() {
           title="Tell us about your business"
           description={
             setup.status === "missing_location"
-              ? "Your business profile is saved. Add the first location to finish setup."
-              : "Create one merchant profile and one first location for the MVP."
+              ? "Your business details are saved. Add your first venue to finish setting up."
+              : "Add your business and your first venue to get started."
           }
           titleClassName="sm:text-3xl"
         />
@@ -44,13 +44,13 @@ export default async function OnboardingPage() {
 
       <aside className="grid h-fit gap-4 rounded-lg border bg-secondary/60 p-5 shadow-xs lg:col-start-2 lg:row-span-2 lg:row-start-1">
         <div>
-          <p className="eyebrow">Setup path</p>
+          <p className="eyebrow">What happens next</p>
           <h2 className="mt-2 text-xl font-extrabold leading-tight">
-            From profile to counter QR
+            From sign-up to your first stamp
           </h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Finish this form, then Nabaperks keeps the next merchant steps in the
-            app shell.
+            Save this form and we will walk you through the rest, one step at a
+            time.
           </p>
         </div>
         <ol className="grid gap-3">

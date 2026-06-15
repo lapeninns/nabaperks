@@ -68,7 +68,7 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
       <PageTitle
         eyebrow="Billing"
         title="Growth Plan"
-        description="First 30 days free, then GBP 29/month per location through Stripe Billing."
+        description="First 30 days free, then GBP 29/month for each location."
       />
 
       <BillingOutcomeMessages
@@ -86,13 +86,13 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
         <ReceiptCard className="grid gap-4">
           <SectionHeader
             eyebrow="Plan"
-            title="30-day pilot, then GBP 29/month"
-            description="Checkout creates the Stripe customer and subscription. Webhooks keep the Supabase billing state in sync for merchant readbacks."
+            title="30 days free, then GBP 29/month"
+            description="Checkout sets up your subscription securely with Stripe. Everything on this page updates by itself once you are set up."
           />
           <div className="grid gap-3 sm:grid-cols-3">
-            <BillingFact label="Pilot" value="30 days free" />
-            <BillingFact label="After pilot" value="GBP 29/month" />
-            <BillingFact label="Scope" value="Per location" />
+            <BillingFact label="Free trial" value="30 days" />
+            <BillingFact label="After that" value="GBP 29/month" />
+            <BillingFact label="Billed" value="Per location" />
           </div>
         </ReceiptCard>
 
@@ -104,8 +104,8 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
             </p>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {billing?.current_period_end
-                ? `Current period ends ${formatDate(billing.current_period_end)}.`
-                : "No current Stripe period has been synced yet."}
+                ? `Your current period ends ${formatDate(billing.current_period_end)}.`
+                : "Your billing period will show here once checkout is done."}
             </p>
           </div>
           <BillingAccessNote status={status} />
@@ -114,28 +114,28 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
 
       <Card>
         <CardHeader>
-          <p className="eyebrow">Stripe controls</p>
+          <p className="eyebrow">Payments</p>
           <CardTitle className="text-2xl font-extrabold">
-            Checkout and portal
+            Start or manage billing
           </CardTitle>
         </CardHeader>
 
         <CardContent className="grid gap-5">
           <div className="grid gap-3 rounded-lg bg-secondary/60 p-4 text-sm text-secondary-foreground sm:grid-cols-2">
             <div>
-              <p className="font-bold">Stripe customer</p>
+              <p className="font-bold">Payment details</p>
               <p className="text-muted-foreground">
                 {billing?.stripe_customer_id
-                  ? "Portal access is available."
-                  : "Create a Stripe customer through checkout first."}
+                  ? "Manage your card and invoices in the portal."
+                  : "Start checkout to set this up."}
               </p>
             </div>
             <div>
-              <p className="font-bold">Stripe subscription</p>
+              <p className="font-bold">Subscription</p>
               <p className="text-muted-foreground">
                 {billing?.stripe_subscription_id
-                  ? "Subscription record synced."
-                  : "No subscription record synced yet."}
+                  ? "Your subscription is set up."
+                  : "Not set up yet."}
               </p>
             </div>
           </div>
@@ -180,7 +180,7 @@ function BillingOutcomeMessages({
     <div className="grid gap-3">
       {checkout === "success" ? (
         <p className="rounded-lg border border-reward/30 bg-accent px-4 py-3 text-sm text-accent-foreground">
-          Checkout completed. Billing access updates after Stripe webhook sync.
+          Checkout completed. Your billing will update here in a moment.
         </p>
       ) : null}
       {checkout === "cancelled" ? (
@@ -202,8 +202,8 @@ function BillingAccessNote({ status }: { status: string }) {
   if (status === "past_due") {
     return (
       <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-        Payment is past due. Dashboard access remains available during the MVP
-        grace period.
+        A payment is past due. Your dashboard stays available while you sort it
+        out.
       </p>
     )
   }
@@ -211,8 +211,8 @@ function BillingAccessNote({ status }: { status: string }) {
   if (status === "cancelled") {
     return (
       <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-        Subscription is cancelled. Dashboard data remains available, but new
-        stamps are blocked.
+        Your subscription is cancelled. You can still see your data, but new
+        stamps are paused.
       </p>
     )
   }
@@ -220,15 +220,15 @@ function BillingAccessNote({ status }: { status: string }) {
   if (status === "suspended") {
     return (
       <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-        Subscription is suspended. Customer-facing card use is disabled.
+        Your subscription is suspended. The customer card is paused until it is
+        restored.
       </p>
     )
   }
 
   return (
     <p className="rounded-lg bg-secondary px-4 py-3 text-sm text-secondary-foreground">
-      Not-started, trialing, and active billing states keep merchant readbacks
-      available while Stripe setup is completed.
+      Your dashboard stays fully available while you finish setting up billing.
     </p>
   )
 }

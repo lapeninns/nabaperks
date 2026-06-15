@@ -62,6 +62,7 @@ describe("05 merchant launch readiness readback", () => {
 
     expect(dashboardPage).toContain("getMerchantLaunchReadiness")
     expect(dashboardPage).toContain("LaunchReadinessPanel")
+    expect(dashboardPage).toContain("!launchReadiness.launchReady")
     expect(launchPage).toContain("buildLaunchReadiness")
     expect(panel).toContain("Launch readiness")
     expect(panel).toContain("Ink progress")
