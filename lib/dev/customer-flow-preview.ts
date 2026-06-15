@@ -96,6 +96,12 @@ export const CUSTOMER_FLOW_PREVIEW_STEPS = [
     heading: "Coffee upgrade",
   },
   {
+    id: "reward-ready-profile",
+    screenshot: "06-redeem/00-profile-gate.png",
+    screenLabel: "Customer reward",
+    heading: "Coffee upgrade",
+  },
+  {
     id: "reward-ready",
     screenshot: "06-redeem/01-reward-ready.png",
     screenLabel: "Customer reward",
@@ -106,6 +112,24 @@ export const CUSTOMER_FLOW_PREVIEW_STEPS = [
     screenshot: "06-redeem/02-card-reset-cycle.png",
     screenLabel: "Customer card",
     heading: CUSTOMER_FLOW_MOCK.cardName,
+  },
+  {
+    id: "profile-complete",
+    screenshot: "07-profile/01-complete.png",
+    screenLabel: "Customer profile",
+    heading: "Your details",
+  },
+  {
+    id: "profile-incomplete",
+    screenshot: "07-profile/02-incomplete.png",
+    screenLabel: "Customer profile",
+    heading: "Your details",
+  },
+  {
+    id: "profile-email-verify",
+    screenshot: "07-profile/03-email-verify.png",
+    screenLabel: "Customer profile",
+    heading: "Your details",
   },
 ] as const
 

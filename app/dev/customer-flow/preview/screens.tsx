@@ -12,6 +12,12 @@ import {
   PreviewJoinHeroNote,
   PreviewJoinTermsForm,
   PreviewMinSpendNote,
+  PreviewProfileAboutYouEdit,
+  PreviewProfileAboutYouView,
+  PreviewProfileEmailVerify,
+  PreviewProfileGate,
+  PreviewProfileMarketing,
+  PreviewProfileMeta,
   PreviewRedeemButton,
   PreviewStampButton,
 } from "@/app/dev/customer-flow/preview/mock-forms"
@@ -91,13 +97,51 @@ export function CustomerFlowPreviewScreen({
       return <PreviewCardScreen current={3} rewardUnlocked />
     case "reward-waiting":
       return <PreviewRewardScreen redeemable={false} />
+    case "reward-ready-profile":
+      return <PreviewRewardScreen redeemable profileIncomplete />
     case "reward-ready":
       return <PreviewRewardScreen redeemable />
     case "card-redeemed":
       return <PreviewCardScreen current={0} rewardRedeemed />
+    case "profile-complete":
+      return <PreviewProfileScreen variant="complete" />
+    case "profile-incomplete":
+      return <PreviewProfileScreen variant="incomplete" />
+    case "profile-email-verify":
+      return <PreviewProfileScreen variant="verify" />
     default:
       return null
   }
+}
+
+function PreviewProfileScreen({
+  variant,
+}: {
+  readonly variant: "complete" | "incomplete" | "verify"
+}) {
+  return (
+    <CustomerFlowShell
+      eyebrow="My Nabaperks"
+      title="Your details"
+      description="How venues can reach you — phone, name, and optional email."
+      screenLabel="Customer profile"
+    >
+      <div className="grid gap-6">
+        {variant === "incomplete" ? (
+          <StatusBanner title="Finish your details" tone="warning">
+            Add your name and date of birth so you&apos;re ready to redeem.
+          </StatusBanner>
+        ) : null}
+
+        {variant === "complete" ? <PreviewProfileAboutYouView /> : null}
+        {variant === "incomplete" ? <PreviewProfileAboutYouEdit /> : null}
+        {variant === "verify" ? <PreviewProfileEmailVerify /> : null}
+
+        <PreviewProfileMarketing />
+        <PreviewProfileMeta />
+      </div>
+    </CustomerFlowShell>
+  )
 }
 
 function PreviewPlaybookScreen() {
@@ -413,8 +457,10 @@ function PreviewCardDetails() {
 
 function PreviewRewardScreen({
   redeemable,
+  profileIncomplete = false,
 }: {
   readonly redeemable: boolean
+  readonly profileIncomplete?: boolean
 }) {
   return (
     <CustomerFlowShell
@@ -452,7 +498,18 @@ function PreviewRewardScreen({
           }
         />
 
-        {redeemable ? (
+        {redeemable && profileIncomplete ? (
+          <>
+            <StatusBanner
+              title="A few details before this one's yours"
+              tone="neutral"
+            >
+              Add your name and date of birth to redeem. Email is optional - add
+              one to get reward updates.
+            </StatusBanner>
+            <PreviewProfileGate />
+          </>
+        ) : redeemable ? (
           <>
             <StatusBanner title="Ready to redeem." tone="success">
               Tap redeem while you are at the venue, then show the redeemed card if

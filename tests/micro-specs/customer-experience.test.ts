@@ -394,7 +394,7 @@ describe("getCustomerExperienceViewModel", () => {
       { kind: "card_stamped_today", membershipId: "m", merchantName: "x" },
       { kind: "card_collecting", membershipId: "m", merchantName: "x", cardName: "c", current: 1, total: 3, slamIndex: -1, reward: "none", rewardTerms: "t", minSpendPence: null, rewardRedeemableFrom: null, stampsBlocked: false, stampDates: [], justStamped: false, justJoined: false, geoFlagged: false, justRedeemed: false },
       { kind: "reward_waiting", reward: rewardView, merchantName: "x", fromCard: true },
-      { kind: "reward_ready", reward: rewardView, merchantName: "x", location, fromCard: true },
+      { kind: "reward_ready", reward: rewardView, merchantName: "x", location, fromCard: true, profileGate: { complete: true, needsEmailVerification: false, fullName: null, dateOfBirth: null, email: null } },
       { kind: "redeemed_proof", reward: rewardView, merchantName: "x" },
       { kind: "unavailable", reason: "x" },
     ]

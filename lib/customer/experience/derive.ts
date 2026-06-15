@@ -8,6 +8,7 @@ import {
   type JoinCard,
   type JoinMerchant,
   type LocationRequirement,
+  type ProfileGate,
   type RewardView,
 } from "./types"
 
@@ -22,6 +23,16 @@ import {
 // --- Loader → derive contracts (one per entry route) ---
 
 type AccessFailure = { access: AccessProblem; recovery?: AccessRecovery }
+
+/** Default gate for callers that don't load one — treat as complete and let the
+ *  server/RPC enforce. Loaders that can resolve the customer pass the real gate. */
+const COMPLETE_GATE: ProfileGate = {
+  complete: true,
+  needsEmailVerification: false,
+  fullName: null,
+  dateOfBirth: null,
+  email: null,
+}
 
 export type CardContext =
   | AccessFailure
@@ -63,6 +74,7 @@ export type StampContext =
       qrMissing: boolean
       qrId?: string
       location: LocationRequirement
+      profileGate?: ProfileGate
     }
 
 export type RewardContext =
@@ -76,6 +88,7 @@ export type RewardContext =
       redeemable: boolean
       redeemedProof: boolean
       location: LocationRequirement
+      profileGate?: ProfileGate
     }
 
 export type JoinContext =
@@ -185,6 +198,7 @@ function deriveStamp(context: StampContext): CustomerExperience {
         merchantName: context.merchantName,
         location: context.location,
         fromCard: false,
+        profileGate: context.profileGate ?? COMPLETE_GATE,
       }
     case "reward_waiting":
       return {
@@ -248,6 +262,7 @@ function deriveReward(context: RewardContext): CustomerExperience {
         merchantName: context.merchantName,
         location: context.location,
         fromCard: true,
+        profileGate: context.profileGate ?? COMPLETE_GATE,
       }
     case "reward_waiting":
       return {

@@ -25,6 +25,7 @@ export type StampBlockReason =
   | "expired_qr"
   | "wrong_merchant"
   | "unauthenticated"
+  | "profile_incomplete"
   | "unavailable"
   | "unknown"
 
@@ -41,6 +42,20 @@ export type LocationRequirement = {
 export type AccessRecovery = {
   /** Pre-validated `next` path (see lib/navigation/safe-next-path). */
   loginHref: string
+}
+
+/**
+ * Redeem-time profile gate carried onto a ready reward. When `complete` is false
+ * the reward panel collects the missing details (Name, DOB, optional verified
+ * email) before exposing the redeem action. Phone is already verified at sign-up.
+ */
+export type ProfileGate = {
+  complete: boolean
+  /** Email entered but unconfirmed — show the inline "enter your code" step. */
+  needsEmailVerification: boolean
+  fullName: string | null
+  dateOfBirth: string | null
+  email: string | null
 }
 
 /** Merchant + card facts shared by the join wizard screens. */
@@ -138,6 +153,7 @@ export type CustomerExperience =
       merchantName: string
       location: LocationRequirement
       fromCard: boolean
+      profileGate: ProfileGate
     }
   | { kind: "redeemed_proof"; reward: RewardView; merchantName: string }
   // --- Catch-all ---

@@ -1,6 +1,8 @@
 import "server-only"
 
+import { blockReasonCopy } from "@/lib/customer/experience/block-reasons"
 import { getCurrentCustomer } from "@/lib/customer/identity"
+import { profileCompletionFrom } from "@/lib/customer/profile"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type GeoCoordinates = {
@@ -84,6 +86,12 @@ export async function redeemSelfServiceReward(
 ): Promise<RedeemSelfServiceRewardResult> {
   const customer = await getCurrentCustomer()
   if (!customer) return { status: "blocked", reason: "Open your cards first." }
+
+  // Profile gate (also enforced in the RPC) — block before the write so an
+  // incomplete profile never reaches redemption, even if the UI is bypassed.
+  if (!profileCompletionFrom(customer).complete) {
+    return { status: "blocked", reason: blockReasonCopy("profile_incomplete") }
+  }
 
   const supabase = createSupabaseServiceRoleClient()
   const { data, error } = await supabase.rpc("redeem_self_service_reward", {
@@ -286,6 +294,10 @@ function blockedReason(message: string) {
 
   if (message.includes("Authentication required")) {
     return "Verify your identity from the venue QR before continuing."
+  }
+
+  if (message.includes("Complete your profile")) {
+    return blockReasonCopy("profile_incomplete")
   }
 
   return null
