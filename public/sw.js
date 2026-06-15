@@ -16,6 +16,7 @@ const NETWORK_ONLY_PREFIXES = [
   "/q",
   "/m",
   "/home",
+  "/scan",
   "/start",
 ]
 

@@ -35,6 +35,9 @@ export default async function StartPage() {
 
         <div className="grid gap-2">
           <Button asChild size="lg">
+            <Link href="/scan">Scan a QR</Link>
+          </Button>
+          <Button asChild variant="secondary" size="lg">
             <Link href="/home/login">Open my cards</Link>
           </Button>
           <Button
@@ -48,8 +51,8 @@ export default async function StartPage() {
         </div>
 
         <p className="border-t-2 border-ink/15 pt-4 text-center text-sm leading-6 text-muted-foreground">
-          New here? Scan a venue&apos;s QR code to collect your first stamp — your
-          first card is created automatically.
+          New here? Scan a venue&apos;s QR code to collect your first stamp —
+          your first card is created automatically.
         </p>
       </ReceiptCard>
     </CustomerShell>

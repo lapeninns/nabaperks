@@ -1,0 +1,89 @@
+import { existsSync, readFileSync } from "node:fs"
+import { describe, expect, it } from "vitest"
+
+import { normalizeScannedQrDestination } from "@/lib/customer/qr-scanner"
+
+function readProjectFile(path: string) {
+  return readFileSync(path, "utf8")
+}
+
+describe("customer QR scanner", () => {
+  it("normalizes relative venue QR routes to the existing QR resolver", () => {
+    // Given: a QR payload produced by the Nabaperks app.
+    const scannedValue = "/q/bean-test-qr"
+
+    // When: the scanner parses it inside the customer app.
+    const result = normalizeScannedQrDestination(
+      scannedValue,
+      "https://nabaperks.com"
+    )
+
+    // Then: the decoded scan delegates to the existing server QR resolver.
+    expect(result).toEqual({ kind: "valid", href: "/q/bean-test-qr" })
+  })
+
+  it("normalizes same-origin absolute QR URLs and drops query/hash fragments", () => {
+    // Given: a full production URL from a printed venue QR.
+    const scannedValue =
+      "https://nabaperks.com/q/bean-test-qr?utm_source=poster#scan"
+
+    // When: the scanner parses it against the same app origin.
+    const result = normalizeScannedQrDestination(
+      scannedValue,
+      "https://nabaperks.com"
+    )
+
+    // Then: only the resolver path is used for the customer flow handoff.
+    expect(result).toEqual({ kind: "valid", href: "/q/bean-test-qr" })
+  })
+
+  it("rejects QR payloads that are not Nabaperks venue QR resolver paths", () => {
+    // Given: payloads that must not be allowed to drive in-app navigation.
+    const invalidScans = [
+      "",
+      "not a url",
+      "https://example.com/q/bean-test-qr",
+      "https://nabaperks.com/card/membership-1/stamp",
+      "https://nabaperks.com/q/bean-test-qr/extra",
+      "https://nabaperks.com/q/../admin",
+    ]
+
+    // When / Then: each rejected scan is reported without a navigation href.
+    for (const scannedValue of invalidScans) {
+      expect(
+        normalizeScannedQrDestination(scannedValue, "https://nabaperks.com"),
+        scannedValue
+      ).toEqual({ kind: "invalid" })
+    }
+  })
+
+  it("ships a focused scanner route and client lifecycle component", () => {
+    // Given: the customer scanner surface is part of the app.
+    const pagePath = "app/scan/page.tsx"
+    const scannerPath = "components/customer/customer-qr-scanner.tsx"
+
+    // When: the source files are inspected.
+    expect(existsSync(pagePath)).toBe(true)
+    expect(existsSync(scannerPath)).toBe(true)
+    const page = readProjectFile(pagePath)
+    const scanner = readProjectFile(scannerPath)
+
+    // Then: the route renders the scanner, and the client owns camera cleanup.
+    expect(page).toContain("CustomerQrScanner")
+    expect(scanner).toContain('"use client"')
+    expect(scanner).toContain("Html5Qrcode")
+    expect(scanner).toContain("Html5QrcodeSupportedFormats.QR_CODE")
+    expect(scanner).toContain('facingMode: "environment"')
+    expect(scanner).toContain(".stop()")
+    expect(scanner).toContain(".clear()")
+    expect(scanner).toContain('kind: "idle"')
+    expect(scanner).toContain('kind: "scanning"')
+    expect(scanner).toContain('kind: "decoded"')
+    expect(scanner).toContain('kind: "invalid"')
+    expect(scanner).toContain('kind: "camera-error"')
+    expect(scanner).toContain("normalizeScannedQrDestination")
+    expect(scanner).toContain("router.push(result.href)")
+    expect(scanner).toContain("Camera unavailable")
+    expect(scanner).toContain("That is not a Nabaperks QR")
+  })
+})

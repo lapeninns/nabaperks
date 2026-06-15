@@ -41,6 +41,7 @@ describe("full-app PWA", () => {
     expect(appManifest.shortcuts).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ name: "My Nabaperks", url: "/home" }),
+        expect.objectContaining({ name: "Scan venue QR", url: "/scan" }),
         expect.objectContaining({ name: "Merchant console", url: "/app" }),
         expect.objectContaining({ name: "Admin console", url: "/admin" }),
       ])
@@ -117,6 +118,7 @@ describe("full-app PWA", () => {
       "/m",
       "/home",
       "/start",
+      "/scan",
     ]) {
       expect(serviceWorker, pathPrefix).toContain(`"${pathPrefix}"`)
     }

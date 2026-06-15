@@ -23,5 +23,16 @@ describe("customer home dashboard structure", () => {
       "StampGrid"
     )
     expect(emptyState).toContain("JOIN_WELCOME_HOW_IT_WORKS")
+    expect(emptyState).toContain('href="/scan"')
+    expect(emptyState).toContain("Scan venue QR")
+  })
+
+  it("wires scan into the fixed customer navigation", () => {
+    const tabBar = readProjectFile("components/layout/customer-tab-bar.tsx")
+
+    expect(tabBar).toContain('href: "/scan"')
+    expect(tabBar).toContain('label: "Scan"')
+    expect(tabBar).toContain("QrCode01Icon")
+    expect(tabBar).toContain('href === "/scan"')
   })
 })

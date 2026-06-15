@@ -1,4 +1,7 @@
+import Link from "next/link"
+
 import { EmptyState, MonoTag, ReceiptCard } from "@/components/brand"
+import { Button } from "@/components/ui/button"
 import { JOIN_WELCOME_HOW_IT_WORKS } from "@/lib/customer/experience/copy"
 
 export function HomeEmptyState() {
@@ -25,6 +28,9 @@ export function HomeEmptyState() {
             <p className="text-sm leading-6 font-bold">
               Ask for the Nabaperks QR when you are at the counter.
             </p>
+            <Button asChild size="lg" className="w-full">
+              <Link href="/scan">Scan venue QR</Link>
+            </Button>
           </div>
         </ReceiptCard>
       }

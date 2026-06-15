@@ -6,6 +6,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import {
   Activity03Icon,
   GiftIcon,
+  QrCode01Icon,
   UserCircleIcon,
   Home01Icon,
 } from "@hugeicons/core-free-icons"
@@ -20,6 +21,7 @@ type TabItem = {
 
 const tabs: TabItem[] = [
   { href: "/home", label: "Home", icon: Home01Icon },
+  { href: "/scan", label: "Scan", icon: QrCode01Icon },
   { href: "/home/rewards", label: "Rewards", icon: GiftIcon },
   { href: "/home/activity", label: "Activity", icon: Activity03Icon },
   { href: "/home/profile", label: "Profile", icon: UserCircleIcon },
@@ -32,6 +34,10 @@ function isActive(pathname: string, href: string) {
       pathname.startsWith("/card/") ||
       pathname.startsWith("/reward/")
     )
+  }
+
+  if (href === "/scan") {
+    return pathname === "/scan"
   }
 
   return pathname === href || pathname.startsWith(`${href}/`)
@@ -50,7 +56,7 @@ export function CustomerTabBar() {
       aria-label="Home navigation"
       className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-ink bg-card pb-[env(safe-area-inset-bottom)]"
     >
-      <div className="mx-auto grid w-full max-w-md grid-cols-4">
+      <div className="mx-auto grid w-full max-w-md grid-cols-5">
         {tabs.map((tab) => {
           const active = isActive(pathname, tab.href)
 
@@ -61,8 +67,10 @@ export function CustomerTabBar() {
               aria-current={active ? "page" : undefined}
               data-active={active}
               className={cn(
-                "group flex min-h-14 flex-col items-center justify-center gap-1 text-[0.6875rem] font-bold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/35",
-                active ? "text-foreground" : "text-ink-soft hover:text-foreground"
+                "group flex min-h-14 flex-col items-center justify-center gap-1 text-[0.6875rem] font-bold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/35",
+                active
+                  ? "text-foreground"
+                  : "text-ink-soft hover:text-foreground"
               )}
             >
               <span

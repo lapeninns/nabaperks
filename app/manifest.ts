@@ -49,6 +49,13 @@ export default function manifest(): MetadataRoute.Manifest {
         icons: [{ src: "/icons/nabaperks-icon-192.png", sizes: "192x192" }],
       },
       {
+        name: "Scan venue QR",
+        short_name: "Scan",
+        description: "Scan a Nabaperks venue QR code.",
+        url: "/scan",
+        icons: [{ src: "/icons/nabaperks-icon-192.png", sizes: "192x192" }],
+      },
+      {
         name: "Merchant console",
         short_name: "Merchant",
         description: "Open the merchant launch and customer readback tools.",

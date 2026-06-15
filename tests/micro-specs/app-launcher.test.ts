@@ -108,8 +108,10 @@ describe("app launcher (/start)", () => {
     expect(page).toContain("resolveLaunchDestination")
     expect(page).toContain("redirect(destination)")
     expect(page).toContain('href="/home/login"')
+    expect(page).toContain('href="/scan"')
     expect(page).toContain('href="/login"')
     expect(page).toContain("Open my cards")
+    expect(page).toContain("Scan a QR")
     expect(page).toContain("Merchant sign-in")
     // New visitors are pointed back to the venue QR on-ramp.
     expect(page).toContain("Scan")

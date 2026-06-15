@@ -28,5 +28,18 @@ test("exposes full-app PWA assets and offline fallback", async ({ page }) => {
   }
 
   await page.goto("/offline")
-  await expect(page.getByRole("heading", { name: "You're offline" })).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "You're offline" })
+  ).toBeVisible()
+})
+
+test("exposes the customer QR scanner route", async ({ page }) => {
+  await page.goto("/scan")
+
+  await expect(
+    page.getByRole("heading", { name: "Scan venue QR" })
+  ).toBeVisible()
+  await expect(
+    page.getByText("Point your camera at a Nabaperks venue QR")
+  ).toBeVisible()
 })
