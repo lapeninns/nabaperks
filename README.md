@@ -4,6 +4,10 @@ Nabaperks is a no-app QR loyalty MVP for local merchants and their customers.
 It is built as a Next.js App Router application with Supabase-backed auth/data,
 Stripe billing, QR redirect flows, and internal admin tooling.
 
+The repo is governed by Micro-Specs: small, traceable slices of intent with
+stable requirement IDs, lifecycle metadata, blast-radius controls, and CI-backed
+quality gates.
+
 The frontend has been redesigned around the Honey & Ink / Tactile Modernism
 system: warm paper surfaces, espresso ink typography, honey reward moments,
 rounded tactile controls, and mobile-first loyalty workflows.
@@ -41,7 +45,19 @@ pnpm env:keys         # Show provider key setup/status guidance
 pnpm db:setup         # Apply, seed, and test Supabase SQL locally
 pnpm db:test:rls      # Run Supabase RLS tests
 pnpm security:verify  # Run security verification checks
+pnpm governance       # Validate Micro-Spec metadata and traceability
+pnpm check:agents     # Validate AGENTS.md governance coverage
+pnpm quality          # Run aggregate governance and quality gates
 ```
+
+## AI governance
+
+The source-of-truth hierarchy starts with the Micro-Spec backlog in
+`micro-specs/`, with global constraints in `micro-specs/GLOBAL_CONTEXT.md` and
+the governance contract in `micro-specs/README.md`. The governance layer
+enforces lifecycle metadata, stable requirement IDs, Markdown and JSON
+traceability, fixture-backed tests, strict CI gates, ownership handoffs, and
+blast-radius checks so implementation stays aligned with declared intent.
 
 ## Environment variables
 
