@@ -100,7 +100,9 @@ export async function updateCustomerProfile(
   const email = input.email?.trim() ? input.email.trim() : null
   const previousEmail = customer.email?.trim() ? customer.email.trim() : null
   const keepsVerifiedEmail =
-    email !== null && email === previousEmail && Boolean(customer.emailVerifiedAt)
+    email !== null &&
+    email === previousEmail &&
+    Boolean(customer.emailVerifiedAt)
   const emailVerificationRequired = email !== null && !keepsVerifiedEmail
 
   const update: Record<string, unknown> = {
@@ -137,7 +139,6 @@ export async function markCustomerEmailVerified(email: string): Promise<void> {
   if (error) throw new Error(`Unable to confirm email: ${error.message}`)
 }
 
-/** Drops the entered email so a customer can redeem without one ("continue without email"). */
 export async function clearCustomerEmail(): Promise<void> {
   const customer = await getCurrentCustomer()
   if (!customer) throw new Error("No signed-in customer to update.")
@@ -178,7 +179,9 @@ export async function getCustomerProfile(): Promise<CustomerProfile | null> {
   ])
 
   if (membershipResult.error) {
-    throw new Error(`Unable to load memberships: ${membershipResult.error.message}`)
+    throw new Error(
+      `Unable to load memberships: ${membershipResult.error.message}`
+    )
   }
   if (consentResult.error) {
     throw new Error(`Unable to load consents: ${consentResult.error.message}`)

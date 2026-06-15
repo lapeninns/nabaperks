@@ -55,7 +55,7 @@ export function blockReasonCopy(reason: StampBlockReason): string {
     case "unauthenticated":
       return "Verify your identity from the venue QR before continuing."
     case "profile_incomplete":
-      return "Add your details to redeem - a name and date of birth, plus a verified email if you add one."
+      return "Add your details before collection - a name and date of birth, plus a verified email if you add one."
     case "unavailable":
       return "This loyalty programme is unavailable right now."
     case "unknown":

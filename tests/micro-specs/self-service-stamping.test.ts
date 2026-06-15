@@ -128,52 +128,6 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     })
   })
 
-  it("redeems a customer-owned reward directly from the reward action RPC", async () => {
-    vi.resetModules()
-    const mock = createSupabaseMock({
-      rpc: {
-        redeem_self_service_reward: [
-          {
-            data: [
-              {
-                reward_event_id: "reward-1",
-                reward_name: "Slice of cake",
-                membership_id: "membership-1",
-                new_stamp_count: 0,
-              },
-            ],
-            error: null,
-          },
-        ],
-      },
-    })
-    mockSupabase(mock)
-    mockCurrentCustomer()
-
-    const { redeemSelfServiceReward } = await import("@/lib/customer/stamp")
-    const result = await redeemSelfServiceReward("reward-1", {
-      latitude: 51.524,
-      longitude: -0.071,
-    })
-
-    expect(result).toEqual({
-      status: "redeemed",
-      rewardId: "reward-1",
-      rewardName: "Slice of cake",
-      membershipId: "membership-1",
-      newStampCount: 0,
-    })
-    expect(mock.rpcCalls[0]).toEqual({
-      name: "redeem_self_service_reward",
-      params: {
-        p_reward_event_id: "reward-1",
-        p_customer_id: "customer-1",
-        p_latitude: 51.524,
-        p_longitude: -0.071,
-      },
-    })
-  })
-
   it("geocodes venue addresses through Nominatim at config time", async () => {
     vi.resetModules()
     const fetchMock = vi.fn(
@@ -327,38 +281,6 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
       errors: { form: "Scan the venue code to add your stamp." },
     })
     expect(issueSelfServiceStamp).not.toHaveBeenCalled()
-  })
-
-  it("submits reward redemption from the customer reward page without station tokens", async () => {
-    vi.resetModules()
-    const redeemSelfServiceReward = vi.fn(async () => ({
-      status: "redeemed" as const,
-      rewardId: "reward-1",
-      rewardName: "Slice of cake",
-      membershipId: "membership-1",
-      newStampCount: 0,
-    }))
-    const revalidatePath = vi.fn()
-    vi.doMock("next/cache", () => ({ revalidatePath }))
-    vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
-    vi.doMock("@/lib/customer/stamp", () => ({ redeemSelfServiceReward }))
-    const { selfRedeemAction } = await import("@/app/reward/[rewardId]/actions")
-
-    await expect(
-      selfRedeemAction(
-        {},
-        form({
-          rewardId: "reward-1",
-          latitude: "51.524",
-          longitude: "-0.071",
-        })
-      )
-    ).rejects.toThrow("NEXT_REDIRECT:/reward/reward-1?redeemed=1")
-    expect(redeemSelfServiceReward).toHaveBeenCalledWith("reward-1", {
-      latitude: 51.524,
-      longitude: -0.071,
-    })
-    expect(revalidatePath).toHaveBeenCalledWith("/card/membership-1")
   })
 
   it("routes existing QR members to the stamp confirmation page with QR context", () => {

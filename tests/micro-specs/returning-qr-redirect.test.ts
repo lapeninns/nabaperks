@@ -28,9 +28,8 @@ describe("destinationForReturningQrVisit", () => {
       capturePostHogEvent: vi.fn(),
     }))
 
-    const { destinationForReturningQrVisit } = await import(
-      "@/lib/customer/returning-qr-redirect"
-    )
+    const { destinationForReturningQrVisit } =
+      await import("@/lib/customer/returning-qr-redirect")
 
     await expect(
       destinationForReturningQrVisit("bean-and-batch", "bean-test-qr", {
@@ -63,9 +62,8 @@ describe("destinationForReturningQrVisit", () => {
       capturePostHogEvent: vi.fn(),
     }))
 
-    const { destinationForReturningQrVisit } = await import(
-      "@/lib/customer/returning-qr-redirect"
-    )
+    const { destinationForReturningQrVisit } =
+      await import("@/lib/customer/returning-qr-redirect")
 
     await expect(
       destinationForReturningQrVisit("bean-and-batch", "bean-test-qr", {
@@ -95,7 +93,9 @@ describe("destinationForReturningQrVisit", () => {
       getExistingMembershipForCurrentUser: vi.fn(async () => ({
         id: "membership-1",
       })),
-      getStampQrContextForMembership: vi.fn(async () => ({ qrId: "bean-test-qr" })),
+      getStampQrContextForMembership: vi.fn(async () => ({
+        qrId: "bean-test-qr",
+      })),
     }))
     vi.doMock("@/lib/customer/card", () => ({
       getCustomerCardState: vi.fn(async () => ({
@@ -110,9 +110,8 @@ describe("destinationForReturningQrVisit", () => {
       capturePostHogEvent,
     }))
 
-    const { destinationForReturningQrVisit } = await import(
-      "@/lib/customer/returning-qr-redirect"
-    )
+    const { destinationForReturningQrVisit } =
+      await import("@/lib/customer/returning-qr-redirect")
 
     await expect(
       destinationForReturningQrVisit("bean-and-batch", "bean-test-qr", {
@@ -120,13 +119,67 @@ describe("destinationForReturningQrVisit", () => {
       })
     ).resolves.toBe("/card/membership-1?stamp=issued")
 
-    expect(issueSelfServiceStamp).toHaveBeenCalledWith("membership-1")
+    expect(issueSelfServiceStamp).toHaveBeenCalledWith(
+      "membership-1",
+      undefined
+    )
     expect(capturePostHogEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         eventName: "stamp_issued",
         membershipId: "membership-1",
       })
     )
+  })
+
+  it("passes OTP-captured coordinates into the returning-member stamp issue", async () => {
+    const issueSelfServiceStamp = vi.fn(async () => ({
+      status: "issued",
+      stampEventId: "stamp-1",
+      newStampCount: 2,
+      rewardUnlocked: false,
+      geoFlagged: false,
+    }))
+
+    vi.doMock("@/lib/customer/identity", () => ({
+      getCurrentCustomer: vi.fn(async () => ({ id: "customer-1" })),
+    }))
+    vi.doMock("@/lib/customer/join", () => ({
+      getMerchantJoinContext: vi.fn(async () => ({
+        available: true,
+        merchant: { id: "merchant-1", business_slug: "bean-and-batch" },
+      })),
+      getExistingMembershipForCurrentUser: vi.fn(async () => ({
+        id: "membership-1",
+      })),
+      getStampQrContextForMembership: vi.fn(async () => ({
+        qrId: "bean-test-qr",
+      })),
+    }))
+    vi.doMock("@/lib/customer/card", () => ({
+      getCustomerCardState: vi.fn(async () => ({
+        status: "ready",
+        latestReward: null,
+      })),
+    }))
+    vi.doMock("@/lib/customer/stamp", () => ({
+      issueSelfServiceStamp,
+    }))
+    vi.doMock("@/lib/analytics/events", () => ({
+      capturePostHogEvent: vi.fn(),
+    }))
+
+    const { destinationForReturningQrVisit } =
+      await import("@/lib/customer/returning-qr-redirect")
+
+    await destinationForReturningQrVisit("bean-and-batch", "bean-test-qr", {
+      issueStamp: true,
+      coordinates: { latitude: 51.524, longitude: -0.071 },
+    })
+
+    expect(issueSelfServiceStamp).toHaveBeenCalledWith("membership-1", {
+      latitude: 51.524,
+      longitude: -0.071,
+    })
   })
 
   it("routes an already-stamped customer to the stamped-today screen after OTP", async () => {
@@ -146,7 +199,9 @@ describe("destinationForReturningQrVisit", () => {
       getExistingMembershipForCurrentUser: vi.fn(async () => ({
         id: "membership-1",
       })),
-      getStampQrContextForMembership: vi.fn(async () => ({ qrId: "bean-test-qr" })),
+      getStampQrContextForMembership: vi.fn(async () => ({
+        qrId: "bean-test-qr",
+      })),
     }))
     vi.doMock("@/lib/customer/card", () => ({
       getCustomerCardState: vi.fn(async () => ({
@@ -161,9 +216,8 @@ describe("destinationForReturningQrVisit", () => {
       capturePostHogEvent: vi.fn(),
     }))
 
-    const { destinationForReturningQrVisit } = await import(
-      "@/lib/customer/returning-qr-redirect"
-    )
+    const { destinationForReturningQrVisit } =
+      await import("@/lib/customer/returning-qr-redirect")
 
     await expect(
       destinationForReturningQrVisit("bean-and-batch", "bean-test-qr", {

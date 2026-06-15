@@ -31,7 +31,7 @@ test("captures the Bean & Batch QR to reward customer journey", async ({
     page.getByRole("heading", { name: "Keep your card on your phone" })
   ).toBeVisible()
   await capture(page, "01-join/01-join-hero.png")
-  await page.getByRole("link", { name: "Get started" }).click()
+  await page.getByRole("link", { name: "Get today's stamp" }).click()
 
   await page.getByLabel("Phone number").fill(phone)
   await capture(page, "01-join/02-phone-filled.png")
@@ -48,25 +48,31 @@ test("captures the Bean & Batch QR to reward customer journey", async ({
 
   await page.locator('input[name="loyaltyTerms"]').check()
   await page.getByRole("button", { name: "Get my first stamp" }).click()
-  await page.waitForURL(/\/card\/[^/]+\?.*stamp=issued/)
+  await page.waitForURL(/\/card\/[^/]+\?.*(stamp=issued|welcome=1)/)
   await expect(page.getByText("Welcome to Bean & Batch.")).toBeVisible()
-  await expect(page.getByRole("list", { name: "1 of 3 stamps earned" })).toBeVisible()
+  await expect(
+    page.getByRole("list", { name: "1 of 3 stamps earned" })
+  ).toBeVisible()
   await capture(page, "02-stamp-day-1/01-card-1-of-3.png")
 
   runDemo("advance", "--stamps", "1")
   await page.goto("/q/bean-test-qr")
   await expect(page.getByText("Ready to add today's stamp.")).toBeVisible()
   await capture(page, "03-stamp-day-2/01-confirm.png")
-  await addStamp(page)
-  await expect(page.getByRole("list", { name: "2 of 3 stamps earned" })).toBeVisible()
+  await addStamp(page, { expectStampBanner: true })
+  await expect(
+    page.getByRole("list", { name: "2 of 3 stamps earned" })
+  ).toBeVisible()
   await capture(page, "03-stamp-day-2/02-card-2-of-3.png")
 
   runDemo("advance", "--stamps", "2")
   await page.goto("/q/bean-test-qr")
   await expect(page.getByText("Ready to add today's stamp.")).toBeVisible()
   await capture(page, "04-stamp-day-3/01-confirm.png")
-  await addStamp(page)
-  await expect(page.getByRole("list", { name: "3 of 3 stamps earned" })).toBeVisible()
+  await addStamp(page, { expectStampBanner: false })
+  await expect(
+    page.getByRole("list", { name: "3 of 3 stamps earned" })
+  ).toBeVisible()
   await expect(
     page.getByText("Give it a day to breathe", { exact: true })
   ).toBeVisible()
@@ -85,37 +91,34 @@ test("captures the Bean & Batch QR to reward customer journey", async ({
 
   runDemo("make-redeemable")
   await page.goto(`/reward/${rewardId}`)
-  await expect(page.getByText("Ready to redeem.")).toBeVisible()
-  await capture(page, "06-redeem/01-reward-ready.png")
-  await page.getByRole("button", { name: "Redeem reward" }).click()
-  // Redeeming lands on the reward-specific proof screen (unambiguous per reward).
-  await page.waitForURL(/\/reward\/[^/]+\?redeemed=1/)
-  await expect(page.getByText("Reward redeemed.")).toBeVisible()
-  await capture(page, "06-redeem/02-reward-redeemed-proof.png")
-
-  // Returning to the card shows the next cycle: only the active cycle's stamps
-  // count, so the redeemed card no longer reads as full.
-  const membershipId = waitingStatus.membershipId
-  if (!membershipId) {
-    throw new Error("Expected a membership id from the customer-flow status.")
-  }
-  await page.goto(`/card/${membershipId}`)
   await expect(
-    page.getByRole("list", { name: "0 of 3 stamps earned" })
+    page.getByText("A few details before this one's yours")
   ).toBeVisible()
-  await capture(page, "06-redeem/03-card-next-cycle.png")
+  await page.getByLabel("Full name").fill("Sam Taylor")
+  await page.getByLabel("Date of birth").fill("1990-01-01")
+  await page.getByRole("button", { name: "Save my details" }).click()
+  await expect(page.getByText("Ready for merchant scan.")).toBeVisible()
+  await expect(page.getByText("Merchant scans this QR")).toBeVisible()
+  await capture(page, "06-reward-qr/01-reward-ready-qr.png")
 
-  // Home shows the card collecting again, not reward-ready/full.
   await page.goto("/home")
-  await expect(page.getByText("0 of 3 stamps").first()).toBeVisible()
+  await expect(
+    page.getByRole("link", { name: "Open reward QR for Free pint" })
+  ).toBeVisible()
   await expect(page.getByText("Redeem reward")).toHaveCount(0)
-  await capture(page, "06-redeem/04-home-next-cycle.png")
+  await capture(page, "06-reward-qr/02-home-reward-qr.png")
 })
 
-async function addStamp(page: Page): Promise<void> {
+async function addStamp(
+  page: Page,
+  { expectStampBanner }: { readonly expectStampBanner: boolean }
+): Promise<void> {
   await page.getByRole("button", { name: "Add today's stamp" }).click()
   await page.waitForURL(/\/card\/[^/]+\?stamp=issued/)
-  await expect(page.getByText("Stamp added.")).toBeVisible()
+
+  if (expectStampBanner) {
+    await expect(page.getByText("Stamp added.")).toBeVisible()
+  }
 }
 
 async function capture(page: Page, relativePath: string): Promise<void> {

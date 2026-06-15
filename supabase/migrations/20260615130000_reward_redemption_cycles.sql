@@ -85,7 +85,6 @@ set search_path = public, auth, extensions
 as $$
 declare
   current_user_id uuid := (select auth.uid());
-  request_role text := nullif(current_setting('request.jwt.claim.role', true), '');
   membership_record record;
   card_record record;
   reward_pool_record record;
@@ -125,7 +124,7 @@ begin
     raise insufficient_privilege using message = 'Membership ownership required';
   end if;
 
-  if coalesce(request_role, 'authenticated') <> 'service_role' then
+  if not public.is_service_role_request() then
     if current_user_id is null
       or membership_record.auth_user_id is null
       or membership_record.auth_user_id <> current_user_id then

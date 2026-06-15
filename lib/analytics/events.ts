@@ -4,7 +4,12 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export const productEventNames = [
   "qr_scanned",
+  "join_page_viewed",
+  "join_phone_requested",
+  "join_otp_verified",
+  "join_terms_accepted",
   "customer_joined",
+  "customer_card_viewed",
   "stamp_claim_started",
   "stamp_issued",
   "reward_unlocked",

@@ -13,10 +13,9 @@ import { loadProfileGate } from "./load-profile-gate"
 const DEFAULT_LOCATION = { requireGeofence: false, geofenceRadiusMeters: 150 }
 
 /**
- * Impure loader for the stamp route. Resolves card state, an unlocked reward (so
- * a ready reward is routed to redeem instead of a confusing block), whether the
- * customer is already stamped for the UK business day, and the scanned QR — then
- * hands pure facts to {@link deriveCustomerExperience}.
+ * Impure loader for the stamp route. Resolves card state, an unlocked reward,
+ * whether the customer is already stamped for the UK business day, and the
+ * scanned QR — then hands pure facts to {@link deriveCustomerExperience}.
  */
 export async function loadStampExperienceContext(
   membershipId: string,
@@ -53,8 +52,8 @@ export async function loadStampExperienceContext(
     }
   }
 
-  // An unlocked reward blocks new stamps until redeemed — surface it first so a
-  // tap routes to redeem (when redeemable) or a calm wait, never a block.
+  // An unlocked reward blocks new stamps until collected; surface the reward QR
+  // first so the customer sees the collection path instead of a stamp block.
   const unlocked = cardState.latestReward
   if (unlocked && unlocked.status === "unlocked") {
     const redeemable = isRedeemableFrom(unlocked.redeemable_from)

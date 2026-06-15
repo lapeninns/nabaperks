@@ -14,7 +14,7 @@ const GLYPH: Record<RewardSealState, string> = {
 const DEFAULT_LABEL: Record<RewardSealState, string> = {
   sealed: "Mystery reward, sealed",
   waiting: "Reward unlocked, resting until it's ready",
-  ready: "Reward ready to redeem",
+  ready: "Reward ready for merchant scan",
   redeemed: "Reward redeemed",
 }
 

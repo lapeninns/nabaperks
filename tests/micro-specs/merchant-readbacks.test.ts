@@ -61,11 +61,14 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
       'href: "/app"',
       'href: "/app/launch"',
       'href: "/app/customers"',
+      'href: "/app/activity"',
       'href: "/app/billing"',
       'href: "/app/settings"',
     ]) {
       expect(shell).toContain(href)
     }
+    expect(shell).toContain('href: "/app/settings", label: "Settings"')
+    expect(shell).not.toContain("ROI settings")
     expect(shell).toContain("merchantAccountItems")
     expect(shell).toContain("secondaryItems={merchantAccountItems}")
 
@@ -155,6 +158,9 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
 
   it("renders dashboard KPI, billing state, empty, launch QR, and activity readback copy", () => {
     const dashboard = readProjectFile("app/app/page.tsx")
+    const billingStatus = readProjectFile(
+      "components/merchant/billing-status.tsx"
+    )
 
     for (const text of [
       "Launch QR",
@@ -167,13 +173,14 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
       "Repeat customers",
       "Rewards redeemed",
       "QR downloads",
-      "Billing status",
       "Estimated repeat revenue",
+      "MerchantBillingNotice",
       "LaunchReadinessPanel",
       "Recent activity",
     ]) {
       expect(dashboard).toContain(text)
     }
+    expect(dashboard).not.toContain('"Billing status"')
 
     for (const status of [
       "not_started",
@@ -183,7 +190,7 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
       "cancelled",
       "suspended",
     ]) {
-      expect(dashboard).toContain(status)
+      expect(billingStatus).toContain(status)
     }
     expect(dashboard).toContain("Estimate only")
     expect(dashboard).toContain("ActivityCompactFeed")
@@ -240,8 +247,8 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
           call.args[0] === "merchant_id" &&
           call.args[1] === "merchant-1"
       ).length
-    ).toBeGreaterThanOrEqual(10)
-    expect(supabase.queryCalls).toContainEqual({
+    ).toBeGreaterThanOrEqual(9)
+    expect(supabase.queryCalls).not.toContainEqual({
       table: "product_events",
       method: "limit",
       args: [6],
@@ -334,7 +341,7 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     expect(activity.totalCount).toBe(2)
     expect(activity.loadedCount).toBe(2)
     expect(activity.rows).toHaveLength(1)
-    expect(activity.rows[0].headline).toBe("sam@example.test collected stamp 2")
+    expect(activity.rows[0].headline).toBe("s***@example.test collected stamp 2")
     expect(activity.rows[0].summary).toContain("grouped into one visit")
     expect(activity.rows[0].details.map((detail) => detail.label)).toContain(
       "Claim opened"
@@ -444,9 +451,9 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     })
 
     expect(activity.rows.map((row) => row.headline)).toEqual([
-      "sam@example.test redeemed Free coffee",
-      "mina@example.test joined",
-      "alex@example.test collected stamp 3",
+      "s***@example.test redeemed Free coffee",
+      "m***@example.test joined",
+      "a***@example.test collected stamp 3",
     ])
     vi.useRealTimers()
   })
@@ -460,26 +467,27 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
         email: "guest@example.test",
         phone: "+441234567890",
       })
-    ).toBe("guest@example.test")
+    ).toBe("g***@example.test")
     expect(
       formatMerchantCustomerIdentifier({
         email: null,
         phone: "+441234567890",
       })
-    ).toBe("+441234567890")
+    ).toBe("Phone ending 7890")
     expect(
       formatMerchantCustomerIdentifier({
         email: null,
         phone: null,
       })
     ).toBe("Customer")
-    expect(
-      formatMerchantCustomerIdentifier({
-        email: null,
-        phone: null,
-        admin_id: "customer-secret",
-      } as never)
-    ).toBe("Customer")
+    const identityWithPrivateId = {
+      email: null,
+      phone: null,
+      admin_id: "customer-secret",
+    }
+    expect(formatMerchantCustomerIdentifier(identityWithPrivateId)).toBe(
+      "Customer"
+    )
   })
 
   it("uses shared data components for customers and activity without raw metadata output", () => {

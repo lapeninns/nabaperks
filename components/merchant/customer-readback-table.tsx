@@ -2,11 +2,7 @@ import type { ReactNode } from "react"
 
 import { DataTable, type DataTableColumn } from "@/components/data"
 import type { MerchantCustomerRow } from "@/lib/merchant/dashboard"
-
-type CustomerIdentity = {
-  email: string | null
-  phone: string | null
-}
+import { formatMerchantCustomerIdentifier } from "@/lib/merchant/customer-identity-display"
 
 export function CustomerReadbackTable({
   customers,
@@ -81,9 +77,7 @@ export function CustomerReadbackTable({
   )
 }
 
-export function formatMerchantCustomerIdentifier(customer: CustomerIdentity) {
-  return customer.email ?? customer.phone ?? "Customer"
-}
+export { formatMerchantCustomerIdentifier }
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-GB", {

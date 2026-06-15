@@ -5,6 +5,7 @@ import {
   getExistingMembershipForCurrentUser,
   getMerchantJoinContext,
 } from "@/lib/customer/join"
+import { captureJoinFunnelEvent } from "@/lib/customer/join-funnel"
 import { getPendingPhoneVerification } from "@/lib/customer/session"
 import { getMerchantStampLocationRequirement } from "@/lib/customer/stamp"
 
@@ -38,6 +39,15 @@ export async function loadJoinExperienceContext(
     return { unavailable: true }
   }
 
+  await captureJoinFunnelEvent({
+    eventName: "join_page_viewed",
+    merchantId: context.merchant.id,
+    qrCodeId: "qrCodeId" in context ? context.qrCodeId : null,
+    merchantSlug,
+    qrId: searchParams.qr,
+    step: searchParams.step ?? "welcome",
+  })
+
   const merchant = {
     name: context.merchant.business_name,
     slug: merchantSlug,
@@ -70,7 +80,10 @@ export async function loadJoinExperienceContext(
       ...base,
       hasSession: true,
       pendingOtp: false,
-      membership: { id: membership.id, current: membership.current_stamp_count },
+      membership: {
+        id: membership.id,
+        current: membership.current_stamp_count,
+      },
     }
   }
 
@@ -92,6 +105,21 @@ export async function loadJoinExperienceContext(
   const pending = await getPendingPhoneVerification()
   const pendingOtp =
     searchParams.step !== "phone" && pending?.purpose === "join"
+
+  if (pendingOtp) {
+    const location = await getMerchantStampLocationRequirement(
+      context.merchant.id
+    )
+
+    return {
+      ...base,
+      location,
+      hasSession: false,
+      pendingOtp,
+      pendingPhone: pending.phone,
+      membership: null,
+    }
+  }
 
   return {
     ...base,

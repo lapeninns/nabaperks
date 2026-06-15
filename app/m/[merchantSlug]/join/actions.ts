@@ -8,6 +8,7 @@ import {
   getCurrentCustomer,
   getOrCreateCustomerByVerifiedPhone,
 } from "@/lib/customer/identity"
+import { captureJoinFunnelEvent } from "@/lib/customer/join-funnel"
 import { destinationForReturningQrVisit } from "@/lib/customer/returning-qr-redirect"
 import { defaultCountryFromHeaders, normalizePhone } from "@/lib/customer/phone"
 import {
@@ -22,6 +23,7 @@ import {
 } from "@/lib/customer/verification"
 import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+import type { GeoCoordinates } from "@/lib/customer/stamp"
 
 export type CustomerIdentityState = {
   fields?: {
@@ -87,6 +89,13 @@ export async function requestCustomerIdentityAction(
 
     throw error
   }
+
+  await captureJoinFunnelEvent({
+    eventName: "join_phone_requested",
+    merchantSlug,
+    qrId,
+    step: "phone",
+  })
 
   try {
     await startCustomerPhoneVerification(contact)
@@ -156,11 +165,23 @@ export async function verifyCustomerOtpAction(
   })
   await setCustomerSession(customer.id)
   await clearPendingPhoneVerification()
+  await captureJoinFunnelEvent({
+    eventName: "join_otp_verified",
+    customerId: customer.id,
+    merchantSlug,
+    qrId,
+    step: "otp",
+  })
 
   if (qrId) {
-    const destination = await destinationForReturningQrVisit(merchantSlug, qrId, {
-      issueStamp: true,
-    })
+    const destination = await destinationForReturningQrVisit(
+      merchantSlug,
+      qrId,
+      {
+        issueStamp: true,
+        coordinates: coordinates(formData),
+      }
+    )
     if (destination) redirect(destination)
   }
 
@@ -184,6 +205,17 @@ export async function joinRewardsAction(
   if (!acceptedTerms) {
     return { errors: { loyaltyTerms: "Accept the loyalty terms to join." } }
   }
+
+  await captureJoinFunnelEvent({
+    eventName: "join_terms_accepted",
+    customerId: customer.id,
+    merchantSlug,
+    qrId,
+    step: "terms",
+    metadata: {
+      marketing_opt_in: marketingOptIn,
+    },
+  })
 
   const latitude = numberValue(formData, "latitude")
   const longitude = numberValue(formData, "longitude")
@@ -261,4 +293,13 @@ function numberValue(formData: FormData, key: string): number | null {
 
   const parsed = Number(raw)
   return Number.isFinite(parsed) ? parsed : null
+}
+
+function coordinates(formData: FormData): GeoCoordinates | undefined {
+  const latitude = numberValue(formData, "latitude")
+  const longitude = numberValue(formData, "longitude")
+
+  if (latitude === null || longitude === null) return undefined
+
+  return { latitude, longitude }
 }

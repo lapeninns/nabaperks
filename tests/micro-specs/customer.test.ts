@@ -112,6 +112,7 @@ describe("03 customer micro-specs", () => {
 
   it("preserves customer self-service form and action contracts after the mobile redesign", () => {
     const joinForms = readProjectFile("components/customer/join-forms.tsx")
+    const joinOtpForm = readProjectFile("components/customer/join-otp-form.tsx")
     const joinActions = readProjectFile("app/m/[merchantSlug]/join/actions.ts")
     const experience = readProjectFile(
       "components/customer/customer-card-experience.tsx"
@@ -130,10 +131,12 @@ describe("03 customer micro-specs", () => {
       "components/customer/self-service-forms.tsx"
     )
 
-    for (const field of ["merchantSlug", "qrId", "contact", "otp"]) {
-      expect(joinForms).toContain(`name="${field}"`)
+    for (const field of ["merchantSlug", "qrId", "contact"]) {
+      expect(`${joinForms}\n${joinOtpForm}`).toContain(`name="${field}"`)
       expect(joinActions).toContain(`value(formData, "${field}")`)
     }
+    expect(joinOtpForm).toContain('name="otp"')
+    expect(joinActions).toContain('value(formData, "otp")')
 
     for (const checkbox of ["loyaltyTerms", "marketingOptIn"]) {
       expect(joinForms).toContain(`name="${checkbox}"`)
@@ -205,13 +208,12 @@ describe("03 customer micro-specs", () => {
     expect(experience).toContain("CustomerStampCard")
     expect(experience).toContain("Stamp added.")
     expect(experience).toContain("Scan the venue code to add your stamp.")
-    expect(experience).toContain("Redeem reward")
+    expect(experience).toContain("Open reward QR")
     expect(customerTabBar).toContain('pathname.startsWith("/card/")')
     expect(customerTabBar).toContain('pathname.startsWith("/reward/")')
 
     expect(experience).toContain("SelfServiceStampForm")
     expect(loadStamp).toContain("getMembershipLocationRequirement")
-    // A ready reward routes to redeem instead of letting a tap hit a block.
     expect(loadStamp).toContain("isRedeemableFrom")
     expect(stampPage).toContain("/reward/")
 
@@ -381,9 +383,6 @@ describe("03 customer micro-specs", () => {
     expect(cardText).not.toContain("Scan the venue code to add your stamp.")
 
     vi.resetModules()
-    vi.doMock("@/components/customer/self-service-forms", () => ({
-      SelfServiceRedeemForm: () => "REDEEM FORM",
-    }))
     vi.doMock("@/lib/customer/stamp", () => ({
       getRewardLocationRequirement: vi.fn(async () => ({
         requireGeofence: false,
@@ -437,7 +436,7 @@ describe("03 customer micro-specs", () => {
     expect(rewardText).toContain("Cake slice")
     expect(rewardText).toContain("Give it a day to breathe")
     expect(rewardText).toContain("Return to card")
-    expect(rewardText).not.toContain("REDEEM FORM")
+    expect(rewardText).not.toContain("Redeem reward")
   })
 
   it("renders merchant-specific terms with the safe contact fallback", async () => {
@@ -725,6 +724,7 @@ describe("03 customer micro-specs", () => {
 
   it("maps join membership backend failures to safe customer copy", async () => {
     vi.resetModules()
+    const capturePostHogEvent = vi.fn()
     const supabase = createSupabaseMock({
       rpc: {
         join_customer_membership_with_first_stamp: [
@@ -741,7 +741,7 @@ describe("03 customer micro-specs", () => {
       createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
     }))
     vi.doMock("@/lib/analytics/events", () => ({
-      capturePostHogEvent: vi.fn(),
+      capturePostHogEvent,
     }))
     const { joinRewardsAction } =
       await import("@/app/m/[merchantSlug]/join/actions")
@@ -761,6 +761,19 @@ describe("03 customer micro-specs", () => {
         form: "Rewards could not be joined. Try again or ask the venue team.",
       },
     })
+    expect(capturePostHogEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: "join_terms_accepted",
+        actorType: "customer",
+        actorId: "customer-1",
+        metadata: expect.objectContaining({
+          merchant_slug: "the-bell",
+          qr_id: "qr-public",
+          step: "terms",
+          marketing_opt_in: false,
+        }),
+      })
+    )
   })
 
   it("resolves a QR join context as unavailable when billing is suspended", async () => {
@@ -1195,35 +1208,6 @@ describe("03 customer micro-specs", () => {
         min_spend_pence: 500,
       },
       loyaltyCard: { reward_name: "Surprise reward" },
-    })
-  })
-
-  it("maps next-business-day redemption errors to a customer-facing wait message", async () => {
-    vi.resetModules()
-    const supabase = createSupabaseMock({
-      rpc: {
-        redeem_self_service_reward: [
-          {
-            data: null,
-            error: {
-              message:
-                "Reward is not redeemable until the next UK business day",
-            },
-          },
-        ],
-      },
-    })
-    mockCurrentCustomer()
-    vi.doMock("@/lib/supabase/server", () => ({
-      createSupabaseServerClient: vi.fn(async () => supabase.client),
-      createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
-    }))
-    const { redeemSelfServiceReward } = await import("@/lib/customer/stamp")
-
-    await expect(redeemSelfServiceReward("reward-1")).resolves.toEqual({
-      status: "blocked",
-      reason:
-        "Give it a day to breathe - redeemable from the next UK business day.",
     })
   })
 })

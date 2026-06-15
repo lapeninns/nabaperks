@@ -129,44 +129,6 @@ describe("block reasons", () => {
   })
 })
 
-describe("redeemSelfServiceReward profile guard", () => {
-  afterEach(() => {
-    vi.resetModules()
-    vi.clearAllMocks()
-    vi.doUnmock("@/lib/supabase/server")
-    vi.doUnmock("@/lib/customer/identity")
-  })
-
-  it("blocks an incomplete profile before reaching the RPC", async () => {
-    vi.resetModules()
-    const mock = createSupabaseMock({})
-    vi.doMock("@/lib/supabase/server", () => ({
-      createSupabaseServerClient: async () => mock.client,
-      createSupabaseServiceRoleClient: () => mock.client,
-    }))
-    vi.doMock("@/lib/customer/identity", () => ({
-      getCurrentCustomer: vi.fn(async () => ({
-        id: "customer-1",
-        authUserId: null,
-        email: null,
-        emailVerifiedAt: null,
-        fullName: null,
-        dateOfBirth: null,
-        phone: "Phone ending 3456",
-        phoneLast4: "3456",
-        phoneCountry: "GB",
-        createdAt: "2026-06-13T12:00:00.000Z",
-      })),
-    }))
-
-    const { redeemSelfServiceReward } = await import("@/lib/customer/stamp")
-    const result = await redeemSelfServiceReward("reward-1")
-
-    expect(result.status).toBe("blocked")
-    expect(mock.rpcCalls).toHaveLength(0)
-  })
-})
-
 describe("updateCustomerProfile email re-verification", () => {
   afterEach(() => {
     vi.resetModules()
@@ -221,7 +183,10 @@ describe("updateCustomerProfile email re-verification", () => {
 
   it("keeps an unchanged, already-verified email verified", async () => {
     const { result, update } = await setup(
-      { email: "same@example.test", emailVerifiedAt: "2026-06-01T00:00:00.000Z" },
+      {
+        email: "same@example.test",
+        emailVerifiedAt: "2026-06-01T00:00:00.000Z",
+      },
       { fullName: "Sam", dateOfBirth: "1990-01-01", email: "same@example.test" }
     )
     expect(result.emailVerificationRequired).toBe(false)
@@ -234,7 +199,10 @@ describe("updateCustomerProfile email re-verification", () => {
       { fullName: "Sam", dateOfBirth: "1990-01-01", email: "" }
     )
     expect(result.emailVerificationRequired).toBe(false)
-    expect(update?.args[0]).toMatchObject({ email: null, email_verified_at: null })
+    expect(update?.args[0]).toMatchObject({
+      email: null,
+      email_verified_at: null,
+    })
   })
 })
 
@@ -263,7 +231,8 @@ describe("saveProfileForRedeemAction", () => {
       overrides.updateCustomerProfile ??
       vi.fn(async () => ({ emailVerificationRequired: false, email: null }))
     const startCustomerEmailVerification =
-      overrides.startCustomerEmailVerification ?? vi.fn(async () => ({ status: "sent" }))
+      overrides.startCustomerEmailVerification ??
+      vi.fn(async () => ({ status: "sent" }))
     vi.doMock("@/lib/customer/profile", () => ({
       updateCustomerProfile,
       markCustomerEmailVerified: vi.fn(),
@@ -278,16 +247,17 @@ describe("saveProfileForRedeemAction", () => {
     vi.doMock("@/lib/customer/session", () => ({
       clearPendingEmailVerification: vi.fn(),
     }))
-    vi.doMock("@/lib/customer/identity", () => ({ getCurrentCustomer: vi.fn() }))
+    vi.doMock("@/lib/customer/identity", () => ({
+      getCurrentCustomer: vi.fn(),
+    }))
     vi.doMock("next/cache", () => ({ revalidatePath: vi.fn() }))
     return { updateCustomerProfile, startCustomerEmailVerification }
   }
 
   it("rejects a missing name and date of birth without saving", async () => {
     const { updateCustomerProfile } = mockDeps({})
-    const { saveProfileForRedeemAction } = await import(
-      "@/app/reward/[rewardId]/actions"
-    )
+    const { saveProfileForRedeemAction } =
+      await import("@/app/reward/[rewardId]/actions")
 
     const result = await saveProfileForRedeemAction(
       {},
@@ -300,14 +270,19 @@ describe("saveProfileForRedeemAction", () => {
   })
 
   it("saves name + DOB with no email and does not start verification", async () => {
-    const { updateCustomerProfile, startCustomerEmailVerification } = mockDeps({})
-    const { saveProfileForRedeemAction } = await import(
-      "@/app/reward/[rewardId]/actions"
+    const { updateCustomerProfile, startCustomerEmailVerification } = mockDeps(
+      {}
     )
+    const { saveProfileForRedeemAction } =
+      await import("@/app/reward/[rewardId]/actions")
 
     const result = await saveProfileForRedeemAction(
       {},
-      form({ rewardId: "reward-1", fullName: "Sam Taylor", dateOfBirth: "1990-01-01" })
+      form({
+        rewardId: "reward-1",
+        fullName: "Sam Taylor",
+        dateOfBirth: "1990-01-01",
+      })
     )
 
     expect(result.errors).toBeUndefined()
@@ -326,9 +301,8 @@ describe("saveProfileForRedeemAction", () => {
         email: "sam@example.test",
       })),
     })
-    const { saveProfileForRedeemAction } = await import(
-      "@/app/reward/[rewardId]/actions"
-    )
+    const { saveProfileForRedeemAction } =
+      await import("@/app/reward/[rewardId]/actions")
 
     await saveProfileForRedeemAction(
       {},
@@ -340,14 +314,15 @@ describe("saveProfileForRedeemAction", () => {
       })
     )
 
-    expect(startCustomerEmailVerification).toHaveBeenCalledWith("sam@example.test")
+    expect(startCustomerEmailVerification).toHaveBeenCalledWith(
+      "sam@example.test"
+    )
   })
 
   it("rejects an invalid email address", async () => {
     const { updateCustomerProfile } = mockDeps({})
-    const { saveProfileForRedeemAction } = await import(
-      "@/app/reward/[rewardId]/actions"
-    )
+    const { saveProfileForRedeemAction } =
+      await import("@/app/reward/[rewardId]/actions")
 
     const result = await saveProfileForRedeemAction(
       {},

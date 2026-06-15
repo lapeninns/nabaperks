@@ -316,11 +316,13 @@ describe("00/01 foundation micro-specs", () => {
   })
 
   it("keeps dashboard status and pilot checklist hierarchy centralized", () => {
-    const merchantDashboard = readProjectFile("app/app/page.tsx")
+    const merchantBillingStatus = readProjectFile(
+      "components/merchant/billing-status.tsx"
+    )
     const adminPilotPage = readProjectFile("app/admin/pilot/page.tsx")
 
-    const billingNotice = merchantDashboard.match(
-      /function BillingNotice[\s\S]*?(?=\nfunction formatPence)/
+    const billingNotice = merchantBillingStatus.match(
+      /export function MerchantBillingNotice[\s\S]*?(?=\nexport function MerchantBillingAccessNote)/
     )?.[0]
     expect(billingNotice).toBeDefined()
     expect(billingNotice).toContain("<SectionHeader")

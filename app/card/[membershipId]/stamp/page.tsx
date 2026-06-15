@@ -24,8 +24,6 @@ export default async function StampPage({
   const context = await loadStampExperienceContext(membershipId, qr)
   const experience = deriveCustomerExperience({ entry: "stamp", context })
 
-  // A ready, redeemable reward blocks new stamps — route straight to redeem
-  // instead of rendering the stamp screen for a reward that can be claimed now.
   if (experience.kind === "reward_ready") {
     redirect(`/reward/${experience.reward.rewardId}`)
   }

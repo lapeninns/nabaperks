@@ -142,7 +142,7 @@ describe("customer home dashboard", () => {
         primaryRewardId: "reward-1",
         redeemableRewards: 1,
       })
-    ).toBe("Reward ready - tap to redeem")
+    ).toBe("Reward ready - show QR at the counter")
     expect(homeCardStatusCopy({ ...baseCard, stampedToday: true })).toBe(
       "Stamp secured for today"
     )

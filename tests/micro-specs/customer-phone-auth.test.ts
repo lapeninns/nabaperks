@@ -254,9 +254,7 @@ describe("customer global phone auth", () => {
           qrId: "bean-test-qr",
         })
       )
-    ).rejects.toThrow(
-      "NEXT_REDIRECT:/m/bean-and-batch/join?qr=bean-test-qr"
-    )
+    ).rejects.toThrow("NEXT_REDIRECT:/m/bean-and-batch/join?qr=bean-test-qr")
     expect(startCustomerPhoneVerification).toHaveBeenCalledWith("+12133734253")
     expect(setPendingPhoneVerification).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -270,14 +268,19 @@ describe("customer global phone auth", () => {
 
   it("keeps customer and home code request forms resendable after the first SMS", () => {
     const joinForms = readFileSync("components/customer/join-forms.tsx", "utf8")
+    const joinOtpForm = readFileSync(
+      "components/customer/join-otp-form.tsx",
+      "utf8"
+    )
     const customerLoginForm = readFileSync(
       "components/customer/customer-login-form.tsx",
       "utf8"
     )
 
-    expect(joinForms).toContain("JoinCodeVerificationForm")
-    expect(joinForms).toContain('"Resend code"')
-    expect(joinForms).toContain("Sent to")
+    expect(joinOtpForm).toContain("CustomerOtpForm")
+    expect(joinOtpForm).toContain('"Resend code"')
+    expect(joinOtpForm).toContain("Sent to")
+    expect(joinForms).toContain("CustomerIdentityForm")
     expect(customerLoginForm).toContain("otpSent")
     expect(customerLoginForm).toContain('"Resend code"')
     expect(customerLoginForm).not.toContain("requestPending || otpSent")

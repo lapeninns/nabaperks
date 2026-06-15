@@ -159,6 +159,56 @@ describe("merchant-scanned reward collection", () => {
     expect(supabase.rpcCalls).toHaveLength(0)
   })
 
+  it("masks customer identity in the merchant scan context", async () => {
+    vi.doMock("@/lib/auth/session", () => ({
+      getCurrentMerchant: vi.fn(async () => ({
+        id: "merchant-1",
+        business_name: "Bean & Batch",
+      })),
+    }))
+    const supabase = createSupabaseMock({
+      from: {
+        reward_events: [
+          {
+            data: {
+              id: "reward-1",
+              status: "unlocked",
+              merchant_id: "merchant-1",
+              customer_id: "customer-1",
+              membership_id: "membership-1",
+              reward_name: "Coffee upgrade",
+              reward_terms: "One per visit.",
+              min_spend_pence: null,
+              customer_memberships: { current_stamp_count: 3 },
+              customers: {
+                email: "guest@example.test",
+                phone: "+441234567890",
+                phone_last4: "7890",
+              },
+              loyalty_cards: { stamps_required: 3, is_active: true },
+            },
+            error: null,
+          },
+        ],
+      },
+    })
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: () => supabase.client,
+    }))
+
+    const { loadMerchantRewardScanContext } =
+      await import("@/lib/merchant/reward-collection")
+    const context = await loadMerchantRewardScanContext("reward-1")
+
+    expect(context.status).toBe("ready")
+    if (context.status !== "ready") {
+      throw new Error("Expected reward scan context to be ready")
+    }
+    expect(context.customerLabel).toBe("g***@example.test")
+    expect(context.customerLabel).not.toContain("guest@example.test")
+    expect(context.customerLabel).not.toContain("1234567890")
+  })
+
   it("redirects a successful merchant confirmation to the collected proof", async () => {
     const redirect = vi.fn((url: string) => {
       throw new Error(`NEXT_REDIRECT:${url}`)

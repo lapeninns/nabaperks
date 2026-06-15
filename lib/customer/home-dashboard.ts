@@ -28,7 +28,7 @@ export function buildHomeSummary(cards: readonly HomeCard[]): HomeSummary {
 }
 
 export function homeCardStatusCopy(card: HomeCard): string {
-  if (card.primaryRewardId) return "Reward ready - tap to redeem"
+  if (card.primaryRewardId) return "Reward ready - show QR at the counter"
   if (!card.available) {
     return card.unavailableReason ?? "This card is unavailable right now."
   }

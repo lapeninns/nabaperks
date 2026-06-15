@@ -1,6 +1,6 @@
 # Nabaperks Project Specification
 
-Last reviewed: 2026-06-13
+Last reviewed: 2026-06-15
 
 `nabaperks-micro-specs-final.md` is the binding product specification. This
 document summarizes the current repo shape after the static-QR self-service
@@ -10,7 +10,8 @@ stamp model replaced the older approval flow.
 
 Nabaperks is a UK no-app QR loyalty MVP for independent local businesses. A
 merchant creates one active mystery visit card, publishes one permanent venue
-QR, and customers join, stamp, and redeem through mobile web.
+QR, and customers join, stamp, and present rewards for merchant-scanned
+collection through mobile web.
 
 The trust model is:
 
@@ -19,7 +20,7 @@ The trust model is:
    a stamp-confirm screen.
 3. The customer taps to add one stamp, capped at one stamp per UK business day.
 4. Optional GPS checks are soft: out-of-range, denied, or unavailable location
-   still completes the stamp or redemption and writes a fraud review flag.
+   still completes the stamp and writes a fraud review flag.
 5. Every loyalty mutation is written server-side with merchant, customer,
    membership, timestamp, action, and metadata attribution.
 
@@ -32,7 +33,7 @@ In scope:
   and soft GPS settings, QR asset generation, billing, dashboard, activity,
   customer readback, and ROI settings.
 - Customer QR resolver, OTP join flow, digital stamp card, self-service stamp
-  confirmation, and reward redemption page.
+  confirmation, and reward state / merchant-scanned collection page.
 - Internal admin support console for merchants, customers, billing, fraud,
   audit, privacy, and pilot metrics.
 - Supabase product events as analytics source of truth, optional PostHog
@@ -82,8 +83,10 @@ Out of scope:
 
 1. At threshold, the app selects a reward snapshot from `reward_pool_items`.
 2. The reward becomes redeemable from the next UK business day.
-3. Customer opens `/reward/[rewardId]` and taps redeem.
-4. `redeem_self_service_reward` marks the reward redeemed once and resets the
+3. Customer opens `/reward/[rewardId]` and shows the collection QR at the
+   venue.
+4. The logged-in merchant scans the reward QR from `/app/rewards/scan`.
+5. `redeem_self_service_reward` marks the reward redeemed once and resets the
    visible stamp cycle.
 
 ## 5. Route Families
@@ -98,7 +101,7 @@ Out of scope:
 | `/m/[merchantSlug]`, `/m/[merchantSlug]/join` | Merchant public landing and customer join.                                      |
 | `/card/[membershipId]`                        | Customer stamp card.                                                            |
 | `/card/[membershipId]/stamp`                  | QR-context self-service stamp confirmation.                                     |
-| `/reward/[rewardId]`                          | Customer reward state and self-service redemption.                              |
+| `/reward/[rewardId]`                          | Customer reward state and merchant-scanned collection QR.                       |
 | `/admin/*`                                    | Internal support, pilot, billing, fraud, audit, and privacy console.            |
 | `/api/stripe/webhook`                         | Stripe billing synchronization.                                                 |
 
@@ -121,7 +124,7 @@ Primary RPCs:
 | `save_loyalty_card`, `upsert_reward_pool_item`, `delete_reward_pool_item` | Manage card and reward pool state.                                                                                            |
 | `create_or_get_join_qr`, `set_qr_active`, `record_qr_download`            | Manage permanent venue QR records and asset events.                                                                           |
 | `issue_self_service_stamp`                                                | Issue one customer-owned stamp per UK business day and log soft GPS anomalies.                                                |
-| `redeem_self_service_reward`                                              | Redeem an unlocked customer-owned reward once and log soft GPS anomalies.                                                     |
+| `redeem_self_service_reward`                                              | Collect an unlocked customer-owned reward once from the merchant-scanned reward QR.                                           |
 | Admin RPCs                                                                | Adjust stamps, cancel rewards, activate/regenerate QR codes, record consent opt-outs, log data requests, and log pilot notes. |
 | `enforce_rate_limit`                                                      | Atomically enforce durable server-side rate limits.                                                                           |
 
@@ -130,7 +133,7 @@ Primary RPCs:
 - Merchant can complete signup, confirmation, onboarding, card setup, reward
   pool setup, venue checks, QR generation, QR download, and billing.
 - Customer can scan, join, view card, add a self-service stamp, unlock a reward,
-  and redeem it from mobile web.
+  and present the reward QR for merchant-scanned collection.
 - QR launch readiness requires active card, active reward pool, saved venue
   checks, and generated QR.
 - Admin can review and support merchants/customers without direct database

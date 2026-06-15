@@ -8,11 +8,12 @@ const merchantNavItems: ShellNavItem[] = [
   { href: "/app", label: "Home" },
   { href: "/app/launch", label: "Launch" },
   { href: "/app/customers", label: "Customers" },
+  { href: "/app/activity", label: "Activity" },
 ]
 
 const merchantAccountItems: ShellNavItem[] = [
   { href: "/app/billing", label: "Billing" },
-  { href: "/app/settings", label: "ROI settings" },
+  { href: "/app/settings", label: "Settings" },
 ]
 
 export function MerchantAppShell({
@@ -33,7 +34,7 @@ export function MerchantAppShell({
               secondaryItems={merchantAccountItems}
               secondaryLabel="Account"
               mobileTitle="Merchant navigation"
-              mobileDescription="Move between home, launch setup, and customers. Billing and ROI settings sit under Account."
+              mobileDescription="Move between home, launch setup, customers, and activity. Billing and settings sit under Account."
               desktopClassName="md:flex"
             />
             <form action={signOutAction}>

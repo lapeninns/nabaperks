@@ -1,5 +1,6 @@
 import "server-only"
 
+import { formatMerchantCustomerIdentifier } from "@/lib/merchant/customer-identity-display"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 const activityEvents = [
@@ -222,7 +223,9 @@ function toActivityDisplayRow(
   const customer = first(row.customers)
   const membership = first(row.customer_memberships)
   const qrCode = first(row.qr_codes)
-  const customerLabel = formatCustomerIdentity(customer)
+  const customerLabel = customer
+    ? formatMerchantCustomerIdentifier(customer)
+    : null
   const staff =
     row.actor_type === "staff" && row.actor_id
       ? staffById.get(row.actor_id)
@@ -910,13 +913,6 @@ function activityCategory(eventName: string): ActivityCategory {
   }
 }
 
-function formatCustomerIdentity(
-  customer: { email: string | null; phone: string | null } | undefined
-) {
-  if (!customer) return null
-  return customer.email ?? customer.phone ?? "Customer"
-}
-
 function customerName(customerLabel: string | null) {
   return customerLabel ?? "Customer"
 }
@@ -1068,9 +1064,14 @@ function metadataSearchValues(metadata: Record<string, unknown> | null) {
   if (!metadata) return []
 
   return Object.entries(metadata)
-    .filter(([, value]) => {
+    .filter(([key, value]) => {
+      const lowerKey = key.toLowerCase()
       const valueType = typeof value
-      return valueType === "string" || valueType === "number"
+      return (
+        (valueType === "string" || valueType === "number") &&
+        !lowerKey.includes("email") &&
+        !lowerKey.includes("phone")
+      )
     })
     .map(([key, value]) => `${key} ${String(value)}`)
 }

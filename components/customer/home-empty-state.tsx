@@ -8,7 +8,7 @@ export function HomeEmptyState() {
   return (
     <EmptyState
       title="No cards yet"
-      description="Scan a venue QR at the counter and your first card will appear here."
+      description="Scan a venue QR and your first card will appear here."
       actions={
         <ReceiptCard className="w-full max-w-xl text-left" padding="sm">
           <div className="grid gap-4">
