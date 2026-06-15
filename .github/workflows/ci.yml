@@ -92,6 +92,7 @@ jobs:
       STRIPE_WEBHOOK_SECRET: whsec_ci
       RESEND_API_KEY: re_ci
       TWILIO_ACCOUNT_SID: ACci
+      TWILIO_AUTH_TOKEN: ci-twilio-auth-token
       TWILIO_VERIFY_SERVICE_SID: VAci
       CUSTOMER_SESSION_SECRET: ci-session-secret-placeholder
       CUSTOMER_PHONE_HMAC_SECRET: ci-hmac-secret-placeholder

@@ -1,10 +1,11 @@
 name: Release drafter
 
+# Drafting runs only on the default branch. release-drafter reads its config
+# from the default branch, so a pull_request run fails until the config is
+# merged to main — and this workflow does no PR autolabeling that would need it.
 on:
   push:
     branches: [main]
-  pull_request:
-    types: [opened, reopened, synchronize]
 
 permissions:
   contents: read
