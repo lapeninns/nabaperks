@@ -49,6 +49,7 @@
     "docs:routes": "node scripts/generate-route-contract.mjs",
     "docs:routes:check": "node scripts/generate-route-contract.mjs --check",
     "quality": "pnpm check:naming && pnpm scan:todos && pnpm check:nplus1 && pnpm check:agents && pnpm lint:quality && pnpm docs:routes:check && pnpm deadcode && pnpm duplication",
+    "goal:gate": "node scripts/run-goal-gate.mjs",
     "prepare": "husky"
   },
   "engines": {
