@@ -1,0 +1,148 @@
+import type {
+  LaunchReadiness,
+  LaunchReadinessStep,
+} from "@/lib/merchant/launch-readiness"
+
+/**
+ * Mock fixtures for the merchant launch-hub preview harness. Mirrors
+ * `customer-flow-preview` so the redesigned launch UI can be screenshotted with
+ * Playwright without a Supabase session — the real components render against
+ * these props. Pure data plus type-only imports, so the e2e spec can import it
+ * in plain Node without tripping `server-only`.
+ */
+export const LAUNCH_PREVIEW_MOCK = {
+  merchantName: "Bean & Batch",
+  locationName: "Main counter",
+  cardName: "Mystery Visit Card",
+  stampsRequired: 3,
+  qrPublicId: "WHEF",
+  shareUrl: "https://nabaperks.com/q/WHEF",
+  address: "1 High Street, London E1 6AN",
+  rewardTerms:
+    "Complete 3 visits to reveal a surprise reward. Redeem from the next UK business day.",
+} as const
+
+type StepFlags = {
+  card: boolean
+  reward: boolean
+  venue: boolean
+  qr: boolean
+}
+
+function mockSteps(flags: StepFlags): LaunchReadinessStep[] {
+  return [
+    {
+      id: "card",
+      tab: "card",
+      label: "Card built",
+      summary: flags.card
+        ? `${LAUNCH_PREVIEW_MOCK.cardName} · ${LAUNCH_PREVIEW_MOCK.stampsRequired} visits`
+        : "Create the visit card customers will collect.",
+      ready: flags.card,
+      href: "/app/launch?tab=card",
+      actionLabel: flags.card ? "Review card" : "Build card",
+    },
+    {
+      id: "rewards",
+      tab: "card",
+      label: "Rewards loaded",
+      summary: flags.reward
+        ? "2 active mystery rewards"
+        : "Add at least one active reward to reveal.",
+      ready: flags.reward,
+      href: "/app/launch?tab=card",
+      actionLabel: "Add reward",
+    },
+    {
+      id: "venue",
+      tab: "venue",
+      label: "Venue set",
+      summary: flags.venue
+        ? "Venue address is saved for printed QR checks."
+        : "Save and geocode the venue address.",
+      ready: flags.venue,
+      href: "/app/launch?tab=venue",
+      actionLabel: "Save venue",
+    },
+    {
+      id: "qr",
+      tab: "qr",
+      label: "QR live",
+      summary: flags.qr
+        ? `Permanent QR ${LAUNCH_PREVIEW_MOCK.qrPublicId} is accepting scans.`
+        : "Generate the permanent venue QR.",
+      ready: flags.qr,
+      href: "/app/launch?tab=qr",
+      actionLabel: flags.qr ? "Open QR" : "Generate QR",
+    },
+  ]
+}
+
+export function mockLaunchReadiness(flags: StepFlags): LaunchReadiness {
+  const steps = mockSteps(flags)
+  const completed = steps.filter((step) => step.ready).length
+
+  return {
+    steps,
+    completed,
+    total: steps.length,
+    launchReady: completed === steps.length,
+    nextStep: steps.find((step) => !step.ready) ?? null,
+    tabs: {
+      card: flags.card && flags.reward,
+      venue: flags.venue,
+      qr: flags.qr,
+    },
+  }
+}
+
+export type LaunchPreviewStateId = (typeof LAUNCH_PREVIEW_STATES)[number]["id"]
+
+export const LAUNCH_PREVIEW_STATES = [
+  {
+    id: "setup-card",
+    screenshot: "01-setup-card.png",
+    screenLabel: "Launch setup",
+    heading: "Bring your venue to life",
+    activeTab: "card",
+    flags: { card: true, reward: false, venue: false, qr: false },
+  },
+  {
+    id: "setup-venue",
+    screenshot: "02-setup-venue.png",
+    screenLabel: "Launch setup",
+    heading: "Bring your venue to life",
+    activeTab: "venue",
+    flags: { card: true, reward: true, venue: false, qr: false },
+  },
+  {
+    id: "live-kit",
+    screenshot: "03-live-kit.png",
+    screenLabel: "Launch live",
+    heading: "You're live",
+    activeTab: "qr",
+    flags: { card: true, reward: true, venue: true, qr: true },
+  },
+] as const
+
+const previewStateIds = new Set(LAUNCH_PREVIEW_STATES.map((state) => state.id))
+
+export function launchPreviewPath(stateId: LaunchPreviewStateId): string {
+  return `/dev/launch-preview/${stateId}`
+}
+
+export function isLaunchPreviewStateId(
+  value: string
+): value is LaunchPreviewStateId {
+  return previewStateIds.has(value as LaunchPreviewStateId)
+}
+
+export function launchPreviewState(stateId: LaunchPreviewStateId) {
+  const state = LAUNCH_PREVIEW_STATES.find((entry) => entry.id === stateId)
+
+  if (!state) {
+    throw new Error(`Unknown launch preview state: ${stateId}`)
+  }
+
+  return state
+}
