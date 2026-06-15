@@ -50,7 +50,9 @@ test("captures the Bean & Batch QR to reward customer journey", async ({
   await page.getByRole("button", { name: "Get my first stamp" }).click()
   await page.waitForURL(/\/card\/[^/]+\?.*stamp=issued/)
   await expect(page.getByText("Welcome to Bean & Batch.")).toBeVisible()
-  await expect(page.getByRole("list", { name: "1 of 3 stamps earned" })).toBeVisible()
+  await expect(
+    page.getByRole("list", { name: "1 of 3 stamps earned" })
+  ).toBeVisible()
   await capture(page, "02-stamp-day-1/01-card-1-of-3.png")
 
   runDemo("advance", "--stamps", "1")
@@ -58,7 +60,9 @@ test("captures the Bean & Batch QR to reward customer journey", async ({
   await expect(page.getByText("Ready to add today's stamp.")).toBeVisible()
   await capture(page, "03-stamp-day-2/01-confirm.png")
   await addStamp(page)
-  await expect(page.getByRole("list", { name: "2 of 3 stamps earned" })).toBeVisible()
+  await expect(
+    page.getByRole("list", { name: "2 of 3 stamps earned" })
+  ).toBeVisible()
   await capture(page, "03-stamp-day-2/02-card-2-of-3.png")
 
   runDemo("advance", "--stamps", "2")
@@ -66,7 +70,9 @@ test("captures the Bean & Batch QR to reward customer journey", async ({
   await expect(page.getByText("Ready to add today's stamp.")).toBeVisible()
   await capture(page, "04-stamp-day-3/01-confirm.png")
   await addStamp(page)
-  await expect(page.getByRole("list", { name: "3 of 3 stamps earned" })).toBeVisible()
+  await expect(
+    page.getByRole("list", { name: "3 of 3 stamps earned" })
+  ).toBeVisible()
   await expect(
     page.getByText("Give it a day to breathe", { exact: true })
   ).toBeVisible()
@@ -85,13 +91,8 @@ test("captures the Bean & Batch QR to reward customer journey", async ({
 
   runDemo("make-redeemable")
   await page.goto(`/reward/${rewardId}`)
-  await expect(page.getByText("Ready to redeem.")).toBeVisible()
+  await expect(page.getByText("Show QR at counter")).toBeVisible()
   await capture(page, "06-redeem/01-reward-ready.png")
-  await page.getByRole("button", { name: "Redeem reward" }).click()
-  // Redeeming lands on the reward-specific proof screen (unambiguous per reward).
-  await page.waitForURL(/\/reward\/[^/]+\?redeemed=1/)
-  await expect(page.getByText("Reward redeemed.")).toBeVisible()
-  await capture(page, "06-redeem/02-reward-redeemed-proof.png")
 })
 
 async function addStamp(page: Page): Promise<void> {

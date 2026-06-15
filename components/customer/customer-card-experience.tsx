@@ -7,11 +7,9 @@ import {
   CustomerReceipt,
   CustomerStampCard,
 } from "@/components/customer/customer-flow-system"
+import { RewardQrPanel } from "@/components/customer/reward-qr-panel"
 import { CustomerTabBar } from "@/components/layout"
-import {
-  SelfServiceRedeemForm,
-  SelfServiceStampForm,
-} from "@/components/customer/self-service-forms"
+import { SelfServiceStampForm } from "@/components/customer/self-service-forms"
 import {
   RewardCelebration,
   RewardTicket,
@@ -78,13 +76,20 @@ function ExperiencePanel({
       return <RewardWaitingPanel exp={experience} />
     case "reward_ready":
       return <RewardReadyPanel exp={experience} />
+    case "reward_qr_pending":
+      return <RewardQrPendingPanel exp={experience} />
     case "redeemed_proof":
       return <RedeemedProofPanel exp={experience} vm={vm} />
     case "unavailable":
       return <UnavailablePanel exp={experience} vm={vm} />
     default:
       // Join states never reach this surface; render the calm fallback.
-      return <UnavailablePanel exp={{ kind: "unavailable", reason: vm.supportLine ?? "" }} vm={vm} />
+      return (
+        <UnavailablePanel
+          exp={{ kind: "unavailable", reason: vm.supportLine ?? "" }}
+          vm={vm}
+        />
+      )
   }
 }
 
@@ -238,7 +243,7 @@ function CardProgressPanel({
       >
         {exp.reward === "ready" && exp.rewardId ? (
           <Button asChild size="lg" variant="reward" className="w-full">
-            <Link href={`/reward/${exp.rewardId}`}>Redeem reward</Link>
+            <Link href={`/reward/${exp.rewardId}`}>Show QR at counter</Link>
           </Button>
         ) : exp.reward === "waiting" ? (
           <StatusNotice
@@ -401,13 +406,31 @@ function RewardReadyPanel({
         description={rewardTermsNode(exp.reward)}
       />
       <StatusBanner title="Ready to redeem." tone="success">
-        Tap redeem while you are at the venue, then show the redeemed card if
-        asked.
+        Open this reward from your card and show the one-time QR at the counter.
       </StatusBanner>
-      <SelfServiceRedeemForm
-        rewardId={exp.reward.rewardId}
-        requireGeofence={exp.location.requireGeofence}
-        geofenceRadiusMeters={exp.location.geofenceRadiusMeters}
+      <Button asChild size="lg" variant="reward" className="w-full">
+        <Link href={`/reward/${exp.reward.rewardId}`}>Show QR at counter</Link>
+      </Button>
+    </CustomerReceipt>
+  )
+}
+
+function RewardQrPendingPanel({
+  exp,
+}: {
+  exp: Extract<CustomerExperience, { kind: "reward_qr_pending" }>
+}) {
+  return (
+    <CustomerReceipt
+      venueName={exp.merchantName}
+      eyebrow="Mystery reward"
+      footerLeft={cardNumber(exp.reward.membershipId)}
+    >
+      <RewardQrPanel
+        reward={exp.reward}
+        merchantName={exp.merchantName}
+        token={exp.token}
+        terms={rewardTermsNode(exp.reward)}
       />
     </CustomerReceipt>
   )
@@ -524,6 +547,7 @@ function screenLabelFor(kind: CustomerExperienceKind): string {
       return "Customer stamp"
     case "reward_waiting":
     case "reward_ready":
+    case "reward_qr_pending":
     case "redeemed_proof":
       return "Customer reward"
     case "card_collecting":

@@ -12,7 +12,14 @@ const shouldResetCustomers = args.has("--reset-customers")
 const shouldResetTodayStamps = args.has("--reset-today-stamps")
 const force = args.has("--force")
 
-if (!shouldApply && !shouldSeed && !shouldTest && !shouldReset && !shouldResetCustomers && !shouldResetTodayStamps) {
+if (
+  !shouldApply &&
+  !shouldSeed &&
+  !shouldTest &&
+  !shouldReset &&
+  !shouldResetCustomers &&
+  !shouldResetTodayStamps
+) {
   console.error(
     "Usage: node scripts/run-supabase-sql.mjs [--apply] [--seed] [--test] [--reset] [--reset-customers] [--reset-today-stamps] [--force]"
   )
@@ -27,7 +34,9 @@ const env = {
 const dbUrl = resolveDbUrl(env)
 
 if (!dbUrl) {
-  console.error("A Supabase database connection is required for SQL migration and RLS tests.")
+  console.error(
+    "A Supabase database connection is required for SQL migration and RLS tests."
+  )
   console.error(
     "Set SUPABASE_DB_URL, or set SUPABASE_DB_PASSWORD with the linked Supabase pooler metadata in supabase/.temp."
   )
@@ -67,7 +76,14 @@ try {
   }
 
   if (shouldTest) {
-    await runFile("supabase/tests/tenant_isolation.sql", "Tenant isolation SQL test")
+    await runFile(
+      "supabase/tests/tenant_isolation.sql",
+      "Tenant isolation SQL test"
+    )
+    await runFile(
+      "supabase/tests/redemption-token-invariants.sql",
+      "Redemption token SQL test"
+    )
   }
 
   console.log("Supabase SQL workflow completed.")

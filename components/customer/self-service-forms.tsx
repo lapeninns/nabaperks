@@ -6,15 +6,10 @@ import {
   selfStampAction,
   type SelfStampActionState,
 } from "@/app/card/[membershipId]/actions"
-import {
-  selfRedeemAction,
-  type SelfRedeemActionState,
-} from "@/app/reward/[rewardId]/actions"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 
 const initialStampState: SelfStampActionState = {}
-const initialRedeemState: SelfRedeemActionState = {}
 
 export type LocationMode = {
   requireGeofence: boolean
@@ -52,45 +47,6 @@ export function SelfServiceStampForm({
       ) : null}
       <Button type="submit" size="lg" disabled={pending} className="w-full">
         {pending ? "Adding stamp..." : "Add today's stamp"}
-      </Button>
-    </form>
-  )
-}
-
-export function SelfServiceRedeemForm({
-  rewardId,
-  requireGeofence,
-  geofenceRadiusMeters,
-}: {
-  rewardId: string
-} & LocationMode) {
-  const [state, action, pending] = useActionState(
-    selfRedeemAction,
-    initialRedeemState
-  )
-  const { note, handleSubmit } = useOptionalGeolocation({
-    requireGeofence,
-    geofenceRadiusMeters,
-  })
-
-  return (
-    <form action={action} onSubmit={handleSubmit} className="grid gap-4">
-      <input type="hidden" name="rewardId" value={rewardId} />
-      <GeoFields />
-      <LocationNote note={note} />
-      {state.errors?.form ? (
-        <StatusBanner tone="warning" title="Reward not redeemed">
-          {state.errors.form}
-        </StatusBanner>
-      ) : null}
-      <Button
-        type="submit"
-        size="lg"
-        variant="reward"
-        disabled={pending}
-        className="w-full"
-      >
-        {pending ? "Redeeming..." : "Redeem reward"}
       </Button>
     </form>
   )
@@ -155,7 +111,9 @@ export function useOptionalGeolocation({
       },
       () => {
         setFormValue(form, "locationStatus", "denied")
-        setNote("Location not shared. The action will continue and be reviewed.")
+        setNote(
+          "Location not shared. The action will continue and be reviewed."
+        )
         submitAfterLocation(form)
       },
       {

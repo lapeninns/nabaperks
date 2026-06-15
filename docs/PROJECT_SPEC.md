@@ -82,8 +82,10 @@ Out of scope:
 
 1. At threshold, the app selects a reward snapshot from `reward_pool_items`.
 2. The reward becomes redeemable from the next UK business day.
-3. Customer opens `/reward/[rewardId]` and taps redeem.
-4. `redeem_self_service_reward` marks the reward redeemed once and resets the
+3. Customer opens `/reward/[rewardId]` and shows the short-lived QR at the
+   counter.
+4. Merchant scans or pastes the QR in `/app/redeem` and confirms the preview.
+5. `consume_redemption_token` marks the reward redeemed once and resets the
    visible stamp cycle.
 
 ## 5. Route Families
@@ -93,12 +95,13 @@ Out of scope:
 | `/`                                           | Marketing home.                                                                 |
 | `/pricing`                                    | Growth Plan and Stripe checkout entry.                                          |
 | `/login`, `/signup`, `/auth/confirm`          | Merchant auth and Supabase callback.                                            |
-| `/app/*`                                      | Merchant dashboard, onboarding, launch, customers, activity, settings, billing. |
+| `/app/*`                                      | Merchant dashboard, onboarding, launch, customers, redemption, activity, settings, billing. |
 | `/q/[qrId]`                                   | Public QR resolver for join or stamp-confirm routing.                           |
 | `/m/[merchantSlug]`, `/m/[merchantSlug]/join` | Merchant public landing and customer join.                                      |
 | `/card/[membershipId]`                        | Customer stamp card.                                                            |
 | `/card/[membershipId]/stamp`                  | QR-context self-service stamp confirmation.                                     |
-| `/reward/[rewardId]`                          | Customer reward state and self-service redemption.                              |
+| `/reward/[rewardId]`                          | Customer reward state and short-lived redemption QR display.                    |
+| `/r/[publicToken]`                            | Public redemption-token resolver into merchant scan flow.                       |
 | `/admin/*`                                    | Internal support, pilot, billing, fraud, audit, and privacy console.            |
 | `/api/stripe/webhook`                         | Stripe billing synchronization.                                                 |
 
@@ -110,7 +113,7 @@ Out of scope:
 | `staff_users`                                                                                               | Legacy named team metadata retained for historical records.                       |
 | `loyalty_cards`, `reward_pool_items`, `qr_codes`                                                            | Merchant loyalty configuration and permanent QR records.                          |
 | `customers`, `customer_memberships`                                                                         | Customer identity and per-merchant card state.                                    |
-| `stamp_events`, `reward_events`                                                                             | Auditable loyalty ledger and assigned reward snapshots.                           |
+| `stamp_events`, `reward_events`, `redemption_tokens`                                                        | Auditable loyalty ledger, assigned reward snapshots, and short-lived redeem tokens. |
 | `fraud_flags`, `rate_limit_buckets`, `consent_records`, `billing_customers`, `audit_logs`, `product_events` | Security, compliance, billing, audit, and analytics records.                      |
 
 Primary RPCs:
@@ -121,7 +124,8 @@ Primary RPCs:
 | `save_loyalty_card`, `upsert_reward_pool_item`, `delete_reward_pool_item` | Manage card and reward pool state.                                                                                            |
 | `create_or_get_join_qr`, `set_qr_active`, `record_qr_download`            | Manage permanent venue QR records and asset events.                                                                           |
 | `issue_self_service_stamp`                                                | Issue one customer-owned stamp per UK business day and log soft GPS anomalies.                                                |
-| `redeem_self_service_reward`                                              | Redeem an unlocked customer-owned reward once and log soft GPS anomalies.                                                     |
+| `create_redemption_token`, `get_redemption_token_status`                  | Issue and poll a customer-owned short-lived reward QR token.                                                                  |
+| `lookup_redemption_token_for_merchant`, `consume_redemption_token`         | Preview and redeem a scanned reward token for the owning merchant.                                                            |
 | Admin RPCs                                                                | Adjust stamps, cancel rewards, activate/regenerate QR codes, record consent opt-outs, log data requests, and log pilot notes. |
 | `enforce_rate_limit`                                                      | Atomically enforce durable server-side rate limits.                                                                           |
 
@@ -130,7 +134,7 @@ Primary RPCs:
 - Merchant can complete signup, confirmation, onboarding, card setup, reward
   pool setup, venue checks, QR generation, QR download, and billing.
 - Customer can scan, join, view card, add a self-service stamp, unlock a reward,
-  and redeem it from mobile web.
+  and show a merchant-scanned reward QR from mobile web.
 - QR launch readiness requires active card, active reward pool, saved venue
   checks, and generated QR.
 - Admin can review and support merchants/customers without direct database

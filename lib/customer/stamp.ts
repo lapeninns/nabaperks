@@ -18,16 +18,6 @@ export type IssueSelfServiceStampResult =
     }
   | { status: "blocked"; reason: string }
 
-export type RedeemSelfServiceRewardResult =
-  | {
-      status: "redeemed"
-      rewardId: string
-      rewardName: string
-      membershipId: string
-      newStampCount: number
-    }
-  | { status: "blocked"; reason: string }
-
 export type LocationRequirement = {
   requireGeofence: boolean
   geofenceRadiusMeters: number
@@ -75,58 +65,6 @@ export async function issueSelfServiceStamp(
     newStampCount,
     rewardUnlocked: booleanValue(row.reward_unlocked),
     geoFlagged: booleanValue(row.geo_flagged),
-  }
-}
-
-export async function redeemSelfServiceReward(
-  rewardId: string,
-  coordinates?: GeoCoordinates
-): Promise<RedeemSelfServiceRewardResult> {
-  const customer = await getCurrentCustomer()
-  if (!customer) return { status: "blocked", reason: "Open your cards first." }
-
-  const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase.rpc("redeem_self_service_reward", {
-    p_reward_event_id: rewardId,
-    p_customer_id: customer.id,
-    p_latitude: coordinates?.latitude ?? null,
-    p_longitude: coordinates?.longitude ?? null,
-  })
-
-  if (error) {
-    const reason = blockedReason(error.message)
-
-    if (reason) return { status: "blocked", reason }
-
-    throw new Error(`Unable to redeem reward: ${error.message}`)
-  }
-
-  const row = firstRecord(data)
-
-  if (!row) {
-    throw new Error("Unable to redeem reward")
-  }
-
-  const rewardEventId = stringValue(row.reward_event_id)
-  const rewardName = stringValue(row.reward_name)
-  const membershipId = stringValue(row.membership_id)
-  const newStampCount = numberValue(row.new_stamp_count)
-
-  if (
-    !rewardEventId ||
-    !rewardName ||
-    !membershipId ||
-    newStampCount === null
-  ) {
-    throw new Error("Unable to redeem reward")
-  }
-
-  return {
-    status: "redeemed",
-    rewardId: rewardEventId,
-    rewardName,
-    membershipId,
-    newStampCount,
   }
 }
 

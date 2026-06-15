@@ -1,12 +1,12 @@
 import type { StampBlockReason } from "./types"
 
 /**
- * Single source of truth for turning a raw stamp/redeem RPC error message into a
+ * Single source of truth for turning a raw stamp/reward RPC error message into a
  * typed {@link StampBlockReason}. UI panels never inspect raw strings — they read
  * the typed reason and `blockReasonCopy()` for safe customer-facing wording.
  *
  * Keep these substrings in sync with the database functions in
- * `supabase/migrations/*` (issue_self_service_stamp / redeem_self_service_reward).
+ * `supabase/migrations/*` (issue_self_service_stamp / redemption token RPCs).
  */
 export function toStampBlockReason(message: string): StampBlockReason {
   if (message.includes("Stamp already issued for this UK business day")) {

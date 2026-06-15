@@ -22,7 +22,11 @@ import {
   type StampBlockReason,
 } from "@/lib/customer/experience/types"
 
-const merchant = { name: "Bean & Batch", slug: "bean-and-batch", termsUrl: "/merchant/bean-and-batch/terms" }
+const merchant = {
+  name: "Bean & Batch",
+  slug: "bean-and-batch",
+  termsUrl: "/merchant/bean-and-batch/terms",
+}
 const card = {
   name: "Morning Ritual",
   stampsRequired: 3,
@@ -38,8 +42,16 @@ const rewardView = {
   minSpendPence: 350,
   redeemableFrom: "2026-06-13",
 }
+const redemptionTokenView = {
+  publicToken: "RDM38E5DB51",
+  expiresAt: "2026-06-15T08:10:00.000Z",
+  redeemUrl: "https://nabaperks.test/r/RDM38E5DB51",
+  qrImageUrl: "/reward/reward-1/qr",
+}
 
-function cardFacts(overrides: Partial<Extract<CardContext, { membershipId: string }>> = {}): CardContext {
+function cardFacts(
+  overrides: Partial<Extract<CardContext, { membershipId: string }>> = {}
+): CardContext {
   return {
     membershipId: "membership-1",
     merchantName: "Bean & Batch",
@@ -58,7 +70,9 @@ function cardFacts(overrides: Partial<Extract<CardContext, { membershipId: strin
   }
 }
 
-function stampFacts(overrides: Partial<Extract<StampContext, { membershipId: string }>> = {}): StampContext {
+function stampFacts(
+  overrides: Partial<Extract<StampContext, { membershipId: string }>> = {}
+): StampContext {
   return {
     membershipId: "membership-1",
     merchantName: "Bean & Batch",
@@ -72,19 +86,24 @@ function stampFacts(overrides: Partial<Extract<StampContext, { membershipId: str
   }
 }
 
-function rewardFacts(overrides: Partial<Extract<RewardContext, { reward: unknown }>> = {}): RewardContext {
+function rewardFacts(
+  overrides: Partial<Extract<RewardContext, { reward: unknown }>> = {}
+): RewardContext {
   return {
     reward: rewardView,
     merchantName: "Bean & Batch",
     status: "unlocked",
     redeemable: true,
     redeemedProof: false,
+    redemptionToken: redemptionTokenView,
     location,
     ...overrides,
   }
 }
 
-function joinFacts(overrides: Partial<Extract<JoinContext, { merchant: unknown }>> = {}): JoinContext {
+function joinFacts(
+  overrides: Partial<Extract<JoinContext, { merchant: unknown }>> = {}
+): JoinContext {
   return {
     merchant,
     card,
@@ -112,8 +131,16 @@ describe("deriveCustomerExperience — card route", () => {
   })
 
   it("shows the collecting card with no reward", () => {
-    const exp = deriveCustomerExperience({ entry: "card", context: cardFacts() })
-    expect(exp).toMatchObject({ kind: "card_collecting", current: 1, total: 3, reward: "none" })
+    const exp = deriveCustomerExperience({
+      entry: "card",
+      context: cardFacts(),
+    })
+    expect(exp).toMatchObject({
+      kind: "card_collecting",
+      current: 1,
+      total: 3,
+      reward: "none",
+    })
   })
 
   it("marks a reward waiting when unlocked but not yet redeemable", () => {
@@ -121,10 +148,21 @@ describe("deriveCustomerExperience — card route", () => {
       entry: "card",
       context: cardFacts({
         current: 3,
-        reward: { id: "reward-1", name: "Coffee upgrade", terms: "t", minSpendPence: 350, redeemableFrom: "2999-01-01", redeemable: false },
+        reward: {
+          id: "reward-1",
+          name: "Coffee upgrade",
+          terms: "t",
+          minSpendPence: 350,
+          redeemableFrom: "2999-01-01",
+          redeemable: false,
+        },
       }),
     })
-    expect(exp).toMatchObject({ kind: "card_collecting", reward: "waiting", rewardId: "reward-1" })
+    expect(exp).toMatchObject({
+      kind: "card_collecting",
+      reward: "waiting",
+      rewardId: "reward-1",
+    })
   })
 
   it("marks a reward ready when redeemable", () => {
@@ -132,10 +170,21 @@ describe("deriveCustomerExperience — card route", () => {
       entry: "card",
       context: cardFacts({
         current: 3,
-        reward: { id: "reward-1", name: "Coffee upgrade", terms: "t", minSpendPence: 350, redeemableFrom: "2026-06-01", redeemable: true },
+        reward: {
+          id: "reward-1",
+          name: "Coffee upgrade",
+          terms: "t",
+          minSpendPence: 350,
+          redeemableFrom: "2026-06-01",
+          redeemable: true,
+        },
       }),
     })
-    expect(exp).toMatchObject({ kind: "card_collecting", reward: "ready", rewardId: "reward-1" })
+    expect(exp).toMatchObject({
+      kind: "card_collecting",
+      reward: "ready",
+      rewardId: "reward-1",
+    })
   })
 
   it("flags a freshly joined card for the welcome celebration", () => {
@@ -143,14 +192,23 @@ describe("deriveCustomerExperience — card route", () => {
       entry: "card",
       context: cardFacts({ current: 1, justStamped: true, justJoined: true }),
     })
-    const calm = deriveCustomerExperience({ entry: "card", context: cardFacts() })
+    const calm = deriveCustomerExperience({
+      entry: "card",
+      context: cardFacts(),
+    })
     expect(joined).toMatchObject({ kind: "card_collecting", justJoined: true })
     expect(calm).toMatchObject({ kind: "card_collecting", justJoined: false })
   })
 
   it("sets the slam index only on the just-stamped visit", () => {
-    const stamped = deriveCustomerExperience({ entry: "card", context: cardFacts({ current: 2, justStamped: true }) })
-    const calm = deriveCustomerExperience({ entry: "card", context: cardFacts({ current: 2 }) })
+    const stamped = deriveCustomerExperience({
+      entry: "card",
+      context: cardFacts({ current: 2, justStamped: true }),
+    })
+    const calm = deriveCustomerExperience({
+      entry: "card",
+      context: cardFacts({ current: 2 }),
+    })
     expect(stamped).toMatchObject({ kind: "card_collecting", slamIndex: 1 })
     expect(calm).toMatchObject({ kind: "card_collecting", slamIndex: -1 })
   })
@@ -158,37 +216,68 @@ describe("deriveCustomerExperience — card route", () => {
   it("routes a merchant availability problem to unavailable", () => {
     const exp = deriveCustomerExperience({
       entry: "card",
-      context: cardFacts({ unavailableReason: "This merchant loyalty programme is not currently active." }),
+      context: cardFacts({
+        unavailableReason:
+          "This merchant loyalty programme is not currently active.",
+      }),
     })
-    expect(exp).toEqual({ kind: "unavailable", reason: "This merchant loyalty programme is not currently active." })
+    expect(exp).toEqual({
+      kind: "unavailable",
+      reason: "This merchant loyalty programme is not currently active.",
+    })
   })
 
   it("routes an access problem to unavailable with recovery", () => {
     const exp = deriveCustomerExperience({
       entry: "card",
-      context: { access: "unauthenticated", recovery: { loginHref: "/home/login?next=%2Fcard%2Fmembership-1" } },
+      context: {
+        access: "unauthenticated",
+        recovery: { loginHref: "/home/login?next=%2Fcard%2Fmembership-1" },
+      },
     })
-    expect(exp).toMatchObject({ kind: "unavailable", recovery: { loginHref: "/home/login?next=%2Fcard%2Fmembership-1" } })
+    expect(exp).toMatchObject({
+      kind: "unavailable",
+      recovery: { loginHref: "/home/login?next=%2Fcard%2Fmembership-1" },
+    })
   })
 })
 
 describe("deriveCustomerExperience — stamp route", () => {
   it("confirms a stamp when the QR is valid", () => {
-    const exp = deriveCustomerExperience({ entry: "stamp", context: stampFacts() })
-    expect(exp).toMatchObject({ kind: "stamp_confirm", membershipId: "membership-1", qrId: "qr-1" })
+    const exp = deriveCustomerExperience({
+      entry: "stamp",
+      context: stampFacts(),
+    })
+    expect(exp).toMatchObject({
+      kind: "stamp_confirm",
+      membershipId: "membership-1",
+      qrId: "qr-1",
+    })
   })
 
   it("prefers the calm already-stamped panel over the confirm screen", () => {
-    const exp = deriveCustomerExperience({ entry: "stamp", context: stampFacts({ alreadyStampedToday: true }) })
-    expect(exp).toMatchObject({ kind: "card_stamped_today", membershipId: "membership-1" })
+    const exp = deriveCustomerExperience({
+      entry: "stamp",
+      context: stampFacts({ alreadyStampedToday: true }),
+    })
+    expect(exp).toMatchObject({
+      kind: "card_stamped_today",
+      membershipId: "membership-1",
+    })
   })
 
   it("prefers a ready reward over a valid stamp QR", () => {
     const exp = deriveCustomerExperience({
       entry: "stamp",
-      context: stampFacts({ unlockedReward: { ...rewardView, redeemable: true } }),
+      context: stampFacts({
+        unlockedReward: { ...rewardView, redeemable: true },
+      }),
     })
-    expect(exp).toMatchObject({ kind: "reward_ready", reward: { rewardId: "reward-1" }, fromCard: false })
+    expect(exp).toMatchObject({
+      kind: "reward_ready",
+      reward: { rewardId: "reward-1" },
+      fromCard: false,
+    })
     // The stripped reward view must not leak the redeemable flag.
     expect(exp).not.toHaveProperty("reward.redeemable")
   })
@@ -196,7 +285,9 @@ describe("deriveCustomerExperience — stamp route", () => {
   it("waits on an unlocked-but-not-redeemable reward", () => {
     const exp = deriveCustomerExperience({
       entry: "stamp",
-      context: stampFacts({ unlockedReward: { ...rewardView, redeemable: false } }),
+      context: stampFacts({
+        unlockedReward: { ...rewardView, redeemable: false },
+      }),
     })
     expect(exp).toMatchObject({ kind: "reward_waiting", fromCard: false })
   })
@@ -216,48 +307,96 @@ describe("deriveCustomerExperience — stamp route", () => {
       context: stampFacts({ qrValid: false, qrMissing: false }),
     })
     expect(exp).toMatchObject({ kind: "unavailable" })
-    expect((exp as { reason: string }).reason).toContain("Scan the venue code again")
+    expect((exp as { reason: string }).reason).toContain(
+      "Scan the venue code again"
+    )
   })
 })
 
 describe("deriveCustomerExperience — reward route", () => {
   it("shows the redeemed proof after redemption", () => {
-    const exp = deriveCustomerExperience({ entry: "reward", context: rewardFacts({ redeemedProof: true, status: "redeemed", redeemable: false }) })
-    expect(exp).toMatchObject({ kind: "redeemed_proof", reward: { rewardId: "reward-1" } })
+    const exp = deriveCustomerExperience({
+      entry: "reward",
+      context: rewardFacts({
+        redeemedProof: true,
+        status: "redeemed",
+        redeemable: false,
+      }),
+    })
+    expect(exp).toMatchObject({
+      kind: "redeemed_proof",
+      reward: { rewardId: "reward-1" },
+    })
   })
 
-  it("shows ready reward with the redeem form context", () => {
-    const exp = deriveCustomerExperience({ entry: "reward", context: rewardFacts() })
+  it("shows ready reward with the short-lived QR context", () => {
+    const exp = deriveCustomerExperience({
+      entry: "reward",
+      context: rewardFacts(),
+    })
+    expect(exp).toMatchObject({
+      kind: "reward_qr_pending",
+      fromCard: true,
+      token: { publicToken: "RDM38E5DB51" },
+    })
+  })
+
+  it("falls back to the ready reward handoff when the QR token is unavailable", () => {
+    const exp = deriveCustomerExperience({
+      entry: "reward",
+      context: rewardFacts({ redemptionToken: null }),
+    })
     expect(exp).toMatchObject({ kind: "reward_ready", fromCard: true })
   })
 
   it("waits on an unlocked reward that is not redeemable yet", () => {
-    const exp = deriveCustomerExperience({ entry: "reward", context: rewardFacts({ redeemable: false }) })
+    const exp = deriveCustomerExperience({
+      entry: "reward",
+      context: rewardFacts({ redeemable: false, redemptionToken: null }),
+    })
     expect(exp).toMatchObject({ kind: "reward_waiting", fromCard: true })
   })
 
   it("routes an unavailable programme to unavailable", () => {
     const exp = deriveCustomerExperience({
       entry: "reward",
-      context: rewardFacts({ redeemable: false, status: "cancelled", unavailableReason: "This loyalty programme is unavailable at the moment." }),
+      context: rewardFacts({
+        redeemable: false,
+        status: "cancelled",
+        redemptionToken: null,
+        unavailableReason:
+          "This loyalty programme is unavailable at the moment.",
+      }),
     })
-    expect(exp).toMatchObject({ kind: "unavailable", reason: "This loyalty programme is unavailable at the moment." })
+    expect(exp).toMatchObject({
+      kind: "unavailable",
+      reason: "This loyalty programme is unavailable at the moment.",
+    })
   })
 })
 
 describe("deriveCustomerExperience — join route", () => {
   it("welcomes a fresh QR scan", () => {
-    const exp = deriveCustomerExperience({ entry: "join", context: joinFacts() })
+    const exp = deriveCustomerExperience({
+      entry: "join",
+      context: joinFacts(),
+    })
     expect(exp).toMatchObject({ kind: "join_welcome", qrId: "qr-1" })
   })
 
   it("advances to the phone form when step=phone", () => {
-    const exp = deriveCustomerExperience({ entry: "join", context: joinFacts({ step: "phone" }) })
+    const exp = deriveCustomerExperience({
+      entry: "join",
+      context: joinFacts({ step: "phone" }),
+    })
     expect(exp).toMatchObject({ kind: "join_phone" })
   })
 
   it("skips welcome for a direct join with no QR", () => {
-    const exp = deriveCustomerExperience({ entry: "join", context: joinFacts({ qrId: undefined }) })
+    const exp = deriveCustomerExperience({
+      entry: "join",
+      context: joinFacts({ qrId: undefined }),
+    })
     expect(exp).toMatchObject({ kind: "join_phone" })
   })
 
@@ -273,31 +412,49 @@ describe("deriveCustomerExperience — join route", () => {
   })
 
   it("asks a verified customer to accept terms", () => {
-    const exp = deriveCustomerExperience({ entry: "join", context: joinFacts({ hasSession: true, pendingOtp: false }) })
+    const exp = deriveCustomerExperience({
+      entry: "join",
+      context: joinFacts({ hasSession: true, pendingOtp: false }),
+    })
     expect(exp).toMatchObject({ kind: "join_terms" })
   })
 
   it("sends a returning member to their card", () => {
     const exp = deriveCustomerExperience({
       entry: "join",
-      context: joinFacts({ hasSession: true, membership: { id: "membership-1", current: 2 } }),
+      context: joinFacts({
+        hasSession: true,
+        membership: { id: "membership-1", current: 2 },
+      }),
     })
-    expect(exp).toMatchObject({ kind: "join_returning", membershipId: "membership-1", current: 2, total: 3 })
+    expect(exp).toMatchObject({
+      kind: "join_returning",
+      membershipId: "membership-1",
+      current: 2,
+      total: 3,
+    })
   })
 
   it("shows unavailable when the card cannot be joined", () => {
-    const exp = deriveCustomerExperience({ entry: "join", context: { unavailable: true } })
+    const exp = deriveCustomerExperience({
+      entry: "join",
+      context: { unavailable: true },
+    })
     expect(exp).toMatchObject({ kind: "unavailable" })
   })
 })
 
 describe("priority tables", () => {
   it("resolves a ready reward ahead of a stamp confirm on the stamp route", () => {
-    expect(pickByPriority("stamp", ["stamp_confirm", "reward_ready"])).toBe("reward_ready")
+    expect(pickByPriority("stamp", ["stamp_confirm", "reward_ready"])).toBe(
+      "reward_ready"
+    )
   })
 
   it("resolves redeemed proof ahead of everything on the reward route", () => {
-    expect(pickByPriority("reward", ["reward_ready", "redeemed_proof"])).toBe("redeemed_proof")
+    expect(
+      pickByPriority("reward", ["reward_qr_pending", "redeemed_proof"])
+    ).toBe("redeemed_proof")
   })
 
   it("returns undefined when no candidate is allowed on the route", () => {
@@ -306,7 +463,9 @@ describe("priority tables", () => {
 })
 
 function collectingExp(
-  overrides: Partial<Extract<CustomerExperience, { kind: "card_collecting" }>> = {}
+  overrides: Partial<
+    Extract<CustomerExperience, { kind: "card_collecting" }>
+  > = {}
 ): Extract<CustomerExperience, { kind: "card_collecting" }> {
   return {
     kind: "card_collecting",
@@ -353,19 +512,34 @@ describe("getCustomerExperienceViewModel", () => {
       merchantName: "Bean & Batch",
     })
     expect(vm.headline).toBe("You're stamped for today")
-    expect(vm.primaryAction).toEqual({ label: "View card", href: "/card/membership-1" })
+    expect(vm.primaryAction).toEqual({
+      label: "View card",
+      href: "/card/membership-1",
+    })
   })
 
   it("motivates the phone step with the merchant, stamp count and mystery reward", () => {
-    const vm = getCustomerExperienceViewModel({ kind: "join_phone", merchant, card, qrId: "qr-1" })
+    const vm = getCustomerExperienceViewModel({
+      kind: "join_phone",
+      merchant,
+      card,
+      qrId: "qr-1",
+    })
     expect(vm.supportLine).toContain(merchant.name)
     expect(vm.supportLine).toContain(String(card.stampsRequired))
     expect(vm.supportLine).toContain("mystery reward")
   })
 
   it("carries the QR through the welcome CTA", () => {
-    const vm = getCustomerExperienceViewModel({ kind: "join_welcome", merchant, card, qrId: "qr-1" })
-    expect(vm.primaryAction?.href).toBe("/m/bean-and-batch/join?qr=qr-1&step=phone")
+    const vm = getCustomerExperienceViewModel({
+      kind: "join_welcome",
+      merchant,
+      card,
+      qrId: "qr-1",
+    })
+    expect(vm.primaryAction?.href).toBe(
+      "/m/bean-and-batch/join?qr=qr-1&step=phone"
+    )
   })
 
   it("returns to the welcome card preview without step=phone", () => {
@@ -380,7 +554,10 @@ describe("getCustomerExperienceViewModel", () => {
       reason: "x",
       recovery: { loginHref: "/home/login?next=%2Fcard%2F1" },
     })
-    expect(vm.primaryAction).toEqual({ label: "Open my cards", href: "/home/login?next=%2Fcard%2F1" })
+    expect(vm.primaryAction).toEqual({
+      label: "Open my cards",
+      href: "/home/login?next=%2Fcard%2F1",
+    })
   })
 
   it("covers every experience kind without throwing", () => {
@@ -389,27 +566,88 @@ describe("getCustomerExperienceViewModel", () => {
       { kind: "join_phone", merchant, card },
       { kind: "join_otp", merchant, card, contact: "+447400123456" },
       { kind: "join_terms", merchant, card, location },
-      { kind: "join_returning", merchant, card, membershipId: "m", current: 1, total: 3 },
-      { kind: "stamp_confirm", membershipId: "m", merchantName: "x", qrId: "q", location },
+      {
+        kind: "join_returning",
+        merchant,
+        card,
+        membershipId: "m",
+        current: 1,
+        total: 3,
+      },
+      {
+        kind: "stamp_confirm",
+        membershipId: "m",
+        merchantName: "x",
+        qrId: "q",
+        location,
+      },
       { kind: "card_stamped_today", membershipId: "m", merchantName: "x" },
-      { kind: "card_collecting", membershipId: "m", merchantName: "x", cardName: "c", current: 1, total: 3, slamIndex: -1, reward: "none", rewardTerms: "t", minSpendPence: null, rewardRedeemableFrom: null, stampsBlocked: false, stampDates: [], justStamped: false, justJoined: false, geoFlagged: false, justRedeemed: false },
-      { kind: "reward_waiting", reward: rewardView, merchantName: "x", fromCard: true },
-      { kind: "reward_ready", reward: rewardView, merchantName: "x", location, fromCard: true },
+      {
+        kind: "card_collecting",
+        membershipId: "m",
+        merchantName: "x",
+        cardName: "c",
+        current: 1,
+        total: 3,
+        slamIndex: -1,
+        reward: "none",
+        rewardTerms: "t",
+        minSpendPence: null,
+        rewardRedeemableFrom: null,
+        stampsBlocked: false,
+        stampDates: [],
+        justStamped: false,
+        justJoined: false,
+        geoFlagged: false,
+        justRedeemed: false,
+      },
+      {
+        kind: "reward_waiting",
+        reward: rewardView,
+        merchantName: "x",
+        fromCard: true,
+      },
+      {
+        kind: "reward_ready",
+        reward: rewardView,
+        merchantName: "x",
+        location,
+        fromCard: true,
+      },
+      {
+        kind: "reward_qr_pending",
+        reward: rewardView,
+        merchantName: "x",
+        token: redemptionTokenView,
+        fromCard: true,
+      },
       { kind: "redeemed_proof", reward: rewardView, merchantName: "x" },
       { kind: "unavailable", reason: "x" },
     ]
     for (const exp of samples) {
-      expect(getCustomerExperienceViewModel(exp).headline.length).toBeGreaterThan(0)
+      expect(
+        getCustomerExperienceViewModel(exp).headline.length
+      ).toBeGreaterThan(0)
     }
   })
 })
 
 describe("block reasons", () => {
   it("maps RPC messages to typed reasons", () => {
-    expect(toStampBlockReason("Stamp already issued for this UK business day")).toBe("already_stamped_today")
-    expect(toStampBlockReason("A reward is already ready to redeem")).toBe("reward_ready_first")
-    expect(toStampBlockReason("Reward is not redeemable until the next UK business day")).toBe("unavailable")
-    expect(toStampBlockReason("Authentication required")).toBe("unauthenticated")
+    expect(
+      toStampBlockReason("Stamp already issued for this UK business day")
+    ).toBe("already_stamped_today")
+    expect(toStampBlockReason("A reward is already ready to redeem")).toBe(
+      "reward_ready_first"
+    )
+    expect(
+      toStampBlockReason(
+        "Reward is not redeemable until the next UK business day"
+      )
+    ).toBe("unavailable")
+    expect(toStampBlockReason("Authentication required")).toBe(
+      "unauthenticated"
+    )
     expect(toStampBlockReason("totally unexpected")).toBe("unknown")
   })
 

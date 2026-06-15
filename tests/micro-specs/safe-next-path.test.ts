@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest"
 
-import { safeNextPath, customerLoginHref } from "@/lib/navigation/safe-next-path"
+import {
+  safeNextPath,
+  customerLoginHref,
+} from "@/lib/navigation/safe-next-path"
 
 describe("safeNextPath", () => {
   it("allows in-app absolute paths", () => {
     expect(safeNextPath("/card/membership-1")).toBe("/card/membership-1")
-    expect(safeNextPath("/reward/reward-1?redeemed=1")).toBe(
-      "/reward/reward-1?redeemed=1"
-    )
+    expect(safeNextPath("/reward/reward-1")).toBe("/reward/reward-1")
   })
 
   it("rejects protocol-relative and absolute URLs", () => {

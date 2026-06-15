@@ -61,7 +61,10 @@ flowchart TB
 | `Route.CustomerJoin`       | `/m/[merchantSlug]/join`     | Public then OTP session              | Customer identity and join actions           | Loyalty terms and marketing consent.                  |
 | `Route.CustomerCard`       | `/card/[membershipId]`       | Customer owner                       | `getCustomerCardState`                       | Card state and reward links.                          |
 | `Route.CustomerStamp`      | `/card/[membershipId]/stamp` | Customer owner and QR context        | `selfStampAction`                            | Self-service stamp confirmation.                      |
-| `Route.CustomerReward`     | `/reward/[rewardId]`         | Customer owner                       | `getCustomerRewardState`, `selfRedeemAction` | Reward state and redemption.                          |
+| `Route.CustomerReward`     | `/reward/[rewardId]`         | Customer owner                       | `getCustomerRewardState`, `createRedemptionToken` | Reward state and short-lived QR display.        |
+| `Route.RewardQrImage`      | `/reward/[rewardId]/qr`      | Customer owner                       | `renderQrCodePng`, `createRedemptionToken`   | QR image for the current reward token.                |
+| `Route.RedeemResolver`     | `/r/[token]`                 | Public then merchant                 | `getCurrentMerchant`, redirect               | Routes public reward QR URLs into merchant scanner.   |
+| `Route.MerchantRedeem`     | `/app/redeem`                | Merchant                             | `lookupRedemptionToken`, `consumeRedemptionToken` | Merchant scan/paste redemption.                 |
 | `Route.AdminFraud`         | `/admin/fraud`               | Internal admin                       | `getAdminFraudSignals`                       | Fraud flags and redemption failures.                  |
 | `Route.StripeWebhook`      | `/api/stripe/webhook`        | Stripe signature                     | `lib/stripe/billing.ts`                      | Billing sync.                                         |
 
@@ -70,8 +73,8 @@ flowchart TB
 | Module ID          | Files                                                                                                                                         | Supabase client                                          | Responsibility                                                                        |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | `Module.Auth`      | `lib/auth/session.ts`, `app/(auth)/actions.ts`                                                                                                | Server client                                            | Current user, merchant session, signup, login, logout.                                |
-| `Module.Customer`  | `lib/customer/join.ts`, `lib/customer/card.ts`, `lib/customer/reward.ts`, `lib/customer/stamp.ts`, customer route actions                     | Service role plus explicit ownership checks              | QR resolution, OTP join, card state, reward state, self-service stamp and redemption. |
-| `Module.Merchant`  | `lib/merchant/dashboard.ts`, `lib/merchant/loyalty-card.ts`, `lib/merchant/qr-code.ts`, `lib/merchant/location.ts`, `lib/merchant/geocode.ts` | Server client and service role                           | Dashboard, card, reward pool, QR, venue checks, activity, ROI settings.               |
+| `Module.Customer`  | `lib/customer/join.ts`, `lib/customer/card.ts`, `lib/customer/reward.ts`, `lib/customer/stamp.ts`, `lib/customer/redemption-token.ts`, customer route actions | Service role plus explicit ownership checks | QR resolution, OTP join, card state, reward state, self-service stamp, and reward token display. |
+| `Module.Merchant`  | `lib/merchant/dashboard.ts`, `lib/merchant/loyalty-card.ts`, `lib/merchant/qr-code.ts`, `lib/merchant/location.ts`, `lib/merchant/geocode.ts`, `lib/merchant/redeem.ts` | Server client and service role | Dashboard, card, reward pool, QR, venue checks, activity, ROI settings, reward scan redemption. |
 | `Module.Admin`     | `lib/admin/auth.ts`, `lib/admin/data.ts`, `app/admin/actions.ts`                                                                              | Server client for RPC writes; service role for readbacks | Internal access check, support reads, support mutations.                              |
 | `Module.Stripe`    | `lib/stripe/**`, billing actions, Stripe webhook route                                                                                        | Service role                                             | Checkout, portal, webhook verification, subscription sync.                            |
 | `Module.Analytics` | `lib/analytics/events.ts`, `lib/analytics/funnels.ts`                                                                                         | Service role                                             | `product_events` source of truth plus PostHog mirror.                                 |
@@ -88,6 +91,7 @@ erDiagram
   customers ||--o{ customer_memberships : owns
   customer_memberships ||--o{ stamp_events : tracks
   customer_memberships ||--o{ reward_events : unlocks
+  reward_events ||--o{ redemption_tokens : exposes
   customer_memberships ||--o{ fraud_flags : reviews
 ```
 
@@ -99,6 +103,7 @@ erDiagram
 | `Table.qr_codes`           | `qr_codes`           | Permanent venue QR records.                                                   |
 | `Table.stamp_events`       | `stamp_events`       | Auditable stamp ledger.                                                       |
 | `Table.reward_events`      | `reward_events`      | Assigned reward snapshots and redemption state.                               |
+| `Table.redemption_tokens`  | `redemption_tokens`  | Short-lived QR tokens for merchant-confirmed reward redemption.               |
 | `Table.fraud_flags`        | `fraud_flags`        | Soft geofence and abuse review signals.                                       |
 | `Table.product_events`     | `product_events`     | Product analytics source of truth.                                            |
 | `Table.audit_logs`         | `audit_logs`         | Admin, support, and security-sensitive mutation audit trail.                  |
@@ -108,7 +113,7 @@ erDiagram
 | Layer                            | Boundary                                                                  | Examples                                                                                                           | Notes                                              |
 | -------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
 | RLS reads and constrained writes | Supabase server client with current cookies                               | Merchant reads, card setup reads, admin RPC calls                                                                  | RLS applies to authenticated server clients.       |
-| Security-definer RPC writes      | Postgres validates ownership, billing, rate limits, and ledger invariants | `create_merchant_onboarding`, `join_customer_membership`, `issue_self_service_stamp`, `redeem_self_service_reward` | Primary boundary for high-risk business mutations. |
+| Security-definer RPC writes      | Postgres validates ownership, billing, rate limits, and ledger invariants | `create_merchant_onboarding`, `join_customer_membership`, `issue_self_service_stamp`, `create_redemption_token`, `consume_redemption_token` | Primary boundary for high-risk business mutations. |
 | Service-role server writes       | Trusted server-only modules                                               | Product events, admin readbacks, billing webhook sync, QR resolution                                               | Must stay out of client bundles.                   |
 
 ## 7. Core Flows
@@ -157,12 +162,17 @@ sequenceDiagram
 sequenceDiagram
   actor Customer
   participant Reward as /reward/{reward_id}
-  participant RPC as redeem_self_service_reward
-  participant Card as /card/{membership_id}
+  participant Token as create_redemption_token
+  actor Merchant
+  participant Redeem as /app/redeem
+  participant RPC as consume_redemption_token
   Customer->>Reward: open redeemable reward
-  Customer->>Reward: tap redeem
-  Reward->>RPC: submit reward and optional coordinates
-  RPC-->>Card: redirect to refreshed card
+  Reward->>Token: create/reuse short-lived token
+  Reward-->>Customer: display /r/{public_token} QR
+  Merchant->>Redeem: scan or paste token
+  Redeem->>RPC: confirm token for merchant_id
+  RPC-->>Redeem: reward redeemed or blocked
+  Reward-->>Customer: polling shows consumed state
 ```
 
 ## 8. Observability And Compliance

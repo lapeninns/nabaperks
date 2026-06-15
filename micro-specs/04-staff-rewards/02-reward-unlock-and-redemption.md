@@ -4,7 +4,7 @@
 
 When a customer earns the required visit stamp, a surprise reward is assigned
 and revealed. The customer can redeem it once from the next UK business day by
-tapping the reward page.
+opening the reward page and showing a short-lived QR at the venue counter.
 
 ## Blast Radius
 
@@ -12,8 +12,9 @@ In scope:
 
 - Reward state logic tied to memberships and stamp events.
 - `/reward/[reward_id]`
-- `redeem_self_service_reward`
-- Optional soft geofence fraud flags.
+- `create_redemption_token`
+- `get_redemption_token_status`
+- Merchant scan redemption in `/app/redeem`
 - `reward_events` writes and membership reward counters.
 - Duplicate redemption prevention.
 
@@ -40,7 +41,8 @@ Out of scope:
 
 - Reward statuses include unlocked, redeemed, cancelled, and expired.
 - Reward screen route is `/reward/{reward_id}`.
-- Redemption redirects back to the customer card after success.
+- Redeemable customer rewards display a one-time QR at `/r/{public_token}`.
+- Redemption is confirmed by a signed-in merchant from `/app/redeem`.
 
 ## Behavioral Requirements
 
@@ -50,11 +52,13 @@ Out of scope:
   SHALL show the assigned reward and a come-back message without a redeem
   action.
 - WHEN a customer opens a redeemable reward, THE app SHALL show assigned reward
-  name, terms, and self-service redeem action.
+  name, terms, and short-lived QR redemption token.
+- WHEN a merchant scans or pastes a valid reward QR, THE app SHALL preview the
+  assigned reward and customer label before confirmation.
 - WHEN the merchant edits the reward pool after assignment, THE existing
   customer reward SHALL keep its persisted details unchanged.
-- WHEN the customer taps redeem and all server checks pass, THE system SHALL
-  mark the reward as redeemed once.
+- WHEN the merchant confirms redemption and all server checks pass, THE system
+  SHALL mark the reward as redeemed once.
 - WHEN the same reward redemption is attempted again, THE system SHALL reject or
   replay the duplicate safely without creating another redemption.
 - WHEN redemption succeeds, THE system SHALL update membership reward totals and
@@ -76,7 +80,7 @@ Acceptance criteria:
 Manual QA:
 
 - Earn enough stamps to unlock a reward.
-- Redeem from the reward page.
+- Open the reward page and scan or paste the QR from the merchant console.
 - Refresh reward page and confirm it is no longer redeemable.
 - Attempt duplicate redemption from another browser session.
 - Confirm reward event and audit readback.
@@ -84,6 +88,6 @@ Manual QA:
 Task breakdown:
 
 - Define reward state transitions.
-- Implement reward page and self-service redemption action.
-- Implement duplicate-safe redemption mutation.
+- Implement reward page and redemption-token display.
+- Implement duplicate-safe merchant scan redemption mutation.
 - Verify customer, merchant, audit, and product event states.

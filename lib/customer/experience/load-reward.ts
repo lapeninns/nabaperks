@@ -1,24 +1,21 @@
 import "server-only"
 
+import { createRedemptionToken } from "@/lib/customer/redemption-token"
 import { getCustomerRewardState } from "@/lib/customer/reward"
 import { getRewardLocationRequirement } from "@/lib/customer/stamp"
 import { isRedeemableFrom } from "@/lib/customer/uk-date"
+import { getServerEnv } from "@/lib/env/server"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 
 import type { RewardContext } from "./derive"
 
-type RewardSearchParams = {
-  redeemed?: string
-}
-
 /**
  * Impure loader for the reward route. Resolves reward ownership + redeemability,
- * the venue location gate, and the `?redeemed=1` post-redeem proof flag, then
- * hands pure facts to {@link deriveCustomerExperience}.
+ * the venue location gate, and the merchant-scan redemption token, then hands
+ * pure facts to {@link deriveCustomerExperience}.
  */
 export async function loadRewardExperienceContext(
-  rewardId: string,
-  searchParams: RewardSearchParams
+  rewardId: string
 ): Promise<RewardContext> {
   const rewardState = await getCustomerRewardState(rewardId)
 
@@ -40,6 +37,9 @@ export async function loadRewardExperienceContext(
     !rewardState.unavailableReason &&
     membership.current_stamp_count >= loyaltyCard.stamps_required &&
     isRedeemableFrom(reward.redeemable_from)
+  const redemptionToken = redeemable
+    ? await createRedemptionToken(reward.id)
+    : null
 
   return {
     reward: {
@@ -53,8 +53,25 @@ export async function loadRewardExperienceContext(
     merchantName: merchant.business_name,
     status: reward.status,
     redeemable,
-    redeemedProof: searchParams.redeemed === "1",
+    redeemedProof: false,
+    redemptionToken: redemptionToken
+      ? tokenView(reward.id, redemptionToken)
+      : null,
     location,
     unavailableReason: rewardState.unavailableReason,
+  }
+}
+
+function tokenView(
+  rewardId: string,
+  redemptionToken: { publicToken: string; expiresAt: string }
+) {
+  const appUrl = getServerEnv().NEXT_PUBLIC_APP_URL.replace(/\/$/, "")
+
+  return {
+    publicToken: redemptionToken.publicToken,
+    expiresAt: redemptionToken.expiresAt,
+    redeemUrl: `${appUrl}/r/${redemptionToken.publicToken}`,
+    qrImageUrl: `/reward/${rewardId}/qr`,
   }
 }

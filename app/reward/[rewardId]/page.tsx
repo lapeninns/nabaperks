@@ -8,17 +8,11 @@ type RewardPageProps = {
   params: Promise<{
     rewardId: string
   }>
-  searchParams: Promise<{
-    redeemed?: string
-  }>
 }
 
-export default async function RewardPage({
-  params,
-  searchParams,
-}: RewardPageProps) {
+export default async function RewardPage({ params }: RewardPageProps) {
   const { rewardId } = await params
-  const context = await loadRewardExperienceContext(rewardId, await searchParams)
+  const context = await loadRewardExperienceContext(rewardId)
   const experience = deriveCustomerExperience({ entry: "reward", context })
 
   return <CustomerCardExperience experience={experience} />

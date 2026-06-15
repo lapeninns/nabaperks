@@ -9,7 +9,12 @@
  */
 
 /** Which route the customer entered from. Same facts can mean different UI. */
-export type CustomerExperienceEntry = "qr" | "join" | "card" | "stamp" | "reward"
+export type CustomerExperienceEntry =
+  | "qr"
+  | "join"
+  | "card"
+  | "stamp"
+  | "reward"
 
 /** Identity/access failures that short-circuit every route to a recovery panel. */
 export type AccessProblem = "unauthenticated" | "unauthorized" | "not_found"
@@ -67,10 +72,27 @@ export type RewardView = {
   redeemableFrom: string | null
 }
 
+export type RedemptionTokenView = {
+  publicToken: string
+  expiresAt: string
+  redeemUrl: string
+  qrImageUrl: string
+}
+
 export type CustomerExperience =
   // --- Join wizard (one job per screen) ---
-  | { kind: "join_welcome"; merchant: JoinMerchant; card: JoinCard; qrId: string }
-  | { kind: "join_phone"; merchant: JoinMerchant; card: JoinCard; qrId?: string }
+  | {
+      kind: "join_welcome"
+      merchant: JoinMerchant
+      card: JoinCard
+      qrId: string
+    }
+  | {
+      kind: "join_phone"
+      merchant: JoinMerchant
+      card: JoinCard
+      qrId?: string
+    }
   | {
       kind: "join_otp"
       merchant: JoinMerchant
@@ -137,6 +159,13 @@ export type CustomerExperience =
       reward: RewardView
       merchantName: string
       location: LocationRequirement
+      fromCard: boolean
+    }
+  | {
+      kind: "reward_qr_pending"
+      reward: RewardView
+      merchantName: string
+      token: RedemptionTokenView
       fromCard: boolean
     }
   | { kind: "redeemed_proof"; reward: RewardView; merchantName: string }

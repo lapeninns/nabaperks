@@ -103,7 +103,7 @@ flowchart TD
   P --> O
   O --> Q{"Can stamp today?"}
   Q -- "No, already stamped" --> R["Already stamped today"]
-  Q -- "No, reward ready" --> S["Redeem reward before more stamps"]
+  Q -- "No, reward ready" --> S["Show reward QR before more stamps"]
   Q -- "Yes" --> T["Add today's stamp"]
   T --> V{"Required stamp count reached?"}
   V -- "No" --> N
@@ -327,11 +327,12 @@ If those are blended, the customer may try to redeem too early and feel blocked.
    - membership still has enough stamps,
    - merchant/card/billing still available.
 3. Customer sees assigned reward name, terms, and minimum spend.
-4. Customer taps "Redeem reward" while at the venue.
-5. Optional location check runs if enabled.
-6. `redeem_self_service_reward` marks the reward redeemed once.
-7. Customer is redirected to `/card/[membershipId]?reward=redeemed`.
-8. Card shows the next visible stamp cycle.
+4. Customer shows the short-lived reward QR at the venue counter.
+5. Merchant scans or pastes the QR in `/app/redeem`.
+6. `consume_redemption_token` marks the reward redeemed once with merchant
+   attribution.
+7. Customer reward page status changes to redeemed and the card shows the next
+   visible stamp cycle.
 
 ### Edge Cases
 
@@ -342,7 +343,7 @@ If those are blended, the customer may try to redeem too early and feel blocked.
 | Reward cancelled/expired          | Shows unavailable.                                       | Correct.                                                                 |
 | Merchant/card/billing unavailable | Shows reward unavailable.                                | Customer may need venue support.                                         |
 | Location denied/unavailable       | Action continues and may be flagged.                     | Good customer continuity, but potential fraud-review load.               |
-| Venue asks for redemption proof   | Customer can self-redeem.                                | Post-redeem proof copy can be clearer without adding an approval gate.    |
+| Venue asks for redemption proof   | Merchant scans the customer QR before confirmation.       | The venue controls redemption without handling the customer's phone.       |
 
 ### Missing Flow
 

@@ -129,9 +129,11 @@ describe("03 customer micro-specs", () => {
       expect(joinActions).toContain(`formData.get("${checkbox}")`)
     }
 
-    expect(experience).toContain("SelfServiceRedeemForm")
-    expect(rewardActions).toContain("selfRedeemAction")
-    expect(rewardActions).toContain("redeemSelfServiceReward")
+    expect(experience).toContain("RewardQrPanel")
+    expect(experience).not.toContain("SelfServiceRedeemForm")
+    expect(rewardActions).toContain("redemptionStatusAction")
+    expect(rewardActions).toContain("getRedemptionTokenStatus")
+    expect(rewardActions).not.toContain("selfRedeemAction")
     expect(experience).not.toContain(`name="pin"`)
 
     expect(stampActions).toContain("selfStampAction")
@@ -158,7 +160,9 @@ describe("03 customer micro-specs", () => {
     const experience = readProjectFile(
       "components/customer/customer-card-experience.tsx"
     )
-    const customerTabBar = readProjectFile("components/layout/customer-tab-bar.tsx")
+    const customerTabBar = readProjectFile(
+      "components/layout/customer-tab-bar.tsx"
+    )
     const joinWizard = readProjectFile("components/customer/join-wizard.tsx")
     const copy = readProjectFile("lib/customer/experience/copy.ts")
     const loadStamp = readProjectFile("lib/customer/experience/load-stamp.ts")
@@ -173,7 +177,9 @@ describe("03 customer micro-specs", () => {
     expect(joinWizard).toContain("CustomerFlowShell")
     expect(joinWizard).toContain("CustomerStampCard")
     expect(joinWizard).toContain("This loyalty card is unavailable")
-    expect(joinWizard).toContain("Ask a team member for the current loyalty QR.")
+    expect(joinWizard).toContain(
+      "Ask a team member for the current loyalty QR."
+    )
     expect(copy).toContain("Open your stamp card")
 
     expect(cardPage).toContain("CustomerCardExperience")
@@ -182,7 +188,7 @@ describe("03 customer micro-specs", () => {
     expect(experience).toContain("CustomerStampCard")
     expect(experience).toContain("Stamp added.")
     expect(experience).toContain("Scan the venue code to add your stamp.")
-    expect(experience).toContain("Redeem reward")
+    expect(experience).toContain("Show QR at counter")
     expect(customerTabBar).toContain('pathname.startsWith("/card/")')
     expect(customerTabBar).toContain('pathname.startsWith("/reward/")')
 
@@ -195,7 +201,8 @@ describe("03 customer micro-specs", () => {
     expect(experience).toContain("RewardTicket")
     expect(experience).toContain("Give it a day to breathe")
     expect(experience).toContain("Ready to redeem.")
-    expect(experience).toContain("SelfServiceRedeemForm")
+    expect(experience).toContain("RewardQrPanel")
+    expect(experience).not.toContain("SelfServiceRedeemForm")
 
     expect(qrPage).toContain("This loyalty card is unavailable")
     expect(qrPage).toContain("Ask a team member for the current loyalty QR.")
@@ -357,9 +364,6 @@ describe("03 customer micro-specs", () => {
     expect(cardText).not.toContain("Scan the venue code to add your stamp.")
 
     vi.resetModules()
-    vi.doMock("@/components/customer/self-service-forms", () => ({
-      SelfServiceRedeemForm: () => "REDEEM FORM",
-    }))
     vi.doMock("@/lib/customer/stamp", () => ({
       getRewardLocationRequirement: vi.fn(async () => ({
         requireGeofence: false,
@@ -406,7 +410,6 @@ describe("03 customer micro-specs", () => {
     const { default: RewardPage } = await import("@/app/reward/[rewardId]/page")
     const rewardOutput = await RewardPage({
       params: Promise.resolve({ rewardId: "reward-1" }),
-      searchParams: Promise.resolve({}),
     })
     const rewardText = normalizeText(rewardOutput)
 
@@ -1174,11 +1177,11 @@ describe("03 customer micro-specs", () => {
     })
   })
 
-  it("maps next-business-day redemption errors to a customer-facing wait message", async () => {
+  it("maps next-business-day token errors to a customer-facing wait message", async () => {
     vi.resetModules()
     const supabase = createSupabaseMock({
       rpc: {
-        redeem_self_service_reward: [
+        create_redemption_token: [
           {
             data: null,
             error: {
@@ -1194,13 +1197,12 @@ describe("03 customer micro-specs", () => {
       createSupabaseServerClient: vi.fn(async () => supabase.client),
       createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
     }))
-    const { redeemSelfServiceReward } = await import("@/lib/customer/stamp")
+    const { createRedemptionToken } =
+      await import("@/lib/customer/redemption-token")
 
-    await expect(redeemSelfServiceReward("reward-1")).resolves.toEqual({
-      status: "blocked",
-      reason:
-        "Give it a day to breathe - redeemable from the next UK business day.",
-    })
+    await expect(createRedemptionToken("reward-1")).rejects.toThrow(
+      "Reward is not redeemable until the next UK business day"
+    )
   })
 })
 

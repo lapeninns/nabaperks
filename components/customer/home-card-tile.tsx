@@ -35,7 +35,7 @@ export function HomeCardTile({ card }: { card: HomeCard }) {
 
         <div className="flex flex-wrap items-center gap-2">
           <MonoTag tone={card.primaryRewardId ? "leaf" : "plain"}>
-            {card.primaryRewardId ? "Redeem reward" : "Open card"}
+            {card.primaryRewardId ? "Show reward QR" : "Open card"}
           </MonoTag>
           {rewardTag ? (
             <MonoTag tone={rewardTag.tone}>{rewardTag.label}</MonoTag>

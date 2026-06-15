@@ -1107,7 +1107,8 @@ Age-restricted rewards require a future staff-controlled age-check gate before t
 
 Reward reveal animation is presentation only.
 
-The customer reward page is the redemption authority.
+The customer reward page is the redemption-token display. Merchant confirmation
+is the redemption authority.
 
 The customer phone does not contain a staff secret.
 
@@ -1115,17 +1116,17 @@ The customer phone does not contain a staff secret.
 
 WHEN a stamp completes the reward threshold, THE system SHALL issue a reward instance.
 
-WHEN a reward is issued, THE customer web app SHALL show the reward title, availability, expiry, and self-redeem instructions.
+WHEN a reward is issued, THE customer web app SHALL show the reward title, availability, expiry, and merchant-scan instructions.
 
 WHEN a customer opens a reward before `redeemable_from`, THE customer web app SHALL show the next eligible UK business date and SHALL NOT redeem it.
 
-WHEN customer taps redemption, THE system SHALL mark the reward as redeemed and create a redemption event.
+WHEN customer shows the reward QR and the merchant confirms it, THE system SHALL mark the reward as redeemed and create a redemption event.
 
 WHEN an already-redeemed reward is opened again, THE customer web app SHALL show "Already redeemed" with the redemption time.
 
 WHEN a reward is expired, THE customer web app SHALL show expired state and SHALL NOT show an active redeem action.
 
-WHEN soft GPS checks are enabled and coordinates are out of range or unknown, THE system SHALL still redeem the reward and SHALL create a geofence fraud flag.
+WHEN a redeemable reward page is opened, THE system SHALL issue or reuse a short-lived redemption token for merchant scanning.
 
 ## Verification criteria and task breakdown
 
@@ -1148,7 +1149,7 @@ WHEN soft GPS checks are enabled and coordinates are out of range or unknown, TH
 **Manual QA**
 
 - Stamp a card to completion.
-- Redeem reward.
+- Show reward QR to merchant.
 - Try to redeem again.
 - Confirm second attempt fails clearly.
 
@@ -1156,8 +1157,8 @@ WHEN soft GPS checks are enabled and coordinates are out of range or unknown, TH
 
 1. Build reward instance lifecycle.
 2. Build customer reward view.
-3. Build customer redemption action.
-4. Build redemption confirmation.
+3. Build customer redemption-token display.
+4. Build merchant scan redemption confirmation.
 5. Add expiry and duplicate tests.
 
 ---

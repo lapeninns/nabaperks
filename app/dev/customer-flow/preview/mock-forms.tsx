@@ -188,7 +188,7 @@ export function PreviewRedeemButton() {
   return (
     <div className="grid gap-4">
       <Button type="button" size="lg" variant="reward" className="w-full">
-        Redeem reward
+        Show reward QR
       </Button>
     </div>
   )
@@ -229,9 +229,6 @@ export function PreviewJoinHeroNote() {
 
 export function PreviewMinSpendNote() {
   return (
-    <>
-      {" "}
-      Minimum spend {formatMockPence(CUSTOMER_FLOW_MOCK.minSpendPence)}.
-    </>
+    <> Minimum spend {formatMockPence(CUSTOMER_FLOW_MOCK.minSpendPence)}.</>
   )
 }

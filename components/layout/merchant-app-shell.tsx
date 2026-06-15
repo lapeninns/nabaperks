@@ -7,6 +7,7 @@ import { ShellNavigation, type ShellNavItem } from "./shell-navigation"
 const merchantNavItems: ShellNavItem[] = [
   { href: "/app", label: "Home" },
   { href: "/app/launch", label: "Launch" },
+  { href: "/app/redeem", label: "Redeem" },
   { href: "/app/customers", label: "Customers" },
 ]
 
@@ -33,7 +34,7 @@ export function MerchantAppShell({
               secondaryItems={merchantAccountItems}
               secondaryLabel="Account"
               mobileTitle="Merchant navigation"
-              mobileDescription="Move between home, launch setup, and customers. Billing and ROI settings sit under Account."
+              mobileDescription="Move between home, launch setup, reward redemption, and customers. Billing and ROI settings sit under Account."
               desktopClassName="md:flex"
             />
             <form action={signOutAction}>
@@ -44,7 +45,9 @@ export function MerchantAppShell({
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">{children}</main>
+      <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
+        {children}
+      </main>
     </div>
   )
 }

@@ -84,7 +84,7 @@ A customer keeps their own phone and self-serves from the **permanent venue QR**
 Every loyalty-affecting action is an auditable, attributable, server-side event; card state is always recoverable from server state. Writes go through three layers — pick the right one:
 
 1. **RLS reads / constrained writes** — Supabase *server client* (`createSupabaseServerClient`, carries the user's cookies). Used for merchant/admin reads where RLS scopes the tenant.
-2. **Security-definer RPC writes** — high-risk business mutations run as Postgres functions that validate ownership, billing, rate limits, idempotency, and ledger invariants: `create_merchant_onboarding`, `join_customer_membership`, `issue_self_service_stamp`, `redeem_self_service_reward`. Self-service stamp/redeem actions **must** go through these RPCs, not direct table writes.
+2. **Security-definer RPC writes** — high-risk business mutations run as Postgres functions that validate ownership, billing, rate limits, idempotency, and ledger invariants: `create_merchant_onboarding`, `join_customer_membership`, `issue_self_service_stamp`, `create_redemption_token`, `consume_redemption_token`. Stamp and reward-redemption actions **must** go through these RPCs, not direct table writes.
 3. **Service-role server writes** — `createSupabaseServiceRoleClient` for trusted server-only code (product events, admin readbacks, QR resolution, Stripe webhook sync). **Never reaches a client bundle** — service-role modules start with `import "server-only"`.
 
 `lib/supabase/server.ts` is the only place these clients are constructed. In Vitest, `server-only` is aliased to a stub (`tests/helpers/server-only.ts`) and Supabase is mocked via `tests/helpers/supabase.ts`.

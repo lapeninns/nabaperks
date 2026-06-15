@@ -23,6 +23,7 @@ const tables = [
   "customer_memberships",
   "stamp_events",
   "reward_events",
+  "redemption_tokens",
   "fraud_flags",
   "rate_limit_buckets",
   "consent_records",
@@ -31,7 +32,7 @@ const tables = [
   "product_events",
 ]
 
-const serviceRoleOnlyTables = new Set()
+const serviceRoleOnlyTables = new Set(["redemption_tokens"])
 
 const requiredHelpers = [
   "is_internal_admin",
@@ -56,7 +57,10 @@ const requiredHelpers = [
   "geo_distance_meters",
   "record_self_service_geo_flag",
   "issue_self_service_stamp",
-  "redeem_self_service_reward",
+  "create_redemption_token",
+  "get_redemption_token_status",
+  "lookup_redemption_token_for_merchant",
+  "consume_redemption_token",
   "admin_adjust_membership_stamps",
   "admin_cancel_reward",
   "admin_set_qr_active",
@@ -318,11 +322,24 @@ for (const marker of [
   "function public.is_service_role_request()",
   "function public.join_customer_membership(\n  p_customer_id uuid",
   "function public.issue_self_service_stamp(\n  p_membership_id uuid,\n  p_customer_id uuid",
-  "function public.redeem_self_service_reward(\n  p_reward_event_id uuid,\n  p_customer_id uuid",
   "if not public.is_service_role_request() then",
 ]) {
   if (!migrations.includes(marker)) {
     failures.push(`missing customer phone identity migration marker: ${marker}`)
+  }
+}
+
+for (const marker of [
+  "create table if not exists public.redemption_tokens",
+  "redeemed_by_user_id uuid references auth.users",
+  "redemption_tokens_one_open_per_reward_idx",
+  "function public.create_redemption_token",
+  "function public.get_redemption_token_status",
+  "function public.lookup_redemption_token_for_merchant",
+  "function public.consume_redemption_token",
+]) {
+  if (!migrations.includes(marker)) {
+    failures.push(`missing merchant redemption token marker: ${marker}`)
   }
 }
 

@@ -125,18 +125,17 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     })
   })
 
-  it("redeems a customer-owned reward directly from the reward action RPC", async () => {
+  it("issues a customer-owned redemption QR token from the reward page path", async () => {
     vi.resetModules()
     const mock = createSupabaseMock({
       rpc: {
-        redeem_self_service_reward: [
+        create_redemption_token: [
           {
             data: [
               {
-                reward_event_id: "reward-1",
-                reward_name: "Slice of cake",
-                membership_id: "membership-1",
-                new_stamp_count: 0,
+                token_id: "token-1",
+                public_token: "RDM38E5DB51",
+                expires_at: "2026-06-15T08:10:00.000Z",
               },
             ],
             error: null,
@@ -147,26 +146,20 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     mockSupabase(mock)
     mockCurrentCustomer()
 
-    const { redeemSelfServiceReward } = await import("@/lib/customer/stamp")
-    const result = await redeemSelfServiceReward("reward-1", {
-      latitude: 51.524,
-      longitude: -0.071,
-    })
+    const { createRedemptionToken } =
+      await import("@/lib/customer/redemption-token")
+    const result = await createRedemptionToken("reward-1")
 
     expect(result).toEqual({
-      status: "redeemed",
-      rewardId: "reward-1",
-      rewardName: "Slice of cake",
-      membershipId: "membership-1",
-      newStampCount: 0,
+      tokenId: "token-1",
+      publicToken: "RDM38E5DB51",
+      expiresAt: "2026-06-15T08:10:00.000Z",
     })
     expect(mock.rpcCalls[0]).toEqual({
-      name: "redeem_self_service_reward",
+      name: "create_redemption_token",
       params: {
         p_reward_event_id: "reward-1",
         p_customer_id: "customer-1",
-        p_latitude: 51.524,
-        p_longitude: -0.071,
       },
     })
   })
@@ -326,36 +319,25 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     expect(issueSelfServiceStamp).not.toHaveBeenCalled()
   })
 
-  it("submits reward redemption from the customer reward page without station tokens", async () => {
+  it("polls reward redemption status from the customer reward page", async () => {
     vi.resetModules()
-    const redeemSelfServiceReward = vi.fn(async () => ({
-      status: "redeemed" as const,
-      rewardId: "reward-1",
+    const getRedemptionTokenStatus = vi.fn(async () => ({
+      status: "consumed" as const,
+      consumedAt: "2026-06-15T08:03:00.000Z",
       rewardName: "Slice of cake",
-      membershipId: "membership-1",
-      newStampCount: 0,
     }))
-    const revalidatePath = vi.fn()
-    vi.doMock("next/cache", () => ({ revalidatePath }))
-    vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
-    vi.doMock("@/lib/customer/stamp", () => ({ redeemSelfServiceReward }))
-    const { selfRedeemAction } = await import("@/app/reward/[rewardId]/actions")
+    vi.doMock("@/lib/customer/redemption-token", () => ({
+      getRedemptionTokenStatus,
+    }))
+    const { redemptionStatusAction } =
+      await import("@/app/reward/[rewardId]/actions")
 
-    await expect(
-      selfRedeemAction(
-        {},
-        form({
-          rewardId: "reward-1",
-          latitude: "51.524",
-          longitude: "-0.071",
-        })
-      )
-    ).rejects.toThrow("NEXT_REDIRECT:/reward/reward-1?redeemed=1")
-    expect(redeemSelfServiceReward).toHaveBeenCalledWith("reward-1", {
-      latitude: 51.524,
-      longitude: -0.071,
+    await expect(redemptionStatusAction("reward-1")).resolves.toEqual({
+      status: "consumed",
+      consumedAt: "2026-06-15T08:03:00.000Z",
+      rewardName: "Slice of cake",
     })
-    expect(revalidatePath).toHaveBeenCalledWith("/card/membership-1")
+    expect(getRedemptionTokenStatus).toHaveBeenCalledWith("reward-1")
   })
 
   it("routes existing QR members to the stamp confirmation page with QR context", () => {
@@ -381,18 +363,26 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     expect(stampPage).toContain("searchParams")
     expect(experience).not.toContain("createStampCode")
 
-    expect(experience).toContain("SelfServiceRedeemForm")
+    expect(experience).toContain("RewardQrPanel")
+    expect(experience).toContain("Show QR at counter")
+    expect(experience).not.toContain("SelfServiceRedeemForm")
     expect(experience).not.toContain("StampCodePanel")
     expect(experience).not.toContain("createRedeemCode")
   })
 
-  it("defines the self-service SQL contract and drops station/token tables after migration", () => {
+  it("defines the self-service stamp SQL contract and merchant redemption token contract", () => {
     const migrationPath =
       "supabase/migrations/20260613100000_self_service_stamping.sql"
+    const redemptionTokenMigrationPath =
+      "supabase/migrations/20260615090000_redemption_tokens.sql"
 
     expect(existsSync(migrationPath)).toBe(true)
+    expect(existsSync(redemptionTokenMigrationPath)).toBe(true)
 
     const migration = readProjectFile(migrationPath)
+    const redemptionTokenMigration = readProjectFile(
+      redemptionTokenMigrationPath
+    )
 
     for (const marker of [
       "alter table public.merchant_locations",
@@ -401,7 +391,6 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
       "geofence_radius_meters",
       "require_geofence",
       "function public.issue_self_service_stamp",
-      "function public.redeem_self_service_reward",
       "selfstamp:",
       "fraud_flags",
       "geo_flagged",
@@ -419,5 +408,16 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     expect(migration).toMatch(
       /drop function if exists public\.redeem_reward_token/i
     )
+
+    for (const marker of [
+      "create table if not exists public.redemption_tokens",
+      "function public.create_redemption_token",
+      "function public.get_redemption_token_status",
+      "function public.lookup_redemption_token_for_merchant",
+      "function public.consume_redemption_token",
+      "redeemed_by_user_id",
+    ]) {
+      expect(redemptionTokenMigration).toContain(marker)
+    }
   })
 })

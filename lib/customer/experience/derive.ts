@@ -8,6 +8,7 @@ import {
   type JoinCard,
   type JoinMerchant,
   type LocationRequirement,
+  type RedemptionTokenView,
   type RewardView,
 } from "./types"
 
@@ -57,7 +58,7 @@ export type StampContext =
       unavailableReason?: string
       membershipId: string
       merchantName: string
-      unlockedReward: RewardView & { redeemable: boolean } | null
+      unlockedReward: (RewardView & { redeemable: boolean }) | null
       alreadyStampedToday: boolean
       qrValid: boolean
       qrMissing: boolean
@@ -75,6 +76,7 @@ export type RewardContext =
       status: string
       redeemable: boolean
       redeemedProof: boolean
+      redemptionToken: RedemptionTokenView | null
       location: LocationRequirement
     }
 
@@ -178,21 +180,39 @@ function deriveStamp(context: StampContext): CustomerExperience {
   const kind = pickByPriority("stamp", candidates)
 
   switch (kind) {
-    case "reward_ready":
+    case "reward_ready": {
+      const unlockedReward = context.unlockedReward
+      if (!unlockedReward) {
+        return {
+          kind: "unavailable",
+          reason: "This reward is no longer available.",
+        }
+      }
+
       return {
         kind: "reward_ready",
-        reward: stripRedeemable(context.unlockedReward!),
+        reward: stripRedeemable(unlockedReward),
         merchantName: context.merchantName,
         location: context.location,
         fromCard: false,
       }
-    case "reward_waiting":
+    }
+    case "reward_waiting": {
+      const unlockedReward = context.unlockedReward
+      if (!unlockedReward) {
+        return {
+          kind: "unavailable",
+          reason: "This reward is no longer available.",
+        }
+      }
+
       return {
         kind: "reward_waiting",
-        reward: stripRedeemable(context.unlockedReward!),
+        reward: stripRedeemable(unlockedReward),
         merchantName: context.merchantName,
         fromCard: false,
       }
+    }
     case "card_stamped_today":
       return {
         kind: "card_stamped_today",
@@ -228,7 +248,9 @@ function deriveReward(context: RewardContext): CustomerExperience {
     candidates.push("redeemed_proof")
   }
   if (!context.unavailableReason) {
-    if (context.redeemable) candidates.push("reward_ready")
+    if (context.redeemable && context.redemptionToken) {
+      candidates.push("reward_qr_pending")
+    } else if (context.redeemable) candidates.push("reward_ready")
     else if (context.status === "unlocked") candidates.push("reward_waiting")
   }
 
@@ -247,6 +269,20 @@ function deriveReward(context: RewardContext): CustomerExperience {
         reward: context.reward,
         merchantName: context.merchantName,
         location: context.location,
+        fromCard: true,
+      }
+    case "reward_qr_pending":
+      if (!context.redemptionToken) {
+        return {
+          kind: "unavailable",
+          reason: "This reward is no longer available.",
+        }
+      }
+      return {
+        kind: "reward_qr_pending",
+        reward: context.reward,
+        merchantName: context.merchantName,
+        token: context.redemptionToken,
         fromCard: true,
       }
     case "reward_waiting":
@@ -285,16 +321,25 @@ function deriveJoin(context: JoinContext): CustomerExperience {
   const kind = pickByPriority("join", candidates)
 
   switch (kind) {
-    case "join_returning":
+    case "join_returning": {
+      const membership = context.membership
+      if (!membership) {
+        return {
+          kind: "unavailable",
+          reason: "This loyalty card is unavailable.",
+        }
+      }
+
       return {
         kind: "join_returning",
         merchant: context.merchant,
         card: context.card,
-        membershipId: context.membership!.id,
-        current: context.membership!.current,
+        membershipId: membership.id,
+        current: membership.current,
         total: context.card.stampsRequired,
         qrId: context.qrId,
       }
+    }
     case "join_terms":
       return {
         kind: "join_terms",
@@ -348,7 +393,9 @@ function accessProblemReason(access: AccessProblem): string {
   }
 }
 
-function stripRedeemable(reward: RewardView & { redeemable: boolean }): RewardView {
+function stripRedeemable(
+  reward: RewardView & { redeemable: boolean }
+): RewardView {
   return {
     rewardId: reward.rewardId,
     membershipId: reward.membershipId,

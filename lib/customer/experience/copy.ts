@@ -129,6 +129,12 @@ export function getCustomerExperienceViewModel(
         headline: exp.reward.rewardName,
         supportLine: `${exp.merchantName} - show this at the counter when ready.`,
       }
+    case "reward_qr_pending":
+      return {
+        eyebrow: "Reward QR",
+        headline: exp.reward.rewardName,
+        supportLine: `${exp.merchantName} - show this QR at the counter.`,
+      }
     case "redeemed_proof":
       return {
         eyebrow: "Reward redeemed",
@@ -153,7 +159,11 @@ export function getCustomerExperienceViewModel(
   }
 }
 
-function joinHref(slug: string, qrId: string | undefined, step: string): string {
+function joinHref(
+  slug: string,
+  qrId: string | undefined,
+  step: string
+): string {
   const params = new URLSearchParams()
   if (qrId) params.set("qr", qrId)
   params.set("step", step)
