@@ -1,14 +1,29 @@
+import {
+  CheckmarkCircle02Icon,
+  ClockIcon,
+  GiftIcon,
+  HelpCircleIcon,
+} from "@hugeicons/core-free-icons"
+
+import { Icon, type IconGlyph } from "@/components/brand"
 import { cn } from "@/lib/utils"
 
 export type RewardSealState = "sealed" | "waiting" | "ready" | "redeemed"
 export type RewardSealSize = "sm" | "md" | "lg"
 
-/** The seal's mark per state — ✓ is earned (redeemed) only, never a promise. */
-const GLYPH: Record<RewardSealState, string> = {
-  sealed: "?",
-  waiting: "✱",
-  ready: "✱",
-  redeemed: "✓",
+/** The seal's mark per state — the redeemed check is earned only, never a promise. */
+const GLYPH: Record<RewardSealState, IconGlyph> = {
+  sealed: HelpCircleIcon,
+  waiting: ClockIcon,
+  ready: GiftIcon,
+  redeemed: CheckmarkCircle02Icon,
+}
+
+/** Icon px per seal size, tuned to sit inside the disc. */
+const ICON_PX: Record<RewardSealSize, number> = {
+  sm: 12,
+  md: 26,
+  lg: 48,
 }
 
 const DEFAULT_LABEL: Record<RewardSealState, string> = {
@@ -73,9 +88,7 @@ export function RewardSeal({
         className
       )}
     >
-      <span aria-hidden="true" className="leading-none">
-        {GLYPH[state]}
-      </span>
+      <Icon icon={GLYPH[state]} size={ICON_PX[size]} strokeWidth={2.25} />
     </span>
   )
 }

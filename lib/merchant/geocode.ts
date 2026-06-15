@@ -1,5 +1,7 @@
 import "server-only"
 
+import { resilientFetch } from "@/lib/observability/resilience"
+
 export type GeocodeResult = {
   latitude: number
   longitude: number
@@ -28,7 +30,7 @@ export async function geocodeAddress(
   url.searchParams.set("addressdetails", "0")
 
   try {
-    const response = await fetch(url, {
+    const response = await resilientFetch("nominatim", url, {
       headers: {
         Accept: "application/json",
         "User-Agent": USER_AGENT,

@@ -1,4 +1,9 @@
 import Link from "next/link"
+import {
+  CheckmarkBadge04Icon,
+  ClockIcon,
+  GiftIcon,
+} from "@hugeicons/core-free-icons"
 
 import {
   Eyebrow,
@@ -156,9 +161,17 @@ export default function Page() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <MetricTile label="Setup target" value="<5 min" />
-            <MetricTile label="Stamp flow" value="<10 sec" />
-            <MetricTile label="Pilot offer" value="30 days free" />
+            <MetricTile label="Setup target" value="<5 min" icon={ClockIcon} />
+            <MetricTile
+              label="Stamp flow"
+              value="<10 sec"
+              icon={CheckmarkBadge04Icon}
+            />
+            <MetricTile
+              label="Pilot offer"
+              value="30 days free"
+              icon={GiftIcon}
+            />
           </div>
           <p className="font-mono text-[0.7rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
             £29/month after the pilot · one price, one venue

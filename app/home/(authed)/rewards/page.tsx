@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { GiftIcon } from "@hugeicons/core-free-icons"
 
 import {
   EmptyState,
@@ -34,6 +35,7 @@ export default async function HomeRewardsPage() {
         <EmptyState
           title="No rewards yet"
           description="Keep collecting stamps — when you complete a card, the reward lands here."
+          icon={GiftIcon}
         />
       ) : (
         <div className="grid gap-8">

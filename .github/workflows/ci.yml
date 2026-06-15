@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same ref so feedback stays fast.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm lint
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm typecheck
+
+  test:
+    name: Test + coverage
+    runs-on: ubuntu-latest
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Run unit tests with coverage
+        run: pnpm test:coverage
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage
+          retention-days: 14
+      - name: Upload test results (JUnit)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results
+          retention-days: 14
+
+  quality:
+    name: Code health
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Naming, debt, N+1, AGENTS.md, complexity, routes, dead/dup code
+        run: pnpm quality
+
+  security:
+    name: Security checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Static security verification
+        run: pnpm security:verify
+      - name: Static migration / schema checks
+        run: pnpm db:verify
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    # Placeholder values satisfy the env contract so the compile-time build runs
+    # in CI. They are NOT secrets — real builds use Vercel project env vars.
+    env:
+      NEXT_PUBLIC_APP_URL: https://example.test
+      NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
+      SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
+      STRIPE_SECRET_KEY: sk_test_ci
+      STRIPE_GROWTH_PRICE_ID: price_ci
+      STRIPE_WEBHOOK_SECRET: whsec_ci
+      RESEND_API_KEY: re_ci
+      TWILIO_ACCOUNT_SID: ACci
+      TWILIO_AUTH_TOKEN: ci-twilio-auth-token
+      TWILIO_VERIFY_SERVICE_SID: VAci
+      CUSTOMER_SESSION_SECRET: ci-session-secret-placeholder
+      CUSTOMER_PHONE_HMAC_SECRET: ci-hmac-secret-placeholder
+      CUSTOMER_PHONE_ENCRYPTION_KEY: ci-encryption-key-placeholder-32b
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Production build
+        run: pnpm build
+      - name: Validate env contract
+        run: pnpm env:check
+      - name: Client bundle-size budget
+        run: pnpm bundle:size
+      - name: Dependency footprint report
+        run: pnpm deps:analyze

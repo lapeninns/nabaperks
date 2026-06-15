@@ -1,3 +1,5 @@
+import { UserCircleIcon } from "@hugeicons/core-free-icons"
+
 import { EmptyState, PageTitle } from "@/components/brand"
 import { CustomerProfileAboutYou } from "@/components/customer/profile-about-you"
 import { CustomerProfileMarketing } from "@/components/customer/profile-marketing-consent"
@@ -23,6 +25,7 @@ export default async function HomeProfilePage() {
         <EmptyState
           title="No profile yet"
           description="Scan a venue's QR code to join your first loyalty card and set up your details."
+          icon={UserCircleIcon}
         />
       </div>
     )

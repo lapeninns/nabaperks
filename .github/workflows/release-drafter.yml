@@ -1,0 +1,25 @@
+name: Release drafter
+
+# Drafting runs only on the default branch. release-drafter reads its config
+# from the default branch, so a pull_request run fails until the config is
+# merged to main — and this workflow does no PR autolabeling that would need it.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  draft:
+    name: Draft release notes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: release-drafter/release-drafter@v6
+        with:
+          config-name: release-drafter.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

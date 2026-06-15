@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 
 import { cn } from "@/lib/utils"
+import { Icon, type IconGlyph } from "./icon"
 import {
   Card,
   CardContent,
@@ -116,17 +117,21 @@ export function MetricTile({
   label,
   value,
   helper,
+  icon,
   className,
 }: {
   label: ReactNode
   value: ReactNode
   helper?: ReactNode
+  /** Optional leading glyph from the @hugeicons set. */
+  icon?: IconGlyph
   className?: string
 }) {
   return (
     <Card className={cn("surface-card shadow-xs", className)} size="sm">
       <CardHeader>
-        <CardDescription className="text-xs font-bold uppercase">
+        <CardDescription className="flex items-center gap-1.5 text-xs font-bold uppercase">
+          {icon ? <Icon icon={icon} size={14} strokeWidth={2.25} /> : null}
           {label}
         </CardDescription>
         <CardTitle className="numeric-tabular text-2xl font-extrabold">
@@ -146,12 +151,15 @@ export function EmptyState({
   title,
   description,
   actions,
+  icon,
   className,
   headingLevel = 2,
 }: {
   title: ReactNode
   description?: ReactNode
   actions?: ReactNode
+  /** Optional leading glyph from the @hugeicons set, shown above the title. */
+  icon?: IconGlyph
   className?: string
   headingLevel?: 1 | 2 | 3
 }) {
@@ -163,6 +171,11 @@ export function EmptyState({
       )}
     >
       <EmptyHeader>
+        {icon ? (
+          <span className="mx-auto grid size-11 place-items-center rounded-full border-2 border-ink bg-secondary text-muted-foreground">
+            <Icon icon={icon} size={22} />
+          </span>
+        ) : null}
         <EmptyTitle role="heading" aria-level={headingLevel}>
           {title}
         </EmptyTitle>

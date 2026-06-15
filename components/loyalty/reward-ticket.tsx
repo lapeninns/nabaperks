@@ -1,5 +1,7 @@
 import type { ReactNode } from "react"
+import { CheckmarkCircle02Icon } from "@hugeicons/core-free-icons"
 
+import { Icon } from "@/components/brand"
 import { cn } from "@/lib/utils"
 
 import { RewardSeal } from "./reward-seal"
@@ -88,9 +90,10 @@ export function RewardTicket({
         {redeemed ? (
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 -rotate-[8deg] rounded-md border-[3px] border-reward bg-reward/10 px-3 py-1 font-mono text-base font-extrabold tracking-[0.08em] text-reward uppercase"
+            className="pointer-events-none absolute top-1/2 left-4 flex -translate-y-1/2 -rotate-[8deg] items-center gap-1.5 rounded-md border-[3px] border-reward bg-reward/10 px-3 py-1 font-mono text-base font-extrabold tracking-[0.08em] text-reward uppercase"
           >
-            ✓ Redeemed
+            <Icon icon={CheckmarkCircle02Icon} size={18} strokeWidth={2.5} />
+            Redeemed
           </span>
         ) : null}
       </div>

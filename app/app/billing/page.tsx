@@ -4,7 +4,9 @@ import {
   openCustomerPortalAction,
   startCheckoutAction,
 } from "@/app/app/billing/actions"
-import { PageTitle, ReceiptCard, SectionHeader } from "@/components/brand"
+import { ArrowRight01Icon, CreditCardIcon } from "@hugeicons/core-free-icons"
+
+import { Icon, PageTitle, ReceiptCard, SectionHeader } from "@/components/brand"
 import {
   formatMerchantBillingStatus,
   MerchantBillingAccessNote,
@@ -146,7 +148,10 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
 
           <div className="flex flex-wrap gap-2">
             <form action={startCheckoutAction}>
-              <Button type="submit">Start checkout</Button>
+              <Button type="submit">
+                <Icon icon={CreditCardIcon} size={16} />
+                Start checkout
+              </Button>
             </form>
             <form action={openCustomerPortalAction}>
               <Button
@@ -155,6 +160,7 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
                 disabled={!billing?.stripe_customer_id}
               >
                 Open Stripe portal
+                <Icon icon={ArrowRight01Icon} size={16} />
               </Button>
             </form>
           </div>

@@ -1,7 +1,9 @@
 import Link from "next/link"
 
+import { CreditCardIcon, Tick02Icon } from "@hugeicons/core-free-icons"
+
 import { startCheckoutAction } from "@/app/app/billing/actions"
-import { Eyebrow, PageTitle } from "@/components/brand"
+import { Eyebrow, Icon, PageTitle } from "@/components/brand"
 import { MarketingLayout } from "@/components/layout"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -114,13 +116,13 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
                   <Eyebrow className="mb-3">Everything included</Eyebrow>
                   <ul className="grid gap-3">
                     {planIncludes.map((item) => (
-                      <li key={item} className="flex items-baseline gap-3">
-                        <span
-                          aria-hidden="true"
-                          className="text-base font-extrabold text-primary"
-                        >
-                          ✱
-                        </span>
+                      <li key={item} className="flex items-center gap-3">
+                        <Icon
+                          icon={Tick02Icon}
+                          size={18}
+                          strokeWidth={2.5}
+                          className="text-primary"
+                        />
                         <span className="text-[0.95rem] leading-snug font-bold">
                           {item}
                         </span>
@@ -132,6 +134,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
               <CardFooter className="flex-col items-stretch gap-3 border-t-2 border-dashed">
                 <form action={startCheckoutAction}>
                   <Button type="submit" size="lg" className="w-full">
+                    <Icon icon={CreditCardIcon} size={18} />
                     Start checkout
                   </Button>
                 </form>

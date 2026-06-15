@@ -2,8 +2,9 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { after } from "next/server"
 import { Suspense } from "react"
+import { QrCode01Icon } from "@hugeicons/core-free-icons"
 
-import { PageTitle } from "@/components/brand"
+import { Icon, PageTitle } from "@/components/brand"
 import {
   MerchantCompactActivitySkeleton,
   MerchantCompactActivityStream,
@@ -46,7 +47,10 @@ export default async function MerchantAppPage() {
         description="A quick read on how your loyalty card is doing — members, repeat visits, and rewards."
         actions={
           <Button asChild>
-            <Link href="/app/launch">Launch QR</Link>
+            <Link href="/app/launch">
+              <Icon icon={QrCode01Icon} size={16} />
+              Launch QR
+            </Link>
           </Button>
         }
       />

@@ -1,6 +1,7 @@
 import Link from "next/link"
+import { CheckmarkCircle02Icon, CircleIcon } from "@hugeicons/core-free-icons"
 
-import { MonoTag, ReceiptCard, SectionHeader } from "@/components/brand"
+import { Icon, MonoTag, ReceiptCard, SectionHeader } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import type { LaunchReadiness } from "@/lib/merchant/launch-readiness"
 import { cn } from "@/lib/utils"
@@ -55,11 +56,17 @@ export function LaunchReadinessPanel({
               <span
                 aria-hidden="true"
                 className={cn(
-                  "grid size-7 place-items-center rounded-full border-2 border-ink font-extrabold",
-                  step.ready ? "bg-reward text-reward-foreground" : "bg-card"
+                  "grid size-7 place-items-center rounded-full border-2 border-ink",
+                  step.ready
+                    ? "bg-reward text-reward-foreground"
+                    : "bg-card text-muted-foreground"
                 )}
               >
-                {step.ready ? "✓" : "·"}
+                <Icon
+                  icon={step.ready ? CheckmarkCircle02Icon : CircleIcon}
+                  size={16}
+                  strokeWidth={2.5}
+                />
               </span>
             </span>
             <span className="grid gap-1">

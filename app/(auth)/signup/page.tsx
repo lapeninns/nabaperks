@@ -1,5 +1,13 @@
+import { Tick02Icon } from "@hugeicons/core-free-icons"
+
 import { signUpAction } from "@/app/(auth)/actions"
-import { Eyebrow, PageTitle, ReceiptCard, VenueMark } from "@/components/brand"
+import {
+  Eyebrow,
+  Icon,
+  PageTitle,
+  ReceiptCard,
+  VenueMark,
+} from "@/components/brand"
 import { AuthForm } from "@/components/auth/auth-form"
 import { MarketingLayout } from "@/components/layout"
 
@@ -31,11 +39,14 @@ export default function SignUpPage() {
               {trustPoints.map((point) => (
                 <li
                   key={point}
-                  className="flex items-baseline gap-3 text-sm font-bold"
+                  className="flex items-center gap-3 text-sm font-bold"
                 >
-                  <span aria-hidden="true" className="text-primary">
-                    ✱
-                  </span>
+                  <Icon
+                    icon={Tick02Icon}
+                    size={16}
+                    strokeWidth={2.5}
+                    className="text-primary"
+                  />
                   {point}
                 </li>
               ))}

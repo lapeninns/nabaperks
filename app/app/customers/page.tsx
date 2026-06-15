@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import { UserMultiple02Icon } from "@hugeicons/core-free-icons"
 
 import { EmptyState, MonoTag, PageTitle } from "@/components/brand"
 import { CustomerReadbackTable } from "@/components/merchant/customer-readback-table"
@@ -52,6 +53,7 @@ export default async function MerchantCustomersPage({
           <EmptyState
             title="No customers yet"
             description="Customers will appear here after they join from the venue QR."
+            icon={UserMultiple02Icon}
           />
         }
       />

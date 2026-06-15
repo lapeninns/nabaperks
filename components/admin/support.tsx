@@ -1,7 +1,17 @@
 import type { ReactNode } from "react"
 
 import { cn } from "@/lib/utils"
-import { Eyebrow, MonoTag } from "@/components/brand"
+import { Eyebrow, MonoTag, STATUS_ICON, type IconGlyph } from "@/components/brand"
+
+const STATUS_PILL_ICON: Record<
+  "neutral" | "good" | "warning" | "danger",
+  IconGlyph | undefined
+> = {
+  neutral: undefined,
+  good: STATUS_ICON.success,
+  warning: STATUS_ICON.warning,
+  danger: STATUS_ICON.error,
+}
 
 export const adminInputClasses =
   "min-h-11 rounded-xl border-2 border-ink bg-secondary/60 px-3 text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
@@ -79,6 +89,7 @@ export function StatusPill({
   return (
     <MonoTag
       tone="plain"
+      icon={STATUS_PILL_ICON[tone]}
       className={cn(
         "border-ink capitalize",
         tone === "good" && "bg-reward/15 text-reward-foreground",

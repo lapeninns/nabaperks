@@ -1,8 +1,14 @@
 import Link from "next/link"
+import {
+  CreditCardIcon,
+  Store01Icon,
+  UserMultiple02Icon,
+} from "@hugeicons/core-free-icons"
 
 import { AdminPanel, SourceLabel } from "@/components/admin/support"
-import { MetricTile, PageTitle, SectionHeader } from "@/components/brand"
+import { Icon, MetricTile, PageTitle, SectionHeader } from "@/components/brand"
 import { FunnelChart } from "@/components/data/funnel-chart"
+import { adminNavItems } from "@/components/layout/admin-shell"
 import { Button } from "@/components/ui/button"
 import { getPilotFunnelCounts } from "@/lib/analytics/funnels"
 import { getAdminOverview } from "@/lib/admin/data"
@@ -22,9 +28,21 @@ export default async function AdminHomePage() {
       />
 
       <section className="grid gap-3 sm:grid-cols-3">
-        <MetricTile label="Merchants" value={overview.merchants} />
-        <MetricTile label="Customers" value={overview.customers} />
-        <MetricTile label="Billing issues" value={overview.billingIssues} />
+        <MetricTile
+          label="Merchants"
+          value={overview.merchants}
+          icon={Store01Icon}
+        />
+        <MetricTile
+          label="Customers"
+          value={overview.customers}
+          icon={UserMultiple02Icon}
+        />
+        <MetricTile
+          label="Billing issues"
+          value={overview.billingIssues}
+          icon={CreditCardIcon}
+        />
       </section>
 
       <AdminPanel>
@@ -47,17 +65,12 @@ export default async function AdminHomePage() {
       </AdminPanel>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
-        {[
-          ["/admin/pilot", "Pilot"],
-          ["/admin/merchants", "Merchants"],
-          ["/admin/customers", "Customers"],
-          ["/admin/billing", "Billing"],
-          ["/admin/privacy", "Privacy"],
-          ["/admin/fraud", "Fraud"],
-          ["/admin/audit", "Audit"],
-        ].map(([href, label]) => (
-          <Button key={href} asChild variant="secondary">
-            <Link href={href}>{label}</Link>
+        {adminNavItems.map((item) => (
+          <Button key={item.href} asChild variant="secondary">
+            <Link href={item.href}>
+              {item.icon ? <Icon icon={item.icon} size={16} /> : null}
+              {item.label}
+            </Link>
           </Button>
         ))}
       </section>

@@ -8,8 +8,11 @@ import {
   first,
   formatAdminDate,
 } from "@/components/admin/support"
+import { CheckmarkCircle02Icon, Store01Icon } from "@hugeicons/core-free-icons"
+
 import {
   EmptyState,
+  Icon,
   MetricTile,
   PageTitle,
   SectionHeader,
@@ -175,6 +178,7 @@ export default async function AdminPilotPage() {
                       />
                     </AdminField>
                     <Button type="submit" className="self-end">
+                      <Icon icon={CheckmarkCircle02Icon} size={16} />
                       Save note
                     </Button>
                   </form>
@@ -184,6 +188,7 @@ export default async function AdminPilotPage() {
           </div>
         ) : (
           <EmptyState
+            icon={Store01Icon}
             title="No pilot merchants yet"
             className="rounded-none border-0 p-0 shadow-none"
           />

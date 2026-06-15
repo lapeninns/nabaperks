@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react"
 
-import { EmptyState, MonoTag } from "@/components/brand"
+import { ACTIVITY_CATEGORY_ICON, EmptyState, MonoTag } from "@/components/brand"
 import { MotionReveal } from "@/components/motion/motion-reveal"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -221,6 +221,7 @@ function CategoryBadge({
   return (
     <MonoTag
       tone={categoryBadgeTone(category)}
+      icon={ACTIVITY_CATEGORY_ICON[category]}
       className={cn(
         categoryBadgeTone(category) === "plain" && categoryBadgeClass(category)
       )}

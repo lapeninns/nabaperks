@@ -6,6 +6,8 @@ import {
   formatAdminDate,
   maskAdminContact,
 } from "@/components/admin/support"
+import { AlertDiamondIcon, Cancel01Icon } from "@hugeicons/core-free-icons"
+
 import { EmptyState, PageTitle, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { getAdminFraudSignals } from "@/lib/admin/data"
@@ -34,6 +36,7 @@ export default async function AdminFraudPage() {
           getRowKey={(flag) => flag.id}
           emptyState={
             <EmptyState
+              icon={AlertDiamondIcon}
               title="No fraud flags yet"
               className="rounded-none border-0 p-0 shadow-none"
             />
@@ -100,6 +103,7 @@ export default async function AdminFraudPage() {
           getRowKey={(event) => event.id}
           emptyState={
             <EmptyState
+              icon={Cancel01Icon}
               title="No redemption failures yet"
               className="rounded-none border-0 p-0 shadow-none"
             />

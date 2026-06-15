@@ -1,8 +1,9 @@
 import type { CSSProperties } from "react"
+import { CheckmarkBadge04Icon } from "@hugeicons/core-free-icons"
 
-import { cn } from "@/lib/utils"
-
+import { Icon } from "@/components/brand"
 import { deriveVenueInitials } from "@/components/brand/venue-mark"
+import { cn } from "@/lib/utils"
 
 import { RewardSeal, type RewardSealState } from "./reward-seal"
 
@@ -41,8 +42,8 @@ export function StampDot({
 }) {
   const emptyLabel =
     showEmptySlotNumber && slotNumber !== undefined ? String(slotNumber) : ""
-  const earnedMark =
-    venueInitials ?? (venueName ? deriveVenueInitials(venueName) : "✱")
+  const earnedInitials =
+    venueInitials ?? (venueName ? deriveVenueInitials(venueName) : "")
   // Normal discs print the full visit date; compact ones (≈36px) keep only the
   // day number so the monogram stays the legible hero. Screen readers still
   // hear the full date via aria-label.
@@ -73,15 +74,23 @@ export function StampDot({
       >
         {earned ? (
           <span className="relative z-[1] flex flex-col items-center justify-center gap-px px-1">
-            <span
-              aria-hidden="true"
-              className={cn(
-                "font-mono leading-none font-bold tracking-[0.02em] uppercase",
-                compact ? "text-[0.69rem]" : "text-[0.81rem]"
-              )}
-            >
-              {earnedMark}
-            </span>
+            {earnedInitials ? (
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "font-mono leading-none font-bold tracking-[0.02em] uppercase",
+                  compact ? "text-[0.69rem]" : "text-[0.81rem]"
+                )}
+              >
+                {earnedInitials}
+              </span>
+            ) : (
+              <Icon
+                icon={CheckmarkBadge04Icon}
+                size={compact ? 16 : 20}
+                strokeWidth={2.25}
+              />
+            )}
             {dateText ? (
               <span
                 aria-hidden="true"

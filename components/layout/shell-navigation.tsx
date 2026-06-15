@@ -3,6 +3,7 @@
 import Link, { useLinkStatus } from "next/link"
 import { usePathname } from "next/navigation"
 
+import { Icon, type IconGlyph } from "@/components/brand"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -18,6 +19,7 @@ import {
 export type ShellNavItem = {
   href: string
   label: string
+  icon?: IconGlyph
 }
 
 function isActivePath(pathname: string, href: string) {
@@ -174,9 +176,10 @@ function ShellNavLink({
         active
           ? "bg-ink text-paper"
           : "text-ink-soft hover:bg-accent hover:text-foreground",
-        mobile && "gap-2"
+        (mobile || item.icon) && "gap-2"
       )}
     >
+      {item.icon ? <Icon icon={item.icon} size={16} /> : null}
       <span className="truncate">{item.label}</span>
       <NavPendingIndicator />
     </Link>

@@ -6,16 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Treat this repo as a small **AI software company**. Work moves through two disciplines, and you may be wearing either hat:
 
-- **Product (curator of intent).** A change starts as a *Micro-Spec* — a small, declarative statement of the desired end state, blast radius, settled decisions, EARS requirements, and verification criteria. It says **what must be true when the work is done**, never line-by-line *how*. The authoring rules live in [Instructions_MircroSpecsCreation.md](Instructions_MircroSpecsCreation.md).
+- **Product (curator of intent).** A change starts as a _Micro-Spec_ — a small, declarative statement of the desired end state, blast radius, settled decisions, EARS requirements, and verification criteria. It says **what must be true when the work is done**, never line-by-line _how_. The authoring rules live in [Instructions_MircroSpecsCreation.md](Instructions_MircroSpecsCreation.md).
 - **Engineering (disciplined TDD).** A Micro-Spec is implemented test-first, Red → Green → Refactor. The workflow is in [Instructions_tdd.md](Instructions_tdd.md) and is **binding**.
 
 The binding cross-cutting rules live in [micro-specs/GLOBAL_CONTEXT.md](micro-specs/GLOBAL_CONTEXT.md) — they apply to all work, so do not restate them in code, rely on them. The [micro-specs/](micro-specs) folder is the intent backlog. For what the product actually does today, [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (the as-built map) and [docs/PROJECT_SPEC.md](docs/PROJECT_SPEC.md) are the source of truth. [AGENTS.md](AGENTS.md) is the stack/governance index; [DESIGN.md](DESIGN.md) is the design system.
 
 ### How to execute a slice
 
-1. **Narrow the work first.** The micro-specs folder is a backlog, not a fixed plan. Before implementing, inspect live code — much is already built. Reduce the task to *what is still missing*, and never widen a Micro-Spec's blast radius (the files/dirs it may touch) without approval.
+1. **Narrow the work first.** The micro-specs folder is a backlog, not a fixed plan. Before implementing, inspect live code — much is already built. Reduce the task to _what is still missing_, and never widen a Micro-Spec's blast radius (the files/dirs it may touch) without approval.
 2. **Red.** Write a failing test for each in-scope EARS requirement before production code. Tests live in `tests/micro-specs/` (Vitest, fast, mock the Supabase client) and `supabase/tests/` (SQL against real Postgres for invariants mocks cannot exercise — RLS, atomicity, tenant isolation).
-3. **Green.** Write the *smallest* code that passes. **Fake It** (hardcode) when the algorithm is unclear, then add a second test with a different input to **Triangulate** and force generalization. Use **Obvious Implementation** only for trivial, low-risk behavior. Don't optimize or generalize ahead of a test.
+3. **Green.** Write the _smallest_ code that passes. **Fake It** (hardcode) when the algorithm is unclear, then add a second test with a different input to **Triangulate** and force generalization. Use **Obvious Implementation** only for trivial, low-risk behavior. Don't optimize or generalize ahead of a test.
 4. **Refactor** only under green; preserve behavior. Remove duplication by the **Rule of Three** (wait for the third occurrence) — premature abstraction is a defect here.
 5. **Step size scales with uncertainty.** Baby steps (1–3 lines, run tests) for unclear problems; larger steps (4–7 lines) for obvious ones.
 
@@ -62,18 +62,37 @@ pnpm customer-flow:status # inspect/seed the local customer-flow demo state
 npx playwright test       # e2e/screenshot specs (tests/e2e; iPhone 14 chromium)
 ```
 
+Repository-quality and operability gates (also run in CI — see `.github/workflows/ci.yml`):
+
+```bash
+pnpm quality              # aggregate: naming, debt, N+1, AGENTS.md, complexity, routes, dead/dup code
+pnpm test:coverage        # Vitest with v8 coverage thresholds (lib/**)
+pnpm test:flaky           # repeat-run shuffled suite to surface flakiness
+pnpm lint:quality         # complexity / file-size / depth ratchet (warnings, pinned count)
+pnpm deadcode             # knip — unused files, exports, dependencies
+pnpm duplication          # jscpd — copy-paste detection (<3%)
+pnpm docs:routes          # regenerate docs/ROUTES.md route contract (--check in CI)
+pnpm bundle:size          # client bundle-size budget (after pnpm build)
+pnpm deps:analyze         # installed footprint per production dependency
+```
+
+Observability is documented in [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md): request/trace
+ids (`proxy.ts`), structured logging and error tracking (`lib/observability/*`,
+`instrumentation.ts`), the `/api/health` probe, and retry/circuit-breaker policy. The
+route contract is [docs/ROUTES.md](docs/ROUTES.md).
+
 ## Architecture
 
 Single Next.js 16 App Router app (React 19, TypeScript strict, Tailwind 4) that **maps the spec pack's monorepo domains onto one codebase**:
 
-| Spec domain                  | Here                                            |
-| ---------------------------- | ----------------------------------------------- |
-| customer-web                 | `app/q`, `app/m`, `app/card`, `app/reward`, `app/wallet` |
-| merchant-console             | `app/app/*`                                     |
-| admin-console                | `app/admin/*`                                   |
-| api / server actions         | `app/api`, route `actions.ts`                   |
-| domain / db                  | `lib/*`, `supabase/migrations`                  |
-| risk / compliance / analytics| `lib/security`, `lib/analytics`, `lib/notifications` |
+| Spec domain                   | Here                                                     |
+| ----------------------------- | -------------------------------------------------------- |
+| customer-web                  | `app/q`, `app/m`, `app/card`, `app/reward`, `app/wallet` |
+| merchant-console              | `app/app/*`                                              |
+| admin-console                 | `app/admin/*`                                            |
+| api / server actions          | `app/api`, route `actions.ts`                            |
+| domain / db                   | `lib/*`, `supabase/migrations`                           |
+| risk / compliance / analytics | `lib/security`, `lib/analytics`, `lib/notifications`     |
 
 ### The trust mechanic (the product's core)
 
@@ -83,7 +102,7 @@ A customer keeps their own phone and self-serves from the **permanent venue QR**
 
 Every loyalty-affecting action is an auditable, attributable, server-side event; card state is always recoverable from server state. Writes go through three layers — pick the right one:
 
-1. **RLS reads / constrained writes** — Supabase *server client* (`createSupabaseServerClient`, carries the user's cookies). Used for merchant/admin reads where RLS scopes the tenant.
+1. **RLS reads / constrained writes** — Supabase _server client_ (`createSupabaseServerClient`, carries the user's cookies). Used for merchant/admin reads where RLS scopes the tenant.
 2. **Security-definer RPC writes** — high-risk business mutations run as Postgres functions that validate ownership, billing, rate limits, idempotency, and ledger invariants: `create_merchant_onboarding`, `join_customer_membership`, `issue_self_service_stamp`, `redeem_self_service_reward`. Self-service stamp/redeem actions **must** go through these RPCs, not direct table writes.
 3. **Service-role server writes** — `createSupabaseServiceRoleClient` for trusted server-only code (product events, admin readbacks, QR resolution, Stripe webhook sync). **Never reaches a client bundle** — service-role modules start with `import "server-only"`.
 
@@ -96,6 +115,6 @@ Core tables: `merchants`, `merchant_locations`, `loyalty_cards`, `reward_pool_it
 ## Conventions that bite if missed
 
 - **Next.js 16 is not the version in your training data.** APIs, conventions, and file structure differ. Before writing routes, Server Actions, Route Handlers, auth, or data mutations, read the relevant guide under `node_modules/next/dist/docs/01-app/` and heed deprecation notices.
-- **Design system = Wet Ink (Honey & Ink v2).** Do **not** edit the shadcn primitives in `components/ui/` for visual styling. Theme through `app/globals.css` tokens (the `--w-*` palette) and the unlayered "Wet Ink layer" that targets `data-slot` attributes; wrap with `components/brand`, `components/customer`, etc. **No icon library** — the brand uses its own glyph vocabulary (`✱`, status dots), **no emoji, no exclamation marks**. Copy is plain, warm, British (en-GB): "Save my card", never "register"/"create an account". Full rules in `DESIGN.md`.
+- **Design system = Wet Ink (Honey & Ink v2).** Do **not** edit the shadcn primitives in `components/ui/` for visual styling. Theme through `app/globals.css` tokens (the `--w-*` palette) and the unlayered "Wet Ink layer" that targets `data-slot` attributes; wrap with `components/brand`, `components/customer`, etc. **Icons use the `@hugeicons` free set** via the brand `Icon` wrapper (`components/brand/icon.tsx`) — pull glyphs from `@hugeicons/core-free-icons` and reuse the `STATUS_ICON` / `ACTIVITY_CATEGORY_ICON` maps in `components/brand/icons.ts`. The `✱` disc stays the wordmark/logo signature only. **No emoji, no exclamation marks.** Copy is plain, warm, British (en-GB): "Save my card", never "register"/"create an account". Full rules in `DESIGN.md`.
 - **No legacy product naming.** `tests/micro-specs/no-legacy-naming.test.ts` greps active source for retired names — keep new code clean of them.
 - **Customer flows are mobile-first** (≈410px thumb column, ≥44px tap targets). The `app/dev/customer-flow/preview` harness re-implements join/card screens with mock forms (dev OTP `424242`) — mirror real-component UI fixes there too.

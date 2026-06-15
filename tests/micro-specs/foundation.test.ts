@@ -17,6 +17,24 @@ function readProjectFile(path: string) {
   return readFileSync(path, "utf8")
 }
 
+function sourceFiles(...prefixes: readonly string[]) {
+  const listing = spawnSync(
+    "git",
+    ["ls-files", "--cached", "--others", "--exclude-standard"],
+    { cwd: projectDir, encoding: "utf8" }
+  )
+  expect(listing.status, listing.stderr).toBe(0)
+
+  return listing.stdout
+    .split("\n")
+    .filter(
+      (path) =>
+        (path.endsWith(".ts") || path.endsWith(".tsx")) &&
+        prefixes.some((prefix) => path.startsWith(prefix))
+    )
+    .filter((path) => existsSync(path))
+}
+
 function readMerchantDashboardSurface() {
   return `${readProjectFile("app/app/page.tsx")}\n${readProjectFile(
     "components/merchant/dashboard-home-streams.tsx"
@@ -347,46 +365,35 @@ describe("00/01 foundation micro-specs", () => {
     expect(pilotChecklist).not.toContain("text-2xl font-extrabold")
   })
 
-  it("constrains motion and icon imports to approved packages", () => {
+  it("constrains motion imports and keeps @hugeicons as the icon set", () => {
     const packageFile = readProjectFile("package.json")
-    const sourceFiles = [
-      "app/layout.tsx",
-      "components/ui/button.tsx",
-      "components/ui/sheet.tsx",
-      "components/ui/sonner.tsx",
-    ]
-      .map((path) => readProjectFile(path))
-      .join("\n")
 
     expect(packageJson.dependencies.motion).toBeDefined()
+    // @hugeicons is the official icon library (see DESIGN.md "Iconography").
+    expect(packageJson.dependencies["@hugeicons/react"]).toBeDefined()
+    expect(packageJson.dependencies["@hugeicons/core-free-icons"]).toBeDefined()
     expect(packageFile).not.toContain('"framer-motion"')
-    expect(sourceFiles).not.toContain("@hugeicons/react/core-free-icons")
 
-    const bannedImportScan = spawnSync(
-      "rg",
-      [
-        "--glob",
-        "{app,components,lib}/**/*.{ts,tsx}",
-        "framer-motion|@hugeicons/react/core-free-icons|from ['\"]motion['\"]",
-      ],
-      { cwd: projectDir, encoding: "utf8" }
-    )
-    const motionImportScan = spawnSync(
-      "rg",
-      ["--glob", "{app,components,lib}/**/*.{ts,tsx}", "from ['\"]motion/"],
-      { cwd: projectDir, encoding: "utf8" }
-    )
+    // Scan source in-process so the guard does not depend on ripgrep being
+    // installed (CI runners do not ship it). Mirrors no-legacy-naming.test.ts.
+    const sourcePaths = sourceFiles("app/", "components/", "lib/")
+    const bannedImportPattern = /framer-motion|from ['"]motion['"]/
+    const motionSubpathPattern = /from ['"]motion\/([\w./-]+)['"]/g
 
+    const bannedImports = sourcePaths.filter((path) =>
+      bannedImportPattern.test(readProjectFile(path))
+    )
+    expect(bannedImports, bannedImports.join("\n")).toHaveLength(0)
+
+    const disallowedMotionSubpaths = sourcePaths.flatMap((path) =>
+      [...readProjectFile(path).matchAll(motionSubpathPattern)]
+        .filter((match) => match[1] !== "react")
+        .map((match) => `${path}: motion/${match[1]}`)
+    )
     expect(
-      bannedImportScan.status,
-      bannedImportScan.stdout + bannedImportScan.stderr
-    ).toBe(1)
-    if (motionImportScan.status === 0) {
-      expect(motionImportScan.stdout).toMatch(/motion\/react/)
-      expect(motionImportScan.stdout).not.toMatch(/motion\/(?!react)/)
-    } else {
-      expect(motionImportScan.status).toBe(1)
-    }
+      disallowedMotionSubpaths,
+      disallowedMotionSubpaths.join("\n")
+    ).toHaveLength(0)
   })
 
   it("keeps root locale, typography, theme provider, and non-blocking toaster wired", () => {

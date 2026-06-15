@@ -1,19 +1,28 @@
 import type { ReactNode } from "react"
+import {
+  Activity03Icon,
+  CreditCardIcon,
+  Home01Icon,
+  Logout01Icon,
+  Rocket01Icon,
+  Settings01Icon,
+  UserMultiple02Icon,
+} from "@hugeicons/core-free-icons"
 
-import { Logo } from "@/components/brand"
+import { Icon, Logo } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import { ShellNavigation, type ShellNavItem } from "./shell-navigation"
 
 const merchantNavItems: ShellNavItem[] = [
-  { href: "/app", label: "Home" },
-  { href: "/app/launch", label: "Launch" },
-  { href: "/app/customers", label: "Customers" },
-  { href: "/app/activity", label: "Activity" },
+  { href: "/app", label: "Home", icon: Home01Icon },
+  { href: "/app/launch", label: "Launch", icon: Rocket01Icon },
+  { href: "/app/customers", label: "Customers", icon: UserMultiple02Icon },
+  { href: "/app/activity", label: "Activity", icon: Activity03Icon },
 ]
 
 const merchantAccountItems: ShellNavItem[] = [
-  { href: "/app/billing", label: "Billing" },
-  { href: "/app/settings", label: "Settings" },
+  { href: "/app/billing", label: "Billing", icon: CreditCardIcon },
+  { href: "/app/settings", label: "Settings", icon: Settings01Icon },
 ]
 
 export function MerchantAppShell({
@@ -39,6 +48,7 @@ export function MerchantAppShell({
             />
             <form action={signOutAction}>
               <Button type="submit" variant="secondary" size="sm">
+                <Icon icon={Logout01Icon} size={16} />
                 Log out
               </Button>
             </form>

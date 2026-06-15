@@ -1,6 +1,7 @@
 "use client"
 
 import { useActionState, useState } from "react"
+import { GiftIcon } from "@hugeicons/core-free-icons"
 
 import {
   deleteRewardPoolItemAction,
@@ -164,6 +165,7 @@ export function LoyaltyCardForm({
               )}
               {rewardPoolItems.length === 0 ? (
                 <EmptyState
+                  icon={GiftIcon}
                   title="No rewards in the pool yet"
                   description="Create the first active mystery reward so the QR launch checklist can pass."
                   headingLevel={3}

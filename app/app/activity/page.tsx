@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { Suspense } from "react"
+import { Activity03Icon } from "@hugeicons/core-free-icons"
 
 import { EmptyState, PageTitle } from "@/components/brand"
 import { ActivityDetailFeed } from "@/components/merchant/activity-detail-feed"
@@ -77,6 +78,7 @@ async function ActivityFeedStream({
         <EmptyState
           title="No activity yet"
           description="Activity will appear after customers join, add stamps, redeem rewards, or download QR assets."
+          icon={Activity03Icon}
         />
       }
     />
