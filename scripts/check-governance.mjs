@@ -80,6 +80,8 @@ const REQUIRED_CHECKS = [
   "traceability evidence map",
   "handoff workflow",
   "package and CI wiring",
+  "PR blast-radius policy",
+  "CODEOWNERS governance ownership",
 ]
 
 const REQUIRED_HANDOFF_STAGES = [
@@ -157,6 +159,28 @@ const MINIMUM_GATES_BY_RISK = {
 
 const SOFT_FAIL_PATTERN = /\|\|\s*true|continue-on-error\s*:\s*true/i
 const NON_PNPM_INSTALL_PATTERN = /\b(?:npm|yarn|bun)\s+(?:install|add|ci)\b/
+const REQUIRED_CI_GATES = [
+  "pnpm lint",
+  "pnpm typecheck",
+  "pnpm test:coverage",
+  "pnpm quality",
+  "pnpm security:verify",
+  "pnpm db:verify",
+  "pnpm build",
+  "pnpm bundle:size",
+  "pnpm deps:analyze",
+]
+const REQUIRED_CODEOWNER_PATHS = [
+  "/.github/",
+  "/AGENTS.md",
+  "/CLAUDE.md",
+  "/Instructions_MircroSpecsCreation.md",
+  "/Instructions_tdd.md",
+  "/SKILL.md",
+  "/docs/PROJECT_SPEC.md",
+  "/docs/ARCHITECTURE.md",
+  "/micro-specs/",
+]
 const MICRO_SPEC_EXCLUDED_PATHS = new Set([
   "micro-specs/README.md",
   "micro-specs/GLOBAL_CONTEXT.md",
@@ -209,9 +233,11 @@ function checkRequiredFiles(root, diagnostics) {
     "package.json",
     ".github/workflows/ci.yml",
     ".github/actions/setup/action.yml",
+    ".github/CODEOWNERS",
     ".github/pull_request_template.md",
     ".github/ISSUE_TEMPLATE/feature_request.yml",
     ".github/ISSUE_TEMPLATE/bug_report.yml",
+    "scripts/check-blast-radius.mjs",
   ]) {
     if (!existsSync(resolve(root, path))) {
       diagnostics.push({
@@ -344,6 +370,7 @@ function checkGovernanceDocs(root, diagnostics) {
   }
 
   checkIntakeArtifacts(root, diagnostics)
+  checkCodeowners(root, diagnostics)
 }
 
 function checkIntakeArtifacts(root, diagnostics) {
@@ -372,13 +399,17 @@ function checkIntakeArtifacts(root, diagnostics) {
   for (const required of [
     "Spec ID",
     "Requirement IDs",
+    "Requirement/test mapping",
     "Blast radius",
+    "Declared blast radius",
+    "Approved blast-radius exceptions",
     "Red → Green → Refactor",
     "As-built reconciliation",
     "Reviewer decision",
     "Release reconciliation",
     "Risks",
     "Follow-ups",
+    "Verification evidence",
     "browser evidence",
   ]) {
     requireText(
@@ -428,6 +459,23 @@ function checkPackageAndCi(root, diagnostics) {
           path: packagePath,
           id: "governance",
           message: "governance script must not use soft-fail wrappers.",
+        })
+      }
+      const blastRadius = pkg.scripts?.["governance:blast-radius"]
+      if (blastRadius !== "node scripts/check-blast-radius.mjs") {
+        diagnostics.push({
+          path: packagePath,
+          id: "governance:blast-radius",
+          message:
+            "governance:blast-radius script must be node scripts/check-blast-radius.mjs.",
+        })
+      }
+      if (SOFT_FAIL_PATTERN.test(blastRadius ?? "")) {
+        diagnostics.push({
+          path: packagePath,
+          id: "governance:blast-radius",
+          message:
+            "governance:blast-radius script must not use soft-fail wrappers.",
         })
       }
       const quality = pkg.scripts?.quality ?? ""
@@ -489,13 +537,65 @@ function checkPackageAndCi(root, diagnostics) {
   }
 
   const ci = readText(root, ".github/workflows/ci.yml", diagnostics)
-  if (ci && !ci.includes("pnpm quality") && !ci.includes("pnpm governance")) {
-    diagnostics.push({
-      path: ".github/workflows/ci.yml",
-      id: "governance",
-      message:
-        "CI must run pnpm quality or pnpm governance as a blocking gate.",
-    })
+  if (ci) {
+    if (!/\bon:\s*[\s\S]*push:/m.test(ci)) {
+      diagnostics.push({
+        path: ".github/workflows/ci.yml",
+        id: "push",
+        message: "CI must run on push.",
+      })
+    }
+    if (!/\bon:\s*[\s\S]*pull_request:/m.test(ci)) {
+      diagnostics.push({
+        path: ".github/workflows/ci.yml",
+        id: "pull_request",
+        message: "CI must run on pull_request.",
+      })
+    }
+    if (
+      !/^\s{2}governance:\s*$/m.test(ci) ||
+      !/run:\s*pnpm governance\b/.test(ci)
+    ) {
+      diagnostics.push({
+        path: ".github/workflows/ci.yml",
+        id: "governance",
+        message:
+          "CI must define a dedicated governance job that runs pnpm governance.",
+      })
+    }
+    if (!/run:\s*pnpm governance:blast-radius\b/.test(ci)) {
+      diagnostics.push({
+        path: ".github/workflows/ci.yml",
+        id: "blast-radius",
+        message:
+          "CI governance job must run pnpm governance:blast-radius for PR diff checks.",
+      })
+    }
+    for (const gate of REQUIRED_CI_GATES) {
+      if (!ci.includes(gate)) {
+        diagnostics.push({
+          path: ".github/workflows/ci.yml",
+          id: "existing-gates",
+          message: `CI must preserve existing gate ${gate}.`,
+        })
+      }
+    }
+  }
+}
+
+function checkCodeowners(root, diagnostics) {
+  const path = ".github/CODEOWNERS"
+  const text = readText(root, path, diagnostics)
+  if (!text) return
+
+  for (const ownerPath of REQUIRED_CODEOWNER_PATHS) {
+    if (!new RegExp(`^${escapeRegex(ownerPath)}\\s+\\S+`, "m").test(text)) {
+      diagnostics.push({
+        path,
+        id: ownerPath.replace(/^\//, ""),
+        message: `CODEOWNERS must explicitly cover governance-critical artifact ${ownerPath}.`,
+      })
+    }
   }
 }
 
@@ -1548,6 +1648,10 @@ function isSorted(values) {
   return values.every(
     (value, index) => index === 0 || values[index - 1] <= value
   )
+}
+
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
 
 function sortDiagnostics(diagnostics) {

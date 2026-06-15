@@ -4,11 +4,11 @@ labels: ["type: feature", "needs triage"]
 body:
   - type: markdown
     attributes:
-      value: Frame the request as a Micro-Spec outcome ("what must be true"), not the implementation.
+      value: Frame the request as a Micro-Spec outcome ("what must be true"), not the implementation. Do not include real customer phone numbers or other personal data.
   - type: dropdown
     id: risk-class
     attributes:
-      label: Governance risk class
+      label: Risk / surface
       description: Pick the closest risk class from micro-specs/README.md.
       options:
         - docs-tooling
@@ -25,7 +25,7 @@ body:
   - type: textarea
     id: outcome
     attributes:
-      label: Desired end state
+      label: Desired outcome
       description: What must be true when this is done?
     validations:
       required: true
@@ -39,7 +39,7 @@ body:
   - type: textarea
     id: requirements
     attributes:
-      label: EARS-style requirements
+      label: Requirement candidates
       description: e.g. "When a customer scans the venue QR, the system shall …"
       value: |
         - When <trigger>, the system shall <response>.
@@ -49,14 +49,14 @@ body:
   - type: input
     id: blast-radius
     attributes:
-      label: Blast radius / scope
-      description: Which files / directories should this touch?
+      label: Blast radius
+      description: Which files / directories should this touch, and what is out of scope?
     validations:
       required: false
   - type: textarea
     id: verification
     attributes:
-      label: Verification criteria
+      label: Verification expectations
       description: How will we know it works?
     validations:
       required: false

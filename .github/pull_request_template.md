@@ -11,13 +11,20 @@ Closes #
 - Spec ID:
 - Risk class:
 - Requirement IDs:
-- Blast radius:
+- Requirement/test mapping:
+- Declared blast radius:
+- Actual files touched:
+- Approved blast-radius exceptions: none / list file path plus approving spec or reviewer
 - Micro-Spec outcome and scope:
 - Browser evidence: required / not required because this is governance-only or non-runtime work
 
 ## How it was built (TDD)
 
 <!-- Red → Green → Refactor. Which EARS requirements got a failing test first? -->
+
+- Red evidence:
+- Green evidence:
+- Refactor evidence:
 
 ## As-built reconciliation
 
@@ -28,6 +35,7 @@ Closes #
 
 ## Verification
 
+- Verification evidence:
 - [ ] `pnpm lint`
 - [ ] `pnpm typecheck`
 - [ ] `pnpm test` (and `pnpm test:coverage` if touching `lib/`)

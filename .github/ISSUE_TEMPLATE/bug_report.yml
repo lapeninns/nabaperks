@@ -8,7 +8,7 @@ body:
   - type: dropdown
     id: risk-class
     attributes:
-      label: Governance risk class
+      label: Risk / surface
       description: Pick the closest class so required evidence is clear.
       options:
         - docs-tooling
@@ -39,14 +39,14 @@ body:
   - type: textarea
     id: what-happened
     attributes:
-      label: What happened / outcome needed
+      label: Desired outcome
       description: A clear description of the bug and what you expected instead.
     validations:
       required: true
   - type: textarea
     id: steps
     attributes:
-      label: Steps to reproduce and scope
+      label: Steps to reproduce and blast radius
       value: |
         1.
         2.
@@ -61,9 +61,18 @@ body:
     validations:
       required: false
   - type: textarea
+    id: requirements
+    attributes:
+      label: Requirement candidates
+      description: Candidate EARS requirements triage can turn into a Micro-Spec.
+      value: |
+        - When <trigger>, the system shall <response>.
+    validations:
+      required: false
+  - type: textarea
     id: evidence
     attributes:
-      label: Logs, request id, screenshots, or verification evidence
+      label: Logs, request id, screenshots, or verification expectations
       description: Include the `x-request-id` response header if you have it — it correlates server logs.
     validations:
       required: false

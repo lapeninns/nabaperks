@@ -10,8 +10,117 @@ describe("AI governance foundation", () => {
 
     expect(pkg.packageManager).toBe("pnpm@10.28.0")
     expect(pkg.scripts.governance).toBe("node scripts/check-governance.mjs")
+    expect(pkg.scripts["governance:blast-radius"]).toBe(
+      "node scripts/check-blast-radius.mjs"
+    )
     expect(pkg.scripts.quality).toContain("pnpm governance")
     expect(pkg.scripts.quality).not.toContain("|| true")
+  })
+
+  it("requires strict CI governance, blast-radius policy, and preserved gates", () => {
+    const ci = readFileSync(".github/workflows/ci.yml", "utf8")
+
+    expect(ci).toMatch(/\bon:\s*[\s\S]*push:/)
+    expect(ci).toMatch(/\bon:\s*[\s\S]*pull_request:/)
+    expect(ci).toMatch(/governance:\s*\n[\s\S]*name:\s*Governance/)
+    expect(ci).toMatch(/run:\s*pnpm governance\b/)
+    expect(ci).toMatch(/run:\s*pnpm governance:blast-radius\b/)
+    expect(ci).not.toMatch(/continue-on-error\s*:\s*true|\|\|\s*true/)
+
+    for (const requiredGate of [
+      "pnpm lint",
+      "pnpm typecheck",
+      "pnpm test:coverage",
+      "pnpm quality",
+      "pnpm security:verify",
+      "pnpm db:verify",
+      "pnpm build",
+      "pnpm bundle:size",
+      "pnpm deps:analyze",
+    ]) {
+      expect(ci).toContain(requiredGate)
+    }
+  })
+
+  it("checks PR changed files against declared blast radius and approved exceptions", async () => {
+    const { checkBlastRadius } =
+      await import("../../scripts/check-blast-radius.mjs")
+
+    expect(
+      checkBlastRadius({
+        body: [
+          "- Declared blast radius: scripts/**, .github/**",
+          "- Approved blast-radius exceptions: docs/ARCHITECTURE.md",
+        ].join("\n"),
+        changedFiles: [
+          ".github/workflows/ci.yml",
+          "docs/ARCHITECTURE.md",
+          "scripts/check-governance.mjs",
+        ],
+        eventName: "pull_request",
+      }).diagnostics
+    ).toEqual([])
+
+    expect(
+      checkBlastRadius({
+        body: "- Declared blast radius: scripts/**",
+        changedFiles: ["app/page.tsx", "scripts/check-governance.mjs"],
+        eventName: "pull_request",
+      }).diagnostics
+    ).toEqual([
+      "app/page.tsx is outside the declared blast radius and has no approved exception.",
+    ])
+  })
+
+  it("requires PR, issue, and CODEOWNERS governance evidence surfaces", () => {
+    const prTemplate = readFileSync(".github/pull_request_template.md", "utf8")
+    const featureTemplate = readFileSync(
+      ".github/ISSUE_TEMPLATE/feature_request.yml",
+      "utf8"
+    )
+    const bugTemplate = readFileSync(
+      ".github/ISSUE_TEMPLATE/bug_report.yml",
+      "utf8"
+    )
+    const codeowners = readFileSync(".github/CODEOWNERS", "utf8")
+
+    for (const requiredPrToken of [
+      "Spec ID",
+      "Risk class",
+      "Requirement/test mapping",
+      "Blast-radius confirmation",
+      "Declared blast radius",
+      "Approved blast-radius exceptions",
+      "Red → Green → Refactor",
+      "Verification evidence",
+    ]) {
+      expect(prTemplate).toContain(requiredPrToken)
+    }
+
+    for (const requiredIssueToken of [
+      "Desired outcome",
+      "Risk / surface",
+      "Blast radius",
+      "Requirement candidates",
+      "Verification expectations",
+      "Do not include real customer phone numbers or other personal data",
+    ]) {
+      expect(`${featureTemplate}\n${bugTemplate}`).toContain(requiredIssueToken)
+    }
+
+    for (const requiredOwnerPath of [
+      "/.github/",
+      "/AGENTS.md",
+      "/CLAUDE.md",
+      "/Instructions_MircroSpecsCreation.md",
+      "/Instructions_tdd.md",
+      "/SKILL.md",
+      "/docs/PROJECT_SPEC.md",
+      "/docs/ARCHITECTURE.md",
+      "/micro-specs/",
+    ]) {
+      expect(codeowners).toContain(requiredOwnerPath)
+    }
   })
 
   it("validates lifecycle, risk, gate, and traceability policy from committed artifacts", async () => {
@@ -138,6 +247,7 @@ describe("AI governance foundation", () => {
         packageManager: "pnpm@10.28.0",
         scripts: {
           governance: "node scripts/check-governance.mjs || true",
+          "governance:blast-radius": "node scripts/check-blast-radius.mjs",
           quality: "pnpm governance || true",
         },
       }),
@@ -172,6 +282,51 @@ describe("AI governance foundation", () => {
     )
   })
 
+  it("rejects missing CI governance jobs, blast-radius checks, and governance CODEOWNERS", async () => {
+    const { validateGovernance } =
+      await import("../../scripts/check-governance.mjs")
+    const fixture = makeGovernanceFixture({
+      packageJson: JSON.stringify({
+        packageManager: "pnpm@10.28.0",
+        scripts: {
+          governance: "node scripts/check-governance.mjs",
+          quality: "pnpm governance && pnpm lint",
+        },
+      }),
+      ciWorkflow:
+        "on:\n  push:\n  pull_request:\njobs:\n  quality:\n    steps:\n      - run: pnpm quality\n",
+      codeowners: "* @lapeninns\n/.github/ @lapeninns\n",
+    })
+
+    expect(validateGovernance({ rootDir: fixture }).diagnostics).toEqual(
+      expect.arrayContaining([
+        {
+          path: "package.json",
+          id: "governance:blast-radius",
+          message:
+            "governance:blast-radius script must be node scripts/check-blast-radius.mjs.",
+        },
+        {
+          path: ".github/workflows/ci.yml",
+          id: "governance",
+          message:
+            "CI must define a dedicated governance job that runs pnpm governance.",
+        },
+        {
+          path: ".github/workflows/ci.yml",
+          id: "blast-radius",
+          message:
+            "CI governance job must run pnpm governance:blast-radius for PR diff checks.",
+        },
+        {
+          path: ".github/CODEOWNERS",
+          id: "Instructions_tdd.md",
+          message:
+            "CODEOWNERS must explicitly cover governance-critical artifact /Instructions_tdd.md.",
+        },
+      ])
+    )
+  })
   it("rejects unnormalized Micro-Spec markdown metadata and EARS requirements", async () => {
     const { validateGovernance } =
       await import("../../scripts/check-governance.mjs")
@@ -503,6 +658,7 @@ function makeGovernanceFixture(
   overrides: {
     packageJson?: string
     ciWorkflow?: string
+    codeowners?: string
     traceabilityJson?: string | object
     traceabilityMarkdown?: string
   } = {}
@@ -529,6 +685,7 @@ function makeGovernanceFixture(
         packageManager: "pnpm@10.28.0",
         scripts: {
           governance: "node scripts/check-governance.mjs",
+          "governance:blast-radius": "node scripts/check-blast-radius.mjs",
           quality: "pnpm governance && pnpm lint",
         },
       })
@@ -536,15 +693,65 @@ function makeGovernanceFixture(
   writeFileSync(
     join(root, ".github/workflows/ci.yml"),
     overrides.ciWorkflow ??
-      "steps:\n  - run: pnpm install --frozen-lockfile\n  - run: pnpm governance\n"
+      [
+        "on:",
+        "  push:",
+        "  pull_request:",
+        "jobs:",
+        "  governance:",
+        "    name: Governance",
+        "    steps:",
+        "      - run: pnpm install --frozen-lockfile",
+        "      - run: pnpm governance",
+        "      - run: pnpm governance:blast-radius",
+        "  lint:",
+        "    steps:",
+        "      - run: pnpm lint",
+        "  typecheck:",
+        "    steps:",
+        "      - run: pnpm typecheck",
+        "  test:",
+        "    steps:",
+        "      - run: pnpm test:coverage",
+        "  quality:",
+        "    steps:",
+        "      - run: pnpm quality",
+        "  security:",
+        "    steps:",
+        "      - run: pnpm security:verify",
+        "      - run: pnpm db:verify",
+        "  build:",
+        "    steps:",
+        "      - run: pnpm build",
+        "      - run: pnpm bundle:size",
+        "      - run: pnpm deps:analyze",
+        "",
+      ].join("\n")
   )
   writeFileSync(
     join(root, ".github/actions/setup/action.yml"),
     "steps:\n  - run: pnpm install --frozen-lockfile\n"
   )
   writeFileSync(
+    join(root, ".github/CODEOWNERS"),
+    overrides.codeowners ??
+      [
+        "* @lapeninns",
+        "/.github/ @lapeninns",
+        "/AGENTS.md @lapeninns",
+        "/CLAUDE.md @lapeninns",
+        "/Instructions_MircroSpecsCreation.md @lapeninns",
+        "/Instructions_tdd.md @lapeninns",
+        "/SKILL.md @lapeninns",
+        "/docs/PROJECT_SPEC.md @lapeninns",
+        "/docs/ARCHITECTURE.md @lapeninns",
+        "/micro-specs/ @lapeninns",
+        "",
+      ].join("\n")
+  )
+  writeFileSync(
     join(root, ".github/pull_request_template.md"),
-    "Micro-Spec outcome and scope\nSpec ID\nRisk class\nRequirement IDs\nBlast radius\nRed → Green → Refactor\nAs-built reconciliation\nReviewer decision\nRelease reconciliation\nRisks\nFollow-ups\nBrowser evidence\nVerification\n"
+    "Micro-Spec outcome and scope\nSpec ID\nRisk class\nRequirement IDs\nRequirement/test mapping\nBlast radius\nDeclared blast radius\nApproved blast-radius exceptions\nRed → Green → Refactor\nAs-built reconciliation\nReviewer decision\nRelease reconciliation\nRisks\nFollow-ups\nBrowser evidence\nVerification\nVerification evidence\n"
   )
   writeFileSync(
     join(root, ".github/ISSUE_TEMPLATE/feature_request.yml"),
@@ -674,6 +881,7 @@ function makeGovernanceFixture(
       "# Traceability\n\n## GOV-001\n\nStatus implemented\nRisk docs-tooling\nChange current\ntests/micro-specs/ai-governance.test.ts\npnpm governance\npnpm lint\npnpm typecheck\npnpm test\ntests/micro-specs/**\nREQ-001\nunit\n"
   )
   writeFileSync(join(root, "tests/micro-specs/ai-governance.test.ts"), "")
+  writeFileSync(join(root, "scripts/check-blast-radius.mjs"), "")
   writeFileSync(
     join(root, "tests/fixtures/governance/handoff-workflows.json"),
     ""

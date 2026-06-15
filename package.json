@@ -30,6 +30,7 @@
     "customer-flow:capture-mocks": "playwright test tests/e2e/customer-flow-harness-screenshots.spec.ts",
     "security:verify": "node scripts/verify-security.mjs",
     "governance": "node scripts/check-governance.mjs",
+    "governance:blast-radius": "node scripts/check-blast-radius.mjs",
     "start": "next start",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
