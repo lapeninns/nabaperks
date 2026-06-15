@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs"
 import { relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -50,6 +50,7 @@ const REQUIRED_METADATA_FIELDS = [
   "risk_class",
   "owner",
   "last_reviewed",
+  "implementation_surfaces",
   "allowed_blast_radius",
   "related_docs",
   "related_tests",
@@ -72,6 +73,7 @@ const REQUIRED_CHECKS = [
   "source hierarchy",
   "lifecycle vocabulary",
   "risk-to-gate matrix",
+  "Micro-Spec corpus metadata",
   "traceability JSON",
   "traceability Markdown",
   "handoff workflow",
@@ -152,6 +154,15 @@ const MINIMUM_GATES_BY_RISK = {
 
 const SOFT_FAIL_PATTERN = /\|\|\s*true|continue-on-error\s*:\s*true/i
 const NON_PNPM_INSTALL_PATTERN = /\b(?:npm|yarn|bun)\s+(?:install|add|ci)\b/
+const MICRO_SPEC_EXCLUDED_PATHS = new Set([
+  "micro-specs/README.md",
+  "micro-specs/GLOBAL_CONTEXT.md",
+  "micro-specs/TRACEABILITY.md",
+])
+const EARS_REQUIREMENT_PATTERN =
+  /(?:^|\n)- \*\*([A-Z0-9]+(?:-[A-Z0-9]+)*-\d{3})\*\* (?:WHEN|WHILE|WHERE|IF|THE)\b/g
+const UNTAGGED_EARS_PATTERN =
+  /(?:^|\n)- (?!\*\*[A-Z0-9]+(?:-[A-Z0-9]+)*-\d{3}\*\* )(?:WHEN|WHILE|WHERE|IF|THE)\b/g
 
 export function validateGovernance({ rootDir = process.cwd() } = {}) {
   const root = resolve(rootDir)
@@ -160,7 +171,8 @@ export function validateGovernance({ rootDir = process.cwd() } = {}) {
   checkRequiredFiles(root, diagnostics)
   checkGovernanceDocs(root, diagnostics)
   checkPackageAndCi(root, diagnostics)
-  checkTraceability(root, diagnostics)
+  const microSpecs = checkMicroSpecs(root, diagnostics)
+  checkTraceability(root, diagnostics, microSpecs)
 
   return {
     checks: REQUIRED_CHECKS,
@@ -484,7 +496,174 @@ function checkPackageAndCi(root, diagnostics) {
   }
 }
 
-function checkTraceability(root, diagnostics) {
+function checkMicroSpecs(root, diagnostics) {
+  const microSpecs = []
+  const requirementIds = new Map()
+  for (const path of listMicroSpecPaths(root)) {
+    const text = readText(root, path, diagnostics)
+    if (!text) continue
+    const metadata = parseFrontmatter(text, path, diagnostics)
+    const specKey = metadata?.spec_id || path
+
+    if (!metadata) continue
+    checkSpecMetadata(root, path, specKey, metadata, diagnostics)
+    checkStatus(path, specKey, metadata.status, diagnostics)
+    checkRisk(path, specKey, metadata.risk_class, diagnostics)
+    checkMinimumGates(
+      path,
+      specKey,
+      metadata.risk_class,
+      Array.isArray(metadata.verification_gates)
+        ? metadata.verification_gates
+        : [],
+      diagnostics
+    )
+
+    const earsIds = [...text.matchAll(EARS_REQUIREMENT_PATTERN)].map(
+      (match) => match[1]
+    )
+    if (UNTAGGED_EARS_PATTERN.test(text)) {
+      diagnostics.push({
+        path,
+        id: specKey,
+        message: "every EARS requirement must start with a stable ID.",
+      })
+    }
+    UNTAGGED_EARS_PATTERN.lastIndex = 0
+
+    if (
+      ["active", "implemented", "verified"].includes(metadata.status) &&
+      earsIds.length === 0 &&
+      !hasApprovedNoRequirementRationale(metadata)
+    ) {
+      diagnostics.push({
+        path,
+        id: specKey,
+        message:
+          "active, implemented, and verified specs require at least one EARS requirement or approved rationale.",
+      })
+    }
+
+    for (const requirementId of earsIds) {
+      if (requirementIds.has(requirementId)) {
+        diagnostics.push({
+          path,
+          id: requirementId,
+          message: `duplicate requirement_id also appears in ${requirementIds.get(requirementId)}.`,
+        })
+      } else {
+        requirementIds.set(requirementId, path)
+      }
+    }
+
+    microSpecs.push({
+      path,
+      spec_id: metadata.spec_id,
+      requirement_ids: earsIds,
+    })
+  }
+  return microSpecs
+}
+
+function listMicroSpecPaths(root) {
+  const base = resolve(root, "micro-specs")
+  if (!existsSync(base)) return []
+  const paths = []
+  const visit = (directory) => {
+    for (const entry of readdirSync(directory).sort()) {
+      const absolute = resolve(directory, entry)
+      const relativePath = relative(root, absolute)
+      const stat = statSync(absolute)
+      if (stat.isDirectory()) {
+        visit(absolute)
+        continue
+      }
+      if (
+        stat.isFile() &&
+        relativePath.endsWith(".md") &&
+        !MICRO_SPEC_EXCLUDED_PATHS.has(relativePath)
+      ) {
+        paths.push(relativePath)
+      }
+    }
+  }
+  visit(base)
+  return paths.sort()
+}
+
+function parseFrontmatter(text, path, diagnostics) {
+  if (!text.startsWith("---\n")) {
+    diagnostics.push({
+      path,
+      id: path,
+      message: "Micro-Spec metadata frontmatter is required.",
+    })
+    return null
+  }
+  const end = text.indexOf("\n---\n", 4)
+  if (end === -1) {
+    diagnostics.push({
+      path,
+      id: path,
+      message: "Micro-Spec metadata frontmatter is not closed.",
+    })
+    return null
+  }
+
+  const metadata = {}
+  let activeArray = ""
+  for (const rawLine of text.slice(4, end).split("\n")) {
+    const line = rawLine.trimEnd()
+    if (line.trim() === "") continue
+    const arrayItem = line.match(/^\s*-\s+(.*)$/)
+    if (arrayItem && activeArray) {
+      metadata[activeArray].push(unquoteYamlValue(arrayItem[1]))
+      continue
+    }
+    const field = line.match(/^([A-Za-z_][A-Za-z0-9_]*):(?:\s*(.*))?$/)
+    if (!field) continue
+    const [, key, rawValue = ""] = field
+    if (rawValue === "") {
+      metadata[key] = []
+      activeArray = key
+      continue
+    }
+    metadata[key] = parseYamlScalar(rawValue)
+    activeArray = ""
+  }
+
+  return metadata
+}
+
+function parseYamlScalar(rawValue) {
+  const value = rawValue.trim()
+  if (value === "[]") return []
+  if (value.startsWith("[") && value.endsWith("]")) {
+    return value
+      .slice(1, -1)
+      .split(",")
+      .map((entry) => unquoteYamlValue(entry.trim()))
+      .filter(Boolean)
+  }
+  return unquoteYamlValue(value)
+}
+
+function unquoteYamlValue(value) {
+  return value.replace(/^['"]|['"]$/g, "")
+}
+
+function hasApprovedNoRequirementRationale(metadata) {
+  return (
+    Array.isArray(metadata.approved_exceptions) &&
+    metadata.approved_exceptions.some(
+      (entry) =>
+        typeof entry === "string" &&
+        entry.toLowerCase().includes("no ears requirement")
+    )
+  )
+}
+
+function checkTraceability(root, diagnostics, microSpecs = []) {
   const jsonPath = "micro-specs/traceability.json"
   const markdownPath = "micro-specs/TRACEABILITY.md"
   const markdown = readText(root, markdownPath, diagnostics)
@@ -627,6 +806,25 @@ function checkTraceability(root, diagnostics) {
 
     checkHandoffs(jsonPath, specKey, spec, diagnostics)
   }
+
+  for (const microSpec of microSpecs) {
+    if (!specIds.has(microSpec.spec_id)) {
+      diagnostics.push({
+        path: jsonPath,
+        id: microSpec.spec_id || microSpec.path,
+        message: `missing traceability entry for ${microSpec.path}.`,
+      })
+    }
+    for (const requirementId of microSpec.requirement_ids) {
+      if (!requirementIds.has(requirementId)) {
+        diagnostics.push({
+          path: jsonPath,
+          id: requirementId,
+          message: `missing traceability entry for requirement in ${microSpec.path}.`,
+        })
+      }
+    }
+  }
 }
 
 function checkSpecMetadata(root, path, id, spec, diagnostics) {
@@ -642,6 +840,7 @@ function checkSpecMetadata(root, path, id, spec, diagnostics) {
   }
 
   for (const field of [
+    "implementation_surfaces",
     "allowed_blast_radius",
     "related_docs",
     "related_tests",

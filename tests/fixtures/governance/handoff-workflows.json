@@ -156,7 +156,15 @@
               "risks": [],
               "follow_ups": []
             }
-          }
+          },
+          "implementation_surfaces": [
+            "scripts/check-governance.mjs",
+            "tests/micro-specs/**",
+            "tests/fixtures/governance/**",
+            "micro-specs/TRACEABILITY.md",
+            "micro-specs/traceability.json",
+            ".github/**"
+          ]
         }
       ]
     },
@@ -180,7 +188,8 @@
             "pnpm typecheck",
             "pnpm test"
           ],
-          "requirements": []
+          "requirements": [],
+          "implementation_surfaces": ["tests/micro-specs/**"]
         },
         {
           "spec_id": "GOV-BAD-STATUS",
@@ -197,7 +206,8 @@
             "pnpm typecheck",
             "pnpm test"
           ],
-          "requirements": []
+          "requirements": [],
+          "implementation_surfaces": ["tests/micro-specs/**"]
         },
         {
           "spec_id": "GOV-BAD-RISK",
@@ -209,7 +219,8 @@
           "related_docs": ["micro-specs/README.md"],
           "related_tests": ["tests/micro-specs/ai-governance.test.ts"],
           "verification_gates": ["pnpm governance"],
-          "requirements": []
+          "requirements": [],
+          "implementation_surfaces": ["tests/micro-specs/**"]
         },
         {
           "spec_id": "GOV-DUPLICATE",
@@ -232,7 +243,8 @@
               "gates": ["pnpm test"],
               "evidence": ["tests/micro-specs/ai-governance.test.ts"]
             }
-          ]
+          ],
+          "implementation_surfaces": ["tests/micro-specs/**"]
         },
         {
           "spec_id": "GOV-DUPLICATE",
@@ -255,7 +267,8 @@
               "gates": ["pnpm test"],
               "evidence": ["tests/micro-specs/ai-governance.test.ts"]
             }
-          ]
+          ],
+          "implementation_surfaces": ["tests/micro-specs/**"]
         },
         {
           "spec_id": "GOV-MISSING-SUPERSESSION",
@@ -272,7 +285,8 @@
             "pnpm typecheck",
             "pnpm test"
           ],
-          "requirements": []
+          "requirements": [],
+          "implementation_surfaces": ["tests/micro-specs/**"]
         },
         {
           "spec_id": "GOV-STALE-REFERENCES",
@@ -289,7 +303,8 @@
             "pnpm typecheck",
             "pnpm test"
           ],
-          "requirements": []
+          "requirements": [],
+          "implementation_surfaces": ["tests/micro-specs/**"]
         }
       ]
     },
@@ -366,7 +381,8 @@
               "requirement_ids": ["GOV-BROKEN-WORKFLOW-001"],
               "risk_class": "docs-tooling"
             }
-          }
+          },
+          "implementation_surfaces": ["tests/micro-specs/**"]
         }
       ]
     },

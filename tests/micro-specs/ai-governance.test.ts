@@ -49,6 +49,7 @@ describe("AI governance foundation", () => {
             owner: "factory-droid",
             last_reviewed: "2026-06-15",
             allowed_blast_radius: ["tests/micro-specs/**"],
+            implementation_surfaces: ["tests/micro-specs/**"],
             related_docs: ["micro-specs/README.md"],
             related_tests: ["tests/micro-specs/ai-governance.test.ts"],
             verification_gates: [
@@ -68,6 +69,7 @@ describe("AI governance foundation", () => {
             owner: "factory-droid",
             last_reviewed: "2026-06-15",
             allowed_blast_radius: ["tests/micro-specs/**"],
+            implementation_surfaces: ["tests/micro-specs/**"],
             related_docs: ["micro-specs/README.md"],
             related_tests: ["tests/micro-specs/ai-governance.test.ts"],
             verification_gates: [
@@ -145,6 +147,72 @@ describe("AI governance foundation", () => {
           path: ".github/workflows/ci.yml",
           id: "governance",
           message: "CI governance wiring must not be soft-failed.",
+        },
+      ])
+    )
+  })
+
+  it("rejects unnormalized Micro-Spec markdown metadata and EARS requirements", async () => {
+    const { validateGovernance } =
+      await import("../../scripts/check-governance.mjs")
+    const fixture = makeGovernanceFixture()
+    mkdirSync(join(fixture, "micro-specs/99-fixture"), { recursive: true })
+    writeFileSync(
+      join(fixture, "micro-specs/99-fixture/missing-metadata.md"),
+      [
+        "# Micro-Spec: Missing Metadata",
+        "",
+        "## Behavioral Requirements",
+        "",
+        "- WHEN governance reads this spec, THE validator SHALL reject it.",
+        "",
+      ].join("\n")
+    )
+    writeFileSync(
+      join(fixture, "micro-specs/99-fixture/missing-requirement-id.md"),
+      [
+        "---",
+        "spec_id: MS-FIXTURE-MISSING-REQ-ID",
+        "status: active",
+        "risk_class: docs-tooling",
+        "owner: factory-droid",
+        "last_reviewed: 2026-06-15",
+        "allowed_blast_radius:",
+        "  - tests/micro-specs/**",
+        "implementation_surfaces:",
+        "  - tests/micro-specs/**",
+        "related_docs:",
+        "  - micro-specs/README.md",
+        "related_tests:",
+        "  - tests/micro-specs/ai-governance.test.ts",
+        "verification_gates:",
+        "  - pnpm governance",
+        "  - pnpm lint",
+        "  - pnpm typecheck",
+        "  - pnpm test",
+        "approved_exceptions: []",
+        "---",
+        "",
+        "# Micro-Spec: Missing Requirement ID",
+        "",
+        "## Behavioral Requirements",
+        "",
+        "- WHEN governance reads this requirement, THE validator SHALL reject it.",
+        "",
+      ].join("\n")
+    )
+
+    expect(validateGovernance({ rootDir: fixture }).diagnostics).toEqual(
+      expect.arrayContaining([
+        {
+          path: "micro-specs/99-fixture/missing-metadata.md",
+          id: "micro-specs/99-fixture/missing-metadata.md",
+          message: "Micro-Spec metadata frontmatter is required.",
+        },
+        {
+          path: "micro-specs/99-fixture/missing-requirement-id.md",
+          id: "MS-FIXTURE-MISSING-REQ-ID",
+          message: "every EARS requirement must start with a stable ID.",
         },
       ])
     )
@@ -342,6 +410,7 @@ function makeGovernanceFixture(
                 owner: "factory-droid",
                 last_reviewed: "2026-06-15",
                 allowed_blast_radius: ["tests/micro-specs/**"],
+                implementation_surfaces: ["tests/micro-specs/**"],
                 related_docs: ["micro-specs/README.md"],
                 related_tests: ["tests/micro-specs/ai-governance.test.ts"],
                 verification_gates: [
@@ -500,6 +569,7 @@ function writeGovernanceDocs(root: string) {
     "owner",
     "last_reviewed",
     "verification_gates",
+    "implementation_surfaces",
     "allowed_blast_radius",
     "related_docs",
     "related_tests",

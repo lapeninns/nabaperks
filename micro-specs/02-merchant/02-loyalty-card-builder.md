@@ -1,4 +1,50 @@
+---
+spec_id: MS-MERCHANT-LOYALTY-CARD-BUILDER
+status: active
+risk_class: rls-rpc-ledger
+owner: factory-droid
+last_reviewed: 2026-06-15
+allowed_blast_radius:
+  - app/app/card/**
+  - app/app/launch/**
+  - components/loyalty/**
+  - lib/merchant/loyalty-card.ts
+  - micro-specs/02-merchant/02-loyalty-card-builder.md
+  - micro-specs/TRACEABILITY.md
+  - micro-specs/traceability.json
+  - supabase/migrations/**
+implementation_surfaces:
+  - app/app/card/**
+  - app/app/launch/**
+  - lib/merchant/loyalty-card.ts
+  - supabase/migrations/**
+  - components/loyalty/**
+related_docs:
+  - docs/PROJECT_SPEC.md
+  - docs/ARCHITECTURE.md
+  - micro-specs/GLOBAL_CONTEXT.md
+related_tests:
+  - tests/micro-specs/merchant-launch-readiness.test.ts
+  - tests/micro-specs/merchant-qr.test.ts
+  - tests/micro-specs/merchant-qr-mutations.test.ts
+  - tests/micro-specs/analytics-dashboard-pilot.test.ts
+verification_gates:
+  - pnpm governance
+  - pnpm lint
+  - pnpm typecheck
+  - pnpm test
+  - pnpm db:verify
+  - pnpm security:verify
+approved_exceptions: []
+---
+
 # Micro-Spec: Loyalty Card Builder
+
+## Governance Status Evidence
+
+- Lifecycle status: `active` after review against `docs/PROJECT_SPEC.md`, `docs/ARCHITECTURE.md`, and related tests on 2026-06-15.
+- Stale/superseded handling: this spec remains current intent; no replacement spec is linked.
+- Evidence posture: related tests and verification gates are listed in metadata and traceability for implementation handoff.
 
 ## Exact Goal and User-Visible Outcomes
 
@@ -44,14 +90,14 @@ Out of scope:
 
 ## Behavioral Requirements
 
-- WHEN a merchant opens `/app/card` without a card, THE app SHALL present a default 3-visit Mystery Visit Card setup.
-- WHEN a merchant saves a valid card, THE system SHALL persist the card against their merchant and MVP location.
-- WHEN a merchant saves a valid reward pool item, THE system SHALL persist it against the same merchant, location, and loyalty card.
-- WHEN a merchant tries to save invalid values, THE system SHALL reject the save and explain the invalid fields.
-- WHEN a merchant already has one active MVP card, THE system SHALL not create a second active card.
-- WHEN a reward pool item has already been assigned to a customer reward, THE system SHALL archive it instead of hard-deleting the historical reward reference.
-- WHEN a card is inactive, THE QR resolver and stamp issuing flows SHALL not permit new stamp claims for that card.
-- WHEN a card is created or changed, THE system SHALL write an audit log and a `loyalty_card_created` or equivalent product event.
+- **MS-MERCHANT-LOYALTY-CARD-BUILDER-001** WHEN a merchant opens `/app/card` without a card, THE app SHALL present a default 3-visit Mystery Visit Card setup.
+- **MS-MERCHANT-LOYALTY-CARD-BUILDER-002** WHEN a merchant saves a valid card, THE system SHALL persist the card against their merchant and MVP location.
+- **MS-MERCHANT-LOYALTY-CARD-BUILDER-003** WHEN a merchant saves a valid reward pool item, THE system SHALL persist it against the same merchant, location, and loyalty card.
+- **MS-MERCHANT-LOYALTY-CARD-BUILDER-004** WHEN a merchant tries to save invalid values, THE system SHALL reject the save and explain the invalid fields.
+- **MS-MERCHANT-LOYALTY-CARD-BUILDER-005** WHEN a merchant already has one active MVP card, THE system SHALL not create a second active card.
+- **MS-MERCHANT-LOYALTY-CARD-BUILDER-006** WHEN a reward pool item has already been assigned to a customer reward, THE system SHALL archive it instead of hard-deleting the historical reward reference.
+- **MS-MERCHANT-LOYALTY-CARD-BUILDER-007** WHEN a card is inactive, THE QR resolver and stamp issuing flows SHALL not permit new stamp claims for that card.
+- **MS-MERCHANT-LOYALTY-CARD-BUILDER-008** WHEN a card is created or changed, THE system SHALL write an audit log and a `loyalty_card_created` or equivalent product event.
 
 ## Verification Criteria
 

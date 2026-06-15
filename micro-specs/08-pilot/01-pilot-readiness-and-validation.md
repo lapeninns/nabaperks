@@ -1,4 +1,49 @@
+---
+spec_id: MS-PILOT-READINESS-VALIDATION
+status: active
+risk_class: product-analytics
+owner: factory-droid
+last_reviewed: 2026-06-15
+allowed_blast_radius:
+  - app/admin/pilot/**
+  - docs/**
+  - lib/admin/pilot-report*.ts
+  - lib/merchant/dashboard*.ts
+  - micro-specs/**
+  - micro-specs/08-pilot/01-pilot-readiness-and-validation.md
+  - micro-specs/TRACEABILITY.md
+  - micro-specs/traceability.json
+implementation_surfaces:
+  - app/admin/pilot/**
+  - lib/admin/pilot-report*.ts
+  - lib/merchant/dashboard*.ts
+  - docs/**
+  - micro-specs/**
+related_docs:
+  - docs/PROJECT_SPEC.md
+  - docs/ARCHITECTURE.md
+  - micro-specs/GLOBAL_CONTEXT.md
+related_tests:
+  - tests/micro-specs/analytics-dashboard-pilot.test.ts
+  - tests/micro-specs/perf-rpc-consolidation.test.ts
+  - manual:billing/admin micro-spec Vitest evidence in retained legacy filename
+  - tests/micro-specs/admin-console-redesign.test.ts
+verification_gates:
+  - pnpm governance
+  - pnpm lint
+  - pnpm typecheck
+  - pnpm test
+  - pnpm test:coverage
+approved_exceptions: []
+---
+
 # Micro-Spec: Pilot Readiness and Validation
+
+## Governance Status Evidence
+
+- Lifecycle status: `active` after review against `docs/PROJECT_SPEC.md`, `docs/ARCHITECTURE.md`, and related tests on 2026-06-15.
+- Stale/superseded handling: this spec remains current intent; no replacement spec is linked.
+- Evidence posture: related tests and verification gates are listed in metadata and traceability for implementation handoff.
 
 ## Exact Goal and User-Visible Outcomes
 
@@ -45,14 +90,14 @@ Pilot success targets:
 
 ## Behavioral Requirements
 
-- WHEN a merchant starts pilot onboarding, THE system SHALL support setup completion in under 5 minutes.
-- WHEN staff are trained, THE instructions SHALL be short enough to complete in under 3 minutes.
-- WHEN staff training is timed for pilot readiness, THE admin report SHALL store the proof as a structured audited note with a 1-3 minute duration.
-- WHEN pilot metrics are reviewed, THE report SHALL show launch, scan, join, repeat, redemption, support, and paid-conversion metrics.
-- WHEN paid pilot proof is reviewed, THE report SHALL count only active-billing merchants that also have source-of-truth launch, join, stamp, and redemption events.
-- WHEN a merchant cancels or declines payment, THE team SHALL be able to record cancellation reason or interview notes.
-- WHEN reward disputes occur, THE admin console SHALL expose reward, stamp, and audit history needed for support.
-- WHEN pilot results are exported or summarized, THE report SHALL distinguish source-of-truth event counts from estimates and interview notes.
+- **MS-PILOT-READINESS-VALIDATION-001** WHEN a merchant starts pilot onboarding, THE system SHALL support setup completion in under 5 minutes.
+- **MS-PILOT-READINESS-VALIDATION-002** WHEN staff are trained, THE instructions SHALL be short enough to complete in under 3 minutes.
+- **MS-PILOT-READINESS-VALIDATION-003** WHEN staff training is timed for pilot readiness, THE admin report SHALL store the proof as a structured audited note with a 1-3 minute duration.
+- **MS-PILOT-READINESS-VALIDATION-004** WHEN pilot metrics are reviewed, THE report SHALL show launch, scan, join, repeat, redemption, support, and paid-conversion metrics.
+- **MS-PILOT-READINESS-VALIDATION-005** WHEN paid pilot proof is reviewed, THE report SHALL count only active-billing merchants that also have source-of-truth launch, join, stamp, and redemption events.
+- **MS-PILOT-READINESS-VALIDATION-006** WHEN a merchant cancels or declines payment, THE team SHALL be able to record cancellation reason or interview notes.
+- **MS-PILOT-READINESS-VALIDATION-007** WHEN reward disputes occur, THE admin console SHALL expose reward, stamp, and audit history needed for support.
+- **MS-PILOT-READINESS-VALIDATION-008** WHEN pilot results are exported or summarized, THE report SHALL distinguish source-of-truth event counts from estimates and interview notes.
 
 ## Verification Criteria
 

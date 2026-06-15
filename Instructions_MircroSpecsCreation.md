@@ -19,6 +19,8 @@ owner: <person-or-agent>
 last_reviewed: YYYY-MM-DD
 allowed_blast_radius:
   - <repo-local path or glob>
+implementation_surfaces:
+  - <repo-local path or glob>
 related_docs:
   - <repo-local path>
 related_tests:

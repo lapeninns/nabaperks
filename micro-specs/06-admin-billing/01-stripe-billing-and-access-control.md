@@ -1,4 +1,52 @@
+---
+spec_id: MS-ADMIN-BILLING-STRIPE-BILLING-ACCESS-CONTROL
+status: active
+risk_class: billing
+owner: factory-droid
+last_reviewed: 2026-06-15
+allowed_blast_radius:
+  - app/api/stripe/**
+  - app/app/billing/**
+  - app/pricing/**
+  - lib/customer/**
+  - lib/stripe/**
+  - micro-specs/06-admin-billing/01-stripe-billing-and-access-control.md
+  - micro-specs/TRACEABILITY.md
+  - micro-specs/traceability.json
+  - supabase/migrations/**
+implementation_surfaces:
+  - app/pricing/**
+  - app/app/billing/**
+  - app/api/stripe/**
+  - lib/stripe/**
+  - lib/customer/**
+  - supabase/migrations/**
+related_docs:
+  - docs/PROJECT_SPEC.md
+  - docs/ARCHITECTURE.md
+  - micro-specs/GLOBAL_CONTEXT.md
+  - DESIGN.md
+related_tests:
+  - manual:billing/admin micro-spec Vitest evidence in retained legacy filename
+  - tests/micro-specs/marketing-auth-legal.test.ts
+  - tests/micro-specs/customer.test.ts
+verification_gates:
+  - pnpm governance
+  - pnpm lint
+  - pnpm typecheck
+  - pnpm test
+  - pnpm security:verify
+  - pnpm build
+approved_exceptions: []
+---
+
 # Micro-Spec: Stripe Billing and Access Control
+
+## Governance Status Evidence
+
+- Lifecycle status: `active` after review against `docs/PROJECT_SPEC.md`, `docs/ARCHITECTURE.md`, and related tests on 2026-06-15.
+- Stale/superseded handling: this spec remains current intent; no replacement spec is linked.
+- Evidence posture: related tests and verification gates are listed in metadata and traceability for implementation handoff.
 
 ## Exact Goal and User-Visible Outcomes
 
@@ -53,13 +101,13 @@ Status behaviour:
 
 ## Behavioral Requirements
 
-- WHEN a merchant starts checkout, THE system SHALL create a Stripe Checkout Session for the Growth Plan.
-- WHEN checkout completes and the webhook is verified, THE system SHALL create or update the merchant billing record.
-- WHEN Stripe sends subscription updates, THE system SHALL sync plan, status, and current period end.
-- WHEN payment fails, THE app SHALL show a billing warning and apply the configured grace behaviour.
-- WHEN status is cancelled, THE system SHALL block new stamp issuance while preserving dashboard data access.
-- WHEN status is suspended, THE system SHALL disable customer-facing card use.
-- WHEN webhook verification fails, THE system SHALL reject the event and SHALL not update billing state.
+- **MS-ADMIN-BILLING-STRIPE-BILLING-ACCESS-CONTROL-001** WHEN a merchant starts checkout, THE system SHALL create a Stripe Checkout Session for the Growth Plan.
+- **MS-ADMIN-BILLING-STRIPE-BILLING-ACCESS-CONTROL-002** WHEN checkout completes and the webhook is verified, THE system SHALL create or update the merchant billing record.
+- **MS-ADMIN-BILLING-STRIPE-BILLING-ACCESS-CONTROL-003** WHEN Stripe sends subscription updates, THE system SHALL sync plan, status, and current period end.
+- **MS-ADMIN-BILLING-STRIPE-BILLING-ACCESS-CONTROL-004** WHEN payment fails, THE app SHALL show a billing warning and apply the configured grace behaviour.
+- **MS-ADMIN-BILLING-STRIPE-BILLING-ACCESS-CONTROL-005** WHEN status is cancelled, THE system SHALL block new stamp issuance while preserving dashboard data access.
+- **MS-ADMIN-BILLING-STRIPE-BILLING-ACCESS-CONTROL-006** WHEN status is suspended, THE system SHALL disable customer-facing card use.
+- **MS-ADMIN-BILLING-STRIPE-BILLING-ACCESS-CONTROL-007** WHEN webhook verification fails, THE system SHALL reject the event and SHALL not update billing state.
 
 ## Verification Criteria
 

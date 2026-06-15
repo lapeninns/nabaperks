@@ -1,4 +1,52 @@
+---
+spec_id: MS-CUSTOMER-DIGITAL-STAMP-CARD
+status: active
+risk_class: rls-rpc-ledger
+owner: factory-droid
+last_reviewed: 2026-06-15
+allowed_blast_radius:
+  - app/card/**
+  - app/reward/**
+  - components/customer/**
+  - lib/customer/card.ts
+  - lib/customer/experience/**
+  - lib/customer/reward.ts
+  - micro-specs/03-customer/02-digital-stamp-card.md
+  - micro-specs/TRACEABILITY.md
+  - micro-specs/traceability.json
+implementation_surfaces:
+  - app/card/**
+  - app/reward/**
+  - components/customer/**
+  - lib/customer/card.ts
+  - lib/customer/reward.ts
+  - lib/customer/experience/**
+related_docs:
+  - docs/PROJECT_SPEC.md
+  - docs/ARCHITECTURE.md
+  - micro-specs/GLOBAL_CONTEXT.md
+related_tests:
+  - tests/micro-specs/customer.test.ts
+  - tests/micro-specs/customer-card-stamps.test.ts
+  - tests/micro-specs/customer-card-loader.test.ts
+  - tests/micro-specs/customer-home.test.ts
+verification_gates:
+  - pnpm governance
+  - pnpm lint
+  - pnpm typecheck
+  - pnpm test
+  - pnpm db:verify
+  - pnpm security:verify
+approved_exceptions: []
+---
+
 # Micro-Spec: Digital Stamp Card
+
+## Governance Status Evidence
+
+- Lifecycle status: `active` after review against `docs/PROJECT_SPEC.md`, `docs/ARCHITECTURE.md`, and related tests on 2026-06-15.
+- Stale/superseded handling: this spec remains current intent; no replacement spec is linked.
+- Evidence posture: related tests and verification gates are listed in metadata and traceability for implementation handoff.
 
 ## Exact Goal and User-Visible Outcomes
 
@@ -46,22 +94,22 @@ Out of scope:
 
 ## Behavioral Requirements
 
-- WHEN a customer opens their card before unlock, THE app SHALL show current
+- **MS-CUSTOMER-DIGITAL-STAMP-CARD-001** WHEN a customer opens their card before unlock, THE app SHALL show current
   stamp count, target, and locked surprise reward teaser.
-- WHEN a reward has been unlocked, THE app SHALL show assigned reward details
+- **MS-CUSTOMER-DIGITAL-STAMP-CARD-002** WHEN a reward has been unlocked, THE app SHALL show assigned reward details
   from `reward_events`, not mutable `loyalty_cards` fields.
-- WHEN the customer is not authorized for the membership, THE app SHALL deny
+- **MS-CUSTOMER-DIGITAL-STAMP-CARD-003** WHEN the customer is not authorized for the membership, THE app SHALL deny
   access.
-- WHEN the customer opens the plain card page, THE app SHALL tell them to scan
+- **MS-CUSTOMER-DIGITAL-STAMP-CARD-004** WHEN the customer opens the plain card page, THE app SHALL tell them to scan
   the venue code before adding a stamp.
-- WHEN the customer opens the stamp route with a valid QR context, THE app SHALL
+- **MS-CUSTOMER-DIGITAL-STAMP-CARD-005** WHEN the customer opens the stamp route with a valid QR context, THE app SHALL
   show a self-service add-stamp action.
-- WHEN GPS review is enabled, THE app SHALL request browser location before
+- **MS-CUSTOMER-DIGITAL-STAMP-CARD-006** WHEN GPS review is enabled, THE app SHALL request browser location before
   submit and continue without blocking if location is denied or unavailable.
-- WHEN the membership has enough stamps for a reward but `redeemable_from` is in
+- **MS-CUSTOMER-DIGITAL-STAMP-CARD-007** WHEN the membership has enough stamps for a reward but `redeemable_from` is in
   the future, THE app SHALL show a come-back message instead of a redeem button.
-- WHEN a reward is ready, THE app SHALL show the reward as ready to redeem.
-- WHEN a reward has already been redeemed, THE app SHALL not show it as
+- **MS-CUSTOMER-DIGITAL-STAMP-CARD-008** WHEN a reward is ready, THE app SHALL show the reward as ready to redeem.
+- **MS-CUSTOMER-DIGITAL-STAMP-CARD-009** WHEN a reward has already been redeemed, THE app SHALL not show it as
   redeemable again.
 
 ## Verification Criteria
