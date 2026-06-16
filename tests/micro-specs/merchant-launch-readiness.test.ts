@@ -74,4 +74,21 @@ describe("05 merchant launch readiness readback", () => {
     expect(panel).toContain("Ink progress")
     expect(panel).toContain("nextStep")
   })
+
+  it("drives the launch hub from one shared readiness spine and a collapsing step rail", () => {
+    const launchPage = readProjectFile("app/app/launch/page.tsx")
+    const panel = readProjectFile(
+      "components/merchant/launch-readiness-panel.tsx"
+    )
+
+    // One progress model: the hub renders the same spine as the dashboard
+    // instead of a second, divergent tab/progress widget.
+    expect(launchPage).toContain("LaunchReadinessPanel")
+    // The spine renders the four steps as stamp slots with a leaf progress track.
+    expect(panel).toContain("readiness.steps")
+    expect(panel).toContain("ProgressTrack")
+    // Inactive steps collapse to one-line rows that deep-link back to their tab.
+    expect(launchPage).toContain("step.href")
+    expect(launchPage).toContain("step.summary")
+  })
 })

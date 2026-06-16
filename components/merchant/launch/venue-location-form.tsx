@@ -8,6 +8,7 @@ import {
   type VenueLocationActionState,
 } from "@/app/app/launch/actions"
 import { PageTitle } from "@/components/brand"
+import { Disclosure } from "@/components/merchant/launch/disclosure"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Button } from "@/components/ui/button"
 
@@ -22,8 +23,11 @@ const initialState: VenueLocationActionState = {}
 
 export function VenueLocationForm({
   initialValues,
+  geocoded,
 }: {
   initialValues: VenueLocationFormValues
+  /** Saved coordinates, shown as quiet confirmation inside the GPS section. */
+  geocoded?: { latitude: number | null; longitude: number | null } | null
 }) {
   const [state, action, pending] = useActionState(
     saveVenueLocationAction,
@@ -41,12 +45,14 @@ export function VenueLocationForm({
     setDraft((currentDraft) => ({ ...currentDraft, [field]: value }))
   }
 
+  const hasGeocode = geocoded?.latitude != null && geocoded?.longitude != null
+
   return (
     <form action={action} className="surface-card grid gap-5 p-6">
       <PageTitle
-        eyebrow="Venue location"
-        title="Set where scans happen"
-        description="Your printed QR never changes. You can ask for GPS as a light extra check, but it never blocks a customer's stamp."
+        eyebrow="Step 3 · Venue"
+        title="Where do scans happen?"
+        description="Your printed QR never changes. GPS is an optional soft check — it never blocks a customer's stamp, it only flags an odd one for review."
         titleClassName="sm:text-3xl"
       />
 
@@ -55,15 +61,6 @@ export function VenueLocationForm({
           Your QR and stamp checks now use this address.
         </StatusBanner>
       ) : null}
-
-      <Field
-        id="venueName"
-        label="Venue name"
-        name="venueName"
-        value={draft.venueName}
-        onChange={(event) => updateDraft("venueName", event.target.value)}
-        error={state.errors?.venueName}
-      />
 
       <TextareaField
         id="address"
@@ -74,8 +71,26 @@ export function VenueLocationForm({
         error={state.errors?.address}
       />
 
-      <div className="grid gap-3 sm:grid-cols-[1fr_180px]">
-        <label className="flex items-center justify-between gap-4 rounded-xl border-2 border-ink bg-secondary/50 px-4 py-3 text-sm font-bold">
+      <Field
+        id="venueName"
+        label="Venue name"
+        name="venueName"
+        value={draft.venueName}
+        onChange={(event) => updateDraft("venueName", event.target.value)}
+        error={state.errors?.venueName}
+      />
+
+      <Disclosure
+        label="Advanced GPS checks"
+        defaultOpen={
+          draft.requireGeofence || Boolean(state.errors?.geofenceRadiusMeters)
+        }
+      >
+        <p className="text-xs leading-5 text-muted-foreground">
+          Off by default. When on, a stamp from outside the radius still goes
+          through — it is only flagged for you to review later.
+        </p>
+        <label className="flex items-center justify-between gap-4 rounded-lg border-2 border-ink bg-card px-4 py-3 text-sm font-bold">
           <span>Use GPS anomaly checks</span>
           <input
             name="requireGeofence"
@@ -99,16 +114,21 @@ export function VenueLocationForm({
           }
           error={state.errors?.geofenceRadiusMeters}
         />
-      </div>
+        {hasGeocode ? (
+          <p className="font-mono text-xs text-muted-foreground">
+            Geocoded to {geocoded?.latitude}, {geocoded?.longitude}.
+          </p>
+        ) : null}
+      </Disclosure>
 
       {state.errors?.form ? (
-        <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {state.errors.form}
         </p>
       ) : null}
 
       <Button type="submit" disabled={pending} className="w-full">
-        {pending ? "Saving location..." : "Save venue location"}
+        {pending ? "Saving location..." : "Save venue address"}
       </Button>
     </form>
   )
@@ -130,7 +150,7 @@ function Field({
       <input
         id={id}
         {...props}
-        className="h-11 rounded-xl border-2 border-ink bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+        className="h-11 rounded-lg border-2 border-ink bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
       />
       {error ? <span className="text-sm text-destructive">{error}</span> : null}
     </label>
@@ -154,7 +174,7 @@ function TextareaField({
         id={id}
         rows={3}
         {...props}
-        className="min-h-28 rounded-xl border-2 border-ink bg-background px-3 py-2 text-sm leading-6 outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+        className="min-h-28 rounded-lg border-2 border-ink bg-background px-3 py-2 text-sm leading-6 outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
       />
       {error ? <span className="text-sm text-destructive">{error}</span> : null}
     </label>

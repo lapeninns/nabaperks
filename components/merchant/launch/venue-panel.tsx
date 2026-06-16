@@ -1,7 +1,5 @@
 import { redirect } from "next/navigation"
 
-import { MonoTag, ReceiptCard, SectionHeader } from "@/components/brand"
-import { StatusBanner } from "@/components/loyalty/status-banner"
 import { VenueLocationForm } from "@/components/merchant/launch/venue-location-form"
 import { getCurrentVenueLocation } from "@/lib/merchant/location"
 
@@ -13,38 +11,20 @@ export async function VenuePanel() {
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+    <div className="grid max-w-2xl gap-4">
       <VenueLocationForm
         initialValues={{
           venueName: location?.name ?? "Main venue",
           address: location?.address ?? "",
-          geofenceRadiusMeters: String(
-            location?.geofence_radius_meters ?? 150
-          ),
+          geofenceRadiusMeters: String(location?.geofence_radius_meters ?? 150),
           requireGeofence: location?.require_geofence ?? false,
         }}
+        geocoded={
+          location?.geocoded_at
+            ? { latitude: location.latitude, longitude: location.longitude }
+            : null
+        }
       />
-      <ReceiptCard className="grid content-start gap-4 p-6">
-        <SectionHeader
-          eyebrow="Venue checks"
-          title="GPS stays soft"
-          description="A stamp or reward still goes through if location is off, denied, or out of range — we just note it for review instead."
-          actions={
-            <MonoTag tone={location?.require_geofence ? "sun" : "plain"}>
-              {location?.require_geofence ? "GPS review on" : "GPS review off"}
-            </MonoTag>
-          }
-        />
-        {location?.geocoded_at ? (
-          <StatusBanner tone="success" title="Address geocoded.">
-            Latitude {location.latitude}, longitude {location.longitude}.
-          </StatusBanner>
-        ) : (
-          <StatusBanner tone="warning" title="Address not geocoded yet.">
-            Save the venue address before printing the QR pack.
-          </StatusBanner>
-        )}
-      </ReceiptCard>
     </div>
   )
 }
