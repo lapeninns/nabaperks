@@ -6,9 +6,7 @@ import {
   updateMerchantProfileAction,
   type MerchantProfileState,
 } from "@/app/app/profile/actions"
-import { VenueAddressFields } from "@/components/merchant/venue-address-fields"
 import { Button } from "@/components/ui/button"
-import type { VenueAddressFormFields } from "@/lib/merchant/venue-address"
 
 const businessTypeOptions = [
   { value: "cafe", label: "Cafe" },
@@ -21,34 +19,28 @@ const businessTypeOptions = [
   { value: "other", label: "Other local business" },
 ]
 
+/**
+ * Business/account identity for the signed-in merchant. Venue name and address
+ * are edited in Launch -> Your venue (the single venue editor), so this form
+ * deliberately does not carry them.
+ */
 export function MerchantProfileForm({
   businessName,
   businessType,
   email,
   phone,
-  venueName,
-  addressLine1,
-  addressLine2,
-  addressCity,
-  addressPostcode,
 }: {
   businessName: string
   businessType: string
   email: string
   phone: string
-  venueName: string
-} & VenueAddressFormFields) {
+}) {
   const initialState: MerchantProfileState = {
     fields: {
       businessName,
       businessType,
       email,
       phone,
-      venueName,
-      addressLine1,
-      addressLine2,
-      addressCity,
-      addressPostcode,
     },
   }
   const [state, action, pending] = useActionState(
@@ -111,22 +103,6 @@ export function MerchantProfileForm({
         label="Phone number"
         defaultValue={fields?.phone}
         error={state.errors?.phone}
-      />
-      <div className="mt-1 border-t border-ink/15 pt-4">
-        <p className="eyebrow">Venue</p>
-      </div>
-      <Field
-        id="venueName"
-        name="venueName"
-        label="Venue display name"
-        defaultValue={fields?.venueName}
-        error={state.errors?.venueName}
-      />
-      <VenueAddressFields
-        values={fields}
-        errors={state.errors}
-        labelClassName="eyebrow"
-        inputClassName="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
       />
       {state.errors?.form ? (
         <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">

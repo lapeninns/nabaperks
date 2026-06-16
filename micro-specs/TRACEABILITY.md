@@ -412,6 +412,67 @@ Status evidence:
 | `MS-FOUNDATION-SUPABASE-SCHEMA-RLS-AUDIT-004` | `active` | `migrations` | `governance`<br>`lint`<br>`security`<br>`sql-rls`<br>`typecheck`<br>`unit` | tests/micro-specs/foundation.test.ts<br>manual:billing/admin micro-spec Vitest evidence in retained legacy filename<br>tests/micro-specs/customer.test.ts<br>supabase/tests/tenant_isolation.sql<br>supabase/tests/reward_redemption_cycles.sql<br>Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename. | `supabase/migrations/**`<br>`supabase/tests/**`<br>`lib/supabase/**`<br>`lib/**/*.ts` | `pnpm governance`<br>`pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`pnpm db:verify`<br>`pnpm security:verify` | `current`    |
 | `MS-FOUNDATION-SUPABASE-SCHEMA-RLS-AUDIT-005` | `active` | `migrations` | `governance`<br>`lint`<br>`security`<br>`sql-rls`<br>`typecheck`<br>`unit` | tests/micro-specs/foundation.test.ts<br>manual:billing/admin micro-spec Vitest evidence in retained legacy filename<br>tests/micro-specs/customer.test.ts<br>supabase/tests/tenant_isolation.sql<br>supabase/tests/reward_redemption_cycles.sql<br>Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename. | `supabase/migrations/**`<br>`supabase/tests/**`<br>`lib/supabase/**`<br>`lib/**/*.ts` | `pnpm governance`<br>`pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`pnpm db:verify`<br>`pnpm security:verify` | `current`    |
 
+## MS-FOUNDATION-WET-INK-MOTION-SYSTEM — Wet Ink Motion System — Framer Motion Library Consolidation
+
+| Field         | Value                                                                                                                                                 |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Status        | `active`                                                                                                                                              |
+| Risk class    | `ui-only`                                                                                                                                             |
+| Change state  | `current`                                                                                                                                             |
+| Owner         | `factory-droid`                                                                                                                                       |
+| Last reviewed | `2026-06-16`                                                                                                                                          |
+| Source        | `micro-specs/01-foundation/03-wet-ink-motion-system.md`                                                                                               |
+| Tests         | `tests/micro-specs/wet-ink-motion.test.ts`<br>`tests/micro-specs/earned-stamp-redesign.test.ts`<br>`tests/micro-specs/customer-flow-redesign.test.ts` |
+| Gates         | `pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`npx playwright test`                                                                               |
+| Supersession  | `not_superseded`: New specification; no prior motion system spec to supersede.                                                                        |
+
+Allowed blast radius:
+
+- `app/globals.css`
+- `app/dev/design-system/**`
+- `components/motion/**`
+- `components/loyalty/**`
+- `components/brand/receipt-card.tsx`
+- `components/customer/**`
+- `components/marketing/marquee.tsx`
+- `lib/motion/**`
+- `micro-specs/01-foundation/03-wet-ink-motion-system.md`
+- `micro-specs/TRACEABILITY.md`
+- `micro-specs/traceability.json`
+- `DESIGN.md`
+- `AGENTS.md`
+- `tests/micro-specs/wet-ink-motion.test.ts`
+- `tests/micro-specs/earned-stamp-redesign.test.ts`
+- `tests/e2e/design-system-catalog.spec.ts`
+
+Implementation surfaces:
+
+- `components/motion/**`
+- `components/loyalty/**`
+- `components/brand/**`
+- `components/customer/**`
+- `components/marketing/**`
+- `lib/motion/**`
+- `app/globals.css`
+- `app/dev/design-system/**`
+
+Status evidence:
+
+- New specification for Wet Ink motion system design completion.
+- Framer Motion library consolidation of all choreographed motion.
+- No superseding Micro-Spec replaces this intent.
+
+### Requirements
+
+| Requirement ID                            | Status   | Risk      | Test tier                       | Evidence and rationale                                                                      | Implementation surfaces                                                                                   | Verification commands                          | Change state |
+| ----------------------------------------- | -------- | --------- | ------------------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ------------ |
+| `MS-FOUNDATION-WET-INK-MOTION-SYSTEM-001` | `active` | `ui-only` | `unit`<br>`browser`             | tests/micro-specs/wet-ink-motion.test.ts                                                    | `components/motion/**`                                                                                    | `pnpm test`<br>`npx playwright test`           | `current`    |
+| `MS-FOUNDATION-WET-INK-MOTION-SYSTEM-002` | `active` | `ui-only` | `unit`<br>`browser`             | tests/micro-specs/wet-ink-motion.test.ts<br>tests/micro-specs/earned-stamp-redesign.test.ts | `components/motion/**`<br>`components/loyalty/**`                                                         | `pnpm test`<br>`npx playwright test`           | `current`    |
+| `MS-FOUNDATION-WET-INK-MOTION-SYSTEM-003` | `active` | `ui-only` | `unit`                          | tests/micro-specs/wet-ink-motion.test.ts                                                    | `components/motion/**`<br>`components/brand/**`                                                           | `pnpm test`                                    | `current`    |
+| `MS-FOUNDATION-WET-INK-MOTION-SYSTEM-004` | `active` | `ui-only` | `lint`<br>`typecheck`<br>`unit` | tests/micro-specs/wet-ink-motion.test.ts                                                    | `components/motion/**`                                                                                    | `pnpm lint`<br>`pnpm typecheck`<br>`pnpm test` | `current`    |
+| `MS-FOUNDATION-WET-INK-MOTION-SYSTEM-005` | `active` | `ui-only` | `lint`<br>`unit`                | tests/micro-specs/wet-ink-motion.test.ts                                                    | `components/loyalty/**`<br>`components/brand/**`<br>`components/customer/**`<br>`components/marketing/**` | `pnpm lint`<br>`pnpm test`                     | `current`    |
+| `MS-FOUNDATION-WET-INK-MOTION-SYSTEM-006` | `active` | `ui-only` | `typecheck`<br>`unit`           | tests/micro-specs/wet-ink-motion.test.ts                                                    | `lib/motion/**`<br>`app/globals.css`                                                                      | `pnpm typecheck`<br>`pnpm test`                | `current`    |
+
 ## MS-MERCHANT-AUTH-ONBOARDING-BUSINESS-PROFILE — Merchant Auth, Onboarding, and Business Profile
 
 | Field         | Value                                                                                                                                               |

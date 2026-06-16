@@ -315,6 +315,22 @@ describe("merchant customer readback logic", () => {
       expect(view.scanRewardId).toBeNull()
     })
 
+    it("shows the hashed phone line when email is present and only phone_last4 is stored", () => {
+      const view = buildMerchantCustomerReadback(
+        baseRow({
+          customer: {
+            email: "guest@example.test",
+            phone: null,
+            phone_last4: "6751",
+          },
+        }),
+        NOW
+      )
+
+      expect(view.identifier).toBe("g***@example.test")
+      expect(view.phoneLine).toBe("07 ··· ··· 51")
+    })
+
     it("hides the phone line for phone-only members to avoid duplicating the identifier", () => {
       const view = buildMerchantCustomerReadback(
         baseRow({

@@ -189,4 +189,34 @@ describe("merchant account hub micro-spec", () => {
       expect(activity).not.toContain('href: "/app/account?tab=settings"')
     })
   })
+
+  describe("Wet Ink account surfaces", () => {
+    it("keeps one stable Account frame and lifts pricing out of the swapping hero", () => {
+      const page = readProjectFile("app/app/account/page.tsx")
+
+      expect(page).toContain('title="Account"')
+      expect(page).not.toContain("Growth Plan")
+      expect(page).not.toContain("GBP 29")
+    })
+
+    it("states the plan price once on a Wet Ink receipt, not a stock shadcn card", () => {
+      const billingPanel = readProjectFile(
+        "components/merchant/account/billing-panel.tsx"
+      )
+
+      expect(billingPanel).toContain("ReceiptCard")
+      expect(billingPanel).not.toContain('from "@/components/ui/card"')
+      expect((billingPanel.match(/GBP 29/g) ?? []).length).toBe(1)
+    })
+
+    it("leads the profile tab with the customer preview as a strong Wet Ink surface", () => {
+      const profilePanel = readProjectFile(
+        "components/merchant/account/profile-panel.tsx"
+      )
+
+      expect(profilePanel).toContain("What customers see")
+      expect(profilePanel).toContain("surface-card")
+      expect(profilePanel).not.toContain("shadow-xs")
+    })
+  })
 })

@@ -25,6 +25,7 @@
     "customer-flow:reset": "node scripts/customer-flow-demo.mjs reset",
     "customer-flow:status": "node scripts/customer-flow-demo.mjs status",
     "customer-flow:advance": "node scripts/customer-flow-demo.mjs advance",
+    "customer-flow:remove-stamp": "node scripts/customer-flow-demo.mjs remove-stamp",
     "customer-flow:make-redeemable": "node scripts/customer-flow-demo.mjs make-redeemable",
     "customer-flow:capture": "playwright test tests/e2e/customer-flow-screenshots.spec.ts",
     "customer-flow:capture-mocks": "playwright test tests/e2e/customer-flow-harness-screenshots.spec.ts",

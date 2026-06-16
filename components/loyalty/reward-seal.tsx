@@ -6,6 +6,7 @@ import {
 } from "@hugeicons/core-free-icons"
 
 import { Icon, type IconGlyph } from "@/components/brand"
+import { WetInkPop } from "@/components/motion"
 import { cn } from "@/lib/utils"
 
 export type RewardSealState = "sealed" | "waiting" | "ready" | "redeemed"
@@ -67,28 +68,25 @@ export function RewardSeal({
   const leaf = state === "ready" || state === "redeemed"
 
   return (
-    <span
-      role="img"
-      aria-label={label ?? DEFAULT_LABEL[state]}
-      data-reward-seal={state}
-      style={
-        slammed
-          ? { animation: "w-pop 420ms var(--w-ease-slam) both" }
-          : undefined
-      }
-      className={cn(
-        "grid -rotate-6 place-items-center rounded-full border-2 border-ink font-extrabold shadow-xs",
-        SIZE[size],
-        leaf
-          ? "bg-reward text-reward-foreground"
-          : "bg-seal text-seal-foreground",
-        wiggle && state === "sealed"
-          ? "motion-safe:animate-[w-wiggle_2.6s_ease-in-out_infinite]"
-          : null,
-        className
-      )}
-    >
-      <Icon icon={GLYPH[state]} size={ICON_PX[size]} strokeWidth={2.25} />
-    </span>
+    <WetInkPop active={slammed} className="inline-grid">
+      <span
+        role="img"
+        aria-label={label ?? DEFAULT_LABEL[state]}
+        data-reward-seal={state}
+        className={cn(
+          "grid -rotate-6 place-items-center rounded-full border-2 border-ink font-extrabold shadow-xs",
+          SIZE[size],
+          leaf
+            ? "bg-reward text-reward-foreground"
+            : "bg-seal text-seal-foreground",
+          wiggle && state === "sealed"
+            ? "motion-safe:animate-[w-wiggle_2.6s_ease-in-out_infinite]"
+            : null,
+          className
+        )}
+      >
+        <Icon icon={GLYPH[state]} size={ICON_PX[size]} strokeWidth={2.25} />
+      </span>
+    </WetInkPop>
   )
 }

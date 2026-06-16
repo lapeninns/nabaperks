@@ -41,6 +41,10 @@ export default async function MerchantCustomersPage({
 
   const highlightedMembershipId = firstParam(params.highlight)
 
+  // Derived counts for at-a-glance stats — computed from masked data, no PII.
+  const readyCount = customers.filter((c) => c.badge.tone === "ready").length
+  const quietCount = customers.filter((c) => c.badge.tone === "quiet").length
+
   return (
     <div className="grid gap-6">
       <PageTitle
@@ -52,7 +56,9 @@ export default async function MerchantCustomersPage({
             <div className="flex flex-wrap items-center gap-2">
               <MonoTag tone="ink">
                 {customers.length}{" "}
-                {customers.length === 1 ? "member" : "members"} · Readback only
+                {customers.length === 1 ? "member" : "members"}
+                {readyCount > 0 ? ` · ${readyCount} ready to redeem` : ""}
+                {quietCount > 0 ? ` · ${quietCount} gone quiet` : ""}
               </MonoTag>
               <MonoTag tone="plain">Initials only · Phones stay hashed</MonoTag>
             </div>

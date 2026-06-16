@@ -12,7 +12,6 @@ import {
   shouldShowMerchantDashboardBillingNotice,
 } from "@/components/merchant/billing-status"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { getMerchantBilling } from "@/lib/merchant/billing"
 
@@ -20,8 +19,9 @@ const BILLING_PAGE_ERROR = "Billing details could not be loaded. Try again."
 
 /**
  * Billing tab of the Account hub. Self-loads the signed-in merchant and their
- * Stripe billing row, then stacks the plan facts, status, and actions in one
- * column. Stripe checkout/portal still happen through `/app/billing` actions.
+ * Stripe billing row, then states the plan once on a single Wet Ink receipt:
+ * the plan facts as receipt lines, the current status, and the two Stripe
+ * actions. Checkout/portal still happen through `/app/billing` actions.
  */
 export async function BillingPanel({
   params,
@@ -54,57 +54,30 @@ export async function BillingPanel({
         </p>
       ) : null}
 
-      <ReceiptCard className="grid gap-4">
+      <ReceiptCard edge className="grid gap-5">
         <SectionHeader
-          eyebrow="Plan"
-          title="30 days free, then GBP 29/month"
-          description="Checkout sets up your subscription securely with Stripe. Everything on this page updates by itself once you are set up."
+          eyebrow="Your plan"
+          title="Growth Plan"
+          description="Everything on this receipt updates by itself once your Stripe checkout is done."
         />
-        <div className="grid gap-3 sm:grid-cols-3">
-          <BillingFact label="Free trial" value="30 days" />
-          <BillingFact label="After that" value="GBP 29/month" />
-          <BillingFact label="Billed" value="Per location" />
-        </div>
-      </ReceiptCard>
 
-      {needsBillingAttention ? (
-        <MerchantBillingAccessNote status={status} />
-      ) : (
-        <p className="text-sm leading-6 text-muted-foreground">
-          {billing?.current_period_end
-            ? `Your current period ends ${formatDate(billing.current_period_end)}.`
-            : "Your billing period will show here once checkout is done."}
-        </p>
-      )}
+        <dl className="grid gap-0 text-sm">
+          <PlanRow label="Free trial" value="30 days" />
+          <PlanRow label="Then" value="GBP 29 / month" />
+          <PlanRow label="Billed" value="Per location" />
+        </dl>
 
-      <Card>
-        <CardHeader>
-          <p className="eyebrow">Payments</p>
-          <CardTitle className="text-2xl font-extrabold">
-            Start or manage billing
-          </CardTitle>
-        </CardHeader>
+        {needsBillingAttention ? (
+          <MerchantBillingAccessNote status={status} />
+        ) : (
+          <p className="text-sm leading-6 text-muted-foreground">
+            {billing?.current_period_end
+              ? `Your current period ends ${formatDate(billing.current_period_end)}.`
+              : "Your billing period will show here once checkout is done."}
+          </p>
+        )}
 
-        <CardContent className="grid gap-5">
-          <div className="grid gap-3 rounded-lg bg-secondary/60 p-4 text-sm text-secondary-foreground sm:grid-cols-2">
-            <div>
-              <p className="font-bold">Payment details</p>
-              <p className="text-muted-foreground">
-                {billing?.stripe_customer_id
-                  ? "Manage your card and invoices in the portal."
-                  : "Start checkout to set this up."}
-              </p>
-            </div>
-            <div>
-              <p className="font-bold">Subscription</p>
-              <p className="text-muted-foreground">
-                {billing?.stripe_subscription_id
-                  ? "Your subscription is set up."
-                  : "Not set up yet."}
-              </p>
-            </div>
-          </div>
-
+        <div className="grid gap-4 border-t-2 border-dashed border-ink/20 pt-5">
           <div className="flex flex-wrap gap-2">
             <form action={startCheckoutAction}>
               <Button type="submit">
@@ -123,17 +96,22 @@ export async function BillingPanel({
               </Button>
             </form>
           </div>
-        </CardContent>
-      </Card>
+          <p className="text-xs leading-5 text-muted-foreground">
+            {billing?.stripe_customer_id
+              ? "Manage your card and invoices in the Stripe portal."
+              : "Start checkout to add your card and set up the subscription."}
+          </p>
+        </div>
+      </ReceiptCard>
     </section>
   )
 }
 
-function BillingFact({ label, value }: { label: string; value: string }) {
+function PlanRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border bg-background p-4">
-      <p className="text-sm font-bold text-muted-foreground">{label}</p>
-      <p className="mt-2 text-lg font-extrabold">{value}</p>
+    <div className="flex items-center justify-between gap-4 border-b border-dashed border-ink/15 py-2.5 last:border-b-0">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="font-bold">{value}</dd>
     </div>
   )
 }

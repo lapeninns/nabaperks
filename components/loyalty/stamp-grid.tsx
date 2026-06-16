@@ -3,6 +3,7 @@ import { CheckmarkBadge04Icon } from "@hugeicons/core-free-icons"
 
 import { Icon } from "@/components/brand"
 import { deriveVenueInitials } from "@/components/brand/venue-mark"
+import { WetInkPop, WetInkSlam } from "@/components/motion"
 import { cn } from "@/lib/utils"
 
 import { RewardSeal, type RewardSealState } from "./reward-seal"
@@ -51,69 +52,66 @@ export function StampDot({
 
   return (
     <span className="grid justify-items-center gap-1">
-      <span
-        role="img"
-        aria-label={date && earned ? `${label}, ${date}` : label}
-        data-earned={earned}
-        data-stamp-earned={earned ? "true" : undefined}
-        data-compact={earned && compact ? "true" : undefined}
-        data-slammed={earned && slammed ? true : undefined}
-        style={
-          earned && slammed
-            ? { animation: "w-slam var(--w-dur-slam) var(--w-ease-slam) both" }
-            : undefined
-        }
-        className={cn(
-          "relative grid aspect-square w-full place-items-center overflow-hidden rounded-full border-2 transition-[background-color,border-color,transform] duration-[var(--duration-reveal)] ease-[var(--ease-stamp)] motion-reduce:transition-none",
-          compact ? "min-h-9" : "min-h-11",
-          earned
-            ? "border-ink bg-stamp text-stamp-foreground shadow-sm"
-            : "border-dashed border-border bg-background text-muted-foreground",
-          className
-        )}
-      >
-        {earned ? (
-          <span className="relative z-[1] flex flex-col items-center justify-center gap-px px-1">
-            {earnedInitials ? (
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "font-mono leading-none font-bold tracking-[0.02em] uppercase",
-                  compact ? "text-[0.69rem]" : "text-[0.81rem]"
-                )}
-              >
-                {earnedInitials}
-              </span>
-            ) : (
-              <Icon
-                icon={CheckmarkBadge04Icon}
-                size={compact ? 16 : 20}
-                strokeWidth={2.25}
-              />
-            )}
-            {dateText ? (
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "font-mono leading-none font-bold uppercase",
-                  compact
-                    ? "text-[0.44rem] tracking-[0.04em]"
-                    : "mt-px border-t border-stamp-foreground/40 pt-px text-[0.44rem] tracking-[0.09em]"
-                )}
-              >
-                {dateText}
-              </span>
-            ) : null}
-          </span>
-        ) : (
-          <span
-            aria-hidden="true"
-            className="text-base leading-none font-extrabold tabular-nums"
-          >
-            {emptyLabel}
-          </span>
-        )}
-      </span>
+      <WetInkSlam active={earned && slammed} className="block w-full">
+        <span
+          role="img"
+          aria-label={date && earned ? `${label}, ${date}` : label}
+          data-earned={earned}
+          data-stamp-earned={earned ? "true" : undefined}
+          data-compact={earned && compact ? "true" : undefined}
+          data-slammed={earned && slammed ? true : undefined}
+          className={cn(
+            "relative grid aspect-square w-full place-items-center overflow-hidden rounded-full border-2 transition-[background-color,border-color,transform] duration-[var(--duration-reveal)] ease-[var(--ease-stamp)] motion-reduce:transition-none",
+            compact ? "min-h-9" : "min-h-11",
+            earned
+              ? "border-ink bg-stamp text-stamp-foreground shadow-sm"
+              : "border-dashed border-border bg-background text-muted-foreground",
+            className
+          )}
+        >
+          {earned ? (
+            <span className="relative z-[1] flex flex-col items-center justify-center gap-px px-1">
+              {earnedInitials ? (
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "font-mono leading-none font-bold tracking-[0.02em] uppercase",
+                    compact ? "text-[0.69rem]" : "text-[0.81rem]"
+                  )}
+                >
+                  {earnedInitials}
+                </span>
+              ) : (
+                <Icon
+                  icon={CheckmarkBadge04Icon}
+                  size={compact ? 16 : 20}
+                  strokeWidth={2.25}
+                />
+              )}
+              {dateText ? (
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "font-mono leading-none font-bold uppercase",
+                    compact
+                      ? "text-[0.44rem] tracking-[0.04em]"
+                      : "mt-px border-t border-stamp-foreground/40 pt-px text-[0.44rem] tracking-[0.09em]"
+                  )}
+                >
+                  {dateText}
+                </span>
+              ) : null}
+            </span>
+          ) : (
+            <span
+              aria-hidden="true"
+              className="text-base leading-none font-extrabold tabular-nums"
+            >
+              {emptyLabel}
+            </span>
+          )}
+        </span>
+      </WetInkSlam>
     </span>
   )
 }
@@ -154,29 +152,26 @@ export function RewardChip({
 
   return (
     <span className={cn("grid justify-items-center gap-1", className)}>
-      <span
-        data-reward-slot={slotState}
-        data-slammed={slammed ? true : undefined}
-        style={
-          slammed
-            ? { animation: "w-pop 420ms var(--w-ease-slam) both" }
-            : undefined
-        }
-        className={cn(
-          "grid aspect-square w-full -rotate-6 place-items-center rounded-md border-2 shadow-xs",
-          compact ? "min-h-9" : "min-h-11",
-          ready
-            ? "border-ink bg-reward/15"
-            : "border-dashed border-ink/40 bg-seal/15"
-        )}
-      >
-        <RewardSeal
-          state={sealState}
-          size="sm"
-          label={`${label}, ${ready ? "ready for merchant scan" : "sealed"}`}
-          wiggle={placeholder && slotState === "locked"}
-        />
-      </span>
+      <WetInkPop active={slammed} className="block w-full">
+        <span
+          data-reward-slot={slotState}
+          data-slammed={slammed ? true : undefined}
+          className={cn(
+            "grid aspect-square w-full -rotate-6 place-items-center rounded-md border-2 shadow-xs",
+            compact ? "min-h-9" : "min-h-11",
+            ready
+              ? "border-ink bg-reward/15"
+              : "border-dashed border-ink/40 bg-seal/15"
+          )}
+        >
+          <RewardSeal
+            state={sealState}
+            size="sm"
+            label={`${label}, ${ready ? "ready for merchant scan" : "sealed"}`}
+            wiggle={placeholder && slotState === "locked"}
+          />
+        </span>
+      </WetInkPop>
       <span className="font-mono text-[0.55rem] font-bold tracking-[0.06em] text-muted-foreground uppercase">
         {ready ? "Ready" : "Reward"}
       </span>

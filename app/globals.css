@@ -182,6 +182,7 @@
   --w-dur-press: 90ms;
   --w-dur-move: 320ms;
   --w-dur-slam: 380ms;
+  --w-dur-shake: 300ms;
   --w-mo: 1;
 }
 
@@ -517,7 +518,8 @@ body[data-grain="true"]::after {
   inset: 5px;
   border-radius: 50%;
   pointer-events: none;
-  border: 1px solid color-mix(in oklch, var(--stamp-foreground) 50%, transparent);
+  border: 1px solid
+    color-mix(in oklch, var(--stamp-foreground) 50%, transparent);
 }
 
 /* Compact discs (≈36px) shed the perforation and tighten the inner ring so the

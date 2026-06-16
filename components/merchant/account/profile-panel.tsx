@@ -1,6 +1,9 @@
+import Link from "next/link"
 import { redirect } from "next/navigation"
 
-import { SectionHeader } from "@/components/brand"
+import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
+
+import { Icon } from "@/components/brand"
 import { MerchantProfileForm } from "@/components/merchant/profile-form"
 import { getMerchantProfile } from "@/lib/merchant/profile"
 import {
@@ -9,9 +12,9 @@ import {
 } from "@/lib/merchant/venue-address"
 
 /**
- * Profile tab of the Account hub. Self-loads the signed-in merchant and its
- * primary venue, shows a read-only "what customers see" preview strip, then the
- * grouped business/venue edit form.
+ * Profile tab of the Account hub. Leads with the read-only "what customers see"
+ * card (the venue, which is edited in Launch), then the business/account edit
+ * form. Venue editing is intentionally a link to Launch, not a second form.
  */
 export async function ProfilePanel() {
   const profile = await getMerchantProfile()
@@ -37,36 +40,36 @@ export async function ProfilePanel() {
   })
 
   return (
-    <section className="grid gap-4">
-      <SectionHeader
-        title="Business details"
-        description="These details appear on your loyalty materials and to our support team."
-      />
-
-      <section className="surface-card grid gap-1 p-4 shadow-xs">
+    <section className="grid gap-5">
+      <section className="surface-card grid gap-3 p-5">
         <p className="eyebrow">What customers see</p>
-        <p className="text-lg font-extrabold">
+        <p className="text-2xl leading-tight font-extrabold">
           {profile.location?.name || profile.merchant.business_name}
         </p>
         <p className="text-sm leading-6 text-muted-foreground">
           {venueAddressDisplay ||
-            "Add your venue address below so customers can find you."}
+            "Add your venue address in Launch so customers can find you."}
         </p>
+        <Link
+          href="/app/launch?tab=venue"
+          className="mt-1 inline-flex w-fit items-center gap-1.5 text-sm font-bold text-ink underline decoration-2 underline-offset-4 transition-colors hover:text-primary"
+        >
+          Edit venue details
+          <Icon icon={ArrowRight01Icon} size={15} />
+        </Link>
       </section>
 
-      <div className="grid max-w-2xl gap-3">
+      <div className="grid gap-3">
         <MerchantProfileForm
           businessName={profile.merchant.business_name}
           businessType={profile.merchant.business_type}
           email={profile.merchant.email}
           phone={profile.merchant.phone ?? ""}
-          venueName={profile.location?.name ?? ""}
-          {...addressFields}
         />
         <p className="text-sm leading-6 text-muted-foreground">
-          Customers see your venue display name and address when they join and
-          collect stamps. Your business name and contact details stay on your
-          account for billing and support.
+          Your business name and contact details stay on your account for
+          billing and support. Your venue name and address — what customers see
+          when they join — are managed in Launch.
         </p>
       </div>
     </section>

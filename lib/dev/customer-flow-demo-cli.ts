@@ -81,5 +81,6 @@ Usage:
   pnpm customer-flow:reset --phone 07467586751
   pnpm customer-flow:status --phone 07467586751 [--json]
   pnpm customer-flow:advance --phone 07467586751 --stamps 1
+  pnpm customer-flow:remove-stamp --phone 07467586751
   pnpm customer-flow:make-redeemable --phone 07467586751`
 }

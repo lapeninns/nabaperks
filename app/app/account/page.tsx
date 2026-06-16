@@ -6,16 +6,12 @@ import { ProfilePanel } from "@/components/merchant/account/profile-panel"
 
 export const dynamic = "force-dynamic"
 
-const TAB_HEADINGS = {
-  profile: {
-    title: "Your business",
-    description:
-      "Keep your business and venue details up to date. Changes save straight away.",
-  },
-  billing: {
-    title: "Growth Plan",
-    description: "First 30 days free, then GBP 29/month for each location.",
-  },
+// One stable "Account" frame; only the subtitle changes per tab, so switching
+// tabs no longer swaps the whole hero. Pricing lives once, on the billing
+// receipt — not here.
+const TAB_SUBTITLE = {
+  profile: "Your business and venue details. Changes save as you go.",
+  billing: "Your plan and payments, handled securely by Stripe.",
 } as const
 
 type AccountPageProps = {
@@ -29,15 +25,10 @@ type AccountPageProps = {
 export default async function AccountPage({ searchParams }: AccountPageProps) {
   const params = await searchParams
   const tab = resolveAccountTab(params.tab)
-  const heading = TAB_HEADINGS[tab]
 
   return (
     <div className="grid gap-6">
-      <PageTitle
-        eyebrow="Account"
-        title={heading.title}
-        description={heading.description}
-      />
+      <PageTitle title="Account" description={TAB_SUBTITLE[tab]} />
 
       <AccountTabBar activeTab={tab} />
 

@@ -57,16 +57,13 @@ const sampleProfile = {
   },
 }
 
+// Venue name/address are edited solely in Launch -> Your venue now, so the
+// profile form only carries the business/account identity fields.
 const validEdits = {
   businessName: "New Cafe",
   businessType: "dessert",
   email: "new@example.test",
   phone: "+44 20 7946 0000",
-  venueName: "New Venue",
-  addressLine1: "1 High Street",
-  addressLine2: "",
-  addressCity: "London",
-  addressPostcode: "E1 6AN",
 }
 
 describe("merchant profile micro-spec", () => {
@@ -134,7 +131,7 @@ describe("merchant profile micro-spec", () => {
     await expect(getMerchantProfile()).resolves.toBeNull()
   })
 
-  it("shows current profile values in the profile panel", async () => {
+  it("shows business identity in the form and the venue read-only", async () => {
     vi.resetModules()
     const MerchantProfileForm = vi.fn(() => null)
     vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
@@ -166,12 +163,10 @@ describe("merchant profile micro-spec", () => {
       businessType: "pub",
       email: "hi@thebell.test",
       phone: "+441234567890",
-      venueName: "Main bar",
-      addressLine1: "1 High St",
-      addressLine2: "",
-      addressCity: "",
-      addressPostcode: "",
     })
+    // Venue is no longer editable here — the form must not own it.
+    expect(formElement?.props).not.toHaveProperty("venueName")
+    expect(formElement?.props).not.toHaveProperty("addressLine1")
   })
 
   it("redirects to onboarding when the merchant has no profile yet", async () => {
@@ -189,25 +184,18 @@ describe("merchant profile micro-spec", () => {
     )
   })
 
-  it("persists valid edits and records a profile-update event with changed fields", async () => {
+  it("persists business edits, leaves the venue untouched, and records changed fields", async () => {
     vi.resetModules()
     const revalidatePath = vi.fn()
     const recordProductEvent = vi.fn()
     const supabase = createSupabaseMock({
       from: {
         merchants: [{ data: null, error: null }],
-        merchant_locations: [{ data: null, error: null }],
       },
     })
     vi.doMock("next/cache", () => ({ revalidatePath }))
     vi.doMock("@/lib/merchant/profile", () => ({
       getMerchantProfile: vi.fn(async () => sampleProfile),
-    }))
-    vi.doMock("@/lib/merchant/geocode", () => ({
-      geocodeAddress: vi.fn(async () => ({
-        latitude: 51.52,
-        longitude: -0.07,
-      })),
     }))
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServerClient: vi.fn(async () => supabase.client),
@@ -237,41 +225,29 @@ describe("merchant profile micro-spec", () => {
       method: "eq",
       args: ["id", "merchant-1"],
     })
-    expect(supabase.queryCalls).toContainEqual({
-      table: "merchant_locations",
-      method: "update",
-      args: [
-        expect.objectContaining({
-          name: "New Venue",
-          address: "1 High Street, London, E1 6AN",
-          address_line_1: "1 High Street",
-          address_city: "London",
-          address_postcode: "E1 6AN",
-          address_country: "GB",
-          address_source: "manual_entry",
-          latitude: 51.52,
-          longitude: -0.07,
-        }),
-      ],
-    })
-    expect(recordProductEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        eventName: "merchant_profile_updated",
-        merchantId: "merchant-1",
-        actorType: "merchant",
-        actorId: "user-1",
-        metadata: expect.objectContaining({
-          changed_fields: expect.arrayContaining([
-            "business_name",
-            "business_type",
-            "email",
-            "phone",
-            "location_name",
-            "location_address",
-          ]),
-        }),
-      })
+    // The profile action never writes the venue row — that is Launch's job.
+    const locationWrites = supabase.queryCalls.filter(
+      (call) => call.table === "merchant_locations"
     )
+    expect(locationWrites).toHaveLength(0)
+
+    const event = recordProductEvent.mock.calls[0]?.[0]
+    expect(event).toMatchObject({
+      eventName: "merchant_profile_updated",
+      merchantId: "merchant-1",
+      actorType: "merchant",
+      actorId: "user-1",
+    })
+    expect(event.metadata.changed_fields).toEqual(
+      expect.arrayContaining([
+        "business_name",
+        "business_type",
+        "email",
+        "phone",
+      ])
+    )
+    expect(event.metadata.changed_fields).not.toContain("location_name")
+    expect(event.metadata.changed_fields).not.toContain("location_address")
     expect(revalidatePath).toHaveBeenCalledWith("/app/account")
     expect(revalidatePath).toHaveBeenCalledWith("/app/profile")
   })
@@ -297,11 +273,6 @@ describe("merchant profile micro-spec", () => {
           businessType: "spaceship",
           email: "not-an-email",
           phone: "abc",
-          venueName: "",
-          addressLine1: "",
-          addressLine2: "",
-          addressCity: "",
-          addressPostcode: "",
         })
       )
     ).resolves.toMatchObject({
@@ -310,21 +281,12 @@ describe("merchant profile micro-spec", () => {
         businessType: "spaceship",
         email: "not-an-email",
         phone: "abc",
-        venueName: "",
-        addressLine1: "",
-        addressLine2: "",
-        addressCity: "",
-        addressPostcode: "",
       },
       errors: {
         businessName: "Enter the business name.",
         businessType: "Choose a business type.",
         email: "Enter a valid contact email.",
         phone: "Enter a valid phone number.",
-        venueName: "Enter your venue name.",
-        addressLine1: "Enter the first line of the address.",
-        addressCity: "Enter the town or city.",
-        addressPostcode: "Enter the postcode.",
       },
     })
     expect(createSupabaseServerClient).not.toHaveBeenCalled()
@@ -367,12 +329,6 @@ describe("merchant profile micro-spec", () => {
     vi.doMock("@/lib/merchant/profile", () => ({
       getMerchantProfile: vi.fn(async () => sampleProfile),
     }))
-    vi.doMock("@/lib/merchant/geocode", () => ({
-      geocodeAddress: vi.fn(async () => ({
-        latitude: 51.52,
-        longitude: -0.07,
-      })),
-    }))
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServerClient: vi.fn(async () => supabase.client),
     }))
@@ -392,30 +348,16 @@ describe("merchant profile micro-spec", () => {
 
   it("keeps profile form field names, status banners, and a disabled submit", () => {
     const profileForm = readProjectFile("components/merchant/profile-form.tsx")
-    const addressFields = readProjectFile(
-      "components/merchant/venue-address-fields.tsx"
-    )
 
     for (const fieldName of [
       "businessName",
       "businessType",
       "email",
       "phone",
-      "venueName",
     ]) {
       expect(profileForm).toContain(`name="${fieldName}"`)
     }
 
-    for (const fieldName of [
-      "addressLine1",
-      "addressLine2",
-      "addressCity",
-      "addressPostcode",
-    ]) {
-      expect(addressFields).toContain(`name="${fieldName}"`)
-    }
-
-    expect(profileForm).toContain("VenueAddressFields")
     expect(profileForm).toContain("disabled={pending}")
     expect(profileForm).toContain("Save changes")
     expect(profileForm).toContain("Saving")
@@ -428,19 +370,19 @@ describe("merchant profile micro-spec", () => {
     expect(shell).not.toContain('href: "/app/profile"')
   })
 
-  it("wires a manual venue address field into the profile form", () => {
+  it("moves venue editing out of the profile form and over to Launch", () => {
     const profileForm = readProjectFile("components/merchant/profile-form.tsx")
+    const profilePanel = readProjectFile(
+      "components/merchant/account/profile-panel.tsx"
+    )
 
-    expect(profileForm).toContain("VenueAddressFields")
-    for (const fieldName of [
-      "businessName",
-      "businessType",
-      "email",
-      "phone",
-      "venueName",
-    ]) {
-      expect(profileForm).toContain(`name="${fieldName}"`)
-    }
+    // The form no longer owns the venue — no duplicate editor.
+    expect(profileForm).not.toContain("VenueAddressFields")
+    expect(profileForm).not.toContain('name="venueName"')
     expect(profileForm).not.toContain('name="address"')
+
+    // The panel shows the venue read-only and sends edits to the single editor.
+    expect(profilePanel).toContain("What customers see")
+    expect(profilePanel).toContain("/app/launch?tab=venue")
   })
 })

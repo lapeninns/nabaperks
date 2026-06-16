@@ -45,12 +45,15 @@ describe("earned stamp — Penny Post redesign", () => {
     }
   })
 
-  it("lands the slam animation on the slot's own tilt", () => {
-    const c = css()
-    const start = c.indexOf("@keyframes w-slam")
-    const next = c.indexOf("@keyframes", start + 1)
-    const slam = c.slice(start, next === -1 ? undefined : next)
-    expect(slam).toContain("rotate(var(--stamp-rot")
+  it("lands the slam animation on the slot's own tilt via WetInkSlam", () => {
+    const g = grid()
+    // After Framer Motion migration: StampDot is wrapped in WetInkSlam or uses
+    // the slam animation via motion primitives. The component passes --stamp-rot
+    // as the final rotation value.
+    expect(g).toContain("slammed")
+    expect(g).toContain("--stamp-rot")
+    // Verify the slot container seeds the rotation variable so WetInkSlam can read it
+    expect(g).toContain('--stamp-rot": STAMP_TILTS')
   })
 
   it("sheds detail when compact: no perforation, date collapses to the day number", () => {

@@ -13,6 +13,7 @@ export const CUSTOMER_FLOW_COMMANDS = [
   "reset",
   "status",
   "advance",
+  "remove-stamp",
   "make-redeemable",
 ] as const
 
@@ -62,9 +63,17 @@ export type CustomerFlowRewardRow = {
   readonly redeemable_from: string | null
 }
 
+export type RemoveStampResult = {
+  readonly phone: string
+  readonly membershipId: string
+  readonly currentStampCount: number
+  readonly cancelledRewards: number
+  readonly message: string
+}
+
 export type CustomerFlowCommandInput =
   | {
-      readonly command: "reset" | "status" | "make-redeemable"
+      readonly command: "reset" | "status" | "make-redeemable" | "remove-stamp"
       readonly phone: string
     }
   | {
@@ -103,6 +112,7 @@ export type CustomerFlowCommandResult =
   | CustomerFlowStatus
   | ResetResult
   | AdvanceResult
+  | RemoveStampResult
   | MakeRedeemableResult
 
 export function normalizeDemoPhone(raw: string): string {

@@ -197,7 +197,9 @@ export function buildMerchantCustomerReadback(
   // The supplementary hashed phone line only adds signal when the identifier is
   // the email; for phone-only members it would just echo "Phone ending …".
   const phoneLine =
-    identity.email && identity.phone ? formatHashedPhoneLine(identity) : null
+    identity.email && (identity.phone || identity.phoneLast4)
+      ? formatHashedPhoneLine(identity)
+      : null
 
   return {
     id: row.id,

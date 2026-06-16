@@ -1,3 +1,4 @@
+import { WetInkMarquee } from "@/components/motion"
 import { cn } from "@/lib/utils"
 
 const DEFAULT_ITEMS = [
@@ -45,13 +46,10 @@ export function Marquee({
         className
       )}
     >
-      <div
-        className="flex w-max"
-        style={{ animation: "w-marquee 26s linear infinite" }}
-      >
+      <WetInkMarquee className="flex w-max">
         {strip}
         {strip}
-      </div>
+      </WetInkMarquee>
     </div>
   )
 }

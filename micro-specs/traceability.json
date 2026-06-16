@@ -3192,6 +3192,170 @@
       }
     },
     {
+      "spec_id": "MS-FOUNDATION-WET-INK-MOTION-SYSTEM",
+      "title": "Wet Ink Motion System — Framer Motion Library Consolidation",
+      "source_path": "micro-specs/01-foundation/03-wet-ink-motion-system.md",
+      "status": "active",
+      "risk_class": "ui-only",
+      "owner": "factory-droid",
+      "last_reviewed": "2026-06-16",
+      "allowed_blast_radius": [
+        "app/globals.css",
+        "app/dev/design-system/**",
+        "components/motion/**",
+        "components/loyalty/**",
+        "components/brand/receipt-card.tsx",
+        "components/customer/**",
+        "components/marketing/marquee.tsx",
+        "lib/motion/**",
+        "micro-specs/01-foundation/03-wet-ink-motion-system.md",
+        "micro-specs/TRACEABILITY.md",
+        "micro-specs/traceability.json",
+        "DESIGN.md",
+        "AGENTS.md",
+        "tests/micro-specs/wet-ink-motion.test.ts",
+        "tests/micro-specs/earned-stamp-redesign.test.ts",
+        "tests/e2e/design-system-catalog.spec.ts"
+      ],
+      "implementation_surfaces": [
+        "components/motion/**",
+        "components/loyalty/**",
+        "components/brand/**",
+        "components/customer/**",
+        "components/marketing/**",
+        "lib/motion/**",
+        "app/globals.css",
+        "app/dev/design-system/**"
+      ],
+      "related_docs": ["DESIGN.md", "micro-specs/GLOBAL_CONTEXT.md"],
+      "related_tests": [
+        "tests/micro-specs/wet-ink-motion.test.ts",
+        "tests/micro-specs/earned-stamp-redesign.test.ts",
+        "tests/micro-specs/customer-flow-redesign.test.ts"
+      ],
+      "verification_gates": [
+        "pnpm lint",
+        "pnpm typecheck",
+        "pnpm test",
+        "npx playwright test"
+      ],
+      "approved_exceptions": [],
+      "change_state": "current",
+      "status_evidence": [
+        "New specification for Wet Ink motion system design completion.",
+        "Framer Motion library consolidation of all choreographed motion.",
+        "No superseding Micro-Spec replaces this intent."
+      ],
+      "supersession": {
+        "state": "not_superseded",
+        "superseded_by": null,
+        "rationale": "New specification; no prior motion system spec to supersede."
+      },
+      "requirements": [
+        {
+          "requirement_id": "MS-FOUNDATION-WET-INK-MOTION-SYSTEM-001",
+          "summary": "WHEN useReducedMotion() returns true, THE component renders static children with no transform animation.",
+          "status": "active",
+          "risk_class": "ui-only",
+          "gates": ["pnpm test", "npx playwright test"],
+          "verification_commands": ["pnpm test", "npx playwright test"],
+          "required_test_tier": ["unit", "browser"],
+          "evidence": ["tests/micro-specs/wet-ink-motion.test.ts"],
+          "related_tests": ["tests/micro-specs/wet-ink-motion.test.ts"],
+          "implementation_surfaces": ["components/motion/**"],
+          "manual_rationale": [],
+          "change_state": "current"
+        },
+        {
+          "requirement_id": "MS-FOUNDATION-WET-INK-MOTION-SYSTEM-002",
+          "summary": "WHEN StampDot earns with slammed=true, THEN WetInkSlam runs 380ms and lands on --stamp-rot.",
+          "status": "active",
+          "risk_class": "ui-only",
+          "gates": ["pnpm test", "npx playwright test"],
+          "verification_commands": ["pnpm test", "npx playwright test"],
+          "required_test_tier": ["unit", "browser"],
+          "evidence": [
+            "tests/micro-specs/wet-ink-motion.test.ts",
+            "tests/micro-specs/earned-stamp-redesign.test.ts"
+          ],
+          "related_tests": [
+            "tests/micro-specs/wet-ink-motion.test.ts",
+            "tests/micro-specs/earned-stamp-redesign.test.ts"
+          ],
+          "implementation_surfaces": [
+            "components/motion/**",
+            "components/loyalty/**"
+          ],
+          "manual_rationale": [],
+          "change_state": "current"
+        },
+        {
+          "requirement_id": "MS-FOUNDATION-WET-INK-MOTION-SYSTEM-003",
+          "summary": "WHEN a stamp slams, THEN the receipt may optionally run WetInkShake for 300ms via StampSlamSequence.",
+          "status": "active",
+          "risk_class": "ui-only",
+          "gates": ["pnpm test"],
+          "verification_commands": ["pnpm test"],
+          "required_test_tier": ["unit"],
+          "evidence": ["tests/micro-specs/wet-ink-motion.test.ts"],
+          "related_tests": ["tests/micro-specs/wet-ink-motion.test.ts"],
+          "implementation_surfaces": [
+            "components/motion/**",
+            "components/brand/**"
+          ],
+          "manual_rationale": [],
+          "change_state": "current"
+        },
+        {
+          "requirement_id": "MS-FOUNDATION-WET-INK-MOTION-SYSTEM-004",
+          "summary": "WHEN the motion library is imported, THEN all nine WetInk* exports + StampSlamSequence are available.",
+          "status": "active",
+          "risk_class": "ui-only",
+          "gates": ["pnpm lint", "pnpm typecheck", "pnpm test"],
+          "verification_commands": ["pnpm lint", "pnpm typecheck", "pnpm test"],
+          "required_test_tier": ["lint", "typecheck", "unit"],
+          "evidence": ["tests/micro-specs/wet-ink-motion.test.ts"],
+          "related_tests": ["tests/micro-specs/wet-ink-motion.test.ts"],
+          "implementation_surfaces": ["components/motion/**"],
+          "manual_rationale": [],
+          "change_state": "current"
+        },
+        {
+          "requirement_id": "MS-FOUNDATION-WET-INK-MOTION-SYSTEM-005",
+          "summary": "WHEN loyalty/brand/customer components animate, THEN they use motion primitives; no inline animation: w-* strings remain.",
+          "status": "active",
+          "risk_class": "ui-only",
+          "gates": ["pnpm lint", "pnpm test"],
+          "verification_commands": ["pnpm lint", "pnpm test"],
+          "required_test_tier": ["lint", "unit"],
+          "evidence": ["tests/micro-specs/wet-ink-motion.test.ts"],
+          "related_tests": ["tests/micro-specs/wet-ink-motion.test.ts"],
+          "implementation_surfaces": [
+            "components/loyalty/**",
+            "components/brand/**",
+            "components/customer/**",
+            "components/marketing/**"
+          ],
+          "manual_rationale": [],
+          "change_state": "current"
+        },
+        {
+          "requirement_id": "MS-FOUNDATION-WET-INK-MOTION-SYSTEM-006",
+          "summary": "WHEN lib/motion/tokens.ts is imported or --w-dur-shake is read, THEN durations/easings are available; --w-dur-shake = 300ms.",
+          "status": "active",
+          "risk_class": "ui-only",
+          "gates": ["pnpm typecheck", "pnpm test"],
+          "verification_commands": ["pnpm typecheck", "pnpm test"],
+          "required_test_tier": ["typecheck", "unit"],
+          "evidence": ["tests/micro-specs/wet-ink-motion.test.ts"],
+          "related_tests": ["tests/micro-specs/wet-ink-motion.test.ts"],
+          "implementation_surfaces": ["lib/motion/**", "app/globals.css"],
+          "manual_rationale": [],
+          "change_state": "current"
+        }
+      ]
+    },
+    {
       "spec_id": "MS-MERCHANT-AUTH-ONBOARDING-BUSINESS-PROFILE",
       "title": "Merchant Auth, Onboarding, and Business Profile",
       "source_path": "micro-specs/02-merchant/01-merchant-auth-onboarding-and-business-profile.md",

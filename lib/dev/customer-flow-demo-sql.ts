@@ -12,6 +12,7 @@ import {
   type CustomerFlowStatus,
   type CustomerFlowStatusRow,
   type MakeRedeemableResult,
+  type RemoveStampResult,
   type ResetResult,
   type StampEventRow,
 } from "./customer-flow-demo-types.ts"
@@ -32,6 +33,8 @@ export async function runCustomerFlowSqlCommand(
       return advanceCustomer(sql, input.phone, phoneHmac, input.stamps)
     case "make-redeemable":
       return makeRedeemable(sql, input.phone, phoneHmac)
+    case "remove-stamp":
+      return removeStamp(sql, input.phone, phoneHmac)
     default:
       return assertNever(input)
   }
@@ -174,6 +177,77 @@ async function makeRedeemable(
     membershipId: status.membershipId,
     rewardId,
     message: "Reward made redeemable.",
+  }
+}
+
+async function removeStamp(
+  sql: CustomerFlowSql,
+  phone: string,
+  phoneHmac: string
+): Promise<RemoveStampResult> {
+  const status = await getStatus(sql, phone, phoneHmac)
+
+  if (!status.membershipId) {
+    throw new CustomerFlowDemoError(
+      "Customer membership does not exist. Run the join phase first."
+    )
+  }
+
+  if (status.currentStampCount <= 0) {
+    throw new CustomerFlowDemoError("Customer has no stamps to remove.")
+  }
+
+  const membershipId = status.membershipId
+
+  const result = await sql.begin(async (tx) => {
+    const deleted = await tx`
+      delete from public.stamp_events
+      where id = (
+        select id
+        from public.stamp_events
+        where membership_id = ${membershipId}
+          and event_type = 'earned'
+        order by created_at desc, id desc
+        limit 1
+      )
+      returning id
+    `
+
+    const updated = await tx<{ current_stamp_count: number }[]>`
+      update public.customer_memberships
+      set
+        current_stamp_count = greatest(current_stamp_count - 1, 0),
+        total_stamps_earned = greatest(total_stamps_earned - 1, 0),
+        updated_at = now()
+      where id = ${membershipId}
+      returning current_stamp_count
+    `
+
+    const cancelled = await tx`
+      update public.reward_events
+      set status = 'cancelled', updated_at = now()
+      where membership_id = ${membershipId}
+        and status = 'unlocked'
+      returning id
+    `
+
+    return {
+      deletedCount: deleted.length,
+      currentStampCount: updated[0]?.current_stamp_count ?? 0,
+      cancelledRewards: cancelled.length,
+    }
+  })
+
+  if (result.deletedCount === 0) {
+    throw new CustomerFlowDemoError("No earned stamp row found to remove.")
+  }
+
+  return {
+    phone,
+    membershipId,
+    currentStampCount: result.currentStampCount,
+    cancelledRewards: result.cancelledRewards,
+    message: "One stamp removed.",
   }
 }
 
