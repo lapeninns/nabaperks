@@ -63,6 +63,56 @@ describe("performance RPC consolidation", () => {
     expect(supabase.queryCalls).toEqual([])
   })
 
+  it("falls back to table count queries when the dashboard metrics RPC is missing", async () => {
+    vi.resetModules()
+    const supabase = createSupabaseMock({
+      rpc: {
+        get_merchant_dashboard_metrics: [
+          {
+            data: null,
+            error: {
+              code: "PGRST202",
+              message:
+                "Could not find the function public.get_merchant_dashboard_metrics(target_merchant_id) in the schema cache",
+            },
+          },
+        ],
+      },
+      from: {
+        customer_memberships: [
+          { count: 10, error: null },
+          { count: 2, error: null },
+          { count: 4, error: null },
+        ],
+        stamp_events: [{ count: 18, error: null }],
+        reward_events: [{ count: 3, error: null }],
+        product_events: [{ count: 5, error: null }],
+        billing_customers: [{ data: { status: "active" }, error: null }],
+      },
+    })
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
+    }))
+    const { getMerchantDashboardData } =
+      await import("@/lib/merchant/dashboard")
+
+    await expect(getMerchantDashboardData(MERCHANT)).resolves.toMatchObject({
+      metrics: {
+        members: 10,
+        newMembers: 2,
+        stampsIssued: 18,
+        repeatCustomers: 4,
+        rewardsRedeemed: 3,
+        qrDownloads: 5,
+        estimatedRepeatRevenuePence: 4800,
+      },
+      billingStatus: "active",
+    })
+
+    expect(supabase.rpcCalls).toHaveLength(1)
+    expect(supabase.queryCalls.length).toBeGreaterThan(0)
+  })
+
   it("loads pilot funnel event counts from one product-event RPC", async () => {
     // Given: product event counts are available as one grouped RPC response.
     vi.resetModules()

@@ -53,16 +53,16 @@ export async function QrPanel({ params }: { params: QrPanelParams }) {
           description={
             <>
               This creates one app-controlled customer entry QR for{" "}
-              <strong>{activeCard.card_name}</strong>. Add at least one active
-              mystery reward before launch.
+              <strong>{activeCard.card_name}</strong>. Add at least 3 active
+              mystery rewards before launch.
             </>
           }
           titleClassName="sm:text-3xl"
         />
         <QrErrorBanner error={params.error} />
-        {activeRewardPoolItemCount < 1 ? (
-          <StatusBanner tone="warning" title="Add a reward before launch.">
-            The QR stays blocked until at least one active mystery reward is in
+        {activeRewardPoolItemCount < 3 ? (
+          <StatusBanner tone="warning" title="Add 3 rewards before launch.">
+            The QR stays blocked until at least 3 active mystery rewards are in
             the pool.{" "}
             <Link
               href="/app/launch?tab=card"
@@ -74,7 +74,7 @@ export async function QrPanel({ params }: { params: QrPanelParams }) {
           </StatusBanner>
         ) : null}
         <form action={generateQrCodeAction} className="flex flex-wrap gap-2">
-          <Button type="submit" disabled={activeRewardPoolItemCount < 1}>
+          <Button type="submit" disabled={activeRewardPoolItemCount < 3}>
             Generate QR
           </Button>
           <Button asChild variant="outline">
@@ -306,7 +306,7 @@ function QrErrorBanner({ error }: { error?: string }) {
   if (!error) return null
 
   const message =
-    error === "Add at least one active mystery reward before launching the QR."
+    error === "Add at least 3 active mystery rewards before launching the QR."
       ? error
       : error === "Unable to update QR"
         ? "Unable to update QR. Check the QR status and try again."

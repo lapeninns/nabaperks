@@ -74,10 +74,10 @@ export function buildLaunchReadiness({
       tab: "card",
       label: "Rewards loaded",
       summary:
-        activeRewardPoolItemCount > 0
-          ? `${activeRewardPoolItemCount} active mystery reward${activeRewardPoolItemCount === 1 ? "" : "s"}`
-          : "Add at least one active reward to reveal.",
-      ready: activeRewardPoolItemCount > 0,
+        activeRewardPoolItemCount >= 3
+          ? `${activeRewardPoolItemCount} active mystery rewards`
+          : `Add ${3 - activeRewardPoolItemCount} more active reward${3 - activeRewardPoolItemCount === 1 ? "" : "s"} to reach 3.`,
+      ready: activeRewardPoolItemCount >= 3,
       href: "/app/launch?tab=card",
       actionLabel: "Add reward",
     },

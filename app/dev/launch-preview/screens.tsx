@@ -174,7 +174,10 @@ function MockVenuePanel() {
       <VenueLocationForm
         initialValues={{
           venueName: LAUNCH_PREVIEW_MOCK.locationName,
-          address: LAUNCH_PREVIEW_MOCK.address,
+          addressLine1: "1 High Street",
+          addressLine2: "",
+          addressCity: "London",
+          addressPostcode: "E1 6AN",
           geofenceRadiusMeters: "150",
           requireGeofence: false,
         }}

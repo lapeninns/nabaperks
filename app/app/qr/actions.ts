@@ -7,7 +7,7 @@ import { getQrSetup } from "@/lib/merchant/qr-code"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 const QR_REWARD_POOL_ERROR =
-  "Add at least one active mystery reward before launching the QR."
+  "Add at least 3 active mystery rewards before launching the QR."
 const QR_CREATE_ERROR = "Unable to create QR"
 const QR_UPDATE_ERROR = "Unable to update QR"
 
@@ -22,7 +22,7 @@ export async function generateQrCodeAction() {
     redirect("/app/launch?tab=card")
   }
 
-  if (activeRewardPoolItemCount < 1) {
+  if (activeRewardPoolItemCount < 3) {
     redirect(
       `/app/launch?tab=qr&error=${encodeURIComponent(QR_REWARD_POOL_ERROR)}`
     )

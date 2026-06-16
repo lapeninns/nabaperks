@@ -44,6 +44,58 @@ values (
   1
 );
 
+-- Add a second active reward with a much higher weight so first-cycle behaviour
+-- must be deterministic by default ordering, not weighted randomness.
+insert into public.reward_pool_items (
+  id,
+  merchant_id,
+  location_id,
+  loyalty_card_id,
+  reward_name,
+  reward_terms,
+  min_spend_pence,
+  weight,
+  is_active,
+  display_order
+)
+values (
+  '13500000-0000-0000-0000-0000000000c2',
+  '10000000-0000-0000-0000-000000000001',
+  '11000000-0000-0000-0000-000000000001',
+  '13000000-0000-0000-0000-000000000001',
+  'Bonus loaf',
+  'A seeded loaf from the bakery shelf.',
+  null,
+  100,
+  true,
+  2
+);
+
+insert into public.reward_pool_items (
+  id,
+  merchant_id,
+  location_id,
+  loyalty_card_id,
+  reward_name,
+  reward_terms,
+  min_spend_pence,
+  weight,
+  is_active,
+  display_order
+)
+values (
+  '13500000-0000-0000-0000-0000000000c3',
+  '10000000-0000-0000-0000-000000000001',
+  '11000000-0000-0000-0000-000000000001',
+  '13000000-0000-0000-0000-000000000001',
+  'Breakfast bun',
+  'One breakfast bun from the counter.',
+  null,
+  1,
+  true,
+  3
+);
+
 insert into public.stamp_events (
   merchant_id, customer_id, membership_id, loyalty_card_id, location_id,
   event_type, stamps_delta, earned_business_date, cycle_number, created_at
@@ -71,6 +123,7 @@ do $$
 declare
   v_today_cycle integer;
   v_reward_cycle integer;
+  v_reward_pool_item uuid;
 begin
   perform public.issue_self_service_stamp(
     '16000000-0000-0000-0000-0000000000c1',
@@ -94,6 +147,15 @@ begin
 
   if v_reward_cycle is distinct from 1 then
     raise exception 'unlocked reward not tagged with the final stamp cycle (got %)', v_reward_cycle;
+  end if;
+
+  select reward_pool_item_id into v_reward_pool_item
+  from public.reward_events
+  where membership_id = '16000000-0000-0000-0000-0000000000c1'
+    and status = 'unlocked';
+
+  if v_reward_pool_item is distinct from '13500000-0000-0000-0000-000000000001'::uuid then
+    raise exception 'first cycle did not unlock the default advertised reward (got %)', v_reward_pool_item;
   end if;
 end $$;
 

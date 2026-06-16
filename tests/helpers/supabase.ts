@@ -2,7 +2,7 @@ import { vi } from "vitest"
 
 type SupabaseResponse<T = unknown> = {
   data?: T
-  error?: { message: string } | null
+  error?: { message: string; code?: string } | null
   count?: number | null
 }
 

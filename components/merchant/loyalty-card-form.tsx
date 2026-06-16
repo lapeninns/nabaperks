@@ -150,18 +150,19 @@ export function LoyaltyCardForm({
           <SectionHeader
             eyebrow="Step 2 · Reward"
             title="Add a surprise reward"
-            description="At least one active reward is needed before the venue QR can launch or a final stamp can reveal a prize."
+            description="At least 3 active rewards are needed before the venue QR can launch or a final stamp can reveal a prize."
           />
 
           {draft.cardId ? (
             <div className="grid gap-4">
-              {activeRewardCount < 1 ? (
+              {activeRewardCount < 3 ? (
                 <StatusBanner
                   tone="warning"
-                  title="QR launch is blocked until a reward is active."
+                  title="QR launch is blocked until 3 rewards are active."
                 >
-                  Add a reward below or switch an existing reward back to active
-                  so customers can reveal a prize on their final stamp.
+                  Add {3 - activeRewardCount} more active reward
+                  {3 - activeRewardCount === 1 ? "" : "s"} so customers can
+                  reveal a prize on their final stamp.
                 </StatusBanner>
               ) : (
                 <StatusBanner tone="success" title="QR launch eligible.">
@@ -174,7 +175,7 @@ export function LoyaltyCardForm({
                 <EmptyState
                   icon={GiftIcon}
                   title="No rewards in the pool yet"
-                  description="Create the first active mystery reward so the QR launch checklist can pass."
+                  description="Create at least 3 active mystery rewards so the QR launch checklist can pass."
                   headingLevel={3}
                 />
               ) : null}

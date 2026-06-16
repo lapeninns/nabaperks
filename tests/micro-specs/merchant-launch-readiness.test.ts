@@ -42,21 +42,21 @@ describe("05 merchant launch readiness readback", () => {
       },
     })
 
-    expect(readiness.completed).toBe(2)
+    expect(readiness.completed).toBe(1)
     expect(readiness.total).toBe(4)
     expect(readiness.launchReady).toBe(false)
     expect(readiness.nextStep).toMatchObject({
-      id: "venue",
-      actionLabel: "Save venue",
-      href: "/app/launch?tab=venue",
+      id: "rewards",
+      actionLabel: "Add reward",
+      href: "/app/launch?tab=card",
     })
     expect(readiness.steps.map((step) => [step.id, step.ready])).toEqual([
       ["card", true],
-      ["rewards", true],
+      ["rewards", false],
       ["venue", false],
       ["qr", false],
     ])
-    expect(readiness.tabs).toEqual({ card: true, venue: false, qr: false })
+    expect(readiness.tabs).toEqual({ card: false, venue: false, qr: false })
   })
 
   it("threads launch readiness into the merchant dashboard and launch hub", () => {

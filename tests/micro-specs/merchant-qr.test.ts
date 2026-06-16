@@ -321,6 +321,9 @@ describe("02 merchant and QR micro-specs", () => {
     const venueLocationForm = readProjectFile(
       "components/merchant/launch/venue-location-form.tsx"
     )
+    const venueAddressFields = readProjectFile(
+      "components/merchant/venue-address-fields.tsx"
+    )
     const roiForm = readProjectFile("components/merchant/roi-settings-form.tsx")
 
     for (const fieldName of [
@@ -351,7 +354,7 @@ describe("02 merchant and QR micro-specs", () => {
     expect(cardPage).toContain('params.saved === "1"')
     expect(cardPage).toContain('params.saved === "pool"')
     expect(cardPage).toContain("Unable to update reward")
-    expect(cardForm).toContain("QR launch is blocked until a reward is active.")
+    expect(cardForm).toContain("QR launch is blocked until 3 rewards are active.")
     expect(cardForm).toContain("No rewards in the pool yet")
     expect(cardForm).toContain("Inactive reward")
 
@@ -362,13 +365,16 @@ describe("02 merchant and QR micro-specs", () => {
     expect(qrPage).toContain('name="qrCodeId"')
     expect(qrPage).toContain('name="nextActive"')
 
-    for (const fieldName of [
-      "venueName",
-      "address",
-      "requireGeofence",
-      "geofenceRadiusMeters",
-    ]) {
+    for (const fieldName of ["venueName", "requireGeofence", "geofenceRadiusMeters"]) {
       expect(venueLocationForm).toContain(`name="${fieldName}"`)
+    }
+    for (const fieldName of [
+      "addressLine1",
+      "addressLine2",
+      "addressCity",
+      "addressPostcode",
+    ]) {
+      expect(venueAddressFields).toContain(`name="${fieldName}"`)
     }
     expect(venueLocationForm).toContain("GPS anomaly checks")
 
@@ -503,7 +509,7 @@ describe("02 merchant and QR micro-specs", () => {
     )
   })
 
-  it("requires at least one active reward pool item before launching the permanent venue QR", async () => {
+  it("requires at least 3 active reward pool items before launching the permanent venue QR", async () => {
     vi.resetModules()
     vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
     vi.doMock("@/lib/merchant/qr-code", () => ({
@@ -519,7 +525,7 @@ describe("02 merchant and QR micro-specs", () => {
     const { generateQrCodeAction } = await import("@/app/app/qr/actions")
 
     await expect(generateQrCodeAction()).rejects.toThrow(
-      "NEXT_REDIRECT:/app/launch?tab=qr&error=Add%20at%20least%20one%20active%20mystery%20reward%20before%20launching%20the%20QR."
+      "NEXT_REDIRECT:/app/launch?tab=qr&error=Add%20at%20least%203%20active%20mystery%20rewards%20before%20launching%20the%20QR."
     )
   })
 
@@ -535,7 +541,7 @@ describe("02 merchant and QR micro-specs", () => {
       getQrSetup: vi.fn(async () => ({
         merchant: { id: "merchant-1" },
         activeCard: { id: "card-1" },
-        activeRewardPoolItemCount: 1,
+        activeRewardPoolItemCount: 3,
       })),
     }))
     vi.doMock("@/lib/supabase/server", () => ({

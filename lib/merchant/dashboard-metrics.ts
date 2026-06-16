@@ -68,10 +68,25 @@ async function getMerchantDashboardMetrics(merchant: MerchantDashboardMerchant) 
   )
 
   if (error) {
+    if (isMissingRpcError(error)) {
+      return null
+    }
+
     throw new Error(`Unable to load dashboard metrics: ${error.message}`)
   }
 
   return parseMerchantDashboardMetrics(data, merchant)
+}
+
+function isMissingRpcError(error: { code?: string; message?: string }) {
+  if (error.code === "PGRST202") {
+    return true
+  }
+
+  return (
+    typeof error.message === "string" &&
+    error.message.includes("Could not find the function")
+  )
 }
 
 function parseMerchantDashboardMetrics(

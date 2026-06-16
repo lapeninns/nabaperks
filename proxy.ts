@@ -5,6 +5,7 @@ import {
   REQUEST_ID_HEADER,
   resolveRequestId,
 } from "@/lib/observability/request-id"
+import { REQUEST_PATH_HEADER } from "@/lib/navigation/request-path"
 
 // Next.js 16 Proxy (formerly middleware). Its single job here is observability:
 // give every request a stable trace id. It reuses an inbound `x-request-id`
@@ -13,9 +14,11 @@ import {
 // response so clients and logs can be correlated end to end.
 export function proxy(request: NextRequest) {
   const requestId = resolveRequestId(request.headers)
+  const requestPath = `${request.nextUrl.pathname}${request.nextUrl.search}`
 
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set(REQUEST_ID_HEADER, requestId)
+  requestHeaders.set(REQUEST_PATH_HEADER, requestPath)
 
   const response = NextResponse.next({ request: { headers: requestHeaders } })
   response.headers.set(REQUEST_ID_HEADER, requestId)

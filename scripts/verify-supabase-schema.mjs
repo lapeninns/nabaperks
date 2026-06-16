@@ -132,7 +132,11 @@ if (
   failures.push("missing next-business-day redemption guard")
 }
 
-if (!migrations.includes("At least one active reward pool item is required")) {
+if (
+  !migrations.includes(
+    "At least 3 active reward pool items are required before unlocking a reward"
+  )
+) {
   failures.push("missing reward pool requirement before unlock")
 }
 

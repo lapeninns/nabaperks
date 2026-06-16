@@ -8,10 +8,30 @@ export function safeNextPath(path: string): string {
   if (!path.startsWith("/")) return "/home"
   if (path.startsWith("//")) return "/home"
   if (path.startsWith("/\\")) return "/home"
+  if (isCustomerAuthPath(path)) return "/home"
   return path
 }
 
 /** Build a customer login link that returns to `path` after authentication. */
 export function customerLoginHref(path: string): string {
   return `/home/login?next=${encodeURIComponent(safeNextPath(path))}`
+}
+
+export function customerSessionResetHref(path: string): string {
+  return `/home/session/reset?next=${encodeURIComponent(safeNextPath(path))}`
+}
+
+function isCustomerAuthPath(path: string): boolean {
+  return (
+    isSamePathOrDescendant(path, "/home/login") ||
+    isSamePathOrDescendant(path, "/home/session/reset")
+  )
+}
+
+function isSamePathOrDescendant(path: string, basePath: string): boolean {
+  return (
+    path === basePath ||
+    path.startsWith(`${basePath}?`) ||
+    path.startsWith(`${basePath}/`)
+  )
 }

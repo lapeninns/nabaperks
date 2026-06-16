@@ -3,19 +3,23 @@
 import { revalidatePath } from "next/cache"
 
 import { getCurrentMerchant } from "@/lib/auth/session"
-import { geocodeAddress } from "@/lib/merchant/geocode"
+import { resolveStructuredVenueAddress } from "@/lib/merchant/resolve-venue-address"
+import {
+  parseVenueAddressFields,
+  validateVenueAddressFields,
+  type VenueAddressFieldErrors,
+  type VenueAddressFormFields,
+} from "@/lib/merchant/venue-address"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export type VenueLocationActionState = {
-  fields?: {
+  fields?: VenueAddressFormFields & {
     venueName?: string
-    address?: string
     geofenceRadiusMeters?: string
     requireGeofence?: boolean
   }
-  errors?: {
+  errors?: VenueAddressFieldErrors & {
     venueName?: string
-    address?: string
     geofenceRadiusMeters?: string
     form?: string
   }
@@ -33,21 +37,22 @@ export async function saveVenueLocationAction(
   }
 
   const venueName = value(formData, "venueName") || "Main venue"
-  const address = value(formData, "address")
+  const addressFields = parseVenueAddressFields(formData)
   const geofenceRadiusMeters = value(formData, "geofenceRadiusMeters") || "150"
   const requireGeofence = formData.get("requireGeofence") === "on"
   const fields = {
     venueName,
-    address,
+    ...addressFields,
     geofenceRadiusMeters,
     requireGeofence,
   }
-  const errors: NonNullable<VenueLocationActionState["errors"]> = {}
+  const errors: NonNullable<VenueLocationActionState["errors"]> = {
+    ...validateVenueAddressFields(addressFields),
+  }
   const radius = parseInteger(geofenceRadiusMeters)
 
   if (!venueName) errors.venueName = "Enter the venue name."
   if (venueName.length > 120) errors.venueName = "Use 120 characters or fewer."
-  if (!address) errors.address = "Enter the venue address."
   if (radius === null) {
     errors.geofenceRadiusMeters = "Enter a whole-number radius."
   } else if (radius < 25) {
@@ -56,19 +61,24 @@ export async function saveVenueLocationAction(
     errors.geofenceRadiusMeters = "Use 1,000 metres or fewer."
   }
 
-  if (Object.keys(errors).length || radius === null) {
+  if (Object.keys(errors).length > 0 || radius === null) {
     return { fields, errors }
   }
 
-  const geocoded = await geocodeAddress(address)
+  const resolved = await resolveStructuredVenueAddress(addressFields)
 
-  if (!geocoded) {
-    return {
-      fields,
-      errors: {
-        address: "We could not geocode this address. Check it and try again.",
-      },
-    }
+  if ("error" in resolved) {
+    return { fields, errors: { ...errors, address: resolved.error } }
+  }
+
+  const payload = {
+    merchant_id: merchant.id,
+    name: venueName,
+    ...resolved.payload,
+    geofence_radius_meters: radius,
+    require_geofence: requireGeofence,
+    geocoded_at: new Date().toISOString(),
+    is_primary: true,
   }
 
   const supabase = await createSupabaseServerClient()
@@ -85,17 +95,6 @@ export async function saveVenueLocationAction(
     return { fields, errors: { form: "Unable to load venue location." } }
   }
 
-  const payload = {
-    merchant_id: merchant.id,
-    name: venueName,
-    address,
-    latitude: geocoded.latitude,
-    longitude: geocoded.longitude,
-    geofence_radius_meters: radius,
-    require_geofence: requireGeofence,
-    geocoded_at: new Date().toISOString(),
-    is_primary: true,
-  }
   const write = existingLocation
     ? supabase
         .from("merchant_locations")

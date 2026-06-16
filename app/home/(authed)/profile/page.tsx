@@ -1,11 +1,12 @@
-import { UserCircleIcon } from "@hugeicons/core-free-icons"
+import { redirect } from "next/navigation"
 
-import { EmptyState, PageTitle } from "@/components/brand"
+import { PageTitle } from "@/components/brand"
 import { CustomerProfileAboutYou } from "@/components/customer/profile-about-you"
 import { CustomerProfileMarketing } from "@/components/customer/profile-marketing-consent"
 import { StatusBanner } from "@/components/loyalty"
 import { getCustomerProfile } from "@/lib/customer/profile"
 import { formatMonthYear } from "@/lib/customer/format"
+import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 
 export const metadata = {
   title: "Your details — Nabaperks",
@@ -15,20 +16,7 @@ export default async function HomeProfilePage() {
   const profile = await getCustomerProfile()
 
   if (!profile) {
-    return (
-      <div className="grid gap-6">
-        <PageTitle
-          eyebrow="My Nabaperks"
-          title="Your details"
-          description="How venues can reach you — phone, name, and optional email."
-        />
-        <EmptyState
-          title="No profile yet"
-          description="Scan a venue's QR code to join your first loyalty card and set up your details."
-          icon={UserCircleIcon}
-        />
-      </div>
-    )
+    redirect(customerLoginHref("/home/profile"))
   }
 
   const incomplete = !profile.fullName || !profile.dateOfBirth

@@ -7,6 +7,10 @@ export type MerchantVenueLocation = {
   id: string
   name: string
   address: string | null
+  address_line_1: string | null
+  address_line_2: string | null
+  address_city: string | null
+  address_postcode: string | null
   latitude: number | null
   longitude: number | null
   geofence_radius_meters: number
@@ -25,7 +29,7 @@ export async function getCurrentVenueLocation() {
   const { data: location, error } = await supabase
     .from("merchant_locations")
     .select(
-      "id, name, address, latitude, longitude, geofence_radius_meters, require_geofence, geocoded_at"
+      "id, name, address, address_line_1, address_line_2, address_city, address_postcode, latitude, longitude, geofence_radius_meters, require_geofence, geocoded_at"
     )
     .eq("merchant_id", merchant.id)
     .order("is_primary", { ascending: false })
@@ -44,6 +48,10 @@ export async function getCurrentVenueLocation() {
           id: location.id,
           name: location.name,
           address: location.address,
+          address_line_1: location.address_line_1,
+          address_line_2: location.address_line_2,
+          address_city: location.address_city,
+          address_postcode: location.address_postcode,
           latitude: location.latitude,
           longitude: location.longitude,
           geofence_radius_meters: location.geofence_radius_meters ?? 150,

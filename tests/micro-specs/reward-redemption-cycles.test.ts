@@ -422,4 +422,32 @@ describe("reward redemption cycle SQL contract", () => {
     // The merged redemption RPC must keep the profile-completion gate.
     expect(migration).toContain("Complete your profile before redeeming")
   })
+
+  it("pins first-cycle unlocks to the default advertised reward", async () => {
+    const { readFileSync } = await import("node:fs")
+    const migration = readFileSync(
+      "supabase/migrations/20260616101500_first_cycle_default_reward.sql",
+      "utf8"
+    )
+
+    expect(migration).toContain("function public.issue_self_service_stamp")
+    expect(migration).toContain("membership_record.active_cycle_number = 1")
+    expect(migration).toContain("order by reward_pool_items.display_order asc")
+    expect(migration).toContain("v_weight_threshold := floor(random() * v_total_weight)")
+  })
+
+  it("requires at least 3 active rewards before an unlock can happen", async () => {
+    const { readFileSync } = await import("node:fs")
+    const migration = readFileSync(
+      "supabase/migrations/20260616103000_minimum_three_rewards.sql",
+      "utf8"
+    )
+
+    expect(migration).toContain("function public.issue_self_service_stamp")
+    expect(migration).toContain("v_active_reward_count integer := 0")
+    expect(migration).toContain("v_active_reward_count < 3")
+    expect(migration).toContain(
+      "At least 3 active reward pool items are required before unlocking a reward"
+    )
+  })
 })

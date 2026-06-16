@@ -22,6 +22,18 @@ describe("safeNextPath", () => {
     expect(safeNextPath("card/1")).toBe("/home")
     expect(safeNextPath("")).toBe("/home")
   })
+
+  it("rejects the customer login page as a next target", () => {
+    expect(safeNextPath("/home/login")).toBe("/home")
+    expect(safeNextPath("/home/login?next=%2Fhome%2Fprofile")).toBe("/home")
+  })
+
+  it("rejects the customer session reset page as a next target", () => {
+    expect(safeNextPath("/home/session/reset")).toBe("/home")
+    expect(safeNextPath("/home/session/reset?next=%2Fhome%2Fprofile")).toBe(
+      "/home"
+    )
+  })
 })
 
 describe("customerLoginHref", () => {

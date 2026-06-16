@@ -47,8 +47,8 @@ function mockSteps(flags: StepFlags): LaunchReadinessStep[] {
       tab: "card",
       label: "Rewards loaded",
       summary: flags.reward
-        ? "2 active mystery rewards"
-        : "Add at least one active reward to reveal.",
+        ? "3 active mystery rewards"
+        : "Add at least 3 active rewards to reveal.",
       ready: flags.reward,
       href: "/app/launch?tab=card",
       actionLabel: "Add reward",

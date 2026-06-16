@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import {
   Activity03Icon,
+  Building02Icon,
   CreditCardIcon,
   Home01Icon,
   Logout01Icon,
@@ -21,6 +22,7 @@ const merchantNavItems: ShellNavItem[] = [
 ]
 
 const merchantAccountItems: ShellNavItem[] = [
+  { href: "/app/profile", label: "Profile", icon: Building02Icon },
   { href: "/app/billing", label: "Billing", icon: CreditCardIcon },
   { href: "/app/settings", label: "Settings", icon: Settings01Icon },
 ]

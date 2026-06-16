@@ -11,7 +11,11 @@ import { Button } from "@/components/ui/button"
 
 const initialState: CustomerLoginOtpState = {}
 
-export function CustomerLoginForm() {
+type CustomerLoginFormProps = {
+  readonly next: string
+}
+
+export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
   const [state, requestAction, requestPending] = useActionState(
     requestCustomerLoginOtpAction,
     initialState
@@ -79,6 +83,7 @@ export function CustomerLoginForm() {
             name="contact"
             value={state.fields?.contact ?? ""}
           />
+          <input type="hidden" name="next" value={next} />
           <div className="grid gap-2">
             <label htmlFor="otp" className="eyebrow">
               Phone code

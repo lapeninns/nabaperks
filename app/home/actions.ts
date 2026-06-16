@@ -16,6 +16,7 @@ import {
   checkCustomerPhoneVerification,
   startCustomerPhoneVerification,
 } from "@/lib/customer/verification"
+import { safeNextPath } from "@/lib/navigation/safe-next-path"
 import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit"
 
 export type CustomerLoginOtpState = {
@@ -36,8 +37,6 @@ function value(formData: FormData, key: string) {
   const raw = formData.get(key)
   return typeof raw === "string" ? raw.trim() : ""
 }
-
-const NEXT_PATH = "/home"
 
 export async function requestCustomerLoginOtpAction(
   _state: CustomerLoginOtpState,
@@ -127,6 +126,7 @@ export async function verifyCustomerLoginOtpAction(
   formData: FormData
 ): Promise<CustomerLoginOtpState> {
   const otp = value(formData, "otp")
+  const next = safeNextPath(value(formData, "next"))
   const pending = await getPendingPhoneVerification()
 
   if (!pending || pending.purpose !== "wallet") {
@@ -160,7 +160,7 @@ export async function verifyCustomerLoginOtpAction(
 
   await setCustomerSession(pending.customerId)
   await clearPendingPhoneVerification()
-  redirect(NEXT_PATH)
+  redirect(next)
 }
 
 export async function signOutCustomerAction() {

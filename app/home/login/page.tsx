@@ -4,16 +4,28 @@ import { Eyebrow, ReceiptCard, VenueMark } from "@/components/brand"
 import { CustomerLoginForm } from "@/components/customer/customer-login-form"
 import { CustomerShell } from "@/components/layout"
 import { getCustomerSession } from "@/lib/customer/session"
+import { safeNextPath } from "@/lib/navigation/safe-next-path"
 
 export const metadata = {
   title: "My Nabaperks — sign in",
 }
 
-export default async function HomeLoginPage() {
+type HomeLoginPageProps = {
+  searchParams: Promise<{
+    next?: string | string[] | undefined
+  }>
+}
+
+export default async function HomeLoginPage({
+  searchParams,
+}: HomeLoginPageProps) {
+  const params = await searchParams
+  const nextParam = Array.isArray(params.next) ? params.next[0] : params.next
+  const next = safeNextPath(nextParam ?? "/home")
   const session = await getCustomerSession()
 
   if (session) {
-    redirect("/home")
+    redirect(next)
   }
 
   return (
@@ -33,7 +45,7 @@ export default async function HomeLoginPage() {
           </div>
         </div>
 
-        <CustomerLoginForm />
+        <CustomerLoginForm next={next} />
 
         <p className="border-t-2 border-ink/15 pt-4 text-center text-sm leading-6 text-muted-foreground">
           New here? Scan a venue&apos;s QR code to collect your first stamp — your
