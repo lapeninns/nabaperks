@@ -14,13 +14,19 @@ import {
 } from "@/components/customer/join-forms"
 import { CustomerOtpForm } from "@/components/customer/join-otp-form"
 import { WelcomeStep } from "@/components/customer/join-welcome-step"
-import { StampJourneyPreview, StatusBanner } from "@/components/loyalty"
+import {
+  RewardSeal,
+  RewardTicket,
+  StampGrid,
+  StatusBanner,
+} from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import {
   getCustomerExperienceViewModel,
   joinUnlockingRewardHook,
   type CustomerExperienceViewModel,
 } from "@/lib/customer/experience/copy"
+import { stampDisplayDates } from "@/lib/customer/uk-calendar"
 import type {
   CustomerExperience,
   JoinCard,
@@ -63,7 +69,11 @@ function PhoneStep({
 }) {
   return (
     <JoinShell vm={vm} progress={joinProgress("join_phone")} dense>
-      <UnlockingReminder merchant={exp.merchant} card={exp.card} />
+      <UnlockingReminder
+        merchant={exp.merchant}
+        card={exp.card}
+        variant="phone"
+      />
       <CustomerIdentityForm merchantSlug={exp.merchant.slug} qrId={exp.qrId} />
     </JoinShell>
   )
@@ -97,7 +107,11 @@ function TermsStep({
 }) {
   return (
     <JoinShell vm={vm} progress={joinProgress("join_terms")} dense>
-      <UnlockingReminder merchant={exp.merchant} card={exp.card} />
+      <UnlockingReminder
+        merchant={exp.merchant}
+        card={exp.card}
+        variant="terms"
+      />
       <CustomerJoinForm
         merchantSlug={exp.merchant.slug}
         qrId={exp.qrId}
@@ -110,15 +124,31 @@ function TermsStep({
   )
 }
 
+type UnlockingReminderVariant = "phone" | "terms"
+
 /**
- * Compact "you're unlocking" strip that keeps the reward in view through the
- * phone → code → terms steps, so the value exchange stays clear once the stamp
- * card itself scrolls away. It restores *why* — the reward hook plus the same
- * looping stamp journey preview as the welcome card — without the full welcome
- * card, so the primary CTA still sits inside the keyboard-shrunk viewport.
- * Shared by production and the dev preview so step 2 stays one source of truth.
+ * Step-specific motivation strip after the welcome card scrolls away. Phone keeps
+ * a compact reward hook beside the number field; terms previews stamp one on the
+ * card. The code step stays clean — one headline, one field, one CTA.
  */
 export function UnlockingReminder({
+  merchant,
+  card,
+  variant,
+}: {
+  merchant: JoinMerchant
+  card: JoinCard
+  variant: UnlockingReminderVariant
+}) {
+  if (variant === "phone") {
+    return <PhoneUnlockingReminder merchant={merchant} card={card} />
+  }
+
+  return <TermsFirstStampPreview merchant={merchant} card={card} />
+}
+
+/** Compact reward hook — no journey animation (that lives on the welcome card). */
+function PhoneUnlockingReminder({
   merchant,
   card,
 }: {
@@ -126,24 +156,67 @@ export function UnlockingReminder({
   card: JoinCard
 }) {
   return (
+    <div className="surface-card flex items-center gap-3 p-3 text-left">
+      <VenueMark size={40} name={merchant.name} />
+      <div className="grid min-w-0 flex-1 gap-0.5">
+        <span className="eyebrow text-muted-foreground">
+          You&apos;re unlocking
+        </span>
+        <span className="truncate text-sm leading-tight font-extrabold">
+          {merchant.name} · {card.name}
+        </span>
+        <p className="text-xs leading-snug text-muted-foreground">
+          {joinUnlockingRewardHook(card.stampsRequired)}
+        </p>
+      </div>
+      <RewardSeal state="sealed" size="sm" wiggle className="shrink-0" />
+    </div>
+  )
+}
+
+/** Static preview of stamp one landing — the outcome of accepting terms. */
+function TermsFirstStampPreview({
+  merchant,
+  card,
+}: {
+  merchant: JoinMerchant
+  card: JoinCard
+}) {
+  const previewDates = stampDisplayDates(1)
+
+  return (
     <div className="surface-card grid gap-3 p-3 text-left">
       <div className="flex items-center gap-3">
         <VenueMark size={40} name={merchant.name} />
         <div className="grid min-w-0 gap-0.5">
           <span className="eyebrow text-muted-foreground">
-            You&apos;re unlocking
+            Your first stamp
           </span>
           <span className="truncate text-sm leading-tight font-extrabold">
             {merchant.name} · {card.name}
           </span>
         </div>
       </div>
-      <p className="text-xs leading-snug text-muted-foreground">
-        {joinUnlockingRewardHook(card.stampsRequired)}
-      </p>
-      <StampJourneyPreview
+      <StampGrid
+        current={1}
         total={card.stampsRequired}
+        dates={previewDates}
+        rewardSlot="locked"
+        compact
         venueName={merchant.name}
+      />
+      <RewardTicket
+        state="sealed"
+        name="Mystery reward, sealed"
+        description={
+          <>
+            {joinUnlockingRewardHook(card.stampsRequired)}, yours from the next
+            UK business day.
+            {card.minSpendPence !== null ? (
+              <> Minimum spend {formatPence(card.minSpendPence)}.</>
+            ) : null}
+          </>
+        }
       />
     </div>
   )

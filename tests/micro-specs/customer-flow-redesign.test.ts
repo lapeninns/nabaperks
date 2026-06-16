@@ -49,26 +49,34 @@ describe("customer flow Wet Ink redesign", () => {
       "components/customer/customer-card-experience.tsx",
       "components/customer/join-wizard.tsx",
     ]) {
-      expect(read(componentPath), componentPath).toContain("customer-flow-system")
+      expect(read(componentPath), componentPath).toContain(
+        "customer-flow-system"
+      )
     }
   })
 
   it("uses value-first Wet Ink copy and physical loyalty motifs", () => {
     const flowSystem = read("components/customer/customer-flow-system.tsx")
     const joinPage = read("app/m/[merchantSlug]/join/page.tsx")
-    const experience = read(
-      "components/customer/customer-card-experience.tsx"
-    )
+    const experience = read("components/customer/customer-card-experience.tsx")
     const copy = read("lib/customer/experience/copy.ts")
 
     expect(read("DESIGN.md")).toContain("Your first stamp is waiting.")
     expect(copy).toContain("Keep your card on your phone")
-    expect(copy).toContain("Accept the terms and your first stamp prints onto the card")
+    expect(copy).toContain(
+      "Accept the terms and your first stamp prints onto the card"
+    )
     expect(copy).toContain(JOIN_PHONE_CODE_HINT)
     expect(copy).toContain(JOIN_PHONE_BACK_LABEL)
-    expect(read("components/customer/join-forms.tsx")).toContain("JOIN_PHONE_CODE_HINT")
-    expect(read("components/customer/join-forms.tsx")).toContain("JOIN_PHONE_BACK_LABEL")
-    expect(read("components/customer/join-forms.tsx")).toContain("joinWelcomeHref")
+    expect(read("components/customer/join-forms.tsx")).toContain(
+      "JOIN_PHONE_CODE_HINT"
+    )
+    expect(read("components/customer/join-forms.tsx")).toContain(
+      "JOIN_PHONE_BACK_LABEL"
+    )
+    expect(read("components/customer/join-forms.tsx")).toContain(
+      "joinWelcomeHref"
+    )
     expect(read("components/customer/join-welcome-step.tsx")).toContain(
       "JOIN_WELCOME_HOW_IT_WORKS"
     )
@@ -153,7 +161,9 @@ describe("card page information hierarchy", () => {
     expect(flowSystem).toContain("hideHeaderText")
     expect(flowSystem).toContain("afterGrid")
     // The slot renders between the grid and the reward ticket.
-    const stampCard = flowSystem.slice(flowSystem.indexOf("function CustomerStampCard"))
+    const stampCard = flowSystem.slice(
+      flowSystem.indexOf("function CustomerStampCard")
+    )
     const gridIndex = stampCard.indexOf("<StampGrid")
     const afterGridIndex = stampCard.indexOf("{afterGrid}")
     const ticketIndex = stampCard.indexOf("<RewardTicket")
@@ -164,7 +174,9 @@ describe("card page information hierarchy", () => {
 
   it("renders card celebrations inside the receipt via afterGrid, not above it", () => {
     const experience = read("components/customer/customer-card-experience.tsx")
-    const panel = experience.slice(experience.indexOf("function CardProgressPanel"))
+    const panel = experience.slice(
+      experience.indexOf("function CardProgressPanel")
+    )
     const beforeStampCard = panel.slice(0, panel.indexOf("<CustomerStampCard"))
     // Celebrations no longer sit above the stamp card.
     expect(beforeStampCard).not.toContain("RewardCelebration")
@@ -177,21 +189,22 @@ describe("card page information hierarchy", () => {
   })
 })
 
-describe("join step 2 motivation layer", () => {
-  it("keeps the reward in view on the phone step", () => {
+describe("join step motivation layers", () => {
+  it("keeps step-specific reward motivation after the welcome card", () => {
     const copy = read("lib/customer/experience/copy.ts")
     expect(copy).toContain("joinUnlockingRewardHook")
     expect(copy).toContain("mystery reward")
-    // The back link points at the value, not just the card preview.
     expect(copy).toContain("See how stamps and rewards work")
 
-    // UnlockingReminder restores the reward hook + the same animated journey
-    // preview as the welcome card, shared with the dev preview as one source.
     const joinWizard = read("components/customer/join-wizard.tsx")
     expect(joinWizard).toContain("export function UnlockingReminder")
     expect(joinWizard).toContain("joinUnlockingRewardHook")
-    expect(joinWizard).toContain("StampJourneyPreview")
-    expect(joinWizard).not.toContain("StampGrid")
+    expect(joinWizard).toContain("variant: UnlockingReminderVariant")
+    expect(joinWizard).toContain("PhoneUnlockingReminder")
+    expect(joinWizard).toContain("TermsFirstStampPreview")
+    expect(joinWizard).toContain("RewardSeal")
+    expect(joinWizard).toContain("StampGrid")
+    expect(joinWizard).not.toContain("StampJourneyPreview")
 
     expect(read("app/dev/customer-flow/preview/screens.tsx")).toContain(
       "UnlockingReminder"

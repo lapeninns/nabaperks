@@ -2,11 +2,9 @@ import type { ReactNode } from "react"
 import {
   Activity03Icon,
   Building02Icon,
-  CreditCardIcon,
   Home01Icon,
   Logout01Icon,
   Rocket01Icon,
-  Settings01Icon,
   UserMultiple02Icon,
 } from "@hugeicons/core-free-icons"
 
@@ -22,9 +20,7 @@ const merchantNavItems: ShellNavItem[] = [
 ]
 
 const merchantAccountItems: ShellNavItem[] = [
-  { href: "/app/profile", label: "Profile", icon: Building02Icon },
-  { href: "/app/billing", label: "Billing", icon: CreditCardIcon },
-  { href: "/app/settings", label: "Settings", icon: Settings01Icon },
+  { href: "/app/account", label: "Account", icon: Building02Icon },
 ]
 
 export function MerchantAppShell({
@@ -45,7 +41,7 @@ export function MerchantAppShell({
               secondaryItems={merchantAccountItems}
               secondaryLabel="Account"
               mobileTitle="Merchant navigation"
-              mobileDescription="Move between home, launch setup, customers, and activity. Billing and settings sit under Account."
+              mobileDescription="Move between home, launch setup, customers, and activity. Your business profile and billing sit under Account."
               desktopClassName="md:flex"
             />
             <form action={signOutAction}>
@@ -57,7 +53,9 @@ export function MerchantAppShell({
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">{children}</main>
+      <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
+        {children}
+      </main>
     </div>
   )
 }

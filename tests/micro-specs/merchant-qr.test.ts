@@ -324,7 +324,6 @@ describe("02 merchant and QR micro-specs", () => {
     const venueAddressFields = readProjectFile(
       "components/merchant/venue-address-fields.tsx"
     )
-    const roiForm = readProjectFile("components/merchant/roi-settings-form.tsx")
 
     for (const fieldName of [
       "businessName",
@@ -354,7 +353,9 @@ describe("02 merchant and QR micro-specs", () => {
     expect(cardPage).toContain('params.saved === "1"')
     expect(cardPage).toContain('params.saved === "pool"')
     expect(cardPage).toContain("Unable to update reward")
-    expect(cardForm).toContain("QR launch is blocked until 3 rewards are active.")
+    expect(cardForm).toContain(
+      "QR launch is blocked until 3 rewards are active."
+    )
     expect(cardForm).toContain("No rewards in the pool yet")
     expect(cardForm).toContain("Inactive reward")
 
@@ -365,7 +366,11 @@ describe("02 merchant and QR micro-specs", () => {
     expect(qrPage).toContain('name="qrCodeId"')
     expect(qrPage).toContain('name="nextActive"')
 
-    for (const fieldName of ["venueName", "requireGeofence", "geofenceRadiusMeters"]) {
+    for (const fieldName of [
+      "venueName",
+      "requireGeofence",
+      "geofenceRadiusMeters",
+    ]) {
       expect(venueLocationForm).toContain(`name="${fieldName}"`)
     }
     for (const fieldName of [
@@ -377,16 +382,6 @@ describe("02 merchant and QR micro-specs", () => {
       expect(venueAddressFields).toContain(`name="${fieldName}"`)
     }
     expect(venueLocationForm).toContain("GPS anomaly checks")
-
-    for (const fieldName of [
-      "averageOrderValue",
-      "estimatedGrossMargin",
-      "rewardCost",
-    ]) {
-      expect(roiForm).toContain(`name={id}`)
-      expect(roiForm).toContain(`id="${fieldName}"`)
-    }
-    expect(roiForm).toContain("Save settings")
   })
 
   it("maps protected merchant action backend errors to safe copy", async () => {
@@ -642,84 +637,6 @@ describe("02 merchant and QR micro-specs", () => {
     ).rejects.toThrow(
       "NEXT_REDIRECT:/app/launch?tab=qr&error=Unable%20to%20update%20QR"
     )
-  })
-
-  it("saves ROI settings to dashboard-estimate fields and revalidates readbacks", async () => {
-    vi.resetModules()
-    const revalidatePath = vi.fn()
-    const supabase = createSupabaseMock({
-      from: { merchants: [{ data: null, error: null }] },
-    })
-    vi.doMock("next/cache", () => ({ revalidatePath }))
-    vi.doMock("@/lib/auth/session", () => ({
-      getCurrentMerchant: vi.fn(async () => ({ id: "merchant-1" })),
-    }))
-    vi.doMock("@/lib/supabase/server", () => ({
-      createSupabaseServerClient: vi.fn(async () => supabase.client),
-    }))
-    const { saveRoiSettingsAction } = await import("@/app/app/settings/actions")
-
-    await expect(
-      saveRoiSettingsAction(
-        {},
-        form({
-          averageOrderValue: "12.50",
-          estimatedGrossMargin: "64.25",
-          rewardCost: "3.10",
-        })
-      )
-    ).resolves.toMatchObject({
-      message: "Settings saved.",
-    })
-    expect(supabase.queryCalls).toContainEqual({
-      table: "merchants",
-      method: "update",
-      args: [
-        {
-          average_order_value_pence: 1250,
-          estimated_gross_margin_bps: 6425,
-          reward_cost_pence: 310,
-        },
-      ],
-    })
-    expect(supabase.queryCalls).toContainEqual({
-      table: "merchants",
-      method: "eq",
-      args: ["id", "merchant-1"],
-    })
-    expect(revalidatePath).toHaveBeenCalledWith("/app")
-    expect(revalidatePath).toHaveBeenCalledWith("/app/settings")
-
-    vi.resetModules()
-    const failingSupabase = createSupabaseMock({
-      from: {
-        merchants: [
-          { data: null, error: { message: "internal update detail" } },
-        ],
-      },
-    })
-    vi.doMock("next/cache", () => ({ revalidatePath: vi.fn() }))
-    vi.doMock("@/lib/auth/session", () => ({
-      getCurrentMerchant: vi.fn(async () => ({ id: "merchant-1" })),
-    }))
-    vi.doMock("@/lib/supabase/server", () => ({
-      createSupabaseServerClient: vi.fn(async () => failingSupabase.client),
-    }))
-    const { saveRoiSettingsAction: failingSaveRoiSettingsAction } =
-      await import("@/app/app/settings/actions")
-
-    await expect(
-      failingSaveRoiSettingsAction(
-        {},
-        form({
-          averageOrderValue: "12.50",
-          estimatedGrossMargin: "64.25",
-          rewardCost: "3.10",
-        })
-      )
-    ).resolves.toMatchObject({
-      errors: { form: "Settings could not be saved. Try again." },
-    })
   })
 
   it("maps QR asset slugs and filenames to stable downloadable formats", () => {
@@ -1127,7 +1044,9 @@ describe("02 merchant and QR micro-specs", () => {
     expect(getOwnedQrAssetContext).not.toHaveBeenCalled()
 
     const unownedResponse = await GET(
-      new Request("https://nabaperks.test/app/qr/download/poster?qr=missing-qr"),
+      new Request(
+        "https://nabaperks.test/app/qr/download/poster?qr=missing-qr"
+      ),
       { params: Promise.resolve({ asset: "poster" }) }
     )
 

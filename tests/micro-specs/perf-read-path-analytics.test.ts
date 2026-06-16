@@ -93,9 +93,6 @@ describe("baseline performance and read-path analytics", () => {
       id: "merchant-1",
       business_name: "The Bell",
       status: "active",
-      average_order_value_pence: 1200,
-      estimated_gross_margin_bps: 6500,
-      reward_cost_pence: 250,
     }
     vi.doMock("@/lib/merchant/onboarding", () => ({
       getMerchantOnboardingStatus: vi.fn(async () => ({
@@ -112,7 +109,6 @@ describe("baseline performance and read-path analytics", () => {
           repeatCustomers: 1,
           rewardsRedeemed: 0,
           qrDownloads: 3,
-          estimatedRepeatRevenuePence: 1200,
         },
         billingStatus: "active",
       })),

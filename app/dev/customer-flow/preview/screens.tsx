@@ -227,10 +227,18 @@ function PreviewJoinScreen({
       dense
       screenLabel="Customer join"
     >
-      {variant !== "otp" ? (
+      {variant === "phone" ? (
         <UnlockingReminder
           merchant={PREVIEW_JOIN_MERCHANT}
           card={PREVIEW_JOIN_CARD}
+          variant="phone"
+        />
+      ) : null}
+      {variant === "terms" ? (
+        <UnlockingReminder
+          merchant={PREVIEW_JOIN_MERCHANT}
+          card={PREVIEW_JOIN_CARD}
+          variant="terms"
         />
       ) : null}
       {variant === "phone" ? (

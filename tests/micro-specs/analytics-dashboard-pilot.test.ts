@@ -131,7 +131,7 @@ describe("05/07 analytics, dashboard, and compliance micro-specs", () => {
     })
   })
 
-  it("derives merchant dashboard activity and repeat-visit ROI from source tables", async () => {
+  it("derives merchant dashboard activity from source tables", async () => {
     vi.resetModules()
     vi.useFakeTimers()
     vi.setSystemTime(new Date("2026-06-06T12:00:00.000Z"))
@@ -159,9 +159,6 @@ describe("05/07 analytics, dashboard, and compliance micro-specs", () => {
         id: "merchant-1",
         business_name: "The Bell",
         status: "trial",
-        average_order_value_pence: 1200,
-        estimated_gross_margin_bps: 6500,
-        reward_cost_pence: 250,
       })
     ).resolves.toMatchObject({
       metrics: {
@@ -171,7 +168,6 @@ describe("05/07 analytics, dashboard, and compliance micro-specs", () => {
         repeatCustomers: 4,
         rewardsRedeemed: 3,
         qrDownloads: 5,
-        estimatedRepeatRevenuePence: 4800,
       },
       billingStatus: "active",
     })

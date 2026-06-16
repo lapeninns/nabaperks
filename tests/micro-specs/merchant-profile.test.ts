@@ -134,7 +134,7 @@ describe("merchant profile micro-spec", () => {
     await expect(getMerchantProfile()).resolves.toBeNull()
   })
 
-  it("shows current profile values on the profile page", async () => {
+  it("shows current profile values in the profile panel", async () => {
     vi.resetModules()
     const MerchantProfileForm = vi.fn(() => null)
     vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
@@ -154,9 +154,10 @@ describe("merchant profile micro-spec", () => {
         location: { id: "loc-1", name: "Main bar", address: "1 High St" },
       })),
     }))
-    const { default: ProfilePage } = await import("@/app/app/profile/page")
+    const { ProfilePanel } =
+      await import("@/components/merchant/account/profile-panel")
 
-    const tree = await ProfilePage()
+    const tree = await ProfilePanel()
     const formElement = findByType(tree, MerchantProfileForm)
 
     expect(formElement).not.toBeNull()
@@ -180,9 +181,12 @@ describe("merchant profile micro-spec", () => {
     vi.doMock("@/lib/merchant/profile", () => ({
       getMerchantProfile: vi.fn(async () => null),
     }))
-    const { default: ProfilePage } = await import("@/app/app/profile/page")
+    const { ProfilePanel } =
+      await import("@/components/merchant/account/profile-panel")
 
-    await expect(ProfilePage()).rejects.toThrow("NEXT_REDIRECT:/app/onboarding")
+    await expect(ProfilePanel()).rejects.toThrow(
+      "NEXT_REDIRECT:/app/onboarding"
+    )
   })
 
   it("persists valid edits and records a profile-update event with changed fields", async () => {
@@ -200,15 +204,17 @@ describe("merchant profile micro-spec", () => {
       getMerchantProfile: vi.fn(async () => sampleProfile),
     }))
     vi.doMock("@/lib/merchant/geocode", () => ({
-      geocodeAddress: vi.fn(async () => ({ latitude: 51.52, longitude: -0.07 })),
+      geocodeAddress: vi.fn(async () => ({
+        latitude: 51.52,
+        longitude: -0.07,
+      })),
     }))
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServerClient: vi.fn(async () => supabase.client),
     }))
     vi.doMock("@/lib/analytics/events", () => ({ recordProductEvent }))
-    const { updateMerchantProfileAction } = await import(
-      "@/app/app/profile/actions"
-    )
+    const { updateMerchantProfileAction } =
+      await import("@/app/app/profile/actions")
 
     await expect(
       updateMerchantProfileAction({}, form(validEdits))
@@ -266,6 +272,7 @@ describe("merchant profile micro-spec", () => {
         }),
       })
     )
+    expect(revalidatePath).toHaveBeenCalledWith("/app/account")
     expect(revalidatePath).toHaveBeenCalledWith("/app/profile")
   })
 
@@ -279,9 +286,8 @@ describe("merchant profile micro-spec", () => {
     }))
     vi.doMock("@/lib/supabase/server", () => ({ createSupabaseServerClient }))
     vi.doMock("@/lib/analytics/events", () => ({ recordProductEvent }))
-    const { updateMerchantProfileAction } = await import(
-      "@/app/app/profile/actions"
-    )
+    const { updateMerchantProfileAction } =
+      await import("@/app/app/profile/actions")
 
     await expect(
       updateMerchantProfileAction(
@@ -335,9 +341,8 @@ describe("merchant profile micro-spec", () => {
     }))
     vi.doMock("@/lib/supabase/server", () => ({ createSupabaseServerClient }))
     vi.doMock("@/lib/analytics/events", () => ({ recordProductEvent }))
-    const { updateMerchantProfileAction } = await import(
-      "@/app/app/profile/actions"
-    )
+    const { updateMerchantProfileAction } =
+      await import("@/app/app/profile/actions")
 
     await expect(
       updateMerchantProfileAction({}, form(validEdits))
@@ -353,7 +358,9 @@ describe("merchant profile micro-spec", () => {
     const recordProductEvent = vi.fn()
     const supabase = createSupabaseMock({
       from: {
-        merchants: [{ data: null, error: { message: "internal update detail" } }],
+        merchants: [
+          { data: null, error: { message: "internal update detail" } },
+        ],
       },
     })
     vi.doMock("next/cache", () => ({ revalidatePath: vi.fn() }))
@@ -361,15 +368,17 @@ describe("merchant profile micro-spec", () => {
       getMerchantProfile: vi.fn(async () => sampleProfile),
     }))
     vi.doMock("@/lib/merchant/geocode", () => ({
-      geocodeAddress: vi.fn(async () => ({ latitude: 51.52, longitude: -0.07 })),
+      geocodeAddress: vi.fn(async () => ({
+        latitude: 51.52,
+        longitude: -0.07,
+      })),
     }))
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServerClient: vi.fn(async () => supabase.client),
     }))
     vi.doMock("@/lib/analytics/events", () => ({ recordProductEvent }))
-    const { updateMerchantProfileAction } = await import(
-      "@/app/app/profile/actions"
-    )
+    const { updateMerchantProfileAction } =
+      await import("@/app/app/profile/actions")
 
     await expect(
       updateMerchantProfileAction({}, form(validEdits))
@@ -412,17 +421,24 @@ describe("merchant profile micro-spec", () => {
     expect(profileForm).toContain("Saving")
   })
 
-  it("links the merchant profile page from the account navigation", () => {
+  it("links the merchant profile through the account navigation hub", () => {
     const shell = readProjectFile("components/layout/merchant-app-shell.tsx")
 
-    expect(shell).toContain('href: "/app/profile", label: "Profile"')
+    expect(shell).toContain('href: "/app/account", label: "Account"')
+    expect(shell).not.toContain('href: "/app/profile"')
   })
 
   it("wires a manual venue address field into the profile form", () => {
     const profileForm = readProjectFile("components/merchant/profile-form.tsx")
 
     expect(profileForm).toContain("VenueAddressFields")
-    for (const fieldName of ["businessName", "businessType", "email", "phone", "venueName"]) {
+    for (const fieldName of [
+      "businessName",
+      "businessType",
+      "email",
+      "phone",
+      "venueName",
+    ]) {
       expect(profileForm).toContain(`name="${fieldName}"`)
     }
     expect(profileForm).not.toContain('name="address"')

@@ -149,6 +149,7 @@ export async function updateMerchantProfileAction(
     metadata: { changed_fields: changedFields },
   })
 
+  revalidatePath("/app/account")
   revalidatePath("/app/profile")
   revalidatePath("/app")
 

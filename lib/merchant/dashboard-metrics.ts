@@ -6,9 +6,6 @@ export type MerchantDashboardMerchant = {
   id: string
   business_name: string
   status: string
-  average_order_value_pence: number
-  estimated_gross_margin_bps: number
-  reward_cost_pence: number
 }
 
 export async function getMerchantDashboardData(
@@ -53,19 +50,18 @@ async function getMerchantDashboardDataByQuery(
       repeatCustomers,
       rewardsRedeemed,
       qrDownloads,
-      estimatedRepeatRevenuePence:
-        repeatCustomers * merchant.average_order_value_pence,
     },
     billingStatus,
   }
 }
 
-async function getMerchantDashboardMetrics(merchant: MerchantDashboardMerchant) {
+async function getMerchantDashboardMetrics(
+  merchant: MerchantDashboardMerchant
+) {
   const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase.rpc(
-    "get_merchant_dashboard_metrics",
-    { target_merchant_id: merchant.id }
-  )
+  const { data, error } = await supabase.rpc("get_merchant_dashboard_metrics", {
+    target_merchant_id: merchant.id,
+  })
 
   if (error) {
     if (isMissingRpcError(error)) {
@@ -132,8 +128,6 @@ function parseMerchantDashboardMetrics(
       repeatCustomers,
       rewardsRedeemed,
       qrDownloads,
-      estimatedRepeatRevenuePence:
-        repeatCustomers * merchant.average_order_value_pence,
     },
     billingStatus,
   }
