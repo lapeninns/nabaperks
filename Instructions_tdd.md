@@ -6,9 +6,9 @@ Once a Micro-Spec's requirements have been turned into granular, failing tests, 
 
 Micro-Specs are authored per `Instructions_MircroSpecsCreation.md` (the WHAT); this workflow implements them test-first (the HOW). Keep the three terms distinct:
 
-* A **Micro-Spec** is the source document.
-* A **requirement** is one EARS line inside it.
-* A **test** is a failing check derived from a requirement.
+- A **Micro-Spec** is the source document.
+- A **requirement** is one EARS line inside it.
+- A **test** is a failing check derived from a requirement.
 
 The handoff is explicit: **each in-scope EARS requirement becomes one or more failing tests before any production code is written.** Where a step below says "make a Micro-Spec pass," read it as "make the tests for its requirements pass."
 
@@ -24,6 +24,12 @@ The goal is to make each Micro-Spec pass with the smallest possible implementati
 
 A Micro-Spec describes the target end state; it is not proof the work is unstarted. Before writing tests, inspect the live code and reduce the task to the in-scope requirements that are not already satisfied — do not re-implement existing behavior. (See `micro-specs/README.md`, "Working Rule".)
 
+Before Red → Green → Refactor starts, confirm the Micro-Spec lifecycle status in
+the `micro-specs/README.md` governance contract. Only `active` specs are default
+implementation inputs. `draft` and `superseded` specs require a refreshed active
+spec or an `approved_exceptions` entry before tests or production code are
+written.
+
 If an in-scope requirement is ambiguous, contradicts live code, or cannot be satisfied without editing a file outside the Micro-Spec's blast radius, adding a dependency, or making a product decision: **stop and surface the question first.** Do not invent product behavior, silently widen the blast radius, or skip the requirement under the cover of TDD. Record the assumption you would otherwise have made so a human can confirm or correct it.
 
 ---
@@ -34,11 +40,11 @@ When a Micro-Spec is failing, write only the minimum amount of production code r
 
 During this phase:
 
-* Do not optimize.
-* Do not generalize early.
-* Do not refactor prematurely.
-* Do not add behavior that is not required by the current test.
-* Do not introduce abstractions before there is evidence they are needed.
+- Do not optimize.
+- Do not generalize early.
+- Do not refactor prematurely.
+- Do not add behavior that is not required by the current test.
+- Do not introduce abstractions before there is evidence they are needed.
 
 Correctness is the only goal.
 
@@ -50,9 +56,9 @@ This is acceptable because the purpose of the first implementation is to satisfy
 
 Three rules protect this phase:
 
-* **What counts as Red.** A legitimate failing test fails on its behavioral assertion — the asserted outcome is genuinely absent — not on a compile or import error, a missing symbol you are about to create, or a tautology such as `expect(true).toBe(false)`. Observe the test fail for the right reason before you write code.
-* **The test is the fixed target.** Green may change production code only. Do not edit a test's assertions, relax its expectations, mark it `.skip`/`.only`/`.todo`, or delete it to reach green. A test change is a spec change and needs the same approval as widening blast radius; if a test looks wrong, stop.
-* **Choose the right test tier in Red.** Behavioral and branching logic can be proven with the database mocked. Invariants a mock cannot enforce — tenant isolation/RLS, atomicity, idempotency, ledger consistency — must be tested against the real database (`supabase/tests/`); a passing mocked test is not evidence such an invariant holds.
+- **What counts as Red.** A legitimate failing test fails on its behavioral assertion — the asserted outcome is genuinely absent — not on a compile or import error, a missing symbol you are about to create, or a tautology such as `expect(true).toBe(false)`. Observe the test fail for the right reason before you write code.
+- **The test is the fixed target.** Green may change production code only. Do not edit a test's assertions, relax its expectations, mark it `.skip`/`.only`/`.todo`, or delete it to reach green. A test change is a spec change and needs the same approval as widening blast radius; if a test looks wrong, stop.
+- **Choose the right test tier in Red.** Behavioral and branching logic can be proven with the database mocked. Invariants a mock cannot enforce — tenant isolation/RLS, atomicity, idempotency, ledger consistency — must be tested against the real database (`supabase/tests/`); a passing mocked test is not evidence such an invariant holds.
 
 ---
 
@@ -68,10 +74,10 @@ Then replace the fake logic with a generalized implementation that satisfies bot
 
 Use triangulation when:
 
-* The first passing solution is hardcoded.
-* The real algorithm is not obvious yet.
-* You want the tests to force the shape of the implementation.
-* You need confidence that the behavior works for more than one case.
+- The first passing solution is hardcoded.
+- The real algorithm is not obvious yet.
+- You want the tests to force the shape of the implementation.
+- You need confidence that the behavior works for more than one case.
 
 The implementation should only become more generic when the tests demand it.
 
@@ -87,10 +93,10 @@ When the implementation is obvious, simple, and low-risk, write the real logic d
 
 Use Obvious Implementation when:
 
-* The solution is straightforward.
-* The behavior is already well understood.
-* The code required is small.
-* There is little risk of over-engineering.
+- The solution is straightforward.
+- The behavior is already well understood.
+- The code required is small.
+- There is little risk of over-engineering.
 
 After writing the obvious implementation, run the Micro-Spec and confirm it passes.
 
@@ -104,15 +110,15 @@ Once the tests are green, use them as a safety net to improve the internal struc
 
 During refactoring:
 
-* Improve names.
-* Simplify complex logic.
-* Remove unnecessary branches.
-* Reduce technical debt.
-* Improve readability.
-* Separate responsibilities.
-* Decouple modules from concrete dependencies.
-* Introduce abstractions only when they clarify the design.
-* Preserve all existing behavior.
+- Improve names.
+- Simplify complex logic.
+- Remove unnecessary branches.
+- Reduce technical debt.
+- Improve readability.
+- Separate responsibilities.
+- Decouple modules from concrete dependencies.
+- Introduce abstractions only when they clarify the design.
+- Preserve all existing behavior.
 
 The refactor phase must not add new functionality. Any new behavior requires a new failing test first. If the behavior is within the current Micro-Spec's blast radius and settled decisions, write the test and continue; if it requires touching files outside the blast radius, a new dependency, a schema change, or a product decision, stop and amend the Micro-Spec for approval before writing the test — do not widen scope under the cover of refactoring.
 
@@ -140,18 +146,18 @@ Control the size of each implementation step based on the complexity of the prob
 
 For difficult or unclear problems, use baby steps:
 
-* Write 1 to 3 lines of production code.
-* Run the Micro-Specs.
-* Confirm the result.
-* Continue only after feedback.
+- Write 1 to 3 lines of production code.
+- Run the Micro-Specs.
+- Confirm the result.
+- Continue only after feedback.
 
 This keeps failures small and easy to diagnose.
 
 For simple or obvious problems, use larger steps:
 
-* Write 4 to 7 lines of production code.
-* Run the Micro-Specs.
-* Confirm the result.
+- Write 4 to 7 lines of production code.
+- Run the Micro-Specs.
+- Confirm the result.
 
 Do not take steps so small that they slow down trivial work. Do not take steps so large that debugging becomes difficult.
 
@@ -200,11 +206,11 @@ Do not make large implementation jumps when the problem is uncertain.
 
 The implementation is complete when:
 
-* Every in-scope EARS requirement maps to at least one passing test; a green suite with an uncovered in-scope requirement is not done.
-* All tests pass.
-* The production code satisfies only the required behavior.
-* Fake implementations have been replaced through triangulation where needed.
-* Refactoring has improved structure without changing behavior.
-* Duplication has been handled according to the Rule of Three.
-* Only files within the Micro-Spec's declared blast radius were created or modified; any change outside it was approved first.
-* No untested behavior, unnecessary abstraction, or unauthorized functionality has been introduced.
+- Every in-scope EARS requirement maps to at least one passing test; a green suite with an uncovered in-scope requirement is not done.
+- All tests pass.
+- The production code satisfies only the required behavior.
+- Fake implementations have been replaced through triangulation where needed.
+- Refactoring has improved structure without changing behavior.
+- Duplication has been handled according to the Rule of Three.
+- Only files within the Micro-Spec's declared blast radius were created or modified; any change outside it was approved first.
+- No untested behavior, unnecessary abstraction, or unauthorized functionality has been introduced.

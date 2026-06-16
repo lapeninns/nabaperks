@@ -1,4 +1,56 @@
+---
+spec_id: MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS
+status: active
+risk_class: webhooks
+owner: factory-droid
+last_reviewed: 2026-06-15
+allowed_blast_radius:
+  - app/admin/**
+  - app/api/stripe/**
+  - lib/admin/**
+  - lib/customer/**
+  - lib/security/**
+  - micro-specs/07-observability-compliance/03-security-fraud-and-rate-limits.md
+  - micro-specs/TRACEABILITY.md
+  - micro-specs/traceability.json
+  - supabase/migrations/**
+  - supabase/tests/**
+implementation_surfaces:
+  - lib/security/**
+  - app/api/stripe/**
+  - app/admin/**
+  - lib/admin/**
+  - lib/customer/**
+  - supabase/migrations/**
+  - supabase/tests/**
+related_docs:
+  - docs/PROJECT_SPEC.md
+  - docs/ARCHITECTURE.md
+  - micro-specs/GLOBAL_CONTEXT.md
+related_tests:
+  - tests/micro-specs/customer.test.ts
+  - tests/micro-specs/self-service-stamping.test.ts
+  - manual:billing/admin micro-spec Vitest evidence in retained legacy filename
+  - tests/micro-specs/admin-console-redesign.test.ts
+  - supabase/tests/tenant_isolation.sql
+  - supabase/tests/reward_redemption_cycles.sql
+verification_gates:
+  - pnpm governance
+  - pnpm lint
+  - pnpm typecheck
+  - pnpm test
+  - pnpm security:verify
+  - pnpm db:verify
+approved_exceptions: []
+---
+
 # Micro-Spec: Security, Fraud, and Rate Limits
+
+## Governance Status Evidence
+
+- Lifecycle status: `active` after review against `docs/PROJECT_SPEC.md`, `docs/ARCHITECTURE.md`, and related tests on 2026-06-15.
+- Stale/superseded handling: this spec remains current intent; no replacement spec is linked.
+- Evidence posture: related tests and verification gates are listed in metadata and traceability for implementation handoff.
 
 ## Exact Goal and User-Visible Outcomes
 
@@ -51,15 +103,15 @@ Must-have controls:
 
 ## Behavioral Requirements
 
-- WHEN self-service stamp attempts are repeated too quickly, THE system SHALL rate-limit further attempts.
-- WHEN QR scans or customer identity requests are rate-limited, THE system SHALL store hashed bucket keys in durable server-side storage.
-- WHEN a customer requests multiple stamps inside the cooldown window, THE system SHALL reject duplicates.
-- WHEN stamp volume is unusually high for a merchant or time window, THE system SHALL create a fraud flag for admin review.
-- WHEN reward redemption is attempted concurrently, THE system SHALL allow at most one successful redemption.
-- WHEN a QR code is disabled, THE system SHALL block future scan-to-join flows and keep historical scan data.
-- WHEN admin MFA enforcement is enabled, THE system SHALL require a Supabase AAL2 session before serving internal admin routes or actions.
-- WHEN an unauthorised role attempts a privileged action, THE system SHALL deny it and record a security-relevant audit event where appropriate.
-- WHEN a Stripe webhook signature is invalid, THE system SHALL reject the webhook without mutating billing state.
+- **MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-001** WHEN self-service stamp attempts are repeated too quickly, THE system SHALL rate-limit further attempts.
+- **MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-002** WHEN QR scans or customer identity requests are rate-limited, THE system SHALL store hashed bucket keys in durable server-side storage.
+- **MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-003** WHEN a customer requests multiple stamps inside the cooldown window, THE system SHALL reject duplicates.
+- **MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-004** WHEN stamp volume is unusually high for a merchant or time window, THE system SHALL create a fraud flag for admin review.
+- **MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-005** WHEN reward redemption is attempted concurrently, THE system SHALL allow at most one successful redemption.
+- **MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-006** WHEN a QR code is disabled, THE system SHALL block future scan-to-join flows and keep historical scan data.
+- **MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-007** WHEN admin MFA enforcement is enabled, THE system SHALL require a Supabase AAL2 session before serving internal admin routes or actions.
+- **MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-008** WHEN an unauthorised role attempts a privileged action, THE system SHALL deny it and record a security-relevant audit event where appropriate.
+- **MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-009** WHEN a Stripe webhook signature is invalid, THE system SHALL reject the webhook without mutating billing state.
 
 ## Verification Criteria
 

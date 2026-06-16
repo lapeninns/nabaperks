@@ -1,4 +1,45 @@
+---
+spec_id: MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP
+status: active
+risk_class: customer-pii
+owner: factory-droid
+last_reviewed: 2026-06-15
+allowed_blast_radius:
+  - app/app/**
+  - components/layout/merchant-app-shell.tsx
+  - components/merchant/**
+  - lib/merchant/**
+  - micro-specs/05-merchant-value/02-merchant-console-trust-and-ia-cleanup.md
+  - micro-specs/TRACEABILITY.md
+  - micro-specs/traceability.json
+implementation_surfaces:
+  - app/app/**
+  - components/layout/merchant-app-shell.tsx
+  - components/merchant/**
+  - lib/merchant/**
+related_docs:
+  - docs/PROJECT_SPEC.md
+  - docs/ARCHITECTURE.md
+  - micro-specs/GLOBAL_CONTEXT.md
+  - DESIGN.md
+related_tests:
+  - tests/micro-specs/merchant-console-trust-ia.test.ts
+verification_gates:
+  - pnpm governance
+  - pnpm lint
+  - pnpm typecheck
+  - pnpm test
+  - pnpm security:verify
+approved_exceptions: []
+---
+
 # Micro-Spec: Merchant Console Trust and IA Cleanup
+
+## Governance Status Evidence
+
+- Lifecycle status: `active` after review against `docs/PROJECT_SPEC.md`, `docs/ARCHITECTURE.md`, and related tests on 2026-06-15.
+- Stale/superseded handling: this spec remains current intent; no replacement spec is linked.
+- Evidence posture: related tests and verification gates are listed in metadata and traceability for implementation handoff.
 
 ## Exact Goal and User-Visible Outcomes
 
@@ -50,26 +91,26 @@ Out of scope:
 
 ## Behavioral Requirements
 
-- WHEN merchant navigation renders, THE system SHALL include `/app/activity` in
+- **MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-001** WHEN merchant navigation renders, THE system SHALL include `/app/activity` in
   primary navigation.
-- WHEN account navigation renders, THE system SHALL label `/app/settings` as
+- **MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-002** WHEN account navigation renders, THE system SHALL label `/app/settings` as
   `Settings`.
-- WHEN a merchant customer readback has an email, THE system SHALL display a
+- **MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-003** WHEN a merchant customer readback has an email, THE system SHALL display a
   masked email identifier and SHALL NOT display the raw email address.
-- WHEN a merchant customer readback has only a phone number, THE system SHALL
+- **MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-004** WHEN a merchant customer readback has only a phone number, THE system SHALL
   display only the last four digits and SHALL NOT display the raw phone number.
-- WHEN merchant activity rows are built, THE system SHALL use the same masked
+- **MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-005** WHEN merchant activity rows are built, THE system SHALL use the same masked
   customer identifier in headlines, actor details, and search text.
-- WHEN merchant activity search text is built, THE system SHALL NOT include raw
+- **MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-006** WHEN merchant activity search text is built, THE system SHALL NOT include raw
   email addresses or full phone numbers from customer identity data.
-- WHEN dashboard billing status is `active` or `trialing`, THE dashboard SHALL
+- **MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-007** WHEN dashboard billing status is `active` or `trialing`, THE dashboard SHALL
   omit the billing notice and SHALL NOT render billing status as a KPI tile.
-- WHEN dashboard billing status is `not_started`, `past_due`, `cancelled`,
+- **MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-008** WHEN dashboard billing status is `not_started`, `past_due`, `cancelled`,
   `suspended`, or unknown, THE dashboard SHALL render an action-oriented billing
   notice.
-- WHEN billing status copy is rendered on `/app` or `/app/billing`, THE system
+- **MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-009** WHEN billing status copy is rendered on `/app` or `/app/billing`, THE system
   SHALL use one shared status-copy model.
-- WHEN dashboard data loads, THE system SHALL NOT fetch recent activity inside
+- **MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-010** WHEN dashboard data loads, THE system SHALL NOT fetch recent activity inside
   `getMerchantDashboardData` because the dashboard already loads enriched
   activity separately.
 

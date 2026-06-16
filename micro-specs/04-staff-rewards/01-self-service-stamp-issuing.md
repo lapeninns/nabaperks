@@ -1,4 +1,52 @@
+---
+spec_id: MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING
+status: active
+risk_class: rls-rpc-ledger
+owner: factory-droid
+last_reviewed: 2026-06-15
+allowed_blast_radius:
+  - app/card/**
+  - app/q/**
+  - lib/customer/returning-qr-redirect.ts
+  - lib/customer/stamp.ts
+  - micro-specs/04-staff-rewards/01-self-service-stamp-issuing.md
+  - micro-specs/TRACEABILITY.md
+  - micro-specs/traceability.json
+  - supabase/migrations/**
+  - supabase/tests/**
+implementation_surfaces:
+  - app/q/**
+  - app/card/**
+  - lib/customer/stamp.ts
+  - lib/customer/returning-qr-redirect.ts
+  - supabase/migrations/**
+  - supabase/tests/**
+related_docs:
+  - docs/PROJECT_SPEC.md
+  - docs/ARCHITECTURE.md
+  - micro-specs/GLOBAL_CONTEXT.md
+related_tests:
+  - tests/micro-specs/self-service-stamping.test.ts
+  - tests/micro-specs/returning-qr-redirect.test.ts
+  - tests/micro-specs/customer-stamp-loader.test.ts
+  - supabase/tests/reward_redemption_cycles.sql
+verification_gates:
+  - pnpm governance
+  - pnpm lint
+  - pnpm typecheck
+  - pnpm test
+  - pnpm db:verify
+  - pnpm security:verify
+approved_exceptions: []
+---
+
 # Micro-Spec: Self-Service Stamp Issuing
+
+## Governance Status Evidence
+
+- Lifecycle status: `active` after review against `docs/PROJECT_SPEC.md`, `docs/ARCHITECTURE.md`, and related tests on 2026-06-15.
+- Stale/superseded handling: this spec remains current intent; no replacement spec is linked.
+- Evidence posture: related tests and verification gates are listed in metadata and traceability for implementation handoff.
 
 ## Exact Goal and User-Visible Outcomes
 
@@ -46,24 +94,24 @@ Out of scope:
 
 ## Behavioral Requirements
 
-- WHEN an existing member scans the venue QR, THE app SHALL route to the
+- **MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-001** WHEN an existing member scans the venue QR, THE app SHALL route to the
   stamp-confirm screen with QR context.
-- WHEN the customer taps add stamp and all server checks pass, THE system SHALL
+- **MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-002** WHEN the customer taps add stamp and all server checks pass, THE system SHALL
   create a `stamp_events` record and increment membership progress.
-- WHEN location is in range, THE system SHALL issue the stamp without creating a
+- **MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-003** WHEN location is in range, THE system SHALL issue the stamp without creating a
   geofence fraud flag.
-- WHEN location is outside the configured radius, THE system SHALL issue the
+- **MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-004** WHEN location is outside the configured radius, THE system SHALL issue the
   stamp and create a fraud flag.
-- WHEN location is denied or unavailable, THE system SHALL issue the stamp and
+- **MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-005** WHEN location is denied or unavailable, THE system SHALL issue the stamp and
   create a fraud flag.
-- WHEN the customer has already received a stamp for the membership/location/UK
+- **MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-006** WHEN the customer has already received a stamp for the membership/location/UK
   date, THE system SHALL reject the duplicate attempt with safe copy.
-- WHEN the stamp completes the visit target, THE system SHALL select one active
+- **MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-007** WHEN the stamp completes the visit target, THE system SHALL select one active
   reward pool item using integer weights and persist its details into
   `reward_events`.
-- WHEN the merchant billing state is cancelled or suspended, THE system SHALL
+- **MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-008** WHEN the merchant billing state is cancelled or suspended, THE system SHALL
   block new stamp issuance according to billing rules.
-- WHEN a stamp is issued, THE system SHALL write `stamp_issued` to product
+- **MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-009** WHEN a stamp is issued, THE system SHALL write `stamp_issued` to product
   events and an audit entry with non-sensitive metadata.
 
 ## Verification Criteria

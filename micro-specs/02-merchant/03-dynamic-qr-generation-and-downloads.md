@@ -1,4 +1,50 @@
+---
+spec_id: MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS
+status: active
+risk_class: rls-rpc-ledger
+owner: factory-droid
+last_reviewed: 2026-06-15
+allowed_blast_radius:
+  - app/app/qr/**
+  - app/q/**
+  - lib/merchant/qr-code.ts
+  - lib/qr/**
+  - micro-specs/02-merchant/03-dynamic-qr-generation-and-downloads.md
+  - micro-specs/TRACEABILITY.md
+  - micro-specs/traceability.json
+  - supabase/migrations/**
+implementation_surfaces:
+  - app/app/qr/**
+  - app/q/**
+  - lib/merchant/qr-code.ts
+  - lib/qr/**
+  - supabase/migrations/**
+related_docs:
+  - docs/PROJECT_SPEC.md
+  - docs/ARCHITECTURE.md
+  - micro-specs/GLOBAL_CONTEXT.md
+related_tests:
+  - tests/micro-specs/merchant-qr.test.ts
+  - tests/micro-specs/merchant-qr-mutations.test.ts
+  - tests/micro-specs/customer.test.ts
+  - tests/micro-specs/self-service-stamping.test.ts
+verification_gates:
+  - pnpm governance
+  - pnpm lint
+  - pnpm typecheck
+  - pnpm test
+  - pnpm db:verify
+  - pnpm security:verify
+approved_exceptions: []
+---
+
 # Micro-Spec: Dynamic QR Generation and Downloads
+
+## Governance Status Evidence
+
+- Lifecycle status: `active` after review against `docs/PROJECT_SPEC.md`, `docs/ARCHITECTURE.md`, and related tests on 2026-06-15.
+- Stale/superseded handling: this spec remains current intent; no replacement spec is linked.
+- Evidence posture: related tests and verification gates are listed in metadata and traceability for implementation handoff.
 
 ## Exact Goal and User-Visible Outcomes
 
@@ -37,13 +83,13 @@ Out of scope:
 
 ## Behavioral Requirements
 
-- WHEN a merchant with an active card and at least one active reward pool item opens `/app/qr`, THE app SHALL show their active QR code and shareable URL.
-- WHEN no active venue join QR exists, THE system SHALL create one or guide the merchant to generate one.
-- WHEN an active venue join QR already exists, THE system SHALL reuse it instead of creating a campaign-specific QR.
-- WHEN no active reward pool item exists, THE system SHALL block QR launch and direct the merchant back to reward setup.
-- WHEN a merchant downloads a QR asset, THE system SHALL provide a scannable file with the correct `/q/{qr_id}` URL.
-- WHEN a QR is disabled, THE system SHALL keep historical scan records and SHALL prevent new customer entry through that QR.
-- WHEN a QR is generated or downloaded, THE system SHALL record `qr_created` or `qr_downloaded` product events.
+- **MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS-001** WHEN a merchant with an active card and at least one active reward pool item opens `/app/qr`, THE app SHALL show their active QR code and shareable URL.
+- **MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS-002** WHEN no active venue join QR exists, THE system SHALL create one or guide the merchant to generate one.
+- **MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS-003** WHEN an active venue join QR already exists, THE system SHALL reuse it instead of creating a campaign-specific QR.
+- **MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS-004** WHEN no active reward pool item exists, THE system SHALL block QR launch and direct the merchant back to reward setup.
+- **MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS-005** WHEN a merchant downloads a QR asset, THE system SHALL provide a scannable file with the correct `/q/{qr_id}` URL.
+- **MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS-006** WHEN a QR is disabled, THE system SHALL keep historical scan records and SHALL prevent new customer entry through that QR.
+- **MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS-007** WHEN a QR is generated or downloaded, THE system SHALL record `qr_created` or `qr_downloaded` product events.
 
 ## Verification Criteria
 

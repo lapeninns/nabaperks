@@ -1,4 +1,49 @@
+---
+spec_id: MS-FOUNDATION-SUPABASE-SCHEMA-RLS-AUDIT
+status: active
+risk_class: migrations
+owner: factory-droid
+last_reviewed: 2026-06-15
+allowed_blast_radius:
+  - lib/**/*.ts
+  - lib/supabase/**
+  - micro-specs/01-foundation/02-supabase-schema-rls-and-audit.md
+  - micro-specs/TRACEABILITY.md
+  - micro-specs/traceability.json
+  - supabase/migrations/**
+  - supabase/tests/**
+implementation_surfaces:
+  - supabase/migrations/**
+  - supabase/tests/**
+  - lib/supabase/**
+  - lib/**/*.ts
+related_docs:
+  - docs/PROJECT_SPEC.md
+  - docs/ARCHITECTURE.md
+  - micro-specs/GLOBAL_CONTEXT.md
+related_tests:
+  - tests/micro-specs/foundation.test.ts
+  - manual:billing/admin micro-spec Vitest evidence in retained legacy filename
+  - tests/micro-specs/customer.test.ts
+  - supabase/tests/tenant_isolation.sql
+  - supabase/tests/reward_redemption_cycles.sql
+verification_gates:
+  - pnpm governance
+  - pnpm lint
+  - pnpm typecheck
+  - pnpm test
+  - pnpm db:verify
+  - pnpm security:verify
+approved_exceptions: []
+---
+
 # Micro-Spec: Supabase Schema, RLS, and Audit Backbone
+
+## Governance Status Evidence
+
+- Lifecycle status: `active` after review against `docs/PROJECT_SPEC.md`, `docs/ARCHITECTURE.md`, and related tests on 2026-06-15.
+- Stale/superseded handling: this spec remains current intent; no replacement spec is linked.
+- Evidence posture: related tests and verification gates are listed in metadata and traceability for implementation handoff.
 
 ## Exact Goal and User-Visible Outcomes
 
@@ -59,11 +104,11 @@ Roles:
 
 ## Behavioral Requirements
 
-- WHEN a merchant owner queries merchant data, THE database SHALL return only records for that merchant.
-- WHEN a customer views loyalty data, THE database SHALL return only their own customer profile, memberships, stamps, and rewards.
-- WHEN an internal admin performs a support action, THE system SHALL write an audit log.
-- WHEN a billing, stamp, reward, consent, QR, or admin mutation succeeds, THE system SHALL write the appropriate audit or product event.
-- WHEN unauthenticated users access protected tables directly, THE database SHALL deny access.
+- **MS-FOUNDATION-SUPABASE-SCHEMA-RLS-AUDIT-001** WHEN a merchant owner queries merchant data, THE database SHALL return only records for that merchant.
+- **MS-FOUNDATION-SUPABASE-SCHEMA-RLS-AUDIT-002** WHEN a customer views loyalty data, THE database SHALL return only their own customer profile, memberships, stamps, and rewards.
+- **MS-FOUNDATION-SUPABASE-SCHEMA-RLS-AUDIT-003** WHEN an internal admin performs a support action, THE system SHALL write an audit log.
+- **MS-FOUNDATION-SUPABASE-SCHEMA-RLS-AUDIT-004** WHEN a billing, stamp, reward, consent, QR, or admin mutation succeeds, THE system SHALL write the appropriate audit or product event.
+- **MS-FOUNDATION-SUPABASE-SCHEMA-RLS-AUDIT-005** WHEN unauthenticated users access protected tables directly, THE database SHALL deny access.
 
 ## Verification Criteria
 

@@ -6,15 +6,40 @@
 
 Closes #
 
+## Governance
+
+- Spec ID:
+- Risk class:
+- Requirement IDs:
+- Requirement/test mapping:
+- Declared blast radius:
+- Actual files touched:
+- Approved blast-radius exceptions: none / list file path plus approving spec or reviewer
+- Micro-Spec outcome and scope:
+- Browser evidence: required / not required because this is governance-only or non-runtime work
+
 ## How it was built (TDD)
 
 <!-- Red → Green → Refactor. Which EARS requirements got a failing test first? -->
 
+- Red evidence:
+- Green evidence:
+- Refactor evidence:
+
+## As-built reconciliation
+
+- Already satisfied:
+- Implemented:
+- Intentionally untouched:
+- Blast-radius confirmation:
+
 ## Verification
 
+- Verification evidence:
 - [ ] `pnpm lint`
 - [ ] `pnpm typecheck`
 - [ ] `pnpm test` (and `pnpm test:coverage` if touching `lib/`)
+- [ ] `pnpm governance`
 - [ ] `pnpm quality` (naming, debt, N+1, AGENTS.md, complexity, routes, dead/dup code)
 - [ ] `pnpm build`
 - [ ] Relevant `supabase/tests` SQL or Playwright smoke, if the surface changed
@@ -25,6 +50,20 @@ Closes #
 - [ ] Copy is plain, warm, British (en-GB); no emoji, no exclamation marks
 - [ ] No new shared staff secrets; loyalty mutations still go through the RPCs
 - [ ] Blast radius matches the Micro-Spec; no out-of-scope behaviour added
+
+## Reviewer decision
+
+- Decision: approved / changes requested / override
+- Spec ID:
+- Requirement IDs:
+- Risk class:
+- Verification output:
+
+## Release reconciliation
+
+- CI and governance evidence:
+- Risks:
+- Follow-ups:
 
 ## Notes for reviewers
 

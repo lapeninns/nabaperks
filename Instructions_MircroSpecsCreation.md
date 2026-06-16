@@ -6,6 +6,30 @@ A Micro-Spec must be **small, focused, declarative, and executable**. It should 
 
 Implementation of a Micro-Spec is governed by `Instructions_tdd.md` (binding, Red → Green → Refactor): each in-scope EARS requirement becomes a failing test before any production code. Author the spec so that handoff is clean — this document owns the WHAT, that one owns the HOW.
 
+The AI governance contract in `micro-specs/README.md` is binding for metadata,
+source hierarchy, lifecycle status transitions, risk_class, and verification
+gates. A normalized Micro-Spec must include this Micro-Spec Metadata Schema
+before Engineering can treat it as implementation-ready:
+
+```yaml
+spec_id: MS-<area>-<slug>
+status: draft | active | implemented | verified | superseded
+risk_class: docs-tooling | ui-only | product-analytics | customer-pii | auth-session | billing | webhooks | rls-rpc-ledger | migrations
+owner: <person-or-agent>
+last_reviewed: YYYY-MM-DD
+allowed_blast_radius:
+  - <repo-local path or glob>
+implementation_surfaces:
+  - <repo-local path or glob>
+related_docs:
+  - <repo-local path>
+related_tests:
+  - <repo-local path>
+verification_gates:
+  - pnpm lint
+approved_exceptions: []
+```
+
 Each Micro-Spec must include the following elements:
 
 ---
@@ -32,10 +56,10 @@ Explicitly define what the AI agent is allowed to modify.
 
 Include:
 
-* Files the agent may edit
-* Directories the agent may edit
-* Components, services, APIs, or schemas involved
-* Files or systems that must not be changed
+- Files the agent may edit
+- Directories the agent may edit
+- Components, services, APIs, or schemas involved
+- Files or systems that must not be changed
 
 Clearly state what is out of scope.
 
@@ -53,16 +77,16 @@ Define all non-negotiable constraints the implementation must follow.
 
 Include relevant constraints for:
 
-* Libraries
-* Frameworks
-* Database schemas
-* API patterns
-* UI patterns
-* Security requirements
-* Performance expectations
-* Error handling
-* State management
-* Testing requirements
+- Libraries
+- Frameworks
+- Database schemas
+- API patterns
+- UI patterns
+- Security requirements
+- Performance expectations
+- Error handling
+- State management
+- Testing requirements
 
 The AI agent must not introduce new dependencies, alter architecture, change schemas, or make product decisions unless the Micro-Spec explicitly permits it.
 
@@ -74,12 +98,12 @@ State all decisions that have already been settled.
 
 Examples:
 
-* The app already uses Tailwind CSS.
-* Authentication must use Supabase Auth.
-* Password hashing must use bcrypt.
-* The database schema is already defined.
-* The UI must use the existing Button component.
-* The implementation must follow the existing Repository Pattern.
+- The app already uses Tailwind CSS.
+- Authentication must use Supabase Auth.
+- Password hashing must use bcrypt.
+- The database schema is already defined.
+- The UI must use the existing Button component.
+- The implementation must follow the existing Repository Pattern.
 
 Do not assume the AI agent will infer these decisions from the codebase.
 
@@ -99,25 +123,25 @@ Example:
 
 `WHEN/SHALL` is only one of EARS' five forms. Pick the simplest form that fits the requirement:
 
-| Use when | Pattern |
-|---|---|
-| Always-true invariant | THE `[system]` SHALL `[response]`. |
-| Active only in a state | WHILE `[state]`, THE `[system]` SHALL `[response]`. |
-| Triggered by an event | WHEN `[trigger]`, THE `[system]` SHALL `[response]`. |
-| Behind an optional feature or flag | WHERE `[feature]`, THE `[system]` SHALL `[response]`. |
+| Use when                                     | Pattern                                                   |
+| -------------------------------------------- | --------------------------------------------------------- |
+| Always-true invariant                        | THE `[system]` SHALL `[response]`.                        |
+| Active only in a state                       | WHILE `[state]`, THE `[system]` SHALL `[response]`.       |
+| Triggered by an event                        | WHEN `[trigger]`, THE `[system]` SHALL `[response]`.      |
+| Behind an optional feature or flag           | WHERE `[feature]`, THE `[system]` SHALL `[response]`.     |
 | Guarding against unwanted input or condition | IF `[condition]`, THEN THE `[system]` SHALL `[response]`. |
 
 Express invariants (e.g. ledger or tenant constraints such as "one stamp per UK business day") as ubiquitous statements, and rejection rules as `IF…THEN`. These are exactly the cases your real-database tests cover, and they are easy to lose if forced into a `WHEN` event.
 
 Use EARS statements for:
 
-* User interactions
-* State transitions
-* Error cases
-* Permission rules
-* Validation rules
-* API responses
-* Edge cases
+- User interactions
+- State transitions
+- Error cases
+- Permission rules
+- Validation rules
+- API responses
+- Edge cases
 
 Each behavioral requirement should be specific enough to map directly to a test or acceptance criterion.
 
@@ -129,12 +153,12 @@ Define how completion will be verified.
 
 Include:
 
-* Acceptance criteria
-* Required tests
-* Edge cases
-* Manual QA checks
-* Expected success states
-* Expected failure states
+- Acceptance criteria
+- Required tests
+- Edge cases
+- Manual QA checks
+- Expected success states
+- Expected failure states
 
 Express required tests as observable behaviors to verify (e.g. "a second stamp on the same UK business day is rejected"), not as test file names or function signatures — the TDD workflow chooses the test form.
 
@@ -166,19 +190,19 @@ Do not repeat broad engineering rules in every Micro-Spec.
 
 Move reusable project-wide rules into a Global Context file. In this repo, Global Context lives in:
 
-* `AGENTS.md` — stack and governance index
-* `micro-specs/GLOBAL_CONTEXT.md` — product, stack, security, and verification baselines
+- `AGENTS.md` — stack and governance index
+- `micro-specs/GLOBAL_CONTEXT.md` — product, stack, security, and verification baselines
 
 Read those before authoring, and never restate their stack, security, or verification rules in an individual spec.
 
 Use Global Context for rules such as:
 
-* Always use Tailwind CSS.
-* Never use `any` types.
-* Follow the Repository Pattern.
-* Use existing shared components.
-* Do not introduce new dependencies without approval.
-* Follow existing naming conventions.
+- Always use Tailwind CSS.
+- Never use `any` types.
+- Follow the Repository Pattern.
+- Use existing shared components.
+- Do not introduce new dependencies without approval.
+- Follow existing naming conventions.
 
 The Micro-Spec should focus on the specific business logic and behavior for the current change, while Global Context should enforce the broader engineering culture.
 

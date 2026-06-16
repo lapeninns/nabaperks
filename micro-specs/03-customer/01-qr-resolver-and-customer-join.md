@@ -1,4 +1,53 @@
+---
+spec_id: MS-CUSTOMER-QR-RESOLVER-JOIN
+status: active
+risk_class: auth-session
+owner: factory-droid
+last_reviewed: 2026-06-15
+allowed_blast_radius:
+  - app/m/**
+  - app/q/**
+  - lib/customer/join.ts
+  - lib/customer/phone.ts
+  - lib/customer/session*.ts
+  - micro-specs/03-customer/01-qr-resolver-and-customer-join.md
+  - micro-specs/TRACEABILITY.md
+  - micro-specs/traceability.json
+  - supabase/migrations/**
+implementation_surfaces:
+  - app/q/**
+  - app/m/**
+  - lib/customer/join.ts
+  - lib/customer/phone.ts
+  - lib/customer/session*.ts
+  - supabase/migrations/**
+related_docs:
+  - docs/PROJECT_SPEC.md
+  - docs/ARCHITECTURE.md
+  - micro-specs/GLOBAL_CONTEXT.md
+  - DESIGN.md
+related_tests:
+  - tests/micro-specs/customer.test.ts
+  - tests/micro-specs/customer-phone-auth.test.ts
+  - tests/micro-specs/returning-qr-redirect.test.ts
+  - tests/micro-specs/customer-legal-sheets.test.ts
+verification_gates:
+  - pnpm governance
+  - pnpm lint
+  - pnpm typecheck
+  - pnpm test
+  - pnpm security:verify
+  - pnpm build
+approved_exceptions: []
+---
+
 # Micro-Spec: QR Resolver and Customer Join
+
+## Governance Status Evidence
+
+- Lifecycle status: `active` after review against `docs/PROJECT_SPEC.md`, `docs/ARCHITECTURE.md`, and related tests on 2026-06-15.
+- Stale/superseded handling: this spec remains current intent; no replacement spec is linked.
+- Evidence posture: related tests and verification gates are listed in metadata and traceability for implementation handoff.
 
 ## Exact Goal and User-Visible Outcomes
 
@@ -40,14 +89,14 @@ Out of scope:
 
 ## Behavioral Requirements
 
-- WHEN a customer scans an active QR, THE resolver SHALL look up the QR record server-side.
-- WHEN a QR is inactive or unknown, THE resolver SHALL show that the loyalty card is unavailable.
-- WHEN an active QR is scanned, THE system SHALL record `qr_scanned`.
-- WHEN an unauthenticated customer reaches join, THE app SHALL request phone identity verification using the visitor IP country as the national-number parsing default and GB as fallback.
-- WHEN a customer accepts loyalty terms and completes identity verification, THE system SHALL create or reuse their customer profile and merchant membership.
-- WHEN the marketing opt-in checkbox is not selected, THE system SHALL create no opted-in marketing consent.
-- WHEN marketing opt-in is selected, THE system SHALL record consent with source and policy version.
-- WHEN a returning member scans the same merchant QR, THE app SHALL take them to their existing card instead of creating a duplicate membership.
+- **MS-CUSTOMER-QR-RESOLVER-JOIN-001** WHEN a customer scans an active QR, THE resolver SHALL look up the QR record server-side.
+- **MS-CUSTOMER-QR-RESOLVER-JOIN-002** WHEN a QR is inactive or unknown, THE resolver SHALL show that the loyalty card is unavailable.
+- **MS-CUSTOMER-QR-RESOLVER-JOIN-003** WHEN an active QR is scanned, THE system SHALL record `qr_scanned`.
+- **MS-CUSTOMER-QR-RESOLVER-JOIN-004** WHEN an unauthenticated customer reaches join, THE app SHALL request phone identity verification using the visitor IP country as the national-number parsing default and GB as fallback.
+- **MS-CUSTOMER-QR-RESOLVER-JOIN-005** WHEN a customer accepts loyalty terms and completes identity verification, THE system SHALL create or reuse their customer profile and merchant membership.
+- **MS-CUSTOMER-QR-RESOLVER-JOIN-006** WHEN the marketing opt-in checkbox is not selected, THE system SHALL create no opted-in marketing consent.
+- **MS-CUSTOMER-QR-RESOLVER-JOIN-007** WHEN marketing opt-in is selected, THE system SHALL record consent with source and policy version.
+- **MS-CUSTOMER-QR-RESOLVER-JOIN-008** WHEN a returning member scans the same merchant QR, THE app SHALL take them to their existing card instead of creating a duplicate membership.
 
 ## Verification Criteria
 

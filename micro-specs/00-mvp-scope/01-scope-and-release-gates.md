@@ -1,4 +1,44 @@
+---
+spec_id: MS-MVP-SCOPE-RELEASE-GATES
+status: active
+risk_class: docs-tooling
+owner: factory-droid
+last_reviewed: 2026-06-15
+allowed_blast_radius:
+  - docs/ARCHITECTURE.md
+  - docs/PROJECT_SPEC.md
+  - micro-specs/**
+  - micro-specs/00-mvp-scope/01-scope-and-release-gates.md
+  - micro-specs/TRACEABILITY.md
+  - micro-specs/traceability.json
+implementation_surfaces:
+  - micro-specs/**
+  - docs/PROJECT_SPEC.md
+  - docs/ARCHITECTURE.md
+related_docs:
+  - docs/PROJECT_SPEC.md
+  - docs/ARCHITECTURE.md
+  - micro-specs/GLOBAL_CONTEXT.md
+related_tests:
+  - tests/micro-specs/analytics-dashboard-pilot.test.ts
+  - tests/micro-specs/customer.test.ts
+  - tests/micro-specs/self-service-stamping.test.ts
+  - manual:billing/admin micro-spec Vitest evidence in retained legacy filename
+verification_gates:
+  - pnpm governance
+  - pnpm lint
+  - pnpm typecheck
+  - pnpm test
+approved_exceptions: []
+---
+
 # Micro-Spec: MVP Scope and Release Gates
+
+## Governance Status Evidence
+
+- Lifecycle status: `active` after review against `docs/PROJECT_SPEC.md`, `docs/ARCHITECTURE.md`, and related tests on 2026-06-15.
+- Stale/superseded handling: this spec remains current intent; no replacement spec is linked.
+- Evidence posture: related tests and verification gates are listed in metadata and traceability for implementation handoff.
 
 ## Exact Goal and User-Visible Outcomes
 
@@ -47,13 +87,13 @@ Out of scope:
 
 ## Behavioral Requirements
 
-- WHEN an implementation agent proposes a feature outside the MVP boundary, THE product plan SHALL reject it unless a new approved micro-spec explicitly adds it.
-- WHEN a merchant completes onboarding, THE system SHALL support one active location and one active loyalty card for MVP.
-- WHEN a customer joins a card, THE system SHALL not require a mobile app download.
-- WHEN customers add stamps, THE system SHALL require a valid venue QR context, enforce one earned stamp per membership/location/UK date, and record the action.
-- WHEN the third visit stamp is issued, THE system SHALL assign exactly one active reward pool item and persist the assigned reward details.
-- WHEN a reward is revealed, THE system SHALL block redemption until the next UK business day.
-- WHEN the MVP is evaluated for pilot readiness, THE project SHALL check every release gate in this spec.
+- **MS-MVP-SCOPE-RELEASE-GATES-001** WHEN an implementation agent proposes a feature outside the MVP boundary, THE product plan SHALL reject it unless a new approved micro-spec explicitly adds it.
+- **MS-MVP-SCOPE-RELEASE-GATES-002** WHEN a merchant completes onboarding, THE system SHALL support one active location and one active loyalty card for MVP.
+- **MS-MVP-SCOPE-RELEASE-GATES-003** WHEN a customer joins a card, THE system SHALL not require a mobile app download.
+- **MS-MVP-SCOPE-RELEASE-GATES-004** WHEN customers add stamps, THE system SHALL require a valid venue QR context, enforce one earned stamp per membership/location/UK date, and record the action.
+- **MS-MVP-SCOPE-RELEASE-GATES-005** WHEN the third visit stamp is issued, THE system SHALL assign exactly one active reward pool item and persist the assigned reward details.
+- **MS-MVP-SCOPE-RELEASE-GATES-006** WHEN a reward is revealed, THE system SHALL block redemption until the next UK business day.
+- **MS-MVP-SCOPE-RELEASE-GATES-007** WHEN the MVP is evaluated for pilot readiness, THE project SHALL check every release gate in this spec.
 
 ## Verification Criteria
 
