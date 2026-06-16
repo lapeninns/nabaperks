@@ -15,7 +15,6 @@ export const LAUNCH_PREVIEW_MOCK = {
   locationName: "Main counter",
   cardName: "Mystery Visit Card",
   stampsRequired: 3,
-  qrPublicId: "WHEF",
   shareUrl: "https://nabaperks.com/q/WHEF",
   address: "1 High Street, London E1 6AN",
   rewardTerms:
@@ -35,9 +34,6 @@ function mockSteps(flags: StepFlags): LaunchReadinessStep[] {
       id: "card",
       tab: "card",
       label: "Card built",
-      summary: flags.card
-        ? `${LAUNCH_PREVIEW_MOCK.cardName} · ${LAUNCH_PREVIEW_MOCK.stampsRequired} visits`
-        : "Create the visit card customers will collect.",
       ready: flags.card,
       href: "/app/launch?tab=card",
       actionLabel: flags.card ? "Review card" : "Build card",
@@ -46,9 +42,6 @@ function mockSteps(flags: StepFlags): LaunchReadinessStep[] {
       id: "rewards",
       tab: "card",
       label: "Rewards loaded",
-      summary: flags.reward
-        ? "3 active mystery rewards"
-        : "Add at least 3 active rewards to reveal.",
       ready: flags.reward,
       href: "/app/launch?tab=card",
       actionLabel: "Add reward",
@@ -57,9 +50,6 @@ function mockSteps(flags: StepFlags): LaunchReadinessStep[] {
       id: "venue",
       tab: "venue",
       label: "Venue set",
-      summary: flags.venue
-        ? "Venue address is saved for printed QR checks."
-        : "Save and geocode the venue address.",
       ready: flags.venue,
       href: "/app/launch?tab=venue",
       actionLabel: "Save venue",
@@ -68,9 +58,6 @@ function mockSteps(flags: StepFlags): LaunchReadinessStep[] {
       id: "qr",
       tab: "qr",
       label: "QR live",
-      summary: flags.qr
-        ? `Permanent QR ${LAUNCH_PREVIEW_MOCK.qrPublicId} is accepting scans.`
-        : "Generate the permanent venue QR.",
       ready: flags.qr,
       href: "/app/launch?tab=qr",
       actionLabel: flags.qr ? "Open QR" : "Generate QR",

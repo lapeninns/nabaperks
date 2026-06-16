@@ -13,7 +13,6 @@ export type LaunchReadinessStep = {
   id: LaunchReadinessStepId
   tab: LaunchReadinessTab
   label: string
-  summary: string
   ready: boolean
   href: string
   actionLabel: string
@@ -54,17 +53,14 @@ export function buildLaunchReadiness({
   const qrIsActive = Boolean(qrCode?.is_active)
   const venueReady = Boolean(
     location?.address &&
-      (!location.require_geofence ||
-        (location.latitude !== null && location.longitude !== null))
+    (!location.require_geofence ||
+      (location.latitude !== null && location.longitude !== null))
   )
   const steps: LaunchReadinessStep[] = [
     {
       id: "card",
       tab: "card",
       label: "Card built",
-      summary: activeCard
-        ? `${activeCard.card_name} · ${activeCard.stamps_required} visits`
-        : "Create the visit card customers will collect.",
       ready: Boolean(activeCard),
       href: "/app/launch?tab=card",
       actionLabel: activeCard ? "Review card" : "Build card",
@@ -73,10 +69,6 @@ export function buildLaunchReadiness({
       id: "rewards",
       tab: "card",
       label: "Rewards loaded",
-      summary:
-        activeRewardPoolItemCount >= 3
-          ? `${activeRewardPoolItemCount} active mystery rewards`
-          : `Add ${3 - activeRewardPoolItemCount} more active reward${3 - activeRewardPoolItemCount === 1 ? "" : "s"} to reach 3.`,
       ready: activeRewardPoolItemCount >= 3,
       href: "/app/launch?tab=card",
       actionLabel: "Add reward",
@@ -85,11 +77,6 @@ export function buildLaunchReadiness({
       id: "venue",
       tab: "venue",
       label: "Venue set",
-      summary: venueReady
-        ? location?.require_geofence
-          ? "Venue address is geocoded for GPS anomaly checks."
-          : "Venue address is saved for printed QR checks."
-        : "Save and geocode the venue address.",
       ready: venueReady,
       href: "/app/launch?tab=venue",
       actionLabel: "Save venue",
@@ -98,11 +85,6 @@ export function buildLaunchReadiness({
       id: "qr",
       tab: "qr",
       label: "QR live",
-      summary: qrIsActive
-        ? `Permanent QR ${qrCode?.qr_id ?? ""} is accepting scans.`
-        : hasQr
-          ? "Enable the permanent venue QR when venue setup is ready."
-          : "Generate the permanent venue QR.",
       ready: qrIsActive,
       href: "/app/launch?tab=qr",
       actionLabel: hasQr ? "Open QR" : "Generate QR",

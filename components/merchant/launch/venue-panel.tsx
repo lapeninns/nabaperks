@@ -12,7 +12,7 @@ export async function VenuePanel() {
   }
 
   return (
-    <div className="grid max-w-2xl gap-4">
+    <div className="grid gap-4">
       <VenueLocationForm
         initialValues={{
           venueName: location?.name ?? "Main venue",

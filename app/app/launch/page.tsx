@@ -1,23 +1,15 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import {
-  ArrowRight02Icon,
-  CheckmarkBadge04Icon,
-} from "@hugeicons/core-free-icons"
 
-import { Icon, PageTitle } from "@/components/brand"
+import { PageTitle } from "@/components/brand"
 import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
 import { CardPanel } from "@/components/merchant/launch/card-panel"
 import { QrPanel } from "@/components/merchant/launch/qr-panel"
 import { VenuePanel } from "@/components/merchant/launch/venue-panel"
 import { Button } from "@/components/ui/button"
 import { getCurrentMerchant } from "@/lib/auth/session"
-import {
-  buildLaunchReadiness,
-  type LaunchReadinessStep,
-} from "@/lib/merchant/launch-readiness"
+import { buildLaunchReadiness } from "@/lib/merchant/launch-readiness"
 import { getQrSetup } from "@/lib/merchant/qr-code"
-import { cn } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
 
@@ -98,75 +90,14 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
         }
       />
 
-      <LaunchReadinessPanel readiness={launchReadiness} showHeader={false} />
-
-      <div className="grid gap-3">
-        {launchReadiness.steps.map((step, index) => {
-          const firstOfTab = launchReadiness.steps.findIndex(
-            (candidate) => candidate.tab === step.tab
-          )
-
-          if (step.tab === activeTab) {
-            // The active step expands into its full panel, rendered once even
-            // when two steps (card + reward) share the same destination tab.
-            return index === firstOfTab ? (
-              <div key={step.tab} className="grid gap-5">
-                {activePanel}
-              </div>
-            ) : null
-          }
-
-          return <LaunchStepRow key={step.id} index={index} step={step} />
-        })}
-      </div>
-    </div>
-  )
-}
-
-/** A collapsed step in the launch rail — one line that deep-links to its tab. */
-function LaunchStepRow({
-  index,
-  step,
-}: {
-  index: number
-  step: LaunchReadinessStep
-}) {
-  return (
-    <Link
-      href={step.href}
-      aria-label={`${step.label} — ${step.ready ? "ready" : "to do"}`}
-      className={cn(
-        "group flex items-center gap-3 rounded-lg border-2 bg-card px-4 py-3 shadow-xs transition-colors outline-none hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/35",
-        step.ready ? "border-ink" : "border-dashed border-ink/35"
-      )}
-    >
-      <span
-        aria-hidden="true"
-        className={cn(
-          "grid size-8 flex-none place-items-center rounded-full border-2",
-          step.ready
-            ? "border-ink bg-stamp text-stamp-foreground"
-            : "border-dashed border-ink/40 bg-background font-mono text-sm font-bold text-muted-foreground"
-        )}
-      >
-        {step.ready ? (
-          <Icon icon={CheckmarkBadge04Icon} size={16} strokeWidth={2.5} />
-        ) : (
-          index + 1
-        )}
-      </span>
-      <span className="grid flex-1 gap-0.5">
-        <span className="text-sm font-extrabold">{step.label}</span>
-        <span className="text-xs leading-5 text-muted-foreground">
-          {step.summary}
-        </span>
-      </span>
-      <Icon
-        icon={ArrowRight02Icon}
-        size={18}
-        className="flex-none text-muted-foreground transition-transform group-hover:translate-x-0.5"
+      <LaunchReadinessPanel
+        readiness={launchReadiness}
+        showHeader={false}
+        activeTab={activeTab}
       />
-    </Link>
+
+      <div className="grid gap-5">{activePanel}</div>
+    </div>
   )
 }
 

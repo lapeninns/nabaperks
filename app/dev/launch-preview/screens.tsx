@@ -1,10 +1,5 @@
 import Link from "next/link"
-import {
-  ArrowRight02Icon,
-  CheckmarkBadge04Icon,
-  Download01Icon,
-  PrinterIcon,
-} from "@hugeicons/core-free-icons"
+import { Download01Icon, PrinterIcon } from "@hugeicons/core-free-icons"
 
 import { Icon, PageTitle } from "@/components/brand"
 import { QrFrame } from "@/components/loyalty/qr-frame"
@@ -21,8 +16,6 @@ import {
   mockLaunchReadiness,
   type LaunchPreviewStateId,
 } from "@/lib/dev/launch-preview"
-import type { LaunchReadinessStep } from "@/lib/merchant/launch-readiness"
-import { cn } from "@/lib/utils"
 
 /**
  * Dev-only screenshot harness for the redesigned launch hub. Renders the real
@@ -68,72 +61,14 @@ export function LaunchPreviewScreen({
         }
       />
 
-      <LaunchReadinessPanel readiness={readiness} showHeader={false} />
-
-      <div className="grid gap-3">
-        {readiness.steps.map((step, index) => {
-          const firstOfTab = readiness.steps.findIndex(
-            (candidate) => candidate.tab === step.tab
-          )
-
-          if (step.tab === activeTab) {
-            return index === firstOfTab ? (
-              <div key={step.tab} className="grid gap-5">
-                {activePanel}
-              </div>
-            ) : null
-          }
-
-          return <PreviewStepRow key={step.id} index={index} step={step} />
-        })}
-      </div>
-    </div>
-  )
-}
-
-function PreviewStepRow({
-  index,
-  step,
-}: {
-  index: number
-  step: LaunchReadinessStep
-}) {
-  return (
-    <Link
-      href={step.href}
-      aria-label={`${step.label} — ${step.ready ? "ready" : "to do"}`}
-      className={cn(
-        "group flex items-center gap-3 rounded-lg border-2 bg-card px-4 py-3 shadow-xs transition-colors outline-none hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/35",
-        step.ready ? "border-ink" : "border-dashed border-ink/35"
-      )}
-    >
-      <span
-        aria-hidden="true"
-        className={cn(
-          "grid size-8 flex-none place-items-center rounded-full border-2",
-          step.ready
-            ? "border-ink bg-stamp text-stamp-foreground"
-            : "border-dashed border-ink/40 bg-background font-mono text-sm font-bold text-muted-foreground"
-        )}
-      >
-        {step.ready ? (
-          <Icon icon={CheckmarkBadge04Icon} size={16} strokeWidth={2.5} />
-        ) : (
-          index + 1
-        )}
-      </span>
-      <span className="grid flex-1 gap-0.5">
-        <span className="text-sm font-extrabold">{step.label}</span>
-        <span className="text-xs leading-5 text-muted-foreground">
-          {step.summary}
-        </span>
-      </span>
-      <Icon
-        icon={ArrowRight02Icon}
-        size={18}
-        className="flex-none text-muted-foreground transition-transform group-hover:translate-x-0.5"
+      <LaunchReadinessPanel
+        readiness={readiness}
+        showHeader={false}
+        activeTab={activeTab}
       />
-    </Link>
+
+      <div className="grid gap-5">{activePanel}</div>
+    </div>
   )
 }
 

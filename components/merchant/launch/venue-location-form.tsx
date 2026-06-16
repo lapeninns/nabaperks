@@ -60,7 +60,11 @@ export function VenueLocationForm({
         </StatusBanner>
       ) : null}
 
-      <VenueAddressFields values={addressValues} errors={state.errors} />
+      <VenueAddressFields
+        values={addressValues}
+        errors={state.errors}
+        columns={2}
+      />
 
       <Field
         id="venueName"

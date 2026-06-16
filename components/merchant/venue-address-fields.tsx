@@ -1,19 +1,30 @@
-import type { VenueAddressFieldErrors, VenueAddressFormFields } from "@/lib/merchant/venue-address"
+import type {
+  VenueAddressFieldErrors,
+  VenueAddressFormFields,
+} from "@/lib/merchant/venue-address"
+import { cn } from "@/lib/utils"
 
 export function VenueAddressFields({
   values,
   errors,
   labelClassName = "text-sm font-bold",
   inputClassName = "h-11 rounded-lg border-2 border-ink bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/35",
+  columns = 1,
 }: {
   values?: Partial<VenueAddressFormFields>
   errors?: VenueAddressFieldErrors
   labelClassName?: string
   inputClassName?: string
+  /** 2 lays Town/city + Postcode side by side from the `sm` breakpoint up, so a
+   *  full-width form fills the row instead of stacking four lone inputs. */
+  columns?: 1 | 2
 }) {
+  const split = columns === 2
+  const fullSpan = split ? "sm:col-span-2" : undefined
+
   return (
-    <fieldset className="grid gap-3">
-      <legend className={labelClassName}>Venue address</legend>
+    <fieldset className={cn("grid gap-3", split && "sm:grid-cols-2")}>
+      <legend className={cn(labelClassName, fullSpan)}>Venue address</legend>
       <AddressField
         id="addressLine1"
         name="addressLine1"
@@ -23,6 +34,7 @@ export function VenueAddressFields({
         error={errors?.addressLine1}
         labelClassName={labelClassName}
         inputClassName={inputClassName}
+        fieldClassName={fullSpan}
       />
       <AddressField
         id="addressLine2"
@@ -33,6 +45,7 @@ export function VenueAddressFields({
         error={errors?.addressLine2}
         labelClassName={labelClassName}
         inputClassName={inputClassName}
+        fieldClassName={fullSpan}
       />
       <AddressField
         id="addressCity"
@@ -56,9 +69,11 @@ export function VenueAddressFields({
         inputClassName={inputClassName}
       />
       {errors?.address ? (
-        <p className="text-sm text-destructive">{errors.address}</p>
+        <p className={cn("text-sm text-destructive", fullSpan)}>
+          {errors.address}
+        </p>
       ) : null}
-      <p className="text-xs leading-5 text-muted-foreground">
+      <p className={cn("text-xs leading-5 text-muted-foreground", fullSpan)}>
         UK venues only. We use these details to place your venue on the map for
         optional GPS stamp checks.
       </p>
@@ -76,6 +91,7 @@ function AddressField({
   error,
   labelClassName,
   inputClassName,
+  fieldClassName,
 }: {
   id: string
   name: string
@@ -86,9 +102,10 @@ function AddressField({
   error?: string
   labelClassName: string
   inputClassName: string
+  fieldClassName?: string
 }) {
   return (
-    <label className="grid gap-2" htmlFor={id}>
+    <label className={cn("grid gap-2", fieldClassName)} htmlFor={id}>
       <span className={labelClassName}>{label}</span>
       <input
         id={id}

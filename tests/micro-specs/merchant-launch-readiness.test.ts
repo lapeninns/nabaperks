@@ -75,7 +75,7 @@ describe("05 merchant launch readiness readback", () => {
     expect(panel).toContain("nextStep")
   })
 
-  it("drives the launch hub from one shared readiness spine and a collapsing step rail", () => {
+  it("drives the launch hub as a tabbed readiness spine, not a duplicated step rail", () => {
     const launchPage = readProjectFile("app/app/launch/page.tsx")
     const panel = readProjectFile(
       "components/merchant/launch-readiness-panel.tsx"
@@ -87,8 +87,18 @@ describe("05 merchant launch readiness readback", () => {
     // The spine renders the four steps as stamp slots with a leaf progress track.
     expect(panel).toContain("readiness.steps")
     expect(panel).toContain("ProgressTrack")
-    // Inactive steps collapse to one-line rows that deep-link back to their tab.
-    expect(launchPage).toContain("step.href")
-    expect(launchPage).toContain("step.summary")
+
+    // The four stamps ARE the tab nav: the hub threads the active tab into the
+    // spine, and the spine turns each stamp into a deep link to its tab with the
+    // current tab marked as the active page.
+    expect(launchPage).toContain("activeTab={activeTab}")
+    expect(panel).toContain("activeTab")
+    expect(panel).toContain("?tab=")
+    expect(panel).toContain('isActive ? "page"')
+
+    // The standalone collapsing step rail is gone — no second representation of
+    // the same four steps stacked below the spine.
+    expect(launchPage).not.toContain("LaunchStepRow")
+    expect(launchPage).not.toContain("step.summary")
   })
 })
