@@ -26,8 +26,9 @@ Project context and stack decisions for AI agents working in this repo.
 
 ## Spec pack and global context
 
-`micro-specs/GLOBAL_CONTEXT.md` holds the binding cross-cutting rules that
-apply to all work in this repo; the essentials:
+`micro-specs/README.md` defines the AI governance contract and source-of-truth
+hierarchy. `micro-specs/GLOBAL_CONTEXT.md` holds the binding cross-cutting
+rules that apply to all work in this repo; the essentials:
 
 ### Product assumptions
 
@@ -82,12 +83,15 @@ mocks cannot exercise).
 
 ## Related Docs
 
-| Doc                     | Purpose                                                                                           |
-| ----------------------- | ------------------------------------------------------------------------------------------------- |
-| `docs/ARCHITECTURE.md`  | As-built architecture map for routes, data/RLS, flows, integrations, traceability, and known gaps |
-| `docs/ROUTES.md`        | Generated route contract — pages, route handlers + methods, and server-action modules             |
-| `docs/OBSERVABILITY.md` | Request/trace ids, structured logging, error tracking, health probe, resilience, and alerting     |
-| `DESIGN.md`             | Design system — tokens, typography, components, UI conventions                                    |
+| Doc                                   | Purpose                                                                                           |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `docs/ARCHITECTURE.md`                | As-built architecture map for routes, data/RLS, flows, integrations, traceability, and known gaps |
+| `docs/ROUTES.md`                      | Generated route contract — pages, route handlers + methods, and server-action modules             |
+| `docs/OBSERVABILITY.md`               | Request/trace ids, structured logging, error tracking, health probe, resilience, and alerting     |
+| `DESIGN.md`                           | Design system — tokens, typography, components, UI conventions                                    |
+| `micro-specs/README.md`               | AI governance contract, lifecycle status vocabulary, risk classes, gate mapping, and traceability |
+| `Instructions_MircroSpecsCreation.md` | Product-side Micro-Spec authoring rules and metadata schema                                       |
+| `Instructions_tdd.md`                 | Engineering-side Red → Green → Refactor workflow                                                  |
 
 ---
 

@@ -1,4 +1,48 @@
+---
+spec_id: MS-OBSERVABILITY-COMPLIANCE-EVENTS-ANALYTICS-FUNNELS
+status: active
+risk_class: product-analytics
+owner: factory-droid
+last_reviewed: 2026-06-15
+allowed_blast_radius:
+  - app/**
+  - lib/admin/pilot-report*.ts
+  - lib/analytics/**
+  - lib/merchant/**
+  - micro-specs/07-observability-compliance/01-events-analytics-and-funnels.md
+  - micro-specs/TRACEABILITY.md
+  - micro-specs/traceability.json
+  - supabase/migrations/**
+implementation_surfaces:
+  - lib/analytics/**
+  - lib/merchant/**
+  - lib/admin/pilot-report*.ts
+  - app/**
+  - supabase/migrations/**
+related_docs:
+  - docs/PROJECT_SPEC.md
+  - docs/ARCHITECTURE.md
+  - micro-specs/GLOBAL_CONTEXT.md
+related_tests:
+  - tests/micro-specs/analytics-dashboard-pilot.test.ts
+  - tests/micro-specs/observability.test.ts
+  - tests/micro-specs/perf-rpc-consolidation.test.ts
+verification_gates:
+  - pnpm governance
+  - pnpm lint
+  - pnpm typecheck
+  - pnpm test
+  - pnpm test:coverage
+approved_exceptions: []
+---
+
 # Micro-Spec: Events, Analytics, and Funnels
+
+## Governance Status Evidence
+
+- Lifecycle status: `active` after review against `docs/PROJECT_SPEC.md`, `docs/ARCHITECTURE.md`, and related tests on 2026-06-15.
+- Stale/superseded handling: this spec remains current intent; no replacement spec is linked.
+- Evidence posture: related tests and verification gates are listed in metadata and traceability for implementation handoff.
 
 ## Exact Goal and User-Visible Outcomes
 
@@ -55,11 +99,11 @@ Key funnels:
 
 ## Behavioral Requirements
 
-- WHEN a business-critical MVP event occurs, THE system SHALL write a Supabase product event with tenant context and timestamp.
-- WHEN a funnel-relevant action occurs, THE system SHALL send a corresponding PostHog event where configured.
-- WHEN PostHog is unavailable, THE source-of-truth Supabase event write SHALL still occur.
-- WHEN events include customer context, THE payload SHALL avoid unnecessary personal data.
-- WHEN a pilot report is generated, THE system SHALL use source-of-truth events for core counts.
+- **MS-OBSERVABILITY-COMPLIANCE-EVENTS-ANALYTICS-FUNNELS-001** WHEN a business-critical MVP event occurs, THE system SHALL write a Supabase product event with tenant context and timestamp.
+- **MS-OBSERVABILITY-COMPLIANCE-EVENTS-ANALYTICS-FUNNELS-002** WHEN a funnel-relevant action occurs, THE system SHALL send a corresponding PostHog event where configured.
+- **MS-OBSERVABILITY-COMPLIANCE-EVENTS-ANALYTICS-FUNNELS-003** WHEN PostHog is unavailable, THE source-of-truth Supabase event write SHALL still occur.
+- **MS-OBSERVABILITY-COMPLIANCE-EVENTS-ANALYTICS-FUNNELS-004** WHEN events include customer context, THE payload SHALL avoid unnecessary personal data.
+- **MS-OBSERVABILITY-COMPLIANCE-EVENTS-ANALYTICS-FUNNELS-005** WHEN a pilot report is generated, THE system SHALL use source-of-truth events for core counts.
 
 ## Verification Criteria
 

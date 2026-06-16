@@ -1,4 +1,47 @@
+---
+spec_id: MS-ADMIN-BILLING-INTERNAL-ADMIN-SUPPORT-CONSOLE
+status: active
+risk_class: auth-session
+owner: factory-droid
+last_reviewed: 2026-06-15
+allowed_blast_radius:
+  - app/admin/**
+  - components/layout/admin-shell.tsx
+  - lib/admin/**
+  - micro-specs/06-admin-billing/02-internal-admin-support-console.md
+  - micro-specs/TRACEABILITY.md
+  - micro-specs/traceability.json
+  - supabase/migrations/**
+implementation_surfaces:
+  - app/admin/**
+  - lib/admin/**
+  - components/layout/admin-shell.tsx
+  - supabase/migrations/**
+related_docs:
+  - docs/PROJECT_SPEC.md
+  - docs/ARCHITECTURE.md
+  - micro-specs/GLOBAL_CONTEXT.md
+  - DESIGN.md
+related_tests:
+  - manual:billing/admin micro-spec Vitest evidence in retained legacy filename
+  - tests/micro-specs/admin-console-redesign.test.ts
+verification_gates:
+  - pnpm governance
+  - pnpm lint
+  - pnpm typecheck
+  - pnpm test
+  - pnpm security:verify
+  - pnpm build
+approved_exceptions: []
+---
+
 # Micro-Spec: Internal Admin Support Console
+
+## Governance Status Evidence
+
+- Lifecycle status: `active` after review against `docs/PROJECT_SPEC.md`, `docs/ARCHITECTURE.md`, and related tests on 2026-06-15.
+- Stale/superseded handling: this spec remains current intent; no replacement spec is linked.
+- Evidence posture: related tests and verification gates are listed in metadata and traceability for implementation handoff.
 
 ## Exact Goal and User-Visible Outcomes
 
@@ -49,13 +92,13 @@ Admin MVP features:
 
 ## Behavioral Requirements
 
-- WHEN a non-admin accesses `/admin`, THE app SHALL deny access.
-- WHEN admin MFA enforcement is enabled, THE app SHALL deny admin access unless the Supabase session is at AAL2.
-- WHEN an admin views merchants, THE app SHALL show searchable merchant account and plan status data.
-- WHEN an admin performs a manual stamp adjustment, THE system SHALL create an adjustment event and audit log.
-- WHEN an admin cancels a reward, THE system SHALL update reward state and record why.
-- WHEN an admin disables a QR code, THE QR SHALL stop resolving for customer entry while history remains visible.
-- WHEN an admin views audit logs, THE app SHALL show actor, action, merchant/customer context where appropriate, timestamp, and non-sensitive metadata.
+- **MS-ADMIN-BILLING-INTERNAL-ADMIN-SUPPORT-CONSOLE-001** WHEN a non-admin accesses `/admin`, THE app SHALL deny access.
+- **MS-ADMIN-BILLING-INTERNAL-ADMIN-SUPPORT-CONSOLE-002** WHEN admin MFA enforcement is enabled, THE app SHALL deny admin access unless the Supabase session is at AAL2.
+- **MS-ADMIN-BILLING-INTERNAL-ADMIN-SUPPORT-CONSOLE-003** WHEN an admin views merchants, THE app SHALL show searchable merchant account and plan status data.
+- **MS-ADMIN-BILLING-INTERNAL-ADMIN-SUPPORT-CONSOLE-004** WHEN an admin performs a manual stamp adjustment, THE system SHALL create an adjustment event and audit log.
+- **MS-ADMIN-BILLING-INTERNAL-ADMIN-SUPPORT-CONSOLE-005** WHEN an admin cancels a reward, THE system SHALL update reward state and record why.
+- **MS-ADMIN-BILLING-INTERNAL-ADMIN-SUPPORT-CONSOLE-006** WHEN an admin disables a QR code, THE QR SHALL stop resolving for customer entry while history remains visible.
+- **MS-ADMIN-BILLING-INTERNAL-ADMIN-SUPPORT-CONSOLE-007** WHEN an admin views audit logs, THE app SHALL show actor, action, merchant/customer context where appropriate, timestamp, and non-sensitive metadata.
 
 ## Verification Criteria
 

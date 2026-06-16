@@ -16,10 +16,15 @@ operational checklist.
 
 ## 1. Narrow the work
 
-- Find the Micro-Spec in `micro-specs/` (or write one with `Instructions_MircroSpecsCreation.md`).
+- Read the AI governance contract in `micro-specs/README.md`, then find the
+  Micro-Spec in `micro-specs/` (or write one with
+  `Instructions_MircroSpecsCreation.md`).
 - **Inspect live code first** — much is already built. Reduce the task to what is
   still missing. Never widen the spec's blast radius (the files/dirs it may
   touch) without approval.
+- Confirm the spec is `active` before implementation. `draft` and `superseded`
+  specs require a new active spec or an `approved_exceptions` record before
+  Red → Green → Refactor starts.
 - Confirm the change preserves the QR / customer / merchant / admin flows and the
   mutation boundary (loyalty writes go through the security-definer RPCs).
 
@@ -51,6 +56,7 @@ operational checklist.
 pnpm lint
 pnpm typecheck
 pnpm test            # add pnpm test:coverage when touching lib/
+pnpm governance
 pnpm quality         # naming, debt, N+1, AGENTS.md, complexity, routes, dead/dup code
 pnpm build
 ```

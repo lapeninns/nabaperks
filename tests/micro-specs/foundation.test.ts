@@ -63,7 +63,7 @@ describe("00/01 foundation micro-specs", () => {
       "security:verify": "node scripts/verify-security.mjs",
       test: "vitest run",
     })
-    expect(packageJson.dependencies.next).toBe("16.2.6")
+    expect(packageJson.dependencies.next).toBe("16.2.9")
     expect(packageJson.dependencies["@supabase/supabase-js"]).toBeDefined()
     expect(packageJson.dependencies.stripe).toBeDefined()
   })
