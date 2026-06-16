@@ -4,6 +4,7 @@ import { UserMultiple02Icon } from "@hugeicons/core-free-icons"
 import { EmptyState, MonoTag, PageTitle } from "@/components/brand"
 import { CustomerReadbackTable } from "@/components/merchant/customer-readback-table"
 import { getCurrentMerchant } from "@/lib/auth/session"
+import { buildMerchantCustomerReadback } from "@/lib/merchant/customer-readback"
 import { getMerchantCustomers } from "@/lib/merchant/dashboard"
 
 type CustomersPageProps = {
@@ -28,7 +29,16 @@ export default async function MerchantCustomersPage({
   const params = searchParams
     ? await searchParams
     : ({} satisfies CustomersSearchParams)
-  const customers = await getMerchantCustomers(merchant.id)
+
+  const rawCustomers = await getMerchantCustomers(merchant.id)
+  const now = new Date()
+
+  // Build masked-safe view models server-side so no raw PII reaches the client
+  // bundle. The client table component receives only pre-masked identifiers.
+  const customers = rawCustomers.map((row) =>
+    buildMerchantCustomerReadback(row, now)
+  )
+
   const highlightedMembershipId = firstParam(params.highlight)
 
   return (
@@ -36,12 +46,16 @@ export default async function MerchantCustomersPage({
       <PageTitle
         eyebrow="Customers"
         title="Loyalty members"
-        description="Stamp progress and rewards for everyone who has joined your card."
+        description="Stamp progress and reward status for everyone who has joined your card."
         actions={
           customers.length > 0 ? (
-            <MonoTag tone="ink">
-              {customers.length} {customers.length === 1 ? "member" : "members"}
-            </MonoTag>
+            <div className="flex flex-wrap items-center gap-2">
+              <MonoTag tone="ink">
+                {customers.length}{" "}
+                {customers.length === 1 ? "member" : "members"} · Readback only
+              </MonoTag>
+              <MonoTag tone="plain">Initials only · Phones stay hashed</MonoTag>
+            </div>
           ) : undefined
         }
       />
@@ -52,7 +66,7 @@ export default async function MerchantCustomersPage({
         emptyState={
           <EmptyState
             title="No customers yet"
-            description="Customers will appear here after they join from the venue QR."
+            description="Customers will appear here after they join via the venue QR."
             icon={UserMultiple02Icon}
           />
         }

@@ -539,14 +539,17 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     expect(customerTable).toContain("DataTable")
     expect(customerTable).toContain("rowClassName")
     for (const header of [
-      "Customer",
-      "Current stamps",
-      "Total stamps",
-      "Rewards redeemed",
+      "Member",
+      "Joined",
+      "Stamps",
       "Last visit",
+      "Reward",
     ]) {
       expect(customerTable).toContain(header)
     }
+    // Privacy: table must use the masked view model, never raw email/phone columns
+    expect(customerTable).not.toContain("current_stamp_count")
+    expect(customerTable).not.toContain("total_stamps_earned")
 
     expect(activityPage).toContain("getCurrentMerchant")
     expect(activityPage).toContain(

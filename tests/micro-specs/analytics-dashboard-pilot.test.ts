@@ -198,11 +198,23 @@ describe("05/07 analytics, dashboard, and compliance micro-specs", () => {
                 total_rewards_redeemed: 1,
                 last_visit_at: "2026-06-06T10:00:00.000Z",
                 created_at: "2026-06-01T10:00:00.000Z",
-                customers: [{ email: "guest@example.test", phone: null }],
+                customers: [
+                  {
+                    email: "guest@example.test",
+                    phone: null,
+                    phone_last4: null,
+                  },
+                ],
               },
             ],
             error: null,
           },
+        ],
+        // parallel reads: loyalty_cards (stamp target), unlocked rewards, last redeemed
+        loyalty_cards: [{ data: [{ stamps_required: 3 }], error: null }],
+        reward_events: [
+          { data: [], error: null },
+          { data: [], error: null },
         ],
       },
     })
@@ -219,7 +231,14 @@ describe("05/07 analytics, dashboard, and compliance micro-specs", () => {
         total_rewards_redeemed: 1,
         last_visit_at: "2026-06-06T10:00:00.000Z",
         created_at: "2026-06-01T10:00:00.000Z",
-        customer: { email: "guest@example.test", phone: null },
+        stamps_required: 3,
+        customer: {
+          email: "guest@example.test",
+          phone: null,
+          phone_last4: null,
+        },
+        activeReward: null,
+        last_redeemed_at: null,
       },
     ])
   })
