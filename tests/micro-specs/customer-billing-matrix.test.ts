@@ -191,6 +191,7 @@ describe("customer billing policy matrix", () => {
                 business_slug: "the-bell",
                 email: "owner@example.test",
                 phone: null,
+                status: "active",
               },
               loyalty_cards: {
                 id: "card-1",
@@ -221,6 +222,101 @@ describe("customer billing policy matrix", () => {
     const { resolveQrForJoin } = await import("@/lib/customer/join")
 
     await expect(resolveQrForJoin("qr-public")).resolves.toMatchObject({
+      available: false,
+      merchant: { business_slug: "the-bell" },
+    })
+  })
+
+  it("resolves a QR join context as unavailable when the merchant programme is paused", async () => {
+    vi.resetModules()
+    const recordProductEvent = vi.fn()
+    const supabase = createSupabaseMock({
+      from: {
+        qr_codes: [
+          {
+            data: {
+              id: "qr-row-1",
+              qr_id: "qr-public",
+              is_active: true,
+              destination_type: "join",
+              merchants: {
+                id: "merchant-1",
+                business_name: "The Bell",
+                business_slug: "the-bell",
+                email: "owner@example.test",
+                phone: null,
+                // Billing is healthy; only the merchant programme is paused.
+                status: "paused",
+              },
+              loyalty_cards: {
+                id: "card-1",
+                card_name: "Mystery Visit Card",
+                reward_name: "Surprise reward",
+                stamps_required: 3,
+                reward_terms: "Reward reveals after three visits.",
+                min_spend_pence: null,
+                is_active: true,
+              },
+            },
+            error: null,
+          },
+        ],
+        billing_customers: [{ data: { status: "active" }, error: null }],
+      },
+    })
+    vi.doMock("@/lib/security/rate-limit", async () => {
+      const actual = await vi.importActual<
+        typeof import("@/lib/security/rate-limit")
+      >("@/lib/security/rate-limit")
+      return actual
+    })
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
+    }))
+    vi.doMock("@/lib/analytics/events", () => ({ recordProductEvent }))
+    const { resolveQrForJoin } = await import("@/lib/customer/join")
+
+    await expect(resolveQrForJoin("qr-public")).resolves.toMatchObject({
+      available: false,
+      merchant: { business_slug: "the-bell" },
+    })
+  })
+
+  it("treats a non-active merchant slug join as unavailable", async () => {
+    vi.resetModules()
+    const supabase = createSupabaseMock({
+      from: {
+        merchants: [
+          {
+            data: {
+              id: "merchant-1",
+              business_name: "The Bell",
+              business_slug: "the-bell",
+              email: "owner@example.test",
+              phone: null,
+              status: "cancelled",
+              loyalty_cards: {
+                id: "card-1",
+                card_name: "Mystery Visit Card",
+                reward_name: "Surprise reward",
+                stamps_required: 3,
+                reward_terms: "Reward reveals after three visits.",
+                min_spend_pence: null,
+                is_active: true,
+              },
+            },
+            error: null,
+          },
+        ],
+        billing_customers: [{ data: { status: "active" }, error: null }],
+      },
+    })
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
+    }))
+    const { getMerchantJoinContext } = await import("@/lib/customer/join")
+
+    await expect(getMerchantJoinContext("the-bell")).resolves.toMatchObject({
       available: false,
       merchant: { business_slug: "the-bell" },
     })

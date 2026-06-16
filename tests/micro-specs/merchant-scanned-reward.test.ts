@@ -159,6 +159,99 @@ describe("merchant-scanned reward collection", () => {
     expect(supabase.rpcCalls).toHaveLength(0)
   })
 
+  it("maps a collect-time RPC error to calm merchant copy instead of the raw string", async () => {
+    vi.doMock("@/lib/auth/session", () => ({
+      getCurrentMerchant: vi.fn(async () => ({
+        id: "merchant-1",
+        business_name: "Bean & Batch",
+      })),
+    }))
+    const supabase = createSupabaseMock({
+      from: {
+        reward_events: [
+          {
+            data: {
+              id: "reward-1",
+              merchant_id: "merchant-1",
+              customer_id: "customer-1",
+            },
+            error: null,
+          },
+        ],
+      },
+      rpc: {
+        redeem_self_service_reward: [
+          {
+            data: null,
+            error: { message: "Complete your profile before redeeming" },
+          },
+        ],
+      },
+    })
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: () => supabase.client,
+    }))
+
+    const { collectMerchantScannedReward } =
+      await import("@/lib/merchant/reward-collection")
+
+    const result = await collectMerchantScannedReward("reward-1")
+    expect(result.status).toBe("blocked")
+    if (result.status !== "blocked") {
+      throw new Error("Expected a blocked collection result")
+    }
+    // The merchant counter never sees the raw RPC string.
+    expect(result.reason).not.toContain(
+      "Complete your profile before redeeming"
+    )
+    expect(result.reason).toBe(
+      "Ask the customer to finish their profile before this reward can be collected."
+    )
+  })
+
+  it("falls back to safe copy for an unrecognised collect-time RPC error", async () => {
+    vi.doMock("@/lib/auth/session", () => ({
+      getCurrentMerchant: vi.fn(async () => ({
+        id: "merchant-1",
+        business_name: "Bean & Batch",
+      })),
+    }))
+    const supabase = createSupabaseMock({
+      from: {
+        reward_events: [
+          {
+            data: {
+              id: "reward-1",
+              merchant_id: "merchant-1",
+              customer_id: "customer-1",
+            },
+            error: null,
+          },
+        ],
+      },
+      rpc: {
+        redeem_self_service_reward: [
+          {
+            data: null,
+            error: { message: "connection reset by peer" },
+          },
+        ],
+      },
+    })
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: () => supabase.client,
+    }))
+
+    const { collectMerchantScannedReward } =
+      await import("@/lib/merchant/reward-collection")
+
+    const result = await collectMerchantScannedReward("reward-1")
+    expect(result).toMatchObject({
+      status: "blocked",
+      reason: "This reward could not be collected. Try again or refresh.",
+    })
+  })
+
   it("masks customer identity in the merchant scan context", async () => {
     vi.doMock("@/lib/auth/session", () => ({
       getCurrentMerchant: vi.fn(async () => ({

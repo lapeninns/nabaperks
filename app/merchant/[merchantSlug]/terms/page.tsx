@@ -30,7 +30,7 @@ export default async function MerchantTermsPage({
     <CustomerShell className="grid content-center gap-6">
       <section className="grid gap-3 text-center">
         <Eyebrow>Reward terms</Eyebrow>
-        <h1 className="text-3xl font-extrabold leading-tight text-balance">
+        <h1 className="text-3xl leading-tight font-extrabold text-balance">
           {merchant.business_name} loyalty terms
         </h1>
         <p className="text-sm leading-6 text-muted-foreground">
@@ -48,18 +48,23 @@ export default async function MerchantTermsPage({
           label="Earning rule"
           value={`Collect ${loyaltyCard.stamps_required} visit stamps from the venue QR. One stamp may be issued per UK date.`}
         />
-        <Term label="Stamps needed" value={`${loyaltyCard.stamps_required} stamps`} />
+        <Term
+          label="Stamps needed"
+          value={`${loyaltyCard.stamps_required} stamps`}
+        />
         <Term
           label="Minimum spend"
           value="Minimum spend is applied by the assigned reward, if that reward has one."
         />
         <Term
           label="Redemption"
-          value="The assigned reward can be redeemed from the next UK business day after it is revealed. Tap redeem from your reward page while you are at the venue."
+          value="The assigned reward can be collected from the next UK business day after it is revealed. Show your reward QR at the counter and the venue team scans it to collect."
         />
         <Term
           label="Exclusions"
-          value={loyaltyCard.reward_terms || "No additional exclusions configured."}
+          value={
+            loyaltyCard.reward_terms || "No additional exclusions configured."
+          }
         />
         <Term
           label="Fraud and abuse"
@@ -91,7 +96,7 @@ export default async function MerchantTermsPage({
 function Term({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid gap-1 border-b pb-4 last:border-b-0 last:pb-0">
-      <p className="text-xs font-bold uppercase text-muted-foreground">
+      <p className="text-xs font-bold text-muted-foreground uppercase">
         {label}
       </p>
       <p className="text-sm leading-6 text-card-foreground">{value}</p>

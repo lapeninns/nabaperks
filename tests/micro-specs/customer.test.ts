@@ -477,7 +477,9 @@ describe("03 customer micro-specs", () => {
 
     expect(renderedText).not.toContain("Join rewards")
     expect(renderedText).not.toContain(["venue", "PIN"].join(" "))
-    expect(renderedText).toContain("Tap redeem from your reward page")
+    // Reward collection is merchant-scanned — never a customer tap-to-redeem.
+    expect(renderedText).not.toContain("Tap redeem")
+    expect(renderedText).toContain("the venue team scans it to collect")
   })
 
   it("rejects invalid customer identity input before sending OTP", async () => {
@@ -871,6 +873,7 @@ describe("03 customer micro-specs", () => {
                 business_slug: "the-bell",
                 email: "owner@example.test",
                 phone: null,
+                status: "active",
               },
               loyalty_cards: {
                 id: "card-1",
@@ -929,6 +932,7 @@ describe("03 customer micro-specs", () => {
         business_slug: "the-bell",
         email: "owner@example.test",
         phone: null,
+        status: "active",
       },
       loyalty_cards: {
         id: "card-1",
@@ -1007,6 +1011,7 @@ describe("03 customer micro-specs", () => {
         business_slug: "the-bell",
         email: "owner@example.test",
         phone: null,
+        status: "active",
       },
       loyalty_cards: {
         id: "card-1",

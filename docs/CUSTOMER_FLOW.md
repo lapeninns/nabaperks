@@ -14,10 +14,11 @@ server actions, and database behavior.
 The focus is customer experience only. Merchant, staff, admin, billing, and
 fraud surfaces are mentioned only when they change what the customer sees.
 
-> Naming note: the signed-in customer account surface ("wallet" in prose) is
-> served under `/home/*` and backed by `lib/customer/home.ts`. The `/wallet`
-> route naming used in earlier drafts no longer exists; see `docs/ROUTES.md` for
-> the authoritative route contract.
+> Naming note: every "wallet" mention throughout this document refers to the
+> signed-in customer account surface served under `/home/*` and backed by
+> `lib/customer/home.ts` (login at `/home/login`). The `/wallet` route naming
+> used in earlier drafts no longer exists; see `docs/ROUTES.md` for the
+> authoritative route contract.
 
 ## Sources Used
 

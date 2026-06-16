@@ -138,6 +138,10 @@ export async function collectMerchantScannedReward(
   }
 
   const supabase = createSupabaseServiceRoleClient()
+  // Redemption is merchant-initiated at the counter, so we deliberately send no
+  // geolocation: the merchant device's position is not the customer's, and the
+  // redeem RPC's geo check is only a soft review signal. Passing null keeps the
+  // "no geo on redeem" policy explicit rather than silently inert (audit N5).
   const { data, error } = await supabase.rpc("redeem_self_service_reward", {
     p_reward_event_id: rewardId,
     p_customer_id: customerId,
@@ -146,7 +150,10 @@ export async function collectMerchantScannedReward(
   })
 
   if (error) {
-    return { status: "blocked", reason: error.message }
+    return {
+      status: "blocked",
+      reason: merchantCollectionBlockedCopy(error.message),
+    }
   }
 
   const result = firstRecord(data)
@@ -164,6 +171,50 @@ export async function collectMerchantScannedReward(
     rewardName,
     membershipId,
   }
+}
+
+/**
+ * Map a raw redeem RPC error into calm, merchant-facing copy for the counter.
+ * The customer never sees these strings — the merchant device does — so the
+ * voice is the merchant's. Ordered: specific phrases before the generic
+ * programme / not-found catch-alls. Mirrors the customer-side `block-reasons`
+ * mapper so a future RPC message change is caught in one place per audience.
+ */
+function merchantCollectionBlockedCopy(message: string): string {
+  const rules: ReadonlyArray<readonly [readonly string[], string]> = [
+    [["Reward already redeemed"], "This reward has already been collected."],
+    [
+      ["not redeemable until the next UK business day"],
+      "This reward cannot be collected until the next opening day.",
+    ],
+    [
+      ["Complete your profile"],
+      "Ask the customer to finish their profile before this reward can be collected.",
+    ],
+    [["This loyalty card is not active"], "This loyalty card is not active."],
+    [
+      ["Reward is not ready to redeem"],
+      "This customer has not collected enough stamps yet.",
+    ],
+    [
+      ["Reward is not redeemable"],
+      "This reward is no longer available to collect.",
+    ],
+    [
+      ["not active", "unavailable"],
+      "This loyalty programme is unavailable right now.",
+    ],
+    [
+      ["Reward not found", "ownership required", "Verified customer required"],
+      "This reward could not be collected. Refresh and try again.",
+    ],
+  ]
+
+  for (const [needles, copy] of rules) {
+    if (needles.some((needle) => message.includes(needle))) return copy
+  }
+
+  return "This reward could not be collected. Try again or refresh."
 }
 
 async function loadRewardRow(rewardId: string) {
