@@ -27,8 +27,8 @@ begin
   end if;
 
   select count(*) into visible_reward_pool_items from public.reward_pool_items;
-  if visible_reward_pool_items <> 2 then
-    raise exception 'merchant owner A saw % reward pool items, expected 2', visible_reward_pool_items;
+  if visible_reward_pool_items <> 4 then
+    raise exception 'merchant owner A saw % reward pool items, expected 4', visible_reward_pool_items;
   end if;
 end $$;
 
@@ -113,7 +113,9 @@ begin
     raise exception 'final mystery stamp did not unlock a reward';
   end if;
 
-  if assigned_reward_name not in ('Coffee upgrade', 'Cake slice') then
+  if assigned_reward_name not in (
+    'Free pint', '10% off Food', 'Free Honey Toffee IceCream'
+  ) then
     raise exception 'assigned reward name % did not come from active pool', assigned_reward_name;
   end if;
 

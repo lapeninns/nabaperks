@@ -97,23 +97,14 @@ export async function MerchantDashboardStream({
       ) : null}
 
       <section className="grid gap-3">
-        <div className="grid overflow-hidden rounded-lg border-2 border-ink bg-card shadow-sm sm:grid-cols-2">
-          <div className="grid content-start gap-2 border-b-2 border-ink p-6 sm:border-r-2 sm:border-b-0">
+        <div className="overflow-hidden rounded-lg border-2 border-ink bg-card p-6 shadow-sm">
+          <div className="grid content-start gap-2">
             <p className="eyebrow">Members</p>
             <p className="numeric-tabular text-4xl leading-none font-extrabold sm:text-5xl">
               {metrics.members}
             </p>
             <p className="text-xs leading-5 text-muted-foreground">
               People carrying your card right now.
-            </p>
-          </div>
-          <div className="grid content-start gap-2 p-6">
-            <p className="eyebrow">Estimated repeat revenue</p>
-            <p className="numeric-tabular text-4xl leading-none font-extrabold sm:text-5xl">
-              {formatPence(metrics.estimatedRepeatRevenuePence)}
-            </p>
-            <p className="text-xs leading-5 text-muted-foreground">
-              Estimate only, from repeat visits at your average order value.
             </p>
           </div>
         </div>
@@ -179,16 +170,11 @@ export function MerchantDashboardSkeleton() {
     <div className="grid gap-4" aria-label="Loading dashboard metrics">
       <Skeleton className="h-20 rounded-[8px] border-2 border-ink/15 bg-card/70" />
       <section className="grid gap-3">
-        <div className="grid overflow-hidden rounded-[8px] border-2 border-ink/15 bg-card/70 sm:grid-cols-2">
-          <div className="grid gap-3 border-b-2 border-ink/15 p-6 sm:border-r-2 sm:border-b-0">
+        <div className="overflow-hidden rounded-[8px] border-2 border-ink/15 bg-card/70 p-6">
+          <div className="grid gap-3">
             <Skeleton className="h-3 w-20 rounded-full bg-ink/15" />
             <Skeleton className="h-12 w-28 rounded-[8px] bg-ink/15" />
             <Skeleton className="h-3 w-44 rounded-full bg-ink/10" />
-          </div>
-          <div className="grid gap-3 p-6">
-            <Skeleton className="h-3 w-36 rounded-full bg-ink/15" />
-            <Skeleton className="h-12 w-36 rounded-[8px] bg-ink/15" />
-            <Skeleton className="h-3 w-56 rounded-full bg-ink/10" />
           </div>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -221,11 +207,4 @@ export function MerchantCompactActivitySkeleton() {
       </div>
     </ReceiptCard>
   )
-}
-
-function formatPence(pence: number) {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-  }).format(pence / 100)
 }

@@ -1,5 +1,6 @@
 import "server-only"
 
+import { unavailableMessage } from "@/lib/customer/card"
 import { getCurrentCustomer } from "@/lib/customer/identity"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
@@ -168,26 +169,6 @@ export async function getCustomerRewardState(
     loyaltyCard,
     billingStatus: billing?.status ?? null,
   }
-}
-
-function unavailableMessage(
-  merchantStatus: string,
-  cardActive: boolean,
-  billingStatus: string | null
-) {
-  if (!["trial", "active"].includes(merchantStatus)) {
-    return "This merchant loyalty programme is not currently active."
-  }
-
-  if (!cardActive) {
-    return "This loyalty card is not currently active."
-  }
-
-  if (billingStatus === "suspended") {
-    return "This loyalty programme is unavailable at the moment."
-  }
-
-  return undefined
 }
 
 function first<T>(value: T | T[]) {

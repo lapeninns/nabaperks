@@ -7,6 +7,7 @@ import {
 import {
   getCustomerExperienceViewModel,
   joinWelcomeHref,
+  waitingRewardTiming,
 } from "@/lib/customer/experience/copy"
 import {
   deriveCustomerExperience,
@@ -52,7 +53,6 @@ function cardFacts(
     cardName: "Morning Ritual",
     current: 1,
     total: 3,
-    stampsBlocked: false,
     reward: null,
     rewardTerms: "Reveals after the final stamp.",
     stampDates: ["14 JUN"],
@@ -180,6 +180,22 @@ describe("deriveCustomerExperience — card route", () => {
     })
   })
 
+  it("carries a first-stamp-pending flag when the join stamp was blocked", () => {
+    const exp = deriveCustomerExperience({
+      entry: "card",
+      context: cardFacts({
+        current: 0,
+        justJoined: true,
+        firstStampPending: true,
+      }),
+    })
+    expect(exp).toMatchObject({
+      kind: "card_collecting",
+      justJoined: true,
+      firstStampPending: true,
+    })
+  })
+
   it("flags a freshly joined card for the welcome celebration", () => {
     const joined = deriveCustomerExperience({
       entry: "card",
@@ -204,6 +220,33 @@ describe("deriveCustomerExperience — card route", () => {
     })
     expect(stamped).toMatchObject({ kind: "card_collecting", slamIndex: 1 })
     expect(calm).toMatchObject({ kind: "card_collecting", slamIndex: -1 })
+  })
+
+  it("shows a safe recovery state when the card is full but no reward exists", () => {
+    const exp = deriveCustomerExperience({
+      entry: "card",
+      context: cardFacts({
+        current: 3,
+        total: 3,
+        reward: null,
+        fullWithoutReward: true,
+      }),
+    })
+    expect(exp.kind).toBe("unavailable")
+    expect((exp as { reason: string }).reason).toMatch(/sorting your reward/i)
+  })
+
+  it("does not invite another stamp on a full card without a reward row", () => {
+    const exp = deriveCustomerExperience({
+      entry: "card",
+      context: cardFacts({
+        current: 3,
+        total: 3,
+        reward: null,
+        fullWithoutReward: true,
+      }),
+    })
+    expect(exp.kind).not.toBe("card_collecting")
   })
 
   it("routes a merchant availability problem to unavailable", () => {
@@ -285,6 +328,16 @@ describe("deriveCustomerExperience — stamp route", () => {
     expect(exp).toMatchObject({ kind: "reward_waiting", fromCard: false })
   })
 
+  it("blocks a stamp on a full card with no reward and offers a recovery state", () => {
+    const exp = deriveCustomerExperience({
+      entry: "stamp",
+      context: stampFacts({ fullWithoutReward: true, qrValid: true }),
+    })
+    expect(exp.kind).toBe("unavailable")
+    expect(exp.kind).not.toBe("stamp_confirm")
+    expect((exp as { reason: string }).reason).toMatch(/sorting your reward/i)
+  })
+
   it("explains a missing QR as unavailable", () => {
     const exp = deriveCustomerExperience({
       entry: "stamp",
@@ -303,6 +356,24 @@ describe("deriveCustomerExperience — stamp route", () => {
     expect((exp as { reason: string }).reason).toContain(
       "Scan the venue code again"
     )
+  })
+
+  it("blocks a stamp on a membership owned by another customer", () => {
+    const exp = deriveCustomerExperience({
+      entry: "stamp",
+      context: { access: "unauthorized" },
+    })
+    expect(exp).toMatchObject({ kind: "unavailable" })
+    expect((exp as { reason: string }).reason).toContain("another customer")
+  })
+
+  it("blocks a stamp on a membership that cannot be found", () => {
+    const exp = deriveCustomerExperience({
+      entry: "stamp",
+      context: { access: "not_found" },
+    })
+    expect(exp).toMatchObject({ kind: "unavailable" })
+    expect((exp as { reason: string }).reason).toContain("could not be found")
   })
 })
 
@@ -352,6 +423,24 @@ describe("deriveCustomerExperience — reward route", () => {
       kind: "unavailable",
       reason: "This loyalty programme is unavailable at the moment.",
     })
+  })
+
+  it("blocks a reward owned by another customer", () => {
+    const exp = deriveCustomerExperience({
+      entry: "reward",
+      context: { access: "unauthorized" },
+    })
+    expect(exp).toMatchObject({ kind: "unavailable" })
+    expect((exp as { reason: string }).reason).toContain("another customer")
+  })
+
+  it("blocks a reward that cannot be found", () => {
+    const exp = deriveCustomerExperience({
+      entry: "reward",
+      context: { access: "not_found" },
+    })
+    expect(exp).toMatchObject({ kind: "unavailable" })
+    expect((exp as { reason: string }).reason).toContain("could not be found")
   })
 })
 
@@ -459,7 +548,6 @@ function collectingExp(
     rewardTerms: "Reveals after the final stamp.",
     minSpendPence: null,
     rewardRedeemableFrom: null,
-    stampsBlocked: false,
     stampDates: [],
     justStamped: false,
     justJoined: false,
@@ -574,7 +662,6 @@ describe("getCustomerExperienceViewModel", () => {
         rewardTerms: "t",
         minSpendPence: null,
         rewardRedeemableFrom: null,
-        stampsBlocked: false,
         stampDates: [],
         justStamped: false,
         justJoined: false,
@@ -612,6 +699,20 @@ describe("getCustomerExperienceViewModel", () => {
   })
 })
 
+describe("waitingRewardTiming", () => {
+  it("renders the real reopening date instead of promising tomorrow", () => {
+    const copy = waitingRewardTiming("2026-06-17")
+    expect(copy).toContain("17 JUN")
+    expect(copy).not.toMatch(/tomorrow/i)
+  })
+
+  it("falls back to the next opening day when no date is known", () => {
+    const copy = waitingRewardTiming(null)
+    expect(copy).toMatch(/next opening day/i)
+    expect(copy).not.toMatch(/tomorrow/i)
+  })
+})
+
 describe("block reasons", () => {
   it("maps RPC messages to typed reasons", () => {
     expect(
@@ -631,14 +732,54 @@ describe("block reasons", () => {
     expect(toStampBlockReason("totally unexpected")).toBe("unknown")
   })
 
+  it("maps the stamp rate-limit error to a calm retry reason, never unknown", () => {
+    expect(toStampBlockReason("Rate limit exceeded")).toBe("rate_limited")
+    expect(blockReasonCopy("rate_limited").length).toBeGreaterThan(0)
+    expect(blockReasonCopy("rate_limited")).not.toMatch(/unavailable/i)
+  })
+
+  it("maps the reward-pool minimum error to a calm pool reason for both message variants", () => {
+    expect(
+      toStampBlockReason(
+        "At least 3 active reward pool items are required before unlocking a reward"
+      )
+    ).toBe("pool_unavailable")
+    expect(
+      toStampBlockReason(
+        "At least one active reward pool item is required before unlocking a reward"
+      )
+    ).toBe("pool_unavailable")
+    expect(blockReasonCopy("pool_unavailable").length).toBeGreaterThan(0)
+  })
+
+  it("maps verified-customer, ownership, and not-found RPC guards to safe copy", () => {
+    expect(toStampBlockReason("Verified customer required")).toBe(
+      "unauthenticated"
+    )
+    expect(toStampBlockReason("Membership ownership required")).toBe(
+      "unavailable"
+    )
+    expect(toStampBlockReason("Membership not found")).toBe("unavailable")
+    expect(toStampBlockReason("Reward ownership required")).toBe("unavailable")
+  })
+
+  it("maps the cancelled/suspended billing block to unavailable", () => {
+    expect(
+      toStampBlockReason("This merchant loyalty programme is unavailable")
+    ).toBe("unavailable")
+    expect(
+      toStampBlockReason("This merchant loyalty programme is not active")
+    ).toBe("unavailable")
+  })
+
   it("has calm copy for every typed reason", () => {
     const reasons: StampBlockReason[] = [
       "already_stamped_today",
       "reward_ready_first",
-      "invalid_qr",
-      "expired_qr",
-      "wrong_merchant",
+      "rate_limited",
+      "pool_unavailable",
       "unauthenticated",
+      "profile_incomplete",
       "unavailable",
       "unknown",
     ]

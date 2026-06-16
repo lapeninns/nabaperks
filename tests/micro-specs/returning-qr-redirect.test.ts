@@ -182,6 +182,135 @@ describe("destinationForReturningQrVisit", () => {
     })
   })
 
+  it("routes a returning member with a ready reward to the reward page after OTP", async () => {
+    const issueSelfServiceStamp = vi.fn()
+
+    vi.doMock("@/lib/customer/identity", () => ({
+      getCurrentCustomer: vi.fn(async () => ({ id: "customer-1" })),
+    }))
+    vi.doMock("@/lib/customer/join", () => ({
+      getMerchantJoinContext: vi.fn(async () => ({
+        available: true,
+        merchant: { id: "merchant-1", business_slug: "bean-and-batch" },
+      })),
+      getExistingMembershipForCurrentUser: vi.fn(async () => ({
+        id: "membership-1",
+      })),
+      getStampQrContextForMembership: vi.fn(async () => ({
+        qrId: "bean-test-qr",
+      })),
+    }))
+    vi.doMock("@/lib/customer/card", () => ({
+      getCustomerCardState: vi.fn(async () => ({
+        status: "ready",
+        latestReward: {
+          id: "reward-1",
+          status: "unlocked",
+          redeemable_from: "2026-06-01",
+        },
+      })),
+    }))
+    vi.doMock("@/lib/customer/stamp", () => ({ issueSelfServiceStamp }))
+    vi.doMock("@/lib/analytics/events", () => ({
+      capturePostHogEvent: vi.fn(),
+    }))
+
+    const { destinationForReturningQrVisit } =
+      await import("@/lib/customer/returning-qr-redirect")
+
+    await expect(
+      destinationForReturningQrVisit("bean-and-batch", "bean-test-qr", {
+        issueStamp: true,
+      })
+    ).resolves.toBe("/reward/reward-1")
+    expect(issueSelfServiceStamp).not.toHaveBeenCalled()
+  })
+
+  it("routes a returning member with a waiting reward back to the card after OTP", async () => {
+    const issueSelfServiceStamp = vi.fn()
+
+    vi.doMock("@/lib/customer/identity", () => ({
+      getCurrentCustomer: vi.fn(async () => ({ id: "customer-1" })),
+    }))
+    vi.doMock("@/lib/customer/join", () => ({
+      getMerchantJoinContext: vi.fn(async () => ({
+        available: true,
+        merchant: { id: "merchant-1", business_slug: "bean-and-batch" },
+      })),
+      getExistingMembershipForCurrentUser: vi.fn(async () => ({
+        id: "membership-1",
+      })),
+      getStampQrContextForMembership: vi.fn(async () => ({
+        qrId: "bean-test-qr",
+      })),
+    }))
+    vi.doMock("@/lib/customer/card", () => ({
+      getCustomerCardState: vi.fn(async () => ({
+        status: "ready",
+        latestReward: {
+          id: "reward-1",
+          status: "unlocked",
+          redeemable_from: "2999-01-01",
+        },
+      })),
+    }))
+    vi.doMock("@/lib/customer/stamp", () => ({ issueSelfServiceStamp }))
+    vi.doMock("@/lib/analytics/events", () => ({
+      capturePostHogEvent: vi.fn(),
+    }))
+
+    const { destinationForReturningQrVisit } =
+      await import("@/lib/customer/returning-qr-redirect")
+
+    await expect(
+      destinationForReturningQrVisit("bean-and-batch", "bean-test-qr", {
+        issueStamp: true,
+      })
+    ).resolves.toBe("/card/membership-1")
+    expect(issueSelfServiceStamp).not.toHaveBeenCalled()
+  })
+
+  it("degrades to the stamp screen when the auto-issue throws instead of erroring the OTP action", async () => {
+    const issueSelfServiceStamp = vi.fn(async () => {
+      throw new Error("Unable to issue a stamp: connection reset")
+    })
+
+    vi.doMock("@/lib/customer/identity", () => ({
+      getCurrentCustomer: vi.fn(async () => ({ id: "customer-1" })),
+    }))
+    vi.doMock("@/lib/customer/join", () => ({
+      getMerchantJoinContext: vi.fn(async () => ({
+        available: true,
+        merchant: { id: "merchant-1", business_slug: "bean-and-batch" },
+      })),
+      getExistingMembershipForCurrentUser: vi.fn(async () => ({
+        id: "membership-1",
+      })),
+      getStampQrContextForMembership: vi.fn(async () => ({
+        qrId: "bean-test-qr",
+      })),
+    }))
+    vi.doMock("@/lib/customer/card", () => ({
+      getCustomerCardState: vi.fn(async () => ({
+        status: "ready",
+        latestReward: null,
+      })),
+    }))
+    vi.doMock("@/lib/customer/stamp", () => ({ issueSelfServiceStamp }))
+    vi.doMock("@/lib/analytics/events", () => ({
+      capturePostHogEvent: vi.fn(),
+    }))
+
+    const { destinationForReturningQrVisit } =
+      await import("@/lib/customer/returning-qr-redirect")
+
+    await expect(
+      destinationForReturningQrVisit("bean-and-batch", "bean-test-qr", {
+        issueStamp: true,
+      })
+    ).resolves.toBe("/card/membership-1/stamp?qr=bean-test-qr")
+  })
+
   it("routes an already-stamped customer to the stamped-today screen after OTP", async () => {
     const issueSelfServiceStamp = vi.fn(async () => ({
       status: "blocked",

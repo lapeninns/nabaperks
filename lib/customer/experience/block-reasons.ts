@@ -8,35 +8,45 @@ import type { StampBlockReason } from "./types"
  * Keep these substrings in sync with the database functions in
  * `supabase/migrations/*` (issue_self_service_stamp / redeem_self_service_reward).
  */
+/**
+ * Ordered RPC-message → typed-reason rules. First match wins, so the more
+ * specific phrases sit above the generic `not active` / `unavailable` catch-all.
+ * Notes: `required before unlocking a reward` covers both the stamp RPC ("At
+ * least 3 active reward pool items…") and the older redeem-cycle wording ("At
+ * least one active reward pool item…"); ownership / not-found come from the RPC
+ * tenant guards (normally gated upstream) and map to calm copy for direct calls.
+ */
+const STAMP_BLOCK_RULES: ReadonlyArray<
+  readonly [readonly string[], StampBlockReason]
+> = [
+  [["Stamp already issued for this UK business day"], "already_stamped_today"],
+  [["A reward is already ready to redeem"], "reward_ready_first"],
+  [["Rate limit exceeded"], "rate_limited"],
+  [["required before unlocking a reward"], "pool_unavailable"],
+  [
+    [
+      "not redeemable until the next UK business day",
+      "Reward is not redeemable",
+      "Reward already redeemed",
+    ],
+    "unavailable",
+  ],
+  [
+    ["Authentication required", "Verified customer required"],
+    "unauthenticated",
+  ],
+  [["Complete your profile"], "profile_incomplete"],
+  [
+    ["ownership required", "Membership not found", "Reward not found"],
+    "unavailable",
+  ],
+  [["not active", "unavailable"], "unavailable"],
+]
+
 export function toStampBlockReason(message: string): StampBlockReason {
-  if (message.includes("Stamp already issued for this UK business day")) {
-    return "already_stamped_today"
+  for (const [needles, reason] of STAMP_BLOCK_RULES) {
+    if (needles.some((needle) => message.includes(needle))) return reason
   }
-
-  if (message.includes("A reward is already ready to redeem")) {
-    return "reward_ready_first"
-  }
-
-  if (
-    message.includes("not redeemable until the next UK business day") ||
-    message.includes("Reward is not redeemable") ||
-    message.includes("Reward already redeemed")
-  ) {
-    return "unavailable"
-  }
-
-  if (message.includes("Authentication required")) {
-    return "unauthenticated"
-  }
-
-  if (message.includes("Complete your profile")) {
-    return "profile_incomplete"
-  }
-
-  if (message.includes("not active") || message.includes("unavailable")) {
-    return "unavailable"
-  }
-
   return "unknown"
 }
 
@@ -47,11 +57,10 @@ export function blockReasonCopy(reason: StampBlockReason): string {
       return "You're already stamped today. Come back tomorrow."
     case "reward_ready_first":
       return "Your reward is ready - redeem it before collecting more stamps."
-    case "invalid_qr":
-    case "wrong_merchant":
-      return "Scan the venue code to add your stamp."
-    case "expired_qr":
-      return "Scan the venue code again to add your stamp."
+    case "rate_limited":
+      return "You're going a little fast. Wait a few minutes, then try again."
+    case "pool_unavailable":
+      return "Your reward is almost ready. The venue is still finishing its reward setup, so ask a team member."
     case "unauthenticated":
       return "Verify your identity from the venue QR before continuing."
     case "profile_incomplete":

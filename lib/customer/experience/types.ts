@@ -26,9 +26,8 @@ export type AccessProblem = "unauthenticated" | "unauthorized" | "not_found"
 export type StampBlockReason =
   | "already_stamped_today"
   | "reward_ready_first"
-  | "invalid_qr"
-  | "expired_qr"
-  | "wrong_merchant"
+  | "rate_limited"
+  | "pool_unavailable"
   | "unauthenticated"
   | "profile_incomplete"
   | "unavailable"
@@ -149,10 +148,12 @@ export type CustomerExperience =
       rewardTerms: string
       minSpendPence: number | null
       rewardRedeemableFrom: string | null
-      stampsBlocked: boolean
       stampDates: string[]
       justStamped: boolean
       justJoined: boolean
+      /** Joined via QR but the first stamp was blocked (e.g. pool/billing) — the
+       *  welcome card invites collecting it instead of implying it landed. */
+      firstStampPending?: boolean
       geoFlagged: boolean
       justRedeemed: boolean
     }

@@ -258,6 +258,18 @@ values
     250
   );
 
+-- get_product_event_counts is a global (cross-tenant) admin metric, so capture
+-- the seeded baseline before inserting this test's event and assert the delta.
+create temporary table perf_baseline_counts as
+select coalesce(
+  (
+    select event_count
+    from public.get_product_event_counts(array['customer_joined'])
+    where event_name = 'customer_joined'
+  ),
+  0
+) as customer_joined;
+
 insert into public.product_events (event_name, merchant_id, actor_type)
 values
   ('qr_downloaded', '10000000-0000-0000-0000-00000000f501', 'merchant'),
@@ -268,6 +280,7 @@ do $$
 declare
   dashboard record;
   joined_count bigint;
+  baseline_joined bigint;
   missing_count bigint;
 begin
   select * into dashboard
@@ -285,19 +298,23 @@ begin
     raise exception 'dashboard metrics RPC returned unexpected row: %', dashboard;
   end if;
 
+  select customer_joined into baseline_joined from perf_baseline_counts;
+
   select event_count into joined_count
   from public.get_product_event_counts(
     array['customer_joined', 'qr_downloaded', 'reward_redeemed']
   )
   where event_name = 'customer_joined';
 
-  if joined_count <> 1 then
-    raise exception 'product event count RPC returned % customer_joined rows', joined_count;
+  if joined_count <> baseline_joined + 1 then
+    raise exception 'product event count RPC did not reflect the inserted customer_joined event (baseline %, got %)', baseline_joined, joined_count;
   end if;
 
+  -- Probe a guaranteed-absent event name so the omit-zero-count invariant holds
+  -- regardless of seeded data (real event names like reward_redeemed exist).
   select event_count into missing_count
-  from public.get_product_event_counts(array['reward_redeemed'])
-  where event_name = 'reward_redeemed';
+  from public.get_product_event_counts(array['perf_test_zero_count_event'])
+  where event_name = 'perf_test_zero_count_event';
 
   if missing_count is not null then
     raise exception 'product event count RPC should omit zero-count requested events';

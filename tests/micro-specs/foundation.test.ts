@@ -437,8 +437,7 @@ describe("00/01 foundation micro-specs", () => {
       'href: "/app"',
       'href: "/app/launch"',
       'href: "/app/customers"',
-      'href: "/app/billing"',
-      'href: "/app/settings"',
+      'href: "/app/account"',
     ]) {
       expect(merchantShell).toContain(href)
     }

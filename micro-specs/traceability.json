@@ -7478,7 +7478,7 @@
         },
         {
           "requirement_id": "MS-STAFF-REWARDS-REWARD-UNLOCK-REDEMPTION-003",
-          "summary": "WHEN a customer opens a redeemable reward, THE app SHALL show assigned reward name, terms, and self-service redeem action.",
+          "summary": "WHEN a customer opens a redeemable reward, THE app SHALL show assigned reward name, terms, and the reward QR for the merchant to scan (no customer tap-to-redeem control).",
           "gates": [
             "pnpm governance",
             "pnpm lint",
@@ -7586,7 +7586,7 @@
         },
         {
           "requirement_id": "MS-STAFF-REWARDS-REWARD-UNLOCK-REDEMPTION-005",
-          "summary": "WHEN the customer taps redeem and all server checks pass, THE system SHALL mark the reward as redeemed once.",
+          "summary": "WHEN a merchant scans the customer's reward QR and all server checks pass, THE system SHALL mark the reward as redeemed once.",
           "gates": [
             "pnpm governance",
             "pnpm lint",

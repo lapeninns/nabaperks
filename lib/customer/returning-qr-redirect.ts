@@ -57,41 +57,89 @@ export async function destinationForReturningQrVisit(
   const qrContext = await getStampQrContextForMembership(membership.id, qrId)
   if (!qrContext) return cardPath
 
-  const cardState = await getCustomerCardState(membership.id)
+  // A ready reward outranks a new stamp; a waiting reward returns to the card.
+  const rewardPath = await rewardDestinationForMembership(
+    membership.id,
+    cardPath
+  )
+  if (rewardPath) return rewardPath
+
+  return issueStampDestination({
+    membershipId: membership.id,
+    merchantSlug,
+    customerId: customer.id,
+    coordinates: options.coordinates,
+    stampPath,
+    cardPath,
+  })
+}
+
+/**
+ * Reward-first routing for a returning member: a redeemable reward → its page; an
+ * unlocked-but-waiting reward → the card. Returns null when there is no unlocked
+ * reward, so the caller proceeds to issue a stamp.
+ */
+async function rewardDestinationForMembership(
+  membershipId: string,
+  cardPath: string
+): Promise<string | null> {
+  const cardState = await getCustomerCardState(membershipId)
   if (
-    cardState.status === "ready" &&
-    cardState.latestReward?.status === "unlocked"
+    cardState.status !== "ready" ||
+    cardState.latestReward?.status !== "unlocked"
   ) {
-    if (isRedeemableFrom(cardState.latestReward.redeemable_from)) {
-      return `/reward/${cardState.latestReward.id}`
-    }
-
-    return cardPath
+    return null
   }
 
-  const result = await issueSelfServiceStamp(membership.id, options.coordinates)
+  return isRedeemableFrom(cardState.latestReward.redeemable_from)
+    ? `/reward/${cardState.latestReward.id}`
+    : cardPath
+}
 
-  if (result.status === "issued") {
-    await capturePostHogEvent({
-      eventName: "stamp_issued",
-      membershipId: membership.id,
-      actorType: "customer",
-      actorId: customer.id,
-      metadata: {
-        merchant_slug: merchantSlug,
-        source: "returning_qr_after_otp",
-        geo_flagged: result.geoFlagged,
-      },
-    })
+type IssueStampDestinationInput = {
+  readonly membershipId: string
+  readonly merchantSlug: string
+  readonly customerId: string
+  readonly coordinates?: GeoCoordinates
+  readonly stampPath: string
+  readonly cardPath: string
+}
 
-    const params = new URLSearchParams({ stamp: "issued" })
-    if (result.geoFlagged) params.set("geo", "flagged")
-    return `${cardPath}?${params.toString()}`
-  }
-
-  if (result.reason?.includes("already stamped")) {
+async function issueStampDestination({
+  membershipId,
+  merchantSlug,
+  customerId,
+  coordinates,
+  stampPath,
+  cardPath,
+}: IssueStampDestinationInput): Promise<string> {
+  let result: Awaited<ReturnType<typeof issueSelfServiceStamp>>
+  try {
+    result = await issueSelfServiceStamp(membershipId, coordinates)
+  } catch {
+    // An unexpected auto-issue failure must not error the OTP verification.
+    // Degrade to the stamp screen so the customer can retry from the venue QR.
     return stampPath
   }
 
-  return stampPath
+  if (result.status !== "issued") {
+    // Already-stamped (and any other block) routes to the stamp status screen.
+    return stampPath
+  }
+
+  await capturePostHogEvent({
+    eventName: "stamp_issued",
+    membershipId,
+    actorType: "customer",
+    actorId: customerId,
+    metadata: {
+      merchant_slug: merchantSlug,
+      source: "returning_qr_after_otp",
+      geo_flagged: result.geoFlagged,
+    },
+  })
+
+  const params = new URLSearchParams({ stamp: "issued" })
+  if (result.geoFlagged) params.set("geo", "flagged")
+  return `${cardPath}?${params.toString()}`
 }

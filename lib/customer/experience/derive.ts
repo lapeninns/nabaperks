@@ -34,17 +34,23 @@ const COMPLETE_GATE: ProfileGate = {
   email: null,
 }
 
+/** Recovery copy for the full-card-without-reward data inconsistency (G9). */
+const FULL_CARD_NO_REWARD_REASON =
+  "We're sorting your reward. Check back shortly, or ask a team member."
+
 export type CardContext =
   | AccessFailure
   | {
       access?: undefined
       unavailableReason?: string
+      /** Active-cycle count ≥ required but no unlocked reward row — a data
+       *  inconsistency. Surfaces a recovery state instead of inviting a stamp. */
+      fullWithoutReward?: boolean
       membershipId: string
       merchantName: string
       cardName: string
       current: number
       total: number
-      stampsBlocked: boolean
       reward: {
         id: string
         name: string
@@ -57,6 +63,7 @@ export type CardContext =
       stampDates: string[]
       justStamped: boolean
       justJoined: boolean
+      firstStampPending?: boolean
       geoFlagged: boolean
       justRedeemed: boolean
     }
@@ -66,6 +73,9 @@ export type StampContext =
   | {
       access?: undefined
       unavailableReason?: string
+      /** Active-cycle count ≥ required but no unlocked reward row — block the
+       *  stamp and surface a recovery state instead of a confirm screen. */
+      fullWithoutReward?: boolean
       membershipId: string
       merchantName: string
       unlockedReward: (RewardView & { redeemable: boolean }) | null
@@ -139,6 +149,10 @@ function deriveCard(context: CardContext): CustomerExperience {
     return { kind: "unavailable", reason: context.unavailableReason }
   }
 
+  if (context.fullWithoutReward) {
+    return { kind: "unavailable", reason: FULL_CARD_NO_REWARD_REASON }
+  }
+
   const reward = context.reward
   const rewardStatus = reward
     ? reward.redeemable
@@ -160,10 +174,10 @@ function deriveCard(context: CardContext): CustomerExperience {
     rewardTerms: reward?.terms ?? context.rewardTerms,
     minSpendPence: reward?.minSpendPence ?? null,
     rewardRedeemableFrom: reward?.redeemableFrom ?? null,
-    stampsBlocked: context.stampsBlocked,
     stampDates: context.stampDates,
     justStamped: context.justStamped,
     justJoined: context.justJoined,
+    firstStampPending: context.firstStampPending,
     geoFlagged: context.geoFlagged,
     justRedeemed: context.justRedeemed,
   }
@@ -176,6 +190,10 @@ function deriveStamp(context: StampContext): CustomerExperience {
 
   if (context.unavailableReason) {
     return { kind: "unavailable", reason: context.unavailableReason }
+  }
+
+  if (context.fullWithoutReward) {
+    return { kind: "unavailable", reason: FULL_CARD_NO_REWARD_REASON }
   }
 
   const candidates: CustomerExperienceKind[] = []

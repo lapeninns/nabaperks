@@ -26,8 +26,10 @@ export default async function PublicQrPage({ params }: PublicQrPageProps) {
   try {
     qrContext = await resolveQrForJoin(qrId)
   } catch (error) {
+    // A rate-limited scan is a transient retry, not a dead QR — give it distinct
+    // calm copy so the customer waits and re-scans instead of giving up.
     if (error instanceof RateLimitError) {
-      return <UnavailableQr />
+      return <RateLimitedQr />
     }
 
     return <UnavailableQr />
@@ -67,6 +69,32 @@ function UnavailableQr() {
           icon={AlertDiamondIcon}
           title="This loyalty card is unavailable"
           description="Ask a team member for the current loyalty QR."
+          headingLevel={1}
+          className="w-full"
+        />
+      </CustomerReceipt>
+    </CustomerFlowShell>
+  )
+}
+
+function RateLimitedQr() {
+  return (
+    <CustomerFlowShell
+      eyebrow="QR"
+      title="One moment"
+      description="Too many scans just now. Wait a moment, then scan the venue QR again."
+      className="content-center"
+      screenLabel="QR busy"
+    >
+      <CustomerReceipt
+        venueName="Nabaperks"
+        title="Too many scans just now"
+        eyebrow="Try again shortly"
+      >
+        <EmptyState
+          icon={AlertDiamondIcon}
+          title="Too many scans just now"
+          description="Wait a moment, then scan the venue QR again. Your card is safe."
           headingLevel={1}
           className="w-full"
         />

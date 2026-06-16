@@ -3,12 +3,14 @@ spec_id: MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP
 status: active
 risk_class: customer-pii
 owner: factory-droid
-last_reviewed: 2026-06-15
+last_reviewed: 2026-06-16
 allowed_blast_radius:
   - app/app/**
   - components/layout/merchant-app-shell.tsx
+  - components/layout/shell-navigation.tsx
   - components/merchant/**
   - lib/merchant/**
+  - docs/ROUTES.md
   - micro-specs/05-merchant-value/02-merchant-console-trust-and-ia-cleanup.md
   - micro-specs/TRACEABILITY.md
   - micro-specs/traceability.json
@@ -24,6 +26,7 @@ related_docs:
   - DESIGN.md
 related_tests:
   - tests/micro-specs/merchant-console-trust-ia.test.ts
+  - tests/micro-specs/merchant-account-hub.test.ts
 verification_gates:
   - pnpm governance
   - pnpm lint
@@ -83,7 +86,14 @@ Out of scope:
 ## Decisions Already Made
 
 - Activity is a primary merchant navigation item.
-- Settings is labelled as `Settings`, not `ROI settings`, in account navigation.
+- Profile, Billing, and Settings are merged into a single Account hub at
+  `/app/account?tab=profile|billing|settings`. The shell exposes one `Account`
+  entry instead of separate Profile, Billing, and Settings pills. Legacy
+  `/app/profile`, `/app/billing`, and `/app/settings` routes redirect into the
+  hub; the billing redirect preserves Stripe `checkout`/`portal` outcome params.
+- Stripe checkout/portal URLs stay on `/app/billing?...`; the billing redirect
+  forwards merchants onto the Account hub Billing tab.
+- Settings keeps the `Settings` tab label, not `ROI settings`, inside the hub.
 - Healthy billing states are not dashboard noise. The dashboard only shows a
   billing notice when the state needs setup, review, or payment attention.
 - Billing page and dashboard billing notices use the same status copy source.
@@ -93,8 +103,9 @@ Out of scope:
 
 - **MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-001** WHEN merchant navigation renders, THE system SHALL include `/app/activity` in
   primary navigation.
-- **MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-002** WHEN account navigation renders, THE system SHALL label `/app/settings` as
-  `Settings`.
+- **MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-002** WHEN account navigation renders, THE system SHALL expose a single `Account`
+  entry linking to `/app/account`, with Billing and Settings reached as tabs
+  inside the Account hub rather than as separate navigation pills.
 - **MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-003** WHEN a merchant customer readback has an email, THE system SHALL display a
   masked email identifier and SHALL NOT display the raw email address.
 - **MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-004** WHEN a merchant customer readback has only a phone number, THE system SHALL
@@ -118,7 +129,10 @@ Out of scope:
 
 Acceptance criteria:
 
-- Merchant shell shows Home, Launch, Customers, Activity, Billing, and Settings.
+- Merchant shell shows Home, Launch, Customers, Activity, and a single Account
+  entry. Billing and Settings are reachable as tabs inside the Account hub, and
+  the legacy `/app/billing` and `/app/settings` routes redirect into the hub
+  (billing preserving Stripe `checkout`/`portal` outcome params).
 - Raw customer emails and raw phone numbers are absent from merchant customer
   identifiers and enriched activity rows.
 - Dashboard has no `Billing status` KPI tile.

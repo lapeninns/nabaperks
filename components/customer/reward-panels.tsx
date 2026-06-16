@@ -6,7 +6,10 @@ import { CustomerProfileGateForm } from "@/components/customer/profile-gate-form
 import { RewardCollectionQr } from "@/components/customer/reward-collection-qr"
 import { RewardTicket, StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
-import type { CustomerExperienceViewModel } from "@/lib/customer/experience/copy"
+import {
+  waitingRewardTiming,
+  type CustomerExperienceViewModel,
+} from "@/lib/customer/experience/copy"
 import type {
   CustomerExperience,
   RewardView,
@@ -35,7 +38,7 @@ export function RewardWaitingPanel({
         readyDate={readyDate}
       />
       <StatusBanner title="Give it a day to breathe" tone="warning">
-        It&apos;s yours from opening time tomorrow.
+        {waitingRewardTiming(exp.reward.redeemableFrom)}
       </StatusBanner>
       <Button asChild size="lg" variant="secondary" className="w-full">
         <Link href={`/card/${exp.reward.membershipId}`}>Return to card</Link>

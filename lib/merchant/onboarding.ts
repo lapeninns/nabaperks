@@ -17,9 +17,6 @@ export type MerchantForApp = {
   business_type: string | null
   email: string
   status: string
-  average_order_value_pence: number
-  estimated_gross_margin_bps: number
-  reward_cost_pence: number
   phone?: string | null
 }
 
@@ -47,7 +44,7 @@ export async function getMerchantOnboardingStatus(): Promise<MerchantOnboardingS
   const { data: merchant, error: merchantError } = await supabase
     .from("merchants")
     .select(
-      "id, business_name, business_slug, business_type, email, phone, status, average_order_value_pence, estimated_gross_margin_bps, reward_cost_pence"
+      "id, business_name, business_slug, business_type, email, phone, status"
     )
     .eq("owner_user_id", user.id)
     .maybeSingle()
@@ -62,9 +59,6 @@ export async function getMerchantOnboardingStatus(): Promise<MerchantOnboardingS
 
   const merchantForApp: MerchantForApp = {
     ...merchant,
-    average_order_value_pence: merchant.average_order_value_pence ?? 0,
-    estimated_gross_margin_bps: merchant.estimated_gross_margin_bps ?? 0,
-    reward_cost_pence: merchant.reward_cost_pence ?? 0,
   }
 
   const initialFields = {
@@ -79,7 +73,9 @@ export async function getMerchantOnboardingStatus(): Promise<MerchantOnboardingS
     .eq("merchant_id", merchant.id)
 
   if (locationError) {
-    throw new Error(`Unable to load merchant location: ${locationError.message}`)
+    throw new Error(
+      `Unable to load merchant location: ${locationError.message}`
+    )
   }
 
   if ((locationCount ?? 0) < 1) {

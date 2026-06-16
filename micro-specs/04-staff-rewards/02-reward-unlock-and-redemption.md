@@ -52,8 +52,9 @@ approved_exceptions: []
 ## Exact Goal and User-Visible Outcomes
 
 When a customer earns the required visit stamp, a surprise reward is assigned
-and revealed. The customer can redeem it once from the next UK business day by
-tapping the reward page.
+and revealed. The customer shows the reward QR from the next UK business day and
+the merchant scans it at the counter to collect it once. There is no customer
+tap-to-redeem control.
 
 ## Blast Radius
 
@@ -99,11 +100,12 @@ Out of scope:
   SHALL show the assigned reward and a come-back message without a redeem
   action.
 - **MS-STAFF-REWARDS-REWARD-UNLOCK-REDEMPTION-003** WHEN a customer opens a redeemable reward, THE app SHALL show assigned reward
-  name, terms, and self-service redeem action.
+  name, terms, and the reward QR for the merchant to scan (no customer
+  tap-to-redeem control).
 - **MS-STAFF-REWARDS-REWARD-UNLOCK-REDEMPTION-004** WHEN the merchant edits the reward pool after assignment, THE existing
   customer reward SHALL keep its persisted details unchanged.
-- **MS-STAFF-REWARDS-REWARD-UNLOCK-REDEMPTION-005** WHEN the customer taps redeem and all server checks pass, THE system SHALL
-  mark the reward as redeemed once.
+- **MS-STAFF-REWARDS-REWARD-UNLOCK-REDEMPTION-005** WHEN a merchant scans the customer's reward QR and all server checks pass, THE
+  system SHALL mark the reward as redeemed once.
 - **MS-STAFF-REWARDS-REWARD-UNLOCK-REDEMPTION-006** WHEN the same reward redemption is attempted again, THE system SHALL reject or
   replay the duplicate safely without creating another redemption.
 - **MS-STAFF-REWARDS-REWARD-UNLOCK-REDEMPTION-007** WHEN redemption succeeds, THE system SHALL update membership reward totals and

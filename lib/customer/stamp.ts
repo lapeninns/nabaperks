@@ -1,6 +1,11 @@
 import "server-only"
 
+import {
+  blockReasonCopy,
+  toStampBlockReason,
+} from "@/lib/customer/experience/block-reasons"
 import { getCurrentCustomer } from "@/lib/customer/identity"
+import { logger } from "@/lib/observability/logger"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type GeoCoordinates = {
@@ -39,9 +44,19 @@ export async function issueSelfServiceStamp(
   })
 
   if (error) {
-    const reason = blockedReason(error.message)
+    const reason = toStampBlockReason(error.message)
 
-    if (reason) return { status: "blocked", reason }
+    if (reason !== "unknown") {
+      // A misconfigured reward pool blocks the final stamp; the customer gets
+      // calm copy while operators get a diagnosable signal in the logs/audit.
+      if (reason === "pool_unavailable") {
+        logger.warn("self_service_stamp_pool_unavailable", {
+          membershipId,
+          rpcMessage: error.message,
+        })
+      }
+      return { status: "blocked", reason: blockReasonCopy(reason) }
+    }
 
     throw new Error(`Unable to issue a stamp: ${error.message}`)
   }
@@ -195,38 +210,6 @@ async function getLocationRequirement(
     requireGeofence: booleanValue(location.require_geofence),
     geofenceRadiusMeters: numberValue(location.geofence_radius_meters) ?? 150,
   }
-}
-
-function blockedReason(message: string) {
-  if (message.includes("Stamp already issued for this UK business day")) {
-    return "You're already stamped today. Come back tomorrow."
-  }
-
-  if (message.includes("A reward is already ready to redeem")) {
-    return "Your reward is ready - redeem it before collecting more stamps."
-  }
-
-  if (message.includes("Reward already redeemed")) {
-    return "This reward has already been redeemed."
-  }
-
-  if (message.includes("not redeemable until the next UK business day")) {
-    return "Give it a day to breathe - redeemable from the next UK business day."
-  }
-
-  if (message.includes("Reward is not redeemable")) {
-    return "This reward is not redeemable."
-  }
-
-  if (message.includes("not active") || message.includes("unavailable")) {
-    return "This loyalty programme is unavailable right now."
-  }
-
-  if (message.includes("Authentication required")) {
-    return "Verify your identity from the venue QR before continuing."
-  }
-
-  return null
 }
 
 function defaultLocationRequirement(): LocationRequirement {

@@ -36,7 +36,9 @@ describe("05 merchant console trust and IA cleanup", () => {
 
     expect(shell).toContain('href: "/app/activity"')
     expect(shell).toContain('label: "Activity"')
-    expect(shell).toContain('href: "/app/settings", label: "Settings"')
+    expect(shell).toContain('href: "/app/account", label: "Account"')
+    expect(shell).not.toContain('href: "/app/settings"')
+    expect(shell).not.toContain('href: "/app/profile"')
     expect(shell).not.toContain("ROI settings")
     expect(shell).toContain("home, launch setup, customers, and activity")
   })
@@ -50,14 +52,16 @@ describe("05 merchant console trust and IA cleanup", () => {
     expect(dashboard).not.toContain("billingStateCopy")
   })
 
-  it("uses one billing status copy model across dashboard and billing pages", () => {
+  it("uses one billing status copy model across dashboard and billing surfaces", () => {
     const dashboard = readMerchantDashboardSurface()
-    const billingPage = readProjectFile("app/app/billing/page.tsx")
+    const billingPanel = readProjectFile(
+      "components/merchant/account/billing-panel.tsx"
+    )
 
     expect(dashboard).toContain("MerchantBillingNotice")
-    expect(billingPage).toContain("MerchantBillingAccessNote")
-    expect(billingPage).not.toContain("function BillingAccessNote")
-    expect(billingPage).not.toContain("function formatStatus")
+    expect(billingPanel).toContain("MerchantBillingAccessNote")
+    expect(billingPanel).not.toContain("function BillingAccessNote")
+    expect(billingPanel).not.toContain("function formatStatus")
   })
 
   it("masks merchant customer identifiers", async () => {
@@ -196,9 +200,6 @@ describe("05 merchant console trust and IA cleanup", () => {
       id: "merchant-1",
       business_name: "The Bell",
       status: "trialing",
-      average_order_value_pence: 1200,
-      estimated_gross_margin_bps: 6500,
-      reward_cost_pence: 250,
     })
 
     expect(supabase.queryCalls).toContainEqual({

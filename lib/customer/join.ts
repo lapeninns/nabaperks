@@ -38,6 +38,7 @@ type RawQrLookup = {
         business_slug: string
         email: string
         phone: string | null
+        status: string
       }
     | Array<{
         id: string
@@ -45,6 +46,7 @@ type RawQrLookup = {
         business_slug: string
         email: string
         phone: string | null
+        status: string
       }>
   loyalty_cards:
     | {
@@ -91,7 +93,7 @@ export async function resolveQrForJoin(
   const { data, error } = await supabase
     .from("qr_codes")
     .select(
-      "id, qr_id, is_active, destination_type, merchants(id, business_name, business_slug, email, phone), loyalty_cards!loyalty_card_id(id, card_name, reward_name, stamps_required, reward_terms, min_spend_pence, is_active)"
+      "id, qr_id, is_active, destination_type, merchants(id, business_name, business_slug, email, phone, status), loyalty_cards!loyalty_card_id(id, card_name, reward_name, stamps_required, reward_terms, min_spend_pence, is_active)"
     )
     .eq("qr_id", qrId)
     .maybeSingle()
@@ -105,12 +107,13 @@ export async function resolveQrForJoin(
   const qrCode = data as RawQrLookup
   const merchant = first(qrCode.merchants)
   const loyaltyCard = first(qrCode.loyalty_cards)
-  const suspended = await isMerchantBillingSuspended(merchant.id)
+  const billingBlocked = await isMerchantBillingBlocked(merchant.id)
   const available =
     qrCode.destination_type === "join" &&
     qrCode.is_active &&
     loyaltyCard.is_active &&
-    !suspended
+    !billingBlocked &&
+    isMerchantProgrammeActive(merchant.status)
 
   if (recordScan) {
     await recordProductEvent({
@@ -160,7 +163,7 @@ export async function getMerchantJoinContext(
   const { data, error } = await supabase
     .from("merchants")
     .select(
-      "id, business_name, business_slug, email, phone, loyalty_cards(id, card_name, reward_name, stamps_required, reward_terms, min_spend_pence, is_active)"
+      "id, business_name, business_slug, email, phone, status, loyalty_cards(id, card_name, reward_name, stamps_required, reward_terms, min_spend_pence, is_active)"
     )
     .eq("business_slug", merchantSlug)
     .eq("loyalty_cards.is_active", true)
@@ -174,10 +177,10 @@ export async function getMerchantJoinContext(
 
   const loyaltyCard = first(data.loyalty_cards)
   if (!loyaltyCard?.is_active) return null
-  const suspended = await isMerchantBillingSuspended(data.id)
+  const billingBlocked = await isMerchantBillingBlocked(data.id)
 
   return {
-    available: !suspended,
+    available: !billingBlocked && isMerchantProgrammeActive(data.status),
     merchant: {
       id: data.id,
       business_name: data.business_name,
@@ -235,7 +238,7 @@ export async function getStampQrContextForMembership(
   return qrContext
 }
 
-async function isMerchantBillingSuspended(merchantId: string) {
+async function isMerchantBillingBlocked(merchantId: string) {
   const supabase = createSupabaseServiceRoleClient()
   const { data, error } = await supabase
     .from("billing_customers")
@@ -247,7 +250,18 @@ async function isMerchantBillingSuspended(merchantId: string) {
     throw new Error(`Unable to load billing status: ${error.message}`)
   }
 
-  return data?.status === "suspended"
+  // Mirror the RPC: both `cancelled` and `suspended` block join/QR availability.
+  return data?.status === "cancelled" || data?.status === "suspended"
+}
+
+/**
+ * Mirror the stamp/redeem RPCs' merchant guard: only `trial`/`active` programmes
+ * accept customers. A paused/cancelled/suspended merchant must read as
+ * unavailable on the join + QR resolver path, not onboard a member whose first
+ * stamp the RPC will then reject.
+ */
+function isMerchantProgrammeActive(status: string | null | undefined) {
+  return status === "trial" || status === "active"
 }
 
 function first<T>(value: T | T[]) {

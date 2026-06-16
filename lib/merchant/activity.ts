@@ -295,7 +295,8 @@ function toActivityDisplayRow(
         category,
         badgeLabel: "Stamp requested",
         headline: `${customerName(customerLabel)} requested a stamp`,
-        summary: "The customer opened the stamp-confirm screen from the venue QR.",
+        summary:
+          "The customer opened the stamp-confirm screen from the venue QR.",
         timestamp,
         ...base,
         details: [
@@ -820,11 +821,11 @@ function primaryActivityAction(
     row.event_name === "subscription_started" ||
     row.event_name === "subscription_cancelled"
   ) {
-    return { label: "Open billing", href: "/app/billing" }
+    return { label: "Open billing", href: "/app/account?tab=billing" }
   }
 
   if (row.event_name === "merchant_signed_up") {
-    return { label: "Open settings", href: "/app/settings" }
+    return { label: "Open account", href: "/app/account" }
   }
 
   return undefined

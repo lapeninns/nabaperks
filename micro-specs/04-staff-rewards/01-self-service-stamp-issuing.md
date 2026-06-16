@@ -78,8 +78,8 @@ Out of scope:
   date, and customer membership ownership.
 - A customer cannot receive more than one earned stamp per
   membership/location/UK date.
-- A final stamp cannot be issued unless at least one active reward pool item
-  exists.
+- A final stamp cannot be issued unless at least 3 active reward pool items with
+  positive total weight exist (the minimum reward-pool breadth the RPC enforces).
 - Optional GPS review is a soft signal: out-of-range or unavailable location
   writes a fraud flag and still issues the stamp.
 - Stamp mutation must be atomic: event creation and membership count update

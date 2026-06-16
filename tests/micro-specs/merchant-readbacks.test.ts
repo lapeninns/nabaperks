@@ -73,12 +73,13 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
       'href: "/app/launch"',
       'href: "/app/customers"',
       'href: "/app/activity"',
-      'href: "/app/billing"',
-      'href: "/app/settings"',
+      'href: "/app/account"',
     ]) {
       expect(shell).toContain(href)
     }
-    expect(shell).toContain('href: "/app/settings", label: "Settings"')
+    expect(shell).toContain('href: "/app/account", label: "Account"')
+    expect(shell).not.toContain('href: "/app/billing"')
+    expect(shell).not.toContain('href: "/app/settings"')
     expect(shell).not.toContain("ROI settings")
     expect(shell).toContain("merchantAccountItems")
     expect(shell).toContain("secondaryItems={merchantAccountItems}")
@@ -115,9 +116,6 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
       id: "merchant-1",
       business_name: "The Bell",
       status: "active",
-      average_order_value_pence: 1200,
-      estimated_gross_margin_bps: 6500,
-      reward_cost_pence: 250,
     }
     const getMerchantDashboardData = vi.fn(async () => ({
       metrics: {
@@ -127,7 +125,6 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
         repeatCustomers: 1,
         rewardsRedeemed: 0,
         qrDownloads: 3,
-        estimatedRepeatRevenuePence: 1200,
       },
       billingStatus: "active",
       recentActivity: [],
@@ -205,7 +202,6 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
       "Repeat customers",
       "Rewards redeemed",
       "QR downloads",
-      "Estimated repeat revenue",
       "MerchantBillingNotice",
       "LaunchReadinessPanel",
       "Recent activity",
@@ -224,7 +220,7 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     ]) {
       expect(billingStatus).toContain(status)
     }
-    expect(dashboard).toContain("Estimate only")
+    expect(dashboard).not.toContain("Estimate only")
     expect(dashboard).toContain("ActivityCompactFeed")
     expect(dashboard).toContain("getEnrichedMerchantActivity")
     expect(dashboard).toContain(
@@ -270,9 +266,6 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
       id: "merchant-1",
       business_name: "The Bell",
       status: "trialing",
-      average_order_value_pence: 1200,
-      estimated_gross_margin_bps: 6500,
-      reward_cost_pence: 250,
     })
     await getMerchantCustomers("merchant-1")
     await getMerchantActivity("merchant-1")
@@ -573,19 +566,23 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
   })
 
   it("preserves billing outcome states and gates the Stripe portal by customer id", () => {
-    const billingPage = readProjectFile("app/app/billing/page.tsx")
+    const billingPanel = readProjectFile(
+      "components/merchant/account/billing-panel.tsx"
+    )
+    const billingData = readProjectFile("lib/merchant/billing.ts")
 
-    expect(billingPage).toContain("billing_customers")
-    expect(billingPage).toContain("stripe_customer_id")
-    expect(billingPage).toContain('checkout === "success"')
-    expect(billingPage).toContain('checkout === "cancelled"')
-    expect(billingPage).toContain('portal === "missing"')
-    expect(billingPage).toContain("disabled={!billing?.stripe_customer_id}")
-    expect(billingPage).not.toContain(
+    expect(billingData).toContain("billing_customers")
+    expect(billingData).toContain("stripe_customer_id")
+    expect(billingPanel).toContain("stripe_customer_id")
+    expect(billingPanel).toContain('checkout === "success"')
+    expect(billingPanel).toContain('checkout === "cancelled"')
+    expect(billingPanel).toContain('portal === "missing"')
+    expect(billingPanel).toContain("disabled={!billing?.stripe_customer_id}")
+    expect(billingPanel).not.toContain(
       "disabled={!billing?.stripe_subscription_id}"
     )
-    expect(billingPage).toContain("Start checkout")
-    expect(billingPage).toContain("Open Stripe portal")
+    expect(billingPanel).toContain("Start checkout")
+    expect(billingPanel).toContain("Open Stripe portal")
   })
 
   it("renders safe billing load failure copy without raw Supabase details", async () => {
@@ -608,8 +605,9 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
       createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
     }))
 
-    const { default: BillingPage } = await import("@/app/app/billing/page")
-    const output = await BillingPage({ searchParams: Promise.resolve({}) })
+    const { BillingPanel } =
+      await import("@/components/merchant/account/billing-panel")
+    const output = await BillingPanel({ params: {} })
     const renderedText = collectReactText(output)
 
     expect(renderedText).toContain(

@@ -6,9 +6,6 @@ const MERCHANT = {
   id: "merchant-1",
   business_name: "The Bell",
   status: "trial",
-  average_order_value_pence: 1200,
-  estimated_gross_margin_bps: 6500,
-  reward_cost_pence: 250,
 } as const
 
 describe("performance RPC consolidation", () => {
@@ -50,7 +47,6 @@ describe("performance RPC consolidation", () => {
         repeatCustomers: 4,
         rewardsRedeemed: 3,
         qrDownloads: 5,
-        estimatedRepeatRevenuePence: 4800,
       },
       billingStatus: "active",
     })
@@ -104,7 +100,6 @@ describe("performance RPC consolidation", () => {
         repeatCustomers: 4,
         rewardsRedeemed: 3,
         qrDownloads: 5,
-        estimatedRepeatRevenuePence: 4800,
       },
       billingStatus: "active",
     })

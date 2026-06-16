@@ -59,6 +59,7 @@ export function MerchantProfileForm({
 
   return (
     <form action={action} className="surface-card grid gap-4 p-6">
+      <p className="eyebrow">Business</p>
       <Field
         id="businessName"
         name="businessName"
@@ -74,7 +75,7 @@ export function MerchantProfileForm({
           id="businessType"
           name="businessType"
           defaultValue={fields?.businessType ?? ""}
-          className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
+          className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm transition outline-none focus:border-ring focus:ring-3 focus:ring-ring/25"
           aria-invalid={Boolean(state.errors?.businessType)}
           aria-describedby={
             state.errors?.businessType ? "businessType-error" : undefined
@@ -111,7 +112,9 @@ export function MerchantProfileForm({
         defaultValue={fields?.phone}
         error={state.errors?.phone}
       />
-      <hr className="w-rule" />
+      <div className="mt-1 border-t border-ink/15 pt-4">
+        <p className="eyebrow">Venue</p>
+      </div>
       <Field
         id="venueName"
         name="venueName"
@@ -159,7 +162,7 @@ function Field({
       </label>
       <input
         id={id}
-        className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
+        className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm transition outline-none focus:border-ring focus:ring-3 focus:ring-ring/25"
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
         {...props}

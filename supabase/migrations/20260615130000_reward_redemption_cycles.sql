@@ -189,6 +189,11 @@ begin
       and reward_pool_items.loyalty_card_id = card_record.id
       and reward_pool_items.is_active;
 
+    -- NOTE: this "at least one" rule is superseded by
+    -- 20260616103000_minimum_three_rewards.sql, which redefines
+    -- issue_self_service_stamp to require >= 3 active reward pool items. That
+    -- later migration is the live behaviour; this body is retained only for
+    -- ordered re-apply and is overwritten on the same migrate run.
     if v_total_weight <= 0 then
       raise exception 'At least one active reward pool item is required before unlocking a reward';
     end if;
