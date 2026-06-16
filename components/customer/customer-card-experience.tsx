@@ -23,6 +23,7 @@ import { StampCelebration } from "@/components/motion"
 import { Button } from "@/components/ui/button"
 import {
   getCustomerExperienceViewModel,
+  waitingRewardTiming,
   type CustomerExperienceViewModel,
 } from "@/lib/customer/experience/copy"
 import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
@@ -119,8 +120,7 @@ function CardProgressPanel({
   const stampSecuredOnly =
     exp.justStamped &&
     !(exp.reward === "ready" && exp.rewardId) &&
-    exp.reward !== "waiting" &&
-    !exp.stampsBlocked
+    exp.reward !== "waiting"
   const hasPrimaryAction = !stampSecuredOnly
 
   const rewardDetails = (
@@ -145,7 +145,7 @@ function CardProgressPanel({
     rewardDescription = hasPrimaryAction ? undefined : (
       <>
         {rewardDetails}
-        {" Give it a day to breathe - it's yours from opening time tomorrow."}
+        {` Give it a day to breathe. ${waitingRewardTiming(exp.rewardRedeemableFrom)}`}
       </>
     )
   } else {
@@ -207,7 +207,9 @@ function CardProgressPanel({
                 >
                   {exp.justStamped
                     ? "You're in — your first stamp is on the card."
-                    : "You're in. Scan the venue QR in store to collect your first stamp."}
+                    : exp.firstStampPending
+                      ? "You're in. We couldn't add your first stamp just now — scan the venue QR to collect your first stamp."
+                      : "You're in. Scan the venue QR in store to collect your first stamp."}
                   {exp.justStamped && exp.geoFlagged
                     ? " Location could not be confirmed, so the venue may review it."
                     : null}
@@ -247,10 +249,8 @@ function CardProgressPanel({
         ) : exp.reward === "waiting" ? (
           <StatusNotice
             title="Give it a day to breathe"
-            message="It's yours from opening time tomorrow."
+            message={waitingRewardTiming(exp.rewardRedeemableFrom)}
           />
-        ) : exp.stampsBlocked ? (
-          <StatusNotice message="This merchant is not accepting new stamps right now." />
         ) : exp.justStamped ? (
           // Today's stamp is already on the card — confirm it instead of
           // prompting another scan, which would read as a failure.

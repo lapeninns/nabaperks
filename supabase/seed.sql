@@ -382,6 +382,30 @@ values
     3,
     true,
     1
+  ),
+  (
+    '13500000-0000-0000-0000-000000000004',
+    '10000000-0000-0000-0000-000000000001',
+    '11000000-0000-0000-0000-000000000001',
+    '13000000-0000-0000-0000-000000000001',
+    '10% off Food',
+    'Get 10% off food items. Valid from the next UK business day.',
+    null,
+    2,
+    true,
+    3
+  ),
+  (
+    '13500000-0000-0000-0000-000000000005',
+    '10000000-0000-0000-0000-000000000001',
+    '11000000-0000-0000-0000-000000000001',
+    '13000000-0000-0000-0000-000000000001',
+    'Free Honey Toffee IceCream',
+    'One free Honey Toffee IceCream. Valid from the next UK business day.',
+    null,
+    2,
+    true,
+    4
   )
 on conflict (id) do update
 set reward_name = excluded.reward_name,

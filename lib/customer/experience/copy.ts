@@ -1,3 +1,5 @@
+import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
+
 import { assertNever, type CustomerExperience } from "./types"
 
 /**
@@ -42,6 +44,18 @@ export function joinUnlockingRewardHook(stampsRequired: number): string {
   return stamps === 1
     ? "1 stamp unlocks a mystery reward"
     : `${stamps} stamps unlock a mystery reward`
+}
+
+/**
+ * Reward overnight-hold timing. `redeemable_from` is the *next UK business date*,
+ * which skips weekends and bank holidays — so "tomorrow" is wrong on a Friday.
+ * Render the real reopening date when known, else "the next opening day".
+ */
+export function waitingRewardTiming(redeemableFrom: string | null): string {
+  if (redeemableFrom) {
+    return `It's yours from ${formatStampDisplayDateFromIso(redeemableFrom)}.`
+  }
+  return "It's yours from the next opening day."
 }
 
 export function getCustomerExperienceViewModel(

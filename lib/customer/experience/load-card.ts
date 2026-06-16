@@ -9,6 +9,7 @@ import { captureJoinFunnelEvent } from "@/lib/customer/join-funnel"
 import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
 import { isRedeemableFrom, ukTodayIso } from "@/lib/customer/uk-date"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
+import { logger } from "@/lib/observability/logger"
 
 import type { CardContext } from "./derive"
 
@@ -17,6 +18,7 @@ type CardSearchParams = {
   reward?: string
   geo?: string
   welcome?: string
+  firststamp?: string
 }
 
 /**
@@ -55,6 +57,7 @@ export async function loadCardExperienceContext(
   const justRedeemed = searchParams.reward === "redeemed"
   const geoFlagged = searchParams.geo === "flagged"
   const justJoined = searchParams.welcome === "1"
+  const firstStampPending = searchParams.firststamp === "pending"
 
   if (!loyaltyCard) {
     return baseUnavailable(
@@ -106,18 +109,32 @@ export async function loadCardExperienceContext(
         }
       : null
 
+  // The RPC unlocks a reward at `current_stamp_count >= stamps_required`. If the
+  // count is full but no unlocked reward row exists, the data has drifted: show a
+  // recovery state rather than inviting a stamp the RPC would reject.
+  const fullWithoutReward = membership.current_stamp_count >= target && !reward
+  if (fullWithoutReward) {
+    logger.warn("customer_full_card_without_reward", {
+      membershipId: membership.id,
+      route: "card",
+      currentStampCount: membership.current_stamp_count,
+      stampsRequired: target,
+    })
+  }
+
   return {
     membershipId: membership.id,
     merchantName: merchant.business_name,
     cardName: loyaltyCard.card_name,
     current,
     total: target,
-    stampsBlocked: cardState.billingStatus === "cancelled",
+    fullWithoutReward,
     reward,
     rewardTerms: loyaltyCard.reward_terms,
     stampDates: dates,
     justStamped,
     justJoined,
+    firstStampPending,
     geoFlagged,
     justRedeemed,
   }
@@ -141,7 +158,6 @@ function baseUnavailable(
     cardName: "",
     current: 0,
     total: 0,
-    stampsBlocked: false,
     reward: null,
     rewardTerms: "",
     stampDates: [],

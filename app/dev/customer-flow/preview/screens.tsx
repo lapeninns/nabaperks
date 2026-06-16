@@ -30,7 +30,10 @@ import {
 } from "@/components/loyalty"
 import { StampCelebration } from "@/components/motion"
 import { Button } from "@/components/ui/button"
-import { getCustomerExperienceViewModel } from "@/lib/customer/experience/copy"
+import {
+  getCustomerExperienceViewModel,
+  waitingRewardTiming,
+} from "@/lib/customer/experience/copy"
 import type { JoinCard, JoinMerchant } from "@/lib/customer/experience/types"
 import {
   addUkCalendarDays,
@@ -410,7 +413,7 @@ function PreviewCardScreen({
         >
           {rewardUnlocked ? (
             <StatusBanner title="Give it a day to breathe" tone="warning">
-              It&apos;s yours from opening time tomorrow.
+              {waitingRewardTiming(addUkCalendarDays(ukTodayIso(), 1))}
             </StatusBanner>
           ) : rewardRedeemed ? null : stampIssued ? (
             // Today's stamp is already on the card — confirm it instead of
@@ -530,7 +533,7 @@ function PreviewRewardScreen({
         ) : (
           <>
             <StatusBanner title="Give it a day to breathe" tone="warning">
-              It&apos;s yours from opening time tomorrow.
+              {waitingRewardTiming(addUkCalendarDays(ukTodayIso(), 1))}
             </StatusBanner>
             <Button asChild size="lg" variant="secondary" className="w-full">
               <Link href={customerFlowPreviewPath("card-3-of-3-unlocked")}>

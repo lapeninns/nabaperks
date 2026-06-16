@@ -3,11 +3,13 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
+import { blockReasonCopy } from "@/lib/customer/experience/block-reasons"
 import { getStampQrContextForMembership } from "@/lib/customer/join"
 import {
   issueSelfServiceStamp,
   type GeoCoordinates,
 } from "@/lib/customer/stamp"
+import { logger } from "@/lib/observability/logger"
 
 export type SelfStampActionState = {
   errors?: {
@@ -32,7 +34,19 @@ export async function selfStampAction(
     return { errors: { form: "Scan the venue code to add your stamp." } }
   }
 
-  const result = await issueSelfServiceStamp(membershipId, coordinates(formData))
+  let result: Awaited<ReturnType<typeof issueSelfServiceStamp>>
+  try {
+    result = await issueSelfServiceStamp(membershipId, coordinates(formData))
+  } catch (error) {
+    // Known RPC blocks already return a calm `blocked` result; only a genuinely
+    // unexpected failure reaches here. Keep it inline instead of throwing the
+    // customer to a full-page "card unavailable" boundary on a healthy card.
+    logger.error("self_service_stamp_unexpected_error", {
+      membershipId,
+      error,
+    })
+    return { errors: { form: blockReasonCopy("unknown") } }
+  }
 
   if (result.status === "blocked") {
     return { errors: { form: result.reason } }

@@ -14,6 +14,11 @@ server actions, and database behavior.
 The focus is customer experience only. Merchant, staff, admin, billing, and
 fraud surfaces are mentioned only when they change what the customer sees.
 
+> Naming note: the signed-in customer account surface ("wallet" in prose) is
+> served under `/home/*` and backed by `lib/customer/home.ts`. The `/wallet`
+> route naming used in earlier drafts no longer exists; see `docs/ROUTES.md` for
+> the authoritative route contract.
+
 ## Sources Used
 
 - HTML reference: `Nabaperks v2 Full Flow.html`
@@ -29,17 +34,17 @@ fraud surfaces are mentioned only when they change what the customer sees.
   - `/card/[membershipId]`
   - `/card/[membershipId]/stamp`
   - `/reward/[rewardId]`
-  - `/wallet/login`
-  - `/wallet`
-  - `/wallet/rewards`
-  - `/wallet/activity`
-  - `/wallet/profile`
+  - `/home/login`
+  - `/home`
+  - `/home/rewards`
+  - `/home/activity`
+  - `/home/profile`
 - Current server/customer modules:
   - `lib/customer/join.ts`
   - `lib/customer/card.ts`
   - `lib/customer/stamp.ts`
   - `lib/customer/reward.ts`
-  - `lib/customer/wallet.ts`
+  - `lib/customer/home.ts`
   - `lib/customer/rewards.ts`
   - `lib/customer/activity.ts`
   - `lib/customer/profile.ts`
@@ -72,10 +77,10 @@ The customer can be in one of these states:
 | Stamp-confirm ready             | Reached card through a valid fresh venue QR context.                                             | `/card/[membershipId]/stamp?qr=...`                          |
 | Stamped today                   | Already received a stamp for the current UK business day.                                        | `/card/[membershipId]` or stamp action error                 |
 | Reward locked                   | Has fewer than the required stamps.                                                              | `/card/[membershipId]`                                       |
-| Reward unlocked, not redeemable | Required stamps reached, reward assigned, but redeemable date is in the future.                  | `/card/[membershipId]`, `/wallet/rewards`                    |
-| Reward ready                    | Reward is unlocked and redeemable from today.                                                    | `/reward/[rewardId]`, `/wallet/rewards`                      |
+| Reward unlocked, not redeemable | Required stamps reached, reward assigned, but redeemable date is in the future.                  | `/card/[membershipId]`, `/home/rewards`                      |
+| Reward ready                    | Reward is unlocked and redeemable from today.                                                    | `/reward/[rewardId]`, `/home/rewards`                        |
 | Reward redeemed                 | Reward was collected once by the merchant scan flow and the active card starts the next cycle.   | `/reward/[rewardId]?redeemed=1`, then `/card/[membershipId]` |
-| Wallet user                     | Has joined at least one venue and can sign back in to see cards, rewards, activity, and profile. | `/wallet/*`                                                  |
+| Wallet user                     | Has joined at least one venue and can sign back in to see cards, rewards, activity, and profile. | `/home/*`                                                    |
 
 ## North-Star Customer Journey
 
@@ -127,7 +132,7 @@ flowchart TD
 | `scan`             | Customer points camera at till card.                                       | Customer scans a printed QR to `/q/[qrId]`.                                                                                                                                                 | Matches current entry point.                                                                                       |
 | `landing`          | "Your first stamp is waiting." Card value is shown before asking anything. | New customer goes to `/m/[merchantSlug]/join?qr=...`; existing member goes to stamp confirmation.                                                                                           | Partially matches. Current join is identity-first; the first-stamp promise is not completed automatically.         |
 | `firstStamp`       | First stamp lands immediately in the first-visit flow.                     | Customer must reach `/card/[membershipId]/stamp?qr=...` and tap "Add today's stamp".                                                                                                        | Gap. Join redirects to `/card/[membershipId]`, which loses stamp context unless customer scans again.              |
-| `save`             | Customer saves the card with a phone number after first stamp.             | Customer verifies phone before joining; wallet login exists later at `/wallet/login`.                                                                                                       | Order differs. Current app protects ownership earlier, but may feel slower than the prototype.                     |
+| `save`             | Customer saves the card with a phone number after first stamp.             | Customer verifies phone before joining; wallet login exists later at `/home/login`.                                                                                                         | Order differs. Current app protects ownership earlier, but may feel slower than the prototype.                     |
 | `otp`              | One text, no password; code saves the card.                                | Twilio Verify checks the customer phone code and the app sets a signed customer session cookie. Wallet login uses the same phone-only OTP flow for existing members.                        | Concept matches. National numbers are parsed from IP country with GB fallback.                                     |
 | `card`             | Customer sees progress, dates, and sealed mystery reward.                  | `/card/[membershipId]` shows progress, reward teaser, reward state, and wallet link.                                                                                                        | Matches.                                                                                                           |
 | `alreadyStamped`   | Calm one-per-day message.                                                  | `issue_self_service_stamp` blocks repeat stamp for same UK business day.                                                                                                                    | Backend matches. The visible branch currently appears as a form error or card status, not a dedicated rich screen. |
@@ -356,7 +361,7 @@ post-collection proof moment could be more explicit.
 
 ### Existing Member Login
 
-1. Customer visits `/wallet/login`.
+1. Customer visits `/home/login`.
 2. Customer enters the same phone used to join.
 3. System keeps the response neutral: known numbers receive an OTP, while
    unknown numbers see the same code-entry shape without an account-existence
@@ -364,11 +369,11 @@ post-collection proof moment could be more explicit.
 4. If the number has no cards, the recovery copy points the customer back to a
    venue QR without saying whether an account exists.
 5. Customer enters OTP.
-6. System redirects to `/wallet`.
+6. System redirects to `/home`.
 
 ### Wallet Dashboard
 
-`/wallet` shows all cards for the signed-in customer:
+`/home` shows all cards for the signed-in customer:
 
 - business name,
 - card name,
@@ -380,7 +385,7 @@ Tapping a card opens `/card/[membershipId]`.
 
 ### Rewards Hub
 
-`/wallet/rewards` groups rewards into:
+`/home/rewards` groups rewards into:
 
 - ready for merchant scan,
 - coming soon,
@@ -390,7 +395,7 @@ Ready rewards link to `/reward/[rewardId]`.
 
 ### Activity
 
-`/wallet/activity` shows customer-relevant events newest first:
+`/home/activity` shows customer-relevant events newest first:
 
 - joined,
 - stamp issued,
@@ -415,7 +420,7 @@ meta line, no page-level logout (the header owns logout):
 | Pitfall                                                                                    | Why it matters                                                                                                                                                                                          |
 | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Wallet exists, but the original micro-spec text previously treated wallet as out of scope. | Docs and product scope should be reconciled so agents do not remove or ignore wallet routes.                                                                                                            |
-| Wallet login accepts existing members only.                                                | New customers must understand they cannot create a wallet from `/wallet/login`; they must scan a venue QR.                                                                                              |
+| Wallet login accepts existing members only.                                                | New customers must understand they cannot create a wallet from `/home/login`; they must scan a venue QR.                                                                                                |
 | Wallet card page cannot add a stamp without fresh QR context.                              | Customer may tap an old saved card at home and expect to stamp. Copy must keep "scan at venue" clear.                                                                                                   |
 | Profile marketing toggles write global per-channel consent.                                | Each toggle appends one `consent_records` row per membership via `record_customer_marketing_consent`, so every merchant's audit trail stays complete while the customer manages one switch per channel. |
 | No self-service data export/delete flow.                                                   | Privacy requests depend on admin/support paths.                                                                                                                                                         |
@@ -424,7 +429,7 @@ meta line, no page-level logout (the header owns logout):
 
 | Customer action                               | Expected result                                              | Notes                                                         |
 | --------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------- |
-| Opens `/card/[membershipId]` while signed out | Card unavailable with verify-from-QR copy.                   | Consider linking to `/wallet/login` for existing members.     |
+| Opens `/card/[membershipId]` while signed out | Card unavailable with verify-from-QR copy.                   | Consider linking to `/home/login` for existing members.       |
 | Opens another customer's card                 | Unauthorized message.                                        | Correct.                                                      |
 | Opens unknown card id                         | Not found message.                                           | Correct.                                                      |
 | Opens `/reward/[rewardId]` while signed out   | Reward unavailable with verify-from-QR copy.                 | Consider wallet login link.                                   |
@@ -575,7 +580,7 @@ meta line, no page-level logout (the header owns logout):
 
 15. **Direct unauthenticated deep links do not point to wallet login.**
     Card/reward unauthenticated states say verify from venue QR. Existing
-    members on a new device may need `/wallet/login` instead.
+    members on a new device may need `/home/login` instead.
 
 ## Recommended Customer Flow Decisions
 

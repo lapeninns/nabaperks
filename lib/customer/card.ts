@@ -100,23 +100,29 @@ export async function getCustomerCardState(
     { data: latestReward, error: rewardError },
     { data: billing, error: billingError },
   ] = await Promise.all([
-    supabase.from("loyalty_cards").select(
-      "card_name, stamps_required, reward_name, reward_terms, min_spend_pence, is_active"
-    )
+    supabase
+      .from("loyalty_cards")
+      .select(
+        "card_name, stamps_required, reward_name, reward_terms, min_spend_pence, is_active"
+      )
       .eq("merchant_id", membership.merchant_id)
       .order("is_active", { ascending: false })
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle(),
-    supabase.from("reward_events").select(
-      "id, status, reward_name, reward_terms, min_spend_pence, redeemable_from"
-    )
+    supabase
+      .from("reward_events")
+      .select(
+        "id, status, reward_name, reward_terms, min_spend_pence, redeemable_from"
+      )
       .eq("membership_id", membership.id)
       .eq("status", "unlocked")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabase.from("billing_customers").select("status")
+    supabase
+      .from("billing_customers")
+      .select("status")
       .eq("merchant_id", membership.merchant_id)
       .maybeSingle(),
   ])
@@ -180,7 +186,10 @@ export function unavailableMessage(
     return "This loyalty card is not currently active."
   }
 
-  if (billingStatus === "suspended") {
+  // Match the RPC billing policy: both `cancelled` and `suspended` block the
+  // self-service stamp/redeem mutations, so no customer surface should imply the
+  // action is available. `trialing`, `active` and `past_due` stay allowed.
+  if (billingStatus === "suspended" || billingStatus === "cancelled") {
     return "This loyalty programme is unavailable at the moment."
   }
 

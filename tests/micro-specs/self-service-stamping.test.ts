@@ -128,6 +128,117 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     })
   })
 
+  it("maps a stamp rate-limit RPC error to calm retry copy instead of throwing", async () => {
+    vi.resetModules()
+    const mock = createSupabaseMock({
+      rpc: {
+        issue_self_service_stamp: [
+          {
+            data: null,
+            error: { message: "Rate limit exceeded" },
+          },
+        ],
+      },
+    })
+    mockSupabase(mock)
+    mockCurrentCustomer()
+
+    const { issueSelfServiceStamp } = await import("@/lib/customer/stamp")
+    const result = await issueSelfServiceStamp("membership-1")
+
+    expect(result.status).toBe("blocked")
+    expect(result).toMatchObject({ status: "blocked" })
+    if (result.status === "blocked") {
+      expect(result.reason).toMatch(/try again/i)
+      expect(result.reason).not.toMatch(/unavailable/i)
+    }
+  })
+
+  it("maps the reward-pool minimum RPC error to calm copy instead of throwing", async () => {
+    vi.resetModules()
+    const mock = createSupabaseMock({
+      rpc: {
+        issue_self_service_stamp: [
+          {
+            data: null,
+            error: {
+              message:
+                "At least 3 active reward pool items are required before unlocking a reward",
+            },
+          },
+        ],
+      },
+    })
+    mockSupabase(mock)
+    mockCurrentCustomer()
+
+    const { issueSelfServiceStamp } = await import("@/lib/customer/stamp")
+    const result = await issueSelfServiceStamp("membership-1")
+
+    expect(result.status).toBe("blocked")
+    if (result.status === "blocked") {
+      expect(result.reason.length).toBeGreaterThan(0)
+    }
+  })
+
+  it("keeps a geo-flagged stamp as a non-blocking issued result", async () => {
+    vi.resetModules()
+    const mock = createSupabaseMock({
+      rpc: {
+        issue_self_service_stamp: [
+          {
+            data: [
+              {
+                stamp_event_id: "stamp-1",
+                new_stamp_count: 2,
+                reward_unlocked: false,
+                geo_flagged: true,
+              },
+            ],
+            error: null,
+          },
+        ],
+      },
+    })
+    mockSupabase(mock)
+    mockCurrentCustomer()
+
+    const { issueSelfServiceStamp } = await import("@/lib/customer/stamp")
+    const result = await issueSelfServiceStamp("membership-1", {
+      latitude: 51.524,
+      longitude: -0.071,
+    })
+
+    expect(result).toMatchObject({ status: "issued", geoFlagged: true })
+  })
+
+  it("never throws an unexpected stamp RPC error into the card error boundary", async () => {
+    vi.resetModules()
+    const issueSelfServiceStamp = vi.fn(async () => {
+      throw new Error("Unable to issue a stamp: connection reset")
+    })
+    const getStampQrContextForMembership = vi.fn(async () => ({
+      qrId: "BELL-QR",
+      merchant: { id: "merchant-1" },
+    }))
+    vi.doMock("next/cache", () => ({ revalidatePath: vi.fn() }))
+    vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
+    vi.doMock("@/lib/customer/join", () => ({
+      getStampQrContextForMembership,
+    }))
+    vi.doMock("@/lib/customer/stamp", () => ({ issueSelfServiceStamp }))
+    const { selfStampAction } =
+      await import("@/app/card/[membershipId]/actions")
+
+    const result = await selfStampAction(
+      {},
+      form({ membershipId: "membership-1", qrId: "BELL-QR" })
+    )
+
+    expect(result.errors?.form).toBeTruthy()
+    expect(result.errors?.form).not.toContain("connection reset")
+  })
+
   it("geocodes venue addresses through Nominatim at config time", async () => {
     vi.resetModules()
     const fetchMock = vi.fn(
@@ -191,7 +302,9 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
         {},
         form({
           venueName: "Bean & Batch",
-          address: "1 High Street, London",
+          addressLine1: "1 High Street",
+          addressCity: "London",
+          addressPostcode: "SW1A 1AA",
           geofenceRadiusMeters: "150",
           requireGeofence: "on",
         })
@@ -205,7 +318,12 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
         expect.objectContaining({
           merchant_id: "merchant-1",
           name: "Bean & Batch",
-          address: "1 High Street, London",
+          address: "1 High Street, London, SW1A 1AA",
+          address_line_1: "1 High Street",
+          address_city: "London",
+          address_postcode: "SW1A 1AA",
+          address_country: "GB",
+          address_source: "manual_entry",
           latitude: 51.524,
           longitude: -0.071,
           geofence_radius_meters: 150,

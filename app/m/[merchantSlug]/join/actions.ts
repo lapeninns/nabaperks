@@ -275,9 +275,12 @@ export async function joinRewardsAction(
 
     // Onboarding completes onto the card itself: a freshly issued first stamp
     // celebrates with `welcome=1&stamp=issued`; a no-QR/direct join lands on a
-    // 0-stamp welcome card that invites scanning the venue QR.
+    // 0-stamp welcome card that invites scanning the venue QR. A QR join whose
+    // first stamp was blocked (pool/billing/rate-limit) carries `firststamp=
+    // pending` so the welcome copy says to collect it, not that it landed.
     const params = new URLSearchParams({ welcome: "1" })
     if (firstStampIssued) params.set("stamp", "issued")
+    else if (qrId) params.set("firststamp", "pending")
     if (geoFlagged) params.set("geo", "flagged")
     redirect(`/card/${membershipId}?${params.toString()}`)
   }

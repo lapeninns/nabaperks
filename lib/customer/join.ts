@@ -105,12 +105,12 @@ export async function resolveQrForJoin(
   const qrCode = data as RawQrLookup
   const merchant = first(qrCode.merchants)
   const loyaltyCard = first(qrCode.loyalty_cards)
-  const suspended = await isMerchantBillingSuspended(merchant.id)
+  const billingBlocked = await isMerchantBillingBlocked(merchant.id)
   const available =
     qrCode.destination_type === "join" &&
     qrCode.is_active &&
     loyaltyCard.is_active &&
-    !suspended
+    !billingBlocked
 
   if (recordScan) {
     await recordProductEvent({
@@ -174,10 +174,10 @@ export async function getMerchantJoinContext(
 
   const loyaltyCard = first(data.loyalty_cards)
   if (!loyaltyCard?.is_active) return null
-  const suspended = await isMerchantBillingSuspended(data.id)
+  const billingBlocked = await isMerchantBillingBlocked(data.id)
 
   return {
-    available: !suspended,
+    available: !billingBlocked,
     merchant: {
       id: data.id,
       business_name: data.business_name,
@@ -235,7 +235,7 @@ export async function getStampQrContextForMembership(
   return qrContext
 }
 
-async function isMerchantBillingSuspended(merchantId: string) {
+async function isMerchantBillingBlocked(merchantId: string) {
   const supabase = createSupabaseServiceRoleClient()
   const { data, error } = await supabase
     .from("billing_customers")
@@ -247,7 +247,8 @@ async function isMerchantBillingSuspended(merchantId: string) {
     throw new Error(`Unable to load billing status: ${error.message}`)
   }
 
-  return data?.status === "suspended"
+  // Mirror the RPC: both `cancelled` and `suspended` block join/QR availability.
+  return data?.status === "cancelled" || data?.status === "suspended"
 }
 
 function first<T>(value: T | T[]) {

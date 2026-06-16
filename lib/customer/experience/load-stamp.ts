@@ -5,6 +5,7 @@ import { getStampQrContextForMembership } from "@/lib/customer/join"
 import { getMerchantStampLocationRequirement } from "@/lib/customer/stamp"
 import { isRedeemableFrom, ukTodayIso } from "@/lib/customer/uk-date"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
+import { logger } from "@/lib/observability/logger"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 import type { StampContext } from "./derive"
@@ -75,6 +76,32 @@ export async function loadStampExperienceContext(
       location: DEFAULT_LOCATION,
       // The gate only governs a ready reward — skip the profile lookup otherwise.
       profileGate: redeemable ? await loadProfileGate() : undefined,
+    }
+  }
+
+  // No unlocked reward, yet the active-cycle count is already full: the reward
+  // row the RPC expects is missing. Block the stamp with a recovery state and
+  // leave an operator-diagnosable signal instead of inviting another scan.
+  const loyaltyCard = cardState.loyaltyCard
+  if (
+    loyaltyCard &&
+    cardState.membership.current_stamp_count >= loyaltyCard.stamps_required
+  ) {
+    logger.warn("customer_full_card_without_reward", {
+      membershipId,
+      route: "stamp",
+      currentStampCount: cardState.membership.current_stamp_count,
+      stampsRequired: loyaltyCard.stamps_required,
+    })
+    return {
+      membershipId,
+      merchantName,
+      unlockedReward: null,
+      alreadyStampedToday: false,
+      qrValid: false,
+      qrMissing: !qr,
+      location: DEFAULT_LOCATION,
+      fullWithoutReward: true,
     }
   }
 

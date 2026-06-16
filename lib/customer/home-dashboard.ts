@@ -32,6 +32,12 @@ export function homeCardStatusCopy(card: HomeCard): string {
   if (!card.available) {
     return card.unavailableReason ?? "This card is unavailable right now."
   }
+  // A waiting reward (unlocked but not yet redeemable) outranks stamped-today and
+  // progress copy so it is not hidden — `redeemable_from` may skip weekends, so
+  // avoid promising "tomorrow".
+  if (card.unlockedRewards > 0) {
+    return "Reward almost ready - back on the next opening day"
+  }
   if (card.stampedToday) return "Stamp secured for today"
   if (card.stampsRequired !== null) {
     return `${card.currentStamps} of ${card.stampsRequired} stamps - ${card.stampsRemaining} more to unlock`

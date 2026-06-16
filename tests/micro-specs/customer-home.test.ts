@@ -158,6 +158,40 @@ describe("customer home dashboard", () => {
     ).toBe("This loyalty card is not currently active.")
   })
 
+  it("surfaces a waiting reward distinctly from stamped-today and progress copy", async () => {
+    const { homeCardStatusCopy } = await import("@/lib/customer/home-dashboard")
+    const waitingCard = {
+      membershipId: "card-1",
+      businessName: "Bean & Batch",
+      businessSlug: "bean-and-batch",
+      cardName: "Visits",
+      rewardName: "Coffee",
+      currentStamps: 3,
+      stampsRequired: 3,
+      stampDates: ["11 Jun", "12 Jun", "13 Jun"],
+      stampedToday: true,
+      lastVisitAt: null,
+      stampsRemaining: 0,
+      unlockedRewards: 1,
+      redeemableRewards: 0,
+      available: true,
+    }
+
+    // A waiting reward must not be hidden behind "Stamp secured for today".
+    const stampedToday = homeCardStatusCopy(waitingCard)
+    expect(stampedToday).not.toBe("Stamp secured for today")
+    expect(stampedToday.toLowerCase()).toContain("reward")
+    expect(stampedToday).not.toMatch(/tomorrow/i)
+
+    // And not behind plain stamp-progress copy when not stamped today.
+    const notStamped = homeCardStatusCopy({
+      ...waitingCard,
+      stampedToday: false,
+      currentStamps: 3,
+    })
+    expect(notStamped.toLowerCase()).toContain("reward")
+  })
+
   it("reconciles home card progress from stamp events when membership count lags", async () => {
     vi.resetModules()
     mockCurrentCustomer()

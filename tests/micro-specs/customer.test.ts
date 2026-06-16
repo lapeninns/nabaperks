@@ -722,6 +722,60 @@ describe("03 customer micro-specs", () => {
     )
   })
 
+  it("surfaces a pending first stamp when a QR join could not issue it", async () => {
+    vi.resetModules()
+    const supabase = createSupabaseMock({
+      rpc: {
+        join_customer_membership_with_first_stamp: [
+          {
+            data: [
+              {
+                membership_id: "membership-1",
+                created_membership: true,
+                first_stamp_issued: false,
+                new_stamp_count: 0,
+                reward_unlocked: false,
+                geo_flagged: false,
+              },
+            ],
+            error: null,
+          },
+        ],
+      },
+    })
+    vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
+    mockCurrentCustomer()
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
+    }))
+    vi.doMock("@/lib/analytics/events", () => ({
+      capturePostHogEvent: vi.fn(),
+    }))
+    const { joinRewardsAction } =
+      await import("@/app/m/[merchantSlug]/join/actions")
+
+    await expect(
+      joinRewardsAction(
+        {},
+        form({
+          merchantSlug: "the-bell",
+          qrId: "qr-public",
+          loyaltyTerms: true,
+        })
+      )
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/card/membership-1?welcome=1&firststamp=pending"
+    )
+  })
+
+  it("wires first-stamp-pending copy on the freshly joined card", () => {
+    const experience = readProjectFile(
+      "components/customer/customer-card-experience.tsx"
+    )
+    expect(experience).toContain("firstStampPending")
+    expect(experience).toContain("collect your first stamp")
+  })
+
   it("maps join membership backend failures to safe customer copy", async () => {
     vi.resetModules()
     const capturePostHogEvent = vi.fn()
@@ -774,6 +828,29 @@ describe("03 customer micro-specs", () => {
         }),
       })
     )
+  })
+
+  it("shows retry-specific QR copy when a scan is rate limited, distinct from a dead QR", async () => {
+    vi.resetModules()
+    class RateLimitError extends Error {}
+    vi.doMock("@/lib/security/rate-limit", () => ({ RateLimitError }))
+    vi.doMock("@/lib/customer/join", () => ({
+      resolveQrForJoin: vi.fn(async () => {
+        throw new RateLimitError("rate limited")
+      }),
+      getExistingMembershipForCurrentUser: vi.fn(async () => null),
+    }))
+    vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
+    const { default: PublicQrPage } = await import("@/app/q/[qrId]/page")
+
+    const output = await PublicQrPage({
+      params: Promise.resolve({ qrId: "qr-1" }),
+    })
+    const text = normalizeText(output)
+
+    expect(text).toMatch(/too many|try again|moment|shortly/i)
+    // Must read differently from the permanent dead-QR panel.
+    expect(text).not.toContain("This loyalty card is unavailable")
   })
 
   it("resolves a QR join context as unavailable when billing is suspended", async () => {

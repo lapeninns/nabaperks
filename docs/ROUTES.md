@@ -63,7 +63,7 @@
 | `/home/session/reset` | GET |
 | `/reward/[rewardId]/qr.png` | GET |
 
-## Server-action modules (16)
+## Server-action modules (15)
 
 - `app/(auth)/actions.ts` — `signInAction`, `signOutAction`, `signUpAction`
 - `app/admin/actions.ts` — `adjustStampsAction`, `cancelRewardAction`, `logDataRequestAction`, `logPilotNoteAction`, `recordConsentOptOutAction`, `regenerateQrAction`, `setQrActiveAction`
@@ -74,7 +74,6 @@
 - `app/app/profile/actions.ts` — `updateMerchantProfileAction`
 - `app/app/qr/actions.ts` — `generateQrCodeAction`, `setQrActiveAction`
 - `app/app/rewards/scan/[rewardId]/actions.ts` — `confirmMerchantRewardCollectionAction`
-- `app/app/settings/actions.ts` — `saveRoiSettingsAction`
 - `app/card/[membershipId]/actions.ts` — `selfStampAction`
 - `app/dev/customer-flow/actions.ts` — `advanceOneStampAction`, `advanceTwoStampsAction`, `advanceZeroStampsAction`, `makeRewardRedeemableAction`, `resetDemoCustomerAction`
 - `app/home/(authed)/profile/actions.ts` — `clearHomeProfileEmailAction`, `resendHomeProfileEmailAction`, `saveHomeProfileAction`, `updateHomeMarketingConsentAction`, `verifyHomeProfileEmailAction`
