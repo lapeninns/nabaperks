@@ -13,6 +13,7 @@ allowed_blast_radius:
   - micro-specs/07-observability-compliance/04-customer-contact-immutability.md
   - micro-specs/TRACEABILITY.md
   - micro-specs/traceability.json
+  - scripts/run-supabase-sql.mjs
   - scripts/verify-security.mjs
   - scripts/verify-supabase-schema.mjs
   - supabase/migrations/**
@@ -24,6 +25,7 @@ implementation_surfaces:
   - components/customer/profile-*.tsx
   - lib/customer/profile*.ts
   - lib/customer/experience/**
+  - scripts/run-supabase-sql.mjs
   - scripts/verify-security.mjs
   - scripts/verify-supabase-schema.mjs
   - supabase/migrations/**
