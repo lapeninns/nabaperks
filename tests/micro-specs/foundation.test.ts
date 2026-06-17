@@ -72,7 +72,11 @@ describe("00/01 foundation micro-specs", () => {
     const validValues = Object.fromEntries(
       contract.map((entry) => [
         entry.name,
-        entry.kind === "url" ? "https://example.test" : "configured",
+        entry.name === "CUSTOMER_OTP_BYPASS_MODE"
+          ? "any-4-digits"
+          : entry.kind === "url"
+            ? "https://example.test"
+            : "configured",
       ])
     )
 

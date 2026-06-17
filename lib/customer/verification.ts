@@ -4,10 +4,15 @@ type VerificationStartResult = { status: "sent" }
 type VerificationCheckResult = { status: "approved" | "rejected" }
 
 const verifyBaseUrl = "https://verify.twilio.com/v2/Services"
+const anyFourDigitBypassMode = "any-4-digits"
 
 export async function startCustomerPhoneVerification(
   phone: string
 ): Promise<VerificationStartResult> {
+  if (isAnyFourDigitOtpBypassEnabled()) {
+    return { status: "sent" }
+  }
+
   await postVerifyForm("Verifications", {
     To: phone,
     Channel: "sms",
@@ -20,6 +25,12 @@ export async function checkCustomerPhoneVerification(
   phone: string,
   code: string
 ): Promise<VerificationCheckResult> {
+  if (isAnyFourDigitOtpBypassEnabled()) {
+    return isFourDigitOtp(code)
+      ? { status: "approved" }
+      : { status: "rejected" }
+  }
+
   if (isApprovedDevOtp(code)) {
     return { status: "approved" }
   }
@@ -110,5 +121,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function isApprovedDevOtp(code: string): boolean {
   const devCode = process.env.CUSTOMER_DEV_OTP_CODE?.trim()
 
-  return process.env.NODE_ENV !== "production" && Boolean(devCode) && code === devCode
+  return (
+    process.env.NODE_ENV !== "production" &&
+    Boolean(devCode) &&
+    code === devCode
+  )
+}
+
+function isAnyFourDigitOtpBypassEnabled(): boolean {
+  return process.env.CUSTOMER_OTP_BYPASS_MODE?.trim() === anyFourDigitBypassMode
+}
+
+function isFourDigitOtp(code: string): boolean {
+  return /^\d{4}$/.test(code)
 }
