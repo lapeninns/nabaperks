@@ -1,67 +1,10 @@
 "use client"
 
-import { useActionState, useRef, useState, type FormEvent } from "react"
-
-import {
-  selfStampAction,
-  type SelfStampActionState,
-} from "@/app/card/[membershipId]/actions"
-import { StatusBanner } from "@/components/loyalty"
-import { Button } from "@/components/ui/button"
-
-const initialStampState: SelfStampActionState = {}
+import { useRef, useState, type FormEvent } from "react"
 
 export type LocationMode = {
   requireGeofence: boolean
   geofenceRadiusMeters: number
-}
-
-export function SelfServiceStampForm({
-  membershipId,
-  qrId,
-  requireGeofence,
-  geofenceRadiusMeters,
-}: {
-  membershipId: string
-  qrId: string
-} & LocationMode) {
-  const [state, action, pending] = useActionState(
-    selfStampAction,
-    initialStampState
-  )
-  const { note, handleSubmit } = useOptionalGeolocation({
-    requireGeofence,
-    geofenceRadiusMeters,
-  })
-
-  return (
-    <form action={action} onSubmit={handleSubmit} className="grid gap-4">
-      <input type="hidden" name="membershipId" value={membershipId} />
-      <input type="hidden" name="qrId" value={qrId} />
-      <GeoFields />
-      <LocationNote note={note} />
-      {state.errors?.form ? (
-        <StatusBanner tone="warning" title="Stamp not added">
-          <span className="grid gap-2">
-            <span>{state.errors.form}</span>
-            <span>
-              If this keeps failing, ask the venue team to check today&apos;s
-              stamp from their console.
-            </span>
-          </span>
-        </StatusBanner>
-      ) : null}
-      {pending ? (
-        <StatusBanner tone="neutral" title="Checking your card status">
-          Keep this screen open while we confirm whether today&apos;s stamp
-          landed. If the connection drops, reopen your card before trying again.
-        </StatusBanner>
-      ) : null}
-      <Button type="submit" size="lg" disabled={pending} className="w-full">
-        {pending ? "Checking card..." : "Add today's stamp"}
-      </Button>
-    </form>
-  )
 }
 
 export function GeoFields() {

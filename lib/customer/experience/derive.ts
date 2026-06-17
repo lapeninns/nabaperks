@@ -86,6 +86,12 @@ export type StampContext =
       qrId?: string
       location: LocationRequirement
       profileGate?: ProfileGate
+      // Card progress so the stamp screen can render the live card grid.
+      cardName?: string
+      current?: number
+      total?: number
+      stampDates?: string[]
+      todayLabel?: string
     }
 
 export type RewardContext =
@@ -184,6 +190,53 @@ function deriveCard(context: CardContext): CustomerExperience {
   }
 }
 
+/** Card progress shared by both stamp-screen states, with safe defaults. */
+function stampCardProgress(context: {
+  cardName?: string
+  current?: number
+  total?: number
+  stampDates?: string[]
+  todayLabel?: string
+  location: LocationRequirement
+}) {
+  return {
+    location: context.location,
+    cardName: context.cardName ?? "",
+    current: context.current ?? 0,
+    total: context.total ?? 0,
+    stampDates: context.stampDates ?? [],
+    todayLabel: context.todayLabel ?? "",
+  }
+}
+
+/**
+ * Both stamp-screen states (ready-to-stamp and already-stamped) share one shape
+ * and render through the same panel — build the experience once. The cast is
+ * safe because the two variants are structurally identical apart from `kind`.
+ */
+function stampScreenExperience(
+  kind: "stamp_confirm" | "card_stamped_today",
+  context: {
+    membershipId: string
+    merchantName: string
+    qrId?: string
+    location: LocationRequirement
+    cardName?: string
+    current?: number
+    total?: number
+    stampDates?: string[]
+    todayLabel?: string
+  }
+): CustomerExperience {
+  return {
+    kind,
+    membershipId: context.membershipId,
+    merchantName: context.merchantName,
+    qrId: context.qrId ?? "",
+    ...stampCardProgress(context),
+  } as CustomerExperience
+}
+
 function deriveStamp(context: StampContext): CustomerExperience {
   if (context.access) {
     return accessUnavailable(context.access, context.recovery)
@@ -227,19 +280,8 @@ function deriveStamp(context: StampContext): CustomerExperience {
         fromCard: false,
       }
     case "card_stamped_today":
-      return {
-        kind: "card_stamped_today",
-        membershipId: context.membershipId,
-        merchantName: context.merchantName,
-      }
     case "stamp_confirm":
-      return {
-        kind: "stamp_confirm",
-        membershipId: context.membershipId,
-        merchantName: context.merchantName,
-        qrId: context.qrId ?? "",
-        location: context.location,
-      }
+      return stampScreenExperience(kind, context)
     default:
       return {
         kind: "unavailable",
