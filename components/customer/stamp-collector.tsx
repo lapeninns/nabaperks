@@ -55,9 +55,18 @@ function resolveCoords(
 }
 
 /** The instruction line under the disc for each state. */
-function stampHint(committed: boolean, inFlight: boolean, canStamp: boolean) {
+function stampHint(
+  committed: boolean,
+  inFlight: boolean,
+  canStamp: boolean,
+  cardComplete: boolean
+) {
   if (committed) {
-    return "Stamp secured. Your next scan window opens on the next UK business day."
+    // A full card has no next scan window until the reward is collected and a
+    // new cycle starts, so don't promise one.
+    return cardComplete
+      ? "That's every stamp on this card."
+      : "Stamp secured. Your next scan window opens on the next UK business day."
   }
   if (inFlight) return "Adding your stamp — keep this screen open a moment."
   if (canStamp)
@@ -97,13 +106,14 @@ function stampView(args: {
   // In-flight = optimistic stamp shown, RPC not confirmed yet (armed is cleared
   // on error, so this is false once a stamp is declined).
   const inFlight = armed && !committed
+  const cardComplete = total > 0 && displayCurrent >= total
 
   return {
-    hint: stampHint(committed, inFlight, canStamp),
+    hint: stampHint(committed, inFlight, canStamp, cardComplete),
     displayCurrent,
     slamIndex: showStamp ? displayCurrent - 1 : -1,
     dates,
-    cardComplete: total > 0 && displayCurrent >= total,
+    cardComplete,
     geoFlagged: issued?.geoFlagged ?? false,
     secured: committed || armed || !canStamp,
   }
@@ -121,10 +131,13 @@ function StampAftermath({
 }) {
   if (!committed) return null
   if (cardComplete) {
+    // Stay reward-state-agnostic here: the reward may not be redeemable until the
+    // next UK business day, so don't promise an at-the-counter claim. The
+    // "See your reward" tap-through carries the timing detail.
     return (
       <RewardCelebration
         title="That's the full card."
-        message="Your reward is ready — claim it at the counter while you're here."
+        message="Your mystery reward is unlocked."
       />
     )
   }

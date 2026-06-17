@@ -63,24 +63,44 @@ export async function loadStampExperienceContext(
   const unlocked = cardState.latestReward
   if (unlocked && unlocked.status === "unlocked") {
     const redeemable = isRedeemableFrom(unlocked.redeemable_from)
+    const unlockedReward = {
+      rewardId: unlocked.id,
+      membershipId,
+      rewardName: unlocked.reward_name,
+      rewardTerms: unlocked.reward_terms,
+      minSpendPence: unlocked.min_spend_pence,
+      redeemableFrom: unlocked.redeemable_from,
+      redeemable,
+    }
+
+    // A reward that is not yet redeemable keeps the customer on the completed
+    // card (full grid + reveal) with a tap-through to the reward, rather than an
+    // instant swap to the waiting voucher. Load the card progress so that held
+    // card can render. A ready reward instead surfaces its collection path now.
+    if (!redeemable) {
+      const progress = await loadCardProgress(cardState)
+      return {
+        membershipId,
+        merchantName,
+        unlockedReward,
+        alreadyStampedToday: true,
+        qrValid: false,
+        qrMissing: !qr,
+        qrId: qr,
+        location: DEFAULT_LOCATION,
+        ...progress,
+      }
+    }
+
     return {
       membershipId,
       merchantName,
-      unlockedReward: {
-        rewardId: unlocked.id,
-        membershipId,
-        rewardName: unlocked.reward_name,
-        rewardTerms: unlocked.reward_terms,
-        minSpendPence: unlocked.min_spend_pence,
-        redeemableFrom: unlocked.redeemable_from,
-        redeemable,
-      },
+      unlockedReward,
       alreadyStampedToday: false,
       qrValid: false,
       qrMissing: !qr,
       location: DEFAULT_LOCATION,
-      // The gate only governs a ready reward — skip the profile lookup otherwise.
-      profileGate: redeemable ? await loadProfileGate() : undefined,
+      profileGate: await loadProfileGate(),
     }
   }
 

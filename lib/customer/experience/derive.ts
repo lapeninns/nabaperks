@@ -226,6 +226,11 @@ function stampScreenExperience(
     total?: number
     stampDates?: string[]
     todayLabel?: string
+  },
+  reward?: {
+    rewardId: string
+    rewardName: string
+    redeemableFrom: string | null
   }
 ): CustomerExperience {
   return {
@@ -234,7 +239,29 @@ function stampScreenExperience(
     merchantName: context.merchantName,
     qrId: context.qrId ?? "",
     ...stampCardProgress(context),
+    ...(reward ? { reward } : {}),
   } as CustomerExperience
+}
+
+/**
+ * The reward pointer to attach to a held completed card, or undefined. The
+ * completing stamp can unlock a reward that is not yet redeemable; in that case
+ * the stamp screen holds on the card with a tap-through rather than swapping to
+ * the waiting voucher. Keeping this decision here keeps {@link deriveStamp} flat.
+ */
+function heldStampReward(context: {
+  unlockedReward: (RewardView & { redeemable: boolean }) | null
+}):
+  | { rewardId: string; rewardName: string; redeemableFrom: string | null }
+  | undefined {
+  if (!context.unlockedReward || context.unlockedReward.redeemable) {
+    return undefined
+  }
+  return {
+    rewardId: context.unlockedReward.rewardId,
+    rewardName: context.unlockedReward.rewardName,
+    redeemableFrom: context.unlockedReward.redeemableFrom,
+  }
 }
 
 function deriveStamp(context: StampContext): CustomerExperience {
@@ -248,6 +275,17 @@ function deriveStamp(context: StampContext): CustomerExperience {
 
   if (context.fullWithoutReward) {
     return { kind: "unavailable", reason: FULL_CARD_NO_REWARD_REASON }
+  }
+
+  // A completed card whose reward is not yet redeemable holds on the live card —
+  // the customer keeps the full grid and reveal, with the reward one tap away —
+  // instead of the stamp screen swapping straight to the waiting voucher. There
+  // is nothing to collect at the counter until the next UK business day, so the
+  // calm card moment is allowed to breathe. A ready reward still falls through to
+  // its own state below (the route redirects to collect it now).
+  const heldReward = heldStampReward(context)
+  if (heldReward) {
+    return stampScreenExperience("card_stamped_today", context, heldReward)
   }
 
   const candidates: CustomerExperienceKind[] = []

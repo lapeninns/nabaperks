@@ -493,6 +493,22 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     expect(experience).not.toContain("createRedeemCode")
   })
 
+  it("holds on the completed card with a See your reward tap-through after the final stamp", () => {
+    const experience = readProjectFile(
+      "components/customer/customer-card-experience.tsx"
+    )
+    const collector = readProjectFile("components/customer/stamp-collector.tsx")
+
+    // The stamp screen offers a tap-through to the reward voucher instead of an
+    // instant swap, so the customer controls when they leave the full card.
+    expect(experience).toContain("See your reward")
+
+    // The completion celebration must not claim the reward is collectable at the
+    // counter now — a waiting reward is only redeemable the next UK business day,
+    // so that copy contradicts the very next screen.
+    expect(collector).not.toContain("claim it at the counter while you're here")
+  })
+
   it("defines the self-service SQL contract and drops station/token tables after migration", () => {
     const migrationPath =
       "supabase/migrations/20260613100000_self_service_stamping.sql"
