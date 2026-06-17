@@ -124,7 +124,7 @@ export async function resendProfileEmailAction(
   const rewardId = value(formData, "rewardId")
   const customer = await getCurrentCustomer()
 
-  if (customer?.email) {
+  if (customer?.email && !customer.emailVerifiedAt) {
     await startCustomerEmailVerification(customer.email)
   }
 
@@ -136,8 +136,13 @@ export async function clearProfileEmailAction(
   formData: FormData
 ): Promise<void> {
   const rewardId = value(formData, "rewardId")
-  await clearCustomerEmail()
+  const result = await clearCustomerEmail()
   await clearPendingEmailVerification()
+
+  if (!result.cleared && rewardId) {
+    revalidatePath(`/reward/${rewardId}`)
+    return
+  }
 
   if (rewardId) revalidatePath(`/reward/${rewardId}`)
 }

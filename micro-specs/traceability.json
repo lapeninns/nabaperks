@@ -6400,6 +6400,384 @@
       }
     },
     {
+      "spec_id": "MS-OBSERVABILITY-COMPLIANCE-CUSTOMER-CONTACT-IMMUTABILITY",
+      "title": "Customer Contact Immutability",
+      "source_path": "micro-specs/07-observability-compliance/04-customer-contact-immutability.md",
+      "status": "active",
+      "risk_class": "auth-session",
+      "owner": "factory-droid",
+      "last_reviewed": "2026-06-17",
+      "allowed_blast_radius": [
+        "app/home/**",
+        "app/reward/**",
+        "components/customer/profile-*.tsx",
+        "lib/customer/profile*.ts",
+        "lib/customer/experience/**",
+        "micro-specs/07-observability-compliance/04-customer-contact-immutability.md",
+        "micro-specs/TRACEABILITY.md",
+        "micro-specs/traceability.json",
+        "scripts/run-supabase-sql.mjs",
+        "scripts/verify-security.mjs",
+        "scripts/verify-supabase-schema.mjs",
+        "supabase/migrations/**",
+        "supabase/tests/**",
+        "tests/micro-specs/**"
+      ],
+      "implementation_surfaces": [
+        "app/home/**",
+        "app/reward/**",
+        "components/customer/profile-*.tsx",
+        "lib/customer/profile*.ts",
+        "lib/customer/experience/**",
+        "scripts/run-supabase-sql.mjs",
+        "scripts/verify-security.mjs",
+        "scripts/verify-supabase-schema.mjs",
+        "supabase/migrations/**",
+        "supabase/tests/**"
+      ],
+      "related_docs": [
+        "docs/PROJECT_SPEC.md",
+        "docs/ARCHITECTURE.md",
+        "micro-specs/GLOBAL_CONTEXT.md",
+        "DESIGN.md"
+      ],
+      "related_tests": [
+        "tests/micro-specs/home-profile.test.ts",
+        "tests/micro-specs/reward-profile-gate.test.ts",
+        "tests/micro-specs/reward-profile-actions.test.ts",
+        "tests/micro-specs/customer-contact-immutability.test.ts",
+        "supabase/tests/customer_contact_immutability.sql"
+      ],
+      "verification_gates": [
+        "pnpm governance",
+        "pnpm lint",
+        "pnpm typecheck",
+        "pnpm test",
+        "pnpm db:verify",
+        "pnpm security:verify",
+        "pnpm build"
+      ],
+      "approved_exceptions": [],
+      "status_evidence": [
+        "Reviewed against the selected lock self-service policy on 2026-06-17.",
+        "Related unit and SQL tests were added for application and database enforcement.",
+        "No superseding Micro-Spec replaces this current intent."
+      ],
+      "requirements": [
+        {
+          "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-CUSTOMER-CONTACT-IMMUTABILITY-001",
+          "summary": "WHEN a customer has a verified phone, THE customer self-service surfaces SHALL keep phone read-only and SHALL NOT submit a phone replacement.",
+          "gates": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "pnpm build"
+          ],
+          "evidence": [
+            "tests/micro-specs/home-profile.test.ts",
+            "tests/micro-specs/reward-profile-gate.test.ts",
+            "tests/micro-specs/reward-profile-actions.test.ts",
+            "tests/micro-specs/customer-contact-immutability.test.ts",
+            "supabase/tests/customer_contact_immutability.sql"
+          ],
+          "status": "active",
+          "risk_class": "auth-session",
+          "required_test_tier": [
+            "build",
+            "governance",
+            "lint",
+            "security",
+            "sql-rls",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "pnpm build"
+          ],
+          "implementation_surfaces": [
+            "app/home/**",
+            "app/reward/**",
+            "components/customer/profile-*.tsx",
+            "lib/customer/profile*.ts",
+            "lib/customer/experience/**",
+            "scripts/run-supabase-sql.mjs",
+            "scripts/verify-security.mjs",
+            "scripts/verify-supabase-schema.mjs",
+            "supabase/migrations/**",
+            "supabase/tests/**"
+          ],
+          "related_tests": [
+            "tests/micro-specs/home-profile.test.ts",
+            "tests/micro-specs/reward-profile-gate.test.ts",
+            "tests/micro-specs/reward-profile-actions.test.ts",
+            "tests/micro-specs/customer-contact-immutability.test.ts",
+            "supabase/tests/customer_contact_immutability.sql"
+          ],
+          "manual_rationale": [],
+          "change_state": "current"
+        },
+        {
+          "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-CUSTOMER-CONTACT-IMMUTABILITY-002",
+          "summary": "WHEN a customer has a verified email, THE home profile and reward profile gate SHALL show that email as verified/read-only and SHALL NOT render an editable `email` field.",
+          "gates": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "pnpm build"
+          ],
+          "evidence": [
+            "tests/micro-specs/home-profile.test.ts",
+            "tests/micro-specs/reward-profile-gate.test.ts",
+            "tests/micro-specs/reward-profile-actions.test.ts",
+            "tests/micro-specs/customer-contact-immutability.test.ts",
+            "supabase/tests/customer_contact_immutability.sql"
+          ],
+          "status": "active",
+          "risk_class": "auth-session",
+          "required_test_tier": [
+            "build",
+            "governance",
+            "lint",
+            "security",
+            "sql-rls",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "pnpm build"
+          ],
+          "implementation_surfaces": [
+            "app/home/**",
+            "app/reward/**",
+            "components/customer/profile-*.tsx",
+            "lib/customer/profile*.ts",
+            "lib/customer/experience/**",
+            "scripts/run-supabase-sql.mjs",
+            "scripts/verify-security.mjs",
+            "scripts/verify-supabase-schema.mjs",
+            "supabase/migrations/**",
+            "supabase/tests/**"
+          ],
+          "related_tests": [
+            "tests/micro-specs/home-profile.test.ts",
+            "tests/micro-specs/reward-profile-gate.test.ts",
+            "tests/micro-specs/reward-profile-actions.test.ts",
+            "tests/micro-specs/customer-contact-immutability.test.ts",
+            "supabase/tests/customer_contact_immutability.sql"
+          ],
+          "manual_rationale": [],
+          "change_state": "current"
+        },
+        {
+          "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-CUSTOMER-CONTACT-IMMUTABILITY-003",
+          "summary": "WHEN a self-service profile update submits a different or blank email for a customer with an existing verified email, THE system SHALL preserve the verified email, save non-contact profile fields, and SHALL NOT send a new verification code.",
+          "gates": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "pnpm build"
+          ],
+          "evidence": [
+            "tests/micro-specs/home-profile.test.ts",
+            "tests/micro-specs/reward-profile-gate.test.ts",
+            "tests/micro-specs/reward-profile-actions.test.ts",
+            "tests/micro-specs/customer-contact-immutability.test.ts",
+            "supabase/tests/customer_contact_immutability.sql"
+          ],
+          "status": "active",
+          "risk_class": "auth-session",
+          "required_test_tier": [
+            "build",
+            "governance",
+            "lint",
+            "security",
+            "sql-rls",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "pnpm build"
+          ],
+          "implementation_surfaces": [
+            "app/home/**",
+            "app/reward/**",
+            "components/customer/profile-*.tsx",
+            "lib/customer/profile*.ts",
+            "lib/customer/experience/**",
+            "scripts/run-supabase-sql.mjs",
+            "scripts/verify-security.mjs",
+            "scripts/verify-supabase-schema.mjs",
+            "supabase/migrations/**",
+            "supabase/tests/**"
+          ],
+          "related_tests": [
+            "tests/micro-specs/home-profile.test.ts",
+            "tests/micro-specs/reward-profile-gate.test.ts",
+            "tests/micro-specs/reward-profile-actions.test.ts",
+            "tests/micro-specs/customer-contact-immutability.test.ts",
+            "supabase/tests/customer_contact_immutability.sql"
+          ],
+          "manual_rationale": [],
+          "change_state": "current"
+        },
+        {
+          "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-CUSTOMER-CONTACT-IMMUTABILITY-004",
+          "summary": "WHEN a customer email is unverified, THE system SHALL allow adding, changing, resending, verifying, and clearing that pending email.",
+          "gates": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "pnpm build"
+          ],
+          "evidence": [
+            "tests/micro-specs/home-profile.test.ts",
+            "tests/micro-specs/reward-profile-gate.test.ts",
+            "tests/micro-specs/reward-profile-actions.test.ts",
+            "tests/micro-specs/customer-contact-immutability.test.ts",
+            "supabase/tests/customer_contact_immutability.sql"
+          ],
+          "status": "active",
+          "risk_class": "auth-session",
+          "required_test_tier": [
+            "build",
+            "governance",
+            "lint",
+            "security",
+            "sql-rls",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "pnpm build"
+          ],
+          "implementation_surfaces": [
+            "app/home/**",
+            "app/reward/**",
+            "components/customer/profile-*.tsx",
+            "lib/customer/profile*.ts",
+            "lib/customer/experience/**",
+            "scripts/run-supabase-sql.mjs",
+            "scripts/verify-security.mjs",
+            "scripts/verify-supabase-schema.mjs",
+            "supabase/migrations/**",
+            "supabase/tests/**"
+          ],
+          "related_tests": [
+            "tests/micro-specs/home-profile.test.ts",
+            "tests/micro-specs/reward-profile-gate.test.ts",
+            "tests/micro-specs/reward-profile-actions.test.ts",
+            "tests/micro-specs/customer-contact-immutability.test.ts",
+            "supabase/tests/customer_contact_immutability.sql"
+          ],
+          "manual_rationale": [],
+          "change_state": "current"
+        },
+        {
+          "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-CUSTOMER-CONTACT-IMMUTABILITY-005",
+          "summary": "WHEN a direct database update attempts to change verified email or verified phone anchor fields, THE database SHALL reject the update while allowing non-contact profile updates.",
+          "gates": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "pnpm build"
+          ],
+          "evidence": [
+            "tests/micro-specs/home-profile.test.ts",
+            "tests/micro-specs/reward-profile-gate.test.ts",
+            "tests/micro-specs/reward-profile-actions.test.ts",
+            "tests/micro-specs/customer-contact-immutability.test.ts",
+            "supabase/tests/customer_contact_immutability.sql"
+          ],
+          "status": "active",
+          "risk_class": "auth-session",
+          "required_test_tier": [
+            "build",
+            "governance",
+            "lint",
+            "security",
+            "sql-rls",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "pnpm build"
+          ],
+          "implementation_surfaces": [
+            "app/home/**",
+            "app/reward/**",
+            "components/customer/profile-*.tsx",
+            "lib/customer/profile*.ts",
+            "lib/customer/experience/**",
+            "scripts/run-supabase-sql.mjs",
+            "scripts/verify-security.mjs",
+            "scripts/verify-supabase-schema.mjs",
+            "supabase/migrations/**",
+            "supabase/tests/**"
+          ],
+          "related_tests": [
+            "tests/micro-specs/home-profile.test.ts",
+            "tests/micro-specs/reward-profile-gate.test.ts",
+            "tests/micro-specs/reward-profile-actions.test.ts",
+            "tests/micro-specs/customer-contact-immutability.test.ts",
+            "supabase/tests/customer_contact_immutability.sql"
+          ],
+          "manual_rationale": [],
+          "change_state": "current"
+        }
+      ],
+      "change_state": "current",
+      "supersession": {
+        "state": "not_superseded",
+        "superseded_by": null,
+        "rationale": "No superseding Micro-Spec replaces this current intent."
+      }
+    },
+    {
       "spec_id": "MS-OBSERVABILITY-COMPLIANCE-EVENTS-ANALYTICS-FUNNELS",
       "title": "Events, Analytics, and Funnels",
       "source_path": "micro-specs/07-observability-compliance/01-events-analytics-and-funnels.md",

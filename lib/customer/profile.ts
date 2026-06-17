@@ -15,6 +15,7 @@ export type CustomerProfile = {
   dateOfBirth: string | null
   email: string | null
   emailVerified: boolean
+  emailLocked: boolean
   needsEmailVerification: boolean
   phone: string | null
   memberSince: string
@@ -29,6 +30,7 @@ export type CustomerProfileCompletion = {
   dateOfBirth: string | null
   email: string | null
   emailVerified: boolean
+  emailLocked: boolean
   /** Email is present but not yet confirmed — drives the inline verify step. */
   needsEmailVerification: boolean
 }
@@ -52,6 +54,7 @@ export function profileCompletionFrom(
   const dateOfBirth = customer.dateOfBirth ?? null
   const email = customer.email?.trim() ? customer.email.trim() : null
   const emailVerified = Boolean(email) && Boolean(customer.emailVerifiedAt)
+  const emailLocked = emailVerified
   const needsEmailVerification = Boolean(email) && !customer.emailVerifiedAt
   const complete =
     Boolean(fullName) && Boolean(dateOfBirth) && !needsEmailVerification
@@ -62,6 +65,7 @@ export function profileCompletionFrom(
     dateOfBirth,
     email,
     emailVerified,
+    emailLocked,
     needsEmailVerification,
   }
 }
@@ -83,6 +87,19 @@ export type UpdateCustomerProfileResult = {
   /** True when a (new) email was set and now needs an emailed-code confirmation. */
   emailVerificationRequired: boolean
   email: string | null
+  emailLocked: boolean
+}
+
+export type ClearCustomerEmailResult = {
+  cleared: boolean
+  emailLocked: boolean
+}
+
+export class CustomerContactLockedError extends Error {
+  constructor(message = "Verified contact details are locked.") {
+    super(message)
+    this.name = "CustomerContactLockedError"
+  }
 }
 
 /**
@@ -97,23 +114,29 @@ export async function updateCustomerProfile(
   const customer = await getCurrentCustomer()
   if (!customer) throw new Error("No signed-in customer to update.")
 
-  const email = input.email?.trim() ? input.email.trim() : null
+  const email = normalizedEmail(input.email)
   const previousEmail = customer.email?.trim() ? customer.email.trim() : null
+  const emailLocked = hasLockedVerifiedEmail(customer)
   const keepsVerifiedEmail =
+    !emailLocked &&
     email !== null &&
     email === previousEmail &&
     Boolean(customer.emailVerifiedAt)
-  const emailVerificationRequired = email !== null && !keepsVerifiedEmail
 
   const update: Record<string, unknown> = {
     full_name: input.fullName.trim(),
     date_of_birth: input.dateOfBirth,
-    email,
-  }
-  if (!keepsVerifiedEmail) {
-    update.email_verified_at = null
   }
 
+  if (!emailLocked) {
+    update.email = email
+    if (!keepsVerifiedEmail) {
+      update.email_verified_at = null
+    }
+  }
+
+  const emailVerificationRequired =
+    !emailLocked && email !== null && !keepsVerifiedEmail
   const supabase = createSupabaseServiceRoleClient()
   const { error } = await supabase
     .from("customers")
@@ -122,7 +145,11 @@ export async function updateCustomerProfile(
 
   if (error) throw new Error(`Unable to update profile: ${error.message}`)
 
-  return { emailVerificationRequired, email }
+  return {
+    emailVerificationRequired,
+    email: emailLocked ? previousEmail : email,
+    emailLocked,
+  }
 }
 
 /** Confirms an email after the emailed code is accepted. */
@@ -130,18 +157,36 @@ export async function markCustomerEmailVerified(email: string): Promise<void> {
   const customer = await getCurrentCustomer()
   if (!customer) throw new Error("No signed-in customer to confirm.")
 
+  const verifiedEmail = normalizedEmail(email)
+  if (!verifiedEmail) throw new Error("Email is required for confirmation.")
+
+  const currentEmail = normalizedEmail(customer.email)
+  if (hasLockedVerifiedEmail(customer)) {
+    if (verifiedEmail !== currentEmail) {
+      throw new CustomerContactLockedError("Verified email is locked.")
+    }
+    return
+  }
+
   const supabase = createSupabaseServiceRoleClient()
   const { error } = await supabase
     .from("customers")
-    .update({ email, email_verified_at: new Date().toISOString() })
+    .update({
+      email: verifiedEmail,
+      email_verified_at: new Date().toISOString(),
+    })
     .eq("id", customer.id)
 
   if (error) throw new Error(`Unable to confirm email: ${error.message}`)
 }
 
-export async function clearCustomerEmail(): Promise<void> {
+export async function clearCustomerEmail(): Promise<ClearCustomerEmailResult> {
   const customer = await getCurrentCustomer()
   if (!customer) throw new Error("No signed-in customer to update.")
+
+  if (hasLockedVerifiedEmail(customer)) {
+    return { cleared: false, emailLocked: true }
+  }
 
   const supabase = createSupabaseServiceRoleClient()
   const { error } = await supabase
@@ -150,6 +195,8 @@ export async function clearCustomerEmail(): Promise<void> {
     .eq("id", customer.id)
 
   if (error) throw new Error(`Unable to update profile: ${error.message}`)
+
+  return { cleared: true, emailLocked: false }
 }
 
 /**
@@ -207,10 +254,25 @@ export async function getCustomerProfile(): Promise<CustomerProfile | null> {
     dateOfBirth: completion.dateOfBirth,
     email: customer.email,
     emailVerified: completion.emailVerified,
+    emailLocked: completion.emailLocked,
     needsEmailVerification: completion.needsEmailVerification,
     phone: customer.phone,
     memberSince: customer.createdAt,
     membershipCount: membershipResult.count ?? 0,
     consents,
   }
+}
+
+function hasLockedVerifiedEmail(customer: {
+  email: string | null
+  emailVerifiedAt: string | null
+}) {
+  return (
+    Boolean(normalizedEmail(customer.email)) &&
+    Boolean(customer.emailVerifiedAt)
+  )
+}
+
+function normalizedEmail(email: string | null | undefined) {
+  return email?.trim() ? email.trim() : null
 }

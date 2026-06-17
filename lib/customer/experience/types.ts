@@ -60,6 +60,7 @@ export type ProfileGate = {
   fullName: string | null
   dateOfBirth: string | null
   email: string | null
+  emailLocked: boolean
 }
 
 /** Merchant + card facts shared by the join wizard screens. */

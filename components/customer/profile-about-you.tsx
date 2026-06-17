@@ -1,6 +1,5 @@
 "use client"
 
-import type { ReactNode } from "react"
 import { useActionState, useState } from "react"
 
 import {
@@ -11,14 +10,17 @@ import {
   type ProfileEditState,
 } from "@/app/home/(authed)/profile/actions"
 import { MonoTag, SectionHeader } from "@/components/brand"
+import {
+  ProfileDetailRow as DetailRow,
+  ProfileEmailDetailRow as EmailDetailRow,
+  ProfileField as Field,
+  profileInputClass,
+} from "@/components/customer/profile-form-parts"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { formatDateOfBirth } from "@/lib/customer/format"
 
 const initialState: ProfileEditState = {}
-
-const inputClass =
-  "h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm transition outline-none focus:border-ring focus:ring-3 focus:ring-ring/25 aria-invalid:border-destructive"
 
 export type AboutYouProfile = {
   phone: string | null
@@ -26,6 +28,7 @@ export type AboutYouProfile = {
   dateOfBirth: string | null
   email: string | null
   emailVerified: boolean
+  emailLocked: boolean
   needsEmailVerification: boolean
 }
 
@@ -124,7 +127,7 @@ function AboutYouView({
       </dl>
 
       <p className="text-xs leading-5 text-muted-foreground">
-        To change your phone number, scan a venue QR with your new phone.
+        Verified contact details are locked for account security.
       </p>
 
       <Button
@@ -135,50 +138,6 @@ function AboutYouView({
       >
         Edit details
       </Button>
-    </div>
-  )
-}
-
-function EmailDetailRow({ profile }: { profile: AboutYouProfile }) {
-  if (!profile.email) {
-    return <DetailRow label="Email" value="Not added" />
-  }
-
-  if (profile.emailVerified) {
-    return (
-      <DetailRow
-        label="Email"
-        value={profile.email}
-        tag={<MonoTag tone="leaf">Verified</MonoTag>}
-      />
-    )
-  }
-
-  return (
-    <DetailRow
-      label="Email"
-      value={profile.email}
-      tag={<MonoTag tone="sun">Awaiting</MonoTag>}
-    />
-  )
-}
-
-function DetailRow({
-  label,
-  value,
-  tag,
-}: {
-  label: string
-  value: string
-  tag?: ReactNode
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <dt className="text-sm text-muted-foreground">{label}</dt>
-      <dd className="flex items-center gap-2 text-right text-sm font-bold break-all">
-        <span>{value}</span>
-        {tag}
-      </dd>
     </div>
   )
 }
@@ -213,16 +172,22 @@ function AboutYouEditForm({
         defaultValue={state.fields?.dateOfBirth ?? profile.dateOfBirth ?? ""}
         error={state.errors?.dateOfBirth}
       />
-      <Field
-        label="Email (optional)"
-        name="email"
-        type="email"
-        inputMode="email"
-        autoComplete="email"
-        hint="Add one to get reward updates. We'll send a code to confirm it."
-        defaultValue={state.fields?.email ?? profile.email ?? ""}
-        error={state.errors?.email}
-      />
+      {profile.emailLocked && profile.email ? (
+        <StatusBanner tone="neutral" title="Verified email">
+          {profile.email} is verified and locked for account security.
+        </StatusBanner>
+      ) : (
+        <Field
+          label="Email (optional)"
+          name="email"
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          hint="Add one to get reward updates. We'll send a code to confirm it."
+          defaultValue={state.fields?.email ?? profile.email ?? ""}
+          error={state.errors?.email}
+        />
+      )}
 
       {state.errors?.form ? (
         <StatusBanner tone="warning" title="Details not saved">
@@ -270,7 +235,7 @@ function AboutYouEmailVerify({ email }: { email: string | null }) {
             name="otp"
             inputMode="numeric"
             autoComplete="one-time-code"
-            className={`${inputClass} font-mono`}
+            className={`${profileInputClass} font-mono`}
             aria-invalid={Boolean(state.errors?.otp)}
           />
           {state.errors?.otp ? (
@@ -301,52 +266,6 @@ function AboutYouEmailVerify({ email }: { email: string | null }) {
           </Button>
         </form>
       </div>
-    </div>
-  )
-}
-
-function Field({
-  label,
-  name,
-  error,
-  hint,
-  type = "text",
-  ...rest
-}: {
-  label: string
-  name: string
-  error?: string
-  hint?: string
-  type?: string
-  defaultValue?: string
-  autoComplete?: string
-  inputMode?: "email" | "numeric"
-}) {
-  const describedBy = error ? `${name}-error` : hint ? `${name}-hint` : undefined
-
-  return (
-    <div className="grid gap-2">
-      <label htmlFor={name} className="eyebrow">
-        {label}
-      </label>
-      <input
-        id={name}
-        name={name}
-        type={type}
-        className={inputClass}
-        aria-invalid={Boolean(error)}
-        aria-describedby={describedBy}
-        {...rest}
-      />
-      {error ? (
-        <p id={`${name}-error`} className="text-sm text-destructive">
-          {error}
-        </p>
-      ) : hint ? (
-        <p id={`${name}-hint`} className="text-xs leading-5 text-muted-foreground">
-          {hint}
-        </p>
-      ) : null}
     </div>
   )
 }

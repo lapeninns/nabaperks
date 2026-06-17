@@ -52,8 +52,7 @@ function ProfileDetailsStep({
         title="A few details before this one's yours"
         tone="neutral"
       >
-        Add your name and date of birth before collection. Email is optional -
-        add one to get reward updates.
+        Add your name and date of birth before collection. Email is optional.
       </StatusBanner>
 
       <Field
@@ -71,16 +70,22 @@ function ProfileDetailsStep({
         defaultValue={state.fields?.dateOfBirth ?? gate.dateOfBirth ?? ""}
         error={state.errors?.dateOfBirth}
       />
-      <Field
-        label="Email (optional)"
-        name="email"
-        type="email"
-        inputMode="email"
-        autoComplete="email"
-        hint="We'll send a code to confirm it."
-        defaultValue={state.fields?.email ?? gate.email ?? ""}
-        error={state.errors?.email}
-      />
+      {gate.emailLocked && gate.email ? (
+        <StatusBanner title="Verified email" tone="neutral">
+          {gate.email} is verified and locked for account security.
+        </StatusBanner>
+      ) : (
+        <Field
+          label="Email (optional)"
+          name="email"
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          hint="We'll send a code to confirm it."
+          defaultValue={state.fields?.email ?? gate.email ?? ""}
+          error={state.errors?.email}
+        />
+      )}
 
       {state.errors?.form ? (
         <StatusBanner tone="warning" title="Details not saved">

@@ -898,6 +898,66 @@ Status evidence:
 | `MS-OBSERVABILITY-COMPLIANCE-CONSENT-LEGAL-DATA-REQUESTS-005` | `active` | `customer-pii` | `governance`<br>`lint`<br>`security`<br>`typecheck`<br>`unit` | tests/micro-specs/customer.test.ts<br>tests/micro-specs/home-profile.test.ts<br>tests/micro-specs/customer-legal-sheets.test.ts<br>supabase/tests/customer_marketing_consent.sql<br>tests/micro-specs/admin-console-redesign.test.ts | `app/privacy/**`<br>`app/terms/**`<br>`app/merchant/**`<br>`app/admin/privacy/**`<br>`lib/customer/consent.ts`<br>`lib/legal/**`<br>`supabase/migrations/**` | `pnpm governance`<br>`pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`pnpm security:verify` | `current`    |
 | `MS-OBSERVABILITY-COMPLIANCE-CONSENT-LEGAL-DATA-REQUESTS-006` | `active` | `customer-pii` | `governance`<br>`lint`<br>`security`<br>`typecheck`<br>`unit` | tests/micro-specs/customer.test.ts<br>tests/micro-specs/home-profile.test.ts<br>tests/micro-specs/customer-legal-sheets.test.ts<br>supabase/tests/customer_marketing_consent.sql<br>tests/micro-specs/admin-console-redesign.test.ts | `app/privacy/**`<br>`app/terms/**`<br>`app/merchant/**`<br>`app/admin/privacy/**`<br>`lib/customer/consent.ts`<br>`lib/legal/**`<br>`supabase/migrations/**` | `pnpm governance`<br>`pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`pnpm security:verify` | `current`    |
 
+## MS-OBSERVABILITY-COMPLIANCE-CUSTOMER-CONTACT-IMMUTABILITY — Customer Contact Immutability
+
+| Field         | Value                                                                                                                                                                                                                                                                |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Status        | `active`                                                                                                                                                                                                                                                             |
+| Risk class    | `auth-session`                                                                                                                                                                                                                                                       |
+| Change state  | `current`                                                                                                                                                                                                                                                            |
+| Owner         | `factory-droid`                                                                                                                                                                                                                                                      |
+| Last reviewed | `2026-06-17`                                                                                                                                                                                                                                                         |
+| Source        | `micro-specs/07-observability-compliance/04-customer-contact-immutability.md`                                                                                                                                                                                        |
+| Tests         | `tests/micro-specs/home-profile.test.ts`<br>`tests/micro-specs/reward-profile-gate.test.ts`<br>`tests/micro-specs/reward-profile-actions.test.ts`<br>`tests/micro-specs/customer-contact-immutability.test.ts`<br>`supabase/tests/customer_contact_immutability.sql` |
+| Gates         | `pnpm governance`<br>`pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`pnpm db:verify`<br>`pnpm security:verify`<br>`pnpm build`                                                                                                                                    |
+| Supersession  | `not_superseded`: No superseding Micro-Spec replaces this current intent.                                                                                                                                                                                            |
+
+Allowed blast radius:
+
+- `app/home/**`
+- `app/reward/**`
+- `components/customer/profile-*.tsx`
+- `lib/customer/profile*.ts`
+- `lib/customer/experience/**`
+- `micro-specs/07-observability-compliance/04-customer-contact-immutability.md`
+- `micro-specs/TRACEABILITY.md`
+- `micro-specs/traceability.json`
+- `scripts/run-supabase-sql.mjs`
+- `scripts/verify-security.mjs`
+- `scripts/verify-supabase-schema.mjs`
+- `supabase/migrations/**`
+- `supabase/tests/**`
+- `tests/micro-specs/**`
+
+Implementation surfaces:
+
+- `app/home/**`
+- `app/reward/**`
+- `components/customer/profile-*.tsx`
+- `lib/customer/profile*.ts`
+- `lib/customer/experience/**`
+- `scripts/run-supabase-sql.mjs`
+- `scripts/verify-security.mjs`
+- `scripts/verify-supabase-schema.mjs`
+- `supabase/migrations/**`
+- `supabase/tests/**`
+
+Status evidence:
+
+- Reviewed against the selected lock self-service policy on 2026-06-17.
+- Related unit and SQL tests were added for application and database enforcement.
+- No superseding Micro-Spec replaces this current intent.
+
+### Requirements
+
+| Requirement ID                                                  | Status   | Risk           | Test tier                                                                             | Evidence and rationale                                                                                                                                                                                                                                     | Implementation surfaces                                                                                                                                                                                                                                                                             | Verification commands                                                                                                             | Change state |
+| --------------------------------------------------------------- | -------- | -------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| `MS-OBSERVABILITY-COMPLIANCE-CUSTOMER-CONTACT-IMMUTABILITY-001` | `active` | `auth-session` | `build`<br>`governance`<br>`lint`<br>`security`<br>`sql-rls`<br>`typecheck`<br>`unit` | tests/micro-specs/home-profile.test.ts<br>tests/micro-specs/reward-profile-gate.test.ts<br>tests/micro-specs/reward-profile-actions.test.ts<br>tests/micro-specs/customer-contact-immutability.test.ts<br>supabase/tests/customer_contact_immutability.sql | `app/home/**`<br>`app/reward/**`<br>`components/customer/profile-*.tsx`<br>`lib/customer/profile*.ts`<br>`lib/customer/experience/**`<br>`scripts/run-supabase-sql.mjs`<br>`scripts/verify-security.mjs`<br>`scripts/verify-supabase-schema.mjs`<br>`supabase/migrations/**`<br>`supabase/tests/**` | `pnpm governance`<br>`pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`pnpm db:verify`<br>`pnpm security:verify`<br>`pnpm build` | `current`    |
+| `MS-OBSERVABILITY-COMPLIANCE-CUSTOMER-CONTACT-IMMUTABILITY-002` | `active` | `auth-session` | `build`<br>`governance`<br>`lint`<br>`security`<br>`sql-rls`<br>`typecheck`<br>`unit` | tests/micro-specs/home-profile.test.ts<br>tests/micro-specs/reward-profile-gate.test.ts<br>tests/micro-specs/reward-profile-actions.test.ts<br>tests/micro-specs/customer-contact-immutability.test.ts<br>supabase/tests/customer_contact_immutability.sql | `app/home/**`<br>`app/reward/**`<br>`components/customer/profile-*.tsx`<br>`lib/customer/profile*.ts`<br>`lib/customer/experience/**`<br>`scripts/run-supabase-sql.mjs`<br>`scripts/verify-security.mjs`<br>`scripts/verify-supabase-schema.mjs`<br>`supabase/migrations/**`<br>`supabase/tests/**` | `pnpm governance`<br>`pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`pnpm db:verify`<br>`pnpm security:verify`<br>`pnpm build` | `current`    |
+| `MS-OBSERVABILITY-COMPLIANCE-CUSTOMER-CONTACT-IMMUTABILITY-003` | `active` | `auth-session` | `build`<br>`governance`<br>`lint`<br>`security`<br>`sql-rls`<br>`typecheck`<br>`unit` | tests/micro-specs/home-profile.test.ts<br>tests/micro-specs/reward-profile-gate.test.ts<br>tests/micro-specs/reward-profile-actions.test.ts<br>tests/micro-specs/customer-contact-immutability.test.ts<br>supabase/tests/customer_contact_immutability.sql | `app/home/**`<br>`app/reward/**`<br>`components/customer/profile-*.tsx`<br>`lib/customer/profile*.ts`<br>`lib/customer/experience/**`<br>`scripts/run-supabase-sql.mjs`<br>`scripts/verify-security.mjs`<br>`scripts/verify-supabase-schema.mjs`<br>`supabase/migrations/**`<br>`supabase/tests/**` | `pnpm governance`<br>`pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`pnpm db:verify`<br>`pnpm security:verify`<br>`pnpm build` | `current`    |
+| `MS-OBSERVABILITY-COMPLIANCE-CUSTOMER-CONTACT-IMMUTABILITY-004` | `active` | `auth-session` | `build`<br>`governance`<br>`lint`<br>`security`<br>`sql-rls`<br>`typecheck`<br>`unit` | tests/micro-specs/home-profile.test.ts<br>tests/micro-specs/reward-profile-gate.test.ts<br>tests/micro-specs/reward-profile-actions.test.ts<br>tests/micro-specs/customer-contact-immutability.test.ts<br>supabase/tests/customer_contact_immutability.sql | `app/home/**`<br>`app/reward/**`<br>`components/customer/profile-*.tsx`<br>`lib/customer/profile*.ts`<br>`lib/customer/experience/**`<br>`scripts/run-supabase-sql.mjs`<br>`scripts/verify-security.mjs`<br>`scripts/verify-supabase-schema.mjs`<br>`supabase/migrations/**`<br>`supabase/tests/**` | `pnpm governance`<br>`pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`pnpm db:verify`<br>`pnpm security:verify`<br>`pnpm build` | `current`    |
+| `MS-OBSERVABILITY-COMPLIANCE-CUSTOMER-CONTACT-IMMUTABILITY-005` | `active` | `auth-session` | `build`<br>`governance`<br>`lint`<br>`security`<br>`sql-rls`<br>`typecheck`<br>`unit` | tests/micro-specs/home-profile.test.ts<br>tests/micro-specs/reward-profile-gate.test.ts<br>tests/micro-specs/reward-profile-actions.test.ts<br>tests/micro-specs/customer-contact-immutability.test.ts<br>supabase/tests/customer_contact_immutability.sql | `app/home/**`<br>`app/reward/**`<br>`components/customer/profile-*.tsx`<br>`lib/customer/profile*.ts`<br>`lib/customer/experience/**`<br>`scripts/run-supabase-sql.mjs`<br>`scripts/verify-security.mjs`<br>`scripts/verify-supabase-schema.mjs`<br>`supabase/migrations/**`<br>`supabase/tests/**` | `pnpm governance`<br>`pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`pnpm db:verify`<br>`pnpm security:verify`<br>`pnpm build` | `current`    |
+
 ## MS-OBSERVABILITY-COMPLIANCE-EVENTS-ANALYTICS-FUNNELS — Events, Analytics, and Funnels
 
 | Field         | Value                                                                                                                                                    |
