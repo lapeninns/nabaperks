@@ -243,6 +243,27 @@ function stampScreenExperience(
   } as CustomerExperience
 }
 
+/**
+ * The reward pointer to attach to a held completed card, or undefined. The
+ * completing stamp can unlock a reward that is not yet redeemable; in that case
+ * the stamp screen holds on the card with a tap-through rather than swapping to
+ * the waiting voucher. Keeping this decision here keeps {@link deriveStamp} flat.
+ */
+function heldStampReward(context: {
+  unlockedReward: (RewardView & { redeemable: boolean }) | null
+}):
+  | { rewardId: string; rewardName: string; redeemableFrom: string | null }
+  | undefined {
+  if (!context.unlockedReward || context.unlockedReward.redeemable) {
+    return undefined
+  }
+  return {
+    rewardId: context.unlockedReward.rewardId,
+    rewardName: context.unlockedReward.rewardName,
+    redeemableFrom: context.unlockedReward.redeemableFrom,
+  }
+}
+
 function deriveStamp(context: StampContext): CustomerExperience {
   if (context.access) {
     return accessUnavailable(context.access, context.recovery)
@@ -262,12 +283,9 @@ function deriveStamp(context: StampContext): CustomerExperience {
   // is nothing to collect at the counter until the next UK business day, so the
   // calm card moment is allowed to breathe. A ready reward still falls through to
   // its own state below (the route redirects to collect it now).
-  if (context.unlockedReward && !context.unlockedReward.redeemable) {
-    return stampScreenExperience("card_stamped_today", context, {
-      rewardId: context.unlockedReward.rewardId,
-      rewardName: context.unlockedReward.rewardName,
-      redeemableFrom: context.unlockedReward.redeemableFrom,
-    })
+  const heldReward = heldStampReward(context)
+  if (heldReward) {
+    return stampScreenExperience("card_stamped_today", context, heldReward)
   }
 
   const candidates: CustomerExperienceKind[] = []
