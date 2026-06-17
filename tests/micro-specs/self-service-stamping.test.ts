@@ -17,12 +17,6 @@ function form(values: Record<string, string>) {
   return data
 }
 
-function redirectMock() {
-  return vi.fn((url: string) => {
-    throw new Error(`NEXT_REDIRECT:${url}`)
-  })
-}
-
 function mockSupabase(mock: ReturnType<typeof createSupabaseMock>) {
   vi.doMock("@/lib/supabase/server", () => ({
     createSupabaseServerClient: async () => mock.client,
@@ -222,7 +216,6 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
       merchant: { id: "merchant-1" },
     }))
     vi.doMock("next/cache", () => ({ revalidatePath: vi.fn() }))
-    vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
     vi.doMock("@/lib/customer/join", () => ({
       getStampQrContextForMembership,
     }))
@@ -231,12 +224,15 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
       await import("@/app/card/[membershipId]/actions")
 
     const result = await selfStampAction(
-      {},
+      { status: "idle" },
       form({ membershipId: "membership-1", qrId: "BELL-QR" })
     )
 
-    expect(result.errors?.form).toBeTruthy()
-    expect(result.errors?.form).not.toContain("connection reset")
+    expect(result.status).toBe("error")
+    if (result.status === "error") {
+      expect(result.message).toBeTruthy()
+      expect(result.message).not.toContain("connection reset")
+    }
   })
 
   it("geocodes venue addresses through Nominatim at config time", async () => {
@@ -335,7 +331,7 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     expect(revalidatePath).toHaveBeenCalledWith("/app")
   })
 
-  it("requires a fresh venue QR context before submitting a self-service stamp", async () => {
+  it("returns an issued state with the new count instead of redirecting", async () => {
     vi.resetModules()
     const issueSelfServiceStamp = vi.fn(async () => ({
       status: "issued" as const,
@@ -350,7 +346,6 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     }))
     const revalidatePath = vi.fn()
     vi.doMock("next/cache", () => ({ revalidatePath }))
-    vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
     vi.doMock("@/lib/customer/join", () => ({
       getStampQrContextForMembership,
     }))
@@ -358,19 +353,24 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     const { selfStampAction } =
       await import("@/app/card/[membershipId]/actions")
 
-    await expect(
-      selfStampAction(
-        {},
-        form({
-          membershipId: "membership-1",
-          qrId: "BELL-QR",
-          latitude: "51.524",
-          longitude: "-0.071",
-        })
-      )
-    ).rejects.toThrow(
-      "NEXT_REDIRECT:/card/membership-1?stamp=issued&geo=flagged"
+    // The stamp now lands in place: the action returns the new state to the
+    // client instead of throwing a full-page redirect that wastes the slam.
+    const result = await selfStampAction(
+      { status: "idle" },
+      form({
+        membershipId: "membership-1",
+        qrId: "BELL-QR",
+        latitude: "51.524",
+        longitude: "-0.071",
+      })
     )
+
+    expect(result).toEqual({
+      status: "issued",
+      newStampCount: 2,
+      rewardUnlocked: false,
+      geoFlagged: true,
+    })
     expect(getStampQrContextForMembership).toHaveBeenCalledWith(
       "membership-1",
       "BELL-QR"
@@ -379,7 +379,39 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
       latitude: 51.524,
       longitude: -0.071,
     })
+    // The card route is still revalidated so a later visit reflects the stamp.
     expect(revalidatePath).toHaveBeenCalledWith("/card/membership-1")
+  })
+
+  it("maps a blocked stamp RPC result to a calm error state without revalidating", async () => {
+    vi.resetModules()
+    const issueSelfServiceStamp = vi.fn(async () => ({
+      status: "blocked" as const,
+      reason: "You're already stamped today. Come back tomorrow.",
+    }))
+    const getStampQrContextForMembership = vi.fn(async () => ({
+      qrId: "BELL-QR",
+      merchant: { id: "merchant-1" },
+    }))
+    const revalidatePath = vi.fn()
+    vi.doMock("next/cache", () => ({ revalidatePath }))
+    vi.doMock("@/lib/customer/join", () => ({
+      getStampQrContextForMembership,
+    }))
+    vi.doMock("@/lib/customer/stamp", () => ({ issueSelfServiceStamp }))
+    const { selfStampAction } =
+      await import("@/app/card/[membershipId]/actions")
+
+    const result = await selfStampAction(
+      { status: "idle" },
+      form({ membershipId: "membership-1", qrId: "BELL-QR" })
+    )
+
+    expect(result).toEqual({
+      status: "error",
+      message: "You're already stamped today. Come back tomorrow.",
+    })
+    expect(revalidatePath).not.toHaveBeenCalled()
   })
 
   it("blocks direct card-page stamp attempts that did not start from the venue QR", async () => {
@@ -394,9 +426,13 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
       await import("@/app/card/[membershipId]/actions")
 
     await expect(
-      selfStampAction({}, form({ membershipId: "membership-1" }))
+      selfStampAction(
+        { status: "idle" },
+        form({ membershipId: "membership-1" })
+      )
     ).resolves.toEqual({
-      errors: { form: "Scan the venue code to add your stamp." },
+      status: "error",
+      message: "Scan the venue code to add your stamp.",
     })
     expect(issueSelfServiceStamp).not.toHaveBeenCalled()
   })
@@ -426,7 +462,7 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     expect(experience).toContain("Scan the venue code to add your stamp.")
     expect(experience).not.toContain("Get today&apos;s stamp")
 
-    expect(experience).toContain("SelfServiceStampForm")
+    expect(experience).toContain("StampCollector")
     expect(stampPage).toContain("searchParams")
     expect(experience).not.toContain("createStampCode")
 

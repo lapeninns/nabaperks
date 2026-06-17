@@ -53,6 +53,8 @@ describe("customer stamp loader", () => {
     })
     vi.doMock("@/lib/customer/card", () => ({
       getCustomerCardState: vi.fn(async () => readyCardState),
+      getMembershipStampDisplayDates: vi.fn(async () => ["10 Jun"]),
+      reconcileCardStampCount: vi.fn(() => 1),
     }))
     vi.doMock("@/lib/customer/join", () => ({
       getStampQrContextForMembership: vi.fn(async () => ({ qrId: "qr-1" })),
@@ -64,9 +66,8 @@ describe("customer stamp loader", () => {
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
     }))
-    const { loadStampExperienceContext } = await import(
-      "@/lib/customer/experience/load-stamp"
-    )
+    const { loadStampExperienceContext } =
+      await import("@/lib/customer/experience/load-stamp")
 
     await expect(
       loadStampExperienceContext("membership-1", "qr-1")

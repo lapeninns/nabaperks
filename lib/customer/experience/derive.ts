@@ -85,6 +85,12 @@ export type StampContext =
       qrId?: string
       location: LocationRequirement
       profileGate?: ProfileGate
+      // Card progress so the stamp screen can render the live card grid.
+      cardName?: string
+      current?: number
+      total?: number
+      stampDates?: string[]
+      todayLabel?: string
     }
 
 export type RewardContext =
@@ -183,6 +189,25 @@ function deriveCard(context: CardContext): CustomerExperience {
   }
 }
 
+/** Card progress shared by both stamp-screen states, with safe defaults. */
+function stampCardProgress(context: {
+  cardName?: string
+  current?: number
+  total?: number
+  stampDates?: string[]
+  todayLabel?: string
+  location: LocationRequirement
+}) {
+  return {
+    location: context.location,
+    cardName: context.cardName ?? "",
+    current: context.current ?? 0,
+    total: context.total ?? 0,
+    stampDates: context.stampDates ?? [],
+    todayLabel: context.todayLabel ?? "",
+  }
+}
+
 function deriveStamp(context: StampContext): CustomerExperience {
   if (context.access) {
     return accessUnavailable(context.access, context.recovery)
@@ -230,6 +255,8 @@ function deriveStamp(context: StampContext): CustomerExperience {
         kind: "card_stamped_today",
         membershipId: context.membershipId,
         merchantName: context.merchantName,
+        qrId: context.qrId ?? "",
+        ...stampCardProgress(context),
       }
     case "stamp_confirm":
       return {
@@ -237,7 +264,7 @@ function deriveStamp(context: StampContext): CustomerExperience {
         membershipId: context.membershipId,
         merchantName: context.merchantName,
         qrId: context.qrId ?? "",
-        location: context.location,
+        ...stampCardProgress(context),
       }
     default:
       return {

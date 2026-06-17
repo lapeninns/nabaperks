@@ -130,6 +130,9 @@ describe("03 customer micro-specs", () => {
     const selfServiceForms = readProjectFile(
       "components/customer/self-service-forms.tsx"
     )
+    const stampCollector = readProjectFile(
+      "components/customer/stamp-collector.tsx"
+    )
 
     for (const field of ["merchantSlug", "qrId", "contact"]) {
       expect(`${joinForms}\n${joinOtpForm}`).toContain(`name="${field}"`)
@@ -157,9 +160,13 @@ describe("03 customer micro-specs", () => {
     expect(stampActions).toContain("issueSelfServiceStamp")
     expect(stampActions).toContain("Scan the venue code to add your stamp.")
 
+    // Stamping now lands in place: the collector submits the loyalty fields via
+    // FormData (not a hidden-input form) and still runs the optional geo check.
     for (const field of ["membershipId", "qrId", "latitude", "longitude"]) {
-      expect(selfServiceForms).toContain(`name="${field}"`)
+      expect(stampCollector).toContain(`formData.set("${field}"`)
     }
+    expect(stampCollector).toContain("navigator.geolocation")
+    // The shared geolocation helper still backs the join flow.
     expect(selfServiceForms).toContain("navigator.geolocation")
   })
 
@@ -212,7 +219,7 @@ describe("03 customer micro-specs", () => {
     expect(customerTabBar).toContain('pathname.startsWith("/card/")')
     expect(customerTabBar).toContain('pathname.startsWith("/reward/")')
 
-    expect(experience).toContain("SelfServiceStampForm")
+    expect(experience).toContain("StampCollector")
     expect(loadStamp).toContain("getMerchantStampLocationRequirement")
     expect(loadStamp).toContain("isRedeemableFrom")
     expect(stampPage).toContain("/reward/")

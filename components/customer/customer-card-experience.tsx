@@ -8,7 +8,7 @@ import {
   CustomerStampCard,
 } from "@/components/customer/customer-flow-system"
 import { CustomerTabBar } from "@/components/layout"
-import { SelfServiceStampForm } from "@/components/customer/self-service-forms"
+import { StampCollector } from "@/components/customer/stamp-collector"
 import {
   RedeemedProofPanel,
   RewardReadyPanel,
@@ -72,9 +72,8 @@ function ExperiencePanel({
     case "card_collecting":
       return <CardProgressPanel exp={experience} />
     case "card_stamped_today":
-      return <AlreadyStampedPanel exp={experience} vm={vm} />
     case "stamp_confirm":
-      return <StampConfirmPanel exp={experience} />
+      return <StampScreenPanel exp={experience} />
     case "reward_waiting":
       return <RewardWaitingPanel exp={experience} />
     case "reward_ready":
@@ -300,56 +299,36 @@ function CardDetailsDisclosure({ cardNumber }: { cardNumber: string }) {
   )
 }
 
-function AlreadyStampedPanel({
+/**
+ * The stamp screen — the live card with the interactive stamp disc. Both
+ * `stamp_confirm` (ready to stamp) and `card_stamped_today` (already stamped)
+ * render through this one component, so the {@link StampCollector} instance is
+ * preserved when the server refreshes from one state to the other after a stamp
+ * lands — no panel swap, no flash, the celebration stays put.
+ */
+function StampScreenPanel({
   exp,
-  vm,
 }: {
-  exp: Extract<CustomerExperience, { kind: "card_stamped_today" }>
-  vm: CustomerExperienceViewModel
+  exp: Extract<
+    CustomerExperience,
+    { kind: "stamp_confirm" | "card_stamped_today" }
+  >
 }) {
   return (
     <section className="grid gap-5">
-      <CustomerReceipt venueName={exp.merchantName} eyebrow="Today's visit">
-        <StatusBanner title="You're already stamped today." tone="success">
-          Come back tomorrow to keep building your card. Stamps are limited to
-          one per UK business day.
-        </StatusBanner>
-        <CustomerActionNote title="One stamp a day" tone="leaf">
-          Your progress is saved. The next stamp opens on the next UK business
-          day.
-        </CustomerActionNote>
-      </CustomerReceipt>
-      <PrimaryLink action={vm.primaryAction} />
-    </section>
-  )
-}
-
-function StampConfirmPanel({
-  exp,
-}: {
-  exp: Extract<CustomerExperience, { kind: "stamp_confirm" }>
-}) {
-  return (
-    <section className="grid gap-5">
-      <CustomerReceipt venueName={exp.merchantName} eyebrow="Today's visit">
-        <StatusBanner title="Ready to add today's stamp." tone="success">
-          Tap once while you are at the venue. Stamps are limited to one per UK
-          business day.
-        </StatusBanner>
-        <CustomerActionNote
-          title="The printed QR ties this to the venue"
-          tone="leaf"
-        >
-          Location can be checked when available, but the action still continues
-          if your browser cannot share it.
-        </CustomerActionNote>
-        <SelfServiceStampForm
-          membershipId={exp.membershipId}
-          qrId={exp.qrId}
-          requireGeofence={exp.location.requireGeofence}
-          geofenceRadiusMeters={exp.location.geofenceRadiusMeters}
-        />
-      </CustomerReceipt>
+      <StampCollector
+        membershipId={exp.membershipId}
+        qrId={exp.qrId}
+        canStamp={exp.kind === "stamp_confirm"}
+        venueName={exp.merchantName}
+        cardName={exp.cardName}
+        current={exp.current}
+        total={exp.total}
+        stampDates={exp.stampDates}
+        todayLabel={exp.todayLabel}
+        rewardName="Something's under there."
+        location={exp.location}
+      />
       <Button asChild size="lg" variant="secondary" className="w-full">
         <Link href={`/card/${exp.membershipId}`}>Back to card</Link>
       </Button>

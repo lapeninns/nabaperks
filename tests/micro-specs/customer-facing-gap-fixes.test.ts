@@ -106,14 +106,16 @@ describe("customer-facing gap fixes", () => {
     })
   })
 
-  it("shows checking-status and missing-stamp guidance during uncertain stamp submissions", () => {
-    const selfServiceForms = readProjectFile(
-      "components/customer/self-service-forms.tsx"
+  it("shows in-flight reassurance and missing-stamp guidance during uncertain stamp submissions", () => {
+    // The stamp now lands optimistically in the collector: a quiet in-flight
+    // line reassures while the RPC confirms, and a calm banner guides on failure.
+    const stampCollector = readProjectFile(
+      "components/customer/stamp-collector.tsx"
     )
 
-    expect(selfServiceForms).toContain("Checking your card status")
-    expect(selfServiceForms).toContain("If this keeps failing")
-    expect(selfServiceForms).toContain("ask the venue team")
+    expect(stampCollector).toContain("keep this screen open")
+    expect(stampCollector).toContain("If this keeps failing")
+    expect(stampCollector).toContain("ask the venue team")
   })
 
   it("makes first-scan recovery choices visible on the QR welcome screen", () => {

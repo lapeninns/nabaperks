@@ -131,8 +131,26 @@ export type CustomerExperience =
       merchantName: string
       qrId: string
       location: LocationRequirement
+      // The stamp screen now shows the live card so the stamp lands in place.
+      cardName: string
+      current: number
+      total: number
+      stampDates: string[]
+      /** Pre-formatted UK date for the stamp landing now (computed server-side). */
+      todayLabel: string
     }
-  | { kind: "card_stamped_today"; membershipId: string; merchantName: string }
+  | {
+      kind: "card_stamped_today"
+      membershipId: string
+      merchantName: string
+      qrId: string
+      location: LocationRequirement
+      cardName: string
+      current: number
+      total: number
+      stampDates: string[]
+      todayLabel: string
+    }
   // --- Card (the card is always shown; reward sub-status drives the footer) ---
   | {
       kind: "card_collecting"

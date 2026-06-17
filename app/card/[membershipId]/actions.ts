@@ -1,7 +1,6 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { redirect } from "next/navigation"
 
 import { blockReasonCopy } from "@/lib/customer/experience/block-reasons"
 import { getStampQrContextForMembership } from "@/lib/customer/join"
@@ -11,10 +10,25 @@ import {
 } from "@/lib/customer/stamp"
 import { logger } from "@/lib/observability/logger"
 
-export type SelfStampActionState = {
-  errors?: {
-    form?: string
-  }
+/**
+ * The stamp result handed back to the client so the stamp can land *in place*
+ * with the slam animation, instead of a full-page redirect that wastes it. The
+ * card route is still revalidated so a later visit reflects the new stamp.
+ */
+export type SelfStampActionState =
+  | { status: "idle" }
+  | { status: "error"; message: string }
+  | {
+      status: "issued"
+      newStampCount: number
+      rewardUnlocked: boolean
+      geoFlagged: boolean
+    }
+
+export const initialSelfStampState: SelfStampActionState = { status: "idle" }
+
+function fail(message: string): SelfStampActionState {
+  return { status: "error", message }
 }
 
 export async function selfStampAction(
@@ -25,13 +39,13 @@ export async function selfStampAction(
   const qrId = value(formData, "qrId")
 
   if (!membershipId || !qrId) {
-    return { errors: { form: "Scan the venue code to add your stamp." } }
+    return fail("Scan the venue code to add your stamp.")
   }
 
   const qrContext = await getStampQrContextForMembership(membershipId, qrId)
 
   if (!qrContext) {
-    return { errors: { form: "Scan the venue code to add your stamp." } }
+    return fail("Scan the venue code to add your stamp.")
   }
 
   let result: Awaited<ReturnType<typeof issueSelfServiceStamp>>
@@ -45,17 +59,23 @@ export async function selfStampAction(
       membershipId,
       error,
     })
-    return { errors: { form: blockReasonCopy("unknown") } }
+    return fail(blockReasonCopy("unknown"))
   }
 
   if (result.status === "blocked") {
-    return { errors: { form: result.reason } }
+    return fail(result.reason)
   }
 
+  // Mark the card route stale so navigating away/back reflects the new stamp.
+  // The customer stays on this screen; the UI confirms the stamp in place.
   revalidatePath(`/card/${membershipId}`)
-  redirect(
-    `/card/${membershipId}?stamp=issued${result.geoFlagged ? "&geo=flagged" : ""}`
-  )
+
+  return {
+    status: "issued",
+    newStampCount: result.newStampCount,
+    rewardUnlocked: result.rewardUnlocked,
+    geoFlagged: result.geoFlagged,
+  }
 }
 
 function coordinates(formData: FormData): GeoCoordinates | undefined {

@@ -1,8 +1,13 @@
 import "server-only"
 
-import { getCustomerCardState } from "@/lib/customer/card"
+import {
+  getCustomerCardState,
+  getMembershipStampDisplayDates,
+  reconcileCardStampCount,
+} from "@/lib/customer/card"
 import { getStampQrContextForMembership } from "@/lib/customer/join"
 import { getMerchantStampLocationRequirement } from "@/lib/customer/stamp"
+import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
 import { isRedeemableFrom, ukTodayIso } from "@/lib/customer/uk-date"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 import { logger } from "@/lib/observability/logger"
@@ -105,6 +110,10 @@ export async function loadStampExperienceContext(
     }
   }
 
+  // Card progress so the stamp screen renders the live card grid; both the
+  // already-stamped and ready-to-stamp states show it.
+  const progress = await loadCardProgress(cardState)
+
   if (await isStampedToday(membershipId)) {
     return {
       membershipId,
@@ -113,7 +122,9 @@ export async function loadStampExperienceContext(
       alreadyStampedToday: true,
       qrValid: false,
       qrMissing: !qr,
+      qrId: qr,
       location: DEFAULT_LOCATION,
+      ...progress,
     }
   }
 
@@ -157,6 +168,43 @@ export async function loadStampExperienceContext(
     qrMissing: false,
     qrId: qrContext.qrId ?? qr,
     location,
+    ...progress,
+  }
+}
+
+/** Card name, current/total stamps, dates, and today's label for the stamp UI. */
+async function loadCardProgress(cardState: {
+  membership: {
+    id: string
+    current_stamp_count: number
+    active_cycle_number: number
+  }
+  loyaltyCard: { card_name: string; stamps_required: number } | null
+}) {
+  const todayLabel = formatStampDisplayDateFromIso(ukTodayIso())
+  const loyaltyCard = cardState.loyaltyCard
+  if (!loyaltyCard) {
+    return { cardName: "", current: 0, total: 0, stampDates: [], todayLabel }
+  }
+
+  const total = loyaltyCard.stamps_required
+  const stampDates = await getMembershipStampDisplayDates(
+    cardState.membership.id,
+    total,
+    cardState.membership.active_cycle_number
+  )
+  const current = reconcileCardStampCount({
+    membershipCount: cardState.membership.current_stamp_count,
+    stampDateCount: stampDates.length,
+    total,
+  })
+
+  return {
+    cardName: loyaltyCard.card_name,
+    current,
+    total,
+    stampDates: stampDates.slice(0, current),
+    todayLabel,
   }
 }
 
