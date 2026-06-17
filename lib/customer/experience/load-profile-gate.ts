@@ -10,6 +10,7 @@ const COMPLETE: ProfileGate = {
   fullName: null,
   dateOfBirth: null,
   email: null,
+  emailLocked: false,
 }
 
 /**
@@ -27,5 +28,6 @@ export async function loadProfileGate(): Promise<ProfileGate> {
     fullName: completion.fullName,
     dateOfBirth: completion.dateOfBirth,
     email: completion.email,
+    emailLocked: completion.emailLocked,
   }
 }

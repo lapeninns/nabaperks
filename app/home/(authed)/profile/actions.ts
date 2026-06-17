@@ -66,7 +66,10 @@ export async function saveHomeProfileAction(
     emailVerificationRequired = result.emailVerificationRequired
     savedEmail = result.email
   } catch {
-    return { fields, errors: { form: "We couldn't save your details. Try again." } }
+    return {
+      fields,
+      errors: { form: "We couldn't save your details. Try again." },
+    }
   }
 
   if (emailVerificationRequired && savedEmail) {
@@ -75,11 +78,16 @@ export async function saveHomeProfileAction(
     } catch {
       return {
         fields,
-        errors: { email: "We couldn't email a code to that address. Try again." },
+        errors: {
+          email: "We couldn't email a code to that address. Try again.",
+        },
       }
     }
     revalidatePath(PROFILE_PATH)
-    return { fields, message: "Enter the code we sent to your email to confirm it." }
+    return {
+      fields,
+      message: "Enter the code we sent to your email to confirm it.",
+    }
   }
 
   revalidatePath(PROFILE_PATH)
@@ -101,7 +109,11 @@ export async function verifyHomeProfileEmailAction(
   }
 
   if (result.status !== "approved") {
-    return { errors: { otp: "That code didn't match. Check your email and try again." } }
+    return {
+      errors: {
+        otp: "That code didn't match. Check your email and try again.",
+      },
+    }
   }
 
   try {
@@ -152,13 +164,19 @@ export async function updateHomeMarketingConsentAction(
 
 export async function resendHomeProfileEmailAction(): Promise<void> {
   const customer = await getCurrentCustomer()
-  if (customer?.email) await startCustomerEmailVerification(customer.email)
+  if (customer?.email && !customer.emailVerifiedAt) {
+    await startCustomerEmailVerification(customer.email)
+  }
   revalidatePath(PROFILE_PATH)
 }
 
 export async function clearHomeProfileEmailAction(): Promise<void> {
-  await clearCustomerEmail()
+  const result = await clearCustomerEmail()
   await clearPendingEmailVerification()
+  if (!result.cleared) {
+    revalidatePath(PROFILE_PATH)
+    return
+  }
   revalidatePath(PROFILE_PATH)
 }
 

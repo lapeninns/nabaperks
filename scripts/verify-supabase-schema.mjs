@@ -291,6 +291,17 @@ for (const marker of [
   }
 }
 
+for (const marker of [
+  "function public.prevent_verified_customer_contact_change()",
+  "customers_prevent_verified_contact_change",
+  "Verified email cannot be changed through customer profile updates",
+  "Verified phone cannot be changed through customer profile updates",
+]) {
+  if (!migrations.includes(marker)) {
+    failures.push(`missing customer contact immutability marker: ${marker}`)
+  }
+}
+
 if (failures.length) {
   console.error("Supabase schema verification failed:")
   for (const failure of failures) {

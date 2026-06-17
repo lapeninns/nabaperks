@@ -32,6 +32,7 @@ const COMPLETE_GATE: ProfileGate = {
   fullName: null,
   dateOfBirth: null,
   email: null,
+  emailLocked: false,
 }
 
 /** Recovery copy for the full-card-without-reward data inconsistency (G9). */

@@ -45,6 +45,7 @@ export default async function HomeProfilePage() {
           dateOfBirth: profile.dateOfBirth,
           email: profile.email,
           emailVerified: profile.emailVerified,
+          emailLocked: profile.emailLocked,
           needsEmailVerification: profile.needsEmailVerification,
         }}
       />

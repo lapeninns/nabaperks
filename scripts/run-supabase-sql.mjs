@@ -93,6 +93,10 @@ try {
       "Customer marketing consent SQL test"
     )
     await runFile(
+      "supabase/tests/customer_contact_immutability.sql",
+      "Customer contact immutability SQL test"
+    )
+    await runFile(
       "supabase/tests/performance_indexes.sql",
       "Performance indexes SQL test"
     )

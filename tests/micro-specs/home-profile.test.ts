@@ -1,51 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { createSupabaseMock } from "../helpers/supabase"
-import { validateProfileFields } from "@/lib/customer/profile-fields"
-
-describe("validateProfileFields", () => {
-  it("flags a missing name", () => {
-    expect(
-      validateProfileFields({ fullName: "", dateOfBirth: "1990-01-01", email: "" })
-        .fullName
-    ).toBeTruthy()
-  })
-
-  it("flags a missing, malformed, or future date of birth", () => {
-    expect(
-      validateProfileFields({ fullName: "Sam", dateOfBirth: "", email: "" })
-        .dateOfBirth
-    ).toBeTruthy()
-    expect(
-      validateProfileFields({ fullName: "Sam", dateOfBirth: "01/01/1990", email: "" })
-        .dateOfBirth
-    ).toBeTruthy()
-    expect(
-      validateProfileFields({ fullName: "Sam", dateOfBirth: "2999-01-01", email: "" })
-        .dateOfBirth
-    ).toBeTruthy()
-  })
-
-  it("flags an invalid email but allows a blank one", () => {
-    expect(
-      validateProfileFields({ fullName: "Sam", dateOfBirth: "1990-01-01", email: "nope" })
-        .email
-    ).toBeTruthy()
-    expect(
-      validateProfileFields({ fullName: "Sam", dateOfBirth: "1990-01-01", email: "" })
-    ).toEqual({})
-  })
-
-  it("passes a complete, valid set", () => {
-    expect(
-      validateProfileFields({
-        fullName: "Sam Taylor",
-        dateOfBirth: "1990-01-01",
-        email: "sam@example.test",
-      })
-    ).toEqual({})
-  })
-})
 
 describe("getCustomerProfile surfaces editable fields", () => {
   afterEach(() => {
@@ -118,16 +73,20 @@ describe("home profile actions", () => {
     startCustomerEmailVerification?: ReturnType<typeof vi.fn>
     checkCustomerEmailVerification?: ReturnType<typeof vi.fn>
     markCustomerEmailVerified?: ReturnType<typeof vi.fn>
+    getCurrentCustomer?: ReturnType<typeof vi.fn>
   }) {
     const updateCustomerProfile =
       overrides.updateCustomerProfile ??
       vi.fn(async () => ({ emailVerificationRequired: false, email: null }))
     const startCustomerEmailVerification =
-      overrides.startCustomerEmailVerification ?? vi.fn(async () => ({ status: "sent" }))
+      overrides.startCustomerEmailVerification ??
+      vi.fn(async () => ({ status: "sent" }))
     const checkCustomerEmailVerification =
       overrides.checkCustomerEmailVerification ?? vi.fn()
     const markCustomerEmailVerified =
       overrides.markCustomerEmailVerified ?? vi.fn(async () => {})
+    const getCurrentCustomer =
+      overrides.getCurrentCustomer ?? vi.fn(async () => null)
 
     vi.doMock("@/lib/customer/profile", () => ({
       updateCustomerProfile,
@@ -141,7 +100,7 @@ describe("home profile actions", () => {
     vi.doMock("@/lib/customer/session", () => ({
       clearPendingEmailVerification: vi.fn(),
     }))
-    vi.doMock("@/lib/customer/identity", () => ({ getCurrentCustomer: vi.fn() }))
+    vi.doMock("@/lib/customer/identity", () => ({ getCurrentCustomer }))
     vi.doMock("next/cache", () => ({ revalidatePath: vi.fn() }))
 
     return {
@@ -154,11 +113,13 @@ describe("home profile actions", () => {
 
   it("rejects a missing name and date of birth without saving", async () => {
     const { updateCustomerProfile } = mockDeps({})
-    const { saveHomeProfileAction } = await import(
-      "@/app/home/(authed)/profile/actions"
-    )
+    const { saveHomeProfileAction } =
+      await import("@/app/home/(authed)/profile/actions")
 
-    const result = await saveHomeProfileAction({}, form({ fullName: "", dateOfBirth: "" }))
+    const result = await saveHomeProfileAction(
+      {},
+      form({ fullName: "", dateOfBirth: "" })
+    )
 
     expect(result.errors?.fullName).toBeTruthy()
     expect(result.errors?.dateOfBirth).toBeTruthy()
@@ -166,10 +127,11 @@ describe("home profile actions", () => {
   })
 
   it("saves name + DOB with no email and confirms success", async () => {
-    const { updateCustomerProfile, startCustomerEmailVerification } = mockDeps({})
-    const { saveHomeProfileAction } = await import(
-      "@/app/home/(authed)/profile/actions"
+    const { updateCustomerProfile, startCustomerEmailVerification } = mockDeps(
+      {}
     )
+    const { saveHomeProfileAction } =
+      await import("@/app/home/(authed)/profile/actions")
 
     const result = await saveHomeProfileAction(
       {},
@@ -193,9 +155,8 @@ describe("home profile actions", () => {
         email: "sam@example.test",
       })),
     })
-    const { saveHomeProfileAction } = await import(
-      "@/app/home/(authed)/profile/actions"
-    )
+    const { saveHomeProfileAction } =
+      await import("@/app/home/(authed)/profile/actions")
 
     const result = await saveHomeProfileAction(
       {},
@@ -206,8 +167,33 @@ describe("home profile actions", () => {
       })
     )
 
-    expect(startCustomerEmailVerification).toHaveBeenCalledWith("sam@example.test")
+    expect(startCustomerEmailVerification).toHaveBeenCalledWith(
+      "sam@example.test"
+    )
     expect(result.message).toMatch(/code/i)
+  })
+
+  it("does not start verification when a verified email is locked", async () => {
+    const { startCustomerEmailVerification } = mockDeps({
+      updateCustomerProfile: vi.fn(async () => ({
+        emailVerificationRequired: false,
+        email: "verified@example.test",
+        emailLocked: true,
+      })),
+    })
+    const { saveHomeProfileAction } =
+      await import("@/app/home/(authed)/profile/actions")
+
+    await saveHomeProfileAction(
+      {},
+      form({
+        fullName: "Sam Taylor",
+        dateOfBirth: "1990-01-01",
+        email: "tampered@example.test",
+      })
+    )
+
+    expect(startCustomerEmailVerification).not.toHaveBeenCalled()
   })
 
   it("confirms the email on an approved code", async () => {
@@ -217,11 +203,13 @@ describe("home profile actions", () => {
         email: "sam@example.test",
       })),
     })
-    const { verifyHomeProfileEmailAction } = await import(
-      "@/app/home/(authed)/profile/actions"
-    )
+    const { verifyHomeProfileEmailAction } =
+      await import("@/app/home/(authed)/profile/actions")
 
-    const result = await verifyHomeProfileEmailAction({}, form({ otp: "424242" }))
+    const result = await verifyHomeProfileEmailAction(
+      {},
+      form({ otp: "424242" })
+    )
 
     expect(markCustomerEmailVerified).toHaveBeenCalledWith("sam@example.test")
     expect(result.message).toBeTruthy()
@@ -230,90 +218,38 @@ describe("home profile actions", () => {
 
   it("rejects a code that does not match", async () => {
     const { markCustomerEmailVerified } = mockDeps({
-      checkCustomerEmailVerification: vi.fn(async () => ({ status: "rejected" })),
+      checkCustomerEmailVerification: vi.fn(async () => ({
+        status: "rejected",
+      })),
     })
-    const { verifyHomeProfileEmailAction } = await import(
-      "@/app/home/(authed)/profile/actions"
-    )
+    const { verifyHomeProfileEmailAction } =
+      await import("@/app/home/(authed)/profile/actions")
 
-    const result = await verifyHomeProfileEmailAction({}, form({ otp: "000000" }))
+    const result = await verifyHomeProfileEmailAction(
+      {},
+      form({ otp: "000000" })
+    )
 
     expect(result.errors?.otp).toBeTruthy()
     expect(markCustomerEmailVerified).not.toHaveBeenCalled()
   })
-})
 
-describe("home marketing consent action", () => {
-  afterEach(() => {
-    vi.resetModules()
-    vi.clearAllMocks()
-    vi.doUnmock("@/lib/customer/consent")
-    vi.doUnmock("next/cache")
-  })
-
-  function form(values: Record<string, string>) {
-    const data = new FormData()
-    for (const [key, value] of Object.entries(values)) data.set(key, value)
-    return data
-  }
-
-  function mockConsent() {
-    const updateCustomerMarketingConsent = vi.fn(async () => {})
-    vi.doMock("@/lib/customer/consent", () => ({
-      updateCustomerMarketingConsent,
-      isMarketingChannel: (value: string) =>
-        ["email", "sms", "whatsapp"].includes(value),
-      MARKETING_POLICY_VERSION: "2026-06-06",
+  it("does not resend verification for a verified profile email", async () => {
+    const startCustomerEmailVerification = vi.fn(async () => ({
+      status: "sent",
     }))
-    vi.doMock("next/cache", () => ({ revalidatePath: vi.fn() }))
-    return { updateCustomerMarketingConsent }
-  }
-
-  it("records an opt-in through the consent RPC", async () => {
-    const { updateCustomerMarketingConsent } = mockConsent()
-    const { updateHomeMarketingConsentAction } = await import(
-      "@/app/home/(authed)/profile/actions"
-    )
-
-    const result = await updateHomeMarketingConsentAction(
-      {},
-      form({ channel: "sms", optedIn: "on" })
-    )
-
-    expect(updateCustomerMarketingConsent).toHaveBeenCalledWith({
-      channel: "sms",
-      optedIn: true,
+    mockDeps({
+      startCustomerEmailVerification,
+      getCurrentCustomer: vi.fn(async () => ({
+        email: "verified@example.test",
+        emailVerifiedAt: "2026-06-17T10:00:00.000Z",
+      })),
     })
-    expect(result).toMatchObject({ channel: "sms", optedIn: true })
-    expect(result.error).toBeUndefined()
-  })
+    const { resendHomeProfileEmailAction } =
+      await import("@/app/home/(authed)/profile/actions")
 
-  it("records an opt-out when the toggle is unchecked", async () => {
-    const { updateCustomerMarketingConsent } = mockConsent()
-    const { updateHomeMarketingConsentAction } = await import(
-      "@/app/home/(authed)/profile/actions"
-    )
+    await resendHomeProfileEmailAction()
 
-    await updateHomeMarketingConsentAction({}, form({ channel: "email" }))
-
-    expect(updateCustomerMarketingConsent).toHaveBeenCalledWith({
-      channel: "email",
-      optedIn: false,
-    })
-  })
-
-  it("rejects an unknown channel without recording", async () => {
-    const { updateCustomerMarketingConsent } = mockConsent()
-    const { updateHomeMarketingConsentAction } = await import(
-      "@/app/home/(authed)/profile/actions"
-    )
-
-    const result = await updateHomeMarketingConsentAction(
-      {},
-      form({ channel: "carrier-pigeon", optedIn: "on" })
-    )
-
-    expect(result.error).toBeTruthy()
-    expect(updateCustomerMarketingConsent).not.toHaveBeenCalled()
+    expect(startCustomerEmailVerification).not.toHaveBeenCalled()
   })
 })

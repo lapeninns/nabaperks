@@ -686,6 +686,7 @@ describe("getCustomerExperienceViewModel", () => {
           fullName: null,
           dateOfBirth: null,
           email: null,
+          emailLocked: false,
         },
       },
       { kind: "redeemed_proof", reward: rewardView, merchantName: "x" },

@@ -69,6 +69,21 @@ requireMarker(
 )
 requireMarker(migrations, "customer_sessions", "revocable customer sessions")
 requireMarker(
+  migrations,
+  "customers_prevent_verified_contact_change",
+  "verified customer contact immutability trigger"
+)
+requireMarker(
+  migrations,
+  "Verified phone cannot be changed through customer profile updates",
+  "verified phone immutability guard"
+)
+requireMarker(
+  migrations,
+  "Verified email cannot be changed through customer profile updates",
+  "verified email immutability guard"
+)
+requireMarker(
   webhook,
   "stripe.webhooks.constructEvent",
   "Stripe signature verification"
