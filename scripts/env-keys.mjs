@@ -6,6 +6,11 @@ const projectDir = process.cwd()
 const contract = JSON.parse(
   readFileSync(join(projectDir, "config/env-contract.json"), "utf8")
 )
+const customerOtpBypassModeAnyFourDigits = "any-4-digits"
+const twilioVerifyEnvNames = new Set([
+  "TWILIO_ACCOUNT_SID",
+  "TWILIO_VERIFY_SERVICE_SID",
+])
 
 const command = process.argv[2] ?? "status"
 const force = process.argv.includes("--force")
@@ -118,7 +123,7 @@ function writeLocalEnv() {
   }
 
   const missing = contract
-    .filter((entry) => !entry.optional)
+    .filter((entry) => isRequiredContractEntry(entry, process.env))
     .filter((entry) => !process.env[entry.name]?.trim())
     .map((entry) => entry.name)
 
@@ -288,7 +293,7 @@ function pushVercelEnv() {
     .filter((name) => localValues[name]?.trim())
 
   const missing = contract
-    .filter((entry) => !entry.optional)
+    .filter((entry) => isRequiredContractEntry(entry, localValues))
     .filter((entry) => !localValues[entry.name]?.trim())
     .map((entry) => entry.name)
 
@@ -404,6 +409,15 @@ function mergeLocalEnv(updates) {
   }
 
   writeFileSync(target, `${lines.join("\n").trimEnd()}\n`, { mode: 0o600 })
+}
+
+function isRequiredContractEntry(entry, values) {
+  if (entry.optional) return false
+
+  return !(
+    values.CUSTOMER_OTP_BYPASS_MODE?.trim() ===
+      customerOtpBypassModeAnyFourDigits && twilioVerifyEnvNames.has(entry.name)
+  )
 }
 
 function readPostHogCliHost() {

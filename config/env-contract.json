@@ -108,6 +108,13 @@
     "description": "Twilio Verify Service SID used for customer phone OTP start/check flows."
   },
   {
+    "name": "CUSTOMER_OTP_BYPASS_MODE",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Temporary emergency customer OTP bypass. Set to any-4-digits to skip Twilio Verify and approve exactly four-digit customer OTP checks; leave blank to require Twilio Verify.",
+    "optional": true
+  },
+  {
     "name": "CUSTOMER_SESSION_SECRET",
     "visibility": "server",
     "kind": "string",
