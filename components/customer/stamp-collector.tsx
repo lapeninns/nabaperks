@@ -54,6 +54,92 @@ function resolveCoords(
   })
 }
 
+/** The instruction line under the disc for each state. */
+function stampHint(committed: boolean, inFlight: boolean, canStamp: boolean) {
+  if (committed) {
+    return "Stamp secured. Your next scan window opens on the next UK business day."
+  }
+  if (inFlight) return "Adding your stamp — keep this screen open a moment."
+  if (canStamp)
+    return "Press and hold the stamp, or tap it, to add today's mark."
+  return "You're stamped for today. Come back tomorrow."
+}
+
+/** Pure view derivation: turn the action state + props into display values. */
+function stampView(args: {
+  issued: { newStampCount: number; geoFlagged: boolean } | null
+  armed: boolean
+  canStamp: boolean
+  current: number
+  total: number
+  stampDates: string[]
+  todayLabel: string
+}) {
+  const { issued, armed, canStamp, current, total, stampDates, todayLabel } =
+    args
+  const committed = issued !== null
+  const showStamp = armed || committed
+  const displayCurrent = issued
+    ? issued.newStampCount
+    : showStamp
+      ? current + 1
+      : current
+  const dates =
+    showStamp && displayCurrent > stampDates.length
+      ? [
+          ...stampDates,
+          ...Array.from(
+            { length: displayCurrent - stampDates.length },
+            () => todayLabel
+          ),
+        ]
+      : stampDates.slice(0, displayCurrent)
+  // In-flight = optimistic stamp shown, RPC not confirmed yet (armed is cleared
+  // on error, so this is false once a stamp is declined).
+  const inFlight = armed && !committed
+
+  return {
+    hint: stampHint(committed, inFlight, canStamp),
+    displayCurrent,
+    slamIndex: showStamp ? displayCurrent - 1 : -1,
+    dates,
+    cardComplete: total > 0 && displayCurrent >= total,
+    geoFlagged: issued?.geoFlagged ?? false,
+    secured: committed || armed || !canStamp,
+  }
+}
+
+/** The celebration shown below the grid once a stamp is confirmed. */
+function StampAftermath({
+  committed,
+  cardComplete,
+  geoFlagged,
+}: {
+  committed: boolean
+  cardComplete: boolean
+  geoFlagged: boolean
+}) {
+  if (!committed) return null
+  if (cardComplete) {
+    return (
+      <RewardCelebration
+        title="That's the full card."
+        message="Your reward is ready — claim it at the counter while you're here."
+      />
+    )
+  }
+  return (
+    <StampCelebration>
+      <StatusBanner title="Stamp added." tone="success" className="text-center">
+        That&apos;s one. Your progress is saved.
+        {geoFlagged
+          ? " Location could not be confirmed, so the venue may review it."
+          : null}
+      </StatusBanner>
+    </StampCelebration>
+  )
+}
+
 /**
  * The interactive, in-place stamp surface. The customer presses (or holds) the
  * stamp disc; the stamp lands on the visible grid *optimistically* — the slam
@@ -84,27 +170,15 @@ export function StampCollector({
   const issued = result.status === "issued" ? result : null
   const errorMessage = result.status === "error" ? result.message : null
   const committed = issued !== null
-
-  const showStamp = armed || committed
-  const displayCurrent = issued
-    ? issued.newStampCount
-    : showStamp
-      ? current + 1
-      : current
-  const cardComplete = total > 0 && displayCurrent >= total
-  const slamIndex = showStamp ? displayCurrent - 1 : -1
-  const geoFlagged = issued?.geoFlagged ?? false
-
-  const dates =
-    showStamp && displayCurrent > stampDates.length
-      ? [
-          ...stampDates,
-          ...Array.from(
-            { length: displayCurrent - stampDates.length },
-            () => todayLabel
-          ),
-        ]
-      : stampDates.slice(0, displayCurrent)
+  const view = stampView({
+    issued,
+    armed,
+    canStamp,
+    current,
+    total,
+    stampDates,
+    todayLabel,
+  })
 
   function commit() {
     if (armed || committed || !canStamp) return
@@ -129,26 +203,15 @@ export function StampCollector({
     })()
   }
 
-  // In-flight = the optimistic stamp is shown but the RPC hasn't confirmed yet.
-  const inFlight = armed && !committed && !errorMessage
-  const secured = committed || armed || !canStamp
-  const hint = committed
-    ? "Stamp secured. Your next scan window opens on the next UK business day."
-    : inFlight
-      ? "Adding your stamp — keep this screen open a moment."
-      : canStamp
-        ? "Press and hold the stamp, or tap it, to add today's mark."
-        : "You're stamped for today. Come back tomorrow."
-
   return (
     <WetInkShake active={shake} onComplete={() => setShake(false)}>
       <CustomerStampCard
         venueName={venueName}
         cardName={cardName}
-        current={displayCurrent}
+        current={view.displayCurrent}
         total={total}
-        slamIndex={slamIndex}
-        stampDates={dates}
+        slamIndex={view.slamIndex}
+        stampDates={view.dates}
         reward={{
           state: "sealed",
           name: rewardName,
@@ -157,37 +220,21 @@ export function StampCollector({
         hideFooter
         hideHeaderText
         afterGrid={
-          committed ? (
-            cardComplete ? (
-              <RewardCelebration
-                title="That's the full card."
-                message="Your reward is ready — claim it at the counter while you're here."
-              />
-            ) : (
-              <StampCelebration>
-                <StatusBanner
-                  title="Stamp added."
-                  tone="success"
-                  className="text-center"
-                >
-                  That&apos;s one. Your progress is saved.
-                  {geoFlagged
-                    ? " Location could not be confirmed, so the venue may review it."
-                    : null}
-                </StatusBanner>
-              </StampCelebration>
-            )
-          ) : null
+          <StampAftermath
+            committed={committed}
+            cardComplete={view.cardComplete}
+            geoFlagged={view.geoFlagged}
+          />
         }
       >
         <div className="grid justify-items-center gap-3 pt-2">
           <StampPressButton
             onStamp={commit}
             venueName={venueName}
-            secured={secured}
+            secured={view.secured}
           />
           <p className="max-w-[18rem] text-center text-sm font-medium text-ink-soft">
-            {hint}
+            {view.hint}
           </p>
           {errorMessage ? (
             <StatusBanner
@@ -204,7 +251,7 @@ export function StampCollector({
               </span>
             </StatusBanner>
           ) : null}
-          {location.requireGeofence && !secured ? (
+          {location.requireGeofence && !view.secured ? (
             <p className="rounded-xl bg-secondary px-3 py-2 text-center text-xs leading-5 text-muted-foreground">
               This venue checks location within {location.geofenceRadiusMeters}m
               when available. Stamping still continues if your browser cannot
