@@ -38,7 +38,7 @@ export async function GET(_request: Request, context: RewardQrRouteContext) {
     rewardId,
     customerId: rewardState.customerId,
   })
-  const scanUrl = `${env.NEXT_PUBLIC_APP_URL}/app/rewards/scan/${token.scanToken}`
+  const scanUrl = `${env.NEXT_PUBLIC_APP_URL}/r/${token.scanToken}`
   const png = await renderQrCodePng(scanUrl)
 
   return new NextResponse(toArrayBuffer(png), {

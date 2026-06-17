@@ -214,6 +214,8 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
       ...(rewards.primaryRewardId
         ? { primaryRewardId: rewards.primaryRewardId }
         : {}),
+      revealedRewardName: rewards.revealedRewardName,
+      revealedRewardRedeemableFrom: rewards.revealedRewardRedeemableFrom,
       available: !unavailableReason,
       unavailableReason,
     }

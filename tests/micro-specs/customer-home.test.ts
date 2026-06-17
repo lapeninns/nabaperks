@@ -296,4 +296,108 @@ describe("customer home dashboard", () => {
       membershipId: "membership-1",
     })
   })
+
+  it("captures the waiting reward name and ready date on the home card", async () => {
+    vi.resetModules()
+    mockCurrentCustomer()
+    vi.doMock("@/lib/customer/uk-date", () => ({
+      isRedeemableFrom: (redeemableFrom: string | null) =>
+        !redeemableFrom || redeemableFrom <= "2026-06-14",
+      ukTodayIso: () => "2026-06-14",
+    }))
+    const supabase = createSupabaseMock({
+      from: {
+        customer_memberships: [
+          {
+            data: [
+              {
+                id: "membership-1",
+                merchant_id: "merchant-1",
+                current_stamp_count: 3,
+                last_visit_at: "2026-06-14T09:00:00.000Z",
+                merchants: {
+                  business_name: "Bean & Batch",
+                  business_slug: "bean-and-batch",
+                  status: "active",
+                },
+              },
+            ],
+            error: null,
+          },
+        ],
+        loyalty_cards: [
+          {
+            data: [
+              {
+                merchant_id: "merchant-1",
+                card_name: "Morning visits",
+                stamps_required: 3,
+                reward_name: "Free coffee",
+                is_active: true,
+              },
+            ],
+            error: null,
+          },
+        ],
+        reward_events: [
+          {
+            data: [
+              {
+                id: "reward-1",
+                membership_id: "membership-1",
+                reward_name: "Free coffee",
+                // Unlocked but redeemable only on the next opening day → waiting.
+                redeemable_from: "2026-06-18",
+              },
+            ],
+            error: null,
+          },
+        ],
+        billing_customers: [
+          {
+            data: [{ merchant_id: "merchant-1", status: "active" }],
+            error: null,
+          },
+        ],
+        stamp_events: [
+          {
+            data: [
+              {
+                membership_id: "membership-1",
+                earned_business_date: "2026-06-12",
+              },
+              {
+                membership_id: "membership-1",
+                earned_business_date: "2026-06-13",
+              },
+              {
+                membership_id: "membership-1",
+                earned_business_date: "2026-06-14",
+              },
+            ],
+            error: null,
+          },
+        ],
+        product_events: [{ data: [], error: null }],
+      },
+    })
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
+    }))
+
+    const { getCustomerHomeDashboard } = await import("@/lib/customer/home")
+
+    const dashboard = await getCustomerHomeDashboard()
+
+    expect(dashboard.cards[0]).toEqual(
+      expect.objectContaining({
+        unlockedRewards: 1,
+        redeemableRewards: 0,
+        revealedRewardName: "Free coffee",
+        revealedRewardRedeemableFrom: "2026-06-18",
+      })
+    )
+    // A waiting reward has no redeemable primary, so the tile stays on the card route.
+    expect(dashboard.cards[0]).not.toHaveProperty("primaryRewardId")
+  })
 })

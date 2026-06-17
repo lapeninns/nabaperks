@@ -86,7 +86,8 @@ Out of scope:
 2. The reward becomes redeemable from the next UK business day.
 3. Customer opens `/reward/[rewardId]` and shows the collection QR at the
    venue.
-4. The logged-in merchant scans the reward QR from `/app/rewards/scan`.
+4. The QR opens the public `/r/[token]` handoff, then returns the logged-in
+   merchant to `/app/rewards/scan/[token]`.
 5. `redeem_self_service_reward` marks the reward redeemed once and resets the
    visible stamp cycle.
 

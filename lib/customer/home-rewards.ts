@@ -13,6 +13,8 @@ export type RewardCounts = {
   redeemable: number
   primaryRewardId: string | null
   primaryRewardName: string | null
+  revealedRewardName: string | null
+  revealedRewardRedeemableFrom: string | null
 }
 
 export function emptyRewardCounts(): RewardCounts {
@@ -21,6 +23,8 @@ export function emptyRewardCounts(): RewardCounts {
     redeemable: 0,
     primaryRewardId: null,
     primaryRewardName: null,
+    revealedRewardName: null,
+    revealedRewardRedeemableFrom: null,
   }
 }
 
@@ -39,6 +43,11 @@ export function buildRewardCountsByMembership(
         entry.primaryRewardId = row.id
         entry.primaryRewardName = row.reward_name
       }
+    } else if (!entry.revealedRewardName) {
+      // The first waiting reward (won, not yet redeemable) names the wallet
+      // mini ticket and its "ready from" timing.
+      entry.revealedRewardName = row.reward_name
+      entry.revealedRewardRedeemableFrom = row.redeemable_from
     }
     rewardsByMembership.set(row.membership_id, entry)
   }

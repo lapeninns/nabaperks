@@ -25,6 +25,19 @@ export function formatStampDisplayDateFromIso(iso: string) {
   return `${dayLabel} ${monthLabel.replace(/\./g, "").toUpperCase()}`
 }
 
+/** Reward-ready chip label with weekday, e.g. `Thu 18 Jun`. */
+export function formatRewardReadyDate(iso: string) {
+  const [year, month, day] = iso.split("-").map(Number)
+  const anchor = new Date(Date.UTC(year, month - 1, day, 12))
+
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: LONDON,
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  }).format(anchor)
+}
+
 /** Preview dates for the join journey: view-day, +5 days, +10 days, … */
 export function stampDisplayDates(total: number, dayStep = 5) {
   const today = ukTodayIso()

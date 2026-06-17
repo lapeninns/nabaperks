@@ -429,7 +429,9 @@ describe("00/01 foundation micro-specs", () => {
 
     const merchantLayout = readProjectFile("app/app/layout.tsx")
     expect(merchantLayout).toContain("getCurrentUser")
-    expect(merchantLayout).toContain('redirect("/login?next=/app")')
+    expect(merchantLayout).toContain("readMerchantRequestPath")
+    expect(merchantLayout).toContain("merchantLoginHref")
+    expect(merchantLayout).not.toContain('redirect("/login?next=/app")')
     expect(merchantLayout).toContain("MerchantAppShell")
     expect(merchantLayout).toContain("signOutAction")
     expect(merchantLayout).not.toContain('"use client"')

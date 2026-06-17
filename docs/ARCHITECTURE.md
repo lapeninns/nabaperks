@@ -66,6 +66,7 @@ flowchart TB
 | `Route.CustomerCard`       | `/card/[membershipId]`         | Customer owner                       | `getCustomerCardState`                                          | Card state and reward links.                                                   |
 | `Route.CustomerStamp`      | `/card/[membershipId]/stamp`   | Customer owner and QR context        | `selfStampAction`                                               | Self-service stamp confirmation.                                               |
 | `Route.CustomerReward`     | `/reward/[rewardId]`           | Customer owner                       | `getCustomerRewardState`, profile actions, `RewardCollectionQr` | Reward state, profile gate, and merchant-scanned collection QR.                |
+| `Route.RewardScanHandoff`  | `/r/[token]`                   | Public                               | Redirect to merchant scan route                                 | Public URL encoded in customer-held reward QRs.                                |
 | `Route.MerchantRewardScan` | `/app/rewards/scan/[rewardId]` | Merchant                             | `getRewardScanContext`, `collectRewardScanToken`                | The segment value is a short-lived reward scan token, not a durable reward ID. |
 | `Route.AdminFraud`         | `/admin/fraud`                 | Internal admin                       | `getAdminFraudSignals`                                          | Fraud flags and redemption failures.                                           |
 | `Route.StripeWebhook`      | `/api/stripe/webhook`          | Stripe signature                     | `lib/stripe/billing.ts`, `lib/stripe/webhook-events.ts`         | Idempotent billing sync.                                                       |
@@ -167,14 +168,17 @@ sequenceDiagram
 sequenceDiagram
   actor Customer
   participant Reward as /reward/{reward_id}
+  participant Handoff as /r/{token}
   participant Token as reward_scan_tokens
   participant Merchant as merchant device
   participant RPC as collect_reward_scan_token
   participant Card as /card/{membership_id}
   Customer->>Reward: open reward page
   Reward->>Token: create short-lived scan token
-  Reward-->>Customer: show merchant-scan QR for token URL
-  Merchant->>RPC: scan token into logged-in merchant route
+  Reward-->>Customer: show merchant-scan QR for /r/{token}
+  Merchant->>Handoff: scan customer QR
+  Handoff-->>Merchant: open logged-in merchant scan route
+  Merchant->>RPC: mark reward collected
   RPC->>Token: consume token once
   RPC->>RPC: redeem owned reward event
   RPC-->>Card: customer card refreshes after collection

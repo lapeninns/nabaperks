@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation"
 
 import { getServerEnv } from "@/lib/env/server"
+import { safeMerchantNextPath } from "@/lib/navigation/safe-next-path"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export type AuthActionState = {
@@ -26,22 +27,6 @@ function value(formData: FormData, key: string) {
 
 function validateEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-}
-
-function safeNextPath(next: string) {
-  const appOrigin = "https://nabaperks.local"
-
-  try {
-    const url = new URL(next, appOrigin)
-
-    if (url.origin !== appOrigin) {
-      return "/app"
-    }
-
-    return `${url.pathname}${url.search}${url.hash}`
-  } catch {
-    return "/app"
-  }
 }
 
 export async function signUpAction(
@@ -117,7 +102,7 @@ export async function signInAction(
     }
   }
 
-  redirect(safeNextPath(next))
+  redirect(safeMerchantNextPath(next))
 }
 
 export async function signOutAction() {

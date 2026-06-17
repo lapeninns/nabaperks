@@ -69,7 +69,10 @@ export async function collectMerchantScannedReward(
 ): Promise<MerchantScannedRewardCollectionResult> {
   const merchant = await getCurrentMerchant()
   if (!merchant)
-    return { status: "blocked", reason: "Log in to collect rewards." }
+    return {
+      status: "blocked",
+      reason: "Log in to your merchant account to mark this reward collected.",
+    }
 
   const supabase = createSupabaseServiceRoleClient()
   const { data, error } = await supabase.rpc("collect_reward_scan_token", {

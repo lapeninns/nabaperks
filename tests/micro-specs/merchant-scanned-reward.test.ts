@@ -26,6 +26,7 @@ describe("merchant-scanned reward collection", () => {
   it("shows a customer-held reward QR instead of a customer self-redeem form", () => {
     expect(existsSync("components/customer/reward-panels.tsx")).toBe(true)
     expect(existsSync("app/reward/[rewardId]/qr.png/route.ts")).toBe(true)
+    expect(existsSync("app/r/[token]/page.tsx")).toBe(true)
 
     const rewardPanels = readProjectFile(
       "components/customer/reward-panels.tsx"
@@ -39,14 +40,19 @@ describe("merchant-scanned reward collection", () => {
     const rewardQrRoute = readProjectFile(
       "app/reward/[rewardId]/qr.png/route.ts"
     )
+    const publicScanHandoff = readProjectFile("app/r/[token]/page.tsx")
 
     expect(rewardPanels).toContain("RewardCollectionQr")
     expect(rewardQr).toContain("/reward/${rewardId}/qr.png")
     expect(rewardQr).not.toContain("/app/rewards/scan/${rewardId}")
     expect(rewardQr).toContain("Merchant scans this QR")
     expect(rewardQrRoute).toContain("createRewardScanToken")
-    expect(rewardQrRoute).toContain("/app/rewards/scan/${token.scanToken}")
+    expect(rewardQrRoute).toContain("/r/${token.scanToken}")
+    expect(rewardQrRoute).not.toContain("/app/rewards/scan/${token.scanToken}")
     expect(rewardQrRoute).not.toContain("/app/rewards/scan/${rewardId}")
+    expect(publicScanHandoff).toContain(
+      "redirect(`/app/rewards/scan/${encodeURIComponent(token)}`)"
+    )
     expect(cardExperience).not.toContain("SelfServiceRedeemForm")
   })
 
@@ -68,6 +74,27 @@ describe("merchant-scanned reward collection", () => {
     expect(form).toContain('name="scanToken"')
     expect(actions).toContain("collectMerchantScannedReward")
     expect(actions).toContain('value(formData, "scanToken")')
+  })
+
+  it("uses counter-facing copy on the merchant reward collection screen", () => {
+    const page = readProjectFile("app/app/rewards/scan/[rewardId]/page.tsx")
+    const form = readProjectFile(
+      "components/merchant/reward-collection-form.tsx"
+    )
+
+    for (const internalCopy of [
+      "Use this screen after scanning the QR from the customer's phone.",
+      "Customer reward ready",
+      "from this merchant device",
+      "Collect customer reward",
+    ]) {
+      expect(`${page}\n${form}`).not.toContain(internalCopy)
+    }
+
+    expect(page).toContain("Check and collect reward")
+    expect(page).toContain("Ready to collect")
+    expect(page).toContain("The customer can scan the venue QR again")
+    expect(form).toContain("Mark reward collected")
   })
 
   it("collects through an opaque scan-token RPC scoped to the merchant", async () => {

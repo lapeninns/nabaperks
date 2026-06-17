@@ -3,6 +3,7 @@ import Link from "next/link"
 import { Eyebrow, MonoTag, ReceiptCard, VenueMark } from "@/components/brand"
 import { StampGrid } from "@/components/loyalty"
 import { homeCardStatusCopy } from "@/lib/customer/home-dashboard"
+import { formatRewardReadyDate } from "@/lib/customer/uk-calendar"
 import type { HomeCard } from "@/lib/customer/home"
 
 export function HomeCardTile({ card }: { card: HomeCard }) {
@@ -15,6 +16,14 @@ export function HomeCardTile({ card }: { card: HomeCard }) {
       : card.unlockedRewards > 0
         ? { tone: "sun" as const, label: "Reward soon" }
         : null
+  const rewardSlot = card.primaryRewardId
+    ? "ready"
+    : card.unlockedRewards > 0
+      ? "revealed"
+      : "locked"
+  const rewardReadyLabel = card.revealedRewardRedeemableFrom
+    ? `Ready · ${formatRewardReadyDate(card.revealedRewardRedeemableFrom)}`
+    : "Back next opening day"
 
   return (
     <Link
@@ -48,7 +57,7 @@ export function HomeCardTile({ card }: { card: HomeCard }) {
             total={card.stampsRequired}
             dates={card.stampDates}
             showEmptySlotNumbers
-            rewardSlot={card.primaryRewardId ? "ready" : "locked"}
+            rewardSlot={rewardSlot}
             venueName={card.businessName}
             compact
             className="rounded-lg bg-accent p-3"
@@ -57,9 +66,25 @@ export function HomeCardTile({ card }: { card: HomeCard }) {
           <div className="rounded-lg border-2 border-dashed border-ink/20 bg-card p-3" />
         )}
 
-        <p className="text-sm leading-6 text-muted-foreground">
-          {homeCardStatusCopy(card)}
-        </p>
+        {rewardSlot === "revealed" ? (
+          <div
+            data-reward-ticket="revealed"
+            className="grid gap-1.5 rounded-lg border-2 border-ink bg-seal/15 p-3"
+          >
+            <Eyebrow>Your reward</Eyebrow>
+            {/* Reward name wraps freely on its own row — never truncated or clipped. */}
+            <p className="text-sm leading-tight font-extrabold break-words">
+              {card.revealedRewardName ?? "Your reward"}
+            </p>
+            <span className="w-fit max-w-full rounded-md border-2 border-ink bg-seal/25 px-2 py-0.5 font-mono text-[0.625rem] font-bold tracking-[0.06em] uppercase">
+              {rewardReadyLabel}
+            </span>
+          </div>
+        ) : (
+          <p className="text-sm leading-6 text-muted-foreground">
+            {homeCardStatusCopy(card)}
+          </p>
+        )}
       </ReceiptCard>
     </Link>
   )

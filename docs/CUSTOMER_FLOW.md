@@ -337,7 +337,7 @@ blocked.
    - merchant/card/billing still available.
 3. Customer sees assigned reward name, terms, and minimum spend.
 4. Customer shows the merchant-scan QR while at the venue.
-5. The logged-in merchant scans `/app/rewards/scan/[rewardId]`.
+5. The QR opens `/r/[token]`, then returns the logged-in merchant to `/app/rewards/scan/[token]`.
 6. `redeem_self_service_reward` marks the reward redeemed once and advances the membership's `active_cycle_number`.
 7. Customer can return to the card to see the new cycle — only stamps from the active cycle count, so the card reads `0 of N` while the redeemed reward stays in reward/activity history.
 

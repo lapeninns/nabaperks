@@ -15,6 +15,10 @@ export type HomeCard = {
   unlockedRewards: number
   redeemableRewards: number
   primaryRewardId?: string
+  /** Name of the waiting (unlocked, not-yet-redeemable) reward, for the wallet mini ticket. */
+  revealedRewardName?: string | null
+  /** UK business date the waiting reward opens — drives the mini ticket timing chip. */
+  revealedRewardRedeemableFrom?: string | null
   available: boolean
   unavailableReason?: string
 }

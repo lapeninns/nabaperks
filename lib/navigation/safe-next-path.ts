@@ -1,30 +1,46 @@
-/**
- * Guard a `next` redirect target so customer sign-in links can only ever return
- * to an in-app path. Anything that could leave the origin — a protocol-relative
- * `//evil.test` URL, an absolute `https://…`, or a non-path string — collapses to
- * the customer home. Used to build `/home/login?next=…` recovery links.
- */
 export function safeNextPath(path: string): string {
-  if (!path.startsWith("/")) return "/home"
-  if (path.startsWith("//")) return "/home"
-  if (path.startsWith("/\\")) return "/home"
-  if (isCustomerAuthPath(path)) return "/home"
-  return path
+  return safePath(path, "/home", isCustomerAuthPath)
 }
 
-/** Build a customer login link that returns to `path` after authentication. */
 export function customerLoginHref(path: string): string {
   return `/home/login?next=${encodeURIComponent(safeNextPath(path))}`
+}
+
+export function safeMerchantNextPath(path: string): string {
+  return safePath(path, "/app", isMerchantAuthPath)
+}
+
+export function merchantLoginHref(path: string): string {
+  return `/login?next=${encodeURIComponent(safeMerchantNextPath(path))}`
 }
 
 export function customerSessionResetHref(path: string): string {
   return `/home/session/reset?next=${encodeURIComponent(safeNextPath(path))}`
 }
 
+function safePath(
+  path: string,
+  fallback: string,
+  isBlockedPath: (path: string) => boolean
+): string {
+  if (!path.startsWith("/")) return fallback
+  if (path.startsWith("//")) return fallback
+  if (path.startsWith("/\\")) return fallback
+  if (isBlockedPath(path)) return fallback
+  return path
+}
+
 function isCustomerAuthPath(path: string): boolean {
   return (
     isSamePathOrDescendant(path, "/home/login") ||
     isSamePathOrDescendant(path, "/home/session/reset")
+  )
+}
+
+function isMerchantAuthPath(path: string): boolean {
+  return (
+    isSamePathOrDescendant(path, "/login") ||
+    isSamePathOrDescendant(path, "/signup")
   )
 }
 

@@ -61,12 +61,16 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     const loading = readProjectFile("app/app/loading.tsx")
     const shell = readProjectFile("components/layout/merchant-app-shell.tsx")
     const navigation = readProjectFile("components/layout/shell-navigation.tsx")
+    const requestPath = readProjectFile("lib/navigation/request-path.ts")
 
     expect(layout).toContain("getCurrentUser")
-    expect(layout).toContain('redirect("/login?next=/app")')
+    expect(layout).toContain("readMerchantRequestPath")
+    expect(layout).toContain("merchantLoginHref")
+    expect(layout).not.toContain('redirect("/login?next=/app")')
     expect(layout).toContain("<MerchantAppShell")
     expect(layout).toContain("signOutAction")
     expect(layout).not.toContain('"use client"')
+    expect(requestPath).toContain("readMerchantRequestPath")
 
     for (const href of [
       'href: "/app"',

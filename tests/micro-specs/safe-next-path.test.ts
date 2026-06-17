@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest"
 
-import { safeNextPath, customerLoginHref } from "@/lib/navigation/safe-next-path"
+import {
+  customerLoginHref,
+  merchantLoginHref,
+  safeMerchantNextPath,
+  safeNextPath,
+} from "@/lib/navigation/safe-next-path"
 
 describe("safeNextPath", () => {
   it("allows in-app absolute paths", () => {
@@ -45,5 +50,34 @@ describe("customerLoginHref", () => {
 
   it("collapses an unsafe path to the customer home", () => {
     expect(customerLoginHref("//evil.test")).toBe("/home/login?next=%2Fhome")
+  })
+})
+
+describe("safeMerchantNextPath", () => {
+  it("allows merchant app paths including reward scans", () => {
+    expect(safeMerchantNextPath("/app/rewards/scan/scan-token-1")).toBe(
+      "/app/rewards/scan/scan-token-1"
+    )
+    expect(
+      safeMerchantNextPath("/app/rewards/scan/scan-token-1?collected=1")
+    ).toBe("/app/rewards/scan/scan-token-1?collected=1")
+  })
+
+  it("rejects unsafe and merchant auth-loop targets", () => {
+    expect(safeMerchantNextPath("//evil.test/phish")).toBe("/app")
+    expect(safeMerchantNextPath("https://evil.test")).toBe("/app")
+    expect(safeMerchantNextPath("/\\evil.test")).toBe("/app")
+    expect(safeMerchantNextPath("app/rewards/scan/scan-token-1")).toBe("/app")
+    expect(safeMerchantNextPath("/login")).toBe("/app")
+    expect(safeMerchantNextPath("/login?next=%2Fapp%2Fqr")).toBe("/app")
+    expect(safeMerchantNextPath("/signup")).toBe("/app")
+  })
+})
+
+describe("merchantLoginHref", () => {
+  it("builds an encoded merchant login link from a safe path", () => {
+    expect(merchantLoginHref("/app/rewards/scan/scan-token-1")).toBe(
+      "/login?next=%2Fapp%2Frewards%2Fscan%2Fscan-token-1"
+    )
   })
 })

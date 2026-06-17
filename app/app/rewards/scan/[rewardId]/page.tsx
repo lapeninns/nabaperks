@@ -56,7 +56,7 @@ async function RewardScanStream({
   if (context.status === "unauthorized") {
     return (
       <StatusBanner title="Reward not matched" tone="warning">
-        This reward belongs to a different merchant account.
+        This reward belongs to another venue.
       </StatusBanner>
     )
   }
@@ -97,17 +97,18 @@ async function RewardScanStream({
 
       {context.status === "redeemed" || collected ? (
         <StatusBanner title="Reward collected" tone="success">
-          The reward has been marked as collected and the customer&apos;s next
-          stamp cycle is open.
+          This reward is now closed. The customer can scan the venue QR again
+          when they are ready for their next stamp.
         </StatusBanner>
       ) : context.status === "blocked" ? (
-        <StatusBanner title="Reward cannot be collected" tone="warning">
+        <StatusBanner title="Cannot collect this reward" tone="warning">
           {context.blockedReason ?? "This reward is not ready to collect."}
         </StatusBanner>
       ) : (
         <>
-          <StatusBanner title="Customer reward ready" tone="success">
-            Check the order, then collect the reward from this merchant device.
+          <StatusBanner title="Ready to collect" tone="success">
+            Check the reward against the order. Mark it collected when you have
+            served it.
           </StatusBanner>
           <MerchantRewardCollectionForm scanToken={context.scanToken} />
         </>
@@ -124,9 +125,9 @@ function ScanShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto grid max-w-xl gap-6">
       <PageTitle
-        eyebrow="Reward scan"
-        title="Collect customer reward"
-        description="Use this screen after scanning the QR from the customer's phone."
+        eyebrow="Reward collection"
+        title="Check and collect reward"
+        description="Confirm the customer is at the counter before marking the reward collected."
       />
       <section className="grid gap-4">{children}</section>
     </div>
