@@ -2,15 +2,15 @@
 
 import { useState, useTransition } from "react"
 
-import {
-  initialSelfStampState,
-  selfStampAction,
-  type SelfStampActionState,
-} from "@/app/card/[membershipId]/actions"
+import { selfStampAction } from "@/app/card/[membershipId]/actions"
 import { CustomerStampCard } from "@/components/customer/customer-flow-system"
 import { StampPressButton } from "@/components/customer/stamp-press-button"
 import { RewardCelebration, StatusBanner } from "@/components/loyalty"
 import { StampCelebration, WetInkShake } from "@/components/motion"
+import {
+  initialSelfStampState,
+  type SelfStampActionState,
+} from "@/lib/customer/self-stamp-action-state"
 
 export type StampCollectorProps = {
   membershipId: string
