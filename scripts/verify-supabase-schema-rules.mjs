@@ -14,6 +14,9 @@ export const tables = [
   "rate_limit_buckets",
   "consent_records",
   "billing_customers",
+  "reward_scan_tokens",
+  "stripe_webhook_events",
+  "customer_sessions",
   "audit_logs",
   "product_events",
 ]
@@ -42,6 +45,12 @@ export const requiredHelpers = [
   "record_self_service_geo_flag",
   "issue_self_service_stamp",
   "redeem_self_service_reward",
+  "create_reward_scan_token",
+  "get_reward_scan_context",
+  "collect_reward_scan_token",
+  "register_customer_session",
+  "touch_customer_session",
+  "revoke_customer_session",
   "admin_adjust_membership_stamps",
   "admin_cancel_reward",
   "admin_set_qr_active",
@@ -54,11 +63,12 @@ export const requiredHelpers = [
 ]
 
 export const requiredTestMarkers = [
-  "merchant owner A saw",
-  "merchant owner B saw",
-  "customer A saw",
-  "customer B saw",
-  "admin audit readback",
+  "tenant_isolation_fixture",
+  "tenant owner A saw",
+  "tenant owner B saw",
+  "tenant customer A saw",
+  "tenant customer B saw",
+  "tenant admin audit readback",
   "anon direct table access unexpectedly succeeded",
 ]
 

@@ -16,7 +16,8 @@ export type PendingPhonePayload = {
 }
 
 export type CustomerSessionPayload = {
-  version: 1
+  version: 2
+  sessionId: string
   customerId: string
   issuedAt: number
   expiresAt: number
@@ -192,16 +193,18 @@ function parseCustomerSessionPayload(
   if (!isRecord(value)) return null
 
   const version = value.version
+  const sessionId = value.sessionId
   const customerId = value.customerId
   const issuedAt = value.issuedAt
   const expiresAt = value.expiresAt
 
-  if (version !== 1) return null
+  if (version !== 2) return null
+  if (typeof sessionId !== "string") return null
   if (typeof customerId !== "string") return null
   if (typeof issuedAt !== "number") return null
   if (typeof expiresAt !== "number") return null
 
-  return { version, customerId, issuedAt, expiresAt }
+  return { version, sessionId, customerId, issuedAt, expiresAt }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

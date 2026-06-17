@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation"
+import { Suspense } from "react"
 import { UserMultiple02Icon } from "@hugeicons/core-free-icons"
 
 import { EmptyState, MonoTag, PageTitle } from "@/components/brand"
 import { CustomerReadbackTable } from "@/components/merchant/customer-readback-table"
+import { MerchantCustomersTableSkeleton } from "@/components/merchant/loading-skeletons"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { buildMerchantCustomerReadback } from "@/lib/merchant/customer-readback"
 import { getMerchantCustomers } from "@/lib/merchant/dashboard"
@@ -30,7 +32,34 @@ export default async function MerchantCustomersPage({
     ? await searchParams
     : ({} satisfies CustomersSearchParams)
 
-  const rawCustomers = await getMerchantCustomers(merchant.id)
+  const highlightedMembershipId = firstParam(params.highlight)
+
+  return (
+    <div className="grid gap-6">
+      <PageTitle
+        eyebrow="Customers"
+        title="Loyalty members"
+        description="Stamp progress and reward status for everyone who has joined your card."
+      />
+
+      <Suspense fallback={<MerchantCustomersTableSkeleton />}>
+        <CustomersTableStream
+          merchantId={merchant.id}
+          highlightedMembershipId={highlightedMembershipId}
+        />
+      </Suspense>
+    </div>
+  )
+}
+
+async function CustomersTableStream({
+  merchantId,
+  highlightedMembershipId,
+}: {
+  merchantId: string
+  highlightedMembershipId?: string
+}) {
+  const rawCustomers = await getMerchantCustomers(merchantId)
   const now = new Date()
 
   // Build masked-safe view models server-side so no raw PII reaches the client
@@ -39,32 +68,23 @@ export default async function MerchantCustomersPage({
     buildMerchantCustomerReadback(row, now)
   )
 
-  const highlightedMembershipId = firstParam(params.highlight)
-
   // Derived counts for at-a-glance stats — computed from masked data, no PII.
+  // They live in the stream so members/ready/quiet are never shown mid-load.
   const readyCount = customers.filter((c) => c.badge.tone === "ready").length
   const quietCount = customers.filter((c) => c.badge.tone === "quiet").length
 
   return (
-    <div className="grid gap-6">
-      <PageTitle
-        eyebrow="Customers"
-        title="Loyalty members"
-        description="Stamp progress and reward status for everyone who has joined your card."
-        actions={
-          customers.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <MonoTag tone="ink">
-                {customers.length}{" "}
-                {customers.length === 1 ? "member" : "members"}
-                {readyCount > 0 ? ` · ${readyCount} ready to redeem` : ""}
-                {quietCount > 0 ? ` · ${quietCount} gone quiet` : ""}
-              </MonoTag>
-              <MonoTag tone="plain">Initials only · Phones stay hashed</MonoTag>
-            </div>
-          ) : undefined
-        }
-      />
+    <div className="grid gap-3">
+      {customers.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <MonoTag tone="ink">
+            {customers.length} {customers.length === 1 ? "member" : "members"}
+            {readyCount > 0 ? ` · ${readyCount} ready to redeem` : ""}
+            {quietCount > 0 ? ` · ${quietCount} gone quiet` : ""}
+          </MonoTag>
+          <MonoTag tone="plain">Initials only · Phones stay hashed</MonoTag>
+        </div>
+      ) : null}
 
       <CustomerReadbackTable
         customers={customers}

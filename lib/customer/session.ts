@@ -1,5 +1,7 @@
 import "server-only"
 
+import { randomUUID } from "node:crypto"
+
 import { cookies } from "next/headers"
 
 import { customerPhoneHmac } from "@/lib/customer/phone-pii"
@@ -15,6 +17,7 @@ import {
   type PendingPhonePayload,
   type PendingPhonePurpose,
 } from "@/lib/customer/session-cookie"
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export const pendingPhoneCookieName = "nabaperks_pending_phone"
 export const pendingEmailCookieName = "nabaperks_pending_email"
@@ -121,12 +124,16 @@ export async function setCustomerSession(
   customerId: string
 ): Promise<CustomerSessionPayload> {
   const issuedAt = nowSeconds()
+  const expiresAt = issuedAt + customerSessionTtlSeconds
   const payload: CustomerSessionPayload = {
-    version: 1,
+    version: 2,
+    sessionId: randomUUID(),
     customerId,
     issuedAt,
-    expiresAt: issuedAt + customerSessionTtlSeconds,
+    expiresAt,
   }
+  await registerCustomerSession(payload)
+
   const cookieStore = await cookies()
   cookieStore.set(
     customerSessionCookieName,
@@ -147,12 +154,72 @@ export async function getCustomerSession(): Promise<CustomerSessionPayload | nul
     customerSessionSecret(),
     nowSeconds()
   )
-  return result.ok ? result.payload : null
+  if (!result.ok) return null
+
+  const active = await isCustomerSessionActive(result.payload)
+  return active ? result.payload : null
 }
 
 export async function clearCustomerSession(): Promise<void> {
   const cookieStore = await cookies()
+  const value = cookieStore.get(customerSessionCookieName)?.value
+  if (value) {
+    const result = readCustomerSessionCookieValue(
+      value,
+      customerSessionSecret(),
+      nowSeconds()
+    )
+    if (result.ok) {
+      await revokeCustomerSession(result.payload)
+    }
+  }
   cookieStore.delete(customerSessionCookieName)
+}
+
+async function registerCustomerSession(
+  payload: CustomerSessionPayload
+): Promise<void> {
+  const supabase = createSupabaseServiceRoleClient()
+  const expiresAt = new Date(payload.expiresAt * 1000).toISOString()
+  const { error } = await supabase.rpc("register_customer_session", {
+    p_customer_id: payload.customerId,
+    p_session_id: payload.sessionId,
+    p_expires_at: expiresAt,
+  })
+
+  if (error) {
+    throw new Error(`Unable to register customer session: ${error.message}`)
+  }
+}
+
+async function isCustomerSessionActive(
+  payload: CustomerSessionPayload
+): Promise<boolean> {
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase.rpc("touch_customer_session", {
+    p_customer_id: payload.customerId,
+    p_session_id: payload.sessionId,
+  })
+
+  if (error) {
+    throw new Error(`Unable to verify customer session: ${error.message}`)
+  }
+
+  return data === true
+}
+
+async function revokeCustomerSession(
+  payload: CustomerSessionPayload
+): Promise<void> {
+  const supabase = createSupabaseServiceRoleClient()
+  const { error } = await supabase.rpc("revoke_customer_session", {
+    p_customer_id: payload.customerId,
+    p_session_id: payload.sessionId,
+  })
+
+  if (error) {
+    throw new Error(`Unable to revoke customer session: ${error.message}`)
+  }
 }
 
 function customerSessionSecret(): string {

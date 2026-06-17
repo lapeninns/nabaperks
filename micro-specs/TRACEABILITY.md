@@ -412,6 +412,74 @@ Status evidence:
 | `MS-FOUNDATION-SUPABASE-SCHEMA-RLS-AUDIT-004` | `active` | `migrations` | `governance`<br>`lint`<br>`security`<br>`sql-rls`<br>`typecheck`<br>`unit` | tests/micro-specs/foundation.test.ts<br>manual:billing/admin micro-spec Vitest evidence in retained legacy filename<br>tests/micro-specs/customer.test.ts<br>supabase/tests/tenant_isolation.sql<br>supabase/tests/reward_redemption_cycles.sql<br>Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename. | `supabase/migrations/**`<br>`supabase/tests/**`<br>`lib/supabase/**`<br>`lib/**/*.ts` | `pnpm governance`<br>`pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`pnpm db:verify`<br>`pnpm security:verify` | `current`    |
 | `MS-FOUNDATION-SUPABASE-SCHEMA-RLS-AUDIT-005` | `active` | `migrations` | `governance`<br>`lint`<br>`security`<br>`sql-rls`<br>`typecheck`<br>`unit` | tests/micro-specs/foundation.test.ts<br>manual:billing/admin micro-spec Vitest evidence in retained legacy filename<br>tests/micro-specs/customer.test.ts<br>supabase/tests/tenant_isolation.sql<br>supabase/tests/reward_redemption_cycles.sql<br>Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename. | `supabase/migrations/**`<br>`supabase/tests/**`<br>`lib/supabase/**`<br>`lib/**/*.ts` | `pnpm governance`<br>`pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`pnpm db:verify`<br>`pnpm security:verify` | `current`    |
 
+## MS-FOUNDATION-WET-INK-FULL-UI-REWRITE — Wet Ink Full UI/UX Rewrite — Production Parity with the Reference Library
+
+| Field         | Value                                                                                                                                                                                                                                                         |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Status        | `active`                                                                                                                                                                                                                                                      |
+| Risk class    | `ui-only`                                                                                                                                                                                                                                                     |
+| Change state  | `current`                                                                                                                                                                                                                                                     |
+| Owner         | `factory-droid`                                                                                                                                                                                                                                               |
+| Last reviewed | `2026-06-17`                                                                                                                                                                                                                                                  |
+| Source        | `micro-specs/01-foundation/04-wet-ink-full-ui-rewrite.md`                                                                                                                                                                                                     |
+| Tests         | `tests/micro-specs/customer-flow-redesign.test.ts`<br>`tests/micro-specs/earned-stamp-redesign.test.ts`<br>`tests/micro-specs/admin-console-redesign.test.ts`<br>`tests/micro-specs/wet-ink-motion.test.ts`<br>`tests/micro-specs/merchant-readbacks.test.ts` |
+| Gates         | `pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`npx playwright test`                                                                                                                                                                                       |
+| Supersession  | `not_superseded`: New umbrella specification; coordinates surface tracks without replacing prior intent.                                                                                                                                                      |
+
+Allowed blast radius:
+
+- `components/**`
+- `app/globals.css`
+- `app/dev/**`
+- `app/page.tsx`
+- `app/pricing/**`
+- `app/(auth)/**`
+- `docs/UI_PARITY_MATRIX.md`
+- `micro-specs/01-foundation/04-wet-ink-full-ui-rewrite.md`
+- `micro-specs/TRACEABILITY.md`
+- `micro-specs/traceability.json`
+- `DESIGN.md`
+- `tests/micro-specs/wet-ink-motion.test.ts`
+- `tests/e2e/design-system-catalog.spec.ts`
+
+Implementation surfaces:
+
+- `components/brand/**`
+- `components/loyalty/**`
+- `components/motion/**`
+- `components/forms/**`
+- `components/data/**`
+- `components/layout/**`
+- `components/customer/**`
+- `components/merchant/**`
+- `components/admin/**`
+- `components/marketing/**`
+- `components/auth/**`
+- `app/dev/**`
+
+Status evidence:
+
+- Umbrella spec for the full Wet Ink UI/UX rewrite across all production surfaces.
+- Consumes the motion system spec (MS-FOUNDATION-WET-INK-MOTION-SYSTEM); does not supersede it.
+- Routes, server actions, and RPC boundaries are unchanged — only composition and styling.
+
+### Requirements
+
+| Requirement ID                              | Status   | Risk      | Test tier | Evidence and rationale                           | Implementation surfaces                             | Verification commands | Change state |
+| ------------------------------------------- | -------- | --------- | --------- | ------------------------------------------------ | --------------------------------------------------- | --------------------- | ------------ |
+| `MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-001` | `active` | `ui-only` | `unit`    | tests/micro-specs/wet-ink-motion.test.ts         | `components/motion/**`<br>`components/loyalty/**`   | `pnpm test`           | `current`    |
+| `MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-002` | `active` | `ui-only` | `unit`    | tests/micro-specs/foundation.test.ts             | `components/brand/**`<br>`components/forms/**`      | `pnpm test`           | `current`    |
+| `MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-003` | `active` | `ui-only` | `unit`    | manual:copy-register-en-gb-review                | `components/customer/**`                            | `pnpm test`           | `current`    |
+| `MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-004` | `active` | `ui-only` | `unit`    | tests/micro-specs/customer-flow-redesign.test.ts | `components/loyalty/**`<br>`components/customer/**` | `pnpm test`           | `current`    |
+| `MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-005` | `active` | `ui-only` | `unit`    | tests/micro-specs/customer-flow-redesign.test.ts | `components/customer/**`                            | `pnpm test`           | `current`    |
+| `MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-006` | `active` | `ui-only` | `unit`    | tests/micro-specs/merchant-readbacks.test.ts     | `components/merchant/**`<br>`components/layout/**`  | `pnpm test`           | `current`    |
+| `MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-007` | `active` | `ui-only` | `unit`    | tests/micro-specs/merchant-readbacks.test.ts     | `components/merchant/**`                            | `pnpm test`           | `current`    |
+| `MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-008` | `active` | `ui-only` | `unit`    | tests/micro-specs/admin-console-redesign.test.ts | `components/admin/**`<br>`components/layout/**`     | `pnpm test`           | `current`    |
+| `MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-009` | `active` | `ui-only` | `unit`    | tests/micro-specs/marketing-redesign.test.ts     | `components/marketing/**`<br>`components/layout/**` | `pnpm test`           | `current`    |
+| `MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-010` | `active` | `ui-only` | `unit`    | tests/micro-specs/auth-redesign.test.ts          | `components/auth/**`                                | `pnpm test`           | `current`    |
+| `MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-011` | `active` | `ui-only` | `browser` | manual:dev-design-system-catalog-smoke           | `app/dev/**`                                        | `npx playwright test` | `current`    |
+| `MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-012` | `active` | `ui-only` | `unit`    | manual:route-loaders-unchanged-diff-review       | `components/layout/**`                              | `pnpm test`           | `current`    |
+
 ## MS-FOUNDATION-WET-INK-MOTION-SYSTEM — Wet Ink Motion System — Framer Motion Library Consolidation
 
 | Field         | Value                                                                                                                                                 |

@@ -1,7 +1,9 @@
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
+import { Suspense } from "react"
 
 import { PageTitle } from "@/components/brand"
+import { RewardScanContentSkeleton } from "@/components/merchant/loading-skeletons"
 import { MerchantRewardCollectionForm } from "@/components/merchant/reward-collection-form"
 import { RewardTicket, StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
@@ -21,11 +23,30 @@ export default async function MerchantRewardScanPage({
   searchParams,
 }: MerchantRewardScanPageProps) {
   const { rewardId } = await params
+  const scanToken = rewardId
   const query = searchParams ? await searchParams : {}
-  const context = await loadMerchantRewardScanContext(rewardId)
+  const collected = firstParam(query.collected) === "1"
+
+  return (
+    <ScanShell>
+      <Suspense fallback={<RewardScanContentSkeleton />}>
+        <RewardScanStream scanToken={scanToken} collected={collected} />
+      </Suspense>
+    </ScanShell>
+  )
+}
+
+async function RewardScanStream({
+  scanToken,
+  collected,
+}: {
+  scanToken: string
+  collected: boolean
+}) {
+  const context = await loadMerchantRewardScanContext(scanToken)
 
   if (context.status === "unauthenticated") {
-    redirect(`/login?next=/app/rewards/scan/${rewardId}`)
+    redirect(`/login?next=/app/rewards/scan/${scanToken}`)
   }
 
   if (context.status === "not_found") {
@@ -34,11 +55,9 @@ export default async function MerchantRewardScanPage({
 
   if (context.status === "unauthorized") {
     return (
-      <ScanShell>
-        <StatusBanner title="Reward not matched" tone="warning">
-          This reward belongs to a different merchant account.
-        </StatusBanner>
-      </ScanShell>
+      <StatusBanner title="Reward not matched" tone="warning">
+        This reward belongs to a different merchant account.
+      </StatusBanner>
     )
   }
 
@@ -46,10 +65,8 @@ export default async function MerchantRewardScanPage({
     notFound()
   }
 
-  const collected = firstParam(query.collected) === "1"
-
   return (
-    <ScanShell>
+    <>
       <RewardTicket
         state={
           context.status === "redeemed" || collected ? "redeemed" : "ready"
@@ -92,14 +109,14 @@ export default async function MerchantRewardScanPage({
           <StatusBanner title="Customer reward ready" tone="success">
             Check the order, then collect the reward from this merchant device.
           </StatusBanner>
-          <MerchantRewardCollectionForm rewardId={context.rewardId} />
+          <MerchantRewardCollectionForm scanToken={context.scanToken} />
         </>
       )}
 
       <Button asChild variant="secondary">
         <Link href="/app/activity">Back to activity</Link>
       </Button>
-    </ScanShell>
+    </>
   )
 }
 

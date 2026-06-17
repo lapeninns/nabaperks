@@ -102,11 +102,15 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     expect(navigation).toContain("opacity-0")
 
     expect(loading).toContain(
-      'import { Skeleton } from "@/components/ui/skeleton"'
+      'import { MerchantPageTitleSkeleton } from "@/components/merchant/loading-skeletons"'
     )
     expect(loading).toContain('aria-label="Loading merchant workspace"')
-    expect(loading).toContain("min-h-[")
+    expect(loading).toContain('role="status"')
+    expect(loading).toContain("<MerchantPageTitleSkeleton />")
+    // Generic route fallback only — no dashboard metric/activity markup that
+    // would flash a different shape before each page renders its real title.
     expect(loading).not.toContain("Card")
+    expect(loading).not.toContain("md:grid-cols-3")
   })
 
   it("preserves the dashboard onboarding gate, merchant-scoped read, and analytics event", async () => {
@@ -224,7 +228,7 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     expect(dashboard).toContain("ActivityCompactFeed")
     expect(dashboard).toContain("getEnrichedMerchantActivity")
     expect(dashboard).toContain(
-      "<Suspense fallback={<MerchantDashboardSkeleton />}>"
+      "<Suspense fallback={<MerchantDashboardMetricsSkeleton />}>"
     )
     expect(dashboard).toContain("<MerchantDashboardStream")
     expect(dashboard).toContain("<MerchantCompactActivityStream")
@@ -533,9 +537,14 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     )
 
     expect(customersPage).toContain("getCurrentMerchant")
-    expect(customersPage).toContain("getMerchantCustomers(merchant.id)")
+    expect(customersPage).toContain("getMerchantCustomers(merchantId)")
     expect(customersPage).toContain("CustomerReadbackTable")
     expect(customersPage).toContain("highlightedMembershipId")
+    // The customer fetch + count tags stream so figures are not wrong mid-load.
+    expect(customersPage).toContain("async function CustomersTableStream")
+    expect(customersPage).toContain(
+      "<Suspense fallback={<MerchantCustomersTableSkeleton />}>"
+    )
     expect(customerTable).toContain("DataTable")
     expect(customerTable).toContain("rowClassName")
     for (const header of [
@@ -773,5 +782,79 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     await expect(openCustomerPortalAction()).rejects.toThrow(
       "NEXT_REDIRECT:/app/billing?portal=missing"
     )
+  })
+
+  it("centralises merchant loading skeletons and streams slow page bodies", () => {
+    const skeletons = readProjectFile(
+      "components/merchant/loading-skeletons.tsx"
+    )
+    const loading = readProjectFile("app/app/loading.tsx")
+    const dashboardPage = readProjectFile("app/app/page.tsx")
+    const streams = readProjectFile(
+      "components/merchant/dashboard-home-streams.tsx"
+    )
+    const activityPage = readProjectFile("app/app/activity/page.tsx")
+    const customersPage = readProjectFile("app/app/customers/page.tsx")
+    const launchPage = readProjectFile("app/app/launch/page.tsx")
+    const accountPage = readProjectFile("app/app/account/page.tsx")
+    const rewardScanPage = readProjectFile(
+      "app/app/rewards/scan/[rewardId]/page.tsx"
+    )
+
+    // Single source of truth: every skeleton is exported from the shared module.
+    for (const name of [
+      "MerchantPageTitleSkeleton",
+      "MerchantDashboardMetricsSkeleton",
+      "MerchantCompactActivitySkeleton",
+      "ActivityFeedSkeleton",
+      "MerchantCustomersTableSkeleton",
+      "LaunchPanelSkeleton",
+      "AccountProfilePanelSkeleton",
+      "AccountBillingPanelSkeleton",
+      "RewardScanContentSkeleton",
+    ]) {
+      expect(skeletons).toContain(`export function ${name}`)
+    }
+
+    // Appearance is owned by the Wet Ink layer — no decorative colour blobs.
+    expect(skeletons).not.toContain("bg-primary/25")
+    expect(skeletons).not.toContain("bg-accent/40")
+
+    // Skeletons no longer live scattered in the pages/streams they belong to.
+    expect(streams).not.toContain("function MerchantDashboardSkeleton")
+    expect(streams).not.toContain("function MerchantCompactActivitySkeleton")
+    expect(streams).not.toContain("@/components/ui/skeleton")
+    expect(activityPage).not.toContain("function ActivityFeedSkeleton")
+    expect(activityPage).not.toContain("@/components/ui/skeleton")
+
+    // Route fallback imports the shared title skeleton and nothing heavier.
+    expect(loading).toContain("MerchantPageTitleSkeleton")
+    expect(loading).toContain('from "@/components/merchant/loading-skeletons"')
+
+    // Dashboard reuses the renamed metrics skeleton from the shared module.
+    expect(dashboardPage).toContain(
+      'from "@/components/merchant/loading-skeletons"'
+    )
+
+    // Each substantive page streams its slow body behind a structural skeleton.
+    expect(customersPage).toContain(
+      "<Suspense fallback={<MerchantCustomersTableSkeleton />}>"
+    )
+    expect(launchPage).toContain("function LaunchActivePanel")
+    expect(launchPage).toContain(
+      "fallback={<LaunchPanelSkeleton tab={activeTab} />}"
+    )
+    expect(launchPage).toContain("key={activeTab}")
+    expect(accountPage).toContain(
+      '<Suspense key="billing" fallback={<AccountBillingPanelSkeleton />}>'
+    )
+    expect(accountPage).toContain(
+      '<Suspense key="profile" fallback={<AccountProfilePanelSkeleton />}>'
+    )
+    expect(rewardScanPage).toContain(
+      "<Suspense fallback={<RewardScanContentSkeleton />}>"
+    )
+    expect(rewardScanPage).toContain("async function RewardScanStream")
+    expect(rewardScanPage).toContain("loadMerchantRewardScanContext")
   })
 })

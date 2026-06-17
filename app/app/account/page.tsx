@@ -1,8 +1,14 @@
+import { Suspense } from "react"
+
 import { PageTitle } from "@/components/brand"
 import { AccountTabBar } from "@/components/merchant/account/account-tab-bar"
 import { resolveAccountTab } from "@/components/merchant/account/account-tabs"
 import { BillingPanel } from "@/components/merchant/account/billing-panel"
 import { ProfilePanel } from "@/components/merchant/account/profile-panel"
+import {
+  AccountBillingPanelSkeleton,
+  AccountProfilePanelSkeleton,
+} from "@/components/merchant/loading-skeletons"
 
 export const dynamic = "force-dynamic"
 
@@ -33,11 +39,15 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
       <AccountTabBar activeTab={tab} />
 
       {tab === "billing" ? (
-        <BillingPanel
-          params={{ checkout: params.checkout, portal: params.portal }}
-        />
+        <Suspense key="billing" fallback={<AccountBillingPanelSkeleton />}>
+          <BillingPanel
+            params={{ checkout: params.checkout, portal: params.portal }}
+          />
+        </Suspense>
       ) : (
-        <ProfilePanel />
+        <Suspense key="profile" fallback={<AccountProfilePanelSkeleton />}>
+          <ProfilePanel />
+        </Suspense>
       )}
     </div>
   )

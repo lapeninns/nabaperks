@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server"
 
-import { getServerEnv } from "@/lib/env/server"
 import { getCustomerRewardState } from "@/lib/customer/reward"
+import { createRewardScanToken } from "@/lib/customer/reward-scan-token"
 import { isRedeemableFrom } from "@/lib/customer/uk-date"
+import { getServerEnv } from "@/lib/env/server"
 import { renderQrCodePng } from "@/lib/qr/assets"
 
 export const runtime = "nodejs"
@@ -33,7 +34,11 @@ export async function GET(_request: Request, context: RewardQrRouteContext) {
   }
 
   const env = getServerEnv()
-  const scanUrl = `${env.NEXT_PUBLIC_APP_URL}/app/rewards/scan/${rewardId}`
+  const token = await createRewardScanToken({
+    rewardId,
+    customerId: rewardState.customerId,
+  })
+  const scanUrl = `${env.NEXT_PUBLIC_APP_URL}/app/rewards/scan/${token.scanToken}`
   const png = await renderQrCodePng(scanUrl)
 
   return new NextResponse(toArrayBuffer(png), {

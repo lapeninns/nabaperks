@@ -4,7 +4,7 @@ import { Activity03Icon } from "@hugeicons/core-free-icons"
 
 import { EmptyState, PageTitle } from "@/components/brand"
 import { ActivityDetailFeed } from "@/components/merchant/activity-detail-feed"
-import { Skeleton } from "@/components/ui/skeleton"
+import { ActivityFeedSkeleton } from "@/components/merchant/loading-skeletons"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import {
   type ActivityCategory,
@@ -82,40 +82,6 @@ async function ActivityFeedStream({
         />
       }
     />
-  )
-}
-
-function ActivityFeedSkeleton() {
-  return (
-    <div className="grid min-h-[360px] gap-4" aria-label="Loading activity">
-      <section className="grid gap-3 rounded-[8px] border-2 border-ink/20 bg-card/70 p-4">
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-          <Skeleton className="h-11 rounded-[8px]" />
-          <div className="flex flex-wrap gap-2">
-            {[0, 1, 2, 3, 4, 5].map((option) => (
-              <Skeleton key={option} className="h-9 w-20 rounded-full" />
-            ))}
-          </div>
-        </div>
-        <Skeleton className="h-3 w-24 rounded-full bg-muted-foreground/20" />
-      </section>
-
-      <div className="grid gap-6">
-        {[0, 1].map((group) => (
-          <section key={group} className="grid gap-2">
-            <Skeleton className="h-3 w-28 rounded-full bg-ink/15" />
-            <ol className="grid gap-2">
-              {[0, 1, 2].map((row) => (
-                <li key={row} className="grid grid-cols-[auto_1fr] gap-3">
-                  <Skeleton className="mt-4 size-2.5 rounded-full bg-ink/25" />
-                  <Skeleton className="h-[74px] rounded-[8px] border-2 border-ink/15 bg-card/70" />
-                </li>
-              ))}
-            </ol>
-          </section>
-        ))}
-      </div>
-    </div>
   )
 }
 

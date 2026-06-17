@@ -6,11 +6,13 @@ import { QrCode01Icon } from "@hugeicons/core-free-icons"
 
 import { Icon, PageTitle } from "@/components/brand"
 import {
-  MerchantCompactActivitySkeleton,
   MerchantCompactActivityStream,
-  MerchantDashboardSkeleton,
   MerchantDashboardStream,
 } from "@/components/merchant/dashboard-home-streams"
+import {
+  MerchantCompactActivitySkeleton,
+  MerchantDashboardMetricsSkeleton,
+} from "@/components/merchant/loading-skeletons"
 import { Button } from "@/components/ui/button"
 import {
   capturePostHogEvent,
@@ -55,7 +57,7 @@ export default async function MerchantAppPage() {
         }
       />
 
-      <Suspense fallback={<MerchantDashboardSkeleton />}>
+      <Suspense fallback={<MerchantDashboardMetricsSkeleton />}>
         <MerchantDashboardStream merchant={merchant} />
       </Suspense>
 

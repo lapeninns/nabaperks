@@ -443,6 +443,13 @@ body[data-grain="true"]::after {
   letter-spacing: 0.08em;
 }
 
+/* Loading placeholders read as faint ink-tinted lines on paper, never grey
+   blobs. The primitive keeps `animate-pulse` + a `rounded-lg` default; the
+   shared merchant skeletons set only dimensions and lean on this fill. */
+[data-slot="skeleton"] {
+  background-color: color-mix(in oklch, var(--w-ink) 13%, transparent);
+}
+
 [data-slot="sheet-content"] {
   background: var(--card);
 }
@@ -531,108 +538,12 @@ body[data-grain="true"]::after {
   inset: 4px;
 }
 
-/* ---------- the motion vocabulary ---------- */
-
-@keyframes w-rise {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-@keyframes w-slam {
-  0% {
-    opacity: 0;
-    transform: scale(2.6) rotate(-14deg);
-  }
-  62% {
-    opacity: 1;
-    transform: scale(0.94) rotate(-5deg);
-  }
-  80% {
-    transform: scale(1.04) rotate(-7deg);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1) rotate(var(--stamp-rot, -6deg));
-  }
-}
-@keyframes w-soft-stamp {
-  0% {
-    opacity: 0;
-    transform: scale(1.18) rotate(-6deg);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1) rotate(-6deg);
-  }
-}
-@keyframes w-shake {
-  0%,
-  100% {
-    transform: translate(0, 0) rotate(0deg);
-  }
-  20% {
-    transform: translate(-3px, 2px) rotate(-0.5deg);
-  }
-  45% {
-    transform: translate(3px, -2px) rotate(0.5deg);
-  }
-  70% {
-    transform: translate(-2px, 1px) rotate(-0.25deg);
-  }
-}
-@keyframes w-ripple {
-  0% {
-    opacity: 0.9;
-    transform: scale(0.4);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(2.1);
-  }
-}
-@keyframes w-wiggle {
-  0%,
-  100% {
-    transform: rotate(-3deg) scale(1);
-  }
-  50% {
-    transform: rotate(3deg) scale(1.03);
-  }
-}
-@keyframes w-pop {
-  0% {
-    opacity: 0;
-    transform: scale(0.6);
-  }
-  70% {
-    transform: scale(1.08);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-@keyframes w-sheet-up {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-@keyframes w-marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
+/* ---------- the motion vocabulary ----------
+   Motion now lives entirely in components/motion (Framer Motion via the WetInk*
+   primitives), which read their timing from lib/motion/tokens.ts. The former CSS
+   w-* keyframe blocks were removed; the reduced-motion fallback below still
+   neutralises any residual animation, and the resting --stamp-rot tilt that the
+   slam settles onto is seeded per slot in components/loyalty/stamp-grid.tsx. */
 
 @media (prefers-reduced-motion: reduce) {
   html {

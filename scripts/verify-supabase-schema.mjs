@@ -22,6 +22,16 @@ const serviceRoleOnlyTables = new Set()
 
 const failures = []
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+function hasPolicyForTable(source, table) {
+  return new RegExp(`on\\s+public\\.${escapeRegExp(table)}\\s+for`, "i").test(
+    source
+  )
+}
+
 for (const table of tables) {
   if (
     !migrations.includes(`create table public.${table}`) &&
@@ -46,7 +56,7 @@ for (const table of tables) {
 
   if (
     !serviceRoleOnlyTables.has(table) &&
-    !migrations.includes(`on public.${table} for`)
+    !hasPolicyForTable(migrations, table)
   ) {
     failures.push(`missing policy: ${table}`)
   }

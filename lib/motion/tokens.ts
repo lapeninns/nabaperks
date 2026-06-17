@@ -13,7 +13,7 @@
 export const wetInkTransition = {
   /**
    * Standard entrance: rise up 14px, standard ease, 0.4s.
-   * Used by WetInkRise and MotionReveal.
+   * Used by WetInkRise.
    */
   rise: {
     duration: 0.4, // --w-dur-move: 320ms is slightly faster for some uses

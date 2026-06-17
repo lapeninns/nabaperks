@@ -21,7 +21,8 @@ const STANDARD_EASE: [number, number, number, number] = [0.2, 0, 0, 1]
 const SLAM_EASE: [number, number, number, number] = [0.16, 1.2, 0.3, 1]
 
 type MotionBox = {
-  children: ReactNode
+  /** Optional so decorative leaves (confetti dots, ripple rings) can stand alone. */
+  children?: ReactNode
   className?: string
   style?: CSSProperties
 }
@@ -207,8 +208,9 @@ export function WetInkPop({
   className,
   style,
   active = false,
+  delay = 0,
   onComplete,
-}: Triggered) {
+}: Triggered & { delay?: number }) {
   const reduce = useReducedMotionHook()
 
   if (reduce || !active) {
@@ -229,6 +231,7 @@ export function WetInkPop({
         duration: wetInkTransition.pop.duration,
         ease: SLAM_EASE,
         times: [0, 0.7, 1],
+        delay,
       }}
       onAnimationComplete={onComplete}
     >

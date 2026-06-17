@@ -7,8 +7,6 @@ export function RewardCollectionQr({
   rewardId: string
   rewardName: string
 }) {
-  const scanPath = `/app/rewards/scan/${rewardId}`
-
   return (
     <div className="grid gap-3">
       <QrFrame label={`Merchant-scan QR for ${rewardName}`}>
@@ -24,9 +22,8 @@ export function RewardCollectionQr({
           Merchant scans this QR
         </p>
         <p className="text-xs leading-5 text-muted-foreground">
-          Keep this screen open at the counter. The merchant scan opens{" "}
-          <span className="font-mono">{scanPath}</span> and marks the reward as
-          collected.
+          Keep this screen open at the counter. The merchant scan marks the
+          reward as collected from their device.
         </p>
       </div>
     </div>

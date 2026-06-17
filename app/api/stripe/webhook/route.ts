@@ -9,6 +9,11 @@ import {
   syncStripeSubscription,
 } from "@/lib/stripe/billing"
 import { getStripe } from "@/lib/stripe/server"
+import {
+  claimStripeWebhookEvent,
+  markStripeWebhookEventFailed,
+  markStripeWebhookEventProcessed,
+} from "@/lib/stripe/webhook-events"
 
 export async function POST(request: Request) {
   const env = getServerEnv()
@@ -17,7 +22,10 @@ export async function POST(request: Request) {
   const body = await request.text()
 
   if (!signature) {
-    return NextResponse.json({ error: "Missing Stripe signature" }, { status: 400 })
+    return NextResponse.json(
+      { error: "Missing Stripe signature" },
+      { status: 400 }
+    )
   }
 
   let event: Stripe.Event
@@ -29,13 +37,23 @@ export async function POST(request: Request) {
       env.STRIPE_WEBHOOK_SECRET
     )
   } catch {
-    return NextResponse.json({ error: "Invalid Stripe signature" }, { status: 400 })
+    return NextResponse.json(
+      { error: "Invalid Stripe signature" },
+      { status: 400 }
+    )
   }
 
   try {
+    const claim = await claimStripeWebhookEvent(event)
+    if (claim.status === "duplicate") {
+      return NextResponse.json({ received: true, duplicate: true })
+    }
+
     await handleStripeEvent(stripe, event)
+    await markStripeWebhookEventProcessed(event.id)
   } catch (error) {
     const message = error instanceof Error ? error.message : "Webhook failed"
+    await markStripeWebhookEventFailed(event.id, message)
     return NextResponse.json({ error: message }, { status: 500 })
   }
 
@@ -78,7 +96,8 @@ async function handleStripeEvent(stripe: Stripe, event: Stripe.Event) {
           merchantId: result.merchantId,
           actorType: "system",
           metadata: {
-            stripe_subscription_id: (event.data.object as Stripe.Subscription).id,
+            stripe_subscription_id: (event.data.object as Stripe.Subscription)
+              .id,
           },
         })
       }

@@ -20,6 +20,9 @@ const eslintConfig = defineConfig([
     // Non-app artifacts.
     "docs/**/*.tsx",
     ".tmp/**",
+    // Decoded Wet Ink prototype reference — visual/interaction reference only,
+    // never imported by the app (vendored React/Babel + inline-styled prototype).
+    "outputs/**",
     // Ephemeral agent worktree scratch space.
     ".claude/**",
   ]),

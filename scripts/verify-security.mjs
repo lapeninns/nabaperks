@@ -61,11 +61,19 @@ requireMarker(
 requireMarker(migrations, "selfstamp:", "self-service stamp rate-limit key")
 requireMarker(migrations, "rate_limit_buckets", "durable rate-limit buckets")
 requireMarker(migrations, "enforce_rate_limit", "durable rate-limit RPC")
+requireMarker(migrations, "reward_scan_tokens", "reward scan token table")
+requireMarker(
+  migrations,
+  "stripe_webhook_events",
+  "Stripe webhook event ledger"
+)
+requireMarker(migrations, "customer_sessions", "revocable customer sessions")
 requireMarker(
   webhook,
   "stripe.webhooks.constructEvent",
   "Stripe signature verification"
 )
+requireMarker(webhook, "claimStripeWebhookEvent", "Stripe webhook idempotency")
 requireMarker(rateLimit, 'createHash("sha256")', "hashed rate-limit keys")
 requireMarker(
   rateLimit,
@@ -93,6 +101,11 @@ requireMarker(
   tenantTest,
   "duplicate redemption boundary",
   "duplicate-redemption test marker"
+)
+requireMarker(
+  tenantTest,
+  "tenant_isolation_fixture",
+  "self-contained tenant isolation fixture marker"
 )
 
 if (authActions.includes("signInWithOtp")) {

@@ -16,7 +16,7 @@ import {
 } from "@/components/brand"
 import { MarketingLayout } from "@/components/layout"
 import { QrFrame, StampGrid } from "@/components/loyalty"
-import { MotionReveal } from "@/components/motion"
+import { WetInkRise } from "@/components/motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -179,7 +179,7 @@ export default function Page() {
         </div>
 
         {/* Live receipt + join QR demo */}
-        <MotionReveal className="grid gap-4" delay={0.08}>
+        <WetInkRise className="grid gap-4" delay={0.08}>
           <div className="-rotate-1">
             <Card className="gap-4 p-5">
               <div className="flex items-start justify-between gap-4">
@@ -232,7 +232,7 @@ export default function Page() {
               </div>
             </div>
           </div>
-        </MotionReveal>
+        </WetInkRise>
       </section>
 
       {/* Four-stage journey */}

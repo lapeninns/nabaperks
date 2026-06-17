@@ -18,9 +18,8 @@ import {
 import { ActivityCompactFeed } from "@/components/merchant/activity-compact-feed"
 import { MerchantBillingNotice } from "@/components/merchant/billing-status"
 import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
-import { MotionReveal } from "@/components/motion"
+import { WetInkRise } from "@/components/motion"
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
 import { getEnrichedMerchantActivity } from "@/lib/merchant/activity"
 import {
   getMerchantDashboardData,
@@ -111,17 +110,13 @@ export async function MerchantDashboardStream({
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {secondaryMetrics.map((metric, index) => (
-            <MotionReveal
-              key={metric.label}
-              delay={index * 0.045}
-              distance={12}
-            >
+            <WetInkRise key={metric.label} delay={index * 0.045} distance={12}>
               <MetricTile
                 label={metric.label}
                 value={metric.value}
                 icon={metric.icon}
               />
-            </MotionReveal>
+            </WetInkRise>
           ))}
         </div>
       </section>
@@ -161,50 +156,6 @@ export async function MerchantCompactActivityStream({
           />
         }
       />
-    </ReceiptCard>
-  )
-}
-
-export function MerchantDashboardSkeleton() {
-  return (
-    <div className="grid gap-4" aria-label="Loading dashboard metrics">
-      <Skeleton className="h-20 rounded-[8px] border-2 border-ink/15 bg-card/70" />
-      <section className="grid gap-3">
-        <div className="overflow-hidden rounded-[8px] border-2 border-ink/15 bg-card/70 p-6">
-          <div className="grid gap-3">
-            <Skeleton className="h-3 w-20 rounded-full bg-ink/15" />
-            <Skeleton className="h-12 w-28 rounded-[8px] bg-ink/15" />
-            <Skeleton className="h-3 w-44 rounded-full bg-ink/10" />
-          </div>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {[0, 1, 2, 3, 4].map((tile) => (
-            <Skeleton
-              key={tile}
-              className="h-24 rounded-[8px] border-2 border-ink/15 bg-card/70"
-            />
-          ))}
-        </div>
-      </section>
-    </div>
-  )
-}
-
-export function MerchantCompactActivitySkeleton() {
-  return (
-    <ReceiptCard className="grid gap-4" aria-label="Loading recent activity">
-      <div className="flex items-center justify-between gap-3">
-        <Skeleton className="h-5 w-32 rounded-full bg-ink/15" />
-        <Skeleton className="h-9 w-20 rounded-[8px] bg-ink/15" />
-      </div>
-      <div className="grid gap-2">
-        {[0, 1, 2].map((row) => (
-          <Skeleton
-            key={row}
-            className="h-16 rounded-[8px] border-2 border-ink/15 bg-background/70"
-          />
-        ))}
-      </div>
     </ReceiptCard>
   )
 }

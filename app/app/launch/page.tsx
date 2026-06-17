@@ -1,8 +1,10 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import { Suspense } from "react"
 
 import { PageTitle } from "@/components/brand"
 import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
+import { LaunchPanelSkeleton } from "@/components/merchant/loading-skeletons"
 import { CardPanel } from "@/components/merchant/launch/card-panel"
 import { QrPanel } from "@/components/merchant/launch/qr-panel"
 import { VenuePanel } from "@/components/merchant/launch/venue-panel"
@@ -32,6 +34,8 @@ type LaunchPageProps = {
   }>
 }
 
+type LaunchSearchParams = Awaited<LaunchPageProps["searchParams"]>
+
 export default async function LaunchPage({ searchParams }: LaunchPageProps) {
   const params = await searchParams
   const merchant = await getCurrentMerchant()
@@ -57,15 +61,6 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
     : (launchReadiness.nextStep?.tab ?? "card")
   const requested = params.tab
   const activeTab: TabId = isTabId(requested) ? requested : defaultTab
-
-  const activePanel =
-    activeTab === "card" ? (
-      <CardPanel params={params} />
-    ) : activeTab === "venue" ? (
-      <VenuePanel />
-    ) : (
-      <QrPanel params={params} />
-    )
 
   return (
     <div className="grid gap-6">
@@ -96,7 +91,34 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
         activeTab={activeTab}
       />
 
-      <div className="grid gap-5">{activePanel}</div>
+      {/* Keyed by tab so each tab switch re-suspends and streams only the panel
+          body — the title and readiness spine above stay put. */}
+      <Suspense
+        key={activeTab}
+        fallback={<LaunchPanelSkeleton tab={activeTab} />}
+      >
+        <LaunchActivePanel activeTab={activeTab} params={params} />
+      </Suspense>
+    </div>
+  )
+}
+
+function LaunchActivePanel({
+  activeTab,
+  params,
+}: {
+  activeTab: TabId
+  params: LaunchSearchParams
+}) {
+  return (
+    <div className="grid gap-5">
+      {activeTab === "card" ? (
+        <CardPanel params={params} />
+      ) : activeTab === "venue" ? (
+        <VenuePanel />
+      ) : (
+        <QrPanel params={params} />
+      )}
     </div>
   )
 }

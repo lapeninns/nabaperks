@@ -1,6 +1,7 @@
 import "server-only"
 
 import { recordProductEvent } from "@/lib/analytics/events"
+import { loyaltyAvailability } from "@/lib/customer/availability"
 import { getCurrentCustomer } from "@/lib/customer/identity"
 import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
@@ -107,13 +108,16 @@ export async function resolveQrForJoin(
   const qrCode = data as RawQrLookup
   const merchant = first(qrCode.merchants)
   const loyaltyCard = first(qrCode.loyalty_cards)
-  const billingBlocked = await isMerchantBillingBlocked(merchant.id)
+  const billingStatus = await getMerchantBillingStatus(merchant.id)
+  const availability = loyaltyAvailability({
+    merchantStatus: merchant.status,
+    cardActive: loyaltyCard.is_active,
+    billingStatus,
+  })
   const available =
     qrCode.destination_type === "join" &&
     qrCode.is_active &&
-    loyaltyCard.is_active &&
-    !billingBlocked &&
-    isMerchantProgrammeActive(merchant.status)
+    availability.available
 
   if (recordScan) {
     await recordProductEvent({
@@ -177,10 +181,15 @@ export async function getMerchantJoinContext(
 
   const loyaltyCard = first(data.loyalty_cards)
   if (!loyaltyCard?.is_active) return null
-  const billingBlocked = await isMerchantBillingBlocked(data.id)
+  const billingStatus = await getMerchantBillingStatus(data.id)
+  const availability = loyaltyAvailability({
+    merchantStatus: data.status,
+    cardActive: loyaltyCard.is_active,
+    billingStatus,
+  })
 
   return {
-    available: !billingBlocked && isMerchantProgrammeActive(data.status),
+    available: availability.available,
     merchant: {
       id: data.id,
       business_name: data.business_name,
@@ -238,7 +247,7 @@ export async function getStampQrContextForMembership(
   return qrContext
 }
 
-async function isMerchantBillingBlocked(merchantId: string) {
+async function getMerchantBillingStatus(merchantId: string) {
   const supabase = createSupabaseServiceRoleClient()
   const { data, error } = await supabase
     .from("billing_customers")
@@ -250,18 +259,7 @@ async function isMerchantBillingBlocked(merchantId: string) {
     throw new Error(`Unable to load billing status: ${error.message}`)
   }
 
-  // Mirror the RPC: both `cancelled` and `suspended` block join/QR availability.
-  return data?.status === "cancelled" || data?.status === "suspended"
-}
-
-/**
- * Mirror the stamp/redeem RPCs' merchant guard: only `trial`/`active` programmes
- * accept customers. A paused/cancelled/suspended merchant must read as
- * unavailable on the join + QR resolver path, not onboard a member whose first
- * stamp the RPC will then reject.
- */
-function isMerchantProgrammeActive(status: string | null | undefined) {
-  return status === "trial" || status === "active"
+  return data?.status ?? null
 }
 
 function first<T>(value: T | T[]) {

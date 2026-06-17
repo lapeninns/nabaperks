@@ -1,5 +1,6 @@
 import type { ComponentProps, ReactNode } from "react"
 
+import { WetInkShake } from "@/components/motion"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 
@@ -20,6 +21,8 @@ type ReceiptCardProps = ComponentProps<typeof Card> & {
   wrapperClassName?: string
   /** Stamp-family tilt — receipts sit a touch off-square. */
   rotated?: boolean
+  /** Fire the paper shake (WetInkShake) on mount — e.g. when a fresh stamp lands. */
+  shaken?: boolean
 }
 
 /**
@@ -35,10 +38,11 @@ export function ReceiptCard({
   className,
   wrapperClassName,
   rotated = false,
+  shaken = false,
   ...props
 }: ReceiptCardProps) {
-  return (
-    <div className={cn(rotated && "-rotate-1", wrapperClassName)}>
+  const surface = (
+    <>
       <Card
         className={cn(PADDING[padding], "px-(--card-spacing)", className)}
         {...props}
@@ -46,6 +50,12 @@ export function ReceiptCard({
         {children}
       </Card>
       {edge ? <div aria-hidden="true" className="receipt-edge" /> : null}
+    </>
+  )
+
+  return (
+    <div className={cn(rotated && "-rotate-1", wrapperClassName)}>
+      {shaken ? <WetInkShake active>{surface}</WetInkShake> : surface}
     </div>
   )
 }

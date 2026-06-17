@@ -1,5 +1,6 @@
 import "server-only"
 
+import { loyaltyAvailability } from "@/lib/customer/availability"
 import { getCurrentCustomer } from "@/lib/customer/identity"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
@@ -178,22 +179,11 @@ export function unavailableMessage(
   cardActive: boolean,
   billingStatus: string | null
 ) {
-  if (!["trial", "active"].includes(merchantStatus)) {
-    return "This merchant loyalty programme is not currently active."
-  }
-
-  if (!cardActive) {
-    return "This loyalty card is not currently active."
-  }
-
-  // Match the RPC billing policy: both `cancelled` and `suspended` block the
-  // self-service stamp/redeem mutations, so no customer surface should imply the
-  // action is available. `trialing`, `active` and `past_due` stay allowed.
-  if (billingStatus === "suspended" || billingStatus === "cancelled") {
-    return "This loyalty programme is unavailable at the moment."
-  }
-
-  return undefined
+  return loyaltyAvailability({
+    merchantStatus,
+    cardActive,
+    billingStatus,
+  }).message
 }
 
 function first<T>(value: T | T[]) {

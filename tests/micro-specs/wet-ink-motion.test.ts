@@ -87,24 +87,53 @@ describe("Wet Ink motion system — Framer Motion library", () => {
     expect(css, "--stamp-rot seed variable missing").toContain("--stamp-rot")
   })
 
-  it("ensures no inline animation: 'w-*' strings remain in loyalty components", () => {
+  it("ensures no raw w-* animations remain in motion consumers", () => {
     const components = [
       "components/loyalty/stamp-grid.tsx",
       "components/loyalty/reward-seal.tsx",
       "components/loyalty/reward-celebration.tsx",
       "components/loyalty/stamp-journey-preview.tsx",
       "components/marketing/marquee.tsx",
+      "components/customer/legal-sheet.tsx",
     ]
 
     for (const path of components) {
       const content = read(path)
-      // Fail if the component has inline animation: "w-* strings
-      // (they should use WetInk* primitives instead)
-      const inlineAnimPattern = /animation:\s*["']w-/
+      // Fail on either raw form — inline `animation: "w-*"` JS styles or the
+      // Tailwind arbitrary `animate-[w-*]` utility. Both must route through the
+      // WetInk* Framer primitives instead.
       expect(
         content,
         `${path} still has inline animation: "w-*" style`
-      ).not.toMatch(inlineAnimPattern)
+      ).not.toMatch(/animation:\s*["']w-/)
+      expect(
+        content,
+        `${path} still uses the animate-[w-*] keyframe utility`
+      ).not.toMatch(/animate-\[w-/)
+    }
+  })
+
+  it("removed every @keyframes w-* from globals.css (Framer owns motion)", () => {
+    const css = read("app/globals.css")
+
+    expect(css, "globals.css still defines a @keyframes w-* block").not.toMatch(
+      /@keyframes\s+w-/
+    )
+  })
+
+  it("migrated former MotionReveal consumers onto WetInkRise", () => {
+    const files = [
+      "components/merchant/dashboard-home-streams.tsx",
+      "components/merchant/activity-detail-feed.tsx",
+      "app/page.tsx",
+    ]
+
+    for (const path of files) {
+      const content = read(path)
+      expect(content, `${path} still references MotionReveal`).not.toMatch(
+        /MotionReveal/
+      )
+      expect(content, `${path} should use WetInkRise`).toContain("WetInkRise")
     }
   })
 

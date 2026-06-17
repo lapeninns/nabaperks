@@ -36,11 +36,17 @@ describe("merchant-scanned reward collection", () => {
     const cardExperience = readProjectFile(
       "components/customer/customer-card-experience.tsx"
     )
+    const rewardQrRoute = readProjectFile(
+      "app/reward/[rewardId]/qr.png/route.ts"
+    )
 
     expect(rewardPanels).toContain("RewardCollectionQr")
     expect(rewardQr).toContain("/reward/${rewardId}/qr.png")
-    expect(rewardQr).toContain("/app/rewards/scan/")
+    expect(rewardQr).not.toContain("/app/rewards/scan/${rewardId}")
     expect(rewardQr).toContain("Merchant scans this QR")
+    expect(rewardQrRoute).toContain("createRewardScanToken")
+    expect(rewardQrRoute).toContain("/app/rewards/scan/${token.scanToken}")
+    expect(rewardQrRoute).not.toContain("/app/rewards/scan/${rewardId}")
     expect(cardExperience).not.toContain("SelfServiceRedeemForm")
   })
 
@@ -57,11 +63,14 @@ describe("merchant-scanned reward collection", () => {
     )
 
     expect(page).toContain("loadMerchantRewardScanContext")
+    expect(page).toContain("scanToken")
     expect(form).toContain("confirmMerchantRewardCollectionAction")
+    expect(form).toContain('name="scanToken"')
     expect(actions).toContain("collectMerchantScannedReward")
+    expect(actions).toContain('value(formData, "scanToken")')
   })
 
-  it("redeems through the RPC only after the scanned reward belongs to the merchant", async () => {
+  it("collects through an opaque scan-token RPC scoped to the merchant", async () => {
     vi.doMock("@/lib/auth/session", () => ({
       getCurrentMerchant: vi.fn(async () => ({
         id: "merchant-1",
@@ -69,20 +78,8 @@ describe("merchant-scanned reward collection", () => {
       })),
     }))
     const supabase = createSupabaseMock({
-      from: {
-        reward_events: [
-          {
-            data: {
-              id: "reward-1",
-              merchant_id: "merchant-1",
-              customer_id: "customer-1",
-            },
-            error: null,
-          },
-        ],
-      },
       rpc: {
-        redeem_self_service_reward: [
+        collect_reward_scan_token: [
           {
             data: [
               {
@@ -105,24 +102,26 @@ describe("merchant-scanned reward collection", () => {
       await import("@/lib/merchant/reward-collection")
 
     await expect(
-      collectMerchantScannedReward("reward-1")
+      collectMerchantScannedReward("scan-token-1")
     ).resolves.toMatchObject({
       status: "collected",
+      scanToken: "scan-token-1",
       rewardId: "reward-1",
       membershipId: "membership-1",
     })
+    expect(supabase.queryCalls).not.toContainEqual(
+      expect.objectContaining({ table: "reward_events" })
+    )
     expect(supabase.rpcCalls).toContainEqual({
-      name: "redeem_self_service_reward",
+      name: "collect_reward_scan_token",
       params: {
-        p_reward_event_id: "reward-1",
-        p_customer_id: "customer-1",
-        p_latitude: null,
-        p_longitude: null,
+        p_scan_token: "scan-token-1",
+        p_merchant_id: "merchant-1",
       },
     })
   })
 
-  it("blocks a merchant from collecting another merchant's scanned reward", async () => {
+  it("blocks a merchant from collecting another merchant's scan token", async () => {
     vi.doMock("@/lib/auth/session", () => ({
       getCurrentMerchant: vi.fn(async () => ({
         id: "merchant-1",
@@ -130,15 +129,13 @@ describe("merchant-scanned reward collection", () => {
       })),
     }))
     const supabase = createSupabaseMock({
-      from: {
-        reward_events: [
+      rpc: {
+        collect_reward_scan_token: [
           {
-            data: {
-              id: "reward-1",
-              merchant_id: "merchant-2",
-              customer_id: "customer-1",
+            data: null,
+            error: {
+              message: "Reward scan token belongs to a different merchant",
             },
-            error: null,
           },
         ],
       },
@@ -151,12 +148,14 @@ describe("merchant-scanned reward collection", () => {
       await import("@/lib/merchant/reward-collection")
 
     await expect(
-      collectMerchantScannedReward("reward-1")
+      collectMerchantScannedReward("scan-token-1")
     ).resolves.toMatchObject({
       status: "blocked",
       reason: "This reward belongs to a different merchant.",
     })
-    expect(supabase.rpcCalls).toHaveLength(0)
+    expect(supabase.queryCalls).not.toContainEqual(
+      expect.objectContaining({ table: "reward_events" })
+    )
   })
 
   it("maps a collect-time RPC error to calm merchant copy instead of the raw string", async () => {
@@ -167,20 +166,8 @@ describe("merchant-scanned reward collection", () => {
       })),
     }))
     const supabase = createSupabaseMock({
-      from: {
-        reward_events: [
-          {
-            data: {
-              id: "reward-1",
-              merchant_id: "merchant-1",
-              customer_id: "customer-1",
-            },
-            error: null,
-          },
-        ],
-      },
       rpc: {
-        redeem_self_service_reward: [
+        collect_reward_scan_token: [
           {
             data: null,
             error: { message: "Complete your profile before redeeming" },
@@ -195,7 +182,7 @@ describe("merchant-scanned reward collection", () => {
     const { collectMerchantScannedReward } =
       await import("@/lib/merchant/reward-collection")
 
-    const result = await collectMerchantScannedReward("reward-1")
+    const result = await collectMerchantScannedReward("scan-token-1")
     expect(result.status).toBe("blocked")
     if (result.status !== "blocked") {
       throw new Error("Expected a blocked collection result")
@@ -217,20 +204,8 @@ describe("merchant-scanned reward collection", () => {
       })),
     }))
     const supabase = createSupabaseMock({
-      from: {
-        reward_events: [
-          {
-            data: {
-              id: "reward-1",
-              merchant_id: "merchant-1",
-              customer_id: "customer-1",
-            },
-            error: null,
-          },
-        ],
-      },
       rpc: {
-        redeem_self_service_reward: [
+        collect_reward_scan_token: [
           {
             data: null,
             error: { message: "connection reset by peer" },
@@ -245,7 +220,7 @@ describe("merchant-scanned reward collection", () => {
     const { collectMerchantScannedReward } =
       await import("@/lib/merchant/reward-collection")
 
-    const result = await collectMerchantScannedReward("reward-1")
+    const result = await collectMerchantScannedReward("scan-token-1")
     expect(result).toMatchObject({
       status: "blocked",
       reason: "This reward could not be collected. Try again or refresh.",
@@ -260,26 +235,24 @@ describe("merchant-scanned reward collection", () => {
       })),
     }))
     const supabase = createSupabaseMock({
-      from: {
-        reward_events: [
+      rpc: {
+        get_reward_scan_context: [
           {
-            data: {
-              id: "reward-1",
-              status: "unlocked",
-              merchant_id: "merchant-1",
-              customer_id: "customer-1",
-              membership_id: "membership-1",
-              reward_name: "Coffee upgrade",
-              reward_terms: "One per visit.",
-              min_spend_pence: null,
-              customer_memberships: { current_stamp_count: 3 },
-              customers: {
-                email: "guest@example.test",
-                phone: "+441234567890",
-                phone_last4: "7890",
+            data: [
+              {
+                scan_status: "ready",
+                reward_event_id: "reward-1",
+                reward_name: "Coffee upgrade",
+                reward_terms: "One per visit.",
+                min_spend_pence: null,
+                membership_id: "membership-1",
+                current_stamp_count: 3,
+                customer_email: "guest@example.test",
+                customer_phone: "+441234567890",
+                customer_phone_last4: "7890",
+                blocked_reason: null,
               },
-              loyalty_cards: { stamps_required: 3, is_active: true },
-            },
+            ],
             error: null,
           },
         ],
@@ -291,15 +264,19 @@ describe("merchant-scanned reward collection", () => {
 
     const { loadMerchantRewardScanContext } =
       await import("@/lib/merchant/reward-collection")
-    const context = await loadMerchantRewardScanContext("reward-1")
+    const context = await loadMerchantRewardScanContext("scan-token-1")
 
     expect(context.status).toBe("ready")
     if (context.status !== "ready") {
       throw new Error("Expected reward scan context to be ready")
     }
+    expect(context.scanToken).toBe("scan-token-1")
     expect(context.customerLabel).toBe("g***@example.test")
     expect(context.customerLabel).not.toContain("guest@example.test")
     expect(context.customerLabel).not.toContain("1234567890")
+    expect(supabase.queryCalls).not.toContainEqual(
+      expect.objectContaining({ table: "reward_events" })
+    )
   })
 
   it("redirects a successful merchant confirmation to the collected proof", async () => {
@@ -311,6 +288,7 @@ describe("merchant-scanned reward collection", () => {
     vi.doMock("@/lib/merchant/reward-collection", () => ({
       collectMerchantScannedReward: vi.fn(async () => ({
         status: "collected",
+        scanToken: "scan-token-1",
         rewardId: "reward-1",
         membershipId: "membership-1",
       })),
@@ -320,7 +298,12 @@ describe("merchant-scanned reward collection", () => {
       await import("@/app/app/rewards/scan/[rewardId]/actions")
 
     await expect(
-      confirmMerchantRewardCollectionAction({}, form({ rewardId: "reward-1" }))
-    ).rejects.toThrow("NEXT_REDIRECT:/app/rewards/scan/reward-1?collected=1")
+      confirmMerchantRewardCollectionAction(
+        {},
+        form({ scanToken: "scan-token-1" })
+      )
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/app/rewards/scan/scan-token-1?collected=1"
+    )
   })
 })

@@ -3192,6 +3192,268 @@
       }
     },
     {
+      "spec_id": "MS-FOUNDATION-WET-INK-FULL-UI-REWRITE",
+      "title": "Wet Ink Full UI/UX Rewrite — Production Parity with the Reference Library",
+      "source_path": "micro-specs/01-foundation/04-wet-ink-full-ui-rewrite.md",
+      "status": "active",
+      "risk_class": "ui-only",
+      "owner": "factory-droid",
+      "last_reviewed": "2026-06-17",
+      "allowed_blast_radius": [
+        "components/**",
+        "app/globals.css",
+        "app/dev/**",
+        "app/page.tsx",
+        "app/pricing/**",
+        "app/(auth)/**",
+        "docs/UI_PARITY_MATRIX.md",
+        "micro-specs/01-foundation/04-wet-ink-full-ui-rewrite.md",
+        "micro-specs/TRACEABILITY.md",
+        "micro-specs/traceability.json",
+        "DESIGN.md",
+        "tests/micro-specs/wet-ink-motion.test.ts",
+        "tests/e2e/design-system-catalog.spec.ts"
+      ],
+      "implementation_surfaces": [
+        "components/brand/**",
+        "components/loyalty/**",
+        "components/motion/**",
+        "components/forms/**",
+        "components/data/**",
+        "components/layout/**",
+        "components/customer/**",
+        "components/merchant/**",
+        "components/admin/**",
+        "components/marketing/**",
+        "components/auth/**",
+        "app/dev/**"
+      ],
+      "related_docs": [
+        "DESIGN.md",
+        "docs/UI_PARITY_MATRIX.md",
+        "micro-specs/01-foundation/03-wet-ink-motion-system.md"
+      ],
+      "related_tests": [
+        "tests/micro-specs/customer-flow-redesign.test.ts",
+        "tests/micro-specs/earned-stamp-redesign.test.ts",
+        "tests/micro-specs/admin-console-redesign.test.ts",
+        "tests/micro-specs/wet-ink-motion.test.ts",
+        "tests/micro-specs/merchant-readbacks.test.ts"
+      ],
+      "verification_gates": [
+        "pnpm lint",
+        "pnpm typecheck",
+        "pnpm test",
+        "npx playwright test"
+      ],
+      "approved_exceptions": [],
+      "change_state": "current",
+      "status_evidence": [
+        "Umbrella spec for the full Wet Ink UI/UX rewrite across all production surfaces.",
+        "Consumes the motion system spec (MS-FOUNDATION-WET-INK-MOTION-SYSTEM); does not supersede it.",
+        "Routes, server actions, and RPC boundaries are unchanged — only composition and styling."
+      ],
+      "supersession": {
+        "state": "not_superseded",
+        "superseded_by": null,
+        "rationale": "New umbrella specification; coordinates surface tracks without replacing prior intent."
+      },
+      "requirements": [
+        {
+          "requirement_id": "MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-001",
+          "summary": "WHEN a production component renders choreographed motion, THEN it uses a WetInk* primitive and contains no raw animation: w-* or animate-[w-*].",
+          "status": "active",
+          "risk_class": "ui-only",
+          "gates": ["pnpm test"],
+          "verification_commands": ["pnpm test"],
+          "required_test_tier": ["unit"],
+          "evidence": ["tests/micro-specs/wet-ink-motion.test.ts"],
+          "related_tests": ["tests/micro-specs/wet-ink-motion.test.ts"],
+          "implementation_surfaces": [
+            "components/motion/**",
+            "components/loyalty/**"
+          ],
+          "manual_rationale": [],
+          "change_state": "current"
+        },
+        {
+          "requirement_id": "MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-002",
+          "summary": "WHEN a Wet Ink treatment is applied to a shadcn primitive, THEN it routes through tokens / the data-slot layer / a wrapper and components/ui source is not edited for styling.",
+          "status": "active",
+          "risk_class": "ui-only",
+          "gates": ["pnpm test"],
+          "verification_commands": ["pnpm test"],
+          "required_test_tier": ["unit"],
+          "evidence": ["tests/micro-specs/foundation.test.ts"],
+          "related_tests": ["tests/micro-specs/foundation.test.ts"],
+          "implementation_surfaces": [
+            "components/brand/**",
+            "components/forms/**"
+          ],
+          "manual_rationale": [],
+          "change_state": "current"
+        },
+        {
+          "requirement_id": "MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-003",
+          "summary": "WHEN customer copy is authored, THEN it is British English, value-first, free of emoji and exclamation marks.",
+          "status": "active",
+          "risk_class": "ui-only",
+          "gates": ["pnpm test"],
+          "verification_commands": ["pnpm test"],
+          "required_test_tier": ["unit"],
+          "evidence": ["manual:copy-register-en-gb-review"],
+          "related_tests": ["tests/micro-specs/customer-flow-redesign.test.ts"],
+          "implementation_surfaces": ["components/customer/**"],
+          "manual_rationale": [
+            "Copy register and en-GB tone reviewed against copy-inventory.md and DESIGN.md."
+          ],
+          "change_state": "current"
+        },
+        {
+          "requirement_id": "MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-004",
+          "summary": "WHEN the reward family renders, THEN one RewardSeal vocabulary and one RewardTicket are used across all sizes and states.",
+          "status": "active",
+          "risk_class": "ui-only",
+          "gates": ["pnpm test"],
+          "verification_commands": ["pnpm test"],
+          "required_test_tier": ["unit"],
+          "evidence": ["tests/micro-specs/customer-flow-redesign.test.ts"],
+          "related_tests": ["tests/micro-specs/customer-flow-redesign.test.ts"],
+          "implementation_surfaces": [
+            "components/loyalty/**",
+            "components/customer/**"
+          ],
+          "manual_rationale": [],
+          "change_state": "current"
+        },
+        {
+          "requirement_id": "MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-005",
+          "summary": "WHEN the customer self-service stamp flow renders, THEN it uses customer-owned self-service stamping from the permanent venue QR with no staff-PIN sheet and no customer tap-to-redeem control.",
+          "status": "active",
+          "risk_class": "ui-only",
+          "gates": ["pnpm test"],
+          "verification_commands": ["pnpm test"],
+          "required_test_tier": ["unit"],
+          "evidence": ["tests/micro-specs/customer-flow-redesign.test.ts"],
+          "related_tests": ["tests/micro-specs/customer-flow-redesign.test.ts"],
+          "implementation_surfaces": ["components/customer/**"],
+          "manual_rationale": [],
+          "change_state": "current"
+        },
+        {
+          "requirement_id": "MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-006",
+          "summary": "WHEN the merchant console renders, THEN masthead, stat tiles, activity rows, and members readback mirror the reference shapes and the readback masks PII.",
+          "status": "active",
+          "risk_class": "ui-only",
+          "gates": ["pnpm test"],
+          "verification_commands": ["pnpm test"],
+          "required_test_tier": ["unit"],
+          "evidence": ["tests/micro-specs/merchant-readbacks.test.ts"],
+          "related_tests": ["tests/micro-specs/merchant-readbacks.test.ts"],
+          "implementation_surfaces": [
+            "components/merchant/**",
+            "components/layout/**"
+          ],
+          "manual_rationale": [],
+          "change_state": "current"
+        },
+        {
+          "requirement_id": "MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-007",
+          "summary": "WHEN a merchant /app/* route is loading, THEN the route fallback shows only a page-title skeleton and each page streams realistic structure-mirroring section skeletons.",
+          "status": "active",
+          "risk_class": "ui-only",
+          "gates": ["pnpm test"],
+          "verification_commands": ["pnpm test"],
+          "required_test_tier": ["unit"],
+          "evidence": ["tests/micro-specs/merchant-readbacks.test.ts"],
+          "related_tests": ["tests/micro-specs/merchant-readbacks.test.ts"],
+          "implementation_surfaces": ["components/merchant/**"],
+          "manual_rationale": [],
+          "change_state": "current"
+        },
+        {
+          "requirement_id": "MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-008",
+          "summary": "WHEN the admin console renders, THEN it uses the quieter-ink treatment and shared data primitives and surfaces the MFA gate banner.",
+          "status": "active",
+          "risk_class": "ui-only",
+          "gates": ["pnpm test"],
+          "verification_commands": ["pnpm test"],
+          "required_test_tier": ["unit"],
+          "evidence": ["tests/micro-specs/admin-console-redesign.test.ts"],
+          "related_tests": ["tests/micro-specs/admin-console-redesign.test.ts"],
+          "implementation_surfaces": [
+            "components/admin/**",
+            "components/layout/**"
+          ],
+          "manual_rationale": [],
+          "change_state": "current"
+        },
+        {
+          "requirement_id": "MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-009",
+          "summary": "WHEN the marketing home and pricing render, THEN they compose the Mk* reference structure (hero, marquee, pricing receipt, FAQ, footer) with no localStorage view-state.",
+          "status": "active",
+          "risk_class": "ui-only",
+          "gates": ["pnpm test"],
+          "verification_commands": ["pnpm test"],
+          "required_test_tier": ["unit"],
+          "evidence": ["tests/micro-specs/marketing-redesign.test.ts"],
+          "related_tests": ["tests/micro-specs/marketing-redesign.test.ts"],
+          "implementation_surfaces": [
+            "components/marketing/**",
+            "components/layout/**"
+          ],
+          "manual_rationale": [],
+          "change_state": "current"
+        },
+        {
+          "requirement_id": "MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-010",
+          "summary": "WHEN the merchant auth surface renders, THEN it uses the McAuth Wet Ink layout (VenueMark masthead, mono field labels, ink-bordered wells, full-width tactile submit) with pressable targets at least 44px, keeping the production Supabase email and password mechanic (passwordless OTP is a prototype mechanic and is not ported).",
+          "status": "active",
+          "risk_class": "ui-only",
+          "gates": ["pnpm test"],
+          "verification_commands": ["pnpm test"],
+          "required_test_tier": ["unit"],
+          "evidence": ["tests/micro-specs/auth-redesign.test.ts"],
+          "related_tests": ["tests/micro-specs/auth-redesign.test.ts"],
+          "implementation_surfaces": ["components/auth/**"],
+          "manual_rationale": [],
+          "change_state": "current"
+        },
+        {
+          "requirement_id": "MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-011",
+          "summary": "WHEN /dev/design-system is opened, THEN it renders a live catalog of tokens, typography, surfaces, motion primitives, and loyalty states with reduced-motion static fallbacks.",
+          "status": "active",
+          "risk_class": "ui-only",
+          "gates": ["npx playwright test"],
+          "verification_commands": ["npx playwright test"],
+          "required_test_tier": ["browser"],
+          "evidence": ["manual:dev-design-system-catalog-smoke"],
+          "related_tests": ["manual:dev-design-system-catalog-smoke"],
+          "implementation_surfaces": ["app/dev/**"],
+          "manual_rationale": [
+            "Catalog smoke verified in the preview server; Playwright spec to follow in integration."
+          ],
+          "change_state": "current"
+        },
+        {
+          "requirement_id": "MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-012",
+          "summary": "WHEN an app page is rewritten, THEN its loaders, redirects, Server Actions, and RPC calls are unchanged; only import paths and JSX composition differ.",
+          "status": "active",
+          "risk_class": "ui-only",
+          "gates": ["pnpm test"],
+          "verification_commands": ["pnpm test"],
+          "required_test_tier": ["unit"],
+          "evidence": ["manual:route-loaders-unchanged-diff-review"],
+          "related_tests": ["tests/micro-specs/merchant-readbacks.test.ts"],
+          "implementation_surfaces": ["components/layout/**"],
+          "manual_rationale": [
+            "Each rewritten page diff reviewed to confirm loaders/actions/RPC calls are byte-for-byte unchanged."
+          ],
+          "change_state": "current"
+        }
+      ]
+    },
+    {
       "spec_id": "MS-FOUNDATION-WET-INK-MOTION-SYSTEM",
       "title": "Wet Ink Motion System — Framer Motion Library Consolidation",
       "source_path": "micro-specs/01-foundation/03-wet-ink-motion-system.md",

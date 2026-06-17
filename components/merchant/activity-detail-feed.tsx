@@ -2,15 +2,10 @@
 
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import {
-  useDeferredValue,
-  useMemo,
-  useTransition,
-  type ReactNode,
-} from "react"
+import { useDeferredValue, useMemo, useTransition, type ReactNode } from "react"
 
 import { ACTIVITY_CATEGORY_ICON, EmptyState, MonoTag } from "@/components/brand"
-import { MotionReveal } from "@/components/motion/motion-reveal"
+import { WetInkRise } from "@/components/motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import type {
@@ -127,21 +122,19 @@ export function ActivityDetailFeed({
       ) : (
         <div className="grid gap-6">
           {groupedRows.map(([dateGroup, dateLabel, groupRows], groupIndex) => (
-            <MotionReveal
+            <WetInkRise
               key={dateGroup}
               className="grid gap-2"
               delay={groupIndex * 0.04}
               distance={10}
             >
-              <h2 className="eyebrow text-muted-foreground">
-                {dateLabel}
-              </h2>
+              <h2 className="eyebrow text-muted-foreground">{dateLabel}</h2>
               <ol className="grid gap-2">
                 {groupRows.map((row) => (
                   <ActivityDetailCard key={row.id} row={row} />
                 ))}
               </ol>
-            </MotionReveal>
+            </WetInkRise>
           ))}
         </div>
       )}
@@ -186,13 +179,13 @@ function ActivityDetailCard({ row }: { row: ActivityDisplayRow }) {
       <span
         aria-hidden="true"
         className={cn(
-          "absolute left-0 top-4 size-2.5 rounded-full border-2 border-ink ring-4 ring-background",
+          "absolute top-4 left-0 size-2.5 rounded-full border-2 border-ink ring-4 ring-background",
           activityDotClass(row.category)
         )}
       />
       <article className="group/activity surface-card border-ink px-4 py-3 transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5">
         <div className="min-w-0">
-          <p className="text-sm font-extrabold leading-6 text-foreground">
+          <p className="text-sm leading-6 font-extrabold text-foreground">
             {row.headline}
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">

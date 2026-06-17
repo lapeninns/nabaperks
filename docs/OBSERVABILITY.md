@@ -69,7 +69,9 @@ These are operator actions on the hosting providers, not code:
 2. **Errors** — create a Vercel **Log Drain** (or PostHog/Sentry) and alert on
    `level":"error"` / `message":"request.error"` volume.
 3. **Billing & webhooks** — alert on Stripe webhook signature failures
-   (`message":"request.error"` from `/api/stripe/webhook`).
+   (`message":"request.error"` from `/api/stripe/webhook`) and non-empty
+   `stripe_webhook_events.failed_at` rows. Duplicate Stripe event IDs should be
+   skipped by the webhook ledger rather than replaying billing side effects.
 4. **Database** — enable Supabase project alerts (connection saturation, error
    rate) and daily backups (PITR when tolerance lowers — see AGENTS.md).
 

@@ -1,6 +1,6 @@
 import "server-only"
 
-import { unavailableMessage } from "@/lib/customer/card"
+import { loyaltyAvailability } from "@/lib/customer/availability"
 import { getCurrentCustomer } from "@/lib/customer/identity"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
@@ -8,6 +8,7 @@ export type CustomerRewardState =
   | { status: "unauthenticated" | "unauthorized" | "not_found" }
   | {
       status: "ready"
+      customerId: string
       unavailableReason?: string
       reward: {
         id: string
@@ -138,14 +139,15 @@ export async function getCustomerRewardState(
     throw new Error(`Unable to load billing status: ${billingError.message}`)
   }
 
-  const unavailableReason = unavailableMessage(
-    merchant.status,
-    loyaltyCard.is_active,
-    billing?.status ?? null
-  )
+  const unavailableReason = loyaltyAvailability({
+    merchantStatus: merchant.status,
+    cardActive: loyaltyCard.is_active,
+    billingStatus: billing?.status ?? null,
+  }).message
 
   return {
     status: "ready",
+    customerId: reward.customer_id,
     unavailableReason,
     reward: {
       id: reward.id,

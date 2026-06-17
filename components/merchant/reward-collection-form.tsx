@@ -12,9 +12,9 @@ import { Button } from "@/components/ui/button"
 const initialState: MerchantRewardCollectionActionState = {}
 
 export function MerchantRewardCollectionForm({
-  rewardId,
+  scanToken,
 }: {
-  rewardId: string
+  scanToken: string
 }) {
   const [state, action, pending] = useActionState(
     confirmMerchantRewardCollectionAction,
@@ -23,7 +23,7 @@ export function MerchantRewardCollectionForm({
 
   return (
     <form action={action} className="grid gap-4">
-      <input type="hidden" name="rewardId" value={rewardId} />
+      <input type="hidden" name="scanToken" value={scanToken} />
       {state.errors?.form ? (
         <StatusBanner tone="warning" title="Reward not collected">
           {state.errors.form}

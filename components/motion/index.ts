@@ -1,4 +1,3 @@
-export { MotionReveal } from "./motion-reveal"
 export { StampCelebration } from "./stamp-celebration"
 
 // Wet Ink motion vocabulary — the Framer Motion primitive library.

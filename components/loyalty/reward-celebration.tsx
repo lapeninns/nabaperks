@@ -1,16 +1,18 @@
 import type { ReactNode } from "react"
 
+import { WetInkPop } from "@/components/motion"
 import { cn } from "@/lib/utils"
 
 import { RewardSeal } from "./reward-seal"
 
-/** Hard-edged riso confetti — a few flat dots in the spot inks, not a shower. */
+/** Hard-edged riso confetti — a few flat dots in the spot inks, not a shower.
+ *  Delays are seconds (Framer) so each dot pops on its own beat via WetInkPop. */
 const CONFETTI = [
-  { className: "top-4 left-7 bg-primary", delay: "80ms" },
-  { className: "top-3 left-1/3 rounded-full bg-seal", delay: "200ms" },
-  { className: "top-5 right-10 bg-reward", delay: "120ms" },
-  { className: "top-8 right-1/3 rounded-full bg-ink", delay: "300ms" },
-  { className: "top-10 left-10 rounded-full bg-reward", delay: "260ms" },
+  { className: "top-4 left-7 bg-primary", delay: 0.08 },
+  { className: "top-3 left-1/3 rounded-full bg-seal", delay: 0.2 },
+  { className: "top-5 right-10 bg-reward", delay: 0.12 },
+  { className: "top-8 right-1/3 rounded-full bg-ink", delay: 0.3 },
+  { className: "top-10 left-10 rounded-full bg-reward", delay: 0.26 },
 ] as const
 
 /**
@@ -33,13 +35,11 @@ export function RewardCelebration({
     >
       <span aria-hidden="true" className="pointer-events-none absolute inset-0">
         {CONFETTI.map((dot, index) => (
-          <span
+          <WetInkPop
             key={index}
-            style={{ animationDelay: dot.delay }}
-            className={cn(
-              "absolute size-2 border-2 border-ink motion-safe:animate-[w-pop_700ms_var(--w-ease-slam)_both]",
-              dot.className
-            )}
+            active
+            delay={dot.delay}
+            className={cn("absolute size-2 border-2 border-ink", dot.className)}
           />
         ))}
       </span>

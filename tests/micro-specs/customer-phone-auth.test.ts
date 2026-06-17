@@ -165,7 +165,8 @@ describe("customer global phone auth", () => {
     )
     const session = createCustomerSessionCookieValue(
       {
-        version: 1,
+        version: 2,
+        sessionId: "session-1",
         customerId: "customer-1",
         issuedAt: now,
         expiresAt: now + 2_592_000,
@@ -183,7 +184,7 @@ describe("customer global phone auth", () => {
       readCustomerSessionCookieValue(session, secret, now + 1)
     ).toMatchObject({
       ok: true,
-      payload: { customerId: "customer-1" },
+      payload: { customerId: "customer-1", sessionId: "session-1" },
     })
     expect(
       readPendingPhoneCookieValue(`${pending.slice(0, -1)}x`, secret, now + 1)

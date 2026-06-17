@@ -15,22 +15,22 @@ export async function confirmMerchantRewardCollectionAction(
   _state: MerchantRewardCollectionActionState,
   formData: FormData
 ): Promise<MerchantRewardCollectionActionState> {
-  const rewardId = value(formData, "rewardId")
+  const scanToken = value(formData, "scanToken")
 
-  if (!rewardId) {
+  if (!scanToken) {
     return { errors: { form: "Reward unavailable." } }
   }
 
-  const result = await collectMerchantScannedReward(rewardId)
+  const result = await collectMerchantScannedReward(scanToken)
 
   if (result.status === "blocked") {
     return { errors: { form: result.reason } }
   }
 
-  revalidatePath(`/app/rewards/scan/${result.rewardId}`)
+  revalidatePath(`/app/rewards/scan/${result.scanToken}`)
   revalidatePath("/app/activity")
   revalidatePath("/app/customers")
-  redirect(`/app/rewards/scan/${result.rewardId}?collected=1`)
+  redirect(`/app/rewards/scan/${result.scanToken}?collected=1`)
 }
 
 function value(formData: FormData, key: string) {
