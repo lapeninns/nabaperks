@@ -8,24 +8,8 @@ import {
   issueSelfServiceStamp,
   type GeoCoordinates,
 } from "@/lib/customer/stamp"
+import type { SelfStampActionState } from "@/lib/customer/self-stamp-action-state"
 import { logger } from "@/lib/observability/logger"
-
-/**
- * The stamp result handed back to the client so the stamp can land *in place*
- * with the slam animation, instead of a full-page redirect that wastes it. The
- * card route is still revalidated so a later visit reflects the new stamp.
- */
-export type SelfStampActionState =
-  | { status: "idle" }
-  | { status: "error"; message: string }
-  | {
-      status: "issued"
-      newStampCount: number
-      rewardUnlocked: boolean
-      geoFlagged: boolean
-    }
-
-export const initialSelfStampState: SelfStampActionState = { status: "idle" }
 
 function fail(message: string): SelfStampActionState {
   return { status: "error", message }

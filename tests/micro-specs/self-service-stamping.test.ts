@@ -383,6 +383,25 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     expect(revalidatePath).toHaveBeenCalledWith("/card/membership-1")
   })
 
+  it("keeps client action state defaults outside the use-server action module", () => {
+    const actions = readProjectFile("app/card/[membershipId]/actions.ts")
+    const statePath = "lib/customer/self-stamp-action-state.ts"
+    const collector = readProjectFile("components/customer/stamp-collector.tsx")
+
+    expect(actions).toContain('"use server"')
+    expect(actions).toContain("export async function selfStampAction")
+    expect(actions).not.toContain("export const initialSelfStampState")
+    expect(actions).not.toMatch(
+      /^export\s+(?:const|let|var)\s+\w+\s*(?::[^=]+)?=\s*\{/m
+    )
+
+    expect(existsSync(statePath)).toBe(true)
+    expect(readProjectFile(statePath)).toContain(
+      "export const initialSelfStampState"
+    )
+    expect(collector).toContain('from "@/lib/customer/self-stamp-action-state"')
+  })
+
   it("maps a blocked stamp RPC result to a calm error state without revalidating", async () => {
     vi.resetModules()
     const issueSelfServiceStamp = vi.fn(async () => ({
