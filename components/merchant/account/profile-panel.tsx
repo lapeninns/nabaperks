@@ -52,7 +52,7 @@ export async function ProfilePanel() {
         </p>
         <Link
           href="/app/launch?tab=venue"
-          className="mt-1 inline-flex w-fit items-center gap-1.5 text-sm font-bold text-ink underline decoration-2 underline-offset-4 transition-colors hover:text-primary"
+          className="mt-1 inline-flex w-fit items-center gap-1.5 text-sm font-bold text-ink underline decoration-2 underline-offset-4 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none hover:text-primary"
         >
           Edit venue details
           <Icon icon={ArrowRight01Icon} size={15} />

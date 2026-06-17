@@ -161,7 +161,7 @@ export function StampPressButton({
       onPointerCancel={handlePointerUp}
       onClick={handleClick}
       className={cn(
-        "relative grid size-28 touch-none place-items-center transition-transform duration-150 ease-out select-none",
+        "relative grid size-28 touch-none place-items-center transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] select-none motion-reduce:transition-none",
         pressing && !reduce ? "scale-95" : "scale-100",
         inactive ? "cursor-default" : "cursor-pointer"
       )}

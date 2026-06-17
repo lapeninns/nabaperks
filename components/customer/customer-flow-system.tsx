@@ -121,7 +121,7 @@ function OnboardingProgress({ progress }: { progress: FlowProgress }) {
           <span
             key={index}
             className={cn(
-              "h-1.5 flex-1 rounded-full border border-ink transition-colors",
+              "h-1.5 flex-1 rounded-full border border-ink transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
               index < step ? "bg-primary" : "bg-secondary"
             )}
           />

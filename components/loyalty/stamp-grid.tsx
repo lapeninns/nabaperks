@@ -61,7 +61,7 @@ export function StampDot({
           data-compact={earned && compact ? "true" : undefined}
           data-slammed={earned && slammed ? true : undefined}
           className={cn(
-            "relative grid aspect-square w-full place-items-center overflow-hidden rounded-full border-2 transition-[background-color,border-color,transform] duration-[var(--duration-reveal)] ease-[var(--ease-stamp)] motion-reduce:transition-none",
+            "relative grid aspect-square w-full place-items-center overflow-hidden rounded-full border-2 transition-[background-color,border-color,transform] duration-[var(--w-dur-move)] ease-[var(--w-ease)] motion-reduce:transition-none",
             compact ? "min-h-9" : "min-h-11",
             earned
               ? "border-ink bg-stamp text-stamp-foreground shadow-sm"

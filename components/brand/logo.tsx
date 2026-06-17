@@ -27,7 +27,7 @@ export function Logo({
       href={href}
       aria-label={`${label} home`}
       className={cn(
-        "pressable inline-flex min-h-11 items-center gap-3 rounded-full pr-3 font-extrabold lowercase tracking-tight text-foreground outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/35",
+        "pressable inline-flex min-h-11 items-center gap-3 rounded-full pr-3 font-extrabold lowercase tracking-tight text-foreground outline-none transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none focus-visible:ring-3 focus-visible:ring-ring/35",
         className
       )}
     >

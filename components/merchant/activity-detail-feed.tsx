@@ -1,10 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { useDeferredValue, useMemo, useTransition, type ReactNode } from "react"
+import { usePathname } from "next/navigation"
+import { useMemo, useState, type ReactNode } from "react"
 
-import { ACTIVITY_CATEGORY_ICON, EmptyState, MonoTag } from "@/components/brand"
+import { EmptyState } from "@/components/brand"
 import { WetInkRise } from "@/components/motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,7 +12,8 @@ import type {
   ActivityCategory,
   ActivityDisplayRow,
 } from "@/lib/merchant/activity"
-import { cn } from "@/lib/utils"
+
+import { ActivityDetailCard } from "./activity-detail-card"
 
 const filterOptions: Array<{
   id: "all" | ActivityCategory
@@ -43,26 +44,25 @@ export function ActivityDetailFeed({
   initialQuery?: string
   emptyState: ReactNode
 }) {
-  const router = useRouter()
   const pathname = usePathname()
-  const searchParams = useSearchParams()
-  const [isPending, startTransition] = useTransition()
-  const filter = normalizeFilter(searchParams.get("filter") ?? initialFilter)
-  const query = searchParams.get("q") ?? initialQuery
-  const deferredQuery = useDeferredValue(query.trim().toLowerCase())
+  const [filter, setFilter] = useState<"all" | ActivityCategory>(() =>
+    normalizeFilter(initialFilter)
+  )
+  const [query, setQuery] = useState(() => initialQuery)
+  const normalizedQuery = query.trim().toLowerCase()
 
   const filteredRows = useMemo(() => {
     return rows.filter((row) => {
       const categoryMatches = filter === "all" || row.category === filter
       const queryMatches =
-        deferredQuery.length === 0 ||
-        row.searchText.includes(deferredQuery) ||
-        row.headline.toLowerCase().includes(deferredQuery) ||
-        row.summary.toLowerCase().includes(deferredQuery)
+        normalizedQuery.length === 0 ||
+        row.searchText.includes(normalizedQuery) ||
+        row.headline.toLowerCase().includes(normalizedQuery) ||
+        row.summary.toLowerCase().includes(normalizedQuery)
 
       return categoryMatches && queryMatches
     })
-  }, [deferredQuery, filter, rows])
+  }, [filter, normalizedQuery, rows])
 
   const groupedRows = useMemo(
     () => groupRowsByDate(filteredRows),
@@ -81,7 +81,9 @@ export function ActivityDetailFeed({
             type="search"
             value={query}
             onChange={(event) => {
-              updateUrl({ q: event.target.value, limit: String(limit) })
+              const nextQuery = event.target.value
+              setQuery(nextQuery)
+              updateUrl({ filter, query: nextQuery })
             }}
             placeholder="Search activity"
             aria-label="Search activity"
@@ -96,10 +98,8 @@ export function ActivityDetailFeed({
                   variant={filter === option.id ? "default" : "secondary"}
                   aria-pressed={filter === option.id}
                   onClick={() => {
-                    updateUrl({
-                      filter: option.id === "all" ? "" : option.id,
-                      limit: String(limit),
-                    })
+                    setFilter(option.id)
+                    updateUrl({ filter: option.id, query })
                   }}
                 >
                   {option.label}
@@ -141,133 +141,45 @@ export function ActivityDetailFeed({
 
       <footer className="flex flex-wrap items-center justify-between gap-3 px-1">
         <p className="text-xs text-muted-foreground">
-          {loadedCount} of {totalCount} events loaded
-          {isPending ? " while updating filters" : ""}.
+          {loadedCount} of {totalCount} events loaded.
         </p>
         {loadedCount < totalCount ? (
           <Button asChild variant="secondary" size="sm">
-            <Link href={loadMoreHref(searchParams, limit)}>Load more</Link>
+            <Link href={loadMoreHref({ filter, limit, query })}>Load more</Link>
           </Button>
         ) : null}
       </footer>
     </div>
   )
 
-  function updateUrl(values: Record<string, string>) {
-    const nextParams = new URLSearchParams(searchParams.toString())
+  function updateUrl({
+    filter: nextFilter,
+    query: nextQuery,
+  }: {
+    filter: "all" | ActivityCategory
+    query: string
+  }) {
+    const nextParams = new URLSearchParams(window.location.search)
+    const trimmedQuery = nextQuery.trim()
 
-    for (const [key, value] of Object.entries(values)) {
-      if (value.trim().length === 0) {
-        nextParams.delete(key)
-      } else {
-        nextParams.set(key, value)
-      }
+    if (nextFilter === "all") {
+      nextParams.delete("filter")
+    } else {
+      nextParams.set("filter", nextFilter)
     }
 
-    startTransition(() => {
-      const queryString = nextParams.toString()
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      })
-    })
-  }
-}
+    if (trimmedQuery.length === 0) {
+      nextParams.delete("q")
+    } else {
+      nextParams.set("q", trimmedQuery)
+    }
 
-function ActivityDetailCard({ row }: { row: ActivityDisplayRow }) {
-  return (
-    <li className="relative pl-5">
-      <span
-        aria-hidden="true"
-        className={cn(
-          "absolute top-4 left-0 size-2.5 rounded-full border-2 border-ink ring-4 ring-background",
-          activityDotClass(row.category)
-        )}
-      />
-      <article className="group/activity surface-card border-ink px-4 py-3 transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5">
-        <div className="min-w-0">
-          <p className="text-sm leading-6 font-extrabold text-foreground">
-            {row.headline}
-          </p>
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-            <CategoryBadge category={row.category} label={row.badgeLabel} />
-            <span
-              aria-hidden="true"
-              className="hidden size-1 rounded-full bg-muted-foreground/35 sm:inline-block"
-            />
-            <time dateTime={row.timestamp} className="numeric-tabular">
-              {row.relativeTime} at {row.timestampLabel}
-            </time>
-          </div>
-        </div>
-      </article>
-    </li>
-  )
-}
-
-function CategoryBadge({
-  category,
-  label,
-}: {
-  category: ActivityCategory
-  label: string
-}) {
-  return (
-    <MonoTag
-      tone={categoryBadgeTone(category)}
-      icon={ACTIVITY_CATEGORY_ICON[category]}
-      className={cn(
-        categoryBadgeTone(category) === "plain" && categoryBadgeClass(category)
-      )}
-    >
-      {label}
-    </MonoTag>
-  )
-}
-
-function categoryBadgeTone(
-  category: ActivityCategory
-): "plain" | "accent" | "ink" | "leaf" | "sun" {
-  switch (category) {
-    case "customer":
-      return "accent"
-    case "stamp":
-      return "ink"
-    case "reward":
-      return "leaf"
-    case "qr":
-      return "sun"
-    case "account":
-      return "plain"
-  }
-}
-
-function activityDotClass(category: ActivityCategory) {
-  switch (category) {
-    case "customer":
-      return "bg-accent"
-    case "stamp":
-      return "bg-primary"
-    case "reward":
-      return "bg-reward"
-    case "qr":
-      return "bg-qr"
-    case "account":
-      return "bg-muted-foreground"
-  }
-}
-
-function categoryBadgeClass(category: ActivityCategory) {
-  switch (category) {
-    case "customer":
-      return "border-accent/80 bg-accent text-accent-foreground"
-    case "stamp":
-      return "border-primary/20 bg-primary/10 text-primary"
-    case "reward":
-      return "border-reward/25 bg-reward/10 text-reward"
-    case "qr":
-      return "border-qr/20 bg-qr/10 text-foreground"
-    case "account":
-      return "border-border bg-secondary/70 text-secondary-foreground"
+    const queryString = nextParams.toString()
+    window.history.replaceState(
+      null,
+      "",
+      queryString ? `${pathname}?${queryString}` : pathname
+    )
   }
 }
 
@@ -289,13 +201,39 @@ function groupRowsByDate(rows: ActivityDisplayRow[]) {
 }
 
 function normalizeFilter(value: string): "all" | ActivityCategory {
-  return filterOptions.some((option) => option.id === value)
-    ? (value as "all" | ActivityCategory)
-    : "all"
+  switch (value) {
+    case "all":
+    case "customer":
+    case "stamp":
+    case "reward":
+    case "qr":
+    case "account":
+      return value
+    default:
+      return "all"
+  }
 }
 
-function loadMoreHref(searchParams: URLSearchParams, limit: number) {
-  const nextParams = new URLSearchParams(searchParams.toString())
+function loadMoreHref({
+  filter,
+  limit,
+  query,
+}: {
+  filter: "all" | ActivityCategory
+  limit: number
+  query: string
+}) {
+  const nextParams = new URLSearchParams()
+  const trimmedQuery = query.trim()
+
+  if (filter !== "all") {
+    nextParams.set("filter", filter)
+  }
+
+  if (trimmedQuery.length > 0) {
+    nextParams.set("q", trimmedQuery)
+  }
+
   nextParams.set("limit", String(limit + 50))
   return `/app/activity?${nextParams.toString()}`
 }

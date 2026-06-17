@@ -92,7 +92,7 @@ export function OnboardingForm({
           name="businessType"
           defaultValue={state.fields?.businessType ?? ""}
           onChange={(event) => updateDraft("businessType", event.target.value)}
-          className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
+          className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none focus:border-ring focus:ring-3 focus:ring-ring/25"
           aria-invalid={Boolean(state.errors?.businessType)}
           aria-describedby={
             state.errors?.businessType ? "businessType-error" : undefined
@@ -174,7 +174,7 @@ function Field({
       </label>
       <input
         id={id}
-        className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
+        className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none focus:border-ring focus:ring-3 focus:ring-ring/25"
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
         {...props}

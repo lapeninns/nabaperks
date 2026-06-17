@@ -2,11 +2,11 @@
 
 import type { ReactNode } from "react"
 import { CheckmarkBadge04Icon } from "@hugeicons/core-free-icons"
-import { motion, useReducedMotion } from "motion/react"
+import { motion } from "motion/react"
 
 import { Icon } from "@/components/brand"
-
-const stampEase = [0.2, 0, 0, 1] as const
+import { useReducedMotionHook } from "@/lib/motion/use-reduced-motion"
+import { wetInkTransition } from "@/lib/motion/tokens"
 
 const burstDots = [
   { x: -54, y: -18, size: "size-2" },
@@ -17,7 +17,9 @@ const burstDots = [
 ]
 
 export function StampCelebration({ children }: { children: ReactNode }) {
-  const shouldReduceMotion = useReducedMotion()
+  const shouldReduceMotion = useReducedMotionHook()
+  const entryTransition = wetInkTransition.celebration.entry
+  const burstTransition = wetInkTransition.celebration.burst
 
   if (shouldReduceMotion) {
     return <div>{children}</div>
@@ -28,7 +30,7 @@ export function StampCelebration({ children }: { children: ReactNode }) {
       className="relative"
       initial={{ opacity: 0, y: 10, scale: 0.94 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.34, ease: stampEase }}
+      transition={entryTransition}
     >
       {children}
       <span
@@ -39,7 +41,7 @@ export function StampCelebration({ children }: { children: ReactNode }) {
           className="absolute left-1/2 top-1/2 -ml-3.5 -mt-3.5 -rotate-6 select-none leading-none text-primary"
           initial={{ opacity: 0, scale: 0.4 }}
           animate={{ opacity: [0, 1, 0], scale: [0.4, 1.1, 0.9] }}
-          transition={{ duration: 0.58, ease: stampEase }}
+          transition={burstTransition}
         >
           <Icon icon={CheckmarkBadge04Icon} size={28} strokeWidth={2.5} />
         </motion.span>
@@ -50,9 +52,9 @@ export function StampCelebration({ children }: { children: ReactNode }) {
             initial={{ opacity: 0, x: 0, y: 0, scale: 0.35 }}
             animate={{ opacity: [0, 1, 0], x: dot.x, y: dot.y, scale: 1 }}
             transition={{
-              duration: 0.58,
-              delay: 0.04 * index,
-              ease: stampEase,
+              duration: burstTransition.duration,
+              delay: burstTransition.dotStagger * index,
+              ease: burstTransition.ease,
             }}
           />
         ))}

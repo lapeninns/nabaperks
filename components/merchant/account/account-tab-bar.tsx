@@ -25,7 +25,7 @@ export function AccountTabBar({ activeTab }: { activeTab: AccountTab }) {
             aria-current={active ? "page" : undefined}
             data-active={active}
             className={cn(
-              "inline-flex items-center rounded-full px-4 py-1.5 text-sm font-bold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/35",
+              "inline-flex items-center rounded-full px-4 py-1.5 text-sm font-bold transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none focus-visible:ring-3 focus-visible:ring-ring/35",
               active
                 ? "bg-ink text-paper"
                 : "text-ink-soft hover:bg-accent hover:text-foreground"
@@ -47,7 +47,7 @@ function TabPendingIndicator() {
     <span
       aria-hidden="true"
       data-pending={pending}
-      className="ml-1 size-1.5 shrink-0 rounded-full bg-current opacity-0 transition-opacity delay-100 duration-150 data-[pending=true]:opacity-60"
+      className="ml-1 size-1.5 shrink-0 rounded-full bg-current opacity-0 transition-opacity delay-100 duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none data-[pending=true]:opacity-60"
     />
   )
 }

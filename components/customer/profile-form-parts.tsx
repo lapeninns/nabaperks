@@ -3,9 +3,9 @@
 import type { ReactNode } from "react"
 
 import { MonoTag } from "@/components/brand"
+import { customerInputClass } from "@/components/customer/input-class"
 
-export const profileInputClass =
-  "h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm transition outline-none focus:border-ring focus:ring-3 focus:ring-ring/25 aria-invalid:border-destructive"
+export const profileInputClass = `${customerInputClass} aria-invalid:border-destructive`
 
 export type ProfileEmailState = {
   email: string | null

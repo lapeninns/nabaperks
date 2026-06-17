@@ -357,7 +357,7 @@ function PreviewCardScreen({
       <div className="grid gap-4">
         <Link
           href={customerFlowPreviewPath("playbook")}
-          className="inline-flex w-fit items-center gap-1 text-sm font-bold text-ink-soft underline-offset-4 transition-colors hover:text-foreground hover:underline"
+          className="inline-flex w-fit items-center gap-1 text-sm font-bold text-ink-soft underline-offset-4 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none hover:text-foreground hover:underline"
         >
           <span aria-hidden="true">←</span> Dev playbook
         </Link>
@@ -450,7 +450,7 @@ function PreviewCardDetails() {
         Card details
         <span
           aria-hidden="true"
-          className="transition-transform group-open:rotate-180"
+          className="transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none group-open:rotate-180"
         >
           ⌄
         </span>

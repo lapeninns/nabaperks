@@ -539,6 +539,9 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     const activityFeed = readProjectFile(
       "components/merchant/activity-detail-feed.tsx"
     )
+    const activityCard = readProjectFile(
+      "components/merchant/activity-detail-card.tsx"
+    )
 
     expect(customersPage).toContain("getCurrentMerchant")
     expect(customersPage).toContain("getMerchantCustomers(merchantId)")
@@ -574,11 +577,30 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     )
     expect(activityPage).toContain("<ActivityFeedStream")
     expect(activityPage).toContain("ActivityDetailFeed")
-    expect(activityFeed).toContain("<time")
+    expect(activityCard).toContain("<time")
     expect(activityFeed).toContain("aria-pressed")
     expect(activityFeed).toContain("Load more")
     expect(activityFeed).not.toContain("/card/")
+    expect(activityCard).not.toContain("/card/")
     expect(activityPage).not.toContain("JSON.stringify")
+  })
+
+  it("keeps activity search and filters client-local to avoid route flicker", () => {
+    const activityFeed = readProjectFile(
+      "components/merchant/activity-detail-feed.tsx"
+    )
+
+    expect(activityFeed).toContain("useState")
+    expect(activityFeed).toContain("setQuery")
+    expect(activityFeed).toContain("setFilter")
+    expect(activityFeed).toContain("window.history.replaceState")
+    expect(activityFeed).toContain("Load more")
+    expect(activityFeed).not.toContain("useRouter")
+    expect(activityFeed).not.toContain("router.replace")
+    expect(activityFeed).not.toContain("useTransition")
+    expect(activityFeed).not.toContain("useDeferredValue")
+    expect(activityFeed).not.toContain("isPending")
+    expect(activityFeed).not.toContain("while updating filters")
   })
 
   it("preserves billing outcome states and gates the Stripe portal by customer id", () => {

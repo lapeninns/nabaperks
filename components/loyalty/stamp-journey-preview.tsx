@@ -1,10 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useReducedMotion } from "motion/react"
 
 import type { CSSProperties } from "react"
 
+import { useReducedMotionHook } from "@/lib/motion/use-reduced-motion"
 import { stampDisplayDates } from "@/lib/customer/uk-calendar"
 import { cn } from "@/lib/utils"
 
@@ -31,7 +31,7 @@ export function StampJourneyPreview({
   venueName?: string
   className?: string
 }) {
-  const shouldReduceMotion = useReducedMotion() ?? false
+  const shouldReduceMotion = useReducedMotionHook()
   const safeTotal = Math.max(total, 0)
   /** Anchor to the UK calendar day when the customer opens this page. */
   const [previewDates] = useState(() => stampDisplayDates(safeTotal))

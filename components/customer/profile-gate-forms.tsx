@@ -9,14 +9,12 @@ import {
   verifyProfileEmailAction,
   type ProfileGateActionState,
 } from "@/app/reward/[rewardId]/actions"
+import { profileInputClass } from "@/components/customer/profile-form-parts"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import type { ProfileGate } from "@/lib/customer/experience/types"
 
 const initialState: ProfileGateActionState = {}
-
-const inputClass =
-  "h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm transition outline-none focus:border-ring focus:ring-3 focus:ring-ring/25 aria-invalid:border-destructive"
 
 export function CustomerProfileGateForm({
   rewardId,
@@ -130,7 +128,7 @@ function ProfileEmailStep({
             name="otp"
             inputMode="numeric"
             autoComplete="one-time-code"
-            className={`${inputClass} font-mono`}
+            className={`${profileInputClass} font-mono`}
             aria-invalid={Boolean(state.errors?.otp)}
           />
           {state.errors?.otp ? (
@@ -199,7 +197,7 @@ function Field({
         id={name}
         name={name}
         type={type}
-        className={inputClass}
+        className={profileInputClass}
         aria-invalid={Boolean(error)}
         aria-describedby={describedBy}
         {...rest}

@@ -47,7 +47,7 @@ function CustomerMobileCard({
   return (
     <div
       className={cn(
-        "surface-card grid overflow-hidden transition-colors",
+        "surface-card grid overflow-hidden transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
         isSelected && "bg-primary/10 ring-1 ring-primary/30 ring-inset"
       )}
     >
@@ -117,7 +117,7 @@ function CustomerMobileCard({
         <div className="border-t-2 border-ink/15 px-3 py-2.5">
           <Link
             href={`/app/rewards/scan/${row.scanRewardId}`}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg border-2 border-ink bg-primary px-3 py-2 font-mono text-[0.7rem] font-bold tracking-[0.06em] text-primary-foreground uppercase shadow-sm transition-[transform,box-shadow] hover:translate-x-px hover:translate-y-px hover:shadow-[1px_1px_0_var(--w-shadow-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border-2 border-ink bg-primary px-3 py-2 font-mono text-[0.7rem] font-bold tracking-[0.06em] text-primary-foreground uppercase shadow-sm transition-[transform,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none hover:translate-x-px hover:translate-y-px hover:shadow-[1px_1px_0_var(--w-shadow-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
           >
             <Icon icon={ScanIcon} size={14} />
             Scan reward
@@ -272,7 +272,7 @@ export function CustomerReadbackTable({
           </span>
           <Link
             href={`/app/rewards/scan/${selected.scanRewardId}`}
-            className="flex items-center gap-1.5 rounded-lg border-2 border-ink bg-primary px-3 py-1.5 font-mono text-[0.7rem] font-bold tracking-[0.06em] text-primary-foreground uppercase shadow-sm transition-[transform,box-shadow] hover:translate-x-px hover:translate-y-px hover:shadow-[1px_1px_0_var(--w-shadow-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+            className="flex items-center gap-1.5 rounded-lg border-2 border-ink bg-primary px-3 py-1.5 font-mono text-[0.7rem] font-bold tracking-[0.06em] text-primary-foreground uppercase shadow-sm transition-[transform,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none hover:translate-x-px hover:translate-y-px hover:shadow-[1px_1px_0_var(--w-shadow-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
           >
             <Icon icon={ScanIcon} size={14} />
             Scan reward

@@ -65,7 +65,7 @@ export function DataTable<T>({
             <TableRow
               key={getRowKey(row, index)}
               className={cn(
-                "transition-colors hover:bg-secondary/35",
+                "transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none hover:bg-secondary/35",
                 onRowClick && "cursor-pointer select-none",
                 rowClassName?.(row, index)
               )}

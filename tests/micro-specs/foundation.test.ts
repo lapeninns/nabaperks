@@ -225,8 +225,9 @@ describe("00/01 foundation micro-specs", () => {
       "--reward",
       "--qr",
       "--ease-stamp",
-      "--duration-fast: 150ms",
-      "--duration-reveal: 400ms",
+      "--w-dur-fast: 150ms",
+      "--duration-fast: var(--w-dur-fast)",
+      "--duration-reveal: var(--w-dur-move)",
     ]) {
       expect(globals).toContain(token)
     }

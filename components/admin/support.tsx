@@ -14,10 +14,10 @@ const STATUS_PILL_ICON: Record<
 }
 
 export const adminInputClasses =
-  "min-h-11 rounded-xl border-2 border-ink bg-secondary/60 px-3 text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
+  "min-h-11 rounded-xl border-2 border-ink bg-secondary/60 px-3 text-sm outline-none transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none focus:border-ring focus:ring-3 focus:ring-ring/25"
 
 export const adminTextareaClasses =
-  "min-h-24 rounded-xl border-2 border-ink bg-secondary/60 px-3 py-2 text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/25"
+  "min-h-24 rounded-xl border-2 border-ink bg-secondary/60 px-3 py-2 text-sm outline-none transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none focus:border-ring focus:ring-3 focus:ring-ring/25"
 
 export function AdminPanel({
   children,

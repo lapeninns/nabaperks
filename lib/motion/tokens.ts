@@ -12,11 +12,11 @@
  */
 export const wetInkTransition = {
   /**
-   * Standard entrance: rise up 14px, standard ease, 0.4s.
+   * Standard entrance: rise up 14px, standard ease, 0.32s.
    * Used by WetInkRise.
    */
   rise: {
-    duration: 0.4, // --w-dur-move: 320ms is slightly faster for some uses
+    duration: 0.32,
     ease: [0.2, 0, 0, 1], // --w-ease
   },
 
@@ -101,6 +101,18 @@ export const wetInkTransition = {
   press: {
     duration: 0.09, // --w-dur-press: 90ms
     ease: "easeOut",
+  },
+
+  celebration: {
+    entry: {
+      duration: 0.32,
+      ease: [0.2, 0, 0, 1],
+    },
+    burst: {
+      duration: 0.38,
+      ease: [0.16, 1.2, 0.3, 1],
+      dotStagger: 0.04,
+    },
   },
 
   /**

@@ -50,7 +50,7 @@ function PlaybookCard({ step }: { readonly step: JourneyStep }) {
     <li className="min-w-[17rem] snap-start sm:min-w-0">
       <article
         className={cn(
-          "surface-card flex h-full min-h-[18rem] flex-col justify-between gap-4 p-4 transition-transform hover:-translate-y-0.5",
+          "surface-card flex h-full min-h-[18rem] flex-col justify-between gap-4 p-4 transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none hover:-translate-y-0.5",
           cardToneClass[step.tone],
           isLocked && "border-dashed opacity-75 hover:translate-y-0"
         )}

@@ -8,6 +8,7 @@ import {
   verifyCustomerOtpAction,
   type CustomerIdentityState,
 } from "@/app/m/[merchantSlug]/join/actions"
+import { customerInputClass } from "@/components/customer/input-class"
 import {
   GeoFields,
   LocationNote,
@@ -60,7 +61,7 @@ export function CustomerOtpForm({
             inputMode="numeric"
             autoComplete="one-time-code"
             autoFocus
-            className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 font-mono text-sm transition outline-none focus:border-ring focus:ring-3 focus:ring-ring/25"
+            className={`${customerInputClass} font-mono`}
             aria-invalid={Boolean(state.errors?.otp)}
           />
           {state.errors?.otp ? (

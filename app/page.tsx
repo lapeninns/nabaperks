@@ -401,7 +401,7 @@ export default function Page() {
             <Link
               key={step.href}
               href={step.href}
-              className="pressable surface-card grid gap-2 p-5 shadow-xs transition-colors hover:border-primary"
+              className="pressable surface-card grid gap-2 p-5 shadow-xs transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none hover:border-primary"
             >
               <span className="font-extrabold">{step.title}</span>
               <span className="text-sm leading-6 text-muted-foreground">

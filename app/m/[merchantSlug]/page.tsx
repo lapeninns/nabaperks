@@ -87,7 +87,7 @@ export default async function MerchantRewardsPage({
             contact: [merchant.email, merchant.phone].filter(Boolean).join(" · "),
           }}
           triggerLabel="View reward terms"
-          triggerClassName="inline-flex h-12 w-full items-center justify-center rounded-xl border-2 border-ink bg-secondary px-4 text-sm font-bold no-underline shadow-sm transition hover:bg-secondary/80"
+          triggerClassName="inline-flex h-12 w-full items-center justify-center rounded-xl border-2 border-ink bg-secondary px-4 text-sm font-bold no-underline shadow-sm transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none hover:bg-secondary/80"
         />
       </div>
     </CustomerFlowShell>

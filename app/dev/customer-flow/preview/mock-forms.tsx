@@ -19,6 +19,13 @@ import {
   formatMockPence,
 } from "@/lib/dev/customer-flow-preview"
 
+// Mirrors the shipped customer-flow inputs but intentionally drops the
+// transition/focus utilities — every field in this dev harness is readOnly,
+// so there is no focus state to style. Keeps the load-bearing
+// `text-base … md:text-sm` (iOS no-zoom) sizing.
+const previewInputClass =
+  "h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-base outline-none md:text-sm"
+
 type PreviewIdentityVariant = "empty" | "phone-filled" | "otp-sent"
 
 export function PreviewIdentityForm({
@@ -43,7 +50,7 @@ export function PreviewIdentityForm({
               inputMode="numeric"
               defaultValue="424242"
               readOnly
-              className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 font-mono text-sm outline-none"
+              className={`${previewInputClass} font-mono`}
             />
             <p className="text-xs leading-5 text-muted-foreground">
               Enter the verification code sent to your phone.
@@ -95,7 +102,7 @@ export function PreviewIdentityForm({
             placeholder="07400 123456"
             defaultValue={phoneValue}
             readOnly
-            className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none"
+            className={previewInputClass}
           />
           <p className="text-xs leading-5 text-muted-foreground">
             {JOIN_PHONE_CODE_HINT}
@@ -195,9 +202,6 @@ export function PreviewRewardQrButton() {
     </div>
   )
 }
-
-const previewInputClass =
-  "h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none"
 
 export function PreviewProfileGate() {
   return (

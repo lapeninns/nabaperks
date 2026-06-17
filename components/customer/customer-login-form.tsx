@@ -7,6 +7,7 @@ import {
   verifyCustomerLoginOtpAction,
   type CustomerLoginOtpState,
 } from "@/app/home/actions"
+import { customerInputClass } from "@/components/customer/input-class"
 import { Button } from "@/components/ui/button"
 
 const initialState: CustomerLoginOtpState = {}
@@ -42,7 +43,7 @@ export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
             autoComplete="tel"
             placeholder="07400 123456"
             defaultValue={state.fields?.contact}
-            className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm transition outline-none focus:border-ring focus:ring-3 focus:ring-ring/25"
+            className={customerInputClass}
             aria-invalid={Boolean(state.errors?.contact)}
             aria-describedby={
               state.errors?.contact ? "contact-error" : undefined
@@ -93,7 +94,7 @@ export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
               name="otp"
               inputMode="numeric"
               autoComplete="one-time-code"
-              className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 font-mono text-sm transition outline-none focus:border-ring focus:ring-3 focus:ring-ring/25"
+              className={`${customerInputClass} font-mono`}
               aria-invalid={Boolean(state.errors?.otp)}
             />
             {state.errors?.otp ? (

@@ -67,7 +67,7 @@ export function ShellNavigation({
               key={item.href}
               item={item}
               active={active}
-              className="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-bold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+              className="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-bold transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none focus-visible:ring-3 focus-visible:ring-ring/35"
             />
           )
         })}
@@ -90,7 +90,7 @@ export function ShellNavigation({
                 key={item.href}
                 item={item}
                 active={active}
-                className="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-bold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+                className="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-bold transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none focus-visible:ring-3 focus-visible:ring-ring/35"
               />
             )
           })}
@@ -117,7 +117,7 @@ export function ShellNavigation({
                   <ShellNavLink
                     item={item}
                     active={active}
-                    className="inline-flex min-h-11 w-full items-center justify-start rounded-full px-4 text-sm font-bold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+                    className="inline-flex min-h-11 w-full items-center justify-start rounded-full px-4 text-sm font-bold transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none focus-visible:ring-3 focus-visible:ring-ring/35"
                     mobile
                   />
                 </SheetClose>
@@ -141,7 +141,7 @@ export function ShellNavigation({
                     <ShellNavLink
                       item={item}
                       active={active}
-                      className="inline-flex min-h-11 w-full items-center justify-start rounded-full px-4 text-sm font-bold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+                      className="inline-flex min-h-11 w-full items-center justify-start rounded-full px-4 text-sm font-bold transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none focus-visible:ring-3 focus-visible:ring-ring/35"
                       mobile
                     />
                   </SheetClose>
@@ -193,7 +193,7 @@ function NavPendingIndicator() {
     <span
       aria-hidden="true"
       data-pending={pending}
-      className="ml-1 size-1.5 shrink-0 rounded-full bg-current opacity-0 transition-opacity delay-100 duration-150 data-[pending=true]:opacity-60"
+      className="ml-1 size-1.5 shrink-0 rounded-full bg-current opacity-0 transition-opacity delay-100 duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none data-[pending=true]:opacity-60"
     />
   )
 }

@@ -10,6 +10,7 @@ import {
   type CustomerJoinState,
 } from "@/app/m/[merchantSlug]/join/actions"
 import { Eyebrow, MonoTag } from "@/components/brand"
+import { customerInputClass } from "@/components/customer/input-class"
 import { CustomerLegalConsentLinks } from "@/components/customer/legal-sheet"
 import {
   GeoFields,
@@ -56,7 +57,7 @@ export function CustomerIdentityForm({
             autoComplete="tel"
             placeholder="07400 123456"
             defaultValue={state.fields?.contact}
-            className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm transition outline-none focus:border-ring focus:ring-3 focus:ring-ring/25"
+            className={customerInputClass}
             aria-invalid={Boolean(state.errors?.contact)}
             aria-describedby={
               state.errors?.contact ? "contact-error" : "contact-hint"

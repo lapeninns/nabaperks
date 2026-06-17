@@ -13,10 +13,10 @@ export function HomeRedeemBanner({ topRedeemable }: HomeRedeemBannerProps) {
   return (
     <Link
       href={`/reward/${topRedeemable.rewardId}`}
-      className="block rounded-[var(--radius)] transition outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+      className="block rounded-[var(--radius)] transition-[box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none focus-visible:ring-3 focus-visible:ring-ring/35"
       aria-label={`Open reward QR for ${topRedeemable.rewardName} at ${topRedeemable.businessName}`}
     >
-      <ReceiptCard className="grid gap-3 bg-accent text-accent-foreground transition-shadow hover:shadow-md">
+      <ReceiptCard className="grid gap-3 bg-accent text-accent-foreground transition-shadow duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none hover:shadow-md">
         <div className="flex items-center justify-between gap-3">
           <MonoTag tone="leaf">Ready for scan</MonoTag>
           <MonoTag tone="leaf">{topRedeemable.businessName}</MonoTag>

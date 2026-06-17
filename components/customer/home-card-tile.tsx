@@ -28,10 +28,10 @@ export function HomeCardTile({ card }: { card: HomeCard }) {
   return (
     <Link
       href={href}
-      className="block rounded-[var(--radius)] transition outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+      className="block rounded-[var(--radius)] transition-[box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none focus-visible:ring-3 focus-visible:ring-ring/35"
       aria-label={`Open your ${card.businessName} card`}
     >
-      <ReceiptCard className="grid gap-4 transition-shadow hover:shadow-md">
+      <ReceiptCard className="grid gap-4 transition-shadow duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none hover:shadow-md">
         <div className="flex items-start justify-between gap-4">
           <div className="grid min-w-0 gap-1">
             <Eyebrow>{card.cardName ?? "Loyalty card"}</Eyebrow>

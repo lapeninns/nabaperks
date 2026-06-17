@@ -35,7 +35,7 @@ export function Disclosure({
         <Icon
           icon={ArrowDown01Icon}
           size={18}
-          className="text-muted-foreground transition-transform group-open:rotate-180"
+          className="text-muted-foreground transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none group-open:rotate-180"
         />
       </summary>
       <div className="grid gap-3 px-4 pt-1 pb-4">{children}</div>
