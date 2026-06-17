@@ -151,6 +151,16 @@ export type CustomerExperience =
       total: number
       stampDates: string[]
       todayLabel: string
+      /**
+       * Set once the final stamp has unlocked a reward that is not yet
+       * redeemable. The completed card holds in place (no swap to the waiting
+       * voucher) and offers a tap-through to this reward instead.
+       */
+      reward?: {
+        rewardId: string
+        rewardName: string
+        redeemableFrom: string | null
+      }
     }
   // --- Card (the card is always shown; reward sub-status drives the footer) ---
   | {

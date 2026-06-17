@@ -314,6 +314,12 @@ function StampScreenPanel({
     { kind: "stamp_confirm" | "card_stamped_today" }
   >
 }) {
+  // Once the final stamp has unlocked a (not-yet-redeemable) reward, the screen
+  // holds on the completed card and offers a calm tap-through to the reward,
+  // rather than swapping straight to the waiting voucher.
+  const unlockedReward =
+    exp.kind === "card_stamped_today" ? exp.reward : undefined
+
   return (
     <section className="grid gap-5">
       <StampCollector
@@ -329,9 +335,17 @@ function StampScreenPanel({
         rewardName="Something's under there."
         location={exp.location}
       />
-      <Button asChild size="lg" variant="secondary" className="w-full">
-        <Link href={`/card/${exp.membershipId}`}>Back to card</Link>
-      </Button>
+      {unlockedReward ? (
+        <Button asChild size="lg" variant="reward" className="w-full">
+          <Link href={`/reward/${unlockedReward.rewardId}`}>
+            See your reward
+          </Link>
+        </Button>
+      ) : (
+        <Button asChild size="lg" variant="secondary" className="w-full">
+          <Link href={`/card/${exp.membershipId}`}>Back to card</Link>
+        </Button>
+      )}
     </section>
   )
 }

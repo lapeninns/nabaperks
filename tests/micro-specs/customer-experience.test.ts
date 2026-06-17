@@ -318,14 +318,29 @@ describe("deriveCustomerExperience — stamp route", () => {
     expect(exp).not.toHaveProperty("reward.redeemable")
   })
 
-  it("waits on an unlocked-but-not-redeemable reward", () => {
+  it("holds on the completed card with a tap-through when the reward is not redeemable yet", () => {
+    // The final stamp unlocks a reward that only becomes redeemable on the next
+    // UK business day. Rather than swapping straight to the waiting voucher, the
+    // stamp screen keeps the full card (grid + reveal) and links across to the
+    // reward, so the moment is not an instant cut.
     const exp = deriveCustomerExperience({
       entry: "stamp",
       context: stampFacts({
         unlockedReward: { ...rewardView, redeemable: false },
+        cardName: "Morning Ritual",
+        current: 3,
+        total: 3,
+        stampDates: ["12 JUN", "13 JUN", "17 JUN"],
+        todayLabel: "17 JUN",
       }),
     })
-    expect(exp).toMatchObject({ kind: "reward_waiting", fromCard: false })
+    expect(exp).toMatchObject({
+      kind: "card_stamped_today",
+      reward: { rewardId: "reward-1", redeemableFrom: "2026-06-13" },
+      total: 3,
+    })
+    // It must not collapse to the bare waiting voucher on this route.
+    expect(exp.kind).not.toBe("reward_waiting")
   })
 
   it("blocks a stamp on a full card with no reward and offers a recovery state", () => {

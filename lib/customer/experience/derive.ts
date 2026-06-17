@@ -226,6 +226,11 @@ function stampScreenExperience(
     total?: number
     stampDates?: string[]
     todayLabel?: string
+  },
+  reward?: {
+    rewardId: string
+    rewardName: string
+    redeemableFrom: string | null
   }
 ): CustomerExperience {
   return {
@@ -234,6 +239,7 @@ function stampScreenExperience(
     merchantName: context.merchantName,
     qrId: context.qrId ?? "",
     ...stampCardProgress(context),
+    ...(reward ? { reward } : {}),
   } as CustomerExperience
 }
 
@@ -248,6 +254,20 @@ function deriveStamp(context: StampContext): CustomerExperience {
 
   if (context.fullWithoutReward) {
     return { kind: "unavailable", reason: FULL_CARD_NO_REWARD_REASON }
+  }
+
+  // A completed card whose reward is not yet redeemable holds on the live card —
+  // the customer keeps the full grid and reveal, with the reward one tap away —
+  // instead of the stamp screen swapping straight to the waiting voucher. There
+  // is nothing to collect at the counter until the next UK business day, so the
+  // calm card moment is allowed to breathe. A ready reward still falls through to
+  // its own state below (the route redirects to collect it now).
+  if (context.unlockedReward && !context.unlockedReward.redeemable) {
+    return stampScreenExperience("card_stamped_today", context, {
+      rewardId: context.unlockedReward.rewardId,
+      rewardName: context.unlockedReward.rewardName,
+      redeemableFrom: context.unlockedReward.redeemableFrom,
+    })
   }
 
   const candidates: CustomerExperienceKind[] = []
