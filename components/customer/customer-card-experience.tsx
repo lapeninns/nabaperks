@@ -1,6 +1,8 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
+import { ArrowDown01Icon, ArrowLeft01Icon } from "@hugeicons/core-free-icons"
 
+import { Icon } from "@/components/brand"
 import {
   CustomerActionNote,
   CustomerFlowShell,
@@ -162,9 +164,10 @@ function CardProgressPanel({
     <div className="grid gap-4">
       <Link
         href="/home"
-        className="inline-flex w-fit items-center gap-1 text-sm font-bold text-ink-soft underline-offset-4 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none hover:text-foreground hover:underline"
+        className="inline-flex w-fit items-center gap-1.5 text-sm font-bold text-ink-soft underline-offset-4 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:text-foreground hover:underline motion-reduce:transition-none"
       >
-        <span aria-hidden="true">←</span> Your cards
+        <Icon icon={ArrowLeft01Icon} size={16} />
+        Your cards
       </Link>
 
       <CustomerStampCard
@@ -280,14 +283,13 @@ function CardProgressPanel({
 function CardDetailsDisclosure({ cardNumber }: { cardNumber: string }) {
   return (
     <details className="group text-left">
-      <summary className="flex w-fit cursor-pointer list-none items-center gap-1.5 text-xs font-bold text-ink-soft underline-offset-4 hover:underline [&::-webkit-details-marker]:hidden">
+      <summary className="flex w-fit cursor-pointer list-none items-center gap-1.5 rounded-sm text-xs font-bold text-ink-soft underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/35 [&::-webkit-details-marker]:hidden">
         Card details
-        <span
-          aria-hidden="true"
-          className="transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none group-open:rotate-180"
-        >
-          ⌄
-        </span>
+        <Icon
+          icon={ArrowDown01Icon}
+          size={14}
+          className="text-ink-soft transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] group-open:rotate-180 motion-reduce:transition-none"
+        />
       </summary>
       <dl className="mt-2 grid gap-1.5 font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
         <div className="flex justify-between gap-3">

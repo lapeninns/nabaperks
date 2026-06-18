@@ -9,6 +9,7 @@ import { ScanIcon } from "@hugeicons/core-free-icons"
 import { DataTable, type DataTableColumn } from "@/components/data"
 import { Icon, MonoTag, VenueMark } from "@/components/brand"
 import { StampGrid } from "@/components/loyalty/stamp-grid"
+import { Button } from "@/components/ui/button"
 import { formatMerchantCustomerIdentifier } from "@/lib/merchant/customer-identity-display"
 import type {
   MerchantCustomerReadbackRow,
@@ -115,13 +116,16 @@ function CustomerMobileCard({
       {/* Scan action — sibling of <button> to avoid <a> inside <button> */}
       {isSelected && row.scanRewardId ? (
         <div className="border-t-2 border-ink/15 px-3 py-2.5">
-          <Link
-            href={`/app/rewards/scan/${row.scanRewardId}`}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg border-2 border-ink bg-primary px-3 py-2 font-mono text-[0.7rem] font-bold tracking-[0.06em] text-primary-foreground uppercase shadow-sm transition-[transform,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none hover:translate-x-px hover:translate-y-px hover:shadow-[1px_1px_0_var(--w-shadow-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+          <Button
+            asChild
+            size="default"
+            className="w-full gap-1.5 font-mono text-[0.7rem] tracking-[0.06em] uppercase"
           >
-            <Icon icon={ScanIcon} size={14} />
-            Scan reward
-          </Link>
+            <Link href={`/app/rewards/scan/${row.scanRewardId}`}>
+              <Icon icon={ScanIcon} size={14} />
+              Scan reward
+            </Link>
+          </Button>
         </div>
       ) : null}
     </div>
@@ -270,13 +274,16 @@ export function CustomerReadbackTable({
           <span className="text-sm font-semibold">
             {selected.identifier} has a reward ready to collect.
           </span>
-          <Link
-            href={`/app/rewards/scan/${selected.scanRewardId}`}
-            className="flex items-center gap-1.5 rounded-lg border-2 border-ink bg-primary px-3 py-1.5 font-mono text-[0.7rem] font-bold tracking-[0.06em] text-primary-foreground uppercase shadow-sm transition-[transform,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none hover:translate-x-px hover:translate-y-px hover:shadow-[1px_1px_0_var(--w-shadow-color)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+          <Button
+            asChild
+            size="sm"
+            className="gap-1.5 font-mono text-[0.7rem] tracking-[0.06em] uppercase"
           >
-            <Icon icon={ScanIcon} size={14} />
-            Scan reward
-          </Link>
+            <Link href={`/app/rewards/scan/${selected.scanRewardId}`}>
+              <Icon icon={ScanIcon} size={14} />
+              Scan reward
+            </Link>
+          </Button>
         </div>
       ) : null}
 

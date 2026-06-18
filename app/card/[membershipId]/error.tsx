@@ -1,15 +1,22 @@
 "use client"
 
+import { CustomerErrorState } from "@/components/customer/customer-error-state"
 import { CustomerShell } from "@/components/layout"
-import { StatusBanner } from "@/components/loyalty"
 
-export default function CustomerCardError() {
+export default function CustomerCardError({
+  reset,
+}: {
+  error: Error & { digest?: string }
+  reset: () => void
+}) {
   return (
     <CustomerShell className="grid content-center">
-      <StatusBanner title="Card unavailable" tone="error" className="text-center">
-        This card could not be loaded safely. Ask a team member for the current
-        loyalty QR and try again.
-      </StatusBanner>
+      <CustomerErrorState
+        title="Card unavailable"
+        description="This card could not be loaded safely. Ask a team member for the current loyalty QR and try again."
+        reset={reset}
+        secondaryAction={{ label: "Open my cards", href: "/home" }}
+      />
     </CustomerShell>
   )
 }
