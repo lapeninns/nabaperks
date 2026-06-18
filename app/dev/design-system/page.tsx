@@ -1,26 +1,34 @@
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
-import { CheckmarkBadge04Icon } from "@hugeicons/core-free-icons"
+import { CheckmarkBadge04Icon, GiftIcon } from "@hugeicons/core-free-icons"
 
 import {
+  ACTIVITY_CATEGORY_ICON,
+  EmptyState,
   Eyebrow,
+  Icon,
+  Logo,
   MetricTile,
   MonoTag,
   PageTitle,
   ReceiptCard,
   SectionHeader,
+  STATUS_ICON,
   VenueMark,
 } from "@/components/brand"
 import {
   ProgressTrack,
   QrFrame,
   RewardCelebration,
+  RewardChip,
   RewardSeal,
   RewardTicket,
+  StampDot,
   StampGrid,
   StampJourneyPreview,
   StatusBanner,
   type RewardSealState,
+  type RewardSlotState,
   type RewardTicketState,
 } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
@@ -108,6 +116,7 @@ const TICKET_STATES: RewardTicketState[] = [
   "ready",
   "redeemed",
 ]
+const REWARD_CHIP_STATES: RewardSlotState[] = ["locked", "ready", "revealed"]
 
 /** Deterministic demo QR matrix — no randomness, stable across renders. */
 const QR_CELLS = Array.from(
@@ -251,6 +260,39 @@ export default function DesignSystemPage() {
               helper="Across all cards"
             />
           </div>
+          <div className="grid gap-2">
+            <Eyebrow>Tags with icons</Eyebrow>
+            <div className="flex flex-wrap gap-2">
+              <MonoTag tone="leaf" icon={GiftIcon}>
+                Reward
+              </MonoTag>
+              <MonoTag tone="plain" icon={CheckmarkBadge04Icon}>
+                Stamped
+              </MonoTag>
+              <MonoTag tone="accent" icon={GiftIcon}>
+                Mystery
+              </MonoTag>
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <Eyebrow>Empty state</Eyebrow>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <EmptyState
+                icon={GiftIcon}
+                title="No rewards yet"
+                description="Rewards you earn show up here once a card is full."
+                actions={
+                  <Button variant="outline" className="pressable">
+                    View cards
+                  </Button>
+                }
+              />
+              <EmptyState
+                title="No activity yet"
+                description="Stamps and rewards appear here as you collect them."
+              />
+            </div>
+          </div>
         </div>
       </Section>
 
@@ -284,6 +326,16 @@ export default function DesignSystemPage() {
           </ReceiptCard>
         </div>
 
+        <div className="grid gap-4 rounded-lg border-2 border-ink bg-card p-5">
+          <Eyebrow>Logo &amp; identity marks</Eyebrow>
+          <div className="flex flex-wrap items-center gap-5">
+            <Logo />
+            <Logo compact />
+            <VenueMark size={56} />
+            <VenueMark name="The Old Crown" size={56} />
+          </div>
+        </div>
+
         <div className="flex flex-wrap items-center gap-4 rounded-lg border-2 border-ink bg-card p-5">
           <VenueMark size={56} />
           <div className="flex flex-wrap gap-3">
@@ -302,6 +354,54 @@ export default function DesignSystemPage() {
                 {variant}
               </Button>
             ))}
+          </div>
+        </div>
+      </Section>
+
+      <Section
+        id="iconography"
+        eyebrow="Foundation"
+        title="Iconography"
+        description="The @hugeicons free set is the single icon system. The Icon wrapper applies house defaults (2 px stroke, current colour, no shrink) and accepts an accessible label for non-decorative uses. The two semantic maps give every status kind and activity category a canonical glyph."
+      >
+        <div className="grid gap-3 rounded-lg border-2 border-ink bg-card p-5">
+          <Eyebrow>Icon wrapper · size variants</Eyebrow>
+          <div className="flex flex-wrap items-end gap-6">
+            {[16, 20, 28].map((px) => (
+              <div key={px} className="grid justify-items-center gap-2">
+                <Icon
+                  icon={GiftIcon}
+                  size={px}
+                  label={`Gift icon, ${px} pixels`}
+                />
+                <MonoTag>{px}</MonoTag>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-5">
+            <Eyebrow>Status icons</Eyebrow>
+            <div className="flex flex-wrap gap-4">
+              {Object.entries(STATUS_ICON).map(([key, glyph]) => (
+                <div key={key} className="grid justify-items-center gap-2">
+                  <Icon icon={glyph} size={24} label={`${key} status`} />
+                  <MonoTag>{key}</MonoTag>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-5">
+            <Eyebrow>Activity category icons</Eyebrow>
+            <div className="flex flex-wrap gap-4">
+              {Object.entries(ACTIVITY_CATEGORY_ICON).map(([key, glyph]) => (
+                <div key={key} className="grid justify-items-center gap-2">
+                  <Icon icon={glyph} size={24} label={`${key} activity`} />
+                  <MonoTag>{key}</MonoTag>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </Section>
@@ -339,6 +439,72 @@ export default function DesignSystemPage() {
               Loops the empty → full → seal beat; static when reduced motion is
               on.
             </p>
+          </div>
+        </div>
+
+        <div className="grid gap-4 rounded-lg border-2 border-ink bg-card p-5">
+          <Eyebrow>Stamp dot · anatomy</Eyebrow>
+          <div className="flex flex-wrap gap-6">
+            <div className="grid justify-items-center gap-2">
+              <div className="w-12">
+                <StampDot
+                  earned
+                  label="Stamp 1 earned"
+                  venueName="The Old Crown"
+                  date="17 Jun"
+                />
+              </div>
+              <MonoTag>earned</MonoTag>
+            </div>
+            <div className="grid justify-items-center gap-2">
+              <div className="w-12">
+                <StampDot
+                  earned={false}
+                  label="Stamp 2 empty"
+                  slotNumber={2}
+                  showEmptySlotNumber
+                />
+              </div>
+              <MonoTag>empty</MonoTag>
+            </div>
+            <div className="grid justify-items-center gap-2">
+              <div className="w-9">
+                <StampDot
+                  earned
+                  compact
+                  label="Stamp 1 earned"
+                  venueName="The Old Crown"
+                  date="17 Jun"
+                />
+              </div>
+              <MonoTag>compact earned</MonoTag>
+            </div>
+            <div className="grid justify-items-center gap-2">
+              <div className="w-9">
+                <StampDot
+                  earned={false}
+                  compact
+                  label="Stamp 2 empty"
+                  slotNumber={2}
+                  showEmptySlotNumber
+                />
+              </div>
+              <MonoTag>compact empty</MonoTag>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-4 rounded-lg border-2 border-ink bg-card p-5">
+          <Eyebrow>Reward chip · three states</Eyebrow>
+          <div className="flex flex-wrap gap-6">
+            {REWARD_CHIP_STATES.map((state) => (
+              <div key={state} className="grid justify-items-center gap-2">
+                <div className="w-12">
+                  <RewardChip slotState={state} />
+                </div>
+                <MonoTag>{state}</MonoTag>
+              </div>
+            ))}
           </div>
         </div>
 

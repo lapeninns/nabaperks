@@ -5,7 +5,9 @@ import { type ReactNode, useState } from "react"
 import { ReceiptCard } from "@/components/brand"
 import { RewardSeal } from "@/components/loyalty"
 import { StampDot } from "@/components/loyalty/stamp-grid"
+import { Marquee } from "@/components/marketing/marquee"
 import {
+  StampCelebration,
   StampSlamSequence,
   WetInkPop,
   WetInkRipple,
@@ -200,6 +202,29 @@ export function MotionPlayground() {
               </div>
             </ReceiptCard>
           </StampSlamSequence>
+        )}
+      </MotionDemo>
+
+      <MotionDemo
+        name="StampCelebration"
+        blurb="Stamp burst — entry rise with confetti ring of ink dots."
+      >
+        {(nonce) => (
+          <StampCelebration key={nonce}>
+            <Chip className="bg-stamp text-stamp-foreground">Stamped</Chip>
+          </StampCelebration>
+        )}
+      </MotionDemo>
+
+      <MotionDemo
+        name="WetInkMarquee"
+        blurb="Horizontal riso strip — infinite linear scroll; holds still under reduced motion."
+      >
+        {() => (
+          <Marquee
+            items={["No app", "No plastic", "Stamped in seconds"]}
+            className="w-full"
+          />
         )}
       </MotionDemo>
     </div>

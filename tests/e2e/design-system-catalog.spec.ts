@@ -21,7 +21,14 @@ test("renders the design-system catalog with motion and loyalty states", async (
   await expect(
     page.getByRole("heading", { name: "Design system catalog" })
   ).toBeVisible()
-  for (const id of ["tokens", "typography", "surfaces", "motion", "loyalty"]) {
+  for (const id of [
+    "tokens",
+    "typography",
+    "surfaces",
+    "iconography",
+    "motion",
+    "loyalty",
+  ]) {
     await expect(page.locator(`#${id}`)).toBeVisible()
   }
 
