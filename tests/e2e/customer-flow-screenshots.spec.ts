@@ -57,9 +57,9 @@ test("captures the Bean & Batch QR to reward customer journey", async ({
 
   runDemo("advance", "--stamps", "1")
   await page.goto("/q/bean-test-qr")
-  await expect(page.getByText("Ready to add today's stamp.")).toBeVisible()
+  await expectStampEntry(page)
   await capture(page, "03-stamp-day-2/01-confirm.png")
-  await addStamp(page, { expectStampBanner: true })
+  await addStamp(page, { outcome: "stamp-added" })
   await expect(
     page.getByRole("list", { name: "2 of 3 stamps earned" })
   ).toBeVisible()
@@ -67,17 +67,14 @@ test("captures the Bean & Batch QR to reward customer journey", async ({
 
   runDemo("advance", "--stamps", "2")
   await page.goto("/q/bean-test-qr")
-  await expect(page.getByText("Ready to add today's stamp.")).toBeVisible()
+  await expectStampEntry(page)
   await capture(page, "04-stamp-day-3/01-confirm.png")
-  await addStamp(page, { expectStampBanner: false })
+  await addStamp(page, { outcome: "full-card" })
   await expect(
     page.getByRole("list", { name: "3 of 3 stamps earned" })
   ).toBeVisible()
   await expect(
-    page.getByText("Give it a day to breathe", { exact: true })
-  ).toBeVisible()
-  await expect(
-    page.getByText("It's yours from opening time tomorrow.", { exact: true })
+    page.getByText("That's the full card.", { exact: true })
   ).toBeVisible()
   await capture(page, "04-stamp-day-3/02-card-3-of-3-unlocked.png")
 
@@ -87,6 +84,8 @@ test("captures the Bean & Batch QR to reward customer journey", async ({
   await expect(
     page.getByText("Give it a day to breathe", { exact: true })
   ).toBeVisible()
+  await expect(page.getByText(/^It's yours from /)).toBeVisible()
+  await expect(page.getByText(/\btomorrow\b/i)).toHaveCount(0)
   await capture(page, "05-reward-waiting/01-reward-waiting.png")
 
   runDemo("make-redeemable")
@@ -111,14 +110,51 @@ test("captures the Bean & Batch QR to reward customer journey", async ({
 
 async function addStamp(
   page: Page,
-  { expectStampBanner }: { readonly expectStampBanner: boolean }
+  { outcome }: { readonly outcome: "stamp-added" | "full-card" }
 ): Promise<void> {
-  await page.getByRole("button", { name: "Add today's stamp" }).click()
-  await page.waitForURL(/\/card\/[^/]+\?stamp=issued/)
+  await holdStampButton(page)
 
-  if (expectStampBanner) {
+  if (outcome === "stamp-added") {
     await expect(page.getByText("Stamp added.")).toBeVisible()
+  } else {
+    await expect(
+      page.getByText("That's the full card.", { exact: true })
+    ).toBeVisible()
   }
+}
+
+async function holdStampButton(page: Page): Promise<void> {
+  const stampButton = page.getByRole("button", { name: "Add today's stamp" })
+  await stampButton.evaluate(async (element) => {
+    element.scrollIntoView({ block: "center", inline: "center" })
+
+    const down = {
+      bubbles: true,
+      button: 0,
+      buttons: 1,
+      pointerId: 1,
+      pointerType: "mouse",
+      isPrimary: true,
+    }
+
+    element.dispatchEvent(new PointerEvent("pointerdown", down))
+    await new Promise((resolve) => setTimeout(resolve, 750))
+    element.dispatchEvent(
+      new PointerEvent("pointerup", { ...down, buttons: 0 })
+    )
+  })
+}
+
+async function expectStampEntry(page: Page): Promise<void> {
+  await expect(
+    page.getByRole("heading", { name: "Stamp it here" })
+  ).toBeVisible()
+  await expect(
+    page.getByRole("button", { name: "Add today's stamp" })
+  ).toBeVisible()
+  await expect(
+    page.getByText("Press and hold the stamp, or tap it, to add today's mark.")
+  ).toBeVisible()
 }
 
 async function capture(page: Page, relativePath: string): Promise<void> {

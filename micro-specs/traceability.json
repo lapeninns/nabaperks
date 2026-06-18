@@ -4072,7 +4072,7 @@
       "requirements": [
         {
           "requirement_id": "MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS-001",
-          "summary": "WHEN a merchant with an active card and at least one active reward pool item opens `/app/qr`, THE app SHALL show their active QR code and shareable URL.",
+          "summary": "WHEN a merchant with an active card and at least three active reward pool items opens `/app/qr`, THE app SHALL show their active QR code and shareable URL.",
           "gates": [
             "pnpm governance",
             "pnpm lint",
@@ -4225,7 +4225,7 @@
         },
         {
           "requirement_id": "MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS-004",
-          "summary": "WHEN no active reward pool item exists, THE system SHALL block QR launch and direct the merchant back to reward setup.",
+          "summary": "WHEN fewer than three active reward pool items exist, THE system SHALL block QR launch and direct the merchant back to reward setup.",
           "gates": [
             "pnpm governance",
             "pnpm lint",

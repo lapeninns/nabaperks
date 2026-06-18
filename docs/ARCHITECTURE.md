@@ -38,12 +38,12 @@ flowchart TB
 
 ## 2. Actors And Access
 
-| Actor ID         | Actor                            | Primary routes                                                                                   | Auth                                              | Authorization                                                                                  |
-| ---------------- | -------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `Actor.Merchant` | Merchant owner                   | `/login`, `/signup`, `/app/*`, `/pricing`                                                        | Supabase session                                  | Merchant layout and server modules read owned merchant state; mutation RPCs enforce ownership. |
-| `Actor.Customer` | Loyalty customer                 | `/q/[qrId]`, `/m/[merchantSlug]/join`, `/card/[membershipId]`, `/reward/[rewardId]`, `/wallet/*` | Twilio Verify plus signed customer session cookie | Customer modules use explicit ownership checks before returning card, reward, and stamp state. |
-| `Actor.Admin`    | Internal admin                   | `/admin/*`                                                                                       | Supabase session plus `internal_admins`           | Admin layout validates access; admin actions use support RPCs and audit logs.                  |
-| `Actor.System`   | Webhooks and trusted server code | `/api/stripe/webhook`, server modules                                                            | Stripe signature or server runtime                | Service-role writes billing state, product events, and audit records.                          |
+| Actor ID         | Actor                            | Primary routes                                                                                 | Auth                                              | Authorization                                                                                  |
+| ---------------- | -------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `Actor.Merchant` | Merchant owner                   | `/login`, `/signup`, `/app/*`, `/pricing`                                                      | Supabase session                                  | Merchant layout and server modules read owned merchant state; mutation RPCs enforce ownership. |
+| `Actor.Customer` | Loyalty customer                 | `/q/[qrId]`, `/m/[merchantSlug]/join`, `/card/[membershipId]`, `/reward/[rewardId]`, `/home/*` | Twilio Verify plus signed customer session cookie | Customer modules use explicit ownership checks before returning card, reward, and stamp state. |
+| `Actor.Admin`    | Internal admin                   | `/admin/*`                                                                                     | Supabase session plus `internal_admins`           | Admin layout validates access; admin actions use support RPCs and audit logs.                  |
+| `Actor.System`   | Webhooks and trusted server code | `/api/stripe/webhook`, server modules                                                          | Stripe signature or server runtime                | Service-role writes billing state, product events, and audit records.                          |
 
 ## 3. Route Catalog
 

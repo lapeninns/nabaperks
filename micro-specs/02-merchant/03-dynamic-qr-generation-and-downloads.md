@@ -83,10 +83,10 @@ Out of scope:
 
 ## Behavioral Requirements
 
-- **MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS-001** WHEN a merchant with an active card and at least one active reward pool item opens `/app/qr`, THE app SHALL show their active QR code and shareable URL.
+- **MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS-001** WHEN a merchant with an active card and at least three active reward pool items opens `/app/qr`, THE app SHALL show their active QR code and shareable URL.
 - **MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS-002** WHEN no active venue join QR exists, THE system SHALL create one or guide the merchant to generate one.
 - **MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS-003** WHEN an active venue join QR already exists, THE system SHALL reuse it instead of creating a campaign-specific QR.
-- **MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS-004** WHEN no active reward pool item exists, THE system SHALL block QR launch and direct the merchant back to reward setup.
+- **MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS-004** WHEN fewer than three active reward pool items exist, THE system SHALL block QR launch and direct the merchant back to reward setup.
 - **MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS-005** WHEN a merchant downloads a QR asset, THE system SHALL provide a scannable file with the correct `/q/{qr_id}` URL.
 - **MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS-006** WHEN a QR is disabled, THE system SHALL keep historical scan records and SHALL prevent new customer entry through that QR.
 - **MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS-007** WHEN a QR is generated or downloaded, THE system SHALL record `qr_created` or `qr_downloaded` product events.

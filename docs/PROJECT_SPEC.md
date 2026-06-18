@@ -49,12 +49,12 @@ Out of scope:
 
 ## 3. Actors
 
-| Actor          | Routes                                                                                           | Access model                                              | Primary permissions                                                                                                     |
-| -------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Merchant owner | `/signup`, `/login`, `/app/*`, `/pricing`                                                        | Supabase Auth session                                     | Manage own merchant, card, reward pool, QR, venue checks, billing, dashboard, activity, and customers.                  |
-| Customer       | `/q/[qrId]`, `/m/[merchantSlug]/join`, `/card/[membershipId]`, `/reward/[rewardId]`, `/wallet/*` | Twilio Verify plus signed customer session cookie         | Manage own membership, card, assigned rewards, and consent state.                                                       |
-| Internal admin | `/admin/*`                                                                                       | Supabase session plus `internal_admins`; MFA when enabled | Support merchants and customers, adjust stamps, cancel rewards, review fraud, billing, audit, privacy, and pilot state. |
-| System         | `/api/stripe/webhook`, server modules                                                            | Stripe signature or server runtime                        | Billing sync, service-role event writes, audit writes, and analytics mirroring.                                         |
+| Actor          | Routes                                                                                         | Access model                                              | Primary permissions                                                                                                     |
+| -------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Merchant owner | `/signup`, `/login`, `/app/*`, `/pricing`                                                      | Supabase Auth session                                     | Manage own merchant, card, reward pool, QR, venue checks, billing, dashboard, activity, and customers.                  |
+| Customer       | `/q/[qrId]`, `/m/[merchantSlug]/join`, `/card/[membershipId]`, `/reward/[rewardId]`, `/home/*` | Twilio Verify plus signed customer session cookie         | Manage own membership, card, assigned rewards, and consent state.                                                       |
+| Internal admin | `/admin/*`                                                                                     | Supabase session plus `internal_admins`; MFA when enabled | Support merchants and customers, adjust stamps, cancel rewards, review fraud, billing, audit, privacy, and pilot state. |
+| System         | `/api/stripe/webhook`, server modules                                                          | Stripe signature or server runtime                        | Billing sync, service-role event writes, audit writes, and analytics mirroring.                                         |
 
 ## 4. Core Journeys
 
