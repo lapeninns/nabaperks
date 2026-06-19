@@ -9,8 +9,35 @@ import { logger } from "@/lib/observability/logger"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type GeoCoordinates = {
-  latitude: number
-  longitude: number
+  readonly latitude: number
+  readonly longitude: number
+}
+
+export type StampLocationStatus =
+  | "skipped"
+  | "available"
+  | "denied"
+  | "denied_remembered"
+  | "timeout"
+  | "unsupported"
+  | "unavailable"
+
+export type StampLocationEvidence = {
+  readonly latitude?: number | null
+  readonly longitude?: number | null
+  readonly accuracyMeters?: number | null
+  readonly locationStatus?: StampLocationStatus | null
+  readonly captureElapsedMs?: number | null
+}
+
+type IssueStampRpcParams = {
+  readonly p_membership_id: string
+  readonly p_customer_id: string
+  readonly p_latitude: number | null
+  readonly p_longitude: number | null
+  p_accuracy_meters?: number | null
+  p_location_status?: StampLocationStatus | null
+  p_capture_elapsed_ms?: number | null
 }
 
 export type IssueSelfServiceStampResult =
@@ -30,18 +57,29 @@ export type LocationRequirement = {
 
 export async function issueSelfServiceStamp(
   membershipId: string,
-  coordinates?: GeoCoordinates
+  location?: StampLocationEvidence
 ): Promise<IssueSelfServiceStampResult> {
   const customer = await getCurrentCustomer()
   if (!customer) return { status: "blocked", reason: "Open your cards first." }
 
   const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase.rpc("issue_self_service_stamp", {
+  const rpcParams: IssueStampRpcParams = {
     p_membership_id: membershipId,
     p_customer_id: customer.id,
-    p_latitude: coordinates?.latitude ?? null,
-    p_longitude: coordinates?.longitude ?? null,
-  })
+    p_latitude: location?.latitude ?? null,
+    p_longitude: location?.longitude ?? null,
+  }
+
+  if (hasDetailedLocationEvidence(location)) {
+    rpcParams.p_accuracy_meters = location?.accuracyMeters ?? null
+    rpcParams.p_location_status = location?.locationStatus ?? null
+    rpcParams.p_capture_elapsed_ms = location?.captureElapsedMs ?? null
+  }
+
+  const { data, error } = await supabase.rpc(
+    "issue_self_service_stamp",
+    rpcParams
+  )
 
   if (error) {
     const reason = toStampBlockReason(error.message)
@@ -237,6 +275,16 @@ function stringValue(value: unknown) {
 
 function numberValue(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null
+}
+
+function hasDetailedLocationEvidence(
+  location: StampLocationEvidence | undefined
+) {
+  return (
+    location?.accuracyMeters !== undefined ||
+    location?.locationStatus !== undefined ||
+    location?.captureElapsedMs !== undefined
+  )
 }
 
 function booleanValue(value: unknown) {

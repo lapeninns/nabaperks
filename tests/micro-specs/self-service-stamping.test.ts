@@ -281,6 +281,52 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     expect(result).toMatchObject({ status: "issued", geoFlagged: true })
   })
 
+  it("passes stamp GPS status and capture timing into the stamp RPC", async () => {
+    vi.resetModules()
+    const mock = createSupabaseMock({
+      rpc: {
+        issue_self_service_stamp: [
+          {
+            data: [
+              {
+                stamp_event_id: "stamp-1",
+                new_stamp_count: 3,
+                reward_unlocked: false,
+                geo_flagged: false,
+              },
+            ],
+            error: null,
+          },
+        ],
+      },
+    })
+    mockSupabase(mock)
+    mockCurrentCustomer()
+
+    const { issueSelfServiceStamp } = await import("@/lib/customer/stamp")
+    const result = await issueSelfServiceStamp("membership-1", {
+      latitude: 51.524,
+      longitude: -0.071,
+      accuracyMeters: 12,
+      locationStatus: "available",
+      captureElapsedMs: 220,
+    })
+
+    expect(result).toMatchObject({ status: "issued", newStampCount: 3 })
+    expect(mock.rpcCalls[0]).toEqual({
+      name: "issue_self_service_stamp",
+      params: {
+        p_membership_id: "membership-1",
+        p_customer_id: "customer-1",
+        p_latitude: 51.524,
+        p_longitude: -0.071,
+        p_accuracy_meters: 12,
+        p_location_status: "available",
+        p_capture_elapsed_ms: 220,
+      },
+    })
+  })
+
   it("does not request browser GPS when location is disabled or the next stamp is not cycle stamp 3", async () => {
     vi.resetModules()
     stubLocationMemory()
@@ -337,6 +383,7 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     expect(data.get("qrId")).toBe("BELL-QR")
     expect(data.get("latitude")).toBe("51.524")
     expect(data.get("longitude")).toBe("-0.071")
+    expect(data.get("accuracyMeters")).toBe("12")
     expect(data.get("locationStatus")).toBe("available")
     expect(Number(data.get("locationElapsedMs"))).toBeGreaterThanOrEqual(0)
   })
@@ -593,6 +640,46 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     expect(revalidatePath).toHaveBeenCalledWith("/card/membership-1")
   })
 
+  it("forwards denied cycle-stamp GPS status from the card action", async () => {
+    vi.resetModules()
+    const issueSelfServiceStamp = vi.fn(async () => ({
+      status: "issued" as const,
+      stampEventId: "stamp-1",
+      newStampCount: 3,
+      rewardUnlocked: false,
+      geoFlagged: false,
+    }))
+    const revalidatePath = vi.fn()
+    vi.doMock("next/cache", () => ({ revalidatePath }))
+    vi.doMock("@/lib/customer/join", () => ({
+      getStampQrContextForMembership: vi.fn(async () => ({
+        qrId: "BELL-QR",
+        merchant: { id: "merchant-1" },
+      })),
+    }))
+    vi.doMock("@/lib/customer/stamp", () => ({ issueSelfServiceStamp }))
+    const { selfStampAction } =
+      await import("@/app/card/[membershipId]/actions")
+
+    await selfStampAction(
+      { status: "idle" },
+      form({
+        membershipId: "membership-1",
+        qrId: "BELL-QR",
+        locationStatus: "denied",
+        locationElapsedMs: "734",
+      })
+    )
+
+    expect(issueSelfServiceStamp).toHaveBeenCalledWith("membership-1", {
+      latitude: null,
+      longitude: null,
+      accuracyMeters: null,
+      locationStatus: "denied",
+      captureElapsedMs: 734,
+    })
+  })
+
   it("keeps client action state defaults outside the use-server action module", () => {
     const actions = readProjectFile("app/card/[membershipId]/actions.ts")
     const statePath = "lib/customer/self-stamp-action-state.ts"
@@ -752,5 +839,30 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     expect(migration).toMatch(
       /drop function if exists public\.redeem_reward_token/i
     )
+  })
+
+  it("defines the cycle-stamp soft geofence RPC contract", () => {
+    const migrationPath =
+      "supabase/migrations/20260619120000_cycle_stamp_soft_geofence.sql"
+
+    expect(existsSync(migrationPath)).toBe(true)
+
+    const migration = readProjectFile(migrationPath)
+
+    for (const marker of [
+      "soft_geofence_trigger_stamp_number",
+      "p_accuracy_meters numeric default null",
+      "p_location_status text default null",
+      "p_capture_elapsed_ms integer default null",
+      "v_next_cycle_stamp_number",
+      "cycle_stamp_number",
+      "record_cycle_stamp_soft_geofence_flag",
+      "location_status in ('skipped', 'denied', 'denied_remembered', 'timeout', 'unsupported', 'unavailable')",
+    ]) {
+      expect(migration).toContain(marker)
+    }
+
+    expect(migration).not.toContain("'latitude', p_latitude")
+    expect(migration).not.toContain("'longitude', p_longitude")
   })
 })

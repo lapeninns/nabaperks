@@ -14,6 +14,7 @@ export type StampLocationStatus =
   | "denied_remembered"
   | "timeout"
   | "unsupported"
+  | "unavailable"
 
 export type StampLocationResult = {
   readonly status: StampLocationStatus
@@ -21,6 +22,7 @@ export type StampLocationResult = {
   readonly coordinates?: {
     readonly latitude: number
     readonly longitude: number
+    readonly accuracyMeters: number
   }
 }
 
@@ -71,6 +73,7 @@ export function resolveStampLocation(
           coordinates: {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
+            accuracyMeters: position.coords.accuracy,
           },
         }),
       (error) => {
@@ -108,6 +111,7 @@ function appendStampLocation(formData: FormData, result: StampLocationResult) {
   if (result.coordinates) {
     formData.set("latitude", String(result.coordinates.latitude))
     formData.set("longitude", String(result.coordinates.longitude))
+    formData.set("accuracyMeters", String(result.coordinates.accuracyMeters))
   }
 }
 
@@ -121,6 +125,8 @@ function stampLocationErrorStatus(
       return denialRemembered ? "denied_remembered" : "denied"
     case error.TIMEOUT:
       return "timeout"
+    case error.POSITION_UNAVAILABLE:
+      return "unavailable"
     default:
       return "unsupported"
   }
@@ -147,7 +153,9 @@ export function GeoFields() {
     <>
       <input type="hidden" name="latitude" />
       <input type="hidden" name="longitude" />
+      <input type="hidden" name="accuracyMeters" />
       <input type="hidden" name="locationStatus" />
+      <input type="hidden" name="locationElapsedMs" />
     </>
   )
 }
@@ -186,6 +194,7 @@ export function useOptionalGeolocation({
 
     if (!navigator.geolocation) {
       setFormValue(form, "locationStatus", "unavailable")
+      setFormValue(form, "locationElapsedMs", "0")
       setNote("Location unavailable. The action will continue and be reviewed.")
       submitAfterLocation(form)
       return
@@ -195,12 +204,15 @@ export function useOptionalGeolocation({
       (position) => {
         setFormValue(form, "latitude", String(position.coords.latitude))
         setFormValue(form, "longitude", String(position.coords.longitude))
+        setFormValue(form, "accuracyMeters", String(position.coords.accuracy))
         setFormValue(form, "locationStatus", "available")
+        setFormValue(form, "locationElapsedMs", "0")
         setNote("Location captured.")
         submitAfterLocation(form)
       },
       () => {
         setFormValue(form, "locationStatus", "denied")
+        setFormValue(form, "locationElapsedMs", "0")
         setNote(
           "Location not shared. The action will continue and be reviewed."
         )
