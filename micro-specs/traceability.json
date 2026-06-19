@@ -1302,6 +1302,16 @@
               "evidence": ["tests/micro-specs/stripe-webhook-events.test.ts"],
               "status": "covered",
               "gap_reason": null
+            },
+            {
+              "id": "IDM-MS-ADMIN-BILLING-STRIPE-BILLING-ACCESS-CONTROL-002-b",
+              "category": "idempotency",
+              "trigger": "the webhook insert hits a unique violation (23505) for an already-claimed event",
+              "expected": "claim returns duplicate and the handler skips side effects rather than throwing",
+              "required_layer": ["unit"],
+              "evidence": ["tests/micro-specs/stripe-webhook-events.test.ts"],
+              "status": "covered",
+              "gap_reason": null
             }
           ]
         },
@@ -1439,7 +1449,19 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "STM-MS-ADMIN-BILLING-STRIPE-BILLING-ACCESS-CONTROL-004-a",
+              "category": "state-machine",
+              "trigger": "billing status is past_due",
+              "expected": "the card stays usable under the configured grace behaviour while a billing warning is surfaced",
+              "required_layer": ["unit"],
+              "evidence": ["tests/micro-specs/customer-billing-matrix.test.ts"],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
         },
         {
           "requirement_id": "MS-ADMIN-BILLING-STRIPE-BILLING-ACCESS-CONTROL-005",
@@ -1495,7 +1517,19 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "STM-MS-ADMIN-BILLING-STRIPE-BILLING-ACCESS-CONTROL-005-a",
+              "category": "state-machine",
+              "trigger": "billing status is cancelled",
+              "expected": "new stamp issuance is blocked while dashboard data access is preserved",
+              "required_layer": ["unit"],
+              "evidence": ["tests/micro-specs/customer-billing-matrix.test.ts"],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
         },
         {
           "requirement_id": "MS-ADMIN-BILLING-STRIPE-BILLING-ACCESS-CONTROL-006",
@@ -1551,7 +1585,19 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "STM-MS-ADMIN-BILLING-STRIPE-BILLING-ACCESS-CONTROL-006-a",
+              "category": "state-machine",
+              "trigger": "billing status is suspended",
+              "expected": "customer-facing card use is disabled",
+              "required_layer": ["unit"],
+              "evidence": ["tests/micro-specs/customer-billing-matrix.test.ts"],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
         },
         {
           "requirement_id": "MS-ADMIN-BILLING-STRIPE-BILLING-ACCESS-CONTROL-007",

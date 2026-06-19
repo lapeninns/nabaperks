@@ -42,6 +42,17 @@ function lastUpdatePayload(supabase: ReturnType<typeof createSupabaseMock>) {
   >
 }
 
+function lastInsertPayload(supabase: ReturnType<typeof createSupabaseMock>) {
+  const insertCall = supabase.queryCalls.find(
+    (call) => call.table === TABLE && call.method === "insert"
+  )
+  expect(insertCall).toBeDefined()
+  return (insertCall as NonNullable<typeof insertCall>).args[0] as Record<
+    string,
+    unknown
+  >
+}
+
 describe("markStripeWebhookEventProcessed", () => {
   beforeEach(() => {
     vi.useFakeTimers()
@@ -170,5 +181,53 @@ describe("markStripeWebhookEventFailed", () => {
     await expect(
       markStripeWebhookEventFailed("evt_err", "original failure")
     ).rejects.toThrow("Unable to mark Stripe webhook failed: permission denied")
+  })
+})
+
+describe("claimStripeWebhookEvent", () => {
+  const event = {
+    id: "evt_123",
+    type: "customer.subscription.updated",
+    livemode: false,
+    created: 1_700_000_000, // epoch SECONDS
+  }
+
+  it("claims a new event and stores the payload with an ISO 8601 created timestamp", async () => {
+    const supabase = mockSupabase([{ error: null }])
+
+    const { claimStripeWebhookEvent } = await import(MODULE_PATH)
+    await expect(claimStripeWebhookEvent(event)).resolves.toEqual({
+      status: "claimed",
+    })
+
+    const payload = lastInsertPayload(supabase)
+    expect(payload).toEqual({
+      stripe_event_id: "evt_123",
+      event_type: "customer.subscription.updated",
+      livemode: false,
+      stripe_created_at: "2023-11-14T22:13:20.000Z",
+    })
+    // created is epoch seconds; it must be multiplied by 1000 before ISO conversion
+    expect(payload.stripe_created_at).toBe(
+      new Date(event.created * 1000).toISOString()
+    )
+  })
+
+  it("treats a unique-violation (23505) as a duplicate without throwing", async () => {
+    mockSupabase([{ error: { code: "23505", message: "duplicate key value" } }])
+
+    const { claimStripeWebhookEvent } = await import(MODULE_PATH)
+    await expect(claimStripeWebhookEvent(event)).resolves.toEqual({
+      status: "duplicate",
+    })
+  })
+
+  it("throws for any non-duplicate insert error", async () => {
+    mockSupabase([{ error: { code: "42501", message: "permission denied" } }])
+
+    const { claimStripeWebhookEvent } = await import(MODULE_PATH)
+    await expect(claimStripeWebhookEvent(event)).rejects.toThrow(
+      "Unable to claim Stripe webhook: permission denied"
+    )
   })
 })
