@@ -22,6 +22,23 @@ export const RISK_CLASSES = [
   "migrations",
 ]
 
+// Edge-case register taxonomy. Each requirement may enumerate edge_cases[]; the
+// id prefix encodes the category so entries stay greppable like EARS ids.
+export const EDGE_CASE_CATEGORIES = {
+  temporal: "TMP",
+  concurrency: "CNC",
+  idempotency: "IDM",
+  auth: "AUTH",
+  input: "INP",
+  "state-machine": "STM",
+  resilience: "RES",
+  abuse: "ABU",
+  pii: "PII",
+  ux: "UX",
+}
+
+export const EDGE_CASE_STATUSES = ["covered", "gap", "accepted-risk"]
+
 const REQUIRED_HIERARCHY_PATHS = [
   "docs/PROJECT_SPEC.md",
   "docs/ARCHITECTURE.md",
@@ -803,6 +820,7 @@ function checkTraceability(root, diagnostics, microSpecs = []) {
 
   const specIds = new Set()
   const requirementIds = new Set()
+  const edgeCaseIds = new Set()
   const orderedSpecIds = traceability.specs
     .map((spec) => stringField(spec, "spec_id"))
     .filter(Boolean)
@@ -915,6 +933,14 @@ function checkTraceability(root, diagnostics, microSpecs = []) {
         spec,
         requirement,
         requirementKey,
+        diagnostics
+      )
+      checkRequirementEdgeCases(
+        root,
+        jsonPath,
+        requirement,
+        requirementKey,
+        edgeCaseIds,
         diagnostics
       )
       const evidence = Array.isArray(requirement.evidence)
@@ -1125,6 +1151,155 @@ function checkRequirementTraceabilityFields(
   }
 }
 
+// Validates the per-requirement edge_cases[] register. edge_cases is optional
+// during rollout (a requirement without the field is accepted); once present it
+// must be a well-formed array. The closed-set "zero gap" target is enforced by
+// reporting any non-covered edge, not by requiring the field everywhere yet.
+function checkRequirementEdgeCases(
+  root,
+  path,
+  requirement,
+  requirementKey,
+  edgeCaseIds,
+  diagnostics
+) {
+  const edges = requirement.edge_cases
+  if (edges === undefined) return
+  if (!Array.isArray(edges)) {
+    diagnostics.push({
+      path,
+      id: requirementKey,
+      message: "edge_cases must be an array.",
+    })
+    return
+  }
+
+  const requirementId = stringField(requirement, "requirement_id")
+  const parentTiers = Array.isArray(requirement.required_test_tier)
+    ? requirement.required_test_tier
+    : []
+  const allowedLayers = new Set([...parentTiers, "browser", "security"])
+  const manualRationale = Array.isArray(requirement.manual_rationale)
+    ? requirement.manual_rationale
+    : []
+
+  for (const edge of edges) {
+    const edgeId = stringField(edge, "id")
+    const edgeKey = edgeId || `${requirementKey}:unknown-edge`
+
+    if (!edgeId) {
+      diagnostics.push({
+        path,
+        id: edgeKey,
+        message: "edge_case id is required.",
+      })
+    } else if (edgeCaseIds.has(edgeId)) {
+      diagnostics.push({ path, id: edgeId, message: "duplicate edge_case id." })
+    } else {
+      edgeCaseIds.add(edgeId)
+    }
+
+    const prefix = EDGE_CASE_CATEGORIES[edge?.category]
+    if (!prefix) {
+      diagnostics.push({
+        path,
+        id: edgeKey,
+        message: `invalid edge_case category ${String(edge?.category)}.`,
+      })
+    } else if (
+      edgeId &&
+      requirementId &&
+      !new RegExp(`^${prefix}-${escapeRegex(requirementId)}-[a-z0-9]+$`).test(
+        edgeId
+      )
+    ) {
+      diagnostics.push({
+        path,
+        id: edgeKey,
+        message: `edge_case id must match ${prefix}-${requirementId}-<seq>.`,
+      })
+    }
+
+    for (const field of ["trigger", "expected"]) {
+      if (!nonEmptyString(edge?.[field])) {
+        diagnostics.push({
+          path,
+          id: edgeKey,
+          message: `edge_case ${field} is required.`,
+        })
+      }
+    }
+
+    const status = stringField(edge, "status")
+    if (!EDGE_CASE_STATUSES.includes(status)) {
+      diagnostics.push({
+        path,
+        id: edgeKey,
+        message: `invalid edge_case status ${String(edge?.status)}.`,
+      })
+    }
+
+    const layers = Array.isArray(edge?.required_layer)
+      ? edge.required_layer
+      : []
+    if (layers.length === 0) {
+      diagnostics.push({
+        path,
+        id: edgeKey,
+        message: "edge_case required_layer must be a non-empty array.",
+      })
+    }
+    for (const layer of layers) {
+      if (!allowedLayers.has(layer)) {
+        diagnostics.push({
+          path,
+          id: edgeKey,
+          message: `edge_case required_layer ${String(layer)} must come from the requirement's tiers plus browser/security.`,
+        })
+      }
+    }
+
+    const evidence = Array.isArray(edge?.evidence) ? edge.evidence : []
+    if (status === "covered") {
+      if (evidence.length === 0) {
+        diagnostics.push({
+          path,
+          id: edgeKey,
+          message: "covered edge_case must list evidence.",
+        })
+      }
+      const hasManual = evidence.some(
+        (entry) => typeof entry === "string" && entry.startsWith("manual:")
+      )
+      if (hasManual && manualRationale.length === 0) {
+        diagnostics.push({
+          path,
+          id: edgeKey,
+          message:
+            "manual edge_case evidence requires a manual_rationale entry.",
+        })
+      }
+      for (const entry of evidence) {
+        if (typeof entry !== "string") continue
+        if (entry.startsWith("manual:")) continue
+        if (!existsSync(resolve(root, entry))) {
+          diagnostics.push({
+            path,
+            id: edgeKey,
+            message: `edge_case references missing evidence path ${entry}.`,
+          })
+        }
+      }
+    } else if (!nonEmptyString(edge?.gap_reason)) {
+      diagnostics.push({
+        path,
+        id: edgeKey,
+        message: `${status || "non-covered"} edge_case requires a gap_reason.`,
+      })
+    }
+  }
+}
+
 function checkTraceabilityChangeState(path, id, value, diagnostics) {
   if (!nonEmptyString(value)) {
     diagnostics.push({
@@ -1195,6 +1370,9 @@ function checkMarkdownRequirementSync(
   if (!requirementId) return
   const section = markdownSection(markdown, spec.spec_id)
   if (!section) return
+  const edgeCases = Array.isArray(requirement.edge_cases)
+    ? requirement.edge_cases
+    : []
   const requiredTokens = [
     ["status", requirement.status],
     ["risk", requirement.risk_class],
@@ -1203,6 +1381,18 @@ function checkMarkdownRequirementSync(
     ["verification command", ...(requirement.verification_commands ?? [])],
     ["implementation surface", ...(requirement.implementation_surfaces ?? [])],
     ["change_state", requirement.change_state],
+    ["edge case", ...edgeCases.map((edge) => stringField(edge, "id"))],
+    [
+      "edge evidence",
+      ...edgeCases.flatMap((edge) =>
+        Array.isArray(edge?.evidence)
+          ? edge.evidence.filter(
+              (entry) =>
+                typeof entry === "string" && !entry.startsWith("manual:")
+            )
+          : []
+      ),
+    ],
   ]
   for (const [label, ...tokens] of requiredTokens) {
     for (const token of tokens) {

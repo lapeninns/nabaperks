@@ -747,7 +747,8 @@
         "DESIGN.md"
       ],
       "related_tests": [
-        "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+        "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+        "tests/micro-specs/analytics-dashboard-pilot.test.ts",
         "tests/micro-specs/admin-console-redesign.test.ts"
       ],
       "verification_gates": [
@@ -777,7 +778,8 @@
             "pnpm build"
           ],
           "evidence": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "status": "active",
@@ -805,11 +807,12 @@
             "supabase/migrations/**"
           ],
           "related_tests": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -825,7 +828,8 @@
             "pnpm build"
           ],
           "evidence": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "status": "active",
@@ -853,11 +857,12 @@
             "supabase/migrations/**"
           ],
           "related_tests": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -873,7 +878,8 @@
             "pnpm build"
           ],
           "evidence": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "status": "active",
@@ -901,11 +907,12 @@
             "supabase/migrations/**"
           ],
           "related_tests": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -921,7 +928,8 @@
             "pnpm build"
           ],
           "evidence": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "status": "active",
@@ -949,11 +957,12 @@
             "supabase/migrations/**"
           ],
           "related_tests": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -969,7 +978,8 @@
             "pnpm build"
           ],
           "evidence": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "status": "active",
@@ -997,11 +1007,12 @@
             "supabase/migrations/**"
           ],
           "related_tests": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -1017,7 +1028,8 @@
             "pnpm build"
           ],
           "evidence": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "status": "active",
@@ -1045,11 +1057,12 @@
             "supabase/migrations/**"
           ],
           "related_tests": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -1065,7 +1078,8 @@
             "pnpm build"
           ],
           "evidence": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "status": "active",
@@ -1093,11 +1107,12 @@
             "supabase/migrations/**"
           ],
           "related_tests": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         }
@@ -1143,7 +1158,9 @@
         "DESIGN.md"
       ],
       "related_tests": [
-        "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+        "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+        "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+        "tests/micro-specs/admin-console-redesign.test.ts",
         "tests/micro-specs/marketing-auth-legal.test.ts",
         "tests/micro-specs/customer.test.ts"
       ],
@@ -1174,7 +1191,9 @@
             "pnpm build"
           ],
           "evidence": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+            "tests/micro-specs/admin-console-redesign.test.ts",
             "tests/micro-specs/marketing-auth-legal.test.ts",
             "tests/micro-specs/customer.test.ts"
           ],
@@ -1205,12 +1224,14 @@
             "supabase/migrations/**"
           ],
           "related_tests": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+            "tests/micro-specs/admin-console-redesign.test.ts",
             "tests/micro-specs/marketing-auth-legal.test.ts",
             "tests/micro-specs/customer.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -1226,9 +1247,12 @@
             "pnpm build"
           ],
           "evidence": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+            "tests/micro-specs/admin-console-redesign.test.ts",
             "tests/micro-specs/marketing-auth-legal.test.ts",
-            "tests/micro-specs/customer.test.ts"
+            "tests/micro-specs/customer.test.ts",
+            "tests/micro-specs/stripe-webhook-events.test.ts"
           ],
           "status": "active",
           "risk_class": "billing",
@@ -1257,14 +1281,29 @@
             "supabase/migrations/**"
           ],
           "related_tests": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+            "tests/micro-specs/admin-console-redesign.test.ts",
             "tests/micro-specs/marketing-auth-legal.test.ts",
-            "tests/micro-specs/customer.test.ts"
+            "tests/micro-specs/customer.test.ts",
+            "tests/micro-specs/stripe-webhook-events.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "IDM-MS-ADMIN-BILLING-STRIPE-BILLING-ACCESS-CONTROL-002-a",
+              "category": "idempotency",
+              "trigger": "Stripe redelivers a webhook event that was already processed",
+              "expected": "the event is claimed and marked once; billing state is not mutated a second time",
+              "required_layer": ["unit"],
+              "evidence": ["tests/micro-specs/stripe-webhook-events.test.ts"],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
         },
         {
           "requirement_id": "MS-ADMIN-BILLING-STRIPE-BILLING-ACCESS-CONTROL-003",
@@ -1278,9 +1317,12 @@
             "pnpm build"
           ],
           "evidence": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+            "tests/micro-specs/admin-console-redesign.test.ts",
             "tests/micro-specs/marketing-auth-legal.test.ts",
-            "tests/micro-specs/customer.test.ts"
+            "tests/micro-specs/customer.test.ts",
+            "tests/micro-specs/stripe-billing.test.ts"
           ],
           "status": "active",
           "risk_class": "billing",
@@ -1309,14 +1351,39 @@
             "supabase/migrations/**"
           ],
           "related_tests": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+            "tests/micro-specs/admin-console-redesign.test.ts",
             "tests/micro-specs/marketing-auth-legal.test.ts",
-            "tests/micro-specs/customer.test.ts"
+            "tests/micro-specs/customer.test.ts",
+            "tests/micro-specs/stripe-billing.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "STM-MS-ADMIN-BILLING-STRIPE-BILLING-ACCESS-CONTROL-003-a",
+              "category": "state-machine",
+              "trigger": "subscription.updated arrives with a Stripe status outside the explicitly mapped set",
+              "expected": "the status maps to suspended; no unmapped status leaks through",
+              "required_layer": ["unit"],
+              "evidence": ["tests/micro-specs/stripe-billing.test.ts"],
+              "status": "covered",
+              "gap_reason": null
+            },
+            {
+              "id": "INP-MS-ADMIN-BILLING-STRIPE-BILLING-ACCESS-CONTROL-003-b",
+              "category": "input",
+              "trigger": "the subscription has no items, or the first item lacks a period end",
+              "expected": "subscriptionPeriodEnd returns null rather than throwing or fabricating a date",
+              "required_layer": ["unit"],
+              "evidence": ["tests/micro-specs/stripe-billing.test.ts"],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
         },
         {
           "requirement_id": "MS-ADMIN-BILLING-STRIPE-BILLING-ACCESS-CONTROL-004",
@@ -1330,7 +1397,9 @@
             "pnpm build"
           ],
           "evidence": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+            "tests/micro-specs/admin-console-redesign.test.ts",
             "tests/micro-specs/marketing-auth-legal.test.ts",
             "tests/micro-specs/customer.test.ts"
           ],
@@ -1361,12 +1430,14 @@
             "supabase/migrations/**"
           ],
           "related_tests": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+            "tests/micro-specs/admin-console-redesign.test.ts",
             "tests/micro-specs/marketing-auth-legal.test.ts",
             "tests/micro-specs/customer.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -1382,7 +1453,9 @@
             "pnpm build"
           ],
           "evidence": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+            "tests/micro-specs/admin-console-redesign.test.ts",
             "tests/micro-specs/marketing-auth-legal.test.ts",
             "tests/micro-specs/customer.test.ts"
           ],
@@ -1413,12 +1486,14 @@
             "supabase/migrations/**"
           ],
           "related_tests": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+            "tests/micro-specs/admin-console-redesign.test.ts",
             "tests/micro-specs/marketing-auth-legal.test.ts",
             "tests/micro-specs/customer.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -1434,7 +1509,9 @@
             "pnpm build"
           ],
           "evidence": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+            "tests/micro-specs/admin-console-redesign.test.ts",
             "tests/micro-specs/marketing-auth-legal.test.ts",
             "tests/micro-specs/customer.test.ts"
           ],
@@ -1465,12 +1542,14 @@
             "supabase/migrations/**"
           ],
           "related_tests": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+            "tests/micro-specs/admin-console-redesign.test.ts",
             "tests/micro-specs/marketing-auth-legal.test.ts",
             "tests/micro-specs/customer.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -1486,7 +1565,9 @@
             "pnpm build"
           ],
           "evidence": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+            "tests/micro-specs/admin-console-redesign.test.ts",
             "tests/micro-specs/marketing-auth-legal.test.ts",
             "tests/micro-specs/customer.test.ts"
           ],
@@ -1517,12 +1598,14 @@
             "supabase/migrations/**"
           ],
           "related_tests": [
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+            "tests/micro-specs/admin-console-redesign.test.ts",
             "tests/micro-specs/marketing-auth-legal.test.ts",
             "tests/micro-specs/customer.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         }
@@ -2893,7 +2976,9 @@
       ],
       "related_tests": [
         "tests/micro-specs/foundation.test.ts",
-        "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+        "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+        "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+        "tests/micro-specs/admin-console-redesign.test.ts",
         "tests/micro-specs/customer.test.ts",
         "supabase/tests/tenant_isolation.sql",
         "supabase/tests/reward_redemption_cycles.sql"
@@ -2926,7 +3011,9 @@
           ],
           "evidence": [
             "tests/micro-specs/foundation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+            "tests/micro-specs/admin-console-redesign.test.ts",
             "tests/micro-specs/customer.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
@@ -2957,13 +3044,15 @@
           ],
           "related_tests": [
             "tests/micro-specs/foundation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+            "tests/micro-specs/admin-console-redesign.test.ts",
             "tests/micro-specs/customer.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -2980,7 +3069,9 @@
           ],
           "evidence": [
             "tests/micro-specs/foundation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+            "tests/micro-specs/admin-console-redesign.test.ts",
             "tests/micro-specs/customer.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
@@ -3011,13 +3102,15 @@
           ],
           "related_tests": [
             "tests/micro-specs/foundation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+            "tests/micro-specs/admin-console-redesign.test.ts",
             "tests/micro-specs/customer.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -3034,7 +3127,9 @@
           ],
           "evidence": [
             "tests/micro-specs/foundation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+            "tests/micro-specs/admin-console-redesign.test.ts",
             "tests/micro-specs/customer.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
@@ -3065,13 +3160,15 @@
           ],
           "related_tests": [
             "tests/micro-specs/foundation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+            "tests/micro-specs/admin-console-redesign.test.ts",
             "tests/micro-specs/customer.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -3088,7 +3185,9 @@
           ],
           "evidence": [
             "tests/micro-specs/foundation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+            "tests/micro-specs/admin-console-redesign.test.ts",
             "tests/micro-specs/customer.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
@@ -3119,13 +3218,15 @@
           ],
           "related_tests": [
             "tests/micro-specs/foundation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+            "tests/micro-specs/admin-console-redesign.test.ts",
             "tests/micro-specs/customer.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -3142,7 +3243,9 @@
           ],
           "evidence": [
             "tests/micro-specs/foundation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+            "tests/micro-specs/admin-console-redesign.test.ts",
             "tests/micro-specs/customer.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
@@ -3173,13 +3276,15 @@
           ],
           "related_tests": [
             "tests/micro-specs/foundation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
+            "tests/micro-specs/admin-console-redesign.test.ts",
             "tests/micro-specs/customer.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         }
@@ -5720,7 +5825,8 @@
         "tests/micro-specs/analytics-dashboard-pilot.test.ts",
         "tests/micro-specs/customer.test.ts",
         "tests/micro-specs/self-service-stamping.test.ts",
-        "manual:billing/admin micro-spec Vitest evidence in retained legacy filename"
+        "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+        "tests/micro-specs/admin-console-redesign.test.ts"
       ],
       "verification_gates": [
         "pnpm governance",
@@ -5748,7 +5854,8 @@
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename"
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "status": "active",
           "risk_class": "docs-tooling",
@@ -5768,10 +5875,11 @@
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename"
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -5788,7 +5896,8 @@
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename"
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "status": "active",
           "risk_class": "docs-tooling",
@@ -5808,10 +5917,11 @@
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename"
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -5828,7 +5938,8 @@
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename"
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "status": "active",
           "risk_class": "docs-tooling",
@@ -5848,10 +5959,11 @@
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename"
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -5868,7 +5980,8 @@
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename"
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "status": "active",
           "risk_class": "docs-tooling",
@@ -5888,10 +6001,11 @@
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename"
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -5908,7 +6022,8 @@
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename"
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "status": "active",
           "risk_class": "docs-tooling",
@@ -5928,10 +6043,11 @@
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename"
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -5948,7 +6064,8 @@
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename"
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "status": "active",
           "risk_class": "docs-tooling",
@@ -5968,10 +6085,11 @@
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename"
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -5988,7 +6106,8 @@
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename"
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "status": "active",
           "risk_class": "docs-tooling",
@@ -6008,10 +6127,11 @@
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename"
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         }
@@ -6481,7 +6601,8 @@
             "tests/micro-specs/reward-profile-gate.test.ts",
             "tests/micro-specs/reward-profile-actions.test.ts",
             "tests/micro-specs/customer-contact-immutability.test.ts",
-            "supabase/tests/customer_contact_immutability.sql"
+            "supabase/tests/customer_contact_immutability.sql",
+            "tests/micro-specs/customer-phone-pii.test.ts"
           ],
           "status": "active",
           "risk_class": "auth-session",
@@ -6520,7 +6641,8 @@
             "tests/micro-specs/reward-profile-gate.test.ts",
             "tests/micro-specs/reward-profile-actions.test.ts",
             "tests/micro-specs/customer-contact-immutability.test.ts",
-            "supabase/tests/customer_contact_immutability.sql"
+            "supabase/tests/customer_contact_immutability.sql",
+            "tests/micro-specs/customer-phone-pii.test.ts"
           ],
           "manual_rationale": [],
           "change_state": "current"
@@ -7101,7 +7223,8 @@
       "related_tests": [
         "tests/micro-specs/customer.test.ts",
         "tests/micro-specs/self-service-stamping.test.ts",
-        "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+        "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+        "tests/micro-specs/analytics-dashboard-pilot.test.ts",
         "tests/micro-specs/admin-console-redesign.test.ts",
         "supabase/tests/tenant_isolation.sql",
         "supabase/tests/reward_redemption_cycles.sql"
@@ -7135,10 +7258,12 @@
           "evidence": [
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts",
             "supabase/tests/tenant_isolation.sql",
-            "supabase/tests/reward_redemption_cycles.sql"
+            "supabase/tests/reward_redemption_cycles.sql",
+            "tests/micro-specs/rate-limit.test.ts"
           ],
           "status": "active",
           "risk_class": "webhooks",
@@ -7170,13 +7295,15 @@
           "related_tests": [
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts",
             "supabase/tests/tenant_isolation.sql",
-            "supabase/tests/reward_redemption_cycles.sql"
+            "supabase/tests/reward_redemption_cycles.sql",
+            "tests/micro-specs/rate-limit.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -7194,10 +7321,13 @@
           "evidence": [
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts",
             "supabase/tests/tenant_isolation.sql",
-            "supabase/tests/reward_redemption_cycles.sql"
+            "supabase/tests/reward_redemption_cycles.sql",
+            "tests/micro-specs/rate-limit.test.ts",
+            "tests/micro-specs/customer-phone-pii.test.ts"
           ],
           "status": "active",
           "risk_class": "webhooks",
@@ -7229,13 +7359,16 @@
           "related_tests": [
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts",
             "supabase/tests/tenant_isolation.sql",
-            "supabase/tests/reward_redemption_cycles.sql"
+            "supabase/tests/reward_redemption_cycles.sql",
+            "tests/micro-specs/rate-limit.test.ts",
+            "tests/micro-specs/customer-phone-pii.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -7253,7 +7386,8 @@
           "evidence": [
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
@@ -7288,13 +7422,14 @@
           "related_tests": [
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -7312,7 +7447,8 @@
           "evidence": [
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
@@ -7347,13 +7483,14 @@
           "related_tests": [
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -7371,7 +7508,8 @@
           "evidence": [
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
@@ -7406,13 +7544,14 @@
           "related_tests": [
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -7430,7 +7569,8 @@
           "evidence": [
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
@@ -7465,13 +7605,14 @@
           "related_tests": [
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -7489,7 +7630,8 @@
           "evidence": [
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
@@ -7524,13 +7666,14 @@
           "related_tests": [
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -7548,7 +7691,8 @@
           "evidence": [
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
@@ -7583,13 +7727,14 @@
           "related_tests": [
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -7607,7 +7752,8 @@
           "evidence": [
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
@@ -7642,13 +7788,14 @@
           "related_tests": [
             "tests/micro-specs/customer.test.ts",
             "tests/micro-specs/self-service-stamping.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
+            "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         }
@@ -7693,7 +7840,7 @@
       "related_tests": [
         "tests/micro-specs/analytics-dashboard-pilot.test.ts",
         "tests/micro-specs/perf-rpc-consolidation.test.ts",
-        "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+        "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
         "tests/micro-specs/admin-console-redesign.test.ts"
       ],
       "verification_gates": [
@@ -7723,7 +7870,7 @@
           "evidence": [
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/perf-rpc-consolidation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "status": "active",
@@ -7752,11 +7899,11 @@
           "related_tests": [
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/perf-rpc-consolidation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -7773,7 +7920,7 @@
           "evidence": [
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/perf-rpc-consolidation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "status": "active",
@@ -7802,11 +7949,11 @@
           "related_tests": [
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/perf-rpc-consolidation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -7823,7 +7970,7 @@
           "evidence": [
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/perf-rpc-consolidation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "status": "active",
@@ -7852,11 +7999,11 @@
           "related_tests": [
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/perf-rpc-consolidation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -7873,7 +8020,7 @@
           "evidence": [
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/perf-rpc-consolidation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "status": "active",
@@ -7902,11 +8049,11 @@
           "related_tests": [
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/perf-rpc-consolidation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -7923,7 +8070,7 @@
           "evidence": [
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/perf-rpc-consolidation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "status": "active",
@@ -7952,11 +8099,11 @@
           "related_tests": [
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/perf-rpc-consolidation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -7973,7 +8120,7 @@
           "evidence": [
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/perf-rpc-consolidation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "status": "active",
@@ -8002,11 +8149,11 @@
           "related_tests": [
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/perf-rpc-consolidation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -8023,7 +8170,7 @@
           "evidence": [
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/perf-rpc-consolidation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "status": "active",
@@ -8052,11 +8199,11 @@
           "related_tests": [
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/perf-rpc-consolidation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         },
@@ -8073,7 +8220,7 @@
           "evidence": [
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/perf-rpc-consolidation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "status": "active",
@@ -8102,11 +8249,11 @@
           "related_tests": [
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/perf-rpc-consolidation.test.ts",
-            "manual:billing/admin micro-spec Vitest evidence in retained legacy filename",
+            "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [
-            "Approved manual-check rationale: billing/admin micro-spec Vitest evidence in retained legacy filename."
+            "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
           "change_state": "current"
         }
@@ -8296,7 +8443,8 @@
             "tests/micro-specs/reward-redemption-cycles.test.ts",
             "tests/micro-specs/reward-profile-gate.test.ts",
             "supabase/tests/reward_redemption_cycles.sql",
-            "supabase/tests/profile_completion_gate.sql"
+            "supabase/tests/profile_completion_gate.sql",
+            "tests/micro-specs/reward-scan-token.test.ts"
           ],
           "status": "active",
           "risk_class": "rls-rpc-ledger",
@@ -8329,7 +8477,8 @@
             "tests/micro-specs/reward-redemption-cycles.test.ts",
             "tests/micro-specs/reward-profile-gate.test.ts",
             "supabase/tests/reward_redemption_cycles.sql",
-            "supabase/tests/profile_completion_gate.sql"
+            "supabase/tests/profile_completion_gate.sql",
+            "tests/micro-specs/reward-scan-token.test.ts"
           ],
           "manual_rationale": [],
           "change_state": "current"
