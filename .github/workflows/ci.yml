@@ -146,3 +146,57 @@ jobs:
       - name: Stop local Supabase stack
         if: always()
         run: supabase stop
+
+  e2e:
+    name: E2E + visual + a11y (local Supabase)
+    runs-on: ubuntu-latest
+    # Drives the real app against a disposable local Supabase stack: customer
+    # journey, screenshots/visual, PWA, design-system, and the axe accessibility
+    # gate (qa:e2e runs every tests/e2e spec). Dev OTP bypass (424242) avoids
+    # Twilio; Stripe/Resend use CI placeholders not exercised by the journey.
+    env:
+      SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      CUSTOMER_DEV_OTP_CODE: "424242"
+      CUSTOMER_SESSION_SECRET: ci-session-secret-placeholder
+      CUSTOMER_PHONE_HMAC_SECRET: ci-hmac-secret-placeholder
+      CUSTOMER_PHONE_ENCRYPTION_KEY: ci-encryption-key-placeholder-32b
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
+      STRIPE_SECRET_KEY: sk_test_ci
+      STRIPE_GROWTH_PRICE_ID: price_ci
+      STRIPE_WEBHOOK_SECRET: whsec_ci
+      RESEND_API_KEY: re_ci
+      TWILIO_ACCOUNT_SID: ACci
+      TWILIO_AUTH_TOKEN: ci-twilio-auth-token
+      TWILIO_VERIFY_SERVICE_SID: VAci
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start local Supabase stack
+        run: supabase start
+      - name: Export local Supabase keys to the job env
+        run: |
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(supabase status -o json | jq -r .ANON_KEY)" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o json | jq -r .SERVICE_ROLE_KEY)" >> "$GITHUB_ENV"
+      - name: Apply migrations and seed demo data
+        run: pnpm db:setup
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run E2E, visual, and accessibility specs
+        run: pnpm qa:e2e
+      - name: Stop local Supabase stack
+        if: always()
+        run: supabase stop
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright
+          path: |
+            test-results
+            docs/screenshots
+          retention-days: 14
