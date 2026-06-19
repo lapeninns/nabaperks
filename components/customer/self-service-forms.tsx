@@ -7,12 +7,155 @@ export type LocationMode = {
   geofenceRadiusMeters: number
 }
 
+export type StampLocationStatus =
+  | "skipped"
+  | "available"
+  | "denied"
+  | "denied_remembered"
+  | "timeout"
+  | "unsupported"
+  | "unavailable"
+
+export type StampLocationResult = {
+  readonly status: StampLocationStatus
+  readonly elapsedMs: number
+  readonly coordinates?: {
+    readonly latitude: number
+    readonly longitude: number
+    readonly accuracyMeters: number
+  }
+}
+
+type StampLocationRequest = {
+  readonly requireGeofence: boolean
+  readonly nextStampNumber: number
+}
+
+type SelfStampFormDataInput = {
+  readonly membershipId: string
+  readonly qrId: string
+  readonly nextStampNumber: number
+  readonly location: LocationMode
+}
+
+const STAMP_LOCATION_DENIAL_KEY = "nabaperks:stamp-location-denied"
+
+export function shouldRequestStampLocation({
+  requireGeofence,
+  nextStampNumber,
+}: StampLocationRequest) {
+  return requireGeofence && nextStampNumber === 3
+}
+
+export function resolveStampLocation(
+  shouldRequestLocation: boolean
+): Promise<StampLocationResult> {
+  const startedAt = Date.now()
+
+  return new Promise((resolve) => {
+    if (
+      !shouldRequestLocation ||
+      typeof navigator === "undefined" ||
+      !navigator.geolocation
+    ) {
+      resolve({
+        status: shouldRequestLocation ? "unsupported" : "skipped",
+        elapsedMs: elapsedSince(startedAt),
+      })
+      return
+    }
+    const denialRemembered = stampLocationDenialRemembered()
+    navigator.geolocation.getCurrentPosition(
+      (position) =>
+        resolve({
+          status: "available",
+          elapsedMs: elapsedSince(startedAt),
+          coordinates: {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracyMeters: position.coords.accuracy,
+          },
+        }),
+      (error) => {
+        const status = stampLocationErrorStatus(error, denialRemembered)
+        resolve({ status, elapsedMs: elapsedSince(startedAt) })
+      },
+      { enableHighAccuracy: false, maximumAge: 60_000, timeout: 5_000 }
+    )
+  })
+}
+
+export async function prepareSelfStampFormData({
+  membershipId,
+  qrId,
+  nextStampNumber,
+  location,
+}: SelfStampFormDataInput) {
+  const result = await resolveStampLocation(
+    shouldRequestStampLocation({
+      requireGeofence: location.requireGeofence,
+      nextStampNumber,
+    })
+  )
+  const formData = new FormData()
+  formData.set("membershipId", membershipId)
+  formData.set("qrId", qrId)
+  appendStampLocation(formData, result)
+
+  return formData
+}
+
+function appendStampLocation(formData: FormData, result: StampLocationResult) {
+  formData.set("locationStatus", result.status)
+  formData.set("locationElapsedMs", String(result.elapsedMs))
+  if (result.coordinates) {
+    formData.set("latitude", String(result.coordinates.latitude))
+    formData.set("longitude", String(result.coordinates.longitude))
+    formData.set("accuracyMeters", String(result.coordinates.accuracyMeters))
+  }
+}
+
+function stampLocationErrorStatus(
+  error: GeolocationPositionError,
+  denialRemembered: boolean
+): StampLocationStatus {
+  switch (error.code) {
+    case error.PERMISSION_DENIED:
+      rememberStampLocationDenial()
+      return denialRemembered ? "denied_remembered" : "denied"
+    case error.TIMEOUT:
+      return "timeout"
+    case error.POSITION_UNAVAILABLE:
+      return "unavailable"
+    default:
+      return "unsupported"
+  }
+}
+
+function rememberStampLocationDenial() {
+  if (typeof localStorage === "undefined") return
+
+  localStorage.setItem(STAMP_LOCATION_DENIAL_KEY, "1")
+}
+
+function stampLocationDenialRemembered() {
+  if (typeof localStorage === "undefined") return false
+
+  return localStorage.getItem(STAMP_LOCATION_DENIAL_KEY) === "1"
+}
+
+function elapsedSince(startedAt: number) {
+  return Math.max(0, Date.now() - startedAt)
+}
+
 export function GeoFields() {
   return (
     <>
       <input type="hidden" name="latitude" />
       <input type="hidden" name="longitude" />
+      <input type="hidden" name="accuracyMeters" />
       <input type="hidden" name="locationStatus" />
+      <input type="hidden" name="locationElapsedMs" />
     </>
   )
 }
@@ -51,6 +194,7 @@ export function useOptionalGeolocation({
 
     if (!navigator.geolocation) {
       setFormValue(form, "locationStatus", "unavailable")
+      setFormValue(form, "locationElapsedMs", "0")
       setNote("Location unavailable. The action will continue and be reviewed.")
       submitAfterLocation(form)
       return
@@ -60,12 +204,15 @@ export function useOptionalGeolocation({
       (position) => {
         setFormValue(form, "latitude", String(position.coords.latitude))
         setFormValue(form, "longitude", String(position.coords.longitude))
+        setFormValue(form, "accuracyMeters", String(position.coords.accuracy))
         setFormValue(form, "locationStatus", "available")
+        setFormValue(form, "locationElapsedMs", "0")
         setNote("Location captured.")
         submitAfterLocation(form)
       },
       () => {
         setFormValue(form, "locationStatus", "denied")
+        setFormValue(form, "locationElapsedMs", "0")
         setNote(
           "Location not shared. The action will continue and be reviewed."
         )

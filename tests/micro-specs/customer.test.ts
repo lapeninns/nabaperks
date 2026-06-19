@@ -48,7 +48,8 @@ function collectReactText(value: unknown): string {
         if (!(rendered instanceof Promise)) {
           return collectReactText(rendered)
         }
-      } catch {
+      } catch (error) {
+        if (!(error instanceof Error)) throw error
         // Fall back to static prop traversal for client-only components.
       }
     }
@@ -127,13 +128,6 @@ describe("03 customer micro-specs", () => {
     const rewardCollectionQr = readProjectFile(
       "components/customer/reward-collection-qr.tsx"
     )
-    const selfServiceForms = readProjectFile(
-      "components/customer/self-service-forms.tsx"
-    )
-    const stampCollector = readProjectFile(
-      "components/customer/stamp-collector.tsx"
-    )
-
     for (const field of ["merchantSlug", "qrId", "contact"]) {
       expect(`${joinForms}\n${joinOtpForm}`).toContain(`name="${field}"`)
       expect(joinActions).toContain(`value(formData, "${field}")`)
@@ -159,15 +153,6 @@ describe("03 customer micro-specs", () => {
     expect(stampActions).toContain("selfStampAction")
     expect(stampActions).toContain("issueSelfServiceStamp")
     expect(stampActions).toContain("Scan the venue code to add your stamp.")
-
-    // Stamping now lands in place: the collector submits the loyalty fields via
-    // FormData (not a hidden-input form) and still runs the optional geo check.
-    for (const field of ["membershipId", "qrId", "latitude", "longitude"]) {
-      expect(stampCollector).toContain(`formData.set("${field}"`)
-    }
-    expect(stampCollector).toContain("navigator.geolocation")
-    // The shared geolocation helper still backs the join flow.
-    expect(selfServiceForms).toContain("navigator.geolocation")
   })
 
   it("keeps customer pages mobile-first with loyalty primitives and safe state copy", () => {

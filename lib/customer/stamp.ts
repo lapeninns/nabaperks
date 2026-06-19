@@ -9,8 +9,35 @@ import { logger } from "@/lib/observability/logger"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type GeoCoordinates = {
-  latitude: number
-  longitude: number
+  readonly latitude: number
+  readonly longitude: number
+}
+
+export type StampLocationStatus =
+  | "skipped"
+  | "available"
+  | "denied"
+  | "denied_remembered"
+  | "timeout"
+  | "unsupported"
+  | "unavailable"
+
+export type StampLocationEvidence = {
+  readonly latitude?: number | null
+  readonly longitude?: number | null
+  readonly accuracyMeters?: number | null
+  readonly locationStatus?: StampLocationStatus | null
+  readonly captureElapsedMs?: number | null
+}
+
+type IssueStampRpcParams = {
+  readonly p_membership_id: string
+  readonly p_customer_id: string
+  readonly p_latitude: number | null
+  readonly p_longitude: number | null
+  p_accuracy_meters?: number | null
+  p_location_status?: StampLocationStatus | null
+  p_capture_elapsed_ms?: number | null
 }
 
 export type IssueSelfServiceStampResult =
@@ -23,6 +50,11 @@ export type IssueSelfServiceStampResult =
     }
   | { status: "blocked"; reason: string }
 
+type IssuedStampResult = Extract<
+  IssueSelfServiceStampResult,
+  { status: "issued" }
+>
+
 export type LocationRequirement = {
   requireGeofence: boolean
   geofenceRadiusMeters: number
@@ -30,49 +62,79 @@ export type LocationRequirement = {
 
 export async function issueSelfServiceStamp(
   membershipId: string,
-  coordinates?: GeoCoordinates
+  location?: StampLocationEvidence
 ): Promise<IssueSelfServiceStampResult> {
   const customer = await getCurrentCustomer()
   if (!customer) return { status: "blocked", reason: "Open your cards first." }
 
   const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase.rpc("issue_self_service_stamp", {
-    p_membership_id: membershipId,
-    p_customer_id: customer.id,
-    p_latitude: coordinates?.latitude ?? null,
-    p_longitude: coordinates?.longitude ?? null,
-  })
+  const { data, error } = await supabase.rpc(
+    "issue_self_service_stamp",
+    buildIssueStampRpcParams(membershipId, customer.id, location)
+  )
 
   if (error) {
-    const reason = toStampBlockReason(error.message)
-
-    if (reason !== "unknown") {
-      // A misconfigured reward pool blocks the final stamp; the customer gets
-      // calm copy while operators get a diagnosable signal in the logs/audit.
-      if (reason === "pool_unavailable") {
-        logger.warn("self_service_stamp_pool_unavailable", {
-          membershipId,
-          rpcMessage: error.message,
-        })
-      }
-      return { status: "blocked", reason: blockReasonCopy(reason) }
-    }
-
-    throw new Error(`Unable to issue a stamp: ${error.message}`)
+    return blockKnownStampFailure(error.message, membershipId)
   }
 
-  const row = firstRecord(data)
+  const issuedStamp = issuedStampResult(firstRecord(data))
+  if (!issuedStamp) throw new Error("Unable to issue a stamp")
 
-  if (!row) {
-    throw new Error("Unable to issue a stamp")
+  return issuedStamp
+}
+
+function buildIssueStampRpcParams(
+  membershipId: string,
+  customerId: string,
+  location: StampLocationEvidence | undefined
+): IssueStampRpcParams {
+  const rpcParams: IssueStampRpcParams = {
+    p_membership_id: membershipId,
+    p_customer_id: customerId,
+    p_latitude: location?.latitude ?? null,
+    p_longitude: location?.longitude ?? null,
   }
+
+  if (hasDetailedLocationEvidence(location)) {
+    rpcParams.p_accuracy_meters = location?.accuracyMeters ?? null
+    rpcParams.p_location_status = location?.locationStatus ?? null
+    rpcParams.p_capture_elapsed_ms = location?.captureElapsedMs ?? null
+  }
+
+  return rpcParams
+}
+
+function blockKnownStampFailure(
+  rpcMessage: string,
+  membershipId: string
+): IssueSelfServiceStampResult {
+  const reason = toStampBlockReason(rpcMessage)
+
+  if (reason === "unknown") {
+    throw new Error(`Unable to issue a stamp: ${rpcMessage}`)
+  }
+
+  // A misconfigured reward pool blocks the final stamp; the customer gets
+  // calm copy while operators get a diagnosable signal in the logs/audit.
+  if (reason === "pool_unavailable") {
+    logger.warn("self_service_stamp_pool_unavailable", {
+      membershipId,
+      rpcMessage,
+    })
+  }
+
+  return { status: "blocked", reason: blockReasonCopy(reason) }
+}
+
+function issuedStampResult(
+  row: Record<string, unknown> | null
+): IssuedStampResult | null {
+  if (!row) return null
 
   const stampEventId = stringValue(row.stamp_event_id)
   const newStampCount = numberValue(row.new_stamp_count)
 
-  if (!stampEventId || newStampCount === null) {
-    throw new Error("Unable to issue a stamp")
-  }
+  if (!stampEventId || newStampCount === null) return null
 
   return {
     status: "issued",
@@ -237,6 +299,16 @@ function stringValue(value: unknown) {
 
 function numberValue(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null
+}
+
+function hasDetailedLocationEvidence(
+  location: StampLocationEvidence | undefined
+) {
+  return (
+    location?.accuracyMeters !== undefined ||
+    location?.locationStatus !== undefined ||
+    location?.captureElapsedMs !== undefined
+  )
 }
 
 function booleanValue(value: unknown) {

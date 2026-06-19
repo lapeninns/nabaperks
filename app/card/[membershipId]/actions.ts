@@ -6,10 +6,21 @@ import { blockReasonCopy } from "@/lib/customer/experience/block-reasons"
 import { getStampQrContextForMembership } from "@/lib/customer/join"
 import {
   issueSelfServiceStamp,
-  type GeoCoordinates,
+  type StampLocationEvidence,
+  type StampLocationStatus,
 } from "@/lib/customer/stamp"
 import type { SelfStampActionState } from "@/lib/customer/self-stamp-action-state"
 import { logger } from "@/lib/observability/logger"
+
+const STAMP_LOCATION_STATUSES = [
+  "skipped",
+  "available",
+  "denied",
+  "denied_remembered",
+  "timeout",
+  "unsupported",
+  "unavailable",
+] satisfies readonly StampLocationStatus[]
 
 function fail(message: string): SelfStampActionState {
   return { status: "error", message }
@@ -34,7 +45,10 @@ export async function selfStampAction(
 
   let result: Awaited<ReturnType<typeof issueSelfServiceStamp>>
   try {
-    result = await issueSelfServiceStamp(membershipId, coordinates(formData))
+    result = await issueSelfServiceStamp(
+      membershipId,
+      stampLocationEvidence(formData)
+    )
   } catch (error) {
     // Known RPC blocks already return a calm `blocked` result; only a genuinely
     // unexpected failure reaches here. Keep it inline instead of throwing the
@@ -62,13 +76,32 @@ export async function selfStampAction(
   }
 }
 
-function coordinates(formData: FormData): GeoCoordinates | undefined {
+function stampLocationEvidence(
+  formData: FormData
+): StampLocationEvidence | undefined {
   const latitude = numberValue(formData, "latitude")
   const longitude = numberValue(formData, "longitude")
+  const accuracyMeters = numberValue(formData, "accuracyMeters")
+  const locationStatus = locationStatusValue(formData, "locationStatus")
+  const captureElapsedMs = integerValue(formData, "locationElapsedMs")
 
-  if (latitude === null || longitude === null) return undefined
+  if (
+    locationStatus === null &&
+    accuracyMeters === null &&
+    captureElapsedMs === null
+  ) {
+    if (latitude === null || longitude === null) return undefined
 
-  return { latitude, longitude }
+    return { latitude, longitude }
+  }
+
+  return {
+    latitude,
+    longitude,
+    accuracyMeters,
+    locationStatus,
+    captureElapsedMs,
+  }
 }
 
 function value(formData: FormData, key: string) {
@@ -84,4 +117,20 @@ function numberValue(formData: FormData, key: string) {
 
   const parsed = Number(raw)
   return Number.isFinite(parsed) ? parsed : null
+}
+
+function integerValue(formData: FormData, key: string) {
+  const parsed = numberValue(formData, key)
+
+  return parsed !== null && Number.isInteger(parsed) ? parsed : null
+}
+
+function locationStatusValue(
+  formData: FormData,
+  key: string
+): StampLocationStatus | null {
+  const raw = value(formData, key)
+  if (!raw) return null
+
+  return STAMP_LOCATION_STATUSES.find((status) => status === raw) ?? null
 }

@@ -183,11 +183,11 @@ export function PreviewJoinTermsForm() {
   )
 }
 
-export function PreviewStampButton() {
+export function PreviewStampButton({ href }: { readonly href: string }) {
   return (
     <div className="grid gap-4">
-      <Button type="button" size="lg" className="w-full">
-        Add today&apos;s stamp
+      <Button asChild size="lg" className="w-full">
+        <Link href={href}>Add today&apos;s stamp</Link>
       </Button>
     </div>
   )

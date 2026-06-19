@@ -67,6 +67,20 @@ const PREVIEW_JOIN_CARD: JoinCard = {
   rewardTerms: CUSTOMER_FLOW_MOCK.rewardTerms,
 }
 
+type PreviewStampConfirmStepId = Extract<
+  CustomerFlowPreviewStepId,
+  "stamp-day-1-confirm" | "stamp-day-2-confirm" | "stamp-day-3-confirm"
+>
+
+const PREVIEW_STAMP_CONFIRM_TARGETS = {
+  "stamp-day-1-confirm": "card-1-of-3",
+  "stamp-day-2-confirm": "card-2-of-3",
+  "stamp-day-3-confirm": "card-3-of-3-unlocked",
+} as const satisfies Record<
+  PreviewStampConfirmStepId,
+  CustomerFlowPreviewStepId
+>
+
 const PREVIEW_JOIN_WELCOME = getCustomerExperienceViewModel({
   kind: "join_welcome",
   merchant: PREVIEW_JOIN_MERCHANT,
@@ -93,7 +107,7 @@ export function CustomerFlowPreviewScreen({
     case "stamp-day-1-confirm":
     case "stamp-day-2-confirm":
     case "stamp-day-3-confirm":
-      return <PreviewStampConfirmScreen />
+      return <PreviewStampConfirmScreen stepId={stepId} />
     case "card-1-of-3":
       return <PreviewCardScreen current={1} stampIssued />
     case "card-2-of-3":
@@ -284,7 +298,13 @@ function previewJoinStepVm(variant: "phone" | "otp" | "terms") {
   })
 }
 
-function PreviewStampConfirmScreen() {
+function PreviewStampConfirmScreen({
+  stepId,
+}: {
+  readonly stepId: PreviewStampConfirmStepId
+}) {
+  const target = PREVIEW_STAMP_CONFIRM_TARGETS[stepId]
+
   return (
     <CustomerFlowShell
       eyebrow="Today's stamp"
@@ -308,7 +328,7 @@ function PreviewStampConfirmScreen() {
             Location can be checked when available, but the action still
             continues if your browser cannot share it.
           </CustomerActionNote>
-          <PreviewStampButton />
+          <PreviewStampButton href={customerFlowPreviewPath(target)} />
         </CustomerReceipt>
         <Button asChild size="lg" variant="secondary" className="w-full">
           <Link href={customerFlowPreviewPath("card-1-of-3")}>
