@@ -251,7 +251,7 @@ export default function Page() {
               already is: in the browser, behind one scan.
             </p>
           </div>
-          <div className="justify-self-center opacity-60 grayscale">
+          <div className="justify-self-center opacity-90 grayscale">
             <div className="rotate-3">
               <ReceiptCard className="w-60 gap-3 p-5">
                 <div className="flex items-center justify-between gap-3">

@@ -93,13 +93,13 @@
   --w-paper-2: #ece5d4;
   --w-card: #fbf8f1;
   --w-ink: #211c16;
-  --w-ink-soft: #6b6257;
+  --w-ink-soft: #4f473d;
   --w-line: rgba(33, 28, 22, 0.18);
 
-  --w-accent: #e8430f;
+  --w-accent: #cf330a;
   --w-accent-ink: #ffffff;
   --w-cobalt: #2b43c8;
-  --w-leaf: #1e8a4c;
+  --w-leaf: #16733c;
   --w-sun: #f5a623;
 
   --w-shadow-color: var(--w-ink);

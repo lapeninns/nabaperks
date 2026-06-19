@@ -27,7 +27,7 @@ export function StatusBanner({
     <Alert className={cn(statusClasses[tone], className)}>
       <AlertTitle className="font-extrabold">{title}</AlertTitle>
       {children ? (
-        <AlertDescription className="text-current/75">{children}</AlertDescription>
+        <AlertDescription className="text-current">{children}</AlertDescription>
       ) : null}
     </Alert>
   )

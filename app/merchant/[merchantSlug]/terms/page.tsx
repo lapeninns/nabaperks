@@ -1,5 +1,4 @@
 import Link from "next/link"
-import { notFound } from "next/navigation"
 
 import { Eyebrow, ReceiptCard } from "@/components/brand"
 import { CustomerShell } from "@/components/layout"
@@ -17,11 +16,15 @@ export default async function MerchantTermsPage({
   params,
 }: MerchantTermsPageProps) {
   const { merchantSlug } = await params
-  const context = await getMerchantJoinContext(merchantSlug)
+  let context: Awaited<ReturnType<typeof getMerchantJoinContext>>
 
-  if (!context) {
-    notFound()
+  try {
+    context = await getMerchantJoinContext(merchantSlug)
+  } catch {
+    return <UnavailableTerms merchantSlug={merchantSlug} />
   }
+
+  if (!context) return <UnavailableTerms merchantSlug={merchantSlug} />
 
   const { merchant, loyaltyCard } = context
   const contact = [merchant.email, merchant.phone].filter(Boolean).join(" · ")
@@ -84,6 +87,25 @@ export default async function MerchantTermsPage({
       <div className="grid gap-3">
         <Button asChild size="lg" className="w-full">
           <Link href={`/m/${merchantSlug}`}>Close</Link>
+        </Button>
+        <Button asChild size="lg" variant="secondary" className="w-full">
+          <Link href="/privacy">Privacy notice</Link>
+        </Button>
+      </div>
+    </CustomerShell>
+  )
+}
+
+function UnavailableTerms({ merchantSlug }: { merchantSlug: string }) {
+  return (
+    <CustomerShell className="grid content-center gap-6">
+      <StatusBanner title="Terms unavailable" tone="neutral">
+        Ask the venue team for the current loyalty QR before joining.
+      </StatusBanner>
+
+      <div className="grid gap-3">
+        <Button asChild size="lg" className="w-full">
+          <Link href={`/m/${merchantSlug}`}>Back to loyalty card</Link>
         </Button>
         <Button asChild size="lg" variant="secondary" className="w-full">
           <Link href="/privacy">Privacy notice</Link>

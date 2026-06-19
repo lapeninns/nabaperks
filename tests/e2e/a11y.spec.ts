@@ -1,45 +1,133 @@
-import { execFileSync } from "node:child_process"
-
 import AxeBuilder from "@axe-core/playwright"
 import { expect, test, type Page } from "@playwright/test"
 
-// WCAG 2 A/AA including colour-contrast — the automated accessibility gate.
-const WCAG_TAGS = ["wcag2a", "wcag2aa"]
+const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]
 
-function runDemo(...args: string[]) {
-  execFileSync("node", ["scripts/customer-flow-demo.mjs", ...args], {
-    stdio: "pipe",
-  })
-}
+const surfaces = [
+  { name: "home", path: "/", expected: "Nabaperks" },
+  {
+    name: "pricing",
+    path: "/pricing",
+    expected: "One price. The whole machine.",
+  },
+  {
+    name: "merchant unavailable",
+    path: "/m/missing-merchant",
+    expected: "Page not found",
+  },
+  {
+    name: "customer qr unavailable",
+    path: "/q/missing-qr",
+    expected: "Card unavailable",
+  },
+  {
+    name: "customer join preview",
+    path: "/dev/customer-flow/preview/join-hero",
+    expected: "Keep your card on your phone",
+  },
+  {
+    name: "customer reward preview",
+    path: "/dev/customer-flow/preview/reward-ready",
+    expected: "Customer reward",
+  },
+  {
+    name: "launch preview",
+    path: "/dev/launch-preview/live-kit",
+    expected: "Launch kit",
+  },
+  {
+    name: "design system",
+    path: "/dev/design-system",
+    expected: "Design system catalog",
+  },
+  { name: "offline", path: "/offline", expected: "You're offline" },
+  { name: "not found", path: "/missing-route", expected: "Page not found" },
+] as const
 
-// colour-contrast is a known, tracked gap in the Wet Ink palette (QA_MATRIX §6
-// gap #1). This gate enforces every other WCAG 2 A/AA rule now; re-enable
-// colour-contrast once the palette tokens are fixed (Phase 4 "blocking").
-const KNOWN_GAP_RULES = ["color-contrast"]
+async function expectNoViolations(page: Page, label: string): Promise<void> {
+  await hideDevelopmentOverlay(page)
+  await page.waitForTimeout(500)
 
-async function expectNoViolations(page: Page, label: string) {
   const { violations } = await new AxeBuilder({ page })
+    .exclude("nextjs-portal")
+    .exclude("[data-nextjs-dev-overlay='true']")
     .withTags(WCAG_TAGS)
-    .disableRules(KNOWN_GAP_RULES)
     .analyze()
-  const summary = violations
-    .map((v) => `${v.id} (${v.nodes.length})`)
-    .join(", ")
-  expect(violations, `${label} a11y violations: ${summary}`).toEqual([])
+
+  expect(
+    violations,
+    `${label} a11y violations:\n${violations.map(formatViolation).join("\n\n")}`
+  ).toEqual([])
 }
 
 test.describe("accessibility (WCAG 2 A/AA)", () => {
-  test("marketing home has no violations", async ({ page }) => {
-    await page.goto("/")
-    await expectNoViolations(page, "home")
+  for (const surface of surfaces) {
+    test(`${surface.name} has no automated violations`, async ({ page }) => {
+      await page.emulateMedia({ reducedMotion: "reduce" })
+      await page.goto(surface.path)
+
+      if (surface.name === "customer reward preview") {
+        await expect(
+          page.locator(
+            '[data-customer-flow-preview="reward-ready"][data-screen-label="Customer reward"]'
+          )
+        ).toBeVisible()
+      } else {
+        await expect(page.getByText(surface.expected).first()).toBeVisible()
+      }
+
+      await expectNoViolations(page, surface.name)
+    })
+  }
+})
+
+async function hideDevelopmentOverlay(page: Page): Promise<void> {
+  await page.addStyleTag({
+    content: `
+      nextjs-portal,
+      [data-nextjs-dev-overlay="true"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
+    `,
   })
 
-  test("customer join surface has no violations", async ({ page }) => {
-    runDemo("reset")
-    await page.goto("/q/bean-test-qr")
-    await expect(
-      page.getByRole("heading", { name: "Keep your card on your phone" })
-    ).toBeVisible()
-    await expectNoViolations(page, "join")
+  await page.evaluate(() => {
+    const selectors = "nextjs-portal, [data-nextjs-dev-overlay='true']"
+
+    for (const element of document.querySelectorAll(selectors)) {
+      element.setAttribute("aria-hidden", "true")
+
+      if (element instanceof HTMLElement) {
+        element.style.display = "none"
+        element.style.visibility = "hidden"
+      }
+    }
   })
-})
+}
+
+function formatViolation(violation: {
+  id: string
+  impact?: unknown
+  help: string
+  nodes: { target: unknown; failureSummary?: string }[]
+}): string {
+  const targets = violation.nodes
+    .slice(0, 3)
+    .map((node) => `${formatTarget(node.target)}: ${node.failureSummary ?? ""}`)
+    .join("\n")
+
+  return `${violation.id} [${violation.impact ?? "unknown"}] ${violation.help}\n${targets}`
+}
+
+function formatTarget(target: unknown): string {
+  if (Array.isArray(target)) {
+    return target
+      .map((part) => (typeof part === "string" ? part : JSON.stringify(part)))
+      .join(", ")
+  }
+
+  return typeof target === "string" ? target : JSON.stringify(target)
+}

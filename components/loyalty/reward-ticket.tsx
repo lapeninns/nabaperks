@@ -67,18 +67,13 @@ export function RewardTicket({
         <h3
           className={cn(
             "text-lg leading-tight font-extrabold",
-            redeemed && "opacity-40"
+            redeemed && "text-muted-foreground"
           )}
         >
           {name}
         </h3>
         {description ? (
-          <p
-            className={cn(
-              "text-sm leading-6 text-muted-foreground",
-              redeemed && "opacity-40"
-            )}
-          >
+          <p className="text-sm leading-6 text-muted-foreground">
             {description}
           </p>
         ) : null}
