@@ -2,7 +2,15 @@ import "server-only"
 
 import { PDFDocument } from "pdf-lib"
 import QRCode from "qrcode"
-import sharp from "sharp"
+
+// `sharp` is a native module that is only needed to rasterise the SVG print
+// assets (poster/sticker/till-card). It is loaded lazily so the pure-JS QR
+// routes (`renderQrCodePng`) keep working even when the native binary is
+// unavailable on a deploy runtime — e.g. a missing linux-arm64 build.
+async function loadSharp() {
+  const { default: sharp } = await import("sharp")
+  return sharp
+}
 
 export type QrAssetKind = "poster_pdf" | "till_card_png" | "sticker_png"
 
@@ -71,6 +79,7 @@ export async function renderQrAssetPng(
       ? tillCardSvg(context, qr, canvas.width, canvas.height, canvas.qrSize)
       : stickerSvg(context, qr, canvas.width, canvas.height, canvas.qrSize)
 
+  const sharp = await loadSharp()
   return sharp(Buffer.from(svg)).png().toBuffer()
 }
 
@@ -97,6 +106,7 @@ export async function renderQrPosterPng(context: QrAssetContext) {
   const qr = await qrDataUrl(context.shareUrl, qrSize)
   const svg = posterSvg(context, qr, width, height, qrSize)
 
+  const sharp = await loadSharp()
   return sharp(Buffer.from(svg)).png().toBuffer()
 }
 
@@ -154,7 +164,10 @@ function posterSvg(
   const statusFill = context.isActive ? brand.mintDeep : brand.disabled
 
   const merchantBlockHeight = merchant.lines.length * merchant.lineHeight
-  const rewardBlockHeight = Math.max(120, reward.lines.length * reward.lineHeight + 48)
+  const rewardBlockHeight = Math.max(
+    120,
+    reward.lines.length * reward.lineHeight + 48
+  )
   const metaBlockHeight =
     cardLines.lines.length * cardLines.lineHeight +
     locationLines.lines.length * locationLines.lineHeight +
@@ -165,7 +178,12 @@ function posterSvg(
   const footerHeight = context.isActive ? 88 : 120
 
   const cardInnerHeight =
-    headerHeight + qrBlockHeight + rewardBlockHeight + metaBlockHeight + footerHeight + 96
+    headerHeight +
+    qrBlockHeight +
+    rewardBlockHeight +
+    metaBlockHeight +
+    footerHeight +
+    96
   const cardY = Math.max(72, Math.round((height - cardInnerHeight - 48) / 2))
   const cardHeight = cardInnerHeight + 48
 
@@ -192,7 +210,10 @@ function posterSvg(
   const qrX = (width - qrSize) / 2
   const framePad = 48
 
-  return svgShell(width, height, `
+  return svgShell(
+    width,
+    height,
+    `
     <defs>
       <filter id="poster-shadow" x="-4%" y="-2%" width="108%" height="104%">
         <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="${brand.espresso}" flood-opacity="0.08"/>
@@ -233,7 +254,8 @@ function posterSvg(
     }
 
     <text x="${width / 2}" y="${cardY + cardHeight - 28}" text-anchor="middle" class="footer">Print at 100% · A4 · Powered by Nabaperks</text>
-  `)
+  `
+  )
 }
 
 function tillCardSvg(
@@ -269,18 +291,25 @@ function tillCardSvg(
   const statusColor = context.isActive ? brand.mintDeep : brand.disabled
 
   const merchantBlockHeight = merchant.lines.length * merchant.lineHeight
-  const rewardBoxHeight = Math.max(84, reward.lines.length * reward.lineHeight + 44)
+  const rewardBoxHeight = Math.max(
+    84,
+    reward.lines.length * reward.lineHeight + 44
+  )
   const locationBlockHeight = location.lines.length * location.lineHeight
 
   const titleY = 176
   const taglineY = titleY + merchantBlockHeight + 20
   const rewardBoxY = taglineY + 24
   const rewardTextY = rewardBoxY + 36 + reward.lineHeight * 0.85
-  const locationY = rewardBoxY + rewardBoxHeight + 24 + locationBlockHeight * 0.85
+  const locationY =
+    rewardBoxY + rewardBoxHeight + 24 + locationBlockHeight * 0.85
   const statusY = locationY + 28
   const footerY = 514
 
-  return svgShell(width, height, `
+  return svgShell(
+    width,
+    height,
+    `
     <rect width="${width}" height="${height}" rx="40" fill="${brand.paperCream}"/>
     <rect x="20" y="20" width="860" height="500" rx="36" fill="${brand.paperWhite}" stroke="${brand.espresso}" stroke-width="3"/>
     <rect x="36" y="36" width="828" height="468" rx="28" fill="${brand.surfaceLow}" stroke="${brand.outlineSoft}" stroke-width="2"/>
@@ -306,7 +335,8 @@ function tillCardSvg(
     <text x="${copyX + 24}" y="${statusY + 6}" class="caption-left-sm">${escapeXml(statusLine)}</text>
 
     <text x="${width / 2}" y="${footerY}" text-anchor="middle" class="footer-left">Keep beside the till for staff reference</text>
-  `)
+  `
+  )
 }
 
 function stickerSvg(
@@ -348,7 +378,10 @@ function stickerSvg(
   const rewardY = taglineY + 48 + reward.lineHeight * 0.85
   const x = (width - stickerQrSize) / 2
 
-  return svgShell(width, height, `
+  return svgShell(
+    width,
+    height,
+    `
     <rect width="${width}" height="${height}" rx="64" fill="${brand.paperWhite}"/>
     <rect x="16" y="16" width="568" height="568" rx="56" fill="${brand.paperCream}" stroke="${brand.espresso}" stroke-width="4"/>
     <rect x="32" y="32" width="536" height="536" rx="44" fill="${brand.surfaceLow}" stroke="${brand.outline}" stroke-width="2"/>
@@ -364,7 +397,8 @@ function stickerSvg(
     <rect x="72" y="${taglineY - 28}" width="456" height="56" rx="28" fill="${brand.espresso}"/>
     <text x="${width / 2}" y="${taglineY + 8}" text-anchor="middle" class="sticker-tagline">Scan. Stamp. Reveal.</text>
     ${textBlock(reward, width / 2, rewardY, "middle")}
-  `)
+  `
+  )
 }
 
 type TextPreset = {
@@ -498,7 +532,11 @@ function fitLines(value: string, maxChars: number, maxLines: number) {
   if (current && lines.length < maxLines) {
     lines.push(current)
   } else if (current && lines.length === maxLines) {
-    lines[maxLines - 1] = joinWithOverflow(lines[maxLines - 1] ?? "", current, maxChars)
+    lines[maxLines - 1] = joinWithOverflow(
+      lines[maxLines - 1] ?? "",
+      current,
+      maxChars
+    )
   }
 
   if (wordIndex < words.length && lines.length > 0) {

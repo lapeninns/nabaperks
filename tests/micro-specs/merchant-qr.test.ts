@@ -684,6 +684,36 @@ describe("02 merchant and QR micro-specs", () => {
     expect(assets).toContain("Scan. Stamp. Reveal.")
   })
 
+  it("renders the customer reward QR even when sharp cannot load on the runtime", async () => {
+    // The reward `qr.png` route uses only the pure-JS `qrcode` path, so a
+    // missing native `sharp` binary on the deploy runtime must not break it.
+    vi.resetModules()
+    vi.doMock("sharp", () => {
+      throw new Error(
+        'Could not load the "sharp" module using the linux-arm64 runtime'
+      )
+    })
+    const toDataURL = vi.fn(async () => "data:image/png;base64,AQID")
+    vi.doMock("qrcode", () => ({ default: { toDataURL } }))
+
+    const { renderQrCodePng } = await import("@/lib/qr/assets")
+
+    await expect(
+      renderQrCodePng("https://nabaperks.test/r/scan-token")
+    ).resolves.toBeInstanceOf(Buffer)
+    expect(toDataURL).toHaveBeenCalled()
+  })
+
+  it("installs the linux sharp binary so production image rendering resolves", () => {
+    const pkg = JSON.parse(readProjectFile("package.json")) as {
+      pnpm?: { supportedArchitectures?: { os?: string[]; cpu?: string[] } }
+    }
+    const arch = pkg.pnpm?.supportedArchitectures
+
+    expect(arch?.os).toContain("linux")
+    expect(arch?.cpu).toContain("arm64")
+  })
+
   it("keeps merchant QR page lifecycle links and raw preview scanner-safe", () => {
     const qrPage = readProjectFile("components/merchant/launch/qr-panel.tsx")
 

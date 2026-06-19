@@ -69,6 +69,19 @@
     "pnpm": ">=10.0.0"
   },
   "packageManager": "pnpm@10.28.0",
+  "pnpm": {
+    "supportedArchitectures": {
+      "os": [
+        "current",
+        "linux"
+      ],
+      "cpu": [
+        "current",
+        "arm64",
+        "x64"
+      ]
+    }
+  },
   "dependencies": {
     "@hugeicons/core-free-icons": "^4.2.0",
     "@hugeicons/react": "^1.1.6",
