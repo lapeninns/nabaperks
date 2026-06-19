@@ -43,6 +43,8 @@ if (!dbUrl) {
   process.exit(1)
 }
 
+assertWriteTargetIsSafe(dbUrl, env)
+
 const sql = postgres(dbUrl, {
   max: 1,
   ssl: shouldRequireSsl(dbUrl) ? "require" : undefined,
@@ -211,5 +213,46 @@ function safeDbTarget(dbUrl) {
     return `${url.protocol}//${url.hostname}${url.port ? `:${url.port}` : ""}${url.pathname}`
   } catch {
     return "configured database"
+  }
+}
+
+// Fail-safe: refuse destructive operations (--apply/--seed/--reset*) against a
+// non-local database so CI and routine commands can never mutate a hosted
+// Supabase project (see docs/QA_MATRIX.md §7). Set ALLOW_NONLOCAL_DB=1 to
+// override for an intentionally disposable remote database.
+function assertWriteTargetIsSafe(dbUrl, env) {
+  const destructive =
+    shouldApply ||
+    shouldSeed ||
+    shouldReset ||
+    shouldResetCustomers ||
+    shouldResetTodayStamps
+  if (!destructive) return
+  if (env.ALLOW_NONLOCAL_DB === "1") return
+  if (isLocalDbHost(dbUrl)) return
+
+  console.error(
+    `Refusing to run write operations (--apply/--seed/--reset*) against non-local host "${dbHostLabel(dbUrl)}".`
+  )
+  console.error(
+    "Point SUPABASE_DB_URL at a local or disposable database, or set ALLOW_NONLOCAL_DB=1 to override."
+  )
+  process.exit(1)
+}
+
+function isLocalDbHost(dbUrl) {
+  try {
+    const host = new URL(dbUrl).hostname.toLowerCase()
+    return ["localhost", "127.0.0.1", "::1", "[::1]"].includes(host)
+  } catch {
+    return false
+  }
+}
+
+function dbHostLabel(dbUrl) {
+  try {
+    return new URL(dbUrl).hostname || "unknown host"
+  } catch {
+    return "unparseable connection URL"
   }
 }

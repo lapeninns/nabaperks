@@ -122,3 +122,27 @@ jobs:
         run: pnpm bundle:size
       - name: Dependency footprint report
         run: pnpm deps:analyze
+
+  db-rls:
+    name: SQL / RLS (local Supabase)
+    runs-on: ubuntu-latest
+    # Runs the SQL/RLS/atomicity tests against a disposable local Supabase stack
+    # (Postgres + auth schema + anon/authenticated/service_role roles). A bare
+    # Postgres image is insufficient because migrations depend on auth.uid()
+    # and the Supabase-provisioned roles. The localhost guard in
+    # run-supabase-sql.mjs ensures these writes never reach a hosted project.
+    env:
+      SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start local Supabase stack
+        run: supabase start
+      - name: Apply migrations, seed, and run RLS/atomicity SQL tests
+        run: pnpm db:setup
+      - name: Stop local Supabase stack
+        if: always()
+        run: supabase stop
