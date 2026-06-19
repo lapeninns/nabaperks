@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest"
+import { createElement } from "react"
+import { renderToStaticMarkup } from "react-dom/server"
 
-import { buildCustomerFlowPreviewLinks } from "@/app/dev/customer-flow/preview/screens"
+import {
+  buildCustomerFlowPreviewLinks,
+  CustomerFlowPreviewScreen,
+} from "@/app/dev/customer-flow/preview/screens"
 import {
   CUSTOMER_FLOW_PREVIEW_STEPS,
   customerFlowPreviewPath,
@@ -27,5 +32,15 @@ describe("customer flow mock preview harness", () => {
     expect(links.cardThree).toContain("card-3-of-3-unlocked")
     expect(links.rewardReady).toContain("reward-ready")
     expect(links.redeemedCard).toContain("card-redeemed")
+  })
+
+  it("models stamp confirmation primary actions as preview state transitions", () => {
+    const day3 = renderToStaticMarkup(
+      createElement(CustomerFlowPreviewScreen, {
+        stepId: "stamp-day-3-confirm",
+      })
+    )
+
+    expect(day3).toContain("/dev/customer-flow/preview/card-3-of-3-unlocked")
   })
 })

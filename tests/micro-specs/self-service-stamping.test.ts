@@ -41,6 +41,81 @@ function mockCurrentCustomer() {
   }))
 }
 
+async function loadStampCollectorLocationApi() {
+  return import("@/components/customer/self-service-forms")
+}
+
+function geolocationPosition(
+  latitude: number,
+  longitude: number
+): GeolocationPosition {
+  return {
+    coords: {
+      latitude,
+      longitude,
+      accuracy: 12,
+      altitude: null,
+      altitudeAccuracy: null,
+      heading: null,
+      speed: null,
+      toJSON: () => ({
+        latitude,
+        longitude,
+        accuracy: 12,
+        altitude: null,
+        altitudeAccuracy: null,
+        heading: null,
+        speed: null,
+      }),
+    },
+    timestamp: 0,
+    toJSON: () => ({
+      coords: {
+        latitude,
+        longitude,
+        accuracy: 12,
+        altitude: null,
+        altitudeAccuracy: null,
+        heading: null,
+        speed: null,
+      },
+      timestamp: 0,
+    }),
+  }
+}
+
+function geolocationError(code: number): GeolocationPositionError {
+  return {
+    code,
+    message: "location failed",
+    PERMISSION_DENIED: 1,
+    POSITION_UNAVAILABLE: 2,
+    TIMEOUT: 3,
+  }
+}
+
+function stubLocationMemory(initialValue: string | null = null) {
+  const values = new Map<string, string>()
+  if (initialValue !== null)
+    values.set("nabaperks:stamp-location-denied", initialValue)
+
+  const storage = {
+    getItem: vi.fn((key: string) => values.get(key) ?? null),
+    setItem: vi.fn((key: string, value: string) => {
+      values.set(key, value)
+    }),
+    removeItem: vi.fn((key: string) => {
+      values.delete(key)
+    }),
+    clear: vi.fn(() => {
+      values.clear()
+    }),
+  }
+  vi.stubGlobal("localStorage", storage)
+
+  return storage
+}
+
 describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", () => {
   afterEach(() => {
     vi.resetModules()
@@ -204,6 +279,141 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     })
 
     expect(result).toMatchObject({ status: "issued", geoFlagged: true })
+  })
+
+  it("does not request browser GPS when location is disabled or the next stamp is not cycle stamp 3", async () => {
+    vi.resetModules()
+    stubLocationMemory()
+    const getCurrentPosition = vi.fn<Geolocation["getCurrentPosition"]>()
+    vi.stubGlobal("navigator", {
+      geolocation: { getCurrentPosition },
+    })
+    const { resolveStampLocation, shouldRequestStampLocation } =
+      await loadStampCollectorLocationApi()
+
+    const disabled = await resolveStampLocation(
+      shouldRequestStampLocation({
+        requireGeofence: false,
+        nextStampNumber: 3,
+      })
+    )
+    const secondStamp = await resolveStampLocation(
+      shouldRequestStampLocation({
+        requireGeofence: true,
+        nextStampNumber: 2,
+      })
+    )
+
+    expect(getCurrentPosition).not.toHaveBeenCalled()
+    expect(disabled).toMatchObject({ status: "skipped" })
+    expect(secondStamp).toMatchObject({ status: "skipped" })
+  })
+
+  it("requests browser GPS before preparing the cycle stamp 3 submit payload", async () => {
+    vi.resetModules()
+    stubLocationMemory()
+    const events: string[] = []
+    const getCurrentPosition = vi.fn<Geolocation["getCurrentPosition"]>(
+      (success) => {
+        events.push("gps")
+        success(geolocationPosition(51.524, -0.071))
+      }
+    )
+    vi.stubGlobal("navigator", {
+      geolocation: { getCurrentPosition },
+    })
+    const { prepareSelfStampFormData } = await loadStampCollectorLocationApi()
+
+    const data = await prepareSelfStampFormData({
+      membershipId: "membership-1",
+      qrId: "BELL-QR",
+      nextStampNumber: 3,
+      location: { requireGeofence: true, geofenceRadiusMeters: 150 },
+    })
+    events.push("submit")
+
+    expect(events).toEqual(["gps", "submit"])
+    expect(data.get("membershipId")).toBe("membership-1")
+    expect(data.get("qrId")).toBe("BELL-QR")
+    expect(data.get("latitude")).toBe("51.524")
+    expect(data.get("longitude")).toBe("-0.071")
+    expect(data.get("locationStatus")).toBe("available")
+    expect(Number(data.get("locationElapsedMs"))).toBeGreaterThanOrEqual(0)
+  })
+
+  it("does not let denial memory skip the current GPS attempt for cycle stamp 3", async () => {
+    vi.resetModules()
+    stubLocationMemory("1")
+    const getCurrentPosition = vi.fn<Geolocation["getCurrentPosition"]>(
+      (_success, error) => {
+        error?.(geolocationError(1))
+      }
+    )
+    vi.stubGlobal("navigator", {
+      geolocation: { getCurrentPosition },
+    })
+    const { resolveStampLocation } = await loadStampCollectorLocationApi()
+
+    const result = await resolveStampLocation(true)
+
+    expect(getCurrentPosition).toHaveBeenCalledTimes(1)
+    expect(result).toMatchObject({ status: "denied_remembered" })
+  })
+
+  it("keeps denied timeout and unsupported GPS outcomes non-blocking with minimized submit fields", async () => {
+    vi.resetModules()
+    stubLocationMemory()
+    const { prepareSelfStampFormData } = await loadStampCollectorLocationApi()
+
+    const deniedPosition = vi.fn<Geolocation["getCurrentPosition"]>(
+      (_success, error) => {
+        error?.(geolocationError(1))
+      }
+    )
+    vi.stubGlobal("navigator", {
+      geolocation: { getCurrentPosition: deniedPosition },
+    })
+    const denied = await prepareSelfStampFormData({
+      membershipId: "membership-1",
+      qrId: "BELL-QR",
+      nextStampNumber: 3,
+      location: { requireGeofence: true, geofenceRadiusMeters: 150 },
+    })
+
+    const timeoutPosition = vi.fn<Geolocation["getCurrentPosition"]>(
+      (_success, error) => {
+        error?.(geolocationError(3))
+      }
+    )
+    vi.stubGlobal("navigator", {
+      geolocation: { getCurrentPosition: timeoutPosition },
+    })
+    const timedOut = await prepareSelfStampFormData({
+      membershipId: "membership-1",
+      qrId: "BELL-QR",
+      nextStampNumber: 3,
+      location: { requireGeofence: true, geofenceRadiusMeters: 150 },
+    })
+
+    vi.stubGlobal("navigator", {})
+    const unsupported = await prepareSelfStampFormData({
+      membershipId: "membership-1",
+      qrId: "BELL-QR",
+      nextStampNumber: 3,
+      location: { requireGeofence: true, geofenceRadiusMeters: 150 },
+    })
+
+    expect(denied.get("locationStatus")).toBe("denied")
+    expect(denied.get("latitude")).toBeNull()
+    expect(Number(denied.get("locationElapsedMs"))).toBeGreaterThanOrEqual(0)
+    expect(timedOut.get("locationStatus")).toBe("timeout")
+    expect(timedOut.get("latitude")).toBeNull()
+    expect(Number(timedOut.get("locationElapsedMs"))).toBeGreaterThanOrEqual(0)
+    expect(unsupported.get("locationStatus")).toBe("unsupported")
+    expect(unsupported.get("latitude")).toBeNull()
+    expect(Number(unsupported.get("locationElapsedMs"))).toBeGreaterThanOrEqual(
+      0
+    )
   })
 
   it("never throws an unexpected stamp RPC error into the card error boundary", async () => {

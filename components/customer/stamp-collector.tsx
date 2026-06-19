@@ -4,6 +4,7 @@ import { useState, useTransition } from "react"
 
 import { selfStampAction } from "@/app/card/[membershipId]/actions"
 import { CustomerStampCard } from "@/components/customer/customer-flow-system"
+import { prepareSelfStampFormData } from "@/components/customer/self-service-forms"
 import { StampPressButton } from "@/components/customer/stamp-press-button"
 import { RewardCelebration, StatusBanner } from "@/components/loyalty"
 import { StampCelebration, WetInkShake } from "@/components/motion"
@@ -27,31 +28,6 @@ export type StampCollectorProps = {
   todayLabel: string
   rewardName: string
   location: { requireGeofence: boolean; geofenceRadiusMeters: number }
-}
-
-/** Optional, never-blocking location check — resolves null on denial/absence. */
-function resolveCoords(
-  requireGeofence: boolean
-): Promise<{ latitude: number; longitude: number } | null> {
-  return new Promise((resolve) => {
-    if (
-      !requireGeofence ||
-      typeof navigator === "undefined" ||
-      !navigator.geolocation
-    ) {
-      resolve(null)
-      return
-    }
-    navigator.geolocation.getCurrentPosition(
-      (position) =>
-        resolve({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        }),
-      () => resolve(null),
-      { enableHighAccuracy: false, maximumAge: 60_000, timeout: 5_000 }
-    )
-  })
 }
 
 /** The instruction line under the disc for each state. */
@@ -199,14 +175,12 @@ export function StampCollector({
     setArmed(true)
     setShake(true)
     void (async () => {
-      const coords = await resolveCoords(location.requireGeofence)
-      const formData = new FormData()
-      formData.set("membershipId", membershipId)
-      formData.set("qrId", qrId)
-      if (coords) {
-        formData.set("latitude", String(coords.latitude))
-        formData.set("longitude", String(coords.longitude))
-      }
+      const formData = await prepareSelfStampFormData({
+        membershipId,
+        qrId,
+        nextStampNumber: current + 1,
+        location,
+      })
       startTransition(async () => {
         const next = await selfStampAction(initialSelfStampState, formData)
         setResult(next)
