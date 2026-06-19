@@ -487,7 +487,7 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
 
     expect(experience).toContain("RewardReadyPanel")
     expect(experience).not.toContain("SelfServiceRedeemForm")
-    expect(rewardPanels).toContain("RewardCollectionQr")
+    expect(rewardPanels).toContain("RewardCollectionLive")
     expect(rewardCollectionQr).toContain("Merchant scans this QR")
     expect(experience).not.toContain("StampCodePanel")
     expect(experience).not.toContain("createRedeemCode")

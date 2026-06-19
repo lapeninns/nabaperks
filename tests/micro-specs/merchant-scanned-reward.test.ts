@@ -42,7 +42,7 @@ describe("merchant-scanned reward collection", () => {
     )
     const publicScanHandoff = readProjectFile("app/r/[token]/page.tsx")
 
-    expect(rewardPanels).toContain("RewardCollectionQr")
+    expect(rewardPanels).toContain("RewardCollectionLive")
     expect(rewardQr).toContain("/reward/${rewardId}/qr.png")
     expect(rewardQr).not.toContain("/app/rewards/scan/${rewardId}")
     expect(rewardQr).toContain("Merchant scans this QR")
@@ -54,6 +54,34 @@ describe("merchant-scanned reward collection", () => {
       "redirect(`/app/rewards/scan/${encodeURIComponent(token)}`)"
     )
     expect(cardExperience).not.toContain("SelfServiceRedeemForm")
+  })
+
+  it("wraps the held reward QR in a live confirmation client that only observes status", () => {
+    expect(existsSync("components/customer/reward-collection-live.tsx")).toBe(
+      true
+    )
+
+    const live = readProjectFile("components/customer/reward-collection-live.tsx")
+    const rewardPanels = readProjectFile(
+      "components/customer/reward-panels.tsx"
+    )
+
+    // The ready-reward panel renders the live wrapper, which still holds the QR.
+    expect(rewardPanels).toContain("RewardCollectionLive")
+    expect(live).toContain('"use client"')
+    expect(live).toContain("RewardCollectionQr")
+
+    // It observes the server-confirmed status endpoint and refreshes the server
+    // component once redeemed — it never performs the redemption itself.
+    expect(live).toContain("/reward/${rewardId}/status")
+    expect(live).toContain("router.refresh()")
+    expect(live).toContain("aria-live")
+
+    // The customer leaf only reads status; the merchant scan is the sole mutation.
+    expect(live).not.toContain(".rpc(")
+    expect(live).not.toContain("collect_reward_scan_token")
+    expect(live).not.toContain("redeem_self_service_reward")
+    expect(live).not.toContain("createSupabaseServiceRoleClient")
   })
 
   it("keeps the merchant scan route inside the logged-in merchant app", () => {

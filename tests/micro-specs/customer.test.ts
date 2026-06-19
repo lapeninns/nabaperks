@@ -148,7 +148,7 @@ describe("03 customer micro-specs", () => {
 
     expect(experience).toContain("RewardReadyPanel")
     expect(experience).not.toContain("SelfServiceRedeemForm")
-    expect(rewardPanels).toContain("RewardCollectionQr")
+    expect(rewardPanels).toContain("RewardCollectionLive")
     expect(rewardCollectionQr).toContain("Merchant scans this QR")
     expect(merchantRewardActions).toContain(
       "confirmMerchantRewardCollectionAction"
@@ -227,7 +227,7 @@ describe("03 customer micro-specs", () => {
     expect(rewardPanels).toContain("RewardTicket")
     expect(rewardPanels).toContain("Give it a day to breathe")
     expect(rewardPanels).toContain("Ready for merchant scan.")
-    expect(rewardPanels).toContain("RewardCollectionQr")
+    expect(rewardPanels).toContain("RewardCollectionLive")
     expect(experience).not.toContain("SelfServiceRedeemForm")
 
     expect(qrPage).toContain("This loyalty card is unavailable")
@@ -436,7 +436,6 @@ describe("03 customer micro-specs", () => {
     const { default: RewardPage } = await import("@/app/reward/[rewardId]/page")
     const rewardOutput = await RewardPage({
       params: Promise.resolve({ rewardId: "reward-1" }),
-      searchParams: Promise.resolve({}),
     })
     const rewardText = normalizeText(rewardOutput)
 

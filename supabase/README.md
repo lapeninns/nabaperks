@@ -22,7 +22,12 @@ checks, and cleanup for retired approval surfaces.
 records, billing records, product events, and an audit log.
 `seed-activity-demo.sql` adds a richer Old Crown Girton activity timeline for
 dashboard and `/app/activity` demos.
-`seed-user-aman.sql` adds the local Aman customer fixture. The fixture IDs are stable so
+`seed-user-aman.sql` adds the local Aman customer fixture.
+`seed-rewards-ready-today.sql` tops up every membership to a full card with an
+unlocked reward redeemable from today's UK business date.
+`seed-second-cycle-complete.sql` redeems that reward, advances the loyalty cycle,
+and tops the next cycle up to three stamps with another redeemable reward.
+The fixture IDs are stable so
 `tests/tenant_isolation.sql` can replay tenant-isolation checks.
 
 ## Verification

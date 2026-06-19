@@ -99,7 +99,6 @@ describe("reward experience carries the profile gate", () => {
       merchantName: "Old Crown Girton",
       status: "unlocked",
       redeemable: true,
-      redeemedProof: false,
       location,
       profileGate,
     }

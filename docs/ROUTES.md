@@ -50,7 +50,7 @@
 - `/start`
 - `/terms`
 
-## Route handlers (10)
+## Route handlers (11)
 
 | Route | Methods |
 | ----- | ------- |
@@ -64,6 +64,7 @@
 | `/auth/confirm` | GET |
 | `/home/session/reset` | GET |
 | `/reward/[rewardId]/qr.png` | GET |
+| `/reward/[rewardId]/status` | GET |
 
 ## Server-action modules (15)
 

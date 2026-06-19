@@ -88,7 +88,6 @@ function rewardFacts(
     merchantName: "Old Crown Girton",
     status: "unlocked",
     redeemable: true,
-    redeemedProof: false,
     location,
     ...overrides,
   }
@@ -393,11 +392,10 @@ describe("deriveCustomerExperience — stamp route", () => {
 })
 
 describe("deriveCustomerExperience — reward route", () => {
-  it("shows the redeemed proof after redemption", () => {
+  it("shows the redeemed proof once the reward status is redeemed", () => {
     const exp = deriveCustomerExperience({
       entry: "reward",
       context: rewardFacts({
-        redeemedProof: true,
         status: "redeemed",
         redeemable: false,
       }),
@@ -406,6 +404,21 @@ describe("deriveCustomerExperience — reward route", () => {
       kind: "redeemed_proof",
       reward: { rewardId: "reward-1" },
     })
+  })
+
+  it("never shows the redeemed proof until the database status is redeemed", () => {
+    // The collected proof is driven by the server-confirmed reward status, not a
+    // query flag — an unlocked-but-not-redeemed reward waits, it does not fake a
+    // collection. This is what makes the live page safe to refresh on a signal.
+    const exp = deriveCustomerExperience({
+      entry: "reward",
+      context: rewardFacts({
+        status: "unlocked",
+        redeemable: false,
+      }),
+    })
+    expect(exp.kind).not.toBe("redeemed_proof")
+    expect(exp.kind).toBe("reward_waiting")
   })
 
   it("shows ready reward with the redeem form context", () => {

@@ -103,7 +103,6 @@ export type RewardContext =
       merchantName: string
       status: string
       redeemable: boolean
-      redeemedProof: boolean
       location: LocationRequirement
       profileGate?: ProfileGate
     }
@@ -337,7 +336,7 @@ function deriveReward(context: RewardContext): CustomerExperience {
 
   const candidates: CustomerExperienceKind[] = []
 
-  if (context.redeemedProof || context.status === "redeemed") {
+  if (context.status === "redeemed") {
     candidates.push("redeemed_proof")
   }
   if (!context.unavailableReason) {

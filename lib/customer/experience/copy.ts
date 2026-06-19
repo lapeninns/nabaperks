@@ -150,9 +150,9 @@ export function getCustomerExperienceViewModel(
       }
     case "redeemed_proof":
       return {
-        eyebrow: "Reward redeemed",
+        eyebrow: "Reward collected",
         headline: exp.reward.rewardName,
-        supportLine: "Show this screen at the counter.",
+        supportLine: "Your reward has been collected.",
         primaryAction: {
           label: "Back to card",
           href: `/card/${exp.reward.membershipId}`,

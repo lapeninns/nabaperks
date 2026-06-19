@@ -75,6 +75,14 @@ try {
     await runFile("supabase/seed.sql", "Seed fixtures")
     await runFile("supabase/seed-activity-demo.sql", "Seed activity demo")
     await runFile("supabase/seed-user-aman.sql", "Seed user Aman")
+    await runFile(
+      "supabase/seed-rewards-ready-today.sql",
+      "Seed rewards ready today"
+    )
+    await runFile(
+      "supabase/seed-second-cycle-complete.sql",
+      "Seed second cycle complete"
+    )
   }
 
   if (shouldTest) {

@@ -3,7 +3,7 @@ import Link from "next/link"
 
 import { CustomerReceipt } from "@/components/customer/customer-flow-system"
 import { CustomerProfileGateForm } from "@/components/customer/profile-gate-forms"
-import { RewardCollectionQr } from "@/components/customer/reward-collection-qr"
+import { RewardCollectionLive } from "@/components/customer/reward-collection-live"
 import { RewardTicket, StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import {
@@ -69,7 +69,7 @@ export function RewardReadyPanel({
             Show this QR at the counter. The merchant scans it from their device
             and collects the reward.
           </StatusBanner>
-          <RewardCollectionQr
+          <RewardCollectionLive
             rewardId={exp.reward.rewardId}
             rewardName={exp.reward.rewardName}
           />

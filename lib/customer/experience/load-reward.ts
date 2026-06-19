@@ -8,18 +8,14 @@ import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 import type { RewardContext } from "./derive"
 import { loadProfileGate } from "./load-profile-gate"
 
-type RewardSearchParams = {
-  redeemed?: string
-}
-
 /**
- * Impure loader for the reward route. Resolves reward ownership + redeemability,
- * the venue location gate, and the `?redeemed=1` post-redeem proof flag, then
- * hands pure facts to {@link deriveCustomerExperience}.
+ * Impure loader for the reward route. Resolves reward ownership + redeemability
+ * and the venue location gate, then hands pure facts to
+ * {@link deriveCustomerExperience}. The collected proof is driven by the
+ * server-confirmed `reward_events.status`, never a query flag.
  */
 export async function loadRewardExperienceContext(
-  rewardId: string,
-  searchParams: RewardSearchParams
+  rewardId: string
 ): Promise<RewardContext> {
   const rewardState = await getCustomerRewardState(rewardId)
 
@@ -56,7 +52,6 @@ export async function loadRewardExperienceContext(
     merchantName: merchant.business_name,
     status: reward.status,
     redeemable,
-    redeemedProof: searchParams.redeemed === "1",
     location,
     unavailableReason: rewardState.unavailableReason,
     profileGate,
