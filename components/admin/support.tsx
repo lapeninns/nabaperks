@@ -1,7 +1,12 @@
 import type { ReactNode } from "react"
 
 import { cn } from "@/lib/utils"
-import { Eyebrow, MonoTag, STATUS_ICON, type IconGlyph } from "@/components/brand"
+import {
+  Eyebrow,
+  MonoTag,
+  STATUS_ICON,
+  type IconGlyph,
+} from "@/components/brand"
 
 const STATUS_PILL_ICON: Record<
   "neutral" | "good" | "warning" | "danger",
@@ -27,12 +32,7 @@ export function AdminPanel({
   className?: string
 }) {
   return (
-    <section
-      className={cn(
-        "surface-card grid gap-4 p-5",
-        className
-      )}
-    >
+    <section className={cn("surface-card grid gap-4 p-5", className)}>
       {children}
     </section>
   )
@@ -92,9 +92,9 @@ export function StatusPill({
       icon={STATUS_PILL_ICON[tone]}
       className={cn(
         "border-ink capitalize",
-        tone === "good" && "bg-reward/15 text-reward-foreground",
-        tone === "warning" && "bg-primary/15 text-primary",
-        tone === "danger" && "bg-destructive/15 text-destructive",
+        tone === "good" && "bg-reward/15 text-foreground",
+        tone === "warning" && "bg-primary/15 text-foreground",
+        tone === "danger" && "bg-destructive/15 text-foreground",
         tone === "neutral" && "bg-secondary text-secondary-foreground"
       )}
     >

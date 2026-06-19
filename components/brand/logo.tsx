@@ -6,11 +6,21 @@ export function Logo({
   href = "/",
   label = "Nabaperks",
   compact = false,
+  wordmarkClassName,
   className,
 }: {
   href?: string
   label?: string
   compact?: boolean
+  /**
+   * Optional classes on the visible wordmark text (ignored when `compact`,
+   * which renders mark-only with an `sr-only` label). Lets a caller hide the
+   * wordmark responsively — e.g. `hidden sm:inline` so a tight mobile header
+   * shows just the ✱ mark while desktop keeps the full wordmark. The accessible
+   * name still comes from the link's `aria-label`, so hiding the text never
+   * removes the name from the accessibility tree.
+   */
+  wordmarkClassName?: string
   className?: string
 }) {
   const mark = (
@@ -27,12 +37,16 @@ export function Logo({
       href={href}
       aria-label={`${label} home`}
       className={cn(
-        "pressable inline-flex min-h-11 items-center gap-3 rounded-full pr-3 font-extrabold lowercase tracking-tight text-foreground outline-none transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none focus-visible:ring-3 focus-visible:ring-ring/35",
+        "pressable inline-flex min-h-11 items-center gap-3 rounded-full pr-3 font-extrabold tracking-tight text-foreground lowercase transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none",
         className
       )}
     >
       {mark}
-      {compact ? <span className="sr-only">{label}</span> : <span>{label}</span>}
+      {compact ? (
+        <span className="sr-only">{label}</span>
+      ) : (
+        <span className={cn(wordmarkClassName)}>{label}</span>
+      )}
     </Link>
   )
 }

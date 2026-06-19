@@ -6,6 +6,7 @@ import {
   formatAdminDate,
   maskAdminContact,
 } from "@/components/admin/support"
+import { AdminRecordCard } from "@/components/admin/record-card"
 import { AlertDiamondIcon, Cancel01Icon } from "@hugeicons/core-free-icons"
 
 import { EmptyState, PageTitle, SectionHeader } from "@/components/brand"
@@ -27,10 +28,13 @@ export default async function AdminFraudPage() {
         <SectionHeader
           title="Fraud flags"
           description="Security support signals with masked customer context and labelled metadata."
-          actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
+          actions={
+            <SourceLabel>Source: service-role admin readback</SourceLabel>
+          }
         />
         <DataTable
           caption="Admin fraud flag readback"
+          cardBreakpoint="lg"
           className="rounded-lg shadow-none"
           rows={fraud.fraudFlags}
           getRowKey={(flag) => flag.id}
@@ -70,7 +74,9 @@ export default async function AdminFraudPage() {
             {
               key: "severity",
               header: "Severity",
-              cell: (flag) => <StatusPill tone="warning">{flag.severity}</StatusPill>,
+              cell: (flag) => (
+                <StatusPill tone="warning">{flag.severity}</StatusPill>
+              ),
             },
             {
               key: "status",
@@ -81,12 +87,51 @@ export default async function AdminFraudPage() {
               key: "when",
               header: "When",
               cell: (flag) => (
-                <time className="text-muted-foreground" dateTime={flag.created_at}>
+                <time
+                  className="text-muted-foreground"
+                  dateTime={flag.created_at}
+                >
                   {formatAdminDate(flag.created_at)}
                 </time>
               ),
             },
           ]}
+          mobileCard={(flag) => {
+            const merchant = first(flag.merchants)
+            const customer = first(flag.customers)
+            return (
+              <AdminRecordCard
+                title={flag.signal.replaceAll("_", " ")}
+                status={
+                  <>
+                    <StatusPill tone="warning">{flag.severity}</StatusPill>
+                    <StatusPill>{flag.status}</StatusPill>
+                  </>
+                }
+                fields={[
+                  {
+                    label: "Context",
+                    value: (
+                      <>
+                        {merchant?.business_name ?? "Merchant"}
+                        {customer
+                          ? ` · ${maskAdminContact(customer.email ?? customer.phone)}`
+                          : ""}
+                      </>
+                    ),
+                  },
+                  {
+                    label: "When",
+                    value: (
+                      <time dateTime={flag.created_at}>
+                        {formatAdminDate(flag.created_at)}
+                      </time>
+                    ),
+                  },
+                ]}
+              />
+            )
+          }}
         />
       </AdminPanel>
 
@@ -98,6 +143,7 @@ export default async function AdminFraudPage() {
         />
         <DataTable
           caption="Admin redemption failure event readback"
+          cardBreakpoint="lg"
           className="rounded-lg shadow-none"
           rows={fraud.failures}
           getRowKey={(event) => event.id}
@@ -128,12 +174,37 @@ export default async function AdminFraudPage() {
               key: "when",
               header: "When",
               cell: (event) => (
-                <time className="text-muted-foreground" dateTime={event.created_at}>
+                <time
+                  className="text-muted-foreground"
+                  dateTime={event.created_at}
+                >
                   {formatAdminDate(event.created_at)}
                 </time>
               ),
             },
           ]}
+          mobileCard={(event) => {
+            const merchant = first(event.merchants)
+            return (
+              <AdminRecordCard
+                title={event.event_name}
+                fields={[
+                  {
+                    label: "Merchant",
+                    value: merchant?.business_name ?? "Merchant",
+                  },
+                  {
+                    label: "When",
+                    value: (
+                      <time dateTime={event.created_at}>
+                        {formatAdminDate(event.created_at)}
+                      </time>
+                    ),
+                  },
+                ]}
+              />
+            )
+          }}
         />
       </AdminPanel>
     </div>

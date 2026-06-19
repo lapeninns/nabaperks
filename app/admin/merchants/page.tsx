@@ -16,6 +16,7 @@ import {
   first,
   formatAdminDate,
 } from "@/components/admin/support"
+import { AdminRecordCard } from "@/components/admin/record-card"
 import { EmptyState, Icon, PageTitle, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { Button } from "@/components/ui/button"
@@ -40,11 +41,14 @@ export default async function AdminMerchantsPage() {
           <SectionHeader
             title="Merchant accounts"
             description="Service-role admin readback of account status and billing joins."
-            actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
+            actions={
+              <SourceLabel>Source: service-role admin readback</SourceLabel>
+            }
           />
         </div>
         <DataTable
           caption="Admin merchant account readback"
+          cardBreakpoint="lg"
           className="rounded-none border-0 shadow-none"
           rows={merchants}
           getRowKey={(merchant) => merchant.id}
@@ -106,6 +110,31 @@ export default async function AdminMerchantsPage() {
               ),
             },
           ]}
+          mobileCard={(merchant) => {
+            const billing = first(merchant.billing_customers)
+            return (
+              <AdminRecordCard
+                title={merchant.business_name}
+                eyebrow={merchant.business_slug}
+                status={<StatusPill>{merchant.status}</StatusPill>}
+                fields={[
+                  { label: "Email", value: merchant.email },
+                  {
+                    label: "Billing",
+                    value: billing?.status ?? "not started",
+                  },
+                  {
+                    label: "Created",
+                    value: (
+                      <time dateTime={merchant.created_at}>
+                        {formatAdminDate(merchant.created_at)}
+                      </time>
+                    ),
+                  },
+                ]}
+              />
+            )
+          }}
         />
       </AdminPanel>
 
@@ -113,7 +142,9 @@ export default async function AdminMerchantsPage() {
         <SectionHeader
           title="QR records"
           description="Audited QR activation and regeneration controls. Reasons are required before mutation."
-          actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
+          actions={
+            <SourceLabel>Source: service-role admin readback</SourceLabel>
+          }
         />
         {qrCodes.length ? (
           <div className="grid gap-3">
@@ -176,10 +207,7 @@ function QrStateForm({
           className={adminInputClasses}
         />
       </AdminField>
-      <Button
-        type="submit"
-        variant={nextActive ? "secondary" : "destructive"}
-      >
+      <Button type="submit" variant={nextActive ? "secondary" : "destructive"}>
         <Icon icon={nextActive ? ToggleOnIcon : Cancel01Icon} size={16} />
         {nextActive ? "Enable QR" : "Disable QR"}
       </Button>

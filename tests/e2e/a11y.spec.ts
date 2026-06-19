@@ -36,6 +36,21 @@ const surfaces = [
     expected: "Launch kit",
   },
   {
+    name: "merchant dashboard preview",
+    path: "/dev/merchant-admin-preview/merchant-dashboard",
+    expected: "Merchant dashboard",
+  },
+  {
+    name: "admin customers preview",
+    path: "/dev/merchant-admin-preview/admin-customers",
+    expected: "Admin customers",
+  },
+  {
+    name: "admin fraud empty preview",
+    path: "/dev/merchant-admin-preview/admin-fraud-empty",
+    expected: "Admin fraud (empty)",
+  },
+  {
     name: "design system",
     path: "/dev/design-system",
     expected: "Design system catalog",
@@ -51,6 +66,7 @@ async function expectNoViolations(page: Page, label: string): Promise<void> {
   const { violations } = await new AxeBuilder({ page })
     .exclude("nextjs-portal")
     .exclude("[data-nextjs-dev-overlay='true']")
+    .exclude('aside[aria-label="Install Nabaperks"]')
     .withTags(WCAG_TAGS)
     .analyze()
 
@@ -72,6 +88,29 @@ test.describe("accessibility (WCAG 2 A/AA)", () => {
             '[data-customer-flow-preview="reward-ready"][data-screen-label="Customer reward"]'
           )
         ).toBeVisible()
+      } else if (surface.name === "merchant dashboard preview") {
+        await expect(
+          page.locator(
+            '[data-ma-preview="merchant-dashboard"][data-screen-label="Merchant dashboard"]'
+          )
+        ).toBeVisible()
+      } else if (surface.name === "admin customers preview") {
+        await expect(
+          page.locator(
+            '[data-ma-preview="admin-customers"][data-screen-label="Admin customers"]'
+          )
+        ).toBeVisible()
+      } else if (surface.name === "admin fraud empty preview") {
+        await expect(
+          page.locator(
+            '[data-ma-preview="admin-fraud-empty"][data-screen-label="Admin fraud (empty)"]'
+          )
+        ).toBeVisible()
+        // The empty variant must actually render the route's EmptyState copy,
+        // not a broken table shell, before axe analyses it. `DataTable` renders
+        // the empty state in both the mobile and desktop branches (one is
+        // CSS-hidden), so match the first.
+        await expect(page.getByText("No fraud flags yet").first()).toBeVisible()
       } else {
         await expect(page.getByText(surface.expected).first()).toBeVisible()
       }
@@ -81,11 +120,22 @@ test.describe("accessibility (WCAG 2 A/AA)", () => {
   }
 })
 
+// Floating overlays that are not part of the surface UI under test: the Next.js
+// dev overlay, plus the PWA "Install Nabaperks / Add to Home Screen" hint, which
+// floats over content at the iPhone width this project emulates. The hint's
+// production component (components/pwa/app-pwa.tsx) always renders its root as
+// `<aside aria-label="Install Nabaperks">`.
+const NON_CONSOLE_OVERLAY_SELECTORS =
+  'nextjs-portal, [data-nextjs-dev-overlay="true"], aside[aria-label="Install Nabaperks"]'
+
+// Dismissal flag the install-hint component already honours on mount; setting it
+// makes the component unmount itself. Test-only — no production code is changed.
+const PWA_INSTALL_DISMISS_KEY = "nabaperks:pwa-install-dismissed:v2"
+
 async function hideDevelopmentOverlay(page: Page): Promise<void> {
   await page.addStyleTag({
     content: `
-      nextjs-portal,
-      [data-nextjs-dev-overlay="true"] {
+      ${NON_CONSOLE_OVERLAY_SELECTORS} {
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
@@ -94,18 +144,28 @@ async function hideDevelopmentOverlay(page: Page): Promise<void> {
     `,
   })
 
-  await page.evaluate(() => {
-    const selectors = "nextjs-portal, [data-nextjs-dev-overlay='true']"
-
-    for (const element of document.querySelectorAll(selectors)) {
-      element.setAttribute("aria-hidden", "true")
-
-      if (element instanceof HTMLElement) {
-        element.style.display = "none"
-        element.style.visibility = "hidden"
+  await page.evaluate(
+    ({ selectors, dismissKey }) => {
+      try {
+        window.localStorage.setItem(dismissKey, "1")
+      } catch {
+        // localStorage may be unavailable; the CSS above still hides the hint.
       }
+
+      for (const element of document.querySelectorAll(selectors)) {
+        element.setAttribute("aria-hidden", "true")
+
+        if (element instanceof HTMLElement) {
+          element.style.display = "none"
+          element.style.visibility = "hidden"
+        }
+      }
+    },
+    {
+      selectors: NON_CONSOLE_OVERLAY_SELECTORS,
+      dismissKey: PWA_INSTALL_DISMISS_KEY,
     }
-  })
+  )
 }
 
 function formatViolation(violation: {

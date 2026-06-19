@@ -16,6 +16,9 @@ import {
   STATUS_ICON,
   VenueMark,
 } from "@/components/brand"
+import { AdminRecordCard } from "@/components/admin/record-card"
+import { StatusPill } from "@/components/admin/support"
+import { DataTable } from "@/components/data/data-table"
 import {
   ProgressTrack,
   QrFrame,
@@ -123,6 +126,35 @@ const QR_CELLS = Array.from(
   { length: 100 },
   (_, i) => (i * 7 + (i % 5)) % 3 === 0
 )
+
+/** Mock console rows — DB-free, mirrors the shape of an admin support readback. */
+type ConsoleRow = {
+  id: string
+  member: string
+  merchant: string
+  stamps: string
+  status: "good" | "warning"
+  joined: string
+}
+
+const CONSOLE_ROWS: ConsoleRow[] = [
+  {
+    id: "row-1",
+    member: "07••• ••421",
+    merchant: "The Old Crown",
+    stamps: "5 current · 18 total",
+    status: "good",
+    joined: "12 May 2026",
+  },
+  {
+    id: "row-2",
+    member: "j••@••.uk",
+    merchant: "Brew & Bean",
+    stamps: "2 current · 4 total",
+    status: "warning",
+    joined: "03 Jun 2026",
+  },
+]
 
 export default function DesignSystemPage() {
   return (
@@ -584,6 +616,107 @@ export default function DesignSystemPage() {
             <RewardCelebration
               title="Your card is full"
               message="The seal is ready to break on your next visit."
+            />
+          </div>
+        </div>
+      </Section>
+
+      <Section
+        id="console-data"
+        eyebrow="Console"
+        title="Console data tables & record cards"
+        description="The responsive admin list pattern. DataTable renders a semantic table at sm and above; below sm it renders a stacked AdminRecordCard per row via the mobileCard renderer, so dense support data reads on a phone without horizontal scroll. Shared by 7+ admin tables (customers, merchants, fraud, billing, audit, pilot, privacy). Resize below the sm breakpoint to see the table become cards."
+      >
+        <div className="grid gap-3 rounded-lg border-2 border-ink bg-card p-5">
+          <Eyebrow>Responsive DataTable · table at sm+, cards below</Eyebrow>
+          <DataTable
+            caption="Demo console membership readback"
+            rows={CONSOLE_ROWS}
+            getRowKey={(row) => row.id}
+            emptyState={
+              <EmptyState
+                title="No records yet"
+                description="Rows appear here once a readback returns data."
+              />
+            }
+            mobileCard={(row) => (
+              <AdminRecordCard
+                title={row.member}
+                status={<StatusPill tone={row.status}>{row.status}</StatusPill>}
+                fields={[
+                  { label: "Merchant", value: row.merchant },
+                  { label: "Stamps", value: row.stamps },
+                  { label: "Joined", value: row.joined, mono: true },
+                ]}
+                action={
+                  <Button variant="outline" className="pressable w-full">
+                    Adjust stamps
+                  </Button>
+                }
+              />
+            )}
+            columns={[
+              {
+                key: "member",
+                header: "Member",
+                cell: (row) => (
+                  <div className="grid gap-1">
+                    <span className="font-bold">{row.member}</span>
+                    <span className="text-muted-foreground">
+                      {row.merchant}
+                    </span>
+                  </div>
+                ),
+              },
+              {
+                key: "stamps",
+                header: "Stamps",
+                cell: (row) => (
+                  <span className="numeric-tabular">{row.stamps}</span>
+                ),
+              },
+              {
+                key: "status",
+                header: "Status",
+                cell: (row) => (
+                  <StatusPill tone={row.status}>{row.status}</StatusPill>
+                ),
+              },
+              {
+                key: "joined",
+                header: "Joined",
+                cell: (row) => (
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {row.joined}
+                  </span>
+                ),
+              },
+            ]}
+          />
+        </div>
+
+        <div className="grid gap-3 rounded-lg border-2 border-ink bg-card p-5">
+          <Eyebrow>AdminRecordCard · the mobile renderer in isolation</Eyebrow>
+          <p className="text-sm leading-6 text-muted-foreground">
+            Title, optional status, stacked label/value fields, and a full-width
+            action. Per-row support actions live in the card body so they are
+            reachable without horizontal scroll.
+          </p>
+          <div className="max-w-sm">
+            <AdminRecordCard
+              eyebrow="MEMBERSHIP"
+              title="07••• ••421"
+              status={<StatusPill tone="good">active</StatusPill>}
+              fields={[
+                { label: "Merchant", value: "The Old Crown" },
+                { label: "Stamps", value: "5 current · 18 total" },
+                { label: "Membership id", value: "mbr_0f3a91", mono: true },
+              ]}
+              action={
+                <Button variant="outline" className="pressable w-full">
+                  Adjust stamps
+                </Button>
+              }
             />
           </div>
         </div>

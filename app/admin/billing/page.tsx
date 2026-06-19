@@ -5,6 +5,7 @@ import {
   first,
   formatAdminDate,
 } from "@/components/admin/support"
+import { AdminRecordCard } from "@/components/admin/record-card"
 import { CreditCardIcon } from "@hugeicons/core-free-icons"
 
 import { EmptyState, PageTitle } from "@/components/brand"
@@ -28,6 +29,7 @@ export default async function AdminBillingPage() {
         </div>
         <DataTable
           caption="Admin billing subscription readback"
+          cardBreakpoint="lg"
           className="rounded-none border-0 shadow-none"
           rows={billing}
           getRowKey={(row) => row.id}
@@ -85,6 +87,31 @@ export default async function AdminBillingPage() {
               ),
             },
           ]}
+          mobileCard={(row) => {
+            const merchant = first(row.merchants)
+            return (
+              <AdminRecordCard
+                title={merchant?.business_name ?? "Merchant"}
+                status={<StatusPill>{row.status}</StatusPill>}
+                fields={[
+                  {
+                    label: "Email",
+                    value: merchant?.email ?? "No merchant email",
+                  },
+                  { label: "Plan", value: row.plan },
+                  {
+                    label: "Period end",
+                    value: formatAdminDate(row.current_period_end),
+                  },
+                  {
+                    label: "Stripe subscription",
+                    value: row.stripe_subscription_id ?? "-",
+                    mono: true,
+                  },
+                ]}
+              />
+            )
+          }}
         />
       </AdminPanel>
     </div>

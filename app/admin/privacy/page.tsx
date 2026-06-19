@@ -12,6 +12,7 @@ import {
   formatAdminDate,
   maskAdminContact,
 } from "@/components/admin/support"
+import { AdminRecordCard } from "@/components/admin/record-card"
 import { FileValidationIcon, Shield01Icon } from "@hugeicons/core-free-icons"
 
 import { EmptyState, PageTitle, SectionHeader } from "@/components/brand"
@@ -40,7 +41,9 @@ export default async function AdminPrivacyPage() {
         <SectionHeader
           title="Data request workflow"
           description="Verify the requester outside this console, identify the relevant customer and merchant row, log the request, then handle export, deletion, or consent follow-up manually until self-service exists."
-          actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
+          actions={
+            <SourceLabel>Source: service-role admin readback</SourceLabel>
+          }
         />
         {supportRows.length ? (
           <div className="grid gap-3">
@@ -108,9 +111,7 @@ export default async function AdminPrivacyPage() {
                         className={adminInputClasses}
                       />
                     </AdminField>
-                    <Button type="submit">
-                      Record opt-out
-                    </Button>
+                    <Button type="submit">Record opt-out</Button>
                   </form>
                   <form action={logDataRequestAction} className="grid gap-2">
                     <input
@@ -186,9 +187,11 @@ export default async function AdminPrivacyPage() {
         </div>
         <DataTable
           caption="Admin consent support readback"
+          cardBreakpoint="lg"
           className="rounded-none border-0 shadow-none"
           rows={consentRecords}
           getRowKey={(record) => record.id}
+          mobileClassName="p-5"
           emptyState={
             <EmptyState
               icon={FileValidationIcon}
@@ -196,6 +199,41 @@ export default async function AdminPrivacyPage() {
               className="rounded-none border-0 shadow-none"
             />
           }
+          mobileCard={(record) => {
+            const customer = first(record.customers)
+            const merchant = first(record.merchants)
+            return (
+              <AdminRecordCard
+                title={maskAdminContact(customer?.email ?? customer?.phone)}
+                status={
+                  <StatusPill>
+                    {record.consent_status.replaceAll("_", " ")}
+                  </StatusPill>
+                }
+                fields={[
+                  {
+                    label: "Merchant",
+                    value: merchant?.business_name ?? "Merchant",
+                  },
+                  { label: "Channel", value: record.channel },
+                  { label: "Policy", value: record.policy_version },
+                  {
+                    label: "When",
+                    mono: true,
+                    value: (
+                      <time dateTime={record.created_at}>
+                        {formatAdminDate(record.created_at)}
+                      </time>
+                    ),
+                  },
+                  {
+                    label: "Source",
+                    value: <SourceLabel>Source: {record.source}</SourceLabel>,
+                  },
+                ]}
+              />
+            )
+          }}
           columns={[
             {
               key: "customer",
@@ -217,7 +255,9 @@ export default async function AdminPrivacyPage() {
               key: "status",
               header: "Status",
               cell: (record) => (
-                <StatusPill>{record.consent_status.replaceAll("_", " ")}</StatusPill>
+                <StatusPill>
+                  {record.consent_status.replaceAll("_", " ")}
+                </StatusPill>
               ),
             },
             {
@@ -228,7 +268,9 @@ export default async function AdminPrivacyPage() {
             {
               key: "source",
               header: "Source",
-              cell: (record) => <SourceLabel>Source: {record.source}</SourceLabel>,
+              cell: (record) => (
+                <SourceLabel>Source: {record.source}</SourceLabel>
+              ),
             },
             {
               key: "policy",

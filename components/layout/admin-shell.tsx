@@ -32,10 +32,17 @@ export function AdminShell({
   children,
   operatorEmail,
   mfaRequired = false,
+  activePath,
 }: {
   children: ReactNode
   operatorEmail?: string
   mfaRequired?: boolean
+  /**
+   * Optional active-path override forwarded to `ShellNavigation`. Left undefined
+   * for the real authenticated shell (it falls back to `usePathname()`); the
+   * `/dev` preview passes the surface's real route so the correct tab lights up.
+   */
+  activePath?: string
 }) {
   return (
     <div className="min-h-svh bg-background">
@@ -48,6 +55,8 @@ export function AdminShell({
               mobileTitle="Admin navigation"
               mobileDescription="Open support sections for pilot, merchants, customers, billing, privacy, fraud, and audit."
               desktopClassName="lg:flex"
+              mobileTriggerClassName="lg:hidden"
+              activePath={activePath}
             />
           </div>
           <div className="hidden items-center justify-between gap-3 overflow-x-auto pb-1 md:flex">

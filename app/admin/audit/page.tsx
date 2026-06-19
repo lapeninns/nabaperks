@@ -7,6 +7,7 @@ import {
 } from "@/components/admin/support"
 import { SecurityCheckIcon } from "@hugeicons/core-free-icons"
 
+import { AdminRecordCard } from "@/components/admin/record-card"
 import { EmptyState, PageTitle } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { getAdminAuditLogs } from "@/lib/admin/data"
@@ -28,6 +29,7 @@ export default async function AdminAuditPage() {
         </div>
         <DataTable
           caption="Admin audit log readback"
+          cardBreakpoint="lg"
           className="rounded-none border-0 shadow-none"
           rows={logs}
           getRowKey={(log) => log.id}
@@ -39,6 +41,53 @@ export default async function AdminAuditPage() {
               className="rounded-none border-0 shadow-none"
             />
           }
+          mobileCard={(log) => {
+            const merchant = first(log.merchants)
+            const customer = first(log.customers)
+            return (
+              <AdminRecordCard
+                title={log.action}
+                fields={[
+                  {
+                    label: "Actor",
+                    value: (
+                      <>
+                        {log.actor_type}
+                        {log.actor_id ? `:${log.actor_id.slice(0, 8)}` : ""}
+                      </>
+                    ),
+                  },
+                  {
+                    label: "Context",
+                    value: (
+                      <>
+                        {merchant?.business_name ?? "No merchant"}
+                        {customer
+                          ? ` · ${maskAdminContact(
+                              customer.email ?? customer.phone
+                            )}`
+                          : ""}
+                      </>
+                    ),
+                  },
+                  {
+                    label: "Target",
+                    mono: true,
+                    value: `${log.target_table}:${log.target_id?.slice(0, 8)}`,
+                  },
+                  {
+                    label: "When",
+                    mono: true,
+                    value: (
+                      <time dateTime={log.created_at}>
+                        {formatAdminDate(log.created_at)}
+                      </time>
+                    ),
+                  },
+                ]}
+              />
+            )
+          }}
           columns={[
             {
               key: "action",
@@ -84,7 +133,10 @@ export default async function AdminAuditPage() {
               key: "when",
               header: "When",
               cell: (log) => (
-                <time className="text-muted-foreground" dateTime={log.created_at}>
+                <time
+                  className="text-muted-foreground"
+                  dateTime={log.created_at}
+                >
                   {formatAdminDate(log.created_at)}
                 </time>
               ),

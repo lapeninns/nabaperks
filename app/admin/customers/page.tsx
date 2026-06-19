@@ -16,6 +16,7 @@ import {
   formatAdminDate,
   maskAdminContact,
 } from "@/components/admin/support"
+import { AdminRecordCard } from "@/components/admin/record-card"
 import { EmptyState, Icon, PageTitle, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { Button } from "@/components/ui/button"
@@ -39,10 +40,13 @@ export default async function AdminCustomersPage() {
         <SectionHeader
           title="Memberships"
           description="Masked customer contacts and merchant-scoped stamp counters from service-role support reads."
-          actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
+          actions={
+            <SourceLabel>Source: service-role admin readback</SourceLabel>
+          }
         />
         <DataTable
           caption="Admin customer membership support readback"
+          cardBreakpoint="lg"
           className="rounded-lg shadow-none"
           rows={customers}
           getRowKey={(row) => row.id}
@@ -53,6 +57,48 @@ export default async function AdminCustomersPage() {
               className="rounded-none border-0 p-0 shadow-none"
             />
           }
+          mobileCard={(row) => {
+            const customer = first(row.customers)
+            const merchant = first(row.merchants)
+            return (
+              <AdminRecordCard
+                title={maskAdminContact(customer?.email ?? customer?.phone)}
+                fields={[
+                  {
+                    label: "Merchant",
+                    value: merchant?.business_name ?? "Merchant",
+                  },
+                  {
+                    label: "Stamps",
+                    value: (
+                      <span className="numeric-tabular">
+                        {row.current_stamp_count} current ·{" "}
+                        {row.total_stamps_earned} total
+                      </span>
+                    ),
+                  },
+                  {
+                    label: "Rewards redeemed",
+                    value: (
+                      <span className="numeric-tabular">
+                        {row.total_rewards_redeemed}
+                      </span>
+                    ),
+                  },
+                  {
+                    label: "Joined",
+                    mono: true,
+                    value: (
+                      <time dateTime={row.created_at}>
+                        {formatAdminDate(row.created_at)}
+                      </time>
+                    ),
+                  },
+                ]}
+                action={<StampAdjustmentForm membershipId={row.id} />}
+              />
+            )
+          }}
           columns={[
             {
               key: "customer",
@@ -77,7 +123,8 @@ export default async function AdminCustomersPage() {
               header: "Stamps",
               cell: (row) => (
                 <span className="numeric-tabular">
-                  {row.current_stamp_count} current · {row.total_stamps_earned} total
+                  {row.current_stamp_count} current · {row.total_stamps_earned}{" "}
+                  total
                 </span>
               ),
             },
@@ -94,7 +141,10 @@ export default async function AdminCustomersPage() {
               key: "joined",
               header: "Joined",
               cell: (row) => (
-                <time className="text-muted-foreground" dateTime={row.created_at}>
+                <time
+                  className="text-muted-foreground"
+                  dateTime={row.created_at}
+                >
                   {formatAdminDate(row.created_at)}
                 </time>
               ),
@@ -112,10 +162,13 @@ export default async function AdminCustomersPage() {
         <SectionHeader
           title="Rewards"
           description="Assigned reward readbacks preserve customer masking and require a reason before cancellation."
-          actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
+          actions={
+            <SourceLabel>Source: service-role admin readback</SourceLabel>
+          }
         />
         <DataTable
           caption="Admin reward support readback"
+          cardBreakpoint="lg"
           className="rounded-lg shadow-none"
           rows={rewards}
           getRowKey={(reward) => reward.id}
@@ -126,6 +179,48 @@ export default async function AdminCustomersPage() {
               className="rounded-none border-0 p-0 shadow-none"
             />
           }
+          mobileCard={(reward) => {
+            const loyaltyCard = first(reward.loyalty_cards)
+            const customer = first(reward.customers)
+            const merchant = first(reward.merchants)
+            const canCancel =
+              reward.status !== "redeemed" && reward.status !== "cancelled"
+            return (
+              <AdminRecordCard
+                title={loyaltyCard?.reward_name ?? "Reward"}
+                status={<StatusPill>{reward.status}</StatusPill>}
+                fields={[
+                  {
+                    label: "Context",
+                    value: (
+                      <>
+                        {merchant?.business_name ?? "Merchant"} ·{" "}
+                        {maskAdminContact(customer?.email ?? customer?.phone)}
+                      </>
+                    ),
+                  },
+                  {
+                    label: "Created",
+                    mono: true,
+                    value: (
+                      <time dateTime={reward.created_at}>
+                        {formatAdminDate(reward.created_at)}
+                      </time>
+                    ),
+                  },
+                ]}
+                action={
+                  canCancel ? (
+                    <RewardCancelForm rewardId={reward.id} />
+                  ) : (
+                    <span className="text-sm text-muted-foreground">
+                      No action available
+                    </span>
+                  )
+                }
+              />
+            )
+          }}
           columns={[
             {
               key: "reward",
@@ -174,7 +269,8 @@ export default async function AdminCustomersPage() {
               key: "action",
               header: "Audited action",
               cell: (reward) =>
-                reward.status !== "redeemed" && reward.status !== "cancelled" ? (
+                reward.status !== "redeemed" &&
+                reward.status !== "cancelled" ? (
                   <RewardCancelForm rewardId={reward.id} />
                 ) : (
                   <span className="text-sm text-muted-foreground">

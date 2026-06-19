@@ -4,4 +4,8 @@ export { CustomerShell } from "./customer-shell"
 export { CustomerTabBar } from "./customer-tab-bar"
 export { MarketingLayout } from "./marketing-layout"
 export { MerchantAppShell, merchantNavItems } from "./merchant-app-shell"
-export { ShellNavigation, type ShellNavItem } from "./shell-navigation"
+export {
+  ShellNavigation,
+  isActivePath,
+  type ShellNavItem,
+} from "./shell-navigation"

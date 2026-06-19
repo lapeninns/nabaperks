@@ -2,6 +2,7 @@
 
 import Link, { useLinkStatus } from "next/link"
 import { usePathname } from "next/navigation"
+import { Menu01Icon } from "@hugeicons/core-free-icons"
 
 import { Icon, type IconGlyph } from "@/components/brand"
 import { cn } from "@/lib/utils"
@@ -22,12 +23,19 @@ export type ShellNavItem = {
   icon?: IconGlyph
 }
 
-function isActivePath(pathname: string, href: string) {
+/**
+ * Pure active-state predicate for a nav item, given the current path. The
+ * console roots (`/app`, `/admin`) match exactly so a nested page never lights
+ * up the root tab; every nested route matches itself or any deeper child. This
+ * is exported so the resolution can be asserted in isolation and reused by the
+ * `/dev` preview harness via the `activePath` override.
+ */
+export function isActivePath(currentPath: string, href: string) {
   if (href === "/app" || href === "/admin") {
-    return pathname === href
+    return currentPath === href
   }
 
-  return pathname === href || pathname.startsWith(`${href}/`)
+  return currentPath === href || currentPath.startsWith(`${href}/`)
 }
 
 export function ShellNavigation({
@@ -37,6 +45,8 @@ export function ShellNavigation({
   mobileTitle,
   mobileDescription,
   desktopClassName,
+  mobileTriggerClassName = "md:hidden",
+  activePath,
 }: {
   items: ShellNavItem[]
   secondaryItems?: ShellNavItem[]
@@ -44,13 +54,38 @@ export function ShellNavigation({
   mobileTitle: string
   mobileDescription: string
   desktopClassName?: string
+  /**
+   * Width at which the mobile Sheet trigger hides — must mirror the breakpoint
+   * the caller reveals `desktopClassName` at, so the bar and the trigger swap at
+   * the same width. Merchant keeps the `md:hidden` default; admin passes
+   * `lg:hidden` to match its `lg:` desktop bar.
+   */
+  mobileTriggerClassName?: string
+  /**
+   * Override the path used to compute the active nav item. Defaults to the live
+   * `usePathname()`, so the real authenticated shells are unchanged; the `/dev`
+   * console previews pass the surface's real route here so the preview
+   * highlights the correct item without navigating there.
+   */
+  activePath?: string
 }) {
   const pathname = usePathname()
+  const currentPath = activePath ?? pathname
   const secondaryNavItems = secondaryItems ?? []
   const hasSecondary = secondaryNavItems.length > 0
 
   return (
     <>
+      {/*
+        Breakpoint contract (kept asymmetric per console, deliberately):
+        the desktop pill bars are `hidden` by default and revealed by the
+        caller's `desktopClassName` — merchant at `md:` (4 short tabs fit a
+        tablet), admin at `lg:` (7 tabs plus operator/MFA chrome need a wider
+        rail). The mobile Sheet trigger is the inverse: `mobileTriggerClassName`
+        hides it once the matching desktop bar appears, so each console swaps
+        between bar and Sheet at the same width and primary nav is never hidden
+        behind an unreachable control in the in-between range.
+      */}
       {/* Wet Ink pill tab bar — active = ink pill / paper text. */}
       <nav
         aria-label={mobileTitle}
@@ -60,14 +95,14 @@ export function ShellNavigation({
         )}
       >
         {items.map((item) => {
-          const active = isActivePath(pathname, item.href)
+          const active = isActivePath(currentPath, item.href)
 
           return (
             <ShellNavLink
               key={item.href}
               item={item}
               active={active}
-              className="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-bold transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none focus-visible:ring-3 focus-visible:ring-ring/35"
+              className="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-bold transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none"
             />
           )
         })}
@@ -83,14 +118,14 @@ export function ShellNavigation({
           )}
         >
           {secondaryNavItems.map((item) => {
-            const active = isActivePath(pathname, item.href)
+            const active = isActivePath(currentPath, item.href)
 
             return (
               <ShellNavLink
                 key={item.href}
                 item={item}
                 active={active}
-                className="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-bold transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none focus-visible:ring-3 focus-visible:ring-ring/35"
+                className="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-bold transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none"
               />
             )
           })}
@@ -99,7 +134,14 @@ export function ShellNavigation({
 
       <Sheet>
         <SheetTrigger asChild>
-          <Button variant="secondary" className="md:hidden">
+          {/*
+            Default `size` keeps the trigger at h-11 (44px) for a comfortable
+            thumb target; the visible "Menu" text is the accessible name (the
+            leading glyph is decorative via the Icon wrapper). Radix Dialog wires
+            the trigger's keyboard activation and the Escape-to-close itself.
+          */}
+          <Button variant="secondary" className={mobileTriggerClassName}>
+            <Icon icon={Menu01Icon} size={16} />
             Menu
           </Button>
         </SheetTrigger>
@@ -110,14 +152,14 @@ export function ShellNavigation({
           </SheetHeader>
           <nav aria-label={`${mobileTitle} mobile`} className="grid gap-1 px-6">
             {items.map((item) => {
-              const active = isActivePath(pathname, item.href)
+              const active = isActivePath(currentPath, item.href)
 
               return (
                 <SheetClose key={item.href} asChild>
                   <ShellNavLink
                     item={item}
                     active={active}
-                    className="inline-flex min-h-11 w-full items-center justify-start rounded-full px-4 text-sm font-bold transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none focus-visible:ring-3 focus-visible:ring-ring/35"
+                    className="inline-flex min-h-11 w-full items-center justify-start rounded-full px-4 text-sm font-bold transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none"
                     mobile
                   />
                 </SheetClose>
@@ -134,14 +176,14 @@ export function ShellNavigation({
                 {secondaryLabel}
               </p>
               {secondaryNavItems.map((item) => {
-                const active = isActivePath(pathname, item.href)
+                const active = isActivePath(currentPath, item.href)
 
                 return (
                   <SheetClose key={item.href} asChild>
                     <ShellNavLink
                       item={item}
                       active={active}
-                      className="inline-flex min-h-11 w-full items-center justify-start rounded-full px-4 text-sm font-bold transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none focus-visible:ring-3 focus-visible:ring-ring/35"
+                      className="inline-flex min-h-11 w-full items-center justify-start rounded-full px-4 text-sm font-bold transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none"
                       mobile
                     />
                   </SheetClose>
@@ -193,7 +235,7 @@ function NavPendingIndicator() {
     <span
       aria-hidden="true"
       data-pending={pending}
-      className="ml-1 size-1.5 shrink-0 rounded-full bg-current opacity-0 transition-opacity delay-100 duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none data-[pending=true]:opacity-60"
+      className="ml-1 size-1.5 shrink-0 rounded-full bg-current opacity-0 transition-opacity delay-100 duration-[var(--w-dur-fast)] ease-[var(--w-ease)] data-[pending=true]:opacity-60 motion-reduce:transition-none"
     />
   )
 }
