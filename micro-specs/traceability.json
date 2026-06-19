@@ -71,7 +71,8 @@
           ],
           "related_tests": ["tests/micro-specs/ai-governance.test.ts"],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "GOV-GOVERNANCE-FOUNDATION-002",
@@ -102,7 +103,8 @@
           ],
           "related_tests": ["tests/micro-specs/ai-governance.test.ts"],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "GOV-GOVERNANCE-FOUNDATION-003",
@@ -134,7 +136,8 @@
           ],
           "related_tests": ["tests/micro-specs/ai-governance.test.ts"],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "GOV-GOVERNANCE-FOUNDATION-004",
@@ -178,7 +181,8 @@
           ],
           "related_tests": ["tests/micro-specs/ai-governance.test.ts"],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "GOV-GOVERNANCE-FOUNDATION-005",
@@ -210,7 +214,8 @@
           ],
           "related_tests": ["tests/micro-specs/ai-governance.test.ts"],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         }
       ],
       "handoffs": {
@@ -416,7 +421,8 @@
             "tests/fixtures/governance/handoff-workflows.json"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "GOV-HANDOFF-FIXTURES-TESTS-002",
@@ -444,7 +450,8 @@
             "tests/fixtures/governance/handoff-workflows.json"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "GOV-HANDOFF-FIXTURES-TESTS-003",
@@ -471,7 +478,8 @@
             "tests/fixtures/governance/handoff-workflows.json"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "GOV-HANDOFF-FIXTURES-TESTS-004",
@@ -499,7 +507,8 @@
             "tests/fixtures/governance/handoff-workflows.json"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "GOV-HANDOFF-FIXTURES-TESTS-005",
@@ -526,7 +535,8 @@
             "tests/fixtures/governance/handoff-workflows.json"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "GOV-HANDOFF-FIXTURES-TESTS-006",
@@ -554,7 +564,8 @@
             "tests/fixtures/governance/handoff-workflows.json"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         }
       ],
       "handoffs": {
@@ -814,7 +825,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-ADMIN-BILLING-INTERNAL-ADMIN-SUPPORT-CONSOLE-002",
@@ -864,7 +876,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-ADMIN-BILLING-INTERNAL-ADMIN-SUPPORT-CONSOLE-003",
@@ -914,7 +927,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-ADMIN-BILLING-INTERNAL-ADMIN-SUPPORT-CONSOLE-004",
@@ -964,7 +978,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-ADMIN-BILLING-INTERNAL-ADMIN-SUPPORT-CONSOLE-005",
@@ -1014,7 +1029,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-ADMIN-BILLING-INTERNAL-ADMIN-SUPPORT-CONSOLE-006",
@@ -1064,7 +1080,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-ADMIN-BILLING-INTERNAL-ADMIN-SUPPORT-CONSOLE-007",
@@ -1114,7 +1131,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         }
       ],
       "change_state": "current",
@@ -1233,7 +1251,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-ADMIN-BILLING-STRIPE-BILLING-ACCESS-CONTROL-002",
@@ -1653,7 +1672,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         }
       ],
       "change_state": "current",
@@ -1766,7 +1786,8 @@
             "tests/micro-specs/customer-home.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-CUSTOMER-DIGITAL-STAMP-CARD-002",
@@ -1818,7 +1839,8 @@
             "tests/micro-specs/customer-home.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-CUSTOMER-DIGITAL-STAMP-CARD-003",
@@ -1870,7 +1892,8 @@
             "tests/micro-specs/customer-home.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-CUSTOMER-DIGITAL-STAMP-CARD-004",
@@ -1922,7 +1945,8 @@
             "tests/micro-specs/customer-home.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-CUSTOMER-DIGITAL-STAMP-CARD-005",
@@ -1974,7 +1998,8 @@
             "tests/micro-specs/customer-home.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-CUSTOMER-DIGITAL-STAMP-CARD-006",
@@ -2026,7 +2051,8 @@
             "tests/micro-specs/customer-home.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-CUSTOMER-DIGITAL-STAMP-CARD-007",
@@ -2078,7 +2104,8 @@
             "tests/micro-specs/customer-home.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-CUSTOMER-DIGITAL-STAMP-CARD-008",
@@ -2130,7 +2157,8 @@
             "tests/micro-specs/customer-home.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-CUSTOMER-DIGITAL-STAMP-CARD-009",
@@ -2182,7 +2210,8 @@
             "tests/micro-specs/customer-home.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         }
       ],
       "change_state": "current",
@@ -2296,7 +2325,8 @@
             "tests/micro-specs/customer-legal-sheets.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-CUSTOMER-QR-RESOLVER-JOIN-002",
@@ -2348,7 +2378,8 @@
             "tests/micro-specs/customer-legal-sheets.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-CUSTOMER-QR-RESOLVER-JOIN-003",
@@ -2400,7 +2431,8 @@
             "tests/micro-specs/customer-legal-sheets.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-CUSTOMER-QR-RESOLVER-JOIN-004",
@@ -2452,7 +2484,8 @@
             "tests/micro-specs/customer-legal-sheets.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-CUSTOMER-QR-RESOLVER-JOIN-005",
@@ -2504,7 +2537,8 @@
             "tests/micro-specs/customer-legal-sheets.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-CUSTOMER-QR-RESOLVER-JOIN-006",
@@ -2556,7 +2590,8 @@
             "tests/micro-specs/customer-legal-sheets.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-CUSTOMER-QR-RESOLVER-JOIN-007",
@@ -2608,7 +2643,8 @@
             "tests/micro-specs/customer-legal-sheets.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-CUSTOMER-QR-RESOLVER-JOIN-008",
@@ -2660,7 +2696,8 @@
             "tests/micro-specs/customer-legal-sheets.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         }
       ],
       "change_state": "current",
@@ -2774,7 +2811,8 @@
             "tests/micro-specs/full-app-pwa.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-FOUNDATION-PROJECT-SHELL-ENVIRONMENTS-002",
@@ -2826,7 +2864,8 @@
             "tests/micro-specs/full-app-pwa.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-FOUNDATION-PROJECT-SHELL-ENVIRONMENTS-003",
@@ -2878,7 +2917,8 @@
             "tests/micro-specs/full-app-pwa.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-FOUNDATION-PROJECT-SHELL-ENVIRONMENTS-004",
@@ -2930,7 +2970,8 @@
             "tests/micro-specs/full-app-pwa.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-FOUNDATION-PROJECT-SHELL-ENVIRONMENTS-005",
@@ -2982,7 +3023,8 @@
             "tests/micro-specs/full-app-pwa.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         }
       ],
       "change_state": "current",
@@ -3100,7 +3142,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-FOUNDATION-SUPABASE-SCHEMA-RLS-AUDIT-002",
@@ -3158,7 +3201,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-FOUNDATION-SUPABASE-SCHEMA-RLS-AUDIT-003",
@@ -3216,7 +3260,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-FOUNDATION-SUPABASE-SCHEMA-RLS-AUDIT-004",
@@ -3274,7 +3319,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-FOUNDATION-SUPABASE-SCHEMA-RLS-AUDIT-005",
@@ -3332,7 +3378,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         }
       ],
       "change_state": "current",
@@ -3425,7 +3472,8 @@
             "components/loyalty/**"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-002",
@@ -3442,7 +3490,8 @@
             "components/forms/**"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-003",
@@ -3458,7 +3507,8 @@
           "manual_rationale": [
             "Copy register and en-GB tone reviewed against copy-inventory.md and DESIGN.md."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-004",
@@ -3475,7 +3525,8 @@
             "components/customer/**"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-005",
@@ -3489,7 +3540,8 @@
           "related_tests": ["tests/micro-specs/customer-flow-redesign.test.ts"],
           "implementation_surfaces": ["components/customer/**"],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-006",
@@ -3506,7 +3558,8 @@
             "components/layout/**"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-007",
@@ -3520,7 +3573,8 @@
           "related_tests": ["tests/micro-specs/merchant-readbacks.test.ts"],
           "implementation_surfaces": ["components/merchant/**"],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-008",
@@ -3537,7 +3591,8 @@
             "components/layout/**"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-009",
@@ -3554,7 +3609,8 @@
             "components/layout/**"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-010",
@@ -3568,7 +3624,8 @@
           "related_tests": ["tests/micro-specs/auth-redesign.test.ts"],
           "implementation_surfaces": ["components/auth/**"],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-011",
@@ -3584,7 +3641,8 @@
           "manual_rationale": [
             "Catalog smoke verified in the preview server; Playwright spec to follow in integration."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-FOUNDATION-WET-INK-FULL-UI-REWRITE-012",
@@ -3600,7 +3658,8 @@
           "manual_rationale": [
             "Each rewritten page diff reviewed to confirm loaders/actions/RPC calls are byte-for-byte unchanged."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         }
       ]
     },
@@ -3677,7 +3736,8 @@
           "related_tests": ["tests/micro-specs/wet-ink-motion.test.ts"],
           "implementation_surfaces": ["components/motion/**"],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-FOUNDATION-WET-INK-MOTION-SYSTEM-002",
@@ -3700,7 +3760,8 @@
             "components/loyalty/**"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-FOUNDATION-WET-INK-MOTION-SYSTEM-003",
@@ -3717,7 +3778,8 @@
             "components/brand/**"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-FOUNDATION-WET-INK-MOTION-SYSTEM-004",
@@ -3731,7 +3793,8 @@
           "related_tests": ["tests/micro-specs/wet-ink-motion.test.ts"],
           "implementation_surfaces": ["components/motion/**"],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-FOUNDATION-WET-INK-MOTION-SYSTEM-005",
@@ -3750,7 +3813,8 @@
             "components/marketing/**"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-FOUNDATION-WET-INK-MOTION-SYSTEM-006",
@@ -3764,7 +3828,8 @@
           "related_tests": ["tests/micro-specs/wet-ink-motion.test.ts"],
           "implementation_surfaces": ["lib/motion/**", "app/globals.css"],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         }
       ]
     },
@@ -3866,7 +3931,8 @@
             "tests/micro-specs/foundation.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-AUTH-ONBOARDING-BUSINESS-PROFILE-002",
@@ -3915,7 +3981,8 @@
             "tests/micro-specs/foundation.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-AUTH-ONBOARDING-BUSINESS-PROFILE-003",
@@ -3964,7 +4031,8 @@
             "tests/micro-specs/foundation.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-AUTH-ONBOARDING-BUSINESS-PROFILE-004",
@@ -4013,7 +4081,8 @@
             "tests/micro-specs/foundation.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-AUTH-ONBOARDING-BUSINESS-PROFILE-005",
@@ -4062,7 +4131,8 @@
             "tests/micro-specs/foundation.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-AUTH-ONBOARDING-BUSINESS-PROFILE-006",
@@ -4111,7 +4181,8 @@
             "tests/micro-specs/foundation.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-AUTH-ONBOARDING-BUSINESS-PROFILE-007",
@@ -4160,7 +4231,8 @@
             "tests/micro-specs/foundation.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         }
       ],
       "change_state": "current",
@@ -4270,7 +4342,8 @@
             "tests/micro-specs/self-service-stamping.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS-002",
@@ -4321,7 +4394,8 @@
             "tests/micro-specs/self-service-stamping.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS-003",
@@ -4372,7 +4446,8 @@
             "tests/micro-specs/self-service-stamping.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS-004",
@@ -4423,7 +4498,8 @@
             "tests/micro-specs/self-service-stamping.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS-005",
@@ -4474,7 +4550,8 @@
             "tests/micro-specs/self-service-stamping.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS-006",
@@ -4525,7 +4602,8 @@
             "tests/micro-specs/self-service-stamping.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS-007",
@@ -4576,7 +4654,8 @@
             "tests/micro-specs/self-service-stamping.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         }
       ],
       "change_state": "current",
@@ -4686,7 +4765,8 @@
             "tests/micro-specs/analytics-dashboard-pilot.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-LOYALTY-CARD-BUILDER-002",
@@ -4737,7 +4817,8 @@
             "tests/micro-specs/analytics-dashboard-pilot.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-LOYALTY-CARD-BUILDER-003",
@@ -4788,7 +4869,8 @@
             "tests/micro-specs/analytics-dashboard-pilot.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-LOYALTY-CARD-BUILDER-004",
@@ -4839,7 +4921,8 @@
             "tests/micro-specs/analytics-dashboard-pilot.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-LOYALTY-CARD-BUILDER-005",
@@ -4890,7 +4973,8 @@
             "tests/micro-specs/analytics-dashboard-pilot.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-LOYALTY-CARD-BUILDER-006",
@@ -4941,7 +5025,8 @@
             "tests/micro-specs/analytics-dashboard-pilot.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-LOYALTY-CARD-BUILDER-007",
@@ -4992,7 +5077,8 @@
             "tests/micro-specs/analytics-dashboard-pilot.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-LOYALTY-CARD-BUILDER-008",
@@ -5043,7 +5129,8 @@
             "tests/micro-specs/analytics-dashboard-pilot.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         }
       ],
       "change_state": "current",
@@ -5134,7 +5221,8 @@
             "tests/micro-specs/merchant-console-trust-ia.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-002",
@@ -5173,7 +5261,8 @@
             "tests/micro-specs/merchant-console-trust-ia.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-003",
@@ -5212,7 +5301,8 @@
             "tests/micro-specs/merchant-console-trust-ia.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-004",
@@ -5251,7 +5341,8 @@
             "tests/micro-specs/merchant-console-trust-ia.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-005",
@@ -5290,7 +5381,8 @@
             "tests/micro-specs/merchant-console-trust-ia.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-006",
@@ -5329,7 +5421,8 @@
             "tests/micro-specs/merchant-console-trust-ia.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-007",
@@ -5368,7 +5461,8 @@
             "tests/micro-specs/merchant-console-trust-ia.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-008",
@@ -5407,7 +5501,8 @@
             "tests/micro-specs/merchant-console-trust-ia.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-009",
@@ -5446,7 +5541,8 @@
             "tests/micro-specs/merchant-console-trust-ia.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-010",
@@ -5485,7 +5581,8 @@
             "tests/micro-specs/merchant-console-trust-ia.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         }
       ],
       "change_state": "current",
@@ -5591,7 +5688,8 @@
             "tests/micro-specs/merchant-launch-readiness.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-VALUE-DASHBOARD-ACTIVITY-ROI-002",
@@ -5639,7 +5737,8 @@
             "tests/micro-specs/merchant-launch-readiness.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-VALUE-DASHBOARD-ACTIVITY-ROI-003",
@@ -5687,7 +5786,8 @@
             "tests/micro-specs/merchant-launch-readiness.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-VALUE-DASHBOARD-ACTIVITY-ROI-004",
@@ -5735,7 +5835,8 @@
             "tests/micro-specs/merchant-launch-readiness.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-VALUE-DASHBOARD-ACTIVITY-ROI-005",
@@ -5783,7 +5884,8 @@
             "tests/micro-specs/merchant-launch-readiness.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MERCHANT-VALUE-DASHBOARD-ACTIVITY-ROI-006",
@@ -5831,7 +5933,8 @@
             "tests/micro-specs/merchant-launch-readiness.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         }
       ],
       "change_state": "current",
@@ -5927,7 +6030,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MVP-SCOPE-RELEASE-GATES-002",
@@ -5969,7 +6073,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MVP-SCOPE-RELEASE-GATES-003",
@@ -6011,7 +6116,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MVP-SCOPE-RELEASE-GATES-004",
@@ -6053,7 +6159,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MVP-SCOPE-RELEASE-GATES-005",
@@ -6095,7 +6202,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MVP-SCOPE-RELEASE-GATES-006",
@@ -6137,7 +6245,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-MVP-SCOPE-RELEASE-GATES-007",
@@ -6179,7 +6288,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         }
       ],
       "change_state": "current",
@@ -6295,7 +6405,8 @@
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-CONSENT-LEGAL-DATA-REQUESTS-002",
@@ -6347,7 +6458,8 @@
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-CONSENT-LEGAL-DATA-REQUESTS-003",
@@ -6399,7 +6511,8 @@
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-CONSENT-LEGAL-DATA-REQUESTS-004",
@@ -6451,7 +6564,8 @@
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-CONSENT-LEGAL-DATA-REQUESTS-005",
@@ -6503,7 +6617,8 @@
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-CONSENT-LEGAL-DATA-REQUESTS-006",
@@ -6555,7 +6670,8 @@
             "tests/micro-specs/admin-console-redesign.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         }
       ],
       "change_state": "current",
@@ -6691,7 +6807,8 @@
             "tests/micro-specs/customer-phone-pii.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-CUSTOMER-CONTACT-IMMUTABILITY-002",
@@ -6752,7 +6869,8 @@
             "supabase/tests/customer_contact_immutability.sql"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-CUSTOMER-CONTACT-IMMUTABILITY-003",
@@ -6813,7 +6931,8 @@
             "supabase/tests/customer_contact_immutability.sql"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-CUSTOMER-CONTACT-IMMUTABILITY-004",
@@ -6874,7 +6993,8 @@
             "supabase/tests/customer_contact_immutability.sql"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-CUSTOMER-CONTACT-IMMUTABILITY-005",
@@ -6935,7 +7055,8 @@
             "supabase/tests/customer_contact_immutability.sql"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         }
       ],
       "change_state": "current",
@@ -7038,7 +7159,8 @@
             "tests/micro-specs/perf-rpc-consolidation.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-EVENTS-ANALYTICS-FUNNELS-002",
@@ -7084,7 +7206,8 @@
             "tests/micro-specs/perf-rpc-consolidation.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-EVENTS-ANALYTICS-FUNNELS-003",
@@ -7130,7 +7253,8 @@
             "tests/micro-specs/perf-rpc-consolidation.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-EVENTS-ANALYTICS-FUNNELS-004",
@@ -7176,7 +7300,8 @@
             "tests/micro-specs/perf-rpc-consolidation.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-EVENTS-ANALYTICS-FUNNELS-005",
@@ -7222,7 +7347,8 @@
             "tests/micro-specs/perf-rpc-consolidation.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         }
       ],
       "change_state": "current",
@@ -7351,7 +7477,22 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "ABU-MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-001-a",
+              "category": "abuse",
+              "trigger": "self-service stamp attempts repeat too quickly for one membership",
+              "expected": "further attempts are rate-limited and surfaced as calm retry copy, not an error",
+              "required_layer": ["unit"],
+              "evidence": [
+                "tests/micro-specs/rate-limit.test.ts",
+                "tests/micro-specs/self-service-stamping.test.ts"
+              ],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
         },
         {
           "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-002",
@@ -7416,7 +7557,22 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "PII-MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-002-a",
+              "category": "pii",
+              "trigger": "a QR scan or customer-identity request is rate-limited",
+              "expected": "the bucket key is a SHA-256 digest in durable server-side storage; the raw identity is never persisted",
+              "required_layer": ["unit"],
+              "evidence": [
+                "tests/micro-specs/rate-limit.test.ts",
+                "tests/micro-specs/customer-phone-pii.test.ts"
+              ],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
         },
         {
           "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-003",
@@ -7477,7 +7633,22 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "IDM-MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-003-a",
+              "category": "idempotency",
+              "trigger": "a customer requests multiple stamps inside the cooldown / same UK day",
+              "expected": "the duplicate is rejected safely without double-counting",
+              "required_layer": ["unit", "sql-rls"],
+              "evidence": [
+                "tests/micro-specs/self-service-stamping.test.ts",
+                "supabase/tests/reward_redemption_cycles.sql"
+              ],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
         },
         {
           "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-004",
@@ -7538,7 +7709,19 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "ABU-MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-004-a",
+              "category": "abuse",
+              "trigger": "stamp volume is unusually high for a merchant within the window",
+              "expected": "a high-velocity fraud_flag is created for admin review (non-blocking)",
+              "required_layer": ["sql-rls"],
+              "evidence": [],
+              "status": "gap",
+              "gap_reason": "high-volume/velocity fraud-flag path (RPC threshold) is not yet covered by a unit or SQL test; only the geofence fraud-flag is tested. Follow-up: add a SQL test for the velocity threshold."
+            }
+          ]
         },
         {
           "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-005",
@@ -7599,7 +7782,22 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "CNC-MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-005-a",
+              "category": "concurrency",
+              "trigger": "reward redemption is attempted concurrently for one reward",
+              "expected": "at most one redemption succeeds; the rest are rejected",
+              "required_layer": ["sql-rls"],
+              "evidence": [
+                "supabase/tests/reward_redemption_cycles.sql",
+                "supabase/tests/tenant_isolation.sql"
+              ],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
         },
         {
           "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-006",
@@ -7660,7 +7858,19 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "STM-MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-006-a",
+              "category": "state-machine",
+              "trigger": "a QR code is disabled",
+              "expected": "future scan-to-join is blocked while historical scan data is kept",
+              "required_layer": ["unit"],
+              "evidence": ["tests/micro-specs/customer.test.ts"],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
         },
         {
           "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-007",
@@ -7721,7 +7931,19 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "AUTH-MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-007-a",
+              "category": "auth",
+              "trigger": "an admin route or action is reached without an AAL2 session",
+              "expected": "access is denied until MFA/AAL2 is satisfied",
+              "required_layer": ["unit", "security"],
+              "evidence": ["tests/micro-specs/admin-console-redesign.test.ts"],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
         },
         {
           "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-008",
@@ -7782,7 +8004,19 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "AUTH-MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-008-a",
+              "category": "auth",
+              "trigger": "an unauthorised role attempts a privileged action",
+              "expected": "it is denied by RLS and a security-relevant audit event is recorded where appropriate",
+              "required_layer": ["sql-rls"],
+              "evidence": ["supabase/tests/tenant_isolation.sql"],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
         },
         {
           "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-009",
@@ -7843,7 +8077,19 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "AUTH-MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-009-a",
+              "category": "auth",
+              "trigger": "a Stripe webhook arrives with an invalid signature",
+              "expected": "the event is rejected before any side effect and billing state is left unchanged",
+              "required_layer": ["unit", "security"],
+              "evidence": ["tests/micro-specs/backend-hardening.test.ts"],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
         }
       ],
       "change_state": "current",
@@ -7951,7 +8197,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-PILOT-READINESS-VALIDATION-002",
@@ -8001,7 +8248,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-PILOT-READINESS-VALIDATION-003",
@@ -8051,7 +8299,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-PILOT-READINESS-VALIDATION-004",
@@ -8101,7 +8350,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-PILOT-READINESS-VALIDATION-005",
@@ -8151,7 +8401,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-PILOT-READINESS-VALIDATION-006",
@@ -8201,7 +8452,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-PILOT-READINESS-VALIDATION-007",
@@ -8251,7 +8503,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-PILOT-READINESS-VALIDATION-008",
@@ -8301,7 +8554,8 @@
           "manual_rationale": [
             "Approved manual-check rationale: staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)."
           ],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         }
       ],
       "change_state": "current",
@@ -8417,7 +8671,8 @@
             "supabase/tests/profile_completion_gate.sql"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-STAFF-REWARDS-REWARD-UNLOCK-REDEMPTION-002",
@@ -8471,7 +8726,8 @@
             "supabase/tests/profile_completion_gate.sql"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-STAFF-REWARDS-REWARD-UNLOCK-REDEMPTION-003",
@@ -8527,7 +8783,8 @@
             "tests/micro-specs/reward-scan-token.test.ts"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-STAFF-REWARDS-REWARD-UNLOCK-REDEMPTION-004",
@@ -8581,7 +8838,8 @@
             "supabase/tests/profile_completion_gate.sql"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-STAFF-REWARDS-REWARD-UNLOCK-REDEMPTION-005",
@@ -8635,7 +8893,8 @@
             "supabase/tests/profile_completion_gate.sql"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-STAFF-REWARDS-REWARD-UNLOCK-REDEMPTION-006",
@@ -8689,7 +8948,8 @@
             "supabase/tests/profile_completion_gate.sql"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-STAFF-REWARDS-REWARD-UNLOCK-REDEMPTION-007",
@@ -8743,7 +9003,8 @@
             "supabase/tests/profile_completion_gate.sql"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-STAFF-REWARDS-REWARD-UNLOCK-REDEMPTION-008",
@@ -8797,7 +9058,8 @@
             "supabase/tests/profile_completion_gate.sql"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         }
       ],
       "change_state": "current",
@@ -8911,7 +9173,8 @@
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-002",
@@ -8963,7 +9226,8 @@
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-003",
@@ -9015,7 +9279,8 @@
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-004",
@@ -9067,7 +9332,8 @@
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-005",
@@ -9119,7 +9385,8 @@
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-006",
@@ -9171,7 +9438,8 @@
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-007",
@@ -9223,7 +9491,8 @@
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-008",
@@ -9275,7 +9544,8 @@
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         },
         {
           "requirement_id": "MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-009",
@@ -9327,7 +9597,8 @@
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "manual_rationale": [],
-          "change_state": "current"
+          "change_state": "current",
+          "edge_cases": []
         }
       ],
       "change_state": "current",
