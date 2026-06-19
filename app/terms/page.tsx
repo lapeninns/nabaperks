@@ -57,9 +57,7 @@ export default function TermsPage() {
           </ReceiptCard>
 
           <Alert className="border-destructive/30 bg-destructive/10">
-            <AlertTitle className="text-destructive">
-              Review required
-            </AlertTitle>
+            <AlertTitle className="text-foreground">Review required</AlertTitle>
             <AlertDescription>
               These terms are not final legal wording. UK GDPR, PECR,
               promotional marketing, and consumer protection obligations need

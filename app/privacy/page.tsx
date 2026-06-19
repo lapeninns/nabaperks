@@ -52,9 +52,7 @@ export default function PrivacyPage() {
           </ReceiptCard>
 
           <Alert className="border-destructive/30 bg-destructive/10">
-            <AlertTitle className="text-destructive">
-              Review required
-            </AlertTitle>
+            <AlertTitle className="text-foreground">Review required</AlertTitle>
             <AlertDescription>
               This page is not final legal wording. UK GDPR, PECR, promotional
               marketing, and consumer protection terms must be reviewed before

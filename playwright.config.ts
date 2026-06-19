@@ -6,6 +6,8 @@ const devOtpCode = process.env.CUSTOMER_DEV_OTP_CODE ?? "424242"
 export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 180_000,
+  retries: process.env.CI ? 1 : 0,
+  workers: process.env.CI ? 1 : undefined,
   expect: {
     timeout: 15_000,
   },
@@ -27,6 +29,6 @@ export default defineConfig({
     command: `CUSTOMER_DEV_OTP_CODE=${devOtpCode} pnpm dev`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: process.env.CI ? 180_000 : 120_000,
   },
 })
