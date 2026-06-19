@@ -320,7 +320,7 @@ async function readLatestScanToken(rewardId: string): Promise<string> {
 
   const sql = postgres(dbUrl, {
     max: 1,
-    ssl: dbUrl.includes("supabase.com") ? "require" : undefined,
+    ssl: isSupabaseHost(dbUrl) ? "require" : undefined,
   })
 
   try {
@@ -339,6 +339,15 @@ async function readLatestScanToken(rewardId: string): Promise<string> {
     return id
   } finally {
     await sql.end({ timeout: 5 })
+  }
+}
+
+function isSupabaseHost(dbUrl: string): boolean {
+  try {
+    const hostname = new URL(dbUrl).hostname.toLowerCase()
+    return hostname === "supabase.com" || hostname.endsWith(".supabase.com")
+  } catch {
+    return false
   }
 }
 
