@@ -652,6 +652,142 @@ describe("AI governance foundation", () => {
       ])
     )
   })
+
+  it("requires explicit edge-case closure for the full micro-spec corpus", async () => {
+    const { validateGovernance } =
+      await import("../../scripts/check-governance.mjs")
+    const fixture = makeGovernanceFixture({
+      traceabilityJson: {
+        version: 1,
+        scope: "full-micro-spec-corpus",
+        specs: [
+          {
+            spec_id: "GOV-EDGE-CLOSURE",
+            title: "Edge closure fixture",
+            status: "draft",
+            risk_class: "docs-tooling",
+            owner: "factory-droid",
+            last_reviewed: "2026-06-15",
+            allowed_blast_radius: ["tests/micro-specs/**"],
+            implementation_surfaces: ["tests/micro-specs/**"],
+            related_docs: ["micro-specs/README.md"],
+            related_tests: ["tests/micro-specs/ai-governance.test.ts"],
+            verification_gates: [
+              "pnpm governance",
+              "pnpm lint",
+              "pnpm typecheck",
+              "pnpm test",
+            ],
+            approved_exceptions: [],
+            change_state: "current",
+            requirements: [
+              {
+                requirement_id: "GOV-EDGE-CLOSURE-001",
+                summary: "Full-corpus requirements must close edge cases.",
+                status: "draft",
+                risk_class: "docs-tooling",
+                required_test_tier: ["governance", "unit"],
+                gates: ["pnpm governance", "pnpm test"],
+                verification_commands: ["pnpm governance", "pnpm test"],
+                evidence: ["tests/micro-specs/ai-governance.test.ts"],
+                related_tests: ["tests/micro-specs/ai-governance.test.ts"],
+                implementation_surfaces: ["tests/micro-specs/**"],
+                manual_rationale: [],
+                change_state: "current",
+              },
+            ],
+          },
+        ],
+      },
+      traceabilityMarkdown:
+        "# Traceability\n\n## GOV-EDGE-CLOSURE\n\nStatus draft\nRisk docs-tooling\nChange current\ntests/micro-specs/ai-governance.test.ts\npnpm governance\npnpm lint\npnpm typecheck\npnpm test\ntests/micro-specs/**\nGOV-EDGE-CLOSURE-001\ngovernance\nunit\n",
+    })
+
+    expect(validateGovernance({ rootDir: fixture }).diagnostics).toEqual(
+      expect.arrayContaining([
+        {
+          path: "micro-specs/traceability.json",
+          id: "GOV-EDGE-CLOSURE-001",
+          message:
+            "edge_cases must be present as an explicit closed-set array.",
+        },
+      ])
+    )
+  })
+
+  it("requires covered edge cases for the full micro-spec corpus", async () => {
+    const { validateGovernance } =
+      await import("../../scripts/check-governance.mjs")
+    const fixture = makeGovernanceFixture({
+      traceabilityJson: {
+        version: 1,
+        scope: "full-micro-spec-corpus",
+        specs: [
+          {
+            spec_id: "GOV-EDGE-ZERO-GAP",
+            title: "Edge zero-gap fixture",
+            status: "draft",
+            risk_class: "docs-tooling",
+            owner: "factory-droid",
+            last_reviewed: "2026-06-15",
+            allowed_blast_radius: ["tests/micro-specs/**"],
+            implementation_surfaces: ["tests/micro-specs/**"],
+            related_docs: ["micro-specs/README.md"],
+            related_tests: ["tests/micro-specs/ai-governance.test.ts"],
+            verification_gates: [
+              "pnpm governance",
+              "pnpm lint",
+              "pnpm typecheck",
+              "pnpm test",
+            ],
+            approved_exceptions: [],
+            change_state: "current",
+            requirements: [
+              {
+                requirement_id: "GOV-EDGE-ZERO-GAP-001",
+                summary: "Full-corpus edge cases must be covered.",
+                status: "draft",
+                risk_class: "docs-tooling",
+                required_test_tier: ["governance", "unit"],
+                gates: ["pnpm governance", "pnpm test"],
+                verification_commands: ["pnpm governance", "pnpm test"],
+                evidence: ["tests/micro-specs/ai-governance.test.ts"],
+                related_tests: ["tests/micro-specs/ai-governance.test.ts"],
+                implementation_surfaces: ["tests/micro-specs/**"],
+                manual_rationale: [],
+                change_state: "current",
+                edge_cases: [
+                  {
+                    id: "INP-GOV-EDGE-ZERO-GAP-001-a",
+                    category: "input",
+                    trigger: "a full-corpus edge case is registered",
+                    expected: "the edge case is covered by evidence",
+                    required_layer: ["unit"],
+                    evidence: [],
+                    status: "accepted-risk",
+                    gap_reason: "Accepted risk should not satisfy zero-gap.",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      traceabilityMarkdown:
+        "# Traceability\n\n## GOV-EDGE-ZERO-GAP\n\nStatus draft\nRisk docs-tooling\nChange current\ntests/micro-specs/ai-governance.test.ts\npnpm governance\npnpm lint\npnpm typecheck\npnpm test\ntests/micro-specs/**\nGOV-EDGE-ZERO-GAP-001\nINP-GOV-EDGE-ZERO-GAP-001-a\ngovernance\nunit\n",
+    })
+
+    expect(validateGovernance({ rootDir: fixture }).diagnostics).toEqual(
+      expect.arrayContaining([
+        {
+          path: "micro-specs/traceability.json",
+          id: "INP-GOV-EDGE-ZERO-GAP-001-a",
+          message:
+            "full-corpus edge_case must be covered; found accepted-risk.",
+        },
+      ])
+    )
+  })
 })
 
 function makeGovernanceFixture(

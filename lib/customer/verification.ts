@@ -9,7 +9,7 @@ const anyFourDigitBypassMode = "any-4-digits"
 export async function startCustomerPhoneVerification(
   phone: string
 ): Promise<VerificationStartResult> {
-  if (isAnyFourDigitOtpBypassEnabled()) {
+  if (isAnyFourDigitOtpBypassEnabled() || isDevOtpConfigured()) {
     return { status: "sent" }
   }
 
@@ -31,8 +31,10 @@ export async function checkCustomerPhoneVerification(
       : { status: "rejected" }
   }
 
-  if (isApprovedDevOtp(code)) {
-    return { status: "approved" }
+  if (isDevOtpConfigured()) {
+    return isApprovedDevOtp(code)
+      ? { status: "approved" }
+      : { status: "rejected" }
   }
 
   const payload = await postVerifyForm("VerificationCheck", {
@@ -119,12 +121,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isApprovedDevOtp(code: string): boolean {
-  const devCode = process.env.CUSTOMER_DEV_OTP_CODE?.trim()
+  return (
+    isDevOtpConfigured() && code === process.env.CUSTOMER_DEV_OTP_CODE?.trim()
+  )
+}
 
+/**
+ * The dev OTP shortcut is active outside production whenever a code is set. When
+ * it is, both send and check skip Twilio so the seeded customer-flow capture is
+ * deterministic and never dispatches a real SMS to the demo phone number.
+ */
+function isDevOtpConfigured(): boolean {
   return (
     process.env.NODE_ENV !== "production" &&
-    Boolean(devCode) &&
-    code === devCode
+    Boolean(process.env.CUSTOMER_DEV_OTP_CODE?.trim())
   )
 }
 

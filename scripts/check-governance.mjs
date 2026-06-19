@@ -821,6 +821,8 @@ function checkTraceability(root, diagnostics, microSpecs = []) {
   const specIds = new Set()
   const requirementIds = new Set()
   const edgeCaseIds = new Set()
+  const requiresClosedEdgeCases =
+    traceability.scope === "full-micro-spec-corpus"
   const orderedSpecIds = traceability.specs
     .map((spec) => stringField(spec, "spec_id"))
     .filter(Boolean)
@@ -941,6 +943,7 @@ function checkTraceability(root, diagnostics, microSpecs = []) {
         requirement,
         requirementKey,
         edgeCaseIds,
+        requiresClosedEdgeCases,
         diagnostics
       )
       const evidence = Array.isArray(requirement.evidence)
@@ -1151,20 +1154,30 @@ function checkRequirementTraceabilityFields(
   }
 }
 
-// Validates the per-requirement edge_cases[] register. edge_cases is optional
-// during rollout (a requirement without the field is accepted); once present it
-// must be a well-formed array. The closed-set "zero gap" target is enforced by
-// reporting any non-covered edge, not by requiring the field everywhere yet.
+// Validates the per-requirement edge_cases[] register. Fixture scopes may omit
+// edge_cases, but the full corpus must make the closed edge-case set explicit.
+// Once present it must be a well-formed array. The zero-gap target is enforced
+// by reporting any non-covered edge.
 function checkRequirementEdgeCases(
   root,
   path,
   requirement,
   requirementKey,
   edgeCaseIds,
+  requiresClosedEdgeCases,
   diagnostics
 ) {
   const edges = requirement.edge_cases
-  if (edges === undefined) return
+  if (edges === undefined) {
+    if (requiresClosedEdgeCases) {
+      diagnostics.push({
+        path,
+        id: requirementKey,
+        message: "edge_cases must be present as an explicit closed-set array.",
+      })
+    }
+    return
+  }
   if (!Array.isArray(edges)) {
     diagnostics.push({
       path,
@@ -1236,6 +1249,12 @@ function checkRequirementEdgeCases(
         path,
         id: edgeKey,
         message: `invalid edge_case status ${String(edge?.status)}.`,
+      })
+    } else if (requiresClosedEdgeCases && status !== "covered") {
+      diagnostics.push({
+        path,
+        id: edgeKey,
+        message: `full-corpus edge_case must be covered; found ${status}.`,
       })
     }
 

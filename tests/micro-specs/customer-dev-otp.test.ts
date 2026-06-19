@@ -16,13 +16,38 @@ describe("customer dev OTP bypass", () => {
     process.env.CUSTOMER_DEV_OTP_CODE = "424242"
     const fetchMock = vi.fn<typeof fetch>()
     vi.stubGlobal("fetch", fetchMock)
-    const { checkCustomerPhoneVerification } = await import(
-      "@/lib/customer/verification"
-    )
+    const { checkCustomerPhoneVerification } =
+      await import("@/lib/customer/verification")
 
     await expect(
       checkCustomerPhoneVerification("+447467586751", "424242")
     ).resolves.toEqual({ status: "approved" })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("rejects the wrong dev code without calling Twilio outside production", async () => {
+    process.env.CUSTOMER_DEV_OTP_CODE = "424242"
+    const fetchMock = vi.fn<typeof fetch>()
+    vi.stubGlobal("fetch", fetchMock)
+    const { checkCustomerPhoneVerification } =
+      await import("@/lib/customer/verification")
+
+    await expect(
+      checkCustomerPhoneVerification("+447467586751", "111111")
+    ).resolves.toEqual({ status: "rejected" })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("sends without calling Twilio when the dev code is configured outside production", async () => {
+    process.env.CUSTOMER_DEV_OTP_CODE = "424242"
+    const fetchMock = vi.fn<typeof fetch>()
+    vi.stubGlobal("fetch", fetchMock)
+    const { startCustomerPhoneVerification } =
+      await import("@/lib/customer/verification")
+
+    await expect(
+      startCustomerPhoneVerification("+447467586751")
+    ).resolves.toEqual({ status: "sent" })
     expect(fetchMock).not.toHaveBeenCalled()
   })
 })
