@@ -1,7 +1,6 @@
-import AxeBuilder from "@axe-core/playwright"
-import { expect, test, type Page } from "@playwright/test"
+import { expect, test } from "@playwright/test"
 
-const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]
+import { expectNoAxeViolations } from "./helpers/axe"
 
 const surfaces = [
   { name: "home", path: "/", expected: "Nabaperks" },
@@ -44,22 +43,6 @@ const surfaces = [
   { name: "not found", path: "/missing-route", expected: "Page not found" },
 ] as const
 
-async function expectNoViolations(page: Page, label: string): Promise<void> {
-  await hideDevelopmentOverlay(page)
-  await page.waitForTimeout(500)
-
-  const { violations } = await new AxeBuilder({ page })
-    .exclude("nextjs-portal")
-    .exclude("[data-nextjs-dev-overlay='true']")
-    .withTags(WCAG_TAGS)
-    .analyze()
-
-  expect(
-    violations,
-    `${label} a11y violations:\n${violations.map(formatViolation).join("\n\n")}`
-  ).toEqual([])
-}
-
 test.describe("accessibility (WCAG 2 A/AA)", () => {
   for (const surface of surfaces) {
     test(`${surface.name} has no automated violations`, async ({ page }) => {
@@ -76,58 +59,7 @@ test.describe("accessibility (WCAG 2 A/AA)", () => {
         await expect(page.getByText(surface.expected).first()).toBeVisible()
       }
 
-      await expectNoViolations(page, surface.name)
+      await expectNoAxeViolations(page, surface.name)
     })
   }
 })
-
-async function hideDevelopmentOverlay(page: Page): Promise<void> {
-  await page.addStyleTag({
-    content: `
-      nextjs-portal,
-      [data-nextjs-dev-overlay="true"] {
-        display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
-        pointer-events: none !important;
-      }
-    `,
-  })
-
-  await page.evaluate(() => {
-    const selectors = "nextjs-portal, [data-nextjs-dev-overlay='true']"
-
-    for (const element of document.querySelectorAll(selectors)) {
-      element.setAttribute("aria-hidden", "true")
-
-      if (element instanceof HTMLElement) {
-        element.style.display = "none"
-        element.style.visibility = "hidden"
-      }
-    }
-  })
-}
-
-function formatViolation(violation: {
-  id: string
-  impact?: unknown
-  help: string
-  nodes: { target: unknown; failureSummary?: string }[]
-}): string {
-  const targets = violation.nodes
-    .slice(0, 3)
-    .map((node) => `${formatTarget(node.target)}: ${node.failureSummary ?? ""}`)
-    .join("\n")
-
-  return `${violation.id} [${violation.impact ?? "unknown"}] ${violation.help}\n${targets}`
-}
-
-function formatTarget(target: unknown): string {
-  if (Array.isArray(target)) {
-    return target
-      .map((part) => (typeof part === "string" ? part : JSON.stringify(part)))
-      .join(", ")
-  }
-
-  return typeof target === "string" ? target : JSON.stringify(target)
-}

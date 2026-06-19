@@ -210,6 +210,7 @@ export function PreviewProfileGate() {
         <Eyebrow>Full name</Eyebrow>
         <input
           className={previewInputClass}
+          aria-label="Full name"
           defaultValue="Sam Taylor"
           readOnly
         />
@@ -218,6 +219,7 @@ export function PreviewProfileGate() {
         <Eyebrow>Date of birth</Eyebrow>
         <input
           className={previewInputClass}
+          aria-label="Date of birth"
           defaultValue="1990-01-01"
           readOnly
         />
@@ -226,6 +228,7 @@ export function PreviewProfileGate() {
         <Eyebrow>Email (optional)</Eyebrow>
         <input
           className={previewInputClass}
+          aria-label="Email (optional)"
           placeholder="you@example.com"
           readOnly
         />
@@ -340,18 +343,25 @@ export function PreviewProfileAboutYouEdit() {
           <label className="eyebrow">Full name</label>
           <input
             className={previewInputClass}
+            aria-label="Full name"
             placeholder="Sam Taylor"
             readOnly
           />
         </div>
         <div className="grid gap-2">
           <label className="eyebrow">Date of birth</label>
-          <input className={previewInputClass} type="date" readOnly />
+          <input
+            className={previewInputClass}
+            aria-label="Date of birth"
+            type="date"
+            readOnly
+          />
         </div>
         <div className="grid gap-2">
           <label className="eyebrow">Email (optional)</label>
           <input
             className={previewInputClass}
+            aria-label="Email (optional)"
             placeholder="you@example.com"
             readOnly
           />
@@ -386,6 +396,7 @@ export function PreviewProfileEmailVerify() {
             <label className="eyebrow">Email code</label>
             <input
               className={`${previewInputClass} font-mono`}
+              aria-label="Email code"
               inputMode="numeric"
               defaultValue="424242"
               readOnly
