@@ -95,7 +95,10 @@ describe("venue save action — structured address entry", () => {
     })
     mockMerchantAndCache()
     vi.doMock("@/lib/merchant/geocode", () => ({
-      geocodeAddress: vi.fn(async () => ({ latitude: 51.52, longitude: -0.07 })),
+      geocodeAddress: vi.fn(async () => ({
+        latitude: 51.52,
+        longitude: -0.07,
+      })),
     }))
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServerClient: vi.fn(async () => mock.client),
@@ -106,7 +109,7 @@ describe("venue save action — structured address entry", () => {
       saveVenueLocationAction(
         {},
         form({
-          venueName: "Bean & Batch",
+          venueName: "Old Crown Girton",
           ...sampleAddress,
           geofenceRadiusMeters: "150",
         })
@@ -146,7 +149,7 @@ describe("venue save action — structured address entry", () => {
       saveVenueLocationAction(
         {},
         form({
-          venueName: "Bean & Batch",
+          venueName: "Old Crown Girton",
           addressLine1: "",
           addressLine2: "",
           addressCity: "",
@@ -178,7 +181,7 @@ describe("venue save action — structured address entry", () => {
       saveVenueLocationAction(
         {},
         form({
-          venueName: "Bean & Batch",
+          venueName: "Old Crown Girton",
           ...sampleAddress,
           geofenceRadiusMeters: "150",
         })
@@ -197,7 +200,11 @@ describe("venue location form — structured address fields", () => {
       "components/merchant/venue-address-fields.tsx"
     )
 
-    for (const fieldName of ["venueName", "requireGeofence", "geofenceRadiusMeters"]) {
+    for (const fieldName of [
+      "venueName",
+      "requireGeofence",
+      "geofenceRadiusMeters",
+    ]) {
       expect(venueForm).toContain(`name="${fieldName}"`)
     }
     expect(venueForm).toContain("VenueAddressFields")
@@ -233,7 +240,9 @@ describe("merchant_locations canonical address migration", () => {
       expect(migration).toContain(`add column if not exists ${column}`)
     }
 
-    expect(migration).toContain("address_source in ('provider_lookup', 'manual_entry')")
+    expect(migration).toContain(
+      "address_source in ('provider_lookup', 'manual_entry')"
+    )
     expect(migration).toContain("pg_constraint")
   })
 })

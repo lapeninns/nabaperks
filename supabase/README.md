@@ -20,7 +20,7 @@ checks, and cleanup for retired approval surfaces.
 
 `seed.sql` creates two merchants, demo customers, staff member records, QR
 records, billing records, product events, and an audit log.
-`seed-activity-demo.sql` adds a richer Bean & Batch activity timeline for
+`seed-activity-demo.sql` adds a richer Old Crown Girton activity timeline for
 dashboard and `/app/activity` demos.
 `seed-user-aman.sql` adds the local Aman customer fixture. The fixture IDs are stable so
 `tests/tenant_isolation.sql` can replay tenant-isolation checks.

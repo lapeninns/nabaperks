@@ -44,8 +44,8 @@ describe("customer home dashboard structure", () => {
   describe("revealed reward wallet tile", () => {
     const waitingBase = {
       membershipId: "card-1",
-      businessName: "Bean & Batch",
-      businessSlug: "bean-and-batch",
+      businessName: "Old Crown Girton",
+      businessSlug: "old-crown-girton",
       cardName: "Visits",
       rewardName: "Coffee",
       currentStamps: 3,

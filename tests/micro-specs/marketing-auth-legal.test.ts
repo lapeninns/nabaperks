@@ -41,7 +41,9 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
     const signup = readProjectFile("app/(auth)/signup/page.tsx")
     const terms = readProjectFile("app/terms/page.tsx")
     const privacy = readProjectFile("app/privacy/page.tsx")
-    const marketingLayout = readProjectFile("components/layout/marketing-layout.tsx")
+    const marketingLayout = readProjectFile(
+      "components/layout/marketing-layout.tsx"
+    )
 
     for (const source of [home, pricing, login, signup, terms, privacy]) {
       expect(source).toContain("MarketingLayout")
@@ -117,7 +119,7 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
     expect(authForm).toContain("focus-visible:ring-3")
     expect(login).toContain("next={params.next}")
     expect(login).toContain("Verification link could not be used")
-    expect(signup).toContain("mode=\"sign-up\"")
+    expect(signup).toContain('mode="sign-up"')
     expect(signup).toContain("/auth/confirm")
   })
 
@@ -167,7 +169,9 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
   })
 
   it("keeps mobile marketing navigation contained and legal links touch-safe", () => {
-    const marketingLayout = readProjectFile("components/layout/marketing-layout.tsx")
+    const marketingLayout = readProjectFile(
+      "components/layout/marketing-layout.tsx"
+    )
     const terms = readProjectFile("app/terms/page.tsx")
     const privacy = readProjectFile("app/privacy/page.tsx")
 
@@ -348,9 +352,8 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
     vi.doMock("@/lib/stripe/server", () => ({
       getStripe: vi.fn(),
     }))
-    const { startCheckoutAction: unauthenticatedCheckout } = await import(
-      "@/app/app/billing/actions"
-    )
+    const { startCheckoutAction: unauthenticatedCheckout } =
+      await import("@/app/app/billing/actions")
 
     await expect(unauthenticatedCheckout()).rejects.toThrow(
       "NEXT_REDIRECT:/app/onboarding"
@@ -360,7 +363,9 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
     const authenticatedRedirect = redirectMock()
     const supabase = createSupabaseMock({
       from: {
-        billing_customers: [{ data: { stripe_customer_id: null }, error: null }],
+        billing_customers: [
+          { data: { stripe_customer_id: null }, error: null },
+        ],
       },
     })
     const createCustomer = vi.fn(async () => ({ id: "cus_growth" }))
@@ -373,7 +378,7 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
       getCurrentMerchant: vi.fn(async () => ({
         id: "merchant-1",
         email: "merchant@example.test",
-        business_name: "Bean & Batch",
+        business_name: "Old Crown Girton",
       })),
     }))
     vi.doMock("@/lib/env/server", () => ({
@@ -398,7 +403,7 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
     )
     expect(createCustomer).toHaveBeenCalledWith({
       email: "merchant@example.test",
-      name: "Bean & Batch",
+      name: "Old Crown Girton",
       metadata: { merchant_id: "merchant-1" },
     })
     expect(createSession).toHaveBeenCalledWith(
@@ -435,7 +440,7 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
       getCurrentMerchant: vi.fn(async () => ({
         id: "merchant-1",
         email: "merchant@example.test",
-        business_name: "Bean & Batch",
+        business_name: "Old Crown Girton",
       })),
     }))
     vi.doMock("@/lib/env/server", () => ({
@@ -452,7 +457,9 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
     const { startCheckoutAction } = await import("@/app/app/billing/actions")
     const errorMessage = await captureErrorMessage(startCheckoutAction)
 
-    expect(errorMessage).toBe("Billing action could not be completed. Try again.")
+    expect(errorMessage).toBe(
+      "Billing action could not be completed. Try again."
+    )
     expect(errorMessage).not.toContain(internalSupabaseMessage)
     expect(getStripe).not.toHaveBeenCalled()
   })
@@ -463,7 +470,9 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
       "STRIPE-INTERNAL customer create request id req_secret"
     const supabase = createSupabaseMock({
       from: {
-        billing_customers: [{ data: { stripe_customer_id: null }, error: null }],
+        billing_customers: [
+          { data: { stripe_customer_id: null }, error: null },
+        ],
       },
     })
     const createCustomer = vi.fn(async () => {
@@ -476,7 +485,7 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
       getCurrentMerchant: vi.fn(async () => ({
         id: "merchant-1",
         email: "merchant@example.test",
-        business_name: "Bean & Batch",
+        business_name: "Old Crown Girton",
       })),
     }))
     vi.doMock("@/lib/env/server", () => ({
@@ -498,11 +507,13 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
     const { startCheckoutAction } = await import("@/app/app/billing/actions")
     const errorMessage = await captureErrorMessage(startCheckoutAction)
 
-    expect(errorMessage).toBe("Billing action could not be completed. Try again.")
+    expect(errorMessage).toBe(
+      "Billing action could not be completed. Try again."
+    )
     expect(errorMessage).not.toContain(internalStripeMessage)
     expect(createCustomer).toHaveBeenCalledWith({
       email: "merchant@example.test",
-      name: "Bean & Batch",
+      name: "Old Crown Girton",
       metadata: { merchant_id: "merchant-1" },
     })
     expect(createSession).not.toHaveBeenCalled()
@@ -529,7 +540,7 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
       getCurrentMerchant: vi.fn(async () => ({
         id: "merchant-1",
         email: "merchant@example.test",
-        business_name: "Bean & Batch",
+        business_name: "Old Crown Girton",
       })),
     }))
     vi.doMock("@/lib/env/server", () => ({
@@ -551,7 +562,9 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
     const { startCheckoutAction } = await import("@/app/app/billing/actions")
     const errorMessage = await captureErrorMessage(startCheckoutAction)
 
-    expect(errorMessage).toBe("Billing action could not be completed. Try again.")
+    expect(errorMessage).toBe(
+      "Billing action could not be completed. Try again."
+    )
     expect(errorMessage).not.toContain(internalStripeMessage)
     expect(createCustomer).not.toHaveBeenCalled()
     expect(createSession).toHaveBeenCalledWith(

@@ -101,7 +101,7 @@ describe("merchant-scanned reward collection", () => {
     vi.doMock("@/lib/auth/session", () => ({
       getCurrentMerchant: vi.fn(async () => ({
         id: "merchant-1",
-        business_name: "Bean & Batch",
+        business_name: "Old Crown Girton",
       })),
     }))
     const supabase = createSupabaseMock({
@@ -152,7 +152,7 @@ describe("merchant-scanned reward collection", () => {
     vi.doMock("@/lib/auth/session", () => ({
       getCurrentMerchant: vi.fn(async () => ({
         id: "merchant-1",
-        business_name: "Bean & Batch",
+        business_name: "Old Crown Girton",
       })),
     }))
     const supabase = createSupabaseMock({
@@ -189,7 +189,7 @@ describe("merchant-scanned reward collection", () => {
     vi.doMock("@/lib/auth/session", () => ({
       getCurrentMerchant: vi.fn(async () => ({
         id: "merchant-1",
-        business_name: "Bean & Batch",
+        business_name: "Old Crown Girton",
       })),
     }))
     const supabase = createSupabaseMock({
@@ -227,7 +227,7 @@ describe("merchant-scanned reward collection", () => {
     vi.doMock("@/lib/auth/session", () => ({
       getCurrentMerchant: vi.fn(async () => ({
         id: "merchant-1",
-        business_name: "Bean & Batch",
+        business_name: "Old Crown Girton",
       })),
     }))
     const supabase = createSupabaseMock({
@@ -258,7 +258,7 @@ describe("merchant-scanned reward collection", () => {
     vi.doMock("@/lib/auth/session", () => ({
       getCurrentMerchant: vi.fn(async () => ({
         id: "merchant-1",
-        business_name: "Bean & Batch",
+        business_name: "Old Crown Girton",
       })),
     }))
     const supabase = createSupabaseMock({

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 
 import { Icon } from "./icon"
 
-/** Two-letter venue roundel text from a business name, e.g. "Bean & Batch" → B&.
+/** Two-letter venue roundel text from a business name, e.g. "Old Crown Girton" → OC.
  * Returns "" when no letters can be derived — callers render the stamp icon. */
 export function deriveVenueInitials(name: string) {
   return name
@@ -38,7 +38,10 @@ export function VenueMark({
 
   return (
     <span
-      className={cn("inline-grid place-items-center gap-1 text-center", className)}
+      className={cn(
+        "inline-grid place-items-center gap-1 text-center",
+        className
+      )}
     >
       <span
         aria-hidden="true"

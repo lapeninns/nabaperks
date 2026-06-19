@@ -297,7 +297,7 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
       saveVenueLocationAction(
         {},
         form({
-          venueName: "Bean & Batch",
+          venueName: "Old Crown Girton",
           addressLine1: "1 High Street",
           addressCity: "London",
           addressPostcode: "SW1A 1AA",
@@ -313,7 +313,7 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
       args: [
         expect.objectContaining({
           merchant_id: "merchant-1",
-          name: "Bean & Batch",
+          name: "Old Crown Girton",
           address: "1 High Street, London, SW1A 1AA",
           address_line_1: "1 High Street",
           address_city: "London",

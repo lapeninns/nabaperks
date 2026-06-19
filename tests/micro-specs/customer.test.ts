@@ -262,8 +262,8 @@ describe("03 customer micro-specs", () => {
         available: true,
         merchant: {
           id: "merchant-1",
-          business_name: "Bean & Batch",
-          business_slug: "bean-and-batch",
+          business_name: "Old Crown Girton",
+          business_slug: "old-crown-girton",
           email: "team@example.test",
           phone: null,
         },
@@ -281,7 +281,7 @@ describe("03 customer micro-specs", () => {
       await import("@/app/m/[merchantSlug]/page")
 
     const output = await MerchantRewardsPage({
-      params: Promise.resolve({ merchantSlug: "bean-and-batch" }),
+      params: Promise.resolve({ merchantSlug: "old-crown-girton" }),
     })
     const renderedText = normalizeText(output)
 
@@ -304,8 +304,8 @@ describe("03 customer micro-specs", () => {
         available: true,
         merchant: {
           id: "merchant-1",
-          business_name: "Bean & Batch",
-          business_slug: "bean-and-batch",
+          business_name: "Old Crown Girton",
+          business_slug: "old-crown-girton",
           email: "team@example.test",
           phone: null,
         },
@@ -328,7 +328,7 @@ describe("03 customer micro-specs", () => {
       await import("@/app/m/[merchantSlug]/join/page")
 
     const output = await MerchantJoinPage({
-      params: Promise.resolve({ merchantSlug: "bean-and-batch" }),
+      params: Promise.resolve({ merchantSlug: "old-crown-girton" }),
       searchParams: Promise.resolve({ membership: "existing" }),
     })
     const renderedText = normalizeText(output)
@@ -355,8 +355,8 @@ describe("03 customer micro-specs", () => {
         },
         merchant: {
           id: "merchant-1",
-          business_name: "Bean & Batch",
-          business_slug: "bean-and-batch",
+          business_name: "Old Crown Girton",
+          business_slug: "old-crown-girton",
           status: "active",
         },
         loyaltyCard: {
@@ -418,8 +418,8 @@ describe("03 customer micro-specs", () => {
         },
         membership: { current_stamp_count: 3, total_rewards_redeemed: 0 },
         merchant: {
-          business_name: "Bean & Batch",
-          business_slug: "bean-and-batch",
+          business_name: "Old Crown Girton",
+          business_slug: "old-crown-girton",
           status: "active",
         },
         loyaltyCard: {
@@ -454,8 +454,8 @@ describe("03 customer micro-specs", () => {
         available: true,
         merchant: {
           id: "merchant-1",
-          business_name: "Bean & Batch",
-          business_slug: "bean-and-batch",
+          business_name: "Old Crown Girton",
+          business_slug: "old-crown-girton",
           email: "",
           phone: null,
         },
@@ -473,11 +473,11 @@ describe("03 customer micro-specs", () => {
       await import("@/app/merchant/[merchantSlug]/terms/page")
 
     const output = await MerchantTermsPage({
-      params: Promise.resolve({ merchantSlug: "bean-and-batch" }),
+      params: Promise.resolve({ merchantSlug: "old-crown-girton" }),
     })
     const renderedText = normalizeText(output)
 
-    expect(renderedText).toContain("Bean & Batch loyalty terms")
+    expect(renderedText).toContain("Old Crown Girton loyalty terms")
     expect(renderedText).toContain("Ask the venue team")
     expect(renderedText).toContain("Close")
     expect(renderedText).toContain("Privacy notice")

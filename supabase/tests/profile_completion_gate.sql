@@ -1,7 +1,7 @@
 -- Profile-completion gate on redeem_self_service_reward.
 --
--- Builds a fresh, redeemable reward for a throwaway customer on the seeded Bean &
--- Batch programme, then drives the profile gate through every branch. Runs as the
+-- Builds a fresh, redeemable reward for a throwaway customer on the seeded Old
+-- Crown Girton programme, then drives the profile gate through every branch. Runs as the
 -- migration owner (RLS bypassed) with the service-role JWT claim so the RPC skips
 -- the auth.uid ownership check and decides purely on customer_id + profile state.
 -- The whole thing rolls back, leaving seed data untouched.

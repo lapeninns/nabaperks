@@ -18,7 +18,7 @@ type FlowStatus = {
   } | null
 }
 
-test("captures the Bean & Batch QR to reward customer journey", async ({
+test("captures the Old Crown Girton QR to reward customer journey", async ({
   page,
 }) => {
   runDemo("reset")
@@ -26,7 +26,7 @@ test("captures the Bean & Batch QR to reward customer journey", async ({
     window.localStorage.setItem("nabaperks:pwa-install-dismissed:v2", "1")
   })
 
-  await page.goto("/q/bean-test-qr")
+  await page.goto("/q/old-crown-girton-qr")
   await expect(
     page.getByRole("heading", { name: "Keep your card on your phone" })
   ).toBeVisible()
@@ -49,14 +49,14 @@ test("captures the Bean & Batch QR to reward customer journey", async ({
   await page.locator('input[name="loyaltyTerms"]').check()
   await page.getByRole("button", { name: "Get my first stamp" }).click()
   await page.waitForURL(/\/card\/[^/]+\?.*(stamp=issued|welcome=1)/)
-  await expect(page.getByText("Welcome to Bean & Batch.")).toBeVisible()
+  await expect(page.getByText("Welcome to Old Crown Girton.")).toBeVisible()
   await expect(
     page.getByRole("list", { name: "1 of 3 stamps earned" })
   ).toBeVisible()
   await capture(page, "02-stamp-day-1/01-card-1-of-3.png")
 
   runDemo("advance", "--stamps", "1")
-  await page.goto("/q/bean-test-qr")
+  await page.goto("/q/old-crown-girton-qr")
   await expectStampEntry(page)
   await capture(page, "03-stamp-day-2/01-confirm.png")
   await addStamp(page, { outcome: "stamp-added" })
@@ -66,7 +66,7 @@ test("captures the Bean & Batch QR to reward customer journey", async ({
   await capture(page, "03-stamp-day-2/02-card-2-of-3.png")
 
   runDemo("advance", "--stamps", "2")
-  await page.goto("/q/bean-test-qr")
+  await page.goto("/q/old-crown-girton-qr")
   await expectStampEntry(page)
   await capture(page, "04-stamp-day-3/01-confirm.png")
   await addStamp(page, { outcome: "full-card" })

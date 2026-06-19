@@ -1,6 +1,6 @@
 -- Loyalty cycle boundaries on the self-service stamp + redeem RPCs.
 --
--- Drives a throwaway customer on the seeded Bean & Batch programme from a
+-- Drives a throwaway customer on the seeded Old Crown Girton programme from a
 -- two-stamp card to the final stamp (which unlocks a reward), then redeems it,
 -- asserting that:
 --   * the final stamp and the unlocked reward are tagged with the active cycle,

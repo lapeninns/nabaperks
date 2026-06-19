@@ -58,7 +58,7 @@ export function StatusPanel({
 
   return (
     <CustomerReceipt
-      venueName="Bean & Batch"
+      venueName="Old Crown Girton"
       title="Demo readout"
       eyebrow="Live state"
       footerLeft={`QR ${status.qrId}`}

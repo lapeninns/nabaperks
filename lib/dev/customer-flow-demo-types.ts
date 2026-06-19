@@ -5,8 +5,8 @@ import { CustomerFlowDemoError } from "./customer-flow-demo-error.ts"
 export const CUSTOMER_FLOW_DEMO = {
   phone: "07467586751",
   merchantId: "10000000-0000-0000-0000-000000000001",
-  merchantSlug: "bean-and-batch",
-  qrId: "bean-test-qr",
+  merchantSlug: "old-crown-girton",
+  qrId: "old-crown-girton-qr",
 } as const
 
 export const CUSTOMER_FLOW_COMMANDS = [

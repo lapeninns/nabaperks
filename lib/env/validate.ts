@@ -1,6 +1,6 @@
 export type EnvVisibility = "public" | "server"
 
-export type EnvKind = "string" | "url"
+export type EnvKind = "string" | "url" | "postgres-url"
 
 export type EnvContractEntry = {
   name: string
@@ -100,17 +100,25 @@ function validateEnvVisibility(entry: EnvContractEntry) {
 }
 
 function validateEnvUrl(name: string, kind: EnvKind, value: string) {
-  if (kind !== "url") return []
+  if (kind !== "url" && kind !== "postgres-url") return []
 
   try {
     const url = new URL(value)
+    const allowedProtocols =
+      kind === "postgres-url"
+        ? ["postgres:", "postgresql:"]
+        : ["http:", "https:"]
 
-    return ["http:", "https:"].includes(url.protocol)
+    return allowedProtocols.includes(url.protocol)
       ? []
-      : [`${name} must use http or https`]
+      : [`${name} must use ${describeAllowedProtocols(kind)}`]
   } catch {
     return [`${name} must be a valid URL`]
   }
+}
+
+function describeAllowedProtocols(kind: EnvKind) {
+  return kind === "postgres-url" ? "postgres or postgresql" : "http or https"
 }
 
 function validateCustomerOtpBypassMode(mode: string | undefined) {

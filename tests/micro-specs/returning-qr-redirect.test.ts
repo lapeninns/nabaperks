@@ -13,7 +13,7 @@ describe("destinationForReturningQrVisit", () => {
     vi.doMock("@/lib/customer/join", () => ({
       getMerchantJoinContext: vi.fn(async () => ({
         available: true,
-        merchant: { id: "merchant-1", business_slug: "bean-and-batch" },
+        merchant: { id: "merchant-1", business_slug: "old-crown-girton" },
       })),
       getExistingMembershipForCurrentUser: vi.fn(async () => null),
       getStampQrContextForMembership: vi.fn(),
@@ -32,9 +32,13 @@ describe("destinationForReturningQrVisit", () => {
       await import("@/lib/customer/returning-qr-redirect")
 
     await expect(
-      destinationForReturningQrVisit("bean-and-batch", "bean-test-qr", {
-        issueStamp: true,
-      })
+      destinationForReturningQrVisit(
+        "old-crown-girton",
+        "old-crown-girton-qr",
+        {
+          issueStamp: true,
+        }
+      )
     ).resolves.toBeNull()
   })
 
@@ -45,7 +49,7 @@ describe("destinationForReturningQrVisit", () => {
     vi.doMock("@/lib/customer/join", () => ({
       getMerchantJoinContext: vi.fn(async () => ({
         available: true,
-        merchant: { id: "merchant-1", business_slug: "bean-and-batch" },
+        merchant: { id: "merchant-1", business_slug: "old-crown-girton" },
       })),
       getExistingMembershipForCurrentUser: vi.fn(async () => ({
         id: "membership-1",
@@ -66,10 +70,14 @@ describe("destinationForReturningQrVisit", () => {
       await import("@/lib/customer/returning-qr-redirect")
 
     await expect(
-      destinationForReturningQrVisit("bean-and-batch", "bean-test-qr", {
-        issueStamp: false,
-      })
-    ).resolves.toBe("/card/membership-1/stamp?qr=bean-test-qr")
+      destinationForReturningQrVisit(
+        "old-crown-girton",
+        "old-crown-girton-qr",
+        {
+          issueStamp: false,
+        }
+      )
+    ).resolves.toBe("/card/membership-1/stamp?qr=old-crown-girton-qr")
   })
 
   it("issues today's stamp after OTP and lands on the card celebration", async () => {
@@ -88,13 +96,13 @@ describe("destinationForReturningQrVisit", () => {
     vi.doMock("@/lib/customer/join", () => ({
       getMerchantJoinContext: vi.fn(async () => ({
         available: true,
-        merchant: { id: "merchant-1", business_slug: "bean-and-batch" },
+        merchant: { id: "merchant-1", business_slug: "old-crown-girton" },
       })),
       getExistingMembershipForCurrentUser: vi.fn(async () => ({
         id: "membership-1",
       })),
       getStampQrContextForMembership: vi.fn(async () => ({
-        qrId: "bean-test-qr",
+        qrId: "old-crown-girton-qr",
       })),
     }))
     vi.doMock("@/lib/customer/card", () => ({
@@ -114,9 +122,13 @@ describe("destinationForReturningQrVisit", () => {
       await import("@/lib/customer/returning-qr-redirect")
 
     await expect(
-      destinationForReturningQrVisit("bean-and-batch", "bean-test-qr", {
-        issueStamp: true,
-      })
+      destinationForReturningQrVisit(
+        "old-crown-girton",
+        "old-crown-girton-qr",
+        {
+          issueStamp: true,
+        }
+      )
     ).resolves.toBe("/card/membership-1?stamp=issued")
 
     expect(issueSelfServiceStamp).toHaveBeenCalledWith(
@@ -146,13 +158,13 @@ describe("destinationForReturningQrVisit", () => {
     vi.doMock("@/lib/customer/join", () => ({
       getMerchantJoinContext: vi.fn(async () => ({
         available: true,
-        merchant: { id: "merchant-1", business_slug: "bean-and-batch" },
+        merchant: { id: "merchant-1", business_slug: "old-crown-girton" },
       })),
       getExistingMembershipForCurrentUser: vi.fn(async () => ({
         id: "membership-1",
       })),
       getStampQrContextForMembership: vi.fn(async () => ({
-        qrId: "bean-test-qr",
+        qrId: "old-crown-girton-qr",
       })),
     }))
     vi.doMock("@/lib/customer/card", () => ({
@@ -171,10 +183,14 @@ describe("destinationForReturningQrVisit", () => {
     const { destinationForReturningQrVisit } =
       await import("@/lib/customer/returning-qr-redirect")
 
-    await destinationForReturningQrVisit("bean-and-batch", "bean-test-qr", {
-      issueStamp: true,
-      coordinates: { latitude: 51.524, longitude: -0.071 },
-    })
+    await destinationForReturningQrVisit(
+      "old-crown-girton",
+      "old-crown-girton-qr",
+      {
+        issueStamp: true,
+        coordinates: { latitude: 51.524, longitude: -0.071 },
+      }
+    )
 
     expect(issueSelfServiceStamp).toHaveBeenCalledWith("membership-1", {
       latitude: 51.524,
@@ -191,13 +207,13 @@ describe("destinationForReturningQrVisit", () => {
     vi.doMock("@/lib/customer/join", () => ({
       getMerchantJoinContext: vi.fn(async () => ({
         available: true,
-        merchant: { id: "merchant-1", business_slug: "bean-and-batch" },
+        merchant: { id: "merchant-1", business_slug: "old-crown-girton" },
       })),
       getExistingMembershipForCurrentUser: vi.fn(async () => ({
         id: "membership-1",
       })),
       getStampQrContextForMembership: vi.fn(async () => ({
-        qrId: "bean-test-qr",
+        qrId: "old-crown-girton-qr",
       })),
     }))
     vi.doMock("@/lib/customer/card", () => ({
@@ -219,9 +235,13 @@ describe("destinationForReturningQrVisit", () => {
       await import("@/lib/customer/returning-qr-redirect")
 
     await expect(
-      destinationForReturningQrVisit("bean-and-batch", "bean-test-qr", {
-        issueStamp: true,
-      })
+      destinationForReturningQrVisit(
+        "old-crown-girton",
+        "old-crown-girton-qr",
+        {
+          issueStamp: true,
+        }
+      )
     ).resolves.toBe("/reward/reward-1")
     expect(issueSelfServiceStamp).not.toHaveBeenCalled()
   })
@@ -235,13 +255,13 @@ describe("destinationForReturningQrVisit", () => {
     vi.doMock("@/lib/customer/join", () => ({
       getMerchantJoinContext: vi.fn(async () => ({
         available: true,
-        merchant: { id: "merchant-1", business_slug: "bean-and-batch" },
+        merchant: { id: "merchant-1", business_slug: "old-crown-girton" },
       })),
       getExistingMembershipForCurrentUser: vi.fn(async () => ({
         id: "membership-1",
       })),
       getStampQrContextForMembership: vi.fn(async () => ({
-        qrId: "bean-test-qr",
+        qrId: "old-crown-girton-qr",
       })),
     }))
     vi.doMock("@/lib/customer/card", () => ({
@@ -263,9 +283,13 @@ describe("destinationForReturningQrVisit", () => {
       await import("@/lib/customer/returning-qr-redirect")
 
     await expect(
-      destinationForReturningQrVisit("bean-and-batch", "bean-test-qr", {
-        issueStamp: true,
-      })
+      destinationForReturningQrVisit(
+        "old-crown-girton",
+        "old-crown-girton-qr",
+        {
+          issueStamp: true,
+        }
+      )
     ).resolves.toBe("/card/membership-1")
     expect(issueSelfServiceStamp).not.toHaveBeenCalled()
   })
@@ -281,13 +305,13 @@ describe("destinationForReturningQrVisit", () => {
     vi.doMock("@/lib/customer/join", () => ({
       getMerchantJoinContext: vi.fn(async () => ({
         available: true,
-        merchant: { id: "merchant-1", business_slug: "bean-and-batch" },
+        merchant: { id: "merchant-1", business_slug: "old-crown-girton" },
       })),
       getExistingMembershipForCurrentUser: vi.fn(async () => ({
         id: "membership-1",
       })),
       getStampQrContextForMembership: vi.fn(async () => ({
-        qrId: "bean-test-qr",
+        qrId: "old-crown-girton-qr",
       })),
     }))
     vi.doMock("@/lib/customer/card", () => ({
@@ -305,10 +329,14 @@ describe("destinationForReturningQrVisit", () => {
       await import("@/lib/customer/returning-qr-redirect")
 
     await expect(
-      destinationForReturningQrVisit("bean-and-batch", "bean-test-qr", {
-        issueStamp: true,
-      })
-    ).resolves.toBe("/card/membership-1/stamp?qr=bean-test-qr")
+      destinationForReturningQrVisit(
+        "old-crown-girton",
+        "old-crown-girton-qr",
+        {
+          issueStamp: true,
+        }
+      )
+    ).resolves.toBe("/card/membership-1/stamp?qr=old-crown-girton-qr")
   })
 
   it("routes an already-stamped customer to the stamped-today screen after OTP", async () => {
@@ -323,13 +351,13 @@ describe("destinationForReturningQrVisit", () => {
     vi.doMock("@/lib/customer/join", () => ({
       getMerchantJoinContext: vi.fn(async () => ({
         available: true,
-        merchant: { id: "merchant-1", business_slug: "bean-and-batch" },
+        merchant: { id: "merchant-1", business_slug: "old-crown-girton" },
       })),
       getExistingMembershipForCurrentUser: vi.fn(async () => ({
         id: "membership-1",
       })),
       getStampQrContextForMembership: vi.fn(async () => ({
-        qrId: "bean-test-qr",
+        qrId: "old-crown-girton-qr",
       })),
     }))
     vi.doMock("@/lib/customer/card", () => ({
@@ -349,9 +377,13 @@ describe("destinationForReturningQrVisit", () => {
       await import("@/lib/customer/returning-qr-redirect")
 
     await expect(
-      destinationForReturningQrVisit("bean-and-batch", "bean-test-qr", {
-        issueStamp: true,
-      })
-    ).resolves.toBe("/card/membership-1/stamp?qr=bean-test-qr")
+      destinationForReturningQrVisit(
+        "old-crown-girton",
+        "old-crown-girton-qr",
+        {
+          issueStamp: true,
+        }
+      )
+    ).resolves.toBe("/card/membership-1/stamp?qr=old-crown-girton-qr")
   })
 })

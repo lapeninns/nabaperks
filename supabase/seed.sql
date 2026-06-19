@@ -40,7 +40,7 @@ values
     '00000000-0000-0000-0000-000000000101',
     'authenticated',
     'authenticated',
-    'mia@bean-and-batch.test',
+    'mia@old-crown-girton.test',
     extensions.crypt('NabaperksDemo1!', extensions.gen_salt('bf')),
     now(),
     '',
@@ -212,10 +212,10 @@ values
   (
     '10000000-0000-0000-0000-000000000001',
     '00000000-0000-0000-0000-000000000101',
-    'Bean & Batch',
-    'bean-and-batch',
+    'Old Crown Girton',
+    'old-crown-girton',
     'cafe',
-    'mia@bean-and-batch.test',
+    'mia@old-crown-girton.test',
     '+447700900101',
     485,
     6800,
@@ -426,7 +426,7 @@ insert into public.qr_codes (
 values
   (
     '14000000-0000-0000-0000-000000000001',
-    'bean-test-qr',
+    'old-crown-girton-qr',
     '10000000-0000-0000-0000-000000000001',
     '11000000-0000-0000-0000-000000000001',
     '13000000-0000-0000-0000-000000000001',

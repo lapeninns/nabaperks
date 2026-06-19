@@ -1,4 +1,4 @@
--- One-off fixture: amanshresthaaaaa@gmail.com on Bean & Batch at 2/3 stamps.
+-- One-off fixture: amanshresthaaaaa@gmail.com on Old Crown Girton at 2/3 stamps.
 
 insert into auth.users (
   instance_id,

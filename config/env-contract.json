@@ -46,7 +46,7 @@
   {
     "name": "SUPABASE_DB_URL",
     "visibility": "server",
-    "kind": "url",
+    "kind": "postgres-url",
     "description": "Optional Postgres connection URL used only for applying migrations, seeding fixtures, and running SQL RLS tests.",
     "optional": true
   },

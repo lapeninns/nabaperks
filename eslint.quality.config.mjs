@@ -51,6 +51,13 @@ const qualityConfig = defineConfig([
         ecmaFeatures: { jsx: true },
       },
     },
+    linterOptions: {
+      // The `@next/next` rules above are no-op stubs (this config does not load the
+      // Next plugin), so legitimate inline `@next/next/*` disable directives in
+      // product files would otherwise be reported as unused here. Directive hygiene
+      // is enforced by the functional eslint.config.mjs, where those rules run.
+      reportUnusedDisableDirectives: "off",
+    },
     rules: {
       complexity: ["warn", 15],
       "max-depth": ["warn", 4],

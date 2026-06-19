@@ -10,7 +10,7 @@ function readProjectFile(path: string) {
 describe("customer QR scanner", () => {
   it("normalizes relative venue QR routes to the existing QR resolver", () => {
     // Given: a QR payload produced by the Nabaperks app.
-    const scannedValue = "/q/bean-test-qr"
+    const scannedValue = "/q/old-crown-girton-qr"
 
     // When: the scanner parses it inside the customer app.
     const result = normalizeScannedQrDestination(
@@ -19,13 +19,13 @@ describe("customer QR scanner", () => {
     )
 
     // Then: the decoded scan delegates to the existing server QR resolver.
-    expect(result).toEqual({ kind: "valid", href: "/q/bean-test-qr" })
+    expect(result).toEqual({ kind: "valid", href: "/q/old-crown-girton-qr" })
   })
 
   it("normalizes same-origin absolute QR URLs and drops query/hash fragments", () => {
     // Given: a full production URL from a printed venue QR.
     const scannedValue =
-      "https://nabaperks.com/q/bean-test-qr?utm_source=poster#scan"
+      "https://nabaperks.com/q/old-crown-girton-qr?utm_source=poster#scan"
 
     // When: the scanner parses it against the same app origin.
     const result = normalizeScannedQrDestination(
@@ -34,7 +34,7 @@ describe("customer QR scanner", () => {
     )
 
     // Then: only the resolver path is used for the customer flow handoff.
-    expect(result).toEqual({ kind: "valid", href: "/q/bean-test-qr" })
+    expect(result).toEqual({ kind: "valid", href: "/q/old-crown-girton-qr" })
   })
 
   it("rejects QR payloads that are not Nabaperks venue QR resolver paths", () => {
@@ -42,9 +42,9 @@ describe("customer QR scanner", () => {
     const invalidScans = [
       "",
       "not a url",
-      "https://example.com/q/bean-test-qr",
+      "https://example.com/q/old-crown-girton-qr",
       "https://nabaperks.com/card/membership-1/stamp",
-      "https://nabaperks.com/q/bean-test-qr/extra",
+      "https://nabaperks.com/q/old-crown-girton-qr/extra",
       "https://nabaperks.com/q/../admin",
     ]
 

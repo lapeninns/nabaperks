@@ -1,4 +1,4 @@
--- Rich Bean & Batch fixtures for dashboard, customers, and activity log demos.
+-- Rich Old Crown Girton fixtures for dashboard, customers, and activity log demos.
 -- Safe to re-run: uses stable IDs with on conflict do update.
 
 insert into auth.users (
@@ -318,7 +318,7 @@ values
   )
 on conflict (id) do nothing;
 
--- Replace sparse Bean & Batch product events with a realistic activity timeline.
+-- Replace sparse Old Crown Girton product events with a realistic activity timeline.
 delete from public.product_events
 where merchant_id = '10000000-0000-0000-0000-000000000001'
   and id::text like '1b000000-%';

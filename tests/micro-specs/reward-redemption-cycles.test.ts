@@ -44,9 +44,8 @@ describe("reward redemption cycles — active-cycle read models", () => {
     })
     mockServiceRole(supabase)
 
-    const { getMembershipStampDisplayDates } = await import(
-      "@/lib/customer/card"
-    )
+    const { getMembershipStampDisplayDates } =
+      await import("@/lib/customer/card")
 
     const dates = await getMembershipStampDisplayDates("membership-1", 3, 2)
 
@@ -93,9 +92,8 @@ describe("reward redemption cycles — active-cycle read models", () => {
     })
     mockServiceRole(supabase)
 
-    const { getMembershipStampDisplayDatesByMembership } = await import(
-      "@/lib/customer/card"
-    )
+    const { getMembershipStampDisplayDatesByMembership } =
+      await import("@/lib/customer/card")
 
     const result = await getMembershipStampDisplayDatesByMembership(
       ["membership-1"],
@@ -129,8 +127,8 @@ describe("reward redemption cycles — active-cycle read models", () => {
                 active_cycle_number: 2,
                 last_visit_at: "2026-06-14T09:00:00.000Z",
                 merchants: {
-                  business_name: "Bean & Batch",
-                  business_slug: "bean-and-batch",
+                  business_name: "Old Crown Girton",
+                  business_slug: "old-crown-girton",
                   status: "active",
                 },
               },
@@ -223,8 +221,8 @@ describe("reward redemption cycles — active-cycle read models", () => {
               total_rewards_redeemed: 1,
               active_cycle_number: 2,
               merchants: {
-                business_name: "Bean & Batch",
-                business_slug: "bean-and-batch",
+                business_name: "Old Crown Girton",
+                business_slug: "old-crown-girton",
                 status: "active",
               },
             },
@@ -252,9 +250,8 @@ describe("reward redemption cycles — active-cycle read models", () => {
     })
     mockServiceRole(supabase)
 
-    const { loadCardExperienceContext } = await import(
-      "@/lib/customer/experience/load-card"
-    )
+    const { loadCardExperienceContext } =
+      await import("@/lib/customer/experience/load-card")
 
     const context = await loadCardExperienceContext("membership-1", {})
 
@@ -291,8 +288,8 @@ describe("reward redemption cycles — active-cycle read models", () => {
               total_rewards_redeemed: 0,
               active_cycle_number: 1,
               merchants: {
-                business_name: "Bean & Batch",
-                business_slug: "bean-and-batch",
+                business_name: "Old Crown Girton",
+                business_slug: "old-crown-girton",
                 status: "active",
               },
             },
@@ -340,9 +337,8 @@ describe("reward redemption cycles — active-cycle read models", () => {
     })
     mockServiceRole(supabase)
 
-    const { loadCardExperienceContext } = await import(
-      "@/lib/customer/experience/load-card"
-    )
+    const { loadCardExperienceContext } =
+      await import("@/lib/customer/experience/load-card")
 
     const context = await loadCardExperienceContext("membership-1", {})
 
@@ -375,7 +371,7 @@ describe("reward redemption cycles — active-cycle read models", () => {
                 redeemable_from: "2026-06-10",
                 redeemed_at: "2026-06-11T10:00:00.000Z",
                 created_at: "2026-06-10T10:00:00.000Z",
-                merchants: { business_name: "Bean & Batch" },
+                merchants: { business_name: "Old Crown Girton" },
               },
             ],
             error: null,
@@ -433,7 +429,9 @@ describe("reward redemption cycle SQL contract", () => {
     expect(migration).toContain("function public.issue_self_service_stamp")
     expect(migration).toContain("membership_record.active_cycle_number = 1")
     expect(migration).toContain("order by reward_pool_items.display_order asc")
-    expect(migration).toContain("v_weight_threshold := floor(random() * v_total_weight)")
+    expect(migration).toContain(
+      "v_weight_threshold := floor(random() * v_total_weight)"
+    )
   })
 
   it("requires at least 3 active rewards before an unlock can happen", async () => {

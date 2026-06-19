@@ -96,7 +96,7 @@ describe("reward experience carries the profile gate", () => {
   function rewardContext(profileGate?: ProfileGate) {
     return {
       reward: rewardView,
-      merchantName: "Bean & Batch",
+      merchantName: "Old Crown Girton",
       status: "unlocked",
       redeemable: true,
       redeemedProof: false,

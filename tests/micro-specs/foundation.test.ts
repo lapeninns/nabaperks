@@ -74,9 +74,11 @@ describe("00/01 foundation micro-specs", () => {
         entry.name,
         entry.name === "CUSTOMER_OTP_BYPASS_MODE"
           ? "any-4-digits"
-          : entry.kind === "url"
-            ? "https://example.test"
-            : "configured",
+          : entry.name === "SUPABASE_DB_URL"
+            ? "postgresql://postgres.example.test:5432/postgres"
+            : entry.kind === "url"
+              ? "https://example.test"
+              : "configured",
       ])
     )
 
@@ -103,11 +105,18 @@ describe("00/01 foundation micro-specs", () => {
             kind: "url",
             description: "bad URL",
           },
+          {
+            name: "SUPABASE_DB_URL",
+            visibility: "server",
+            kind: "postgres-url",
+            description: "bad database URL",
+          },
         ] satisfies EnvContractEntry[],
         {
           APP_URL: "ftp://example.test",
           NEXT_PUBLIC_SECRET_KEY: "secret",
           NEXT_PUBLIC_BAD_URL: "not a url",
+          SUPABASE_DB_URL: "https://example.test",
         }
       )
     ).toThrow(EnvConfigError)

@@ -121,8 +121,8 @@ describe("customer home dashboard", () => {
     const { homeCardStatusCopy } = await import("@/lib/customer/home-dashboard")
     const baseCard = {
       membershipId: "card-1",
-      businessName: "Bean & Batch",
-      businessSlug: "bean-and-batch",
+      businessName: "Old Crown Girton",
+      businessSlug: "old-crown-girton",
       cardName: "Visits",
       rewardName: "Coffee",
       currentStamps: 1,
@@ -162,8 +162,8 @@ describe("customer home dashboard", () => {
     const { homeCardStatusCopy } = await import("@/lib/customer/home-dashboard")
     const waitingCard = {
       membershipId: "card-1",
-      businessName: "Bean & Batch",
-      businessSlug: "bean-and-batch",
+      businessName: "Old Crown Girton",
+      businessSlug: "old-crown-girton",
       cardName: "Visits",
       rewardName: "Coffee",
       currentStamps: 3,
@@ -211,8 +211,8 @@ describe("customer home dashboard", () => {
                 current_stamp_count: 0,
                 last_visit_at: "2026-06-14T09:00:00.000Z",
                 merchants: {
-                  business_name: "Bean & Batch",
-                  business_slug: "bean-and-batch",
+                  business_name: "Old Crown Girton",
+                  business_slug: "old-crown-girton",
                   status: "active",
                 },
               },
@@ -292,7 +292,7 @@ describe("customer home dashboard", () => {
     expect(dashboard.topRedeemable).toEqual({
       rewardId: "reward-1",
       rewardName: "Free coffee",
-      businessName: "Bean & Batch",
+      businessName: "Old Crown Girton",
       membershipId: "membership-1",
     })
   })
@@ -316,8 +316,8 @@ describe("customer home dashboard", () => {
                 current_stamp_count: 3,
                 last_visit_at: "2026-06-14T09:00:00.000Z",
                 merchants: {
-                  business_name: "Bean & Batch",
-                  business_slug: "bean-and-batch",
+                  business_name: "Old Crown Girton",
+                  business_slug: "old-crown-girton",
                   status: "active",
                 },
               },

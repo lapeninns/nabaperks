@@ -11,7 +11,7 @@ import type {
  * in plain Node without tripping `server-only`.
  */
 export const LAUNCH_PREVIEW_MOCK = {
-  merchantName: "Bean & Batch",
+  merchantName: "Old Crown Girton",
   locationName: "Main counter",
   cardName: "Mystery Visit Card",
   stampsRequired: 3,

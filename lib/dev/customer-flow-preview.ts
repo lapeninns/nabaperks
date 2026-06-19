@@ -1,7 +1,7 @@
 import { CUSTOMER_FLOW_DEMO } from "./customer-flow-demo-types.ts"
 
 export const CUSTOMER_FLOW_MOCK = {
-  merchantName: "Bean & Batch",
+  merchantName: "Old Crown Girton",
   merchantSlug: CUSTOMER_FLOW_DEMO.merchantSlug,
   qrId: CUSTOMER_FLOW_DEMO.qrId,
   phone: CUSTOMER_FLOW_DEMO.phone,
@@ -137,7 +137,9 @@ const previewStepIds = new Set(
   CUSTOMER_FLOW_PREVIEW_STEPS.map((step) => step.id)
 )
 
-export function customerFlowPreviewPath(stepId: CustomerFlowPreviewStepId): string {
+export function customerFlowPreviewPath(
+  stepId: CustomerFlowPreviewStepId
+): string {
   return `/dev/customer-flow/preview/${stepId}`
 }
 

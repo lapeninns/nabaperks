@@ -1,4 +1,4 @@
--- Add two new active rewards for the seeded Bean & Batch loyalty card.
+-- Add two new active rewards for the seeded Old Crown Girton loyalty card.
 -- Idempotent: each reward is inserted only if it does not already exist.
 
 with target_card as (

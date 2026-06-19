@@ -42,8 +42,8 @@ describe("customer-flow dev harness", () => {
 
     expect(status).toEqual({
       phone: "07467586751",
-      merchantSlug: "bean-and-batch",
-      qrId: "bean-test-qr",
+      merchantSlug: "old-crown-girton",
+      qrId: "old-crown-girton-qr",
       customerId: "customer-1",
       membershipId: "membership-1",
       currentStampCount: 2,
@@ -57,10 +57,10 @@ describe("customer-flow dev harness", () => {
       },
     })
     expect(links).toEqual({
-      joinHero: "/q/bean-test-qr",
-      join: "/m/bean-and-batch/join?qr=bean-test-qr",
-      qrStampConfirm: "/q/bean-test-qr",
-      stampConfirm: "/card/membership-1/stamp?qr=bean-test-qr",
+      joinHero: "/q/old-crown-girton-qr",
+      join: "/m/old-crown-girton/join?qr=old-crown-girton-qr",
+      qrStampConfirm: "/q/old-crown-girton-qr",
+      stampConfirm: "/card/membership-1/stamp?qr=old-crown-girton-qr",
       card: "/card/membership-1",
       reward: "/reward/reward-1",
       redeemedCard: "/card/membership-1?reward=redeemed",
@@ -80,8 +80,8 @@ describe("customer-flow dev harness", () => {
     )
 
     expect(links).toMatchObject({
-      joinHero: "/q/bean-test-qr",
-      join: "/m/bean-and-batch/join?qr=bean-test-qr",
+      joinHero: "/q/old-crown-girton-qr",
+      join: "/m/old-crown-girton/join?qr=old-crown-girton-qr",
       qrStampConfirm: null,
       stampConfirm: null,
       card: null,
@@ -91,12 +91,10 @@ describe("customer-flow dev harness", () => {
   })
 
   it("models the demo journey as customer playbook cards", async () => {
-    const { customerFlowJourneySteps } = await import(
-      "@/app/dev/customer-flow/steps"
-    )
-    const { buildCustomerFlowPreviewLinks } = await import(
-      "@/app/dev/customer-flow/preview/screens"
-    )
+    const { customerFlowJourneySteps } =
+      await import("@/app/dev/customer-flow/steps")
+    const { buildCustomerFlowPreviewLinks } =
+      await import("@/app/dev/customer-flow/preview/screens")
     const steps = customerFlowJourneySteps(buildCustomerFlowPreviewLinks())
 
     expect(steps).toHaveLength(11)

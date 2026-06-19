@@ -24,9 +24,9 @@ import {
 } from "@/lib/customer/experience/types"
 
 const merchant = {
-  name: "Bean & Batch",
-  slug: "bean-and-batch",
-  termsUrl: "/merchant/bean-and-batch/terms",
+  name: "Old Crown Girton",
+  slug: "old-crown-girton",
+  termsUrl: "/merchant/old-crown-girton/terms",
 }
 const card = {
   name: "Morning Ritual",
@@ -49,7 +49,7 @@ function cardFacts(
 ): CardContext {
   return {
     membershipId: "membership-1",
-    merchantName: "Bean & Batch",
+    merchantName: "Old Crown Girton",
     cardName: "Morning Ritual",
     current: 1,
     total: 3,
@@ -69,7 +69,7 @@ function stampFacts(
 ): StampContext {
   return {
     membershipId: "membership-1",
-    merchantName: "Bean & Batch",
+    merchantName: "Old Crown Girton",
     unlockedReward: null,
     alreadyStampedToday: false,
     qrValid: true,
@@ -85,7 +85,7 @@ function rewardFacts(
 ): RewardContext {
   return {
     reward: rewardView,
-    merchantName: "Bean & Batch",
+    merchantName: "Old Crown Girton",
     status: "unlocked",
     redeemable: true,
     redeemedProof: false,
@@ -554,7 +554,7 @@ function collectingExp(
   return {
     kind: "card_collecting",
     membershipId: "membership-1",
-    merchantName: "Bean & Batch",
+    merchantName: "Old Crown Girton",
     cardName: "Morning Ritual",
     current: 1,
     total: 3,
@@ -575,7 +575,7 @@ function collectingExp(
 describe("getCustomerExperienceViewModel", () => {
   it("leads the collecting card with the card name and merchant tag", () => {
     const vm = getCustomerExperienceViewModel(collectingExp())
-    expect(vm.eyebrow).toBe("Bean & Batch")
+    expect(vm.eyebrow).toBe("Old Crown Girton")
     expect(vm.headline).toBe("Morning Ritual")
     expect(vm.supportLine).toBeUndefined()
   })
@@ -584,7 +584,7 @@ describe("getCustomerExperienceViewModel", () => {
     const vm = getCustomerExperienceViewModel(
       collectingExp({ justJoined: true, justStamped: true })
     )
-    expect(vm.headline).toBe("Welcome to Bean & Batch")
+    expect(vm.headline).toBe("Welcome to Old Crown Girton")
     expect(vm.supportLine).toBe("Morning Ritual")
   })
 
@@ -592,7 +592,7 @@ describe("getCustomerExperienceViewModel", () => {
     const vm = getCustomerExperienceViewModel({
       kind: "card_stamped_today",
       membershipId: "membership-1",
-      merchantName: "Bean & Batch",
+      merchantName: "Old Crown Girton",
       qrId: "qr-1",
       location,
       cardName: "Morning Ritual",
@@ -628,13 +628,13 @@ describe("getCustomerExperienceViewModel", () => {
       qrId: "qr-1",
     })
     expect(vm.primaryAction?.href).toBe(
-      "/m/bean-and-batch/join?qr=qr-1&step=phone"
+      "/m/old-crown-girton/join?qr=qr-1&step=phone"
     )
   })
 
   it("returns to the welcome card preview without step=phone", () => {
-    expect(joinWelcomeHref("bean-and-batch", "qr-1")).toBe(
-      "/m/bean-and-batch/join?qr=qr-1"
+    expect(joinWelcomeHref("old-crown-girton", "qr-1")).toBe(
+      "/m/old-crown-girton/join?qr=qr-1"
     )
   })
 

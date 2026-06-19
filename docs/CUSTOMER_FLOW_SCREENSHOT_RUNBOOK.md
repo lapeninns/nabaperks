@@ -1,6 +1,6 @@
 # Customer Flow Screenshot Runbook
 
-This captures the Bean & Batch customer journey for `07467586751`
+This captures the Old Crown Girton customer journey for `07467586751`
 (`+447467586751`) through the permanent QR flow.
 
 ## Prerequisites
@@ -10,7 +10,7 @@ This captures the Bean & Batch customer journey for `07467586751`
   `CUSTOMER_PHONE_ENCRYPTION_KEY`.
 - Use a non-production OTP bypass value when running locally:
   `CUSTOMER_DEV_OTP_CODE=424242`.
-- The seed data includes Bean & Batch, QR `bean-test-qr`, and a 3-stamp active
+- The seed data includes Old Crown Girton, QR `old-crown-girton-qr`, and a 3-stamp active
   card.
 
 ## Commands

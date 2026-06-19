@@ -251,11 +251,13 @@ describe("customer global phone auth", () => {
         {},
         form({
           contact: "(213) 373-4253",
-          merchantSlug: "bean-and-batch",
-          qrId: "bean-test-qr",
+          merchantSlug: "old-crown-girton",
+          qrId: "old-crown-girton-qr",
         })
       )
-    ).rejects.toThrow("NEXT_REDIRECT:/m/bean-and-batch/join?qr=bean-test-qr")
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/m/old-crown-girton/join?qr=old-crown-girton-qr"
+    )
     expect(startCustomerPhoneVerification).toHaveBeenCalledWith("+12133734253")
     expect(setPendingPhoneVerification).toHaveBeenCalledWith(
       expect.objectContaining({
