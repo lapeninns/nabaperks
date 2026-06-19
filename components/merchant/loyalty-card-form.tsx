@@ -392,7 +392,7 @@ function Field({
       </label>
       <input
         id={id}
-        className="h-12 rounded-lg border-2 border-ink bg-secondary/60 px-4 text-sm transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none focus:border-ring focus:ring-3 focus:ring-ring/25"
+        className="h-12 rounded-lg border-2 border-ink bg-secondary/60 px-4 text-sm transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none focus:border-ring focus:ring-3 focus:ring-ring/25 motion-reduce:transition-none"
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
         {...props}
@@ -425,7 +425,7 @@ function TextareaField({
       <textarea
         id={id}
         rows={rows}
-        className="resize-none rounded-lg border-2 border-ink bg-secondary/60 px-4 py-3 text-sm leading-6 transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none focus:border-ring focus:ring-3 focus:ring-ring/25"
+        className="resize-none rounded-lg border-2 border-ink bg-secondary/60 px-4 py-3 text-sm leading-6 transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none focus:border-ring focus:ring-3 focus:ring-ring/25 motion-reduce:transition-none"
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
         {...props}
@@ -481,6 +481,7 @@ function StampCardPreview({
               return (
                 <span
                   key={index}
+                  role="img"
                   className={
                     earned
                       ? "aspect-square rounded-full border-2 border-ink bg-primary shadow-xs"

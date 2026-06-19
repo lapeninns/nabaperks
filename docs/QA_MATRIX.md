@@ -26,7 +26,7 @@ at the right layer — not literal 100% line coverage.
 | Security checks                  | passing                                                                | `pnpm qa:security`                                                                    |
 | Schema / migration static checks | passing                                                                | `pnpm db:verify`                                                                      |
 | SQL / RLS checks                 | passing against disposable local Supabase (`127.0.0.1:54322`)          | `pnpm db:test:rls`                                                                    |
-| Customer e2e flow                | passing (23 Playwright tests)                                          | `CUSTOMER_DEV_OTP_CODE=424242 pnpm qa:e2e`                                            |
+| Customer e2e flow                | passing (89 Playwright tests)                                          | `CUSTOMER_DEV_OTP_CODE=424242 pnpm qa:e2e`                                            |
 | Visual screenshots               | passing (customer, launch, design-system)                              | `CUSTOMER_DEV_OTP_CODE=424242 pnpm qa:visual`                                         |
 | Accessibility                    | passing (10 WCAG A/AA axe surfaces, colour contrast enabled)           | `pnpm qa:a11y`                                                                        |
 | All-route render sweep           | 44 routes × 3 viewports = 132 captures, 0 issues                       | custom Playwright sweep, output `/tmp/nabaperks-proof-route-sweep-rerun/results.json` |
@@ -137,7 +137,7 @@ All product specs are `active`; the two governance specs are `implemented`.
 | 008 | Admin quieter ink | unit | u:admin-console-redesign | — |
 | 009 | Marketing composes reference, no localStorage | unit | u:marketing-redesign | — |
 | 010 | Merchant auth keeps Supabase email+password | unit | u:auth-redesign | — |
-| 011 | `/dev/design-system` catalog renders, static under reduced motion | browser | manual:dev-design-system-catalog-smoke, e2e:design-system-catalog | covered by catalog spec |
+| 011 | `/dev/design-system` catalog renders, static under reduced motion | browser | manual:dev-design-system-catalog-smoke, e2e:design-system-catalog, e2e:dev-harness-a11y-registry | registry-driven axe over all 18 customer-flow + 3 launch preview states |
 | 012 | Loaders/redirects/actions unchanged | manual | manual:route-loaders-unchanged-diff-review | **diff review only** |
 
 ### Phase 2 — Merchant
@@ -172,7 +172,7 @@ All product specs are `active`; the two governance specs are `implemented`.
 | 002 | No active QR: create or guide | unit | u:merchant-qr | — |
 | 003 | Active QR reused, not duplicated | unit | u:merchant-qr | — |
 | 004 | <3 active rewards blocks QR launch | unit | u:merchant-qr, u:merchant-launch-readiness | — |
-| 005 | Download provides scannable `/q/{qr_id}` asset | unit | u:merchant-qr-mutations | — |
+| 005 | Download provides scannable `/q/{qr_id}` asset | unit + browser | u:merchant-qr-mutations, e2e:authenticated-merchant-admin-surfaces | image/preview/download routes return PNG for seeded QR |
 | 006 | Disabled QR keeps scans, blocks entry | unit | u:customer | also admin disable path |
 | 007 | QR generate/download writes events | unit | u:merchant-qr-mutations | `qr_created` / `qr_downloaded` |
 
@@ -182,7 +182,7 @@ All product specs are `active`; the two governance specs are `implemented`.
 | Req | Behaviour | Test type | Evidence | Gap / note |
 | --- | --- | --- | --- | --- |
 | 001 | Active QR resolves server-side | unit | u:customer, u:returning-qr-redirect | — |
-| 002 | Inactive/unknown QR shows unavailable | unit | u:customer | — |
+| 002 | Inactive/unknown QR shows unavailable | unit + browser | u:customer, e2e:public-auth-legal-surfaces | also covers /m/missing-merchant + invalid card/reward safe-fail without id leak |
 | 003 | Active QR records `qr_scanned` | unit | u:customer | — |
 | 004 | Unauthenticated customer prompted for phone (Twilio Verify) | unit | u:customer-phone-auth | OTP send+check covered by u:customer-dev-otp, u:customer-otp-bypass, u:customer-otp-delivery |
 | 005 | Terms + verification create/reuse profile + membership | unit | u:customer, u:customer-legal-sheets | — |
@@ -194,7 +194,7 @@ All product specs are `active`; the two governance specs are `implemented`.
 | Req | Behaviour | Test type | Evidence | Gap / note |
 | --- | --- | --- | --- | --- |
 | 001 | Pre-unlock shows count, target, locked teaser | unit | u:customer-card-loader, u:customer-card-stamps | — |
-| 002 | Unlocked reward shows assigned details from `reward_events` | unit | u:customer, u:customer-home | — |
+| 002 | Unlocked reward shows assigned details from `reward_events` | unit + browser | u:customer, u:customer-home, e2e:customer-home-surfaces | smoke + axe over /home, activity, profile, rewards + session reset |
 | 003 | Unauthorised customer denied | unit + sql | u:customer-card-loader, sql:tenant_isolation | — |
 | 004 | Plain card tells customer to scan venue code | unit | u:customer-card-loader | — |
 | 005 | Stamp route with valid QR shows add-stamp action | unit | u:customer-stamp-loader | — |
@@ -223,11 +223,11 @@ All product specs are `active`; the two governance specs are `implemented`.
 | --- | --- | --- | --- | --- |
 | 001 | Required stamp count creates exactly one reward | unit + sql | u:reward-redemption-cycles, sql:reward_redemption_cycles | — |
 | 002 | Pre-`redeemable_from` shows come-back, no redeem | unit | u:reward-profile-gate | — |
-| 003 | Redeemable shows name, terms, QR (no tap-to-redeem) | unit | u:merchant-scanned-reward | — |
+| 003 | Redeemable shows name, terms, QR (no tap-to-redeem) | unit + browser | u:merchant-scanned-reward, e2e:reward-merchant-scan-live | — |
 | 004 | Pool edit after assignment preserves details | unit | u:reward-redemption-cycles | — |
-| 005 | Merchant scan marks reward redeemed once | unit + sql | u:merchant-scanned-reward, sql:reward_redemption_cycles | — |
+| 005 | Merchant scan marks reward redeemed once | unit + sql + browser | u:merchant-scanned-reward, sql:reward_redemption_cycles, e2e:reward-merchant-scan-live | live polling proof: customer page updates without reload |
 | 006 | Duplicate redemption rejected/replayed safely | unit + sql | u:reward-redemption-cycles, sql:reward_redemption_cycles | — |
-| 007 | Success starts next stamp cycle | unit + sql | u:reward-redemption-cycles, sql:reward_redemption_cycles | — |
+| 007 | Success starts next stamp cycle | unit + sql + browser | u:reward-redemption-cycles, sql:reward_redemption_cycles, e2e:reward-merchant-scan-live | — |
 | 008 | Success/failure records audit/product events | unit | u:merchant-scanned-reward | — |
 
 ### Phase 5 — Merchant value
@@ -235,7 +235,7 @@ All product specs are `active`; the two governance specs are `implemented`.
 **MS-MERCHANT-VALUE-DASHBOARD-ACTIVITY-ROI** · `product-analytics` · gates: `qa:static`, `qa:unit`
 | Req | Behaviour | Test type | Evidence | Gap / note |
 | --- | --- | --- | --- | --- |
-| 001 | `/app` shows current metrics for own merchant only | unit + coverage | u:analytics-dashboard-pilot | — |
+| 001 | `/app` shows current metrics for own merchant only | unit + coverage + browser | u:analytics-dashboard-pilot, e2e:authenticated-merchant-admin-surfaces | smoke + axe over the authenticated merchant console |
 | 002 | Zero states + QR launch prompts | unit | u:merchant-launch-readiness | — |
 | 003 | Totals reflect recorded stamps/rewards | unit | u:analytics-dashboard-pilot | — |
 | 004 | ROI estimate updates, stays labelled estimate | unit | u:analytics-dashboard-pilot | — |
@@ -274,7 +274,7 @@ All product specs are `active`; the two governance specs are `implemented`.
 | --- | --- | --- | --- | --- |
 | 001 | Non-admin `/admin` denied | unit | u:admin-console-redesign | — |
 | 002 | Admin MFA requires AAL2 | unit + security | u:admin-console-redesign, `security:verify` | AAL2 marker in verifier |
-| 003 | Searchable merchant + plan status | unit | u:admin-console-redesign | — |
+| 003 | Searchable merchant + plan status | unit + browser | u:admin-console-redesign, e2e:authenticated-merchant-admin-surfaces | smoke + axe over the authenticated admin console |
 | 004 | Manual stamp adjustment + audit | unit | u:admin-console-redesign | — |
 | 005 | Cancel reward records why | unit | u:admin-console-redesign | — |
 | 006 | Disable QR stops resolution, keeps history | unit | u:admin-console-redesign, u:customer | — |
