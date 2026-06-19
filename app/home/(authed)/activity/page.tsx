@@ -9,10 +9,13 @@ import {
 import { formatRelativeTime } from "@/lib/customer/format"
 
 export const metadata = {
-  title: "Your activity — Nabaperks",
+  title: "Your activity · Nabaperks",
 }
 
-const toneByCategory: Record<CustomerActivityCategory, "accent" | "ink" | "leaf"> = {
+const toneByCategory: Record<
+  CustomerActivityCategory,
+  "accent" | "ink" | "leaf"
+> = {
   join: "ink",
   stamp: "accent",
   reward: "leaf",
@@ -50,13 +53,17 @@ function ActivityRow({ item }: { item: CustomerActivityItem }) {
   return (
     <li className="surface-card grid gap-2 p-4">
       <div className="flex items-center justify-between gap-3">
-        <MonoTag tone={toneByCategory[item.category]}>{item.badgeLabel}</MonoTag>
+        <MonoTag tone={toneByCategory[item.category]}>
+          {item.badgeLabel}
+        </MonoTag>
         <span className="font-mono text-[0.625rem] font-bold tracking-[0.06em] text-muted-foreground uppercase">
           {formatRelativeTime(item.createdAt)}
         </span>
       </div>
       <p className="text-sm leading-snug font-bold">{item.title}</p>
-      <p className="text-sm leading-6 text-muted-foreground">{item.description}</p>
+      <p className="text-sm leading-6 text-muted-foreground">
+        {item.description}
+      </p>
     </li>
   )
 }

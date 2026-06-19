@@ -22,7 +22,7 @@ export type CustomerExperienceViewModel = {
 /** QR-scan welcome — mirrors join-with-first-stamp: scan → verify → terms → stamp. */
 export const JOIN_WELCOME_HOW_IT_WORKS = [
   "You scanned the venue QR",
-  "Save the card to your number with one text — no app",
+  "Save the card to your number with one text, no app",
   "Accept the terms and your first stamp prints onto the card",
 ] as const
 
@@ -79,7 +79,7 @@ export function getCustomerExperienceViewModel(
       return {
         eyebrow: "One text, no password",
         headline: "Save your card to your number",
-        supportLine: `Save ${exp.merchant.name}'s card to your number — ${joinUnlockingRewardHook(exp.card.stampsRequired)}.`,
+        supportLine: `Save ${exp.merchant.name}'s card to your number, ${joinUnlockingRewardHook(exp.card.stampsRequired)}.`,
       }
     case "join_otp":
       return {

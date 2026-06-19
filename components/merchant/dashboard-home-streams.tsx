@@ -11,6 +11,7 @@ import {
 
 import {
   EmptyState,
+  Icon,
   MetricTile,
   ReceiptCard,
   SectionHeader,
@@ -96,16 +97,19 @@ export async function MerchantDashboardStream({
       ) : null}
 
       <section className="grid gap-3">
-        <div className="overflow-hidden rounded-lg border-2 border-ink bg-card p-6 shadow-sm">
+        <div className="flex items-center justify-between gap-6 overflow-hidden rounded-lg border-2 border-ink bg-card p-6 shadow-sm">
           <div className="grid content-start gap-2">
             <p className="eyebrow">Members</p>
-            <p className="numeric-tabular text-4xl leading-none font-extrabold sm:text-5xl">
+            <p className="numeric-tabular text-5xl leading-none font-extrabold sm:text-6xl">
               {metrics.members}
             </p>
             <p className="text-xs leading-5 text-muted-foreground">
               People carrying your card right now.
             </p>
           </div>
+          <span className="hidden size-20 shrink-0 -rotate-6 place-items-center rounded-full border-2 border-ink bg-accent text-accent-foreground shadow-sm sm:grid">
+            <Icon icon={UserMultiple02Icon} size={36} />
+          </span>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

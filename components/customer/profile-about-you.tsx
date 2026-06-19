@@ -113,14 +113,16 @@ function AboutYouView({
       <dl className="grid gap-3">
         <DetailRow
           label="Phone"
-          value={profile.phone ?? "—"}
+          value={profile.phone ?? "Not set"}
           tag={profile.phone ? <MonoTag tone="leaf">Verified</MonoTag> : null}
         />
-        <DetailRow label="Full name" value={profile.fullName ?? "—"} />
+        <DetailRow label="Full name" value={profile.fullName ?? "Not set"} />
         <DetailRow
           label="Date of birth"
           value={
-            profile.dateOfBirth ? formatDateOfBirth(profile.dateOfBirth) : "—"
+            profile.dateOfBirth
+              ? formatDateOfBirth(profile.dateOfBirth)
+              : "Not set"
           }
         />
         <EmailDetailRow profile={profile} />

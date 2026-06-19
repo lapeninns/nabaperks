@@ -7,7 +7,7 @@ import { getCustomerSession } from "@/lib/customer/session"
 import { safeNextPath } from "@/lib/navigation/safe-next-path"
 
 export const metadata = {
-  title: "My Nabaperks — sign in",
+  title: "My Nabaperks · sign in",
 }
 
 type HomeLoginPageProps = {
@@ -39,8 +39,8 @@ export default async function HomeLoginPage({
               Welcome back
             </h1>
             <p className="text-sm leading-6 text-muted-foreground">
-              Sign in to see every loyalty card you&apos;ve collected, track your
-              rewards, and pick up where you left off.
+              Sign in to see every loyalty card you&apos;ve collected, track
+              your rewards, and pick up where you left off.
             </p>
           </div>
         </div>
@@ -48,8 +48,8 @@ export default async function HomeLoginPage({
         <CustomerLoginForm next={next} />
 
         <p className="border-t-2 border-ink/15 pt-4 text-center text-sm leading-6 text-muted-foreground">
-          New here? Scan a venue&apos;s QR code to collect your first stamp — your
-          first card is created automatically.
+          New here? Scan a venue&apos;s QR code to collect your first stamp —
+          your first card is created automatically.
         </p>
       </ReceiptCard>
     </CustomerShell>

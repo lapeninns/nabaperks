@@ -46,7 +46,7 @@ export default async function MerchantAppPage() {
       <PageTitle
         eyebrow="Your venue"
         title={merchant.business_name}
-        description="A quick read on how your loyalty card is doing — members, repeat visits, and rewards."
+        description="A quick read on how your loyalty card is doing: members, repeat visits, and rewards."
         actions={
           <Button asChild>
             <Link href="/app/launch">

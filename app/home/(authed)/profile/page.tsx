@@ -9,7 +9,7 @@ import { formatMonthYear } from "@/lib/customer/format"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 
 export const metadata = {
-  title: "Your details — Nabaperks",
+  title: "Your details · Nabaperks",
 }
 
 export default async function HomeProfilePage() {
@@ -29,7 +29,7 @@ export default async function HomeProfilePage() {
       <PageTitle
         eyebrow="My Nabaperks"
         title="Your details"
-        description="How venues can reach you — phone, name, and optional email."
+        description="How venues can reach you: phone, name, and optional email."
       />
 
       {incomplete ? (

@@ -57,11 +57,6 @@ export default async function AdminHomePage() {
             value,
           }))}
         />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {Object.entries(funnelCounts).map(([eventName, count]) => (
-            <MetricTile key={eventName} label={eventName} value={count} />
-          ))}
-        </div>
       </AdminPanel>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-7">

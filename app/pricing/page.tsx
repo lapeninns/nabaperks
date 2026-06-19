@@ -18,7 +18,7 @@ import {
 
 const planIncludes = [
   "Unlimited stamps and members",
-  "Mystery reward pool — you pick the prizes",
+  "Mystery reward pool, you pick the prizes",
   "Printed QR kit: A4 poster, till card, sticker",
   "Optional soft GPS checks with geocoded venue address",
   "Weekly digest of visits, regulars, and redemptions",
@@ -27,7 +27,7 @@ const planIncludes = [
 const faqs = [
   {
     q: "Is there a contract?",
-    a: "No. It is month to month after the pilot — GBP 29, one venue, one month's notice to leave. The pilot itself needs no card at all.",
+    a: "No. It is month to month after the pilot. GBP 29, one venue, one month's notice to leave. The pilot itself needs no card at all.",
   },
   {
     q: "Do I need any hardware?",
@@ -138,7 +138,12 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
                     Start checkout
                   </Button>
                 </form>
-                <Button asChild variant="secondary" size="lg" className="w-full">
+                <Button
+                  asChild
+                  variant="secondary"
+                  size="lg"
+                  className="w-full"
+                >
                   <Link href="/signup">Create account</Link>
                 </Button>
                 <p className="text-center font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
@@ -166,7 +171,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
               <Eyebrow className="mb-2 text-foreground">After day 30</Eyebrow>
               <p className="text-sm leading-6 text-muted-foreground">
                 Add a card in Stripe and carry on. Leaving later takes one
-                month&apos;s notice from your billing page — earned rewards stay
+                month&apos;s notice from your billing page. Earned rewards stay
                 good for your regulars.
               </p>
             </div>

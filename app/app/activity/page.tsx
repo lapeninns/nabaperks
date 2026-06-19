@@ -38,7 +38,7 @@ export default async function MerchantActivityPage({
       <PageTitle
         eyebrow="Activity"
         title="Activity"
-        description="Everything happening on your loyalty card — joins, stamps, rewards, and QR downloads."
+        description="Everything happening on your loyalty card: joins, stamps, rewards, and QR downloads."
       />
 
       <Suspense fallback={<ActivityFeedSkeleton />}>

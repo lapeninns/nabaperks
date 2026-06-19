@@ -196,7 +196,7 @@ function CardProgressPanel({
                 title="That's the full card."
                 message={
                   exp.reward === "ready"
-                    ? "Your reward is ready — claim it at the counter while you're here."
+                    ? "Your reward is ready, claim it at the counter while you're here."
                     : "Your reward is yours from opening time on the next UK business day."
                 }
               />
@@ -208,9 +208,9 @@ function CardProgressPanel({
                   className="text-center"
                 >
                   {exp.justStamped
-                    ? "You're in — your first stamp is on the card."
+                    ? "You're in, your first stamp is on the card."
                     : exp.firstStampPending
-                      ? "You're in. We couldn't add your first stamp just now — scan the venue QR to collect your first stamp."
+                      ? "You're in. We couldn't add your first stamp just now, so scan the venue QR to collect your first stamp."
                       : "You're in. Scan the venue QR in store to collect your first stamp."}
                   {exp.justStamped && exp.geoFlagged
                     ? " Location could not be confirmed, so the venue may review it."

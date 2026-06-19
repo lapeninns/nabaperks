@@ -68,7 +68,7 @@ function stampHint(
       ? "That's every stamp on this card."
       : "Stamp secured. Your next scan window opens on the next UK business day."
   }
-  if (inFlight) return "Adding your stamp — keep this screen open a moment."
+  if (inFlight) return "Adding your stamp, keep this screen open a moment."
   if (canStamp)
     return "Press and hold the stamp, or tap it, to add today's mark."
   return "You're stamped for today. Come back tomorrow."

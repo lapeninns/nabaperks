@@ -1,24 +1,26 @@
 import Link from "next/link"
 import {
+  Alert02Icon,
   CheckmarkBadge04Icon,
-  ClockIcon,
+  CheckmarkCircle02Icon,
   GiftIcon,
+  InformationCircleIcon,
+  QrCode01Icon,
+  UserAdd01Icon,
 } from "@hugeicons/core-free-icons"
 
 import {
   Eyebrow,
-  MetricTile,
-  MonoTag,
+  Icon,
   PageTitle,
   ReceiptCard,
   SectionHeader,
   VenueMark,
 } from "@/components/brand"
 import { MarketingLayout } from "@/components/layout"
-import { QrFrame, StampGrid } from "@/components/loyalty"
+import { QrFrame, RewardSeal, StampGrid } from "@/components/loyalty"
 import { WetInkRise } from "@/components/motion"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 const qrCells = [
   1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0,
@@ -27,56 +29,64 @@ const qrCells = [
   0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1,
 ]
 
-const journey = [
-  {
-    label: "Scan",
-    copy: "Customers point a camera at your till card. The card opens in the browser — nothing to install.",
-  },
-  {
-    label: "Join",
-    copy: "They save it to their phone with one text. No app to download, no password to forget.",
-  },
-  {
-    label: "Stamp",
-    copy: "They scan the venue QR again and tap to add today's stamp. The phone never leaves their hand.",
-  },
-  {
-    label: "Reward",
-    copy: "The third visit breaks a wax seal on a mystery reward from your pool. Redeemable the next day.",
-  },
+const stats = [
+  { value: "<5 min", label: "to set the venue up" },
+  { value: "<10 sec", label: "from scan to stamp" },
+  { value: "30 days", label: "free pilot, no card" },
 ]
 
-const beats = [
+const steps = [
   {
     n: "01",
     title: "Scan",
-    copy: "Camera up at the till card. The stamp card opens in the browser in about two seconds — no app-store detour.",
+    icon: QrCode01Icon,
+    copy: "Camera up at the till card. The card opens in the browser in about two seconds.",
   },
   {
     n: "02",
-    title: "Tap",
-    copy: "The customer lands on a stamp-confirm screen and adds one visit for the UK business day.",
+    title: "Join",
+    icon: UserAdd01Icon,
+    copy: "One text confirms the number and the card saves to the phone. No password to forget.",
   },
   {
     n: "03",
-    title: "Check",
-    copy: "Optional GPS checks stay soft: in range is quiet, out of range or unavailable is stamped and flagged.",
+    title: "Stamp",
+    icon: CheckmarkBadge04Icon,
+    copy: "Scan again and tap once. Postgres allows a single stamp per UK business day.",
   },
   {
     n: "04",
-    title: "Unseal",
-    copy: "On the third visit a wax seal breaks over a mystery reward. Give it a day to breathe, then redeem.",
+    title: "Reward",
+    icon: GiftIcon,
+    copy: "On the third visit a wax seal breaks over a mystery reward, redeemable the next day.",
   },
 ]
 
-const quotes = [
+const moreFeatures = [
+  {
+    icon: CheckmarkBadge04Icon,
+    title: "One stamp a day, honest",
+    copy: "A single stamp per customer per UK business day, enforced in the database. No double dips at the till.",
+  },
+  {
+    icon: UserAdd01Icon,
+    title: "The phone never crosses the counter",
+    copy: "Customers scan your printed QR and add their own stamp. Your team never needs the customer's phone.",
+  },
+  {
+    icon: Alert02Icon,
+    title: "Soft location checks",
+    copy: "An optional check around the venue stays gentle. Out of range is stamped and flagged, never blocked.",
+  },
+]
+
+const pilotVoices = [
   {
     quote:
       "Regulars have their code up before they've even ordered. It's the bit of theatre our counter was missing.",
     who: "Maya · Manager",
     venue: "The Old Crown, Bristol",
     initials: "OC",
-    tilt: "-rotate-1",
   },
   {
     quote:
@@ -84,7 +94,6 @@ const quotes = [
     who: "Fern · Owner",
     venue: "Fern & Loaf, Bath",
     initials: "FL",
-    tilt: "rotate-1",
   },
   {
     quote:
@@ -92,127 +101,245 @@ const quotes = [
     who: "Marlowe · Barber",
     venue: "Marlowe's, Leeds",
     initials: "ML",
-    tilt: "-rotate-1",
   },
 ]
 
-const features = [
+const trust = [
   {
-    title: "No app, no plastic",
-    copy: "Every loyalty card opens from a QR link and stays usable from the customer's browser.",
+    icon: CheckmarkBadge04Icon,
+    title: "Every stamp is on the record",
+    copy: "Each stamp is an attributable, server-side event in the ledger, so a card is always recoverable.",
   },
   {
-    title: "The phone never crosses the counter",
-    copy: "Customers scan the printed venue QR and add one audited stamp per UK business day.",
+    icon: CheckmarkCircle02Icon,
+    title: "Scoped to your venue",
+    copy: "Row-level security checks every read at the database, so one venue never sees another's customers.",
   },
   {
-    title: "Mystery rewards",
-    copy: "Customers see progress first, then a sealed reward breaks open when the target visit is earned.",
-  },
-  {
-    title: "Set up in an afternoon",
-    copy: "Account, venue details, reward pool, then download your printed QR kit — poster, till card, sticker.",
+    icon: InformationCircleIcon,
+    title: "Private by default",
+    copy: "Phone numbers are stored hashed and shown masked. Consent is logged to UK GDPR, nothing is sold on.",
   },
 ]
 
-const waysIn = [
+const pricingIncludes = [
+  "Unlimited stamps and members",
+  "The mystery reward pool, your prizes",
+  "Printed QR kit: poster, till card, sticker",
+  "Optional soft location checks",
+  "Weekly digest of visits and redemptions",
+]
+
+const faqs = [
   {
-    href: "/signup",
-    title: "Start a merchant trial",
-    copy: "Create the account, add your venue, and build the first mystery card.",
+    q: "Do my customers need an app?",
+    a: "No. The card opens in any phone browser straight from your venue QR. There is nothing to download and no account to log in to.",
   },
   {
-    href: "/login",
-    title: "Open merchant setup",
-    copy: "Continue onboarding, QR downloads, venue checks, and dashboards.",
+    q: "What if someone's location says they're not here?",
+    a: "The stamp still goes through. The optional location check is soft: out of range or unavailable is stamped and flagged for you to review, never blocked.",
   },
   {
-    href: "/pricing",
-    title: "Check pilot pricing",
-    copy: "30 days free for pilots, then GBP 29/month per venue.",
+    q: "How is a stamp kept honest?",
+    a: "Postgres allows one stamp per customer per UK business day, and every stamp is recorded as a server-side event you can audit.",
+  },
+  {
+    q: "Is my customer data safe?",
+    a: "Phone numbers are stored hashed and shown masked on your dashboard. Row-level security scopes every read to your venue, and consent is logged to UK GDPR.",
+  },
+  {
+    q: "Can I cancel?",
+    a: "Yes, with one month's notice from the billing page. Rewards your regulars have already earned stay redeemable while the account winds down.",
   },
 ]
 
 export default function Page() {
   return (
     <MarketingLayout>
-      {/* Hero */}
-      <section className="mx-auto grid w-full max-w-7xl content-center gap-10 px-6 py-12 lg:grid-cols-[minmax(0,0.95fr)_minmax(380px,1fr)] lg:items-center lg:py-16">
+      {/* Hero — one message, one object */}
+      <section className="mx-auto grid w-full max-w-6xl items-center gap-10 px-6 py-12 sm:py-14 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.8fr)] lg:gap-16 lg:py-20">
         <div className="grid gap-7">
           <PageTitle
             eyebrow="No-app loyalty for UK counters"
             title="Loyalty, stamped before the coffee cools."
-            description="A browser-based loyalty card that lives on your customer's phone. They scan your till QR, tap to stamp at the venue, and a mystery reward unseals on the third visit."
-            titleClassName="max-w-[15ch] text-[clamp(2.6rem,6vw,4.6rem)] leading-[0.98] tracking-[-0.02em]"
-            descriptionClassName="max-w-[40ch] text-base leading-7"
+            description="A browser-based loyalty card. Customers scan, tap to stamp, and unseal a mystery reward on visit three."
+            titleClassName="max-w-[20ch] text-[clamp(2.4rem,5vw,3.4rem)] leading-[1.0] tracking-[-0.025em]"
+            descriptionClassName="max-w-[44ch] text-base leading-7 sm:text-lg"
             className="md:grid-cols-1"
           />
-
           <div className="flex flex-wrap gap-3">
             <Button asChild size="lg">
               <Link href="/signup">Start a merchant trial</Link>
             </Button>
-            <Button asChild variant="secondary" size="lg">
+            <Button asChild variant="ghost" size="lg">
               <Link href="/pricing">View pricing</Link>
             </Button>
-            <Button asChild variant="outline" size="lg">
-              <Link href="/login">Merchant login</Link>
-            </Button>
           </div>
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            <MetricTile label="Setup target" value="<5 min" icon={ClockIcon} />
-            <MetricTile
-              label="Stamp flow"
-              value="<10 sec"
-              icon={CheckmarkBadge04Icon}
-            />
-            <MetricTile
-              label="Pilot offer"
-              value="30 days free"
-              icon={GiftIcon}
-            />
-          </div>
-          <p className="font-mono text-[0.7rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
-            £29/month after the pilot · one price, one venue
-          </p>
         </div>
 
-        {/* Live receipt + join QR demo */}
-        <WetInkRise className="grid gap-4" delay={0.08}>
-          <div className="-rotate-1">
-            <Card className="gap-4 p-5">
+        {/* The one hero object: a real loyalty card with its join QR */}
+        <WetInkRise
+          className="justify-self-center lg:justify-self-end"
+          delay={0.08}
+        >
+          <div className="-rotate-2">
+            <ReceiptCard edge className="w-[min(22rem,84vw)] gap-5 p-6">
               <div className="flex items-start justify-between gap-4">
-                <div className="grid gap-1">
+                <div className="grid gap-1.5">
                   <Eyebrow>The Old Crown · Bristol</Eyebrow>
-                  <p className="text-xl leading-tight font-extrabold">
+                  <p className="text-2xl leading-tight font-extrabold">
                     Free hot drink after 3 visits
                   </p>
                 </div>
-                <VenueMark size={54} />
+                <VenueMark size={52} />
               </div>
+              <StampGrid current={2} total={3} venueName="The Old Crown" />
               <hr className="w-rule" />
-              <StampGrid
-                current={2}
-                total={3}
-                venueName="The Old Crown"
-                className="max-w-64"
-              />
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
-                  Card Nº OC-0248
-                </span>
-                <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-primary uppercase">
-                  1 visit to the seal
-                </span>
+              <div className="flex items-center gap-4">
+                <QrFrame label="Demo QR code for joining a no-app loyalty card">
+                  <div className="grid aspect-square w-16 grid-cols-10 gap-[2px] rounded-sm bg-white p-1">
+                    {qrCells.map((cell, index) => (
+                      <span
+                        key={index}
+                        className={
+                          cell ? "rounded-[1px] bg-qr" : "bg-transparent"
+                        }
+                      />
+                    ))}
+                  </div>
+                </QrFrame>
+                <div className="grid gap-1">
+                  <Eyebrow>Scan to join</Eyebrow>
+                  <p className="text-sm leading-5 font-bold">
+                    One scan opens the card. No app store in the way.
+                  </p>
+                </div>
               </div>
-              <div className="receipt-edge -mx-5 -mb-5" />
-            </Card>
+            </ReceiptCard>
           </div>
+        </WetInkRise>
+      </section>
 
-          <div className="rotate-1 justify-self-end">
-            <div className="surface-card flex items-center gap-4 p-4">
-              <QrFrame label="Demo QR code for joining a no-app loyalty card">
+      {/* Proof — three numbers, no boxes */}
+      <section className="border-y-2 border-dashed border-border">
+        <div className="mx-auto grid w-full max-w-5xl gap-px px-6 py-9 sm:grid-cols-3 sm:gap-0 sm:divide-x-2 sm:divide-dashed sm:divide-border">
+          {stats.map((stat) => (
+            <div
+              key={stat.label}
+              className="grid justify-items-center gap-1 py-1.5 text-center sm:px-6"
+            >
+              <span className="text-4xl leading-none font-extrabold tracking-[-0.02em] sm:text-5xl">
+                {stat.value}
+              </span>
+              <span className="font-mono text-[0.7rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+                {stat.label}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Problem — a big claim and a quiet, abandoned card */}
+      <section className="mx-auto w-full max-w-6xl px-6 py-14 lg:py-20">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,28rem)_auto] lg:items-center lg:justify-start lg:gap-14">
+          <div className="grid gap-5">
+            <h2 className="text-[clamp(1.9rem,4vw,2.8rem)] leading-[1.04] font-extrabold tracking-[-0.02em] text-balance">
+              Paper cards get lost. Apps get deleted.
+            </h2>
+            <p className="max-w-[42ch] text-base leading-7 text-muted-foreground sm:text-lg">
+              So we took the card off the keyring and put it where the phone
+              already is: in the browser, behind one scan.
+            </p>
+          </div>
+          <div className="justify-self-center opacity-60 grayscale">
+            <div className="rotate-3">
+              <ReceiptCard className="w-60 gap-3 p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <Eyebrow>A card you lost</Eyebrow>
+                  <VenueMark size={34} initials="??" />
+                </div>
+                <StampGrid current={0} total={6} venueName="Misplaced" />
+                <span className="font-mono text-[0.6rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+                  Last seen: a coat pocket
+                </span>
+              </ReceiptCard>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How it works — the steps look like stamps filling a card */}
+      <section
+        id="how-it-works"
+        className="mx-auto w-full max-w-6xl px-6 py-14 lg:py-20"
+      >
+        <SectionHeader
+          className="mb-10 max-w-[34ch]"
+          title={
+            <span className="block text-[clamp(1.9rem,4vw,2.8rem)] leading-[1.04] tracking-[-0.02em]">
+              Four taps from a stranger to a regular.
+            </span>
+          }
+          description="The customer keeps their own phone the whole time. Your team never needs to touch it."
+        />
+        <ol className="relative grid gap-x-8 gap-y-5 sm:grid-cols-2 sm:gap-y-8 lg:grid-cols-4 lg:gap-y-10">
+          {/* The dashed line the stamps sit on, like a loyalty card row */}
+          <div
+            aria-hidden="true"
+            className="absolute top-7 right-8 left-8 hidden border-t-2 border-dashed border-border lg:block"
+          />
+          {steps.map((step) => {
+            // The stamp is the product's core verb, so it carries a soft live pulse.
+            const active = step.n === "03"
+            return (
+              <li
+                key={step.n}
+                className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-4 lg:grid-cols-1 lg:items-start lg:gap-3"
+              >
+                <span
+                  className={
+                    active
+                      ? "grid size-12 -rotate-6 place-items-center rounded-full border-2 border-ink bg-primary text-primary-foreground shadow-sm motion-safe:animate-pulse motion-reduce:animate-none lg:size-14"
+                      : "grid size-12 -rotate-6 place-items-center rounded-full border-2 border-ink bg-card text-ink shadow-sm lg:size-14"
+                  }
+                >
+                  <Icon icon={step.icon} size={22} strokeWidth={2.25} />
+                </span>
+                <div className="grid gap-1">
+                  <span className="font-mono text-[0.7rem] font-bold tracking-[0.12em] text-muted-foreground">
+                    {step.n} · {step.title.toUpperCase()}
+                  </span>
+                  <p className="max-w-[40ch] text-sm leading-6 text-muted-foreground lg:max-w-[26ch]">
+                    {step.copy}
+                  </p>
+                </div>
+              </li>
+            )
+          })}
+        </ol>
+      </section>
+
+      {/* Features — two split rows and a quiet trio, tightly spaced */}
+      <section className="mx-auto w-full max-w-6xl px-6 py-14 lg:py-20">
+        <h2 className="mb-10 max-w-[18ch] text-[clamp(1.9rem,4vw,2.8rem)] leading-[1.04] font-extrabold tracking-[-0.02em]">
+          Everything the counter needs, nothing it doesn’t.
+        </h2>
+
+        <div className="grid gap-12">
+          {/* No app — text and a clean QR */}
+          <div className="grid items-center gap-8 lg:grid-cols-2 lg:gap-14">
+            <div className="grid max-w-[40ch] gap-3">
+              <h3 className="text-2xl font-extrabold tracking-[-0.01em]">
+                No app, no plastic
+              </h3>
+              <p className="text-base leading-7 text-muted-foreground">
+                Every card opens from your venue QR and stays usable in the
+                customer’s browser. Nothing to install, nothing to lose, nothing
+                between them and their next stamp.
+              </p>
+            </div>
+            <div className="flex items-center gap-5 justify-self-center lg:justify-self-start">
+              <QrFrame label="A loyalty card opening from a venue QR">
                 <div className="grid aspect-square w-24 grid-cols-10 gap-[2px] rounded-md bg-white p-1.5">
                   {qrCells.map((cell, index) => (
                     <span
@@ -224,191 +351,223 @@ export default function Page() {
                   ))}
                 </div>
               </QrFrame>
-              <div className="grid gap-1">
-                <Eyebrow>Scan to join</Eyebrow>
-                <p className="max-w-[18ch] text-sm leading-5 font-bold">
-                  One scan opens the card. No app store in the way.
-                </p>
-              </div>
-            </div>
-          </div>
-        </WetInkRise>
-      </section>
-
-      {/* Four-stage journey */}
-      <section className="mx-auto w-full max-w-7xl px-6 pb-4">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {journey.map((stage, index) => {
-            const active = index === 2
-            return (
-              <div
-                key={stage.label}
-                className="surface-card grid gap-2 p-4 shadow-xs"
-              >
-                <div className="flex items-center gap-2">
-                  <span
-                    className={
-                      active
-                        ? "grid size-7 place-items-center rounded-full bg-primary text-xs font-extrabold text-primary-foreground shadow-xs motion-safe:animate-pulse motion-reduce:animate-none"
-                        : "grid size-7 place-items-center rounded-full border-2 border-ink bg-accent text-xs font-extrabold text-accent-foreground"
-                    }
-                  >
-                    {index + 1}
-                  </span>
-                  <span className="font-extrabold">{stage.label}</span>
-                </div>
-                <p className="text-sm leading-5 text-muted-foreground">
-                  {stage.copy}
-                </p>
-              </div>
-            )
-          })}
-        </div>
-      </section>
-
-      {/* The counter moment — dark ink band */}
-      <section className="my-10 border-y-2 border-ink bg-ink text-paper">
-        <div className="mx-auto w-full max-w-7xl px-6 py-14">
-          <div className="mb-10 flex flex-wrap items-center justify-between gap-6">
-            <div className="grid max-w-[46ch] gap-3">
-              <span className="font-mono text-[0.7rem] font-bold tracking-[0.1em] text-primary uppercase">
-                The counter moment
-              </span>
-              <h2 className="text-[clamp(1.9rem,4vw,2.9rem)] leading-[1.04] font-extrabold text-paper">
-                Four beats, under ten seconds.
-              </h2>
-              <p className="text-[0.95rem] leading-6 text-paper/65">
-                The whole product is one small piece of theatre at the till,
-                choreographed so the queue never notices — and the customer
-                keeps their phone the entire time.
+              <p className="max-w-[16ch] text-sm leading-5 font-bold">
+                Scan, and the card is on the phone. That is the whole download.
               </p>
             </div>
-            <VenueMark
-              size={92}
-              caption="The Old Crown"
-              className="[&_span:last-child]:text-paper/60"
-            />
           </div>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {beats.map((beat) => (
-              <div
-                key={beat.n}
-                className="border-t-2 border-dashed border-paper/30 pt-4"
-              >
-                <div className="font-mono text-[0.7rem] font-bold tracking-[0.1em] text-primary">
-                  BEAT {beat.n}
-                </div>
-                <div className="mt-2 text-xl font-extrabold text-paper">
-                  {beat.title}
-                </div>
-                <p className="mt-2 text-[0.85rem] leading-5 text-paper/60">
-                  {beat.copy}
-                </p>
+
+          {/* Mystery rewards — the seal leads */}
+          <div className="grid items-center gap-8 lg:grid-cols-2 lg:gap-14">
+            <div className="flex items-center gap-6 justify-self-center lg:order-1 lg:justify-self-start">
+              <RewardSeal state="sealed" size="lg" wiggle />
+              <div className="grid gap-1">
+                <span className="font-mono text-[0.65rem] font-bold tracking-[0.1em] text-muted-foreground uppercase">
+                  Visit 3 of 3
+                </span>
+                <span className="text-sm leading-5 font-bold">
+                  The seal breaks here.
+                </span>
               </div>
-            ))}
+            </div>
+            <div className="grid max-w-[40ch] gap-3 lg:order-2">
+              <h3 className="text-2xl font-extrabold tracking-[-0.01em]">
+                Mystery rewards
+              </h3>
+              <p className="text-base leading-7 text-muted-foreground">
+                Customers watch the stamps fill, then a sealed reward from your
+                pool breaks open on the target visit. The reward rests a day, so
+                the next visit always has a reason.
+              </p>
+            </div>
           </div>
+        </div>
+
+        {/* The quiet trio — grouped by a hairline, not boxes */}
+        <div className="mt-12 grid gap-x-10 gap-y-8 border-t-2 border-dashed border-border pt-10 sm:grid-cols-3">
+          {moreFeatures.map((feature) => (
+            <div key={feature.title} className="grid content-start gap-2.5">
+              <Icon
+                icon={feature.icon}
+                size={24}
+                strokeWidth={2.25}
+                className="text-primary"
+              />
+              <h3 className="text-lg font-extrabold">{feature.title}</h3>
+              <p className="text-sm leading-6 text-muted-foreground">
+                {feature.copy}
+              </p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* Social proof */}
-      <section className="mx-auto w-full max-w-7xl px-6 pb-4">
-        <div className="mb-7 grid justify-items-center gap-3 text-center">
-          <MonoTag tone="plain">From the pilot</MonoTag>
-          <h2 className="text-[clamp(1.7rem,3.6vw,2.4rem)] leading-tight font-extrabold">
+      {/* Pilot voices — three notes, light and spaced */}
+      <section className="mx-auto w-full max-w-6xl px-6 py-14 lg:py-20">
+        <div className="mb-10 grid justify-items-center gap-2 text-center">
+          <Eyebrow>From the pilot</Eyebrow>
+          <h2 className="text-[clamp(1.9rem,4vw,2.8rem)] leading-[1.04] font-extrabold tracking-[-0.02em]">
             Counters that kept it.
           </h2>
         </div>
-        <div className="grid gap-5 md:grid-cols-3">
-          {quotes.map((item) => (
-            <figure key={item.initials} className={item.tilt}>
-              <ReceiptCard className="grid gap-4">
-                <blockquote className="text-[1.05rem] leading-6 font-bold text-balance">
-                  &ldquo;{item.quote}&rdquo;
-                </blockquote>
-                <hr className="w-rule" />
-                <figcaption className="flex items-center justify-between gap-3">
-                  <div className="grid gap-1">
-                    <span className="font-mono text-[0.65rem] font-bold tracking-[0.08em] text-foreground uppercase">
-                      {item.who}
-                    </span>
-                    <span className="font-mono text-[0.6rem] tracking-[0.08em] text-muted-foreground uppercase">
-                      {item.venue}
-                    </span>
-                  </div>
-                  <VenueMark size={42} initials={item.initials} />
-                </figcaption>
-              </ReceiptCard>
+        <div className="grid gap-10 md:grid-cols-3">
+          {pilotVoices.map((item) => (
+            <figure key={item.initials} className="grid gap-4">
+              <blockquote className="text-base leading-6 font-bold text-balance">
+                &ldquo;{item.quote}&rdquo;
+              </blockquote>
+              <hr className="w-rule" />
+              <figcaption className="flex items-center justify-between gap-3">
+                <div className="grid gap-1">
+                  <span className="font-mono text-[0.65rem] font-bold tracking-[0.08em] text-foreground uppercase">
+                    {item.who}
+                  </span>
+                  <span className="font-mono text-[0.6rem] tracking-[0.08em] text-muted-foreground uppercase">
+                    {item.venue}
+                  </span>
+                </div>
+                <VenueMark size={38} initials={item.initials} />
+              </figcaption>
             </figure>
           ))}
         </div>
       </section>
 
-      {/* Pricing teaser */}
-      <section className="mx-auto w-full max-w-xl px-6 py-12">
-        <div className="-rotate-1">
-          <Card className="gap-3 p-6 text-center">
-            <Eyebrow>After the 30-day pilot</Eyebrow>
-            <p className="text-5xl leading-none font-extrabold">
-              £29
-              <span className="text-lg font-bold text-muted-foreground">
-                /month
+      {/* Trust + Pricing — paired so the proof sits next to the price */}
+      <section
+        id="pricing"
+        className="mx-auto grid w-full max-w-6xl gap-12 px-6 py-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center lg:gap-16 lg:py-20"
+      >
+        <div className="grid gap-6">
+          <div className="grid max-w-[24ch] gap-3">
+            <h2 className="text-[clamp(1.9rem,4vw,2.8rem)] leading-[1.04] font-extrabold tracking-[-0.02em]">
+              Stamped, not tracked.
+            </h2>
+            <p className="text-base leading-7 text-muted-foreground">
+              Loyalty touches money and customer data, so the boring parts are
+              built in, not bolted on.
+            </p>
+          </div>
+          <ul className="grid divide-y-2 divide-dashed divide-border border-y-2 border-dashed border-border">
+            {trust.map((item) => (
+              <li
+                key={item.title}
+                className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3.5 py-4"
+              >
+                <Icon
+                  icon={item.icon}
+                  size={22}
+                  strokeWidth={2.25}
+                  className="mt-0.5 text-primary"
+                />
+                <div className="grid gap-1">
+                  <span className="font-extrabold">{item.title}</span>
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    {item.copy}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Pricing — the receipt object, landscape so it stays compact */}
+        <WetInkRise className="-rotate-1 lg:justify-self-end">
+          <ReceiptCard
+            edge
+            className="grid gap-5 p-6 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:gap-7 sm:p-7"
+          >
+            <div className="grid gap-2 text-center sm:border-r-2 sm:border-dashed sm:border-border sm:pr-7 sm:text-left">
+              <Eyebrow>After the 30-day pilot</Eyebrow>
+              <p className="text-5xl leading-none font-extrabold tracking-[-0.02em]">
+                £29
+                <span className="text-base font-bold text-muted-foreground">
+                  /month
+                </span>
+              </p>
+              <span className="font-mono text-[0.6rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+                One venue · no contracts
               </span>
-            </p>
-            <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
-              One price · one venue · no contracts
-            </span>
-            <hr className="w-rule" />
-            <p className="text-sm leading-6 text-muted-foreground">
-              Unlimited stamps, the mystery pool, and the printed QR kit —
-              everything, no tiers.
-            </p>
-            <Button asChild size="lg" className="w-full">
-              <Link href="/pricing">See what&apos;s included</Link>
-            </Button>
-            <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
-              No card to start the pilot
-            </span>
-          </Card>
+              <Button asChild size="lg" className="mt-2 w-full">
+                <Link href="/pricing">View pricing</Link>
+              </Button>
+              <span className="font-mono text-[0.6rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+                No card to start the pilot
+              </span>
+            </div>
+            <ul className="grid gap-2">
+              {pricingIncludes.map((line) => (
+                <li key={line} className="flex items-start gap-2.5">
+                  <Icon
+                    icon={CheckmarkCircle02Icon}
+                    size={18}
+                    className="mt-0.5 shrink-0 text-primary"
+                  />
+                  <span className="text-sm leading-5">{line}</span>
+                </li>
+              ))}
+            </ul>
+          </ReceiptCard>
+        </WetInkRise>
+      </section>
+
+      {/* FAQ — a clean list of expandable rows */}
+      <section
+        id="faq"
+        className="mx-auto w-full max-w-6xl px-6 py-14 lg:py-20"
+      >
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,0.66fr)_minmax(0,1fr)] lg:items-start lg:gap-16">
+          <h2 className="max-w-[16ch] text-[clamp(1.9rem,4vw,2.8rem)] leading-[1.04] font-extrabold tracking-[-0.02em]">
+            Questions, answered plainly.
+          </h2>
+          <div className="grid divide-y-2 divide-dashed divide-border border-y-2 border-dashed border-border">
+            {faqs.map((item) => (
+              <details key={item.q} className="group">
+                <summary className="pressable flex cursor-pointer list-none items-center justify-between gap-4 py-4 font-extrabold [&::-webkit-details-marker]:hidden">
+                  {item.q}
+                  <span
+                    aria-hidden="true"
+                    className="grid size-7 shrink-0 place-items-center rounded-full border-2 border-ink text-xl leading-none transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] group-open:rotate-45 motion-reduce:transition-none"
+                  >
+                    +
+                  </span>
+                </summary>
+                <p className="max-w-[60ch] pb-5 text-sm leading-6 text-muted-foreground">
+                  {item.a}
+                </p>
+              </details>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Closing feature grid */}
-      <section className="mx-auto grid w-full max-w-7xl gap-6 px-6 pb-16">
-        <SectionHeader
-          eyebrow="Built for the counter"
-          title="Everything a venue needs to understand the product without a demo call."
-          description="The homepage keeps the no-app QR proposition, permanent venue QR stamping, pricing route, and login route available from semantic links."
-        />
-        <div className="grid gap-4 md:grid-cols-4">
-          {features.map((feature) => (
-            <Card key={feature.title}>
-              <CardHeader>
-                <CardTitle className="text-lg font-extrabold">
-                  {feature.title}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm leading-6 text-muted-foreground">
-                  {feature.copy}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-3">
-          {waysIn.map((step) => (
+      {/* Closing — the one deliberate ink band */}
+      <section className="border-y-2 border-ink bg-ink text-paper">
+        <div className="mx-auto grid w-full max-w-3xl justify-items-center gap-5 px-6 py-16 text-center lg:py-20">
+          <h2 className="max-w-[16ch] text-[clamp(2.2rem,5vw,3.6rem)] leading-[0.98] font-extrabold tracking-[-0.025em] text-paper">
+            Set up your venue this afternoon.
+          </h2>
+          <p className="max-w-[46ch] text-base leading-7 text-paper/70">
+            Run the pilot free for 30 days, then £29 a month for one venue with
+            no contract. Earned rewards stay good even if you leave.
+          </p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Button asChild size="lg">
+              <Link href="/signup">Start a merchant trial</Link>
+            </Button>
+            <Button asChild variant="secondary" size="lg">
+              <Link href="/pricing">View pricing</Link>
+            </Button>
+          </div>
+          <p className="text-sm text-paper/70">
+            Already running a venue?{" "}
             <Link
-              key={step.href}
-              href={step.href}
-              className="pressable surface-card grid gap-2 p-5 shadow-xs transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none hover:border-primary"
+              href="/login"
+              className="font-bold text-paper underline underline-offset-4 hover:text-primary"
             >
-              <span className="font-extrabold">{step.title}</span>
-              <span className="text-sm leading-6 text-muted-foreground">
-                {step.copy}
-              </span>
+              Merchant login
             </Link>
-          ))}
+          </p>
         </div>
       </section>
     </MarketingLayout>

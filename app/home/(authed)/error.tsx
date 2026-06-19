@@ -14,7 +14,7 @@ export default function HomeError({
     <div className="grid min-h-[60dvh] content-center py-8">
       <CustomerErrorState
         title="That didn't load"
-        description="Something interrupted this page. Try again — your cards and stamps are safe on the server."
+        description="Something interrupted this page. Try again. Your cards and stamps are safe on the server."
         reset={reset}
       />
     </div>

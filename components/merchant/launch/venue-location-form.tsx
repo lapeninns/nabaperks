@@ -50,7 +50,7 @@ export function VenueLocationForm({
       <PageTitle
         eyebrow="Step 3 · Venue"
         title="Where do scans happen?"
-        description="Your printed QR never changes. GPS is an optional soft check — it never blocks a customer's stamp, it only flags an odd one for review."
+        description="Your printed QR never changes. GPS is an optional soft check. It never blocks a customer's stamp, it only flags an odd one for review."
         titleClassName="sm:text-3xl"
       />
 

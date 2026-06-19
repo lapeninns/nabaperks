@@ -11,8 +11,9 @@ import {
   StampJourneyPreview,
   StatusBanner,
 } from "@/components/loyalty"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { getMerchantJoinContext } from "@/lib/customer/join"
+import { cn } from "@/lib/utils"
 
 type MerchantRewardsPageProps = {
   params: Promise<{
@@ -46,7 +47,7 @@ export default async function MerchantRewardsPage({
     <CustomerFlowShell
       eyebrow="No app loyalty"
       title="Collect your stamp"
-      description={`Save ${merchant.business_name}'s card to your number — collect ${loyaltyCard.stamps_required} stamps to unseal a mystery reward. No app, no plastic.`}
+      description={`Save ${merchant.business_name}'s card to your number, collect ${loyaltyCard.stamps_required} stamps to unseal a mystery reward. No app, no plastic.`}
       dense
       className="content-center"
       screenLabel="Merchant loyalty preview"
@@ -93,11 +94,14 @@ export default async function MerchantRewardsPage({
               .join(" · "),
           }}
           triggerLabel="View reward terms"
-          // The legal sheet's Radix trigger overrides `data-slot`, so the Wet Ink
-          // button layer can't reach it — compose the `.pressable` primitive
-          // (10px radius, vermillion focus ring, press) with the secondary tokens
-          // directly instead. Fixes the prior 14px `rounded-xl` + missing focus ring.
-          triggerClassName="pressable inline-flex h-12 w-full items-center justify-center border-2 border-ink bg-secondary px-4 text-base font-bold no-underline shadow-sm hover:bg-secondary/80"
+          // The sheet's trigger is a plain button, so dress it with the real
+          // secondary Button styles (focus ring, press, tokens) via buttonVariants
+          // instead of hand-rolling them. no-underline cancels the trigger's
+          // default text-link underline.
+          triggerClassName={cn(
+            buttonVariants({ variant: "secondary", size: "lg" }),
+            "w-full no-underline"
+          )}
         />
       </div>
     </CustomerFlowShell>

@@ -16,7 +16,7 @@ import {
 import { formatDate, formatPence } from "@/lib/customer/format"
 
 export const metadata = {
-  title: "Your rewards — Nabaperks",
+  title: "Your rewards · Nabaperks",
 }
 
 export default async function HomeRewardsPage() {
@@ -28,13 +28,13 @@ export default async function HomeRewardsPage() {
       <PageTitle
         eyebrow="My Nabaperks"
         title="Rewards"
-        description="Rewards you've earned across every venue — ready for merchant scan, on the way, and ones you've enjoyed."
+        description="Rewards you've earned across every venue, ready for merchant scan, on the way, and ones you've enjoyed."
       />
 
       {!hasAny ? (
         <EmptyState
           title="No rewards yet"
-          description="Keep collecting stamps — when you complete a card, the reward lands here."
+          description="Keep collecting stamps. When you complete a card, the reward lands here."
           icon={GiftIcon}
         />
       ) : (

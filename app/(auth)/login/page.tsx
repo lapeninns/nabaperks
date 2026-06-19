@@ -31,7 +31,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <div className="grid gap-1">
               <Eyebrow>Your venue, one tap away</Eyebrow>
               <p className="text-sm leading-5 font-bold">
-                Stamps, rewards, and the printed QR kit — all from one console.
+                Stamps, rewards, and the printed QR kit, all from one console.
               </p>
             </div>
           </ReceiptCard>

@@ -1,11 +1,10 @@
 "use client"
 
 import { Camera01Icon } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 
-import { Eyebrow, ReceiptCard } from "@/components/brand"
+import { Eyebrow, Icon, ReceiptCard } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 
 const CustomerQrScanner = dynamic(
@@ -19,27 +18,37 @@ const CustomerQrScanner = dynamic(
 
 function CustomerQrScannerLoading() {
   return (
-    <ReceiptCard className="border-stamp-200 bg-cream-50 grid gap-5 p-5">
+    <ReceiptCard edge className="grid gap-5 p-6">
       <div className="grid gap-3">
-        <span className="bg-stamp-100 text-stamp-700 flex h-11 w-11 items-center justify-center rounded-full">
-          <HugeiconsIcon icon={Camera01Icon} size={24} aria-hidden />
+        <span className="grid size-11 place-items-center rounded-full border-2 border-ink bg-accent text-accent-foreground">
+          <Icon icon={Camera01Icon} size={22} />
         </span>
-        <div className="space-y-2">
+        <div className="grid gap-1.5">
           <Eyebrow>Customer scanner</Eyebrow>
-          <h1 className="text-ink-900 font-serif text-3xl leading-tight">
-            Scan venue QR
+          <h1 className="text-2xl leading-tight font-extrabold tracking-[-0.01em]">
+            Scan a venue QR
           </h1>
-          <p className="text-ink-600 text-sm leading-6">
-            Point your camera at a Nabaperks venue QR. We will open the existing
-            QR flow so your stamps, OTP checks, and rewards stay protected.
+          <p className="text-sm leading-6 text-muted-foreground">
+            Point your camera at a Nabaperks venue QR to collect your stamp. No
+            app, no plastic.
           </p>
         </div>
       </div>
 
-      <div className="border-stamp-300 min-h-72 overflow-hidden rounded-2xl border border-dashed bg-white" />
-
-      <div aria-live="polite" className="text-ink-800 text-sm font-semibold">
-        Starting camera...
+      <div className="grid min-h-64 place-items-center rounded-[var(--radius)] border-2 border-dashed border-border bg-card">
+        <span className="grid justify-items-center gap-2 text-center">
+          <Icon
+            icon={Camera01Icon}
+            size={28}
+            className="text-muted-foreground motion-safe:animate-pulse motion-reduce:animate-none"
+          />
+          <span
+            aria-live="polite"
+            className="font-mono text-[0.65rem] font-bold tracking-[0.08em] text-muted-foreground uppercase"
+          >
+            Starting camera
+          </span>
+        </span>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">

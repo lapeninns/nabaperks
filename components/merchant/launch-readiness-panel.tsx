@@ -139,8 +139,8 @@ export function LaunchReadinessPanel({
                 aria-current={
                   isActive ? "page" : !tabMode && isNext ? "step" : undefined
                 }
-                aria-label={`${step.label} — ${step.ready ? "ready" : "to do"}`}
-                className="grid justify-items-center gap-2 rounded-lg px-1 py-2 text-center transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/35"
+                aria-label={`${step.label}, ${step.ready ? "ready" : "to do"}`}
+                className="grid justify-items-center gap-2 rounded-lg px-1 py-2 text-center transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none"
               >
                 {inner}
               </Link>
