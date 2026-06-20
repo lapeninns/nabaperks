@@ -12,6 +12,13 @@ export type StampLocationCapture = {
   readonly captureElapsedMs: number
 }
 
+export function shouldAttemptStampLocation(
+  requireGeofence: boolean,
+  nextCycleStampNumber: number
+): boolean {
+  return requireGeofence && nextCycleStampNumber === 3
+}
+
 export function resolveStampLocation(
   shouldAttemptLocation: boolean
 ): Promise<StampLocationCapture | null> {

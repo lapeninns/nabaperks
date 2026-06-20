@@ -758,7 +758,9 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     const forms = readProjectFile("components/customer/self-service-forms.tsx")
     const locationCapture = `${collector}\n${forms}`
 
-    expect(collector).toContain("nextCycleStampNumber === 3")
+    expect(forms).toContain("shouldAttemptStampLocation")
+    expect(forms).toContain("nextCycleStampNumber === 3")
+    expect(collector).toContain("shouldAttemptStampLocation")
     expect(locationCapture).toContain("SOFT_GPS_CAPTURE_TIMEOUT_MS = 1000")
     expect(locationCapture).toContain("localStorage")
     expect(locationCapture).toContain("denied_remembered")
@@ -771,14 +773,24 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     expect(collector).not.toContain("venue may review")
   })
 
+  it("prefetches stamp location on the confirm screen before tap", () => {
+    const collector = readProjectFile("components/customer/stamp-collector.tsx")
+
+    expect(collector).toContain("useEffect")
+    expect(collector).toContain("locationPromiseRef.current = promise")
+    expect(collector).toContain("await locationPromiseRef.current")
+    expect(collector).not.toMatch(
+      /onStamp[\s\S]*resolveStampLocation\(shouldAttemptLocation\)/
+    )
+  })
+
   it("does not attempt browser geolocation before active-cycle stamp 3", async () => {
     vi.resetModules()
     const { geolocation, getCurrentPosition } = geolocationThatDenies()
     setGeolocation(geolocation)
 
-    const { resolveStampLocation } = await import(
-      "@/components/customer/self-service-forms"
-    )
+    const { resolveStampLocation } =
+      await import("@/components/customer/self-service-forms")
     const capture = await resolveStampLocation(false)
 
     expect(capture).toBeNull()
@@ -792,9 +804,8 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     const { geolocation, getCurrentPosition } = geolocationThatDenies()
     setGeolocation(geolocation)
 
-    const { resolveStampLocation } = await import(
-      "@/components/customer/self-service-forms"
-    )
+    const { resolveStampLocation } =
+      await import("@/components/customer/self-service-forms")
     const capture = await resolveStampLocation(true)
 
     expect(getCurrentPosition).toHaveBeenCalledTimes(1)
@@ -812,9 +823,8 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     const { geolocation } = geolocationThatDenies()
     setGeolocation(geolocation)
 
-    const { resolveStampLocation } = await import(
-      "@/components/customer/self-service-forms"
-    )
+    const { resolveStampLocation } =
+      await import("@/components/customer/self-service-forms")
     const capture = await resolveStampLocation(true)
 
     expect(capture).toMatchObject({
@@ -828,9 +838,8 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
 
   it("adds only minimized soft GPS fields to the stamp form", async () => {
     vi.resetModules()
-    const { addLocationCapture } = await import(
-      "@/components/customer/self-service-forms"
-    )
+    const { addLocationCapture } =
+      await import("@/components/customer/self-service-forms")
     const data = new FormData()
 
     addLocationCapture(data, {

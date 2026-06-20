@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useEffect, useRef, useState, useTransition } from "react"
 
 import { selfStampAction } from "@/app/card/[membershipId]/actions"
 import { CustomerStampCard } from "@/components/customer/customer-flow-system"
@@ -10,6 +10,8 @@ import { StampCelebration, WetInkShake } from "@/components/motion"
 import {
   addLocationCapture,
   resolveStampLocation,
+  shouldAttemptStampLocation,
+  type StampLocationCapture,
 } from "@/components/customer/self-service-forms"
 import {
   initialSelfStampState,
@@ -153,6 +155,22 @@ export function StampCollector({
   const [, startTransition] = useTransition()
   const [armed, setArmed] = useState(false)
   const [shake, setShake] = useState(false)
+  const nextCycleStampNumber = current + 1
+  const shouldAttemptLocation =
+    canStamp &&
+    shouldAttemptStampLocation(location.requireGeofence, nextCycleStampNumber)
+  const locationPromiseRef =
+    useRef<Promise<StampLocationCapture | null> | null>(null)
+
+  useEffect(() => {
+    if (!shouldAttemptLocation) {
+      locationPromiseRef.current = Promise.resolve(null)
+      return
+    }
+
+    const promise = resolveStampLocation(true)
+    locationPromiseRef.current = promise
+  }, [shouldAttemptLocation, membershipId, qrId])
 
   const issued = result.status === "issued" ? result : null
   const errorMessage = result.status === "error" ? result.message : null
@@ -173,10 +191,9 @@ export function StampCollector({
     setArmed(true)
     setShake(true)
     void (async () => {
-      const nextCycleStampNumber = current + 1
-      const shouldAttemptLocation =
-        location.requireGeofence && nextCycleStampNumber === 3
-      const locationCapture = await resolveStampLocation(shouldAttemptLocation)
+      const locationCapture =
+        (await locationPromiseRef.current) ??
+        (shouldAttemptLocation ? await resolveStampLocation(true) : null)
       const formData = new FormData()
       formData.set("membershipId", membershipId)
       formData.set("qrId", qrId)
@@ -237,7 +254,10 @@ export function StampCollector({
               </span>
             </StatusBanner>
           ) : null}
-          {location.requireGeofence && current + 1 === 3 && !view.secured ? (
+          {shouldAttemptStampLocation(
+            location.requireGeofence,
+            nextCycleStampNumber
+          ) && !view.secured ? (
             <p className="rounded-xl bg-secondary px-3 py-2 text-center text-xs leading-5 text-muted-foreground">
               This venue may try a soft location check within{" "}
               {location.geofenceRadiusMeters}m. Your stamp still saves if your

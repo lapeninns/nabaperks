@@ -474,20 +474,27 @@ values
     '15000000-0000-0000-0000-000000000001',
     2,
     2,
-    now()
+    now() - interval '1 day'
   ),
   (
     '16000000-0000-0000-0000-000000000002',
     '10000000-0000-0000-0000-000000000002',
     '15000000-0000-0000-0000-000000000002',
-    1,
-    1,
-    now()
+    2,
+    2,
+    now() - interval '1 day'
   )
 on conflict (id) do update
 set current_stamp_count = excluded.current_stamp_count,
     total_stamps_earned = excluded.total_stamps_earned,
     last_visit_at = excluded.last_visit_at;
+
+delete from public.stamp_events
+where metadata ->> 'source' in (
+  'seed_rewards_ready_today',
+  'seed_second_cycle_complete',
+  'seed_two_of_three_stamps'
+);
 
 insert into public.stamp_events (
   id,
@@ -510,6 +517,17 @@ values
     '11000000-0000-0000-0000-000000000001',
     'earned',
     1,
+    public.uk_business_date(now() - interval '2 days')
+  ),
+  (
+    '17000000-0000-0000-0000-000000000011',
+    '10000000-0000-0000-0000-000000000001',
+    '15000000-0000-0000-0000-000000000001',
+    '16000000-0000-0000-0000-000000000001',
+    '13000000-0000-0000-0000-000000000001',
+    '11000000-0000-0000-0000-000000000001',
+    'earned',
+    1,
     public.uk_business_date(now() - interval '1 day')
   ),
   (
@@ -521,8 +539,19 @@ values
     '11000000-0000-0000-0000-000000000002',
     'earned',
     1,
+    public.uk_business_date(now() - interval '2 days')
+  ),
+  (
+    '17000000-0000-0000-0000-000000000012',
+    '10000000-0000-0000-0000-000000000002',
+    '15000000-0000-0000-0000-000000000002',
+    '16000000-0000-0000-0000-000000000002',
+    '13000000-0000-0000-0000-000000000002',
+    '11000000-0000-0000-0000-000000000002',
+    'earned',
+    1,
     public.uk_business_date(now() - interval '1 day')
-)
+  )
 on conflict (id) do update
 set earned_business_date = excluded.earned_business_date,
     created_at = least(public.stamp_events.created_at, now() - interval '1 day');
