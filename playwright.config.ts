@@ -19,9 +19,19 @@ export default defineConfig({
   projects: [
     {
       name: "iphone-customer-flow",
+      // The merchant pin-map proof is a desktop scenario; keep it out of the
+      // mobile customer-flow project so existing captures stay iPhone-only.
+      testIgnore: "**/high-accuracy-geofence-precision.spec.ts",
       use: {
         ...devices["iPhone 14"],
         browserName: "chromium",
+      },
+    },
+    {
+      name: "chromium",
+      testMatch: "**/high-accuracy-geofence-precision.spec.ts",
+      use: {
+        ...devices["Desktop Chrome"],
       },
     },
   ],

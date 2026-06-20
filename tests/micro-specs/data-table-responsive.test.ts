@@ -156,6 +156,31 @@ describe("DataTable responsive mobile-card mode", () => {
     expect(html).toContain("<table")
   })
 
+  it("uses the `xl` card breakpoint (xl:hidden cards + hidden xl:block table) when cardBreakpoint='xl'", () => {
+    const html = renderToStaticMarkup(
+      createElement(DataTable<Row>, {
+        caption: CAPTION,
+        columns: COLUMNS,
+        rows: ROWS,
+        getRowKey: (row) => row.id,
+        cardBreakpoint: "xl",
+        mobileCard: (row) =>
+          createElement("p", { "data-card": row.id }, `Card: ${row.label}`),
+      })
+    )
+
+    expect(hasClass(html, "xl:hidden")).toBe(true)
+    expect(/class="[^"]*\bhidden\b[^"]*\bxl:block\b[^"]*"/.test(html)).toBe(
+      true
+    )
+    expect(hasClass(html, "lg:hidden")).toBe(false)
+    expect(/class="[^"]*\bhidden\b[^"]*\blg:block\b[^"]*"/.test(html)).toBe(
+      false
+    )
+    expect(html).toContain('data-card="r1"')
+    expect(html).toContain("<table")
+  })
+
   it("matches class names containing regex syntax as literal text", () => {
     const html = '<div class="sm:hidden data-[state=open]:block"></div>'
 

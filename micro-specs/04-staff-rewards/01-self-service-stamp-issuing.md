@@ -101,7 +101,7 @@ Out of scope:
 - **MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-002** WHEN the customer taps add stamp and all server checks pass, THE system SHALL
   create a `stamp_events` record and increment membership progress.
 - **MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-003** WHEN the next active-cycle stamp number is 1 or 2, THE system SHALL not request GPS and SHALL not write a GPS unknown fraud flag.
-- **MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-004** WHEN the next active-cycle stamp number is 3 and soft geofence is enabled, THE system SHALL require a browser GPS attempt and SHALL still issue the stamp when GPS is denied, timeout, unsupported, unavailable, or poor-accuracy.
+- **MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-004** WHEN the next active-cycle stamp number is 3 and soft geofence is enabled, THE system SHALL request a fresh high-accuracy browser GPS fix when available and SHALL still issue the stamp when GPS is denied, timeout, unsupported, unavailable, or poor-accuracy.
 - **MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-005** WHEN a reward cycle resets, THE system SHALL reapply the cycle stamp 3 trigger and SHALL store new stamp evidence without raw customer latitude or longitude.
 - **MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-006** WHEN the customer has already received a stamp for the membership/location/UK
   date, THE system SHALL reject the duplicate attempt with safe copy.

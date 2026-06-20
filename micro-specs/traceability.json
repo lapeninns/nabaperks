@@ -5752,14 +5752,30 @@
         "micro-specs/02-merchant/02-loyalty-card-builder.md",
         "micro-specs/TRACEABILITY.md",
         "micro-specs/traceability.json",
-        "supabase/migrations/**"
+        "supabase/migrations/**",
+        "app/dev/launch-preview/**",
+        "components/merchant/**",
+        "lib/merchant/venue-address.ts",
+        "lib/merchant/resolve-venue-address.ts",
+        "config/env-contract.json",
+        "scripts/env-keys.mjs",
+        "docs/ARCHITECTURE.md",
+        "docs/ENV_KEYS.md",
+        "docs/QA_MATRIX.md",
+        "README.md",
+        ".env.example",
+        "tests/micro-specs/**",
+        "tests/e2e/**",
+        "playwright.config.ts"
       ],
       "implementation_surfaces": [
         "app/app/card/**",
         "app/app/launch/**",
         "lib/merchant/loyalty-card.ts",
         "supabase/migrations/**",
-        "components/loyalty/**"
+        "components/loyalty/**",
+        "lib/merchant/venue-address.ts",
+        "components/merchant/**"
       ],
       "related_docs": [
         "docs/PROJECT_SPEC.md",
@@ -6322,6 +6338,122 @@
               "gap_reason": null
             }
           ]
+        },
+        {
+          "requirement_id": "MS-MERCHANT-LOYALTY-CARD-BUILDER-009",
+          "summary": "WHEN a merchant adjusts the venue geofence pin, THE system SHALL persist the manual pin coordinates over the address geocode and record the coordinate provenance as a merchant-placed pin separately from the address source.",
+          "gates": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify"
+          ],
+          "evidence": [
+            "tests/micro-specs/venue-address-lookup.test.ts",
+            "tests/e2e/high-accuracy-geofence-precision.spec.ts"
+          ],
+          "status": "active",
+          "risk_class": "rls-rpc-ledger",
+          "required_test_tier": [
+            "governance",
+            "lint",
+            "security",
+            "sql-rls",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify"
+          ],
+          "implementation_surfaces": [
+            "app/app/launch/**",
+            "supabase/migrations/**"
+          ],
+          "related_tests": [
+            "tests/micro-specs/venue-address-lookup.test.ts",
+            "tests/e2e/high-accuracy-geofence-precision.spec.ts"
+          ],
+          "manual_rationale": [],
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "INP-MS-MERCHANT-LOYALTY-CARD-BUILDER-009-a",
+              "category": "input",
+              "trigger": "a manual pin with out-of-range or non-finite coordinates is submitted",
+              "expected": "reject the manual pin and write nothing instead of overriding the geocode",
+              "required_layer": ["unit"],
+              "evidence": ["tests/micro-specs/venue-address-lookup.test.ts"],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
+        },
+        {
+          "requirement_id": "MS-MERCHANT-LOYALTY-CARD-BUILDER-010",
+          "summary": "WHEN a merchant selects their venue from Google Places autocomplete during venue setup, THE system SHALL fill the structured UK venue address from the selected place, validate the provider place identity and GB coordinates server-side, and persist the selection as `address_source = \"provider_lookup\"`, `address_provider = \"google_places\"`, and `address_provider_id = place.id` while leaving manual address entry, the Nominatim geocode fallback, and a dragged manual pin override unchanged.",
+          "gates": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify"
+          ],
+          "evidence": ["tests/micro-specs/venue-address-lookup.test.ts"],
+          "status": "active",
+          "risk_class": "rls-rpc-ledger",
+          "required_test_tier": [
+            "governance",
+            "lint",
+            "security",
+            "sql-rls",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify"
+          ],
+          "implementation_surfaces": [
+            "app/app/launch/**",
+            "supabase/migrations/**"
+          ],
+          "related_tests": ["tests/micro-specs/venue-address-lookup.test.ts"],
+          "manual_rationale": [],
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "STM-MS-MERCHANT-LOYALTY-CARD-BUILDER-010-a",
+              "category": "state-machine",
+              "trigger": "a valid Google Places venue selection is submitted",
+              "expected": "persist provider provenance and skip Nominatim geocoding",
+              "required_layer": ["unit"],
+              "evidence": ["tests/micro-specs/venue-address-lookup.test.ts"],
+              "status": "covered",
+              "gap_reason": null
+            },
+            {
+              "id": "INP-MS-MERCHANT-LOYALTY-CARD-BUILDER-010-b",
+              "category": "input",
+              "trigger": "an invalid provider identity or non-GB coordinate is submitted",
+              "expected": "reject the provider lookup and write nothing",
+              "required_layer": ["unit"],
+              "evidence": ["tests/micro-specs/venue-address-lookup.test.ts"],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
         }
       ],
       "change_state": "current",
@@ -6430,7 +6562,7 @@
         },
         {
           "requirement_id": "MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-002",
-          "summary": "WHEN account navigation renders, THE system SHALL label `/app/settings` as `Settings`.",
+          "summary": "WHEN account navigation renders, THE system SHALL expose a single `Account` entry linking to `/app/account`, with Billing and Settings reached as Account hub tabs.",
           "gates": [
             "pnpm governance",
             "pnpm lint",
@@ -6471,7 +6603,7 @@
               "id": "UX-MS-MERCHANT-VALUE-CONSOLE-TRUST-IA-CLEANUP-002-a",
               "category": "ux",
               "trigger": "account navigation renders",
-              "expected": "label `/app/settings` as `Settings`",
+              "expected": "expose one `Account` entry for `/app/account`, with Billing and Settings reached as Account hub tabs",
               "required_layer": ["security", "unit"],
               "evidence": [
                 "tests/micro-specs/merchant-console-trust-ia.test.ts"
@@ -11458,7 +11590,7 @@
         },
         {
           "requirement_id": "MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-004",
-          "summary": "WHEN the next active-cycle stamp is 3 and soft geofence is enabled, THE system SHALL require a browser GPS attempt and still issue the stamp when GPS is denied, timed out, unsupported, unavailable, or poor accuracy.",
+          "summary": "WHEN the next active-cycle stamp is 3 and soft geofence is enabled, THE system SHALL request a fresh high-accuracy browser GPS fix when available and still issue the stamp when GPS is denied, timed out, unsupported, unavailable, or poor accuracy.",
           "gates": [
             "pnpm governance",
             "pnpm lint",

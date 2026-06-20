@@ -58,12 +58,14 @@ function MerchantAccountsPanel({
         <SectionHeader
           title="Merchant accounts"
           description="Service-role admin readback of account status and billing joins."
-          actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
+          actions={
+            <SourceLabel>Source: service-role admin readback</SourceLabel>
+          }
         />
       </div>
       <DataTable
         caption="Admin merchant account readback"
-        cardBreakpoint="lg"
+        cardBreakpoint="xl"
         className="rounded-none border-0 shadow-none"
         rows={merchants}
         getRowKey={(merchant) => merchant.id}

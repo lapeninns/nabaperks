@@ -24,6 +24,13 @@
     "description": "Stripe publishable key used by client-side Stripe flows."
   },
   {
+    "name": "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY",
+    "visibility": "public",
+    "kind": "string",
+    "description": "Optional restricted browser key for Google Maps JavaScript API and Places API (New) venue autocomplete.",
+    "optional": true
+  },
+  {
     "name": "NEXT_PUBLIC_POSTHOG_KEY",
     "visibility": "public",
     "kind": "string",

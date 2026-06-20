@@ -64,7 +64,7 @@ export function AdminPilotScreen() {
         </div>
         <DataTable
           caption="Pilot readiness source-labelled metrics"
-          cardBreakpoint="lg"
+          cardBreakpoint="xl"
           className="rounded-none border-0 shadow-none"
           mobileClassName="p-5"
           rows={ADMIN_PILOT_REPORT.metrics}

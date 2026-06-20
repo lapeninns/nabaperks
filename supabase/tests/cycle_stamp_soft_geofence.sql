@@ -356,7 +356,9 @@ begin
     or v_flag.metadata->>'confidence' <> 'medium'
     or (v_flag.metadata->>'cycle_stamp_number')::integer <> 3
     or (v_flag.metadata->>'configured_radius_meters')::integer <> 150
-    or (v_flag.metadata->>'effective_radius_meters')::integer <> 190 then
+    or (v_flag.metadata->>'effective_radius_meters')::integer <> 185
+    or (v_flag.metadata->>'accuracy_cap_meters')::integer <> 100
+    or (v_flag.metadata->>'fixed_tolerance_meters')::integer <> 10 then
     raise exception 'fraud flag metadata missing minimized review fields: %', v_flag.metadata;
   end if;
 
@@ -634,7 +636,7 @@ begin
 
   if v_metadata->>'location_status' <> 'in_range'
     or v_metadata->>'distance_bucket' <> 'near_margin'
-    or (v_metadata->>'effective_radius_meters')::integer <> 190 then
+    or (v_metadata->>'effective_radius_meters')::integer <> 185 then
     raise exception 'in-range effective radius metadata was not minimized correctly: %', v_metadata;
   end if;
 
@@ -642,6 +644,81 @@ begin
     'in-range effective radius stamp',
     v_metadata
   );
+end $$;
+
+-- Given cycle stamp 3, when accuracy is between the new and old poor thresholds, then 150m accuracy is treated as poor and is not flagged.
+do $$
+declare
+  v_customer_id uuid := '15000000-0000-0000-0000-0000000003b6';
+  v_membership_id uuid := '16000000-0000-0000-0000-0000000003b6';
+  v_metadata jsonb;
+begin
+  insert into public.customers (
+    id, auth_user_id, phone_hmac, phone_last4, phone_country, full_name, date_of_birth
+  )
+  values (
+    v_customer_id,
+    null,
+    'cycle-soft-geo-hmac-3b6',
+    '3106',
+    'GB',
+    'Cycle Geo Poor 150',
+    date '1990-01-01'
+  );
+
+  insert into public.customer_memberships (
+    id, merchant_id, customer_id, current_stamp_count, total_stamps_earned, active_cycle_number
+  )
+  values (
+    v_membership_id,
+    '10000000-0000-0000-0000-000000000001',
+    v_customer_id,
+    2,
+    2,
+    1
+  );
+
+  insert into public.stamp_events (
+    merchant_id, customer_id, membership_id, loyalty_card_id, location_id,
+    event_type, stamps_delta, earned_business_date, cycle_number, created_at
+  )
+  values
+    ('10000000-0000-0000-0000-000000000001', v_customer_id, v_membership_id, '13000000-0000-0000-0000-000000000001', '11000000-0000-0000-0000-000000000001', 'earned', 1, public.uk_business_date(now()) - 2, 1, now() - interval '2 days'),
+    ('10000000-0000-0000-0000-000000000001', v_customer_id, v_membership_id, '13000000-0000-0000-0000-000000000001', '11000000-0000-0000-0000-000000000001', 'earned', 1, public.uk_business_date(now()) - 1, 1, now() - interval '1 day');
+
+  -- 150m accuracy at a far-away point: under the old 200m poor threshold this
+  -- would be evaluated and flagged out-of-range; under the new 100m threshold it
+  -- is poor accuracy and must not flag.
+  perform public.issue_self_service_stamp(
+    v_membership_id,
+    v_customer_id,
+    53.500000,
+    -2.200000,
+    150,
+    'granted',
+    420
+  );
+
+  if exists (
+    select 1
+    from public.fraud_flags
+    where membership_id = v_membership_id
+      and signal = 'self_service_geofence_out_of_range'
+  ) then
+    raise exception '150m accuracy created an out-of-range geofence flag under the tightened poor threshold';
+  end if;
+
+  select metadata into v_metadata
+  from public.stamp_events
+  where membership_id = v_membership_id
+    and earned_business_date = public.uk_business_date(now());
+
+  if v_metadata->>'location_status' <> 'poor_accuracy'
+    or v_metadata->>'accuracy_bucket' <> 'accuracy_over_100m' then
+    raise exception '150m accuracy was not treated as poor accuracy in the over-100m bucket: %', v_metadata;
+  end if;
+
+  perform pg_temp.assert_no_raw_location_metadata('poor accuracy 150m stamp', v_metadata);
 end $$;
 
 -- Given new soft GPS params, when the customer is already stamped today, then idempotency still rejects the duplicate before GPS review.

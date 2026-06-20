@@ -5,11 +5,12 @@ import { previewPath } from "../../lib/dev/merchant-admin-preview"
 /**
  * Mobile navigation interaction for the merchant/admin console shells. The
  * screenshot spec proves the layouts do not overflow; this spec proves the
- * mobile Sheet nav is operable at a phone width: the trigger has an accessible
- * name and a ≥44px hit area, the Sheet opens and lists the nav links, the
- * surface's tab is marked active (driven by the `/dev` `activePath` override),
- * the trigger and items meet the 44px touch-target floor, and Escape closes the
- * Sheet. Both consoles are exercised via their `-customers` surface.
+ * mobile sidebar Sheet is operable at a phone width: the trigger has an
+ * accessible name and a >=44px hit area, the Sheet opens and lists the nav
+ * links, the surface's tab is marked active (driven by the `/dev` `activePath`
+ * override), the trigger and items meet the 44px touch-target floor, and link
+ * selection plus Escape close the Sheet. Both consoles are exercised via their
+ * `-customers` surface.
  */
 
 const PHONE = { width: 375, height: 812 } as const
@@ -43,8 +44,10 @@ async function suppressNonConsoleOverlays(page: Page): Promise<void> {
     ({ selectors, dismissKey }) => {
       try {
         window.localStorage.setItem(dismissKey, "1")
-      } catch {
-        // localStorage may be unavailable; the CSS above still hides the hint.
+      } catch (error) {
+        if (!(error instanceof Error)) {
+          throw error
+        }
       }
 
       for (const element of document.querySelectorAll(selectors)) {
@@ -78,9 +81,7 @@ async function expectAtLeastTapTarget(
 type NavCase = {
   console: "merchant" | "admin"
   surfaceId: "merchant-customers" | "admin-customers"
-  // The nav links expected to be listed in the open Sheet.
   links: string[]
-  // The link that must be marked active for this surface.
   activeLabel: string
 }
 
@@ -124,8 +125,7 @@ for (const navCase of CASES) {
 
     await suppressNonConsoleOverlays(page)
 
-    // The Sheet trigger carries an accessible name ("Menu") and a ≥44px target.
-    const trigger = page.getByRole("button", { name: "Menu" })
+    const trigger = page.getByRole("button", { name: "Toggle Sidebar" })
     await expect(trigger).toBeVisible()
     await expectAtLeastTapTarget(trigger, `${navCase.console} menu trigger`)
 
@@ -158,12 +158,25 @@ for (const navCase of CASES) {
     const inactiveLabel = navCase.links.find(
       (label) => label !== navCase.activeLabel
     )
-    expect(inactiveLabel, "a non-active nav label exists").toBeDefined()
+    if (!inactiveLabel) {
+      throw new Error("Expected a non-active nav label")
+    }
     const inactiveLink = dialog.getByRole("link", {
-      name: inactiveLabel as string,
+      name: inactiveLabel,
       exact: true,
     })
     await expect(inactiveLink).not.toHaveAttribute("aria-current", "page")
+
+    await inactiveLink.click()
+    await expect(dialog).toBeHidden()
+
+    await page.goto(previewPath(navCase.surfaceId))
+    await expect(
+      page.locator(`[data-ma-preview="${navCase.surfaceId}"]`)
+    ).toBeVisible()
+    await suppressNonConsoleOverlays(page)
+    await trigger.click()
+    await expect(dialog).toBeVisible()
 
     // Keyboard close: Escape dismisses the Sheet (Radix Dialog behaviour).
     await page.keyboard.press("Escape")

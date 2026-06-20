@@ -29,7 +29,7 @@ export default async function AdminAuditPage() {
         </div>
         <DataTable
           caption="Admin audit log readback"
-          cardBreakpoint="lg"
+          cardBreakpoint="xl"
           className="rounded-none border-0 shadow-none"
           rows={logs}
           getRowKey={(log) => log.id}

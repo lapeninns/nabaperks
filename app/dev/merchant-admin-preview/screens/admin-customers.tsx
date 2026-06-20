@@ -57,7 +57,7 @@ export function AdminCustomersScreen({ empty = false }: { empty?: boolean }) {
         />
         <DataTable
           caption="Admin customer membership support readback"
-          cardBreakpoint="lg"
+          cardBreakpoint="xl"
           className="rounded-lg shadow-none"
           rows={customers}
           getRowKey={(row: AdminCustomerRow) => row.id}
@@ -179,7 +179,7 @@ export function AdminCustomersScreen({ empty = false }: { empty?: boolean }) {
         />
         <DataTable
           caption="Admin reward support readback"
-          cardBreakpoint="lg"
+          cardBreakpoint="xl"
           className="rounded-lg shadow-none"
           rows={rewards}
           getRowKey={(reward: AdminRewardRow) => reward.id}

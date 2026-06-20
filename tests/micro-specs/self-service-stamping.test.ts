@@ -761,7 +761,7 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     expect(forms).toContain("shouldAttemptStampLocation")
     expect(forms).toContain("nextCycleStampNumber === 3")
     expect(collector).toContain("shouldAttemptStampLocation")
-    expect(locationCapture).toContain("SOFT_GPS_CAPTURE_TIMEOUT_MS = 1000")
+    expect(locationCapture).toContain("SOFT_GPS_CAPTURE_TIMEOUT_MS = 1200")
     expect(locationCapture).toContain("localStorage")
     expect(locationCapture).toContain("denied_remembered")
     expect(locationCapture).toContain('locationStatus: "timeout"')
@@ -797,7 +797,7 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     expect(getCurrentPosition).not.toHaveBeenCalled()
   })
 
-  it("tries current browser geolocation even after a remembered denial", async () => {
+  it("short-circuits a remembered denial without calling browser geolocation", async () => {
     vi.resetModules()
     const storage = stubLocalStorage()
     storage.setItem("nabaperks:soft-gps-denied:v1", "1")
@@ -808,12 +808,70 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
       await import("@/components/customer/self-service-forms")
     const capture = await resolveStampLocation(true)
 
-    expect(getCurrentPosition).toHaveBeenCalledTimes(1)
-    expect(capture).toMatchObject({
+    // A remembered denial must not re-prompt the browser: the soft check is
+    // resolved locally so the customer is never blocked or nagged.
+    expect(getCurrentPosition).not.toHaveBeenCalled()
+    expect(capture).toEqual({
       latitude: null,
       longitude: null,
       accuracyMeters: null,
       locationStatus: "denied_remembered",
+      captureElapsedMs: 0,
+    })
+  })
+
+  it("requests a fresh high-accuracy fix on the stamp-3 capture path", async () => {
+    vi.resetModules()
+    stubLocalStorage()
+    let capturedOptions: PositionOptions | undefined
+    const getCurrentPosition = vi.fn(
+      (
+        success: PositionCallback,
+        _error?: PositionErrorCallback | null,
+        options?: PositionOptions
+      ): void => {
+        capturedOptions = options
+        success({
+          coords: {
+            latitude: 52.2425913,
+            longitude: 0.0814946,
+            accuracy: 12,
+            altitude: null,
+            altitudeAccuracy: null,
+            heading: null,
+            speed: null,
+            toJSON() {
+              return {}
+            },
+          },
+          timestamp: 0,
+          toJSON() {
+            return {}
+          },
+        })
+      }
+    )
+    setGeolocation({
+      getCurrentPosition,
+      watchPosition: vi.fn(() => 0),
+      clearWatch: vi.fn(),
+    })
+
+    const { resolveStampLocation } =
+      await import("@/components/customer/self-service-forms")
+    const capture = await resolveStampLocation(true)
+
+    expect(getCurrentPosition).toHaveBeenCalledTimes(1)
+    // Fresh fix only: no cached position, high accuracy, capped at the short
+    // capture budget so a slow GPS lock never delays the stamp.
+    expect(capturedOptions).toEqual({
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: 1200,
+    })
+    expect(capture).toMatchObject({
+      locationStatus: "granted",
+      accuracyMeters: 12,
     })
   })
 

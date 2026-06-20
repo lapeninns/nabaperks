@@ -60,7 +60,7 @@ export function AdminMerchantsScreen({ empty = false }: { empty?: boolean }) {
         </div>
         <DataTable
           caption="Admin merchant account readback"
-          cardBreakpoint="lg"
+          cardBreakpoint="xl"
           className="rounded-none border-0 shadow-none"
           rows={merchants}
           getRowKey={(merchant: AdminMerchantRow) => merchant.id}

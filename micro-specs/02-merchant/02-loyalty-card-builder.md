@@ -7,18 +7,33 @@ last_reviewed: 2026-06-15
 allowed_blast_radius:
   - app/app/card/**
   - app/app/launch/**
+  - app/dev/launch-preview/**
   - components/loyalty/**
+  - components/merchant/**
   - lib/merchant/loyalty-card.ts
+  - lib/merchant/venue-address.ts
+  - lib/merchant/resolve-venue-address.ts
+  - config/env-contract.json
+  - scripts/env-keys.mjs
+  - docs/ARCHITECTURE.md
+  - docs/ENV_KEYS.md
+  - docs/QA_MATRIX.md
+  - README.md
+  - .env.example
   - micro-specs/02-merchant/02-loyalty-card-builder.md
   - micro-specs/TRACEABILITY.md
   - micro-specs/traceability.json
   - supabase/migrations/**
+  - tests/micro-specs/**
+  - tests/e2e/**
 implementation_surfaces:
   - app/app/card/**
   - app/app/launch/**
   - lib/merchant/loyalty-card.ts
+  - lib/merchant/venue-address.ts
   - supabase/migrations/**
   - components/loyalty/**
+  - components/merchant/**
 related_docs:
   - docs/PROJECT_SPEC.md
   - docs/ARCHITECTURE.md
@@ -98,6 +113,8 @@ Out of scope:
 - **MS-MERCHANT-LOYALTY-CARD-BUILDER-006** WHEN a reward pool item has already been assigned to a customer reward, THE system SHALL archive it instead of hard-deleting the historical reward reference.
 - **MS-MERCHANT-LOYALTY-CARD-BUILDER-007** WHEN a card is inactive, THE QR resolver and stamp issuing flows SHALL not permit new stamp claims for that card.
 - **MS-MERCHANT-LOYALTY-CARD-BUILDER-008** WHEN a card is created or changed, THE system SHALL write an audit log and a `loyalty_card_created` or equivalent product event.
+- **MS-MERCHANT-LOYALTY-CARD-BUILDER-009** WHEN a merchant adjusts the venue geofence pin, THE system SHALL persist the manual pin coordinates over the address geocode and record the coordinate provenance as a merchant-placed pin separately from the address source.
+- **MS-MERCHANT-LOYALTY-CARD-BUILDER-010** WHEN a merchant selects their venue from Google Places autocomplete during venue setup, THE system SHALL fill the structured UK venue address from the selected place, validate the provider place identity and GB coordinates server-side, and persist the selection as `address_source = "provider_lookup"`, `address_provider = "google_places"`, and `address_provider_id = place.id` while leaving manual address entry, the Nominatim geocode fallback, and a dragged manual pin override unchanged.
 
 ## Verification Criteria
 

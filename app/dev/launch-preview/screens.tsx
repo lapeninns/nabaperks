@@ -72,6 +72,39 @@ export function LaunchPreviewScreen({
   )
 }
 
+/**
+ * Named venue-geofence scenarios for the agent browser proof. `geofence-on`
+ * renders the draggable pin map (require_geofence true + Old Crown Girton pilot
+ * coordinates 52.2425913, 0.0814946 + radius 100); `geofence-off` renders the
+ * same form with the map suppressed. The pin starts as `geocoded` so a drag can
+ * be proven to flip the hidden source to `merchant_pin`.
+ */
+export function VenueGeofenceScenarioPreview({
+  scenario,
+}: {
+  scenario: "geofence-on" | "geofence-off"
+}) {
+  const requireGeofence = scenario === "geofence-on"
+
+  return (
+    <div className="mx-auto grid max-w-2xl gap-4 p-6">
+      <VenueLocationForm
+        initialValues={{
+          venueName: LAUNCH_PREVIEW_MOCK.merchantName,
+          addressLine1: "High Street",
+          addressLine2: "",
+          addressCity: "Girton",
+          addressPostcode: "CB3 0QH",
+          geofenceRadiusMeters: "100",
+          requireGeofence,
+        }}
+        geocoded={{ latitude: 52.2425913, longitude: 0.0814946 }}
+        pinSource="geocoded"
+      />
+    </div>
+  )
+}
+
 function MockCardPanel() {
   return (
     <div className="grid gap-5">

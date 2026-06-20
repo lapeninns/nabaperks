@@ -1,6 +1,6 @@
 "use client"
 
-export const SOFT_GPS_CAPTURE_TIMEOUT_MS = 1000
+export const SOFT_GPS_CAPTURE_TIMEOUT_MS = 1200
 
 const LOCATION_DENIAL_MEMORY_KEY = "nabaperks:soft-gps-denied:v1"
 
@@ -39,7 +39,19 @@ export function resolveStampLocation(
       return
     }
 
-    const hadRememberedDenial = rememberedLocationDenied()
+    // A remembered denial resolves the soft check locally — no fresh browser
+    // prompt, so the customer is never re-nagged and the stamp is never delayed.
+    if (rememberedLocationDenied()) {
+      resolve({
+        latitude: null,
+        longitude: null,
+        accuracyMeters: null,
+        locationStatus: "denied_remembered",
+        captureElapsedMs: 0,
+      })
+      return
+    }
+
     const startedAt = nowMs()
     let settled = false
     const finish = (capture: StampLocationCapture) => {
@@ -78,17 +90,13 @@ export function resolveStampLocation(
           longitude: null,
           accuracyMeters: null,
           locationStatus:
-            error.code === error.PERMISSION_DENIED
-              ? hadRememberedDenial
-                ? "denied_remembered"
-                : "denied"
-              : "unavailable",
+            error.code === error.PERMISSION_DENIED ? "denied" : "unavailable",
           captureElapsedMs: elapsedMs(startedAt),
         })
       },
       {
-        enableHighAccuracy: false,
-        maximumAge: 60_000,
+        enableHighAccuracy: true,
+        maximumAge: 0,
         timeout: SOFT_GPS_CAPTURE_TIMEOUT_MS,
       }
     )

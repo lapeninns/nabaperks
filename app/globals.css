@@ -474,6 +474,87 @@ body[data-grain="true"]::after {
   background: rgba(33, 28, 22, 0.5);
 }
 
+[data-slot="sidebar"] {
+  color: var(--sidebar-foreground);
+}
+
+[data-slot="sidebar"][data-mobile="true"] {
+  width: min(18rem, calc(100vw - 2rem));
+  border-right: 2px solid var(--w-ink);
+  background: var(--sidebar);
+  box-shadow: 5px 0 0 var(--w-shadow-color);
+}
+
+[data-slot="sidebar-container"] {
+  border-right: 2px solid var(--w-ink);
+  background: var(--sidebar);
+  box-shadow: 4px 0 0 var(--w-shadow-color);
+}
+
+[data-slot="sidebar-inner"] {
+  background: var(--sidebar);
+}
+
+[data-slot="sidebar-header"],
+[data-slot="sidebar-footer"] {
+  background: var(--card);
+}
+
+[data-slot="sidebar-content"] {
+  background: var(--sidebar);
+}
+
+[data-slot="sidebar-group-label"] {
+  min-height: 2rem;
+  color: var(--w-ink-soft);
+  font-family:
+    var(--font-space-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+[data-slot="sidebar-menu-button"] {
+  min-height: 2.75rem;
+  border: 2px solid transparent;
+  border-radius: var(--radius-lg);
+  color: var(--sidebar-foreground);
+  font-weight: 800;
+}
+
+[data-slot="sidebar-menu-button"]:hover,
+[data-slot="sidebar-menu-button"]:focus-visible {
+  border-color: var(--w-ink);
+  background: var(--sidebar-accent);
+  color: var(--sidebar-accent-foreground);
+}
+
+[data-slot="sidebar-menu-button"][data-active="true"],
+[data-slot="sidebar-menu-button"][data-active="true"]:hover,
+[data-slot="sidebar-menu-button"][data-active="true"]:focus-visible {
+  border-color: var(--w-ink);
+  background: var(--sidebar-primary);
+  color: var(--sidebar-primary-foreground);
+  --tw-shadow: 2px 2px 0 var(--w-shadow-color);
+}
+
+[data-slot="sidebar-trigger"] {
+  border: 2px solid var(--w-ink);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  --tw-shadow: 2px 2px 0 var(--w-shadow-color);
+}
+
+[data-slot="sidebar-trigger"]:active:not(:disabled, [aria-disabled="true"]) {
+  translate: 1px 1px;
+  --tw-shadow: 1px 1px 0 var(--w-shadow-color);
+}
+
+[data-slot="sidebar-inset"] {
+  background: var(--background);
+}
+
 /* Earned stamp — Penny Post: postage perforation + double ring from one hook.
    The disc itself carries the vermillion fill, letterpress sheen and resting
    tilt; ::before is the punched perforation ring, ::after the inner hairline
