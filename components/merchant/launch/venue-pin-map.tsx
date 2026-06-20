@@ -23,7 +23,7 @@ const MARKER_HTML =
   'box-shadow:0 1px 5px rgba(0,0,0,0.45);"></span>'
 
 /**
- * Client-only draggable venue pin. Direct Leaflet (no React wrapper): the map is
+ * Client-only draggable geofence pin. Direct Leaflet (no React wrapper): the map is
  * built in an effect, kept in refs, and torn down on unmount. A second effect
  * keeps the marker, circle, and radius in sync with controlled props without
  * rebuilding the map.

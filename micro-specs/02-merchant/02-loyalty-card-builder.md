@@ -98,6 +98,7 @@ Out of scope:
 - **MS-MERCHANT-LOYALTY-CARD-BUILDER-006** WHEN a reward pool item has already been assigned to a customer reward, THE system SHALL archive it instead of hard-deleting the historical reward reference.
 - **MS-MERCHANT-LOYALTY-CARD-BUILDER-007** WHEN a card is inactive, THE QR resolver and stamp issuing flows SHALL not permit new stamp claims for that card.
 - **MS-MERCHANT-LOYALTY-CARD-BUILDER-008** WHEN a card is created or changed, THE system SHALL write an audit log and a `loyalty_card_created` or equivalent product event.
+- **MS-MERCHANT-LOYALTY-CARD-BUILDER-009** WHEN a merchant adjusts the venue geofence pin, THE system SHALL persist the manual pin coordinates over the address geocode and record the coordinate provenance as a merchant-placed pin separately from the address source.
 
 ## Verification Criteria
 

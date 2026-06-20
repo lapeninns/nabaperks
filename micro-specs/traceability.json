@@ -6322,6 +6322,62 @@
               "gap_reason": null
             }
           ]
+        },
+        {
+          "requirement_id": "MS-MERCHANT-LOYALTY-CARD-BUILDER-009",
+          "summary": "WHEN a merchant adjusts the venue geofence pin, THE system SHALL persist the manual pin coordinates over the address geocode and record the coordinate provenance as a merchant-placed pin separately from the address source.",
+          "gates": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify"
+          ],
+          "evidence": [
+            "tests/micro-specs/venue-address-lookup.test.ts",
+            "tests/e2e/high-accuracy-geofence-precision.spec.ts"
+          ],
+          "status": "active",
+          "risk_class": "rls-rpc-ledger",
+          "required_test_tier": [
+            "governance",
+            "lint",
+            "security",
+            "sql-rls",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify"
+          ],
+          "implementation_surfaces": [
+            "app/app/launch/**",
+            "supabase/migrations/**"
+          ],
+          "related_tests": [
+            "tests/micro-specs/venue-address-lookup.test.ts",
+            "tests/e2e/high-accuracy-geofence-precision.spec.ts"
+          ],
+          "manual_rationale": [],
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "INP-MS-MERCHANT-LOYALTY-CARD-BUILDER-009-a",
+              "category": "input",
+              "trigger": "a manual pin with out-of-range or non-finite coordinates is submitted",
+              "expected": "reject the manual pin and write nothing instead of overriding the geocode",
+              "required_layer": ["unit"],
+              "evidence": ["tests/micro-specs/venue-address-lookup.test.ts"],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
         }
       ],
       "change_state": "current",
@@ -11458,7 +11514,7 @@
         },
         {
           "requirement_id": "MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-004",
-          "summary": "WHEN the next active-cycle stamp is 3 and soft geofence is enabled, THE system SHALL require a browser GPS attempt and still issue the stamp when GPS is denied, timed out, unsupported, unavailable, or poor accuracy.",
+          "summary": "WHEN the next active-cycle stamp is 3 and soft geofence is enabled, THE system SHALL request a fresh high-accuracy browser GPS fix when available and still issue the stamp when GPS is denied, timed out, unsupported, unavailable, or poor accuracy.",
           "gates": [
             "pnpm governance",
             "pnpm lint",

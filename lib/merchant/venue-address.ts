@@ -52,7 +52,7 @@ export function parseVenueAddressFields(
 export type GeofencePinSource = "geocoded" | "merchant_pin"
 
 /**
- * Parse a submitted manual venue pin. Valid for this slice only when both
+ * Parse a submitted manual geofence pin. Valid for this slice only when both
  * coordinates are finite and within global latitude/longitude bounds — no UK
  * bounds or distance-from-geocode constraint. Returns null for any invalid,
  * out-of-range, or empty input so the caller can fall back or reject.

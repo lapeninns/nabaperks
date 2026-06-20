@@ -79,7 +79,7 @@ export async function saveVenueLocationAction(
   // A submitted manual pin must carry finite, in-range coordinates; reject an
   // invalid pin rather than silently falling back to the geocode.
   if (geofencePinSource === "merchant_pin" && manualPin === null) {
-    errors.form = "Drop the venue pin on the map before saving."
+    errors.form = "Drop the pin on the map before saving."
   }
 
   if (Object.keys(errors).length > 0 || radius === null) {

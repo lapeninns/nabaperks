@@ -6,7 +6,7 @@ type LaunchPreviewIndexProps = {
 
 /**
  * Query-param preview index for the agent browser proof. `?tab=venue` renders
- * a named geofence scenario so Playwright can drive the venue pin map without a
+ * a named geofence scenario so Playwright can drive the geofence pin map without a
  * Supabase session. The path-based `[state]` route still serves the launch-hub
  * screenshot states.
  */
@@ -32,7 +32,7 @@ export default async function LaunchPreviewIndexPage({
   return (
     <div data-launch-preview-tab={tab ?? "none"} className="p-6 text-sm">
       Launch preview. Use the venue scenario query (tab=venue,
-      scenario=geofence-on) to preview the venue pin map.
+      scenario=geofence-on) to preview the geofence pin map.
     </div>
   )
 }

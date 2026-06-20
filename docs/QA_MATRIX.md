@@ -164,6 +164,7 @@ All product specs are `active`; the two governance specs are `implemented`.
 | 006 | Assigned reward archived, not hard-deleted | unit | u:analytics-dashboard-pilot | — |
 | 007 | Inactive card blocks new stamp claims | unit/sql | u:self-service-stamping | — |
 | 008 | Card create/change writes events | unit | u:merchant-qr-mutations | — |
+| 009 | Venue pin drag persists a manual override and records `merchant_pin` provenance, separate from address source | unit + browser | u:venue-address-lookup, e2e:high-accuracy-geofence-precision | invalid manual pin rejected before write; address edits reset pending source to geocoded; browser proof needs the :3100 dev server |
 
 **MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS** · `rls-rpc-ledger` · gates: `qa:static`, `qa:unit`, `qa:db`, `qa:security`
 | Req | Behaviour | Test type | Evidence | Gap / note |
@@ -211,7 +212,7 @@ All product specs are `active`; the two governance specs are `implemented`.
 | 001 | Member scan routes to stamp-confirm with QR context | unit | u:returning-qr-redirect, u:customer-stamp-loader | — |
 | 002 | Valid tap creates `stamp_events`, increments membership | unit + sql | u:self-service-stamping, sql:reward_redemption_cycles | — |
 | 003 | Cycle stamp 1 and 2 do not request GPS; cycle stamp 1 and 2 do not write GPS unknown fraud flags | unit + sql | u:cycle-stamp-3-governance-admin-legal, u:self-service-stamping | SQL proof needs disposable DB before qa:db, qa:e2e, or qa:visual |
-| 004 | Cycle stamp 3 requires a browser GPS attempt when soft geofence is enabled; denied, timeout, unsupported, unavailable, or poor-accuracy GPS still issues the stamp | unit + sql | u:cycle-stamp-3-governance-admin-legal, u:self-service-stamping | SQL/browser proof needs disposable DB before qa:db, qa:e2e, or qa:visual |
+| 004 | Cycle stamp 3 requests a fresh high-accuracy browser GPS fix when soft geofence is enabled; denied, timeout, unsupported, unavailable, or poor-accuracy GPS still issues the stamp | unit + sql | u:cycle-stamp-3-governance-admin-legal, u:self-service-stamping | SQL/browser proof needs disposable DB before qa:db, qa:e2e, or qa:visual; precision tightened to cap 100m / tolerance 10m / poor 100m |
 | 005 | Reward-cycle reset reapplies the cycle stamp 3 trigger; new stamp evidence stores no raw customer latitude or longitude | unit + sql | u:cycle-stamp-3-governance-admin-legal, u:self-service-stamping | Admin fraud readback is minimized and bucketed |
 | 006 | Duplicate per membership/UK-date rejected | unit + sql | u:self-service-stamping, sql:reward_redemption_cycles | — |
 | 007 | Target stamp selects one weighted reward pool item | unit + sql | u:self-service-stamping, sql:reward_redemption_cycles | — |
