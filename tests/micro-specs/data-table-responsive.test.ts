@@ -16,6 +16,7 @@ const COLUMNS: DataTableColumn<Row>[] = [
 ]
 
 const CAPTION = "Admin venue readback"
+const REGEX_META = /[\\^$.*+?()[\]{}|]/g
 
 // Extract the markup of the `sm:hidden` mobile-card container, if present.
 // The container is the element whose class list contains `sm:hidden`.
@@ -23,10 +24,8 @@ function hasMobileContainer(html: string) {
   return /class="[^"]*\bsm:hidden\b[^"]*"/.test(html)
 }
 
-// True when the markup contains an element whose class list includes the
-// given Tailwind utility (escaping the `:` for the regex).
 function hasClass(html: string, utility: string) {
-  const escaped = utility.replace(/[:]/g, "\\$&")
+  const escaped = utility.replace(REGEX_META, "\\$&")
   return new RegExp(`class="[^"]*\\b${escaped}\\b[^"]*"`).test(html)
 }
 
@@ -155,5 +154,12 @@ describe("DataTable responsive mobile-card mode", () => {
     // Card content and the semantic table are both still rendered.
     expect(html).toContain('data-card="r1"')
     expect(html).toContain("<table")
+  })
+
+  it("matches class names containing regex syntax as literal text", () => {
+    const html = '<div class="sm:hidden data-[state=open]:block"></div>'
+
+    expect(hasClass(html, "data-[state=open]:block")).toBe(true)
+    expect(hasClass(html, "data-[state=closed]:block")).toBe(false)
   })
 })
