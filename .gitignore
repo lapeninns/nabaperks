@@ -29,6 +29,12 @@
 .firecrawl/
 supabase/.temp/
 
+# local agent/tooling output
+.omo/
+Goal/
+artifacts/
+*.evidence.md
+
 # debug
 npm-debug.log*
 yarn-debug.log*
