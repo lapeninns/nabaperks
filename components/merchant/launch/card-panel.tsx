@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { PageTitle, ReceiptCard } from "@/components/brand"
 import { LoyaltyCardForm } from "@/components/merchant/loyalty-card-form"
 import { StatusBanner } from "@/components/loyalty/status-banner"
+import { DEFAULT_STAMPS_REQUIRED } from "@/lib/merchant/customer-readback"
 import { getLoyaltyCardSetup } from "@/lib/merchant/loyalty-card"
 
 export type CardPanelParams = {
@@ -36,26 +37,24 @@ export async function CardPanel({ params }: { params: CardPanelParams }) {
       <LoyaltyCardForm
         merchantName={merchant.business_name}
         locationName={location.name}
+        activeRewardCount={
+          rewardPoolItems.filter((item) => item.is_active).length
+        }
         initialValues={{
           cardId: card?.id,
           cardName: card?.card_name ?? "Mystery Visit Card",
-          stampsRequired: String(card?.stamps_required ?? 3),
+          stampsRequired: String(
+            Math.max(
+              DEFAULT_STAMPS_REQUIRED,
+              card?.stamps_required ?? DEFAULT_STAMPS_REQUIRED
+            )
+          ),
           rewardTerms:
             card?.reward_terms ??
             "Complete 3 visits to reveal a surprise reward. Redeem from the next UK business day.",
           minSpendPence: "",
           isActive: card?.is_active ?? true,
         }}
-        rewardPoolItems={rewardPoolItems.map((item) => ({
-          id: item.id,
-          rewardName: item.reward_name,
-          rewardTerms: item.reward_terms,
-          minSpendPence:
-            item.min_spend_pence === null ? "" : String(item.min_spend_pence),
-          weight: String(item.weight),
-          displayOrder: String(item.display_order),
-          isActive: item.is_active,
-        }))}
       />
     </div>
   )
@@ -66,22 +65,6 @@ function CardStatus({ params }: { params: CardPanelParams }) {
     return (
       <StatusBanner tone="success" title="Mystery card saved.">
         Your visit-card settings are ready for customer previews.
-      </StatusBanner>
-    )
-  }
-
-  if (params.saved === "pool") {
-    return (
-      <StatusBanner tone="success" title="Reward pool saved.">
-        Launch eligibility has been refreshed with your latest reward changes.
-      </StatusBanner>
-    )
-  }
-
-  if (params.error) {
-    return (
-      <StatusBanner tone="error" title="Reward update failed.">
-        Unable to update reward. Check the reward and try again.
       </StatusBanner>
     )
   }

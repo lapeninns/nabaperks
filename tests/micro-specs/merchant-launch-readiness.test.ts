@@ -47,8 +47,9 @@ describe("05 merchant launch readiness readback", () => {
     expect(readiness.launchReady).toBe(false)
     expect(readiness.nextStep).toMatchObject({
       id: "rewards",
-      actionLabel: "Add reward",
-      href: "/app/launch?tab=card",
+      label: "Your rewards",
+      actionLabel: "Add rewards",
+      href: "/app/launch?tab=rewards",
     })
     expect(readiness.steps.map((step) => [step.id, step.ready])).toEqual([
       ["card", true],
@@ -56,7 +57,12 @@ describe("05 merchant launch readiness readback", () => {
       ["venue", false],
       ["qr", false],
     ])
-    expect(readiness.tabs).toEqual({ card: false, venue: false, qr: false })
+    expect(readiness.tabs).toEqual({
+      card: true,
+      rewards: false,
+      venue: false,
+      qr: false,
+    })
   })
 
   it("threads launch readiness into the merchant dashboard and launch hub", () => {
@@ -70,8 +76,13 @@ describe("05 merchant launch readiness readback", () => {
     expect(dashboardPage).toContain("LaunchReadinessPanel")
     expect(dashboardPage).toContain("!launchReadiness.launchReady")
     expect(launchPage).toContain("buildLaunchReadiness")
+    expect(launchPage).toContain("RewardsPanel")
     expect(panel).toContain("Launch readiness")
-    expect(panel).toContain("Ink progress")
+    expect(panel).toContain("Launch setup")
+    expect(panel).toContain("Setup progress")
+    expect(panel).not.toContain("All four stamps")
+    expect(launchPage).toContain("Four setup steps")
+    expect(launchPage).not.toContain("Four stamps")
     expect(panel).toContain("nextStep")
   })
 

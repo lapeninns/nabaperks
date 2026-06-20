@@ -52,36 +52,33 @@ describe("merchant account hub micro-spec", () => {
       vi.resetModules()
       const ProfilePanel = vi.fn(() => null)
       const BillingPanel = vi.fn(() => null)
-      const AccountTabBar = vi.fn(() => null)
       vi.doMock("@/components/merchant/account/profile-panel", () => ({
         ProfilePanel,
       }))
       vi.doMock("@/components/merchant/account/billing-panel", () => ({
         BillingPanel,
       }))
-      vi.doMock("@/components/merchant/account/account-tab-bar", () => ({
-        AccountTabBar,
-      }))
+      const { PageTitle } = await import("@/components/brand")
       const { default: AccountPage } = await import("@/app/app/account/page")
       const tree = await AccountPage({
         searchParams: Promise.resolve(searchParams),
       })
-      return { tree, ProfilePanel, BillingPanel, AccountTabBar }
+      return { tree, ProfilePanel, BillingPanel, PageTitle }
     }
 
     it("defaults to the profile panel when tab is missing or invalid", async () => {
-      const { tree, ProfilePanel, BillingPanel, AccountTabBar } =
+      const { tree, ProfilePanel, BillingPanel, PageTitle } =
         await renderAccount({})
 
       expect(findByType(tree, ProfilePanel)).not.toBeNull()
       expect(findByType(tree, BillingPanel)).toBeNull()
-      expect(findByType(tree, AccountTabBar)?.props).toMatchObject({
-        activeTab: "profile",
+      expect(findByType(tree, PageTitle)?.props).toMatchObject({
+        title: "Profile",
       })
     })
 
     it("renders the billing panel and forwards Stripe outcome params", async () => {
-      const { tree, BillingPanel, AccountTabBar } = await renderAccount({
+      const { tree, BillingPanel, PageTitle } = await renderAccount({
         tab: "billing",
         checkout: "success",
       })
@@ -91,8 +88,8 @@ describe("merchant account hub micro-spec", () => {
       expect(panel?.props).toMatchObject({
         params: { checkout: "success", portal: undefined },
       })
-      expect(findByType(tree, AccountTabBar)?.props).toMatchObject({
-        activeTab: "billing",
+      expect(findByType(tree, PageTitle)?.props).toMatchObject({
+        title: "Billing",
       })
     })
 
@@ -118,13 +115,15 @@ describe("merchant account hub micro-spec", () => {
       )
     })
 
-    it("redirects /app/settings to the Account hub", async () => {
+    it("redirects /app/settings to the Account profile tab", async () => {
       vi.resetModules()
       const redirect = redirectMock()
       vi.doMock("next/navigation", () => ({ redirect }))
       const { default: SettingsPage } = await import("@/app/app/settings/page")
 
-      await expect(SettingsPage()).rejects.toThrow("NEXT_REDIRECT:/app/account")
+      await expect(SettingsPage()).rejects.toThrow(
+        "NEXT_REDIRECT:/app/account?tab=profile"
+      )
     })
 
     it("redirects /app/billing onto the Billing tab with checkout outcome preserved", async () => {
@@ -172,14 +171,17 @@ describe("merchant account hub micro-spec", () => {
       expect(billingActions).toContain("/app/billing?portal=missing")
     })
 
-    it("points the shell account entry and billing CTAs at the Account hub", () => {
+    it("points the shell account entries and billing CTAs at the Account hub", () => {
       const shellNav = readProjectFile("components/layout/console-nav.ts")
       const billingStatus = readProjectFile(
         "components/merchant/billing-status.tsx"
       )
       const activity = readProjectFile("lib/merchant/activity.ts")
 
-      expect(shellNav).toContain('href: "/app/account", label: "Account"')
+      expect(shellNav).toContain('href: "/app/account?tab=profile"')
+      expect(shellNav).toContain('label: "Profile"')
+      expect(shellNav).toContain('href: "/app/account?tab=billing"')
+      expect(shellNav).toContain('label: "Billing"')
       expect(shellNav).not.toContain('href: "/app/billing"')
       expect(shellNav).not.toContain('href: "/app/settings"')
       expect(shellNav).not.toContain('href: "/app/profile"')
@@ -191,10 +193,12 @@ describe("merchant account hub micro-spec", () => {
   })
 
   describe("Wet Ink account surfaces", () => {
-    it("keeps one stable Account frame and lifts pricing out of the swapping hero", () => {
+    it("uses tab-specific page titles instead of a nested tab bar", () => {
       const page = readProjectFile("app/app/account/page.tsx")
 
-      expect(page).toContain('title="Account"')
+      expect(page).toContain('title: "Profile"')
+      expect(page).toContain('title: "Billing"')
+      expect(page).not.toContain("AccountTabBar")
       expect(page).not.toContain("Growth Plan")
       expect(page).not.toContain("GBP 29")
     })

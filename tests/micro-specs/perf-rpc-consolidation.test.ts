@@ -31,6 +31,24 @@ describe("performance RPC consolidation", () => {
           },
         ],
       },
+      from: {
+        customer_memberships: [
+          { count: 2, error: null },
+          { count: 1, error: null },
+        ],
+        stamp_events: [
+          { count: 4, error: null },
+          { count: 3, error: null },
+        ],
+        reward_events: [
+          { count: 1, error: null },
+          { count: 2, error: null },
+        ],
+        product_events: [
+          { count: 2, error: null },
+          { count: 2, error: null },
+        ],
+      },
     })
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
@@ -49,14 +67,22 @@ describe("performance RPC consolidation", () => {
         qrDownloads: 5,
       },
       billingStatus: "active",
+      trends: {
+        newMembers: { current: 2, previous: 1, direction: "up" },
+        stamps: { current: 4, previous: 3, direction: "up" },
+        rewards: { current: 1, previous: 2, direction: "down" },
+        qrDownloads: { current: 2, previous: 2, direction: "flat" },
+      },
     })
 
-    // Then: the loader does not fan out through exact count table reads.
+    // Then: headline metrics come from one RPC; weekly trends use bounded counts.
     expect(supabase.rpcCalls).toContainEqual({
       name: "get_merchant_dashboard_metrics",
       params: { target_merchant_id: "merchant-1" },
     })
-    expect(supabase.queryCalls).toEqual([])
+    expect(
+      supabase.queryCalls.some((call) => call.table === "stamp_events")
+    ).toBe(true)
   })
 
   it("falls back to table count queries when the dashboard metrics RPC is missing", async () => {
@@ -79,10 +105,24 @@ describe("performance RPC consolidation", () => {
           { count: 10, error: null },
           { count: 2, error: null },
           { count: 4, error: null },
+          { count: 2, error: null },
+          { count: 1, error: null },
         ],
-        stamp_events: [{ count: 18, error: null }],
-        reward_events: [{ count: 3, error: null }],
-        product_events: [{ count: 5, error: null }],
+        stamp_events: [
+          { count: 18, error: null },
+          { count: 4, error: null },
+          { count: 3, error: null },
+        ],
+        reward_events: [
+          { count: 3, error: null },
+          { count: 1, error: null },
+          { count: 2, error: null },
+        ],
+        product_events: [
+          { count: 5, error: null },
+          { count: 2, error: null },
+          { count: 2, error: null },
+        ],
         billing_customers: [{ data: { status: "active" }, error: null }],
       },
     })

@@ -463,7 +463,8 @@ describe("00/01 foundation micro-specs", () => {
       "/app/activity",
     ])
     expect(merchantAccountItems.map(({ href }) => href)).toEqual([
-      "/app/account",
+      "/app/account?tab=profile",
+      "/app/account?tab=billing",
     ])
     expect(merchantShell).toContain("ConsoleSidebarNav")
     expect(merchantShell).toContain("<form action={signOutAction}>")

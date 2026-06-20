@@ -487,6 +487,8 @@ describe("venue geofence pin map wiring", () => {
     expect(map).toContain("L.circle")
     expect(map).toContain("invalidateSize")
     expect(map).toContain(".remove()")
+    expect(map).toContain("var(--seal)")
+    expect(map).not.toContain("#b8742c")
   })
 
   it("loads the map client-side only and exposes hidden pin fields in the venue form", () => {

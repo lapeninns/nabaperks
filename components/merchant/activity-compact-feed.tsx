@@ -12,16 +12,24 @@ import { cn } from "@/lib/utils"
 export function ActivityCompactFeed({
   rows,
   emptyState,
+  inset = false,
 }: {
   rows: ActivityDisplayRow[]
   emptyState: ReactNode
+  /** Drop the outer card chrome when the feed already sits inside a ReceiptCard. */
+  inset?: boolean
 }) {
   if (!rows.length) {
     return <>{emptyState}</>
   }
 
   return (
-    <ol className="surface-card overflow-hidden p-0 [&>li+li]:border-t-2 [&>li+li]:border-dashed [&>li+li]:border-ink/15">
+    <ol
+      className={cn(
+        "overflow-hidden p-0 [&>li+li]:border-t-2 [&>li+li]:border-dashed [&>li+li]:border-ink/15",
+        inset ? "rounded-lg bg-background/60" : "surface-card"
+      )}
+    >
       {rows.map((row) => (
         <li
           key={row.id}
@@ -45,11 +53,13 @@ export function ActivityCompactFeed({
                 {row.relativeTime}
               </time>
             </div>
-            <p className="text-sm font-bold leading-6">{row.headline}</p>
+            <p className="text-sm leading-6 font-bold">{row.headline}</p>
           </div>
           {row.primaryAction ? (
             <Button asChild variant="secondary" size="sm">
-              <Link href={row.primaryAction.href}>{row.primaryAction.label}</Link>
+              <Link href={row.primaryAction.href}>
+                {row.primaryAction.label}
+              </Link>
             </Button>
           ) : null}
         </li>

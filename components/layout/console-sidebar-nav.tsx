@@ -1,7 +1,7 @@
 "use client"
 
 import Link, { useLinkStatus } from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import type { CSSProperties, MouseEvent } from "react"
 
 import { Icon } from "@/components/brand"
@@ -14,7 +14,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { isActivePath, type ShellNavItem } from "./console-nav"
+import { isActiveNavItem, type ShellNavItem } from "./console-nav"
 
 export const CONSOLE_SIDEBAR_STYLE: CSSProperties &
   Record<"--sidebar-width", string> = {
@@ -35,18 +35,27 @@ export function ConsoleSidebarNav({
   ariaLabel: string
 }) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const currentPath = activePath ?? pathname
+  const currentTab = searchParams.get("tab")
   const secondaryNavItems = secondaryItems ?? []
 
   return (
-    <nav aria-label={ariaLabel} className="grid gap-2">
-      <ConsoleSidebarGroup items={items} currentPath={currentPath} />
+    <nav aria-label={ariaLabel} className="flex min-h-0 flex-1 flex-col gap-2">
+      <ConsoleSidebarGroup
+        items={items}
+        currentPath={currentPath}
+        currentTab={currentTab}
+      />
       {secondaryNavItems.length > 0 ? (
-        <ConsoleSidebarGroup
-          items={secondaryNavItems}
-          currentPath={currentPath}
-          label={secondaryLabel}
-        />
+        <div className="mt-auto">
+          <ConsoleSidebarGroup
+            items={secondaryNavItems}
+            currentPath={currentPath}
+            currentTab={currentTab}
+            label={secondaryLabel}
+          />
+        </div>
       ) : null}
     </nav>
   )
@@ -55,10 +64,12 @@ export function ConsoleSidebarNav({
 function ConsoleSidebarGroup({
   items,
   currentPath,
+  currentTab,
   label,
 }: {
   items: readonly ShellNavItem[]
   currentPath: string
+  currentTab: string | null
   label?: string
 }) {
   const { isMobile, setOpenMobile } = useSidebar()
@@ -86,7 +97,7 @@ function ConsoleSidebarGroup({
       <SidebarGroupContent>
         <SidebarMenu>
           {items.map((item) => {
-            const active = isActivePath(currentPath, item.href)
+            const active = isActiveNavItem(currentPath, currentTab, item.href)
 
             return (
               <SidebarMenuItem key={item.href}>

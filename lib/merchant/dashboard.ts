@@ -7,6 +7,7 @@ export {
   getMerchantDashboardData,
   type MerchantDashboardMerchant,
 } from "@/lib/merchant/dashboard-metrics"
+export type { MerchantDashboardTrends } from "@/lib/merchant/dashboard-trends"
 
 const activityEvents = [
   "qr_scanned",

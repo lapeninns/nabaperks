@@ -85,7 +85,10 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     ])
     expect(
       merchantAccountItems.map(({ href, label }) => ({ href, label }))
-    ).toEqual([{ href: "/app/account", label: "Account" }])
+    ).toEqual([
+      { href: "/app/account?tab=profile", label: "Profile" },
+      { href: "/app/account?tab=billing", label: "Billing" },
+    ])
     expect(shell).not.toContain("ROI settings")
     expect(shell).toContain("SidebarFooter")
     expect(shell).toContain("ConsoleSidebarNav")
@@ -122,6 +125,36 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
         qrDownloads: 3,
       },
       billingStatus: "active",
+      trends: {
+        newMembers: {
+          current: 1,
+          previous: 0,
+          delta: 1,
+          direction: "up",
+          label: "+1 vs last week",
+        },
+        stamps: {
+          current: 2,
+          previous: 1,
+          delta: 1,
+          direction: "up",
+          label: "+1 vs last week",
+        },
+        rewards: {
+          current: 0,
+          previous: 0,
+          delta: 0,
+          direction: "flat",
+          label: "Same as last week",
+        },
+        qrDownloads: {
+          current: 3,
+          previous: 1,
+          delta: 2,
+          direction: "up",
+          label: "+2 vs last week",
+        },
+      },
       recentActivity: [],
     }))
     const getEnrichedMerchantActivity = vi.fn(async () => ({
@@ -187,16 +220,19 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     )
 
     for (const text of [
-      "Launch QR",
+      "Scan reward",
       "No members yet",
       "Generate QR",
       "Check card setup",
       "Members",
       "New members (7d)",
-      "Stamps issued",
+      "Stamps (7d)",
       "Repeat customers",
-      "Rewards redeemed",
-      "QR downloads",
+      "Rewards (7d)",
+      "QR downloads (7d)",
+      "How the week is going",
+      "metricTrendClassName",
+      "dashboard.trends",
       "MerchantBillingNotice",
       "LaunchReadinessPanel",
       "Recent activity",

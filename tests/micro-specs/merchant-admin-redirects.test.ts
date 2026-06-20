@@ -25,7 +25,7 @@ describe("merchant console legacy redirects", () => {
   it("forwards /app/settings to the Account hub", () => {
     const source = readFileSync("app/app/settings/page.tsx", "utf8")
 
-    expect(source).toContain('redirect("/app/account")')
+    expect(source).toContain('redirect("/app/account?tab=profile")')
   })
 
   it("forwards /app/profile to the Account profile tab", () => {

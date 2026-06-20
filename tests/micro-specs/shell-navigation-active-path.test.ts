@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  isActiveNavItem,
   isActivePath,
+  merchantAccountItems,
   merchantNavItems,
   adminNavItems,
 } from "@/components/layout"
@@ -46,5 +48,20 @@ describe("console sidebar navigation active-path resolution", () => {
     expect(isActivePath("/app/customers", "/app/customers")).toBe(true)
     expect(isActivePath("/app/customers/123", "/app/customers")).toBe(true)
     expect(isActivePath("/app/activity", "/app/customers")).toBe(false)
+  })
+
+  it("marks account sidebar items active by tab on /app/account", () => {
+    const profileHref = merchantAccountItems[0]?.href
+    const billingHref = merchantAccountItems[1]?.href
+
+    expect(isActiveNavItem("/app/account", null, profileHref ?? "")).toBe(true)
+    expect(isActiveNavItem("/app/account", null, billingHref ?? "")).toBe(false)
+
+    expect(isActiveNavItem("/app/account", "billing", billingHref ?? "")).toBe(
+      true
+    )
+    expect(isActiveNavItem("/app/account", "billing", profileHref ?? "")).toBe(
+      false
+    )
   })
 })

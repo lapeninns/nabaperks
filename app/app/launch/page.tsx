@@ -7,21 +7,25 @@ import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-pan
 import { LaunchPanelSkeleton } from "@/components/merchant/loading-skeletons"
 import { CardPanel } from "@/components/merchant/launch/card-panel"
 import { QrPanel } from "@/components/merchant/launch/qr-panel"
+import { RewardsPanel } from "@/components/merchant/launch/rewards-panel"
 import { VenuePanel } from "@/components/merchant/launch/venue-panel"
 import { Button } from "@/components/ui/button"
 import { getCurrentMerchant } from "@/lib/auth/session"
-import { buildLaunchReadiness } from "@/lib/merchant/launch-readiness"
+import {
+  buildLaunchReadiness,
+  LAUNCH_SETUP_STEP_LABELS,
+  type LaunchReadinessTab,
+} from "@/lib/merchant/launch-readiness"
 import { getQrSetup } from "@/lib/merchant/qr-code"
 
 export const dynamic = "force-dynamic"
 
-const TABS = [
-  { id: "card", label: "Your card and reward" },
-  { id: "venue", label: "Your venue" },
-  { id: "qr", label: "Print your QR" },
-] as const
-
-type TabId = (typeof TABS)[number]["id"]
+const LAUNCH_TABS = [
+  { id: "card", label: LAUNCH_SETUP_STEP_LABELS.card },
+  { id: "rewards", label: LAUNCH_SETUP_STEP_LABELS.rewards },
+  { id: "venue", label: LAUNCH_SETUP_STEP_LABELS.venue },
+  { id: "qr", label: LAUNCH_SETUP_STEP_LABELS.qr },
+] as const satisfies ReadonlyArray<{ id: LaunchReadinessTab; label: string }>
 
 type LaunchPageProps = {
   searchParams: Promise<{
@@ -56,11 +60,13 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
 
   // Live merchants land on their launch kit; everyone else opens the next
   // unfinished step. An explicit `?tab=` always wins so deep links stay stable.
-  const defaultTab: TabId = launchReadiness.launchReady
+  const defaultTab: LaunchReadinessTab = launchReadiness.launchReady
     ? "qr"
     : (launchReadiness.nextStep?.tab ?? "card")
   const requested = params.tab
-  const activeTab: TabId = isTabId(requested) ? requested : defaultTab
+  const activeTab: LaunchReadinessTab = isTabId(requested)
+    ? requested
+    : defaultTab
 
   return (
     <div className="grid gap-6">
@@ -73,8 +79,8 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
         }
         description={
           launchReadiness.launchReady
-            ? "Customers can scan, join, and collect. Your launch kit is below, with the bits you can still adjust."
-            : "Four stamps and you're live. We always point you at the one thing left to do."
+            ? "Customers can scan, join, and collect stamps. Your launch kit is below, with the bits you can still adjust."
+            : "Four setup steps and you're live. We always point you at what's left."
         }
         actions={
           launchReadiness.launchReady ? (
@@ -107,13 +113,15 @@ function LaunchActivePanel({
   activeTab,
   params,
 }: {
-  activeTab: TabId
+  activeTab: LaunchReadinessTab
   params: LaunchSearchParams
 }) {
   return (
     <div className="grid gap-5">
       {activeTab === "card" ? (
         <CardPanel params={params} />
+      ) : activeTab === "rewards" ? (
+        <RewardsPanel params={params} />
       ) : activeTab === "venue" ? (
         <VenuePanel />
       ) : (
@@ -123,6 +131,6 @@ function LaunchActivePanel({
   )
 }
 
-function isTabId(value: string | undefined): value is TabId {
-  return TABS.some((tab) => tab.id === value)
+function isTabId(value: string | undefined): value is LaunchReadinessTab {
+  return LAUNCH_TABS.some((tab) => tab.id === value)
 }

@@ -1,7 +1,6 @@
 import { Suspense } from "react"
 
 import { PageTitle } from "@/components/brand"
-import { AccountTabBar } from "@/components/merchant/account/account-tab-bar"
 import { resolveAccountTab } from "@/components/merchant/account/account-tabs"
 import { BillingPanel } from "@/components/merchant/account/billing-panel"
 import { ProfilePanel } from "@/components/merchant/account/profile-panel"
@@ -12,12 +11,15 @@ import {
 
 export const dynamic = "force-dynamic"
 
-// One stable "Account" frame; only the subtitle changes per tab, so switching
-// tabs no longer swaps the whole hero. Pricing lives once, on the billing
-// receipt — not here.
-const TAB_SUBTITLE = {
-  profile: "Your business and venue details. Changes save as you go.",
-  billing: "Your plan and payments, handled securely by Stripe.",
+const TAB_HEADING = {
+  profile: {
+    title: "Profile",
+    description: "Your business and venue details. Changes save as you go.",
+  },
+  billing: {
+    title: "Billing",
+    description: "Your plan and payments, handled securely by Stripe.",
+  },
 } as const
 
 type AccountPageProps = {
@@ -32,11 +34,11 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   const params = await searchParams
   const tab = resolveAccountTab(params.tab)
 
+  const heading = TAB_HEADING[tab]
+
   return (
     <div className="grid gap-6">
-      <PageTitle title="Account" description={TAB_SUBTITLE[tab]} />
-
-      <AccountTabBar activeTab={tab} />
+      <PageTitle title={heading.title} description={heading.description} />
 
       {tab === "billing" ? (
         <Suspense key="billing" fallback={<AccountBillingPanelSkeleton />}>

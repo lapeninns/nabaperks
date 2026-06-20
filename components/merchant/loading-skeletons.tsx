@@ -18,13 +18,13 @@ import { Skeleton } from "@/components/ui/skeleton"
 /** Mirrors {@link PageTitle}: eyebrow, title, description, and an action slot. */
 export function MerchantPageTitleSkeleton() {
   return (
-    <section className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
+    <section className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
       <div className="grid gap-3">
         <Skeleton className="h-3 w-24" />
         <Skeleton className="h-9 w-64 max-w-full" />
         <Skeleton className="h-4 w-full max-w-2xl" />
       </div>
-      <Skeleton className="h-11 w-32 justify-self-start md:justify-self-end" />
+      <Skeleton className="h-11 w-32 justify-self-start md:justify-self-end md:pt-8" />
     </section>
   )
 }
@@ -47,11 +47,12 @@ export function MerchantDashboardMetricsSkeleton() {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,10.5rem),1fr))] gap-3">
         {[0, 1, 2, 3, 4].map((tile) => (
           <div key={tile} className="surface-card grid content-start gap-3 p-4">
             <Skeleton className="h-3 w-24" />
             <Skeleton className="h-7 w-16" />
+            <Skeleton className="h-3 w-28" />
           </div>
         ))}
       </div>
@@ -78,7 +79,7 @@ export function MerchantCompactActivitySkeleton() {
         <Skeleton className="h-9 w-20" />
       </div>
 
-      <ol className="surface-card overflow-hidden p-0 [&>li+li]:border-t-2 [&>li+li]:border-dashed [&>li+li]:border-ink/15">
+      <ol className="overflow-hidden rounded-lg bg-background/60 p-0 [&>li+li]:border-t-2 [&>li+li]:border-dashed [&>li+li]:border-ink/15">
         {[0, 1, 2].map((row) => (
           <li
             key={row}
@@ -210,7 +211,11 @@ export function MerchantCustomersTableSkeleton() {
  * Mirrors the active Launch tab body: a form-field stack for the card/venue
  * tabs, or a QR frame + share/print blocks for the qr tab.
  */
-export function LaunchPanelSkeleton({ tab }: { tab: "card" | "venue" | "qr" }) {
+export function LaunchPanelSkeleton({
+  tab,
+}: {
+  tab: "card" | "rewards" | "venue" | "qr"
+}) {
   if (tab === "qr") {
     return (
       <div className="grid gap-5" role="status" aria-label="Loading launch kit">

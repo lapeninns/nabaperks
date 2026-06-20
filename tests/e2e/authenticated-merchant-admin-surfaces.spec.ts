@@ -108,8 +108,8 @@ test.describe("merchant console (authenticated)", () => {
     )
   })
 
-  test("account hub renders and passes axe", async () => {
-    await smokeSurface(page, "merchant account", "/app/account", "Account")
+  test("account profile surface renders and passes axe", async () => {
+    await smokeSurface(page, "merchant account", "/app/account", "Profile")
   })
 
   test("billing legacy route forwards into the account hub", async () => {
@@ -117,7 +117,7 @@ test.describe("merchant console (authenticated)", () => {
     await page.goto("/app/billing")
     // /app/billing redirects to /app/account?tab=billing (Account hub).
     await page.waitForURL("**/app/account?*")
-    await expectHeading(page, "Account")
+    await expectHeading(page, "Billing")
     await expectNoAxeViolations(page, "merchant billing")
   })
 
@@ -126,16 +126,16 @@ test.describe("merchant console (authenticated)", () => {
     await page.goto("/app/profile")
     // /app/profile redirects to /app/account?tab=profile.
     await page.waitForURL("**/app/account?*")
-    await expectHeading(page, "Account")
+    await expectHeading(page, "Profile")
     await expectNoAxeViolations(page, "merchant profile")
   })
 
   test("settings legacy route forwards into the account hub", async () => {
     await page.emulateMedia({ reducedMotion: "reduce" })
     await page.goto("/app/settings")
-    // /app/settings redirects to /app/account.
-    await page.waitForURL("**/app/account")
-    await expectHeading(page, "Account")
+    // /app/settings redirects to /app/account?tab=profile.
+    await page.waitForURL("**/app/account?*")
+    await expectHeading(page, "Profile")
     await expectNoAxeViolations(page, "merchant settings")
   })
 

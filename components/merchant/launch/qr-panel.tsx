@@ -65,7 +65,7 @@ export async function QrPanel({ params }: { params: QrPanelParams }) {
             The QR stays blocked until at least 3 active mystery rewards are in
             the pool.{" "}
             <Link
-              href="/app/launch?tab=card"
+              href="/app/launch?tab=rewards"
               className="font-bold underline underline-offset-4"
             >
               Add or activate a reward
@@ -78,7 +78,7 @@ export async function QrPanel({ params }: { params: QrPanelParams }) {
             Generate QR
           </Button>
           <Button asChild variant="outline">
-            <Link href="/app/launch?tab=card">Review card builder</Link>
+            <Link href="/app/launch?tab=rewards">Review reward pool</Link>
           </Button>
         </form>
       </ReceiptCard>

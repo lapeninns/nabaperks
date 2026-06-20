@@ -7,7 +7,10 @@ import { RewardSeal } from "@/components/loyalty/reward-seal"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
 import { Disclosure } from "@/components/merchant/launch/disclosure"
-import { LoyaltyCardForm } from "@/components/merchant/loyalty-card-form"
+import {
+  LoyaltyCardForm,
+  RewardPoolForm,
+} from "@/components/merchant/loyalty-card-form"
 import { VenueLocationForm } from "@/components/merchant/launch/venue-location-form"
 import { Button } from "@/components/ui/button"
 import {
@@ -34,6 +37,8 @@ export function LaunchPreviewScreen({
   const activePanel =
     activeTab === "card" ? (
       <MockCardPanel />
+    ) : activeTab === "rewards" ? (
+      <MockRewardsPanel />
     ) : activeTab === "venue" ? (
       <MockVenuePanel />
     ) : (
@@ -49,8 +54,8 @@ export function LaunchPreviewScreen({
         }
         description={
           readiness.launchReady
-            ? "Customers can scan, join, and collect. Your launch kit is below, with the bits you can still adjust."
-            : "Four stamps and you're live. We always point you at the one thing left to do."
+            ? "Customers can scan, join, and collect stamps. Your launch kit is below, with the bits you can still adjust."
+            : "Four setup steps and you're live. We always point you at what's left."
         }
         actions={
           readiness.launchReady ? (
@@ -111,6 +116,7 @@ function MockCardPanel() {
       <LoyaltyCardForm
         merchantName={LAUNCH_PREVIEW_MOCK.merchantName}
         locationName={LAUNCH_PREVIEW_MOCK.locationName}
+        activeRewardCount={1}
         initialValues={{
           cardId: "card-mock-1",
           cardName: LAUNCH_PREVIEW_MOCK.cardName,
@@ -119,6 +125,17 @@ function MockCardPanel() {
           minSpendPence: "",
           isActive: true,
         }}
+      />
+    </div>
+  )
+}
+
+function MockRewardsPanel() {
+  return (
+    <div className="grid gap-5">
+      <RewardPoolForm
+        loyaltyCardId="card-mock-1"
+        cardName={LAUNCH_PREVIEW_MOCK.cardName}
         rewardPoolItems={[
           {
             id: "reward-mock-1",
@@ -128,6 +145,25 @@ function MockCardPanel() {
             minSpendPence: "",
             weight: "1",
             displayOrder: "1",
+            isActive: true,
+          },
+          {
+            id: "reward-mock-2",
+            rewardName: "£5 off your next bill",
+            rewardTerms:
+              "£5 off any bill over £20. One per customer per reveal.",
+            minSpendPence: "2000",
+            weight: "1",
+            displayOrder: "2",
+            isActive: true,
+          },
+          {
+            id: "reward-mock-3",
+            rewardName: "Slice of cake on the house",
+            rewardTerms: "Any cake from the counter, free with a hot drink.",
+            minSpendPence: "",
+            weight: "2",
+            displayOrder: "3",
             isActive: false,
           },
         ]}

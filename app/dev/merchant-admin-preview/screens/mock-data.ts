@@ -30,12 +30,36 @@ export const MERCHANT_PREVIEW_MOCK = {
 
 export const MERCHANT_DASHBOARD_METRICS = {
   members: 184,
+  memberTrend: {
+    label: "+5 vs last week",
+    direction: "up" as const,
+  },
   secondary: [
-    { label: "New members (7d)", value: "23" },
-    { label: "Stamps issued", value: "612" },
-    { label: "Repeat customers", value: "96" },
-    { label: "Rewards redeemed", value: "41" },
-    { label: "QR downloads", value: "7" },
+    {
+      label: "New members (7d)",
+      value: "23",
+      trend: { label: "+5 vs last week", direction: "up" as const },
+    },
+    {
+      label: "Stamps (7d)",
+      value: "48",
+      trend: { label: "+12 vs last week", direction: "up" as const },
+    },
+    {
+      label: "Repeat customers",
+      value: "96",
+      helper: "Customers with two or more stamps, all time.",
+    },
+    {
+      label: "Rewards (7d)",
+      value: "9",
+      trend: { label: "−2 vs last week", direction: "down" as const },
+    },
+    {
+      label: "QR downloads (7d)",
+      value: "3",
+      trend: { label: "Same as last week", direction: "flat" as const },
+    },
   ],
 } as const
 

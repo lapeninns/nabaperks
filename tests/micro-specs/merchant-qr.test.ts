@@ -191,7 +191,7 @@ describe("02 merchant and QR micro-specs", () => {
     ).resolves.toMatchObject({
       errors: {
         cardName: "Enter a card name.",
-        stampsRequired: "Use at least 1 stamp.",
+        stampsRequired: "Use at least 3 visits.",
         rewardTerms: "Add enough detail for customers to understand the offer.",
       },
     })
@@ -289,7 +289,7 @@ describe("02 merchant and QR micro-specs", () => {
           isActive: true,
         })
       )
-    ).rejects.toThrow("NEXT_REDIRECT:/app/launch?tab=card&saved=pool")
+    ).rejects.toThrow("NEXT_REDIRECT:/app/launch?tab=rewards&saved=pool")
 
     expect(supabase.rpcCalls[0]).toEqual({
       name: "upsert_reward_pool_item",
@@ -316,6 +316,9 @@ describe("02 merchant and QR micro-specs", () => {
     )
     const cardPage = readProjectFile(
       "components/merchant/launch/card-panel.tsx"
+    )
+    const rewardsPage = readProjectFile(
+      "components/merchant/launch/rewards-panel.tsx"
     )
     const qrPage = readProjectFile("components/merchant/launch/qr-panel.tsx")
     const venueLocationForm = readProjectFile(
@@ -351,13 +354,13 @@ describe("02 merchant and QR micro-specs", () => {
     }
 
     expect(cardPage).toContain('params.saved === "1"')
-    expect(cardPage).toContain('params.saved === "pool"')
-    expect(cardPage).toContain("Unable to update reward")
-    expect(cardForm).toContain(
-      "QR launch is blocked until 3 rewards are active."
-    )
+    expect(rewardsPage).toContain('params.saved === "pool"')
+    expect(rewardsPage).toContain("Unable to update reward")
+    // The reward pool gates launch with a live counter + deficit line rather
+    // than a blocking banner; the active/inactive state stays legible per row.
+    expect(cardForm).toContain("to unlock launch")
     expect(cardForm).toContain("No rewards in the pool yet")
-    expect(cardForm).toContain("Inactive reward")
+    expect(cardForm).toContain("Active in the pool")
 
     expect(qrPage).toContain("QrFrame")
     expect(qrPage).toContain("Add or activate a reward")
@@ -500,7 +503,7 @@ describe("02 merchant and QR micro-specs", () => {
     await expect(
       deleteRewardPoolItemAction(form({ rewardPoolItemId: "pool-1" }))
     ).rejects.toThrow(
-      "NEXT_REDIRECT:/app/launch?tab=card&error=Unable%20to%20update%20reward"
+      "NEXT_REDIRECT:/app/launch?tab=rewards&error=Unable%20to%20update%20reward"
     )
   })
 

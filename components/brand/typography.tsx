@@ -1,6 +1,8 @@
 import type { ReactNode } from "react"
 
 import { cn } from "@/lib/utils"
+import type { MetricTrendDirection } from "@/lib/merchant/dashboard-trends"
+import { metricTrendClassName } from "@/lib/merchant/dashboard-trends"
 import { Icon, type IconGlyph } from "./icon"
 import {
   Card,
@@ -47,7 +49,7 @@ export function PageTitle({
   return (
     <section
       className={cn(
-        "grid gap-4 md:grid-cols-[1fr_auto] md:items-end",
+        "grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-start",
         className
       )}
     >
@@ -72,7 +74,11 @@ export function PageTitle({
           </p>
         ) : null}
       </div>
-      {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+      {actions ? (
+        <div className="flex flex-wrap gap-2 md:justify-self-end md:pt-8">
+          {actions}
+        </div>
+      ) : null}
     </section>
   )
 }
@@ -117,26 +123,41 @@ export function MetricTile({
   label,
   value,
   helper,
+  trend,
   icon,
   className,
 }: {
   label: ReactNode
   value: ReactNode
   helper?: ReactNode
+  trend?: {
+    label: string
+    direction: MetricTrendDirection
+  } | null
   /** Optional leading glyph from the @hugeicons set. */
   icon?: IconGlyph
   className?: string
 }) {
   return (
-    <Card className={cn("surface-card shadow-xs", className)} size="sm">
-      <CardHeader>
-        <CardDescription className="flex items-center gap-1.5 text-xs font-bold uppercase">
+    <Card className={cn("surface-card h-full shadow-xs", className)} size="sm">
+      <CardHeader className="h-full">
+        <CardDescription className="flex min-h-8 items-start gap-1.5 text-xs font-bold uppercase">
           {icon ? <Icon icon={icon} size={14} strokeWidth={2.25} /> : null}
           {label}
         </CardDescription>
         <CardTitle className="numeric-tabular flex min-h-[2rem] items-end text-2xl font-extrabold">
           {value}
         </CardTitle>
+        {trend ? (
+          <p
+            className={cn(
+              "font-mono text-[0.65rem] font-bold tracking-[0.06em] uppercase",
+              metricTrendClassName(trend.direction)
+            )}
+          >
+            {trend.label}
+          </p>
+        ) : null}
       </CardHeader>
       {helper ? (
         <CardContent>

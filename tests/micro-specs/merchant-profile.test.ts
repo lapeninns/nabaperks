@@ -366,7 +366,8 @@ describe("merchant profile micro-spec", () => {
   it("links the merchant profile through the account navigation hub", () => {
     const shellNav = readProjectFile("components/layout/console-nav.ts")
 
-    expect(shellNav).toContain('href: "/app/account", label: "Account"')
+    expect(shellNav).toContain('href: "/app/account?tab=profile"')
+    expect(shellNav).toContain('label: "Profile"')
     expect(shellNav).not.toContain('href: "/app/profile"')
   })
 

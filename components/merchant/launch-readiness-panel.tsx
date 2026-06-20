@@ -72,12 +72,12 @@ export function LaunchReadinessPanel({
     <ReceiptCard edge className={cn("grid gap-5 overflow-hidden", className)}>
       {showHeader ? (
         <SectionHeader
-          eyebrow="Ink progress"
+          eyebrow="Launch setup"
           title="Launch readiness"
-          description="What is left before customers can start collecting stamps."
+          description="What's left before customers can collect stamps."
           actions={
             <MonoTag tone={readiness.launchReady ? "leaf" : "sun"}>
-              {readiness.completed} of {readiness.total} ready
+              {readiness.completed} of {readiness.total} complete
             </MonoTag>
           }
         />
@@ -89,7 +89,8 @@ export function LaunchReadinessPanel({
           <div className="grid gap-1">
             <span className="eyebrow text-reward">You&apos;re live</span>
             <p className="text-base font-extrabold">
-              All four stamps are in. Customers can scan, join, and collect.
+              All four setup steps are complete. Customers can scan, join, and
+              collect stamps.
             </p>
           </div>
         </div>
@@ -152,14 +153,14 @@ export function LaunchReadinessPanel({
       <ProgressTrack
         current={readiness.completed}
         total={readiness.total}
-        label="Stamped"
+        label="Setup progress"
       />
 
       {!tabMode && !readiness.launchReady ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border-2 border-ink bg-ink px-4 py-3 text-paper">
           <p className="max-w-xl text-sm leading-6 text-paper/80">
             {nextStep
-              ? `${nextStep.label} is the next thing to set up.`
+              ? `Next up: ${nextStep.actionLabel}.`
               : "Run through the checklist before you print."}
           </p>
           <Button asChild variant="secondary" size="sm">

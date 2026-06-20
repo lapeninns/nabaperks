@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 
 import { capturePostHogEvent } from "@/lib/analytics/events"
 import { getCurrentMerchant } from "@/lib/auth/session"
+import { DEFAULT_STAMPS_REQUIRED } from "@/lib/merchant/customer-readback"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 const CARD_SAVE_ERROR =
@@ -82,7 +83,9 @@ export async function saveLoyaltyCardAction(
   const merchant = await getCurrentMerchant()
 
   if (!merchant) {
-    return { errors: { form: "Complete merchant onboarding before saving a card." } }
+    return {
+      errors: { form: "Complete merchant onboarding before saving a card." },
+    }
   }
 
   const cardId = value(formData, "cardId")
@@ -108,8 +111,8 @@ export async function saveLoyaltyCardAction(
 
   if (parsedStampsRequired === null) {
     errors.stampsRequired = "Enter a whole number of stamps."
-  } else if (parsedStampsRequired < 1) {
-    errors.stampsRequired = "Use at least 1 stamp."
+  } else if (parsedStampsRequired < DEFAULT_STAMPS_REQUIRED) {
+    errors.stampsRequired = `Use at least ${DEFAULT_STAMPS_REQUIRED} visits.`
   } else if (parsedStampsRequired > 99) {
     errors.stampsRequired = "Use 99 stamps or fewer."
   }
@@ -117,7 +120,8 @@ export async function saveLoyaltyCardAction(
   if (!rewardTerms) {
     errors.rewardTerms = "Enter clear mystery reward terms."
   } else if (rewardTerms.length < 12) {
-    errors.rewardTerms = "Add enough detail for customers to understand the offer."
+    errors.rewardTerms =
+      "Add enough detail for customers to understand the offer."
   } else if (rewardTerms.length > 500) {
     errors.rewardTerms = "Use 500 characters or fewer."
   }
@@ -195,7 +199,8 @@ export async function saveRewardPoolItemAction(
   if (!fields.rewardTerms) {
     errors.rewardTerms = "Enter clear customer-facing reward terms."
   } else if (fields.rewardTerms.length < 12) {
-    errors.rewardTerms = "Add enough detail for customers to understand the offer."
+    errors.rewardTerms =
+      "Add enough detail for customers to understand the offer."
   } else if (fields.rewardTerms.length > 500) {
     errors.rewardTerms = "Use 500 characters or fewer."
   }
@@ -256,7 +261,7 @@ export async function saveRewardPoolItemAction(
     metadata: { loyalty_card_id: fields.loyaltyCardId },
   })
 
-  redirect("/app/launch?tab=card&saved=pool")
+  redirect("/app/launch?tab=rewards&saved=pool")
 }
 
 export async function deleteRewardPoolItemAction(formData: FormData) {
@@ -265,7 +270,7 @@ export async function deleteRewardPoolItemAction(formData: FormData) {
 
   if (!merchant || !rewardPoolItemId) {
     redirect(
-      `/app/launch?tab=card&error=${encodeURIComponent(REWARD_UPDATE_ERROR)}`
+      `/app/launch?tab=rewards&error=${encodeURIComponent(REWARD_UPDATE_ERROR)}`
     )
   }
 
@@ -277,7 +282,7 @@ export async function deleteRewardPoolItemAction(formData: FormData) {
 
   if (error) {
     redirect(
-      `/app/launch?tab=card&error=${encodeURIComponent(REWARD_UPDATE_ERROR)}`
+      `/app/launch?tab=rewards&error=${encodeURIComponent(REWARD_UPDATE_ERROR)}`
     )
   }
 
@@ -291,5 +296,5 @@ export async function deleteRewardPoolItemAction(formData: FormData) {
     metadata: { reward_pool_item_id: rewardPoolItemId },
   })
 
-  redirect("/app/launch?tab=card&saved=pool")
+  redirect("/app/launch?tab=rewards&saved=pool")
 }

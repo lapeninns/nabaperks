@@ -16,6 +16,7 @@ import {
   ReceiptCard,
   SectionHeader,
 } from "@/components/brand"
+import { metricTrendClassName } from "@/lib/merchant/dashboard-trends"
 import { ActivityCompactFeed } from "@/components/merchant/activity-compact-feed"
 import { MerchantBillingNotice } from "@/components/merchant/billing-status"
 import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
@@ -28,6 +29,7 @@ import {
 } from "@/lib/merchant/dashboard"
 import { getMerchantLaunchReadiness } from "@/lib/merchant/launch-readiness"
 import { timeServerLoader } from "@/lib/perf/server-timing"
+import { cn } from "@/lib/utils"
 
 export async function MerchantDashboardStream({
   merchant,
@@ -43,30 +45,37 @@ export async function MerchantDashboardStream({
     ),
   ])
   const metrics = dashboard.metrics
+  const trends = dashboard.trends
   const secondaryMetrics = [
     {
       label: "New members (7d)",
-      value: metrics.newMembers.toString(),
+      value: trends.newMembers.current.toString(),
+      trend: trends.newMembers,
       icon: UserAdd01Icon,
     },
     {
-      label: "Stamps issued",
-      value: metrics.stampsIssued.toString(),
+      label: "Stamps (7d)",
+      value: trends.stamps.current.toString(),
+      trend: trends.stamps,
       icon: CheckmarkBadge04Icon,
     },
     {
       label: "Repeat customers",
       value: metrics.repeatCustomers.toString(),
+      trend: null,
+      helper: "Customers with two or more stamps, all time.",
       icon: RefreshIcon,
     },
     {
-      label: "Rewards redeemed",
-      value: metrics.rewardsRedeemed.toString(),
+      label: "Rewards (7d)",
+      value: trends.rewards.current.toString(),
+      trend: trends.rewards,
       icon: GiftIcon,
     },
     {
-      label: "QR downloads",
-      value: metrics.qrDownloads.toString(),
+      label: "QR downloads (7d)",
+      value: trends.qrDownloads.current.toString(),
+      trend: trends.qrDownloads,
       icon: Download01Icon,
     },
   ]
@@ -97,6 +106,12 @@ export async function MerchantDashboardStream({
       ) : null}
 
       <section className="grid gap-3">
+        <SectionHeader
+          eyebrow="Last 7 days"
+          title="How the week is going"
+          description="Each tile compares this week with the seven days before it."
+        />
+
         <div className="flex items-center justify-between gap-6 overflow-hidden rounded-lg border-2 border-ink bg-card p-6 shadow-sm">
           <div className="grid content-start gap-2">
             <p className="eyebrow">Members</p>
@@ -106,18 +121,33 @@ export async function MerchantDashboardStream({
             <p className="text-xs leading-5 text-muted-foreground">
               People carrying your card right now.
             </p>
+            <p
+              className={cn(
+                "font-mono text-[0.65rem] font-bold tracking-[0.06em] uppercase",
+                metricTrendClassName(trends.newMembers.direction)
+              )}
+            >
+              New members · {trends.newMembers.label}
+            </p>
           </div>
           <span className="hidden size-20 shrink-0 -rotate-6 place-items-center rounded-full border-2 border-ink bg-accent text-accent-foreground shadow-sm sm:grid">
             <Icon icon={UserMultiple02Icon} size={36} />
           </span>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,10.5rem),1fr))] gap-3">
           {secondaryMetrics.map((metric, index) => (
-            <WetInkRise key={metric.label} delay={index * 0.045} distance={12}>
+            <WetInkRise
+              key={metric.label}
+              className="min-w-0"
+              delay={index * 0.045}
+              distance={12}
+            >
               <MetricTile
                 label={metric.label}
                 value={metric.value}
+                trend={metric.trend}
+                helper={metric.helper}
                 icon={metric.icon}
               />
             </WetInkRise>
@@ -150,6 +180,7 @@ export async function MerchantCompactActivityStream({
         }
       />
       <ActivityCompactFeed
+        inset
         rows={compactActivity.rows}
         emptyState={
           <EmptyState

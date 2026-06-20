@@ -13,14 +13,30 @@ export type VenuePinMapProps = {
   onPinChange: (coordinates: { latitude: number; longitude: number }) => void
 }
 
-const PIN_COLOR = "#b8742c"
+/** Wet Ink tokens for the draggable pin — seal reads as "active placement". */
+const MAP_PIN_TOKENS = {
+  fill: "var(--seal)",
+  border: "var(--w-accent-ink)",
+  shadow: "color-mix(in srgb, var(--w-ink) 45%, transparent)",
+} as const
+
+function readRootColor(cssVar: string): string {
+  return getComputedStyle(document.documentElement)
+    .getPropertyValue(cssVar)
+    .trim()
+}
 
 // Self-contained HTML marker so Leaflet's default image assets (which break
-// under bundlers) are never requested.
-const MARKER_HTML =
-  '<span style="display:block;width:22px;height:22px;border-radius:9999px;' +
-  `background:${PIN_COLOR};border:3px solid #ffffff;` +
-  'box-shadow:0 1px 5px rgba(0,0,0,0.45);"></span>'
+// under bundlers) are never requested. Inline styles use CSS vars so the pin
+// tracks theme tokens; the geofence circle below needs resolved hex from
+// readRootColor because Leaflet paints SVG attributes, not styled DOM.
+function buildMarkerHtml(): string {
+  return (
+    '<span style="display:block;width:22px;height:22px;border-radius:9999px;' +
+    `background:${MAP_PIN_TOKENS.fill};border:3px solid ${MAP_PIN_TOKENS.border};` +
+    `box-shadow:0 1px 5px ${MAP_PIN_TOKENS.shadow};"></span>`
+  )
+}
 
 /**
  * Client-only draggable geofence pin. Direct Leaflet (no React wrapper): the map is
@@ -68,11 +84,13 @@ export default function VenuePinMap({
       maxZoom: 19,
     }).addTo(map)
 
+    const pinColor = readRootColor("--seal")
+
     const circle = L.circle([lat0, lng0], {
       radius: radius0,
-      color: PIN_COLOR,
+      color: pinColor,
       weight: 2,
-      fillColor: PIN_COLOR,
+      fillColor: pinColor,
       fillOpacity: 0.12,
     }).addTo(map)
     circleRef.current = circle
@@ -82,7 +100,7 @@ export default function VenuePinMap({
       keyboard: false,
       icon: L.divIcon({
         className: "venue-pin-marker",
-        html: MARKER_HTML,
+        html: buildMarkerHtml(),
         iconSize: [22, 22],
         iconAnchor: [11, 11],
       }),

@@ -28,6 +28,42 @@ export function isActivePath(currentPath: string, href: string) {
   return currentPath === href || currentPath.startsWith(`${href}/`)
 }
 
+export function parseNavHref(href: string): {
+  path: string
+  tab: string | null
+} {
+  const [path, queryString] = href.split("?", 2)
+
+  if (!queryString) {
+    return { path, tab: null }
+  }
+
+  return { path, tab: new URLSearchParams(queryString).get("tab") }
+}
+
+export function isActiveNavItem(
+  currentPath: string,
+  currentTab: string | null,
+  href: string
+): boolean {
+  const { path, tab: expectedTab } = parseNavHref(href)
+
+  if (path === "/app" || path === "/admin") {
+    return currentPath === path && expectedTab === null
+  }
+
+  if (expectedTab !== null) {
+    if (currentPath !== path) {
+      return false
+    }
+
+    const activeTab = currentTab ?? "profile"
+    return expectedTab === activeTab
+  }
+
+  return isActivePath(currentPath, href)
+}
+
 export const merchantNavItems = [
   { href: "/app", label: "Home", icon: Home01Icon },
   { href: "/app/launch", label: "Launch", icon: Rocket01Icon },
@@ -36,7 +72,16 @@ export const merchantNavItems = [
 ] satisfies readonly ShellNavItem[]
 
 export const merchantAccountItems = [
-  { href: "/app/account", label: "Account", icon: Building02Icon },
+  {
+    href: "/app/account?tab=profile",
+    label: "Profile",
+    icon: Building02Icon,
+  },
+  {
+    href: "/app/account?tab=billing",
+    label: "Billing",
+    icon: CreditCardIcon,
+  },
 ] satisfies readonly ShellNavItem[]
 
 export const adminNavItems = [

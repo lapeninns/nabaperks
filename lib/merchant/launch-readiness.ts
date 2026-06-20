@@ -6,8 +6,16 @@ import {
   type QrCodeSummary,
 } from "@/lib/merchant/qr-code"
 
-export type LaunchReadinessTab = "card" | "venue" | "qr"
+export type LaunchReadinessTab = "card" | "rewards" | "venue" | "qr"
 export type LaunchReadinessStepId = "card" | "rewards" | "venue" | "qr"
+
+/** Merchant-facing names for the four launch setup steps (not customer stamps). */
+export const LAUNCH_SETUP_STEP_LABELS: Record<LaunchReadinessStepId, string> = {
+  card: "Your card",
+  rewards: "Your rewards",
+  venue: "Your venue",
+  qr: "Print your QR",
+}
 
 export type LaunchReadinessStep = {
   id: LaunchReadinessStepId
@@ -60,23 +68,23 @@ export function buildLaunchReadiness({
     {
       id: "card",
       tab: "card",
-      label: "Card built",
+      label: LAUNCH_SETUP_STEP_LABELS.card,
       ready: Boolean(activeCard),
       href: "/app/launch?tab=card",
       actionLabel: activeCard ? "Review card" : "Build card",
     },
     {
       id: "rewards",
-      tab: "card",
-      label: "Rewards loaded",
+      tab: "rewards",
+      label: LAUNCH_SETUP_STEP_LABELS.rewards,
       ready: activeRewardPoolItemCount >= 3,
-      href: "/app/launch?tab=card",
-      actionLabel: "Add reward",
+      href: "/app/launch?tab=rewards",
+      actionLabel: "Add rewards",
     },
     {
       id: "venue",
       tab: "venue",
-      label: "Venue set",
+      label: LAUNCH_SETUP_STEP_LABELS.venue,
       ready: venueReady,
       href: "/app/launch?tab=venue",
       actionLabel: "Save venue",
@@ -84,7 +92,7 @@ export function buildLaunchReadiness({
     {
       id: "qr",
       tab: "qr",
-      label: "QR live",
+      label: LAUNCH_SETUP_STEP_LABELS.qr,
       ready: qrIsActive,
       href: "/app/launch?tab=qr",
       actionLabel: hasQr ? "Open QR" : "Generate QR",
@@ -92,13 +100,10 @@ export function buildLaunchReadiness({
   ]
   const completed = steps.filter((step) => step.ready).length
   const tabs = {
-    card: steps
-      .filter((step) => step.tab === "card")
-      .every((step) => step.ready),
-    venue: steps
-      .filter((step) => step.tab === "venue")
-      .every((step) => step.ready),
-    qr: steps.filter((step) => step.tab === "qr").every((step) => step.ready),
+    card: steps.find((step) => step.id === "card")?.ready ?? false,
+    rewards: steps.find((step) => step.id === "rewards")?.ready ?? false,
+    venue: steps.find((step) => step.id === "venue")?.ready ?? false,
+    qr: steps.find((step) => step.id === "qr")?.ready ?? false,
   }
 
   return {

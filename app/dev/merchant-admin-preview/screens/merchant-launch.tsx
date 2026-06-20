@@ -26,7 +26,7 @@ export function MerchantLaunchScreen() {
       <PageTitle
         eyebrow="Merchant setup"
         title="Bring your venue to life"
-        description="Four stamps and you're live. We always point you at the one thing left to do."
+        description="Four setup steps and you're live. We always point you at what's left."
       />
 
       <LaunchReadinessPanel
@@ -39,6 +39,7 @@ export function MerchantLaunchScreen() {
         <LoyaltyCardForm
           merchantName={MERCHANT_PREVIEW_MOCK.businessName}
           locationName={MERCHANT_PREVIEW_MOCK.locationName}
+          activeRewardCount={1}
           initialValues={{
             cardId: "card-mock-1",
             cardName: LAUNCH_PREVIEW_MOCK.cardName,
@@ -47,18 +48,6 @@ export function MerchantLaunchScreen() {
             minSpendPence: "",
             isActive: true,
           }}
-          rewardPoolItems={[
-            {
-              id: "reward-mock-1",
-              rewardName: "Free filter coffee",
-              rewardTerms:
-                "Any filter coffee on the house. Valid from the next UK business day.",
-              minSpendPence: "",
-              weight: "1",
-              displayOrder: "1",
-              isActive: false,
-            },
-          ]}
         />
       </div>
     </div>

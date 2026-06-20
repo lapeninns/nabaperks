@@ -2,13 +2,12 @@ import Link from "next/link"
 import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
 
 import { Icon, PageTitle } from "@/components/brand"
-import { AccountTabBar } from "@/components/merchant/account/account-tab-bar"
 import { MerchantProfileForm } from "@/components/merchant/profile-form"
 import { MERCHANT_PREVIEW_MOCK } from "./mock-data"
 
 /**
  * Mirror of `/app/account` on the Profile tab (the default). Reuses the real
- * `AccountTabBar` and `MerchantProfileForm` (both client components). The
+ * `MerchantProfileForm` client component. The
  * read-only "what customers see" card is mirrored from `ProfilePanel`, whose
  * server body self-loads the merchant from Supabase. Billing lives on its own
  * tab/receipt and is not duplicated here.
@@ -17,11 +16,9 @@ export function MerchantAccountScreen() {
   return (
     <div className="grid gap-6">
       <PageTitle
-        title="Account"
+        title="Profile"
         description="Your business and venue details. Changes save as you go."
       />
-
-      <AccountTabBar activeTab="profile" />
 
       <section className="grid gap-5">
         <section className="surface-card grid gap-3 p-5">

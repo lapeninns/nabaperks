@@ -40,7 +40,9 @@ export function createSupabaseMock(config: MockConfig = {}) {
   const rpcCalls: RpcCall[] = []
 
   function nextFromResponse(table: string) {
-    return fromQueues.get(table)?.shift() ?? { data: null, error: null, count: 0 }
+    return (
+      fromQueues.get(table)?.shift() ?? { data: null, error: null, count: 0 }
+    )
   }
 
   function query(table: string) {
@@ -59,6 +61,10 @@ export function createSupabaseMock(config: MockConfig = {}) {
       }),
       gte: vi.fn((...args: unknown[]) => {
         queryCalls.push({ table, method: "gte", args })
+        return api
+      }),
+      lt: vi.fn((...args: unknown[]) => {
+        queryCalls.push({ table, method: "lt", args })
         return api
       }),
       in: vi.fn((...args: unknown[]) => {
@@ -96,7 +102,8 @@ export function createSupabaseMock(config: MockConfig = {}) {
       then: (
         onFulfilled: (value: SupabaseResponse) => unknown,
         onRejected?: (reason: unknown) => unknown
-      ) => Promise.resolve(nextFromResponse(table)).then(onFulfilled, onRejected),
+      ) =>
+        Promise.resolve(nextFromResponse(table)).then(onFulfilled, onRejected),
     }
 
     return api

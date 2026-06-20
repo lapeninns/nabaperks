@@ -37,7 +37,10 @@ describe("05 merchant console trust and IA cleanup", () => {
 
     expect(nav).toContain('href: "/app/activity"')
     expect(nav).toContain('label: "Activity"')
-    expect(nav).toContain('href: "/app/account", label: "Account"')
+    expect(nav).toContain('href: "/app/account?tab=profile"')
+    expect(nav).toContain('label: "Profile"')
+    expect(nav).toContain('href: "/app/account?tab=billing"')
+    expect(nav).toContain('label: "Billing"')
     expect(nav).not.toContain('href: "/app/settings"')
     expect(nav).not.toContain('href: "/app/profile"')
     expect(shell).toContain("ConsoleSidebarNav")

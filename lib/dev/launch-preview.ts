@@ -2,6 +2,7 @@ import type {
   LaunchReadiness,
   LaunchReadinessStep,
 } from "@/lib/merchant/launch-readiness"
+import { LAUNCH_SETUP_STEP_LABELS } from "@/lib/merchant/launch-readiness"
 
 /**
  * Mock fixtures for the merchant launch-hub preview harness. Mirrors
@@ -33,23 +34,23 @@ function mockSteps(flags: StepFlags): LaunchReadinessStep[] {
     {
       id: "card",
       tab: "card",
-      label: "Card built",
+      label: LAUNCH_SETUP_STEP_LABELS.card,
       ready: flags.card,
       href: "/app/launch?tab=card",
       actionLabel: flags.card ? "Review card" : "Build card",
     },
     {
       id: "rewards",
-      tab: "card",
-      label: "Rewards loaded",
+      tab: "rewards",
+      label: LAUNCH_SETUP_STEP_LABELS.rewards,
       ready: flags.reward,
-      href: "/app/launch?tab=card",
-      actionLabel: "Add reward",
+      href: "/app/launch?tab=rewards",
+      actionLabel: "Add rewards",
     },
     {
       id: "venue",
       tab: "venue",
-      label: "Venue set",
+      label: LAUNCH_SETUP_STEP_LABELS.venue,
       ready: flags.venue,
       href: "/app/launch?tab=venue",
       actionLabel: "Save venue",
@@ -57,7 +58,7 @@ function mockSteps(flags: StepFlags): LaunchReadinessStep[] {
     {
       id: "qr",
       tab: "qr",
-      label: "QR live",
+      label: LAUNCH_SETUP_STEP_LABELS.qr,
       ready: flags.qr,
       href: "/app/launch?tab=qr",
       actionLabel: flags.qr ? "Open QR" : "Generate QR",
@@ -76,7 +77,8 @@ export function mockLaunchReadiness(flags: StepFlags): LaunchReadiness {
     launchReady: completed === steps.length,
     nextStep: steps.find((step) => !step.ready) ?? null,
     tabs: {
-      card: flags.card && flags.reward,
+      card: flags.card,
+      rewards: flags.reward,
       venue: flags.venue,
       qr: flags.qr,
     },
@@ -92,11 +94,19 @@ export const LAUNCH_PREVIEW_STATES = [
     screenLabel: "Launch setup",
     heading: "Bring your venue to life",
     activeTab: "card",
+    flags: { card: false, reward: false, venue: false, qr: false },
+  },
+  {
+    id: "setup-rewards",
+    screenshot: "02-setup-rewards.png",
+    screenLabel: "Launch setup",
+    heading: "Bring your venue to life",
+    activeTab: "rewards",
     flags: { card: true, reward: false, venue: false, qr: false },
   },
   {
     id: "setup-venue",
-    screenshot: "02-setup-venue.png",
+    screenshot: "03-setup-venue.png",
     screenLabel: "Launch setup",
     heading: "Bring your venue to life",
     activeTab: "venue",
@@ -104,7 +114,7 @@ export const LAUNCH_PREVIEW_STATES = [
   },
   {
     id: "live-kit",
-    screenshot: "03-live-kit.png",
+    screenshot: "04-live-kit.png",
     screenLabel: "Launch live",
     heading: "You're live",
     activeTab: "qr",

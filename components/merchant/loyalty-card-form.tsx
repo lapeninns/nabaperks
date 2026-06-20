@@ -1,7 +1,15 @@
 "use client"
 
 import { useActionState, useState } from "react"
-import { GiftIcon } from "@hugeicons/core-free-icons"
+import {
+  Add01Icon,
+  Cancel01Icon,
+  Delete02Icon,
+  GiftIcon,
+  MinusSignIcon,
+  PencilEdit02Icon,
+  PlusSignIcon,
+} from "@hugeicons/core-free-icons"
 
 import {
   deleteRewardPoolItemAction,
@@ -13,14 +21,13 @@ import {
 import {
   EmptyState,
   Eyebrow,
+  Icon,
   MonoTag,
-  PageTitle,
-  SectionHeader,
   VenueMark,
 } from "@/components/brand"
 import { Disclosure } from "@/components/merchant/launch/disclosure"
-import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Button } from "@/components/ui/button"
+import { DEFAULT_STAMPS_REQUIRED } from "@/lib/merchant/customer-readback"
 
 type LoyaltyCardFormValues = {
   cardId?: string
@@ -31,7 +38,7 @@ type LoyaltyCardFormValues = {
   isActive: boolean
 }
 
-type RewardPoolItemValues = {
+export type RewardPoolItemValues = {
   id?: string
   rewardName: string
   rewardTerms: string
@@ -43,19 +50,23 @@ type RewardPoolItemValues = {
 
 type LoyaltyCardFormProps = {
   initialValues: LoyaltyCardFormValues
-  rewardPoolItems: RewardPoolItemValues[]
   merchantName: string
   locationName: string
+  /** Active pool count — shown in the customer preview sidebar. */
+  activeRewardCount?: number
 }
+
+/** Rewards needed active before a final stamp can reveal a prize or the QR launches. */
+const REQUIRED_ACTIVE_REWARDS = 3
 
 const initialCardState: LoyaltyCardActionState = {}
 const initialPoolState: RewardPoolItemActionState = {}
 
 export function LoyaltyCardForm({
   initialValues,
-  rewardPoolItems,
   merchantName,
   locationName,
+  activeRewardCount = 0,
 }: LoyaltyCardFormProps) {
   const [state, action, pending] = useActionState(
     saveLoyaltyCardAction,
@@ -70,143 +81,86 @@ export function LoyaltyCardForm({
     setDraft((currentDraft) => ({ ...currentDraft, [field]: value }))
   }
 
-  const activeRewardCount = rewardPoolItems.filter(
-    (item) => item.isActive
-  ).length
-
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="grid gap-6">
-        <form action={action} className="surface-card grid gap-5 p-6">
-          <input type="hidden" name="cardId" value={draft.cardId ?? ""} />
-          <input
-            type="hidden"
-            name="minSpendPence"
-            value={draft.minSpendPence}
-          />
-          <PageTitle
-            eyebrow="Step 1 · Build card"
-            title="Build your visit card"
-            description={`One active card for ${locationName}, with a reward revealed after the final qualifying visit.`}
-            titleClassName="sm:text-3xl"
-          />
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+      {/* MEDIUM weight: a form section — hairline, no hard shadow. */}
+      <form
+        action={action}
+        className="grid gap-5 rounded-lg border border-border bg-card p-6"
+      >
+        <input type="hidden" name="cardId" value={draft.cardId ?? ""} />
+        <input type="hidden" name="minSpendPence" value={draft.minSpendPence} />
+        <input
+          type="hidden"
+          name="stampsRequired"
+          value={draft.stampsRequired}
+        />
 
-          <Field
-            id="cardName"
-            label="Card name"
-            name="cardName"
-            value={draft.cardName}
-            onChange={(event) => updateDraft("cardName", event.target.value)}
-            error={state.errors?.cardName}
-          />
+        <SectionHead
+          title="Your card"
+          description={`One active card for ${locationName}. The reward reveals after the final qualifying visit.`}
+          step="Step 1"
+        />
 
-          <Field
-            id="stampsRequired"
+        <Field
+          id="cardName"
+          label="Card name"
+          name="cardName"
+          maxLength={80}
+          value={draft.cardName}
+          onChange={(event) => updateDraft("cardName", event.target.value)}
+          error={state.errors?.cardName}
+        />
+
+        <div className="grid gap-2">
+          <span className="text-sm font-bold text-foreground">
+            Visits to reveal
+          </span>
+          <Stepper
             label="Visits to reveal"
-            name="stampsRequired"
-            inputMode="numeric"
-            pattern="[0-9]*"
             value={draft.stampsRequired}
-            onChange={(event) =>
-              updateDraft("stampsRequired", event.target.value)
-            }
-            error={state.errors?.stampsRequired}
+            min={DEFAULT_STAMPS_REQUIRED}
+            onChange={(value) => updateDraft("stampsRequired", value)}
           />
-
-          <TextareaField
-            id="rewardTerms"
-            label="Mystery reward terms"
-            name="rewardTerms"
-            value={draft.rewardTerms}
-            onChange={(event) => updateDraft("rewardTerms", event.target.value)}
-            error={state.errors?.rewardTerms}
-          />
-
-          <label className="flex items-center justify-between gap-4 rounded-lg border-2 border-ink bg-secondary/50 px-4 py-3 text-sm font-bold">
-            <span>Card active</span>
-            <input
-              name="isActive"
-              type="checkbox"
-              checked={draft.isActive}
-              onChange={(event) =>
-                updateDraft("isActive", event.target.checked)
-              }
-              className="size-5 accent-primary"
-            />
-          </label>
-
-          {state.errors?.form ? (
-            <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {state.errors.form}
+          <p className="text-xs leading-5 text-muted-foreground">
+            Minimum {DEFAULT_STAMPS_REQUIRED} visits; most venues choose 3–6.
+            This is how many stamps a customer collects before the reward
+            unseals.
+          </p>
+          {state.errors?.stampsRequired ? (
+            <p className="text-sm text-destructive">
+              {state.errors.stampsRequired}
             </p>
           ) : null}
+        </div>
 
-          <Button type="submit" disabled={pending} className="w-full">
-            {pending ? "Saving..." : draft.cardId ? "Save card" : "Create card"}
-          </Button>
-        </form>
+        <TextareaField
+          id="rewardTerms"
+          label="Reward terms"
+          name="rewardTerms"
+          value={draft.rewardTerms}
+          onChange={(event) => updateDraft("rewardTerms", event.target.value)}
+          error={state.errors?.rewardTerms}
+        />
 
-        <section className="surface-card grid gap-4 p-6">
-          <SectionHeader
-            eyebrow="Step 2 · Reward"
-            title="Add a surprise reward"
-            description="At least 3 active rewards are needed before the venue QR can launch or a final stamp can reveal a prize."
-          />
+        <ToggleRow
+          name="isActive"
+          label="Card is active"
+          hint="Customers can collect stamps on this card."
+          checked={draft.isActive}
+          onChange={(checked) => updateDraft("isActive", checked)}
+        />
 
-          {draft.cardId ? (
-            <div className="grid gap-4">
-              {activeRewardCount < 3 ? (
-                <StatusBanner
-                  tone="warning"
-                  title="QR launch is blocked until 3 rewards are active."
-                >
-                  Add {3 - activeRewardCount} more active reward
-                  {3 - activeRewardCount === 1 ? "" : "s"} so customers can
-                  reveal a prize on their final stamp.
-                </StatusBanner>
-              ) : (
-                <StatusBanner tone="success" title="QR launch eligible.">
-                  {activeRewardCount} active reward
-                  {activeRewardCount === 1 ? "" : "s"} can be assigned when a
-                  customer completes the card.
-                </StatusBanner>
-              )}
-              {rewardPoolItems.length === 0 ? (
-                <EmptyState
-                  icon={GiftIcon}
-                  title="No rewards in the pool yet"
-                  description="Create at least 3 active mystery rewards so the QR launch checklist can pass."
-                  headingLevel={3}
-                />
-              ) : null}
-              {rewardPoolItems.map((item) => (
-                <RewardPoolItemForm
-                  key={item.id}
-                  loyaltyCardId={draft.cardId ?? ""}
-                  initialValues={item}
-                />
-              ))}
-              <RewardPoolItemForm
-                loyaltyCardId={draft.cardId}
-                initialValues={{
-                  rewardName: "",
-                  rewardTerms: "",
-                  minSpendPence: "",
-                  weight: "1",
-                  displayOrder: String(rewardPoolItems.length + 1),
-                  isActive: true,
-                }}
-                isNew
-              />
-            </div>
-          ) : (
-            <StatusBanner tone="neutral" title="Save the card before rewards.">
-              The reward pool is tied to a saved loyalty card id, so this step
-              unlocks after the first card save.
-            </StatusBanner>
-          )}
-        </section>
-      </div>
+        {state.errors?.form ? (
+          <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {state.errors.form}
+          </p>
+        ) : null}
+
+        <Button type="submit" disabled={pending} className="w-full">
+          {pending ? "Saving..." : draft.cardId ? "Save card" : "Create card"}
+        </Button>
+      </form>
 
       <StampCardPreview
         merchantName={merchantName}
@@ -218,14 +172,181 @@ export function LoyaltyCardForm({
   )
 }
 
+export function RewardPoolForm({
+  loyaltyCardId,
+  cardName,
+  rewardPoolItems,
+}: {
+  loyaltyCardId: string
+  cardName: string
+  rewardPoolItems: RewardPoolItemValues[]
+}) {
+  // The row currently open in the inline editor: a reward id, "new", or null.
+  const [editingId, setEditingId] = useState<string | "new" | null>(null)
+
+  const activeRewardCount = rewardPoolItems.filter(
+    (item) => item.isActive
+  ).length
+  const ready = activeRewardCount >= REQUIRED_ACTIVE_REWARDS
+  const deficit = REQUIRED_ACTIVE_REWARDS - activeRewardCount
+
+  return (
+    <section className="grid gap-4 rounded-lg border border-border bg-card p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="grid gap-2">
+          <h2 className="text-xl leading-snug font-extrabold tracking-tight text-foreground">
+            Reward pool
+          </h2>
+          <p className="max-w-[44ch] text-sm leading-6 text-muted-foreground">
+            The surprise is drawn from this pool. At least 3 must be active on{" "}
+            {cardName} before you can launch.
+          </p>
+        </div>
+        {/* The live counter replaces the old blocking banner. */}
+        <MonoTag tone={ready ? "leaf" : "sun"}>
+          {ready
+            ? `${activeRewardCount} active · ready`
+            : `${activeRewardCount} / ${REQUIRED_ACTIVE_REWARDS} active`}
+        </MonoTag>
+      </div>
+
+      <p className="text-sm leading-5 text-muted-foreground">
+        {ready ? (
+          "Enough rewards to launch. Add more for variety any time."
+        ) : (
+          <>
+            Activate <b className="font-bold text-foreground">{deficit} more</b>{" "}
+            reward{deficit === 1 ? "" : "s"} to unlock launch.
+          </>
+        )}
+      </p>
+
+      {rewardPoolItems.length === 0 && editingId !== "new" ? (
+        <EmptyState
+          icon={GiftIcon}
+          title="No rewards in the pool yet"
+          description="Add at least 3 active mystery rewards so the final stamp can reveal a prize."
+          headingLevel={3}
+        />
+      ) : null}
+
+      <div className="grid gap-2.5">
+        {rewardPoolItems.map((item) =>
+          editingId === item.id ? (
+            <RewardPoolItemForm
+              key={item.id}
+              loyaltyCardId={loyaltyCardId}
+              initialValues={item}
+              onCancel={() => setEditingId(null)}
+            />
+          ) : (
+            <RewardRow
+              key={item.id}
+              item={item}
+              onEdit={() => setEditingId(item.id ?? null)}
+            />
+          )
+        )}
+
+        {editingId === "new" ? (
+          <RewardPoolItemForm
+            loyaltyCardId={loyaltyCardId}
+            initialValues={{
+              rewardName: "",
+              rewardTerms: "",
+              minSpendPence: "",
+              weight: "1",
+              displayOrder: String(rewardPoolItems.length + 1),
+              isActive: true,
+            }}
+            isNew
+            onCancel={() => setEditingId(null)}
+          />
+        ) : null}
+      </div>
+
+      {editingId !== "new" ? (
+        <button
+          type="button"
+          onClick={() => setEditingId("new")}
+          className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-ink/25 bg-transparent px-4 py-3 text-sm font-bold text-foreground transition-[border-color,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:border-ink hover:bg-secondary/60 focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none"
+        >
+          <Icon icon={Add01Icon} size={16} strokeWidth={2.25} />
+          Add a reward
+        </button>
+      ) : null}
+    </section>
+  )
+}
+
+/**
+ * A reward at rest — a compact, QUIET row. Active rewards read as filled wells;
+ * inactive ones fade back with a hairline. The full editor only appears when a
+ * row is opened, so the pool reads as a list instead of a stack of forms.
+ */
+function RewardRow({
+  item,
+  onEdit,
+}: {
+  item: RewardPoolItemValues
+  onEdit: () => void
+}) {
+  const minSpend = item.minSpendPence
+    ? `Min £${formatPence(item.minSpendPence)}`
+    : "No min spend"
+
+  return (
+    <div
+      data-active={item.isActive}
+      className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border-[1.5px] p-3 transition-[border-color,opacity,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] data-[active=false]:border-border data-[active=false]:bg-background data-[active=false]:opacity-65 data-[active=true]:border-transparent data-[active=true]:bg-secondary motion-reduce:transition-none"
+    >
+      <span
+        aria-hidden="true"
+        data-active={item.isActive}
+        className="grid size-9 -rotate-6 place-items-center rounded-full border-2 border-ink text-[0.95rem] data-[active=false]:border-ink/40 data-[active=false]:bg-secondary data-[active=false]:text-muted-foreground data-[active=true]:bg-seal data-[active=true]:text-seal-foreground"
+      >
+        <Icon icon={GiftIcon} size={16} strokeWidth={2.25} />
+      </span>
+
+      <div className="min-w-0">
+        <p className="truncate text-sm font-bold text-foreground">
+          {item.rewardName || "Untitled reward"}
+        </p>
+        <p className="truncate text-xs leading-5 text-muted-foreground">
+          {item.rewardTerms}
+        </p>
+        <p className="mt-1 font-mono text-[0.62rem] font-bold tracking-[0.05em] text-muted-foreground uppercase">
+          Weight {item.weight || "1"} · {minSpend}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <MonoTag tone={item.isActive ? "leaf" : "plain"}>
+          {item.isActive ? "Active" : "Inactive"}
+        </MonoTag>
+        <button
+          type="button"
+          onClick={onEdit}
+          aria-label={`Edit ${item.rewardName || "reward"}`}
+          className="grid size-9 place-items-center rounded-lg border-[1.5px] border-border bg-card text-foreground transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:border-ink hover:bg-secondary/60 focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none"
+        >
+          <Icon icon={PencilEdit02Icon} size={16} strokeWidth={2} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function RewardPoolItemForm({
   loyaltyCardId,
   initialValues,
   isNew = false,
+  onCancel,
 }: {
   loyaltyCardId: string
   initialValues: RewardPoolItemValues
   isNew?: boolean
+  onCancel: () => void
 }) {
   const [state, action, pending] = useActionState(
     saveRewardPoolItemAction,
@@ -246,35 +367,25 @@ function RewardPoolItemForm({
     Boolean(state.errors?.minSpendPence) ||
     draft.minSpendPence !== ""
 
+  // LOUD-er than a resting row: the open editor is ink-bordered so the active
+  // edit surface stands apart from the quiet list around it.
   return (
-    <div className="surface-card grid gap-4 p-4">
-      {!isNew ? (
-        <div className="flex flex-wrap items-start justify-between gap-3 rounded-lg border-2 border-dashed border-ink/15 bg-secondary/50 px-4 py-3">
-          <div>
-            <p className="text-sm font-extrabold">
-              {draft.rewardName || "Untitled reward"}
-            </p>
-            <p className="mt-1 font-mono text-xs leading-5 text-muted-foreground">
-              Minimum spend:{" "}
-              {draft.minSpendPence
-                ? `£${formatPence(draft.minSpendPence)}`
-                : "None"}{" "}
-              · Weight: {draft.weight || "1"} · Order:{" "}
-              {draft.displayOrder || "0"}
-            </p>
-          </div>
-          <MonoTag tone={draft.isActive ? "leaf" : "plain"}>
-            {draft.isActive ? "Active reward" : "Inactive reward"}
-          </MonoTag>
-        </div>
-      ) : null}
+    <div className="grid gap-4 rounded-lg border-2 border-ink bg-card p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <Eyebrow>{isNew ? "New reward" : "Edit reward"}</Eyebrow>
+      </div>
+
       <form action={action} className="grid gap-4">
         <input type="hidden" name="loyaltyCardId" value={loyaltyCardId} />
         <input type="hidden" name="rewardPoolItemId" value={draft.id ?? ""} />
+        <input type="hidden" name="displayOrder" value={draft.displayOrder} />
+
         <Field
           id={`${draft.id ?? "new"}-rewardName`}
           label="Reward name"
           name="rewardName"
+          maxLength={100}
+          placeholder="e.g. Free pastry with any coffee"
           value={draft.rewardName}
           onChange={(event) => updateDraft("rewardName", event.target.value)}
           error={state.errors?.rewardName}
@@ -284,30 +395,28 @@ function RewardPoolItemForm({
           label="Reward terms"
           name="rewardTerms"
           rows={3}
+          placeholder="What the customer gets, and any conditions."
           value={draft.rewardTerms}
           onChange={(event) => updateDraft("rewardTerms", event.target.value)}
           error={state.errors?.rewardTerms}
         />
-        <label className="flex items-center justify-between gap-3 rounded-lg border-2 border-ink bg-secondary/50 px-4 py-3 text-sm font-bold">
-          <span>Active reward</span>
-          <input
-            name="isActive"
-            type="checkbox"
-            checked={draft.isActive}
-            onChange={(event) => updateDraft("isActive", event.target.checked)}
-            className="size-5 accent-primary"
-          />
-        </label>
+        <ToggleRow
+          name="isActive"
+          label="Active in the pool"
+          hint="Counts toward the 3 needed to launch."
+          checked={draft.isActive}
+          onChange={(checked) => updateDraft("isActive", checked)}
+        />
 
         <Disclosure
-          label="Weighting, order and spend"
+          label="Weighting and minimum spend"
           defaultOpen={advancedTouched}
         >
           <p className="text-xs leading-5 text-muted-foreground">
-            Defaults are fine to launch. Weight makes a reward more likely;
-            order sorts the list; minimum spend is optional.
+            Defaults are fine to launch. A higher weight is drawn more often;
+            minimum spend is optional.
           </p>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <Field
               id={`${draft.id ?? "new"}-weight`}
               label="Weight"
@@ -319,24 +428,12 @@ function RewardPoolItemForm({
               error={state.errors?.weight}
             />
             <Field
-              id={`${draft.id ?? "new"}-displayOrder`}
-              label="Order"
-              name="displayOrder"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={draft.displayOrder}
-              onChange={(event) =>
-                updateDraft("displayOrder", event.target.value)
-              }
-              error={state.errors?.displayOrder}
-            />
-            <Field
               id={`${draft.id ?? "new"}-minSpendPence`}
-              label="Min spend"
+              label="Min spend (pence)"
               name="minSpendPence"
               inputMode="numeric"
               pattern="[0-9]*"
-              placeholder="Optional pence"
+              placeholder="Optional"
               value={draft.minSpendPence}
               onChange={(event) =>
                 updateDraft("minSpendPence", event.target.value)
@@ -351,21 +448,39 @@ function RewardPoolItemForm({
             {state.errors.form}
           </p>
         ) : null}
-        <div className="flex flex-wrap gap-2">
+
+        <div className="flex flex-wrap items-center gap-2">
           <Button type="submit" disabled={pending}>
             {pending ? "Saving..." : isNew ? "Add reward" : "Save reward"}
           </Button>
+          <Button type="button" variant="ghost" onClick={onCancel}>
+            <Icon icon={Cancel01Icon} size={16} />
+            Cancel
+          </Button>
+          {!isNew && draft.id ? (
+            <span className="ml-auto">
+              <DeleteRewardButton rewardPoolItemId={draft.id} />
+            </span>
+          ) : null}
         </div>
       </form>
-      {!isNew && draft.id ? (
-        <form action={deleteRewardPoolItemAction}>
-          <input type="hidden" name="rewardPoolItemId" value={draft.id} />
-          <Button type="submit" variant="outline">
-            Delete or archive
-          </Button>
-        </form>
-      ) : null}
     </div>
+  )
+}
+
+function DeleteRewardButton({
+  rewardPoolItemId,
+}: {
+  rewardPoolItemId: string
+}) {
+  return (
+    <form action={deleteRewardPoolItemAction}>
+      <input type="hidden" name="rewardPoolItemId" value={rewardPoolItemId} />
+      <Button type="submit" variant="outline" size="sm">
+        <Icon icon={Delete02Icon} size={15} />
+        Delete
+      </Button>
+    </form>
   )
 }
 
@@ -375,28 +490,144 @@ function formatPence(value: string) {
   return (pence / 100).toFixed(2)
 }
 
+/**
+ * A section head in the medium-weight family: a sentence-case heading and sub,
+ * with the step number as mono metadata on the right (the only mono caps here).
+ */
+function SectionHead({
+  title,
+  description,
+  step,
+}: {
+  title: string
+  description: string
+  step: string
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="grid gap-2">
+        <h2 className="text-xl leading-snug font-extrabold tracking-tight text-foreground">
+          {title}
+        </h2>
+        <p className="max-w-[44ch] text-sm leading-6 text-muted-foreground">
+          {description}
+        </p>
+      </div>
+      <Eyebrow className="shrink-0 pt-1 whitespace-nowrap">{step}</Eyebrow>
+    </div>
+  )
+}
+
+/** A +/- stepper for small whole-number counts. The value posts via a sibling hidden input. */
+function Stepper({
+  value,
+  onChange,
+  min = 1,
+  max = 99,
+  label,
+}: {
+  value: string
+  onChange: (value: string) => void
+  min?: number
+  max?: number
+  label: string
+}) {
+  const parsed = Number.parseInt(value, 10)
+  const current = Number.isFinite(parsed) ? parsed : min
+  const atMin = current <= min
+
+  return (
+    <div
+      role="group"
+      aria-label={label}
+      className="inline-flex w-max items-stretch overflow-hidden rounded-lg bg-secondary"
+    >
+      <button
+        type="button"
+        aria-label="Fewer visits"
+        disabled={atMin}
+        onClick={() => onChange(String(Math.max(min, current - 1)))}
+        className="grid w-11 place-items-center text-foreground transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:bg-ink/10 focus-visible:ring-3 focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
+      >
+        <Icon icon={MinusSignIcon} size={18} strokeWidth={2.25} />
+      </button>
+      <span
+        aria-live="polite"
+        className="numeric-tabular grid min-w-[3.25rem] place-items-center border-x-[1.5px] border-border bg-card font-mono text-base font-bold text-foreground"
+      >
+        {current}
+      </span>
+      <button
+        type="button"
+        aria-label="More visits"
+        onClick={() => onChange(String(Math.min(max, current + 1)))}
+        className="grid w-11 place-items-center text-foreground transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:bg-ink/10 focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none"
+      >
+        <Icon icon={PlusSignIcon} size={18} strokeWidth={2.25} />
+      </button>
+    </div>
+  )
+}
+
+/** A QUIET inline toggle — a filled well, not a hard-bordered card. */
+function ToggleRow({
+  name,
+  label,
+  hint,
+  checked,
+  onChange,
+}: {
+  name: string
+  label: string
+  hint: string
+  checked: boolean
+  onChange: (checked: boolean) => void
+}) {
+  return (
+    <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg bg-secondary px-4 py-3">
+      <span className="grid gap-0.5">
+        <span className="text-sm font-bold text-foreground">{label}</span>
+        <span className="text-xs leading-5 text-muted-foreground">{hint}</span>
+      </span>
+      <input
+        name={name}
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="size-5 shrink-0 accent-[var(--w-leaf)]"
+      />
+    </label>
+  )
+}
+
+/** A QUIET input — a filled well with a transparent border that inks on focus. */
 function Field({
   id,
   label,
+  hint,
   error,
   ...props
 }: React.InputHTMLAttributes<HTMLInputElement> & {
   id: string
   label: string
+  hint?: string
   error?: string
 }) {
   return (
     <div className="grid gap-2">
-      <label htmlFor={id} className="eyebrow">
+      <label htmlFor={id} className="text-sm font-bold text-foreground">
         {label}
       </label>
       <input
         id={id}
-        className="h-12 rounded-lg border-2 border-ink bg-secondary/60 px-4 text-sm transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none focus:border-ring focus:ring-3 focus:ring-ring/25 motion-reduce:transition-none"
+        className="h-12 rounded-lg border-[1.5px] border-transparent bg-secondary px-4 text-sm text-foreground transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none placeholder:text-muted-foreground/70 focus:border-ink focus:ring-3 focus:ring-ring/20 motion-reduce:transition-none"
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
         {...props}
       />
+      {hint ? (
+        <p className="text-xs leading-5 text-muted-foreground">{hint}</p>
+      ) : null}
       {error ? (
         <p id={`${id}-error`} className="text-sm text-destructive">
           {error}
@@ -410,7 +641,7 @@ function TextareaField({
   id,
   label,
   error,
-  rows = 5,
+  rows = 4,
   ...props
 }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
   id: string
@@ -419,13 +650,13 @@ function TextareaField({
 }) {
   return (
     <div className="grid gap-2">
-      <label htmlFor={id} className="eyebrow">
+      <label htmlFor={id} className="text-sm font-bold text-foreground">
         {label}
       </label>
       <textarea
         id={id}
         rows={rows}
-        className="resize-none rounded-lg border-2 border-ink bg-secondary/60 px-4 py-3 text-sm leading-6 transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none focus:border-ring focus:ring-3 focus:ring-ring/25 motion-reduce:transition-none"
+        className="resize-y rounded-lg border-[1.5px] border-transparent bg-secondary px-4 py-3 text-sm leading-6 text-foreground transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none placeholder:text-muted-foreground/70 focus:border-ink focus:ring-3 focus:ring-ring/20 motion-reduce:transition-none"
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
         {...props}
@@ -439,6 +670,11 @@ function TextareaField({
   )
 }
 
+/**
+ * The customer preview — the LOUD hero artifact. It keeps the full receipt
+ * treatment (2px ink border, hard shadow, perforated edge) so it reads as the
+ * thing the customer actually holds, against the quieter form beside it.
+ */
 function StampCardPreview({
   merchantName,
   locationName,
@@ -451,8 +687,8 @@ function StampCardPreview({
   activeRewardCount: number
 }) {
   const stampsRequired = Math.max(
-    Number.parseInt(draft.stampsRequired, 10) || 3,
-    1
+    Number.parseInt(draft.stampsRequired, 10) || DEFAULT_STAMPS_REQUIRED,
+    DEFAULT_STAMPS_REQUIRED
   )
   const earnedPreviewCount = Math.min(stampsRequired - 1, 2)
 

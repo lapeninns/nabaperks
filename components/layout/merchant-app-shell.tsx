@@ -35,7 +35,7 @@ export function MerchantAppShell({
         <SidebarHeader className="border-b-2 border-ink p-4">
           <Logo href="/app" />
         </SidebarHeader>
-        <SidebarContent className="px-2 py-3">
+        <SidebarContent className="flex flex-1 flex-col px-2 py-3">
           <ConsoleSidebarNav
             ariaLabel="Merchant navigation"
             items={merchantNavItems}
@@ -62,7 +62,7 @@ export function MerchantAppShell({
           <SidebarTrigger className="size-11 shrink-0" />
           <Logo href="/app" wordmarkClassName="hidden sm:inline" />
         </header>
-        <div className="w-full px-4 py-8 sm:px-6">
+        <div className="w-full px-4 py-8 pb-32 sm:px-6 sm:pb-10">
           <div className="mx-auto w-full max-w-6xl">{children}</div>
         </div>
       </SidebarInset>
