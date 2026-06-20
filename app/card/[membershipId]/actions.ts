@@ -6,21 +6,10 @@ import { blockReasonCopy } from "@/lib/customer/experience/block-reasons"
 import { getStampQrContextForMembership } from "@/lib/customer/join"
 import {
   issueSelfServiceStamp,
-  type StampLocationEvidence,
-  type StampLocationStatus,
+  type GeoCoordinates,
 } from "@/lib/customer/stamp"
 import type { SelfStampActionState } from "@/lib/customer/self-stamp-action-state"
 import { logger } from "@/lib/observability/logger"
-
-const STAMP_LOCATION_STATUSES = [
-  "skipped",
-  "available",
-  "denied",
-  "denied_remembered",
-  "timeout",
-  "unsupported",
-  "unavailable",
-] satisfies readonly StampLocationStatus[]
 
 function fail(message: string): SelfStampActionState {
   return { status: "error", message }
@@ -45,14 +34,11 @@ export async function selfStampAction(
 
   let result: Awaited<ReturnType<typeof issueSelfServiceStamp>>
   try {
-    result = await issueSelfServiceStamp(
-      membershipId,
-      stampLocationEvidence(formData)
-    )
+    result = await issueSelfServiceStamp(membershipId, coordinates(formData))
   } catch (error) {
-    // Known RPC blocks already return a calm `blocked` result; only a genuinely
-    // unexpected failure reaches here. Keep it inline instead of throwing the
-    // customer to a full-page "card unavailable" boundary on a healthy card.
+    if (!(error instanceof Error)) {
+      throw error
+    }
     logger.error("self_service_stamp_unexpected_error", {
       membershipId,
       error,
@@ -76,30 +62,28 @@ export async function selfStampAction(
   }
 }
 
-function stampLocationEvidence(
-  formData: FormData
-): StampLocationEvidence | undefined {
+function coordinates(formData: FormData): GeoCoordinates | undefined {
   const latitude = numberValue(formData, "latitude")
   const longitude = numberValue(formData, "longitude")
-  const accuracyMeters = numberValue(formData, "accuracyMeters")
-  const locationStatus = locationStatusValue(formData, "locationStatus")
-  const captureElapsedMs = integerValue(formData, "locationElapsedMs")
+  const accuracyMeters = numberValue(formData, "accuracy_meters")
+  const locationStatus = value(formData, "location_status")
+  const captureElapsedMs = numberValue(formData, "capture_elapsed_ms")
 
   if (
-    locationStatus === null &&
+    latitude === null &&
+    longitude === null &&
     accuracyMeters === null &&
+    !locationStatus &&
     captureElapsedMs === null
   ) {
-    if (latitude === null || longitude === null) return undefined
-
-    return { latitude, longitude }
+    return undefined
   }
 
   return {
     latitude,
     longitude,
     accuracyMeters,
-    locationStatus,
+    locationStatus: locationStatus || null,
     captureElapsedMs,
   }
 }
@@ -117,20 +101,4 @@ function numberValue(formData: FormData, key: string) {
 
   const parsed = Number(raw)
   return Number.isFinite(parsed) ? parsed : null
-}
-
-function integerValue(formData: FormData, key: string) {
-  const parsed = numberValue(formData, key)
-
-  return parsed !== null && Number.isInteger(parsed) ? parsed : null
-}
-
-function locationStatusValue(
-  formData: FormData,
-  key: string
-): StampLocationStatus | null {
-  const raw = value(formData, key)
-  if (!raw) return null
-
-  return STAMP_LOCATION_STATUSES.find((status) => status === raw) ?? null
 }

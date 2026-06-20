@@ -122,6 +122,42 @@ requireMarker(
   "tenant_isolation_fixture",
   "self-contained tenant isolation fixture marker"
 )
+requireMarker(
+  migrations,
+  "record_cycle_stamp_soft_geofence_flag",
+  "cycle stamp soft geofence minimized flag helper"
+)
+
+const latestStampRpc = latestFunctionSource(
+  migrations,
+  "public.issue_self_service_stamp"
+)
+if (!latestStampRpc.includes("p_accuracy_meters numeric default null")) {
+  failures.push("latest stamp RPC missing accuracy parameter")
+}
+for (const marker of ["'latitude', p_latitude", "'longitude', p_longitude"]) {
+  if (latestStampRpc.includes(marker)) {
+    failures.push(`latest stamp RPC stores raw coordinate metadata: ${marker}`)
+  }
+}
+
+const softFlagHelper = latestFunctionSource(
+  migrations,
+  "public.record_cycle_stamp_soft_geofence_flag"
+)
+for (const marker of [
+  "'latitude'",
+  "'longitude'",
+  "p_latitude",
+  "p_longitude",
+  "distance_meters",
+]) {
+  if (softFlagHelper.includes(marker)) {
+    failures.push(
+      `soft geofence flag helper stores exact location metadata: ${marker}`
+    )
+  }
+}
 
 if (authActions.includes("signInWithOtp")) {
   failures.push("customer join action still starts Supabase Auth OTP")
@@ -141,6 +177,16 @@ function requireMarker(source, marker, label) {
   if (!source.includes(marker)) {
     failures.push(`missing ${label}`)
   }
+}
+
+function latestFunctionSource(source, signature) {
+  const start = source.lastIndexOf(`create or replace function ${signature}(`)
+  if (start === -1) return ""
+
+  const end = source.indexOf("$$;", start)
+  if (end === -1) return source.slice(start)
+
+  return source.slice(start, end)
 }
 
 function listFiles(dir) {

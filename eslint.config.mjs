@@ -17,6 +17,8 @@ const eslintConfig = defineConfig([
     "test-results/**",
     "playwright-report/**",
     ".jscpd/**",
+    ".vercel/output/**",
+    ".omo/evidence/**",
     // Non-app artifacts.
     "docs/**/*.tsx",
     ".tmp/**",

@@ -17,6 +17,10 @@ const migrations = readdirSync("supabase/migrations")
   .map((file) => readFileSync(`supabase/migrations/${file}`, "utf8"))
   .join("\n")
 const tenantTest = readFileSync("supabase/tests/tenant_isolation.sql", "utf8")
+const cycleStampSoftGeofenceTest = readFileSync(
+  "supabase/tests/cycle_stamp_soft_geofence.sql",
+  "utf8"
+)
 
 const serviceRoleOnlyTables = new Set()
 
@@ -299,6 +303,45 @@ for (const marker of [
 ]) {
   if (!migrations.includes(marker)) {
     failures.push(`missing customer contact immutability marker: ${marker}`)
+  }
+}
+
+for (const marker of [
+  "drop function if exists public.issue_self_service_stamp(uuid, uuid, numeric, numeric)",
+  "p_accuracy_meters numeric default null",
+  "p_location_status text default null",
+  "p_capture_elapsed_ms integer default null",
+  "soft_geofence_trigger_stamp_number",
+  "v_next_cycle_stamp_number",
+  "cycle_stamp_number",
+  "effective_radius_meters",
+  "accuracy_bucket",
+  "distance_bucket",
+  "least(p_accuracy_meters, 200)",
+  "record_cycle_stamp_soft_geofence_flag",
+]) {
+  if (!migrations.includes(marker)) {
+    failures.push(`missing cycle stamp soft geofence marker: ${marker}`)
+  }
+}
+
+for (const marker of [
+  "stamp 1 ignores stale coordinates",
+  "stamp 2 ignores stale coordinates",
+  "stamp 3 denied location still issues without fraud flag",
+  "non-granted statuses still issue without fraud flags and keep minimized status",
+  "poor accuracy does not create a medium out-of-range flag",
+  "trustworthy out-of-range creates minimized admin flag",
+  "invalid coordinates do not block or flag",
+  "later active cycle reaches stamp 3",
+  "stamp 4 or later in an active cycle",
+  "inside the effective radius including accuracy buffer",
+  "already stamped today",
+  "legacy RPC callers",
+  "assert_no_raw_location_metadata",
+]) {
+  if (!cycleStampSoftGeofenceTest.includes(marker)) {
+    failures.push(`cycle stamp soft geofence test missing marker: ${marker}`)
   }
 }
 

@@ -9,11 +9,6 @@ import {
   type CustomerIdentityState,
 } from "@/app/m/[merchantSlug]/join/actions"
 import { customerInputClass } from "@/components/customer/input-class"
-import {
-  GeoFields,
-  LocationNote,
-  useOptionalGeolocation,
-} from "@/components/customer/self-service-forms"
 import { Button } from "@/components/ui/button"
 import type { LocationRequirement } from "@/lib/customer/experience/types"
 
@@ -38,19 +33,14 @@ export function CustomerOtpForm({
     requestCustomerIdentityAction,
     identityInitialState
   )
-  const { note, handleSubmit } = useOptionalGeolocation(location)
   const state = verifyState
+  void location
 
   return (
     <div className="grid gap-4">
-      <form
-        action={verifyAction}
-        onSubmit={handleSubmit}
-        className="grid gap-4"
-      >
+      <form action={verifyAction} className="grid gap-4">
         <input type="hidden" name="merchantSlug" value={merchantSlug} />
         <input type="hidden" name="qrId" value={qrId ?? ""} />
-        <GeoFields />
         <div className="grid gap-2">
           <label htmlFor="otp" className="eyebrow">
             Text code
@@ -72,7 +62,6 @@ export function CustomerOtpForm({
             </p>
           )}
         </div>
-        <LocationNote note={note} />
         {state.errors?.form ? (
           <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {state.errors.form}

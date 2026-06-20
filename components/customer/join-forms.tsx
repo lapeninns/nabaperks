@@ -12,11 +12,6 @@ import {
 import { Eyebrow, MonoTag } from "@/components/brand"
 import { customerInputClass } from "@/components/customer/input-class"
 import { CustomerLegalConsentLinks } from "@/components/customer/legal-sheet"
-import {
-  GeoFields,
-  LocationNote,
-  useOptionalGeolocation,
-} from "@/components/customer/self-service-forms"
 import type { JoinCard } from "@/lib/customer/experience/types"
 import { Button } from "@/components/ui/button"
 import {
@@ -108,8 +103,6 @@ export function CustomerJoinForm({
   qrId,
   merchantName,
   card,
-  requireGeofence,
-  geofenceRadiusMeters,
 }: {
   merchantSlug: string
   qrId?: string
@@ -122,16 +115,11 @@ export function CustomerJoinForm({
     joinRewardsAction,
     joinInitialState
   )
-  const { note, handleSubmit } = useOptionalGeolocation({
-    requireGeofence,
-    geofenceRadiusMeters,
-  })
 
   return (
-    <form action={action} onSubmit={handleSubmit} className="grid gap-4">
+    <form action={action} className="grid gap-4">
       <input type="hidden" name="merchantSlug" value={merchantSlug} />
       <input type="hidden" name="qrId" value={qrId ?? ""} />
-      <GeoFields />
       {/* One flat wrapper, two inline checkboxes — the consent rows share a
           single surface instead of two stacked bordered cards, so the primary
           CTA stays above the fold on small screens. */}
@@ -189,7 +177,6 @@ export function CustomerJoinForm({
         Finish here and your first stamp lands straight away — no second scan
         needed.
       </p>
-      <LocationNote note={note} />
       <Button type="submit" size="lg" disabled={pending} className="w-full">
         {pending ? "Stamping..." : "Get my first stamp"}
       </Button>

@@ -1,10 +1,3 @@
--- Cycle-relative soft GPS review for self-service stamps.
---
--- The customer keeps the stamp even when GPS is denied, slow, unsupported, or
--- unavailable. Only the configured cycle stamp is evaluated, and review
--- metadata is minimized so raw customer coordinates are not stored in the stamp
--- ledger or fraud flag.
-
 alter table public.merchant_locations
   add column if not exists soft_geofence_trigger_stamp_number integer not null default 3;
 
@@ -20,13 +13,12 @@ create or replace function public.record_cycle_stamp_soft_geofence_flag(
   p_customer_id uuid,
   p_membership_id uuid,
   p_location_id uuid,
-  p_signal text,
-  p_context text,
   p_cycle_stamp_number integer,
   p_location_status text,
-  p_accuracy_meters numeric,
   p_distance_bucket text,
-  p_radius_meters integer,
+  p_accuracy_bucket text,
+  p_confidence text,
+  p_configured_radius_meters integer,
   p_effective_radius_meters integer
 )
 returns void
@@ -47,39 +39,25 @@ begin
     p_merchant_id,
     p_customer_id,
     p_membership_id,
-    p_signal,
-    case when p_signal = 'self_service_geofence_out_of_range' then 'medium' else 'low' end,
-    jsonb_strip_nulls(
-      jsonb_build_object(
-        'context', p_context,
-        'location_id', p_location_id,
-        'cycle_stamp_number', p_cycle_stamp_number,
-        'location_status', p_location_status,
-        'accuracy_bucket',
-          case
-            when p_accuracy_meters is null then null
-            when p_accuracy_meters <= 25 then '0_25m'
-            when p_accuracy_meters <= 50 then '26_50m'
-            when p_accuracy_meters <= 100 then '51_100m'
-            when p_accuracy_meters <= 200 then '101_200m'
-            else 'over_200m'
-          end,
-        'distance_bucket', p_distance_bucket,
-        'radius_meters', p_radius_meters,
-        'effective_radius_meters', p_effective_radius_meters
-      )
+    'self_service_geofence_out_of_range',
+    'medium',
+    jsonb_build_object(
+      'context', 'stamp',
+      'location_id', p_location_id,
+      'cycle_stamp_number', p_cycle_stamp_number,
+      'location_status', p_location_status,
+      'distance_bucket', p_distance_bucket,
+      'accuracy_bucket', p_accuracy_bucket,
+      'confidence', p_confidence,
+      'configured_radius_meters', p_configured_radius_meters,
+      'effective_radius_meters', p_effective_radius_meters,
+      'accuracy_cap_meters', 200,
+      'fixed_tolerance_meters', 15,
+      'reason', 'cycle_stamp_3_soft_geofence'
     )
   );
 end;
 $$;
-
-revoke all on function public.record_cycle_stamp_soft_geofence_flag(
-  uuid, uuid, uuid, uuid, text, text, integer, text, numeric, text, integer, integer
-) from public;
-
-grant execute on function public.record_cycle_stamp_soft_geofence_flag(
-  uuid, uuid, uuid, uuid, text, text, integer, text, numeric, text, integer, integer
-) to service_role;
 
 drop function if exists public.issue_self_service_stamp(uuid, uuid, numeric, numeric);
 
@@ -113,15 +91,15 @@ declare
   v_total_weight integer := 0;
   v_active_reward_count integer := 0;
   v_weight_threshold integer;
-  v_distance_meters numeric;
-  v_active_cycle_stamp_count integer;
+  v_distance numeric;
+  v_active_cycle_stamp_count integer := 0;
   v_next_cycle_stamp_number integer;
   v_location_status text;
-  v_accuracy_meters numeric;
-  v_accuracy_bucket text;
-  v_distance_bucket text;
+  v_distance_bucket text := 'unknown';
+  v_accuracy_bucket text := 'unknown';
+  v_confidence text := 'none';
   v_effective_radius_meters integer;
-  v_capture_elapsed_ms integer;
+  v_capture_elapsed_bucket text := 'unknown';
 begin
   if p_customer_id is null then
     raise insufficient_privilege using message = 'Verified customer required';
@@ -133,7 +111,6 @@ begin
     memberships.id,
     memberships.merchant_id,
     memberships.customer_id,
-    memberships.current_stamp_count,
     memberships.active_cycle_number,
     customers.auth_user_id,
     merchants.status as merchant_status
@@ -194,7 +171,16 @@ begin
     raise exception 'This loyalty card is not active';
   end if;
 
-  if membership_record.current_stamp_count >= card_record.stamps_required then
+  select count(*)
+  into v_active_cycle_stamp_count
+  from public.stamp_events
+  where stamp_events.membership_id = p_membership_id
+    and stamp_events.event_type = 'earned'
+    and stamp_events.cycle_number = membership_record.active_cycle_number;
+
+  v_next_cycle_stamp_number := v_active_cycle_stamp_count + 1;
+
+  if v_active_cycle_stamp_count >= card_record.stamps_required then
     raise exception 'A reward is already ready to redeem';
   end if;
 
@@ -209,7 +195,7 @@ begin
     raise exception 'Stamp already issued for this UK business day';
   end if;
 
-  if membership_record.current_stamp_count + 1 >= card_record.stamps_required then
+  if v_next_cycle_stamp_number >= card_record.stamps_required then
     select
       count(*),
       coalesce(sum(reward_pool_items.weight), 0)
@@ -229,104 +215,94 @@ begin
     end if;
   end if;
 
-  select count(*)
-  into v_active_cycle_stamp_count
-  from public.stamp_events
-  where stamp_events.membership_id = p_membership_id
-    and stamp_events.event_type = 'earned'
-    and stamp_events.cycle_number = membership_record.active_cycle_number;
-
-  v_next_cycle_stamp_number := v_active_cycle_stamp_count + 1;
-  v_location_status := lower(trim(coalesce(p_location_status, '')));
-  v_accuracy_meters :=
-    case
-      when p_accuracy_meters is not null and p_accuracy_meters >= 0 then p_accuracy_meters
-      else null
-    end;
-  v_capture_elapsed_ms :=
-    case
-      when p_capture_elapsed_ms is null then null
-      when p_capture_elapsed_ms < 0 then 0
-      when p_capture_elapsed_ms > 30000 then 30000
-      else p_capture_elapsed_ms
-    end;
-
-  if v_location_status = '' then
-    if p_latitude is not null and p_longitude is not null then
-      v_location_status := 'available';
-    else
-      v_location_status := 'unavailable';
-    end if;
-  end if;
-
-  -- location_status in ('skipped', 'denied', 'denied_remembered', 'timeout', 'unsupported', 'unavailable')
-  if v_location_status not in (
-    'skipped',
-    'available',
-    'denied',
-    'denied_remembered',
-    'timeout',
-    'unsupported',
-    'unavailable'
-  ) then
-    v_location_status := 'unavailable';
-  end if;
-
-  v_accuracy_bucket :=
-    case
-      when v_accuracy_meters is null then null
-      when v_accuracy_meters <= 25 then '0_25m'
-      when v_accuracy_meters <= 50 then '26_50m'
-      when v_accuracy_meters <= 100 then '51_100m'
-      when v_accuracy_meters <= 200 then '101_200m'
-      else 'over_200m'
-    end;
-
   geo_flagged := false;
+  v_location_status := 'not_applicable_before_trigger';
+
+  if p_capture_elapsed_ms is not null then
+    v_capture_elapsed_bucket := case
+      when p_capture_elapsed_ms < 0 then 'invalid'
+      when p_capture_elapsed_ms <= 500 then 'under_500ms'
+      when p_capture_elapsed_ms <= 1200 then '500_1200ms'
+      when p_capture_elapsed_ms <= 3000 then '1200_3000ms'
+      else 'over_3000ms'
+    end;
+  end if;
 
   if coalesce(card_record.require_geofence, false)
     and v_next_cycle_stamp_number = coalesce(card_record.soft_geofence_trigger_stamp_number, 3) then
-    if v_location_status = 'available'
-      and p_latitude is not null
-      and p_longitude is not null
-      and v_accuracy_meters is not null
-      and v_accuracy_meters <= 200
-      and card_record.latitude is not null
-      and card_record.longitude is not null then
-      v_effective_radius_meters :=
-        coalesce(card_record.geofence_radius_meters, 150)
-        + least(ceil(v_accuracy_meters)::integer, 200)
-        + 15;
-      v_distance_meters := public.geo_distance_meters(
-        p_latitude,
-        p_longitude,
-        card_record.latitude,
-        card_record.longitude
-      );
-      v_distance_bucket :=
-        case
-          when v_distance_meters <= v_effective_radius_meters then 'inside_effective_radius'
-          when v_distance_meters <= v_effective_radius_meters + 50 then 'outside_0_50m'
-          when v_distance_meters <= v_effective_radius_meters + 200 then 'outside_51_200m'
-          else 'outside_over_200m'
+    v_location_status := lower(coalesce(nullif(trim(p_location_status), ''), ''));
+
+    if v_location_status not in ('granted', 'denied', 'denied_remembered', 'timeout', 'unsupported', 'unavailable') then
+      v_location_status := case
+        when p_latitude is not null and p_longitude is not null then 'granted'
+        else 'unavailable'
+      end;
+    end if;
+
+    if v_location_status = 'granted' then
+      if p_latitude is null
+        or p_longitude is null
+        or card_record.latitude is null
+        or card_record.longitude is null then
+        v_location_status := 'unavailable';
+      elsif p_latitude < -90
+        or p_latitude > 90
+        or p_longitude < -180
+        or p_longitude > 180 then
+        v_location_status := 'invalid_coordinates';
+      elsif p_accuracy_meters is null then
+        v_location_status := 'accuracy_unknown';
+        v_confidence := 'low';
+      elsif p_accuracy_meters < 0 then
+        v_location_status := 'invalid_accuracy';
+      else
+        v_accuracy_bucket := case
+          when p_accuracy_meters <= 25 then 'accuracy_0_25m'
+          when p_accuracy_meters <= 100 then 'accuracy_25_100m'
+          when p_accuracy_meters <= 200 then 'accuracy_100_200m'
+          else 'accuracy_over_200m'
+        end;
+        v_effective_radius_meters := (
+          card_record.geofence_radius_meters + least(p_accuracy_meters, 200) + 15
+        )::integer;
+        v_distance := public.geo_distance_meters(
+          p_latitude,
+          p_longitude,
+          card_record.latitude,
+          card_record.longitude
+        );
+        v_distance_bucket := case
+          when v_distance <= card_record.geofence_radius_meters then 'in_range'
+          when v_distance <= v_effective_radius_meters then 'near_margin'
+          when v_distance <= 250 then 'out_100_250m'
+          when v_distance <= 1000 then 'out_250_1000m'
+          else 'out_1km_plus'
         end;
 
-      if v_distance_meters > v_effective_radius_meters then
-        geo_flagged := true;
-        perform public.record_cycle_stamp_soft_geofence_flag(
-          membership_record.merchant_id,
-          membership_record.customer_id,
-          p_membership_id,
-          card_record.location_id,
-          'self_service_geofence_out_of_range',
-          'stamp',
-          v_next_cycle_stamp_number,
-          v_location_status,
-          v_accuracy_meters,
-          v_distance_bucket,
-          card_record.geofence_radius_meters,
-          v_effective_radius_meters
-        );
+        if p_accuracy_meters > 200 then
+          v_location_status := 'poor_accuracy';
+          v_confidence := 'low';
+        elsif v_distance > v_effective_radius_meters then
+          v_location_status := 'out_of_range';
+          v_confidence := 'medium';
+          geo_flagged := true;
+          perform public.record_cycle_stamp_soft_geofence_flag(
+            membership_record.merchant_id,
+            membership_record.customer_id,
+            p_membership_id,
+            card_record.location_id,
+            v_next_cycle_stamp_number,
+            v_location_status,
+            v_distance_bucket,
+            v_accuracy_bucket,
+            v_confidence,
+            card_record.geofence_radius_meters,
+            v_effective_radius_meters
+          );
+        else
+          v_location_status := 'in_range';
+          v_confidence := 'medium';
+        end if;
       end if;
     end if;
   end if;
@@ -354,18 +330,17 @@ begin
       1,
       v_business_date,
       membership_record.active_cycle_number,
-      jsonb_strip_nulls(
-        jsonb_build_object(
-          'source', 'self_service_qr',
-          'geo_flagged', geo_flagged,
-          'cycle_stamp_number', v_next_cycle_stamp_number,
-          'location_status', v_location_status,
-          'location_capture_elapsed_ms', v_capture_elapsed_ms,
-          'accuracy_bucket', v_accuracy_bucket,
-          'distance_bucket', v_distance_bucket,
-          'configured_radius_meters', card_record.geofence_radius_meters,
-          'effective_radius_meters', v_effective_radius_meters
-        )
+      jsonb_build_object(
+        'source', 'self_service_qr',
+        'geo_flagged', geo_flagged,
+        'cycle_stamp_number', v_next_cycle_stamp_number,
+        'location_status', v_location_status,
+        'distance_bucket', v_distance_bucket,
+        'accuracy_bucket', v_accuracy_bucket,
+        'confidence', v_confidence,
+        'configured_radius_meters', card_record.geofence_radius_meters,
+        'effective_radius_meters', v_effective_radius_meters,
+        'capture_elapsed_bucket', v_capture_elapsed_bucket
       )
     )
     returning id into stamp_event_id;
@@ -376,7 +351,7 @@ begin
 
   update public.customer_memberships
   set
-    current_stamp_count = current_stamp_count + 1,
+    current_stamp_count = v_next_cycle_stamp_number,
     total_stamps_earned = total_stamps_earned + 1,
     last_visit_at = now()
   where customer_memberships.id = p_membership_id
@@ -574,13 +549,49 @@ end;
 $$;
 
 revoke all on function public.issue_self_service_stamp(
-  uuid, uuid, numeric, numeric, numeric, text, integer
+  uuid,
+  uuid,
+  numeric,
+  numeric,
+  numeric,
+  text,
+  integer
 ) from public;
 
 grant execute on function public.issue_self_service_stamp(
-  uuid, uuid, numeric, numeric, numeric, text, integer
+  uuid,
+  uuid,
+  numeric,
+  numeric,
+  numeric,
+  text,
+  integer
 ) to authenticated, service_role;
 
-revoke execute on function public.issue_self_service_stamp(
-  uuid, uuid, numeric, numeric, numeric, text, integer
-) from anon;
+revoke all on function public.record_cycle_stamp_soft_geofence_flag(
+  uuid,
+  uuid,
+  uuid,
+  uuid,
+  integer,
+  text,
+  text,
+  text,
+  text,
+  integer,
+  integer
+) from public;
+
+grant execute on function public.record_cycle_stamp_soft_geofence_flag(
+  uuid,
+  uuid,
+  uuid,
+  uuid,
+  integer,
+  text,
+  text,
+  text,
+  text,
+  integer,
+  integer
+) to service_role;

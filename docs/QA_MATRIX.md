@@ -210,9 +210,9 @@ All product specs are `active`; the two governance specs are `implemented`.
 | --- | --- | --- | --- | --- |
 | 001 | Member scan routes to stamp-confirm with QR context | unit | u:returning-qr-redirect, u:customer-stamp-loader | — |
 | 002 | Valid tap creates `stamp_events`, increments membership | unit + sql | u:self-service-stamping, sql:reward_redemption_cycles | — |
-| 003 | In-range location: no geofence flag | unit | u:self-service-stamping | — |
-| 004 | Out-of-range: stamp + fraud flag | unit | u:self-service-stamping | — |
-| 005 | Denied/unavailable location: stamp + fraud flag | unit | u:self-service-stamping | — |
+| 003 | Cycle stamp 1 and 2 do not request GPS; cycle stamp 1 and 2 do not write GPS unknown fraud flags | unit + sql | u:cycle-stamp-3-governance-admin-legal, u:self-service-stamping | SQL proof needs disposable DB before qa:db, qa:e2e, or qa:visual |
+| 004 | Cycle stamp 3 requires a browser GPS attempt when soft geofence is enabled; denied, timeout, unsupported, unavailable, or poor-accuracy GPS still issues the stamp | unit + sql | u:cycle-stamp-3-governance-admin-legal, u:self-service-stamping | SQL/browser proof needs disposable DB before qa:db, qa:e2e, or qa:visual |
+| 005 | Reward-cycle reset reapplies the cycle stamp 3 trigger; new stamp evidence stores no raw customer latitude or longitude | unit + sql | u:cycle-stamp-3-governance-admin-legal, u:self-service-stamping | Admin fraud readback is minimized and bucketed |
 | 006 | Duplicate per membership/UK-date rejected | unit + sql | u:self-service-stamping, sql:reward_redemption_cycles | — |
 | 007 | Target stamp selects one weighted reward pool item | unit + sql | u:self-service-stamping, sql:reward_redemption_cycles | — |
 | 008 | Cancelled/suspended billing blocks issuance | unit | u:self-service-stamping, u:customer-billing-matrix | — |
@@ -300,6 +300,7 @@ All product specs are `active`; the two governance specs are `implemented`.
 | 004 | Opt-out recorded without deleting history | unit + sql | u:home-profile, sql:customer_marketing_consent | — |
 | 005 | Reward terms display before/during participation | unit | u:customer-legal-sheets | — |
 | 006 | Admin data-request lookup context | unit | u:admin-console-redesign | — |
+| 007 | Soft GPS legal copy explains minimized evidence, no raw coordinates by default, and non-blocking stamps | unit + security | u:cycle-stamp-3-governance-admin-legal, u:customer-legal-sheets | — |
 
 **MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS** · `webhooks` · gates: `qa:static`, `qa:unit`, `qa:db`, `qa:security`
 | Req | Behaviour | Test type | Evidence | Gap / note |
@@ -307,12 +308,13 @@ All product specs are `active`; the two governance specs are `implemented`.
 | 001 | Repeated stamp attempts rate-limited | unit | u:rate-limit (this pass), u:self-service-stamping | RPC + key hashing covered |
 | 002 | QR/identity limits use durable server-side storage | unit + sql | u:rate-limit (this pass), sql:tenant_isolation | — |
 | 003 | Multiple stamps in cooldown rejected | unit + sql | u:self-service-stamping, sql:reward_redemption_cycles | — |
-| 004 | Unusual volume creates fraud flag | unit | u:self-service-stamping | — |
+| 004 | Unusual stamp volume creates fraud flag for admin review | unit + sql | u:cycle-stamp-3-governance-admin-legal, u:self-service-stamping | Generic fraud readback preserves signal and reason without exposing raw metadata |
 | 005 | Concurrent redemption: at most one success | sql | sql:reward_redemption_cycles, sql:tenant_isolation | — |
 | 006 | Disabled QR blocks entry, keeps scans | unit | u:customer | — |
 | 007 | Admin MFA requires AAL2 | unit + security | u:admin-console-redesign, `security:verify` | — |
 | 008 | Unauthorised privileged attempt denied + audit | sql-rls | sql:tenant_isolation | role-denial test |
 | 009 | Invalid Stripe webhook signature rejected | security | u:backend-hardening, `security:verify` | — |
+| 010 | Soft GPS admin readback is minimized and bucketed without raw coordinates | unit + sql | u:cycle-stamp-3-governance-admin-legal, sql:reward_redemption_cycles | Admin readback exposes cycle stamp number, location status, distance bucket, accuracy bucket, confidence, reason, merchant, masked customer, severity, status, and created_at |
 
 ### Phase 8 — Pilot
 
@@ -396,9 +398,10 @@ Dashboard query consolidation (the N+1 risk for `/app`) is covered by
 
 The configured `SUPABASE_DB_URL` / `NEXT_PUBLIC_SUPABASE_URL` can point at a hosted
 Supabase project, and `qa:e2e` / `qa:visual` run browser flows that reset and seed
-demo customer rows. This proof run executed the live DB and browser layers, but the
-safe default for release proof remains: point `SUPABASE_DB_URL` at a disposable or
-demo database before running `qa:db`, `qa:e2e`, or `qa:visual`.
+demo customer rows. Do not mutate hosted Supabase for cycle-stamp-3 proof: use a
+disposable DB before qa:db, qa:e2e, or qa:visual. The safe default for release
+proof remains: point `SUPABASE_DB_URL` at a disposable or demo database before
+running `qa:db`, `qa:e2e`, or `qa:visual`.
 
 `pnpm perf:routes` still needs a running server and is intentionally kept out of
 `qa:full` because it measures route timing rather than pass/fail behaviour.

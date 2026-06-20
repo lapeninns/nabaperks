@@ -148,7 +148,7 @@ export async function getAdminFraudSignals() {
         .limit(100),
       supabase
         .from("product_events")
-        .select("id, event_name, created_at, metadata, merchants(business_name)")
+        .select("id, event_name, created_at, merchants(business_name)")
         .eq("event_name", "reward_redemption_failed")
         .order("created_at", { ascending: false })
         .limit(100),
@@ -163,7 +163,7 @@ export async function getAdminFraudSignals() {
   }
 
   return {
-    fraudFlags: fraudFlags ?? [],
+    fraudFlags: Array.isArray(fraudFlags) ? fraudFlags.map(redactFraudFlag) : [],
     failures: failures ?? [],
   }
 }
@@ -210,4 +210,74 @@ async function countBillingIssues() {
   }
 
   return count ?? 0
+}
+
+type AdminFraudFlag = {
+  readonly id: string
+  readonly signal: string
+  readonly severity: string
+  readonly status: string
+  readonly created_at: string
+  readonly cycleStampNumber: number | null
+  readonly locationStatus: string
+  readonly distanceBucket: string
+  readonly accuracyBucket: string
+  readonly confidence: string
+  readonly reason: string
+  readonly merchant: string
+  readonly maskedCustomer: string
+}
+
+function redactFraudFlag(row: unknown): AdminFraudFlag {
+  const record = isRecord(row) ? row : {}
+  const metadata = isRecord(record.metadata) ? record.metadata : {}
+  const customer = firstRecord(record.customers)
+  const merchant = firstRecord(record.merchants)
+
+  return {
+    id: stringValue(record.id) ?? "fraud-flag",
+    signal: stringValue(record.signal) ?? "fraud_signal",
+    severity: stringValue(record.severity) ?? "unknown",
+    status: stringValue(record.status) ?? "unknown",
+    created_at: stringValue(record.created_at) ?? "",
+    cycleStampNumber: numberValue(metadata.cycle_stamp_number),
+    locationStatus: stringValue(metadata.location_status) ?? "unknown",
+    distanceBucket: stringValue(metadata.distance_bucket) ?? "unknown",
+    accuracyBucket: stringValue(metadata.accuracy_bucket) ?? "unknown",
+    confidence: stringValue(metadata.confidence) ?? "unknown",
+    reason: stringValue(metadata.reason) ?? stringValue(record.signal) ?? "review",
+    merchant: stringValue(merchant?.business_name) ?? "Merchant",
+    maskedCustomer: maskAdminContact(
+      stringValue(customer?.email) ?? stringValue(customer?.phone)
+    ),
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function firstRecord(value: unknown): Record<string, unknown> | undefined {
+  if (Array.isArray(value)) {
+    return isRecord(value[0]) ? value[0] : undefined
+  }
+
+  return isRecord(value) ? value : undefined
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined
+}
+
+function numberValue(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null
+}
+
+function maskAdminContact(value?: string) {
+  if (!value) return "Customer"
+  if (value.includes("@")) {
+    const [name = "", domain = ""] = value.split("@")
+    return `${name.slice(0, 2)}***@${domain}`
+  }
+  return `${value.slice(0, 4)}***${value.slice(-2)}`
 }

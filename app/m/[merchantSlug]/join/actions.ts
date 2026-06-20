@@ -23,7 +23,6 @@ import {
 } from "@/lib/customer/verification"
 import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
-import type { GeoCoordinates } from "@/lib/customer/stamp"
 
 export type CustomerIdentityState = {
   fields?: {
@@ -105,6 +104,9 @@ export async function requestCustomerIdentityAction(
       country: normalized.phone.country,
     })
   } catch (error) {
+    if (!(error instanceof Error)) {
+      throw error
+    }
     logVerificationSendFailure("join", error)
 
     return {
@@ -179,7 +181,6 @@ export async function verifyCustomerOtpAction(
       qrId,
       {
         issueStamp: true,
-        coordinates: coordinates(formData),
       }
     )
     if (destination) redirect(destination)
@@ -217,9 +218,6 @@ export async function joinRewardsAction(
     },
   })
 
-  const latitude = numberValue(formData, "latitude")
-  const longitude = numberValue(formData, "longitude")
-
   const supabase = createSupabaseServiceRoleClient()
   const { data, error } = await supabase.rpc(
     "join_customer_membership_with_first_stamp",
@@ -229,8 +227,6 @@ export async function joinRewardsAction(
       p_qr_id: qrId || null,
       p_marketing_opt_in: marketingOptIn,
       p_policy_version: policyVersion,
-      p_latitude: latitude,
-      p_longitude: longitude,
     }
   )
 
@@ -288,21 +284,4 @@ export async function joinRewardsAction(
   redirect(
     `/m/${merchantSlug}/join${qrId ? `?qr=${qrId}&` : "?"}membership=existing`
   )
-}
-
-function numberValue(formData: FormData, key: string): number | null {
-  const raw = value(formData, key)
-  if (!raw) return null
-
-  const parsed = Number(raw)
-  return Number.isFinite(parsed) ? parsed : null
-}
-
-function coordinates(formData: FormData): GeoCoordinates | undefined {
-  const latitude = numberValue(formData, "latitude")
-  const longitude = numberValue(formData, "longitude")
-
-  if (latitude === null || longitude === null) return undefined
-
-  return { latitude, longitude }
 }

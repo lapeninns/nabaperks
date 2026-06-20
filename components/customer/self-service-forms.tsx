@@ -1,243 +1,132 @@
 "use client"
 
-import { useRef, useState, type FormEvent } from "react"
+export const SOFT_GPS_CAPTURE_TIMEOUT_MS = 1000
 
-export type LocationMode = {
-  requireGeofence: boolean
-  geofenceRadiusMeters: number
-}
+const LOCATION_DENIAL_MEMORY_KEY = "nabaperks:soft-gps-denied:v1"
 
-export type StampLocationStatus =
-  | "skipped"
-  | "available"
-  | "denied"
-  | "denied_remembered"
-  | "timeout"
-  | "unsupported"
-  | "unavailable"
-
-export type StampLocationResult = {
-  readonly status: StampLocationStatus
-  readonly elapsedMs: number
-  readonly coordinates?: {
-    readonly latitude: number
-    readonly longitude: number
-    readonly accuracyMeters: number
-  }
-}
-
-type StampLocationRequest = {
-  readonly requireGeofence: boolean
-  readonly nextStampNumber: number
-}
-
-type SelfStampFormDataInput = {
-  readonly membershipId: string
-  readonly qrId: string
-  readonly nextStampNumber: number
-  readonly location: LocationMode
-}
-
-const STAMP_LOCATION_DENIAL_KEY = "nabaperks:stamp-location-denied"
-
-export function shouldRequestStampLocation({
-  requireGeofence,
-  nextStampNumber,
-}: StampLocationRequest) {
-  return requireGeofence && nextStampNumber === 3
+export type StampLocationCapture = {
+  readonly latitude: number | null
+  readonly longitude: number | null
+  readonly accuracyMeters: number | null
+  readonly locationStatus: string
+  readonly captureElapsedMs: number
 }
 
 export function resolveStampLocation(
-  shouldRequestLocation: boolean
-): Promise<StampLocationResult> {
-  const startedAt = Date.now()
-
+  shouldAttemptLocation: boolean
+): Promise<StampLocationCapture | null> {
   return new Promise((resolve) => {
-    if (
-      !shouldRequestLocation ||
-      typeof navigator === "undefined" ||
-      !navigator.geolocation
-    ) {
+    if (!shouldAttemptLocation || typeof navigator === "undefined") {
+      resolve(null)
+      return
+    }
+
+    if (!navigator.geolocation) {
       resolve({
-        status: shouldRequestLocation ? "unsupported" : "skipped",
-        elapsedMs: elapsedSince(startedAt),
+        latitude: null,
+        longitude: null,
+        accuracyMeters: null,
+        locationStatus: "unsupported",
+        captureElapsedMs: 0,
       })
       return
     }
-    const denialRemembered = stampLocationDenialRemembered()
-    navigator.geolocation.getCurrentPosition(
-      (position) =>
-        resolve({
-          status: "available",
-          elapsedMs: elapsedSince(startedAt),
-          coordinates: {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracyMeters: position.coords.accuracy,
-          },
-        }),
-      (error) => {
-        const status = stampLocationErrorStatus(error, denialRemembered)
-        resolve({ status, elapsedMs: elapsedSince(startedAt) })
-      },
-      { enableHighAccuracy: false, maximumAge: 60_000, timeout: 5_000 }
-    )
-  })
-}
 
-export async function prepareSelfStampFormData({
-  membershipId,
-  qrId,
-  nextStampNumber,
-  location,
-}: SelfStampFormDataInput) {
-  const result = await resolveStampLocation(
-    shouldRequestStampLocation({
-      requireGeofence: location.requireGeofence,
-      nextStampNumber,
-    })
-  )
-  const formData = new FormData()
-  formData.set("membershipId", membershipId)
-  formData.set("qrId", qrId)
-  appendStampLocation(formData, result)
-
-  return formData
-}
-
-function appendStampLocation(formData: FormData, result: StampLocationResult) {
-  formData.set("locationStatus", result.status)
-  formData.set("locationElapsedMs", String(result.elapsedMs))
-  if (result.coordinates) {
-    formData.set("latitude", String(result.coordinates.latitude))
-    formData.set("longitude", String(result.coordinates.longitude))
-    formData.set("accuracyMeters", String(result.coordinates.accuracyMeters))
-  }
-}
-
-function stampLocationErrorStatus(
-  error: GeolocationPositionError,
-  denialRemembered: boolean
-): StampLocationStatus {
-  switch (error.code) {
-    case error.PERMISSION_DENIED:
-      rememberStampLocationDenial()
-      return denialRemembered ? "denied_remembered" : "denied"
-    case error.TIMEOUT:
-      return "timeout"
-    case error.POSITION_UNAVAILABLE:
-      return "unavailable"
-    default:
-      return "unsupported"
-  }
-}
-
-function rememberStampLocationDenial() {
-  if (typeof localStorage === "undefined") return
-
-  localStorage.setItem(STAMP_LOCATION_DENIAL_KEY, "1")
-}
-
-function stampLocationDenialRemembered() {
-  if (typeof localStorage === "undefined") return false
-
-  return localStorage.getItem(STAMP_LOCATION_DENIAL_KEY) === "1"
-}
-
-function elapsedSince(startedAt: number) {
-  return Math.max(0, Date.now() - startedAt)
-}
-
-export function GeoFields() {
-  return (
-    <>
-      <input type="hidden" name="latitude" />
-      <input type="hidden" name="longitude" />
-      <input type="hidden" name="accuracyMeters" />
-      <input type="hidden" name="locationStatus" />
-      <input type="hidden" name="locationElapsedMs" />
-    </>
-  )
-}
-
-export function LocationNote({ note }: { note: string | null }) {
-  if (!note) return null
-
-  return (
-    <p className="rounded-xl bg-secondary px-3 py-2 text-sm leading-6 text-muted-foreground">
-      {note}
-    </p>
-  )
-}
-
-export function useOptionalGeolocation({
-  requireGeofence,
-  geofenceRadiusMeters,
-}: LocationMode) {
-  const [note, setNote] = useState<string | null>(
-    requireGeofence
-      ? `This venue checks location within ${geofenceRadiusMeters}m when available.`
-      : null
-  )
-  const skipLocationRef = useRef(false)
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    if (!requireGeofence) return
-
-    if (skipLocationRef.current) {
-      skipLocationRef.current = false
-      return
+    const hadRememberedDenial = rememberedLocationDenied()
+    const startedAt = nowMs()
+    let settled = false
+    const finish = (capture: StampLocationCapture) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      resolve(capture)
     }
-
-    event.preventDefault()
-    const form = event.currentTarget
-
-    if (!navigator.geolocation) {
-      setFormValue(form, "locationStatus", "unavailable")
-      setFormValue(form, "locationElapsedMs", "0")
-      setNote("Location unavailable. The action will continue and be reviewed.")
-      submitAfterLocation(form)
-      return
-    }
+    const timer = globalThis.setTimeout(() => {
+      finish({
+        latitude: null,
+        longitude: null,
+        accuracyMeters: null,
+        locationStatus: "timeout",
+        captureElapsedMs: SOFT_GPS_CAPTURE_TIMEOUT_MS,
+      })
+    }, SOFT_GPS_CAPTURE_TIMEOUT_MS)
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setFormValue(form, "latitude", String(position.coords.latitude))
-        setFormValue(form, "longitude", String(position.coords.longitude))
-        setFormValue(form, "accuracyMeters", String(position.coords.accuracy))
-        setFormValue(form, "locationStatus", "available")
-        setFormValue(form, "locationElapsedMs", "0")
-        setNote("Location captured.")
-        submitAfterLocation(form)
+        const { coords } = position
+        finish({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          accuracyMeters: coords.accuracy,
+          locationStatus: "granted",
+          captureElapsedMs: elapsedMs(startedAt),
+        })
       },
-      () => {
-        setFormValue(form, "locationStatus", "denied")
-        setFormValue(form, "locationElapsedMs", "0")
-        setNote(
-          "Location not shared. The action will continue and be reviewed."
-        )
-        submitAfterLocation(form)
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          rememberLocationDenied()
+        }
+        finish({
+          latitude: null,
+          longitude: null,
+          accuracyMeters: null,
+          locationStatus:
+            error.code === error.PERMISSION_DENIED
+              ? hadRememberedDenial
+                ? "denied_remembered"
+                : "denied"
+              : "unavailable",
+          captureElapsedMs: elapsedMs(startedAt),
+        })
       },
       {
         enableHighAccuracy: false,
         maximumAge: 60_000,
-        timeout: 5_000,
+        timeout: SOFT_GPS_CAPTURE_TIMEOUT_MS,
       }
     )
-  }
-
-  function submitAfterLocation(form: HTMLFormElement) {
-    skipLocationRef.current = true
-    form.requestSubmit()
-  }
-
-  return { note, handleSubmit }
+  })
 }
 
-function setFormValue(form: HTMLFormElement, name: string, value: string) {
-  const element = form.elements.namedItem(name)
+export function addLocationCapture(
+  formData: FormData,
+  capture: StampLocationCapture | null
+): void {
+  if (!capture) return
 
-  if (element instanceof HTMLInputElement) {
-    element.value = value
+  if (capture.latitude !== null) {
+    formData.set("latitude", String(capture.latitude))
   }
+  if (capture.longitude !== null) {
+    formData.set("longitude", String(capture.longitude))
+  }
+  if (capture.accuracyMeters !== null) {
+    formData.set("accuracy_meters", String(capture.accuracyMeters))
+  }
+  formData.set("location_status", capture.locationStatus)
+  formData.set("capture_elapsed_ms", String(capture.captureElapsedMs))
+}
+
+function rememberedLocationDenied(): boolean {
+  try {
+    return localStorage.getItem(LOCATION_DENIAL_MEMORY_KEY) === "1"
+  } catch {
+    return false
+  }
+}
+
+function rememberLocationDenied(): void {
+  try {
+    localStorage.setItem(LOCATION_DENIAL_MEMORY_KEY, "1")
+  } catch {
+    return
+  }
+}
+
+function nowMs(): number {
+  return typeof performance === "undefined" ? Date.now() : performance.now()
+}
+
+function elapsedMs(startedAt: number): number {
+  return Math.max(0, Math.round(nowMs() - startedAt))
 }

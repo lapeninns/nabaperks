@@ -49,8 +49,9 @@ function collectReactText(value: unknown): string {
           return collectReactText(rendered)
         }
       } catch (error) {
-        if (!(error instanceof Error)) throw error
-        // Fall back to static prop traversal for client-only components.
+        if (!(error instanceof Error)) {
+          throw error
+        }
       }
     }
 
@@ -128,6 +129,13 @@ describe("03 customer micro-specs", () => {
     const rewardCollectionQr = readProjectFile(
       "components/customer/reward-collection-qr.tsx"
     )
+    const selfServiceForms = readProjectFile(
+      "components/customer/self-service-forms.tsx"
+    )
+    const stampCollector = readProjectFile(
+      "components/customer/stamp-collector.tsx"
+    )
+
     for (const field of ["merchantSlug", "qrId", "contact"]) {
       expect(`${joinForms}\n${joinOtpForm}`).toContain(`name="${field}"`)
       expect(joinActions).toContain(`value(formData, "${field}")`)
@@ -153,6 +161,21 @@ describe("03 customer micro-specs", () => {
     expect(stampActions).toContain("selfStampAction")
     expect(stampActions).toContain("issueSelfServiceStamp")
     expect(stampActions).toContain("Scan the venue code to add your stamp.")
+
+    for (const field of ["membershipId", "qrId"]) {
+      expect(stampCollector).toContain(`formData.set("${field}"`)
+    }
+    for (const field of [
+      "latitude",
+      "longitude",
+      "accuracy_meters",
+      "location_status",
+      "capture_elapsed_ms",
+    ]) {
+      expect(selfServiceForms).toContain(`formData.set("${field}"`)
+    }
+    expect(stampCollector).toContain("resolveStampLocation")
+    expect(selfServiceForms).toContain("navigator.geolocation")
   })
 
   it("keeps customer pages mobile-first with loyalty primitives and safe state copy", () => {
@@ -698,8 +721,6 @@ describe("03 customer micro-specs", () => {
         p_qr_id: "qr-public",
         p_marketing_opt_in: true,
         p_policy_version: "2026-06-06",
-        p_latitude: null,
-        p_longitude: null,
       },
     })
     expect(capturePostHogEvent).toHaveBeenCalledWith(

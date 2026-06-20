@@ -1,7 +1,10 @@
 import "server-only"
 
 import { capturePostHogEvent } from "@/lib/analytics/events"
-import { getCustomerCardState } from "@/lib/customer/card"
+import {
+  getCustomerCardState,
+  type CustomerCardState,
+} from "@/lib/customer/card"
 import { getCurrentCustomer } from "@/lib/customer/identity"
 import {
   getExistingMembershipForCurrentUser,
@@ -9,6 +12,7 @@ import {
   getStampQrContextForMembership,
 } from "@/lib/customer/join"
 import {
+  getMembershipLocationRequirement,
   issueSelfServiceStamp,
   type GeoCoordinates,
 } from "@/lib/customer/stamp"
@@ -57,12 +61,16 @@ export async function destinationForReturningQrVisit(
   const qrContext = await getStampQrContextForMembership(membership.id, qrId)
   if (!qrContext) return cardPath
 
-  // A ready reward outranks a new stamp; a waiting reward returns to the card.
-  const rewardPath = await rewardDestinationForMembership(
-    membership.id,
-    cardPath
-  )
+  const cardState = await getCustomerCardState(membership.id)
+  const rewardPath = rewardDestinationFromCardState(cardState, cardPath)
   if (rewardPath) return rewardPath
+
+  const locationAttemptPath = await locationAttemptDestinationForMembership(
+    membership.id,
+    cardState,
+    stampPath
+  )
+  if (locationAttemptPath) return locationAttemptPath
 
   return issueStampDestination({
     membershipId: membership.id,
@@ -79,11 +87,10 @@ export async function destinationForReturningQrVisit(
  * unlocked-but-waiting reward → the card. Returns null when there is no unlocked
  * reward, so the caller proceeds to issue a stamp.
  */
-async function rewardDestinationForMembership(
-  membershipId: string,
+function rewardDestinationFromCardState(
+  cardState: CustomerCardState,
   cardPath: string
-): Promise<string | null> {
-  const cardState = await getCustomerCardState(membershipId)
+): string | null {
   if (
     cardState.status !== "ready" ||
     cardState.latestReward?.status !== "unlocked"
@@ -94,6 +101,28 @@ async function rewardDestinationForMembership(
   return isRedeemableFrom(cardState.latestReward.redeemable_from)
     ? `/reward/${cardState.latestReward.id}`
     : cardPath
+}
+
+async function locationAttemptDestinationForMembership(
+  membershipId: string,
+  cardState: CustomerCardState,
+  stampPath: string
+): Promise<string | null> {
+  if (!isNextCycleStampThree(cardState)) return null
+
+  try {
+    const requirement = await getMembershipLocationRequirement(membershipId)
+    return requirement.requireGeofence ? stampPath : null
+  } catch {
+    return stampPath
+  }
+}
+
+function isNextCycleStampThree(cardState: CustomerCardState): boolean {
+  return (
+    cardState.status === "ready" &&
+    cardState.membership.current_stamp_count + 1 === 3
+  )
 }
 
 type IssueStampDestinationInput = {

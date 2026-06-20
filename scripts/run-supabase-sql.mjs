@@ -43,7 +43,7 @@ if (!dbUrl) {
   process.exit(1)
 }
 
-assertWriteTargetIsSafe(dbUrl, env)
+assertWriteTargetIsSafe(dbUrl)
 
 const sql = postgres(dbUrl, {
   max: 1,
@@ -97,6 +97,10 @@ try {
     await runFile(
       "supabase/tests/reward_redemption_cycles.sql",
       "Reward redemption cycles SQL test"
+    )
+    await runFile(
+      "supabase/tests/cycle_stamp_soft_geofence.sql",
+      "Cycle stamp soft geofence SQL test"
     )
     await runFile(
       "supabase/tests/customer_marketing_consent.sql",
@@ -224,26 +228,25 @@ function safeDbTarget(dbUrl) {
   }
 }
 
-// Fail-safe: refuse destructive operations (--apply/--seed/--reset*) against a
-// non-local database so CI and routine commands can never mutate a hosted
-// Supabase project (see docs/QA_MATRIX.md §7). Set ALLOW_NONLOCAL_DB=1 to
-// override for an intentionally disposable remote database.
-function assertWriteTargetIsSafe(dbUrl, env) {
+// Fail-safe: refuse write-risk operations (--apply/--seed/--test/--reset*)
+// against a non-local database so CI and routine commands can never mutate a
+// hosted Supabase project (see docs/QA_MATRIX.md §7).
+function assertWriteTargetIsSafe(dbUrl) {
   const destructive =
     shouldApply ||
     shouldSeed ||
+    shouldTest ||
     shouldReset ||
     shouldResetCustomers ||
     shouldResetTodayStamps
   if (!destructive) return
-  if (env.ALLOW_NONLOCAL_DB === "1") return
   if (isLocalDbHost(dbUrl)) return
 
   console.error(
-    `Refusing to run write operations (--apply/--seed/--reset*) against non-local host "${dbHostLabel(dbUrl)}".`
+    `Refusing to run write-risk operations (--apply/--seed/--test/--reset*) against non-local host "${dbHostLabel(dbUrl)}".`
   )
   console.error(
-    "Point SUPABASE_DB_URL at a local or disposable database, or set ALLOW_NONLOCAL_DB=1 to override."
+    "Point SUPABASE_DB_URL at a local disposable database before running this command."
   )
   process.exit(1)
 }

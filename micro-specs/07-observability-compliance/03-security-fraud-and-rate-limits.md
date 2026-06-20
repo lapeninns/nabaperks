@@ -32,6 +32,7 @@ related_tests:
   - tests/micro-specs/self-service-stamping.test.ts
   - manual:billing/admin micro-spec Vitest evidence in retained legacy filename
   - tests/micro-specs/admin-console-redesign.test.ts
+  - tests/micro-specs/cycle-stamp-3-governance-admin-legal.test.ts
   - supabase/tests/tenant_isolation.sql
   - supabase/tests/reward_redemption_cycles.sql
 verification_gates:
@@ -77,6 +78,8 @@ Out of scope:
 ## Strict Constraints and Assumptions
 
 - Soft GPS review is a known fraud signal and must be protected by rate limits and audit logs.
+- Cycle-stamp-3 soft GPS is the approved active scope for MVP geofence review. The old broad geofence flag requirement is superseded where it conflicts: cycle stamp 1 and 2 do not request GPS, cycle stamp 1 and 2 do not write GPS unknown fraud flags, cycle stamp 3 requires a browser GPS attempt when soft geofence is enabled, and denied, timeout, unsupported, unavailable, or poor-accuracy GPS still issues the stamp.
+- Fraud evidence is privacy-minimized by default: new stamp evidence stores no raw customer latitude or longitude, and admin fraud readback is minimized and bucketed with cycle stamp number, location status, distance bucket, accuracy bucket, confidence, reason, merchant, masked customer, severity, status, and created_at.
 - Duplicate reward redemption must be impossible through normal and concurrent requests.
 - QR codes can be disabled when compromised.
 - Admin access requires RBAC and MFA before production.
@@ -112,6 +115,7 @@ Must-have controls:
 - **MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-007** WHEN admin MFA enforcement is enabled, THE system SHALL require a Supabase AAL2 session before serving internal admin routes or actions.
 - **MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-008** WHEN an unauthorised role attempts a privileged action, THE system SHALL deny it and record a security-relevant audit event where appropriate.
 - **MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-009** WHEN a Stripe webhook signature is invalid, THE system SHALL reject the webhook without mutating billing state.
+- **MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-010** WHEN soft GPS evidence needs admin review, THE admin fraud readback SHALL expose minimized and bucketed review fields without raw customer latitude or longitude.
 
 ## Verification Criteria
 
@@ -136,5 +140,5 @@ Task breakdown:
 
 - Define rate-limit and fraud thresholds for MVP.
 - Implement enforcement around sensitive flows.
-- Add fraud flag persistence and admin readback.
+- Add fraud flag persistence and admin-only minimized/bucketed readback.
 - Verify concurrent and unauthorized failure paths.

@@ -34,6 +34,7 @@ related_tests:
   - tests/micro-specs/customer-legal-sheets.test.ts
   - supabase/tests/customer_marketing_consent.sql
   - tests/micro-specs/admin-console-redesign.test.ts
+  - tests/micro-specs/cycle-stamp-3-governance-admin-legal.test.ts
 verification_gates:
   - pnpm governance
   - pnpm lint
@@ -81,6 +82,7 @@ Out of scope:
 - Consent records must include channel, status, source, timestamp, merchant, customer, and policy version.
 - Reward terms must display reward description, earning rules, stamps needed, minimum spend, expiry if any, exclusions, fraud/abuse policy, and merchant contact details where available.
 - The MVP must clearly state that legal/compliance pages require review before launch.
+- Privacy copy must disclose that soft GPS checks use minimized location evidence for fraud prevention, that raw coordinates are not stored by default, and that stamps still save if location is denied, unavailable, timed out, or inaccurate.
 
 ## Decisions Already Made
 
@@ -108,6 +110,7 @@ Relevant references from the blueprint:
 - **MS-OBSERVABILITY-COMPLIANCE-CONSENT-LEGAL-DATA-REQUESTS-004** WHEN a customer opts out later through a supported path, THE system SHALL record the opt-out without deleting historical consent evidence.
 - **MS-OBSERVABILITY-COMPLIANCE-CONSENT-LEGAL-DATA-REQUESTS-005** WHEN a merchant has reward terms, THE customer-facing pages SHALL display them before or during participation.
 - **MS-OBSERVABILITY-COMPLIANCE-CONSENT-LEGAL-DATA-REQUESTS-006** WHEN an admin receives a data request, THE admin console SHALL provide enough lookup context to identify relevant customer and merchant records.
+- **MS-OBSERVABILITY-COMPLIANCE-CONSENT-LEGAL-DATA-REQUESTS-007** WHEN soft GPS location evidence is disclosed in legal copy, THE system SHALL explain minimized fraud-prevention evidence, raw-coordinate minimization, and non-blocking stamp issuance.
 
 ## Verification Criteria
 

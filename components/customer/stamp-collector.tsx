@@ -4,10 +4,13 @@ import { useState, useTransition } from "react"
 
 import { selfStampAction } from "@/app/card/[membershipId]/actions"
 import { CustomerStampCard } from "@/components/customer/customer-flow-system"
-import { prepareSelfStampFormData } from "@/components/customer/self-service-forms"
 import { StampPressButton } from "@/components/customer/stamp-press-button"
 import { RewardCelebration, StatusBanner } from "@/components/loyalty"
 import { StampCelebration, WetInkShake } from "@/components/motion"
+import {
+  addLocationCapture,
+  resolveStampLocation,
+} from "@/components/customer/self-service-forms"
 import {
   initialSelfStampState,
   type SelfStampActionState,
@@ -99,11 +102,9 @@ function stampView(args: {
 function StampAftermath({
   committed,
   cardComplete,
-  geoFlagged,
 }: {
   committed: boolean
   cardComplete: boolean
-  geoFlagged: boolean
 }) {
   if (!committed) return null
   if (cardComplete) {
@@ -121,9 +122,6 @@ function StampAftermath({
     <StampCelebration>
       <StatusBanner title="Stamp added." tone="success" className="text-center">
         That&apos;s one. Your progress is saved.
-        {geoFlagged
-          ? " Location could not be confirmed, so the venue may review it."
-          : null}
       </StatusBanner>
     </StampCelebration>
   )
@@ -175,12 +173,14 @@ export function StampCollector({
     setArmed(true)
     setShake(true)
     void (async () => {
-      const formData = await prepareSelfStampFormData({
-        membershipId,
-        qrId,
-        nextStampNumber: current + 1,
-        location,
-      })
+      const nextCycleStampNumber = current + 1
+      const shouldAttemptLocation =
+        location.requireGeofence && nextCycleStampNumber === 3
+      const locationCapture = await resolveStampLocation(shouldAttemptLocation)
+      const formData = new FormData()
+      formData.set("membershipId", membershipId)
+      formData.set("qrId", qrId)
+      addLocationCapture(formData, locationCapture)
       startTransition(async () => {
         const next = await selfStampAction(initialSelfStampState, formData)
         setResult(next)
@@ -210,7 +210,6 @@ export function StampCollector({
           <StampAftermath
             committed={committed}
             cardComplete={view.cardComplete}
-            geoFlagged={view.geoFlagged}
           />
         }
       >
@@ -238,11 +237,11 @@ export function StampCollector({
               </span>
             </StatusBanner>
           ) : null}
-          {location.requireGeofence && !view.secured ? (
+          {location.requireGeofence && current + 1 === 3 && !view.secured ? (
             <p className="rounded-xl bg-secondary px-3 py-2 text-center text-xs leading-5 text-muted-foreground">
-              This venue checks location within {location.geofenceRadiusMeters}m
-              when available. Stamping still continues if your browser cannot
-              share it.
+              This venue may try a soft location check within{" "}
+              {location.geofenceRadiusMeters}m. Your stamp still saves if your
+              phone cannot share location.
             </p>
           ) : null}
         </div>

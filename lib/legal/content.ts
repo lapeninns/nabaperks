@@ -23,7 +23,7 @@ export const PLATFORM_TERMS_SECTIONS: LegalSection[] = [
   {
     id: "abuse",
     title: "Abuse and fraud prevention",
-    body: "Nabaperks and merchants may investigate suspicious activity, duplicate claims, QR misuse, manual adjustments, soft geofence anomalies, or fraud signals. One stamp can be issued per customer per UK business day, and audited support actions preserve event history rather than deleting earned history silently.",
+    body: "Nabaperks and merchants may investigate suspicious activity, duplicate claims, QR misuse, manual adjustments, soft geofence anomalies, or fraud signals. Soft location checks use minimized location evidence for fraud prevention; stamps still save if location is denied, unavailable, timed out, or inaccurate. One stamp can be issued per customer per UK business day, and audited support actions preserve event history rather than deleting earned history silently.",
   },
   {
     id: "availability",
@@ -50,7 +50,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   {
     id: "purposes",
     title: "Purposes",
-    body: "Data is used to provide the loyalty card, show progress, unlock and redeem rewards, prevent misuse, support merchants and customers, keep audit evidence, and measure whether the MVP works.",
+    body: "Data is used to provide the loyalty card, show progress, unlock and redeem rewards, prevent misuse, support merchants and customers, keep audit evidence, and measure whether the MVP works. Where a venue uses soft GPS checks, Nabaperks stores minimized location evidence for fraud prevention; raw coordinates are not stored by default.",
   },
   {
     id: "marketing-consent",
@@ -91,7 +91,6 @@ export type VenueTermsInput = {
 }
 
 export function buildVenueTermsSections({
-  merchantName,
   stampsRequired,
   rewardTerms,
   contact,
@@ -130,7 +129,7 @@ export function buildVenueTermsSections({
     {
       id: "fraud-and-abuse",
       title: "Fraud and abuse",
-      body: "The merchant may refuse, cancel, or adjust stamps and rewards where abuse, duplicate claims, QR misuse, or location anomalies are suspected.",
+      body: "The merchant may refuse, cancel, or adjust stamps and rewards where abuse, duplicate claims, QR misuse, or location anomalies are suspected. Location checks are non-blocking: stamps still save if location is denied, unavailable, timed out, or inaccurate.",
     },
     {
       id: "merchant-contact",

@@ -212,9 +212,6 @@ function CardProgressPanel({
                     : exp.firstStampPending
                       ? "You're in. We couldn't add your first stamp just now, so scan the venue QR to collect your first stamp."
                       : "You're in. Scan the venue QR in store to collect your first stamp."}
-                  {exp.justStamped && exp.geoFlagged
-                    ? " Location could not be confirmed, so the venue may review it."
-                    : null}
                 </StatusBanner>
               </StampCelebration>
             ) : exp.justStamped ? (
@@ -225,9 +222,6 @@ function CardProgressPanel({
                   className="text-center"
                 >
                   That&apos;s one. Your progress has been updated.
-                  {exp.geoFlagged
-                    ? " Location could not be confirmed, so the venue may review it."
-                    : null}
                 </StatusBanner>
               </StampCelebration>
             ) : null}

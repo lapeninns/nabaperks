@@ -19,8 +19,10 @@ The core trust boundary is server-side self-service stamping:
    existing members.
 2. The customer taps to stamp from the QR context.
 3. Postgres enforces one stamp per UK business day.
-4. Optional GPS checks never block; they write `fraud_flags` for review when
-   location is outside the configured radius or unavailable.
+4. Optional GPS checks never block. Cycle stamp 1 and 2 do not request GPS and
+   cycle stamp 1 and 2 do not write GPS unknown fraud flags; cycle stamp 3
+   requires a browser GPS attempt when soft geofence is enabled, and denied,
+   timeout, unsupported, unavailable, or poor-accuracy GPS still issues the stamp.
 5. Reward collection uses short-lived scan tokens, so customer QR pages never
    expose durable reward event IDs to merchant devices.
 
@@ -68,7 +70,7 @@ flowchart TB
 | `Route.CustomerReward`     | `/reward/[rewardId]`           | Customer owner                       | `getCustomerRewardState`, profile actions, `RewardCollectionQr` | Reward state, profile gate, and merchant-scanned collection QR.                |
 | `Route.RewardScanHandoff`  | `/r/[token]`                   | Public                               | Redirect to merchant scan route                                 | Public URL encoded in customer-held reward QRs.                                |
 | `Route.MerchantRewardScan` | `/app/rewards/scan/[rewardId]` | Merchant                             | `getRewardScanContext`, `collectRewardScanToken`                | The segment value is a short-lived reward scan token, not a durable reward ID. |
-| `Route.AdminFraud`         | `/admin/fraud`                 | Internal admin                       | `getAdminFraudSignals`                                          | Fraud flags and redemption failures.                                           |
+| `Route.AdminFraud`         | `/admin/fraud`                 | Internal admin                       | `getAdminFraudSignals`                                          | Fraud flags and redemption failures with minimized bucketed location readback. |
 | `Route.StripeWebhook`      | `/api/stripe/webhook`          | Stripe signature                     | `lib/stripe/billing.ts`, `lib/stripe/webhook-events.ts`         | Idempotent billing sync.                                                       |
 
 ## 4. Server Module Map
@@ -110,7 +112,7 @@ erDiagram
 | `Table.reward_scan_tokens`    | `reward_scan_tokens`    | Short-lived merchant collection tokens for reward QR scans.                   |
 | `Table.customer_sessions`     | `customer_sessions`     | Revocable customer browser session registry keyed by signed cookie session.   |
 | `Table.stripe_webhook_events` | `stripe_webhook_events` | Stripe event idempotency ledger for webhook replay protection.                |
-| `Table.fraud_flags`           | `fraud_flags`           | Soft geofence and abuse review signals.                                       |
+| `Table.fraud_flags`           | `fraud_flags`           | Soft geofence and abuse review signals; new stamp evidence stores no raw customer latitude or longitude by default. |
 | `Table.product_events`        | `product_events`        | Product analytics source of truth.                                            |
 | `Table.audit_logs`            | `audit_logs`            | Admin, support, and security-sensitive mutation audit trail.                  |
 
@@ -157,8 +159,8 @@ sequenceDiagram
   Customer->>QR: scan permanent venue QR
   QR-->>Stamp: existing member stamp-confirm
   Customer->>Stamp: tap add stamp
-  Stamp->>RPC: submit membership, customer_id, and optional coordinates
-  RPC->>Flags: write soft anomaly when needed
+  Stamp->>RPC: submit membership, customer_id, and cycle-stamp-3 soft GPS evidence when required
+  RPC->>Flags: write minimized bucketed soft anomaly when needed
   RPC-->>Stamp: stamp issued or already stamped today
 ```
 
@@ -195,6 +197,17 @@ Source of truth:
 - `stripe_webhook_events` for Stripe replay/idempotency state.
 - `customer_sessions` for customer session revocation and last-seen state.
 - `consent_records` for loyalty terms and marketing consent evidence.
+
+Cycle-stamp-3 soft GPS is the approved active geofence scope for v1. Reward-cycle
+reset reapplies the cycle stamp 3 trigger for the new cycle. Admin fraud readback
+is minimized and bucketed: cycle stamp number, location status, distance bucket,
+accuracy bucket, confidence, reason, merchant, masked customer, severity, status,
+and created_at. Raw customer coordinates and raw metadata are not exposed by the
+admin read model.
+
+Release proof for DB and browser layers must use a disposable DB before qa:db,
+qa:e2e, or qa:visual because those gates can reset, seed, or mutate customer
+flow data.
 
 Product events include `qr_scanned`, `customer_joined`, `stamp_issued`,
 `join_page_viewed`, `join_phone_requested`, `join_otp_verified`,

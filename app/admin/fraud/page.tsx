@@ -4,7 +4,6 @@ import {
   StatusPill,
   first,
   formatAdminDate,
-  maskAdminContact,
 } from "@/components/admin/support"
 import { AdminRecordCard } from "@/components/admin/record-card"
 import { AlertDiamondIcon, Cancel01Icon } from "@hugeicons/core-free-icons"
@@ -40,7 +39,7 @@ function FraudFlagsPanel({ flags }: { readonly flags: FraudFlags }) {
     <AdminPanel>
       <SectionHeader
         title="Fraud flags"
-        description="Security support signals with masked customer context and labelled metadata."
+        description="Security support signals with masked customer context and bucketed location evidence."
         actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
       />
       <DataTable
@@ -67,20 +66,50 @@ function FraudFlagsPanel({ flags }: { readonly flags: FraudFlags }) {
             ),
           },
           {
-            key: "context",
-            header: "Context",
-            cell: (flag) => {
-              const merchant = first(flag.merchants)
-              const customer = first(flag.customers)
-              return (
-                <span className="text-muted-foreground">
-                  {merchant?.business_name ?? "Merchant"}
-                  {customer
-                    ? ` · ${maskAdminContact(customer.email ?? customer.phone)}`
-                    : ""}
-                </span>
-              )
-            },
+            key: "cycle-stamp",
+            header: "Cycle stamp",
+            cell: (flag) => flag.cycleStampNumber ?? "-",
+          },
+          {
+            key: "location-status",
+            header: "Location status",
+            cell: (flag) => (
+              <span className="font-bold">{flag.locationStatus}</span>
+            ),
+          },
+          {
+            key: "distance",
+            header: "Distance",
+            cell: (flag) => flag.distanceBucket,
+          },
+          {
+            key: "accuracy",
+            header: "Accuracy",
+            cell: (flag) => flag.accuracyBucket,
+          },
+          {
+            key: "confidence",
+            header: "Confidence",
+            cell: (flag) => flag.confidence,
+          },
+          {
+            key: "reason",
+            header: "Reason",
+            cell: (flag) => flag.reason.replaceAll("_", " "),
+          },
+          {
+            key: "merchant",
+            header: "Merchant",
+            cell: (flag) => flag.merchant,
+          },
+          {
+            key: "customer",
+            header: "Customer",
+            cell: (flag) => (
+              <span className="text-muted-foreground">
+                {flag.maskedCustomer}
+              </span>
+            ),
           },
           {
             key: "severity",
@@ -107,42 +136,36 @@ function FraudFlagsPanel({ flags }: { readonly flags: FraudFlags }) {
             ),
           },
         ]}
-        mobileCard={(flag) => {
-          const merchant = first(flag.merchants)
-          const customer = first(flag.customers)
-          return (
-            <AdminRecordCard
-              title={flag.signal.replaceAll("_", " ")}
-              status={
-                <>
-                  <StatusPill tone="warning">{flag.severity}</StatusPill>
-                  <StatusPill>{flag.status}</StatusPill>
-                </>
-              }
-              fields={[
-                {
-                  label: "Context",
-                  value: (
-                    <>
-                      {merchant?.business_name ?? "Merchant"}
-                      {customer
-                        ? ` · ${maskAdminContact(customer.email ?? customer.phone)}`
-                        : ""}
-                    </>
-                  ),
-                },
-                {
-                  label: "When",
-                  value: (
-                    <time dateTime={flag.created_at}>
-                      {formatAdminDate(flag.created_at)}
-                    </time>
-                  ),
-                },
-              ]}
-            />
-          )
-        }}
+        mobileCard={(flag) => (
+          <AdminRecordCard
+            title={flag.signal.replaceAll("_", " ")}
+            status={
+              <>
+                <StatusPill tone="warning">{flag.severity}</StatusPill>
+                <StatusPill>{flag.status}</StatusPill>
+              </>
+            }
+            fields={[
+              { label: "Merchant", value: flag.merchant },
+              { label: "Customer", value: flag.maskedCustomer },
+              {
+                label: "Cycle stamp",
+                value: flag.cycleStampNumber ?? "-",
+              },
+              { label: "Location", value: flag.locationStatus },
+              { label: "Distance", value: flag.distanceBucket },
+              { label: "Reason", value: flag.reason.replaceAll("_", " ") },
+              {
+                label: "When",
+                value: (
+                  <time dateTime={flag.created_at}>
+                    {formatAdminDate(flag.created_at)}
+                  </time>
+                ),
+              },
+            ]}
+          />
+        )}
       />
     </AdminPanel>
   )

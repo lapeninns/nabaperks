@@ -8267,12 +8267,74 @@
               "id": "PII-MS-OBSERVABILITY-COMPLIANCE-CONSENT-LEGAL-DATA-REQUESTS-006-a",
               "category": "pii",
               "trigger": "an admin receives a data request",
-              "expected": "provide enough lookup context to identify relevant customer and merchant records",
+              "expected": "admin console provides enough lookup context to identify relevant customer and merchant records",
+              "required_layer": ["unit"],
+              "evidence": ["tests/micro-specs/admin-console-redesign.test.ts"],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
+        },
+        {
+          "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-CONSENT-LEGAL-DATA-REQUESTS-007",
+          "summary": "WHEN soft GPS location evidence is disclosed in legal copy, THE system SHALL explain minimized fraud-prevention evidence, raw-coordinate minimization, and non-blocking stamp issuance.",
+          "gates": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm security:verify"
+          ],
+          "evidence": [
+            "tests/micro-specs/customer.test.ts",
+            "tests/micro-specs/home-profile.test.ts",
+            "tests/micro-specs/customer-legal-sheets.test.ts",
+            "tests/micro-specs/cycle-stamp-3-governance-admin-legal.test.ts"
+          ],
+          "status": "active",
+          "risk_class": "customer-pii",
+          "required_test_tier": [
+            "governance",
+            "lint",
+            "security",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm security:verify"
+          ],
+          "implementation_surfaces": [
+            "app/privacy/**",
+            "app/terms/**",
+            "app/merchant/**",
+            "app/admin/privacy/**",
+            "lib/customer/consent.ts",
+            "lib/legal/**"
+          ],
+          "related_tests": [
+            "tests/micro-specs/customer.test.ts",
+            "tests/micro-specs/home-profile.test.ts",
+            "tests/micro-specs/customer-legal-sheets.test.ts",
+            "tests/micro-specs/cycle-stamp-3-governance-admin-legal.test.ts"
+          ],
+          "manual_rationale": [],
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "PII-MS-OBSERVABILITY-COMPLIANCE-CONSENT-LEGAL-DATA-REQUESTS-007-a",
+              "category": "pii",
+              "trigger": "soft GPS location copy is presented",
+              "expected": "privacy copy discloses minimized location evidence and raw coordinates are not stored by default",
               "required_layer": ["security", "unit"],
               "evidence": [
                 "tests/micro-specs/customer.test.ts",
                 "tests/micro-specs/home-profile.test.ts",
-                "tests/micro-specs/customer-legal-sheets.test.ts"
+                "tests/micro-specs/customer-legal-sheets.test.ts",
+                "tests/micro-specs/cycle-stamp-3-governance-admin-legal.test.ts"
               ],
               "status": "covered",
               "gap_reason": null
@@ -9423,6 +9485,7 @@
             "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts",
+            "tests/micro-specs/cycle-stamp-3-governance-admin-legal.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
           ],
@@ -9459,6 +9522,7 @@
             "manual:staff-billing-admin micro-spec Vitest evidence (real path omitted from active-source naming scan)",
             "tests/micro-specs/analytics-dashboard-pilot.test.ts",
             "tests/micro-specs/admin-console-redesign.test.ts",
+            "tests/micro-specs/cycle-stamp-3-governance-admin-legal.test.ts",
             "supabase/tests/tenant_isolation.sql",
             "supabase/tests/reward_redemption_cycles.sql"
           ],
@@ -9470,10 +9534,13 @@
             {
               "id": "ABU-MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-004-a",
               "category": "abuse",
-              "trigger": "stamp volume is unusually high for a merchant within the window",
-              "expected": "a high-velocity fraud_flag is created for admin review (non-blocking)",
-              "required_layer": ["sql-rls"],
-              "evidence": ["manual:high-velocity-fraud-threshold-review"],
+              "trigger": "stamp volume is unusually high for a merchant or time window",
+              "expected": "a fraud flag is created for admin review with generic signal and reason readback",
+              "required_layer": ["unit", "sql-rls"],
+              "evidence": [
+                "manual:high-velocity-fraud-threshold-review",
+                "tests/micro-specs/cycle-stamp-3-governance-admin-legal.test.ts"
+              ],
               "status": "covered"
             }
           ]
@@ -9841,6 +9908,70 @@
               "expected": "the event is rejected before any side effect and billing state is left unchanged",
               "required_layer": ["unit", "security"],
               "evidence": ["tests/micro-specs/backend-hardening.test.ts"],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
+        },
+        {
+          "requirement_id": "MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-010",
+          "summary": "WHEN soft GPS evidence needs admin review, THE admin fraud readback SHALL expose minimized and bucketed review fields without raw customer latitude or longitude.",
+          "gates": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm security:verify",
+            "pnpm db:verify"
+          ],
+          "evidence": [
+            "tests/micro-specs/self-service-stamping.test.ts",
+            "tests/micro-specs/cycle-stamp-3-governance-admin-legal.test.ts",
+            "supabase/tests/reward_redemption_cycles.sql"
+          ],
+          "status": "active",
+          "risk_class": "webhooks",
+          "required_test_tier": [
+            "governance",
+            "lint",
+            "security",
+            "sql-rls",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm security:verify",
+            "pnpm db:verify"
+          ],
+          "implementation_surfaces": [
+            "app/admin/**",
+            "lib/admin/**",
+            "lib/customer/**",
+            "supabase/migrations/**",
+            "supabase/tests/**"
+          ],
+          "related_tests": [
+            "tests/micro-specs/self-service-stamping.test.ts",
+            "tests/micro-specs/cycle-stamp-3-governance-admin-legal.test.ts",
+            "supabase/tests/reward_redemption_cycles.sql"
+          ],
+          "manual_rationale": [],
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "ABU-MS-OBSERVABILITY-COMPLIANCE-SECURITY-FRAUD-RATE-LIMITS-010-a",
+              "category": "abuse",
+              "trigger": "soft GPS evidence needs admin review",
+              "expected": "admin fraud readback is minimized and bucketed",
+              "required_layer": ["security", "unit", "sql-rls"],
+              "evidence": [
+                "tests/micro-specs/cycle-stamp-3-governance-admin-legal.test.ts",
+                "supabase/tests/reward_redemption_cycles.sql"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -11256,7 +11387,7 @@
         },
         {
           "requirement_id": "MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-003",
-          "summary": "WHEN location is in range, THE system SHALL issue the stamp without creating a geofence fraud flag.",
+          "summary": "WHEN the next active-cycle stamp is 1 or 2, THE system SHALL issue the stamp without requesting GPS and without creating a GPS unknown fraud flag.",
           "gates": [
             "pnpm governance",
             "pnpm lint",
@@ -11269,6 +11400,7 @@
             "tests/micro-specs/self-service-stamping.test.ts",
             "tests/micro-specs/returning-qr-redirect.test.ts",
             "tests/micro-specs/customer-stamp-loader.test.ts",
+            "tests/micro-specs/cycle-stamp-3-governance-admin-legal.test.ts",
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "status": "active",
@@ -11301,6 +11433,7 @@
             "tests/micro-specs/self-service-stamping.test.ts",
             "tests/micro-specs/returning-qr-redirect.test.ts",
             "tests/micro-specs/customer-stamp-loader.test.ts",
+            "tests/micro-specs/cycle-stamp-3-governance-admin-legal.test.ts",
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "manual_rationale": [],
@@ -11309,13 +11442,14 @@
             {
               "id": "ABU-MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-003-a",
               "category": "abuse",
-              "trigger": "location is in range",
-              "expected": "issue the stamp without creating a geofence fraud flag",
+              "trigger": "next active-cycle stamp is 1 or 2",
+              "expected": "cycle stamp 1 and 2 do not request GPS; cycle stamp 1 and 2 do not write GPS unknown fraud flags",
               "required_layer": ["security", "sql-rls", "unit"],
               "evidence": [
                 "tests/micro-specs/self-service-stamping.test.ts",
                 "tests/micro-specs/returning-qr-redirect.test.ts",
-                "tests/micro-specs/customer-stamp-loader.test.ts"
+                "tests/micro-specs/customer-stamp-loader.test.ts",
+                "tests/micro-specs/cycle-stamp-3-governance-admin-legal.test.ts"
               ],
               "status": "covered",
               "gap_reason": null
@@ -11324,7 +11458,7 @@
         },
         {
           "requirement_id": "MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-004",
-          "summary": "WHEN location is outside the configured radius, THE system SHALL issue the stamp and create a fraud flag.",
+          "summary": "WHEN the next active-cycle stamp is 3 and soft geofence is enabled, THE system SHALL require a browser GPS attempt and still issue the stamp when GPS is denied, timed out, unsupported, unavailable, or poor accuracy.",
           "gates": [
             "pnpm governance",
             "pnpm lint",
@@ -11337,6 +11471,7 @@
             "tests/micro-specs/self-service-stamping.test.ts",
             "tests/micro-specs/returning-qr-redirect.test.ts",
             "tests/micro-specs/customer-stamp-loader.test.ts",
+            "tests/micro-specs/cycle-stamp-3-governance-admin-legal.test.ts",
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "status": "active",
@@ -11369,6 +11504,7 @@
             "tests/micro-specs/self-service-stamping.test.ts",
             "tests/micro-specs/returning-qr-redirect.test.ts",
             "tests/micro-specs/customer-stamp-loader.test.ts",
+            "tests/micro-specs/cycle-stamp-3-governance-admin-legal.test.ts",
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "manual_rationale": [],
@@ -11377,13 +11513,14 @@
             {
               "id": "ABU-MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-004-a",
               "category": "abuse",
-              "trigger": "location is outside the configured radius",
-              "expected": "issue the stamp and create a fraud flag",
+              "trigger": "next active-cycle stamp is 3 and soft geofence is enabled",
+              "expected": "cycle stamp 3 requires a browser GPS attempt when soft geofence is enabled; denied, timeout, unsupported, unavailable, or poor-accuracy GPS still issues the stamp",
               "required_layer": ["security", "sql-rls", "unit"],
               "evidence": [
                 "tests/micro-specs/self-service-stamping.test.ts",
                 "tests/micro-specs/returning-qr-redirect.test.ts",
-                "tests/micro-specs/customer-stamp-loader.test.ts"
+                "tests/micro-specs/customer-stamp-loader.test.ts",
+                "tests/micro-specs/cycle-stamp-3-governance-admin-legal.test.ts"
               ],
               "status": "covered",
               "gap_reason": null
@@ -11392,7 +11529,7 @@
         },
         {
           "requirement_id": "MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-005",
-          "summary": "WHEN location is denied or unavailable, THE system SHALL issue the stamp and create a fraud flag.",
+          "summary": "WHEN a reward cycle resets, THE system SHALL reapply the cycle stamp 3 trigger and store new stamp evidence without raw customer latitude or longitude.",
           "gates": [
             "pnpm governance",
             "pnpm lint",
@@ -11405,6 +11542,7 @@
             "tests/micro-specs/self-service-stamping.test.ts",
             "tests/micro-specs/returning-qr-redirect.test.ts",
             "tests/micro-specs/customer-stamp-loader.test.ts",
+            "tests/micro-specs/cycle-stamp-3-governance-admin-legal.test.ts",
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "status": "active",
@@ -11437,6 +11575,7 @@
             "tests/micro-specs/self-service-stamping.test.ts",
             "tests/micro-specs/returning-qr-redirect.test.ts",
             "tests/micro-specs/customer-stamp-loader.test.ts",
+            "tests/micro-specs/cycle-stamp-3-governance-admin-legal.test.ts",
             "supabase/tests/reward_redemption_cycles.sql"
           ],
           "manual_rationale": [],
@@ -11445,13 +11584,14 @@
             {
               "id": "ABU-MS-STAFF-REWARDS-SELF-SERVICE-STAMP-ISSUING-005-a",
               "category": "abuse",
-              "trigger": "location is denied or unavailable",
-              "expected": "issue the stamp and create a fraud flag",
+              "trigger": "reward cycle resets",
+              "expected": "reward-cycle reset reapplies the cycle stamp 3 trigger and new stamp evidence stores no raw customer latitude or longitude",
               "required_layer": ["security", "sql-rls", "unit"],
               "evidence": [
                 "tests/micro-specs/self-service-stamping.test.ts",
                 "tests/micro-specs/returning-qr-redirect.test.ts",
-                "tests/micro-specs/customer-stamp-loader.test.ts"
+                "tests/micro-specs/customer-stamp-loader.test.ts",
+                "tests/micro-specs/cycle-stamp-3-governance-admin-legal.test.ts"
               ],
               "status": "covered",
               "gap_reason": null

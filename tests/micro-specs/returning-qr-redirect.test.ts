@@ -1,5 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
+const defaultLocationRequirement = {
+  requireGeofence: false,
+  geofenceRadiusMeters: 150,
+} as const
+
+const getDefaultMembershipLocationRequirement = vi.fn(
+  async () => defaultLocationRequirement
+)
+
 describe("destinationForReturningQrVisit", () => {
   afterEach(() => {
     vi.resetModules()
@@ -23,6 +32,7 @@ describe("destinationForReturningQrVisit", () => {
     }))
     vi.doMock("@/lib/customer/stamp", () => ({
       issueSelfServiceStamp: vi.fn(),
+      getMembershipLocationRequirement: getDefaultMembershipLocationRequirement,
     }))
     vi.doMock("@/lib/analytics/events", () => ({
       capturePostHogEvent: vi.fn(),
@@ -61,6 +71,7 @@ describe("destinationForReturningQrVisit", () => {
     }))
     vi.doMock("@/lib/customer/stamp", () => ({
       issueSelfServiceStamp: vi.fn(),
+      getMembershipLocationRequirement: getDefaultMembershipLocationRequirement,
     }))
     vi.doMock("@/lib/analytics/events", () => ({
       capturePostHogEvent: vi.fn(),
@@ -108,11 +119,18 @@ describe("destinationForReturningQrVisit", () => {
     vi.doMock("@/lib/customer/card", () => ({
       getCustomerCardState: vi.fn(async () => ({
         status: "ready",
+        membership: {
+          id: "membership-1",
+          current_stamp_count: 1,
+          total_rewards_redeemed: 0,
+          active_cycle_number: 1,
+        },
         latestReward: null,
       })),
     }))
     vi.doMock("@/lib/customer/stamp", () => ({
       issueSelfServiceStamp,
+      getMembershipLocationRequirement: getDefaultMembershipLocationRequirement,
     }))
     vi.doMock("@/lib/analytics/events", () => ({
       capturePostHogEvent,
@@ -170,11 +188,18 @@ describe("destinationForReturningQrVisit", () => {
     vi.doMock("@/lib/customer/card", () => ({
       getCustomerCardState: vi.fn(async () => ({
         status: "ready",
+        membership: {
+          id: "membership-1",
+          current_stamp_count: 1,
+          total_rewards_redeemed: 0,
+          active_cycle_number: 1,
+        },
         latestReward: null,
       })),
     }))
     vi.doMock("@/lib/customer/stamp", () => ({
       issueSelfServiceStamp,
+      getMembershipLocationRequirement: getDefaultMembershipLocationRequirement,
     }))
     vi.doMock("@/lib/analytics/events", () => ({
       capturePostHogEvent: vi.fn(),
@@ -196,6 +221,73 @@ describe("destinationForReturningQrVisit", () => {
       latitude: 51.524,
       longitude: -0.071,
     })
+  })
+
+  it("routes cycle-stamp-3 returning QR visits to stamp confirm before auto-issuing when soft geofence is enabled", async () => {
+    const issueSelfServiceStamp = vi.fn(async () => ({
+      status: "issued",
+      stampEventId: "stamp-3",
+      newStampCount: 3,
+      rewardUnlocked: false,
+      geoFlagged: false,
+    }))
+    const getMembershipLocationRequirement = vi.fn(async () => ({
+      requireGeofence: true,
+      geofenceRadiusMeters: 150,
+    }))
+
+    vi.doMock("@/lib/customer/identity", () => ({
+      getCurrentCustomer: vi.fn(async () => ({ id: "customer-1" })),
+    }))
+    vi.doMock("@/lib/customer/join", () => ({
+      getMerchantJoinContext: vi.fn(async () => ({
+        available: true,
+        merchant: { id: "merchant-1", business_slug: "old-crown-girton" },
+      })),
+      getExistingMembershipForCurrentUser: vi.fn(async () => ({
+        id: "membership-1",
+      })),
+      getStampQrContextForMembership: vi.fn(async () => ({
+        qrId: "old-crown-girton-qr",
+      })),
+    }))
+    vi.doMock("@/lib/customer/card", () => ({
+      getCustomerCardState: vi.fn(async () => ({
+        status: "ready",
+        membership: {
+          id: "membership-1",
+          current_stamp_count: 2,
+          total_rewards_redeemed: 0,
+          active_cycle_number: 1,
+        },
+        latestReward: null,
+      })),
+    }))
+    vi.doMock("@/lib/customer/stamp", () => ({
+      issueSelfServiceStamp,
+      getMembershipLocationRequirement,
+    }))
+    vi.doMock("@/lib/analytics/events", () => ({
+      capturePostHogEvent: vi.fn(),
+    }))
+
+    const { destinationForReturningQrVisit } =
+      await import("@/lib/customer/returning-qr-redirect")
+
+    await expect(
+      destinationForReturningQrVisit(
+        "old-crown-girton",
+        "old-crown-girton-qr",
+        {
+          issueStamp: true,
+        }
+      )
+    ).resolves.toBe("/card/membership-1/stamp?qr=old-crown-girton-qr")
+
+    expect(getMembershipLocationRequirement).toHaveBeenCalledWith(
+      "membership-1"
+    )
+    expect(issueSelfServiceStamp).not.toHaveBeenCalled()
   })
 
   it("routes a returning member with a ready reward to the reward page after OTP", async () => {
@@ -226,7 +318,10 @@ describe("destinationForReturningQrVisit", () => {
         },
       })),
     }))
-    vi.doMock("@/lib/customer/stamp", () => ({ issueSelfServiceStamp }))
+    vi.doMock("@/lib/customer/stamp", () => ({
+      issueSelfServiceStamp,
+      getMembershipLocationRequirement: getDefaultMembershipLocationRequirement,
+    }))
     vi.doMock("@/lib/analytics/events", () => ({
       capturePostHogEvent: vi.fn(),
     }))
@@ -274,7 +369,10 @@ describe("destinationForReturningQrVisit", () => {
         },
       })),
     }))
-    vi.doMock("@/lib/customer/stamp", () => ({ issueSelfServiceStamp }))
+    vi.doMock("@/lib/customer/stamp", () => ({
+      issueSelfServiceStamp,
+      getMembershipLocationRequirement: getDefaultMembershipLocationRequirement,
+    }))
     vi.doMock("@/lib/analytics/events", () => ({
       capturePostHogEvent: vi.fn(),
     }))
@@ -317,10 +415,19 @@ describe("destinationForReturningQrVisit", () => {
     vi.doMock("@/lib/customer/card", () => ({
       getCustomerCardState: vi.fn(async () => ({
         status: "ready",
+        membership: {
+          id: "membership-1",
+          current_stamp_count: 1,
+          total_rewards_redeemed: 0,
+          active_cycle_number: 1,
+        },
         latestReward: null,
       })),
     }))
-    vi.doMock("@/lib/customer/stamp", () => ({ issueSelfServiceStamp }))
+    vi.doMock("@/lib/customer/stamp", () => ({
+      issueSelfServiceStamp,
+      getMembershipLocationRequirement: getDefaultMembershipLocationRequirement,
+    }))
     vi.doMock("@/lib/analytics/events", () => ({
       capturePostHogEvent: vi.fn(),
     }))
@@ -363,11 +470,18 @@ describe("destinationForReturningQrVisit", () => {
     vi.doMock("@/lib/customer/card", () => ({
       getCustomerCardState: vi.fn(async () => ({
         status: "ready",
+        membership: {
+          id: "membership-1",
+          current_stamp_count: 1,
+          total_rewards_redeemed: 0,
+          active_cycle_number: 1,
+        },
         latestReward: null,
       })),
     }))
     vi.doMock("@/lib/customer/stamp", () => ({
       issueSelfServiceStamp,
+      getMembershipLocationRequirement: getDefaultMembershipLocationRequirement,
     }))
     vi.doMock("@/lib/analytics/events", () => ({
       capturePostHogEvent: vi.fn(),
