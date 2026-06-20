@@ -22,7 +22,9 @@ describe("admin console redesign contracts", () => {
   it("keeps admin sections reachable in desktop and mobile shell navigation with MFA banner gating", () => {
     const layout = readProjectFile("app/admin/layout.tsx")
     const shell = readProjectFile("components/layout/admin-shell.tsx")
-    const shellNavigation = readProjectFile("components/layout/shell-navigation.tsx")
+    const shellNavigation = readProjectFile(
+      "components/layout/shell-navigation.tsx"
+    )
 
     expect(layout).toContain("getAdminAccess")
     expect(layout).toContain('access.status !== "allowed"')
@@ -42,7 +44,9 @@ describe("admin console redesign contracts", () => {
     }
 
     expect(shell).toContain("mfaRequired")
-    expect(shell).toContain("MFA enforcement is enabled for this admin session.")
+    expect(shell).toContain(
+      "MFA enforcement is enabled for this admin session."
+    )
     expect(shellNavigation).toContain("SheetTitle")
     expect(shellNavigation).toContain("SheetDescription")
     expect(shellNavigation).toContain("aria-current")
@@ -77,7 +81,16 @@ describe("admin console redesign contracts", () => {
       "Source: audit_logs",
     ]) {
       expect(
-        [home, pilot, merchants, customers, billing, privacy, fraud, audit].join("\n")
+        [
+          home,
+          pilot,
+          merchants,
+          customers,
+          billing,
+          privacy,
+          fraud,
+          audit,
+        ].join("\n")
       ).toContain(sourceLabel)
     }
   })
@@ -118,7 +131,9 @@ describe("admin console redesign contracts", () => {
       '<AdminField label="Request type"',
       '<AdminField label="Notes"',
       '<AdminField label="Note type"',
-      '<AdminField label="Setup check minutes"',
+      // Robust to Prettier line-wrapping multi-prop AdminField JSX onto
+      // several lines (the `helper` prop pushes this one past print width).
+      'label="Setup check minutes"',
     ]) {
       expect(combined).toContain(accessibleField)
     }
@@ -152,7 +167,11 @@ describe("admin console redesign contracts", () => {
     const cases = [
       () =>
         actions.adjustStampsAction(
-          form({ membershipId: "membership-1", delta: "1", reason: "Correction" })
+          form({
+            membershipId: "membership-1",
+            delta: "1",
+            reason: "Correction",
+          })
         ),
       () =>
         actions.cancelRewardAction(
@@ -232,13 +251,21 @@ describe("admin console redesign contracts", () => {
     const actions = await import("@/app/admin/actions")
 
     await actions.adjustStampsAction(
-      form({ membershipId: "membership-1", delta: "-1", reason: "Duplicate stamp" })
+      form({
+        membershipId: "membership-1",
+        delta: "-1",
+        reason: "Duplicate stamp",
+      })
     )
     await actions.cancelRewardAction(
       form({ rewardId: "reward-1", reason: "Customer support request" })
     )
     await actions.setQrActiveAction(
-      form({ qrCodeId: "qr-code-1", isActive: "false", reason: "Compromised QR" })
+      form({
+        qrCodeId: "qr-code-1",
+        isActive: "false",
+        reason: "Compromised QR",
+      })
     )
     await actions.regenerateQrAction(
       form({ qrCodeId: "qr-code-1", reason: "New venue signage" })

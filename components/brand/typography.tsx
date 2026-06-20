@@ -51,11 +51,11 @@ export function PageTitle({
         className
       )}
     >
-      <div className="grid gap-3">
+      <div className="grid min-w-0 gap-3">
         {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
         <h1
           className={cn(
-            "max-w-3xl text-3xl font-extrabold leading-tight text-foreground sm:text-4xl",
+            "max-w-3xl min-w-0 text-3xl leading-tight font-extrabold text-balance break-words text-foreground sm:text-4xl",
             titleClassName
           )}
         >
@@ -99,7 +99,7 @@ export function SectionHeader({
     >
       <div className="grid gap-2">
         {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-        <h2 className="text-lg font-extrabold leading-snug text-foreground">
+        <h2 className="text-lg leading-snug font-extrabold text-foreground">
           {title}
         </h2>
         {description ? (
@@ -134,7 +134,7 @@ export function MetricTile({
           {icon ? <Icon icon={icon} size={14} strokeWidth={2.25} /> : null}
           {label}
         </CardDescription>
-        <CardTitle className="numeric-tabular text-2xl font-extrabold">
+        <CardTitle className="numeric-tabular flex min-h-[2rem] items-end text-2xl font-extrabold">
           {value}
         </CardTitle>
       </CardHeader>
@@ -164,12 +164,7 @@ export function EmptyState({
   headingLevel?: 1 | 2 | 3
 }) {
   return (
-    <Empty
-      className={cn(
-        "border-2 bg-card p-6 text-center",
-        className
-      )}
-    >
+    <Empty className={cn("border-2 bg-card p-6 text-center", className)}>
       <EmptyHeader>
         {icon ? (
           <span className="mx-auto grid size-11 place-items-center rounded-full border-2 border-ink bg-secondary text-muted-foreground">
@@ -179,7 +174,9 @@ export function EmptyState({
         <EmptyTitle role="heading" aria-level={headingLevel}>
           {title}
         </EmptyTitle>
-        {description ? <EmptyDescription>{description}</EmptyDescription> : null}
+        {description ? (
+          <EmptyDescription>{description}</EmptyDescription>
+        ) : null}
       </EmptyHeader>
       {actions ? <EmptyContent>{actions}</EmptyContent> : null}
     </Empty>

@@ -248,6 +248,48 @@ Ghost and link variants stay flat. Primary is vermillion with white text.
 Card surface (#fbf8f1) with a 2px ink border, 10px radius, and a hard 4px
 offset shadow (`.surface-card` for plain elements). Card titles are weight 800. Receipt-style surfaces can add the `.receipt-edge` perforated zigzag.
 
+### Console data tables & record cards
+
+Admin and merchant consoles list dense records through `DataTable`
+(`components/data/data-table.tsx`). The default render is a semantic
+`<table>` on a `.surface-card` — keep it as a plain table when the rows are
+short and stay within a desktop column. When a table is reused on the
+admin consoles, where the same data must read on a phone, opt into the
+responsive renderer by passing a `mobileCard` (and an optional
+`mobileClassName`):
+
+- **Breakpoint.** The single switch is `sm`. Below `sm` the component renders a
+  stacked card list (`sm:hidden`); at `sm` and above it renders the semantic
+  table (`hidden sm:block`). This replaces a horizontally scrolling
+  `overflow-x-auto` table on phones with a readable card per row. The
+  `emptyState` is shared and prints in both modes; the `caption`
+  labels both the table (`<caption class="sr-only">`) and the mobile list
+  (`aria-label`). Omitting `mobileCard` leaves the DOM and classes exactly as
+  the plain table, so the opt-in never regresses existing tables.
+
+- **`AdminRecordCard`** (`components/admin/record-card.tsx`) is the shared
+  renderer returned from `mobileCard`. Its API is
+  `{ title, eyebrow?, status?, fields: { label, value, mono? }[], action? }` on
+  a Wet Ink `.surface-card`: an optional `eyebrow`, a bold `title`, an optional
+  `status` row (a `StatusPill`/`MonoTag`), then stacked label/value `fields`
+  that mirror the desktop columns (`mono: true` for ids and codes). It echoes
+  the per-record cards already on the admin merchants ("QR records") and privacy
+  ("Data request workflow") pages.
+
+- **Support actions belong in the card body.** Any per-row action — a stamp
+  adjustment form, a data-request control — goes in the card's `action` slot
+  (full-width at the bottom), never off to the side. On a phone the card is the
+  whole row, so the action stays reachable without horizontal scroll. The admin
+  customers table is the reference: its `mobileCard` returns an `AdminRecordCard`
+  whose `action` is the same `StampAdjustmentForm` rendered in the desktop
+  column.
+
+This responsive pair is shared by 7+ admin tables — customers, merchants,
+fraud, billing, audit, pilot, and privacy — which is why the mobile renderer
+and the record card are one abstraction rather than per-page markup. The live
+example is the **Console data** section of the
+[`/dev/design-system`](app/dev/design-system/page.tsx) catalog.
+
 ### Stamps & Grids
 
 Earned stamps are solid vermillion circles with white marks; empty slots are

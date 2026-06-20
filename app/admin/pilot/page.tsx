@@ -8,6 +8,7 @@ import {
   first,
   formatAdminDate,
 } from "@/components/admin/support"
+import { AdminRecordCard } from "@/components/admin/record-card"
 import { CheckmarkCircle02Icon, Store01Icon } from "@hugeicons/core-free-icons"
 
 import {
@@ -67,14 +68,36 @@ export default async function AdminPilotPage() {
         </div>
         <DataTable
           caption="Pilot readiness source-labelled metrics"
+          cardBreakpoint="lg"
           className="rounded-none border-0 shadow-none"
+          mobileClassName="p-5"
           rows={report.metrics}
           getRowKey={(metric) => metric.label}
+          mobileCard={(metric) => (
+            <AdminRecordCard
+              title={metric.label}
+              fields={[
+                {
+                  label: "Value",
+                  value: (
+                    <span className="numeric-tabular">{metric.value}</span>
+                  ),
+                },
+                { label: "Pilot target", value: metric.target },
+                {
+                  label: "Source",
+                  value: <SourceLabel>Source: {metric.source}</SourceLabel>,
+                },
+              ]}
+            />
+          )}
           columns={[
             {
               key: "metric",
               header: "Metric",
-              cell: (metric) => <span className="font-bold">{metric.label}</span>,
+              cell: (metric) => (
+                <span className="font-bold">{metric.label}</span>
+              ),
             },
             {
               key: "value",
@@ -93,7 +116,9 @@ export default async function AdminPilotPage() {
             {
               key: "source",
               header: "Source",
-              cell: (metric) => <SourceLabel>Source: {metric.source}</SourceLabel>,
+              cell: (metric) => (
+                <SourceLabel>Source: {metric.source}</SourceLabel>
+              ),
             },
           ]}
         />
@@ -157,7 +182,10 @@ export default async function AdminPilotPage() {
                         </option>
                       </select>
                     </AdminField>
-                    <AdminField label="Setup check minutes" helper="Optional for self-service launch checks.">
+                    <AdminField
+                      label="Setup check minutes"
+                      helper="Optional for self-service launch checks."
+                    >
                       <input
                         name="setupMinutes"
                         type="number"

@@ -35,6 +35,21 @@ const surfaces = [
     expected: "Launch kit",
   },
   {
+    name: "merchant dashboard preview",
+    path: "/dev/merchant-admin-preview/merchant-dashboard",
+    expected: "Merchant dashboard",
+  },
+  {
+    name: "admin customers preview",
+    path: "/dev/merchant-admin-preview/admin-customers",
+    expected: "Admin customers",
+  },
+  {
+    name: "admin fraud empty preview",
+    path: "/dev/merchant-admin-preview/admin-fraud-empty",
+    expected: "Admin fraud (empty)",
+  },
+  {
     name: "design system",
     path: "/dev/design-system",
     expected: "Design system catalog",
@@ -55,6 +70,29 @@ test.describe("accessibility (WCAG 2 A/AA)", () => {
             '[data-customer-flow-preview="reward-ready"][data-screen-label="Customer reward"]'
           )
         ).toBeVisible()
+      } else if (surface.name === "merchant dashboard preview") {
+        await expect(
+          page.locator(
+            '[data-ma-preview="merchant-dashboard"][data-screen-label="Merchant dashboard"]'
+          )
+        ).toBeVisible()
+      } else if (surface.name === "admin customers preview") {
+        await expect(
+          page.locator(
+            '[data-ma-preview="admin-customers"][data-screen-label="Admin customers"]'
+          )
+        ).toBeVisible()
+      } else if (surface.name === "admin fraud empty preview") {
+        await expect(
+          page.locator(
+            '[data-ma-preview="admin-fraud-empty"][data-screen-label="Admin fraud (empty)"]'
+          )
+        ).toBeVisible()
+        // The empty variant must actually render the route's EmptyState copy,
+        // not a broken table shell, before axe analyses it. `DataTable` renders
+        // the empty state in both the mobile and desktop branches (one is
+        // CSS-hidden), so match the first.
+        await expect(page.getByText("No fraud flags yet").first()).toBeVisible()
       } else {
         await expect(page.getByText(surface.expected).first()).toBeVisible()
       }
