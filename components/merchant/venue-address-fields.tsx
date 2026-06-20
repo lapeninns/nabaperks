@@ -10,6 +10,7 @@ export function VenueAddressFields({
   labelClassName = "text-sm font-bold",
   inputClassName = "h-11 rounded-lg border-2 border-ink bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/35",
   columns = 1,
+  onAddressChange,
 }: {
   values?: Partial<VenueAddressFormFields>
   errors?: VenueAddressFieldErrors
@@ -18,6 +19,8 @@ export function VenueAddressFields({
   /** 2 lays Town/city + Postcode side by side from the `sm` breakpoint up, so a
    *  full-width form fills the row instead of stacking four lone inputs. */
   columns?: 1 | 2
+  /** Fires on any address edit. Additive: inputs stay uncontrolled. */
+  onAddressChange?: () => void
 }) {
   const split = columns === 2
   const fullSpan = split ? "sm:col-span-2" : undefined
@@ -35,6 +38,7 @@ export function VenueAddressFields({
         labelClassName={labelClassName}
         inputClassName={inputClassName}
         fieldClassName={fullSpan}
+        onAddressChange={onAddressChange}
       />
       <AddressField
         id="addressLine2"
@@ -46,6 +50,7 @@ export function VenueAddressFields({
         labelClassName={labelClassName}
         inputClassName={inputClassName}
         fieldClassName={fullSpan}
+        onAddressChange={onAddressChange}
       />
       <AddressField
         id="addressCity"
@@ -56,6 +61,7 @@ export function VenueAddressFields({
         error={errors?.addressCity}
         labelClassName={labelClassName}
         inputClassName={inputClassName}
+        onAddressChange={onAddressChange}
       />
       <AddressField
         id="addressPostcode"
@@ -67,6 +73,7 @@ export function VenueAddressFields({
         error={errors?.addressPostcode}
         labelClassName={labelClassName}
         inputClassName={inputClassName}
+        onAddressChange={onAddressChange}
       />
       {errors?.address ? (
         <p className={cn("text-sm text-destructive", fullSpan)}>
@@ -92,6 +99,7 @@ function AddressField({
   labelClassName,
   inputClassName,
   fieldClassName,
+  onAddressChange,
 }: {
   id: string
   name: string
@@ -103,6 +111,7 @@ function AddressField({
   labelClassName: string
   inputClassName: string
   fieldClassName?: string
+  onAddressChange?: () => void
 }) {
   return (
     <label className={cn("grid gap-2", fieldClassName)} htmlFor={id}>
@@ -114,6 +123,7 @@ function AddressField({
         placeholder={placeholder}
         autoComplete={autoComplete}
         defaultValue={defaultValue}
+        onChange={onAddressChange}
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
         className={inputClassName}

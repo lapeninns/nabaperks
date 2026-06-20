@@ -27,9 +27,14 @@ export async function VenuePanel() {
           requireGeofence: location?.require_geofence ?? false,
         }}
         geocoded={
-          location?.geocoded_at
+          location?.latitude != null && location?.longitude != null
             ? { latitude: location.latitude, longitude: location.longitude }
             : null
+        }
+        pinSource={
+          location?.geofence_pin_source === "merchant_pin"
+            ? "merchant_pin"
+            : "geocoded"
         }
       />
     </div>

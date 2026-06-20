@@ -397,3 +397,57 @@ describe("merchant_locations canonical address migration", () => {
     expect(migration).toContain("pg_constraint")
   })
 })
+
+describe("venue geofence pin map wiring", () => {
+  it("ships a client-only Leaflet pin map with a draggable marker and cleanup", () => {
+    const map = readProjectFile("components/merchant/launch/venue-pin-map.tsx")
+
+    expect(map).toContain('"use client"')
+    expect(map).toContain('from "leaflet"')
+    expect(map).toContain('import "leaflet/dist/leaflet.css"')
+    expect(map).toContain('data-testid="venue-pin-map"')
+    expect(map).toContain("draggable: true")
+    // Radius circle plus a size recalculation and unmount cleanup.
+    expect(map).toContain("L.circle")
+    expect(map).toContain("invalidateSize")
+    expect(map).toContain(".remove()")
+  })
+
+  it("loads the map client-side only and exposes hidden pin fields in the venue form", () => {
+    const form = readProjectFile(
+      "components/merchant/launch/venue-location-form.tsx"
+    )
+
+    expect(form).toContain("ssr: false")
+    expect(form).toContain('import("./venue-pin-map")')
+    expect(form).toContain('name="venueLatitude"')
+    expect(form).toContain('name="venueLongitude"')
+    expect(form).toContain('name="geofencePinSource"')
+    expect(form).toContain("requireGeofence")
+    // Editing the address resets the pending source back to geocoded.
+    expect(form).toContain("onAddressChange")
+    expect(form).toContain('"geocoded"')
+  })
+
+  it("lets the address fields report edits without becoming controlled", () => {
+    const fields = readProjectFile(
+      "components/merchant/venue-address-fields.tsx"
+    )
+
+    expect(fields).toContain("onAddressChange")
+    // Inputs stay uncontrolled (defaultValue), so the callback is additive.
+    expect(fields).toContain("defaultValue")
+  })
+
+  it("exposes named venue geofence preview scenarios", () => {
+    const page = readProjectFile("app/dev/launch-preview/page.tsx")
+    const screens = readProjectFile("app/dev/launch-preview/screens.tsx")
+
+    expect(page).toContain("searchParams")
+    expect(page).toContain("scenario")
+    expect(screens).toContain("geofence-on")
+    expect(screens).toContain("geofence-off")
+    // Old Crown Girton pilot coordinates drive the geofence-on scenario.
+    expect(screens).toContain("52.2425913")
+  })
+})

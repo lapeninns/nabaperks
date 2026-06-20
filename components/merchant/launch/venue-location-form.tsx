@@ -1,5 +1,6 @@
 "use client"
 
+import dynamic from "next/dynamic"
 import { useActionState, useState, type InputHTMLAttributes } from "react"
 
 import {
@@ -11,7 +12,23 @@ import { VenueAddressFields } from "@/components/merchant/venue-address-fields"
 import { Disclosure } from "@/components/merchant/launch/disclosure"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Button } from "@/components/ui/button"
-import type { VenueAddressFormFields } from "@/lib/merchant/venue-address"
+import type {
+  GeofencePinSource,
+  VenueAddressFormFields,
+} from "@/lib/merchant/venue-address"
+
+// Client-only: Leaflet touches window/document and ships its own CSS, so the
+// map must never render on the server (Next dynamic ssr:false from a Client
+// Component).
+const VenuePinMap = dynamic(() => import("./venue-pin-map"), {
+  ssr: false,
+  loading: () => (
+    <div
+      className="h-64 w-full rounded-lg border-2 border-dashed border-border bg-card"
+      aria-hidden
+    />
+  ),
+})
 
 type VenueLocationFormValues = VenueAddressFormFields & {
   venueName: string
@@ -24,10 +41,13 @@ const initialState: VenueLocationActionState = {}
 export function VenueLocationForm({
   initialValues,
   geocoded,
+  pinSource,
 }: {
   initialValues: VenueLocationFormValues
-  /** Saved coordinates, shown as quiet confirmation inside the GPS section. */
+  /** Saved coordinates — drive the pin map and the quiet confirmation line. */
   geocoded?: { latitude: number | null; longitude: number | null } | null
+  /** Saved coordinate provenance; seeds the hidden source field. */
+  pinSource?: GeofencePinSource
 }) {
   const [state, action, pending] = useActionState(
     saveVenueLocationAction,
@@ -42,8 +62,20 @@ export function VenueLocationForm({
     initialValues.requireGeofence
   )
 
+  const savedCoordinates =
+    geocoded?.latitude != null && geocoded?.longitude != null
+      ? { latitude: geocoded.latitude, longitude: geocoded.longitude }
+      : null
+  const [pin, setPin] = useState(savedCoordinates)
+  const [pendingPinSource, setPendingPinSource] = useState<GeofencePinSource>(
+    pinSource ?? "geocoded"
+  )
+
   const hasGeocode = geocoded?.latitude != null && geocoded?.longitude != null
   const addressValues = state.fields ?? initialValues
+  const parsedRadius = Number.parseInt(geofenceRadiusMeters, 10)
+  const mapRadiusMeters =
+    Number.isFinite(parsedRadius) && parsedRadius > 0 ? parsedRadius : 100
 
   return (
     <form action={action} className="surface-card grid gap-5 p-6">
@@ -64,7 +96,12 @@ export function VenueLocationForm({
         values={addressValues}
         errors={state.errors}
         columns={2}
+        onAddressChange={() => setPendingPinSource("geocoded")}
       />
+
+      <input type="hidden" name="venueLatitude" value={pin?.latitude ?? ""} />
+      <input type="hidden" name="venueLongitude" value={pin?.longitude ?? ""} />
+      <input type="hidden" name="geofencePinSource" value={pendingPinSource} />
 
       <Field
         id="venueName"
@@ -105,6 +142,23 @@ export function VenueLocationForm({
           onChange={(event) => setGeofenceRadiusMeters(event.target.value)}
           error={state.errors?.geofenceRadiusMeters}
         />
+        {requireGeofence && pin ? (
+          <div className="grid gap-2">
+            <VenuePinMap
+              latitude={pin.latitude}
+              longitude={pin.longitude}
+              radiusMeters={mapRadiusMeters}
+              onPinChange={(coordinates) => {
+                setPin(coordinates)
+                setPendingPinSource("merchant_pin")
+              }}
+            />
+            <p className="text-xs leading-5 text-muted-foreground">
+              Drag the pin to your real entrance — the soft GPS check measures
+              from this exact spot, not the postcode centre.
+            </p>
+          </div>
+        ) : null}
         {hasGeocode ? (
           <p className="font-mono text-xs text-muted-foreground">
             Geocoded to {geocoded?.latitude}, {geocoded?.longitude}.

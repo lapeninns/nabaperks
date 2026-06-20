@@ -6,6 +6,10 @@ const withBundleAnalyzer = bundleAnalyzer({
 })
 
 const nextConfig: NextConfig = {
+  // Allow the loopback IP origin in dev so agent browser proofs driven against
+  // http://127.0.0.1 can load `/_next` dev chunks (e.g. the dynamic Leaflet
+  // pin map). Dev-only; has no effect on production builds.
+  allowedDevOrigins: ["127.0.0.1"],
   async headers() {
     return [
       {
