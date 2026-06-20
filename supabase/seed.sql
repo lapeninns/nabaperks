@@ -246,14 +246,46 @@ set business_name = excluded.business_name,
     reward_cost_pence = excluded.reward_cost_pence,
     status = excluded.status;
 
-insert into public.merchant_locations (id, merchant_id, name, address)
+-- Old Crown Girton pilot venue: operator-supplied entrance coordinates, a 100m
+-- soft radius for a small single-site venue, geofence on, and a merchant-placed
+-- pin (coordinate provenance is recorded separately from address provenance).
+insert into public.merchant_locations (
+  id,
+  merchant_id,
+  name,
+  address,
+  latitude,
+  longitude,
+  geofence_radius_meters,
+  require_geofence,
+  geofence_pin_source,
+  geofence_pin_updated_at
+)
 values
   (
     '11000000-0000-0000-0000-000000000001',
     '10000000-0000-0000-0000-000000000001',
-    'Shoreditch High Street',
-    '42 Bethnal Green Road, London E1 6AN'
-  ),
+    'Old Crown Girton',
+    'High Street, Girton, Cambridge CB3 0QD',
+    52.2425913,
+    0.0814946,
+    100,
+    true,
+    'merchant_pin',
+    now()
+  )
+on conflict (id) do update
+set name = excluded.name,
+    address = excluded.address,
+    latitude = excluded.latitude,
+    longitude = excluded.longitude,
+    geofence_radius_meters = excluded.geofence_radius_meters,
+    require_geofence = excluded.require_geofence,
+    geofence_pin_source = excluded.geofence_pin_source,
+    geofence_pin_updated_at = excluded.geofence_pin_updated_at;
+
+insert into public.merchant_locations (id, merchant_id, name, address)
+values
   (
     '11000000-0000-0000-0000-000000000002',
     '10000000-0000-0000-0000-000000000002',

@@ -319,6 +319,80 @@ describe("venue save action — structured address entry", () => {
     expect(result.errors?.form).toBeTruthy()
     expect(createSupabaseServerClient).not.toHaveBeenCalled()
   })
+
+  it("still rejects a geofence radius below the 25m minimum", async () => {
+    vi.resetModules()
+    const createSupabaseServerClient = vi.fn()
+    mockMerchantAndCache()
+    vi.doMock("@/lib/merchant/geocode", () => ({
+      geocodeAddress: vi.fn(async () => ({
+        latitude: 51.52,
+        longitude: -0.07,
+      })),
+    }))
+    vi.doMock("@/lib/supabase/server", () => ({ createSupabaseServerClient }))
+    const { saveVenueLocationAction } = await import("@/app/app/launch/actions")
+
+    const result = await saveVenueLocationAction(
+      {},
+      form({
+        venueName: "Old Crown Girton",
+        ...sampleAddress,
+        geofenceRadiusMeters: "10",
+      })
+    )
+
+    expect(result.errors?.geofenceRadiusMeters).toMatch(/at least 25/)
+    expect(createSupabaseServerClient).not.toHaveBeenCalled()
+  })
+
+  it("still rejects a geofence radius above the 1000m maximum", async () => {
+    vi.resetModules()
+    const createSupabaseServerClient = vi.fn()
+    mockMerchantAndCache()
+    vi.doMock("@/lib/merchant/geocode", () => ({
+      geocodeAddress: vi.fn(async () => ({
+        latitude: 51.52,
+        longitude: -0.07,
+      })),
+    }))
+    vi.doMock("@/lib/supabase/server", () => ({ createSupabaseServerClient }))
+    const { saveVenueLocationAction } = await import("@/app/app/launch/actions")
+
+    const result = await saveVenueLocationAction(
+      {},
+      form({
+        venueName: "Old Crown Girton",
+        ...sampleAddress,
+        geofenceRadiusMeters: "2000",
+      })
+    )
+
+    expect(result.errors?.geofenceRadiusMeters).toMatch(/1,000/)
+    expect(createSupabaseServerClient).not.toHaveBeenCalled()
+  })
+})
+
+describe("Old Crown Girton pilot seed and merchant geofence copy", () => {
+  it("seeds the Old Crown Girton demo location with pilot geofence defaults", () => {
+    const seed = readProjectFile("supabase/seed.sql")
+
+    // Operator-supplied pilot coordinates, a 100m soft radius, geofence on, and a
+    // merchant-placed pin.
+    expect(seed).toContain("52.2425913")
+    expect(seed).toContain("0.0814946")
+    expect(seed).toContain("require_geofence")
+    expect(seed).toContain("geofence_pin_source")
+    expect(seed).toContain("merchant_pin")
+  })
+
+  it("recommends 100m for small single-site venues in the launch copy", () => {
+    const form = readProjectFile(
+      "components/merchant/launch/venue-location-form.tsx"
+    )
+
+    expect(form).toContain("100m")
+  })
 })
 
 describe("merchant_locations geofence pin source migration", () => {

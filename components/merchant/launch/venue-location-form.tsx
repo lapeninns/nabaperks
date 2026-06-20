@@ -142,6 +142,10 @@ export function VenueLocationForm({
           onChange={(event) => setGeofenceRadiusMeters(event.target.value)}
           error={state.errors?.geofenceRadiusMeters}
         />
+        <p className="text-xs leading-5 text-muted-foreground">
+          100m suits most small, single-site venues. Set anything from 25m to
+          1000m.
+        </p>
         {requireGeofence && pin ? (
           <div className="grid gap-2">
             <VenuePinMap
