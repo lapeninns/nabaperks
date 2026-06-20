@@ -89,6 +89,7 @@ differ between environments, but the contract is the same:
 | `NEXT_PUBLIC_SUPABASE_URL`           | Browser/server | Supabase project URL.                                                 |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY`      | Browser/server | Supabase anon key protected by Row Level Security.                    |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Browser/server | Stripe publishable key for client-side Stripe flows.                  |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`    |        Browser | Optional restricted key for Google Maps Places venue autocomplete.    |
 | `NEXT_PUBLIC_POSTHOG_KEY`            | Browser/server | Optional PostHog project key for product analytics.                   |
 | `NEXT_PUBLIC_POSTHOG_HOST`           | Browser/server | Optional PostHog host URL.                                            |
 | `SUPABASE_SERVICE_ROLE_KEY`          |    Server only | Privileged Supabase key for trusted server-side code only.            |

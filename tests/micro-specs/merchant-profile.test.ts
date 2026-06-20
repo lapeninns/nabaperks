@@ -364,10 +364,10 @@ describe("merchant profile micro-spec", () => {
   })
 
   it("links the merchant profile through the account navigation hub", () => {
-    const shell = readProjectFile("components/layout/merchant-app-shell.tsx")
+    const shellNav = readProjectFile("components/layout/console-nav.ts")
 
-    expect(shell).toContain('href: "/app/account", label: "Account"')
-    expect(shell).not.toContain('href: "/app/profile"')
+    expect(shellNav).toContain('href: "/app/account", label: "Account"')
+    expect(shellNav).not.toContain('href: "/app/profile"')
   })
 
   it("moves venue editing out of the profile form and over to Launch", () => {

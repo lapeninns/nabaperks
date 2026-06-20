@@ -22,21 +22,67 @@ export type VenueAddressFieldErrors = {
   address?: string
 }
 
-export type VenueAddressPayload = {
+type VenueAddressCanonicalFields = {
   address: string
   address_line_1: string
   address_line_2: string | null
   address_city: string
   address_postcode: string
   address_country: string
-  address_provider: null
-  address_provider_id: null
-  address_source: "manual_entry"
   latitude: number
   longitude: number
 }
 
+export type ManualVenueAddressPayload = VenueAddressCanonicalFields & {
+  address_provider: null
+  address_provider_id: null
+  address_source: "manual_entry"
+}
+
+export type ProviderVenueAddressPayload = VenueAddressCanonicalFields & {
+  address_provider: "google_places"
+  address_provider_id: string
+  address_source: "provider_lookup"
+}
+
+export type VenueAddressPayload =
+  | ManualVenueAddressPayload
+  | ProviderVenueAddressPayload
+
+/** One entry from Google Places `Place.addressComponents` (Places API New). */
+export type GoogleAddressComponent = {
+  longText: string | null
+  shortText?: string | null
+  types: string[]
+}
+
+export type ProviderVenueAddressInput = {
+  fields: VenueAddressFormFields
+  /** Google `place.id`, the re-verifiable provider identity. */
+  providerId: string
+  /** Provider `place.location` latitude/longitude as submitted strings. */
+  latitude: string
+  longitude: string
+}
+
+export type ProviderVenueAddressErrors = VenueAddressFieldErrors & {
+  /** Provider provenance/coordinate failure shown against the form. */
+  form?: string
+}
+
 const UK_POSTCODE_PATTERN = /^[A-Z]{1,2}\d[A-Z\d]?\s\d[A-Z]{2}$/
+
+// Generous GB bounding box (incl. Shetland and the Channel Islands). Provider
+// coordinates outside it are rejected so a tampered client cannot persist an
+// arbitrary venue location under the trusted provider-lookup banner.
+const UK_BOUNDS = {
+  latMin: 49.0,
+  latMax: 61.5,
+  lngMin: -8.8,
+  lngMax: 2.1,
+} as const
+
+const MAX_PROVIDER_ID_LENGTH = 255
 
 export function parseVenueAddressFields(
   formData: FormData
@@ -170,6 +216,123 @@ export function venueAddressFieldsFromLocation(location: {
     addressLine2: "",
     addressCity: "",
     addressPostcode: "",
+  }
+}
+
+/**
+ * Map Google Places `addressComponents` (Places API New) into the structured UK
+ * venue form fields. Pure and provider-shaped only; the server still re-validates
+ * the result, so a malformed selection cannot bypass address validation.
+ */
+export function mapGoogleAddressComponents(
+  components: GoogleAddressComponent[]
+): VenueAddressFormFields {
+  const pick = (type: string) =>
+    components
+      .find((component) => component.types.includes(type))
+      ?.longText?.trim() ?? ""
+
+  const street = [pick("street_number"), pick("route")]
+    .filter(Boolean)
+    .join(" ")
+  const premise = pick("premise")
+  const subpremise = pick("subpremise")
+
+  const addressLine1 = street || premise
+  // subpremise (flat/unit) is the natural second line; otherwise surface the
+  // premise/building name when the street already fills line 1.
+  const addressLine2 =
+    subpremise || (premise && addressLine1 !== premise ? premise : "")
+
+  const addressCity =
+    pick("postal_town") ||
+    pick("locality") ||
+    pick("administrative_area_level_2") ||
+    pick("administrative_area_level_1")
+
+  const postalCode = pick("postal_code")
+  const postalSuffix = pick("postal_code_suffix")
+  const addressPostcode = postalSuffix
+    ? `${postalCode}-${postalSuffix}`
+    : postalCode
+
+  return { addressLine1, addressLine2, addressCity, addressPostcode }
+}
+
+function parseFiniteCoordinate(value: string): number | null {
+  if (value.trim() === "") return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+/**
+ * Parse provider-supplied venue coordinates, accepting only finite values inside
+ * the GB bounding box. Returns null for empty, non-finite, or non-GB input so a
+ * tampered client cannot persist an arbitrary location via provider lookup.
+ */
+export function parseUkVenueCoordinates(
+  latitude: string,
+  longitude: string
+): { latitude: number; longitude: number } | null {
+  const lat = parseFiniteCoordinate(latitude)
+  const lng = parseFiniteCoordinate(longitude)
+
+  if (lat === null || lng === null) return null
+  if (lat < UK_BOUNDS.latMin || lat > UK_BOUNDS.latMax) return null
+  if (lng < UK_BOUNDS.lngMin || lng > UK_BOUNDS.lngMax) return null
+
+  return { latitude: lat, longitude: lng }
+}
+
+const PROVIDER_PLACE_ERROR =
+  "We could not confirm this place. Enter the address manually."
+const PROVIDER_LOCATION_ERROR =
+  "We could not confirm this place's location. Enter the address manually."
+
+/**
+ * Validate a Google Places selection server-side and build a canonical
+ * provider-lookup payload. The structured address must pass the same UK
+ * validation as manual entry, the provider place id must be present and bounded,
+ * and the coordinates must fall inside the GB bounding box before they are
+ * trusted. Any failure returns field/form errors and writes nothing.
+ */
+export function buildProviderVenueAddress(
+  input: ProviderVenueAddressInput
+):
+  | { payload: ProviderVenueAddressPayload }
+  | { errors: ProviderVenueAddressErrors } {
+  const errors: ProviderVenueAddressErrors = {
+    ...validateVenueAddressFields(input.fields),
+  }
+  const providerId = input.providerId.trim()
+  const coordinates = parseUkVenueCoordinates(input.latitude, input.longitude)
+
+  if (!providerId || providerId.length > MAX_PROVIDER_ID_LENGTH) {
+    errors.form = PROVIDER_PLACE_ERROR
+  } else if (!coordinates) {
+    errors.form = PROVIDER_LOCATION_ERROR
+  }
+
+  if (Object.keys(errors).length > 0 || !coordinates) {
+    return { errors }
+  }
+
+  const structured = toStructuredVenueAddress(input.fields)
+
+  return {
+    payload: {
+      address: formatVenueAddressDisplay(structured),
+      address_line_1: structured.line1,
+      address_line_2: structured.line2,
+      address_city: structured.city,
+      address_postcode: structured.postcode,
+      address_country: structured.country,
+      address_provider: "google_places",
+      address_provider_id: providerId,
+      address_source: "provider_lookup",
+      latitude: coordinates.latitude,
+      longitude: coordinates.longitude,
+    },
   }
 }
 

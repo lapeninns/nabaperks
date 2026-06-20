@@ -29,7 +29,7 @@ export default async function AdminBillingPage() {
         </div>
         <DataTable
           caption="Admin billing subscription readback"
-          cardBreakpoint="lg"
+          cardBreakpoint="xl"
           className="rounded-none border-0 shadow-none"
           rows={billing}
           getRowKey={(row) => row.id}

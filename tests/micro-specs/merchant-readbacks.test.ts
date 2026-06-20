@@ -1,6 +1,10 @@
 import { readFileSync } from "node:fs"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
+import {
+  merchantAccountItems,
+  merchantNavItems,
+} from "@/components/layout/console-nav"
 import { createSupabaseMock } from "../helpers/supabase"
 
 afterEach(() => {
@@ -60,7 +64,6 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     const layout = readProjectFile("app/app/layout.tsx")
     const loading = readProjectFile("app/app/loading.tsx")
     const shell = readProjectFile("components/layout/merchant-app-shell.tsx")
-    const navigation = readProjectFile("components/layout/shell-navigation.tsx")
     const requestPath = readProjectFile("lib/navigation/request-path.ts")
 
     expect(layout).toContain("getCurrentUser")
@@ -72,38 +75,24 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     expect(layout).not.toContain('"use client"')
     expect(requestPath).toContain("readMerchantRequestPath")
 
-    for (const href of [
-      'href: "/app"',
-      'href: "/app/launch"',
-      'href: "/app/customers"',
-      'href: "/app/activity"',
-      'href: "/app/account"',
-    ]) {
-      expect(shell).toContain(href)
-    }
-    expect(shell).toContain('href: "/app/account", label: "Account"')
-    expect(shell).not.toContain('href: "/app/billing"')
-    expect(shell).not.toContain('href: "/app/settings"')
+    expect(
+      merchantNavItems.map(({ href, label }) => ({ href, label }))
+    ).toEqual([
+      { href: "/app", label: "Home" },
+      { href: "/app/launch", label: "Launch" },
+      { href: "/app/customers", label: "Customers" },
+      { href: "/app/activity", label: "Activity" },
+    ])
+    expect(
+      merchantAccountItems.map(({ href, label }) => ({ href, label }))
+    ).toEqual([{ href: "/app/account", label: "Account" }])
     expect(shell).not.toContain("ROI settings")
+    expect(shell).toContain("SidebarFooter")
+    expect(shell).toContain("ConsoleSidebarNav")
     expect(shell).toContain("merchantAccountItems")
     expect(shell).toContain("secondaryItems={merchantAccountItems}")
 
     expect(shell).toContain("<form action={signOutAction}")
-    expect(navigation).toContain("SheetTitle")
-    expect(navigation).toContain("SheetDescription")
-    expect(navigation).toContain("aria-current")
-    expect(navigation).toContain("aria-label={`${mobileTitle} mobile`}")
-    // Account group renders alongside the primary nav on mobile and desktop.
-    expect(navigation).toContain("secondaryItems")
-    expect(navigation).toContain("aria-label={`${secondaryLabel} mobile`}")
-    expect(navigation).toContain(
-      'import Link, { useLinkStatus } from "next/link"'
-    )
-    expect(navigation).toContain("function NavPendingIndicator")
-    expect(navigation).toContain("useLinkStatus()")
-    expect(navigation).toContain("<NavPendingIndicator />")
-    expect(navigation).toContain("size-1.5")
-    expect(navigation).toContain("opacity-0")
 
     expect(loading).toContain(
       'import { MerchantPageTitleSkeleton } from "@/components/merchant/loading-skeletons"'
@@ -111,8 +100,6 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
     expect(loading).toContain('aria-label="Loading merchant workspace"')
     expect(loading).toContain('role="status"')
     expect(loading).toContain("<MerchantPageTitleSkeleton />")
-    // Generic route fallback only — no dashboard metric/activity markup that
-    // would flash a different shape before each page renders its real title.
     expect(loading).not.toContain("Card")
     expect(loading).not.toContain("md:grid-cols-3")
   })

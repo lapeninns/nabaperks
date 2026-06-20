@@ -77,6 +77,12 @@ function printStatus() {
     "  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY and STRIPE_SECRET_KEY come from Stripe API keys."
   )
   console.log("")
+  console.log("Google Maps Platform:")
+  console.log("  Enable Maps JavaScript API and Places API (New).")
+  console.log(
+    "  NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=<browser key restricted by HTTP referrer and API target>"
+  )
+  console.log("")
   console.log("Resend:")
   console.log("  pnpm dlx resend-cli login")
   console.log("  pnpm dlx resend-cli api-keys --help")

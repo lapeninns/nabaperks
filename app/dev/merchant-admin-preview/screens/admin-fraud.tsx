@@ -47,7 +47,7 @@ export function AdminFraudScreen({ empty = false }: { empty?: boolean }) {
         />
         <DataTable
           caption="Admin fraud flag readback"
-          cardBreakpoint="lg"
+          cardBreakpoint="xl"
           className="rounded-lg shadow-none"
           rows={fraudFlags}
           getRowKey={(flag: AdminFraudFlagRow) => flag.id}
@@ -158,7 +158,7 @@ export function AdminFraudScreen({ empty = false }: { empty?: boolean }) {
         />
         <DataTable
           caption="Admin redemption failure event readback"
-          cardBreakpoint="lg"
+          cardBreakpoint="xl"
           className="rounded-lg shadow-none"
           rows={redemptionFailures}
           getRowKey={(event: AdminRedemptionFailureRow) => event.id}

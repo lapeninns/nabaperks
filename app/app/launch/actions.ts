@@ -5,9 +5,11 @@ import { revalidatePath } from "next/cache"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { resolveStructuredVenueAddress } from "@/lib/merchant/resolve-venue-address"
 import {
+  buildProviderVenueAddress,
   parseManualGeofencePin,
   parseVenueAddressFields,
   validateVenueAddressFields,
+  type VenueAddressPayload,
   type VenueAddressFieldErrors,
   type VenueAddressFormFields,
 } from "@/lib/merchant/venue-address"
@@ -29,6 +31,24 @@ export type VenueLocationActionState = {
     form?: string
   }
   saved?: boolean
+}
+
+type VenueLocationWritePayload = Omit<
+  VenueAddressPayload,
+  "address_provider" | "address_provider_id"
+> & {
+  merchant_id: string
+  name: string
+  address_provider: VenueAddressPayload["address_provider"]
+  address_provider_id: VenueAddressPayload["address_provider_id"]
+  latitude: number
+  longitude: number
+  geofence_radius_meters: number
+  require_geofence: boolean
+  geocoded_at: string
+  geofence_pin_source: "geocoded" | "merchant_pin"
+  geofence_pin_updated_at: string
+  is_primary: boolean
 }
 
 export async function saveVenueLocationAction(
@@ -86,16 +106,35 @@ export async function saveVenueLocationAction(
     return { fields, errors }
   }
 
-  const resolved = await resolveStructuredVenueAddress(addressFields)
+  // A Google Places selection arrives with a provider id and validated,
+  // GB-bounded coordinates, so it skips the Nominatim geocode and records its
+  // provenance through the existing provider columns. Manual entry still
+  // geocodes the structured postcode through resolveStructuredVenueAddress.
+  const isProviderLookup =
+    value(formData, "addressSource") === "provider_lookup" &&
+    value(formData, "addressProvider") === "google_places"
+  const resolved = isProviderLookup
+    ? buildProviderVenueAddress({
+        fields: addressFields,
+        providerId: value(formData, "addressProviderId"),
+        latitude: value(formData, "providerLatitude"),
+        longitude: value(formData, "providerLongitude"),
+      })
+    : await resolveStructuredVenueAddress(addressFields)
+
+  if ("errors" in resolved) {
+    return { fields, errors: { ...errors, ...resolved.errors } }
+  }
 
   if ("error" in resolved) {
     return { fields, errors: { ...errors, address: resolved.error } }
   }
 
-  // A valid manual pin wins over the postcode-centroid geocode; provenance is
-  // recorded in geofence_pin_source, never by overloading the address source.
+  // A valid manual pin wins over the resolved coordinates (postcode-centroid
+  // geocode or provider location); provenance is recorded in geofence_pin_source,
+  // never by overloading the address source.
   const savedAt = new Date().toISOString()
-  const payload = {
+  const payload: VenueLocationWritePayload = {
     merchant_id: merchant.id,
     name: venueName,
     ...resolved.payload,

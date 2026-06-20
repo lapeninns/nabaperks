@@ -16,6 +16,7 @@ export NEXT_PUBLIC_APP_URL=http://localhost:3000
 export NEXT_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co
 export NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
 export NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=<pk_test_or_pk_live>
+export NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=<restricted-browser-key>
 export SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
 export SUPABASE_DB_URL=<postgres-connection-url-for-migrations>
 export SUPABASE_DB_PASSWORD=<postgres-password-for-linked-pooler>
@@ -33,6 +34,12 @@ Optional analytics:
 ```bash
 export NEXT_PUBLIC_POSTHOG_KEY=<posthog-project-key>
 export NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
+```
+
+Optional Google Maps Platform venue autocomplete:
+
+```bash
+export NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=<restricted-browser-key>
 ```
 
 ## Supabase
@@ -133,6 +140,31 @@ pnpm env:check
 ```
 
 These values are optional for local development.
+
+## Google Maps Platform
+
+For venue autocomplete, create a browser-restricted Google Maps Platform API key
+with only these API targets:
+
+- Maps JavaScript API (`maps-backend.googleapis.com`)
+- Places API (New) (`places.googleapis.com`)
+
+Use HTTP referrer restrictions for local, preview, and production origins such
+as:
+
+- `http://localhost:*/*`
+- `http://127.0.0.1:*/*`
+- `https://nabaperks.com/*`
+- `https://www.nabaperks.com/*`
+- `https://*.nabaperks.com/*`
+- `https://nabaperks.vercel.app/*`
+- `https://nabaperks-*.vercel.app/*`
+
+Set the restricted browser key in `.env.local`, or export it when validating:
+
+```bash
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=<restricted-browser-key> pnpm env:check
+```
 
 ## Vercel
 

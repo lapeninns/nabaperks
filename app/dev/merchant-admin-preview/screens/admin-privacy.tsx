@@ -134,7 +134,7 @@ export function AdminPrivacyScreen() {
         </div>
         <DataTable
           caption="Admin consent support readback"
-          cardBreakpoint="lg"
+          cardBreakpoint="xl"
           className="rounded-none border-0 shadow-none"
           rows={ADMIN_CONSENT_RECORDS}
           getRowKey={(record: AdminConsentRow) => record.id}

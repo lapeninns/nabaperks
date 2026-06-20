@@ -5,6 +5,11 @@ import { describe, expect, it } from "vitest"
 import packageJson from "@/package.json" with { type: "json" }
 import envContract from "@/config/env-contract.json" with { type: "json" }
 import {
+  adminNavItems,
+  merchantAccountItems,
+  merchantNavItems,
+} from "@/components/layout/console-nav"
+import {
   assertValidEnv,
   EnvConfigError,
   type EnvContractEntry,
@@ -268,6 +273,7 @@ describe("00/01 foundation micro-specs", () => {
       "sheet",
       "skeleton",
       "sonner",
+      "sidebar",
       "spinner",
       "table",
       "tabs",
@@ -280,6 +286,7 @@ describe("00/01 foundation micro-specs", () => {
 
     expect(packageJson.dependencies.sonner).toBeDefined()
     expect(packageJson.dependencies["input-otp"]).toBeDefined()
+    expect(existsSync("hooks/use-mobile.ts")).toBe(true)
   })
 
   it("keeps Button stamp/reward variants, shadcn compatibility, and tactile sizing", () => {
@@ -449,14 +456,16 @@ describe("00/01 foundation micro-specs", () => {
     const merchantShell = readProjectFile(
       "components/layout/merchant-app-shell.tsx"
     )
-    for (const href of [
-      'href: "/app"',
-      'href: "/app/launch"',
-      'href: "/app/customers"',
-      'href: "/app/account"',
-    ]) {
-      expect(merchantShell).toContain(href)
-    }
+    expect(merchantNavItems.map(({ href }) => href)).toEqual([
+      "/app",
+      "/app/launch",
+      "/app/customers",
+      "/app/activity",
+    ])
+    expect(merchantAccountItems.map(({ href }) => href)).toEqual([
+      "/app/account",
+    ])
+    expect(merchantShell).toContain("ConsoleSidebarNav")
     expect(merchantShell).toContain("<form action={signOutAction}>")
 
     const launchHub = readProjectFile("app/app/launch/page.tsx")
@@ -499,27 +508,19 @@ describe("00/01 foundation micro-specs", () => {
     expect(adminLayout).not.toContain('"use client"')
 
     const adminShell = readProjectFile("components/layout/admin-shell.tsx")
-    for (const href of [
-      'href: "/admin/pilot"',
-      'href: "/admin/merchants"',
-      'href: "/admin/customers"',
-      'href: "/admin/billing"',
-      'href: "/admin/privacy"',
-      'href: "/admin/fraud"',
-      'href: "/admin/audit"',
-    ]) {
-      expect(adminShell).toContain(href)
-    }
+    expect(adminNavItems.map(({ href }) => href)).toEqual([
+      "/admin/pilot",
+      "/admin/merchants",
+      "/admin/customers",
+      "/admin/billing",
+      "/admin/privacy",
+      "/admin/fraud",
+      "/admin/audit",
+    ])
     expect(adminShell).toContain(
       "MFA enforcement is enabled for this admin session."
     )
-
-    const shellNavigation = readProjectFile(
-      "components/layout/shell-navigation.tsx"
-    )
-    expect(shellNavigation).toContain("SheetTitle")
-    expect(shellNavigation).toContain("aria-current")
-    expect(shellNavigation).toContain("usePathname")
+    expect(adminShell).toContain("ConsoleSidebarNav")
   })
 
   it("centralizes brand hierarchy and initial domain primitives", () => {

@@ -1,3 +1,4 @@
+import { GooglePlacesVenuePreview } from "@/app/dev/launch-preview/google-places-harness"
 import { VenueGeofenceScenarioPreview } from "@/app/dev/launch-preview/screens"
 
 type LaunchPreviewIndexProps = {
@@ -16,6 +17,22 @@ export default async function LaunchPreviewIndexPage({
   const { tab, scenario } = await searchParams
 
   if (tab === "venue") {
+    // Mocked Google Places scenarios for the agent browser proof. `places-mock`
+    // injects a fake importLibrary so a selection fills the form; `places-nokey`
+    // omits the key so the manual fallback is the only path.
+    if (scenario === "places-mock" || scenario === "places-nokey") {
+      return (
+        <div
+          data-launch-preview-tab="venue"
+          data-launch-preview-scenario={scenario}
+        >
+          <GooglePlacesVenuePreview
+            apiKeyConfigured={scenario === "places-mock"}
+          />
+        </div>
+      )
+    }
+
     const resolvedScenario: "geofence-on" | "geofence-off" =
       scenario === "geofence-off" ? "geofence-off" : "geofence-on"
 

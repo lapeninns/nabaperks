@@ -165,6 +165,7 @@ All product specs are `active`; the two governance specs are `implemented`.
 | 007 | Inactive card blocks new stamp claims | unit/sql | u:self-service-stamping | — |
 | 008 | Card create/change writes events | unit | u:merchant-qr-mutations | — |
 | 009 | Venue pin drag persists a manual override and records `merchant_pin` provenance, separate from address source | unit + browser | u:venue-address-lookup, e2e:high-accuracy-geofence-precision | invalid manual pin rejected before write; address edits reset pending source to geocoded; browser proof needs the :3100 dev server |
+| 010 | Google Places venue selection fills the structured address and persists `provider_lookup`/`google_places`/place id with server-validated GB coordinates; manual entry, Nominatim fallback, and manual pin override unchanged | unit + browser | u:venue-address-lookup, e2e:google-places-venue-autocomplete | mocked Google (no live call); invalid provider id/coords or non-GB rejected before write; missing/blocked key renders manual-only fallback; manual edit after selection resets to `manual_entry` |
 
 **MS-MERCHANT-DYNAMIC-QR-GENERATION-DOWNLOADS** · `rls-rpc-ledger` · gates: `qa:static`, `qa:unit`, `qa:db`, `qa:security`
 | Req | Behaviour | Test type | Evidence | Gap / note |

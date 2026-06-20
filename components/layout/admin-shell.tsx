@@ -1,26 +1,19 @@
+"use client"
+
 import type { ReactNode } from "react"
-import {
-  AlertDiamondIcon,
-  AnalyticsUpIcon,
-  CreditCardIcon,
-  SecurityCheckIcon,
-  Shield01Icon,
-  Store01Icon,
-  UserMultiple02Icon,
-} from "@hugeicons/core-free-icons"
 
 import { Logo, MonoTag } from "@/components/brand"
-import { ShellNavigation, type ShellNavItem } from "./shell-navigation"
-
-const adminNavItems: ShellNavItem[] = [
-  { href: "/admin/pilot", label: "Pilot", icon: AnalyticsUpIcon },
-  { href: "/admin/merchants", label: "Merchants", icon: Store01Icon },
-  { href: "/admin/customers", label: "Customers", icon: UserMultiple02Icon },
-  { href: "/admin/billing", label: "Billing", icon: CreditCardIcon },
-  { href: "/admin/privacy", label: "Privacy", icon: Shield01Icon },
-  { href: "/admin/fraud", label: "Fraud", icon: AlertDiamondIcon },
-  { href: "/admin/audit", label: "Audit", icon: SecurityCheckIcon },
-]
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar"
+import { CONSOLE_SIDEBAR_STYLE, ConsoleSidebarNav } from "./console-sidebar-nav"
+import { adminNavItems } from "./console-nav"
 
 const supportStatusItems = [
   "Service-role readbacks",
@@ -37,62 +30,67 @@ export function AdminShell({
   children: ReactNode
   operatorEmail?: string
   mfaRequired?: boolean
-  /**
-   * Optional active-path override forwarded to `ShellNavigation`. Left undefined
-   * for the real authenticated shell (it falls back to `usePathname()`); the
-   * `/dev` preview passes the surface's real route so the correct tab lights up.
-   */
   activePath?: string
 }) {
   return (
-    <div className="min-h-svh bg-background">
-      <header className="sticky top-0 z-40 border-b-2 border-ink bg-card">
-        <div className="mx-auto grid w-full max-w-7xl gap-3 px-4 py-3 sm:px-6">
-          <div className="flex items-center justify-between gap-4">
-            <Logo href="/admin" label="Nabaperks Admin" />
-            <ShellNavigation
-              items={adminNavItems}
-              mobileTitle="Admin navigation"
-              mobileDescription="Open support sections for pilot, merchants, customers, billing, privacy, fraud, and audit."
-              desktopClassName="lg:flex"
-              mobileTriggerClassName="lg:hidden"
-              activePath={activePath}
-            />
-          </div>
-          <div className="hidden items-center justify-between gap-3 overflow-x-auto pb-1 md:flex">
-            {operatorEmail ? (
-              <MonoTag tone="ink" className="shrink-0">
-                Operator: {operatorEmail}
-              </MonoTag>
-            ) : null}
-            {supportStatusItems.map((item) => (
-              <MonoTag
-                key={item}
-                tone="plain"
-                className="shrink-0 border-ink bg-background text-muted-foreground"
-              >
-                {item}
-              </MonoTag>
-            ))}
-            <MonoTag tone="leaf" className="shrink-0">
-              {mfaRequired ? "AAL2 verified" : "Admin verified"}
+    <SidebarProvider
+      className="min-h-svh bg-background"
+      style={CONSOLE_SIDEBAR_STYLE}
+    >
+      <Sidebar collapsible="offcanvas">
+        <SidebarHeader className="border-b-2 border-ink p-4">
+          <Logo href="/admin" label="Nabaperks Admin" />
+        </SidebarHeader>
+        <SidebarContent className="px-2 py-3">
+          <ConsoleSidebarNav
+            ariaLabel="Admin navigation"
+            items={adminNavItems}
+            activePath={activePath}
+          />
+        </SidebarContent>
+        <SidebarFooter className="border-t-2 border-ink p-4">
+          {operatorEmail ? (
+            <MonoTag tone="ink" className="max-w-full truncate">
+              Operator: {operatorEmail}
             </MonoTag>
+          ) : null}
+          {supportStatusItems.map((item) => (
+            <MonoTag
+              key={item}
+              tone="plain"
+              className="max-w-full truncate border-ink bg-background text-muted-foreground"
+            >
+              {item}
+            </MonoTag>
+          ))}
+          <MonoTag tone="leaf" className="max-w-full truncate">
+            {mfaRequired ? "AAL2 verified" : "Admin verified"}
+          </MonoTag>
+        </SidebarFooter>
+      </Sidebar>
+      <SidebarInset className="min-w-0">
+        <header className="sticky top-0 z-30 flex min-h-14 items-center gap-3 border-b-2 border-ink bg-card px-4 py-2 md:hidden">
+          <SidebarTrigger className="size-11 shrink-0" />
+          <Logo
+            href="/admin"
+            label="Nabaperks Admin"
+            wordmarkClassName="hidden sm:inline"
+          />
+        </header>
+        {mfaRequired ? (
+          <div
+            role="status"
+            className="border-b-2 border-ink bg-reward/12 px-4 py-3 text-sm font-semibold text-reward-foreground sm:px-6"
+          >
+            MFA enforcement is enabled for this admin session.
           </div>
+        ) : null}
+        <div className="w-full px-4 py-8 sm:px-6">
+          <div className="mx-auto w-full max-w-7xl">{children}</div>
         </div>
-      </header>
-      {mfaRequired ? (
-        <div
-          role="status"
-          className="border-b-2 border-ink bg-reward/12 px-6 py-3 text-sm font-semibold text-reward-foreground"
-        >
-          MFA enforcement is enabled for this admin session.
-        </div>
-      ) : null}
-      <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
-        {children}
-      </main>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }
 
-export { adminNavItems }
+export { adminNavItems } from "./console-nav"

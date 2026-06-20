@@ -187,7 +187,7 @@ export default async function AdminPrivacyPage() {
         </div>
         <DataTable
           caption="Admin consent support readback"
-          cardBreakpoint="lg"
+          cardBreakpoint="xl"
           className="rounded-none border-0 shadow-none"
           rows={consentRecords}
           getRowKey={(record) => record.id}

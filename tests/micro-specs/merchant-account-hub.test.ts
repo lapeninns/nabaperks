@@ -173,16 +173,16 @@ describe("merchant account hub micro-spec", () => {
     })
 
     it("points the shell account entry and billing CTAs at the Account hub", () => {
-      const shell = readProjectFile("components/layout/merchant-app-shell.tsx")
+      const shellNav = readProjectFile("components/layout/console-nav.ts")
       const billingStatus = readProjectFile(
         "components/merchant/billing-status.tsx"
       )
       const activity = readProjectFile("lib/merchant/activity.ts")
 
-      expect(shell).toContain('href: "/app/account", label: "Account"')
-      expect(shell).not.toContain('href: "/app/billing"')
-      expect(shell).not.toContain('href: "/app/settings"')
-      expect(shell).not.toContain('href: "/app/profile"')
+      expect(shellNav).toContain('href: "/app/account", label: "Account"')
+      expect(shellNav).not.toContain('href: "/app/billing"')
+      expect(shellNav).not.toContain('href: "/app/settings"')
+      expect(shellNav).not.toContain('href: "/app/profile"')
       expect(billingStatus).toContain('actionHref: "/app/account?tab=billing"')
       expect(billingStatus).not.toContain('actionHref: "/app/billing"')
       expect(activity).toContain('href: "/app/account?tab=billing"')

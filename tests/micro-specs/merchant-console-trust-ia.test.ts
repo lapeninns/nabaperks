@@ -33,14 +33,20 @@ describe("05 merchant console trust and IA cleanup", () => {
 
   it("promotes Activity into primary merchant navigation and simplifies settings", () => {
     const shell = readProjectFile("components/layout/merchant-app-shell.tsx")
+    const nav = readProjectFile("components/layout/console-nav.ts")
 
-    expect(shell).toContain('href: "/app/activity"')
-    expect(shell).toContain('label: "Activity"')
-    expect(shell).toContain('href: "/app/account", label: "Account"')
-    expect(shell).not.toContain('href: "/app/settings"')
-    expect(shell).not.toContain('href: "/app/profile"')
+    expect(nav).toContain('href: "/app/activity"')
+    expect(nav).toContain('label: "Activity"')
+    expect(nav).toContain('href: "/app/account", label: "Account"')
+    expect(nav).not.toContain('href: "/app/settings"')
+    expect(nav).not.toContain('href: "/app/profile"')
+    expect(shell).toContain("ConsoleSidebarNav")
+    expect(shell).toContain("merchantNavItems")
+    expect(shell).toContain("merchantAccountItems")
     expect(shell).not.toContain("ROI settings")
-    expect(shell).toContain("home, launch setup, customers, and activity")
+    expect(nav).toContain('label: "Home"')
+    expect(nav).toContain('label: "Launch"')
+    expect(nav).toContain('label: "Customers"')
   })
 
   it("keeps healthy billing state out of dashboard KPI noise", () => {

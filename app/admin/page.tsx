@@ -8,7 +8,7 @@ import {
 import { AdminPanel, SourceLabel } from "@/components/admin/support"
 import { Icon, MetricTile, PageTitle, SectionHeader } from "@/components/brand"
 import { FunnelChart } from "@/components/data/funnel-chart"
-import { adminNavItems } from "@/components/layout/admin-shell"
+import { adminNavItems } from "@/components/layout/console-nav"
 import { Button } from "@/components/ui/button"
 import { getPilotFunnelCounts } from "@/lib/analytics/funnels"
 import { getAdminOverview } from "@/lib/admin/data"

@@ -43,11 +43,6 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
-/**
- * Fixed bottom tab bar for the customer home — the mobile-first equivalent of
- * the merchant top pill nav. Active = ink fill / paper text, same Wet Ink
- * vocabulary as `ShellNavigation`.
- */
 export function CustomerTabBar() {
   const pathname = usePathname()
 
@@ -67,7 +62,7 @@ export function CustomerTabBar() {
               aria-current={active ? "page" : undefined}
               data-active={active}
               className={cn(
-                "group flex min-h-14 flex-col items-center justify-center gap-1 text-[0.6875rem] font-bold transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none focus-visible:ring-3 focus-visible:ring-ring/35",
+                "group flex min-h-14 flex-col items-center justify-center gap-1 text-[0.6875rem] font-bold transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none",
                 active
                   ? "text-foreground"
                   : "text-ink-soft hover:text-foreground"

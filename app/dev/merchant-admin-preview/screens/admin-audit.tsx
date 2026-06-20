@@ -31,7 +31,7 @@ export function AdminAuditScreen() {
         </div>
         <DataTable
           caption="Admin audit log readback"
-          cardBreakpoint="lg"
+          cardBreakpoint="xl"
           className="rounded-none border-0 shadow-none"
           rows={ADMIN_AUDIT_LOGS}
           getRowKey={(log: AdminAuditRow) => log.id}

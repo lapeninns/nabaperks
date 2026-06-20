@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs"
 
 import { describe, expect, it, vi } from "vitest"
 
+import { adminNavItems } from "@/components/layout/console-nav"
 import { createSupabaseMock } from "../helpers/supabase"
 
 function readProjectFile(path: string) {
@@ -22,35 +23,30 @@ describe("admin console redesign contracts", () => {
   it("keeps admin sections reachable in desktop and mobile shell navigation with MFA banner gating", () => {
     const layout = readProjectFile("app/admin/layout.tsx")
     const shell = readProjectFile("components/layout/admin-shell.tsx")
-    const shellNavigation = readProjectFile(
-      "components/layout/shell-navigation.tsx"
-    )
 
     expect(layout).toContain("getAdminAccess")
     expect(layout).toContain('access.status !== "allowed"')
     expect(layout).toContain("AdminShell")
     expect(layout).not.toContain('"use client"')
 
-    for (const href of [
-      'href: "/admin/pilot"',
-      'href: "/admin/merchants"',
-      'href: "/admin/customers"',
-      'href: "/admin/billing"',
-      'href: "/admin/privacy"',
-      'href: "/admin/fraud"',
-      'href: "/admin/audit"',
-    ]) {
-      expect(shell).toContain(href)
-    }
+    expect(adminNavItems.map(({ href, label }) => ({ href, label }))).toEqual([
+      { href: "/admin/pilot", label: "Pilot" },
+      { href: "/admin/merchants", label: "Merchants" },
+      { href: "/admin/customers", label: "Customers" },
+      { href: "/admin/billing", label: "Billing" },
+      { href: "/admin/privacy", label: "Privacy" },
+      { href: "/admin/fraud", label: "Fraud" },
+      { href: "/admin/audit", label: "Audit" },
+    ])
 
+    expect(shell).toContain("SidebarFooter")
+    expect(shell).toContain("ConsoleSidebarNav")
+    expect(shell).toContain("adminNavItems")
+    expect(shell).toContain("supportStatusItems")
     expect(shell).toContain("mfaRequired")
     expect(shell).toContain(
       "MFA enforcement is enabled for this admin session."
     )
-    expect(shellNavigation).toContain("SheetTitle")
-    expect(shellNavigation).toContain("SheetDescription")
-    expect(shellNavigation).toContain("aria-current")
-    expect(shellNavigation).toContain("justify-start")
   })
 
   it("uses shared data primitives and source-labelled support readbacks across admin pages", () => {
@@ -71,6 +67,13 @@ describe("admin console redesign contracts", () => {
     expect(privacy).toContain("DataTable")
     expect(fraud).toContain("DataTable")
     expect(audit).toContain("DataTable")
+
+    expect(
+      [pilot, merchants, customers, billing, privacy, fraud, audit].join("\n")
+    ).not.toContain('cardBreakpoint="lg"')
+    expect(
+      [pilot, merchants, customers, billing, privacy, fraud, audit].join("\n")
+    ).toContain('cardBreakpoint="xl"')
 
     for (const sourceLabel of [
       "Source: product_events",

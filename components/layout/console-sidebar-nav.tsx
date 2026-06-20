@@ -1,0 +1,125 @@
+"use client"
+
+import Link, { useLinkStatus } from "next/link"
+import { usePathname } from "next/navigation"
+import type { CSSProperties, MouseEvent } from "react"
+
+import { Icon } from "@/components/brand"
+import {
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
+} from "@/components/ui/sidebar"
+import { isActivePath, type ShellNavItem } from "./console-nav"
+
+export const CONSOLE_SIDEBAR_STYLE: CSSProperties &
+  Record<"--sidebar-width", string> = {
+  "--sidebar-width": "17rem",
+}
+
+export function ConsoleSidebarNav({
+  items,
+  secondaryItems,
+  secondaryLabel = "Account",
+  activePath,
+  ariaLabel,
+}: {
+  items: readonly ShellNavItem[]
+  secondaryItems?: readonly ShellNavItem[]
+  secondaryLabel?: string
+  activePath?: string
+  ariaLabel: string
+}) {
+  const pathname = usePathname()
+  const currentPath = activePath ?? pathname
+  const secondaryNavItems = secondaryItems ?? []
+
+  return (
+    <nav aria-label={ariaLabel} className="grid gap-2">
+      <ConsoleSidebarGroup items={items} currentPath={currentPath} />
+      {secondaryNavItems.length > 0 ? (
+        <ConsoleSidebarGroup
+          items={secondaryNavItems}
+          currentPath={currentPath}
+          label={secondaryLabel}
+        />
+      ) : null}
+    </nav>
+  )
+}
+
+function ConsoleSidebarGroup({
+  items,
+  currentPath,
+  label,
+}: {
+  items: readonly ShellNavItem[]
+  currentPath: string
+  label?: string
+}) {
+  const { isMobile, setOpenMobile } = useSidebar()
+
+  function handleLinkClick(event: MouseEvent<HTMLAnchorElement>) {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return
+    }
+
+    if (isMobile) {
+      setOpenMobile(false)
+    }
+  }
+
+  return (
+    <SidebarGroup>
+      {label ? <SidebarGroupLabel>{label}</SidebarGroupLabel> : null}
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {items.map((item) => {
+            const active = isActivePath(currentPath, item.href)
+
+            return (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton asChild isActive={active} size="lg">
+                  <Link
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    data-active={active}
+                    className="gap-3"
+                    onClick={handleLinkClick}
+                  >
+                    {item.icon ? <Icon icon={item.icon} size={16} /> : null}
+                    <span>{item.label}</span>
+                    <NavPendingIndicator />
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )
+          })}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  )
+}
+
+function NavPendingIndicator() {
+  const { pending } = useLinkStatus()
+
+  return (
+    <span
+      aria-hidden="true"
+      data-pending={pending}
+      className="ml-auto size-1.5 shrink-0 rounded-full bg-current opacity-0 transition-opacity delay-100 duration-[var(--w-dur-fast)] ease-[var(--w-ease)] data-[pending=true]:opacity-60 motion-reduce:transition-none"
+    />
+  )
+}

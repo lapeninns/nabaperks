@@ -31,7 +31,7 @@ export function AdminBillingScreen() {
         </div>
         <DataTable
           caption="Admin billing subscription readback"
-          cardBreakpoint="lg"
+          cardBreakpoint="xl"
           className="rounded-none border-0 shadow-none"
           rows={ADMIN_BILLING}
           getRowKey={(row: AdminBillingRow) => row.id}

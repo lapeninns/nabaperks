@@ -6,8 +6,9 @@ owner: factory-droid
 last_reviewed: 2026-06-16
 allowed_blast_radius:
   - app/app/**
+  - components/layout/console-nav.ts
+  - components/layout/console-sidebar-nav.tsx
   - components/layout/merchant-app-shell.tsx
-  - components/layout/shell-navigation.tsx
   - components/merchant/**
   - lib/merchant/**
   - docs/ROUTES.md
@@ -16,6 +17,8 @@ allowed_blast_radius:
   - micro-specs/traceability.json
 implementation_surfaces:
   - app/app/**
+  - components/layout/console-nav.ts
+  - components/layout/console-sidebar-nav.tsx
   - components/layout/merchant-app-shell.tsx
   - components/merchant/**
   - lib/merchant/**

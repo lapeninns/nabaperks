@@ -44,7 +44,7 @@ function FraudFlagsPanel({ flags }: { readonly flags: FraudFlags }) {
       />
       <DataTable
         caption="Admin fraud flag readback"
-        cardBreakpoint="lg"
+        cardBreakpoint="xl"
         className="rounded-lg shadow-none"
         rows={flags}
         getRowKey={(flag) => flag.id}
@@ -185,7 +185,7 @@ function RedemptionFailuresPanel({
       />
       <DataTable
         caption="Admin redemption failure event readback"
-        cardBreakpoint="lg"
+        cardBreakpoint="xl"
         className="rounded-lg shadow-none"
         rows={failures}
         getRowKey={(event) => event.id}
