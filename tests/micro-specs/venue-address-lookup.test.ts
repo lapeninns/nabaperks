@@ -189,6 +189,157 @@ describe("venue save action — structured address entry", () => {
     ).resolves.toMatchObject({ errors: { address: GEOCODE_ERROR } })
     expect(createSupabaseServerClient).not.toHaveBeenCalled()
   })
+
+  it("persists a valid manual pin over the geocode result", async () => {
+    vi.resetModules()
+    const mock = createSupabaseMock({
+      from: {
+        merchant_locations: [
+          { data: { id: "location-1" }, error: null },
+          { data: null, error: null },
+        ],
+      },
+    })
+    mockMerchantAndCache()
+    vi.doMock("@/lib/merchant/geocode", () => ({
+      geocodeAddress: vi.fn(async () => ({
+        latitude: 51.52,
+        longitude: -0.07,
+      })),
+    }))
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServerClient: vi.fn(async () => mock.client),
+    }))
+    const { saveVenueLocationAction } = await import("@/app/app/launch/actions")
+
+    await expect(
+      saveVenueLocationAction(
+        {},
+        form({
+          venueName: "Old Crown Girton",
+          ...sampleAddress,
+          geofenceRadiusMeters: "100",
+          requireGeofence: true,
+          geofencePinSource: "merchant_pin",
+          venueLatitude: "52.2425913",
+          venueLongitude: "0.0814946",
+        })
+      )
+    ).resolves.toMatchObject({ saved: true })
+
+    // The dragged pin wins over the postcode-centroid geocode, and provenance is
+    // recorded separately from address_source.
+    expect(mock.queryCalls).toContainEqual({
+      table: "merchant_locations",
+      method: "update",
+      args: [
+        expect.objectContaining({
+          latitude: 52.2425913,
+          longitude: 0.0814946,
+          address_source: "manual_entry",
+          geofence_pin_source: "merchant_pin",
+        }),
+      ],
+    })
+  })
+
+  it("records a geocoded pin source when no manual pin is submitted", async () => {
+    vi.resetModules()
+    const mock = createSupabaseMock({
+      from: {
+        merchant_locations: [
+          { data: { id: "location-1" }, error: null },
+          { data: null, error: null },
+        ],
+      },
+    })
+    mockMerchantAndCache()
+    vi.doMock("@/lib/merchant/geocode", () => ({
+      geocodeAddress: vi.fn(async () => ({
+        latitude: 51.52,
+        longitude: -0.07,
+      })),
+    }))
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServerClient: vi.fn(async () => mock.client),
+    }))
+    const { saveVenueLocationAction } = await import("@/app/app/launch/actions")
+
+    await expect(
+      saveVenueLocationAction(
+        {},
+        form({
+          venueName: "Old Crown Girton",
+          ...sampleAddress,
+          geofenceRadiusMeters: "150",
+          geofencePinSource: "geocoded",
+        })
+      )
+    ).resolves.toMatchObject({ saved: true })
+
+    expect(mock.queryCalls).toContainEqual({
+      table: "merchant_locations",
+      method: "update",
+      args: [
+        expect.objectContaining({
+          latitude: 51.52,
+          longitude: -0.07,
+          geofence_pin_source: "geocoded",
+        }),
+      ],
+    })
+  })
+
+  it("rejects an out-of-range manual pin without writing", async () => {
+    vi.resetModules()
+    const createSupabaseServerClient = vi.fn()
+    mockMerchantAndCache()
+    vi.doMock("@/lib/merchant/geocode", () => ({
+      geocodeAddress: vi.fn(async () => ({
+        latitude: 51.52,
+        longitude: -0.07,
+      })),
+    }))
+    vi.doMock("@/lib/supabase/server", () => ({ createSupabaseServerClient }))
+    const { saveVenueLocationAction } = await import("@/app/app/launch/actions")
+
+    const result = await saveVenueLocationAction(
+      {},
+      form({
+        venueName: "Old Crown Girton",
+        ...sampleAddress,
+        geofenceRadiusMeters: "100",
+        geofencePinSource: "merchant_pin",
+        venueLatitude: "999",
+        venueLongitude: "0.0814946",
+      })
+    )
+
+    expect(result.saved).toBeUndefined()
+    expect(result.errors?.form).toBeTruthy()
+    expect(createSupabaseServerClient).not.toHaveBeenCalled()
+  })
+})
+
+describe("merchant_locations geofence pin source migration", () => {
+  it("adds idempotent pin-source columns and a constraint without touching address_source", () => {
+    const migration = readProjectFile(
+      "supabase/migrations/20260620100000_merchant_geofence_pin_source.sql"
+    )
+
+    expect(migration).toContain("add column if not exists geofence_pin_source")
+    expect(migration).toContain(
+      "add column if not exists geofence_pin_updated_at"
+    )
+    expect(migration).toContain("default 'geocoded'")
+    expect(migration).toContain(
+      "geofence_pin_source in ('geocoded', 'merchant_pin')"
+    )
+    // Backfill existing rows from the geocode timestamp.
+    expect(migration).toContain("geofence_pin_updated_at = geocoded_at")
+    // This slice must not redefine the address provenance constraint.
+    expect(migration).not.toContain("address_source")
+  })
 })
 
 describe("venue location form — structured address fields", () => {

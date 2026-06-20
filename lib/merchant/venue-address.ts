@@ -49,6 +49,36 @@ export function parseVenueAddressFields(
   }
 }
 
+export type GeofencePinSource = "geocoded" | "merchant_pin"
+
+/**
+ * Parse a submitted manual venue pin. Valid for this slice only when both
+ * coordinates are finite and within global latitude/longitude bounds — no UK
+ * bounds or distance-from-geocode constraint. Returns null for any invalid,
+ * out-of-range, or empty input so the caller can fall back or reject.
+ */
+export function parseManualGeofencePin(
+  latitude: string,
+  longitude: string
+): { latitude: number; longitude: number } | null {
+  const lat = parseGeofenceCoordinate(latitude, 90)
+  const lon = parseGeofenceCoordinate(longitude, 180)
+
+  if (lat === null || lon === null) return null
+
+  return { latitude: lat, longitude: lon }
+}
+
+function parseGeofenceCoordinate(input: string, bound: number): number | null {
+  if (input.trim() === "") return null
+
+  const parsed = Number(input)
+
+  if (!Number.isFinite(parsed) || parsed < -bound || parsed > bound) return null
+
+  return parsed
+}
+
 export function validateVenueAddressFields(
   fields: VenueAddressFormFields
 ): VenueAddressFieldErrors {
