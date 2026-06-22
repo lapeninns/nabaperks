@@ -19,7 +19,7 @@ jobs:
     name: Governance
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
@@ -33,7 +33,7 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - run: pnpm lint
 
@@ -41,7 +41,7 @@ jobs:
     name: Typecheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - run: pnpm typecheck
 
@@ -51,7 +51,7 @@ jobs:
     env:
       CI: "true"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - name: Run unit tests with coverage
         run: pnpm test:coverage
@@ -74,7 +74,7 @@ jobs:
     name: Code health
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - name: Naming, debt, N+1, AGENTS.md, complexity, routes, dead/dup code
         run: pnpm quality
@@ -83,7 +83,7 @@ jobs:
     name: Security checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - name: Static security verification
         run: pnpm security:verify
@@ -112,7 +112,7 @@ jobs:
       CUSTOMER_PHONE_HMAC_SECRET: ci-hmac-secret-placeholder
       CUSTOMER_PHONE_ENCRYPTION_KEY: ci-encryption-key-placeholder-32b
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - name: Production build
         run: pnpm build
@@ -134,9 +134,9 @@ jobs:
     env:
       SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v2
         with:
           version: latest
       - name: Start local Supabase stack
@@ -171,9 +171,9 @@ jobs:
       TWILIO_AUTH_TOKEN: ci-twilio-auth-token
       TWILIO_VERIFY_SERVICE_SID: VAci
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v2
         with:
           version: latest
       - name: Start local Supabase stack
