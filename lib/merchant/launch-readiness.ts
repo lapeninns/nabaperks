@@ -5,17 +5,14 @@ import {
   type ActiveCardSummary,
   type QrCodeSummary,
 } from "@/lib/merchant/qr-code"
+import {
+  LAUNCH_SETUP_STEP_LABELS,
+  type LaunchReadinessStepId,
+  type LaunchReadinessTab,
+} from "@/lib/merchant/launch-readiness-contract"
 
-export type LaunchReadinessTab = "card" | "rewards" | "venue" | "qr"
-export type LaunchReadinessStepId = "card" | "rewards" | "venue" | "qr"
-
-/** Merchant-facing names for the four launch setup steps (not customer stamps). */
-export const LAUNCH_SETUP_STEP_LABELS: Record<LaunchReadinessStepId, string> = {
-  card: "Your card",
-  rewards: "Your rewards",
-  venue: "Your venue",
-  qr: "Print your QR",
-}
+export { LAUNCH_SETUP_STEP_LABELS }
+export type { LaunchReadinessStepId, LaunchReadinessTab }
 
 export type LaunchReadinessStep = {
   id: LaunchReadinessStepId

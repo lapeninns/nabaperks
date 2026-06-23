@@ -43,6 +43,7 @@ export type CustomerCardState =
         reward_terms: string
         min_spend_pence: number | null
         redeemable_from: string | null
+        expires_at: string | null
       } | null
       billingStatus: string | null
     }
@@ -114,7 +115,7 @@ export async function getCustomerCardState(
     supabase
       .from("reward_events")
       .select(
-        "id, status, reward_name, reward_terms, min_spend_pence, redeemable_from"
+        "id, status, reward_name, reward_terms, min_spend_pence, redeemable_from, expires_at"
       )
       .eq("membership_id", membership.id)
       .eq("status", "unlocked")
@@ -168,6 +169,7 @@ export async function getCustomerCardState(
           reward_terms: latestReward.reward_terms,
           min_spend_pence: latestReward.min_spend_pence,
           redeemable_from: latestReward.redeemable_from,
+          expires_at: latestReward.expires_at,
         }
       : null,
     billingStatus: billing?.status ?? null,

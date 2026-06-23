@@ -1048,6 +1048,102 @@ Status evidence:
 | `MS-MVP-SCOPE-RELEASE-GATES-006` | `TMP-MS-MVP-SCOPE-RELEASE-GATES-006-a` | temporal      | unit  | covered | a reward is revealed → block redemption until the next UK business day                                                                   | tests/micro-specs/analytics-dashboard-pilot.test.ts<br>tests/micro-specs/customer.test.ts<br>tests/micro-specs/self-service-stamping.test.ts |
 | `MS-MVP-SCOPE-RELEASE-GATES-007` | `STM-MS-MVP-SCOPE-RELEASE-GATES-007-a` | state-machine | unit  | covered | the MVP is evaluated for pilot readiness → check every release gate in this spec                                                         | tests/micro-specs/analytics-dashboard-pilot.test.ts<br>tests/micro-specs/customer.test.ts<br>tests/micro-specs/self-service-stamping.test.ts |
 
+## MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS — Browser Push Notification Events
+
+| Field         | Value |
+| ------------- | ----- |
+| Status        | `active` |
+| Risk class    | `rls-rpc-ledger` |
+| Change state  | `current` |
+| Owner         | `factory-droid` |
+| Last reviewed | `2026-06-22` |
+| Source        | `micro-specs/09-notifications/01-browser-push-notification-events.md` |
+| Tests         | `tests/micro-specs/browser-push-notification-events.test.ts` |
+| Gates         | `pnpm governance`<br>`pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`pnpm db:verify`<br>`pnpm security:verify`<br>`npx playwright test`<br>`pnpm build` |
+| Supersession  | `not_superseded`: No superseding Micro-Spec replaces this current intent. |
+
+Allowed blast radius:
+
+- `app/api/cron/**`
+- `app/api/notifications/**`
+- `app/app/announcements/**`
+- `app/home/**`
+- `components/customer/**`
+- `components/pwa/**`
+- `config/env-contract.json`
+- `lib/analytics/events.ts`
+- `lib/customer/**`
+- `lib/env/**`
+- `lib/merchant/**`
+- `lib/notifications/**`
+- `micro-specs/09-notifications/01-browser-push-notification-events.md`
+- `micro-specs/TRACEABILITY.md`
+- `micro-specs/traceability.json`
+- `package.json`
+- `public/sw.js`
+- `supabase/migrations/**`
+- `supabase/tests/**`
+- `tests/e2e/**`
+- `tests/micro-specs/**`
+- `vercel.json`
+
+Implementation surfaces:
+
+- `app/api/cron/**`
+- `app/api/notifications/**`
+- `app/app/announcements/**`
+- `app/home/**`
+- `components/customer/**`
+- `components/pwa/**`
+- `config/env-contract.json`
+- `lib/analytics/events.ts`
+- `lib/customer/**`
+- `lib/env/**`
+- `lib/merchant/**`
+- `lib/notifications/**`
+- `public/sw.js`
+- `supabase/migrations/**`
+- `supabase/tests/**`
+- `tests/e2e/**`
+- `tests/micro-specs/**`
+- `vercel.json`
+
+Status evidence:
+
+- Reviewed against the browser push OMO plan and decision ledger on 2026-06-22.
+- Platform documentation checked for MDN Push/Notifications, WebKit iOS/iPadOS Web Push, and Vercel Cron before implementation.
+- No native app, Firebase, OneSignal, SMS, WhatsApp, email, passive geofence, or raw-coordinate targeting scope is approved.
+
+### Requirements
+
+| Requirement ID | Status | Risk | Test tier | Evidence and rationale | Implementation surfaces | Verification commands | Change state |
+| -------------- | ------ | ---- | --------- | ---------------------- | ----------------------- | --------------------- | ------------ |
+| `MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-001` | `active` | `rls-rpc-ledger` | `browser`<br>`build`<br>`governance`<br>`lint`<br>`security`<br>`sql-rls`<br>`typecheck`<br>`unit` | tests/micro-specs/browser-push-notification-events.test.ts<br>.omo/evidence/task-1-browser-push-notification-events.md | `app/api/cron/**`<br>`app/api/notifications/**`<br>`app/app/announcements/**`<br>`app/home/**`<br>`components/customer/**`<br>`components/pwa/**`<br>`config/env-contract.json`<br>`lib/analytics/events.ts`<br>`lib/customer/**`<br>`lib/env/**`<br>`lib/merchant/**`<br>`lib/notifications/**`<br>`public/sw.js`<br>`supabase/migrations/**`<br>`supabase/tests/**`<br>`tests/e2e/**`<br>`tests/micro-specs/**`<br>`vercel.json` | `pnpm governance`<br>`pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`pnpm db:verify`<br>`pnpm security:verify`<br>`npx playwright test`<br>`pnpm build` | `current` |
+| `MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-002` | `active` | `rls-rpc-ledger` | `browser`<br>`build`<br>`governance`<br>`lint`<br>`security`<br>`sql-rls`<br>`typecheck`<br>`unit` | tests/micro-specs/browser-push-notification-events.test.ts<br>.omo/evidence/task-1-browser-push-notification-events.md | `app/api/cron/**`<br>`app/api/notifications/**`<br>`app/app/announcements/**`<br>`app/home/**`<br>`components/customer/**`<br>`components/pwa/**`<br>`config/env-contract.json`<br>`lib/analytics/events.ts`<br>`lib/customer/**`<br>`lib/env/**`<br>`lib/merchant/**`<br>`lib/notifications/**`<br>`public/sw.js`<br>`supabase/migrations/**`<br>`supabase/tests/**`<br>`tests/e2e/**`<br>`tests/micro-specs/**`<br>`vercel.json` | `pnpm governance`<br>`pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`pnpm db:verify`<br>`pnpm security:verify`<br>`npx playwright test`<br>`pnpm build` | `current` |
+| `MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-003` | `active` | `rls-rpc-ledger` | `browser`<br>`build`<br>`governance`<br>`lint`<br>`security`<br>`sql-rls`<br>`typecheck`<br>`unit` | tests/micro-specs/browser-push-notification-events.test.ts<br>.omo/evidence/task-1-browser-push-notification-events.md | `app/api/cron/**`<br>`app/api/notifications/**`<br>`app/app/announcements/**`<br>`app/home/**`<br>`components/customer/**`<br>`components/pwa/**`<br>`config/env-contract.json`<br>`lib/analytics/events.ts`<br>`lib/customer/**`<br>`lib/env/**`<br>`lib/merchant/**`<br>`lib/notifications/**`<br>`public/sw.js`<br>`supabase/migrations/**`<br>`supabase/tests/**`<br>`tests/e2e/**`<br>`tests/micro-specs/**`<br>`vercel.json` | `pnpm governance`<br>`pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`pnpm db:verify`<br>`pnpm security:verify`<br>`npx playwright test`<br>`pnpm build` | `current` |
+| `MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-004` | `active` | `rls-rpc-ledger` | `browser`<br>`build`<br>`governance`<br>`lint`<br>`security`<br>`sql-rls`<br>`typecheck`<br>`unit` | tests/micro-specs/browser-push-notification-events.test.ts<br>.omo/evidence/task-1-browser-push-notification-events.md | `app/api/cron/**`<br>`app/api/notifications/**`<br>`app/app/announcements/**`<br>`app/home/**`<br>`components/customer/**`<br>`components/pwa/**`<br>`config/env-contract.json`<br>`lib/analytics/events.ts`<br>`lib/customer/**`<br>`lib/env/**`<br>`lib/merchant/**`<br>`lib/notifications/**`<br>`public/sw.js`<br>`supabase/migrations/**`<br>`supabase/tests/**`<br>`tests/e2e/**`<br>`tests/micro-specs/**`<br>`vercel.json` | `pnpm governance`<br>`pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`pnpm db:verify`<br>`pnpm security:verify`<br>`npx playwright test`<br>`pnpm build` | `current` |
+| `MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-005` | `active` | `rls-rpc-ledger` | `browser`<br>`build`<br>`governance`<br>`lint`<br>`security`<br>`sql-rls`<br>`typecheck`<br>`unit` | tests/micro-specs/browser-push-notification-events.test.ts<br>.omo/evidence/task-1-browser-push-notification-events.md | `app/api/cron/**`<br>`app/api/notifications/**`<br>`app/app/announcements/**`<br>`app/home/**`<br>`components/customer/**`<br>`components/pwa/**`<br>`config/env-contract.json`<br>`lib/analytics/events.ts`<br>`lib/customer/**`<br>`lib/env/**`<br>`lib/merchant/**`<br>`lib/notifications/**`<br>`public/sw.js`<br>`supabase/migrations/**`<br>`supabase/tests/**`<br>`tests/e2e/**`<br>`tests/micro-specs/**`<br>`vercel.json` | `pnpm governance`<br>`pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`pnpm db:verify`<br>`pnpm security:verify`<br>`npx playwright test`<br>`pnpm build` | `current` |
+| `MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-006` | `active` | `rls-rpc-ledger` | `browser`<br>`build`<br>`governance`<br>`lint`<br>`security`<br>`sql-rls`<br>`typecheck`<br>`unit` | tests/micro-specs/browser-push-notification-events.test.ts<br>.omo/evidence/task-1-browser-push-notification-events.md | `app/api/cron/**`<br>`app/api/notifications/**`<br>`app/app/announcements/**`<br>`app/home/**`<br>`components/customer/**`<br>`components/pwa/**`<br>`config/env-contract.json`<br>`lib/analytics/events.ts`<br>`lib/customer/**`<br>`lib/env/**`<br>`lib/merchant/**`<br>`lib/notifications/**`<br>`public/sw.js`<br>`supabase/migrations/**`<br>`supabase/tests/**`<br>`tests/e2e/**`<br>`tests/micro-specs/**`<br>`vercel.json` | `pnpm governance`<br>`pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`pnpm db:verify`<br>`pnpm security:verify`<br>`npx playwright test`<br>`pnpm build` | `current` |
+| `MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-007` | `active` | `rls-rpc-ledger` | `browser`<br>`build`<br>`governance`<br>`lint`<br>`security`<br>`sql-rls`<br>`typecheck`<br>`unit` | tests/micro-specs/browser-push-notification-events.test.ts<br>.omo/evidence/task-1-browser-push-notification-events.md | `app/api/cron/**`<br>`app/api/notifications/**`<br>`app/app/announcements/**`<br>`app/home/**`<br>`components/customer/**`<br>`components/pwa/**`<br>`config/env-contract.json`<br>`lib/analytics/events.ts`<br>`lib/customer/**`<br>`lib/env/**`<br>`lib/merchant/**`<br>`lib/notifications/**`<br>`public/sw.js`<br>`supabase/migrations/**`<br>`supabase/tests/**`<br>`tests/e2e/**`<br>`tests/micro-specs/**`<br>`vercel.json` | `pnpm governance`<br>`pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`pnpm db:verify`<br>`pnpm security:verify`<br>`npx playwright test`<br>`pnpm build` | `current` |
+| `MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-008` | `active` | `rls-rpc-ledger` | `browser`<br>`build`<br>`governance`<br>`lint`<br>`security`<br>`sql-rls`<br>`typecheck`<br>`unit` | tests/micro-specs/browser-push-notification-events.test.ts<br>.omo/evidence/task-1-browser-push-notification-events.md | `app/api/cron/**`<br>`app/api/notifications/**`<br>`app/app/announcements/**`<br>`app/home/**`<br>`components/customer/**`<br>`components/pwa/**`<br>`config/env-contract.json`<br>`lib/analytics/events.ts`<br>`lib/customer/**`<br>`lib/env/**`<br>`lib/merchant/**`<br>`lib/notifications/**`<br>`public/sw.js`<br>`supabase/migrations/**`<br>`supabase/tests/**`<br>`tests/e2e/**`<br>`tests/micro-specs/**`<br>`vercel.json` | `pnpm governance`<br>`pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`pnpm db:verify`<br>`pnpm security:verify`<br>`npx playwright test`<br>`pnpm build` | `current` |
+| `MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-009` | `active` | `rls-rpc-ledger` | `browser`<br>`build`<br>`governance`<br>`lint`<br>`security`<br>`sql-rls`<br>`typecheck`<br>`unit` | tests/micro-specs/browser-push-notification-events.test.ts<br>.omo/evidence/task-1-browser-push-notification-events.md | `app/api/cron/**`<br>`app/api/notifications/**`<br>`app/app/announcements/**`<br>`app/home/**`<br>`components/customer/**`<br>`components/pwa/**`<br>`config/env-contract.json`<br>`lib/analytics/events.ts`<br>`lib/customer/**`<br>`lib/env/**`<br>`lib/merchant/**`<br>`lib/notifications/**`<br>`public/sw.js`<br>`supabase/migrations/**`<br>`supabase/tests/**`<br>`tests/e2e/**`<br>`tests/micro-specs/**`<br>`vercel.json` | `pnpm governance`<br>`pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`pnpm db:verify`<br>`pnpm security:verify`<br>`npx playwright test`<br>`pnpm build` | `current` |
+| `MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-010` | `active` | `rls-rpc-ledger` | `browser`<br>`build`<br>`governance`<br>`lint`<br>`security`<br>`sql-rls`<br>`typecheck`<br>`unit` | tests/micro-specs/browser-push-notification-events.test.ts<br>.omo/evidence/task-1-browser-push-notification-events.md | `app/api/cron/**`<br>`app/api/notifications/**`<br>`app/app/announcements/**`<br>`app/home/**`<br>`components/customer/**`<br>`components/pwa/**`<br>`config/env-contract.json`<br>`lib/analytics/events.ts`<br>`lib/customer/**`<br>`lib/env/**`<br>`lib/merchant/**`<br>`lib/notifications/**`<br>`public/sw.js`<br>`supabase/migrations/**`<br>`supabase/tests/**`<br>`tests/e2e/**`<br>`tests/micro-specs/**`<br>`vercel.json` | `pnpm governance`<br>`pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`pnpm db:verify`<br>`pnpm security:verify`<br>`npx playwright test`<br>`pnpm build` | `current` |
+
+### Edge cases
+
+| Requirement | Edge case | Category | Layer | Status | Trigger -> expected | Evidence |
+| ----------- | --------- | -------- | ----- | ------ | ------------------- | -------- |
+| `MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-001` | `RES-MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-001-a` | resilience | browser, unit | covered | unsupported, denied, revoked, expired, or failed browser push state -> loyalty and reward actions continue and the customer sees non-blocking settings copy | tests/micro-specs/browser-push-notification-events.test.ts<br>.omo/evidence/task-1-browser-push-notification-events.md |
+| `MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-002` | `AUTH-MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-002-a` | auth | security, sql-rls, unit | covered | a subscription registration is submitted for a signed-in customer -> store or refresh only that customer subscription and sanitize metadata without exposing secrets | tests/micro-specs/browser-push-notification-events.test.ts<br>.omo/evidence/task-1-browser-push-notification-events.md |
+| `MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-003` | `STM-MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-003-a` | state-machine | unit | covered | permission prompt, grant, subscription creation, disable, or failure occurs -> write exactly one lifecycle notification event for the customer and device transition | tests/micro-specs/browser-push-notification-events.test.ts<br>.omo/evidence/task-1-browser-push-notification-events.md |
+| `MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-004` | `STM-MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-004-a` | state-machine | security, sql-rls, unit | covered | stamp or reward state changes after server-side RPC or merchant scan confirmation -> derive notification events from authoritative ledger state instead of browser-side claims | tests/micro-specs/browser-push-notification-events.test.ts<br>.omo/evidence/task-1-browser-push-notification-events.md |
+| `MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-005` | `TMP-MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-005-a` | temporal | unit | covered | the scheduled delivery worker processes a due window more than once -> dedupe by event type, customer, membership, reward, cycle, and due window before sending | tests/micro-specs/browser-push-notification-events.test.ts<br>.omo/evidence/task-1-browser-push-notification-events.md |
+| `MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-006` | `PII-MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-006-a` | pii | security, unit | covered | a customer has no marketing consent or has disabled marketing push -> skip marketing-gated notification enqueueing and delivery | tests/micro-specs/browser-push-notification-events.test.ts<br>.omo/evidence/task-1-browser-push-notification-events.md |
+| `MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-007` | `STM-MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-007-a` | state-machine | sql-rls, unit | covered | a reward is assigned and a scan token is generated later -> reward expiry remains on reward_events and scan-token expiry remains token-only | tests/micro-specs/browser-push-notification-events.test.ts<br>.omo/evidence/task-1-browser-push-notification-events.md |
+| `MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-008` | `IDM-MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-008-a` | idempotency | sql-rls, unit | covered | the same notification event is enqueued or delivered concurrently -> unique ledger keys collapse duplicates without losing delivery attempt evidence | tests/micro-specs/browser-push-notification-events.test.ts<br>.omo/evidence/task-1-browser-push-notification-events.md |
+| `MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-009` | `ABU-MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-009-a` | abuse | security, unit | covered | a merchant attempts to announce to customers outside ownership, rate, size, or consent limits -> reject or skip unsafe recipients before venue_announcement enqueueing | tests/micro-specs/browser-push-notification-events.test.ts<br>.omo/evidence/task-1-browser-push-notification-events.md |
+| `MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-010` | `RES-MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-010-a` | resilience | browser, unit | covered | service worker push, notificationclick, or subscriptionchange event fires while server-state routes remain network-only -> show/open notifications and refresh subscriptions without caching mutable server state or using location targeting | tests/micro-specs/browser-push-notification-events.test.ts<br>.omo/evidence/task-1-browser-push-notification-events.md |
+
 ## MS-OBSERVABILITY-COMPLIANCE-CONSENT-LEGAL-DATA-REQUESTS — Consent, Legal Pages, and Data Requests
 
 | Field         | Value                                                                                                                                                                                                                                          |

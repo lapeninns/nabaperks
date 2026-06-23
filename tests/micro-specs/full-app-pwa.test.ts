@@ -128,6 +128,26 @@ describe("full-app PWA", () => {
     }
   })
 
+  it("handles browser push without broadening offline mutation behavior", () => {
+    const serviceWorker = readProjectFile("public/sw.js")
+
+    expect(serviceWorker).toContain('addEventListener("push"')
+    expect(serviceWorker).toContain('addEventListener("notificationclick"')
+    expect(serviceWorker).toContain('addEventListener("pushsubscriptionchange"')
+    expect(serviceWorker).toContain("showPushNotification")
+    expect(serviceWorker).toContain("parsePushPayload")
+    expect(serviceWorker).toContain("safeNotificationUrl")
+    expect(serviceWorker).toContain("openOrFocusNotificationUrl")
+    expect(serviceWorker).toContain("/api/notifications/push/refresh")
+    expect(serviceWorker).toContain("showNotification")
+    expect(serviceWorker).toContain("includeUncontrolled: true")
+    expect(serviceWorker).not.toContain("geolocation")
+    expect(serviceWorker).not.toContain("latitude")
+    expect(serviceWorker).not.toContain("longitude")
+    expect(serviceWorker).not.toContain('addEventListener("sync"')
+    expect(serviceWorker).not.toContain('addEventListener("periodicsync"')
+  })
+
   it("serves explicit offline copy for server-authoritative loyalty state", () => {
     const offlinePage = readProjectFile("app/offline/page.tsx")
 

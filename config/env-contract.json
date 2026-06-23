@@ -96,6 +96,34 @@
     "optional": true
   },
   {
+    "name": "WEB_PUSH_VAPID_PUBLIC_KEY",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Optional VAPID public key for browser Web Push subscription requests. Exposed only through the public-key route.",
+    "optional": true
+  },
+  {
+    "name": "WEB_PUSH_VAPID_PRIVATE_KEY",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Optional VAPID private key used by trusted server-side Web Push delivery workers.",
+    "optional": true
+  },
+  {
+    "name": "WEB_PUSH_VAPID_SUBJECT",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Optional VAPID subject, usually a mailto: or HTTPS contact URI, used by server-side Web Push delivery.",
+    "optional": true
+  },
+  {
+    "name": "CRON_SECRET",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Optional bearer token for protected Vercel Cron and manual scheduled worker invocations.",
+    "optional": true
+  },
+  {
     "name": "TWILIO_ACCOUNT_SID",
     "visibility": "server",
     "kind": "string",

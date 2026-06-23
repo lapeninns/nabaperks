@@ -110,6 +110,14 @@ try {
       "supabase/tests/performance_indexes.sql",
       "Performance indexes SQL test"
     )
+    await runFile(
+      "supabase/tests/browser_push_notifications.sql",
+      "Browser push notifications SQL test"
+    )
+    await runFile(
+      "supabase/tests/notification_ledger_reward_expiry.sql",
+      "Notification ledger reward expiry SQL test"
+    )
   }
 
   console.log("Supabase SQL workflow completed.")

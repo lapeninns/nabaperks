@@ -22,6 +22,15 @@ export const productEventNames = [
   "qr_disabled",
   "subscription_started",
   "subscription_cancelled",
+  "push_notification_enqueued",
+  "push_notification_delivered",
+  "push_notification_skipped",
+  "push_notification_failed",
+  "push_subscription_created",
+  "push_subscription_disabled",
+  "push_subscription_failed",
+  "push_delivery_worker_ran",
+  "push_venue_announcement_queued",
 ] as const
 
 export type ProductEventName = (typeof productEventNames)[number] | string
@@ -92,7 +101,19 @@ export async function capturePostHogEvent(input: ProductEventInput) {
 }
 
 function sanitizeMetadata(metadata: Record<string, unknown>) {
-  const blocked = new Set(["email", "phone", "pin", "token", "secret"])
+  const blocked = new Set([
+    "auth",
+    "email",
+    "endpoint",
+    "latitude",
+    "longitude",
+    "phone",
+    "p256dh",
+    "pin",
+    "raw_coordinates",
+    "secret",
+    "token",
+  ])
   return Object.fromEntries(
     Object.entries(metadata).filter(([key]) => !blocked.has(key.toLowerCase()))
   )

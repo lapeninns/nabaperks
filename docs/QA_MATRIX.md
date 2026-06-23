@@ -67,6 +67,7 @@ aggregate script that runs them (added to `package.json` in this pass).
 | `qa:a11y`     | WCAG A/AA axe smoke over marketing, QR/merchant unavailable, customer previews, launch, design-system, offline, and 404        | Needs dev server                                         |
 | `qa:security` | `security:verify` + focused auth/session/webhook/PII tests                                                                     | Yes                                                      |
 | `qa:perf`     | `check:nplus1` + `deps:analyze` + `bundle:size`                                                                                | n+1/deps yes; `bundle:size` needs a prior `pnpm build`   |
+| `qa:scenarios` | N-max major capability scenario suite with per-scenario evidence logs                                                         | DB/browser scenarios need a **disposable** local stack   |
 | `qa:full`     | static → unit → security → db → build → perf → e2e → visual → a11y                                                             | No (DB + browser + build)                                |
 
 Route timing (`pnpm perf:routes`) is a server-dependent check kept out of the

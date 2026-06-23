@@ -12,6 +12,8 @@ export type CustomerRewardItem = {
   rewardTerms: string
   minSpendPence: number | null
   redeemableFrom: string | null
+  expiresAt: string | null
+  expiredAt: string | null
   redeemedAt: string | null
   createdAt: string
 }
@@ -20,6 +22,7 @@ export type CustomerRewards = {
   redeemable: CustomerRewardItem[]
   upcoming: CustomerRewardItem[]
   redeemed: CustomerRewardItem[]
+  expired: CustomerRewardItem[]
 }
 
 type RawRewardEvent = {
@@ -30,6 +33,8 @@ type RawRewardEvent = {
   reward_terms: string
   min_spend_pence: number | null
   redeemable_from: string | null
+  expires_at: string | null
+  expired_at: string | null
   redeemed_at: string | null
   created_at: string
   merchants: { business_name: string } | Array<{ business_name: string }> | null
@@ -38,16 +43,18 @@ type RawRewardEvent = {
 export async function getCustomerRewards(): Promise<CustomerRewards> {
   const customer = await getCurrentCustomer()
 
-  if (!customer) return { redeemable: [], upcoming: [], redeemed: [] }
+  if (!customer) {
+    return { redeemable: [], upcoming: [], redeemed: [], expired: [] }
+  }
 
   const supabase = createSupabaseServiceRoleClient()
   const { data, error } = await supabase
     .from("reward_events")
     .select(
-      "id, membership_id, status, reward_name, reward_terms, min_spend_pence, redeemable_from, redeemed_at, created_at, merchants(business_name)"
+      "id, membership_id, status, reward_name, reward_terms, min_spend_pence, redeemable_from, expires_at, expired_at, redeemed_at, created_at, merchants(business_name)"
     )
     .eq("customer_id", customer.id)
-    .in("status", ["unlocked", "redeemed"])
+    .in("status", ["unlocked", "redeemed", "expired"])
     .order("created_at", { ascending: false })
 
   if (error) {
@@ -58,6 +65,7 @@ export async function getCustomerRewards(): Promise<CustomerRewards> {
   const redeemable: CustomerRewardItem[] = []
   const upcoming: CustomerRewardItem[] = []
   const redeemed: CustomerRewardItem[] = []
+  const expired: CustomerRewardItem[] = []
 
   for (const row of rows) {
     const merchant = firstOf(row.merchants)
@@ -69,12 +77,16 @@ export async function getCustomerRewards(): Promise<CustomerRewards> {
       rewardTerms: row.reward_terms,
       minSpendPence: row.min_spend_pence,
       redeemableFrom: row.redeemable_from,
+      expiresAt: row.expires_at,
+      expiredAt: row.expired_at,
       redeemedAt: row.redeemed_at,
       createdAt: row.created_at,
     }
 
     if (row.status === "redeemed") {
       redeemed.push(item)
+    } else if (row.status === "expired" || isRewardExpired(row.expires_at)) {
+      expired.push(item)
     } else if (isRedeemableFrom(row.redeemable_from)) {
       redeemable.push(item)
     } else {
@@ -85,6 +97,15 @@ export async function getCustomerRewards(): Promise<CustomerRewards> {
   redeemed.sort((a, b) =>
     (b.redeemedAt ?? b.createdAt).localeCompare(a.redeemedAt ?? a.createdAt)
   )
+  expired.sort((a, b) =>
+    (b.expiredAt ?? b.expiresAt ?? b.createdAt).localeCompare(
+      a.expiredAt ?? a.expiresAt ?? a.createdAt
+    )
+  )
 
-  return { redeemable, upcoming, redeemed }
+  return { redeemable, upcoming, redeemed, expired }
+}
+
+export function isRewardExpired(expiresAt: string | null, now = new Date()) {
+  return expiresAt ? new Date(expiresAt).getTime() <= now.getTime() : false
 }

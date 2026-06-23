@@ -8,6 +8,7 @@ import {
   issueSelfServiceStamp,
   type GeoCoordinates,
 } from "@/lib/customer/stamp"
+import { enqueueStampTransitionNotifications } from "@/lib/notifications/events"
 import type { SelfStampActionState } from "@/lib/customer/self-stamp-action-state"
 import { logger } from "@/lib/observability/logger"
 
@@ -53,6 +54,19 @@ export async function selfStampAction(
   // Mark the card route stale so navigating away/back reflects the new stamp.
   // The customer stays on this screen; the UI confirms the stamp in place.
   revalidatePath(`/card/${membershipId}`)
+
+  try {
+    await enqueueStampTransitionNotifications({
+      membershipId,
+      newStampCount: result.newStampCount,
+      rewardUnlocked: result.rewardUnlocked,
+    })
+  } catch (error) {
+    logger.warn("push_stamp_transition_enqueue_failed", {
+      membershipId,
+      error,
+    })
+  }
 
   return {
     status: "issued",
