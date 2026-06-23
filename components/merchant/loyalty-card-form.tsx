@@ -298,7 +298,7 @@ function RewardRow({
   return (
     <div
       data-active={item.isActive}
-      className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border-[1.5px] p-3 transition-[border-color,opacity,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] data-[active=false]:border-border data-[active=false]:bg-background data-[active=false]:opacity-65 data-[active=true]:border-transparent data-[active=true]:bg-secondary motion-reduce:transition-none"
+      className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border-[1.5px] p-3 transition-[border-color,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] data-[active=false]:border-border data-[active=false]:bg-background data-[active=true]:border-transparent data-[active=true]:bg-secondary motion-reduce:transition-none"
     >
       <span
         aria-hidden="true"
@@ -312,10 +312,10 @@ function RewardRow({
         <p className="truncate text-sm font-bold text-foreground">
           {item.rewardName || "Untitled reward"}
         </p>
-        <p className="truncate text-xs leading-5 text-muted-foreground">
+        <p className="truncate text-xs leading-5 text-ink-soft">
           {item.rewardTerms}
         </p>
-        <p className="mt-1 font-mono text-[0.62rem] font-bold tracking-[0.05em] text-muted-foreground uppercase">
+        <p className="mt-1 font-mono text-[0.62rem] font-bold tracking-[0.05em] text-ink-soft uppercase">
           Weight {item.weight || "1"} · {minSpend}
         </p>
       </div>
