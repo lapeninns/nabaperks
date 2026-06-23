@@ -31,7 +31,7 @@ describe("browser push subscription schema", () => {
     const migrations = allMigrations()
 
     for (const table of ["push_subscriptions", "notification_preferences"]) {
-      expect(migrations).toContain(`create table public.${table}`)
+      expect(migrations).toContain(`create table if not exists public.${table}`)
       expect(migrations).toContain(
         `alter table public.${table} enable row level security`
       )
@@ -53,22 +53,99 @@ describe("browser push subscription schema", () => {
     expect(migrations).toContain("last_success_at timestamptz")
     expect(migrations).toContain("last_failure_at timestamptz")
     expect(migrations).toContain("failure_reason text")
-    expect(migrations).toContain("transactional_enabled boolean not null default true")
-    expect(migrations).toContain("reminder_enabled boolean not null default true")
-    expect(migrations).toContain("marketing_enabled boolean not null default false")
-    expect(migrations).not.toContain("alter table public.consent_records add column")
+    expect(migrations).toContain(
+      "transactional_enabled boolean not null default true"
+    )
+    expect(migrations).toContain(
+      "reminder_enabled boolean not null default true"
+    )
+    expect(migrations).toContain(
+      "marketing_enabled boolean not null default false"
+    )
+    expect(migrations).not.toContain(
+      "alter table public.consent_records add column"
+    )
+  })
+
+  it("keeps the browser push migration replay-safe for clean CI rebuilds", () => {
+    // Given: clean CI can replay migrations against a seeded local database.
+    const migration = notificationMigration()
+    const triggerPairs = [
+      {
+        table: "notification_preferences",
+        trigger: "notification_preferences_set_updated_at",
+      },
+      {
+        table: "push_subscriptions",
+        trigger: "push_subscriptions_set_updated_at",
+      },
+    ] as const
+    const policyPairs = [
+      {
+        table: "notification_preferences",
+        policies: [
+          "notification_preferences_select_customer_or_admin",
+          "notification_preferences_insert_customer_or_admin",
+          "notification_preferences_update_customer_or_admin",
+        ],
+      },
+      {
+        table: "push_subscriptions",
+        policies: [
+          "push_subscriptions_select_customer_or_admin",
+          "push_subscriptions_insert_customer_or_admin",
+          "push_subscriptions_update_customer_or_admin",
+        ],
+      },
+    ] as const
+
+    // When/Then: relation, index, trigger, and policy DDL is idempotent.
+    for (const table of ["notification_preferences", "push_subscriptions"]) {
+      expect(migration).toContain(`create table if not exists public.${table}`)
+    }
+    expect(migration).toContain(
+      "create index if not exists notification_preferences_updated_at_idx"
+    )
+    expect(migration).toContain(
+      "create unique index if not exists push_subscriptions_customer_endpoint_hash_idx"
+    )
+    expect(migration).toContain(
+      "create index if not exists push_subscriptions_customer_enabled_seen_idx"
+    )
+    for (const { table, trigger } of triggerPairs) {
+      expect(migration).toContain(
+        `drop trigger if exists ${trigger} on public.${table}`
+      )
+    }
+    for (const { table, policies } of policyPairs) {
+      for (const policy of policies) {
+        expect(migration).toContain(
+          `drop policy if exists ${policy} on public.${table}`
+        )
+      }
+    }
   })
 
   it("exposes customer-scoped helper RPCs without broad direct writes", () => {
     const migrations = allMigrations()
     const migration = notificationMigration()
 
-    expect(migrations).toContain("create or replace function public.register_push_subscription")
-    expect(migrations).toContain("create or replace function public.disable_push_subscription")
-    expect(migrations).toContain("create or replace function public.update_notification_preferences")
-    expect(migrations).toContain("create or replace function public.get_notification_preferences")
+    expect(migrations).toContain(
+      "create or replace function public.register_push_subscription"
+    )
+    expect(migrations).toContain(
+      "create or replace function public.disable_push_subscription"
+    )
+    expect(migrations).toContain(
+      "create or replace function public.update_notification_preferences"
+    )
+    expect(migrations).toContain(
+      "create or replace function public.get_notification_preferences"
+    )
     expect(migrations).toContain("security definer")
-    expect(migrations).toContain("(select public.is_customer_owner(customer_id))")
+    expect(migrations).toContain(
+      "(select public.is_customer_owner(customer_id))"
+    )
     expect(migrations).toContain("auth_user_id = (select auth.uid())")
     expect(migration).not.toContain("latitude")
     expect(migration).not.toContain("longitude")

@@ -1,4 +1,4 @@
-create table public.notification_preferences (
+create table if not exists public.notification_preferences (
   customer_id uuid primary key references public.customers (id) on delete cascade,
   transactional_enabled boolean not null default true,
   reminder_enabled boolean not null default true,
@@ -9,7 +9,7 @@ create table public.notification_preferences (
   updated_at timestamptz not null default now()
 );
 
-create table public.push_subscriptions (
+create table if not exists public.push_subscriptions (
   id uuid primary key default gen_random_uuid(),
   customer_id uuid not null references public.customers (id) on delete cascade,
   endpoint text not null,
@@ -36,16 +36,18 @@ create table public.push_subscriptions (
     check (char_length(auth) between 8 and 256)
 );
 
-create index notification_preferences_updated_at_idx
+create index if not exists notification_preferences_updated_at_idx
   on public.notification_preferences (updated_at desc);
-create unique index push_subscriptions_customer_endpoint_hash_idx
+create unique index if not exists push_subscriptions_customer_endpoint_hash_idx
   on public.push_subscriptions (customer_id, md5(endpoint));
-create index push_subscriptions_customer_enabled_seen_idx
+create index if not exists push_subscriptions_customer_enabled_seen_idx
   on public.push_subscriptions (customer_id, enabled, last_seen_at desc);
 
+drop trigger if exists notification_preferences_set_updated_at on public.notification_preferences;
 create trigger notification_preferences_set_updated_at
   before update on public.notification_preferences
   for each row execute function public.set_updated_at();
+drop trigger if exists push_subscriptions_set_updated_at on public.push_subscriptions;
 create trigger push_subscriptions_set_updated_at
   before update on public.push_subscriptions
   for each row execute function public.set_updated_at();
@@ -55,23 +57,29 @@ alter table public.notification_preferences force row level security;
 alter table public.push_subscriptions enable row level security;
 alter table public.push_subscriptions force row level security;
 
+drop policy if exists notification_preferences_select_customer_or_admin on public.notification_preferences;
 create policy notification_preferences_select_customer_or_admin
   on public.notification_preferences for select to authenticated
   using ((select public.is_customer_owner(customer_id)) or (select public.is_internal_admin()));
+drop policy if exists notification_preferences_insert_customer_or_admin on public.notification_preferences;
 create policy notification_preferences_insert_customer_or_admin
   on public.notification_preferences for insert to authenticated
   with check ((select public.is_customer_owner(customer_id)) or (select public.is_internal_admin()));
+drop policy if exists notification_preferences_update_customer_or_admin on public.notification_preferences;
 create policy notification_preferences_update_customer_or_admin
   on public.notification_preferences for update to authenticated
   using ((select public.is_customer_owner(customer_id)) or (select public.is_internal_admin()))
   with check ((select public.is_customer_owner(customer_id)) or (select public.is_internal_admin()));
 
+drop policy if exists push_subscriptions_select_customer_or_admin on public.push_subscriptions;
 create policy push_subscriptions_select_customer_or_admin
   on public.push_subscriptions for select to authenticated
   using ((select public.is_customer_owner(customer_id)) or (select public.is_internal_admin()));
+drop policy if exists push_subscriptions_insert_customer_or_admin on public.push_subscriptions;
 create policy push_subscriptions_insert_customer_or_admin
   on public.push_subscriptions for insert to authenticated
   with check ((select public.is_customer_owner(customer_id)) or (select public.is_internal_admin()));
+drop policy if exists push_subscriptions_update_customer_or_admin on public.push_subscriptions;
 create policy push_subscriptions_update_customer_or_admin
   on public.push_subscriptions for update to authenticated
   using ((select public.is_customer_owner(customer_id)) or (select public.is_internal_admin()))
