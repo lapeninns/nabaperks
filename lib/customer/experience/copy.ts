@@ -19,6 +19,20 @@ export type CustomerExperienceViewModel = {
   primaryAction?: { label: string; href: string }
 }
 
+type CardCollectingExperience = Extract<
+  CustomerExperience,
+  { kind: "card_collecting" }
+>
+
+type RewardExperience =
+  | Extract<CustomerExperience, { kind: "reward_waiting" }>
+  | Extract<CustomerExperience, { kind: "reward_ready" }>
+
+type UnavailableExperience = Extract<
+  CustomerExperience,
+  { kind: "unavailable" }
+>
+
 /** QR-scan welcome — mirrors join-with-first-stamp: scan → verify → terms → stamp. */
 export const JOIN_WELCOME_HOW_IT_WORKS = [
   "You scanned the venue QR",
@@ -123,31 +137,10 @@ export function getCustomerExperienceViewModel(
         },
       }
     case "card_collecting":
-      // Identity reads once: the merchant as the mono tag, the card as the
-      // headline. On the welcome moment the headline turns to a greeting and the
-      // card name moves to the support line so it still shows exactly once.
-      return exp.justJoined
-        ? {
-            eyebrow: exp.merchantName,
-            headline: `Welcome to ${exp.merchantName}`,
-            supportLine: exp.cardName,
-          }
-        : {
-            eyebrow: exp.merchantName,
-            headline: exp.cardName,
-          }
+      return cardCollectingViewModel(exp)
     case "reward_waiting":
-      return {
-        eyebrow: "Reward",
-        headline: exp.reward.rewardName,
-        supportLine: `${exp.merchantName} - show this at the counter when ready.`,
-      }
     case "reward_ready":
-      return {
-        eyebrow: "Reward",
-        headline: exp.reward.rewardName,
-        supportLine: `${exp.merchantName} - show this at the counter when ready.`,
-      }
+      return rewardViewModel(exp)
     case "redeemed_proof":
       return {
         eyebrow: "Reward collected",
@@ -159,16 +152,45 @@ export function getCustomerExperienceViewModel(
         },
       }
     case "unavailable":
-      return {
-        eyebrow: "Nabaperks loyalty",
-        headline: "Card unavailable",
-        supportLine: exp.reason,
-        primaryAction: exp.recovery
-          ? { label: "Open my cards", href: exp.recovery.loginHref }
-          : undefined,
-      }
+      return unavailableViewModel(exp)
     default:
       return assertNever(exp)
+  }
+}
+
+function cardCollectingViewModel(
+  exp: CardCollectingExperience
+): CustomerExperienceViewModel {
+  return exp.justJoined
+    ? {
+        eyebrow: exp.merchantName,
+        headline: `Welcome to ${exp.merchantName}`,
+        supportLine: exp.cardName,
+      }
+    : {
+        eyebrow: exp.merchantName,
+        headline: exp.cardName,
+      }
+}
+
+function rewardViewModel(exp: RewardExperience): CustomerExperienceViewModel {
+  return {
+    eyebrow: "Reward",
+    headline: exp.reward.rewardName,
+    supportLine: `${exp.merchantName} - show this at the counter when ready.`,
+  }
+}
+
+function unavailableViewModel(
+  exp: UnavailableExperience
+): CustomerExperienceViewModel {
+  return {
+    eyebrow: "Nabaperks loyalty",
+    headline: "Card unavailable",
+    supportLine: exp.reason,
+    primaryAction: exp.recovery
+      ? { label: "Open my cards", href: exp.recovery.loginHref }
+      : undefined,
   }
 }
 

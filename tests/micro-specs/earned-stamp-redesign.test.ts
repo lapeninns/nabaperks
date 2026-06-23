@@ -7,6 +7,7 @@ function read(path: string) {
 
 const css = () => read("app/globals.css")
 const grid = () => read("components/loyalty/stamp-grid.tsx")
+const dot = () => read("components/loyalty/stamp-dot.tsx")
 const venue = () => read("components/brand/venue-mark.tsx")
 
 /**
@@ -32,6 +33,7 @@ describe("earned stamp — Penny Post redesign", () => {
     ]) {
       expect(c, retired).not.toContain(retired)
       expect(grid(), retired).not.toContain(retired)
+      expect(dot(), retired).not.toContain(retired)
     }
   })
 
@@ -47,26 +49,23 @@ describe("earned stamp — Penny Post redesign", () => {
 
   it("lands the slam animation on the slot's own tilt via WetInkSlam", () => {
     const g = grid()
-    // After Framer Motion migration: StampDot is wrapped in WetInkSlam or uses
-    // the slam animation via motion primitives. The component passes --stamp-rot
-    // as the final rotation value.
-    expect(g).toContain("slammed")
+    const d = dot()
+    expect(d).toContain("WetInkSlam")
+    expect(d).toContain("slammed")
     expect(g).toContain("--stamp-rot")
-    // Verify the slot container seeds the rotation variable so WetInkSlam can read it
     expect(g).toContain('--stamp-rot": STAMP_TILTS')
   })
 
   it("sheds detail when compact: no perforation, date collapses to the day number", () => {
     const c = css()
-    const g = grid()
+    const d = dot()
     expect(c).toMatch(/data-compact="true"\]::before[\s\S]*?display:\s*none/)
-    expect(g).toContain("data-compact")
-    expect(g).toContain('date.split(" ")[0]')
+    expect(d).toContain("data-compact")
+    expect(d).toContain('date.split(" ")[0]')
   })
 
   it("keeps dashes for empty slots only — earned discs carry solid marks", () => {
-    // The retired dashed inner ring is gone; dashes now read only as "empty".
-    expect(grid()).not.toContain("border-dashed border-stamp-foreground")
+    expect(dot()).not.toContain("border-dashed border-stamp-foreground")
   })
 
   it("unifies VenueMark into the stamp family: mono monogram + shared hook", () => {

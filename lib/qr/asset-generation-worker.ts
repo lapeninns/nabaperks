@@ -77,42 +77,61 @@ export async function runQrAssetGenerationWorker({
     throw new Error(`Unable to load due QR asset jobs: ${error.message}`)
   }
 
-  for (const job of (data ?? []) as QrAssetJob[]) {
-    result.processed += 1
-
-    // Claim before rendering so a second worker cannot pick up the same job.
-    const claimed = await claimJob(supabase, job.id)
-    if (!claimed) {
-      result.skipped += 1
-      continue
-    }
-
-    try {
-      const bytes = await renderAsset(job)
-      const storagePath = qrAssetStoragePath(job)
-      await uploadAsset(supabase, storagePath, job.asset_kind, bytes)
-
-      // Upload-before-ready: the job is only marked ready once bytes exist.
-      const { error: rpcError } = await supabase.rpc(
-        "record_qr_asset_generated",
-        {
-          p_qr_code_id: job.qr_code_id,
-          p_asset_kind: job.asset_kind,
-          p_storage_path: storagePath,
-          p_content_version: job.content_version,
-          p_byte_size: bytes.byteLength,
-        }
-      )
-      if (rpcError) throw new Error(rpcError.message)
-
-      result.generated += 1
-    } catch (renderError) {
-      await failJob(supabase, job.id, renderError)
-      result.failed += 1
-    }
+  const jobResults = await Promise.all(
+    ((data ?? []) as QrAssetJob[]).map((job) =>
+      processQrAssetJob(supabase, renderAsset, job)
+    )
+  )
+  for (const jobResult of jobResults) {
+    result.processed += jobResult.processed
+    result.generated += jobResult.generated
+    result.failed += jobResult.failed
+    result.skipped += jobResult.skipped
   }
 
   void recordWorkerRan(result)
+  return result
+}
+
+async function processQrAssetJob(
+  supabase: ServiceClient,
+  renderAsset: QrAssetRenderer,
+  job: QrAssetJob
+): Promise<QrAssetWorkerResult> {
+  const result: QrAssetWorkerResult = {
+    processed: 1,
+    generated: 0,
+    failed: 0,
+    skipped: 0,
+  }
+  const claimed = await claimJob(supabase, job.id)
+  if (!claimed) {
+    result.skipped = 1
+    return result
+  }
+
+  try {
+    const bytes = await renderAsset(job)
+    const storagePath = qrAssetStoragePath(job)
+    await uploadAsset(supabase, storagePath, job.asset_kind, bytes)
+    const { error } = await supabase.rpc("record_qr_asset_generated", {
+      p_qr_code_id: job.qr_code_id,
+      p_asset_kind: job.asset_kind,
+      p_storage_path: storagePath,
+      p_content_version: job.content_version,
+      p_byte_size: bytes.byteLength,
+    })
+    if (error) throw new Error(error.message)
+    result.generated = 1
+  } catch (renderError) {
+    const failure =
+      renderError instanceof Error
+        ? renderError
+        : new Error(String(renderError))
+    await failJob(supabase, job.id, failure)
+    result.failed = 1
+  }
+
   return result
 }
 
@@ -166,6 +185,10 @@ async function recordWorkerRan(result: QrAssetWorkerResult) {
       metadata: { ...result },
     })
   } catch (error) {
-    logger.warn("qr_asset_worker_product_event_failed", { error })
+    const productEventError =
+      error instanceof Error ? error : new Error(String(error))
+    logger.warn("qr_asset_worker_product_event_failed", {
+      error: productEventError,
+    })
   }
 }

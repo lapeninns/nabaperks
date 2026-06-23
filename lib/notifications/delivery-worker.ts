@@ -145,8 +145,7 @@ export async function sendWebPushNotification(
 
 export function isPermanentWebPushFailure(error: unknown) {
   return (
-    isRecord(error) &&
-    (error.statusCode === 404 || error.statusCode === 410)
+    isRecord(error) && (error.statusCode === 404 || error.statusCode === 410)
   )
 }
 
@@ -194,7 +193,10 @@ async function deliverNotificationEvent(
     return result
   }
 
-  const subscriptions = await getEnabledSubscriptions(supabase, event.customer_id)
+  const subscriptions = await getEnabledSubscriptions(
+    supabase,
+    event.customer_id
+  )
   if (subscriptions.length === 0) {
     await markEvent(supabase, event.id, "cancelled")
     await recordDelivery(supabase, event, null, "skipped", 0, "no_subscription")
@@ -203,46 +205,69 @@ async function deliverNotificationEvent(
   }
 
   await markEvent(supabase, event.id, "delivering")
-  for (const subscription of subscriptions) {
-    try {
-      const response = await sendWebPushNotification(
-        toPushSubscription(subscription),
-        event.payload
-      )
-      await recordDelivery(
-        supabase,
-        event,
-        subscription.id,
-        "sent",
-        response.statusCode,
-        null
-      )
-      result.sent += 1
-    } catch (error) {
-      const permanent = isPermanentWebPushFailure(error)
-      await recordDelivery(
-        supabase,
-        event,
-        subscription.id,
-        permanent ? "permanent_failure" : "retryable_failure",
-        statusCode(error),
-        permanent ? "subscription_gone" : "send_failed"
-      )
-
-      if (permanent) {
-        await supabase.rpc("disable_push_subscription_for_customer", {
-          p_customer_id: subscription.customer_id,
-          p_endpoint: subscription.endpoint,
-          p_reason: "push_service_rejected",
-        })
-      }
-
-      result.failed += 1
-    }
+  const deliveryResults = await Promise.all(
+    subscriptions.map((subscription) =>
+      deliverPushSubscription(supabase, event, subscription)
+    )
+  )
+  for (const delivery of deliveryResults) {
+    result.sent += delivery.sent
+    result.failed += delivery.failed
   }
 
   await markEvent(supabase, event.id, result.sent > 0 ? "sent" : "failed")
   return result
+}
+
+async function deliverPushSubscription(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  event: NotificationEventRow,
+  subscription: PushSubscriptionRow
+) {
+  try {
+    const response = await sendWebPushNotification(
+      toPushSubscription(subscription),
+      event.payload
+    )
+    await recordDelivery(
+      supabase,
+      event,
+      subscription.id,
+      "sent",
+      response.statusCode,
+      null
+    )
+    return { sent: 1, failed: 0 }
+  } catch (error) {
+    const deliveryError =
+      error instanceof Error ? error : new Error(String(error))
+    const permanent = isPermanentWebPushFailure(deliveryError)
+    await recordDelivery(
+      supabase,
+      event,
+      subscription.id,
+      permanent ? "permanent_failure" : "retryable_failure",
+      statusCode(deliveryError),
+      permanent ? "subscription_gone" : "send_failed"
+    )
+
+    if (permanent) {
+      await disableRejectedPushSubscription(supabase, subscription)
+    }
+
+    return { sent: 0, failed: 1 }
+  }
+}
+
+async function disableRejectedPushSubscription(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  subscription: PushSubscriptionRow
+) {
+  await supabase.rpc("disable_push_subscription_for_customer", {
+    p_customer_id: subscription.customer_id,
+    p_endpoint: subscription.endpoint,
+    p_reason: "push_service_rejected",
+  })
 }
 
 async function enqueueRewardExpiringSoon(now: Date) {
@@ -260,7 +285,9 @@ async function enqueueRewardExpiringSoon(now: Date) {
     .limit(100)
 
   if (error) {
-    logger.warn("push_reward_expiring_producer_failed", { reason: error.message })
+    logger.warn("push_reward_expiring_producer_failed", {
+      reason: error.message,
+    })
     return 0
   }
 
@@ -380,7 +407,9 @@ async function enqueueDormantProgress(now: Date) {
     .limit(100)
 
   if (error) {
-    logger.warn("push_dormant_progress_producer_failed", { reason: error.message })
+    logger.warn("push_dormant_progress_producer_failed", {
+      reason: error.message,
+    })
     return 0
   }
 
@@ -581,7 +610,11 @@ async function recordWorkerProductEvent(
       },
     })
   } catch (error) {
-    logger.warn("push_delivery_worker_product_event_failed", { error })
+    const productEventError =
+      error instanceof Error ? error : new Error(String(error))
+    logger.warn("push_delivery_worker_product_event_failed", {
+      error: productEventError,
+    })
   }
 }
 
@@ -614,10 +647,12 @@ async function recordDeliveryProductEvent(
       },
     })
   } catch (error) {
+    const productEventError =
+      error instanceof Error ? error : new Error(String(error))
     logger.warn("push_delivery_product_event_failed", {
       eventName,
       notificationEventType: event.event_type,
-      error,
+      error: productEventError,
     })
   }
 }
@@ -680,7 +715,9 @@ function nextQuietHoursEnd(date: Date) {
 
   if (next > date) return next
 
-  const tomorrowSeed = new Date(Date.UTC(today.year, today.month - 1, today.day + 1))
+  const tomorrowSeed = new Date(
+    Date.UTC(today.year, today.month - 1, today.day + 1)
+  )
   const tomorrow = londonDateParts(tomorrowSeed)
   return londonWallClockToUtc(tomorrow.year, tomorrow.month, tomorrow.day, 9, 0)
 }
