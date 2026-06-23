@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   BellOffIcon,
   BellPlusIcon,
@@ -67,32 +67,34 @@ export function PushNotificationSettings({
 }: {
   initialPreferences?: PushPreferences
 }) {
-  const [browserState, setBrowserState] =
-    useState<BrowserPushState>("checking")
+  const [browserState, setBrowserState] = useState<BrowserPushState>("checking")
   const [preferences, setPreferences] =
     useState<PushPreferences>(initialPreferences)
   const [message, setMessage] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
-  const refreshState = useCallback(async () => {
-    setBrowserState(await resolveBrowserPushState())
-  }, [])
-
-  const refreshPreferences = useCallback(async () => {
-    const response = await fetch("/api/notifications/push/preferences", {
-      cache: "no-store",
-    })
-    if (!response.ok) return
-    const body = (await response.json().catch(() => null)) as {
-      preferences?: PushPreferences
-    } | null
-    if (body?.preferences) setPreferences(body.preferences)
-  }, [])
-
   useEffect(() => {
-    void refreshState()
-    void refreshPreferences()
-  }, [refreshPreferences, refreshState])
+    let ignore = false
+
+    async function init() {
+      const nextState = await resolveBrowserPushState()
+      if (!ignore) setBrowserState(nextState)
+
+      const response = await fetch("/api/notifications/push/preferences", {
+        cache: "no-store",
+      })
+      if (ignore || !response.ok) return
+      const body = (await response.json().catch(() => null)) as {
+        preferences?: PushPreferences
+      } | null
+      if (body?.preferences && !ignore) setPreferences(body.preferences)
+    }
+
+    void init()
+    return () => {
+      ignore = true
+    }
+  }, [])
 
   const status = useMemo(() => statusFor(browserState), [browserState])
   const canEnable = browserState === "granted" || browserState === "error"
