@@ -789,6 +789,9 @@ describe("02 merchant and QR micro-specs", () => {
       renderQrAssetPng: vi.fn(async () => new Uint8Array([1, 2, 3])),
       renderQrPosterPdf: vi.fn(),
     }))
+    vi.doMock("@/lib/qr/asset-store", () => ({
+      loadReadyQrAssetBytes: vi.fn(async () => null),
+    }))
     const { GET } = await import("@/app/app/qr/download/[asset]/route")
 
     const response = await GET(
@@ -879,6 +882,9 @@ describe("02 merchant and QR micro-specs", () => {
           renderQrPosterPdf,
         }
       })
+      vi.doMock("@/lib/qr/asset-store", () => ({
+        loadReadyQrAssetBytes: vi.fn(async () => null),
+      }))
       const { GET } = await import("@/app/app/qr/download/[asset]/route")
 
       const response = await GET(
@@ -985,6 +991,9 @@ describe("02 merchant and QR micro-specs", () => {
           renderQrPosterPng,
         }
       })
+      vi.doMock("@/lib/qr/asset-store", () => ({
+        loadReadyQrAssetBytes: vi.fn(async () => null),
+      }))
       const { GET } = await import("@/app/app/qr/preview/[asset]/route")
 
       const response = await GET(

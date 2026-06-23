@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import { capturePostHogEvent } from "@/lib/analytics/events"
 import { getServerEnv } from "@/lib/env/server"
 import { getOwnedQrAssetContext } from "@/lib/merchant/qr-code"
+import { loadReadyQrAssetBytes } from "@/lib/qr/asset-store"
 import {
   assetFilename,
   assetKindFromSlug,
@@ -53,7 +54,9 @@ export async function GET(request: Request, context: QrDownloadRouteContext) {
   })
 
   if (error) {
-    return new NextResponse("QR download could not be recorded.", { status: 500 })
+    return new NextResponse("QR download could not be recorded.", {
+      status: 500,
+    })
   }
 
   await capturePostHogEvent({
@@ -65,11 +68,20 @@ export async function GET(request: Request, context: QrDownloadRouteContext) {
     metadata: { asset_type: assetKind },
   })
 
+  const contentType =
+    assetKind === "poster_pdf" ? "application/pdf" : "image/png"
+  // Serve the pre-generated high-fidelity asset when one is ready; otherwise
+  // fall back to the synchronous SVG renderer. The fast path never blocks on
+  // Chromium and the fallback keeps downloads instant and reliable.
+  const storedBytes = await loadReadyQrAssetBytes(
+    qrContext.qrCode.id,
+    assetKind
+  )
   const body =
-    assetKind === "poster_pdf"
+    storedBytes ??
+    (assetKind === "poster_pdf"
       ? await renderQrPosterPdf(assetContext)
-      : await renderQrAssetPng(assetKind, assetContext)
-  const contentType = assetKind === "poster_pdf" ? "application/pdf" : "image/png"
+      : await renderQrAssetPng(assetKind, assetContext))
 
   return new NextResponse(toArrayBuffer(body), {
     headers: {
