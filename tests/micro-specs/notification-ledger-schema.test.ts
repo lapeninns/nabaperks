@@ -2,7 +2,9 @@ import { readFileSync } from "node:fs"
 
 import { describe, expect, it } from "vitest"
 
-const migration = read("supabase/migrations/20260622140000_notification_ledger_reward_expiry.sql")
+const migration = read(
+  "supabase/migrations/20260622140000_notification_ledger_reward_expiry.sql"
+)
 const schemaRules = read("scripts/verify-supabase-schema-rules.mjs")
 const sqlTest = read("supabase/tests/notification_ledger_reward_expiry.sql")
 
@@ -28,9 +30,15 @@ describe("browser push notification ledger schema", () => {
   it("adds durable event and delivery tables with forced RLS", () => {
     for (const table of ["notification_events", "notification_deliveries"]) {
       expect(migration).toContain(`create table if not exists public.${table}`)
-      expect(migration).toContain(`alter table public.${table} enable row level security`)
-      expect(migration).toContain(`alter table public.${table} force row level security`)
-      expect(migration).toContain(`create policy ${table}_select_customer_or_admin`)
+      expect(migration).toContain(
+        `alter table public.${table} enable row level security`
+      )
+      expect(migration).toContain(
+        `alter table public.${table} force row level security`
+      )
+      expect(migration).toContain(
+        `create policy ${table}_select_customer_or_admin`
+      )
     }
 
     expect(migration).toContain("event_type text not null")
@@ -38,6 +46,9 @@ describe("browser push notification ledger schema", () => {
     expect(migration).toContain("dedupe_key text not null")
     expect(migration).toContain("notification_events_dedupe_key_idx")
     expect(migration).toContain("prevent_notification_delivery_mutation")
+    expect(migration).toContain("function public.merchant_can_access_customer(")
+    expect(migration).toContain("target_merchant_id uuid")
+    expect(migration).toContain("target_customer_id uuid")
   })
 
   it("covers every planned event type without turning product_events into the source of truth", () => {

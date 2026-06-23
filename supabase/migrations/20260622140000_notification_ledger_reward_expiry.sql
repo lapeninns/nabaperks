@@ -166,6 +166,26 @@ alter table public.notification_events force row level security;
 alter table public.notification_deliveries enable row level security;
 alter table public.notification_deliveries force row level security;
 
+create or replace function public.merchant_can_access_customer(
+  target_merchant_id uuid,
+  target_customer_id uuid
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, auth
+as $$
+  select exists (
+    select 1
+    from public.customer_memberships memberships
+    join public.merchants merchants on merchants.id = memberships.merchant_id
+    where memberships.merchant_id = target_merchant_id
+      and memberships.customer_id = target_customer_id
+      and merchants.owner_user_id = (select auth.uid())
+  );
+$$;
+
 drop policy if exists notification_events_select_customer_or_admin on public.notification_events;
 create policy notification_events_select_customer_or_admin
   on public.notification_events for select to authenticated
@@ -630,6 +650,7 @@ grant execute on function public.record_notification_delivery(uuid, uuid, uuid, 
 grant execute on function public.resolve_reward_event_expires_at(uuid, uuid, timestamptz) to service_role;
 grant execute on function public.expire_due_reward_events(timestamptz) to service_role;
 grant execute on function public.collect_reward_scan_token(uuid, uuid) to service_role;
+grant execute on function public.merchant_can_access_customer(uuid, uuid) to authenticated, service_role;
 
 revoke execute on function public.enqueue_notification_event(text, uuid, uuid, uuid, uuid, integer, date, timestamptz, text, jsonb, jsonb) from anon, authenticated;
 revoke execute on function public.record_notification_delivery(uuid, uuid, uuid, text, integer, integer, text, jsonb) from anon, authenticated;
