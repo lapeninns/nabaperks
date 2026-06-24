@@ -98,7 +98,9 @@ test.describe("customer home surfaces (real session)", () => {
     await page.getByLabel("Phone number").fill(phone)
     await page.getByRole("button", { name: "Send code" }).click()
     await expect(
-      page.getByText("Enter the code we sent to your phone.")
+      page.getByText(
+        "If that number has Nabaperks cards, enter the code we sent. Otherwise scan a venue QR to join first."
+      )
     ).toBeVisible()
 
     await page.getByLabel("Phone code").fill(otpCode)
