@@ -60,16 +60,26 @@ export function CustomerQrScanner() {
   const isMountedRef = useRef(true)
   const [status, setStatus] = useState<ScannerStatus>({ kind: "idle" })
 
-  const startScanner = useCallback(async () => {
-    const scanner = scannerRef.current
+  const [retryNonce, setRetryNonce] = useState(0)
 
-    if (!scanner) {
-      return
-    }
+  // The camera starts on mount and re-starts whenever retryNonce changes. Keeping
+  // startScanner *inside* the effect (rather than a shared useCallback) means its
+  // state updates live in a locally-defined async function and all run after
+  // `await scanner.start(...)` — never synchronously in the effect body — so there
+  // is no cascading render for the linter to guard against.
+  useEffect(() => {
+    isMountedRef.current = true
+    hasDecodedRef.current = false
+    const scanner = new Html5Qrcode(SCANNER_ELEMENT_ID, {
+      formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+      useBarCodeDetectorIfSupported: true,
+      verbose: false,
+    })
+    scannerRef.current = scanner
 
     async function navigateAfterScan(result: { readonly href: string }) {
       try {
-        await stopAndClearScanner(scanner!)
+        await stopAndClearScanner(scanner)
       } catch (error) {
         handleScannerError(error)
       }
@@ -77,90 +87,72 @@ export function CustomerQrScanner() {
       router.push(result.href)
     }
 
-    try {
-      await scanner.start(
-        { facingMode: "environment" },
-        SCAN_CONFIG,
-        (decodedText) => {
-          if (hasDecodedRef.current) {
-            return
-          }
-
-          const result = normalizeScannedQrDestination(
-            decodedText,
-            window.location.origin
-          )
-
-          if (result.kind === "invalid") {
-            if (isMountedRef.current) {
-              setStatus({ kind: "invalid" })
+    async function startScanner() {
+      try {
+        await scanner.start(
+          { facingMode: "environment" },
+          SCAN_CONFIG,
+          (decodedText) => {
+            if (hasDecodedRef.current) {
+              return
             }
 
-            return
-          }
+            const result = normalizeScannedQrDestination(
+              decodedText,
+              window.location.origin
+            )
 
-          hasDecodedRef.current = true
+            if (result.kind === "invalid") {
+              if (isMountedRef.current) {
+                setStatus({ kind: "invalid" })
+              }
 
-          if (isMountedRef.current) {
-            setStatus({ kind: "decoded" })
-          }
+              return
+            }
 
-          void navigateAfterScan(result)
-        },
-        undefined
-      )
+            hasDecodedRef.current = true
 
-      if (isMountedRef.current) {
-        setStatus({ kind: "scanning" })
-      }
-    } catch (error) {
-      if (error instanceof Error || typeof error === "string") {
+            if (isMountedRef.current) {
+              setStatus({ kind: "decoded" })
+            }
+
+            void navigateAfterScan(result)
+          },
+          undefined
+        )
+
         if (isMountedRef.current) {
-          setStatus({ kind: "camera-error" })
+          setStatus({ kind: "scanning" })
+        }
+      } catch (error) {
+        if (error instanceof Error || typeof error === "string") {
+          if (isMountedRef.current) {
+            setStatus({ kind: "camera-error" })
+          }
+
+          return
         }
 
-        return
+        throw error
       }
-
-      throw error
     }
-  }, [router])
 
-  useEffect(() => {
-    isMountedRef.current = true
-    scannerRef.current = new Html5Qrcode(SCANNER_ELEMENT_ID, {
-      formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-      useBarCodeDetectorIfSupported: true,
-      verbose: false,
-    })
-
-    // startScanner sets state only AFTER `await scanner.start(...)` resolves —
-    // never synchronously — so this is not the cascading-render the rule guards
-    // against. The camera must start on mount, and retryCamera reuses the same
-    // callback, so the start path is shared rather than duplicated into the effect.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void startScanner()
 
     return () => {
       isMountedRef.current = false
-      const scanner = scannerRef.current
       scannerRef.current = null
-
-      if (scanner) {
-        void stopAndClearScanner(scanner).catch(handleScannerError)
-      }
+      void stopAndClearScanner(scanner).catch(handleScannerError)
     }
-  }, [startScanner])
+  }, [router, retryNonce])
 
   const retryCamera = useCallback(() => {
     hasDecodedRef.current = false
-    // Reset the visible state here, in the click handler, rather than inside
-    // startScanner — the mount effect also calls startScanner, and a synchronous
-    // setState in that path triggers a cascading-render lint error. On mount the
-    // initial status is already "idle", so only the retry path needs the reset.
     setStatus({ kind: "idle" })
-    void startScanner()
-  }, [startScanner])
+    // Re-run the start effect (re-creates the scanner and restarts the camera)
+    // without calling a setState-bearing callback synchronously from the effect.
+    setRetryNonce((nonce) => nonce + 1)
+  }, [])
 
   const statusText =
     status.kind === "idle"
