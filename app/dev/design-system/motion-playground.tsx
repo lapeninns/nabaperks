@@ -155,6 +155,13 @@ export function MotionPlayground() {
       </MotionDemo>
 
       <MotionDemo
+        name="WetInkBreathe"
+        blurb="Resting pulse — the unlocked reward breathes while it waits, and again once it is ready at the counter."
+      >
+        {() => <RewardSeal state="waiting" size="lg" breathe />}
+      </MotionDemo>
+
+      <MotionDemo
         name="WetInkRipple"
         blurb="Expanding fade ring behind a celebration beat."
       >
