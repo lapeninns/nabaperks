@@ -18,6 +18,7 @@ import {
   type SelfStampActionState,
 } from "@/lib/customer/self-stamp-action-state"
 import { stampAnnouncement } from "@/lib/customer/experience/stamp-announcement"
+import { stampDiscState } from "@/lib/customer/experience/stamp-disc-state"
 
 export type StampCollectorProps = {
   membershipId: string
@@ -195,6 +196,15 @@ export function StampCollector({
     total,
     cardComplete: view.cardComplete,
   })
+  // The disc colour is server-led: it only turns the success green once the RPC
+  // confirms (or for an already-stamped card). An optimistic press stays the
+  // neutral stamp colour (pending) so a decline never un-happens a green disc.
+  const discState = stampDiscState({
+    committed,
+    inFlight: armed && !committed,
+    canStamp,
+    hasError: errorMessage !== null,
+  })
 
   function commit() {
     if (armed || committed || !canStamp) return
@@ -246,6 +256,8 @@ export function StampCollector({
             onStamp={commit}
             venueName={venueName}
             secured={view.secured}
+            confirmed={discState === "confirmed"}
+            pending={discState === "pending"}
           />
           <p className="max-w-[18rem] text-center text-sm font-medium text-ink-soft">
             {view.hint}

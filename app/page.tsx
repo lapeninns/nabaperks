@@ -167,13 +167,30 @@ export default function Page() {
             descriptionClassName="max-w-[44ch] text-base leading-7 sm:text-lg"
             className="md:grid-cols-1"
           />
-          <div className="flex flex-wrap gap-3">
-            <Button asChild size="lg">
-              <Link href="/signup">Start a merchant trial</Link>
-            </Button>
-            <Button asChild variant="ghost" size="lg">
-              <Link href="/pricing">View pricing</Link>
-            </Button>
+          <div className="grid gap-4">
+            <div className="flex flex-wrap gap-3">
+              <Button asChild size="lg">
+                <Link href="/signup">Start a merchant trial</Link>
+              </Button>
+              <Button asChild variant="ghost" size="lg">
+                <Link href="/pricing">View pricing</Link>
+              </Button>
+            </div>
+            {/* Quiet customer entry, so a regular landing here can reach their
+                own card or a fresh scan without going through the merchant trial. */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="font-mono text-[0.7rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+                Got a card already?
+              </span>
+              <div className="flex flex-wrap gap-2">
+                <Button asChild variant="ghost">
+                  <Link href="/home">Open my cards</Link>
+                </Button>
+                <Button asChild variant="ghost">
+                  <Link href="/scan">Scan a venue QR</Link>
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
 

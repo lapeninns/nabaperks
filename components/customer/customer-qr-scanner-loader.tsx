@@ -35,7 +35,7 @@ function CustomerQrScannerLoading() {
         </div>
       </div>
 
-      <div className="grid min-h-64 place-items-center rounded-[var(--radius)] border-2 border-dashed border-border bg-card">
+      <div className="grid aspect-square place-items-center overflow-hidden rounded-[var(--radius)] border-2 border-dashed border-border bg-card">
         <span className="grid justify-items-center gap-2 text-center">
           <Icon
             icon={Camera01Icon}

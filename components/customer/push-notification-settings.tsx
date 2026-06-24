@@ -270,7 +270,7 @@ export function PushNotificationSettings({
                 {row.helper}
               </p>
             </div>
-            <label className="mt-0.5 inline-flex shrink-0 cursor-pointer items-center">
+            <label className="-m-3 mt-0.5 inline-flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center p-3">
               <span className="sr-only">{row.label}</span>
               <input
                 type="checkbox"

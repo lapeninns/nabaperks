@@ -51,6 +51,9 @@ export async function loadRewardExperienceContext(
     merchantName: merchant.business_name,
     status: reward.status,
     redeemable,
+    // Server-confirmed collection instant, surfaced as a quiet proof line on the
+    // redeemed panel (F26). Null until the merchant scan marks it collected.
+    redeemedAt: reward.redeemed_at,
     location,
     unavailableReason: rewardState.unavailableReason,
     profileGate,

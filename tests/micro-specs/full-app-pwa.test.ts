@@ -148,14 +148,16 @@ describe("full-app PWA", () => {
     expect(serviceWorker).not.toContain('addEventListener("periodicsync"')
   })
 
-  it("serves explicit offline copy for server-authoritative loyalty state", () => {
+  it("serves plain customer-first offline copy without cross-surface jargon", () => {
     const offlinePage = readProjectFile("app/offline/page.tsx")
 
     expect(offlinePage).toContain("You're offline")
     expect(offlinePage).toContain(
-      "Cards, stamps, rewards, merchant tools, and admin tools need a connection"
+      "Your cards and stamps live safely with us. Reconnect and they will be right here."
     )
-    expect(offlinePage).toContain("server")
+    // The mixed customer + merchant/admin + engineering register is gone.
+    expect(offlinePage).not.toContain("merchant tools, and admin tools")
+    expect(offlinePage).not.toContain("source of truth")
   })
 
   it("ships generated app icon assets", () => {

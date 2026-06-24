@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 
 import { cn } from "@/lib/utils"
+import { Icon, STATUS_ICON, type StatusKind } from "@/components/brand"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 const statusClasses = {
@@ -11,6 +12,15 @@ const statusClasses = {
 } as const
 
 export type StatusBannerTone = keyof typeof statusClasses
+
+// Pair each visual tone with its semantic glyph so state reads as icon + colour
+// + copy, never colour alone (warning and error are near-adjacent warm reds).
+const toneIconKind: Record<StatusBannerTone, StatusKind> = {
+  success: "success",
+  warning: "warning",
+  error: "error",
+  neutral: "info",
+}
 
 export function StatusBanner({
   title,
@@ -25,6 +35,7 @@ export function StatusBanner({
 }) {
   return (
     <Alert className={cn(statusClasses[tone], className)}>
+      <Icon icon={STATUS_ICON[toneIconKind[tone]]} className="text-current" />
       <AlertTitle className="font-extrabold">{title}</AlertTitle>
       {children ? (
         <AlertDescription className="text-current">{children}</AlertDescription>
