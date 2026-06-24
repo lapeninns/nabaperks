@@ -6,7 +6,7 @@ import {
 } from "@hugeicons/core-free-icons"
 
 import { Icon, type IconGlyph } from "@/components/brand"
-import { WetInkPop, WetInkWiggle } from "@/components/motion"
+import { WetInkBreathe, WetInkPop, WetInkWiggle } from "@/components/motion"
 import { cn } from "@/lib/utils"
 
 export type RewardSealState = "sealed" | "waiting" | "ready" | "redeemed"
@@ -45,13 +45,15 @@ const SIZE: Record<RewardSealSize, string> = {
  * chip → ticket stub → full celebration beat), so the mystery "?" stops
  * repeating as four unrelated marks. Sun while sealed/waiting, leaf once
  * ready/redeemed, always rotated -6°. The idle wiggle is reserved for the
- * sealed mystery; ✓ appears on the redeemed state only.
+ * sealed mystery and the resting breathe for the waiting/ready states; ✓
+ * appears on the redeemed state only.
  */
 export function RewardSeal({
   state,
   size = "md",
   label,
   wiggle = false,
+  breathe = false,
   slammed = false,
   className,
 }: {
@@ -61,6 +63,8 @@ export function RewardSeal({
   label?: string
   /** Idle wiggle — only ever honoured on the sealed mystery. */
   wiggle?: boolean
+  /** Resting breathe — only ever honoured while waiting/ready (the awaiting pulse). */
+  breathe?: boolean
   /** Fire the print-pop keyframe on reveal / redeem. */
   slammed?: boolean
   className?: string
@@ -68,25 +72,30 @@ export function RewardSeal({
   const leaf = state === "ready" || state === "redeemed"
   // The idle wiggle is reserved for the sealed mystery only.
   const idleWiggle = wiggle && state === "sealed"
+  // The resting breathe is reserved for the unlocked-but-not-done states:
+  // waiting (resting out its rest day) and ready (awaiting the counter scan).
+  const idleBreathe = breathe && (state === "waiting" || state === "ready")
 
   return (
     <WetInkPop active={slammed} className="inline-grid">
       <WetInkWiggle active={idleWiggle} className="inline-grid">
-        <span
-          role="img"
-          aria-label={label ?? DEFAULT_LABEL[state]}
-          data-reward-seal={state}
-          className={cn(
-            "grid -rotate-6 place-items-center rounded-full border-2 border-ink font-extrabold shadow-xs",
-            SIZE[size],
-            leaf
-              ? "bg-reward text-reward-foreground"
-              : "bg-seal text-seal-foreground",
-            className
-          )}
-        >
-          <Icon icon={GLYPH[state]} size={ICON_PX[size]} strokeWidth={2.25} />
-        </span>
+        <WetInkBreathe active={idleBreathe} className="inline-grid">
+          <span
+            role="img"
+            aria-label={label ?? DEFAULT_LABEL[state]}
+            data-reward-seal={state}
+            className={cn(
+              "grid -rotate-6 place-items-center rounded-full border-2 border-ink font-extrabold shadow-xs",
+              SIZE[size],
+              leaf
+                ? "bg-reward text-reward-foreground"
+                : "bg-seal text-seal-foreground",
+              className
+            )}
+          >
+            <Icon icon={GLYPH[state]} size={ICON_PX[size]} strokeWidth={2.25} />
+          </span>
+        </WetInkBreathe>
       </WetInkWiggle>
     </WetInkPop>
   )

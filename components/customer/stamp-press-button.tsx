@@ -7,6 +7,7 @@ import { CheckmarkBadge04Icon } from "@hugeicons/core-free-icons"
 
 import { Icon } from "@/components/brand/icon"
 import { deriveVenueInitials } from "@/components/brand/venue-mark"
+import { WetInkBreathe } from "@/components/motion"
 import { useReducedMotionHook } from "@/lib/motion/use-reduced-motion"
 import { cn } from "@/lib/utils"
 
@@ -152,57 +153,63 @@ export function StampPressButton({
   const initials = venueName ? deriveVenueInitials(venueName) : ""
 
   return (
-    <button
-      type="button"
-      aria-label={secured ? "Stamp added" : label}
-      disabled={disabled}
-      onPointerDown={handlePointerDown}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      onClick={handleClick}
-      className={cn(
-        "relative grid size-28 touch-none place-items-center transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] select-none motion-reduce:transition-none",
-        pressing && !reduce ? "scale-95" : "scale-100",
-        inactive ? "cursor-default" : "cursor-pointer"
-      )}
-    >
-      <svg
-        viewBox="0 0 100 100"
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -rotate-90"
-        style={{ opacity: ringVisible ? 1 : 0 }}
-      >
-        <circle
-          ref={ringRef}
-          cx="50"
-          cy="50"
-          r={RING_RADIUS}
-          fill="none"
-          stroke="var(--w-accent)"
-          strokeWidth={6}
-          strokeLinecap="round"
-          strokeDasharray={RING_CIRCUMFERENCE}
-          strokeDashoffset={RING_CIRCUMFERENCE}
-        />
-      </svg>
-      <span
+    // Idle invite: the actionable disc breathes to advertise the tap/hold
+    // gesture (the screen's single action). Gated on the stable `inactive` flag
+    // so it pauses once a stamp is in flight or landed — and never remounts the
+    // button mid-press. The primitive holds it static under reduced motion.
+    <WetInkBreathe active={!inactive} className="inline-grid">
+      <button
+        type="button"
+        aria-label={secured ? "Stamp added" : label}
+        disabled={disabled}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onClick={handleClick}
         className={cn(
-          "grid size-[5.5rem] place-items-center rounded-full border-2 border-ink shadow-md",
-          secured
-            ? "bg-reward text-reward-foreground"
-            : "bg-stamp text-stamp-foreground"
+          "relative grid size-28 touch-none place-items-center transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] select-none motion-reduce:transition-none",
+          pressing && !reduce ? "scale-95" : "scale-100",
+          inactive ? "cursor-default" : "cursor-pointer"
         )}
       >
-        {secured ? (
-          <Icon icon={CheckmarkBadge04Icon} size={34} />
-        ) : initials ? (
-          <span className="font-mono text-xl font-bold tracking-[0.04em] uppercase">
-            {initials}
-          </span>
-        ) : (
-          <Icon icon={CheckmarkBadge04Icon} size={30} />
-        )}
-      </span>
-    </button>
+        <svg
+          viewBox="0 0 100 100"
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 -rotate-90"
+          style={{ opacity: ringVisible ? 1 : 0 }}
+        >
+          <circle
+            ref={ringRef}
+            cx="50"
+            cy="50"
+            r={RING_RADIUS}
+            fill="none"
+            stroke="var(--w-accent)"
+            strokeWidth={6}
+            strokeLinecap="round"
+            strokeDasharray={RING_CIRCUMFERENCE}
+            strokeDashoffset={RING_CIRCUMFERENCE}
+          />
+        </svg>
+        <span
+          className={cn(
+            "grid size-[5.5rem] place-items-center rounded-full border-2 border-ink shadow-md",
+            secured
+              ? "bg-reward text-reward-foreground"
+              : "bg-stamp text-stamp-foreground"
+          )}
+        >
+          {secured ? (
+            <Icon icon={CheckmarkBadge04Icon} size={34} />
+          ) : initials ? (
+            <span className="font-mono text-xl font-bold tracking-[0.04em] uppercase">
+              {initials}
+            </span>
+          ) : (
+            <Icon icon={CheckmarkBadge04Icon} size={30} />
+          )}
+        </span>
+      </button>
+    </WetInkBreathe>
   )
 }
