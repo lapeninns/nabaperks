@@ -1,6 +1,7 @@
 import "server-only"
 
 import { enqueueNotificationEvent } from "@/lib/notifications/events"
+import { MARKETING_POLICY_VERSION } from "@/lib/customer/consent"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type PushPermissionState =
@@ -35,6 +36,12 @@ const permissionStates = new Set<PushPermissionState>([
   "denied",
   "unsupported",
   "unknown",
+])
+
+const allowedPushEndpointHosts = new Set([
+  "fcm.googleapis.com",
+  "updates.push.services.mozilla.com",
+  "web.push.apple.com",
 ])
 
 export function getWebPushPublicKey() {
@@ -197,10 +204,37 @@ export async function updateCustomerNotificationPreferences({
   )
 
   if (error) {
-    throw new Error(`Unable to update notification preferences: ${error.message}`)
+    throw new Error(
+      `Unable to update notification preferences: ${error.message}`
+    )
   }
 
+  await recordPushMarketingConsent({
+    customerId,
+    optedIn: marketingEnabled,
+  })
+
   return preferenceState(firstRecord(data))
+}
+
+async function recordPushMarketingConsent({
+  customerId,
+  optedIn,
+}: {
+  customerId: string
+  optedIn: boolean
+}) {
+  const supabase = createSupabaseServiceRoleClient()
+  const { error } = await supabase.rpc("record_customer_marketing_consent", {
+    p_customer_id: customerId,
+    p_channel: "push",
+    p_consent_status: optedIn ? "opted_in" : "opted_out",
+    p_policy_version: MARKETING_POLICY_VERSION,
+  })
+
+  if (error) {
+    throw new Error(`Unable to update push marketing consent: ${error.message}`)
+  }
 }
 
 export async function recordPushPermissionPromptViewed(customerId: string) {
@@ -247,13 +281,32 @@ function preferenceState(
   }
 }
 
-function isValidEndpoint(value: string) {
+export function isAllowedWebPushEndpoint(value: string) {
   try {
     const url = new URL(value)
-    return url.protocol === "https:" && value.length >= 20
+    return (
+      url.protocol === "https:" &&
+      value.length >= 20 &&
+      value.length <= 2048 &&
+      !url.username &&
+      !url.password &&
+      !url.hash &&
+      isAllowedPushEndpointHost(url.hostname)
+    )
   } catch {
     return false
   }
+}
+
+function isValidEndpoint(value: string) {
+  return isAllowedWebPushEndpoint(value)
+}
+
+function isAllowedPushEndpointHost(hostname: string) {
+  const host = hostname.toLowerCase()
+  return (
+    allowedPushEndpointHosts.has(host) || host.endsWith(".notify.windows.com")
+  )
 }
 
 function firstRecord(value: unknown): Record<string, unknown> | null {

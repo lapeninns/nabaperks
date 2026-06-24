@@ -1,9 +1,15 @@
 "use server"
 
+import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
 import { getServerEnv } from "@/lib/env/server"
 import { safeMerchantNextPath } from "@/lib/navigation/safe-next-path"
+import {
+  enforceRateLimit,
+  RateLimitError,
+  rateLimitIdentityFromHeaders,
+} from "@/lib/security/rate-limit"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export type AuthActionState = {
@@ -47,6 +53,10 @@ export async function signUpAction(
   if (Object.keys(errors).length) {
     return { fields: { name, email }, errors }
   }
+
+  const rateLimitResult = await enforceAuthRateLimit("merchant-signup", email)
+  if (rateLimitResult)
+    return { fields: { name, email }, errors: rateLimitResult }
 
   const supabase = await createSupabaseServerClient()
   const env = getServerEnv()
@@ -92,6 +102,9 @@ export async function signInAction(
     return { fields: { email }, errors }
   }
 
+  const rateLimitResult = await enforceAuthRateLimit("merchant-signin", email)
+  if (rateLimitResult) return { fields: { email }, errors: rateLimitResult }
+
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.auth.signInWithPassword({ email, password })
 
@@ -109,4 +122,32 @@ export async function signOutAction() {
   const supabase = await createSupabaseServerClient()
   await supabase.auth.signOut()
   redirect("/login")
+}
+
+async function enforceAuthRateLimit(
+  scope: "merchant-signup" | "merchant-signin",
+  email: string
+): Promise<NonNullable<AuthActionState["errors"]> | null> {
+  const requestHeaders = await headers()
+  const requestIdentity = rateLimitIdentityFromHeaders(requestHeaders)
+
+  try {
+    await enforceRateLimit({
+      key: `${scope}:${email}:${requestIdentity}`,
+      limit: scope === "merchant-signup" ? 3 : 5,
+      windowMs: 15 * 60_000,
+    })
+    return null
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      return {
+        form:
+          scope === "merchant-signup"
+            ? "Too many sign-up attempts. Try again later."
+            : "Too many sign-in attempts. Try again later.",
+      }
+    }
+
+    throw error
+  }
 }

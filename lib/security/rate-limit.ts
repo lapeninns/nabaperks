@@ -36,3 +36,21 @@ export async function enforceRateLimit({
 
   throw new Error(`Unable to enforce rate limit: ${error.message}`)
 }
+
+export function rateLimitIdentityFromHeaders(headers: Headers): string {
+  const forwardedFor = firstHeaderValue(headers.get("x-forwarded-for"))
+  const realIp = firstHeaderValue(headers.get("x-real-ip"))
+  const vercelIp = firstHeaderValue(headers.get("x-vercel-forwarded-for"))
+  const userAgent = headers.get("user-agent")?.trim().slice(0, 160) || "unknown"
+  const ip = forwardedFor || vercelIp || realIp || "unknown"
+
+  return createHash("sha256")
+    .update(`${ip}:${userAgent}`)
+    .digest("hex")
+    .slice(0, 32)
+}
+
+function firstHeaderValue(value: string | null): string | null {
+  const first = value?.split(",")[0]?.trim()
+  return first || null
+}

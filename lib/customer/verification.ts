@@ -110,9 +110,10 @@ function readStatus(payload: unknown): string | null {
 
 async function safeDetail(response: Response): Promise<string> {
   try {
-    return (await response.text()).slice(0, 500)
+    const body = await response.text()
+    return body ? `<redacted body: ${body.length} bytes>` : "<empty body>"
   } catch {
-    return "<no body>"
+    return "<unreadable body>"
   }
 }
 
@@ -139,7 +140,10 @@ function isDevOtpConfigured(): boolean {
 }
 
 function isAnyFourDigitOtpBypassEnabled(): boolean {
-  return process.env.CUSTOMER_OTP_BYPASS_MODE?.trim() === anyFourDigitBypassMode
+  return (
+    process.env.NODE_ENV !== "production" &&
+    process.env.CUSTOMER_OTP_BYPASS_MODE?.trim() === anyFourDigitBypassMode
+  )
 }
 
 function isFourDigitOtp(code: string): boolean {

@@ -61,7 +61,9 @@ describe("merchant-scanned reward collection", () => {
       true
     )
 
-    const live = readProjectFile("components/customer/reward-collection-live.tsx")
+    const live = readProjectFile(
+      "components/customer/reward-collection-live.tsx"
+    )
     const rewardPanels = readProjectFile(
       "components/customer/reward-panels.tsx"
     )
@@ -299,7 +301,6 @@ describe("merchant-scanned reward collection", () => {
                 reward_event_id: "reward-1",
                 reward_name: "Coffee upgrade",
                 reward_terms: "One per visit.",
-                min_spend_pence: null,
                 membership_id: "membership-1",
                 current_stamp_count: 3,
                 customer_email: "guest@example.test",

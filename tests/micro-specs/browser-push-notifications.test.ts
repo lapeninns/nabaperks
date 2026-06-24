@@ -40,10 +40,14 @@ describe("browser push notification domain", () => {
     expect(notificationEventTypes).toEqual(expectedEvents)
     expect(notificationEventCategory("one_stamp_away")).toBe("transactional")
     expect(notificationEventCategory("next_stamp_available")).toBe("reminder")
-    expect(notificationEventCategory("push_subscription_failed")).toBe("operational")
+    expect(notificationEventCategory("push_subscription_failed")).toBe(
+      "operational"
+    )
     expect(notificationEventCategory("venue_announcement")).toBe("marketing")
     expect(notificationRequiresMarketingConsent("dormant_progress")).toBe(true)
-    expect(notificationRequiresMarketingConsent("venue_announcement")).toBe(true)
+    expect(notificationRequiresMarketingConsent("venue_announcement")).toBe(
+      true
+    )
     expect(notificationRequiresMarketingConsent("reward_ready")).toBe(false)
   })
 
@@ -61,7 +65,9 @@ describe("browser push notification domain", () => {
       expect(payload.title).toBeTruthy()
       expect(payload.body).toBeTruthy()
       expect(payload.url).toMatch(/^\//)
-      expect(JSON.stringify(payload)).not.toMatch(/latitude|longitude|endpoint|p256dh|auth/i)
+      expect(JSON.stringify(payload)).not.toMatch(
+        /latitude|longitude|endpoint|p256dh|auth/i
+      )
     }
 
     const sanitized = sanitizeNotificationMetadata({
@@ -84,6 +90,7 @@ describe("browser push notification domain", () => {
     expect(serverEventsSource).toContain("notification_preferences")
     expect(serverEventsSource).toContain("push_subscriptions")
     expect(serverEventsSource).toContain("consent_records")
+    expect(serverEventsSource).toContain('.eq("channel", "push")')
     expect(serverEventsSource).toContain("notificationRequiresMarketingConsent")
     expect(serverEventsSource).not.toContain("latitude")
     expect(serverEventsSource).not.toContain("longitude")
@@ -91,7 +98,7 @@ describe("browser push notification domain", () => {
 
   it("hooks only confirmed stamp and merchant collection transitions", () => {
     expect(stampActionSource).toContain("enqueueStampTransitionNotifications")
-    expect(stampActionSource).toContain("result.status === \"blocked\"")
+    expect(stampActionSource).toContain('result.status === "blocked"')
     expect(rewardCollectionSource).toContain("collect_reward_scan_token")
     expect(notificationLedgerMigration).toContain(
       "create or replace function public.collect_reward_scan_token"

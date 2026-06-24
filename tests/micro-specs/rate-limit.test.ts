@@ -171,3 +171,27 @@ describe("RateLimitError", () => {
     expect(error.message).toBe("Slow down, please.")
   })
 })
+
+describe("rateLimitIdentityFromHeaders", () => {
+  it("hashes request IP and user-agent signals into a stable short key", async () => {
+    const { rateLimitIdentityFromHeaders } = await loadModule()
+
+    const identity = rateLimitIdentityFromHeaders(
+      new Headers({
+        "x-forwarded-for": "203.0.113.10, 10.0.0.1",
+        "user-agent": "Vitest Browser",
+      })
+    )
+
+    expect(identity).toMatch(/^[0-9a-f]{32}$/)
+    expect(identity).not.toContain("203.0.113.10")
+    expect(
+      rateLimitIdentityFromHeaders(
+        new Headers({
+          "x-forwarded-for": "203.0.113.11",
+          "user-agent": "Vitest Browser",
+        })
+      )
+    ).not.toBe(identity)
+  })
+})

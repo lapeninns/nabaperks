@@ -202,6 +202,15 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
       data: { session: null },
       error: null,
     }))
+    const enforceRateLimit = vi.fn(async () => undefined)
+    vi.doMock("next/headers", () => ({
+      headers: vi.fn(async () => new Headers({ "user-agent": "vitest" })),
+    }))
+    vi.doMock("@/lib/security/rate-limit", () => ({
+      RateLimitError: class RateLimitError extends Error {},
+      enforceRateLimit,
+      rateLimitIdentityFromHeaders: vi.fn(() => "test-request"),
+    }))
     vi.doMock("@/lib/env/server", () => ({
       getServerEnv: vi.fn(() => ({
         NEXT_PUBLIC_APP_URL: "https://nabaperks.test",
@@ -237,6 +246,11 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
         emailRedirectTo:
           "https://nabaperks.test/auth/confirm?next=/app/onboarding",
       },
+    })
+    expect(enforceRateLimit).toHaveBeenCalledWith({
+      key: "merchant-signup:ada@example.test:test-request",
+      limit: 3,
+      windowMs: 15 * 60_000,
     })
 
     const confirmRoute = readProjectFile("app/auth/confirm/route.ts")
@@ -280,7 +294,16 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
     vi.resetModules()
     const redirect = redirectMock()
     const signInWithPassword = vi.fn(async () => ({ error: null }))
+    const enforceRateLimit = vi.fn(async () => undefined)
+    vi.doMock("next/headers", () => ({
+      headers: vi.fn(async () => new Headers({ "user-agent": "vitest" })),
+    }))
     vi.doMock("next/navigation", () => ({ redirect }))
+    vi.doMock("@/lib/security/rate-limit", () => ({
+      RateLimitError: class RateLimitError extends Error {},
+      enforceRateLimit,
+      rateLimitIdentityFromHeaders: vi.fn(() => "test-request"),
+    }))
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServerClient: vi.fn(async () => ({
         auth: { signInWithPassword },
@@ -331,6 +354,11 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
         })
       )
     ).rejects.toThrow("NEXT_REDIRECT:/app/qr")
+    expect(enforceRateLimit).toHaveBeenCalledWith({
+      key: "merchant-signin:merchant@example.test:test-request",
+      limit: 5,
+      windowMs: 15 * 60_000,
+    })
   })
 
   it("preserves unauthenticated and authenticated Growth Plan checkout wiring", async () => {

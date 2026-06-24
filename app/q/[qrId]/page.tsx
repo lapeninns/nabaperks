@@ -1,3 +1,4 @@
+import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
 import { AlertDiamondIcon } from "@hugeicons/core-free-icons"
@@ -11,7 +12,10 @@ import {
   getExistingMembershipForCurrentUser,
   resolveQrForJoin,
 } from "@/lib/customer/join"
-import { RateLimitError } from "@/lib/security/rate-limit"
+import {
+  RateLimitError,
+  rateLimitIdentityFromHeaders,
+} from "@/lib/security/rate-limit"
 
 type PublicQrPageProps = {
   params: Promise<{
@@ -24,7 +28,9 @@ export default async function PublicQrPage({ params }: PublicQrPageProps) {
   let qrContext: Awaited<ReturnType<typeof resolveQrForJoin>>
 
   try {
-    qrContext = await resolveQrForJoin(qrId)
+    qrContext = await resolveQrForJoin(qrId, {
+      scanRateLimitIdentity: rateLimitIdentityFromHeaders(await headers()),
+    })
   } catch (error) {
     // A rate-limited scan is a transient retry, not a dead QR — give it distinct
     // calm copy so the customer waits and re-scans instead of giving up.

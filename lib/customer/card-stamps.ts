@@ -62,12 +62,31 @@ export async function getMembershipStampDisplayDatesByMembership(
   if (uniqueMembershipIds.length === 0) return stampDatesByMembership
 
   const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase
+  let query = supabase
     .from("stamp_events")
     .select("membership_id, earned_business_date, cycle_number")
     .in("membership_id", uniqueMembershipIds)
     .eq("event_type", "earned")
-    .order("earned_business_date", { ascending: true })
+
+  const activeCycleFilter =
+    activeCycleByMembership && activeCycleByMembership.size > 0
+      ? uniqueMembershipIds
+          .map((membershipId) => {
+            const activeCycle = activeCycleByMembership.get(membershipId)
+            return activeCycle === undefined
+              ? `membership_id.eq.${membershipId}`
+              : `and(membership_id.eq.${membershipId},cycle_number.eq.${activeCycle})`
+          })
+          .join(",")
+      : null
+
+  if (activeCycleFilter !== null && typeof query.or === "function") {
+    query = query.or(activeCycleFilter)
+  }
+
+  const { data, error } = await query.order("earned_business_date", {
+    ascending: true,
+  })
 
   if (error) {
     throw new Error(`Unable to load stamp dates: ${error.message}`)

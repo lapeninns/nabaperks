@@ -107,6 +107,153 @@ describe("reward redemption cycles — active-cycle read models", () => {
     })
   })
 
+  it("pushes active-cycle filters into the batched stamp SQL while preserving fallback memberships", async () => {
+    vi.resetModules()
+    type QueryCall = {
+      readonly table: string
+      readonly method: string
+      readonly args: readonly unknown[]
+    }
+    type QueryResponse = {
+      readonly data: readonly {
+        readonly membership_id: string
+        readonly earned_business_date: string
+        readonly cycle_number: number
+      }[]
+      readonly error: null
+    }
+    type QueryApi = {
+      readonly select: (...args: readonly unknown[]) => QueryApi
+      readonly in: (...args: readonly unknown[]) => QueryApi
+      readonly eq: (...args: readonly unknown[]) => QueryApi
+      readonly or: (...args: readonly unknown[]) => QueryApi
+      readonly order: (...args: readonly unknown[]) => QueryApi
+      readonly limit: (...args: readonly unknown[]) => QueryApi
+      readonly then: (
+        onFulfilled: (value: QueryResponse) => unknown,
+        onRejected?: (reason: unknown) => unknown
+      ) => Promise<unknown>
+    }
+    const queryCalls: QueryCall[] = []
+    const response: QueryResponse = {
+      data: [
+        {
+          membership_id: "membership-active",
+          earned_business_date: "2026-06-09",
+          cycle_number: 1,
+        },
+        {
+          membership_id: "membership-active",
+          earned_business_date: "2026-06-10",
+          cycle_number: 2,
+        },
+        {
+          membership_id: "membership-active",
+          earned_business_date: "2026-06-11",
+          cycle_number: 2,
+        },
+        {
+          membership_id: "membership-active",
+          earned_business_date: "2026-06-12",
+          cycle_number: 2,
+        },
+        {
+          membership_id: "membership-fallback",
+          earned_business_date: "2026-06-13",
+          cycle_number: 1,
+        },
+        {
+          membership_id: "membership-fallback",
+          earned_business_date: "2026-06-14",
+          cycle_number: 9,
+        },
+        {
+          membership_id: "membership-second",
+          earned_business_date: "2026-06-15",
+          cycle_number: 3,
+        },
+      ],
+      error: null,
+    }
+    const query: QueryApi = {
+      select: (...args) => {
+        queryCalls.push({ table: "stamp_events", method: "select", args })
+        return query
+      },
+      in: (...args) => {
+        queryCalls.push({ table: "stamp_events", method: "in", args })
+        return query
+      },
+      eq: (...args) => {
+        queryCalls.push({ table: "stamp_events", method: "eq", args })
+        return query
+      },
+      or: (...args) => {
+        queryCalls.push({ table: "stamp_events", method: "or", args })
+        return query
+      },
+      order: (...args) => {
+        queryCalls.push({ table: "stamp_events", method: "order", args })
+        return query
+      },
+      limit: (...args) => {
+        queryCalls.push({ table: "stamp_events", method: "limit", args })
+        return query
+      },
+      then: (onFulfilled, onRejected) =>
+        Promise.resolve(response).then(onFulfilled, onRejected),
+    }
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: vi.fn(() => ({
+        from: vi.fn(() => query),
+      })),
+    }))
+
+    const { getMembershipStampDisplayDatesByMembership } =
+      await import("@/lib/customer/card")
+
+    const result = await getMembershipStampDisplayDatesByMembership(
+      ["membership-active", "membership-fallback", "membership-second"],
+      2,
+      new Map([
+        ["membership-active", 2],
+        ["membership-second", 3],
+      ])
+    )
+
+    expect(result.get("membership-active")).toEqual({
+      stampDates: ["10 JUN", "11 JUN"],
+      latestBusinessDate: "2026-06-11",
+    })
+    expect(result.get("membership-fallback")).toEqual({
+      stampDates: ["13 JUN", "14 JUN"],
+      latestBusinessDate: "2026-06-14",
+    })
+    expect(result.get("membership-second")).toEqual({
+      stampDates: ["15 JUN"],
+      latestBusinessDate: "2026-06-15",
+    })
+    expect(queryCalls).toContainEqual({
+      table: "stamp_events",
+      method: "eq",
+      args: ["event_type", "earned"],
+    })
+    expect(queryCalls).toContainEqual({
+      table: "stamp_events",
+      method: "order",
+      args: ["earned_business_date", { ascending: true }],
+    })
+    const activeCycleFilter = queryCalls.find((call) => call.method === "or")
+    expect(activeCycleFilter?.args).toEqual([
+      [
+        "and(membership_id.eq.membership-active,cycle_number.eq.2)",
+        "membership_id.eq.membership-fallback",
+        "and(membership_id.eq.membership-second,cycle_number.eq.3)",
+      ].join(","),
+    ])
+    expect(queryCalls.some((call) => call.method === "limit")).toBe(false)
+  })
+
   it("resets home card progress to the new cycle after a redemption", async () => {
     vi.resetModules()
     mockCurrentCustomer()
@@ -236,7 +383,6 @@ describe("reward redemption cycles — active-cycle read models", () => {
               stamps_required: 3,
               reward_name: "Surprise reward",
               reward_terms: "Reveals after the final stamp.",
-              min_spend_pence: null,
               is_active: true,
             },
             error: null,
@@ -303,7 +449,6 @@ describe("reward redemption cycles — active-cycle read models", () => {
               stamps_required: 3,
               reward_name: "Surprise reward",
               reward_terms: "Reveals after the final stamp.",
-              min_spend_pence: null,
               is_active: true,
             },
             error: null,
@@ -316,7 +461,6 @@ describe("reward redemption cycles — active-cycle read models", () => {
               status: "unlocked",
               reward_name: "Free coffee",
               reward_terms: "On the house.",
-              min_spend_pence: null,
               redeemable_from: "2026-06-13",
             },
             error: null,
@@ -367,7 +511,6 @@ describe("reward redemption cycles — active-cycle read models", () => {
                 status: "redeemed",
                 reward_name: "Free pint",
                 reward_terms: "On the house.",
-                min_spend_pence: null,
                 redeemable_from: "2026-06-10",
                 redeemed_at: "2026-06-11T10:00:00.000Z",
                 created_at: "2026-06-10T10:00:00.000Z",

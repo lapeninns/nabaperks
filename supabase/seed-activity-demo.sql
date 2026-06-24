@@ -254,7 +254,6 @@ insert into public.reward_events (
   reward_pool_item_id,
   reward_name,
   reward_terms,
-  min_spend_pence,
   redeemable_from,
   status,
   redeemed_at,

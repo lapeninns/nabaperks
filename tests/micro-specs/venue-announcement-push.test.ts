@@ -14,6 +14,7 @@ describe("venue announcement browser push", () => {
     expect(source).toContain("notification_preferences")
     expect(source).toContain("push_subscriptions")
     expect(source).toContain("consent_records")
+    expect(source).toContain('.eq("channel", "push")')
     expect(source).toContain("marketing_enabled")
     expect(source).toContain("consent_status")
     expect(source).toContain("opted_in")

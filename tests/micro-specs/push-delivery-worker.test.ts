@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs"
 
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import {
   isPermanentWebPushFailure,
@@ -8,13 +8,21 @@ import {
   sendWebPushNotification,
 } from "@/lib/notifications/delivery-worker"
 
-const workerSource = readFileSync("lib/notifications/delivery-worker.ts", "utf8")
+const workerSource = readFileSync(
+  "lib/notifications/delivery-worker.ts",
+  "utf8"
+)
 const cronRouteSource = readFileSync(
   "app/api/cron/notifications/route.ts",
   "utf8"
 )
 
 describe("browser push delivery worker", () => {
+  afterEach(() => {
+    vi.resetModules()
+    vi.unstubAllEnvs()
+  })
+
   it("uses VAPID web-push delivery and classifies permanent subscription failures", () => {
     expect(workerSource).toContain("web-push")
     expect(workerSource).toContain("getWebPushServerConfig")
@@ -56,6 +64,40 @@ describe("browser push delivery worker", () => {
     expect(cronRouteSource).toContain('dynamic = "force-dynamic"')
     expect(cronRouteSource).toContain("CRON_SECRET")
     expect(cronRouteSource).toContain("runPushNotificationDeliveryWorker")
+  })
+
+  it("rejects cron requests when CRON_SECRET is unset", async () => {
+    vi.stubEnv("CRON_SECRET", "")
+    vi.doMock("@/lib/notifications/delivery-worker", () => ({
+      runPushNotificationDeliveryWorker: vi.fn(),
+    }))
+    const { GET } = await import("@/app/api/cron/notifications/route")
+
+    const response = await GET(
+      new Request("https://nabaperks.test/api/cron/notifications") as never
+    )
+
+    expect(response.status).toBe(401)
+  })
+
+  it("runs the delivery worker when the cron bearer token matches", async () => {
+    vi.stubEnv("CRON_SECRET", "cron-secret")
+    const runPushNotificationDeliveryWorker = vi.fn(async () => ({
+      processed: 1,
+    }))
+    vi.doMock("@/lib/notifications/delivery-worker", () => ({
+      runPushNotificationDeliveryWorker,
+    }))
+    const { GET } = await import("@/app/api/cron/notifications/route")
+
+    const response = await GET(
+      new Request("https://nabaperks.test/api/cron/notifications", {
+        headers: { authorization: "Bearer cron-secret" },
+      }) as never
+    )
+
+    expect(response.status).toBe(200)
+    expect(runPushNotificationDeliveryWorker).toHaveBeenCalledOnce()
   })
 
   it("supports a mocked web-push sender for worker tests", async () => {

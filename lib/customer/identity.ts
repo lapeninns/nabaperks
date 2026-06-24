@@ -1,5 +1,7 @@
 import "server-only"
 
+import { cache } from "react"
+
 import {
   customerPhoneHmac,
   customerPhonePii,
@@ -25,26 +27,28 @@ export type CurrentCustomer = {
 const CUSTOMER_COLUMNS =
   "id, auth_user_id, email, email_verified_at, full_name, date_of_birth, phone, phone_last4, phone_country, created_at"
 
-export async function getCurrentCustomer(): Promise<CurrentCustomer | null> {
-  const session = await getCustomerSession()
+export const getCurrentCustomer = cache(
+  async (): Promise<CurrentCustomer | null> => {
+    const session = await getCustomerSession()
 
-  if (!session) return null
+    if (!session) return null
 
-  const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase
-    .from("customers")
-    .select(CUSTOMER_COLUMNS)
-    .eq("id", session.customerId)
-    .maybeSingle()
+    const supabase = createSupabaseServiceRoleClient()
+    const { data, error } = await supabase
+      .from("customers")
+      .select(CUSTOMER_COLUMNS)
+      .eq("id", session.customerId)
+      .maybeSingle()
 
-  if (error) {
-    throw new Error(`Unable to load customer: ${error.message}`)
+    if (error) {
+      throw new Error(`Unable to load customer: ${error.message}`)
+    }
+
+    if (!data) return null
+
+    return toCurrentCustomer(data)
   }
-
-  if (!data) return null
-
-  return toCurrentCustomer(data)
-}
+)
 
 export async function findCustomerByVerifiedPhone(
   phone: NormalizedPhone

@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
 
 function isAuthorizedCronRequest(request: NextRequest) {
   const secret = process.env.CRON_SECRET?.trim()
-  if (!secret) return process.env.NODE_ENV !== "production"
+  if (!secret) return false
 
   return request.headers.get("authorization") === `Bearer ${secret}`
 }

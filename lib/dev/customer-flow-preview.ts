@@ -7,13 +7,11 @@ export const CUSTOMER_FLOW_MOCK = {
   phone: CUSTOMER_FLOW_DEMO.phone,
   cardName: "Morning Ritual Mystery Card",
   stampsRequired: 3,
-  minSpendPence: 350,
   rewardTerms:
     "Collect 3 qualifying visits to reveal a surprise reward, redeemable from the next UK business day.",
   assignedRewardName: "Free pint",
   assignedRewardTerms:
     "A pint of any cask ale or lager on the house. Valid from the next UK business day.",
-  assignedRewardMinSpendPence: null as number | null,
   membershipId: "00000000-0000-4000-8000-000000000001",
   rewardId: "00000000-0000-4000-8000-0000000000aa",
   merchantTermsUrl: `/merchant/${CUSTOMER_FLOW_DEMO.merchantSlug}/terms`,
@@ -157,11 +155,4 @@ export function customerFlowPreviewStep(stepId: CustomerFlowPreviewStepId) {
   }
 
   return step
-}
-
-export function formatMockPence(pence: number) {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-  }).format(pence / 100)
 }

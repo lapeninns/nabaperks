@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-import { getCustomerRewardState } from "@/lib/customer/reward"
+import { getCustomerRewardStatus } from "@/lib/customer/reward"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -16,18 +16,17 @@ type RewardStatusRouteContext = {
 }
 
 /**
- * Read-only redemption status for a customer-held reward. Reuses
- * {@link getCustomerRewardState}, which resolves the customer session and reward
- * ownership, then returns only what the live confirmation needs. It observes
- * `reward_events.status`; it never mutates — the merchant scan is the sole
- * redemption path.
+ * Read-only redemption status for a customer-held reward. Uses the lean status
+ * lookup so polling observes ownership and `reward_events.status` without
+ * loading the full reward page state. It never mutates — the merchant scan is
+ * the sole redemption path.
  */
 export async function GET(
   _request: Request,
   context: RewardStatusRouteContext
 ) {
   const { rewardId } = await context.params
-  const rewardState = await getCustomerRewardState(rewardId)
+  const rewardState = await getCustomerRewardStatus(rewardId)
 
   if (rewardState.status === "unauthenticated") {
     return json({ error: "unauthenticated" }, 401)

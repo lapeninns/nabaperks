@@ -3,12 +3,13 @@ import "server-only"
 import { getCurrentCustomer } from "@/lib/customer/identity"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
-export type MarketingChannel = "email" | "sms" | "whatsapp"
+export type MarketingChannel = "email" | "sms" | "whatsapp" | "push"
 
 const MARKETING_CHANNELS: readonly MarketingChannel[] = [
   "email",
   "sms",
   "whatsapp",
+  "push",
 ]
 
 /**

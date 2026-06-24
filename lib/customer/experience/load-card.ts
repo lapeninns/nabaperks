@@ -1,5 +1,7 @@
 import "server-only"
 
+import { after } from "next/server"
+
 import {
   getCustomerCardState,
   getMembershipStampDisplayDates,
@@ -43,7 +45,7 @@ export async function loadCardExperienceContext(
   }
 
   const { membership, merchant, loyaltyCard, latestReward } = cardState
-  await captureJoinFunnelEvent({
+  scheduleCustomerCardViewed({
     eventName: "customer_card_viewed",
     merchantId: merchant.id,
     membershipId: membership.id,
@@ -103,7 +105,6 @@ export async function loadCardExperienceContext(
           id: latestReward.id,
           name: latestReward.reward_name,
           terms: latestReward.reward_terms,
-          minSpendPence: latestReward.min_spend_pence,
           redeemableFrom: latestReward.redeemable_from,
           redeemable: isRedeemableFrom(latestReward.redeemable_from),
         }
@@ -138,6 +139,33 @@ export async function loadCardExperienceContext(
     geoFlagged,
     justRedeemed,
   }
+}
+
+type CustomerCardViewedInput = Parameters<typeof captureJoinFunnelEvent>[0]
+
+function scheduleCustomerCardViewed(input: CustomerCardViewedInput) {
+  scheduleAfterResponse(() => {
+    void captureJoinFunnelEvent(input)
+  })
+}
+
+function scheduleAfterResponse(callback: () => void) {
+  try {
+    after(callback)
+  } catch (error) {
+    if (isAfterOutsideRequestScopeError(error)) {
+      callback()
+      return
+    }
+
+    throw error
+  }
+}
+
+function isAfterOutsideRequestScopeError(error: unknown) {
+  return (
+    error instanceof Error && error.message.includes("outside a request scope")
+  )
 }
 
 function baseUnavailable(

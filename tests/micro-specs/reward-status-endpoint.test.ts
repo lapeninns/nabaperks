@@ -13,9 +13,9 @@ describe("GET /reward/[rewardId]/status", () => {
     vi.doUnmock("@/lib/customer/reward")
   })
 
-  function mockRewardState(state: unknown) {
+  function mockRewardStatus(state: unknown) {
     vi.doMock("@/lib/customer/reward", () => ({
-      getCustomerRewardState: vi.fn(async () => state),
+      getCustomerRewardStatus: vi.fn(async () => state),
     }))
   }
 
@@ -27,7 +27,7 @@ describe("GET /reward/[rewardId]/status", () => {
   }
 
   it("reports a redeemed reward for the owning customer", async () => {
-    mockRewardState({
+    mockRewardStatus({
       status: "ready",
       customerId: "customer-1",
       reward: { status: "redeemed", redeemed_at: "2026-06-19T10:00:00.000Z" },
@@ -46,7 +46,7 @@ describe("GET /reward/[rewardId]/status", () => {
   })
 
   it("reports not-yet-redeemed while the reward is still ready", async () => {
-    mockRewardState({
+    mockRewardStatus({
       status: "ready",
       customerId: "customer-1",
       reward: { status: "unlocked", redeemed_at: null },
@@ -63,7 +63,7 @@ describe("GET /reward/[rewardId]/status", () => {
   })
 
   it("returns 401 with no-store when the visitor is not authenticated", async () => {
-    mockRewardState({ status: "unauthenticated" })
+    mockRewardStatus({ status: "unauthenticated" })
 
     const res = await getStatus("reward-1")
 
@@ -75,7 +75,7 @@ describe("GET /reward/[rewardId]/status", () => {
   })
 
   it("returns 404 without leaking another customer's reward", async () => {
-    mockRewardState({ status: "unauthorized" })
+    mockRewardStatus({ status: "unauthorized" })
 
     const res = await getStatus("reward-1")
 
@@ -88,7 +88,7 @@ describe("GET /reward/[rewardId]/status", () => {
   })
 
   it("returns 404 for a reward that cannot be found", async () => {
-    mockRewardState({ status: "not_found" })
+    mockRewardStatus({ status: "not_found" })
 
     const res = await getStatus("reward-1")
 
@@ -99,7 +99,8 @@ describe("GET /reward/[rewardId]/status", () => {
   it("only reads reward state — the source never mutates", () => {
     const src = readFileSync("app/reward/[rewardId]/status/route.ts", "utf8")
 
-    expect(src).toContain("getCustomerRewardState")
+    expect(src).toContain("getCustomerRewardStatus")
+    expect(src).not.toContain("getCustomerRewardState")
     expect(src).not.toContain(".rpc(")
     expect(src).not.toMatch(/\.(insert|update|upsert|delete)\(/)
   })

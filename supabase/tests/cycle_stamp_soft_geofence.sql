@@ -48,7 +48,6 @@ insert into public.reward_pool_items (
   loyalty_card_id,
   reward_name,
   reward_terms,
-  min_spend_pence,
   weight,
   is_active,
   display_order

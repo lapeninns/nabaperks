@@ -56,7 +56,6 @@ export type CardContext =
         id: string
         name: string
         terms: string
-        minSpendPence: number | null
         redeemableFrom: string | null
         redeemable: boolean
       } | null
@@ -178,7 +177,6 @@ function deriveCard(context: CardContext): CustomerExperience {
     rewardId: reward?.id,
     rewardName: reward?.name,
     rewardTerms: reward?.terms ?? context.rewardTerms,
-    minSpendPence: reward?.minSpendPence ?? null,
     rewardRedeemableFrom: reward?.redeemableFrom ?? null,
     stampDates: context.stampDates,
     justStamped: context.justStamped,
@@ -470,7 +468,6 @@ function stripRedeemable(
     membershipId: reward.membershipId,
     rewardName: reward.rewardName,
     rewardTerms: reward.rewardTerms,
-    minSpendPence: reward.minSpendPence,
     redeemableFrom: reward.redeemableFrom,
   }
 }

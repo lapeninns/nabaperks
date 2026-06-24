@@ -56,10 +56,6 @@ export default async function MerchantTermsPage({
           value={`${loyaltyCard.stamps_required} stamps`}
         />
         <Term
-          label="Minimum spend"
-          value="Minimum spend is applied by the assigned reward, if that reward has one."
-        />
-        <Term
           label="Redemption"
           value="The assigned reward can be collected from the next UK business day after it is revealed. Show your reward QR at the counter and the venue team scans it to collect."
         />

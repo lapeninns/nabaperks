@@ -204,7 +204,9 @@ export async function enqueueStampTransitionNotifications({
   }
 }
 
-export async function enqueueRewardCollectedCycleStarted(rewardEventId: string) {
+export async function enqueueRewardCollectedCycleStarted(
+  rewardEventId: string
+) {
   const reward = await getRewardNotificationContext(rewardEventId)
   if (!reward) return
 
@@ -315,20 +317,15 @@ async function hasMarketingConsent(
     .select("channel, consent_status, created_at")
     .eq("customer_id", customerId)
     .eq("merchant_id", merchantId)
+    .eq("channel", "push")
     .order("created_at", { ascending: false })
 
   if (error) {
     throw new Error(`Unable to load marketing consent: ${error.message}`)
   }
 
-  const latestByChannel = new Map<string, string>()
-  for (const record of data ?? []) {
-    if (!latestByChannel.has(record.channel)) {
-      latestByChannel.set(record.channel, record.consent_status)
-    }
-  }
-
-  return [...latestByChannel.values()].some((status) => status === "opted_in")
+  const [latest] = data ?? []
+  return latest?.consent_status === "opted_in"
 }
 
 async function getMembershipNotificationContext(
@@ -430,7 +427,9 @@ async function getRewardNotificationContext(rewardEventId: string) {
   return data ? rewardContext(data) : null
 }
 
-function rewardContext(row: Record<string, unknown>): RewardNotificationContext {
+function rewardContext(
+  row: Record<string, unknown>
+): RewardNotificationContext {
   const customer = first(row.customers) as CustomerRelation | undefined
   const merchant = first(row.merchants) as MerchantRelation | undefined
 
@@ -454,8 +453,8 @@ function rewardContext(row: Record<string, unknown>): RewardNotificationContext 
 function isRewardProfileComplete(reward: RewardNotificationContext) {
   return Boolean(
     reward.customerFullName?.trim() &&
-      reward.customerDateOfBirth &&
-      (!reward.customerEmail || reward.customerEmailVerifiedAt)
+    reward.customerDateOfBirth &&
+    (!reward.customerEmail || reward.customerEmailVerifiedAt)
   )
 }
 

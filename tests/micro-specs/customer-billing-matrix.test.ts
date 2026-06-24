@@ -96,7 +96,6 @@ describe("customer billing policy matrix", () => {
               stamps_required: 3,
               reward_name: "Surprise reward",
               reward_terms: "Reveals after three visits.",
-              min_spend_pence: null,
               is_active: true,
             },
             error: null,
@@ -135,7 +134,6 @@ describe("customer billing policy matrix", () => {
               redeemed_at: null,
               reward_name: "Cake slice",
               reward_terms: "Valid on one slice.",
-              min_spend_pence: 500,
               redeemable_from: "2026-06-08",
               customer_memberships: {
                 current_stamp_count: 3,
@@ -145,20 +143,19 @@ describe("customer billing policy matrix", () => {
                 business_name: "The Bell",
                 business_slug: "the-bell",
                 status: "active",
+                billing_customers: { status: "cancelled" },
               },
               loyalty_cards: {
                 card_name: "Mystery Visit Card",
                 stamps_required: 3,
                 reward_name: "Surprise reward",
                 reward_terms: "Reveals after three visits.",
-                min_spend_pence: null,
                 is_active: true,
               },
             },
             error: null,
           },
         ],
-        billing_customers: [{ data: { status: "cancelled" }, error: null }],
       },
     })
     vi.doMock("@/lib/supabase/server", () => ({
@@ -171,6 +168,11 @@ describe("customer billing policy matrix", () => {
       unavailableReason: "This loyalty programme is unavailable at the moment.",
       billingStatus: "cancelled",
     })
+    expect(supabase.queryCalls).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ table: "billing_customers" }),
+      ])
+    )
   })
 
   it("resolves a QR join context as unavailable when billing is cancelled", async () => {
@@ -192,6 +194,7 @@ describe("customer billing policy matrix", () => {
                 email: "owner@example.test",
                 phone: null,
                 status: "active",
+                billing_customers: { status: "cancelled" },
               },
               loyalty_cards: {
                 id: "card-1",
@@ -199,14 +202,12 @@ describe("customer billing policy matrix", () => {
                 reward_name: "Surprise reward",
                 stamps_required: 3,
                 reward_terms: "Reward reveals after three visits.",
-                min_spend_pence: null,
                 is_active: true,
               },
             },
             error: null,
           },
         ],
-        billing_customers: [{ data: { status: "cancelled" }, error: null }],
       },
     })
     vi.doMock("@/lib/security/rate-limit", async () => {
@@ -225,6 +226,11 @@ describe("customer billing policy matrix", () => {
       available: false,
       merchant: { business_slug: "the-bell" },
     })
+    expect(supabase.queryCalls).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ table: "billing_customers" }),
+      ])
+    )
   })
 
   it("resolves a QR join context as unavailable when the merchant programme is paused", async () => {
@@ -247,6 +253,7 @@ describe("customer billing policy matrix", () => {
                 phone: null,
                 // Billing is healthy; only the merchant programme is paused.
                 status: "paused",
+                billing_customers: { status: "active" },
               },
               loyalty_cards: {
                 id: "card-1",
@@ -254,14 +261,12 @@ describe("customer billing policy matrix", () => {
                 reward_name: "Surprise reward",
                 stamps_required: 3,
                 reward_terms: "Reward reveals after three visits.",
-                min_spend_pence: null,
                 is_active: true,
               },
             },
             error: null,
           },
         ],
-        billing_customers: [{ data: { status: "active" }, error: null }],
       },
     })
     vi.doMock("@/lib/security/rate-limit", async () => {
@@ -280,6 +285,11 @@ describe("customer billing policy matrix", () => {
       available: false,
       merchant: { business_slug: "the-bell" },
     })
+    expect(supabase.queryCalls).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ table: "billing_customers" }),
+      ])
+    )
   })
 
   it("treats a non-active merchant slug join as unavailable", async () => {
@@ -295,20 +305,19 @@ describe("customer billing policy matrix", () => {
               email: "owner@example.test",
               phone: null,
               status: "cancelled",
+              billing_customers: { status: "active" },
               loyalty_cards: {
                 id: "card-1",
                 card_name: "Mystery Visit Card",
                 reward_name: "Surprise reward",
                 stamps_required: 3,
                 reward_terms: "Reward reveals after three visits.",
-                min_spend_pence: null,
                 is_active: true,
               },
             },
             error: null,
           },
         ],
-        billing_customers: [{ data: { status: "active" }, error: null }],
       },
     })
     vi.doMock("@/lib/supabase/server", () => ({
@@ -320,5 +329,54 @@ describe("customer billing policy matrix", () => {
       available: false,
       merchant: { business_slug: "the-bell" },
     })
+    expect(supabase.queryCalls).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ table: "billing_customers" }),
+      ])
+    )
+  })
+
+  it("allows a merchant slug join when embedded billing is null", async () => {
+    vi.resetModules()
+    const supabase = createSupabaseMock({
+      from: {
+        merchants: [
+          {
+            data: {
+              id: "merchant-1",
+              business_name: "The Bell",
+              business_slug: "the-bell",
+              email: "owner@example.test",
+              phone: null,
+              status: "active",
+              billing_customers: null,
+              loyalty_cards: {
+                id: "card-1",
+                card_name: "Mystery Visit Card",
+                reward_name: "Surprise reward",
+                stamps_required: 3,
+                reward_terms: "Reward reveals after three visits.",
+                is_active: true,
+              },
+            },
+            error: null,
+          },
+        ],
+      },
+    })
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
+    }))
+    const { getMerchantJoinContext } = await import("@/lib/customer/join")
+
+    await expect(getMerchantJoinContext("the-bell")).resolves.toMatchObject({
+      available: true,
+      merchant: { business_slug: "the-bell" },
+    })
+    expect(supabase.queryCalls).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ table: "billing_customers" }),
+      ])
+    )
   })
 })
