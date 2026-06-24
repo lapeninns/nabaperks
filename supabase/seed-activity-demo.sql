@@ -268,7 +268,6 @@ values (
   '13500000-0000-0000-0000-000000000001',
   'Coffee upgrade',
   'Free size upgrade on any hot drink. Valid from the next UK business day.',
-  350,
   public.uk_business_date(now() - interval '5 days'),
   'redeemed',
   now() - interval '1 day',
