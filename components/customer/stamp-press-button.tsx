@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useId, useRef, useState } from "react"
 import type { PointerEvent as ReactPointerEvent } from "react"
 
 import { CheckmarkBadge04Icon } from "@hugeicons/core-free-icons"
@@ -50,6 +50,7 @@ export function StampPressButton({
   label?: string
 }) {
   const reduce = useReducedMotionHook()
+  const hintId = useId()
   const ringRef = useRef<SVGCircleElement | null>(null)
   const rafRef = useRef<number | null>(null)
   const startRef = useRef(0)
@@ -161,6 +162,7 @@ export function StampPressButton({
       <button
         type="button"
         aria-label={secured ? "Stamp added" : label}
+        aria-describedby={inactive ? undefined : hintId}
         disabled={disabled}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
@@ -208,6 +210,11 @@ export function StampPressButton({
           ) : (
             <Icon icon={CheckmarkBadge04Icon} size={30} />
           )}
+        </span>
+        {/* Names the gesture for assistive tech without altering the button's
+            accessible name (kept as the label for e2e role-name locators). */}
+        <span id={hintId} className="sr-only">
+          Tap, or press and hold, to add today&apos;s stamp.
         </span>
       </button>
     </WetInkBreathe>

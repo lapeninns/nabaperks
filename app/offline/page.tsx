@@ -20,7 +20,7 @@ export default function OfflinePage() {
         />
         <div className="mt-5 flex justify-center">
           <Button asChild>
-            <Link href="/">Try again</Link>
+            <Link href="/home">Open my cards</Link>
           </Button>
         </div>
       </section>

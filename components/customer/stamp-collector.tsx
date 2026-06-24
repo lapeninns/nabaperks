@@ -17,6 +17,7 @@ import {
   initialSelfStampState,
   type SelfStampActionState,
 } from "@/lib/customer/self-stamp-action-state"
+import { stampAnnouncement } from "@/lib/customer/experience/stamp-announcement"
 
 export type StampCollectorProps = {
   membershipId: string
@@ -184,6 +185,16 @@ export function StampCollector({
     stampDates,
     todayLabel,
   })
+  // The slam, charging ring and shake are the *sighted* confirmation; this is the
+  // spoken one. A polite live region keeps screen-reader and reduced-motion
+  // customers in step with the in-flight progress and the new count.
+  const announcement = stampAnnouncement({
+    inFlight: armed && !committed,
+    committed,
+    displayCurrent: view.displayCurrent,
+    total,
+    cardComplete: view.cardComplete,
+  })
 
   function commit() {
     if (armed || committed || !canStamp) return
@@ -238,6 +249,9 @@ export function StampCollector({
           />
           <p className="max-w-[18rem] text-center text-sm font-medium text-ink-soft">
             {view.hint}
+          </p>
+          <p className="sr-only" role="status" aria-live="polite">
+            {announcement}
           </p>
           {errorMessage ? (
             <StatusBanner

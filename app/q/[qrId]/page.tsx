@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
@@ -8,6 +9,7 @@ import {
   CustomerFlowShell,
   CustomerReceipt,
 } from "@/components/customer/customer-flow-system"
+import { Button } from "@/components/ui/button"
 import {
   getExistingMembershipForCurrentUser,
   resolveQrForJoin,
@@ -77,6 +79,16 @@ function UnavailableQr() {
           description="Ask a team member for the current loyalty QR."
           headingLevel={1}
           className="w-full"
+          actions={
+            <div className="grid w-full gap-2">
+              <Button asChild size="lg">
+                <Link href="/scan">Scan a QR</Link>
+              </Button>
+              <Button asChild size="lg" variant="secondary">
+                <Link href="/home">Open my cards</Link>
+              </Button>
+            </div>
+          }
         />
       </CustomerReceipt>
     </CustomerFlowShell>
@@ -103,6 +115,11 @@ function RateLimitedQr() {
           description="Wait a moment, then scan the venue QR again. Your card is safe."
           headingLevel={1}
           className="w-full"
+          actions={
+            <Button asChild size="lg" variant="secondary">
+              <Link href="/home">Open my cards</Link>
+            </Button>
+          }
         />
       </CustomerReceipt>
     </CustomerFlowShell>

@@ -166,6 +166,34 @@ export function CustomerRewardSkeleton() {
   )
 }
 
+// ─── QR resolve ──────────────────────────────────────────────────────────────
+
+/**
+ * Mirrors the brief `/q/[qrId]` resolve screen before it redirects to join or
+ * stamp-confirm. That route does real blocking I/O (resolve + scan rate-limit +
+ * membership lookup) at the highest-traffic entry point, so without a loader the
+ * scan-to-card moment freezes on the previous page. A calm receipt placeholder —
+ * no tab bar, since the customer is still being routed — shows movement instead.
+ */
+export function CustomerResolveSkeleton() {
+  return (
+    <CustomerFlowShellSkeleton className="content-center">
+      <ReceiptCard edge className="grid gap-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="grid min-w-0 flex-1 gap-1.5">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-5 w-40 max-w-full" />
+          </div>
+          <Skeleton className="size-[58px] shrink-0 rounded-full" />
+        </div>
+        <hr className="w-rule" />
+        <StampRowSkeleton />
+        <RewardTicketSkeleton />
+      </ReceiptCard>
+    </CustomerFlowShellSkeleton>
+  )
+}
+
 // ─── Merchant landing & join ───────────────────────────────────────────────────
 
 /** Mirrors `/m/[merchantSlug]`: dense flow shell, identity receipt, two CTAs. */
