@@ -25,6 +25,35 @@ function vibrate(pattern: number | number[]) {
   }
 }
 
+function StampDiscFace({
+  secured,
+  initials,
+}: {
+  secured: boolean
+  initials: string
+}) {
+  return (
+    <span
+      className={cn(
+        "grid size-[5.5rem] place-items-center rounded-full border-2 border-ink shadow-md",
+        secured
+          ? "bg-reward text-reward-foreground"
+          : "bg-stamp text-stamp-foreground"
+      )}
+    >
+      {secured ? (
+        <Icon icon={CheckmarkBadge04Icon} size={34} />
+      ) : initials ? (
+        <span className="font-mono text-xl font-bold tracking-[0.04em] uppercase">
+          {initials}
+        </span>
+      ) : (
+        <Icon icon={CheckmarkBadge04Icon} size={30} />
+      )}
+    </span>
+  )
+}
+
 /**
  * The stamp gesture: a rubber-stamp disc that commits on a plain tap (mouse,
  * touch, or keyboard) AND on a press-and-hold whose ring charges to full. A
@@ -193,24 +222,7 @@ export function StampPressButton({
             strokeDashoffset={RING_CIRCUMFERENCE}
           />
         </svg>
-        <span
-          className={cn(
-            "grid size-[5.5rem] place-items-center rounded-full border-2 border-ink shadow-md",
-            secured
-              ? "bg-reward text-reward-foreground"
-              : "bg-stamp text-stamp-foreground"
-          )}
-        >
-          {secured ? (
-            <Icon icon={CheckmarkBadge04Icon} size={34} />
-          ) : initials ? (
-            <span className="font-mono text-xl font-bold tracking-[0.04em] uppercase">
-              {initials}
-            </span>
-          ) : (
-            <Icon icon={CheckmarkBadge04Icon} size={30} />
-          )}
-        </span>
+        <StampDiscFace secured={secured} initials={initials} />
         {/* Names the gesture for assistive tech without altering the button's
             accessible name (kept as the label for e2e role-name locators). */}
         <span id={hintId} className="sr-only">
