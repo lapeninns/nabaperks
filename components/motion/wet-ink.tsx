@@ -277,6 +277,45 @@ export function WetInkWiggle({
 }
 
 /**
+ * WetInkBreathe — the resting pulse on an unlocked reward. Scales gently
+ * 1 → 1.04 → 1 on a slow loop so a reward that is waiting out its rest day (or
+ * sitting ready at the counter) reads as alive without demanding a tap. Scale
+ * only — the seal never blanks — and holds completely still under reduced
+ * motion. The calm companion to WetInkWiggle's sealed-mystery tease.
+ */
+export function WetInkBreathe({
+  children,
+  className,
+  style,
+  active = true,
+}: MotionBox & { active?: boolean }) {
+  const reduce = useReducedMotionHook()
+
+  if (reduce || !active) {
+    return (
+      <span className={className} style={style}>
+        {children}
+      </span>
+    )
+  }
+
+  return (
+    <motion.span
+      className={className}
+      style={style}
+      animate={{ scale: [1, 1.04, 1] }}
+      transition={{
+        duration: wetInkTransition.breathe.duration,
+        ease: "easeInOut",
+        repeat: Infinity,
+      }}
+    >
+      {children}
+    </motion.span>
+  )
+}
+
+/**
  * WetInkRipple — an expanding fade ring behind a celebration beat. Scales
  * 0.4 → 2.1 while fading out. Replaces the `w-ripple` keyframe.
  */

@@ -108,7 +108,12 @@ export function RewardTicket({
           leaf ? "bg-reward/10" : "bg-seal/10"
         )}
       >
-        <RewardSeal state={state} size="md" wiggle={state === "sealed"} />
+        <RewardSeal
+          state={state}
+          size="md"
+          wiggle={state === "sealed"}
+          breathe={state === "waiting" || state === "ready"}
+        />
         <span className="font-mono text-[0.625rem] font-bold tracking-[0.06em] text-muted-foreground uppercase">
           {STUB_WORD[state]}
         </span>

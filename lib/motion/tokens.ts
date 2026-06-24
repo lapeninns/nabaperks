@@ -67,6 +67,18 @@ export const wetInkTransition = {
   },
 
   /**
+   * Reward breathe: infinite scale pulse 1 → 1.04 → 1, 3.2s. Calmer and slower
+   * than the 2.6s wiggle tease — a breath, not a fidget. Used by WetInkBreathe
+   * on the unlocked reward seal while it rests (waiting) and while it awaits the
+   * counter scan (ready). Scale only, so the seal never blanks.
+   */
+  breathe: {
+    duration: 3.2,
+    ease: "easeInOut",
+    repeat: Infinity,
+  },
+
+  /**
    * Ripple expand: scale 0.4 → 2.1, fade out, 0.4s.
    * Used by WetInkRipple on stamp celebration.
    */

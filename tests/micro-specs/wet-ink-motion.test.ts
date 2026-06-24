@@ -191,7 +191,8 @@ describe("Wet Ink motion system — Framer Motion library", () => {
       "components/motion/wet-ink.tsx",
       "lib/motion/tokens.ts",
     ])
-    const numericDurationPattern = /\bduration-(?:75|100|150|200|300|500|700|1000)\b/
+    const numericDurationPattern =
+      /\bduration-(?:75|100|150|200|300|500|700|1000)\b/
     const legacyTokenPattern =
       /\bduration-\[var\(--duration-(?:fast|reveal)\)\]|\bease-\[var\(--ease-stamp\)\]/
     const genericTransitionPattern = /(^|[\s"'`])transition(?=($|[\s"'`]))/
@@ -282,6 +283,105 @@ describe("Wet Ink motion system — Framer Motion library", () => {
     )
     expect(css, "animation-duration: 0.01ms rule missing").toContain(
       "animation-duration: 0.01ms"
+    )
+  })
+})
+
+/**
+ * WetInkBreathe — the resting pulse for an unlocked-but-not-yet-redeemable
+ * reward. A slow scale-only loop that reads as "alive, at rest" while the
+ * reward waits out its UK-business-day rest, and stays present (without
+ * shouting) once it is ready at the counter. Reserved for the seal's
+ * waiting/ready states — never sealed (that is wiggle's tease) or redeemed
+ * (that beat is done). Holds static under reduced motion like every primitive.
+ */
+describe("WetInkBreathe — resting pulse for unlocked rewards", () => {
+  it("exports WetInkBreathe from components/motion/index.ts", () => {
+    const index = read("components/motion/index.ts")
+
+    expect(index, "WetInkBreathe not exported").toContain(
+      "export { WetInkBreathe }"
+    )
+  })
+
+  it("defines a looping breathe timing token slower than the wiggle tease", () => {
+    const tokens = read("lib/motion/tokens.ts")
+
+    const breatheIdx = tokens.indexOf("breathe: {")
+    expect(breatheIdx, "breathe timing token missing").toBeGreaterThan(-1)
+
+    const block = tokens.slice(breatheIdx, breatheIdx + 160)
+    expect(block, "breathe must loop forever").toContain("repeat: Infinity")
+    // Calmer than the 2.6s wiggle — a breath, not a tease.
+    expect(block, "breathe must be a slow ~3s+ cycle").toMatch(
+      /duration:\s*3(\.\d+)?,/
+    )
+  })
+
+  it("loops a scale-only pulse and holds static under reduced motion", () => {
+    const source = read("components/motion/wet-ink.tsx")
+
+    const start = source.indexOf("export function WetInkBreathe")
+    expect(start, "WetInkBreathe primitive missing").toBeGreaterThan(-1)
+    const next = source.indexOf("export function", start + 1)
+    const body = source.slice(start, next === -1 ? undefined : next)
+
+    // Reduced-motion / inactive collapses to a static passthrough.
+    expect(body, "WetInkBreathe must guard reduced motion").toContain(
+      "if (reduce"
+    )
+    // Scale-only loop (never opacity — wrapped content must stay legible).
+    expect(body, "WetInkBreathe must animate scale").toMatch(/scale:\s*\[/)
+    expect(body, "WetInkBreathe must not blank opacity").not.toMatch(
+      /opacity:\s*\[/
+    )
+    expect(body, "WetInkBreathe must loop").toContain("repeat: Infinity")
+    expect(body, "WetInkBreathe reads its duration from the token").toContain(
+      "wetInkTransition.breathe"
+    )
+  })
+
+  it("breathes the unlocked reward seal only in waiting/ready states", () => {
+    const seal = read("components/loyalty/reward-seal.tsx")
+
+    // Opt-in prop, mirroring the sealed-only `wiggle`.
+    expect(seal, "RewardSeal must accept a breathe prop").toMatch(/breathe\??:/)
+    expect(seal, "RewardSeal must use WetInkBreathe").toContain("WetInkBreathe")
+    // Honoured only on the resting/awaiting states — never sealed or redeemed.
+    expect(seal, "breathe gated to waiting").toMatch(/state === "waiting"/)
+    expect(seal, "breathe gated to ready").toMatch(/state === "ready"/)
+  })
+
+  it("drives the ticket seal breathe from the reward state", () => {
+    const ticket = read("components/loyalty/reward-ticket.tsx")
+
+    expect(ticket, "RewardTicket must pass breathe to its seal").toMatch(
+      /breathe=\{/
+    )
+  })
+
+  it("showcases WetInkBreathe in the motion playground", () => {
+    const playground = read("app/dev/design-system/motion-playground.tsx")
+
+    expect(playground, "playground must demo WetInkBreathe").toContain(
+      "WetInkBreathe"
+    )
+    expect(playground, "playground must drive the breathe prop").toMatch(
+      /breathe/
+    )
+  })
+
+  it("invites the idle stamp disc to breathe and pauses once inactive", () => {
+    const button = read("components/customer/stamp-press-button.tsx")
+
+    expect(button, "stamp disc must use WetInkBreathe").toContain(
+      "WetInkBreathe"
+    )
+    // Gated on the stable inactive flag (disabled || secured) — never on the
+    // transient `pressing` state — so toggling breathe cannot remount the button
+    // mid-gesture and drop its pointer capture.
+    expect(button, "breathe must pause when the stamp is inactive").toMatch(
+      /active=\{!inactive\}/
     )
   })
 })
