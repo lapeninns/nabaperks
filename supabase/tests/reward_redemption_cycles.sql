@@ -96,8 +96,6 @@ values (
   3
 );
 
-insert into public.qr_codes (id, qr_id, merchant_id, location_id, loyalty_card_id, destination_type, is_active) values ('14000000-0000-0000-0000-0000000000c1', 'cycle-join-qr', '10000000-0000-0000-0000-000000000001', '11000000-0000-0000-0000-000000000001', '13000000-0000-0000-0000-000000000001', 'join', true);
-
 insert into public.stamp_events (
   merchant_id, customer_id, membership_id, loyalty_card_id, location_id,
   event_type, stamps_delta, earned_business_date, cycle_number, created_at
@@ -130,7 +128,7 @@ begin
   perform public.issue_self_service_stamp(
     '16000000-0000-0000-0000-0000000000c1',
     '15000000-0000-0000-0000-0000000000c1',
-    'cycle-join-qr'
+    'old-crown-girton-qr'
   );
 
   select cycle_number into v_today_cycle
