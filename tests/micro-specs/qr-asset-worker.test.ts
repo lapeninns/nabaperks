@@ -185,6 +185,12 @@ describe("qr asset cron trigger", () => {
     expect(response.status).toBe(401)
   })
 
+  it("rejects cron requests when CRON_SECRET is unset", async () => {
+    vi.stubEnv("CRON_SECRET", "")
+    const response = await callCron()
+    expect(response.status).toBe(401)
+  })
+
   it("returns a heartbeat when authorized and no worker url is set", async () => {
     vi.stubEnv("CRON_SECRET", "cron-secret")
     vi.stubEnv("QR_ASSET_WORKER_URL", "")

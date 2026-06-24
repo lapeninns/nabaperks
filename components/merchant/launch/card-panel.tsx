@@ -52,7 +52,6 @@ export async function CardPanel({ params }: { params: CardPanelParams }) {
           rewardTerms:
             card?.reward_terms ??
             "Complete 3 visits to reveal a surprise reward. Redeem from the next UK business day.",
-          minSpendPence: "",
           isActive: card?.is_active ?? true,
         }}
       />

@@ -45,7 +45,6 @@ export function MerchantLaunchScreen() {
             cardName: LAUNCH_PREVIEW_MOCK.cardName,
             stampsRequired: String(LAUNCH_PREVIEW_MOCK.stampsRequired),
             rewardTerms: LAUNCH_PREVIEW_MOCK.rewardTerms,
-            minSpendPence: "",
             isActive: true,
           }}
         />

@@ -91,7 +91,11 @@ export async function enqueueVenueAnnouncement(
   )
   let queued = 0
   let skipped = 0
-  const digest = announcementDigest(input.merchantId, validated.title, validated.body)
+  const digest = announcementDigest(
+    input.merchantId,
+    validated.title,
+    validated.body
+  )
 
   for (const membership of memberships) {
     if (!audience.has(membership.customer_id)) {
@@ -149,6 +153,7 @@ async function resolveAnnouncementAudience(
       .from("consent_records")
       .select("customer_id, channel, consent_status, created_at")
       .eq("merchant_id", merchantId)
+      .eq("channel", "push")
       .in("customer_id", customerIds)
       .order("created_at", { ascending: false }),
   ])
@@ -196,17 +201,17 @@ async function resolveAnnouncementAudience(
 function resolveLatestConsent(rows: ConsentRow[]) {
   const latest = new Map<string, string>()
   for (const row of rows) {
-    const key = `${row.customer_id}:${row.channel}`
-    if (!latest.has(key)) latest.set(key, row.consent_status)
+    if (!latest.has(row.customer_id)) {
+      latest.set(row.customer_id, row.consent_status)
+    }
   }
 
   const allowed = new Set<string>()
-  for (const [key, status] of latest.entries()) {
+  for (const [customerId, status] of latest.entries()) {
     if (status === "opted_in") {
-      allowed.add(key.split(":")[0] ?? "")
+      allowed.add(customerId)
     }
   }
-  allowed.delete("")
   return allowed
 }
 

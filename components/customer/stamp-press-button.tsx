@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useId, useRef, useState } from "react"
 import type { PointerEvent as ReactPointerEvent } from "react"
 
 import { CheckmarkBadge04Icon } from "@hugeicons/core-free-icons"
@@ -23,6 +23,35 @@ function vibrate(pattern: number | number[]) {
   } catch {
     // Haptics are a progressive enhancement — ignore unsupported devices.
   }
+}
+
+function StampDiscFace({
+  secured,
+  initials,
+}: {
+  secured: boolean
+  initials: string
+}) {
+  return (
+    <span
+      className={cn(
+        "grid size-[5.5rem] place-items-center rounded-full border-2 border-ink shadow-md",
+        secured
+          ? "bg-reward text-reward-foreground"
+          : "bg-stamp text-stamp-foreground"
+      )}
+    >
+      {secured ? (
+        <Icon icon={CheckmarkBadge04Icon} size={34} />
+      ) : initials ? (
+        <span className="font-mono text-xl font-bold tracking-[0.04em] uppercase">
+          {initials}
+        </span>
+      ) : (
+        <Icon icon={CheckmarkBadge04Icon} size={30} />
+      )}
+    </span>
+  )
 }
 
 /**
@@ -50,6 +79,7 @@ export function StampPressButton({
   label?: string
 }) {
   const reduce = useReducedMotionHook()
+  const hintId = useId()
   const ringRef = useRef<SVGCircleElement | null>(null)
   const rafRef = useRef<number | null>(null)
   const startRef = useRef(0)
@@ -161,6 +191,7 @@ export function StampPressButton({
       <button
         type="button"
         aria-label={secured ? "Stamp added" : label}
+        aria-describedby={inactive ? undefined : hintId}
         disabled={disabled}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
@@ -191,23 +222,11 @@ export function StampPressButton({
             strokeDashoffset={RING_CIRCUMFERENCE}
           />
         </svg>
-        <span
-          className={cn(
-            "grid size-[5.5rem] place-items-center rounded-full border-2 border-ink shadow-md",
-            secured
-              ? "bg-reward text-reward-foreground"
-              : "bg-stamp text-stamp-foreground"
-          )}
-        >
-          {secured ? (
-            <Icon icon={CheckmarkBadge04Icon} size={34} />
-          ) : initials ? (
-            <span className="font-mono text-xl font-bold tracking-[0.04em] uppercase">
-              {initials}
-            </span>
-          ) : (
-            <Icon icon={CheckmarkBadge04Icon} size={30} />
-          )}
+        <StampDiscFace secured={secured} initials={initials} />
+        {/* Names the gesture for assistive tech without altering the button's
+            accessible name (kept as the label for e2e role-name locators). */}
+        <span id={hintId} className="sr-only">
+          Tap, or press and hold, to add today&apos;s stamp.
         </span>
       </button>
     </WetInkBreathe>

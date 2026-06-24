@@ -10,7 +10,6 @@ export type CustomerRewardItem = {
   businessName: string
   rewardName: string
   rewardTerms: string
-  minSpendPence: number | null
   redeemableFrom: string | null
   expiresAt: string | null
   expiredAt: string | null
@@ -31,7 +30,6 @@ type RawRewardEvent = {
   status: string
   reward_name: string
   reward_terms: string
-  min_spend_pence: number | null
   redeemable_from: string | null
   expires_at: string | null
   expired_at: string | null
@@ -51,7 +49,7 @@ export async function getCustomerRewards(): Promise<CustomerRewards> {
   const { data, error } = await supabase
     .from("reward_events")
     .select(
-      "id, membership_id, status, reward_name, reward_terms, min_spend_pence, redeemable_from, expires_at, expired_at, redeemed_at, created_at, merchants(business_name)"
+      "id, membership_id, status, reward_name, reward_terms, redeemable_from, expires_at, expired_at, redeemed_at, created_at, merchants(business_name)"
     )
     .eq("customer_id", customer.id)
     .in("status", ["unlocked", "redeemed", "expired"])
@@ -75,7 +73,6 @@ export async function getCustomerRewards(): Promise<CustomerRewards> {
       businessName: merchant?.business_name ?? "Unknown venue",
       rewardName: row.reward_name,
       rewardTerms: row.reward_terms,
-      minSpendPence: row.min_spend_pence,
       redeemableFrom: row.redeemable_from,
       expiresAt: row.expires_at,
       expiredAt: row.expired_at,

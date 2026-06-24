@@ -51,7 +51,8 @@ describe("browser push subscription routes", () => {
 
     expect(
       validatePushSubscriptionInput({
-        endpoint: "https://push.example.test/customer/browser-subscription",
+        endpoint:
+          "https://fcm.googleapis.com/fcm/send/customer-browser-subscription",
         keys: {
           p256dh: "browser-push-test-p256dh-key-customer-a",
           auth: "browser-push-test-auth-key-a",
@@ -60,7 +61,8 @@ describe("browser push subscription routes", () => {
     ).toMatchObject({
       ok: true,
       subscription: {
-        endpoint: "https://push.example.test/customer/browser-subscription",
+        endpoint:
+          "https://fcm.googleapis.com/fcm/send/customer-browser-subscription",
       },
     })
 
@@ -71,6 +73,16 @@ describe("browser push subscription routes", () => {
     expect(
       validatePushSubscriptionInput({
         endpoint: "https://push.example.test/customer/browser-subscription",
+        keys: {
+          p256dh: "browser-push-test-p256dh-key-customer-a",
+          auth: "browser-push-test-auth-key-a",
+        },
+      })
+    ).toEqual({ ok: false, error: "invalid_subscription" })
+    expect(
+      validatePushSubscriptionInput({
+        endpoint:
+          "https://fcm.googleapis.com/fcm/send/customer-browser-subscription",
         keys: { p256dh: "short", auth: "short" },
       })
     ).toEqual({ ok: false, error: "invalid_subscription" })
@@ -121,6 +133,7 @@ describe("browser push subscription routes", () => {
     )
     expect(preferencesRoute).toContain("getCustomerNotificationPreferences")
     expect(preferencesRoute).toContain("updateCustomerNotificationPreferences")
+    expect(subscriptionHelpers).toContain('p_channel: "push"')
 
     const promptRoute = readFileSync(
       "app/api/notifications/push/prompt-viewed/route.ts",

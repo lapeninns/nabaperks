@@ -103,7 +103,6 @@ describe("merchant setup loader caching", () => {
               stamps_required: 3,
               reward_name: "Surprise reward",
               reward_terms: "Complete 3 visits to reveal a surprise reward.",
-              min_spend_pence: null,
               is_active: true,
             },
             error: null,
@@ -116,7 +115,6 @@ describe("merchant setup loader caching", () => {
                 id: "pool-1",
                 reward_name: "Coffee upgrade",
                 reward_terms: "Valid on one hot drink.",
-                min_spend_pence: 250,
                 weight: 3,
                 is_active: true,
                 display_order: 1,
@@ -130,9 +128,7 @@ describe("merchant setup loader caching", () => {
     const createSupabaseServerClient = vi.fn(async () => supabase.client)
     vi.doMock("@/lib/auth/session", () => ({ getCurrentMerchant }))
     vi.doMock("@/lib/supabase/server", () => ({ createSupabaseServerClient }))
-    const { getLoyaltyCardSetup } = await import(
-      "@/lib/merchant/loyalty-card"
-    )
+    const { getLoyaltyCardSetup } = await import("@/lib/merchant/loyalty-card")
 
     const [first, second] = await Promise.all([
       getLoyaltyCardSetup(),
@@ -158,9 +154,7 @@ describe("merchant setup loader caching", () => {
     vi.doMock("@/lib/auth/session", () => ({ getCurrentMerchant }))
     vi.doMock("@/lib/supabase/server", () => ({ createSupabaseServerClient }))
     const { getQrSetup } = await import("@/lib/merchant/qr-code")
-    const { getLoyaltyCardSetup } = await import(
-      "@/lib/merchant/loyalty-card"
-    )
+    const { getLoyaltyCardSetup } = await import("@/lib/merchant/loyalty-card")
 
     await expect(getQrSetup()).resolves.toEqual({
       merchant: null,

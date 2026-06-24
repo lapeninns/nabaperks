@@ -13,7 +13,7 @@ import {
   getCustomerRewards,
   type CustomerRewardItem,
 } from "@/lib/customer/rewards"
-import { formatDate, formatPence } from "@/lib/customer/format"
+import { formatDate } from "@/lib/customer/format"
 
 export const metadata = {
   title: "Your rewards · Nabaperks",
@@ -94,11 +94,7 @@ export default async function HomeRewardsPage() {
 }
 
 function rewardDescription(reward: CustomerRewardItem) {
-  const parts = [reward.rewardTerms]
-  if (reward.minSpendPence !== null) {
-    parts.push(`Minimum spend ${formatPence(reward.minSpendPence)}.`)
-  }
-  return parts.filter(Boolean).join(" ")
+  return reward.rewardTerms
 }
 
 function RedeemableReward({ reward }: { reward: CustomerRewardItem }) {

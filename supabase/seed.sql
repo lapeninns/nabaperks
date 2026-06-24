@@ -335,7 +335,7 @@ insert into public.loyalty_cards (
   stamps_required,
   reward_name,
   reward_terms,
-  min_spend_pence
+  is_active
 )
 values
   (
@@ -346,7 +346,7 @@ values
     3,
     'Surprise reward',
     'Collect 3 qualifying visits to reveal a surprise reward, redeemable from the next UK business day.',
-    350
+    true
   ),
   (
     '13000000-0000-0000-0000-000000000002',
@@ -356,14 +356,13 @@ values
     3,
     'Surprise reward',
     'Visit 3 times to unlock a mystery topping or upgrade. Redeemable from the next UK business day.',
-    450
+    true
   )
 on conflict (id) do update
 set card_name = excluded.card_name,
     stamps_required = excluded.stamps_required,
     reward_name = excluded.reward_name,
     reward_terms = excluded.reward_terms,
-    min_spend_pence = excluded.min_spend_pence,
     is_active = true;
 
 insert into public.reward_pool_items (
@@ -373,7 +372,6 @@ insert into public.reward_pool_items (
   loyalty_card_id,
   reward_name,
   reward_terms,
-  min_spend_pence,
   weight,
   is_active,
   display_order
@@ -386,7 +384,6 @@ values
     '13000000-0000-0000-0000-000000000001',
     'Free pint',
     'A pint of any cask ale or lager on the house. Valid from the next UK business day.',
-    null,
     4,
     true,
     1
@@ -398,7 +395,6 @@ values
     '13000000-0000-0000-0000-000000000001',
     'Cake slice',
     'Any single cake slice from the counter. Valid from the next UK business day.',
-    500,
     2,
     false,
     2
@@ -410,7 +406,6 @@ values
     '13000000-0000-0000-0000-000000000002',
     'Bubble tea topping',
     'One premium topping on any medium drink. Valid from the next UK business day.',
-    450,
     3,
     true,
     1
@@ -422,7 +417,6 @@ values
     '13000000-0000-0000-0000-000000000001',
     '10% off Food',
     'Get 10% off food items. Valid from the next UK business day.',
-    null,
     2,
     true,
     3
@@ -434,7 +428,6 @@ values
     '13000000-0000-0000-0000-000000000001',
     'Free Honey Toffee IceCream',
     'One free Honey Toffee IceCream. Valid from the next UK business day.',
-    null,
     2,
     true,
     4
@@ -442,7 +435,6 @@ values
 on conflict (id) do update
 set reward_name = excluded.reward_name,
     reward_terms = excluded.reward_terms,
-    min_spend_pence = excluded.min_spend_pence,
     weight = excluded.weight,
     is_active = excluded.is_active,
     display_order = excluded.display_order;

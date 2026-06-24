@@ -8,6 +8,7 @@ import {
 } from "@/lib/customer/session-cookie"
 
 const SECRET = "test-customer-session-secret"
+let enforceRateLimit: ReturnType<typeof vi.fn>
 
 /** Mirrors emailCodeHmac() so tests can build pending payloads without importing
  *  the module before its mocks are installed. */
@@ -53,6 +54,8 @@ describe("pending email cookie", () => {
 describe("customer email verification", () => {
   beforeEach(() => {
     process.env.CUSTOMER_SESSION_SECRET = SECRET
+    enforceRateLimit = vi.fn(async () => undefined)
+    vi.doMock("@/lib/security/rate-limit", () => ({ enforceRateLimit }))
   })
 
   afterEach(() => {
@@ -74,24 +77,28 @@ describe("customer email verification", () => {
     }))
     vi.doMock("@/lib/notifications/resend", () => ({ sendEmailOtp }))
 
-    const { startCustomerEmailVerification, emailCodeHmac } = await import(
-      "@/lib/customer/email-verification"
-    )
+    const { startCustomerEmailVerification, emailCodeHmac } =
+      await import("@/lib/customer/email-verification")
 
     await expect(
       startCustomerEmailVerification("Sam@Example.test")
     ).resolves.toEqual({ status: "sent" })
 
     const sent = sendEmailOtp.mock.calls[0]?.[0]
-    expect(sent?.to).toBe("Sam@Example.test")
+    expect(sent?.to).toBe("sam@example.test")
     expect(sent?.code).toMatch(/^\d{6}$/)
 
     const stored = setPending.mock.calls[0]?.[0]
-    expect(stored?.email).toBe("Sam@Example.test")
+    expect(stored?.email).toBe("sam@example.test")
     // The stored HMAC binds the address + code, regardless of case.
     const code = sent?.code ?? ""
-    expect(stored?.codeHmac).toBe(emailCodeHmac("Sam@Example.test", code))
-    expect(stored?.codeHmac).toBe(hmac("Sam@Example.test", code))
+    expect(stored?.codeHmac).toBe(emailCodeHmac("sam@example.test", code))
+    expect(stored?.codeHmac).toBe(hmac("sam@example.test", code))
+    expect(enforceRateLimit).toHaveBeenCalledWith({
+      key: "customer-email-verification-send:sam@example.test",
+      limit: 3,
+      windowMs: 15 * 60_000,
+    })
   })
 
   it("approves the code that matches the pending HMAC and clears the cookie", async () => {
@@ -110,15 +117,19 @@ describe("customer email verification", () => {
     }))
     vi.doMock("@/lib/notifications/resend", () => ({ sendEmailOtp: vi.fn() }))
 
-    const { checkCustomerEmailVerification } = await import(
-      "@/lib/customer/email-verification"
-    )
+    const { checkCustomerEmailVerification } =
+      await import("@/lib/customer/email-verification")
 
     await expect(checkCustomerEmailVerification(code)).resolves.toEqual({
       status: "approved",
       email: "sam@example.test",
     })
     expect(clearPending).toHaveBeenCalledOnce()
+    expect(enforceRateLimit).toHaveBeenCalledWith({
+      key: "customer-email-verification-check:sam@example.test",
+      limit: 5,
+      windowMs: 15 * 60_000,
+    })
   })
 
   it("rejects a code that does not match", async () => {
@@ -135,9 +146,8 @@ describe("customer email verification", () => {
     }))
     vi.doMock("@/lib/notifications/resend", () => ({ sendEmailOtp: vi.fn() }))
 
-    const { checkCustomerEmailVerification } = await import(
-      "@/lib/customer/email-verification"
-    )
+    const { checkCustomerEmailVerification } =
+      await import("@/lib/customer/email-verification")
 
     await expect(checkCustomerEmailVerification("999999")).resolves.toEqual({
       status: "rejected",
@@ -152,9 +162,8 @@ describe("customer email verification", () => {
     }))
     vi.doMock("@/lib/notifications/resend", () => ({ sendEmailOtp: vi.fn() }))
 
-    const { checkCustomerEmailVerification } = await import(
-      "@/lib/customer/email-verification"
-    )
+    const { checkCustomerEmailVerification } =
+      await import("@/lib/customer/email-verification")
 
     await expect(checkCustomerEmailVerification("123456")).resolves.toEqual({
       status: "rejected",
@@ -176,9 +185,8 @@ describe("customer email verification", () => {
     }))
     vi.doMock("@/lib/notifications/resend", () => ({ sendEmailOtp: vi.fn() }))
 
-    const { checkCustomerEmailVerification } = await import(
-      "@/lib/customer/email-verification"
-    )
+    const { checkCustomerEmailVerification } =
+      await import("@/lib/customer/email-verification")
 
     await expect(checkCustomerEmailVerification("424242")).resolves.toEqual({
       status: "approved",

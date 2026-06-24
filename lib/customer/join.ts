@@ -20,12 +20,15 @@ export type CustomerJoinContext = {
   loyaltyCard: {
     id: string
     card_name: string
-    reward_name: string
     stamps_required: number
     reward_terms: string
-    min_spend_pence: number | null
   }
 }
+
+type BillingCustomerEmbed =
+  | { status: string | null }
+  | Array<{ status: string | null }>
+  | null
 
 type RawQrLookup = {
   id: string
@@ -40,6 +43,7 @@ type RawQrLookup = {
         email: string
         phone: string | null
         status: string
+        billing_customers: BillingCustomerEmbed
       }
     | Array<{
         id: string
@@ -48,24 +52,21 @@ type RawQrLookup = {
         email: string
         phone: string | null
         status: string
+        billing_customers: BillingCustomerEmbed
       }>
   loyalty_cards:
     | {
         id: string
         card_name: string
-        reward_name: string
         stamps_required: number
         reward_terms: string
-        min_spend_pence: number | null
         is_active: boolean
       }
     | Array<{
         id: string
         card_name: string
-        reward_name: string
         stamps_required: number
         reward_terms: string
-        min_spend_pence: number | null
         is_active: boolean
       }>
 }
@@ -73,6 +74,7 @@ type RawQrLookup = {
 type ResolveQrForJoinOptions = {
   enforceScanRateLimit?: boolean
   recordScan?: boolean
+  scanRateLimitIdentity?: string
 }
 
 export async function resolveQrForJoin(
@@ -80,11 +82,12 @@ export async function resolveQrForJoin(
   {
     enforceScanRateLimit = true,
     recordScan = true,
+    scanRateLimitIdentity = "anonymous",
   }: ResolveQrForJoinOptions = {}
 ) {
   if (enforceScanRateLimit) {
     await enforceRateLimit({
-      key: `qr-scan:${qrId}`,
+      key: `qr-scan:${qrId}:${scanRateLimitIdentity}`,
       limit: 60,
       windowMs: 60_000,
     })
@@ -94,7 +97,7 @@ export async function resolveQrForJoin(
   const { data, error } = await supabase
     .from("qr_codes")
     .select(
-      "id, qr_id, is_active, destination_type, merchants(id, business_name, business_slug, email, phone, status), loyalty_cards!loyalty_card_id(id, card_name, reward_name, stamps_required, reward_terms, min_spend_pence, is_active)"
+      "id, qr_id, is_active, destination_type, merchants(id, business_name, business_slug, email, phone, status, billing_customers(status)), loyalty_cards!loyalty_card_id(id, card_name, stamps_required, reward_terms, is_active)"
     )
     .eq("qr_id", qrId)
     .maybeSingle()
@@ -108,7 +111,8 @@ export async function resolveQrForJoin(
   const qrCode = data as RawQrLookup
   const merchant = first(qrCode.merchants)
   const loyaltyCard = first(qrCode.loyalty_cards)
-  const billingStatus = await getMerchantBillingStatus(merchant.id)
+  const billingStatus =
+    firstNullable(merchant.billing_customers)?.status ?? null
   const availability = loyaltyAvailability({
     merchantStatus: merchant.status,
     cardActive: loyaltyCard.is_active,
@@ -167,7 +171,7 @@ export async function getMerchantJoinContext(
   const { data, error } = await supabase
     .from("merchants")
     .select(
-      "id, business_name, business_slug, email, phone, status, loyalty_cards(id, card_name, reward_name, stamps_required, reward_terms, min_spend_pence, is_active)"
+      "id, business_name, business_slug, email, phone, status, billing_customers(status), loyalty_cards(id, card_name, stamps_required, reward_terms, is_active)"
     )
     .eq("business_slug", merchantSlug)
     .eq("loyalty_cards.is_active", true)
@@ -181,7 +185,7 @@ export async function getMerchantJoinContext(
 
   const loyaltyCard = first(data.loyalty_cards)
   if (!loyaltyCard?.is_active) return null
-  const billingStatus = await getMerchantBillingStatus(data.id)
+  const billingStatus = firstNullable(data.billing_customers)?.status ?? null
   const availability = loyaltyAvailability({
     merchantStatus: data.status,
     cardActive: loyaltyCard.is_active,
@@ -200,24 +204,22 @@ export async function getMerchantJoinContext(
     loyaltyCard: {
       id: loyaltyCard.id,
       card_name: loyaltyCard.card_name,
-      reward_name: loyaltyCard.reward_name,
       stamps_required: loyaltyCard.stamps_required,
       reward_terms: loyaltyCard.reward_terms,
-      min_spend_pence: loyaltyCard.min_spend_pence,
     },
   } satisfies CustomerJoinContext
 }
 
 export async function getExistingMembershipForCurrentUser(merchantId: string) {
-  const customer = await getCurrentCustomer()
-  if (!customer) return null
+  const customerId = await getCurrentCustomerId()
+  if (!customerId) return null
 
   const supabase = createSupabaseServiceRoleClient()
   const { data: membership, error: membershipError } = await supabase
     .from("customer_memberships")
     .select("id, current_stamp_count, total_rewards_redeemed")
     .eq("merchant_id", merchantId)
-    .eq("customer_id", customer.id)
+    .eq("customer_id", customerId)
     .maybeSingle()
 
   if (membershipError) {
@@ -225,6 +227,11 @@ export async function getExistingMembershipForCurrentUser(merchantId: string) {
   }
 
   return membership
+}
+
+export async function getCurrentCustomerId(): Promise<string | null> {
+  const customer = await getCurrentCustomer()
+  return customer?.id ?? null
 }
 
 export async function getStampQrContextForMembership(
@@ -247,21 +254,11 @@ export async function getStampQrContextForMembership(
   return qrContext
 }
 
-async function getMerchantBillingStatus(merchantId: string) {
-  const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase
-    .from("billing_customers")
-    .select("status")
-    .eq("merchant_id", merchantId)
-    .maybeSingle()
-
-  if (error) {
-    throw new Error(`Unable to load billing status: ${error.message}`)
-  }
-
-  return data?.status ?? null
+function first<T>(value: T | T[]) {
+  return Array.isArray(value) ? value[0] : value
 }
 
-function first<T>(value: T | T[]) {
+function firstNullable<T>(value: T | T[] | null) {
+  if (!value) return null
   return Array.isArray(value) ? value[0] : value
 }

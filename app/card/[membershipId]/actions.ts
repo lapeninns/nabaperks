@@ -77,6 +77,7 @@ export async function selfStampAction(
 }
 
 function coordinates(formData: FormData): GeoCoordinates | undefined {
+  const qrId = value(formData, "qrId")
   const latitude = numberValue(formData, "latitude")
   const longitude = numberValue(formData, "longitude")
   const accuracyMeters = numberValue(formData, "accuracy_meters")
@@ -84,6 +85,7 @@ function coordinates(formData: FormData): GeoCoordinates | undefined {
   const captureElapsedMs = numberValue(formData, "capture_elapsed_ms")
 
   if (
+    !qrId &&
     latitude === null &&
     longitude === null &&
     accuracyMeters === null &&
@@ -94,6 +96,7 @@ function coordinates(formData: FormData): GeoCoordinates | undefined {
   }
 
   return {
+    qrId: qrId || null,
     latitude,
     longitude,
     accuracyMeters,

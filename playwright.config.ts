@@ -39,7 +39,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `PORT=${devServerPort} CUSTOMER_DEV_OTP_CODE=${devOtpCode} pnpm dev`,
+    command: `PORT=${devServerPort} CUSTOMER_DEV_OTP_CODE=${devOtpCode} CUSTOMER_FLOW_DEV_HARNESS_ENABLED=true pnpm dev`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: process.env.CI ? 180_000 : 120_000,

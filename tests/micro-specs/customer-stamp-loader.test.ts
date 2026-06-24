@@ -21,7 +21,6 @@ const readyCardState = {
     stamps_required: 3,
     reward_name: "Surprise reward",
     reward_terms: "Complete 3 visits.",
-    min_spend_pence: null,
     is_active: true,
   },
   latestReward: null,
@@ -80,5 +79,63 @@ describe("customer stamp loader", () => {
       "merchant-1"
     )
     expect(getMembershipLocationRequirement).not.toHaveBeenCalled()
+  })
+
+  it("starts progress and stamped-today reads before awaiting either result", async () => {
+    vi.resetModules()
+    let resolveStampDates: (dates: string[]) => void = () => {
+      throw new Error("Stamp date loader did not start")
+    }
+    const stampDatesStarted = new Promise<void>((resolveStarted) => {
+      vi.doMock("@/lib/customer/card", () => ({
+        getCustomerCardState: vi.fn(async () => readyCardState),
+        getMembershipStampDisplayDates: vi.fn(
+          () =>
+            new Promise<string[]>((resolve) => {
+              resolveStampDates = resolve
+              resolveStarted()
+            })
+        ),
+        reconcileCardStampCount: vi.fn(() => 1),
+      }))
+    })
+    const supabase = createSupabaseMock({
+      from: { stamp_events: [{ data: null, error: null }] },
+    })
+    vi.doMock("@/lib/customer/join", () => ({
+      getStampQrContextForMembership: vi.fn(async () => ({ qrId: "qr-1" })),
+    }))
+    vi.doMock("@/lib/customer/stamp", () => ({
+      getMembershipLocationRequirement: vi.fn(async () => ({
+        requireGeofence: false,
+        geofenceRadiusMeters: 150,
+      })),
+      getMerchantStampLocationRequirement: vi.fn(async () => ({
+        requireGeofence: false,
+        geofenceRadiusMeters: 150,
+      })),
+    }))
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
+    }))
+    const { loadStampExperienceContext } =
+      await import("@/lib/customer/experience/load-stamp")
+
+    const context = loadStampExperienceContext("membership-1", "qr-1")
+    await stampDatesStarted
+    await Promise.resolve()
+
+    expect(
+      supabase.queryCalls.some(
+        (call) => call.table === "stamp_events" && call.method === "select"
+      )
+    ).toBe(true)
+
+    resolveStampDates(["10 Jun"])
+    await expect(context).resolves.toMatchObject({
+      membershipId: "membership-1",
+      alreadyStampedToday: false,
+      qrValid: true,
+    })
   })
 })

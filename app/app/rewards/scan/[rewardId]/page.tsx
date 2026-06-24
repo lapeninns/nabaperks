@@ -72,14 +72,7 @@ async function RewardScanStream({
           context.status === "redeemed" || collected ? "redeemed" : "ready"
         }
         name={context.rewardName}
-        description={
-          <>
-            {context.rewardTerms}
-            {context.minSpendPence !== null ? (
-              <> Minimum spend {formatPence(context.minSpendPence)}.</>
-            ) : null}
-          </>
-        }
+        description={context.rewardTerms}
       />
 
       <div className="grid gap-2 rounded-xl border-2 border-ink bg-card p-4 text-sm">
@@ -136,11 +129,4 @@ function ScanShell({ children }: { children: React.ReactNode }) {
 
 function firstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value
-}
-
-function formatPence(pence: number): string {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-  }).format(pence / 100)
 }

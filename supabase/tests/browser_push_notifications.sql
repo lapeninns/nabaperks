@@ -80,7 +80,7 @@ set local request.jwt.claim.role = 'authenticated';
 set local request.jwt.claim.sub = '74000000-0000-0000-0000-000000000001';
 
 select public.register_push_subscription(
-  'https://push.example.test/customer-a/browser-subscription-endpoint',
+  'https://fcm.googleapis.com/customer-a/browser-subscription-endpoint',
   'browser-push-test-p256dh-key-customer-a',
   'browser-push-test-auth-key-a',
   'Vitest Browser Push Customer A',
@@ -115,7 +115,7 @@ begin
 end $$;
 
 select public.disable_push_subscription(
-  'https://push.example.test/customer-a/browser-subscription-endpoint'
+  'https://fcm.googleapis.com/customer-a/browser-subscription-endpoint'
 );
 
 set local request.jwt.claim.sub = '74000000-0000-0000-0000-000000000001';

@@ -10,6 +10,7 @@ describe("customer OTP temporary bypass", () => {
   afterEach(() => {
     vi.resetModules()
     vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
     delete process.env.CUSTOMER_OTP_BYPASS_MODE
     delete process.env.CUSTOMER_DEV_OTP_CODE
     delete process.env.TWILIO_ACCOUNT_SID
@@ -36,6 +37,51 @@ describe("customer OTP temporary bypass", () => {
       checkCustomerPhoneVerification("+447467586751", "12345")
     ).resolves.toEqual({ status: "rejected" })
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("does not approve the any-four-digit bypass in production", async () => {
+    vi.stubEnv("NODE_ENV", "production")
+    vi.stubEnv("CUSTOMER_OTP_BYPASS_MODE", "any-4-digits")
+    vi.stubEnv("TWILIO_ACCOUNT_SID", "AC123")
+    vi.stubEnv("TWILIO_AUTH_TOKEN", "token")
+    vi.stubEnv("TWILIO_VERIFY_SERVICE_SID", "VA123")
+    const fetchMock = vi.fn<typeof fetch>(
+      async () =>
+        new Response(JSON.stringify({ status: "pending" }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        })
+    )
+    vi.stubGlobal("fetch", fetchMock)
+    const { checkCustomerPhoneVerification } =
+      await import("@/lib/customer/verification")
+
+    await expect(
+      checkCustomerPhoneVerification("+447467586751", "1234")
+    ).resolves.toEqual({ status: "rejected" })
+    expect(fetchMock).toHaveBeenCalled()
+  })
+
+  it("redacts Twilio failure bodies from thrown errors", async () => {
+    vi.stubEnv("TWILIO_ACCOUNT_SID", "AC123")
+    vi.stubEnv("TWILIO_AUTH_TOKEN", "token")
+    vi.stubEnv("TWILIO_VERIFY_SERVICE_SID", "VA123")
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(
+        async () =>
+          new Response("raw provider phone +447467586751", { status: 500 })
+      )
+    )
+    const { startCustomerPhoneVerification } =
+      await import("@/lib/customer/verification")
+
+    await expect(
+      startCustomerPhoneVerification("+447467586751")
+    ).rejects.toThrow("<redacted body:")
+    await expect(
+      startCustomerPhoneVerification("+447467586751")
+    ).rejects.not.toThrow("+447467586751")
   })
 })
 

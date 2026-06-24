@@ -13,7 +13,6 @@ import {
   PreviewIdentityForm,
   PreviewJoinHeroNote,
   PreviewJoinTermsForm,
-  PreviewMinSpendNote,
   PreviewProfileAboutYouEdit,
   PreviewProfileAboutYouView,
   PreviewProfileEmailVerify,
@@ -50,7 +49,6 @@ import {
 import {
   CUSTOMER_FLOW_MOCK,
   customerFlowPreviewPath,
-  formatMockPence,
   type CustomerFlowPreviewStepId,
 } from "@/lib/dev/customer-flow-preview"
 
@@ -63,7 +61,6 @@ const PREVIEW_JOIN_MERCHANT: JoinMerchant = {
 const PREVIEW_JOIN_CARD: JoinCard = {
   name: CUSTOMER_FLOW_MOCK.cardName,
   stampsRequired: CUSTOMER_FLOW_MOCK.stampsRequired,
-  minSpendPence: CUSTOMER_FLOW_MOCK.minSpendPence,
   rewardTerms: CUSTOMER_FLOW_MOCK.rewardTerms,
 }
 
@@ -224,7 +221,6 @@ function PreviewJoinScreen({
               <>
                 Collect {CUSTOMER_FLOW_MOCK.stampsRequired} stamps to unlock a
                 surprise reward, yours from the next UK business day.
-                <PreviewMinSpendNote />
               </>
             }
           />
@@ -516,21 +512,7 @@ function PreviewRewardScreen({
                   addUkCalendarDays(ukTodayIso(), 1)
                 )
           }
-          description={
-            <>
-              {CUSTOMER_FLOW_MOCK.assignedRewardTerms}
-              {CUSTOMER_FLOW_MOCK.assignedRewardMinSpendPence !== null ? (
-                <>
-                  {" "}
-                  Minimum spend{" "}
-                  {formatMockPence(
-                    CUSTOMER_FLOW_MOCK.assignedRewardMinSpendPence
-                  )}
-                  .
-                </>
-              ) : null}
-            </>
-          }
+          description={CUSTOMER_FLOW_MOCK.assignedRewardTerms}
         />
 
         {redeemable && profileIncomplete ? (

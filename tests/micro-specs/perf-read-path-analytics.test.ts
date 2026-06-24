@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs"
 import { describe, expect, it, vi } from "vitest"
 
 type SupabaseInsertResponse = {
@@ -24,6 +25,76 @@ async function flushMicrotasks() {
 }
 
 describe("baseline performance and read-path analytics", () => {
+  it("schedules customer card viewed analytics after the card response", async () => {
+    vi.resetModules()
+    const afterCallbacks: Array<() => void> = []
+    const afterMock = vi.fn((callback: () => void) => {
+      afterCallbacks.push(callback)
+    })
+    vi.doMock("next/server", () => ({ after: afterMock }))
+    vi.doMock("@/lib/customer/card", () => ({
+      getCustomerCardState: vi.fn(async () => ({
+        status: "ready",
+        membership: {
+          id: "membership-1",
+          current_stamp_count: 1,
+          active_cycle_number: 1,
+        },
+        merchant: {
+          id: "merchant-1",
+          business_name: "The Bell",
+          business_slug: "the-bell",
+        },
+        loyaltyCard: {
+          card_name: "Mystery Visit Card",
+          stamps_required: 3,
+          reward_terms: "Complete 3 visits.",
+        },
+        latestReward: null,
+      })),
+      getMembershipStampDisplayDates: vi.fn(async () => ["2026-06-22"]),
+      reconcileCardStampCount: vi.fn(() => 1),
+    }))
+    const rejectedPostHogMirror = Promise.reject(
+      new Error("PostHog mirror is unavailable")
+    )
+    rejectedPostHogMirror.catch(() => {})
+    const captureJoinFunnelEvent = vi.fn(() => rejectedPostHogMirror)
+    vi.doMock("@/lib/customer/join-funnel", () => ({
+      captureJoinFunnelEvent,
+    }))
+    const { loadCardExperienceContext } =
+      await import("@/lib/customer/experience/load-card")
+
+    await expect(
+      loadCardExperienceContext("membership-1", {})
+    ).resolves.toMatchObject({
+      membershipId: "membership-1",
+      merchantName: "The Bell",
+      current: 1,
+      total: 3,
+    })
+
+    expect(afterMock).toHaveBeenCalledTimes(1)
+    expect(captureJoinFunnelEvent).not.toHaveBeenCalled()
+
+    const scheduledCallback = afterCallbacks[0]
+    if (!scheduledCallback) {
+      throw new Error("Customer card analytics callback was not scheduled")
+    }
+    scheduledCallback()
+
+    expect(captureJoinFunnelEvent).toHaveBeenCalledWith({
+      eventName: "customer_card_viewed",
+      merchantId: "merchant-1",
+      membershipId: "membership-1",
+      merchantSlug: "the-bell",
+      metadata: {
+        source: "card_route",
+      },
+    })
+  })
+
   it("resolves product event recording after Supabase insert without waiting for slow PostHog fetch", async () => {
     vi.resetModules()
     vi.stubEnv("NEXT_PUBLIC_POSTHOG_KEY", "phc_test")
@@ -184,5 +255,12 @@ describe("baseline performance and read-path analytics", () => {
       timeServerLoader("/app", "dashboard", async () => "quiet")
     ).resolves.toBe("quiet")
     expect(log).not.toHaveBeenCalled()
+  })
+
+  it("keeps QR scan product events awaited because Supabase is the source of truth", () => {
+    const source = readFileSync("lib/customer/join.ts", "utf8")
+
+    expect(source).toContain('eventName: "qr_scanned"')
+    expect(source).toMatch(/await\s+recordProductEvent\({[\s\S]*?qr_scanned/)
   })
 })

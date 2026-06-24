@@ -68,7 +68,6 @@ export async function loadStampExperienceContext(
       membershipId,
       rewardName: unlocked.reward_name,
       rewardTerms: unlocked.reward_terms,
-      minSpendPence: unlocked.min_spend_pence,
       redeemableFrom: unlocked.redeemable_from,
       redeemable,
     }
@@ -132,9 +131,12 @@ export async function loadStampExperienceContext(
 
   // Card progress so the stamp screen renders the live card grid; both the
   // already-stamped and ready-to-stamp states show it.
-  const progress = await loadCardProgress(cardState)
+  const [progress, stampedToday] = await Promise.all([
+    loadCardProgress(cardState),
+    isStampedToday(membershipId),
+  ])
 
-  if (await isStampedToday(membershipId)) {
+  if (stampedToday) {
     return {
       membershipId,
       merchantName,

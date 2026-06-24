@@ -115,7 +115,7 @@ async function addStamp(
   await holdStampButton(page)
 
   if (outcome === "stamp-added") {
-    await expect(page.getByText("Stamp added.")).toBeVisible()
+    await expect(page.getByText("Stamp added.").first()).toBeVisible()
   } else {
     await expect(
       page.getByText("That's the full card.", { exact: true })

@@ -14,10 +14,7 @@ import {
   JOIN_WELCOME_HOW_IT_WORKS,
   joinWelcomeHref,
 } from "@/lib/customer/experience/copy"
-import {
-  CUSTOMER_FLOW_MOCK,
-  formatMockPence,
-} from "@/lib/dev/customer-flow-preview"
+import { CUSTOMER_FLOW_MOCK } from "@/lib/dev/customer-flow-preview"
 
 // Mirrors the shipped customer-flow inputs but intentionally drops the
 // transition/focus utilities — every field in this dev harness is readOnly,
@@ -273,12 +270,6 @@ export function PreviewJoinHeroNote() {
         triggerClassName="inline-flex w-fit text-xs font-bold underline underline-offset-4"
       />
     </>
-  )
-}
-
-export function PreviewMinSpendNote() {
-  return (
-    <> Minimum spend {formatMockPence(CUSTOMER_FLOW_MOCK.minSpendPence)}.</>
   )
 }
 

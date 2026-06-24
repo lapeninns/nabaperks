@@ -31,7 +31,7 @@ export async function getAdminAccess(): Promise<AdminAccess> {
     return { status: "denied", reason: "Internal admin access is required." }
   }
 
-  const mfaRequired = process.env.ADMIN_MFA_REQUIRED === "true"
+  const mfaRequired = isAdminMfaRequired()
 
   if (mfaRequired) {
     const { data: mfa, error: mfaError } =
@@ -54,6 +54,17 @@ export async function getAdminAccess(): Promise<AdminAccess> {
     email: data.email,
     mfaRequired,
   }
+}
+
+export function isAdminMfaRequired(
+  nodeEnv: string | undefined = process.env.NODE_ENV,
+  configured = process.env.ADMIN_MFA_REQUIRED
+) {
+  const normalized = configured?.trim().toLowerCase()
+  if (nodeEnv === "production") return true
+  if (normalized === "true") return true
+  if (normalized === "false") return false
+  return false
 }
 
 export async function requireAdminAction() {

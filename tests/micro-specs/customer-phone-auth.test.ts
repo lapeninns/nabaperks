@@ -233,6 +233,7 @@ describe("customer global phone auth", () => {
       return {
         enforceRateLimit: vi.fn(async () => undefined),
         RateLimitError,
+        rateLimitIdentityFromHeaders: vi.fn(() => "test-request"),
       }
     })
     vi.doMock("next/navigation", () => ({

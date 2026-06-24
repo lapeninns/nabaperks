@@ -1,3 +1,5 @@
+import Link from "next/link"
+import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
 import { AlertDiamondIcon } from "@hugeicons/core-free-icons"
@@ -7,11 +9,15 @@ import {
   CustomerFlowShell,
   CustomerReceipt,
 } from "@/components/customer/customer-flow-system"
+import { Button } from "@/components/ui/button"
 import {
   getExistingMembershipForCurrentUser,
   resolveQrForJoin,
 } from "@/lib/customer/join"
-import { RateLimitError } from "@/lib/security/rate-limit"
+import {
+  RateLimitError,
+  rateLimitIdentityFromHeaders,
+} from "@/lib/security/rate-limit"
 
 type PublicQrPageProps = {
   params: Promise<{
@@ -24,7 +30,9 @@ export default async function PublicQrPage({ params }: PublicQrPageProps) {
   let qrContext: Awaited<ReturnType<typeof resolveQrForJoin>>
 
   try {
-    qrContext = await resolveQrForJoin(qrId)
+    qrContext = await resolveQrForJoin(qrId, {
+      scanRateLimitIdentity: rateLimitIdentityFromHeaders(await headers()),
+    })
   } catch (error) {
     // A rate-limited scan is a transient retry, not a dead QR — give it distinct
     // calm copy so the customer waits and re-scans instead of giving up.
@@ -71,6 +79,16 @@ function UnavailableQr() {
           description="Ask a team member for the current loyalty QR."
           headingLevel={1}
           className="w-full"
+          actions={
+            <div className="grid w-full gap-2">
+              <Button asChild size="lg">
+                <Link href="/scan">Scan a QR</Link>
+              </Button>
+              <Button asChild size="lg" variant="secondary">
+                <Link href="/home">Open my cards</Link>
+              </Button>
+            </div>
+          }
         />
       </CustomerReceipt>
     </CustomerFlowShell>
@@ -97,6 +115,11 @@ function RateLimitedQr() {
           description="Wait a moment, then scan the venue QR again. Your card is safe."
           headingLevel={1}
           className="w-full"
+          actions={
+            <Button asChild size="lg" variant="secondary">
+              <Link href="/home">Open my cards</Link>
+            </Button>
+          }
         />
       </CustomerReceipt>
     </CustomerFlowShell>

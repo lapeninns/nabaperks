@@ -1,7 +1,7 @@
 import "server-only"
 
 import { getCustomerRewardState } from "@/lib/customer/reward"
-import { getRewardLocationRequirement } from "@/lib/customer/stamp"
+import { getLocationRequirement } from "@/lib/customer/stamp"
 import { isRedeemableFrom } from "@/lib/customer/uk-date"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 
@@ -31,7 +31,7 @@ export async function loadRewardExperienceContext(
 
   const { reward, assignedReward, loyaltyCard, merchant, membership } =
     rewardState
-  const location = await getRewardLocationRequirement(reward.id)
+  const location = await getLocationRequirement(loyaltyCard.location_id)
   const redeemable =
     reward.status === "unlocked" &&
     !rewardState.unavailableReason &&
@@ -46,7 +46,6 @@ export async function loadRewardExperienceContext(
       membershipId: reward.membership_id,
       rewardName: assignedReward.reward_name,
       rewardTerms: assignedReward.reward_terms,
-      minSpendPence: assignedReward.min_spend_pence,
       redeemableFrom: reward.redeemable_from,
     },
     merchantName: merchant.business_name,

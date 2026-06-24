@@ -55,8 +55,6 @@ export async function RewardsPanel({ params }: { params: RewardsPanelParams }) {
     id: item.id,
     rewardName: item.reward_name,
     rewardTerms: item.reward_terms,
-    minSpendPence:
-      item.min_spend_pence === null ? "" : String(item.min_spend_pence),
     weight: String(item.weight),
     displayOrder: String(item.display_order),
     isActive: item.is_active,

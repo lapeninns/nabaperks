@@ -3,7 +3,6 @@ import { redirect } from "next/navigation"
 import { JoinWizard } from "@/components/customer/join-wizard"
 import { deriveCustomerExperience } from "@/lib/customer/experience/derive"
 import { loadJoinExperienceContext } from "@/lib/customer/experience/load-join"
-import { destinationForReturningQrVisit } from "@/lib/customer/returning-qr-redirect"
 
 type MerchantJoinPageProps = {
   params: Promise<{
@@ -33,12 +32,9 @@ export default async function MerchantJoinPage({
     context.membership &&
     context.qrId
   ) {
-    const destination = await destinationForReturningQrVisit(
-      merchantSlug,
-      context.qrId,
-      { issueStamp: false }
+    redirect(
+      `/card/${context.membership.id}/stamp?qr=${encodeURIComponent(context.qrId)}`
     )
-    if (destination) redirect(destination)
   }
 
   const experience = deriveCustomerExperience({ entry: "join", context })

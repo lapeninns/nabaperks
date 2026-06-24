@@ -19,14 +19,12 @@ export type LoyaltyCardActionState = {
     cardName?: string
     stampsRequired?: string
     rewardTerms?: string
-    minSpendPence?: string
     isActive?: boolean
   }
   errors?: {
     cardName?: string
     stampsRequired?: string
     rewardTerms?: string
-    minSpendPence?: string
     form?: string
   }
 }
@@ -37,7 +35,6 @@ export type RewardPoolItemActionState = {
     loyaltyCardId?: string
     rewardName?: string
     rewardTerms?: string
-    minSpendPence?: string
     weight?: string
     displayOrder?: string
     isActive?: boolean
@@ -46,7 +43,6 @@ export type RewardPoolItemActionState = {
     loyaltyCardId?: string
     rewardName?: string
     rewardTerms?: string
-    minSpendPence?: string
     weight?: string
     displayOrder?: string
     form?: string
@@ -69,7 +65,6 @@ function rewardPoolFields(formData: FormData) {
     loyaltyCardId: value(formData, "loyaltyCardId"),
     rewardName: value(formData, "rewardName"),
     rewardTerms: value(formData, "rewardTerms"),
-    minSpendPence: value(formData, "minSpendPence"),
     weight: value(formData, "weight") || "1",
     displayOrder: value(formData, "displayOrder") || "0",
     isActive: formData.get("isActive") === "on",
@@ -92,19 +87,16 @@ export async function saveLoyaltyCardAction(
   const cardName = value(formData, "cardName")
   const stampsRequired = value(formData, "stampsRequired")
   const rewardTerms = value(formData, "rewardTerms")
-  const minSpendPence = value(formData, "minSpendPence")
   const isActive = formData.get("isActive") === "on"
   const fields = {
     cardId,
     cardName,
     stampsRequired,
     rewardTerms,
-    minSpendPence,
     isActive,
   }
   const errors: NonNullable<LoyaltyCardActionState["errors"]> = {}
   const parsedStampsRequired = parseInteger(stampsRequired)
-  const parsedMinSpendPence = minSpendPence ? parseInteger(minSpendPence) : null
 
   if (!cardName) errors.cardName = "Enter a card name."
   if (cardName.length > 80) errors.cardName = "Use 80 characters or fewer."
@@ -126,12 +118,6 @@ export async function saveLoyaltyCardAction(
     errors.rewardTerms = "Use 500 characters or fewer."
   }
 
-  if (minSpendPence && parsedMinSpendPence === null) {
-    errors.minSpendPence = "Enter minimum spend in whole pence."
-  } else if (parsedMinSpendPence !== null && parsedMinSpendPence > 100000) {
-    errors.minSpendPence = "Use a minimum spend of GBP 1,000 or less."
-  }
-
   if (Object.keys(errors).length || parsedStampsRequired === null) {
     return { fields, errors }
   }
@@ -144,7 +130,6 @@ export async function saveLoyaltyCardAction(
     p_stamps_required: parsedStampsRequired,
     p_reward_name: "Surprise reward",
     p_reward_terms: rewardTerms,
-    p_min_spend_pence: parsedMinSpendPence,
     p_is_active: isActive,
   })
 
@@ -181,9 +166,6 @@ export async function saveRewardPoolItemAction(
 
   const fields = rewardPoolFields(formData)
   const errors: NonNullable<RewardPoolItemActionState["errors"]> = {}
-  const parsedMinSpendPence = fields.minSpendPence
-    ? parseInteger(fields.minSpendPence)
-    : null
   const parsedWeight = parseInteger(fields.weight)
   const parsedDisplayOrder = parseInteger(fields.displayOrder)
 
@@ -203,12 +185,6 @@ export async function saveRewardPoolItemAction(
       "Add enough detail for customers to understand the offer."
   } else if (fields.rewardTerms.length > 500) {
     errors.rewardTerms = "Use 500 characters or fewer."
-  }
-
-  if (fields.minSpendPence && parsedMinSpendPence === null) {
-    errors.minSpendPence = "Enter minimum spend in whole pence."
-  } else if (parsedMinSpendPence !== null && parsedMinSpendPence > 100000) {
-    errors.minSpendPence = "Use a minimum spend of GBP 1,000 or less."
   }
 
   if (parsedWeight === null) {
@@ -238,7 +214,6 @@ export async function saveRewardPoolItemAction(
     p_reward_pool_item_id: fields.rewardPoolItemId || null,
     p_reward_name: fields.rewardName,
     p_reward_terms: fields.rewardTerms,
-    p_min_spend_pence: parsedMinSpendPence,
     p_weight: parsedWeight,
     p_is_active: fields.isActive,
     p_display_order: parsedDisplayOrder,

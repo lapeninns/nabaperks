@@ -13,7 +13,7 @@ export const PLATFORM_TERMS_SECTIONS: LegalSection[] = [
   {
     id: "merchant-reward-terms",
     title: "Merchant-controlled reward terms",
-    body: "Each merchant controls its reward description, earning rules, minimum spend, exclusions, and venue-specific participation terms. Merchant reward terms are shown before joining and on the merchant terms page.",
+    body: "Each merchant controls its reward description, earning rules, exclusions, and venue-specific participation terms. Merchant reward terms are shown before joining and on the merchant terms page.",
   },
   {
     id: "marketing",
@@ -110,11 +110,6 @@ export function buildVenueTermsSections({
       id: "stamps-needed",
       title: "Stamps needed",
       body: `${stampsRequired} stamps`,
-    },
-    {
-      id: "minimum-spend",
-      title: "Minimum spend",
-      body: "Minimum spend is applied by the assigned reward, if that reward has one.",
     },
     {
       id: "redemption",

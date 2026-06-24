@@ -124,14 +124,7 @@ function CardProgressPanel({
     exp.reward !== "waiting"
   const hasPrimaryAction = !stampSecuredOnly
 
-  const rewardDetails = (
-    <>
-      {exp.rewardTerms}
-      {exp.minSpendPence !== null ? (
-        <> Minimum spend {formatPence(exp.minSpendPence)}.</>
-      ) : null}
-    </>
-  )
+  const rewardDetails = <>{exp.rewardTerms}</>
   let rewardDescription: ReactNode
   if (rewardState === "sealed") {
     // Show the longer mystery terms only when the action band is informational
@@ -401,13 +394,6 @@ function StatusNotice({
 
 function cardNumber(membershipId: string): string {
   return `CARD Nº ${membershipId.slice(0, 8).toUpperCase()}`
-}
-
-function formatPence(pence: number): string {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-  }).format(pence / 100)
 }
 
 function screenLabelFor(kind: CustomerExperienceKind): string {

@@ -8,6 +8,8 @@ import { renderQrCodePng } from "@/lib/qr/assets"
 
 export const runtime = "nodejs"
 
+const serverEnv = getServerEnv()
+
 type RewardQrRouteContext = {
   params: Promise<{
     rewardId: string
@@ -33,12 +35,11 @@ export async function GET(_request: Request, context: RewardQrRouteContext) {
     return new NextResponse("Reward QR not ready", { status: 404 })
   }
 
-  const env = getServerEnv()
   const token = await createRewardScanToken({
     rewardId,
     customerId: rewardState.customerId,
   })
-  const scanUrl = `${env.NEXT_PUBLIC_APP_URL}/r/${token.scanToken}`
+  const scanUrl = `${serverEnv.NEXT_PUBLIC_APP_URL}/r/${token.scanToken}`
   const png = await renderQrCodePng(scanUrl)
 
   return new NextResponse(toArrayBuffer(png), {

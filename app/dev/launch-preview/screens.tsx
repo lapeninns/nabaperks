@@ -122,7 +122,6 @@ function MockCardPanel() {
           cardName: LAUNCH_PREVIEW_MOCK.cardName,
           stampsRequired: String(LAUNCH_PREVIEW_MOCK.stampsRequired),
           rewardTerms: LAUNCH_PREVIEW_MOCK.rewardTerms,
-          minSpendPence: "",
           isActive: true,
         }}
       />
@@ -142,7 +141,6 @@ function MockRewardsPanel() {
             rewardName: "Free filter coffee",
             rewardTerms:
               "Any filter coffee on the house. Valid from the next UK business day.",
-            minSpendPence: "",
             weight: "1",
             displayOrder: "1",
             isActive: true,
@@ -152,7 +150,6 @@ function MockRewardsPanel() {
             rewardName: "£5 off your next bill",
             rewardTerms:
               "£5 off any bill over £20. One per customer per reveal.",
-            minSpendPence: "2000",
             weight: "1",
             displayOrder: "2",
             isActive: true,
@@ -161,7 +158,6 @@ function MockRewardsPanel() {
             id: "reward-mock-3",
             rewardName: "Slice of cake on the house",
             rewardTerms: "Any cake from the counter, free with a hot drink.",
-            minSpendPence: "",
             weight: "2",
             displayOrder: "3",
             isActive: false,

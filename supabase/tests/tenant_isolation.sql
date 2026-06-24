@@ -363,6 +363,9 @@ values
     1
   );
 
+insert into public.qr_codes (id, qr_id, merchant_id, location_id, loyalty_card_id, destination_type, is_active)
+values ('71400000-0000-0000-0000-000000000001', 'tenant-a-join-qr', '71000000-0000-0000-0000-000000000001', '71100000-0000-0000-0000-000000000001', '71300000-0000-0000-0000-000000000001', 'join', true);
+
 insert into public.billing_customers (
   id,
   merchant_id,
@@ -584,6 +587,7 @@ begin
   perform public.issue_self_service_stamp(
     '76000000-0000-0000-0000-000000000301',
     '75000000-0000-0000-0000-000000000301',
+    'tenant-a-join-qr',
     51.524,
     -0.071
   );

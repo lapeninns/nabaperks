@@ -130,23 +130,9 @@ function PrimaryLink({
 }
 
 function rewardTermsNode(reward: RewardView): ReactNode {
-  return (
-    <>
-      {reward.rewardTerms}
-      {reward.minSpendPence !== null ? (
-        <> Minimum spend {formatPence(reward.minSpendPence)}.</>
-      ) : null}
-    </>
-  )
+  return <>{reward.rewardTerms}</>
 }
 
 function cardNumber(membershipId: string): string {
   return `CARD Nº ${membershipId.slice(0, 8).toUpperCase()}`
-}
-
-function formatPence(pence: number): string {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-  }).format(pence / 100)
 }
