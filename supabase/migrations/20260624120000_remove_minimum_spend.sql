@@ -295,6 +295,10 @@ returns table (
   reward_event_id uuid,
   reward_name text,
   reward_terms text,
+  -- Retained in the return signature to match the earlier backend_hardening
+  -- definition; CI re-applies that migration and Postgres refuses to change a
+  -- function's return type. Left unassigned (null); no caller reads it.
+  min_spend_pence integer,
   membership_id uuid,
   current_stamp_count integer,
   customer_email text,
