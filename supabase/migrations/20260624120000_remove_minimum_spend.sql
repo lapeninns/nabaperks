@@ -921,6 +921,11 @@ begin
 end;
 $$;
 
-alter table public.loyalty_cards drop column if exists min_spend_pence;
-alter table public.reward_pool_items drop column if exists min_spend_pence;
-alter table public.reward_events drop column if exists min_spend_pence;
+-- NOTE: the `min_spend_pence` columns are intentionally retained (left vestigial)
+-- rather than dropped. This repo re-applies every non-initial migration on each
+-- run for idempotency, and earlier migrations still reference these columns;
+-- physically dropping them here makes those earlier migrations fail on re-apply
+-- with "column ... does not exist". Retiring minimum-spend at the function and
+-- application layer (above) is sufficient — new writes no longer populate the
+-- columns. A physical column drop must happen later via a migration-history
+-- squash, not an out-of-order DROP.
