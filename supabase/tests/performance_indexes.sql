@@ -234,6 +234,7 @@ insert into public.reward_events (
   status,
   reward_name,
   reward_terms,
+  min_spend_pence
 )
 values
   (

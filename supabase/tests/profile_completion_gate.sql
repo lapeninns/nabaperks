@@ -36,6 +36,7 @@ values (
 -- today. Only the profile gate stands between it and redemption.
 insert into public.reward_events (
   id, merchant_id, customer_id, membership_id, loyalty_card_id,
+  status, reward_name, reward_terms, min_spend_pence, redeemable_from
 )
 values (
   '1f000000-0000-0000-0000-0000000009a1',
