@@ -252,6 +252,7 @@ insert into public.reward_events (
   loyalty_card_id,
   reward_name,
   reward_terms,
+  min_spend_pence,
   redeemable_from,
   status,
   cycle_number
@@ -293,6 +294,7 @@ insert into public.reward_events (
   reward_pool_item_id,
   reward_name,
   reward_terms,
+  min_spend_pence,
   redeemable_from,
   status,
   cycle_number
@@ -348,6 +350,7 @@ insert into public.reward_events (
   loyalty_card_id,
   reward_name,
   reward_terms,
+  min_spend_pence,
   redeemable_from,
   status,
   cycle_number,
