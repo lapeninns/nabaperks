@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest"
 import { renderToStaticMarkup } from "react-dom/server"
 
+import {
+  POSTER_ACCENTS,
+  resolvePosterAccent,
+} from "@/app/qr/print/[asset]/[qrCodeId]/poster-accent"
+
 // Exercises the HTML print route (app/qr/print/[asset]/[qrCodeId]/page.tsx) that
 // Chromium captures into the counter poster. The route narrows owned rows into a
 // QrPrintContext; we mock the data layer wholesale (house style: resetModules ->
@@ -157,8 +162,8 @@ describe("qr print poster route", () => {
   })
 
   it("injects the resolved accent onto the poster root", async () => {
-    const { mod, html } = await renderRoute({ merchantId: "merchant-1" })
-    const expected = mod.resolvePosterAccent("merchant-1")
+    const { html } = await renderRoute({ merchantId: "merchant-1" })
+    const expected = resolvePosterAccent("merchant-1")
     expect(html).toContain(`--poster-accent:${expected.accent}`)
   })
 
@@ -169,8 +174,7 @@ describe("qr print poster route", () => {
 })
 
 describe("resolvePosterAccent", () => {
-  it("exposes the five Wet Ink accent inks", async () => {
-    const { POSTER_ACCENTS } = await loadPosterModule()
+  it("exposes the five Wet Ink accent inks", () => {
     expect(Object.keys(POSTER_ACCENTS).sort()).toEqual([
       "cobalt",
       "ink",
@@ -185,16 +189,14 @@ describe("resolvePosterAccent", () => {
     }
   })
 
-  it("is stable per merchant and stays within the palette", async () => {
-    const { resolvePosterAccent, POSTER_ACCENTS } = await loadPosterModule()
+  it("is stable per merchant and stays within the palette", () => {
     const first = resolvePosterAccent("merchant-1")
     const again = resolvePosterAccent("merchant-1")
     expect(again).toEqual(first)
     expect(POSTER_ACCENTS[first.key]).toEqual(first)
   })
 
-  it("derives different accents across merchants", async () => {
-    const { resolvePosterAccent } = await loadPosterModule()
+  it("derives different accents across merchants", () => {
     const keys = new Set(
       ["m-a", "m-b", "m-c", "m-d", "m-e", "m-f", "m-g", "m-h"].map(
         (id) => resolvePosterAccent(id).key
@@ -203,22 +205,19 @@ describe("resolvePosterAccent", () => {
     expect(keys.size).toBeGreaterThan(1)
   })
 
-  it("honours a valid override case-insensitively", async () => {
-    const { resolvePosterAccent } = await loadPosterModule()
+  it("honours a valid override case-insensitively", () => {
     expect(resolvePosterAccent("merchant-1", "cobalt").key).toBe("cobalt")
     expect(resolvePosterAccent("merchant-1", "COBALT").key).toBe("cobalt")
     expect(resolvePosterAccent("merchant-1", "cobalt").accent).toBe("#2b43c8")
   })
 
-  it("ignores an unknown override and falls back to the merchant accent", async () => {
-    const { resolvePosterAccent } = await loadPosterModule()
+  it("ignores an unknown override and falls back to the merchant accent", () => {
     expect(resolvePosterAccent("merchant-1", "magenta")).toEqual(
       resolvePosterAccent("merchant-1")
     )
   })
 
-  it("never selects the fixed sun ink from the per-merchant rotation", async () => {
-    const { resolvePosterAccent } = await loadPosterModule()
+  it("never selects the fixed sun ink from the per-merchant rotation", () => {
     const ids = Array.from({ length: 200 }, (_, i) => `merchant-${i}`)
     const keys = ids.map((id) => resolvePosterAccent(id).key)
     expect(keys).not.toContain("sun")
@@ -228,15 +227,13 @@ describe("resolvePosterAccent", () => {
     )
   })
 
-  it("still allows sun (and ink) via an explicit override", async () => {
-    const { resolvePosterAccent } = await loadPosterModule()
+  it("still allows sun (and ink) via an explicit override", () => {
     expect(resolvePosterAccent("merchant-1", "sun").key).toBe("sun")
     expect(resolvePosterAccent("merchant-1", "sun").accent).toBe("#f5a623")
     expect(resolvePosterAccent("merchant-1", "ink").key).toBe("ink")
   })
 
-  it("coerces a repeated ?accent= array to its first valid entry", async () => {
-    const { resolvePosterAccent } = await loadPosterModule()
+  it("coerces a repeated ?accent= array to its first valid entry", () => {
     expect(resolvePosterAccent("merchant-1", ["cobalt", "sun"]).key).toBe(
       "cobalt"
     )
