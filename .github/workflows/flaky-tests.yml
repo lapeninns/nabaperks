@@ -20,7 +20,7 @@ jobs:
     name: Repeat suite
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - name: Repeat-run the suite (shuffled)
         run: pnpm test:flaky --runs=${{ github.event.inputs.runs || '5' }} --sequence.shuffle
