@@ -68,11 +68,7 @@ function UnavailableQr() {
       className="content-center"
       screenLabel="Unavailable QR"
     >
-      <CustomerReceipt
-        venueName="Nabaperks"
-        title="This loyalty card is unavailable"
-        eyebrow="QR unavailable"
-      >
+      <CustomerReceipt venueName="Nabaperks" eyebrow="QR unavailable">
         <EmptyState
           icon={AlertDiamondIcon}
           title="This loyalty card is unavailable"
@@ -104,11 +100,7 @@ function RateLimitedQr() {
       className="content-center"
       screenLabel="QR busy"
     >
-      <CustomerReceipt
-        venueName="Nabaperks"
-        title="Too many scans just now"
-        eyebrow="Try again shortly"
-      >
+      <CustomerReceipt venueName="Nabaperks" eyebrow="Try again shortly">
         <EmptyState
           icon={AlertDiamondIcon}
           title="Too many scans just now"

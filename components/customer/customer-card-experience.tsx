@@ -214,7 +214,7 @@ function CardProgressPanel({
                   tone="success"
                   className="text-center"
                 >
-                  That&apos;s one. Your progress has been updated.
+                  That&apos;s one. Your progress is saved.
                 </StatusBanner>
               </StampCelebration>
             ) : null}
@@ -247,13 +247,18 @@ function CardProgressPanel({
             Your next scan window opens on the next UK business day.
           </StatusBanner>
         ) : (
-          <StatusBanner
-            title="Scan the venue code to add your stamp."
-            tone="neutral"
-          >
-            Use the printed QR in the venue. One stamp is available per UK
-            business day.
-          </StatusBanner>
+          <div className="grid gap-3">
+            <StatusBanner
+              title="Scan the venue code to add your stamp."
+              tone="neutral"
+            >
+              Use the printed QR in the venue. One stamp is available per UK
+              business day.
+            </StatusBanner>
+            <Button asChild size="lg" variant="secondary" className="w-full">
+              <Link href="/scan">Scan to stamp</Link>
+            </Button>
+          </div>
         )}
       </CustomerStampCard>
 

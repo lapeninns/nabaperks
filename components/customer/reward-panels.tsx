@@ -10,6 +10,7 @@ import {
   waitingRewardTiming,
   type CustomerExperienceViewModel,
 } from "@/lib/customer/experience/copy"
+import { formatRedeemedProofLine } from "@/lib/customer/experience/redeemed-proof"
 import type {
   CustomerExperience,
   RewardView,
@@ -65,10 +66,9 @@ export function RewardReadyPanel({
       />
       {exp.profileGate.complete ? (
         <>
-          <StatusBanner title="Ready for merchant scan." tone="success">
-            Show this QR at the counter. The merchant scans it from their device
-            and collects the reward.
-          </StatusBanner>
+          {/* One instruction per screen (F18b): the title confirms the state and
+              the single "scans this QR" line lives beside the QR itself. */}
+          <StatusBanner title="Ready for merchant scan." tone="success" />
           <RewardCollectionLive
             rewardId={exp.reward.rewardId}
             rewardName={exp.reward.rewardName}
@@ -91,6 +91,12 @@ export function RedeemedProofPanel({
   exp: Extract<CustomerExperience, { kind: "redeemed_proof" }>
   vm: CustomerExperienceViewModel
 }) {
+  // `redeemedAt` rides on the reward facts (see derive.ts) but the union shape for
+  // this case does not name it — narrow locally to read the collection instant.
+  const redeemedAt = (exp.reward as RewardView & { redeemedAt?: string | null })
+    .redeemedAt
+  const proofLine = formatRedeemedProofLine(redeemedAt, exp.merchantName)
+
   return (
     <section className="grid gap-5">
       <CustomerReceipt
@@ -107,6 +113,11 @@ export function RedeemedProofPanel({
         <StatusBanner title="Reward collected." tone="success">
           The merchant has scanned your QR. A new stamp cycle has started.
         </StatusBanner>
+        {proofLine ? (
+          <p className="text-center font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+            {proofLine}
+          </p>
+        ) : null}
       </CustomerReceipt>
       <PrimaryLink action={vm.primaryAction} />
     </section>

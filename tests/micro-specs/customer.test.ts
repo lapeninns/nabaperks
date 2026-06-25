@@ -301,7 +301,7 @@ describe("03 customer micro-specs", () => {
     expect(renderedText).toContain("Collect your stamp")
     expect(renderedText).toContain("Morning visits")
     expect(renderedText).toContain("3")
-    expect(renderedText).toContain("Collect my stamp")
+    expect(renderedText).toContain("Get today's stamp")
     expect(renderedText).toContain("View reward terms")
   })
 

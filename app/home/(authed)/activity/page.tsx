@@ -56,9 +56,12 @@ function ActivityRow({ item }: { item: CustomerActivityItem }) {
         <MonoTag tone={toneByCategory[item.category]}>
           {item.badgeLabel}
         </MonoTag>
-        <span className="font-mono text-[0.625rem] font-bold tracking-[0.06em] text-muted-foreground uppercase">
+        <time
+          dateTime={item.createdAt}
+          className="font-mono text-[0.625rem] font-bold tracking-[0.06em] text-muted-foreground uppercase"
+        >
           {formatRelativeTime(item.createdAt)}
-        </span>
+        </time>
       </div>
       <p className="text-sm leading-snug font-bold">{item.title}</p>
       <p className="text-sm leading-6 text-muted-foreground">

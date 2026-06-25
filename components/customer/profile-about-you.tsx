@@ -237,6 +237,7 @@ function AboutYouEmailVerify({ email }: { email: string | null }) {
             name="otp"
             inputMode="numeric"
             autoComplete="one-time-code"
+            autoFocus
             className={`${profileInputClass} font-mono`}
             aria-invalid={Boolean(state.errors?.otp)}
           />

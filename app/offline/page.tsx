@@ -15,7 +15,7 @@ export default function OfflinePage() {
         <EmptyState
           icon={NoInternetIcon}
           title="You're offline"
-          description="Cards, stamps, rewards, merchant tools, and admin tools need a connection because Nabaperks keeps the server as the source of truth."
+          description="Your cards and stamps live safely with us. Reconnect and they will be right here."
           headingLevel={1}
         />
         <div className="mt-5 flex justify-center">

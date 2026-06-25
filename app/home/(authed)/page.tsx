@@ -19,7 +19,7 @@ export default async function HomeDashboardPage() {
       <PageTitle
         eyebrow="My Nabaperks"
         title="Your cards"
-        description="Every loyalty card you've collected, in one place. Tap a card to add a stamp or redeem."
+        description="Every card you've collected. Tap one to see its stamps and rewards."
       />
 
       {cards.length === 0 ? (

@@ -26,22 +26,32 @@ function vibrate(pattern: number | number[]) {
 }
 
 function StampDiscFace({
-  secured,
+  confirmed,
+  pending,
   initials,
 }: {
-  secured: boolean
+  /** Server-confirmed stamp — the only state that earns the green leaf disc. */
+  confirmed: boolean
+  /** Optimistic stamp in flight — stays the neutral stamp colour, lightly dimmed. */
+  pending: boolean
   initials: string
 }) {
   return (
     <span
       className={cn(
-        "grid size-[5.5rem] place-items-center rounded-full border-2 border-ink shadow-md",
-        secured
+        "grid size-[5.5rem] place-items-center rounded-full border-2 border-ink shadow-md transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
+        confirmed
           ? "bg-reward text-reward-foreground"
-          : "bg-stamp text-stamp-foreground"
+          : "bg-stamp text-stamp-foreground",
+        // A press is not yet a success: the optimistic mark sits in a muted
+        // stamp tint until the server confirms (then it flips to green) or
+        // declines (then it returns to the full stamp colour).
+        pending && !confirmed
+          ? "bg-stamp/85 motion-safe:animate-pulse"
+          : undefined
       )}
     >
-      {secured ? (
+      {confirmed ? (
         <Icon icon={CheckmarkBadge04Icon} size={34} />
       ) : initials ? (
         <span className="font-mono text-xl font-bold tracking-[0.04em] uppercase">
@@ -67,14 +77,28 @@ export function StampPressButton({
   venueName,
   disabled = false,
   secured = false,
+  confirmed = false,
+  pending = false,
   holdMs = 600,
   label = "Add today's stamp",
 }: {
   onStamp: () => void
   venueName?: string
   disabled?: boolean
-  /** The stamp has landed — show the confirmed disc and ignore input. */
+  /**
+   * Input is locked — the stamp has landed (optimistically or for real) or the
+   * window is closed. Drives the accessible name, the breathe pause and the
+   * disabled-input gate, but NOT the disc colour (see `confirmed`).
+   */
   secured?: boolean
+  /**
+   * The server confirmed the stamp ("issued") — the only signal that flips the
+   * disc to the success-green leaf. Kept distinct from `secured` so an optimistic
+   * press never shows a success colour the server might un-happen (friction F10).
+   */
+  confirmed?: boolean
+  /** Optimistic stamp in flight — neutral pending treatment, not green. */
+  pending?: boolean
   holdMs?: number
   label?: string
 }) {
@@ -222,7 +246,11 @@ export function StampPressButton({
             strokeDashoffset={RING_CIRCUMFERENCE}
           />
         </svg>
-        <StampDiscFace secured={secured} initials={initials} />
+        <StampDiscFace
+          confirmed={confirmed}
+          pending={pending}
+          initials={initials}
+        />
         {/* Names the gesture for assistive tech without altering the button's
             accessible name (kept as the label for e2e role-name locators). */}
         <span id={hintId} className="sr-only">

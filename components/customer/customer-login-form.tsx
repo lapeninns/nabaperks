@@ -9,6 +9,7 @@ import {
 } from "@/app/home/actions"
 import { customerInputClass } from "@/components/customer/input-class"
 import { Button } from "@/components/ui/button"
+import { otpFieldMaxLength } from "@/lib/customer/experience/otp-field"
 
 const initialState: CustomerLoginOtpState = {}
 
@@ -94,11 +95,21 @@ export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
               name="otp"
               inputMode="numeric"
               autoComplete="one-time-code"
+              autoFocus
+              maxLength={otpFieldMaxLength()}
               className={`${customerInputClass} font-mono`}
               aria-invalid={Boolean(state.errors?.otp)}
+              aria-describedby={state.errors?.otp ? "otp-error" : undefined}
             />
             {state.errors?.otp ? (
-              <p className="text-sm text-destructive">{state.errors.otp}</p>
+              <p
+                id="otp-error"
+                role="alert"
+                aria-live="assertive"
+                className="text-sm text-destructive"
+              >
+                {state.errors.otp}
+              </p>
             ) : null}
           </div>
           <Button type="submit" disabled={verifyPending}>

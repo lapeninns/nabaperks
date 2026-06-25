@@ -102,6 +102,8 @@ export type RewardContext =
       merchantName: string
       status: string
       redeemable: boolean
+      /** Server-confirmed collection instant for the redeemed-proof line (F26). */
+      redeemedAt?: string | null
       location: LocationRequirement
       profileGate?: ProfileGate
     }
@@ -346,11 +348,16 @@ function deriveReward(context: RewardContext): CustomerExperience {
 
   switch (kind) {
     case "redeemed_proof":
+      // The collection instant rides on the reward facts so the panel can show a
+      // quiet proof line (F26). The union shape is unchanged for every other
+      // reader; the panel narrows `reward` locally to read the extra field. The
+      // cast mirrors `stampScreenExperience` above — a structurally-additive
+      // field that the type for this case does not name.
       return {
         kind: "redeemed_proof",
-        reward: context.reward,
+        reward: { ...context.reward, redeemedAt: context.redeemedAt ?? null },
         merchantName: context.merchantName,
-      }
+      } as CustomerExperience
     case "reward_ready":
       return {
         kind: "reward_ready",

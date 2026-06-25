@@ -1,11 +1,12 @@
 "use client"
 
-import type { ReactNode } from "react"
+import { useTransition, type ReactNode } from "react"
 import Link from "next/link"
 
 import { VenueMark } from "@/components/brand"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
+import { retryButtonState } from "@/lib/customer/experience/retry-button"
 
 /**
  * Shared Wet Ink surface for customer error boundaries. Pairs the brand venue
@@ -26,6 +27,9 @@ export function CustomerErrorState({
   reset?: () => void
   secondaryAction?: { label: string; href: string }
 }) {
+  const [isPending, startTransition] = useTransition()
+  const retry = retryButtonState(isPending)
+
   return (
     <section className="grid justify-items-center gap-5 text-center">
       <VenueMark size={56} name="Nabaperks" caption="Nabaperks" />
@@ -35,8 +39,15 @@ export function CustomerErrorState({
       {reset || secondaryAction ? (
         <div className="grid w-full gap-2">
           {reset ? (
-            <Button type="button" size="lg" className="w-full" onClick={reset}>
-              Try again
+            <Button
+              type="button"
+              size="lg"
+              className="w-full"
+              disabled={retry.disabled}
+              aria-busy={isPending}
+              onClick={() => startTransition(() => reset())}
+            >
+              {retry.label}
             </Button>
           ) : null}
           {secondaryAction ? (

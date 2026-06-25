@@ -79,7 +79,7 @@ export default async function MerchantRewardsPage({
 
       <div className="grid gap-3">
         <Button asChild size="lg" className="w-full">
-          <Link href={`/m/${merchantSlug}/join`}>Collect my stamp</Link>
+          <Link href={`/m/${merchantSlug}/join`}>{"Get today's stamp"}</Link>
         </Button>
         <CustomerVenueTermsSheet
           venueTerms={{
