@@ -38,11 +38,8 @@ export async function enforceRateLimit({
 }
 
 export function rateLimitIdentityFromHeaders(headers: Headers): string {
-  const forwardedFor = firstHeaderValue(headers.get("x-forwarded-for"))
-  const realIp = firstHeaderValue(headers.get("x-real-ip"))
-  const vercelIp = firstHeaderValue(headers.get("x-vercel-forwarded-for"))
+  const ip = trustedClientIp(headers)
   const userAgent = headers.get("user-agent")?.trim().slice(0, 160) || "unknown"
-  const ip = forwardedFor || vercelIp || realIp || "unknown"
 
   return createHash("sha256")
     .update(`${ip}:${userAgent}`)
@@ -50,7 +47,31 @@ export function rateLimitIdentityFromHeaders(headers: Headers): string {
     .slice(0, 32)
 }
 
-function firstHeaderValue(value: string | null): string | null {
-  const first = value?.split(",")[0]?.trim()
-  return first || null
+// Resolve the IP the rate-limit bucket is keyed on from sources a client cannot
+// forge. A client can set `x-forwarded-for` / `x-real-ip` to anything, so keying
+// on the left-most forwarded entry lets an attacker rotate the header to mint a
+// fresh bucket per request (evading the per-IP limit) or pin it to a victim's IP
+// (poisoning their bucket). We trust only:
+//   1. `x-vercel-forwarded-for` — the connecting IP Vercel resolves at the edge
+//      and overwrites on every inbound request, so it cannot be spoofed.
+//   2. the right-most `x-forwarded-for` hop — the address the nearest trusted
+//      proxy actually observed (a client can only prepend on the left) — as a
+//      fallback for non-Vercel single-proxy deployments and local development.
+// The left-most `x-forwarded-for` and raw `x-real-ip` values are never trusted.
+function trustedClientIp(headers: Headers): string {
+  const verifiedIp = forwardedSegments(headers.get("x-vercel-forwarded-for"))[0]
+  if (verifiedIp) return verifiedIp
+
+  const observedHops = forwardedSegments(headers.get("x-forwarded-for"))
+  const nearestHop = observedHops[observedHops.length - 1]
+  if (nearestHop) return nearestHop
+
+  return "unknown"
+}
+
+function forwardedSegments(value: string | null): string[] {
+  return (value ?? "")
+    .split(",")
+    .map((segment) => segment.trim())
+    .filter(Boolean)
 }
