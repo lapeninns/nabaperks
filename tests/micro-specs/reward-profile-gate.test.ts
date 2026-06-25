@@ -25,7 +25,6 @@ const rewardView = {
   membershipId: "membership-1",
   rewardName: "Coffee upgrade",
   rewardTerms: "Free size upgrade.",
-  minSpendPence: 350,
   redeemableFrom: "2026-06-13",
 }
 
@@ -38,6 +37,58 @@ function gate(overrides: Partial<ProfileGate> = {}): ProfileGate {
     email: null,
     emailLocked: false,
     ...overrides,
+  }
+}
+
+function mockCurrentCustomer() {
+  vi.doMock("@/lib/customer/identity", () => ({
+    getCurrentCustomer: vi.fn(async () => ({
+      id: "customer-1",
+      authUserId: null,
+      email: null,
+      emailVerifiedAt: null,
+      fullName: "Sam Taylor",
+      dateOfBirth: "1990-01-01",
+      phone: "Phone ending 3456",
+      phoneLast4: "3456",
+      phoneCountry: "GB",
+      createdAt: "2026-06-13T12:00:00.000Z",
+    })),
+  }))
+}
+
+function rewardStateRow(locationId: string | null) {
+  return {
+    id: "reward-1",
+    status: "unlocked",
+    membership_id: "membership-1",
+    merchant_id: "merchant-1",
+    customer_id: "customer-1",
+    created_at: "2026-06-06T12:00:00.000Z",
+    redeemed_at: null,
+    reward_name: "Coffee upgrade",
+    reward_terms: "Free size upgrade.",
+    redeemable_from: "2999-06-13",
+    expires_at: null,
+    expired_at: null,
+    customer_memberships: {
+      current_stamp_count: 3,
+      total_rewards_redeemed: 0,
+    },
+    merchants: {
+      business_name: "Old Crown Girton",
+      business_slug: "old-crown-girton",
+      status: "active",
+      billing_customers: { status: "active" },
+    },
+    loyalty_cards: {
+      card_name: "Mystery Visit Card",
+      stamps_required: 3,
+      reward_name: "Surprise reward",
+      reward_terms: "Complete 3 visits.",
+      location_id: locationId,
+      is_active: true,
+    },
   }
 }
 
@@ -147,6 +198,82 @@ describe("reward experience carries the profile gate", () => {
     expect(html).toContain("Verified")
     expect(html).not.toContain('name="email"')
     expect(html).not.toContain("Continue without email")
+  })
+})
+
+describe("reward experience location requirement", () => {
+  afterEach(() => {
+    vi.resetModules()
+    vi.clearAllMocks()
+    vi.doUnmock("@/lib/supabase/server")
+    vi.doUnmock("@/lib/customer/identity")
+  })
+
+  it("uses the location already loaded with the reward card", async () => {
+    vi.resetModules()
+    const supabase = createSupabaseMock({
+      from: {
+        reward_events: [{ data: rewardStateRow("location-1"), error: null }],
+        merchant_locations: [
+          {
+            data: {
+              require_geofence: true,
+              geofence_radius_meters: 75,
+            },
+            error: null,
+          },
+        ],
+      },
+    })
+    mockCurrentCustomer()
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
+    }))
+    const { loadRewardExperienceContext } =
+      await import("@/lib/customer/experience/load-reward")
+
+    await expect(
+      loadRewardExperienceContext("reward-1")
+    ).resolves.toMatchObject({
+      location: { requireGeofence: true, geofenceRadiusMeters: 75 },
+    })
+    expect(
+      supabase.queryCalls.filter(
+        (call) => call.table === "reward_events" && call.method === "select"
+      )
+    ).toHaveLength(1)
+    expect(
+      supabase.queryCalls.filter((call) => call.table === "loyalty_cards")
+    ).toHaveLength(0)
+    expect(supabase.queryCalls).toContainEqual({
+      table: "merchant_locations",
+      method: "eq",
+      args: ["id", "location-1"],
+    })
+  })
+
+  it("keeps the no-location reward fallback without an extra location query", async () => {
+    vi.resetModules()
+    const supabase = createSupabaseMock({
+      from: {
+        reward_events: [{ data: rewardStateRow(null), error: null }],
+      },
+    })
+    mockCurrentCustomer()
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
+    }))
+    const { loadRewardExperienceContext } =
+      await import("@/lib/customer/experience/load-reward")
+
+    await expect(
+      loadRewardExperienceContext("reward-1")
+    ).resolves.toMatchObject({
+      location: { requireGeofence: false, geofenceRadiusMeters: 150 },
+    })
+    expect(
+      supabase.queryCalls.some((call) => call.table === "merchant_locations")
+    ).toBe(false)
   })
 })
 

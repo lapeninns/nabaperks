@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { PageTitle } from "@/components/brand"
 import { CustomerProfileAboutYou } from "@/components/customer/profile-about-you"
 import { CustomerProfileMarketing } from "@/components/customer/profile-marketing-consent"
+import { PushNotificationSettings } from "@/components/customer/push-notification-settings"
 import { StatusBanner } from "@/components/loyalty"
 import { getCustomerProfile } from "@/lib/customer/profile"
 import { formatMonthYear } from "@/lib/customer/format"
@@ -51,6 +52,8 @@ export default async function HomeProfilePage() {
       />
 
       <CustomerProfileMarketing consents={profile.consents} />
+
+      <PushNotificationSettings />
 
       <p className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
         Member since {formatMonthYear(profile.memberSince)} · {venueLabel}

@@ -5,17 +5,14 @@ import {
   type ActiveCardSummary,
   type QrCodeSummary,
 } from "@/lib/merchant/qr-code"
+import {
+  LAUNCH_SETUP_STEP_LABELS,
+  type LaunchReadinessStepId,
+  type LaunchReadinessTab,
+} from "@/lib/merchant/launch-readiness-contract"
 
-export type LaunchReadinessTab = "card" | "rewards" | "venue" | "qr"
-export type LaunchReadinessStepId = "card" | "rewards" | "venue" | "qr"
-
-/** Merchant-facing names for the four launch setup steps (not customer stamps). */
-export const LAUNCH_SETUP_STEP_LABELS: Record<LaunchReadinessStepId, string> = {
-  card: "Your card",
-  rewards: "Your rewards",
-  venue: "Your venue",
-  qr: "Print your QR",
-}
+export { LAUNCH_SETUP_STEP_LABELS }
+export type { LaunchReadinessStepId, LaunchReadinessTab }
 
 export type LaunchReadinessStep = {
   id: LaunchReadinessStepId
@@ -51,33 +48,32 @@ type BuildLaunchReadinessInput = {
   } | null
 }
 
+type LaunchLocation = BuildLaunchReadinessInput["location"]
+
 export function buildLaunchReadiness({
   activeCard,
   activeRewardPoolItemCount,
   qrCode,
   location,
 }: BuildLaunchReadinessInput): LaunchReadiness {
-  const hasQr = Boolean(qrCode)
-  const qrIsActive = Boolean(qrCode?.is_active)
-  const venueReady = Boolean(
-    location?.address &&
-    (!location.require_geofence ||
-      (location.latitude !== null && location.longitude !== null))
-  )
+  const cardReady = activeCard !== null
+  const rewardsReady = activeRewardPoolItemCount >= 3
+  const venueReady = isVenueReady(location)
+  const qrReady = qrCode?.is_active === true
   const steps: LaunchReadinessStep[] = [
     {
       id: "card",
       tab: "card",
       label: LAUNCH_SETUP_STEP_LABELS.card,
-      ready: Boolean(activeCard),
+      ready: cardReady,
       href: "/app/launch?tab=card",
-      actionLabel: activeCard ? "Review card" : "Build card",
+      actionLabel: cardActionLabel(cardReady),
     },
     {
       id: "rewards",
       tab: "rewards",
       label: LAUNCH_SETUP_STEP_LABELS.rewards,
-      ready: activeRewardPoolItemCount >= 3,
+      ready: rewardsReady,
       href: "/app/launch?tab=rewards",
       actionLabel: "Add rewards",
     },
@@ -93,17 +89,17 @@ export function buildLaunchReadiness({
       id: "qr",
       tab: "qr",
       label: LAUNCH_SETUP_STEP_LABELS.qr,
-      ready: qrIsActive,
+      ready: qrReady,
       href: "/app/launch?tab=qr",
-      actionLabel: hasQr ? "Open QR" : "Generate QR",
+      actionLabel: qrActionLabel(qrCode !== null),
     },
   ]
   const completed = steps.filter((step) => step.ready).length
   const tabs = {
-    card: steps.find((step) => step.id === "card")?.ready ?? false,
-    rewards: steps.find((step) => step.id === "rewards")?.ready ?? false,
-    venue: steps.find((step) => step.id === "venue")?.ready ?? false,
-    qr: steps.find((step) => step.id === "qr")?.ready ?? false,
+    card: cardReady,
+    rewards: rewardsReady,
+    venue: venueReady,
+    qr: qrReady,
   }
 
   return {
@@ -114,6 +110,26 @@ export function buildLaunchReadiness({
     nextStep: steps.find((step) => !step.ready) ?? null,
     tabs,
   }
+}
+
+function isVenueReady(location: LaunchLocation): boolean {
+  if (!location?.address) {
+    return false
+  }
+
+  return !location.require_geofence || hasVenueCoordinates(location)
+}
+
+function hasVenueCoordinates(location: NonNullable<LaunchLocation>): boolean {
+  return location.latitude !== null && location.longitude !== null
+}
+
+function cardActionLabel(cardReady: boolean): string {
+  return cardReady ? "Review card" : "Build card"
+}
+
+function qrActionLabel(hasQr: boolean): string {
+  return hasQr ? "Open QR" : "Generate QR"
 }
 
 export async function getMerchantLaunchReadiness() {

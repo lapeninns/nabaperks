@@ -9,6 +9,7 @@ import { logger } from "@/lib/observability/logger"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type GeoCoordinates = {
+  readonly qrId?: string | null
   readonly latitude?: number | null
   readonly longitude?: number | null
   readonly accuracyMeters?: number | null
@@ -34,6 +35,7 @@ type IssuedStampResult = Extract<
 type IssueStampRpcParams = {
   readonly p_membership_id: string
   readonly p_customer_id: string
+  readonly p_qr_id: string | null
   readonly p_latitude: number | null
   readonly p_longitude: number | null
   readonly p_accuracy_meters: number | null
@@ -77,6 +79,7 @@ function buildIssueStampRpcParams(
   return {
     p_membership_id: membershipId,
     p_customer_id: customerId,
+    p_qr_id: coordinates?.qrId ?? null,
     p_latitude: coordinates?.latitude ?? null,
     p_longitude: coordinates?.longitude ?? null,
     p_accuracy_meters: coordinates?.accuracyMeters ?? null,
@@ -189,54 +192,11 @@ export async function getMerchantStampLocationRequirement(
   return getLocationRequirement(locationId)
 }
 
-export async function getRewardLocationRequirement(
-  rewardId: string
+export async function getLocationRequirement(
+  locationId: string | null | undefined
 ): Promise<LocationRequirement> {
-  const customer = await getCurrentCustomer()
-
-  if (!customer) return defaultLocationRequirement()
-
-  const supabase = createSupabaseServiceRoleClient()
-  const { data: reward, error: rewardError } = await supabase
-    .from("reward_events")
-    .select("loyalty_card_id, customer_id")
-    .eq("id", rewardId)
-    .maybeSingle()
-
-  if (rewardError) {
-    throw new Error(`Unable to load reward location: ${rewardError.message}`)
-  }
-
-  if (!isRecord(reward)) return defaultLocationRequirement()
-
-  if (stringValue(reward.customer_id) !== customer.id) {
-    return defaultLocationRequirement()
-  }
-
-  const loyaltyCardId = stringValue(reward.loyalty_card_id)
-  if (!loyaltyCardId) return defaultLocationRequirement()
-
-  const { data: card, error: cardError } = await supabase
-    .from("loyalty_cards")
-    .select("location_id")
-    .eq("id", loyaltyCardId)
-    .maybeSingle()
-
-  if (cardError) {
-    throw new Error(`Unable to load reward card location: ${cardError.message}`)
-  }
-
-  if (!isRecord(card)) return defaultLocationRequirement()
-
-  const locationId = stringValue(card.location_id)
   if (!locationId) return defaultLocationRequirement()
 
-  return getLocationRequirement(locationId)
-}
-
-async function getLocationRequirement(
-  locationId: string
-): Promise<LocationRequirement> {
   const supabase = createSupabaseServiceRoleClient()
   const { data: location, error } = await supabase
     .from("merchant_locations")

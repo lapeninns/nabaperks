@@ -67,6 +67,10 @@ export function createSupabaseMock(config: MockConfig = {}) {
         queryCalls.push({ table, method: "lt", args })
         return api
       }),
+      lte: vi.fn((...args: unknown[]) => {
+        queryCalls.push({ table, method: "lte", args })
+        return api
+      }),
       in: vi.fn((...args: unknown[]) => {
         queryCalls.push({ table, method: "in", args })
         return api

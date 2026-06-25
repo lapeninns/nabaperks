@@ -56,7 +56,6 @@ export type CardContext =
         id: string
         name: string
         terms: string
-        minSpendPence: number | null
         redeemableFrom: string | null
         redeemable: boolean
       } | null
@@ -103,6 +102,8 @@ export type RewardContext =
       merchantName: string
       status: string
       redeemable: boolean
+      /** Server-confirmed collection instant for the redeemed-proof line (F26). */
+      redeemedAt?: string | null
       location: LocationRequirement
       profileGate?: ProfileGate
     }
@@ -178,7 +179,6 @@ function deriveCard(context: CardContext): CustomerExperience {
     rewardId: reward?.id,
     rewardName: reward?.name,
     rewardTerms: reward?.terms ?? context.rewardTerms,
-    minSpendPence: reward?.minSpendPence ?? null,
     rewardRedeemableFrom: reward?.redeemableFrom ?? null,
     stampDates: context.stampDates,
     justStamped: context.justStamped,
@@ -348,11 +348,16 @@ function deriveReward(context: RewardContext): CustomerExperience {
 
   switch (kind) {
     case "redeemed_proof":
+      // The collection instant rides on the reward facts so the panel can show a
+      // quiet proof line (F26). The union shape is unchanged for every other
+      // reader; the panel narrows `reward` locally to read the extra field. The
+      // cast mirrors `stampScreenExperience` above — a structurally-additive
+      // field that the type for this case does not name.
       return {
         kind: "redeemed_proof",
-        reward: context.reward,
+        reward: { ...context.reward, redeemedAt: context.redeemedAt ?? null },
         merchantName: context.merchantName,
-      }
+      } as CustomerExperience
     case "reward_ready":
       return {
         kind: "reward_ready",
@@ -470,7 +475,6 @@ function stripRedeemable(
     membershipId: reward.membershipId,
     rewardName: reward.rewardName,
     rewardTerms: reward.rewardTerms,
-    minSpendPence: reward.minSpendPence,
     redeemableFrom: reward.redeemableFrom,
   }
 }

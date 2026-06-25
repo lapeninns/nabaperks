@@ -1,0 +1,215 @@
+ID,Role,Area,Title,Priority,Type,Preconditions,Steps,Expected Result,Traceability
+CUST-QR-01,Customer,QR resolve & join,New visitor active QR routes to join,P0,Happy,Customer reset; demo QR active,Open /q/old-crown-girton-qr,Scan recorded; routes to merchant join (phone-first) with branded card preview,QR-RESOLVER-JOIN
+CUST-QR-02,Customer,QR resolve & join,Existing member active QR routes to stamp-confirm,P0,Happy,Active membership exists,Open /q/old-crown-girton-qr,Routes to stamp-confirm not join; no new membership,QR-RESOLVER-JOIN
+CUST-QR-03,Customer,QR resolve & join,Unknown QR id shows unavailable,P1,Negative,None,Open /q/does-not-exist,Unavailable surface; no merchant/id leak; no crash,QR-RESOLVER-JOIN
+CUST-QR-04,Customer,QR resolve & join,Admin-disabled QR records scan but blocks entry,P1,Edge,QR disabled by admin,Open /q/old-crown-girton-qr,Scan recorded; entry blocked with unavailable message,DYNAMIC-QR
+CUST-QR-05,Customer,QR resolve & join,Missing merchant slug safe-fail,P2,Negative,None,Open /m/missing-merchant/join,Safe-fail unavailable page; no id leak,QR-RESOLVER-JOIN
+CUST-QR-06,Customer,QR resolve & join,Active QR records qr_scanned event,P2,Happy,None,Scan QR; check /admin/audit or product events,qr_scanned event written with tenant and time,EVENTS-ANALYTICS
+CUST-QR-07,Customer,QR resolve & join,Returning member no duplicate membership,P1,Happy,Existing member,Scan QR again; check memberships,No duplicate membership row created,QR-RESOLVER-JOIN
+CUST-QR-08,Customer,QR resolve & join,Second merchant join is independent,P2,Edge,Member of merchant A,Open /q/bubble-test-qr and join,Separate membership and card created for merchant B,QR-RESOLVER-JOIN
+CUST-OTP-01,Customer,Phone verification,UK 07 number accepted stored E.164,P0,Happy,On join screen,Enter 07467586751; continue,Accepted; OTP sent (dev no SMS); stored as +44 E.164,QR-RESOLVER-JOIN
+CUST-OTP-02,Customer,Phone verification,International +44 format accepted,P1,Edge,On join screen,Enter +447467586751,Accepted and normalised,QR-RESOLVER-JOIN
+CUST-OTP-03,Customer,Phone verification,Phone with spaces normalised,P2,Edge,On join screen,Enter 07467 586751,Accepted; normalised to E.164,QR-RESOLVER-JOIN
+CUST-OTP-04,Customer,Phone verification,Non-UK or invalid phone rejected,P1,Negative,On join screen,Enter +15555550123 or letters,Inline validation error; cannot continue,QR-RESOLVER-JOIN
+CUST-OTP-05,Customer,Phone verification,Empty phone validation,P2,Negative,On join screen,Leave phone blank; submit,Required-field error,QR-RESOLVER-JOIN
+CUST-OTP-06,Customer,Phone verification,Correct dev OTP verifies,P0,Happy,CUSTOMER_DEV_OTP_CODE=424242,Enter 424242,Verified; proceeds to terms/membership,QR-RESOLVER-JOIN
+CUST-OTP-07,Customer,Phone verification,Wrong OTP rejected,P1,Negative,OTP requested,Enter 000000,Rejected with retry; not verified,QR-RESOLVER-JOIN
+CUST-OTP-08,Customer,Phone verification,OTP resend issues new code with cooldown,P2,Edge,OTP requested,Tap resend,New code; resend cooldown shown,QR-RESOLVER-JOIN
+CUST-OTP-09,Customer,Phone verification,OTP send rate-limited,P1,Security,None,Request OTP repeatedly,Throttled after threshold; try-again-later,SECURITY-FRAUD-RATE-LIMITS
+CUST-OTP-10,Customer,Phone verification,Expired/stale OTP rejected,P2,Edge,OTP requested then wait past TTL,Enter old code,Rejected as expired,QR-RESOLVER-JOIN
+CUST-OTP-11,Customer,Phone verification,Repeated wrong OTP backoff,P2,Security,OTP requested,Enter wrong code many times,Backoff/lockout enforced,SECURITY-FRAUD-RATE-LIMITS
+CUST-OTP-12,Customer,Phone verification,Twilio outage path graceful,P2,Resilience,Prod-like with Twilio failing,Trigger OTP send,Graceful error; no crash; user can retry,QR-RESOLVER-JOIN
+CUST-CON-01,Customer,Consent & legal,Terms plus verify creates/reuses profile and membership,P0,Happy,Verified phone,Accept loyalty terms,Profile and membership created/reused; first card shown,QR-RESOLVER-JOIN
+CUST-CON-02,Customer,Consent & legal,Loyalty terms separate from marketing opt-in,P1,Happy,On join,Inspect controls,Terms and marketing opt-in are separate controls,CONSENT-LEGAL
+CUST-CON-03,Customer,Consent & legal,Unchecked opt-in records no marketing consent,P1,Security,On join,Leave marketing unchecked; join,No marketing consent recorded,CONSENT-LEGAL
+CUST-CON-04,Customer,Consent & legal,Opt-in records consent with source and version,P1,Security,On join,Check marketing; join,Consent recorded with source and version,CONSENT-LEGAL
+CUST-CON-05,Customer,Consent & legal,Reward terms shown before and during participation,P2,Happy,Member,View card/reward,Reward terms displayed,CONSENT-LEGAL
+CUST-CON-06,Customer,Consent & legal,Soft-GPS legal copy minimized and non-blocking,P2,Happy,At stamp 3,Read GPS notice,Explains minimized evidence; no raw coordinates; non-blocking,CONSENT-LEGAL
+CUST-CON-07,Customer,Consent & legal,Opt-out recorded without deleting history,P2,Security,Marketing opted-in,Opt out in profile,Opt-out recorded; consent history retained,CONSENT-LEGAL
+CUST-CON-08,Customer,Consent & legal,Terms links open privacy and terms pages,P2,Happy,On join,Tap terms/privacy links,Pages /terms and /privacy render,CONSENT-LEGAL
+CUST-STA-01,Customer,Stamp card,Pre-unlock shows count target and locked teaser,P0,Happy,0-2 stamps,View card,Shows current count target 3 and locked reward teaser,DIGITAL-STAMP-CARD
+CUST-STA-02,Customer,Stamp card,Stamp day 1 records and increments,P0,Happy,Member 0 stamps,From QR tap add stamp,Stamp recorded; 1 of 3; come-back-tomorrow prompt,STAMP-ISSUING
+CUST-STA-03,Customer,Stamp card,Duplicate same UK business day rejected,P0,Negative,Stamped today,Try to stamp again same day,Rejected already-stamped-today; count unchanged,STAMP-ISSUING
+CUST-STA-04,Customer,Stamp card,Stamp day 2 next business day,P0,Happy,1 stamp; advance 1 day,Stamp again,Count increments to 2 of 3,STAMP-ISSUING
+CUST-STA-05,Customer,Stamp card,Weekend gate blocks until Monday,P1,Edge,Stamped Friday,Attempt stamp Saturday/Sunday,Blocked until next business day (Monday),STAMP-ISSUING
+CUST-STA-06,Customer,Stamp card,DST boundary business-day correct,P2,Edge,Around BST/GMT change,Stamp across clock change,Business date computed correctly in Europe/London,STAMP-ISSUING
+CUST-STA-07,Customer,Stamp card,Third stamp unlocks exactly one weighted reward,P0,Happy,2 stamps,Issue third stamp,Exactly one reward assigned from weighted pool; 3 of 3 unlocked,REWARD-UNLOCK-REDEMPTION
+CUST-STA-08,Customer,Stamp card,No GPS request on stamp 1 and 2,P1,Edge,Cycle stamp 1/2,Stamp,No GPS prompt; no GPS-unknown fraud flag,STAMP-ISSUING
+CUST-STA-09,Customer,Stamp card,GPS requested on stamp 3 when geofence on,P1,Edge,Geofence enabled,Issue stamp 3,High-accuracy GPS requested,STAMP-ISSUING
+CUST-STA-10,Customer,Stamp card,GPS denied still issues stamp,P0,Edge,Stamp 3; deny GPS,Issue stamp,Stamp still issues; never blocks; fraud flag may be written,STAMP-ISSUING
+CUST-STA-11,Customer,Stamp card,GPS timeout/unsupported/unavailable still issues,P1,Edge,Stamp 3; GPS unavailable,Issue stamp,Stamp issues regardless,STAMP-ISSUING
+CUST-STA-12,Customer,Stamp card,Poor-accuracy GPS still issues,P2,Edge,Stamp 3; low accuracy fix,Issue stamp,Stamp issues; flagged for review,STAMP-ISSUING
+CUST-STA-13,Customer,Stamp card,No raw lat/lon stored in stamp evidence,P1,Security,Stamp 3 with GPS,Issue stamp; inspect evidence,Evidence stores buckets not raw coordinates,SECURITY-FRAUD-RATE-LIMITS
+CUST-STA-14,Customer,Stamp card,Plain card without QR tells user to scan,P2,Edge,Member,Open card without scan context,Prompts to scan the venue code,DIGITAL-STAMP-CARD
+CUST-STA-15,Customer,Stamp card,Viewing another members card denied,P0,Security,Two members,Open /card/<other-id>,Access denied; no data shown,DIGITAL-STAMP-CARD
+CUST-STA-16,Customer,Stamp card,Repeated stamp attempts rate-limited,P1,Security,Member,Spam stamp action,Rate-limited; cooldown enforced server-side,SECURITY-FRAUD-RATE-LIMITS
+CUST-STA-17,Customer,Stamp card,Stamp blocked when card inactive,P1,Edge,Card deactivated,Scan and try stamp,New stamp claim blocked,LOYALTY-CARD-BUILDER
+CUST-STA-18,Customer,Stamp card,Stamp blocked when billing cancelled/suspended,P1,Edge,Merchant cancelled/suspended,Scan and try stamp,Issuance blocked with clear message,BILLING-STRIPE
+CUST-STA-19,Customer,Stamp card,Concurrent stamp two tabs one succeeds,P2,Concurrency,Member; two tabs,Tap stamp simultaneously,At most one stamp recorded,STAMP-ISSUING
+CUST-STA-20,Customer,Stamp card,Stamp at A does not affect B card,P2,Edge,Member of A and B,Stamp at A,Only A card increments,DIGITAL-STAMP-CARD
+CUST-STA-21,Customer,Stamp card,Stamp resubmit idempotent,P2,Negative,Member,Resubmit stamp request,No double stamp,STAMP-ISSUING
+CUST-REW-01,Customer,Reward,Reward waiting shows come-back no redeem,P0,Happy,Just unlocked,View reward,Shows details; available-from-next-business-day; no redeem,REWARD-UNLOCK-REDEMPTION
+CUST-REW-02,Customer,Reward,Reward ready shown redeemable,P0,Happy,Make ready or next day,View reward,Shown redeemable with name and terms,REWARD-UNLOCK-REDEMPTION
+CUST-REW-03,Customer,Reward,Ready reward shows QR no tap-to-redeem,P0,Happy,Ready reward,Open reward,Customer QR shown; no self-redeem button,REWARD-UNLOCK-REDEMPTION
+CUST-REW-04,Customer,Reward,Live update to redeemed without reload,P1,Edge,Reward open; merchant scans,Merchant marks collected,Customer page updates to redeemed without reload,REWARD-UNLOCK-REDEMPTION
+CUST-REW-05,Customer,Reward,Redeemed reward not redeemable again,P0,Negative,Redeemed reward,View reward,Shown closed; QR no longer valid,REWARD-UNLOCK-REDEMPTION
+CUST-REW-06,Customer,Reward,Success starts next stamp cycle,P0,Happy,Reward redeemed,View card,Resets to 0 of 3; next-window message,REWARD-UNLOCK-REDEMPTION
+CUST-REW-07,Customer,Reward,Min-spend displayed in GBP,P2,Edge,Reward with min spend,View reward ticket,Minimum spend shown as GBP,REWARD-UNLOCK-REDEMPTION
+CUST-REW-08,Customer,Reward,Reward details preserved after pool edit,P1,Edge,Reward assigned; merchant edits pool,View reward,Original assigned details preserved,REWARD-UNLOCK-REDEMPTION
+CUST-REW-09,Customer,Reward,Future redeemable_from blocks redeem,P1,Edge,Reward redeemable tomorrow,Try to redeem today,Come-back message; cannot redeem,DIGITAL-STAMP-CARD
+CUST-REW-10,Customer,Reward,Reward QR token short-lived not durable id,P1,Security,Ready reward,Inspect QR payload/URL,Encodes short-lived scan token not durable reward id,REWARD-UNLOCK-REDEMPTION
+CUST-REW-11,Customer,Reward,Reward terms visible on reward page,P2,Happy,Any reward,Open reward,Terms displayed,CONSENT-LEGAL
+CUST-HOME-01,Customer,Customer home,Login by phone lists all cards,P1,Happy,Member,Open /home/login; OTP 424242,Authenticated; dashboard lists joined cards,DIGITAL-STAMP-CARD
+CUST-HOME-02,Customer,Customer home,Activity feed shows timestamps,P2,Happy,Member with history,Open /home/activity,Recent joins/stamps/rewards with timestamps,DIGITAL-STAMP-CARD
+CUST-HOME-03,Customer,Customer home,Rewards across cards tabbed,P2,Happy,Member with rewards,Open /home/rewards,Tab-scoped waiting/ready/redeemed,DIGITAL-STAMP-CARD
+CUST-HOME-04,Customer,Customer home,Profile add email then read-only,P2,Happy,Member,Open /home/profile; add email; verify,Email saved; verified contacts read-only,CONTACT-IMMUTABILITY
+CUST-HOME-05,Customer,Customer home,Home redirects unauth to login,P1,Security,Logged out,Open /home,Redirected to /home/login,DIGITAL-STAMP-CARD
+CUST-HOME-06,Customer,Customer home,Multi-card independent progress,P2,Edge,Member of A and B,View both cards,Each card tracks its own progress,DIGITAL-STAMP-CARD
+CUST-IMM-01,Customer,Contact immutability,Verified phone read-only,P1,Security,Verified phone,Open profile,Phone cannot be edited,CONTACT-IMMUTABILITY
+CUST-IMM-02,Customer,Contact immutability,Verified email read-only,P1,Security,Verified email,Open profile,Email cannot be edited,CONTACT-IMMUTABILITY
+CUST-IMM-03,Customer,Contact immutability,Tampered form cannot replace verified email,P1,Security,Verified email,Edit hidden field; submit,Cannot replace/clear verified email,CONTACT-IMMUTABILITY
+CUST-IMM-04,Customer,Contact immutability,Stale pending email cannot replace verified,P2,Security,Pending and verified email,Submit stale pending,Cannot replace verified email,CONTACT-IMMUTABILITY
+CUST-ERR-01,Customer,Errors & PWA,Merchant terms backend failure fails closed,P1,Negative,Force Supabase/API failure,Open merchant terms,Fails closed to unavailable; no 500,DYNAMIC-QR
+CUST-ERR-02,Customer,Errors & PWA,Offline mid-flow handled,P2,Edge,On a customer page,Go offline,Offline state handled; no broken page,FOUNDATION-SHELL
+CUST-ERR-03,Customer,Errors & PWA,Invalid card or reward id safe-fail,P2,Negative,None,Open /card/bad and /reward/bad,Safe-fail; no id leak,QR-RESOLVER-JOIN
+CUST-ERR-04,Customer,Errors & PWA,Unknown route shows friendly 404,P2,Negative,None,Open /nonexistent,Friendly 404 page,FOUNDATION-SHELL
+CUST-ERR-05,Customer,Errors & PWA,PWA installable,P2,Edge,Mobile browser,Use add-to-home-screen,Manifest valid; installs,FOUNDATION-SHELL
+CUST-ERR-06,Customer,Errors & PWA,Session cookie expiry re-auth,P1,Security,Expired 30-day cookie,Open card,Re-auth required; no stale access,QR-RESOLVER-JOIN
+MER-AUTH-01,Merchant,Auth,Login happy routes to app,P0,Happy,Seeded merchant,Login mia@old-crown-girton.test / NabaperksDemo1!,Lands on /app,MERCHANT-AUTH-ONBOARDING
+MER-AUTH-02,Merchant,Auth,Wrong password rejected,P1,Negative,Seeded merchant,Login with bad password,Rejected; error; no session,MERCHANT-AUTH-ONBOARDING
+MER-AUTH-03,Merchant,Auth,New signup creates or links owner,P1,Happy,None,Sign up new email,Owner created/linked,MERCHANT-AUTH-ONBOARDING
+MER-AUTH-04,Merchant,Auth,Verified no profile routes to onboarding,P0,Happy,New owner no profile,Sign in,Routed to /app/onboarding,MERCHANT-AUTH-ONBOARDING
+MER-AUTH-05,Merchant,Auth,Unauth access to app redirects,P0,Security,Logged out,Open /app,Redirected to login,FOUNDATION-SHELL
+MER-AUTH-06,Merchant,Auth,Logout clears session,P2,Security,Logged in,Log out then open /app,Session cleared; redirected,FOUNDATION-SHELL
+MER-AUTH-07,Merchant,Auth,Password reset email flow,P2,Happy,Seeded merchant,Request password reset,Reset email path works,MERCHANT-AUTH-ONBOARDING
+MER-AUTH-08,Merchant,Auth,Unsafe next param blocked,P1,Security,Login page,Tamper next= to external URL,Unsafe redirect blocked,SECURITY-FRAUD-RATE-LIMITS
+MER-ONB-01,Merchant,Onboarding,Valid fields create profile and first location,P0,Happy,New owner,Submit valid business fields,Profile and first location created; routed to /app,MERCHANT-AUTH-ONBOARDING
+MER-ONB-02,Merchant,Onboarding,Invalid fields preserved with errors,P1,Negative,On onboarding,Submit blanks/invalid,Field errors; values preserved,MERCHANT-AUTH-ONBOARDING
+MER-ONB-03,Merchant,Onboarding,Saved profile no location recreates location,P2,Edge,Profile but no location,Re-enter,Location recreated,MERCHANT-AUTH-ONBOARDING
+MER-ONB-04,Merchant,Onboarding,Returning post-onboarding routes onward,P1,Happy,Onboarding complete,Sign in,Routes to dashboard not onboarding,MERCHANT-AUTH-ONBOARDING
+MER-ONB-05,Merchant,Onboarding,Onboarding writes product and audit events,P2,Happy,New owner,Complete onboarding; check events,product and audit events written,MERCHANT-AUTH-ONBOARDING
+MER-ONB-06,Merchant,Onboarding,One active location enforced,P2,Edge,Has a location,Try to add a second active location,Constraint enforced; blocked,LOYALTY-CARD-BUILDER
+MER-CARD-01,Merchant,Card builder,Default 3-visit Mystery card,P1,Happy,Onboarded,Open /app/launch tab=card,Defaults to 3-visit Mystery Visit card,LOYALTY-CARD-BUILDER
+MER-CARD-02,Merchant,Card builder,Valid card persists per merchant and location,P0,Happy,Onboarded,Save valid card,Persisted,LOYALTY-CARD-BUILDER
+MER-CARD-03,Merchant,Card builder,Invalid card values rejected,P1,Negative,On card tab,Set target below 3 or bad values,Rejected with reasons,LOYALTY-CARD-BUILDER
+MER-CARD-04,Merchant,Card builder,Second active card blocked,P1,Edge,One active card,Add a second active card,Blocked; only one active,LOYALTY-CARD-BUILDER
+MER-CARD-05,Merchant,Card builder,Inactive card blocks stamp claims,P1,Edge,Card deactivated,Customer scans and taps stamp,New stamp claims blocked,STAMP-ISSUING
+MER-CARD-06,Merchant,Card builder,Card create or change writes events,P2,Happy,On card tab,Save card; check events,Events recorded,LOYALTY-CARD-BUILDER
+MER-CARD-07,Merchant,Card builder,One loyalty card per merchant enforced,P2,Edge,Has a card,Attempt second card,Constraint enforced,LOYALTY-CARD-BUILDER
+MER-RWD-01,Merchant,Reward pool,Valid weighted reward item persists,P0,Happy,On rewards tab,Add weighted item,Persisted,LOYALTY-CARD-BUILDER
+MER-RWD-02,Merchant,Reward pool,Invalid reward rejected,P1,Negative,On rewards tab,Bad weight or empty name,Rejected with reason,LOYALTY-CARD-BUILDER
+MER-RWD-03,Merchant,Reward pool,Assigned reward archived not hard-deleted,P1,Edge,Reward already assigned,Remove/edit it,Archived not hard-deleted; assignment preserved,LOYALTY-CARD-BUILDER
+MER-RWD-04,Merchant,Reward pool,Min-spend GBP stored and displayed,P2,Edge,On rewards tab,Set min spend,Stored and displayed as GBP,LOYALTY-CARD-BUILDER
+MER-RWD-05,Merchant,Reward pool,Inactive reward excluded from draw,P2,Edge,One reward inactive,Trigger reward assignment,Inactive item never assigned,REWARD-UNLOCK-REDEMPTION
+MER-RWD-06,Merchant,Reward pool,Fewer than 3 active rewards state,P1,Edge,2 active rewards,View launch checklist,QR launch gated; guidance shown,DYNAMIC-QR
+MER-VEN-01,Merchant,Venue & geofence,Manual address entry provenance,P1,Happy,On venue tab,Type address manually,Saved with manual_entry provenance,LOYALTY-CARD-BUILDER
+MER-VEN-02,Merchant,Venue & geofence,Places autocomplete fills GB address,P1,Happy,Maps key set,Select a Places result,Structured GB address; persists google_places and place id,LOYALTY-CARD-BUILDER
+MER-VEN-03,Merchant,Venue & geofence,Missing or blocked key manual-only fallback,P1,Edge,No Maps key,Open venue tab,Manual-only fallback rendered,LOYALTY-CARD-BUILDER
+MER-VEN-04,Merchant,Venue & geofence,Nominatim geocode fallback,P2,Edge,No Places key,Geocode an address,Nominatim used for coordinates,LOYALTY-CARD-BUILDER
+MER-VEN-05,Merchant,Venue & geofence,Pin drag override provenance,P2,Edge,On map,Drag pin,Persists manual override with merchant_pin provenance,LOYALTY-CARD-BUILDER
+MER-VEN-06,Merchant,Venue & geofence,Invalid or non-GB pin rejected,P2,Negative,On map,Drag pin outside GB,Rejected before write,LOYALTY-CARD-BUILDER
+MER-VEN-07,Merchant,Venue & geofence,Edit after Places resets to manual,P2,Edge,Places selected,Edit the address,Provenance resets to manual_entry,LOYALTY-CARD-BUILDER
+MER-VEN-08,Merchant,Venue & geofence,Geofence radius toggle persists,P2,Edge,On venue tab,Toggle soft geofence and save,Setting persisted,LOYALTY-CARD-BUILDER
+MER-VEN-09,Merchant,Venue & geofence,Non-GB Places coordinates rejected,P2,Negative,Places returns non-GB,Attempt save,Server rejects non-GB coordinates,LOYALTY-CARD-BUILDER
+MER-QR-01,Merchant,QR generation,Active card plus 3+ rewards shows QR and URL,P0,Happy,Card active; 3+ rewards,Open QR tab,Active QR and /q/{id} URL shown,DYNAMIC-QR
+MER-QR-02,Merchant,QR generation,Fewer than 3 active rewards blocks launch,P1,Negative,2 active rewards,Open QR tab,QR launch blocked with guidance,DYNAMIC-QR
+MER-QR-03,Merchant,QR generation,No active QR offers create or guide,P1,Happy,No QR yet,Open QR tab,Create/guide offered,DYNAMIC-QR
+MER-QR-04,Merchant,QR generation,Active QR reused not duplicated,P2,Edge,Active QR exists,Revisit QR tab,Same QR reused; no duplicate,DYNAMIC-QR
+MER-QR-05,Merchant,QR generation,Download PNG resolves to /q/{id},P0,Happy,Active QR,Download QR,Scannable PNG resolving to /q/{id},DYNAMIC-QR
+MER-QR-06,Merchant,QR generation,Poster card sticker templates download,P2,Happy,Active QR,Download each template,All templates download,DYNAMIC-QR
+MER-QR-07,Merchant,QR generation,Disabled QR keeps scans blocks entry,P1,Edge,Active QR,Disable it,Scans recorded; entry blocked,DYNAMIC-QR
+MER-QR-08,Merchant,QR generation,Regenerate QR retires old,P2,Edge,Active QR,Regenerate,New QR; old retired,DYNAMIC-QR
+MER-QR-09,Merchant,QR generation,Generate and download write events,P2,Happy,Active QR,Generate and download; check events,qr_created and qr_downloaded recorded,DYNAMIC-QR
+MER-DASH-01,Merchant,Dashboard & ROI,Dashboard shows own merchant only,P0,Security,Two merchants,Open /app as merchant A,Only A metrics shown,VALUE-DASHBOARD-ROI
+MER-DASH-02,Merchant,Dashboard & ROI,Zero states and QR prompts,P1,Happy,Fresh merchant,Open /app,Zero-state with QR launch prompts,VALUE-DASHBOARD-ROI
+MER-DASH-03,Merchant,Dashboard & ROI,Totals reflect stamps and rewards,P1,Happy,Some activity,Open /app,Totals update accordingly,VALUE-DASHBOARD-ROI
+MER-DASH-04,Merchant,Dashboard & ROI,ROI labelled as estimate,P2,Happy,Some activity,View ROI,Updates and stays labelled estimate,VALUE-DASHBOARD-ROI
+MER-DASH-05,Merchant,Dashboard & ROI,Billing warning or disabled banner,P1,Edge,Billing past-due or cancelled,Open /app,Correct warning/disabled banner,BILLING-STRIPE
+MER-DASH-06,Merchant,Dashboard & ROI,Dashboard load skips activity fetch,P2,Edge,Has activity,Load /app,Dashboard does not fetch activity feed,CONSOLE-TRUST-IA
+MER-ACT-01,Merchant,Activity,Activity feed recent events timestamps,P1,Happy,Some activity,Open /app/activity,Joins/stamps/rewards/QR events with timestamps,VALUE-DASHBOARD-ROI
+MER-ACT-02,Merchant,Activity,Activity empty state,P2,Happy,Fresh merchant,Open /app/activity,Empty state shown,VALUE-DASHBOARD-ROI
+MER-ACT-03,Merchant,Activity,Activity filter by type,P2,Happy,Mixed activity,Filter the feed,Filtered correctly,VALUE-DASHBOARD-ROI
+MER-CUS-01,Merchant,Customers & PII,Masked phone and email readback,P0,Security,Has customers,Open /app/customers,Contacts masked; stamps and reward status shown,CONSOLE-TRUST-IA
+MER-CUS-02,Merchant,Customers & PII,Masked search excludes raw PII,P1,Security,Has customers,Search a customer,Search excludes raw PII,CONSOLE-TRUST-IA
+MER-CUS-03,Merchant,Customers & PII,Loading skeletons,P2,Accessibility,Slow network,Load customers,Skeletons render,CONSOLE-TRUST-IA
+MER-CUS-04,Merchant,Customers & PII,Customers empty state,P2,Happy,No customers,Open /app/customers,Empty state shown,CONSOLE-TRUST-IA
+MER-CUS-05,Merchant,Customers & PII,Single Account hub,P2,Happy,Logged in,Open /app/account,Profile and billing under one hub,CONSOLE-TRUST-IA
+MER-CUS-06,Merchant,Customers & PII,Customer row fields,P1,Happy,Has customers,View a customer row,Shows stamps total last-stamp-date reward status,CONSOLE-TRUST-IA
+MER-BIL-01,Merchant,Billing,Start Growth Plan checkout,P0,Happy,Logged in,Account billing upgrade,Creates Growth Plan checkout session (GBP 29/mo),BILLING-STRIPE
+MER-BIL-02,Merchant,Billing,Trial status displayed,P2,Happy,Trial merchant (Bubble Yard),Open billing,Trial status shown,BILLING-STRIPE
+MER-BIL-03,Merchant,Billing,Past-due payment failure warning and grace,P1,Edge,Payment failed,Open billing/dashboard,Warning and grace behaviour,BILLING-STRIPE
+MER-BIL-04,Merchant,Billing,Cancelled blocks issuance keeps dashboard,P1,Edge,Plan cancelled,Open dashboard; customer tries stamp,Issuance blocked; dashboard viewable,BILLING-STRIPE
+MER-BIL-05,Merchant,Billing,Suspended disables customer card use,P1,Edge,Suspended,Customer opens card,Card use disabled,BILLING-STRIPE
+MER-BIL-06,Merchant,Billing,Stripe portal opens and returns,P2,Happy,Active billing,Open billing portal,Portal opens; returns to app,BILLING-STRIPE
+MER-BIL-07,Merchant,Billing,Edit merchant profile saved,P2,Happy,Logged in,Edit business name/type/email,Saved,CONSOLE-TRUST-IA
+MER-BIL-08,Merchant,Billing,Checkout return URL correct,P2,Edge,Start checkout,Complete/cancel,Returns to correct app URL,BILLING-STRIPE
+MER-SCAN-01,Merchant,Reward scan,Scan ready reward loads ticket,P0,Happy,Customer has ready reward,Open /app/scan; scan customer QR,Reward ticket with name terms min-spend; masked customer,REWARD-UNLOCK-REDEMPTION
+MER-SCAN-02,Merchant,Reward scan,Mark collected once,P0,Happy,Scanned reward,Confirm collection,Reward redeemed; customer updates; next cycle starts,REWARD-UNLOCK-REDEMPTION
+MER-SCAN-03,Merchant,Reward scan,Duplicate scan safe,P0,Negative,Already collected,Scan same reward again,Rejected/replayed safely; no double redeem,REWARD-UNLOCK-REDEMPTION
+MER-SCAN-04,Merchant,Reward scan,Scan token not durable reward id,P1,Security,Reward scan,Inspect scan URL,Segment is short-lived token not reward id,REWARD-UNLOCK-REDEMPTION
+MER-SCAN-05,Merchant,Reward scan,Records audit and product events,P2,Happy,Collected reward,Check events,Audit and product events recorded,REWARD-UNLOCK-REDEMPTION
+MER-SCAN-06,Merchant,Reward scan,Scanner camera entry,P2,Happy,Logged in,Open /app/scan,Camera scanner entry loads,REWARD-UNLOCK-REDEMPTION
+MER-SCAN-07,Merchant,Reward scan,Expired or invalid token handled,P2,Negative,Expired token,Open scan route with bad token,Handled gracefully; no leak,REWARD-UNLOCK-REDEMPTION
+MER-SCAN-08,Merchant,Reward scan,Min-spend shown on merchant scan,P2,Edge,Reward with min spend,Scan reward,Min spend shown to merchant,REWARD-UNLOCK-REDEMPTION
+MER-SCAN-09,Merchant,Reward scan,Already redeemed shows collected,P1,Edge,Redeemed reward,Scan it,Shows collected state,REWARD-UNLOCK-REDEMPTION
+MER-ISO-01,Merchant,Tenant isolation,Merchant A cannot access B records,P0,Security,Two merchants,As A request B customer/QR ids,Denied; only own records visible,FOUNDATION-RLS
+MER-ISO-02,Merchant,Tenant isolation,Merchant cannot scan anothers reward,P1,Security,Reward from merchant B,As A scan it,Denied,FOUNDATION-RLS
+ADM-ACC-01,Admin,Access control,Non-admin denied,P0,Security,Merchant session,Open /admin,Denied,ADMIN-SUPPORT-CONSOLE
+ADM-ACC-02,Admin,Access control,Admin access loads home,P0,Happy,Admin session,Open /admin,Admin home loads,ADMIN-SUPPORT-CONSOLE
+ADM-ACC-03,Admin,Access control,MFA AAL2 required when flag on,P1,Security,ADMIN_MFA_REQUIRED=true; no MFA,Open /admin,Access denied until AAL2,ADMIN-SUPPORT-CONSOLE
+ADM-ACC-04,Admin,Access control,MFA enrollment flow,P2,Happy,Admin without MFA,Enroll an authenticator,Reaches AAL2; access granted,ADMIN-SUPPORT-CONSOLE
+ADM-ACC-05,Admin,Access control,Unauthorised privileged action denied and audited,P1,Security,Non-privileged,Attempt privileged op,Denied and audited,SECURITY-FRAUD-RATE-LIMITS
+ADM-MER-01,Admin,Merchant lookup,Search merchant and plan status,P0,Happy,Admin,Open /admin/merchants; search,Results with plan/billing status,ADMIN-SUPPORT-CONSOLE
+ADM-MER-02,Admin,Merchant lookup,No-results search state,P2,Negative,Admin,Search nonexistent,Empty/no-results state,ADMIN-SUPPORT-CONSOLE
+ADM-MER-03,Admin,Merchant lookup,Disable QR with reason,P1,Edge,Admin,Disable a QR with reason,Resolution stops; history kept; audited,ADMIN-SUPPORT-CONSOLE
+ADM-MER-04,Admin,Merchant lookup,Regenerate QR with reason audited,P2,Edge,Admin,Regenerate with reason,New QR; audited,ADMIN-SUPPORT-CONSOLE
+ADM-MER-05,Admin,Merchant lookup,Reason required to disable or regenerate,P2,Negative,Admin,Submit without reason,Blocked; reason required,ADMIN-SUPPORT-CONSOLE
+ADM-CUS-01,Admin,Support actions,Manual stamp adjust with reason,P0,Happy,Admin,Open /admin/customers; add/remove stamp with reason,Adjusted; audit row written,ADMIN-SUPPORT-CONSOLE
+ADM-CUS-02,Admin,Support actions,Cancel reward records why,P1,Edge,Admin,Cancel a reward with reason,Cancelled; reason recorded,ADMIN-SUPPORT-CONSOLE
+ADM-CUS-03,Admin,Support actions,Masked PII in admin readbacks,P1,Security,Admin,View customers/rewards,Contacts masked; no raw PII,ADMIN-SUPPORT-CONSOLE
+ADM-CUS-04,Admin,Support actions,Data-request lookup context,P2,Happy,Admin,Lookup for a data request,Provides support/compliance context,CONSENT-LEGAL
+ADM-CUS-05,Admin,Support actions,Empty loading and error states,P2,Happy,Admin,Open customers under each state,Empty/loading/error render correctly,ADMIN-SUPPORT-CONSOLE
+ADM-CUS-06,Admin,Support actions,Reward status filter,P2,Happy,Admin,Filter by status,waiting/redeemable/redeemed/blocked filter,ADMIN-SUPPORT-CONSOLE
+ADM-AUD-01,Admin,Audit log,Audit readback fields,P0,Happy,Admin; prior actions,Open /admin/audit,Shows actor action context target timestamp,ADMIN-SUPPORT-CONSOLE
+ADM-AUD-02,Admin,Audit log,Every mutation audited,P1,Happy,Admin,Perform adjust/cancel/disable,Each appears in audit log,ADMIN-SUPPORT-CONSOLE
+ADM-AUD-03,Admin,Audit log,Audit immutable,P2,Security,Admin,Attempt to edit/delete audit,Not permitted,FOUNDATION-RLS
+ADM-FRD-01,Admin,Fraud & GPS,Unusual volume creates fraud flag,P1,Edge,Admin,Trigger abnormal stamp volume,Fraud flag created for review,SECURITY-FRAUD-RATE-LIMITS
+ADM-FRD-02,Admin,Fraud & GPS,GPS readback bucketed no raw coords,P1,Security,Admin,Open /admin/fraud,Shows buckets confidence reason masked customer; no raw coordinates,SECURITY-FRAUD-RATE-LIMITS
+ADM-FRD-03,Admin,Fraud & GPS,Redemption failures no lat/lon,P2,Security,Admin,View failures panel,Listed without raw coordinates,SECURITY-FRAUD-RATE-LIMITS
+ADM-FRD-04,Admin,Fraud & GPS,Fraud flag detail fields,P2,Security,Admin,Open a fraud flag,Shows reason severity status masked customer,SECURITY-FRAUD-RATE-LIMITS
+ADM-BIL-01,Admin,Billing & webhooks,Valid webhook creates or updates billing,P1,Happy,Stripe webhook,Send verified webhook,Billing record created/updated,BILLING-STRIPE
+ADM-BIL-02,Admin,Billing & webhooks,Subscription update syncs,P1,Happy,Stripe webhook,Update subscription,Plan status period-end synced,BILLING-STRIPE
+ADM-BIL-03,Admin,Billing & webhooks,Invalid signature rejected,P0,Security,Stripe webhook,Send bad-signature webhook,Rejected; billing unchanged,BILLING-STRIPE
+ADM-BIL-04,Admin,Billing & webhooks,Payment failed triggers warning,P2,Edge,Stripe webhook,Send invoice.payment_failed,Warning state set,BILLING-STRIPE
+ADM-BIL-05,Admin,Billing & webhooks,Subscription deleted cancels,P2,Edge,Stripe webhook,Send subscription.deleted,Cancelled state set,BILLING-STRIPE
+ADM-BIL-06,Admin,Billing & webhooks,Webhook idempotent replay safe,P2,Negative,Stripe webhook,Resend same event,No duplicate side effects,BILLING-STRIPE
+ADM-BIL-07,Admin,Billing & webhooks,Billing overview failed charges,P2,Happy,Admin,Open /admin/billing,Statuses and failed charges readback,BILLING-STRIPE
+ADM-PRV-01,Admin,Privacy & pilot,Data request logged,P2,Happy,Admin,Trigger data request action,Request logged,CONSENT-LEGAL
+ADM-PIL-01,Admin,Privacy & pilot,Pilot note recorded,P2,Happy,Admin,Add pilot note,Recorded for tracking,PILOT-READINESS
+ADM-PIL-02,Admin,Privacy & pilot,Concurrent redemption one success,P1,Concurrency,Two redeem attempts,Trigger simultaneously,At most one succeeds,REWARD-UNLOCK-REDEMPTION
+ADM-PIL-03,Admin,Privacy & pilot,Pilot export separates truth vs estimate,P2,Happy,Admin,Export pilot report,Source-of-truth separated from estimates,PILOT-READINESS
+ADM-PIL-04,Admin,Privacy & pilot,Pilot metrics present,P2,Happy,Admin,View pilot dashboard,launch scan join repeat redemption support paid metrics,PILOT-READINESS
+X-A11Y-01,Cross-cutting,Accessibility,Keyboard navigation,P1,Accessibility,Any flow,Tab through join/stamp/scan,All actions reachable and operable,WET-INK
+X-A11Y-02,Cross-cutting,Accessibility,Screen reader labels,P1,Accessibility,Screen reader on,Navigate OTP Join Mark-collected,Labels announced correctly,WET-INK
+X-A11Y-03,Cross-cutting,Accessibility,Colour contrast WCAG A/AA,P1,Accessibility,Key surfaces,Inspect contrast,Meets WCAG A/AA,WET-INK
+X-A11Y-04,Cross-cutting,Accessibility,Reduced motion static,P2,Accessibility,OS reduce-motion on,View animated screens,Wet Ink renders static,WET-INK
+X-A11Y-05,Cross-cutting,Accessibility,Focus order and visible focus,P2,Accessibility,Any form,Tab through,Logical order; visible focus ring,WET-INK
+X-A11Y-06,Cross-cutting,Accessibility,Form errors announced,P2,Accessibility,Any form,Submit invalid,Errors announced to assistive tech,WET-INK
+X-A11Y-07,Cross-cutting,Accessibility,404 and offline pages accessible,P2,Accessibility,Error pages,Run axe,No violations,WET-INK
+X-RESP-01,Cross-cutting,Responsive,Customer mobile layout,P0,Accessibility,Customer flows,View at ~410px,No horizontal scroll; tap targets >=44px,WET-INK
+X-RESP-02,Cross-cutting,Responsive,Console and admin desktop,P1,Happy,Console/admin,View at 1280/768/375,Layout intact,WET-INK
+X-RESP-03,Cross-cutting,Responsive,Design system catalog renders,P2,Happy,Dev,Open /dev/design-system,Catalog renders; static under reduced motion,WET-INK
+X-COPY-01,Cross-cutting,Copy & brand,British en-GB no emoji no exclamation,P1,Happy,Any surface,Scan all copy,en-GB value-first; no emoji or exclamation; Save my card not register,WET-INK
+X-COPY-02,Cross-cutting,Copy & brand,Icons via Hugeicons,P2,Happy,Any surface,Inspect icons,Hugeicons used; disc only as wordmark,WET-INK
+X-COPY-03,Cross-cutting,Copy & brand,No legacy product names,P2,Happy,Any surface,Scan UI copy,No retired product names present,WET-INK
+X-SEC-01,Cross-cutting,Security & session,Service-role secrets absent from client bundle,P1,Security,Built app,Inspect client bundle,No service-role or webhook secrets present,FOUNDATION-SHELL
+X-SEC-02,Cross-cutting,Security & session,Open-redirect guard,P1,Security,Auth flows,Tamper next= param,Unsafe redirect blocked,SECURITY-FRAUD-RATE-LIMITS
+X-SEC-03,Cross-cutting,Security & session,Durable server-side rate-limit storage,P2,Security,Rate-limited actions,Exceed limits repeatedly,Limits persist server-side across requests,SECURITY-FRAUD-RATE-LIMITS
+X-SEC-04,Cross-cutting,Security & session,Protected tables deny unauth,P1,Security,Logged out,Attempt direct protected access,Denied,FOUNDATION-RLS
+X-OBS-01,Cross-cutting,Observability,Critical action writes product event,P2,Happy,Any critical action,Perform action; check events,Product event with tenant and time written,EVENTS-ANALYTICS
+X-OBS-02,Cross-cutting,Observability,PostHog down Supabase still writes,P2,Resilience,PostHog unavailable,Perform funnel action,Supabase product event still writes,EVENTS-ANALYTICS
+X-OBS-03,Cross-cutting,Observability,Health probe ok,P2,Happy,App running,Open /api/health,Returns healthy status,FOUNDATION-SHELL
+X-OBS-04,Cross-cutting,Observability,Request and trace ids in logs,P2,Happy,App running,Make a request; check logs,Request/trace ids present,FOUNDATION-SHELL
+X-RES-01,Cross-cutting,Resilience,Resend email outage graceful,P2,Resilience,Resend failing,Trigger an email,Graceful; no crash,FOUNDATION-SHELL
+X-RES-02,Cross-cutting,Resilience,Twilio SMS outage graceful,P2,Resilience,Twilio failing (prod),Trigger OTP,Graceful; user can retry,QR-RESOLVER-JOIN
+X-RES-03,Cross-cutting,Resilience,Stripe API failure handled,P2,Resilience,Stripe failing,Start checkout,Handled with user-facing error,BILLING-STRIPE

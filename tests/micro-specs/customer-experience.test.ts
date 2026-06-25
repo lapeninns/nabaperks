@@ -31,7 +31,6 @@ const merchant = {
 const card = {
   name: "Morning Ritual",
   stampsRequired: 3,
-  minSpendPence: 350,
   rewardTerms: "Reveals after the final stamp.",
 }
 const location = { requireGeofence: false, geofenceRadiusMeters: 150 }
@@ -40,7 +39,6 @@ const rewardView = {
   membershipId: "membership-1",
   rewardName: "Coffee upgrade",
   rewardTerms: "Free size upgrade.",
-  minSpendPence: 350,
   redeemableFrom: "2026-06-13",
 }
 
@@ -144,7 +142,6 @@ describe("deriveCustomerExperience — card route", () => {
           id: "reward-1",
           name: "Coffee upgrade",
           terms: "t",
-          minSpendPence: 350,
           redeemableFrom: "2999-01-01",
           redeemable: false,
         },
@@ -166,7 +163,6 @@ describe("deriveCustomerExperience — card route", () => {
           id: "reward-1",
           name: "Coffee upgrade",
           terms: "t",
-          minSpendPence: 350,
           redeemableFrom: "2026-06-01",
           redeemable: true,
         },
@@ -574,7 +570,6 @@ function collectingExp(
     slamIndex: -1,
     reward: "none",
     rewardTerms: "Reveals after the final stamp.",
-    minSpendPence: null,
     rewardRedeemableFrom: null,
     stampDates: [],
     justStamped: false,
@@ -711,7 +706,6 @@ describe("getCustomerExperienceViewModel", () => {
         slamIndex: -1,
         reward: "none",
         rewardTerms: "t",
-        minSpendPence: null,
         rewardRedeemableFrom: null,
         stampDates: [],
         justStamped: false,

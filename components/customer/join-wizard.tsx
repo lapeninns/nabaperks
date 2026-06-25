@@ -212,9 +212,6 @@ function TermsFirstStampPreview({
           <>
             {joinUnlockingRewardHook(card.stampsRequired)}, yours from the next
             UK business day.
-            {card.minSpendPence !== null ? (
-              <> Minimum spend {formatPence(card.minSpendPence)}.</>
-            ) : null}
           </>
         }
       />
@@ -278,9 +275,6 @@ function JoinHeroCard({
           <>
             Your assigned reward stays hidden until the final stamp and can be
             redeemed from the next UK business day.
-            {card.minSpendPence !== null ? (
-              <> Minimum spend {formatPence(card.minSpendPence)}.</>
-            ) : null}
           </>
         ),
       }}
@@ -351,11 +345,4 @@ function UnavailableJoin() {
       </StatusBanner>
     </CustomerFlowShell>
   )
-}
-
-function formatPence(pence: number): string {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-  }).format(pence / 100)
 }

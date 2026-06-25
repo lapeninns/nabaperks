@@ -13,11 +13,16 @@ export default function NotFound() {
           headingLevel={1}
           icon={AlertDiamondIcon}
           title="Page not found"
-          description="That link has gone cold. Head back to Nabaperks and scan from a live venue QR when you are ready."
+          description="That link has gone cold. Your cards and rewards are safe — head back to yours."
           actions={
-            <Button asChild>
-              <Link href="/">Back to Nabaperks</Link>
-            </Button>
+            <div className="grid w-full gap-2">
+              <Button asChild>
+                <Link href="/home">Open my cards</Link>
+              </Button>
+              <Button asChild variant="secondary">
+                <Link href="/">Back to Nabaperks</Link>
+              </Button>
+            </div>
           }
         />
       </section>

@@ -7,7 +7,6 @@ import {
 } from "@/lib/customer/join"
 import { captureJoinFunnelEvent } from "@/lib/customer/join-funnel"
 import { getPendingPhoneVerification } from "@/lib/customer/session"
-import { getMerchantStampLocationRequirement } from "@/lib/customer/stamp"
 
 import type { JoinContext } from "./derive"
 
@@ -56,7 +55,6 @@ export async function loadJoinExperienceContext(
   const card = {
     name: context.loyaltyCard.card_name,
     stampsRequired: context.loyaltyCard.stamps_required,
-    minSpendPence: context.loyaltyCard.min_spend_pence,
     rewardTerms: context.loyaltyCard.reward_terms,
   }
   // Geofence gate is only consumed by the final terms step (the only screen that
@@ -88,12 +86,8 @@ export async function loadJoinExperienceContext(
   }
 
   if (customer) {
-    const location = await getMerchantStampLocationRequirement(
-      context.merchant.id
-    )
     return {
       ...base,
-      location,
       hasSession: true,
       pendingOtp: false,
       membership: null,
@@ -107,13 +101,8 @@ export async function loadJoinExperienceContext(
     searchParams.step !== "phone" && pending?.purpose === "join"
 
   if (pendingOtp) {
-    const location = await getMerchantStampLocationRequirement(
-      context.merchant.id
-    )
-
     return {
       ...base,
-      location,
       hasSession: false,
       pendingOtp,
       pendingPhone: pending.phone,

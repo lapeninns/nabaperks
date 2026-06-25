@@ -12,7 +12,6 @@ export type MerchantRewardScanContext =
       rewardId: string
       rewardName: string
       rewardTerms: string
-      minSpendPence: number | null
       membershipId: string
       currentStampCount: number | null
       customerLabel: string
@@ -162,7 +161,6 @@ function scanContext(
     rewardId: stringField(row, "reward_event_id") ?? "",
     rewardName: stringField(row, "reward_name") ?? "Reward",
     rewardTerms: stringField(row, "reward_terms") ?? "",
-    minSpendPence: numberField(row, "min_spend_pence"),
     membershipId: stringField(row, "membership_id") ?? "",
     currentStampCount: numberField(row, "current_stamp_count"),
     customerLabel: formatMerchantCustomerIdentifier({

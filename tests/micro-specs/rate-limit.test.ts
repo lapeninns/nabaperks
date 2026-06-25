@@ -171,3 +171,135 @@ describe("RateLimitError", () => {
     expect(error.message).toBe("Slow down, please.")
   })
 })
+
+describe("rateLimitIdentityFromHeaders", () => {
+  it("hashes request IP and user-agent signals into a stable short key", async () => {
+    const { rateLimitIdentityFromHeaders } = await loadModule()
+
+    const identity = rateLimitIdentityFromHeaders(
+      new Headers({
+        "x-forwarded-for": "203.0.113.10, 10.0.0.1",
+        "user-agent": "Vitest Browser",
+      })
+    )
+
+    expect(identity).toMatch(/^[0-9a-f]{32}$/)
+    expect(identity).not.toContain("203.0.113.10")
+    expect(
+      rateLimitIdentityFromHeaders(
+        new Headers({
+          "x-forwarded-for": "203.0.113.11",
+          "user-agent": "Vitest Browser",
+        })
+      )
+    ).not.toBe(identity)
+  })
+})
+
+describe("rateLimitIdentityFromHeaders — trusted IP source", () => {
+  const USER_AGENT = "Mozilla/5.0 (rate-limit-spoof-test)"
+  const VERIFIED_IP = "203.0.113.50"
+
+  it("keys on the platform-verified IP, ignoring a spoofed x-forwarded-for / x-real-ip", async () => {
+    const { rateLimitIdentityFromHeaders } = await loadModule()
+
+    const genuine = rateLimitIdentityFromHeaders(
+      new Headers({
+        "x-vercel-forwarded-for": VERIFIED_IP,
+        "user-agent": USER_AGENT,
+      })
+    )
+    const spoofed = rateLimitIdentityFromHeaders(
+      new Headers({
+        "x-vercel-forwarded-for": VERIFIED_IP,
+        "x-forwarded-for": "1.1.1.1",
+        "x-real-ip": "2.2.2.2",
+        "user-agent": USER_AGENT,
+      })
+    )
+
+    expect(spoofed).toBe(genuine)
+  })
+
+  it("cannot be rotated to mint a fresh bucket by changing x-forwarded-for", async () => {
+    const { rateLimitIdentityFromHeaders } = await loadModule()
+
+    const rotated = [
+      "10.0.0.1",
+      "10.0.0.2",
+      "198.51.100.9",
+      "203.0.113.99",
+    ].map((claimedIp) =>
+      rateLimitIdentityFromHeaders(
+        new Headers({
+          "x-vercel-forwarded-for": VERIFIED_IP,
+          "x-forwarded-for": claimedIp,
+          "user-agent": USER_AGENT,
+        })
+      )
+    )
+
+    // Every spoofed value collapses to the one verified bucket.
+    expect(new Set(rotated).size).toBe(1)
+  })
+
+  it("cannot poison another client's bucket by claiming their IP in x-forwarded-for", async () => {
+    const { rateLimitIdentityFromHeaders } = await loadModule()
+
+    const victim = rateLimitIdentityFromHeaders(
+      new Headers({
+        "x-vercel-forwarded-for": "198.51.100.7",
+        "user-agent": USER_AGENT,
+      })
+    )
+    const attacker = rateLimitIdentityFromHeaders(
+      new Headers({
+        "x-vercel-forwarded-for": VERIFIED_IP,
+        "x-forwarded-for": "198.51.100.7",
+        "user-agent": USER_AGENT,
+      })
+    )
+
+    expect(attacker).not.toBe(victim)
+  })
+
+  it("falls back to the right-most x-forwarded-for hop, never the spoofable left-most entry", async () => {
+    const { rateLimitIdentityFromHeaders } = await loadModule()
+
+    // No platform header: the nearest trusted proxy appends the real connecting
+    // IP on the right; the client can only prepend on the left.
+    const genuine = rateLimitIdentityFromHeaders(
+      new Headers({
+        "x-forwarded-for": VERIFIED_IP,
+        "user-agent": USER_AGENT,
+      })
+    )
+    const prepended = rateLimitIdentityFromHeaders(
+      new Headers({
+        "x-forwarded-for": `9.9.9.9, ${VERIFIED_IP}`,
+        "user-agent": USER_AGENT,
+      })
+    )
+
+    expect(prepended).toBe(genuine)
+  })
+
+  it("still distinguishes genuinely different verified clients", async () => {
+    const { rateLimitIdentityFromHeaders } = await loadModule()
+
+    const clientA = rateLimitIdentityFromHeaders(
+      new Headers({
+        "x-vercel-forwarded-for": "203.0.113.1",
+        "user-agent": USER_AGENT,
+      })
+    )
+    const clientB = rateLimitIdentityFromHeaders(
+      new Headers({
+        "x-vercel-forwarded-for": "203.0.113.2",
+        "user-agent": USER_AGENT,
+      })
+    )
+
+    expect(clientA).not.toBe(clientB)
+  })
+})

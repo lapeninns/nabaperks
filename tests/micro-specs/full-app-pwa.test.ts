@@ -128,14 +128,36 @@ describe("full-app PWA", () => {
     }
   })
 
-  it("serves explicit offline copy for server-authoritative loyalty state", () => {
+  it("handles browser push without broadening offline mutation behavior", () => {
+    const serviceWorker = readProjectFile("public/sw.js")
+
+    expect(serviceWorker).toContain('addEventListener("push"')
+    expect(serviceWorker).toContain('addEventListener("notificationclick"')
+    expect(serviceWorker).toContain('addEventListener("pushsubscriptionchange"')
+    expect(serviceWorker).toContain("showPushNotification")
+    expect(serviceWorker).toContain("parsePushPayload")
+    expect(serviceWorker).toContain("safeNotificationUrl")
+    expect(serviceWorker).toContain("openOrFocusNotificationUrl")
+    expect(serviceWorker).toContain("/api/notifications/push/refresh")
+    expect(serviceWorker).toContain("showNotification")
+    expect(serviceWorker).toContain("includeUncontrolled: true")
+    expect(serviceWorker).not.toContain("geolocation")
+    expect(serviceWorker).not.toContain("latitude")
+    expect(serviceWorker).not.toContain("longitude")
+    expect(serviceWorker).not.toContain('addEventListener("sync"')
+    expect(serviceWorker).not.toContain('addEventListener("periodicsync"')
+  })
+
+  it("serves plain customer-first offline copy without cross-surface jargon", () => {
     const offlinePage = readProjectFile("app/offline/page.tsx")
 
     expect(offlinePage).toContain("You're offline")
     expect(offlinePage).toContain(
-      "Cards, stamps, rewards, merchant tools, and admin tools need a connection"
+      "Your cards and stamps live safely with us. Reconnect and they will be right here."
     )
-    expect(offlinePage).toContain("server")
+    // The mixed customer + merchant/admin + engineering register is gone.
+    expect(offlinePage).not.toContain("merchant tools, and admin tools")
+    expect(offlinePage).not.toContain("source of truth")
   })
 
   it("ships generated app icon assets", () => {

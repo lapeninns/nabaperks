@@ -12,6 +12,7 @@ import {
 import { profileInputClass } from "@/components/customer/profile-form-parts"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
+import { otpFieldMaxLength } from "@/lib/customer/experience/otp-field"
 import type { ProfileGate } from "@/lib/customer/experience/types"
 
 const initialState: ProfileGateActionState = {}
@@ -128,6 +129,7 @@ function ProfileEmailStep({
             name="otp"
             inputMode="numeric"
             autoComplete="one-time-code"
+            maxLength={otpFieldMaxLength()}
             className={`${profileInputClass} font-mono`}
             aria-invalid={Boolean(state.errors?.otp)}
           />

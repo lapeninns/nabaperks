@@ -43,7 +43,13 @@ describe("merchant-scanned reward collection", () => {
     const publicScanHandoff = readProjectFile("app/r/[token]/page.tsx")
 
     expect(rewardPanels).toContain("RewardCollectionLive")
-    expect(rewardQr).toContain("/reward/${rewardId}/qr.png")
+    // The QR src is now minted through the cache-busting helper (F11 — refresh
+    // inside the scan-token TTL), which targets the reward's own protected
+    // qr.png route. See lib/customer/reward-qr.ts + reward-qr-resilience.test.ts.
+    expect(rewardQr).toContain("rewardQrCacheBustedSrc")
+    expect(readProjectFile("lib/customer/reward-qr.ts")).toContain(
+      "/reward/${rewardId}/qr.png"
+    )
     expect(rewardQr).not.toContain("/app/rewards/scan/${rewardId}")
     expect(rewardQr).toContain("Merchant scans this QR")
     expect(rewardQrRoute).toContain("createRewardScanToken")
@@ -61,7 +67,9 @@ describe("merchant-scanned reward collection", () => {
       true
     )
 
-    const live = readProjectFile("components/customer/reward-collection-live.tsx")
+    const live = readProjectFile(
+      "components/customer/reward-collection-live.tsx"
+    )
     const rewardPanels = readProjectFile(
       "components/customer/reward-panels.tsx"
     )
@@ -299,7 +307,6 @@ describe("merchant-scanned reward collection", () => {
                 reward_event_id: "reward-1",
                 reward_name: "Coffee upgrade",
                 reward_terms: "One per visit.",
-                min_spend_pence: null,
                 membership_id: "membership-1",
                 current_stamp_count: 3,
                 customer_email: "guest@example.test",

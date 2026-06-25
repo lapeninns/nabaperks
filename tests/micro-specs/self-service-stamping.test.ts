@@ -149,6 +149,7 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
 
     const { issueSelfServiceStamp } = await import("@/lib/customer/stamp")
     const result = await issueSelfServiceStamp("membership-1", {
+      qrId: "BELL-QR",
       latitude: 51.524,
       longitude: -0.071,
     })
@@ -165,6 +166,7 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
       params: {
         p_membership_id: "membership-1",
         p_customer_id: "customer-1",
+        p_qr_id: "BELL-QR",
         p_latitude: 51.524,
         p_longitude: -0.071,
         p_accuracy_meters: null,
@@ -198,6 +200,7 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
 
     const { issueSelfServiceStamp } = await import("@/lib/customer/stamp")
     const result = await issueSelfServiceStamp("membership-1", {
+      qrId: "BELL-QR",
       latitude: 51.524,
       longitude: -0.071,
       accuracyMeters: 28,
@@ -211,6 +214,7 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
       params: {
         p_membership_id: "membership-1",
         p_customer_id: "customer-1",
+        p_qr_id: "BELL-QR",
         p_latitude: 51.524,
         p_longitude: -0.071,
         p_accuracy_meters: 28,
@@ -500,6 +504,7 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
       "BELL-QR"
     )
     expect(issueSelfServiceStamp).toHaveBeenCalledWith("membership-1", {
+      qrId: "BELL-QR",
       latitude: 51.524,
       longitude: -0.071,
       accuracyMeters: null,
@@ -545,6 +550,7 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     )
 
     expect(issueSelfServiceStamp).toHaveBeenCalledWith("membership-1", {
+      qrId: "BELL-QR",
       latitude: 51.524,
       longitude: -0.071,
       accuracyMeters: 32,
@@ -584,6 +590,7 @@ describe("09 self-service stamping micro-specs (MS-06, MS-07, MS-08, MS-09)", ()
     )
 
     expect(issueSelfServiceStamp).toHaveBeenCalledWith("membership-1", {
+      qrId: "BELL-QR",
       accuracyMeters: null,
       captureElapsedMs: 1000,
       latitude: null,

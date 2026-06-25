@@ -93,9 +93,6 @@ function JoinWelcomeCard({
           <>
             Collect {card.stampsRequired} stamps to unlock a surprise reward,
             yours from the next UK business day.
-            {card.minSpendPence !== null ? (
-              <> Minimum spend {formatPence(card.minSpendPence)}.</>
-            ) : null}
           </>
         }
       />
@@ -124,11 +121,4 @@ function HowItWorksList() {
       </ol>
     </section>
   )
-}
-
-function formatPence(pence: number): string {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-  }).format(pence / 100)
 }

@@ -17,7 +17,11 @@ import {
   startCustomerPhoneVerification,
 } from "@/lib/customer/verification"
 import { safeNextPath } from "@/lib/navigation/safe-next-path"
-import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit"
+import {
+  enforceRateLimit,
+  RateLimitError,
+  rateLimitIdentityFromHeaders,
+} from "@/lib/security/rate-limit"
 
 export type CustomerLoginOtpState = {
   fields?: {
@@ -43,7 +47,9 @@ export async function requestCustomerLoginOtpAction(
   formData: FormData
 ): Promise<CustomerLoginOtpState> {
   const rawContact = value(formData, "contact")
-  const country = defaultCountryFromHeaders(await headers())
+  const requestHeaders = await headers()
+  const country = defaultCountryFromHeaders(requestHeaders)
+  const requestIdentity = rateLimitIdentityFromHeaders(requestHeaders)
   const normalized = normalizePhone(rawContact, country)
 
   if (!normalized.ok) {
@@ -57,7 +63,7 @@ export async function requestCustomerLoginOtpAction(
 
   try {
     await enforceRateLimit({
-      key: `customer-login:${contact.toLowerCase()}`,
+      key: `customer-login:${contact.toLowerCase()}:${requestIdentity}`,
       limit: 5,
       windowMs: 15 * 60_000,
     })
@@ -75,13 +81,6 @@ export async function requestCustomerLoginOtpAction(
   const customer = await findCustomerByVerifiedPhone(normalized.phone)
 
   if (!customer) {
-    await setPendingPhoneVerification({
-      purpose: "wallet",
-      phone: contact,
-      country: normalized.phone.country,
-      customerId: null,
-    })
-
     return {
       fields: { contact, otpSent: true },
       message:
@@ -110,7 +109,8 @@ export async function requestCustomerLoginOtpAction(
 
   return {
     fields: { contact, otpSent: true },
-    message: "Enter the code we sent to your phone.",
+    message:
+      "If that number has Nabaperks cards, enter the code we sent. Otherwise scan a venue QR to join first.",
   }
 }
 

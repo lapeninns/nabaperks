@@ -5,12 +5,14 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 export { getAdminPilotMerchants, getAdminPilotReport } from "./pilot-report"
 
 export async function getAdminOverview() {
-  const [merchants, customers, billingIssues, recentAudits] = await Promise.all([
-    countRows("merchants"),
-    countRows("customers"),
-    countBillingIssues(),
-    getAdminAuditLogs(6),
-  ])
+  const [merchants, customers, billingIssues, recentAudits] = await Promise.all(
+    [
+      countRows("merchants"),
+      countRows("customers"),
+      countBillingIssues(),
+      getAdminAuditLogs(6),
+    ]
+  )
 
   return { merchants, customers, billingIssues, recentAudits }
 }
@@ -36,7 +38,9 @@ export async function getAdminQrCodes() {
   const supabase = createSupabaseServiceRoleClient()
   const { data, error } = await supabase
     .from("qr_codes")
-    .select("id, qr_id, is_active, destination_type, created_at, merchants(business_name)")
+    .select(
+      "id, qr_id, is_active, destination_type, created_at, merchants(business_name)"
+    )
     .order("created_at", { ascending: false })
     .limit(100)
 
@@ -137,22 +141,21 @@ export async function getAdminFraudSignals() {
   const [
     { data: fraudFlags, error: flagsError },
     { data: failures, error: failureError },
-  ] =
-    await Promise.all([
-      supabase
-        .from("fraud_flags")
-        .select(
-          "id, signal, severity, status, metadata, created_at, merchants(business_name), customers(email, phone)"
-        )
-        .order("created_at", { ascending: false })
-        .limit(100),
-      supabase
-        .from("product_events")
-        .select("id, event_name, created_at, merchants(business_name)")
-        .eq("event_name", "reward_redemption_failed")
-        .order("created_at", { ascending: false })
-        .limit(100),
-    ])
+  ] = await Promise.all([
+    supabase
+      .from("fraud_flags")
+      .select(
+        "id, signal, severity, status, metadata, created_at, merchants(business_name), customers(email, phone)"
+      )
+      .order("created_at", { ascending: false })
+      .limit(100),
+    supabase
+      .from("product_events")
+      .select("id, event_name, created_at, merchants(business_name)")
+      .eq("event_name", "reward_redemption_failed")
+      .order("created_at", { ascending: false })
+      .limit(100),
+  ])
 
   if (flagsError) {
     throw new Error(`Unable to load fraud flags: ${flagsError.message}`)
@@ -163,7 +166,9 @@ export async function getAdminFraudSignals() {
   }
 
   return {
-    fraudFlags: Array.isArray(fraudFlags) ? fraudFlags.map(redactFraudFlag) : [],
+    fraudFlags: Array.isArray(fraudFlags)
+      ? fraudFlags.map(redactFraudFlag)
+      : [],
     failures: failures ?? [],
   }
 }
@@ -230,27 +235,46 @@ type AdminFraudFlag = {
 
 function redactFraudFlag(row: unknown): AdminFraudFlag {
   const record = isRecord(row) ? row : {}
-  const metadata = isRecord(record.metadata) ? record.metadata : {}
+  const metadata = fraudFlagMetadata(record)
   const customer = firstRecord(record.customers)
   const merchant = firstRecord(record.merchants)
 
   return {
-    id: stringValue(record.id) ?? "fraud-flag",
-    signal: stringValue(record.signal) ?? "fraud_signal",
-    severity: stringValue(record.severity) ?? "unknown",
-    status: stringValue(record.status) ?? "unknown",
-    created_at: stringValue(record.created_at) ?? "",
+    id: fallbackString(record.id, "fraud-flag"),
+    signal: fallbackString(record.signal, "fraud_signal"),
+    severity: fallbackString(record.severity, "unknown"),
+    status: fallbackString(record.status, "unknown"),
+    created_at: fallbackString(record.created_at, ""),
     cycleStampNumber: numberValue(metadata.cycle_stamp_number),
-    locationStatus: stringValue(metadata.location_status) ?? "unknown",
-    distanceBucket: stringValue(metadata.distance_bucket) ?? "unknown",
-    accuracyBucket: stringValue(metadata.accuracy_bucket) ?? "unknown",
-    confidence: stringValue(metadata.confidence) ?? "unknown",
-    reason: stringValue(metadata.reason) ?? stringValue(record.signal) ?? "review",
-    merchant: stringValue(merchant?.business_name) ?? "Merchant",
-    maskedCustomer: maskAdminContact(
-      stringValue(customer?.email) ?? stringValue(customer?.phone)
-    ),
+    locationStatus: fallbackString(metadata.location_status, "unknown"),
+    distanceBucket: fallbackString(metadata.distance_bucket, "unknown"),
+    accuracyBucket: fallbackString(metadata.accuracy_bucket, "unknown"),
+    confidence: fallbackString(metadata.confidence, "unknown"),
+    reason: fraudFlagReason(metadata, record),
+    merchant: fallbackString(merchant?.business_name, "Merchant"),
+    maskedCustomer: maskAdminContact(adminCustomerContact(customer)),
   }
+}
+
+function fraudFlagMetadata(
+  record: Record<string, unknown>
+): Record<string, unknown> {
+  return isRecord(record.metadata) ? record.metadata : {}
+}
+
+function fallbackString(value: unknown, fallback: string): string {
+  return stringValue(value) ?? fallback
+}
+
+function fraudFlagReason(
+  metadata: Record<string, unknown>,
+  record: Record<string, unknown>
+): string {
+  return stringValue(metadata.reason) ?? stringValue(record.signal) ?? "review"
+}
+
+function adminCustomerContact(customer: Record<string, unknown> | undefined) {
+  return stringValue(customer?.email) ?? stringValue(customer?.phone)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -50,6 +50,7 @@ export function CustomerIdentityForm({
             type="tel"
             inputMode="tel"
             autoComplete="tel"
+            autoFocus
             placeholder="07400 123456"
             defaultValue={state.fields?.contact}
             className={customerInputClass}
@@ -84,6 +85,9 @@ export function CustomerIdentityForm({
         >
           {requestPending ? "Sending..." : "Text me the code"}
         </Button>
+        <p role="status" aria-live="polite" className="sr-only">
+          {requestPending ? "Sending your code" : ""}
+        </p>
       </form>
 
       {qrId ? (

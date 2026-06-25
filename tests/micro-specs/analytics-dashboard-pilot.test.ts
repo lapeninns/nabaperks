@@ -96,6 +96,18 @@ describe("05/07 analytics, dashboard, and compliance micro-specs", () => {
       "qr_disabled",
       "subscription_started",
       "subscription_cancelled",
+      "push_notification_enqueued",
+      "push_notification_delivered",
+      "push_notification_skipped",
+      "push_notification_failed",
+      "push_subscription_created",
+      "push_subscription_disabled",
+      "push_subscription_failed",
+      "push_delivery_worker_ran",
+      "push_venue_announcement_queued",
+      "qr_asset_generated",
+      "qr_asset_generation_failed",
+      "qr_asset_worker_ran",
     ])
   })
 

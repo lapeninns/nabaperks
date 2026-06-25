@@ -55,6 +55,7 @@ describe("customer-facing gap fixes", () => {
   it("keeps customer login neutral for unknown phone numbers", async () => {
     const startCustomerPhoneVerification = vi.fn(async () => {})
     const setPendingPhoneVerification = vi.fn(async () => ({}))
+    const enforceRateLimit = vi.fn(async () => {})
 
     vi.doMock("next/headers", () => ({
       headers: vi.fn(async () => new Headers()),
@@ -82,7 +83,8 @@ describe("customer-facing gap fixes", () => {
     }))
     vi.doMock("@/lib/security/rate-limit", () => ({
       RateLimitError: class RateLimitError extends Error {},
-      enforceRateLimit: vi.fn(async () => {}),
+      enforceRateLimit,
+      rateLimitIdentityFromHeaders: vi.fn(() => "test-request"),
     }))
 
     const { requestCustomerLoginOtpAction } = await import("@/app/home/actions")
@@ -98,11 +100,11 @@ describe("customer-facing gap fixes", () => {
     })
     expect(result.message).toMatch(/if that number has nabaperks cards/i)
     expect(startCustomerPhoneVerification).not.toHaveBeenCalled()
-    expect(setPendingPhoneVerification).toHaveBeenCalledWith({
-      purpose: "wallet",
-      phone: "+447400123456",
-      country: "GB",
-      customerId: null,
+    expect(setPendingPhoneVerification).not.toHaveBeenCalled()
+    expect(enforceRateLimit).toHaveBeenCalledWith({
+      key: "customer-login:+447400123456:test-request",
+      limit: 5,
+      windowMs: 15 * 60_000,
     })
   })
 

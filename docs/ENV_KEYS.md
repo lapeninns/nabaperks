@@ -42,6 +42,21 @@ Optional Google Maps Platform venue autocomplete:
 export NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=<restricted-browser-key>
 ```
 
+Optional browser Web Push:
+
+```bash
+export WEB_PUSH_VAPID_PUBLIC_KEY=<vapid-public-key>
+export WEB_PUSH_VAPID_PRIVATE_KEY=<vapid-private-key>
+export WEB_PUSH_VAPID_SUBJECT=mailto:ops@your-domain
+export CRON_SECRET=<random-bearer-token>
+```
+
+`WEB_PUSH_VAPID_PUBLIC_KEY` is returned by
+`/api/notifications/push/public-key`. `WEB_PUSH_VAPID_PRIVATE_KEY` and
+`WEB_PUSH_VAPID_SUBJECT` are server-only and used by the scheduled Web Push
+delivery worker. `CRON_SECRET` protects `/api/cron/notifications` with a
+`Bearer` authorization header in deployed environments.
+
 ## Supabase
 
 The Supabase CLI can list projects and project API keys after login:

@@ -8,6 +8,7 @@ import {
   getPendingEmailVerification,
   setPendingEmailVerification,
 } from "@/lib/customer/session"
+import { enforceRateLimit } from "@/lib/security/rate-limit"
 
 type EmailVerificationStartResult = { status: "sent" }
 type EmailVerificationCheckResult =
@@ -24,12 +25,19 @@ type EmailVerificationCheckResult =
 export async function startCustomerEmailVerification(
   email: string
 ): Promise<EmailVerificationStartResult> {
+  const normalizedEmail = normalizeEmail(email)
+  await enforceRateLimit({
+    key: `customer-email-verification-send:${normalizedEmail}`,
+    limit: 3,
+    windowMs: 15 * 60_000,
+  })
+
   const code = generateCode()
   await setPendingEmailVerification({
-    email,
-    codeHmac: emailCodeHmac(email, code),
+    email: normalizedEmail,
+    codeHmac: emailCodeHmac(normalizedEmail, code),
   })
-  await sendEmailOtp({ to: email, code })
+  await sendEmailOtp({ to: normalizedEmail, code })
 
   return { status: "sent" }
 }
@@ -39,6 +47,12 @@ export async function checkCustomerEmailVerification(
 ): Promise<EmailVerificationCheckResult> {
   const pending = await getPendingEmailVerification()
   if (!pending) return { status: "rejected" }
+
+  await enforceRateLimit({
+    key: `customer-email-verification-check:${normalizeEmail(pending.email)}`,
+    limit: 5,
+    windowMs: 15 * 60_000,
+  })
 
   if (codeMatches(pending.email, code, pending.codeHmac)) {
     await clearPendingEmailVerification()
@@ -73,6 +87,10 @@ function codeMatches(
 
 function generateCode(): string {
   return String(randomInt(0, 1_000_000)).padStart(6, "0")
+}
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase()
 }
 
 function isApprovedDevOtp(code: string): boolean {

@@ -10,6 +10,7 @@ import {
 } from "@/app/m/[merchantSlug]/join/actions"
 import { customerInputClass } from "@/components/customer/input-class"
 import { Button } from "@/components/ui/button"
+import { otpFieldMaxLength } from "@/lib/customer/experience/otp-field"
 import type { LocationRequirement } from "@/lib/customer/experience/types"
 
 const identityInitialState: CustomerIdentityState = {}
@@ -51,13 +52,25 @@ export function CustomerOtpForm({
             inputMode="numeric"
             autoComplete="one-time-code"
             autoFocus
+            maxLength={otpFieldMaxLength()}
             className={`${customerInputClass} font-mono`}
             aria-invalid={Boolean(state.errors?.otp)}
+            aria-describedby={state.errors?.otp ? "otp-error" : "otp-hint"}
           />
           {state.errors?.otp ? (
-            <p className="text-sm text-destructive">{state.errors.otp}</p>
+            <p
+              id="otp-error"
+              role="alert"
+              aria-live="assertive"
+              className="text-sm text-destructive"
+            >
+              {state.errors.otp}
+            </p>
           ) : (
-            <p className="text-xs leading-5 text-muted-foreground">
+            <p
+              id="otp-hint"
+              className="text-xs leading-5 text-muted-foreground"
+            >
               Enter the verification code sent to your phone.
             </p>
           )}
@@ -86,7 +99,10 @@ export function CustomerOtpForm({
         <input type="hidden" name="merchantSlug" value={merchantSlug} />
         <input type="hidden" name="qrId" value={qrId ?? ""} />
         <input type="hidden" name="contact" value={contact} />
-        <div className="surface-card grid gap-2 p-3 text-left">
+        <div
+          className="surface-card grid gap-2 p-3 text-left"
+          aria-live="polite"
+        >
           <div className="flex items-center justify-between gap-3">
             <span className="eyebrow text-muted-foreground">Sent to</span>
             <Button

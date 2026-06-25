@@ -1,7 +1,6 @@
 "use client"
 
 import { Camera01Icon } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
 import {
   Html5Qrcode,
   Html5QrcodeScannerState,
@@ -9,11 +8,12 @@ import {
 } from "html5-qrcode"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { Eyebrow, ReceiptCard } from "@/components/brand"
+import { Eyebrow, Icon, ReceiptCard } from "@/components/brand"
 import { normalizeScannedQrDestination } from "@/lib/customer/qr-scanner"
+import { scannerGuidance } from "@/lib/customer/scanner-guidance"
 
 type ScannerStatus =
   | { readonly kind: "idle" }
@@ -56,15 +56,26 @@ async function stopAndClearScanner(scanner: Html5Qrcode): Promise<void> {
 export function CustomerQrScanner() {
   const router = useRouter()
   const hasDecodedRef = useRef(false)
+  const scannerRef = useRef<Html5Qrcode | null>(null)
+  const isMountedRef = useRef(true)
   const [status, setStatus] = useState<ScannerStatus>({ kind: "idle" })
 
+  const [retryNonce, setRetryNonce] = useState(0)
+
+  // The camera starts on mount and re-starts whenever retryNonce changes. Keeping
+  // startScanner *inside* the effect (rather than a shared useCallback) means its
+  // state updates live in a locally-defined async function and all run after
+  // `await scanner.start(...)` — never synchronously in the effect body — so there
+  // is no cascading render for the linter to guard against.
   useEffect(() => {
-    let isMounted = true
+    isMountedRef.current = true
+    hasDecodedRef.current = false
     const scanner = new Html5Qrcode(SCANNER_ELEMENT_ID, {
       formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
       useBarCodeDetectorIfSupported: true,
       verbose: false,
     })
+    scannerRef.current = scanner
 
     async function navigateAfterScan(result: { readonly href: string }) {
       try {
@@ -92,7 +103,7 @@ export function CustomerQrScanner() {
             )
 
             if (result.kind === "invalid") {
-              if (isMounted) {
+              if (isMountedRef.current) {
                 setStatus({ kind: "invalid" })
               }
 
@@ -101,7 +112,7 @@ export function CustomerQrScanner() {
 
             hasDecodedRef.current = true
 
-            if (isMounted) {
+            if (isMountedRef.current) {
               setStatus({ kind: "decoded" })
             }
 
@@ -110,12 +121,12 @@ export function CustomerQrScanner() {
           undefined
         )
 
-        if (isMounted) {
+        if (isMountedRef.current) {
           setStatus({ kind: "scanning" })
         }
       } catch (error) {
         if (error instanceof Error || typeof error === "string") {
-          if (isMounted) {
+          if (isMountedRef.current) {
             setStatus({ kind: "camera-error" })
           }
 
@@ -129,10 +140,19 @@ export function CustomerQrScanner() {
     void startScanner()
 
     return () => {
-      isMounted = false
+      isMountedRef.current = false
+      scannerRef.current = null
       void stopAndClearScanner(scanner).catch(handleScannerError)
     }
-  }, [router])
+  }, [router, retryNonce])
+
+  const retryCamera = useCallback(() => {
+    hasDecodedRef.current = false
+    setStatus({ kind: "idle" })
+    // Re-run the start effect (re-creates the scanner and restarts the camera)
+    // without calling a setState-bearing callback synchronously from the effect.
+    setRetryNonce((nonce) => nonce + 1)
+  }, [])
 
   const statusText =
     status.kind === "idle"
@@ -142,41 +162,53 @@ export function CustomerQrScanner() {
         : status.kind === "decoded"
           ? "QR found. Opening your venue card..."
           : status.kind === "invalid"
-            ? "That is not a Nabaperks QR"
+            ? "That is not a Nabaperks QR. Point your camera at the venue QR to collect a stamp."
             : "Camera unavailable"
 
+  const guidance = scannerGuidance(status.kind)
+
   return (
-    <ReceiptCard className="border-stamp-200 bg-cream-50 grid gap-5 p-5">
+    <ReceiptCard edge className="grid gap-5 p-6">
       <div className="grid gap-3">
-        <span className="bg-stamp-100 text-stamp-700 flex h-11 w-11 items-center justify-center rounded-full">
-          <HugeiconsIcon icon={Camera01Icon} size={24} aria-hidden />
+        <span className="grid size-11 place-items-center rounded-full border-2 border-ink bg-accent text-accent-foreground">
+          <Icon icon={Camera01Icon} size={22} />
         </span>
-        <div className="space-y-2">
+        <div className="grid gap-1.5">
           <Eyebrow>Customer scanner</Eyebrow>
-          <h1 className="text-ink-900 font-serif text-3xl leading-tight">
+          <h1 className="text-2xl leading-tight font-extrabold tracking-[-0.01em]">
             Scan venue QR
           </h1>
-          <p className="text-ink-600 text-sm leading-6">
+          <p className="text-sm leading-6 text-muted-foreground">
             Point your camera at a Nabaperks venue QR. We will open the existing
             QR flow so your stamps, OTP checks, and rewards stay protected.
           </p>
         </div>
       </div>
 
-      <div
-        id={SCANNER_ELEMENT_ID}
-        className="border-stamp-300 min-h-72 overflow-hidden rounded-2xl border border-dashed bg-white [&_video]:min-h-72 [&_video]:object-cover"
-      />
+      <div className="aspect-square overflow-hidden rounded-[var(--radius)] border-2 border-dashed border-border bg-card">
+        <div
+          id={SCANNER_ELEMENT_ID}
+          className="size-full [&_video]:size-full [&_video]:object-cover"
+        />
+      </div>
 
-      <div aria-live="polite" className="text-ink-800 text-sm font-semibold">
+      <div
+        aria-live="polite"
+        className="text-sm leading-6 font-semibold text-foreground"
+      >
         {statusText}
       </div>
 
-      {status.kind === "camera-error" ? (
-        <p className="text-ink-600 text-sm leading-6">
-          Allow camera access in your browser and use HTTPS or localhost, then
-          reload this page to scan.
+      {guidance.detail ? (
+        <p className="text-sm leading-6 text-muted-foreground">
+          {guidance.detail}
         </p>
+      ) : null}
+
+      {guidance.showRetry ? (
+        <Button type="button" className="w-full" onClick={retryCamera}>
+          Try the camera again
+        </Button>
       ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2">

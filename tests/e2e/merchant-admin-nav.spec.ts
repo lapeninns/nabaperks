@@ -89,7 +89,7 @@ const CASES: NavCase[] = [
   {
     console: "merchant",
     surfaceId: "merchant-customers",
-    links: ["Home", "Launch", "Customers", "Activity", "Account"],
+    links: ["Home", "Launch", "Customers", "Activity", "Profile", "Billing"],
     activeLabel: "Customers",
   },
   {

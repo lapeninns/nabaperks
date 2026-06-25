@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 
 import { getServerEnv } from "@/lib/env/server"
 import { getOwnedQrAssetContext } from "@/lib/merchant/qr-code"
+import { loadReadyQrAssetBytes } from "@/lib/qr/asset-store"
 import {
   assetFilename,
   assetKindFromSlug,
@@ -44,10 +45,17 @@ export async function GET(request: Request, context: QrPreviewRouteContext) {
     isActive: qrContext.qrCode.is_active,
   }
 
-  const body =
+  // Till-card and sticker previews serve the stored PNG when ready; the poster
+  // preview stays on the SVG renderer because the stored poster is a PDF.
+  const storedBytes =
     assetKind === "poster_pdf"
+      ? null
+      : await loadReadyQrAssetBytes(qrContext.qrCode.id, assetKind)
+  const body =
+    storedBytes ??
+    (assetKind === "poster_pdf"
       ? await renderQrPosterPng(assetContext)
-      : await renderQrAssetPng(assetKind, assetContext)
+      : await renderQrAssetPng(assetKind, assetContext))
 
   return new NextResponse(toArrayBuffer(body), {
     headers: {

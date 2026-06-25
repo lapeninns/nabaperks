@@ -139,13 +139,17 @@ test("a held reward is merchant-scanned and the customer page updates live", asy
   await expect(
     merchantPage.getByRole("heading", { name: "Check and collect reward" })
   ).toBeVisible()
-  await expect(
-    merchantPage.getByText("Ready to collect", { exact: true })
-  ).toBeVisible()
+  const merchantScanMain = merchantPage.getByRole("main")
+  const collectButton = merchantScanMain.getByRole("button", {
+    name: "Mark reward collected",
+  })
 
-  await merchantPage
-    .getByRole("button", { name: "Mark reward collected" })
-    .click()
+  await expect(
+    merchantScanMain.getByText("Ready to collect", { exact: true })
+  ).toBeVisible()
+  await expect(collectButton).toBeVisible()
+
+  await collectButton.click()
 
   // The action redirects to `?collected=1`; the page shows the collected banner.
   // Match with a regex so the literal `?` is not treated as a glob wildcard.
@@ -238,7 +242,7 @@ async function addStamp(
   await holdStampButton(page)
 
   if (outcome === "stamp-added") {
-    await expect(page.getByText("Stamp added.")).toBeVisible()
+    await expect(page.getByText("Stamp added.").first()).toBeVisible()
   } else {
     await expect(
       page.getByText("That's the full card.", { exact: true })

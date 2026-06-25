@@ -124,14 +124,7 @@ function CardProgressPanel({
     exp.reward !== "waiting"
   const hasPrimaryAction = !stampSecuredOnly
 
-  const rewardDetails = (
-    <>
-      {exp.rewardTerms}
-      {exp.minSpendPence !== null ? (
-        <> Minimum spend {formatPence(exp.minSpendPence)}.</>
-      ) : null}
-    </>
-  )
+  const rewardDetails = <>{exp.rewardTerms}</>
   let rewardDescription: ReactNode
   if (rewardState === "sealed") {
     // Show the longer mystery terms only when the action band is informational
@@ -221,7 +214,7 @@ function CardProgressPanel({
                   tone="success"
                   className="text-center"
                 >
-                  That&apos;s one. Your progress has been updated.
+                  That&apos;s one. Your progress is saved.
                 </StatusBanner>
               </StampCelebration>
             ) : null}
@@ -254,13 +247,18 @@ function CardProgressPanel({
             Your next scan window opens on the next UK business day.
           </StatusBanner>
         ) : (
-          <StatusBanner
-            title="Scan the venue code to add your stamp."
-            tone="neutral"
-          >
-            Use the printed QR in the venue. One stamp is available per UK
-            business day.
-          </StatusBanner>
+          <div className="grid gap-3">
+            <StatusBanner
+              title="Scan the venue code to add your stamp."
+              tone="neutral"
+            >
+              Use the printed QR in the venue. One stamp is available per UK
+              business day.
+            </StatusBanner>
+            <Button asChild size="lg" variant="secondary" className="w-full">
+              <Link href="/scan">Scan to stamp</Link>
+            </Button>
+          </div>
         )}
       </CustomerStampCard>
 
@@ -401,13 +399,6 @@ function StatusNotice({
 
 function cardNumber(membershipId: string): string {
   return `CARD Nº ${membershipId.slice(0, 8).toUpperCase()}`
-}
-
-function formatPence(pence: number): string {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-  }).format(pence / 100)
 }
 
 function screenLabelFor(kind: CustomerExperienceKind): string {

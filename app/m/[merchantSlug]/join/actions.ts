@@ -21,7 +21,11 @@ import {
   checkCustomerPhoneVerification,
   startCustomerPhoneVerification,
 } from "@/lib/customer/verification"
-import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit"
+import {
+  enforceRateLimit,
+  RateLimitError,
+  rateLimitIdentityFromHeaders,
+} from "@/lib/security/rate-limit"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type CustomerIdentityState = {
@@ -60,7 +64,9 @@ export async function requestCustomerIdentityAction(
   const rawContact = value(formData, "contact")
   const merchantSlug = value(formData, "merchantSlug")
   const qrId = value(formData, "qrId")
-  const country = defaultCountryFromHeaders(await headers())
+  const requestHeaders = await headers()
+  const country = defaultCountryFromHeaders(requestHeaders)
+  const requestIdentity = rateLimitIdentityFromHeaders(requestHeaders)
   const normalized = normalizePhone(rawContact, country)
 
   if (!normalized.ok) {
@@ -74,7 +80,7 @@ export async function requestCustomerIdentityAction(
 
   try {
     await enforceRateLimit({
-      key: `customer-identity:${contact.toLowerCase()}`,
+      key: `customer-identity:${contact.toLowerCase()}:${requestIdentity}`,
       limit: 5,
       windowMs: 15 * 60_000,
     })

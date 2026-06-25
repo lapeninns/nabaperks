@@ -13,6 +13,10 @@ export const tables = [
   "fraud_flags",
   "rate_limit_buckets",
   "consent_records",
+  "notification_preferences",
+  "push_subscriptions",
+  "notification_events",
+  "notification_deliveries",
   "billing_customers",
   "reward_scan_tokens",
   "stripe_webhook_events",
@@ -60,6 +64,19 @@ export const requiredHelpers = [
   "admin_log_pilot_note",
   "get_merchant_dashboard_metrics",
   "get_product_event_counts",
+  "register_push_subscription",
+  "disable_push_subscription",
+  "update_notification_preferences",
+  "get_notification_preferences",
+  "register_push_subscription_for_customer",
+  "disable_push_subscription_for_customer",
+  "update_notification_preferences_for_customer",
+  "get_notification_preferences_for_customer",
+  "notification_event_category",
+  "build_notification_dedupe_key",
+  "enqueue_notification_event",
+  "record_notification_delivery",
+  "expire_due_reward_events",
 ]
 
 export const requiredTestMarkers = [
@@ -78,4 +95,6 @@ export const requiredPerformanceIndexes = [
   "reward_events_membership_status_created_at_idx",
   "stamp_events_merchant_earned_created_at_idx",
   "reward_events_merchant_redeemed_created_at_idx",
+  "notification_events_due_status_idx",
+  "notification_deliveries_event_created_idx",
 ]

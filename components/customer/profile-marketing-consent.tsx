@@ -1,12 +1,13 @@
 "use client"
 
-import { useActionState } from "react"
+import { useActionState, useState } from "react"
 
 import {
   updateHomeMarketingConsentAction,
   type MarketingConsentState,
 } from "@/app/home/(authed)/profile/actions"
 import { Eyebrow, SectionHeader } from "@/components/brand"
+import { marketingConsentRowState } from "@/lib/customer/experience/marketing-consent-row"
 
 type MarketingConsent = {
   channel: "email" | "sms" | "whatsapp"
@@ -14,9 +15,21 @@ type MarketingConsent = {
 }
 
 const CHANNELS = [
-  { channel: "email", label: "Email", helper: "Reward updates and offers by email." },
-  { channel: "sms", label: "SMS", helper: "Occasional offers by text message." },
-  { channel: "whatsapp", label: "WhatsApp", helper: "Updates and offers on WhatsApp." },
+  {
+    channel: "email",
+    label: "Email",
+    helper: "Reward updates and offers by email.",
+  },
+  {
+    channel: "sms",
+    label: "SMS",
+    helper: "Occasional offers by text message.",
+  },
+  {
+    channel: "whatsapp",
+    label: "WhatsApp",
+    helper: "Updates and offers on WhatsApp.",
+  },
 ] as const
 
 const initialState: MarketingConsentState = {}
@@ -25,7 +38,9 @@ const initialState: MarketingConsentState = {}
  * Global marketing preferences for the signed-in customer. One toggle per channel
  * applies across every venue; each posts on change (no Save button). The page
  * revalidates after a save, and each row is keyed by the server's standing value
- * so a successful change re-renders the toggle from server truth.
+ * so a successful change re-renders the toggle from server truth. Each row gives a
+ * quiet, polite confirmation and reflects the switch from server truth so a failed
+ * save snaps the toggle back instead of leaving it contradicting the message.
  */
 export function CustomerProfileMarketing({
   consents,
@@ -84,6 +99,18 @@ function MarketingChannelRow({
     updateHomeMarketingConsentAction,
     initialState
   )
+  // The value the customer just chose, shown while the save is in flight so the
+  // switch stays responsive; the server result (success or reverted failure)
+  // takes over once the action resolves.
+  const [optimistic, setOptimistic] = useState(optedIn)
+
+  const { checked, message } = marketingConsentRowState({
+    channel,
+    optedIn,
+    pending,
+    state,
+  })
+  const displayChecked = pending ? optimistic : checked
 
   return (
     <form action={action} className="flex items-start justify-between gap-4">
@@ -91,18 +118,31 @@ function MarketingChannelRow({
       <div className="grid gap-1">
         <Eyebrow>{label}</Eyebrow>
         <p className="text-sm leading-6 text-muted-foreground">{helper}</p>
-        {state.error ? (
-          <p className="text-sm text-destructive">{state.error}</p>
-        ) : null}
+        <p
+          role="status"
+          aria-live="polite"
+          className={
+            !message
+              ? "sr-only"
+              : state.error
+                ? "text-sm font-bold text-destructive"
+                : "text-sm font-bold text-foreground"
+          }
+        >
+          {message}
+        </p>
       </div>
-      <label className="mt-0.5 inline-flex shrink-0 cursor-pointer items-center">
+      <label className="-m-3 mt-0.5 inline-flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center p-3">
         <span className="sr-only">Receive {label} updates</span>
         <input
           type="checkbox"
           name="optedIn"
-          defaultChecked={optedIn}
+          checked={displayChecked}
           disabled={pending}
-          onChange={(event) => event.currentTarget.form?.requestSubmit()}
+          onChange={(event) => {
+            setOptimistic(event.currentTarget.checked)
+            event.currentTarget.form?.requestSubmit()
+          }}
           className="size-5 shrink-0 accent-primary disabled:opacity-60"
         />
       </label>

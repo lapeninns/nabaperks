@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { createSupabaseMock } from "../helpers/supabase"
 
@@ -19,6 +19,10 @@ function redirectMock() {
 }
 
 describe("06 billing and internal admin micro-specs", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
   it("requires Supabase AAL2 before allowing admins when MFA enforcement is enabled", async () => {
     vi.resetModules()
     vi.stubEnv("ADMIN_MFA_REQUIRED", "true")
@@ -96,6 +100,55 @@ describe("06 billing and internal admin micro-specs", () => {
       email: "admin@example.test",
       mfaRequired: true,
     })
+  })
+
+  it("requires Supabase AAL2 for production admins when MFA env is unset", async () => {
+    vi.resetModules()
+    vi.stubEnv("NODE_ENV", "production")
+    vi.stubEnv("ADMIN_MFA_REQUIRED", "")
+    const supabase = createSupabaseMock({
+      auth: {
+        mfa: {
+          getAuthenticatorAssuranceLevel: vi.fn(async () => ({
+            data: { currentLevel: "aal1", nextLevel: "aal2" },
+            error: null,
+          })),
+        },
+      },
+      from: {
+        internal_admins: [
+          {
+            data: { email: "admin@example.test", is_active: true },
+            error: null,
+          },
+        ],
+      },
+    })
+    vi.doMock("next/navigation", () => ({ redirect: redirectMock() }))
+    vi.doMock("@/lib/auth/session", () => ({
+      getCurrentUser: vi.fn(async () => ({
+        id: "admin-user-1",
+        email: "admin@example.test",
+      })),
+    }))
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServerClient: vi.fn(async () => supabase.client),
+    }))
+    const { getAdminAccess } = await import("@/lib/admin/auth")
+
+    await expect(getAdminAccess()).resolves.toMatchObject({
+      status: "denied",
+      reason: "Admin MFA verification is required.",
+    })
+  })
+
+  it("does not allow production admins to disable MFA with a false flag", async () => {
+    vi.resetModules()
+    vi.stubEnv("NODE_ENV", "production")
+    vi.stubEnv("ADMIN_MFA_REQUIRED", "false")
+    const { isAdminMfaRequired } = await import("@/lib/admin/auth")
+
+    expect(isAdminMfaRequired()).toBe(true)
   })
 
   it("normalizes Stripe statuses and subscription periods for access control", async () => {

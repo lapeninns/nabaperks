@@ -1,6 +1,5 @@
 import "server-only"
 
-import { PDFDocument } from "pdf-lib"
 import QRCode from "qrcode"
 
 // `sharp` is a native module that is only needed to rasterise the SVG print
@@ -10,6 +9,11 @@ import QRCode from "qrcode"
 async function loadSharp() {
   const { default: sharp } = await import("sharp")
   return sharp
+}
+
+async function loadPdfDocument() {
+  const { PDFDocument } = await import("pdf-lib")
+  return PDFDocument
 }
 
 export type QrAssetKind = "poster_pdf" | "till_card_png" | "sticker_png"
@@ -85,6 +89,7 @@ export async function renderQrAssetPng(
 
 export async function renderQrPosterPdf(context: QrAssetContext) {
   const png = await renderQrPosterPng(context)
+  const PDFDocument = await loadPdfDocument()
   const pdf = await PDFDocument.create()
   const page = pdf.addPage([595.28, 841.89])
   const image = await pdf.embedPng(png)

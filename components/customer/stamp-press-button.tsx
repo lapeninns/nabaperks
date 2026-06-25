@@ -1,12 +1,13 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useId, useRef, useState } from "react"
 import type { PointerEvent as ReactPointerEvent } from "react"
 
 import { CheckmarkBadge04Icon } from "@hugeicons/core-free-icons"
 
 import { Icon } from "@/components/brand/icon"
 import { deriveVenueInitials } from "@/components/brand/venue-mark"
+import { WetInkBreathe } from "@/components/motion"
 import { useReducedMotionHook } from "@/lib/motion/use-reduced-motion"
 import { cn } from "@/lib/utils"
 
@@ -24,6 +25,45 @@ function vibrate(pattern: number | number[]) {
   }
 }
 
+function StampDiscFace({
+  confirmed,
+  pending,
+  initials,
+}: {
+  /** Server-confirmed stamp — the only state that earns the green leaf disc. */
+  confirmed: boolean
+  /** Optimistic stamp in flight — stays the neutral stamp colour, lightly dimmed. */
+  pending: boolean
+  initials: string
+}) {
+  return (
+    <span
+      className={cn(
+        "grid size-[5.5rem] place-items-center rounded-full border-2 border-ink shadow-md transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
+        confirmed
+          ? "bg-reward text-reward-foreground"
+          : "bg-stamp text-stamp-foreground",
+        // A press is not yet a success: the optimistic mark sits in a muted
+        // stamp tint until the server confirms (then it flips to green) or
+        // declines (then it returns to the full stamp colour).
+        pending && !confirmed
+          ? "bg-stamp/85 motion-safe:animate-pulse"
+          : undefined
+      )}
+    >
+      {confirmed ? (
+        <Icon icon={CheckmarkBadge04Icon} size={34} />
+      ) : initials ? (
+        <span className="font-mono text-xl font-bold tracking-[0.04em] uppercase">
+          {initials}
+        </span>
+      ) : (
+        <Icon icon={CheckmarkBadge04Icon} size={30} />
+      )}
+    </span>
+  )
+}
+
 /**
  * The stamp gesture: a rubber-stamp disc that commits on a plain tap (mouse,
  * touch, or keyboard) AND on a press-and-hold whose ring charges to full. A
@@ -37,18 +77,33 @@ export function StampPressButton({
   venueName,
   disabled = false,
   secured = false,
+  confirmed = false,
+  pending = false,
   holdMs = 600,
   label = "Add today's stamp",
 }: {
   onStamp: () => void
   venueName?: string
   disabled?: boolean
-  /** The stamp has landed — show the confirmed disc and ignore input. */
+  /**
+   * Input is locked — the stamp has landed (optimistically or for real) or the
+   * window is closed. Drives the accessible name, the breathe pause and the
+   * disabled-input gate, but NOT the disc colour (see `confirmed`).
+   */
   secured?: boolean
+  /**
+   * The server confirmed the stamp ("issued") — the only signal that flips the
+   * disc to the success-green leaf. Kept distinct from `secured` so an optimistic
+   * press never shows a success colour the server might un-happen (friction F10).
+   */
+  confirmed?: boolean
+  /** Optimistic stamp in flight — neutral pending treatment, not green. */
+  pending?: boolean
   holdMs?: number
   label?: string
 }) {
   const reduce = useReducedMotionHook()
+  const hintId = useId()
   const ringRef = useRef<SVGCircleElement | null>(null)
   const rafRef = useRef<number | null>(null)
   const startRef = useRef(0)
@@ -152,57 +207,56 @@ export function StampPressButton({
   const initials = venueName ? deriveVenueInitials(venueName) : ""
 
   return (
-    <button
-      type="button"
-      aria-label={secured ? "Stamp added" : label}
-      disabled={disabled}
-      onPointerDown={handlePointerDown}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      onClick={handleClick}
-      className={cn(
-        "relative grid size-28 touch-none place-items-center transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] select-none motion-reduce:transition-none",
-        pressing && !reduce ? "scale-95" : "scale-100",
-        inactive ? "cursor-default" : "cursor-pointer"
-      )}
-    >
-      <svg
-        viewBox="0 0 100 100"
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -rotate-90"
-        style={{ opacity: ringVisible ? 1 : 0 }}
-      >
-        <circle
-          ref={ringRef}
-          cx="50"
-          cy="50"
-          r={RING_RADIUS}
-          fill="none"
-          stroke="var(--w-accent)"
-          strokeWidth={6}
-          strokeLinecap="round"
-          strokeDasharray={RING_CIRCUMFERENCE}
-          strokeDashoffset={RING_CIRCUMFERENCE}
-        />
-      </svg>
-      <span
+    // Idle invite: the actionable disc breathes to advertise the tap/hold
+    // gesture (the screen's single action). Gated on the stable `inactive` flag
+    // so it pauses once a stamp is in flight or landed — and never remounts the
+    // button mid-press. The primitive holds it static under reduced motion.
+    <WetInkBreathe active={!inactive} className="inline-grid">
+      <button
+        type="button"
+        aria-label={secured ? "Stamp added" : label}
+        aria-describedby={inactive ? undefined : hintId}
+        disabled={disabled}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onClick={handleClick}
         className={cn(
-          "grid size-[5.5rem] place-items-center rounded-full border-2 border-ink shadow-md",
-          secured
-            ? "bg-reward text-reward-foreground"
-            : "bg-stamp text-stamp-foreground"
+          "relative grid size-28 touch-none place-items-center transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] select-none motion-reduce:transition-none",
+          pressing && !reduce ? "scale-95" : "scale-100",
+          inactive ? "cursor-default" : "cursor-pointer"
         )}
       >
-        {secured ? (
-          <Icon icon={CheckmarkBadge04Icon} size={34} />
-        ) : initials ? (
-          <span className="font-mono text-xl font-bold tracking-[0.04em] uppercase">
-            {initials}
-          </span>
-        ) : (
-          <Icon icon={CheckmarkBadge04Icon} size={30} />
-        )}
-      </span>
-    </button>
+        <svg
+          viewBox="0 0 100 100"
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 -rotate-90"
+          style={{ opacity: ringVisible ? 1 : 0 }}
+        >
+          <circle
+            ref={ringRef}
+            cx="50"
+            cy="50"
+            r={RING_RADIUS}
+            fill="none"
+            stroke="var(--w-accent)"
+            strokeWidth={6}
+            strokeLinecap="round"
+            strokeDasharray={RING_CIRCUMFERENCE}
+            strokeDashoffset={RING_CIRCUMFERENCE}
+          />
+        </svg>
+        <StampDiscFace
+          confirmed={confirmed}
+          pending={pending}
+          initials={initials}
+        />
+        {/* Names the gesture for assistive tech without altering the button's
+            accessible name (kept as the label for e2e role-name locators). */}
+        <span id={hintId} className="sr-only">
+          Tap, or press and hold, to add today&apos;s stamp.
+        </span>
+      </button>
+    </WetInkBreathe>
   )
 }

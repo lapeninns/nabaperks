@@ -33,7 +33,9 @@
         "CLAUDE.md",
         "SKILL.md"
       ],
-      "related_tests": ["tests/micro-specs/ai-governance.test.ts"],
+      "related_tests": [
+        "tests/micro-specs/ai-governance.test.ts"
+      ],
       "verification_gates": [
         "pnpm governance",
         "pnpm lint",
@@ -45,15 +47,24 @@
         {
           "requirement_id": "GOV-GOVERNANCE-FOUNDATION-001",
           "summary": "Canonical governance hierarchy is documented and validated.",
-          "gates": ["pnpm governance", "pnpm test"],
+          "gates": [
+            "pnpm governance",
+            "pnpm test"
+          ],
           "evidence": [
             "micro-specs/README.md",
             "tests/micro-specs/ai-governance.test.ts"
           ],
           "status": "implemented",
           "risk_class": "docs-tooling",
-          "required_test_tier": ["governance", "unit"],
-          "verification_commands": ["pnpm governance", "pnpm test"],
+          "required_test_tier": [
+            "governance",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm test"
+          ],
           "implementation_surfaces": [
             "AGENTS.md",
             "CLAUDE.md",
@@ -69,7 +80,9 @@
             "package.json",
             ".github/**"
           ],
-          "related_tests": ["tests/micro-specs/ai-governance.test.ts"],
+          "related_tests": [
+            "tests/micro-specs/ai-governance.test.ts"
+          ],
           "manual_rationale": [],
           "change_state": "current",
           "edge_cases": [
@@ -78,8 +91,12 @@
               "category": "state-machine",
               "trigger": "this requirement is exercised",
               "expected": "Canonical governance hierarchy is documented and validated",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/ai-governance.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/ai-governance.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -88,15 +105,24 @@
         {
           "requirement_id": "GOV-GOVERNANCE-FOUNDATION-002",
           "summary": "Lifecycle status, transition, risk, and gate vocabulary is documented and validated.",
-          "gates": ["pnpm governance", "pnpm test"],
+          "gates": [
+            "pnpm governance",
+            "pnpm test"
+          ],
           "evidence": [
             "micro-specs/README.md",
             "tests/micro-specs/ai-governance.test.ts"
           ],
           "status": "implemented",
           "risk_class": "docs-tooling",
-          "required_test_tier": ["governance", "unit"],
-          "verification_commands": ["pnpm governance", "pnpm test"],
+          "required_test_tier": [
+            "governance",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm test"
+          ],
           "implementation_surfaces": [
             "AGENTS.md",
             "CLAUDE.md",
@@ -112,7 +138,9 @@
             "package.json",
             ".github/**"
           ],
-          "related_tests": ["tests/micro-specs/ai-governance.test.ts"],
+          "related_tests": [
+            "tests/micro-specs/ai-governance.test.ts"
+          ],
           "manual_rationale": [],
           "change_state": "current",
           "edge_cases": [
@@ -121,8 +149,12 @@
               "category": "state-machine",
               "trigger": "this requirement is exercised",
               "expected": "Lifecycle status, transition, risk, and gate vocabulary is documented and validated",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/ai-governance.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/ai-governance.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -131,7 +163,10 @@
         {
           "requirement_id": "GOV-GOVERNANCE-FOUNDATION-003",
           "summary": "Traceability JSON and Markdown are present and synchronized for the foundation scope.",
-          "gates": ["pnpm governance", "pnpm test"],
+          "gates": [
+            "pnpm governance",
+            "pnpm test"
+          ],
           "evidence": [
             "micro-specs/traceability.json",
             "micro-specs/TRACEABILITY.md",
@@ -139,8 +174,14 @@
           ],
           "status": "implemented",
           "risk_class": "docs-tooling",
-          "required_test_tier": ["governance", "unit"],
-          "verification_commands": ["pnpm governance", "pnpm test"],
+          "required_test_tier": [
+            "governance",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm test"
+          ],
           "implementation_surfaces": [
             "AGENTS.md",
             "CLAUDE.md",
@@ -156,7 +197,9 @@
             "package.json",
             ".github/**"
           ],
-          "related_tests": ["tests/micro-specs/ai-governance.test.ts"],
+          "related_tests": [
+            "tests/micro-specs/ai-governance.test.ts"
+          ],
           "manual_rationale": [],
           "change_state": "current",
           "edge_cases": [
@@ -165,8 +208,12 @@
               "category": "concurrency",
               "trigger": "this requirement is exercised",
               "expected": "Traceability JSON and Markdown are present and synchronized for the foundation scope",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/ai-governance.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/ai-governance.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -190,7 +237,12 @@
           ],
           "status": "implemented",
           "risk_class": "docs-tooling",
-          "required_test_tier": ["governance", "lint", "typecheck", "unit"],
+          "required_test_tier": [
+            "governance",
+            "lint",
+            "typecheck",
+            "unit"
+          ],
           "verification_commands": [
             "pnpm governance",
             "pnpm lint",
@@ -212,7 +264,9 @@
             "package.json",
             ".github/**"
           ],
-          "related_tests": ["tests/micro-specs/ai-governance.test.ts"],
+          "related_tests": [
+            "tests/micro-specs/ai-governance.test.ts"
+          ],
           "manual_rationale": [],
           "change_state": "current",
           "edge_cases": [
@@ -221,8 +275,12 @@
               "category": "resilience",
               "trigger": "this requirement is exercised",
               "expected": "Governance validation is pnpm aligned, deterministic, read-only, and not soft-failed",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/ai-governance.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/ai-governance.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -231,7 +289,10 @@
         {
           "requirement_id": "GOV-GOVERNANCE-FOUNDATION-005",
           "summary": "Governance-only work is CLI-first and browser evidence is required only when product runtime risk calls for it.",
-          "gates": ["pnpm governance", "pnpm test"],
+          "gates": [
+            "pnpm governance",
+            "pnpm test"
+          ],
           "evidence": [
             "micro-specs/README.md",
             ".github/pull_request_template.md",
@@ -239,8 +300,14 @@
           ],
           "status": "implemented",
           "risk_class": "docs-tooling",
-          "required_test_tier": ["governance", "unit"],
-          "verification_commands": ["pnpm governance", "pnpm test"],
+          "required_test_tier": [
+            "governance",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm test"
+          ],
           "implementation_surfaces": [
             "AGENTS.md",
             "CLAUDE.md",
@@ -256,7 +323,9 @@
             "package.json",
             ".github/**"
           ],
-          "related_tests": ["tests/micro-specs/ai-governance.test.ts"],
+          "related_tests": [
+            "tests/micro-specs/ai-governance.test.ts"
+          ],
           "manual_rationale": [],
           "change_state": "current",
           "edge_cases": [
@@ -265,8 +334,12 @@
               "category": "state-machine",
               "trigger": "this requirement is exercised",
               "expected": "Governance-only work is CLI-first and browser evidence is required only when product runtime risk calls for it",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/ai-governance.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/ai-governance.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -453,7 +526,10 @@
         {
           "requirement_id": "GOV-HANDOFF-FIXTURES-TESTS-001",
           "summary": "Malformed lifecycle fixtures fail for missing metadata, invalid status, duplicate IDs, invalid risk class, missing supersession, and stale references.",
-          "gates": ["pnpm governance", "pnpm test"],
+          "gates": [
+            "pnpm governance",
+            "pnpm test"
+          ],
           "evidence": [
             "tests/fixtures/governance/handoff-workflows.json",
             "tests/micro-specs/ai-governance.test.ts",
@@ -461,8 +537,14 @@
           ],
           "status": "implemented",
           "risk_class": "docs-tooling",
-          "required_test_tier": ["governance", "unit"],
-          "verification_commands": ["pnpm governance", "pnpm test"],
+          "required_test_tier": [
+            "governance",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm test"
+          ],
           "implementation_surfaces": [
             "scripts/check-governance.mjs",
             "tests/micro-specs/ai-governance.test.ts",
@@ -483,7 +565,9 @@
               "category": "idempotency",
               "trigger": "this requirement is exercised",
               "expected": "Malformed lifecycle fixtures fail for missing metadata, invalid status, duplicate IDs, invalid risk class, missing supersession, and stale references",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/fixtures/governance/handoff-workflows.json",
                 "tests/micro-specs/ai-governance.test.ts"
@@ -496,7 +580,10 @@
         {
           "requirement_id": "GOV-HANDOFF-FIXTURES-TESTS-002",
           "summary": "Governance automation rejects missing metadata, duplicate IDs, invalid risk class, broken traceability, and soft-fail CI configuration.",
-          "gates": ["pnpm governance", "pnpm test"],
+          "gates": [
+            "pnpm governance",
+            "pnpm test"
+          ],
           "evidence": [
             "tests/micro-specs/ai-governance.test.ts",
             "scripts/check-governance.mjs",
@@ -504,8 +591,14 @@
           ],
           "status": "implemented",
           "risk_class": "docs-tooling",
-          "required_test_tier": ["governance", "unit"],
-          "verification_commands": ["pnpm governance", "pnpm test"],
+          "required_test_tier": [
+            "governance",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm test"
+          ],
           "implementation_surfaces": [
             "scripts/check-governance.mjs",
             "tests/micro-specs/ai-governance.test.ts",
@@ -526,8 +619,12 @@
               "category": "concurrency",
               "trigger": "this requirement is exercised",
               "expected": "Governance automation rejects missing metadata, duplicate IDs, invalid risk class, broken traceability, and soft-fail CI configuration",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/ai-governance.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/ai-governance.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -536,15 +633,24 @@
         {
           "requirement_id": "GOV-HANDOFF-FIXTURES-TESTS-003",
           "summary": "Compliant handoff fixtures demonstrate Product to Engineering to Reviewer to Release evidence without widening scope.",
-          "gates": ["pnpm governance", "pnpm test"],
+          "gates": [
+            "pnpm governance",
+            "pnpm test"
+          ],
           "evidence": [
             "tests/fixtures/governance/handoff-workflows.json",
             "tests/micro-specs/ai-governance.test.ts"
           ],
           "status": "implemented",
           "risk_class": "docs-tooling",
-          "required_test_tier": ["governance", "unit"],
-          "verification_commands": ["pnpm governance", "pnpm test"],
+          "required_test_tier": [
+            "governance",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm test"
+          ],
           "implementation_surfaces": [
             "scripts/check-governance.mjs",
             "tests/micro-specs/ai-governance.test.ts",
@@ -565,7 +671,9 @@
               "category": "state-machine",
               "trigger": "this requirement is exercised",
               "expected": "Compliant handoff fixtures demonstrate Product to Engineering to Reviewer to Release evidence without widening scope",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/fixtures/governance/handoff-workflows.json",
                 "tests/micro-specs/ai-governance.test.ts"
@@ -578,7 +686,10 @@
         {
           "requirement_id": "GOV-HANDOFF-FIXTURES-TESTS-004",
           "summary": "Malformed workflow fixtures fail for missing handoff fields, missing TDD evidence, missing as-built reconciliation, missing blast-radius confirmation, and broken traceability.",
-          "gates": ["pnpm governance", "pnpm test"],
+          "gates": [
+            "pnpm governance",
+            "pnpm test"
+          ],
           "evidence": [
             "tests/fixtures/governance/handoff-workflows.json",
             "tests/micro-specs/ai-governance.test.ts",
@@ -586,8 +697,14 @@
           ],
           "status": "implemented",
           "risk_class": "docs-tooling",
-          "required_test_tier": ["governance", "unit"],
-          "verification_commands": ["pnpm governance", "pnpm test"],
+          "required_test_tier": [
+            "governance",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm test"
+          ],
           "implementation_surfaces": [
             "scripts/check-governance.mjs",
             "tests/micro-specs/ai-governance.test.ts",
@@ -608,7 +725,9 @@
               "category": "concurrency",
               "trigger": "this requirement is exercised",
               "expected": "Malformed workflow fixtures fail for missing handoff fields, missing TDD evidence, missing as-built reconciliation, missing blast-radius confirmation, and broken traceability",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/fixtures/governance/handoff-workflows.json",
                 "tests/micro-specs/ai-governance.test.ts"
@@ -621,15 +740,24 @@
         {
           "requirement_id": "GOV-HANDOFF-FIXTURES-TESTS-005",
           "summary": "Reviewer decisions cite spec IDs, requirement IDs, risk class, and verification output.",
-          "gates": ["pnpm governance", "pnpm test"],
+          "gates": [
+            "pnpm governance",
+            "pnpm test"
+          ],
           "evidence": [
             "tests/fixtures/governance/handoff-workflows.json",
             "scripts/check-governance.mjs"
           ],
           "status": "implemented",
           "risk_class": "docs-tooling",
-          "required_test_tier": ["governance", "unit"],
-          "verification_commands": ["pnpm governance", "pnpm test"],
+          "required_test_tier": [
+            "governance",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm test"
+          ],
           "implementation_surfaces": [
             "scripts/check-governance.mjs",
             "tests/micro-specs/ai-governance.test.ts",
@@ -650,8 +778,12 @@
               "category": "state-machine",
               "trigger": "this requirement is exercised",
               "expected": "Reviewer decisions cite spec IDs, requirement IDs, risk class, and verification output",
-              "required_layer": ["unit"],
-              "evidence": ["tests/fixtures/governance/handoff-workflows.json"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/fixtures/governance/handoff-workflows.json"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -660,7 +792,10 @@
         {
           "requirement_id": "GOV-HANDOFF-FIXTURES-TESTS-006",
           "summary": "Release handoff evidence reconciles governance, quality, lint, typecheck, tests, and risk-specific gates while keeping risks and follow-ups separate.",
-          "gates": ["pnpm governance", "pnpm test"],
+          "gates": [
+            "pnpm governance",
+            "pnpm test"
+          ],
           "evidence": [
             "tests/fixtures/governance/handoff-workflows.json",
             "micro-specs/traceability.json",
@@ -668,8 +803,14 @@
           ],
           "status": "implemented",
           "risk_class": "docs-tooling",
-          "required_test_tier": ["governance", "unit"],
-          "verification_commands": ["pnpm governance", "pnpm test"],
+          "required_test_tier": [
+            "governance",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm test"
+          ],
           "implementation_surfaces": [
             "scripts/check-governance.mjs",
             "tests/micro-specs/ai-governance.test.ts",
@@ -690,8 +831,12 @@
               "category": "state-machine",
               "trigger": "this requirement is exercised",
               "expected": "Release handoff evidence reconciles governance, quality, lint, typecheck, tests, and risk-specific gates while keeping risks and follow-ups separate",
-              "required_layer": ["unit"],
-              "evidence": ["tests/fixtures/governance/handoff-workflows.json"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/fixtures/governance/handoff-workflows.json"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -766,7 +911,9 @@
             }
           ],
           "as_built_reconciliation": {
-            "already_satisfied": ["GOV-HANDOFF-FIXTURES-TESTS-002"],
+            "already_satisfied": [
+              "GOV-HANDOFF-FIXTURES-TESTS-002"
+            ],
             "implemented": [
               "GOV-HANDOFF-FIXTURES-TESTS-001",
               "GOV-HANDOFF-FIXTURES-TESTS-003",
@@ -962,7 +1109,10 @@
               "category": "auth",
               "trigger": "a non-admin accesses `/admin`",
               "expected": "deny access",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/admin-console-redesign.test.ts"
@@ -1027,7 +1177,10 @@
               "category": "auth",
               "trigger": "admin MFA enforcement is enabled",
               "expected": "deny admin access unless the Supabase session is at AAL2",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/admin-console-redesign.test.ts"
@@ -1092,7 +1245,10 @@
               "category": "auth",
               "trigger": "an admin views merchants",
               "expected": "show searchable merchant account and plan status data",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/admin-console-redesign.test.ts"
@@ -1157,7 +1313,10 @@
               "category": "auth",
               "trigger": "an admin performs a manual stamp adjustment",
               "expected": "create an adjustment event and audit log",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/admin-console-redesign.test.ts"
@@ -1222,7 +1381,10 @@
               "category": "auth",
               "trigger": "an admin cancels a reward",
               "expected": "update reward state and record why",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/admin-console-redesign.test.ts"
@@ -1287,7 +1449,10 @@
               "category": "auth",
               "trigger": "an admin disables a QR code",
               "expected": "stop resolving for customer entry while history remains visible",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/admin-console-redesign.test.ts"
@@ -1352,7 +1517,10 @@
               "category": "auth",
               "trigger": "an admin views audit logs",
               "expected": "show actor, action, merchant/customer context where appropriate, timestamp, and non-sensitive metadata",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/admin-console-redesign.test.ts"
@@ -1486,7 +1654,10 @@
               "category": "auth",
               "trigger": "a merchant starts checkout",
               "expected": "create a Stripe Checkout Session for the Growth Plan",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/admin-console-redesign.test.ts",
@@ -1560,8 +1731,12 @@
               "category": "idempotency",
               "trigger": "Stripe redelivers a webhook event that was already processed",
               "expected": "the event is claimed and marked once; billing state is not mutated a second time",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/stripe-webhook-events.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/stripe-webhook-events.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             },
@@ -1570,8 +1745,12 @@
               "category": "idempotency",
               "trigger": "the webhook insert hits a unique violation (23505) for an already-claimed event",
               "expected": "claim returns duplicate and the handler skips side effects rather than throwing",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/stripe-webhook-events.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/stripe-webhook-events.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -1640,8 +1819,12 @@
               "category": "state-machine",
               "trigger": "subscription.updated arrives with a Stripe status outside the explicitly mapped set",
               "expected": "the status maps to suspended; no unmapped status leaks through",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/stripe-billing.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/stripe-billing.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             },
@@ -1650,8 +1833,12 @@
               "category": "input",
               "trigger": "the subscription has no items, or the first item lacks a period end",
               "expected": "subscriptionPeriodEnd returns null rather than throwing or fabricating a date",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/stripe-billing.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/stripe-billing.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -1718,8 +1905,12 @@
               "category": "state-machine",
               "trigger": "billing status is past_due",
               "expected": "the card stays usable under the configured grace behaviour while a billing warning is surfaced",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/customer-billing-matrix.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/customer-billing-matrix.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -1786,8 +1977,12 @@
               "category": "state-machine",
               "trigger": "billing status is cancelled",
               "expected": "new stamp issuance is blocked while dashboard data access is preserved",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/customer-billing-matrix.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/customer-billing-matrix.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -1854,8 +2049,12 @@
               "category": "state-machine",
               "trigger": "billing status is suspended",
               "expected": "customer-facing card use is disabled",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/customer-billing-matrix.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/customer-billing-matrix.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -1922,7 +2121,10 @@
               "category": "input",
               "trigger": "webhook verification fails",
               "expected": "reject the event and SHALL not update billing state",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/admin-console-redesign.test.ts",
@@ -2051,7 +2253,11 @@
               "category": "state-machine",
               "trigger": "a customer opens their card before unlock",
               "expected": "show current stamp count, target, and locked surprise reward teaser",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/customer.test.ts",
                 "tests/micro-specs/customer-card-stamps.test.ts",
@@ -2119,7 +2325,11 @@
               "category": "state-machine",
               "trigger": "a reward has been unlocked",
               "expected": "show assigned reward details from `reward_events`, not mutable `loyalty_cards` fields",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/customer.test.ts",
                 "tests/micro-specs/customer-card-stamps.test.ts",
@@ -2187,7 +2397,11 @@
               "category": "state-machine",
               "trigger": "the customer is not authorized for the membership",
               "expected": "deny access",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/customer.test.ts",
                 "tests/micro-specs/customer-card-stamps.test.ts",
@@ -2255,7 +2469,11 @@
               "category": "state-machine",
               "trigger": "the customer opens the plain card page",
               "expected": "tell them to scan the venue code before adding a stamp",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/customer.test.ts",
                 "tests/micro-specs/customer-card-stamps.test.ts",
@@ -2323,7 +2541,11 @@
               "category": "state-machine",
               "trigger": "the customer opens the stamp route with a valid QR context",
               "expected": "show a self-service add-stamp action",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/customer.test.ts",
                 "tests/micro-specs/customer-card-stamps.test.ts",
@@ -2391,7 +2613,11 @@
               "category": "resilience",
               "trigger": "GPS review is enabled",
               "expected": "request browser location before submit and continue without blocking if location is denied or unavailable",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/customer.test.ts",
                 "tests/micro-specs/customer-card-stamps.test.ts",
@@ -2459,7 +2685,11 @@
               "category": "temporal",
               "trigger": "the membership has enough stamps for a reward but `redeemable_from` is in the future",
               "expected": "show a come-back message instead of a redeem button",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/customer.test.ts",
                 "tests/micro-specs/customer-card-stamps.test.ts",
@@ -2527,7 +2757,11 @@
               "category": "state-machine",
               "trigger": "a reward is ready",
               "expected": "show the reward as ready to redeem",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/customer.test.ts",
                 "tests/micro-specs/customer-card-stamps.test.ts",
@@ -2595,7 +2829,11 @@
               "category": "state-machine",
               "trigger": "a reward has already been redeemed",
               "expected": "not show it as redeemable again",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/customer.test.ts",
                 "tests/micro-specs/customer-card-stamps.test.ts",
@@ -2725,7 +2963,10 @@
               "category": "auth",
               "trigger": "a customer scans an active QR",
               "expected": "look up the QR record server-side",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/customer.test.ts",
                 "tests/micro-specs/customer-phone-auth.test.ts",
@@ -2793,7 +3034,10 @@
               "category": "resilience",
               "trigger": "a QR is inactive or unknown",
               "expected": "show that the loyalty card is unavailable",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/customer.test.ts",
                 "tests/micro-specs/customer-phone-auth.test.ts",
@@ -2861,7 +3105,10 @@
               "category": "auth",
               "trigger": "an active QR is scanned",
               "expected": "record `qr_scanned`",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/customer.test.ts",
                 "tests/micro-specs/customer-phone-auth.test.ts",
@@ -2929,7 +3176,10 @@
               "category": "pii",
               "trigger": "an unauthenticated customer reaches join",
               "expected": "request phone identity verification using the visitor IP country as the national-number parsing default and GB as fallback",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/customer.test.ts",
                 "tests/micro-specs/customer-phone-auth.test.ts",
@@ -2997,7 +3247,10 @@
               "category": "auth",
               "trigger": "a customer accepts loyalty terms and completes identity verification",
               "expected": "create or reuse their customer profile and merchant membership",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/customer.test.ts",
                 "tests/micro-specs/customer-phone-auth.test.ts",
@@ -3065,7 +3318,10 @@
               "category": "pii",
               "trigger": "the marketing opt-in checkbox is not selected",
               "expected": "create no opted-in marketing consent",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/customer.test.ts",
                 "tests/micro-specs/customer-phone-auth.test.ts",
@@ -3133,7 +3389,10 @@
               "category": "pii",
               "trigger": "marketing opt-in is selected",
               "expected": "record consent with source and policy version",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/customer.test.ts",
                 "tests/micro-specs/customer-phone-auth.test.ts",
@@ -3201,7 +3460,10 @@
               "category": "idempotency",
               "trigger": "a returning member scans the same merchant QR",
               "expected": "take them to their existing card instead of creating a duplicate membership",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/customer.test.ts",
                 "tests/micro-specs/customer-phone-auth.test.ts",
@@ -3331,7 +3593,10 @@
               "category": "auth",
               "trigger": "a developer runs the local app with valid environment variables",
               "expected": "start without setup-specific runtime errors",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/foundation.test.ts",
                 "tests/micro-specs/vercel-env-guard.test.ts",
@@ -3399,7 +3664,10 @@
               "category": "input",
               "trigger": "a required server-only secret is missing",
               "expected": "fail with a clear configuration error before a sensitive workflow is used",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/foundation.test.ts",
                 "tests/micro-specs/vercel-env-guard.test.ts",
@@ -3467,7 +3735,10 @@
               "category": "auth",
               "trigger": "client code is bundled",
               "expected": "not include service-role or webhook secrets",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/foundation.test.ts",
                 "tests/micro-specs/vercel-env-guard.test.ts",
@@ -3535,7 +3806,10 @@
               "category": "auth",
               "trigger": "the app is deployed to Vercel",
               "expected": "be compatible with the App Router structure",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/foundation.test.ts",
                 "tests/micro-specs/vercel-env-guard.test.ts",
@@ -3603,7 +3877,10 @@
               "category": "auth",
               "trigger": "setup documentation is followed",
               "expected": "know which variables are required for local development, preview, and production",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/foundation.test.ts",
                 "tests/micro-specs/vercel-env-guard.test.ts",
@@ -3737,7 +4014,11 @@
               "category": "state-machine",
               "trigger": "a merchant owner queries merchant data",
               "expected": "return only records for that merchant",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/foundation.test.ts",
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
@@ -3811,7 +4092,11 @@
               "category": "state-machine",
               "trigger": "a customer views loyalty data",
               "expected": "return only their own customer profile, memberships, stamps, and rewards",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/foundation.test.ts",
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
@@ -3885,7 +4170,11 @@
               "category": "state-machine",
               "trigger": "an internal admin performs a support action",
               "expected": "write an audit log",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/foundation.test.ts",
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
@@ -3959,7 +4248,11 @@
               "category": "pii",
               "trigger": "a billing, stamp, reward, consent, QR, or admin mutation succeeds",
               "expected": "write the appropriate audit or product event",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/foundation.test.ts",
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
@@ -4033,7 +4326,11 @@
               "category": "state-machine",
               "trigger": "unauthenticated users access protected tables directly",
               "expected": "deny access",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/foundation.test.ts",
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
@@ -4125,11 +4422,21 @@
           "summary": "WHEN a production component renders choreographed motion, THEN it uses a WetInk* primitive and contains no raw animation: w-* or animate-[w-*].",
           "status": "active",
           "risk_class": "ui-only",
-          "gates": ["pnpm test"],
-          "verification_commands": ["pnpm test"],
-          "required_test_tier": ["unit"],
-          "evidence": ["tests/micro-specs/wet-ink-motion.test.ts"],
-          "related_tests": ["tests/micro-specs/wet-ink-motion.test.ts"],
+          "gates": [
+            "pnpm test"
+          ],
+          "verification_commands": [
+            "pnpm test"
+          ],
+          "required_test_tier": [
+            "unit"
+          ],
+          "evidence": [
+            "tests/micro-specs/wet-ink-motion.test.ts"
+          ],
+          "related_tests": [
+            "tests/micro-specs/wet-ink-motion.test.ts"
+          ],
           "implementation_surfaces": [
             "components/motion/**",
             "components/loyalty/**"
@@ -4142,8 +4449,12 @@
               "category": "ux",
               "trigger": "this requirement is exercised",
               "expected": "WHEN a production component renders choreographed motion, THEN it uses a WetInk* primitive and contains no raw animation: w-* or animate-[w-*]",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/wet-ink-motion.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/wet-ink-motion.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -4154,11 +4465,21 @@
           "summary": "WHEN a Wet Ink treatment is applied to a shadcn primitive, THEN it routes through tokens / the data-slot layer / a wrapper and components/ui source is not edited for styling.",
           "status": "active",
           "risk_class": "ui-only",
-          "gates": ["pnpm test"],
-          "verification_commands": ["pnpm test"],
-          "required_test_tier": ["unit"],
-          "evidence": ["tests/micro-specs/foundation.test.ts"],
-          "related_tests": ["tests/micro-specs/foundation.test.ts"],
+          "gates": [
+            "pnpm test"
+          ],
+          "verification_commands": [
+            "pnpm test"
+          ],
+          "required_test_tier": [
+            "unit"
+          ],
+          "evidence": [
+            "tests/micro-specs/foundation.test.ts"
+          ],
+          "related_tests": [
+            "tests/micro-specs/foundation.test.ts"
+          ],
           "implementation_surfaces": [
             "components/brand/**",
             "components/forms/**"
@@ -4171,8 +4492,12 @@
               "category": "ux",
               "trigger": "this requirement is exercised",
               "expected": "WHEN a Wet Ink treatment is applied to a shadcn primitive, THEN it routes through tokens / the data-slot layer / a wrapper and components/ui source is not edited for styling",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/foundation.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/foundation.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -4183,12 +4508,24 @@
           "summary": "WHEN customer copy is authored, THEN it is British English, value-first, free of emoji and exclamation marks.",
           "status": "active",
           "risk_class": "ui-only",
-          "gates": ["pnpm test"],
-          "verification_commands": ["pnpm test"],
-          "required_test_tier": ["unit"],
-          "evidence": ["manual:copy-register-en-gb-review"],
-          "related_tests": ["tests/micro-specs/customer-flow-redesign.test.ts"],
-          "implementation_surfaces": ["components/customer/**"],
+          "gates": [
+            "pnpm test"
+          ],
+          "verification_commands": [
+            "pnpm test"
+          ],
+          "required_test_tier": [
+            "unit"
+          ],
+          "evidence": [
+            "manual:copy-register-en-gb-review"
+          ],
+          "related_tests": [
+            "tests/micro-specs/customer-flow-redesign.test.ts"
+          ],
+          "implementation_surfaces": [
+            "components/customer/**"
+          ],
           "manual_rationale": [
             "Copy register and en-GB tone reviewed against copy-inventory.md and DESIGN.md."
           ],
@@ -4199,8 +4536,12 @@
               "category": "ux",
               "trigger": "this requirement is exercised",
               "expected": "WHEN customer copy is authored, THEN it is British English, value-first, free of emoji and exclamation marks",
-              "required_layer": ["unit"],
-              "evidence": ["manual:copy-register-en-gb-review"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "manual:copy-register-en-gb-review"
+              ],
               "status": "covered"
             }
           ]
@@ -4210,11 +4551,21 @@
           "summary": "WHEN the reward family renders, THEN one RewardSeal vocabulary and one RewardTicket are used across all sizes and states.",
           "status": "active",
           "risk_class": "ui-only",
-          "gates": ["pnpm test"],
-          "verification_commands": ["pnpm test"],
-          "required_test_tier": ["unit"],
-          "evidence": ["tests/micro-specs/customer-flow-redesign.test.ts"],
-          "related_tests": ["tests/micro-specs/customer-flow-redesign.test.ts"],
+          "gates": [
+            "pnpm test"
+          ],
+          "verification_commands": [
+            "pnpm test"
+          ],
+          "required_test_tier": [
+            "unit"
+          ],
+          "evidence": [
+            "tests/micro-specs/customer-flow-redesign.test.ts"
+          ],
+          "related_tests": [
+            "tests/micro-specs/customer-flow-redesign.test.ts"
+          ],
           "implementation_surfaces": [
             "components/loyalty/**",
             "components/customer/**"
@@ -4227,8 +4578,12 @@
               "category": "ux",
               "trigger": "this requirement is exercised",
               "expected": "WHEN the reward family renders, THEN one RewardSeal vocabulary and one RewardTicket are used across all sizes and states",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/customer-flow-redesign.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/customer-flow-redesign.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -4239,12 +4594,24 @@
           "summary": "WHEN the customer self-service stamp flow renders, THEN it uses customer-owned self-service stamping from the permanent venue QR with no staff-PIN sheet and no customer tap-to-redeem control.",
           "status": "active",
           "risk_class": "ui-only",
-          "gates": ["pnpm test"],
-          "verification_commands": ["pnpm test"],
-          "required_test_tier": ["unit"],
-          "evidence": ["tests/micro-specs/customer-flow-redesign.test.ts"],
-          "related_tests": ["tests/micro-specs/customer-flow-redesign.test.ts"],
-          "implementation_surfaces": ["components/customer/**"],
+          "gates": [
+            "pnpm test"
+          ],
+          "verification_commands": [
+            "pnpm test"
+          ],
+          "required_test_tier": [
+            "unit"
+          ],
+          "evidence": [
+            "tests/micro-specs/customer-flow-redesign.test.ts"
+          ],
+          "related_tests": [
+            "tests/micro-specs/customer-flow-redesign.test.ts"
+          ],
+          "implementation_surfaces": [
+            "components/customer/**"
+          ],
           "manual_rationale": [],
           "change_state": "current",
           "edge_cases": [
@@ -4253,8 +4620,12 @@
               "category": "ux",
               "trigger": "this requirement is exercised",
               "expected": "WHEN the customer self-service stamp flow renders, THEN it uses customer-owned self-service stamping from the permanent venue QR with no staff-PIN sheet and no customer tap-to-redeem control",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/customer-flow-redesign.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/customer-flow-redesign.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -4265,11 +4636,21 @@
           "summary": "WHEN the merchant console renders, THEN masthead, stat tiles, activity rows, and members readback mirror the reference shapes and the readback masks PII.",
           "status": "active",
           "risk_class": "ui-only",
-          "gates": ["pnpm test"],
-          "verification_commands": ["pnpm test"],
-          "required_test_tier": ["unit"],
-          "evidence": ["tests/micro-specs/merchant-readbacks.test.ts"],
-          "related_tests": ["tests/micro-specs/merchant-readbacks.test.ts"],
+          "gates": [
+            "pnpm test"
+          ],
+          "verification_commands": [
+            "pnpm test"
+          ],
+          "required_test_tier": [
+            "unit"
+          ],
+          "evidence": [
+            "tests/micro-specs/merchant-readbacks.test.ts"
+          ],
+          "related_tests": [
+            "tests/micro-specs/merchant-readbacks.test.ts"
+          ],
           "implementation_surfaces": [
             "components/merchant/**",
             "components/layout/**"
@@ -4282,8 +4663,12 @@
               "category": "pii",
               "trigger": "this requirement is exercised",
               "expected": "WHEN the merchant console renders, THEN masthead, stat tiles, activity rows, and members readback mirror the reference shapes and the readback masks PII",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/merchant-readbacks.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/merchant-readbacks.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -4294,12 +4679,24 @@
           "summary": "WHEN a merchant /app/* route is loading, THEN the route fallback shows only a page-title skeleton and each page streams realistic structure-mirroring section skeletons.",
           "status": "active",
           "risk_class": "ui-only",
-          "gates": ["pnpm test"],
-          "verification_commands": ["pnpm test"],
-          "required_test_tier": ["unit"],
-          "evidence": ["tests/micro-specs/merchant-readbacks.test.ts"],
-          "related_tests": ["tests/micro-specs/merchant-readbacks.test.ts"],
-          "implementation_surfaces": ["components/merchant/**"],
+          "gates": [
+            "pnpm test"
+          ],
+          "verification_commands": [
+            "pnpm test"
+          ],
+          "required_test_tier": [
+            "unit"
+          ],
+          "evidence": [
+            "tests/micro-specs/merchant-readbacks.test.ts"
+          ],
+          "related_tests": [
+            "tests/micro-specs/merchant-readbacks.test.ts"
+          ],
+          "implementation_surfaces": [
+            "components/merchant/**"
+          ],
           "manual_rationale": [],
           "change_state": "current",
           "edge_cases": [
@@ -4308,8 +4705,12 @@
               "category": "ux",
               "trigger": "this requirement is exercised",
               "expected": "WHEN a merchant /app/* route is loading, THEN the route fallback shows only a page-title skeleton and each page streams realistic structure-mirroring section skeletons",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/merchant-readbacks.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/merchant-readbacks.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -4320,11 +4721,21 @@
           "summary": "WHEN the admin console renders, THEN it uses the quieter-ink treatment and shared data primitives and surfaces the MFA gate banner.",
           "status": "active",
           "risk_class": "ui-only",
-          "gates": ["pnpm test"],
-          "verification_commands": ["pnpm test"],
-          "required_test_tier": ["unit"],
-          "evidence": ["tests/micro-specs/admin-console-redesign.test.ts"],
-          "related_tests": ["tests/micro-specs/admin-console-redesign.test.ts"],
+          "gates": [
+            "pnpm test"
+          ],
+          "verification_commands": [
+            "pnpm test"
+          ],
+          "required_test_tier": [
+            "unit"
+          ],
+          "evidence": [
+            "tests/micro-specs/admin-console-redesign.test.ts"
+          ],
+          "related_tests": [
+            "tests/micro-specs/admin-console-redesign.test.ts"
+          ],
           "implementation_surfaces": [
             "components/admin/**",
             "components/layout/**"
@@ -4337,8 +4748,12 @@
               "category": "auth",
               "trigger": "this requirement is exercised",
               "expected": "WHEN the admin console renders, THEN it uses the quieter-ink treatment and shared data primitives and surfaces the MFA gate banner",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/admin-console-redesign.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/admin-console-redesign.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -4349,11 +4764,21 @@
           "summary": "WHEN the marketing home and pricing render, THEN they compose the Mk* reference structure (hero, marquee, pricing receipt, FAQ, footer) with no localStorage view-state.",
           "status": "active",
           "risk_class": "ui-only",
-          "gates": ["pnpm test"],
-          "verification_commands": ["pnpm test"],
-          "required_test_tier": ["unit"],
-          "evidence": ["tests/micro-specs/marketing-redesign.test.ts"],
-          "related_tests": ["tests/micro-specs/marketing-redesign.test.ts"],
+          "gates": [
+            "pnpm test"
+          ],
+          "verification_commands": [
+            "pnpm test"
+          ],
+          "required_test_tier": [
+            "unit"
+          ],
+          "evidence": [
+            "tests/micro-specs/marketing-redesign.test.ts"
+          ],
+          "related_tests": [
+            "tests/micro-specs/marketing-redesign.test.ts"
+          ],
           "implementation_surfaces": [
             "components/marketing/**",
             "components/layout/**"
@@ -4366,8 +4791,12 @@
               "category": "ux",
               "trigger": "this requirement is exercised",
               "expected": "WHEN the marketing home and pricing render, THEN they compose the Mk* reference structure (hero, marquee, pricing receipt, FAQ, footer) with no localStorage view-state",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/marketing-redesign.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/marketing-redesign.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -4378,12 +4807,24 @@
           "summary": "WHEN the merchant auth surface renders, THEN it uses the McAuth Wet Ink layout (VenueMark masthead, mono field labels, ink-bordered wells, full-width tactile submit) with pressable targets at least 44px, keeping the production Supabase email and password mechanic (passwordless OTP is a prototype mechanic and is not ported).",
           "status": "active",
           "risk_class": "ui-only",
-          "gates": ["pnpm test"],
-          "verification_commands": ["pnpm test"],
-          "required_test_tier": ["unit"],
-          "evidence": ["tests/micro-specs/auth-redesign.test.ts"],
-          "related_tests": ["tests/micro-specs/auth-redesign.test.ts"],
-          "implementation_surfaces": ["components/auth/**"],
+          "gates": [
+            "pnpm test"
+          ],
+          "verification_commands": [
+            "pnpm test"
+          ],
+          "required_test_tier": [
+            "unit"
+          ],
+          "evidence": [
+            "tests/micro-specs/auth-redesign.test.ts"
+          ],
+          "related_tests": [
+            "tests/micro-specs/auth-redesign.test.ts"
+          ],
+          "implementation_surfaces": [
+            "components/auth/**"
+          ],
           "manual_rationale": [],
           "change_state": "current",
           "edge_cases": [
@@ -4392,8 +4833,12 @@
               "category": "pii",
               "trigger": "this requirement is exercised",
               "expected": "WHEN the merchant auth surface renders, THEN it uses the McAuth Wet Ink layout (VenueMark masthead, mono field labels, ink-bordered wells, full-width tactile submit) with pressable targets at least 44px, keeping the production Supabase email and password mechanic (passwordless OTP is a prototype mechanic and is not ported)",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/auth-redesign.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/auth-redesign.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -4404,12 +4849,24 @@
           "summary": "WHEN /dev/design-system is opened, THEN it renders a live catalog of tokens, typography, surfaces, motion primitives, and loyalty states with reduced-motion static fallbacks.",
           "status": "active",
           "risk_class": "ui-only",
-          "gates": ["npx playwright test"],
-          "verification_commands": ["npx playwright test"],
-          "required_test_tier": ["browser"],
-          "evidence": ["manual:dev-design-system-catalog-smoke"],
-          "related_tests": ["manual:dev-design-system-catalog-smoke"],
-          "implementation_surfaces": ["app/dev/**"],
+          "gates": [
+            "npx playwright test"
+          ],
+          "verification_commands": [
+            "npx playwright test"
+          ],
+          "required_test_tier": [
+            "browser"
+          ],
+          "evidence": [
+            "manual:dev-design-system-catalog-smoke"
+          ],
+          "related_tests": [
+            "manual:dev-design-system-catalog-smoke"
+          ],
+          "implementation_surfaces": [
+            "app/dev/**"
+          ],
           "manual_rationale": [
             "Catalog smoke verified in the preview server; Playwright spec to follow in integration."
           ],
@@ -4420,8 +4877,12 @@
               "category": "ux",
               "trigger": "this requirement is exercised",
               "expected": "WHEN /dev/design-system is opened, THEN it renders a live catalog of tokens, typography, surfaces, motion primitives, and loyalty states with reduced-motion static fallbacks",
-              "required_layer": ["browser"],
-              "evidence": ["manual:dev-design-system-catalog-smoke"],
+              "required_layer": [
+                "browser"
+              ],
+              "evidence": [
+                "manual:dev-design-system-catalog-smoke"
+              ],
               "status": "covered"
             }
           ]
@@ -4431,12 +4892,24 @@
           "summary": "WHEN an app page is rewritten, THEN its loaders, redirects, Server Actions, and RPC calls are unchanged; only import paths and JSX composition differ.",
           "status": "active",
           "risk_class": "ui-only",
-          "gates": ["pnpm test"],
-          "verification_commands": ["pnpm test"],
-          "required_test_tier": ["unit"],
-          "evidence": ["manual:route-loaders-unchanged-diff-review"],
-          "related_tests": ["tests/micro-specs/merchant-readbacks.test.ts"],
-          "implementation_surfaces": ["components/layout/**"],
+          "gates": [
+            "pnpm test"
+          ],
+          "verification_commands": [
+            "pnpm test"
+          ],
+          "required_test_tier": [
+            "unit"
+          ],
+          "evidence": [
+            "manual:route-loaders-unchanged-diff-review"
+          ],
+          "related_tests": [
+            "tests/micro-specs/merchant-readbacks.test.ts"
+          ],
+          "implementation_surfaces": [
+            "components/layout/**"
+          ],
           "manual_rationale": [
             "Each rewritten page diff reviewed to confirm loaders/actions/RPC calls are byte-for-byte unchanged."
           ],
@@ -4447,8 +4920,12 @@
               "category": "ux",
               "trigger": "this requirement is exercised",
               "expected": "WHEN an app page is rewritten, THEN its loaders, redirects, Server Actions, and RPC calls are unchanged; only import paths and JSX composition differ",
-              "required_layer": ["unit"],
-              "evidence": ["manual:route-loaders-unchanged-diff-review"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "manual:route-loaders-unchanged-diff-review"
+              ],
               "status": "covered"
             }
           ]
@@ -4491,7 +4968,10 @@
         "app/globals.css",
         "app/dev/design-system/**"
       ],
-      "related_docs": ["DESIGN.md", "micro-specs/GLOBAL_CONTEXT.md"],
+      "related_docs": [
+        "DESIGN.md",
+        "micro-specs/GLOBAL_CONTEXT.md"
+      ],
       "related_tests": [
         "tests/micro-specs/wet-ink-motion.test.ts",
         "tests/micro-specs/earned-stamp-redesign.test.ts",
@@ -4521,12 +5001,27 @@
           "summary": "WHEN useReducedMotion() returns true, THE component renders static children with no transform animation.",
           "status": "active",
           "risk_class": "ui-only",
-          "gates": ["pnpm test", "npx playwright test"],
-          "verification_commands": ["pnpm test", "npx playwright test"],
-          "required_test_tier": ["unit", "browser"],
-          "evidence": ["tests/micro-specs/wet-ink-motion.test.ts"],
-          "related_tests": ["tests/micro-specs/wet-ink-motion.test.ts"],
-          "implementation_surfaces": ["components/motion/**"],
+          "gates": [
+            "pnpm test",
+            "npx playwright test"
+          ],
+          "verification_commands": [
+            "pnpm test",
+            "npx playwright test"
+          ],
+          "required_test_tier": [
+            "unit",
+            "browser"
+          ],
+          "evidence": [
+            "tests/micro-specs/wet-ink-motion.test.ts"
+          ],
+          "related_tests": [
+            "tests/micro-specs/wet-ink-motion.test.ts"
+          ],
+          "implementation_surfaces": [
+            "components/motion/**"
+          ],
           "manual_rationale": [],
           "change_state": "current",
           "edge_cases": [
@@ -4535,8 +5030,13 @@
               "category": "ux",
               "trigger": "this requirement is exercised",
               "expected": "WHEN useReducedMotion() returns true, THE component renders static children with no transform animation",
-              "required_layer": ["unit", "browser"],
-              "evidence": ["tests/micro-specs/wet-ink-motion.test.ts"],
+              "required_layer": [
+                "unit",
+                "browser"
+              ],
+              "evidence": [
+                "tests/micro-specs/wet-ink-motion.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -4547,9 +5047,18 @@
           "summary": "WHEN StampDot earns with slammed=true, THEN WetInkSlam runs 380ms and lands on --stamp-rot.",
           "status": "active",
           "risk_class": "ui-only",
-          "gates": ["pnpm test", "npx playwright test"],
-          "verification_commands": ["pnpm test", "npx playwright test"],
-          "required_test_tier": ["unit", "browser"],
+          "gates": [
+            "pnpm test",
+            "npx playwright test"
+          ],
+          "verification_commands": [
+            "pnpm test",
+            "npx playwright test"
+          ],
+          "required_test_tier": [
+            "unit",
+            "browser"
+          ],
           "evidence": [
             "tests/micro-specs/wet-ink-motion.test.ts",
             "tests/micro-specs/earned-stamp-redesign.test.ts"
@@ -4570,7 +5079,10 @@
               "category": "ux",
               "trigger": "this requirement is exercised",
               "expected": "WHEN StampDot earns with slammed=true, THEN WetInkSlam runs 380ms and lands on --stamp-rot",
-              "required_layer": ["unit", "browser"],
+              "required_layer": [
+                "unit",
+                "browser"
+              ],
               "evidence": [
                 "tests/micro-specs/wet-ink-motion.test.ts",
                 "tests/micro-specs/earned-stamp-redesign.test.ts"
@@ -4585,11 +5097,21 @@
           "summary": "WHEN a stamp slams, THEN the receipt may optionally run WetInkShake for 300ms via StampSlamSequence.",
           "status": "active",
           "risk_class": "ui-only",
-          "gates": ["pnpm test"],
-          "verification_commands": ["pnpm test"],
-          "required_test_tier": ["unit"],
-          "evidence": ["tests/micro-specs/wet-ink-motion.test.ts"],
-          "related_tests": ["tests/micro-specs/wet-ink-motion.test.ts"],
+          "gates": [
+            "pnpm test"
+          ],
+          "verification_commands": [
+            "pnpm test"
+          ],
+          "required_test_tier": [
+            "unit"
+          ],
+          "evidence": [
+            "tests/micro-specs/wet-ink-motion.test.ts"
+          ],
+          "related_tests": [
+            "tests/micro-specs/wet-ink-motion.test.ts"
+          ],
           "implementation_surfaces": [
             "components/motion/**",
             "components/brand/**"
@@ -4602,8 +5124,12 @@
               "category": "ux",
               "trigger": "this requirement is exercised",
               "expected": "WHEN a stamp slams, THEN the receipt may optionally run WetInkShake for 300ms via StampSlamSequence",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/wet-ink-motion.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/wet-ink-motion.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -4614,12 +5140,30 @@
           "summary": "WHEN the motion library is imported, THEN all nine WetInk* exports + StampSlamSequence are available.",
           "status": "active",
           "risk_class": "ui-only",
-          "gates": ["pnpm lint", "pnpm typecheck", "pnpm test"],
-          "verification_commands": ["pnpm lint", "pnpm typecheck", "pnpm test"],
-          "required_test_tier": ["lint", "typecheck", "unit"],
-          "evidence": ["tests/micro-specs/wet-ink-motion.test.ts"],
-          "related_tests": ["tests/micro-specs/wet-ink-motion.test.ts"],
-          "implementation_surfaces": ["components/motion/**"],
+          "gates": [
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test"
+          ],
+          "verification_commands": [
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test"
+          ],
+          "required_test_tier": [
+            "lint",
+            "typecheck",
+            "unit"
+          ],
+          "evidence": [
+            "tests/micro-specs/wet-ink-motion.test.ts"
+          ],
+          "related_tests": [
+            "tests/micro-specs/wet-ink-motion.test.ts"
+          ],
+          "implementation_surfaces": [
+            "components/motion/**"
+          ],
           "manual_rationale": [],
           "change_state": "current",
           "edge_cases": [
@@ -4628,8 +5172,12 @@
               "category": "ux",
               "trigger": "this requirement is exercised",
               "expected": "WHEN the motion library is imported, THEN all nine WetInk* exports + StampSlamSequence are available",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/wet-ink-motion.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/wet-ink-motion.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -4640,11 +5188,24 @@
           "summary": "WHEN loyalty/brand/customer components animate, THEN they use motion primitives; no inline animation: w-* strings remain.",
           "status": "active",
           "risk_class": "ui-only",
-          "gates": ["pnpm lint", "pnpm test"],
-          "verification_commands": ["pnpm lint", "pnpm test"],
-          "required_test_tier": ["lint", "unit"],
-          "evidence": ["tests/micro-specs/wet-ink-motion.test.ts"],
-          "related_tests": ["tests/micro-specs/wet-ink-motion.test.ts"],
+          "gates": [
+            "pnpm lint",
+            "pnpm test"
+          ],
+          "verification_commands": [
+            "pnpm lint",
+            "pnpm test"
+          ],
+          "required_test_tier": [
+            "lint",
+            "unit"
+          ],
+          "evidence": [
+            "tests/micro-specs/wet-ink-motion.test.ts"
+          ],
+          "related_tests": [
+            "tests/micro-specs/wet-ink-motion.test.ts"
+          ],
           "implementation_surfaces": [
             "components/loyalty/**",
             "components/brand/**",
@@ -4659,8 +5220,12 @@
               "category": "ux",
               "trigger": "this requirement is exercised",
               "expected": "WHEN loyalty/brand/customer components animate, THEN they use motion primitives; no inline animation: w-* strings remain",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/wet-ink-motion.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/wet-ink-motion.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -4671,12 +5236,28 @@
           "summary": "WHEN lib/motion/tokens.ts is imported or --w-dur-shake is read, THEN durations/easings are available; --w-dur-shake = 300ms.",
           "status": "active",
           "risk_class": "ui-only",
-          "gates": ["pnpm typecheck", "pnpm test"],
-          "verification_commands": ["pnpm typecheck", "pnpm test"],
-          "required_test_tier": ["typecheck", "unit"],
-          "evidence": ["tests/micro-specs/wet-ink-motion.test.ts"],
-          "related_tests": ["tests/micro-specs/wet-ink-motion.test.ts"],
-          "implementation_surfaces": ["lib/motion/**", "app/globals.css"],
+          "gates": [
+            "pnpm typecheck",
+            "pnpm test"
+          ],
+          "verification_commands": [
+            "pnpm typecheck",
+            "pnpm test"
+          ],
+          "required_test_tier": [
+            "typecheck",
+            "unit"
+          ],
+          "evidence": [
+            "tests/micro-specs/wet-ink-motion.test.ts"
+          ],
+          "related_tests": [
+            "tests/micro-specs/wet-ink-motion.test.ts"
+          ],
+          "implementation_surfaces": [
+            "lib/motion/**",
+            "app/globals.css"
+          ],
           "manual_rationale": [],
           "change_state": "current",
           "edge_cases": [
@@ -4685,8 +5266,12 @@
               "category": "ux",
               "trigger": "this requirement is exercised",
               "expected": "WHEN lib/motion/tokens.ts is imported or --w-dur-shake is read, THEN durations/easings are available; --w-dur-shake = 300ms",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/wet-ink-motion.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/wet-ink-motion.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -4799,7 +5384,10 @@
               "category": "auth",
               "trigger": "a new merchant signs up successfully",
               "expected": "create or link a merchant owner account",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/marketing-auth-legal.test.ts",
                 "tests/micro-specs/merchant-launch-readiness.test.ts",
@@ -4864,7 +5452,10 @@
               "category": "auth",
               "trigger": "a merchant verifies auth and has no completed profile",
               "expected": "route them to onboarding",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/marketing-auth-legal.test.ts",
                 "tests/micro-specs/merchant-launch-readiness.test.ts",
@@ -4929,7 +5520,10 @@
               "category": "auth",
               "trigger": "the merchant submits required business fields",
               "expected": "create the merchant profile and first location",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/marketing-auth-legal.test.ts",
                 "tests/micro-specs/merchant-launch-readiness.test.ts",
@@ -4994,7 +5588,10 @@
               "category": "input",
               "trigger": "required fields are missing or invalid",
               "expected": "preserve entered values and show field-level errors",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/marketing-auth-legal.test.ts",
                 "tests/micro-specs/merchant-launch-readiness.test.ts",
@@ -5059,7 +5656,10 @@
               "category": "input",
               "trigger": "a merchant has a saved profile but no first location",
               "expected": "route them back to onboarding with saved business fields and SHALL create the missing first location on submit",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/marketing-auth-legal.test.ts",
                 "tests/micro-specs/merchant-launch-readiness.test.ts",
@@ -5124,7 +5724,10 @@
               "category": "auth",
               "trigger": "a merchant returns after completing onboarding",
               "expected": "route them to the dashboard or next incomplete setup step",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/marketing-auth-legal.test.ts",
                 "tests/micro-specs/merchant-launch-readiness.test.ts",
@@ -5189,7 +5792,10 @@
               "category": "auth",
               "trigger": "onboarding creates or updates merchant records",
               "expected": "record `merchant_signed_up` or equivalent product/audit events",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/marketing-auth-legal.test.ts",
                 "tests/micro-specs/merchant-launch-readiness.test.ts",
@@ -5315,7 +5921,11 @@
               "category": "state-machine",
               "trigger": "a merchant with an active card and at least three active reward pool items opens `/app/qr`",
               "expected": "show their active QR code and shareable URL",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-qr.test.ts",
                 "tests/micro-specs/merchant-qr-mutations.test.ts",
@@ -5382,7 +5992,11 @@
               "category": "state-machine",
               "trigger": "no active venue join QR exists",
               "expected": "create one or guide the merchant to generate one",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-qr.test.ts",
                 "tests/micro-specs/merchant-qr-mutations.test.ts",
@@ -5449,7 +6063,11 @@
               "category": "state-machine",
               "trigger": "an active venue join QR already exists",
               "expected": "reuse it instead of creating a campaign-specific QR",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-qr.test.ts",
                 "tests/micro-specs/merchant-qr-mutations.test.ts",
@@ -5516,7 +6134,11 @@
               "category": "state-machine",
               "trigger": "fewer than three active reward pool items exist",
               "expected": "block QR launch and direct the merchant back to reward setup",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-qr.test.ts",
                 "tests/micro-specs/merchant-qr-mutations.test.ts",
@@ -5583,7 +6205,11 @@
               "category": "resilience",
               "trigger": "a merchant downloads a QR asset",
               "expected": "provide a scannable file with the correct `/q/{qr_id}` URL",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-qr.test.ts",
                 "tests/micro-specs/merchant-qr-mutations.test.ts",
@@ -5650,7 +6276,11 @@
               "category": "state-machine",
               "trigger": "a QR is disabled",
               "expected": "keep historical scan records and SHALL prevent new customer entry through that QR",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-qr.test.ts",
                 "tests/micro-specs/merchant-qr-mutations.test.ts",
@@ -5717,7 +6347,11 @@
               "category": "resilience",
               "trigger": "a QR is generated or downloaded",
               "expected": "record `qr_created` or `qr_downloaded` product events",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-qr.test.ts",
                 "tests/micro-specs/merchant-qr-mutations.test.ts",
@@ -5859,7 +6493,11 @@
               "category": "state-machine",
               "trigger": "a merchant opens `/app/card` without a card",
               "expected": "present a default 3-visit Mystery Visit Card setup",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-launch-readiness.test.ts",
                 "tests/micro-specs/merchant-qr.test.ts",
@@ -5926,7 +6564,11 @@
               "category": "state-machine",
               "trigger": "a merchant saves a valid card",
               "expected": "persist the card against their merchant and MVP location",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-launch-readiness.test.ts",
                 "tests/micro-specs/merchant-qr.test.ts",
@@ -5993,7 +6635,11 @@
               "category": "state-machine",
               "trigger": "a merchant saves a valid reward pool item",
               "expected": "persist it against the same merchant, location, and loyalty card",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-launch-readiness.test.ts",
                 "tests/micro-specs/merchant-qr.test.ts",
@@ -6060,7 +6706,11 @@
               "category": "input",
               "trigger": "a merchant tries to save invalid values",
               "expected": "reject the save and explain the invalid fields",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-launch-readiness.test.ts",
                 "tests/micro-specs/merchant-qr.test.ts",
@@ -6127,7 +6777,11 @@
               "category": "state-machine",
               "trigger": "a merchant already has one active MVP card",
               "expected": "not create a second active card",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-launch-readiness.test.ts",
                 "tests/micro-specs/merchant-qr.test.ts",
@@ -6194,7 +6848,11 @@
               "category": "state-machine",
               "trigger": "a reward pool item has already been assigned to a customer reward",
               "expected": "archive it instead of hard-deleting the historical reward reference",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-launch-readiness.test.ts",
                 "tests/micro-specs/merchant-qr.test.ts",
@@ -6261,7 +6919,11 @@
               "category": "state-machine",
               "trigger": "a card is inactive",
               "expected": "not permit new stamp claims for that card",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-launch-readiness.test.ts",
                 "tests/micro-specs/merchant-qr.test.ts",
@@ -6328,7 +6990,11 @@
               "category": "state-machine",
               "trigger": "a card is created or changed",
               "expected": "write an audit log and a `loyalty_card_created` or equivalent product event",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-launch-readiness.test.ts",
                 "tests/micro-specs/merchant-qr.test.ts",
@@ -6388,8 +7054,12 @@
               "category": "input",
               "trigger": "a manual pin with out-of-range or non-finite coordinates is submitted",
               "expected": "reject the manual pin and write nothing instead of overriding the geocode",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/venue-address-lookup.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/venue-address-lookup.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -6406,7 +7076,9 @@
             "pnpm db:verify",
             "pnpm security:verify"
           ],
-          "evidence": ["tests/micro-specs/venue-address-lookup.test.ts"],
+          "evidence": [
+            "tests/micro-specs/venue-address-lookup.test.ts"
+          ],
           "status": "active",
           "risk_class": "rls-rpc-ledger",
           "required_test_tier": [
@@ -6429,7 +7101,9 @@
             "app/app/launch/**",
             "supabase/migrations/**"
           ],
-          "related_tests": ["tests/micro-specs/venue-address-lookup.test.ts"],
+          "related_tests": [
+            "tests/micro-specs/venue-address-lookup.test.ts"
+          ],
           "manual_rationale": [],
           "change_state": "current",
           "edge_cases": [
@@ -6438,8 +7112,12 @@
               "category": "state-machine",
               "trigger": "a valid Google Places venue selection is submitted",
               "expected": "persist provider provenance and skip Nominatim geocoding",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/venue-address-lookup.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/venue-address-lookup.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             },
@@ -6448,8 +7126,12 @@
               "category": "input",
               "trigger": "an invalid provider identity or non-GB coordinate is submitted",
               "expected": "reject the provider lookup and write nothing",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/venue-address-lookup.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/venue-address-lookup.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -6492,7 +7174,9 @@
         "micro-specs/GLOBAL_CONTEXT.md",
         "DESIGN.md"
       ],
-      "related_tests": ["tests/micro-specs/merchant-console-trust-ia.test.ts"],
+      "related_tests": [
+        "tests/micro-specs/merchant-console-trust-ia.test.ts"
+      ],
       "verification_gates": [
         "pnpm governance",
         "pnpm lint",
@@ -6517,7 +7201,9 @@
             "pnpm test",
             "pnpm security:verify"
           ],
-          "evidence": ["tests/micro-specs/merchant-console-trust-ia.test.ts"],
+          "evidence": [
+            "tests/micro-specs/merchant-console-trust-ia.test.ts"
+          ],
           "status": "active",
           "risk_class": "customer-pii",
           "required_test_tier": [
@@ -6551,7 +7237,10 @@
               "category": "ux",
               "trigger": "merchant navigation renders",
               "expected": "include `/app/activity` in primary navigation",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-console-trust-ia.test.ts"
               ],
@@ -6570,7 +7259,9 @@
             "pnpm test",
             "pnpm security:verify"
           ],
-          "evidence": ["tests/micro-specs/merchant-console-trust-ia.test.ts"],
+          "evidence": [
+            "tests/micro-specs/merchant-console-trust-ia.test.ts"
+          ],
           "status": "active",
           "risk_class": "customer-pii",
           "required_test_tier": [
@@ -6604,7 +7295,10 @@
               "category": "ux",
               "trigger": "account navigation renders",
               "expected": "expose one `Account` entry for `/app/account`, with Billing and Settings reached as Account hub tabs",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-console-trust-ia.test.ts"
               ],
@@ -6623,7 +7317,9 @@
             "pnpm test",
             "pnpm security:verify"
           ],
-          "evidence": ["tests/micro-specs/merchant-console-trust-ia.test.ts"],
+          "evidence": [
+            "tests/micro-specs/merchant-console-trust-ia.test.ts"
+          ],
           "status": "active",
           "risk_class": "customer-pii",
           "required_test_tier": [
@@ -6657,7 +7353,10 @@
               "category": "pii",
               "trigger": "a merchant customer readback has an email",
               "expected": "display a masked email identifier and SHALL NOT display the raw email address",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-console-trust-ia.test.ts"
               ],
@@ -6676,7 +7375,9 @@
             "pnpm test",
             "pnpm security:verify"
           ],
-          "evidence": ["tests/micro-specs/merchant-console-trust-ia.test.ts"],
+          "evidence": [
+            "tests/micro-specs/merchant-console-trust-ia.test.ts"
+          ],
           "status": "active",
           "risk_class": "customer-pii",
           "required_test_tier": [
@@ -6710,7 +7411,10 @@
               "category": "pii",
               "trigger": "a merchant customer readback has only a phone number",
               "expected": "display only the last four digits and SHALL NOT display the raw phone number",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-console-trust-ia.test.ts"
               ],
@@ -6729,7 +7433,9 @@
             "pnpm test",
             "pnpm security:verify"
           ],
-          "evidence": ["tests/micro-specs/merchant-console-trust-ia.test.ts"],
+          "evidence": [
+            "tests/micro-specs/merchant-console-trust-ia.test.ts"
+          ],
           "status": "active",
           "risk_class": "customer-pii",
           "required_test_tier": [
@@ -6763,7 +7469,10 @@
               "category": "pii",
               "trigger": "merchant activity rows are built",
               "expected": "use the same masked customer identifier in headlines, actor details, and search text",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-console-trust-ia.test.ts"
               ],
@@ -6782,7 +7491,9 @@
             "pnpm test",
             "pnpm security:verify"
           ],
-          "evidence": ["tests/micro-specs/merchant-console-trust-ia.test.ts"],
+          "evidence": [
+            "tests/micro-specs/merchant-console-trust-ia.test.ts"
+          ],
           "status": "active",
           "risk_class": "customer-pii",
           "required_test_tier": [
@@ -6816,7 +7527,10 @@
               "category": "pii",
               "trigger": "merchant activity search text is built",
               "expected": "NOT include raw email addresses or full phone numbers from customer identity data",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-console-trust-ia.test.ts"
               ],
@@ -6835,7 +7549,9 @@
             "pnpm test",
             "pnpm security:verify"
           ],
-          "evidence": ["tests/micro-specs/merchant-console-trust-ia.test.ts"],
+          "evidence": [
+            "tests/micro-specs/merchant-console-trust-ia.test.ts"
+          ],
           "status": "active",
           "risk_class": "customer-pii",
           "required_test_tier": [
@@ -6869,7 +7585,10 @@
               "category": "ux",
               "trigger": "dashboard billing status is `active` or `trialing`",
               "expected": "omit the billing notice and SHALL NOT render billing status as a KPI tile",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-console-trust-ia.test.ts"
               ],
@@ -6888,7 +7607,9 @@
             "pnpm test",
             "pnpm security:verify"
           ],
-          "evidence": ["tests/micro-specs/merchant-console-trust-ia.test.ts"],
+          "evidence": [
+            "tests/micro-specs/merchant-console-trust-ia.test.ts"
+          ],
           "status": "active",
           "risk_class": "customer-pii",
           "required_test_tier": [
@@ -6922,7 +7643,10 @@
               "category": "ux",
               "trigger": "dashboard billing status is `not_started`, `past_due`, `cancelled`, `suspended`, or unknown",
               "expected": "render an action-oriented billing notice",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-console-trust-ia.test.ts"
               ],
@@ -6941,7 +7665,9 @@
             "pnpm test",
             "pnpm security:verify"
           ],
-          "evidence": ["tests/micro-specs/merchant-console-trust-ia.test.ts"],
+          "evidence": [
+            "tests/micro-specs/merchant-console-trust-ia.test.ts"
+          ],
           "status": "active",
           "risk_class": "customer-pii",
           "required_test_tier": [
@@ -6975,7 +7701,10 @@
               "category": "ux",
               "trigger": "billing status copy is rendered on `/app` or `/app/billing`",
               "expected": "use one shared status-copy model",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-console-trust-ia.test.ts"
               ],
@@ -6994,7 +7723,9 @@
             "pnpm test",
             "pnpm security:verify"
           ],
-          "evidence": ["tests/micro-specs/merchant-console-trust-ia.test.ts"],
+          "evidence": [
+            "tests/micro-specs/merchant-console-trust-ia.test.ts"
+          ],
           "status": "active",
           "risk_class": "customer-pii",
           "required_test_tier": [
@@ -7028,7 +7759,10 @@
               "category": "pii",
               "trigger": "dashboard data loads",
               "expected": "NOT fetch recent activity inside `getMerchantDashboardData` because the dashboard already loads enriched activity separately",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-console-trust-ia.test.ts"
               ],
@@ -7148,7 +7882,9 @@
               "category": "resilience",
               "trigger": "a merchant opens `/app`",
               "expected": "show current MVP metrics for only their merchant",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/perf-rpc-consolidation.test.ts",
@@ -7212,7 +7948,9 @@
               "category": "resilience",
               "trigger": "no customers have joined",
               "expected": "show useful zero states and QR launch prompts",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/perf-rpc-consolidation.test.ts",
@@ -7276,7 +8014,9 @@
               "category": "resilience",
               "trigger": "stamps or rewards are recorded",
               "expected": "reflect updated totals after refresh",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/perf-rpc-consolidation.test.ts",
@@ -7340,7 +8080,9 @@
               "category": "resilience",
               "trigger": "a merchant sets average order value",
               "expected": "update and remain labelled as estimated",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/perf-rpc-consolidation.test.ts",
@@ -7404,7 +8146,9 @@
               "category": "resilience",
               "trigger": "the billing status is past_due, cancelled, or suspended",
               "expected": "surface the correct warning or disabled state",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/perf-rpc-consolidation.test.ts",
@@ -7468,7 +8212,9 @@
               "category": "resilience",
               "trigger": "a merchant views activity",
               "expected": "list recent stamps, redemptions, joins, and QR downloads with readable timestamps",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/perf-rpc-consolidation.test.ts",
@@ -7551,7 +8297,12 @@
           ],
           "status": "active",
           "risk_class": "docs-tooling",
-          "required_test_tier": ["governance", "lint", "typecheck", "unit"],
+          "required_test_tier": [
+            "governance",
+            "lint",
+            "typecheck",
+            "unit"
+          ],
           "verification_commands": [
             "pnpm governance",
             "pnpm lint",
@@ -7580,7 +8331,9 @@
               "category": "input",
               "trigger": "an implementation agent proposes a feature outside the MVP boundary",
               "expected": "reject it unless a new approved micro-spec explicitly adds it",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/customer.test.ts",
@@ -7609,7 +8362,12 @@
           ],
           "status": "active",
           "risk_class": "docs-tooling",
-          "required_test_tier": ["governance", "lint", "typecheck", "unit"],
+          "required_test_tier": [
+            "governance",
+            "lint",
+            "typecheck",
+            "unit"
+          ],
           "verification_commands": [
             "pnpm governance",
             "pnpm lint",
@@ -7638,7 +8396,9 @@
               "category": "state-machine",
               "trigger": "a merchant completes onboarding",
               "expected": "support one active location and one active loyalty card for MVP",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/customer.test.ts",
@@ -7667,7 +8427,12 @@
           ],
           "status": "active",
           "risk_class": "docs-tooling",
-          "required_test_tier": ["governance", "lint", "typecheck", "unit"],
+          "required_test_tier": [
+            "governance",
+            "lint",
+            "typecheck",
+            "unit"
+          ],
           "verification_commands": [
             "pnpm governance",
             "pnpm lint",
@@ -7696,7 +8461,9 @@
               "category": "resilience",
               "trigger": "a customer joins a card",
               "expected": "not require a mobile app download",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/customer.test.ts",
@@ -7725,7 +8492,12 @@
           ],
           "status": "active",
           "risk_class": "docs-tooling",
-          "required_test_tier": ["governance", "lint", "typecheck", "unit"],
+          "required_test_tier": [
+            "governance",
+            "lint",
+            "typecheck",
+            "unit"
+          ],
           "verification_commands": [
             "pnpm governance",
             "pnpm lint",
@@ -7754,7 +8526,9 @@
               "category": "temporal",
               "trigger": "customers add stamps",
               "expected": "require a valid venue QR context, enforce one earned stamp per membership/location/UK date, and record the action",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/customer.test.ts",
@@ -7783,7 +8557,12 @@
           ],
           "status": "active",
           "risk_class": "docs-tooling",
-          "required_test_tier": ["governance", "lint", "typecheck", "unit"],
+          "required_test_tier": [
+            "governance",
+            "lint",
+            "typecheck",
+            "unit"
+          ],
           "verification_commands": [
             "pnpm governance",
             "pnpm lint",
@@ -7812,7 +8591,9 @@
               "category": "state-machine",
               "trigger": "the third visit stamp is issued",
               "expected": "assign exactly one active reward pool item and persist the assigned reward details",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/customer.test.ts",
@@ -7841,7 +8622,12 @@
           ],
           "status": "active",
           "risk_class": "docs-tooling",
-          "required_test_tier": ["governance", "lint", "typecheck", "unit"],
+          "required_test_tier": [
+            "governance",
+            "lint",
+            "typecheck",
+            "unit"
+          ],
           "verification_commands": [
             "pnpm governance",
             "pnpm lint",
@@ -7870,7 +8656,9 @@
               "category": "temporal",
               "trigger": "a reward is revealed",
               "expected": "block redemption until the next UK business day",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/customer.test.ts",
@@ -7899,7 +8687,12 @@
           ],
           "status": "active",
           "risk_class": "docs-tooling",
-          "required_test_tier": ["governance", "lint", "typecheck", "unit"],
+          "required_test_tier": [
+            "governance",
+            "lint",
+            "typecheck",
+            "unit"
+          ],
           "verification_commands": [
             "pnpm governance",
             "pnpm lint",
@@ -7928,7 +8721,9 @@
               "category": "state-machine",
               "trigger": "the MVP is evaluated for pilot readiness",
               "expected": "check every release gate in this spec",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/customer.test.ts",
@@ -7946,6 +8741,920 @@
         "superseded_by": null,
         "rationale": "No superseding Micro-Spec replaces this current intent."
       }
+    },
+    {
+      "spec_id": "MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS",
+      "title": "Browser Push Notification Events",
+      "source_path": "micro-specs/09-notifications/01-browser-push-notification-events.md",
+      "status": "active",
+      "risk_class": "rls-rpc-ledger",
+      "owner": "factory-droid",
+      "last_reviewed": "2026-06-22",
+      "allowed_blast_radius": [
+        "app/api/cron/**",
+        "app/api/notifications/**",
+        "app/app/announcements/**",
+        "app/home/**",
+        "components/customer/**",
+        "components/pwa/**",
+        "config/env-contract.json",
+        "lib/analytics/events.ts",
+        "lib/customer/**",
+        "lib/env/**",
+        "lib/merchant/**",
+        "lib/notifications/**",
+        "micro-specs/09-notifications/01-browser-push-notification-events.md",
+        "micro-specs/TRACEABILITY.md",
+        "micro-specs/traceability.json",
+        "package.json",
+        "public/sw.js",
+        "supabase/migrations/**",
+        "supabase/tests/**",
+        "tests/e2e/**",
+        "tests/micro-specs/**",
+        "vercel.json"
+      ],
+      "implementation_surfaces": [
+        "app/api/cron/**",
+        "app/api/notifications/**",
+        "app/app/announcements/**",
+        "app/home/**",
+        "components/customer/**",
+        "components/pwa/**",
+        "config/env-contract.json",
+        "lib/analytics/events.ts",
+        "lib/customer/**",
+        "lib/env/**",
+        "lib/merchant/**",
+        "lib/notifications/**",
+        "public/sw.js",
+        "supabase/migrations/**",
+        "supabase/tests/**",
+        "tests/e2e/**",
+        "tests/micro-specs/**",
+        "vercel.json"
+      ],
+      "related_docs": [
+        "docs/PROJECT_SPEC.md",
+        "docs/ARCHITECTURE.md",
+        "docs/OBSERVABILITY.md",
+        "micro-specs/GLOBAL_CONTEXT.md",
+        "DESIGN.md",
+        ".omo/plans/browser-push-notification-events.md",
+        ".omo/drafts/browser-push-notification-events.md"
+      ],
+      "related_tests": [
+        "tests/micro-specs/browser-push-notification-events.test.ts"
+      ],
+      "verification_gates": [
+        "pnpm governance",
+        "pnpm lint",
+        "pnpm typecheck",
+        "pnpm test",
+        "pnpm db:verify",
+        "pnpm security:verify",
+        "npx playwright test",
+        "pnpm build"
+      ],
+      "approved_exceptions": [],
+      "change_state": "current",
+      "status_evidence": [
+        "Reviewed against the browser push OMO plan and decision ledger on 2026-06-22.",
+        "Platform documentation checked for MDN Push/Notifications, WebKit iOS/iPadOS Web Push, and Vercel Cron before implementation.",
+        "No native app, Firebase, OneSignal, SMS, WhatsApp, email, passive geofence, or raw-coordinate targeting scope is approved."
+      ],
+      "requirements": [
+        {
+          "requirement_id": "MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-001",
+          "summary": "WHEN a browser cannot receive push because support is missing, permission is denied, or a subscription send fails, THE system SHALL preserve loyalty and reward behaviour without blocking the customer.",
+          "gates": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "npx playwright test",
+            "pnpm build"
+          ],
+          "evidence": [
+            "tests/micro-specs/browser-push-notification-events.test.ts",
+            ".omo/evidence/task-1-browser-push-notification-events.md"
+          ],
+          "status": "active",
+          "risk_class": "rls-rpc-ledger",
+          "required_test_tier": [
+            "browser",
+            "build",
+            "governance",
+            "lint",
+            "security",
+            "sql-rls",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "npx playwright test",
+            "pnpm build"
+          ],
+          "implementation_surfaces": [
+            "app/api/cron/**",
+            "app/api/notifications/**",
+            "app/app/announcements/**",
+            "app/home/**",
+            "components/customer/**",
+            "components/pwa/**",
+            "config/env-contract.json",
+            "lib/analytics/events.ts",
+            "lib/customer/**",
+            "lib/env/**",
+            "lib/merchant/**",
+            "lib/notifications/**",
+            "public/sw.js",
+            "supabase/migrations/**",
+            "supabase/tests/**",
+            "tests/e2e/**",
+            "tests/micro-specs/**",
+            "vercel.json"
+          ],
+          "related_tests": [
+            "tests/micro-specs/browser-push-notification-events.test.ts"
+          ],
+          "manual_rationale": [],
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "RES-MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-001-a",
+              "category": "resilience",
+              "trigger": "unsupported, denied, revoked, expired, or failed browser push state",
+              "expected": "loyalty and reward actions continue and the customer sees non-blocking settings copy",
+              "required_layer": [
+                "browser",
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/browser-push-notification-events.test.ts",
+                ".omo/evidence/task-1-browser-push-notification-events.md"
+              ],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
+        },
+        {
+          "requirement_id": "MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-002",
+          "summary": "WHEN a customer intentionally enables browser push, THE system SHALL request browser permission from that user gesture and store the subscription with server-side ownership, RLS, and sanitized subscription metadata.",
+          "gates": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "npx playwright test",
+            "pnpm build"
+          ],
+          "evidence": [
+            "tests/micro-specs/browser-push-notification-events.test.ts",
+            ".omo/evidence/task-1-browser-push-notification-events.md"
+          ],
+          "status": "active",
+          "risk_class": "rls-rpc-ledger",
+          "required_test_tier": [
+            "browser",
+            "build",
+            "governance",
+            "lint",
+            "security",
+            "sql-rls",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "npx playwright test",
+            "pnpm build"
+          ],
+          "implementation_surfaces": [
+            "app/api/cron/**",
+            "app/api/notifications/**",
+            "app/app/announcements/**",
+            "app/home/**",
+            "components/customer/**",
+            "components/pwa/**",
+            "config/env-contract.json",
+            "lib/analytics/events.ts",
+            "lib/customer/**",
+            "lib/env/**",
+            "lib/merchant/**",
+            "lib/notifications/**",
+            "public/sw.js",
+            "supabase/migrations/**",
+            "supabase/tests/**",
+            "tests/e2e/**",
+            "tests/micro-specs/**",
+            "vercel.json"
+          ],
+          "related_tests": [
+            "tests/micro-specs/browser-push-notification-events.test.ts"
+          ],
+          "manual_rationale": [],
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "AUTH-MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-002-a",
+              "category": "auth",
+              "trigger": "a subscription registration is submitted for a signed-in customer",
+              "expected": "store or refresh only that customer subscription and sanitize metadata without exposing secrets",
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/browser-push-notification-events.test.ts",
+                ".omo/evidence/task-1-browser-push-notification-events.md"
+              ],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
+        },
+        {
+          "requirement_id": "MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-003",
+          "summary": "WHEN permission or subscription lifecycle state changes, THE system SHALL record push_permission_prompt_viewed, push_permission_granted, push_subscription_created, push_subscription_disabled, or push_subscription_failed as applicable.",
+          "gates": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "npx playwright test",
+            "pnpm build"
+          ],
+          "evidence": [
+            "tests/micro-specs/browser-push-notification-events.test.ts",
+            ".omo/evidence/task-1-browser-push-notification-events.md"
+          ],
+          "status": "active",
+          "risk_class": "rls-rpc-ledger",
+          "required_test_tier": [
+            "browser",
+            "build",
+            "governance",
+            "lint",
+            "security",
+            "sql-rls",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "npx playwright test",
+            "pnpm build"
+          ],
+          "implementation_surfaces": [
+            "app/api/cron/**",
+            "app/api/notifications/**",
+            "app/app/announcements/**",
+            "app/home/**",
+            "components/customer/**",
+            "components/pwa/**",
+            "config/env-contract.json",
+            "lib/analytics/events.ts",
+            "lib/customer/**",
+            "lib/env/**",
+            "lib/merchant/**",
+            "lib/notifications/**",
+            "public/sw.js",
+            "supabase/migrations/**",
+            "supabase/tests/**",
+            "tests/e2e/**",
+            "tests/micro-specs/**",
+            "vercel.json"
+          ],
+          "related_tests": [
+            "tests/micro-specs/browser-push-notification-events.test.ts"
+          ],
+          "manual_rationale": [],
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "STM-MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-003-a",
+              "category": "state-machine",
+              "trigger": "permission prompt, grant, subscription creation, disable, or failure occurs",
+              "expected": "write exactly one lifecycle notification event for the customer and device transition",
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/browser-push-notification-events.test.ts",
+                ".omo/evidence/task-1-browser-push-notification-events.md"
+              ],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
+        },
+        {
+          "requirement_id": "MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-004",
+          "summary": "WHEN server-confirmed stamp or reward transitions occur, THE system SHALL enqueue one_stamp_away, reward_unlocked_waiting, reward_ready, profile_required_to_collect, and reward_collected_cycle_started from authoritative server state only.",
+          "gates": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "npx playwright test",
+            "pnpm build"
+          ],
+          "evidence": [
+            "tests/micro-specs/browser-push-notification-events.test.ts",
+            ".omo/evidence/task-1-browser-push-notification-events.md"
+          ],
+          "status": "active",
+          "risk_class": "rls-rpc-ledger",
+          "required_test_tier": [
+            "browser",
+            "build",
+            "governance",
+            "lint",
+            "security",
+            "sql-rls",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "npx playwright test",
+            "pnpm build"
+          ],
+          "implementation_surfaces": [
+            "app/api/cron/**",
+            "app/api/notifications/**",
+            "app/app/announcements/**",
+            "app/home/**",
+            "components/customer/**",
+            "components/pwa/**",
+            "config/env-contract.json",
+            "lib/analytics/events.ts",
+            "lib/customer/**",
+            "lib/env/**",
+            "lib/merchant/**",
+            "lib/notifications/**",
+            "public/sw.js",
+            "supabase/migrations/**",
+            "supabase/tests/**",
+            "tests/e2e/**",
+            "tests/micro-specs/**",
+            "vercel.json"
+          ],
+          "related_tests": [
+            "tests/micro-specs/browser-push-notification-events.test.ts"
+          ],
+          "manual_rationale": [],
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "STM-MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-004-a",
+              "category": "state-machine",
+              "trigger": "stamp or reward state changes after server-side RPC or merchant scan confirmation",
+              "expected": "derive notification events from authoritative ledger state instead of browser-side claims",
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/browser-push-notification-events.test.ts",
+                ".omo/evidence/task-1-browser-push-notification-events.md"
+              ],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
+        },
+        {
+          "requirement_id": "MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-005",
+          "summary": "WHEN scheduled due windows are processed, THE system SHALL evaluate and dedupe next_stamp_available, reward_expiring_soon, reward_expired, and dormant_progress against current eligibility before delivery.",
+          "gates": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "npx playwright test",
+            "pnpm build"
+          ],
+          "evidence": [
+            "tests/micro-specs/browser-push-notification-events.test.ts",
+            ".omo/evidence/task-1-browser-push-notification-events.md"
+          ],
+          "status": "active",
+          "risk_class": "rls-rpc-ledger",
+          "required_test_tier": [
+            "browser",
+            "build",
+            "governance",
+            "lint",
+            "security",
+            "sql-rls",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "npx playwright test",
+            "pnpm build"
+          ],
+          "implementation_surfaces": [
+            "app/api/cron/**",
+            "app/api/notifications/**",
+            "app/app/announcements/**",
+            "app/home/**",
+            "components/customer/**",
+            "components/pwa/**",
+            "config/env-contract.json",
+            "lib/analytics/events.ts",
+            "lib/customer/**",
+            "lib/env/**",
+            "lib/merchant/**",
+            "lib/notifications/**",
+            "public/sw.js",
+            "supabase/migrations/**",
+            "supabase/tests/**",
+            "tests/e2e/**",
+            "tests/micro-specs/**",
+            "vercel.json"
+          ],
+          "related_tests": [
+            "tests/micro-specs/browser-push-notification-events.test.ts"
+          ],
+          "manual_rationale": [],
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "TMP-MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-005-a",
+              "category": "temporal",
+              "trigger": "the scheduled delivery worker processes a due window more than once",
+              "expected": "dedupe by event type, customer, membership, reward, cycle, and due window before sending",
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/browser-push-notification-events.test.ts",
+                ".omo/evidence/task-1-browser-push-notification-events.md"
+              ],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
+        },
+        {
+          "requirement_id": "MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-006",
+          "summary": "WHEN marketing, venue announcement, dormant-progress, or winback-style push is considered, THE system SHALL require explicit marketing consent plus an enabled marketing push preference before enqueueing or sending.",
+          "gates": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "npx playwright test",
+            "pnpm build"
+          ],
+          "evidence": [
+            "tests/micro-specs/browser-push-notification-events.test.ts",
+            ".omo/evidence/task-1-browser-push-notification-events.md"
+          ],
+          "status": "active",
+          "risk_class": "rls-rpc-ledger",
+          "required_test_tier": [
+            "browser",
+            "build",
+            "governance",
+            "lint",
+            "security",
+            "sql-rls",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "npx playwright test",
+            "pnpm build"
+          ],
+          "implementation_surfaces": [
+            "app/api/cron/**",
+            "app/api/notifications/**",
+            "app/app/announcements/**",
+            "app/home/**",
+            "components/customer/**",
+            "components/pwa/**",
+            "config/env-contract.json",
+            "lib/analytics/events.ts",
+            "lib/customer/**",
+            "lib/env/**",
+            "lib/merchant/**",
+            "lib/notifications/**",
+            "public/sw.js",
+            "supabase/migrations/**",
+            "supabase/tests/**",
+            "tests/e2e/**",
+            "tests/micro-specs/**",
+            "vercel.json"
+          ],
+          "related_tests": [
+            "tests/micro-specs/browser-push-notification-events.test.ts"
+          ],
+          "manual_rationale": [],
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "PII-MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-006-a",
+              "category": "pii",
+              "trigger": "a customer has no marketing consent or has disabled marketing push",
+              "expected": "skip marketing-gated notification enqueueing and delivery",
+              "required_layer": [
+                "security",
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/browser-push-notification-events.test.ts",
+                ".omo/evidence/task-1-browser-push-notification-events.md"
+              ],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
+        },
+        {
+          "requirement_id": "MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-007",
+          "summary": "WHEN reward expiry is configured, THE system SHALL snapshot the real reward expiry on the assigned reward event and SHALL NOT use reward_scan_tokens.expires_at as reward expiry.",
+          "gates": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "npx playwright test",
+            "pnpm build"
+          ],
+          "evidence": [
+            "tests/micro-specs/browser-push-notification-events.test.ts",
+            ".omo/evidence/task-1-browser-push-notification-events.md"
+          ],
+          "status": "active",
+          "risk_class": "rls-rpc-ledger",
+          "required_test_tier": [
+            "browser",
+            "build",
+            "governance",
+            "lint",
+            "security",
+            "sql-rls",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "npx playwright test",
+            "pnpm build"
+          ],
+          "implementation_surfaces": [
+            "app/api/cron/**",
+            "app/api/notifications/**",
+            "app/app/announcements/**",
+            "app/home/**",
+            "components/customer/**",
+            "components/pwa/**",
+            "config/env-contract.json",
+            "lib/analytics/events.ts",
+            "lib/customer/**",
+            "lib/env/**",
+            "lib/merchant/**",
+            "lib/notifications/**",
+            "public/sw.js",
+            "supabase/migrations/**",
+            "supabase/tests/**",
+            "tests/e2e/**",
+            "tests/micro-specs/**",
+            "vercel.json"
+          ],
+          "related_tests": [
+            "tests/micro-specs/browser-push-notification-events.test.ts"
+          ],
+          "manual_rationale": [],
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "STM-MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-007-a",
+              "category": "state-machine",
+              "trigger": "a reward is assigned and a scan token is generated later",
+              "expected": "reward expiry remains on reward_events and scan-token expiry remains token-only",
+              "required_layer": [
+                "sql-rls",
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/browser-push-notification-events.test.ts",
+                ".omo/evidence/task-1-browser-push-notification-events.md"
+              ],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
+        },
+        {
+          "requirement_id": "MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-008",
+          "summary": "WHEN a notification is enqueued or sent, THE system SHALL write durable notification event and delivery ledger records with idempotency keys scoped by customer, membership, reward, cycle, event type, and due window.",
+          "gates": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "npx playwright test",
+            "pnpm build"
+          ],
+          "evidence": [
+            "tests/micro-specs/browser-push-notification-events.test.ts",
+            ".omo/evidence/task-1-browser-push-notification-events.md"
+          ],
+          "status": "active",
+          "risk_class": "rls-rpc-ledger",
+          "required_test_tier": [
+            "browser",
+            "build",
+            "governance",
+            "lint",
+            "security",
+            "sql-rls",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "npx playwright test",
+            "pnpm build"
+          ],
+          "implementation_surfaces": [
+            "app/api/cron/**",
+            "app/api/notifications/**",
+            "app/app/announcements/**",
+            "app/home/**",
+            "components/customer/**",
+            "components/pwa/**",
+            "config/env-contract.json",
+            "lib/analytics/events.ts",
+            "lib/customer/**",
+            "lib/env/**",
+            "lib/merchant/**",
+            "lib/notifications/**",
+            "public/sw.js",
+            "supabase/migrations/**",
+            "supabase/tests/**",
+            "tests/e2e/**",
+            "tests/micro-specs/**",
+            "vercel.json"
+          ],
+          "related_tests": [
+            "tests/micro-specs/browser-push-notification-events.test.ts"
+          ],
+          "manual_rationale": [],
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "IDM-MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-008-a",
+              "category": "idempotency",
+              "trigger": "the same notification event is enqueued or delivered concurrently",
+              "expected": "unique ledger keys collapse duplicates without losing delivery attempt evidence",
+              "required_layer": [
+                "sql-rls",
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/browser-push-notification-events.test.ts",
+                ".omo/evidence/task-1-browser-push-notification-events.md"
+              ],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
+        },
+        {
+          "requirement_id": "MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-009",
+          "summary": "WHEN a venue announcement is created, THE system SHALL enforce merchant/admin ownership, message limits, rate limits, preview, and marketing-consent gates before enqueueing venue_announcement.",
+          "gates": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "npx playwright test",
+            "pnpm build"
+          ],
+          "evidence": [
+            "tests/micro-specs/browser-push-notification-events.test.ts",
+            ".omo/evidence/task-1-browser-push-notification-events.md"
+          ],
+          "status": "active",
+          "risk_class": "rls-rpc-ledger",
+          "required_test_tier": [
+            "browser",
+            "build",
+            "governance",
+            "lint",
+            "security",
+            "sql-rls",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "npx playwright test",
+            "pnpm build"
+          ],
+          "implementation_surfaces": [
+            "app/api/cron/**",
+            "app/api/notifications/**",
+            "app/app/announcements/**",
+            "app/home/**",
+            "components/customer/**",
+            "components/pwa/**",
+            "config/env-contract.json",
+            "lib/analytics/events.ts",
+            "lib/customer/**",
+            "lib/env/**",
+            "lib/merchant/**",
+            "lib/notifications/**",
+            "public/sw.js",
+            "supabase/migrations/**",
+            "supabase/tests/**",
+            "tests/e2e/**",
+            "tests/micro-specs/**",
+            "vercel.json"
+          ],
+          "related_tests": [
+            "tests/micro-specs/browser-push-notification-events.test.ts"
+          ],
+          "manual_rationale": [],
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "ABU-MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-009-a",
+              "category": "abuse",
+              "trigger": "a merchant attempts to announce to customers outside ownership, rate, size, or consent limits",
+              "expected": "reject or skip unsafe recipients before venue_announcement enqueueing",
+              "required_layer": [
+                "security",
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/browser-push-notification-events.test.ts",
+                ".omo/evidence/task-1-browser-push-notification-events.md"
+              ],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
+        },
+        {
+          "requirement_id": "MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-010",
+          "summary": "WHEN the service worker receives push, notificationclick, or subscriptionchange events, THE system SHALL handle them without changing server-state caching rules or relying on passive background geofencing.",
+          "gates": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "npx playwright test",
+            "pnpm build"
+          ],
+          "evidence": [
+            "tests/micro-specs/browser-push-notification-events.test.ts",
+            ".omo/evidence/task-1-browser-push-notification-events.md"
+          ],
+          "status": "active",
+          "risk_class": "rls-rpc-ledger",
+          "required_test_tier": [
+            "browser",
+            "build",
+            "governance",
+            "lint",
+            "security",
+            "sql-rls",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm governance",
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm db:verify",
+            "pnpm security:verify",
+            "npx playwright test",
+            "pnpm build"
+          ],
+          "implementation_surfaces": [
+            "app/api/cron/**",
+            "app/api/notifications/**",
+            "app/app/announcements/**",
+            "app/home/**",
+            "components/customer/**",
+            "components/pwa/**",
+            "config/env-contract.json",
+            "lib/analytics/events.ts",
+            "lib/customer/**",
+            "lib/env/**",
+            "lib/merchant/**",
+            "lib/notifications/**",
+            "public/sw.js",
+            "supabase/migrations/**",
+            "supabase/tests/**",
+            "tests/e2e/**",
+            "tests/micro-specs/**",
+            "vercel.json"
+          ],
+          "related_tests": [
+            "tests/micro-specs/browser-push-notification-events.test.ts"
+          ],
+          "manual_rationale": [],
+          "change_state": "current",
+          "edge_cases": [
+            {
+              "id": "RES-MS-NOTIFICATIONS-BROWSER-PUSH-EVENTS-010-a",
+              "category": "resilience",
+              "trigger": "service worker push, notificationclick, or subscriptionchange event fires while server-state routes remain network-only",
+              "expected": "show/open notifications and refresh subscriptions without caching mutable server state or using location targeting",
+              "required_layer": [
+                "browser",
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/browser-push-notification-events.test.ts",
+                ".omo/evidence/task-1-browser-push-notification-events.md"
+              ],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
+        }
+      ]
     },
     {
       "spec_id": "MS-OBSERVABILITY-COMPLIANCE-CONSENT-LEGAL-DATA-REQUESTS",
@@ -8060,7 +9769,10 @@
               "category": "pii",
               "trigger": "a customer joins a loyalty card",
               "expected": "request loyalty terms acceptance separately from marketing opt-in",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/customer.test.ts",
                 "tests/micro-specs/home-profile.test.ts",
@@ -8128,7 +9840,10 @@
               "category": "pii",
               "trigger": "marketing opt-in is not selected",
               "expected": "not treat loyalty participation as marketing consent",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/customer.test.ts",
                 "tests/micro-specs/home-profile.test.ts",
@@ -8196,7 +9911,10 @@
               "category": "pii",
               "trigger": "marketing opt-in is selected",
               "expected": "record consent status, channel, source, merchant, customer, policy version, and timestamp",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/customer.test.ts",
                 "tests/micro-specs/home-profile.test.ts",
@@ -8264,7 +9982,10 @@
               "category": "pii",
               "trigger": "a customer opts out later through a supported path",
               "expected": "record the opt-out without deleting historical consent evidence",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/customer.test.ts",
                 "tests/micro-specs/home-profile.test.ts",
@@ -8332,7 +10053,10 @@
               "category": "pii",
               "trigger": "a merchant has reward terms",
               "expected": "display them before or during participation",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/customer.test.ts",
                 "tests/micro-specs/home-profile.test.ts",
@@ -8400,8 +10124,12 @@
               "category": "pii",
               "trigger": "an admin receives a data request",
               "expected": "admin console provides enough lookup context to identify relevant customer and merchant records",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/admin-console-redesign.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/admin-console-redesign.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -8461,7 +10189,10 @@
               "category": "pii",
               "trigger": "soft GPS location copy is presented",
               "expected": "privacy copy discloses minimized location evidence and raw coordinates are not stored by default",
-              "required_layer": ["security", "unit"],
+              "required_layer": [
+                "security",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/customer.test.ts",
                 "tests/micro-specs/home-profile.test.ts",
@@ -8614,7 +10345,11 @@
               "category": "pii",
               "trigger": "a customer has a verified phone",
               "expected": "keep phone read-only and SHALL NOT submit a phone replacement",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/home-profile.test.ts",
                 "tests/micro-specs/reward-profile-gate.test.ts",
@@ -8691,7 +10426,11 @@
               "category": "pii",
               "trigger": "a customer has a verified email",
               "expected": "show that email as verified/read-only and SHALL NOT render an editable `email` field",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/home-profile.test.ts",
                 "tests/micro-specs/reward-profile-gate.test.ts",
@@ -8768,7 +10507,11 @@
               "category": "pii",
               "trigger": "a self-service profile update submits a different or blank email for a customer with an existing verified email",
               "expected": "preserve the verified email, save non-contact profile fields, and SHALL NOT send a new verification code",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/home-profile.test.ts",
                 "tests/micro-specs/reward-profile-gate.test.ts",
@@ -8845,7 +10588,11 @@
               "category": "pii",
               "trigger": "a customer email is unverified",
               "expected": "allow adding, changing, resending, verifying, and clearing that pending email",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/home-profile.test.ts",
                 "tests/micro-specs/reward-profile-gate.test.ts",
@@ -8922,7 +10669,11 @@
               "category": "pii",
               "trigger": "a direct database update attempts to change verified email or verified phone anchor fields",
               "expected": "reject the update while allowing non-contact profile updates",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/home-profile.test.ts",
                 "tests/micro-specs/reward-profile-gate.test.ts",
@@ -9041,7 +10792,9 @@
               "category": "auth",
               "trigger": "a business-critical MVP event occurs",
               "expected": "write a Supabase product event with tenant context and timestamp",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/observability.test.ts",
@@ -9103,7 +10856,9 @@
               "category": "resilience",
               "trigger": "a funnel-relevant action occurs",
               "expected": "send a corresponding PostHog event where configured",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/observability.test.ts",
@@ -9165,7 +10920,9 @@
               "category": "resilience",
               "trigger": "PostHog is unavailable",
               "expected": "still occur",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/observability.test.ts",
@@ -9227,7 +10984,9 @@
               "category": "resilience",
               "trigger": "events include customer context",
               "expected": "avoid unnecessary personal data",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/observability.test.ts",
@@ -9289,7 +11048,9 @@
               "category": "resilience",
               "trigger": "a pilot report is generated",
               "expected": "use source-of-truth events for core counts",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/observability.test.ts",
@@ -9434,7 +11195,9 @@
               "category": "abuse",
               "trigger": "self-service stamp attempts repeat too quickly for one membership",
               "expected": "further attempts are rate-limited and surfaced as calm retry copy, not an error",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/rate-limit.test.ts",
                 "tests/micro-specs/self-service-stamping.test.ts"
@@ -9514,7 +11277,9 @@
               "category": "pii",
               "trigger": "a QR scan or customer-identity request is rate-limited",
               "expected": "the bucket key is a SHA-256 digest in durable server-side storage; the raw identity is never persisted",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/rate-limit.test.ts",
                 "tests/micro-specs/customer-phone-pii.test.ts"
@@ -9590,7 +11355,10 @@
               "category": "idempotency",
               "trigger": "a customer requests multiple stamps inside the cooldown / same UK day",
               "expected": "the duplicate is rejected safely without double-counting",
-              "required_layer": ["unit", "sql-rls"],
+              "required_layer": [
+                "unit",
+                "sql-rls"
+              ],
               "evidence": [
                 "tests/micro-specs/self-service-stamping.test.ts",
                 "supabase/tests/reward_redemption_cycles.sql"
@@ -9668,7 +11436,10 @@
               "category": "abuse",
               "trigger": "stamp volume is unusually high for a merchant or time window",
               "expected": "a fraud flag is created for admin review with generic signal and reason readback",
-              "required_layer": ["unit", "sql-rls"],
+              "required_layer": [
+                "unit",
+                "sql-rls"
+              ],
               "evidence": [
                 "manual:high-velocity-fraud-threshold-review",
                 "tests/micro-specs/cycle-stamp-3-governance-admin-legal.test.ts"
@@ -9743,7 +11514,9 @@
               "category": "concurrency",
               "trigger": "reward redemption is attempted concurrently for one reward",
               "expected": "at most one redemption succeeds; the rest are rejected",
-              "required_layer": ["sql-rls"],
+              "required_layer": [
+                "sql-rls"
+              ],
               "evidence": [
                 "supabase/tests/reward_redemption_cycles.sql",
                 "supabase/tests/tenant_isolation.sql"
@@ -9819,8 +11592,12 @@
               "category": "state-machine",
               "trigger": "a QR code is disabled",
               "expected": "future scan-to-join is blocked while historical scan data is kept",
-              "required_layer": ["unit"],
-              "evidence": ["tests/micro-specs/customer.test.ts"],
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/customer.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -9892,8 +11669,13 @@
               "category": "auth",
               "trigger": "an admin route or action is reached without an AAL2 session",
               "expected": "access is denied until MFA/AAL2 is satisfied",
-              "required_layer": ["unit", "security"],
-              "evidence": ["tests/micro-specs/admin-console-redesign.test.ts"],
+              "required_layer": [
+                "unit",
+                "security"
+              ],
+              "evidence": [
+                "tests/micro-specs/admin-console-redesign.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -9965,8 +11747,12 @@
               "category": "auth",
               "trigger": "an unauthorised role attempts a privileged action",
               "expected": "it is denied by RLS and a security-relevant audit event is recorded where appropriate",
-              "required_layer": ["sql-rls"],
-              "evidence": ["supabase/tests/tenant_isolation.sql"],
+              "required_layer": [
+                "sql-rls"
+              ],
+              "evidence": [
+                "supabase/tests/tenant_isolation.sql"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -10038,8 +11824,13 @@
               "category": "auth",
               "trigger": "a Stripe webhook arrives with an invalid signature",
               "expected": "the event is rejected before any side effect and billing state is left unchanged",
-              "required_layer": ["unit", "security"],
-              "evidence": ["tests/micro-specs/backend-hardening.test.ts"],
+              "required_layer": [
+                "unit",
+                "security"
+              ],
+              "evidence": [
+                "tests/micro-specs/backend-hardening.test.ts"
+              ],
               "status": "covered",
               "gap_reason": null
             }
@@ -10099,7 +11890,11 @@
               "category": "abuse",
               "trigger": "soft GPS evidence needs admin review",
               "expected": "admin fraud readback is minimized and bucketed",
-              "required_layer": ["security", "unit", "sql-rls"],
+              "required_layer": [
+                "security",
+                "unit",
+                "sql-rls"
+              ],
               "evidence": [
                 "tests/micro-specs/cycle-stamp-3-governance-admin-legal.test.ts",
                 "supabase/tests/reward_redemption_cycles.sql"
@@ -10222,7 +12017,9 @@
               "category": "resilience",
               "trigger": "a merchant starts pilot onboarding",
               "expected": "support setup completion in under 5 minutes",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/perf-rpc-consolidation.test.ts",
@@ -10288,7 +12085,9 @@
               "category": "resilience",
               "trigger": "staff are trained",
               "expected": "be short enough to complete in under 3 minutes",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/perf-rpc-consolidation.test.ts",
@@ -10354,7 +12153,9 @@
               "category": "resilience",
               "trigger": "staff training is timed for pilot readiness",
               "expected": "store the proof as a structured audited note with a 1-3 minute duration",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/perf-rpc-consolidation.test.ts",
@@ -10420,7 +12221,9 @@
               "category": "resilience",
               "trigger": "pilot metrics are reviewed",
               "expected": "show launch, scan, join, repeat, redemption, support, and paid-conversion metrics",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/perf-rpc-consolidation.test.ts",
@@ -10486,7 +12289,9 @@
               "category": "resilience",
               "trigger": "paid pilot proof is reviewed",
               "expected": "count only active-billing merchants that also have source-of-truth launch, join, stamp, and redemption events",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/perf-rpc-consolidation.test.ts",
@@ -10552,7 +12357,9 @@
               "category": "resilience",
               "trigger": "a merchant cancels or declines payment",
               "expected": "be able to record cancellation reason or interview notes",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/perf-rpc-consolidation.test.ts",
@@ -10618,7 +12425,9 @@
               "category": "resilience",
               "trigger": "reward disputes occur",
               "expected": "expose reward, stamp, and audit history needed for support",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/perf-rpc-consolidation.test.ts",
@@ -10684,7 +12493,9 @@
               "category": "resilience",
               "trigger": "pilot results are exported or summarized",
               "expected": "distinguish source-of-truth event counts from estimates and interview notes",
-              "required_layer": ["unit"],
+              "required_layer": [
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/analytics-dashboard-pilot.test.ts",
                 "tests/micro-specs/perf-rpc-consolidation.test.ts",
@@ -10816,7 +12627,11 @@
               "category": "state-machine",
               "trigger": "a membership reaches the required stamp count",
               "expected": "create exactly one reward event with assigned reward details",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-scanned-reward.test.ts",
                 "tests/micro-specs/reward-redemption-cycles.test.ts",
@@ -10886,7 +12701,11 @@
               "category": "temporal",
               "trigger": "a customer opens an unlocked reward before `redeemable_from`",
               "expected": "show the assigned reward and a come-back message without a redeem action",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-scanned-reward.test.ts",
                 "tests/micro-specs/reward-redemption-cycles.test.ts",
@@ -10958,7 +12777,11 @@
               "category": "state-machine",
               "trigger": "a customer opens a redeemable reward",
               "expected": "show assigned reward name, terms, and the reward QR for the merchant to scan (no customer tap-to-redeem control)",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-scanned-reward.test.ts",
                 "tests/micro-specs/reward-redemption-cycles.test.ts",
@@ -11028,7 +12851,11 @@
               "category": "state-machine",
               "trigger": "the merchant edits the reward pool after assignment",
               "expected": "keep its persisted details unchanged",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-scanned-reward.test.ts",
                 "tests/micro-specs/reward-redemption-cycles.test.ts",
@@ -11098,7 +12925,11 @@
               "category": "idempotency",
               "trigger": "a merchant scans the customer's reward QR and all server checks pass",
               "expected": "mark the reward as redeemed once",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-scanned-reward.test.ts",
                 "tests/micro-specs/reward-redemption-cycles.test.ts",
@@ -11168,7 +12999,11 @@
               "category": "idempotency",
               "trigger": "the same reward redemption is attempted again",
               "expected": "reject or replay the duplicate safely without creating another redemption",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-scanned-reward.test.ts",
                 "tests/micro-specs/reward-redemption-cycles.test.ts",
@@ -11238,7 +13073,11 @@
               "category": "state-machine",
               "trigger": "redemption succeeds",
               "expected": "update membership reward totals and start the next visible stamp cycle",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-scanned-reward.test.ts",
                 "tests/micro-specs/reward-redemption-cycles.test.ts",
@@ -11308,7 +13147,11 @@
               "category": "resilience",
               "trigger": "reward redemption succeeds or fails for a security reason",
               "expected": "record audit/product events",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/merchant-scanned-reward.test.ts",
                 "tests/micro-specs/reward-redemption-cycles.test.ts",
@@ -11438,7 +13281,11 @@
               "category": "state-machine",
               "trigger": "an existing member scans the venue QR",
               "expected": "route to the stamp-confirm screen with QR context",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/self-service-stamping.test.ts",
                 "tests/micro-specs/returning-qr-redirect.test.ts",
@@ -11506,7 +13353,11 @@
               "category": "state-machine",
               "trigger": "the customer taps add stamp and all server checks pass",
               "expected": "create a `stamp_events` record and increment membership progress",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/self-service-stamping.test.ts",
                 "tests/micro-specs/returning-qr-redirect.test.ts",
@@ -11576,7 +13427,11 @@
               "category": "abuse",
               "trigger": "next active-cycle stamp is 1 or 2",
               "expected": "cycle stamp 1 and 2 do not request GPS; cycle stamp 1 and 2 do not write GPS unknown fraud flags",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/self-service-stamping.test.ts",
                 "tests/micro-specs/returning-qr-redirect.test.ts",
@@ -11647,7 +13502,11 @@
               "category": "abuse",
               "trigger": "next active-cycle stamp is 3 and soft geofence is enabled",
               "expected": "cycle stamp 3 requires a browser GPS attempt when soft geofence is enabled; denied, timeout, unsupported, unavailable, or poor-accuracy GPS still issues the stamp",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/self-service-stamping.test.ts",
                 "tests/micro-specs/returning-qr-redirect.test.ts",
@@ -11718,7 +13577,11 @@
               "category": "abuse",
               "trigger": "reward cycle resets",
               "expected": "reward-cycle reset reapplies the cycle stamp 3 trigger and new stamp evidence stores no raw customer latitude or longitude",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/self-service-stamping.test.ts",
                 "tests/micro-specs/returning-qr-redirect.test.ts",
@@ -11787,7 +13650,11 @@
               "category": "idempotency",
               "trigger": "the customer has already received a stamp for the membership/location/UK date",
               "expected": "reject the duplicate attempt with safe copy",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/self-service-stamping.test.ts",
                 "tests/micro-specs/returning-qr-redirect.test.ts",
@@ -11855,7 +13722,11 @@
               "category": "state-machine",
               "trigger": "the stamp completes the visit target",
               "expected": "select one active reward pool item using integer weights and persist its details into `reward_events`",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/self-service-stamping.test.ts",
                 "tests/micro-specs/returning-qr-redirect.test.ts",
@@ -11923,7 +13794,11 @@
               "category": "state-machine",
               "trigger": "the merchant billing state is cancelled or suspended",
               "expected": "block new stamp issuance according to billing rules",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/self-service-stamping.test.ts",
                 "tests/micro-specs/returning-qr-redirect.test.ts",
@@ -11991,7 +13866,11 @@
               "category": "state-machine",
               "trigger": "a stamp is issued",
               "expected": "write `stamp_issued` to product events and an audit entry with non-sensitive metadata",
-              "required_layer": ["security", "sql-rls", "unit"],
+              "required_layer": [
+                "security",
+                "sql-rls",
+                "unit"
+              ],
               "evidence": [
                 "tests/micro-specs/self-service-stamping.test.ts",
                 "tests/micro-specs/returning-qr-redirect.test.ts",

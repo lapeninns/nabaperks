@@ -16,7 +16,6 @@ export type LoyaltyCardSummary = {
   stamps_required: number
   reward_name: string
   reward_terms: string
-  min_spend_pence: number | null
   is_active: boolean
 }
 
@@ -24,7 +23,6 @@ export type RewardPoolItemSummary = {
   id: string
   reward_name: string
   reward_terms: string
-  min_spend_pence: number | null
   weight: number
   is_active: boolean
   display_order: number
@@ -55,7 +53,9 @@ async function getLoyaltyCardSetupUncached(): Promise<LoyaltyCardSetup> {
     .maybeSingle()
 
   if (locationError) {
-    throw new Error(`Unable to load merchant location: ${locationError.message}`)
+    throw new Error(
+      `Unable to load merchant location: ${locationError.message}`
+    )
   }
 
   if (!location) {
@@ -65,7 +65,7 @@ async function getLoyaltyCardSetupUncached(): Promise<LoyaltyCardSetup> {
   const { data: card, error: cardError } = await supabase
     .from("loyalty_cards")
     .select(
-      "id, card_name, stamps_required, reward_name, reward_terms, min_spend_pence, is_active"
+      "id, card_name, stamps_required, reward_name, reward_terms, is_active"
     )
     .eq("merchant_id", merchant.id)
     .eq("location_id", location.id)
@@ -84,9 +84,7 @@ async function getLoyaltyCardSetupUncached(): Promise<LoyaltyCardSetup> {
 
   const { data: rewardPoolItems, error: poolError } = await supabase
     .from("reward_pool_items")
-    .select(
-      "id, reward_name, reward_terms, min_spend_pence, weight, is_active, display_order"
-    )
+    .select("id, reward_name, reward_terms, weight, is_active, display_order")
     .eq("merchant_id", merchant.id)
     .eq("location_id", location.id)
     .eq("loyalty_card_id", card.id)

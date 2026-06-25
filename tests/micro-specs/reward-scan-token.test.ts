@@ -1,3 +1,6 @@
+import { readFile } from "node:fs/promises"
+import { join } from "node:path"
+
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { createSupabaseMock } from "../helpers/supabase"
@@ -227,3 +230,67 @@ describe("createRewardScanToken", () => {
     ).rejects.toThrow("Unable to create reward scan token.")
   })
 })
+
+describe("reward QR route hygiene", () => {
+  it("lazy-loads pdf-lib only on the PDF poster path", async () => {
+    const source = await readSource("lib/qr/assets.ts")
+
+    expect(source).not.toMatch(
+      /^import\s+\{\s*PDFDocument\s*\}\s+from\s+["']pdf-lib["']/m
+    )
+    expect(source).toContain("async function loadPdfDocument()")
+    expect(source).toContain('await import("pdf-lib")')
+    expect(functionBody(source, "renderQrPosterPdf")).toContain(
+      "await loadPdfDocument()"
+    )
+    expect(functionBody(source, "renderQrCodePng")).not.toContain(
+      "loadPdfDocument"
+    )
+    expect(functionBody(source, "renderQrAssetPng")).not.toContain(
+      "loadPdfDocument"
+    )
+    expect(functionBody(source, "renderQrPosterPng")).not.toContain(
+      "loadPdfDocument"
+    )
+  })
+
+  it("keeps reward ownership prevalidation before creating scan tokens", async () => {
+    const source = await readSource("app/reward/[rewardId]/qr.png/route.ts")
+
+    const prevalidationIndex = source.indexOf(
+      "await getCustomerRewardState(rewardId)"
+    )
+    const tokenIndex = source.indexOf("await createRewardScanToken")
+    const envIndex = source.indexOf("const serverEnv = getServerEnv()")
+    const handlerIndex = source.indexOf("export async function GET")
+
+    expect(source).toContain("import { getCustomerRewardState }")
+    expect(prevalidationIndex).toBeGreaterThan(-1)
+    expect(tokenIndex).toBeGreaterThan(prevalidationIndex)
+    expect(envIndex).toBeGreaterThan(-1)
+    expect(envIndex).toBeLessThan(handlerIndex)
+    expect(functionBody(source, "GET")).not.toContain("getServerEnv()")
+    expect(source).toContain('export const runtime = "nodejs"')
+  })
+})
+
+async function readSource(relativePath: string): Promise<string> {
+  return readFile(join(process.cwd(), relativePath), "utf8")
+}
+
+function functionBody(source: string, functionName: string): string {
+  const functionStart = source.indexOf(`function ${functionName}`)
+  const bodyStart = source.indexOf("{", functionStart)
+  expect(functionStart).toBeGreaterThanOrEqual(0)
+  expect(bodyStart).toBeGreaterThanOrEqual(0)
+
+  let depth = 0
+  for (let index = bodyStart; index < source.length; index += 1) {
+    const char = source[index]
+    if (char === "{") depth += 1
+    if (char === "}") depth -= 1
+    if (depth === 0) return source.slice(bodyStart, index + 1)
+  }
+
+  throw new Error(`Unable to locate ${functionName} body.`)
+}

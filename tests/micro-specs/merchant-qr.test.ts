@@ -234,7 +234,6 @@ describe("02 merchant and QR micro-specs", () => {
         p_card_name: "Mystery Visit Card",
         p_stamps_required: 3,
         p_reward_name: "Surprise reward",
-        p_min_spend_pence: null,
         p_is_active: true,
       }),
     })
@@ -283,7 +282,6 @@ describe("02 merchant and QR micro-specs", () => {
           loyaltyCardId: "card-1",
           rewardName: "Coffee upgrade",
           rewardTerms: "Valid on one hot drink from the next business day.",
-          minSpendPence: "250",
           weight: "3",
           displayOrder: "2",
           isActive: true,
@@ -299,7 +297,6 @@ describe("02 merchant and QR micro-specs", () => {
         p_reward_pool_item_id: null,
         p_reward_name: "Coffee upgrade",
         p_reward_terms: "Valid on one hot drink from the next business day.",
-        p_min_spend_pence: 250,
         p_weight: 3,
         p_is_active: true,
         p_display_order: 2,
@@ -342,7 +339,6 @@ describe("02 merchant and QR micro-specs", () => {
       "cardName",
       "stampsRequired",
       "rewardTerms",
-      "minSpendPence",
       "isActive",
       "loyaltyCardId",
       "rewardPoolItemId",
@@ -488,7 +484,6 @@ describe("02 merchant and QR micro-specs", () => {
           loyaltyCardId: "card-1",
           rewardName: "Coffee upgrade",
           rewardTerms: "Valid on one hot drink from the next business day.",
-          minSpendPence: "250",
           weight: "3",
           displayOrder: "2",
           isActive: true,
@@ -789,6 +784,9 @@ describe("02 merchant and QR micro-specs", () => {
       renderQrAssetPng: vi.fn(async () => new Uint8Array([1, 2, 3])),
       renderQrPosterPdf: vi.fn(),
     }))
+    vi.doMock("@/lib/qr/asset-store", () => ({
+      loadReadyQrAssetBytes: vi.fn(async () => null),
+    }))
     const { GET } = await import("@/app/app/qr/download/[asset]/route")
 
     const response = await GET(
@@ -879,6 +877,9 @@ describe("02 merchant and QR micro-specs", () => {
           renderQrPosterPdf,
         }
       })
+      vi.doMock("@/lib/qr/asset-store", () => ({
+        loadReadyQrAssetBytes: vi.fn(async () => null),
+      }))
       const { GET } = await import("@/app/app/qr/download/[asset]/route")
 
       const response = await GET(
@@ -985,6 +986,9 @@ describe("02 merchant and QR micro-specs", () => {
           renderQrPosterPng,
         }
       })
+      vi.doMock("@/lib/qr/asset-store", () => ({
+        loadReadyQrAssetBytes: vi.fn(async () => null),
+      }))
       const { GET } = await import("@/app/app/qr/preview/[asset]/route")
 
       const response = await GET(

@@ -108,10 +108,17 @@ set email = null,
     email_verified_at = null
 where id = '00000000-0000-0000-0000-00000000c102';
 
+-- Verifying an email sets email_verified_at, which the hardened
+-- prevent_verified_customer_contact_change trigger now restricts to the
+-- trusted service-role verification flow.
+set local request.jwt.claim.role = 'service_role';
+
 update public.customers
 set email = 'pending@example.test',
     email_verified_at = '2026-06-17T10:00:00Z'
 where id = '00000000-0000-0000-0000-00000000c102';
+
+reset request.jwt.claim.role;
 
 select 'customer contact immutability ok';
 

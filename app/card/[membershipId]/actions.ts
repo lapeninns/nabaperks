@@ -8,6 +8,7 @@ import {
   issueSelfServiceStamp,
   type GeoCoordinates,
 } from "@/lib/customer/stamp"
+import { enqueueStampTransitionNotifications } from "@/lib/notifications/events"
 import type { SelfStampActionState } from "@/lib/customer/self-stamp-action-state"
 import { logger } from "@/lib/observability/logger"
 
@@ -54,6 +55,19 @@ export async function selfStampAction(
   // The customer stays on this screen; the UI confirms the stamp in place.
   revalidatePath(`/card/${membershipId}`)
 
+  try {
+    await enqueueStampTransitionNotifications({
+      membershipId,
+      newStampCount: result.newStampCount,
+      rewardUnlocked: result.rewardUnlocked,
+    })
+  } catch (error) {
+    logger.warn("push_stamp_transition_enqueue_failed", {
+      membershipId,
+      error,
+    })
+  }
+
   return {
     status: "issued",
     newStampCount: result.newStampCount,
@@ -63,6 +77,7 @@ export async function selfStampAction(
 }
 
 function coordinates(formData: FormData): GeoCoordinates | undefined {
+  const qrId = value(formData, "qrId")
   const latitude = numberValue(formData, "latitude")
   const longitude = numberValue(formData, "longitude")
   const accuracyMeters = numberValue(formData, "accuracy_meters")
@@ -70,6 +85,7 @@ function coordinates(formData: FormData): GeoCoordinates | undefined {
   const captureElapsedMs = numberValue(formData, "capture_elapsed_ms")
 
   if (
+    !qrId &&
     latitude === null &&
     longitude === null &&
     accuracyMeters === null &&
@@ -80,6 +96,7 @@ function coordinates(formData: FormData): GeoCoordinates | undefined {
   }
 
   return {
+    qrId: qrId || null,
     latitude,
     longitude,
     accuracyMeters,

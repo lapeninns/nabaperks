@@ -34,7 +34,6 @@ type LoyaltyCardFormValues = {
   cardName: string
   stampsRequired: string
   rewardTerms: string
-  minSpendPence: string
   isActive: boolean
 }
 
@@ -42,7 +41,6 @@ export type RewardPoolItemValues = {
   id?: string
   rewardName: string
   rewardTerms: string
-  minSpendPence: string
   weight: string
   displayOrder: string
   isActive: boolean
@@ -89,7 +87,6 @@ export function LoyaltyCardForm({
         className="grid gap-5 rounded-lg border border-border bg-card p-6"
       >
         <input type="hidden" name="cardId" value={draft.cardId ?? ""} />
-        <input type="hidden" name="minSpendPence" value={draft.minSpendPence} />
         <input
           type="hidden"
           name="stampsRequired"
@@ -254,7 +251,6 @@ export function RewardPoolForm({
             initialValues={{
               rewardName: "",
               rewardTerms: "",
-              minSpendPence: "",
               weight: "1",
               displayOrder: String(rewardPoolItems.length + 1),
               isActive: true,
@@ -291,14 +287,10 @@ function RewardRow({
   item: RewardPoolItemValues
   onEdit: () => void
 }) {
-  const minSpend = item.minSpendPence
-    ? `Min £${formatPence(item.minSpendPence)}`
-    : "No min spend"
-
   return (
     <div
       data-active={item.isActive}
-      className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border-[1.5px] p-3 transition-[border-color,opacity,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] data-[active=false]:border-border data-[active=false]:bg-background data-[active=false]:opacity-65 data-[active=true]:border-transparent data-[active=true]:bg-secondary motion-reduce:transition-none"
+      className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border-[1.5px] p-3 transition-[border-color,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] data-[active=false]:border-border data-[active=false]:bg-background data-[active=true]:border-transparent data-[active=true]:bg-secondary motion-reduce:transition-none"
     >
       <span
         aria-hidden="true"
@@ -312,11 +304,11 @@ function RewardRow({
         <p className="truncate text-sm font-bold text-foreground">
           {item.rewardName || "Untitled reward"}
         </p>
-        <p className="truncate text-xs leading-5 text-muted-foreground">
+        <p className="truncate text-xs leading-5 text-ink-soft">
           {item.rewardTerms}
         </p>
-        <p className="mt-1 font-mono text-[0.62rem] font-bold tracking-[0.05em] text-muted-foreground uppercase">
-          Weight {item.weight || "1"} · {minSpend}
+        <p className="mt-1 font-mono text-[0.62rem] font-bold tracking-[0.05em] text-ink-soft uppercase">
+          Weight {item.weight || "1"}
         </p>
       </div>
 
@@ -362,10 +354,7 @@ function RewardPoolItemForm({
   }
 
   const advancedTouched =
-    Boolean(state.errors?.weight) ||
-    Boolean(state.errors?.displayOrder) ||
-    Boolean(state.errors?.minSpendPence) ||
-    draft.minSpendPence !== ""
+    Boolean(state.errors?.weight) || Boolean(state.errors?.displayOrder)
 
   // LOUD-er than a resting row: the open editor is ink-bordered so the active
   // edit surface stands apart from the quiet list around it.
@@ -408,39 +397,20 @@ function RewardPoolItemForm({
           onChange={(checked) => updateDraft("isActive", checked)}
         />
 
-        <Disclosure
-          label="Weighting and minimum spend"
-          defaultOpen={advancedTouched}
-        >
+        <Disclosure label="Weighting" defaultOpen={advancedTouched}>
           <p className="text-xs leading-5 text-muted-foreground">
-            Defaults are fine to launch. A higher weight is drawn more often;
-            minimum spend is optional.
+            Defaults are fine to launch. A higher weight is drawn more often.
           </p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field
-              id={`${draft.id ?? "new"}-weight`}
-              label="Weight"
-              name="weight"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={draft.weight}
-              onChange={(event) => updateDraft("weight", event.target.value)}
-              error={state.errors?.weight}
-            />
-            <Field
-              id={`${draft.id ?? "new"}-minSpendPence`}
-              label="Min spend (pence)"
-              name="minSpendPence"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              placeholder="Optional"
-              value={draft.minSpendPence}
-              onChange={(event) =>
-                updateDraft("minSpendPence", event.target.value)
-              }
-              error={state.errors?.minSpendPence}
-            />
-          </div>
+          <Field
+            id={`${draft.id ?? "new"}-weight`}
+            label="Weight"
+            name="weight"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={draft.weight}
+            onChange={(event) => updateDraft("weight", event.target.value)}
+            error={state.errors?.weight}
+          />
         </Disclosure>
 
         {state.errors?.form ? (
@@ -482,12 +452,6 @@ function DeleteRewardButton({
       </Button>
     </form>
   )
-}
-
-function formatPence(value: string) {
-  const pence = Number.parseInt(value, 10)
-  if (!Number.isFinite(pence)) return value
-  return (pence / 100).toFixed(2)
 }
 
 /**

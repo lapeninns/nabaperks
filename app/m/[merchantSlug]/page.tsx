@@ -72,9 +72,6 @@ export default async function MerchantRewardsPage({
             <>
               Collect {loyaltyCard.stamps_required} stamps to unseal a surprise
               reward, yours from the next UK business day.
-              {loyaltyCard.min_spend_pence !== null ? (
-                <> Minimum spend {formatPence(loyaltyCard.min_spend_pence)}.</>
-              ) : null}
             </>
           }
         />
@@ -82,7 +79,7 @@ export default async function MerchantRewardsPage({
 
       <div className="grid gap-3">
         <Button asChild size="lg" className="w-full">
-          <Link href={`/m/${merchantSlug}/join`}>Collect my stamp</Link>
+          <Link href={`/m/${merchantSlug}/join`}>{"Get today's stamp"}</Link>
         </Button>
         <CustomerVenueTermsSheet
           venueTerms={{
@@ -106,13 +103,6 @@ export default async function MerchantRewardsPage({
       </div>
     </CustomerFlowShell>
   )
-}
-
-function formatPence(pence: number): string {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-  }).format(pence / 100)
 }
 
 function UnavailableLanding() {

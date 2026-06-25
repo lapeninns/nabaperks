@@ -27,7 +27,10 @@ describe("customer home dashboard structure", () => {
     expect(readProjectFile("components/customer/home-card-tile.tsx")).toContain(
       "StampGrid"
     )
-    expect(emptyState).toContain("JOIN_WELCOME_HOW_IT_WORKS")
+    // The no-cards state carries its own forward-looking how-it-works, not the
+    // join wizard's past-tense narration (friction F28).
+    expect(emptyState).not.toContain("JOIN_WELCOME_HOW_IT_WORKS")
+    expect(emptyState).toContain("HOME_EMPTY_HOW_IT_WORKS")
     expect(emptyState).toContain('href="/scan"')
     expect(emptyState).toContain("Scan venue QR")
   })

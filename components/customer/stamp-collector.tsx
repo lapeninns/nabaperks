@@ -17,6 +17,8 @@ import {
   initialSelfStampState,
   type SelfStampActionState,
 } from "@/lib/customer/self-stamp-action-state"
+import { stampAnnouncement } from "@/lib/customer/experience/stamp-announcement"
+import { stampDiscState } from "@/lib/customer/experience/stamp-disc-state"
 
 export type StampCollectorProps = {
   membershipId: string
@@ -184,6 +186,25 @@ export function StampCollector({
     stampDates,
     todayLabel,
   })
+  // The slam, charging ring and shake are the *sighted* confirmation; this is the
+  // spoken one. A polite live region keeps screen-reader and reduced-motion
+  // customers in step with the in-flight progress and the new count.
+  const announcement = stampAnnouncement({
+    inFlight: armed && !committed,
+    committed,
+    displayCurrent: view.displayCurrent,
+    total,
+    cardComplete: view.cardComplete,
+  })
+  // The disc colour is server-led: it only turns the success green once the RPC
+  // confirms (or for an already-stamped card). An optimistic press stays the
+  // neutral stamp colour (pending) so a decline never un-happens a green disc.
+  const discState = stampDiscState({
+    committed,
+    inFlight: armed && !committed,
+    canStamp,
+    hasError: errorMessage !== null,
+  })
 
   function commit() {
     if (armed || committed || !canStamp) return
@@ -235,9 +256,14 @@ export function StampCollector({
             onStamp={commit}
             venueName={venueName}
             secured={view.secured}
+            confirmed={discState === "confirmed"}
+            pending={discState === "pending"}
           />
           <p className="max-w-[18rem] text-center text-sm font-medium text-ink-soft">
             {view.hint}
+          </p>
+          <p className="sr-only" role="status" aria-live="polite">
+            {announcement}
           </p>
           {errorMessage ? (
             <StatusBanner

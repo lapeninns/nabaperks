@@ -124,6 +124,7 @@ begin
   perform public.issue_self_service_stamp(
     '16000000-0000-0000-0000-0000000003a1',
     '15000000-0000-0000-0000-0000000003a1',
+    'old-crown-girton-qr',
     53.500000,
     -2.200000
   );
@@ -157,6 +158,7 @@ begin
   perform public.issue_self_service_stamp(
     '16000000-0000-0000-0000-0000000003a2',
     '15000000-0000-0000-0000-0000000003a2',
+    'old-crown-girton-qr',
     53.500000,
     -2.200000,
     25,
@@ -184,6 +186,7 @@ begin
   from public.issue_self_service_stamp(
     '16000000-0000-0000-0000-0000000003a3',
     '15000000-0000-0000-0000-0000000003a3',
+    'old-crown-girton-qr',
     null,
     null,
     null,
@@ -265,6 +268,7 @@ begin
     from public.issue_self_service_stamp(
       v_membership_id,
       v_customer_id,
+      'old-crown-girton-qr',
       null,
       null,
       null,
@@ -302,6 +306,7 @@ begin
   perform public.issue_self_service_stamp(
     '16000000-0000-0000-0000-0000000003a4',
     '15000000-0000-0000-0000-0000000003a4',
+    'old-crown-girton-qr',
     53.500000,
     -2.200000,
     250,
@@ -328,6 +333,7 @@ begin
   perform public.issue_self_service_stamp(
     '16000000-0000-0000-0000-0000000003a5',
     '15000000-0000-0000-0000-0000000003a5',
+    'old-crown-girton-qr',
     53.500000,
     -2.200000,
     25,
@@ -381,6 +387,7 @@ begin
   from public.issue_self_service_stamp(
     '16000000-0000-0000-0000-0000000003a6',
     '15000000-0000-0000-0000-0000000003a6',
+    'old-crown-girton-qr',
     999,
     -2.200000,
     25,
@@ -452,6 +459,7 @@ begin
   from public.issue_self_service_stamp(
     v_membership_id,
     v_customer_id,
+    'old-crown-girton-qr',
     53.500000,
     -2.200000,
     25,
@@ -536,6 +544,7 @@ begin
   from public.issue_self_service_stamp(
     v_membership_id,
     v_customer_id,
+    'old-crown-girton-qr',
     53.500000,
     -2.200000,
     25,
@@ -613,6 +622,7 @@ begin
   perform public.issue_self_service_stamp(
     v_membership_id,
     v_customer_id,
+    'old-crown-girton-qr',
     52.220000,
     0.122350,
     25,
@@ -692,6 +702,7 @@ begin
   perform public.issue_self_service_stamp(
     v_membership_id,
     v_customer_id,
+    'old-crown-girton-qr',
     53.500000,
     -2.200000,
     150,
@@ -764,6 +775,7 @@ begin
   perform public.issue_self_service_stamp(
     v_membership_id,
     v_customer_id,
+    'old-crown-girton-qr',
     52.220000,
     0.120000,
     25,
@@ -775,6 +787,7 @@ begin
     perform public.issue_self_service_stamp(
       v_membership_id,
       v_customer_id,
+      'old-crown-girton-qr',
       53.500000,
       -2.200000,
       25,
@@ -847,7 +860,7 @@ begin
   );
 
   select new_stamp_count into v_stamp_count
-  from public.issue_self_service_stamp(v_membership_id, v_customer_id);
+  from public.issue_self_service_stamp(v_membership_id, v_customer_id, 'old-crown-girton-qr');
 
   if v_stamp_count <> 1 then
     raise exception 'legacy two-argument stamp call returned unexpected count %', v_stamp_count;

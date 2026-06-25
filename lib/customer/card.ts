@@ -33,7 +33,6 @@ export type CustomerCardState =
         stamps_required: number
         reward_name: string
         reward_terms: string
-        min_spend_pence: number | null
         is_active: boolean
       } | null
       latestReward: {
@@ -41,8 +40,8 @@ export type CustomerCardState =
         status: string
         reward_name: string
         reward_terms: string
-        min_spend_pence: number | null
         redeemable_from: string | null
+        expires_at: string | null
       } | null
       billingStatus: string | null
     }
@@ -104,7 +103,7 @@ export async function getCustomerCardState(
     supabase
       .from("loyalty_cards")
       .select(
-        "card_name, stamps_required, reward_name, reward_terms, min_spend_pence, is_active"
+        "card_name, stamps_required, reward_name, reward_terms, is_active"
       )
       .eq("merchant_id", membership.merchant_id)
       .order("is_active", { ascending: false })
@@ -114,7 +113,7 @@ export async function getCustomerCardState(
     supabase
       .from("reward_events")
       .select(
-        "id, status, reward_name, reward_terms, min_spend_pence, redeemable_from"
+        "id, status, reward_name, reward_terms, redeemable_from, expires_at"
       )
       .eq("membership_id", membership.id)
       .eq("status", "unlocked")
@@ -166,8 +165,8 @@ export async function getCustomerCardState(
           status: latestReward.status,
           reward_name: latestReward.reward_name,
           reward_terms: latestReward.reward_terms,
-          min_spend_pence: latestReward.min_spend_pence,
           redeemable_from: latestReward.redeemable_from,
+          expires_at: latestReward.expires_at,
         }
       : null,
     billingStatus: billing?.status ?? null,

@@ -28,7 +28,7 @@
     "customer-flow:remove-stamp": "node scripts/customer-flow-demo.mjs remove-stamp",
     "customer-flow:make-redeemable": "node scripts/customer-flow-demo.mjs make-redeemable",
     "customer-flow:capture": "playwright test tests/e2e/customer-flow-screenshots.spec.ts",
-    "customer-flow:capture-mocks": "playwright test tests/e2e/customer-flow-harness-screenshots.spec.ts",
+    "customer-flow:capture-mocks": "CUSTOMER_FLOW_DEV_HARNESS_ENABLED=true playwright test tests/e2e/customer-flow-harness-screenshots.spec.ts",
     "security:verify": "node scripts/verify-security.mjs",
     "governance": "node scripts/check-governance.mjs",
     "governance:blast-radius": "node scripts/check-blast-radius.mjs",
@@ -60,6 +60,7 @@
     "qa:a11y": "CUSTOMER_DEV_OTP_CODE=424242 playwright test tests/e2e/a11y.spec.ts",
     "qa:security": "pnpm security:verify && vitest run tests/micro-specs/backend-hardening.test.ts tests/micro-specs/customer-otp-delivery.test.ts tests/micro-specs/customer-otp-bypass.test.ts tests/micro-specs/customer-dev-otp.test.ts tests/micro-specs/customer-contact-immutability.test.ts tests/micro-specs/customer-phone-pii.test.ts tests/micro-specs/rate-limit.test.ts tests/micro-specs/stripe-webhook-events.test.ts tests/micro-specs/safe-next-path.test.ts tests/micro-specs/vercel-env-guard.test.ts",
     "qa:perf": "pnpm check:nplus1 && pnpm deps:analyze && pnpm bundle:size",
+    "qa:scenarios": "node scripts/run-major-capability-scenarios.mjs",
     "qa:full": "pnpm qa:static && pnpm qa:unit && pnpm qa:security && pnpm qa:db && pnpm build && pnpm qa:perf && pnpm qa:e2e && pnpm qa:visual && pnpm qa:a11y",
     "goal:gate": "node scripts/run-goal-gate.mjs",
     "prepare": "husky"
@@ -106,7 +107,8 @@
     "sonner": "^2.0.7",
     "stripe": "^22.2.0",
     "tailwind-merge": "^3.6.0",
-    "tw-animate-css": "^1.4.0"
+    "tw-animate-css": "^1.4.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
@@ -118,6 +120,7 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "^3.6.4",
     "@vitest/coverage-v8": "4.1.9",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",

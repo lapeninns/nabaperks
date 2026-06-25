@@ -201,12 +201,19 @@ describe("03 customer micro-specs", () => {
     const joinWizard = readProjectFile("components/customer/join-wizard.tsx")
     const copy = readProjectFile("lib/customer/experience/copy.ts")
     const loadStamp = readProjectFile("lib/customer/experience/load-stamp.ts")
+    const joinData = readProjectFile("lib/customer/join.ts")
 
     expect(landingPage).toContain("CustomerFlowShell")
     expect(landingPage).toContain("getMerchantJoinContext")
     expect(landingPage).toContain("No app loyalty")
     expect(landingPage).toContain("`/m/${merchantSlug}/join`")
     expect(landingPage).toContain("CustomerVenueTermsSheet")
+    expect(landingPage).toContain("Mystery reward, sealed")
+    expect(landingPage).not.toContain("loyaltyCard.reward_name")
+    expect(joinData).not.toContain(
+      "loyalty_cards!loyalty_card_id(id, card_name, reward_name"
+    )
+    expect(joinData).not.toContain("loyalty_cards(id, card_name, reward_name")
 
     expect(joinPage).toContain("JoinWizard")
     expect(joinWizard).toContain("CustomerFlowShell")
@@ -247,7 +254,6 @@ describe("03 customer micro-specs", () => {
       "Reward",
       "Earning rule",
       "Stamps needed",
-      "Minimum spend",
       "Redemption",
       "Exclusions",
       "Fraud and abuse",
@@ -281,7 +287,6 @@ describe("03 customer micro-specs", () => {
           reward_name: "Mystery reward",
           stamps_required: 3,
           reward_terms: "Pilot reward terms.",
-          min_spend_pence: null,
         },
       })),
     }))
@@ -296,7 +301,7 @@ describe("03 customer micro-specs", () => {
     expect(renderedText).toContain("Collect your stamp")
     expect(renderedText).toContain("Morning visits")
     expect(renderedText).toContain("3")
-    expect(renderedText).toContain("Collect my stamp")
+    expect(renderedText).toContain("Get today's stamp")
     expect(renderedText).toContain("View reward terms")
   })
 
@@ -323,7 +328,6 @@ describe("03 customer micro-specs", () => {
           reward_name: "Mystery reward",
           stamps_required: 3,
           reward_terms: "Pilot reward terms.",
-          min_spend_pence: 250,
         },
       })),
       getExistingMembershipForCurrentUser: vi.fn(async () => ({
@@ -345,6 +349,140 @@ describe("03 customer micro-specs", () => {
     expect(renderedText).toContain("2")
     expect(renderedText).toContain("3")
     expect(renderedText).toContain("Open your stamp card")
+  })
+
+  it("redirects returning QR joins from loaded context without re-resolving the returning QR helper", async () => {
+    vi.resetModules()
+    const redirect = redirectMock()
+    const destinationForReturningQrVisit = vi.fn(
+      async () => "/card/membership-1/stamp?qr=old-crown-girton-qr"
+    )
+
+    vi.doMock("next/navigation", () => ({ redirect }))
+    vi.doMock("@/components/customer/join-forms", () => ({
+      CustomerIdentityForm: () => null,
+      CustomerJoinForm: () => null,
+    }))
+    vi.doMock("@/lib/customer/returning-qr-redirect", () => ({
+      destinationForReturningQrVisit,
+    }))
+    vi.doMock("@/lib/analytics/events", () => ({
+      capturePostHogEvent: vi.fn(),
+    }))
+    vi.doMock("@/lib/customer/session", () => ({
+      getPendingPhoneVerification: vi.fn(),
+    }))
+    mockCurrentCustomer()
+    vi.doMock("@/lib/customer/join", () => ({
+      getMerchantJoinContext: vi.fn(async () => ({
+        available: true,
+        qrId: "old-crown-girton-qr",
+        qrCodeId: "qr-row-1",
+        merchant: {
+          id: "merchant-1",
+          business_name: "Old Crown Girton",
+          business_slug: "old-crown-girton",
+          email: "team@example.test",
+          phone: null,
+        },
+        loyaltyCard: {
+          id: "card-1",
+          card_name: "Morning visits",
+          reward_name: "Mystery reward",
+          stamps_required: 3,
+          reward_terms: "Pilot reward terms.",
+        },
+      })),
+      getExistingMembershipForCurrentUser: vi.fn(async () => ({
+        id: "membership-1",
+        current_stamp_count: 2,
+        total_rewards_redeemed: 0,
+      })),
+    }))
+    vi.doMock("@/lib/customer/stamp", () => ({
+      getMerchantStampLocationRequirement: vi.fn(),
+    }))
+    const { default: MerchantJoinPage } =
+      await import("@/app/m/[merchantSlug]/join/page")
+
+    await expect(
+      MerchantJoinPage({
+        params: Promise.resolve({ merchantSlug: "old-crown-girton" }),
+        searchParams: Promise.resolve({ qr: "old-crown-girton-qr" }),
+      })
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/card/membership-1/stamp?qr=old-crown-girton-qr"
+    )
+
+    expect(destinationForReturningQrVisit).not.toHaveBeenCalled()
+  })
+
+  it("keeps no-QR join location defaults without fetching merchant geofence settings", async () => {
+    vi.resetModules()
+    const getMerchantStampLocationRequirement = vi.fn(async () => ({
+      requireGeofence: true,
+      geofenceRadiusMeters: 25,
+    }))
+
+    vi.doMock("@/lib/analytics/events", () => ({
+      capturePostHogEvent: vi.fn(),
+    }))
+    vi.doMock("@/lib/customer/session", () => ({
+      getPendingPhoneVerification: vi.fn(async () => ({
+        purpose: "join",
+        phone: "+447400123456",
+      })),
+    }))
+    vi.doMock("@/lib/customer/identity", () => ({
+      getCurrentCustomer: vi
+        .fn()
+        .mockResolvedValueOnce({
+          id: "customer-1",
+        })
+        .mockResolvedValueOnce(null),
+    }))
+    vi.doMock("@/lib/customer/join", () => ({
+      getMerchantJoinContext: vi.fn(async () => ({
+        available: true,
+        merchant: {
+          id: "merchant-1",
+          business_name: "Old Crown Girton",
+          business_slug: "old-crown-girton",
+          email: "team@example.test",
+          phone: null,
+        },
+        loyaltyCard: {
+          id: "card-1",
+          card_name: "Morning visits",
+          reward_name: "Mystery reward",
+          stamps_required: 3,
+          reward_terms: "Pilot reward terms.",
+        },
+      })),
+      getExistingMembershipForCurrentUser: vi.fn(async () => null),
+    }))
+    vi.doMock("@/lib/customer/stamp", () => ({
+      getMerchantStampLocationRequirement,
+    }))
+    const { loadJoinExperienceContext } =
+      await import("@/lib/customer/experience/load-join")
+
+    await expect(
+      loadJoinExperienceContext("old-crown-girton", {})
+    ).resolves.toMatchObject({
+      hasSession: true,
+      membership: null,
+      location: { requireGeofence: false, geofenceRadiusMeters: 150 },
+    })
+    await expect(
+      loadJoinExperienceContext("old-crown-girton", {})
+    ).resolves.toMatchObject({
+      hasSession: false,
+      pendingOtp: true,
+      location: { requireGeofence: false, geofenceRadiusMeters: 150 },
+    })
+
+    expect(getMerchantStampLocationRequirement).not.toHaveBeenCalled()
   })
 
   it("renders card and reward status messaging without exposing unsafe mutation controls", async () => {
@@ -372,7 +510,6 @@ describe("03 customer micro-specs", () => {
           stamps_required: 3,
           reward_name: "Mystery reward",
           reward_terms: "Reveals after the final stamp.",
-          min_spend_pence: null,
           is_active: true,
         },
         latestReward: null,
@@ -399,7 +536,7 @@ describe("03 customer micro-specs", () => {
 
     vi.resetModules()
     vi.doMock("@/lib/customer/stamp", () => ({
-      getRewardLocationRequirement: vi.fn(async () => ({
+      getLocationRequirement: vi.fn(async () => ({
         requireGeofence: false,
         geofenceRadiusMeters: 150,
       })),
@@ -415,13 +552,11 @@ describe("03 customer micro-specs", () => {
           redeemed_at: null,
           reward_name: "Cake slice",
           reward_terms: "Valid on one slice.",
-          min_spend_pence: 500,
           redeemable_from: "2999-06-08",
         },
         assignedReward: {
           reward_name: "Cake slice",
           reward_terms: "Valid on one slice.",
-          min_spend_pence: 500,
           redeemable_from: "2999-06-08",
         },
         membership: { current_stamp_count: 3, total_rewards_redeemed: 0 },
@@ -435,7 +570,7 @@ describe("03 customer micro-specs", () => {
           stamps_required: 3,
           reward_name: "Mystery reward",
           reward_terms: "Reveals after final stamp.",
-          min_spend_pence: null,
+          location_id: null,
           is_active: true,
         },
         billingStatus: "active",
@@ -472,7 +607,6 @@ describe("03 customer micro-specs", () => {
           reward_name: "Mystery reward",
           stamps_required: 3,
           reward_terms: "No extra exclusions.",
-          min_spend_pence: null,
         },
       })),
     }))
@@ -508,6 +642,7 @@ describe("03 customer micro-specs", () => {
       return {
         enforceRateLimit: vi.fn(async () => undefined),
         RateLimitError,
+        rateLimitIdentityFromHeaders: vi.fn(() => "test-request"),
       }
     })
     vi.doMock("@/lib/customer/verification", () => ({
@@ -588,6 +723,7 @@ describe("03 customer micro-specs", () => {
       status: "sent",
     }))
     const setPendingPhoneVerification = vi.fn(async () => {})
+    const enforceRateLimit = vi.fn(async () => undefined)
     const redirect = redirectMock()
     vi.doMock("next/navigation", () => ({ redirect }))
     vi.doMock("next/headers", () => ({
@@ -597,8 +733,9 @@ describe("03 customer micro-specs", () => {
       class RateLimitError extends Error {}
 
       return {
-        enforceRateLimit: vi.fn(async () => undefined),
+        enforceRateLimit,
         RateLimitError,
+        rateLimitIdentityFromHeaders: vi.fn(() => "test-request"),
       }
     })
     vi.doMock("@/lib/customer/verification", () => ({
@@ -639,6 +776,11 @@ describe("03 customer micro-specs", () => {
         country: "GB",
       })
     )
+    expect(enforceRateLimit).toHaveBeenCalledWith({
+      key: "customer-identity:+447400123456:test-request",
+      limit: 5,
+      windowMs: 15 * 60_000,
+    })
   })
 
   it("requires verified identity and loyalty terms before joining rewards", async () => {
@@ -847,7 +989,13 @@ describe("03 customer micro-specs", () => {
   it("shows retry-specific QR copy when a scan is rate limited, distinct from a dead QR", async () => {
     vi.resetModules()
     class RateLimitError extends Error {}
-    vi.doMock("@/lib/security/rate-limit", () => ({ RateLimitError }))
+    vi.doMock("@/lib/security/rate-limit", () => ({
+      RateLimitError,
+      rateLimitIdentityFromHeaders: vi.fn(() => "test-request"),
+    }))
+    vi.doMock("next/headers", () => ({
+      headers: vi.fn(async () => new Headers()),
+    }))
     vi.doMock("@/lib/customer/join", () => ({
       resolveQrForJoin: vi.fn(async () => {
         throw new RateLimitError("rate limited")
@@ -886,6 +1034,7 @@ describe("03 customer micro-specs", () => {
                 email: "owner@example.test",
                 phone: null,
                 status: "active",
+                billing_customers: { status: "suspended" },
               },
               loyalty_cards: {
                 id: "card-1",
@@ -893,14 +1042,12 @@ describe("03 customer micro-specs", () => {
                 reward_name: "Surprise reward",
                 stamps_required: 3,
                 reward_terms: "Reward reveals after three visits.",
-                min_spend_pence: null,
                 is_active: true,
               },
             },
             error: null,
           },
         ],
-        billing_customers: [{ data: { status: "suspended" }, error: null }],
       },
     })
     vi.doMock("@/lib/security/rate-limit", async () => {
@@ -952,7 +1099,6 @@ describe("03 customer micro-specs", () => {
         reward_name: "Surprise reward",
         stamps_required: 3,
         reward_terms: "Reward reveals after three visits.",
-        min_spend_pence: null,
         is_active: true,
       },
     }
@@ -1031,7 +1177,6 @@ describe("03 customer micro-specs", () => {
         reward_name: "Surprise reward",
         stamps_required: 3,
         reward_terms: "Reward reveals after three visits.",
-        min_spend_pence: null,
         is_active: true,
       },
     }
@@ -1140,7 +1285,6 @@ describe("03 customer micro-specs", () => {
               reward_name: "Surprise reward",
               reward_terms:
                 "Complete 3 visits to reveal a surprise reward. Redeem from the next UK business day.",
-              min_spend_pence: null,
               is_active: true,
             },
             error: null,
@@ -1153,7 +1297,6 @@ describe("03 customer micro-specs", () => {
               status: "unlocked",
               reward_name: "Coffee upgrade",
               reward_terms: "Valid on one hot drink.",
-              min_spend_pence: 250,
               redeemable_from: "2026-06-08",
             },
             error: null,
@@ -1210,7 +1353,6 @@ describe("03 customer micro-specs", () => {
               reward_name: "Surprise reward",
               reward_terms:
                 "Complete 3 visits to reveal a surprise reward. Redeem from the next UK business day.",
-              min_spend_pence: null,
               is_active: true,
             },
             error: null,
@@ -1255,7 +1397,6 @@ describe("03 customer micro-specs", () => {
               reward_name: "Cake slice",
               reward_terms:
                 "Valid on one cake slice from the next business day.",
-              min_spend_pence: 500,
               redeemable_from: "2026-06-08",
               customer_memberships: {
                 current_stamp_count: 3,
@@ -1272,7 +1413,6 @@ describe("03 customer micro-specs", () => {
                 reward_name: "Surprise reward",
                 reward_terms:
                   "Complete 3 visits to reveal a surprise reward. Redeem from the next UK business day.",
-                min_spend_pence: null,
                 is_active: true,
               },
             },
@@ -1299,7 +1439,6 @@ describe("03 customer micro-specs", () => {
       membership: { current_stamp_count: 3 },
       assignedReward: {
         reward_name: "Cake slice",
-        min_spend_pence: 500,
       },
       loyaltyCard: { reward_name: "Surprise reward" },
     })

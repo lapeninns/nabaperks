@@ -73,7 +73,6 @@ export type JoinMerchant = {
 export type JoinCard = {
   name: string
   stampsRequired: number
-  minSpendPence: number | null
   rewardTerms: string
 }
 
@@ -83,7 +82,6 @@ export type RewardView = {
   membershipId: string
   rewardName: string
   rewardTerms: string
-  minSpendPence: number | null
   redeemableFrom: string | null
 }
 
@@ -175,7 +173,6 @@ export type CustomerExperience =
       rewardId?: string
       rewardName?: string
       rewardTerms: string
-      minSpendPence: number | null
       rewardRedeemableFrom: string | null
       stampDates: string[]
       justStamped: boolean

@@ -1,120 +1,17 @@
 import type { CSSProperties } from "react"
-import { CheckmarkBadge04Icon } from "@hugeicons/core-free-icons"
 
-import { Icon } from "@/components/brand"
-import { deriveVenueInitials } from "@/components/brand/venue-mark"
-import { WetInkPop, WetInkSlam } from "@/components/motion"
+import { WetInkPop } from "@/components/motion"
 import { cn } from "@/lib/utils"
 
 import { RewardSeal, type RewardSealState } from "./reward-seal"
+import { StampDot } from "./stamp-dot"
 
 export type RewardSlotState = "locked" | "ready" | "revealed"
+export { StampDot }
 
 /** Resting tilts cycled by slot index so a row reads hand-stamped, not machine
  * perfect. Seeded by index (not random) to stay stable across SSR/renders. */
 const STAMP_TILTS = ["-7deg", "-5deg", "-8deg", "-6deg"] as const
-
-export function StampDot({
-  earned,
-  label,
-  date,
-  slotNumber,
-  showEmptySlotNumber = false,
-  slammed = false,
-  compact = false,
-  venueName,
-  venueInitials,
-  className,
-}: {
-  earned: boolean
-  label: string
-  date?: string
-  slotNumber?: number
-  /** Show 1, 2, 3… inside empty slots — used on join previews before progress exists. */
-  showEmptySlotNumber?: boolean
-  /** Fire the print-slam keyframe on a freshly-earned stamp. */
-  slammed?: boolean
-  /** Shrink the slot (~36px) for dense, non-interactive preview rows. */
-  compact?: boolean
-  /** Derive venue initials for earned stamps — matches the receipt VenueMark. */
-  venueName?: string
-  venueInitials?: string
-  className?: string
-}) {
-  const emptyLabel =
-    showEmptySlotNumber && slotNumber !== undefined ? String(slotNumber) : ""
-  const earnedInitials =
-    venueInitials ?? (venueName ? deriveVenueInitials(venueName) : "")
-  // Normal discs print the full visit date; compact ones (≈36px) keep only the
-  // day number so the monogram stays the legible hero. Screen readers still
-  // hear the full date via aria-label.
-  const dateText = date ? (compact ? date.split(" ")[0] : date) : undefined
-
-  return (
-    <span className="grid justify-items-center gap-1">
-      <WetInkSlam active={earned && slammed} className="block w-full">
-        <span
-          role="img"
-          aria-label={date && earned ? `${label}, ${date}` : label}
-          data-earned={earned}
-          data-stamp-earned={earned ? "true" : undefined}
-          data-compact={earned && compact ? "true" : undefined}
-          data-slammed={earned && slammed ? true : undefined}
-          className={cn(
-            "relative grid aspect-square w-full place-items-center overflow-hidden rounded-full border-2 transition-[background-color,border-color,transform] duration-[var(--w-dur-move)] ease-[var(--w-ease)] motion-reduce:transition-none",
-            compact ? "min-h-9" : "min-h-11",
-            earned
-              ? "border-ink bg-stamp text-stamp-foreground shadow-sm"
-              : "border-dashed border-border bg-background text-muted-foreground",
-            className
-          )}
-        >
-          {earned ? (
-            <span className="relative z-[1] flex flex-col items-center justify-center gap-px px-1">
-              {earnedInitials ? (
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    "font-mono leading-none font-bold tracking-[0.02em] uppercase",
-                    compact ? "text-[0.69rem]" : "text-[0.81rem]"
-                  )}
-                >
-                  {earnedInitials}
-                </span>
-              ) : (
-                <Icon
-                  icon={CheckmarkBadge04Icon}
-                  size={compact ? 16 : 20}
-                  strokeWidth={2.25}
-                />
-              )}
-              {dateText ? (
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    "font-mono leading-none font-bold uppercase",
-                    compact
-                      ? "text-[0.44rem] tracking-[0.04em]"
-                      : "mt-px border-t border-stamp-foreground/40 pt-px text-[0.44rem] tracking-[0.09em]"
-                  )}
-                >
-                  {dateText}
-                </span>
-              ) : null}
-            </span>
-          ) : (
-            <span
-              aria-hidden="true"
-              className="text-base leading-none font-extrabold tabular-nums"
-            >
-              {emptyLabel}
-            </span>
-          )}
-        </span>
-      </WetInkSlam>
-    </span>
-  )
-}
 
 /** Maps a stamp-row slot status onto the shared reward-seal vocabulary. */
 function slotSealState(slot: RewardSlotState): RewardSealState {

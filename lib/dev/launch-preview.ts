@@ -2,7 +2,7 @@ import type {
   LaunchReadiness,
   LaunchReadinessStep,
 } from "@/lib/merchant/launch-readiness"
-import { LAUNCH_SETUP_STEP_LABELS } from "@/lib/merchant/launch-readiness"
+import { LAUNCH_SETUP_STEP_LABELS } from "@/lib/merchant/launch-readiness-contract"
 
 /**
  * Mock fixtures for the merchant launch-hub preview harness. Mirrors

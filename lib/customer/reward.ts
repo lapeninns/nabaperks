@@ -18,14 +18,15 @@ export type CustomerRewardState =
         redeemed_at: string | null
         reward_name: string
         reward_terms: string
-        min_spend_pence: number | null
         redeemable_from: string | null
+        expires_at: string | null
+        expired_at: string | null
       }
       assignedReward: {
         reward_name: string
         reward_terms: string
-        min_spend_pence: number | null
         redeemable_from: string | null
+        expires_at: string | null
       }
       membership: {
         current_stamp_count: number
@@ -41,11 +42,27 @@ export type CustomerRewardState =
         stamps_required: number
         reward_name: string
         reward_terms: string
-        min_spend_pence: number | null
+        location_id: string | null
         is_active: boolean
       }
       billingStatus: string | null
     }
+
+export type CustomerRewardStatus =
+  | { status: "unauthenticated" | "unauthorized" | "not_found" }
+  | {
+      status: "ready"
+      customerId: string
+      reward: {
+        status: string
+        redeemed_at: string | null
+      }
+    }
+
+type BillingCustomerEmbed =
+  | { status: string | null }
+  | Array<{ status: string | null }>
+  | null
 
 type RawReward = {
   id: string
@@ -57,8 +74,9 @@ type RawReward = {
   redeemed_at: string | null
   reward_name: string
   reward_terms: string
-  min_spend_pence: number | null
   redeemable_from: string | null
+  expires_at: string | null
+  expired_at: string | null
   customer_memberships:
     | {
         current_stamp_count: number
@@ -73,11 +91,13 @@ type RawReward = {
         business_name: string
         business_slug: string
         status: string
+        billing_customers: BillingCustomerEmbed
       }
     | Array<{
         business_name: string
         business_slug: string
         status: string
+        billing_customers: BillingCustomerEmbed
       }>
   loyalty_cards:
     | {
@@ -85,7 +105,7 @@ type RawReward = {
         stamps_required: number
         reward_name: string
         reward_terms: string
-        min_spend_pence: number | null
+        location_id: string | null
         is_active: boolean
       }
     | Array<{
@@ -93,9 +113,51 @@ type RawReward = {
         stamps_required: number
         reward_name: string
         reward_terms: string
-        min_spend_pence: number | null
+        location_id: string | null
         is_active: boolean
       }>
+}
+
+type RawRewardStatus = {
+  status: string
+  redeemed_at: string | null
+  customer_id: string
+}
+
+export async function getCustomerRewardStatus(
+  rewardId: string
+): Promise<CustomerRewardStatus> {
+  const currentCustomer = await getCurrentCustomer()
+
+  if (!currentCustomer) return { status: "unauthenticated" }
+
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase
+    .from("reward_events")
+    .select("status, redeemed_at, customer_id")
+    .eq("id", rewardId)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(`Unable to load reward status: ${error.message}`)
+  }
+
+  if (!data) return { status: "not_found" }
+
+  const reward = data as RawRewardStatus
+
+  if (reward.customer_id !== currentCustomer.id) {
+    return { status: "unauthorized" }
+  }
+
+  return {
+    status: "ready",
+    customerId: reward.customer_id,
+    reward: {
+      status: reward.status,
+      redeemed_at: reward.redeemed_at,
+    },
+  }
 }
 
 export async function getCustomerRewardState(
@@ -109,7 +171,7 @@ export async function getCustomerRewardState(
   const { data, error } = await supabase
     .from("reward_events")
     .select(
-      "id, status, membership_id, merchant_id, customer_id, created_at, redeemed_at, reward_name, reward_terms, min_spend_pence, redeemable_from, customer_memberships!reward_events_membership_id_fkey(current_stamp_count, total_rewards_redeemed), merchants(business_name, business_slug, status), loyalty_cards(card_name, stamps_required, reward_name, reward_terms, min_spend_pence, is_active)"
+      "id, status, membership_id, merchant_id, customer_id, created_at, redeemed_at, reward_name, reward_terms, redeemable_from, expires_at, expired_at, customer_memberships!reward_events_membership_id_fkey(current_stamp_count, total_rewards_redeemed), merchants(business_name, business_slug, status, billing_customers(status)), loyalty_cards(card_name, stamps_required, reward_name, reward_terms, location_id, is_active)"
     )
     .eq("id", rewardId)
     .maybeSingle()
@@ -124,25 +186,17 @@ export async function getCustomerRewardState(
   const membership = first(reward.customer_memberships)
   const merchant = first(reward.merchants)
   const loyaltyCard = first(reward.loyalty_cards)
+  const billingStatus =
+    firstNullable(merchant.billing_customers)?.status ?? null
 
   if (reward.customer_id !== currentCustomer.id) {
     return { status: "unauthorized" }
   }
 
-  const { data: billing, error: billingError } = await supabase
-    .from("billing_customers")
-    .select("status")
-    .eq("merchant_id", reward.merchant_id)
-    .maybeSingle()
-
-  if (billingError) {
-    throw new Error(`Unable to load billing status: ${billingError.message}`)
-  }
-
   const unavailableReason = loyaltyAvailability({
     merchantStatus: merchant.status,
     cardActive: loyaltyCard.is_active,
-    billingStatus: billing?.status ?? null,
+    billingStatus,
   }).message
 
   return {
@@ -157,22 +211,28 @@ export async function getCustomerRewardState(
       redeemed_at: reward.redeemed_at,
       reward_name: reward.reward_name,
       reward_terms: reward.reward_terms,
-      min_spend_pence: reward.min_spend_pence,
       redeemable_from: reward.redeemable_from,
+      expires_at: reward.expires_at,
+      expired_at: reward.expired_at,
     },
     assignedReward: {
       reward_name: reward.reward_name,
       reward_terms: reward.reward_terms,
-      min_spend_pence: reward.min_spend_pence,
       redeemable_from: reward.redeemable_from,
+      expires_at: reward.expires_at,
     },
     membership,
     merchant,
     loyaltyCard,
-    billingStatus: billing?.status ?? null,
+    billingStatus,
   }
 }
 
 function first<T>(value: T | T[]) {
+  return Array.isArray(value) ? value[0] : value
+}
+
+function firstNullable<T>(value: T | T[] | null) {
+  if (!value) return null
   return Array.isArray(value) ? value[0] : value
 }
