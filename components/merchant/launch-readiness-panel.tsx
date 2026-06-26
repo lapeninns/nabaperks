@@ -6,6 +6,7 @@ import {
   GiftIcon,
   MapPinIcon,
   QrCode01Icon,
+  Settings01Icon,
 } from "@hugeicons/core-free-icons"
 
 import {
@@ -20,37 +21,24 @@ import { RewardSeal } from "@/components/loyalty/reward-seal"
 import { Button } from "@/components/ui/button"
 import type {
   LaunchReadiness,
-  LaunchReadinessStepId,
-  LaunchReadinessTab,
+  LaunchHubTab,
 } from "@/lib/merchant/launch-readiness"
+import type { LaunchChecklistStepId } from "@/lib/merchant/launch-readiness-contract"
 import { cn } from "@/lib/utils"
 
-/** Each launch step reaches for the same glyph everywhere it appears. */
-const STEP_ICON: Record<LaunchReadinessStepId, IconGlyph> = {
+/** Each checklist step reaches for the same glyph everywhere it appears. */
+const STEP_ICON: Record<LaunchChecklistStepId, IconGlyph> = {
+  venue: MapPinIcon,
   card: CreditCardIcon,
   rewards: GiftIcon,
-  venue: MapPinIcon,
   qr: QrCode01Icon,
-}
-
-const STEP_SHORT: Record<LaunchReadinessStepId, string> = {
-  card: "Card",
-  rewards: "Reward",
-  venue: "Venue",
-  qr: "QR",
+  billing: Settings01Icon,
 }
 
 /**
- * The launch readiness spine — the four setup steps drawn as a stamp row over a
- * leaf progress track. Shared by the merchant dashboard and the launch hub so
- * progress reads as one object in both places. `showHeader` is dropped on the
- * hub, where the page already titles it.
- *
- * On the dashboard (no `activeTab`) the spine is a read-only teaser and ends in
- * a single next-step prompt that deep-links into the hub. On the hub, passing
- * `activeTab` turns the four stamps into the tab nav itself: each stamp becomes
- * a link to its tab, the current tab is marked, and the next-step prompt is
- * dropped — the active panel already sits directly below.
+ * The launch readiness spine — setup steps drawn as a stamp row over a leaf
+ * progress track. Venue leads (captured during onboarding), then card, rewards,
+ * QR, and billing when required. Shared by the merchant dashboard and launch hub.
  */
 export function LaunchReadinessPanel({
   readiness,
@@ -62,11 +50,18 @@ export function LaunchReadinessPanel({
   /** Render the "Launch readiness" section header (on by default). */
   showHeader?: boolean
   /** Set on the launch hub to drive tab nav from the stamps themselves. */
-  activeTab?: LaunchReadinessTab
+  activeTab?: LaunchHubTab
   className?: string
 }) {
   const nextStep = readiness.nextStep
   const tabMode = activeTab !== undefined
+  const checklist = readiness.checklist
+  const columnClass =
+    checklist.length === 5
+      ? "grid-cols-2 sm:grid-cols-5"
+      : checklist.length === 4
+        ? "grid-cols-2 sm:grid-cols-4"
+        : "grid-cols-2 sm:grid-cols-3"
 
   return (
     <ReceiptCard edge className={cn("grid gap-5 overflow-hidden", className)}>
@@ -89,22 +84,22 @@ export function LaunchReadinessPanel({
           <div className="grid gap-1">
             <span className="eyebrow text-reward">You&apos;re live</span>
             <p className="text-base font-extrabold">
-              All four setup steps are complete. Customers can scan, join, and
-              collect stamps.
+              Setup is complete. Customers can scan, join, and collect stamps.
             </p>
           </div>
         </div>
       ) : null}
 
-      <ol className="grid grid-cols-4 gap-2 sm:gap-3">
-        {readiness.steps.map((step, index) => {
+      <ol className={cn("grid gap-2 sm:gap-3", columnClass)}>
+        {checklist.map((step, index) => {
           const isNext = !step.ready && step.id === nextStep?.id
           const isActive = tabMode && step.tab === activeTab
+          const stepIcon = STEP_ICON[step.id]
 
           const inner = (
             <>
               <LaunchStepStamp
-                glyph={STEP_ICON[step.id]}
+                glyph={stepIcon}
                 ready={step.ready}
                 isNext={isNext}
                 active={isActive}
@@ -113,7 +108,7 @@ export function LaunchReadinessPanel({
                 <span className="hidden font-mono text-[0.6rem] text-muted-foreground sm:inline">
                   {index + 1}.{" "}
                 </span>
-                {STEP_SHORT[step.id]}
+                {step.label}
               </span>
               <span
                 className={cn(
@@ -130,13 +125,10 @@ export function LaunchReadinessPanel({
             </>
           )
 
-          // Stamps are always links to their tab: on the hub they switch the
-          // active panel below; on the dashboard teaser they deep-link into the
-          // hub. Only hub tab mode marks one as the current page.
           return (
             <li key={step.id} className="grid">
               <Link
-                href={`/app/launch?tab=${step.tab}`}
+                href={step.href}
                 aria-current={
                   isActive ? "page" : !tabMode && isNext ? "step" : undefined
                 }

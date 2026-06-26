@@ -4,6 +4,13 @@ import { redirect } from "next/navigation"
 
 import { capturePostHogEvent } from "@/lib/analytics/events"
 import { getCurrentUser } from "@/lib/auth/session"
+import {
+  parseVenueLocationSubmission,
+  persistVenueLocationWrite,
+  resolveVenueLocationWritePayload,
+  validateVenueLocationSubmission,
+} from "@/lib/merchant/venue-location-submission"
+import type { VenueAddressFormFields } from "@/lib/merchant/venue-address"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 const ONBOARDING_SAVE_ERROR =
@@ -15,11 +22,20 @@ export type OnboardingActionState = {
     businessType?: string
     locationName?: string
     phone?: string
+    addressLine1?: string
+    addressLine2?: string
+    addressCity?: string
+    addressPostcode?: string
   }
   errors?: {
     businessName?: string
     businessType?: string
     locationName?: string
+    addressLine1?: string
+    addressLine2?: string
+    addressCity?: string
+    addressPostcode?: string
+    address?: string
     form?: string
   }
 }
@@ -50,16 +66,31 @@ export async function completeOnboardingAction(
 
   const businessName = value(formData, "businessName")
   const businessType = value(formData, "businessType")
-  const locationName = value(formData, "locationName")
   const phone = value(formData, "phone")
-  const fields = { businessName, businessType, locationName, phone }
+  const venueSubmission = parseVenueLocationSubmission(formData, {
+    venueNameField: "locationName",
+  })
+  const locationName = venueSubmission.venueName
+  const fields = {
+    businessName,
+    businessType,
+    locationName,
+    phone,
+    ...venueSubmission.addressFields,
+  }
   const errors: NonNullable<OnboardingActionState["errors"]> = {}
 
   if (!businessName) errors.businessName = "Enter the business name."
   if (!businessType) errors.businessType = "Choose a business type."
-  if (!locationName) errors.locationName = "Enter the first location name."
 
-  if (Object.keys(errors).length) {
+  const venueValidation = validateVenueLocationSubmission(venueSubmission, {
+    validateGeofence: false,
+  })
+  const venueErrors = mapVenueErrors(venueValidation.errors)
+
+  Object.assign(errors, venueErrors)
+
+  if (Object.keys(errors).length || venueValidation.radius === null) {
     return { fields, errors }
   }
 
@@ -86,6 +117,48 @@ export async function completeOnboardingAction(
   }
 
   const merchantId = data?.[0]?.merchant_id
+  const locationId = data?.[0]?.location_id
+
+  if (!merchantId || !locationId) {
+    return {
+      fields,
+      errors: {
+        form: ONBOARDING_SAVE_ERROR,
+      },
+    }
+  }
+
+  const resolved = await resolveVenueLocationWritePayload(venueSubmission, {
+    merchantId,
+    radius: venueValidation.radius,
+    manualPin: venueValidation.manualPin,
+  })
+
+  if ("errors" in resolved) {
+    return {
+      fields,
+      errors: {
+        ...mapVenueErrors(resolved.errors),
+        form: ONBOARDING_SAVE_ERROR,
+      },
+    }
+  }
+
+  const writeResult = await persistVenueLocationWrite({
+    supabase,
+    locationId,
+    payload: resolved.payload,
+  })
+
+  if (writeResult.error) {
+    return {
+      fields,
+      errors: {
+        form: ONBOARDING_SAVE_ERROR,
+      },
+    }
+  }
+
   await capturePostHogEvent({
     eventName: "merchant_signed_up",
     merchantId,
@@ -93,5 +166,21 @@ export async function completeOnboardingAction(
     actorId: user.id,
   })
 
-  redirect("/app")
+  redirect("/app/launch?tab=card")
+}
+
+function mapVenueErrors(
+  errors: ReturnType<typeof validateVenueLocationSubmission>["errors"]
+): NonNullable<OnboardingActionState["errors"]> {
+  const mapped: NonNullable<OnboardingActionState["errors"]> = {}
+
+  if (errors.addressLine1) mapped.addressLine1 = errors.addressLine1
+  if (errors.addressLine2) mapped.addressLine2 = errors.addressLine2
+  if (errors.addressCity) mapped.addressCity = errors.addressCity
+  if (errors.addressPostcode) mapped.addressPostcode = errors.addressPostcode
+  if (errors.address) mapped.address = errors.address
+  if (errors.form) mapped.form = errors.form
+  if (errors.venueName) mapped.locationName = errors.venueName
+
+  return mapped
 }

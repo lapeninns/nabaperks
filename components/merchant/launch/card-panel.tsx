@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 
 import { PageTitle, ReceiptCard } from "@/components/brand"
+import { LaunchSaveNextAction } from "@/components/merchant/launch/launch-tab-auto-advance"
 import { LoyaltyCardForm } from "@/components/merchant/loyalty-card-form"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { DEFAULT_STAMPS_REQUIRED } from "@/lib/merchant/customer-readback"
@@ -11,7 +12,13 @@ export type CardPanelParams = {
   error?: string
 }
 
-export async function CardPanel({ params }: { params: CardPanelParams }) {
+export async function CardPanel({
+  params,
+  advanceHref,
+}: {
+  params: CardPanelParams
+  advanceHref?: string | null
+}) {
   const { merchant, location, card, rewardPoolItems } =
     await getLoyaltyCardSetup()
 
@@ -33,7 +40,7 @@ export async function CardPanel({ params }: { params: CardPanelParams }) {
 
   return (
     <div className="grid gap-5">
-      <CardStatus params={params} />
+      <CardStatus params={params} advanceHref={advanceHref} />
       <LoyaltyCardForm
         merchantName={merchant.business_name}
         locationName={location.name}
@@ -59,11 +66,24 @@ export async function CardPanel({ params }: { params: CardPanelParams }) {
   )
 }
 
-function CardStatus({ params }: { params: CardPanelParams }) {
+function CardStatus({
+  params,
+  advanceHref,
+}: {
+  params: CardPanelParams
+  advanceHref?: string | null
+}) {
   if (params.saved === "1") {
     return (
       <StatusBanner tone="success" title="Mystery card saved.">
         Your visit-card settings are ready for customer previews.
+        {advanceHref ? (
+          <LaunchSaveNextAction
+            nextHref={advanceHref}
+            nextLabel="your rewards"
+            stayHref="/app/launch?tab=card"
+          />
+        ) : null}
       </StatusBanner>
     )
   }

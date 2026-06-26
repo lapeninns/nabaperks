@@ -38,8 +38,18 @@ type RawHomeMembership = {
   active_cycle_number: number
   last_visit_at: string | null
   merchants:
-    | { business_name: string; business_slug: string; status: string }
-    | Array<{ business_name: string; business_slug: string; status: string }>
+    | {
+        business_name: string
+        business_slug: string
+        status: string
+        requires_billing: boolean | null
+      }
+    | Array<{
+        business_name: string
+        business_slug: string
+        status: string
+        requires_billing: boolean | null
+      }>
     | null
 }
 
@@ -78,7 +88,7 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
   const { data: membershipRows, error } = await supabase
     .from("customer_memberships")
     .select(
-      "id, merchant_id, current_stamp_count, active_cycle_number, last_visit_at, merchants(business_name, business_slug, status)"
+      "id, merchant_id, current_stamp_count, active_cycle_number, last_visit_at, merchants(business_name, business_slug, status, requires_billing)"
     )
     .eq("customer_id", customer.id)
     .order("last_visit_at", { ascending: false, nullsFirst: false })
@@ -171,7 +181,8 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
       ? unavailableMessage(
           merchant.status,
           card?.is_active ?? false,
-          billingStatus
+          billingStatus,
+          merchant.requires_billing ?? false
         )
       : "This loyalty programme is unavailable at the moment."
     const rewards =

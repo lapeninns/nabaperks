@@ -46,7 +46,7 @@ describe("customer-flow dev harness", () => {
     expect(status).toEqual({
       phone: "07467586751",
       merchantSlug: "old-crown-girton",
-      qrId: "old-crown-girton-qr",
+      qrId: "old-crown-girton",
       customerId: "customer-1",
       membershipId: "membership-1",
       currentStampCount: 2,
@@ -60,10 +60,10 @@ describe("customer-flow dev harness", () => {
       },
     })
     expect(links).toEqual({
-      joinHero: "/q/old-crown-girton-qr",
-      join: "/m/old-crown-girton/join?qr=old-crown-girton-qr",
-      qrStampConfirm: "/q/old-crown-girton-qr",
-      stampConfirm: "/card/membership-1/stamp?qr=old-crown-girton-qr",
+      joinHero: "/q/old-crown-girton",
+      join: "/m/old-crown-girton/join?qr=old-crown-girton",
+      qrStampConfirm: "/q/old-crown-girton",
+      stampConfirm: "/card/membership-1/stamp?qr=old-crown-girton",
       card: "/card/membership-1",
       reward: "/reward/reward-1",
       redeemedCard: "/card/membership-1?reward=redeemed",
@@ -83,8 +83,8 @@ describe("customer-flow dev harness", () => {
     )
 
     expect(links).toMatchObject({
-      joinHero: "/q/old-crown-girton-qr",
-      join: "/m/old-crown-girton/join?qr=old-crown-girton-qr",
+      joinHero: "/q/old-crown-girton",
+      join: "/m/old-crown-girton/join?qr=old-crown-girton",
       qrStampConfirm: null,
       stampConfirm: null,
       card: null,

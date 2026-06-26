@@ -193,12 +193,12 @@ describe("merchant account hub micro-spec", () => {
   })
 
   describe("Wet Ink account surfaces", () => {
-    it("uses tab-specific page titles instead of a nested tab bar", () => {
+    it("uses tab-specific page titles with the governed account tab bar", () => {
       const page = readProjectFile("app/app/account/page.tsx")
 
       expect(page).toContain('title: "Profile"')
       expect(page).toContain('title: "Billing"')
-      expect(page).not.toContain("AccountTabBar")
+      expect(page).toContain("AccountTabBar")
       expect(page).not.toContain("Growth Plan")
       expect(page).not.toContain("GBP 29")
     })
@@ -211,6 +211,18 @@ describe("merchant account hub micro-spec", () => {
       expect(billingPanel).toContain("ReceiptCard")
       expect(billingPanel).not.toContain('from "@/components/ui/card"')
       expect((billingPanel.match(/GBP 29/g) ?? []).length).toBe(1)
+    })
+
+    it("uses card-required activation copy on the billing panel", () => {
+      const billingPanel = readProjectFile(
+        "components/merchant/account/billing-panel.tsx"
+      )
+
+      expect(billingPanel).toContain("Add a card to activate")
+      expect(billingPanel).toContain("card is required before you go live")
+      expect(billingPanel).toContain("Start checkout")
+      expect(billingPanel).not.toContain(["No", "card"].join(" "))
+      expect(billingPanel).not.toContain(["no", "card"].join(" "))
     })
 
     it("leads the profile tab with the customer preview as a strong Wet Ink surface", () => {

@@ -26,7 +26,7 @@ test("captures the Old Crown Girton QR to reward customer journey", async ({
     window.localStorage.setItem("nabaperks:pwa-install-dismissed:v2", "1")
   })
 
-  await page.goto("/q/old-crown-girton-qr")
+  await page.goto("/q/old-crown-girton")
   await expect(
     page.getByRole("heading", { name: "Keep your card on your phone" })
   ).toBeVisible()
@@ -56,7 +56,7 @@ test("captures the Old Crown Girton QR to reward customer journey", async ({
   await capture(page, "02-stamp-day-1/01-card-1-of-3.png")
 
   runDemo("advance", "--stamps", "1")
-  await page.goto("/q/old-crown-girton-qr")
+  await page.goto("/q/old-crown-girton")
   await expectStampEntry(page)
   await capture(page, "03-stamp-day-2/01-confirm.png")
   await addStamp(page, { outcome: "stamp-added" })
@@ -66,7 +66,7 @@ test("captures the Old Crown Girton QR to reward customer journey", async ({
   await capture(page, "03-stamp-day-2/02-card-2-of-3.png")
 
   runDemo("advance", "--stamps", "2")
-  await page.goto("/q/old-crown-girton-qr")
+  await page.goto("/q/old-crown-girton")
   await expectStampEntry(page)
   await capture(page, "04-stamp-day-3/01-confirm.png")
   await addStamp(page, { outcome: "full-card" })

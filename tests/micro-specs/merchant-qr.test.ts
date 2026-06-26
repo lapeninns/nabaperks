@@ -55,11 +55,18 @@ describe("02 merchant and QR micro-specs", () => {
     const supabase = createSupabaseMock({
       rpc: {
         create_merchant_onboarding: [
-          { data: [{ merchant_id: "merchant-1" }], error: null },
+          {
+            data: [{ merchant_id: "merchant-1", location_id: "location-1" }],
+            error: null,
+          },
         ],
+      },
+      from: {
+        merchant_locations: [{ data: null, error: null }],
       },
     })
     const capturePostHogEvent = vi.fn()
+    const geocodeAddress = vi.fn(async () => ({ latitude: 51.52, longitude: -0.07 }))
     vi.doMock("next/navigation", () => ({ redirect }))
     vi.doMock("@/lib/auth/session", () => ({
       getCurrentUser: vi.fn(async () => ({
@@ -67,6 +74,7 @@ describe("02 merchant and QR micro-specs", () => {
         email: "owner@example.test",
       })),
     }))
+    vi.doMock("@/lib/merchant/geocode", () => ({ geocodeAddress }))
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServerClient: vi.fn(async () => supabase.client),
     }))
@@ -82,9 +90,13 @@ describe("02 merchant and QR micro-specs", () => {
           businessType: "cafe",
           locationName: "Main counter",
           phone: "+441234567890",
+          addressLine1: "1 High Street",
+          addressLine2: "",
+          addressCity: "London",
+          addressPostcode: "E1 6AN",
         })
       )
-    ).rejects.toThrow("NEXT_REDIRECT:/app")
+    ).rejects.toThrow("NEXT_REDIRECT:/app/launch?tab=card")
 
     expect(supabase.rpcCalls[0]).toEqual({
       name: "create_merchant_onboarding",
@@ -94,12 +106,126 @@ describe("02 merchant and QR micro-specs", () => {
         p_location_name: "Main counter",
       }),
     })
+    expect(geocodeAddress).toHaveBeenCalled()
+    expect(supabase.queryCalls).toContainEqual({
+      table: "merchant_locations",
+      method: "update",
+      args: [
+        expect.objectContaining({
+          name: "Main counter",
+          address_line_1: "1 High Street",
+          address_city: "London",
+          address_postcode: "E1 6AN",
+          address_source: "manual_entry",
+        }),
+      ],
+    })
     expect(capturePostHogEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         eventName: "merchant_signed_up",
         merchantId: "merchant-1",
       })
     )
+  })
+
+  it("requires a structured venue address during onboarding", async () => {
+    vi.resetModules()
+    const redirect = redirectMock()
+    vi.doMock("next/navigation", () => ({ redirect }))
+    vi.doMock("@/lib/auth/session", () => ({
+      getCurrentUser: vi.fn(async () => ({
+        id: "user-12345678-abc",
+        email: "owner@example.test",
+      })),
+    }))
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServerClient: vi.fn(),
+    }))
+    vi.doMock("@/lib/analytics/events", () => ({ capturePostHogEvent: vi.fn() }))
+    const { completeOnboardingAction } =
+      await import("@/app/app/onboarding/actions")
+
+    const result = await completeOnboardingAction(
+      {},
+      form({
+        businessName: "A&B Coffee!",
+        businessType: "cafe",
+        locationName: "Main counter",
+      })
+    )
+
+    expect(result.errors?.addressLine1).toBeTruthy()
+    expect(result.errors?.addressCity).toBeTruthy()
+    expect(result.errors?.addressPostcode).toBeTruthy()
+    expect(redirect).not.toHaveBeenCalled()
+  })
+
+  it("persists a Google Places venue selection during onboarding without geocoding", async () => {
+    vi.resetModules()
+    const redirect = redirectMock()
+    const supabase = createSupabaseMock({
+      rpc: {
+        create_merchant_onboarding: [
+          {
+            data: [{ merchant_id: "merchant-1", location_id: "location-1" }],
+            error: null,
+          },
+        ],
+      },
+      from: {
+        merchant_locations: [{ data: null, error: null }],
+      },
+    })
+    const geocodeAddress = vi.fn()
+    vi.doMock("next/navigation", () => ({ redirect }))
+    vi.doMock("@/lib/auth/session", () => ({
+      getCurrentUser: vi.fn(async () => ({
+        id: "user-12345678-abc",
+        email: "owner@example.test",
+      })),
+    }))
+    vi.doMock("@/lib/merchant/geocode", () => ({ geocodeAddress }))
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServerClient: vi.fn(async () => supabase.client),
+    }))
+    vi.doMock("@/lib/analytics/events", () => ({ capturePostHogEvent: vi.fn() }))
+    const { completeOnboardingAction } =
+      await import("@/app/app/onboarding/actions")
+
+    await expect(
+      completeOnboardingAction(
+        {},
+        form({
+          businessName: "Old Crown",
+          businessType: "pub",
+          locationName: "Old Crown Girton",
+          addressLine1: "High Street",
+          addressLine2: "",
+          addressCity: "Girton",
+          addressPostcode: "CB3 0QH",
+          addressSource: "provider_lookup",
+          addressProvider: "google_places",
+          addressProviderId: "ChIJ_test_place_id",
+          providerLatitude: "52.2425913",
+          providerLongitude: "0.0814946",
+        })
+      )
+    ).rejects.toThrow("NEXT_REDIRECT:/app/launch?tab=card")
+
+    expect(geocodeAddress).not.toHaveBeenCalled()
+    expect(supabase.queryCalls).toContainEqual({
+      table: "merchant_locations",
+      method: "update",
+      args: [
+        expect.objectContaining({
+          address_source: "provider_lookup",
+          address_provider: "google_places",
+          address_provider_id: "ChIJ_test_place_id",
+          latitude: 52.2425913,
+          longitude: 0.0814946,
+        }),
+      ],
+    })
   })
 
   it("returns merchants with a missing first location to onboarding recovery", async () => {
@@ -201,10 +327,31 @@ describe("02 merchant and QR micro-specs", () => {
     vi.resetModules()
     const redirect = redirectMock()
     const supabase = createSupabaseMock({
-      rpc: { save_loyalty_card: [{ data: null, error: null }] },
+      from: {
+        reward_pool_items: [{ count: 0, error: null }],
+      },
+      rpc: {
+        save_loyalty_card: [
+          {
+            data: [
+              {
+                loyalty_card_id: "card-1",
+                saved_action: "loyalty_card_created",
+              },
+            ],
+            error: null,
+          },
+        ],
+        upsert_reward_pool_item: [
+          { data: [{ saved_action: "reward_pool_item_created" }], error: null },
+          { data: [{ saved_action: "reward_pool_item_created" }], error: null },
+          { data: [{ saved_action: "reward_pool_item_created" }], error: null },
+        ],
+      },
     })
     const capturePostHogEvent = vi.fn()
     vi.doMock("next/navigation", () => ({ redirect }))
+    vi.doMock("next/cache", () => ({ revalidatePath: vi.fn() }))
     vi.doMock("@/lib/auth/session", () => ({
       getCurrentMerchant: vi.fn(async () => ({ id: "merchant-1" })),
     }))
@@ -225,7 +372,9 @@ describe("02 merchant and QR micro-specs", () => {
           isActive: true,
         })
       )
-    ).rejects.toThrow("NEXT_REDIRECT:/app/launch?tab=card&saved=1")
+    ).rejects.toThrow(
+      "NEXT_REDIRECT:/app/launch?tab=rewards&saved=pool&seeded=1"
+    )
 
     expect(supabase.rpcCalls[0]).toEqual({
       name: "save_loyalty_card",
@@ -237,6 +386,9 @@ describe("02 merchant and QR micro-specs", () => {
         p_is_active: true,
       }),
     })
+    expect(
+      supabase.rpcCalls.filter((call) => call.name === "upsert_reward_pool_item")
+    ).toHaveLength(3)
     expect(capturePostHogEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         eventName: "loyalty_card_created",
@@ -333,6 +485,17 @@ describe("02 merchant and QR micro-specs", () => {
     ]) {
       expect(onboardingForm).toContain(`name="${fieldName}"`)
     }
+    expect(onboardingForm).toContain("VenuePlaceAutocomplete")
+    expect(onboardingForm).toContain("VenueAddressFields")
+    expect(onboardingForm).toContain("googleMapsApiKey")
+    for (const fieldName of [
+      "addressLine1",
+      "addressLine2",
+      "addressCity",
+      "addressPostcode",
+    ]) {
+      expect(venueAddressFields).toContain(`name="${fieldName}"`)
+    }
 
     for (const fieldName of [
       "cardId",
@@ -351,10 +514,13 @@ describe("02 merchant and QR micro-specs", () => {
 
     expect(cardPage).toContain('params.saved === "1"')
     expect(rewardsPage).toContain('params.saved === "pool"')
+    expect(rewardsPage).toContain('params.seeded === "1"')
     expect(rewardsPage).toContain("Unable to update reward")
     // The reward pool gates launch with a live counter + deficit line rather
     // than a blocking banner; the active/inactive state stays legible per row.
     expect(cardForm).toContain("to unlock launch")
+    expect(cardForm).toContain("Continue to {continueLabel}")
+    expect(cardForm).toContain("Each reward saves when you add or edit it")
     expect(cardForm).toContain("No rewards in the pool yet")
     expect(cardForm).toContain("Active in the pool")
 
@@ -417,6 +583,10 @@ describe("02 merchant and QR micro-specs", () => {
           businessType: "pub",
           locationName: "Main counter",
           phone: "+441234567890",
+          addressLine1: "1 High Street",
+          addressLine2: "",
+          addressCity: "London",
+          addressPostcode: "E1 6AN",
         })
       )
     ).resolves.toEqual({
@@ -425,6 +595,10 @@ describe("02 merchant and QR micro-specs", () => {
         businessType: "pub",
         locationName: "Main counter",
         phone: "+441234567890",
+        addressLine1: "1 High Street",
+        addressLine2: "",
+        addressCity: "London",
+        addressPostcode: "E1 6AN",
       },
       errors: {
         form: "Profile could not be saved. Check your details and try again.",

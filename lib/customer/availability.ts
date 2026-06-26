@@ -3,6 +3,7 @@ import "server-only"
 export type LoyaltyAvailabilityReason =
   | "merchant_inactive"
   | "card_inactive"
+  | "billing_required"
   | "billing_blocked"
 
 export type LoyaltyAvailability =
@@ -17,10 +18,12 @@ export function loyaltyAvailability({
   merchantStatus,
   cardActive,
   billingStatus,
+  requiresBilling,
 }: {
   merchantStatus: string
   cardActive: boolean
   billingStatus: string | null
+  requiresBilling: boolean
 }): LoyaltyAvailability {
   if (!["trial", "active"].includes(merchantStatus)) {
     return {
@@ -35,6 +38,14 @@ export function loyaltyAvailability({
       available: false,
       reason: "card_inactive",
       message: "This loyalty card is not currently active.",
+    }
+  }
+
+  if (requiresBilling && billingStatus === null) {
+    return {
+      available: false,
+      reason: "billing_required",
+      message: "This venue isn't taking stamps yet.",
     }
   }
 

@@ -34,7 +34,7 @@ describe("merchant reward scanner", () => {
       "",
       "not a url",
       "https://example.com/r/14000000-0000-0000-0000-000000000099",
-      "https://nabaperks.test/q/old-crown-girton-qr",
+      "https://nabaperks.test/q/old-crown-girton",
       "https://nabaperks.test/r/not-a-uuid",
       "https://nabaperks.test/r/14000000-0000-0000-0000-000000000099/extra",
     ]

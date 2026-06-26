@@ -1,0 +1,8 @@
+- heading "Save your card to your number" [level=1, ref=e5]
+- textbox "PHONE NUMBER" [ref=e6]
+- button "Text me the code" [ref=e7]
+- link "See how stamps and rewards work" [ref=e2]
+- button "Not now" [ref=e3]
+- button "Install" [ref=e4]
+- region "Notifications alt+T" [ref=e1]
+- button "Open Next.js Dev Tools" [expanded=false, ref=e8]

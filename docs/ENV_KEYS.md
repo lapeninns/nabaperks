@@ -167,13 +167,19 @@ with only these API targets:
 Use HTTP referrer restrictions for local, preview, and production origins such
 as:
 
-- `http://localhost:*/*`
-- `http://127.0.0.1:*/*`
+- `http://localhost:3000/*` (exact local dev port — add one line per port you use)
+- `http://localhost/*` (any port on localhost; omit port wildcards like `:*`)
+- `http://127.0.0.1:3000/*`
+- `http://127.0.0.1/*`
 - `https://nabaperks.com/*`
 - `https://www.nabaperks.com/*`
 - `https://*.nabaperks.com/*`
 - `https://nabaperks.vercel.app/*`
 - `https://nabaperks-*.vercel.app/*`
+
+Google rejects patterns such as `http://localhost:*/*` or `http://localhost:*`
+with “Invalid website domain”. Use an explicit port (`:3000`) or omit the port
+entirely (`http://localhost/*`).
 
 Set the restricted browser key in `.env.local`, or export it when validating:
 

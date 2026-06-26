@@ -945,8 +945,17 @@ describe("venue form — Google Places autocomplete wiring", () => {
     const venueForm = readProjectFile(
       "components/merchant/launch/venue-location-form.tsx"
     )
+    const onboardingForm = readProjectFile(
+      "components/merchant/onboarding-form.tsx"
+    )
+    const provenanceFields = readProjectFile(
+      "components/merchant/venue-provider-provenance-fields.tsx"
+    )
 
     expect(venueForm).toContain("VenuePlaceAutocomplete")
+    expect(venueForm).toContain("VenueProviderProvenanceFields")
+    expect(onboardingForm).toContain("VenuePlaceAutocomplete")
+    expect(onboardingForm).toContain("VenueProviderProvenanceFields")
     for (const fieldName of [
       "addressSource",
       "addressProvider",
@@ -954,11 +963,12 @@ describe("venue form — Google Places autocomplete wiring", () => {
       "providerLatitude",
       "providerLongitude",
     ]) {
-      expect(venueForm).toContain(`name="${fieldName}"`)
+      expect(provenanceFields).toContain(`name="${fieldName}"`)
     }
     // A selection sets provider provenance; a manual edit resets it.
     expect(venueForm).toContain("provider_lookup")
     expect(venueForm).toContain("google_places")
-    expect(venueForm).toContain("manual_entry")
+    expect(onboardingForm).toContain("VenueAddressFields")
+    expect(provenanceFields).toContain("manual_entry")
   })
 })

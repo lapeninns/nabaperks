@@ -7,7 +7,7 @@ import { expectNoAxeViolations } from "./helpers/axe"
  *
  * Seeded customers have no phone, so `/home/login` alone cannot sign one in. We
  * first mint a phone-bearing customer through the real join flow against the
- * permanent Old Crown Girton venue QR (`/q/old-crown-girton-qr`), reusing the
+ * permanent Old Crown Girton venue QR (`/q/old-crown-girton`), reusing the
  * exact selectors proven by `customer-flow-screenshots.spec.ts`, with the dev
  * OTP bypass (`424242`). That sets the signed customer session cookie. We then
  * smoke + axe each home surface, exercise `/home/login` re-entry for the same
@@ -145,7 +145,7 @@ test.describe("customer home surfaces (real session)", () => {
  * when it appears, then waits for the `/card/<id>` landing either way.
  */
 async function joinViaVenueQr(page: Page): Promise<void> {
-  await page.goto("/q/old-crown-girton-qr")
+  await page.goto("/q/old-crown-girton")
   await expect(
     page.getByRole("heading", { name: "Keep your card on your phone" })
   ).toBeVisible()

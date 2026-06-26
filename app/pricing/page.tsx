@@ -27,7 +27,7 @@ const planIncludes = [
 const faqs = [
   {
     q: "Is there a contract?",
-    a: "No. It is month to month after the pilot. GBP 29, one venue, one month's notice to leave. The pilot itself needs no card at all.",
+    a: "No. It is month to month after the pilot. GBP 29, one venue, one month's notice to leave. A card is required to activate the venue, with 30 days free before billing starts.",
   },
   {
     q: "Do I need any hardware?",
@@ -74,7 +74,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
         <PageTitle
           eyebrow="Pricing"
           title="One price. The whole machine."
-          description="A 30-day free pilot, then GBP 29/month per venue. No tiers, no seats, no contact-sales. Checkout and account creation stay separate, so a team can create an account before billing."
+          description="A 30-day free pilot, then GBP 29/month per venue. Card required to go live, with no charge during the trial. No tiers, no seats, no contact-sales."
           titleClassName="text-[clamp(2.3rem,5vw,3.5rem)]"
           descriptionClassName="text-base leading-7"
           className="md:grid-cols-1"
@@ -147,19 +147,18 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
                   <Link href="/signup">Create account</Link>
                 </Button>
                 <p className="text-center font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
-                  No card to start · cancel any time
+                  Card required to go live · cancel any time
                 </p>
               </CardFooter>
             </Card>
           </div>
 
-          {/* Pilot explainer */}
           <div className="grid gap-5 pt-2">
             <div className="grid gap-3">
               <Eyebrow>The pilot</Eyebrow>
               <h2 className="text-[clamp(1.6rem,3vw,2.2rem)] leading-tight font-extrabold">
-                30 days free. No card. If it doesn&apos;t earn its keep, walk
-                away.
+                30 days free, card required to activate. If it doesn&apos;t earn
+                its keep, walk away.
               </h2>
               <p className="max-w-[46ch] text-[0.95rem] leading-6 text-muted-foreground">
                 Most venues see their first repeat visit inside the first week,
@@ -170,7 +169,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
             <div className="rounded-lg border-2 border-dashed border-border p-5">
               <Eyebrow className="mb-2 text-foreground">After day 30</Eyebrow>
               <p className="text-sm leading-6 text-muted-foreground">
-                Add a card in Stripe and carry on. Leaving later takes one
+                Stripe starts billing after the trial. Leaving later takes one
                 month&apos;s notice from your billing page. Earned rewards stay
                 good for your regulars.
               </p>
@@ -178,7 +177,6 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
           </div>
         </div>
 
-        {/* FAQ */}
         <div className="mx-auto mt-16 max-w-2xl">
           <h2 className="mb-2 text-[clamp(1.5rem,3vw,2rem)] font-extrabold">
             Asked at the counter
@@ -210,7 +208,8 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
               <Link href="/signup">Start your 30-day pilot</Link>
             </Button>
             <p className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
-              No card to start · GBP 29/month after · one month&apos;s notice
+              Card required to activate · GBP 29/month after · one month&apos;s
+              notice
             </p>
           </div>
         </div>

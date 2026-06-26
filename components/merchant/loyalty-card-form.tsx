@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useActionState, useState } from "react"
 import {
   Add01Icon,
@@ -173,10 +174,15 @@ export function RewardPoolForm({
   loyaltyCardId,
   cardName,
   rewardPoolItems,
+  continueHref,
+  continueLabel = "your launch kit",
 }: {
   loyaltyCardId: string
   cardName: string
   rewardPoolItems: RewardPoolItemValues[]
+  /** Shown when the pool meets launch eligibility and no row editor is open. */
+  continueHref?: string | null
+  continueLabel?: string
 }) {
   // The row currently open in the inline editor: a reward id, "new", or null.
   const [editingId, setEditingId] = useState<string | "new" | null>(null)
@@ -209,7 +215,10 @@ export function RewardPoolForm({
 
       <p className="text-sm leading-5 text-muted-foreground">
         {ready ? (
-          "Enough rewards to launch. Add more for variety any time."
+          <>
+            Each reward saves when you add or edit it. Continue below when you
+            are happy with the pool.
+          </>
         ) : (
           <>
             Activate <b className="font-bold text-foreground">{deficit} more</b>{" "}
@@ -270,6 +279,12 @@ export function RewardPoolForm({
           <Icon icon={Add01Icon} size={16} strokeWidth={2.25} />
           Add a reward
         </button>
+      ) : null}
+
+      {ready && editingId === null && continueHref ? (
+        <Button asChild className="w-full">
+          <Link href={continueHref}>Continue to {continueLabel}</Link>
+        </Button>
       ) : null}
     </section>
   )

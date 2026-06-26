@@ -60,26 +60,98 @@ describe("02 marketing auth and legal redesign micro-specs", () => {
     expect(home).toContain('href="/login"')
   })
 
-  it("communicates the no-app QR loyalty homepage flow with static labels and scanner-safe framing", () => {
+  it("communicates the food-and-drink landing flow with anchors, venues, and scanner-safe framing", () => {
     const home = readProjectFile("app/page.tsx")
+    const marketingLayout = readProjectFile(
+      "components/layout/marketing-layout.tsx"
+    )
 
     for (const text of [
-      "No-app loyalty",
-      "browser-based loyalty card",
-      "Scan",
-      "Join",
-      "Stamp",
-      "Reward",
-      "QrFrame",
-      "StampGrid",
-      "motion-reduce:animate-none",
+      "No-app loyalty for food and drink venues",
+      "Replace paper loyalty cards with one venue QR",
+      "food and drink venues",
+      "under five minutes",
+      "WetInkRise",
+      "MarketingHeroLoyaltyCard",
+      "MarketingHowItWorksSection",
+      'id="pricing"',
+      'id="faq"',
+      "Open my cards",
+      "Private by default",
+      "Marketing is separate",
     ]) {
       expect(home).toContain(text)
+    }
+
+    expect(home).not.toContain("MarketingVenuesCareSection")
+    expect(marketingLayout).toContain('href="/scan"')
+    expect(marketingLayout).toContain("Scan a venue QR")
+
+    const howItWorks = readProjectFile(
+      "components/marketing/how-it-works-section.tsx"
+    )
+    for (const step of ["Scan", "Save", "Stamp", "Reward"]) {
+      expect(howItWorks).toContain(step)
+    }
+    expect(howItWorks).toContain('id="how-it-works"')
+    expect(howItWorks).toContain("useSolutionStoryLoop")
+    expect(howItWorks).toContain("PhoneActiveStep")
+    expect(howItWorks).toContain("PhoneStepRail")
+    expect(howItWorks).toContain("AnimatePresence")
+    expect(howItWorks).toContain("StampGrid")
+    expect(howItWorks).toContain("MysteryRewardGift")
+    expect(howItWorks).toContain("LayoutGroup")
+    expect(howItWorks).toContain("PhoneStoryCaption")
+    expect(howItWorks).toContain("MarketingQrScanOverlay")
+    expect(howItWorks).not.toContain("server-side and auditable")
+
+    const heroCard = readProjectFile(
+      "components/marketing/hero-loyalty-card.tsx"
+    )
+    const solutionLoop = readProjectFile(
+      "components/marketing/use-solution-story-loop.ts"
+    )
+    expect(solutionLoop).toContain("solutionStoryStepIndex")
+    expect(solutionLoop).toContain("solutionPhaseToStepIndex")
+    expect(solutionLoop).toContain("solutionPhaseToPhoneScreen")
+    expect(solutionLoop).toContain("solutionStoryCopy")
+    expect(solutionLoop).toContain("SolutionCardPanel")
+    expect(solutionLoop).toContain("giftHoldMs")
+    expect(heroCard).toContain("min-w-0")
+    expect(heroCard).toContain("WetInkRise")
+    expect(heroCard).toContain("WetInkFloat")
+    expect(heroCard).not.toContain("useStampJourneyLoop")
+
+    for (const forbidden of [
+      "barber",
+      "salon",
+      "POS integration",
+      "CRM integration",
+      "gift card",
+      "marketplace",
+      "native app",
+      "multi-location",
+      "automated SMS",
+      "AI segmentation",
+    ]) {
+      expect(home.toLowerCase()).not.toContain(forbidden.toLowerCase())
     }
 
     expect(home).toContain("Start a merchant trial")
     expect(home).toContain("View pricing")
     expect(home).toContain("Merchant login")
+    expect(home).toContain("navLinks={HOME_NAV_LINKS}")
+  })
+
+  it("lets the homepage pass How it works nav anchors through MarketingLayout", () => {
+    const home = readProjectFile("app/page.tsx")
+    const marketingLayout = readProjectFile(
+      "components/layout/marketing-layout.tsx"
+    )
+
+    expect(home).toContain("#how-it-works")
+    expect(marketingLayout).toContain("navLinks")
+    expect(marketingLayout).toContain("defaultMarketingLinks")
   })
 
   it("preserves pricing checkout and account creation contracts", () => {

@@ -12,16 +12,35 @@ export default async function MerchantAppLayout({
 }: {
   children: React.ReactNode
 }) {
+  const requestHeaders = await headers()
+  const returnPath = readMerchantRequestPath(requestHeaders)
+  const activePath = stripSearch(returnPath)
   const user = await getCurrentUser()
 
   if (!user) {
-    const returnPath = readMerchantRequestPath(await headers())
     redirect(merchantLoginHref(returnPath))
   }
 
   return (
-    <MerchantAppShell signOutAction={signOutAction}>
+    <MerchantAppShell
+      signOutAction={signOutAction}
+      activePath={activePath}
+      variant={isMerchantSetupPath(activePath) ? "setup" : "full"}
+    >
       {children}
     </MerchantAppShell>
+  )
+}
+
+function stripSearch(path: string): string {
+  return path.split("?")[0] ?? path
+}
+
+function isMerchantSetupPath(path: string): boolean {
+  return (
+    path === "/app/onboarding" ||
+    path.startsWith("/app/onboarding/") ||
+    path === "/app/launch" ||
+    path.startsWith("/app/launch/")
   )
 }

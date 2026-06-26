@@ -5,7 +5,12 @@ import { Logo } from "@/components/brand"
 import { Marquee } from "@/components/marketing"
 import { Button } from "@/components/ui/button"
 
-const marketingLinks = [
+export type MarketingNavLink = {
+  href: string
+  label: string
+}
+
+const defaultMarketingLinks: MarketingNavLink[] = [
   { href: "/pricing", label: "Pricing" },
   { href: "/login", label: "Log in" },
 ]
@@ -13,7 +18,15 @@ const marketingLinks = [
 const legalLinkClass =
   "inline-flex min-h-11 items-center rounded-full px-3 underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
 
-export function MarketingLayout({ children }: { children: ReactNode }) {
+export function MarketingLayout({
+  children,
+  navLinks,
+}: {
+  children: ReactNode
+  /** Homepage can pass anchor links; pricing and legal pages use the default. */
+  navLinks?: MarketingNavLink[]
+}) {
+  const marketingLinks = navLinks ?? defaultMarketingLinks
   return (
     <div className="min-h-[100dvh] overflow-x-clip bg-background">
       <Marquee />
@@ -59,6 +72,9 @@ export function MarketingLayout({ children }: { children: ReactNode }) {
           <nav aria-label="My Nabaperks" className="flex flex-wrap gap-2">
             <Link className={legalLinkClass} href="/home">
               My Nabaperks
+            </Link>
+            <Link className={legalLinkClass} href="/scan">
+              Scan a venue QR
             </Link>
           </nav>
           <nav aria-label="Legal links" className="flex flex-wrap gap-2">

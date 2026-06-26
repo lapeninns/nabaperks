@@ -1,5 +1,7 @@
 import type { StampBlockReason } from "./types"
 
+type CustomerBlockReason = StampBlockReason | "billing_required"
+
 /**
  * Single source of truth for turning a raw stamp/redeem RPC error message into a
  * typed {@link StampBlockReason}. UI panels never inspect raw strings — they read
@@ -17,10 +19,14 @@ import type { StampBlockReason } from "./types"
  * tenant guards (normally gated upstream) and map to calm copy for direct calls.
  */
 const STAMP_BLOCK_RULES: ReadonlyArray<
-  readonly [readonly string[], StampBlockReason]
+  readonly [readonly string[], CustomerBlockReason]
 > = [
   [["Stamp already issued for this UK business day"], "already_stamped_today"],
   [["A reward is already ready to redeem"], "reward_ready_first"],
+  [
+    ["This merchant loyalty programme is not active yet"],
+    "billing_required",
+  ],
   [["Rate limit exceeded"], "rate_limited"],
   [["required before unlocking a reward"], "pool_unavailable"],
   [
@@ -43,7 +49,7 @@ const STAMP_BLOCK_RULES: ReadonlyArray<
   [["not active", "unavailable"], "unavailable"],
 ]
 
-export function toStampBlockReason(message: string): StampBlockReason {
+export function toStampBlockReason(message: string): CustomerBlockReason {
   for (const [needles, reason] of STAMP_BLOCK_RULES) {
     if (needles.some((needle) => message.includes(needle))) return reason
   }
@@ -51,12 +57,14 @@ export function toStampBlockReason(message: string): StampBlockReason {
 }
 
 /** Calm, customer-facing copy for each typed block reason. */
-export function blockReasonCopy(reason: StampBlockReason): string {
+export function blockReasonCopy(reason: CustomerBlockReason): string {
   switch (reason) {
     case "already_stamped_today":
       return "You're already stamped today. Come back tomorrow."
     case "reward_ready_first":
       return "Your reward is ready - redeem it before collecting more stamps."
+    case "billing_required":
+      return "This venue isn't taking stamps yet."
     case "rate_limited":
       return "You're going a little fast. Wait a few minutes, then try again."
     case "pool_unavailable":

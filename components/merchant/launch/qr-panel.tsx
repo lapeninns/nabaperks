@@ -9,9 +9,16 @@ import { RewardSeal } from "@/components/loyalty/reward-seal"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { CopyUrlButton } from "@/components/merchant/copy-url-button"
 import { Disclosure } from "@/components/merchant/launch/disclosure"
+import { LaunchSaveNextAction } from "@/components/merchant/launch/launch-tab-auto-advance"
 import { Button } from "@/components/ui/button"
+import { ensureJoinQrProvisioned } from "@/lib/merchant/ensure-join-qr"
 import { getServerEnv } from "@/lib/env/server"
-import { getQrSetup } from "@/lib/merchant/qr-code"
+import {
+  buildLaunchReadiness,
+  getLaunchBillingReadiness,
+  isLaunchBillingReady,
+} from "@/lib/merchant/launch-readiness"
+import { getQrSetupFresh } from "@/lib/merchant/qr-code"
 
 export type QrPanelParams = {
   created?: string
@@ -20,21 +27,52 @@ export type QrPanelParams = {
   error?: string
 }
 
-export async function QrPanel({ params }: { params: QrPanelParams }) {
-  const { merchant, activeCard, activeRewardPoolItemCount, qrCode, location } =
-    await getQrSetup()
+export async function QrPanel({
+  params,
+  continueHref,
+  launchReady = false,
+}: {
+  params: QrPanelParams
+  continueHref?: string | null
+  launchReady?: boolean
+}) {
+  let { merchant, activeCard, activeRewardPoolItemCount, qrCode, location } =
+    await getQrSetupFresh()
+  const billing = merchant
+    ? await getLaunchBillingReadiness(merchant.id)
+    : undefined
+  const readiness = buildLaunchReadiness({
+    activeCard,
+    activeRewardPoolItemCount,
+    qrCode,
+    location,
+    billing,
+  })
 
   if (!merchant) {
     redirect("/app/onboarding")
+  }
+
+  if (readiness.launchReady && !qrCode) {
+    await ensureJoinQrProvisioned({
+      merchantId: merchant.id,
+      activeCard,
+      activeRewardPoolItemCount,
+      venueReady: readiness.tabs.venue,
+      billingReady: isLaunchBillingReady(billing),
+      qrCode,
+    })
+    ;({ merchant, activeCard, activeRewardPoolItemCount, qrCode, location } =
+      await getQrSetupFresh())
   }
 
   if (!activeCard) {
     return (
       <ReceiptCard className="grid gap-4">
         <PageTitle
-          eyebrow="Step 4 · Print"
+          eyebrow="Launch kit"
           title="Build your card first"
-          description="Nabaperks needs one active mystery visit card before it can generate a permanent venue QR for customers."
+          description="Nabaperks needs one active mystery visit card before it can create your permanent venue QR."
           titleClassName="sm:text-3xl"
         />
         <Button asChild className="w-fit">
@@ -45,18 +83,14 @@ export async function QrPanel({ params }: { params: QrPanelParams }) {
   }
 
   if (!qrCode) {
+    const canCreateQr = activeRewardPoolItemCount >= 3 && readiness.tabs.venue
+
     return (
       <ReceiptCard className="grid gap-5">
         <PageTitle
-          eyebrow="Step 4 · Print"
-          title="Generate your venue QR"
-          description={
-            <>
-              This creates one app-controlled customer entry QR for{" "}
-              <strong>{activeCard.card_name}</strong>. Add at least 3 active
-              mystery rewards before launch.
-            </>
-          }
+          eyebrow="Launch kit"
+          title="Your QR is not live yet"
+          description="Create the permanent venue QR once venue, card, and rewards are ready. Billing is the final activation step."
           titleClassName="sm:text-3xl"
         />
         <QrErrorBanner error={params.error} />
@@ -72,15 +106,24 @@ export async function QrPanel({ params }: { params: QrPanelParams }) {
             </Link>
             .
           </StatusBanner>
+        ) : canCreateQr ? (
+          <form action={generateQrCodeAction}>
+            <Button type="submit" variant="reward">
+              Create QR
+            </Button>
+          </form>
+        ) : readiness.nextStep ? (
+          <StatusBanner tone="warning" title="Finish setup to go live.">
+            Next up: {readiness.nextStep.actionLabel}.{" "}
+            <Link
+              href={readiness.nextStep.href}
+              className="font-bold underline underline-offset-4"
+            >
+              Continue setup
+            </Link>
+            .
+          </StatusBanner>
         ) : null}
-        <form action={generateQrCodeAction} className="flex flex-wrap gap-2">
-          <Button type="submit" disabled={activeRewardPoolItemCount < 3}>
-            Generate QR
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/app/launch?tab=rewards">Review reward pool</Link>
-          </Button>
-        </form>
       </ReceiptCard>
     )
   }
@@ -114,7 +157,7 @@ export async function QrPanel({ params }: { params: QrPanelParams }) {
 
   return (
     <div className="grid gap-5">
-      {statusMessage(params)}
+      {statusMessage(params, launchReady, continueHref)}
       <ReceiptCard className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
         <div className="grid h-fit content-start gap-4">
           <QrFrame label={`Scanner-safe QR code for ${activeCard.card_name}`}>
@@ -141,7 +184,7 @@ export async function QrPanel({ params }: { params: QrPanelParams }) {
 
         <div className="grid content-start gap-5">
           <PageTitle
-            eyebrow="Step 4 · Print"
+            eyebrow="Launch kit"
             title={activeCard.card_name}
             description="Customers scan this permanent code to join, collect today's stamp, and unlock a surprise reward."
             titleClassName="sm:text-3xl"
@@ -283,21 +326,34 @@ export async function QrPanel({ params }: { params: QrPanelParams }) {
   )
 }
 
-function statusMessage(params: QrPanelParams) {
+function statusMessage(
+  params: QrPanelParams,
+  launchReady: boolean,
+  continueHref?: string | null
+) {
   const message = params.created
     ? "QR code created."
     : params.enabled
       ? "QR code enabled."
       : params.disabled
         ? "QR code disabled."
-        : null
+        : launchReady
+          ? "Your venue QR is live."
+          : null
 
   if (!message) return null
 
   return (
     <StatusBanner tone="success" title={message}>
       The permanent <code>/q/{"{qr_id}"}</code> resolver, share URL, and
-      downloads remain unchanged.
+      downloads are ready below.
+      {continueHref ? (
+        <LaunchSaveNextAction
+          nextHref={continueHref}
+          nextLabel="billing"
+          stayHref="/app/launch?tab=qr"
+        />
+      ) : null}
     </StatusBanner>
   )
 }

@@ -184,6 +184,7 @@ describe("05 merchant shell, dashboard, customers, activity, and billing readbac
         nextStep: null,
         tabs: { card: true, staff: true, qr: true },
         steps: [],
+        checklist: [],
       })),
     }))
     vi.doMock("@/lib/merchant/activity", () => ({

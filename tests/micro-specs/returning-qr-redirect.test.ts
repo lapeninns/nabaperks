@@ -44,7 +44,7 @@ describe("destinationForReturningQrVisit", () => {
     await expect(
       destinationForReturningQrVisit(
         "old-crown-girton",
-        "old-crown-girton-qr",
+        "old-crown-girton",
         {
           issueStamp: true,
         }
@@ -83,12 +83,12 @@ describe("destinationForReturningQrVisit", () => {
     await expect(
       destinationForReturningQrVisit(
         "old-crown-girton",
-        "old-crown-girton-qr",
+        "old-crown-girton",
         {
           issueStamp: false,
         }
       )
-    ).resolves.toBe("/card/membership-1/stamp?qr=old-crown-girton-qr")
+    ).resolves.toBe("/card/membership-1/stamp?qr=old-crown-girton")
   })
 
   it("issues today's stamp after OTP and lands on the card celebration", async () => {
@@ -113,7 +113,7 @@ describe("destinationForReturningQrVisit", () => {
         id: "membership-1",
       })),
       getStampQrContextForMembership: vi.fn(async () => ({
-        qrId: "old-crown-girton-qr",
+        qrId: "old-crown-girton",
       })),
     }))
     vi.doMock("@/lib/customer/card", () => ({
@@ -142,7 +142,7 @@ describe("destinationForReturningQrVisit", () => {
     await expect(
       destinationForReturningQrVisit(
         "old-crown-girton",
-        "old-crown-girton-qr",
+        "old-crown-girton",
         {
           issueStamp: true,
         }
@@ -182,7 +182,7 @@ describe("destinationForReturningQrVisit", () => {
         id: "membership-1",
       })),
       getStampQrContextForMembership: vi.fn(async () => ({
-        qrId: "old-crown-girton-qr",
+        qrId: "old-crown-girton",
       })),
     }))
     vi.doMock("@/lib/customer/card", () => ({
@@ -210,7 +210,7 @@ describe("destinationForReturningQrVisit", () => {
 
     await destinationForReturningQrVisit(
       "old-crown-girton",
-      "old-crown-girton-qr",
+      "old-crown-girton",
       {
         issueStamp: true,
         coordinates: { latitude: 51.524, longitude: -0.071 },
@@ -248,7 +248,7 @@ describe("destinationForReturningQrVisit", () => {
         id: "membership-1",
       })),
       getStampQrContextForMembership: vi.fn(async () => ({
-        qrId: "old-crown-girton-qr",
+        qrId: "old-crown-girton",
       })),
     }))
     vi.doMock("@/lib/customer/card", () => ({
@@ -277,12 +277,12 @@ describe("destinationForReturningQrVisit", () => {
     await expect(
       destinationForReturningQrVisit(
         "old-crown-girton",
-        "old-crown-girton-qr",
+        "old-crown-girton",
         {
           issueStamp: true,
         }
       )
-    ).resolves.toBe("/card/membership-1/stamp?qr=old-crown-girton-qr")
+    ).resolves.toBe("/card/membership-1/stamp?qr=old-crown-girton")
 
     expect(getMembershipLocationRequirement).toHaveBeenCalledWith(
       "membership-1"
@@ -305,7 +305,7 @@ describe("destinationForReturningQrVisit", () => {
         id: "membership-1",
       })),
       getStampQrContextForMembership: vi.fn(async () => ({
-        qrId: "old-crown-girton-qr",
+        qrId: "old-crown-girton",
       })),
     }))
     vi.doMock("@/lib/customer/card", () => ({
@@ -332,7 +332,7 @@ describe("destinationForReturningQrVisit", () => {
     await expect(
       destinationForReturningQrVisit(
         "old-crown-girton",
-        "old-crown-girton-qr",
+        "old-crown-girton",
         {
           issueStamp: true,
         }
@@ -356,7 +356,7 @@ describe("destinationForReturningQrVisit", () => {
         id: "membership-1",
       })),
       getStampQrContextForMembership: vi.fn(async () => ({
-        qrId: "old-crown-girton-qr",
+        qrId: "old-crown-girton",
       })),
     }))
     vi.doMock("@/lib/customer/card", () => ({
@@ -383,7 +383,7 @@ describe("destinationForReturningQrVisit", () => {
     await expect(
       destinationForReturningQrVisit(
         "old-crown-girton",
-        "old-crown-girton-qr",
+        "old-crown-girton",
         {
           issueStamp: true,
         }
@@ -409,7 +409,7 @@ describe("destinationForReturningQrVisit", () => {
         id: "membership-1",
       })),
       getStampQrContextForMembership: vi.fn(async () => ({
-        qrId: "old-crown-girton-qr",
+        qrId: "old-crown-girton",
       })),
     }))
     vi.doMock("@/lib/customer/card", () => ({
@@ -438,12 +438,12 @@ describe("destinationForReturningQrVisit", () => {
     await expect(
       destinationForReturningQrVisit(
         "old-crown-girton",
-        "old-crown-girton-qr",
+        "old-crown-girton",
         {
           issueStamp: true,
         }
       )
-    ).resolves.toBe("/card/membership-1/stamp?qr=old-crown-girton-qr")
+    ).resolves.toBe("/card/membership-1/stamp?qr=old-crown-girton")
   })
 
   it("routes an already-stamped customer to the stamped-today screen after OTP", async () => {
@@ -464,7 +464,7 @@ describe("destinationForReturningQrVisit", () => {
         id: "membership-1",
       })),
       getStampQrContextForMembership: vi.fn(async () => ({
-        qrId: "old-crown-girton-qr",
+        qrId: "old-crown-girton",
       })),
     }))
     vi.doMock("@/lib/customer/card", () => ({
@@ -493,11 +493,11 @@ describe("destinationForReturningQrVisit", () => {
     await expect(
       destinationForReturningQrVisit(
         "old-crown-girton",
-        "old-crown-girton-qr",
+        "old-crown-girton",
         {
           issueStamp: true,
         }
       )
-    ).resolves.toBe("/card/membership-1/stamp?qr=old-crown-girton-qr")
+    ).resolves.toBe("/card/membership-1/stamp?qr=old-crown-girton")
   })
 })

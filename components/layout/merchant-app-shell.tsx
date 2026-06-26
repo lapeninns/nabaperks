@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import type { ComponentProps, ReactNode } from "react"
 import { Logout01Icon } from "@hugeicons/core-free-icons"
 
@@ -21,11 +22,39 @@ export function MerchantAppShell({
   children,
   signOutAction,
   activePath,
+  variant = "full",
 }: {
   children: ReactNode
   signOutAction: ComponentProps<"form">["action"]
   activePath?: string
+  variant?: "full" | "setup"
 }) {
+  if (variant === "setup") {
+    return (
+      <div className="min-h-svh bg-background">
+        <header className="sticky top-0 z-30 border-b-2 border-ink bg-card">
+          <div className="mx-auto flex min-h-16 w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+            <Logo href="/app/launch" />
+            <div className="flex flex-wrap items-center gap-2">
+              <Button asChild variant="secondary" size="sm">
+                <Link href="/app">Dashboard</Link>
+              </Button>
+              <form action={signOutAction}>
+                <Button type="submit" variant="outline" size="sm">
+                  <Icon icon={Logout01Icon} size={16} />
+                  Log out
+                </Button>
+              </form>
+            </div>
+          </div>
+        </header>
+        <main className="w-full px-4 py-8 pb-32 sm:px-6 sm:pb-10">
+          <div className="mx-auto w-full max-w-6xl">{children}</div>
+        </main>
+      </div>
+    )
+  }
+
   return (
     <SidebarProvider
       className="min-h-svh bg-background"

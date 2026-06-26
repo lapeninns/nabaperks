@@ -1,22 +1,16 @@
 "use client"
 
-import { useEffect, useState } from "react"
-
+import { useState } from "react"
 import type { CSSProperties } from "react"
 
-import { useReducedMotionHook } from "@/lib/motion/use-reduced-motion"
 import { stampDisplayDates } from "@/lib/customer/uk-calendar"
 import { cn } from "@/lib/utils"
 
 import { RewardChip, StampDot } from "./stamp-grid"
+import { useStampJourneyLoop } from "./use-stamp-journey-loop"
 
 /** Same hand-stamped tilt cycle as the live StampGrid, seeded by slot index. */
 const PREVIEW_TILTS = ["-7deg", "-5deg", "-8deg", "-6deg"] as const
-
-const INITIAL_DELAY_MS = 520
-const STAMP_STEP_MS = 780
-const GIFT_REVEAL_MS = 420
-const LOOP_PAUSE_MS = 2600
 
 /**
  * Decorative join preview: empty row → stamp 1, 2, 3 slam in → gift box pops on.
@@ -31,70 +25,11 @@ export function StampJourneyPreview({
   venueName?: string
   className?: string
 }) {
-  const shouldReduceMotion = useReducedMotionHook()
   const safeTotal = Math.max(total, 0)
   /** Anchor to the UK calendar day when the customer opens this page. */
   const [previewDates] = useState(() => stampDisplayDates(safeTotal))
-  const [earnedCount, setEarnedCount] = useState(0)
-  const [giftRevealed, setGiftRevealed] = useState(false)
-  const [slamIndex, setSlamIndex] = useState(-1)
-  const [giftSlam, setGiftSlam] = useState(false)
-  const [giftRevealKey, setGiftRevealKey] = useState(0)
-
-  useEffect(() => {
-    // Reduced motion never animates — the finished row is derived during render.
-    if (shouldReduceMotion) return
-
-    let cancelled = false
-    const timeouts = new Set<ReturnType<typeof setTimeout>>()
-
-    const schedule = (fn: () => void, delay: number) => {
-      const id = setTimeout(() => {
-        timeouts.delete(id)
-        if (!cancelled) fn()
-      }, delay)
-      timeouts.add(id)
-    }
-
-    const resetCycle = () => {
-      setEarnedCount(0)
-      setGiftRevealed(false)
-      setGiftSlam(false)
-      setSlamIndex(-1)
-      schedule(() => stepStamp(1), INITIAL_DELAY_MS)
-    }
-
-    const stepStamp = (count: number) => {
-      setEarnedCount(count)
-      setSlamIndex(count - 1)
-      setGiftRevealed(false)
-      setGiftSlam(false)
-
-      if (count < safeTotal) {
-        schedule(() => stepStamp(count + 1), STAMP_STEP_MS)
-        return
-      }
-
-      schedule(() => {
-        setSlamIndex(-1)
-        setGiftRevealed(true)
-        setGiftSlam(true)
-        setGiftRevealKey((key) => key + 1)
-        schedule(resetCycle, LOOP_PAUSE_MS)
-      }, GIFT_REVEAL_MS)
-    }
-
-    resetCycle()
-
-    return () => {
-      cancelled = true
-      for (const id of timeouts) clearTimeout(id)
-    }
-  }, [safeTotal, shouldReduceMotion])
-
-  // Reduced motion shows the completed row without ever animating state.
-  const renderEarnedCount = shouldReduceMotion ? safeTotal : earnedCount
-  const renderGiftRevealed = shouldReduceMotion ? true : giftRevealed
+  const { earnedCount, slamIndex, revealed, revealSlam, revealKey } =
+    useStampJourneyLoop(safeTotal)
 
   const columnCount = Math.min(Math.max(safeTotal, 1), 6) + 1
 
@@ -108,7 +43,7 @@ export function StampJourneyPreview({
       }}
     >
       {Array.from({ length: safeTotal }).map((_, index) => {
-        const earned = index < renderEarnedCount
+        const earned = index < earnedCount
 
         return (
           <span
@@ -135,8 +70,8 @@ export function StampJourneyPreview({
         )
       })}
       <span role="listitem">
-        {renderGiftRevealed ? (
-          <RewardChip key={giftRevealKey} slotState="locked" slammed={giftSlam} />
+        {revealed ? (
+          <RewardChip key={revealKey} slotState="locked" slammed={revealSlam} />
         ) : (
           <RewardChip slotState="locked" placeholder />
         )}

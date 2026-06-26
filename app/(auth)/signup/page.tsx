@@ -13,7 +13,7 @@ import { MarketingLayout } from "@/components/layout"
 
 const trustPoints = [
   "No app to download",
-  "No card to start the pilot",
+  "Card required to go live",
   "Stamped in seconds at the counter",
 ]
 
@@ -25,7 +25,7 @@ export default function SignUpPage() {
           <PageTitle
             eyebrow="Start trial"
             title="Your first stamp is waiting."
-            description="Create a merchant account for your first QR loyalty card. Verify your email, then continue through the safe setup path to add your venue, card, rewards, and QR assets."
+            description="Create a merchant account for your first QR loyalty card. Verify your email, then add your venue, card, rewards, QR assets, and billing card before launch."
             titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
             descriptionClassName="text-base leading-7"
             className="md:grid-cols-1"
@@ -33,7 +33,7 @@ export default function SignUpPage() {
           <ReceiptCard edge className="grid gap-3">
             <div className="flex items-center gap-3">
               <VenueMark size={46} />
-              <Eyebrow>30-day pilot · no card</Eyebrow>
+              <Eyebrow>30 days free · card required</Eyebrow>
             </div>
             <ul className="grid gap-2">
               {trustPoints.map((point) => (
@@ -63,8 +63,9 @@ export default function SignUpPage() {
               Start your 30-day free pilot
             </h2>
             <p className="text-sm leading-6 text-muted-foreground">
-              Use email and password to start the 5-minute setup. Verification
-              continues through /auth/confirm before onboarding.
+              Use email and password to start the 5-minute setup. Your email
+              link lands at /auth/confirm; add a card to activate the venue,
+              and billing starts after the free trial.
             </p>
           </div>
           <AuthForm action={signUpAction} mode="sign-up" />

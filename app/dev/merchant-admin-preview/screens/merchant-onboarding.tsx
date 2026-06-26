@@ -1,22 +1,8 @@
 import { PageTitle, ReceiptCard } from "@/components/brand"
 import { OnboardingForm } from "@/components/merchant/onboarding-form"
+import { getGoogleMapsPublicKey } from "@/lib/env/google-maps-public-key"
+import { MERCHANT_SETUP_STEPS } from "@/lib/merchant/launch-readiness-contract"
 import { MERCHANT_PREVIEW_MOCK } from "./mock-data"
-
-const setupSteps = [
-  {
-    title: "Business profile",
-    description: "Your name, your type of venue, and where customers find you.",
-  },
-  {
-    title: "Mystery card",
-    description:
-      "Choose how many visits earn a reward, and what is in the pool.",
-  },
-  {
-    title: "Launch QR",
-    description: "Print the poster, till card, and sticker from the QR page.",
-  },
-]
 
 /**
  * Mirror of `/app/onboarding`. Reuses the real `OnboardingForm` (client) with
@@ -41,6 +27,7 @@ export function MerchantOnboardingScreen() {
           locationName: MERCHANT_PREVIEW_MOCK.locationName,
           phone: MERCHANT_PREVIEW_MOCK.phone,
         }}
+        googleMapsApiKey={getGoogleMapsPublicKey()}
       />
 
       <aside className="grid h-fit gap-4 rounded-lg border bg-secondary/60 p-5 shadow-xs lg:col-start-2 lg:row-span-2 lg:row-start-1">
@@ -55,8 +42,8 @@ export function MerchantOnboardingScreen() {
           </p>
         </div>
         <ol className="grid gap-3">
-          {setupSteps.map((step, index) => (
-            <li key={step.title} className="grid grid-cols-[2rem_1fr] gap-3">
+          {MERCHANT_SETUP_STEPS.map((step, index) => (
+            <li key={step.id} className="grid grid-cols-[2rem_1fr] gap-3">
               <span className="grid size-8 place-items-center rounded-full bg-card font-mono text-sm font-bold shadow-xs">
                 {index + 1}
               </span>

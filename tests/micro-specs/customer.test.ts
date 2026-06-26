@@ -355,7 +355,7 @@ describe("03 customer micro-specs", () => {
     vi.resetModules()
     const redirect = redirectMock()
     const destinationForReturningQrVisit = vi.fn(
-      async () => "/card/membership-1/stamp?qr=old-crown-girton-qr"
+      async () => "/card/membership-1/stamp?qr=old-crown-girton"
     )
 
     vi.doMock("next/navigation", () => ({ redirect }))
@@ -376,7 +376,7 @@ describe("03 customer micro-specs", () => {
     vi.doMock("@/lib/customer/join", () => ({
       getMerchantJoinContext: vi.fn(async () => ({
         available: true,
-        qrId: "old-crown-girton-qr",
+        qrId: "old-crown-girton",
         qrCodeId: "qr-row-1",
         merchant: {
           id: "merchant-1",
@@ -408,10 +408,10 @@ describe("03 customer micro-specs", () => {
     await expect(
       MerchantJoinPage({
         params: Promise.resolve({ merchantSlug: "old-crown-girton" }),
-        searchParams: Promise.resolve({ qr: "old-crown-girton-qr" }),
+        searchParams: Promise.resolve({ qr: "old-crown-girton" }),
       })
     ).rejects.toThrow(
-      "NEXT_REDIRECT:/card/membership-1/stamp?qr=old-crown-girton-qr"
+      "NEXT_REDIRECT:/card/membership-1/stamp?qr=old-crown-girton"
     )
 
     expect(destinationForReturningQrVisit).not.toHaveBeenCalled()

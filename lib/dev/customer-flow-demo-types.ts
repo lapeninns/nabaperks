@@ -6,7 +6,7 @@ export const CUSTOMER_FLOW_DEMO = {
   phone: "07467586751",
   merchantId: "10000000-0000-0000-0000-000000000001",
   merchantSlug: "old-crown-girton",
-  qrId: "old-crown-girton-qr",
+  qrId: "old-crown-girton",
 } as const
 
 export const CUSTOMER_FLOW_COMMANDS = [

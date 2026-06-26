@@ -128,7 +128,7 @@ begin
   perform public.issue_self_service_stamp(
     '16000000-0000-0000-0000-0000000000c1',
     '15000000-0000-0000-0000-0000000000c1',
-    'old-crown-girton-qr'
+    'old-crown-girton'
   );
 
   select cycle_number into v_today_cycle

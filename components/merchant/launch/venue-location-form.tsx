@@ -16,6 +16,7 @@ import {
 } from "@/components/merchant/launch/venue-place-autocomplete"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Button } from "@/components/ui/button"
+import { LaunchSaveNextAction } from "@/components/merchant/launch/launch-tab-auto-advance"
 import type {
   GeofencePinSource,
   VenueAddressFormFields,
@@ -40,25 +41,11 @@ type VenueLocationFormValues = VenueAddressFormFields & {
   requireGeofence: boolean
 }
 
-// Address provenance the hidden fields submit. A fresh Google Places selection
-// sets provider_lookup/google_places; any manual edit resets it to manual_entry
-// so the server geocodes the typed address instead of trusting stale provider
-// coordinates.
-type ProviderProvenance = {
-  source: "manual_entry" | "provider_lookup"
-  provider: "" | "google_places"
-  id: string
-  latitude: string
-  longitude: string
-}
-
-const MANUAL_PROVENANCE: ProviderProvenance = {
-  source: "manual_entry",
-  provider: "",
-  id: "",
-  latitude: "",
-  longitude: "",
-}
+import {
+  MANUAL_VENUE_PROVENANCE,
+  VenueProviderProvenanceFields,
+  type ProviderProvenance,
+} from "@/components/merchant/venue-provider-provenance-fields"
 
 type VenueCoordinates = {
   latitude: number
@@ -101,8 +88,9 @@ export function VenueLocationForm({
     addressCity: initialValues.addressCity,
     addressPostcode: initialValues.addressPostcode,
   })
-  const [provenance, setProvenance] =
-    useState<ProviderProvenance>(MANUAL_PROVENANCE)
+  const [provenance, setProvenance] = useState<ProviderProvenance>(
+    MANUAL_VENUE_PROVENANCE
+  )
 
   const savedCoordinates: VenueCoordinates | null =
     geocoded?.latitude != null && geocoded?.longitude != null
@@ -121,7 +109,7 @@ export function VenueLocationForm({
   // A manual address edit can no longer be trusted as a provider selection, so
   // drop provider provenance and reset the pin source back to geocoded.
   function handleAddressEdit() {
-    setProvenance(MANUAL_PROVENANCE)
+    setProvenance(MANUAL_VENUE_PROVENANCE)
     setPendingPinSource("geocoded")
   }
 
@@ -158,6 +146,11 @@ export function VenueLocationForm({
       {state.saved ? (
         <StatusBanner tone="success" title="Venue location saved.">
           Your QR and stamp checks now use this address.
+          <LaunchSaveNextAction
+            nextHref="/app/launch?tab=card"
+            nextLabel="your card"
+            stayHref="/app/launch?tab=venue"
+          />
         </StatusBanner>
       ) : null}
 
@@ -174,7 +167,7 @@ export function VenueLocationForm({
         onAddressChange={handleAddressEdit}
       />
 
-      <ProviderProvenanceFields provenance={provenance} />
+      <VenueProviderProvenanceFields provenance={provenance} />
 
       <input type="hidden" name="venueLatitude" value={pin?.latitude ?? ""} />
       <input type="hidden" name="venueLongitude" value={pin?.longitude ?? ""} />
@@ -215,30 +208,6 @@ export function VenueLocationForm({
         {pending ? "Saving location..." : "Save venue address"}
       </Button>
     </form>
-  )
-}
-
-function ProviderProvenanceFields({
-  provenance,
-}: {
-  provenance: ProviderProvenance
-}) {
-  return (
-    <>
-      <input type="hidden" name="addressSource" value={provenance.source} />
-      <input type="hidden" name="addressProvider" value={provenance.provider} />
-      <input type="hidden" name="addressProviderId" value={provenance.id} />
-      <input
-        type="hidden"
-        name="providerLatitude"
-        value={provenance.latitude}
-      />
-      <input
-        type="hidden"
-        name="providerLongitude"
-        value={provenance.longitude}
-      />
-    </>
   )
 }
 

@@ -297,6 +297,87 @@ describe("customer home dashboard", () => {
     })
   })
 
+  it("marks billing-required cardless merchants unavailable on customer home", async () => {
+    vi.resetModules()
+    mockCurrentCustomer()
+    vi.doMock("@/lib/customer/uk-date", () => ({
+      isRedeemableFrom: (redeemableFrom: string | null) =>
+        !redeemableFrom || redeemableFrom <= "2026-06-14",
+      ukTodayIso: () => "2026-06-14",
+    }))
+    const supabase = createSupabaseMock({
+      from: {
+        customer_memberships: [
+          {
+            data: [
+              {
+                id: "membership-1",
+                merchant_id: "merchant-1",
+                current_stamp_count: 1,
+                active_cycle_number: 1,
+                last_visit_at: "2026-06-14T09:00:00.000Z",
+                merchants: {
+                  business_name: "Old Crown Girton",
+                  business_slug: "old-crown-girton",
+                  status: "active",
+                  requires_billing: true,
+                },
+              },
+            ],
+            error: null,
+          },
+        ],
+        loyalty_cards: [
+          {
+            data: [
+              {
+                merchant_id: "merchant-1",
+                card_name: "Morning visits",
+                stamps_required: 3,
+                reward_name: "Free coffee",
+                is_active: true,
+              },
+            ],
+            error: null,
+          },
+        ],
+        reward_events: [{ data: [], error: null }],
+        billing_customers: [{ data: [], error: null }],
+        stamp_events: [
+          {
+            data: [
+              {
+                membership_id: "membership-1",
+                earned_business_date: "2026-06-13",
+              },
+            ],
+            error: null,
+          },
+        ],
+        product_events: [{ data: [], error: null }],
+      },
+    })
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServiceRoleClient: vi.fn(() => supabase.client),
+    }))
+
+    const { getCustomerHomeDashboard } = await import("@/lib/customer/home")
+
+    const dashboard = await getCustomerHomeDashboard()
+
+    expect(dashboard.cards[0]).toEqual(
+      expect.objectContaining({
+        available: false,
+        unavailableReason: "This venue isn't taking stamps yet.",
+      })
+    )
+    expect(dashboard.summary).toEqual({
+      cardCount: 1,
+      redeemableCount: 0,
+      stampAvailableCount: 0,
+    })
+  })
+
   it("captures the waiting reward name and ready date on the home card", async () => {
     vi.resetModules()
     mockCurrentCustomer()

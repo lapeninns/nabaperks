@@ -201,6 +201,7 @@ describe("baseline performance and read-path analytics", () => {
         nextStep: null,
         tabs: { card: true, staff: true, qr: true },
         steps: [],
+        checklist: [],
       })),
     }))
     const pendingPostHog = new Promise<void>(() => {})

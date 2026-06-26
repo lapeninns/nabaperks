@@ -43,6 +43,7 @@ type RawQrLookup = {
         email: string
         phone: string | null
         status: string
+        requires_billing: boolean
         billing_customers: BillingCustomerEmbed
       }
     | Array<{
@@ -52,6 +53,7 @@ type RawQrLookup = {
         email: string
         phone: string | null
         status: string
+        requires_billing: boolean
         billing_customers: BillingCustomerEmbed
       }>
   loyalty_cards:
@@ -97,7 +99,7 @@ export async function resolveQrForJoin(
   const { data, error } = await supabase
     .from("qr_codes")
     .select(
-      "id, qr_id, is_active, destination_type, merchants(id, business_name, business_slug, email, phone, status, billing_customers(status)), loyalty_cards!loyalty_card_id(id, card_name, stamps_required, reward_terms, is_active)"
+      "id, qr_id, is_active, destination_type, merchants(id, business_name, business_slug, email, phone, status, requires_billing, billing_customers(status)), loyalty_cards!loyalty_card_id(id, card_name, stamps_required, reward_terms, is_active)"
     )
     .eq("qr_id", qrId)
     .maybeSingle()
@@ -117,6 +119,7 @@ export async function resolveQrForJoin(
     merchantStatus: merchant.status,
     cardActive: loyaltyCard.is_active,
     billingStatus,
+    requiresBilling: merchant.requires_billing,
   })
   const available =
     qrCode.destination_type === "join" &&
@@ -171,7 +174,7 @@ export async function getMerchantJoinContext(
   const { data, error } = await supabase
     .from("merchants")
     .select(
-      "id, business_name, business_slug, email, phone, status, billing_customers(status), loyalty_cards(id, card_name, stamps_required, reward_terms, is_active)"
+      "id, business_name, business_slug, email, phone, status, requires_billing, billing_customers(status), loyalty_cards(id, card_name, stamps_required, reward_terms, is_active)"
     )
     .eq("business_slug", merchantSlug)
     .eq("loyalty_cards.is_active", true)
@@ -190,6 +193,7 @@ export async function getMerchantJoinContext(
     merchantStatus: data.status,
     cardActive: loyaltyCard.is_active,
     billingStatus,
+    requiresBilling: data.requires_billing,
   })
 
   return {

@@ -27,4 +27,18 @@ describe("customer copy consistency", () => {
     expect(landing).toContain("Get today's stamp")
     expect(landing).not.toContain("Collect my stamp")
   })
+
+  it("states the merchant trial as card-required on public signup, pricing, and home pages", () => {
+    const publicTrialPages = [
+      readProjectFile("app/(auth)/signup/page.tsx"),
+      readProjectFile("app/pricing/page.tsx"),
+      readProjectFile("app/page.tsx"),
+    ].join("\n")
+
+    expect(publicTrialPages).toContain("30 days free")
+    expect(publicTrialPages).toContain("Card required to go live")
+    expect(publicTrialPages).toContain("card required to activate")
+    expect(publicTrialPages).not.toMatch(/\b[Nn]o card\b/)
+    expect(publicTrialPages).not.toContain(["no", "card"].join("-"))
+  })
 })

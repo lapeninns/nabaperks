@@ -49,6 +49,11 @@ const sql = postgres(dbUrl, {
   max: 1,
   ssl: shouldRequireSsl(dbUrl) ? "require" : undefined,
   transform: postgres.camel,
+  onnotice: shouldTest
+    ? (notice) => {
+        if (notice.message) console.log(notice.message)
+      }
+    : undefined,
 })
 
 try {
@@ -125,6 +130,10 @@ try {
     await runFile(
       "supabase/tests/qr_asset_enqueue.sql",
       "QR asset enqueue trigger SQL test"
+    )
+    await runFile(
+      "supabase/tests/billing_card_required.sql",
+      "Billing card required SQL test"
     )
   }
 

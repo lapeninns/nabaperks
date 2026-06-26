@@ -1,26 +1,43 @@
 "use client"
 
-import { useActionState, useEffect, useRef } from "react"
+import { useActionState, useEffect, useRef, useState } from "react"
 
 import {
   completeOnboardingAction,
   type OnboardingActionState,
 } from "@/app/app/onboarding/actions"
 import { Eyebrow, VenueMark } from "@/components/brand"
+import {
+  VenuePlaceAutocomplete,
+  type VenuePlaceSelection,
+} from "@/components/merchant/launch/venue-place-autocomplete"
+import { VenueAddressFields } from "@/components/merchant/venue-address-fields"
+import {
+  MANUAL_VENUE_PROVENANCE,
+  VenueProviderProvenanceFields,
+  type ProviderProvenance,
+} from "@/components/merchant/venue-provider-provenance-fields"
 import { Button } from "@/components/ui/button"
+import type { VenueAddressFormFields } from "@/lib/merchant/venue-address"
 import { cn } from "@/lib/utils"
 
 const initialState: OnboardingActionState = {}
 const draftStorageKey = "nabaperks:onboarding-draft"
+
+const onboardingInputClassName =
+  "h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none focus:border-ring focus:ring-3 focus:ring-ring/25"
 
 type OnboardingDraft = NonNullable<OnboardingActionState["fields"]>
 
 export function OnboardingForm({
   className,
   initialFields = {},
+  googleMapsApiKey,
 }: {
   className?: string
   initialFields?: OnboardingDraft
+  /** Dev-preview key injection; production uses the server-passed public key. */
+  googleMapsApiKey?: string
 }) {
   const hasInitialFields = Object.values(initialFields).some(Boolean)
   const [state, action, pending] = useActionState(
@@ -28,24 +45,78 @@ export function OnboardingForm({
     hasInitialFields ? { ...initialState, fields: initialFields } : initialState
   )
   const formRef = useRef<HTMLFormElement>(null)
+  const [locationName, setLocationName] = useState(
+    state.fields?.locationName ?? initialFields.locationName ?? ""
+  )
+  const [address, setAddress] = useState<VenueAddressFormFields>({
+    addressLine1: state.fields?.addressLine1 ?? "",
+    addressLine2: state.fields?.addressLine2 ?? "",
+    addressCity: state.fields?.addressCity ?? "",
+    addressPostcode: state.fields?.addressPostcode ?? "",
+  })
+  const [provenance, setProvenance] = useState<ProviderProvenance>(
+    MANUAL_VENUE_PROVENANCE
+  )
+  const [providerCoordinates, setProviderCoordinates] = useState<{
+    latitude: string
+    longitude: string
+  }>({ latitude: "", longitude: "" })
+
+  useEffect(() => {
+    if (!state.fields) return
+
+    if (state.fields.locationName !== undefined) {
+      setLocationName(state.fields.locationName)
+    }
+
+    setAddress({
+      addressLine1: state.fields.addressLine1 ?? "",
+      addressLine2: state.fields.addressLine2 ?? "",
+      addressCity: state.fields.addressCity ?? "",
+      addressPostcode: state.fields.addressPostcode ?? "",
+    })
+  }, [state.fields])
+
+  useEffect(() => {
+    if (!state.fields) return
+
+    if (state.fields.locationName !== undefined) {
+      setLocationName(state.fields.locationName)
+    }
+
+    setAddress({
+      addressLine1: state.fields.addressLine1 ?? "",
+      addressLine2: state.fields.addressLine2 ?? "",
+      addressCity: state.fields.addressCity ?? "",
+      addressPostcode: state.fields.addressPostcode ?? "",
+    })
+  }, [state.fields])
 
   useEffect(() => {
     try {
       const savedDraft = window.localStorage.getItem(draftStorageKey)
-      const draft = savedDraft ? (JSON.parse(savedDraft) as OnboardingDraft) : {}
+      const draft = savedDraft
+        ? (JSON.parse(savedDraft) as Partial<OnboardingDraft>)
+        : {}
       const form = formRef.current
       if (!form || Object.values(state.fields ?? {}).some(Boolean)) return
 
       restoreField(form, "businessName", draft.businessName)
       restoreField(form, "businessType", draft.businessType)
-      restoreField(form, "locationName", draft.locationName)
       restoreField(form, "phone", draft.phone)
+      if (draft.locationName) setLocationName(draft.locationName)
+      setAddress({
+        addressLine1: draft.addressLine1 ?? "",
+        addressLine2: draft.addressLine2 ?? "",
+        addressCity: draft.addressCity ?? "",
+        addressPostcode: draft.addressPostcode ?? "",
+      })
     } catch {
       window.localStorage.removeItem(draftStorageKey)
     }
   }, [state.fields])
 
-  function updateDraft(field: keyof OnboardingDraft, value: string) {
+  function updateDraft(partial: Partial<OnboardingDraft>) {
     try {
       const currentDraft = JSON.parse(
         window.localStorage.getItem(draftStorageKey) ?? "{}"
@@ -53,7 +124,7 @@ export function OnboardingForm({
       const nextDraft: OnboardingDraft = {
         ...initialFields,
         ...currentDraft,
-        [field]: value,
+        ...partial,
       }
       window.localStorage.setItem(draftStorageKey, JSON.stringify(nextDraft))
     } catch {
@@ -61,14 +132,47 @@ export function OnboardingForm({
     }
   }
 
+  function handleAddressEdit() {
+    setProvenance(MANUAL_VENUE_PROVENANCE)
+    setProviderCoordinates({ latitude: "", longitude: "" })
+  }
+
+  function handleFieldChange(
+    field: keyof VenueAddressFormFields,
+    value: string
+  ) {
+    setAddress((previous) => ({ ...previous, [field]: value }))
+    updateDraft({ [field]: value })
+  }
+
+  function handlePlaceSelected(selection: VenuePlaceSelection) {
+    setAddress(selection.fields)
+    if (selection.displayName) {
+      setLocationName(selection.displayName)
+      updateDraft({ locationName: selection.displayName })
+    }
+    setProvenance({
+      source: "provider_lookup",
+      provider: "google_places",
+      id: selection.placeId,
+      latitude: String(selection.latitude),
+      longitude: String(selection.longitude),
+    })
+    setProviderCoordinates({
+      latitude: String(selection.latitude),
+      longitude: String(selection.longitude),
+    })
+    updateDraft({
+      ...selection.fields,
+      locationName: selection.displayName || locationName,
+    })
+  }
+
   return (
     <form
       ref={formRef}
       action={action}
-      className={cn(
-        "surface-card grid gap-4 p-6",
-        className
-      )}
+      className={cn("surface-card grid gap-4 p-6", className)}
     >
       <div className="flex items-center gap-3">
         <VenueMark name="Nabaperks" size={48} />
@@ -80,7 +184,7 @@ export function OnboardingForm({
         label="Business name"
         name="businessName"
         defaultValue={state.fields?.businessName}
-        onChange={(event) => updateDraft("businessName", event.target.value)}
+        onChange={(event) => updateDraft({ businessName: event.target.value })}
         error={state.errors?.businessName}
       />
       <div className="grid gap-2">
@@ -91,8 +195,8 @@ export function OnboardingForm({
           id="businessType"
           name="businessType"
           defaultValue={state.fields?.businessType ?? ""}
-          onChange={(event) => updateDraft("businessType", event.target.value)}
-          className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none focus:border-ring focus:ring-3 focus:ring-ring/25"
+          onChange={(event) => updateDraft({ businessType: event.target.value })}
+          className={onboardingInputClassName}
           aria-invalid={Boolean(state.errors?.businessType)}
           aria-describedby={
             state.errors?.businessType ? "businessType-error" : undefined
@@ -116,12 +220,50 @@ export function OnboardingForm({
           </p>
         ) : null}
       </div>
+
+      <VenuePlaceAutocomplete
+        onPlaceSelected={handlePlaceSelected}
+        apiKey={googleMapsApiKey}
+      />
+
+      <VenueAddressFields
+        values={address}
+        errors={state.errors}
+        columns={2}
+        labelClassName="eyebrow"
+        inputClassName={onboardingInputClassName}
+        onFieldChange={handleFieldChange}
+        onAddressChange={handleAddressEdit}
+      />
+
+      <VenueProviderProvenanceFields provenance={provenance} />
+
+      <input
+        type="hidden"
+        name="geofenceRadiusMeters"
+        value="150"
+      />
+      <input type="hidden" name="geofencePinSource" value="geocoded" />
+      <input
+        type="hidden"
+        name="venueLatitude"
+        value={providerCoordinates.latitude}
+      />
+      <input
+        type="hidden"
+        name="venueLongitude"
+        value={providerCoordinates.longitude}
+      />
+
       <Field
         id="locationName"
         label="First location name"
         name="locationName"
-        defaultValue={state.fields?.locationName}
-        onChange={(event) => updateDraft("locationName", event.target.value)}
+        value={locationName}
+        onChange={(event) => {
+          setLocationName(event.target.value)
+          updateDraft({ locationName: event.target.value })
+        }}
         error={state.errors?.locationName}
       />
       <Field
@@ -130,7 +272,7 @@ export function OnboardingForm({
         name="phone"
         type="tel"
         defaultValue={state.fields?.phone}
-        onChange={(event) => updateDraft("phone", event.target.value)}
+        onChange={(event) => updateDraft({ phone: event.target.value })}
       />
       {state.errors?.form ? (
         <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -174,7 +316,7 @@ function Field({
       </label>
       <input
         id={id}
-        className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none focus:border-ring focus:ring-3 focus:ring-ring/25"
+        className={onboardingInputClassName}
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
         {...props}

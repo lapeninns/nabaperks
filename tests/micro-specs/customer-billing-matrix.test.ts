@@ -40,11 +40,19 @@ describe("customer billing policy matrix", () => {
     const { unavailableMessage } = await import("@/lib/customer/card")
 
     for (const status of ["trialing", "active", "past_due", null]) {
-      expect(unavailableMessage("active", true, status)).toBeUndefined()
+      expect(unavailableMessage("active", true, status, false)).toBeUndefined()
+    }
+
+    expect(unavailableMessage("active", true, null, true)).toBe(
+      "This venue isn't taking stamps yet."
+    )
+
+    for (const status of ["trialing", "active", "past_due"]) {
+      expect(unavailableMessage("active", true, status, true)).toBeUndefined()
     }
 
     for (const status of ["cancelled", "suspended"]) {
-      expect(unavailableMessage("active", true, status)).toBe(
+      expect(unavailableMessage("active", true, status, true)).toBe(
         "This loyalty programme is unavailable at the moment."
       )
     }
@@ -54,14 +62,14 @@ describe("customer billing policy matrix", () => {
     const { unavailableMessage } = await import("@/lib/customer/card")
 
     // Merchant status problems win first and read differently from billing.
-    expect(unavailableMessage("paused", true, "active")).toBe(
+    expect(unavailableMessage("paused", true, "active", true)).toBe(
       "This merchant loyalty programme is not currently active."
     )
-    expect(unavailableMessage("cancelled", true, "active")).toBe(
+    expect(unavailableMessage("cancelled", true, "active", true)).toBe(
       "This merchant loyalty programme is not currently active."
     )
     // An inactive card is its own reason, independent of billing.
-    expect(unavailableMessage("active", false, "active")).toBe(
+    expect(unavailableMessage("active", false, "active", true)).toBe(
       "This loyalty card is not currently active."
     )
   })
@@ -84,6 +92,7 @@ describe("customer billing policy matrix", () => {
                 business_name: "The Bell",
                 business_slug: "the-bell",
                 status: "active",
+                requires_billing: true,
               },
             },
             error: null,
@@ -115,9 +124,22 @@ describe("customer billing policy matrix", () => {
       unavailableReason: "This loyalty programme is unavailable at the moment.",
       billingStatus: "cancelled",
     })
+    expect(supabase.queryCalls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          table: "customer_memberships",
+          method: "select",
+          args: [
+            expect.stringContaining(
+              "merchants(business_name, business_slug, status, requires_billing)"
+            ),
+          ],
+        }),
+      ])
+    )
   })
 
-  it("marks a cancelled-billing reward view unavailable in the reward loader", async () => {
+  it("marks a missing-billing reward view unavailable when billing is required", async () => {
     vi.resetModules()
     mockCurrentCustomer()
     const supabase = createSupabaseMock({
@@ -143,7 +165,8 @@ describe("customer billing policy matrix", () => {
                 business_name: "The Bell",
                 business_slug: "the-bell",
                 status: "active",
-                billing_customers: { status: "cancelled" },
+                requires_billing: true,
+                billing_customers: null,
               },
               loyalty_cards: {
                 card_name: "Mystery Visit Card",
@@ -165,9 +188,22 @@ describe("customer billing policy matrix", () => {
 
     await expect(getCustomerRewardState("reward-1")).resolves.toMatchObject({
       status: "ready",
-      unavailableReason: "This loyalty programme is unavailable at the moment.",
-      billingStatus: "cancelled",
+      unavailableReason: "This venue isn't taking stamps yet.",
+      billingStatus: null,
     })
+    expect(supabase.queryCalls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          table: "reward_events",
+          method: "select",
+          args: [
+            expect.stringContaining(
+              "merchants(business_name, business_slug, status, requires_billing, billing_customers(status))"
+            ),
+          ],
+        }),
+      ])
+    )
     expect(supabase.queryCalls).not.toEqual(
       expect.arrayContaining([
         expect.objectContaining({ table: "billing_customers" }),
@@ -194,7 +230,8 @@ describe("customer billing policy matrix", () => {
                 email: "owner@example.test",
                 phone: null,
                 status: "active",
-                billing_customers: { status: "cancelled" },
+                requires_billing: true,
+                billing_customers: null,
               },
               loyalty_cards: {
                 id: "card-1",
@@ -226,6 +263,19 @@ describe("customer billing policy matrix", () => {
       available: false,
       merchant: { business_slug: "the-bell" },
     })
+    expect(supabase.queryCalls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          table: "qr_codes",
+          method: "select",
+          args: [
+            expect.stringContaining(
+              "merchants(id, business_name, business_slug, email, phone, status, requires_billing, billing_customers(status))"
+            ),
+          ],
+        }),
+      ])
+    )
     expect(supabase.queryCalls).not.toEqual(
       expect.arrayContaining([
         expect.objectContaining({ table: "billing_customers" }),
@@ -253,6 +303,7 @@ describe("customer billing policy matrix", () => {
                 phone: null,
                 // Billing is healthy; only the merchant programme is paused.
                 status: "paused",
+                requires_billing: true,
                 billing_customers: { status: "active" },
               },
               loyalty_cards: {
@@ -305,6 +356,7 @@ describe("customer billing policy matrix", () => {
               email: "owner@example.test",
               phone: null,
               status: "cancelled",
+              requires_billing: true,
               billing_customers: { status: "active" },
               loyalty_cards: {
                 id: "card-1",
@@ -336,7 +388,7 @@ describe("customer billing policy matrix", () => {
     )
   })
 
-  it("allows a merchant slug join when embedded billing is null", async () => {
+  it("blocks a merchant slug join when billing is required and embedded billing is null", async () => {
     vi.resetModules()
     const supabase = createSupabaseMock({
       from: {
@@ -349,6 +401,7 @@ describe("customer billing policy matrix", () => {
               email: "owner@example.test",
               phone: null,
               status: "active",
+              requires_billing: true,
               billing_customers: null,
               loyalty_cards: {
                 id: "card-1",
@@ -370,9 +423,22 @@ describe("customer billing policy matrix", () => {
     const { getMerchantJoinContext } = await import("@/lib/customer/join")
 
     await expect(getMerchantJoinContext("the-bell")).resolves.toMatchObject({
-      available: true,
+      available: false,
       merchant: { business_slug: "the-bell" },
     })
+    expect(supabase.queryCalls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          table: "merchants",
+          method: "select",
+          args: [
+            expect.stringContaining(
+              "status, requires_billing, billing_customers(status)"
+            ),
+          ],
+        }),
+      ])
+    )
     expect(supabase.queryCalls).not.toEqual(
       expect.arrayContaining([
         expect.objectContaining({ table: "billing_customers" }),

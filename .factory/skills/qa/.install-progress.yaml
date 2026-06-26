@@ -1,0 +1,59 @@
+phase: install-qa
+updated_at: "2026-06-26"
+analysis:
+  previous_progress_found: false
+  apps:
+    web:
+      type: "Next.js App Router web app"
+      test_tool: "agent-browser"
+      path_patterns:
+        - "app/**"
+        - "components/**"
+        - "lib/**"
+        - "public/**"
+  environments_found:
+    local:
+      url: "http://localhost:3000"
+      notes: "Use local/dev Supabase and seeded test data."
+    preview:
+      provider: "Vercel"
+      notes: "PR previews behave like dev and must use dev/test flows."
+    production:
+      provider: "Vercel"
+      notes: "Main branch production deployment."
+  auth:
+    merchant: "Supabase Auth email/password"
+    customer: "Twilio Verify phone OTP with CUSTOMER_DEV_OTP_CODE=424242 outside production"
+    admin: "Supabase Auth plus internal_admins, MFA required in production"
+  imagemagick: true
+answers:
+  default_target: "local"
+  environment_restrictions:
+    - "Only use seeded/local test data"
+  personas:
+    role_set:
+      - "guest"
+      - "customer"
+      - "merchant"
+      - "admin"
+    credentials_source: "seeded local accounts"
+    negative_test_boundaries:
+      - "Customer cannot access merchant/admin consoles"
+      - "Merchant cannot access admin console"
+      - "Guest cannot stamp/redeem without OTP"
+  critical_flows: "all detected flows"
+  success_criteria: "User reaches expected confirmation/surface"
+  cleanup_data: "No, use seeded/local resettable data"
+  external_services:
+    strategy: "Use local seeded/dev placeholders where possible"
+    otp_email_strategy: "Use CUSTOMER_DEV_OTP_CODE=424242"
+  cleanup:
+    auto_cleanup: false
+    strategy: "none"
+    instructions: "Use seeded/local resettable data only."
+  imagemagick: true
+  github_action:
+    generate: false
+    check_mode: "not applicable"
+    pr_target_strategy: "local Droid session only"
+  failure_learning: "suggest_in_report"

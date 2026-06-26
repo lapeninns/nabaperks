@@ -58,11 +58,13 @@ type RawMembership = {
         business_name: string
         business_slug: string
         status: string
+        requires_billing: boolean
       }
     | Array<{
         business_name: string
         business_slug: string
         status: string
+        requires_billing: boolean
       }>
 }
 
@@ -77,7 +79,7 @@ export async function getCustomerCardState(
   const { data, error } = await supabase
     .from("customer_memberships")
     .select(
-      "id, merchant_id, customer_id, current_stamp_count, total_rewards_redeemed, active_cycle_number, merchants(business_name, business_slug, status)"
+      "id, merchant_id, customer_id, current_stamp_count, total_rewards_redeemed, active_cycle_number, merchants(business_name, business_slug, status, requires_billing)"
     )
     .eq("id", membershipId)
     .maybeSingle()
@@ -140,7 +142,8 @@ export async function getCustomerCardState(
   const unavailableReason = unavailableMessage(
     merchant.status,
     loyaltyCard?.is_active ?? false,
-    billing?.status ?? null
+    billing?.status ?? null,
+    merchant.requires_billing
   )
 
   return {
@@ -176,12 +179,14 @@ export async function getCustomerCardState(
 export function unavailableMessage(
   merchantStatus: string,
   cardActive: boolean,
-  billingStatus: string | null
+  billingStatus: string | null,
+  requiresBilling = false
 ) {
   return loyaltyAvailability({
     merchantStatus,
     cardActive,
     billingStatus,
+    requiresBilling,
   }).message
 }
 

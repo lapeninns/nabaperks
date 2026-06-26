@@ -1,10 +1,12 @@
 "use server"
 
+import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
 import { capturePostHogEvent } from "@/lib/analytics/events"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { DEFAULT_STAMPS_REQUIRED } from "@/lib/merchant/customer-readback"
+import { seedDefaultRewardPoolIfEmpty } from "@/lib/merchant/seed-default-reward-pool"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 const CARD_SAVE_ERROR =
@@ -123,7 +125,7 @@ export async function saveLoyaltyCardAction(
   }
 
   const supabase = await createSupabaseServerClient()
-  const { error } = await supabase.rpc("save_loyalty_card", {
+  const { data, error } = await supabase.rpc("save_loyalty_card", {
     p_merchant_id: merchant.id,
     p_card_id: cardId || null,
     p_card_name: cardName,
@@ -142,6 +144,17 @@ export async function saveLoyaltyCardAction(
     }
   }
 
+  const savedCardId = data?.[0]?.loyalty_card_id
+  const savedAction = data?.[0]?.saved_action
+
+  if (
+    savedCardId &&
+    savedAction === "loyalty_card_created"
+  ) {
+    await seedDefaultRewardPoolIfEmpty(supabase, merchant.id, savedCardId)
+    revalidatePath("/app/launch")
+  }
+
   await capturePostHogEvent({
     eventName: cardId ? "loyalty_card_updated" : "loyalty_card_created",
     merchantId: merchant.id,
@@ -149,7 +162,16 @@ export async function saveLoyaltyCardAction(
     actorId: merchant.id,
   })
 
-  redirect("/app/launch?tab=card&saved=1")
+  const redirectTab =
+    savedAction === "loyalty_card_created" ? "rewards" : "card"
+  const redirectSaved =
+    savedAction === "loyalty_card_created" ? "pool" : "1"
+
+  redirect(
+    `/app/launch?tab=${redirectTab}&saved=${redirectSaved}${
+      savedAction === "loyalty_card_created" ? "&seeded=1" : ""
+    }`
+  )
 }
 
 export async function saveRewardPoolItemAction(

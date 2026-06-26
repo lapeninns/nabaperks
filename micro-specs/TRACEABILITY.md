@@ -989,6 +989,83 @@ Status evidence:
 | `MS-MERCHANT-VALUE-DASHBOARD-ACTIVITY-ROI-005` | `RES-MS-MERCHANT-VALUE-DASHBOARD-ACTIVITY-ROI-005-a` | resilience | unit  | covered | the billing status is past_due, cancelled, or suspended → surface the correct warning or disabled state       | tests/micro-specs/analytics-dashboard-pilot.test.ts<br>tests/micro-specs/perf-rpc-consolidation.test.ts<br>tests/micro-specs/merchant-console-trust-ia.test.ts |
 | `MS-MERCHANT-VALUE-DASHBOARD-ACTIVITY-ROI-006` | `RES-MS-MERCHANT-VALUE-DASHBOARD-ACTIVITY-ROI-006-a` | resilience | unit  | covered | a merchant views activity → list recent stamps, redemptions, joins, and QR downloads with readable timestamps | tests/micro-specs/analytics-dashboard-pilot.test.ts<br>tests/micro-specs/perf-rpc-consolidation.test.ts<br>tests/micro-specs/merchant-console-trust-ia.test.ts |
 
+## MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL — Merchant Setup Narrative and Shell
+
+| Field         | Value                                                                                                                                                                                                                         |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Status        | `active`                                                                                                                                                                                                                      |
+| Risk class    | `ui-only`                                                                                                                                                                                                                     |
+| Change state  | `current`                                                                                                                                                                                                                     |
+| Owner         | `factory-droid`                                                                                                                                                                                                               |
+| Last reviewed | `2026-06-26`                                                                                                                                                                                                                  |
+| Source        | `micro-specs/05-merchant-value/03-merchant-setup-narrative-and-shell.md`                                                                                                                                                      |
+| Tests         | `tests/micro-specs/merchant-setup-narrative.test.ts`<br>`tests/micro-specs/merchant-console-trust-ia.test.ts`<br>`tests/micro-specs/merchant-launch-readiness.test.ts`<br>`tests/micro-specs/merchant-account-hub.test.ts` |
+| Gates         | `pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`npx playwright test`<br>`npx playwright test tests/e2e/merchant-admin-redesign-screenshots.spec.ts`                                                                        |
+| Supersession  | `not_superseded`: No superseding Micro-Spec replaces this current intent.                                                                                                                                                     |
+
+Allowed blast radius:
+
+- `app/app/account/page.tsx`
+- `app/app/layout.tsx`
+- `app/app/onboarding/page.tsx`
+- `app/dev/merchant-admin-preview/screens/merchant-account.tsx`
+- `app/dev/merchant-admin-preview/screens/merchant-onboarding.tsx`
+- `components/merchant/account/account-tab-bar.tsx`
+- `components/merchant/account/account-tabs.ts`
+- `components/merchant/account/billing-panel.tsx`
+- `components/merchant/launch-readiness-panel.tsx`
+- `lib/merchant/launch-readiness-contract.ts`
+- `lib/merchant/launch-readiness.ts`
+- `micro-specs/05-merchant-value/03-merchant-setup-narrative-and-shell.md`
+- `micro-specs/TRACEABILITY.md`
+- `micro-specs/traceability.json`
+- `tests/micro-specs/merchant-account-hub.test.ts`
+- `tests/micro-specs/merchant-console-trust-ia.test.ts`
+- `tests/micro-specs/merchant-launch-readiness.test.ts`
+- `tests/micro-specs/merchant-setup-narrative.test.ts`
+
+Implementation surfaces:
+
+- `app/app/account/page.tsx`
+- `app/app/layout.tsx`
+- `app/app/onboarding/page.tsx`
+- `app/dev/merchant-admin-preview/screens/merchant-account.tsx`
+- `app/dev/merchant-admin-preview/screens/merchant-onboarding.tsx`
+- `components/merchant/account/account-tab-bar.tsx`
+- `components/merchant/account/account-tabs.ts`
+- `components/merchant/account/billing-panel.tsx`
+- `components/merchant/launch-readiness-panel.tsx`
+- `lib/merchant/launch-readiness-contract.ts`
+- `lib/merchant/launch-readiness.ts`
+
+Status evidence:
+
+- Reviewed against docs/PROJECT_SPEC.md, docs/ARCHITECTURE.md, launch readiness, onboarding, account hub, and preview source on 2026-06-26.
+- Related tests were inspected and mapped before status classification.
+- No superseding Micro-Spec replaces this current intent.
+
+### Requirements
+
+| Requirement ID                                                    | Status   | Risk      | Test tier                                   | Evidence and rationale                                                                                                            | Implementation surfaces                                                                                                                              | Verification commands                                                                                                           | Change state |
+| ----------------------------------------------------------------- | -------- | --------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| `MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-001`        | `active` | `ui-only` | `browser`<br>`lint`<br>`typecheck`<br>`unit` | tests/micro-specs/merchant-setup-narrative.test.ts                                                                                | `app/app/onboarding/page.tsx`<br>`components/merchant/launch-readiness-panel.tsx`<br>`lib/merchant/launch-readiness-contract.ts`                    | `pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`npx playwright test`<br>`npx playwright test tests/e2e/merchant-admin-redesign-screenshots.spec.ts` | `current`    |
+| `MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-002`        | `active` | `ui-only` | `browser`<br>`lint`<br>`typecheck`<br>`unit` | tests/micro-specs/merchant-setup-narrative.test.ts                                                                                | `app/app/onboarding/page.tsx`<br>`app/dev/merchant-admin-preview/screens/merchant-onboarding.tsx`<br>`lib/merchant/launch-readiness-contract.ts`    | `pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`npx playwright test`<br>`npx playwright test tests/e2e/merchant-admin-redesign-screenshots.spec.ts` | `current`    |
+| `MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-003`        | `active` | `ui-only` | `browser`<br>`lint`<br>`typecheck`<br>`unit` | tests/micro-specs/merchant-setup-narrative.test.ts<br>tests/micro-specs/merchant-launch-readiness.test.ts                        | `lib/merchant/launch-readiness.ts`<br>`lib/merchant/launch-readiness-contract.ts`                                                                    | `pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`npx playwright test`<br>`npx playwright test tests/e2e/merchant-admin-redesign-screenshots.spec.ts` | `current`    |
+| `MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-004`        | `active` | `ui-only` | `browser`<br>`lint`<br>`typecheck`<br>`unit` | tests/micro-specs/merchant-setup-narrative.test.ts<br>tests/micro-specs/merchant-console-trust-ia.test.ts                        | `app/app/layout.tsx`                                                                                                                                 | `pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`npx playwright test`<br>`npx playwright test tests/e2e/merchant-admin-redesign-screenshots.spec.ts` | `current`    |
+| `MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-005`        | `active` | `ui-only` | `browser`<br>`lint`<br>`typecheck`<br>`unit` | tests/micro-specs/merchant-setup-narrative.test.ts<br>tests/micro-specs/merchant-account-hub.test.ts                             | `components/merchant/account/billing-panel.tsx`                                                                                                      | `pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`npx playwright test`<br>`npx playwright test tests/e2e/merchant-admin-redesign-screenshots.spec.ts` | `current`    |
+| `MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-006`        | `active` | `ui-only` | `browser`<br>`lint`<br>`typecheck`<br>`unit` | tests/micro-specs/merchant-setup-narrative.test.ts<br>tests/micro-specs/merchant-account-hub.test.ts                             | `app/app/account/page.tsx`<br>`app/dev/merchant-admin-preview/screens/merchant-account.tsx`<br>`components/merchant/account/account-tab-bar.tsx`<br>`components/merchant/account/account-tabs.ts` | `pnpm lint`<br>`pnpm typecheck`<br>`pnpm test`<br>`npx playwright test`<br>`npx playwright test tests/e2e/merchant-admin-redesign-screenshots.spec.ts` | `current`    |
+
+### Edge cases
+
+| Requirement                                                    | Edge case                                                        | Category      | Layer | Status  | Trigger → expected                                                                                                          | Evidence                                                                                                            |
+| -------------------------------------------------------------- | ---------------------------------------------------------------- | ------------- | ----- | ------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-001`     | `UX-MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-001-a`  | ux            | unit  | covered | merchant opens onboarding → show five setup steps in launch order from `LAUNCH_SETUP_STEP_LABELS`                           | tests/micro-specs/merchant-setup-narrative.test.ts                                                                 |
+| `MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-002`     | `CNC-MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-002-a` | concurrency   | unit  | covered | production and preview onboarding render → share `MERCHANT_SETUP_STEPS` instead of copied step arrays                       | tests/micro-specs/merchant-setup-narrative.test.ts                                                                 |
+| `MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-003`     | `STM-MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-003-a` | state-machine | unit  | covered | address exists and geofence is off → venue step is already ready after onboarding                                           | tests/micro-specs/merchant-setup-narrative.test.ts<br>tests/micro-specs/merchant-launch-readiness.test.ts          |
+| `MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-004`     | `UX-MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-004-a`  | ux            | unit  | covered | merchant visits onboarding or launch → render the setup shell variant                                                       | tests/micro-specs/merchant-setup-narrative.test.ts<br>tests/micro-specs/merchant-console-trust-ia.test.ts          |
+| `MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-005`     | `UX-MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-005-a`  | ux            | unit  | covered | not-live merchant uses billing surfaces → show cross-links between setup billing and ongoing account billing                | tests/micro-specs/merchant-setup-narrative.test.ts<br>tests/micro-specs/merchant-account-hub.test.ts               |
+| `MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-006`     | `UX-MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-006-a`  | ux            | unit  | covered | account tab is profile or billing → show Profile and Billing tabs with `aria-current="page"` on the active tab              | tests/micro-specs/merchant-setup-narrative.test.ts<br>tests/micro-specs/merchant-account-hub.test.ts               |
+
 ## MS-MVP-SCOPE-RELEASE-GATES — MVP Scope and Release Gates
 
 | Field         | Value                                                                                                                                                                                                                                                                                                                  |

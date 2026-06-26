@@ -61,14 +61,14 @@ test("a held reward is merchant-scanned and the customer page updates live", asy
   await joinWithFirstStamp(customerPage)
 
   runDemo("advance", "--stamps", "1")
-  await customerPage.goto("/q/old-crown-girton-qr")
+  await customerPage.goto("/q/old-crown-girton")
   await addStamp(customerPage, { outcome: "stamp-added" })
   await expect(
     customerPage.getByRole("list", { name: "2 of 3 stamps earned" })
   ).toBeVisible()
 
   runDemo("advance", "--stamps", "2")
-  await customerPage.goto("/q/old-crown-girton-qr")
+  await customerPage.goto("/q/old-crown-girton")
   await addStamp(customerPage, { outcome: "full-card" })
   await expect(
     customerPage.getByRole("list", { name: "3 of 3 stamps earned" })
@@ -193,7 +193,7 @@ test("a held reward is merchant-scanned and the customer page updates live", asy
 })
 
 async function joinWithFirstStamp(page: Page): Promise<void> {
-  await page.goto("/q/old-crown-girton-qr")
+  await page.goto("/q/old-crown-girton")
   await expect(
     page.getByRole("heading", { name: "Keep your card on your phone" })
   ).toBeVisible()

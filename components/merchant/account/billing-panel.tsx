@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { redirect } from "next/navigation"
 
 import {
@@ -25,8 +26,10 @@ const BILLING_PAGE_ERROR = "Billing details could not be loaded. Try again."
  */
 export async function BillingPanel({
   params,
+  mode = "account",
 }: {
   params: { checkout?: string; portal?: string }
+  mode?: "account" | "setup"
 }) {
   const merchant = await getCurrentMerchant()
 
@@ -40,6 +43,7 @@ export async function BillingPanel({
 
   const status = billing?.status ?? "not_started"
   const needsBillingAttention = shouldShowMerchantDashboardBillingNotice(status)
+  const needsCardToActivate = status === "not_started"
 
   return (
     <section className="grid gap-4">
@@ -56,9 +60,15 @@ export async function BillingPanel({
 
       <ReceiptCard edge className="grid gap-5">
         <SectionHeader
-          eyebrow="Your plan"
-          title="Growth Plan"
-          description="Everything on this receipt updates by itself once your Stripe checkout is done."
+          eyebrow={mode === "setup" ? "Step 5 of 5 · Billing" : "Your plan"}
+          title={needsCardToActivate ? "Add a card to activate" : "Growth Plan"}
+          description={
+            needsCardToActivate
+              ? mode === "setup"
+                ? "This is the final setup step. Start checkout to add your card and activate the 30-day free trial."
+                : "Start checkout to add your card and activate the 30-day free trial."
+              : "Everything on this receipt updates by itself once your Stripe checkout is done."
+          }
         />
 
         <dl className="grid gap-0 text-sm">
@@ -67,7 +77,12 @@ export async function BillingPanel({
           <PlanRow label="Billed" value="Per location" />
         </dl>
 
-        {needsBillingAttention ? (
+        {needsCardToActivate ? (
+          <p className="rounded-lg bg-secondary px-4 py-3 text-sm leading-6 text-secondary-foreground">
+            A card is required before you go live. Stripe starts the
+            subscription with 30 days free, then billing begins after the trial.
+          </p>
+        ) : needsBillingAttention ? (
           <MerchantBillingAccessNote status={status} />
         ) : (
           <p className="text-sm leading-6 text-muted-foreground">
@@ -76,6 +91,28 @@ export async function BillingPanel({
               : "Your billing period will show here once checkout is done."}
           </p>
         )}
+
+        {mode === "setup" ? (
+          <p className="text-sm leading-6 text-muted-foreground">
+            <Link
+              href="/app/account?tab=billing"
+              className="font-bold text-foreground underline decoration-2 underline-offset-4"
+            >
+              Manage billing later in Account
+            </Link>{" "}
+            once your venue is live.
+          </p>
+        ) : needsCardToActivate ? (
+          <p className="text-sm leading-6 text-muted-foreground">
+            <Link
+              href="/app/launch?tab=billing"
+              className="font-bold text-foreground underline decoration-2 underline-offset-4"
+            >
+              Add a card to go live
+            </Link>{" "}
+            from Launch setup.
+          </p>
+        ) : null}
 
         <div className="grid gap-4 border-t-2 border-dashed border-ink/20 pt-5">
           <div className="flex flex-wrap gap-2">
@@ -99,7 +136,7 @@ export async function BillingPanel({
           <p className="text-xs leading-5 text-muted-foreground">
             {billing?.stripe_customer_id
               ? "Manage your card and invoices in the Stripe portal."
-              : "Start checkout to add your card and set up the subscription."}
+              : "Start checkout to add your card and activate the venue."}
           </p>
         </div>
       </ReceiptCard>

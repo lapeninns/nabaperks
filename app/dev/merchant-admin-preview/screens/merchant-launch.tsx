@@ -19,6 +19,7 @@ export function MerchantLaunchScreen() {
     reward: true,
     venue: false,
     qr: false,
+    billing: false,
   })
 
   return (
@@ -26,7 +27,7 @@ export function MerchantLaunchScreen() {
       <PageTitle
         eyebrow="Merchant setup"
         title="Bring your venue to life"
-        description="Four setup steps and you're live. We always point you at what's left."
+        description="Five setup checks and you're live. We always point you at what's left."
       />
 
       <LaunchReadinessPanel

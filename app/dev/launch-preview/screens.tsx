@@ -19,6 +19,7 @@ import {
   mockLaunchReadiness,
   type LaunchPreviewStateId,
 } from "@/lib/dev/launch-preview"
+import { DEFAULT_REWARD_POOL_ITEMS } from "@/lib/merchant/default-reward-pool"
 
 /**
  * Dev-only screenshot harness for the redesigned launch hub. Renders the real
@@ -39,6 +40,8 @@ export function LaunchPreviewScreen({
       <MockCardPanel />
     ) : activeTab === "rewards" ? (
       <MockRewardsPanel />
+    ) : activeTab === "billing" ? (
+      <MockBillingPanel />
     ) : activeTab === "venue" ? (
       <MockVenuePanel />
     ) : (
@@ -55,7 +58,7 @@ export function LaunchPreviewScreen({
         description={
           readiness.launchReady
             ? "Customers can scan, join, and collect stamps. Your launch kit is below, with the bits you can still adjust."
-            : "Four setup steps and you're live. We always point you at what's left."
+            : `${readiness.total} setup checks and you're live. We always point you at what's left.`
         }
         actions={
           readiness.launchReady ? (
@@ -116,7 +119,7 @@ function MockCardPanel() {
       <LoyaltyCardForm
         merchantName={LAUNCH_PREVIEW_MOCK.merchantName}
         locationName={LAUNCH_PREVIEW_MOCK.locationName}
-        activeRewardCount={1}
+        activeRewardCount={DEFAULT_REWARD_POOL_ITEMS.length}
         initialValues={{
           cardId: "card-mock-1",
           cardName: LAUNCH_PREVIEW_MOCK.cardName,
@@ -135,34 +138,16 @@ function MockRewardsPanel() {
       <RewardPoolForm
         loyaltyCardId="card-mock-1"
         cardName={LAUNCH_PREVIEW_MOCK.cardName}
-        rewardPoolItems={[
-          {
-            id: "reward-mock-1",
-            rewardName: "Free filter coffee",
-            rewardTerms:
-              "Any filter coffee on the house. Valid from the next UK business day.",
-            weight: "1",
-            displayOrder: "1",
-            isActive: true,
-          },
-          {
-            id: "reward-mock-2",
-            rewardName: "£5 off your next bill",
-            rewardTerms:
-              "£5 off any bill over £20. One per customer per reveal.",
-            weight: "1",
-            displayOrder: "2",
-            isActive: true,
-          },
-          {
-            id: "reward-mock-3",
-            rewardName: "Slice of cake on the house",
-            rewardTerms: "Any cake from the counter, free with a hot drink.",
-            weight: "2",
-            displayOrder: "3",
-            isActive: false,
-          },
-        ]}
+        continueHref="/app/launch?tab=qr"
+        continueLabel="your launch kit"
+        rewardPoolItems={DEFAULT_REWARD_POOL_ITEMS.map((item, index) => ({
+          id: `reward-mock-${index + 1}`,
+          rewardName: item.rewardName,
+          rewardTerms: item.rewardTerms,
+          weight: String(item.weight),
+          displayOrder: String(item.displayOrder),
+          isActive: item.isActive,
+        }))}
       />
     </div>
   )
@@ -183,6 +168,45 @@ function MockVenuePanel() {
         }}
         geocoded={{ latitude: 51.5155, longitude: -0.0722 }}
       />
+    </div>
+  )
+}
+
+function MockBillingPanel() {
+  return (
+    <div className="grid gap-5">
+      <div className="surface-card grid gap-5 p-6">
+        <PageTitle
+          eyebrow="Step 5 of 5 · Billing"
+          title="Add a card to activate"
+          description="This is the final setup step. Start checkout to add your card and activate the 30-day free trial."
+          titleClassName="sm:text-3xl"
+        />
+        <dl className="grid gap-0 text-sm">
+          <MockPlanRow label="Free trial" value="30 days" />
+          <MockPlanRow label="Then" value="GBP 29 / month" />
+          <MockPlanRow label="Billed" value="Per location" />
+        </dl>
+        <p className="rounded-lg bg-secondary px-4 py-3 text-sm leading-6 text-secondary-foreground">
+          A card is required before you go live. Stripe starts the subscription
+          with 30 days free, then billing begins after the trial.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button>Start checkout</Button>
+          <Button variant="secondary" disabled>
+            Open Stripe portal
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function MockPlanRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 border-b border-dashed border-ink/15 py-2.5 last:border-b-0">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="font-bold">{value}</dd>
     </div>
   )
 }

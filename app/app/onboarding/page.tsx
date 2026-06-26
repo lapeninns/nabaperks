@@ -2,28 +2,15 @@ import { redirect } from "next/navigation"
 
 import { PageTitle, ReceiptCard } from "@/components/brand"
 import { OnboardingForm } from "@/components/merchant/onboarding-form"
+import { getGoogleMapsPublicKey } from "@/lib/env/google-maps-public-key"
+import { MERCHANT_SETUP_STEPS } from "@/lib/merchant/launch-readiness-contract"
 import { getMerchantOnboardingStatus } from "@/lib/merchant/onboarding"
-
-const setupSteps = [
-  {
-    title: "Business profile",
-    description: "Your name, your type of venue, and where customers find you.",
-  },
-  {
-    title: "Mystery card",
-    description: "Choose how many visits earn a reward, and what is in the pool.",
-  },
-  {
-    title: "Launch QR",
-    description: "Print the poster, till card, and sticker from the QR page.",
-  },
-]
 
 export default async function OnboardingPage() {
   const setup = await getMerchantOnboardingStatus()
 
   if (setup.status === "complete") {
-    redirect("/app")
+    redirect("/app/launch")
   }
 
   return (
@@ -35,12 +22,15 @@ export default async function OnboardingPage() {
           description={
             setup.status === "missing_location"
               ? "Your business details are saved. Add your first venue to finish setting up."
-              : "Add your business and your first venue to get started."
+              : "Add your business, find your first venue, and confirm the address to get started."
           }
           titleClassName="sm:text-3xl"
         />
       </ReceiptCard>
-      <OnboardingForm initialFields={setup.initialFields} />
+      <OnboardingForm
+        initialFields={setup.initialFields}
+        googleMapsApiKey={getGoogleMapsPublicKey()}
+      />
 
       <aside className="grid h-fit gap-4 rounded-lg border bg-secondary/60 p-5 shadow-xs lg:col-start-2 lg:row-span-2 lg:row-start-1">
         <div>
@@ -54,8 +44,8 @@ export default async function OnboardingPage() {
           </p>
         </div>
         <ol className="grid gap-3">
-          {setupSteps.map((step, index) => (
-            <li key={step.title} className="grid grid-cols-[2rem_1fr] gap-3">
+          {MERCHANT_SETUP_STEPS.map((step, index) => (
+            <li key={step.id} className="grid grid-cols-[2rem_1fr] gap-3">
               <span className="grid size-8 place-items-center rounded-full bg-card font-mono text-sm font-bold shadow-xs">
                 {index + 1}
               </span>

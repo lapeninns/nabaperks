@@ -2,6 +2,7 @@ import Link from "next/link"
 import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
 
 import { Icon, PageTitle } from "@/components/brand"
+import { AccountTabBar } from "@/components/merchant/account/account-tab-bar"
 import { MerchantProfileForm } from "@/components/merchant/profile-form"
 import { MERCHANT_PREVIEW_MOCK } from "./mock-data"
 
@@ -19,6 +20,7 @@ export function MerchantAccountScreen() {
         title="Profile"
         description="Your business and venue details. Changes save as you go."
       />
+      <AccountTabBar activeTab="profile" />
 
       <section className="grid gap-5">
         <section className="surface-card grid gap-3 p-5">

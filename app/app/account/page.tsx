@@ -1,6 +1,7 @@
 import { Suspense } from "react"
 
 import { PageTitle } from "@/components/brand"
+import { AccountTabBar } from "@/components/merchant/account/account-tab-bar"
 import { resolveAccountTab } from "@/components/merchant/account/account-tabs"
 import { BillingPanel } from "@/components/merchant/account/billing-panel"
 import { ProfilePanel } from "@/components/merchant/account/profile-panel"
@@ -39,6 +40,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   return (
     <div className="grid gap-6">
       <PageTitle title={heading.title} description={heading.description} />
+      <AccountTabBar activeTab={tab} />
 
       {tab === "billing" ? (
         <Suspense key="billing" fallback={<AccountBillingPanelSkeleton />}>

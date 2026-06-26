@@ -28,7 +28,12 @@ const REQUIRED_PLACE_FIELDS = [
 
 // idle states the merchant can see; the form keeps manual entry usable in all of
 // them, so a missing key or a load failure never blocks venue setup.
-type WidgetStatus = "unconfigured" | "loading" | "ready" | "error"
+type WidgetStatus =
+  | "unconfigured"
+  | "loading"
+  | "ready"
+  | "error"
+  | "referrer_blocked"
 
 type GooglePlaceLocation =
   | { lat: () => number; lng: () => number }
@@ -206,6 +211,10 @@ export function VenuePlaceAutocomplete({
       void resolveSelection(selectEvent)
     }
 
+    const handleError = () => {
+      if (!cancelled) setStatus("referrer_blocked")
+    }
+
     async function resolveSelection(selectEvent: GmpSelectEvent) {
       try {
         const place =
@@ -234,7 +243,11 @@ export function VenuePlaceAutocomplete({
         element.setAttribute("placeholder", "Search for your venue")
         container.replaceChildren(element)
         element.addEventListener("gmp-select", handleSelect)
-        detach = () => element.removeEventListener("gmp-select", handleSelect)
+        element.addEventListener("gmp-error", handleError)
+        detach = () => {
+          element.removeEventListener("gmp-select", handleSelect)
+          element.removeEventListener("gmp-error", handleError)
+        }
         setStatus("ready")
       } catch {
         if (!cancelled) setStatus("error")
@@ -271,9 +284,11 @@ export function VenuePlaceAutocomplete({
           Search Google for your venue, or enter the address below.
         </p>
       ) : null}
-      {status === "error" ? (
+      {status === "error" || status === "referrer_blocked" ? (
         <p className="text-xs leading-5 text-muted-foreground">
-          Venue search is unavailable right now. Enter your address below.
+          {status === "referrer_blocked"
+            ? "Google blocked venue search from this origin. In Google Cloud Console, add http://localhost:3000/* and http://localhost/* to your Maps browser key referrers (do not use :* port wildcards), or enter the address below."
+            : "Venue search is unavailable right now. Enter your address below."}
         </p>
       ) : null}
     </div>

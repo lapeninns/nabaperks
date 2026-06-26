@@ -1,5 +1,6 @@
 import type {
   LaunchReadiness,
+  LaunchReadinessAction,
   LaunchReadinessStep,
 } from "@/lib/merchant/launch-readiness"
 import { LAUNCH_SETUP_STEP_LABELS } from "@/lib/merchant/launch-readiness-contract"
@@ -27,10 +28,19 @@ type StepFlags = {
   reward: boolean
   venue: boolean
   qr: boolean
+  billing: boolean
 }
 
 function mockSteps(flags: StepFlags): LaunchReadinessStep[] {
   return [
+    {
+      id: "venue",
+      tab: "venue",
+      label: LAUNCH_SETUP_STEP_LABELS.venue,
+      ready: flags.venue,
+      href: "/app/launch?tab=venue",
+      actionLabel: "Save venue",
+    },
     {
       id: "card",
       tab: "card",
@@ -48,34 +58,38 @@ function mockSteps(flags: StepFlags): LaunchReadinessStep[] {
       actionLabel: "Add rewards",
     },
     {
-      id: "venue",
-      tab: "venue",
-      label: LAUNCH_SETUP_STEP_LABELS.venue,
-      ready: flags.venue,
-      href: "/app/launch?tab=venue",
-      actionLabel: "Save venue",
-    },
-    {
       id: "qr",
       tab: "qr",
       label: LAUNCH_SETUP_STEP_LABELS.qr,
       ready: flags.qr,
       href: "/app/launch?tab=qr",
-      actionLabel: flags.qr ? "Open QR" : "Generate QR",
+      actionLabel: flags.qr ? "Open launch kit" : "Print your QR",
     },
   ]
 }
 
 export function mockLaunchReadiness(flags: StepFlags): LaunchReadiness {
   const steps = mockSteps(flags)
-  const completed = steps.filter((step) => step.ready).length
+  const billingStep: LaunchReadinessAction = {
+    id: "billing",
+    tab: "billing",
+    label: LAUNCH_SETUP_STEP_LABELS.billing,
+    ready: flags.billing,
+    href: "/app/launch?tab=billing",
+    actionLabel: flags.billing ? "View billing" : "Add a card to activate",
+  }
+  const qrStep = steps.find((step) => step.id === "qr")!
+  const setupSteps = steps.filter((step) => step.id !== "qr")
+  const checklist = [...setupSteps, qrStep, billingStep]
+  const completed = checklist.filter((step) => step.ready).length
 
   return {
     steps,
+    checklist,
     completed,
-    total: steps.length,
-    launchReady: completed === steps.length,
-    nextStep: steps.find((step) => !step.ready) ?? null,
+    total: checklist.length,
+    launchReady: completed === checklist.length,
+    nextStep: checklist.find((step) => !step.ready) ?? null,
     tabs: {
       card: flags.card,
       rewards: flags.reward,
@@ -89,36 +103,70 @@ export type LaunchPreviewStateId = (typeof LAUNCH_PREVIEW_STATES)[number]["id"]
 
 export const LAUNCH_PREVIEW_STATES = [
   {
-    id: "setup-card",
-    screenshot: "01-setup-card.png",
-    screenLabel: "Launch setup",
-    heading: "Bring your venue to life",
-    activeTab: "card",
-    flags: { card: false, reward: false, venue: false, qr: false },
-  },
-  {
-    id: "setup-rewards",
-    screenshot: "02-setup-rewards.png",
-    screenLabel: "Launch setup",
-    heading: "Bring your venue to life",
-    activeTab: "rewards",
-    flags: { card: true, reward: false, venue: false, qr: false },
-  },
-  {
     id: "setup-venue",
-    screenshot: "03-setup-venue.png",
+    screenshot: "01-setup-venue.png",
     screenLabel: "Launch setup",
     heading: "Bring your venue to life",
     activeTab: "venue",
-    flags: { card: true, reward: true, venue: false, qr: false },
+    flags: {
+      card: false,
+      reward: false,
+      venue: false,
+      qr: false,
+      billing: false,
+    },
+  },
+  {
+    id: "setup-card",
+    screenshot: "02-setup-card.png",
+    screenLabel: "Launch setup",
+    heading: "Bring your venue to life",
+    activeTab: "card",
+    flags: {
+      card: false,
+      reward: false,
+      venue: true,
+      qr: false,
+      billing: false,
+    },
+  },
+  {
+    id: "setup-rewards",
+    screenshot: "03-setup-rewards.png",
+    screenLabel: "Launch setup",
+    heading: "Bring your venue to life",
+    activeTab: "rewards",
+    flags: {
+      card: true,
+      reward: false,
+      venue: true,
+      qr: false,
+      billing: false,
+    },
+  },
+  {
+    id: "setup-qr",
+    screenshot: "04-setup-qr.png",
+    screenLabel: "Launch setup",
+    heading: "Bring your venue to life",
+    activeTab: "qr",
+    flags: { card: true, reward: true, venue: true, qr: false, billing: false },
+  },
+  {
+    id: "setup-billing",
+    screenshot: "05-setup-billing.png",
+    screenLabel: "Launch setup",
+    heading: "Add a card to activate",
+    activeTab: "billing",
+    flags: { card: true, reward: true, venue: true, qr: true, billing: false },
   },
   {
     id: "live-kit",
-    screenshot: "04-live-kit.png",
+    screenshot: "06-live-kit.png",
     screenLabel: "Launch live",
     heading: "You're live",
     activeTab: "qr",
-    flags: { card: true, reward: true, venue: true, qr: true },
+    flags: { card: true, reward: true, venue: true, qr: true, billing: true },
   },
 ] as const
 

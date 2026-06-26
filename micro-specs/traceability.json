@@ -8234,6 +8234,419 @@
       }
     },
     {
+      "spec_id": "MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL",
+      "title": "Merchant Setup Narrative and Shell",
+      "source_path": "micro-specs/05-merchant-value/03-merchant-setup-narrative-and-shell.md",
+      "status": "active",
+      "risk_class": "ui-only",
+      "owner": "factory-droid",
+      "last_reviewed": "2026-06-26",
+      "allowed_blast_radius": [
+        "app/app/account/page.tsx",
+        "app/app/layout.tsx",
+        "app/app/onboarding/page.tsx",
+        "app/dev/merchant-admin-preview/screens/merchant-account.tsx",
+        "app/dev/merchant-admin-preview/screens/merchant-onboarding.tsx",
+        "components/merchant/account/account-tab-bar.tsx",
+        "components/merchant/account/account-tabs.ts",
+        "components/merchant/account/billing-panel.tsx",
+        "components/merchant/launch-readiness-panel.tsx",
+        "lib/merchant/launch-readiness-contract.ts",
+        "lib/merchant/launch-readiness.ts",
+        "micro-specs/05-merchant-value/03-merchant-setup-narrative-and-shell.md",
+        "micro-specs/TRACEABILITY.md",
+        "micro-specs/traceability.json",
+        "tests/micro-specs/merchant-account-hub.test.ts",
+        "tests/micro-specs/merchant-console-trust-ia.test.ts",
+        "tests/micro-specs/merchant-launch-readiness.test.ts",
+        "tests/micro-specs/merchant-setup-narrative.test.ts"
+      ],
+      "implementation_surfaces": [
+        "app/app/account/page.tsx",
+        "app/app/layout.tsx",
+        "app/app/onboarding/page.tsx",
+        "app/dev/merchant-admin-preview/screens/merchant-account.tsx",
+        "app/dev/merchant-admin-preview/screens/merchant-onboarding.tsx",
+        "components/merchant/account/account-tab-bar.tsx",
+        "components/merchant/account/account-tabs.ts",
+        "components/merchant/account/billing-panel.tsx",
+        "components/merchant/launch-readiness-panel.tsx",
+        "lib/merchant/launch-readiness-contract.ts",
+        "lib/merchant/launch-readiness.ts"
+      ],
+      "related_docs": [
+        "docs/PROJECT_SPEC.md",
+        "docs/ARCHITECTURE.md",
+        "micro-specs/GLOBAL_CONTEXT.md",
+        "DESIGN.md"
+      ],
+      "related_tests": [
+        "tests/micro-specs/merchant-setup-narrative.test.ts",
+        "tests/micro-specs/merchant-console-trust-ia.test.ts",
+        "tests/micro-specs/merchant-launch-readiness.test.ts",
+        "tests/micro-specs/merchant-account-hub.test.ts"
+      ],
+      "verification_gates": [
+        "pnpm lint",
+        "pnpm typecheck",
+        "pnpm test",
+        "npx playwright test",
+        "npx playwright test tests/e2e/merchant-admin-redesign-screenshots.spec.ts"
+      ],
+      "approved_exceptions": [],
+      "status_evidence": [
+        "Reviewed against docs/PROJECT_SPEC.md, docs/ARCHITECTURE.md, launch readiness, onboarding, account hub, and preview source on 2026-06-26.",
+        "Related tests were inspected and mapped before status classification.",
+        "No superseding Micro-Spec replaces this current intent."
+      ],
+      "requirements": [
+        {
+          "requirement_id": "MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-001",
+          "summary": "WHEN a merchant views /app/onboarding, THE system SHALL show a setup journey listing the same ordered steps as the launch spine, using LAUNCH_SETUP_STEP_LABELS.",
+          "gates": [
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "npx playwright test",
+            "npx playwright test tests/e2e/merchant-admin-redesign-screenshots.spec.ts"
+          ],
+          "evidence": [
+            "tests/micro-specs/merchant-setup-narrative.test.ts"
+          ],
+          "status": "active",
+          "risk_class": "ui-only",
+          "required_test_tier": [
+            "browser",
+            "lint",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "npx playwright test",
+            "npx playwright test tests/e2e/merchant-admin-redesign-screenshots.spec.ts"
+          ],
+          "manual_rationale": [],
+          "change_state": "current",
+          "implementation_surfaces": [
+            "app/app/onboarding/page.tsx",
+            "components/merchant/launch-readiness-panel.tsx",
+            "lib/merchant/launch-readiness-contract.ts"
+          ],
+          "related_tests": [
+            "tests/micro-specs/merchant-setup-narrative.test.ts"
+          ],
+          "edge_cases": [
+            {
+              "id": "UX-MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-001-a",
+              "category": "ux",
+              "trigger": "merchant opens onboarding",
+              "expected": "show five setup steps in launch order from LAUNCH_SETUP_STEP_LABELS",
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/merchant-setup-narrative.test.ts"
+              ],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
+        },
+        {
+          "requirement_id": "MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-002",
+          "summary": "WHERE the onboarding page and the dev onboarding preview both render the setup journey, THE system SHALL derive it from one shared definition.",
+          "gates": [
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "npx playwright test",
+            "npx playwright test tests/e2e/merchant-admin-redesign-screenshots.spec.ts"
+          ],
+          "evidence": [
+            "tests/micro-specs/merchant-setup-narrative.test.ts"
+          ],
+          "status": "active",
+          "risk_class": "ui-only",
+          "required_test_tier": [
+            "browser",
+            "lint",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "npx playwright test",
+            "npx playwright test tests/e2e/merchant-admin-redesign-screenshots.spec.ts"
+          ],
+          "manual_rationale": [],
+          "change_state": "current",
+          "implementation_surfaces": [
+            "app/app/onboarding/page.tsx",
+            "app/dev/merchant-admin-preview/screens/merchant-onboarding.tsx",
+            "lib/merchant/launch-readiness-contract.ts"
+          ],
+          "related_tests": [
+            "tests/micro-specs/merchant-setup-narrative.test.ts"
+          ],
+          "edge_cases": [
+            {
+              "id": "CNC-MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-002-a",
+              "category": "concurrency",
+              "trigger": "production and preview onboarding render",
+              "expected": "share MERCHANT_SETUP_STEPS instead of copied step arrays",
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/merchant-setup-narrative.test.ts"
+              ],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
+        },
+        {
+          "requirement_id": "MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-003",
+          "summary": "WHEN a merchant lands on /app/launch after onboarding, THE system SHALL show venue already complete when the saved location has an address and geofence is off.",
+          "gates": [
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "npx playwright test",
+            "npx playwright test tests/e2e/merchant-admin-redesign-screenshots.spec.ts"
+          ],
+          "evidence": [
+            "tests/micro-specs/merchant-setup-narrative.test.ts",
+            "tests/micro-specs/merchant-launch-readiness.test.ts"
+          ],
+          "status": "active",
+          "risk_class": "ui-only",
+          "required_test_tier": [
+            "browser",
+            "lint",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "npx playwright test",
+            "npx playwright test tests/e2e/merchant-admin-redesign-screenshots.spec.ts"
+          ],
+          "manual_rationale": [],
+          "change_state": "current",
+          "implementation_surfaces": [
+            "lib/merchant/launch-readiness.ts",
+            "lib/merchant/launch-readiness-contract.ts"
+          ],
+          "related_tests": [
+            "tests/micro-specs/merchant-setup-narrative.test.ts",
+            "tests/micro-specs/merchant-launch-readiness.test.ts"
+          ],
+          "edge_cases": [
+            {
+              "id": "STM-MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-003-a",
+              "category": "state-machine",
+              "trigger": "address exists and geofence is off",
+              "expected": "venue step is already ready after onboarding",
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/merchant-setup-narrative.test.ts",
+                "tests/micro-specs/merchant-launch-readiness.test.ts"
+              ],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
+        },
+        {
+          "requirement_id": "MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-004",
+          "summary": "WHILE a merchant is on /app/onboarding, THE system SHALL render the minimal setup shell, matching /app/launch.",
+          "gates": [
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "npx playwright test",
+            "npx playwright test tests/e2e/merchant-admin-redesign-screenshots.spec.ts"
+          ],
+          "evidence": [
+            "tests/micro-specs/merchant-setup-narrative.test.ts",
+            "tests/micro-specs/merchant-console-trust-ia.test.ts"
+          ],
+          "status": "active",
+          "risk_class": "ui-only",
+          "required_test_tier": [
+            "browser",
+            "lint",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "npx playwright test",
+            "npx playwright test tests/e2e/merchant-admin-redesign-screenshots.spec.ts"
+          ],
+          "manual_rationale": [],
+          "change_state": "current",
+          "implementation_surfaces": [
+            "app/app/layout.tsx"
+          ],
+          "related_tests": [
+            "tests/micro-specs/merchant-setup-narrative.test.ts",
+            "tests/micro-specs/merchant-console-trust-ia.test.ts"
+          ],
+          "edge_cases": [
+            {
+              "id": "UX-MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-004-a",
+              "category": "ux",
+              "trigger": "merchant visits onboarding or launch",
+              "expected": "render the setup shell variant",
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/merchant-setup-narrative.test.ts",
+                "tests/micro-specs/merchant-console-trust-ia.test.ts"
+              ],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
+        },
+        {
+          "requirement_id": "MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-005",
+          "summary": "WHILE a merchant has not gone live, THE system SHALL treat /app/launch?tab=billing as the setup billing surface and /app/account?tab=billing as ongoing management, with explicit cross-link copy between them.",
+          "gates": [
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "npx playwright test",
+            "npx playwright test tests/e2e/merchant-admin-redesign-screenshots.spec.ts"
+          ],
+          "evidence": [
+            "tests/micro-specs/merchant-setup-narrative.test.ts",
+            "tests/micro-specs/merchant-account-hub.test.ts"
+          ],
+          "status": "active",
+          "risk_class": "ui-only",
+          "required_test_tier": [
+            "browser",
+            "lint",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "npx playwright test",
+            "npx playwright test tests/e2e/merchant-admin-redesign-screenshots.spec.ts"
+          ],
+          "manual_rationale": [],
+          "change_state": "current",
+          "implementation_surfaces": [
+            "components/merchant/account/billing-panel.tsx"
+          ],
+          "related_tests": [
+            "tests/micro-specs/merchant-setup-narrative.test.ts",
+            "tests/micro-specs/merchant-account-hub.test.ts"
+          ],
+          "edge_cases": [
+            {
+              "id": "UX-MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-005-a",
+              "category": "ux",
+              "trigger": "not-live merchant uses billing surfaces",
+              "expected": "show cross-links between setup billing and ongoing account billing",
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/merchant-setup-narrative.test.ts",
+                "tests/micro-specs/merchant-account-hub.test.ts"
+              ],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
+        },
+        {
+          "requirement_id": "MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-006",
+          "summary": "WHEN a merchant views /app/account, THE system SHALL render an on-page tab strip for Profile and Billing that reflects the active ?tab.",
+          "gates": [
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "npx playwright test",
+            "npx playwright test tests/e2e/merchant-admin-redesign-screenshots.spec.ts"
+          ],
+          "evidence": [
+            "tests/micro-specs/merchant-setup-narrative.test.ts",
+            "tests/micro-specs/merchant-account-hub.test.ts"
+          ],
+          "status": "active",
+          "risk_class": "ui-only",
+          "required_test_tier": [
+            "browser",
+            "lint",
+            "typecheck",
+            "unit"
+          ],
+          "verification_commands": [
+            "pnpm lint",
+            "pnpm typecheck",
+            "pnpm test",
+            "npx playwright test",
+            "npx playwright test tests/e2e/merchant-admin-redesign-screenshots.spec.ts"
+          ],
+          "manual_rationale": [],
+          "change_state": "current",
+          "implementation_surfaces": [
+            "app/app/account/page.tsx",
+            "app/dev/merchant-admin-preview/screens/merchant-account.tsx",
+            "components/merchant/account/account-tab-bar.tsx",
+            "components/merchant/account/account-tabs.ts"
+          ],
+          "related_tests": [
+            "tests/micro-specs/merchant-setup-narrative.test.ts",
+            "tests/micro-specs/merchant-account-hub.test.ts"
+          ],
+          "edge_cases": [
+            {
+              "id": "UX-MS-MERCHANT-VALUE-MERCHANT-SETUP-NARRATIVE-AND-SHELL-006-a",
+              "category": "ux",
+              "trigger": "account tab is profile or billing",
+              "expected": "show Profile and Billing tabs with aria-current=page on the active tab",
+              "required_layer": [
+                "unit"
+              ],
+              "evidence": [
+                "tests/micro-specs/merchant-setup-narrative.test.ts",
+                "tests/micro-specs/merchant-account-hub.test.ts"
+              ],
+              "status": "covered",
+              "gap_reason": null
+            }
+          ]
+        }
+      ],
+      "change_state": "current",
+      "supersession": {
+        "state": "not_superseded",
+        "superseded_by": null,
+        "rationale": "No superseding Micro-Spec replaces this current intent."
+      }
+    },
+    {
       "spec_id": "MS-MVP-SCOPE-RELEASE-GATES",
       "title": "MVP Scope and Release Gates",
       "source_path": "micro-specs/00-mvp-scope/01-scope-and-release-gates.md",

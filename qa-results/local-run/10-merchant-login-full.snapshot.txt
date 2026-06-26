@@ -1,0 +1,65 @@
+- banner
+  - link "Nabaperks home" [ref=e2]
+    - StaticText "nabaperks"
+  - navigation "Marketing" [ref=e3]
+    - link "Pricing" [ref=e9]
+    - link "Log in" [ref=e10]
+    - link "Start trial" [ref=e11]
+- main
+  - generic
+    - paragraph
+      - StaticText "MERCHANT ACCESS"
+    - heading "Welcome back to your loyalty counter." [level=1, ref=e16]
+    - paragraph
+      - StaticText "Log in to continue onboarding, launch QR downloads, manage venue checks, and review loyalty activity."
+    - paragraph
+      - StaticText "YOUR VENUE, ONE TAP AWAY"
+    - paragraph
+      - StaticText "Stamps, rewards, and the printed QR kit, all from one console."
+    - paragraph
+      - StaticText "LOG IN"
+    - heading "Continue merchant setup" [level=2, ref=e12]
+    - paragraph
+      - StaticText "Use the email and password for your Nabaperks merchant account."
+    - form
+      - StaticText "COUNTER"
+      - paragraph
+        - StaticText "BACK TO THE COUNTER"
+      - group
+        - LabelText
+          - paragraph
+            - StaticText "EMAIL"
+        - textbox "EMAIL" [ref=e18]: mia@old-crown-girton.test
+          - StaticText "mia@old-crown-girton.test"
+      - group
+        - LabelText
+          - paragraph
+            - StaticText "PASSWORD"
+        - textbox "PASSWORD" [ref=e19]: •••••••••••••••
+          - StaticText "•••••••••••••••"
+      - button "Log in" [ref=e17]
+      - paragraph
+        - StaticText "New to Nabaperks?"
+        - link "Create an account" [ref=e20]
+- contentinfo
+  - link "nabaperks home" [ref=e4]
+    - StaticText "nabaperks"
+  - StaticText "© "
+  - StaticText "2026"
+  - StaticText " · STAMPED, NOT TRACKED"
+  - navigation "My Nabaperks" [ref=e5]
+    - link "My Nabaperks" [ref=e13]
+  - navigation "Legal links" [ref=e6]
+    - link "Terms" [ref=e14]
+    - link "Privacy" [ref=e15]
+- complementary "Install Nabaperks"
+  - paragraph
+    - StaticText "Install Nabaperks merchant"
+  - paragraph
+    - StaticText "Keep the counter console ready on this device."
+  - button "Not now" [ref=e7]
+  - button "Install" [ref=e8]
+- region "Notifications alt+T" [ref=e1]
+- button "Open Next.js Dev Tools" [expanded=false, ref=e21]
+  - image
+- alert
