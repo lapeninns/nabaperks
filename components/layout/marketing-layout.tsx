@@ -6,6 +6,7 @@ import { Marquee } from "@/components/marketing"
 import { Button } from "@/components/ui/button"
 
 const marketingLinks = [
+  { href: "/#how-it-works", label: "How it works" },
   { href: "/pricing", label: "Pricing" },
   { href: "/login", label: "Log in" },
 ]
