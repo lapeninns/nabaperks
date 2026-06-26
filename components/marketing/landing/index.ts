@@ -1,0 +1,8 @@
+export { LandingHero } from "./hero"
+export { ProofStrip } from "./proof-strip"
+export { CounterFlow } from "./counter-flow"
+export { VenueBenefits } from "./venue-benefits"
+export { TrustPricing } from "./trust-pricing"
+export { LandingFaq } from "./faq"
+export { FinalCta } from "./final-cta"
+export { VenueQr, type QrMatrix } from "./venue-qr"
