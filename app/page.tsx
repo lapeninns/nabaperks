@@ -10,6 +10,7 @@ import {
   ProofStrip,
   TrustPricing,
   VenueBenefits,
+  VenueProof,
   type QrMatrix,
 } from "@/components/marketing/landing"
 
@@ -59,6 +60,7 @@ export default function HomePage() {
       <ProofStrip />
       <CounterFlow />
       <VenueBenefits qrMatrix={qrMatrix} />
+      <VenueProof />
       <TrustPricing />
       <LandingFaq />
       <FinalCta />

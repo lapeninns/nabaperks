@@ -73,6 +73,7 @@ test("Given the root route When section composition is checked Then the compact 
     "ProofStrip",
     "CounterFlow",
     "VenueBenefits",
+    "VenueProof",
     "TrustPricing",
     "LandingFaq",
     "FinalCta",
@@ -85,6 +86,57 @@ test("Given the root route When section composition is checked Then the compact 
   // Then
   assert.ok(sectionComponents.length <= 8, sectionComponents.join(", "))
   assert.ok(faqQuestionCount <= 5, `FAQ has ${faqQuestionCount} questions`)
+})
+
+test("Given venue proof When the landing source is checked Then all nine venues and postcodes render with production copy", () => {
+  // Given
+  const homepage = readProjectFile("app", "page.tsx")
+  const venueProof = readProjectFile(
+    "components",
+    "marketing",
+    "landing",
+    "venue-proof.tsx"
+  )
+  const venueProofData = readProjectFile(
+    "components",
+    "marketing",
+    "landing",
+    "venue-proof-data.ts"
+  )
+  const landingWithData = `${readLandingSources()}\n${venueProofData}`
+  const proofEntries = [
+    ["The Prince of Wales", "MK43 8PE"],
+    ["Old School House", "MK11 1JA"],
+    ["Barley Mow", "PE29 1XU"],
+    ["The Queen Elizabeth", "PE30 4EL"],
+    ["The Railway", "PE7 1UF"],
+    ["The Bell", "PE28 5UY"],
+    ["Old Crown", "CB3 0QD"],
+    ["The Corner House", "CB5 8JE"],
+    ["White Horse", "CB25 9HP"],
+  ]
+
+  // When / Then
+  assert.match(homepage, /<VenueProof \/>/)
+  assert.match(venueProof, /Venue voices/)
+  assert.match(venueProof, /VenueProofReviews/)
+  assert.match(
+    readProjectFile(
+      "components",
+      "marketing",
+      "landing",
+      "venue-proof-reviews.tsx"
+    ),
+    /See more/
+  )
+  assert.match(venueProofData, /shuffleVenueProofIndices/)
+  assert.doesNotMatch(venueProof, /[Dd]raft/)
+  assert.doesNotMatch(venueProof, /grid-rows-3/)
+
+  for (const [name, postcode] of proofEntries) {
+    assert.match(landingWithData, new RegExp(name))
+    assert.match(landingWithData, new RegExp(postcode))
+  }
 })
 
 test("Given future proof support When pilot proof is disabled Then no fake proof is shown publicly", () => {
