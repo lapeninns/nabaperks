@@ -1,5 +1,1 @@
-export { MysteryRewardGift } from "./mystery-reward-gift"
 export { Marquee } from "./marquee"
-export { MarketingHowItWorksSection } from "./how-it-works-section"
-export { DemoQr } from "./demo-qr"
-export { MarketingHeroLoyaltyCard } from "./hero-loyalty-card"
