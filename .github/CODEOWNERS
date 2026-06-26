@@ -2,16 +2,14 @@
 # Code Owners". Default owner for everything not matched below.
 * @lapeninns
 
-# Governance, CI, and agent guidance — change with extra care.
+# Build, deployment, and agent guidance.
 /.github/ @lapeninns
 /AGENTS.md @lapeninns
 /CLAUDE.md @lapeninns
+/DESIGN.md @lapeninns
 /Instructions_MircroSpecsCreation.md @lapeninns
 /Instructions_tdd.md @lapeninns
 /SKILL.md @lapeninns
-/DESIGN.md @lapeninns
-/docs/PROJECT_SPEC.md @lapeninns
-/docs/ARCHITECTURE.md @lapeninns
 /micro-specs/ @lapeninns
 
 # Trust boundary: data model, RLS, and the security-definer RPCs.

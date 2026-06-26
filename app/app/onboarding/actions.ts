@@ -10,7 +10,6 @@ import {
   resolveVenueLocationWritePayload,
   validateVenueLocationSubmission,
 } from "@/lib/merchant/venue-location-submission"
-import type { VenueAddressFormFields } from "@/lib/merchant/venue-address"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 const ONBOARDING_SAVE_ERROR =

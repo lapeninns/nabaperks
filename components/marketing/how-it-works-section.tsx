@@ -211,13 +211,13 @@ function PhoneScanScreen() {
 }
 
 function PhoneSaveScreen({ reduce }: { reduce: boolean }) {
-  const [revealedCount, setRevealedCount] = useState(
-    reduce ? MARKETING_DEMO_OTP.length : 0
-  )
+  const [animatedRevealedCount, setAnimatedRevealedCount] = useState(0)
+  const revealedCount = reduce
+    ? MARKETING_DEMO_OTP.length
+    : animatedRevealedCount
 
   useEffect(() => {
     if (reduce) {
-      setRevealedCount(MARKETING_DEMO_OTP.length)
       return
     }
 
@@ -232,11 +232,11 @@ function PhoneSaveScreen({ reduce }: { reduce: boolean }) {
       timeouts.add(id)
     }
 
-    setRevealedCount(0)
+    schedule(() => setAnimatedRevealedCount(0), 0)
 
     MARKETING_DEMO_OTP.forEach((_, index) => {
       schedule(
-        () => setRevealedCount(index + 1),
+        () => setAnimatedRevealedCount(index + 1),
         SOLUTION_STORY_TIMING.saveOtpStartDelayMs +
           index * SOLUTION_STORY_TIMING.saveOtpDigitMs
       )

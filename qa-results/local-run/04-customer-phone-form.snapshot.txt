@@ -1,6 +1,0 @@
-- heading "Save your card to your number" [level=1, ref=e3]
-- textbox "PHONE NUMBER" [ref=e4]
-- button "Text me the code" [ref=e5]
-- link "See how stamps and rewards work" [ref=e2, url=http://localhost:3000/m/old-crown-girton/join?qr=old-crown-girton-qr]
-- region "Notifications alt+T" [ref=e1]
-- button "Open Next.js Dev Tools" [expanded=false, ref=e6]

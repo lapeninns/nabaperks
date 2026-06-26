@@ -1,5 +1,0 @@
-- heading "Access denied" [level=1, ref=e4]
-- button "Not now" [ref=e2]
-- button "Install" [ref=e3]
-- region "Notifications alt+T" [ref=e1]
-- button "Open Next.js Dev Tools" [expanded=false, ref=e5]

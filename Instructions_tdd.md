@@ -10,13 +10,20 @@ Micro-Specs are authored per `Instructions_MircroSpecsCreation.md` (the WHAT); t
 - A **requirement** is one EARS line inside it.
 - A **test** is a failing check derived from a requirement.
 
-The handoff is explicit: **each in-scope EARS requirement becomes one or more failing tests before any production code is written.** Where a step below says "make a Micro-Spec pass," read it as "make the tests for its requirements pass."
+The handoff is explicit: **each in-scope EARS requirement becomes one or more failing tests before any production code is written when the required test harness exists or is restored by the active Micro-Spec.** Where a step below says "make a Micro-Spec pass," read it as "make the tests for its requirements pass."
 
 Follow the cycle:
 
-> Red → Green → Refactor
+> Red -> Green -> Refactor
 
 The goal is to make each Micro-Spec pass with the smallest possible implementation, then improve the design only after the behavior is protected by tests.
+
+## Current Repo Harness Note
+
+The current tracked repo keeps the build-facing gates only: `pnpm lint`,
+`pnpm typecheck`, and `pnpm build`. Use additional test, database, security, or
+browser automation gates only when the active Micro-Spec adds the relevant
+harness inside its allowed blast radius.
 
 ---
 
@@ -56,9 +63,9 @@ This is acceptable because the purpose of the first implementation is to satisfy
 
 Three rules protect this phase:
 
-- **What counts as Red.** A legitimate failing test fails on its behavioral assertion — the asserted outcome is genuinely absent — not on a compile or import error, a missing symbol you are about to create, or a tautology such as `expect(true).toBe(false)`. Observe the test fail for the right reason before you write code.
+- **What counts as Red.** A legitimate failing test fails on its behavioral assertion: the asserted outcome is genuinely absent. It must not fail only on a compile/import error, a missing symbol you are about to create, or a tautology such as `expect(true).toBe(false)`. Observe the test fail for the right reason before you write code.
 - **The test is the fixed target.** Green may change production code only. Do not edit a test's assertions, relax its expectations, mark it `.skip`/`.only`/`.todo`, or delete it to reach green. A test change is a spec change and needs the same approval as widening blast radius; if a test looks wrong, stop.
-- **Choose the right test tier in Red.** Behavioral and branching logic can be proven with the database mocked. Invariants a mock cannot enforce — tenant isolation/RLS, atomicity, idempotency, ledger consistency — must be tested against the real database (`supabase/tests/`); a passing mocked test is not evidence such an invariant holds.
+- **Choose the right test tier in Red.** Behavioral and branching logic can be proven with mocked dependencies. Invariants a mock cannot enforce, including tenant isolation/RLS, atomicity, idempotency, ledger consistency, and webhook signature handling, require a real harness. If that harness is not tracked, the active Micro-Spec must explicitly approve creating or restoring it before implementation starts.
 
 ---
 
@@ -207,7 +214,7 @@ Do not make large implementation jumps when the problem is uncertain.
 The implementation is complete when:
 
 - Every in-scope EARS requirement maps to at least one passing test; a green suite with an uncovered in-scope requirement is not done.
-- All tests pass.
+- All required tests and verification gates pass.
 - The production code satisfies only the required behavior.
 - Fake implementations have been replaced through triangulation where needed.
 - Refactoring has improved structure without changing behavior.

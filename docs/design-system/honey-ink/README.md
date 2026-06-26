@@ -14,7 +14,7 @@ Ink)** package boundary.
 
 - Treat `DESIGN.md` and the runtime components as the package authority.
 - Keep app implementation changes in normal repo files: `app/`, `components/`,
-  `lib/`, `supabase/`, and `tests/`.
+  `lib/`, and `supabase/`.
 - Preserve core `components/ui/*` shadcn primitives; move Wet Ink styling into
   tokens, wrappers, or usage sites first.
 - Do not reintroduce generated design-tool byproducts or downloaded source

@@ -294,7 +294,7 @@ values
     'email',
     'opted_in',
     'seed_qr_signup',
-    '2026-06-mvp'
+    '2026-06-foundation'
   ),
   (
     '18000000-0000-0000-0000-000000000005',
@@ -303,7 +303,7 @@ values
     'email',
     'opted_out',
     'seed_qr_signup',
-    '2026-06-mvp'
+    '2026-06-foundation'
   ),
   (
     '18000000-0000-0000-0000-000000000006',
@@ -312,7 +312,7 @@ values
     'email',
     'opted_in',
     'seed_qr_signup',
-    '2026-06-mvp'
+    '2026-06-foundation'
   )
 on conflict (id) do nothing;
 

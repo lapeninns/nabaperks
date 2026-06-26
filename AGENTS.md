@@ -1,106 +1,56 @@
-# Nabaperks — Agent Guide
+# Nabaperks Agent Guide
 
-Project context and stack decisions for AI agents working in this repo.
-
----
+This repo is a buildable Next.js app with a retained Wet Ink design system and
+a small current AI governance spine.
 
 ## Stack
 
-| Layer         | Recommendation                                                           |
-| ------------- | ------------------------------------------------------------------------ |
-| Frontend      | Next.js / React on Vercel                                                |
-| Backend       | Next.js Route Handlers, Server Actions, Vercel Functions                 |
-| Database      | Supabase Postgres                                                        |
-| Auth          | Supabase Auth + Row Level Security                                       |
-| QR            | Dynamic QR codes pointing to your own `/q/{qr_id}` redirect URLs         |
-| Payments      | Stripe Billing + Customer Portal + Stripe webhooks into Supabase         |
-| Hosting       | Vercel + Supabase                                                        |
-| Admin         | Internal Next.js admin                                                   |
-| Analytics     | PostHog for product analytics + Supabase event tables as source of truth |
-| Notifications | Resend for email; Twilio later for SMS/WhatsApp                          |
-| Logging       | Vercel logs + PostHog Error Tracking/Logs; Sentry later if needed        |
-| Backups       | Supabase daily backups; PITR when data-loss tolerance becomes lower      |
-| Security      | HTTPS, RLS, RBAC, audit logs, rate limits, MFA, service-role isolation   |
+| Layer | Current surface |
+| --- | --- |
+| Frontend | Next.js App Router, React, Tailwind CSS 4 |
+| UI system | `DESIGN.md`, `app/globals.css`, `components/brand`, `components/ui`, `components/motion`, `components/loyalty` |
+| Backend | Next.js Route Handlers and Server Actions |
+| Database | Supabase Postgres migrations under `supabase/migrations` |
+| Auth | Supabase Auth and RLS |
+| Payments | Stripe Billing and webhooks |
+| Notifications | Resend email, Web Push support, Twilio later |
+| Hosting | Vercel |
 
----
+## Working Rules
 
-## Spec pack and global context
+- Keep the app buildable. Verify meaningful code changes with `pnpm typecheck`
+  and `pnpm build`.
+- Treat the design system as the durable product contract. Preserve
+  `DESIGN.md`, `app/globals.css`, and the shared component foundations.
+- Treat `micro-specs/README.md`, `micro-specs/GLOBAL_CONTEXT.md`,
+  `Instructions_MircroSpecsCreation.md`, and `Instructions_tdd.md` as
+  governance only unless an active Micro-Spec exists.
+- Keep governance current-only. Add planning packs, generated route docs,
+  screenshot evidence folders, design-source mirrors, or `.omo` evidence files
+  only when the user explicitly asks for them.
+- Read the relevant Next.js 16 guide in `node_modules/next/dist/docs/` before
+  changing app-router APIs, route handlers, server actions, or config.
+- Server state remains authoritative. Browser storage is cache only; loyalty and
+  billing-affecting changes must stay server-side and auditable.
 
-`micro-specs/README.md` defines the AI governance contract and source-of-truth
-hierarchy. `micro-specs/GLOBAL_CONTEXT.md` holds the binding cross-cutting
-rules that apply to all work in this repo; the essentials:
+## Design System
 
-### Product assumptions
+Wet Ink is the active visual language: warm paper, hard ink borders, offset
+shadows, short British copy, and stamp-led interactions. Runtime styling lives
+in `app/globals.css` and the shared components; design-tool exports are not
+tracked runtime inputs.
 
-- UK small/mid local businesses; web-first MVP. Customers need no app,
-  merchants use a web console, operators an admin console.
-- Currency GBP; default timezone `Europe/London`. Phone-first customer
-  identity: accept `07...`, store E.164. Browser storage is cache only — the
-  server is the source of truth.
-- The core trust mechanic: **the customer keeps their phone and collects stamps
-  from the permanent venue QR.** Postgres enforces one stamp per UK business
-  day; optional venue-location checks write review signals without blocking the
-  customer by default.
+## AI Governance
 
-### Architectural constraints
+The governance spine is deliberately small:
 
-- Every loyalty-affecting action is an auditable server-side event; customer
-  card state is recoverable from server state.
-- Every loyalty-affecting action is attributable to venue, customer session,
-  timestamp, and action type.
-- Self-service stamp and reward actions are Postgres RPC mutations with
-  server-side ownership, rate-limit, and idempotency checks.
-- No shared staff secrets as primary verification; no customer ID documents;
-  no raw phone numbers exposed to merchants by default; no marketing without
-  explicit opt-in; no reward promise mismatch between poster, QR landing,
-  card, and merchant configuration.
+- `Instructions_MircroSpecsCreation.md` defines how to author future
+  Micro-Specs.
+- `Instructions_tdd.md` defines the implementation workflow when an active spec
+  and its required harness exist.
+- `micro-specs/README.md` is the governance index, lifecycle policy, and current
+  gate list.
+- `micro-specs/GLOBAL_CONTEXT.md` holds reusable project constraints.
 
-### Repo domain mapping
-
-The spec pack's monorepo domains map onto this single Next.js app:
-
-| Spec domain                           | Here                                       |
-| ------------------------------------- | ------------------------------------------ |
-| `apps/customer-web`                   | `app/q`, `app/m`, `app/card`, `app/reward` |
-| `apps/merchant-console`               | `app/app`                                  |
-| `apps/admin-console`                  | `app/admin`                                |
-| `packages/api`                        | server actions + `app/api`                 |
-| `packages/domain` / `db`              | `lib/*` + `supabase/migrations`            |
-| `packages/risk` / `compliance` / etc. | `lib/security`, `lib/analytics`, ...       |
-
-Do not widen a micro-spec's blast radius without approval.
-
-### TDD workflow (binding — see `Instructions_tdd.md`)
-
-Red → Green → Refactor. Every in-scope EARS requirement gets a failing test
-before production code. Fake It, then Triangulate; Obvious Implementation only
-for trivial behaviour. Refactor only under green; duplication waits for the
-Rule of Three. Tests live in `tests/micro-specs/` (Vitest) and
-`supabase/tests/` (SQL against real Postgres for invariants RLS/atomicity
-mocks cannot exercise).
-
----
-
-## Related Docs
-
-| Doc                                   | Purpose                                                                                           |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `docs/ARCHITECTURE.md`                | As-built architecture map for routes, data/RLS, flows, integrations, traceability, and known gaps |
-| `docs/ROUTES.md`                      | Generated route contract — pages, route handlers + methods, and server-action modules             |
-| `docs/OBSERVABILITY.md`               | Request/trace ids, structured logging, error tracking, health probe, resilience, and alerting     |
-| `DESIGN.md`                           | Design system — tokens, typography, components, UI conventions                                    |
-| `micro-specs/README.md`               | AI governance contract, lifecycle status vocabulary, risk classes, gate mapping, and traceability |
-| `Instructions_MircroSpecsCreation.md` | Product-side Micro-Spec authoring rules and metadata schema                                       |
-| `Instructions_tdd.md`                 | Engineering-side Red → Green → Refactor workflow                                                  |
-
----
-
-<!-- BEGIN:nextjs-agent-rules -->
-
-## Next.js
-
-This is NOT the Next.js you know.
-
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-
-<!-- END:nextjs-agent-rules -->
+There are currently no active feature Micro-Specs checked in. Do not treat
+absent spec paths as implementation input.

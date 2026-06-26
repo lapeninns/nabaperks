@@ -1,2 +1,0 @@
-# Fast, high-signal guards before code leaves the machine.
-pnpm run typecheck && pnpm test

@@ -1,7 +1,0 @@
-- heading "Enter your code" [level=1, ref=e2]
-- textbox "TEXT CODE" [ref=e3]
-- button "Save my card" [ref=e4]
-- button "Resend code" [ref=e5]
-- link "Use a different number" [ref=e6, url=http://localhost:3000/m/old-crown-girton/join?qr=old-crown-girton-qr&step=phone]
-- region "Notifications alt+T" [ref=e1]
-- button "Open Next.js Dev Tools" [expanded=false, ref=e7]

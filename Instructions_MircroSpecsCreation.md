@@ -4,7 +4,7 @@ When creating a Micro-Spec, do not write step-by-step coding instructions. Inste
 
 A Micro-Spec must be **small, focused, declarative, and executable**. It should describe **what must be true when the work is complete**, not exactly how the code must be written.
 
-Implementation of a Micro-Spec is governed by `Instructions_tdd.md` (binding, Red → Green → Refactor): each in-scope EARS requirement becomes a failing test before any production code. Author the spec so that handoff is clean — this document owns the WHAT, that one owns the HOW.
+Implementation of a Micro-Spec is governed by `Instructions_tdd.md` (binding, Red -> Green -> Refactor): each in-scope EARS requirement becomes a failing test before any production code when a test harness exists or is explicitly restored by the spec. Author the spec so that handoff is clean: this document owns the WHAT, that one owns the HOW.
 
 The AI governance contract in `micro-specs/README.md` is binding for metadata,
 source hierarchy, lifecycle status transitions, risk_class, and verification
@@ -24,9 +24,11 @@ implementation_surfaces:
 related_docs:
   - <repo-local path>
 related_tests:
-  - <repo-local path>
+  - <repo-local path or "not-yet-created">
 verification_gates:
   - pnpm lint
+  - pnpm typecheck
+  - pnpm build
 approved_exceptions: []
 ```
 
@@ -210,4 +212,8 @@ The Micro-Spec should focus on the specific business logic and behavior for the 
 
 ## A Complete Example
 
-For all six elements assembled into one coherent Micro-Spec, see `micro-specs/03-customer/02-digital-stamp-card.md`. Match its heading set and ordering so newly authored specs stay consistent with the existing corpus.
+There is no active example corpus checked in right now. For a new Micro-Spec,
+use the six headings in this document, add the metadata block from
+`micro-specs/README.md`, and create it under `micro-specs/<area>/<short-slug>.md`.
+Use only current checked-in governance files as examples unless the user
+explicitly asks for additional reference material.

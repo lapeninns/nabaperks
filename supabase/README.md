@@ -1,12 +1,13 @@
-# Supabase Foundation
+# Supabase
 
-This directory contains the MVP database foundation for Nabaperks.
+This directory contains the database migrations and local fixture data used by
+the Nabaperks app.
 
 ## Migration Order
 
 Apply every file in `migrations/` in filename order.
 
-The initial migration creates the MVP tables, helper predicates, indexes,
+The initial migration creates the core tables, helper predicates, indexes,
 triggers, grants, RLS enablement, forced RLS, and role-scoped policies. It is
 intended to be applied to a Supabase project where `auth.users`,
 `authenticated`, `anon`, and `service_role` already exist.
@@ -27,26 +28,14 @@ dashboard and `/app/activity` demos.
 unlocked reward redeemable from today's UK business date.
 `seed-second-cycle-complete.sql` redeems that reward, advances the loyalty cycle,
 and tops the next cycle up to three stamps with another redeemable reward.
-The fixture IDs are stable so
-`tests/tenant_isolation.sql` can replay tenant-isolation checks.
+The fixture IDs are stable so local demos and manual smoke checks can be reset
+without changing route URLs or merchant/customer identifiers.
 
 ## Verification
 
-Run static migration checks:
-
-```bash
-pnpm db:verify
-```
-
-With a local Supabase database, apply migrations and seed data, then run:
-
-```bash
-psql "$SUPABASE_DB_URL" -f supabase/tests/tenant_isolation.sql
-```
-
-If `psql` is not installed, use the repo runner instead. The runner uses
-`SUPABASE_DB_URL` when set, or `SUPABASE_DB_PASSWORD` with
-`supabase/.temp/pooler-url` when the project is linked locally:
+With a local Supabase database, apply migrations and seed data using the repo
+runner. The runner uses `SUPABASE_DB_URL` when set, or `SUPABASE_DB_PASSWORD`
+with `supabase/.temp/pooler-url` when the project is linked locally:
 
 ```bash
 SUPABASE_DB_URL=postgresql://... pnpm db:setup
@@ -56,12 +45,7 @@ For an existing database where the initial migration is already applied, run:
 
 ```bash
 SUPABASE_DB_URL=postgresql://... pnpm db:seed
-SUPABASE_DB_URL=postgresql://... pnpm db:test:rls
 ```
-
-The SQL test switches authenticated JWT subjects to confirm two merchant owners
-and two customers cannot read each other's rows. It also checks admin audit-log
-write/readback and unauthenticated direct table denial.
 
 ## Access Model
 

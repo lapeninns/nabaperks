@@ -37,8 +37,8 @@ export default async function MerchantTermsPage({
           {merchant.business_name} loyalty terms
         </h1>
         <p className="text-sm leading-6 text-muted-foreground">
-          These MVP terms are shown to customers before participation and must
-          be reviewed before launch.
+          These loyalty terms are shown to customers before participation and
+          must be reviewed before launch.
         </p>
       </section>
 
@@ -76,7 +76,7 @@ export default async function MerchantTermsPage({
       </ReceiptCard>
 
       <StatusBanner title="Review required" tone="warning">
-        These terms support pilot operation only. Legal, promotional, and data
+        These terms support current operation. Legal, promotional, and data
         protection wording needs human review before public launch.
       </StatusBanner>
 

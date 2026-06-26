@@ -1,45 +1,39 @@
-# Global Context for Nabaperks Micro-Specs
+# Global Context for AI Governance
 
-These constraints apply to every micro-spec unless a deeper project instruction or a specific spec explicitly overrides them.
+These constraints apply to every future Micro-Spec unless a newer repo
+instruction or an active spec explicitly overrides them.
 
-Governance source hierarchy, lifecycle status vocabulary, risk_class, and
-CLI-first validation policy live in `micro-specs/README.md`. Product runtime
-changes must follow the risk-to-gate mapping there, including browser evidence
-when the risk class requires it.
+Read `micro-specs/README.md` first. It defines the source hierarchy, lifecycle
+status vocabulary, risk classes, and current verification gates.
 
-## Product Positioning
+## Product Context
 
-Nabaperks is a UK no-app QR loyalty platform for independent local businesses. The MVP must prove that merchants will pay monthly for a simple replacement for paper loyalty cards.
+Nabaperks is a UK no-app QR loyalty platform for independent local businesses.
+The current repository keeps the buildable Next.js app, Supabase-backed runtime,
+Stripe billing surfaces, QR flows, and the Wet Ink design system.
 
-The product promise is:
-
-> Replace paper loyalty cards with QR stamp cards in 5 minutes.
-
-The first beachhead is independent cafes, dessert shops, bubble tea shops, barbers, and salons. The strongest initial segment is cafes and dessert/bubble tea shops.
-
-## MVP Boundaries
-
-Build a mobile-web QR stamp card platform. Do not build a CRM, POS integration, marketplace, referral system, stored-value wallet, customer mobile app, AI segmentation engine, gift-card product, or automated SMS/WhatsApp marketing product during MVP.
-
-The MVP supports one location and one active loyalty card per merchant account. Multi-location structure may be represented in the data model, but multi-location UX and billing are out of scope unless a spec says otherwise.
+Use only current checked-in docs and app code as implementation truth.
 
 ## Settled Stack Decisions
 
 - Frontend: Next.js App Router with React, hosted on Vercel.
 - Backend: Next.js Route Handlers, Server Actions, and Vercel Functions.
-- Database: Supabase Postgres.
-- Auth: Supabase Auth with Row Level Security for merchant/admin actors; customer identity uses Twilio Verify plus signed first-party sessions.
-- Payments: Stripe Checkout, Stripe Billing, Stripe Customer Portal, and Stripe webhooks.
-- Analytics: Supabase product event tables as source of truth, plus PostHog for funnels and product analytics.
-- Email: Resend for transactional email.
+- Database: Supabase Postgres migrations under `supabase/migrations`.
+- Auth: Supabase Auth with Row Level Security for merchant/admin actors;
+  customer identity uses phone verification plus signed first-party sessions.
+- Payments: Stripe Billing, Customer Portal, and Stripe webhooks.
+- Notifications: Resend email and Web Push support; Twilio may be used for
+  customer phone verification.
 - Design: `DESIGN.md` Wet Ink system.
-- UI components: existing local components and shadcn/ui conventions.
+- UI components: existing local components and shadcn-compatible conventions.
 
 ## Next.js Guidance
 
-This repo uses Next.js `16.2.6`. Before implementing app routes, Server Actions, Route Handlers, auth, or data mutation, read the relevant local documentation under `node_modules/next/dist/docs/`.
+This repo uses Next.js `16.2.9`. Before changing app routes, Server Actions,
+Route Handlers, auth, data mutation, or config, read the relevant local docs
+under `node_modules/next/dist/docs/`.
 
-Relevant starting points:
+Useful starting points:
 
 - `node_modules/next/dist/docs/01-app/index.md`
 - `node_modules/next/dist/docs/01-app/01-getting-started/07-mutating-data.md`
@@ -50,46 +44,43 @@ Relevant starting points:
 ## Security Baseline
 
 - Enforce HTTPS in production.
-- Enable RLS on tenant, customer, billing, loyalty, event, and support tables.
-- Merchant owners can only access their own merchant account.
-- Staff can only perform allowed actions for their merchant/location.
-- Customers can only access their own customer profile, memberships, and reward state.
-- Admin access is restricted to internal admin roles with MFA.
-- Service-role Supabase keys may only be used in trusted server-side code.
+- Keep service-role Supabase keys server-side only.
+- Merchant owners may access only their own merchant account.
+- Staff actions must stay scoped to their merchant/location.
+- Customers may access only their own customer profile, memberships, and reward
+  state.
 - Stripe webhooks must verify signatures before changing billing state.
 - Server-side mutation inputs must be validated.
 - Sensitive secrets must never be exposed to client bundles.
 
 ## Data and Event Principles
 
-Supabase tables are the system of record. PostHog is for product analytics, funnels, session-level usage insight, and optional error tracking.
+Supabase tables are the system of record. Analytics tools are mirrors, not the
+source of truth for business-critical state.
 
-Business-critical events must be persisted in Supabase before or alongside external analytics calls. Event payloads must avoid unnecessary personal data.
-
-## UK Compliance Baseline
-
-Customer loyalty participation and marketing opt-in are separate choices. Customers must be able to join and collect stamps without marketing consent.
-
-The MVP must include a privacy notice, merchant reward terms surface, consent records, and a data request support path. Legal review is still required before public launch.
+Loyalty-affecting, billing-affecting, privacy-affecting, or support-affecting
+actions must remain attributable, auditable, and recoverable from server state.
+Browser storage is cache only.
 
 ## Design Baseline
 
-Customer flows are mobile-first and optimized for use at a checkout counter. Keep the customer experience fast, high-contrast, and thumb-friendly.
+Wet Ink is the active visual language. Runtime styling lives in
+`app/globals.css` and shared components under `components/`.
 
-Use the `DESIGN.md` tokens and conventions:
-
-- Paper Cream and Espresso Ink for warm high-contrast surfaces and text.
-- Reward and QR spot inks for primary action moments.
-- Fresh Green/Mint for success and progress.
-- Rounded, tactile controls with accessible tap targets.
-- QR codes must always render on high-contrast white backgrounds.
+Use `DESIGN.md` for tokens, typography, interaction patterns, component
+conventions, and the `/dev/design-system` catalogue. Design-source mirrors are
+not runtime input.
 
 ## Verification Baseline
 
-Every implementation slice must include:
+For any meaningful code change, run:
 
-- Automated tests or typed checks appropriate to the changed layer.
-- Manual QA for the primary happy path and the named failure paths.
-- Tenant isolation checks when data access changes.
-- Audit/event readback when business-critical mutations occur.
-- No unreviewed expansion beyond the spec's out-of-scope list.
+```bash
+pnpm lint
+pnpm typecheck
+pnpm build
+```
+
+If a future active Micro-Spec requires tests, SQL checks, browser automation, or
+security checks, the spec must explicitly include restoring or creating that
+harness inside its allowed blast radius.

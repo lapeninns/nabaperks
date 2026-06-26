@@ -10,8 +10,7 @@ import {
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Button } from "@/components/ui/button"
 import { getLoyaltyCardSetup } from "@/lib/merchant/loyalty-card"
-import { seedDefaultRewardPoolIfEmpty } from "@/lib/merchant/seed-default-reward-pool"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { seedDefaultRewardPoolForCardIfEmpty } from "@/lib/merchant/seed-default-reward-pool"
 
 export type RewardsPanelParams = {
   saved?: string
@@ -30,7 +29,7 @@ export async function RewardsPanel({
   continueHref?: string | null
   continueLabel?: string
 }) {
-  let { merchant, location, card, rewardPoolItems } =
+  const { merchant, location, card, rewardPoolItems } =
     await getLoyaltyCardSetup()
 
   if (!merchant) {
@@ -38,9 +37,7 @@ export async function RewardsPanel({
   }
 
   if (card && rewardPoolItems.length === 0) {
-    const supabase = await createSupabaseServerClient()
-    const seeded = await seedDefaultRewardPoolIfEmpty(
-      supabase,
+    const seeded = await seedDefaultRewardPoolForCardIfEmpty(
       merchant.id,
       card.id
     )

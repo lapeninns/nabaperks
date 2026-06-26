@@ -65,55 +65,49 @@ export function OnboardingForm({
   useEffect(() => {
     if (!state.fields) return
 
-    if (state.fields.locationName !== undefined) {
-      setLocationName(state.fields.locationName)
-    }
+    const fields = state.fields
+    const timeoutId = window.setTimeout(() => {
+      if (fields.locationName !== undefined) {
+        setLocationName(fields.locationName)
+      }
 
-    setAddress({
-      addressLine1: state.fields.addressLine1 ?? "",
-      addressLine2: state.fields.addressLine2 ?? "",
-      addressCity: state.fields.addressCity ?? "",
-      addressPostcode: state.fields.addressPostcode ?? "",
-    })
-  }, [state.fields])
-
-  useEffect(() => {
-    if (!state.fields) return
-
-    if (state.fields.locationName !== undefined) {
-      setLocationName(state.fields.locationName)
-    }
-
-    setAddress({
-      addressLine1: state.fields.addressLine1 ?? "",
-      addressLine2: state.fields.addressLine2 ?? "",
-      addressCity: state.fields.addressCity ?? "",
-      addressPostcode: state.fields.addressPostcode ?? "",
-    })
-  }, [state.fields])
-
-  useEffect(() => {
-    try {
-      const savedDraft = window.localStorage.getItem(draftStorageKey)
-      const draft = savedDraft
-        ? (JSON.parse(savedDraft) as Partial<OnboardingDraft>)
-        : {}
-      const form = formRef.current
-      if (!form || Object.values(state.fields ?? {}).some(Boolean)) return
-
-      restoreField(form, "businessName", draft.businessName)
-      restoreField(form, "businessType", draft.businessType)
-      restoreField(form, "phone", draft.phone)
-      if (draft.locationName) setLocationName(draft.locationName)
       setAddress({
-        addressLine1: draft.addressLine1 ?? "",
-        addressLine2: draft.addressLine2 ?? "",
-        addressCity: draft.addressCity ?? "",
-        addressPostcode: draft.addressPostcode ?? "",
+        addressLine1: fields.addressLine1 ?? "",
+        addressLine2: fields.addressLine2 ?? "",
+        addressCity: fields.addressCity ?? "",
+        addressPostcode: fields.addressPostcode ?? "",
       })
-    } catch {
-      window.localStorage.removeItem(draftStorageKey)
-    }
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [state.fields])
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      try {
+        const savedDraft = window.localStorage.getItem(draftStorageKey)
+        const draft = savedDraft
+          ? (JSON.parse(savedDraft) as Partial<OnboardingDraft>)
+          : {}
+        const form = formRef.current
+        if (!form || Object.values(state.fields ?? {}).some(Boolean)) return
+
+        restoreField(form, "businessName", draft.businessName)
+        restoreField(form, "businessType", draft.businessType)
+        restoreField(form, "phone", draft.phone)
+        if (draft.locationName) setLocationName(draft.locationName)
+        setAddress({
+          addressLine1: draft.addressLine1 ?? "",
+          addressLine2: draft.addressLine2 ?? "",
+          addressCity: draft.addressCity ?? "",
+          addressPostcode: draft.addressPostcode ?? "",
+        })
+      } catch {
+        window.localStorage.removeItem(draftStorageKey)
+      }
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
   }, [state.fields])
 
   function updateDraft(partial: Partial<OnboardingDraft>) {

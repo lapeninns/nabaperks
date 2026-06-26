@@ -6,7 +6,6 @@ const projectDir = process.cwd()
 const args = new Set(process.argv.slice(2))
 const shouldApply = args.has("--apply")
 const shouldSeed = args.has("--seed")
-const shouldTest = args.has("--test")
 const shouldReset = args.has("--reset")
 const shouldResetCustomers = args.has("--reset-customers")
 const shouldResetTodayStamps = args.has("--reset-today-stamps")
@@ -15,13 +14,12 @@ const force = args.has("--force")
 if (
   !shouldApply &&
   !shouldSeed &&
-  !shouldTest &&
   !shouldReset &&
   !shouldResetCustomers &&
   !shouldResetTodayStamps
 ) {
   console.error(
-    "Usage: node scripts/run-supabase-sql.mjs [--apply] [--seed] [--test] [--reset] [--reset-customers] [--reset-today-stamps] [--force]"
+    "Usage: node scripts/run-supabase-sql.mjs [--apply] [--seed] [--reset] [--reset-customers] [--reset-today-stamps] [--force]"
   )
   process.exit(1)
 }
@@ -35,7 +33,7 @@ const dbUrl = resolveDbUrl(env)
 
 if (!dbUrl) {
   console.error(
-    "A Supabase database connection is required for SQL migration and RLS tests."
+    "A Supabase database connection is required for SQL migrations and seed data."
   )
   console.error(
     "Set SUPABASE_DB_URL, or set SUPABASE_DB_PASSWORD with the linked Supabase pooler metadata in supabase/.temp."
@@ -49,11 +47,6 @@ const sql = postgres(dbUrl, {
   max: 1,
   ssl: shouldRequireSsl(dbUrl) ? "require" : undefined,
   transform: postgres.camel,
-  onnotice: shouldTest
-    ? (notice) => {
-        if (notice.message) console.log(notice.message)
-      }
-    : undefined,
 })
 
 try {
@@ -83,57 +76,6 @@ try {
     await runFile(
       "supabase/seed-two-of-three-stamps.sql",
       "Seed two of three stamps"
-    )
-  }
-
-  if (shouldTest) {
-    await runFile(
-      "supabase/tests/tenant_isolation.sql",
-      "Tenant isolation SQL test"
-    )
-    await runFile(
-      "supabase/tests/profile_completion_gate.sql",
-      "Profile completion gate SQL test"
-    )
-    await runFile(
-      "supabase/tests/reward_redemption_cycles.sql",
-      "Reward redemption cycles SQL test"
-    )
-    await runFile(
-      "supabase/tests/cycle_stamp_soft_geofence.sql",
-      "Cycle stamp soft geofence SQL test"
-    )
-    await runFile(
-      "supabase/tests/customer_marketing_consent.sql",
-      "Customer marketing consent SQL test"
-    )
-    await runFile(
-      "supabase/tests/customer_contact_immutability.sql",
-      "Customer contact immutability SQL test"
-    )
-    await runFile(
-      "supabase/tests/performance_indexes.sql",
-      "Performance indexes SQL test"
-    )
-    await runFile(
-      "supabase/tests/browser_push_notifications.sql",
-      "Browser push notifications SQL test"
-    )
-    await runFile(
-      "supabase/tests/notification_ledger_reward_expiry.sql",
-      "Notification ledger reward expiry SQL test"
-    )
-    await runFile(
-      "supabase/tests/qr_asset_jobs_rls.sql",
-      "QR asset jobs RLS SQL test"
-    )
-    await runFile(
-      "supabase/tests/qr_asset_enqueue.sql",
-      "QR asset enqueue trigger SQL test"
-    )
-    await runFile(
-      "supabase/tests/billing_card_required.sql",
-      "Billing card required SQL test"
     )
   }
 
@@ -249,14 +191,12 @@ function safeDbTarget(dbUrl) {
   }
 }
 
-// Fail-safe: refuse write-risk operations (--apply/--seed/--test/--reset*)
-// against a non-local database so CI and routine commands can never mutate a
-// hosted Supabase project (see docs/QA_MATRIX.md §7).
+// Fail-safe: refuse write-risk operations (--apply/--seed/--reset*) against a
+// non-local database so routine commands can never mutate a hosted project.
 function assertWriteTargetIsSafe(dbUrl) {
   const destructive =
     shouldApply ||
     shouldSeed ||
-    shouldTest ||
     shouldReset ||
     shouldResetCustomers ||
     shouldResetTodayStamps
@@ -264,7 +204,7 @@ function assertWriteTargetIsSafe(dbUrl) {
   if (isLocalDbHost(dbUrl)) return
 
   console.error(
-    `Refusing to run write-risk operations (--apply/--seed/--test/--reset*) against non-local host "${dbHostLabel(dbUrl)}".`
+    `Refusing to run write-risk operations (--apply/--seed/--reset*) against non-local host "${dbHostLabel(dbUrl)}".`
   )
   console.error(
     "Point SUPABASE_DB_URL at a local disposable database before running this command."

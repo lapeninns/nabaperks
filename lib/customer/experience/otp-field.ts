@@ -1,12 +1,9 @@
 /**
- * The OTP text-input cap (F20 of the auth-forms friction audit). Over-typing a
- * code should fail fast in the browser, not after a server round-trip — but the
- * cap must track the *configured* accepted length, never a hardcoded 6. The
- * server accepts `^\d{4,8}$` (app/m/[merchantSlug]/join/actions.ts and
- * app/home/actions.ts), and the dev/bypass codes are 4 digits, so the input may
- * hold anywhere from 4 to 8 digits. This pure helper is the single source of the
- * `maxLength` value, kept out of the components so it can be triangulated and
- * counted toward coverage.
+ * The OTP text-input cap should fail fast in the browser, not after a server
+ * round-trip, and must track the configured accepted length instead of a
+ * hardcoded 6. The server accepts `^\d{4,8}$` (app/m/[merchantSlug]/join/actions.ts
+ * and app/home/actions.ts), and the dev/bypass codes are 4 digits, so the input
+ * may hold anywhere from 4 to 8 digits.
  */
 
 /** Lower bound of the server-accepted code length (the 4 in `/^\d{4,8}$/`). */

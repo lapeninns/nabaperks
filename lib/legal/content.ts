@@ -28,7 +28,7 @@ export const PLATFORM_TERMS_SECTIONS: LegalSection[] = [
   {
     id: "availability",
     title: "Availability restrictions",
-    body: "The MVP may restrict new joins, stamps, QR scans, or redemptions when a merchant loyalty card is inactive, QR access is disabled, a reward is not yet redeemable, or billing is suspended.",
+    body: "The service may restrict new joins, stamps, QR scans, or redemptions when a merchant loyalty card is inactive, QR access is disabled, a reward is not yet redeemable, or billing is suspended.",
   },
 ]
 
@@ -50,7 +50,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   {
     id: "purposes",
     title: "Purposes",
-    body: "Data is used to provide the loyalty card, show progress, unlock and redeem rewards, prevent misuse, support merchants and customers, keep audit evidence, and measure whether the MVP works. Where a venue uses soft GPS checks, Nabaperks stores minimized location evidence for fraud prevention; raw coordinates are not stored by default.",
+    body: "Data is used to provide the loyalty card, show progress, unlock and redeem rewards, prevent misuse, support merchants and customers, keep audit evidence, and measure service performance. Where a venue uses soft GPS checks, Nabaperks stores minimized location evidence for fraud prevention; raw coordinates are not stored by default.",
   },
   {
     id: "marketing-consent",
@@ -78,7 +78,7 @@ export const PRIVACY_META = {
   eyebrow: "Plain English summary · not the full legal text",
   title: "What happens to the data.",
   description:
-    "MVP privacy wording for pilot support, consent separation, admin support scoping, and audit records. The full notice travels with your merchant agreement and needs legal review before launch.",
+    "Privacy wording for loyalty support, consent separation, admin support scoping, and audit records. The full notice travels with your merchant agreement and needs legal review before launch.",
   cardTitle: "Privacy, condensed",
   docNumber: "P-2026",
 }
@@ -138,7 +138,7 @@ export function venueTermsMeta(merchantName: string) {
   return {
     title: `${merchantName} loyalty terms`,
     description:
-      "These MVP terms are shown to customers before participation and must be reviewed before launch.",
+      "These loyalty terms are shown to customers before participation and must be reviewed before launch.",
     cardTitle: "Reward terms",
   }
 }

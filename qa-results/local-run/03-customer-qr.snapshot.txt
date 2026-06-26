@@ -1,2 +1,0 @@
-- region "Notifications alt+T" [ref=e1]
-- button "Open Next.js Dev Tools" [expanded=false, ref=e2]

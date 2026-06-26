@@ -1,7 +1,7 @@
 import "server-only"
 
 import { DEFAULT_REWARD_POOL_ITEMS } from "@/lib/merchant/default-reward-pool"
-import type { createSupabaseServerClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
@@ -40,4 +40,12 @@ export async function seedDefaultRewardPoolIfEmpty(
   }
 
   return true
+}
+
+export async function seedDefaultRewardPoolForCardIfEmpty(
+  merchantId: string,
+  loyaltyCardId: string
+): Promise<boolean> {
+  const supabase = await createSupabaseServerClient()
+  return seedDefaultRewardPoolIfEmpty(supabase, merchantId, loyaltyCardId)
 }

@@ -167,7 +167,7 @@ values (
   'email',
   'opted_in',
   'manual_seed',
-  '2026-06-mvp'
+  '2026-06-foundation'
 )
 on conflict (id) do nothing;
 
