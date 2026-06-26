@@ -17,24 +17,36 @@ type AuthFormProps = {
   ) => Promise<AuthActionState>
   mode: "sign-in" | "sign-up"
   next?: string
+  /** Hide the in-form brand block when the page already provides context. */
+  embedded?: boolean
 }
 
 const initialState: AuthActionState = {}
 
-export function AuthForm({ action, mode, next = "/app" }: AuthFormProps) {
+export function AuthForm({
+  action,
+  mode,
+  next = "/app",
+  embedded = false,
+}: AuthFormProps) {
   const [state, formAction, pending] = useActionState(action, initialState)
   const isSignUp = mode === "sign-up"
 
   return (
     <form action={formAction} className="grid gap-4">
-      <div className="grid justify-items-center gap-2 pb-1">
-        <VenueMark name="Nabaperks" caption={isSignUp ? "New venue" : "Counter"} />
-        <Eyebrow>{isSignUp ? "Open the till" : "Back to the counter"}</Eyebrow>
-      </div>
+      {embedded ? null : (
+        <div className="grid justify-items-center gap-2 pb-1">
+          <VenueMark
+            name="Nabaperks"
+            caption={isSignUp ? "New venue" : "Counter"}
+          />
+          <Eyebrow>{isSignUp ? "Open the till" : "Back to the counter"}</Eyebrow>
+        </div>
+      )}
       {isSignUp ? (
         <Field
           id="name"
-          label="Name"
+          label="Your name"
           name="name"
           autoComplete="name"
           defaultValue={state.fields?.name}
@@ -56,6 +68,7 @@ export function AuthForm({ action, mode, next = "/app" }: AuthFormProps) {
         name="password"
         type="password"
         autoComplete={isSignUp ? "new-password" : "current-password"}
+        description={isSignUp ? "At least 8 characters." : undefined}
         error={state.errors?.password}
       />
       <input type="hidden" name="next" value={next} />
@@ -75,15 +88,15 @@ export function AuthForm({ action, mode, next = "/app" }: AuthFormProps) {
         </Alert>
       ) : null}
       <Button type="submit" disabled={pending} className="w-full">
-        {pending ? "Working..." : isSignUp ? "Create merchant account" : "Log in"}
+        {pending ? "Working..." : isSignUp ? "Start your pilot" : "Log in"}
       </Button>
       <p className="text-center text-sm text-muted-foreground">
-        {isSignUp ? "Already have an account?" : "New to Nabaperks?"}{" "}
+        {isSignUp ? "Already piloting?" : "New venue?"}{" "}
         <Link
           href={isSignUp ? "/login" : "/signup"}
           className="inline-flex min-h-11 items-center rounded-full px-3 py-2 font-bold text-primary underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
         >
-          {isSignUp ? "Log in" : "Create an account"}
+          {isSignUp ? "Log in" : "Start your pilot"}
         </Link>
       </p>
     </form>
@@ -93,15 +106,22 @@ export function AuthForm({ action, mode, next = "/app" }: AuthFormProps) {
 function Field({
   id,
   label,
+  description,
   error,
   ...props
 }: React.InputHTMLAttributes<HTMLInputElement> & {
   id: string
   label: string
+  description?: string
   error?: string
 }) {
   return (
-    <FormField id={id} label={<Eyebrow>{label}</Eyebrow>} error={error}>
+    <FormField
+      id={id}
+      label={<Eyebrow>{label}</Eyebrow>}
+      description={description}
+      error={error}
+    >
       <Input
         id={id}
         className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm"

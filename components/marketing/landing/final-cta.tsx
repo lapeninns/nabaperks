@@ -16,8 +16,8 @@ export function FinalCta() {
         Set up your venue this afternoon.
       </h2>
       <p className="mx-auto mt-4 max-w-[44ch] text-base leading-relaxed text-muted-foreground">
-        Run the pilot free for 30 days, with a card required to activate. Then it
-        is £29/month for one venue.
+        Build your card, preview the QR flow, and start a 30-day pilot when you
+        activate your live venue QR. Then it is £29/month for one venue.
       </p>
       <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
         <Button asChild size="lg">
@@ -27,7 +27,7 @@ export function FinalCta() {
           <Link href="/pricing">View pricing</Link>
         </Button>
         <Button asChild variant="ghost">
-          <Link href="/login">Merchant login</Link>
+          <Link href="/login">Log in</Link>
         </Button>
       </div>
     </section>

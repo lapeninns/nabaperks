@@ -47,6 +47,18 @@ export function stampDisplayDates(total: number, dayStep = 5) {
   )
 }
 
+/** Marketing preview dates ending on today: today-8, today-4, today for 3 stamps. */
+export function stampDisplayDatesEndingToday(total: number, dayStep = 4) {
+  const today = ukTodayIso()
+  const lastIndex = Math.max(total, 0) - 1
+
+  return Array.from({ length: Math.max(total, 0) }, (_, index) =>
+    formatStampDisplayDateFromIso(
+      addUkCalendarDays(today, (index - lastIndex) * dayStep)
+    )
+  )
+}
+
 function formatLondonIso(value: Date) {
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: LONDON,

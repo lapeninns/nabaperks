@@ -23,6 +23,7 @@ export function useStampJourneyLoop(total: number) {
   const [revealed, setRevealed] = useState(false)
   const [revealSlam, setRevealSlam] = useState(false)
   const [revealKey, setRevealKey] = useState(0)
+  const [cycleIndex, setCycleIndex] = useState(0)
 
   useEffect(() => {
     if (shouldReduceMotion) return
@@ -38,11 +39,14 @@ export function useStampJourneyLoop(total: number) {
       timeouts.add(id)
     }
 
-    const resetCycle = () => {
+    const resetCycle = (advanceReward = false) => {
       setEarnedCount(0)
       setRevealed(false)
       setRevealSlam(false)
       setSlamIndex(-1)
+      if (advanceReward) {
+        setCycleIndex((index) => index + 1)
+      }
       schedule(() => stepStamp(1), STAMP_JOURNEY_TIMING.initialDelayMs)
     }
 
@@ -62,11 +66,11 @@ export function useStampJourneyLoop(total: number) {
         setRevealed(true)
         setRevealSlam(true)
         setRevealKey((key) => key + 1)
-        schedule(resetCycle, STAMP_JOURNEY_TIMING.loopPauseMs)
+        schedule(() => resetCycle(true), STAMP_JOURNEY_TIMING.loopPauseMs)
       }, STAMP_JOURNEY_TIMING.revealMs)
     }
 
-    resetCycle()
+    resetCycle(false)
 
     return () => {
       cancelled = true
@@ -80,6 +84,7 @@ export function useStampJourneyLoop(total: number) {
     revealed: shouldReduceMotion ? true : revealed,
     revealSlam: shouldReduceMotion ? false : revealSlam,
     revealKey,
+    cycleIndex,
     shouldReduceMotion,
   }
 }

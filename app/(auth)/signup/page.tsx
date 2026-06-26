@@ -1,74 +1,59 @@
 import { Tick02Icon } from "@hugeicons/core-free-icons"
 
 import { signUpAction } from "@/app/(auth)/actions"
-import {
-  Eyebrow,
-  Icon,
-  PageTitle,
-  ReceiptCard,
-  VenueMark,
-} from "@/components/brand"
+import { Eyebrow, Icon, PageTitle, ReceiptCard } from "@/components/brand"
 import { AuthForm } from "@/components/auth/auth-form"
 import { MarketingLayout } from "@/components/layout"
 
 const trustPoints = [
-  "No app to download",
-  "Card required to go live",
-  "Stamped in seconds at the counter",
+  "No app for your customers to download",
+  "Self-service stamps from your venue QR",
+  "Billing when you activate your live venue QR",
 ]
 
 export default function SignUpPage() {
   return (
     <MarketingLayout>
-      <section className="mx-auto grid min-h-[calc(100dvh-73px)] w-full max-w-5xl content-start gap-10 px-6 py-6 sm:py-10 lg:grid-cols-[minmax(0,1fr)_minmax(340px,420px)] lg:content-center lg:items-center">
-        <div className="grid gap-6">
+      <section className="mx-auto grid min-h-[calc(100dvh-73px)] w-full max-w-5xl content-start gap-8 px-6 py-6 sm:gap-10 sm:py-10 lg:grid-cols-[minmax(0,1fr)_minmax(340px,420px)] lg:content-center lg:items-center">
+        <div className="order-2 grid gap-6 lg:order-1">
           <PageTitle
             eyebrow="Start trial"
             title="Your first stamp is waiting."
-            description="Create a merchant account for your first QR loyalty card. Verify your email, then add your venue, card, rewards, QR assets, and billing card before launch."
+            description="Set up your venue QR loyalty card in about five minutes. Verify your email, then add your venue, rewards, and printed kit."
             titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
-            descriptionClassName="text-base leading-7"
+            descriptionClassName="text-base leading-7 text-pretty"
             className="md:grid-cols-1"
           />
-          <ReceiptCard edge className="grid gap-3">
-            <div className="flex items-center gap-3">
-              <VenueMark size={46} />
-              <Eyebrow>30 days free · card required</Eyebrow>
-            </div>
-            <ul className="grid gap-2">
-              {trustPoints.map((point) => (
-                <li
-                  key={point}
-                  className="flex items-center gap-3 text-sm font-bold"
-                >
-                  <Icon
-                    icon={Tick02Icon}
-                    size={16}
-                    strokeWidth={2.5}
-                    className="text-primary"
-                  />
-                  {point}
-                </li>
-              ))}
-            </ul>
-          </ReceiptCard>
+          <ul className="grid gap-2.5 border-t-2 border-dashed border-border pt-5">
+            {trustPoints.map((point) => (
+              <li
+                key={point}
+                className="flex items-start gap-3 text-sm font-bold leading-snug"
+              >
+                <Icon
+                  icon={Tick02Icon}
+                  size={16}
+                  strokeWidth={2.5}
+                  className="mt-0.5 shrink-0 text-primary"
+                />
+                <span className="text-pretty">{point}</span>
+              </li>
+            ))}
+          </ul>
         </div>
 
-        <ReceiptCard edge className="w-full">
-          <div className="mb-6 grid gap-2">
-            <p className="font-mono text-xs font-bold tracking-[0.06em] text-muted-foreground uppercase">
-              Merchant account
-            </p>
-            <h2 className="text-3xl leading-tight font-extrabold">
-              Start your 30-day free pilot
+        <ReceiptCard edge className="order-1 w-full lg:order-2">
+          <div className="mb-5 grid gap-1">
+            <Eyebrow>30 days free</Eyebrow>
+            <h2 className="text-[clamp(1.75rem,4vw,2.25rem)] leading-tight font-extrabold text-balance">
+              Open your till
             </h2>
-            <p className="text-sm leading-6 text-muted-foreground">
-              Use email and password to start the 5-minute setup. Your email
-              link lands at /auth/confirm; add a card to activate the venue,
-              and billing starts after the free trial.
+            <p className="text-sm leading-6 text-pretty text-muted-foreground">
+              Email and password to get started. We will send a verification
+              link; billing starts after your free trial when you go live.
             </p>
           </div>
-          <AuthForm action={signUpAction} mode="sign-up" />
+          <AuthForm action={signUpAction} mode="sign-up" embedded />
         </ReceiptCard>
       </section>
     </MarketingLayout>

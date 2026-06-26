@@ -1,45 +1,36 @@
 import Link from "next/link"
 
-import { CreditCardIcon, Tick02Icon } from "@hugeicons/core-free-icons"
+import { Tick02Icon } from "@hugeicons/core-free-icons"
 
-import { startCheckoutAction } from "@/app/app/billing/actions"
-import { Eyebrow, Icon, PageTitle } from "@/components/brand"
+import { Eyebrow, Icon, PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout } from "@/components/layout"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 
 const planIncludes = [
   "Unlimited stamps and members",
-  "Mystery reward pool, you pick the prizes",
+  "Simple reward setup",
   "Printed QR kit: A4 poster, till card, sticker",
-  "Optional soft GPS checks with geocoded venue address",
+  "Optional soft location checks at your venue",
   "Weekly digest of visits, regulars, and redemptions",
 ]
 
 const faqs = [
   {
     q: "Is there a contract?",
-    a: "No. It is month to month after the pilot. GBP 29, one venue, one month's notice to leave. A card is required to activate the venue, with 30 days free before billing starts.",
+    a: "No. It is month to month after the pilot. £29, one venue, one month's notice to leave. Add billing when you activate your live venue QR, with 30 days free before billing starts.",
   },
   {
     q: "Do I need any hardware?",
-    a: "No. Customers use their own phones and the permanent printed QR kit. If you turn on GPS checks, the app uses the phone location as a soft fraud signal.",
+    a: "No. Customers use their own phones and the permanent printed QR kit. Optional location checks can flag out-of-range visits without blocking legitimate customers.",
   },
   {
     q: "Who owns the customer data?",
-    a: "You do, scoped to your venue. Phone numbers are stored hashed and shown masked, nothing is sold, and marketing texts only ever go to customers who tick the separate opt-in. UK GDPR throughout.",
+    a: "Customer records are scoped to your venue. Phone identity is handled by protected server helpers, merchant views use masked-safe identifiers, and marketing messages use separate opt-in records.",
   },
   {
     q: "What counts as a visit?",
-    a: "One stamp per customer per UK business day from the venue QR. Optional GPS checks can flag out-of-range or unavailable location without blocking legitimate customers.",
+    a: "A customer claim from the venue QR becomes a visit when the server issues a self-service stamp. One earned stamp is allowed per customer per UK date, and optional location checks can flag odd signals without blocking legitimate customers.",
   },
   {
     q: "What if I want to cancel?",
@@ -70,13 +61,13 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
 
   return (
     <MarketingLayout>
-      <section className="mx-auto w-full max-w-6xl px-6 py-12">
+      <section className="mx-auto w-full max-w-6xl px-6 py-8 sm:py-12">
         <PageTitle
           eyebrow="Pricing"
           title="One price. The whole machine."
-          description="A 30-day free pilot, then GBP 29/month per venue. Card required to go live, with no charge during the trial. No tiers, no seats, no contact-sales."
-          titleClassName="text-[clamp(2.3rem,5vw,3.5rem)]"
-          descriptionClassName="text-base leading-7"
+          description="30 days free to pilot, then £29/month per venue. Build your card first; add billing when you activate your live venue QR."
+          titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
+          descriptionClassName="text-base leading-7 text-pretty"
           className="md:grid-cols-1"
         />
 
@@ -87,89 +78,80 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
           </Alert>
         ) : null}
 
-        <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,0.55fr)_minmax(0,0.45fr)] lg:items-start">
-          {/* The plan receipt */}
-          <div className="lg:-rotate-1">
-            <Card>
-              <CardHeader>
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <CardTitle className="text-2xl font-extrabold">
-                    Growth Plan
-                  </CardTitle>
-                  <Badge>30-day free pilot</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="grid gap-5">
-                <div>
-                  <p className="text-5xl leading-none font-extrabold">
-                    £29
-                    <span className="text-lg font-bold text-muted-foreground">
-                      /month
-                    </span>
-                  </p>
-                  <p className="mt-2 font-mono text-[0.7rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
-                    GBP 29/month · billed monthly through Stripe · per venue
-                  </p>
-                </div>
-                <hr className="w-rule" />
-                <div>
-                  <Eyebrow className="mb-3">Everything included</Eyebrow>
-                  <ul className="grid gap-3">
-                    {planIncludes.map((item) => (
-                      <li key={item} className="flex items-center gap-3">
-                        <Icon
-                          icon={Tick02Icon}
-                          size={18}
-                          strokeWidth={2.5}
-                          className="text-primary"
-                        />
-                        <span className="text-[0.95rem] leading-snug font-bold">
-                          {item}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </CardContent>
-              <CardFooter className="flex-col items-stretch gap-3 border-t-2 border-dashed">
-                <form action={startCheckoutAction}>
-                  <Button type="submit" size="lg" className="w-full">
-                    <Icon icon={CreditCardIcon} size={18} />
-                    Start checkout
-                  </Button>
-                </form>
-                <Button
-                  asChild
-                  variant="secondary"
-                  size="lg"
-                  className="w-full"
-                >
-                  <Link href="/signup">Create account</Link>
-                </Button>
-                <p className="text-center font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
-                  Card required to go live · cancel any time
+        <div className="mt-8 grid gap-8 sm:gap-10 lg:grid-cols-[minmax(0,0.52fr)_minmax(0,0.48fr)] lg:items-start">
+          <ReceiptCard
+            edge
+            className="order-1 w-full"
+            wrapperClassName="order-1 lg:-rotate-1"
+          >
+            <div className="grid gap-5">
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <Eyebrow>Growth plan</Eyebrow>
+                <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+                  30 days free
+                </span>
+              </div>
+              <div>
+                <p className="text-[clamp(2.75rem,8vw,3.25rem)] leading-none font-extrabold tabular-nums">
+                  £29
+                  <span className="text-lg font-bold text-muted-foreground">
+                    /month
+                  </span>
                 </p>
-              </CardFooter>
-            </Card>
-          </div>
+                <p className="mt-2 font-mono text-[0.7rem] font-bold tracking-[0.06em] text-muted-foreground uppercase">
+                  One venue · month to month · no contracts
+                </p>
+              </div>
+              <hr className="w-rule" />
+              <div>
+                <Eyebrow className="mb-3">Everything included</Eyebrow>
+                <ul className="grid gap-2.5">
+                  {planIncludes.map((item) => (
+                    <li key={item} className="flex items-start gap-3">
+                      <Icon
+                        icon={Tick02Icon}
+                        size={18}
+                        strokeWidth={2.5}
+                        className="mt-0.5 shrink-0 text-primary"
+                      />
+                      <span className="text-[0.95rem] leading-snug font-bold text-pretty">
+                        {item}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="grid gap-3 border-t-2 border-dashed border-border pt-5">
+                <Button asChild size="lg" className="w-full">
+                  <Link href="/signup">Start your pilot</Link>
+                </Button>
+                <Button asChild variant="outline" size="lg" className="w-full">
+                  <Link href="/login">Log in</Link>
+                </Button>
+                <p className="text-center text-xs leading-5 text-pretty text-muted-foreground">
+                  Billing when you activate your live venue QR. One month&apos;s
+                  notice to leave.
+                </p>
+              </div>
+            </div>
+          </ReceiptCard>
 
-          <div className="grid gap-5 pt-2">
-            <div className="grid gap-3">
-              <Eyebrow>The pilot</Eyebrow>
-              <h2 className="text-[clamp(1.6rem,3vw,2.2rem)] leading-tight font-extrabold">
-                30 days free, card required to activate. If it doesn&apos;t earn
-                its keep, walk away.
-              </h2>
-              <p className="max-w-[46ch] text-[0.95rem] leading-6 text-muted-foreground">
-                Most venues see their first repeat visit inside the first week,
-                so you will know long before day 30. Your dashboard counts the
-                regulars; you do the maths.
+          <div className="order-2 grid gap-6 pt-1">
+            <div className="grid gap-2">
+              <Eyebrow>The maths</Eyebrow>
+              <p className="text-[clamp(1.25rem,2.5vw,1.5rem)] leading-snug font-extrabold text-balance">
+                One or two extra regulars a week can cover the cost for many
+                cafes.
+              </p>
+              <p className="text-sm leading-6 text-pretty text-muted-foreground">
+                Most venues see their first repeat visit inside the first week.
+                Your dashboard counts the regulars; you do the maths.
               </p>
             </div>
-            <div className="rounded-lg border-2 border-dashed border-border p-5">
-              <Eyebrow className="mb-2 text-foreground">After day 30</Eyebrow>
-              <p className="text-sm leading-6 text-muted-foreground">
-                Stripe starts billing after the trial. Leaving later takes one
+            <div className="rounded-[10px] border-2 border-dashed border-border p-5">
+              <Eyebrow className="mb-2">After day 30</Eyebrow>
+              <p className="text-sm leading-6 text-pretty text-muted-foreground">
+                Billing starts after your free pilot. Leave any time with one
                 month&apos;s notice from your billing page. Earned rewards stay
                 good for your regulars.
               </p>
@@ -177,8 +159,8 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
           </div>
         </div>
 
-        <div className="mx-auto mt-16 max-w-2xl">
-          <h2 className="mb-2 text-[clamp(1.5rem,3vw,2rem)] font-extrabold">
+        <div className="mx-auto mt-14 max-w-2xl">
+          <h2 className="mb-2 text-[clamp(1.5rem,3vw,2rem)] font-extrabold text-balance">
             Asked at the counter
           </h2>
           <div className="border-b-2 border-dashed border-border">
@@ -197,20 +179,16 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
                     <span className="hidden group-open:inline">–</span>
                   </span>
                 </summary>
-                <p className="max-w-[62ch] pb-4 text-sm leading-6 text-muted-foreground">
+                <p className="max-w-[62ch] pb-4 text-sm leading-6 text-pretty text-muted-foreground">
                   {faq.a}
                 </p>
               </details>
             ))}
           </div>
-          <div className="mt-10 grid justify-items-center gap-3 text-center">
+          <div className="mt-8 flex justify-center">
             <Button asChild size="lg">
-              <Link href="/signup">Start your 30-day pilot</Link>
+              <Link href="/signup">Start your pilot</Link>
             </Button>
-            <p className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
-              Card required to activate · GBP 29/month after · one month&apos;s
-              notice
-            </p>
           </div>
         </div>
       </section>

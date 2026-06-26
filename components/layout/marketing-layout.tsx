@@ -66,15 +66,18 @@ export function MarketingLayout({
           <div className="flex items-center gap-3">
             <Logo label="nabaperks" />
             <span className="font-mono text-[0.65rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
-              © {new Date().getFullYear()} · Stamped, not tracked
+              © {new Date().getFullYear()} · Marketing by choice
             </span>
           </div>
-          <nav aria-label="My Nabaperks" className="flex flex-wrap gap-2">
-            <Link className={legalLinkClass} href="/home">
-              My Nabaperks
+          <nav aria-label="Merchant links" className="flex flex-wrap gap-2">
+            <Link className={legalLinkClass} href="/login">
+              Log in
             </Link>
-            <Link className={legalLinkClass} href="/scan">
-              Scan a venue QR
+            <Link className={legalLinkClass} href="/signup">
+              Start trial
+            </Link>
+            <Link className={legalLinkClass} href="/pricing">
+              Pricing
             </Link>
           </nav>
           <nav aria-label="Legal links" className="flex flex-wrap gap-2">

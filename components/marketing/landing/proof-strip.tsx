@@ -1,9 +1,11 @@
 import { cn } from "@/lib/utils"
 
+import { PilotProofStrip } from "../pilot-proof-strip"
+
 const stats = [
   { value: "<5 min", label: "to set the venue up" },
   { value: "<10 sec", label: "from scan to stamp" },
-  { value: "30 days", label: "free, card required" },
+  { value: "30 days", label: "free to pilot" },
 ] as const
 
 /**
@@ -33,6 +35,7 @@ export function ProofStrip() {
           </li>
         ))}
       </ul>
+      <PilotProofStrip />
     </section>
   )
 }

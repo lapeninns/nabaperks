@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "test:micro-specs": "node --test tests/micro-specs/*.test.mjs",
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "db:migrate": "node scripts/run-supabase-sql.mjs --apply",

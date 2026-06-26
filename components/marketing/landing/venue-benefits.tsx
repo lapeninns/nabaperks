@@ -1,17 +1,19 @@
 import { MonoTag } from "@/components/brand"
+import { stampDisplayDatesEndingToday } from "@/lib/customer/uk-calendar"
 
 import { BenefitPoint } from "./benefit-point"
-import { SampleLoyaltyCard } from "./sample-loyalty-card"
-import { SealBreakDemo } from "./seal-break-demo"
+import { VenueBenefitsCard } from "./venue-benefits-card"
 import { type QrMatrix } from "./venue-qr"
 
 /**
  * Venue benefits + live product proof. Mobile-first: the claims read first in a
  * single column, then the tappable card. From `lg` the copy and the card sit
- * side by side. The card is the same SampleLoyaltyCard as the hero, here holding
- * the interactive seal-break beat.
+ * side by side. The card previews merchant setup — programme, QR kit, and reward
+ * config — not the hero's customer scan journey.
  */
 export function VenueBenefits({ qrMatrix }: { qrMatrix: QrMatrix }) {
+  const stampDates = stampDisplayDatesEndingToday(3)
+
   return (
     <section className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-10 px-6 py-4 lg:grid-cols-2 lg:items-center lg:gap-14">
       <div>
@@ -28,13 +30,13 @@ export function VenueBenefits({ qrMatrix }: { qrMatrix: QrMatrix }) {
             Stamps are confirmed on the customer&apos;s own phone. Your team
             never has to hold it.
           </BenefitPoint>
-          <BenefitPoint title="One stamp a day, honest">
-            The server allows a single stamp per UK business day. No
-            double-tapping the same card.
+          <BenefitPoint title="Server-checked stamps">
+            Customers claim from the venue QR. The server blocks duplicate daily
+            stamps and can flag odd GPS signals without POS setup.
           </BenefitPoint>
-          <BenefitPoint title="Mystery rewards bring people back">
-            A sealed reward from your pool gives regulars a reason for the third
-            visit.
+          <BenefitPoint title="Simple rewards customers understand">
+            Start with a clear reward, then add a surprise reward later if it
+            fits your venue.
           </BenefitPoint>
           <BenefitPoint title="Built for food and drink venues">
             Made for cafes, takeaways, casual restaurants, pubs and dessert
@@ -45,24 +47,16 @@ export function VenueBenefits({ qrMatrix }: { qrMatrix: QrMatrix }) {
 
       <div>
         <p className="text-center font-mono text-[0.7rem] font-bold tracking-[0.08em] text-primary uppercase">
-          Live product shape
+          Your programme setup
         </p>
         <p className="mt-1.5 text-center font-mono text-[0.65rem] tracking-[0.05em] text-muted-foreground uppercase">
-          Card, reward, and QR kit in one setup flow
+          What you configure · what customers see
         </p>
         <div className="mt-6">
-          <SampleLoyaltyCard
-            className="-rotate-[1.4deg]"
-            venue="The Old Crown · Bristol"
-            title="Free flat white"
-            venueInitials="OC"
-            stamps={{ current: 3, total: 3, dates: ["3 JUN", "9 JUN", "24 JUN"] }}
-            bodyClassName="grid min-h-[13.5rem] place-items-center"
-            footerLeft="Card Nº OC-0248"
-            footerRight={<span className="text-primary">Reward ready</span>}
-          >
-            <SealBreakDemo qrMatrix={qrMatrix} />
-          </SampleLoyaltyCard>
+          <VenueBenefitsCard
+            qrMatrix={qrMatrix}
+            stampDates={stampDates}
+          />
         </div>
       </div>
     </section>

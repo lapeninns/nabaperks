@@ -1,13 +1,12 @@
 import Link from "next/link"
 
 import { MonoTag } from "@/components/brand"
-import { RewardSeal } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 
-import { SampleLoyaltyCard } from "./sample-loyalty-card"
-import { VenueQr, type QrMatrix } from "./venue-qr"
+import { HeroSampleCard } from "./hero-sample-card"
+import { type QrMatrix } from "./venue-qr"
 
-const customerLinkClass =
+const merchantLinkClass =
   "rounded-sm underline underline-offset-4 transition-colors hover:text-primary focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
 
 /**
@@ -26,9 +25,10 @@ export function LandingHero({ qrMatrix }: { qrMatrix: QrMatrix }) {
         <h1 className="mt-5 max-w-[16ch] text-[clamp(2rem,6.4vw,4.25rem)] leading-[1.0] font-extrabold tracking-[-0.02em] text-balance">
           Replace paper loyalty cards with one venue QR.
         </h1>
-        <p className="mt-5 max-w-[42ch] text-base leading-relaxed text-muted-foreground sm:text-lg">
-          Customers scan, save a browser card, and collect one honest stamp per
-          day. No app, no plastic, no password.
+        <p className="mt-5 max-w-[42ch] text-base leading-relaxed text-pretty text-muted-foreground sm:text-lg">
+          Run no-app QR loyalty from your counter. Customers scan, save a
+          browser card, and collect server-checked stamps — no plastic, no POS
+          setup.
         </p>
         <div className="mt-7 flex flex-wrap gap-3">
           <Button asChild size="lg">
@@ -39,51 +39,17 @@ export function LandingHero({ qrMatrix }: { qrMatrix: QrMatrix }) {
           </Button>
         </div>
         <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-[0.7rem] tracking-[0.04em] uppercase">
-          <span className="text-muted-foreground">Already a customer?</span>
-          <Link href="/home" className={customerLinkClass}>
-            Open my cards
+          <span className="text-muted-foreground">Already piloting?</span>
+          <Link href="/login" className={merchantLinkClass}>
+            Log in
           </Link>
-          <Link href="/scan" className={customerLinkClass}>
-            Scan a venue QR
+          <Link href="/pricing" className={merchantLinkClass}>
+            View pricing
           </Link>
         </div>
       </div>
 
-      <SampleLoyaltyCard
-        className="rotate-[1.5deg]"
-        venue="The Old Crown · Bristol"
-        title="Free hot drink after 3 visits"
-        venueInitials="OC"
-        stamps={{ current: 2, total: 3, dates: ["3 JUN", "9 JUN"] }}
-        footerLeft="Card Nº OC-0248"
-        footerRight={
-          <span className="text-muted-foreground">
-            One stamp per business day
-          </span>
-        }
-      >
-        <div className="flex items-center gap-3">
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            <span className="grid size-14 shrink-0 place-items-center rounded-md border-2 border-ink bg-white p-1">
-              <VenueQr matrix={qrMatrix} />
-            </span>
-            <div className="min-w-0">
-              <p className="text-[0.85rem] leading-tight font-extrabold">
-                Scan at the till
-              </p>
-              <p className="mt-0.5 font-mono text-[0.55rem] tracking-[0.05em] text-muted-foreground uppercase">
-                Opens in the browser
-              </p>
-            </div>
-          </div>
-          <div className="shrink-0 border-l-2 border-dashed border-border pl-3 text-center">
-            <RewardSeal state="sealed" size="md" wiggle className="mx-auto" />
-            <p className="mx-auto mt-1.5 max-w-[4.5rem] font-mono text-[0.5rem] leading-tight tracking-[0.05em] text-muted-foreground uppercase">
-              1 visit to the seal
-            </p>
-          </div>
-        </div>
-      </SampleLoyaltyCard>
+      <HeroSampleCard qrMatrix={qrMatrix} />
     </section>
   )
 }

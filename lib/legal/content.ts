@@ -33,10 +33,10 @@ export const PLATFORM_TERMS_SECTIONS: LegalSection[] = [
 ]
 
 export const PLATFORM_TERMS_META = {
-  eyebrow: "Plain English summary · not the full legal text",
+  eyebrow: "For venue operators · plain English summary",
   title: "The small print, kept legible.",
   description:
-    "Pilot terms for no-app QR loyalty participation, structured for readability. The full text travels with your merchant agreement and requires legal review before launch.",
+    "How customer participation, rewards, marketing consent, and fraud prevention work on Nabaperks. The full text travels with your merchant agreement and requires legal review before launch.",
   cardTitle: "Terms, condensed",
   docNumber: "T-2026",
 }
@@ -75,10 +75,10 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
 ]
 
 export const PRIVACY_META = {
-  eyebrow: "Plain English summary · not the full legal text",
-  title: "What happens to the data.",
+  eyebrow: "For venue operators · plain English summary",
+  title: "What happens to your customers' data.",
   description:
-    "Privacy wording for loyalty support, consent separation, admin support scoping, and audit records. The full notice travels with your merchant agreement and needs legal review before launch.",
+    "How Nabaperks handles loyalty records, consent separation, support access, and audit evidence for your venue. The full notice travels with your merchant agreement and needs legal review before launch.",
   cardTitle: "Privacy, condensed",
   docNumber: "P-2026",
 }

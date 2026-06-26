@@ -2,9 +2,9 @@ import { WetInkMarquee } from "@/components/motion"
 import { cn } from "@/lib/utils"
 
 const DEFAULT_ITEMS = [
-  "No app",
-  "No plastic",
-  "No password",
+  "One venue QR",
+  "30 days free",
+  "No POS setup",
   "Stamped in seconds",
 ]
 

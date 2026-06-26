@@ -2,24 +2,24 @@ import { MonoTag } from "@/components/brand"
 
 const faqs = [
   {
-    q: "Do customers need an app or extra hardware?",
+    q: "Do customers need an app?",
     a: "No app and no extra hardware. Customers scan your QR with the camera they already have, and the card opens in their phone browser. You run it from any phone, tablet, or till screen.",
   },
   {
-    q: "How is a stamp kept honest?",
-    a: "Every stamp is written on the server and kept on the record — one per UK business day, scoped to your venue. There is no offline tally to fudge and no way to stamp the same card twice in a day.",
+    q: "How are stamps checked?",
+    a: "The customer scans your venue QR and taps to claim. The server checks the QR, membership, billing status, and UK date before confirming the stamp, so the phone never crosses the counter.",
   },
   {
-    q: "What if location looks wrong?",
-    a: "Stamps are tied to your venue, so a card opened elsewhere will not quietly collect with you. If a location check looks off, the stamp simply does not land, and nothing is lost.",
+    q: "Can I control how stamps are earned?",
+    a: "The live flow is self-service QR stamping: one stamp per customer per UK date, checked server-side. You can configure the reward threshold and optional GPS anomaly checks without adding a CRM or POS integration.",
   },
   {
     q: "Can people collect stamps without marketing consent?",
-    a: "Yes. Loyalty participation and marketing opt-in stay separate. A customer can collect every stamp and break every seal without ever opting in to hear from you.",
+    a: "Yes. Loyalty participation and marketing opt-in stay separate. A customer can collect stamps and redeem rewards without joining a marketing list.",
   },
   {
     q: "What does it cost after the pilot?",
-    a: "The pilot runs free for 30 days, with a card required to activate. After that it is £29/month for one venue — no tiers, no contracts.",
+    a: "You can build the card and preview the QR flow first. Add billing when you activate your live venue QR. After the 30-day pilot it is £29/month for one venue, with no contracts.",
   },
 ] as const
 

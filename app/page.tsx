@@ -15,7 +15,7 @@ import {
 
 const title = "Nabaperks — No-app QR loyalty for food & drink venues"
 const description =
-  "Replace paper loyalty cards with one venue QR. Customers scan, save a browser card, and collect one honest stamp a day — no app, no plastic, no password."
+  "Replace paper loyalty cards with one venue QR. Run no-app loyalty from your counter — customers scan, save a browser card, and collect server-checked stamps."
 
 export const metadata: Metadata = {
   title,

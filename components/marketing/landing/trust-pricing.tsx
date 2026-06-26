@@ -9,7 +9,7 @@ import { BenefitPoint } from "./benefit-point"
 
 const planIncludes = [
   "Unlimited stamps and members",
-  "Mystery reward pool",
+  "Simple reward setup",
   "Printed QR kit: poster, till card, sticker",
   "Weekly digest of visits and redemptions",
 ] as const
@@ -23,29 +23,30 @@ export function TrustPricing() {
   return (
     <section className="mx-auto w-full max-w-6xl px-6 py-12 sm:py-16">
       <div className="mx-auto max-w-[46ch] text-center">
-        <MonoTag tone="plain">Stamped, not tracked</MonoTag>
+        <MonoTag tone="plain">Marketing by choice</MonoTag>
         <h2 className="mt-4 text-[clamp(1.85rem,4vw,2.75rem)] leading-[1.02] font-extrabold tracking-[-0.02em] text-balance">
-          Stamped, not tracked.
+          Stamps on record. Marketing by choice.
         </h2>
         <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-          Customer loyalty participation and marketing opt-in stay separate.
-          Pricing stays just as plain.
+          Customers can collect stamps without joining a marketing list. Every
+          stamp stays scoped to your venue.
         </p>
       </div>
 
       <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-2 lg:items-center lg:gap-14">
         <ul className="grid gap-5">
-          <BenefitPoint title="Every stamp is on the record">
-            Each stamp is written server-side and can be audited later.
+          <BenefitPoint title="Server-checked stamps">
+            Customers claim from the venue QR; the server records the stamp and
+            blocks duplicate UK-date claims.
           </BenefitPoint>
           <BenefitPoint title="Scoped to your venue">
             A card collects only at your counter, nowhere else.
           </BenefitPoint>
-          <BenefitPoint title="Private by default">
-            You see visits and redemptions, not a customer&apos;s life story.
+          <BenefitPoint title="Marketing opt-in is separate">
+            Customers can earn rewards without agreeing to promotional messages.
           </BenefitPoint>
-          <BenefitPoint title="Marketing is separate">
-            Loyalty works with no marketing opt-in. The two never mix.
+          <BenefitPoint title="Clear reward records">
+            Stamps and redemptions stay server-side for later review.
           </BenefitPoint>
         </ul>
 
@@ -66,6 +67,10 @@ export function TrustPricing() {
           </p>
           <p className="mt-2 font-mono text-[0.625rem] tracking-[0.05em] text-muted-foreground uppercase">
             GBP 29/month · one venue · no contracts
+          </p>
+          <p className="mt-3 text-sm leading-relaxed font-semibold">
+            At £29/month, one or two extra regulars a week can cover the cost
+            for many cafes.
           </p>
 
           <hr className="w-rule my-5" />
@@ -97,7 +102,8 @@ export function TrustPricing() {
 
           <hr className="w-rule mt-4 mb-0" />
           <p className="mt-4 text-center font-mono text-[0.625rem] tracking-[0.05em] text-muted-foreground uppercase">
-            Card required to go live
+            Build your card free. Add billing when you activate your live venue
+            QR.
           </p>
         </div>
       </div>

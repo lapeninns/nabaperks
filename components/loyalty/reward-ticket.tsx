@@ -37,6 +37,8 @@ export function RewardTicket({
   name,
   description,
   readyDate,
+  sealSlammed = false,
+  eyebrow,
   className,
 }: {
   state: RewardTicketState
@@ -45,6 +47,10 @@ export function RewardTicket({
   description?: ReactNode
   /** UK business day the reward opens — printed as a sun chip while waiting. */
   readyDate?: string | null
+  /** Fire the print-pop on the stub seal — e.g. hero reveal loop. */
+  sealSlammed?: boolean
+  /** Override the state kicker — e.g. "Clear reward" on merchant previews. */
+  eyebrow?: string
   className?: string
 }) {
   const leaf = state === "ready" || state === "redeemed"
@@ -63,7 +69,9 @@ export function RewardTicket({
       )}
     >
       <div className="relative grid flex-1 content-center gap-1 p-4">
-        <span className="eyebrow text-muted-foreground">{KICKER[state]}</span>
+        <span className="eyebrow text-muted-foreground">
+          {eyebrow ?? KICKER[state]}
+        </span>
         <h3
           className={cn(
             "text-lg leading-tight font-extrabold",
@@ -113,6 +121,7 @@ export function RewardTicket({
           size="md"
           wiggle={state === "sealed"}
           breathe={state === "waiting" || state === "ready"}
+          slammed={sealSlammed}
         />
         <span className="font-mono text-[0.625rem] font-bold tracking-[0.06em] text-muted-foreground uppercase">
           {STUB_WORD[state]}

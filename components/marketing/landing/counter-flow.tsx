@@ -7,17 +7,17 @@ const steps = [
   {
     step: "Step 02",
     title: "Save",
-    body: "One text confirms the number. No app, password, or plastic card.",
+    body: "One quick check saves the card. No app, password, or plastic card.",
   },
   {
     step: "Step 03",
     title: "Stamp",
-    body: "The customer taps once. One honest stamp lands per UK business day, recorded on the server.",
+    body: "The customer taps to claim. The server checks the QR, UK date, billing status, and optional GPS signals.",
   },
   {
     step: "Step 04",
     title: "Reward",
-    body: "The mystery reward unlocks for one merchant-scanned collection.",
+    body: "Customers unlock a clear reward and collect it in-store.",
   },
 ] as const
 
@@ -43,9 +43,9 @@ export function CounterFlow() {
               Scan, save, stamp, reward.
             </h2>
           </div>
-          <p className="max-w-[42ch] text-[0.95rem] leading-relaxed text-paper/70 sm:text-base">
-            The customer keeps their phone. Your team keeps the queue moving.
-            Every loyalty action stays server-side and auditable.
+          <p className="max-w-[42ch] text-[0.95rem] leading-relaxed text-pretty text-paper/70 sm:text-base">
+            Your team keeps the queue moving while customers stamp on their own
+            phones. Every loyalty action stays server-side and auditable.
           </p>
         </div>
 

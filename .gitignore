@@ -26,7 +26,6 @@
 *.pem
 .tmp/
 .claude/
-.firecrawl/
 supabase/.temp/
 
 # local agent/tooling output
