@@ -20,7 +20,7 @@ export default function NotFound() {
                 <Link href="/home">Open my cards</Link>
               </Button>
               <Button asChild variant="secondary">
-                <Link href="/">Back to Nabaperks</Link>
+                <Link href="/start">Back to Nabaperks</Link>
               </Button>
             </div>
           }

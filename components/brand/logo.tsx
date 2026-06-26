@@ -3,7 +3,7 @@ import Link from "next/link"
 import { cn } from "@/lib/utils"
 
 export function Logo({
-  href = "/",
+  href = "/start",
   label = "Nabaperks",
   compact = false,
   wordmarkClassName,
