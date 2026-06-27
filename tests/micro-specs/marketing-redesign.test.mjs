@@ -126,7 +126,7 @@ test("Given venue proof When the landing source is checked Then all nine venues 
 
   // When / Then
   assert.match(homepage, /<VenueProof \/>/)
-  assert.match(venueProof, /Venue voices/)
+  assert.match(venueProof, /What venues say/)
   assert.match(venueProof, /VenueProofReviews/)
   assert.match(
     readProjectFile(

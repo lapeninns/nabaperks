@@ -10,6 +10,7 @@ import {
   JumpNav,
   LandingFaq,
   LandingHero,
+  MidPageCta,
   OperatorProof,
   ProofStrip,
   SeparateMarketing,
@@ -17,7 +18,7 @@ import {
   VenueBenefits,
   VenuePersonas,
   VenueProof,
-  VenueStats,
+  NabaperksProof,
   faqs,
   type QrMatrix,
 } from "@/components/marketing/landing"
@@ -30,7 +31,7 @@ import {
 
 const title = "No-App QR Loyalty Cards for UK Cafes & Pubs"
 const description =
-  "Replace paper stamp cards with one venue QR. Customers scan, save a browser card (no app, no wallet pass), and collect server-checked stamps. £29/mo, 30-day free pilot."
+  "Replace paper stamp cards with one venue QR. Customers scan, save a browser card (no app, no wallet pass), and collect till-verified stamps. £29/mo, 30-day free pilot."
 
 export const metadata: Metadata = {
   title: { absolute: `${title} | Nabaperks` },
@@ -95,7 +96,7 @@ function buildPageGraph() {
       applicationCategory: "BusinessApplication",
       operatingSystem: "Web browser (iOS, Android, any)",
       description:
-        "No-app QR loyalty for UK food & drink venues. A browser-based digital stamp card with the server-checked Counter-Verified Stamp — no app, no wallet pass, no POS.",
+        "No-app QR loyalty for UK food & drink venues. A browser-based digital stamp card with the Counter-Verified Stamp — every stamp till-verified before it counts. No app, no wallet pass, no POS.",
       url: SITE_URL,
       publisher: { "@id": ORG_ID },
       offers: {
@@ -122,7 +123,7 @@ function buildPageGraph() {
       "@id": `${SITE_URL}/#counter-verified-stamp`,
       name: "Counter-Verified Stamp",
       description:
-        "Nabaperks' anti-fraud method: every loyalty stamp is checked on the server against the physical venue QR, the customer's membership, the venue's billing status, a one-stamp-per-customer-per-UK-calendar-date cap, and optional GPS-anomaly signals; rewards are verified live at redemption.",
+        "Nabaperks' anti-fraud method: every loyalty stamp is checked against the physical venue QR, the customer's membership, the venue's live account, a one-stamp-per-customer-per-UK-calendar-date cap, and optional unusual-location checks; rewards are checked at redemption.",
       inDefinedTermSet: `${SITE_URL}/#glossary`,
     },
     {
@@ -143,13 +144,14 @@ export default function HomePage() {
       <JumpNav />
       <ProofStrip />
       <CounterFlow />
+      <NabaperksProof />
       <ComparisonTable />
       <CounterVerifiedStamp />
+      <MidPageCta />
       <VenueBenefits qrMatrix={qrMatrix} />
       <VenuePersonas />
       <OperatorProof />
       <VenueProof />
-      <VenueStats />
       <SeparateMarketing />
       <TrustPricing />
       <LandingFaq />

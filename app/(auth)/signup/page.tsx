@@ -7,7 +7,7 @@ import { MarketingLayout } from "@/components/layout"
 
 const trustPoints = [
   "No app for your customers to download",
-  "Self-service stamps from your venue QR",
+  "Customers stamp themselves from your venue QR",
   "Billing when you activate your live venue QR",
 ]
 
@@ -17,7 +17,7 @@ export default function SignUpPage() {
       <section className="mx-auto grid min-h-[calc(100dvh-73px)] w-full max-w-5xl content-start gap-8 px-6 py-6 sm:gap-10 sm:py-10 lg:grid-cols-[minmax(0,1fr)_minmax(340px,420px)] lg:content-center lg:items-center">
         <div className="order-2 grid gap-6 lg:order-1">
           <PageTitle
-            eyebrow="Start trial"
+            eyebrow="Start free pilot"
             title="Your first stamp is waiting."
             description="Set up your venue QR loyalty card in about five minutes. Verify your email, then add your venue, rewards, and printed kit."
             titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"

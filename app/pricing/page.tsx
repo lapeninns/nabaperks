@@ -11,7 +11,7 @@ const planIncludes = [
   "Unlimited stamps and members",
   "Simple reward setup",
   "Printed QR kit: A4 poster, till card, sticker",
-  "Optional soft location checks at your venue",
+  "Optional location checks at your venue",
   "Weekly digest of visits, regulars, and redemptions",
 ]
 
@@ -26,11 +26,11 @@ const faqs = [
   },
   {
     q: "Who owns the customer data?",
-    a: "Customer records are scoped to your venue. Phone identity is handled by protected server helpers, merchant views use masked-safe identifiers, and marketing messages use separate opt-in records.",
+    a: "Customer records stay with your venue. You see masked phone and email in your dashboard; marketing is a separate opt-in.",
   },
   {
     q: "What counts as a visit?",
-    a: "A customer claim from the venue QR becomes a visit when the server issues a self-service stamp. One earned stamp is allowed per customer per UK date, and optional location checks can flag odd signals without blocking legitimate customers.",
+    a: "A visit counts when a customer stamps from your venue QR — one earned stamp per customer per UK date. Optional location checks can flag odd visits without blocking legitimate customers.",
   },
   {
     q: "What if I want to cancel?",
@@ -64,7 +64,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
       <section className="mx-auto w-full max-w-6xl px-6 py-8 sm:py-12">
         <PageTitle
           eyebrow="Pricing"
-          title="One price. The whole machine."
+          title="One price. Everything included."
           description="30 days free to pilot, then £29/month per venue. Build your card first; add billing when you activate your live venue QR."
           titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
           descriptionClassName="text-base leading-7 text-pretty"
@@ -123,7 +123,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
               </div>
               <div className="grid gap-3 border-t-2 border-dashed border-border pt-5">
                 <Button asChild size="lg" className="w-full">
-                  <Link href="/signup">Start your pilot</Link>
+                  <Link href="/signup">Start free pilot</Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="w-full">
                   <Link href="/login">Log in</Link>
@@ -187,7 +187,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
           </div>
           <div className="mt-8 flex justify-center">
             <Button asChild size="lg">
-              <Link href="/signup">Start your pilot</Link>
+              <Link href="/signup">Start free pilot</Link>
             </Button>
           </div>
         </div>

@@ -3,7 +3,8 @@ import Link from "next/link"
 
 import { Logo } from "@/components/brand"
 import { Marquee } from "@/components/marketing"
-import { Button } from "@/components/ui/button"
+
+import { MarketingHeaderNav } from "./marketing-header-nav"
 
 export type MarketingNavLink = {
   href: string
@@ -21,50 +22,32 @@ const legalLinkClass =
 export function MarketingLayout({
   children,
   navLinks,
+  logoHref = "/",
 }: {
   children: ReactNode
   /** Homepage can pass anchor links; pricing and legal pages use the default. */
   navLinks?: MarketingNavLink[]
+  /** Merchant marketing pages should link home to `/`, not the customer `/start` surface. */
+  logoHref?: string
 }) {
   const marketingLinks = navLinks ?? defaultMarketingLinks
   return (
     <div className="min-h-[100dvh] overflow-x-clip bg-background">
       <Marquee />
       <header className="sticky top-0 z-40 border-b-2 border-ink bg-card">
-        <div className="mx-auto grid w-full max-w-7xl grid-cols-[auto_minmax(0,1fr)] items-center gap-3 px-4 py-3 sm:px-6">
-          <Logo className="max-[420px]:[&>span:last-child]:sr-only" />
-          <nav
-            aria-label="Marketing"
-            className="flex min-w-0 flex-wrap items-center justify-end gap-2"
-          >
-            {marketingLinks.map((item) => (
-              <Button key={item.href} asChild variant="ghost" size="sm">
-                <Link href={item.href}>{item.label}</Link>
-              </Button>
-            ))}
-            <Button
-              asChild
-              size="sm"
-              className="hidden min-[430px]:inline-flex"
-            >
-              <Link href="/signup">Start trial</Link>
-            </Button>
-            <Button
-              asChild
-              size="sm"
-              className="px-3 min-[430px]:hidden"
-              aria-label="Start trial"
-            >
-              <Link href="/signup">Start</Link>
-            </Button>
-          </nav>
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <Logo
+            href={logoHref}
+            className="max-[420px]:[&>span:last-child]:sr-only"
+          />
+          <MarketingHeaderNav links={marketingLinks} />
         </div>
       </header>
       <main>{children}</main>
       <footer className="border-t-2 border-dashed border-border bg-card">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-6 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <Logo label="nabaperks" />
+            <Logo href={logoHref} label="nabaperks" />
             <span className="font-mono text-[0.65rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               © {new Date().getFullYear()} · Marketing by choice
             </span>
@@ -74,7 +57,7 @@ export function MarketingLayout({
               Log in
             </Link>
             <Link className={legalLinkClass} href="/signup">
-              Start trial
+              Start free pilot
             </Link>
             <Link className={legalLinkClass} href="/pricing">
               Pricing

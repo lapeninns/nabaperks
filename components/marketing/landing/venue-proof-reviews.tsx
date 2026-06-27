@@ -10,6 +10,7 @@ import { wetInkTransition } from "@/lib/motion/tokens"
 import { cn } from "@/lib/utils"
 
 import {
+  DEFAULT_VENUE_PROOF_INDICES,
   pickVenueProofIndices,
   shuffleVenueProofIndices,
   type VenueProofEntry,
@@ -112,7 +113,7 @@ const VenueReviewReceipt = forwardRef<
     <figure
       ref={ref}
       className={cn(
-        "w-[min(15.5rem,72vw)] shrink-0 snap-start lg:w-auto lg:shrink",
+        "max-sm:w-[min(19rem,84vw)] max-sm:shrink-0 max-sm:snap-start sm:min-w-0 sm:w-full",
         RECEIPT_TILTS[tiltIndex % RECEIPT_TILTS.length]
       )}
     >
@@ -120,9 +121,9 @@ const VenueReviewReceipt = forwardRef<
         active={shakeActive}
         className="[filter:drop-shadow(3px_3px_0_var(--w-shadow-color))]"
       >
-        <div className="rounded-t-[var(--radius)] border-2 border-b-0 border-ink bg-card px-3.5 pt-3 pb-2.5">
+        <div className="rounded-t-[var(--radius)] border-2 border-b-0 border-ink bg-card px-4 pt-3.5 pb-3">
           <figcaption>
-            <p className="eyebrow text-primary">Operator note</p>
+            <p className="eyebrow text-primary">In their words</p>
             <div className="mt-1.5 flex items-start justify-between gap-2">
               <span className="min-w-0">
                 <span className="block text-sm leading-tight font-extrabold text-balance">
@@ -143,14 +144,14 @@ const VenueReviewReceipt = forwardRef<
 
           <hr className="w-rule !my-2.5" />
 
-          <blockquote className="line-clamp-3 text-[0.8rem] leading-5 font-extrabold text-pretty">
+          <blockquote className="text-[0.8125rem] leading-[1.45] font-extrabold text-pretty">
             {venue.review}
           </blockquote>
 
           <hr className="w-rule !my-2.5" />
 
           <p className="font-mono text-[0.58rem] tracking-[0.06em] text-muted-foreground uppercase">
-            From the venue team
+            {venue.attribution ?? "From the team"}
           </p>
         </div>
         <div aria-hidden="true" className="receipt-edge" />
@@ -163,14 +164,14 @@ function VenueProofSeeMore({ onShuffle }: { onShuffle: () => void }) {
   return (
     <div
       className={cn(
-        "w-[min(9.5rem,42vw)] shrink-0 snap-start lg:w-auto",
+        "max-sm:w-[min(11rem,46vw)] max-sm:shrink-0 max-sm:snap-start sm:min-w-0 sm:w-full",
         "-rotate-[0.5deg]"
       )}
     >
-      <div className="flex min-h-[7.75rem] flex-col justify-between rounded-t-[var(--radius)] border-2 border-b-0 border-dashed border-ink/45 bg-card px-3 py-3 shadow-xs">
-        <p className="eyebrow text-muted-foreground">Venue voices</p>
+      <div className="flex flex-col justify-between gap-3 rounded-t-[var(--radius)] border-2 border-b-0 border-dashed border-ink/45 bg-card px-3.5 py-3.5 shadow-xs">
+        <p className="eyebrow text-muted-foreground">More venues</p>
         <p className="text-sm leading-snug font-extrabold text-pretty">
-          Pull three more operator notes from the network.
+          Other pubs and cafes on Nabaperks.
         </p>
         <Button
           type="button"
@@ -187,44 +188,29 @@ function VenueProofSeeMore({ onShuffle }: { onShuffle: () => void }) {
   )
 }
 
-function VenueProofQuotesSkeleton() {
-  return (
-    <>
-      {Array.from({ length: 3 }).map((_, index) => (
-        <div
-          key={index}
-          aria-hidden
-          className={cn(
-            "w-[min(15.5rem,72vw)] shrink-0 lg:w-auto",
-            RECEIPT_TILTS[index % RECEIPT_TILTS.length]
-          )}
-        >
-          <div className="h-[7.5rem] animate-pulse rounded-t-[var(--radius)] border-2 border-b-0 border-ink/30 bg-muted/25" />
-          <div aria-hidden className="receipt-edge opacity-40" />
-        </div>
-      ))}
-    </>
-  )
-}
-
 /**
  * Three venue quotes per view, with See more to shuffle in another three-pack.
+ * The first three render from `initialIndices` on the server; shuffle is client-only.
  */
-export function VenueProofReviews() {
+export function VenueProofReviews({
+  initialIndices = DEFAULT_VENUE_PROOF_INDICES,
+}: {
+  initialIndices?: readonly number[]
+}) {
   const reduce = useReducedMotionHook()
-  const [venues, setVenues] = useState<VenueProofEntry[] | null>(null)
-  const [activeIndices, setActiveIndices] = useState<number[]>([])
+  const [venues, setVenues] = useState<VenueProofEntry[]>(() =>
+    venuesForIndices(initialIndices)
+  )
+  const [activeIndices, setActiveIndices] = useState<number[]>(() => [
+    ...initialIndices,
+  ])
   const [shuffleGeneration, setShuffleGeneration] = useState(0)
   const ribbonRef = useRef<HTMLDivElement>(null)
   const firstCardRef = useRef<HTMLElement>(null)
 
-  useEffect(() => {
-    const indices = pickVenueProofIndices()
-    setActiveIndices(indices)
-    setVenues(venuesForIndices(indices))
-  }, [])
-
   const scrollToFirstCard = useCallback(() => {
+    if (window.matchMedia("(min-width: 640px)").matches) return
+
     const ribbon = ribbonRef.current
     const firstCard = firstCardRef.current
     const behavior = reduce ? ("instant" as const) : ("smooth" as const)
@@ -255,28 +241,23 @@ export function VenueProofReviews() {
   return (
     <div
       ref={ribbonRef}
-      className="flex gap-3 overflow-x-auto pb-1 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] lg:grid lg:grid-cols-4 lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden"
-      aria-busy={venues === null}
+      className="min-w-0 overflow-x-auto overflow-y-hidden py-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:overflow-visible [&::-webkit-scrollbar]:hidden"
       aria-live="polite"
     >
-      {venues === null ? (
-        <VenueProofQuotesSkeleton />
-      ) : (
-        <>
-          {venues.map((venue, index) => (
-            <VenueReviewReceipt
-              key={`${shuffleGeneration}-${venue.name}`}
-              ref={index === 0 ? firstCardRef : undefined}
-              venue={venue}
-              tiltIndex={index}
-            />
-          ))}
-          <VenueProofSeeMore onShuffle={handleShuffle} />
-        </>
-      )}
+      <div className="flex w-max max-w-full items-start gap-3 pb-1 snap-x snap-mandatory max-sm:pe-1 sm:grid sm:w-full sm:grid-cols-2 sm:gap-4 sm:pb-0 sm:snap-none lg:grid-cols-4 xl:grid-cols-2 xl:gap-3">
+        {venues.map((venue, index) => (
+          <VenueReviewReceipt
+            key={`${shuffleGeneration}-${venue.name}`}
+            ref={index === 0 ? firstCardRef : undefined}
+            venue={venue}
+            tiltIndex={index}
+          />
+        ))}
+        <VenueProofSeeMore onShuffle={handleShuffle} />
+      </div>
     </div>
   )
 }
 
 /** Static fallback for tests and reduced-motion SSR hints. */
-export const venueProofPreview = venueProofPool.slice(0, 3)
+export const venueProofPreview = venuesForIndices(DEFAULT_VENUE_PROOF_INDICES)

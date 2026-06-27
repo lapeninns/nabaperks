@@ -29,7 +29,7 @@ export function TrustPricing() {
           £29/month per venue. 30 days free. No contract.
         </h2>
         <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-          One plain price for server-checked, no-app loyalty. Build your card
+          One plain price for no-app loyalty with till-verified stamps. Build your card
           free — add billing only when you switch your live venue QR on.
         </p>
       </div>
@@ -75,7 +75,7 @@ export function TrustPricing() {
 
         <div className="mt-6 grid gap-2.5">
           <Button asChild size="lg" className="w-full">
-            <Link href="/signup">Start a merchant trial</Link>
+            <Link href="/signup">Start free pilot</Link>
           </Button>
           <Button asChild variant="link" className="mx-auto">
             <Link href="/pricing">View full pricing</Link>

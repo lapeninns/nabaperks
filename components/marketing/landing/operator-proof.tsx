@@ -14,7 +14,7 @@ const faults = [
   },
   {
     title: "Stamps anyone can fake",
-    body: "A read-out code, a screenshot or a photocopied paper card barely counts as a check, so customers self-scan and our server verifies every stamp against your venue QR, capped at one per customer per UK date.",
+    body: "A read-out code, a screenshot or a photocopied paper card barely counts as a check, so customers scan themselves and we verify every stamp against your venue QR, capped at one per customer per UK date.",
   },
   {
     title: "Spam in a loyalty badge",

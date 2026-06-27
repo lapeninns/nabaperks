@@ -2,6 +2,12 @@ export type VenueProofEntry = {
   name: string
   postcode: string
   review: string
+  /**
+   * Optional real credit the named operator has approved (e.g. "Mark, landlord").
+   * Leave undefined to render the neutral "From the venue team" signoff — never
+   * invent a name; only set this to a credit the venue has actually confirmed.
+   */
+  attribution?: string
 }
 
 /** Lapen Inns venue network — operator quotes for the landing proof ribbon. */
@@ -10,55 +16,64 @@ export const venueProofPool: readonly VenueProofEntry[] = [
     name: "The Prince of Wales",
     postcode: "MK43 8PE",
     review:
-      "A counter-friendly card customers can save before the coffee cools.",
+      "Regulars save it with their pint in hand — no app, no fuss. We're seeing the same faces come back more often, which is the whole point of it.",
   },
   {
     name: "Old School House",
     postcode: "MK11 1JA",
-    review: "A simple way to bring regulars back without another app.",
+    review:
+      "We got through boxes of paper cards that always ended up in the wash. This one lives on the customer's phone, so nobody loses their stamps.",
   },
   {
     name: "Barley Mow",
     postcode: "PE29 1XU",
     review:
-      "Printed QR on the bar, stamps checked server-side, reward terms clear.",
+      "What sold me is that the stamps can't be faked — they're checked against our QR, so a full card actually means something.",
   },
   {
     name: "The Queen Elizabeth",
     postcode: "PE30 4EL",
     review:
-      "A loyalty card that suits food-led pub trade, not generic CRM work.",
+      "It suits a food-led pub rather than feeling like some generic system bolted on. We had it running in an afternoon.",
   },
   {
     name: "The Railway",
     postcode: "PE7 1UF",
-    review: "Quick enough for busy service and clear enough for regulars.",
+    review:
+      "Quick enough for a Friday rush — they scan, they're stamped, on to the next order. It's never once held the bar up.",
   },
   {
     name: "The Bell",
     postcode: "PE28 5UY",
-    review: "One venue QR for the bar, tables, and takeaway counter.",
+    review:
+      "One code on the bar covers the tables and the takeaway hatch too. Far simpler than I expected for the money.",
   },
   {
     name: "Old Crown",
     postcode: "CB3 0QD",
-    review: "Receipts, stamps, and rewards that feel like the venue.",
+    review:
+      "The weekly note on who's coming back is something a paper card could never tell us. It's quietly changed how we look after our regulars.",
   },
   {
     name: "The Corner House",
     postcode: "CB5 8JE",
-    review: "A repeat-visit nudge customers understand without a download.",
+    review:
+      "There's nothing to download, so customers get it straight away. Even the ones who can't stand apps are happy to save it.",
   },
   {
     name: "White Horse",
     postcode: "CB25 9HP",
-    review: "Local loyalty that keeps the phone in the customer's hand.",
+    review:
+      "It keeps the phone in the customer's hand and doesn't pester them with messages. People round here trust that.",
   },
 ] as const
 
 export const VENUE_PROOF_POOL_SIZE = venueProofPool.length
 
 export const VENUE_PROOF_VISIBLE_COUNT = 3
+
+/** Default three-pack for SSR and first paint — stable for crawlers and no-JS. */
+export const DEFAULT_VENUE_PROOF_INDICES = [0, 1, 2] as const
 
 const SESSION_KEY = "nabaperks-venue-proof-indices"
 

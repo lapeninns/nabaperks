@@ -12,7 +12,7 @@ const steps = [
   {
     step: "Step 03",
     title: "Stamp",
-    body: "The customer taps to claim. The Counter-Verified Stamp checks the venue QR, membership, billing and UK date server-side — the phone never crosses the counter.",
+    body: "The customer taps to claim. The Counter-Verified Stamp checks your venue QR, their saved card, and the one-stamp-per-day rule — the phone never crosses the counter.",
   },
   {
     step: "Step 04",
@@ -45,7 +45,7 @@ export function CounterFlow() {
           </div>
           <p className="max-w-[42ch] text-[0.95rem] leading-relaxed text-pretty text-paper/70 sm:text-base">
             Your team keeps the queue moving while customers stamp on their own
-            phones. Every loyalty action stays server-side and auditable.
+            phones. Every visit and redemption shows in your weekly digest.
           </p>
         </div>
 

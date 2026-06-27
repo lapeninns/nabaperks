@@ -1,0 +1,40 @@
+import Link from "next/link"
+
+import { Button } from "@/components/ui/button"
+
+import { ReassuranceBar } from "./reassurance-bar"
+
+/**
+ * Mid-page CTA — compact conversion bridge after proof and anti-fraud, before
+ * the long venue-content stretch. Keeps the next signup ask within reach of
+ * visitors who have already seen the core value prop.
+ */
+export function MidPageCta() {
+  return (
+    <section
+      aria-label="Build your card free"
+      className="mx-auto w-full max-w-6xl px-6 py-8 sm:py-10"
+    >
+      <div className="surface-card flex flex-col items-center gap-5 px-6 py-7 text-center sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:px-8 sm:py-6 sm:text-left">
+        <div className="max-w-md">
+          <h2 className="text-[clamp(1.35rem,3vw,1.75rem)] leading-tight font-extrabold tracking-[-0.02em] text-balance">
+            Build your card free.
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-pretty text-muted-foreground">
+            Preview the QR flow, then start a 30-day pilot when you switch your
+            live venue QR on.
+          </p>
+        </div>
+        <div className="flex w-full shrink-0 flex-col items-center gap-3 sm:w-auto sm:items-end">
+          <Button asChild size="lg" className="w-full sm:w-auto">
+            <Link href="/signup">Build your card free</Link>
+          </Button>
+          <ReassuranceBar
+            points={["No payment to start", "No contract"]}
+            className="justify-center sm:justify-end"
+          />
+        </div>
+      </div>
+    </section>
+  )
+}

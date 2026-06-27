@@ -88,7 +88,7 @@ export function AuthForm({
         </Alert>
       ) : null}
       <Button type="submit" disabled={pending} className="w-full">
-        {pending ? "Working..." : isSignUp ? "Start your pilot" : "Log in"}
+        {pending ? "Working..." : isSignUp ? "Start free pilot" : "Log in"}
       </Button>
       <p className="text-center text-sm text-muted-foreground">
         {isSignUp ? "Already piloting?" : "New venue?"}{" "}
@@ -96,7 +96,7 @@ export function AuthForm({
           href={isSignUp ? "/login" : "/signup"}
           className="inline-flex min-h-11 items-center rounded-full px-3 py-2 font-bold text-primary underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
         >
-          {isSignUp ? "Log in" : "Start your pilot"}
+          {isSignUp ? "Log in" : "Start free pilot"}
         </Link>
       </p>
     </form>

@@ -5,7 +5,7 @@ const DEFAULT_ITEMS = [
   "One venue QR",
   "30 days free",
   "No POS setup",
-  "Stamped in seconds",
+  "Fast at the counter",
 ]
 
 /**
@@ -42,14 +42,16 @@ export function Marquee({
     <div
       aria-hidden="true"
       className={cn(
-        "overflow-hidden border-b-2 border-ink bg-ink py-2 text-paper select-none",
+        "isolate w-full max-w-full overflow-x-clip border-b-2 border-ink bg-ink py-2 text-paper select-none",
         className
       )}
     >
-      <WetInkMarquee className="flex w-max">
-        {strip}
-        {strip}
-      </WetInkMarquee>
+      <div className="relative w-full overflow-x-clip [contain:inline-size]">
+        <WetInkMarquee className="flex w-max">
+          {strip}
+          {strip}
+        </WetInkMarquee>
+      </div>
     </div>
   )
 }

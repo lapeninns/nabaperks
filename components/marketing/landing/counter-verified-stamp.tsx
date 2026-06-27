@@ -24,7 +24,7 @@ const checks: { icon: IconGlyph; title: string; body: string }[] = [
   {
     icon: UserCheck01Icon,
     title: "Membership verified",
-    body: "The server confirms it’s a real saved card on your programme, with your billing active, before it records anything.",
+    body: "We confirm it's a real saved card on your programme before the stamp lands.",
   },
   {
     icon: Calendar03Icon,
@@ -33,13 +33,13 @@ const checks: { icon: IconGlyph; title: string; body: string }[] = [
   },
   {
     icon: Location01Icon,
-    title: "GPS-anomaly flag",
-    body: "Optional location signals flag stamps claimed far from your counter, so off-site collecting stands out.",
+    title: "Unusual location flag",
+    body: "Optional location checks flag stamps claimed far from your counter, so off-site collecting stands out.",
   },
   {
     icon: GiftIcon,
-    title: "Rewards live-checked",
-    body: "A reward is verified on the server at redemption — not waved through from a screenshot of a full card.",
+    title: "Reward checked at redemption",
+    body: "A reward is checked when they claim it — not waved through from a screenshot of a full card.",
   },
 ]
 
@@ -56,10 +56,10 @@ export function CounterVerifiedStamp() {
             The Counter-Verified Stamp.
           </h2>
           <p className="mt-4 text-[0.98rem] leading-relaxed text-pretty text-paper/80 sm:text-base">
-            Every stamp is checked on our server against the physical venue QR,
-            the customer’s membership, your billing, a{" "}
+            Every stamp is checked against your physical venue QR, the
+            customer&apos;s membership, your live account, a{" "}
             <strong className="font-bold text-paper">one-stamp-per-customer-per-UK-date
-            cap</strong>, and optional GPS-anomaly signals. Fraud is designed
+            cap</strong>, and optional unusual-location checks. Fraud is designed
             out — not “mitigated”.
           </p>
         </div>

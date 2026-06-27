@@ -15,11 +15,11 @@ export const faqs: readonly Faq[] = [
   },
   {
     q: "Can staff or customers fake the stamps?",
-    a: "No. The live flow is self-service QR stamping, all server-checked: the Counter-Verified Stamp confirms the physical venue QR, the customer's membership and your billing, caps it at one stamp per customer per UK date, and can flag GPS anomalies. Rewards are verified live at redemption, never from a screenshot.",
+    a: "No. Customers stamp themselves from your venue QR. The Counter-Verified Stamp checks it's your real QR, their saved card, and your programme — capped at one stamp per customer per UK date. Unusual locations can be flagged. Rewards are checked at redemption, never from a screenshot.",
   },
   {
     q: "What if a customer loses or changes their phone — do they lose their stamps?",
-    a: "They don't lose anything. Stamps live in the customer's account on our server, not on a losable card or a single phone — they sign back in on a new device and everything is still there.",
+    a: "They don't lose anything. Stamps stay on their account — not on a losable card or a single phone. They sign back in on a new device and everything is still there.",
   },
   {
     q: "Do I need a POS, till integration or special hardware?",
@@ -35,7 +35,7 @@ export const faqs: readonly Faq[] = [
   },
   {
     q: "Will it spam my customers, and is their data safe?",
-    a: "No spam: loyalty and marketing are kept separate, so customers earn and redeem without joining any marketing list. Their data is scoped to your venue, served over HTTPS, with plain-English Privacy and Terms, in line with UK GDPR.",
+    a: "No spam: loyalty and marketing are kept separate, so customers earn and redeem without joining any marketing list. Their data stays with your venue, with plain-English Privacy and Terms, in line with UK GDPR.",
   },
   {
     q: "How is this different from a paper card or apps like Stamp Me?",

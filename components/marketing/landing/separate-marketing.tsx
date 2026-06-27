@@ -25,8 +25,8 @@ export function SeparateMarketing() {
           Customers earn stamps without joining a marketing list.
         </h2>
         <p className="mt-3 max-w-[42ch] text-base leading-relaxed text-pretty text-muted-foreground">
-          Loyalty and marketing stay separate records, so collecting stamps
-          never signs anyone up for promotions — and you won’t spam your
+          Loyalty and marketing stay separate, so collecting stamps
+          never signs anyone up for promotions — and you won&apos;t spam your
           regulars to keep them.
         </p>
       </div>
@@ -34,7 +34,7 @@ export function SeparateMarketing() {
       <ul className="grid gap-5">
         <BenefitPoint title="Loyalty ≠ a marketing list">
           A customer can collect and redeem rewards without ever agreeing to
-          promotional messages. The two consents are recorded separately.
+          promotional messages. The two choices are recorded separately.
         </BenefitPoint>
         <BenefitPoint title="Real UK GDPR, not just a toggle">
           Marketing keeps its own lawful basis (soft opt-in), the way the ICO
@@ -42,7 +42,7 @@ export function SeparateMarketing() {
         </BenefitPoint>
         <BenefitPoint title="Scoped to your venue">
           A card collects only at your counter, and the data stays yours —
-          served over HTTPS, never sold on.
+          kept secure, never sold on.
         </BenefitPoint>
         <BenefitPoint title="Plain-English terms">
           No dark patterns. Read exactly what’s collected in our{" "}

@@ -30,6 +30,8 @@ type SampleLoyaltyCardProps = {
   titleBlockClassName?: string
   /** Extra classes on the body slot — e.g. a min-height to hold the seal demo. */
   bodyClassName?: string
+  /** Reserved shell classes — keeps the hero loop from shifting the card face. */
+  shellClassName?: string
   /** Tilt/animation classes on the outer wrapper that carries the drop shadow. */
   className?: string
   /** Hero lays stamps inline with QR and seal — hide the default stamp row. */
@@ -55,6 +57,7 @@ export function SampleLoyaltyCard({
   footerRight,
   titleBlockClassName,
   bodyClassName,
+  shellClassName,
   className,
   hideStampRow = false,
 }: SampleLoyaltyCardProps) {
@@ -67,7 +70,12 @@ export function SampleLoyaltyCard({
         className
       )}
     >
-      <div className="rounded-t-[var(--radius)] border-2 border-b-0 border-ink bg-card px-5 pt-5 pb-4">
+      <div
+        className={cn(
+          "rounded-t-[var(--radius)] border-2 border-b-0 border-ink bg-card px-5 pt-5 pb-4",
+          shellClassName
+        )}
+      >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="font-mono text-[0.7rem] tracking-[0.06em] text-muted-foreground uppercase">

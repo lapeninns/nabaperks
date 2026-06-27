@@ -15,22 +15,22 @@ const STAMP_TOTAL = 3
 const HERO_CARD_NAME = "Mystery card"
 const SEALED_REWARD_NAME = "Something's under there."
 
+const HERO_REWARD_TICKET_CLASS =
+  "min-h-[9rem] [&>div:first-child]:content-start [&_h3]:line-clamp-2 [&_p]:line-clamp-2"
+
 function HeroRewardRow({
   revealed,
   revealSlam,
   reward,
-  cycleIndex,
 }: {
   revealed: boolean
   revealSlam: boolean
   reward: string
-  cycleIndex: number
 }) {
   const state: RewardTicketState = revealed ? "ready" : "sealed"
 
   return (
     <RewardTicket
-      key={cycleIndex}
       state={state}
       name={revealed ? reward : SEALED_REWARD_NAME}
       description={
@@ -39,7 +39,7 @@ function HeroRewardRow({
           : "Mystery reward stays sealed until the final stamp."
       }
       sealSlammed={revealSlam}
-      className="min-h-[7.75rem] [&>div:first-child]:content-start [&_h3]:min-h-[2.5rem]"
+      className={HERO_REWARD_TICKET_CLASS}
     />
   )
 }
@@ -57,11 +57,12 @@ export function HeroSampleCard({ qrMatrix }: { qrMatrix: QrMatrix }) {
   return (
     <SampleLoyaltyCard
       className="rotate-[1.5deg]"
-      venue="The Old Crown · Bristol"
+      shellClassName="flex flex-col gap-4 [&_.w-rule]:my-0"
+      venue="Old Crown · CB3 0QD"
       title={HERO_CARD_NAME}
       venueInitials="OC"
       hideStampRow
-      bodyClassName="grid min-h-[17rem] gap-3"
+      bodyClassName="grid gap-4"
       stamps={{
         current: earnedCount,
         total: STAMP_TOTAL,
@@ -85,7 +86,6 @@ export function HeroSampleCard({ qrMatrix }: { qrMatrix: QrMatrix }) {
         revealed={revealed}
         revealSlam={revealSlam}
         reward={reward}
-        cycleIndex={cycleIndex}
       />
     </SampleLoyaltyCard>
   )
