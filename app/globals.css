@@ -42,14 +42,6 @@
   --color-leaf: var(--w-leaf);
   --color-sun: var(--w-sun);
 
-  --color-paper-cream: var(--paper-cream);
-  --color-espresso-ink: var(--espresso-ink);
-  --color-soft-mint: var(--soft-mint);
-  --color-fresh-green: var(--fresh-green);
-  --color-surface-dim: var(--surface-dim);
-  --color-surface-container: var(--surface-container);
-  --color-surface-container-high: var(--surface-container-high);
-
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -103,14 +95,6 @@
   --w-sun: #f5a623;
 
   --w-shadow-color: var(--w-ink);
-
-  --paper-cream: var(--w-card);
-  --espresso-ink: var(--w-ink);
-  --soft-mint: color-mix(in srgb, var(--w-leaf) 10%, var(--w-paper));
-  --fresh-green: var(--w-leaf);
-  --surface-dim: #e0d7c2;
-  --surface-container: var(--w-paper-2);
-  --surface-container-high: #e6ddc9;
 
   --background: var(--w-paper);
   --foreground: var(--w-ink);
@@ -203,14 +187,6 @@
   --w-sun: #f5a623;
 
   --w-shadow-color: #0d0a07;
-
-  --paper-cream: var(--w-card);
-  --espresso-ink: var(--w-ink);
-  --soft-mint: color-mix(in srgb, var(--w-leaf) 14%, var(--w-paper));
-  --fresh-green: var(--w-leaf);
-  --surface-dim: #322a21;
-  --surface-container: var(--w-paper-2);
-  --surface-container-high: #2e261d;
 
   --destructive: #e0533c;
   --destructive-foreground: #1b1712;

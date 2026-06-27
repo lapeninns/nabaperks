@@ -90,8 +90,8 @@ motion:
 counter-service businesses: flat spot inks on warm paper, hard offset shadows,
 perforated receipt edges, rotated stamp marks. The product's core verb —
 _stamping_ — is the entire visual language. This is v2 of the design system;
-v1 "Honey & Ink" (warm cream / honey amber / pill shapes) is superseded, but
-its token names survive as compatibility aliases.
+v1 "Honey & Ink" (warm cream / honey amber / pill shapes) is fully superseded;
+its v1 token aliases have been removed from `app/globals.css` (no consumers).
 
 **Voice:** plain, warm, **British** (en-GB). The product talks like a good
 barista, not a SaaS.
@@ -127,9 +127,10 @@ Riso-print logic: one paper, one ink, a small set of hot spot inks.
   dark mode. No gradients except functional ones (zigzag edge, conic ring).
 
 All shadcn semantic tokens (`--background`, `--primary`, `--muted`, …) alias
-the `--w-*` palette in `app/globals.css`, and the v1 token names
-(`--paper-cream`, `--espresso-ink`, `--soft-mint`, `--fresh-green`) are kept
-as remapped compatibility aliases.
+the `--w-*` palette in `app/globals.css`. The superseded v1 Honey & Ink aliases
+(`--paper-cream`, `--espresso-ink`, `--soft-mint`, `--fresh-green`) and the
+unused Material surface tokens (`--surface-dim`, `--surface-container`,
+`--surface-container-high`) have been removed — they had no consumers.
 
 ## Typography
 
