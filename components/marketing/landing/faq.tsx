@@ -36,7 +36,7 @@ export const faqs: readonly Faq[] = [
   },
   {
     q: "Will it spam my customers, and is their data safe?",
-    a: "No spam: loyalty and marketing are kept separate, so customers earn and redeem without joining any marketing list. Their data stays with your venue, with plain-English Privacy and Terms, in line with UK GDPR.",
+    a: "No spam: loyalty and marketing are kept separate, so customers earn and redeem without joining any marketing list. Their data stays with your venue, with marketing kept consent-led and plain-English Privacy and Terms.",
   },
   {
     q: "How is this different from a paper card or apps like Stamp Me?",

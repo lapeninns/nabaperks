@@ -4,7 +4,11 @@ import { Eyebrow, PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { OPERATOR } from "@/lib/marketing/facts"
 import { PRIVACY_META, PRIVACY_SECTIONS } from "@/lib/legal/content"
+
+const externalLinkClass =
+  "font-bold underline underline-offset-4 hover:text-primary focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
 
 export default function PrivacyPage() {
   return (
@@ -53,6 +57,47 @@ export default function PrivacyPage() {
               />
             ))}
           </ReceiptCard>
+
+          <div className="surface-card grid gap-2 p-5">
+            <Eyebrow>Data controller &amp; official guidance</Eyebrow>
+            <p className="text-sm leading-6 text-muted-foreground">
+              The data controller for Nabaperks loyalty data is{" "}
+              <strong className="font-bold text-foreground">
+                {OPERATOR.name}
+              </strong>
+              . For privacy, access, deletion, export or consent requests,
+              contact{" "}
+              <a
+                href={`mailto:${OPERATOR.privacyEmail}`}
+                className={externalLinkClass}
+              >
+                {OPERATOR.privacyEmail}
+              </a>
+              . Our approach is privacy-conscious and consent-led, and follows ICO
+              guidance.
+            </p>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Official guidance:{" "}
+              <a
+                href="https://ico.org.uk/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={externalLinkClass}
+              >
+                ICO (UK data protection)
+              </a>{" "}
+              ·{" "}
+              <a
+                href="https://www.asa.org.uk/codes-and-rulings/advertising-codes.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={externalLinkClass}
+              >
+                CAP / ASA advertising codes
+              </a>
+              .
+            </p>
+          </div>
 
           <Alert className="border-destructive/30 bg-destructive/10">
             <AlertTitle className="text-foreground">Review required</AlertTitle>
