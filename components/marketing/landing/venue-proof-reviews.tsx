@@ -11,10 +11,8 @@ import { cn } from "@/lib/utils"
 
 import {
   DEFAULT_VENUE_PROOF_INDICES,
-  pickVenueProofIndices,
   shuffleVenueProofIndices,
   type VenueProofEntry,
-  venueProofPool,
   venuesForIndices,
 } from "./venue-proof-data"
 
