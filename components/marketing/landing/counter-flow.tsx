@@ -7,12 +7,12 @@ const steps = [
   {
     step: "Step 02",
     title: "Save",
-    body: "One quick check saves the card. No app, password, or plastic card.",
+    body: "Saved in one tap, right in the browser — no app, no Apple or Google Wallet pass, no password, no plastic.",
   },
   {
     step: "Step 03",
     title: "Stamp",
-    body: "The customer taps to claim. The server checks the QR, UK date, billing status, and optional GPS signals.",
+    body: "The customer taps to claim. The Counter-Verified Stamp checks the venue QR, membership, billing and UK date server-side — the phone never crosses the counter.",
   },
   {
     step: "Step 04",

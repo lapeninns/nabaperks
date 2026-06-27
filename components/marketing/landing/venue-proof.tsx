@@ -24,7 +24,7 @@ export function VenueProof() {
           </p>
           <dl className="mt-3 flex flex-wrap items-baseline gap-x-5 gap-y-1 font-mono text-[0.64rem] tracking-[0.06em] uppercase">
             <div className="flex items-baseline gap-2">
-              <dt className="text-muted-foreground">Venues live</dt>
+              <dt className="text-muted-foreground">Operator notes</dt>
               <dd className="text-base leading-none font-extrabold tabular-nums text-foreground">
                 {VENUE_PROOF_POOL_SIZE}
               </dd>
