@@ -38,7 +38,11 @@ const SCAN = [
 
 const SKIP = /(\.test\.|\.spec\.|node_modules|\.next)/
 
-/** Banned patterns: { label, re }. Case-insensitive. */
+/**
+ * Banned patterns. `re` is a case-insensitive regex; `substr` is a literal,
+ * case-insensitive substring match (used for URL-shaped patterns so we never run
+ * an unanchored URL regex — content scan, not URL sanitisation).
+ */
 const BANNED = [
   { label: "chippy targeting", re: /\bchipp(y|ies)\b/i },
   { label: "bubble tea targeting", re: /bubble\s*tea/i },
@@ -47,7 +51,7 @@ const BANNED = [
   { label: "registered office", re: /registered office/i },
   { label: "founding date", re: /founding date|\bfounded in\b/i },
   { label: "named founder/person", re: /\bfounder\b|\bSubodh\b/i },
-  { label: "personal LinkedIn", re: /linkedin\.com\/in\//i },
+  { label: "personal LinkedIn", substr: "linkedin.com/in/" },
   { label: "hard UK-GDPR/ICO compliance claim", re: /uk[\s-]*gdpr[\s/-]*ico[\s-]*compliant|ico[\s-]*compliant/i },
   { label: "fully compliant", re: /fully compliant/i },
   { label: "GDPR guaranteed", re: /gdpr guaranteed/i },
@@ -81,8 +85,9 @@ for (const file of files) {
   const text = await readFile(file, "utf8")
   const lines = text.split("\n")
   lines.forEach((line, i) => {
-    for (const { label, re } of BANNED) {
-      if (re.test(line)) {
+    for (const { label, re, substr } of BANNED) {
+      const hit = re ? re.test(line) : line.toLowerCase().includes(substr)
+      if (hit) {
         findings.push({ file: relative(ROOT, file), line: i + 1, label, text: line.trim() })
       }
     }
