@@ -1,6 +1,8 @@
 import "server-only"
 
 import { capturePostHogEvent } from "@/lib/analytics/events"
+import { buildLaunchReadiness } from "@/lib/merchant/launch-readiness"
+import { getQrSetupFresh } from "@/lib/merchant/qr-code"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 const MIN_ACTIVE_REWARDS = 3
@@ -10,19 +12,22 @@ export type EnsureJoinQrInput = {
   activeCard: { id: string } | null
   activeRewardPoolItemCount: number
   venueReady: boolean
-  billingReady: boolean
   qrCode: { id: string; is_active: boolean } | null
+}
+
+export function isJoinQrProvisionEligible(input: EnsureJoinQrInput): boolean {
+  return (
+    input.activeCard !== null &&
+    input.activeRewardPoolItemCount >= MIN_ACTIVE_REWARDS &&
+    input.venueReady &&
+    input.qrCode?.is_active !== true
+  )
 }
 
 export async function ensureJoinQrProvisioned(
   input: EnsureJoinQrInput
 ): Promise<{ provisioned: boolean; created: boolean }> {
-  if (
-    !input.activeCard ||
-    input.activeRewardPoolItemCount < MIN_ACTIVE_REWARDS ||
-    !input.venueReady ||
-    !input.billingReady
-  ) {
+  if (!isJoinQrProvisionEligible(input)) {
     return { provisioned: false, created: false }
   }
 
@@ -31,7 +36,7 @@ export async function ensureJoinQrProvisioned(
   if (!input.qrCode) {
     const { error } = await supabase.rpc("create_or_get_join_qr", {
       p_merchant_id: input.merchantId,
-      p_loyalty_card_id: input.activeCard.id,
+      p_loyalty_card_id: input.activeCard!.id,
     })
 
     if (error) {
@@ -64,4 +69,31 @@ export async function ensureJoinQrProvisioned(
   }
 
   return { provisioned: true, created: false }
+}
+
+/** Create or re-enable the join QR once venue, card, and reward pool are ready. */
+export async function autoProvisionJoinQrFromSetup(): Promise<{
+  provisioned: boolean
+  created: boolean
+}> {
+  const setup = await getQrSetupFresh()
+
+  if (!setup.merchant) {
+    return { provisioned: false, created: false }
+  }
+
+  const readiness = buildLaunchReadiness({
+    activeCard: setup.activeCard,
+    activeRewardPoolItemCount: setup.activeRewardPoolItemCount,
+    qrCode: setup.qrCode,
+    location: setup.location,
+  })
+
+  return ensureJoinQrProvisioned({
+    merchantId: setup.merchant.id,
+    activeCard: setup.activeCard,
+    activeRewardPoolItemCount: setup.activeRewardPoolItemCount,
+    venueReady: readiness.tabs.venue,
+    qrCode: setup.qrCode,
+  })
 }

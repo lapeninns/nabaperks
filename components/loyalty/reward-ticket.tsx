@@ -74,7 +74,7 @@ export function RewardTicket({
         </span>
         <h3
           className={cn(
-            "text-lg leading-tight font-extrabold",
+            "text-lg leading-tight font-extrabold text-balance break-words",
             redeemed && "text-muted-foreground"
           )}
         >

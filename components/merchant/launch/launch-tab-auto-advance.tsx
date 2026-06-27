@@ -31,11 +31,13 @@ export function LaunchSaveNextAction({
   nextLabel,
   stayHref,
   blockedReason,
+  primaryLabel,
 }: {
   nextHref: string | null
   nextLabel: string
   stayHref: string
   blockedReason?: string
+  primaryLabel?: string
 }) {
   return (
     <div className="mt-3 grid gap-3">
@@ -50,7 +52,7 @@ export function LaunchSaveNextAction({
         {nextHref ? (
           <Button asChild size="sm">
             <Link href={nextHref}>
-              Continue to {nextLabel}
+              {primaryLabel ?? `Continue to ${nextLabel}`}
               <Icon icon={ArrowRight02Icon} size={15} />
             </Link>
           </Button>

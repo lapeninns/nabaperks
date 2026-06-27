@@ -7,16 +7,17 @@ import {
 } from "@/app/app/billing/actions"
 import { ArrowRight01Icon, CreditCardIcon } from "@hugeicons/core-free-icons"
 
-import { Icon, ReceiptCard, SectionHeader } from "@/components/brand"
+import { Eyebrow, Icon, ReceiptCard, SectionHeader } from "@/components/brand"
 import {
   MerchantBillingAccessNote,
   shouldShowMerchantDashboardBillingNotice,
 } from "@/components/merchant/billing-status"
 import { Button } from "@/components/ui/button"
 import { getCurrentMerchant } from "@/lib/auth/session"
-import { getMerchantBilling } from "@/lib/merchant/billing"
+import { getMerchantBilling, type MerchantBilling } from "@/lib/merchant/billing"
 
 const BILLING_PAGE_ERROR = "Billing details could not be loaded. Try again."
+const SHOW_LOCAL_STRIPE_WEBHOOK_NOTE = process.env.NODE_ENV !== "production"
 
 /**
  * Billing tab of the Account hub. Self-loads the signed-in merchant and their
@@ -44,9 +45,10 @@ export async function BillingPanel({
   const status = billing?.status ?? "not_started"
   const needsBillingAttention = shouldShowMerchantDashboardBillingNotice(status)
   const needsCardToActivate = status === "not_started"
+  const setupActivation = mode === "setup" && needsCardToActivate
 
   return (
-    <section className="grid gap-4">
+    <section className="grid gap-3 sm:gap-4">
       <BillingOutcomeMessages
         checkout={params.checkout}
         portal={params.portal}
@@ -58,95 +60,144 @@ export async function BillingPanel({
         </p>
       ) : null}
 
-      <ReceiptCard edge className="grid gap-5">
-        <SectionHeader
-          eyebrow={mode === "setup" ? "Step 5 of 5 · Billing" : "Your plan"}
-          title={needsCardToActivate ? "Add a card to activate" : "Growth Plan"}
-          description={
-            needsCardToActivate
-              ? mode === "setup"
-                ? "This is the final setup step. Start checkout to add your card and activate the 30-day free trial."
-                : "Start checkout to add your card and activate the 30-day free trial."
-              : "Everything on this receipt updates by itself once your Stripe checkout is done."
-          }
+      {setupActivation ? (
+        <SetupBillingActivationCard />
+      ) : (
+        <AccountBillingCard
+          mode={mode}
+          billing={billing}
+          needsBillingAttention={needsBillingAttention}
+          needsCardToActivate={needsCardToActivate}
+          status={status}
         />
+      )}
+    </section>
+  )
+}
 
-        <dl className="grid gap-0 text-sm">
-          <PlanRow label="Free trial" value="30 days" />
-          <PlanRow label="Then" value="GBP 29 / month" />
-          <PlanRow label="Billed" value="Per location" />
-        </dl>
+/** Final launch step — plan facts, one primary action, no duplicate copy. */
+function SetupBillingActivationCard() {
+  return (
+    <ReceiptCard
+      edge
+      padding="sm"
+      className="grid gap-4 sm:[--card-spacing:--spacing(6)] sm:gap-5"
+    >
+      <div className="grid gap-2">
+        <Eyebrow>Step 5 of 5 · Billing</Eyebrow>
+        <h2 className="text-lg leading-snug font-extrabold text-foreground sm:text-xl">
+          Your account is created
+        </h2>
+        <p className="text-sm leading-6 text-pretty text-muted-foreground">
+          Add a card through Stripe to activate your venue and start accepting
+          stamps.
+        </p>
+      </div>
 
-        {needsCardToActivate ? (
-          <p className="rounded-lg bg-secondary px-4 py-3 text-sm leading-6 text-secondary-foreground">
-            A card is required before you go live. Stripe starts the
-            subscription with 30 days free, then billing begins after the trial.
-          </p>
-        ) : needsBillingAttention ? (
-          <MerchantBillingAccessNote status={status} />
-        ) : (
-          <p className="text-sm leading-6 text-muted-foreground">
-            {billing?.current_period_end
-              ? `Your current period ends ${formatDate(billing.current_period_end)}.`
-              : "Your billing period will show here once checkout is done."}
-          </p>
-        )}
+      <dl className="grid gap-0 rounded-lg border border-border bg-secondary/40 px-3 py-1 text-sm">
+        <PlanRow label="Free trial" value="30 days" />
+        <PlanRow label="Then" value="GBP 29 / month" />
+        <PlanRow label="Billed" value="Per location" />
+      </dl>
 
-        {mode === "setup" ? (
-          <p className="text-sm leading-6 text-muted-foreground">
-            <Link
-              href="/app/account?tab=billing"
-              className="font-bold text-foreground underline decoration-2 underline-offset-4"
-            >
-              Manage billing later in Account
-            </Link>{" "}
-            once your venue is live.
-          </p>
-        ) : needsCardToActivate ? (
-          <p className="text-sm leading-6 text-muted-foreground">
-            <Link
-              href="/app/launch?tab=billing"
-              className="font-bold text-foreground underline decoration-2 underline-offset-4"
-            >
-              Add a card to go live
-            </Link>{" "}
-            from Launch setup.
-          </p>
-        ) : null}
+      <form action={startCheckoutAction} className="grid gap-2">
+        <Button type="submit" className="w-full">
+          <Icon icon={CreditCardIcon} size={16} />
+          Proceed to billing
+        </Button>
+        <p className="text-center text-xs leading-5 text-muted-foreground">
+          Secure checkout via Stripe. Cancel anytime during the trial.
+        </p>
+      </form>
 
-        <div className="grid gap-4 border-t-2 border-dashed border-ink/20 pt-5">
-          <div className="flex flex-wrap gap-2">
+      <p className="text-xs leading-5 text-muted-foreground">
+        <Link
+          href="/app/account?tab=billing"
+          className="font-bold text-foreground underline decoration-2 underline-offset-4"
+        >
+          Manage billing in Account
+        </Link>{" "}
+        once your venue is live.
+      </p>
+    </ReceiptCard>
+  )
+}
+
+function AccountBillingCard({
+  mode,
+  billing,
+  needsBillingAttention,
+  needsCardToActivate,
+  status,
+}: {
+  mode: "account" | "setup"
+  billing: MerchantBilling | null
+  needsBillingAttention: boolean
+  needsCardToActivate: boolean
+  status: string
+}) {
+  return (
+    <ReceiptCard edge className="grid gap-5">
+      <SectionHeader
+        eyebrow={mode === "setup" ? "Step 5 of 5 · Billing" : "Your plan"}
+        title={needsCardToActivate ? "Activate your venue" : "Growth Plan"}
+        description={
+          needsCardToActivate
+            ? "Add a card through Stripe to activate your venue — the first 30 days are free."
+            : "Everything on this receipt updates by itself once your Stripe checkout is done."
+        }
+      />
+
+      <dl className="grid gap-0 text-sm">
+        <PlanRow label="Free trial" value="30 days" />
+        <PlanRow label="Then" value="GBP 29 / month" />
+        <PlanRow label="Billed" value="Per location" />
+      </dl>
+
+      {needsBillingAttention ? (
+        <MerchantBillingAccessNote status={status} />
+      ) : (
+        <p className="text-sm leading-6 text-muted-foreground">
+          {billing?.current_period_end
+            ? `Your current period ends ${formatDate(billing.current_period_end)}.`
+            : "Your billing period will show here once checkout is done."}
+        </p>
+      )}
+
+      <div className="grid gap-4 border-t-2 border-dashed border-ink/20 pt-5">
+        <div className="flex flex-wrap gap-2">
+          {needsCardToActivate ? (
             <form action={startCheckoutAction}>
               <Button type="submit">
                 <Icon icon={CreditCardIcon} size={16} />
                 Start checkout
               </Button>
             </form>
-            <form action={openCustomerPortalAction}>
-              <Button
-                type="submit"
-                variant="secondary"
-                disabled={!billing?.stripe_customer_id}
-              >
-                Open Stripe portal
-                <Icon icon={ArrowRight01Icon} size={16} />
-              </Button>
-            </form>
-          </div>
-          <p className="text-xs leading-5 text-muted-foreground">
-            {billing?.stripe_customer_id
-              ? "Manage your card and invoices in the Stripe portal."
-              : "Start checkout to add your card and activate the venue."}
-          </p>
+          ) : null}
+          <form action={openCustomerPortalAction}>
+            <Button
+              type="submit"
+              variant={needsCardToActivate ? "secondary" : "default"}
+              disabled={!billing?.stripe_customer_id}
+            >
+              Open Stripe portal
+              <Icon icon={ArrowRight01Icon} size={16} />
+            </Button>
+          </form>
         </div>
-      </ReceiptCard>
-    </section>
+        <p className="text-xs leading-5 text-muted-foreground">
+          {billing?.stripe_customer_id
+            ? "Manage your card and invoices in the Stripe portal."
+            : "Start checkout to add your card and activate the venue."}
+        </p>
+      </div>
+    </ReceiptCard>
   )
 }
 
 function PlanRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-dashed border-ink/15 py-2.5 last:border-b-0">
+    <div className="flex items-center justify-between gap-4 border-b border-dashed border-ink/15 py-2 last:border-b-0 sm:py-2.5">
       <dt className="text-muted-foreground">{label}</dt>
       <dd className="font-bold">{value}</dd>
     </div>
@@ -163,9 +214,22 @@ function BillingOutcomeMessages({
   return (
     <div className="grid gap-3">
       {checkout === "success" ? (
-        <p className="rounded-lg border border-reward/30 bg-accent px-4 py-3 text-sm text-accent-foreground">
-          Checkout completed. Your billing will update here in a moment.
-        </p>
+        <div className="grid gap-2 rounded-lg border border-reward/30 bg-accent px-4 py-3 text-sm text-accent-foreground">
+          <p>
+            Checkout completed. Billing switches on after Stripe confirms the
+            subscription.
+          </p>
+          {SHOW_LOCAL_STRIPE_WEBHOOK_NOTE ? (
+            <p className="text-xs leading-5">
+              Local dev: if it stays pending, keep the Stripe webhook listener
+              running with{" "}
+              <code className="font-mono">
+                stripe listen --forward-to localhost:3000/api/stripe/webhook
+              </code>{" "}
+              and restart after setting STRIPE_WEBHOOK_SECRET.
+            </p>
+          ) : null}
+        </div>
       ) : null}
       {checkout === "cancelled" ? (
         <p className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-foreground">

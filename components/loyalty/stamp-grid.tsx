@@ -76,6 +76,12 @@ export function RewardChip({
   )
 }
 
+type StampGridSlot =
+  | { kind: "stamp"; index: number }
+  | { kind: "reward"; slotState: RewardSlotState }
+
+type StampGridLayout = "row" | "wrap"
+
 export function StampGrid({
   current,
   total,
@@ -85,6 +91,8 @@ export function StampGrid({
   rewardSlot,
   previewJourney = false,
   compact = false,
+  layout = "row",
+  wrapColumns = 3,
   venueName,
   venueInitials,
   className,
@@ -100,6 +108,10 @@ export function StampGrid({
   previewJourney?: boolean
   /** Shrink slots (~36px) and tighten gaps for dense preview rows. */
   compact?: boolean
+  /** Single row (default) or wrapped rows for narrow surfaces. */
+  layout?: StampGridLayout
+  /** Max slots per row when layout is wrap (stamps + reward chip). */
+  wrapColumns?: number
   venueName?: string
   venueInitials?: string
   className?: string
@@ -108,51 +120,94 @@ export function StampGrid({
   const safeCurrent = previewJourney
     ? Math.min(Math.max(safeTotal - 1, 0), safeTotal)
     : Math.min(Math.max(current, 0), safeTotal)
+  const listLabel = `${safeCurrent} of ${safeTotal} stamps earned${rewardSlot ? ", mystery reward at the end" : ""}`
+
+  const slots = buildStampGridSlots(safeTotal, rewardSlot)
+  const gapClass = compact ? "gap-1.5" : "gap-2"
+
+  function renderSlot(slot: StampGridSlot, key: string) {
+    if (slot.kind === "reward") {
+      return (
+        <span key={key} role="listitem">
+          <RewardChip slotState={slot.slotState} compact={compact} />
+        </span>
+      )
+    }
+
+    const earned = slot.index < safeCurrent
+
+    return (
+      <span
+        key={key}
+        role="listitem"
+        style={
+          earned
+            ? ({
+                "--stamp-rot": STAMP_TILTS[slot.index % STAMP_TILTS.length],
+              } as CSSProperties)
+            : undefined
+        }
+      >
+        <StampDot
+          earned={earned}
+          label={`Stamp ${slot.index + 1} ${earned ? "earned" : "empty"}`}
+          date={earned ? dates?.[slot.index] : undefined}
+          slotNumber={slot.index + 1}
+          showEmptySlotNumber={showEmptySlotNumbers}
+          slammed={slot.index === slamIndex}
+          compact={compact}
+          venueName={venueName}
+          venueInitials={venueInitials}
+        />
+      </span>
+    )
+  }
+
+  if (layout === "wrap") {
+    const columns = Math.max(wrapColumns, 1)
+
+    return (
+      <div
+        role="list"
+        aria-label={listLabel}
+        className={cn("grid w-full", gapClass, className)}
+        style={{
+          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+        }}
+      >
+        {slots.map((slot, index) => renderSlot(slot, String(index)))}
+      </div>
+    )
+  }
+
   const columnCount = Math.min(Math.max(safeTotal, 1), 6) + (rewardSlot ? 1 : 0)
 
   return (
     <div
       role="list"
-      aria-label={`${safeCurrent} of ${safeTotal} stamps earned${rewardSlot ? ", mystery reward at the end" : ""}`}
-      className={cn("grid", compact ? "gap-1.5" : "gap-2", className)}
+      aria-label={listLabel}
+      className={cn("grid", gapClass, className)}
       style={{
         gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
       }}
     >
-      {Array.from({ length: safeTotal }).map((_, index) => {
-        const earned = index < safeCurrent
-
-        return (
-          <span
-            key={index}
-            role="listitem"
-            style={
-              earned
-                ? ({
-                    "--stamp-rot": STAMP_TILTS[index % STAMP_TILTS.length],
-                  } as CSSProperties)
-                : undefined
-            }
-          >
-            <StampDot
-              earned={earned}
-              label={`Stamp ${index + 1} ${earned ? "earned" : "empty"}`}
-              date={earned ? dates?.[index] : undefined}
-              slotNumber={index + 1}
-              showEmptySlotNumber={showEmptySlotNumbers}
-              slammed={index === slamIndex}
-              compact={compact}
-              venueName={venueName}
-              venueInitials={venueInitials}
-            />
-          </span>
-        )
-      })}
-      {rewardSlot ? (
-        <span role="listitem">
-          <RewardChip slotState={rewardSlot} compact={compact} />
-        </span>
-      ) : null}
+      {slots.map((slot, index) => renderSlot(slot, String(index)))}
     </div>
   )
+}
+
+function buildStampGridSlots(
+  total: number,
+  rewardSlot?: RewardSlotState
+): StampGridSlot[] {
+  const slots: StampGridSlot[] = Array.from({ length: total }, (_, index) => ({
+    kind: "stamp",
+    index,
+  }))
+
+  if (rewardSlot) {
+    slots.push({ kind: "reward", slotState: rewardSlot })
+  }
+
+  return slots
 }

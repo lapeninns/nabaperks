@@ -5,7 +5,11 @@ import { redirect } from "next/navigation"
 
 import { capturePostHogEvent } from "@/lib/analytics/events"
 import { getCurrentMerchant } from "@/lib/auth/session"
-import { DEFAULT_STAMPS_REQUIRED } from "@/lib/merchant/customer-readback"
+import {
+  DEFAULT_STAMPS_REQUIRED,
+  MAX_STAMPS_REQUIRED,
+} from "@/lib/merchant/customer-readback"
+import { autoProvisionJoinQrFromSetup } from "@/lib/merchant/ensure-join-qr"
 import { seedDefaultRewardPoolIfEmpty } from "@/lib/merchant/seed-default-reward-pool"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
@@ -107,8 +111,8 @@ export async function saveLoyaltyCardAction(
     errors.stampsRequired = "Enter a whole number of stamps."
   } else if (parsedStampsRequired < DEFAULT_STAMPS_REQUIRED) {
     errors.stampsRequired = `Use at least ${DEFAULT_STAMPS_REQUIRED} visits.`
-  } else if (parsedStampsRequired > 99) {
-    errors.stampsRequired = "Use 99 stamps or fewer."
+  } else if (parsedStampsRequired > MAX_STAMPS_REQUIRED) {
+    errors.stampsRequired = `Use ${MAX_STAMPS_REQUIRED} visits or fewer.`
   }
 
   if (!rewardTerms) {
@@ -258,7 +262,77 @@ export async function saveRewardPoolItemAction(
     metadata: { loyalty_card_id: fields.loyaltyCardId },
   })
 
-  redirect("/app/launch?tab=rewards&saved=pool")
+  const { provisioned, created } = await autoProvisionJoinQrFromSetup()
+
+  redirect(
+    `/app/launch?tab=rewards&saved=pool${
+      provisioned ? (created ? "&qr=created" : "&qr=enabled") : ""
+    }`
+  )
+}
+
+export async function toggleRewardPoolItemActiveAction(formData: FormData) {
+  const merchant = await getCurrentMerchant()
+
+  if (!merchant) {
+    return { error: "Complete merchant onboarding before updating rewards." }
+  }
+
+  const rewardPoolItemId = value(formData, "rewardPoolItemId")
+  const loyaltyCardId = value(formData, "loyaltyCardId")
+  const nextActive = formData.get("nextActive") === "true"
+
+  if (!rewardPoolItemId || !loyaltyCardId) {
+    return { error: REWARD_UPDATE_ERROR }
+  }
+
+  const supabase = await createSupabaseServerClient()
+  const { data: item, error: fetchError } = await supabase
+    .from("reward_pool_items")
+    .select("id, reward_name, reward_terms, weight, display_order")
+    .eq("id", rewardPoolItemId)
+    .eq("merchant_id", merchant.id)
+    .eq("loyalty_card_id", loyaltyCardId)
+    .maybeSingle()
+
+  if (fetchError || !item) {
+    return { error: REWARD_UPDATE_ERROR }
+  }
+
+  const { error } = await supabase.rpc("upsert_reward_pool_item", {
+    p_merchant_id: merchant.id,
+    p_loyalty_card_id: loyaltyCardId,
+    p_reward_pool_item_id: rewardPoolItemId,
+    p_reward_name: item.reward_name,
+    p_reward_terms: item.reward_terms,
+    p_weight: item.weight,
+    p_is_active: nextActive,
+    p_display_order: item.display_order,
+  })
+
+  if (error) {
+    return { error: REWARD_UPDATE_ERROR }
+  }
+
+  await capturePostHogEvent({
+    eventName: nextActive
+      ? "reward_pool_item_activated"
+      : "reward_pool_item_deactivated",
+    merchantId: merchant.id,
+    actorType: "merchant",
+    actorId: merchant.id,
+    metadata: {
+      loyalty_card_id: loyaltyCardId,
+      reward_pool_item_id: rewardPoolItemId,
+    },
+  })
+
+  if (nextActive) {
+    await autoProvisionJoinQrFromSetup()
+  }
+
+  revalidatePath("/app/launch")
+  return { ok: true as const }
 }
 
 export async function deleteRewardPoolItemAction(formData: FormData) {

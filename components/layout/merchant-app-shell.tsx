@@ -31,11 +31,15 @@ export function MerchantAppShell({
 }) {
   if (variant === "setup") {
     return (
-      <div className="min-h-svh bg-background">
-        <header className="sticky top-0 z-30 border-b-2 border-ink bg-card">
-          <div className="mx-auto flex min-h-16 w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
-            <Logo href="/app/launch" />
-            <div className="flex flex-wrap items-center gap-2">
+      <div className="min-h-svh bg-background [--setup-header-h:3.5rem] sm:[--setup-header-h:4rem]">
+        <header className="fixed inset-x-0 top-0 z-40 border-b-2 border-ink bg-card/95 backdrop-blur-sm supports-[backdrop-filter]:bg-card/90">
+          <div className="mx-auto flex h-(--setup-header-h) w-full max-w-6xl min-w-0 items-center justify-between gap-x-3 px-4 sm:px-6">
+            <Logo
+              href="/app/launch"
+              wordmarkClassName="hidden sm:inline"
+              className="shrink-0 gap-0 pr-0 sm:gap-3 sm:pr-3"
+            />
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
               <Button asChild variant="secondary" size="sm">
                 <Link href="/app">Dashboard</Link>
               </Button>
@@ -48,8 +52,8 @@ export function MerchantAppShell({
             </div>
           </div>
         </header>
-        <main className="w-full px-4 py-8 pb-32 sm:px-6 sm:pb-10">
-          <div className="mx-auto w-full max-w-6xl">{children}</div>
+        <main className="w-full min-w-0 overflow-x-clip px-4 pb-16 pt-[calc(var(--setup-header-h)+0.75rem)] sm:px-6 sm:pb-10 sm:pt-[calc(var(--setup-header-h)+2rem)]">
+          <div className="mx-auto w-full min-w-0 max-w-6xl">{children}</div>
         </main>
       </div>
     )

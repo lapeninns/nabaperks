@@ -4,6 +4,10 @@ import { PageTitle, ReceiptCard } from "@/components/brand"
 import { LaunchSaveNextAction } from "@/components/merchant/launch/launch-tab-auto-advance"
 import { LoyaltyCardForm } from "@/components/merchant/loyalty-card-form"
 import { StatusBanner } from "@/components/loyalty/status-banner"
+import {
+  clampStampsRequired,
+  resolveLoyaltyCardRewardTerms,
+} from "@/lib/merchant/loyalty-card-copy"
 import { DEFAULT_STAMPS_REQUIRED } from "@/lib/merchant/customer-readback"
 import { getLoyaltyCardSetup } from "@/lib/merchant/loyalty-card"
 
@@ -39,7 +43,7 @@ export async function CardPanel({
   }
 
   return (
-    <div className="grid gap-5">
+    <div className="grid min-w-0 gap-3 sm:gap-4">
       <CardStatus params={params} advanceHref={advanceHref} />
       <LoyaltyCardForm
         merchantName={merchant.business_name}
@@ -51,14 +55,14 @@ export async function CardPanel({
           cardId: card?.id,
           cardName: card?.card_name ?? "Mystery Visit Card",
           stampsRequired: String(
-            Math.max(
-              DEFAULT_STAMPS_REQUIRED,
+            clampStampsRequired(
               card?.stamps_required ?? DEFAULT_STAMPS_REQUIRED
             )
           ),
-          rewardTerms:
-            card?.reward_terms ??
-            "Complete 3 visits to reveal a surprise reward. Redeem from the next UK business day.",
+          rewardTerms: resolveLoyaltyCardRewardTerms(
+            clampStampsRequired(card?.stamps_required ?? DEFAULT_STAMPS_REQUIRED),
+            card?.reward_terms
+          ),
           isActive: card?.is_active ?? true,
         }}
       />

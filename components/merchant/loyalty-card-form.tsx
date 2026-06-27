@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useActionState, useState } from "react"
+import { useActionState, useOptimistic, useState, useTransition } from "react"
 import {
   Add01Icon,
   Cancel01Icon,
@@ -16,6 +16,7 @@ import {
   deleteRewardPoolItemAction,
   saveLoyaltyCardAction,
   saveRewardPoolItemAction,
+  toggleRewardPoolItemActiveAction,
   type LoyaltyCardActionState,
   type RewardPoolItemActionState,
 } from "@/app/app/card/actions"
@@ -24,11 +25,19 @@ import {
   Eyebrow,
   Icon,
   MonoTag,
-  VenueMark,
 } from "@/components/brand"
+import { CustomerCardPreview } from "@/components/merchant/launch/customer-card-preview"
 import { Disclosure } from "@/components/merchant/launch/disclosure"
 import { Button } from "@/components/ui/button"
-import { DEFAULT_STAMPS_REQUIRED } from "@/lib/merchant/customer-readback"
+import {
+  MAX_STAMPS_REQUIRED,
+  MIN_STAMPS_REQUIRED,
+} from "@/lib/merchant/customer-readback"
+import {
+  defaultLoyaltyCardRewardTerms,
+  isDefaultLoyaltyCardRewardTerms,
+} from "@/lib/merchant/loyalty-card-copy"
+import { cn } from "@/lib/utils"
 
 type LoyaltyCardFormValues = {
   cardId?: string
@@ -80,12 +89,31 @@ export function LoyaltyCardForm({
     setDraft((currentDraft) => ({ ...currentDraft, [field]: value }))
   }
 
+  function updateStampsRequired(value: string) {
+    const parsed = Number.parseInt(value, 10)
+
+    setDraft((currentDraft) => {
+      const nextDraft: LoyaltyCardFormValues = {
+        ...currentDraft,
+        stampsRequired: value,
+      }
+
+      if (
+        Number.isFinite(parsed) &&
+        isDefaultLoyaltyCardRewardTerms(currentDraft.rewardTerms)
+      ) {
+        nextDraft.rewardTerms = defaultLoyaltyCardRewardTerms(parsed)
+      }
+
+      return nextDraft
+    })
+  }
+
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-      {/* MEDIUM weight: a form section — hairline, no hard shadow. */}
+    <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-6">
       <form
         action={action}
-        className="grid gap-5 rounded-lg border border-border bg-card p-6"
+        className="order-1 grid min-w-0 gap-3 rounded-lg border border-border bg-card p-3 sm:gap-5 sm:p-6 lg:order-none"
       >
         <input type="hidden" name="cardId" value={draft.cardId ?? ""} />
         <input
@@ -98,6 +126,7 @@ export function LoyaltyCardForm({
           title="Your card"
           description={`One active card for ${locationName}. The reward reveals after the final qualifying visit.`}
           step="Step 1"
+          compactOnMobile
         />
 
         <Field
@@ -117,13 +146,13 @@ export function LoyaltyCardForm({
           <Stepper
             label="Visits to reveal"
             value={draft.stampsRequired}
-            min={DEFAULT_STAMPS_REQUIRED}
-            onChange={(value) => updateDraft("stampsRequired", value)}
+            min={MIN_STAMPS_REQUIRED}
+            max={MAX_STAMPS_REQUIRED}
+            onChange={updateStampsRequired}
           />
-          <p className="text-xs leading-5 text-muted-foreground">
-            Minimum {DEFAULT_STAMPS_REQUIRED} visits; most venues choose 3–6.
-            This is how many stamps a customer collects before the reward
-            unseals.
+          <p className="hidden text-xs leading-5 text-muted-foreground sm:block sm:max-w-none">
+            Choose {MIN_STAMPS_REQUIRED}–{MAX_STAMPS_REQUIRED} visits. Stamps
+            needed before the reward unseals.
           </p>
           {state.errors?.stampsRequired ? (
             <p className="text-sm text-destructive">
@@ -136,8 +165,11 @@ export function LoyaltyCardForm({
           id="rewardTerms"
           label="Reward terms"
           name="rewardTerms"
+          rows={2}
           value={draft.rewardTerms}
           onChange={(event) => updateDraft("rewardTerms", event.target.value)}
+          hint="Shown on the customer card. The suggested copy updates when you change visits, until you edit this field."
+          hintClassName="hidden sm:block"
           error={state.errors?.rewardTerms}
         />
 
@@ -155,12 +187,15 @@ export function LoyaltyCardForm({
           </p>
         ) : null}
 
-        <Button type="submit" disabled={pending} className="w-full">
-          {pending ? "Saving..." : draft.cardId ? "Save card" : "Create card"}
-        </Button>
+        <div className="sticky bottom-3 z-10 border-t border-border/80 bg-card/95 pt-3 backdrop-blur-sm sm:static sm:border-0 sm:bg-transparent sm:pt-0 sm:backdrop-blur-none">
+          <Button type="submit" disabled={pending} className="w-full">
+            {pending ? "Saving..." : draft.cardId ? "Save card" : "Create card"}
+          </Button>
+        </div>
       </form>
 
-      <StampCardPreview
+      <CustomerCardPreview
+        className="order-last lg:order-none"
         merchantName={merchantName}
         locationName={locationName}
         draft={draft}
@@ -194,13 +229,13 @@ export function RewardPoolForm({
   const deficit = REQUIRED_ACTIVE_REWARDS - activeRewardCount
 
   return (
-    <section className="grid gap-4 rounded-lg border border-border bg-card p-6">
+    <section className="grid min-w-0 gap-4 rounded-lg border border-border bg-card p-3 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="grid gap-2">
-          <h2 className="text-xl leading-snug font-extrabold tracking-tight text-foreground">
+        <div className="grid min-w-0 gap-2">
+          <h2 className="text-lg leading-snug font-extrabold tracking-tight text-foreground sm:text-xl">
             Reward pool
           </h2>
-          <p className="max-w-[44ch] text-sm leading-6 text-muted-foreground">
+          <p className="max-w-[44ch] text-sm leading-6 text-pretty text-muted-foreground">
             The surprise is drawn from this pool. At least 3 must be active on{" "}
             {cardName} before you can launch.
           </p>
@@ -236,7 +271,7 @@ export function RewardPoolForm({
         />
       ) : null}
 
-      <div className="grid gap-2.5">
+      <div className="grid gap-2">
         {rewardPoolItems.map((item) =>
           editingId === item.id ? (
             <RewardPoolItemForm
@@ -249,6 +284,7 @@ export function RewardPoolForm({
             <RewardRow
               key={item.id}
               item={item}
+              loyaltyCardId={loyaltyCardId}
               onEdit={() => setEditingId(item.id ?? null)}
             />
           )
@@ -283,7 +319,11 @@ export function RewardPoolForm({
 
       {ready && editingId === null && continueHref ? (
         <Button asChild className="w-full">
-          <Link href={continueHref}>Continue to {continueLabel}</Link>
+          <Link href={continueHref}>
+            {continueHref.includes("billing")
+              ? "Proceed to billing"
+              : `Continue to ${continueLabel}`}
+          </Link>
         </Button>
       ) : null}
     </section>
@@ -291,56 +331,117 @@ export function RewardPoolForm({
 }
 
 /**
- * A reward at rest — a compact, QUIET row. Active rewards read as filled wells;
- * inactive ones fade back with a hairline. The full editor only appears when a
- * row is opened, so the pool reads as a list instead of a stack of forms.
+ * A reward at rest — stamp icon, name, terms, and controls in one compact card.
+ * Terms clamp to two lines so the pool stays scannable; edit opens the full copy.
  */
 function RewardRow({
   item,
+  loyaltyCardId,
   onEdit,
 }: {
   item: RewardPoolItemValues
+  loyaltyCardId: string
   onEdit: () => void
 }) {
+  const rewardName = item.rewardName || "Untitled reward"
+
   return (
     <div
       data-active={item.isActive}
-      className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border-[1.5px] p-3 transition-[border-color,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] data-[active=false]:border-border data-[active=false]:bg-background data-[active=true]:border-transparent data-[active=true]:bg-secondary motion-reduce:transition-none"
+      className="grid grid-cols-[auto_1fr_auto] items-start gap-x-2.5 gap-y-0 rounded-lg border-[1.5px] p-2.5 transition-[border-color,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] data-[active=false]:border-border data-[active=false]:bg-background data-[active=true]:border-transparent data-[active=true]:bg-secondary motion-reduce:transition-none"
     >
       <span
         aria-hidden="true"
         data-active={item.isActive}
-        className="grid size-9 -rotate-6 place-items-center rounded-full border-2 border-ink text-[0.95rem] data-[active=false]:border-ink/40 data-[active=false]:bg-secondary data-[active=false]:text-muted-foreground data-[active=true]:bg-seal data-[active=true]:text-seal-foreground"
+        className="grid size-8 shrink-0 -rotate-6 place-items-center rounded-full border-2 border-ink data-[active=false]:border-ink/40 data-[active=false]:bg-secondary data-[active=false]:text-muted-foreground data-[active=true]:bg-seal data-[active=true]:text-seal-foreground"
       >
-        <Icon icon={GiftIcon} size={16} strokeWidth={2.25} />
+        <Icon icon={GiftIcon} size={14} strokeWidth={2.25} />
       </span>
 
-      <div className="min-w-0">
-        <p className="truncate text-sm font-bold text-foreground">
-          {item.rewardName || "Untitled reward"}
+      <button
+        type="button"
+        onClick={onEdit}
+        className="min-w-0 rounded-md text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+      >
+        <p className="text-sm leading-snug font-bold text-pretty break-words text-foreground">
+          {rewardName}
+          <span className="ml-1.5 font-mono text-[0.58rem] font-bold tracking-[0.05em] text-muted-foreground uppercase">
+            · w{item.weight || "1"}
+          </span>
         </p>
-        <p className="truncate text-xs leading-5 text-ink-soft">
+        <p className="mt-0.5 line-clamp-2 text-xs leading-4 text-pretty text-ink-soft">
           {item.rewardTerms}
         </p>
-        <p className="mt-1 font-mono text-[0.62rem] font-bold tracking-[0.05em] text-ink-soft uppercase">
-          Weight {item.weight || "1"}
-        </p>
-      </div>
+      </button>
 
-      <div className="flex items-center gap-2">
-        <MonoTag tone={item.isActive ? "leaf" : "plain"}>
-          {item.isActive ? "Active" : "Inactive"}
-        </MonoTag>
+      <div className="flex shrink-0 items-center gap-1 self-start">
+        <RewardActiveToggle loyaltyCardId={loyaltyCardId} item={item} compact />
         <button
           type="button"
           onClick={onEdit}
-          aria-label={`Edit ${item.rewardName || "reward"}`}
-          className="grid size-9 place-items-center rounded-lg border-[1.5px] border-border bg-card text-foreground transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:border-ink hover:bg-secondary/60 focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none"
+          aria-label={`Edit ${rewardName}`}
+          className="grid size-8 shrink-0 place-items-center rounded-md border border-border bg-card text-foreground transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:border-ink hover:bg-secondary/60 focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none"
         >
-          <Icon icon={PencilEdit02Icon} size={16} strokeWidth={2} />
+          <Icon icon={PencilEdit02Icon} size={15} strokeWidth={2} />
         </button>
       </div>
     </div>
+  )
+}
+
+/** Inline active switch — toggles pool eligibility without opening the editor. */
+function RewardActiveToggle({
+  loyaltyCardId,
+  item,
+  compact = false,
+}: {
+  loyaltyCardId: string
+  item: RewardPoolItemValues
+  compact?: boolean
+}) {
+  const [optimisticActive, setOptimisticActive] = useOptimistic(item.isActive)
+  const [pending, startTransition] = useTransition()
+  const rewardLabel = item.rewardName || "reward"
+
+  function toggleActive() {
+    if (!item.id || pending) return
+
+    const nextActive = !optimisticActive
+
+    startTransition(async () => {
+      setOptimisticActive(nextActive)
+
+      const formData = new FormData()
+      formData.set("rewardPoolItemId", item.id!)
+      formData.set("loyaltyCardId", loyaltyCardId)
+      formData.set("nextActive", String(nextActive))
+
+      const result = await toggleRewardPoolItemActiveAction(formData)
+
+      if (result?.error) {
+        setOptimisticActive(!nextActive)
+      }
+    })
+  }
+
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={optimisticActive}
+      aria-label={`${optimisticActive ? "Deactivate" : "Activate"} ${rewardLabel}`}
+      disabled={!item.id || pending}
+      onClick={toggleActive}
+      className={cn(
+        "w-tag pressable inline-flex shrink-0 items-center justify-center rounded-2xl border font-mono font-bold tracking-[0.06em] uppercase transition-[color,background-color,border-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none focus-visible:ring-3 focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-60",
+        compact ? "h-5 px-2 text-[0.58rem]" : "h-6 px-2.5 py-0.5 text-[0.62rem]",
+        optimisticActive
+          ? "border-ink bg-reward text-reward-foreground"
+          : "border-ink/35 bg-secondary text-muted-foreground hover:border-ink/60 hover:bg-secondary/80"
+      )}
+    >
+      {pending ? "…" : optimisticActive ? "Active" : "Off"}
+    </button>
   )
 }
 
@@ -477,22 +578,36 @@ function SectionHead({
   title,
   description,
   step,
+  compactOnMobile = false,
 }: {
   title: string
   description: string
   step: string
+  compactOnMobile?: boolean
 }) {
   return (
-    <div className="flex items-start justify-between gap-4">
-      <div className="grid gap-2">
-        <h2 className="text-xl leading-snug font-extrabold tracking-tight text-foreground">
+    <div className="flex items-start justify-between gap-3 sm:gap-4">
+      <div className="grid gap-1 sm:gap-2">
+        <h2 className="text-lg leading-snug font-extrabold tracking-tight text-foreground sm:text-xl">
           {title}
         </h2>
-        <p className="max-w-[44ch] text-sm leading-6 text-muted-foreground">
+        <p
+          className={cn(
+            "max-w-[44ch] text-sm leading-6 text-muted-foreground",
+            compactOnMobile && "hidden sm:block"
+          )}
+        >
           {description}
         </p>
       </div>
-      <Eyebrow className="shrink-0 pt-1 whitespace-nowrap">{step}</Eyebrow>
+      <Eyebrow
+        className={cn(
+          "shrink-0 pt-0.5 whitespace-nowrap sm:pt-1",
+          compactOnMobile && "hidden sm:inline"
+        )}
+      >
+        {step}
+      </Eyebrow>
     </div>
   )
 }
@@ -512,8 +627,11 @@ function Stepper({
   label: string
 }) {
   const parsed = Number.parseInt(value, 10)
-  const current = Number.isFinite(parsed) ? parsed : min
+  const current = Number.isFinite(parsed)
+    ? Math.min(max, Math.max(min, parsed))
+    : min
   const atMin = current <= min
+  const atMax = current >= max
 
   return (
     <div
@@ -539,8 +657,9 @@ function Stepper({
       <button
         type="button"
         aria-label="More visits"
+        disabled={atMax}
         onClick={() => onChange(String(Math.min(max, current + 1)))}
-        className="grid w-11 place-items-center text-foreground transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:bg-ink/10 focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none"
+        className="grid w-11 place-items-center text-foreground transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:bg-ink/10 focus-visible:ring-3 focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
       >
         <Icon icon={PlusSignIcon} size={18} strokeWidth={2.25} />
       </button>
@@ -563,8 +682,8 @@ function ToggleRow({
   onChange: (checked: boolean) => void
 }) {
   return (
-    <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg bg-secondary px-4 py-3">
-      <span className="grid gap-0.5">
+    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg bg-secondary px-3 py-3 sm:gap-4 sm:px-4">
+      <span className="grid min-w-0 gap-0.5">
         <span className="text-sm font-bold text-foreground">{label}</span>
         <span className="text-xs leading-5 text-muted-foreground">{hint}</span>
       </span>
@@ -599,7 +718,7 @@ function Field({
       </label>
       <input
         id={id}
-        className="h-12 rounded-lg border-[1.5px] border-transparent bg-secondary px-4 text-sm text-foreground transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none placeholder:text-muted-foreground/70 focus:border-ink focus:ring-3 focus:ring-ring/20 motion-reduce:transition-none"
+        className="h-12 w-full min-w-0 max-w-full rounded-lg border-[1.5px] border-transparent bg-secondary px-4 text-sm text-foreground transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none placeholder:text-muted-foreground/70 focus:border-ink focus:ring-3 focus:ring-ring/20 motion-reduce:transition-none"
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
         {...props}
@@ -619,25 +738,44 @@ function Field({
 function TextareaField({
   id,
   label,
+  hint,
+  hintClassName,
   error,
   rows = 4,
   ...props
 }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
   id: string
   label: string
+  hint?: string
+  hintClassName?: string
   error?: string
 }) {
+  const describedBy = [hint ? `${id}-hint` : null, error ? `${id}-error` : null]
+    .filter(Boolean)
+    .join(" ")
+
   return (
     <div className="grid gap-2">
       <label htmlFor={id} className="text-sm font-bold text-foreground">
         {label}
       </label>
+      {hint ? (
+        <p
+          id={`${id}-hint`}
+          className={cn(
+            "text-xs leading-5 text-muted-foreground",
+            hintClassName
+          )}
+        >
+          {hint}
+        </p>
+      ) : null}
       <textarea
         id={id}
         rows={rows}
-        className="resize-y rounded-lg border-[1.5px] border-transparent bg-secondary px-4 py-3 text-sm leading-6 text-foreground transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none placeholder:text-muted-foreground/70 focus:border-ink focus:ring-3 focus:ring-ring/20 motion-reduce:transition-none"
+        className="w-full min-w-0 max-w-full resize-y rounded-lg border-[1.5px] border-transparent bg-secondary px-4 py-3 text-sm leading-6 text-foreground transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none placeholder:text-muted-foreground/70 focus:border-ink focus:ring-3 focus:ring-ring/20 motion-reduce:transition-none"
         aria-invalid={Boolean(error)}
-        aria-describedby={error ? `${id}-error` : undefined}
+        aria-describedby={describedBy || undefined}
         {...props}
       />
       {error ? (
@@ -649,94 +787,3 @@ function TextareaField({
   )
 }
 
-/**
- * The customer preview — the LOUD hero artifact. It keeps the full receipt
- * treatment (2px ink border, hard shadow, perforated edge) so it reads as the
- * thing the customer actually holds, against the quieter form beside it.
- */
-function StampCardPreview({
-  merchantName,
-  locationName,
-  draft,
-  activeRewardCount,
-}: {
-  merchantName: string
-  locationName: string
-  draft: LoyaltyCardFormValues
-  activeRewardCount: number
-}) {
-  const stampsRequired = Math.max(
-    Number.parseInt(draft.stampsRequired, 10) || DEFAULT_STAMPS_REQUIRED,
-    DEFAULT_STAMPS_REQUIRED
-  )
-  const earnedPreviewCount = Math.min(stampsRequired - 1, 2)
-
-  return (
-    <div className="h-fit lg:sticky lg:top-4">
-      <aside className="surface-card grid gap-4 p-5">
-        <div className="grid gap-2">
-          <div className="flex items-start gap-3">
-            <VenueMark name={merchantName} size={48} />
-            <div className="grid gap-1">
-              <Eyebrow>Customer preview</Eyebrow>
-              <h2 className="text-2xl leading-tight font-extrabold">
-                {draft.cardName || "Mystery Visit Card"}
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {merchantName} · {locationName}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2">
-          {Array.from({ length: Math.min(stampsRequired, 12) }).map(
-            (_, index) => {
-              const earned = index < earnedPreviewCount
-              return (
-                <span
-                  key={index}
-                  role="img"
-                  className={
-                    earned
-                      ? "aspect-square rounded-full border-2 border-ink bg-primary shadow-xs"
-                      : "aspect-square rounded-full border-2 border-dashed border-ink bg-background"
-                  }
-                  aria-label={earned ? "Earned stamp" : "Empty stamp"}
-                />
-              )
-            }
-          )}
-        </div>
-
-        {stampsRequired > 12 ? (
-          <p className="text-xs text-muted-foreground">
-            Preview shows 12 of {stampsRequired} visit slots.
-          </p>
-        ) : null}
-
-        <div className="rounded-lg border-2 border-ink bg-accent p-4">
-          <Eyebrow>Locked reward</Eyebrow>
-          <p className="mt-1 text-lg font-extrabold">Surprise reward</p>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Complete {stampsRequired} visits to reveal your surprise reward.
-          </p>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            {draft.rewardTerms}
-          </p>
-        </div>
-
-        <hr className="w-rule" />
-
-        <Eyebrow>
-          {draft.isActive ? "Active for new stamps" : "Inactive: no new stamps"}
-        </Eyebrow>
-        <Eyebrow>
-          {activeRewardCount} active pool reward
-          {activeRewardCount === 1 ? "" : "s"}
-        </Eyebrow>
-      </aside>
-      <div aria-hidden className="receipt-edge" />
-    </div>
-  )
-}

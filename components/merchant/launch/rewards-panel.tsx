@@ -16,6 +16,7 @@ export type RewardsPanelParams = {
   saved?: string
   seeded?: string
   error?: string
+  qr?: string
 }
 
 export async function RewardsPanel({
@@ -23,11 +24,15 @@ export async function RewardsPanel({
   advanceHref,
   continueHref,
   continueLabel,
+  needsBillingActivation = false,
+  billingHref,
 }: {
   params: RewardsPanelParams
   advanceHref?: string | null
   continueHref?: string | null
   continueLabel?: string
+  needsBillingActivation?: boolean
+  billingHref?: string | null
 }) {
   const { merchant, location, card, rewardPoolItems } =
     await getLoyaltyCardSetup()
@@ -87,14 +92,17 @@ export async function RewardsPanel({
   const rewardsReady = activeRewardCount >= 3
 
   return (
-    <div className="grid gap-5">
+    <div className="grid min-w-0 gap-3 sm:gap-5">
       <RewardsStatus
         params={params}
         advanceHref={advanceHref}
-        continueHref={continueHref}
-        continueLabel={continueLabel}
+        continueHref={continueHref ?? billingHref}
+        continueLabel={
+          needsBillingActivation ? "billing" : continueLabel ?? "the next step"
+        }
         rewardsReady={rewardsReady}
         activeRewardPoolItemCount={activeRewardCount}
+        needsBillingActivation={needsBillingActivation}
       />
       <RewardPoolForm
         loyaltyCardId={card.id}
@@ -114,6 +122,7 @@ function RewardsStatus({
   continueLabel,
   rewardsReady,
   activeRewardPoolItemCount,
+  needsBillingActivation,
 }: {
   params: RewardsPanelParams
   advanceHref?: string | null
@@ -121,27 +130,42 @@ function RewardsStatus({
   continueLabel?: string
   rewardsReady: boolean
   activeRewardPoolItemCount: number
+  needsBillingActivation: boolean
 }) {
   if (params.saved === "pool") {
-    const title =
-      params.seeded === "1" ? "Starter rewards loaded." : "Reward saved."
+    const title = needsBillingActivation
+      ? "Your account is created."
+      : params.seeded === "1"
+        ? "Starter rewards loaded."
+        : "Reward saved."
     const activeRewardCopy = `${activeRewardPoolItemCount} of 3 active rewards`
 
     return (
       <StatusBanner tone="success" title={title}>
-        {rewardsReady
-          ? params.seeded === "1"
-            ? "Three default rewards are active and saved. Your QR step goes live automatically once the earlier checks are complete."
-            : "Launch eligibility has been refreshed with your latest reward changes."
-          : `${activeRewardCopy} are ready. Finish the reward pool before setup can complete.`}
+        {needsBillingActivation
+          ? "Proceed to billing to activate your venue and start accepting stamps."
+          : params.qr === "created"
+            ? "Your venue QR is live. Open the launch kit to print or share it."
+            : params.qr === "enabled"
+              ? "Your venue QR is active again."
+              : rewardsReady
+                ? params.seeded === "1"
+                  ? "Three default rewards are active and saved. Your QR is created automatically when venue and card are ready."
+                  : "Launch eligibility has been refreshed with your latest reward changes."
+                : `${activeRewardCopy} are ready. Finish the reward pool before setup can complete.`}
         <LaunchSaveNextAction
           nextHref={advanceHref ?? continueHref ?? null}
-          nextLabel={continueLabel ?? "the next step"}
+          nextLabel={
+            needsBillingActivation ? "billing" : continueLabel ?? "the next step"
+          }
           stayHref="/app/launch?tab=rewards"
           blockedReason={
             rewardsReady
               ? undefined
               : `${activeRewardCopy}. Add or activate one more reward before continuing.`
+          }
+          primaryLabel={
+            needsBillingActivation ? "Proceed to billing" : undefined
           }
         />
       </StatusBanner>
@@ -156,11 +180,12 @@ function RewardsStatus({
     )
   }
 
-  if (rewardsReady) {
+  if (rewardsReady && !needsBillingActivation) {
     return (
       <StatusBanner tone="success" title="Your reward pool is ready.">
-        Each reward is already saved. Your QR step goes live automatically once
-        venue, card, rewards, and billing are complete.
+        Each reward is already saved. Your QR is created automatically once
+        venue, card, and rewards are complete — billing is the final activation
+        step.
       </StatusBanner>
     )
   }

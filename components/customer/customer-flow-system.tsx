@@ -140,6 +140,7 @@ export function CustomerReceipt({
   footerLeft,
   footerRight = "ONE STAMP PER BUSINESS DAY",
   hideFooter = false,
+  compact = false,
   className,
 }: {
   venueName: string
@@ -160,6 +161,8 @@ export function CustomerReceipt({
    * on the dashboard — pass this to keep the receipt calm and uncluttered.
    */
   hideFooter?: boolean
+  /** Tighter receipt header for narrow merchant preview surfaces. */
+  compact?: boolean
   className?: string
 }) {
   return (
@@ -169,16 +172,25 @@ export function CustomerReceipt({
       className={cn("grid gap-4", className)}
       data-edge-class="receipt-edge"
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex min-w-0 items-start justify-between gap-3 sm:gap-4">
         <div className="grid min-w-0 gap-1 text-left">
           {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
           {title ? (
-            <h2 className="text-xl leading-tight font-extrabold text-balance">
+            <h2
+              className={cn(
+                "leading-tight font-extrabold text-balance break-words",
+                compact ? "text-lg" : "text-xl"
+              )}
+            >
               {title}
             </h2>
           ) : null}
         </div>
-        <VenueMark size={58} name={venueName} />
+        <VenueMark
+          size={compact ? 48 : 58}
+          name={venueName}
+          className="shrink-0"
+        />
       </div>
 
       <hr className="w-rule" />
@@ -217,6 +229,8 @@ export function CustomerStampCard({
   metaLines,
   hideFooter = false,
   hideHeaderText = false,
+  wrapStamps = false,
+  compact = false,
   afterGrid,
   children,
 }: {
@@ -242,6 +256,10 @@ export function CustomerStampCard({
    * read inside the receipt. The {@link VenueMark} stays as the venue anchor.
    */
   hideHeaderText?: boolean
+  /** Wrap stamp slots onto multiple rows in narrow surfaces such as launch preview. */
+  wrapStamps?: boolean
+  /** Tighter stamp grid for narrow merchant preview surfaces. */
+  compact?: boolean
   /** Slot rendered between the stamp grid and the reward ticket — used for
    * celebrations so the grid stays the receipt's first focal point. */
   afterGrid?: ReactNode
@@ -251,6 +269,10 @@ export function CustomerStampCard({
   // ProgressTrack underneath was a duplicate readout — one progress signal only.
   // The sealed mystery shows once: as the row's end chip *or*, once revealed,
   // only on the ticket below — never two seals competing in one view.
+  // Three stamps + reward still fit one row; four or more stamps wrap on a 3-col grid.
+  const wrapColumnCount =
+    total + (reward.state === "sealed" ? 1 : 0) <= 4 ? total + 1 : 3
+
   return (
     <CustomerReceipt
       venueName={venueName}
@@ -258,6 +280,7 @@ export function CustomerStampCard({
       eyebrow={hideHeaderText ? undefined : venueName}
       metaLines={metaLines}
       hideFooter={hideFooter}
+      compact={compact}
     >
       <StampGrid
         current={current}
@@ -267,6 +290,9 @@ export function CustomerStampCard({
         showEmptySlotNumbers
         rewardSlot={reward.state === "sealed" ? "locked" : undefined}
         venueName={venueName}
+        layout={wrapStamps ? "wrap" : "row"}
+        wrapColumns={wrapColumnCount}
+        compact={compact}
         className="py-1"
       />
       {afterGrid}

@@ -4,9 +4,11 @@ import { PageTitle, ReceiptCard } from "@/components/brand"
 import { OnboardingForm } from "@/components/merchant/onboarding-form"
 import { getGoogleMapsPublicKey } from "@/lib/env/google-maps-public-key"
 import { MERCHANT_SETUP_STEPS } from "@/lib/merchant/launch-readiness-contract"
+import { getCurrentUser } from "@/lib/auth/session"
 import { getMerchantOnboardingStatus } from "@/lib/merchant/onboarding"
 
 export default async function OnboardingPage() {
+  const user = await getCurrentUser()
   const setup = await getMerchantOnboardingStatus()
 
   if (setup.status === "complete") {
@@ -29,6 +31,7 @@ export default async function OnboardingPage() {
       </ReceiptCard>
       <OnboardingForm
         initialFields={setup.initialFields}
+        draftUserId={user!.id}
         googleMapsApiKey={getGoogleMapsPublicKey()}
       />
 

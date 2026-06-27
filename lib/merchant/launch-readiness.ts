@@ -191,6 +191,18 @@ export function isLaunchBillingReady(billing: LaunchBilling): boolean {
   return isBillingReady(billing)
 }
 
+export function needsLaunchBillingActivation(
+  readiness: LaunchReadiness
+): boolean {
+  return readiness.nextStep?.id === "billing"
+}
+
+export function resolveLaunchBillingHref(
+  readiness: LaunchReadiness
+): string | null {
+  return needsLaunchBillingActivation(readiness) ? "/app/launch?tab=billing" : null
+}
+
 export function isLaunchSetupCompleteWithoutQr(
   checklist: LaunchReadinessAction[]
 ): boolean {

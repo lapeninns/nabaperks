@@ -5,6 +5,7 @@ import { Suspense } from "react"
 import { PageTitle } from "@/components/brand"
 import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
 import { BillingPanel } from "@/components/merchant/account/billing-panel"
+import { LaunchBillingActivationBanner } from "@/components/merchant/launch/launch-billing-cta"
 import { LaunchTransientQueryCleanup } from "@/components/merchant/launch/launch-tab-auto-advance"
 import {
   AccountBillingPanelSkeleton,
@@ -20,9 +21,9 @@ import { ensureJoinQrProvisioned } from "@/lib/merchant/ensure-join-qr"
 import {
   buildLaunchReadiness,
   getLaunchBillingReadiness,
-  isLaunchBillingReady,
-  isLaunchSetupCompleteWithoutQr,
   LAUNCH_SETUP_STEP_LABELS,
+  needsLaunchBillingActivation,
+  resolveLaunchBillingHref,
   type LaunchHubTab,
   type LaunchReadinessTab,
 } from "@/lib/merchant/launch-readiness"
@@ -50,6 +51,7 @@ type LaunchPageProps = {
     disabled?: string
     checkout?: string
     portal?: string
+    qr?: string
   }>
 }
 
@@ -83,7 +85,9 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
   })
 
   if (
-    isLaunchSetupCompleteWithoutQr(launchReadiness.checklist) &&
+    launchReadiness.tabs.venue &&
+    launchReadiness.tabs.card &&
+    launchReadiness.tabs.rewards &&
     !launchReadiness.tabs.qr &&
     setupMerchant
   ) {
@@ -92,7 +96,6 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
       activeCard,
       activeRewardPoolItemCount,
       venueReady: launchReadiness.tabs.venue,
-      billingReady: isLaunchBillingReady(billing),
       qrCode,
     })
 
@@ -114,7 +117,8 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
     }
   }
 
-  const needsBilling = launchReadiness.nextStep?.id === "billing"
+  const needsBilling = needsLaunchBillingActivation(launchReadiness)
+  const billingHref = resolveLaunchBillingHref(launchReadiness)
   const defaultTab = resolveDefaultTab(
     launchReadiness.launchReady,
     launchReadiness.nextStep?.tab
@@ -132,46 +136,54 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
     activeRewardPoolItemCount
   )
   const transientCleanHref =
-    params.saved || params.seeded || params.created || params.enabled
+    params.saved || params.seeded || params.created || params.enabled || params.qr
       ? `/app/launch?tab=${activeTab}`
       : null
 
   return (
-    <div className="grid gap-6">
-      <PageTitle
-        eyebrow="Merchant setup"
-        title={
-          launchReadiness.launchReady
-            ? "You're live"
-            : needsBilling
-              ? "Add a card to activate"
-              : "Bring your venue to life"
-        }
-        description={
-          launchReadiness.launchReady
-            ? "Customers can scan, join, and collect stamps. Your QR is live below — print it when you are ready."
-            : needsBilling
-              ? "Your setup is ready. Add a card through Stripe to activate the venue; the first 30 days are free."
-              : `${launchReadiness.total} setup checks and you're live. Your QR is created automatically once the earlier steps are done.`
-        }
-        actions={
-          launchReadiness.launchReady ? (
-            <Button asChild variant="secondary">
-              <Link href="/app/launch?tab=qr">Open launch kit</Link>
-            </Button>
-          ) : needsBilling ? (
-            <Button asChild>
-              <Link href="/app/launch?tab=billing">Add a card</Link>
-            </Button>
-          ) : undefined
-        }
-      />
+    <div className="grid min-w-0 gap-2 overflow-x-clip sm:gap-6">
+      <div className="hidden sm:grid">
+        <PageTitle
+          eyebrow="Merchant setup"
+          title={
+            launchReadiness.launchReady
+              ? "You're live"
+              : needsBilling
+                ? "Your account is created"
+                : "Bring your venue to life"
+          }
+          description={
+            launchReadiness.launchReady
+              ? "Customers can scan, join, and collect stamps. Your QR is live below — print it when you are ready."
+              : needsBilling
+                ? "Your account is created. Proceed to billing to activate your venue and start accepting stamps."
+                : `${launchReadiness.total} setup checks and you're live. Your QR is created automatically once the earlier steps are done.`
+          }
+          actions={
+            launchReadiness.launchReady ? (
+              <Button asChild variant="secondary">
+                <Link href="/app/launch?tab=qr">Open launch kit</Link>
+              </Button>
+            ) : needsBilling ? (
+              <Button asChild>
+                <Link href={billingHref ?? "/app/launch?tab=billing"}>
+                  Proceed to billing
+                </Link>
+              </Button>
+            ) : undefined
+          }
+        />
+      </div>
 
       <LaunchReadinessPanel
         readiness={launchReadiness}
         showHeader={false}
         activeTab={activeTab}
       />
+
+      {needsBilling && activeTab !== "billing" ? (
+        <LaunchBillingActivationBanner compact />
+      ) : null}
 
       <LaunchTransientQueryCleanup cleanHref={transientCleanHref} />
 
@@ -191,6 +203,8 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
           continueHref={continueHref}
           rewardsContinueHref={rewardsContinueHref}
           launchReady={launchReadiness.launchReady}
+          needsBillingActivation={needsBilling}
+          billingHref={billingHref}
         />
       </Suspense>
     </div>
@@ -203,15 +217,19 @@ function LaunchActivePanel({
   continueHref,
   rewardsContinueHref,
   launchReady,
+  needsBillingActivation,
+  billingHref,
 }: {
   activeTab: LaunchHubTab
   params: LaunchSearchParams
   continueHref: string | null
   rewardsContinueHref: string | null
   launchReady: boolean
+  needsBillingActivation: boolean
+  billingHref: string | null
 }) {
   return (
-    <div className="grid gap-5">
+    <div className="grid min-w-0 gap-3 sm:gap-5">
       {activeTab === "card" ? (
         <CardPanel params={params} advanceHref={continueHref} />
       ) : activeTab === "rewards" ? (
@@ -220,6 +238,8 @@ function LaunchActivePanel({
           advanceHref={continueHref}
           continueHref={rewardsContinueHref}
           continueLabel={rewardsContinueLabel(rewardsContinueHref)}
+          needsBillingActivation={needsBillingActivation}
+          billingHref={billingHref}
         />
       ) : activeTab === "venue" ? (
         <VenuePanel />
@@ -233,6 +253,7 @@ function LaunchActivePanel({
           params={params}
           continueHref={continueHref}
           launchReady={launchReady}
+          billingHref={billingHref}
         />
       )}
     </div>
@@ -247,7 +268,15 @@ function resolveRewardsContinueHref(
     return null
   }
 
-  return launchReadiness.nextStep?.href ?? "/app/launch?tab=qr"
+  if (needsLaunchBillingActivation(launchReadiness)) {
+    return resolveLaunchBillingHref(launchReadiness)
+  }
+
+  if (!launchReadiness.tabs.qr) {
+    return "/app/launch?tab=qr"
+  }
+
+  return resolveLaunchBillingHref(launchReadiness) ?? "/app/launch?tab=qr"
 }
 
 function rewardsContinueLabel(continueHref: string | null): string {

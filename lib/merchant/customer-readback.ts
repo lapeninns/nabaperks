@@ -10,6 +10,10 @@ const LONDON = "Europe/London"
 /** Default loyalty card size when a merchant has not configured one yet. */
 export const DEFAULT_STAMPS_REQUIRED = 3
 
+/** Merchant-configurable visit range for mystery cards at launch. */
+export const MIN_STAMPS_REQUIRED = DEFAULT_STAMPS_REQUIRED
+export const MAX_STAMPS_REQUIRED = 6
+
 /** A member with no visit for this many UK days reads as "gone quiet". */
 export const MERCHANT_GONE_QUIET_DAYS = 30
 

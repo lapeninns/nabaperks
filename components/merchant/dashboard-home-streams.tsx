@@ -87,24 +87,6 @@ export async function MerchantDashboardStream({
         <LaunchReadinessPanel readiness={launchReadiness} />
       ) : null}
 
-      {metrics.members === 0 ? (
-        <EmptyState
-          title="No members yet"
-          description="Generate the venue QR and place it at the till so customers can join before their next order."
-          icon={UserMultiple02Icon}
-          actions={
-            <div className="flex flex-wrap justify-center gap-2">
-              <Button asChild size="sm">
-                <Link href="/app/launch?tab=qr">Generate QR</Link>
-              </Button>
-              <Button asChild variant="secondary" size="sm">
-                <Link href="/app/launch?tab=card">Check card setup</Link>
-              </Button>
-            </div>
-          }
-        />
-      ) : null}
-
       <section className="grid gap-3">
         <SectionHeader
           eyebrow="Last 7 days"

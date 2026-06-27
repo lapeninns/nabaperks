@@ -22,7 +22,11 @@ import type { VenueAddressFormFields } from "@/lib/merchant/venue-address"
 import { cn } from "@/lib/utils"
 
 const initialState: OnboardingActionState = {}
-const draftStorageKey = "nabaperks:onboarding-draft"
+const legacyDraftStorageKey = "nabaperks:onboarding-draft"
+
+function onboardingDraftStorageKey(userId: string) {
+  return `${legacyDraftStorageKey}:${userId}`
+}
 
 const onboardingInputClassName =
   "h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none focus:border-ring focus:ring-3 focus:ring-ring/25"
@@ -32,13 +36,17 @@ type OnboardingDraft = NonNullable<OnboardingActionState["fields"]>
 export function OnboardingForm({
   className,
   initialFields = {},
+  draftUserId,
   googleMapsApiKey,
 }: {
   className?: string
   initialFields?: OnboardingDraft
+  /** Scopes browser draft storage to the signed-in merchant account. */
+  draftUserId: string
   /** Dev-preview key injection; production uses the server-passed public key. */
   googleMapsApiKey?: string
 }) {
+  const draftStorageKey = onboardingDraftStorageKey(draftUserId)
   const hasInitialFields = Object.values(initialFields).some(Boolean)
   const [state, action, pending] = useActionState(
     completeOnboardingAction,
@@ -83,6 +91,12 @@ export function OnboardingForm({
   }, [state.fields])
 
   useEffect(() => {
+    window.localStorage.removeItem(legacyDraftStorageKey)
+  }, [])
+
+  useEffect(() => {
+    if (hasInitialFields) return
+
     const timeoutId = window.setTimeout(() => {
       try {
         const savedDraft = window.localStorage.getItem(draftStorageKey)
@@ -108,7 +122,7 @@ export function OnboardingForm({
     }, 0)
 
     return () => window.clearTimeout(timeoutId)
-  }, [state.fields])
+  }, [draftStorageKey, hasInitialFields, state.fields])
 
   function updateDraft(partial: Partial<OnboardingDraft>) {
     try {

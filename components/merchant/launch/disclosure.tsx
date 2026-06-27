@@ -26,19 +26,19 @@ export function Disclosure({
     <details
       open={defaultOpen}
       className={cn(
-        "group rounded-lg border-2 border-dashed border-ink/25 bg-secondary/40",
+        "group min-w-0 overflow-hidden rounded-lg border-2 border-dashed border-ink/25 bg-secondary/40",
         className
       )}
     >
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg px-4 py-3 text-sm font-extrabold text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/35 [&::-webkit-details-marker]:hidden">
-        <span>{label}</span>
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-sm font-extrabold text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/35 sm:px-4 sm:py-3 [&::-webkit-details-marker]:hidden">
+        <span className="min-w-0 text-pretty break-words">{label}</span>
         <Icon
           icon={ArrowDown01Icon}
           size={18}
-          className="text-muted-foreground transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none group-open:rotate-180"
+          className="shrink-0 text-muted-foreground transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none group-open:rotate-180"
         />
       </summary>
-      <div className="grid gap-3 px-4 pt-1 pb-4">{children}</div>
+      <div className="grid min-w-0 gap-3 overflow-x-clip px-3 pt-1 pb-3 sm:px-4 sm:pb-4">{children}</div>
     </details>
   )
 }
