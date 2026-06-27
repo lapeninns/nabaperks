@@ -13,7 +13,7 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     background_color: "#f6f1e6",
-    theme_color: "#e8430f",
+    theme_color: "#cf330a",
     icons: [
       {
         src: "/icons/nabaperks-icon-192.png",

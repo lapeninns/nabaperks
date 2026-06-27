@@ -5,22 +5,22 @@ colors:
   paper-deep: "#ece5d4"
   card: "#fbf8f1"
   ink: "#211c16"
-  ink-soft: "#6b6257"
+  ink-soft: "#4f473d"
   line: "rgba(33, 28, 22, 0.18)"
-  accent-vermillion: "#e8430f"
+  accent-vermillion: "#cf330a"
   on-accent: "#ffffff"
   cobalt: "#2b43c8"
-  leaf: "#1e8a4c"
+  leaf: "#16733c"
   sun: "#f5a623"
   destructive: "#c0301c"
   background: "#f6f1e6"
   foreground: "#211c16"
-  primary: "#e8430f"
+  primary: "#cf330a"
   on-primary: "#ffffff"
-  stamp: "#e8430f"
+  stamp: "#cf330a"
   stamp-empty: "rgba(33, 28, 22, 0.18)"
   seal: "#f5a623"
-  reward-ready: "#1e8a4c"
+  reward-ready: "#16733c"
   qr: "#111111"
   qr-bg: "#ffffff"
 typography:
@@ -90,8 +90,8 @@ motion:
 counter-service businesses: flat spot inks on warm paper, hard offset shadows,
 perforated receipt edges, rotated stamp marks. The product's core verb —
 _stamping_ — is the entire visual language. This is v2 of the design system;
-v1 "Honey & Ink" (warm cream / honey amber / pill shapes) is superseded, but
-its token names survive as compatibility aliases.
+v1 "Honey & Ink" (warm cream / honey amber / pill shapes) is fully superseded;
+its v1 token aliases have been removed from `app/globals.css` (no consumers).
 
 **Voice:** plain, warm, **British** (en-GB). The product talks like a good
 barista, not a SaaS.
@@ -120,16 +120,17 @@ Riso-print logic: one paper, one ink, a small set of hot spot inks.
 - **Card (`--w-card` #fbf8f1):** the receipt surface, lifted off the paper.
 - **Ink (`--w-ink` #211c16):** warm near-black for text, borders, shadows.
   Secondary text is `--w-ink-soft`; hairlines and dashed rules use `--w-line`.
-- **Spot inks:** vermillion accent (#e8430f — THE action/stamp ink,
-  themeable), cobalt (#2b43c8 — info, joins), leaf (#1e8a4c — success,
+- **Spot inks:** vermillion accent (#cf330a — THE action/stamp ink,
+  themeable), cobalt (#2b43c8 — info, joins), leaf (#16733c — success,
   ready-to-redeem), sun (#f5a623 — the mystery seal).
 - **QR codes always sit on pure white** inside an ink-bordered frame, even in
   dark mode. No gradients except functional ones (zigzag edge, conic ring).
 
 All shadcn semantic tokens (`--background`, `--primary`, `--muted`, …) alias
-the `--w-*` palette in `app/globals.css`, and the v1 token names
-(`--paper-cream`, `--espresso-ink`, `--soft-mint`, `--fresh-green`) are kept
-as remapped compatibility aliases.
+the `--w-*` palette in `app/globals.css`. The superseded v1 Honey & Ink aliases
+(`--paper-cream`, `--espresso-ink`, `--soft-mint`, `--fresh-green`) and the
+unused Material surface tokens (`--surface-dim`, `--surface-container`,
+`--surface-container-high`) have been removed — they had no consumers.
 
 ## Typography
 
@@ -215,6 +216,12 @@ unlayered "Wet Ink layer" in `app/globals.css`, which targets the primitives'
 `data-slot` attributes (button, card, input, textarea, badge, sheet). Keep it
 that way: restyle via tokens, the ink layer, wrapper components, or
 project-specific variants.
+
+**Layer precedence.** The Wet Ink `[data-slot=…]` block sits deliberately
+*outside* any `@layer`, so under Tailwind v4 it beats every layered utility
+regardless of specificity. A utility such as `rounded-full` or `shadow-lg`
+dropped on a themed primitive will therefore not override it — restyle through a
+token, a wrapper, or a variant instead.
 
 **Foundation layer & import rules.** Surface code composes from the foundation
 wrappers, never raw shadcn or inline keyframes:

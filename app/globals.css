@@ -42,14 +42,6 @@
   --color-leaf: var(--w-leaf);
   --color-sun: var(--w-sun);
 
-  --color-paper-cream: var(--paper-cream);
-  --color-espresso-ink: var(--espresso-ink);
-  --color-soft-mint: var(--soft-mint);
-  --color-fresh-green: var(--fresh-green);
-  --color-surface-dim: var(--surface-dim);
-  --color-surface-container: var(--surface-container);
-  --color-surface-container-high: var(--surface-container-high);
-
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -103,14 +95,6 @@
   --w-sun: #f5a623;
 
   --w-shadow-color: var(--w-ink);
-
-  --paper-cream: var(--w-card);
-  --espresso-ink: var(--w-ink);
-  --soft-mint: color-mix(in srgb, var(--w-leaf) 10%, var(--w-paper));
-  --fresh-green: var(--w-leaf);
-  --surface-dim: #e0d7c2;
-  --surface-container: var(--w-paper-2);
-  --surface-container-high: #e6ddc9;
 
   --background: var(--w-paper);
   --foreground: var(--w-ink);
@@ -204,14 +188,6 @@
 
   --w-shadow-color: #0d0a07;
 
-  --paper-cream: var(--w-card);
-  --espresso-ink: var(--w-ink);
-  --soft-mint: color-mix(in srgb, var(--w-leaf) 14%, var(--w-paper));
-  --fresh-green: var(--w-leaf);
-  --surface-dim: #322a21;
-  --surface-container: var(--w-paper-2);
-  --surface-container-high: #2e261d;
-
   --destructive: #e0533c;
   --destructive-foreground: #1b1712;
 
@@ -294,7 +270,7 @@ body[data-grain="true"]::after {
     border-radius: var(--radius-lg);
     background: var(--card);
     color: var(--card-foreground);
-    box-shadow: 4px 4px 0 var(--w-shadow-color);
+    box-shadow: var(--shadow-md);
   }
 
   .eyebrow {
@@ -367,6 +343,16 @@ body[data-grain="true"]::after {
    primitives through their data-slot hooks. The component
    files and their APIs stay untouched; this layer only
    restyles shape, border, weight, and elevation.
+
+   Precedence note: this block is intentionally OUTSIDE any
+   @layer, so in Tailwind v4 it overrides ALL layered utilities
+   regardless of specificity — unlayered styles always beat
+   layered ones, so a higher-specificity selector here is not
+   even required. This means a utility class (e.g. rounded-full,
+   shadow-lg) placed on a themed primitive will NOT win against
+   these selectors. To override a treatment, do not reach for a
+   utility class: restyle via tokens, a wrapper component, or a
+   variant instead.
    ============================================================ */
 
 [data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]) {
