@@ -1,27 +1,47 @@
 import { MonoTag } from "@/components/brand"
 
-const faqs = [
+export type Faq = { q: string; a: string }
+
+/**
+ * The honest answers — mirrors the real SERP "People Also Ask" fears so each Q&A
+ * doubles as FAQPage JSON-LD and AI-answer bait. Exported so the page can emit
+ * schema from this exact array (visible copy === structured data). Each answer is
+ * self-contained and quotable in 1–2 sentences for answer engines.
+ */
+export const faqs: readonly Faq[] = [
   {
-    q: "Do customers need an app?",
-    a: "No app and no extra hardware. Customers scan your QR with the camera they already have, and the card opens in their phone browser. You run it from any phone, tablet, or till screen.",
+    q: "Do my customers have to download an app?",
+    a: "No — and no wallet pass either. Customers scan your till QR and the card opens straight in their phone browser, saved in one tap. It works on any iPhone or Android with nothing to download or install.",
   },
   {
-    q: "How are stamps checked?",
-    a: "The customer scans your venue QR and taps to claim. The server checks the QR, membership, billing status, and UK date before confirming the stamp, so the phone never crosses the counter.",
+    q: "Can staff or customers fake the stamps?",
+    a: "No. The live flow is self-service QR stamping, all server-checked: the Counter-Verified Stamp confirms the physical venue QR, the customer's membership and your billing, caps it at one stamp per customer per UK date, and can flag GPS anomalies. Rewards are verified live at redemption, never from a screenshot.",
   },
   {
-    q: "Can I control how stamps are earned?",
-    a: "The live flow is self-service QR stamping: one stamp per customer per UK date, checked server-side. You can configure the reward threshold and optional GPS anomaly checks without adding a CRM or POS integration.",
+    q: "What if a customer loses or changes their phone — do they lose their stamps?",
+    a: "They don't lose anything. Stamps live in the customer's account on our server, not on a losable card or a single phone — they sign back in on a new device and everything is still there.",
   },
   {
-    q: "Can people collect stamps without marketing consent?",
-    a: "Yes. Loyalty participation and marketing opt-in stay separate. A customer can collect stamps and redeem rewards without joining a marketing list.",
+    q: "Do I need a POS, till integration or special hardware?",
+    a: "No POS, no integration, no special hardware. It runs on any phone, tablet or till, including cash-only takeaways, and we post you a printed QR kit (poster, till card and sticker).",
   },
   {
-    q: "What does it cost after the pilot?",
-    a: "You can build the card and preview the QR flow first. Add billing when you activate your live venue QR. After the 30-day pilot it is £29/month for one venue, with no contracts.",
+    q: "How much does it cost, and am I tied into a contract?",
+    a: "A 30-day free pilot, then £29/month per venue, with no contract. You build your card free and only add billing when you switch your live venue QR on.",
   },
-] as const
+  {
+    q: "Can I try it before I pay?",
+    a: "Yes. Build your card and preview the whole QR flow for free; billing only starts when you go live, and the first 30 days are then free. You don't need card details to start.",
+  },
+  {
+    q: "Will it spam my customers, and is their data safe?",
+    a: "No spam: loyalty and marketing are kept separate, so customers earn and redeem without joining any marketing list. Their data is scoped to your venue, served over HTTPS, with plain-English Privacy and Terms, in line with UK GDPR.",
+  },
+  {
+    q: "How is this different from a paper card or apps like Stamp Me?",
+    a: "It keeps what customers like about a paper card — simple, scan-and-collect, no app — but it can't be lost or faked. And unlike wallet-pass apps such as Stamp Me or Loopy Loyalty, there is nothing to install. You also get a weekly digest of visits and redemptions a paper card can never give you.",
+  },
+]
 
 /**
  * FAQ — the honest answers, as native `<details>` so the accordion needs no
@@ -30,7 +50,10 @@ const faqs = [
  */
 export function LandingFaq() {
   return (
-    <section className="mx-auto w-full max-w-3xl px-6 pt-12 sm:pt-16">
+    <section
+      id="faq"
+      className="mx-auto w-full max-w-3xl scroll-mt-24 px-6 pt-12 sm:pt-16"
+    >
       <div className="text-center">
         <MonoTag tone="plain">Questions</MonoTag>
         <h2 className="mt-4 text-[clamp(1.75rem,3.6vw,2.5rem)] leading-[1.04] font-extrabold tracking-[-0.02em] text-balance">

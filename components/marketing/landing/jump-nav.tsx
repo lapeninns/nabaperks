@@ -1,0 +1,37 @@
+/**
+ * On-page chapter bar — a crawlable, JS-free table of contents. Each chip is a
+ * hash link to an H2 micro-chapter below, so a skimming buyer (and an AI crawler
+ * summarising the page) can jump straight to the intent they care about. Pure
+ * CSS + anchors keeps INP at zero; every target section sets `scroll-mt` so the
+ * sticky header never occludes the landing spot.
+ */
+const jumpLinks = [
+  { href: "#how-it-works", label: "How it works" },
+  { href: "#no-app", label: "No app vs wallet vs paper" },
+  { href: "#anti-fraud", label: "Why stamps can’t be faked" },
+  { href: "#for-venues", label: "For your venue" },
+  { href: "#pricing", label: "Pricing" },
+  { href: "#faq", label: "FAQ" },
+] as const
+
+export function JumpNav() {
+  return (
+    <nav
+      aria-label="On this page"
+      className="mx-auto w-full max-w-6xl px-6 py-3"
+    >
+      <ul className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden">
+        {jumpLinks.map((link) => (
+          <li key={link.href} className="shrink-0">
+            <a
+              href={link.href}
+              className="pressable inline-flex items-center rounded-full border-2 border-ink/15 bg-card px-3.5 py-1.5 font-mono text-[0.68rem] font-bold tracking-[0.06em] whitespace-nowrap uppercase transition-colors hover:border-ink hover:bg-accent hover:text-accent-foreground focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
+            >
+              {link.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}

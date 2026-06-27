@@ -22,25 +22,21 @@ export function VenueBenefits({ qrMatrix }: { qrMatrix: QrMatrix }) {
           Built for the counter, not the boardroom.
         </h2>
         <ul className="mt-7 grid gap-5">
-          <BenefitPoint title="No app, no plastic">
-            Customers keep their phone and their pocket. Nothing to download,
-            nothing to laminate.
+          <BenefitPoint title="No app, no wallet, no plastic">
+            Customers keep their phone and their pocket. Nothing to download, no
+            wallet pass to install, nothing to laminate.
           </BenefitPoint>
           <BenefitPoint title="The phone never crosses the counter">
             Stamps are confirmed on the customer&apos;s own phone. Your team
             never has to hold it.
           </BenefitPoint>
-          <BenefitPoint title="Server-checked stamps">
-            Customers claim from the venue QR. The server blocks duplicate daily
-            stamps and can flag odd GPS signals without POS setup.
+          <BenefitPoint title="No POS, no hardware">
+            Works on any phone, tablet or till — even cash-only counters. We
+            post you the printed QR kit; there&apos;s nothing to integrate.
           </BenefitPoint>
           <BenefitPoint title="Simple rewards customers understand">
             Start with a clear reward, then add a surprise reward later if it
             fits your venue.
-          </BenefitPoint>
-          <BenefitPoint title="Built for food and drink venues">
-            Made for cafes, takeaways, casual restaurants, pubs and dessert
-            shops — not generic loyalty software.
           </BenefitPoint>
         </ul>
       </div>

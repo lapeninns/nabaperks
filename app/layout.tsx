@@ -3,8 +3,14 @@ import { Bricolage_Grotesque, Space_Mono } from "next/font/google"
 
 import "./globals.css"
 import { AppPwa } from "@/components/pwa/app-pwa"
+import { JsonLd } from "@/components/seo/json-ld"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
+import {
+  organizationSchema,
+  SITE_URL,
+  websiteSchema,
+} from "@/lib/seo/structured-data"
 
 const bricolageGrotesque = Bricolage_Grotesque({
   variable: "--font-bricolage-grotesque",
@@ -21,9 +27,14 @@ const spaceMono = Space_Mono({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   applicationName: "Nabaperks",
-  title: "Nabaperks",
-  description: "No-app digital loyalty cards for local businesses.",
+  title: {
+    default: "Nabaperks — No-app QR loyalty for UK food & drink venues",
+    template: "%s | Nabaperks",
+  },
+  description:
+    "No-app QR loyalty cards for UK cafes, takeaways and pubs. Customers scan a venue QR and save a browser card — nothing to install — then collect server-checked stamps. £29/month, 30-day free pilot.",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -75,6 +86,13 @@ export default function RootLayout({
           <AppPwa />
           <Toaster richColors closeButton />
         </ThemeProvider>
+        <JsonLd
+          id="ld-site"
+          data={{
+            "@context": "https://schema.org",
+            "@graph": [organizationSchema(), websiteSchema()],
+          }}
+        />
       </body>
     </html>
   )

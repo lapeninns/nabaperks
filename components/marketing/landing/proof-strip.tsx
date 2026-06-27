@@ -4,7 +4,7 @@ import { PilotProofStrip } from "../pilot-proof-strip"
 
 const stats = [
   { value: "<5 min", label: "to set the venue up" },
-  { value: "<10 sec", label: "from scan to stamp" },
+  { value: "Seconds", label: "from scan to stamp" },
   { value: "30 days", label: "free to pilot" },
 ] as const
 
@@ -35,6 +35,10 @@ export function ProofStrip() {
           </li>
         ))}
       </ul>
+      <p className="mt-3 text-center font-mono text-[0.66rem] tracking-[0.05em] text-muted-foreground uppercase">
+        Printed QR kit posted to you · works on any phone, tablet or till · no
+        hardware, no POS
+      </p>
       <PilotProofStrip />
     </section>
   )

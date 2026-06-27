@@ -59,7 +59,7 @@ test("Given compact homepage source When risky landing claims are reviewed Then 
   }
 })
 
-test("Given the root route When section composition is checked Then the compact source contract holds", () => {
+test("Given the root route When section composition is checked Then the landing hub contract holds", () => {
   // Given
   const homepage = readProjectFile("app", "page.tsx")
   const faqSource = readProjectFile(
@@ -68,24 +68,32 @@ test("Given the root route When section composition is checked Then the compact 
     "landing",
     "faq.tsx"
   )
-  const sectionComponents = [
+  // The research-backed hub must carry the core funnel plus the high-leverage
+  // SEO/GEO sections (the comparison table + the named anti-fraud method) and a
+  // skimmable jump-nav. (Supersedes the earlier "compact, <=8 sections" rule —
+  // the page is now a jump-navigable hub by design.)
+  const requiredSections = [
     "LandingHero",
-    "ProofStrip",
+    "JumpNav",
     "CounterFlow",
-    "VenueBenefits",
-    "VenueProof",
+    "ComparisonTable",
+    "CounterVerifiedStamp",
     "TrustPricing",
     "LandingFaq",
     "FinalCta",
-    "PilotProofStrip",
-  ].filter((component) => homepage.includes(`<${component}`))
+  ]
 
   // When
   const faqQuestionCount = (faqSource.match(/\n\s*q:\s*"/g) ?? []).length
 
   // Then
-  assert.ok(sectionComponents.length <= 8, sectionComponents.join(", "))
-  assert.ok(faqQuestionCount <= 5, `FAQ has ${faqQuestionCount} questions`)
+  for (const component of requiredSections) {
+    assert.ok(homepage.includes(`<${component}`), `missing <${component}>`)
+  }
+  assert.ok(
+    faqQuestionCount >= 6 && faqQuestionCount <= 10,
+    `FAQ has ${faqQuestionCount} questions`
+  )
 })
 
 test("Given venue proof When the landing source is checked Then all nine venues and postcodes render with production copy", () => {

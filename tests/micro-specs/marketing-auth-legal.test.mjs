@@ -57,17 +57,26 @@ test("Given trust and pricing copy When legal friction is reviewed Then billing 
     "landing",
     "proof-strip.tsx"
   )
+  const separateMarketing = readProjectFile(
+    "components",
+    "marketing",
+    "landing",
+    "separate-marketing.tsx"
+  )
   const signup = readProjectFile("app", "(auth)", "signup", "page.tsx")
 
   // When
   const homepagePricingCopy = [trustPricing, finalCta, proofStrip].join("\n")
   const acquisitionCopy = [homepagePricingCopy, signup].join("\n")
 
-  // Then
-  assert.match(trustPricing, /Stamps on record\. Marketing by choice\./)
+  // Then — the marketing-consent precision now lives in its own section.
   assert.match(
-    trustPricing,
-    /Customers can collect stamps without joining a marketing list\./
+    separateMarketing,
+    /Customers earn stamps without joining a marketing list\./
+  )
+  assert.match(
+    separateMarketing,
+    /without ever agreeing to\s+promotional messages\./
   )
   assert.match(proofStrip, /value: "30 days"/)
   assert.match(proofStrip, /label: "free to pilot"/)
@@ -136,7 +145,7 @@ test("Given public questions When answers are dry-run against code Then they onl
   ].join("\n")
 
   // When / Then
-  assert.match(landingFaq, /q: "How are stamps checked\?"/)
+  assert.match(landingFaq, /q: "Can staff or customers fake the stamps\?"/)
   assert.match(landingFaq, /self-service QR stamping/)
   assert.match(landingFaq, /one stamp per customer per UK date/)
   assert.match(pricing, /self-service stamp/)
