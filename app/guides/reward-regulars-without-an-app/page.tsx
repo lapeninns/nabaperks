@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 
 import { GuidePage, GuideSection } from "@/components/marketing/guides/guide-page"
 import { PRODUCT, ROUTES } from "@/lib/marketing/facts"
+import { OG_IMAGE } from "@/lib/seo/structured-data"
 
 const title = "How to Reward Pub Regulars Without an App"
 const description =
@@ -24,7 +25,9 @@ export const metadata: Metadata = {
     siteName: "Nabaperks",
     url: ROUTES.guides.rewardRegulars,
     locale: "en_GB",
+    images: [OG_IMAGE],
   },
+  twitter: { card: "summary_large_image", images: [OG_IMAGE] },
 }
 
 export default function RewardRegularsWithoutAnAppPage() {

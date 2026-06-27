@@ -7,6 +7,7 @@ import {
   ComparisonTable,
   FinalCta,
   NabaperksProof,
+  RegularsCalculator,
 } from "@/components/marketing/landing"
 import { Button } from "@/components/ui/button"
 import { ArrowRight01Icon, Tick02Icon } from "@hugeicons/core-free-icons"
@@ -16,6 +17,7 @@ import {
   counterLoyaltyIndexDataset,
   howToSchema,
   marketingPageGraph,
+  OG_IMAGE,
 } from "@/lib/seo/structured-data"
 
 const title = "Loyalty for Pubs & Gastropubs — No-App QR Stamp Cards"
@@ -41,6 +43,13 @@ export const metadata: Metadata = {
     siteName: "Nabaperks",
     url: ROUTES.pubHub,
     locale: "en_GB",
+    images: [OG_IMAGE],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${title} | Nabaperks`,
+    description,
+    images: [OG_IMAGE],
   },
 }
 
@@ -266,6 +275,9 @@ export default function LoyaltyForPubsPage() {
 
       {/* Browser card vs the alternatives */}
       <ComparisonTable />
+
+      {/* Ungated value-first tool */}
+      <RegularsCalculator />
 
       {/* Pub guide spokes */}
       <Section id="pub-guides">

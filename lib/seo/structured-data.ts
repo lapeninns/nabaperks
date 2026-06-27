@@ -25,6 +25,18 @@ export function absoluteUrl(path = "/"): string {
 }
 
 /**
+ * The static Wet Ink social image (app/opengraph-image.tsx). Referenced by child
+ * routes' metadata because a root-segment opengraph-image is not inherited once a
+ * child route defines its own `openGraph` object.
+ */
+export const OG_IMAGE = {
+  url: "/opengraph-image",
+  width: 1200,
+  height: 630,
+  alt: "Nabaperks — loyalty cards for pubs, cafes and restaurants.",
+} as const
+
+/**
  * Lapen Inns — the operator Organization. `sameAs` carries only the operator's
  * own public website (no registry identifiers, no personal profiles); the estate
  * is exposed as verifiable `BarOrPub` places to strengthen the entity.

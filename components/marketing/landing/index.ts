@@ -1,6 +1,7 @@
 export { LandingHero } from "./hero"
 export { JumpNav } from "./jump-nav"
 export { ProofStrip } from "./proof-strip"
+export { RegularsCalculator } from "./regulars-calculator"
 export { CounterFlow, counterFlowSteps } from "./counter-flow"
 export { ComparisonTable } from "./comparison-table"
 export { CounterVerifiedStamp } from "./counter-verified-stamp"

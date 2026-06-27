@@ -13,7 +13,7 @@ import {
   PRODUCT,
   ROUTES,
 } from "@/lib/marketing/facts"
-import { marketingPageGraph } from "@/lib/seo/structured-data"
+import { marketingPageGraph, OG_IMAGE } from "@/lib/seo/structured-data"
 
 const title = "About Nabaperks"
 const description = `Nabaperks is built and run by ${OPERATOR.name}, a ${OPERATOR.role} running ${OPERATOR.estateShort}. A browser-based loyalty card with counter-verified stamps, made by people who run the counter.`
@@ -29,6 +29,13 @@ export const metadata: Metadata = {
     siteName: "Nabaperks",
     url: ROUTES.about,
     locale: "en_GB",
+    images: [OG_IMAGE],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${title} | Nabaperks`,
+    description,
+    images: [OG_IMAGE],
   },
 }
 
