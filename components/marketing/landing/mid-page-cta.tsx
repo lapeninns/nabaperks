@@ -21,13 +21,13 @@ export function MidPageCta() {
             Build your card free.
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-pretty text-muted-foreground">
-            Preview the QR flow, then start a 30-day pilot when you switch your
-            live venue QR on.
+            See the whole scan-to-reward flow on your own card before you pay a
+            penny.
           </p>
         </div>
         <div className="flex w-full shrink-0 flex-col items-center gap-3 sm:w-auto sm:items-end">
           <Button asChild size="lg" className="w-full sm:w-auto">
-            <Link href="/signup">Build your card free</Link>
+            <Link href="/signup">Start free pilot</Link>
           </Button>
           <ReassuranceBar
             points={["No payment to start", "No contract"]}

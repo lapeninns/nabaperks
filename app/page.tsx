@@ -143,6 +143,7 @@ export default function HomePage() {
       <LandingHero qrMatrix={qrMatrix} />
       <JumpNav />
       <ProofStrip />
+      <OperatorProof />
       <CounterFlow />
       <NabaperksProof />
       <ComparisonTable />
@@ -150,7 +151,6 @@ export default function HomePage() {
       <MidPageCta />
       <VenueBenefits qrMatrix={qrMatrix} />
       <VenuePersonas />
-      <OperatorProof />
       <VenueProof />
       <SeparateMarketing />
       <TrustPricing />

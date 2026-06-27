@@ -84,7 +84,7 @@ export function TrustPricing() {
 
         <hr className="w-rule mt-4 mb-0" />
         <p className="mt-4 text-center font-mono text-[0.625rem] tracking-[0.05em] text-muted-foreground uppercase">
-          Build your card free. Add billing when you activate your live venue QR.
+          No contract. Cancel on a month&apos;s notice.
         </p>
       </div>
     </section>
