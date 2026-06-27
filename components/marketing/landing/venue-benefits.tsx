@@ -22,21 +22,18 @@ export function VenueBenefits({ qrMatrix }: { qrMatrix: QrMatrix }) {
           Built for the counter, not the boardroom.
         </h2>
         <ul className="mt-7 grid gap-5">
-          <BenefitPoint title="No app, no wallet, no plastic">
-            Customers keep their phone and their pocket. Nothing to download, no
-            wallet pass to install, nothing to laminate.
-          </BenefitPoint>
-          <BenefitPoint title="The phone never crosses the counter">
-            Stamps are confirmed on the customer&apos;s own phone. Your team
-            never has to hold it.
-          </BenefitPoint>
-          <BenefitPoint title="No POS, no hardware">
-            Works on any phone, tablet or till — even cash-only counters. We
-            post you the printed QR kit; there&apos;s nothing to integrate.
-          </BenefitPoint>
           <BenefitPoint title="Simple rewards customers understand">
-            Start with a clear reward, then add a surprise reward later if it
-            fits your venue.
+            Start with one clear reward, then add a surprise reward later if it
+            fits your venue — no points maths, no tiers to explain.
+          </BenefitPoint>
+          <BenefitPoint title="See your regulars, don&apos;t guess">
+            Every visit and redemption lands in a weekly digest, so loyalty is
+            something you can read — not a hunch about who keeps coming back.
+          </BenefitPoint>
+          <BenefitPoint title="Fits how your counter already runs">
+            It works on the phone, tablet or till you already have — even
+            cash-only — and your team never has to hold a customer&apos;s phone.
+            Nothing to integrate; we post you the printed QR kit.
           </BenefitPoint>
         </ul>
       </div>
