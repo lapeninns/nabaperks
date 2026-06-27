@@ -5,7 +5,7 @@ import { Section } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 
 import { HeroSampleCard } from "./hero-sample-card"
-import { NABATABLE_AUTHORITY_LINE } from "./nabaperks-proof-data"
+import { NABAPERKS_AUTHORITY_LINE } from "./nabaperks-proof-data"
 import { ReassuranceBar } from "./reassurance-bar"
 import { type QrMatrix } from "./venue-qr"
 
@@ -53,7 +53,7 @@ export function LandingHero({ qrMatrix }: { qrMatrix: QrMatrix }) {
             verified at your counter.
           </p>
           <p className="mt-4 max-w-[46ch] font-mono text-[0.68rem] leading-relaxed tracking-[0.04em] text-muted-foreground uppercase">
-            {NABATABLE_AUTHORITY_LINE}
+            {NABAPERKS_AUTHORITY_LINE}
           </p>
           <ReassuranceBar className="mt-6 max-w-[44ch]" />
           <p className="mt-4 max-w-[44ch] text-sm leading-relaxed text-muted-foreground">

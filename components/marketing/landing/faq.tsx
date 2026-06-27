@@ -16,7 +16,7 @@ export const faqs: readonly Faq[] = [
   },
   {
     q: "Can staff or customers fake the stamps?",
-    a: "No. Customers stamp themselves from your venue QR. The Counter-Verified Stamp checks it's your real QR, their saved card, and your programme — capped at one stamp per customer per UK date. Unusual locations can be flagged. Rewards are checked at redemption, never from a screenshot.",
+    a: "No. Customers stamp themselves from your venue QR. Each stamp is counter-verified — we check it's your real QR, their saved card, and your programme, capped at one stamp per customer per UK date. Unusual locations can be flagged. Rewards are checked at redemption, never from a screenshot.",
   },
   {
     q: "What if a customer loses or changes their phone — do they lose their stamps?",

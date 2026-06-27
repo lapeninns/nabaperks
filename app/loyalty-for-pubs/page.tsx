@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { ArrowRight01Icon, Tick02Icon } from "@hugeicons/core-free-icons"
 import { JsonLd } from "@/components/seo/json-ld"
+import { GUIDES } from "@/components/marketing/guides/guides-data"
 import { CTA, PRODUCT, ROUTES } from "@/lib/marketing/facts"
 import {
   counterLoyaltyIndexDataset,
@@ -113,27 +114,6 @@ const benefits = [
   "A weekly digest of visits, regulars and redemptions",
   "Loyalty kept separate from marketing — regulars opt in only if they choose",
   PRODUCT.posLine,
-]
-
-const guides = [
-  {
-    href: ROUTES.guides.bestIdeas,
-    title: "Best loyalty ideas for pubs",
-    blurb:
-      "Reward shapes that suit a pub — from a simple stamp threshold to quieter-day perks — and which ones actually bring regulars back.",
-  },
-  {
-    href: ROUTES.guides.rewardRegulars,
-    title: "How to reward regulars without an app",
-    blurb:
-      "Why an app is the wrong ask for a pint, and how a browser-based loyalty card rewards your regulars with nothing to install.",
-  },
-  {
-    href: ROUTES.guides.paperVsQr,
-    title: "Paper loyalty cards vs QR loyalty for pubs",
-    blurb:
-      "A side-by-side on loss, fraud, staff time and the data you get back — so you can pick the right card for your bar.",
-  },
 ]
 
 const hubGraph = marketingPageGraph({
@@ -292,7 +272,7 @@ export default function LoyaltyForPubsPage() {
         </div>
 
         <ul className="mt-6 grid gap-4 lg:grid-cols-3">
-          {guides.map((guide) => (
+          {GUIDES.map((guide) => (
             <li key={guide.href}>
               <Link
                 href={guide.href}
@@ -302,7 +282,7 @@ export default function LoyaltyForPubsPage() {
                   {guide.title}
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  {guide.blurb}
+                  {guide.summary}
                 </p>
                 <span className="mt-4 inline-flex items-center gap-1 font-mono text-[0.68rem] font-bold tracking-[0.06em] text-primary uppercase">
                   {CTA.guideLink}

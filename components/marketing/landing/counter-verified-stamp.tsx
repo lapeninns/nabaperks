@@ -11,10 +11,10 @@ import type { IconGlyph } from "@/components/brand"
 import { ContrastBand } from "@/components/layout"
 
 /**
- * The Counter-Verified Stamp — Nabaperks' named anti-fraud method. Naming the
- * mechanism turns it into a citable entity for AI answers ("how are digital
- * loyalty stamps verified / can they be faked") and an E-E-A-T moat. The five
- * checks read as a numbered list (semantic, AI-liftable). Server component.
+ * Counter-verified stamps — Nabaperks' anti-fraud method. Describing the
+ * mechanism (in plain lowercase, not a hero-level brand push) makes it a citable
+ * answer for "how are digital loyalty stamps verified / can they be faked" and an
+ * E-E-A-T moat. The five checks read as a numbered list (semantic, AI-liftable).
  */
 const checks: { icon: IconGlyph; title: string; body: string }[] = [
   {
@@ -50,7 +50,7 @@ export function CounterVerifiedStamp() {
       <div className="max-w-[46ch]">
         <MonoTag tone="sun">Built-in anti-fraud</MonoTag>
         <h2 className="mt-4 text-[clamp(1.9rem,4.2vw,2.85rem)] leading-[1.0] font-extrabold tracking-[-0.02em] text-balance">
-          The Counter-Verified Stamp.
+          Stamps confirmed at the counter.
         </h2>
         <p className="mt-4 text-[0.98rem] leading-relaxed text-pretty text-paper/80 sm:text-base">
           Every stamp is checked against your physical venue QR, the

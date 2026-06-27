@@ -14,7 +14,7 @@ export const SHOW_NABAPERKS_PROOF = true
 export const NABAPERKS_PROOF_AS_OF = PROOF.asOf
 
 /** Production credibility kicker for the hero (top-of-page). */
-export const NABATABLE_AUTHORITY_LINE = `${PROOF_DISPLAY.returnedMembers} customers stamped in the last 3 months — already at UK tills`
+export const NABAPERKS_AUTHORITY_LINE = `${PROOF_DISPLAY.returnedMembers} customers stamped in the last 3 months — already at UK tills`
 
 export const NABAPERKS_PROOF_TAG = "Real numbers"
 
