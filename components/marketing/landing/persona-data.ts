@@ -1,19 +1,22 @@
 import {
-  BubbleTea01Icon,
   Coffee02Icon,
   DeliveryBox01Icon,
+  DrinkIcon,
   Store01Icon,
 } from "@hugeicons/core-free-icons"
 
 import type { IconGlyph } from "@/components/brand"
+import { CTA, ROUTES } from "@/lib/marketing/facts"
 
 /**
  * Persona chapters — serve the Solution-Aware "for [my venue type]" cluster on
- * the hub, each addressable by its own anchor and linking to a Stage-0/1 spoke
- * (built later per the SEO roadmap). Hooks name the persona's specific job.
+ * the homepage, each addressable by its own anchor. Public copy uses only
+ * approved vertical language (pubs, cafes, takeaways, bars/wine bars); the
+ * non-approved verticals are deliberately not targeted here.
  *
- * `spoke` paths are the planned spoke URLs; they 404 until built, so the section
- * renders them as plain text until SHOW_PERSONA_SPOKES is switched on.
+ * The pub persona is live: its spoke (`/loyalty-for-pubs`) is built, so it shows
+ * the "Loyalty for pubs" CTA. The other personas read as plain text until their
+ * spokes ship, so no link 404s.
  */
 export const SHOW_PERSONA_SPOKES = false
 
@@ -23,9 +26,22 @@ export type Persona = {
   title: string
   hook: string
   spoke: string
+  /** True once the spoke route exists — renders the persona CTA link. */
+  live?: boolean
+  /** CTA label for a live persona (defaults to "See more"). */
+  cta?: string
 }
 
 export const personas: readonly Persona[] = [
+  {
+    id: "pubs",
+    icon: Store01Icon,
+    title: "Pubs & gastropubs",
+    hook: "Reward regulars without an app or a CRM. One venue QR covers the bar, the tables and the takeaway hatch — and never slows the bar on a Friday.",
+    spoke: ROUTES.pubHub,
+    live: true,
+    cta: CTA.pub,
+  },
   {
     id: "cafes",
     icon: Coffee02Icon,
@@ -36,22 +52,15 @@ export const personas: readonly Persona[] = [
   {
     id: "takeaways",
     icon: DeliveryBox01Icon,
-    title: "Takeaways & chippies",
+    title: "Takeaways",
     hook: "Works on any till, even cash-only. No POS to buy, no number to type — just the QR by the counter.",
     spoke: "/loyalty-for-takeaways",
   },
   {
-    id: "pubs",
-    icon: Store01Icon,
-    title: "Pubs & bars",
-    hook: "Reward regulars without an app or a CRM. One venue QR covers the bar, the tables and the takeaway hatch.",
-    spoke: "/loyalty-for-pubs",
-  },
-  {
-    id: "dessert",
-    icon: BubbleTea01Icon,
-    title: "Dessert & bubble tea",
-    hook: "A simple threshold plus an optional mystery reward — the kind of treat regulars come back to unlock.",
-    spoke: "/loyalty-for-dessert-shops",
+    id: "bars",
+    icon: DrinkIcon,
+    title: "Bars & wine bars",
+    hook: "Give regulars a reason to choose your bar again. The card lives on their phone, so there is nothing to lose between rounds.",
+    spoke: "/loyalty-for-bars",
   },
 ]

@@ -24,9 +24,6 @@ export function organizationSchema(): Record<string, unknown> {
     description:
       "No-app QR loyalty for UK food & drink venues. Customers scan a venue QR, save a browser loyalty card with nothing to install, and collect server-checked stamps.",
     areaServed: { "@type": "Country", name: "United Kingdom" },
-    // TODO(real-data): add real off-site nodes (LinkedIn, Companies House, X)
-    // to sameAs[] to strengthen the entity graph, and a postal address once one
-    // is published on a public About/Contact page.
     sameAs: [] as string[],
   }
 }
