@@ -2,12 +2,15 @@ export { AdminShell } from "./admin-shell"
 export { CustomerAppShell } from "./customer-app-shell"
 export { CustomerShell } from "./customer-shell"
 export { CustomerTabBar } from "./customer-tab-bar"
+export { MerchantTabBar } from "./merchant-tab-bar"
 export { MarketingLayout } from "./marketing-layout"
 export { MerchantAppShell } from "./merchant-app-shell"
 export {
   adminNavItems,
   merchantAccountItems,
   merchantNavItems,
+  merchantTabBarItems,
+  isMerchantTabActive,
   isActiveNavItem,
   isActivePath,
   parseNavHref,

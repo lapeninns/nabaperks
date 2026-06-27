@@ -5,6 +5,7 @@ import {
   Building02Icon,
   CreditCardIcon,
   Home01Icon,
+  QrCode01Icon,
   Rocket01Icon,
   SecurityCheckIcon,
   Shield01Icon,
@@ -67,9 +68,40 @@ export function isActiveNavItem(
 export const merchantNavItems = [
   { href: "/app", label: "Home", icon: Home01Icon },
   { href: "/app/launch", label: "Launch", icon: Rocket01Icon },
+  { href: "/app/qr", label: "QR", icon: QrCode01Icon },
   { href: "/app/customers", label: "Customers", icon: UserMultiple02Icon },
   { href: "/app/activity", label: "Activity", icon: Activity03Icon },
 ] satisfies readonly ShellNavItem[]
+
+/** Primary destinations for the merchant mobile bottom tab bar. */
+export const merchantTabBarItems = [
+  { href: "/app", label: "Home", icon: Home01Icon },
+  { href: "/app/qr", label: "QR", icon: QrCode01Icon },
+  { href: "/app/customers", label: "Customers", icon: UserMultiple02Icon },
+  { href: "/app/activity", label: "Activity", icon: Activity03Icon },
+  {
+    href: "/app/account?tab=profile",
+    label: "Account",
+    icon: Building02Icon,
+  },
+] satisfies readonly ShellNavItem[]
+
+export function isMerchantTabActive(
+  currentPath: string,
+  currentTab: string | null,
+  href: string
+) {
+  const { path } = parseNavHref(href)
+
+  if (path === "/app/account") {
+    return (
+      currentPath === "/app/account" ||
+      currentPath.startsWith("/app/account/")
+    )
+  }
+
+  return isActiveNavItem(currentPath, currentTab, href)
+}
 
 export const merchantAccountItems = [
   {

@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import type { ComponentProps, ReactNode } from "react"
+import { Suspense, type ComponentProps, type ReactNode } from "react"
 import { Logout01Icon } from "@hugeicons/core-free-icons"
 
 import { Icon, Logo } from "@/components/brand"
@@ -13,10 +13,10 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { CONSOLE_SIDEBAR_STYLE, ConsoleSidebarNav } from "./console-sidebar-nav"
 import { merchantAccountItems, merchantNavItems } from "./console-nav"
+import { MerchantTabBar } from "./merchant-tab-bar"
 
 export function MerchantAppShell({
   children,
@@ -91,13 +91,15 @@ export function MerchantAppShell({
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="min-w-0">
-        <header className="sticky top-0 z-30 flex min-h-14 items-center gap-3 border-b-2 border-ink bg-card px-4 py-2 md:hidden">
-          <SidebarTrigger className="size-11 shrink-0" />
-          <Logo href="/app" wordmarkClassName="hidden sm:inline" />
+        <header className="sticky top-0 z-30 flex min-h-14 items-center border-b-2 border-ink bg-card px-4 py-2 md:hidden">
+          <Logo href="/app" />
         </header>
-        <div className="w-full px-4 py-8 pb-32 sm:px-6 sm:pb-10">
+        <div className="w-full px-4 py-8 pb-32 sm:px-6 md:pb-10">
           <div className="mx-auto w-full max-w-6xl">{children}</div>
         </div>
+        <Suspense fallback={null}>
+          <MerchantTabBar />
+        </Suspense>
       </SidebarInset>
     </SidebarProvider>
   )
