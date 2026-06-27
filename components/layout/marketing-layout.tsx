@@ -53,14 +53,17 @@ export function MarketingLayout({
             </span>
           </div>
           <nav aria-label="Merchant links" className="flex flex-wrap gap-2">
-            <Link className={legalLinkClass} href="/login">
-              Log in
+            <Link className={legalLinkClass} href="/loyalty-for-pubs">
+              Loyalty for pubs
             </Link>
-            <Link className={legalLinkClass} href="/signup">
-              Start free pilot
+            <Link className={legalLinkClass} href="/about">
+              About
             </Link>
             <Link className={legalLinkClass} href="/pricing">
               Pricing
+            </Link>
+            <Link className={legalLinkClass} href="/signup">
+              Start free pilot
             </Link>
           </nav>
           <nav aria-label="Legal links" className="flex flex-wrap gap-2">
