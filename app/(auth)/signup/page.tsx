@@ -14,7 +14,7 @@ const trustPoints = [
 export default function SignUpPage() {
   return (
     <MarketingLayout>
-      <section className="mx-auto grid min-h-[calc(100dvh-73px)] w-full max-w-5xl content-start gap-8 px-6 py-6 sm:gap-10 sm:py-10 lg:grid-cols-[minmax(0,1fr)_minmax(340px,420px)] lg:content-center lg:items-center">
+      <section className="mx-auto grid min-h-[calc(100dvh-73px)] w-full max-w-5xl content-start gap-8 px-6 py-6 sm:gap-10 sm:py-10 lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] lg:content-center lg:items-center">
         <div className="order-2 grid gap-6 lg:order-1">
           <PageTitle
             eyebrow="Start free pilot"

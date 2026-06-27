@@ -1,7 +1,7 @@
 import Link from "next/link"
 
 import { Eyebrow, PageTitle, ReceiptCard } from "@/components/brand"
-import { MarketingLayout } from "@/components/layout"
+import { MarketingLayout, Section } from "@/components/layout"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -12,8 +12,11 @@ import {
 export default function TermsPage() {
   return (
     <MarketingLayout>
-      <section className="mx-auto grid w-full max-w-6xl gap-8 px-6 py-12 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start">
-        <aside className="surface-card p-4 lg:sticky lg:top-24">
+      <Section
+        as="div"
+        className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start"
+      >
+        <aside className="surface-card p-4 lg:sticky lg:top-20">
           <Eyebrow className="mb-3">On this page</Eyebrow>
           <nav aria-label="Terms sections" className="grid gap-1">
             {PLATFORM_TERMS_SECTIONS.map((section) => (
@@ -69,7 +72,7 @@ export default function TermsPage() {
             <Link href="/privacy">Privacy notice</Link>
           </Button>
         </article>
-      </section>
+      </Section>
     </MarketingLayout>
   )
 }

@@ -1,4 +1,5 @@
 import { MonoTag } from "@/components/brand"
+import { Section } from "@/components/layout"
 import { stampDisplayDatesEndingToday } from "@/lib/customer/uk-calendar"
 
 import { BenefitPoint } from "./benefit-point"
@@ -15,13 +16,16 @@ export function VenueBenefits({ qrMatrix }: { qrMatrix: QrMatrix }) {
   const stampDates = stampDisplayDatesEndingToday(3)
 
   return (
-    <section className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-10 px-6 py-4 lg:grid-cols-2 lg:items-center lg:gap-14">
+    <Section
+      size="tight"
+      className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-center lg:gap-8"
+    >
       <div>
         <MonoTag tone="plain">Built for venues</MonoTag>
         <h2 className="mt-4 max-w-[15ch] text-[clamp(1.85rem,4vw,2.75rem)] leading-[1.02] font-extrabold tracking-[-0.02em] text-balance">
           Built for the counter, not the boardroom.
         </h2>
-        <ul className="mt-7 grid gap-5">
+        <ul className="mt-6 grid gap-5">
           <BenefitPoint title="Simple rewards customers understand">
             Start with one clear reward, then add a surprise reward later if it
             fits your venue — no points maths, no tiers to explain.
@@ -52,6 +56,6 @@ export function VenueBenefits({ qrMatrix }: { qrMatrix: QrMatrix }) {
           />
         </div>
       </div>
-    </section>
+    </Section>
   )
 }

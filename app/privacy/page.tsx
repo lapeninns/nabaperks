@@ -1,7 +1,7 @@
 import Link from "next/link"
 
 import { Eyebrow, PageTitle, ReceiptCard } from "@/components/brand"
-import { MarketingLayout } from "@/components/layout"
+import { MarketingLayout, Section } from "@/components/layout"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { PRIVACY_META, PRIVACY_SECTIONS } from "@/lib/legal/content"
@@ -9,8 +9,11 @@ import { PRIVACY_META, PRIVACY_SECTIONS } from "@/lib/legal/content"
 export default function PrivacyPage() {
   return (
     <MarketingLayout>
-      <section className="mx-auto grid w-full max-w-6xl gap-8 px-6 py-12 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start">
-        <aside className="surface-card p-4 lg:sticky lg:top-24">
+      <Section
+        as="div"
+        className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start"
+      >
+        <aside className="surface-card p-4 lg:sticky lg:top-20">
           <Eyebrow className="mb-3">On this page</Eyebrow>
           <nav aria-label="Privacy sections" className="grid gap-1">
             {PRIVACY_SECTIONS.map((section) => (
@@ -64,7 +67,7 @@ export default function PrivacyPage() {
             <Link href="/terms">Platform terms</Link>
           </Button>
         </article>
-      </section>
+      </Section>
     </MarketingLayout>
   )
 }

@@ -1,3 +1,4 @@
+import { Section } from "@/components/layout"
 import { cn } from "@/lib/utils"
 
 import { PilotProofStrip } from "../pilot-proof-strip"
@@ -16,7 +17,7 @@ const setupNotes = [
 
 function bandCellClassName(index: number) {
   return cn(
-    "px-4 py-6 text-center sm:px-8 sm:py-7",
+    "px-4 py-5 text-center sm:px-8 sm:py-6",
     index > 0 &&
       "border-t-2 border-dashed border-foreground/25 sm:border-t-0 sm:border-l-2"
   )
@@ -29,7 +30,7 @@ function bandCellClassName(index: number) {
  */
 export function ProofStrip() {
   return (
-    <section className="mx-auto w-full max-w-6xl px-6 py-6 sm:py-8">
+    <Section size="compact">
       <div className="border-y-2 border-dashed border-foreground/25">
         <dl className="grid sm:grid-cols-3">
           {stats.map((stat, index) => (
@@ -55,6 +56,6 @@ export function ProofStrip() {
         </ul>
       </div>
       <PilotProofStrip />
-    </section>
+    </Section>
   )
 }

@@ -3,6 +3,7 @@ import Link from "next/link"
 import { Tick02Icon } from "@hugeicons/core-free-icons"
 
 import { Icon, MonoTag } from "@/components/brand"
+import { Section } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 
 const planIncludes = [
@@ -19,10 +20,7 @@ const planIncludes = [
  */
 export function TrustPricing() {
   return (
-    <section
-      id="pricing"
-      className="mx-auto w-full max-w-6xl scroll-mt-24 px-6 py-12 sm:py-16"
-    >
+    <Section id="pricing">
       <div className="mx-auto max-w-[46ch] text-center">
         <MonoTag tone="plain">Pricing</MonoTag>
         <h2 className="mt-4 text-[clamp(1.85rem,4vw,2.75rem)] leading-[1.02] font-extrabold tracking-[-0.02em] text-balance">
@@ -34,7 +32,7 @@ export function TrustPricing() {
         </p>
       </div>
 
-      <div className="surface-card mx-auto mt-10 w-full max-w-[26rem] -rotate-1 p-6 sm:p-7">
+      <div className="surface-card mx-auto mt-6 w-full max-w-[26rem] -rotate-1 p-6 sm:p-7">
         <div className="flex items-baseline justify-between gap-3">
           <span className="font-mono text-xs font-bold tracking-[0.08em] uppercase">
             Growth Plan
@@ -87,6 +85,6 @@ export function TrustPricing() {
           No contract. Cancel on a month&apos;s notice.
         </p>
       </div>
-    </section>
+    </Section>
   )
 }

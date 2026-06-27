@@ -1,5 +1,6 @@
 import Link from "next/link"
 
+import { Section } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 
 import { ReassuranceBar } from "./reassurance-bar"
@@ -11,10 +12,7 @@ import { ReassuranceBar } from "./reassurance-bar"
  */
 export function MidPageCta() {
   return (
-    <section
-      aria-label="Build your card free"
-      className="mx-auto w-full max-w-6xl px-6 py-8 sm:py-10"
-    >
+    <Section aria-label="Build your card free" size="compact">
       <div className="surface-card flex flex-col items-center gap-5 px-6 py-7 text-center sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:px-8 sm:py-6 sm:text-left">
         <div className="max-w-md">
           <h2 className="text-[clamp(1.35rem,3vw,1.75rem)] leading-tight font-extrabold tracking-[-0.02em] text-balance">
@@ -35,6 +33,6 @@ export function MidPageCta() {
           />
         </div>
       </div>
-    </section>
+    </Section>
   )
 }

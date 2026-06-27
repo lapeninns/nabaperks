@@ -1,4 +1,5 @@
 import { MonoTag } from "@/components/brand"
+import { Section } from "@/components/layout"
 
 export type Faq = { q: string; a: string }
 
@@ -50,10 +51,7 @@ export const faqs: readonly Faq[] = [
  */
 export function LandingFaq() {
   return (
-    <section
-      id="faq"
-      className="mx-auto w-full max-w-3xl scroll-mt-24 px-6 pt-12 sm:pt-16"
-    >
+    <Section id="faq" width="narrow">
       <div className="text-center">
         <MonoTag tone="plain">Questions</MonoTag>
         <h2 className="mt-4 text-[clamp(1.75rem,3.6vw,2.5rem)] leading-[1.04] font-extrabold tracking-[-0.02em] text-balance">
@@ -61,7 +59,7 @@ export function LandingFaq() {
         </h2>
       </div>
 
-      <div className="mt-8 grid gap-3">
+      <div className="mt-6 grid gap-x-8 gap-y-3 lg:grid-cols-2">
         {faqs.map((faq) => (
           <details
             key={faq.q}
@@ -83,6 +81,6 @@ export function LandingFaq() {
           </details>
         ))}
       </div>
-    </section>
+    </Section>
   )
 }

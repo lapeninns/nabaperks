@@ -1,5 +1,6 @@
 import Link from "next/link"
 
+import { Section } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 
 import { ReassuranceBar } from "./reassurance-bar"
@@ -10,7 +11,7 @@ import { ReassuranceBar } from "./reassurance-bar"
  */
 export function FinalCta() {
   return (
-    <section className="mx-auto w-full max-w-2xl px-6 pt-12 pb-16 text-center sm:pt-16">
+    <Section width="narrow" className="max-w-2xl text-center">
       <p className="font-mono text-[0.72rem] font-bold tracking-[0.1em] text-primary uppercase">
         Your first stamp is waiting
       </p>
@@ -25,7 +26,7 @@ export function FinalCta() {
         No app for your customers, no POS for you — it works on any phone, tablet
         or till.
       </p>
-      <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
         <Button asChild size="lg">
           <Link href="/signup">Start free pilot</Link>
         </Button>
@@ -38,8 +39,8 @@ export function FinalCta() {
       </div>
       <ReassuranceBar
         points={["No payment to start", "No contract", "Cancel on a month's notice"]}
-        className="mt-7 justify-center"
+        className="mt-6 justify-center"
       />
-    </section>
+    </Section>
   )
 }

@@ -1,6 +1,7 @@
 import Link from "next/link"
 
 import { MonoTag } from "@/components/brand"
+import { Section } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 
 import { HeroSampleCard } from "./hero-sample-card"
@@ -20,9 +21,9 @@ const mobileCtaClass = "max-sm:h-10 max-sm:px-4 max-sm:text-sm"
  */
 export function LandingHero({ qrMatrix }: { qrMatrix: QrMatrix }) {
   return (
-    <section
+    <Section
       id="top"
-      className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-5 px-6 py-8 max-sm:gap-4 sm:gap-10 sm:py-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-14 lg:py-16"
+      className="grid grid-cols-1 gap-5 max-sm:gap-4 sm:gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-12 lg:py-16"
     >
       <div className="contents lg:col-start-1 lg:flex lg:max-w-xl lg:flex-col lg:gap-7">
         <MonoTag tone="accent" className="max-sm:order-1">
@@ -87,6 +88,6 @@ export function LandingHero({ qrMatrix }: { qrMatrix: QrMatrix }) {
       <div className="max-sm:order-5 lg:col-start-2 lg:row-start-1 lg:self-center">
         <HeroSampleCard qrMatrix={qrMatrix} />
       </div>
-    </section>
+    </Section>
   )
 }

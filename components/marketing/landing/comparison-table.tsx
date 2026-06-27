@@ -1,6 +1,7 @@
 import { Cancel01Icon, Tick02Icon } from "@hugeicons/core-free-icons"
 
 import { Icon, MonoTag } from "@/components/brand"
+import { Section } from "@/components/layout"
 import { cn } from "@/lib/utils"
 
 import {
@@ -33,10 +34,7 @@ function Mark({ value }: { value: ComparisonCell }) {
  */
 export function ComparisonTable() {
   return (
-    <section
-      id="no-app"
-      className="mx-auto w-full max-w-6xl scroll-mt-24 px-6 py-12 sm:py-16"
-    >
+    <Section id="no-app">
       <div className="max-w-[44ch]">
         <MonoTag tone="accent">No app · no wallet · no plastic</MonoTag>
         <h2 className="mt-4 text-[clamp(1.85rem,4vw,2.75rem)] leading-[1.02] font-extrabold tracking-[-0.02em] text-balance">
@@ -51,8 +49,8 @@ export function ComparisonTable() {
         </p>
       </div>
 
-      <div className="mt-8 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5">
-        <table className="w-full min-w-[40rem] border-collapse text-left">
+      <div className="relative mt-6 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5">
+        <table className="w-full min-w-[34rem] border-collapse text-left">
           <caption className="sr-only">
             How a Nabaperks browser card compares with wallet-pass loyalty apps,
             paper punch cards and POS loyalty across install, fraud, hardware and
@@ -123,6 +121,6 @@ export function ComparisonTable() {
         find the reward on a locked phone. A browser card has no install step to
         abandon.
       </p>
-    </section>
+    </Section>
   )
 }

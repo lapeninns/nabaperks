@@ -1,6 +1,7 @@
 import Link from "next/link"
 
 import { Icon, MonoTag } from "@/components/brand"
+import { Section } from "@/components/layout"
 
 import { personas, SHOW_PERSONA_SPOKES } from "./persona-data"
 
@@ -12,10 +13,7 @@ import { personas, SHOW_PERSONA_SPOKES } from "./persona-data"
  */
 export function VenuePersonas() {
   return (
-    <section
-      id="for-venues"
-      className="mx-auto w-full max-w-6xl scroll-mt-24 px-6 py-12 sm:py-16"
-    >
+    <Section id="for-venues">
       <div className="max-w-[34ch]">
         <MonoTag tone="plain">Built for your venue</MonoTag>
         <h2 className="mt-4 text-[clamp(1.85rem,4vw,2.75rem)] leading-[1.02] font-extrabold tracking-[-0.02em] text-balance">
@@ -27,12 +25,12 @@ export function VenuePersonas() {
         </p>
       </div>
 
-      <ul className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <ul className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {personas.map((persona) => (
           <li
             key={persona.id}
             id={persona.id}
-            className="surface-card scroll-mt-24 p-5"
+            className="surface-card scroll-mt-24 p-4 sm:p-5"
           >
             <span className="grid size-11 place-items-center rounded-full border-2 border-ink bg-secondary text-foreground">
               <Icon icon={persona.icon} size={22} strokeWidth={2} />
@@ -54,6 +52,6 @@ export function VenuePersonas() {
           </li>
         ))}
       </ul>
-    </section>
+    </Section>
   )
 }

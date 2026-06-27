@@ -1,4 +1,5 @@
 import { MonoTag } from "@/components/brand"
+import { Section } from "@/components/layout"
 
 import {
   NABAPERKS_PROOF_AS_OF,
@@ -18,10 +19,7 @@ export function NabaperksProof() {
   if (!nabaperksProofReady()) return null
 
   return (
-    <section
-      id="nabaperks-proof"
-      className="mx-auto w-full max-w-6xl scroll-mt-24 px-6 py-10 sm:py-12"
-    >
+    <Section id="nabaperks-proof" size="compact">
       <div className="surface-card px-6 py-8 sm:px-10 sm:py-10">
         <MonoTag tone="leaf">{NABAPERKS_PROOF_TAG}</MonoTag>
         <h2 className="mt-4 max-w-[34ch] text-[clamp(1.6rem,3.4vw,2.4rem)] leading-[1.05] font-extrabold tracking-[-0.02em] text-balance">
@@ -31,7 +29,7 @@ export function NabaperksProof() {
           {NABAPERKS_PROOF_INTRO} As of {NABAPERKS_PROOF_AS_OF}.
         </p>
 
-        <dl className="mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-6 lg:grid-cols-4">
           {nabaperksStats.map((stat) => (
             <div key={stat.label}>
               <dd className="text-[clamp(2.25rem,5vw,3.25rem)] leading-none font-extrabold tracking-[-0.02em] tabular-nums">
@@ -49,10 +47,10 @@ export function NabaperksProof() {
           ))}
         </dl>
 
-        <p className="mt-8 max-w-[64ch] border-t-2 border-dashed border-border pt-5 text-sm leading-relaxed font-semibold text-pretty">
+        <p className="mt-6 max-w-[64ch] border-t-2 border-dashed border-border pt-5 text-sm leading-relaxed font-semibold text-pretty">
           {NABAPERKS_PROOF_NOTE}
         </p>
       </div>
-    </section>
+    </Section>
   )
 }

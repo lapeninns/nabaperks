@@ -14,3 +14,5 @@ export {
   type ShellNavItem,
 } from "./console-nav"
 export { ConsoleSidebarNav } from "./console-sidebar-nav"
+export { Section } from "./section"
+export { ContrastBand } from "./contrast-band"

@@ -1,14 +1,12 @@
 import { MonoTag } from "@/components/brand"
+import { Section } from "@/components/layout"
 
 import { VENUE_PROOF_POOL_SIZE, DEFAULT_VENUE_PROOF_INDICES } from "./venue-proof-data"
 import { VenueProofReviews } from "./venue-proof-reviews"
 
 export function VenueProof() {
   return (
-    <section
-      aria-labelledby="venue-proof-heading"
-      className="mx-auto w-full max-w-6xl px-6 py-6 sm:py-8"
-    >
+    <Section aria-labelledby="venue-proof-heading" size="compact">
       <div className="grid gap-4 sm:gap-5 md:gap-6 xl:grid-cols-[0.9fr_1.1fr] xl:items-start">
         <div className="min-w-0">
           <MonoTag tone="leaf">What venues say</MonoTag>
@@ -39,6 +37,6 @@ export function VenueProof() {
           <VenueProofReviews initialIndices={DEFAULT_VENUE_PROOF_INDICES} />
         </div>
       </div>
-    </section>
+    </Section>
   )
 }

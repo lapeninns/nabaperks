@@ -1,6 +1,7 @@
 import Link from "next/link"
 
 import { MonoTag } from "@/components/brand"
+import { Section } from "@/components/layout"
 
 import { BenefitPoint } from "./benefit-point"
 
@@ -15,9 +16,9 @@ const legalLinkClass =
  */
 export function SeparateMarketing() {
   return (
-    <section
+    <Section
       id="separate-marketing"
-      className="mx-auto grid w-full max-w-6xl scroll-mt-24 grid-cols-1 gap-10 px-6 py-12 sm:py-16 lg:grid-cols-2 lg:items-center lg:gap-14"
+      className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-center lg:gap-8"
     >
       <div>
         <MonoTag tone="plain">Marketing by choice</MonoTag>
@@ -56,6 +57,6 @@ export function SeparateMarketing() {
           .
         </BenefitPoint>
       </ul>
-    </section>
+    </Section>
   )
 }

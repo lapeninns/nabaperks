@@ -3,7 +3,7 @@ import Link from "next/link"
 import { Tick02Icon } from "@hugeicons/core-free-icons"
 
 import { Eyebrow, Icon, PageTitle, ReceiptCard } from "@/components/brand"
-import { MarketingLayout } from "@/components/layout"
+import { MarketingLayout, Section } from "@/components/layout"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 
@@ -61,7 +61,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
 
   return (
     <MarketingLayout>
-      <section className="mx-auto w-full max-w-6xl px-6 py-8 sm:py-12">
+      <Section>
         <PageTitle
           eyebrow="Pricing"
           title="One price. Everything included."
@@ -78,7 +78,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
           </Alert>
         ) : null}
 
-        <div className="mt-8 grid gap-8 sm:gap-10 lg:grid-cols-[minmax(0,0.52fr)_minmax(0,0.48fr)] lg:items-start">
+        <div className="mt-6 grid gap-6 sm:gap-8 lg:grid-cols-[minmax(0,0.52fr)_minmax(0,0.48fr)] lg:items-start">
           <ReceiptCard
             edge
             className="order-1 w-full"
@@ -159,7 +159,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
           </div>
         </div>
 
-        <div className="mx-auto mt-14 max-w-2xl">
+        <div className="mx-auto mt-10 max-w-2xl">
           <h2 className="mb-2 text-[clamp(1.5rem,3vw,2rem)] font-extrabold text-balance">
             Asked at the counter
           </h2>
@@ -185,13 +185,13 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
               </details>
             ))}
           </div>
-          <div className="mt-8 flex justify-center">
+          <div className="mt-6 flex justify-center">
             <Button asChild size="lg">
               <Link href="/signup">Start free pilot</Link>
             </Button>
           </div>
         </div>
-      </section>
+      </Section>
     </MarketingLayout>
   )
 }

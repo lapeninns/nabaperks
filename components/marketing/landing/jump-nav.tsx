@@ -5,6 +5,8 @@
  * CSS + anchors keeps INP at zero; every target section sets `scroll-mt` so the
  * sticky header never occludes the landing spot.
  */
+import { Section } from "@/components/layout"
+
 const jumpLinks = [
   { href: "#how-it-works", label: "How it works" },
   { href: "#no-app", label: "No app vs wallet vs paper" },
@@ -16,22 +18,21 @@ const jumpLinks = [
 
 export function JumpNav() {
   return (
-    <nav
-      aria-label="On this page"
-      className="mx-auto w-full max-w-6xl px-6 py-3"
-    >
-      <ul className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden">
-        {jumpLinks.map((link) => (
-          <li key={link.href} className="shrink-0">
-            <a
-              href={link.href}
-              className="pressable inline-flex items-center rounded-full border-2 border-ink/15 bg-card px-3.5 py-1.5 font-mono text-[0.68rem] font-bold tracking-[0.06em] whitespace-nowrap uppercase transition-colors hover:border-ink hover:bg-accent hover:text-accent-foreground focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
-            >
-              {link.label}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </nav>
+    <Section as="div" size="tight">
+      <nav aria-label="On this page">
+        <ul className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden">
+          {jumpLinks.map((link) => (
+            <li key={link.href} className="shrink-0">
+              <a
+                href={link.href}
+                className="pressable inline-flex items-center rounded-full border-2 border-ink/15 bg-card px-3.5 py-1.5 font-mono text-[0.68rem] font-bold tracking-[0.06em] whitespace-nowrap uppercase transition-colors hover:border-ink hover:bg-accent hover:text-accent-foreground focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
+              >
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </Section>
   )
 }
