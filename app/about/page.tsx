@@ -5,6 +5,7 @@ import { Eyebrow, Icon, MonoTag, PageTitle } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { Mail01Icon, Tick02Icon } from "@hugeicons/core-free-icons"
+import { JsonLd } from "@/components/seo/json-ld"
 import {
   CTA,
   OPERATOR,
@@ -12,6 +13,7 @@ import {
   PRODUCT,
   ROUTES,
 } from "@/lib/marketing/facts"
+import { marketingPageGraph } from "@/lib/seo/structured-data"
 
 const title = "About Nabaperks"
 const description = `Nabaperks is built and run by ${OPERATOR.name}, a ${OPERATOR.role} running ${OPERATOR.estateShort}. A browser-based loyalty card with counter-verified stamps, made by people who run the counter.`
@@ -42,6 +44,14 @@ const principles = [
   "Loyalty kept separate from marketing — a regular can collect and redeem without joining any list",
   "Counter-verified stamps, so a finished card always means a real regular",
 ]
+
+const aboutGraph = marketingPageGraph({
+  page: { path: ROUTES.about, name: `${title} | Nabaperks`, description },
+  breadcrumbs: [
+    { name: "Home", path: ROUTES.home },
+    { name: "About", path: ROUTES.about },
+  ],
+})
 
 export default function AboutPage() {
   return (
@@ -162,6 +172,7 @@ export default function AboutPage() {
           </Button>
         </div>
       </Section>
+      <JsonLd id="ld-about" data={aboutGraph} />
     </MarketingLayout>
   )
 }

@@ -10,7 +10,13 @@ import {
 } from "@/components/marketing/landing"
 import { Button } from "@/components/ui/button"
 import { ArrowRight01Icon, Tick02Icon } from "@hugeicons/core-free-icons"
+import { JsonLd } from "@/components/seo/json-ld"
 import { CTA, PRODUCT, ROUTES } from "@/lib/marketing/facts"
+import {
+  counterLoyaltyIndexDataset,
+  howToSchema,
+  marketingPageGraph,
+} from "@/lib/seo/structured-data"
 
 const title = "Loyalty for Pubs & Gastropubs — No-App QR Stamp Cards"
 const description =
@@ -120,6 +126,20 @@ const guides = [
       "A side-by-side on loss, fraud, staff time and the data you get back — so you can pick the right card for your bar.",
   },
 ]
+
+const hubGraph = marketingPageGraph({
+  page: {
+    path: ROUTES.pubHub,
+    name: `${title} | Nabaperks`,
+    description,
+    reviewedByOperator: true,
+  },
+  breadcrumbs: [
+    { name: "Home", path: ROUTES.home },
+    { name: CTA.pub, path: ROUTES.pubHub },
+  ],
+  extraNodes: [howToSchema(flowSteps), counterLoyaltyIndexDataset()],
+})
 
 export default function LoyaltyForPubsPage() {
   return (
@@ -288,6 +308,7 @@ export default function LoyaltyForPubsPage() {
       </Section>
 
       <FinalCta />
+      <JsonLd id="ld-pub-hub" data={hubGraph} />
     </MarketingLayout>
   )
 }

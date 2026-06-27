@@ -33,6 +33,7 @@ export default function BestLoyaltyIdeasForPubsPage() {
       href={ROUTES.guides.bestIdeas}
       eyebrow="Pub loyalty guide"
       title="Best loyalty ideas for pubs"
+      description={description}
       intro="The reward you choose matters more than the technology behind it. Here are the loyalty ideas that suit a pub, bar or gastropub — and the ones to leave behind the bar."
     >
       <GuideSection heading="Pick one clear threshold">

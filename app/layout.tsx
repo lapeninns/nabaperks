@@ -7,6 +7,7 @@ import { JsonLd } from "@/components/seo/json-ld"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import {
+  operatorSchema,
   organizationSchema,
   SITE_URL,
   websiteSchema,
@@ -34,7 +35,7 @@ export const metadata: Metadata = {
     template: "%s | Nabaperks",
   },
   description:
-    "No-app QR loyalty cards for UK cafes, takeaways and pubs. Customers scan a venue QR and save a browser card — nothing to install — then collect till-verified stamps. £29/month, 30-day free pilot.",
+    "No-app QR loyalty cards for UK pubs, cafes and takeaways. Customers scan a venue QR and save a browser-based loyalty card — nothing to install — then collect counter-verified stamps. £29/month, 30-day free pilot.",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -90,7 +91,7 @@ export default function RootLayout({
           id="ld-site"
           data={{
             "@context": "https://schema.org",
-            "@graph": [organizationSchema(), websiteSchema()],
+            "@graph": [operatorSchema(), organizationSchema(), websiteSchema()],
           }}
         />
       </body>

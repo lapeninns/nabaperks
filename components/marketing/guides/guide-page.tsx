@@ -6,10 +6,12 @@ import { ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons"
 import { Eyebrow, Icon, MonoTag } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
 import { FinalCta } from "@/components/marketing/landing"
+import { JsonLd } from "@/components/seo/json-ld"
 import { Button } from "@/components/ui/button"
 import { CTA, ROUTES } from "@/lib/marketing/facts"
+import { marketingPageGraph } from "@/lib/seo/structured-data"
 
-import { otherGuides } from "./guides-data"
+import { guideByHref, otherGuides } from "./guides-data"
 
 /**
  * GuidePage — the shared shell for the pub-led guide spokes. Keeps every guide
@@ -25,12 +27,15 @@ export function GuidePage({
   eyebrow,
   title,
   intro,
+  description,
   children,
 }: {
   href: string
   eyebrow: string
   title: string
   intro: string
+  /** Meta description — also the Article description in the page graph. */
+  description: string
   children: ReactNode
 }) {
   const related = otherGuides(href)
@@ -38,6 +43,15 @@ export function GuidePage({
     { href: ROUTES.pubHub, label: "Loyalty for pubs" },
     { href: ROUTES.pricing, label: "Pricing" },
   ]
+
+  const graph = marketingPageGraph({
+    page: { path: href, name: `${title} | Nabaperks`, description, isArticle: true },
+    breadcrumbs: [
+      { name: "Home", path: ROUTES.home },
+      { name: CTA.pub, path: ROUTES.pubHub },
+      { name: guideByHref(href)?.nav ?? title, path: href },
+    ],
+  })
 
   return (
     <MarketingLayout navLinks={navLinks}>
@@ -112,6 +126,7 @@ export function GuidePage({
       </Section>
 
       <FinalCta />
+      <JsonLd id="ld-guide" data={graph} />
     </MarketingLayout>
   )
 }

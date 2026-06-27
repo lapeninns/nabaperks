@@ -61,6 +61,7 @@ export default function PaperVsQrLoyaltyForPubsPage() {
       href={ROUTES.guides.paperVsQr}
       eyebrow="Pub loyalty guide"
       title="Paper loyalty cards vs QR loyalty for pubs"
+      description={description}
       intro="Paper punch cards are simple and familiar. A browser-based QR loyalty card keeps that simplicity but fixes the parts that cost a pub money. Here is the honest side-by-side."
     >
       <GuideSection heading="Side by side">

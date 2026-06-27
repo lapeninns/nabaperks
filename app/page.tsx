@@ -11,6 +11,7 @@ import {
   LandingFaq,
   LandingHero,
   MidPageCta,
+  OldCrownCandidate,
   OperatorProof,
   ProofStrip,
   SeparateMarketing,
@@ -19,6 +20,7 @@ import {
   VenuePersonas,
   VenueProof,
   NabaperksProof,
+  counterFlowSteps,
   faqs,
   type QrMatrix,
 } from "@/components/marketing/landing"
@@ -27,11 +29,16 @@ import {
   ORG_ID,
   SITE_URL,
   absoluteUrl,
+  breadcrumbSchema,
+  counterLoyaltyIndexDataset,
+  glossarySchema,
+  howToSchema,
+  webPageSchema,
 } from "@/lib/seo/structured-data"
 
-const title = "No-App QR Loyalty Cards for UK Cafes & Pubs"
+const title = "No-App QR Loyalty Cards for UK Pubs & Cafes"
 const description =
-  "Replace paper stamp cards with one venue QR. Customers scan, save a browser card (no app, no wallet pass), and collect till-verified stamps. £29/mo, 30-day free pilot."
+  "Replace paper stamp cards with one venue QR. Customers scan, save a browser-based loyalty card (no app, no wallet pass), and collect counter-verified stamps. £29/mo, 30-day free pilot."
 
 export const metadata: Metadata = {
   title: { absolute: `${title} | Nabaperks` },
@@ -84,11 +91,19 @@ function buildQrMatrix(text: string): QrMatrix {
 
 const qrMatrix = buildQrMatrix("https://nabaperks.com")
 
-/** Page-level entity graph: the product (SoftwareApplication + Offer), the
- * objection set (FAQPage, byte-synced to the visible FAQ), the named anti-fraud
- * method (DefinedTerm) and breadcrumbs. */
+/** Page-level entity graph: the page (WebPage, reviewed by the operator), the
+ * product (SoftwareApplication + Offer), the objection set (FAQPage, byte-synced
+ * to the visible FAQ), the Scan/Save/Stamp/Reward HowTo (byte-synced to the
+ * visible flow), the first-party proof (Dataset), the term glossary
+ * (DefinedTermSet) and breadcrumbs — all cross-referenced by stable @id. */
 function buildPageGraph() {
   const graph: Record<string, unknown>[] = [
+    webPageSchema({
+      path: "/",
+      name: `${title} | Nabaperks`,
+      description,
+      reviewedByOperator: true,
+    }),
     {
       "@type": "SoftwareApplication",
       "@id": `${SITE_URL}/#software`,
@@ -96,7 +111,7 @@ function buildPageGraph() {
       applicationCategory: "BusinessApplication",
       operatingSystem: "Web browser (iOS, Android, any)",
       description:
-        "No-app QR loyalty for UK food & drink venues. A browser-based digital stamp card with the Counter-Verified Stamp — every stamp till-verified before it counts. No app, no wallet pass, no POS.",
+        "No-app QR loyalty for UK food & drink venues. A browser-based loyalty card with counter-verified stamps — every stamp confirmed at the counter before it counts. No app, no wallet pass, no POS.",
       url: SITE_URL,
       publisher: { "@id": ORG_ID },
       offers: {
@@ -118,20 +133,10 @@ function buildPageGraph() {
         acceptedAnswer: { "@type": "Answer", text: faq.a },
       })),
     },
-    {
-      "@type": "DefinedTerm",
-      "@id": `${SITE_URL}/#counter-verified-stamp`,
-      name: "Counter-Verified Stamp",
-      description:
-        "Nabaperks' anti-fraud method: every loyalty stamp is checked against the physical venue QR, the customer's membership, the venue's live account, a one-stamp-per-customer-per-UK-calendar-date cap, and optional unusual-location checks; rewards are checked at redemption.",
-      inDefinedTermSet: `${SITE_URL}/#glossary`,
-    },
-    {
-      "@type": "BreadcrumbList",
-      itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
-      ],
-    },
+    howToSchema(counterFlowSteps),
+    counterLoyaltyIndexDataset(),
+    glossarySchema(),
+    breadcrumbSchema([{ name: "Home", path: "/" }]),
   ]
 
   return { "@context": "https://schema.org", "@graph": graph }
@@ -146,6 +151,7 @@ export default function HomePage() {
       <OperatorProof />
       <CounterFlow />
       <NabaperksProof />
+      <OldCrownCandidate />
       <ComparisonTable />
       <CounterVerifiedStamp />
       <MidPageCta />

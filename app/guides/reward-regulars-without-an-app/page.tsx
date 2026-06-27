@@ -33,6 +33,7 @@ export default function RewardRegularsWithoutAnAppPage() {
       href={ROUTES.guides.rewardRegulars}
       eyebrow="Pub loyalty guide"
       title="How to reward regulars without an app"
+      description={description}
       intro="A regular will not install an app to collect a stamp, and you should not have to run a CRM to thank them. There is a simpler way — and it lives in the phone they already have open."
     >
       <GuideSection heading="Why an app is the wrong ask for a pint">
