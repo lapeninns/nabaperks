@@ -16,7 +16,7 @@ export const contentType = "image/png"
 
 const PAPER = "#f6f1e6"
 const INK = "#211c16"
-const VERMILLION = "#e8430f"
+const VERMILLION = "#cf330a"
 
 export default function OpengraphImage() {
   return new ImageResponse(

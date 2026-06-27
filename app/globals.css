@@ -294,7 +294,7 @@ body[data-grain="true"]::after {
     border-radius: var(--radius-lg);
     background: var(--card);
     color: var(--card-foreground);
-    box-shadow: 4px 4px 0 var(--w-shadow-color);
+    box-shadow: var(--shadow-md);
   }
 
   .eyebrow {
@@ -367,6 +367,16 @@ body[data-grain="true"]::after {
    primitives through their data-slot hooks. The component
    files and their APIs stay untouched; this layer only
    restyles shape, border, weight, and elevation.
+
+   Precedence note: this block is intentionally OUTSIDE any
+   @layer, so in Tailwind v4 it overrides ALL layered utilities
+   regardless of specificity — unlayered styles always beat
+   layered ones, so a higher-specificity selector here is not
+   even required. This means a utility class (e.g. rounded-full,
+   shadow-lg) placed on a themed primitive will NOT win against
+   these selectors. To override a treatment, do not reach for a
+   utility class: restyle via tokens, a wrapper component, or a
+   variant instead.
    ============================================================ */
 
 [data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]) {
