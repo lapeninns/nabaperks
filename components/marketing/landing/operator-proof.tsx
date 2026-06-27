@@ -4,7 +4,7 @@ import { Section } from "@/components/layout"
 /**
  * Operator proof — the E-E-A-T "Experience" block: the first-person operator POV
  * behind the product (what we've learned running no-app loyalty with real UK
- * venues). Operator/team voice, no named founder. Distinct from the feature
+ * venues). Operator/team voice, never a personal byline. Distinct from the feature
  * sections: it states the three faults we designed out, the un-synthesizable
  * angle answer engines and skeptical owners both reward. Server component.
  */

@@ -19,7 +19,7 @@ export type ComparisonColumn = {
 }
 
 export const COMPARISON_COLUMNS: readonly ComparisonColumn[] = [
-  { key: "nabaperks", label: "Nabaperks", sub: "Browser card", highlight: true },
+  { key: "nabaperks", label: "Nabaperks", sub: "Browser-based card", highlight: true },
   { key: "wallet", label: "Wallet-pass apps", sub: "e.g. Loopy, Stamp Me" },
   { key: "paper", label: "Paper card", sub: "Punch / stamp" },
   { key: "pos", label: "POS loyalty", sub: "e.g. Square, Loyverse" },

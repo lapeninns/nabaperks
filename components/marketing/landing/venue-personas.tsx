@@ -20,7 +20,7 @@ export function VenuePersonas() {
           Made for food &amp; drink — not generic CRM.
         </h2>
         <p className="mt-3 text-base leading-relaxed text-pretty text-muted-foreground">
-          Same browser card, same Counter-Verified Stamp — tuned to how your
+          Same browser card, same counter-verified stamps — tuned to how your
           counter actually runs.
         </p>
       </div>
@@ -41,7 +41,14 @@ export function VenuePersonas() {
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
               {persona.hook}
             </p>
-            {SHOW_PERSONA_SPOKES ? (
+            {persona.live ? (
+              <Link
+                href={persona.spoke}
+                className="mt-3 inline-block font-mono text-[0.68rem] font-bold tracking-[0.06em] text-primary uppercase underline-offset-4 hover:underline"
+              >
+                {persona.cta ?? "See more"} →
+              </Link>
+            ) : SHOW_PERSONA_SPOKES ? (
               <Link
                 href={persona.spoke}
                 className="mt-3 inline-block font-mono text-[0.68rem] font-bold tracking-[0.06em] text-primary uppercase underline-offset-4 hover:underline"

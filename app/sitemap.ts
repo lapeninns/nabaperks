@@ -11,7 +11,24 @@ type Route = {
 /** Public, indexable routes. Add spoke pages here as they ship. */
 const routes: Route[] = [
   { path: "/", priority: 1, changeFrequency: "weekly" },
+  { path: "/loyalty-for-pubs", priority: 0.9, changeFrequency: "monthly" },
   { path: "/pricing", priority: 0.9, changeFrequency: "monthly" },
+  { path: "/about", priority: 0.6, changeFrequency: "monthly" },
+  {
+    path: "/guides/best-loyalty-ideas-for-pubs",
+    priority: 0.6,
+    changeFrequency: "monthly",
+  },
+  {
+    path: "/guides/reward-regulars-without-an-app",
+    priority: 0.6,
+    changeFrequency: "monthly",
+  },
+  {
+    path: "/guides/paper-vs-qr-loyalty-for-pubs",
+    priority: 0.6,
+    changeFrequency: "monthly",
+  },
   { path: "/signup", priority: 0.7, changeFrequency: "monthly" },
   { path: "/privacy", priority: 0.3, changeFrequency: "yearly" },
   { path: "/terms", priority: 0.3, changeFrequency: "yearly" },

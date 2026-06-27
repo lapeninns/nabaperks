@@ -1,6 +1,10 @@
 import { ContrastBand } from "@/components/layout"
 
-const steps = [
+/**
+ * The four-beat flow — exported so the homepage can emit a HowTo whose step
+ * labels stay byte-aligned with these visible steps (PDF HowTo-parity rule).
+ */
+export const counterFlowSteps = [
   {
     step: "Step 01",
     title: "Scan",
@@ -14,7 +18,7 @@ const steps = [
   {
     step: "Step 03",
     title: "Stamp",
-    body: "The customer taps to claim. The Counter-Verified Stamp checks your venue QR, their saved card, and the one-stamp-per-day rule — the phone never crosses the counter.",
+    body: "The customer taps to claim. The counter-verified stamp checks your venue QR, their saved card, and the one-stamp-per-day rule — the phone never crosses the counter.",
   },
   {
     step: "Step 04",
@@ -48,7 +52,7 @@ export function CounterFlow() {
       </div>
 
       <ol className="mt-8 grid grid-cols-2 gap-x-5 gap-y-6 lg:grid-cols-4">
-        {steps.map((item) => (
+        {counterFlowSteps.map((item) => (
           <li
             key={item.step}
             className="border-t-2 border-dashed border-paper/30 pt-4"

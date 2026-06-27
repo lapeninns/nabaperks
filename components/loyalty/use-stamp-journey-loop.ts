@@ -18,9 +18,13 @@ export const STAMP_JOURNEY_TIMING = {
 export function useStampJourneyLoop(total: number) {
   const shouldReduceMotion = useReducedMotionHook()
   const safeTotal = Math.max(total, 0)
-  const [earnedCount, setEarnedCount] = useState(0)
+  // Start in the completed state so SSR / no-JS / reduced-motion first paint
+  // shows the finished product card. The loop resets and replays only when
+  // motion is allowed, entering from this natural rest frame (no CLS, no
+  // hydration mismatch — the first client render matches the server).
+  const [earnedCount, setEarnedCount] = useState(safeTotal)
   const [slamIndex, setSlamIndex] = useState(-1)
-  const [revealed, setRevealed] = useState(false)
+  const [revealed, setRevealed] = useState(true)
   const [revealSlam, setRevealSlam] = useState(false)
   const [revealKey, setRevealKey] = useState(0)
   const [cycleIndex, setCycleIndex] = useState(0)
@@ -70,7 +74,9 @@ export function useStampJourneyLoop(total: number) {
       }, STAMP_JOURNEY_TIMING.revealMs)
     }
 
-    resetCycle(false)
+    // Hold the SSR-rendered completed state for one pause beat, then reset and
+    // replay the loop, so motion users transition seamlessly from first paint.
+    schedule(() => resetCycle(true), STAMP_JOURNEY_TIMING.loopPauseMs)
 
     return () => {
       cancelled = true
