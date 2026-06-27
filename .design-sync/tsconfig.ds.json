@@ -1,0 +1,12 @@
+{
+  "_comment": "design-sync converter tsconfig — read ONLY by the esbuild tsconfigPathsPlugin (compilerOptions.paths + baseUrl). baseUrl '..' resolves to repo root since this file is in .design-sync/. The two explicit non-wild dir-barrel rules come BEFORE @/* so the plugin's rule loop resolves them to index.ts (a file) instead of returning a bare directory (which esbuild rejects). next/link is shimmed so Next's client runtime never enters the IIFE bundle (it referenced process.env.__NEXT_* and aborted window.WetInk).",
+  "compilerOptions": {
+    "baseUrl": "..",
+    "paths": {
+      "@/components/brand": ["./components/brand/index.ts"],
+      "@/components/motion": ["./components/motion/index.ts"],
+      "next/link": ["./.design-sync/shims/next-link.tsx"],
+      "@/*": ["./*"]
+    }
+  }
+}
