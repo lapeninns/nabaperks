@@ -5,6 +5,7 @@ import {
   type ActiveCardSummary,
   type QrCodeSummary,
 } from "@/lib/merchant/qr-code"
+import { getCurrentMerchant } from "@/lib/auth/session"
 import { getMerchantBilling } from "@/lib/merchant/billing"
 import type {
   LaunchChecklistStepId,
@@ -172,15 +173,26 @@ function hasVenueCoordinates(location: NonNullable<LaunchLocation>): boolean {
   return location.latitude !== null && location.longitude !== null
 }
 
+// Statuses that count as launch-ready when billing is required. Allowlist
+// (not denylist) so unknown/transitional states such as not_started, past_due,
+// unpaid, or incomplete are treated as not-ready rather than ready. Mirrors the
+// BillingPanel/dashboard predicate (shouldShowMerchantDashboardBillingNotice in
+// components/merchant/billing-status.tsx), including its `trial` -> `trialing`
+// normalization. Kept inline here so this server-only lib does not import a
+// component module (lib never depends on components in this codebase).
+const LAUNCH_READY_BILLING_STATUSES = new Set(["active", "trialing"])
+
 function isBillingReady(billing: LaunchBilling): boolean {
   if (!billing?.requiresBilling) {
     return true
   }
 
-  return (
-    billing.status !== null &&
-    !["cancelled", "suspended"].includes(billing.status)
-  )
+  if (billing.status === null) {
+    return false
+  }
+
+  const status = billing.status === "trial" ? "trialing" : billing.status
+  return LAUNCH_READY_BILLING_STATUSES.has(status)
 }
 
 function cardActionLabel(cardReady: boolean): string {
@@ -212,10 +224,15 @@ export function isLaunchSetupCompleteWithoutQr(
 }
 
 export async function getMerchantLaunchReadiness() {
-  const setup = await getQrSetup()
-  const billing = setup.merchant
-    ? await getLaunchBillingReadiness(setup.merchant.id)
-    : undefined
+  // Resolve the merchant up front (request-memoized via React cache, so the
+  // getQrSetup call below reuses it) to unblock billing readiness, which only
+  // needs merchant.id. Billing then runs in parallel with the multi-round-trip
+  // QR setup chain instead of waiting behind it.
+  const merchant = await getCurrentMerchant()
+  const [setup, billing] = await Promise.all([
+    getQrSetup(),
+    merchant ? getLaunchBillingReadiness(merchant.id) : Promise.resolve(undefined),
+  ])
 
   return buildLaunchReadiness({
     activeCard: setup.activeCard,
@@ -251,6 +268,13 @@ async function getMerchantRequiresBilling(
     .maybeSingle()
 
   if (error) {
+    // Fail closed: gate launch rather than open it on a transient read error.
+    // Log so an infra blip flipping readiness leaves a signal, instead of being
+    // silently indistinguishable from a real requires_billing=true.
+    console.error(
+      `[launch-readiness] Unable to read requires_billing for merchant ${merchantId}; ` +
+        `defaulting to requires_billing=true (gated). ${error.message}`
+    )
     return true
   }
 

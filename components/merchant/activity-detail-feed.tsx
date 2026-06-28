@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useMemo, useState, type ReactNode } from "react"
 
 import { EmptyState, FilterPills } from "@/components/brand"
@@ -32,23 +32,26 @@ const filterOptions: Array<{
 export function ActivityDetailFeed({
   summary,
   rows,
-  totalCount,
-  loadedCount,
   limit,
+  hasMore,
   initialFilter = "all",
   initialQuery = "",
   emptyState,
 }: {
   summary: ActivitySummary
   rows: ActivityDisplayRow[]
-  totalCount: number
-  loadedCount: number
   limit: number
+  hasMore: boolean
   initialFilter?: "all" | ActivityCategory
   initialQuery?: string
   emptyState: ReactNode
 }) {
   const pathname = usePathname()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  // These initializers re-run whenever this component remounts; the server
+  // re-keys it by the discrete nav params (filter:limit), so a soft nav via
+  // "Load more" or a filter pill re-initializes instead of going stale.
   const [filter, setFilter] = useState<"all" | ActivityCategory>(() =>
     normalizeFilter(initialFilter)
   )
@@ -116,9 +119,17 @@ export function ActivityDetailFeed({
             label: option.label,
           }))}
         />
-        <p className="text-xs text-muted-foreground">
+        {/* Announce the result count (and the empty state below) to assistive
+            tech as it changes. Compare against rows.length — the number of
+            rendered cards — not the raw event count, so "from N" only appears
+            when the search/filter actually hides rows. */}
+        <p
+          className="text-xs text-muted-foreground"
+          role="status"
+          aria-live="polite"
+        >
           {filteredRows.length} shown
-          {filteredRows.length === loadedCount ? "" : ` from ${loadedCount}`}.
+          {filteredRows.length === rows.length ? "" : ` from ${rows.length}`}.
         </p>
       </section>
 
@@ -148,10 +159,15 @@ export function ActivityDetailFeed({
       )}
 
       <footer className="flex flex-wrap items-center justify-between gap-3 px-1">
+        {/* Count the rendered rows (threaded), not raw product_events, so the
+            number matches the cards on screen. `hasMore` (the server's +1
+            sentinel) drives the affordance instead of a now-removed exact
+            total. */}
         <p className="text-xs text-muted-foreground">
-          {loadedCount} of {totalCount} events loaded.
+          {rows.length} {rows.length === 1 ? "event" : "events"} loaded
+          {hasMore ? ", more available" : ""}.
         </p>
-        {loadedCount < totalCount ? (
+        {hasMore ? (
           <Button asChild variant="secondary" size="sm">
             <Link href={loadMoreHref({ filter, limit, query })}>Load more</Link>
           </Button>
@@ -167,7 +183,11 @@ export function ActivityDetailFeed({
     filter: "all" | ActivityCategory
     query: string
   }) {
-    const nextParams = new URLSearchParams(window.location.search)
+    // Build from the live searchParams and update via the Next router (not
+    // window.history.replaceState) so the router cache stays in sync and the
+    // back button works. Changing the filter or query starts a fresh window,
+    // so drop the grown `limit`.
+    const nextParams = new URLSearchParams(searchParams.toString())
     const trimmedQuery = nextQuery.trim()
 
     if (nextFilter === "all") {
@@ -182,12 +202,12 @@ export function ActivityDetailFeed({
       nextParams.set("q", trimmedQuery)
     }
 
+    nextParams.delete("limit")
+
     const queryString = nextParams.toString()
-    window.history.replaceState(
-      null,
-      "",
-      queryString ? `${pathname}?${queryString}` : pathname
-    )
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      scroll: false,
+    })
   }
 }
 

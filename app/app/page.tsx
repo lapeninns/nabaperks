@@ -21,6 +21,8 @@ import {
 import { getMerchantOnboardingStatus } from "@/lib/merchant/onboarding"
 import { timeServerLoader } from "@/lib/perf/server-timing"
 
+export const dynamic = "force-dynamic"
+
 export default async function MerchantAppPage() {
   const setup = await timeServerLoader(
     "/app",

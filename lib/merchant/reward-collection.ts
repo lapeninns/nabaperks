@@ -5,7 +5,7 @@ import { formatMerchantCustomerIdentifier } from "@/lib/merchant/customer-identi
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type MerchantRewardScanContext =
-  | { status: "unauthenticated" | "not_found" | "unauthorized" }
+  | { status: "unauthenticated" | "not_found" | "unauthorized" | "expired" }
   | {
       status: "ready" | "redeemed" | "blocked"
       scanToken: string
@@ -41,7 +41,10 @@ export async function loadMerchantRewardScanContext(
   })
 
   if (error) {
-    throw new Error(`Unable to load reward scan context: ${error.message}`)
+    // Keep raw Postgres detail in server logs only; surface a stable,
+    // non-revealing message so DB hints never reach the client/error boundary.
+    console.error("get_reward_scan_context failed", error)
+    throw new Error("Unable to load reward scan context.")
   }
 
   const row = firstRecord(data)
@@ -51,6 +54,9 @@ export async function loadMerchantRewardScanContext(
 
   if (scanStatus === "not_found" || !scanStatus) return { status: "not_found" }
   if (scanStatus === "unauthorized") return { status: "unauthorized" }
+  // Forward-compatible with a follow-up RPC that emits a distinct 'expired'
+  // status; today get_reward_scan_context still maps expiry to 'not_found'.
+  if (scanStatus === "expired") return { status: "expired" }
 
   if (
     scanStatus !== "ready" &&
@@ -154,15 +160,30 @@ function scanContext(
   scanToken: string,
   row: Record<string, unknown>,
   status: Extract<MerchantRewardScanContext, { rewardId: string }>["status"]
-): Extract<MerchantRewardScanContext, { rewardId: string }> {
+):
+  | Extract<MerchantRewardScanContext, { rewardId: string }>
+  | { status: "not_found" } {
+  // Identity fields the TS union promises are always present: if the RPC ever
+  // returns a partially-populated row, fall back to not_found rather than
+  // rendering a banner with a blank reward name or empty card label.
+  const rewardId = stringField(row, "reward_event_id")
+  const rewardName = stringField(row, "reward_name")
+  const membershipId = stringField(row, "membership_id")
+
+  if (!rewardId || !rewardName || !membershipId) {
+    return { status: "not_found" }
+  }
+
   return {
     status,
     scanToken,
-    rewardId: stringField(row, "reward_event_id") ?? "",
-    rewardName: stringField(row, "reward_name") ?? "Reward",
+    rewardId,
+    rewardName,
     rewardTerms: stringField(row, "reward_terms") ?? "",
-    membershipId: stringField(row, "membership_id") ?? "",
+    membershipId,
     currentStampCount: numberField(row, "current_stamp_count"),
+    // Only the masked label leaves this loader. Raw email/phone are read solely
+    // to compute the mask and are never added to MerchantRewardScanContext.
     customerLabel: formatMerchantCustomerIdentifier({
       email: stringField(row, "customer_email"),
       phone: stringField(row, "customer_phone"),

@@ -1,6 +1,8 @@
 import "server-only"
 
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+import { cache } from "react"
+
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export type MerchantBilling = {
   status: string | null
@@ -14,30 +16,36 @@ export type MerchantBillingResult =
   | { ok: false }
 
 /**
- * Read the merchant's Stripe billing row via the service-role client. Returns
- * `{ ok: false }` on any failure so callers can show safe copy without leaking
- * raw Supabase errors. Lives in `lib/` so presentational panels never build a
- * Supabase client themselves.
+ * Read the merchant's Stripe billing row via the anon/RLS client. The
+ * `billing_customers_select_owner_or_admin` policy scopes the read to the
+ * caller's own merchant (or an internal admin), so a caller-supplied
+ * `merchantId` that the session does not own is filtered to zero rows instead
+ * of being trusted. Returns `{ ok: false }` on any failure so callers can show
+ * safe copy without leaking raw Supabase errors. Lives in `lib/` so
+ * presentational panels never build a Supabase client themselves.
+ *
+ * Wrapped in React `cache()` so repeat reads within a single request collapse
+ * to one query (mirrors `getCurrentMerchant` in `lib/auth/session.ts`).
  */
-export async function getMerchantBilling(
-  merchantId: string
-): Promise<MerchantBillingResult> {
-  try {
-    const supabase = createSupabaseServiceRoleClient()
-    const { data, error } = await supabase
-      .from("billing_customers")
-      .select(
-        "status, current_period_end, stripe_customer_id, stripe_subscription_id"
-      )
-      .eq("merchant_id", merchantId)
-      .maybeSingle()
+export const getMerchantBilling = cache(
+  async (merchantId: string): Promise<MerchantBillingResult> => {
+    try {
+      const supabase = await createSupabaseServerClient()
+      const { data, error } = await supabase
+        .from("billing_customers")
+        .select(
+          "status, current_period_end, stripe_customer_id, stripe_subscription_id"
+        )
+        .eq("merchant_id", merchantId)
+        .maybeSingle()
 
-    if (error) {
+      if (error) {
+        return { ok: false }
+      }
+
+      return { ok: true, billing: (data as MerchantBilling | null) ?? null }
+    } catch {
       return { ok: false }
     }
-
-    return { ok: true, billing: (data as MerchantBilling | null) ?? null }
-  } catch {
-    return { ok: false }
   }
-}
+)

@@ -12,6 +12,11 @@ import {
   getMerchantActivitySummary,
 } from "@/lib/merchant/activity"
 
+// cacheComponents is OFF for this repo, so the literal force-dynamic segment
+// config is valid: this feed reflects per-request searchParams and live data
+// and must never be statically cached.
+export const dynamic = "force-dynamic"
+
 type MerchantActivitySearchParams = {
   filter?: string | string[]
   q?: string | string[]
@@ -42,7 +47,16 @@ export default async function MerchantActivityPage({
         description="Everything happening on your loyalty card: joins, stamps, rewards, and QR downloads."
       />
 
-      <Suspense fallback={<ActivityFeedSkeleton />}>
+      {/* Re-key the streamed feed on the discrete nav params (filter pill and
+          "Load more" limit) so its client filter/search state re-initializes
+          from the new searchParams on soft nav. `q` is deliberately excluded:
+          it refetches on the server via props but must not remount the live
+          search box on every keystroke — a "Load more" still carries q in the
+          URL, and the limit change here remounts and re-reads it. */}
+      <Suspense
+        key={`${filter}:${limit}`}
+        fallback={<ActivityFeedSkeleton />}
+      >
         <ActivityFeedStream
           merchantId={merchant.id}
           filter={filter}
@@ -66,7 +80,10 @@ async function ActivityFeedStream({
   limit: number
 }) {
   const [activity, summary] = await Promise.all([
-    getEnrichedMerchantActivity(merchantId, { limit }),
+    getEnrichedMerchantActivity(merchantId, {
+      limit,
+      filter,
+    }),
     getMerchantActivitySummary(merchantId),
   ])
 
@@ -74,9 +91,8 @@ async function ActivityFeedStream({
     <ActivityDetailFeed
       summary={summary}
       rows={activity.rows}
-      totalCount={activity.totalCount}
-      loadedCount={activity.loadedCount}
       limit={activity.limit}
+      hasMore={activity.hasMore}
       initialFilter={filter}
       initialQuery={searchQuery}
       emptyState={

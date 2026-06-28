@@ -3,6 +3,7 @@ import "server-only"
 import { capturePostHogEvent } from "@/lib/analytics/events"
 import { buildLaunchReadiness } from "@/lib/merchant/launch-readiness"
 import { getQrSetupFresh } from "@/lib/merchant/qr-code"
+import { logger } from "@/lib/observability/logger"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 const MIN_ACTIVE_REWARDS = 3
@@ -40,6 +41,13 @@ export async function ensureJoinQrProvisioned(
     })
 
     if (error) {
+      // Was silently swallowed (returns look identical to "not eligible").
+      // Log so an RPC failure during the launch GET render is observable.
+      logger.error("ensure_join_qr_create_failed", {
+        merchantId: input.merchantId,
+        rpc: "create_or_get_join_qr",
+        error,
+      })
       return { provisioned: false, created: false }
     }
 
@@ -62,6 +70,14 @@ export async function ensureJoinQrProvisioned(
     })
 
     if (error) {
+      // Was silently swallowed (returns look identical to "not eligible").
+      // Log so an RPC failure during the launch GET render is observable.
+      logger.error("ensure_join_qr_activate_failed", {
+        merchantId: input.merchantId,
+        qrCodeId: input.qrCode.id,
+        rpc: "set_qr_active",
+        error,
+      })
       return { provisioned: false, created: false }
     }
 

@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { ArrowRight02Icon } from "@hugeicons/core-free-icons"
 
@@ -13,15 +12,21 @@ export function LaunchTransientQueryCleanup({
 }: {
   cleanHref: string | null
 }) {
-  const router = useRouter()
-
   useEffect(() => {
     if (!cleanHref) {
       return
     }
 
-    router.replace(cleanHref, { scroll: false })
-  }, [cleanHref, router])
+    // Scrub the one-shot success params from the URL *without* an RSC refetch.
+    // `router.replace` would re-render this force-dynamic page without the
+    // saved/seeded/created/enabled/qr params and blank the just-shown success
+    // banner; `history.replaceState` only rewrites the address bar, leaving the
+    // already-rendered tree (and its banner) intact. Passing the current
+    // history state keeps Next's App Router navigation state consistent.
+    if (window.location.search) {
+      window.history.replaceState(window.history.state, "", cleanHref)
+    }
+  }, [cleanHref])
 
   return null
 }

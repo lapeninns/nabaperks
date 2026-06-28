@@ -25,10 +25,11 @@ import {
   needsLaunchBillingActivation,
   resolveLaunchBillingHref,
   type LaunchHubTab,
+  type LaunchReadiness,
   type LaunchReadinessTab,
 } from "@/lib/merchant/launch-readiness"
 import { resolveLaunchContinueHref } from "@/lib/merchant/launch-tab-advance"
-import { getQrSetupFresh } from "@/lib/merchant/qr-code"
+import { getQrSetupFresh, type QrSetup } from "@/lib/merchant/qr-code"
 
 export const dynamic = "force-dynamic"
 
@@ -65,22 +66,22 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
     redirect("/app/onboarding")
   }
 
-  let {
-    merchant: setupMerchant,
-    activeCard,
-    activeRewardPoolItemCount,
-    qrCode,
-    location,
-  } = await getQrSetupFresh()
-  const billing = setupMerchant
-    ? await getLaunchBillingReadiness(setupMerchant.id)
-    : undefined
+  // The setup pipeline and billing readiness are independent (billing keys off
+  // the already-resolved session merchant.id), so fetch them together instead
+  // of waterfalling billing behind the setup read.
+  const [initialSetup, billing] = await Promise.all([
+    getQrSetupFresh(),
+    getLaunchBillingReadiness(merchant.id),
+  ])
+  // Reassigned only when the auto-provision side-effect below succeeds and we
+  // re-read the now-fresh setup.
+  let setup = initialSetup
 
   let launchReadiness = buildLaunchReadiness({
-    activeCard,
-    activeRewardPoolItemCount,
-    qrCode,
-    location,
+    activeCard: setup.activeCard,
+    activeRewardPoolItemCount: setup.activeRewardPoolItemCount,
+    qrCode: setup.qrCode,
+    location: setup.location,
     billing,
   })
 
@@ -89,33 +90,29 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
     launchReadiness.tabs.card &&
     launchReadiness.tabs.rewards &&
     !launchReadiness.tabs.qr &&
-    setupMerchant
+    setup.merchant
   ) {
     const { provisioned } = await ensureJoinQrProvisioned({
-      merchantId: setupMerchant.id,
-      activeCard,
-      activeRewardPoolItemCount,
+      merchantId: setup.merchant.id,
+      activeCard: setup.activeCard,
+      activeRewardPoolItemCount: setup.activeRewardPoolItemCount,
       venueReady: launchReadiness.tabs.venue,
-      qrCode,
+      qrCode: setup.qrCode,
     })
 
     if (provisioned) {
-      ;({
-        merchant: setupMerchant,
-        activeCard,
-        activeRewardPoolItemCount,
-        qrCode,
-        location,
-      } = await getQrSetupFresh())
+      setup = await getQrSetupFresh()
       launchReadiness = buildLaunchReadiness({
-        activeCard,
-        activeRewardPoolItemCount,
-        qrCode,
-        location,
+        activeCard: setup.activeCard,
+        activeRewardPoolItemCount: setup.activeRewardPoolItemCount,
+        qrCode: setup.qrCode,
+        location: setup.location,
         billing,
       })
     }
   }
+
+  const activeRewardPoolItemCount = setup.activeRewardPoolItemCount
 
   const needsBilling = needsLaunchBillingActivation(launchReadiness)
   const billingHref = resolveLaunchBillingHref(launchReadiness)
@@ -136,22 +133,33 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
     activeRewardPoolItemCount
   )
   const transientCleanHref =
-    params.saved || params.seeded || params.created || params.enabled || params.qr
+    params.saved ||
+    params.seeded ||
+    params.created ||
+    params.enabled ||
+    params.disabled ||
+    params.qr
       ? `/app/launch?tab=${activeTab}`
       : null
 
+  const pageHeading = launchReadiness.launchReady
+    ? "You're live"
+    : needsBilling
+      ? "Your account is created"
+      : "Bring your venue to life"
+
   return (
     <div className="grid min-w-0 gap-2 overflow-x-clip sm:gap-6">
+      {/* Stable page-level h1 for mobile, where the visual PageTitle is hidden
+          to save space. Without this, the first heading on the card/rewards/
+          billing tabs jumped to h2, so the heading level shifted per tab. The
+          visible PageTitle h1 (sm+) is the page heading from sm up, so this is
+          sm:hidden to keep exactly one page-level h1 at every breakpoint. */}
+      <h1 className="sr-only sm:hidden">{pageHeading}</h1>
       <div className="hidden sm:grid">
         <PageTitle
           eyebrow="Merchant setup"
-          title={
-            launchReadiness.launchReady
-              ? "You're live"
-              : needsBilling
-                ? "Your account is created"
-                : "Bring your venue to life"
-          }
+          title={pageHeading}
           description={
             launchReadiness.launchReady
               ? "Customers can scan, join, and collect stamps. Your QR is live below — print it when you are ready."
@@ -200,6 +208,8 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
         <LaunchActivePanel
           activeTab={activeTab}
           params={params}
+          setup={setup}
+          readiness={launchReadiness}
           continueHref={continueHref}
           rewardsContinueHref={rewardsContinueHref}
           launchReady={launchReadiness.launchReady}
@@ -214,6 +224,8 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
 function LaunchActivePanel({
   activeTab,
   params,
+  setup,
+  readiness,
   continueHref,
   rewardsContinueHref,
   launchReady,
@@ -222,6 +234,8 @@ function LaunchActivePanel({
 }: {
   activeTab: LaunchHubTab
   params: LaunchSearchParams
+  setup: QrSetup
+  readiness: LaunchReadiness
   continueHref: string | null
   rewardsContinueHref: string | null
   launchReady: boolean
@@ -250,6 +264,8 @@ function LaunchActivePanel({
         />
       ) : (
         <QrPanel
+          setup={setup}
+          readiness={readiness}
           params={params}
           continueHref={continueHref}
           launchReady={launchReady}

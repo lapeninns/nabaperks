@@ -54,12 +54,19 @@ type VenueLocationWritePayload = Omit<
 
 export function parseVenueLocationSubmission(
   formData: FormData,
-  options?: { venueNameField?: "venueName" | "locationName" }
+  options?: {
+    venueNameField?: "venueName" | "locationName"
+    defaultVenueName?: string
+  }
 ): VenueLocationSubmission {
   const venueNameField = options?.venueNameField ?? "venueName"
+  // Preserve the raw parsed name so the required-name guard in
+  // validateVenueLocationSubmission stays reachable. Callers that want a
+  // placeholder fallback opt in explicitly via { defaultVenueName }.
+  const rawVenueName = value(formData, venueNameField)
 
   return {
-    venueName: value(formData, venueNameField) || "Main venue",
+    venueName: rawVenueName || options?.defaultVenueName || "",
     addressFields: parseVenueAddressFields(formData),
     geofenceRadiusMeters: value(formData, "geofenceRadiusMeters") || "150",
     requireGeofence: formData.get("requireGeofence") === "on",

@@ -8,6 +8,12 @@ import { MerchantRewardCollectionForm } from "@/components/merchant/reward-colle
 import { RewardTicket, StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { loadMerchantRewardScanContext } from "@/lib/merchant/reward-collection"
+import { merchantLoginHref } from "@/lib/navigation/safe-next-path"
+
+// Scan tokens are uuid-typed in the RPC; reject malformed input early rather
+// than taking the noisy throw → error-boundary path. Mirrors /r/[token].
+const SCAN_TOKEN_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 type MerchantRewardScanPageProps = {
   params: Promise<{
@@ -24,6 +30,11 @@ export default async function MerchantRewardScanPage({
 }: MerchantRewardScanPageProps) {
   const { rewardId } = await params
   const scanToken = rewardId
+
+  if (!SCAN_TOKEN_PATTERN.test(scanToken)) {
+    notFound()
+  }
+
   const query = searchParams ? await searchParams : {}
   const collected = firstParam(query.collected) === "1"
 
@@ -46,11 +57,22 @@ async function RewardScanStream({
   const context = await loadMerchantRewardScanContext(scanToken)
 
   if (context.status === "unauthenticated") {
-    redirect(`/login?next=/app/rewards/scan/${scanToken}`)
+    redirect(
+      merchantLoginHref(`/app/rewards/scan/${encodeURIComponent(scanToken)}`)
+    )
   }
 
   if (context.status === "not_found") {
     notFound()
+  }
+
+  if (context.status === "expired") {
+    return (
+      <StatusBanner title="Reward expired" tone="warning">
+        This reward expired — ask the customer to re-scan the venue QR for a
+        fresh code.
+      </StatusBanner>
+    )
   }
 
   if (context.status === "unauthorized") {
@@ -61,35 +83,44 @@ async function RewardScanStream({
     )
   }
 
-  if (!("rewardId" in context)) {
+  // Every reward-bearing status (ready | redeemed | blocked) carries the reward
+  // fields rendered below. Narrow the union to that member and fall back to the
+  // in-shell 404 for any unrecognised status (defensive — unreachable via the
+  // status checks above, but it keeps the render type-safe).
+  if (!("rewardName" in context)) {
     notFound()
   }
+
+  // Server state is authoritative: only a redeemed reward shows the collected
+  // ticket/banner. ?collected=1 merely upgrades copy on the fresh post-collect
+  // render — it never stands in for server state on a bookmark/bfcache replay.
+  const isRedeemed = context.status === "redeemed"
 
   return (
     <>
       <RewardTicket
-        state={
-          context.status === "redeemed" || collected ? "redeemed" : "ready"
-        }
+        state={isRedeemed ? "redeemed" : "ready"}
         name={context.rewardName}
         description={context.rewardTerms}
       />
 
-      <div className="grid gap-2 rounded-xl border-2 border-ink bg-card p-4 text-sm">
+      <h2 className="sr-only">Customer and card details</h2>
+      <dl className="grid gap-2 rounded-xl border-2 border-ink bg-card p-4 text-sm">
         <div className="flex justify-between gap-4">
-          <span className="font-bold text-muted-foreground">Customer</span>
-          <span className="text-right font-bold">{context.customerLabel}</span>
+          <dt className="font-bold text-muted-foreground">Customer</dt>
+          <dd className="text-right font-bold">{context.customerLabel}</dd>
         </div>
         <div className="flex justify-between gap-4">
-          <span className="font-bold text-muted-foreground">Card</span>
-          <span className="text-right font-mono text-xs font-bold uppercase">
+          <dt className="font-bold text-muted-foreground">Card</dt>
+          <dd className="text-right font-mono text-xs font-bold uppercase">
             {context.membershipId.slice(0, 8)}
-          </span>
+          </dd>
         </div>
-      </div>
+      </dl>
 
-      {context.status === "redeemed" || collected ? (
+      {isRedeemed ? (
         <StatusBanner title="Reward collected" tone="success">
+          {collected ? "Reward marked collected. " : null}
           This reward is now closed. The customer can scan the venue QR again
           when they are ready for their next stamp.
         </StatusBanner>

@@ -15,10 +15,15 @@ export type MerchantDashboardMerchant = {
 export async function getMerchantDashboardData(
   merchant: MerchantDashboardMerchant
 ) {
-  const rpcResult = await getMerchantDashboardMetrics(merchant)
-  const dashboard =
-    rpcResult ?? (await getMerchantDashboardDataByQuery(merchant))
-  const trends = await loadMerchantDashboardTrends(merchant.id)
+  // The headline metrics (RPC, with a per-query fallback) and the week-over-week
+  // trends are data-independent, so run them on parallel arms instead of serially
+  // awaiting one after the other.
+  const [dashboard, trends] = await Promise.all([
+    getMerchantDashboardMetrics(merchant).then(
+      (rpcResult) => rpcResult ?? getMerchantDashboardDataByQuery(merchant)
+    ),
+    loadMerchantDashboardTrends(merchant.id),
+  ])
 
   return {
     ...dashboard,
@@ -27,12 +32,17 @@ export async function getMerchantDashboardData(
 }
 
 export type MerchantDashboardSeries = {
-  /** ISO yyyy-mm-dd day keys, oldest first (length = DASHBOARD_SERIES_DAYS). */
+  /** Europe/London yyyy-mm-dd day keys, oldest first (length = DASHBOARD_SERIES_DAYS). */
   days: string[]
   joins: number[]
   stamps: number[]
   rewards: number[]
-  /** Cumulative member count over the window, ending at the current total. */
+  /**
+   * Cumulative member count over the window. Seeded from the true member count
+   * before the window (memberships created before the first bucket) and then
+   * accumulating per-day joins, so the final point approximates — but does not
+   * guarantee — the current total once deletions are taken into account.
+   */
   members: number[]
 }
 
@@ -41,8 +51,10 @@ const DASHBOARD_SERIES_DAYS = 14
 /**
  * Daily counts for the last 14 days, powering the dashboard sparklines and the
  * Stamps-vs-Joins trend chart. There is no per-day aggregate in the schema, so
- * we read the raw `created_at` timestamps for the window and bucket them by UTC
- * day — three small selects plus one count, all real data (never fabricated).
+ * we read the raw `created_at` timestamps for the window and bucket them by
+ * Europe/London calendar day (matching the customer-facing badges) — three
+ * small selects plus one scoped baseline count, all real data (never
+ * fabricated).
  */
 export async function getMerchantDashboardSeries(
   merchantId: string
@@ -51,7 +63,7 @@ export async function getMerchantDashboardSeries(
   const sinceIso = buckets[0]?.iso ?? new Date().toISOString()
   const supabase = createSupabaseServiceRoleClient()
 
-  const [joinRows, stampRows, rewardRows, totalMembers] = await Promise.all([
+  const [joinRows, stampRows, rewardRows, baselineMembers] = await Promise.all([
     supabase
       .from("customer_memberships")
       .select("created_at")
@@ -69,7 +81,10 @@ export async function getMerchantDashboardSeries(
       .eq("merchant_id", merchantId)
       .eq("status", "redeemed")
       .gte("created_at", sinceIso),
-    countRows("customer_memberships", merchantId),
+    // True member count entering the window (memberships created before the
+    // oldest bucket). Replaces the previous full-table count that duplicated
+    // metrics.members and ignored churn when back-computing the baseline.
+    countMembersBefore(merchantId, sinceIso),
   ])
 
   const failure =
@@ -84,8 +99,9 @@ export async function getMerchantDashboardSeries(
   const stamps = bucketize(stampRows.data, buckets)
   const rewards = bucketize(rewardRows.data, buckets)
 
-  const joinsInWindow = joins.reduce((sum, value) => sum + value, 0)
-  let running = Math.max(0, totalMembers - joinsInWindow)
+  // Seed the cumulative line with the real pre-window count, then add each
+  // day's joins on top of it.
+  let running = baselineMembers
   const members = joins.map((value) => (running += value))
 
   return {
@@ -99,22 +115,29 @@ export async function getMerchantDashboardSeries(
 
 type DayBucket = { key: string; iso: string }
 
+const LONDON = "Europe/London"
+
 function buildDayBuckets(days: number): DayBucket[] {
-  const now = new Date()
-  const todayUtc = Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate()
-  )
+  // Anchor on noon UTC so each 24h step back stays safely mid-day in London
+  // (UTC+0/+1), never straddling local midnight across the yearly DST switch.
+  const todayKey = londonDayKey(new Date())
+  const anchorNoon = Date.parse(`${todayKey}T12:00:00Z`)
   const buckets: DayBucket[] = []
   for (let offset = days - 1; offset >= 0; offset -= 1) {
-    const start = new Date(todayUtc - offset * 86_400_000)
-    buckets.push({
-      key: start.toISOString().slice(0, 10),
-      iso: start.toISOString(),
-    })
+    const key = londonDayKey(new Date(anchorNoon - offset * 86_400_000))
+    buckets.push({ key, iso: londonMidnightFloorIso(key) })
   }
   return buckets
+}
+
+/**
+ * UTC instant guaranteed to be at or before Europe/London midnight for `dayKey`.
+ * London is UTC+0 (GMT) or UTC+1 (BST), so local midnight is at most one hour
+ * before UTC midnight; subtracting an hour covers BST exactly and is harmlessly
+ * early under GMT (bucketize discards the surplus by London day key).
+ */
+function londonMidnightFloorIso(dayKey: string): string {
+  return new Date(Date.parse(`${dayKey}T00:00:00Z`) - 3_600_000).toISOString()
 }
 
 function bucketize(
@@ -128,10 +151,23 @@ function bucketize(
   for (const row of rows ?? []) {
     const createdAt = row?.created_at
     if (typeof createdAt !== "string") continue
-    const index = indexByKey.get(createdAt.slice(0, 10))
+    const index = indexByKey.get(londonDayKey(new Date(createdAt)))
     if (index !== undefined) counts[index] += 1
   }
   return counts
+}
+
+function londonDayKey(value: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: LONDON,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(value)
+  const year = parts.find((part) => part.type === "year")?.value
+  const month = parts.find((part) => part.type === "month")?.value
+  const day = parts.find((part) => part.type === "day")?.value
+  return `${year}-${month}-${day}`
 }
 
 async function getMerchantDashboardDataByQuery(
@@ -278,6 +314,21 @@ async function countNewMembers(merchantId: string, since: string) {
 
   if (error) {
     throw new Error(`Unable to count new members: ${error.message}`)
+  }
+
+  return count ?? 0
+}
+
+async function countMembersBefore(merchantId: string, before: string) {
+  const supabase = createSupabaseServiceRoleClient()
+  const { count, error } = await supabase
+    .from("customer_memberships")
+    .select("*", { count: "exact", head: true })
+    .eq("merchant_id", merchantId)
+    .lt("created_at", before)
+
+  if (error) {
+    throw new Error(`Unable to count members: ${error.message}`)
   }
 
   return count ?? 0

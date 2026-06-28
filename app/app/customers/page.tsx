@@ -6,8 +6,9 @@ import { EmptyState, PageTitle } from "@/components/brand"
 import { CustomerReadbackTable } from "@/components/merchant/customer-readback-table"
 import { MerchantCustomersTableSkeleton } from "@/components/merchant/loading-skeletons"
 import { getCurrentMerchant } from "@/lib/auth/session"
-import { buildMerchantCustomerReadback } from "@/lib/merchant/customer-readback"
 import { getMerchantCustomers } from "@/lib/merchant/dashboard"
+
+export const dynamic = "force-dynamic"
 
 type CustomersPageProps = {
   searchParams?: Promise<{
@@ -59,17 +60,12 @@ async function CustomersTableStream({
   merchantId: string
   highlightedMembershipId?: string
 }) {
-  const rawCustomers = await getMerchantCustomers(merchantId)
-  const now = new Date()
+  // getMerchantCustomers masks every row inside lib/merchant/* and returns the
+  // pre-masked view models directly, so raw email/phone never reach this server
+  // component or the client bundle. The client table owns its own summary /
+  // search / filter UI over these masked rows.
+  const customers = await getMerchantCustomers(merchantId)
 
-  // Build masked-safe view models server-side so no raw PII reaches the client
-  // bundle. The client table component receives only pre-masked identifiers.
-  const customers = rawCustomers.map((row) =>
-    buildMerchantCustomerReadback(row, now)
-  )
-
-  // The client table owns its own summary / search / filter UI; the server only
-  // hands it pre-masked view models so no raw PII reaches the client bundle.
   return (
     <CustomerReadbackTable
       customers={customers}

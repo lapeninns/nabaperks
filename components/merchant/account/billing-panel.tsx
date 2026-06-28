@@ -136,6 +136,12 @@ function AccountBillingCard({
   needsCardToActivate: boolean
   status: string
 }) {
+  // The Stripe portal only exists once a customer is created. Keep the button
+  // focusable (aria-disabled, not native disabled) and announce the reason via
+  // the helper text below; the server action stays the real guard — it redirects
+  // to `?portal=missing` when there is no customer id, so a stray submit is inert.
+  const portalUnavailable = !billing?.stripe_customer_id
+
   return (
     <ReceiptCard edge className="grid gap-5">
       <SectionHeader
@@ -178,17 +184,24 @@ function AccountBillingCard({
             <Button
               type="submit"
               variant={needsCardToActivate ? "secondary" : "default"}
-              disabled={!billing?.stripe_customer_id}
+              aria-disabled={portalUnavailable || undefined}
+              aria-describedby={
+                portalUnavailable ? "billing-portal-help" : undefined
+              }
+              className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
             >
               Open Stripe portal
               <Icon icon={ArrowRight01Icon} size={16} />
             </Button>
           </form>
         </div>
-        <p className="text-xs leading-5 text-muted-foreground">
-          {billing?.stripe_customer_id
-            ? "Manage your card and invoices in the Stripe portal."
-            : "Start checkout to add your card and activate the venue."}
+        <p
+          id="billing-portal-help"
+          className="text-xs leading-5 text-muted-foreground"
+        >
+          {portalUnavailable
+            ? "Start checkout to add your card and activate the venue."
+            : "Manage your card and invoices in the Stripe portal."}
         </p>
       </div>
     </ReceiptCard>
@@ -211,6 +224,17 @@ function BillingOutcomeMessages({
   checkout?: string
   portal?: string
 }) {
+  const hasBanner =
+    checkout === "success" ||
+    checkout === "cancelled" ||
+    portal === "missing"
+
+  // No outcome params -> render nothing so the parent grid gap doesn't reserve a
+  // phantom band on the default view.
+  if (!hasBanner) {
+    return null
+  }
+
   return (
     <div className="grid gap-3">
       {checkout === "success" ? (

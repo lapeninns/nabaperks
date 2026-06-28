@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { getServerEnv } from "@/lib/env/server"
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getStripe } from "@/lib/stripe/server"
 
 const BILLING_ACTION_ERROR = "Billing action could not be completed. Try again."
@@ -22,7 +22,7 @@ export async function startCheckoutAction() {
   try {
     env = getServerEnv()
 
-    const supabase = createSupabaseServiceRoleClient()
+    const supabase = await createSupabaseServerClient()
     const { data: billing, error } = await supabase
       .from("billing_customers")
       .select("stripe_customer_id")
@@ -103,7 +103,7 @@ export async function openCustomerPortalAction() {
   try {
     env = getServerEnv()
 
-    const supabase = createSupabaseServiceRoleClient()
+    const supabase = await createSupabaseServerClient()
     const { data: billing, error } = await supabase
       .from("billing_customers")
       .select("stripe_customer_id")

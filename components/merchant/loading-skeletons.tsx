@@ -100,11 +100,10 @@ export function MerchantDashboardMetricsSkeleton() {
  */
 export function MerchantCompactActivitySkeleton() {
   return (
-    <ReceiptCard
-      className="grid gap-4"
-      role="status"
-      aria-label="Loading recent activity"
-    >
+    // Sibling of MerchantDashboardMetricsSkeleton on /app — that skeleton owns
+    // the single authoritative `role="status"` announcement, so this fallback is
+    // hidden from assistive tech to avoid a duplicate "Loading…" on stream.
+    <ReceiptCard className="grid gap-4" aria-hidden="true">
       <div className="flex items-end justify-between gap-3">
         <Skeleton className="h-5 w-36" />
         <Skeleton className="h-9 w-20" />
@@ -247,22 +246,30 @@ export function MerchantCustomersTableSkeleton() {
         ))}
       </ul>
 
-      {/* Desktop/tablet: table */}
+      {/* Desktop/tablet: table — mirrors buildColumns(): Member (always),
+          Joined (lg+), Stamps (always), Last visit (md+), Reward (always). */}
       <div className="surface-card hidden overflow-hidden sm:block">
-        <div className="grid grid-cols-[1fr_auto] items-center gap-4 border-b-2 border-ink bg-secondary/60 px-4 py-3">
-          <Skeleton className="h-3 w-16" />
-          <Skeleton className="h-3 w-16" />
+        <div className="flex items-center gap-4 border-b-2 border-ink bg-secondary/60 px-4 py-3">
+          <Skeleton className="h-3 w-16 flex-1" />
+          <Skeleton className="hidden h-3 w-12 lg:block" />
+          <Skeleton className="h-3 w-14" />
+          <Skeleton className="hidden h-3 w-16 md:block" />
+          <Skeleton className="h-3 w-14" />
         </div>
         {rows.map((row) => (
           <div
             key={row}
-            className="flex items-center gap-3 border-b border-dashed border-ink/15 px-4 py-3 last:border-b-0"
+            className="flex items-start gap-4 border-b border-dashed border-ink/15 px-4 py-3 last:border-b-0"
           >
-            <Skeleton className="size-8 rounded-full" />
-            <div className="grid flex-1 gap-1.5">
-              <Skeleton className="h-4 w-40" />
-              <Skeleton className="h-3 w-24" />
-            </div>
+            <span className="flex flex-1 items-center gap-2.5">
+              <Skeleton className="size-8 rounded-full" />
+              <span className="grid gap-1.5">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-3 w-24" />
+              </span>
+            </span>
+            <Skeleton className="hidden h-4 w-20 lg:block" />
+            <Skeleton className="h-4 w-28" />
             <Skeleton className="hidden h-4 w-20 md:block" />
             <Skeleton className="h-5 w-24 rounded-full" />
           </div>
@@ -277,8 +284,12 @@ export function MerchantCustomersTableSkeleton() {
 // ─── Launch panels ─────────────────────────────────────────────────────────────
 
 /**
- * Mirrors the active Launch tab body: a form-field stack for the card/venue
- * tabs, or a QR frame + share/print blocks for the qr tab.
+ * Mirrors the active Launch tab body. Each branch tracks the real panel layout
+ * so a tab switch (the `key={activeTab}` Suspense boundary re-mounts on every
+ * switch) does not shift the layout: the card tab is the 2-col form + preview
+ * shell, the rewards tab is the counter header + reward rows + dashed add row,
+ * the venue tab is a simple form stack, and the qr tab is the QR frame + print
+ * blocks.
  */
 export function LaunchPanelSkeleton({
   tab,
@@ -289,17 +300,17 @@ export function LaunchPanelSkeleton({
     return (
       <div className="grid gap-5" role="status" aria-label="Loading launch kit">
         <div className="surface-card grid gap-6 p-6 lg:grid-cols-[300px_minmax(0,1fr)]">
-          <div className="grid h-fit content-start gap-4">
+          <div className="grid h-fit content-start gap-3">
             <Skeleton className="aspect-square w-full" />
-            <Skeleton className="h-10 w-full" />
+            {/* Status line ("Live · accepting scans") under the QR frame. */}
+            <Skeleton className="h-4 w-40" />
           </div>
-          <div className="grid content-start gap-5">
+          <div className="grid content-start gap-4">
             <div className="grid gap-3">
               <Skeleton className="h-3 w-24" />
               <Skeleton className="h-8 w-56 max-w-full" />
               <Skeleton className="h-4 w-full max-w-md" />
             </div>
-            <Skeleton className="h-24 w-full" />
             <Skeleton className="h-28 w-full" />
             <div className="flex flex-wrap gap-2">
               <Skeleton className="h-11 w-36" />
@@ -311,9 +322,78 @@ export function LaunchPanelSkeleton({
     )
   }
 
+  if (tab === "rewards") {
+    return (
+      <div
+        className="grid gap-5"
+        role="status"
+        aria-label="Loading reward pool"
+      >
+        <section className="surface-card grid gap-4 p-3 sm:p-6">
+          {/* Header: title block + the live active-count counter tag. */}
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="grid gap-2">
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-4 w-full max-w-sm" />
+            </div>
+            <Skeleton className="h-6 w-28 rounded-full" />
+          </div>
+          <Skeleton className="h-4 w-full max-w-md" />
+          {/* Variable reward rows. */}
+          <div className="grid gap-2">
+            {[0, 1, 2].map((row) => (
+              <div
+                key={row}
+                className="grid grid-cols-[auto_1fr_auto] items-start gap-2.5 rounded-lg border-[1.5px] border-border p-2.5"
+              >
+                <Skeleton className="size-8 rounded-full" />
+                <div className="grid gap-1.5">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-full max-w-xs" />
+                </div>
+                <Skeleton className="h-8 w-16" />
+              </div>
+            ))}
+          </div>
+          {/* Dashed "Add a reward" button. */}
+          <Skeleton className="h-12 w-full rounded-lg border-2 border-dashed border-ink/25 bg-transparent" />
+        </section>
+      </div>
+    )
+  }
+
+  if (tab === "card") {
+    return (
+      <div
+        className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-6"
+        role="status"
+        aria-label="Loading setup form"
+      >
+        <div className="grid min-w-0 gap-3 rounded-lg border border-border bg-card p-3 sm:gap-5 sm:p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div className="grid gap-2">
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="hidden h-4 w-full max-w-sm sm:block" />
+            </div>
+            <Skeleton className="hidden h-3 w-12 sm:block" />
+          </div>
+          {[0, 1, 2].map((field) => (
+            <div key={field} className="grid gap-2">
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ))}
+          <Skeleton className="h-11 w-full" />
+        </div>
+        {/* Customer card preview panel (lg sidebar). */}
+        <Skeleton className="hidden h-72 w-full lg:block" />
+      </div>
+    )
+  }
+
   return (
     <div className="grid gap-5" role="status" aria-label="Loading setup form">
-      <div className="surface-card grid gap-4 p-6">
+      <div className="surface-card grid gap-4 p-3 sm:p-6">
         {[0, 1, 2, 3].map((field) => (
           <div key={field} className="grid gap-2">
             <Skeleton className="h-3 w-28" />
@@ -384,8 +464,8 @@ export function AccountBillingPanelSkeleton() {
         <Skeleton className="h-4 w-full max-w-sm" />
 
         <div className="grid gap-4 border-t-2 border-dashed border-ink/20 pt-5">
+          {/* Active/trialing steady state shows a single Stripe action. */}
           <div className="flex flex-wrap gap-2">
-            <Skeleton className="h-11 w-36" />
             <Skeleton className="h-11 w-40" />
           </div>
           <Skeleton className="h-3 w-full max-w-sm" />

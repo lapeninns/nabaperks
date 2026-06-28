@@ -7,18 +7,20 @@ import {
 } from "html5-qrcode"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import { Eyebrow, ReceiptCard } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import { normalizeScannedRewardDestination } from "@/lib/merchant/reward-scanner"
+
+type CameraErrorReason = "denied" | "not-found" | "busy" | "unavailable"
 
 type ScannerStatus =
   | { readonly kind: "idle" }
   | { readonly kind: "scanning" }
   | { readonly kind: "decoded" }
   | { readonly kind: "invalid" }
-  | { readonly kind: "camera-error" }
+  | { readonly kind: "camera-error"; readonly reason: CameraErrorReason }
 
 const SCANNER_ELEMENT_ID = "nabaperks-merchant-reward-scanner"
 const SCAN_CONFIG = {
@@ -26,6 +28,46 @@ const SCAN_CONFIG = {
   qrbox: { width: 250, height: 250 },
   aspectRatio: 1,
   disableFlip: false,
+}
+
+// html5-qrcode rejects `start()` with a DOMException (or, on some browsers, its
+// string message) describing why the camera could not open. Map the well-known
+// getUserMedia error names to a specific reason so the announced status and the
+// remediation copy can name the actual failure instead of "Camera unavailable".
+function cameraErrorReason(error: unknown): CameraErrorReason {
+  const name =
+    error instanceof Error ? error.name : typeof error === "string" ? error : ""
+
+  if (/NotAllowedError|SecurityError|PermissionDenied/i.test(name)) {
+    return "denied"
+  }
+
+  if (/NotFoundError|DevicesNotFound|OverconstrainedError/i.test(name)) {
+    return "not-found"
+  }
+
+  if (/NotReadableError|TrackStartError|AbortError/i.test(name)) {
+    return "busy"
+  }
+
+  return "unavailable"
+}
+
+const CAMERA_ERROR_STATUS: Record<CameraErrorReason, string> = {
+  denied: "Camera access blocked",
+  "not-found": "No camera found",
+  busy: "Camera is busy",
+  unavailable: "Camera unavailable",
+}
+
+const CAMERA_ERROR_DETAIL: Record<CameraErrorReason, string> = {
+  denied:
+    "Allow camera access in your browser, make sure you are on HTTPS or localhost, then try again.",
+  "not-found":
+    "We could not find a camera on this device. Connect a camera, then try again.",
+  busy: "Another app or tab is using the camera. Close it, then try again.",
+  unavailable:
+    "Allow camera access in your browser and use HTTPS or localhost, then try again.",
 }
 
 function canStopScanner(state: Html5QrcodeScannerState): boolean {
@@ -43,6 +85,22 @@ function handleScannerError(error: unknown): void {
   throw error
 }
 
+// Synchronously release the camera hardware by stopping every track on the
+// injected <video>'s MediaStream. `scanner.stop()` is async and may not finish
+// before navigation tears the component down, so this is the immediate fallback
+// that turns the camera light off the moment cleanup runs.
+function stopVideoTracks(): void {
+  const mountTarget = document.getElementById(SCANNER_ELEMENT_ID)
+  const video = mountTarget?.querySelector("video")
+  const stream = video?.srcObject
+
+  if (stream instanceof MediaStream) {
+    for (const track of stream.getTracks()) {
+      track.stop()
+    }
+  }
+}
+
 async function stopAndClearScanner(scanner: Html5Qrcode): Promise<void> {
   if (canStopScanner(scanner.getState())) {
     await scanner.stop()
@@ -55,9 +113,11 @@ export function MerchantRewardScanner() {
   const router = useRouter()
   const hasDecodedRef = useRef(false)
   const [status, setStatus] = useState<ScannerStatus>({ kind: "idle" })
+  const [retryCount, setRetryCount] = useState(0)
 
   useEffect(() => {
     let disposed = false
+    hasDecodedRef.current = false
     const mountTarget = document.getElementById(SCANNER_ELEMENT_ID)
     if (mountTarget) {
       mountTarget.replaceChildren()
@@ -96,7 +156,12 @@ export function MerchantRewardScanner() {
 
             if (result.kind === "invalid") {
               if (!disposed) {
-                setStatus({ kind: "invalid" })
+                // Latch the invalid state so a fresh object isn't created on
+                // every decode tick (~10fps) while the camera keeps reading the
+                // same non-reward QR.
+                setStatus((prev) =>
+                  prev.kind === "invalid" ? prev : { kind: "invalid" }
+                )
               }
 
               return
@@ -125,7 +190,10 @@ export function MerchantRewardScanner() {
         }
 
         if (error instanceof Error || typeof error === "string") {
-          setStatus({ kind: "camera-error" })
+          setStatus({
+            kind: "camera-error",
+            reason: cameraErrorReason(error),
+          })
           return
         }
 
@@ -137,9 +205,22 @@ export function MerchantRewardScanner() {
 
     return () => {
       disposed = true
+      // Release the camera hardware synchronously first — `stopAndClearScanner`
+      // is async and may not settle before navigation unmounts us, leaving the
+      // MediaStream (and the camera light) alive.
+      stopVideoTracks()
       void stopAndClearScanner(scanner).catch(handleScannerError)
     }
-  }, [router])
+  }, [router, retryCount])
+
+  const retryCamera = useCallback(() => {
+    hasDecodedRef.current = false
+    setStatus({ kind: "idle" })
+    // Bump retryCount so the camera-lifecycle effect re-runs and re-creates the
+    // scanner, without calling a setState-bearing callback synchronously from
+    // the effect body.
+    setRetryCount((count) => count + 1)
+  }, [])
 
   const statusText =
     status.kind === "idle"
@@ -150,7 +231,7 @@ export function MerchantRewardScanner() {
           ? "Reward QR found. Opening collection..."
           : status.kind === "invalid"
             ? "That is not a reward QR from a customer card"
-            : "Camera unavailable"
+            : CAMERA_ERROR_STATUS[status.reason]
 
   return (
     <ReceiptCard edge className="grid gap-5 p-6">
@@ -170,19 +251,23 @@ export function MerchantRewardScanner() {
         className="min-h-64 overflow-hidden rounded-[var(--radius-lg)] border-2 border-dashed border-ink/35 bg-card [&_video]:min-h-64 [&_video]:object-cover"
       />
 
-      <div aria-live="polite" className="text-sm font-bold">
-        {statusText}
+      <div aria-live="polite" className="grid gap-1.5">
+        <p className="text-sm font-bold">{statusText}</p>
+        {status.kind === "camera-error" ? (
+          <p className="text-sm leading-6 text-muted-foreground">
+            {CAMERA_ERROR_DETAIL[status.reason]}
+          </p>
+        ) : null}
       </div>
 
       {status.kind === "camera-error" ? (
-        <p className="text-sm leading-6 text-muted-foreground">
-          Allow camera access in your browser and use HTTPS or localhost, then
-          reload this page to scan.
-        </p>
+        <Button type="button" className="w-full sm:w-auto" onClick={retryCamera}>
+          Try again
+        </Button>
       ) : null}
 
       <Button asChild variant="secondary" className="w-full sm:w-auto">
-        <Link href="/app">Back to home</Link>
+        <Link href="/app">Back to dashboard</Link>
       </Button>
     </ReceiptCard>
   )

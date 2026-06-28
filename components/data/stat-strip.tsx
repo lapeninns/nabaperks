@@ -21,7 +21,10 @@ const TONE_TEXT: Record<StatStripTone, string> = {
   primary: "text-primary",
   cobalt: "text-cobalt",
   leaf: "text-leaf",
-  sun: "text-sun",
+  // `--sun` is a fill, not a text color (DESIGN.md): raw `text-sun` on `bg-card`
+  // is only 1.91:1 in light mode. Darken sun toward ink for a ~4.6:1 AA-safe
+  // foreground; dark mode keeps `text-sun` (bright sun on dark card ≈ 8.3:1).
+  sun: "text-[color-mix(in_srgb,var(--color-sun)_55%,var(--color-ink))] dark:text-sun",
   ink: "text-foreground",
 }
 

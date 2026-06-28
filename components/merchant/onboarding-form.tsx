@@ -85,6 +85,13 @@ export function OnboardingForm({
         addressCity: fields.addressCity ?? "",
         addressPostcode: fields.addressPostcode ?? "",
       })
+
+      // Move focus to the first invalid field after a failed submit so SR and
+      // keyboard users land on the error instead of staying on the button.
+      const firstInvalid = formRef.current?.querySelector<HTMLElement>(
+        '[aria-invalid="true"]'
+      )
+      firstInvalid?.focus()
     }, 0)
 
     return () => window.clearTimeout(timeoutId)
@@ -191,17 +198,24 @@ export function OnboardingForm({
         id="businessName"
         label="Business name"
         name="businessName"
+        required
         defaultValue={state.fields?.businessName}
         onChange={(event) => updateDraft({ businessName: event.target.value })}
         error={state.errors?.businessName}
       />
       <div className="grid gap-2">
         <label htmlFor="businessType" className="eyebrow">
-          Business type
+          Business type{" "}
+          <span aria-hidden="true" className="text-destructive">
+            *
+          </span>
+          <span className="sr-only"> (required)</span>
         </label>
         <select
           id="businessType"
           name="businessType"
+          required
+          aria-required="true"
           defaultValue={state.fields?.businessType ?? ""}
           onChange={(event) => updateDraft({ businessType: event.target.value })}
           className={onboardingInputClassName}
@@ -267,6 +281,7 @@ export function OnboardingForm({
         id="locationName"
         label="First location name"
         name="locationName"
+        required
         value={locationName}
         onChange={(event) => {
           setLocationName(event.target.value)
@@ -279,15 +294,24 @@ export function OnboardingForm({
         label="Phone number"
         name="phone"
         type="tel"
+        autoComplete="tel"
         defaultValue={state.fields?.phone}
         onChange={(event) => updateDraft({ phone: event.target.value })}
       />
       {state.errors?.form ? (
-        <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p
+          role="alert"
+          className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+        >
           {state.errors.form}
         </p>
       ) : null}
-      <Button type="submit" disabled={pending} className="w-full">
+      <Button
+        type="submit"
+        disabled={pending}
+        aria-busy={pending}
+        className="w-full"
+      >
         {pending ? "Saving..." : "Finish setup"}
       </Button>
     </form>
@@ -311,6 +335,7 @@ function Field({
   id,
   label,
   error,
+  required,
   ...props
 }: React.InputHTMLAttributes<HTMLInputElement> & {
   id: string
@@ -321,10 +346,21 @@ function Field({
     <div className="grid gap-2">
       <label htmlFor={id} className="eyebrow">
         {label}
+        {required ? (
+          <>
+            {" "}
+            <span aria-hidden="true" className="text-destructive">
+              *
+            </span>
+            <span className="sr-only"> (required)</span>
+          </>
+        ) : null}
       </label>
       <input
         id={id}
         className={onboardingInputClassName}
+        required={required}
+        aria-required={required || undefined}
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
         {...props}
