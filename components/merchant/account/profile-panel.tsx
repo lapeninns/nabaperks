@@ -68,8 +68,8 @@ export async function ProfilePanel() {
         />
         <p className="text-sm leading-6 text-muted-foreground">
           Address and GPS checks are managed in Setup. Your business name is
-          saved here because it is reused on customer cards, reward screens, QR
-          posters, billing, and support.
+          saved here because it is reused on customer cards, reward screens,
+          venue QR flows, billing, and support.
         </p>
       </div>
     </section>

@@ -10,7 +10,7 @@ const stats = [
 ] as const
 
 const setupNotes = [
-  "Printed QR kit posted to you",
+  "Permanent venue QR",
   "Works on any phone, tablet or till",
   "No hardware, no POS",
 ] as const

@@ -37,7 +37,7 @@ export function VenueBenefits({ qrMatrix }: { qrMatrix: QrMatrix }) {
           <BenefitPoint title="Fits how your counter already runs">
             It works on the phone, tablet or till you already have — even
             cash-only — and your team never has to hold a customer&apos;s phone.
-            Nothing to integrate; we post you the printed QR kit.
+            Nothing to integrate; your permanent venue QR is ready when you go live.
           </BenefitPoint>
         </ul>
       </div>

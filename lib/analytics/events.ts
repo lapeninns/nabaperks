@@ -31,9 +31,6 @@ export const productEventNames = [
   "push_subscription_failed",
   "push_delivery_worker_ran",
   "push_venue_announcement_queued",
-  "qr_asset_generated",
-  "qr_asset_generation_failed",
-  "qr_asset_worker_ran",
 ] as const
 
 export type ProductEventName = (typeof productEventNames)[number] | string

@@ -953,7 +953,7 @@ function primaryActivityAction(
     row.event_name === "qr_enabled" ||
     row.event_name === "qr_disabled"
   ) {
-    return { label: "Open poster", href: "/app/launch?tab=qr" }
+    return { label: "Open QR", href: "/app/launch?tab=qr" }
   }
 
   if (
@@ -986,7 +986,7 @@ function secondaryActivityAction(
       row.event_name === "stamp_issued")
   ) {
     return {
-      label: "Open poster setup",
+      label: "Open QR setup",
       href: "/app/launch?tab=qr",
     }
   }

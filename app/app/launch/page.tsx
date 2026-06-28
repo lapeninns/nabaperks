@@ -162,7 +162,7 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
           title={pageHeading}
           description={
             launchReadiness.launchReady
-              ? "Customers can scan, join, and collect stamps. Your QR is live below — print it when you are ready."
+              ? "Customers can scan, join, and collect stamps. Your QR is live below when you need the link."
               : needsBilling
                 ? "Your account is created. Proceed to billing to activate your venue and start accepting stamps."
                 : `${launchReadiness.total} setup checks and you're live. Your QR is created automatically once the earlier steps are done.`
@@ -170,7 +170,7 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
           actions={
             launchReadiness.launchReady ? (
               <Button asChild variant="secondary">
-                <Link href="/app/launch?tab=qr">Open poster kit</Link>
+                <Link href="/app/launch?tab=qr">Open venue QR</Link>
               </Button>
             ) : needsBilling ? (
               <Button asChild>
@@ -305,7 +305,7 @@ function rewardsContinueLabel(continueHref: string | null): string {
   }
 
   if (continueHref.includes("tab=qr")) {
-    return "your poster kit"
+    return "your venue QR"
   }
 
   return "the next step"

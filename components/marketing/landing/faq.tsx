@@ -24,7 +24,7 @@ export const faqs: readonly Faq[] = [
   },
   {
     q: "Do I need a POS, till integration or special hardware?",
-    a: "No POS, no integration, no special hardware. It runs on any phone, tablet or till, including cash-only takeaways, and we post you a printed QR kit (poster, till card and sticker).",
+    a: "No POS, no integration, no special hardware. It runs on any phone, tablet or till, including cash-only takeaways, with one permanent venue QR for customers to scan.",
   },
   {
     q: "How much does it cost, and am I tied into a contract?",

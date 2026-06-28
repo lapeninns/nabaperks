@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { getServerEnv } from "@/lib/env/server"
-import { getOwnedQrAssetContext } from "@/lib/merchant/qr-code"
+import { getOwnedQrImageContext } from "@/lib/merchant/qr-code"
 import { renderQrCodePng } from "@/lib/qr/assets"
 
 export const runtime = "nodejs"
@@ -14,7 +14,7 @@ type QrImageRouteContext = {
 
 export async function GET(_request: Request, context: QrImageRouteContext) {
   const { qrCodeId } = await context.params
-  const qrContext = await getOwnedQrAssetContext(qrCodeId)
+  const qrContext = await getOwnedQrImageContext(qrCodeId)
 
   if (!qrContext) {
     return new NextResponse("QR code not found", { status: 404 })

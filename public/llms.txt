@@ -5,7 +5,7 @@
 ## What makes Nabaperks different
 - A true browser-based loyalty card, not a wallet pass: nothing to download or install, on any iPhone or Android. Rivals that say "no app" still require an Apple/Google Wallet pass.
 - Counter-verified stamps: every stamp is confirmed at the counter against the physical venue QR, the customer's membership, the venue's billing status, a one-stamp-per-customer-per-UK-calendar-date cap, and optional location-anomaly signals. Rewards are verified live at redemption, not from a screenshot. The phone never crosses the counter.
-- No POS and no hardware: works on any phone, tablet or till, including cash-only takeaways. No POS or EPOS integration required. A printed QR kit (poster, till card, sticker) is posted to the venue.
+- No POS and no hardware: works on any phone, tablet or till, including cash-only takeaways. No POS or EPOS integration required. A permanent venue QR handles joins, stamps, and rewards.
 - Loyalty and marketing kept separate: customers can earn and redeem without joining a marketing list (consent-led marketing opt-in).
 
 ## Loyalty for pubs

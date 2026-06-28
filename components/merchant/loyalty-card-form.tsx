@@ -210,7 +210,7 @@ export function RewardPoolForm({
   cardName,
   rewardPoolItems,
   continueHref,
-  continueLabel = "your poster kit",
+  continueLabel = "your venue QR",
 }: {
   loyaltyCardId: string
   cardName: string
@@ -786,4 +786,3 @@ function TextareaField({
     </div>
   )
 }
-

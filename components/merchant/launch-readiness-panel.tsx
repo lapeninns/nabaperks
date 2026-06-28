@@ -41,7 +41,7 @@ const MOBILE_RAIL_LABEL: Record<LaunchChecklistStepId, string> = {
   venue: "Venue",
   card: "Card",
   rewards: "Rewards",
-  qr: "Poster kit",
+  qr: "Venue QR",
   billing: "Billing",
 }
 
@@ -50,7 +50,7 @@ const MOBILE_RAIL_LABEL_NARROW: Record<LaunchChecklistStepId, string> = {
   venue: "Venue",
   card: "Card",
   rewards: "Pool",
-  qr: "Poster",
+  qr: "QR",
   billing: "Bill",
 }
 

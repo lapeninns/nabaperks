@@ -14,7 +14,6 @@ const pilotProductEventNames = [
   "merchant_signed_up",
   "loyalty_card_created",
   "qr_created",
-  "qr_downloaded",
   "qr_scanned",
   "customer_joined",
   "stamp_issued",
@@ -57,7 +56,6 @@ export async function getAdminPilotReport() {
   const merchantSignedUp = eventCounts["merchant_signed_up"] ?? 0
   const cardCreated = eventCounts["loyalty_card_created"] ?? 0
   const qrCreated = eventCounts["qr_created"] ?? 0
-  const qrDownloaded = eventCounts["qr_downloaded"] ?? 0
   const qrScanned = eventCounts["qr_scanned"] ?? 0
   const customerJoined = eventCounts["customer_joined"] ?? 0
   const stampIssued = eventCounts["stamp_issued"] ?? 0
@@ -110,12 +108,6 @@ export async function getAdminPilotReport() {
         qrCreated,
         "product_events",
         "1 per pilot merchant"
-      ),
-      metric(
-        "QR downloads",
-        qrDownloaded,
-        "product_events",
-        "Poster/till/sticker proof"
       ),
       metric("QR scans", qrScanned, "product_events", "Readback only"),
       metric(

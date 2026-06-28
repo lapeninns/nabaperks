@@ -10,7 +10,7 @@ const STAMPS_EARNED = 3
 /**
  * Merchant setup preview for the venue-benefits section — the customer card
  * shape up top (stamps + programme title), then what the venue configures:
- * print-ready QR kit and clear reward terms. Not the hero's scan journey.
+ * permanent venue QR and clear reward terms. Not the hero's scan journey.
  */
 export function VenueBenefitsCard({
   qrMatrix,
@@ -38,8 +38,8 @@ export function VenueBenefitsCard({
     >
       <CardInfoRow
         icon={<VenueQr matrix={qrMatrix} label="Venue QR kit preview" />}
-        eyebrow="Your QR kit"
-        title="Poster, till card, and sticker — ready to print."
+        eyebrow="Your venue QR"
+        title="One permanent scan point for joins, stamps, and rewards."
       />
       <CardInfoRow
         icon={<RewardSeal state="sealed" size="md" />}

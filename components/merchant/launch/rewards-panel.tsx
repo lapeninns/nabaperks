@@ -145,7 +145,7 @@ function RewardsStatus({
         {needsBillingActivation
           ? "Proceed to billing to activate your venue and start accepting stamps."
           : params.qr === "created"
-            ? "Your venue QR is live. Open the poster kit to print or share it."
+            ? "Your venue QR is live. Open it to copy or test the share link."
             : params.qr === "enabled"
               ? "Your venue QR is active again."
               : rewardsReady

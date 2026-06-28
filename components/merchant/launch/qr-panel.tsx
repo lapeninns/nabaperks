@@ -1,8 +1,7 @@
 import Link from "next/link"
-import { Download01Icon, PrinterIcon } from "@hugeicons/core-free-icons"
 
 import { generateQrCodeAction, setQrActiveAction } from "@/app/app/qr/actions"
-import { Eyebrow, Icon, MonoTag, PageTitle, ReceiptCard } from "@/components/brand"
+import { Eyebrow, PageTitle, ReceiptCard } from "@/components/brand"
 import { QrFrame } from "@/components/loyalty/qr-frame"
 import { RewardSeal } from "@/components/loyalty/reward-seal"
 import { StatusBanner } from "@/components/loyalty/status-banner"
@@ -50,7 +49,7 @@ export async function QrPanel({
     return (
       <ReceiptCard className="grid gap-4">
         <PageTitle
-          eyebrow="Poster kit"
+          eyebrow="Venue QR"
           title="Build your card first"
           description="Nabaperks needs one active mystery visit card before it can create your permanent venue QR."
           titleClassName="sm:text-3xl"
@@ -68,7 +67,7 @@ export async function QrPanel({
     return (
       <ReceiptCard className="grid gap-4">
         <PageTitle
-          eyebrow="Poster kit"
+          eyebrow="Venue QR"
           title="Your QR is not live yet"
           description="Create the permanent venue QR once venue, card, and rewards are ready. Billing is the final activation step."
           titleClassName="sm:text-3xl"
@@ -110,30 +109,23 @@ export async function QrPanel({
 
   const env = getServerEnv()
   const shareUrl = `${env.NEXT_PUBLIC_APP_URL}/q/${qrCode.qr_id}`
-  const poster = {
-    href: `/app/qr/download/poster?qr=${qrCode.id}`,
-    previewHref: `/app/qr/preview/poster?qr=${qrCode.id}`,
-    title: "Venue poster PDF",
-    description: "A4 print piece for tills, tables, and entrance boards.",
-  }
-  const moreAssets = [
+  const posterTemplateLinks = [
     {
-      href: `/app/qr/download/till-card?qr=${qrCode.id}`,
-      previewHref: `/app/qr/preview/till-card?qr=${qrCode.id}`,
-      title: "Till card PNG",
-      description: "Small card to place beside payment.",
-      format: "PNG",
-      shape: "aspect-[5/3]",
+      name: "Editorial",
+      description: "Two-column A4 poster with the offer and QR side by side.",
+      href: `/app/qr/poster/editorial?qr=${qrCode.id}`,
     },
     {
-      href: `/app/qr/download/sticker?qr=${qrCode.id}`,
-      previewHref: `/app/qr/preview/sticker?qr=${qrCode.id}`,
-      title: "Sticker PNG",
-      description: "Square asset for vinyl stickers and quick reprints.",
-      format: "PNG",
-      shape: "aspect-square",
+      name: "Bold",
+      description: "QR-first A4 poster for busy counters and doors.",
+      href: `/app/qr/poster/bold?qr=${qrCode.id}`,
     },
-  ]
+    {
+      name: "Ticket",
+      description: "Receipt-style A4 poster with simple scan steps.",
+      href: `/app/qr/poster/ticket?qr=${qrCode.id}`,
+    },
+  ] as const
 
   return (
     <div className="grid min-w-0 gap-3 sm:gap-5">
@@ -168,7 +160,7 @@ export async function QrPanel({
 
         <div className="grid content-start gap-4">
           <PageTitle
-            eyebrow="Poster kit"
+            eyebrow="Venue QR"
             title={activeCard.card_name}
             description="Customers scan this permanent code to join, collect today's stamp, and unlock a surprise reward."
             titleClassName="sm:text-3xl"
@@ -190,35 +182,11 @@ export async function QrPanel({
 
           <div className="grid gap-0 rounded-lg border-2 border-ink bg-background p-4 sm:p-5">
             <div className="grid gap-3">
-              <div className="flex items-center gap-2">
-                <Icon icon={PrinterIcon} size={18} />
-                <p className="text-sm font-extrabold">Print it</p>
-              </div>
+              <p className="text-sm font-extrabold">Share your QR</p>
               <p className="text-sm leading-6 text-muted-foreground">
-                {poster.description} Put it where customers pay.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Button asChild>
-                  <Link href={poster.href}>
-                    <Icon icon={Download01Icon} size={16} />
-                    Download poster
-                  </Link>
-                </Button>
-                <Button asChild variant="outline">
-                  <Link href={poster.previewHref} target="_blank">
-                    Preview poster
-                  </Link>
-                </Button>
-              </div>
-            </div>
-
-            <hr className="w-rule" />
-
-            <div className="grid gap-3">
-              <p className="text-sm font-extrabold">Scan it once yourself</p>
-              <p className="text-sm leading-6 text-muted-foreground">
-                Scan the poster once before the first customer to check it
-                resolves.
+                Use this permanent venue link wherever you already share your
+                loyalty programme. Scan it once yourself before the first
+                customer to check it resolves.
               </p>
               <div className="grid gap-2">
                 <Eyebrow>Share link</Eyebrow>
@@ -237,53 +205,36 @@ export async function QrPanel({
             </div>
           </div>
 
-          <div className="grid gap-3">
-            <Disclosure label="More print assets">
-              <p className="text-xs leading-5 text-muted-foreground">
-                Same QR, smaller formats for tills and windows.
+          <div className="grid gap-3 rounded-lg border-2 border-ink bg-background p-4 sm:p-5">
+            <div className="grid gap-1">
+              <p className="text-sm font-extrabold">A4 poster templates</p>
+              <p className="text-sm leading-6 text-muted-foreground">
+                Open a print-ready counter poster using this venue QR. Print it
+                from the browser or save it as a PDF.
               </p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {moreAssets.map((asset) => (
-                  <article
-                    key={asset.href}
-                    className="grid content-between gap-4 rounded-lg border-2 border-ink bg-card p-4 shadow-xs"
-                  >
-                    <span className="grid gap-2">
-                      <span
-                        className={`grid ${asset.shape} overflow-hidden rounded-lg border border-border/80 bg-card p-2`}
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element -- preview route is protected by merchant cookies */}
-                        <img
-                          src={asset.previewHref}
-                          alt={`${asset.title} preview`}
-                          className="h-full w-full rounded-lg bg-white object-contain shadow-xs"
-                        />
-                      </span>
-                      <MonoTag tone="plain" className="w-fit">
-                        {asset.format}
-                      </MonoTag>
-                      <span className="text-sm font-extrabold">
-                        {asset.title}
-                      </span>
-                      <span className="text-sm leading-6 text-muted-foreground">
-                        {asset.description}
-                      </span>
-                    </span>
-                    <span className="flex flex-wrap gap-2">
-                      <Button asChild variant="outline" size="sm">
-                        <Link href={asset.previewHref} target="_blank">
-                          Preview
-                        </Link>
-                      </Button>
-                      <Button asChild variant="secondary" size="sm">
-                        <Link href={asset.href}>Download</Link>
-                      </Button>
-                    </span>
-                  </article>
-                ))}
-              </div>
-            </Disclosure>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {posterTemplateLinks.map((template) => (
+                <Link
+                  key={template.name}
+                  href={template.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="grid min-h-28 content-between gap-3 rounded-lg border-2 border-ink bg-card p-3 text-sm shadow-sm transition-transform hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+                >
+                  <span className="font-extrabold">{template.name}</span>
+                  <span className="leading-5 text-muted-foreground">
+                    {template.description}
+                  </span>
+                  <span className="font-mono text-[10px] font-bold tracking-[0.06em] text-primary uppercase">
+                    Open A4
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
 
+          <div className="grid gap-3">
             <Disclosure label="How customers use this">
               <ol className="grid list-decimal gap-2 pl-5 text-sm leading-6 text-muted-foreground">
                 <li>New customers scan the QR and join with their phone.</li>
@@ -346,7 +297,7 @@ function statusMessage(
     <StatusBanner tone="success" title={message}>
       {nextHref
         ? "Your account is created. Proceed to billing to activate your venue and start accepting stamps."
-        : "The permanent resolver, share URL, and downloads are ready below."}
+        : "The permanent resolver and share URL are ready below."}
       {nextHref ? (
         <LaunchSaveNextAction
           nextHref={nextHref}

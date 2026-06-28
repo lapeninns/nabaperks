@@ -288,8 +288,8 @@ export function MerchantCustomersTableSkeleton() {
  * so a tab switch (the `key={activeTab}` Suspense boundary re-mounts on every
  * switch) does not shift the layout: the card tab is the 2-col form + preview
  * shell, the rewards tab is the counter header + reward rows + dashed add row,
- * the venue tab is a simple form stack, and the qr tab is the QR frame + print
- * blocks.
+ * the venue tab is a simple form stack, and the qr tab is the QR frame + share
+ * controls.
  */
 export function LaunchPanelSkeleton({
   tab,
@@ -298,7 +298,7 @@ export function LaunchPanelSkeleton({
 }) {
   if (tab === "qr") {
     return (
-      <div className="grid gap-5" role="status" aria-label="Loading poster kit">
+      <div className="grid gap-5" role="status" aria-label="Loading venue QR">
         <div className="surface-card grid gap-6 p-6 lg:grid-cols-[300px_minmax(0,1fr)]">
           <div className="grid h-fit content-start gap-3">
             <Skeleton className="aspect-square w-full" />

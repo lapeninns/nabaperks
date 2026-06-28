@@ -80,8 +80,8 @@ export default function RewardRegularsWithoutAnAppPage() {
       <GuideSection heading="Nothing new at the till">
         <p>
           {PRODUCT.posLine} It runs on any phone, tablet or till you already have,
-          and a printed QR kit is posted to the venue. Your team keeps pouring;
-          the loyalty card looks after itself.
+          and your permanent venue QR handles joins, stamps, and rewards. Your
+          team keeps pouring; the loyalty card looks after itself.
         </p>
       </GuideSection>
     </GuidePage>

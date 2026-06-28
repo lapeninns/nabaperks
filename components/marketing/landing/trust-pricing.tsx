@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 const planIncludes = [
   "Unlimited stamps and members",
   "Simple reward setup",
-  "Printed QR kit: poster, till card, sticker",
+  "Permanent venue QR",
   "Weekly digest of visits and redemptions",
 ] as const
 

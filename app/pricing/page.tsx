@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 const planIncludes = [
   "Unlimited stamps and members",
   "Simple reward setup",
-  "Printed QR kit: A4 poster, till card, sticker",
+  "Permanent venue QR",
   "Optional location checks at your venue",
   "Weekly digest of visits, regulars, and redemptions",
 ]
@@ -22,7 +22,7 @@ const faqs = [
   },
   {
     q: "Do I need any hardware?",
-    a: "No. Customers use their own phones and the permanent printed QR kit. Optional location checks can flag out-of-range visits without blocking legitimate customers.",
+    a: "No. Customers use their own phones and your permanent venue QR. Optional location checks can flag out-of-range visits without blocking legitimate customers.",
   },
   {
     q: "Who owns the customer data?",

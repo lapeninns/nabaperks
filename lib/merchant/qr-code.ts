@@ -145,7 +145,7 @@ export async function getQrSetupFresh(): Promise<QrSetup> {
   return getQrSetupUncached()
 }
 
-export async function getOwnedQrAssetContext(qrCodeId: string) {
+export async function getOwnedQrImageContext(qrCodeId: string) {
   const { merchant, location, activeCard } = await getQrSetup()
 
   if (!merchant || !location || !activeCard) return null
@@ -160,7 +160,7 @@ export async function getOwnedQrAssetContext(qrCodeId: string) {
     .maybeSingle()
 
   if (error) {
-    throw new Error(`Unable to load QR asset context: ${error.message}`)
+    throw new Error(`Unable to load QR image context: ${error.message}`)
   }
 
   if (!qrCode) return null

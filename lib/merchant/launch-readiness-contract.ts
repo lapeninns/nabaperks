@@ -18,7 +18,7 @@ export const LAUNCH_SETUP_STEP_LABELS: Record<LaunchHubTab, string> = {
   card: "Your card",
   rewards: "Your rewards",
   venue: "Business & venue",
-  qr: "Poster kit",
+  qr: "Venue QR",
   billing: "Billing",
 }
 
@@ -45,7 +45,7 @@ export const MERCHANT_SETUP_STEPS = [
     id: "qr",
     title: LAUNCH_SETUP_STEP_LABELS.qr,
     description:
-      "Print the poster, till card, and sticker for your permanent venue QR.",
+      "Review and share the permanent venue QR customers use to collect stamps.",
   },
   {
     id: "billing",
