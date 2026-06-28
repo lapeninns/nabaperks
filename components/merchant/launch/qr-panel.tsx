@@ -50,7 +50,7 @@ export async function QrPanel({
     return (
       <ReceiptCard className="grid gap-4">
         <PageTitle
-          eyebrow="Launch kit"
+          eyebrow="Poster kit"
           title="Build your card first"
           description="Nabaperks needs one active mystery visit card before it can create your permanent venue QR."
           titleClassName="sm:text-3xl"
@@ -68,7 +68,7 @@ export async function QrPanel({
     return (
       <ReceiptCard className="grid gap-4">
         <PageTitle
-          eyebrow="Launch kit"
+          eyebrow="Poster kit"
           title="Your QR is not live yet"
           description="Create the permanent venue QR once venue, card, and rewards are ready. Billing is the final activation step."
           titleClassName="sm:text-3xl"
@@ -168,7 +168,7 @@ export async function QrPanel({
 
         <div className="grid content-start gap-4">
           <PageTitle
-            eyebrow="Launch kit"
+            eyebrow="Poster kit"
             title={activeCard.card_name}
             description="Customers scan this permanent code to join, collect today's stamp, and unlock a surprise reward."
             titleClassName="sm:text-3xl"
@@ -288,7 +288,7 @@ export async function QrPanel({
               <ol className="grid list-decimal gap-2 pl-5 text-sm leading-6 text-muted-foreground">
                 <li>New customers scan the QR and join with their phone.</li>
                 <li>
-                  Existing customers scan the same QR and tap to add
+                  Existing members scan the same QR and tap to add
                   today&apos;s stamp.
                 </li>
                 <li>

@@ -19,7 +19,7 @@ export default function MerchantError({
         headingLevel={1}
         icon={AlertDiamondIcon}
         title="That didn't load"
-        description="Something interrupted your workspace. Try again. Your card, customers, and rewards are safe on the server."
+        description="Something interrupted your workspace. Try again. Your card, members, and rewards are safe on the server."
         actions={
           <Button type="button" onClick={reset}>
             Try again

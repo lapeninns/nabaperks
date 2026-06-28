@@ -73,11 +73,44 @@ export async function signUpAction(
   _state: AuthActionState,
   formData: FormData
 ): Promise<AuthActionState> {
+  const intent = value(formData, "intent") || "create"
   const name = value(formData, "name")
   const email = value(formData, "email").toLowerCase()
+  const errors: NonNullable<AuthActionState["errors"]> = {}
+
+  if (intent === "resend") {
+    if (!validateEmail(email)) errors.email = "Enter a valid email address."
+
+    if (Object.keys(errors).length) {
+      return { fields: { name, email, otpSent: true }, errors }
+    }
+
+    const rateLimitResult = await enforceAuthRateLimit("merchant-signup", email)
+    if (rateLimitResult) {
+      return { fields: { name, email, otpSent: true }, errors: rateLimitResult }
+    }
+
+    const supabase = await createSupabaseServerClient()
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+    })
+
+    if (error) {
+      return {
+        fields: { name, email, otpSent: true },
+        errors: { form: error.message },
+      }
+    }
+
+    return {
+      fields: { name, email, otpSent: true },
+      message: "We sent another four-digit code. Enter it below.",
+    }
+  }
+
   const password = passwordValue(formData, "password")
   const confirmPassword = passwordValue(formData, "confirmPassword")
-  const errors: NonNullable<AuthActionState["errors"]> = {}
 
   if (name.length < 2) errors.name = "Enter your name."
   if (!validateEmail(email)) errors.email = "Enter a valid email address."

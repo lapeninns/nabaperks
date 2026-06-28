@@ -12,7 +12,7 @@ export function formatMerchantCustomerIdentifier(
 
   const phoneEnding =
     lastFourDigits(customer?.phone) ?? lastFourDigits(customer?.phoneLast4)
-  return phoneEnding ? `Phone ending ${phoneEnding}` : "Customer"
+  return phoneEnding ? `Phone ending ${phoneEnding}` : "Member"
 }
 
 function maskMerchantEmail(value: string | null | undefined) {

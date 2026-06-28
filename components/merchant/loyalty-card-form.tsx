@@ -168,7 +168,7 @@ export function LoyaltyCardForm({
           rows={2}
           value={draft.rewardTerms}
           onChange={(event) => updateDraft("rewardTerms", event.target.value)}
-          hint="Shown on the customer card. The suggested copy updates when you change visits, until you edit this field."
+          hint="Shown on the member card. The suggested copy updates when you change visits, until you edit this field."
           hintClassName="hidden sm:block"
           error={state.errors?.rewardTerms}
         />
@@ -176,7 +176,7 @@ export function LoyaltyCardForm({
         <ToggleRow
           name="isActive"
           label="Card is active"
-          hint="Customers can collect stamps on this card."
+          hint="Members can collect stamps on this card."
           checked={draft.isActive}
           onChange={(checked) => updateDraft("isActive", checked)}
         />
@@ -210,7 +210,7 @@ export function RewardPoolForm({
   cardName,
   rewardPoolItems,
   continueHref,
-  continueLabel = "your launch kit",
+  continueLabel = "your poster kit",
 }: {
   loyaltyCardId: string
   cardName: string
@@ -500,7 +500,7 @@ function RewardPoolItemForm({
           label="Reward terms"
           name="rewardTerms"
           rows={3}
-          placeholder="What the customer gets, and any conditions."
+          placeholder="What the member gets, and any conditions."
           value={draft.rewardTerms}
           onChange={(event) => updateDraft("rewardTerms", event.target.value)}
           error={state.errors?.rewardTerms}

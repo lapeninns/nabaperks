@@ -203,7 +203,7 @@ function MerchantNextActions({
         <ProgressTrack
           current={repeatCustomers}
           total={members}
-          label="Repeat customers"
+          label="Repeat members"
         />
       </div>
     </ReceiptCard>
@@ -269,7 +269,7 @@ export async function MerchantCompactActivityStream({
         emptyState={
           <EmptyState
             title="No activity yet"
-            description="Activity will appear here after customers join, stamps are issued, rewards are redeemed, or QR assets are downloaded."
+            description="Activity will appear here after members join, stamps are issued, rewards are redeemed, or QR assets are downloaded."
             icon={Activity03Icon}
             className="bg-background"
             // Nest under the card's "Recent activity" h2 instead of peering with it.

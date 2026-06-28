@@ -230,7 +230,7 @@ export function MerchantRewardScanner() {
         : status.kind === "decoded"
           ? "Reward QR found. Opening collection..."
           : status.kind === "invalid"
-            ? "That is not a reward QR from a customer card"
+            ? "That is not a reward QR from a member card"
             : CAMERA_ERROR_STATUS[status.reason]
 
   return (
@@ -241,7 +241,7 @@ export function MerchantRewardScanner() {
           Scan reward QR
         </h1>
         <p className="text-sm leading-6 text-muted-foreground">
-          Point your camera at the QR on the customer&apos;s phone. We will open
+          Point your camera at the QR on the member&apos;s phone. We will open
           the collection screen when it is ready to mark collected.
         </p>
       </div>

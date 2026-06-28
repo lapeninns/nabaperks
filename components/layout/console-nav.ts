@@ -6,8 +6,8 @@ import {
   CreditCardIcon,
   Home01Icon,
   QrCode01Icon,
-  Rocket01Icon,
   SecurityCheckIcon,
+  Settings01Icon,
   Shield01Icon,
   Store01Icon,
   UserMultiple02Icon,
@@ -67,17 +67,17 @@ export function isActiveNavItem(
 
 export const merchantNavItems = [
   { href: "/app", label: "Home", icon: Home01Icon },
-  { href: "/app/launch", label: "Launch", icon: Rocket01Icon },
-  { href: "/app/qr", label: "QR", icon: QrCode01Icon },
-  { href: "/app/customers", label: "Customers", icon: UserMultiple02Icon },
+  { href: "/app/launch", label: "Setup", icon: Settings01Icon },
+  { href: "/app/qr", label: "Poster", icon: QrCode01Icon },
+  { href: "/app/customers", label: "Members", icon: UserMultiple02Icon },
   { href: "/app/activity", label: "Activity", icon: Activity03Icon },
 ] satisfies readonly ShellNavItem[]
 
 /** Primary destinations for the merchant mobile bottom tab bar. */
 export const merchantTabBarItems = [
   { href: "/app", label: "Home", icon: Home01Icon },
-  { href: "/app/qr", label: "QR", icon: QrCode01Icon },
-  { href: "/app/customers", label: "Customers", icon: UserMultiple02Icon },
+  { href: "/app/qr", label: "Poster", icon: QrCode01Icon },
+  { href: "/app/customers", label: "Members", icon: UserMultiple02Icon },
   { href: "/app/activity", label: "Activity", icon: Activity03Icon },
   {
     href: "/app/account?tab=profile",

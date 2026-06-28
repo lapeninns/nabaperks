@@ -6,6 +6,7 @@ import { getServerEnv } from "@/lib/env/server"
 import {
   setBillingStatusForSubscription,
   stripeId,
+  stripeInvoiceSubscriptionId,
   syncStripeSubscription,
 } from "@/lib/stripe/billing"
 import { getStripe } from "@/lib/stripe/server"
@@ -105,7 +106,7 @@ async function handleStripeEvent(stripe: Stripe, event: Stripe.Event) {
     }
     case "invoice.payment_failed": {
       const invoice = event.data.object as Stripe.Invoice
-      const subscriptionId = invoiceSubscriptionId(invoice)
+      const subscriptionId = stripeInvoiceSubscriptionId(invoice)
 
       if (subscriptionId) {
         await setBillingStatusForSubscription({
@@ -117,7 +118,7 @@ async function handleStripeEvent(stripe: Stripe, event: Stripe.Event) {
     }
     case "invoice.payment_succeeded": {
       const invoice = event.data.object as Stripe.Invoice
-      const subscriptionId = invoiceSubscriptionId(invoice)
+      const subscriptionId = stripeInvoiceSubscriptionId(invoice)
 
       if (subscriptionId) {
         const subscription = await stripe.subscriptions.retrieve(subscriptionId)
@@ -128,9 +129,4 @@ async function handleStripeEvent(stripe: Stripe, event: Stripe.Event) {
     default:
       break
   }
-}
-
-function invoiceSubscriptionId(invoice: Stripe.Invoice) {
-  const subscription = invoice.parent?.subscription_details?.subscription
-  return stripeId(subscription)
 }

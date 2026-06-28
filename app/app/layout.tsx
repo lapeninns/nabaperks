@@ -1,4 +1,4 @@
-import { headers } from "next/headers"
+import { cookies, headers } from "next/headers"
 import { redirect } from "next/navigation"
 
 import { signOutAction } from "@/app/(auth)/actions"
@@ -21,11 +21,15 @@ export default async function MerchantAppLayout({
     redirect(merchantLoginHref(returnPath))
   }
 
+  const cookieStore = await cookies()
+  const defaultSidebarOpen = cookieStore.get("sidebar_state")?.value !== "false"
+
   return (
     <MerchantAppShell
       signOutAction={signOutAction}
       activePath={activePath}
       variant={isMerchantSetupPath(activePath) ? "setup" : "full"}
+      defaultSidebarOpen={defaultSidebarOpen}
     >
       {children}
     </MerchantAppShell>

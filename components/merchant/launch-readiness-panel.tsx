@@ -41,7 +41,7 @@ const MOBILE_RAIL_LABEL: Record<LaunchChecklistStepId, string> = {
   venue: "Venue",
   card: "Card",
   rewards: "Rewards",
-  qr: "QR kit",
+  qr: "Poster kit",
   billing: "Billing",
 }
 
@@ -50,7 +50,7 @@ const MOBILE_RAIL_LABEL_NARROW: Record<LaunchChecklistStepId, string> = {
   venue: "Venue",
   card: "Card",
   rewards: "Pool",
-  qr: "QR",
+  qr: "Poster",
   billing: "Bill",
 }
 
@@ -118,9 +118,9 @@ export function LaunchReadinessPanel({
       >
         {showHeader ? (
           <SectionHeader
-            eyebrow="Launch setup"
-            title="Launch readiness"
-            description="What's left before customers can collect stamps."
+            eyebrow="Setup"
+            title="Setup readiness"
+            description="What's left before members can collect stamps."
             actions={
               <MonoTag tone={readiness.launchReady ? "leaf" : "sun"}>
                 {readiness.completed} of {readiness.total} complete
@@ -237,7 +237,7 @@ export function LaunchReadinessPanel({
           </p>
           <Button asChild variant="secondary" size="sm">
             <Link href={nextStep?.href ?? "/app/launch"}>
-              {nextStep?.actionLabel ?? "Open launch"}
+              {nextStep?.actionLabel ?? "Open setup"}
               <Icon icon={ArrowRight02Icon} size={15} />
             </Link>
           </Button>

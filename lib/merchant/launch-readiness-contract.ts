@@ -18,7 +18,7 @@ export const LAUNCH_SETUP_STEP_LABELS: Record<LaunchHubTab, string> = {
   card: "Your card",
   rewards: "Your rewards",
   venue: "Business & venue",
-  qr: "Launch kit",
+  qr: "Poster kit",
   billing: "Billing",
 }
 

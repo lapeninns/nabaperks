@@ -170,7 +170,7 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
           actions={
             launchReadiness.launchReady ? (
               <Button asChild variant="secondary">
-                <Link href="/app/launch?tab=qr">Open launch kit</Link>
+                <Link href="/app/launch?tab=qr">Open poster kit</Link>
               </Button>
             ) : needsBilling ? (
               <Button asChild>
@@ -305,7 +305,7 @@ function rewardsContinueLabel(continueHref: string | null): string {
   }
 
   if (continueHref.includes("tab=qr")) {
-    return "your launch kit"
+    return "your poster kit"
   }
 
   return "the next step"

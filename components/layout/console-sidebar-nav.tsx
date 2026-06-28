@@ -17,8 +17,9 @@ import {
 import { isActiveNavItem, type ShellNavItem } from "./console-nav"
 
 export const CONSOLE_SIDEBAR_STYLE: CSSProperties &
-  Record<"--sidebar-width", string> = {
+  Record<"--sidebar-width" | "--sidebar-width-icon", string> = {
   "--sidebar-width": "17rem",
+  "--sidebar-width-icon": "4.5rem",
 }
 
 export function ConsoleSidebarNav({
@@ -93,7 +94,9 @@ function ConsoleSidebarGroup({
 
   return (
     <SidebarGroup>
-      {label ? <SidebarGroupLabel>{label}</SidebarGroupLabel> : null}
+      {label ? (
+        <SidebarGroupLabel data-collapse-hide>{label}</SidebarGroupLabel>
+      ) : null}
       <SidebarGroupContent>
         <SidebarMenu>
           {items.map((item) => {
@@ -110,7 +113,7 @@ function ConsoleSidebarGroup({
                     onClick={handleLinkClick}
                   >
                     {item.icon ? <Icon icon={item.icon} size={16} /> : null}
-                    <span>{item.label}</span>
+                    <span data-collapse-label>{item.label}</span>
                     <NavPendingIndicator />
                   </Link>
                 </SidebarMenuButton>
@@ -130,6 +133,7 @@ function NavPendingIndicator() {
     <span
       aria-hidden="true"
       data-pending={pending}
+      data-collapse-hide
       className="ml-auto size-1.5 shrink-0 rounded-full bg-current opacity-0 transition-opacity delay-100 duration-[var(--w-dur-fast)] ease-[var(--w-ease)] data-[pending=true]:opacity-60 motion-reduce:transition-none"
     />
   )

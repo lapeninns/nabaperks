@@ -68,6 +68,7 @@ export async function completeOnboardingAction(
   const phone = value(formData, "phone")
   const venueSubmission = parseVenueLocationSubmission(formData, {
     venueNameField: "locationName",
+    defaultVenueName: businessName,
   })
   const locationName = venueSubmission.venueName
   const fields = {

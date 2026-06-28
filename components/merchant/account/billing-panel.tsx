@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { getMerchantBilling, type MerchantBilling } from "@/lib/merchant/billing"
+import { syncMerchantBillingFromStripe } from "@/lib/stripe/billing"
 
 const BILLING_PAGE_ERROR = "Billing details could not be loaded. Try again."
 const SHOW_LOCAL_STRIPE_WEBHOOK_NOTE = process.env.NODE_ENV !== "production"
@@ -36,6 +37,14 @@ export async function BillingPanel({
 
   if (!merchant) {
     redirect("/app/onboarding")
+  }
+
+  if (params.checkout === "success") {
+    try {
+      await syncMerchantBillingFromStripe(merchant.id)
+    } catch {
+      // Checkout return sync is best-effort; webhooks remain the durable path.
+    }
   }
 
   const result = await getMerchantBilling(merchant.id)
@@ -240,17 +249,17 @@ function BillingOutcomeMessages({
       {checkout === "success" ? (
         <div className="grid gap-2 rounded-lg border border-reward/30 bg-accent px-4 py-3 text-sm text-accent-foreground">
           <p>
-            Checkout completed. Billing switches on after Stripe confirms the
-            subscription.
+            Checkout completed. Your billing status should update on this page
+            within a few seconds.
           </p>
           {SHOW_LOCAL_STRIPE_WEBHOOK_NOTE ? (
             <p className="text-xs leading-5">
-              Local dev: if it stays pending, keep the Stripe webhook listener
-              running with{" "}
+              Local dev: keep the Stripe webhook listener running with{" "}
               <code className="font-mono">
                 stripe listen --forward-to localhost:3000/api/stripe/webhook
               </code>{" "}
-              and restart after setting STRIPE_WEBHOOK_SECRET.
+              and restart after setting STRIPE_WEBHOOK_SECRET so future renewals
+              sync automatically.
             </p>
           ) : null}
         </div>

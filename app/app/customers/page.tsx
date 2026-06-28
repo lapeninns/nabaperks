@@ -41,7 +41,7 @@ export default async function MerchantCustomersPage({
   return (
     <div className="grid gap-6">
       <PageTitle
-        eyebrow="Customers"
+        eyebrow="Members"
         title="Loyalty members"
         description="Stamp progress and reward status for everyone who has joined your card."
       />
@@ -82,8 +82,8 @@ async function CustomersTableStream({
       highlightedMembershipId={highlightedMembershipId}
       emptyState={
         <EmptyState
-          title="No customers yet"
-          description="Customers will appear here after they join via the venue QR."
+          title="No members yet"
+          description="Members will appear here after they join via the venue QR."
           icon={UserMultiple02Icon}
         />
       }

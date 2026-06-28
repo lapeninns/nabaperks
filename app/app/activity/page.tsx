@@ -98,7 +98,7 @@ async function ActivityFeedStream({
       emptyState={
         <EmptyState
           title="No activity yet"
-          description="Activity will appear after customers join, add stamps, redeem rewards, or download QR assets."
+          description="Activity will appear after members join, add stamps, redeem rewards, or download QR assets."
           icon={Activity03Icon}
         />
       }

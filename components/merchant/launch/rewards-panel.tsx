@@ -68,7 +68,7 @@ export async function RewardsPanel({
     return (
       <ReceiptCard className="grid gap-4">
         <PageTitle
-          eyebrow="Step 2 · Reward"
+          eyebrow="Step 3 · Rewards"
           title="Build your card first"
           description="The reward pool is tied to a saved visit card. Create the card, then come back here to load at least 3 active mystery rewards."
           titleClassName="sm:text-3xl"
@@ -145,7 +145,7 @@ function RewardsStatus({
         {needsBillingActivation
           ? "Proceed to billing to activate your venue and start accepting stamps."
           : params.qr === "created"
-            ? "Your venue QR is live. Open the launch kit to print or share it."
+            ? "Your venue QR is live. Open the poster kit to print or share it."
             : params.qr === "enabled"
               ? "Your venue QR is active again."
               : rewardsReady

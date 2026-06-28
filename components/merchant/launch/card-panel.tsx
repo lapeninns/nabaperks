@@ -80,7 +80,7 @@ function CardStatus({
   if (params.saved === "1") {
     return (
       <StatusBanner tone="success" title="Mystery card saved.">
-        Your visit-card settings are ready for customer previews.
+        Your visit-card settings are ready for member previews.
         {advanceHref ? (
           <LaunchSaveNextAction
             nextHref={advanceHref}

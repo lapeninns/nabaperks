@@ -12,9 +12,9 @@ import {
 } from "@/lib/merchant/venue-address"
 
 /**
- * Profile tab of the Account hub. Leads with the read-only "what customers see"
- * card (the venue, which is edited in Launch), then the business/account edit
- * form. Venue editing is intentionally a link to Launch, not a second form.
+ * Profile tab of the Account hub. Leads with the customer-facing venue snapshot,
+ * then the business/account edit form. Address and GPS editing stay in Launch,
+ * but the business name is editable here because customer routes use it.
  */
 export async function ProfilePanel() {
   const profile = await getMerchantProfile()
@@ -44,15 +44,15 @@ export async function ProfilePanel() {
       <section className="surface-card grid gap-3 p-5">
         <p className="eyebrow">What customers see</p>
         <p className="text-2xl leading-tight font-extrabold">
-          {profile.location?.name || profile.merchant.business_name}
+          {profile.merchant.business_name}
         </p>
         <p className="text-sm leading-6 text-muted-foreground">
           {venueAddressDisplay ||
-            "Add your venue address in Launch so customers can find you."}
+            "Add your venue address in Setup so customers can find you."}
         </p>
         <Link
           href="/app/launch?tab=venue"
-          className="mt-1 inline-flex w-fit items-center gap-1.5 text-sm font-bold text-ink underline decoration-2 underline-offset-4 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none hover:text-primary"
+          className="mt-1 inline-flex w-fit items-center gap-1.5 text-sm font-bold text-ink underline decoration-2 underline-offset-4 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:text-primary motion-reduce:transition-none"
         >
           Edit venue details
           <Icon icon={ArrowRight01Icon} size={15} />
@@ -67,9 +67,9 @@ export async function ProfilePanel() {
           phone={profile.merchant.phone ?? ""}
         />
         <p className="text-sm leading-6 text-muted-foreground">
-          Your business name and contact details stay on your account for
-          billing and support. Your venue name and address — what customers see
-          when they join — are managed in Launch.
+          Address and GPS checks are managed in Setup. Your business name is
+          saved here because it is reused on customer cards, reward screens, QR
+          posters, billing, and support.
         </p>
       </div>
     </section>

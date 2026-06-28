@@ -11,6 +11,13 @@ import {
   VenuePlaceAutocomplete,
   type VenuePlaceSelection,
 } from "@/components/merchant/launch/venue-place-autocomplete"
+import {
+  BusinessTypeField,
+  OnboardingField,
+  OnboardingFormError,
+  onboardingInputClassName,
+  type BusinessTypeOption,
+} from "@/components/merchant/onboarding-form-fields"
 import { VenueAddressFields } from "@/components/merchant/venue-address-fields"
 import {
   MANUAL_VENUE_PROVENANCE,
@@ -23,13 +30,20 @@ import { cn } from "@/lib/utils"
 
 const initialState: OnboardingActionState = {}
 const legacyDraftStorageKey = "nabaperks:onboarding-draft"
+const businessTypeOptions = [
+  { value: "cafe", label: "Cafe" },
+  { value: "dessert", label: "Dessert shop" },
+  { value: "bubble_tea", label: "Bubble tea" },
+  { value: "pub", label: "Pub or bar" },
+  { value: "takeaway", label: "Takeaway / quick service" },
+  { value: "barber", label: "Barber" },
+  { value: "salon", label: "Salon" },
+  { value: "other", label: "Other local business" },
+] satisfies readonly BusinessTypeOption[]
 
 function onboardingDraftStorageKey(userId: string) {
   return `${legacyDraftStorageKey}:${userId}`
 }
-
-const onboardingInputClassName =
-  "h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none focus:border-ring focus:ring-3 focus:ring-ring/25"
 
 type OnboardingDraft = NonNullable<OnboardingActionState["fields"]>
 
@@ -53,6 +67,9 @@ export function OnboardingForm({
     hasInitialFields ? { ...initialState, fields: initialFields } : initialState
   )
   const formRef = useRef<HTMLFormElement>(null)
+  const [businessName, setBusinessName] = useState(
+    state.fields?.businessName ?? initialFields.businessName ?? ""
+  )
   const [locationName, setLocationName] = useState(
     state.fields?.locationName ?? initialFields.locationName ?? ""
   )
@@ -75,6 +92,10 @@ export function OnboardingForm({
 
     const fields = state.fields
     const timeoutId = window.setTimeout(() => {
+      if (fields.businessName !== undefined) {
+        setBusinessName(fields.businessName)
+      }
+
       if (fields.locationName !== undefined) {
         setLocationName(fields.locationName)
       }
@@ -114,6 +135,7 @@ export function OnboardingForm({
         if (!form || Object.values(state.fields ?? {}).some(Boolean)) return
 
         restoreField(form, "businessName", draft.businessName)
+        if (draft.businessName) setBusinessName(draft.businessName)
         restoreField(form, "businessType", draft.businessType)
         restoreField(form, "phone", draft.phone)
         if (draft.locationName) setLocationName(draft.locationName)
@@ -194,54 +216,24 @@ export function OnboardingForm({
         <Eyebrow>Merchant setup</Eyebrow>
       </div>
       <hr className="w-rule" />
-      <Field
+      <OnboardingField
         id="businessName"
         label="Business name"
         name="businessName"
         required
-        defaultValue={state.fields?.businessName}
-        onChange={(event) => updateDraft({ businessName: event.target.value })}
+        value={businessName}
+        onChange={(event) => {
+          setBusinessName(event.target.value)
+          updateDraft({ businessName: event.target.value })
+        }}
         error={state.errors?.businessName}
       />
-      <div className="grid gap-2">
-        <label htmlFor="businessType" className="eyebrow">
-          Business type{" "}
-          <span aria-hidden="true" className="text-destructive">
-            *
-          </span>
-          <span className="sr-only"> (required)</span>
-        </label>
-        <select
-          id="businessType"
-          name="businessType"
-          required
-          aria-required="true"
-          defaultValue={state.fields?.businessType ?? ""}
-          onChange={(event) => updateDraft({ businessType: event.target.value })}
-          className={onboardingInputClassName}
-          aria-invalid={Boolean(state.errors?.businessType)}
-          aria-describedby={
-            state.errors?.businessType ? "businessType-error" : undefined
-          }
-        >
-          <option value="" disabled>
-            Select type
-          </option>
-          <option value="cafe">Cafe</option>
-          <option value="dessert">Dessert shop</option>
-          <option value="bubble_tea">Bubble tea</option>
-          <option value="pub">Pub or bar</option>
-          <option value="takeaway">Takeaway / quick service</option>
-          <option value="barber">Barber</option>
-          <option value="salon">Salon</option>
-          <option value="other">Other local business</option>
-        </select>
-        {state.errors?.businessType ? (
-          <p id="businessType-error" className="text-sm text-destructive">
-            {state.errors.businessType}
-          </p>
-        ) : null}
-      </div>
+      <BusinessTypeField
+        value={state.fields?.businessType}
+        options={businessTypeOptions}
+        error={state.errors?.businessType}
+        onChange={(value) => updateDraft({ businessType: value })}
+      />
 
       <VenuePlaceAutocomplete
         onPlaceSelected={handlePlaceSelected}
@@ -261,11 +253,7 @@ export function OnboardingForm({
 
       <VenueProviderProvenanceFields provenance={provenance} />
 
-      <input
-        type="hidden"
-        name="geofenceRadiusMeters"
-        value="150"
-      />
+      <input type="hidden" name="geofenceRadiusMeters" value="150" />
       <input type="hidden" name="geofencePinSource" value="geocoded" />
       <input
         type="hidden"
@@ -278,19 +266,15 @@ export function OnboardingForm({
         value={providerCoordinates.longitude}
       />
 
-      <Field
-        id="locationName"
-        label="First location name"
+      <input
+        type="hidden"
         name="locationName"
-        required
-        value={locationName}
-        onChange={(event) => {
-          setLocationName(event.target.value)
-          updateDraft({ locationName: event.target.value })
-        }}
-        error={state.errors?.locationName}
+        value={locationName || businessName}
       />
-      <Field
+      {state.errors?.locationName ? (
+        <OnboardingFormError>{state.errors.locationName}</OnboardingFormError>
+      ) : null}
+      <OnboardingField
         id="phone"
         label="Phone number"
         name="phone"
@@ -300,12 +284,7 @@ export function OnboardingForm({
         onChange={(event) => updateDraft({ phone: event.target.value })}
       />
       {state.errors?.form ? (
-        <p
-          role="alert"
-          className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-        >
-          {state.errors.form}
-        </p>
+        <OnboardingFormError>{state.errors.form}</OnboardingFormError>
       ) : null}
       <Button
         type="submit"
@@ -325,52 +304,12 @@ function restoreField(
   value?: string
 ) {
   const field = form.elements.namedItem(fieldName)
-  if (!value || !(field instanceof HTMLInputElement || field instanceof HTMLSelectElement)) {
+  if (
+    !value ||
+    !(field instanceof HTMLInputElement || field instanceof HTMLSelectElement)
+  ) {
     return
   }
 
   field.value = value
-}
-
-function Field({
-  id,
-  label,
-  error,
-  required,
-  ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & {
-  id: string
-  label: string
-  error?: string
-}) {
-  return (
-    <div className="grid gap-2">
-      <label htmlFor={id} className="eyebrow">
-        {label}
-        {required ? (
-          <>
-            {" "}
-            <span aria-hidden="true" className="text-destructive">
-              *
-            </span>
-            <span className="sr-only"> (required)</span>
-          </>
-        ) : null}
-      </label>
-      <input
-        id={id}
-        className={onboardingInputClassName}
-        required={required}
-        aria-required={required || undefined}
-        aria-invalid={Boolean(error)}
-        aria-describedby={error ? `${id}-error` : undefined}
-        {...props}
-      />
-      {error ? (
-        <p id={`${id}-error`} className="text-sm text-destructive">
-          {error}
-        </p>
-      ) : null}
-    </div>
-  )
 }

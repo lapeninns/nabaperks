@@ -16,7 +16,15 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 
+const SIDEBAR_COOKIE_NAME = "sidebar_state"
+const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 365
+
+type SidebarState = "expanded" | "collapsed"
+
 type SidebarContextProps = {
+  state: SidebarState
+  open: boolean
+  setOpen: (value: boolean | ((value: boolean) => boolean)) => void
   openMobile: boolean
   setOpenMobile: React.Dispatch<React.SetStateAction<boolean>>
   isMobile: boolean
@@ -36,26 +44,58 @@ function useSidebar() {
 }
 
 function SidebarProvider({
+  defaultOpen = true,
+  open: openProp,
+  onOpenChange,
   className,
   style,
   children,
   ...props
-}: React.ComponentProps<"div">) {
+}: React.ComponentProps<"div"> & {
+  defaultOpen?: boolean
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}) {
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
 
+  // Desktop expanded/collapsed state. Persisted to a cookie so the SSR layout
+  // can seed `defaultOpen` and avoid an expand→collapse flash on first paint.
+  const [internalOpen, setInternalOpen] = React.useState(defaultOpen)
+  const open = openProp ?? internalOpen
+
+  const setOpen = React.useCallback(
+    (value: boolean | ((value: boolean) => boolean)) => {
+      const nextOpen = typeof value === "function" ? value(open) : value
+      if (onOpenChange) {
+        onOpenChange(nextOpen)
+      } else {
+        setInternalOpen(nextOpen)
+      }
+      document.cookie = `${SIDEBAR_COOKIE_NAME}=${nextOpen}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+    },
+    [onOpenChange, open]
+  )
+
   const toggleSidebar = React.useCallback(() => {
-    setOpenMobile((value) => !value)
-  }, [])
+    return isMobile
+      ? setOpenMobile((value) => !value)
+      : setOpen((value) => !value)
+  }, [isMobile, setOpen])
+
+  const state: SidebarState = open ? "expanded" : "collapsed"
 
   const value = React.useMemo<SidebarContextProps>(
     () => ({
+      state,
+      open,
+      setOpen,
       openMobile,
       setOpenMobile,
       isMobile,
       toggleSidebar,
     }),
-    [isMobile, openMobile, toggleSidebar]
+    [state, open, setOpen, openMobile, isMobile, toggleSidebar]
   )
 
   return (
@@ -80,9 +120,9 @@ function Sidebar({
   ...props
 }: React.ComponentProps<"div"> & {
   side?: "left" | "right"
-  collapsible?: "offcanvas" | "none"
+  collapsible?: "offcanvas" | "icon" | "none"
 }) {
-  const { isMobile, openMobile, setOpenMobile } = useSidebar()
+  const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
   if (isMobile && collapsible !== "none") {
     return (
@@ -112,7 +152,8 @@ function Sidebar({
   return (
     <div
       data-slot="sidebar"
-      data-state="expanded"
+      data-state={state}
+      data-collapsible={state === "collapsed" ? collapsible : ""}
       data-side={side}
       className="group peer hidden text-sidebar-foreground md:block"
     >

@@ -298,7 +298,7 @@ export function LaunchPanelSkeleton({
 }) {
   if (tab === "qr") {
     return (
-      <div className="grid gap-5" role="status" aria-label="Loading launch kit">
+      <div className="grid gap-5" role="status" aria-label="Loading poster kit">
         <div className="surface-card grid gap-6 p-6 lg:grid-cols-[300px_minmax(0,1fr)]">
           <div className="grid h-fit content-start gap-3">
             <Skeleton className="aspect-square w-full" />

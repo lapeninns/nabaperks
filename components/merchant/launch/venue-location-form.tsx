@@ -1,6 +1,5 @@
 "use client"
 
-import dynamic from "next/dynamic"
 import { useActionState, useState, type InputHTMLAttributes } from "react"
 
 import {
@@ -9,7 +8,10 @@ import {
 } from "@/app/app/launch/actions"
 import { PageTitle } from "@/components/brand"
 import { VenueAddressFields } from "@/components/merchant/venue-address-fields"
-import { Disclosure } from "@/components/merchant/launch/disclosure"
+import {
+  AdvancedGpsChecks,
+  type VenueCoordinates,
+} from "@/components/merchant/launch/advanced-gps-checks"
 import {
   VenuePlaceAutocomplete,
   type VenuePlaceSelection,
@@ -22,19 +24,6 @@ import type {
   VenueAddressFormFields,
 } from "@/lib/merchant/venue-address"
 
-// Client-only: Leaflet touches window/document and ships its own CSS, so the
-// map must never render on the server (Next dynamic ssr:false from a Client
-// Component).
-const VenuePinMap = dynamic(() => import("./venue-pin-map"), {
-  ssr: false,
-  loading: () => (
-    <div
-      className="h-64 w-full rounded-lg border-2 border-dashed border-border bg-card"
-      aria-hidden
-    />
-  ),
-})
-
 type VenueLocationFormValues = VenueAddressFormFields & {
   venueName: string
   geofenceRadiusMeters: string
@@ -46,11 +35,6 @@ import {
   VenueProviderProvenanceFields,
   type ProviderProvenance,
 } from "@/components/merchant/venue-provider-provenance-fields"
-
-type VenueCoordinates = {
-  latitude: number
-  longitude: number
-}
 
 const initialState: VenueLocationActionState = {}
 
@@ -137,9 +121,9 @@ export function VenueLocationForm({
   return (
     <form action={action} className="surface-card grid gap-5 p-6">
       <PageTitle
-        eyebrow="Step 3 · Venue"
+        eyebrow="Step 1 · Location"
         title="Where do scans happen?"
-        description="Your printed QR never changes. GPS is an optional soft check. It never blocks a customer's stamp, it only flags an odd one for review."
+        description="Your printed QR never changes. GPS is an optional soft check. It never blocks a member's stamp, it only flags an odd one for review."
         titleClassName="sm:text-3xl"
       />
 
@@ -173,14 +157,12 @@ export function VenueLocationForm({
       <input type="hidden" name="venueLongitude" value={pin?.longitude ?? ""} />
       <input type="hidden" name="geofencePinSource" value={pendingPinSource} />
 
-      <Field
-        id="venueName"
-        label="Venue name"
-        name="venueName"
-        value={venueName}
-        onChange={(event) => setVenueName(event.target.value)}
-        error={state.errors?.venueName}
-      />
+      <input type="hidden" name="venueName" value={venueName} />
+      {state.errors?.venueName ? (
+        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {state.errors.venueName}
+        </p>
+      ) : null}
 
       <AdvancedGpsChecks
         requireGeofence={requireGeofence}
@@ -208,85 +190,6 @@ export function VenueLocationForm({
         {pending ? "Saving location..." : "Save venue address"}
       </Button>
     </form>
-  )
-}
-
-function AdvancedGpsChecks({
-  requireGeofence,
-  geofenceRadiusMeters,
-  geofenceRadiusError,
-  pin,
-  geocoded,
-  hasGeocode,
-  mapRadiusMeters,
-  onRequireGeofenceChange,
-  onRadiusChange,
-  onPinChange,
-}: {
-  requireGeofence: boolean
-  geofenceRadiusMeters: string
-  geofenceRadiusError?: string
-  pin: VenueCoordinates | null
-  geocoded?: { latitude: number | null; longitude: number | null } | null
-  hasGeocode: boolean
-  mapRadiusMeters: number
-  onRequireGeofenceChange: (checked: boolean) => void
-  onRadiusChange: (value: string) => void
-  onPinChange: (coordinates: VenueCoordinates) => void
-}) {
-  return (
-    <Disclosure
-      label="Advanced GPS checks"
-      defaultOpen={requireGeofence || Boolean(geofenceRadiusError)}
-    >
-      <p className="text-xs leading-5 text-muted-foreground">
-        Off by default. When on, a stamp from outside the radius still goes
-        through — it is only flagged for you to review later.
-      </p>
-      <label className="flex items-center justify-between gap-4 rounded-lg border-2 border-ink bg-card px-4 py-3 text-sm font-bold">
-        <span>Use GPS anomaly checks</span>
-        <input
-          name="requireGeofence"
-          type="checkbox"
-          checked={requireGeofence}
-          onChange={(event) => onRequireGeofenceChange(event.target.checked)}
-          className="size-5 accent-primary"
-        />
-      </label>
-      <Field
-        id="geofenceRadiusMeters"
-        label="Radius metres"
-        name="geofenceRadiusMeters"
-        inputMode="numeric"
-        pattern="[0-9]*"
-        value={geofenceRadiusMeters}
-        onChange={(event) => onRadiusChange(event.target.value)}
-        error={geofenceRadiusError}
-      />
-      <p className="text-xs leading-5 text-muted-foreground">
-        100m suits most small, single-site venues. Set anything from 25m to
-        1000m.
-      </p>
-      {requireGeofence && pin ? (
-        <div className="grid gap-2">
-          <VenuePinMap
-            latitude={pin.latitude}
-            longitude={pin.longitude}
-            radiusMeters={mapRadiusMeters}
-            onPinChange={onPinChange}
-          />
-          <p className="text-xs leading-5 text-muted-foreground">
-            Drag the pin to your real entrance — the soft GPS check measures
-            from this exact spot, not the postcode centre.
-          </p>
-        </div>
-      ) : null}
-      {hasGeocode ? (
-        <p className="font-mono text-xs text-muted-foreground">
-          Geocoded to {geocoded?.latitude}, {geocoded?.longitude}.
-        </p>
-      ) : null}
-    </Disclosure>
   )
 }
 

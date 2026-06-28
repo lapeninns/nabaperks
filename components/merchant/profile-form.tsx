@@ -20,9 +20,9 @@ const businessTypeOptions = [
 ]
 
 /**
- * Business/account identity for the signed-in merchant. Venue name and address
- * are edited in Launch -> Your venue (the single venue editor), so this form
- * deliberately does not carry them.
+ * Business/account identity for the signed-in merchant. The business name is
+ * the customer-facing merchant name used across cards, QR posters, and receipts.
+ * Venue address/GPS details stay in Launch -> Business & venue.
  */
 export function MerchantProfileForm({
   businessName,
@@ -66,11 +66,16 @@ export function MerchantProfileForm({
 
   return (
     <form action={action} className="surface-card grid gap-4 p-6">
-      <p className="eyebrow">Business</p>
+      <div className="grid gap-1">
+        <p className="eyebrow">Business profile</p>
+        <p className="text-sm leading-6 text-muted-foreground">
+          This is the name customers see on cards, rewards, and QR posters.
+        </p>
+      </div>
       <Field
         id="businessName"
         name="businessName"
-        label="Business name"
+        label="Customer-facing business name"
         defaultValue={fields?.businessName}
         error={state.errors?.businessName}
       />

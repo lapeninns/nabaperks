@@ -74,9 +74,9 @@ export function CustomerCardPreview({
       >
         <div className="grid gap-3">
           <div className="grid gap-1 px-1">
-            <Eyebrow>Customer preview</Eyebrow>
+            <Eyebrow>Member preview</Eyebrow>
             <p className="text-sm leading-6 text-pretty text-muted-foreground">
-              The live card customers see while collecting stamps — updates as
+              The live card members see while collecting stamps — updates as
               you edit the form.
             </p>
           </div>
@@ -108,7 +108,7 @@ function CustomerCardPreviewBody({
     <div className="grid min-w-0 gap-3 overflow-x-clip">
       {!draft.isActive ? (
         <p className="rounded-lg border border-dashed border-border bg-secondary/60 px-3 py-2 text-sm leading-6 text-pretty text-muted-foreground">
-          Your card is inactive. Customers cannot collect new stamps until you
+          Your card is inactive. Members cannot collect new stamps until you
           turn it back on.
         </p>
       ) : null}

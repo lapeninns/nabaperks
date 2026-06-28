@@ -104,10 +104,10 @@ async function RewardScanStream({
         description={context.rewardTerms}
       />
 
-      <h2 className="sr-only">Customer and card details</h2>
+      <h2 className="sr-only">Member and card details</h2>
       <dl className="grid gap-2 rounded-xl border-2 border-ink bg-card p-4 text-sm">
         <div className="flex justify-between gap-4">
-          <dt className="font-bold text-muted-foreground">Customer</dt>
+          <dt className="font-bold text-muted-foreground">Member</dt>
           <dd className="text-right font-bold">{context.customerLabel}</dd>
         </div>
         <div className="flex justify-between gap-4">
@@ -121,7 +121,7 @@ async function RewardScanStream({
       {isRedeemed ? (
         <StatusBanner title="Reward collected" tone="success">
           {collected ? "Reward marked collected. " : null}
-          This reward is now closed. The customer can scan the venue QR again
+          This reward is now closed. The member can scan the venue QR again
           when they are ready for their next stamp.
         </StatusBanner>
       ) : context.status === "blocked" ? (
@@ -151,7 +151,7 @@ function ScanShell({ children }: { children: React.ReactNode }) {
       <PageTitle
         eyebrow="Reward collection"
         title="Check and collect reward"
-        description="Confirm the customer is at the counter before marking the reward collected."
+        description="Confirm the member is at the counter before marking the reward collected."
       />
       <section className="grid gap-4">{children}</section>
     </div>

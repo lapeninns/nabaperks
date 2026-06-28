@@ -144,23 +144,32 @@ function SignUpForm({
           defaultValue={codeState.fields?.email}
           error={state.errors?.email}
         />
-        <AuthField
-          id="password"
-          label="Password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          description="At least 8 characters, with letters and numbers."
-          error={state.errors?.password}
-        />
-        <AuthField
-          id="confirmPassword"
-          label="Confirm password"
-          name="confirmPassword"
-          type="password"
-          autoComplete="new-password"
-          error={state.errors?.confirmPassword}
-        />
+        {otpSent ? (
+          <p className="rounded-xl border border-reward/30 bg-accent px-3 py-2 text-sm text-accent-foreground">
+            Password saved. Enter your email code below.
+          </p>
+        ) : (
+          <>
+            <AuthField
+              id="password"
+              label="Password"
+              name="password"
+              type="password"
+              autoComplete="new-password"
+              description="At least 8 characters, with letters and numbers."
+              error={state.errors?.password}
+            />
+            <AuthField
+              id="confirmPassword"
+              label="Confirm password"
+              name="confirmPassword"
+              type="password"
+              autoComplete="new-password"
+              error={state.errors?.confirmPassword}
+            />
+          </>
+        )}
+        <input type="hidden" name="intent" value={otpSent ? "resend" : "create"} />
         <input type="hidden" name="next" value={next} />
         {state.errors?.form ? (
           <Alert

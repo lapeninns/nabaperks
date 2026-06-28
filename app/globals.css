@@ -541,6 +541,58 @@ body[data-grain="true"]::after {
   background: var(--background);
 }
 
+/* Collapsible icon rail (desktop). The sidebar root carries
+   data-collapsible="icon" only while collapsed, so every rule here is scoped
+   to that state — the expanded sidebar, the mobile drawer, and the admin
+   offcanvas sidebar are all left untouched. */
+[data-slot="sidebar-gap"],
+[data-slot="sidebar-container"] {
+  transition: width var(--w-dur-fast) var(--w-ease);
+}
+
+[data-slot="sidebar"][data-collapsible="icon"] [data-slot="sidebar-gap"],
+[data-slot="sidebar"][data-collapsible="icon"] [data-slot="sidebar-container"] {
+  width: var(--sidebar-width-icon);
+}
+
+[data-slot="sidebar"][data-collapsible="icon"] [data-slot="sidebar-header"],
+[data-slot="sidebar"][data-collapsible="icon"] [data-slot="sidebar-footer"] {
+  padding: 0.5rem;
+}
+
+[data-slot="sidebar"][data-collapsible="icon"] [data-sidebar-header-row] {
+  justify-content: center;
+}
+
+[data-slot="sidebar"][data-collapsible="icon"] [data-slot="sidebar-menu-button"],
+[data-slot="sidebar"][data-collapsible="icon"] [data-collapse-center] {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+[data-slot="sidebar"][data-collapsible="icon"] [data-collapse-hide] {
+  display: none;
+}
+
+[data-slot="sidebar"][data-collapsible="icon"] [data-collapse-label] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="sidebar-gap"],
+  [data-slot="sidebar-container"] {
+    transition: none;
+  }
+}
+
 /* Earned stamp — Penny Post: postage perforation + double ring from one hook.
    The disc itself carries the vermillion fill, letterpress sheen and resting
    tilt; ::before is the punched perforation ring, ::after the inner hairline

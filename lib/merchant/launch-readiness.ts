@@ -116,7 +116,7 @@ export function buildLaunchReadiness({
       label: LAUNCH_SETUP_STEP_LABELS.qr,
       ready: qrReady,
       href: "/app/launch?tab=qr",
-      actionLabel: qrReady ? "Open launch kit" : "Print your QR",
+      actionLabel: qrReady ? "Open poster kit" : "Print your QR",
     },
   }
   const setupSteps = LAUNCH_CHECKLIST_STEP_ORDER.map((id) => stepById[id])

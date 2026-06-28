@@ -119,7 +119,7 @@ export async function saveLoyaltyCardAction(
     errors.rewardTerms = "Enter clear mystery reward terms."
   } else if (rewardTerms.length < 12) {
     errors.rewardTerms =
-      "Add enough detail for customers to understand the offer."
+      "Add enough detail for members to understand the offer."
   } else if (rewardTerms.length > 500) {
     errors.rewardTerms = "Use 500 characters or fewer."
   }
@@ -208,7 +208,7 @@ export async function saveRewardPoolItemAction(
     errors.rewardTerms = "Enter clear customer-facing reward terms."
   } else if (fields.rewardTerms.length < 12) {
     errors.rewardTerms =
-      "Add enough detail for customers to understand the offer."
+      "Add enough detail for members to understand the offer."
   } else if (fields.rewardTerms.length > 500) {
     errors.rewardTerms = "Use 500 characters or fewer."
   }

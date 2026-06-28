@@ -941,7 +941,7 @@ function primaryActivityAction(
 ): ActivityAction | undefined {
   if (row.membership_id) {
     return {
-      label: "View customer",
+      label: "View member",
       href: `/app/customers?highlight=${encodeURIComponent(row.membership_id)}`,
     }
   }
@@ -953,7 +953,7 @@ function primaryActivityAction(
     row.event_name === "qr_enabled" ||
     row.event_name === "qr_disabled"
   ) {
-    return { label: "Open QR", href: "/app/launch?tab=qr" }
+    return { label: "Open poster", href: "/app/launch?tab=qr" }
   }
 
   if (
@@ -986,7 +986,7 @@ function secondaryActivityAction(
       row.event_name === "stamp_issued")
   ) {
     return {
-      label: "Open QR setup",
+      label: "Open poster setup",
       href: "/app/launch?tab=qr",
     }
   }
@@ -1061,7 +1061,7 @@ function activityCategory(eventName: string): ActivityCategory {
 }
 
 function customerName(customerLabel: string | null) {
-  return customerLabel ?? "Customer"
+  return customerLabel ?? "Member"
 }
 
 function stampLabel(
@@ -1107,7 +1107,7 @@ function formatActorDetail(
     case "customer":
       return {
         label: "Actor",
-        value: customerLabel ?? "Customer",
+        value: customerLabel ?? "Member",
       }
     case "system":
       return { label: "Actor", value: "Automatic" }

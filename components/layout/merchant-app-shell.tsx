@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { Suspense, type ComponentProps, type ReactNode } from "react"
-import { Logout01Icon } from "@hugeicons/core-free-icons"
+import { Building02Icon, Logout01Icon } from "@hugeicons/core-free-icons"
 
 import { Icon, Logo } from "@/components/brand"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,7 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarProvider,
+  SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { CONSOLE_SIDEBAR_STYLE, ConsoleSidebarNav } from "./console-sidebar-nav"
 import { merchantAccountItems, merchantNavItems } from "./console-nav"
@@ -23,11 +24,14 @@ export function MerchantAppShell({
   signOutAction,
   activePath,
   variant = "full",
+  defaultSidebarOpen = true,
 }: {
   children: ReactNode
   signOutAction: ComponentProps<"form">["action"]
   activePath?: string
   variant?: "full" | "setup"
+  /** Seeds the desktop expanded/collapsed state from the persisted cookie. */
+  defaultSidebarOpen?: boolean
 }) {
   if (variant === "setup") {
     return (
@@ -42,6 +46,17 @@ export function MerchantAppShell({
             <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
               <Button asChild variant="secondary" size="sm">
                 <Link href="/app">Dashboard</Link>
+              </Button>
+              <Button
+                asChild
+                variant="secondary"
+                size="icon-sm"
+                aria-label="Account profile"
+                title="Account profile"
+              >
+                <Link href="/app/account?tab=profile">
+                  <Icon icon={Building02Icon} size={16} />
+                </Link>
               </Button>
               <form action={signOutAction}>
                 <Button type="submit" variant="outline" size="sm">
@@ -63,10 +78,19 @@ export function MerchantAppShell({
     <SidebarProvider
       className="min-h-svh bg-background"
       style={CONSOLE_SIDEBAR_STYLE}
+      defaultOpen={defaultSidebarOpen}
     >
-      <Sidebar collapsible="offcanvas">
+      <Sidebar collapsible="icon">
         <SidebarHeader className="border-b-2 border-ink p-4">
-          <Logo href="/app" />
+          <div
+            data-sidebar-header-row
+            className="flex items-center justify-between gap-2"
+          >
+            <span data-collapse-hide className="inline-flex min-w-0">
+              <Logo href="/app" />
+            </span>
+            <SidebarTrigger className="hidden shrink-0 md:flex" />
+          </div>
         </SidebarHeader>
         <SidebarContent className="flex flex-1 flex-col px-2 py-3">
           <ConsoleSidebarNav
@@ -82,16 +106,18 @@ export function MerchantAppShell({
             <Button
               type="submit"
               variant="secondary"
+              data-collapse-center
               className="w-full justify-start"
             >
               <Icon icon={Logout01Icon} size={16} />
-              Log out
+              <span data-collapse-label>Log out</span>
             </Button>
           </form>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="min-w-0">
-        <header className="sticky top-0 z-30 flex min-h-14 items-center border-b-2 border-ink bg-card px-4 py-2 md:hidden">
+        <header className="sticky top-0 z-30 flex min-h-14 items-center gap-3 border-b-2 border-ink bg-card px-4 py-2 md:hidden">
+          <SidebarTrigger className="size-11 shrink-0" aria-label="Open menu" />
           <Logo href="/app" />
         </header>
         <div className="w-full px-4 py-8 pb-32 sm:px-6 md:pb-10">
