@@ -3,7 +3,6 @@
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
-import { getServerEnv } from "@/lib/env/server"
 import { safeMerchantNextPath } from "@/lib/navigation/safe-next-path"
 import {
   enforceRateLimit,
@@ -16,15 +15,18 @@ export type AuthActionState = {
   fields?: {
     name?: string
     email?: string
+    otpSent?: boolean
   }
   errors?: {
     name?: string
     email?: string
-    password?: string
+    otp?: string
     form?: string
   }
   message?: string
 }
+
+type AuthMode = "sign-in" | "sign-up"
 
 function value(formData: FormData, key: string) {
   const raw = formData.get(key)
@@ -41,14 +43,10 @@ export async function signUpAction(
 ): Promise<AuthActionState> {
   const name = value(formData, "name")
   const email = value(formData, "email").toLowerCase()
-  const password = value(formData, "password")
   const errors: NonNullable<AuthActionState["errors"]> = {}
 
   if (name.length < 2) errors.name = "Enter your name."
   if (!validateEmail(email)) errors.email = "Enter a valid email address."
-  if (password.length < 8) {
-    errors.password = "Use at least 8 characters."
-  }
 
   if (Object.keys(errors).length) {
     return { fields: { name, email }, errors }
@@ -59,13 +57,11 @@ export async function signUpAction(
     return { fields: { name, email }, errors: rateLimitResult }
 
   const supabase = await createSupabaseServerClient()
-  const env = getServerEnv()
-  const { data, error } = await supabase.auth.signUp({
+  const { error } = await supabase.auth.signInWithOtp({
     email,
-    password,
     options: {
+      shouldCreateUser: true,
       data: { name },
-      emailRedirectTo: `${env.NEXT_PUBLIC_APP_URL}/auth/confirm?next=/app/onboarding`,
     },
   })
 
@@ -76,13 +72,9 @@ export async function signUpAction(
     }
   }
 
-  if (data.session) {
-    redirect("/app/onboarding")
-  }
-
   return {
-    fields: { name, email },
-    message: "Check your email to verify your account, then continue setup.",
+    fields: { name, email, otpSent: true },
+    message: "We sent a six-digit code. Enter it below to continue setup.",
   }
 }
 
@@ -91,12 +83,9 @@ export async function signInAction(
   formData: FormData
 ): Promise<AuthActionState> {
   const email = value(formData, "email").toLowerCase()
-  const password = value(formData, "password")
-  const next = value(formData, "next") || "/app"
   const errors: NonNullable<AuthActionState["errors"]> = {}
 
   if (!validateEmail(email)) errors.email = "Enter a valid email address."
-  if (!password) errors.password = "Enter your password."
 
   if (Object.keys(errors).length) {
     return { fields: { email }, errors }
@@ -106,12 +95,61 @@ export async function signInAction(
   if (rateLimitResult) return { fields: { email }, errors: rateLimitResult }
 
   const supabase = await createSupabaseServerClient()
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      shouldCreateUser: false,
+    },
+  })
 
   if (error) {
     return {
       fields: { email },
-      errors: { form: "Email or password was not accepted." },
+      errors: { form: "No venue account was found for that email." },
+    }
+  }
+
+  return {
+    fields: { email, otpSent: true },
+    message: "We sent a six-digit code. Enter it below to open the console.",
+  }
+}
+
+export async function verifyEmailOtpAction(
+  _state: AuthActionState,
+  formData: FormData
+): Promise<AuthActionState> {
+  const name = value(formData, "name")
+  const email = value(formData, "email").toLowerCase()
+  const otp = value(formData, "otp").replace(/\s+/g, "")
+  const mode = readAuthMode(value(formData, "mode"))
+  const next = value(formData, "next") || defaultNextPath(mode)
+  const fields = { name, email, otpSent: true }
+  const errors: NonNullable<AuthActionState["errors"]> = {}
+
+  if (!validateEmail(email)) errors.form = "Request a fresh email code."
+  if (!/^\d{4,8}$/.test(otp)) {
+    errors.otp = "Enter the code from your email."
+  }
+
+  if (Object.keys(errors).length) {
+    return { fields, errors }
+  }
+
+  const rateLimitResult = await enforceAuthRateLimit("merchant-verify", email)
+  if (rateLimitResult) return { fields, errors: rateLimitResult }
+
+  const supabase = await createSupabaseServerClient()
+  const { error } = await supabase.auth.verifyOtp({
+    email,
+    token: otp,
+    type: "email",
+  })
+
+  if (error) {
+    return {
+      fields,
+      errors: { form: "That code was not accepted. Check it and try again." },
     }
   }
 
@@ -125,7 +163,7 @@ export async function signOutAction() {
 }
 
 async function enforceAuthRateLimit(
-  scope: "merchant-signup" | "merchant-signin",
+  scope: "merchant-signup" | "merchant-signin" | "merchant-verify",
   email: string
 ): Promise<NonNullable<AuthActionState["errors"]> | null> {
   const requestHeaders = await headers()
@@ -140,14 +178,30 @@ async function enforceAuthRateLimit(
     return null
   } catch (error) {
     if (error instanceof RateLimitError) {
-      return {
-        form:
-          scope === "merchant-signup"
-            ? "Too many sign-up attempts. Try again later."
-            : "Too many sign-in attempts. Try again later.",
-      }
+      return { form: rateLimitMessage(scope) }
     }
 
     throw error
+  }
+}
+
+function readAuthMode(raw: string): AuthMode {
+  return raw === "sign-up" ? "sign-up" : "sign-in"
+}
+
+function defaultNextPath(mode: AuthMode): string {
+  return mode === "sign-up" ? "/app/onboarding" : "/app"
+}
+
+function rateLimitMessage(
+  scope: "merchant-signup" | "merchant-signin" | "merchant-verify"
+): string {
+  switch (scope) {
+    case "merchant-signup":
+      return "Too many sign-up attempts. Try again later."
+    case "merchant-signin":
+      return "Too many sign-in attempts. Try again later."
+    case "merchant-verify":
+      return "Too many code checks. Try again later."
   }
 }

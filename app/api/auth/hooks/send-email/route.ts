@@ -7,12 +7,18 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 type SendEmailHookPayload = {
-  user?: { email?: string }
-  email_data?: { token?: string; email_action_type?: string }
+  readonly user?: { readonly email?: string }
+  readonly email_data?: {
+    readonly token?: string
+    readonly email_action_type?: string
+  }
 }
 
 function hookError(httpCode: number, message: string) {
-  return NextResponse.json({ error: { http_code: httpCode, message } }, { status: httpCode })
+  return NextResponse.json(
+    { error: { http_code: httpCode, message } },
+    { status: httpCode }
+  )
 }
 
 /**
@@ -38,10 +44,19 @@ export async function POST(request: NextRequest) {
     return hookError(401, "Invalid signature.")
   }
 
-  let payload: SendEmailHookPayload
+  let parsedBody: unknown
   try {
-    payload = JSON.parse(body) as SendEmailHookPayload
-  } catch {
+    parsedBody = JSON.parse(body)
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) {
+      throw error
+    }
+
+    return hookError(400, "Malformed payload.")
+  }
+
+  const payload = parseSendEmailHookPayload(parsedBody)
+  if (!payload) {
     return hookError(400, "Malformed payload.")
   }
 
@@ -52,10 +67,40 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    await sendEmailOtp({ to, code })
-  } catch {
+    await sendEmailOtp({ to, code, audience: "merchant" })
+  } catch (error) {
+    if (!(error instanceof Error)) {
+      throw error
+    }
+
     return hookError(500, "Email could not be sent.")
   }
 
   return NextResponse.json({})
+}
+
+function parseSendEmailHookPayload(
+  value: unknown
+): SendEmailHookPayload | null {
+  if (!isRecord(value)) return null
+
+  const user = isRecord(value.user)
+    ? { email: stringValue(value.user.email) }
+    : undefined
+  const emailData = isRecord(value.email_data)
+    ? {
+        token: stringValue(value.email_data.token),
+        email_action_type: stringValue(value.email_data.email_action_type),
+      }
+    : undefined
+
+  return { user, email_data: emailData }
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
 }

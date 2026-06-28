@@ -92,7 +92,7 @@
     "name": "RESEND_FROM",
     "visibility": "server",
     "kind": "string",
-    "description": "Verified Resend sender for Supabase Send Email auth hook messages, e.g. 'Nabaperks <login@your-domain>'. Used for merchant/admin email auth.",
+    "description": "Verified Resend sender for Supabase Send Email auth hook messages, e.g. 'Nabaperks <login@nabaperks.com>'. Used for merchant/admin email auth.",
     "optional": true
   },
   {
