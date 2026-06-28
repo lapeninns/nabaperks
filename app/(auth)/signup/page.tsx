@@ -19,7 +19,7 @@ export default function SignUpPage() {
           <PageTitle
             eyebrow="Start free pilot"
             title="Your first stamp is waiting."
-            description="Set up your venue QR loyalty card in about five minutes. Enter your email code, then add your venue, rewards, and printed kit."
+            description="Set up your venue QR loyalty card in about five minutes. Create your account, verify your email with a four-digit code, then add your venue, rewards, and printed kit."
             titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
             descriptionClassName="text-base leading-7 text-pretty"
             className="md:grid-cols-1"
@@ -49,8 +49,8 @@ export default function SignUpPage() {
               Open your till
             </h2>
             <p className="text-sm leading-6 text-pretty text-muted-foreground">
-              Enter your email and we will send a six-digit code. No card to
-              start; billing when you activate your live venue QR.
+              Create your account and verify your email with a four-digit code.
+              No card to start; billing when you activate your live venue QR.
             </p>
           </div>
           <AuthForm

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 
+import { createMerchantEmailOtpAlias } from "@/lib/auth/merchant-email-otp-alias"
 import { sendEmailOtp } from "@/lib/notifications/resend"
 import { verifyStandardWebhook } from "@/lib/notifications/standard-webhook"
 
@@ -67,7 +68,15 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    await sendEmailOtp({ to, code, audience: "merchant" })
+    const aliasCode = await createMerchantEmailOtpAlias({
+      email: to,
+      supabaseToken: code,
+    })
+    const audience =
+      payload.email_data?.email_action_type === "recovery"
+        ? "merchant-reset"
+        : "merchant-verify"
+    await sendEmailOtp({ to, code: aliasCode, audience })
   } catch (error) {
     if (!(error instanceof Error)) {
       throw error

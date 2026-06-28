@@ -93,10 +93,15 @@ test("Given trust and pricing copy When legal friction is reviewed Then billing 
   assert.doesNotMatch(acquisitionCopy, /card required to activate/)
 })
 
-test("Given merchant auth When signup and login are inspected Then email OTP replaces passwords and links", () => {
+test("Given merchant auth When signup and login are inspected Then passwords pair with one-time email verification", () => {
   // Given
   const actions = readProjectFile("app", "(auth)", "actions.ts")
   const authForm = readProjectFile("components", "auth", "auth-form.tsx")
+  const resetForm = readProjectFile(
+    "components",
+    "auth",
+    "reset-password-form.tsx"
+  )
   const signup = readProjectFile("app", "(auth)", "signup", "page.tsx")
   const login = readProjectFile("app", "(auth)", "login", "page.tsx")
   const sendEmailHook = readProjectFile(
@@ -110,23 +115,40 @@ test("Given merchant auth When signup and login are inspected Then email OTP rep
   const resend = readProjectFile("lib", "notifications", "resend.ts")
 
   // When
-  const authScreens = [authForm, signup, login].join("\n")
+  const authScreens = [authForm, resetForm, signup, login].join("\n")
 
-  // Then
-  assert.match(actions, /signInWithOtp/)
-  assert.match(actions, /shouldCreateUser: true/)
-  assert.match(actions, /shouldCreateUser: false/)
+  // Then — signup creates a password account confirmed by a one-time code,
+  // login uses the password, and reset re-verifies by code before updateUser.
+  assert.match(actions, /signUp\(/)
+  assert.match(actions, /signInWithPassword/)
   assert.match(actions, /verifyOtp/)
-  assert.match(actions, /type: "email"/)
+  assert.match(actions, /type: "signup"/)
+  assert.match(actions, /type: "recovery"/)
+  assert.match(actions, /resetPasswordForEmail/)
+  assert.match(actions, /updateUser/)
+  assert.doesNotMatch(actions, /signInWithOtp/)
+
+  assert.match(authForm, /name="password"/)
+  assert.match(authForm, /name="confirmPassword"/)
+  assert.match(authForm, /autoComplete="new-password"/)
+  assert.match(authForm, /autoComplete="current-password"/)
   assert.match(authForm, /autoComplete="one-time-code"/)
-  assert.match(authForm, /Resend code/)
-  assert.match(authForm, /Continue setup/)
-  assert.match(sendEmailHook, /audience: "merchant"/)
+  assert.match(authForm, /Verify email/)
+  assert.match(authForm, /Forgot password\?/)
+
+  assert.match(resetForm, /name="password"/)
+  assert.match(resetForm, /autoComplete="one-time-code"/)
+
+  assert.match(sendEmailHook, /"merchant-verify"/)
+  assert.match(sendEmailHook, /"merchant-reset"/)
+  assert.match(sendEmailHook, /email_action_type === "recovery"/)
+
   assert.match(resend, /Nabaperks merchant/)
-  assert.match(resend, /venue console/)
-  assert.doesNotMatch(authScreens, /name="password"/)
+  assert.match(resend, /Verify your venue email/)
+  assert.match(resend, /Reset your password/)
+
+  assert.match(login, /email and password/i)
   assert.doesNotMatch(authScreens, /verification\s+link/i)
-  assert.doesNotMatch(authScreens, /email and password/i)
 })
 
 test("Given public questions When answers are dry-run against code Then they only claim implemented behavior", () => {

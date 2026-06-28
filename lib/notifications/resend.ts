@@ -4,7 +4,7 @@ import { resilientFetch } from "@/lib/observability/resilience"
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails"
 
-type EmailOtpAudience = "customer" | "merchant"
+type EmailOtpAudience = "customer" | "merchant-verify" | "merchant-reset"
 
 type EmailOtpCopy = {
   readonly eyebrow: string
@@ -24,14 +24,24 @@ const emailOtpCopy = {
     subjectSuffix: "is your Nabaperks code",
     textReason: "open your Nabaperks cards",
   },
-  merchant: {
+  "merchant-verify": {
     eyebrow: "Nabaperks merchant",
-    title: "Your email code",
-    intro: "Enter this code on Nabaperks to open your venue console.",
+    title: "Verify your venue email",
+    intro:
+      "Enter this code on Nabaperks to confirm your email and finish creating your venue account.",
     footer:
-      "If you did not ask for a merchant login code, you can ignore this email.",
-    subjectSuffix: "is your Nabaperks login code",
-    textReason: "open your Nabaperks venue console",
+      "If you did not start a Nabaperks venue signup, you can ignore this email.",
+    subjectSuffix: "is your Nabaperks verification code",
+    textReason: "confirm your Nabaperks venue email",
+  },
+  "merchant-reset": {
+    eyebrow: "Nabaperks merchant",
+    title: "Reset your password",
+    intro: "Enter this code on Nabaperks to set a new venue console password.",
+    footer:
+      "If you did not ask to reset your password, you can ignore this email and your password stays the same.",
+    subjectSuffix: "is your Nabaperks password reset code",
+    textReason: "reset your Nabaperks password",
   },
 } satisfies Record<EmailOtpAudience, EmailOtpCopy>
 
