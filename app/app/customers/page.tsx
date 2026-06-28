@@ -6,7 +6,10 @@ import { EmptyState, PageTitle } from "@/components/brand"
 import { CustomerReadbackTable } from "@/components/merchant/customer-readback-table"
 import { MerchantCustomersTableSkeleton } from "@/components/merchant/loading-skeletons"
 import { getCurrentMerchant } from "@/lib/auth/session"
-import { getMerchantCustomers } from "@/lib/merchant/dashboard"
+import {
+  getMerchantCustomers,
+  getMerchantCustomerCount,
+} from "@/lib/merchant/dashboard"
 
 export const dynamic = "force-dynamic"
 
@@ -64,11 +67,18 @@ async function CustomersTableStream({
   // pre-masked view models directly, so raw email/phone never reach this server
   // component or the client bundle. The client table owns its own summary /
   // search / filter UI over these masked rows.
-  const customers = await getMerchantCustomers(merchantId)
+  // The masked rows are capped at 100; fetch the true member count alongside
+  // them (PII-free, head:true) so the "Members" stat reports the real total
+  // even when the table list is truncated.
+  const [customers, totalMembers] = await Promise.all([
+    getMerchantCustomers(merchantId),
+    getMerchantCustomerCount(merchantId),
+  ])
 
   return (
     <CustomerReadbackTable
       customers={customers}
+      totalMembers={totalMembers}
       highlightedMembershipId={highlightedMembershipId}
       emptyState={
         <EmptyState

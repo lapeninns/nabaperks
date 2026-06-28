@@ -348,10 +348,19 @@ export function CustomerReadbackTable({
   customers,
   emptyState,
   highlightedMembershipId,
+  totalMembers,
 }: {
   customers: MerchantCustomerReadbackRow[]
   emptyState: ReactNode
   highlightedMembershipId?: string
+  /**
+   * True membership count from a server-side COUNT. The `customers` list is
+   * capped at 100 rows, so its length understates the real total for large
+   * merchants. When provided, the "Members" stat shows this number; when
+   * omitted it falls back to `customers.length`, keeping the prior behaviour
+   * for any caller that does not pass it.
+   */
+  totalMembers?: number
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(
     highlightedMembershipId ?? null
@@ -426,7 +435,14 @@ export function CustomerReadbackTable({
     <div className="grid gap-4" ref={rootRef}>
       <StatStrip
         items={[
-          { label: "Members", value: customers.length, tone: "ink" },
+          {
+            label: "Members",
+            // Prefer the true server-side total over the (capped) loaded count
+            // so large merchants see their real membership size; fall back to
+            // the loaded length when no total was supplied.
+            value: totalMembers ?? customers.length,
+            tone: "ink",
+          },
           { label: "Ready", value: readyCount, tone: "primary" },
           { label: "Quiet", value: quietCount, tone: "sun" },
         ]}
@@ -510,6 +526,26 @@ export function CustomerReadbackTable({
               getRowKey={(row) => row.id}
               emptyState={emptyState}
               onRowClick={(row) => handleSelect(row.id)}
+              // Make the clickable row a real keyboard control: focusable, and
+              // Enter/Space toggles the same selection the mouse does (WCAG
+              // 2.1.1), with selection state announced via aria-selected (WCAG
+              // 4.1.2). `aria-selected` is valid on the row's implicit
+              // role="row", so we deliberately do NOT set role="button" (that
+              // would override the row role and make aria-selected invalid).
+              getRowProps={(row) => ({
+                tabIndex: 0,
+                "aria-selected": row.id === selectedId,
+                onKeyDown: (event) => {
+                  // Ignore keys bubbling up from inner controls (the Scan
+                  // link) so activating it never also toggles the row.
+                  if (event.target !== event.currentTarget) return
+                  if (event.key === "Enter" || event.key === " ") {
+                    // Space would otherwise scroll the page.
+                    event.preventDefault()
+                    handleSelect(row.id)
+                  }
+                },
+              })}
               rowClassName={(row) =>
                 cn(
                   // No highlightedMembershipId fallback — it is already seeded

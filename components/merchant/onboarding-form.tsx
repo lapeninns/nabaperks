@@ -252,6 +252,7 @@ export function OnboardingForm({
         values={address}
         errors={state.errors}
         columns={2}
+        requireAddress
         labelClassName="eyebrow"
         inputClassName={onboardingInputClassName}
         onFieldChange={handleFieldChange}

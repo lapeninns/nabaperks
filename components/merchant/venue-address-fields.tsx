@@ -10,6 +10,7 @@ export function VenueAddressFields({
   labelClassName = "text-sm font-bold",
   inputClassName = "h-11 rounded-lg border-2 border-ink bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/35",
   columns = 1,
+  requireAddress = false,
   onFieldChange,
   onAddressChange,
 }: {
@@ -21,6 +22,10 @@ export function VenueAddressFields({
   /** 2 lays Town/city + Postcode side by side from the `sm` breakpoint up, so a
    *  full-width form fills the row instead of stacking four lone inputs. */
   columns?: 1 | 2
+  /** Marks the server-required lines (line 1, town/city, postcode) as required
+   *  with native + ARIA state and a visible marker. Off by default so callers
+   *  that don't require an address up front are unaffected. */
+  requireAddress?: boolean
   /** Updates a single controlled field value. */
   onFieldChange?: (field: keyof VenueAddressFormFields, value: string) => void
   /** Fires on any manual address edit, e.g. to reset provider/pin provenance. */
@@ -37,6 +42,8 @@ export function VenueAddressFields({
         name="addressLine1"
         label="Address line 1"
         placeholder="Building number and street"
+        autoComplete="address-line1"
+        required={requireAddress}
         value={values.addressLine1}
         error={errors?.addressLine1}
         labelClassName={labelClassName}
@@ -50,6 +57,7 @@ export function VenueAddressFields({
         name="addressLine2"
         label="Address line 2"
         placeholder="Flat, unit, or building name (optional)"
+        autoComplete="address-line2"
         value={values.addressLine2}
         error={errors?.addressLine2}
         labelClassName={labelClassName}
@@ -63,6 +71,8 @@ export function VenueAddressFields({
         name="addressCity"
         label="Town or city"
         placeholder="London"
+        autoComplete="address-level2"
+        required={requireAddress}
         value={values.addressCity}
         error={errors?.addressCity}
         labelClassName={labelClassName}
@@ -76,6 +86,7 @@ export function VenueAddressFields({
         label="Postcode"
         placeholder="E1 6AN"
         autoComplete="postal-code"
+        required={requireAddress}
         value={values.addressPostcode}
         error={errors?.addressPostcode}
         labelClassName={labelClassName}
@@ -102,6 +113,7 @@ function AddressField({
   label,
   placeholder,
   autoComplete,
+  required,
   value,
   error,
   labelClassName,
@@ -115,6 +127,9 @@ function AddressField({
   label: string
   placeholder: string
   autoComplete?: string
+  /** Adds native + ARIA required state and a visible/sr-only marker. Defaults
+   *  off so existing callers keep their current optional behavior. */
+  required?: boolean
   value: string
   error?: string
   labelClassName: string
@@ -125,13 +140,26 @@ function AddressField({
 }) {
   return (
     <label className={cn("grid gap-2", fieldClassName)} htmlFor={id}>
-      <span className={labelClassName}>{label}</span>
+      <span className={labelClassName}>
+        {label}
+        {required ? (
+          <>
+            {" "}
+            <span aria-hidden="true" className="text-destructive">
+              *
+            </span>
+            <span className="sr-only"> (required)</span>
+          </>
+        ) : null}
+      </span>
       <input
         id={id}
         name={name}
         type="text"
         placeholder={placeholder}
         autoComplete={autoComplete}
+        required={required}
+        aria-required={required || undefined}
         value={value}
         onChange={(event) => {
           onFieldChange?.(name, event.target.value)
