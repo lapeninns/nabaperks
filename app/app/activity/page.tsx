@@ -9,6 +9,7 @@ import { getCurrentMerchant } from "@/lib/auth/session"
 import {
   type ActivityCategory,
   getEnrichedMerchantActivity,
+  getMerchantActivitySummary,
 } from "@/lib/merchant/activity"
 
 type MerchantActivitySearchParams = {
@@ -64,10 +65,14 @@ async function ActivityFeedStream({
   searchQuery: string
   limit: number
 }) {
-  const activity = await getEnrichedMerchantActivity(merchantId, { limit })
+  const [activity, summary] = await Promise.all([
+    getEnrichedMerchantActivity(merchantId, { limit }),
+    getMerchantActivitySummary(merchantId),
+  ])
 
   return (
     <ActivityDetailFeed
+      summary={summary}
       rows={activity.rows}
       totalCount={activity.totalCount}
       loadedCount={activity.loadedCount}

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation"
 import { Suspense } from "react"
 import { UserMultiple02Icon } from "@hugeicons/core-free-icons"
 
-import { EmptyState, MonoTag, PageTitle } from "@/components/brand"
+import { EmptyState, PageTitle } from "@/components/brand"
 import { CustomerReadbackTable } from "@/components/merchant/customer-readback-table"
 import { MerchantCustomersTableSkeleton } from "@/components/merchant/loading-skeletons"
 import { getCurrentMerchant } from "@/lib/auth/session"
@@ -68,36 +68,20 @@ async function CustomersTableStream({
     buildMerchantCustomerReadback(row, now)
   )
 
-  // Derived counts for at-a-glance stats — computed from masked data, no PII.
-  // They live in the stream so members/ready/quiet are never shown mid-load.
-  const readyCount = customers.filter((c) => c.badge.tone === "ready").length
-  const quietCount = customers.filter((c) => c.badge.tone === "quiet").length
-
+  // The client table owns its own summary / search / filter UI; the server only
+  // hands it pre-masked view models so no raw PII reaches the client bundle.
   return (
-    <div className="grid gap-3">
-      {customers.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <MonoTag tone="ink">
-            {customers.length} {customers.length === 1 ? "member" : "members"}
-            {readyCount > 0 ? ` · ${readyCount} ready to redeem` : ""}
-            {quietCount > 0 ? ` · ${quietCount} gone quiet` : ""}
-          </MonoTag>
-          <MonoTag tone="plain">Initials only · Phones stay hashed</MonoTag>
-        </div>
-      ) : null}
-
-      <CustomerReadbackTable
-        customers={customers}
-        highlightedMembershipId={highlightedMembershipId}
-        emptyState={
-          <EmptyState
-            title="No customers yet"
-            description="Customers will appear here after they join via the venue QR."
-            icon={UserMultiple02Icon}
-          />
-        }
-      />
-    </div>
+    <CustomerReadbackTable
+      customers={customers}
+      highlightedMembershipId={highlightedMembershipId}
+      emptyState={
+        <EmptyState
+          title="No customers yet"
+          description="Customers will appear here after they join via the venue QR."
+          icon={UserMultiple02Icon}
+        />
+      }
+    />
   )
 }
 

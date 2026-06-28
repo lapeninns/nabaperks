@@ -5,7 +5,9 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export {
   getMerchantDashboardData,
+  getMerchantDashboardSeries,
   type MerchantDashboardMerchant,
+  type MerchantDashboardSeries,
 } from "@/lib/merchant/dashboard-metrics"
 export type { MerchantDashboardTrends } from "@/lib/merchant/dashboard-trends"
 

@@ -178,6 +178,70 @@ export async function getEnrichedMerchantActivity(
   }
 }
 
+const ACTIVITY_SUMMARY_WINDOW_DAYS = 7
+
+/**
+ * A true 7-day pulse for the Activity "this week" strip — counted directly from
+ * product_events over a fixed window (not the loaded/limited feed rows, which
+ * would mislabel "recent N events" as a week). Stamp claims and reward unlocks
+ * are excluded so a single visit/redemption is not double-counted.
+ */
+export async function getMerchantActivitySummary(
+  merchantId: string
+): Promise<ActivitySummary> {
+  const since = new Date(
+    Date.now() - ACTIVITY_SUMMARY_WINDOW_DAYS * 86_400_000
+  ).toISOString()
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase
+    .from("product_events")
+    .select("event_name")
+    .eq("merchant_id", merchantId)
+    .in("event_name", [...activityEvents])
+    .gte("created_at", since)
+
+  if (error) {
+    throw new Error(`Unable to load activity summary: ${error.message}`)
+  }
+
+  const summary: ActivitySummary = {
+    total: 0,
+    joins: 0,
+    stamps: 0,
+    rewards: 0,
+    qrEvents: 0,
+    accountEvents: 0,
+  }
+
+  for (const raw of data ?? []) {
+    const name = (raw as { event_name: string }).event_name
+    switch (name) {
+      case "customer_joined":
+        summary.joins += 1
+        break
+      case "stamp_issued":
+        summary.stamps += 1
+        break
+      case "reward_redeemed":
+        summary.rewards += 1
+        break
+      case "qr_downloaded":
+      case "qr_scanned":
+        summary.qrEvents += 1
+        break
+      default:
+        if (activityCategory(name) === "account") {
+          summary.accountEvents += 1
+          break
+        }
+        continue
+    }
+    summary.total += 1
+  }
+
+  return summary
+}
+
 export function summarizeActivity(rows: ActivityDisplayRow[]): ActivitySummary {
   return rows.reduce<ActivitySummary>(
     (summary, row) => {

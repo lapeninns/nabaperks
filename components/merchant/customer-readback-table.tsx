@@ -1,15 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import type { ReactNode } from "react"
 import Link from "next/link"
 
-import { ScanIcon } from "@hugeicons/core-free-icons"
+import { ScanIcon, Search01Icon } from "@hugeicons/core-free-icons"
 
-import { DataTable, type DataTableColumn } from "@/components/data"
-import { Icon, MonoTag, VenueMark } from "@/components/brand"
+import { DataTable, StatStrip, type DataTableColumn } from "@/components/data"
+import { FilterPills, Icon, MonoTag, VenueMark } from "@/components/brand"
 import { StampGrid } from "@/components/loyalty/stamp-grid"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { formatMerchantCustomerIdentifier } from "@/lib/merchant/customer-identity-display"
 import type {
   MerchantCustomerReadbackRow,
@@ -244,6 +245,47 @@ function buildColumns(): DataTableColumn<MerchantCustomerReadbackRow>[] {
 
 const TABLE_COLUMNS = buildColumns()
 
+// ─── Filtering ────────────────────────────────────────────────────────────────
+
+type CustomerFilter = "all" | "ready" | "active" | "quiet"
+
+/** A member who has visited at least once and is not gone-quiet. */
+function isActiveMember(row: MerchantCustomerReadbackRow): boolean {
+  return row.lastVisitIso != null && row.badge.tone !== "quiet"
+}
+
+function matchesFilter(
+  row: MerchantCustomerReadbackRow,
+  filter: CustomerFilter
+): boolean {
+  switch (filter) {
+    case "ready":
+      return row.badge.tone === "ready"
+    case "quiet":
+      return row.badge.tone === "quiet"
+    case "active":
+      return isActiveMember(row)
+    default:
+      return true
+  }
+}
+
+function filterCustomers(
+  customers: MerchantCustomerReadbackRow[],
+  filter: CustomerFilter,
+  query: string
+): MerchantCustomerReadbackRow[] {
+  const needle = query.trim().toLowerCase()
+  return customers.filter((row) => {
+    if (!matchesFilter(row, filter)) return false
+    if (!needle) return true
+    return (
+      row.identifier.toLowerCase().includes(needle) ||
+      (row.phoneLine?.toLowerCase().includes(needle) ?? false)
+    )
+  })
+}
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export function CustomerReadbackTable({
@@ -258,6 +300,8 @@ export function CustomerReadbackTable({
   const [selectedId, setSelectedId] = useState<string | null>(
     highlightedMembershipId ?? null
   )
+  const [query, setQuery] = useState("")
+  const [filter, setFilter] = useState<CustomerFilter>("all")
 
   const selected = selectedId
     ? customers.find((c) => c.id === selectedId)
@@ -266,8 +310,65 @@ export function CustomerReadbackTable({
   const handleSelect = (id: string) =>
     setSelectedId((prev) => (prev === id ? null : id))
 
+  const readyCount = customers.filter((c) => c.badge.tone === "ready").length
+  const quietCount = customers.filter((c) => c.badge.tone === "quiet").length
+  const activeCount = customers.filter(isActiveMember).length
+
+  const filtered = useMemo(
+    () => filterCustomers(customers, filter, query),
+    [customers, filter, query]
+  )
+
+  if (customers.length === 0) {
+    return (
+      <div className="grid gap-3">
+        {emptyState}
+        <PrivacyNote />
+      </div>
+    )
+  }
+
   return (
-    <div className="grid gap-3">
+    <div className="grid gap-4">
+      <StatStrip
+        items={[
+          { label: "Members", value: customers.length, tone: "ink" },
+          { label: "Ready", value: readyCount, tone: "primary" },
+          { label: "Quiet", value: quietCount, tone: "sun" },
+        ]}
+      />
+
+      <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
+        <div className="relative sm:max-w-xs sm:flex-1">
+          <Icon
+            icon={Search01Icon}
+            size={16}
+            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
+          />
+          <Input
+            type="search"
+            inputMode="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search members"
+            aria-label="Search members"
+            className="pl-9"
+          />
+        </div>
+        <FilterPills
+          aria-label="Filter members by reward status"
+          value={filter}
+          onValueChange={(id) => setFilter(id as CustomerFilter)}
+          className="sm:justify-end"
+          items={[
+            { id: "all", label: "All", count: customers.length },
+            { id: "ready", label: "Ready", count: readyCount },
+            { id: "active", label: "Active", count: activeCount },
+            { id: "quiet", label: "Quiet", count: quietCount },
+          ]}
+        />
+      </div>
+
       {/* Scan-reward banner — desktop only (mobile has it inline in the card) */}
       {selected?.scanRewardId ? (
         <div className="surface-card hidden items-center justify-between gap-4 px-4 py-3 sm:flex">
@@ -287,42 +388,55 @@ export function CustomerReadbackTable({
         </div>
       ) : null}
 
-      {/* Mobile: card list (hidden at sm and above) */}
-      <div className="sm:hidden">
-        {customers.length > 0 ? (
-          <CustomerMobileList
-            customers={customers}
-            selectedId={selectedId}
-            onSelect={handleSelect}
-          />
-        ) : (
-          emptyState
-        )}
-      </div>
+      {filtered.length === 0 ? (
+        <div className="surface-card px-4 py-10 text-center">
+          <p className="text-sm font-semibold">No members match your filter</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Try a different status or clear the search.
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Mobile: card list (hidden at sm and above) */}
+          <div className="sm:hidden">
+            <CustomerMobileList
+              customers={filtered}
+              selectedId={selectedId}
+              onSelect={handleSelect}
+            />
+          </div>
 
-      {/* Desktop/tablet: table (hidden below sm) */}
-      <div className="hidden sm:block">
-        <DataTable
-          caption="Your loyalty members and their stamp progress"
-          columns={TABLE_COLUMNS}
-          rows={customers}
-          getRowKey={(row) => row.id}
-          emptyState={emptyState}
-          onRowClick={(row) => handleSelect(row.id)}
-          rowClassName={(row) =>
-            cn(
-              row.id === (selectedId ?? highlightedMembershipId)
-                ? "bg-primary/10 ring-1 ring-primary/30 ring-inset"
-                : undefined
-            )
-          }
-        />
-      </div>
+          {/* Desktop/tablet: table (hidden below sm) */}
+          <div className="hidden sm:block">
+            <DataTable
+              caption="Your loyalty members and their stamp progress"
+              columns={TABLE_COLUMNS}
+              rows={filtered}
+              getRowKey={(row) => row.id}
+              emptyState={emptyState}
+              onRowClick={(row) => handleSelect(row.id)}
+              rowClassName={(row) =>
+                cn(
+                  row.id === (selectedId ?? highlightedMembershipId)
+                    ? "bg-primary/10 ring-1 ring-primary/30 ring-inset"
+                    : undefined
+                )
+              }
+            />
+          </div>
+        </>
+      )}
 
-      <p className="px-1 text-xs text-muted-foreground">
-        No marketing without a separate opt-in · Exports live with the account
-        owner
-      </p>
+      <PrivacyNote />
     </div>
+  )
+}
+
+function PrivacyNote() {
+  return (
+    <p className="px-1 text-xs text-muted-foreground">
+      Initials only · phones stay hashed · no marketing without a separate
+      opt-in · exports live with the account owner
+    </p>
   )
 }

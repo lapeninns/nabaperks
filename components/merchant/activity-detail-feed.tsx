@@ -4,13 +4,15 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useMemo, useState, type ReactNode } from "react"
 
-import { EmptyState } from "@/components/brand"
+import { EmptyState, FilterPills } from "@/components/brand"
+import { StatStrip } from "@/components/data"
 import { WetInkRise } from "@/components/motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import type {
   ActivityCategory,
   ActivityDisplayRow,
+  ActivitySummary,
 } from "@/lib/merchant/activity"
 
 import { ActivityDetailCard } from "./activity-detail-card"
@@ -28,6 +30,7 @@ const filterOptions: Array<{
 ]
 
 export function ActivityDetailFeed({
+  summary,
   rows,
   totalCount,
   loadedCount,
@@ -36,6 +39,7 @@ export function ActivityDetailFeed({
   initialQuery = "",
   emptyState,
 }: {
+  summary: ActivitySummary
   rows: ActivityDisplayRow[]
   totalCount: number
   loadedCount: number
@@ -75,39 +79,43 @@ export function ActivityDetailFeed({
 
   return (
     <div className="grid gap-4">
+      <section className="grid gap-2">
+        <p className="eyebrow">This week</p>
+        <StatStrip
+          items={[
+            { label: "Stamps", value: summary.stamps, tone: "primary" },
+            { label: "Joins", value: summary.joins, tone: "cobalt" },
+            { label: "Rewards", value: summary.rewards, tone: "leaf" },
+            { label: "QR", value: summary.qrEvents, tone: "sun" },
+          ]}
+        />
+      </section>
+
       <section className="surface-card grid gap-3 p-3 sm:p-4">
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-          <Input
-            type="search"
-            value={query}
-            onChange={(event) => {
-              const nextQuery = event.target.value
-              setQuery(nextQuery)
-              updateUrl({ filter, query: nextQuery })
-            }}
-            placeholder="Search activity"
-            aria-label="Search activity"
-          />
-          <div className="flex flex-wrap gap-2">
-            {filterOptions.map((option) => {
-              return (
-                <Button
-                  key={option.id}
-                  type="button"
-                  size="sm"
-                  variant={filter === option.id ? "default" : "secondary"}
-                  aria-pressed={filter === option.id}
-                  onClick={() => {
-                    setFilter(option.id)
-                    updateUrl({ filter: option.id, query })
-                  }}
-                >
-                  {option.label}
-                </Button>
-              )
-            })}
-          </div>
-        </div>
+        <Input
+          type="search"
+          value={query}
+          onChange={(event) => {
+            const nextQuery = event.target.value
+            setQuery(nextQuery)
+            updateUrl({ filter, query: nextQuery })
+          }}
+          placeholder="Search activity"
+          aria-label="Search activity"
+        />
+        <FilterPills
+          aria-label="Filter activity by type"
+          value={filter}
+          onValueChange={(id) => {
+            const next = normalizeFilter(id)
+            setFilter(next)
+            updateUrl({ filter: next, query })
+          }}
+          items={filterOptions.map((option) => ({
+            id: option.id,
+            label: option.label,
+          }))}
+        />
         <p className="text-xs text-muted-foreground">
           {filteredRows.length} shown
           {filteredRows.length === loadedCount ? "" : ` from ${loadedCount}`}.

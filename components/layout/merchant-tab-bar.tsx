@@ -28,17 +28,21 @@ export function MerchantTabBar() {
               aria-current={active ? "page" : undefined}
               data-active={active}
               className={cn(
-                "group flex min-h-14 flex-col items-center justify-center gap-1 text-[0.6875rem] font-bold transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none",
-                active
-                  ? "text-foreground"
-                  : "text-ink-soft hover:text-foreground"
+                "group relative flex min-h-14 flex-col items-center justify-center gap-1 px-1 text-center text-[0.6875rem] leading-tight font-bold transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none",
+                active ? "text-foreground" : "text-ink-soft hover:text-foreground"
               )}
             >
+              {active ? (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-5 top-0 h-1 rounded-b-full bg-primary"
+                />
+              ) : null}
               <span
                 className={cn(
-                  "grid size-9 place-items-center rounded-full border-2 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
+                  "grid size-10 place-items-center rounded-full border-2 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
                   active
-                    ? "border-ink bg-ink text-paper shadow-xs"
+                    ? "border-ink bg-primary text-primary-foreground shadow-xs"
                     : "border-transparent text-ink-soft group-hover:border-ink/30"
                 )}
               >
@@ -46,7 +50,7 @@ export function MerchantTabBar() {
                   <HugeiconsIcon icon={tab.icon} size={20} strokeWidth={2} />
                 ) : null}
               </span>
-              {tab.label}
+              <span className="max-w-full truncate">{tab.label}</span>
             </Link>
           )
         })}

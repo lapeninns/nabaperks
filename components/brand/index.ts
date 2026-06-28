@@ -9,6 +9,12 @@ export {
   PageTitle,
   SectionHeader,
 } from "./typography"
+export { KpiTile, type KpiTileProps } from "./kpi-tile"
+export {
+  FilterPills,
+  type FilterPillItem,
+  type FilterPillsProps,
+} from "./filter-pills"
 export { Icon, type IconGlyph } from "./icon"
 export {
   ACTIVITY_CATEGORY_ICON,

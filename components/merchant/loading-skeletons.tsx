@@ -31,32 +31,63 @@ export function MerchantPageTitleSkeleton() {
 
 // ─── Dashboard metrics ─────────────────────────────────────────────────────────
 
-/** Mirrors the dashboard members hero card + five {@link MetricTile} cards. */
+/**
+ * Mirrors the dashboard body: the four {@link KpiTile} cards (2-up phone, 4-up
+ * desktop) with sparkline slots, the Stamps-vs-Joins trend card, and the
+ * "Do next" card with its repeat-rate bar.
+ */
 export function MerchantDashboardMetricsSkeleton() {
   return (
-    <section
-      className="grid gap-3"
+    <div
+      className="grid gap-6"
       role="status"
       aria-label="Loading dashboard metrics"
     >
-      <div className="overflow-hidden rounded-lg border-2 border-ink bg-card p-6 shadow-sm">
-        <div className="grid content-start gap-3">
-          <Skeleton className="h-3 w-20" />
-          <Skeleton className="h-12 w-28" />
-          <Skeleton className="h-3 w-44" />
+      <section className="grid gap-3">
+        <div className="grid gap-3">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-6 w-56 max-w-full" />
+          <Skeleton className="h-4 w-full max-w-xl" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {[0, 1, 2, 3].map((tile) => (
+            <div key={tile} className="surface-card grid content-start gap-2 p-4">
+              <Skeleton className="h-3 w-20" />
+              <div className="flex items-end justify-between gap-3">
+                <Skeleton className="h-7 w-12" />
+                <Skeleton className="h-7 w-16" />
+              </div>
+              <Skeleton className="h-3 w-24" />
+            </div>
+          ))}
+        </div>
+
+        <div className="surface-card grid gap-3 p-5">
+          <Skeleton className="h-3 w-28" />
+          <div className="flex gap-4">
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-3 w-14" />
+          </div>
+          <Skeleton className="h-28 w-full sm:h-40" />
+        </div>
+      </section>
+
+      <div className="surface-card grid gap-4 p-5">
+        <Skeleton className="h-5 w-20" />
+        <div className="grid gap-2">
+          <Skeleton className="h-9 w-full" />
+          <Skeleton className="h-9 w-full" />
+        </div>
+        <div className="grid gap-2 border-t border-dashed border-line pt-4">
+          <div className="flex items-center justify-between gap-3">
+            <Skeleton className="h-3 w-28" />
+            <Skeleton className="h-5 w-16 rounded-full" />
+          </div>
+          <Skeleton className="h-2 w-full rounded-full" />
         </div>
       </div>
-
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,10.5rem),1fr))] gap-3">
-        {[0, 1, 2, 3, 4].map((tile) => (
-          <div key={tile} className="surface-card grid content-start gap-3 p-4">
-            <Skeleton className="h-3 w-24" />
-            <Skeleton className="h-7 w-16" />
-            <Skeleton className="h-3 w-28" />
-          </div>
-        ))}
-      </div>
-    </section>
+    </div>
   )
 }
 
@@ -109,14 +140,29 @@ export function MerchantCompactActivitySkeleton() {
 export function ActivityFeedSkeleton() {
   return (
     <div className="grid gap-4" role="status" aria-label="Loading activity">
+      {/* This-week strip */}
+      <section className="grid gap-2">
+        <Skeleton className="h-3 w-20" />
+        <div className="surface-card grid grid-cols-2 gap-px overflow-hidden bg-line sm:grid-cols-4">
+          {[0, 1, 2, 3].map((cell) => (
+            <div
+              key={cell}
+              className="grid justify-items-center gap-1.5 bg-card px-2 py-3"
+            >
+              <Skeleton className="h-6 w-8" />
+              <Skeleton className="h-3 w-12" />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Search + filter pills */}
       <section className="surface-card grid gap-3 p-3 sm:p-4">
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-          <Skeleton className="h-9" />
-          <div className="flex flex-wrap gap-2">
-            {[0, 1, 2, 3, 4, 5].map((option) => (
-              <Skeleton key={option} className="h-8 w-16 rounded-full" />
-            ))}
-          </div>
+        <Skeleton className="h-11 w-full" />
+        <div className="flex gap-2">
+          {[0, 1, 2, 3, 4, 5].map((option) => (
+            <Skeleton key={option} className="h-9 w-16 rounded-full" />
+          ))}
         </div>
         <Skeleton className="h-3 w-24" />
       </section>
@@ -151,10 +197,33 @@ export function MerchantCustomersTableSkeleton() {
 
   return (
     <div
-      className="grid gap-3"
+      className="grid gap-4"
       role="status"
       aria-label="Loading loyalty members"
     >
+      {/* Summary strip */}
+      <div className="surface-card grid grid-cols-3 gap-px overflow-hidden bg-line">
+        {[0, 1, 2].map((cell) => (
+          <div
+            key={cell}
+            className="grid justify-items-center gap-1.5 bg-card px-2 py-3"
+          >
+            <Skeleton className="h-6 w-10" />
+            <Skeleton className="h-3 w-14" />
+          </div>
+        ))}
+      </div>
+
+      {/* Search + filter pills */}
+      <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
+        <Skeleton className="h-11 w-full sm:max-w-xs" />
+        <div className="flex gap-2">
+          {[0, 1, 2, 3].map((pill) => (
+            <Skeleton key={pill} className="h-9 w-16 rounded-full" />
+          ))}
+        </div>
+      </div>
+
       {/* Mobile: stacked cards */}
       <ul className="grid gap-2.5 sm:hidden">
         {rows.map((row) => (

@@ -11,11 +11,11 @@ type ActivityDetailCardProps = {
 
 export function ActivityDetailCard({ row }: ActivityDetailCardProps) {
   return (
-    <li className="relative pl-5">
+    <li className="relative pl-5 before:absolute before:top-5 before:left-1 before:h-[calc(100%+0.625rem)] before:w-0.5 before:bg-line before:content-[''] last:before:hidden">
       <span
         aria-hidden="true"
         className={cn(
-          "absolute top-4 left-0 size-2.5 rounded-full border-2 border-ink ring-4 ring-background",
+          "absolute top-4 left-0 z-10 size-2.5 rounded-full border-2 border-ink ring-4 ring-background",
           activityDotClass(row.category)
         )}
       />

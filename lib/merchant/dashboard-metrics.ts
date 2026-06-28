@@ -26,6 +26,114 @@ export async function getMerchantDashboardData(
   }
 }
 
+export type MerchantDashboardSeries = {
+  /** ISO yyyy-mm-dd day keys, oldest first (length = DASHBOARD_SERIES_DAYS). */
+  days: string[]
+  joins: number[]
+  stamps: number[]
+  rewards: number[]
+  /** Cumulative member count over the window, ending at the current total. */
+  members: number[]
+}
+
+const DASHBOARD_SERIES_DAYS = 14
+
+/**
+ * Daily counts for the last 14 days, powering the dashboard sparklines and the
+ * Stamps-vs-Joins trend chart. There is no per-day aggregate in the schema, so
+ * we read the raw `created_at` timestamps for the window and bucket them by UTC
+ * day — three small selects plus one count, all real data (never fabricated).
+ */
+export async function getMerchantDashboardSeries(
+  merchantId: string
+): Promise<MerchantDashboardSeries> {
+  const buckets = buildDayBuckets(DASHBOARD_SERIES_DAYS)
+  const sinceIso = buckets[0]?.iso ?? new Date().toISOString()
+  const supabase = createSupabaseServiceRoleClient()
+
+  const [joinRows, stampRows, rewardRows, totalMembers] = await Promise.all([
+    supabase
+      .from("customer_memberships")
+      .select("created_at")
+      .eq("merchant_id", merchantId)
+      .gte("created_at", sinceIso),
+    supabase
+      .from("stamp_events")
+      .select("created_at")
+      .eq("merchant_id", merchantId)
+      .eq("event_type", "earned")
+      .gte("created_at", sinceIso),
+    supabase
+      .from("reward_events")
+      .select("created_at")
+      .eq("merchant_id", merchantId)
+      .eq("status", "redeemed")
+      .gte("created_at", sinceIso),
+    countRows("customer_memberships", merchantId),
+  ])
+
+  const failure =
+    joinRows.error?.message ??
+    stampRows.error?.message ??
+    rewardRows.error?.message
+  if (failure) {
+    throw new Error(`Unable to load dashboard series: ${failure}`)
+  }
+
+  const joins = bucketize(joinRows.data, buckets)
+  const stamps = bucketize(stampRows.data, buckets)
+  const rewards = bucketize(rewardRows.data, buckets)
+
+  const joinsInWindow = joins.reduce((sum, value) => sum + value, 0)
+  let running = Math.max(0, totalMembers - joinsInWindow)
+  const members = joins.map((value) => (running += value))
+
+  return {
+    days: buckets.map((bucket) => bucket.key),
+    joins,
+    stamps,
+    rewards,
+    members,
+  }
+}
+
+type DayBucket = { key: string; iso: string }
+
+function buildDayBuckets(days: number): DayBucket[] {
+  const now = new Date()
+  const todayUtc = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate()
+  )
+  const buckets: DayBucket[] = []
+  for (let offset = days - 1; offset >= 0; offset -= 1) {
+    const start = new Date(todayUtc - offset * 86_400_000)
+    buckets.push({
+      key: start.toISOString().slice(0, 10),
+      iso: start.toISOString(),
+    })
+  }
+  return buckets
+}
+
+function bucketize(
+  rows: { created_at?: string | null }[] | null | undefined,
+  buckets: DayBucket[]
+): number[] {
+  const indexByKey = new Map(
+    buckets.map((bucket, index) => [bucket.key, index])
+  )
+  const counts = new Array<number>(buckets.length).fill(0)
+  for (const row of rows ?? []) {
+    const createdAt = row?.created_at
+    if (typeof createdAt !== "string") continue
+    const index = indexByKey.get(createdAt.slice(0, 10))
+    if (index !== undefined) counts[index] += 1
+  }
+  return counts
+}
+
 async function getMerchantDashboardDataByQuery(
   merchant: MerchantDashboardMerchant
 ) {
