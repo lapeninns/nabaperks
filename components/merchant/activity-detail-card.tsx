@@ -1,4 +1,10 @@
-import { ACTIVITY_CATEGORY_ICON, MonoTag } from "@/components/brand"
+"use client"
+
+import Link from "next/link"
+import { useEffect, useState } from "react"
+
+import { CategoryBadge } from "@/components/brand"
+import { Button } from "@/components/ui/button"
 import type {
   ActivityCategory,
   ActivityDisplayRow,
@@ -20,61 +26,107 @@ export function ActivityDetailCard({ row }: ActivityDetailCardProps) {
         )}
       />
       <article className="group/activity surface-card border-ink px-4 py-3 transition-[border-color,box-shadow,transform] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none hover:-translate-y-0.5">
-        <div className="min-w-0">
-          <p className="text-sm leading-6 font-extrabold text-foreground">
-            {row.headline}
-          </p>
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-            <CategoryBadge category={row.category} label={row.badgeLabel} />
-            <span
-              aria-hidden="true"
-              className="hidden size-1 rounded-full bg-muted-foreground/35 sm:inline-block"
-            />
-            <time dateTime={row.timestamp} className="numeric-tabular">
-              {row.relativeTime} at {row.timestampLabel}
-            </time>
+        <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-start">
+          <div className="min-w-0">
+            <p className="text-sm leading-6 font-extrabold text-foreground">
+              {row.headline}
+            </p>
+            {row.summary ? (
+              <p className="mt-0.5 text-sm leading-6 text-muted-foreground">
+                {row.summary}
+              </p>
+            ) : null}
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+              <CategoryBadge category={row.category} label={row.badgeLabel} />
+              <span
+                aria-hidden="true"
+                className="hidden size-1 rounded-full bg-muted-foreground/35 sm:inline-block"
+              />
+              <time dateTime={row.timestamp} className="numeric-tabular">
+                <RelativeTime
+                  timestamp={row.timestamp}
+                  fallback={row.relativeTime}
+                />{" "}
+                at {row.timestampLabel}
+              </time>
+            </div>
           </div>
+          {row.primaryAction ? (
+            <Button
+              asChild
+              variant="secondary"
+              size="sm"
+              className="justify-self-start sm:justify-self-end"
+            >
+              <Link href={row.primaryAction.href}>
+                {row.primaryAction.label}
+              </Link>
+            </Button>
+          ) : null}
         </div>
       </article>
     </li>
   )
 }
 
-function CategoryBadge({
-  category,
-  label,
+/**
+ * Re-derives the human-readable "X ago" string on the client so it does not go
+ * stale on a long-lived tab. The server-rendered `fallback` is shown first (so
+ * SSR and the first paint match), then the string refreshes on an interval. The
+ * absolute `dateTime`/`timestampLabel` stays authoritative; only the relative
+ * phrase is recomputed, and only while it is still within the relative window.
+ */
+function RelativeTime({
+  timestamp,
+  fallback,
 }: {
-  readonly category: ActivityCategory
-  readonly label: string
+  readonly timestamp: string
+  readonly fallback: string
 }) {
-  return (
-    <MonoTag
-      tone={categoryBadgeTone(category)}
-      icon={ACTIVITY_CATEGORY_ICON[category]}
-      className={cn(
-        categoryBadgeTone(category) === "plain" && categoryBadgeClass(category)
-      )}
-    >
-      {label}
-    </MonoTag>
-  )
+  const [label, setLabel] = useState(fallback)
+
+  useEffect(() => {
+    const update = () => {
+      const next = relativeTimeFromNow(timestamp)
+      // Beyond the relative window the server emits an absolute date that never
+      // goes stale — keep showing it rather than drifting from the server format.
+      setLabel(next ?? fallback)
+    }
+
+    update()
+    const interval = window.setInterval(update, 60_000)
+    return () => window.clearInterval(interval)
+  }, [timestamp, fallback])
+
+  return <>{label}</>
 }
 
-function categoryBadgeTone(
-  category: ActivityCategory
-): "plain" | "accent" | "ink" | "leaf" | "sun" {
-  switch (category) {
-    case "customer":
-      return "accent"
-    case "stamp":
-      return "ink"
-    case "reward":
-      return "leaf"
-    case "qr":
-      return "sun"
-    case "account":
-      return "plain"
+/**
+ * Mirror of the relative window in `lib/merchant/activity` (`formatRelativeTime`).
+ * Returns `null` past seven days so the caller can fall back to the server's
+ * locale-correct absolute label instead of re-implementing the timezone format.
+ */
+function relativeTimeFromNow(value: string): string | null {
+  const diffMs = Date.now() - new Date(value).getTime()
+  if (!Number.isFinite(diffMs)) return null
+
+  const minute = 60_000
+  const hour = 60 * minute
+  const day = 24 * hour
+
+  if (diffMs < minute) return "Just now"
+  if (diffMs < hour) {
+    const minutes = Math.floor(diffMs / minute)
+    return `${minutes} min ago`
   }
+  if (diffMs < day) {
+    const hours = Math.floor(diffMs / hour)
+    return `${hours} hr ago`
+  }
+  const days = Math.floor(diffMs / day)
+  if (days === 1) return "Yesterday"
+  if (days < 7) return `${days} days ago`
+  return null
 }
 
 function activityDotClass(category: ActivityCategory) {
@@ -89,20 +141,5 @@ function activityDotClass(category: ActivityCategory) {
       return "bg-qr"
     case "account":
       return "bg-muted-foreground"
-  }
-}
-
-function categoryBadgeClass(category: ActivityCategory) {
-  switch (category) {
-    case "customer":
-      return "border-accent/80 bg-accent text-accent-foreground"
-    case "stamp":
-      return "border-primary/20 bg-primary/10 text-primary"
-    case "reward":
-      return "border-reward/25 bg-reward/10 text-reward"
-    case "qr":
-      return "border-qr/20 bg-qr/10 text-foreground"
-    case "account":
-      return "border-border bg-secondary/70 text-secondary-foreground"
   }
 }

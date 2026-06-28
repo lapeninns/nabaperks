@@ -28,9 +28,12 @@ const PAD_Y = 5
 function project(data: number[], min: number, max: number): string {
   const span = max - min || 1
   const usable = VIEW_H - PAD_Y * 2
-  const step = VIEW_W / Math.max(1, data.length - 1)
-  return data
-    .filter((value) => Number.isFinite(value))
+  // Filter to finite values BEFORE deriving the x-step so the step matches the
+  // points actually plotted; otherwise any NaN/Infinity in `data` shrinks the
+  // step and slides the line/fill off the x-axis (cf. Sparkline.buildPoints).
+  const clean = data.filter((value) => Number.isFinite(value))
+  const step = VIEW_W / Math.max(1, clean.length - 1)
+  return clean
     .map((value, index) => {
       const x = index * step
       const y = PAD_Y + (1 - (value - min) / span) * usable

@@ -1,5 +1,4 @@
 import Link from "next/link"
-import { redirect } from "next/navigation"
 import { Download01Icon, PrinterIcon } from "@hugeicons/core-free-icons"
 
 import { generateQrCodeAction, setQrActiveAction } from "@/app/app/qr/actions"
@@ -11,13 +10,9 @@ import { CopyUrlButton } from "@/components/merchant/copy-url-button"
 import { Disclosure } from "@/components/merchant/launch/disclosure"
 import { LaunchSaveNextAction } from "@/components/merchant/launch/launch-tab-auto-advance"
 import { Button } from "@/components/ui/button"
-import { ensureJoinQrProvisioned } from "@/lib/merchant/ensure-join-qr"
 import { getServerEnv } from "@/lib/env/server"
-import {
-  buildLaunchReadiness,
-  getLaunchBillingReadiness,
-} from "@/lib/merchant/launch-readiness"
-import { getQrSetupFresh } from "@/lib/merchant/qr-code"
+import type { LaunchReadiness } from "@/lib/merchant/launch-readiness"
+import type { QrSetup } from "@/lib/merchant/qr-code"
 
 export type QrPanelParams = {
   created?: string
@@ -26,50 +21,30 @@ export type QrPanelParams = {
   error?: string
 }
 
+/**
+ * Launch-kit panel. The launch page resolves the QR setup + readiness once and
+ * runs the auto-provision side-effect there, then passes the already-resolved
+ * data here as props — this panel does NOT re-run the setup pipeline (which
+ * previously doubled the round-trips and discarded its own recomputed
+ * readiness in steady state).
+ */
 export async function QrPanel({
+  setup,
+  readiness,
   params,
   continueHref,
   launchReady = false,
   billingHref,
 }: {
+  setup: QrSetup
+  readiness: LaunchReadiness
   params: QrPanelParams
   continueHref?: string | null
   launchReady?: boolean
   billingHref?: string | null
 }) {
-  let { merchant, activeCard, activeRewardPoolItemCount, qrCode, location } =
-    await getQrSetupFresh()
-  const billing = merchant
-    ? await getLaunchBillingReadiness(merchant.id)
-    : undefined
-  const readiness = buildLaunchReadiness({
-    activeCard,
-    activeRewardPoolItemCount,
-    qrCode,
-    location,
-    billing,
-  })
-
-  if (!merchant) {
-    redirect("/app/onboarding")
-  }
-
-  if (
-    readiness.tabs.venue &&
-    readiness.tabs.card &&
-    readiness.tabs.rewards &&
-    !readiness.tabs.qr
-  ) {
-    await ensureJoinQrProvisioned({
-      merchantId: merchant.id,
-      activeCard,
-      activeRewardPoolItemCount,
-      venueReady: readiness.tabs.venue,
-      qrCode,
-    })
-    ;({ merchant, activeCard, activeRewardPoolItemCount, qrCode, location } =
-      await getQrSetupFresh())
-  }
+  const { activeCard, qrCode, location } = setup
+  const activeRewardPoolItemCount = setup.activeRewardPoolItemCount
 
   if (!activeCard) {
     return (
@@ -170,6 +145,12 @@ export async function QrPanel({
             <img
               src={`/app/qr/image/${qrCode.id}`}
               alt={`QR code for ${activeCard.card_name}`}
+              width={512}
+              height={512}
+              // Intrinsic square dims lock the box so the cookie-protected
+              // network image cannot shift the layout as it loads. Fill stays
+              // white (not bg-secondary) so the rendered QR keeps the high
+              // contrast scanners need.
               className="aspect-square w-full rounded-lg bg-white"
             />
           </QrFrame>

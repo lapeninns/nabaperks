@@ -5,10 +5,16 @@ import { OnboardingForm } from "@/components/merchant/onboarding-form"
 import { getGoogleMapsPublicKey } from "@/lib/env/google-maps-public-key"
 import { MERCHANT_SETUP_STEPS } from "@/lib/merchant/launch-readiness-contract"
 import { getCurrentUser } from "@/lib/auth/session"
+import { merchantLoginHref } from "@/lib/navigation/safe-next-path"
 import { getMerchantOnboardingStatus } from "@/lib/merchant/onboarding"
 
 export default async function OnboardingPage() {
   const user = await getCurrentUser()
+
+  if (!user) {
+    redirect(merchantLoginHref("/app/onboarding"))
+  }
+
   const setup = await getMerchantOnboardingStatus()
 
   if (setup.status === "complete") {

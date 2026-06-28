@@ -77,6 +77,13 @@ export type ActivityQueryResult = {
 
 export type ActivityQueryOptions = {
   limit?: number
+  /**
+   * Restrict the query to a single activity category. Defaults to all
+   * categories. Pushed into the DB query (not just filtered client-side) so
+   * "Load more" grows the filtered set and rows beyond the window stay
+   * reachable, rather than re-pulling a larger window of every event type.
+   */
+  filter?: "all" | ActivityCategory
 }
 
 type RawActivityRow = {
@@ -118,8 +125,25 @@ export async function getEnrichedMerchantActivity(
   options: ActivityQueryOptions = {}
 ): Promise<ActivityQueryResult> {
   const limit = clampActivityLimit(options.limit)
+  const filter = options.filter ?? "all"
   const supabase = createSupabaseServiceRoleClient()
-  const { data, error, count } = await supabase
+
+  // Push the category filter into the DB so "Load more" grows the FILTERED set
+  // — not a larger window of all event types — and so events past the window
+  // stay reachable by raising the limit. Served by the composite index
+  // (merchant_id, event_name, created_at desc). Over-fetch by one row to derive
+  // `hasMore` cheaply (no count: "exact" heap touch) and to let a stamp pair
+  // straddling the window boundary still thread instead of rendering as orphan
+  // "requested"/"collected" cards.
+  //
+  // The free-text `q` is intentionally NOT pushed into the query: the only
+  // first-class text column here is `event_name`, and narrowing on it would
+  // hide rows whose match lives in the customer label, reward name, or
+  // metadata (e.g. searching a customer name returns no events). Those joins
+  // also carry PII we must not expose to a search predicate. `q` therefore
+  // stays a client-side refinement over the loaded window (the feed filters on
+  // its richer searchText index).
+  const { data, error } = await supabase
     .from("product_events")
     .select(
       `
@@ -135,23 +159,23 @@ export async function getEnrichedMerchantActivity(
       customers(email, phone),
       customer_memberships(id, current_stamp_count, total_stamps_earned, total_rewards_redeemed),
       qr_codes(qr_id, destination_type)
-    `,
-      { count: "exact" }
+    `
     )
     .eq("merchant_id", merchantId)
-    .in("event_name", [...activityEvents])
+    .in("event_name", eventsForCategory(filter))
     .order("created_at", { ascending: false })
-    .limit(limit)
+    .limit(limit + 1)
 
   if (error) {
     throw new Error(`Unable to load activity: ${error.message}`)
   }
 
-  const rows = (data ?? []) as RawActivityRow[]
+  const fetched = (data ?? []) as RawActivityRow[]
+  const hasMore = fetched.length > limit
   const staffIds = new Set<string>()
   const rewardPoolItemIds = new Set<string>()
 
-  for (const row of rows) {
+  for (const row of fetched) {
     if (row.actor_type === "staff" && row.actor_id) {
       staffIds.add(row.actor_id)
     }
@@ -167,14 +191,66 @@ export async function getEnrichedMerchantActivity(
     loadRewardPoolItems([...rewardPoolItemIds]),
   ])
 
-  const displayRows = threadActivityRows(rows, staffById, rewardById)
+  // Thread over the full fetched window (including the +1 spare) but only emit
+  // display rows for the first `limit` raw events; a boundary-straddling stamp
+  // pair may borrow the spare so it threads instead of orphaning.
+  const displayRows = threadActivityRows(fetched, staffById, rewardById, limit)
+  const loadedCount = Math.min(fetched.length, limit)
 
   return {
-    rows: displayRows,
-    totalCount: count ?? rows.length,
-    loadedCount: rows.length,
+    rows: displayRows.map(toSlimActivityRow),
+    // No exact count is run anymore. totalCount reports the rows loaded so far;
+    // whether more exist is carried by `hasMore` (the +1 sentinel), which gates
+    // "Load more". When more exist we report loadedCount + 1 so totalCount stays
+    // strictly greater than loadedCount for any "X of Y" affordance.
+    totalCount: hasMore ? loadedCount + 1 : loadedCount,
+    loadedCount,
     limit,
-    hasMore: (count ?? rows.length) > rows.length,
+    hasMore,
+  }
+}
+
+const eventsByCategory: Record<ActivityCategory, ActivityEventName[]> = {
+  customer: ["customer_joined"],
+  stamp: ["stamp_claim_started", "stamp_issued"],
+  reward: ["reward_unlocked", "reward_redeemed"],
+  qr: ["qr_scanned", "qr_downloaded", "qr_created", "qr_enabled", "qr_disabled"],
+  account: [
+    "loyalty_card_created",
+    "loyalty_card_updated",
+    "merchant_signed_up",
+    "subscription_started",
+    "subscription_cancelled",
+  ],
+}
+
+function eventsForCategory(filter: "all" | ActivityCategory): string[] {
+  if (filter === "all") return [...activityEvents]
+  return eventsByCategory[filter] ?? [...activityEvents]
+}
+
+/**
+ * Project the slim row shape that actually crosses the RSC boundary. `details`
+ * is built for internal threading but never rendered by any client consumer, so
+ * it is dropped here (kept as `[]` to preserve the row type) along with the
+ * unused `secondaryAction`; `primaryAction` is retained for the compact feed.
+ */
+function toSlimActivityRow(row: ActivityDisplayRow): ActivityDisplayRow {
+  return {
+    id: row.id,
+    eventName: row.eventName,
+    category: row.category,
+    badgeLabel: row.badgeLabel,
+    headline: row.headline,
+    summary: row.summary,
+    timestamp: row.timestamp,
+    timestampLabel: row.timestampLabel,
+    relativeTime: row.relativeTime,
+    dateGroup: row.dateGroup,
+    dateGroupLabel: row.dateGroupLabel,
+    details: [],
+    primaryAction: row.primaryAction,
+    searchText: row.searchText,
   }
 }
 
@@ -728,11 +804,17 @@ function toActivityDisplayRow(
 function threadActivityRows(
   rows: RawActivityRow[],
   staffById: Map<string, { display_name: string; role: string }>,
-  rewardById: Map<string, { reward_name: string }>
+  rewardById: Map<string, { reward_name: string }>,
+  maxRows: number = rows.length
 ) {
   const displayRows: ActivityDisplayRow[] = []
+  // Only emit display rows for the first `maxRows` raw events. The +1 spare
+  // beyond `maxRows` is consumable solely as the older half of a stamp pair
+  // whose newer half is the last in-window row, so a visit split across the
+  // window boundary still threads instead of orphaning.
+  const lastConsumableIndex = Math.min(maxRows, rows.length) - 1
 
-  for (let index = 0; index < rows.length; index += 1) {
+  for (let index = 0; index <= lastConsumableIndex; index += 1) {
     const row = rows[index]
     const nextRow = rows[index + 1]
 
@@ -1125,17 +1207,35 @@ function uniqueDetails(
   )
 }
 
+/**
+ * Explicit allowlist of metadata keys that are safe to fold into the
+ * client-side search index. An allowlist (rather than a key-name denylist)
+ * keeps a future PII key — `full_name`, `address`, `ip`, etc. — from silently
+ * shipping to the browser just because its name does not contain
+ * "email"/"phone". Only operational, non-PII keys are listed here; mirror this
+ * set when a new rendered metadata field is added.
+ */
+const SEARCHABLE_METADATA_KEYS = new Set<string>([
+  "reward_name",
+  "new_stamp_count",
+  "business_date",
+  "geo_status",
+  "destination_type",
+  "asset_type",
+  "source",
+  "plan",
+  "status",
+])
+
 function metadataSearchValues(metadata: Record<string, unknown> | null) {
   if (!metadata) return []
 
   return Object.entries(metadata)
     .filter(([key, value]) => {
-      const lowerKey = key.toLowerCase()
       const valueType = typeof value
       return (
         (valueType === "string" || valueType === "number") &&
-        !lowerKey.includes("email") &&
-        !lowerKey.includes("phone")
+        SEARCHABLE_METADATA_KEYS.has(key)
       )
     })
     .map(([key, value]) => `${key} ${String(value)}`)

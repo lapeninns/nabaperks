@@ -31,17 +31,14 @@ function MerchantRewardScannerLoading() {
         </p>
       </div>
 
-      <div
-        aria-live="polite"
-        className="grid min-h-64 place-items-center rounded-[var(--radius-lg)] border-2 border-dashed border-ink/35 bg-card"
-      >
+      <div className="grid min-h-64 place-items-center rounded-[var(--radius-lg)] border-2 border-dashed border-ink/35 bg-card">
         <span className="font-mono text-[0.65rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
           Starting camera
         </span>
       </div>
 
       <Button asChild variant="secondary" className="w-full sm:w-auto">
-        <Link href="/app">Back to home</Link>
+        <Link href="/app">Back to dashboard</Link>
       </Button>
     </ReceiptCard>
   )

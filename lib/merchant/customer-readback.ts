@@ -1,4 +1,7 @@
-import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
+import {
+  addUkCalendarDays,
+  formatStampDisplayDateFromIso,
+} from "@/lib/customer/uk-calendar"
 import {
   formatMerchantCustomerIdentifier,
   type MerchantCustomerIdentity,
@@ -6,6 +9,33 @@ import {
 import type { MerchantCustomerRow } from "@/lib/merchant/dashboard"
 
 const LONDON = "Europe/London"
+
+// Intl.DateTimeFormat construction is heavy in Node, and
+// buildMerchantCustomerReadback runs these on every membership row. The options
+// are invariant, so the formatters are hoisted to module-level singletons.
+const LONDON_DATE_KEY_FORMAT = new Intl.DateTimeFormat("en-CA", {
+  timeZone: LONDON,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+})
+const JOINED_DATE_FORMAT = new Intl.DateTimeFormat("en-GB", {
+  timeZone: LONDON,
+  day: "numeric",
+  month: "short",
+})
+const LAST_VISIT_TIME_FORMAT = new Intl.DateTimeFormat("en-GB", {
+  timeZone: LONDON,
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+})
+const LAST_VISIT_DATE_FORMAT = new Intl.DateTimeFormat("en-GB", {
+  timeZone: LONDON,
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+})
 
 /** Default loyalty card size when a merchant has not configured one yet. */
 export const DEFAULT_STAMPS_REQUIRED = 3
@@ -134,14 +164,11 @@ export function formatHashedPhoneLine(
 }
 
 export function formatJoinedDate(iso: string, now: Date = new Date()): string {
+  const todayKey = londonDateKey(now)
   const key = londonDateKey(iso)
-  if (key === londonDateKey(now)) return "Today"
-  if (key === londonDateKey(addDays(now, -1))) return "Yesterday"
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: LONDON,
-    day: "numeric",
-    month: "short",
-  }).format(new Date(iso))
+  if (key === todayKey) return "Today"
+  if (key === addUkCalendarDays(todayKey, -1)) return "Yesterday"
+  return JOINED_DATE_FORMAT.format(new Date(iso))
 }
 
 export function formatLastVisit(
@@ -150,24 +177,15 @@ export function formatLastVisit(
 ): string {
   if (!iso) return "Not yet"
 
+  const todayKey = londonDateKey(now)
   const key = londonDateKey(iso)
-  if (key === londonDateKey(now)) {
-    const time = new Intl.DateTimeFormat("en-GB", {
-      timeZone: LONDON,
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }).format(new Date(iso))
+  if (key === todayKey) {
+    const time = LAST_VISIT_TIME_FORMAT.format(new Date(iso))
     return `Today ${time}`
   }
-  if (key === londonDateKey(addDays(now, -1))) return "Yesterday"
+  if (key === addUkCalendarDays(todayKey, -1)) return "Yesterday"
 
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: LONDON,
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  }).format(new Date(iso))
+  return LAST_VISIT_DATE_FORMAT.format(new Date(iso))
 }
 
 /** Compose a single membership row into the masked-safe table view model. */
@@ -245,22 +263,11 @@ function isGoneQuiet(lastVisitAt: string | null, now: Date): boolean {
 
 function londonDateKey(value: string | Date): string {
   const date = typeof value === "string" ? new Date(value) : value
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: LONDON,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date)
+  const parts = LONDON_DATE_KEY_FORMAT.formatToParts(date)
   const year = parts.find((part) => part.type === "year")?.value
   const month = parts.find((part) => part.type === "month")?.value
   const day = parts.find((part) => part.type === "day")?.value
   return `${year}-${month}-${day}`
-}
-
-function addDays(date: Date, days: number): Date {
-  const next = new Date(date.getTime())
-  next.setUTCDate(next.getUTCDate() + days)
-  return next
 }
 
 function daysBetweenLondonDates(fromKey: string, toKey: string): number {

@@ -1,3 +1,4 @@
+export { CategoryBadge } from "./category-badge"
 export { Logo } from "./logo"
 export { MonoTag } from "./mono-tag"
 export { ReceiptCard } from "./receipt-card"

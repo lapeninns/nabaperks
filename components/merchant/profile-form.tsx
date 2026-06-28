@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState } from "react"
+import { useActionState, useEffect } from "react"
 
 import {
   updateMerchantProfileAction,
@@ -48,6 +48,21 @@ export function MerchantProfileForm({
     initialState
   )
   const fields = state.fields ?? initialState.fields
+
+  // Move focus to the first invalid field after a failed submit so the error is
+  // discoverable for keyboard and screen-reader users (errors are otherwise only
+  // associated via aria-invalid/aria-describedby). Keyed on `state` because
+  // useActionState returns a fresh state object on every dispatch.
+  useEffect(() => {
+    if (!state.errors) return
+    const firstInvalidId = ["businessName", "businessType", "email", "phone"].find(
+      (key) => state.errors?.[key as keyof typeof state.errors]
+    )
+    const target = firstInvalidId
+      ? document.getElementById(firstInvalidId)
+      : null
+    if (target instanceof HTMLElement) target.focus()
+  }, [state])
 
   return (
     <form action={action} className="surface-card grid gap-4 p-6">
@@ -105,12 +120,19 @@ export function MerchantProfileForm({
         error={state.errors?.phone}
       />
       {state.errors?.form ? (
-        <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p
+          role="alert"
+          className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+        >
           {state.errors.form}
         </p>
       ) : null}
       {state.message ? (
-        <p className="rounded-xl border border-reward/30 bg-accent px-3 py-2 text-sm text-accent-foreground">
+        <p
+          role="status"
+          aria-live="polite"
+          className="rounded-xl border border-reward/30 bg-accent px-3 py-2 text-sm text-accent-foreground"
+        >
           {state.message}
         </p>
       ) : null}

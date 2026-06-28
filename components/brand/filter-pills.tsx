@@ -49,6 +49,10 @@ export function FilterPills({
             onClick={() => onValueChange(item.id)}
             className={cn(
               "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border-2 px-3.5",
+              // Intentional compact 36px pill (Wet Ink). The row is horizontally
+              // scrollable with gap-2 spacing; this documents the sub-44px
+              // target-size exception rather than distorting the visual rhythm
+              // with an overlay. Revisit if a strict WCAG 2.5.8 policy is adopted.
               "font-mono text-[0.6875rem] font-bold tracking-[0.04em] uppercase whitespace-nowrap",
               "transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)]",
               "outline-none focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none",

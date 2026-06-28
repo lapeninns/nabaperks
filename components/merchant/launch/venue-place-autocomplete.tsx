@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 
 import {
   mapGoogleAddressComponents,
@@ -191,6 +191,7 @@ export function VenuePlaceAutocomplete({
   apiKey?: string
 }) {
   const apiKey = apiKeyOverride ?? process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+  const labelId = useId()
   const containerRef = useRef<HTMLDivElement | null>(null)
   const onSelectedRef = useRef(onPlaceSelected)
   const [status, setStatus] = useState<WidgetStatus>(
@@ -241,6 +242,9 @@ export function VenuePlaceAutocomplete({
         })
         element.classList.add("w-full")
         element.setAttribute("placeholder", "Search for your venue")
+        // Associate the injected Google input with the visible label so screen
+        // readers announce "Find your venue" instead of only the placeholder.
+        element.setAttribute("aria-labelledby", labelId)
         container.replaceChildren(element)
         element.addEventListener("gmp-select", handleSelect)
         element.addEventListener("gmp-error", handleError)
@@ -260,14 +264,16 @@ export function VenuePlaceAutocomplete({
       cancelled = true
       detach()
     }
-  }, [apiKey])
+  }, [apiKey, labelId])
 
   // Unconfigured: render nothing so the manual address fields below stand alone.
   if (!apiKey) return null
 
   return (
     <div className="grid gap-2">
-      <span className="text-sm font-bold">Find your venue</span>
+      <span id={labelId} className="text-sm font-bold">
+        Find your venue
+      </span>
       <div
         ref={containerRef}
         data-testid="venue-place-autocomplete"

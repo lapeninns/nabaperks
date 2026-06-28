@@ -23,9 +23,8 @@ import { ProgressTrack } from "@/components/loyalty/progress-track"
 import { WetInkRise } from "@/components/motion"
 import { Button } from "@/components/ui/button"
 import { getEnrichedMerchantActivity } from "@/lib/merchant/activity"
-import { buildMerchantCustomerReadback } from "@/lib/merchant/customer-readback"
 import {
-  getMerchantCustomers,
+  getMerchantDashboardCustomerCounts,
   getMerchantDashboardData,
   getMerchantDashboardSeries,
   type MerchantDashboardMerchant,
@@ -39,29 +38,27 @@ export async function MerchantDashboardStream({
 }: {
   merchant: MerchantDashboardMerchant
 }) {
-  const [dashboard, launchReadiness, series, rawCustomers] = await Promise.all([
-    timeServerLoader("/app", "getMerchantDashboardData", () =>
-      getMerchantDashboardData(merchant)
-    ),
-    timeServerLoader("/app", "getMerchantLaunchReadiness", () =>
-      getMerchantLaunchReadiness()
-    ),
-    timeServerLoader("/app", "getMerchantDashboardSeries", () =>
-      getMerchantDashboardSeries(merchant.id)
-    ),
-    timeServerLoader("/app", "getMerchantCustomers", () =>
-      getMerchantCustomers(merchant.id)
-    ),
-  ])
+  const [dashboard, launchReadiness, series, customerCounts] =
+    await Promise.all([
+      timeServerLoader("/app", "getMerchantDashboardData", () =>
+        getMerchantDashboardData(merchant)
+      ),
+      timeServerLoader("/app", "getMerchantLaunchReadiness", () =>
+        getMerchantLaunchReadiness()
+      ),
+      timeServerLoader("/app", "getMerchantDashboardSeries", () =>
+        getMerchantDashboardSeries(merchant.id)
+      ),
+      // "Do next" needs only two integers — load them without pulling the full
+      // (PII-bearing) customer list onto the dashboard path.
+      timeServerLoader("/app", "getMerchantDashboardCustomerCounts", () =>
+        getMerchantDashboardCustomerCounts(merchant.id)
+      ),
+    ])
   const metrics = dashboard.metrics
   const trends = dashboard.trends
 
-  const now = new Date()
-  const customers = rawCustomers.map((row) =>
-    buildMerchantCustomerReadback(row, now)
-  )
-  const readyCount = customers.filter((c) => c.badge.tone === "ready").length
-  const quietCount = customers.filter((c) => c.badge.tone === "quiet").length
+  const { readyCount, quietCount } = customerCounts
 
   const kpis = [
     {
@@ -275,6 +272,8 @@ export async function MerchantCompactActivityStream({
             description="Activity will appear here after customers join, stamps are issued, rewards are redeemed, or QR assets are downloaded."
             icon={Activity03Icon}
             className="bg-background"
+            // Nest under the card's "Recent activity" h2 instead of peering with it.
+            headingLevel={3}
           />
         }
       />

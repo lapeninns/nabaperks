@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import type { ReactNode } from "react"
 import Link from "next/link"
 
@@ -35,13 +35,24 @@ const BADGE_STYLES: Record<MerchantCustomerRewardTone, BadgeToneStyle> = {
 
 // ─── Mobile card ──────────────────────────────────────────────────────────────
 
+/**
+ * Concise accessible name for the mobile card toggle. Without this the computed
+ * name swallows the whole stamp grid (a nested role="list") plus both dates into
+ * one long run-on. WCAG 4.1.2 / 2.4.6.
+ */
+function describeMobileCard(row: MerchantCustomerReadbackRow): string {
+  return `${row.identifier}, ${row.badge.label}, ${row.currentStampCount} of ${row.stampsRequired} stamps`
+}
+
 function CustomerMobileCard({
   row,
   isSelected,
+  isHighlighted,
   onSelect,
 }: {
   row: MerchantCustomerReadbackRow
   isSelected: boolean
+  isHighlighted: boolean
   onSelect: (id: string) => void
 }) {
   const style = BADGE_STYLES[row.badge.tone]
@@ -58,6 +69,11 @@ function CustomerMobileCard({
         type="button"
         onClick={() => onSelect(row.id)}
         aria-pressed={isSelected}
+        // A concise, explicit name keeps the accessible name from becoming a
+        // run-on of the stamp grid + dates (the visual detail below is
+        // aria-hidden). WCAG 4.1.2 / 2.4.6.
+        aria-label={describeMobileCard(row)}
+        {...(isHighlighted ? { "data-customer-highlight": "true" } : {})}
         className="grid gap-0 text-left"
       >
         {/* Identity row: avatar + identifier + badge */}
@@ -78,8 +94,11 @@ function CustomerMobileCard({
           </MonoTag>
         </div>
 
-        {/* Stamp + date metadata row */}
-        <div className="flex items-center justify-between gap-3 border-t-2 border-dashed border-border px-3 pt-2.5 pb-3">
+        {/* Stamp + date metadata row — decorative detail, named by aria-label */}
+        <div
+          aria-hidden="true"
+          className="flex items-center justify-between gap-3 border-t-2 border-dashed border-border px-3 pt-2.5 pb-3"
+        >
           <div className="flex items-center gap-2">
             <StampGrid
               current={row.currentStampCount}
@@ -138,10 +157,12 @@ function CustomerMobileCard({
 function CustomerMobileList({
   customers,
   selectedId,
+  highlightedMembershipId,
   onSelect,
 }: {
   customers: MerchantCustomerReadbackRow[]
   selectedId: string | null
+  highlightedMembershipId?: string
   onSelect: (id: string) => void
 }) {
   if (!customers.length) return null
@@ -153,6 +174,7 @@ function CustomerMobileList({
           <CustomerMobileCard
             row={row}
             isSelected={row.id === selectedId}
+            isHighlighted={row.id === highlightedMembershipId}
             onSelect={onSelect}
           />
         </li>
@@ -163,26 +185,39 @@ function CustomerMobileList({
 
 // ─── Table columns ────────────────────────────────────────────────────────────
 
-function buildColumns(): DataTableColumn<MerchantCustomerReadbackRow>[] {
+function buildColumns(
+  highlightedMembershipId?: string
+): DataTableColumn<MerchantCustomerReadbackRow>[] {
   return [
     {
       key: "member",
       header: "Member",
-      cell: (row) => (
-        <span className="flex min-w-0 items-center gap-2.5">
-          <VenueMark initials={row.initials || "?"} size={32} />
-          <span className="grid min-w-0 gap-0.5">
-            <span className="truncate text-sm leading-snug font-bold">
-              {row.identifier}
-            </span>
-            {row.phoneLine ? (
-              <span className="font-mono text-[0.66rem] font-bold tracking-[0.04em] text-muted-foreground">
-                {row.phoneLine}
+      cell: (row) => {
+        const isHighlighted = row.id === highlightedMembershipId
+        return (
+          <span
+            className="flex min-w-0 items-center gap-2.5 outline-none"
+            // Deep-link target: the mount effect scrolls + focuses this so an
+            // arriving member is brought into view among up to 100 rows. The
+            // shared DataTable owns the <tr>, so the marker lives on the cell.
+            {...(isHighlighted
+              ? { "data-customer-highlight": "true", tabIndex: -1 }
+              : {})}
+          >
+            <VenueMark initials={row.initials || "?"} size={32} />
+            <span className="grid min-w-0 gap-0.5">
+              <span className="truncate text-sm leading-snug font-bold">
+                {row.identifier}
               </span>
-            ) : null}
+              {row.phoneLine ? (
+                <span className="font-mono text-[0.66rem] font-bold tracking-[0.04em] text-muted-foreground">
+                  {row.phoneLine}
+                </span>
+              ) : null}
+            </span>
           </span>
-        </span>
-      ),
+        )
+      },
     },
     {
       key: "joined",
@@ -237,13 +272,34 @@ function buildColumns(): DataTableColumn<MerchantCustomerReadbackRow>[] {
       header: "Reward",
       cell: (row) => {
         const style = BADGE_STYLES[row.badge.tone]
-        return <MonoTag tone={style.tag}>{row.badge.label}</MonoTag>
+        return (
+          <span className="flex flex-col items-start gap-1.5">
+            <MonoTag tone={style.tag}>{row.badge.label}</MonoTag>
+            {/* A real focusable control so the scan action is keyboard-reachable
+                without relying on the mouse-only row selection (WCAG 2.1.1 /
+                4.1.2). Mirrors the inline CTA the mobile card already exposes. */}
+            {row.scanRewardId ? (
+              <Button
+                asChild
+                size="xs"
+                className="gap-1.5 font-mono text-[0.65rem] tracking-[0.06em] uppercase"
+              >
+                <Link
+                  href={`/app/rewards/scan/${row.scanRewardId}`}
+                  onClick={(event) => event.stopPropagation()}
+                  aria-label={`Scan reward for ${row.identifier}`}
+                >
+                  <Icon icon={ScanIcon} size={12} />
+                  Scan
+                </Link>
+              </Button>
+            ) : null}
+          </span>
+        )
       },
     },
   ]
 }
-
-const TABLE_COLUMNS = buildColumns()
 
 // ─── Filtering ────────────────────────────────────────────────────────────────
 
@@ -302,22 +358,60 @@ export function CustomerReadbackTable({
   )
   const [query, setQuery] = useState("")
   const [filter, setFilter] = useState<CustomerFilter>("all")
-
-  const selected = selectedId
-    ? customers.find((c) => c.id === selectedId)
-    : null
+  const rootRef = useRef<HTMLDivElement>(null)
 
   const handleSelect = (id: string) =>
     setSelectedId((prev) => (prev === id ? null : id))
 
-  const readyCount = customers.filter((c) => c.badge.tone === "ready").length
-  const quietCount = customers.filter((c) => c.badge.tone === "quiet").length
-  const activeCount = customers.filter(isActiveMember).length
+  // One reduce over the immutable customers prop instead of three full-array
+  // scans on every keystroke; the summary counts never depend on filter/query.
+  const { readyCount, quietCount, activeCount } = useMemo(
+    () =>
+      customers.reduce(
+        (acc, c) => {
+          if (c.badge.tone === "ready") acc.readyCount += 1
+          if (c.badge.tone === "quiet") acc.quietCount += 1
+          if (isActiveMember(c)) acc.activeCount += 1
+          return acc
+        },
+        { readyCount: 0, quietCount: 0, activeCount: 0 }
+      ),
+    [customers]
+  )
 
   const filtered = useMemo(
     () => filterCustomers(customers, filter, query),
     [customers, filter, query]
   )
+
+  // Resolve the scan banner against the *visible* list so it never lingers for a
+  // member the current filter/search has hidden.
+  const selected = selectedId
+    ? filtered.find((c) => c.id === selectedId)
+    : null
+
+  const columns = useMemo(
+    () => buildColumns(highlightedMembershipId),
+    [highlightedMembershipId]
+  )
+
+  // Deep-link arrival: bring the highlighted member into view (it can sit below
+  // the fold among up to 100 rows) and move focus to it. Runs once per id. Both
+  // the mobile card and the desktop table carry the marker, only one of which is
+  // visible at a time, so target the one that is actually rendered (the hidden
+  // renderer has a null offsetParent under `display:none`).
+  useEffect(() => {
+    if (!highlightedMembershipId) return
+    const markers = rootRef.current?.querySelectorAll<HTMLElement>(
+      '[data-customer-highlight="true"]'
+    )
+    const target = markers
+      ? Array.from(markers).find((el) => el.offsetParent !== null)
+      : undefined
+    if (!target) return
+    target.scrollIntoView({ block: "center" })
+    target.focus({ preventScroll: true })
+  }, [highlightedMembershipId])
 
   if (customers.length === 0) {
     return (
@@ -329,7 +423,7 @@ export function CustomerReadbackTable({
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-4" ref={rootRef}>
       <StatStrip
         items={[
           { label: "Members", value: customers.length, tone: "ink" },
@@ -402,6 +496,7 @@ export function CustomerReadbackTable({
             <CustomerMobileList
               customers={filtered}
               selectedId={selectedId}
+              highlightedMembershipId={highlightedMembershipId}
               onSelect={handleSelect}
             />
           </div>
@@ -410,14 +505,17 @@ export function CustomerReadbackTable({
           <div className="hidden sm:block">
             <DataTable
               caption="Your loyalty members and their stamp progress"
-              columns={TABLE_COLUMNS}
+              columns={columns}
               rows={filtered}
               getRowKey={(row) => row.id}
               emptyState={emptyState}
               onRowClick={(row) => handleSelect(row.id)}
               rowClassName={(row) =>
                 cn(
-                  row.id === (selectedId ?? highlightedMembershipId)
+                  // No highlightedMembershipId fallback — it is already seeded
+                  // into selectedId, and the fallback re-selected the deep-linked
+                  // row after the user toggled it off.
+                  row.id === selectedId
                     ? "bg-primary/10 ring-1 ring-primary/30 ring-inset"
                     : undefined
                 )

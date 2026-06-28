@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic"
 const TAB_HEADING = {
   profile: {
     title: "Profile",
-    description: "Your business and venue details. Changes save as you go.",
+    description: "Your business and venue details. Save when you're done.",
   },
   billing: {
     title: "Billing",

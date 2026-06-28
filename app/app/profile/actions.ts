@@ -104,13 +104,16 @@ export async function updateMerchantProfileAction(
     phone,
   })
 
-  await recordProductEvent({
+  // Fire-and-forget: the merchant row is already committed, so a failed
+  // analytics insert (missing service-role env / RLS denial) must not surface
+  // as a save failure for an already-saved profile.
+  void recordProductEvent({
     eventName: "merchant_profile_updated",
     merchantId: profile.merchant.id,
     actorType: "merchant",
     actorId: profile.merchant.owner_user_id,
     metadata: { changed_fields: changedFields },
-  })
+  }).catch(() => {})
 
   revalidatePath("/app/account")
   revalidatePath("/app/profile")
