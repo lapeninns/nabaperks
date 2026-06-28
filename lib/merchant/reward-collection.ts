@@ -54,8 +54,12 @@ export async function loadMerchantRewardScanContext(
 
   if (scanStatus === "not_found" || !scanStatus) return { status: "not_found" }
   if (scanStatus === "unauthorized") return { status: "unauthorized" }
-  // Forward-compatible with a follow-up RPC that emits a distinct 'expired'
-  // status; today get_reward_scan_context still maps expiry to 'not_found'.
+  // Expiry maps to a stable 'expired' status, matching the collect path which
+  // raises 'Reward scan token expired' for the same expires_at <= now() case —
+  // no brittle substring match on the read side. The migration that makes
+  // get_reward_scan_context emit 'expired' (20260628122828) is checked in but
+  // applied separately via db:migrate; until then the RPC returns 'not_found'
+  // and the not_found branch above keeps the current 404 behaviour.
   if (scanStatus === "expired") return { status: "expired" }
 
   if (

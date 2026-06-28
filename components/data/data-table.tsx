@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import type { KeyboardEventHandler, ReactNode } from "react"
 
 import { Eyebrow } from "@/components/brand"
 import { cn } from "@/lib/utils"
@@ -18,6 +18,21 @@ export type DataTableColumn<T> = {
   className?: string
 }
 
+/**
+ * Optional a11y/interaction attributes a caller can attach to each desktop
+ * `<tr>` (and, when present, the mobile card `<li>`) via `getRowProps`. Narrowed
+ * to the WAI-ARIA "interactive row" surface so a clickable row can also be a
+ * real keyboard control (WCAG 2.1.1 / 4.1.2) without exposing the whole `<tr>`
+ * element type. Every field is optional; returning `undefined` (the default)
+ * leaves the row byte-identical to the legacy markup.
+ */
+export type DataTableRowProps = {
+  tabIndex?: number
+  role?: string
+  "aria-selected"?: boolean
+  onKeyDown?: KeyboardEventHandler<HTMLElement>
+}
+
 export type DataTableProps<T> = {
   caption: string
   columns: DataTableColumn<T>[]
@@ -27,6 +42,16 @@ export type DataTableProps<T> = {
   className?: string
   rowClassName?: (row: T, index: number) => string | undefined
   onRowClick?: (row: T, index: number) => void
+  /**
+   * Opt-in per-row a11y/interaction hook. Returns extra attributes merged onto
+   * the desktop `<tr>` (and, when a `mobileCard` is used, the card `<li>`) so a
+   * caller can make a clickable row keyboard-operable — e.g. `tabIndex={0}`,
+   * `role="button"`, `aria-selected`, and an `onKeyDown` that activates the row
+   * on Enter/Space (WCAG 2.1.1 / 4.1.2). Returning `undefined` (the default)
+   * leaves the row byte-identical to the legacy markup, so existing call sites
+   * are unaffected.
+   */
+  getRowProps?: (row: T, index: number) => DataTableRowProps | undefined
   /**
    * Opt-in mobile renderer. When provided, phone widths (below `sm`) show a
    * readable card per row instead of a horizontally scrolling table, and the
@@ -66,6 +91,7 @@ function DataTableCore<T>({
   className,
   rowClassName,
   onRowClick,
+  getRowProps,
 }: Pick<
   DataTableProps<T>,
   | "caption"
@@ -75,6 +101,7 @@ function DataTableCore<T>({
   | "className"
   | "rowClassName"
   | "onRowClick"
+  | "getRowProps"
 >) {
   return (
     <div className={cn("surface-card overflow-x-auto", className)}>
@@ -105,6 +132,7 @@ function DataTableCore<T>({
                 rowClassName?.(row, index)
               )}
               onClick={onRowClick ? () => onRowClick(row, index) : undefined}
+              {...getRowProps?.(row, index)}
             >
               {columns.map((column) => (
                 <TableCell
@@ -133,6 +161,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     emptyState,
     rowClassName,
     onRowClick,
+    getRowProps,
     mobileCard,
     mobileClassName,
     cardBreakpoint = "sm",
@@ -171,6 +200,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                   rowClassName?.(row, index)
                 )}
                 onClick={onRowClick ? () => onRowClick(row, index) : undefined}
+                {...getRowProps?.(row, index)}
               >
                 {mobileCard(row, index)}
               </li>

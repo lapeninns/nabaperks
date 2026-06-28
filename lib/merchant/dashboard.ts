@@ -164,6 +164,30 @@ export async function getMerchantCustomers(
   })
 }
 
+/**
+ * True membership count for a merchant. `getMerchantCustomers` caps its row read
+ * at 100, so its `.length` understates the real total once a merchant grows past
+ * that. This is a `head: true` COUNT — it transfers only the integer, no rows and
+ * no PII — so the Customers "Members" stat can show the real total while the list
+ * stays capped (full >100 pagination is intentionally out of scope). Uses the
+ * RLS-backed server client to match `getMerchantCustomers`' merchant-scoped read.
+ */
+export async function getMerchantCustomerCount(
+  merchantId: string
+): Promise<number> {
+  const supabase = await createSupabaseServerClient()
+  const { count, error } = await supabase
+    .from("customer_memberships")
+    .select("id", { count: "exact", head: true })
+    .eq("merchant_id", merchantId)
+
+  if (error) {
+    throw new Error(`Unable to count customers: ${error.message}`)
+  }
+
+  return count ?? 0
+}
+
 export type MerchantDashboardCustomerCounts = {
   readyCount: number
   quietCount: number
