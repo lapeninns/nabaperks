@@ -93,6 +93,42 @@ test("Given trust and pricing copy When legal friction is reviewed Then billing 
   assert.doesNotMatch(acquisitionCopy, /card required to activate/)
 })
 
+test("Given merchant auth When signup and login are inspected Then email OTP replaces passwords and links", () => {
+  // Given
+  const actions = readProjectFile("app", "(auth)", "actions.ts")
+  const authForm = readProjectFile("components", "auth", "auth-form.tsx")
+  const signup = readProjectFile("app", "(auth)", "signup", "page.tsx")
+  const login = readProjectFile("app", "(auth)", "login", "page.tsx")
+  const sendEmailHook = readProjectFile(
+    "app",
+    "api",
+    "auth",
+    "hooks",
+    "send-email",
+    "route.ts"
+  )
+  const resend = readProjectFile("lib", "notifications", "resend.ts")
+
+  // When
+  const authScreens = [authForm, signup, login].join("\n")
+
+  // Then
+  assert.match(actions, /signInWithOtp/)
+  assert.match(actions, /shouldCreateUser: true/)
+  assert.match(actions, /shouldCreateUser: false/)
+  assert.match(actions, /verifyOtp/)
+  assert.match(actions, /type: "email"/)
+  assert.match(authForm, /autoComplete="one-time-code"/)
+  assert.match(authForm, /Resend code/)
+  assert.match(authForm, /Continue setup/)
+  assert.match(sendEmailHook, /audience: "merchant"/)
+  assert.match(resend, /Nabaperks merchant/)
+  assert.match(resend, /venue console/)
+  assert.doesNotMatch(authScreens, /name="password"/)
+  assert.doesNotMatch(authScreens, /verification\s+link/i)
+  assert.doesNotMatch(authScreens, /email and password/i)
+})
+
 test("Given public questions When answers are dry-run against code Then they only claim implemented behavior", () => {
   // Given
   const landingFaq = readProjectFile(

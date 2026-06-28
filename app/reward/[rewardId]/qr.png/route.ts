@@ -8,8 +8,6 @@ import { renderQrCodePng } from "@/lib/qr/assets"
 
 export const runtime = "nodejs"
 
-const serverEnv = getServerEnv()
-
 type RewardQrRouteContext = {
   params: Promise<{
     rewardId: string
@@ -17,6 +15,7 @@ type RewardQrRouteContext = {
 }
 
 export async function GET(_request: Request, context: RewardQrRouteContext) {
+  const serverEnv = getServerEnv()
   const { rewardId } = await context.params
   const rewardState = await getCustomerRewardState(rewardId)
 

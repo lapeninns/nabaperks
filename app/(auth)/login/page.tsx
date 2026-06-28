@@ -1,6 +1,6 @@
 import { Tick02Icon } from "@hugeicons/core-free-icons"
 
-import { signInAction } from "@/app/(auth)/actions"
+import { signInAction, verifyEmailOtpAction } from "@/app/(auth)/actions"
 
 import { Eyebrow, Icon, PageTitle, ReceiptCard } from "@/components/brand"
 import { AuthForm } from "@/components/auth/auth-form"
@@ -39,7 +39,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             {trustPoints.map((point) => (
               <li
                 key={point}
-                className="flex items-start gap-3 text-sm font-bold leading-snug"
+                className="flex items-start gap-3 text-sm leading-snug font-bold"
               >
                 <Icon
                   icon={Tick02Icon}
@@ -60,7 +60,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               Back to the counter
             </h2>
             <p className="text-sm leading-6 text-pretty text-muted-foreground">
-              Use the email and password for your venue account.
+              Enter your venue email. We will send a six-digit code.
             </p>
           </div>
           {params.error ? (
@@ -68,15 +68,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               variant="destructive"
               className="mb-4 border-destructive/30 bg-destructive/10"
             >
-              <AlertTitle>Verification link could not be used</AlertTitle>
+              <AlertTitle>Email code could not be used</AlertTitle>
               <AlertDescription>
-                Log in or request a fresh link. Provider details are hidden for
-                safety.
+                Request a fresh code. Provider details are hidden for safety.
               </AlertDescription>
             </Alert>
           ) : null}
           <AuthForm
             action={signInAction}
+            verifyAction={verifyEmailOtpAction}
             mode="sign-in"
             next={params.next}
             embedded

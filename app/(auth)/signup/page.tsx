@@ -1,6 +1,6 @@
 import { Tick02Icon } from "@hugeicons/core-free-icons"
 
-import { signUpAction } from "@/app/(auth)/actions"
+import { signUpAction, verifyEmailOtpAction } from "@/app/(auth)/actions"
 import { Eyebrow, Icon, PageTitle, ReceiptCard } from "@/components/brand"
 import { AuthForm } from "@/components/auth/auth-form"
 import { MarketingLayout } from "@/components/layout"
@@ -19,7 +19,7 @@ export default function SignUpPage() {
           <PageTitle
             eyebrow="Start free pilot"
             title="Your first stamp is waiting."
-            description="Set up your venue QR loyalty card in about five minutes. Verify your email, then add your venue, rewards, and printed kit."
+            description="Set up your venue QR loyalty card in about five minutes. Enter your email code, then add your venue, rewards, and printed kit."
             titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
             descriptionClassName="text-base leading-7 text-pretty"
             className="md:grid-cols-1"
@@ -28,7 +28,7 @@ export default function SignUpPage() {
             {trustPoints.map((point) => (
               <li
                 key={point}
-                className="flex items-start gap-3 text-sm font-bold leading-snug"
+                className="flex items-start gap-3 text-sm leading-snug font-bold"
               >
                 <Icon
                   icon={Tick02Icon}
@@ -49,11 +49,16 @@ export default function SignUpPage() {
               Open your till
             </h2>
             <p className="text-sm leading-6 text-pretty text-muted-foreground">
-              Email and password to get started. We will send a verification
-              link; billing starts after your free trial when you go live.
+              Enter your email and we will send a six-digit code. No card to
+              start; billing when you activate your live venue QR.
             </p>
           </div>
-          <AuthForm action={signUpAction} mode="sign-up" embedded />
+          <AuthForm
+            action={signUpAction}
+            verifyAction={verifyEmailOtpAction}
+            mode="sign-up"
+            embedded
+          />
         </ReceiptCard>
       </section>
     </MarketingLayout>
