@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import { connection } from "next/server"
 
 import { Eyebrow, ReceiptCard, VenueMark } from "@/components/brand"
 import { CustomerShell } from "@/components/layout"
@@ -11,6 +12,7 @@ export const metadata = {
 }
 
 export default async function StartPage() {
+  await connection()
   const destination = await resolveLaunchDestination()
 
   if (destination) {

@@ -1,3 +1,5 @@
+import { connection } from "next/server"
+
 import { AdminShell } from "@/components/layout"
 import { getAdminAccess } from "@/lib/admin/auth"
 
@@ -6,6 +8,7 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
+  await connection()
   const access = await getAdminAccess()
 
   if (access.status !== "allowed") {
