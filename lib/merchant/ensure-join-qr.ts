@@ -1,29 +1,17 @@
 import "server-only"
 
 import { capturePostHogEvent } from "@/lib/analytics/events"
-import { buildLaunchReadiness } from "@/lib/merchant/launch-readiness"
+import { buildLaunchReadiness } from "@/lib/merchant/launch-readiness-core"
+import {
+  isJoinQrProvisionEligible,
+  type EnsureJoinQrInput,
+} from "@/lib/merchant/launch-readiness-core"
 import { getQrSetupFresh } from "@/lib/merchant/qr-code"
 import { logger } from "@/lib/observability/logger"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
-const MIN_ACTIVE_REWARDS = 3
-
-export type EnsureJoinQrInput = {
-  merchantId: string
-  activeCard: { id: string } | null
-  activeRewardPoolItemCount: number
-  venueReady: boolean
-  qrCode: { id: string; is_active: boolean } | null
-}
-
-export function isJoinQrProvisionEligible(input: EnsureJoinQrInput): boolean {
-  return (
-    input.activeCard !== null &&
-    input.activeRewardPoolItemCount >= MIN_ACTIVE_REWARDS &&
-    input.venueReady &&
-    input.qrCode?.is_active !== true
-  )
-}
+export type { EnsureJoinQrInput }
+export { isJoinQrProvisionEligible }
 
 export async function ensureJoinQrProvisioned(
   input: EnsureJoinQrInput
@@ -32,17 +20,23 @@ export async function ensureJoinQrProvisioned(
     return { provisioned: false, created: false }
   }
 
+  // Eligibility guarantees a non-null card, but TypeScript cannot narrow across
+  // the predicate call. Pull it into a local so the RPC below needs no non-null
+  // assertion; the guard is unreachable in practice but keeps the type honest.
+  const { activeCard } = input
+  if (!activeCard) {
+    return { provisioned: false, created: false }
+  }
+
   const supabase = await createSupabaseServerClient()
 
   if (!input.qrCode) {
     const { error } = await supabase.rpc("create_or_get_join_qr", {
       p_merchant_id: input.merchantId,
-      p_loyalty_card_id: input.activeCard!.id,
+      p_loyalty_card_id: activeCard.id,
     })
 
     if (error) {
-      // Was silently swallowed (returns look identical to "not eligible").
-      // Log so an RPC failure during the launch GET render is observable.
       logger.error("ensure_join_qr_create_failed", {
         merchantId: input.merchantId,
         rpc: "create_or_get_join_qr",
@@ -56,7 +50,7 @@ export async function ensureJoinQrProvisioned(
       merchantId: input.merchantId,
       actorType: "merchant",
       actorId: input.merchantId,
-      metadata: { source: "auto_launch_provision" },
+      metadata: { source: "reward_pool_auto_provision" },
     })
 
     return { provisioned: true, created: true }
@@ -70,8 +64,6 @@ export async function ensureJoinQrProvisioned(
     })
 
     if (error) {
-      // Was silently swallowed (returns look identical to "not eligible").
-      // Log so an RPC failure during the launch GET render is observable.
       logger.error("ensure_join_qr_activate_failed", {
         merchantId: input.merchantId,
         qrCodeId: input.qrCode.id,

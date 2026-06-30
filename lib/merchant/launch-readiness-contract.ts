@@ -8,6 +8,16 @@ export type MerchantSetupStep = {
   readonly description: string
 }
 
+/**
+ * Minimum number of active mystery rewards a merchant must publish before the
+ * join QR can be provisioned and the venue can launch. This is the single
+ * source of truth for the threshold — readiness, QR provisioning eligibility,
+ * the QR action guard, and the setup panels all derive from it rather than
+ * re-spelling the literal. User-facing copy that mentions "three" is kept
+ * separately so wording can diverge from the gate without breaking it.
+ */
+export const LAUNCH_MIN_ACTIVE_REWARDS = 3
+
 export const LAUNCH_CHECKLIST_STEP_ORDER = [
   "venue",
   "card",
