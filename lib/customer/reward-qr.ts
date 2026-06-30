@@ -6,7 +6,8 @@
  * customer-facing QR image used to be fetched once on mount, so a customer who
  * queued at the counter could end up presenting a token that had already
  * expired. To keep the presented QR fresh we re-fetch `qr.png` on an interval
- * comfortably inside that TTL — each fetch mints a new token server-side.
+ * comfortably inside that TTL. The server may reuse a token that still has
+ * enough lifetime for the next scheduled refresh, otherwise it mints a new one.
  */
 
 /** Scan-token TTL enforced in Postgres (`now() + interval '10 minutes'`). */
@@ -23,7 +24,7 @@ export function rewardQrRefreshIntervalMs(): number {
 
 /**
  * Cache-busted `qr.png` URL for a reward. The `tick` advances on each refresh so
- * the browser re-fetches (minting a fresh token) rather than serving a cached
+ * the browser re-fetches a server-authoritative QR rather than serving a cached
  * image. The base path stays `/reward/{id}/qr.png` so the protected route — and
  * the e2e request that hits it without a query — is unchanged.
  */

@@ -17,6 +17,7 @@ import {
   type GeoCoordinates,
 } from "@/lib/customer/stamp"
 import { isRedeemableFrom } from "@/lib/customer/uk-date"
+import { logger } from "@/lib/observability/logger"
 
 type ReturningQrRedirectOptions = {
   /** When true, issue today's stamp immediately after QR identity verification. */
@@ -145,9 +146,14 @@ async function issueStampDestination({
   let result: Awaited<ReturnType<typeof issueSelfServiceStamp>>
   try {
     result = await issueSelfServiceStamp(membershipId, coordinates)
-  } catch {
+  } catch (error) {
     // An unexpected auto-issue failure must not error the OTP verification.
     // Degrade to the stamp screen so the customer can retry from the venue QR.
+    logger.warn("returning_qr_auto_stamp_failed", {
+      membershipId,
+      merchantSlug,
+      error: error instanceof Error ? error.message : String(error),
+    })
     return stampPath
   }
 
