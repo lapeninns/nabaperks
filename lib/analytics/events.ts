@@ -20,6 +20,13 @@ export const productEventNames = [
   "qr_downloaded",
   "qr_enabled",
   "qr_disabled",
+  "reward_pool_item_created",
+  "reward_pool_item_updated",
+  "reward_pool_item_saved",
+  "reward_pool_item_activated",
+  "reward_pool_item_deactivated",
+  "reward_pool_item_deleted",
+  "reward_pool_item_archived",
   "subscription_started",
   "subscription_cancelled",
   "push_notification_enqueued",
@@ -31,9 +38,12 @@ export const productEventNames = [
   "push_subscription_failed",
   "push_delivery_worker_ran",
   "push_venue_announcement_queued",
+  "dashboard_viewed",
+  "loyalty_card_updated",
+  "merchant_profile_updated",
 ] as const
 
-export type ProductEventName = (typeof productEventNames)[number] | string
+export type ProductEventName = (typeof productEventNames)[number]
 
 export type ProductEventInput = {
   eventName: ProductEventName
@@ -56,7 +66,7 @@ export async function recordProductEvent(input: ProductEventInput) {
     qr_code_id: input.qrCodeId ?? null,
     actor_type: input.actorType,
     actor_id: input.actorId ?? null,
-    metadata: input.metadata ?? {},
+    metadata: sanitizeMetadata(input.metadata ?? {}),
   })
 
   if (error) {
@@ -100,7 +110,7 @@ export async function capturePostHogEvent(input: ProductEventInput) {
   }
 }
 
-function sanitizeMetadata(metadata: Record<string, unknown>) {
+export function sanitizeMetadata(metadata: Record<string, unknown>) {
   const blocked = new Set([
     "auth",
     "email",

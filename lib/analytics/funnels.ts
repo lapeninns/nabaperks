@@ -1,14 +1,14 @@
 import "server-only"
 
+import { createAdminServiceRoleClient } from "@/lib/admin/service-role"
 import { productEventNames } from "@/lib/analytics/events"
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export async function getPilotFunnelCounts() {
   return getProductEventCounts(productEventNames)
 }
 
 export async function getProductEventCounts(eventNames: readonly string[]) {
-  const supabase = createSupabaseServiceRoleClient()
+  const supabase = await createAdminServiceRoleClient()
   const { data, error } = await supabase.rpc("get_product_event_counts", {
     target_event_names: eventNames,
   })
@@ -31,7 +31,7 @@ export async function getProductEventCounts(eventNames: readonly string[]) {
 }
 
 async function getProductEventCountsByQuery(eventNames: readonly string[]) {
-  const supabase = createSupabaseServiceRoleClient()
+  const supabase = await createAdminServiceRoleClient()
   const counts = await Promise.all(
     eventNames.map(async (eventName) => {
       const { count, error } = await supabase
