@@ -1,23 +1,29 @@
 import type { EmailOtpType } from "@supabase/supabase-js"
 import { NextResponse, type NextRequest } from "next/server"
 
+import { safeMerchantNextPath } from "@/lib/navigation/safe-next-path"
 import { createSupabaseRouteHandlerClient } from "@/lib/supabase/server"
+
+const DEFAULT_CONFIRM_NEXT = "/app/onboarding"
 
 function safeNextPath(next: string | null, origin: string) {
   if (!next) {
-    return "/app/onboarding"
+    return DEFAULT_CONFIRM_NEXT
   }
 
   try {
     const url = new URL(next, origin)
 
     if (url.origin !== origin) {
-      return "/app/onboarding"
+      return DEFAULT_CONFIRM_NEXT
     }
 
-    return `${url.pathname}${url.search}${url.hash}`
+    return safeMerchantNextPath(
+      `${url.pathname}${url.search}${url.hash}`,
+      DEFAULT_CONFIRM_NEXT
+    )
   } catch {
-    return "/app/onboarding"
+    return DEFAULT_CONFIRM_NEXT
   }
 }
 

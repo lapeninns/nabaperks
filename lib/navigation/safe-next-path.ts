@@ -6,8 +6,8 @@ export function customerLoginHref(path: string): string {
   return `/home/login?next=${encodeURIComponent(safeNextPath(path))}`
 }
 
-export function safeMerchantNextPath(path: string): string {
-  return safePath(path, "/app", isMerchantAuthPath)
+export function safeMerchantNextPath(path: string, fallback = "/app"): string {
+  return safePath(path, fallback, isMerchantAuthPath)
 }
 
 export function merchantLoginHref(path: string): string {
@@ -18,16 +18,31 @@ export function customerSessionResetHref(path: string): string {
   return `/home/session/reset?next=${encodeURIComponent(safeNextPath(path))}`
 }
 
+const SAFE_PATH_ORIGIN = "https://nabaperks.local"
+const CONTROL_OR_WHITESPACE = /[\u0000-\u001f\u007f\s]/
+
 function safePath(
   path: string,
   fallback: string,
   isBlockedPath: (path: string) => boolean
 ): string {
+  if (CONTROL_OR_WHITESPACE.test(path)) return fallback
   if (!path.startsWith("/")) return fallback
   if (path.startsWith("//")) return fallback
   if (path.startsWith("/\\")) return fallback
-  if (isBlockedPath(path)) return fallback
-  return path
+
+  let parsed: URL
+  try {
+    parsed = new URL(path, SAFE_PATH_ORIGIN)
+  } catch {
+    return fallback
+  }
+
+  if (parsed.origin !== SAFE_PATH_ORIGIN) return fallback
+
+  const safePathname = `${parsed.pathname}${parsed.search}${parsed.hash}`
+  if (isBlockedPath(safePathname)) return fallback
+  return safePathname
 }
 
 function isCustomerAuthPath(path: string): boolean {
