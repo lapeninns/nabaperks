@@ -1,5 +1,6 @@
 import "server-only"
 
+import { getCurrentMerchant } from "@/lib/auth/session"
 import { formatMerchantCustomerIdentifier } from "@/lib/merchant/customer-identity-display"
 import { QR_POSTER_PATH } from "@/lib/merchant/qr-nav"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
@@ -97,7 +98,7 @@ type RawActivityRow = {
   membership_id: string | null
   qr_code_id: string | null
   metadata: Record<string, unknown> | null
-  customers:
+  customers?:
     | { email: string | null; phone: string | null }
     | Array<{ email: string | null; phone: string | null }>
     | null
@@ -125,6 +126,7 @@ export async function getEnrichedMerchantActivity(
   merchantId: string,
   options: ActivityQueryOptions = {}
 ): Promise<ActivityQueryResult> {
+  const scopedMerchantId = await requireCurrentMerchantId(merchantId)
   const limit = clampActivityLimit(options.limit)
   const filter = options.filter ?? "all"
   const supabase = createSupabaseServiceRoleClient()
@@ -157,12 +159,11 @@ export async function getEnrichedMerchantActivity(
       membership_id,
       qr_code_id,
       metadata,
-      customers(email, phone),
       customer_memberships(id, current_stamp_count, total_stamps_earned, total_rewards_redeemed),
       qr_codes(qr_id, destination_type)
     `
     )
-    .eq("merchant_id", merchantId)
+    .eq("merchant_id", scopedMerchantId)
     .in("event_name", eventsForCategory(filter))
     .order("created_at", { ascending: false })
     .limit(limit + 1)
@@ -175,8 +176,13 @@ export async function getEnrichedMerchantActivity(
   const hasMore = fetched.length > limit
   const staffIds = new Set<string>()
   const rewardPoolItemIds = new Set<string>()
+  const customerIds = new Set<string>()
 
   for (const row of fetched) {
+    if (row.customer_id) {
+      customerIds.add(row.customer_id)
+    }
+
     if (row.actor_type === "staff" && row.actor_id) {
       staffIds.add(row.actor_id)
     }
@@ -187,15 +193,25 @@ export async function getEnrichedMerchantActivity(
     }
   }
 
-  const [staffById, rewardById] = await Promise.all([
+  const [staffById, rewardById, customerById] = await Promise.all([
     loadStaffUsers([...staffIds]),
     loadRewardPoolItems([...rewardPoolItemIds]),
+    loadMaskedCustomers([...customerIds]),
   ])
+  const rowsWithMaskedCustomers = fetched.map((row) => ({
+    ...row,
+    customers: row.customer_id ? (customerById.get(row.customer_id) ?? null) : null,
+  }))
 
   // Thread over the full fetched window (including the +1 spare) but only emit
   // display rows for the first `limit` raw events; a boundary-straddling stamp
   // pair may borrow the spare so it threads instead of orphaning.
-  const displayRows = threadActivityRows(fetched, staffById, rewardById, limit)
+  const displayRows = threadActivityRows(
+    rowsWithMaskedCustomers,
+    staffById,
+    rewardById,
+    limit
+  )
   const loadedCount = Math.min(fetched.length, limit)
 
   return {
@@ -266,6 +282,7 @@ const ACTIVITY_SUMMARY_WINDOW_DAYS = 7
 export async function getMerchantActivitySummary(
   merchantId: string
 ): Promise<ActivitySummary> {
+  const scopedMerchantId = await requireCurrentMerchantId(merchantId)
   const since = new Date(
     Date.now() - ACTIVITY_SUMMARY_WINDOW_DAYS * 86_400_000
   ).toISOString()
@@ -273,7 +290,7 @@ export async function getMerchantActivitySummary(
   const { data, error } = await supabase
     .from("product_events")
     .select("event_name")
-    .eq("merchant_id", merchantId)
+    .eq("merchant_id", scopedMerchantId)
     .in("event_name", [...activityEvents])
     .gte("created_at", since)
 
@@ -317,6 +334,15 @@ export async function getMerchantActivitySummary(
   }
 
   return summary
+}
+
+async function requireCurrentMerchantId(merchantId: string) {
+  const merchant = await getCurrentMerchant()
+  if (!merchant || merchant.id !== merchantId) {
+    throw new Error("Current merchant access required for activity readback.")
+  }
+
+  return merchant.id
 }
 
 export function summarizeActivity(rows: ActivityDisplayRow[]): ActivitySummary {
@@ -1038,6 +1064,37 @@ async function loadRewardPoolItems(ids: string[]) {
   }
 
   return rewardById
+}
+
+async function loadMaskedCustomers(ids: string[]) {
+  const customerById = new Map<
+    string,
+    { email: string | null; phone: string | null }
+  >()
+  if (!ids.length) return customerById
+
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase
+    .from("customers_masked")
+    .select("id, email, phone")
+    .in("id", ids)
+
+  if (error) {
+    throw new Error(`Unable to load masked activity customers: ${error.message}`)
+  }
+
+  for (const customer of (data ?? []) as Array<{
+    id: string
+    email: string | null
+    phone: string | null
+  }>) {
+    customerById.set(customer.id, {
+      email: customer.email,
+      phone: customer.phone,
+    })
+  }
+
+  return customerById
 }
 
 function activityCategory(eventName: string): ActivityCategory {

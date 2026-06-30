@@ -66,6 +66,23 @@ export type MerchantCustomerRow = {
   last_redeemed_at: string | null
 }
 
+type MerchantMembershipRow = {
+  id: string
+  customer_id: string | null
+  current_stamp_count: number
+  total_stamps_earned: number
+  total_rewards_redeemed: number
+  last_visit_at: string | null
+  created_at: string
+}
+
+type MaskedCustomerRow = {
+  id: string
+  email: string | null
+  phone: string | null
+  phone_last4: string | null
+}
+
 export async function getMerchantActivity(merchantId: string, limit = 40) {
   return getRecentActivity(merchantId, limit)
 }
@@ -74,23 +91,22 @@ export async function getMerchantActivity(merchantId: string, limit = 40) {
 const REDEEMED_HISTORY_WINDOW_DAYS = 90
 
 /**
- * Masked-safe customer rows for the Customers table. Masking happens here, in
- * `lib/merchant/*`, so raw email/phone never leave the server boundary — the
- * return type is the same pre-masked view model the client table consumes.
+ * Masked-safe customer rows for the Customers table. The merchant session reads
+ * customer contact details from the `customers_masked` DB view, which withholds
+ * raw contact columns even if a future caller forgets the app-level formatter.
  */
 export async function getMerchantCustomers(
   merchantId: string,
   now: Date = new Date()
 ): Promise<MerchantCustomerReadbackRow[]> {
-  // RLS-backed client: merchant-scoped SELECT policies on customer_memberships /
-  // customers act as a DB backstop in addition to the app-level merchant_id
-  // filter (mirrors lib/merchant/profile.ts). Both callers pass the
-  // session-derived merchant id, so the cookie-scoped session sees these rows.
+  // RLS-backed client: merchant-scoped SELECT policies on customer_memberships
+  // and the customers_masked view act as a DB backstop in addition to the
+  // app-level merchant_id filter.
   const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from("customer_memberships")
     .select(
-      "id, current_stamp_count, total_stamps_earned, total_rewards_redeemed, last_visit_at, created_at, customers(email, phone, phone_last4)"
+      "id, customer_id, current_stamp_count, total_stamps_earned, total_rewards_redeemed, last_visit_at, created_at"
     )
     .eq("merchant_id", merchantId)
     .order("created_at", { ascending: false })
@@ -100,10 +116,13 @@ export async function getMerchantCustomers(
     throw new Error(`Unable to load customers: ${error.message}`)
   }
 
-  const memberships = data ?? []
+  const memberships = (data ?? []) as MerchantMembershipRow[]
   if (!memberships.length) return []
 
   const membershipIds = memberships.map((row) => row.id)
+  const customerIds = uniqueStrings(
+    memberships.map((row) => row.customer_id).filter(isString)
+  )
   const redeemedSinceIso = new Date(
     now.getTime() - REDEEMED_HISTORY_WINDOW_DAYS * 86_400_000
   ).toISOString()
@@ -112,18 +131,20 @@ export async function getMerchantCustomers(
   // same tables already hit by the dashboard and reward-collection flows. The
   // redeemed history is bounded to the badge window: anything older can never
   // be the most-recent redemption that the "Redeemed …" badge surfaces.
-  const [cardResult, rewardResult, redeemedResult] = await Promise.all([
-    getActiveCardResult(supabase, merchantId),
-    getUnlockedRewardResult(supabase, merchantId, membershipIds),
-    supabase
-      .from("reward_events")
-      .select("membership_id, redeemed_at")
-      .eq("merchant_id", merchantId)
-      .eq("status", "redeemed")
-      .in("membership_id", membershipIds)
-      .gte("redeemed_at", redeemedSinceIso)
-      .order("redeemed_at", { ascending: false }),
-  ])
+  const [customerById, cardResult, rewardResult, redeemedResult] =
+    await Promise.all([
+      loadMaskedCustomers(supabase, customerIds),
+      getActiveCardResult(supabase, merchantId),
+      getUnlockedRewardResult(supabase, merchantId, membershipIds),
+      supabase
+        .from("reward_events")
+        .select("membership_id, redeemed_at")
+        .eq("merchant_id", merchantId)
+        .eq("status", "redeemed")
+        .in("membership_id", membershipIds)
+        .gte("redeemed_at", redeemedSinceIso)
+        .order("redeemed_at", { ascending: false }),
+    ])
 
   const stampsRequired = resolveStampsRequired(cardResult)
   const rewardByMembership = indexUnlockedRewards(rewardResult)
@@ -137,7 +158,10 @@ export async function getMerchantCustomers(
   }
 
   return memberships.map((row) => {
-    const customer = first(row.customers) ?? {
+    const customer = row.customer_id
+      ? customerById.get(row.customer_id)
+      : undefined
+    const maskedCustomer = customer ?? {
       email: null,
       phone: null,
       phone_last4: null,
@@ -151,17 +175,38 @@ export async function getMerchantCustomers(
       created_at: row.created_at,
       stamps_required: stampsRequired,
       customer: {
-        email: (customer as { email: string | null }).email ?? null,
-        phone: (customer as { phone: string | null }).phone ?? null,
-        phone_last4:
-          (customer as { phone_last4: string | null }).phone_last4 ?? null,
+        email: maskedCustomer.email ?? null,
+        phone: maskedCustomer.phone ?? null,
+        phone_last4: maskedCustomer.phone_last4 ?? null,
       },
       activeReward: rewardByMembership.get(row.id) ?? null,
       last_redeemed_at: lastRedeemedByMembership.get(row.id) ?? null,
     }
-    // Mask before the row leaves this module: raw email/phone never escape.
     return buildMerchantCustomerReadback(internalRow, now)
   })
+}
+
+async function loadMaskedCustomers(
+  supabase: SupabaseClient,
+  customerIds: string[]
+) {
+  const customerById = new Map<string, MaskedCustomerRow>()
+  if (!customerIds.length) return customerById
+
+  const { data, error } = await supabase
+    .from("customers_masked")
+    .select("id, email, phone, phone_last4")
+    .in("id", customerIds)
+
+  if (error) {
+    throw new Error(`Unable to load masked customers: ${error.message}`)
+  }
+
+  for (const customer of (data ?? []) as MaskedCustomerRow[]) {
+    customerById.set(customer.id, customer)
+  }
+
+  return customerById
 }
 
 /**
@@ -339,4 +384,12 @@ async function getRecentActivity(merchantId: string, limit: number) {
 function first<T>(value: T | T[] | null | undefined) {
   if (!value) return undefined
   return Array.isArray(value) ? value[0] : value
+}
+
+function isString(value: string | null): value is string {
+  return typeof value === "string" && value.length > 0
+}
+
+function uniqueStrings(values: string[]) {
+  return [...new Set(values)]
 }
