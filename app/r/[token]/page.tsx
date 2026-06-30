@@ -1,4 +1,9 @@
+import type { Metadata } from "next"
 import { notFound, redirect } from "next/navigation"
+
+import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
+
+export const metadata: Metadata = PRIVATE_ROUTE_METADATA
 
 type RewardScanHandoffPageProps = {
   params: Promise<{

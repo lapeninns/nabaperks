@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { cookies, headers } from "next/headers"
 import { redirect } from "next/navigation"
 
@@ -6,6 +7,9 @@ import { MerchantAppShell } from "@/components/layout"
 import { getCurrentUser } from "@/lib/auth/session"
 import { merchantLoginHref } from "@/lib/navigation/safe-next-path"
 import { readMerchantRequestPath } from "@/lib/navigation/request-path"
+import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
+
+export const metadata: Metadata = PRIVATE_ROUTE_METADATA
 
 export default async function MerchantAppLayout({
   children,

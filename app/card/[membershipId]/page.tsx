@@ -1,6 +1,11 @@
+import type { Metadata } from "next"
+
 import { CustomerCardExperience } from "@/components/customer/customer-card-experience"
 import { deriveCustomerExperience } from "@/lib/customer/experience/derive"
 import { loadCardExperienceContext } from "@/lib/customer/experience/load-card"
+import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
+
+export const metadata: Metadata = PRIVATE_ROUTE_METADATA
 
 type CustomerCardPageProps = {
   params: Promise<{
@@ -19,7 +24,10 @@ export default async function CustomerCardPage({
   searchParams,
 }: CustomerCardPageProps) {
   const { membershipId } = await params
-  const context = await loadCardExperienceContext(membershipId, await searchParams)
+  const context = await loadCardExperienceContext(
+    membershipId,
+    await searchParams
+  )
   const experience = deriveCustomerExperience({ entry: "card", context })
 
   return <CustomerCardExperience experience={experience} />

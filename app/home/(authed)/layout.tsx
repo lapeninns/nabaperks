@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
@@ -10,6 +11,9 @@ import {
   customerSessionResetHref,
 } from "@/lib/navigation/safe-next-path"
 import { readRequestPath } from "@/lib/navigation/request-path"
+import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
+
+export const metadata: Metadata = PRIVATE_ROUTE_METADATA
 
 export default async function HomeLayout({
   children,

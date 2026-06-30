@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { connection } from "next/server"
@@ -6,8 +7,10 @@ import { Eyebrow, ReceiptCard, VenueMark } from "@/components/brand"
 import { CustomerShell } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { resolveLaunchDestination } from "@/lib/launch/resolve"
+import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 
-export const metadata = {
+export const metadata: Metadata = {
+  ...PRIVATE_ROUTE_METADATA,
   title: "Open Nabaperks",
 }
 

@@ -4,8 +4,10 @@ import { signOutCustomerAction } from "@/app/home/actions"
 import { CustomerQrScannerLoader } from "@/components/customer/customer-qr-scanner-loader"
 import { CustomerAppShell, CustomerShell } from "@/components/layout"
 import { getCustomerSession } from "@/lib/customer/session"
+import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 
 export const metadata: Metadata = {
+  ...PRIVATE_ROUTE_METADATA,
   title: "Scan venue QR",
 }
 

@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 
@@ -13,7 +14,10 @@ import {
 } from "@/components/loyalty"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { getMerchantJoinContext } from "@/lib/customer/join"
+import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 import { cn } from "@/lib/utils"
+
+export const metadata: Metadata = PRIVATE_ROUTE_METADATA
 
 type MerchantRewardsPageProps = {
   params: Promise<{
@@ -59,9 +63,11 @@ export default async function MerchantRewardsPage({
         title={loyaltyCard.card_name}
         eyebrow={merchant.business_name}
         hideFooter
+        compact
       >
         <StampJourneyPreview
           total={loyaltyCard.stamps_required}
+          compact
           className="py-1"
         />
         <RewardTeaser
@@ -74,12 +80,13 @@ export default async function MerchantRewardsPage({
               reward, yours from the next UK business day.
             </>
           }
+          className="min-w-0"
         />
       </CustomerReceipt>
 
       <div className="grid gap-3">
         <Button asChild size="lg" className="w-full">
-          <Link href={`/m/${merchantSlug}/join`}>{"Get today's stamp"}</Link>
+          <Link href={`/m/${merchantSlug}/join`}>Join rewards</Link>
         </Button>
         <CustomerVenueTermsSheet
           venueTerms={{

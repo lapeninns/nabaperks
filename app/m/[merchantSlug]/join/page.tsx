@@ -1,8 +1,12 @@
+import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 
 import { JoinWizard } from "@/components/customer/join-wizard"
 import { deriveCustomerExperience } from "@/lib/customer/experience/derive"
 import { loadJoinExperienceContext } from "@/lib/customer/experience/load-join"
+import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
+
+export const metadata: Metadata = PRIVATE_ROUTE_METADATA
 
 type MerchantJoinPageProps = {
   params: Promise<{

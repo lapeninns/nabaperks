@@ -1,10 +1,13 @@
+import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 
 import { CustomerCardExperience } from "@/components/customer/customer-card-experience"
 import { deriveCustomerExperience } from "@/lib/customer/experience/derive"
 import { loadStampExperienceContext } from "@/lib/customer/experience/load-stamp"
+import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 
 export const dynamic = "force-dynamic"
+export const metadata: Metadata = PRIVATE_ROUTE_METADATA
 
 type StampPageProps = {
   params: Promise<{

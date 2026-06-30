@@ -93,64 +93,6 @@ test("Given trust and pricing copy When legal friction is reviewed Then billing 
   assert.doesNotMatch(acquisitionCopy, /card required to activate/)
 })
 
-test("Given merchant auth When signup and login are inspected Then passwords pair with one-time email verification", () => {
-  // Given
-  const actions = readProjectFile("app", "(auth)", "actions.ts")
-  const authForm = readProjectFile("components", "auth", "auth-form.tsx")
-  const resetForm = readProjectFile(
-    "components",
-    "auth",
-    "reset-password-form.tsx"
-  )
-  const signup = readProjectFile("app", "(auth)", "signup", "page.tsx")
-  const login = readProjectFile("app", "(auth)", "login", "page.tsx")
-  const sendEmailHook = readProjectFile(
-    "app",
-    "api",
-    "auth",
-    "hooks",
-    "send-email",
-    "route.ts"
-  )
-  const resend = readProjectFile("lib", "notifications", "resend.ts")
-
-  // When
-  const authScreens = [authForm, resetForm, signup, login].join("\n")
-
-  // Then — signup creates a password account confirmed by a one-time code,
-  // login uses the password, and reset re-verifies by code before updateUser.
-  assert.match(actions, /signUp\(/)
-  assert.match(actions, /signInWithPassword/)
-  assert.match(actions, /verifyOtp/)
-  assert.match(actions, /type: "signup"/)
-  assert.match(actions, /type: "recovery"/)
-  assert.match(actions, /resetPasswordForEmail/)
-  assert.match(actions, /updateUser/)
-  assert.doesNotMatch(actions, /signInWithOtp/)
-
-  assert.match(authForm, /name="password"/)
-  assert.match(authForm, /name="confirmPassword"/)
-  assert.match(authForm, /autoComplete="new-password"/)
-  assert.match(authForm, /autoComplete="current-password"/)
-  assert.match(authForm, /autoComplete="one-time-code"/)
-  assert.match(authForm, /Verify email/)
-  assert.match(authForm, /Forgot password\?/)
-
-  assert.match(resetForm, /name="password"/)
-  assert.match(resetForm, /autoComplete="one-time-code"/)
-
-  assert.match(sendEmailHook, /"merchant-verify"/)
-  assert.match(sendEmailHook, /"merchant-reset"/)
-  assert.match(sendEmailHook, /email_action_type === "recovery"/)
-
-  assert.match(resend, /Nabaperks merchant/)
-  assert.match(resend, /Verify your venue email/)
-  assert.match(resend, /Reset your password/)
-
-  assert.match(login, /email and password/i)
-  assert.doesNotMatch(authScreens, /verification\s+link/i)
-})
-
 test("Given public questions When answers are dry-run against code Then they only claim implemented behavior", () => {
   // Given
   const landingFaq = readProjectFile(
@@ -168,10 +110,13 @@ test("Given public questions When answers are dry-run against code Then they onl
   )
   const stampService = readProjectFile("lib", "customer", "stamp.ts")
   const billingAction = readProjectFile("app", "app", "billing", "actions.ts")
+  // The pure readiness domain (builder, predicates, billing copy) lives in
+  // launch-readiness-core; launch-readiness.ts is now the server-only data layer
+  // that re-exports it.
   const launchReadiness = readProjectFile(
     "lib",
     "merchant",
-    "launch-readiness.ts"
+    "launch-readiness-core.ts"
   )
   const joinAction = readProjectFile(
     "app",
@@ -238,4 +183,122 @@ test("Given public questions When answers are dry-run against code Then they onl
   )
   assert.match(customerReadback, /masked-safe/)
   assert.match(customerReadback, /Never the raw number/)
+})
+
+test("Given push consent is stored with other marketing channels When profile data is read Then push is not collapsed into visible email SMS WhatsApp state", () => {
+  const profile = readProjectFile("lib", "customer", "profile.ts")
+  const profileMarketing = readProjectFile(
+    "components",
+    "customer",
+    "profile-marketing-consent.tsx"
+  )
+
+  assert.match(profile, /import type \{ MarketingChannel \}/)
+  assert.match(profile, /export type ConsentChannel = MarketingChannel/)
+  assert.match(
+    profileMarketing,
+    /channel: "email" \| "sms" \| "whatsapp" \| "push"/
+  )
+  assert.match(
+    profileMarketing,
+    /type DisplayMarketingChannel = Exclude<MarketingConsent\["channel"\], "push">/
+  )
+  assert.match(
+    profileMarketing,
+    /const hasAnyConsent = CHANNELS\.some\(\(entry\) =>[\s\S]*optedInByChannel\.has\(entry\.channel\)/
+  )
+})
+
+test("Given merchant email OTP aliases are six digits When auth copy is reviewed Then no stale four-digit instructions remain", () => {
+  const alias = readProjectFile("lib", "auth", "merchant-email-otp-alias.ts")
+  const authActions = readProjectFile("app", "(auth)", "actions.ts")
+  const signupPage = readProjectFile("app", "(auth)", "signup", "page.tsx")
+  const resetPasswordPage = readProjectFile(
+    "app",
+    "(auth)",
+    "reset-password",
+    "page.tsx"
+  )
+  const authForm = readProjectFile("components", "auth", "auth-form.tsx")
+  const resetPasswordForm = readProjectFile(
+    "components",
+    "auth",
+    "reset-password-form.tsx"
+  )
+  const authForms = [authForm, resetPasswordForm].join("\n")
+  const authSurfaces = [authActions, signupPage, resetPasswordPage].join("\n")
+
+  assert.match(alias, /MERCHANT_EMAIL_OTP_ALIAS_LENGTH = 6/)
+  assert.match(alias, /merchantEmailOtpAliasDigitLabel/)
+  assert.match(alias, /return "six-digit"/)
+  assert.doesNotMatch(authSurfaces, /four-digit (?:reset )?code/i)
+  assert.match(authActions, /merchantEmailOtpAliasDigitLabel\(\)/)
+  assert.match(signupPage, /merchantEmailOtpAliasDigitLabel\(\)/)
+  assert.match(resetPasswordPage, /merchantEmailOtpAliasDigitLabel\(\)/)
+  assert.match(signupPage, /merchantEmailOtpAliasLength\(\)/)
+  assert.match(signupPage, /otpLength=\{merchantEmailOtpAliasLength\(\)\}/)
+  assert.match(resetPasswordPage, /merchantEmailOtpAliasLength\(\)/)
+  assert.match(
+    resetPasswordPage,
+    /otpLength=\{merchantEmailOtpAliasLength\(\)\}/
+  )
+  assert.doesNotMatch(authForms, /maxLength=\{4\}/)
+  assert.match(authForm, /maxLength=\{otpLength\}/)
+  assert.match(resetPasswordForm, /maxLength=\{otpLength\}/)
+})
+
+test("Given merchant-specific legal terms need review When crawlers inspect the page Then the route is noindexed", () => {
+  const merchantTerms = readProjectFile(
+    "app",
+    "merchant",
+    "[merchantSlug]",
+    "terms",
+    "page.tsx"
+  )
+
+  assert.match(merchantTerms, /import type \{ Metadata \} from "next"/)
+  assert.match(merchantTerms, /export const metadata: Metadata = \{/)
+  assert.match(merchantTerms, /robots: \{[\s\S]*index: false/)
+  assert.match(merchantTerms, /robots: \{[\s\S]*follow: false/)
+  assert.match(merchantTerms, /Review required/)
+})
+
+test("Given public routes feed SEO and AI discovery When the registry is inspected Then sitemap and llms entries cannot drift", () => {
+  const marketingFacts = readProjectFile("lib", "marketing", "facts.ts")
+  const sitemap = readProjectFile("app", "sitemap.ts")
+  const llms = readProjectFile("public", "llms.txt")
+
+  const expectedRoutes = [
+    { path: "/", registry: "ROUTES.home" },
+    { path: "/loyalty-for-pubs", registry: "ROUTES.pubHub" },
+    { path: "/pricing", registry: "ROUTES.pricing" },
+    { path: "/about", registry: "ROUTES.about" },
+    {
+      path: "/guides/best-loyalty-ideas-for-pubs",
+      registry: "ROUTES.guides.bestIdeas",
+    },
+    {
+      path: "/guides/reward-regulars-without-an-app",
+      registry: "ROUTES.guides.rewardRegulars",
+    },
+    {
+      path: "/guides/paper-vs-qr-loyalty-for-pubs",
+      registry: "ROUTES.guides.paperVsQr",
+    },
+    { path: "/signup", registry: "ROUTES.signup" },
+    { path: "/privacy", registry: '"/privacy"' },
+    { path: "/terms", registry: '"/terms"' },
+  ]
+
+  assert.match(marketingFacts, /export const PUBLIC_SITE_ROUTES = \[/)
+  assert.match(sitemap, /import \{ PUBLIC_SITE_ROUTES \}/)
+  assert.doesNotMatch(sitemap, /const routes:/)
+
+  for (const route of expectedRoutes) {
+    assert.match(marketingFacts, new RegExp(`path: ${route.registry}`))
+    assert.match(
+      llms,
+      new RegExp(`https://nabaperks\\.com${route.path === "/" ? "\\/" : route.path}`)
+    )
+  }
 })

@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
@@ -18,6 +19,9 @@ import {
   RateLimitError,
   rateLimitIdentityFromHeaders,
 } from "@/lib/security/rate-limit"
+import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
+
+export const metadata: Metadata = PRIVATE_ROUTE_METADATA
 
 type PublicQrPageProps = {
   params: Promise<{
