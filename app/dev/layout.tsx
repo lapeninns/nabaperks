@@ -1,15 +1,15 @@
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
 import { headers } from "next/headers"
+import { notFound } from "next/navigation"
 
 import { REQUEST_PATH_HEADER } from "@/lib/navigation/request-path"
 
 /**
  * /dev layout — the safety net for every dev/QA harness page.
  *
- * - `metadata.robots` keeps the whole /dev tree out of search indexes (a
- *   layout-level guard complementing the per-page robots already set on
- *   design-system). The pages themselves stay `notFound()` in production.
+ * - `metadata.robots` keeps the whole /dev tree out of search indexes, and the
+ *   layout returns `notFound()` in production so dev pages are not public.
  * - An optional `?w=<px>` query constrains an outer wrapper to an exact CSS
  *   pixel width so a headless screenshot pins the breakpoint regardless of the
  *   browser window size. When `w` is absent the layout is a thin passthrough,
@@ -28,6 +28,10 @@ export default async function DevLayout({
 }: {
   children: ReactNode
 }) {
+  if (process.env.NODE_ENV === "production") {
+    notFound()
+  }
+
   const width = await readWidthOverride()
 
   if (width == null) {

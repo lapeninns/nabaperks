@@ -76,7 +76,7 @@ export default async function LaunchHarnessPage({
         <PageTitle
           eyebrow="Merchant setup"
           title="Bring your venue to life"
-          description={`${readiness.total} setup checks and you're live. Your QR is created automatically once the earlier steps are done.`}
+          description={`${readiness.total} setup checks and you're live. Create your QR once the earlier steps are done.`}
           actions={
             <Button asChild variant="secondary">
               <Link href="/app/launch?tab=qr">Open venue QR</Link>
