@@ -20,6 +20,7 @@ import { AdminRecordCard } from "@/components/admin/record-card"
 import { EmptyState, Icon, PageTitle, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { Button } from "@/components/ui/button"
+import { canRenderAdminPage } from "@/lib/admin/auth"
 import { getAdminMerchants, getAdminQrCodes } from "@/lib/admin/data"
 
 type AdminMerchants = Awaited<ReturnType<typeof getAdminMerchants>>
@@ -27,6 +28,8 @@ type AdminQrCodes = Awaited<ReturnType<typeof getAdminQrCodes>>
 type AdminQrCode = AdminQrCodes[number]
 
 export default async function AdminMerchantsPage() {
+  if (!(await canRenderAdminPage())) return null
+
   const [merchants, qrCodes] = await Promise.all([
     getAdminMerchants(),
     getAdminQrCodes(),

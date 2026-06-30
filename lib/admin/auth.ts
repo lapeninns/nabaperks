@@ -9,6 +9,8 @@ export type AdminAccess =
   | { status: "allowed"; email: string; mfaRequired: boolean }
   | { status: "denied"; reason: string }
 
+type AllowedAdminAccess = Extract<AdminAccess, { status: "allowed" }>
+
 export async function getAdminAccess(): Promise<AdminAccess> {
   const user = await getCurrentUser()
 
@@ -67,12 +69,37 @@ export function isAdminMfaRequired(
   return false
 }
 
-export async function requireAdminAction() {
+export async function requireAdminRead() {
   const access = await getAdminAccess()
 
-  if (access.status !== "allowed") {
+  if (!isAllowedAdminAccess(access)) {
     throw new Error("Internal admin access is required.")
   }
 
   return access
+}
+
+export async function requireAdminAction() {
+  return requireAdminRead()
+}
+
+export async function canRenderAdminPage(): Promise<boolean> {
+  return isAllowedAdminAccess(await getAdminAccess())
+}
+
+function isAllowedAdminAccess(
+  access: AdminAccess
+): access is AllowedAdminAccess {
+  switch (access.status) {
+    case "allowed":
+      return true
+    case "denied":
+      return false
+    default:
+      return assertNeverAdminAccess(access)
+  }
+}
+
+function assertNeverAdminAccess(value: never): never {
+  throw new Error(`Unknown admin access status: ${JSON.stringify(value)}`)
 }

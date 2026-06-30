@@ -1,7 +1,11 @@
 import "server-only"
 
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+import { createAdminServiceRoleClient } from "@/lib/admin/service-role"
 
+export {
+  getAdminBillingRecords,
+  type AdminBillingRecord,
+} from "./billing-data"
 export { getAdminPilotMerchants, getAdminPilotReport } from "./pilot-report"
 
 export async function getAdminOverview() {
@@ -18,7 +22,7 @@ export async function getAdminOverview() {
 }
 
 export async function getAdminMerchants() {
-  const supabase = createSupabaseServiceRoleClient()
+  const supabase = await createAdminServiceRoleClient()
   const { data, error } = await supabase
     .from("merchants")
     .select(
@@ -35,7 +39,7 @@ export async function getAdminMerchants() {
 }
 
 export async function getAdminQrCodes() {
-  const supabase = createSupabaseServiceRoleClient()
+  const supabase = await createAdminServiceRoleClient()
   const { data, error } = await supabase
     .from("qr_codes")
     .select(
@@ -52,7 +56,7 @@ export async function getAdminQrCodes() {
 }
 
 export async function getAdminCustomers() {
-  const supabase = createSupabaseServiceRoleClient()
+  const supabase = await createAdminServiceRoleClient()
   const { data, error } = await supabase
     .from("customer_memberships")
     .select(
@@ -69,7 +73,7 @@ export async function getAdminCustomers() {
 }
 
 export async function getAdminPrivacySupportRows() {
-  const supabase = createSupabaseServiceRoleClient()
+  const supabase = await createAdminServiceRoleClient()
   const { data, error } = await supabase
     .from("customer_memberships")
     .select(
@@ -86,7 +90,7 @@ export async function getAdminPrivacySupportRows() {
 }
 
 export async function getAdminConsentRecords() {
-  const supabase = createSupabaseServiceRoleClient()
+  const supabase = await createAdminServiceRoleClient()
   const { data, error } = await supabase
     .from("consent_records")
     .select(
@@ -103,7 +107,7 @@ export async function getAdminConsentRecords() {
 }
 
 export async function getAdminRewards() {
-  const supabase = createSupabaseServiceRoleClient()
+  const supabase = await createAdminServiceRoleClient()
   const { data, error } = await supabase
     .from("reward_events")
     .select(
@@ -119,25 +123,8 @@ export async function getAdminRewards() {
   return data ?? []
 }
 
-export async function getAdminBillingRecords() {
-  const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase
-    .from("billing_customers")
-    .select(
-      "id, plan, status, stripe_customer_id, stripe_subscription_id, current_period_end, updated_at, merchants(business_name, email)"
-    )
-    .order("updated_at", { ascending: false })
-    .limit(100)
-
-  if (error) {
-    throw new Error(`Unable to load billing records: ${error.message}`)
-  }
-
-  return data ?? []
-}
-
 export async function getAdminFraudSignals() {
-  const supabase = createSupabaseServiceRoleClient()
+  const supabase = await createAdminServiceRoleClient()
   const [
     { data: fraudFlags, error: flagsError },
     { data: failures, error: failureError },
@@ -174,7 +161,7 @@ export async function getAdminFraudSignals() {
 }
 
 export async function getAdminAuditLogs(limit = 100) {
-  const supabase = createSupabaseServiceRoleClient()
+  const supabase = await createAdminServiceRoleClient()
   const { data, error } = await supabase
     .from("audit_logs")
     .select(
@@ -191,7 +178,7 @@ export async function getAdminAuditLogs(limit = 100) {
 }
 
 async function countRows(table: "merchants" | "customers") {
-  const supabase = createSupabaseServiceRoleClient()
+  const supabase = await createAdminServiceRoleClient()
   const { count, error } = await supabase
     .from(table)
     .select("*", { count: "exact", head: true })
@@ -204,7 +191,7 @@ async function countRows(table: "merchants" | "customers") {
 }
 
 async function countBillingIssues() {
-  const supabase = createSupabaseServiceRoleClient()
+  const supabase = await createAdminServiceRoleClient()
   const { count, error } = await supabase
     .from("billing_customers")
     .select("*", { count: "exact", head: true })

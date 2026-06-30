@@ -11,9 +11,12 @@ import { FunnelChart } from "@/components/data/funnel-chart"
 import { adminNavItems } from "@/components/layout/console-nav"
 import { Button } from "@/components/ui/button"
 import { getPilotFunnelCounts } from "@/lib/analytics/funnels"
+import { canRenderAdminPage } from "@/lib/admin/auth"
 import { getAdminOverview } from "@/lib/admin/data"
 
 export default async function AdminHomePage() {
+  if (!(await canRenderAdminPage())) return null
+
   const [overview, funnelCounts] = await Promise.all([
     getAdminOverview(),
     getPilotFunnelCounts(),

@@ -1,6 +1,6 @@
 import "server-only"
 
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+import { createAdminServiceRoleClient } from "@/lib/admin/service-role"
 
 const requiredPaidLaunchEvents = [
   "merchant_signed_up",
@@ -13,7 +13,7 @@ const requiredPaidLaunchEvents = [
 ] as const
 
 export async function countRows(table: "merchants") {
-  const supabase = createSupabaseServiceRoleClient()
+  const supabase = await createAdminServiceRoleClient()
   const { count, error } = await supabase
     .from(table)
     .select("*", { count: "exact", head: true })
@@ -26,7 +26,7 @@ export async function countRows(table: "merchants") {
 }
 
 export async function countMembershipsWithSecondStamp() {
-  const supabase = createSupabaseServiceRoleClient()
+  const supabase = await createAdminServiceRoleClient()
   const { count, error } = await supabase
     .from("customer_memberships")
     .select("*", { count: "exact", head: true })
@@ -40,7 +40,7 @@ export async function countMembershipsWithSecondStamp() {
 }
 
 export async function countBillingStatuses(statuses: readonly string[]) {
-  const supabase = createSupabaseServiceRoleClient()
+  const supabase = await createAdminServiceRoleClient()
   const { count, error } = await supabase
     .from("billing_customers")
     .select("*", { count: "exact", head: true })
@@ -54,7 +54,7 @@ export async function countBillingStatuses(statuses: readonly string[]) {
 }
 
 export async function countPaidLaunchProofMerchants() {
-  const supabase = createSupabaseServiceRoleClient()
+  const supabase = await createAdminServiceRoleClient()
   const { data: billingRows, error: billingError } = await supabase
     .from("billing_customers")
     .select("merchant_id")
@@ -112,7 +112,7 @@ export async function countPaidLaunchProofMerchants() {
 }
 
 export async function countAuditActions(actions: readonly string[]) {
-  const supabase = createSupabaseServiceRoleClient()
+  const supabase = await createAdminServiceRoleClient()
   const { count, error } = await supabase
     .from("audit_logs")
     .select("*", { count: "exact", head: true })

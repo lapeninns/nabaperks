@@ -10,9 +10,12 @@ import { SecurityCheckIcon } from "@hugeicons/core-free-icons"
 import { AdminRecordCard } from "@/components/admin/record-card"
 import { EmptyState, PageTitle } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
+import { canRenderAdminPage } from "@/lib/admin/auth"
 import { getAdminAuditLogs } from "@/lib/admin/data"
 
 export default async function AdminAuditPage() {
+  if (!(await canRenderAdminPage())) return null
+
   const logs = await getAdminAuditLogs()
 
   return (

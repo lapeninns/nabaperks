@@ -8,7 +8,7 @@ import {
   countPaidLaunchProofMerchants,
   countRows,
 } from "@/lib/admin/pilot-report-sources"
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+import { createAdminServiceRoleClient } from "@/lib/admin/service-role"
 
 const pilotProductEventNames = [
   "merchant_signed_up",
@@ -183,7 +183,7 @@ export async function getAdminPilotReport() {
 }
 
 export async function getAdminPilotMerchants() {
-  const supabase = createSupabaseServiceRoleClient()
+  const supabase = await createAdminServiceRoleClient()
   const { data, error } = await supabase
     .from("merchants")
     .select(

@@ -20,9 +20,12 @@ import {
 } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { Button } from "@/components/ui/button"
+import { canRenderAdminPage } from "@/lib/admin/auth"
 import { getAdminPilotMerchants, getAdminPilotReport } from "@/lib/admin/data"
 
 export default async function AdminPilotPage() {
+  if (!(await canRenderAdminPage())) return null
+
   const [report, merchants] = await Promise.all([
     getAdminPilotReport(),
     getAdminPilotMerchants(),
