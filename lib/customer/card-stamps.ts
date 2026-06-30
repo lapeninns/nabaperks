@@ -118,7 +118,6 @@ export async function getMembershipStampDisplayDatesByMembership(
 }
 
 export function reconcileCardStampCount({
-  membershipCount,
   stampDateCount,
   total,
 }: {
@@ -126,5 +125,5 @@ export function reconcileCardStampCount({
   stampDateCount: number
   total: number
 }) {
-  return Math.min(Math.max(membershipCount, stampDateCount), total)
+  return Math.min(stampDateCount, total)
 }
