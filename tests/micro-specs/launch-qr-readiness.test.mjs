@@ -88,6 +88,41 @@ test("Given merchant QR images are fetched by internal id When the owned context
   )
 })
 
+test("Given the merchant QR image route is hit When the owned context is absent Then only the owned active join QR path can render private PNG bytes", () => {
+  const imageRoute = readProjectFile(
+    "app",
+    "app",
+    "qr",
+    "image",
+    "[qrCodeId]",
+    "route.ts"
+  )
+
+  assert.match(imageRoute, /const \{ qrCodeId \} = await context\.params/)
+  assert.match(
+    imageRoute,
+    /process\.env\.NODE_ENV !== "production"[\s\S]*qrCodeId === DEV_HARNESS_QR_CODE_ID/
+  )
+  assert.match(imageRoute, /const qrContext = await getOwnedQrImageContext\(qrCodeId\)/)
+  assert.match(
+    imageRoute,
+    /if \(!qrContext\) \{[\s\S]*new NextResponse\("QR code not found", \{ status: 404 \}\)/
+  )
+  assert.match(
+    imageRoute,
+    /const shareUrl = `\$\{env\.NEXT_PUBLIC_APP_URL\}\/q\/\$\{qrContext\.qrCode\.qr_id\}`/
+  )
+  assert.match(imageRoute, /renderQrCodePng\(shareUrl\)/)
+  assert.match(imageRoute, /"Content-Type": "image\/png"/)
+  assert.match(imageRoute, /"Cache-Control": "private, no-store"/)
+  assert.ok(
+    imageRoute.indexOf("getOwnedQrImageContext(qrCodeId)") <
+      imageRoute.indexOf("const env = getServerEnv()"),
+    "route must prove ownership before deriving the public QR URL"
+  )
+  assert.doesNotMatch(imageRoute, /searchParams|nextUrl|request\.url/)
+})
+
 test("Given launch and QR pages render setup When the model loads Then GET rendering stays read-only and QR mutations stay behind explicit actions", () => {
   const launchPageModel = readProjectFile(
     "lib",

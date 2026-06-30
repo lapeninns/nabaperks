@@ -810,14 +810,16 @@ assets from server-owned QR records and merchant ownership context.
 
 - Ownership, active-card, join-destination, and active-QR checks now sit in the
   shared image/poster context loader.
-- Image routes are still thinly covered without authenticated browser fixtures.
+- Local browser coverage now includes a seeded authenticated merchant session,
+  a valid owned active join QR, wrong-merchant QR, inactive QR, non-join QR, and
+  missing QR id.
 
 ### Room To Improve
 
-- Add authenticated fixture tests for wrong merchant, missing QR, inactive QR,
-  and valid QR image.
 - Ensure cache headers match QR mutability.
 - Add explicit error images or status codes for unavailable QR states.
+- Re-run the authenticated QR image route fixture against target/staging once
+  hosted migrations and seed/session parity are available.
 
 ## Flow 23. Poster/Print Templates
 
