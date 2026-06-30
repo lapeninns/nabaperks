@@ -4,7 +4,10 @@ import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
 
 import { Icon, PageTitle } from "@/components/brand"
 import { AccountTabBar } from "@/components/merchant/account/account-tab-bar"
-import { resolveAccountTab } from "@/components/merchant/account/account-tabs"
+import {
+  resolveAccountTab,
+  type AccountSearchParams,
+} from "@/components/merchant/account/account-tabs"
 import { AccountBillingPanelSkeleton } from "@/components/merchant/loading-skeletons"
 import { MerchantProfileForm } from "@/components/merchant/profile-form"
 
@@ -25,7 +28,7 @@ const TAB_HEADING = {
 } as const
 
 type AccountHarnessPageProps = {
-  searchParams?: Promise<{ tab?: string }>
+  searchParams?: Promise<AccountSearchParams>
 }
 
 /**

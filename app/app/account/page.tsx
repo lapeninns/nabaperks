@@ -2,7 +2,11 @@ import { Suspense } from "react"
 
 import { PageTitle } from "@/components/brand"
 import { AccountTabBar } from "@/components/merchant/account/account-tab-bar"
-import { resolveAccountTab } from "@/components/merchant/account/account-tabs"
+import {
+  resolveAccountOutcomeParams,
+  resolveAccountTab,
+  type AccountSearchParams,
+} from "@/components/merchant/account/account-tabs"
 import { BillingPanel } from "@/components/merchant/account/billing-panel"
 import { ProfilePanel } from "@/components/merchant/account/profile-panel"
 import {
@@ -24,16 +28,13 @@ const TAB_HEADING = {
 } as const
 
 type AccountPageProps = {
-  searchParams: Promise<{
-    tab?: string
-    checkout?: string
-    portal?: string
-  }>
+  searchParams: Promise<AccountSearchParams>
 }
 
 export default async function AccountPage({ searchParams }: AccountPageProps) {
   const params = await searchParams
   const tab = resolveAccountTab(params.tab)
+  const outcomeParams = resolveAccountOutcomeParams(params)
 
   const heading = TAB_HEADING[tab]
 
@@ -44,9 +45,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
 
       {tab === "billing" ? (
         <Suspense key="billing" fallback={<AccountBillingPanelSkeleton />}>
-          <BillingPanel
-            params={{ checkout: params.checkout, portal: params.portal }}
-          />
+          <BillingPanel params={outcomeParams} />
         </Suspense>
       ) : (
         <Suspense key="profile" fallback={<AccountProfilePanelSkeleton />}>
