@@ -9,6 +9,7 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
+    ".next-e2e/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
@@ -16,6 +17,8 @@ const eslintConfig = defineConfig([
     ".omo/evidence/**",
     ".tmp/**",
     ".design-sync/**",
+    ".ds-sync/**",
+    "ds-bundle/**",
     // Ephemeral agent worktree scratch space.
     ".claude/**",
   ]),
