@@ -1,0 +1,107 @@
+import assert from "node:assert/strict"
+import { test } from "node:test"
+
+import { deriveCustomerExperience } from "@/lib/customer/experience/derive"
+
+function cardContext(overrides = {}) {
+  return {
+    membershipId: "membership_1",
+    merchantName: "The Test Arms",
+    cardName: "Regulars Card",
+    current: 2,
+    total: 5,
+    reward: null,
+    rewardTerms: "Mystery pint on us.",
+    stampDates: ["30 Jun"],
+    justStamped: false,
+    justJoined: false,
+    firstStampPending: false,
+    geoFlagged: false,
+    justRedeemed: false,
+    ...overrides,
+  }
+}
+
+test("card ownership failures render a non-leaking unavailable state", () => {
+  const experience = deriveCustomerExperience({
+    entry: "card",
+    context: { access: "unauthorized" },
+  })
+
+  assert.deepEqual(experience, {
+    kind: "unavailable",
+    reason: "This belongs to another customer.",
+    recovery: undefined,
+  })
+})
+
+test("card availability failures render the centralized block reason", () => {
+  const experience = deriveCustomerExperience({
+    entry: "card",
+    context: cardContext({
+      unavailableReason: "This loyalty programme is paused.",
+    }),
+  })
+
+  assert.deepEqual(experience, {
+    kind: "unavailable",
+    reason: "This loyalty programme is paused.",
+  })
+})
+
+test("expired or absent active rewards do not make the card look reward-ready", () => {
+  const experience = deriveCustomerExperience({
+    entry: "card",
+    context: cardContext({
+      current: 3,
+      total: 5,
+      reward: null,
+      rewardTerms: "Chef's choice.",
+    }),
+  })
+
+  assert.equal(experience.kind, "card_collecting")
+  assert.equal(experience.reward, "none")
+  assert.equal(experience.rewardId, undefined)
+  assert.equal(experience.rewardTerms, "Chef's choice.")
+})
+
+test("redeemable active rewards drive the card-ready footer without changing the card state", () => {
+  const experience = deriveCustomerExperience({
+    entry: "card",
+    context: cardContext({
+      current: 5,
+      total: 5,
+      reward: {
+        id: "reward_1",
+        name: "Mystery round",
+        terms: "Ask at the bar.",
+        redeemableFrom: "2026-07-01",
+        redeemable: true,
+      },
+    }),
+  })
+
+  assert.equal(experience.kind, "card_collecting")
+  assert.equal(experience.reward, "ready")
+  assert.equal(experience.rewardId, "reward_1")
+  assert.equal(experience.rewardName, "Mystery round")
+  assert.equal(experience.rewardTerms, "Ask at the bar.")
+  assert.equal(experience.rewardRedeemableFrom, "2026-07-01")
+})
+
+test("full cards without an unlocked reward show recovery instead of inviting another stamp", () => {
+  const experience = deriveCustomerExperience({
+    entry: "card",
+    context: cardContext({
+      current: 5,
+      total: 5,
+      fullWithoutReward: true,
+    }),
+  })
+
+  assert.deepEqual(experience, {
+    kind: "unavailable",
+    reason: "We're sorting your reward. Check back shortly, or ask a team member.",
+  })
+})
