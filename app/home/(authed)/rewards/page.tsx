@@ -20,8 +20,9 @@ export const metadata = {
 }
 
 export default async function HomeRewardsPage() {
-  const { redeemable, upcoming, redeemed } = await getCustomerRewards()
-  const hasAny = redeemable.length + upcoming.length + redeemed.length > 0
+  const { redeemable, upcoming, redeemed, expired } = await getCustomerRewards()
+  const hasAny =
+    redeemable.length + upcoming.length + redeemed.length + expired.length > 0
 
   return (
     <div className="grid gap-6">
@@ -82,6 +83,30 @@ export default async function HomeRewardsPage() {
                     reward.redeemedAt
                       ? `Redeemed ${formatDate(reward.redeemedAt)}.`
                       : "Redeemed."
+                  }
+                />
+              ))}
+            </section>
+          ) : null}
+
+          {expired.length > 0 ? (
+            <section className="grid gap-4">
+              <SectionHeader
+                eyebrow="History"
+                title="Expired"
+                description="Rewards that are no longer available to scan."
+              />
+              {expired.map((reward) => (
+                <QuietReward
+                  key={reward.rewardId}
+                  reward={reward}
+                  tone="plain"
+                  note={
+                    reward.expiredAt
+                      ? `Expired ${formatDate(reward.expiredAt)}.`
+                      : reward.expiresAt
+                        ? `Expired ${formatDate(reward.expiresAt)}.`
+                        : "Expired."
                   }
                 />
               ))}
