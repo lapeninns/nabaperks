@@ -1222,8 +1222,9 @@ membership, consent, and first-stamp effects.
 - Join server-action redirects and OTP fallback links encode QR form state
   before carrying it back into query strings.
 - Local live-DB browser proof now covers QR scan to phone OTP, wrong-code
-  feedback without membership creation, terms acceptance, card redirect,
-  membership creation, first-stamp issue, and join event recording.
+  feedback without membership creation, missing-terms refusal without membership
+  creation, terms acceptance, card redirect, membership creation,
+  first-stamp issue, and join event recording.
 
 ### Pitfalls
 
@@ -1235,8 +1236,8 @@ membership, consent, and first-stamp effects.
 
 ### Room To Improve
 
-- Add tests for unknown phone, expired OTP, missing terms, missing QR, existing
-  member, and first-stamp eligibility edge cases.
+- Add tests for unknown phone, expired OTP, missing QR, existing member, and
+  first-stamp eligibility edge cases.
 - Keep join step/query parsing typed as the flow expands.
 
 ## Flow 34. Customer Scanner `/scan`
