@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next"
 import { Bricolage_Grotesque, Space_Mono } from "next/font/google"
+import { headers } from "next/headers"
 
 import "./globals.css"
 import { AppPwa } from "@/components/pwa/app-pwa"
@@ -69,11 +70,13 @@ export const viewport: Viewport = {
   themeColor: "#cf330a",
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined
+
   return (
     <html
       lang="en-GB"
@@ -82,13 +85,14 @@ export default function RootLayout({
       className={`${bricolageGrotesque.variable} ${spaceMono.variable} antialiased`}
     >
       <body className="font-sans">
-        <ThemeProvider>
+        <ThemeProvider nonce={nonce}>
           {children}
           <AppPwa />
           <Toaster richColors closeButton />
         </ThemeProvider>
         <JsonLd
           id="ld-site"
+          nonce={nonce}
           data={{
             "@context": "https://schema.org",
             "@graph": [operatorSchema(), organizationSchema(), websiteSchema()],

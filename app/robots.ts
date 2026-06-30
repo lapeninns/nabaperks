@@ -1,9 +1,10 @@
 import type { MetadataRoute } from "next"
 
+import { PRIVATE_ROUTE_PREFIXES } from "@/lib/seo/metadata"
 import { SITE_URL } from "@/lib/seo/structured-data"
 
 /** Private product surfaces — keep these out of search and AI indexes. */
-const disallow = ["/app/", "/admin/", "/dev/", "/api/"]
+const disallow = Array.from(PRIVATE_ROUTE_PREFIXES)
 
 /**
  * robots.txt — open the public marketing + legal pages to every crawler, keep

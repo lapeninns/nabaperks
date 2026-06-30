@@ -1,6 +1,14 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
+  experimental: {
+    sri: {
+      algorithm: "sha256",
+    },
+  },
+  turbopack: {
+    root: process.cwd(),
+  },
   // Allow the loopback IP origin in dev so agent browser proofs driven against
   // http://127.0.0.1 can load `/_next` dev chunks (e.g. the dynamic Leaflet
   // pin map). Dev-only; has no effect on production builds.
