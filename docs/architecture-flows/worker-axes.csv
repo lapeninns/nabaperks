@@ -1,0 +1,10 @@
+axis_id,axis_name,flow_ids,scope
+public_marketing,"Public marketing, legal, and meta surfaces","1-8","Home, pub hub, pricing, about, guides, legal, offline, sitemap, robots, manifest"
+merchant_auth_entry,"Merchant auth and entry","9-15","Signup, login, password reset, sign-out, auth confirm, onboarding, start resolver"
+merchant_setup_launch,"Merchant setup and launch","16-25","Launch checklist, venue, card, rewards, billing, QR provisioning, QR image, poster templates, dashboard, account/profile"
+merchant_operations,"Merchant member and reward operations","26-29","Member readback, merchant activity, merchant scanner, reward collection"
+customer_loyalty,"Customer QR, join, card, stamp, reward journey","30-39","Merchant preview, terms, QR router, join, scanner, card, stamp, reward, reward QR, status"
+customer_home,"Customer home and account","40-44","Customer login/session, home dashboard, profile/consent/push, rewards, activity"
+api_background,"APIs and background workers","45-51","Auth hooks, push lifecycle, notification readback, announcements, cron, Stripe webhook, health"
+admin_support,"Admin and support console","52-60","Admin gate, overview, merchants/QR, customers/rewards, privacy, fraud, audit, billing, pilot"
+dev_qa,"Dev, QA, and design harnesses","61-64","Design system, merchant app harnesses, poster preview, viewport wrapper"

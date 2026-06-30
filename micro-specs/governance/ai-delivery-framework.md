@@ -10,20 +10,34 @@ allowed_blast_radius:
   - Instructions_MircroSpecsCreation.md
   - Instructions_tdd.md
   - README.md
+  - app/**
+  - components/**
+  - docs/architecture-flows/**
+  - eslint.config.mjs
+  - lib/**
+  - next.config.ts
   - micro-specs/**
   - package.json
   - playwright.config.ts
   - pnpm-lock.yaml
   - pnpm-workspace.yaml
+  - proxy.ts
+  - reports/architecture-audit/**
+  - scripts/**
   - scripts/check-governance.mjs
   - scripts/governance-constants.mjs
   - scripts/governance-io.mjs
   - scripts/governance-rules.mjs
   - scripts/run-playwright.mjs
   - scripts/run-governance-gates.mjs
+  - supabase/migrations/**
   - tests/db/**
   - tests/e2e/**
   - tests/micro-specs/**
+  - tests/support/**
+  - tests/unit/**
+  - tsconfig.json
+  - vercel.json
 implementation_surfaces:
   - .github/workflows/ci.yml
   - AGENTS.md
