@@ -37,6 +37,28 @@ test("Given local Stripe checkout success When billing copy is reviewed Then web
   assert.doesNotMatch(billingPanel, /will update here in a moment/)
 })
 
+test("Given a failed Stripe webhook event When Stripe retries Then the ledger claim is recoverable", () => {
+  // Given
+  const webhookEvents = readProjectFile("lib", "stripe", "webhook-events.ts")
+  const webhookRoute = readProjectFile(
+    "app",
+    "api",
+    "stripe",
+    "webhook",
+    "route.ts"
+  )
+
+  // When / Then
+  assert.match(webhookEvents, /shouldRetryStripeWebhookEvent/)
+  assert.match(
+    webhookEvents,
+    /event\.processed_at === null && event\.failed_at !== null/
+  )
+  assert.match(webhookEvents, /\.not\("failed_at", "is", null\)/)
+  assert.match(webhookEvents, /failed_at: null/)
+  assert.match(webhookRoute, /if \(claim\.status === "duplicate"\)/)
+})
+
 test("Given the launch QR panel When billing activation is checked Then it does not reference an undefined banner", () => {
   // Given
   const qrPanel = readProjectFile(

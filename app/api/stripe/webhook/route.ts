@@ -44,13 +44,15 @@ export async function POST(request: Request) {
     )
   }
 
+  let productEvents: StripeProductEvent[] = []
+
   try {
     const claim = await claimStripeWebhookEvent(event)
     if (claim.status === "duplicate") {
       return NextResponse.json({ received: true, duplicate: true })
     }
 
-    await handleStripeEvent(stripe, event)
+    productEvents = await handleStripeEvent(stripe, event)
     await markStripeWebhookEventProcessed(event.id)
   } catch (error) {
     const message = error instanceof Error ? error.message : "Webhook failed"
@@ -58,10 +60,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 500 })
   }
 
+  await recordStripeProductEvents(productEvents)
   return NextResponse.json({ received: true })
 }
 
-async function handleStripeEvent(stripe: Stripe, event: Stripe.Event) {
+type StripeProductEvent = Parameters<typeof recordProductEvent>[0]
+
+async function handleStripeEvent(
+  stripe: Stripe,
+  event: Stripe.Event
+): Promise<StripeProductEvent[]> {
+  const productEvents: StripeProductEvent[] = []
+
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session
@@ -73,7 +83,7 @@ async function handleStripeEvent(stripe: Stripe, event: Stripe.Event) {
           subscription,
           merchantId: session.metadata?.merchant_id,
         })
-        await recordProductEvent({
+        productEvents.push({
           eventName: "subscription_started",
           merchantId: result.merchantId,
           actorType: "system",
@@ -92,7 +102,7 @@ async function handleStripeEvent(stripe: Stripe, event: Stripe.Event) {
         subscription: event.data.object as Stripe.Subscription,
       })
       if (result.status === "cancelled") {
-        await recordProductEvent({
+        productEvents.push({
           eventName: "subscription_cancelled",
           merchantId: result.merchantId,
           actorType: "system",
@@ -128,5 +138,20 @@ async function handleStripeEvent(stripe: Stripe, event: Stripe.Event) {
     }
     default:
       break
+  }
+
+  return productEvents
+}
+
+async function recordStripeProductEvents(productEvents: StripeProductEvent[]) {
+  for (const productEvent of productEvents) {
+    try {
+      await recordProductEvent(productEvent)
+    } catch (error) {
+      console.warn("stripe_product_event_record_failed", {
+        eventName: productEvent.eventName,
+        error: error instanceof Error ? error.message : "Unknown error",
+      })
+    }
   }
 }
