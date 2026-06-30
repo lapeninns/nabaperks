@@ -40,3 +40,41 @@ test("Given reward QR refreshes can happen repeatedly When tokens are minted The
   assert.match(qrHelper, /server may reuse a token/)
   assert.doesNotMatch(qrHelper, /each fetch mints a new token/)
 })
+
+test("Given a reward QR image is requested When source is inspected Then token minting is gated and private", () => {
+  const route = readProjectFile(
+    "app",
+    "reward",
+    "[rewardId]",
+    "qr.png",
+    "route.ts"
+  )
+  const stateGateIndex = route.indexOf('rewardState.status !== "ready"')
+  const redeemableIndex = route.indexOf("const redeemable =")
+  const tokenIndex = route.indexOf("await createRewardScanToken")
+  const renderIndex = route.indexOf("await renderQrCodePng")
+
+  assert.match(route, /getCustomerRewardState\(rewardId\)/)
+  assert.match(route, /if \(rewardState\.status !== "ready"\)/)
+  assert.match(route, /return new NextResponse\("Reward QR not found", \{ status: 404 \}\)/)
+  assert.match(route, /rewardState\.reward\.status === "unlocked"/)
+  assert.match(route, /!rewardState\.unavailableReason/)
+  assert.match(
+    route,
+    /rewardState\.membership\.current_stamp_count >=\s*rewardState\.loyaltyCard\.stamps_required/
+  )
+  assert.match(route, /isRedeemableFrom\(rewardState\.reward\.redeemable_from\)/)
+  assert.match(route, /return new NextResponse\("Reward QR not ready", \{ status: 404 \}\)/)
+  assert.match(route, /rewardId,\s*customerId: rewardState\.customerId/)
+  assert.match(route, /\$\{serverEnv\.NEXT_PUBLIC_APP_URL\}\/r\/\$\{token\.scanToken\}/)
+  assert.match(route, /"Content-Type": "image\/png"/)
+  assert.match(route, /"Cache-Control": "private, no-store"/)
+  assert.doesNotMatch(route, /searchParams|request\.url|customerId:\s*string/)
+  assert.ok(
+    stateGateIndex > -1 &&
+      redeemableIndex > stateGateIndex &&
+      tokenIndex > redeemableIndex &&
+      renderIndex > tokenIndex,
+    "the route must prove state before minting or rendering a scan token"
+  )
+})

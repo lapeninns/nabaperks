@@ -1414,8 +1414,12 @@ server-authorized reward into a merchant-scannable QR bearer token.
 
 ### Room To Improve
 
-- Add tests for owner, wrong customer, not ready, redeemed, blocked, expired,
-  and cache headers.
+- Local tests now cover route ready/redeemable gates, private no-store PNG
+  headers, wrong-customer minting, redeemed/cancelled/not-ready states,
+  next-day gating, billing-blocked availability, incomplete profile, expired
+  scan-token collection, and cross-merchant collection.
+- Re-run the reward-token DB tier against target Supabase after applying the
+  remediation migration batch.
 - Add metrics for token creation and collection conversion.
 
 ## Flow 39. Reward Status Polling

@@ -1,5 +1,6 @@
 import { after, test } from "node:test"
 import assert from "node:assert/strict"
+import { randomUUID } from "node:crypto"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
@@ -9,6 +10,7 @@ import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
  * The single-use happy path is covered elsewhere; these prove the redemption
  * guards that protect the cycle ledger and tenant boundary:
  *   - a double redeem is IDEMPOTENT — it never advances the cycle twice,
+ *   - scan-token minting is customer-owned and refuses unavailable rewards,
  *   - an EXPIRED scan token is refused at collect time,
  *   - a token can only be collected by the merchant it belongs to.
  *
@@ -51,6 +53,23 @@ async function readyReward(tx, m) {
             (now() at time zone 'Europe/London')::date, '{}'::jsonb, now(), now())
     returning id`
   return reward.id
+}
+
+async function assertMintRejected(tx, rewardId, customerId, pattern, message) {
+  let rejected = false
+  try {
+    await tx.savepoint(async () => {
+      await tx`
+        select scan_token from public.create_reward_scan_token(
+          ${rewardId}::uuid,
+          ${customerId}::uuid
+        )`
+    })
+  } catch (error) {
+    rejected = pattern.test(String(error.message))
+  }
+
+  assert.ok(rejected, message)
 }
 
 test("a double redeem is idempotent and never advances the cycle twice", { skip }, async () => {
@@ -118,6 +137,137 @@ test("an expired scan token is refused at collect", { skip }, async () => {
     assert.ok(rejected, "an expired token cannot be collected")
     const [{ status }] = await tx`select status from public.reward_events where id = ${rewardId}`
     assert.equal(status, "unlocked", "the reward is not consumed by an expired-token attempt")
+  })
+})
+
+test("scan-token minting requires reward ownership", { skip }, async () => {
+  await inRolledBackTxn(async (tx) => {
+    const [m] = await tx.unsafe(PICK)
+    assert.ok(m, "a billing-eligible seeded membership exists")
+    const rewardId = await readyReward(tx, m)
+
+    await assertMintRejected(
+      tx,
+      rewardId,
+      randomUUID(),
+      /ownership required/i,
+      "another customer cannot mint a scan token for this reward"
+    )
+  })
+})
+
+test("scan-token minting refuses redeemed and not-ready rewards", { skip }, async () => {
+  await inRolledBackTxn(async (tx) => {
+    const [m] = await tx.unsafe(PICK)
+    assert.ok(m, "a billing-eligible seeded membership exists")
+
+    const redeemedRewardId = await readyReward(tx, m)
+    await tx`
+      update public.reward_events
+      set status = 'redeemed', redeemed_at = now()
+      where id = ${redeemedRewardId}`
+    await assertMintRejected(
+      tx,
+      redeemedRewardId,
+      m.customer_id,
+      /already redeemed/i,
+      "an already redeemed reward cannot mint a fresh scan token"
+    )
+
+    const cancelledRewardId = await readyReward(tx, m)
+    await tx`
+      update public.reward_events
+      set status = 'cancelled'
+      where id = ${cancelledRewardId}`
+    await assertMintRejected(
+      tx,
+      cancelledRewardId,
+      m.customer_id,
+      /not ready to collect/i,
+      "a non-unlocked reward cannot mint a scan token"
+    )
+
+    const underStampedRewardId = await readyReward(tx, m)
+    await tx`
+      update public.customer_memberships
+      set current_stamp_count = ${m.stamps_required - 1}
+      where id = ${m.membership_id}`
+    await assertMintRejected(
+      tx,
+      underStampedRewardId,
+      m.customer_id,
+      /not ready to redeem/i,
+      "a reward below the required stamp count cannot mint a scan token"
+    )
+  })
+})
+
+test("scan-token minting refuses future, availability-blocked, and incomplete-profile rewards", { skip }, async () => {
+  await inRolledBackTxn(async (tx) => {
+    const [m] = await tx.unsafe(PICK)
+    assert.ok(m, "a billing-eligible seeded membership exists")
+
+    const futureRewardId = await readyReward(tx, m)
+    await tx`
+      update public.reward_events
+      set redeemable_from = (now() at time zone 'Europe/London')::date + 1
+      where id = ${futureRewardId}`
+    await assertMintRejected(
+      tx,
+      futureRewardId,
+      m.customer_id,
+      /next UK business day/i,
+      "a next-day-gated reward cannot mint a scan token early"
+    )
+
+    const blockedRewardId = await readyReward(tx, m)
+    await tx`
+      update public.merchants
+      set requires_billing = true
+      where id = ${m.merchant_id}`
+    await tx`
+      insert into public.billing_customers (
+        merchant_id,
+        stripe_customer_id,
+        stripe_subscription_id,
+        status
+      )
+      values (
+        ${m.merchant_id},
+        ${`cus_block_${String(m.merchant_id).slice(0, 8)}`},
+        ${`sub_block_${String(m.merchant_id).slice(0, 8)}`},
+        'cancelled'
+      )
+      on conflict (merchant_id) do update
+      set status = 'cancelled', updated_at = now()`
+    await assertMintRejected(
+      tx,
+      blockedRewardId,
+      m.customer_id,
+      /unavailable/i,
+      "a billing-blocked loyalty programme cannot mint a scan token"
+    )
+
+    await tx`
+      update public.merchants
+      set requires_billing = false
+      where id = ${m.merchant_id}`
+    await tx`
+      update public.billing_customers
+      set status = 'active', updated_at = now()
+      where merchant_id = ${m.merchant_id}`
+    const incompleteProfileRewardId = await readyReward(tx, m)
+    await tx`
+      update public.customers
+      set full_name = null
+      where id = ${m.customer_id}`
+    await assertMintRejected(
+      tx,
+      incompleteProfileRewardId,
+      m.customer_id,
+      /complete your profile/i,
+      "an incomplete customer profile cannot mint a scan token"
+    )
   })
 })
 
