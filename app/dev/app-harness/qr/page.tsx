@@ -11,9 +11,9 @@ export const dynamic = "force-dynamic"
  * body the /app/qr stream renders via QrPanel) with DB-free props, inside the
  * same "Venue QR" PageTitle the real route uses. The poster-template tiles link
  * out to the existing /app/qr/poster/[template] print route (and /dev has its
- * own poster-preview for those sheets). Note the QR <img> requests a protected
- * /app/qr/image/<id> URL, which 404s in the harness — expected, the surrounding
- * QrFrame chrome still renders for layout proof.
+ * own poster-preview for those sheets). The QR <img> uses the exact `qr_harness`
+ * id, which /app/qr/image serves as deterministic fixture bytes outside
+ * production so the frame and image are both browser-provable without auth.
  */
 export default function QrHarnessPage() {
   if (process.env.NODE_ENV === "production") {

@@ -140,7 +140,6 @@ async function getQrSetupUncached(): Promise<QrSetup> {
 
 export const getQrSetup = cache(getQrSetupUncached)
 
-/** Uncached reload after server-side QR auto-provision. */
 export async function getQrSetupFresh(): Promise<QrSetup> {
   return getQrSetupUncached()
 }
@@ -157,6 +156,9 @@ export async function getOwnedQrImageContext(qrCodeId: string) {
     .eq("id", qrCodeId)
     .eq("merchant_id", merchant.id)
     .eq("location_id", location.id)
+    .eq("loyalty_card_id", activeCard.id)
+    .eq("destination_type", "join")
+    .eq("is_active", true)
     .maybeSingle()
 
   if (error) {
