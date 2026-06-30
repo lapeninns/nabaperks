@@ -19,10 +19,12 @@ const PREVIEW_TILTS = ["-7deg", "-5deg", "-8deg", "-6deg"] as const
 export function StampJourneyPreview({
   total,
   venueName,
+  compact = false,
   className,
 }: {
   total: number
   venueName?: string
+  compact?: boolean
   className?: string
 }) {
   const safeTotal = Math.max(total, 0)
@@ -37,10 +39,16 @@ export function StampJourneyPreview({
     <div
       role="list"
       aria-label={`Example loyalty journey: ${safeTotal} stamps then a mystery reward`}
-      className={cn("grid gap-2", className)}
+      className={cn(
+        "grid",
+        compact
+          ? "grid-cols-3 gap-1.5 min-[420px]:[grid-template-columns:repeat(var(--stamp-journey-cols),minmax(0,1fr))]"
+          : "[grid-template-columns:repeat(var(--stamp-journey-cols),minmax(0,1fr))] gap-2",
+        className
+      )}
       style={{
-        gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
-      }}
+        "--stamp-journey-cols": columnCount,
+      } as CSSProperties}
     >
       {Array.from({ length: safeTotal }).map((_, index) => {
         const earned = index < earnedCount
@@ -49,6 +57,9 @@ export function StampJourneyPreview({
           <span
             key={index}
             role="listitem"
+            className={cn(
+              compact && "w-16 justify-self-center min-[420px]:w-full"
+            )}
             style={
               earned
                 ? ({
@@ -64,16 +75,25 @@ export function StampJourneyPreview({
               slotNumber={index + 1}
               showEmptySlotNumber={!earned}
               slammed={index === slamIndex}
+              compact={compact}
               venueName={venueName}
             />
           </span>
         )
       })}
-      <span role="listitem">
+      <span
+        role="listitem"
+        className={cn(compact && "w-16 justify-self-center min-[420px]:w-full")}
+      >
         {revealed ? (
-          <RewardChip key={revealKey} slotState="locked" slammed={revealSlam} />
+          <RewardChip
+            key={revealKey}
+            slotState="locked"
+            slammed={revealSlam}
+            compact={compact}
+          />
         ) : (
-          <RewardChip slotState="locked" placeholder />
+          <RewardChip slotState="locked" placeholder compact={compact} />
         )}
       </span>
     </div>

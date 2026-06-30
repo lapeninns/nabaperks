@@ -71,8 +71,15 @@ function SidebarProviderState({
 
   // Desktop expanded/collapsed state. Persisted to a cookie so the SSR layout
   // can seed `defaultOpen` and avoid an expand→collapse flash on first paint.
-  const [internalOpen, setInternalOpen] = React.useState(defaultOpen)
-  const open = openProp ?? internalOpen
+  const [internalOpenState, setInternalOpenState] = React.useState(() => ({
+    defaultOpen,
+    value: defaultOpen,
+  }))
+  const uncontrolledOpen =
+    internalOpenState.defaultOpen === defaultOpen
+      ? internalOpenState.value
+      : defaultOpen
+  const open = openProp ?? uncontrolledOpen
 
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
@@ -80,11 +87,11 @@ function SidebarProviderState({
       if (onOpenChange) {
         onOpenChange(nextOpen)
       } else {
-        setInternalOpen(nextOpen)
+        setInternalOpenState({ defaultOpen, value: nextOpen })
       }
       document.cookie = `${SIDEBAR_COOKIE_NAME}=${nextOpen}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
     },
-    [onOpenChange, open]
+    [defaultOpen, onOpenChange, open]
   )
 
   const toggleSidebar = React.useCallback(() => {

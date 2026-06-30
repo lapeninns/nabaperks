@@ -51,28 +51,30 @@ export function CustomerFlowShell({
     >
       <div
         className={cn(
-          "mx-auto grid w-full max-w-[410px]",
+          "mx-auto grid w-full min-w-0 max-w-full sm:max-w-[410px]",
           dense ? "gap-4" : "gap-5",
           className
         )}
         data-screen-label={screenLabel}
       >
-        <header className="flex items-center justify-between gap-3">
-          <div className="flex shrink-0 items-center gap-2">
+        <header className="flex min-w-0 items-center justify-between gap-3">
+          <div className="flex min-w-0 shrink items-center gap-2">
             <span
               aria-hidden="true"
               className="grid size-7 -rotate-6 place-items-center rounded-full border-2 border-ink bg-primary text-sm leading-none font-extrabold text-primary-foreground shadow-xs"
             >
               ✱
             </span>
-            <span className="text-base leading-none font-extrabold tracking-tight">
+            <span className="truncate text-base leading-none font-extrabold tracking-tight">
               nabaperks
             </span>
           </div>
           {/* Hidden on the narrowest viewports (iPhone SE, 320px) where this mono
               pill would otherwise overflow the header and clip off-screen. */}
           {eyebrow ? (
-            <MonoTag className="hidden min-[360px]:inline-flex">{eyebrow}</MonoTag>
+            <MonoTag className="hidden shrink-0 min-[360px]:inline-flex">
+              {eyebrow}
+            </MonoTag>
           ) : null}
         </header>
 

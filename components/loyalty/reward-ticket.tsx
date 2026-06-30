@@ -61,14 +61,14 @@ export function RewardTicket({
       aria-label="Reward"
       data-ticket-state={state}
       className={cn(
-        "flex overflow-hidden rounded-[10px] bg-card text-left",
+        "flex w-full min-w-0 overflow-hidden rounded-[10px] bg-card text-left",
         state === "sealed"
           ? "border-2 border-dashed border-ink/40"
           : "border-2 border-ink shadow-sm",
         className
       )}
     >
-      <div className="relative grid flex-1 content-center gap-1 p-4">
+      <div className="relative grid min-w-0 flex-1 content-center gap-1 p-3 sm:p-4">
         <span className="eyebrow text-muted-foreground">
           {eyebrow ?? KICKER[state]}
         </span>
@@ -112,7 +112,7 @@ export function RewardTicket({
 
       <div
         className={cn(
-          "grid w-[88px] content-center justify-items-center gap-2 p-3 text-center",
+          "grid w-20 shrink-0 content-center justify-items-center gap-2 p-2 text-center sm:w-[88px] sm:p-3",
           leaf ? "bg-reward/10" : "bg-seal/10"
         )}
       >

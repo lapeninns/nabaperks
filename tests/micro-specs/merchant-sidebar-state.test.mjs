@@ -18,6 +18,7 @@ test("Given merchant layout state is preserved When the cookie-backed default ch
   const sidebar = readProjectFile("components", "ui", "sidebar.tsx")
 
   // When / Then
+  assert.match(sidebar, /const \[internalOpenState, setInternalOpenState\]/)
   assert.match(
     sidebar,
     /const resetKey =\s*openProp === undefined \? `uncontrolled-\$\{String\(defaultOpen\)\}` : "controlled"/
@@ -30,6 +31,15 @@ test("Given merchant layout state is preserved When the cookie-backed default ch
     sidebar,
     /React\.useEffect\(\(\) => \{[\s\S]*setInternalOpen\(defaultOpen\)[\s\S]*\}, \[defaultOpen, openProp\]\)/
   )
+  assert.match(
+    sidebar,
+    /internalOpenState\.defaultOpen === defaultOpen[\s\S]*\? internalOpenState\.value[\s\S]*: defaultOpen/
+  )
+  assert.match(
+    sidebar,
+    /setInternalOpenState\(\{ defaultOpen, value: nextOpen \}\)/
+  )
+  assert.doesNotMatch(sidebar, /setInternalOpen\(defaultOpen\)/)
 })
 
 test("Given poster preview routes When the app shell is seeded Then poster focus does not override the saved sidebar cookie", () => {
