@@ -76,6 +76,37 @@ export async function openTermsStep(
   ).toBeVisible()
 }
 
+export async function openDirectTermsStep(
+  page: Page,
+  merchantSlug: string,
+  phone: DisposablePhone
+): Promise<void> {
+  await page.goto(`/m/${merchantSlug}`)
+  await expect(
+    page.getByRole("heading", { name: "Collect your stamp" })
+  ).toBeVisible()
+
+  await page.getByRole("link", { name: "Join rewards" }).click()
+  await expect(
+    page.getByRole("heading", { name: "Save your card to your number" })
+  ).toBeVisible()
+
+  await page.locator("#contact").fill(phone.national)
+  await page.getByRole("button", { name: "Text me the code" }).click()
+  await expect(
+    page.getByRole("heading", { name: "Enter your code" })
+  ).toBeVisible()
+  await expect(
+    page.getByRole("link", { name: "Use a different number" })
+  ).toHaveAttribute("href", `/m/${merchantSlug}/join?step=phone`)
+
+  await page.locator("#otp").fill(DEV_OTP)
+  await page.getByRole("button", { name: "Save my card" }).click()
+  await expect(
+    page.getByRole("heading", { name: "Collect your first stamp" })
+  ).toBeVisible()
+}
+
 export function disposableUkMobile(): DisposablePhone {
   for (let attempt = 0; attempt < 50; attempt += 1) {
     const digits = randomUUID().replace(/\D/g, "").padEnd(8, "0").slice(0, 8)
