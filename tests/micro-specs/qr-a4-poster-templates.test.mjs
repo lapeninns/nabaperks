@@ -13,31 +13,34 @@ function readProjectFile(...segments) {
   return readFileSync(path.join(projectRoot, ...segments), "utf8")
 }
 
-test("Given a live merchant QR When A4 poster templates are offered Then the current registry styles are linked", () => {
+test("Given a live merchant QR When A4 poster templates are offered Then all current templates are linked", () => {
   // Given
-  const qrPanel = readProjectFile(
+  const qrPanelLive = readProjectFile(
     "components",
     "merchant",
     "launch",
     "qr-panel-live.tsx"
   )
-  const posterTemplates = readProjectFile("lib", "qr", "poster-templates.ts")
+  const posterTemplates = readProjectFile(
+    "lib",
+    "qr",
+    "poster-templates.ts"
+  )
+  const templateIds = ["editorial", "bold", "ticket", "northstar", "thermal"]
 
   // When / Then
-  assert.match(qrPanel, /Print a counter poster/)
-  assert.match(qrPanel, /QR_POSTER_TEMPLATES\.map/)
+  assert.match(qrPanelLive, /Print a counter poster/)
+  assert.match(qrPanelLive, /QR_POSTER_TEMPLATES\.map/)
   assert.match(
-    qrPanel,
+    qrPanelLive,
     /href=\{`\/app\/qr\/poster\/\$\{template\.id\}\?qr=\$\{qrCodeId\}&from=\$\{encodeURIComponent\(returnHref\)\}`\}/
   )
-  assert.match(posterTemplates, /"editorial"/)
-  assert.match(posterTemplates, /"bold"/)
-  assert.match(posterTemplates, /"ticket"/)
-  assert.match(posterTemplates, /"northstar"/)
-  assert.match(posterTemplates, /"thermal"/)
+  for (const templateId of templateIds) {
+    assert.match(posterTemplates, new RegExp(`"${templateId}"`))
+  }
 })
 
-test("Given the A4 poster route When implementation is inspected Then it uses protected QR context without the old asset pipeline", () => {
+test("Given the A4 poster route When implementation is inspected Then it uses protected QR context and current poster surfaces", () => {
   // Given
   const posterPage = readProjectFile(
     "app",
@@ -126,6 +129,8 @@ test("Given the A4 poster route When implementation is inspected Then it uses pr
   assert.match(posterTemplates, /ticket/)
   assert.match(posterTemplates, /northstar/)
   assert.match(posterTemplates, /thermal/)
+  assert.match(posterComponent, /if \(template === "northstar"\)/)
+  assert.match(posterComponent, /if \(template === "thermal"\)/)
   assert.match(posterSurface, /210mm/)
   assert.match(posterSurface, /297mm/)
   assert.match(posterSurface, /No app · 20 seconds · No spam/)

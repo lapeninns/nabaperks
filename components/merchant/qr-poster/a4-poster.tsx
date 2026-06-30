@@ -25,6 +25,7 @@ type A4PosterProps = {
   readonly stampsRequired: number
   readonly qrCodeId?: string
   readonly backHref?: string
+  readonly showSidebarTrigger?: boolean
 }
 
 const TEMPLATE_CLASS_NAMES: Record<CopyPosterTemplateId, string> = {
@@ -44,6 +45,7 @@ export function A4Poster({
   stampsRequired,
   qrCodeId,
   backHref,
+  showSidebarTrigger = true,
 }: A4PosterProps) {
   const templateMeta = getQrPosterTemplate(template)
   const pageRef = useRef<HTMLElement>(null)
@@ -110,6 +112,7 @@ export function A4Poster({
         locationName={locationName}
         qrCodeId={qrCodeId}
         backHref={backHref}
+        showSidebarTrigger={showSidebarTrigger}
       />
       <div className={styles.workspace}>
         <div ref={stageRef} className={styles.stage}>

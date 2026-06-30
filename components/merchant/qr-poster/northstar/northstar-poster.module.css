@@ -309,7 +309,7 @@
 
   /* Force the rubber-stamp + roundel fills (and the white card on the dark
      sheet) regardless of the browser's "Background graphics" setting. */
-  :global([data-stamp-earned="true"]) {
+  .sheet :global([data-stamp-earned="true"]) {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }

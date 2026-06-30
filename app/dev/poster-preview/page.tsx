@@ -53,7 +53,13 @@ export default async function PosterPreviewPage({
       notFound()
     }
 
-    return <A4Poster template={template.id} {...posterProps} />
+    return (
+      <A4Poster
+        template={template.id}
+        showSidebarTrigger={false}
+        {...posterProps}
+      />
+    )
   }
 
   return (
@@ -65,6 +71,7 @@ export default async function PosterPreviewPage({
           </p>
           <A4Poster
             template={template}
+            showSidebarTrigger={false}
             {...posterProps}
           />
         </section>

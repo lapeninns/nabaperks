@@ -367,7 +367,7 @@
     -webkit-print-color-adjust: exact;
   }
 
-  :global([data-stamp-earned="true"]) {
+  .sheet :global([data-stamp-earned="true"]) {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }

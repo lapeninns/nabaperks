@@ -623,8 +623,8 @@
     margin: 0;
   }
 
-  :global(html),
-  :global(body) {
+  :global(html):has(.page),
+  :global(body):has(.page) {
     margin: 0;
     padding: 0;
     width: 210mm;
@@ -633,40 +633,40 @@
     background: #ffffff;
   }
 
-  :global(body *) {
+  :global(body):has(.page) * {
     visibility: hidden;
   }
 
-  :global(.qr-poster-print-root),
-  :global(.qr-poster-print-root *) {
+  .page,
+  .page * {
     visibility: visible;
   }
 
-  :global(.qr-poster-chrome) {
+  .page :global(.qr-poster-chrome) {
     display: none !important;
   }
 
-  :global(.qr-poster-sidecar) {
+  .page :global(.qr-poster-sidecar) {
     display: none !important;
   }
 
-  :global(.qr-poster-action-bar) {
+  .page :global(.qr-poster-action-bar) {
     display: none !important;
   }
 
-  :global([data-slot="sidebar"]),
-  :global([data-slot="sidebar-gap"]),
-  :global([data-slot="sidebar-container"]),
-  :global([data-slot="sidebar-inset"] > header) {
+  :global(body):has(.page) :global([data-slot="sidebar"]),
+  :global(body):has(.page) :global([data-slot="sidebar-gap"]),
+  :global(body):has(.page) :global([data-slot="sidebar-container"]),
+  :global(body):has(.page) :global([data-slot="sidebar-inset"] > header) {
     display: none !important;
   }
 
-  :global([data-slot="sidebar-inset"]) {
+  :global(body):has(.page) :global([data-slot="sidebar-inset"]) {
     padding: 0 !important;
     margin: 0 !important;
   }
 
-  :global([data-slot="sidebar-inset"] > div) {
+  :global(body):has(.page) :global([data-slot="sidebar-inset"] > div) {
     padding: 0 !important;
     margin: 0 !important;
     max-width: none !important;
