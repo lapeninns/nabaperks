@@ -699,17 +699,17 @@ assignment.
 
 ### Pitfalls
 
-- App readiness and SQL QR creation policy can drift around active reward count.
-- Reward pool changes affect customer terms, QR launch, and future reward
-  assignment.
-- Toggle/delete behavior needs careful auditability.
+- Shared app/SQL policy and live-DB rollback coverage now prove the active
+  reward minimum, QR threshold creation, active-QR below-minimum refusal,
+  disabled QR re-enable, add/update, delete, and archive behavior.
+- Reward pool changes still affect customer terms, QR launch, and future reward
+  assignment, so target/staging replay matters before pilot use.
 
 ### Room To Improve
 
-- Centralize the minimum active reward count in one shared policy.
-- Align SQL guards with app readiness.
-- Add tests for add/update/toggle/delete/archive and QR provisioning triggers.
-- Add admin/support visibility for reward pool changes if needed.
+- Re-run the reward pool lifecycle proof against target/staging once migrations
+  and seed/session parity are available.
+- Add admin/support visibility for reward pool changes if operators need it.
 
 ## Flow 20. Billing Activation
 
