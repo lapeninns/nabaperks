@@ -18,6 +18,7 @@ export async function GET(request: Request): Promise<Response> {
   return Response.json(
     {
       status: "ok",
+      scope: "liveness",
       service: SERVICE,
       version: VERSION,
       uptime: Math.round(process.uptime()),
