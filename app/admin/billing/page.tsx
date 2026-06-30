@@ -2,7 +2,6 @@ import {
   AdminPanel,
   SourceLabel,
   StatusPill,
-  first,
   formatAdminDate,
 } from "@/components/admin/support"
 import { AdminRecordCard } from "@/components/admin/record-card"
@@ -10,9 +9,12 @@ import { CreditCardIcon } from "@hugeicons/core-free-icons"
 
 import { EmptyState, PageTitle } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
-import { getAdminBillingRecords } from "@/lib/admin/data"
+import { canRenderAdminPage } from "@/lib/admin/auth"
+import { getAdminBillingRecords } from "@/lib/admin/billing-data"
 
 export default async function AdminBillingPage() {
+  if (!(await canRenderAdminPage())) return null
+
   const billing = await getAdminBillingRecords()
 
   return (
@@ -45,14 +47,11 @@ export default async function AdminBillingPage() {
               key: "merchant",
               header: "Merchant",
               cell: (row) => {
-                const merchant = first(row.merchants)
                 return (
                   <div className="grid gap-1">
-                    <span className="font-bold">
-                      {merchant?.business_name ?? "Merchant"}
-                    </span>
+                    <span className="font-bold">{row.merchantName}</span>
                     <span className="text-muted-foreground">
-                      {merchant?.email ?? "No merchant email"}
+                      {row.merchantEmail}
                     </span>
                   </div>
                 )
@@ -66,46 +65,59 @@ export default async function AdminBillingPage() {
             {
               key: "status",
               header: "Status",
-              cell: (row) => <StatusPill>{row.status}</StatusPill>,
+              cell: (row) => (
+                <StatusPill tone={row.statusTone}>{row.statusLabel}</StatusPill>
+              ),
             },
             {
               key: "period",
               header: "Period end",
               cell: (row) => (
                 <span className="text-muted-foreground">
-                  {formatAdminDate(row.current_period_end)}
+                  {formatAdminDate(row.currentPeriodEnd)}
                 </span>
               ),
             },
             {
               key: "stripe",
-              header: "Stripe subscription",
+              header: "Stripe refs",
               cell: (row) => (
-                <span className="font-mono text-xs">
-                  {row.stripe_subscription_id ?? "-"}
-                </span>
+                <div className="grid gap-1 font-mono text-xs">
+                  <span>Subscription {row.stripeSubscriptionRef}</span>
+                  <span className="text-muted-foreground">
+                    Customer {row.stripeCustomerRef}
+                  </span>
+                </div>
               ),
             },
           ]}
           mobileCard={(row) => {
-            const merchant = first(row.merchants)
             return (
               <AdminRecordCard
-                title={merchant?.business_name ?? "Merchant"}
-                status={<StatusPill>{row.status}</StatusPill>}
+                title={row.merchantName}
+                status={
+                  <StatusPill tone={row.statusTone}>
+                    {row.statusLabel}
+                  </StatusPill>
+                }
                 fields={[
                   {
                     label: "Email",
-                    value: merchant?.email ?? "No merchant email",
+                    value: row.merchantEmail,
                   },
                   { label: "Plan", value: row.plan },
                   {
                     label: "Period end",
-                    value: formatAdminDate(row.current_period_end),
+                    value: formatAdminDate(row.currentPeriodEnd),
                   },
                   {
                     label: "Stripe subscription",
-                    value: row.stripe_subscription_id ?? "-",
+                    value: row.stripeSubscriptionRef,
+                    mono: true,
+                  },
+                  {
+                    label: "Stripe customer",
+                    value: row.stripeCustomerRef,
                     mono: true,
                   },
                 ]}
