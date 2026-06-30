@@ -1066,13 +1066,14 @@ to collect it.
 - Route segment now uses `[scanToken]`; earlier `[rewardId]` naming was a
   token/id confusion risk.
 - Member readback no longer links reward event ids into this token route.
-- Expired, replayed, unauthorized, and already-redeemed states need strong
-  coverage.
+- DB coverage now proves expired, replayed, unauthorized, blocked, and
+  already-redeemed token states; local live-DB Playwright proves a minted `/r`
+  token reaches the merchant scan page/action and lands in server redeemed state.
 
 ### Room To Improve
 
-- Add integration tests for mint, readback, collect, replay, expired,
-  unauthorized, blocked, and redeemed states.
+- Re-run mint, readback, collect, replay, expired, unauthorized, blocked, and
+  redeemed states against target/staging before release.
 - Add monitoring for failed collection reasons.
 
 ## Flow 30. Public Merchant Page `/m/[merchantSlug]`
