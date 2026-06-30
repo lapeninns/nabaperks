@@ -121,7 +121,7 @@ const VenueReviewReceipt = forwardRef<
       >
         <div className="rounded-t-[var(--radius)] border-2 border-b-0 border-ink bg-card px-4 pt-3.5 pb-3">
           <figcaption>
-            <p className="eyebrow text-primary">In their words</p>
+            <p className="eyebrow text-primary">Operator voice</p>
             <div className="mt-1.5 flex items-start justify-between gap-2">
               <span className="min-w-0">
                 <span className="block text-sm leading-tight font-extrabold text-balance">
@@ -149,7 +149,7 @@ const VenueReviewReceipt = forwardRef<
           <hr className="w-rule !my-2.5" />
 
           <p className="font-mono text-[0.58rem] tracking-[0.06em] text-muted-foreground uppercase">
-            {venue.attribution ?? "From the team"}
+            {venue.attribution ?? "Paraphrased operator voice"}
           </p>
         </div>
         <div aria-hidden="true" className="receipt-edge" />

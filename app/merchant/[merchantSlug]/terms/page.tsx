@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 
 import { Eyebrow, ReceiptCard } from "@/components/brand"
@@ -5,6 +6,16 @@ import { CustomerShell } from "@/components/layout"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { getMerchantJoinContext } from "@/lib/customer/join"
+
+export const metadata: Metadata = {
+  title: "Venue loyalty terms | Nabaperks",
+  description:
+    "Venue-specific loyalty terms for Nabaperks rewards, pending human legal review before public launch.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+}
 
 type MerchantTermsPageProps = {
   params: Promise<{

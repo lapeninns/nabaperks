@@ -49,7 +49,12 @@ export function ComparisonTable() {
         </p>
       </div>
 
-      <div className="relative mt-6 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5">
+      <div
+        aria-label="Browser-card comparison table"
+        className="relative mt-6 overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary [-ms-overflow-style:none] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5"
+        role="region"
+        tabIndex={0}
+      >
         <table className="w-full min-w-[34rem] border-collapse text-left">
           <caption className="sr-only">
             How a Nabaperks browser card compares with wallet-pass loyalty apps,

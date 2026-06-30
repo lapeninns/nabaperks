@@ -129,6 +129,39 @@ export const ROUTES = {
   },
 } as const
 
+export type PublicRouteChangeFrequency = "weekly" | "monthly" | "yearly"
+
+export type PublicSiteRoute = {
+  readonly path: string
+  readonly priority: number
+  readonly changeFrequency: PublicRouteChangeFrequency
+}
+
+export const PUBLIC_SITE_ROUTES = [
+  { path: ROUTES.home, priority: 1, changeFrequency: "weekly" },
+  { path: ROUTES.pubHub, priority: 0.9, changeFrequency: "monthly" },
+  { path: ROUTES.pricing, priority: 0.9, changeFrequency: "monthly" },
+  { path: ROUTES.about, priority: 0.6, changeFrequency: "monthly" },
+  {
+    path: ROUTES.guides.bestIdeas,
+    priority: 0.6,
+    changeFrequency: "monthly",
+  },
+  {
+    path: ROUTES.guides.rewardRegulars,
+    priority: 0.6,
+    changeFrequency: "monthly",
+  },
+  {
+    path: ROUTES.guides.paperVsQr,
+    priority: 0.6,
+    changeFrequency: "monthly",
+  },
+  { path: ROUTES.signup, priority: 0.7, changeFrequency: "monthly" },
+  { path: "/privacy", priority: 0.3, changeFrequency: "yearly" },
+  { path: "/terms", priority: 0.3, changeFrequency: "yearly" },
+] as const satisfies readonly PublicSiteRoute[]
+
 export const CTA = {
   /** Persona + hero persona CTA for the pub hub. */
   pub: "Loyalty for pubs",

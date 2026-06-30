@@ -1,11 +1,54 @@
+import type { Metadata } from "next"
+import { Suspense } from "react"
 import Link from "next/link"
 
 import { Tick02Icon } from "@hugeicons/core-free-icons"
 
 import { Eyebrow, Icon, PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { JsonLd } from "@/components/seo/json-ld"
 import { Button } from "@/components/ui/button"
+import { CTA, PRODUCT, ROUTES } from "@/lib/marketing/facts"
+import {
+  ORG_ID,
+  SITE_URL,
+  absoluteUrl,
+  marketingPageGraph,
+  OG_IMAGE,
+} from "@/lib/seo/structured-data"
+
+import { PricingCheckoutAlert } from "./checkout-alert"
+
+const title = "Pricing — £29/month per venue"
+const description = `Start with a ${PRODUCT.pilot}, then ${PRODUCT.price} per venue. Build your card first; add billing when you activate your live venue QR.`
+
+export const metadata: Metadata = {
+  title,
+  description,
+  alternates: { canonical: ROUTES.pricing },
+  keywords: [
+    "Nabaperks pricing",
+    "loyalty card pricing UK",
+    "pub loyalty scheme pricing",
+    "QR loyalty card monthly price",
+    "digital stamp card pricing",
+  ],
+  openGraph: {
+    title: `${title} | Nabaperks`,
+    description,
+    type: "website",
+    siteName: "Nabaperks",
+    url: ROUTES.pricing,
+    locale: "en_GB",
+    images: [OG_IMAGE],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${title} | Nabaperks`,
+    description,
+    images: [OG_IMAGE],
+  },
+}
 
 const planIncludes = [
   "Unlimited stamps and members",
@@ -38,27 +81,51 @@ const faqs = [
   },
 ]
 
-type PricingPageProps = {
-  searchParams?: Promise<{
-    checkout?: string
-  }>
-}
+const pricingOffer = {
+  "@type": "Offer",
+  "@id": `${SITE_URL}${ROUTES.pricing}#monthly-offer`,
+  name: "Nabaperks Growth Plan",
+  price: "29.00",
+  priceCurrency: "GBP",
+  description: `${PRODUCT.price} per venue after a ${PRODUCT.pilot}, month to month with no contract.`,
+  availability: "https://schema.org/InStock",
+  url: absoluteUrl(ROUTES.pricing),
+  eligibleRegion: { "@type": "Country", name: "United Kingdom" },
+  itemOffered: {
+    "@type": "SoftwareApplication",
+    "@id": `${SITE_URL}/#software`,
+    name: "Nabaperks",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web browser",
+    publisher: { "@id": ORG_ID },
+  },
+} satisfies Record<string, unknown>
 
-export default async function PricingPage({ searchParams }: PricingPageProps) {
-  const params = searchParams ? await searchParams : {}
-  const checkoutMessage =
-    params.checkout === "success"
-      ? {
-          title: "Checkout complete",
-          body: "Your Growth Plan setup can continue from the merchant billing page.",
-        }
-      : params.checkout === "cancelled"
-        ? {
-            title: "Checkout cancelled",
-            body: "No payment details were changed. You can start checkout again whenever you are ready.",
-          }
-        : null
+const pricingFaqSchema = {
+  "@type": "FAQPage",
+  "@id": `${SITE_URL}${ROUTES.pricing}#faq`,
+  mainEntity: faqs.map((faq) => ({
+    "@type": "Question",
+    name: faq.q,
+    acceptedAnswer: { "@type": "Answer", text: faq.a },
+  })),
+} satisfies Record<string, unknown>
 
+const pricingGraph = marketingPageGraph({
+  page: {
+    path: ROUTES.pricing,
+    name: `${title} | Nabaperks`,
+    description,
+    reviewedByOperator: true,
+  },
+  breadcrumbs: [
+    { name: "Home", path: ROUTES.home },
+    { name: "Pricing", path: ROUTES.pricing },
+  ],
+  extraNodes: [pricingOffer, pricingFaqSchema],
+})
+
+export default function PricingPage() {
   return (
     <MarketingLayout>
       <Section>
@@ -71,12 +138,9 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
           className="md:grid-cols-1"
         />
 
-        {checkoutMessage ? (
-          <Alert className="mt-6 max-w-2xl border-primary/30 bg-primary/10">
-            <AlertTitle>{checkoutMessage.title}</AlertTitle>
-            <AlertDescription>{checkoutMessage.body}</AlertDescription>
-          </Alert>
-        ) : null}
+        <Suspense fallback={null}>
+          <PricingCheckoutAlert />
+        </Suspense>
 
         <div className="mt-6 grid gap-6 sm:gap-8 lg:grid-cols-[minmax(0,0.52fr)_minmax(0,0.48fr)] lg:items-start">
           <ReceiptCard
@@ -123,7 +187,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
               </div>
               <div className="grid gap-3 border-t-2 border-dashed border-border pt-5">
                 <Button asChild size="lg" className="w-full">
-                  <Link href="/signup">Start free pilot</Link>
+                  <Link href={ROUTES.signup}>{CTA.startPilot}</Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="w-full">
                   <Link href="/login">Log in</Link>
@@ -187,11 +251,12 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
           </div>
           <div className="mt-6 flex justify-center">
             <Button asChild size="lg">
-              <Link href="/signup">Start free pilot</Link>
+              <Link href={ROUTES.signup}>{CTA.startPilot}</Link>
             </Button>
           </div>
         </div>
       </Section>
+      <JsonLd id="ld-pricing" data={pricingGraph} />
     </MarketingLayout>
   )
 }

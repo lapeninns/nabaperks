@@ -17,7 +17,8 @@ export function VenueProof() {
             Pubs and cafes already on the counter.
           </h2>
           <p className="mt-2 max-w-[40ch] text-sm leading-6 text-muted-foreground sm:max-w-[48ch] xl:max-w-[40ch]">
-            Real words from food and drink venues using Nabaperks at the till.
+            Named venues from the Lapen Inns network, with paraphrased operator
+            voice rather than verbatim testimonials.
           </p>
           <dl className="mt-3 flex flex-wrap items-baseline gap-x-5 gap-y-2 font-mono text-[0.64rem] tracking-[0.06em] uppercase sm:gap-x-6">
             <div className="flex items-baseline gap-2">

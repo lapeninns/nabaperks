@@ -68,7 +68,12 @@ export default function PaperVsQrLoyaltyForPubsPage() {
       intro="Paper punch cards are simple and familiar. A browser-based QR loyalty card keeps that simplicity but fixes the parts that cost a pub money. Here is the honest side-by-side."
     >
       <GuideSection heading="Side by side">
-        <div className="overflow-x-auto [scrollbar-width:thin]">
+        <div
+          aria-label="Paper loyalty cards versus QR loyalty comparison"
+          className="overflow-x-auto [scrollbar-width:thin]"
+          role="region"
+          tabIndex={0}
+        >
           <table className="w-full min-w-[34rem] border-collapse text-left text-sm">
             <caption className="sr-only">
               Paper loyalty cards compared with a browser-based QR loyalty card

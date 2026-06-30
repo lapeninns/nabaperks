@@ -37,17 +37,17 @@ export function NabaperksProof() {
 
         <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-6 lg:grid-cols-4">
           {nabaperksStats.map((stat) => (
-            <div key={stat.label}>
-              <dd className="text-[clamp(2.25rem,5vw,3.25rem)] leading-none font-extrabold tracking-[-0.02em] tabular-nums">
-                {stat.value}
-              </dd>
-              <dt className="mt-2 font-mono text-[0.72rem] font-bold tracking-[0.06em] text-foreground uppercase">
+            <div key={stat.label} className="flex flex-col">
+              <dt className="order-2 mt-2 font-mono text-[0.72rem] font-bold tracking-[0.06em] text-foreground uppercase">
                 {stat.label}
               </dt>
+              <dd className="order-1 text-[clamp(2.25rem,5vw,3.25rem)] leading-none font-extrabold tracking-[-0.02em] tabular-nums">
+                {stat.value}
+              </dd>
               {stat.helper ? (
-                <p className="mt-1.5 max-w-[26ch] text-sm leading-relaxed text-muted-foreground">
+                <dd className="order-3 mt-1.5 max-w-[26ch] text-sm leading-relaxed text-muted-foreground">
                   {stat.helper}
-                </p>
+                </dd>
               ) : null}
             </div>
           ))}
