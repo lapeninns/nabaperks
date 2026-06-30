@@ -1,7 +1,7 @@
 # Nabaperks Agent Guide
 
 This repo is a buildable Next.js app with a retained Wet Ink design system and
-a small current AI governance spine.
+a CI-enforced AI governance spine.
 
 ## Stack
 
@@ -18,20 +18,23 @@ a small current AI governance spine.
 
 ## Working Rules
 
-- Keep the app buildable. Verify meaningful code changes with `pnpm typecheck`
-  and `pnpm build`.
+- Keep the app buildable. Verify meaningful code changes with
+  `pnpm governance:check`, `pnpm typecheck`, and `pnpm build`; add
+  `pnpm governance:run-gates` when an active Micro-Spec is driving the work.
 - Treat the design system as the durable product contract. Preserve
   `DESIGN.md`, `app/globals.css`, and the shared component foundations.
 - Treat `micro-specs/README.md`, `micro-specs/GLOBAL_CONTEXT.md`,
   `Instructions_MircroSpecsCreation.md`, and `Instructions_tdd.md` as
-  governance only unless an active Micro-Spec exists.
+  governance only unless an active Micro-Spec exists. Only `status: active`
+  Micro-Specs can drive implementation.
 - Keep governance current-only. Add planning packs, generated route docs,
   screenshot evidence folders, design-source mirrors, or `.omo` evidence files
   only when the user explicitly asks for them.
 - Read the relevant Next.js 16 guide in `node_modules/next/dist/docs/` before
   changing app-router APIs, route handlers, server actions, or config.
 - Server state remains authoritative. Browser storage is cache only; loyalty and
-  billing-affecting changes must stay server-side and auditable.
+  billing-affecting changes must stay server-side and auditable. Browser-only
+  Playwright proof does not count as DB/RLS/webhook/billing proof.
 
 ## Design System
 
@@ -42,15 +45,19 @@ tracked runtime inputs.
 
 ## AI Governance
 
-The governance spine is deliberately small:
+The governance spine is deliberately small and enforceable:
 
 - `Instructions_MircroSpecsCreation.md` defines how to author future
   Micro-Specs.
 - `Instructions_tdd.md` defines the implementation workflow when an active spec
   and its required harness exist.
 - `micro-specs/README.md` is the governance index, lifecycle policy, and current
-  gate list.
+  risk-gate/CI contract.
 - `micro-specs/GLOBAL_CONTEXT.md` holds reusable project constraints.
+- `scripts/check-governance.mjs` validates metadata, risk gates, blast radius,
+  docs drift, and safe gate-command shapes.
+- `scripts/run-governance-gates.mjs` runs active Micro-Spec verification gates.
 
-There are currently no active feature Micro-Specs checked in. Do not treat
-absent spec paths as implementation input.
+There are currently no active feature Micro-Specs checked in. The active
+docs-tooling Micro-Spec is `micro-specs/governance/ai-delivery-framework.md`.
+Do not treat absent spec paths as implementation input.

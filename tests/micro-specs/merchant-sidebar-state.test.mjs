@@ -13,14 +13,22 @@ function readProjectFile(...segments) {
   return readFileSync(path.join(projectRoot, ...segments), "utf8")
 }
 
-test("Given merchant layout state is preserved When the cookie-backed default changes Then SidebarProvider syncs uncontrolled state", () => {
+test("Given merchant layout state is preserved When the cookie-backed default changes Then SidebarProvider resets uncontrolled state", () => {
   // Given
   const sidebar = readProjectFile("components", "ui", "sidebar.tsx")
 
   // When / Then
   assert.match(
     sidebar,
-    /React\.useEffect\(\(\) => \{\s*if \(openProp === undefined\) \{\s*setInternalOpen\(defaultOpen\)\s*\}\s*\}, \[defaultOpen, openProp\]\)/
+    /const resetKey =\s*openProp === undefined \? `uncontrolled-\$\{String\(defaultOpen\)\}` : "controlled"/
+  )
+  assert.match(
+    sidebar,
+    /<SidebarProviderState key=\{resetKey\} \{\.\.\.props\} \/>/
+  )
+  assert.doesNotMatch(
+    sidebar,
+    /React\.useEffect\(\(\) => \{[\s\S]*setInternalOpen\(defaultOpen\)[\s\S]*\}, \[defaultOpen, openProp\]\)/
   )
 })
 

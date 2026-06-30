@@ -1,11 +1,7 @@
 # AI Governance Index
 
-This folder is the repo-local AI governance spine. It contains current
-authoring and lifecycle rules, and it currently contains no active feature
-Micro-Specs.
-
-Use it to decide how agents should author, validate, and execute future
-Micro-Specs against the current buildable app.
+This folder is the repo-local AI governance spine. It defines how agents author,
+validate, execute, and verify Micro-Specs against the current buildable app.
 
 ## Source Documents
 
@@ -18,16 +14,15 @@ Micro-Specs against the current buildable app.
 
 ## Current State
 
-There are no active Micro-Spec implementation files in this directory. If a new
-feature or governance change needs a Micro-Spec, create a focused file under a
-clear area folder, for example:
+Active implementation input is limited to Micro-Spec files whose metadata says
+`status: active`. The current active docs-tooling spec is:
 
-```text
-micro-specs/<area>/<short-slug>.md
-```
+- `micro-specs/governance/ai-delivery-framework.md`
 
 Keep this folder limited to current governance files and active Micro-Specs
-explicitly requested by the user.
+explicitly requested by the user. Do not add planning packs, generated route
+docs, screenshot evidence folders, design-source mirrors, or `.omo` evidence
+files unless explicitly requested.
 
 ## Source-of-Truth Hierarchy
 
@@ -45,7 +40,8 @@ Only current checked-in files in this hierarchy are implementation truth.
 
 ## Micro-Spec Metadata Schema
 
-Every implementation-ready Micro-Spec must start with this YAML block:
+Every Micro-Spec file must start with this YAML block. Only `status: active`
+can drive implementation.
 
 ```yaml
 spec_id: MS-<area>-<slug>
@@ -60,13 +56,20 @@ implementation_surfaces:
 related_docs:
   - <repo-local path>
 related_tests:
-  - <repo-local path or "not-yet-created">
+  - <repo-local test path>
 verification_gates:
   - pnpm lint
   - pnpm typecheck
   - pnpm build
+required_playwright_projects: []
+evidence_required:
+  - <CI artifact, command output, trace, screenshot, or review evidence>
 approved_exceptions: []
 ```
+
+`related_tests` must not use `not-yet-created` for an active spec that requires
+browser, DB, webhook, RLS, ledger, migration, accessibility, or visual proof.
+Add the harness inside the spec blast radius first.
 
 ## Lifecycle Status Vocabulary
 
@@ -79,45 +82,102 @@ approved_exceptions: []
 - `superseded`: non-current and blocked for implementation unless a new active
   spec or approved exception says otherwise.
 
+Draft, implemented, verified, and superseded specs are not valid new
+implementation inputs.
+
 ## Lifecycle Transition Policy
 
 | From | To | Required evidence |
 | --- | --- | --- |
-| `draft` | `active` | Complete metadata, EARS requirements, risk class, blast radius, and verification gates. |
+| `draft` | `active` | Complete metadata, EARS requirements, risk class, blast radius, verification gates, and evidence requirements. |
 | `active` | `implemented` | Requirement IDs mapped to checks, Red -> Green -> Refactor evidence where applicable, and in-scope files only. |
-| `implemented` | `verified` | Passing gates, review notes, and manual QA evidence when the changed surface is user-visible. |
+| `implemented` | `verified` | Passing gates, review notes, CI artifacts, and manual QA evidence when the changed surface is user-visible. |
 | `active` | `superseded` | Supersession link or rationale. |
 | `implemented` | `superseded` | Replacement spec or explicit product decision. |
 
-Draft and superseded specs are not valid implementation inputs.
+## Risk Gate Matrix
 
-## Risk Rubric
+The governance checker enforces the required gate floor for active specs.
 
-| risk_class | Applies to | Minimum posture |
+| risk_class | Applies to | Required gate floor |
 | --- | --- | --- |
-| `docs-tooling` | Governance docs, scripts, CI, templates, and review records. | CLI-first checks; no runtime product changes. |
-| `ui-only` | Visual or copy changes without data mutation changes. | Automated checks plus browser/manual evidence for the changed surface. |
-| `product-analytics` | Event naming, funnels, reports, and PostHog mirrors. | Preserve source-of-truth writes and event contracts. |
-| `customer-pii` | Customer phone, consent, identity, profile, or privacy surfaces. | Prove unnecessary personal data is not exposed. |
-| `auth-session` | Merchant, customer, admin, cookie, OTP, or session behavior. | Runtime and security-sensitive evidence for user flows. |
-| `billing` | Stripe checkout, portal, subscription sync, or entitlement gates. | Build evidence plus webhook and entitlement checks. |
-| `webhooks` | Stripe or future inbound webhook handlers. | Signature verification, idempotency, and database readback. |
-| `rls-rpc-ledger` | Supabase RLS, RPCs, loyalty ledger, fraud, or audit invariants. | Real database evidence for invariants mocks cannot enforce. |
-| `migrations` | Supabase migrations or schema changes. | Migration replay/idempotency checks on a disposable database. |
+| `docs-tooling` | Governance docs, scripts, CI, templates, and review records. | `pnpm lint`, `pnpm typecheck`, `pnpm governance:check`, `pnpm test`. |
+| `ui-only` | Visual or copy changes without data mutation changes. | `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:e2e`, plus Playwright evidence for changed user-visible surfaces. |
+| `product-analytics` | Event naming, funnels, reports, and PostHog mirrors. | `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, and event-contract assertions. |
+| `customer-pii` | Customer phone, consent, identity, profile, or privacy surfaces. | `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:e2e`, plus evidence that unnecessary personal data is not exposed. |
+| `auth-session` | Merchant, customer, admin, cookie, OTP, or session behavior. | `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:e2e`, plus server/session assertions. |
+| `billing` | Stripe checkout, portal, subscription sync, or entitlement gates. | `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:db`, `pnpm test:e2e`; checkout/portal UX plus Stripe webhook/db assertions. |
+| `webhooks` | Stripe or future inbound webhook handlers. | `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:db`; signature, idempotency, and database readback assertions. |
+| `rls-rpc-ledger` | Supabase RLS, RPCs, loyalty ledger, fraud, or audit invariants. | `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:db`, `pnpm test:e2e`; DB behavioral tests are primary and Playwright is secondary journey proof. |
+| `migrations` | Supabase migrations or schema changes. | `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:db`; replay/idempotency on a disposable database. |
+
+Accessibility-sensitive UI must declare `pnpm test:a11y`. Visual-sensitive UI
+must declare `pnpm test:visual`. Playwright DB-free harness routes are useful
+for UI proof, but they are not proof of RLS, billing, webhook, or ledger
+correctness.
 
 ## Current Verification Gates
 
-The current tracked repo keeps only the build-facing gates:
+The current CI-enforced baseline is:
 
 ```bash
 pnpm lint
 pnpm typecheck
+pnpm governance:check
+pnpm governance:run-gates
+pnpm tokens:check
+pnpm claims:check
+pnpm test
 pnpm build
+pnpm exec playwright install --with-deps chromium
+pnpm test:e2e
+pnpm test:a11y
+pnpm test:visual
+pnpm test:db
+pnpm jsonld:check
 ```
 
-Use only the gates listed above unless a new active Micro-Spec explicitly adds a
-governance, test, database, security, or browser automation harness as part of
-its approved blast radius.
+`pnpm test` runs the repo's node Micro-Spec tests.
+`pnpm governance:run-gates` reads active Micro-Specs and runs their declared
+`verification_gates` after `pnpm governance:check` validates metadata, risk
+gates, blast radius, docs drift, and command shape.
+
+`pnpm test:e2e`, `pnpm test:a11y`, and `pnpm test:visual` run through
+Playwright against `playwright.config.ts`. The baseline browser smoke covers the
+public landing route in `chromium` and `mobile-chromium`; product-specific
+Micro-Specs must add targeted tests for the changed journey.
+
+`pnpm test:db` is a live database gate. It requires `SUPABASE_DB_URL` and fails
+clearly when no database URL is present. CI runs it only when that environment
+variable is available, and active `billing`, `webhooks`, `rls-rpc-ledger`, and
+`migrations` specs must declare it so missing DB runtime proof becomes a
+blocking failure.
+
+## Playwright CLI Workflow
+
+When browser evidence is required, the Micro-Spec must declare
+`required_playwright_projects` and related tests under `tests/e2e/`,
+`tests/a11y/`, or `tests/visual/`. Use these commands:
+
+- Red: `pnpm test:e2e -- --grep "<tag-or-title>"` to prove the targeted
+  browser requirement fails for the right reason.
+- Green: `pnpm test:e2e -- --project=<project>` for the affected browser/device
+  project, then `pnpm test:e2e` for the full e2e gate.
+- Refactor: `pnpm test:e2e:headed` for interaction debugging and
+  `pnpm test:e2e:ui` for local traceable exploration.
+- Review: `pnpm exec playwright show-report` for the HTML report and
+  `pnpm exec playwright show-trace <trace.zip>` for failed or high-risk flows.
+- Accessibility: `pnpm test:a11y` when the spec is a11y-sensitive.
+- Visual: `pnpm test:visual` when the spec is visual-sensitive.
+
+## Evidence Model
+
+- CI artifacts: Playwright report, traces, and screenshots on failure when
+  Playwright gates are declared.
+- Test output: lint, typecheck, build, node tests, DB tests, e2e, a11y, visual,
+  token checks, claims checks, JSON-LD checks, and governance checks.
+- Spec status transition notes stay inside the Micro-Spec.
+- No tracked screenshot evidence folders unless explicitly requested.
 
 ## Working Rule
 

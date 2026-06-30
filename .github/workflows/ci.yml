@@ -35,9 +35,29 @@ jobs:
       CUSTOMER_PHONE_ENCRYPTION_KEY: ci-encryption-key-placeholder-32b
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: ./.github/actions/setup
+      - run: pnpm lint
       - run: pnpm typecheck
+      - run: pnpm governance:check
+      - run: pnpm governance:run-gates
       - run: pnpm tokens:check
       - run: pnpm claims:check
+      - run: pnpm test
       - run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      - run: pnpm test:a11y
+      - run: pnpm test:visual
+      - run: pnpm test:db
+        if: ${{ env.SUPABASE_DB_URL != '' }}
       - run: pnpm jsonld:check
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-artifacts
+          path: |
+            playwright-report
+            test-results/playwright
+          if-no-files-found: ignore

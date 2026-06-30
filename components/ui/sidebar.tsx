@@ -31,6 +31,12 @@ type SidebarContextProps = {
   toggleSidebar: () => void
 }
 
+type SidebarProviderProps = React.ComponentProps<"div"> & {
+  defaultOpen?: boolean
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}
+
 const SidebarContext = React.createContext<SidebarContextProps | null>(null)
 
 function useSidebar() {
@@ -43,7 +49,15 @@ function useSidebar() {
   return context
 }
 
-function SidebarProvider({
+function SidebarProvider(props: SidebarProviderProps) {
+  const { defaultOpen = true, open: openProp } = props
+  const resetKey =
+    openProp === undefined ? `uncontrolled-${String(defaultOpen)}` : "controlled"
+
+  return <SidebarProviderState key={resetKey} {...props} />
+}
+
+function SidebarProviderState({
   defaultOpen = true,
   open: openProp,
   onOpenChange,
@@ -51,11 +65,7 @@ function SidebarProvider({
   style,
   children,
   ...props
-}: React.ComponentProps<"div"> & {
-  defaultOpen?: boolean
-  open?: boolean
-  onOpenChange?: (open: boolean) => void
-}) {
+}: SidebarProviderProps) {
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
 
@@ -63,12 +73,6 @@ function SidebarProvider({
   // can seed `defaultOpen` and avoid an expand→collapse flash on first paint.
   const [internalOpen, setInternalOpen] = React.useState(defaultOpen)
   const open = openProp ?? internalOpen
-
-  React.useEffect(() => {
-    if (openProp === undefined) {
-      setInternalOpen(defaultOpen)
-    }
-  }, [defaultOpen, openProp])
 
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {

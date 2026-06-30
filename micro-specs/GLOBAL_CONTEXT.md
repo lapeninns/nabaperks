@@ -73,14 +73,22 @@ not runtime input.
 
 ## Verification Baseline
 
-For any meaningful code change, run:
+For any meaningful code change, run the current CI baseline:
 
 ```bash
 pnpm lint
 pnpm typecheck
+pnpm governance:check
+pnpm governance:run-gates
+pnpm test
 pnpm build
+pnpm test:e2e
+pnpm test:a11y
+pnpm test:visual
 ```
 
-If a future active Micro-Spec requires tests, SQL checks, browser automation, or
-security checks, the spec must explicitly include restoring or creating that
-harness inside its allowed blast radius.
+CI also runs `pnpm tokens:check`, `pnpm claims:check`, Playwright browser
+install, conditional `pnpm test:db` when `SUPABASE_DB_URL` is available, and
+`pnpm jsonld:check`. Active Micro-Specs must satisfy the risk-class gate matrix
+in `micro-specs/README.md`; DB-free browser checks do not satisfy RLS, billing,
+webhook, ledger, or migration proof.

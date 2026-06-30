@@ -15,6 +15,7 @@ const eslintConfig = defineConfig([
     ".vercel/output/**",
     ".omo/evidence/**",
     ".tmp/**",
+    ".design-sync/**",
     // Ephemeral agent worktree scratch space.
     ".claude/**",
   ]),

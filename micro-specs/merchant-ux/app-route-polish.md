@@ -50,6 +50,10 @@ verification_gates:
   - pnpm tokens:check
   - pnpm test:micro-specs
   - pnpm claims:check
+required_playwright_projects: []
+evidence_required:
+  - Historical DB-free app harness screenshots and real authenticated poster route readback.
+  - lint, typecheck, build, token, claims, and micro-spec test output captured in the verification log.
 approved_exceptions: []
 ---
 

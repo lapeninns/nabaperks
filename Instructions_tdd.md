@@ -20,10 +20,18 @@ The goal is to make each Micro-Spec pass with the smallest possible implementati
 
 ## Current Repo Harness Note
 
-The current tracked repo keeps the build-facing gates only: `pnpm lint`,
-`pnpm typecheck`, and `pnpm build`. Use additional test, database, security, or
-browser automation gates only when the active Micro-Spec adds the relevant
-harness inside its allowed blast radius.
+The current tracked CI baseline is `pnpm lint`, `pnpm typecheck`,
+`pnpm governance:check`, `pnpm governance:run-gates`, `pnpm tokens:check`,
+`pnpm claims:check`, `pnpm test`, `pnpm build`, Playwright browser install,
+`pnpm test:e2e`, `pnpm test:a11y`, `pnpm test:visual`, conditional
+`pnpm test:db`, and `pnpm jsonld:check`. `pnpm test` runs the repo's node
+Micro-Spec tests.
+
+Use database, Playwright e2e, accessibility, or visual gates when the active
+Micro-Spec risk class requires them. DB-free browser harness routes can prove
+UI journeys, but they must not be treated as proof of RLS, billing, webhook, or
+ledger correctness. `pnpm test:db` is live database proof and requires
+`SUPABASE_DB_URL`.
 
 ---
 
@@ -184,6 +192,10 @@ When implementing a Micro-Spec, follow this sequence:
 7. Apply the Rule of Three before extracting abstractions.
 8. Adjust step size based on problem complexity.
 9. Repeat until every in-scope requirement has a passing test.
+10. For browser-required specs, run the focused Playwright CLI command first
+    (`pnpm test:e2e -- --grep "<tag-or-title>"` or
+    `pnpm test:e2e -- --project=<project>`), then the declared full browser,
+    a11y, or visual gate.
 
 ---
 

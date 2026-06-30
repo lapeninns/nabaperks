@@ -13,20 +13,28 @@ function readProjectFile(...segments) {
   return readFileSync(path.join(projectRoot, ...segments), "utf8")
 }
 
-test("Given a live merchant QR When A4 poster templates are offered Then all three reference styles are linked", () => {
+test("Given a live merchant QR When A4 poster templates are offered Then the current registry styles are linked", () => {
   // Given
   const qrPanel = readProjectFile(
     "components",
     "merchant",
     "launch",
-    "qr-panel.tsx"
+    "qr-panel-live.tsx"
   )
+  const posterTemplates = readProjectFile("lib", "qr", "poster-templates.ts")
 
   // When / Then
-  assert.match(qrPanel, /A4 poster templates/)
-  assert.match(qrPanel, /\/app\/qr\/poster\/editorial\?qr=/)
-  assert.match(qrPanel, /\/app\/qr\/poster\/bold\?qr=/)
-  assert.match(qrPanel, /\/app\/qr\/poster\/ticket\?qr=/)
+  assert.match(qrPanel, /Print a counter poster/)
+  assert.match(qrPanel, /QR_POSTER_TEMPLATES\.map/)
+  assert.match(
+    qrPanel,
+    /href=\{`\/app\/qr\/poster\/\$\{template\.id\}\?qr=\$\{qrCodeId\}&from=\$\{encodeURIComponent\(returnHref\)\}`\}/
+  )
+  assert.match(posterTemplates, /"editorial"/)
+  assert.match(posterTemplates, /"bold"/)
+  assert.match(posterTemplates, /"ticket"/)
+  assert.match(posterTemplates, /"northstar"/)
+  assert.match(posterTemplates, /"thermal"/)
 })
 
 test("Given the A4 poster route When implementation is inspected Then it uses protected QR context without the old asset pipeline", () => {
@@ -69,6 +77,34 @@ test("Given the A4 poster route When implementation is inspected Then it uses pr
     "qr-poster",
     "poster-variants.tsx"
   )
+  const northstarPoster = readProjectFile(
+    "components",
+    "merchant",
+    "qr-poster",
+    "northstar",
+    "northstar-poster.tsx"
+  )
+  const northstarStyles = readProjectFile(
+    "components",
+    "merchant",
+    "qr-poster",
+    "northstar",
+    "northstar-poster.module.css"
+  )
+  const thermalPoster = readProjectFile(
+    "components",
+    "merchant",
+    "qr-poster",
+    "thermal",
+    "thermal-poster.tsx"
+  )
+  const thermalStyles = readProjectFile(
+    "components",
+    "merchant",
+    "qr-poster",
+    "thermal",
+    "thermal-poster.module.css"
+  )
   const posterTemplates = readProjectFile("lib", "qr", "poster-templates.ts")
   const posterSurface = [
     posterComponent,
@@ -76,6 +112,10 @@ test("Given the A4 poster route When implementation is inspected Then it uses pr
     posterCopy,
     posterPieces,
     posterVariants,
+    northstarPoster,
+    northstarStyles,
+    thermalPoster,
+    thermalStyles,
   ].join("\n")
 
   // When / Then
@@ -84,17 +124,25 @@ test("Given the A4 poster route When implementation is inspected Then it uses pr
   assert.match(posterTemplates, /editorial/)
   assert.match(posterTemplates, /bold/)
   assert.match(posterTemplates, /ticket/)
+  assert.match(posterTemplates, /northstar/)
+  assert.match(posterTemplates, /thermal/)
   assert.match(posterSurface, /210mm/)
   assert.match(posterSurface, /297mm/)
-  assert.match(posterSurface, /Free · No app · 20 seconds/)
-  assert.match(posterSurface, /Scan &amp; keep your card/)
-  assert.match(posterSurface, /Visit twice more/)
-  assert.match(posterSurface, /Break the seal/)
-  assert.match(posterSurface, /Admit one · per day/)
-  assert.match(posterSurface, /clip-path: polygon/)
-  assert.match(posterSurface, /108mm/)
+  assert.match(posterSurface, /No app · 20 seconds · No spam/)
+  assert.match(posterSurface, /No app download · Scan in 20 seconds/)
+  assert.match(posterSurface, /No account needed · Takes 20 seconds/)
+  assert.match(posterSurface, /Scan to claim your free stamp/)
+  assert.match(posterSurface, /Scan to unlock your mystery reward/)
+  assert.match(posterSurface, /One stamp a day · Reward revealed when unlocked/)
+  assert.match(posterSurface, /No cash · No app · 20 seconds/)
+  assert.match(posterSurface, /Mystery reward/)
+  assert.match(posterSurface, /\.tearLine/)
+  assert.match(posterSurface, /border-top: 2px dashed var\(--w-line\)/)
+  assert.match(posterSurface, /88mm/)
+  assert.match(posterSurface, /92mm/)
+  assert.match(posterSurface, /86mm/)
+  assert.match(posterSurface, /82mm/)
   assert.match(posterSurface, /66mm/)
-  assert.match(posterSurface, /62mm/)
   assert.match(posterSurface, /@media print/)
   assert.doesNotMatch(
     [posterPage, posterSurface].join("\n"),

@@ -29,8 +29,19 @@ verification_gates:
   - pnpm lint
   - pnpm typecheck
   - pnpm build
+required_playwright_projects: []
+evidence_required:
+  - <CI artifact, command output, trace, screenshot, or review evidence>
 approved_exceptions: []
 ```
+
+For active specs, `verification_gates` must satisfy the risk-class gate matrix in
+`micro-specs/README.md`. Browser-required specs must include
+`required_playwright_projects` and related tests under `tests/e2e/`,
+`tests/a11y/`, or `tests/visual/`. DB, webhook, RLS, ledger, billing, and
+migration specs must declare `pnpm test:db` where the matrix requires live DB
+behavioral proof. Browser-only or static SQL checks do not satisfy those DB
+proof requirements.
 
 Each Micro-Spec must include the following elements:
 
@@ -159,6 +170,9 @@ Include:
 - Required tests
 - Edge cases
 - Manual QA checks
+- Required Playwright projects and CLI commands when browser evidence is needed
+- Required live DB command and setup when RLS, webhook, billing, ledger, or
+  migration evidence is needed
 - Expected success states
 - Expected failure states
 

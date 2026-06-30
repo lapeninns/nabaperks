@@ -3,3 +3,4 @@ packages: []
 allowBuilds:
   unrs-resolver: true
   msw: false
+  sharp: false
