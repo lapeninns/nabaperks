@@ -5,14 +5,9 @@ import { PageTitle } from "@/components/brand"
 import { LaunchPanelSkeleton } from "@/components/merchant/loading-skeletons"
 import { QrPanel, type QrPanelParams } from "@/components/merchant/launch/qr-panel"
 import { getCurrentMerchant } from "@/lib/auth/session"
-import { ensureJoinQrProvisioned } from "@/lib/merchant/ensure-join-qr"
-import {
-  buildLaunchReadiness,
-  getLaunchBillingReadiness,
-  resolveLaunchBillingHref,
-} from "@/lib/merchant/launch-readiness"
+import { loadLaunchSetup } from "@/lib/merchant/launch-page-model"
+import { resolveLaunchBillingHref } from "@/lib/merchant/launch-readiness-core"
 import { QR_POSTER_PATH } from "@/lib/merchant/qr-nav"
-import { getQrSetupFresh } from "@/lib/merchant/qr-code"
 
 export const dynamic = "force-dynamic"
 
@@ -28,48 +23,7 @@ export default async function QrPage({ searchParams }: QrPageProps) {
     redirect("/app/onboarding")
   }
 
-  const [initialSetup, billing] = await Promise.all([
-    getQrSetupFresh(),
-    getLaunchBillingReadiness(merchant.id),
-  ])
-
-  let setup = initialSetup
-
-  let readiness = buildLaunchReadiness({
-    activeCard: setup.activeCard,
-    activeRewardPoolItemCount: setup.activeRewardPoolItemCount,
-    qrCode: setup.qrCode,
-    location: setup.location,
-    billing,
-  })
-
-  if (
-    readiness.tabs.venue &&
-    readiness.tabs.card &&
-    readiness.tabs.rewards &&
-    !readiness.tabs.qr &&
-    setup.merchant
-  ) {
-    const { provisioned } = await ensureJoinQrProvisioned({
-      merchantId: setup.merchant.id,
-      activeCard: setup.activeCard,
-      activeRewardPoolItemCount: setup.activeRewardPoolItemCount,
-      venueReady: readiness.tabs.venue,
-      qrCode: setup.qrCode,
-    })
-
-    if (provisioned) {
-      setup = await getQrSetupFresh()
-      readiness = buildLaunchReadiness({
-        activeCard: setup.activeCard,
-        activeRewardPoolItemCount: setup.activeRewardPoolItemCount,
-        qrCode: setup.qrCode,
-        location: setup.location,
-        billing,
-      })
-    }
-  }
-
+  const { setup, readiness } = await loadLaunchSetup(merchant.id)
   const billingHref = resolveLaunchBillingHref(readiness)
 
   return (
