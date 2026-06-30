@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto"
 
-import { expect, test } from "@playwright/test"
+import { expect, test, type Page } from "@playwright/test"
 import { parsePhoneNumberFromString } from "libphonenumber-js"
 
 import { connectLocalDb, type Sql } from "./helpers/admin-live-db"
@@ -14,6 +14,7 @@ import {
 } from "./helpers/public-qr-router-live-db"
 
 const DEV_OTP = process.env.CUSTOMER_DEV_OTP_CODE ?? "424242"
+const WRONG_OTP = DEV_OTP === "000000" ? "111111" : "000000"
 
 type DisposablePhone = {
   readonly national: string
@@ -56,30 +57,7 @@ test.describe("@customer-flow customer join live DB", () => {
       test.skip(!fixture, "seed merchant owner is not available")
       if (!fixture) return
 
-      await page.goto(publicQrPath(fixture.activeQrId))
-      await expect(
-        page.getByRole("heading", { name: "Keep your card on your phone" })
-      ).toBeVisible()
-
-      await page.getByRole("link", { name: "Get today's stamp" }).click()
-      await expect(
-        page.getByRole("heading", { name: "Save your card to your number" })
-      ).toBeVisible()
-
-      await page.locator("#contact").fill(phone.national)
-      await page.getByRole("button", { name: "Text me the code" }).click()
-      await expect(
-        page.getByRole("heading", { name: "Enter your code" })
-      ).toBeVisible()
-      await expect(page.locator("#otp")).toBeVisible()
-      await expect(
-        page.getByRole("link", { name: "Use a different number" })
-      ).toHaveAttribute(
-        "href",
-        `/m/${fixture.merchantSlug}/join?qr=${encodeURIComponent(
-          fixture.activeQrId
-        )}&step=phone`
-      )
+      await openOtpStep(page, fixture, phone)
 
       await page.locator("#otp").fill(DEV_OTP)
       await page.getByRole("button", { name: "Save my card" }).click()
@@ -113,7 +91,74 @@ test.describe("@customer-flow customer join live DB", () => {
       await sql.end()
     }
   })
+
+  test("keeps a disposable QR join on the OTP step when the code is wrong", async ({
+    page,
+  }) => {
+    const sql = connectLocalDb()
+    test.skip(!sql, "local Supabase DB is not configured")
+    if (!sql) return
+
+    let fixture: PublicQrRouterFixture | undefined
+    const phone = disposableUkMobile()
+
+    try {
+      fixture = await createPublicQrRouterFixture(sql)
+      test.skip(!fixture, "seed merchant owner is not available")
+      if (!fixture) return
+
+      await openOtpStep(page, fixture, phone)
+
+      await page.locator("#otp").fill(WRONG_OTP)
+      await page.getByRole("button", { name: "Save my card" }).click()
+
+      await expect(
+        page.getByText("That code was not accepted.", { exact: true })
+      ).toBeVisible()
+      await expect(
+        page.getByRole("heading", { name: "Enter your code" })
+      ).toBeVisible()
+      await expect(readJoinedMembership(sql, fixture, phone.last4)).resolves.toBe(
+        undefined
+      )
+    } finally {
+      await cleanupCustomerJoinRows(sql, fixture)
+      await cleanupPublicQrRouterFixture(sql, fixture)
+      await sql.end()
+    }
+  })
 })
+
+async function openOtpStep(
+  page: Page,
+  fixture: PublicQrRouterFixture,
+  phone: DisposablePhone
+): Promise<void> {
+  await page.goto(publicQrPath(fixture.activeQrId))
+  await expect(
+    page.getByRole("heading", { name: "Keep your card on your phone" })
+  ).toBeVisible()
+
+  await page.getByRole("link", { name: "Get today's stamp" }).click()
+  await expect(
+    page.getByRole("heading", { name: "Save your card to your number" })
+  ).toBeVisible()
+
+  await page.locator("#contact").fill(phone.national)
+  await page.getByRole("button", { name: "Text me the code" }).click()
+  await expect(
+    page.getByRole("heading", { name: "Enter your code" })
+  ).toBeVisible()
+  await expect(page.locator("#otp")).toBeVisible()
+  await expect(
+    page.getByRole("link", { name: "Use a different number" })
+  ).toHaveAttribute(
+    "href",
+    `/m/${fixture.merchantSlug}/join?qr=${encodeURIComponent(
+      fixture.activeQrId
+    )}&step=phone`
+  )
+}
 
 function disposableUkMobile(): DisposablePhone {
   for (let attempt = 0; attempt < 50; attempt += 1) {
