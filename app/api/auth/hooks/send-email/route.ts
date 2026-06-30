@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 
 import { createMerchantEmailOtpAlias } from "@/lib/auth/merchant-email-otp-alias"
-import { sendEmailOtp } from "@/lib/notifications/resend"
+import { readEmailOtpConfig, sendEmailOtp } from "@/lib/notifications/resend"
 import { verifyStandardWebhook } from "@/lib/notifications/standard-webhook"
 
 export const runtime = "nodejs"
@@ -68,6 +68,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    readEmailOtpConfig()
     const aliasCode = await createMerchantEmailOtpAlias({
       email: to,
       supabaseToken: code,
