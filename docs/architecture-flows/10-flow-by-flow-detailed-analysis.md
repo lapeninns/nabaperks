@@ -912,9 +912,9 @@ with tab/query state while compatibility routes redirect into it.
 ### Pitfalls
 
 - Account profile and venue setup can be confused.
-- Redirect-only routes now have source-contract coverage and anonymous route-gate
-  browser smoke; authenticated post-login redirect smoke still needs a merchant
-  session fixture.
+- Redirect-only routes now have source-contract coverage, anonymous route-gate
+  browser smoke, and seeded merchant post-login smoke for profile, settings,
+  billing, and billing-return compatibility paths.
 - Account tab and billing return query parsing now have a typed helper with
   duplicate-param normalization.
 
@@ -922,8 +922,8 @@ with tab/query state while compatibility routes redirect into it.
 
 - Keep account-tab parser tests current when adding Account hub tabs or
   Stripe-return outcome flags.
-- Add merchant-session Playwright coverage for `/app/profile`, `/app/settings`,
-  and `/app/billing` compatibility redirects after login.
+- Re-run the seeded merchant compatibility redirect smoke on target/staging once
+  migrations and session seed parity are available.
 - Clarify labels between business account profile and venue launch setup.
 
 ## Flow 26. Customer/Member Readback `/app/customers`
