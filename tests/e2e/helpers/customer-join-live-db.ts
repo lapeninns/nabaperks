@@ -1,14 +1,16 @@
 import { createHmac, randomUUID } from "node:crypto"
 
-import { expect, type Page } from "@playwright/test"
+import { expect, type BrowserContext, type Page } from "@playwright/test"
 import { parsePhoneNumberFromString } from "libphonenumber-js"
 
 import type { Sql } from "./admin-live-db"
+import type { BrowserCustomerSession } from "./customer-readback-live-db"
 import {
   publicQrPath,
   type PublicQrRouterFixture,
 } from "./public-qr-router-live-db"
 
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3500"
 export const DEV_OTP = process.env.CUSTOMER_DEV_OTP_CODE ?? "424242"
 export const WRONG_OTP = DEV_OTP === "000000" ? "111111" : "000000"
 
@@ -26,6 +28,10 @@ export type JoinedMembershipRow = {
   readonly total_stamps_earned: number
   readonly stamp_count: number
   readonly join_event_count: number
+}
+
+export type MembershipCountRow = {
+  readonly membership_count: number
 }
 
 type CustomerIdRow = {
@@ -107,6 +113,22 @@ export async function openDirectTermsStep(
   ).toBeVisible()
 }
 
+export async function installCustomerSession(
+  context: BrowserContext,
+  session: BrowserCustomerSession
+): Promise<void> {
+  await context.addCookies([
+    {
+      name: session.cookieName,
+      value: session.cookieValue,
+      url: baseURL,
+      httpOnly: true,
+      sameSite: "Lax",
+      expires: session.expiresAt,
+    },
+  ])
+}
+
 export function disposableUkMobile(): DisposablePhone {
   for (let attempt = 0; attempt < 50; attempt += 1) {
     const digits = randomUUID().replace(/\D/g, "").padEnd(8, "0").slice(0, 8)
@@ -153,6 +175,18 @@ export async function readJoinedMembership(
     limit 1`
 
   return rows.at(0)
+}
+
+export async function readMerchantMembershipCount(
+  sql: Sql,
+  fixture: PublicQrRouterFixture
+): Promise<number> {
+  const rows = await sql<readonly MembershipCountRow[]>`
+    select count(*)::int as membership_count
+    from public.customer_memberships
+    where merchant_id = ${fixture.merchantId}::uuid`
+
+  return rows.at(0)?.membership_count ?? 0
 }
 
 export async function cleanupCustomerJoinRows(
