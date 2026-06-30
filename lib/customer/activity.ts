@@ -1,34 +1,26 @@
 import "server-only"
 
+import {
+  customerActivityCategory,
+  customerActivityEventNames,
+  isCustomerActivityEventName,
+  parseCustomerActivityMetadata,
+  shapeCustomerActivityItem,
+  type CustomerActivityCategory,
+  type CustomerActivityItem,
+  type CustomerActivityRow,
+} from "@/lib/customer/activity-core"
+import { getCurrentCustomer } from "@/lib/customer/identity"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
-import { firstOf, getCurrentCustomer } from "@/lib/customer/identity"
 
-const customerActivityEvents = [
-  "customer_joined",
-  "stamp_issued",
-  "reward_unlocked",
-  "reward_redeemed",
-] as const
-
-export type CustomerActivityCategory = "join" | "stamp" | "reward"
-
-export type CustomerActivityItem = {
-  id: string
-  eventName: string
-  category: CustomerActivityCategory
-  badgeLabel: string
-  title: string
-  description: string
-  businessName: string | null
-  createdAt: string
-}
+export type { CustomerActivityCategory, CustomerActivityItem }
 
 type RawCustomerActivityRow = {
-  id: string
-  event_name: string
-  created_at: string
-  metadata: Record<string, unknown> | null
-  merchants: { business_name: string } | Array<{ business_name: string }> | null
+  readonly id: string
+  readonly event_name: string
+  readonly created_at: string
+  readonly metadata: unknown
+  readonly merchants: unknown
 }
 
 const DEFAULT_LIMIT = 40
@@ -51,7 +43,7 @@ export async function getCustomerActivity(
     .from("product_events")
     .select("id, event_name, created_at, metadata, merchants(business_name)")
     .eq("customer_id", customer.id)
-    .in("event_name", [...customerActivityEvents])
+    .in("event_name", [...customerActivityEventNames()])
     .order("created_at", { ascending: false })
     .limit(Math.min(Math.max(limit, 1), MAX_LIMIT))
 
@@ -59,76 +51,84 @@ export async function getCustomerActivity(
     throw new Error(`Unable to load activity: ${error.message}`)
   }
 
-  const rows = (data ?? []) as RawCustomerActivityRow[]
-
-  return rows.map((row) => toCustomerActivityItem(row))
+  return customerActivityRowsFromQuery(data).map((row) =>
+    shapeCustomerActivityItem(row)
+  )
 }
 
-function toCustomerActivityItem(row: RawCustomerActivityRow): CustomerActivityItem {
-  const merchant = firstOf(row.merchants)
-  const businessName = merchant?.business_name ?? null
-  const venue = businessName ?? "a venue"
-  const metadata = row.metadata ?? {}
-  const rewardName =
-    typeof metadata.reward_name === "string" ? metadata.reward_name : undefined
-  const stampCount =
-    typeof metadata.new_stamp_count === "number"
-      ? metadata.new_stamp_count
-      : undefined
+function customerActivityRowsFromQuery(value: unknown): CustomerActivityRow[] {
+  const rows: CustomerActivityRow[] = []
+  if (!Array.isArray(value)) return rows
 
-  switch (row.event_name) {
-    case "customer_joined":
-      return base(row, "join", "Joined", `Joined ${venue}`, `You started collecting stamps at ${venue}.`, businessName)
-    case "stamp_issued":
-      return base(
-        row,
-        "stamp",
-        "Stamp",
-        `Stamp added at ${venue}`,
-        stampCount !== undefined
-          ? `You're now on ${stampCount} ${stampCount === 1 ? "stamp" : "stamps"}.`
-          : "A stamp was added to your card.",
-        businessName
-      )
-    case "reward_unlocked":
-      return base(
-        row,
-        "reward",
-        "Reward",
-        `Reward unlocked at ${venue}`,
-        rewardName ? `${rewardName} is ready to claim.` : "A reward is ready to claim.",
-        businessName
-      )
-    case "reward_redeemed":
-      return base(
-        row,
-        "reward",
-        "Redeemed",
-        `Reward redeemed at ${venue}`,
-        rewardName ? `You enjoyed ${rewardName}.` : "You redeemed a reward.",
-        businessName
-      )
-    default:
-      return base(row, "join", "Update", `Activity at ${venue}`, "Loyalty activity recorded.", businessName)
+  for (const item of value) {
+    const row = customerActivityRowFromQuery(item)
+    if (row) rows.push(row)
   }
+
+  return rows
 }
 
-function base(
-  row: RawCustomerActivityRow,
-  category: CustomerActivityCategory,
-  badgeLabel: string,
-  title: string,
-  description: string,
-  businessName: string | null
-): CustomerActivityItem {
+function customerActivityRowFromQuery(
+  value: unknown
+): CustomerActivityRow | null {
+  const row = rawCustomerActivityRow(value)
+  if (!row || !isCustomerActivityEventName(row.event_name)) return null
+
   return {
     id: row.id,
     eventName: row.event_name,
-    category,
-    badgeLabel,
-    title,
-    description,
-    businessName,
+    category: customerActivityCategory(row.event_name),
+    metadata: parseCustomerActivityMetadata(row.metadata),
+    businessName: businessNameFromRelation(row.merchants),
     createdAt: row.created_at,
   }
+}
+
+function rawCustomerActivityRow(value: unknown): RawCustomerActivityRow | null {
+  if (!isRecord(value)) return null
+
+  const id = stringValue(value.id)
+  const eventName = stringValue(value.event_name)
+  const createdAt = stringValue(value.created_at)
+  if (!id || !eventName || !createdAt) return null
+
+  return {
+    id,
+    event_name: eventName,
+    created_at: createdAt,
+    metadata: value.metadata,
+    merchants: value.merchants,
+  }
+}
+
+function businessNameFromRelation(value: unknown): string | null {
+  const merchant = firstRelationRecord(value)
+  return merchant ? nullableString(merchant.business_name) : null
+}
+
+function firstRelationRecord(value: unknown): Record<string, unknown> | null {
+  if (Array.isArray(value)) return relationRecordFromArray(value)
+  return isRecord(value) ? value : null
+}
+
+function relationRecordFromArray(
+  value: readonly unknown[]
+): Record<string, unknown> | null {
+  for (const item of value) {
+    if (isRecord(item)) return item
+  }
+
+  return null
+}
+
+function nullableString(value: unknown): string | null {
+  return typeof value === "string" ? value : null
+}
+
+function stringValue(value: unknown): string {
+  return typeof value === "string" ? value : ""
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
 }
