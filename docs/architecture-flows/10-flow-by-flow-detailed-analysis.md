@@ -1226,19 +1226,20 @@ membership, consent, and first-stamp effects.
   creation, direct no-QR joining without first-stamp issue, existing-member QR
   redirect without duplicate membership creation, terms acceptance, card
   redirect, membership creation, first-stamp issue, and join event recording.
+- Unit coverage pins the signed pending-phone cookie expiry boundary used before
+  join verification continues.
 
 ### Pitfalls
 
-- OTP anti-enumeration can produce UX dead ends if unknown-phone behavior is not
-  clear.
+- Twilio Verify expiry remains a provider behavior that local dev OTP cannot
+  fully prove.
 - QR context must not be forgeable by query param alone.
 - Terms acceptance, profile, consent, and membership writes need transactional
   clarity.
 
 ### Room To Improve
 
-- Add tests for unknown phone, expired OTP, and first-stamp eligibility edge
-  cases.
+- Add provider-backed browser proof for Twilio Verify expired OTP behavior.
 - Keep join step/query parsing typed as the flow expands.
 
 ## Flow 34. Customer Scanner `/scan`
