@@ -950,16 +950,21 @@ the current merchant and sends masked customer readback DTOs to the client.
 
 - The previous Scan CTA linked a reward event id into a route that expects a
   reward scan token; this is now removed in source.
-- Client-side search is only as safe as the DTO fields sent to the browser.
-- Masking must stay server-side and consistent.
+- Client-side search is only as safe as the DTO fields sent to the browser; the
+  signed-merchant browser fixture now proves raw email does not match client
+  search while the masked label does.
+- Masking must stay server-side and consistent; local browser proof now covers
+  the highlighted masked row, true count display, scanner CTA, raw PII/reward
+  name exclusion, and no horizontal overflow.
 
 ### Room To Improve
 
-- Add integration proof for the scanner-based reward collection path.
+- Keep the scanner-based reward collection and member readback browser proofs in
+  the local gate.
 - Keep DTO tests proving raw email/phone, customer objects, and reward internals
   do not reach the client table.
-- Add member table tests for capped rows, total count, highlight, and empty
-  state.
+- Add capped-row and empty-state member-table cases when support-scale row
+  volumes make them operationally relevant.
 
 ## Flow 27. Merchant Activity `/app/activity`
 
