@@ -80,21 +80,13 @@ export async function requestCustomerLoginOtpAction(
 
   const customer = await findCustomerByVerifiedPhone(normalized.phone)
 
-  if (!customer) {
-    return {
-      fields: { contact, otpSent: true },
-      message:
-        "If that number has Nabaperks cards, enter the code we sent. Otherwise scan a venue QR to join first.",
-    }
-  }
-
   try {
     await startCustomerPhoneVerification(contact)
     await setPendingPhoneVerification({
       purpose: "wallet",
       phone: contact,
       country: normalized.phone.country,
-      customerId: customer.id,
+      customerId: customer?.id ?? null,
     })
   } catch (error) {
     logVerificationSendFailure("wallet", error)
@@ -142,19 +134,20 @@ export async function verifyCustomerLoginOtpAction(
     }
   }
 
-  if (!pending.customerId) {
-    return {
-      fields: { contact, otpSent: true },
-      errors: { form: "That code was not accepted." },
-    }
-  }
-
   const verification = await checkCustomerPhoneVerification(contact, otp)
 
   if (verification.status !== "approved") {
     return {
       fields: { contact, otpSent: true },
       errors: { form: "That code was not accepted." },
+    }
+  }
+
+  if (!pending.customerId) {
+    await clearPendingPhoneVerification()
+    return {
+      fields: { contact },
+      message: "No cards found for that number yet. Scan a venue QR to join first.",
     }
   }
 

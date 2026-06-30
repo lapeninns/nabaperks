@@ -17,17 +17,28 @@ type CustomerLoginFormProps = {
   readonly next: string
 }
 
+function hasLoginActionResult(state: CustomerLoginOtpState) {
+  return Boolean(state.fields || state.errors || state.message)
+}
+
 export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
-  const [state, requestAction, requestPending] = useActionState(
+  const [requestState, requestAction, requestPending] = useActionState(
     requestCustomerLoginOtpAction,
     initialState
   )
-  const [, verifyAction, verifyPending] = useActionState(
+  const [verifyState, verifyAction, verifyPending] = useActionState(
     verifyCustomerLoginOtpAction,
     initialState
   )
 
-  const otpSent = state.fields?.otpSent
+  const state = hasLoginActionResult(verifyState) ? verifyState : requestState
+  const contact = state.fields?.contact ?? requestState.fields?.contact ?? ""
+  const otpSent = Boolean(state.fields?.otpSent)
+  const formError = state.errors?.form
+  const verifyError =
+    state.errors?.otp ??
+    verifyState.errors?.form ??
+    verifyState.errors?.contact
 
   return (
     <div className="grid gap-4">
@@ -56,13 +67,20 @@ export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
             </p>
           ) : null}
         </div>
-        {state.errors?.form ? (
-          <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {state.errors.form}
+        {formError && formError !== verifyError ? (
+          <p
+            role="alert"
+            className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          >
+            {formError}
           </p>
         ) : null}
         {state.message ? (
-          <div className="grid gap-1 rounded-xl border border-reward/30 bg-accent px-3 py-2 text-sm text-accent-foreground">
+          <div
+            role="status"
+            aria-live="polite"
+            className="grid gap-1 rounded-xl border border-reward/30 bg-accent px-3 py-2 text-sm text-accent-foreground"
+          >
             <p>{state.message}</p>
             <p className="text-xs leading-5">
               If it does not arrive, check the number and resend the code.
@@ -83,7 +101,7 @@ export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
           <input
             type="hidden"
             name="contact"
-            value={state.fields?.contact ?? ""}
+            value={contact}
           />
           <input type="hidden" name="next" value={next} />
           <div className="grid gap-2">
@@ -98,17 +116,17 @@ export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
               autoFocus
               maxLength={otpFieldMaxLength()}
               className={`${customerInputClass} font-mono`}
-              aria-invalid={Boolean(state.errors?.otp)}
-              aria-describedby={state.errors?.otp ? "otp-error" : undefined}
+              aria-invalid={Boolean(verifyError)}
+              aria-describedby={verifyError ? "otp-error" : undefined}
             />
-            {state.errors?.otp ? (
+            {verifyError ? (
               <p
                 id="otp-error"
                 role="alert"
                 aria-live="assertive"
                 className="text-sm text-destructive"
               >
-                {state.errors.otp}
+                {verifyError}
               </p>
             ) : null}
           </div>
