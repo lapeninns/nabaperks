@@ -8,6 +8,7 @@ import {
 import { ArrowRight01Icon, CreditCardIcon } from "@hugeicons/core-free-icons"
 
 import { Eyebrow, Icon, ReceiptCard, SectionHeader } from "@/components/brand"
+import { StatusBanner } from "@/components/loyalty/status-banner"
 import {
   MerchantBillingAccessNote,
   shouldShowMerchantDashboardBillingNotice,
@@ -17,7 +18,6 @@ import { getCurrentMerchant } from "@/lib/auth/session"
 import { getMerchantBilling, type MerchantBilling } from "@/lib/merchant/billing"
 import { syncMerchantBillingFromStripe } from "@/lib/stripe/billing"
 
-const BILLING_PAGE_ERROR = "Billing details could not be loaded. Try again."
 const SHOW_LOCAL_STRIPE_WEBHOOK_NOTE = process.env.NODE_ENV !== "production"
 
 /**
@@ -64,9 +64,9 @@ export async function BillingPanel({
       />
 
       {billingLoadFailed ? (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {BILLING_PAGE_ERROR}
-        </p>
+        <StatusBanner tone="error" title="Billing details could not be loaded">
+          Try again.
+        </StatusBanner>
       ) : null}
 
       {setupActivation ? (
@@ -192,7 +192,11 @@ function AccountBillingCard({
           <form action={openCustomerPortalAction}>
             <Button
               type="submit"
-              variant={needsCardToActivate ? "secondary" : "default"}
+              variant={
+                needsCardToActivate || portalUnavailable
+                  ? "secondary"
+                  : "default"
+              }
               aria-disabled={portalUnavailable || undefined}
               aria-describedby={
                 portalUnavailable ? "billing-portal-help" : undefined
@@ -247,33 +251,34 @@ function BillingOutcomeMessages({
   return (
     <div className="grid gap-3">
       {checkout === "success" ? (
-        <div className="grid gap-2 rounded-lg border border-reward/30 bg-accent px-4 py-3 text-sm text-accent-foreground">
-          <p>
-            Checkout completed. Your billing status should update on this page
-            within a few seconds.
-          </p>
-          {SHOW_LOCAL_STRIPE_WEBHOOK_NOTE ? (
-            <p className="text-xs leading-5">
-              Local dev: keep the Stripe webhook listener running with{" "}
-              <code className="font-mono">
-                stripe listen --forward-to localhost:3000/api/stripe/webhook
-              </code>{" "}
-              and restart after setting STRIPE_WEBHOOK_SECRET so future renewals
-              sync automatically.
+        <StatusBanner tone="success" title="Checkout completed">
+          <div className="grid gap-2">
+            <p>
+              Your billing status should update on this page within a few
+              seconds.
             </p>
-          ) : null}
-        </div>
+            {SHOW_LOCAL_STRIPE_WEBHOOK_NOTE ? (
+              <p className="text-xs leading-5">
+                Local dev: keep the Stripe webhook listener running with{" "}
+                <code className="font-mono break-all">
+                  stripe listen --forward-to localhost:3000/api/stripe/webhook
+                </code>{" "}
+                and restart after setting STRIPE_WEBHOOK_SECRET so future
+                renewals sync automatically.
+              </p>
+            ) : null}
+          </div>
+        </StatusBanner>
       ) : null}
       {checkout === "cancelled" ? (
-        <p className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-foreground">
-          Checkout was cancelled. You can restart the Growth Plan checkout when
-          you are ready.
-        </p>
+        <StatusBanner tone="warning" title="Checkout cancelled">
+          You can restart the Growth Plan checkout when you are ready.
+        </StatusBanner>
       ) : null}
       {portal === "missing" ? (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <StatusBanner tone="error" title="No Stripe customer yet">
           Start checkout before opening the Stripe portal.
-        </p>
+        </StatusBanner>
       ) : null}
     </div>
   )

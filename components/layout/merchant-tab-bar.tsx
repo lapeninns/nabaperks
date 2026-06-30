@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
-import { HugeiconsIcon } from "@hugeicons/react"
+import { Icon } from "@/components/brand"
 
 import { isMerchantTabActive, merchantTabBarItems } from "./console-nav"
 import { cn } from "@/lib/utils"
@@ -46,9 +46,7 @@ export function MerchantTabBar() {
                     : "border-transparent text-ink-soft group-hover:border-ink/30"
                 )}
               >
-                {tab.icon ? (
-                  <HugeiconsIcon icon={tab.icon} size={20} strokeWidth={2} />
-                ) : null}
+                {tab.icon ? <Icon icon={tab.icon} size={20} /> : null}
               </span>
               <span className="max-w-full truncate">{tab.label}</span>
             </Link>

@@ -1,16 +1,14 @@
 import Link from "next/link"
 
-import { generateQrCodeAction, setQrActiveAction } from "@/app/app/qr/actions"
-import { Eyebrow, PageTitle, ReceiptCard } from "@/components/brand"
-import { QrFrame } from "@/components/loyalty/qr-frame"
-import { RewardSeal } from "@/components/loyalty/reward-seal"
+import { generateQrCodeAction } from "@/app/app/qr/actions"
+import { PageTitle, ReceiptCard } from "@/components/brand"
 import { StatusBanner } from "@/components/loyalty/status-banner"
-import { CopyUrlButton } from "@/components/merchant/copy-url-button"
-import { Disclosure } from "@/components/merchant/launch/disclosure"
+import { QrPanelLive } from "@/components/merchant/launch/qr-panel-live"
 import { LaunchSaveNextAction } from "@/components/merchant/launch/launch-tab-auto-advance"
 import { Button } from "@/components/ui/button"
 import { getServerEnv } from "@/lib/env/server"
 import type { LaunchReadiness } from "@/lib/merchant/launch-readiness"
+import { QR_LAUNCH_TAB_PATH } from "@/lib/merchant/qr-nav"
 import type { QrSetup } from "@/lib/merchant/qr-code"
 
 export type QrPanelParams = {
@@ -34,6 +32,7 @@ export async function QrPanel({
   continueHref,
   launchReady = false,
   billingHref,
+  returnHref = QR_LAUNCH_TAB_PATH,
 }: {
   setup: QrSetup
   readiness: LaunchReadiness
@@ -41,6 +40,12 @@ export async function QrPanel({
   continueHref?: string | null
   launchReady?: boolean
   billingHref?: string | null
+  /**
+   * Shell the panel is rendered in — posted as a hidden `returnTo` so the QR
+   * actions redirect back here instead of the setup chrome. Defaults to the
+   * launch tab for the onboarding flow.
+   */
+  returnHref?: string
 }) {
   const { activeCard, qrCode, location } = setup
   const activeRewardPoolItemCount = setup.activeRewardPoolItemCount
@@ -87,6 +92,7 @@ export async function QrPanel({
           </StatusBanner>
         ) : canCreateQr ? (
           <form action={generateQrCodeAction}>
+            <input type="hidden" name="returnTo" value={returnHref} />
             <Button type="submit" variant="reward">
               Create QR
             </Button>
@@ -109,166 +115,19 @@ export async function QrPanel({
 
   const env = getServerEnv()
   const shareUrl = `${env.NEXT_PUBLIC_APP_URL}/q/${qrCode.qr_id}`
-  const posterTemplateLinks = [
-    {
-      name: "Editorial",
-      description: "Two-column A4 poster with the offer and QR side by side.",
-      href: `/app/qr/poster/editorial?qr=${qrCode.id}`,
-    },
-    {
-      name: "Bold",
-      description: "QR-first A4 poster for busy counters and doors.",
-      href: `/app/qr/poster/bold?qr=${qrCode.id}`,
-    },
-    {
-      name: "Ticket",
-      description: "Receipt-style A4 poster with simple scan steps.",
-      href: `/app/qr/poster/ticket?qr=${qrCode.id}`,
-    },
-  ] as const
 
   return (
     <div className="grid min-w-0 gap-3 sm:gap-5">
-      {statusMessage(params, launchReady, continueHref, billingHref)}
-      <ReceiptCard className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
-        <div className="grid h-fit content-start gap-3">
-          <QrFrame label={`Scanner-safe QR code for ${activeCard.card_name}`}>
-            {/* eslint-disable-next-line @next/next/no-img-element -- protected QR images need merchant cookies */}
-            <img
-              src={`/app/qr/image/${qrCode.id}`}
-              alt={`QR code for ${activeCard.card_name}`}
-              width={512}
-              height={512}
-              // Intrinsic square dims lock the box so the cookie-protected
-              // network image cannot shift the layout as it loads. Fill stays
-              // white (not bg-secondary) so the rendered QR keeps the high
-              // contrast scanners need.
-              className="aspect-square w-full rounded-lg bg-white"
-            />
-          </QrFrame>
-          {qrCode.is_active ? (
-            <p className="flex items-center gap-2.5 font-mono text-xs font-bold tracking-[0.06em] text-reward uppercase">
-              <RewardSeal state="redeemed" size="sm" label="QR is live" />
-              Live · accepting scans
-            </p>
-          ) : (
-            <p className="font-mono text-xs text-muted-foreground uppercase">
-              Disabled · no new customer entry
-            </p>
-          )}
-        </div>
-
-        <div className="grid content-start gap-4">
-          <PageTitle
-            eyebrow="Venue QR"
-            title={activeCard.card_name}
-            description="Customers scan this permanent code to join, collect today's stamp, and unlock a surprise reward."
-            titleClassName="sm:text-3xl"
-          />
-
-          <QrErrorBanner error={params.error} />
-          {!location?.address ? (
-            <StatusBanner tone="warning" title="Save venue checks before print.">
-              Add the venue address from{" "}
-              <Link
-                href="/app/launch?tab=venue"
-                className="font-bold underline underline-offset-4"
-              >
-                your venue step
-              </Link>{" "}
-              so stamps are tied to the right venue.
-            </StatusBanner>
-          ) : null}
-
-          <div className="grid gap-0 rounded-lg border-2 border-ink bg-background p-4 sm:p-5">
-            <div className="grid gap-3">
-              <p className="text-sm font-extrabold">Share your QR</p>
-              <p className="text-sm leading-6 text-muted-foreground">
-                Use this permanent venue link wherever you already share your
-                loyalty programme. Scan it once yourself before the first
-                customer to check it resolves.
-              </p>
-              <div className="grid gap-2">
-                <Eyebrow>Share link</Eyebrow>
-                <p className="font-mono text-sm break-all text-muted-foreground">
-                  {shareUrl}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <CopyUrlButton url={shareUrl} />
-                  <Button asChild variant="outline">
-                    <Link href={shareUrl} target="_blank">
-                      Open URL
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-3 rounded-lg border-2 border-ink bg-background p-4 sm:p-5">
-            <div className="grid gap-1">
-              <p className="text-sm font-extrabold">A4 poster templates</p>
-              <p className="text-sm leading-6 text-muted-foreground">
-                Open a print-ready counter poster using this venue QR. Print it
-                from the browser or save it as a PDF.
-              </p>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-3">
-              {posterTemplateLinks.map((template) => (
-                <Link
-                  key={template.name}
-                  href={template.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="grid min-h-28 content-between gap-3 rounded-lg border-2 border-ink bg-card p-3 text-sm shadow-sm transition-transform hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
-                >
-                  <span className="font-extrabold">{template.name}</span>
-                  <span className="leading-5 text-muted-foreground">
-                    {template.description}
-                  </span>
-                  <span className="font-mono text-[10px] font-bold tracking-[0.06em] text-primary uppercase">
-                    Open A4
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid gap-3">
-            <Disclosure label="How customers use this">
-              <ol className="grid list-decimal gap-2 pl-5 text-sm leading-6 text-muted-foreground">
-                <li>New customers scan the QR and join with their phone.</li>
-                <li>
-                  Existing members scan the same QR and tap to add
-                  today&apos;s stamp.
-                </li>
-                <li>
-                  On the final visit the reward unseals, redeemable from the
-                  next business day.
-                </li>
-              </ol>
-            </Disclosure>
-          </div>
-
-          <div className="grid gap-0">
-            <hr className="w-rule" />
-            <form action={setQrActiveAction}>
-              <input type="hidden" name="qrCodeId" value={qrCode.id} />
-              <input
-                type="hidden"
-                name="nextActive"
-                value={qrCode.is_active ? "false" : "true"}
-              />
-              <Button
-                type="submit"
-                variant={qrCode.is_active ? "outline" : "reward"}
-              >
-                {qrCode.is_active ? "Disable QR" : "Enable QR"}
-              </Button>
-            </form>
-          </div>
-        </div>
-      </ReceiptCard>
+      {statusMessage(params, launchReady, continueHref, billingHref, returnHref)}
+      <QrPanelLive
+        activeCardName={activeCard.card_name}
+        qrCodeId={qrCode.id}
+        isActive={qrCode.is_active}
+        shareUrl={shareUrl}
+        hasVenueAddress={Boolean(location?.address)}
+        error={params.error}
+        returnHref={returnHref}
+      />
     </div>
   )
 }
@@ -277,7 +136,8 @@ function statusMessage(
   params: QrPanelParams,
   launchReady: boolean,
   continueHref?: string | null,
-  billingHref?: string | null
+  billingHref?: string | null,
+  returnHref: string = QR_LAUNCH_TAB_PATH
 ) {
   const message = params.created
     ? "QR code created."
@@ -303,7 +163,7 @@ function statusMessage(
           nextHref={nextHref}
           nextLabel="billing"
           primaryLabel="Proceed to billing"
-          stayHref="/app/launch?tab=qr"
+          stayHref={returnHref}
         />
       ) : null}
     </StatusBanner>

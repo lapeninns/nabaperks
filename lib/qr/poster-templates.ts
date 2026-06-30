@@ -1,4 +1,10 @@
-export const QR_POSTER_TEMPLATE_IDS = ["editorial", "bold", "ticket"] as const
+export const QR_POSTER_TEMPLATE_IDS = [
+  "editorial",
+  "bold",
+  "ticket",
+  "northstar",
+  "thermal",
+] as const
 
 export type QrPosterTemplateId = (typeof QR_POSTER_TEMPLATE_IDS)[number]
 
@@ -12,17 +18,27 @@ export const QR_POSTER_TEMPLATES: readonly QrPosterTemplate[] = [
   {
     id: "editorial",
     name: "Editorial",
-    description: "Two-column counter poster matching the reference frame.",
+    description: "Calm counter card — “Three visits. One surprise.”",
   },
   {
     id: "bold",
     name: "Bold",
-    description: "Full-ink poster with the QR code as the hero.",
+    description: "Dark hero poster — “Everyone wins something.”",
   },
   {
     id: "ticket",
     name: "Ticket",
-    description: "Tear-off ticket poster with the QR and stamp steps.",
+    description: "Tear-off urgency — “First stamp's on us.”",
+  },
+  {
+    id: "northstar",
+    name: "Night card",
+    description: "Dark receipt hero — the poster is your loyalty card.",
+  },
+  {
+    id: "thermal",
+    name: "Receipt",
+    description: "Thermal till receipt — first stamp free, reward locked.",
   },
 ] as const
 

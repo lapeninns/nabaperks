@@ -56,7 +56,7 @@ export function ActivityDetailCard({ row }: ActivityDetailCardProps) {
               asChild
               variant="secondary"
               size="sm"
-              className="justify-self-start sm:justify-self-end"
+              className="min-h-11 justify-self-start sm:min-h-9 sm:justify-self-end"
             >
               <Link href={row.primaryAction.href}>
                 {row.primaryAction.label}

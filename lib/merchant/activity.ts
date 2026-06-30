@@ -1,6 +1,7 @@
 import "server-only"
 
 import { formatMerchantCustomerIdentifier } from "@/lib/merchant/customer-identity-display"
+import { QR_POSTER_PATH } from "@/lib/merchant/qr-nav"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 const activityEvents = [
@@ -953,7 +954,7 @@ function primaryActivityAction(
     row.event_name === "qr_enabled" ||
     row.event_name === "qr_disabled"
   ) {
-    return { label: "Open QR", href: "/app/launch?tab=qr" }
+    return { label: "Open QR", href: QR_POSTER_PATH }
   }
 
   if (
@@ -987,7 +988,7 @@ function secondaryActivityAction(
   ) {
     return {
       label: "Open QR setup",
-      href: "/app/launch?tab=qr",
+      href: QR_POSTER_PATH,
     }
   }
 

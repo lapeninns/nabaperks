@@ -139,7 +139,7 @@ async function RewardScanStream({
       )}
 
       <Button asChild variant="secondary">
-        <Link href="/app/activity">Back to activity</Link>
+        <Link href="/app">Back to dashboard</Link>
       </Button>
     </>
   )

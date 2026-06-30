@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 
 import { capturePostHogEvent } from "@/lib/analytics/events"
 import { getQrSetup } from "@/lib/merchant/qr-code"
+import { qrReturnHref, resolveQrReturnBase } from "@/lib/merchant/qr-nav"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 const QR_REWARD_POOL_ERROR =
@@ -11,7 +12,8 @@ const QR_REWARD_POOL_ERROR =
 const QR_CREATE_ERROR = "Unable to create QR"
 const QR_UPDATE_ERROR = "Unable to update QR"
 
-export async function generateQrCodeAction() {
+export async function generateQrCodeAction(formData: FormData) {
+  const returnBase = resolveQrReturnBase(formData.get("returnTo"))
   const { merchant, activeCard, activeRewardPoolItemCount } = await getQrSetup()
 
   if (!merchant) {
@@ -24,7 +26,7 @@ export async function generateQrCodeAction() {
 
   if (activeRewardPoolItemCount < 3) {
     redirect(
-      `/app/launch?tab=qr&error=${encodeURIComponent(QR_REWARD_POOL_ERROR)}`
+      qrReturnHref(returnBase, `error=${encodeURIComponent(QR_REWARD_POOL_ERROR)}`)
     )
   }
 
@@ -35,7 +37,7 @@ export async function generateQrCodeAction() {
   })
 
   if (error) {
-    redirect(`/app/launch?tab=qr&error=${encodeURIComponent(QR_CREATE_ERROR)}`)
+    redirect(qrReturnHref(returnBase, `error=${encodeURIComponent(QR_CREATE_ERROR)}`))
   }
 
   await capturePostHogEvent({
@@ -46,16 +48,17 @@ export async function generateQrCodeAction() {
     metadata: { source: "merchant_qr_action" },
   })
 
-  redirect("/app/launch?tab=qr&created=1")
+  redirect(qrReturnHref(returnBase, "created=1"))
 }
 
 export async function setQrActiveAction(formData: FormData) {
+  const returnBase = resolveQrReturnBase(formData.get("returnTo"))
   const { merchant } = await getQrSetup()
   const qrCodeId = formData.get("qrCodeId")
   const nextActive = formData.get("nextActive") === "true"
 
   if (!merchant || typeof qrCodeId !== "string") {
-    redirect(`/app/launch?tab=qr&error=${encodeURIComponent(QR_UPDATE_ERROR)}`)
+    redirect(qrReturnHref(returnBase, `error=${encodeURIComponent(QR_UPDATE_ERROR)}`))
   }
 
   const supabase = await createSupabaseServerClient()
@@ -66,7 +69,7 @@ export async function setQrActiveAction(formData: FormData) {
   })
 
   if (error) {
-    redirect(`/app/launch?tab=qr&error=${encodeURIComponent(QR_UPDATE_ERROR)}`)
+    redirect(qrReturnHref(returnBase, `error=${encodeURIComponent(QR_UPDATE_ERROR)}`))
   }
 
   await capturePostHogEvent({
@@ -81,5 +84,5 @@ export async function setQrActiveAction(formData: FormData) {
     },
   })
 
-  redirect(`/app/launch?tab=qr&${nextActive ? "enabled" : "disabled"}=1`)
+  redirect(qrReturnHref(returnBase, `${nextActive ? "enabled" : "disabled"}=1`))
 }

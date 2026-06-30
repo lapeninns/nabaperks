@@ -4,7 +4,9 @@ import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useMemo, useState, type ReactNode } from "react"
 
-import { EmptyState, FilterPills } from "@/components/brand"
+import { Search01Icon } from "@hugeicons/core-free-icons"
+
+import { EmptyState, FilterPills, Icon } from "@/components/brand"
 import { StatStrip } from "@/components/data"
 import { WetInkRise } from "@/components/motion"
 import { Button } from "@/components/ui/button"
@@ -95,17 +97,25 @@ export function ActivityDetailFeed({
       </section>
 
       <section className="surface-card grid gap-3 p-3 sm:p-4">
-        <Input
-          type="search"
-          value={query}
-          onChange={(event) => {
-            const nextQuery = event.target.value
-            setQuery(nextQuery)
-            updateUrl({ filter, query: nextQuery })
-          }}
-          placeholder="Search activity"
-          aria-label="Search activity"
-        />
+        <div className="relative">
+          <Icon
+            icon={Search01Icon}
+            size={16}
+            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
+          />
+          <Input
+            type="search"
+            value={query}
+            onChange={(event) => {
+              const nextQuery = event.target.value
+              setQuery(nextQuery)
+              updateUrl({ filter, query: nextQuery })
+            }}
+            placeholder="Search activity"
+            aria-label="Search activity"
+            className="pl-9"
+          />
+        </div>
         <FilterPills
           aria-label="Filter activity by type"
           value={filter}
@@ -168,7 +178,12 @@ export function ActivityDetailFeed({
           {hasMore ? ", more available" : ""}.
         </p>
         {hasMore ? (
-          <Button asChild variant="secondary" size="sm">
+          <Button
+            asChild
+            variant="secondary"
+            size="sm"
+            className="min-h-11 sm:min-h-9"
+          >
             <Link href={loadMoreHref({ filter, limit, query })}>Load more</Link>
           </Button>
         ) : null}

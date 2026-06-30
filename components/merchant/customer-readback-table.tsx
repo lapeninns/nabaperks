@@ -281,15 +281,15 @@ function buildColumns(
             {row.scanRewardId ? (
               <Button
                 asChild
-                size="xs"
-                className="gap-1.5 font-mono text-[0.65rem] tracking-[0.06em] uppercase"
+                size="sm"
+                className="gap-1.5 font-mono text-[0.65rem] tracking-[0.06em] uppercase [@media(pointer:coarse)]:min-h-11"
               >
                 <Link
                   href={`/app/rewards/scan/${row.scanRewardId}`}
                   onClick={(event) => event.stopPropagation()}
                   aria-label={`Scan reward for ${row.identifier}`}
                 >
-                  <Icon icon={ScanIcon} size={12} />
+                  <Icon icon={ScanIcon} size={14} />
                   Scan
                 </Link>
               </Button>
@@ -481,8 +481,8 @@ export function CustomerReadbackTable({
 
       {/* Scan-reward banner — desktop only (mobile has it inline in the card) */}
       {selected?.scanRewardId ? (
-        <div className="surface-card hidden items-center justify-between gap-4 px-4 py-3 sm:flex">
-          <span className="text-sm font-semibold">
+        <div className="surface-card hidden flex-wrap items-center justify-between gap-3 px-4 py-3 sm:flex">
+          <span className="min-w-0 text-sm font-semibold">
             {selected.identifier} has a reward ready to collect.
           </span>
           <Button

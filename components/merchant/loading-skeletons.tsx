@@ -95,8 +95,9 @@ export function MerchantDashboardMetricsSkeleton() {
 
 /**
  * Mirrors the dashboard {@link ReceiptCard} recent-activity card: a
- * {@link SectionHeader} and three {@link ActivityCompactFeed} rows (badge pill +
- * time + headline + action).
+ * {@link SectionHeader} and four {@link ActivityCompactFeed} rows (badge pill +
+ * time + headline + action) — matching the streamed feed's `{ limit: 4 }` so the
+ * fallback height does not shift when real content arrives.
  */
 export function MerchantCompactActivitySkeleton() {
   return (
@@ -110,7 +111,7 @@ export function MerchantCompactActivitySkeleton() {
       </div>
 
       <ol className="overflow-hidden rounded-lg bg-background/60 p-0 [&>li+li]:border-t-2 [&>li+li]:border-dashed [&>li+li]:border-ink/15">
-        {[0, 1, 2].map((row) => (
+        {[0, 1, 2, 3].map((row) => (
           <li
             key={row}
             className="grid gap-3 p-4 sm:grid-cols-[1fr_auto] sm:items-center"

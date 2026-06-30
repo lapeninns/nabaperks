@@ -22,14 +22,16 @@ export default async function MerchantAppLayout({
   }
 
   const cookieStore = await cookies()
-  const defaultSidebarOpen = cookieStore.get("sidebar_state")?.value !== "false"
+  const sidebarCookieOpen = cookieStore.get("sidebar_state")?.value !== "false"
+  const posterFocus = isPosterPrintPath(activePath)
 
   return (
     <MerchantAppShell
       signOutAction={signOutAction}
       activePath={activePath}
       variant={isMerchantSetupPath(activePath) ? "setup" : "full"}
-      defaultSidebarOpen={defaultSidebarOpen}
+      hideMobileChrome={posterFocus}
+      defaultSidebarOpen={sidebarCookieOpen}
     >
       {children}
     </MerchantAppShell>
@@ -47,4 +49,11 @@ function isMerchantSetupPath(path: string): boolean {
     path === "/app/launch" ||
     path.startsWith("/app/launch/")
   )
+}
+
+// The poster print preview is a full-bleed surface that carries its own header
+// (PosterPreviewChrome). Suppress the shell's mobile header + bottom tab bar so
+// they don't double-stack or occlude the scaled A4 sheet on phones.
+function isPosterPrintPath(path: string): boolean {
+  return path.startsWith("/app/qr/poster/")
 }

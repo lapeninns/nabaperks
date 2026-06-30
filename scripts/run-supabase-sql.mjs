@@ -72,7 +72,7 @@ try {
   if (shouldSeed) {
     await runFile("supabase/seed.sql", "Seed fixtures")
     await runFile("supabase/seed-activity-demo.sql", "Seed activity demo")
-    await runFile("supabase/seed-user-aman.sql", "Seed user Aman")
+    await runOptionalFile("supabase/seed-user-aman.sql", "Seed user Aman")
     await runFile(
       "supabase/seed-two-of-three-stamps.sql",
       "Seed two of three stamps"
@@ -121,6 +121,18 @@ async function runFile(path, label) {
     }
     process.exitCode = 1
     throw error
+  }
+}
+
+async function runOptionalFile(path, label) {
+  const source = readFileSync(join(projectDir, path), "utf8")
+
+  try {
+    await sql.unsafe(source)
+    console.log(`${label} passed: ${path}`)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.warn(`${label} skipped: ${path} (${message})`)
   }
 }
 

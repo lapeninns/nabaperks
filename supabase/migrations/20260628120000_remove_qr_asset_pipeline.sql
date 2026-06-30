@@ -31,14 +31,11 @@ drop function if exists public.record_qr_asset_generated(
 
 drop table if exists public.qr_asset_jobs;
 
+-- Drop the service-role policy only. Supabase blocks direct DELETE on storage.*
+-- (protect_delete); any leftover qr-assets bucket/objects are inert orphans.
 do $$
 begin
   if to_regclass('storage.objects') is not null then
     execute 'drop policy if exists qr_assets_service_role_all on storage.objects';
-    delete from storage.objects where bucket_id = 'qr-assets';
-  end if;
-
-  if to_regclass('storage.buckets') is not null then
-    delete from storage.buckets where id = 'qr-assets';
   end if;
 end $$;

@@ -1,456 +1,175 @@
-.page {
-  --poster-paper: #f6f1e6;
-  --poster-card: #fbf8f1;
-  --poster-ink: #211c16;
-  --poster-ink-soft: #4a4339;
-  --poster-muted: #6b6257;
-  --poster-faint: #bcae93;
-  --poster-line: rgba(33, 28, 22, 0.18);
-  --poster-dash: rgba(33, 28, 22, 0.22);
-  --poster-accent: #e8430f;
-  --poster-accent-soft: #f3c9b2;
-  --poster-sun: #f5a623;
-  --poster-cream-ink: #cdbfa6;
-  min-height: 100dvh;
-  display: grid;
-  justify-items: center;
-  gap: 18px;
-  padding: 24px;
-  background: var(--poster-paper);
-  color: var(--poster-ink);
-  font-family: var(--font-bricolage-grotesque), system-ui, sans-serif;
-}
+/* ============================================================
+   QR till-poster — Wet Ink, tuned for ONE job: scan-to-join.
+   Value (reward) → ease (friction band) → action (QR). Colour,
+   shadow, radius and type come from the canonical --w-* tokens.
 
-:global(.qr-poster-toolbar) {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-}
+   Sheet is exactly A4 (210 × 297 mm). --poster-frame-margin keeps
+   copy, QR, and accents inside a frame-safe inset on every edge.
+   ============================================================ */
 
 .sheet {
-  width: 210mm;
-  height: 297mm;
+  --poster-a4-width: 210mm;
+  --poster-a4-height: 297mm;
+  --poster-frame-margin: 15mm;
+
+  width: var(--poster-a4-width);
+  height: var(--poster-a4-height);
+  min-height: var(--poster-a4-height);
+  max-height: var(--poster-a4-height);
   box-sizing: border-box;
-  overflow: hidden;
   position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-2xl);
+}
+
+/* Accent bar sits inside the frame-safe inset, not on the cut edge. */
+.sheet::before {
+  content: "";
+  position: absolute;
+  top: var(--poster-frame-margin);
+  left: var(--poster-frame-margin);
+  right: var(--poster-frame-margin);
+  height: 3px;
+  background: var(--w-accent);
+  z-index: 5;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
 }
 
 .editorial,
 .ticket {
   display: flex;
-  padding: 12mm;
-  background: var(--poster-paper);
-  box-shadow: 0 6px 30px rgba(33, 28, 22, 0.22);
-}
-
-.editorial {
-  background-image: radial-gradient(
-    rgba(33, 28, 22, 0.022) 1px,
-    transparent 1px
-  );
-  background-size: 5px 5px;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: var(--poster-frame-margin);
+  padding-top: calc(var(--poster-frame-margin) + 5px);
+  background: var(--w-paper);
 }
 
 .bold {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 16mm 15mm 13mm;
-  background: var(--poster-ink);
-  color: var(--poster-paper);
-  text-align: center;
-  box-shadow: 0 6px 30px rgba(33, 28, 22, 0.3);
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: var(--poster-frame-margin);
+  padding-top: calc(var(--poster-frame-margin) + 5px);
+  /* Resolves to dark paper because the article carries the `.dark` class. */
+  background: var(--w-paper);
+  color: var(--w-ink);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
 }
 
 .card {
   position: relative;
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--poster-card);
-  border: 2px solid var(--poster-ink);
-  border-radius: 12px;
-  box-shadow: 6px 6px 0 var(--poster-ink);
+  box-shadow: var(--shadow-2xl);
 }
 
-.ticker {
-  flex: none;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-  background: var(--poster-accent-soft);
-  border-bottom: 2px solid var(--poster-ink);
-}
-
-.ticker p {
-  margin: 0;
-  padding-left: 14px;
-  white-space: nowrap;
-  font-family: var(--font-space-mono), monospace;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.26em;
-  text-transform: uppercase;
-}
-
-.watermarkFrame {
-  position: absolute;
-  inset: 34px 0 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.watermarkAccent,
-.watermarkSun {
-  position: absolute;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  font-weight: 800;
-}
-
-.watermarkAccent {
-  top: 120mm;
-  left: -4mm;
-  width: 120px;
-  height: 120px;
-  border: 3px solid var(--poster-accent);
-  color: var(--poster-accent);
-  font-size: 58px;
-  transform: rotate(-14deg);
-  opacity: 0.08;
-}
-
-.watermarkSun {
-  right: -3mm;
-  bottom: 18mm;
-  width: 104px;
-  height: 104px;
-  border: 3px solid var(--poster-sun);
-  color: var(--poster-sun);
-  font-size: 50px;
-  transform: rotate(12deg);
-  opacity: 0.12;
-}
-
-.editorialInner {
+.boldInner {
   position: relative;
-  z-index: 1;
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 9mm 13mm 0;
+  width: 100%;
 }
 
-.editorialHeader,
-.ticketHeader {
+/* ---- Top: eyebrow + reward hook + now-value ---- */
+.convTop {
+  flex: none;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  gap: 10px;
+  padding: 5mm 0 7mm;
+  text-align: center;
 }
 
-.editorialHeader {
-  padding-bottom: 8mm;
-  border-bottom: 2px solid var(--poster-ink);
-}
-
-.brand,
-.boldBrand {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-
-.brand {
-  font-size: 23px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.brandMark,
-.brandMarkInverted,
-.boldBrand span {
-  display: inline-grid;
-  place-items: center;
-  border-radius: 50%;
-  font-weight: 800;
-  transform: rotate(-6deg);
-}
-
-.brandMark {
-  width: 30px;
-  height: 30px;
-  border: 2px solid var(--poster-ink);
-  background: var(--poster-accent);
-  color: #ffffff;
-  font-size: 15px;
-}
-
-.brandMarkInverted {
-  width: 28px;
-  height: 28px;
-  border: 2px solid var(--poster-ink);
-  background: #ffffff;
-  color: var(--poster-accent);
-  font-size: 14px;
-}
-
-.liveTag {
-  padding: 6px 11px;
-  border: 2px solid var(--poster-ink);
-  border-radius: 8px;
-  background: var(--poster-card);
-  box-shadow: 2px 2px 0 var(--poster-ink);
-  color: var(--poster-muted);
+.venueEyebrow {
+  margin: 0;
+  max-width: 56ch;
   font-family: var(--font-space-mono), monospace;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  transform: rotate(-2deg);
+  text-wrap: balance;
+  color: var(--w-ink-soft);
 }
 
-.editorialHero {
-  padding-top: 8mm;
-}
-
-.kicker,
-.boldKicker,
-.ticketKicker {
+.hook {
   margin: 0;
-  font-family: var(--font-space-mono), monospace;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.kicker {
-  margin-bottom: 14px;
-  color: var(--poster-accent);
-  font-size: 12.5px;
-  letter-spacing: 0.18em;
-}
-
-.headline,
-.boldHeadline,
-.ticketHeadline {
-  margin: 0;
+  font-size: 64px;
   font-weight: 800;
-  letter-spacing: -0.03em;
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+  color: var(--w-ink);
   text-wrap: balance;
 }
 
-.headline {
-  font-size: 62px;
-  line-height: 0.94;
+/* The emotional-anchor word — one red word in a monochrome headline. */
+.hookWin {
+  color: var(--w-accent);
 }
 
-.headline span,
-.boldHeadline span,
-.ticketHeadline span {
-  color: var(--poster-sun);
-}
-
-.editorialLead {
-  max-width: 31ch;
-  margin: 16px 0 0;
-  color: var(--poster-ink-soft);
-  font-size: 18.5px;
-  line-height: 1.45;
-}
-
-.editorialLead strong,
-.boldLead strong {
-  color: currentColor;
-  font-weight: 700;
-}
-
-.editorialMid {
-  display: flex;
-  align-items: center;
-  gap: 11mm;
-  margin-top: 7mm;
-}
-
-.editorialCopyColumn {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 7mm;
-}
-
-.firstStampPanel {
-  display: inline-flex;
-  align-items: center;
-  align-self: flex-start;
-  gap: 12px;
-  padding: 12px 16px;
-  border: 2px solid var(--poster-ink);
-  border-radius: 10px;
-  background: var(--poster-accent);
-  box-shadow: 4px 4px 0 var(--poster-ink);
-  color: #ffffff;
-}
-
-.firstStampPanel span {
-  width: 34px;
-  height: 34px;
-  flex: none;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.18);
-  font-size: 18px;
-  font-weight: 800;
-  transform: rotate(-7deg);
-}
-
-.firstStampPanel p {
+.nowValue {
   margin: 0;
-  font-size: 17px;
+  max-width: 26ch;
+  font-size: 21px;
   font-weight: 700;
-  line-height: 1.16;
+  line-height: 1.28;
+  color: var(--w-ink);
+  text-wrap: balance;
 }
 
-.progressLabel {
-  margin: 0 0 13px;
-  color: var(--poster-muted);
+/* Forbidden-fruit teaser. */
+.forbidden {
+  margin: 0;
+  max-width: 32ch;
+  font-size: 14.5px;
+  font-weight: 600;
+  font-style: italic;
+  line-height: 1.3;
+  color: var(--w-ink-soft);
+}
+
+/* ---- Friction-killer line, styled as an understated disclaimer ---- */
+.frictionBand {
+  flex: none;
+  margin: 0;
+  padding: 8px 0;
+  border-top: 1px solid var(--w-line);
+  border-bottom: 1px solid var(--w-line);
+  color: var(--w-ink-soft);
   font-family: var(--font-space-mono), monospace;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.progressDots {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-}
-
-.progressDots > i {
-  width: 22px;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--poster-line);
-}
-
-.progressActive,
-.progressEmpty,
-.progressReveal {
-  width: 58px;
-  height: 58px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-}
-
-.progressActive {
-  position: relative;
-}
-
-.progressActive span {
-  width: 58px;
-  height: 58px;
-  display: grid;
-  place-items: center;
-  border: 2px solid var(--poster-ink);
-  border-radius: 50%;
-  background: var(--poster-accent);
-  box-shadow: 3px 3px 0 var(--poster-ink);
-  color: #ffffff;
-  font-size: 28px;
-  font-weight: 800;
-  transform: rotate(-6deg);
-}
-
-.progressActive b {
-  position: absolute;
-  bottom: -19px;
-  padding: 3px 8px;
-  border-radius: 5px;
-  background: var(--poster-ink);
-  color: var(--poster-paper);
-  font-family: var(--font-space-mono), monospace;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: center;
 }
 
-.progressEmpty {
-  border: 2px dashed rgba(33, 28, 22, 0.45);
-  background: var(--poster-card);
-  color: var(--poster-faint);
-  font-family: var(--font-space-mono), monospace;
-  font-size: 22px;
-  font-weight: 700;
-}
-
-.progressReveal {
-  border: 2px solid var(--poster-ink);
-  background: var(--poster-sun);
-  box-shadow: 3px 3px 0 var(--poster-ink);
-  color: var(--poster-ink);
-  font-size: 30px;
-  font-weight: 800;
-  transform: rotate(-7deg);
-}
-
-.editorialSteps {
+/* ---- Middle: the QR (action) + attainability + social proof ---- */
+.convMain {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 11px;
-  margin: 0;
-  padding: 6mm 0 0;
-  border-top: 2px dashed var(--poster-dash);
-  list-style: none;
-  counter-reset: editorial-step;
-}
-
-.editorialSteps li {
-  counter-increment: editorial-step;
-  display: flex;
-  align-items: flex-start;
-  gap: 13px;
-  line-height: 1.2;
-}
-
-.editorialSteps li::before {
-  content: counter(editorial-step);
-  width: 30px;
-  height: 30px;
-  flex: none;
-  display: grid;
-  place-items: center;
-  border-radius: 8px;
-  background: var(--poster-ink);
-  color: var(--poster-paper);
-  font-size: 16px;
-  font-weight: 800;
-}
-
-.editorialSteps b {
-  display: block;
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.editorialSteps span {
-  display: block;
-  color: var(--poster-muted);
-  font-size: 13.5px;
-}
-
-.editorialSteps strong {
-  color: var(--poster-accent);
-  font-weight: 700;
+  align-items: center;
+  justify-content: center;
+  gap: 5mm;
+  padding: 5mm 0;
 }
 
 .qrBlock {
-  flex: none;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -460,124 +179,71 @@
 
 .qrBlock figcaption {
   margin: 0 0 12px;
-  color: var(--poster-ink);
-  font-size: 19px;
+  color: var(--w-ink);
+  font-size: 21px;
   font-weight: 800;
   line-height: 1.1;
 }
 
-.qrWrap {
+.convQrHolder,
+.boldQrHolder,
+.ticketQrHolder {
   position: relative;
-}
-
-.scanBurst {
-  position: absolute;
-  z-index: 5;
-  display: grid;
-  place-items: center;
-  background: var(--poster-sun);
-  clip-path: polygon(
-    50% 0%,
-    60% 14%,
-    78% 7%,
-    75% 26%,
-    93% 24%,
-    82% 40%,
-    100% 50%,
-    82% 60%,
-    93% 76%,
-    75% 74%,
-    78% 93%,
-    60% 86%,
-    50% 100%,
-    40% 86%,
-    22% 93%,
-    25% 74%,
-    7% 76%,
-    18% 60%,
-    0% 50%,
-    18% 40%,
-    7% 24%,
-    25% 26%,
-    22% 7%,
-    40% 14%
-  );
-  filter: drop-shadow(3px 3px 0 var(--poster-ink));
-}
-
-.scanBurst span {
-  color: var(--poster-ink);
-  font-family: var(--font-space-mono), monospace;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  line-height: 1.05;
-  text-transform: uppercase;
-}
-
-.editorialBurst {
-  top: -10mm;
-  right: -9mm;
-  width: 24mm;
-  height: 24mm;
-}
-
-.boldBurst {
-  top: -12mm;
-  right: -8mm;
-  width: 30mm;
-  height: 30mm;
-}
-
-.boldBurst span {
-  font-size: 13px;
-  line-height: 1.04;
-  text-align: center;
-}
-
-.ticketBurst {
-  top: -9mm;
-  right: -9mm;
-  width: 24mm;
-  height: 24mm;
-}
-
-.editorialQrHolder,
-.ticketQrHolder,
-.boldQrHolder {
   display: grid;
   place-items: center;
   box-sizing: border-box;
-  background: #ffffff;
+  /* Pure white in both themes — the QR must never sit on warm paper. */
+  background: var(--qr-foreground);
+  border: 2px solid var(--w-ink);
+  box-shadow: var(--shadow-xl);
 }
 
-.editorialQrHolder {
-  width: 66mm;
-  height: 66mm;
-  padding: 7mm;
-  border: 2px solid var(--poster-ink);
-  border-radius: 10px;
-  box-shadow: 6px 6px 0 var(--poster-ink);
+/* Notification badge — one thing waiting (dopamine). Straddles the holder's
+   top-right corner so the QR keeps its full 4-module quiet zone; the 2px ink
+   ring reads on both the white field and the paper behind it. */
+.qrBadge {
+  position: absolute;
+  top: -11px;
+  right: -11px;
+  z-index: 2;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid var(--w-ink);
+  background: var(--w-accent);
+  color: var(--w-accent-ink);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: var(--shadow-xs);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
 }
 
-.ticketQrHolder {
-  width: 62mm;
-  height: 62mm;
+.convQrHolder {
+  width: 88mm;
+  height: 88mm;
+  aspect-ratio: 1;
   padding: 6mm;
-  border: 2px solid var(--poster-ink);
-  border-radius: 10px;
-  box-shadow: 6px 6px 0 var(--poster-ink);
+  border-radius: var(--radius);
 }
 
 .boldQrHolder {
-  width: 108mm;
-  padding: 9mm;
-  border-radius: 16px;
-  box-shadow: 9px 9px 0 var(--poster-accent);
+  width: 92mm;
+  height: 92mm;
+  aspect-ratio: 1;
+  padding: 7mm;
+  border-radius: var(--radius-sheet);
 }
 
-.boldQrHolder img {
-  aspect-ratio: 1 / 1;
+.ticketQrHolder {
+  width: 86mm;
+  height: 86mm;
+  aspect-ratio: 1;
+  padding: 5mm;
+  border-radius: var(--radius);
 }
 
 .qrBlock img {
@@ -587,404 +253,384 @@
   object-fit: contain;
 }
 
-.cameraCopy {
-  margin: 14px 0 0;
-  color: var(--poster-ink-soft);
-  font-size: 14px;
+/* Under the QR: red accent line (win→scan circuit) + first-filled dots + text. */
+.qrProgress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.qrAccentLine {
+  width: 46mm;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--w-accent);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+/* One-stamp cards show a single dot below — shrink the cap to match it. */
+.qrAccentLine[data-solo="true"] {
+  width: 16mm;
+}
+
+.progressStamps {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+}
+
+.progressStampSlot {
+  width: 48px;
+  flex: none;
+}
+
+.attainability {
+  margin: 0;
+  max-width: 30ch;
+  font-size: 16px;
   font-weight: 600;
+  line-height: 1.35;
+  color: var(--w-ink-soft);
+  text-wrap: balance;
 }
 
-.fallbackCopy {
-  margin: 5px 0 0;
-  color: #8a8073;
-  font-family: var(--font-space-mono), monospace;
-  font-size: 11px;
-  letter-spacing: 0.04em;
-}
-
-.fallbackCopy strong {
-  color: var(--poster-ink);
-  font-weight: 700;
-}
-
+/* ---- Footer ---- */
 .posterFooter {
   flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: auto;
-  padding: 11px 13mm;
-  border-top: 2px dashed var(--poster-dash);
-  color: var(--poster-muted);
-  font-family: var(--font-space-mono), monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.posterFooter span:first-child {
-  color: var(--poster-ink);
-  font-weight: 700;
-}
-
-.bold .watermarkFrame {
-  inset: 0;
-}
-
-.bold .watermarkAccent {
-  top: 30mm;
-  right: 10mm;
-  left: auto;
-  width: 96px;
-  height: 96px;
-  font-size: 46px;
-  transform: rotate(13deg);
-  opacity: 0.18;
-}
-
-.bold .watermarkSun {
-  bottom: 18mm;
-  left: 9mm;
-  right: auto;
-  width: 80px;
-  height: 80px;
-  font-size: 38px;
-  transform: rotate(-11deg);
-  opacity: 0.18;
-}
-
-.boldInner {
-  position: relative;
-  z-index: 1;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.boldHeader {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-}
-
-.boldBrand span {
-  width: 28px;
-  height: 28px;
-  border: 2px solid var(--poster-paper);
-  background: var(--poster-accent);
-  color: #ffffff;
-  font-size: 14px;
-}
-
-.boldBrand p {
-  margin: 0;
-  color: var(--poster-cream-ink);
-  font-family: var(--font-space-mono), monospace;
-  font-size: 13px;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-}
-
-.boldKicker {
-  color: var(--poster-sun);
-  font-size: 12.5px;
-  letter-spacing: 0.2em;
-}
-
-.boldHeadline {
-  color: var(--poster-paper);
-  font-size: 60px;
-  line-height: 0.92;
-}
-
-.boldLead {
-  max-width: 30ch;
-  margin: 0;
-  color: var(--poster-cream-ink);
-  font-size: 19px;
-  line-height: 1.4;
-}
-
-.boldQrCaption {
-  margin: 15px 0 0;
-  color: var(--poster-cream-ink);
-  font-family: var(--font-space-mono), monospace;
-  font-size: 13px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.boldFooter {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-  width: 100%;
-}
-
-.boldFooter p {
-  max-width: 150mm;
-  margin: 0;
-  padding: 13px 26px;
-  border: 2px solid var(--poster-paper);
-  border-radius: 10px;
-  background: var(--poster-sun);
-  color: var(--poster-ink);
-  font-size: 19px;
-  font-weight: 800;
-  line-height: 1.2;
-  text-wrap: balance;
-}
-
-.boldFooter div {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  color: #9c8e78;
-  font-family: var(--font-space-mono), monospace;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.boldFooter div span:first-child {
-  color: var(--poster-paper);
-}
-
-.ticketTop {
-  flex: none;
-  position: relative;
-  overflow: hidden;
-  padding: 11mm 13mm 13mm;
-  background: var(--poster-accent);
-  color: #ffffff;
-}
-
-.ticketGhost {
-  position: absolute;
-  top: -6mm;
-  right: -6mm;
-  width: 130px;
-  height: 130px;
-  display: grid;
-  place-items: center;
-  border: 3px solid rgba(255, 255, 255, 0.18);
-  border-radius: 50%;
-  color: rgba(255, 255, 255, 0.16);
-  font-size: 62px;
-  font-weight: 800;
-  transform: rotate(11deg);
-}
-
-.ticketTopContent {
-  position: relative;
-  z-index: 1;
-}
-
-.ticketAdmit {
-  padding: 5px 9px;
-  border: 2px solid rgba(255, 255, 255, 0.6);
-  border-radius: 7px;
-  color: rgba(255, 255, 255, 0.82);
+  gap: 12px;
+  padding: 8px 0 0;
+  border-top: 2px dashed var(--w-line);
   font-family: var(--font-space-mono), monospace;
   font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  color: var(--w-ink-soft);
 }
 
-.ticketKicker {
-  margin-top: 14mm;
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 12px;
-  letter-spacing: 0.18em;
+.footerBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--w-ink);
+  font-weight: 700;
 }
 
-.ticketHeadline {
-  margin-top: 9px;
-  font-size: 58px;
-  line-height: 0.92;
+.footerMark {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1.5px solid var(--w-ink);
+  background: var(--w-accent);
+  color: var(--w-accent-ink);
+  font-size: 9px;
+  transform: rotate(-6deg);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
 }
 
-.ticketLead {
-  max-width: 34ch;
-  margin: 13px 0 0;
-  color: rgba(255, 255, 255, 0.92);
-  font-size: 17px;
-  line-height: 1.4;
+/* =======================================================
+   TICKET — the offer rides the accent strap
+   ======================================================= */
+.ticketStrap {
+  flex: none;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 8mm 0 9mm;
+  background: var(--w-accent);
+  color: var(--w-accent-ink);
+  text-align: center;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.onAccent {
+  color: var(--w-accent-ink);
+}
+
+/* On the red strap the accent word is a stamped knockout — paper chip, red ink —
+   so the one-word anchor still reads against the surrounding white headline. */
+.ticketStrap .hookWin {
+  color: var(--w-accent);
+  background: var(--w-accent-ink);
+  padding: 0 0.14em;
+  border-radius: 3px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.ticketHook {
+  font-size: 46px;
+  line-height: 0.96;
+  color: var(--w-accent-ink);
 }
 
 .tearLine {
   flex: none;
   position: relative;
   height: 0;
+  z-index: 1;
 }
 
 .tearLine span {
   position: absolute;
-  top: -14px;
-  width: 28px;
-  height: 28px;
-  border: 2px solid var(--poster-ink);
+  top: -13px;
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--w-ink);
   border-radius: 50%;
-  background: var(--poster-paper);
+  background: var(--w-paper);
 }
 
 .tearLine span:first-child {
-  left: -14px;
+  left: 10mm;
 }
 
 .tearLine span:nth-child(2) {
-  right: -14px;
+  right: 10mm;
 }
 
 .tearLine i {
   position: absolute;
-  top: -1px;
-  left: 18px;
-  right: 18px;
-  border-top: 2px dashed rgba(33, 28, 22, 0.4);
+  top: 0;
+  left: 10mm;
+  right: 10mm;
+  border-top: 2px dashed var(--w-line);
 }
 
 .ticketBody {
+  position: relative;
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 11mm 13mm 0;
+  align-items: stretch;
+  padding: 7mm 0 0;
   text-align: center;
 }
 
-.ticketBody .qrBlock figcaption {
-  margin-bottom: 11px;
-  font-size: 22px;
+/* Lived-in detail — a faint coffee-ring stain on the stub. Pure decoration: it
+   makes no claim, sits behind the QR/progress, and bleeds off the lower-left
+   like a real ring left on a torn ticket. */
+.coffeeRing {
+  position: absolute;
+  bottom: 4mm;
+  left: 4mm;
+  z-index: 0;
+  width: 30mm;
+  height: 30mm;
+  pointer-events: none;
+  transform: rotate(-13deg);
+  opacity: 0.55;
+  background:
+    radial-gradient(
+      circle,
+      transparent 0 41%,
+      color-mix(in oklch, var(--w-ink) 20%, transparent) 41% 47%,
+      transparent 48%
+    );
 }
 
-.ticketQrCaption {
-  margin: 11px 0 0;
-  color: var(--poster-muted);
-  font-family: var(--font-space-mono), monospace;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.ticketSteps {
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 0;
-  width: 100%;
-  max-width: 150mm;
-  margin: 9mm 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.ticketSteps li {
+/* QR centred in the stub below the pinned friction band. */
+.ticketClaim {
+  position: relative;
+  z-index: 1;
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  position: relative;
+  justify-content: center;
+  gap: 5mm;
+  padding: 0;
 }
 
-.ticketSteps li:not(:last-child)::after {
-  content: "";
-  position: absolute;
-  top: 23px;
-  left: calc(50% + 35px);
-  width: 24px;
-  border-top: 2px dashed rgba(33, 28, 22, 0.28);
-}
+/* =======================================================
+   Screen preview scaling + print
+   ======================================================= */
+.page {
+  --poster-a4-width: 210mm;
+  --poster-a4-height: 297mm;
+  /* Vertical chrome above the sheet: the sticky PosterPreviewChrome. On
+     /app/qr/poster/* the shell drops its mobile header AND the bottom tab bar,
+     so nothing else is subtracted. A4Poster overwrites this at runtime with the
+     chrome's measured height (it grows when the guidance panel opens or the
+     template strip wraps); this default is a safe fallback before that
+     measurement lands. */
+  --poster-chrome-offset: 11rem;
+  /* The sticky bottom PosterActionBar — measured at runtime by A4Poster. The
+     meta + CTA stack on mobile (~5rem) and sit one row at sm+ (~3.5rem). */
+  --poster-action-bar-height: 5rem;
+  /* Bottom gutter reserved in the scale: the action bar plus a little stage
+     breathing room, so the sheet never lands under the bar or the home
+     indicator. The action bar itself carries env(safe-area-inset-bottom). */
+  --poster-stage-gutter: calc(var(--poster-action-bar-height) + 2rem);
+  /* Scale the whole A4 canvas to fit the viewport — never reflow inside the sheet. */
+  /* --poster-avail-width is the poster's real content width (A4Poster writes it
+     from page.clientWidth via a ResizeObserver); fall back to 100vw before JS
+     runs and on the shell-less /dev preview where they're equal. Using the
+     container width — not the viewport — keeps the sheet inside the column even
+     when the merchant sidebar narrows the content area. */
+  --poster-screen-scale: min(
+    1,
+    calc((var(--poster-avail-width, 100vw) - 48px) / var(--poster-a4-width)),
+    calc(
+      (100dvh - var(--poster-chrome-offset) - var(--poster-stage-gutter)) /
+        var(--poster-a4-height)
+    )
+  );
 
-.ticketSteps b {
-  font-size: 15px;
-  font-weight: 800;
-}
+  /* The scaled poster footprint width. The chrome + action bar size their
+     workspace to this (via --poster-frame-max) so the toolbar hugs the sheet
+     instead of flying out to the full content width on landscape desktop, where
+     the portrait sheet is narrow and the actions otherwise stranded at the
+     column edges. It floors at 32rem so the template strip + actions stay
+     comfortable, grows to match the sheet when the sheet is width-bound (tall
+     tablets / phones), and never exceeds the available column. */
+  --poster-frame-width: calc(var(--poster-a4-width) * var(--poster-screen-scale));
+  --poster-frame-max: min(
+    100%,
+    max(calc(var(--poster-frame-width) + 64px), 32rem)
+  );
 
-.ticketSteps small {
-  color: var(--poster-muted);
-  font-family: var(--font-space-mono), monospace;
-  font-size: 9px;
-  letter-spacing: 0.06em;
-  line-height: 1.4;
-  text-transform: uppercase;
-}
-
-.scanStepIcon,
-.stampStepIcon,
-.revealStepIcon {
-  width: 46px;
-  height: 46px;
+  min-height: 100dvh;
   display: grid;
-  place-items: center;
-  border-radius: 50%;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: var(--w-paper);
+  color: var(--w-ink);
+  font-family: var(--font-bricolage-grotesque), system-ui, sans-serif;
 }
 
-.scanStepIcon {
-  border: 2px dashed rgba(33, 28, 22, 0.5);
-  background: var(--poster-card);
+/* The chrome, stage, and action bar are grid items. Grid items default to
+   `min-width: auto`, so each takes its min-content width and refuses to shrink
+   below it — inside the merchant shell's sidebar-narrowed column that blew the
+   single grid track out past the container (~448px in a 288px column), clipping
+   the sheet + chrome on every phone width. `min-width: 0` lets the rows shrink
+   to the track, so the sheet's own scale stays the single source of width and
+   the page can never overflow its column. (The /dev preview — where the page
+   fills the viewport — never hit this; only the shell-narrowed route did.) */
+.page > * {
+  min-width: 0;
 }
 
-.scanStepIcon i {
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--poster-ink);
-  border-radius: 3px;
+.workspace {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+  min-width: 0;
 }
 
-.stampStepIcon {
-  border: 2px solid var(--poster-ink);
-  background: var(--poster-accent);
-  box-shadow: 2px 2px 0 var(--poster-ink);
-  color: #ffffff;
-  font-size: 23px;
-  font-weight: 800;
-  transform: rotate(-6deg);
+.stage {
+  display: grid;
+  justify-items: center;
+  /* Centre the scaled sheet box horizontally. The implicit column is now sized
+     to the scaled box (narrower than the stage), so without this the box would
+     sit at the start (left) on viewports where it doesn't fill the width. */
+  justify-content: center;
+  align-content: start;
+  /* The action bar is a sibling grid row below the stage, so the stage only
+     needs light breathing room — the bar (with its own safe-area padding) owns
+     the bottom inset. */
+  padding: 1rem 1rem 1rem;
+  background:
+    radial-gradient(
+      120% 80% at 50% 0%,
+      color-mix(in oklch, var(--w-paper-2) 70%, transparent),
+      transparent 55%
+    ),
+    var(--w-paper);
 }
 
-.revealStepIcon {
-  border: 2px solid var(--poster-ink);
-  background: var(--poster-sun);
-  box-shadow: 2px 2px 0 var(--poster-ink);
-  color: var(--poster-ink);
-  font-size: 23px;
-  font-weight: 800;
-  transform: rotate(-7deg);
+.sheetScaler {
+  /* Occupy the SCALED layout footprint. `transform: scale()` alone keeps the
+     unscaled 210mm × 297mm box, which forced the whole .page (a grid) — chrome
+     included — out to ~793px wide and clipped everything under the global
+     overflow-x:hidden on any viewport below ~793px. Sizing the box to the
+     scaled dimensions lets it actually fit narrow screens. */
+  width: calc(var(--poster-a4-width) * var(--poster-screen-scale));
+  height: calc(var(--poster-a4-height) * var(--poster-screen-scale));
+  /* Wet Ink lift: a HARD offset shadow (no blur), tokenised, applied to the
+     unscaled footprint so the lift stays constant across scales and follows the
+     sheet's rounded corners. Replaces the previous soft blurred drop-shadow,
+     which violated the "hard offset shadows only" rule. Removed in print. */
+  filter: drop-shadow(6px 6px 0 var(--w-shadow-color));
 }
 
-.ticket .posterFooter {
-  padding-top: 10px;
-  padding-bottom: 10px;
+/* The A4 sheet renders at a FIXED 210mm × 297mm here and is scaled from its
+   top-left to exactly fill the scaled `.sheetScaler` box above. Keeping this
+   inner box a fixed A4 size — not 100% — is what makes the copy templates'
+   own `width: 100%` (editorial/bold/ticket) resolve to true A4 instead of
+   double-scaling against the already-scaled parent. Centering is the stage's. */
+.sheetInner {
+  width: var(--poster-a4-width);
+  height: var(--poster-a4-height);
+  transform: scale(var(--poster-screen-scale));
+  transform-origin: top left;
 }
 
-@media screen and (max-width: 980px) {
+@media (min-width: 640px) {
   .page {
-    align-content: start;
-    overflow-x: auto;
-    padding: 16px;
+    /* Wider viewports lay the chrome in one row (no guidance open, no tab
+       wrap) and the action bar in a single row, so both fallbacks shrink.
+       Runtime measurement still wins. */
+    --poster-chrome-offset: 7rem;
+    --poster-action-bar-height: 3.5rem;
+    --poster-stage-gutter: calc(var(--poster-action-bar-height) + 2.5rem);
   }
 
-  .sheet {
-    transform: scale(0.58);
-    transform-origin: top center;
-    margin-bottom: -124mm;
+  .stage {
+    padding: 1.5rem 1.5rem 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .page {
+    /* Desktop sidecar + header print CTA replace the bottom action bar. */
+    --poster-action-bar-height: 0px;
+    --poster-stage-gutter: 2.5rem;
+    /* Let the top chrome span the full workspace instead of hugging the sheet. */
+    --poster-frame-max: 100%;
+  }
+
+  .workspace {
+    grid-template-columns: minmax(0, 1fr) 18rem;
+  }
+
+  .stage {
+    align-content: center;
+    padding: 1.5rem 2rem;
   }
 }
 
 @media print {
   @page {
-    size: A4;
+    size: A4 portrait;
     margin: 0;
+  }
+
+  :global(html),
+  :global(body) {
+    margin: 0;
+    padding: 0;
+    width: 210mm;
+    height: 297mm;
+    overflow: hidden;
+    background: #ffffff;
   }
 
   :global(body *) {
@@ -996,20 +642,94 @@
     visibility: visible;
   }
 
-  :global(.qr-poster-toolbar) {
-    display: none;
+  :global(.qr-poster-chrome) {
+    display: none !important;
   }
 
-  .page {
-    position: fixed;
-    inset: 0;
+  :global(.qr-poster-sidecar) {
+    display: none !important;
+  }
+
+  :global(.qr-poster-action-bar) {
+    display: none !important;
+  }
+
+  :global([data-slot="sidebar"]),
+  :global([data-slot="sidebar-gap"]),
+  :global([data-slot="sidebar-container"]),
+  :global([data-slot="sidebar-inset"] > header) {
+    display: none !important;
+  }
+
+  :global([data-slot="sidebar-inset"]) {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  :global([data-slot="sidebar-inset"] > div) {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+
+  .stage {
     display: block;
-    min-height: auto;
     padding: 0;
     background: #ffffff;
   }
 
+  .sheetScaler {
+    filter: none;
+  }
+
+  .page {
+    position: fixed;
+    top: 0;
+    left: 0;
+    display: block;
+    width: var(--poster-a4-width);
+    height: var(--poster-a4-height);
+    min-height: auto;
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+    background: #ffffff;
+  }
+
+  .sheetScaler {
+    width: var(--poster-a4-width);
+    height: var(--poster-a4-height);
+    margin: 0;
+  }
+
+  .sheetInner {
+    width: var(--poster-a4-width);
+    height: var(--poster-a4-height);
+    transform: none;
+  }
+
   .sheet {
+    width: var(--poster-a4-width);
+    height: var(--poster-a4-height);
+    min-height: var(--poster-a4-height);
+    max-height: var(--poster-a4-height);
     box-shadow: none;
+    margin: 0;
+    page-break-after: avoid;
+    break-after: avoid-page;
+  }
+
+  .editorial,
+  .ticket,
+  .bold,
+  .card,
+  .frictionBand,
+  .ticketStrap,
+  .footerMark,
+  .convQrHolder,
+  .boldQrHolder,
+  .ticketQrHolder {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 }

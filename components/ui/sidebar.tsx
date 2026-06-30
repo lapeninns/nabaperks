@@ -64,6 +64,12 @@ function SidebarProvider({
   const [internalOpen, setInternalOpen] = React.useState(defaultOpen)
   const open = openProp ?? internalOpen
 
+  React.useEffect(() => {
+    if (openProp === undefined) {
+      setInternalOpen(defaultOpen)
+    }
+  }, [defaultOpen, openProp])
+
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
       const nextOpen = typeof value === "function" ? value(open) : value

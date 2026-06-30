@@ -7,6 +7,7 @@ import {
 } from "@/lib/merchant/qr-code"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { getMerchantBilling } from "@/lib/merchant/billing"
+import { QR_LAUNCH_TAB_PATH, QR_POSTER_PATH } from "@/lib/merchant/qr-nav"
 import type {
   LaunchChecklistStepId,
   LaunchHubTab,
@@ -115,7 +116,7 @@ export function buildLaunchReadiness({
       tab: "qr" as const,
       label: LAUNCH_SETUP_STEP_LABELS.qr,
       ready: qrReady,
-      href: "/app/launch?tab=qr",
+      href: qrReady ? QR_POSTER_PATH : QR_LAUNCH_TAB_PATH,
       actionLabel: qrReady ? "Open venue QR" : "Create your QR",
     },
   }

@@ -269,7 +269,7 @@ export async function MerchantCompactActivityStream({
         emptyState={
           <EmptyState
             title="No activity yet"
-            description="Activity will appear here after members join, stamps are issued, rewards are redeemed, or QR assets are downloaded."
+            description="Activity will appear after members join, add stamps, redeem rewards, or download QR assets."
             icon={Activity03Icon}
             className="bg-background"
             // Nest under the card's "Recent activity" h2 instead of peering with it.

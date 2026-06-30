@@ -55,14 +55,14 @@ export function LaunchSaveNextAction({
       )}
       <div className="flex flex-wrap gap-2">
         {nextHref ? (
-          <Button asChild size="sm">
+          <Button asChild>
             <Link href={nextHref}>
               {primaryLabel ?? `Continue to ${nextLabel}`}
               <Icon icon={ArrowRight02Icon} size={15} />
             </Link>
           </Button>
         ) : null}
-        <Button asChild variant="outline" size="sm">
+        <Button asChild variant="outline">
           <Link href={stayHref}>Stay on this step</Link>
         </Button>
       </div>

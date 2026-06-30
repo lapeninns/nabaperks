@@ -3,7 +3,7 @@
 import type { InputHTMLAttributes, ReactNode } from "react"
 
 export const onboardingInputClassName =
-  "h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm outline-none transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none focus:border-ring focus:ring-3 focus:ring-ring/25"
+  "h-12 rounded-lg border-2 border-ink bg-background px-4 text-sm outline-none transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/35"
 
 export type BusinessTypeOption = {
   readonly value: string
@@ -89,7 +89,7 @@ export function OnboardingFormError({
   return (
     <p
       role="alert"
-      className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+      className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
     >
       {children}
     </p>

@@ -1,0 +1,297 @@
+"use client"
+
+import { useEffect, useRef, useState, type Ref } from "react"
+import Link from "next/link"
+import {
+  ArrowLeft01Icon,
+  InformationCircleIcon,
+  PrinterIcon,
+} from "@hugeicons/core-free-icons"
+
+import { Icon } from "@/components/brand"
+import { Button } from "@/components/ui/button"
+import { SidebarTrigger } from "@/components/ui/sidebar"
+import {
+  QR_POSTER_TEMPLATES,
+  type QrPosterTemplateId,
+} from "@/lib/qr/poster-templates"
+import { cn } from "@/lib/utils"
+
+type PosterChromeProps = {
+  readonly template: QrPosterTemplateId
+  readonly templateName: string
+  readonly merchantName: string
+  readonly locationName: string
+  readonly qrCodeId?: string
+  readonly backHref?: string
+}
+
+type PosterPreviewChromeProps = PosterChromeProps & {
+  /** Forwarded to the chrome's root so the sheet scaler can measure its height. */
+  readonly ref?: Ref<HTMLElement>
+}
+
+/**
+ * Per-template accent on the active pill. Light templates tint with deeper
+ * paper; the two dark posters (bold, northstar) invert to ink so the active
+ * state still reads on a white sheet preview.
+ */
+const TEMPLATE_TAB_ACCENT: Record<QrPosterTemplateId, string> = {
+  editorial:
+    "data-[active=true]:border-l-[var(--w-cobalt)] data-[active=true]:bg-[var(--w-paper-2)]",
+  bold: "data-[active=true]:border-l-ink data-[active=true]:bg-ink data-[active=true]:text-[var(--w-paper)]",
+  ticket:
+    "data-[active=true]:border-l-primary data-[active=true]:bg-[var(--w-paper-2)]",
+  northstar:
+    "data-[active=true]:border-l-[var(--w-sun)] data-[active=true]:bg-ink data-[active=true]:text-[var(--w-paper)]",
+  thermal:
+    "data-[active=true]:border-l-[var(--w-ink-soft)] data-[active=true]:bg-[var(--w-paper-2)]",
+}
+
+function venueLabelOf(merchantName: string, locationName: string) {
+  return locationName.trim() === merchantName.trim()
+    ? merchantName
+    : `${merchantName} · ${locationName}`
+}
+
+function PrintButton({ className }: { readonly className?: string }) {
+  return (
+    <Button
+      type="button"
+      variant="reward"
+      className={cn("min-h-11 sm:min-h-9", className)}
+      onClick={() => window.print()}
+    >
+      <Icon icon={PrinterIcon} size={16} />
+      Print or save PDF
+    </Button>
+  )
+}
+
+function PosterGuidanceText() {
+  return (
+    <p className="rounded-lg border-2 border-dashed border-ink/25 bg-[var(--w-paper-2)]/50 px-3 py-2 text-sm leading-6 text-muted-foreground">
+      Preview matches print. Use{" "}
+      <strong className="font-extrabold text-foreground">A4 portrait</strong> at{" "}
+      <strong className="font-extrabold text-foreground">100% scale</strong> — no
+      fit-to-page. Safe margins are built in for framing.
+    </p>
+  )
+}
+
+function PosterTemplateLinks({
+  template,
+  qrCodeId,
+  layout,
+  activePillRef,
+  navRef,
+}: {
+  readonly template: QrPosterTemplateId
+  readonly qrCodeId: string
+  readonly layout: "strip" | "stack"
+  activePillRef?: Ref<HTMLAnchorElement>
+  navRef?: Ref<HTMLElement>
+}) {
+  const isStrip = layout === "strip"
+
+  return (
+    <nav
+      ref={navRef}
+      aria-label="Poster templates"
+      className={cn(
+        isStrip
+          ? "mx-auto flex w-full min-w-0 gap-2 overflow-x-auto px-4 pb-2.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:px-6 lg:hidden [&::-webkit-scrollbar]:hidden"
+          : "hidden min-w-0 flex-col gap-2 lg:flex"
+      )}
+    >
+      {QR_POSTER_TEMPLATES.map((item) => {
+        const isActive = item.id === template
+
+        return (
+          <Link
+            key={item.id}
+            ref={isActive ? activePillRef : undefined}
+            href={`/app/qr/poster/${item.id}?qr=${qrCodeId}`}
+            title={item.description}
+            data-active={isActive ? "true" : "false"}
+            aria-current={isActive ? "page" : undefined}
+            className={cn(
+              "border-2 border-ink border-l-[3px] bg-card font-extrabold shadow-sm transition-[transform,box-shadow] hover:-translate-y-px hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none motion-reduce:transition-none motion-reduce:hover:translate-y-0",
+              isStrip
+                ? "flex min-h-11 shrink-0 items-center rounded-lg px-3.5 text-sm leading-none whitespace-nowrap"
+                : "flex min-h-10 w-full items-center rounded-lg px-3 py-2.5 text-sm leading-snug",
+              TEMPLATE_TAB_ACCENT[item.id],
+              isActive && "shadow-md"
+            )}
+          >
+            <span className="block">{item.name}</span>
+            {!isStrip ? (
+              <span className="mt-0.5 block text-xs leading-snug font-medium text-muted-foreground normal-case">
+                {item.description}
+              </span>
+            ) : null}
+          </Link>
+        )
+      })}
+    </nav>
+  )
+}
+
+export function PosterPreviewChrome({
+  template,
+  templateName,
+  merchantName,
+  locationName,
+  qrCodeId,
+  backHref = "/app/qr",
+  ref,
+}: PosterPreviewChromeProps) {
+  const venueLabel = venueLabelOf(merchantName, locationName)
+
+  const [guidanceOpen, setGuidanceOpen] = useState(false)
+  const navRef = useRef<HTMLElement>(null)
+  const activePillRef = useRef<HTMLAnchorElement>(null)
+
+  // Keep the active template pill in view as the strip scrolls (the active one
+  // can be the 4th/5th pill, off-screen on phones). Scroll the nav element
+  // itself — not scrollIntoView, which would also move the surrounding page.
+  useEffect(() => {
+    const nav = navRef.current
+    const pill = activePillRef.current
+    if (!nav || !pill) return
+    const target = pill.offsetLeft - (nav.clientWidth - pill.clientWidth) / 2
+    nav.scrollTo({ left: Math.max(0, target) })
+  }, [template])
+
+  return (
+    <header
+      ref={ref}
+      className="qr-poster-chrome sticky top-0 z-20 border-b-2 border-ink bg-[var(--w-paper)]/95 backdrop-blur-sm"
+    >
+      <div className="mx-auto flex w-full max-w-[var(--poster-frame-max)] items-center gap-3 px-4 py-2.5 sm:px-6 sm:py-3 lg:max-w-none">
+        <SidebarTrigger
+          className="size-11 shrink-0 md:hidden"
+          aria-label="Open menu"
+        />
+
+        <Button
+          asChild
+          variant="outline"
+          size="sm"
+          className="min-h-11 shrink-0 sm:min-h-9"
+        >
+          <Link href={backHref}>
+            <Icon icon={ArrowLeft01Icon} size={16} />
+            Back
+          </Link>
+        </Button>
+
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-base leading-tight font-extrabold text-balance sm:text-lg">
+            {templateName}
+          </h1>
+          <p className="truncate font-mono text-[10px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+            {venueLabel}
+          </p>
+        </div>
+
+        <PrintButton className="hidden shrink-0 lg:inline-flex" />
+
+        <button
+          type="button"
+          aria-expanded={guidanceOpen}
+          aria-controls="poster-guidance-mobile"
+          onClick={() => setGuidanceOpen((open) => !open)}
+          className={cn(
+            "pressable inline-grid size-11 shrink-0 place-items-center rounded-full border-2 border-ink bg-card text-ink shadow-sm transition-[transform,box-shadow,background-color] hover:-translate-y-px hover:shadow-md focus-visible:ring-3 focus-visible:ring-primary/35 focus-visible:outline-none motion-reduce:transition-none lg:hidden",
+            guidanceOpen && "bg-[var(--w-paper-2)]"
+          )}
+        >
+          <Icon icon={InformationCircleIcon} size={18} />
+          <span className="sr-only">Print guidance</span>
+        </button>
+      </div>
+
+      {qrCodeId ? (
+        <PosterTemplateLinks
+          template={template}
+          qrCodeId={qrCodeId}
+          layout="strip"
+          activePillRef={activePillRef}
+          navRef={navRef}
+        />
+      ) : null}
+
+      {guidanceOpen ? (
+        <div
+          id="poster-guidance-mobile"
+          className="mx-auto w-full max-w-[var(--poster-frame-max)] px-4 pb-3 sm:px-6 lg:hidden"
+        >
+          <PosterGuidanceText />
+        </div>
+      ) : null}
+    </header>
+  )
+}
+
+/**
+ * Desktop side panel — templates, print guidance, and meta. Sits beside the
+ * scaled A4 stage at lg+ so the narrow sheet preview can grow without the
+ * chrome hugging a phone-width column.
+ */
+export function PosterDesktopSidecar({
+  template,
+  qrCodeId,
+}: Pick<PosterChromeProps, "template" | "qrCodeId">) {
+  if (!qrCodeId) return null
+
+  return (
+    <aside className="qr-poster-sidecar hidden min-h-0 min-w-0 flex-col gap-4 border-l-2 border-ink bg-[var(--w-paper)]/95 p-4 lg:flex lg:overflow-y-auto">
+      <div className="grid gap-2">
+        <p className="font-mono text-[10px] font-bold tracking-[0.12em] text-muted-foreground uppercase">
+          Templates
+        </p>
+        <PosterTemplateLinks
+          template={template}
+          qrCodeId={qrCodeId}
+          layout="stack"
+        />
+      </div>
+
+      <div className="grid gap-2">
+        <p className="font-mono text-[10px] font-bold tracking-[0.12em] text-muted-foreground uppercase">
+          Print setup
+        </p>
+        <PosterGuidanceText />
+        <p className="font-mono text-[10px] font-bold tracking-[0.1em] text-muted-foreground uppercase">
+          A4 portrait · 210×297 mm · print at 100%
+        </p>
+      </div>
+    </aside>
+  )
+}
+
+type PosterActionBarProps = {
+  /** Forwarded so A4Poster can measure the bar and reserve space in the scale. */
+  readonly ref?: Ref<HTMLElement>
+}
+
+/**
+ * Sticky bottom action bar — the print CTA lives in the thumb zone on mobile.
+ * At lg+ the header and sidecar own print actions, so this bar is hidden.
+ */
+export function PosterActionBar({ ref }: PosterActionBarProps) {
+  return (
+    <footer
+      ref={ref}
+      className="qr-poster-action-bar border-t-2 border-ink bg-[var(--w-paper)]/95 backdrop-blur-sm lg:hidden"
+    >
+      <div className="mx-auto grid w-full max-w-[var(--poster-frame-max)] gap-2 px-4 py-2.5 sm:grid-cols-[1fr_auto] sm:items-center sm:gap-4 sm:px-6 sm:py-3">
+        <p className="font-mono text-[10px] font-bold tracking-[0.1em] text-muted-foreground uppercase">
+          A4 portrait · 210×297 mm · print at 100%
+        </p>
+        <PrintButton className="w-full sm:w-fit" />
+      </div>
+    </footer>
+  )
+}

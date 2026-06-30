@@ -271,7 +271,7 @@ export function VenuePlaceAutocomplete({
 
   return (
     <div className="grid gap-2">
-      <span id={labelId} className="text-sm font-bold">
+      <span id={labelId} className="eyebrow">
         Find your venue
       </span>
       <div

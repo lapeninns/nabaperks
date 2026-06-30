@@ -1,12 +1,9 @@
 import Link from "next/link"
 import type { ReactNode } from "react"
 
-import { MonoTag } from "@/components/brand"
+import { CategoryBadge } from "@/components/brand"
 import { Button } from "@/components/ui/button"
-import type {
-  ActivityCategory,
-  ActivityDisplayRow,
-} from "@/lib/merchant/activity"
+import type { ActivityDisplayRow } from "@/lib/merchant/activity"
 import { cn } from "@/lib/utils"
 
 export function ActivityCompactFeed({
@@ -37,15 +34,7 @@ export function ActivityCompactFeed({
         >
           <div className="grid gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              <MonoTag
-                tone={categoryBadgeTone(row.category)}
-                className={cn(
-                  categoryBadgeTone(row.category) === "plain" &&
-                    categoryBadgeClass(row.category)
-                )}
-              >
-                {row.badgeLabel}
-              </MonoTag>
+              <CategoryBadge category={row.category} label={row.badgeLabel} />
               <time
                 dateTime={row.timestamp}
                 className="numeric-tabular font-mono text-xs text-muted-foreground"
@@ -56,7 +45,12 @@ export function ActivityCompactFeed({
             <p className="text-sm leading-6 font-bold">{row.headline}</p>
           </div>
           {row.primaryAction ? (
-            <Button asChild variant="secondary" size="sm">
+            <Button
+              asChild
+              variant="secondary"
+              size="sm"
+              className="min-h-11 sm:min-h-9"
+            >
               <Link href={row.primaryAction.href}>
                 {row.primaryAction.label}
               </Link>
@@ -66,36 +60,4 @@ export function ActivityCompactFeed({
       ))}
     </ol>
   )
-}
-
-function categoryBadgeTone(
-  category: ActivityCategory
-): "plain" | "accent" | "ink" | "leaf" | "sun" {
-  switch (category) {
-    case "customer":
-      return "accent"
-    case "stamp":
-      return "ink"
-    case "reward":
-      return "leaf"
-    case "qr":
-      return "sun"
-    case "account":
-      return "plain"
-  }
-}
-
-function categoryBadgeClass(category: ActivityCategory) {
-  switch (category) {
-    case "customer":
-      return "bg-accent text-accent-foreground"
-    case "stamp":
-      return "bg-primary/15 text-primary"
-    case "reward":
-      return "bg-reward/15 text-reward"
-    case "qr":
-      return "bg-qr/15 text-qr"
-    case "account":
-      return "bg-secondary text-secondary-foreground"
-  }
 }

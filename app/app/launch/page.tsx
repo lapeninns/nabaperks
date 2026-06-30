@@ -29,6 +29,7 @@ import {
   type LaunchReadinessTab,
 } from "@/lib/merchant/launch-readiness"
 import { resolveLaunchContinueHref } from "@/lib/merchant/launch-tab-advance"
+import { QR_LAUNCH_TAB_PATH } from "@/lib/merchant/qr-nav"
 import { getQrSetupFresh, type QrSetup } from "@/lib/merchant/qr-code"
 
 export const dynamic = "force-dynamic"
@@ -270,6 +271,7 @@ function LaunchActivePanel({
           continueHref={continueHref}
           launchReady={launchReady}
           billingHref={billingHref}
+          returnHref={QR_LAUNCH_TAB_PATH}
         />
       )}
     </div>

@@ -40,10 +40,10 @@ export async function ProfilePanel() {
   })
 
   return (
-    <section className="grid gap-5">
-      <section className="surface-card grid gap-3 p-5">
+    <section className="grid min-w-0 gap-5">
+      <section className="surface-card grid min-w-0 gap-3 p-5">
         <p className="eyebrow">What customers see</p>
-        <p className="text-2xl leading-tight font-extrabold">
+        <p className="text-2xl leading-tight font-extrabold break-words">
           {profile.merchant.business_name}
         </p>
         <p className="text-sm leading-6 text-muted-foreground">

@@ -235,7 +235,7 @@ export function LaunchReadinessPanel({
               ? `Next up: ${nextStep.actionLabel}.`
               : "Run through the checklist before you print."}
           </p>
-          <Button asChild variant="secondary" size="sm">
+          <Button asChild variant="secondary">
             <Link href={nextStep?.href ?? "/app/launch"}>
               {nextStep?.actionLabel ?? "Open setup"}
               <Icon icon={ArrowRight02Icon} size={15} />

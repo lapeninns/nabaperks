@@ -1,152 +1,116 @@
-import type { ReactNode } from "react"
+import type { CSSProperties, ReactNode } from "react"
+
+import { StampDot } from "@/components/loyalty/stamp-dot"
 
 import styles from "./a4-poster.module.css"
-import { FALLBACK_URL, type PosterCopy } from "./poster-copy"
+import type { PosterCopy } from "./poster-copy"
 
-export function BrandLockup({
-  inverted = false,
+const POSTER_STAMP_TILTS = ["-7deg", "-5deg", "-8deg", "-6deg"] as const
+
+/** The giant promise, with the emotional anchor word in accent red. */
+export function Headline({
+  className,
+  copy,
 }: {
-  readonly inverted?: boolean
+  readonly className: string
+  readonly copy: PosterCopy
 }) {
+  const { headline } = copy
+
   return (
-    <div className={styles.brand}>
-      <span className={inverted ? styles.brandMarkInverted : styles.brandMark}>
-        ✱
-      </span>
-      <span>nabaperks</span>
-    </div>
+    <h1 className={className}>
+      {headline.beforeAccent}
+      <span className={styles.hookWin}>{headline.accent}</span>
+      {headline.afterAccent}
+    </h1>
   )
 }
 
-export function Ticker() {
-  return (
-    <div className={styles.ticker}>
-      <p>
-        First stamp free&nbsp;&nbsp;✱&nbsp;&nbsp;No
-        app&nbsp;&nbsp;✱&nbsp;&nbsp;Everyone
-        wins&nbsp;&nbsp;✱&nbsp;&nbsp;Scanned at the
-        counter&nbsp;&nbsp;✱&nbsp;&nbsp;First stamp
-        free&nbsp;&nbsp;✱&nbsp;&nbsp;No app&nbsp;&nbsp;✱&nbsp;&nbsp;Everyone
-        wins&nbsp;&nbsp;✱
-      </p>
-    </div>
-  )
-}
-
-export function WatermarkFrame() {
-  return (
-    <div aria-hidden="true" className={styles.watermarkFrame}>
-      <div className={styles.watermarkAccent}>✱</div>
-      <div className={styles.watermarkSun}>✱</div>
-    </div>
-  )
-}
-
-export function StampProgress({ copy }: { readonly copy: PosterCopy }) {
-  return (
-    <div>
-      <p className={styles.progressLabel}>{copy.progressLabel}</p>
-      <div className={styles.progressDots}>
-        <div className={styles.progressActive}>
-          <span>✱</span>
-          <b>FREE</b>
-        </div>
-        <i />
-        <span className={styles.progressEmpty}>2</span>
-        <i />
-        <span className={styles.progressReveal}>?</span>
-      </div>
-    </div>
-  )
-}
-
-export function EditorialSteps({ copy }: { readonly copy: PosterCopy }) {
-  return (
-    <ol className={styles.editorialSteps}>
-      <li>
-        <b>Scan &amp; keep your card</b>
-        <span>20 seconds in your browser. First stamp's on us.</span>
-      </li>
-      <li>
-        <b>{copy.secondStepTitle}</b>
-        <span>{copy.secondStepBody}</span>
-      </li>
-      <li>
-        <b>Break the seal</b>
-        <span>
-          {copy.revealBody} <strong>Everyone wins.</strong>
-        </span>
-      </li>
-    </ol>
-  )
-}
-
-export function TicketSteps({ copy }: { readonly copy: PosterCopy }) {
-  return (
-    <ol className={styles.ticketSteps}>
-      <li>
-        <span className={styles.scanStepIcon}>
-          <i />
-        </span>
-        <b>Scan</b>
-        <small>Keep your card</small>
-      </li>
-      <li>
-        <span className={styles.stampStepIcon}>✱</span>
-        <b>Stamp</b>
-        <small>{copy.ticketVisitLabel}</small>
-      </li>
-      <li>
-        <span className={styles.revealStepIcon}>?</span>
-        <b>Reveal</b>
-        <small>Everyone wins</small>
-      </li>
-    </ol>
-  )
+/** The friction-killer line, styled as an understated disclaimer. */
+export function FrictionBand({ text }: { readonly text: string }) {
+  return <p className={styles.frictionBand}>{text}</p>
 }
 
 export function QrBlock({
   qrDataUrl,
   title,
   holderClassName,
-  burstClassName,
   footer,
 }: {
   readonly qrDataUrl: string
   readonly title?: ReactNode
   readonly holderClassName: string
-  readonly burstClassName: string
   readonly footer?: ReactNode
 }) {
   return (
     <figure className={styles.qrBlock}>
       {title ? <figcaption>{title}</figcaption> : null}
-      <div className={styles.qrWrap}>
-        <div className={`${styles.scanBurst} ${burstClassName}`}>
-          <span>
-            Scan
-            <br />
-            me
-          </span>
-        </div>
-        <div className={holderClassName}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- data URL QR is generated server-side for print */}
-          <img
-            src={qrDataUrl}
-            alt="Nabaperks QR code"
-            width={900}
-            height={900}
-          />
-        </div>
+      <div className={holderClassName}>
+        {/* Notification badge — the dopamine of one thing waiting. */}
+        <span aria-hidden="true" className={styles.qrBadge}>
+          1
+        </span>
+        {/* eslint-disable-next-line @next/next/no-img-element -- data URL QR is generated server-side for print */}
+        <img src={qrDataUrl} alt="Nabaperks QR code" width={900} height={900} />
       </div>
       {footer}
     </figure>
   )
 }
 
+/**
+ * Under the QR: a red accent line (the win→scan visual circuit), the
+ * endowed-progress stamp row, and the progress line. Stamps use the shared
+ * Wet Ink StampDot so posters match the live loyalty card.
+ */
+export function QrProgress({ copy }: { readonly copy: PosterCopy }) {
+  const venueName = copy.locationName || copy.businessName
+
+  return (
+    <div className={styles.qrProgress}>
+      <span
+        aria-hidden="true"
+        className={styles.qrAccentLine}
+        data-solo={copy.stampsRequired === 1 ? "true" : undefined}
+      />
+      <span aria-hidden="true" className={styles.progressStamps}>
+        {Array.from({ length: copy.stampsRequired }, (_, index) => {
+          const earned = index === 0
+          const slotNumber = index + 1
+
+          return (
+            <span
+              key={slotNumber}
+              className={styles.progressStampSlot}
+              style={
+                earned
+                  ? ({
+                      "--stamp-rot":
+                        POSTER_STAMP_TILTS[index % POSTER_STAMP_TILTS.length],
+                    } as CSSProperties)
+                  : undefined
+              }
+            >
+              <StampDot
+                earned={earned}
+                label={`Stamp ${slotNumber} ${earned ? "earned" : "empty"}`}
+                slotNumber={slotNumber}
+                showEmptySlotNumber={!earned}
+                venueName={venueName}
+              />
+            </span>
+          )
+        })}
+      </span>
+      <p className={styles.attainability}>{copy.progress}</p>
+    </div>
+  )
+}
+
+/** The ticket perforation — punch circles pulled inward off the no-print band. */
 export function TearLine() {
   return (
-    <div className={styles.tearLine}>
+    <div aria-hidden="true" className={styles.tearLine}>
       <span />
       <span />
       <i />
@@ -154,15 +118,16 @@ export function TearLine() {
   )
 }
 
-export function PosterFooter({ long = false }: { readonly long?: boolean }) {
+export function PosterFooter({ copy }: { readonly copy: PosterCopy }) {
   return (
     <footer className={styles.posterFooter}>
-      <span>{FALLBACK_URL}</span>
-      <span>
-        {long
-          ? "One stamp per business day · Powered by nabaperks"
-          : "Powered by nabaperks"}
+      <span className={styles.footerBrand}>
+        <span aria-hidden="true" className={styles.footerMark}>
+          ✱
+        </span>
+        Powered by nabaperks
       </span>
+      <span>{copy.reassurance}</span>
     </footer>
   )
 }

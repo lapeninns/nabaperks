@@ -439,6 +439,14 @@ set reward_name = excluded.reward_name,
     is_active = excluded.is_active,
     display_order = excluded.display_order;
 
+-- Reconcile venue-slug join QRs to the stable fixture ids before upserting.
+delete from public.qr_codes
+where qr_id in ('old-crown-girton', 'camden-market-unit')
+  and id not in (
+    '14000000-0000-0000-0000-000000000001',
+    '14000000-0000-0000-0000-000000000002'
+  );
+
 insert into public.qr_codes (
   id,
   qr_id,
@@ -466,6 +474,10 @@ values
   )
 on conflict (id) do update
 set qr_id = excluded.qr_id,
+    merchant_id = excluded.merchant_id,
+    location_id = excluded.location_id,
+    loyalty_card_id = excluded.loyalty_card_id,
+    destination_type = excluded.destination_type,
     is_active = true;
 
 insert into public.customers (id, auth_user_id, email)

@@ -43,11 +43,6 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
-        source: "/app/qr",
-        destination: "/app/launch?tab=qr",
-        permanent: true,
-      },
-      {
         source: "/wallet",
         destination: "/home",
         permanent: true,

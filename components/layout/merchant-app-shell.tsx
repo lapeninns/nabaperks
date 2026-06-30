@@ -25,6 +25,7 @@ export function MerchantAppShell({
   activePath,
   variant = "full",
   defaultSidebarOpen = true,
+  hideMobileChrome = false,
 }: {
   children: ReactNode
   signOutAction: ComponentProps<"form">["action"]
@@ -32,12 +33,15 @@ export function MerchantAppShell({
   variant?: "full" | "setup"
   /** Seeds the desktop expanded/collapsed state from the persisted cookie. */
   defaultSidebarOpen?: boolean
+  /** Drops the mobile sticky header + bottom tab bar for full-bleed surfaces
+   *  like the poster print preview, which carry their own focused chrome. */
+  hideMobileChrome?: boolean
 }) {
   if (variant === "setup") {
     return (
       <div className="min-h-svh bg-background [--setup-header-h:3.5rem] sm:[--setup-header-h:4rem]">
-        <header className="fixed inset-x-0 top-0 z-40 border-b-2 border-ink bg-card/95 backdrop-blur-sm supports-[backdrop-filter]:bg-card/90">
-          <div className="mx-auto flex h-(--setup-header-h) w-full max-w-6xl min-w-0 items-center justify-between gap-x-3 px-4 sm:px-6">
+        <header className="fixed inset-x-0 top-0 z-40 border-b-2 border-ink bg-card">
+          <div className="mx-auto flex h-(--setup-header-h) w-full max-w-6xl min-w-0 items-center justify-between gap-x-3 overflow-x-clip px-4 sm:px-6">
             <Logo
               href="/app/launch"
               wordmarkClassName="hidden sm:inline"
@@ -59,9 +63,15 @@ export function MerchantAppShell({
                 </Link>
               </Button>
               <form action={signOutAction}>
-                <Button type="submit" variant="outline" size="sm">
+                <Button
+                  type="submit"
+                  variant="outline"
+                  size="sm"
+                  aria-label="Log out"
+                  title="Log out"
+                >
                   <Icon icon={Logout01Icon} size={16} />
-                  Log out
+                  <span className="hidden sm:inline">Log out</span>
                 </Button>
               </form>
             </div>
@@ -89,7 +99,11 @@ export function MerchantAppShell({
             <span data-collapse-hide className="inline-flex min-w-0">
               <Logo href="/app" />
             </span>
-            <SidebarTrigger className="hidden shrink-0 md:flex" />
+            <SidebarTrigger
+              className="hidden shrink-0 md:flex"
+              aria-label="Toggle navigation"
+              title="Toggle navigation"
+            />
           </div>
         </SidebarHeader>
         <SidebarContent className="flex flex-1 flex-col px-2 py-3">
@@ -116,16 +130,34 @@ export function MerchantAppShell({
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="min-w-0">
-        <header className="sticky top-0 z-30 flex min-h-14 items-center gap-3 border-b-2 border-ink bg-card px-4 py-2 md:hidden">
-          <SidebarTrigger className="size-11 shrink-0" aria-label="Open menu" />
-          <Logo href="/app" />
-        </header>
-        <div className="w-full px-4 py-8 pb-32 sm:px-6 md:pb-10">
-          <div className="mx-auto w-full max-w-6xl">{children}</div>
+        {hideMobileChrome ? null : (
+          <header className="sticky top-0 z-30 flex min-h-14 items-center gap-3 border-b-2 border-ink bg-card px-4 py-2 pt-[calc(0.5rem_+_env(safe-area-inset-top))] md:hidden">
+            <SidebarTrigger className="size-11 shrink-0" aria-label="Open menu" />
+            <Logo href="/app" />
+          </header>
+        )}
+        <div
+          className={
+            hideMobileChrome
+              ? "w-full min-w-0"
+              : "w-full px-4 py-8 pb-32 sm:px-6 md:pb-10"
+          }
+        >
+          <div
+            className={
+              hideMobileChrome
+                ? "w-full min-w-0"
+                : "mx-auto w-full max-w-6xl"
+            }
+          >
+            {children}
+          </div>
         </div>
-        <Suspense fallback={null}>
-          <MerchantTabBar />
-        </Suspense>
+        {hideMobileChrome ? null : (
+          <Suspense fallback={null}>
+            <MerchantTabBar />
+          </Suspense>
+        )}
       </SidebarInset>
     </SidebarProvider>
   )

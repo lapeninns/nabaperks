@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useState, type InputHTMLAttributes } from "react"
+import { useActionState, useState } from "react"
 
 import {
   saveVenueLocationAction,
@@ -190,28 +190,5 @@ export function VenueLocationForm({
         {pending ? "Saving location..." : "Save venue address"}
       </Button>
     </form>
-  )
-}
-
-function Field({
-  id,
-  label,
-  error,
-  ...props
-}: InputHTMLAttributes<HTMLInputElement> & {
-  id: string
-  label: string
-  error?: string
-}) {
-  return (
-    <label className="grid gap-2" htmlFor={id}>
-      <span className="text-sm font-bold">{label}</span>
-      <input
-        id={id}
-        {...props}
-        className="h-11 rounded-lg border-2 border-ink bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
-      />
-      {error ? <span className="text-sm text-destructive">{error}</span> : null}
-    </label>
   )
 }

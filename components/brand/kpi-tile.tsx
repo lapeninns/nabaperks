@@ -54,15 +54,19 @@ export function KpiTile({
           {label}
         </p>
         <div className="flex items-end justify-between gap-3">
-          <span className="numeric-tabular text-2xl leading-none font-extrabold sm:text-[1.75rem]">
+          <span className="numeric-tabular min-w-0 text-2xl leading-none font-extrabold sm:text-[1.75rem]">
             {value}
           </span>
           {series && series.length > 1 ? (
+            // Hidden below ~360px: on the 2-up phone grid a 4–5 digit value
+            // (e.g. "18,706") holds its min-content width and would starve a
+            // shrinkable 64px sparkline into a thin line. Show it once the tile
+            // is wide enough for both, and `shrink-0` keeps the chart legible.
             <Sparkline
               data={series}
               color={strokeColor}
               height={28}
-              className="w-16 sm:w-20"
+              className="hidden w-16 shrink-0 min-[360px]:block sm:w-20"
             />
           ) : null}
         </div>

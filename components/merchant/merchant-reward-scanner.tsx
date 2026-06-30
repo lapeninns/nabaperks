@@ -13,6 +13,26 @@ import { Eyebrow, ReceiptCard } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import { normalizeScannedRewardDestination } from "@/lib/merchant/reward-scanner"
 
+// Single source for the scan-card header. The live scanner, the dynamic-import
+// fallback, and the route-level loading skeleton all render this so the
+// eyebrow/title/lede/size stay in lockstep with one copy edit, and the title
+// matches the PageTitle size used by the reward-scan deep-link page
+// (text-3xl sm:text-4xl) rather than the old bespoke text-2xl heading.
+export function ScanCardHeader() {
+  return (
+    <div className="grid gap-1.5">
+      <Eyebrow>Reward collection</Eyebrow>
+      <h1 className="text-3xl leading-tight font-extrabold tracking-[-0.01em] sm:text-4xl">
+        Scan reward QR
+      </h1>
+      <p className="text-sm leading-6 text-muted-foreground">
+        Point your camera at the QR on the member&apos;s phone. We will open the
+        collection screen when it is ready to mark collected.
+      </p>
+    </div>
+  )
+}
+
 type CameraErrorReason = "denied" | "not-found" | "busy" | "unavailable"
 
 type ScannerStatus =
@@ -25,7 +45,17 @@ type ScannerStatus =
 const SCANNER_ELEMENT_ID = "nabaperks-merchant-reward-scanner"
 const SCAN_CONFIG = {
   fps: 10,
-  qrbox: { width: 250, height: 250 },
+  // Viewport-relative shaded box: scale to 80% of the smaller camera edge so it
+  // never crowds the ~272px inner width of the p-6 ReceiptCard on a 320px phone,
+  // while still capping at 250px on larger screens. >=180px keeps the box usable
+  // on the smallest target. UI/config only — no scan semantics change.
+  qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+    const edge = Math.max(
+      180,
+      Math.min(250, Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.8))
+    )
+    return { width: edge, height: edge }
+  },
   aspectRatio: 1,
   disableFlip: false,
 }
@@ -235,19 +265,12 @@ export function MerchantRewardScanner() {
 
   return (
     <ReceiptCard edge className="grid gap-5 p-6">
-      <div className="grid gap-1.5">
-        <Eyebrow>Reward collection</Eyebrow>
-        <h1 className="text-2xl leading-tight font-extrabold tracking-[-0.01em]">
-          Scan reward QR
-        </h1>
-        <p className="text-sm leading-6 text-muted-foreground">
-          Point your camera at the QR on the member&apos;s phone. We will open
-          the collection screen when it is ready to mark collected.
-        </p>
-      </div>
+      <ScanCardHeader />
 
       <div
         id={SCANNER_ELEMENT_ID}
+        role="img"
+        aria-label="Camera viewfinder"
         className="min-h-64 overflow-hidden rounded-[var(--radius-lg)] border-2 border-dashed border-ink/35 bg-card [&_video]:min-h-64 [&_video]:object-cover"
       />
 
