@@ -3,9 +3,20 @@ import { join } from "node:path"
 
 const projectDir = process.cwd()
 const nodeEnv = process.env.NODE_ENV || "development"
+const checkProfile = parseCheckProfile(process.argv.slice(2))
 const envContract = JSON.parse(
   readFileSync(join(projectDir, "config/env-contract.json"), "utf8")
 )
+const productionRequiredEnvNames = new Set([
+  "CRON_SECRET",
+  "NEXT_PUBLIC_POSTHOG_HOST",
+  "NEXT_PUBLIC_POSTHOG_KEY",
+  "RESEND_FROM",
+  "SUPABASE_SEND_EMAIL_HOOK_SECRET",
+  "WEB_PUSH_VAPID_PRIVATE_KEY",
+  "WEB_PUSH_VAPID_PUBLIC_KEY",
+  "WEB_PUSH_VAPID_SUBJECT",
+])
 
 const envFiles = [
   `.env.${nodeEnv}.local`,
@@ -68,10 +79,12 @@ const twilioVerifyEnvNames = new Set([
 
 for (const entry of envContract) {
   const value = values[entry.name]?.trim()
+  const requiredByProfile =
+    checkProfile === "production" && productionRequiredEnvNames.has(entry.name)
 
   if (!value) {
     if (
-      entry.optional ||
+      (!requiredByProfile && entry.optional) ||
       (customerOtpTwilioBypassed && twilioVerifyEnvNames.has(entry.name))
     ) {
       continue
@@ -131,4 +144,39 @@ if (missing.length || invalid.length) {
   process.exit(1)
 }
 
-console.log("Nabaperks environment configuration is valid.")
+console.log(
+  checkProfile === "production"
+    ? "Nabaperks production environment configuration is valid."
+    : "Nabaperks environment configuration is valid."
+)
+
+function parseCheckProfile(args) {
+  let profile = "default"
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index]
+
+    if (arg === "--production") {
+      profile = "production"
+      continue
+    }
+
+    if (arg === "--profile") {
+      profile = args[index + 1] || ""
+      index += 1
+      continue
+    }
+
+    if (arg.startsWith("--profile=")) {
+      profile = arg.slice("--profile=".length)
+    }
+  }
+
+  if (profile === "local" || profile === "development") return "default"
+  if (profile === "default" || profile === "production") return profile
+
+  console.error(
+    "Unknown env check profile. Use --profile=production or omit the flag."
+  )
+  process.exit(1)
+}
