@@ -1518,15 +1518,18 @@ cards, rewards, and activity for the current customer.
 
 - Service-role reads rely on current-customer scoping.
 - Reward grouping can hide expired or waiting states if not rendered
-  consistently.
-- Dashboard metrics can drift from card/reward pages.
+  consistently; local browser fixture proof now covers the waiting and
+  redeemable dashboard branches.
+- Dashboard metrics can drift from card/reward pages; the local fixture now
+  asserts no-card, one-card, ready, waiting, and redeemed readback states.
 
 ### Room To Improve
 
-- Add fixture tests for no cards, one card, multiple cards, waiting reward,
-  redeemable reward, and redeemed reward.
+- Keep the local fixture in the customer-flow gate and add a multi-card ordering
+  case if the wallet starts surfacing cross-venue prioritization.
 - Share reward grouping logic with rewards library.
-- Add exclusion tests for another customer's data.
+- Replay the dashboard browser proof against staging/provider seed data before
+  release.
 
 ## Flow 42. Customer Profile, Consent, Push Settings
 

@@ -31,6 +31,7 @@ export type BrowserCustomerSession = {
 export type CustomerReadbackFixture = CustomerReadbackSeed & {
   readonly populatedSession: BrowserCustomerSession
   readonly emptySession: BrowserCustomerSession
+  readonly waitingSession: BrowserCustomerSession
 }
 
 export function customerReadbackLiveDbSkipReason(): string | undefined {
@@ -65,6 +66,10 @@ export async function createCustomerReadbackFixture(
       ...seed,
       populatedSession: await createBrowserCustomerSession(sql, seed.customerId),
       emptySession: await createBrowserCustomerSession(sql, seed.emptyCustomerId),
+      waitingSession: await createBrowserCustomerSession(
+        sql,
+        seed.waitingCustomerId
+      ),
     }
   } catch (error) {
     await cleanupCustomerReadbackRows(sql, seed)

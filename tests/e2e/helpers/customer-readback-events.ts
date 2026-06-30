@@ -99,6 +99,24 @@ export async function insertCustomerReadbackRewards(
         jsonb_build_object('source', 'customer-home-readback-e2e'),
         now() - interval '5 days',
         now()
+      ),
+      (
+        ${randomUUID()}::uuid,
+        ${setup.merchant_id}::uuid,
+        ${seed.waitingCustomerId}::uuid,
+        ${seed.waitingMembershipId}::uuid,
+        ${setup.loyalty_card_id}::uuid,
+        'unlocked',
+        ${seed.waitingRewardName},
+        'Browser dashboard waiting terms',
+        public.uk_business_date(now()) + 1,
+        now() + interval '15 days',
+        null,
+        null,
+        1,
+        jsonb_build_object('source', 'customer-home-dashboard-e2e'),
+        now() - interval '2 days',
+        now()
       )`
 }
 

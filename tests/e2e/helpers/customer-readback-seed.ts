@@ -5,6 +5,7 @@ import {
   insertCustomerReadbackActivity,
   insertCustomerReadbackRewards,
 } from "./customer-readback-events"
+import { insertCustomerReadbackStampEvents } from "./customer-readback-stamps"
 
 const SEED_MERCHANT_SLUG = "old-crown-girton"
 
@@ -17,11 +18,14 @@ export type SeedCustomerSetupRow = {
 export type CustomerReadbackSeed = {
   readonly customerId: string
   readonly emptyCustomerId: string
+  readonly waitingCustomerId: string
   readonly membershipId: string
+  readonly waitingMembershipId: string
   readonly businessName: string
   readonly rawPrivateEmail: string
   readonly readyRewardName: string
   readonly upcomingRewardName: string
+  readonly waitingRewardName: string
   readonly redeemedRewardName: string
   readonly expiredRewardName: string
 }
@@ -60,6 +64,7 @@ export async function insertCustomerReadbackRows(
   await insertMembership(sql, seed, setup)
   await insertCustomerReadbackRewards(sql, seed, setup)
   await insertCustomerReadbackActivity(sql, seed, setup)
+  await insertCustomerReadbackStampEvents(sql, seed, setup)
 }
 
 export async function cleanupCustomerReadbackRows(
@@ -69,31 +74,58 @@ export async function cleanupCustomerReadbackRows(
   if (!fixture) return
 
   await sql`
+    delete from public.stamp_events
+    where customer_id in (
+      ${fixture.customerId}::uuid,
+      ${fixture.emptyCustomerId}::uuid,
+      ${fixture.waitingCustomerId}::uuid
+    )
+       or membership_id in (
+         ${fixture.membershipId}::uuid,
+         ${fixture.waitingMembershipId}::uuid
+       )`
+  await sql`
     delete from public.product_events
     where customer_id in (
       ${fixture.customerId}::uuid,
-      ${fixture.emptyCustomerId}::uuid
+      ${fixture.emptyCustomerId}::uuid,
+      ${fixture.waitingCustomerId}::uuid
     )
-       or membership_id = ${fixture.membershipId}::uuid`
+       or membership_id in (
+         ${fixture.membershipId}::uuid,
+         ${fixture.waitingMembershipId}::uuid
+       )`
   await sql`
     delete from public.reward_events
     where customer_id in (
       ${fixture.customerId}::uuid,
-      ${fixture.emptyCustomerId}::uuid
+      ${fixture.emptyCustomerId}::uuid,
+      ${fixture.waitingCustomerId}::uuid
     )
-       or membership_id = ${fixture.membershipId}::uuid`
+       or membership_id in (
+         ${fixture.membershipId}::uuid,
+         ${fixture.waitingMembershipId}::uuid
+       )`
   await sql`
     delete from public.customer_sessions
     where customer_id in (
       ${fixture.customerId}::uuid,
-      ${fixture.emptyCustomerId}::uuid
+      ${fixture.emptyCustomerId}::uuid,
+      ${fixture.waitingCustomerId}::uuid
     )`
   await sql`
     delete from public.customer_memberships
-    where id = ${fixture.membershipId}::uuid`
+    where id in (
+      ${fixture.membershipId}::uuid,
+      ${fixture.waitingMembershipId}::uuid
+    )`
   await sql`
     delete from public.customers
-    where id in (${fixture.customerId}::uuid, ${fixture.emptyCustomerId}::uuid)`
+    where id in (
+      ${fixture.customerId}::uuid,
+      ${fixture.emptyCustomerId}::uuid,
+      ${fixture.waitingCustomerId}::uuid
+    )`
 }
 
 async function insertCustomers(
@@ -123,6 +155,13 @@ async function insertCustomers(
         'Empty Readback Browser',
         date '1990-01-01',
         now()
+      ),
+      (
+        ${seed.waitingCustomerId}::uuid,
+        ${`waiting-readback-${runId}@example.test`},
+        'Waiting Readback Browser',
+        date '1990-01-01',
+        now()
       )`
 }
 
@@ -141,15 +180,25 @@ async function insertMembership(
       total_rewards_redeemed,
       active_cycle_number
     )
-    values (
-      ${seed.membershipId}::uuid,
-      ${setup.merchant_id}::uuid,
-      ${seed.customerId}::uuid,
-      3,
-      5,
-      1,
-      2
-    )`
+    values
+      (
+        ${seed.membershipId}::uuid,
+        ${setup.merchant_id}::uuid,
+        ${seed.customerId}::uuid,
+        3,
+        5,
+        1,
+        2
+      ),
+      (
+        ${seed.waitingMembershipId}::uuid,
+        ${setup.merchant_id}::uuid,
+        ${seed.waitingCustomerId}::uuid,
+        3,
+        3,
+        0,
+        1
+      )`
 }
 
 export function createCustomerReadbackSeed(
@@ -162,11 +211,14 @@ export function createCustomerReadbackSeed(
     seed: {
       customerId: randomUUID(),
       emptyCustomerId: randomUUID(),
+      waitingCustomerId: randomUUID(),
       membershipId: randomUUID(),
+      waitingMembershipId: randomUUID(),
       businessName: setup.business_name,
       rawPrivateEmail: `private-${runId}@example.test`,
       readyRewardName: `Ready readback reward ${runId}`,
       upcomingRewardName: `Upcoming readback reward ${runId}`,
+      waitingRewardName: `Waiting dashboard reward ${runId}`,
       redeemedRewardName: `Redeemed readback reward ${runId}`,
       expiredRewardName: `Expired readback reward ${runId}`,
     },
