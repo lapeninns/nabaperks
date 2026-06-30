@@ -7,7 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 const statusClasses = {
   success: "border-2 border-ink bg-reward/12 text-foreground",
   warning: "border-2 border-ink bg-primary/12 text-foreground",
-  error: "border-2 border-ink bg-destructive/10 text-destructive",
+  error: "border-2 border-ink bg-destructive/10 text-destructive-strong",
   neutral: "border-2 border-ink bg-card text-card-foreground",
 } as const
 
