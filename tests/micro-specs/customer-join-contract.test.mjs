@@ -51,3 +51,14 @@ test("Given join server actions redirect with QR form state When source is inspe
   assert.doesNotMatch(actions, /\?qr=\$\{qrId\}/)
   assert.doesNotMatch(actions, /\?qr=\$\{qrId\}&/)
 })
+
+test("Given the OTP phone-step fallback link When source is inspected Then the QR query value is encoded", () => {
+  const otpForm = readProjectFile(
+    "components",
+    "customer",
+    "join-otp-form.tsx"
+  )
+
+  assert.match(otpForm, /encodeURIComponent\(qrId\)/)
+  assert.doesNotMatch(otpForm, /qr=\$\{qrId\}/)
+})

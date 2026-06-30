@@ -35,6 +35,10 @@ export function CustomerOtpForm({
     identityInitialState
   )
   const state = verifyState
+  const phoneStepHref = `/m/${merchantSlug}/join?${
+    qrId ? `qr=${encodeURIComponent(qrId)}&` : ""
+  }step=phone`
+
   void location
 
   return (
@@ -117,7 +121,7 @@ export function CustomerOtpForm({
           </div>
           <p className="text-sm font-bold tabular-nums">{contact}</p>
           <Link
-            href={`/m/${merchantSlug}/join?${qrId ? `qr=${qrId}&` : ""}step=phone`}
+            href={phoneStepHref}
             className="w-fit text-xs font-bold underline underline-offset-4"
           >
             Use a different number
