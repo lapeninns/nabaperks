@@ -16,6 +16,7 @@ function readProjectFile(...segments) {
 test("Given a public QR route is scanned When source is inspected Then it resolves QR server-side and handles unavailable states", () => {
   const page = readProjectFile("app", "q", "[qrId]", "page.tsx")
 
+  assert.match(page, /export const dynamic = "force-dynamic"/)
   assert.match(page, /const \{ qrId \} = await params/)
   assert.match(page, /resolveQrForJoin\(qrId, \{[\s\S]*scanRateLimitIdentity:/)
   assert.match(page, /rateLimitIdentityFromHeaders\(await headers\(\)\)/)

@@ -84,7 +84,7 @@ export async function cleanupCustomerReadbackFixture(
   await cleanupCustomerReadbackRows(sql, fixture)
 }
 
-async function createBrowserCustomerSession(
+export async function createBrowserCustomerSession(
   sql: Sql,
   customerId: string
 ): Promise<BrowserCustomerSession> {

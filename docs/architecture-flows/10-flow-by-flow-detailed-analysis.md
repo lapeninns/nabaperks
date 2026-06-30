@@ -1169,12 +1169,18 @@ server state decides whether to route to join or stamp.
 - QR resolution is server-side.
 - Existing versus new customer branching is server-derived.
 - Inactive/unavailable QR states can be blocked centrally.
+- The route is explicitly `force-dynamic`, so QR, billing, membership, and
+  rate-limit state are resolved at request time rather than cached across scans.
 - Source-contract coverage now pins the public route to server QR resolution,
   rate-limit identity, unavailable/rate-limited UI states, membership-aware
   branching, and encoded QR query values in both redirect targets.
 - Playwright coverage now drives `/q/not-a-real-qr` on mobile and desktop,
   proving the unavailable state renders with the expected CTAs, no CSP console
   errors, no page errors, and no horizontal overflow.
+- Local live-DB browser coverage now proves disposable active QR scans route new
+  customers to join and existing members to stamp, while inactive QR, paused
+  merchant, cancelled billing, and seeded rate-limit buckets render the blocked
+  states.
 
 ### Pitfalls
 
@@ -1184,10 +1190,9 @@ server state decides whether to route to join or stamp.
 
 ### Room To Improve
 
-- Add live DB/browser tests for inactive QR, unavailable merchant,
-  billing-blocked, existing member, new customer, and rate-limited paths.
 - Add observability for scan resolution outcomes.
 - Keep QR availability policy centralized.
+- Add staging/device proof with a physical printed QR before pilot.
 
 ## Flow 33. Customer Join, OTP, Membership
 
