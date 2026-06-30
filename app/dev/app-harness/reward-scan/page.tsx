@@ -15,7 +15,7 @@ const HARNESS_SCAN_TOKEN = "00000000-0000-4000-8000-000000000000"
 
 /**
  * Reward-scan harness — variant "full". Reproduces the REAL deep-link page's
- * ScanShell layout (app/app/rewards/scan/[rewardId]/page.tsx) and mounts the
+ * ScanShell layout (app/app/rewards/scan/[scanToken]/page.tsx) and mounts the
  * REAL presentational body: {@link RewardTicket}, {@link StatusBanner}, and the
  * REAL {@link MerchantRewardCollectionForm}, fed a DB-free reward fixture (the
  * async RewardScanStream self-fetches via loadMerchantRewardScanContext, so its

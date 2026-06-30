@@ -89,7 +89,6 @@ export type MerchantCustomerReadbackRow = {
   totalStampsEarned: number
   rewardsRedeemed: number
   badge: MerchantCustomerRewardBadge
-  scanRewardId: string | null
 }
 
 /**
@@ -237,8 +236,6 @@ export function buildMerchantCustomerReadback(
     totalStampsEarned: row.total_stamps_earned,
     rewardsRedeemed: row.total_rewards_redeemed,
     badge,
-    scanRewardId:
-      badge.redeemable && row.activeReward ? row.activeReward.id : null,
   }
 }
 

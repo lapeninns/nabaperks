@@ -112,7 +112,6 @@ export const HARNESS_CUSTOMER_ROWS: MerchantCustomerReadbackRow[] = [
     totalStampsEarned: 18,
     rewardsRedeemed: 5,
     badge: { label: "Reward ready", tone: "ready", redeemable: true },
-    scanRewardId: "rwd_ready_0f3a91",
   },
   {
     id: "mbr_77c204",
@@ -128,7 +127,6 @@ export const HARNESS_CUSTOMER_ROWS: MerchantCustomerReadbackRow[] = [
     totalStampsEarned: 9,
     rewardsRedeemed: 2,
     badge: { label: "Reward waiting", tone: "waiting", redeemable: false },
-    scanRewardId: null,
   },
   {
     id: "mbr_91ab02",
@@ -144,7 +142,6 @@ export const HARNESS_CUSTOMER_ROWS: MerchantCustomerReadbackRow[] = [
     totalStampsEarned: 1,
     rewardsRedeemed: 0,
     badge: { label: "New today", tone: "new", redeemable: false },
-    scanRewardId: null,
   },
   {
     id: "mbr_4d5e66",
@@ -160,7 +157,6 @@ export const HARNESS_CUSTOMER_ROWS: MerchantCustomerReadbackRow[] = [
     totalStampsEarned: 14,
     rewardsRedeemed: 2,
     badge: { label: "Gone quiet", tone: "quiet", redeemable: false },
-    scanRewardId: null,
   },
   {
     id: "mbr_b2f810",
@@ -176,7 +172,6 @@ export const HARNESS_CUSTOMER_ROWS: MerchantCustomerReadbackRow[] = [
     totalStampsEarned: 23,
     rewardsRedeemed: 7,
     badge: { label: "Redeemed 21 Jun", tone: "redeemed", redeemable: false },
-    scanRewardId: null,
   },
   {
     id: "mbr_c19d47",
@@ -192,7 +187,6 @@ export const HARNESS_CUSTOMER_ROWS: MerchantCustomerReadbackRow[] = [
     totalStampsEarned: 1,
     rewardsRedeemed: 0,
     badge: { label: "Collecting", tone: "collecting", redeemable: false },
-    scanRewardId: null,
   },
 ]
 

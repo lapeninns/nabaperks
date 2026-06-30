@@ -17,7 +17,7 @@ const SCAN_TOKEN_PATTERN =
 
 type MerchantRewardScanPageProps = {
   params: Promise<{
-    rewardId: string
+    scanToken: string
   }>
   searchParams?: Promise<{
     collected?: string | string[]
@@ -28,8 +28,7 @@ export default async function MerchantRewardScanPage({
   params,
   searchParams,
 }: MerchantRewardScanPageProps) {
-  const { rewardId } = await params
-  const scanToken = rewardId
+  const { scanToken } = await params
 
   if (!SCAN_TOKEN_PATTERN.test(scanToken)) {
     notFound()

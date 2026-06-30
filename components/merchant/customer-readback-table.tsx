@@ -133,17 +133,16 @@ function CustomerMobileCard({
         </div>
       </button>
 
-      {/* Scan action — sibling of <button> to avoid <a> inside <button> */}
-      {isSelected && row.scanRewardId ? (
+      {isSelected && row.badge.redeemable ? (
         <div className="border-t-2 border-ink/15 px-3 py-2.5">
           <Button
             asChild
             size="default"
             className="w-full gap-1.5 font-mono text-[0.7rem] tracking-[0.06em] uppercase"
           >
-            <Link href={`/app/rewards/scan/${row.scanRewardId}`}>
+            <Link href="/app/scan">
               <Icon icon={ScanIcon} size={14} />
-              Scan reward
+              Open scanner
             </Link>
           </Button>
         </div>
@@ -278,16 +277,16 @@ function buildColumns(
             {/* A real focusable control so the scan action is keyboard-reachable
                 without relying on the mouse-only row selection (WCAG 2.1.1 /
                 4.1.2). Mirrors the inline CTA the mobile card already exposes. */}
-            {row.scanRewardId ? (
+            {row.badge.redeemable ? (
               <Button
                 asChild
                 size="sm"
                 className="gap-1.5 font-mono text-[0.65rem] tracking-[0.06em] uppercase [@media(pointer:coarse)]:min-h-11"
               >
                 <Link
-                  href={`/app/rewards/scan/${row.scanRewardId}`}
+                  href="/app/scan"
                   onClick={(event) => event.stopPropagation()}
-                  aria-label={`Scan reward for ${row.identifier}`}
+                  aria-label={`Open scanner for ${row.identifier}'s reward QR`}
                 >
                   <Icon icon={ScanIcon} size={14} />
                   Scan
@@ -480,19 +479,20 @@ export function CustomerReadbackTable({
       </div>
 
       {/* Scan-reward banner — desktop only (mobile has it inline in the card) */}
-      {selected?.scanRewardId ? (
+      {selected?.badge.redeemable ? (
         <div className="surface-card hidden flex-wrap items-center justify-between gap-3 px-4 py-3 sm:flex">
           <span className="min-w-0 text-sm font-semibold">
-            {selected.identifier} has a reward ready to collect.
+            {selected.identifier} has a reward ready. Ask them to show their
+            reward QR.
           </span>
           <Button
             asChild
             size="sm"
             className="gap-1.5 font-mono text-[0.7rem] tracking-[0.06em] uppercase"
           >
-            <Link href={`/app/rewards/scan/${selected.scanRewardId}`}>
+            <Link href="/app/scan">
               <Icon icon={ScanIcon} size={14} />
-              Scan reward
+              Open scanner
             </Link>
           </Button>
         </div>

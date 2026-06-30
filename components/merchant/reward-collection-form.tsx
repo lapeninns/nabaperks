@@ -5,7 +5,7 @@ import { useActionState } from "react"
 import {
   confirmMerchantRewardCollectionAction,
   type MerchantRewardCollectionActionState,
-} from "@/app/app/rewards/scan/[rewardId]/actions"
+} from "@/app/app/rewards/scan/[scanToken]/actions"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 
