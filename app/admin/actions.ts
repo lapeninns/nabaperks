@@ -77,6 +77,36 @@ export async function cancelRewardAction(formData: FormData) {
   revalidatePath("/admin/audit")
 }
 
+export async function resolveFraudFlagAction(formData: FormData) {
+  await requireAdminAction()
+  const fraudFlagId = value(formData, "fraudFlagId")
+  const status = value(formData, "status")
+  const reason = value(formData, "reason")
+
+  if (!fraudFlagId) {
+    throw new Error("Fraud flag is required.")
+  }
+  if (status !== "reviewed" && status !== "dismissed") {
+    throw new Error("Fraud flag status is invalid.")
+  }
+  requireValue(reason, "Operator reason is required.")
+
+  const supabase = await createSupabaseServerClient()
+  const { error } = await supabase.rpc("admin_resolve_fraud_flag", {
+    p_fraud_flag_id: fraudFlagId,
+    p_status: status,
+    p_reason: reason,
+  })
+
+  assertAdminRpcSuccess(
+    error,
+    "Fraud flag update failed. Try again or review audit logs."
+  )
+
+  revalidatePath("/admin/fraud")
+  revalidatePath("/admin/audit")
+}
+
 export async function setQrActiveAction(formData: FormData) {
   await requireAdminAction()
   const qrCodeId = value(formData, "qrCodeId")
