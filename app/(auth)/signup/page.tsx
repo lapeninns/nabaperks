@@ -4,7 +4,12 @@ import { signUpAction, verifyEmailOtpAction } from "@/app/(auth)/actions"
 import { Eyebrow, Icon, PageTitle, ReceiptCard } from "@/components/brand"
 import { AuthForm } from "@/components/auth/auth-form"
 import { MarketingLayout } from "@/components/layout"
+import {
+  merchantEmailOtpAliasDigitLabel,
+  merchantEmailOtpAliasLength,
+} from "@/lib/auth/merchant-email-otp-alias"
 
+const otpCodeLabel = merchantEmailOtpAliasDigitLabel()
 const trustPoints = [
   "No app for your customers to download",
   "Customers stamp themselves from your venue QR",
@@ -19,7 +24,7 @@ export default function SignUpPage() {
           <PageTitle
             eyebrow="Start free pilot"
             title="Your first stamp is waiting."
-            description="Set up your venue QR loyalty card in about five minutes. Create your account, verify your email with a four-digit code, then add your venue, rewards, and printed kit."
+            description={`Set up your venue QR loyalty card in about five minutes. Create your account, verify your email with a ${otpCodeLabel} code, then add your venue, rewards, and printed kit.`}
             titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
             descriptionClassName="text-base leading-7 text-pretty"
             className="md:grid-cols-1"
@@ -49,7 +54,7 @@ export default function SignUpPage() {
               Open your till
             </h2>
             <p className="text-sm leading-6 text-pretty text-muted-foreground">
-              Create your account and verify your email with a four-digit code.
+              Create your account and verify your email with a {otpCodeLabel} code.
               No card to start; billing when you activate your live venue QR.
             </p>
           </div>
@@ -57,6 +62,7 @@ export default function SignUpPage() {
             action={signUpAction}
             verifyAction={verifyEmailOtpAction}
             mode="sign-up"
+            otpLength={merchantEmailOtpAliasLength()}
             embedded
           />
         </ReceiptCard>

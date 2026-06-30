@@ -3,10 +3,15 @@ import { Tick02Icon } from "@hugeicons/core-free-icons"
 import { ResetPasswordForm } from "@/components/auth/reset-password-form"
 import { Eyebrow, Icon, PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout } from "@/components/layout"
+import {
+  merchantEmailOtpAliasDigitLabel,
+  merchantEmailOtpAliasLength,
+} from "@/lib/auth/merchant-email-otp-alias"
 
+const otpCodeLabel = merchantEmailOtpAliasDigitLabel()
 const trustPoints = [
   "Reset takes about a minute",
-  "We email a four-digit code to confirm it is you",
+  `We email a ${otpCodeLabel} code to confirm it is you`,
   "Your venue setup and loyalty data stay exactly as they were",
 ]
 
@@ -18,7 +23,7 @@ export default function ResetPasswordPage() {
           <PageTitle
             eyebrow="Merchant access"
             title="Reset your console password."
-            description="Enter your venue email and we will send a four-digit code. Use it to set a new password and get back to your counter."
+            description={`Enter your venue email and we will send a ${otpCodeLabel} code. Use it to set a new password and get back to your counter.`}
             titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
             descriptionClassName="text-base leading-7 text-pretty"
             className="md:grid-cols-1"
@@ -48,10 +53,10 @@ export default function ResetPasswordPage() {
               Reset password
             </h2>
             <p className="text-sm leading-6 text-pretty text-muted-foreground">
-              Enter your venue email. We will send a four-digit reset code.
+              Enter your venue email. We will send a {otpCodeLabel} reset code.
             </p>
           </div>
-          <ResetPasswordForm />
+          <ResetPasswordForm otpLength={merchantEmailOtpAliasLength()} />
         </ReceiptCard>
       </section>
     </MarketingLayout>

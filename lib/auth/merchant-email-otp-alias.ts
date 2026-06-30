@@ -4,7 +4,7 @@ import { randomInt } from "node:crypto"
 
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
-const MERCHANT_EMAIL_OTP_ALIAS_LENGTH = 4
+const MERCHANT_EMAIL_OTP_ALIAS_LENGTH = 6
 const MERCHANT_EMAIL_OTP_ALIAS_EXPIRY_MS = 60 * 60 * 1000
 const MAX_ALIAS_CREATE_ATTEMPTS = 8
 
@@ -16,6 +16,11 @@ export function merchantEmailOtpAliasLength() {
   return MERCHANT_EMAIL_OTP_ALIAS_LENGTH
 }
 
+export function merchantEmailOtpAliasDigitLabel() {
+  if (MERCHANT_EMAIL_OTP_ALIAS_LENGTH === 6) return "six-digit"
+  return `${MERCHANT_EMAIL_OTP_ALIAS_LENGTH}-digit`
+}
+
 export async function createMerchantEmailOtpAlias({
   email,
   supabaseToken,
@@ -24,10 +29,13 @@ export async function createMerchantEmailOtpAlias({
   supabaseToken: string
 }) {
   const supabase = createSupabaseServiceRoleClient()
+  const now = new Date()
   const normalizedEmail = normalizeEmail(email)
   const expiresAt = new Date(
-    Date.now() + MERCHANT_EMAIL_OTP_ALIAS_EXPIRY_MS
+    now.getTime() + MERCHANT_EMAIL_OTP_ALIAS_EXPIRY_MS
   ).toISOString()
+
+  await purgeMerchantEmailOtpAliases(supabase, now)
 
   for (let attempt = 0; attempt < MAX_ALIAS_CREATE_ATTEMPTS; attempt += 1) {
     const aliasCode = generateAliasCode()
@@ -52,6 +60,8 @@ export async function consumeMerchantEmailOtpAlias({
   aliasCode: string
 }) {
   const supabase = createSupabaseServiceRoleClient()
+  await purgeMerchantEmailOtpAliases(supabase, new Date())
+
   const { data, error } = await supabase.rpc(
     "consume_merchant_email_otp_alias",
     {
@@ -66,6 +76,19 @@ export async function consumeMerchantEmailOtpAlias({
 
   const [row] = Array.isArray(data) ? (data as ConsumeAliasRow[]) : []
   return row?.supabase_token ?? null
+}
+
+async function purgeMerchantEmailOtpAliases(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  now: Date
+) {
+  const { error } = await supabase.rpc("purge_merchant_email_otp_aliases", {
+    p_now: now.toISOString(),
+  })
+
+  if (error) {
+    throw new Error(`Unable to clean up merchant email codes: ${error.message}`)
+  }
 }
 
 function generateAliasCode() {

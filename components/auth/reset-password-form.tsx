@@ -14,7 +14,11 @@ import { Button } from "@/components/ui/button"
 
 const initialState: AuthActionState = {}
 
-export function ResetPasswordForm() {
+type ResetPasswordFormProps = {
+  readonly otpLength: number
+}
+
+export function ResetPasswordForm({ otpLength }: ResetPasswordFormProps) {
   const [requestState, requestAction, requestPending] = useActionState(
     requestPasswordResetAction,
     initialState
@@ -78,7 +82,7 @@ export function ResetPasswordForm() {
             type="text"
             inputMode="numeric"
             autoComplete="one-time-code"
-            maxLength={4}
+            maxLength={otpLength}
             className="font-mono tracking-[0.18em]"
             error={confirmState.errors?.otp}
           />

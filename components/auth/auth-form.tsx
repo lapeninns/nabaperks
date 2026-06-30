@@ -14,32 +14,38 @@ type AuthAction = (
   formData: FormData
 ) => Promise<AuthActionState>
 
-type AuthFormProps = {
+type BaseAuthFormProps = {
   action: AuthAction
-  verifyAction?: AuthAction
-  mode: "sign-in" | "sign-up"
   next?: string
   embedded?: boolean
 }
 
+type SignInAuthFormProps = BaseAuthFormProps & {
+  mode: "sign-in"
+}
+
+type SignUpAuthFormProps = BaseAuthFormProps & {
+  mode: "sign-up"
+  verifyAction?: AuthAction
+  otpLength: number
+}
+
+type AuthFormProps = SignInAuthFormProps | SignUpAuthFormProps
+
 const initialState: AuthActionState = {}
 
-export function AuthForm({
-  action,
-  verifyAction,
-  mode,
-  next: requestedNext,
-  embedded = false,
-}: AuthFormProps) {
+export function AuthForm(props: AuthFormProps) {
+  const { action, mode, next: requestedNext, embedded = false } = props
   const isSignUp = mode === "sign-up"
   const next = requestedNext ?? (isSignUp ? "/app/onboarding" : "/app")
 
   return isSignUp ? (
     <SignUpForm
       action={action}
-      verifyAction={verifyAction ?? action}
+      verifyAction={props.verifyAction ?? action}
       next={next}
       embedded={embedded}
+      otpLength={props.otpLength}
     />
   ) : (
     <SignInForm action={action} next={next} embedded={embedded} />
@@ -109,11 +115,13 @@ function SignUpForm({
   verifyAction,
   next,
   embedded,
+  otpLength,
 }: {
   action: AuthAction
   verifyAction: AuthAction
   next: string
   embedded: boolean
+  otpLength: number
 }) {
   const [state, formAction, pending] = useActionState(action, initialState)
   const [verifyState, verifyFormAction, verifyPending] = useActionState(
@@ -211,7 +219,7 @@ function SignUpForm({
             type="text"
             inputMode="numeric"
             autoComplete="one-time-code"
-            maxLength={4}
+            maxLength={otpLength}
             className="font-mono tracking-[0.18em]"
             error={verifyState.errors?.otp}
           />

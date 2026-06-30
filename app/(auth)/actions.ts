@@ -5,6 +5,7 @@ import { redirect } from "next/navigation"
 
 import {
   consumeMerchantEmailOtpAlias,
+  merchantEmailOtpAliasDigitLabel,
   merchantEmailOtpAliasLength,
 } from "@/lib/auth/merchant-email-otp-alias"
 import { safeMerchantNextPath } from "@/lib/navigation/safe-next-path"
@@ -105,7 +106,7 @@ export async function signUpAction(
 
     return {
       fields: { name, email, otpSent: true },
-      message: "We sent another four-digit code. Enter it below.",
+      message: `We sent another ${merchantEmailOtpAliasDigitLabel()} code. Enter it below.`,
     }
   }
 
@@ -157,7 +158,7 @@ export async function signUpAction(
 
   return {
     fields: { name, email, otpSent: true },
-    message: "We sent a four-digit code. Enter it below to verify your email.",
+    message: `We sent a ${merchantEmailOtpAliasDigitLabel()} code. Enter it below to verify your email.`,
   }
 }
 
@@ -215,7 +216,7 @@ export async function verifyEmailOtpAction(
 
   if (!validateEmail(email)) errors.form = "Request a fresh email code."
   if (!otpPattern().test(otp)) {
-    errors.otp = "Enter the four-digit code from your email."
+    errors.otp = `Enter the ${merchantEmailOtpAliasDigitLabel()} code from your email.`
   }
 
   if (Object.keys(errors).length) {
@@ -277,7 +278,7 @@ export async function requestPasswordResetAction(
   return {
     fields: { email, otpSent: true },
     message:
-      "If that email has a venue account, we sent a four-digit reset code.",
+      `If that email has a venue account, we sent a ${merchantEmailOtpAliasDigitLabel()} reset code.`,
   }
 }
 
@@ -294,7 +295,7 @@ export async function confirmPasswordResetAction(
 
   if (!validateEmail(email)) errors.form = "Request a fresh reset code."
   if (!otpPattern().test(otp)) {
-    errors.otp = "Enter the four-digit code from your email."
+    errors.otp = `Enter the ${merchantEmailOtpAliasDigitLabel()} code from your email.`
   }
   const passwordError = validatePassword(password)
   if (passwordError) errors.password = passwordError
