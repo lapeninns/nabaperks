@@ -9,6 +9,7 @@ import {
 } from "@/components/merchant/loyalty-card-form"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Button } from "@/components/ui/button"
+import { LAUNCH_MIN_ACTIVE_REWARDS } from "@/lib/merchant/launch-readiness-contract"
 import { getLoyaltyCardSetup } from "@/lib/merchant/loyalty-card"
 import { seedDefaultRewardPoolForCardIfEmpty } from "@/lib/merchant/seed-default-reward-pool"
 
@@ -89,7 +90,7 @@ export async function RewardsPanel({
     isActive: item.is_active,
   }))
   const activeRewardCount = poolItems.filter((item) => item.isActive).length
-  const rewardsReady = activeRewardCount >= 3
+  const rewardsReady = activeRewardCount >= LAUNCH_MIN_ACTIVE_REWARDS
 
   return (
     <div className="grid min-w-0 gap-3 sm:gap-5">
@@ -150,7 +151,7 @@ function RewardsStatus({
               ? "Your venue QR is active again."
               : rewardsReady
                 ? params.seeded === "1"
-                  ? "Three default rewards are active and saved. Your QR is created automatically when venue and card are ready."
+                  ? "Three default rewards are active and saved. Create your QR once venue and card are ready."
                   : "Launch eligibility has been refreshed with your latest reward changes."
                 : `${activeRewardCopy} are ready. Finish the reward pool before setup can complete.`}
         <LaunchSaveNextAction
@@ -183,9 +184,8 @@ function RewardsStatus({
   if (rewardsReady && !needsBillingActivation) {
     return (
       <StatusBanner tone="success" title="Your reward pool is ready.">
-        Each reward is already saved. Your QR is created automatically once
-        venue, card, and rewards are complete — billing is the final activation
-        step.
+        Each reward is already saved. Create your QR once venue, card, and
+        rewards are complete — billing is the final activation step.
       </StatusBanner>
     )
   }

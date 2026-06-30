@@ -18,6 +18,8 @@ const CARD_SAVE_ERROR =
 const REWARD_SAVE_ERROR =
   "Reward could not be saved. Check your details and try again."
 const REWARD_UPDATE_ERROR = "Unable to update reward"
+const REWARD_MIN_ACTIVE_ERROR =
+  "Keep at least 3 active rewards before launch QR stays live."
 
 export type LoyaltyCardActionState = {
   fields?: {
@@ -63,6 +65,15 @@ function value(formData: FormData, key: string) {
 function parseInteger(input: string) {
   if (!/^\d+$/.test(input)) return null
   return Number.parseInt(input, 10)
+}
+
+function rewardPoolMutationError(
+  error: { message?: string } | null,
+  fallback = REWARD_UPDATE_ERROR
+) {
+  return error?.message?.includes("at least 3 active rewards")
+    ? REWARD_MIN_ACTIVE_ERROR
+    : fallback
 }
 
 function rewardPoolFields(formData: FormData) {
@@ -249,7 +260,7 @@ export async function saveRewardPoolItemAction(
     return {
       fields,
       errors: {
-        form: REWARD_SAVE_ERROR,
+        form: rewardPoolMutationError(error, REWARD_SAVE_ERROR),
       },
     }
   }
@@ -311,7 +322,7 @@ export async function toggleRewardPoolItemActiveAction(formData: FormData) {
   })
 
   if (error) {
-    return { error: REWARD_UPDATE_ERROR }
+    return { error: rewardPoolMutationError(error) }
   }
 
   await capturePostHogEvent({
@@ -353,7 +364,9 @@ export async function deleteRewardPoolItemAction(formData: FormData) {
 
   if (error) {
     redirect(
-      `/app/launch?tab=rewards&error=${encodeURIComponent(REWARD_UPDATE_ERROR)}`
+      `/app/launch?tab=rewards&error=${encodeURIComponent(
+        rewardPoolMutationError(error)
+      )}`
     )
   }
 

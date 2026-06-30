@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation"
 
 import { capturePostHogEvent } from "@/lib/analytics/events"
+import { LAUNCH_MIN_ACTIVE_REWARDS } from "@/lib/merchant/launch-readiness-contract"
 import { getQrSetup } from "@/lib/merchant/qr-code"
 import { qrReturnHref, resolveQrReturnBase } from "@/lib/merchant/qr-nav"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
@@ -24,7 +25,7 @@ export async function generateQrCodeAction(formData: FormData) {
     redirect("/app/launch?tab=card")
   }
 
-  if (activeRewardPoolItemCount < 3) {
+  if (activeRewardPoolItemCount < LAUNCH_MIN_ACTIVE_REWARDS) {
     redirect(
       qrReturnHref(returnBase, `error=${encodeURIComponent(QR_REWARD_POOL_ERROR)}`)
     )
@@ -53,12 +54,18 @@ export async function generateQrCodeAction(formData: FormData) {
 
 export async function setQrActiveAction(formData: FormData) {
   const returnBase = resolveQrReturnBase(formData.get("returnTo"))
-  const { merchant } = await getQrSetup()
+  const { merchant, activeRewardPoolItemCount } = await getQrSetup()
   const qrCodeId = formData.get("qrCodeId")
   const nextActive = formData.get("nextActive") === "true"
 
   if (!merchant || typeof qrCodeId !== "string") {
     redirect(qrReturnHref(returnBase, `error=${encodeURIComponent(QR_UPDATE_ERROR)}`))
+  }
+
+  if (nextActive && activeRewardPoolItemCount < LAUNCH_MIN_ACTIVE_REWARDS) {
+    redirect(
+      qrReturnHref(returnBase, `error=${encodeURIComponent(QR_REWARD_POOL_ERROR)}`)
+    )
   }
 
   const supabase = await createSupabaseServerClient()

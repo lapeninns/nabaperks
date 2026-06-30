@@ -7,6 +7,7 @@ import { QrPanelLive } from "@/components/merchant/launch/qr-panel-live"
 import { LaunchSaveNextAction } from "@/components/merchant/launch/launch-tab-auto-advance"
 import { Button } from "@/components/ui/button"
 import { getServerEnv } from "@/lib/env/server"
+import { LAUNCH_MIN_ACTIVE_REWARDS } from "@/lib/merchant/launch-readiness-contract"
 import type { LaunchReadiness } from "@/lib/merchant/launch-readiness"
 import { QR_LAUNCH_TAB_PATH } from "@/lib/merchant/qr-nav"
 import type { QrSetup } from "@/lib/merchant/qr-code"
@@ -18,13 +19,6 @@ export type QrPanelParams = {
   error?: string
 }
 
-/**
- * Launch-kit panel. The launch page resolves the QR setup + readiness once and
- * runs the auto-provision side-effect there, then passes the already-resolved
- * data here as props — this panel does NOT re-run the setup pipeline (which
- * previously doubled the round-trips and discarded its own recomputed
- * readiness in steady state).
- */
 export async function QrPanel({
   setup,
   readiness,
@@ -67,7 +61,9 @@ export async function QrPanel({
   }
 
   if (!qrCode) {
-    const canCreateQr = activeRewardPoolItemCount >= 3 && readiness.tabs.venue
+    const canCreateQr =
+      activeRewardPoolItemCount >= LAUNCH_MIN_ACTIVE_REWARDS &&
+      readiness.tabs.venue
 
     return (
       <ReceiptCard className="grid gap-4">
@@ -78,7 +74,7 @@ export async function QrPanel({
           titleClassName="sm:text-3xl"
         />
         <QrErrorBanner error={params.error} />
-        {activeRewardPoolItemCount < 3 ? (
+        {activeRewardPoolItemCount < LAUNCH_MIN_ACTIVE_REWARDS ? (
           <StatusBanner tone="warning" title="Add 3 rewards before launch.">
             The QR stays blocked until at least 3 active mystery rewards are in
             the pool.{" "}
