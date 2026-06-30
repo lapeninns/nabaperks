@@ -50,10 +50,11 @@ export default async function PublicQrPage({ params }: PublicQrPageProps) {
   const membership = await getExistingMembershipForCurrentUser(
     qrContext.merchant.id
   )
-  const joinUrl = `/m/${qrContext.merchant.business_slug}/join?qr=${qrContext.qrId}`
+  const encodedQrId = encodeURIComponent(qrContext.qrId ?? qrId)
+  const joinUrl = `/m/${qrContext.merchant.business_slug}/join?qr=${encodedQrId}`
 
   if (membership) {
-    redirect(`/card/${membership.id}/stamp?qr=${qrContext.qrId}`)
+    redirect(`/card/${membership.id}/stamp?qr=${encodedQrId}`)
   }
 
   redirect(joinUrl)
