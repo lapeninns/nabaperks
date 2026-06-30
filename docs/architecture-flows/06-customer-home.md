@@ -17,8 +17,8 @@ scoped by that current customer id.
 | 40  | Customer login/sign-out/session reset    | `/home/login` issues/verifies OTP and sets customer session; reset route clears stale customer session.    | Unknown numbers now receive a real OTP under rate limit; no linked cards are revealed only after successful phone verification. Wrong-code and no-card verify feedback now renders from the verify action state.      | Add expired OTP, known-number success, stale-reset, and Twilio provider smoke tests.                                                                             |
 | 41  | Customer dashboard `/home`               | Authenticated dashboard reads cards, rewards, top redeemable item, and recent activity.                    | Dashboard completeness depends on reward grouping and session scoping helpers.                                                                                                                                        | Add customer-owned dashboard fixture tests for no cards, one card, reward waiting, reward redeemable, redeemed.                                                  |
 | 42  | Customer profile/consent/push settings   | Profile page/actions update customer details, marketing consent, email verification, and push preferences. | Push route/source contracts now cover current-customer scoping, refresh/unsubscribe lifecycle reasons, no-store responses, and preference writes; browser/service-worker state can still diverge from server records. | Keep shared push consent and route contracts covered; add browser/provider tests for service-worker refresh, unsubscribe, permission denial, and stale sessions. |
-| 43  | Customer rewards library `/home/rewards` | Server page groups rewards into redeemable/upcoming/redeemed/expired views.                                | Expired rewards are now rendered in a history section and included in empty-state calculation.                                                                                                                        | Add browser coverage for mixed reward states.                                                                                                                    |
-| 44  | Customer activity `/home/activity`       | Server readback of customer-owned activity stream.                                                         | Service-role reads derive scope from the current session, and product-event metadata is parsed through a customer-safe allow-list before display.                                                                     | Keep current-customer scoping and metadata allow-list contracts covered; add browser coverage for populated and empty activity states.                           |
+| 43  | Customer rewards library `/home/rewards` | Server page groups rewards into redeemable/upcoming/redeemed/expired views.                                | Expired rewards are rendered in a history section, included in empty-state calculation, and now have local browser proof alongside redeemable, upcoming, and redeemed rewards.                                         | Keep mixed-state browser coverage in the customer-flow gate and re-run it against staging after session/seed parity is available.                                |
+| 44  | Customer activity `/home/activity`       | Server readback of customer-owned activity stream.                                                         | Service-role reads derive scope from the current session, product-event metadata is parsed through a customer-safe allow-list before display, and populated/empty states now have local browser proof.                | Keep current-customer scoping, metadata allow-list contracts, and populated/empty browser coverage in the required gate set.                                     |
 
 ## Trust Boundaries
 
@@ -30,9 +30,7 @@ scoped by that current customer id.
 ## Verification Gaps
 
 - Customer session ownership tests.
-- Browser/service-worker push preference tests.
-- Expired/redeemed/redeemable reward visibility tests.
-- Activity data exclusion tests.
+- Browser/service-worker push preference and lifecycle tests.
 
 ## Priority
 

@@ -1590,15 +1590,18 @@ the current customer and UI renders the wallet's reward inventory.
 
 ### Pitfalls
 
-- Expired reward bucket can be omitted from the page.
-- Empty state may be misleading if expired/redeemed rewards exist.
+- Expired rewards were a historical omission risk, but they now render in a
+  history section and count toward non-empty state.
+- Local browser coverage now signs a real customer-session cookie, seeds
+  redeemable, upcoming, redeemed, and expired reward rows, and proves all mixed
+  buckets render through `/home/rewards`.
 - Reward grouping must stay aligned with reward detail states.
 
 ### Room To Improve
 
-- Add expired/history section or explicitly fold expired into history.
-- Add tests for empty, redeemable, upcoming, redeemed, expired, and mixed
-  rewards.
+- Keep the mixed-state browser fixture in the customer-flow gate.
+- Re-run the same proof against staging once target session and seed parity are
+  available.
 - Reuse grouping logic with dashboard and activity where possible.
 
 ## Flow 44. Customer Activity `/home/activity`
@@ -1626,13 +1629,15 @@ activity rows to the current customer.
 - Service-role reads must never accept customer id from URL/request input.
 - Product-event metadata can grow, but customer activity now parses only
   customer-safe label fields before DTO display.
-- Empty/partial activity states can confuse customers.
+- Empty/partial activity states can confuse customers, so local browser
+  coverage now proves both a populated customer and an event-free customer
+  through `/home/activity`.
 
 ### Room To Improve
 
 - Keep source contracts covering current-customer scoping and metadata
   allow-listing.
-- Add browser coverage for populated and empty activity states.
+- Keep populated/empty browser readback proof in the customer-flow gate.
 - Add support-friendly labels for future event types through the activity core.
 
 ## Flow 45. Auth Email/SMS Hooks
