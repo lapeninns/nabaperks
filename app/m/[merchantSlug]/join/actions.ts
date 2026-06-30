@@ -123,9 +123,7 @@ export async function requestCustomerIdentityAction(
     }
   }
 
-  redirect(
-    `/m/${merchantSlug}/join${qrId ? `?qr=${encodeURIComponent(qrId)}` : ""}`
-  )
+  redirect(`/m/${merchantSlug}/join${qrId ? `?qr=${encodeURIComponent(qrId)}` : ""}`)
 }
 
 function logVerificationSendFailure(scope: "join", error: unknown): void {
@@ -192,7 +190,7 @@ export async function verifyCustomerOtpAction(
     if (destination) redirect(destination)
   }
 
-  redirect(`/m/${merchantSlug}/join${qrId ? `?qr=${qrId}` : ""}`)
+  redirect(`/m/${merchantSlug}/join${qrId ? `?qr=${encodeURIComponent(qrId)}` : ""}`)
 }
 
 export async function joinRewardsAction(
@@ -287,7 +285,5 @@ export async function joinRewardsAction(
     redirect(`/card/${membershipId}?${params.toString()}`)
   }
 
-  redirect(
-    `/m/${merchantSlug}/join${qrId ? `?qr=${qrId}&` : "?"}membership=existing`
-  )
+  redirect(`/m/${merchantSlug}/join${qrId ? `?qr=${encodeURIComponent(qrId)}&` : "?"}membership=existing`)
 }
