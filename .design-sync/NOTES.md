@@ -98,6 +98,11 @@ Repo-specific gotchas for future syncs. Append as you learn more.
   ships a dependency-free faux-QR `<svg>`.
 - **Sidebar** must be wrapped in `SidebarProvider`; preview uses `collapsible="none"`
   in a height-bounded box with `--sidebar-width` set inline.
+  At 360px card viewport the sidebar panel is hidden by `hidden md:flex` — only the
+  `SidebarInset` content is visible. Both preview exports (Default + WithContent) show
+  SidebarInset compositions. This is expected; the nav panel requires a ≥768px viewport
+  to render. (2026-06-30: renamed NavOnly → WithContent and added SidebarInset so
+  neither cell is blank.)
 - **Tabs** needs `defaultValue`, **Sheet** needs `defaultOpen`, to show state statically.
 - **Badge has NO `reward` variant** (only default/secondary/destructive/outline/ghost/link).
 - **Hugeicons**: use `GiftIcon` (NOT `Gift01Icon`). Confirmed glyphs used:
@@ -121,3 +126,7 @@ Repo-specific gotchas for future syncs. Append as you learn more.
   groups. Cosmetic for the DS pane; refine via doc `category` stubs if desired.
 - Auth: this environment cannot run `/design-login`; the build is local-only and
   the upload is deferred until design access is authorized from a terminal.
+- **`[TOKENS_MISSING]` for `--sidebar-width`, `--poster-frame-max`, `--tw`,
+  `--sidebar-width-icon`**: these vars are set at runtime (inline styles / JS),
+  not in the static CSS bundle. Non-blocking; confirmed previews render correctly.
+  Do not chase on re-sync.

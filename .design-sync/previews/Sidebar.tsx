@@ -87,10 +87,10 @@ export const Default = () => (
   </div>
 )
 
-export const NavOnly = () => (
+export const WithContent = () => (
   <div
     className="h-[26rem] overflow-hidden rounded-2xl border"
-    style={{ ["--sidebar-width" as string]: "15rem" }}
+    style={{ ["--sidebar-width" as string]: "15rem" } as React.CSSProperties}
   >
     <SidebarProvider className="min-h-full">
       <Sidebar collapsible="none">
@@ -122,6 +122,10 @@ export const NavOnly = () => (
           </SidebarGroup>
         </SidebarContent>
       </Sidebar>
+      <SidebarInset className="p-5">
+        <div className="text-sm font-medium">Your loyalty programme</div>
+        <p className="mt-1 text-xs text-muted-foreground">3 rewards set up · 18 active members</p>
+      </SidebarInset>
     </SidebarProvider>
   </div>
 )
