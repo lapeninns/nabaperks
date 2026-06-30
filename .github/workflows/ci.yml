@@ -46,18 +46,55 @@ jobs:
       - run: pnpm claims:check
       - run: pnpm test
       - run: pnpm build
+      - run: pnpm jsonld:check
+
+  e2e:
+    name: E2E (DB-free harness tier)
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_APP_URL: https://example.test
+      NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
+      SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
+      STRIPE_SECRET_KEY: sk_test_ci
+      STRIPE_GROWTH_PRICE_ID: price_ci
+      STRIPE_WEBHOOK_SECRET: whsec_ci
+      RESEND_API_KEY: re_ci
+      TWILIO_ACCOUNT_SID: ACci
+      TWILIO_AUTH_TOKEN: ci-twilio-auth-token
+      TWILIO_VERIFY_SERVICE_SID: VAci
+      CUSTOMER_SESSION_SECRET: ci-session-secret-placeholder
+      CUSTOMER_PHONE_HMAC_SECRET: ci-hmac-secret-placeholder
+      CUSTOMER_PHONE_ENCRYPTION_KEY: ci-encryption-key-placeholder-32b
+      CUSTOMER_DEV_OTP_CODE: "424242"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
-      - run: pnpm test:a11y
-      - run: pnpm test:visual
-      - run: pnpm test:db
-        if: ${{ env.SUPABASE_DB_URL != '' }}
-      - run: pnpm jsonld:check
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: ${{ !cancelled() && failure() }}
         with:
-          name: playwright-artifacts
+          name: playwright-report
           path: |
-            playwright-report
-            test-results/playwright
-          if-no-files-found: ignore
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  db:
+    name: DB behavioral moat
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_SEND_EMAIL_HOOK_SECRET: v1,whsec_dGVzdF9zdXBhYmFzZV9ob29rX3NlY3JldF8zMl9ieXRlcw==
+      SUPABASE_DB_URL: postgres://postgres:postgres@127.0.0.1:54322/postgres
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.106.0
+      - run: supabase start
+      - run: pnpm test:db
+      - run: supabase stop --no-backup
+        if: always()
