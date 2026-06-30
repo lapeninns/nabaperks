@@ -15,6 +15,11 @@ type EmailOtpCopy = {
   readonly textReason: string
 }
 
+type EmailOtpConfig = {
+  readonly apiKey: string
+  readonly from: string
+}
+
 const emailOtpCopy = {
   customer: {
     eyebrow: "My Nabaperks",
@@ -86,13 +91,8 @@ export async function sendEmailOtp({
   code: string
   audience?: EmailOtpAudience
 }) {
-  const apiKey = process.env.RESEND_API_KEY?.trim()
-  const from = process.env.RESEND_FROM?.trim()
+  const { apiKey, from } = readEmailOtpConfig()
   const copy = emailOtpCopy[audience]
-
-  if (!apiKey || !from) {
-    throw new Error("Resend is not configured (RESEND_API_KEY / RESEND_FROM).")
-  }
 
   const res = await resilientFetch("resend", RESEND_ENDPOINT, {
     method: "POST",
@@ -114,4 +114,15 @@ export async function sendEmailOtp({
       `Resend send failed (${res.status}): ${await safeDetail(res)}`
     )
   }
+}
+
+export function readEmailOtpConfig(): EmailOtpConfig {
+  const apiKey = process.env.RESEND_API_KEY?.trim()
+  const from = process.env.RESEND_FROM?.trim()
+
+  if (!apiKey || !from) {
+    throw new Error("Resend is not configured (RESEND_API_KEY / RESEND_FROM).")
+  }
+
+  return { apiKey, from }
 }

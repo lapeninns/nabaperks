@@ -1,5 +1,6 @@
 const CACHE_NAME = "nabaperks-pwa-v1"
 const OFFLINE_URL = "/offline"
+const NEXT_STATIC_PREFIX = "/_next/static/"
 const STATIC_ASSET_PATHS = [
   OFFLINE_URL,
   "/icons/nabaperks-icon-192.png",
@@ -29,7 +30,7 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => cache.addAll(STATIC_ASSET_PATHS))
+      .then(cacheOfflineShell)
       .then(() => self.skipWaiting())
   )
 })
@@ -60,6 +61,11 @@ self.addEventListener("fetch", (event) => {
     return
   }
 
+  if (url.pathname.startsWith(NEXT_STATIC_PREFIX)) {
+    event.respondWith(cacheFirst(event.request))
+    return
+  }
+
   if (STATIC_ASSET_PATHS.includes(url.pathname)) {
     event.respondWith(cacheFirst(event.request))
   }
@@ -82,6 +88,18 @@ function isServerStatePath(pathname) {
   return NETWORK_ONLY_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   )
+}
+
+async function cacheOfflineShell(cache) {
+  await cache.addAll(STATIC_ASSET_PATHS)
+  const response = await fetch(OFFLINE_URL)
+  const html = await response.clone().text()
+  await cache.put(OFFLINE_URL, response)
+  const matches = html.matchAll(
+    /href="([^"]*\/_next\/static\/css\/[^"]+\.css[^"]*)"/g
+  )
+  const paths = [...new Set([...matches].map((match) => match[1]))]
+  await Promise.all(paths.map((path) => cache.add(path)))
 }
 
 async function networkFirstNavigation(request) {

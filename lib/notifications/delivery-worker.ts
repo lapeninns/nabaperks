@@ -16,6 +16,17 @@ import {
   getWebPushServerConfig,
   type NotificationPreferenceState,
 } from "@/lib/notifications/push-subscriptions"
+import {
+  customerNotificationFrequencyCapReached,
+  isFrequencyCappedCategory,
+  nextNotificationFrequencyWindow,
+} from "@/lib/notifications/frequency-cap"
+import {
+  isWithinQuietHours,
+  londonBusinessDate,
+  nextQuietHoursEnd,
+} from "@/lib/notifications/london-time"
+import { hasPushMarketingConsent } from "@/lib/notifications/push-marketing-eligibility"
 import { logger } from "@/lib/observability/logger"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
@@ -53,6 +64,12 @@ type PushSubscriptionRow = {
   auth: string
 }
 
+type SubscriptionDeliveryResult = {
+  sent: number
+  retryableFailed: number
+  permanentFailed: number
+}
+
 export const scheduledNotificationProducerEventTypes = [
   "next_stamp_available",
   "reward_ready",
@@ -60,6 +77,9 @@ export const scheduledNotificationProducerEventTypes = [
   "reward_expired",
   "dormant_progress",
 ] as const
+
+const MAX_PUSH_DELIVERY_ATTEMPTS = 3
+const PUSH_RETRY_BACKOFF_MS = [5 * 60_000, 30 * 60_000] as const
 
 export async function runPushNotificationDeliveryWorker({
   now = new Date(),
@@ -84,15 +104,10 @@ export async function runPushNotificationDeliveryWorker({
     return result
   }
 
-  const { data, error } = await supabase
-    .from("notification_events")
-    .select(
-      "id, event_type, category, customer_id, merchant_id, membership_id, reward_event_id, payload, metadata, due_at"
-    )
-    .eq("status", "queued")
-    .lte("due_at", now.toISOString())
-    .order("due_at", { ascending: true })
-    .limit(batchSize)
+  const { data, error } = await supabase.rpc("claim_due_notification_events", {
+    p_limit: batchSize,
+    p_now: now.toISOString(),
+  })
 
   if (error) {
     throw new Error(`Unable to load due notification events: ${error.message}`)
@@ -149,21 +164,6 @@ export function isPermanentWebPushFailure(error: unknown) {
   )
 }
 
-export function isWithinQuietHours(
-  date: Date,
-  quietHoursStart = "21:00",
-  quietHoursEnd = "09:00"
-) {
-  const minutes = londonMinutes(date)
-  const start = timeToMinutes(quietHoursStart)
-  const end = timeToMinutes(quietHoursEnd)
-
-  if (start === end) return false
-  if (start < end) return minutes >= start && minutes < end
-
-  return minutes >= start || minutes < end
-}
-
 async function deliverNotificationEvent(
   supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
   event: NotificationEventRow,
@@ -175,55 +175,121 @@ async function deliverNotificationEvent(
     result.failed += 1
     return result
   }
+  const eventType = event.event_type
+  const category = notificationEventCategory(eventType)
+
+  const preferences = await getPreferences(supabase, event.customer_id)
+  if (
+    isQuietHoursDeferrable(event) &&
+    isWithinQuietHours(
+      now,
+      preferences.quietHoursStart ?? undefined,
+      preferences.quietHoursEnd ?? undefined
+    )
+  ) {
+    await deferEvent(
+      supabase,
+      event.id,
+      nextQuietHoursEnd(now, preferences.quietHoursEnd ?? undefined)
+    )
+    result.skipped += 1
+    return result
+  }
 
   if (
-    (event.category === "reminder" || event.category === "marketing") &&
-    isWithinQuietHours(now)
+    isFrequencyCappedCategory(category) &&
+    (await customerNotificationFrequencyCapReached(supabase, {
+      customerId: event.customer_id,
+      now,
+      excludeEventId: event.id,
+    }))
   ) {
-    await deferEvent(supabase, event.id, nextQuietHoursEnd(now))
+    await deferEvent(supabase, event.id, nextNotificationFrequencyWindow(now))
+    await recordDelivery(
+      supabase,
+      event,
+      null,
+      "skipped",
+      1,
+      0,
+      "notification_frequency_cap"
+    )
     result.skipped += 1
     return result
   }
 
-  const allowed = await isDeliveryAllowed(supabase, event)
+  const allowed = await isDeliveryAllowed(supabase, event, preferences)
   if (!allowed) {
     await markEvent(supabase, event.id, "cancelled")
-    await recordDelivery(supabase, event, null, "skipped", 0, "not_eligible")
+    await recordDelivery(supabase, event, null, "skipped", 1, 0, "not_eligible")
     result.skipped += 1
     return result
   }
 
-  const subscriptions = await getEnabledSubscriptions(
+  const enabledSubscriptions = await getEnabledSubscriptions(
     supabase,
     event.customer_id
   )
+  const subscriptions = await filterAlreadySentSubscriptions(
+    supabase,
+    event.id,
+    enabledSubscriptions
+  )
+
   if (subscriptions.length === 0) {
-    await markEvent(supabase, event.id, "cancelled")
-    await recordDelivery(supabase, event, null, "skipped", 0, "no_subscription")
+    await markEvent(
+      supabase,
+      event.id,
+      enabledSubscriptions.length === 0 ? "cancelled" : "sent"
+    )
+    if (enabledSubscriptions.length === 0) {
+      await recordDelivery(
+        supabase,
+        event,
+        null,
+        "skipped",
+        1,
+        0,
+        "no_subscription"
+      )
+    }
     result.skipped += 1
     return result
   }
 
-  await markEvent(supabase, event.id, "delivering")
+  const attemptNumber = await nextDeliveryAttemptNumber(supabase, event.id)
   const deliveryResults = await Promise.all(
     subscriptions.map((subscription) =>
-      deliverPushSubscription(supabase, event, subscription)
+      deliverPushSubscription(supabase, event, subscription, attemptNumber)
     )
   )
   for (const delivery of deliveryResults) {
     result.sent += delivery.sent
-    result.failed += delivery.failed
+    result.failed += delivery.retryableFailed + delivery.permanentFailed
   }
 
-  await markEvent(supabase, event.id, result.sent > 0 ? "sent" : "failed")
+  const retryableFailures = deliveryResults.reduce(
+    (count, delivery) => count + delivery.retryableFailed,
+    0
+  )
+
+  if (retryableFailures > 0 && attemptNumber < MAX_PUSH_DELIVERY_ATTEMPTS) {
+    await deferEvent(supabase, event.id, nextRetryDueAt(now, attemptNumber))
+  } else if (result.sent > 0) {
+    await markEvent(supabase, event.id, "sent")
+  } else {
+    await markEvent(supabase, event.id, "failed")
+  }
+
   return result
 }
 
 async function deliverPushSubscription(
   supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
   event: NotificationEventRow,
-  subscription: PushSubscriptionRow
-) {
+  subscription: PushSubscriptionRow,
+  attemptNumber: number
+): Promise<SubscriptionDeliveryResult> {
   try {
     const response = await sendWebPushNotification(
       toPushSubscription(subscription),
@@ -234,10 +300,11 @@ async function deliverPushSubscription(
       event,
       subscription.id,
       "sent",
+      attemptNumber,
       response.statusCode,
       null
     )
-    return { sent: 1, failed: 0 }
+    return { sent: 1, retryableFailed: 0, permanentFailed: 0 }
   } catch (error) {
     const deliveryError =
       error instanceof Error ? error : new Error(String(error))
@@ -247,6 +314,7 @@ async function deliverPushSubscription(
       event,
       subscription.id,
       permanent ? "permanent_failure" : "retryable_failure",
+      attemptNumber,
       statusCode(deliveryError),
       permanent ? "subscription_gone" : "send_failed"
     )
@@ -255,7 +323,11 @@ async function deliverPushSubscription(
       await disableRejectedPushSubscription(supabase, subscription)
     }
 
-    return { sent: 0, failed: 1 }
+    return {
+      sent: 0,
+      retryableFailed: permanent ? 0 : 1,
+      permanentFailed: permanent ? 1 : 0,
+    }
   }
 }
 
@@ -263,11 +335,22 @@ async function disableRejectedPushSubscription(
   supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
   subscription: PushSubscriptionRow
 ) {
-  await supabase.rpc("disable_push_subscription_for_customer", {
-    p_customer_id: subscription.customer_id,
-    p_endpoint: subscription.endpoint,
-    p_reason: "push_service_rejected",
-  })
+  const { error } = await supabase.rpc(
+    "disable_push_subscription_for_customer",
+    {
+      p_customer_id: subscription.customer_id,
+      p_endpoint: subscription.endpoint,
+      p_reason: "push_service_rejected",
+    }
+  )
+
+  if (error) {
+    logger.warn("push_subscription_disable_failed", {
+      subscriptionId: subscription.id,
+      customerId: subscription.customer_id,
+      reason: error.message,
+    })
+  }
 }
 
 async function enqueueRewardExpiringSoon(now: Date) {
@@ -472,10 +555,10 @@ async function enqueueRawEvent(
 
 async function isDeliveryAllowed(
   supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
-  event: NotificationEventRow
+  event: NotificationEventRow,
+  preferences: NotificationPreferenceState
 ) {
   if (!isNotificationEventType(event.event_type)) return false
-  const preferences = await getPreferences(supabase, event.customer_id)
   const category = notificationEventCategory(event.event_type)
 
   if (category === "transactional" && !preferences.transactionalEnabled) {
@@ -484,7 +567,10 @@ async function isDeliveryAllowed(
   if (category === "reminder" && !preferences.reminderEnabled) return false
   if (notificationRequiresMarketingConsent(event.event_type)) {
     if (!preferences.marketingEnabled || !event.merchant_id) return false
-    return hasMarketingConsent(supabase, event.customer_id, event.merchant_id)
+    return hasPushMarketingConsent(supabase, {
+      customerId: event.customer_id,
+      merchantId: event.merchant_id,
+    })
   }
 
   return true
@@ -514,26 +600,6 @@ async function getPreferences(
   }
 }
 
-async function hasMarketingConsent(
-  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
-  customerId: string,
-  merchantId: string
-) {
-  const { data, error } = await supabase
-    .from("consent_records")
-    .select("consent_status, created_at")
-    .eq("customer_id", customerId)
-    .eq("merchant_id", merchantId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-
-  if (error) {
-    throw new Error(`Unable to load marketing consent: ${error.message}`)
-  }
-
-  return firstRecord(data)?.consent_status === "opted_in"
-}
-
 async function getEnabledSubscriptions(
   supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
   customerId: string
@@ -551,6 +617,64 @@ async function getEnabledSubscriptions(
   }
 
   return (data ?? []).filter(isPushSubscriptionRow)
+}
+
+async function filterAlreadySentSubscriptions(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  eventId: string,
+  subscriptions: PushSubscriptionRow[]
+) {
+  if (subscriptions.length === 0) return []
+
+  const { data, error } = await supabase
+    .from("notification_deliveries")
+    .select("push_subscription_id")
+    .eq("notification_event_id", eventId)
+    .eq("status", "sent")
+    .in(
+      "push_subscription_id",
+      subscriptions.map((subscription) => subscription.id)
+    )
+
+  if (error) {
+    throw new Error(
+      `Unable to load sent notification subscriptions: ${error.message}`
+    )
+  }
+
+  const sentSubscriptionIds = new Set(
+    (data ?? [])
+      .map((row) => stringValue(row.push_subscription_id))
+      .filter((id): id is string => Boolean(id))
+  )
+
+  return subscriptions.filter(
+    (subscription) => !sentSubscriptionIds.has(subscription.id)
+  )
+}
+
+function isQuietHoursDeferrable(event: NotificationEventRow) {
+  return event.category === "reminder" || event.category === "marketing"
+}
+
+async function nextDeliveryAttemptNumber(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  eventId: string
+) {
+  const { data, error } = await supabase
+    .from("notification_deliveries")
+    .select("attempt_number")
+    .eq("notification_event_id", eventId)
+    .order("attempt_number", { ascending: false })
+    .limit(1)
+
+  if (error) {
+    throw new Error(
+      `Unable to load notification delivery attempts: ${error.message}`
+    )
+  }
+
+  return (numberValue(firstRecord(data)?.attempt_number) ?? 0) + 1
 }
 
 async function defaultWebPushSender(
@@ -576,19 +700,24 @@ async function recordDelivery(
   event: NotificationEventRow,
   subscriptionId: string | null,
   status: "sent" | "retryable_failure" | "permanent_failure" | "skipped",
+  attemptNumber: number,
   responseStatus: number,
   failureReason: string | null
 ) {
-  await supabase.rpc("record_notification_delivery", {
-    p_event_id: event.id,
+  const { error } = await supabase.rpc("record_notification_delivery", {
+    p_notification_event_id: event.id,
     p_push_subscription_id: subscriptionId,
     p_customer_id: event.customer_id,
     p_status: status,
-    p_attempt_number: 1,
+    p_attempt_number: attemptNumber,
     p_response_status: responseStatus || null,
     p_failure_reason: failureReason,
     p_response_metadata: {},
   })
+  if (error) {
+    throw new Error(`Unable to record notification delivery: ${error.message}`)
+  }
+
   void recordDeliveryProductEvent(event, status, responseStatus, failureReason)
 }
 
@@ -662,7 +791,7 @@ async function markEvent(
   eventId: string,
   status: "delivering" | "sent" | "failed" | "cancelled"
 ) {
-  await supabase
+  const { error } = await supabase
     .from("notification_events")
     .update({
       status,
@@ -670,6 +799,12 @@ async function markEvent(
       cancelled_at: status === "cancelled" ? new Date().toISOString() : null,
     })
     .eq("id", eventId)
+
+  if (error) {
+    throw new Error(
+      `Unable to mark notification event ${status}: ${error.message}`
+    )
+  }
 }
 
 async function deferEvent(
@@ -677,10 +812,14 @@ async function deferEvent(
   eventId: string,
   nextDueAt: Date
 ) {
-  await supabase
+  const { error } = await supabase
     .from("notification_events")
-    .update({ due_at: nextDueAt.toISOString() })
+    .update({ status: "queued", due_at: nextDueAt.toISOString() })
     .eq("id", eventId)
+
+  if (error) {
+    throw new Error(`Unable to defer notification event: ${error.message}`)
+  }
 }
 
 function toPushSubscription(row: PushSubscriptionRow): PushSubscription {
@@ -709,108 +848,12 @@ function businessName(row: Record<string, unknown>) {
   return stringValue(merchant?.business_name) || "Your venue"
 }
 
-function nextQuietHoursEnd(date: Date) {
-  const today = londonDateParts(date)
-  const next = londonWallClockToUtc(today.year, today.month, today.day, 9, 0)
-
-  if (next > date) return next
-
-  const tomorrowSeed = new Date(
-    Date.UTC(today.year, today.month - 1, today.day + 1)
-  )
-  const tomorrow = londonDateParts(tomorrowSeed)
-  return londonWallClockToUtc(tomorrow.year, tomorrow.month, tomorrow.day, 9, 0)
-}
-
-function londonWallClockToUtc(
-  year: number,
-  month: number,
-  day: number,
-  hour: number,
-  minute: number
-) {
-  const target = Date.UTC(year, month - 1, day, hour, minute)
-  let candidate = new Date(target)
-
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const observed = londonDateTimeParts(candidate)
-    const observedAsUtc = Date.UTC(
-      observed.year,
-      observed.month - 1,
-      observed.day,
-      observed.hour,
-      observed.minute
-    )
-    const delta = target - observedAsUtc
-    if (delta === 0) return candidate
-    candidate = new Date(candidate.getTime() + delta)
-  }
-
-  return candidate
-}
-
-function londonDateParts(date: Date) {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/London",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date)
-
-  return {
-    year: Number(part(parts, "year")),
-    month: Number(part(parts, "month")),
-    day: Number(part(parts, "day")),
-  }
-}
-
-function londonDateTimeParts(date: Date) {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/London",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(date)
-
-  return {
-    ...londonDateParts(date),
-    hour: Number(part(parts, "hour")),
-    minute: Number(part(parts, "minute")),
-  }
-}
-
-function londonBusinessDate(date: Date) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/London",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date)
-
-  return `${part(parts, "year")}-${part(parts, "month")}-${part(parts, "day")}`
-}
-
-function londonMinutes(date: Date) {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/London",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(date)
-
-  return timeToMinutes(`${part(parts, "hour")}:${part(parts, "minute")}`)
-}
-
-function timeToMinutes(value: string) {
-  const [hours = "0", minutes = "0"] = value.split(":")
-  return Number(hours) * 60 + Number(minutes)
-}
-
-function part(parts: Intl.DateTimeFormatPart[], type: string) {
-  return parts.find((entry) => entry.type === type)?.value ?? "00"
+function nextRetryDueAt(now: Date, attemptNumber: number) {
+  const backoff =
+    PUSH_RETRY_BACKOFF_MS[
+      Math.min(Math.max(attemptNumber - 1, 0), PUSH_RETRY_BACKOFF_MS.length - 1)
+    ]
+  return new Date(now.getTime() + backoff)
 }
 
 function statusCode(error: unknown) {

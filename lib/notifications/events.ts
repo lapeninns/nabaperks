@@ -1,6 +1,9 @@
 import "server-only"
 
-import { recordProductEvent } from "@/lib/analytics/events"
+import {
+  recordProductEvent,
+  type ProductEventName,
+} from "@/lib/analytics/events"
 import { logger } from "@/lib/observability/logger"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import {
@@ -11,6 +14,12 @@ import {
   type NotificationEventType,
   type NotificationPayload,
 } from "@/lib/notifications/catalog"
+import {
+  customerNotificationFrequencyCapReached,
+  isFrequencyCappedCategory,
+} from "@/lib/notifications/frequency-cap"
+import { londonBusinessDate } from "@/lib/notifications/london-time"
+import { hasPushMarketingConsent } from "@/lib/notifications/push-marketing-eligibility"
 
 export type EnqueueNotificationInput = {
   eventType: NotificationEventType
@@ -244,6 +253,16 @@ async function notificationEligibility(
     return { allowed: false as const, reason: "no_enabled_push_subscription" }
   }
 
+  if (
+    isFrequencyCappedCategory(category) &&
+    (await customerNotificationFrequencyCapReached(supabase, {
+      customerId: input.customerId,
+      now: new Date(),
+    }))
+  ) {
+    return { allowed: false as const, reason: "notification_frequency_cap" }
+  }
+
   if (category === "transactional" && !preferences.transactional_enabled) {
     return { allowed: false as const, reason: "transactional_push_disabled" }
   }
@@ -259,7 +278,10 @@ async function notificationEligibility(
 
     if (
       !input.merchantId ||
-      !(await hasMarketingConsent(supabase, input.customerId, input.merchantId))
+      !(await hasPushMarketingConsent(supabase, {
+        customerId: input.customerId,
+        merchantId: input.merchantId,
+      }))
     ) {
       return { allowed: false as const, reason: "marketing_consent_missing" }
     }
@@ -305,27 +327,6 @@ async function countEnabledSubscriptions(
   }
 
   return count ?? 0
-}
-
-async function hasMarketingConsent(
-  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
-  customerId: string,
-  merchantId: string
-) {
-  const { data, error } = await supabase
-    .from("consent_records")
-    .select("channel, consent_status, created_at")
-    .eq("customer_id", customerId)
-    .eq("merchant_id", merchantId)
-    .eq("channel", "push")
-    .order("created_at", { ascending: false })
-
-  if (error) {
-    throw new Error(`Unable to load marketing consent: ${error.message}`)
-  }
-
-  const [latest] = data ?? []
-  return latest?.consent_status === "opted_in"
 }
 
 async function getMembershipNotificationContext(
@@ -462,21 +463,6 @@ function isRedeemableToday(redeemableFrom: string | null) {
   return !redeemableFrom || redeemableFrom <= londonBusinessDate(new Date())
 }
 
-function londonBusinessDate(date: Date) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/London",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date)
-
-  return `${part(parts, "year")}-${part(parts, "month")}-${part(parts, "day")}`
-}
-
-function part(parts: Intl.DateTimeFormatPart[], type: string) {
-  return parts.find((entry) => entry.type === type)?.value ?? "00"
-}
-
 function first<T>(value: T | T[] | null | undefined): T | null {
   if (!value) return null
   return Array.isArray(value) ? (value[0] ?? null) : value
@@ -495,7 +481,7 @@ function numberValue(value: unknown) {
 }
 
 async function recordPushProductEvent(
-  eventName: string,
+  eventName: ProductEventName,
   input: EnqueueNotificationInput,
   metadata: Record<string, unknown>
 ) {

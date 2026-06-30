@@ -122,7 +122,8 @@ export function AppPwa() {
   const [isEditingText, setIsEditingText] = useState(false)
   const [dismissed, setDismissed] = useState(false)
 
-  const copy = useMemo(() => INSTALL_COPY[routeSurface(pathname)], [pathname])
+  const surface = useMemo(() => routeSurface(pathname), [pathname])
+  const copy = useMemo(() => INSTALL_COPY[surface], [surface])
 
   useEffect(() => {
     const displayModeQuery = window.matchMedia("(display-mode: standalone)")
@@ -223,6 +224,8 @@ export function AppPwa() {
   if (
     !hasMounted ||
     pathname === "/offline" ||
+    pathname.startsWith("/m/") ||
+    surface === "marketing" ||
     isStandalone ||
     isEditingText ||
     dismissed

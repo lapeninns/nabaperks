@@ -1,11 +1,18 @@
 import "server-only"
 
-import { createHash } from "node:crypto"
-
 import { recordProductEvent } from "@/lib/analytics/events"
 import { enqueueNotificationEvent } from "@/lib/notifications/events"
+import {
+  normalizeVenueAnnouncementMemberships,
+  resolveVenueAnnouncementAudienceCustomerIds,
+  validateVenueAnnouncementText,
+  venueAnnouncementDedupeKey,
+  type VenueAnnouncementMembership,
+} from "@/lib/notifications/venue-announcement-core"
 import { logger } from "@/lib/observability/logger"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+
+export { validateVenueAnnouncementText } from "@/lib/notifications/venue-announcement-core"
 
 export type VenueAnnouncementInput = {
   merchantId: string
@@ -20,42 +27,6 @@ export type VenueAnnouncementResult = {
   eligible: number
   queued: number
   skipped: number
-}
-
-type MembershipRow = {
-  id: string
-  customer_id: string
-}
-
-type PreferenceRow = {
-  customer_id: string
-  marketing_enabled: boolean
-}
-
-type SubscriptionRow = {
-  customer_id: string
-}
-
-type ConsentRow = {
-  customer_id: string
-  channel: string
-  consent_status: string
-  created_at: string
-}
-
-export function validateVenueAnnouncementText(input: {
-  title: unknown
-  body: unknown
-}):
-  | { ok: true; title: string; body: string }
-  | { ok: false; error: "invalid_title" | "invalid_body" } {
-  const title = cleanText(input.title, 80)
-  const body = cleanText(input.body, 180)
-
-  if (title.length < 3) return { ok: false, error: "invalid_title" }
-  if (body.length < 10) return { ok: false, error: "invalid_body" }
-
-  return { ok: true, title, body }
 }
 
 export async function enqueueVenueAnnouncement(
@@ -78,9 +49,7 @@ export async function enqueueVenueAnnouncement(
     throw new Error(`Unable to load announcement audience: ${error.message}`)
   }
 
-  const memberships = ((data ?? []) as MembershipRow[]).filter(
-    (row) => row.id && row.customer_id
-  )
+  const memberships = normalizeVenueAnnouncementMemberships(data)
   if (memberships.length === 0) {
     return { eligible: 0, queued: 0, skipped: 0 }
   }
@@ -91,24 +60,24 @@ export async function enqueueVenueAnnouncement(
   )
   let queued = 0
   let skipped = 0
-  const digest = announcementDigest(
-    input.merchantId,
-    validated.title,
-    validated.body
-  )
 
   for (const membership of memberships) {
-    if (!audience.has(membership.customer_id)) {
+    if (!audience.has(membership.customerId)) {
       skipped += 1
       continue
     }
 
     const result = await enqueueNotificationEvent({
       eventType: "venue_announcement",
-      customerId: membership.customer_id,
+      customerId: membership.customerId,
       merchantId: input.merchantId,
       membershipId: membership.id,
-      dedupeKey: `venue_announcement:${input.merchantId}:${membership.customer_id}:${digest}`,
+      dedupeKey: venueAnnouncementDedupeKey({
+        merchantId: input.merchantId,
+        customerId: membership.customerId,
+        title: validated.title,
+        body: validated.body,
+      }),
       payload: {
         businessName: input.businessName,
         announcementTitle: validated.title,
@@ -133,11 +102,11 @@ export async function enqueueVenueAnnouncement(
 }
 
 async function resolveAnnouncementAudience(
-  memberships: MembershipRow[],
+  memberships: readonly VenueAnnouncementMembership[],
   merchantId: string
 ) {
   const supabase = createSupabaseServiceRoleClient()
-  const customerIds = [...new Set(memberships.map((row) => row.customer_id))]
+  const customerIds = [...new Set(memberships.map((row) => row.customerId))]
   const [preferences, subscriptions, consents] = await Promise.all([
     supabase
       .from("notification_preferences")
@@ -174,58 +143,12 @@ async function resolveAnnouncementAudience(
     )
   }
 
-  const enabledPreference = new Set(
-    ((preferences.data ?? []) as PreferenceRow[])
-      .filter((row) => row.marketing_enabled)
-      .map((row) => row.customer_id)
-  )
-  const enabledSubscription = new Set(
-    ((subscriptions.data ?? []) as SubscriptionRow[]).map(
-      (row) => row.customer_id
-    )
-  )
-  const consentAllowed = resolveLatestConsent(
-    (consents.data ?? []) as ConsentRow[]
-  )
-
-  return new Set(
-    customerIds.filter(
-      (customerId) =>
-        enabledPreference.has(customerId) &&
-        enabledSubscription.has(customerId) &&
-        consentAllowed.has(customerId)
-    )
-  )
-}
-
-function resolveLatestConsent(rows: ConsentRow[]) {
-  const latest = new Map<string, string>()
-  for (const row of rows) {
-    if (!latest.has(row.customer_id)) {
-      latest.set(row.customer_id, row.consent_status)
-    }
-  }
-
-  const allowed = new Set<string>()
-  for (const [customerId, status] of latest.entries()) {
-    if (status === "opted_in") {
-      allowed.add(customerId)
-    }
-  }
-  return allowed
-}
-
-function announcementDigest(merchantId: string, title: string, body: string) {
-  return createHash("sha256")
-    .update(`${merchantId}:${title}:${body}`)
-    .digest("hex")
-    .slice(0, 16)
-}
-
-function cleanText(value: unknown, limit: number) {
-  return typeof value === "string"
-    ? value.replace(/\s+/g, " ").trim().slice(0, limit)
-    : ""
+  return resolveVenueAnnouncementAudienceCustomerIds({
+    memberships,
+    preferences: preferences.data,
+    subscriptions: subscriptions.data,
+    consents: consents.data,
+  })
 }
 
 async function recordAnnouncementProductEvent(
