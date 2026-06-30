@@ -2,8 +2,9 @@ import "server-only"
 
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { getCurrentCustomer } from "@/lib/customer/identity"
+import type { MarketingChannel } from "@/lib/customer/consent"
 
-export type ConsentChannel = "email" | "sms" | "whatsapp"
+export type ConsentChannel = MarketingChannel
 
 export type CustomerConsent = {
   channel: ConsentChannel

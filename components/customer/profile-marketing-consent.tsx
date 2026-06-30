@@ -10,9 +10,11 @@ import { Eyebrow, SectionHeader } from "@/components/brand"
 import { marketingConsentRowState } from "@/lib/customer/experience/marketing-consent-row"
 
 type MarketingConsent = {
-  channel: "email" | "sms" | "whatsapp"
+  channel: "email" | "sms" | "whatsapp" | "push"
   optedIn: boolean
 }
+
+type DisplayMarketingChannel = Exclude<MarketingConsent["channel"], "push">
 
 const CHANNELS = [
   {
@@ -30,7 +32,11 @@ const CHANNELS = [
     label: "WhatsApp",
     helper: "Updates and offers on WhatsApp.",
   },
-] as const
+] as const satisfies readonly {
+  channel: DisplayMarketingChannel
+  label: string
+  helper: string
+}[]
 
 const initialState: MarketingConsentState = {}
 
@@ -50,7 +56,9 @@ export function CustomerProfileMarketing({
   const optedInByChannel = new Map(
     consents.map((consent) => [consent.channel, consent.optedIn])
   )
-  const hasAnyConsent = consents.length > 0
+  const hasAnyConsent = CHANNELS.some((entry) =>
+    optedInByChannel.has(entry.channel)
+  )
 
   return (
     <section className="surface-card grid gap-4 p-5">
@@ -90,7 +98,7 @@ function MarketingChannelRow({
   helper,
   optedIn,
 }: {
-  channel: MarketingConsent["channel"]
+  channel: DisplayMarketingChannel
   label: string
   helper: string
   optedIn: boolean
