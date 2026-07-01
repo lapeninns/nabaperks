@@ -44,13 +44,14 @@ export default function OnboardingHarnessPage() {
           phone: "07700900421",
         }}
         draftUserId="usr_harness_onboarding"
+        googleMapsApiKey=""
       />
 
       <aside className="grid h-fit lg:col-start-2 lg:row-span-2 lg:row-start-1">
         <ReceiptCard padding="sm" className="grid gap-4">
           <div>
             <p className="eyebrow">What happens next</p>
-            <h2 className="mt-2 text-xl font-extrabold leading-tight">
+            <h2 className="mt-2 text-xl leading-tight font-extrabold">
               From sign-up to your first stamp
             </h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">

@@ -27,7 +27,7 @@ test.describe("governance browser gate", () => {
     ).toBeVisible()
   })
 
-  test("Given the public landing page When visual smoke runs Then the hero occupies a non-empty viewport surface @visual", async ({
+  test("Given the public landing page When visual smoke runs Then the hero occupies a non-empty viewport surface", async ({
     page,
   }) => {
     await page.goto("/")

@@ -38,6 +38,8 @@ export default defineConfig({
   expect: {
     timeout: 15_000,
   },
+  snapshotPathTemplate:
+    "{testDir}/{testFilePath}-snapshots/{arg}-{projectName}{ext}",
   use: {
     baseURL,
     trace: "retain-on-failure",
@@ -45,20 +47,33 @@ export default defineConfig({
   },
   projects: [
     {
-      name: "iphone-customer-flow",
+      name: "mobile-safari",
       // Desktop-only scenarios (e.g. the merchant pin-map proof) opt out of the
       // mobile project via `testIgnore` so mobile captures stay iPhone-only.
       testIgnore: "**/*.desktop.spec.ts",
       use: {
         ...devices["iPhone 14"],
-        browserName: "chromium",
       },
     },
     {
       name: "chromium",
-      testMatch: "**/*.desktop.spec.ts",
+      testMatch: ["**/*.desktop.spec.ts", "**/visual.spec.ts"],
       use: {
         ...devices["Desktop Chrome"],
+      },
+    },
+    {
+      name: "desktop-firefox",
+      testMatch: ["**/*.desktop.spec.ts", "**/visual.spec.ts"],
+      use: {
+        ...devices["Desktop Firefox"],
+      },
+    },
+    {
+      name: "desktop-safari",
+      testMatch: ["**/*.desktop.spec.ts", "**/visual.spec.ts"],
+      use: {
+        ...devices["Desktop Safari"],
       },
     },
   ],

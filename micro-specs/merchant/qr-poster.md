@@ -35,7 +35,7 @@ verification_gates:
   - pnpm test:e2e
 required_playwright_projects:
   - chromium
-  - mobile-chromium
+  - mobile-safari
 evidence_required:
   - Command output for the declared verification gates and related tests.
 approved_exceptions: []

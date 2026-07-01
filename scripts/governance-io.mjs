@@ -4,7 +4,9 @@ import { join, relative } from "node:path"
 
 export function readPackageScripts(root, failures) {
   try {
-    return JSON.parse(readFileSync(join(root, "package.json"), "utf8")).scripts ?? {}
+    return (
+      JSON.parse(readFileSync(join(root, "package.json"), "utf8")).scripts ?? {}
+    )
   } catch (error) {
     failures.push(`package.json could not be read: ${errorMessage(error)}`)
     return {}
@@ -17,6 +19,15 @@ export function readCiCommands(root) {
   const source = readFileSync(workflowPath, "utf8")
   return [...source.matchAll(/run:\s*(pnpm[^\n]+)/g)].map((match) =>
     match[1].trim()
+  )
+}
+
+export function readPlaywrightProjectNames(root) {
+  const configPath = join(root, "playwright.config.ts")
+  if (!existsSync(configPath)) return []
+  const source = readFileSync(configPath, "utf8")
+  return [...source.matchAll(/\bname:\s*["']([^"']+)["']/g)].map(
+    (match) => match[1]
   )
 }
 
@@ -48,7 +59,11 @@ export function findChangedFiles(root, env) {
     ranges.push([`${env.GITHUB_EVENT_BEFORE}...HEAD`])
   }
   ranges.push(["HEAD"])
-  const untracked = gitFiles(root, ["ls-files", "--others", "--exclude-standard"])
+  const untracked = gitFiles(root, [
+    "ls-files",
+    "--others",
+    "--exclude-standard",
+  ])
 
   for (const range of ranges) {
     const tracked = gitFiles(root, [

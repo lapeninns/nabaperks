@@ -14,6 +14,7 @@ import {
   namedSection,
   readCiCommands,
   readPackageScripts,
+  readPlaywrightProjectNames,
   readSpecs,
 } from "./governance-io.mjs"
 
@@ -21,14 +22,17 @@ export function validateGovernance(root, options = {}) {
   const failures = []
   const packageScripts = readPackageScripts(root, failures)
   const ciCommands = readCiCommands(root)
+  const playwrightProjects = readPlaywrightProjectNames(root)
   const specs = readSpecs(root, failures)
 
   validateUniqueSpecIds(specs, failures)
   for (const spec of specs) {
-    validateMetadata(spec, packageScripts, failures)
+    validateMetadata(spec, packageScripts, playwrightProjects, failures)
   }
 
-  for (const spec of specs.filter((item) => item.metadata.status === "active")) {
+  for (const spec of specs.filter(
+    (item) => item.metadata.status === "active"
+  )) {
     validateActiveSpec(spec, failures)
   }
 
@@ -49,15 +53,19 @@ export function validateGovernance(root, options = {}) {
   }
 }
 
-function validateMetadata(spec, packageScripts, failures) {
+function validateMetadata(spec, packageScripts, playwrightProjects, failures) {
   for (const field of REQUIRED_METADATA_FIELDS) {
     if (!(field in spec.metadata)) {
-      failures.push(`${specPath(spec.file)} is missing metadata field "${field}".`)
+      failures.push(
+        `${specPath(spec.file)} is missing metadata field "${field}".`
+      )
     }
   }
 
   if (!STATUS_VALUES.includes(spec.metadata.status)) {
-    failures.push(`${specPath(spec.file)} has invalid status "${spec.metadata.status}".`)
+    failures.push(
+      `${specPath(spec.file)} has invalid status "${spec.metadata.status}".`
+    )
   }
   if (!RISK_CLASSES.includes(spec.metadata.risk_class)) {
     failures.push(
@@ -75,14 +83,29 @@ function validateMetadata(spec, packageScripts, failures) {
     "verification_gates",
     "evidence_required",
   ]) {
-    if (!Array.isArray(spec.metadata[field]) || spec.metadata[field].length === 0) {
-      failures.push(`${specPath(spec.file)} metadata "${field}" must be a non-empty list.`)
+    if (
+      !Array.isArray(spec.metadata[field]) ||
+      spec.metadata[field].length === 0
+    ) {
+      failures.push(
+        `${specPath(spec.file)} metadata "${field}" must be a non-empty list.`
+      )
     }
   }
 
   for (const field of ["required_playwright_projects", "approved_exceptions"]) {
     if (!Array.isArray(spec.metadata[field])) {
-      failures.push(`${specPath(spec.file)} metadata "${field}" must be a list.`)
+      failures.push(
+        `${specPath(spec.file)} metadata "${field}" must be a list.`
+      )
+    }
+  }
+
+  for (const project of spec.metadata.required_playwright_projects ?? []) {
+    if (!playwrightProjects.includes(project)) {
+      failures.push(
+        `${specPath(spec.file)} declares unknown Playwright project "${project}".`
+      )
     }
   }
 
@@ -97,35 +120,50 @@ function validateActiveSpec(spec, failures) {
   const requiredGates = RISK_REQUIRED_GATES[spec.metadata.risk_class] ?? []
   for (const gate of requiredGates) {
     if (!hasGate(spec, gate)) {
-      failures.push(`${specId(spec)} requires "${gate}" for risk_class ${spec.metadata.risk_class}.`)
+      failures.push(
+        `${specId(spec)} requires "${gate}" for risk_class ${spec.metadata.risk_class}.`
+      )
     }
   }
 
   if (needsPlaywright(spec)) {
     if ((spec.metadata.required_playwright_projects ?? []).length === 0) {
-      failures.push(`${specId(spec)} requires non-empty required_playwright_projects.`)
+      failures.push(
+        `${specId(spec)} requires non-empty required_playwright_projects.`
+      )
     }
     if (!hasRelatedBrowserTest(spec)) {
       failures.push(`${specId(spec)} requires related e2e/a11y/visual tests.`)
     }
   }
 
-  const evidence = (spec.metadata.evidence_required ?? []).join(" ").toLowerCase()
+  const evidence = (spec.metadata.evidence_required ?? [])
+    .join(" ")
+    .toLowerCase()
   if (evidence.includes("a11y") && !hasGate(spec, "pnpm test:a11y")) {
-    failures.push(`${specId(spec)} requires "pnpm test:a11y" for a11y evidence.`)
+    failures.push(
+      `${specId(spec)} requires "pnpm test:a11y" for a11y evidence.`
+    )
   }
   if (evidence.includes("visual") && !hasGate(spec, "pnpm test:visual")) {
-    failures.push(`${specId(spec)} requires "pnpm test:visual" for visual evidence.`)
+    failures.push(
+      `${specId(spec)} requires "pnpm test:visual" for visual evidence.`
+    )
   }
 }
 
 function validateDocsDrift(root, ciCommands, failures) {
   const readmePath = join(root, "micro-specs/README.md")
   if (!existsSync(readmePath)) return
-  const section = namedSection(readFileSync(readmePath, "utf8"), "Current Verification Gates")
+  const section = namedSection(
+    readFileSync(readmePath, "utf8"),
+    "Current Verification Gates"
+  )
   for (const command of ciCommands) {
     if (!section.includes(command)) {
-      failures.push(`micro-specs/README.md Current Verification Gates omits CI command "${command}".`)
+      failures.push(
+        `micro-specs/README.md Current Verification Gates omits CI command "${command}".`
+      )
     }
   }
 }
@@ -134,13 +172,19 @@ function validateBlastRadius(specs, changedFiles, failures) {
   if (changedFiles.length === 0) return
   const activeSpecs = specs.filter((spec) => spec.metadata.status === "active")
   if (activeSpecs.length === 0) {
-    failures.push("Changed files exist, but no active Micro-Spec is available for blast-radius enforcement.")
+    failures.push(
+      "Changed files exist, but no active Micro-Spec is available for blast-radius enforcement."
+    )
     return
   }
-  const allowed = activeSpecs.flatMap((spec) => spec.metadata.allowed_blast_radius ?? [])
+  const allowed = activeSpecs.flatMap(
+    (spec) => spec.metadata.allowed_blast_radius ?? []
+  )
   for (const file of changedFiles) {
     if (!allowed.some((pattern) => matchesPattern(file, pattern))) {
-      failures.push(`${file} is outside active Micro-Spec allowed_blast_radius.`)
+      failures.push(
+        `${file} is outside active Micro-Spec allowed_blast_radius.`
+      )
     }
   }
 }
@@ -150,7 +194,8 @@ function validateUniqueSpecIds(specs, failures) {
   for (const spec of specs) {
     const id = spec.metadata.spec_id
     if (!id) continue
-    if (seen.has(id)) failures.push(`${specPath(spec.file)} duplicates spec_id "${id}".`)
+    if (seen.has(id))
+      failures.push(`${specPath(spec.file)} duplicates spec_id "${id}".`)
     seen.set(id, spec.file)
   }
 }
@@ -169,8 +214,8 @@ function isValidGate(command, packageScripts) {
 }
 
 function hasGate(spec, requiredGate) {
-  return (spec.metadata.verification_gates ?? []).some((gate) =>
-    gate === requiredGate || gate.startsWith(`${requiredGate} `)
+  return (spec.metadata.verification_gates ?? []).some(
+    (gate) => gate === requiredGate || gate.startsWith(`${requiredGate} `)
   )
 }
 
@@ -188,8 +233,12 @@ function hasRelatedBrowserTest(spec) {
 
 function matchesPattern(file, pattern) {
   if (pattern.endsWith("/**")) return file.startsWith(pattern.slice(0, -3))
-  if (!pattern.includes("*")) return file === pattern || file.startsWith(`${pattern}/`)
-  const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*\*/g, ".*").replace(/\*/g, "[^/]*")
+  if (!pattern.includes("*"))
+    return file === pattern || file.startsWith(`${pattern}/`)
+  const escaped = pattern
+    .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*\*/g, ".*")
+    .replace(/\*/g, "[^/]*")
   return new RegExp(`^${escaped}$`).test(file)
 }
 
@@ -203,9 +252,7 @@ export function isManualInspectionGate(command) {
 }
 
 function parsePnpmScriptGate(command) {
-  const match = command.match(
-    /^pnpm(?: run)?\s+([A-Za-z0-9:_-]+)(?:\s+(.+))?$/
-  )
+  const match = command.match(/^pnpm(?: run)?\s+([A-Za-z0-9:_-]+)(?:\s+(.+))?$/)
 
   if (!match) return null
 
@@ -220,7 +267,7 @@ function allowsScriptArgs(scriptName, args) {
     return false
   }
 
-  return /^--\s+(?:--project=[A-Za-z0-9_.:-]+|--grep\s+(?:"[^"]+"|'[^']+'|[A-Za-z0-9_@./:-]+))$/.test(
+  return /^--\s+(?:(?:--project=[A-Za-z0-9_.:-]+|--grep\s+(?:"[^"]+"|'[^']+'|[A-Za-z0-9_@./:|-]+))(?:\s+|$))+$/.test(
     args
   )
 }

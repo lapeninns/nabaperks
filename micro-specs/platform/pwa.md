@@ -28,11 +28,15 @@ verification_gates:
   - pnpm typecheck
   - pnpm governance:check
   - pnpm test
+  - pnpm test:coverage
+  - pnpm bundle:check
   - pnpm build
   - pnpm test:e2e -- --grep "PWA offline fallback"
+  - pnpm test:a11y
+  - pnpm test:visual
 required_playwright_projects:
   - chromium
-  - mobile-chromium
+  - mobile-safari
 evidence_required:
   - Command output for the declared verification gates and related tests.
 approved_exceptions: []
@@ -96,4 +100,6 @@ key is pinned by the harness helper (`tests/e2e/helpers/harness.ts`).
 ## Gates
 
 `pnpm lint` · `pnpm typecheck` · `pnpm governance:check` · `pnpm test` ·
-`pnpm build` · `pnpm test:e2e -- --grep "PWA offline fallback"`.
+`pnpm test:coverage` · `pnpm bundle:check` · `pnpm build` ·
+`pnpm test:e2e -- --grep "PWA offline fallback"` · `pnpm test:a11y` ·
+`pnpm test:visual`.

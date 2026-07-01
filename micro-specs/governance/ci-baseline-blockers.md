@@ -27,11 +27,15 @@ verification_gates:
   - pnpm typecheck
   - pnpm governance:check
   - pnpm test
+  - pnpm test:coverage
+  - pnpm bundle:check
   - pnpm test:e2e -- --grep "@governance"
+  - pnpm test:a11y
+  - pnpm test:visual
   - pnpm build
 required_playwright_projects:
   - chromium
-  - mobile-chromium
+  - mobile-safari
 evidence_required:
   - Lint output proving generated design-source mirrors no longer block runtime lint.
   - Node Micro-Spec output proving sidebar uncontrolled default reset remains covered.
@@ -82,5 +86,9 @@ Required gates:
 - `pnpm typecheck`
 - `pnpm governance:check`
 - `pnpm test`
+- `pnpm test:coverage`
+- `pnpm bundle:check`
 - `pnpm test:e2e -- --grep "@governance"`
+- `pnpm test:a11y`
+- `pnpm test:visual`
 - `pnpm build`

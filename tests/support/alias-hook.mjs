@@ -14,6 +14,7 @@ import { fileURLToPath, pathToFileURL } from "node:url"
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const EXTENSIONS = [".ts", ".tsx", ".mts", ".js", ".mjs"]
+const SERVER_ONLY_STUB = path.join(root, "tests/support/server-only-stub.mjs")
 
 function resolveAliasTarget(specifier) {
   const base = path.join(root, specifier.slice(2))
@@ -42,6 +43,10 @@ function resolveRelativeTarget(specifier, parentURL) {
 }
 
 export async function resolve(specifier, context, next) {
+  if (specifier === "server-only") {
+    return next(pathToFileURL(SERVER_ONLY_STUB).href, context)
+  }
+
   if (specifier.startsWith("@/")) {
     const target = resolveAliasTarget(specifier)
     if (target) {

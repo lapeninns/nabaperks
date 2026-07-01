@@ -56,12 +56,35 @@ test("Given an active billing spec When DB gates are omitted Then validation fai
   assert.match(result.failures.join("\n"), /requires "pnpm test:db"/)
 })
 
+test("Given an active docs-tooling spec When coverage is omitted Then validation fails", () => {
+  const root = fixtureRepo({
+    spec: specFile({
+      riskClass: "docs-tooling",
+      gates: [
+        "pnpm lint",
+        "pnpm typecheck",
+        "pnpm governance:check",
+        "pnpm test",
+      ],
+    }),
+  })
+
+  const result = validateGovernance(root, { changedFiles: [] })
+
+  assert.match(result.failures.join("\n"), /requires "pnpm test:coverage"/)
+})
+
 test("Given an active spec When a changed file is outside the blast radius Then validation fails", () => {
   const root = fixtureRepo({
     spec: specFile({
       riskClass: "docs-tooling",
       blastRadius: ["micro-specs/**"],
-      gates: ["pnpm lint", "pnpm typecheck", "pnpm governance:check", "pnpm test"],
+      gates: [
+        "pnpm lint",
+        "pnpm typecheck",
+        "pnpm governance:check",
+        "pnpm test",
+      ],
     }),
   })
 
@@ -88,6 +111,54 @@ test("Given a verification gate with shell metacharacters When validation runs T
   assert.match(result.failures.join("\n"), /declares unknown gate/)
 })
 
+test("Given a Playwright gate with multiple project flags When validation runs Then the gate is accepted", () => {
+  const root = fixtureRepo({
+    spec: specFile({
+      riskClass: "ui-only",
+      gates: [
+        "pnpm lint",
+        "pnpm typecheck",
+        "pnpm build",
+        "pnpm test",
+        "pnpm test:coverage",
+        "pnpm bundle:check",
+        'pnpm test:e2e -- --project=chromium --project=mobile-safari --grep "@governance|PWA offline fallback"',
+        "pnpm test:a11y",
+        "pnpm test:visual",
+      ],
+      tests: ["tests/e2e/example.spec.ts"],
+      playwrightProjects: ["chromium", "mobile-safari"],
+      evidence: ["Playwright report for changed UI"],
+    }),
+  })
+
+  const result = validateGovernance(root, { changedFiles: [] })
+
+  assert.deepEqual(result.failures, [])
+})
+
+test("Given a spec with an unknown Playwright project When validation runs Then the project drift is rejected", () => {
+  const root = fixtureRepo({
+    spec: specFile({
+      riskClass: "ui-only",
+      gates: [
+        "pnpm lint",
+        "pnpm typecheck",
+        "pnpm build",
+        "pnpm test",
+        "pnpm test:e2e",
+      ],
+      tests: ["tests/e2e/example.spec.ts"],
+      playwrightProjects: ["mobile-chromium"],
+      evidence: ["Playwright report for changed UI"],
+    }),
+  })
+
+  const result = validateGovernance(root, { changedFiles: [] })
+
+  assert.match(result.failures.join("\n"), /unknown Playwright project/)
+})
+
 function fixtureRepo({ spec }) {
   const root = mkdtempSync(path.join(tmpdir(), "nabaperks-governance-"))
   mkdirSync(path.join(root, ".github/workflows"), { recursive: true })
@@ -98,14 +169,18 @@ function fixtureRepo({ spec }) {
     JSON.stringify(
       {
         scripts: {
+          "bundle:check": "node scripts/check-bundle-size.mjs",
           build: "next build",
           "claims:check": "node scripts/check-banned-claims.mjs",
           "governance:check": "node scripts/check-governance.mjs",
           "governance:run-gates": "node scripts/run-governance-gates.mjs",
           "jsonld:check": "node scripts/check-jsonld.mjs",
+          lighthouse: "lhci autorun",
           lint: "eslint",
           test: "node --test tests/micro-specs/*.test.mjs",
           "test:a11y": "playwright test --grep @a11y",
+          "test:coverage":
+            "node --test --experimental-test-coverage tests/unit/*.test.mjs",
           "test:db": "node --test tests/db/*.test.mjs",
           "test:e2e": "playwright test",
           "test:visual": "playwright test --grep @visual",
@@ -144,6 +219,18 @@ function fixtureRepo({ spec }) {
       "- `pnpm governance:check`",
       "- `pnpm test`",
       "- `pnpm build`",
+      "",
+    ].join("\n")
+  )
+  writeFileSync(
+    path.join(root, "playwright.config.ts"),
+    [
+      "export default {",
+      "  projects: [",
+      '    { name: "chromium" },',
+      '    { name: "mobile-safari" },',
+      "  ],",
+      "}",
       "",
     ].join("\n")
   )

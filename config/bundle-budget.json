@@ -1,0 +1,5 @@
+{
+  "maxRootFirstLoadJsBytes": 950000,
+  "maxRouteFirstLoadJsBytes": 900000,
+  "maxSingleChunkBytes": 450000
+}

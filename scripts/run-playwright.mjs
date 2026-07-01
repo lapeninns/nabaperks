@@ -1,9 +1,7 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process"
 
-const forwardedArgs = process.argv.slice(2)
-const playwrightArgs =
-  forwardedArgs[0] === "--" ? forwardedArgs.slice(1) : forwardedArgs
+const playwrightArgs = process.argv.slice(2).filter((arg) => arg !== "--")
 
 const result = spawnSync("playwright", ["test", ...playwrightArgs], {
   env: process.env,

@@ -87,29 +87,29 @@ implementation inputs.
 
 ## Lifecycle Transition Policy
 
-| From | To | Required evidence |
-| --- | --- | --- |
-| `draft` | `active` | Complete metadata, EARS requirements, risk class, blast radius, verification gates, and evidence requirements. |
-| `active` | `implemented` | Requirement IDs mapped to checks, Red -> Green -> Refactor evidence where applicable, and in-scope files only. |
-| `implemented` | `verified` | Passing gates, review notes, CI artifacts, and manual QA evidence when the changed surface is user-visible. |
-| `active` | `superseded` | Supersession link or rationale. |
-| `implemented` | `superseded` | Replacement spec or explicit product decision. |
+| From          | To            | Required evidence                                                                                              |
+| ------------- | ------------- | -------------------------------------------------------------------------------------------------------------- |
+| `draft`       | `active`      | Complete metadata, EARS requirements, risk class, blast radius, verification gates, and evidence requirements. |
+| `active`      | `implemented` | Requirement IDs mapped to checks, Red -> Green -> Refactor evidence where applicable, and in-scope files only. |
+| `implemented` | `verified`    | Passing gates, review notes, CI artifacts, and manual QA evidence when the changed surface is user-visible.    |
+| `active`      | `superseded`  | Supersession link or rationale.                                                                                |
+| `implemented` | `superseded`  | Replacement spec or explicit product decision.                                                                 |
 
 ## Risk Gate Matrix
 
 The governance checker enforces the required gate floor for active specs.
 
-| risk_class | Applies to | Required gate floor |
-| --- | --- | --- |
-| `docs-tooling` | Governance docs, scripts, CI, templates, and review records. | `pnpm lint`, `pnpm typecheck`, `pnpm governance:check`, `pnpm test`. |
-| `ui-only` | Visual or copy changes without data mutation changes. | `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:e2e`, plus Playwright evidence for changed user-visible surfaces. |
-| `product-analytics` | Event naming, funnels, reports, and PostHog mirrors. | `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, and event-contract assertions. |
-| `customer-pii` | Customer phone, consent, identity, profile, or privacy surfaces. | `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:e2e`, plus evidence that unnecessary personal data is not exposed. |
-| `auth-session` | Merchant, customer, admin, cookie, OTP, or session behavior. | `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:e2e`, plus server/session assertions. |
-| `billing` | Stripe checkout, portal, subscription sync, or entitlement gates. | `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:db`, `pnpm test:e2e`; checkout/portal UX plus Stripe webhook/db assertions. |
-| `webhooks` | Stripe or future inbound webhook handlers. | `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:db`; signature, idempotency, and database readback assertions. |
-| `rls-rpc-ledger` | Supabase RLS, RPCs, loyalty ledger, fraud, or audit invariants. | `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:db`, `pnpm test:e2e`; DB behavioral tests are primary and Playwright is secondary journey proof. |
-| `migrations` | Supabase migrations or schema changes. | `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:db`; replay/idempotency on a disposable database. |
+| risk_class          | Applies to                                                        | Required gate floor                                                                                                                                                                                                     |
+| ------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs-tooling`      | Governance docs, scripts, CI, templates, and review records.      | `pnpm lint`, `pnpm typecheck`, `pnpm governance:check`, `pnpm test`, `pnpm test:coverage`.                                                                                                                              |
+| `ui-only`           | Visual or copy changes without data mutation changes.             | `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:coverage`, `pnpm bundle:check`, `pnpm test:e2e`, `pnpm test:a11y`, `pnpm test:visual`, plus Playwright evidence for changed user-visible surfaces. |
+| `product-analytics` | Event naming, funnels, reports, and PostHog mirrors.              | `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:coverage`, and event-contract assertions.                                                                                                          |
+| `customer-pii`      | Customer phone, consent, identity, profile, or privacy surfaces.  | `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:coverage`, `pnpm test:e2e`, plus evidence that unnecessary personal data is not exposed.                                                           |
+| `auth-session`      | Merchant, customer, admin, cookie, OTP, or session behavior.      | `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:coverage`, `pnpm test:e2e`, plus server/session assertions.                                                                                        |
+| `billing`           | Stripe checkout, portal, subscription sync, or entitlement gates. | `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:coverage`, `pnpm test:db`, `pnpm test:e2e`; checkout/portal UX plus Stripe webhook/db assertions.                                                  |
+| `webhooks`          | Stripe or future inbound webhook handlers.                        | `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:coverage`, `pnpm test:db`; signature, idempotency, and database readback assertions.                                                               |
+| `rls-rpc-ledger`    | Supabase RLS, RPCs, loyalty ledger, fraud, or audit invariants.   | `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:coverage`, `pnpm test:db`, `pnpm test:e2e`; DB behavioral tests are primary and Playwright is secondary journey proof.                             |
+| `migrations`        | Supabase migrations or schema changes.                            | `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:coverage`, `pnpm test:db`; replay/idempotency on a disposable database.                                                                            |
 
 Accessibility-sensitive UI must declare `pnpm test:a11y`. Visual-sensitive UI
 must declare `pnpm test:visual`. Playwright DB-free harness routes are useful
@@ -128,12 +128,14 @@ pnpm governance:run-gates
 pnpm tokens:check
 pnpm claims:check
 pnpm test
+pnpm test:coverage
 pnpm build
+pnpm bundle:check
 pnpm e2e:install
-pnpm exec playwright install --with-deps chromium
-pnpm test:e2e -- --grep "@governance|PWA offline fallback|architecture remediation harness gate"
-pnpm test:a11y
-pnpm test:visual
+pnpm test:e2e -- --project=chromium --project=mobile-safari --grep "@governance|@a11y|PWA offline fallback|architecture remediation harness gate"
+pnpm test:a11y -- --project=chromium --project=mobile-safari
+pnpm test:visual -- --project=chromium --project=mobile-safari
+pnpm lighthouse
 pnpm db:seed
 pnpm test:db
 pnpm jsonld:check
@@ -146,8 +148,15 @@ gates, blast radius, docs drift, and command shape.
 
 `pnpm test:e2e`, `pnpm test:a11y`, and `pnpm test:visual` run through
 Playwright against `playwright.config.ts`. The CI DB-free browser tier runs the
-governance landing smoke, PWA offline fallback, and architecture harness checks.
-Product-specific Micro-Specs must add targeted tests for the changed journey.
+governance landing smoke, accessibility, PWA offline fallback, visual, and
+architecture harness checks on `chromium` and `mobile-safari`. Product-specific
+Micro-Specs must add targeted tests for the changed journey.
+
+`pnpm test:coverage` enforces node coverage thresholds for `lib/**` in the unit
+tier. `pnpm bundle:check` enforces the checked-in Next.js bundle budget after
+`pnpm build`. `pnpm lighthouse` runs Lighthouse CI as a non-blocking performance
+and SEO signal in CI. ZAP baseline and nightly full scans run as workflow jobs,
+not package-script gates.
 
 `pnpm test:db` is a live database gate. It requires `SUPABASE_DB_URL` and fails
 clearly when no database URL is present. CI runs it only when that environment

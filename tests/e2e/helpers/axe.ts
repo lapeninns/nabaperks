@@ -8,19 +8,27 @@ import { expect, type Page } from "@playwright/test"
  * here so every surface-coverage spec asserts the same gate as a11y.spec.ts.
  */
 export const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]
+const developmentOverlaySelector =
+  "nextjs-portal, [data-nextjs-dev-overlay='true']"
+const developmentOverlayStyles = `
+  nextjs-portal,
+  [data-nextjs-dev-overlay="true"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+`
 
 export async function expectNoAxeViolations(
   page: Page,
   label: string
 ): Promise<void> {
+  await page.waitForLoadState("domcontentloaded")
   await hideDevelopmentOverlay(page)
   await page.waitForTimeout(500)
 
-  const { violations } = await new AxeBuilder({ page })
-    .exclude("nextjs-portal")
-    .exclude("[data-nextjs-dev-overlay='true']")
-    .withTags(WCAG_TAGS)
-    .analyze()
+  const { violations } = await analyzeWithNavigationRetry(page)
 
   expect(
     violations,
@@ -29,30 +37,60 @@ export async function expectNoAxeViolations(
 }
 
 export async function hideDevelopmentOverlay(page: Page): Promise<void> {
-  await page.addStyleTag({
-    content: `
-      nextjs-portal,
-      [data-nextjs-dev-overlay="true"] {
-        display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
-        pointer-events: none !important;
+  try {
+    await page.addStyleTag({ content: developmentOverlayStyles })
+  } catch (error) {
+    if (!isTransientHarnessInjectionError(error)) throw error
+  }
+
+  try {
+    await page.evaluate((selectors) => {
+      for (const element of document.querySelectorAll(selectors)) {
+        element.setAttribute("aria-hidden", "true")
+
+        if (element instanceof HTMLElement) {
+          element.style.display = "none"
+          element.style.visibility = "hidden"
+        }
       }
-    `,
-  })
+    }, developmentOverlaySelector)
+  } catch (error) {
+    if (!isTransientHarnessInjectionError(error)) throw error
+  }
+}
 
-  await page.evaluate(() => {
-    const selectors = "nextjs-portal, [data-nextjs-dev-overlay='true']"
+async function analyzeWithNavigationRetry(page: Page) {
+  try {
+    return await buildAxe(page).analyze()
+  } catch (error) {
+    if (!isNavigationRace(error)) throw error
+  }
 
-    for (const element of document.querySelectorAll(selectors)) {
-      element.setAttribute("aria-hidden", "true")
+  await page.waitForLoadState("domcontentloaded")
+  await page.waitForTimeout(500)
+  return buildAxe(page).analyze()
+}
 
-      if (element instanceof HTMLElement) {
-        element.style.display = "none"
-        element.style.visibility = "hidden"
-      }
-    }
-  })
+function buildAxe(page: Page): AxeBuilder {
+  return new AxeBuilder({ page })
+    .exclude("nextjs-portal")
+    .exclude("[data-nextjs-dev-overlay='true']")
+    .withTags(WCAG_TAGS)
+}
+
+function isNavigationRace(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message.includes("Execution context was destroyed")
+  )
+}
+
+function isTransientHarnessInjectionError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    (error.message.includes("Content Security Policy") ||
+      error.message.includes("Execution context was destroyed"))
+  )
 }
 
 function formatViolation(violation: {

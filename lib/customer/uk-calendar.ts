@@ -59,7 +59,7 @@ export function stampDisplayDatesEndingToday(total: number, dayStep = 4) {
   )
 }
 
-function formatLondonIso(value: Date) {
+export function formatLondonIso(value: Date) {
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: LONDON,
     year: "numeric",

@@ -30,7 +30,7 @@ const ADMIN_PASSWORD = "NabaperksDemo1!"
 
 const BILLING_FIXTURE_IDS = {
   chromium: "19000000-0000-0000-0000-000000000001",
-  "iphone-customer-flow": "19000000-0000-0000-0000-000000000002",
+  "mobile-safari": "19000000-0000-0000-0000-000000000002",
 } as const
 
 async function signInAsSeededAdmin(page: Page): Promise<void> {
@@ -133,7 +133,9 @@ export function describeAdminBillingRedaction(): void {
             page.getByText(text).filter({ visible: true }).first()
 
           await signInAsSeededAdmin(page)
-          await expect(visibleText(fixture.previous.merchant_name)).toBeVisible()
+          await expect(
+            visibleText(fixture.previous.merchant_name)
+          ).toBeVisible()
           await expect(visibleText(fixture.maskedSubscriptionRef)).toBeVisible()
           await expect(visibleText(fixture.maskedCustomerRef)).toBeVisible()
           await expect(visibleText("Past due")).toBeVisible()

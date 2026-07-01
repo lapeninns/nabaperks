@@ -33,7 +33,7 @@ verification_gates:
   - pnpm test:e2e
 required_playwright_projects:
   - chromium
-  - mobile-chromium
+  - mobile-safari
 evidence_required:
   - Command output for the declared verification gates and related tests.
 approved_exceptions: []
@@ -102,7 +102,7 @@ declared above and is the foundation every later e2e spec hangs off.
   customers, activity, account, qr, scan, reward-scan, launch, onboarding,
   skeletons, states) plus `/dev/design-system` and `/dev/poster-preview`. There
   is no longer a `customer-flow` dev route.
-- Projects mirror the historical config: `iphone-customer-flow` (iPhone 14 via
+- Projects mirror the historical config: `mobile-safari` (iPhone 14 via
   chromium) is the default mobile project; `chromium` (Desktop Chrome) carries
   the desktop-only specs. `retries:1` / `workers:1` on CI; `trace` and
   `screenshot` `retain-on-failure` / `only-on-failure`.
@@ -114,7 +114,7 @@ declared above and is the foundation every later e2e spec hangs off.
   runner; `pnpm test` SHALL NOT invoke Playwright and the toolchain SHALL NOT
   depend on Vitest.
 - **H-2 (config shape):** THE harness SHALL target `tests/e2e`, expose the
-  `iphone-customer-flow` (iPhone 14, chromium) and `chromium` (Desktop Chrome)
+  `mobile-safari` (iPhone 14, chromium) and `chromium` (Desktop Chrome)
   projects, and capture `trace` + `screenshot` only on failure; on CI it SHALL
   run with `retries: 1` and `workers: 1`.
 - **H-3 (server reuse):** WHEN a dev server is already listening on the base URL
@@ -162,7 +162,7 @@ and reconciled to current `main`:
   `CUSTOMER_DEV_OTP_CODE=424242`.
 - Replaced the stale `high-accuracy-geofence-precision.spec.ts`
   testIgnore/testMatch with a forward-looking `*.desktop.spec.ts` convention:
-  the `iphone-customer-flow` (iPhone 14) project ignores `*.desktop.spec.ts`,
+  the `mobile-safari` (iPhone 14) project ignores `*.desktop.spec.ts`,
   the `chromium` (Desktop Chrome) project matches them. Any future desktop-only
   spec opts in by filename.
 

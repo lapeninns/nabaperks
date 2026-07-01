@@ -3,10 +3,12 @@ spec_id: MS-governance-ai-delivery-framework
 status: active
 risk_class: docs-tooling
 owner: codex
-last_reviewed: 2026-06-30
+last_reviewed: 2026-07-01
 allowed_blast_radius:
   - .factory/skills/**
   - .github/workflows/**
+  - .lighthouserc.json
+  - .zap/**
   - AGENTS.md
   - Instructions_MircroSpecsCreation.md
   - Instructions_tdd.md
@@ -14,6 +16,7 @@ allowed_blast_radius:
   - app/**
   - ai-governance-starter-kit/**
   - components/**
+  - config/**
   - docs/architecture-flows/**
   - eslint.config.mjs
   - lib/**
@@ -32,9 +35,11 @@ allowed_blast_radius:
   - scripts/governance-rules.mjs
   - scripts/run-playwright.mjs
   - scripts/run-governance-gates.mjs
+  - stryker.conf.json
   - supabase/migrations/**
   - tests/db/**
   - tests/e2e/**
+  - tests/load/**
   - tests/micro-specs/**
   - tests/support/**
   - tests/unit/**
@@ -43,6 +48,9 @@ allowed_blast_radius:
 implementation_surfaces:
   - .factory/skills/ai-governance-starter-kit/SKILL.md
   - .github/workflows/ci.yml
+  - .github/workflows/nightly.yml
+  - .lighthouserc.json
+  - .zap/rules.tsv
   - AGENTS.md
   - ai-governance-starter-kit/install-ai-governance.mjs
   - ai-governance-starter-kit/templates/AGENTS.md.template
@@ -53,46 +61,78 @@ implementation_surfaces:
   - README.md
   - micro-specs/README.md
   - micro-specs/GLOBAL_CONTEXT.md
+  - config/bundle-budget.json
   - package.json
   - playwright.config.ts
   - pnpm-lock.yaml
   - pnpm-workspace.yaml
+  - scripts/check-bundle-size.mjs
   - scripts/check-governance.mjs
   - scripts/governance-constants.mjs
   - scripts/governance-io.mjs
   - scripts/governance-rules.mjs
   - scripts/run-playwright.mjs
   - scripts/run-governance-gates.mjs
+  - stryker.conf.json
+  - tests/db/card-stamp-display-dates.test.mjs
+  - tests/db/reward-billing-moat.test.mjs
   - tests/db/governance-db.test.mjs
   - tests/e2e/governance-smoke.spec.ts
+  - tests/e2e/visual.spec.ts
+  - tests/load/public-routes.js
+  - tests/load/stamp-redeem-race.js
   - tests/micro-specs/governance-enforcement.test.mjs
+  - tests/support/server-only-stub.mjs
+  - tests/unit/block-reasons.test.mjs
+  - tests/unit/phone-pii.property.test.mjs
+  - tests/unit/rate-limit-core.test.mjs
+  - tests/unit/scanner.property.test.mjs
+  - tests/unit/session-cookie-core.property.test.mjs
+  - tests/unit/uk-calendar.test.mjs
+  - tests/unit/uk-date.test.mjs
 related_docs:
   - AGENTS.md
   - micro-specs/GLOBAL_CONTEXT.md
 related_tests:
   - tests/micro-specs/ai-governance-starter-kit.test.mjs
   - tests/db/governance-db.test.mjs
+  - tests/db/card-stamp-display-dates.test.mjs
+  - tests/db/reward-billing-moat.test.mjs
   - tests/e2e/governance-smoke.spec.ts
+  - tests/e2e/visual.spec.ts
   - tests/micro-specs/governance-enforcement.test.mjs
+  - tests/unit/block-reasons.test.mjs
+  - tests/unit/phone-pii.property.test.mjs
+  - tests/unit/rate-limit-core.test.mjs
+  - tests/unit/scanner.property.test.mjs
+  - tests/unit/session-cookie-core.property.test.mjs
+  - tests/unit/uk-calendar.test.mjs
+  - tests/unit/uk-date.test.mjs
 verification_gates:
   - pnpm lint
   - pnpm typecheck
   - pnpm governance:check
   - pnpm test
+  - pnpm test:coverage
   - pnpm test:e2e -- --grep "@governance"
   - pnpm test:a11y
   - pnpm test:visual
   - pnpm tokens:check
   - pnpm claims:check
   - pnpm build
+  - pnpm bundle:check
+  - pnpm lighthouse
   - pnpm jsonld:check
 required_playwright_projects:
   - chromium
-  - mobile-chromium
+  - mobile-safari
+  - desktop-firefox
+  - desktop-safari
 evidence_required:
-  - CI output for lint, typecheck, governance, node tests, Playwright governance e2e smoke, Playwright a11y smoke, Playwright visual smoke, token checks, claims checks, build, and JSON-LD checks.
+  - CI output for lint, typecheck, governance, node tests, coverage, Playwright governance e2e smoke, Playwright a11y smoke, Playwright visual smoke, token checks, claims checks, build, bundle budget, Lighthouse, and JSON-LD checks.
   - Governance checker output proving metadata, risk gates, docs drift, blast-radius rules, and safe gate-command parsing.
   - Live DB proof from pnpm test:db when SUPABASE_DB_URL is available; DB-free browser harnesses do not count as RLS, billing, webhook, or ledger proof.
+  - Nightly workflow output for full cross-browser Playwright, Stryker mutation, k6 load checks, and ZAP full scan.
 approved_exceptions: []
 ---
 
@@ -153,12 +193,15 @@ Required gates:
 - `pnpm typecheck`
 - `pnpm governance:check`
 - `pnpm test`
+- `pnpm test:coverage`
 - `pnpm test:e2e -- --grep "@governance"`
 - `pnpm test:a11y`
 - `pnpm test:visual`
 - `pnpm tokens:check`
 - `pnpm claims:check`
 - `pnpm build`
+- `pnpm bundle:check`
+- `pnpm lighthouse`
 - `pnpm jsonld:check`
 
 Status transition notes stay in this Micro-Spec. No tracked screenshot evidence
