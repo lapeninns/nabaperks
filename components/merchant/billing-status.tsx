@@ -35,7 +35,9 @@ export function MerchantBillingNotice({ status }: { readonly status: string }) {
         actions={
           billing.actionHref ? (
             <Button asChild variant={billing.actionVariant} size="sm">
-              <Link href={billing.actionHref}>{billing.actionLabel}</Link>
+              <Link href={billing.actionHref} prefetch={false}>
+                {billing.actionLabel}
+              </Link>
             </Button>
           ) : null
         }

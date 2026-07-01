@@ -107,6 +107,7 @@ function ConsoleSidebarGroup({
                 <SidebarMenuButton asChild isActive={active} size="lg">
                   <Link
                     href={item.href}
+                    prefetch={false}
                     aria-current={active ? "page" : undefined}
                     data-active={active}
                     className="gap-3"

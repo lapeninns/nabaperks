@@ -208,6 +208,7 @@ export function LaunchReadinessPanel({
             <li key={step.id} className="grid">
               <Link
                 href={step.href}
+                prefetch={false}
                 aria-current={
                   isActive ? "page" : !tabMode && isNext ? "step" : undefined
                 }
@@ -236,7 +237,7 @@ export function LaunchReadinessPanel({
               : "Run through the checklist before you print."}
           </p>
           <Button asChild variant="secondary">
-            <Link href={nextStep?.href ?? "/app/launch"}>
+            <Link href={nextStep?.href ?? "/app/launch"} prefetch={false}>
               {nextStep?.actionLabel ?? "Open setup"}
               <Icon icon={ArrowRight02Icon} size={15} />
             </Link>
@@ -320,6 +321,7 @@ function LaunchStepRail({
             <li key={step.id} className="min-w-0">
               <Link
                 href={step.href}
+                prefetch={false}
                 aria-current={
                   isActive ? "page" : !tabMode && isNext ? "step" : undefined
                 }

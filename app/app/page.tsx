@@ -51,7 +51,7 @@ export default async function MerchantAppPage() {
         description="A quick read on how your loyalty card is doing: members, repeat visits, and rewards."
         actions={
           <Button asChild className="w-full sm:w-auto">
-            <Link href="/app/scan">
+            <Link href="/app/scan" prefetch={false}>
               <Icon icon={Camera01Icon} size={16} />
               Scan reward
             </Link>

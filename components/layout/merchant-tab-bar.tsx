@@ -25,6 +25,7 @@ export function MerchantTabBar() {
             <Link
               key={tab.href}
               href={tab.href}
+              prefetch={false}
               aria-current={active ? "page" : undefined}
               data-active={active}
               className={cn(
