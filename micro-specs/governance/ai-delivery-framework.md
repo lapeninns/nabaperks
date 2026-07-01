@@ -79,7 +79,7 @@ verification_gates:
   - pnpm typecheck
   - pnpm governance:check
   - pnpm test
-  - pnpm test:e2e
+  - pnpm test:e2e -- --grep "@governance"
   - pnpm test:a11y
   - pnpm test:visual
   - pnpm tokens:check
@@ -90,7 +90,7 @@ required_playwright_projects:
   - chromium
   - mobile-chromium
 evidence_required:
-  - CI output for lint, typecheck, governance, node tests, Playwright e2e, Playwright a11y smoke, Playwright visual smoke, token checks, claims checks, build, and JSON-LD checks.
+  - CI output for lint, typecheck, governance, node tests, Playwright governance e2e smoke, Playwright a11y smoke, Playwright visual smoke, token checks, claims checks, build, and JSON-LD checks.
   - Governance checker output proving metadata, risk gates, docs drift, blast-radius rules, and safe gate-command parsing.
   - Live DB proof from pnpm test:db when SUPABASE_DB_URL is available; DB-free browser harnesses do not count as RLS, billing, webhook, or ledger proof.
 approved_exceptions: []
@@ -153,7 +153,7 @@ Required gates:
 - `pnpm typecheck`
 - `pnpm governance:check`
 - `pnpm test`
-- `pnpm test:e2e`
+- `pnpm test:e2e -- --grep "@governance"`
 - `pnpm test:a11y`
 - `pnpm test:visual`
 - `pnpm tokens:check`

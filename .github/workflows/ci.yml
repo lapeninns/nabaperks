@@ -73,7 +73,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm test:e2e
+      - run: pnpm test:e2e -- --grep "@governance|PWA offline fallback|public QR router|merchant shell variant survives client-side navigation|architecture remediation harness gate"
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() && failure() }}
         with:

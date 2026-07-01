@@ -1,8 +1,11 @@
 import "server-only"
 
+import { after } from "next/server"
+
 import { recordProductEvent } from "@/lib/analytics/events"
 import { loyaltyAvailability } from "@/lib/customer/availability"
 import { getCurrentCustomer } from "@/lib/customer/identity"
+import { logger } from "@/lib/observability/logger"
 import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
@@ -127,15 +130,30 @@ export async function resolveQrForJoin(
     availability.available
 
   if (recordScan) {
-    await recordProductEvent({
-      eventName: "qr_scanned",
-      merchantId: merchant.id,
-      qrCodeId: qrCode.id,
-      actorType: "system",
-      metadata: {
-        available,
-        destination_type: qrCode.destination_type,
-      },
+    // Defer the scan-analytics write off the critical path. `/q/[qrId]` is the
+    // highest-traffic public endpoint and redirects the customer the instant
+    // availability is resolved, so recording the event with `after()` keeps a
+    // DB write (or its failure) from delaying or breaking the scan. The
+    // rate-limit check above stays inline — that's a gate, not telemetry.
+    after(async () => {
+      try {
+        await recordProductEvent({
+          eventName: "qr_scanned",
+          merchantId: merchant.id,
+          qrCodeId: qrCode.id,
+          actorType: "system",
+          metadata: {
+            available,
+            destination_type: qrCode.destination_type,
+          },
+        })
+      } catch (error) {
+        logger.warn("Deferred QR scan analytics failed", {
+          error,
+          merchantId: merchant.id,
+          qrCodeId: qrCode.id,
+        })
+      }
     })
   }
 

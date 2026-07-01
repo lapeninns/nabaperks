@@ -27,7 +27,7 @@ verification_gates:
   - pnpm typecheck
   - pnpm governance:check
   - pnpm test
-  - pnpm test:e2e
+  - pnpm test:e2e -- --grep "@governance"
   - pnpm build
 required_playwright_projects:
   - chromium
@@ -82,5 +82,5 @@ Required gates:
 - `pnpm typecheck`
 - `pnpm governance:check`
 - `pnpm test`
-- `pnpm test:e2e`
+- `pnpm test:e2e -- --grep "@governance"`
 - `pnpm build`

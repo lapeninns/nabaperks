@@ -2,6 +2,8 @@ import "server-only"
 
 import { randomUUID } from "node:crypto"
 
+import { cache } from "react"
+
 import { cookies } from "next/headers"
 
 import { customerPhoneHmac } from "@/lib/customer/phone-pii"
@@ -144,21 +146,27 @@ export async function setCustomerSession(
   return payload
 }
 
-export async function getCustomerSession(): Promise<CustomerSessionPayload | null> {
-  const cookieStore = await cookies()
-  const value = cookieStore.get(customerSessionCookieName)?.value
-  if (!value) return null
+// Memoized per request: on the customer home path the session is resolved by
+// the authed layout AND again inside getCurrentCustomer, which otherwise fires
+// the touch_customer_session RPC twice per page. cache() dedupes it to a single
+// touch per request — touching once is the correct semantic, not a regression.
+export const getCustomerSession = cache(
+  async (): Promise<CustomerSessionPayload | null> => {
+    const cookieStore = await cookies()
+    const value = cookieStore.get(customerSessionCookieName)?.value
+    if (!value) return null
 
-  const result = readCustomerSessionCookieValue(
-    value,
-    customerSessionSecret(),
-    nowSeconds()
-  )
-  if (!result.ok) return null
+    const result = readCustomerSessionCookieValue(
+      value,
+      customerSessionSecret(),
+      nowSeconds()
+    )
+    if (!result.ok) return null
 
-  const active = await isCustomerSessionActive(result.payload)
-  return active ? result.payload : null
-}
+    const active = await isCustomerSessionActive(result.payload)
+    return active ? result.payload : null
+  }
+)
 
 export async function clearCustomerSession(): Promise<void> {
   const cookieStore = await cookies()

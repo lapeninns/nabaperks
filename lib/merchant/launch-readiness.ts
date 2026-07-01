@@ -51,7 +51,13 @@ export async function getMerchantLaunchReadiness() {
   const [setup, billing] = await Promise.all([
     getQrSetup(),
     merchant
-      ? getLaunchBillingReadiness(merchant.id)
+      ? getLaunchBillingReadiness(
+          merchant.id,
+          // Reuse requires_billing from the already-resolved (request-cached)
+          // merchant row instead of re-querying merchants for one boolean.
+          // `!== false` preserves the fail-closed default (gate on missing).
+          merchant.requires_billing !== false
+        )
       : Promise.resolve(undefined),
   ])
 
@@ -65,10 +71,17 @@ export async function getMerchantLaunchReadiness() {
 }
 
 export async function getLaunchBillingReadiness(
-  merchantId: string
+  merchantId: string,
+  // When the caller already holds the merchant row (e.g. the dashboard, which
+  // resolves it via the request-cached getCurrentMerchant), it passes
+  // requires_billing here to skip the extra merchants SELECT this otherwise
+  // runs. Omitted callers keep the original self-contained query.
+  requiresBillingHint?: boolean
 ): Promise<{ requiresBilling: boolean; status: string | null }> {
   const [requiresBilling, billingResult] = await Promise.all([
-    getMerchantRequiresBilling(merchantId),
+    requiresBillingHint === undefined
+      ? getMerchantRequiresBilling(merchantId)
+      : Promise.resolve(requiresBillingHint),
     getMerchantBilling(merchantId),
   ])
 

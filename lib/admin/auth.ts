@@ -1,5 +1,7 @@
 import "server-only"
 
+import { cache } from "react"
+
 import { redirect } from "next/navigation"
 
 import { getCurrentUser } from "@/lib/auth/session"
@@ -11,7 +13,11 @@ export type AdminAccess =
 
 type AllowedAdminAccess = Extract<AdminAccess, { status: "allowed" }>
 
-export async function getAdminAccess(): Promise<AdminAccess> {
+// Memoized per request: the admin layout, page guard, and every
+// service-role read (`requireAdminRead`) resolve admin access independently,
+// which otherwise repeats the `internal_admins` SELECT and the MFA AAL check
+// ~7x per admin page. `cache()` collapses those to one round-trip each.
+export const getAdminAccess = cache(async (): Promise<AdminAccess> => {
   const user = await getCurrentUser()
 
   if (!user) {
@@ -56,7 +62,7 @@ export async function getAdminAccess(): Promise<AdminAccess> {
     email: data.email,
     mfaRequired,
   }
-}
+})
 
 export function isAdminMfaRequired(
   nodeEnv: string | undefined = process.env.NODE_ENV,

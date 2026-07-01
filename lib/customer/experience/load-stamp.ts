@@ -177,6 +177,9 @@ export async function loadStampExperienceContext(
     }
   }
 
+  // Location requirements are loaded only after the QR is confirmed to belong to
+  // the member (see customer-stamp-contract) — an intentional ordering, not a
+  // waterfall to optimise away.
   const location = await getMerchantStampLocationRequirement(
     cardState.merchant.id
   )

@@ -24,7 +24,9 @@ export const getCurrentMerchant = cache(async () => {
   const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from("merchants")
-    .select("id, business_name, business_slug, business_type, email, status")
+    .select(
+      "id, business_name, business_slug, business_type, email, status, requires_billing"
+    )
     .eq("owner_user_id", user.id)
     .maybeSingle()
 
