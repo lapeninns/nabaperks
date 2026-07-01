@@ -129,10 +129,12 @@ pnpm tokens:check
 pnpm claims:check
 pnpm test
 pnpm build
+pnpm e2e:install
 pnpm exec playwright install --with-deps chromium
 pnpm test:e2e
 pnpm test:a11y
 pnpm test:visual
+pnpm db:seed
 pnpm test:db
 pnpm jsonld:check
 ```

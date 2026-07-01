@@ -41,6 +41,7 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm governance:check
+      - run: pnpm e2e:install
       - run: pnpm governance:run-gates
       - run: pnpm tokens:check
       - run: pnpm claims:check
@@ -95,6 +96,7 @@ jobs:
         with:
           version: 2.106.0
       - run: supabase start
+      - run: pnpm db:seed
       - run: pnpm test:db
       - run: supabase stop --no-backup
         if: always()
