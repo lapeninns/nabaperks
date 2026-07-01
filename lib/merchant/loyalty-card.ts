@@ -3,7 +3,12 @@ import "server-only"
 import { cache } from "react"
 
 import { getCurrentMerchant } from "@/lib/auth/session"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
+import {
+  cacheByScope,
+  loyaltyCardSetupCacheTag,
+  merchantCacheTag,
+} from "@/lib/cache/tags"
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type MerchantLocationSummary = {
   id: string
@@ -35,14 +40,32 @@ export type LoyaltyCardSetup = {
   rewardPoolItems: RewardPoolItemSummary[]
 }
 
-async function getLoyaltyCardSetupUncached(): Promise<LoyaltyCardSetup> {
+type CurrentMerchant = NonNullable<
+  Awaited<ReturnType<typeof getCurrentMerchant>>
+>
+
+function emptySetup(): LoyaltyCardSetup {
+  return { merchant: null, location: null, card: null, rewardPoolItems: [] }
+}
+
+async function getLoyaltyCardSetupForCurrentMerchant(): Promise<LoyaltyCardSetup> {
   const merchant = await getCurrentMerchant()
 
   if (!merchant) {
-    return { merchant: null, location: null, card: null, rewardPoolItems: [] }
+    return emptySetup()
   }
 
-  const supabase = await createSupabaseServerClient()
+  return cacheByScope(
+    () => loadLoyaltyCardSetup(merchant),
+    ["loyalty-card-setup", merchant.id],
+    [merchantCacheTag(merchant.id), loyaltyCardSetupCacheTag(merchant.id)]
+  )
+}
+
+async function loadLoyaltyCardSetup(
+  merchant: CurrentMerchant
+): Promise<LoyaltyCardSetup> {
+  const supabase = createSupabaseServiceRoleClient()
   const { data: location, error: locationError } = await supabase
     .from("merchant_locations")
     .select("id, name")
@@ -103,4 +126,4 @@ async function getLoyaltyCardSetupUncached(): Promise<LoyaltyCardSetup> {
   }
 }
 
-export const getLoyaltyCardSetup = cache(getLoyaltyCardSetupUncached)
+export const getLoyaltyCardSetup = cache(getLoyaltyCardSetupForCurrentMerchant)

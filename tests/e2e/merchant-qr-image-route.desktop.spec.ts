@@ -187,6 +187,9 @@ test.describe("Merchant QR image route", () => {
 
     expect(response.status()).toBe(200)
     expect(response.headers()["content-type"] ?? "").toContain("image/png")
+    expect(response.headers()["cache-control"] ?? "").toContain(
+      "private, max-age=86400, immutable"
+    )
     expect((await response.body()).byteLength).toBeGreaterThan(100)
   })
 
@@ -232,7 +235,7 @@ test.describe("Merchant QR image route", () => {
           "image/png"
         )
         expect(validResponse?.headers()["cache-control"] ?? "").toContain(
-          "private, no-store"
+          "private, max-age=86400, immutable"
         )
         expect((await validResponse?.body())?.byteLength ?? 0).toBeGreaterThan(
           100
@@ -253,11 +256,7 @@ test.describe("Merchant QR image route", () => {
           fixture.nonJoinQrCodeId,
           "non-join QR"
         )
-        await expectQrImageRejected(
-          page,
-          fixture.missingQrCodeId,
-          "missing QR"
-        )
+        await expectQrImageRejected(page, fixture.missingQrCodeId, "missing QR")
       } finally {
         await cleanupSeedQrImageFixture(sql, fixture)
         await sql.end({ timeout: 5 })

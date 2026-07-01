@@ -43,7 +43,7 @@ function qrPngResponse(png: Uint8Array) {
   return new NextResponse(toArrayBuffer(png), {
     headers: {
       "Content-Type": "image/png",
-      "Cache-Control": "private, no-store",
+      "Cache-Control": "private, max-age=86400, immutable",
     },
   })
 }

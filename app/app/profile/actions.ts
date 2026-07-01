@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache"
 
 import { recordProductEvent } from "@/lib/analytics/events"
+import {
+  revalidateMerchantCacheTags,
+  revalidateMerchantOnboardingCache,
+} from "@/lib/cache/tags"
 import { getMerchantProfile } from "@/lib/merchant/profile"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
@@ -115,6 +119,8 @@ export async function updateMerchantProfileAction(
     metadata: { changed_fields: changedFields },
   }).catch(() => {})
 
+  revalidateMerchantOnboardingCache(profile.merchant.owner_user_id)
+  revalidateMerchantCacheTags(profile.merchant.id)
   revalidatePath("/app/account")
   revalidatePath("/app/profile")
   revalidatePath("/app")

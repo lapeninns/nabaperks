@@ -5,6 +5,10 @@ import { redirect } from "next/navigation"
 import { capturePostHogEvent } from "@/lib/analytics/events"
 import { getCurrentUser } from "@/lib/auth/session"
 import {
+  revalidateMerchantCacheTags,
+  revalidateMerchantOnboardingCache,
+} from "@/lib/cache/tags"
+import {
   parseVenueLocationSubmission,
   persistVenueLocationWrite,
   resolveVenueLocationWritePayload,
@@ -165,6 +169,9 @@ export async function completeOnboardingAction(
     actorType: "merchant",
     actorId: user.id,
   })
+
+  revalidateMerchantOnboardingCache(user.id)
+  revalidateMerchantCacheTags(merchantId)
 
   redirect("/app/launch?tab=card")
 }

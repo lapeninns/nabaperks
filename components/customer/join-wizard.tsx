@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
+import dynamic from "next/dynamic"
 
 import { VenueMark } from "@/components/brand"
 import {
@@ -8,11 +9,11 @@ import {
   CustomerStampCard,
   type FlowProgress,
 } from "@/components/customer/customer-flow-system"
-import {
-  CustomerIdentityForm,
-  CustomerJoinForm,
+import type {
+  CustomerIdentityFormProps,
+  CustomerJoinFormProps,
 } from "@/components/customer/join-forms"
-import { CustomerOtpForm } from "@/components/customer/join-otp-form"
+import type { CustomerOtpFormProps } from "@/components/customer/join-otp-form"
 import { WelcomeStep } from "@/components/customer/join-welcome-step"
 import {
   RewardSeal,
@@ -32,6 +33,22 @@ import type {
   JoinCard,
   JoinMerchant,
 } from "@/lib/customer/experience/types"
+
+const CustomerIdentityForm = dynamic<CustomerIdentityFormProps>(() =>
+  import("@/components/customer/join-forms").then(
+    (module) => module.CustomerIdentityForm
+  )
+)
+const CustomerJoinForm = dynamic<CustomerJoinFormProps>(() =>
+  import("@/components/customer/join-forms").then(
+    (module) => module.CustomerJoinForm
+  )
+)
+const CustomerOtpForm = dynamic<CustomerOtpFormProps>(() =>
+  import("@/components/customer/join-otp-form").then(
+    (module) => module.CustomerOtpForm
+  )
+)
 
 /**
  * Step wizard for the join flow — one job per screen (welcome → phone → code →

@@ -7,6 +7,8 @@ import {
   type ThemeProviderProps,
 } from "next-themes"
 
+import { MotionProvider } from "@/components/motion/motion-provider"
+
 type NabaperksThemeProviderProps = ThemeProviderProps & {
   enableHotkey?: boolean
 }
@@ -57,8 +59,10 @@ export function ThemeProvider({
       storageKey="nabaperks-theme"
       {...props}
     >
-      <ThemeHotkey enabled={enableHotkey} />
-      {children}
+      <MotionProvider>
+        <ThemeHotkey enabled={enableHotkey} />
+        {children}
+      </MotionProvider>
     </NextThemesProvider>
   )
 }

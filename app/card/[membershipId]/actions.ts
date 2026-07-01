@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache"
 
+import {
+  merchantActivitySummaryCacheTag,
+  revalidateCacheTag,
+} from "@/lib/cache/tags"
 import { blockReasonCopy } from "@/lib/customer/experience/block-reasons"
 import { getStampQrContextForMembership } from "@/lib/customer/join"
 import {
@@ -53,6 +57,7 @@ export async function selfStampAction(
 
   // Mark the card route stale so navigating away/back reflects the new stamp.
   // The customer stays on this screen; the UI confirms the stamp in place.
+  revalidateCacheTag(merchantActivitySummaryCacheTag(qrContext.merchant.id))
   revalidatePath(`/card/${membershipId}`)
 
   try {

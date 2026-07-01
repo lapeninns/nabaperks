@@ -15,7 +15,12 @@ function readProjectFile(...segments) {
 
 test("Given global requests When proxy responds Then all security header families are attached", () => {
   const proxy = readProjectFile("proxy.ts")
+  const csp = readProjectFile("lib", "security", "csp.ts")
   const nextConfig = readProjectFile("next.config.ts")
+  const dynamicCspSource = csp.slice(
+    csp.indexOf("export function dynamicContentSecurityPolicy"),
+    csp.indexOf("export function staticMarketingContentSecurityPolicy")
+  )
 
   assert.match(proxy, /Content-Security-Policy/)
   assert.match(proxy, /Strict-Transport-Security/)
@@ -23,19 +28,54 @@ test("Given global requests When proxy responds Then all security header familie
   assert.match(proxy, /X-Content-Type-Options[^\\n]+nosniff/)
   assert.match(proxy, /Referrer-Policy[^\\n]+strict-origin-when-cross-origin/)
   assert.match(proxy, /Permissions-Policy/)
-  assert.match(proxy, /frame-ancestors 'none'/)
-  assert.match(proxy, /const nonce = btoa\(crypto\.randomUUID\(\)\)/)
+  assert.match(proxy, /isStaticMarketingPath\(request\.nextUrl\.pathname\)/)
+  assert.match(proxy, /btoa\(crypto\.randomUUID\(\)\)/)
   assert.match(proxy, /requestHeaders\.set\("x-nonce", nonce\)/)
   assert.match(proxy, /requestHeaders\.set\("Content-Security-Policy", csp\)/)
-  assert.match(proxy, /'nonce-\$\{nonce\}'/)
-  assert.match(proxy, /'strict-dynamic'/)
+  assert.match(csp, /STATIC_MARKETING_EXACT_PATHS/)
+  assert.match(csp, /export function isStaticMarketingPath/)
+  assert.match(csp, /export function dynamicContentSecurityPolicy/)
+  assert.match(csp, /export function staticMarketingContentSecurityPolicy/)
+  assert.match(csp, /script-src 'self' 'unsafe-inline'/)
+  assert.match(csp, /'nonce-\$\{nonce\}'/)
+  assert.match(csp, /NEXT_THEMES_SCRIPT_SHA256/)
+  assert.match(csp, /'strict-dynamic'/)
+  assert.match(csp, /frame-ancestors 'none'/)
   assert.match(
-    proxy,
-    /script-src-elem 'self' 'nonce-\$\{nonce\}' https:\/\/js\.stripe\.com/
+    csp,
+    /script-src-elem 'self' 'nonce-\$\{nonce\}' \$\{nextThemesScriptHashes\} https:\/\/js\.stripe\.com/
   )
-  assert.doesNotMatch(proxy, /script-src[^\n]*unsafe-inline/)
-  assert.doesNotMatch(proxy, /script-src-elem[^\n]*unsafe-inline/)
+  assert.doesNotMatch(dynamicCspSource, /script-src[^\n]*unsafe-inline/)
+  assert.doesNotMatch(dynamicCspSource, /script-src-elem[^\n]*unsafe-inline/)
   assert.doesNotMatch(nextConfig, /sri:\s*\{/)
+})
+
+test("Given cross-request merchant caches When loader keys are inspected Then tenant scope ids stay in every cache key", () => {
+  const onboarding = readProjectFile("lib", "merchant", "onboarding.ts")
+  const loyaltyCard = readProjectFile("lib", "merchant", "loyalty-card.ts")
+  const activity = readProjectFile("lib", "merchant", "activity.ts")
+  const qrCode = readProjectFile("lib", "merchant", "qr-code.ts")
+
+  assert.match(onboarding, /\["merchant-onboarding", user\.id\]/)
+  assert.match(onboarding, /\[merchantOnboardingCacheTag\(user\.id\)\]/)
+  assert.match(loyaltyCard, /\["loyalty-card-setup", merchant\.id\]/)
+  assert.match(
+    loyaltyCard,
+    /\[merchantCacheTag\(merchant\.id\), loyaltyCardSetupCacheTag\(merchant\.id\)\]/
+  )
+  assert.match(activity, /\["merchant-activity-summary", scopedMerchantId\]/)
+  assert.match(
+    activity,
+    /merchantActivitySummaryCacheTag\(scopedMerchantId\)/
+  )
+  assert.match(
+    qrCode,
+    /\["qr-image-context", merchant\.id, location\.id, activeCard\.id, qrCodeId\]/
+  )
+  assert.match(
+    qrCode,
+    /\[merchantCacheTag\(merchant\.id\), qrImageContextCacheTag\(qrCodeId\)\]/
+  )
 })
 
 test("Given CI runs on branches When workflow is inspected Then lint and tests gate the build", () => {

@@ -181,15 +181,17 @@ function toVenuePlaceSelection(place: GooglePlace): VenuePlaceSelection | null {
  * nothing and the manual address fields below it stay fully usable. A load or
  * selection failure is caught and surfaced as a quiet hint, never thrown.
  */
-export function VenuePlaceAutocomplete({
-  onPlaceSelected,
-  apiKey: apiKeyOverride,
-}: {
+export type VenuePlaceAutocompleteProps = {
   onPlaceSelected: (selection: VenuePlaceSelection) => void
   /** Optional key injection for the dev preview harness. Production callers omit
    *  it so the public env var is the single source of truth. */
   apiKey?: string
-}) {
+}
+
+export function VenuePlaceAutocomplete({
+  onPlaceSelected,
+  apiKey: apiKeyOverride,
+}: VenuePlaceAutocompleteProps) {
   const apiKey = apiKeyOverride ?? process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
   const labelId = useId()
   const containerRef = useRef<HTMLDivElement | null>(null)

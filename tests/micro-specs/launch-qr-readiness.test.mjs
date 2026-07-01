@@ -143,7 +143,10 @@ test("Given the merchant QR image route is hit When the owned context is absent 
   )
   assert.match(imageRoute, /renderQrCodePng\(shareUrl\)/)
   assert.match(imageRoute, /"Content-Type": "image\/png"/)
-  assert.match(imageRoute, /"Cache-Control": "private, no-store"/)
+  assert.match(
+    imageRoute,
+    /"Cache-Control": "private, max-age=86400, immutable"/
+  )
   assert.ok(
     imageRoute.indexOf("getOwnedQrImageContext(qrCodeId)") <
       imageRoute.indexOf("const env = getServerEnv()"),

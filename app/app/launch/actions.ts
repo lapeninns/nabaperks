@@ -2,7 +2,11 @@
 
 import { revalidatePath } from "next/cache"
 
-import { getCurrentMerchant } from "@/lib/auth/session"
+import { getCurrentMerchant, getCurrentUser } from "@/lib/auth/session"
+import {
+  revalidateMerchantCacheTags,
+  revalidateMerchantOnboardingCache,
+} from "@/lib/cache/tags"
 import {
   parseVenueLocationSubmission,
   persistVenueLocationWrite,
@@ -45,7 +49,8 @@ export async function saveVenueLocationAction(
 
   const submission = parseVenueLocationSubmission(formData)
   const fields = submissionToFields(submission)
-  const { errors, radius, manualPin } = validateVenueLocationSubmission(submission)
+  const { errors, radius, manualPin } =
+    validateVenueLocationSubmission(submission)
 
   if (Object.keys(errors).length > 0 || radius === null) {
     return { fields, errors }
@@ -85,6 +90,9 @@ export async function saveVenueLocationAction(
     return { fields, errors: { form: "Unable to save venue location." } }
   }
 
+  const user = await getCurrentUser()
+  if (user) revalidateMerchantOnboardingCache(user.id)
+  revalidateMerchantCacheTags(merchant.id)
   revalidatePath("/app/launch")
   revalidatePath("/app")
 

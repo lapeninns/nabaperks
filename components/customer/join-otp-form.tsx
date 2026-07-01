@@ -15,17 +15,19 @@ import type { LocationRequirement } from "@/lib/customer/experience/types"
 
 const identityInitialState: CustomerIdentityState = {}
 
+export type CustomerOtpFormProps = {
+  merchantSlug: string
+  qrId?: string
+  contact: string
+  location: LocationRequirement
+}
+
 export function CustomerOtpForm({
   merchantSlug,
   qrId,
   contact,
   location,
-}: {
-  merchantSlug: string
-  qrId?: string
-  contact: string
-  location: LocationRequirement
-}) {
+}: CustomerOtpFormProps) {
   const [verifyState, verifyAction, verifyPending] = useActionState(
     verifyCustomerOtpAction,
     identityInitialState

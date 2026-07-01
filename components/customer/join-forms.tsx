@@ -23,13 +23,15 @@ import {
 const identityInitialState: CustomerIdentityState = {}
 const joinInitialState: CustomerJoinState = {}
 
+export type CustomerIdentityFormProps = {
+  merchantSlug: string
+  qrId?: string
+}
+
 export function CustomerIdentityForm({
   merchantSlug,
   qrId,
-}: {
-  merchantSlug: string
-  qrId?: string
-}) {
+}: CustomerIdentityFormProps) {
   const [state, requestAction, requestPending] = useActionState(
     requestCustomerIdentityAction,
     identityInitialState
@@ -102,19 +104,21 @@ export function CustomerIdentityForm({
   )
 }
 
-export function CustomerJoinForm({
-  merchantSlug,
-  qrId,
-  merchantName,
-  card,
-}: {
+export type CustomerJoinFormProps = {
   merchantSlug: string
   qrId?: string
   merchantName: string
   card: JoinCard
   requireGeofence: boolean
   geofenceRadiusMeters: number
-}) {
+}
+
+export function CustomerJoinForm({
+  merchantSlug,
+  qrId,
+  merchantName,
+  card,
+}: CustomerJoinFormProps) {
   const [state, action, pending] = useActionState(
     joinRewardsAction,
     joinInitialState

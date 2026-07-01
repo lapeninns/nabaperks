@@ -1,6 +1,11 @@
 import "server-only"
 
 import { getCurrentMerchant } from "@/lib/auth/session"
+import {
+  cacheByScope,
+  merchantActivitySummaryCacheTag,
+  merchantCacheTag,
+} from "@/lib/cache/tags"
 import { formatMerchantCustomerIdentifier } from "@/lib/merchant/customer-identity-display"
 import { QR_POSTER_PATH } from "@/lib/merchant/qr-nav"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
@@ -200,7 +205,9 @@ export async function getEnrichedMerchantActivity(
   ])
   const rowsWithMaskedCustomers = fetched.map((row) => ({
     ...row,
-    customers: row.customer_id ? (customerById.get(row.customer_id) ?? null) : null,
+    customers: row.customer_id
+      ? (customerById.get(row.customer_id) ?? null)
+      : null,
   }))
 
   // Thread over the full fetched window (including the +1 spare) but only emit
@@ -231,7 +238,13 @@ const eventsByCategory: Record<ActivityCategory, ActivityEventName[]> = {
   customer: ["customer_joined"],
   stamp: ["stamp_claim_started", "stamp_issued"],
   reward: ["reward_unlocked", "reward_redeemed"],
-  qr: ["qr_scanned", "qr_downloaded", "qr_created", "qr_enabled", "qr_disabled"],
+  qr: [
+    "qr_scanned",
+    "qr_downloaded",
+    "qr_created",
+    "qr_enabled",
+    "qr_disabled",
+  ],
   account: [
     "loyalty_card_created",
     "loyalty_card_updated",
@@ -283,6 +296,20 @@ export async function getMerchantActivitySummary(
   merchantId: string
 ): Promise<ActivitySummary> {
   const scopedMerchantId = await requireCurrentMerchantId(merchantId)
+
+  return cacheByScope(
+    () => loadMerchantActivitySummary(scopedMerchantId),
+    ["merchant-activity-summary", scopedMerchantId],
+    [
+      merchantCacheTag(scopedMerchantId),
+      merchantActivitySummaryCacheTag(scopedMerchantId),
+    ]
+  )
+}
+
+async function loadMerchantActivitySummary(
+  scopedMerchantId: string
+): Promise<ActivitySummary> {
   const since = new Date(
     Date.now() - ACTIVITY_SUMMARY_WINDOW_DAYS * 86_400_000
   ).toISOString()
@@ -308,7 +335,7 @@ export async function getMerchantActivitySummary(
   }
 
   for (const raw of data ?? []) {
-    const name = (raw as { event_name: string }).event_name
+    const name = raw.event_name
     switch (name) {
       case "customer_joined":
         summary.joins += 1
@@ -1080,7 +1107,9 @@ async function loadMaskedCustomers(ids: string[]) {
     .in("id", ids)
 
   if (error) {
-    throw new Error(`Unable to load masked activity customers: ${error.message}`)
+    throw new Error(
+      `Unable to load masked activity customers: ${error.message}`
+    )
   }
 
   for (const customer of (data ?? []) as Array<{

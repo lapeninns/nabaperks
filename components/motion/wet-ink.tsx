@@ -10,7 +10,7 @@
  */
 
 import type { CSSProperties, ReactNode } from "react"
-import { motion } from "motion/react"
+import * as m from "motion/react-m"
 
 import { useReducedMotionHook } from "@/lib/motion/use-reduced-motion"
 import { wetInkTransition } from "@/lib/motion/tokens"
@@ -57,7 +57,7 @@ export function WetInkRise({
   }
 
   return (
-    <motion.div
+    <m.div
       className={className}
       style={style}
       initial={{ y: distance, scale: 0.98 }}
@@ -69,7 +69,7 @@ export function WetInkRise({
       }}
     >
       {children}
-    </motion.div>
+    </m.div>
   )
 }
 
@@ -98,7 +98,7 @@ export function WetInkSlam({
   }
 
   return (
-    <motion.span
+    <m.span
       className={className}
       style={style}
       initial={{ scale: 2.6, opacity: 0 }}
@@ -111,7 +111,7 @@ export function WetInkSlam({
       onAnimationComplete={onComplete}
     >
       {children}
-    </motion.span>
+    </m.span>
   )
 }
 
@@ -137,7 +137,7 @@ export function WetInkSoftStamp({
   }
 
   return (
-    <motion.span
+    <m.span
       className={className}
       style={style}
       initial={{ scale: 1.18, opacity: 0 }}
@@ -149,7 +149,7 @@ export function WetInkSoftStamp({
       onAnimationComplete={onComplete}
     >
       {children}
-    </motion.span>
+    </m.span>
   )
 }
 
@@ -176,7 +176,7 @@ export function WetInkShake({
   }
 
   return (
-    <motion.div
+    <m.div
       className={className}
       style={style}
       initial={{ x: 0, y: 0, rotate: 0 }}
@@ -193,7 +193,7 @@ export function WetInkShake({
       onAnimationComplete={onComplete}
     >
       {children}
-    </motion.div>
+    </m.div>
   )
 }
 
@@ -222,7 +222,7 @@ export function WetInkPop({
   }
 
   return (
-    <motion.span
+    <m.span
       className={className}
       style={style}
       initial={{ scale: 0.6, opacity: 0 }}
@@ -236,7 +236,7 @@ export function WetInkPop({
       onAnimationComplete={onComplete}
     >
       {children}
-    </motion.span>
+    </m.span>
   )
 }
 
@@ -261,7 +261,7 @@ export function WetInkWiggle({
   }
 
   return (
-    <motion.span
+    <m.span
       className={className}
       style={style}
       animate={{ rotate: [-3, 3, -3], scale: [1, 1.03, 1] }}
@@ -272,7 +272,7 @@ export function WetInkWiggle({
       }}
     >
       {children}
-    </motion.span>
+    </m.span>
   )
 }
 
@@ -300,7 +300,7 @@ export function WetInkBreathe({
   }
 
   return (
-    <motion.span
+    <m.span
       className={className}
       style={style}
       animate={{ scale: [1, 1.04, 1] }}
@@ -311,7 +311,7 @@ export function WetInkBreathe({
       }}
     >
       {children}
-    </motion.span>
+    </m.span>
   )
 }
 
@@ -330,7 +330,7 @@ export function WetInkRipple({
   if (reduce || !active) return null
 
   return (
-    <motion.span
+    <m.span
       aria-hidden="true"
       className={className}
       style={style}
@@ -342,7 +342,7 @@ export function WetInkRipple({
       }}
     >
       {children}
-    </motion.span>
+    </m.span>
   )
 }
 
@@ -368,7 +368,7 @@ export function WetInkFloat({
   }
 
   return (
-    <motion.div
+    <m.div
       className={className}
       style={style}
       animate={{
@@ -382,7 +382,7 @@ export function WetInkFloat({
       }}
     >
       {children}
-    </motion.div>
+    </m.div>
   )
 }
 
@@ -408,7 +408,7 @@ export function WetInkMarquee({
   }
 
   return (
-    <motion.div
+    <m.div
       className={className}
       style={style}
       animate={{ x: ["0%", "-50%"] }}
@@ -419,7 +419,7 @@ export function WetInkMarquee({
       }}
     >
       {children}
-    </motion.div>
+    </m.div>
   )
 }
 
@@ -439,7 +439,7 @@ export function WetInkSheet({ children, className, style }: MotionBox) {
   }
 
   return (
-    <motion.div
+    <m.div
       className={className}
       style={style}
       initial={{ y: "100%" }}
@@ -450,7 +450,7 @@ export function WetInkSheet({ children, className, style }: MotionBox) {
       }}
     >
       {children}
-    </motion.div>
+    </m.div>
   )
 }
 

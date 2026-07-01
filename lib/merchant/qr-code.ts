@@ -3,7 +3,15 @@ import "server-only"
 import { cache } from "react"
 
 import { getCurrentMerchant } from "@/lib/auth/session"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
+import {
+  cacheByScope,
+  merchantCacheTag,
+  qrImageContextCacheTag,
+} from "@/lib/cache/tags"
+import {
+  createSupabaseServerClient,
+  createSupabaseServiceRoleClient,
+} from "@/lib/supabase/server"
 
 export type ActiveCardSummary = {
   id: string
@@ -36,6 +44,17 @@ export type QrSetup = {
   qrCode: QrCodeSummary | null
 }
 
+type CurrentMerchant = NonNullable<
+  Awaited<ReturnType<typeof getCurrentMerchant>>
+>
+
+type OwnedQrImageScope = {
+  qrCodeId: string
+  merchant: CurrentMerchant
+  location: NonNullable<QrSetup["location"]>
+  activeCard: ActiveCardSummary
+}
+
 async function getQrSetupUncached(): Promise<QrSetup> {
   const merchant = await getCurrentMerchant()
 
@@ -62,7 +81,9 @@ async function getQrSetupUncached(): Promise<QrSetup> {
     .maybeSingle()
 
   if (locationError) {
-    throw new Error(`Unable to load merchant location: ${locationError.message}`)
+    throw new Error(
+      `Unable to load merchant location: ${locationError.message}`
+    )
   }
 
   if (!location) {
@@ -149,7 +170,26 @@ export async function getOwnedQrImageContext(qrCodeId: string) {
 
   if (!merchant || !location || !activeCard) return null
 
-  const supabase = await createSupabaseServerClient()
+  return cacheByScope(
+    () =>
+      loadOwnedQrImageContext({
+        qrCodeId,
+        merchant,
+        location,
+        activeCard,
+      }),
+    ["qr-image-context", merchant.id, location.id, activeCard.id, qrCodeId],
+    [merchantCacheTag(merchant.id), qrImageContextCacheTag(qrCodeId)]
+  )
+}
+
+async function loadOwnedQrImageContext({
+  qrCodeId,
+  merchant,
+  location,
+  activeCard,
+}: OwnedQrImageScope) {
+  const supabase = createSupabaseServiceRoleClient()
   const { data: qrCode, error } = await supabase
     .from("qr_codes")
     .select("id, qr_id, destination_type, is_active")

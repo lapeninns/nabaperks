@@ -5,6 +5,7 @@ import { redirect } from "next/navigation"
 
 import { capturePostHogEvent } from "@/lib/analytics/events"
 import { getCurrentMerchant } from "@/lib/auth/session"
+import { revalidateMerchantCacheTags } from "@/lib/cache/tags"
 import {
   DEFAULT_STAMPS_REQUIRED,
   MAX_STAMPS_REQUIRED,
@@ -162,10 +163,7 @@ export async function saveLoyaltyCardAction(
   const savedCardId = data?.[0]?.loyalty_card_id
   const savedAction = data?.[0]?.saved_action
 
-  if (
-    savedCardId &&
-    savedAction === "loyalty_card_created"
-  ) {
+  if (savedCardId && savedAction === "loyalty_card_created") {
     await seedDefaultRewardPoolIfEmpty(supabase, merchant.id, savedCardId)
     revalidatePath("/app/launch")
   }
@@ -177,10 +175,11 @@ export async function saveLoyaltyCardAction(
     actorId: merchant.id,
   })
 
+  revalidateMerchantCacheTags(merchant.id)
+
   const redirectTab =
     savedAction === "loyalty_card_created" ? "rewards" : "card"
-  const redirectSaved =
-    savedAction === "loyalty_card_created" ? "pool" : "1"
+  const redirectSaved = savedAction === "loyalty_card_created" ? "pool" : "1"
 
   redirect(
     `/app/launch?tab=${redirectTab}&saved=${redirectSaved}${
@@ -275,6 +274,8 @@ export async function saveRewardPoolItemAction(
 
   const { provisioned, created } = await autoProvisionJoinQrFromSetup()
 
+  revalidateMerchantCacheTags(merchant.id)
+
   redirect(
     `/app/launch?tab=rewards&saved=pool${
       provisioned ? (created ? "&qr=created" : "&qr=enabled") : ""
@@ -342,6 +343,7 @@ export async function toggleRewardPoolItemActiveAction(formData: FormData) {
     await autoProvisionJoinQrFromSetup()
   }
 
+  revalidateMerchantCacheTags(merchant.id)
   revalidatePath("/app/launch")
   return { ok: true as const }
 }
@@ -379,6 +381,8 @@ export async function deleteRewardPoolItemAction(formData: FormData) {
     actorId: merchant.id,
     metadata: { reward_pool_item_id: rewardPoolItemId },
   })
+
+  revalidateMerchantCacheTags(merchant.id)
 
   redirect("/app/launch?tab=rewards&saved=pool")
 }

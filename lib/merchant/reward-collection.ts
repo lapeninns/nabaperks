@@ -24,6 +24,7 @@ export type MerchantScannedRewardCollectionResult =
       scanToken: string
       rewardId: string
       membershipId: string
+      merchantId: string
       rewardName: string
     }
   | { status: "blocked"; reason: string }
@@ -109,6 +110,7 @@ export async function collectMerchantScannedReward(
     status: "collected",
     scanToken,
     rewardId: redeemedRewardId,
+    merchantId: merchant.id,
     rewardName,
     membershipId,
   }

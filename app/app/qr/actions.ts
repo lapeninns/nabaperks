@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation"
 
 import { capturePostHogEvent } from "@/lib/analytics/events"
+import { revalidateMerchantCacheTags } from "@/lib/cache/tags"
 import { LAUNCH_MIN_ACTIVE_REWARDS } from "@/lib/merchant/launch-readiness-contract"
 import { getQrSetup } from "@/lib/merchant/qr-code"
 import { qrReturnHref, resolveQrReturnBase } from "@/lib/merchant/qr-nav"
@@ -27,7 +28,10 @@ export async function generateQrCodeAction(formData: FormData) {
 
   if (activeRewardPoolItemCount < LAUNCH_MIN_ACTIVE_REWARDS) {
     redirect(
-      qrReturnHref(returnBase, `error=${encodeURIComponent(QR_REWARD_POOL_ERROR)}`)
+      qrReturnHref(
+        returnBase,
+        `error=${encodeURIComponent(QR_REWARD_POOL_ERROR)}`
+      )
     )
   }
 
@@ -38,7 +42,9 @@ export async function generateQrCodeAction(formData: FormData) {
   })
 
   if (error) {
-    redirect(qrReturnHref(returnBase, `error=${encodeURIComponent(QR_CREATE_ERROR)}`))
+    redirect(
+      qrReturnHref(returnBase, `error=${encodeURIComponent(QR_CREATE_ERROR)}`)
+    )
   }
 
   await capturePostHogEvent({
@@ -48,6 +54,8 @@ export async function generateQrCodeAction(formData: FormData) {
     actorId: merchant.id,
     metadata: { source: "merchant_qr_action" },
   })
+
+  revalidateMerchantCacheTags(merchant.id)
 
   redirect(qrReturnHref(returnBase, "created=1"))
 }
@@ -59,12 +67,17 @@ export async function setQrActiveAction(formData: FormData) {
   const nextActive = formData.get("nextActive") === "true"
 
   if (!merchant || typeof qrCodeId !== "string") {
-    redirect(qrReturnHref(returnBase, `error=${encodeURIComponent(QR_UPDATE_ERROR)}`))
+    redirect(
+      qrReturnHref(returnBase, `error=${encodeURIComponent(QR_UPDATE_ERROR)}`)
+    )
   }
 
   if (nextActive && activeRewardPoolItemCount < LAUNCH_MIN_ACTIVE_REWARDS) {
     redirect(
-      qrReturnHref(returnBase, `error=${encodeURIComponent(QR_REWARD_POOL_ERROR)}`)
+      qrReturnHref(
+        returnBase,
+        `error=${encodeURIComponent(QR_REWARD_POOL_ERROR)}`
+      )
     )
   }
 
@@ -76,7 +89,9 @@ export async function setQrActiveAction(formData: FormData) {
   })
 
   if (error) {
-    redirect(qrReturnHref(returnBase, `error=${encodeURIComponent(QR_UPDATE_ERROR)}`))
+    redirect(
+      qrReturnHref(returnBase, `error=${encodeURIComponent(QR_UPDATE_ERROR)}`)
+    )
   }
 
   await capturePostHogEvent({
@@ -90,6 +105,8 @@ export async function setQrActiveAction(formData: FormData) {
       is_active: nextActive,
     },
   })
+
+  revalidateMerchantCacheTags(merchant.id)
 
   redirect(qrReturnHref(returnBase, `${nextActive ? "enabled" : "disabled"}=1`))
 }

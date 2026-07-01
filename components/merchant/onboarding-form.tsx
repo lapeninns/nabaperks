@@ -1,15 +1,16 @@
 "use client"
 
 import { useActionState, useEffect, useRef, useState } from "react"
+import dynamic from "next/dynamic"
 
 import {
   completeOnboardingAction,
   type OnboardingActionState,
 } from "@/app/app/onboarding/actions"
 import { Eyebrow, VenueMark } from "@/components/brand"
-import {
-  VenuePlaceAutocomplete,
-  type VenuePlaceSelection,
+import type {
+  VenuePlaceAutocompleteProps,
+  VenuePlaceSelection,
 } from "@/components/merchant/launch/venue-place-autocomplete"
 import {
   BusinessTypeField,
@@ -27,6 +28,14 @@ import {
 import { Button } from "@/components/ui/button"
 import type { VenueAddressFormFields } from "@/lib/merchant/venue-address"
 import { cn } from "@/lib/utils"
+
+const VenuePlaceAutocomplete = dynamic<VenuePlaceAutocompleteProps>(
+  () =>
+    import("@/components/merchant/launch/venue-place-autocomplete").then(
+      (module) => module.VenuePlaceAutocomplete
+    ),
+  { ssr: false }
+)
 
 const initialState: OnboardingActionState = {}
 const legacyDraftStorageKey = "nabaperks:onboarding-draft"

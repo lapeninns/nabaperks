@@ -9,6 +9,7 @@ import {
 
 import { Icon, SectionHeader } from "@/components/brand"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 type BrowserPushState =
   | "checking"
@@ -19,7 +20,7 @@ type BrowserPushState =
   | "subscribed"
   | "error"
 
-type PushPreferences = {
+export type PushPreferences = {
   transactionalEnabled: boolean
   reminderEnabled: boolean
   marketingEnabled: boolean
@@ -62,11 +63,17 @@ const preferenceRows = [
   helper: string
 }[]
 
+export type PushNotificationSettingsProps = {
+  initialPreferences?: PushPreferences
+  showHeader?: boolean
+  surface?: boolean
+}
+
 export function PushNotificationSettings({
   initialPreferences = defaultPreferences,
-}: {
-  initialPreferences?: PushPreferences
-}) {
+  showHeader = true,
+  surface = true,
+}: PushNotificationSettingsProps) {
   const [browserState, setBrowserState] = useState<BrowserPushState>("checking")
   const [preferences, setPreferences] =
     useState<PushPreferences>(initialPreferences)
@@ -214,10 +221,12 @@ export function PushNotificationSettings({
 
   return (
     <section
-      className="surface-card grid gap-4 p-5"
+      className={cn("grid gap-4", surface && "surface-card p-5")}
       data-notification-state={browserState}
     >
-      <SectionHeader eyebrow="Push" title="Browser notifications" />
+      {showHeader ? (
+        <SectionHeader eyebrow="Push" title="Browser notifications" />
+      ) : null}
 
       <div className="flex items-start gap-3 rounded-xl border-2 border-ink bg-secondary/60 p-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-full border-2 border-ink bg-background">

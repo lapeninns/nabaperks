@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 
 import { requireAdminAction } from "@/lib/admin/auth"
+import { qrImageContextCacheTag, revalidateCacheTag } from "@/lib/cache/tags"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 function value(formData: FormData, key: string) {
@@ -130,6 +131,7 @@ export async function setQrActiveAction(formData: FormData) {
     "QR update failed. Try again or review audit logs."
   )
 
+  revalidateCacheTag(qrImageContextCacheTag(qrCodeId))
   revalidatePath("/admin/merchants")
   revalidatePath("/admin/audit")
 }
@@ -155,6 +157,7 @@ export async function regenerateQrAction(formData: FormData) {
     "QR regeneration failed. Try again or review audit logs."
   )
 
+  revalidateCacheTag(qrImageContextCacheTag(qrCodeId))
   revalidatePath("/admin/merchants")
   revalidatePath("/admin/audit")
 }

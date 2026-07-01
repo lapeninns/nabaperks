@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
+import {
+  merchantActivitySummaryCacheTag,
+  revalidateCacheTag,
+} from "@/lib/cache/tags"
 import { collectMerchantScannedReward } from "@/lib/merchant/reward-collection"
 
 export type MerchantRewardCollectionActionState = {
@@ -27,6 +31,7 @@ export async function confirmMerchantRewardCollectionAction(
     return { errors: { form: result.reason } }
   }
 
+  revalidateCacheTag(merchantActivitySummaryCacheTag(result.merchantId))
   revalidatePath(`/app/rewards/scan/${result.scanToken}`)
   revalidatePath("/app/activity")
   revalidatePath("/app/customers")

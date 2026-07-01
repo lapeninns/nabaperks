@@ -1,7 +1,8 @@
 import "server-only"
 
 import { getCurrentUser } from "@/lib/auth/session"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { cacheByScope, merchantOnboardingCacheTag } from "@/lib/cache/tags"
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type MerchantOnboardingFields = {
   businessName?: string
@@ -31,6 +32,10 @@ type MerchantOnboardingLocation = {
   require_geofence: boolean | null
 }
 
+type MerchantOnboardingRow = MerchantForApp & {
+  merchant_locations: MerchantOnboardingLocation[] | null
+}
+
 export type MerchantOnboardingStatus =
   | { status: "needs_profile"; initialFields: MerchantOnboardingFields }
   | {
@@ -51,13 +56,32 @@ export async function getMerchantOnboardingStatus(): Promise<MerchantOnboardingS
     return { status: "needs_profile", initialFields: {} }
   }
 
-  const supabase = await createSupabaseServerClient()
+  return cacheByScope(
+    () => loadMerchantOnboardingStatus(user.id),
+    ["merchant-onboarding", user.id],
+    [merchantOnboardingCacheTag(user.id)]
+  )
+}
+
+async function loadMerchantOnboardingStatus(
+  userId: string
+): Promise<MerchantOnboardingStatus> {
+  const supabase = createSupabaseServiceRoleClient()
   const { data: merchant, error: merchantError } = await supabase
     .from("merchants")
     .select(
-      "id, business_name, business_slug, business_type, email, phone, status"
+      "id, business_name, business_slug, business_type, email, phone, status, merchant_locations(name, address, address_line_1, address_city, address_postcode, latitude, longitude, require_geofence)"
     )
-    .eq("owner_user_id", user.id)
+    .eq("owner_user_id", userId)
+    .order("is_primary", {
+      ascending: false,
+      referencedTable: "merchant_locations",
+    })
+    .order("created_at", {
+      ascending: true,
+      referencedTable: "merchant_locations",
+    })
+    .limit(1, { referencedTable: "merchant_locations" })
     .maybeSingle()
 
   if (merchantError) {
@@ -68,26 +92,17 @@ export async function getMerchantOnboardingStatus(): Promise<MerchantOnboardingS
     return { status: "needs_profile", initialFields: {} }
   }
 
+  const merchantRow: MerchantOnboardingRow = merchant
   const merchantForApp: MerchantForApp = {
-    ...merchant,
+    id: merchantRow.id,
+    business_name: merchantRow.business_name,
+    business_slug: merchantRow.business_slug,
+    business_type: merchantRow.business_type,
+    email: merchantRow.email,
+    phone: merchantRow.phone,
+    status: merchantRow.status,
   }
-
-  const { data: location, error: locationError } = await supabase
-    .from("merchant_locations")
-    .select(
-      "name, address, address_line_1, address_city, address_postcode, latitude, longitude, require_geofence"
-    )
-    .eq("merchant_id", merchant.id)
-    .order("is_primary", { ascending: false })
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle()
-
-  if (locationError) {
-    throw new Error(
-      `Unable to load merchant location: ${locationError.message}`
-    )
-  }
+  const location = merchantRow.merchant_locations?.[0] ?? null
 
   const initialFields = {
     businessName: merchantForApp.business_name,
