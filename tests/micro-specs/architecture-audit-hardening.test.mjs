@@ -49,6 +49,14 @@ test("Given CI runs on branches When workflow is inspected Then lint and tests g
   )
 })
 
+test("Given Playwright runs in CI When focused tests are present Then the config rejects them", () => {
+  const config = readProjectFile("playwright.config.ts")
+
+  assert.match(config, /forbidOnly:\s*Boolean\(process\.env\.CI\)/)
+  assert.match(config, /retries: process\.env\.CI \? 1 : 0/)
+  assert.match(config, /workers: process\.env\.CI \? 1 : undefined/)
+})
+
 test("Given trust moat regressions need runtime proof When CI is inspected Then DB behavioral tests exercise the core RPCs", () => {
   const ci = readProjectFile(".github", "workflows", "ci.yml")
   const packageJson = readProjectFile("package.json")

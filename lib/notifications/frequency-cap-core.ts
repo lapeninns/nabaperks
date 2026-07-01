@@ -12,6 +12,12 @@ import type { NotificationCategory } from "@/lib/notifications/catalog"
 export const CUSTOMER_DAILY_NOTIFICATION_CAP = 6
 export const NOTIFICATION_CAP_WINDOW_MS = 24 * 60 * 60 * 1000
 export const NOTIFICATION_CAP_RETRY_MS = 60 * 60 * 1000
+export const NOTIFICATION_ENQUEUE_CAP_STATUSES = [
+  "queued",
+  "delivering",
+  "sent",
+] as const
+export const NOTIFICATION_DELIVERY_CAP_STATUSES = ["sent"] as const
 
 /** Operational push (subscription lifecycle) bypasses the cap; everything else counts. */
 export function isFrequencyCappedCategory(category: NotificationCategory) {

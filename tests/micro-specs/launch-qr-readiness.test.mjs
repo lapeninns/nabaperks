@@ -48,6 +48,32 @@ test("Given a disabled join QR When activation is reviewed Then app and SQL both
   assert.match(qrActions, /QR_REWARD_POOL_ERROR/)
 })
 
+test("Given an admin reactivates a join QR When SQL is reviewed Then the same reward gate still applies", () => {
+  const migration = readProjectFile(
+    "supabase",
+    "migrations",
+    "20260630132000_guard_admin_qr_activation.sql"
+  )
+
+  assert.match(
+    migration,
+    /create or replace function public\.admin_set_qr_active/
+  )
+  assert.match(
+    migration,
+    /p_is_active and qr_record\.destination_type = 'join'/
+  )
+  assert.match(migration, /v_active_reward_count < 3/)
+  assert.match(
+    migration,
+    /Add at least 3 active mystery rewards before launching the QR\./
+  )
+  assert.match(
+    migration,
+    /update public\.qr_codes[\s\S]*set is_active = p_is_active/
+  )
+})
+
 test("Given a disabled join QR already exists When create-or-get runs Then SQL re-enables the original slug instead of minting a suffix", () => {
   const migration = readProjectFile(
     "supabase",
@@ -103,7 +129,10 @@ test("Given the merchant QR image route is hit When the owned context is absent 
     imageRoute,
     /process\.env\.NODE_ENV !== "production"[\s\S]*qrCodeId === DEV_HARNESS_QR_CODE_ID/
   )
-  assert.match(imageRoute, /const qrContext = await getOwnedQrImageContext\(qrCodeId\)/)
+  assert.match(
+    imageRoute,
+    /const qrContext = await getOwnedQrImageContext\(qrCodeId\)/
+  )
   assert.match(
     imageRoute,
     /if \(!qrContext\) \{[\s\S]*new NextResponse\("QR code not found", \{ status: 404 \}\)/

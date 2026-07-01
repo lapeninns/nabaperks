@@ -1,8 +1,10 @@
 import assert from "node:assert/strict"
 import { after, test } from "node:test"
+import { randomUUID } from "node:crypto"
 
 import { closeDb, inRolledBackTxn } from "./helpers/db.mjs"
 import {
+  actAsInternalAdmin,
   actAsMerchantOwner,
   createOrGetJoinQr,
   createRewardPoolFixture,
@@ -141,6 +143,85 @@ test("reward-pool RPCs create/update rewards and only provision join QR at three
     assert.equal(audit.n, 4)
   })
 })
+
+test(
+  "admin QR activation cannot bypass the three-active-reward launch invariant",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fixture = await createRewardPoolFixture(tx)
+      const qrCodeId = randomUUID()
+
+      await tx`
+      insert into public.qr_codes (
+        id,
+        qr_id,
+        merchant_id,
+        location_id,
+        loyalty_card_id,
+        destination_type,
+        is_active
+      )
+      values (
+        ${qrCodeId}::uuid,
+        ${`admin-guard-${qrCodeId}`},
+        ${fixture.merchantId}::uuid,
+        ${fixture.locationId}::uuid,
+        ${fixture.cardId}::uuid,
+        'join',
+        false
+      )`
+
+      await actAsMerchantOwner(tx, fixture.ownerUserId)
+      await upsertRewardPoolItem(tx, fixture, {
+        rewardName: "First admin guard reward",
+        displayOrder: 1,
+      })
+      await upsertRewardPoolItem(tx, fixture, {
+        rewardName: "Second admin guard reward",
+        displayOrder: 2,
+      })
+
+      await actAsInternalAdmin(tx, fixture.adminUserId)
+      await expectRewardPoolRpcRejection(
+        tx,
+        () =>
+          tx`select public.admin_set_qr_active(
+          ${qrCodeId}::uuid,
+          true,
+          'admin launch guard test'
+        )`,
+        /3 active mystery rewards/i,
+        "internal admin activation still requires three active rewards"
+      )
+
+      const [stillInactive] = await tx`
+      select is_active
+      from public.qr_codes
+      where id = ${qrCodeId}::uuid`
+      assert.equal(stillInactive.is_active, false)
+
+      await actAsMerchantOwner(tx, fixture.ownerUserId)
+      await upsertRewardPoolItem(tx, fixture, {
+        rewardName: "Third admin guard reward",
+        displayOrder: 3,
+      })
+
+      await actAsInternalAdmin(tx, fixture.adminUserId)
+      await tx`select public.admin_set_qr_active(
+      ${qrCodeId}::uuid,
+      true,
+      'admin launch guard test'
+    )`
+
+      const [activated] = await tx`
+      select is_active
+      from public.qr_codes
+      where id = ${qrCodeId}::uuid`
+      assert.equal(activated.is_active, true)
+    })
+  }
+)
 
 test("delete reward-pool RPC deletes unused rewards and archives rewards with ledger history", { skip }, async () => {
   await inRolledBackTxn(async (tx) => {

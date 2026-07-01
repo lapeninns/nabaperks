@@ -1,0 +1,32 @@
+# Global Context
+
+## Repository
+
+- Name: `{{PROJECT_NAME}}`
+- Package manager: `{{PACKAGE_MANAGER}}`
+
+## Stack
+
+- Detected profile: `{{STACK_PROFILE}}`
+- Detected markers: {{STACK_SUMMARY}}
+
+Refine this section after installation with project-specific runtime,
+frontend, backend, database, auth, hosting, and test-tool constraints.
+
+## Non-negotiables
+
+- Preserve user-owned work.
+- Keep validation commands current.
+- Server-authoritative state must remain server-authoritative.
+- Permission, billing, auth, migration, and webhook changes require durable
+  proof from the relevant layer.
+- Generated artifacts and evidence folders are opt-in only.
+
+## Validation commands
+
+- Lint: `{{LINT_COMMAND}}`
+- Typecheck: `{{TYPECHECK_COMMAND}}`
+- Test: `{{TEST_COMMAND}}`
+- Build: `{{BUILD_COMMAND}}`
+- Governance: `{{GOVERNANCE_CHECK_COMMAND}}`
+- Active Micro-Spec gates: `{{GOVERNANCE_RUN_GATES_COMMAND}}`

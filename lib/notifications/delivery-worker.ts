@@ -17,7 +17,7 @@ import {
   type NotificationPreferenceState,
 } from "@/lib/notifications/push-subscriptions"
 import {
-  customerNotificationFrequencyCapReached,
+  customerNotificationDeliveryCapReached,
   isFrequencyCappedCategory,
   nextNotificationFrequencyWindow,
 } from "@/lib/notifications/frequency-cap"
@@ -198,10 +198,9 @@ async function deliverNotificationEvent(
 
   if (
     isFrequencyCappedCategory(category) &&
-    (await customerNotificationFrequencyCapReached(supabase, {
+    (await customerNotificationDeliveryCapReached(supabase, {
       customerId: event.customer_id,
       now,
-      excludeEventId: event.id,
     }))
   ) {
     await deferEvent(supabase, event.id, nextNotificationFrequencyWindow(now))
@@ -234,6 +233,10 @@ async function deliverNotificationEvent(
     supabase,
     event.id,
     enabledSubscriptions
+  )
+  const previouslySentCount = Math.max(
+    enabledSubscriptions.length - subscriptions.length,
+    0
   )
 
   if (subscriptions.length === 0) {
@@ -272,10 +275,11 @@ async function deliverNotificationEvent(
     (count, delivery) => count + delivery.retryableFailed,
     0
   )
+  const totalSentForEvent = previouslySentCount + result.sent
 
   if (retryableFailures > 0 && attemptNumber < MAX_PUSH_DELIVERY_ATTEMPTS) {
     await deferEvent(supabase, event.id, nextRetryDueAt(now, attemptNumber))
-  } else if (result.sent > 0) {
+  } else if (totalSentForEvent > 0) {
     await markEvent(supabase, event.id, "sent")
   } else {
     await markEvent(supabase, event.id, "failed")

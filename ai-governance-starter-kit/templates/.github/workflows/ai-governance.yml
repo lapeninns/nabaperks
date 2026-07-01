@@ -1,0 +1,23 @@
+name: AI Governance
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  governance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable
+      - run: {{CI_INSTALL_COMMAND}}
+{{CI_GOVERNANCE_CHECK_STEP}}
+{{CI_LINT_STEP}}
+{{CI_TYPECHECK_STEP}}
+{{CI_TEST_STEP}}
+{{CI_BUILD_STEP}}

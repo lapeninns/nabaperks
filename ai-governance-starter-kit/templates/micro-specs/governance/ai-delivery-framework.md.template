@@ -1,0 +1,74 @@
+---
+spec_id: MS-governance-ai-delivery-framework
+status: active
+risk_class: docs-tooling
+owner: ai-governance-starter-kit
+last_reviewed: 2026-06-30
+allowed_blast_radius:
+  - .github/**
+  - AGENTS.md
+  - CLAUDE.md
+  - Instructions_MicroSpecsCreation.md
+  - Instructions_tdd.md
+  - micro-specs/**
+  - package.json
+  - scripts/check-governance.mjs
+  - scripts/governance-constants.mjs
+  - scripts/governance-io.mjs
+  - scripts/governance-rules.mjs
+  - scripts/run-governance-gates.mjs
+  - tests/micro-specs/**
+implementation_surfaces:
+  - AGENTS.md
+  - Instructions_MicroSpecsCreation.md
+  - Instructions_tdd.md
+  - micro-specs/README.md
+  - micro-specs/GLOBAL_CONTEXT.md
+  - package.json
+  - scripts/check-governance.mjs
+  - scripts/governance-constants.mjs
+  - scripts/governance-io.mjs
+  - scripts/governance-rules.mjs
+  - scripts/run-governance-gates.mjs
+  - tests/micro-specs/governance-enforcement.test.mjs
+related_tests:
+  - tests/micro-specs/governance-enforcement.test.mjs
+verification_gates:
+  - {{GOVERNANCE_CHECK_COMMAND}}
+  - {{TEST_COMMAND}}
+required_playwright_projects: []
+evidence_required:
+  - Governance checker output.
+  - Test output for Micro-Spec governance enforcement.
+approved_exceptions: []
+---
+
+# AI Delivery Framework
+
+## Intent
+
+Install the baseline AI governance framework and keep it enforceable in this
+repository.
+
+## Scope
+
+In scope:
+
+- Agent entrypoint guidance.
+- Micro-Spec lifecycle and metadata contract.
+- Governance checker scripts.
+- Active gate runner.
+- Minimal Micro-Spec governance test.
+
+Out of scope:
+
+- Product feature implementation.
+- Broad refactors unrelated to governance.
+- Production deployment changes.
+
+## Acceptance criteria
+
+- Governance files exist in the expected locations.
+- `package.json` exposes governance scripts.
+- `{{PACKAGE_MANAGER}} governance:check` passes.
+- Active Micro-Spec gate execution works for declared gates.

@@ -241,13 +241,28 @@ test("Given one customer receives many push events When enqueue and delivery run
 
   assert.match(capCore, /CUSTOMER_DAILY_NOTIFICATION_CAP = 6/)
   assert.match(capCore, /NOTIFICATION_CAP_WINDOW_MS = 24 \* 60 \* 60 \* 1000/)
+  assert.match(
+    capCore,
+    /NOTIFICATION_ENQUEUE_CAP_STATUSES = \[[\s\S]*"queued",[\s\S]*"delivering",[\s\S]*"sent",?[\s\S]*\] as const/
+  )
+  assert.match(
+    capCore,
+    /NOTIFICATION_DELIVERY_CAP_STATUSES = \["sent"\] as const/
+  )
   assert.match(cap, /from "@\/lib\/notifications\/frequency-cap-core"/)
-  assert.match(cap, /status", \["queued", "delivering", "sent"\]/)
+  assert.match(cap, /customerNotificationFrequencyCapReached/)
+  assert.match(cap, /customerNotificationDeliveryCapReached/)
+  assert.match(cap, /statuses: NOTIFICATION_ENQUEUE_CAP_STATUSES/)
+  assert.match(cap, /statuses: NOTIFICATION_DELIVERY_CAP_STATUSES/)
   assert.match(events, /customerNotificationFrequencyCapReached/)
   assert.match(events, /notification_frequency_cap/)
-  assert.match(worker, /excludeEventId: event\.id/)
+  assert.match(worker, /customerNotificationDeliveryCapReached/)
   assert.match(worker, /nextNotificationFrequencyWindow\(now\)/)
   assert.match(worker, /notification_frequency_cap/)
+  assert.doesNotMatch(
+    worker,
+    /customerNotificationFrequencyCapReached\(supabase, \{[\s\S]*excludeEventId: event\.id/
+  )
 })
 
 test("Given one endpoint succeeds and another fails temporarily When the event retries Then only unsent subscriptions are retried", () => {
@@ -261,8 +276,18 @@ test("Given one endpoint succeeds and another fails temporarily When the event r
   assert.match(worker, /sentSubscriptionIds/)
   assert.match(
     worker,
+    /const previouslySentCount = Math\.max\([\s\S]*enabledSubscriptions\.length - subscriptions\.length,[\s\S]*0[\s\S]*\)/
+  )
+  assert.match(
+    worker,
+    /const totalSentForEvent = previouslySentCount \+ result\.sent/
+  )
+  assert.match(
+    worker,
     /retryableFailures > 0 &&\s+attemptNumber < MAX_PUSH_DELIVERY_ATTEMPTS[\s\S]*deferEvent/
   )
+  assert.match(worker, /else if \(totalSentForEvent > 0\)/)
+  assert.doesNotMatch(worker, /else if \(result\.sent > 0\)/)
   assert.doesNotMatch(
     worker,
     /if \(result\.sent > 0\) \{\s+await markEvent\(supabase, event\.id, "sent"\)\s+\} else if \(\s+retryableFailures > 0/

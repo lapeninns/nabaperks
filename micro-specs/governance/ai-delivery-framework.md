@@ -5,12 +5,14 @@ risk_class: docs-tooling
 owner: codex
 last_reviewed: 2026-06-30
 allowed_blast_radius:
+  - .factory/skills/**
   - .github/workflows/**
   - AGENTS.md
   - Instructions_MircroSpecsCreation.md
   - Instructions_tdd.md
   - README.md
   - app/**
+  - ai-governance-starter-kit/**
   - components/**
   - docs/architecture-flows/**
   - eslint.config.mjs
@@ -39,8 +41,13 @@ allowed_blast_radius:
   - tsconfig.json
   - vercel.json
 implementation_surfaces:
+  - .factory/skills/ai-governance-starter-kit/SKILL.md
   - .github/workflows/ci.yml
   - AGENTS.md
+  - ai-governance-starter-kit/install-ai-governance.mjs
+  - ai-governance-starter-kit/templates/AGENTS.md.template
+  - ai-governance-starter-kit/templates/micro-specs/README.md
+  - ai-governance-starter-kit/templates/scripts/governance-rules.mjs
   - Instructions_MircroSpecsCreation.md
   - Instructions_tdd.md
   - README.md
@@ -63,6 +70,7 @@ related_docs:
   - AGENTS.md
   - micro-specs/GLOBAL_CONTEXT.md
 related_tests:
+  - tests/micro-specs/ai-governance-starter-kit.test.mjs
   - tests/db/governance-db.test.mjs
   - tests/e2e/governance-smoke.spec.ts
   - tests/micro-specs/governance-enforcement.test.mjs

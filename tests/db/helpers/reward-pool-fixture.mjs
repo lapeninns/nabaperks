@@ -27,7 +27,17 @@ export async function actAsMerchantOwner(tx, ownerUserId) {
   await tx`select set_config('request.jwt.claim.sub', ${ownerUserId}, true)`
 }
 
-export async function expectRewardPoolRpcRejection(tx, action, pattern, message) {
+export async function actAsInternalAdmin(tx, adminUserId) {
+  await tx`select set_config('request.jwt.claim.role', 'authenticated', true)`
+  await tx`select set_config('request.jwt.claim.sub', ${adminUserId}, true)`
+}
+
+export async function expectRewardPoolRpcRejection(
+  tx,
+  action,
+  pattern,
+  message
+) {
   let rejected = false
 
   try {
@@ -106,6 +116,7 @@ export async function insertIssuedRewardEvent(
 export async function createRewardPoolFixture(tx) {
   const runId = randomUUID().slice(0, 8)
   const fixture = {
+    adminUserId: randomUUID(),
     ownerUserId: randomUUID(),
     customerUserId: randomUUID(),
     merchantId: randomUUID(),
@@ -118,7 +129,15 @@ export async function createRewardPoolFixture(tx) {
 
   await tx`
     insert into auth.users (id)
-    values (${fixture.ownerUserId}::uuid), (${fixture.customerUserId}::uuid)`
+    values (${fixture.adminUserId}::uuid), (${fixture.ownerUserId}::uuid), (${fixture.customerUserId}::uuid)`
+
+  await tx`
+    insert into public.internal_admins (user_id, email, is_active)
+    values (
+      ${fixture.adminUserId}::uuid,
+      ${`reward-pool-admin-${runId}@example.test`},
+      true
+    )`
 
   await tx`
     insert into public.merchants (

@@ -1,0 +1,41 @@
+# {{PROJECT_NAME}} Agent Guide
+
+This repository uses the AI Governance Starter Kit. Treat this file as the
+primary agent entrypoint before planning, editing, validating, or committing.
+
+## Working rules
+
+- Preserve existing user work. Check `git status` before destructive commands,
+  commits, or broad rewrites.
+- Keep the project buildable. Run the relevant validation scripts before
+  completing code changes.
+- For risky, cross-cutting, security, data, billing, auth, migration, or
+  production-adjacent work, create or activate a Micro-Spec before
+  implementation.
+- Use server-side or authoritative systems for state that affects users,
+  money, permissions, compliance, or audit trails.
+- Do not add generated planning packs, screenshots, or evidence folders unless
+  the task or active Micro-Spec requires them.
+
+## Governance files
+
+- `AGENTS.md`: repository working rules and routing.
+- `Instructions_MicroSpecsCreation.md`: how to author Micro-Specs.
+- `Instructions_tdd.md`: implementation workflow when a Micro-Spec is active.
+- `micro-specs/README.md`: governance index, lifecycle, risk classes, and gates.
+- `micro-specs/GLOBAL_CONTEXT.md`: repo-specific constraints.
+- `scripts/check-governance.mjs`: validates Micro-Spec metadata and blast radius.
+- `scripts/run-governance-gates.mjs`: runs gates declared by active Micro-Specs.
+
+## Validation baseline
+
+- Install: `{{INSTALL_COMMAND}}`
+- Lint: `{{LINT_COMMAND}}`
+- Typecheck: `{{TYPECHECK_COMMAND}}`
+- Test: `{{TEST_COMMAND}}`
+- Build: `{{BUILD_COMMAND}}`
+- Governance check: `{{GOVERNANCE_CHECK_COMMAND}}`
+- Active gates: `{{GOVERNANCE_RUN_GATES_COMMAND}}`
+
+If a command is missing, inspect the repository and update this guide with the
+correct validation command instead of inventing one.

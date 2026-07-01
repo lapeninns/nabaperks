@@ -3,6 +3,8 @@ import { test } from "node:test"
 
 import {
   CUSTOMER_DAILY_NOTIFICATION_CAP,
+  NOTIFICATION_DELIVERY_CAP_STATUSES,
+  NOTIFICATION_ENQUEUE_CAP_STATUSES,
   NOTIFICATION_CAP_RETRY_MS,
   isFrequencyCappedCategory,
   nextNotificationFrequencyWindow,
@@ -20,10 +22,26 @@ test("the daily cap is 6", () => {
   assert.equal(CUSTOMER_DAILY_NOTIFICATION_CAP, 6)
 })
 
+test("enqueue and delivery caps count the right event states", () => {
+  assert.deepEqual(
+    [...NOTIFICATION_ENQUEUE_CAP_STATUSES],
+    ["queued", "delivering", "sent"]
+  )
+  assert.deepEqual([...NOTIFICATION_DELIVERY_CAP_STATUSES], ["sent"])
+})
+
 test("only operational notifications bypass the cap", () => {
-  assert.equal(isFrequencyCappedCategory("operational"), false, "operational is exempt")
+  assert.equal(
+    isFrequencyCappedCategory("operational"),
+    false,
+    "operational is exempt"
+  )
   for (const category of ["transactional", "reminder", "marketing"]) {
-    assert.equal(isFrequencyCappedCategory(category), true, `${category} is capped`)
+    assert.equal(
+      isFrequencyCappedCategory(category),
+      true,
+      `${category} is capped`
+    )
   }
 })
 
