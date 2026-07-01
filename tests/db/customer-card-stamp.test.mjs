@@ -20,10 +20,13 @@ after(async () => {
 })
 
 const PICK_MEMBERSHIP = /* sql */ `
-  select cm.id as membership_id, cm.customer_id
+  select cm.id as membership_id, cm.customer_id, lc.stamps_required
   from public.customer_memberships cm
   join public.merchants mer on mer.id = cm.merchant_id
+  join public.loyalty_cards lc
+    on lc.merchant_id = cm.merchant_id and lc.is_active
   where mer.status in ('trial', 'active')
+    and lc.stamps_required > 1
     and (
       mer.requires_billing = false
       or exists (
@@ -41,6 +44,26 @@ test(
     await inRolledBackTxn(async (tx) => {
       const [m] = await tx.unsafe(PICK_MEMBERSHIP)
       assert.ok(m, "a billing-eligible seeded membership exists")
+
+      // The CI seed leaves demo memberships at 2/3 for UI proof. This invariant
+      // needs a non-full cycle so the duplicate-day guard is the one exercised.
+      await tx`
+        update public.reward_events
+        set status = 'cancelled',
+            cancelled_reason = coalesce(
+              cancelled_reason,
+              'customer_card_stamp_duplicate_guard_setup'
+            ),
+            updated_at = now()
+        where membership_id = ${m.membership_id}
+          and status = 'unlocked'`
+      await tx`
+        update public.customer_memberships
+        set current_stamp_count = 0,
+            total_stamps_earned =
+              coalesce(total_rewards_redeemed, 0) * ${m.stamps_required}::int,
+            updated_at = now()
+        where id = ${m.membership_id}`
 
       // Repeatability: clear any earned stamp for this membership today.
       await tx`
