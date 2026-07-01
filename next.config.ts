@@ -5,6 +5,19 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  experimental: {
+    // Convert barrel imports of these packages into direct deep imports at
+    // build time. The @hugeicons ESM barrel alone is ~604 KB / ~11k files and
+    // we use ~68 icons, so this stops the compiler walking the whole set on
+    // icon-heavy client routes. Named imports already tree-shake in prod; this
+    // is the build-time safety net + a dev/prod compile-speed win.
+    optimizePackageImports: [
+      "@hugeicons/react",
+      "@hugeicons/core-free-icons",
+      "radix-ui",
+      "motion",
+    ],
+  },
   // Allow the loopback IP origin in dev so agent browser proofs driven against
   // http://127.0.0.1 can load `/_next` dev chunks (e.g. the dynamic Leaflet
   // pin map). Dev-only; has no effect on production builds.
