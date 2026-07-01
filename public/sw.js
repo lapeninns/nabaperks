@@ -37,16 +37,9 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((cacheNames) =>
-        Promise.all(
-          cacheNames
-            .filter((cacheName) => cacheName !== CACHE_NAME)
-            .map((cacheName) => caches.delete(cacheName))
-        )
-      )
-      .then(() => self.clients.claim())
+    Promise.all([clearOldCaches(), enableNavigationPreload()]).then(() =>
+      self.clients.claim()
+    )
   )
 })
 
@@ -57,7 +50,7 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return
 
   if (event.request.mode === "navigate") {
-    event.respondWith(networkFirstNavigation(event.request))
+    event.respondWith(networkFirstNavigation(event))
     return
   }
 
@@ -102,10 +95,29 @@ async function cacheOfflineShell(cache) {
   await Promise.all(paths.map((path) => cache.add(path)))
 }
 
-async function networkFirstNavigation(request) {
+async function clearOldCaches() {
+  const cacheNames = await caches.keys()
+  await Promise.all(
+    cacheNames
+      .filter((cacheName) => cacheName !== CACHE_NAME)
+      .map((cacheName) => caches.delete(cacheName))
+  )
+}
+
+async function enableNavigationPreload() {
+  if (!self.registration.navigationPreload) return
+
+  await self.registration.navigationPreload.enable()
+}
+
+async function networkFirstNavigation(event) {
+  const request = event.request
   const url = new URL(request.url)
 
   try {
+    const preloaded = await event.preloadResponse
+    if (preloaded) return preloaded
+
     return await fetch(request)
   } catch {
     if (isServerStatePath(url.pathname)) {

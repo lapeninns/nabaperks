@@ -17,20 +17,33 @@ const SEED_MERCHANT_EMAIL = "mia@old-crown-girton.test"
 const SEED_MERCHANT_PASSWORD = "NabaperksDemo1!"
 
 // Unique, collision-free chrome indicators:
-// - Full console shell: the desktop "Toggle Sidebar" sidebar trigger.
+// - Full console shell: the desktop sidebar navigation trigger.
 // - Setup shell (onboarding / launch): the focused header's account link.
 const fullShellControl = (page: Page) =>
-  page.getByRole("button", { name: "Toggle Sidebar" }).first()
+  page.getByRole("button", { name: "Toggle navigation" }).first()
 const setupAccountLink = (page: Page) =>
   page.getByRole("link", { name: "Account profile" })
 const sidebarNav = (page: Page) =>
   page.getByRole("navigation", { name: "Merchant navigation" })
 
-async function signIn(page: Page, next: string): Promise<void> {
+async function signIn(
+  page: Page,
+  next: string,
+  rateLimitNonce: string
+): Promise<void> {
+  await page.setExtraHTTPHeaders({
+    "x-vercel-forwarded-for": localLoopbackIp(rateLimitNonce),
+  })
   await page.goto(`/login?next=${encodeURIComponent(next)}`)
   await page.locator("#email").fill(SEED_MERCHANT_EMAIL)
   await page.locator("#password").fill(SEED_MERCHANT_PASSWORD)
   await page.getByRole("button", { name: "Log in" }).click()
+}
+
+function localLoopbackIp(nonce: string): string {
+  const first = Number.parseInt(nonce.slice(0, 2), 16) || 1
+  const second = Number.parseInt(nonce.slice(2, 4), 16) || 1
+  return `127.${first}.${second}.1`
 }
 
 test.describe("merchant shell variant survives client-side navigation", () => {
@@ -41,7 +54,7 @@ test.describe("merchant shell variant survives client-side navigation", () => {
   test("full -> setup: sidebar drops when navigating to /app/launch", async ({
     page,
   }) => {
-    await signIn(page, "/app")
+    await signIn(page, "/app", "a101")
     await page.waitForURL((url) => url.pathname === "/app")
     await expect(fullShellControl(page)).toBeVisible()
     await expect(setupAccountLink(page)).toHaveCount(0)
@@ -57,7 +70,7 @@ test.describe("merchant shell variant survives client-side navigation", () => {
   test("setup -> full: sidebar returns when navigating back to /app", async ({
     page,
   }) => {
-    await signIn(page, "/app/launch")
+    await signIn(page, "/app/launch", "b202")
     await page.waitForURL((url) => url.pathname === "/app/launch")
     await expect(setupAccountLink(page)).toBeVisible()
     await expect(fullShellControl(page)).toHaveCount(0)

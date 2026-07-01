@@ -17,6 +17,7 @@ export function AccountTabBar({ activeTab }: { activeTab: AccountTab }) {
             <li key={tab.id}>
               <Link
                 href={`/app/account?tab=${tab.id}`}
+                prefetch={false}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
                   "inline-flex min-h-11 items-center rounded-md px-4 py-2 text-sm font-extrabold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",

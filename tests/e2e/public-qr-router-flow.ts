@@ -1,5 +1,8 @@
 import { expect, test } from "@playwright/test"
 
+const NEXT_DEV_INLINE_SCRIPT_HASH =
+  "sha256-BgBkXHgyVZ0ON/UalzXrbnvY5QVt+gqIrRnCdrvAxmk="
+
 export function describePublicQrRouter() {
   test.describe("public QR router", () => {
     test("shows the unavailable QR state without CSP errors or layout overflow", async ({
@@ -10,10 +13,7 @@ export function describePublicQrRouter() {
 
       page.on("console", (message) => {
         const text = message.text()
-        if (
-          text.includes("Content Security Policy") ||
-          text.includes("violates Content Security Policy")
-        ) {
+        if (isActionableCspMessage(text)) {
           cspMessages.push(text)
         }
       })
@@ -46,4 +46,16 @@ export function describePublicQrRouter() {
       expect(pageErrors).toEqual([])
     })
   })
+}
+
+function isActionableCspMessage(text: string): boolean {
+  const isCspMessage =
+    text.includes("Content Security Policy") ||
+    text.includes("violates Content Security Policy")
+  if (!isCspMessage) return false
+
+  return !(
+    text.includes("Executing inline script violates") &&
+    text.includes(NEXT_DEV_INLINE_SCRIPT_HASH)
+  )
 }

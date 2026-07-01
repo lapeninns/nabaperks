@@ -64,12 +64,15 @@ export function MerchantAppShell({
           <div className="mx-auto flex h-(--setup-header-h) w-full max-w-6xl min-w-0 items-center justify-between gap-x-3 overflow-x-clip px-4 sm:px-6">
             <Logo
               href="/app/launch"
+              prefetch={false}
               wordmarkClassName="hidden sm:inline"
               className="shrink-0 gap-0 pr-0 sm:gap-3 sm:pr-3"
             />
             <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
               <Button asChild variant="secondary" size="sm">
-                <Link href="/app">Dashboard</Link>
+                <Link href="/app" prefetch={false}>
+                  Dashboard
+                </Link>
               </Button>
               <Button
                 asChild
@@ -78,7 +81,7 @@ export function MerchantAppShell({
                 aria-label="Account profile"
                 title="Account profile"
               >
-                <Link href="/app/account?tab=profile">
+                <Link href="/app/account?tab=profile" prefetch={false}>
                   <Icon icon={Building02Icon} size={16} />
                 </Link>
               </Button>
@@ -117,7 +120,7 @@ export function MerchantAppShell({
             className="flex items-center justify-between gap-2"
           >
             <span data-collapse-hide className="inline-flex min-w-0">
-              <Logo href="/app" />
+              <Logo href="/app" prefetch={false} />
             </span>
             <SidebarTrigger
               className="hidden shrink-0 md:flex"
@@ -153,7 +156,7 @@ export function MerchantAppShell({
         {hideMobileChrome ? null : (
           <header className="sticky top-0 z-30 flex min-h-14 items-center gap-3 border-b-2 border-ink bg-card px-4 py-2 pt-[calc(0.5rem_+_env(safe-area-inset-top))] md:hidden">
             <SidebarTrigger className="size-11 shrink-0" aria-label="Open menu" />
-            <Logo href="/app" />
+            <Logo href="/app" prefetch={false} />
           </header>
         )}
         <div

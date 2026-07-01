@@ -129,10 +129,12 @@ pnpm tokens:check
 pnpm claims:check
 pnpm test
 pnpm build
+pnpm e2e:install
 pnpm exec playwright install --with-deps chromium
-pnpm test:e2e
+pnpm test:e2e -- --grep "@governance|PWA offline fallback|architecture remediation harness gate"
 pnpm test:a11y
 pnpm test:visual
+pnpm db:seed
 pnpm test:db
 pnpm jsonld:check
 ```
@@ -143,9 +145,9 @@ pnpm jsonld:check
 gates, blast radius, docs drift, and command shape.
 
 `pnpm test:e2e`, `pnpm test:a11y`, and `pnpm test:visual` run through
-Playwright against `playwright.config.ts`. The baseline browser smoke covers the
-public landing route in `chromium` and `mobile-chromium`; product-specific
-Micro-Specs must add targeted tests for the changed journey.
+Playwright against `playwright.config.ts`. The CI DB-free browser tier runs the
+governance landing smoke, PWA offline fallback, and architecture harness checks.
+Product-specific Micro-Specs must add targeted tests for the changed journey.
 
 `pnpm test:db` is a live database gate. It requires `SUPABASE_DB_URL` and fails
 clearly when no database URL is present. CI runs it only when that environment

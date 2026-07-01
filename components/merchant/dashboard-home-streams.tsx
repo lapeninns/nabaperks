@@ -222,6 +222,7 @@ function NextActionRow({
   return (
     <Link
       href={href}
+      prefetch={false}
       className="-mx-2 flex items-center gap-3 rounded-lg border-2 border-transparent px-2 py-2 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:border-ink/15 hover:bg-secondary/50 focus-visible:border-ink/15 focus-visible:bg-secondary/50 focus-visible:outline-none motion-reduce:transition-none"
     >
       <span
@@ -259,7 +260,9 @@ export async function MerchantCompactActivityStream({
         title="Recent activity"
         actions={
           <Button asChild variant="secondary" size="sm">
-            <Link href="/app/activity">View all</Link>
+            <Link href="/app/activity" prefetch={false}>
+              View all
+            </Link>
           </Button>
         }
       />

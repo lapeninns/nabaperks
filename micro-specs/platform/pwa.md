@@ -1,9 +1,9 @@
 ---
 spec_id: MS-pwa
-status: implemented
+status: active
 risk_class: ui-only
 owner: claude-code agent (amanshresthaa)
-last_reviewed: 2026-06-30
+last_reviewed: 2026-07-01
 allowed_blast_radius:
   - components/pwa/**
   - app/offline/**
@@ -22,12 +22,14 @@ related_docs:
   - micro-specs/GLOBAL_CONTEXT.md
   - micro-specs/platform/e2e-harness.md
 related_tests:
-  - tests/e2e/pwa.spec.ts
+  - tests/e2e/pwa-offline.desktop.spec.ts
 verification_gates:
   - pnpm lint
   - pnpm typecheck
+  - pnpm governance:check
+  - pnpm test
   - pnpm build
-  - pnpm test:e2e
+  - pnpm test:e2e -- --grep "PWA offline fallback"
 required_playwright_projects:
   - chromium
   - mobile-chromium
@@ -84,12 +86,14 @@ the whole origin.
 
 ## Verification method
 
-DB-free e2e (`tests/e2e/pwa.spec.ts`): assert the manifest is linked and the
-service worker registers (PW-1); assert `/sw.js` returns the required headers
+DB-free e2e (`tests/e2e/pwa-offline.desktop.spec.ts`): assert the manifest is
+linked and the service worker registers (PW-1); assert `/sw.js` returns the
+required headers
 (PW-2); set the dismissal key and assert the prompt stays hidden (PW-3); load
 `/offline` directly and assert it renders the offline state (PW-4). The dismissal
 key is pinned by the harness helper (`tests/e2e/helpers/harness.ts`).
 
 ## Gates
 
-`pnpm lint` · `pnpm typecheck` · `pnpm build` · `pnpm test:e2e`.
+`pnpm lint` · `pnpm typecheck` · `pnpm governance:check` · `pnpm test` ·
+`pnpm build` · `pnpm test:e2e -- --grep "PWA offline fallback"`.
