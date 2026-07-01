@@ -20,7 +20,11 @@ after(async () => {
 })
 
 const PICK_MEMBERSHIP = /* sql */ `
-  select cm.id as membership_id, cm.customer_id, lc.stamps_required
+  select
+    cm.id as membership_id,
+    cm.customer_id,
+    cm.active_cycle_number,
+    lc.stamps_required
   from public.customer_memberships cm
   join public.merchants mer on mer.id = cm.merchant_id
   join public.loyalty_cards lc
@@ -64,13 +68,11 @@ test(
               coalesce(total_rewards_redeemed, 0) * ${m.stamps_required}::int,
             updated_at = now()
         where id = ${m.membership_id}`
-
-      // Repeatability: clear any earned stamp for this membership today.
       await tx`
         delete from public.stamp_events
         where membership_id = ${m.membership_id}
           and event_type = 'earned'
-          and earned_business_date = (now() at time zone 'Europe/London')::date`
+          and cycle_number = ${m.active_cycle_number}::int`
 
       // First stamp today succeeds.
       const r1 = await tx`
