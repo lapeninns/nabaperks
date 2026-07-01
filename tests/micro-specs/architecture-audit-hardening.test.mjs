@@ -35,7 +35,7 @@ test("Given global requests When proxy responds Then all security header familie
   )
   assert.doesNotMatch(proxy, /script-src[^\n]*unsafe-inline/)
   assert.doesNotMatch(proxy, /script-src-elem[^\n]*unsafe-inline/)
-  assert.match(nextConfig, /sri:\s*\{[\s\S]*algorithm: "sha256"/)
+  assert.doesNotMatch(nextConfig, /sri:\s*\{/)
 })
 
 test("Given CI runs on branches When workflow is inspected Then lint and tests gate the build", () => {

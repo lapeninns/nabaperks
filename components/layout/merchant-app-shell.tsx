@@ -1,8 +1,14 @@
 "use client"
 
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Suspense, type ComponentProps, type ReactNode } from "react"
 import { Building02Icon, Logout01Icon } from "@hugeicons/core-free-icons"
+
+import {
+  isMerchantSetupPath,
+  isPosterPrintPath,
+} from "@/lib/navigation/merchant-shell"
 
 import { Icon, Logo } from "@/components/brand"
 import { Button } from "@/components/ui/button"
@@ -22,21 +28,35 @@ import { MerchantTabBar } from "./merchant-tab-bar"
 export function MerchantAppShell({
   children,
   signOutAction,
-  activePath,
-  variant = "full",
+  activePath: activePathProp,
+  variant: variantProp,
   defaultSidebarOpen = true,
-  hideMobileChrome = false,
+  hideMobileChrome: hideMobileChromeProp,
 }: {
   children: ReactNode
   signOutAction: ComponentProps<"form">["action"]
+  /** Override the nav highlight target. Defaults to the live pathname. */
   activePath?: string
+  /** Force a chrome variant. Defaults to deriving it from the live pathname. */
   variant?: "full" | "setup"
   /** Seeds the desktop expanded/collapsed state from the persisted cookie. */
   defaultSidebarOpen?: boolean
   /** Drops the mobile sticky header + bottom tab bar for full-bleed surfaces
-   *  like the poster print preview, which carry their own focused chrome. */
+   *  like the poster print preview, which carry their own focused chrome.
+   *  Defaults to deriving it from the live pathname. */
   hideMobileChrome?: boolean
 }) {
+  // Derive the chrome from the LIVE route, not a server prop. This shell lives
+  // in a shared layout that the App Router preserves across soft navigations,
+  // so a request-time `variant` computed server-side would go stale (e.g. stay
+  // "full" after navigating poster -> /app/launch, or vice versa). `usePathname`
+  // updates on every navigation. Explicit props still win — the /dev harness
+  // uses them to pin a variant regardless of the actual URL.
+  const pathname = usePathname() ?? ""
+  const activePath = activePathProp ?? pathname
+  const variant = variantProp ?? (isMerchantSetupPath(pathname) ? "setup" : "full")
+  const hideMobileChrome = hideMobileChromeProp ?? isPosterPrintPath(pathname)
+
   if (variant === "setup") {
     return (
       <div className="min-h-svh bg-background [--setup-header-h:3.5rem] sm:[--setup-header-h:4rem]">

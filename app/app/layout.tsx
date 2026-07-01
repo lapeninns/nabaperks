@@ -18,7 +18,6 @@ export default async function MerchantAppLayout({
 }) {
   const requestHeaders = await headers()
   const returnPath = readMerchantRequestPath(requestHeaders)
-  const activePath = stripSearch(returnPath)
   const user = await getCurrentUser()
 
   if (!user) {
@@ -27,37 +26,18 @@ export default async function MerchantAppLayout({
 
   const cookieStore = await cookies()
   const sidebarCookieOpen = cookieStore.get("sidebar_state")?.value !== "false"
-  const posterFocus = isPosterPrintPath(activePath)
 
+  // The shell derives its variant (full vs. setup) and mobile-chrome suppression
+  // from the live pathname on the client. This layout is shared across every
+  // `/app/*` route and the App Router preserves it across soft navigations, so a
+  // request-time variant computed here would go stale (the reported "sidebar
+  // sometimes disappears" bug). We only seed the cookie-backed sidebar state.
   return (
     <MerchantAppShell
       signOutAction={signOutAction}
-      activePath={activePath}
-      variant={isMerchantSetupPath(activePath) ? "setup" : "full"}
-      hideMobileChrome={posterFocus}
       defaultSidebarOpen={sidebarCookieOpen}
     >
       {children}
     </MerchantAppShell>
   )
-}
-
-function stripSearch(path: string): string {
-  return path.split("?")[0] ?? path
-}
-
-function isMerchantSetupPath(path: string): boolean {
-  return (
-    path === "/app/onboarding" ||
-    path.startsWith("/app/onboarding/") ||
-    path === "/app/launch" ||
-    path.startsWith("/app/launch/")
-  )
-}
-
-// The poster print preview is a full-bleed surface that carries its own header
-// (PosterPreviewChrome). Suppress the shell's mobile header + bottom tab bar so
-// they don't double-stack or occlude the scaled A4 sheet on phones.
-function isPosterPrintPath(path: string): boolean {
-  return path.startsWith("/app/qr/poster/")
 }
