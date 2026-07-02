@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server"
+import { after, NextResponse } from "next/server"
 import Stripe from "stripe"
 
 import { recordProductEvent } from "@/lib/analytics/events"
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 500 })
   }
 
-  await recordStripeProductEvents(productEvents)
+  scheduleStripeProductEvents(productEvents)
   return NextResponse.json({ received: true })
 }
 
@@ -143,15 +143,53 @@ async function handleStripeEvent(
   return productEvents
 }
 
-async function recordStripeProductEvents(productEvents: StripeProductEvent[]) {
-  for (const productEvent of productEvents) {
-    try {
-      await recordProductEvent(productEvent)
-    } catch (error) {
+function scheduleStripeProductEvents(productEvents: readonly StripeProductEvent[]) {
+  if (productEvents.length === 0) {
+    return
+  }
+
+  scheduleAfterResponse(async () => {
+    const results = await Promise.allSettled(
+      productEvents.map((productEvent) => recordProductEvent(productEvent))
+    )
+
+    for (const [index, result] of results.entries()) {
+      if (result.status === "fulfilled") {
+        continue
+      }
+
+      const productEvent = productEvents[index]
+      if (!productEvent) {
+        continue
+      }
+
       console.warn("stripe_product_event_record_failed", {
         eventName: productEvent.eventName,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: errorMessage(result.reason),
       })
     }
+  })
+}
+
+function scheduleAfterResponse(callback: () => Promise<void>) {
+  try {
+    after(callback)
+  } catch (error) {
+    if (isOutsideRequestScopeError(error)) {
+      void callback()
+      return
+    }
+
+    throw error
   }
+}
+
+function isOutsideRequestScopeError(error: unknown) {
+  return (
+    error instanceof Error && error.message.includes("outside a request scope")
+  )
+}
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Unknown error"
 }

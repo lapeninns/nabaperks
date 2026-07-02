@@ -20,6 +20,7 @@ export type ShellNavItem = {
   href: string
   label: string
   icon?: IconGlyph
+  prefetch?: "auto"
 }
 
 export function isActivePath(currentPath: string, href: string) {
@@ -83,20 +84,40 @@ export function isActiveNavItem(
 }
 
 export const merchantNavItems = [
-  { href: "/app", label: "Home", icon: Home01Icon },
+  { href: "/app", label: "Home", icon: Home01Icon, prefetch: "auto" },
   { href: "/app/launch", label: "Setup", icon: Settings01Icon },
-  { href: "/app/qr", label: "Poster", icon: QrCode01Icon },
-  { href: "/app/customers", label: "Members", icon: UserMultiple02Icon },
-  { href: "/app/activity", label: "Activity", icon: Activity03Icon },
+  { href: "/app/qr", label: "Poster", icon: QrCode01Icon, prefetch: "auto" },
+  {
+    href: "/app/customers",
+    label: "Members",
+    icon: UserMultiple02Icon,
+    prefetch: "auto",
+  },
+  {
+    href: "/app/activity",
+    label: "Activity",
+    icon: Activity03Icon,
+    prefetch: "auto",
+  },
   { href: "/app/announcements", label: "Announce", icon: Megaphone01Icon },
 ] satisfies readonly ShellNavItem[]
 
 /** Primary destinations for the merchant mobile bottom tab bar. */
 export const merchantTabBarItems = [
-  { href: "/app", label: "Home", icon: Home01Icon },
-  { href: "/app/qr", label: "Poster", icon: QrCode01Icon },
-  { href: "/app/customers", label: "Members", icon: UserMultiple02Icon },
-  { href: "/app/activity", label: "Activity", icon: Activity03Icon },
+  { href: "/app", label: "Home", icon: Home01Icon, prefetch: "auto" },
+  { href: "/app/qr", label: "Poster", icon: QrCode01Icon, prefetch: "auto" },
+  {
+    href: "/app/customers",
+    label: "Members",
+    icon: UserMultiple02Icon,
+    prefetch: "auto",
+  },
+  {
+    href: "/app/activity",
+    label: "Activity",
+    icon: Activity03Icon,
+    prefetch: "auto",
+  },
   {
     href: "/app/account?tab=profile",
     label: "Account",

@@ -256,9 +256,9 @@ export function MerchantRewardScanner() {
     status.kind === "idle"
       ? "Starting camera..."
       : status.kind === "scanning"
-        ? "Scanning for a reward QR..."
+        ? "Scanning for a reward QR…"
         : status.kind === "decoded"
-          ? "Reward QR found. Opening collection..."
+          ? "Reward QR found. Opening collection…"
           : status.kind === "invalid"
             ? "That is not a reward QR from a member card"
             : CAMERA_ERROR_STATUS[status.reason]

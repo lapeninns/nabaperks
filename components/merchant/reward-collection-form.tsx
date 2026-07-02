@@ -30,7 +30,7 @@ export function MerchantRewardCollectionForm({
         </StatusBanner>
       ) : null}
       <Button type="submit" size="lg" variant="reward" disabled={pending}>
-        {pending ? "Marking collected..." : "Mark reward collected"}
+        {pending ? "Marking collected…" : "Mark reward collected"}
       </Button>
     </form>
   )

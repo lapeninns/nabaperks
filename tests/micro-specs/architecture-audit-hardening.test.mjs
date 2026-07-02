@@ -148,7 +148,7 @@ test("Given product event names power funnel reporting When emit sites add names
   assert.match(events, /"merchant_profile_updated"/)
 })
 
-test("Given Stripe retries a processed event When analytics recording had failed Then billing processing is not repeated", () => {
+test("Given Stripe retries a processed event When analytics recording is scheduled Then billing processing is not repeated", () => {
   const webhookRoute = readProjectFile(
     "app",
     "api",
@@ -162,7 +162,9 @@ test("Given Stripe retries a processed event When analytics recording had failed
     webhookRoute,
     /await markStripeWebhookEventProcessed\(event\.id\)/
   )
-  assert.match(webhookRoute, /await recordStripeProductEvents\(productEvents\)/)
+  assert.match(webhookRoute, /scheduleStripeProductEvents\(productEvents\)/)
+  assert.match(webhookRoute, /after\(callback\)/)
+  assert.match(webhookRoute, /Promise\.allSettled/)
   assert.match(webhookRoute, /stripe_product_event_record_failed/)
   assert.doesNotMatch(
     webhookRoute,

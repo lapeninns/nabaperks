@@ -189,7 +189,7 @@ export function MerchantAppShell({
         </div>
         {hideMobileChrome ? null : (
           <Suspense fallback={null}>
-            <MerchantTabBar />
+            <MerchantTabBar activePath={activePath} />
           </Suspense>
         )}
       </SidebarInset>
