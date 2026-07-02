@@ -607,7 +607,10 @@
     --poster-frame-max: 100%;
   }
 
-  .workspace {
+  /* Reserve the sidecar column only when the sidecar actually rendered —
+     PosterDesktopSidecar returns null without a qrCodeId (the dev preview),
+     and an empty 18rem track pushed the sheet off-centre. */
+  .workspace:has(> aside) {
     grid-template-columns: minmax(0, 1fr) 18rem;
   }
 

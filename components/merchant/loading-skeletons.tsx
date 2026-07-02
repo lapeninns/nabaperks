@@ -159,7 +159,7 @@ export function ActivityFeedSkeleton() {
       {/* Search + filter pills */}
       <section className="surface-card grid gap-3 p-3 sm:p-4">
         <Skeleton className="h-11 w-full" />
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {[0, 1, 2, 3, 4, 5].map((option) => (
             <Skeleton key={option} className="h-9 w-16 rounded-full" />
           ))}
@@ -230,7 +230,7 @@ export function MerchantCustomersTableSkeleton() {
       {/* Search + filter pills */}
       <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
         <Skeleton className="h-11 w-full sm:max-w-xs" />
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {[0, 1, 2, 3].map((pill) => (
             <Skeleton key={pill} className="h-9 w-16 rounded-full" />
           ))}

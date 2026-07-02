@@ -61,7 +61,10 @@ export function AdminField({
       <Eyebrow>{label}</Eyebrow>
       {children}
       {helper ? (
-        <span className="text-xs leading-5 font-normal text-muted-foreground">
+        // whitespace-normal: inside a table cell the helper would inherit the
+        // cell's nowrap, and its single-line min-content inflates the field's
+        // implicit track (the Delta/Reason overlap class of bug).
+        <span className="text-xs leading-5 font-normal whitespace-normal text-muted-foreground">
           {helper}
         </span>
       ) : null}

@@ -198,14 +198,18 @@ function StampAdjustmentForm({ membershipId }: { membershipId: string }) {
   return (
     <AdminActionForm action={adjustStampsAction} className="min-w-[280px]">
       <input type="hidden" name="membershipId" value={membershipId} />
-      <div className="grid gap-2 sm:grid-cols-[96px_1fr]">
+      <div className="grid gap-2 sm:grid-cols-[96px_minmax(0,1fr)]">
+        {/* min-w-0 lets each field shrink to its track — a bare number input's
+            intrinsic width (~148px with spinners) otherwise overflows the
+            96px delta column and overlaps Reason. */}
         <AdminField
           label="Delta"
           helper="Positive adds stamps, negative removes them."
+          className="min-w-0"
         >
           <Input name="delta" type="number" required min={-25} max={25} />
         </AdminField>
-        <AdminField label="Reason">
+        <AdminField label="Reason" className="min-w-0">
           <Input name="reason" required minLength={4} />
         </AdminField>
       </div>
