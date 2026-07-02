@@ -1,6 +1,6 @@
 ---
 spec_id: MS-platform-ux-production-polish
-status: active
+status: implemented
 risk_class: ui-only
 owner: claude-code agent (amanshresthaa)
 last_reviewed: 2026-07-02

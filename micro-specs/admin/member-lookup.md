@@ -1,6 +1,6 @@
 ---
 spec_id: MS-admin-member-lookup
-status: active
+status: implemented
 risk_class: customer-pii
 owner: claude-code agent (amanshresthaa)
 last_reviewed: 2026-07-02
