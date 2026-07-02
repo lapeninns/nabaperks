@@ -58,15 +58,8 @@ export async function countMembersBefore(merchantId: string, before: string) {
   return count ?? 0
 }
 
-export async function countStampsIssued(
-  merchantId: string,
-  locationId?: string
-) {
-  return countStampsIssuedBetween(
-    merchantId,
-    new Date(0).toISOString(),
-    locationId
-  )
+export async function countStampsIssued(merchantId: string) {
+  return countStampsIssuedBetween(merchantId, new Date(0).toISOString())
 }
 
 export async function countRepeatCustomers(merchantId: string) {
@@ -84,26 +77,12 @@ export async function countRepeatCustomers(merchantId: string) {
   return count ?? 0
 }
 
-export async function countRewardsRedeemed(
-  merchantId: string,
-  cardIds?: readonly string[]
-) {
-  return countRewardsRedeemedBetween(
-    merchantId,
-    new Date(0).toISOString(),
-    cardIds
-  )
+export async function countRewardsRedeemed(merchantId: string) {
+  return countRewardsRedeemedBetween(merchantId, new Date(0).toISOString())
 }
 
-export async function countQrDownloads(
-  merchantId: string,
-  qrCodeIds?: readonly string[]
-) {
-  return countQrDownloadsBetween(
-    merchantId,
-    new Date(0).toISOString(),
-    qrCodeIds
-  )
+export async function countQrDownloads(merchantId: string) {
+  return countQrDownloadsBetween(merchantId, new Date(0).toISOString())
 }
 
 export async function getBillingStatus(merchantId: string, fallback: string) {
@@ -119,23 +98,4 @@ export async function getBillingStatus(merchantId: string, fallback: string) {
   }
 
   return data?.status ?? fallback
-}
-
-export async function selectRewardRowsForCards(
-  merchantId: string,
-  cardIds: readonly string[],
-  sinceIso: string
-) {
-  const supabase = createSupabaseServiceRoleClient()
-  if (cardIds.length === 0) {
-    return { data: [], error: null }
-  }
-
-  return supabase
-    .from("reward_events")
-    .select("created_at")
-    .eq("merchant_id", merchantId)
-    .eq("status", "redeemed")
-    .in("loyalty_card_id", [...cardIds])
-    .gte("created_at", sinceIso)
 }

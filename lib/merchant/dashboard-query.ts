@@ -14,7 +14,6 @@ import {
   countRows,
   countStampsIssued,
   getBillingStatus,
-  selectRewardRowsForCards,
 } from "@/lib/merchant/dashboard-counts"
 import {
   countNewMembersBetween,
@@ -23,7 +22,6 @@ import {
   countStampsIssuedBetween,
   weekComparisonBounds,
 } from "@/lib/merchant/dashboard-period-counts"
-import { loadLocationScopeIds } from "@/lib/merchant/dashboard-scope-ids"
 import {
   buildMerchantDashboardTrends,
   type MerchantDashboardTrends,
@@ -39,18 +37,10 @@ export type MerchantDashboardSeries = {
   readonly members: number[]
 }
 
-export type MerchantDashboardQueryScope = {
-  readonly locationId?: string
-}
-
 export async function getMerchantDashboardDataByQuery(
-  merchant: MerchantDashboardMerchant,
-  scope: MerchantDashboardQueryScope = {}
+  merchant: MerchantDashboardMerchant
 ) {
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-  const locationIds = scope.locationId
-    ? await loadLocationScopeIds(merchant.id, scope.locationId)
-    : null
   const [
     members,
     newMembers,
@@ -62,10 +52,10 @@ export async function getMerchantDashboardDataByQuery(
   ] = await Promise.all([
     countRows("customer_memberships", merchant.id),
     countNewMembers(merchant.id, since),
-    countStampsIssued(merchant.id, scope.locationId),
+    countStampsIssued(merchant.id),
     countRepeatCustomers(merchant.id),
-    countRewardsRedeemed(merchant.id, locationIds?.cardIds),
-    countQrDownloads(merchant.id, locationIds?.qrCodeIds),
+    countRewardsRedeemed(merchant.id),
+    countQrDownloads(merchant.id),
     getBillingStatus(merchant.id, merchant.status),
   ])
 
@@ -83,35 +73,17 @@ export async function getMerchantDashboardDataByQuery(
 }
 
 export async function getMerchantDashboardSeriesByQuery(
-  merchantId: string,
-  scope: MerchantDashboardQueryScope = {}
+  merchantId: string
 ): Promise<MerchantDashboardSeries> {
   const buckets = buildDayBuckets(DASHBOARD_SERIES_DAYS)
   const sinceIso = buckets[0]?.iso ?? new Date().toISOString()
   const supabase = createSupabaseServiceRoleClient()
-  const locationIds = scope.locationId
-    ? await loadLocationScopeIds(merchantId, scope.locationId)
-    : null
-
-  let stampQuery = supabase
+  const stampQuery = supabase
     .from("stamp_events")
     .select("created_at")
     .eq("merchant_id", merchantId)
     .eq("event_type", "earned")
     .gte("created_at", sinceIso)
-
-  if (scope.locationId) {
-    stampQuery = stampQuery.eq("location_id", scope.locationId)
-  }
-
-  const rewardRowsPromise = locationIds
-    ? selectRewardRowsForCards(merchantId, locationIds.cardIds, sinceIso)
-    : supabase
-        .from("reward_events")
-        .select("created_at")
-        .eq("merchant_id", merchantId)
-        .eq("status", "redeemed")
-        .gte("created_at", sinceIso)
 
   const [joinRows, stampRows, rewardRows, baselineMembers] = await Promise.all([
     supabase
@@ -120,7 +92,12 @@ export async function getMerchantDashboardSeriesByQuery(
       .eq("merchant_id", merchantId)
       .gte("created_at", sinceIso),
     stampQuery,
-    rewardRowsPromise,
+    supabase
+      .from("reward_events")
+      .select("created_at")
+      .eq("merchant_id", merchantId)
+      .eq("status", "redeemed")
+      .gte("created_at", sinceIso),
     countMembersBefore(merchantId, sinceIso),
   ])
 
@@ -149,13 +126,9 @@ export async function getMerchantDashboardSeriesByQuery(
 }
 
 export async function loadMerchantDashboardTrends(
-  merchantId: string,
-  scope: MerchantDashboardQueryScope = {}
+  merchantId: string
 ): Promise<MerchantDashboardTrends> {
   const { currentStart, previousStart, previousEnd } = weekComparisonBounds()
-  const locationIds = scope.locationId
-    ? await loadLocationScopeIds(merchantId, scope.locationId)
-    : null
   const [
     newMembersCurrent,
     newMembersPrevious,
@@ -168,25 +141,22 @@ export async function loadMerchantDashboardTrends(
   ] = await Promise.all([
     countNewMembers(merchantId, currentStart),
     countNewMembersBetween(merchantId, previousStart, previousEnd),
-    countStampsIssuedBetween(merchantId, currentStart, scope.locationId),
+    countStampsIssuedBetween(merchantId, currentStart),
     countStampsIssuedBetween(
       merchantId,
       previousStart,
-      scope.locationId,
       previousEnd
     ),
-    countRewardsRedeemedBetween(merchantId, currentStart, locationIds?.cardIds),
+    countRewardsRedeemedBetween(merchantId, currentStart),
     countRewardsRedeemedBetween(
       merchantId,
       previousStart,
-      locationIds?.cardIds,
       previousEnd
     ),
-    countQrDownloadsBetween(merchantId, currentStart, locationIds?.qrCodeIds),
+    countQrDownloadsBetween(merchantId, currentStart),
     countQrDownloadsBetween(
       merchantId,
       previousStart,
-      locationIds?.qrCodeIds,
       previousEnd
     ),
   ])

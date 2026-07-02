@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils"
 import type {
   VenueAnnouncementAudienceSummary,
+  VenueAnnouncementDailyUsage,
   VenueAnnouncementResult,
 } from "@/lib/notifications/venue-announcements"
 
@@ -47,12 +48,14 @@ export type AnnouncementSubmit = (
 
 export type AnnouncementComposeProps = {
   readonly audienceSummary: VenueAnnouncementAudienceSummary
+  readonly dailyUsage: VenueAnnouncementDailyUsage
   readonly submitAnnouncement?: AnnouncementSubmit
   readonly className?: string
 }
 
 export function AnnouncementCompose({
   audienceSummary,
+  dailyUsage,
   submitAnnouncement = submitVenueAnnouncement,
   className,
 }: AnnouncementComposeProps) {
@@ -61,12 +64,15 @@ export function AnnouncementCompose({
   const [body, setBody] = useState("")
   const [pending, setPending] = useState(false)
   const [result, setResult] = useState<AnnouncementSubmitResult | null>(null)
+  const [sentToday, setSentToday] = useState(dailyUsage.used)
 
   const trimmedTitle = title.trim()
   const trimmedBody = body.trim()
   const hasEligibleAudience = audienceSummary.eligible > 0
+  const dailyLimitReached = sentToday >= dailyUsage.limit
   const canSubmit =
     hasEligibleAudience &&
+    !dailyLimitReached &&
     trimmedTitle.length > 0 &&
     trimmedBody.length > 0 &&
     !pending
@@ -85,12 +91,15 @@ export function AnnouncementCompose({
       })
       setResult(nextResult)
       if (nextResult.ok) {
+        setSentToday((current) => Math.min(current + 1, dailyUsage.limit))
         // A sent announcement clears the fields: the disabled button then
         // reads as "nothing to send" instead of inviting a duplicate submit
         // of the same copy (server-side dedupe would only soften that to
         // "skipped").
         setTitle("")
         setBody("")
+      } else if (nextResult.error === "rate_limited") {
+        setSentToday(dailyUsage.limit)
       }
     } catch {
       setResult({ ok: false, status: 0, error: "network_error" })
@@ -113,7 +122,17 @@ export function AnnouncementCompose({
         description="Short member updates for today, tomorrow, or a quiet shift that needs regulars."
       />
 
-      <AudiencePreview audienceSummary={audienceSummary} />
+      <AudiencePreview
+        audienceSummary={audienceSummary}
+        dailyUsage={{ used: sentToday, limit: dailyUsage.limit }}
+      />
+
+      {dailyLimitReached ? (
+        <StatusBanner title="Daily limit reached" tone="warning">
+          You have sent {formatNumber(dailyUsage.limit)} announcements today.
+          You can send more tomorrow.
+        </StatusBanner>
+      ) : null}
 
       {!hasEligibleAudience ? (
         <EmptyState
@@ -194,18 +213,34 @@ export function AnnouncementCompose({
 
 function AudiencePreview({
   audienceSummary,
+  dailyUsage,
 }: {
   readonly audienceSummary: VenueAnnouncementAudienceSummary
+  readonly dailyUsage: VenueAnnouncementDailyUsage
 }) {
   return (
     <div className="rounded-lg border-2 border-dashed border-ink/30 bg-secondary/45 px-4 py-3">
-      <p className="text-sm font-extrabold text-foreground">
-        About {formatNumber(audienceSummary.eligible)} of your{" "}
-        {formatNumber(audienceSummary.members)} members can receive this.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <p className="text-sm font-extrabold text-foreground">
+          About {formatNumber(audienceSummary.eligible)} of your{" "}
+          {formatNumber(audienceSummary.members)} members can receive this.
+        </p>
+        <p className="numeric-tabular text-xs font-semibold text-muted-foreground">
+          Daily announcements{" "}
+          <span
+            className={cn(
+              "font-extrabold text-foreground",
+              dailyUsage.used >= dailyUsage.limit && "text-destructive"
+            )}
+          >
+            {formatNumber(dailyUsage.used)}/{formatNumber(dailyUsage.limit)}
+          </span>
+        </p>
+      </div>
       <p className="mt-1 text-xs leading-5 text-muted-foreground">
         Eligibility is based on membership, push subscription, and marketing
-        consent.
+        consent. You can send up to {formatNumber(dailyUsage.limit)} venue
+        announcements per day.
       </p>
     </div>
   )

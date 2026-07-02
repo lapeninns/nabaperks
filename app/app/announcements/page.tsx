@@ -4,7 +4,10 @@ import { Megaphone01Icon } from "@hugeicons/core-free-icons"
 import { Icon, PageTitle } from "@/components/brand"
 import { AnnouncementCompose } from "@/components/merchant/announcements/announcement-compose"
 import { getCurrentMerchant } from "@/lib/auth/session"
-import { getVenueAnnouncementAudienceSummary } from "@/lib/notifications/venue-announcements"
+import {
+  getVenueAnnouncementAudienceSummary,
+  getVenueAnnouncementDailyUsage,
+} from "@/lib/notifications/venue-announcements"
 
 export const dynamic = "force-dynamic"
 
@@ -15,7 +18,10 @@ export default async function MerchantAnnouncementsPage() {
     redirect("/app/onboarding")
   }
 
-  const audienceSummary = await getVenueAnnouncementAudienceSummary(merchant.id)
+  const [audienceSummary, dailyUsage] = await Promise.all([
+    getVenueAnnouncementAudienceSummary(merchant.id),
+    getVenueAnnouncementDailyUsage(merchant.id),
+  ])
 
   return (
     <div className="grid gap-6">
@@ -31,7 +37,10 @@ export default async function MerchantAnnouncementsPage() {
       />
 
       <section aria-label="Announcement composer">
-        <AnnouncementCompose audienceSummary={audienceSummary} />
+        <AnnouncementCompose
+          audienceSummary={audienceSummary}
+          dailyUsage={dailyUsage}
+        />
       </section>
     </div>
   )

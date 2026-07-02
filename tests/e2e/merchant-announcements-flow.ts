@@ -18,6 +18,7 @@ export function describeMerchantAnnouncements() {
       await expect(composer).toContainText(
         "About 18 of your 24 members can receive this."
       )
+      await expect(composer).toContainText("Daily announcements 0/2")
       await composer.getByLabel("Announcement title").fill("Rainy lunch")
       await composer
         .getByLabel("Announcement body")
@@ -26,6 +27,7 @@ export function describeMerchantAnnouncements() {
       await composer.getByRole("button", { name: /Send announcement/ }).click()
 
       await expect(composer.getByText("Announcement queued")).toBeVisible()
+      await expect(composer).toContainText("Daily announcements 1/2")
       await expect(composer).toContainText("Queued for 14 members.")
       await expect(composer).toContainText(
         "4 were skipped because this announcement was already queued for them."
@@ -51,6 +53,7 @@ export function describeMerchantAnnouncements() {
 
       await expect(composer.getByText("Daily limit reached")).toBeVisible()
       await expect(composer).toContainText("up to 2 a day")
+      await expect(composer).toContainText("Daily announcements 2/2")
     })
 
     test("Given the API rejects copy When moderation fails Then plain guidance is shown", async ({

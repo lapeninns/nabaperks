@@ -6,7 +6,6 @@ import {
   loadMerchantDashboardTrends,
   type MerchantDashboardSeries,
 } from "@/lib/merchant/dashboard-query"
-import { resolveMerchantDashboardScope } from "@/lib/merchant/dashboard-scope"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type { MerchantDashboardSeries }
@@ -17,20 +16,12 @@ export type MerchantDashboardMerchant = {
   status: string
 }
 
-export async function getMerchantDashboardData(
-  merchant: MerchantDashboardMerchant,
-  options: { readonly locationId?: string | null } = {}
-) {
-  const scope = resolveMerchantDashboardScope(options)
-  const locationId = scope.mode === "location" ? scope.locationId : undefined
+export async function getMerchantDashboardData(merchant: MerchantDashboardMerchant) {
   const [dashboard, trends] = await Promise.all([
-    scope.mode === "merchant"
-      ? getMerchantDashboardMetrics(merchant).then(
-          (rpcResult) =>
-            rpcResult ?? getMerchantDashboardDataByQuery(merchant, {})
-        )
-      : getMerchantDashboardDataByQuery(merchant, { locationId }),
-    loadMerchantDashboardTrends(merchant.id, { locationId }),
+    getMerchantDashboardMetrics(merchant).then(
+      (rpcResult) => rpcResult ?? getMerchantDashboardDataByQuery(merchant)
+    ),
+    loadMerchantDashboardTrends(merchant.id),
   ])
 
   return {
@@ -40,13 +31,9 @@ export async function getMerchantDashboardData(
 }
 
 export async function getMerchantDashboardSeries(
-  merchantId: string,
-  options: { readonly locationId?: string | null } = {}
+  merchantId: string
 ): Promise<MerchantDashboardSeries> {
-  const scope = resolveMerchantDashboardScope(options)
-  const locationId = scope.mode === "location" ? scope.locationId : undefined
-
-  return getMerchantDashboardSeriesByQuery(merchantId, { locationId })
+  return getMerchantDashboardSeriesByQuery(merchantId)
 }
 
 async function getMerchantDashboardMetrics(merchant: MerchantDashboardMerchant) {

@@ -132,11 +132,6 @@ export const merchantAccountItems = [
     label: "Billing",
     icon: CreditCardIcon,
   },
-  {
-    href: "/app/account?tab=locations",
-    label: "Locations",
-    icon: Store01Icon,
-  },
 ] satisfies readonly ShellNavItem[]
 
 export const adminNavItems = [

@@ -2,14 +2,19 @@ import "server-only"
 
 import { recordProductEvent } from "@/lib/analytics/events"
 import { enqueueNotificationEvent } from "@/lib/notifications/events"
+import { londonBusinessDate } from "@/lib/notifications/london-time"
 import {
   normalizeVenueAnnouncementMemberships,
   resolveVenueAnnouncementAudienceCustomerIds,
   validateVenueAnnouncementText,
+  VENUE_ANNOUNCEMENT_DAILY_LIMIT,
+  VENUE_ANNOUNCEMENT_DAILY_WINDOW_MS,
+  venueAnnouncementDailyLimitKey,
   venueAnnouncementDedupeKey,
   type VenueAnnouncementMembership,
 } from "@/lib/notifications/venue-announcement-core"
 import { logger } from "@/lib/observability/logger"
+import { peekRateLimit } from "@/lib/security/rate-limit"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export { validateVenueAnnouncementText } from "@/lib/notifications/venue-announcement-core"
@@ -32,6 +37,11 @@ export type VenueAnnouncementResult = {
 export type VenueAnnouncementAudienceSummary = {
   readonly members: number
   readonly eligible: number
+}
+
+export type VenueAnnouncementDailyUsage = {
+  readonly used: number
+  readonly limit: number
 }
 
 export async function getVenueAnnouncementAudienceSummary(
@@ -57,6 +67,21 @@ export async function getVenueAnnouncementAudienceSummary(
   const audience = await resolveAnnouncementAudience(memberships, merchantId)
 
   return { members: memberships.length, eligible: audience.size }
+}
+
+export async function getVenueAnnouncementDailyUsage(
+  merchantId: string
+): Promise<VenueAnnouncementDailyUsage> {
+  const usage = await peekRateLimit({
+    key: venueAnnouncementDailyLimitKey({
+      merchantId,
+      businessDate: londonBusinessDate(new Date()),
+    }),
+    limit: VENUE_ANNOUNCEMENT_DAILY_LIMIT,
+    windowMs: VENUE_ANNOUNCEMENT_DAILY_WINDOW_MS,
+  })
+
+  return { used: usage.used, limit: usage.limit }
 }
 
 export async function enqueueVenueAnnouncement(

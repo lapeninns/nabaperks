@@ -11,6 +11,11 @@ const ANNOUNCEMENT_AUDIENCE = {
   eligible: 18,
 } as const
 
+const DEFAULT_DAILY_USAGE = {
+  used: 0,
+  limit: 2,
+} as const
+
 const EMPTY_AUDIENCE = {
   members: 12,
   eligible: 0,
@@ -22,6 +27,7 @@ export function AnnouncementsHarnessClient() {
       <section aria-label="Announcement composer">
         <AnnouncementCompose
           audienceSummary={ANNOUNCEMENT_AUDIENCE}
+          dailyUsage={DEFAULT_DAILY_USAGE}
           submitAnnouncement={submitAnnouncement}
         />
       </section>
@@ -29,6 +35,7 @@ export function AnnouncementsHarnessClient() {
       <section aria-label="Empty announcement composer">
         <AnnouncementCompose
           audienceSummary={EMPTY_AUDIENCE}
+          dailyUsage={DEFAULT_DAILY_USAGE}
           submitAnnouncement={submitAnnouncement}
         />
       </section>

@@ -36,7 +36,6 @@ export async function countNewMembersBetween(
 export async function countStampsIssuedBetween(
   merchantId: string,
   from: string,
-  locationId?: string,
   to?: string
 ) {
   const supabase = createSupabaseServiceRoleClient()
@@ -46,10 +45,6 @@ export async function countStampsIssuedBetween(
     .eq("merchant_id", merchantId)
     .eq("event_type", "earned")
     .gte("created_at", from)
-
-  if (locationId) {
-    query = query.eq("location_id", locationId)
-  }
 
   if (to) {
     query = query.lt("created_at", to)
@@ -67,11 +62,8 @@ export async function countStampsIssuedBetween(
 export async function countRewardsRedeemedBetween(
   merchantId: string,
   from: string,
-  cardIds?: readonly string[],
   to?: string
 ) {
-  if (cardIds && cardIds.length === 0) return 0
-
   const supabase = createSupabaseServiceRoleClient()
   let query = supabase
     .from("reward_events")
@@ -79,10 +71,6 @@ export async function countRewardsRedeemedBetween(
     .eq("merchant_id", merchantId)
     .eq("status", "redeemed")
     .gte("created_at", from)
-
-  if (cardIds) {
-    query = query.in("loyalty_card_id", [...cardIds])
-  }
 
   if (to) {
     query = query.lt("created_at", to)
@@ -100,11 +88,8 @@ export async function countRewardsRedeemedBetween(
 export async function countQrDownloadsBetween(
   merchantId: string,
   from: string,
-  qrCodeIds?: readonly string[],
   to?: string
 ) {
-  if (qrCodeIds && qrCodeIds.length === 0) return 0
-
   const supabase = createSupabaseServiceRoleClient()
   let query = supabase
     .from("product_events")
@@ -112,10 +97,6 @@ export async function countQrDownloadsBetween(
     .eq("merchant_id", merchantId)
     .eq("event_name", "qr_downloaded")
     .gte("created_at", from)
-
-  if (qrCodeIds) {
-    query = query.in("qr_code_id", [...qrCodeIds])
-  }
 
   if (to) {
     query = query.lt("created_at", to)

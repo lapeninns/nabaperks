@@ -16,6 +16,45 @@ export class RateLimitError extends Error {
   }
 }
 
+function rateLimitBucketKey(key: string) {
+  return createHash("sha256").update(key).digest("hex")
+}
+
+export async function peekRateLimit({
+  key,
+  limit,
+  windowMs,
+}: {
+  key: string
+  limit: number
+  windowMs: number
+}) {
+  const bucketKey = rateLimitBucketKey(key)
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase
+    .from("rate_limit_buckets")
+    .select("count, reset_at")
+    .eq("bucket_key", bucketKey)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(`Unable to read rate limit bucket: ${error.message}`)
+  }
+
+  const now = Date.now()
+  const used =
+    data && new Date(data.reset_at).getTime() > now
+      ? Math.min(Math.max(data.count, 0), limit)
+      : 0
+
+  return {
+    used,
+    limit,
+    remaining: Math.max(0, limit - used),
+    windowMs,
+  }
+}
+
 export async function enforceRateLimit({
   key,
   limit,
@@ -25,7 +64,7 @@ export async function enforceRateLimit({
   limit: number
   windowMs: number
 }) {
-  const bucketKey = createHash("sha256").update(key).digest("hex")
+  const bucketKey = rateLimitBucketKey(key)
   const supabase = createSupabaseServiceRoleClient()
   const { error } = await supabase.rpc("enforce_rate_limit", {
     p_bucket_key: bucketKey,

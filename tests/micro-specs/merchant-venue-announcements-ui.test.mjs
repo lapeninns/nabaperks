@@ -61,6 +61,8 @@ describe("MS-merchant-venue-announcements-ui source contract", () => {
     assert.match(page, /getCurrentMerchant/)
     assert.match(page, /redirect\("\/app\/onboarding"\)/)
     assert.match(page, /getVenueAnnouncementAudienceSummary\(merchant\.id\)/)
+    assert.match(page, /getVenueAnnouncementDailyUsage\(merchant\.id\)/)
+    assert.match(page, /dailyUsage=\{dailyUsage\}/)
     assert.match(page, /<AnnouncementCompose/)
   })
 
@@ -76,6 +78,9 @@ describe("MS-merchant-venue-announcements-ui source contract", () => {
     assert.match(form, /fetch\("\/api\/notifications\/venue-announcements"/)
     assert.match(form, /maxLength=\{80\}/)
     assert.match(form, /maxLength=\{180\}/)
+    assert.match(form, /Daily announcements/)
+    assert.match(form, /dailyUsage\.used/)
+    assert.match(form, /dailyUsage\.limit/)
     assert.match(form, /venueAnnouncementFormErrorCopy/)
     assert.match(copy, /rate_limited/)
     assert.doesNotMatch(form, /venue-announcement-core/)

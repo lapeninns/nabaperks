@@ -16,10 +16,6 @@ import {
 import { TrendChart } from "@/components/data"
 import { ActivityCompactFeed } from "@/components/merchant/activity-compact-feed"
 import { MerchantBillingNotice } from "@/components/merchant/billing-status"
-import {
-  DashboardLocationFilter,
-  type DashboardLocationOption,
-} from "@/components/merchant/dashboard-location-filter"
 import { MerchantNextActions } from "@/components/merchant/dashboard-next-actions"
 import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
 import { WetInkRise } from "@/components/motion"
@@ -31,30 +27,24 @@ import {
   getMerchantDashboardSeries,
   type MerchantDashboardMerchant,
 } from "@/lib/merchant/dashboard"
-import { dashboardScopeMembersCaption } from "@/lib/merchant/dashboard-scope"
 import { getMerchantLaunchReadiness } from "@/lib/merchant/launch-readiness"
 import { timeServerLoader } from "@/lib/perf/server-timing"
 
 export async function MerchantDashboardStream({
   merchant,
-  locationId,
-  locations = [],
 }: {
   readonly merchant: MerchantDashboardMerchant
-  readonly locationId?: string | null
-  readonly locations?: readonly DashboardLocationOption[]
 }) {
-  const sharedMembersCaption = dashboardScopeMembersCaption({ locationId })
   const [dashboard, launchReadiness, series, customerCounts] =
     await Promise.all([
       timeServerLoader("/app", "getMerchantDashboardData", () =>
-        getMerchantDashboardData(merchant, { locationId })
+        getMerchantDashboardData(merchant)
       ),
       timeServerLoader("/app", "getMerchantLaunchReadiness", () =>
         getMerchantLaunchReadiness()
       ),
       timeServerLoader("/app", "getMerchantDashboardSeries", () =>
-        getMerchantDashboardSeries(merchant.id, { locationId })
+        getMerchantDashboardSeries(merchant.id)
       ),
       timeServerLoader("/app", "getMerchantDashboardCustomerCounts", () =>
         getMerchantDashboardCustomerCounts(merchant.id)
@@ -110,15 +100,6 @@ export async function MerchantDashboardStream({
           title="How the week is going"
           description="Deltas compare this week with the seven days before; the lines trace the last fortnight."
         />
-        <DashboardLocationFilter
-          locations={locations}
-          activeLocationId={locationId}
-        />
-        {sharedMembersCaption ? (
-          <p className="text-sm leading-6 font-semibold text-muted-foreground">
-            {sharedMembersCaption}
-          </p>
-        ) : null}
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {kpis.map((kpi, index) => (

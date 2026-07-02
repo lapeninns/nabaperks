@@ -19,23 +19,12 @@ import {
   capturePostHogEvent,
   type ProductEventInput,
 } from "@/lib/analytics/events"
-import { getMerchantDashboardLocations } from "@/lib/merchant/location"
 import { getMerchantOnboardingStatus } from "@/lib/merchant/onboarding"
-import { resolveMerchantDashboardScope } from "@/lib/merchant/dashboard-scope"
 import { timeServerLoader } from "@/lib/perf/server-timing"
 
 export const dynamic = "force-dynamic"
 
-type MerchantAppPageProps = {
-  readonly searchParams?: Promise<{
-    readonly location?: string | readonly string[]
-  }>
-}
-
-export default async function MerchantAppPage({
-  searchParams,
-}: MerchantAppPageProps) {
-  const params = searchParams ? await searchParams : {}
+export default async function MerchantAppPage() {
   const setup = await timeServerLoader(
     "/app",
     "getMerchantOnboardingStatus",
@@ -47,15 +36,6 @@ export default async function MerchantAppPage({
   }
 
   const merchant = setup.merchant
-  const locations = await getMerchantDashboardLocations(merchant.id)
-  const requestedScope = resolveMerchantDashboardScope({
-    locationId: params.location,
-  })
-  const locationId =
-    requestedScope.mode === "location" &&
-    locations.some((location) => location.id === requestedScope.locationId)
-      ? requestedScope.locationId
-      : null
 
   scheduleDashboardViewed({
     eventName: "dashboard_viewed",
@@ -93,11 +73,7 @@ export default async function MerchantAppPage({
           app/app/error.tsx. */}
       <StreamErrorBoundary label="your dashboard numbers">
         <Suspense fallback={<MerchantDashboardMetricsSkeleton />}>
-          <MerchantDashboardStream
-            merchant={merchant}
-            locationId={locationId}
-            locations={locations}
-          />
+          <MerchantDashboardStream merchant={merchant} />
         </Suspense>
       </StreamErrorBoundary>
 

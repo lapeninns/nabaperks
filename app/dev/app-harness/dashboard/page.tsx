@@ -19,16 +19,13 @@ import {
 } from "@/components/brand"
 import { TrendChart } from "@/components/data"
 import { ActivityCompactFeed } from "@/components/merchant/activity-compact-feed"
-import { DashboardLocationFilter } from "@/components/merchant/dashboard-location-filter"
 import { MerchantNextActions } from "@/components/merchant/dashboard-next-actions"
 import { WetInkRise } from "@/components/motion"
 import { Button } from "@/components/ui/button"
-import { SHARED_MEMBERS_CAPTION } from "@/lib/merchant/dashboard-scope"
 
 import {
   HARNESS_ACTIVITY_ROWS,
   HARNESS_KPIS,
-  HARNESS_LOCATIONS,
   HARNESS_MERCHANT,
   HARNESS_NEXT_ACTIONS,
   HARNESS_TREND_SERIES,
@@ -52,27 +49,11 @@ const KPI_ICON = {
  * per the qa-harness spec — their presentational children are mounted directly.
  * The page header reuses the same PageTitle + Scan-reward CTA as /app/page.tsx.
  */
-type DashboardHarnessPageProps = {
-  readonly searchParams?: Promise<{
-    readonly location?: string | readonly string[]
-  }>
-}
-
-export default async function DashboardHarnessPage({
-  searchParams,
-}: DashboardHarnessPageProps) {
+export default async function DashboardHarnessPage() {
   if (process.env.NODE_ENV === "production") {
     notFound()
   }
 
-  const params = searchParams ? await searchParams : {}
-  const requestedLocation =
-    typeof params.location === "string" ? params.location : params.location?.[0]
-  const activeLocationId = HARNESS_LOCATIONS.some(
-    (location) => location.id === requestedLocation
-  )
-    ? requestedLocation
-    : null
   const { readyCount, quietCount, repeatCustomers, members } =
     HARNESS_NEXT_ACTIONS
 
@@ -98,16 +79,6 @@ export default async function DashboardHarnessPage({
           title="How the week is going"
           description="Deltas compare this week with the seven days before; the lines trace the last fortnight."
         />
-        <DashboardLocationFilter
-          locations={HARNESS_LOCATIONS}
-          activeLocationId={activeLocationId}
-          baseHref="/dev/app-harness/dashboard"
-        />
-        {activeLocationId ? (
-          <p className="text-sm leading-6 font-semibold text-muted-foreground">
-            {SHARED_MEMBERS_CAPTION}
-          </p>
-        ) : null}
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {HARNESS_KPIS.map((kpi, index) => (
