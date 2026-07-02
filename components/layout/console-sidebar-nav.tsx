@@ -101,13 +101,15 @@ function ConsoleSidebarGroup({
         <SidebarMenu>
           {items.map((item) => {
             const active = isActiveNavItem(currentPath, currentTab, item.href)
+            const prefetchProps =
+              item.prefetch === "auto" ? {} : { prefetch: false }
 
             return (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton asChild isActive={active} size="lg">
                   <Link
                     href={item.href}
-                    prefetch={false}
+                    {...prefetchProps}
                     aria-current={active ? "page" : undefined}
                     data-active={active}
                     className="gap-3"

@@ -7,9 +7,10 @@ import { Icon } from "@/components/brand"
 import { isMerchantTabActive, merchantTabBarItems } from "./console-nav"
 import { cn } from "@/lib/utils"
 
-export function MerchantTabBar() {
+export function MerchantTabBar({ activePath }: { activePath?: string }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const currentPath = activePath ?? pathname
   const currentTab = searchParams.get("tab")
 
   return (
@@ -23,13 +24,15 @@ export function MerchantTabBar() {
     >
       <div className="mx-auto grid w-full max-w-lg grid-cols-5">
         {merchantTabBarItems.map((tab) => {
-          const active = isMerchantTabActive(pathname, currentTab, tab.href)
+          const active = isMerchantTabActive(currentPath, currentTab, tab.href)
+          const prefetchProps =
+            tab.prefetch === "auto" ? {} : { prefetch: false }
 
           return (
             <Link
               key={tab.href}
               href={tab.href}
-              prefetch={false}
+              {...prefetchProps}
               aria-current={active ? "page" : undefined}
               data-active={active}
               className={cn(

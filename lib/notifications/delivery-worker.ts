@@ -141,12 +141,51 @@ export async function produceDueNotificationEvents(now = new Date()) {
     produced += typeof expiredCount === "number" ? expiredCount : 0
   }
 
-  produced += await enqueueRewardExpiringSoon(now)
-  produced += await enqueueRewardReady(now)
-  produced += await enqueueNextStampAvailable(now)
-  produced += await enqueueDormantProgress(now)
+  const producers: readonly NotificationProducer[] = [
+    {
+      failureEvent: "push_reward_expiring_soon_producer_failed",
+      produce: () => enqueueRewardExpiringSoon(now),
+    },
+    {
+      failureEvent: "push_reward_ready_producer_failed",
+      produce: () => enqueueRewardReady(now),
+    },
+    {
+      failureEvent: "push_next_stamp_available_producer_failed",
+      produce: () => enqueueNextStampAvailable(now),
+    },
+    {
+      failureEvent: "push_dormant_progress_producer_failed",
+      produce: () => enqueueDormantProgress(now),
+    },
+  ]
+
+  const producerResults = await Promise.allSettled(
+    producers.map((producer) => producer.produce())
+  )
+
+  for (const [index, result] of producerResults.entries()) {
+    const producer = producers[index]
+    if (!producer) {
+      continue
+    }
+
+    if (result.status === "fulfilled") {
+      produced += result.value
+      continue
+    }
+
+    logger.warn(producer.failureEvent, {
+      reason: errorMessage(result.reason),
+    })
+  }
 
   return produced
+}
+
+type NotificationProducer = {
+  readonly failureEvent: string
+  readonly produce: () => Promise<number>
 }
 
 export async function sendWebPushNotification(
@@ -864,6 +903,10 @@ function statusCode(error: unknown) {
   return isRecord(error) && typeof error.statusCode === "number"
     ? error.statusCode
     : 0
+}
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Unknown error"
 }
 
 function firstRecord(value: unknown): Record<string, unknown> | null {
