@@ -66,8 +66,11 @@ export default async function PosterPreviewPage({
     <div className="grid gap-16 bg-[var(--w-paper)] py-10">
       {QR_POSTER_TEMPLATE_IDS.map((template) => (
         <section key={template} className="grid gap-3">
+          {/* Eyebrows use the customer-facing display name (Night card,
+              Receipt, …), matching the poster picker — internal template ids
+              stay out of rendered copy. */}
           <p className="text-center font-mono text-xs font-bold tracking-[0.16em] uppercase text-[var(--w-ink-soft)]">
-            {template} template
+            {getQrPosterTemplate(template)?.name ?? template} template
           </p>
           <A4Poster
             template={template}

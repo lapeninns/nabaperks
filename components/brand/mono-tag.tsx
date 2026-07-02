@@ -8,7 +8,9 @@ type MonoTagTone = "plain" | "accent" | "ink" | "leaf" | "sun"
 
 const TONE: Record<MonoTagTone, string> = {
   plain: "",
-  accent: "border-primary bg-primary text-primary-foreground",
+  // Every filled tone carries the ink border — a primary-on-primary border
+  // reads as borderless next to its ink-bordered siblings.
+  accent: "border-ink bg-primary text-primary-foreground",
   ink: "border-ink bg-ink text-paper",
   leaf: "border-ink bg-reward text-reward-foreground",
   sun: "border-ink bg-seal text-seal-foreground",
@@ -18,6 +20,10 @@ const TONE: Record<MonoTagTone, string> = {
  * Mono pill tag — the proto's `MonoTag`. Composes the shadcn `Badge` primitive
  * (already mono/uppercase/pill via the `[data-slot="badge"]` layer) and layers
  * the `.w-tag` shape plus a spot-ink tone. Tones use tokens only.
+ *
+ * Long copy story: the pill caps at its container width and the content span
+ * truncates with an ellipsis, so a long venue or reward name can never push a
+ * card row into horizontal overflow.
  */
 export function MonoTag({
   children,
@@ -37,7 +43,7 @@ export function MonoTag({
       className={cn("w-tag", icon && "gap-1", TONE[tone], className)}
     >
       {icon ? <Icon icon={icon} size={13} strokeWidth={2.25} /> : null}
-      {children}
+      <span className="min-w-0 truncate">{children}</span>
     </Badge>
   )
 }

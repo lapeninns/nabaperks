@@ -19,17 +19,22 @@ export function deriveVenueInitials(name: string) {
  * Rubber-stamp venue roundel — a rotated ink-bordered disc in the action ink,
  * part of the Wet Ink stamp family. Used on receipts, cards, and quote blocks.
  * Pass `initials` directly, or `name` to derive them from a business name.
+ * The disc itself is decorative; pass `label` (mirroring RewardSeal's
+ * `role="img"` pattern) when no adjacent text names the venue.
  */
 export function VenueMark({
   initials,
   name,
   caption,
+  label,
   size = 56,
   className,
 }: {
   initials?: string
   name?: string
   caption?: string
+  /** Accessible name for the mark when no adjacent text provides one. */
+  label?: string
   size?: number
   className?: string
 }) {
@@ -38,6 +43,8 @@ export function VenueMark({
 
   return (
     <span
+      role={label ? "img" : undefined}
+      aria-label={label}
       className={cn(
         "inline-grid place-items-center gap-1 text-center",
         className
@@ -60,7 +67,7 @@ export function VenueMark({
         )}
       </span>
       {caption ? (
-        <span className="font-mono text-[0.6rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+        <span className="mono-id tracking-[0.08em] text-muted-foreground">
           {caption}
         </span>
       ) : null}

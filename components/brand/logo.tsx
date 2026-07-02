@@ -40,7 +40,8 @@ export function Logo({
       prefetch={prefetch}
       aria-label={`${label} home`}
       className={cn(
-        "pressable inline-flex min-h-11 items-center gap-3 rounded-full pr-3 font-extrabold tracking-tight text-foreground lowercase transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none",
+        // Focus comes from the shared .pressable outline recipe (globals.css).
+        "pressable inline-flex min-h-11 items-center gap-3 rounded-full pr-3 font-extrabold tracking-tight text-foreground lowercase transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none",
         className
       )}
     >

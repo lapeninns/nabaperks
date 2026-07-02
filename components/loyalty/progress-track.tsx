@@ -23,11 +23,9 @@ export function ProgressTrack({
           {current} / {total}
         </MonoTag>
       </div>
-      <Progress
-        value={value}
-        aria-label={`${label}: ${current} of ${total}`}
-        className="bg-accent [&_[data-slot=progress-indicator]]:bg-reward"
-      />
+      {/* Track/fill identity comes from the unlayered [data-slot=progress]
+          theming — no per-call-site colour overrides. */}
+      <Progress value={value} aria-label={`${label}: ${current} of ${total}`} />
     </div>
   )
 }

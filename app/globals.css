@@ -78,6 +78,20 @@
   --shadow-lg: 5px 5px 0 var(--w-shadow-color);
   --shadow-xl: 6px 6px 0 var(--w-shadow-color);
   --shadow-2xl: 8px 8px 0 var(--w-shadow-color);
+
+  /* Named hard offsets for style attributes / non-utility contexts (consumed
+     via var(--shadow-hard) where a Tailwind shadow-* utility cannot reach). */
+  --shadow-hard: 4px 4px 0 var(--w-shadow-color);
+  --shadow-hard-sm: 2px 2px 0 var(--w-shadow-color);
+
+  /* Dashed-line tones as colours: --color-line is the standard 18% hairline,
+     --color-line-strong the emphatic dash (empty reward slots, perforations). */
+  --color-line: var(--w-line);
+  --color-line-strong: var(--w-line-strong);
+
+  /* Customer column measure (DESIGN.md "max-width-customer: 410px") — gives
+     the max-w-customer utility so one journey stops shipping three widths. */
+  --container-customer: 25.625rem;
 }
 
 :root {
@@ -88,6 +102,9 @@
   --w-ink: #211c16;
   --w-ink-soft: #4f473d;
   --w-line: rgba(33, 28, 22, 0.18);
+  /* Emphatic dashed-line tone — empty reward slots, ticket perforations.
+     Everything else dashed uses --w-line (18%). Two tones, no zoo. */
+  --w-line-strong: rgba(33, 28, 22, 0.5);
 
   --w-accent: #cf330a;
   --w-accent-ink: #ffffff;
@@ -181,6 +198,7 @@
   --w-ink: #f3ecdd;
   --w-ink-soft: #aaa091;
   --w-line: rgba(243, 236, 221, 0.22);
+  --w-line-strong: rgba(243, 236, 221, 0.55);
 
   --w-accent: #ff5a26;
   --w-accent-ink: #211c16;
@@ -258,11 +276,9 @@ body[data-grain="true"]::after {
     transition-timing-function: var(--w-ease);
   }
 
-  .pressable:focus-visible {
-    outline: 2px solid color-mix(in oklch, var(--ring) 70%, transparent);
-    outline-offset: 2px;
-    box-shadow: 0 0 0 4px color-mix(in oklch, var(--ring) 24%, transparent);
-  }
+  /* Focus styling lives in the UNLAYERED Wet Ink block below (one recipe,
+     `.focus-ring` / `.pressable:focus-visible`) so no layered `outline-none`
+     utility can defeat it. */
 
   .pressable:active:not(:disabled, [aria-disabled="true"]) {
     transform: translate(1px, 1px);
@@ -276,27 +292,52 @@ body[data-grain="true"]::after {
     box-shadow: var(--shadow-md);
   }
 
+  /* Micro-type scale — the ONLY sizes below text-xs. Two mono utilities
+     (colour left to the call site) plus the eyebrow, which is mono-meta with
+     the muted colour baked in. Nothing in the product may render text below
+     the 10px mono-id floor (guarded by scripts/check-design-tokens.mjs). */
+  .mono-meta,
   .eyebrow {
     font-family:
       var(--font-space-mono), ui-monospace, SFMono-Regular, Menlo, Monaco,
       Consolas, "Liberation Mono", "Courier New", monospace;
-    font-size: 0.71875rem;
+    font-size: 0.71875rem; /* 11.5px — DESIGN.md mono-meta */
     font-weight: 700;
     letter-spacing: 0.06em;
     line-height: 1.3;
     text-transform: uppercase;
+  }
+
+  .eyebrow {
     color: var(--muted-foreground);
+  }
+
+  .mono-id {
+    font-family:
+      var(--font-space-mono), ui-monospace, SFMono-Regular, Menlo, Monaco,
+      Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.625rem; /* 10px — DESIGN.md mono-id, the system floor */
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1.3;
+    text-transform: uppercase;
   }
 
   .numeric-tabular {
     font-variant-numeric: tabular-nums;
   }
 
-  /* Mono pill tag — the only pill shape outside the stamp family. */
+  /* Mono pill tag — the only pill shape outside the stamp family.
+     The metric source of truth is the unlayered [data-slot="badge"] rule
+     (same mono face, 0.6875rem, 700, 0.08em); .w-tag is the documented alias
+     for plain (non-Badge) elements. Long copy story: the pill caps at its
+     container width — compose MonoTag (which truncates its content) or wrap
+     the text in a `truncate` span rather than letting the row overflow. */
   .w-tag {
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    max-width: 100%;
     font-family:
       var(--font-space-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 0.6875rem;
@@ -358,6 +399,19 @@ body[data-grain="true"]::after {
    variant instead.
    ============================================================ */
 
+/* THE focus recipe — one treatment for the whole system: a 2px vermillion
+   outline offset 2px. It never fights the hard offset shadows and reads on
+   paper, card, and spot-ink fills alike. `.pressable` (every Button) carries
+   it already; plain interactive elements outside the data-slot layer
+   (FilterPills-style buttons, links, summaries) add `.focus-ring`. It sits in
+   this unlayered block so `outline-none` utilities cannot defeat it. Do not
+   reintroduce per-component `focus-visible:ring-*` alphas. */
+.focus-ring:focus-visible,
+.pressable:focus-visible {
+  outline: 2px solid color-mix(in oklch, var(--ring) 70%, transparent);
+  outline-offset: 2px;
+}
+
 [data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]) {
   border: 2px solid var(--w-ink);
   border-radius: var(--radius-lg);
@@ -386,6 +440,14 @@ body[data-grain="true"]::after {
   --tw-shadow: 4px 4px 0 var(--w-shadow-color);
 }
 
+/* Card elevation variant — dense tiles (KpiTile, MetricTile) sit at the same
+   2px offset as StatStrip so adjacent dashboard surfaces share one elevation.
+   Shadow utilities on a slotted Card are defeated by this layer; use the
+   variant instead. */
+[data-slot="card"][data-elevation="flat"] {
+  --tw-shadow: 2px 2px 0 var(--w-shadow-color);
+}
+
 [data-slot="card-title"] {
   font-weight: 800;
 }
@@ -398,6 +460,28 @@ body[data-grain="true"]::after {
   background: var(--card);
 }
 
+/* State styling lives IN this layer (it defeats layered utilities, so the
+   states it does not re-provide would silently die). One input story: ink
+   well at rest, vermillion border + outline on focus, destructive border when
+   invalid. FormField wires aria-invalid onto the control. */
+[data-slot="input"]:focus-visible,
+[data-slot="textarea"]:focus-visible {
+  border-color: var(--ring);
+  outline: 2px solid color-mix(in oklch, var(--ring) 70%, transparent);
+  outline-offset: 2px;
+}
+
+[data-slot="input"][aria-invalid="true"],
+[data-slot="textarea"][aria-invalid="true"] {
+  border-color: var(--destructive);
+}
+
+[data-slot="input"][aria-invalid="true"]:focus-visible,
+[data-slot="textarea"][aria-invalid="true"]:focus-visible {
+  border-color: var(--destructive);
+  outline-color: color-mix(in oklch, var(--destructive) 70%, transparent);
+}
+
 [data-slot="input-otp-slot"] {
   border-color: var(--w-ink);
   border-top-width: 2px;
@@ -408,14 +492,19 @@ body[data-grain="true"]::after {
 
 [data-slot="input-otp-slot"]:first-child {
   border-left-width: 2px;
+  border-top-left-radius: var(--radius);
+  border-bottom-left-radius: var(--radius);
 }
 
+[data-slot="input-otp-slot"]:last-child {
+  border-top-right-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+}
+
+/* Bare Alert honours the 2px ink contract; StatusBanner remains the loyalty
+   face and simply layers its tone washes on top. */
 [data-slot="alert"] {
-  border-radius: var(--radius-lg);
-}
-
-[data-slot="tabs-list"],
-[data-slot="tabs-trigger"] {
+  border: 2px solid var(--w-ink);
   border-radius: var(--radius-lg);
 }
 
@@ -423,7 +512,27 @@ body[data-grain="true"]::after {
   border-radius: var(--radius-lg);
 }
 
+[data-slot="empty-title"] {
+  font-weight: 800;
+}
+
+/* Progress — deeper-paper track, leaf fill, squared print radius. Heights
+   stay per call site; identity does not. FunnelChart shares this anatomy. */
+[data-slot="progress"] {
+  border-radius: var(--radius-sm);
+  background: var(--w-paper-2);
+}
+
+[data-slot="progress-indicator"] {
+  border-radius: var(--radius-sm);
+  background: var(--reward);
+}
+
+/* The metric source of truth for mono pills — .w-tag mirrors these values
+   for plain elements. Long copy: the pill caps at its container width and
+   MonoTag truncates its content span. */
 [data-slot="badge"] {
+  max-width: 100%;
   border-radius: 999px;
   font-family:
     var(--font-space-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -461,6 +570,55 @@ body[data-grain="true"]::after {
 
 [data-slot="sheet-overlay"] {
   background: rgba(33, 28, 22, 0.5);
+  /* Ink scrims only — no glassmorphism (DESIGN.md Elevation & Depth). */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+[data-slot="sheet-title"] {
+  font-weight: 800;
+}
+
+[data-slot="field-description"] {
+  font-weight: 500;
+}
+
+/* Toast — the system's feedback moment, themed like every other surface:
+   2px ink border, card ground, hard offset shadow, tone washes that mirror
+   StatusBanner (leaf success, destructive error, vermillion warning, cobalt
+   info). The `cn-toast` hook is attached by components/ui/sonner.tsx, which
+   also forces sonner's stock `richColors` palette off. */
+[data-sonner-toast].cn-toast {
+  border: 2px solid var(--w-ink);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--card-foreground);
+  box-shadow: 4px 4px 0 var(--w-shadow-color);
+  font-weight: 500;
+}
+
+[data-sonner-toast].cn-toast [data-title] {
+  font-weight: 800;
+}
+
+[data-sonner-toast].cn-toast [data-description] {
+  color: var(--muted-foreground);
+}
+
+[data-sonner-toast].cn-toast[data-type="success"] {
+  background: color-mix(in oklch, var(--reward) 12%, var(--card));
+}
+
+[data-sonner-toast].cn-toast[data-type="error"] {
+  background: color-mix(in oklch, var(--destructive) 10%, var(--card));
+}
+
+[data-sonner-toast].cn-toast[data-type="warning"] {
+  background: color-mix(in oklch, var(--primary) 12%, var(--card));
+}
+
+[data-sonner-toast].cn-toast[data-type="info"] {
+  background: color-mix(in oklch, var(--w-cobalt) 10%, var(--card));
 }
 
 [data-slot="sidebar"] {

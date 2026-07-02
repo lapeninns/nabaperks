@@ -47,7 +47,10 @@ export function KpiTile({
     seriesColor ?? (trend ? TREND_STROKE[trend.direction] : "var(--primary)")
 
   return (
-    <Card className={cn("surface-card h-full shadow-xs", className)} size="sm">
+    // The data-slot layer owns the surface; data-elevation="flat" pins the
+    // tile at the same 2px offset as StatStrip so adjacent dashboard tiles
+    // share one elevation (a shadow utility here would be silently defeated).
+    <Card className={cn("h-full", className)} size="sm" data-elevation="flat">
       <CardHeader className="h-full gap-2">
         <p className="eyebrow flex min-h-5 items-center gap-1.5">
           {icon ? <Icon icon={icon} size={13} strokeWidth={2.25} /> : null}
@@ -71,12 +74,7 @@ export function KpiTile({
           ) : null}
         </div>
         {trend ? (
-          <p
-            className={cn(
-              "font-mono text-[0.65rem] font-bold tracking-[0.06em] uppercase",
-              metricTrendClassName(trend.direction)
-            )}
-          >
+          <p className={cn("mono-id", metricTrendClassName(trend.direction))}>
             {trend.label}
           </p>
         ) : null}

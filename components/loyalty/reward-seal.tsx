@@ -35,7 +35,8 @@ const DEFAULT_LABEL: Record<RewardSealState, string> = {
 }
 
 const SIZE: Record<RewardSealSize, string> = {
-  sm: "size-5 text-[0.62rem]",
+  // 0.625rem is the mono-id floor — nothing in the system prints below 10px.
+  sm: "size-5 text-[0.625rem]",
   md: "size-12 text-2xl",
   lg: "size-24 text-4xl",
 }

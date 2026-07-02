@@ -118,7 +118,9 @@ function FieldLabel({
 function FieldTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
-      data-slot="field-label"
+      // Own slot name — previously duplicated data-slot="field-label", which
+      // made any future field-label theming hit both elements.
+      data-slot="field-title"
       className={cn(
         "flex w-fit items-center gap-2 text-sm font-medium group-data-[disabled=true]/field:opacity-50",
         className

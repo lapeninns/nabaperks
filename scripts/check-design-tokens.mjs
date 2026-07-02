@@ -1,30 +1,61 @@
 #!/usr/bin/env node
 /**
- * check-design-tokens — assert that DESIGN.md's documented colour tokens match
- * the live CSS custom properties in app/globals.css (the LIGHT-theme :root
- * block). DESIGN.md is the Wet Ink source of truth; globals.css is what ships.
+ * check-design-tokens — three structural guards over the Wet Ink system:
  *
- * This is the structural guard for a real drift class: a token can be edited in
- * one place and not the other, and the divergence has already shipped a
- * WCAG-failing colour into the PWA manifest. The guard fails the build the
- * moment the doc and the stylesheet disagree.
+ * CHECK 1 (original): DESIGN.md's documented colour tokens match the live CSS
+ * custom properties in app/globals.css (the LIGHT-theme :root block).
+ * DESIGN.md is the Wet Ink source of truth; globals.css is what ships. This
+ * drift class has already shipped a WCAG-failing colour into the PWA manifest.
  *
- * Dependency-free Node ESM (no YAML lib). It:
- *   1. parses the `colors:` map from DESIGN.md's YAML frontmatter (the simple
- *      `key: "value"` lines between the first two `---` fences);
- *   2. parses the FIRST `:root { ... }` block of globals.css (light theme, NOT
- *      `.dark`) into property -> value, resolving `var(--x)` references within
- *      that map (one or more levels);
- *   3. compares the mapped pairs after normalising (trim, lowercase hex,
- *      collapse whitespace inside rgba());
- *   4. on mismatch prints a table and exits 1; on full match exits 0.
+ * CHECK 2: no `var(--x)` reference in app/, components/ or lib/ points at a
+ * custom property with no definition anywhere (the `--shadow-hard` class of
+ * bug — an undefined var renders as NOTHING, silently). Definitions are
+ * collected from every scanned .css file plus TS/TSX style-object keys,
+ * Tailwind arbitrary-property syntax (`[--x:…]`), `style.setProperty` calls,
+ * and next/font `variable:` configs. References that carry a var() fallback
+ * are exempt (they degrade by construction).
  *
- * Usage: node scripts/check-design-tokens.mjs   (exit 1 if any drift)
+ * CHECK 3: no arbitrary Tailwind text size below the 10px mono-id floor
+ * (`text-[0.55rem]` and friends — DESIGN.md Typography). Files still being
+ * swept by their owning fix lanes sit on a temporary exception list below;
+ * remove each entry as that lane lands.
+ *
+ * Dependency-free Node ESM. Exits 1 if any check fails.
+ *
+ * Usage: node scripts/check-design-tokens.mjs
  */
 import { readFile } from "node:fs/promises"
-import { join } from "node:path"
+import { readdirSync, readFileSync, statSync } from "node:fs"
+import { join, relative } from "node:path"
 
 const ROOT = process.cwd()
+
+/** Minimum legible print size — the DESIGN.md mono-id floor, in px. */
+const MIN_TEXT_PX = 10
+
+/**
+ * Sub-floor arbitrary sizes that pre-date the floor, owned by other fix
+ * lanes. Remove entries as those lanes sweep their files; new violations in
+ * any other file fail immediately.
+ */
+const SUBFLOOR_EXCEPTIONS = new Set([
+  // marketing lane
+  "components/marketing/landing/comparison-table.tsx",
+  "components/marketing/landing/sample-loyalty-card.tsx",
+  "components/marketing/landing/seal-break-demo.tsx", // dead code, slated for deletion
+  "components/marketing/landing/venue-proof-reviews.tsx",
+  "components/marketing/pilot-proof-strip.tsx",
+  // merchant lane
+  "components/merchant/customer-readback-table.tsx",
+  "components/merchant/launch-readiness-panel.tsx",
+  "components/merchant/loyalty-card-form.tsx",
+])
+
+/**
+ * Custom-property prefixes owned by frameworks/runtimes rather than the repo
+ * stylesheet: Tailwind internals and Radix runtime measurements.
+ */
+const RUNTIME_VAR_PREFIXES = [/^--tw-/, /^--radix-/]
 
 /**
  * DESIGN.md colour key -> globals.css custom property. DESIGN.md keys absent
@@ -38,6 +69,7 @@ const MAPPING = {
   ink: "--w-ink",
   "ink-soft": "--w-ink-soft",
   line: "--w-line",
+  "line-strong": "--w-line-strong",
   "accent-vermillion": "--w-accent",
   "on-accent": "--w-accent-ink",
   cobalt: "--w-cobalt",
@@ -221,6 +253,8 @@ for (const [designKey, cssProp] of Object.entries(MAPPING)) {
   }
 }
 
+let failed = false
+
 if (failures.length) {
   const headers = ["key", "DESIGN.md value", "globals.css value", "resolved-from"]
   const rows = failures.map((f) => [f.key, f.design, f.css, f.from])
@@ -235,7 +269,139 @@ if (failures.length) {
   console.error(`  ${widths.map((w) => "-".repeat(w)).join("--+--")}`)
   for (const r of rows) console.error(`  ${fmt(r)}`)
   console.error("")
-  process.exit(1)
+  failed = true
+} else {
+  console.log(`✓ design tokens in sync: ${checked} colour token(s) match between DESIGN.md and app/globals.css`)
 }
 
-console.log(`✓ design tokens in sync: ${checked} colour token(s) match between DESIGN.md and app/globals.css`)
+/* ------------------------------------------------------------------ */
+/* CHECK 2 — undefined var(--…) references                             */
+/* ------------------------------------------------------------------ */
+
+/** Recursively list source files under app/, components/ and lib/. */
+function listSourceFiles() {
+  const files = []
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir)) {
+      const p = join(dir, entry)
+      if (statSync(p).isDirectory()) walk(p)
+      else if (/\.(tsx|ts|css)$/.test(entry)) files.push(p)
+    }
+  }
+  for (const root of ["app", "components", "lib"]) walk(join(ROOT, root))
+  return files
+}
+
+/** Every custom property DEFINED somewhere the browser will see it. */
+function collectVarDefinitions(files) {
+  const defs = new Set()
+  for (const file of files) {
+    const src = readFileSync(file, "utf8")
+    if (file.endsWith(".css")) {
+      for (const m of src.matchAll(/(--[A-Za-z0-9_-]+)\s*:/g)) defs.add(m[1])
+    } else {
+      // style-object keys: { "--stamp-rot": "-6deg" }
+      for (const m of src.matchAll(/["'`](--[A-Za-z0-9_-]+)["'`]\s*:/g))
+        defs.add(m[1])
+      // next/font: variable: "--font-bricolage-grotesque"
+      for (const m of src.matchAll(/variable:\s*["'](--[A-Za-z0-9_-]+)["']/g))
+        defs.add(m[1])
+      // Tailwind arbitrary properties: [--poster-frame-max:640px]
+      for (const m of src.matchAll(/\[(--[A-Za-z0-9_-]+):/g)) defs.add(m[1])
+      // Imperative writes: style.setProperty("--poster-chrome-offset", …)
+      for (const m of src.matchAll(
+        /setProperty\(\s*["'`](--[A-Za-z0-9_-]+)["'`]/g
+      ))
+        defs.add(m[1])
+    }
+  }
+  return defs
+}
+
+/** Every fallback-less var(--…) READ in source, with its referencing files. */
+function collectVarReferences(files) {
+  const refs = new Map()
+  for (const file of files) {
+    const src = readFileSync(file, "utf8")
+    for (const m of src.matchAll(/var\(\s*(--[A-Za-z0-9_-]+)\s*([,)])/g)) {
+      if (m[2] === ",") continue // has a fallback — degrades by construction
+      if (!refs.has(m[1])) refs.set(m[1], new Set())
+      refs.get(m[1]).add(relative(ROOT, file))
+    }
+  }
+  return refs
+}
+
+function checkUndefinedVars(files) {
+  const defs = collectVarDefinitions(files)
+  const refs = collectVarReferences(files)
+  const undefinedVars = []
+  for (const [name, where] of refs) {
+    if (defs.has(name)) continue
+    if (RUNTIME_VAR_PREFIXES.some((re) => re.test(name))) continue
+    undefinedVars.push({ name, where: [...where] })
+  }
+  return { undefinedVars, referenced: refs.size }
+}
+
+const sourceFiles = listSourceFiles()
+const { undefinedVars, referenced } = checkUndefinedVars(sourceFiles)
+
+if (undefinedVars.length) {
+  console.error(
+    `✗ ${undefinedVars.length} custom propert(y|ies) referenced without any definition (the --shadow-hard bug class):\n`
+  )
+  for (const { name, where } of undefinedVars) {
+    console.error(`  ${name}`)
+    for (const file of where) console.error(`    ${file}`)
+  }
+  console.error(
+    "\n  Define the token in app/globals.css (or the owning style object), or migrate the consumers.\n"
+  )
+  failed = true
+} else {
+  console.log(
+    `✓ custom properties resolvable: ${referenced} var(--…) name(s) referenced, all defined`
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* CHECK 3 — arbitrary text sizes below the 10px mono-id floor         */
+/* ------------------------------------------------------------------ */
+
+function checkSubFloorText(files) {
+  const subFloor = []
+  for (const file of files) {
+    if (!file.endsWith(".tsx")) continue
+    const rel = relative(ROOT, file)
+    const src = readFileSync(file, "utf8")
+    for (const m of src.matchAll(/text-\[(\d*\.?\d+)(px|rem)\]/g)) {
+      const px = m[2] === "px" ? Number(m[1]) : Number(m[1]) * 16
+      if (px >= MIN_TEXT_PX) continue
+      if (SUBFLOOR_EXCEPTIONS.has(rel)) continue
+      subFloor.push({ file: rel, token: m[0], px })
+    }
+  }
+  return subFloor
+}
+
+const subFloor = checkSubFloorText(sourceFiles)
+
+if (subFloor.length) {
+  console.error(
+    `✗ ${subFloor.length} arbitrary text size(s) below the ${MIN_TEXT_PX}px mono-id floor:\n`
+  )
+  for (const { file, token, px } of subFloor) {
+    console.error(`  ${token} (${px.toFixed(1)}px)  ${file}`)
+  }
+  console.error(
+    "\n  Use .mono-id (10px) / .mono-meta (11.5px) from app/globals.css instead of sub-floor arbitrary sizes.\n"
+  )
+  failed = true
+} else {
+  console.log(
+    `✓ micro-type floor held: no arbitrary text size below ${MIN_TEXT_PX}px outside the lane exception list (${SUBFLOOR_EXCEPTIONS.size} legacy files)`
+  )
+}
+
+if (failed) process.exit(1)

@@ -1,8 +1,11 @@
 /**
  * Motion tokens — single source of truth for Framer Motion timing.
  *
- * Reads CSS variables from app/globals.css and exports Framer-compatible
- * transition configs (duration in seconds, easing as cubic-bezier arrays).
+ * These values are a HARDCODED MIRROR of the `--w-dur-*` / `--w-ease*` custom
+ * properties in app/globals.css (Framer needs plain numbers/arrays, and
+ * reading computed styles per animation is not worth the cost). If a timing
+ * or easing changes in globals.css it must change here too —
+ * tests/unit/motion-tokens.test.mjs fails on any drift between the two.
  * All motion primitives in components/motion/ use these tokens.
  */
 

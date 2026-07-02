@@ -15,7 +15,7 @@ export function QrFrame({
     <figure
       aria-label={label}
       className={cn(
-        "rounded-lg border-2 border-ink bg-white p-4 text-black shadow-[4px_4px_0_var(--w-shadow-color)]",
+        "rounded-lg border-2 border-ink bg-white p-4 text-black shadow-md",
         className
       )}
     >

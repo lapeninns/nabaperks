@@ -8,6 +8,8 @@ const statusClasses = {
   success: "border-2 border-ink bg-reward/12 text-foreground",
   warning: "border-2 border-ink bg-primary/12 text-foreground",
   error: "border-2 border-ink bg-destructive/10 text-destructive-strong",
+  // Cobalt is the info/join spot ink (DESIGN.md Colors) — a wash, ink text.
+  info: "border-2 border-ink bg-cobalt/10 text-foreground",
   neutral: "border-2 border-ink bg-card text-card-foreground",
 } as const
 
@@ -19,6 +21,7 @@ const toneIconKind: Record<StatusBannerTone, StatusKind> = {
   success: "success",
   warning: "warning",
   error: "error",
+  info: "info",
   neutral: "info",
 }
 

@@ -4,9 +4,11 @@ import { CheckmarkBadge04Icon, GiftIcon } from "@hugeicons/core-free-icons"
 
 import {
   ACTIVITY_CATEGORY_ICON,
+  CategoryBadge,
   EmptyState,
   Eyebrow,
   Icon,
+  KpiTile,
   Logo,
   MetricTile,
   MonoTag,
@@ -18,7 +20,14 @@ import {
 } from "@/components/brand"
 import { AdminRecordCard } from "@/components/admin/record-card"
 import { StatusPill } from "@/components/admin/support"
-import { DataTable } from "@/components/data/data-table"
+import {
+  ActivityFeed,
+  DataTable,
+  FunnelChart,
+  Sparkline,
+  StatStrip,
+  TrendChart,
+} from "@/components/data"
 import {
   ProgressTrack,
   QrFrame,
@@ -35,9 +44,14 @@ import {
   type RewardTicketState,
 } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
 
+import { FilterPillsDemo } from "./console-viz-demo"
+import { FormsFeedbackDemo } from "./forms-feedback-demo"
 import { MotionPlayground } from "./motion-playground"
+import { ThemeToggle } from "./theme-toggle"
 
 export const metadata: Metadata = {
   title: "Design system — Wet Ink catalog",
@@ -78,6 +92,7 @@ const COLOR_TOKENS: { name: string; className: string; ink?: boolean }[] = [
   { name: "primary (vermillion)", className: "bg-primary" },
   { name: "reward (leaf)", className: "bg-reward" },
   { name: "seal (sun)", className: "bg-seal", ink: true },
+  { name: "cobalt (info / joins)", className: "bg-cobalt" },
   { name: "stamp", className: "bg-stamp" },
   { name: "qr", className: "bg-qr" },
   { name: "secondary", className: "bg-secondary", ink: true },
@@ -162,8 +177,13 @@ export default function DesignSystemPage() {
       <PageTitle
         eyebrow="Wet Ink · Honey & Ink v2"
         title="Design system catalog"
-        description="The acceptance gate for the foundation layer: tokens, typography, surfaces, motion primitives, and the loyalty vocabulary. Every motion primitive renders static children under prefers-reduced-motion."
-        actions={<MonoTag tone="accent">Dev only</MonoTag>}
+        description="The acceptance gate for the foundation layer: tokens, typography, surfaces, forms and feedback, motion primitives, the loyalty vocabulary, and the console viz family. Every motion primitive renders static children under prefers-reduced-motion."
+        actions={
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <MonoTag tone="accent">Dev only</MonoTag>
+          </div>
+        }
       />
 
       <Section
@@ -184,9 +204,7 @@ export default function DesignSystemPage() {
                   token.className
                 )}
               />
-              <span className="font-mono text-[0.7rem] font-bold tracking-[0.04em] uppercase">
-                {token.name}
-              </span>
+              <span className="mono-meta">{token.name}</span>
             </div>
           ))}
         </div>
@@ -203,7 +221,7 @@ export default function DesignSystemPage() {
                       radius
                     )}
                   />
-                  <span className="font-mono text-[0.6rem] text-muted-foreground">
+                  <span className="mono-id font-normal normal-case text-muted-foreground">
                     {radius}
                   </span>
                 </span>
@@ -225,7 +243,7 @@ export default function DesignSystemPage() {
                       shadow.className
                     )}
                   />
-                  <span className="max-w-16 text-center font-mono text-[0.6rem] text-muted-foreground">
+                  <span className="mono-id max-w-16 text-center font-normal normal-case text-muted-foreground">
                     {shadow.name}
                   </span>
                 </span>
@@ -250,6 +268,14 @@ export default function DesignSystemPage() {
             </dl>
           </div>
         </div>
+
+        <p className="text-sm leading-6 text-muted-foreground">
+          A dormant &ldquo;night printing&rdquo; palette ships in the
+          <span className="font-mono"> .dark</span> token block — deliberately
+          unreachable by users. Use the Night printing toggle above to check
+          the dark-critical rules: QR codes stay on pure white, and shadows
+          swap to the dark shadow colour.
+        </p>
       </Section>
 
       <Section
@@ -313,11 +339,7 @@ export default function DesignSystemPage() {
                 icon={GiftIcon}
                 title="No rewards yet"
                 description="Rewards you earn show up here once a card is full."
-                actions={
-                  <Button variant="outline" className="pressable">
-                    View cards
-                  </Button>
-                }
+                actions={<Button variant="outline">View cards</Button>}
               />
               <EmptyState
                 title="No activity yet"
@@ -368,26 +390,58 @@ export default function DesignSystemPage() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 rounded-lg border-2 border-ink bg-card p-5">
-          <VenueMark size={56} />
-          <div className="flex flex-wrap gap-3">
-            {(
-              [
-                "default",
-                "stamp",
-                "reward",
-                "secondary",
-                "outline",
-                "ghost",
-                "link",
-              ] as const
-            ).map((variant) => (
-              <Button key={variant} variant={variant} className="pressable">
-                {variant}
+        <div className="grid gap-4 rounded-lg border-2 border-ink bg-card p-5">
+          <div className="flex flex-wrap items-center gap-4">
+            <VenueMark size={56} />
+            <div className="flex flex-wrap gap-3">
+              {(
+                [
+                  "default",
+                  "stamp",
+                  "reward",
+                  "secondary",
+                  "outline",
+                  "ghost",
+                  "destructive",
+                  "link",
+                ] as const
+              ).map((variant) => (
+                <Button key={variant} variant={variant}>
+                  {variant}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <Eyebrow>Sizes · honest on fine pointers, 44px on touch</Eyebrow>
+            <div className="flex flex-wrap items-end gap-3">
+              {(["xs", "sm", "default", "lg", "xl"] as const).map((size) => (
+                <Button key={size} variant="outline" size={size}>
+                  {size}
+                </Button>
+              ))}
+              <Button variant="outline" size="icon" aria-label="Icon size">
+                <Icon icon={GiftIcon} />
               </Button>
-            ))}
+              <Button
+                variant="outline"
+                size="icon-sm"
+                aria-label="Small icon size"
+              >
+                <Icon icon={GiftIcon} />
+              </Button>
+            </div>
           </div>
         </div>
+      </Section>
+
+      <Section
+        id="forms-feedback"
+        eyebrow="Foundation"
+        title="Forms & feedback"
+        description="Inputs in every state, the aria-wired FormField, OTP cells, the SubmitButton pending recipe, themed toasts, and the bare Alert beside its StatusBanner face."
+      >
+        <FormsFeedbackDemo />
       </Section>
 
       <Section
@@ -463,6 +517,16 @@ export default function DesignSystemPage() {
               rewardSlot="ready"
               venueName="The Old Crown"
             />
+            <Eyebrow>Width pressure · wraps, never squashes</Eyebrow>
+            <div className="max-w-44">
+              <StampGrid
+                current={7}
+                total={12}
+                compact
+                showCount
+                venueName="The Old Crown"
+              />
+            </div>
           </div>
           <div className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-5">
             <Eyebrow>Join journey preview</Eyebrow>
@@ -622,6 +686,158 @@ export default function DesignSystemPage() {
       </Section>
 
       <Section
+        id="console-viz"
+        eyebrow="Console"
+        title="Console viz"
+        description="The merchant dashboard family: KPI tiles, the stat strip, trend and funnel charts, sparklines, the activity feed, filter pills, and category badges — plus the loading vocabulary."
+      >
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-5">
+            <Eyebrow>KPI tiles · flat elevation + sparkline</Eyebrow>
+            <div className="grid grid-cols-2 gap-3">
+              <KpiTile
+                label="Stamps"
+                value="1,204"
+                trend={{ label: "+18% vs last week", direction: "up" }}
+                series={[4, 6, 5, 9, 7, 11, 10, 14, 12, 16, 15, 18, 17, 21]}
+              />
+              <KpiTile
+                label="Joins"
+                value="86"
+                trend={{ label: "-4% vs last week", direction: "down" }}
+                series={[9, 8, 8, 7, 9, 6, 7, 5, 6, 6, 5, 6, 5, 4]}
+              />
+            </div>
+            <MetricTile
+              label="Rewards ready"
+              value="4"
+              trend={{ label: "Flat vs last week", direction: "flat" }}
+            />
+          </div>
+
+          <div className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-5">
+            <Eyebrow>Stat strip · this week</Eyebrow>
+            <StatStrip
+              items={[
+                { label: "Stamps", value: "312", tone: "primary" },
+                { label: "Joins", value: "24", tone: "cobalt" },
+                { label: "Redeemed", value: "9", tone: "leaf" },
+                { label: "Ready", value: "4", tone: "sun" },
+              ]}
+            />
+            <Eyebrow>Sparkline · standalone</Eyebrow>
+            <Sparkline
+              data={[2, 5, 3, 8, 6, 9, 7, 12]}
+              height={36}
+              aria-label="Demo sparkline: stamps over eight days"
+              className="w-40"
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-5">
+            <Eyebrow>Trend chart · two series + empty state</Eyebrow>
+            <TrendChart
+              aria-label="Demo trend: stamps and joins, last fortnight"
+              startLabel="14 days ago"
+              endLabel="Today"
+              series={[
+                {
+                  label: "Stamps",
+                  color: "var(--w-accent)",
+                  data: [4, 6, 5, 9, 7, 11, 10, 14, 12, 16, 15, 18, 17, 21],
+                  fill: true,
+                },
+                {
+                  label: "Joins",
+                  color: "var(--w-cobalt)",
+                  data: [1, 2, 1, 3, 2, 4, 3, 5, 4, 5, 4, 6, 5, 7],
+                },
+              ]}
+            />
+            <TrendChart
+              aria-label="Demo trend with no data yet"
+              series={[
+                { label: "Stamps", color: "var(--w-accent)", data: [0, 0, 0] },
+              ]}
+            />
+          </div>
+
+          <div className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-5">
+            <Eyebrow>Funnel · the one progress anatomy</Eyebrow>
+            <FunnelChart
+              aria-label="Demo pilot funnel"
+              items={[
+                { label: "Scanned", value: 240 },
+                { label: "Joined", value: 96 },
+                { label: "Second stamp", value: 51 },
+                { label: "Reward", value: 18 },
+              ]}
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-5">
+            <Eyebrow>Activity feed · category glyphs + tone dots</Eyebrow>
+            <ActivityFeed
+              aria-label="Demo activity feed"
+              items={[
+                {
+                  id: "af-1",
+                  title: "Stamp at the counter",
+                  description: "07••• ••421 · The Old Crown",
+                  timestamp: "2026-06-30T09:24:00Z",
+                  category: "stamp",
+                },
+                {
+                  id: "af-2",
+                  title: "New member joined",
+                  description: "Scanned the till poster",
+                  timestamp: "2026-06-30T08:51:00Z",
+                  category: "customer",
+                },
+                {
+                  id: "af-3",
+                  title: "Reward redeemed",
+                  timestamp: "2026-06-29T16:02:00Z",
+                  tone: "leaf",
+                },
+              ]}
+            />
+          </div>
+
+          <div className="grid content-start gap-4 rounded-lg border-2 border-ink bg-card p-5">
+            <div className="grid gap-2">
+              <Eyebrow>Filter pills · interactive</Eyebrow>
+              <FilterPillsDemo />
+            </div>
+            <div className="grid gap-2">
+              <Eyebrow>Category badges</Eyebrow>
+              <div className="flex flex-wrap gap-2">
+                <CategoryBadge category="stamp" label="Stamp" />
+                <CategoryBadge category="customer" label="Join" />
+                <CategoryBadge category="reward" label="Reward" />
+                <CategoryBadge category="qr" label="QR" />
+                <CategoryBadge category="account" label="Account" />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Eyebrow>Loading · skeleton + spinner</Eyebrow>
+              <div className="flex items-center gap-4">
+                <div className="grid flex-1 gap-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+                <Spinner className="size-5" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      <Section
         id="console-data"
         eyebrow="Console"
         title="Console data tables & record cards"
@@ -649,7 +865,7 @@ export default function DesignSystemPage() {
                   { label: "Joined", value: row.joined, mono: true },
                 ]}
                 action={
-                  <Button variant="outline" className="pressable w-full">
+                  <Button variant="outline" className="w-full">
                     Adjust stamps
                   </Button>
                 }
@@ -713,7 +929,7 @@ export default function DesignSystemPage() {
                 { label: "Membership id", value: "mbr_0f3a91", mono: true },
               ]}
               action={
-                <Button variant="outline" className="pressable w-full">
+                <Button variant="outline" className="w-full">
                   Adjust stamps
                 </Button>
               }

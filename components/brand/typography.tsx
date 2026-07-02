@@ -139,9 +139,14 @@ export function MetricTile({
   className?: string
 }) {
   return (
-    <Card className={cn("surface-card h-full shadow-xs", className)} size="sm">
+    // The data-slot layer owns the surface; data-elevation="flat" pins dense
+    // tiles at the same 2px offset as StatStrip (shadow utilities on a
+    // slotted Card are defeated by the layer, so the variant is the recipe).
+    <Card className={cn("h-full", className)} size="sm" data-elevation="flat">
       <CardHeader className="h-full">
-        <CardDescription className="flex min-h-8 items-start gap-1.5 text-xs font-bold uppercase">
+        {/* Uppercase meta is Space Mono (.eyebrow) — one KPI label register
+            with KpiTile; never Bricolage uppercase. */}
+        <CardDescription className="eyebrow flex min-h-8 items-start gap-1.5">
           {icon ? <Icon icon={icon} size={14} strokeWidth={2.25} /> : null}
           {label}
         </CardDescription>
@@ -149,12 +154,7 @@ export function MetricTile({
           {value}
         </CardTitle>
         {trend ? (
-          <p
-            className={cn(
-              "font-mono text-[0.65rem] font-bold tracking-[0.06em] uppercase",
-              metricTrendClassName(trend.direction)
-            )}
-          >
+          <p className={cn("mono-id", metricTrendClassName(trend.direction))}>
             {trend.label}
           </p>
         ) : null}

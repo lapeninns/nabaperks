@@ -1,6 +1,11 @@
 import type { ReactNode } from "react"
 
 import { cn } from "@/lib/utils"
+import {
+  ACTIVITY_CATEGORY_ICON,
+  Icon,
+  type ActivityCategory,
+} from "@/components/brand"
 
 /** Category dot tones — mirror the merchant feed badge vocabulary (MoEventRow). */
 export type ActivityFeedTone = "accent" | "ink" | "leaf" | "sun" | "plain"
@@ -21,15 +26,24 @@ export type ActivityFeedItem = {
   metadata?: ReactNode
   /** Optional leading category dot — the MoEventRow event marker. */
   tone?: ActivityFeedTone
+  /**
+   * Optional semantic category. When set, the row leads with the canonical
+   * glyph from ACTIVITY_CATEGORY_ICON (the same map CategoryBadge uses), so
+   * one event reads the same on every surface. Takes precedence over `tone`.
+   */
+  category?: ActivityCategory
 }
 
 export function ActivityFeed({
   items,
   emptyState,
+  "aria-label": ariaLabel,
   className,
 }: {
   items: ActivityFeedItem[]
   emptyState?: ReactNode
+  /** Accessible name for the feed list (parity with DataTable's caption). */
+  "aria-label"?: string
   className?: string
 }) {
   if (!items.length && emptyState) {
@@ -38,8 +52,9 @@ export function ActivityFeed({
 
   return (
     <ol
+      aria-label={ariaLabel}
       className={cn(
-        "surface-card overflow-hidden [&>li+li]:border-t-2 [&>li+li]:border-dashed [&>li+li]:border-ink/15",
+        "surface-card overflow-hidden [&>li+li]:border-t-2 [&>li+li]:border-dashed [&>li+li]:border-line",
         className
       )}
     >
@@ -50,7 +65,13 @@ export function ActivityFeed({
         >
           <div className="grid gap-1">
             <p className="flex items-center gap-2 font-bold">
-              {item.tone ? (
+              {item.category ? (
+                <Icon
+                  icon={ACTIVITY_CATEGORY_ICON[item.category]}
+                  size={16}
+                  className="shrink-0 text-muted-foreground"
+                />
+              ) : item.tone ? (
                 <span
                   aria-hidden="true"
                   className={cn(

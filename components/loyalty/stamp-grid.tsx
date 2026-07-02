@@ -58,7 +58,7 @@ export function RewardChip({
             compact ? "min-h-9" : "min-h-11",
             ready
               ? "border-ink bg-reward/15"
-              : "border-dashed border-ink/40 bg-seal/15"
+              : "border-dashed border-line-strong bg-seal/15"
           )}
         >
           <RewardSeal
@@ -69,7 +69,7 @@ export function RewardChip({
           />
         </span>
       </WetInkPop>
-      <span className="font-mono text-[0.55rem] font-bold tracking-[0.06em] text-muted-foreground uppercase">
+      <span className="mono-id text-muted-foreground">
         {ready ? "Ready" : "Reward"}
       </span>
     </span>
@@ -93,6 +93,7 @@ export function StampGrid({
   compact = false,
   layout = "row",
   wrapColumns = 3,
+  showCount = false,
   venueName,
   venueInitials,
   className,
@@ -112,6 +113,12 @@ export function StampGrid({
   layout?: StampGridLayout
   /** Max slots per row when layout is wrap (stamps + reward chip). */
   wrapColumns?: number
+  /**
+   * Reserve an always-readable "current / total" mono count above the grid —
+   * the progress stays legible even where discs render at their minimum size
+   * (dense table cells, very narrow columns).
+   */
+  showCount?: boolean
   venueName?: string
   venueInitials?: string
   className?: string
@@ -163,35 +170,45 @@ export function StampGrid({
     )
   }
 
-  if (layout === "wrap") {
-    const columns = Math.max(wrapColumns, 1)
+  // Width-pressure strategy: row layout wraps via auto-fit tracks with a hard
+  // minimum (44px, 36px compact), so discs keep their circle and never
+  // compress into overlapping ellipses inside narrow cells. When everything
+  // fits on one line the empty tracks collapse and the render matches the old
+  // fixed-column grid.
+  const minTrack = compact ? "2.25rem" : "2.75rem"
+  const gridStyle: CSSProperties =
+    layout === "wrap"
+      ? {
+          gridTemplateColumns: `repeat(${Math.max(wrapColumns, 1)}, minmax(0, 1fr))`,
+        }
+      : {
+          gridTemplateColumns: `repeat(auto-fit, minmax(min(${minTrack}, 100%), 1fr))`,
+        }
 
-    return (
-      <div
-        role="list"
-        aria-label={listLabel}
-        className={cn("grid w-full", gapClass, className)}
-        style={{
-          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-        }}
-      >
-        {slots.map((slot, index) => renderSlot(slot, String(index)))}
-      </div>
-    )
-  }
-
-  const columnCount = Math.min(Math.max(safeTotal, 1), 6) + (rewardSlot ? 1 : 0)
-
-  return (
+  const grid = (
     <div
       role="list"
       aria-label={listLabel}
-      className={cn("grid", gapClass, className)}
-      style={{
-        gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
-      }}
+      className={cn("grid", layout === "wrap" && "w-full", gapClass, showCount ? undefined : className)}
+      style={gridStyle}
     >
       {slots.map((slot, index) => renderSlot(slot, String(index)))}
+    </div>
+  )
+
+  if (!showCount) {
+    return grid
+  }
+
+  return (
+    <div className={cn("grid gap-1.5", className)}>
+      <span
+        aria-hidden="true"
+        className="mono-id numeric-tabular justify-self-end text-muted-foreground"
+      >
+        {safeCurrent} / {safeTotal}
+      </span>
+      {grid}
     </div>
   )
 }

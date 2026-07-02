@@ -305,7 +305,9 @@ function SidebarMenuButton({
       data-size={size}
       data-active={isActive}
       className={cn(
-        "flex w-full min-w-0 items-center gap-2 rounded-md px-3 text-left text-sm font-bold transition-[color,background-color,box-shadow] outline-none focus-visible:ring-3 focus-visible:ring-ring/35 disabled:pointer-events-none disabled:opacity-50",
+        // Focus indication comes from the shared .focus-ring recipe plus the
+        // unlayered border/background swap in globals.css — no private ring.
+        "focus-ring flex w-full min-w-0 items-center gap-2 rounded-md px-3 text-left text-sm font-bold transition-[color,background-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none disabled:pointer-events-none disabled:opacity-50",
         size === "lg" ? "min-h-12" : "min-h-10",
         className
       )}

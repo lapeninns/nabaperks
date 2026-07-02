@@ -124,6 +124,10 @@ export const merchantAccountItems = [
 ] satisfies readonly ShellNavItem[]
 
 export const adminNavItems = [
+  // The console hub itself — without this entry the overview shows no active
+  // item and is unreachable from the sidebar (isActiveNavItem already
+  // special-cases the bare "/admin" path).
+  { href: "/admin", label: "Overview", icon: Home01Icon },
   { href: "/admin/pilot", label: "Pilot", icon: AnalyticsUpIcon },
   { href: "/admin/merchants", label: "Merchants", icon: Store01Icon },
   { href: "/admin/customers", label: "Customers", icon: UserMultiple02Icon },

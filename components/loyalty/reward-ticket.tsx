@@ -61,14 +61,21 @@ export function RewardTicket({
       aria-label="Reward"
       data-ticket-state={state}
       className={cn(
-        "flex w-full min-w-0 overflow-hidden rounded-[10px] bg-card text-left",
+        "flex w-full min-w-0 overflow-hidden rounded-lg bg-card text-left",
         state === "sealed"
-          ? "border-2 border-dashed border-ink/40"
+          ? "border-2 border-dashed border-line-strong"
           : "border-2 border-ink shadow-sm",
         className
       )}
     >
-      <div className="relative grid min-w-0 flex-1 content-center gap-1 p-3 sm:p-4">
+      <div
+        className={cn(
+          "relative grid min-w-0 flex-1 content-center gap-1 p-3 sm:p-4",
+          // Reserve a clear band for the redeemed stamp so it never sits on
+          // top of the reward name.
+          redeemed && "pb-12 sm:pb-12"
+        )}
+      >
         <span className="eyebrow text-muted-foreground">
           {eyebrow ?? KICKER[state]}
         </span>
@@ -86,14 +93,16 @@ export function RewardTicket({
           </p>
         ) : null}
         {state === "waiting" && readyDate ? (
-          <span className="mt-1 w-fit rounded-md border-2 border-ink bg-seal/25 px-2 py-0.5 font-mono text-[0.625rem] font-bold tracking-[0.06em] uppercase">
+          <span className="mono-id mt-1 w-fit rounded-md border-2 border-ink bg-seal/25 px-2 py-0.5">
             Ready · {readyDate}
           </span>
         ) : null}
         {redeemed ? (
+          // Stamped across the reserved band below the copy — clear of the
+          // title, still hand-slammed off-square.
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute top-1/2 left-4 flex -translate-y-1/2 -rotate-[8deg] items-center gap-1.5 rounded-md border-[3px] border-reward bg-reward/10 px-3 py-1 font-mono text-base font-extrabold tracking-[0.08em] text-reward uppercase"
+            className="pointer-events-none absolute bottom-2.5 left-4 flex -rotate-[8deg] items-center gap-1.5 rounded-md border-2 border-reward bg-reward/10 px-3 py-1 font-mono text-base font-extrabold tracking-[0.08em] text-reward uppercase"
           >
             <Icon icon={CheckmarkCircle02Icon} size={18} strokeWidth={2.5} />
             Redeemed
@@ -104,10 +113,7 @@ export function RewardTicket({
       {/* perforation tear-line — the chit's reveal seam between face and stub */}
       <span
         aria-hidden="true"
-        className={cn(
-          "border-l-2 border-dashed",
-          state === "sealed" ? "border-ink/40" : "border-ink/50"
-        )}
+        className="border-l-2 border-dashed border-line-strong"
       />
 
       <div
@@ -123,7 +129,7 @@ export function RewardTicket({
           breathe={state === "waiting" || state === "ready"}
           slammed={sealSlammed}
         />
-        <span className="font-mono text-[0.625rem] font-bold tracking-[0.06em] text-muted-foreground uppercase">
+        <span className="mono-id text-muted-foreground">
           {STUB_WORD[state]}
         </span>
       </div>

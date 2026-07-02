@@ -12,6 +12,20 @@ import {
   MultiplicationSignCircleIcon,
 } from "@hugeicons/core-free-icons"
 
+/**
+ * Wet Ink toast surface. This wrapper OWNS the toast theme:
+ *
+ * - the `cn-toast` class is themed in app/globals.css (2px ink border, card
+ *   ground, hard offset shadow, StatusBanner-matching tone washes);
+ * - `richColors` is deliberately swallowed and forced off so sonner's stock
+ *   green/red/amber palette can never bypass the leaf/vermillion/cobalt spot
+ *   inks, whatever a mount point passes;
+ * - status icons are decorative (`aria-hidden`) — the toast copy already
+ *   announces the state in the live region;
+ * - the loading `animate-spin` is the sanctioned CSS-animation exception to
+ *   "motion lives in Framer" (see DESIGN.md Motion), guarded by
+ *   `motion-reduce:animate-none`.
+ */
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme()
 
@@ -24,6 +38,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           <HugeiconsIcon
             icon={CheckmarkCircle02Icon}
             strokeWidth={2}
+            aria-hidden="true"
             className="size-4"
           />
         ),
@@ -31,6 +46,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           <HugeiconsIcon
             icon={InformationCircleIcon}
             strokeWidth={2}
+            aria-hidden="true"
             className="size-4"
           />
         ),
@@ -38,6 +54,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           <HugeiconsIcon
             icon={Alert02Icon}
             strokeWidth={2}
+            aria-hidden="true"
             className="size-4"
           />
         ),
@@ -45,6 +62,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           <HugeiconsIcon
             icon={MultiplicationSignCircleIcon}
             strokeWidth={2}
+            aria-hidden="true"
             className="size-4"
           />
         ),
@@ -52,6 +70,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           <HugeiconsIcon
             icon={Loading03Icon}
             strokeWidth={2}
+            aria-hidden="true"
             className="size-4 animate-spin motion-reduce:animate-none"
           />
         ),
@@ -70,6 +89,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
         },
       }}
       {...props}
+      richColors={false}
     />
   )
 }

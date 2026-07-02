@@ -104,7 +104,10 @@ function DataTableCore<T>({
   | "getRowProps"
 >) {
   return (
-    <div className={cn("surface-card overflow-x-auto", className)}>
+    // The inner ui Table provides the one focusable scroll container; the
+    // card only CLIPS to its rounded corners (overflow-hidden), so there are
+    // no nested scroll regions / double scrollbars.
+    <div className={cn("surface-card overflow-hidden", className)}>
       <Table className="min-w-full text-sm">
         <caption className="sr-only">{caption}</caption>
         <TableHeader className="bg-secondary/60">
@@ -117,7 +120,7 @@ function DataTableCore<T>({
                   column.className
                 )}
               >
-                <Eyebrow className="text-[0.7rem]">{column.header}</Eyebrow>
+                <Eyebrow>{column.header}</Eyebrow>
               </TableHead>
             ))}
           </TableRow>
@@ -132,7 +135,7 @@ function DataTableCore<T>({
                 rowClassName?.(row, index)
               )}
               onClick={onRowClick ? () => onRowClick(row, index) : undefined}
-              {...getRowProps?.(row, index)}
+              {...interactiveRowProps(row, index, onRowClick, getRowProps)}
             >
               {columns.map((column) => (
                 <TableCell
@@ -151,6 +154,35 @@ function DataTableCore<T>({
       </Table>
     </div>
   )
+}
+
+/**
+ * Keyboard operability by default: when a caller sets `onRowClick` without
+ * supplying `getRowProps`, the row still becomes a real keyboard control
+ * (`tabIndex=0`, `role="button"`, Enter/Space activation — WCAG 2.1.1).
+ * Caller-provided `getRowProps` wins untouched; rows without `onRowClick`
+ * stay byte-identical to the legacy markup.
+ */
+function interactiveRowProps<T>(
+  row: T,
+  index: number,
+  onRowClick?: (row: T, index: number) => void,
+  getRowProps?: (row: T, index: number) => DataTableRowProps | undefined
+): DataTableRowProps | undefined {
+  const provided = getRowProps?.(row, index)
+  if (provided) return provided
+  if (!onRowClick) return undefined
+
+  return {
+    tabIndex: 0,
+    role: "button",
+    onKeyDown: (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault()
+        onRowClick(row, index)
+      }
+    },
+  }
 }
 
 export function DataTable<T>(props: DataTableProps<T>) {
@@ -200,7 +232,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                   rowClassName?.(row, index)
                 )}
                 onClick={onRowClick ? () => onRowClick(row, index) : undefined}
-                {...getRowProps?.(row, index)}
+                {...interactiveRowProps(row, index, onRowClick, getRowProps)}
               >
                 {mobileCard(row, index)}
               </li>

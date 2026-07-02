@@ -59,19 +59,23 @@ export function TrendChart({
   const hasData = all.length > 0 && all.some((value) => value > 0)
   const min = 0
   const max = Math.max(1, ...all)
+  // Screen-reader summary — the chart's numbers, not just its topic.
+  const latestSummary = series
+    .map((entry) => `${entry.label} ${lastFiniteValue(entry.data)}`)
+    .join(", ")
 
   return (
-    <div className={cn("grid gap-3", className)}>
+    <div className={cn("relative grid gap-3", className)}>
       {series.length > 0 ? (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
           {series.map((entry) => (
             <span
               key={entry.label}
-              className="flex items-center gap-1.5 font-mono text-[0.65rem] font-bold tracking-[0.06em] text-ink-soft uppercase"
+              className="mono-id flex items-center gap-1.5 text-ink-soft"
             >
               <span
                 aria-hidden
-                className="size-2.5 rounded-[3px] border-[1.5px] border-ink"
+                className="size-2.5 rounded-sm border-2 border-ink"
                 style={{ background: entry.color }}
               />
               {entry.label}
@@ -80,13 +84,24 @@ export function TrendChart({
         </div>
       ) : null}
 
+      {series.length > 0 ? (
+        <p className="sr-only">
+          {hasData ? `Latest: ${latestSummary}.` : "No data recorded yet."}
+        </p>
+      ) : null}
+
       <svg
         viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
         width="100%"
         preserveAspectRatio="none"
         className="block h-28 w-full overflow-visible sm:h-40"
         role="img"
-        aria-label={ariaLabel ?? "Trend chart"}
+        aria-label={
+          ariaLabel ??
+          (series.length > 0
+            ? `Trend chart: ${series.map((entry) => entry.label).join(", ")}`
+            : "Trend chart")
+        }
       >
         {[0.25, 0.5, 0.75].map((fraction) => (
           <line
@@ -142,12 +157,31 @@ export function TrendChart({
           : null}
       </svg>
 
+      {!hasData ? (
+        // Visible "nothing yet" note inside the plot — bare gridlines read as
+        // a rendering fault to a brand-new merchant.
+        <span
+          aria-hidden="true"
+          className="mono-id pointer-events-none absolute inset-x-0 top-1/2 text-center text-muted-foreground"
+        >
+          Nothing to chart yet
+        </span>
+      ) : null}
+
       {startLabel || endLabel ? (
-        <div className="flex justify-between font-mono text-[0.65rem] font-bold tracking-[0.06em] text-ink-soft uppercase">
+        <div className="mono-id flex justify-between text-ink-soft">
           <span>{startLabel}</span>
           <span>{endLabel}</span>
         </div>
       ) : null}
     </div>
   )
+}
+
+/** Latest finite reading in a series (0 when the series is empty/non-finite). */
+function lastFiniteValue(data: number[]): number {
+  for (let index = data.length - 1; index >= 0; index--) {
+    if (Number.isFinite(data[index])) return data[index]
+  }
+  return 0
 }

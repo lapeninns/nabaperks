@@ -40,9 +40,7 @@ function MotionDemo({
     <div className="grid content-start gap-3 rounded-lg border-2 border-ink bg-card p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="grid gap-0.5">
-          <span className="font-mono text-[0.7rem] font-bold tracking-[0.06em] uppercase">
-            {name}
-          </span>
+          <span className="mono-meta text-foreground">{name}</span>
           <span className="text-xs leading-5 text-muted-foreground">
             {blurb}
           </span>

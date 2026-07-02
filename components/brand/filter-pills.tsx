@@ -56,7 +56,8 @@ export function FilterPills({
               "[@media(pointer:coarse)]:min-h-11",
               "font-mono text-[0.6875rem] font-bold tracking-[0.04em] uppercase whitespace-nowrap",
               "transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)]",
-              "outline-none focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none",
+              // Focus comes from the shared .focus-ring recipe (globals.css).
+              "focus-ring outline-none motion-reduce:transition-none",
               selected
                 ? "border-ink bg-primary text-primary-foreground shadow-xs"
                 : "border-ink bg-card text-ink-soft hover:bg-secondary"
@@ -68,7 +69,7 @@ export function FilterPills({
                 className={cn(
                   "numeric-tabular rounded-full px-1.5 text-[0.625rem] leading-4",
                   selected
-                    ? "bg-primary-foreground/20 text-primary-foreground"
+                    ? "bg-primary-foreground text-primary"
                     : "bg-paper-deep text-ink-soft"
                 )}
               >

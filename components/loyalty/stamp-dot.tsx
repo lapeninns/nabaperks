@@ -143,13 +143,15 @@ function StampDateText({
   readonly compact: boolean
 }) {
   return (
+    // Printed at the mono-id floor (10px) — never below; the full date also
+    // lives in the disc's aria-label, so this stays legible print, not noise.
     <span
       aria-hidden="true"
       className={cn(
-        "font-mono leading-none font-bold uppercase",
+        "font-mono text-[0.625rem] leading-none font-bold uppercase",
         compact
-          ? "text-[0.44rem] tracking-[0.04em]"
-          : "mt-px border-t border-stamp-foreground/40 pt-px text-[0.44rem] tracking-[0.09em]"
+          ? "tracking-[0.04em]"
+          : "mt-px border-t border-stamp-foreground/40 pt-px tracking-[0.09em]"
       )}
     >
       {dateText}

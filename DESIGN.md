@@ -7,6 +7,7 @@ colors:
   ink: "#211c16"
   ink-soft: "#4f473d"
   line: "rgba(33, 28, 22, 0.18)"
+  line-strong: "rgba(33, 28, 22, 0.5)"
   accent-vermillion: "#cf330a"
   on-accent: "#ffffff"
   cobalt: "#2b43c8"
@@ -32,7 +33,7 @@ typography:
     letterSpacing: "-0.01em"
   page-title:
     fontFamily: Bricolage Grotesque
-    fontSize: 34px
+    fontSize: "30px (mobile) / 36px (sm+)"
     fontWeight: "800"
     lineHeight: "1.05"
   card-title:
@@ -57,7 +58,7 @@ typography:
   mono-id:
     fontFamily: Space Mono
     fontSize: 10px
-    fontWeight: "400"
+    fontWeight: "700"
 rounded:
   sm: 4px
   md: 6px
@@ -132,6 +133,14 @@ the `--w-*` palette in `app/globals.css`. The superseded v1 Honey & Ink aliases
 unused Material surface tokens (`--surface-dim`, `--surface-container`,
 `--surface-container-high`) have been removed — they had no consumers.
 
+**Dark mode is a dormant capability, deliberately.** A full "night printing"
+`.dark` token block ships in `globals.css` and next-themes is wired, but no
+user-facing toggle exists and none is planned until a product decision says
+so — do not flag the unreachable dark tokens as dead code, and do not expose
+a toggle outside the `/dev/design-system` catalogue (which carries one for
+regression-checking the dark-critical rules: QR stays on pure white, shadows
+swap to the dark shadow colour).
+
 ## Typography
 
 - **Bricolage Grotesque** for everything spoken. Headings are always **800**
@@ -140,6 +149,19 @@ unused Material surface tokens (`--surface-dim`, `--surface-container`,
 - **Space Mono** for everything printed — IDs, codes, dates, eyebrows, feeds,
   metadata. Eyebrows/kickers are short mono uppercase with 0.06em tracking
   (use the `.eyebrow` utility): "SCANNED AT THE COUNTER".
+
+**Micro-type scale.** Below `text-xs` there are exactly two sanctioned sizes,
+minted as utilities in `app/globals.css`:
+
+- `.mono-meta` — 11.5px Space Mono 700, 0.06em, uppercase (the eyebrow
+  metrics without the baked-in muted colour; `.eyebrow` = `.mono-meta` +
+  muted).
+- `.mono-id` — 10px Space Mono 700, 0.06em, uppercase. **10px is the system
+  floor: nothing renders text below it.** The floor is enforced by
+  `pnpm tokens:check`, which fails on any arbitrary `text-[…]` under 10px.
+
+Do not hand-roll `font-mono text-[0.x rem] tracking-[…] uppercase` strings —
+reach for one of these utilities and add colour at the call site.
 
 Both families are served through `next/font/google` as
 `--font-bricolage-grotesque` and `--font-space-mono`.
@@ -160,18 +182,35 @@ in `globals.css`: `shadow-md` is 4px 4px 0 ink (cards), `shadow-sm` 3px 3px 0
 (buttons, small surfaces), collapsing to 1px 1px 0 plus a translate on press.
 
 - _Press_ — the shadow collapses into the paper (the system-wide signature):
-  the element translates toward its shadow while the offset shrinks.
-- _Disabled_ — 45–50% opacity. _Focus_ — vermillion ring.
+  the element translates toward its shadow while the offset shrinks. Ghost
+  and link variants stay flat bar a 1px settle — never a scale.
+- _Disabled_ — 45–50% opacity.
+- _Focus_ — **one recipe for the whole system**: a 2px vermillion outline at
+  2px offset (`outline: 2px solid color-mix(in oklch, var(--ring) 70%,
+  transparent)`). `.pressable` (every Button) and the themed inputs carry it
+  from the unlayered layer; plain interactive elements add `.focus-ring`.
+  Never reintroduce per-component `focus-visible:ring-*` alphas.
+- _Dense tiles_ — a slotted `Card` takes `data-elevation="flat"` for the 2px
+  offset (KpiTile, MetricTile beside StatStrip); shadow utilities on slotted
+  cards are silently defeated by the layer, so the variant is the recipe.
+  For style attributes that cannot use a shadow utility, the named offsets
+  `var(--shadow-hard)` (4px) and `var(--shadow-hard-sm)` (2px) exist.
 - Transparency is for scrims only (`rgba(33,28,22,0.5)` under sheets). No
   glassmorphism, no photography; the optional paper grain
-  (`<body data-grain="true">`) is the only texture.
+  (`<body data-grain="true">`) is the only texture. Dashed lines come in two
+  tones only: `--w-line` (18%, receipt rules, empty stamp slots) and
+  `--w-line-strong` (50%, empty reward slots and ticket perforations).
 
 ## Layout & Spacing
 
 4px base unit. 14px gaps between cards, 22px between sections. Customer
-column max ~410px (thumb zone), merchant 1060px, marketing 1100px. Primary
-tap targets ≥ 44px (buttons h-11+, PIN keys 60px). Mobile-first, touch-first —
-hover effects are minimal.
+column max ~410px (thumb zone — use the `max-w-customer` utility, minted from
+`--container-customer`, so one journey ships one width), merchant 1060px,
+marketing 1100px. Primary tap targets ≥ 44px (buttons h-11+, PIN keys 60px).
+Compact button sizes (`xs`/`sm`/`icon-sm`) are honest: they render at their
+declared height on fine pointers and grow to the 44px floor on coarse
+(touch) pointers, the FilterPills pattern. Mobile-first, touch-first — hover
+effects are minimal.
 
 ## Motion
 
@@ -179,9 +218,14 @@ One slam easing (overshoot, `cubic-bezier(0.16, 1.2, 0.3, 1)`) for stamps; one
 standard easing (`--w-ease`) for everything else. Press 90ms; sheets/moves
 320ms; stamp slam 380ms plus a 300ms paper shake (`--w-dur-shake`).
 
-**Motion lives in Framer Motion, not CSS.** The vocabulary is the `WetInk*`
-primitive library in [`components/motion/wet-ink.tsx`](components/motion/wet-ink.tsx),
-which reads its timing from [`lib/motion/tokens.ts`](lib/motion/tokens.ts):
+**Motion lives in Framer Motion, not CSS.** The one sanctioned CSS-animation
+exception is the loading spinner (`animate-spin` in `Spinner` and the sonner
+loading icon, both guarded by `motion-reduce:animate-none`). The vocabulary
+is the `WetInk*` primitive library in
+[`components/motion/wet-ink.tsx`](components/motion/wet-ink.tsx),
+which reads its timing from [`lib/motion/tokens.ts`](lib/motion/tokens.ts)
+(a hardcoded mirror of the `--w-dur-*`/`--w-ease*` custom properties,
+drift-guarded by `tests/unit/motion-tokens.test.mjs`):
 `WetInkRise`, `WetInkSlam`, `WetInkSoftStamp`, `WetInkShake`, `WetInkPop`,
 `WetInkWiggle`, `WetInkRipple`, `WetInkMarquee`, `WetInkSheet`, plus the composed
 `StampSlamSequence` (slam + paper shake). **Production code never uses raw
@@ -236,7 +280,7 @@ wrappers, never raw shadcn or inline keyframes:
 - **Motion** (`components/motion`): the `WetInk*` primitives only (see Motion
   above) — never raw `animation: w-*` / `animate-[w-*]`.
 - **Forms / data** (`components/forms`, `components/data`): `FormField`,
-  `OtpInput`, `DataTable`, `ActivityFeed`, `FunnelChart`.
+  `OtpInput`, `SubmitButton`, `DataTable`, `ActivityFeed`, `FunnelChart`.
 
 Composed patterns: `StampSlamSequence` (slam + paper shake on a `ReceiptCard
 shaken`), the `RewardSeal`/`RewardTicket` state machine, and the merchant
@@ -305,10 +349,30 @@ dashed ink-line circles. Stamp-family marks rotate -6°. The stamp slam uses
 `--stamp-rot` resting tilt), wrapped by `StampSlamSequence` so the receipt
 shudders via `WetInkShake`.
 
+**Width pressure.** `StampGrid`'s row layout wraps via auto-fit tracks with a
+hard minimum (44px, 36px compact): discs keep their circle and wrap to a new
+line rather than compressing into overlapping ellipses in narrow cells. Pass
+`showCount` to reserve an always-readable mono "current / total" label above
+the grid for dense surfaces (members tables, tight columns). Stamp dates and
+chip captions print at the 10px mono-id floor. The redeemed `RewardTicket`
+reserves a clear band below the copy for its REDEEMED stamp, so the mark
+never sits on the reward name.
+
 ### Inputs
 
 Card-background wells with 2px ink borders and 10px radius. OTP boxes are
 ink-bordered card cells where the hard shadow acts as the cursor.
+
+**One input story.** The themed `[data-slot=input]` well is the single input
+treatment — do not hand-roll `rounded-xl bg-secondary/60` class strings or
+private `Field` clones. State styling lives in the unlayered layer itself:
+focus swaps the border to vermillion plus the shared outline;
+`aria-invalid="true"` swaps it to destructive. Compose fields through
+`FormField` (`components/forms`), which wires `id`, `aria-describedby` and
+`aria-invalid` into its control, so an invalid field is visible *and*
+announced. Pending submits go through `SubmitButton pendingLabel="Saving…"`
+(real ellipsis, never three dots) — it disables itself, announces
+`aria-busy`, and shows the `Spinner`.
 
 ### Sheets
 
@@ -319,7 +383,11 @@ Bottom sheets (the counter moment — PIN pad on the customer's phone) use the
 
 Mono uppercase pills (Space Mono, 11px, 0.08em tracking) — status semantics
 come from the spot inks: vermillion stamp, sun reward, cobalt join, leaf
-redeem.
+redeem. The metric source of truth is the unlayered `[data-slot="badge"]`
+rule; `.w-tag` is its documented alias for plain (non-Badge) elements. Long
+copy never overflows a row: the pill caps at its container width and
+`MonoTag` truncates its content with an ellipsis — print the venue name as
+text and keep the pill for the status word when both must fit.
 
 ### QR Codes
 
@@ -328,4 +396,19 @@ themes. The QR is a functional graphic, never decorated.
 
 ### Progress
 
-Track is deeper paper; fill is leaf (`--reward`) for reward progress.
+Track is deeper paper; fill is leaf (`--reward`); radius is the squared
+`--radius-sm` print corner. This is encoded in the unlayered
+`[data-slot=progress]` rules, so a bare `<Progress>` is on-spec with no
+call-site colour overrides, and `FunnelChart` renders the same primitive —
+one bar anatomy for the whole system. Heights stay per call site.
+
+### Toasts & feedback
+
+Toasts (sonner) are themed through the `.cn-toast` slot in `globals.css`:
+2px ink border, card ground, hard offset shadow, and tone washes that mirror
+`StatusBanner` (leaf success, destructive error, vermillion warning, cobalt
+info). `richColors` is forced off inside `components/ui/sonner.tsx` — the
+stock sonner palette never ships. Inline notices use the bare `Alert` (now
+carrying the 2px ink contract from the layer) or, on loyalty surfaces,
+`StatusBanner`, which adds the tone washes and semantic icons and includes a
+cobalt `info` tone for joins and neutral system notes.
