@@ -29,6 +29,36 @@ export type VenueAnnouncementResult = {
   skipped: number
 }
 
+export type VenueAnnouncementAudienceSummary = {
+  readonly members: number
+  readonly eligible: number
+}
+
+export async function getVenueAnnouncementAudienceSummary(
+  merchantId: string
+): Promise<VenueAnnouncementAudienceSummary> {
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase
+    .from("customer_memberships")
+    .select("id, customer_id")
+    .eq("merchant_id", merchantId)
+    .order("created_at", { ascending: false })
+    .limit(500)
+
+  if (error) {
+    throw new Error(`Unable to load announcement audience: ${error.message}`)
+  }
+
+  const memberships = normalizeVenueAnnouncementMemberships(data)
+  if (memberships.length === 0) {
+    return { members: 0, eligible: 0 }
+  }
+
+  const audience = await resolveAnnouncementAudience(memberships, merchantId)
+
+  return { members: memberships.length, eligible: audience.size }
+}
+
 export async function enqueueVenueAnnouncement(
   input: VenueAnnouncementInput
 ): Promise<VenueAnnouncementResult> {

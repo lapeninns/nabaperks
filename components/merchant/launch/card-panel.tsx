@@ -10,6 +10,7 @@ import {
 } from "@/lib/merchant/loyalty-card-copy"
 import { DEFAULT_STAMPS_REQUIRED } from "@/lib/merchant/customer-readback"
 import { getLoyaltyCardSetup } from "@/lib/merchant/loyalty-card"
+import { CARD_CADENCE_PRESETS } from "@/lib/merchant/reward-presets"
 
 export type CardPanelParams = {
   saved?: string
@@ -65,6 +66,7 @@ export async function CardPanel({
           ),
           isActive: card?.is_active ?? true,
         }}
+        cadencePresets={CARD_CADENCE_PRESETS}
       />
     </div>
   )

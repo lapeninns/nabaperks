@@ -34,7 +34,7 @@ export type VenueLocationSubmissionErrors = VenueAddressFieldErrors & {
   form?: string
 }
 
-type VenueLocationWritePayload = Omit<
+export type VenueLocationWritePayload = Omit<
   VenueAddressPayload,
   "address_provider" | "address_provider_id"
 > & {
@@ -131,6 +131,7 @@ export async function resolveVenueLocationWritePayload(
     merchantId: string
     radius: number
     manualPin: { latitude: number; longitude: number } | null
+    isPrimary?: boolean
   }
 ): Promise<
   | { payload: VenueLocationWritePayload }
@@ -170,7 +171,7 @@ export async function resolveVenueLocationWritePayload(
       geocoded_at: savedAt,
       geofence_pin_source: options.manualPin ? "merchant_pin" : "geocoded",
       geofence_pin_updated_at: savedAt,
-      is_primary: true,
+      is_primary: options.isPrimary ?? true,
     },
   }
 }
@@ -183,17 +184,31 @@ export async function persistVenueLocationWrite({
   supabase: SupabaseClient
   locationId?: string
   payload: VenueLocationWritePayload
-}): Promise<{ error?: string }> {
-  const write = locationId
-    ? supabase.from("merchant_locations").update(payload).eq("id", locationId)
-    : supabase.from("merchant_locations").insert(payload)
-  const { error } = await write
+}): Promise<{ locationId?: string; error?: string }> {
+  if (locationId) {
+    const { error } = await supabase
+      .from("merchant_locations")
+      .update(payload)
+      .eq("id", locationId)
+
+    if (error) {
+      return { error: error.message }
+    }
+
+    return { locationId }
+  }
+
+  const { data, error } = await supabase
+    .from("merchant_locations")
+    .insert(payload)
+    .select("id")
+    .single()
 
   if (error) {
     return { error: error.message }
   }
 
-  return {}
+  return { locationId: data?.id }
 }
 
 function value(formData: FormData, key: string) {

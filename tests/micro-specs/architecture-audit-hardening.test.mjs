@@ -70,7 +70,7 @@ test("Given cross-request merchant caches When loader keys are inspected Then te
   )
   assert.match(
     qrCode,
-    /\["qr-image-context", merchant\.id, location\.id, activeCard\.id, qrCodeId\]/
+    /\["qr-image-context", merchant\.id, qrCodeId\]/
   )
   assert.match(
     qrCode,

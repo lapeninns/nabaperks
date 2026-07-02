@@ -20,6 +20,13 @@ type EmailOtpConfig = {
   readonly from: string
 }
 
+export type TransactionalEmailInput = {
+  readonly to: string
+  readonly subject: string
+  readonly text: string
+  readonly html: string
+}
+
 const emailOtpCopy = {
   customer: {
     eyebrow: "My Nabaperks",
@@ -91,8 +98,23 @@ export async function sendEmailOtp({
   code: string
   audience?: EmailOtpAudience
 }) {
-  const { apiKey, from } = readEmailOtpConfig()
   const copy = emailOtpCopy[audience]
+
+  await sendTransactionalEmail({
+    to,
+    subject: `${code} ${copy.subjectSuffix}`,
+    text: `Your Nabaperks verification code is ${code}. Enter it to ${copy.textReason}. It expires shortly. ${copy.footer}`,
+    html: otpEmailHtml(code, audience),
+  })
+}
+
+export async function sendTransactionalEmail({
+  to,
+  subject,
+  text,
+  html,
+}: TransactionalEmailInput) {
+  const { apiKey, from } = readEmailOtpConfig()
 
   const res = await resilientFetch("resend", RESEND_ENDPOINT, {
     method: "POST",
@@ -103,9 +125,9 @@ export async function sendEmailOtp({
     body: JSON.stringify({
       from,
       to: [to],
-      subject: `${code} ${copy.subjectSuffix}`,
-      text: `Your Nabaperks verification code is ${code}. Enter it to ${copy.textReason}. It expires shortly. ${copy.footer}`,
-      html: otpEmailHtml(code, audience),
+      subject,
+      text,
+      html,
     }),
   })
 

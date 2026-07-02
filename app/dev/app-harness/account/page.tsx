@@ -5,13 +5,15 @@ import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
 import { Icon, PageTitle } from "@/components/brand"
 import { AccountTabBar } from "@/components/merchant/account/account-tab-bar"
 import {
+  firstAccountSearchParamValue,
   resolveAccountTab,
   type AccountSearchParams,
 } from "@/components/merchant/account/account-tabs"
+import { LocationsPanelView } from "@/components/merchant/account/locations-panel"
 import { AccountBillingPanelSkeleton } from "@/components/merchant/loading-skeletons"
 import { MerchantProfileForm } from "@/components/merchant/profile-form"
 
-import { HARNESS_MERCHANT } from "../fixtures"
+import { HARNESS_LOCATIONS, HARNESS_MERCHANT } from "../fixtures"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -24,6 +26,10 @@ const TAB_HEADING = {
   billing: {
     title: "Billing",
     description: "Your plan and payments, handled securely by Stripe.",
+  },
+  locations: {
+    title: "Locations",
+    description: "Add venues, review join QR links, and keep each site ready.",
   },
 } as const
 
@@ -52,6 +58,7 @@ export default async function AccountHarnessPage({
 
   const params = searchParams ? await searchParams : {}
   const tab = resolveAccountTab(params.tab)
+  const locationStatus = firstAccountSearchParamValue(params.locations)
   const heading = TAB_HEADING[tab]
 
   return (
@@ -59,7 +66,12 @@ export default async function AccountHarnessPage({
       <PageTitle title={heading.title} description={heading.description} />
       <AccountTabBar activeTab={tab} />
 
-      {tab === "billing" ? (
+      {tab === "locations" ? (
+        <LocationsPanelView
+          locations={HARNESS_LOCATIONS}
+          status={locationStatus}
+        />
+      ) : tab === "billing" ? (
         <AccountBillingPanelSkeleton />
       ) : (
         <section className="grid min-w-0 gap-5">

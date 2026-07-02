@@ -18,6 +18,7 @@ import type {
 } from "@/lib/merchant/activity"
 import type { MerchantDashboardMerchant } from "@/lib/merchant/dashboard"
 import type { MerchantCustomerReadbackRow } from "@/lib/merchant/customer-readback"
+import type { MerchantLocationQrSummary } from "@/lib/merchant/location"
 
 // ─── Merchant identity ──────────────────────────────────────────────────────
 
@@ -26,6 +27,29 @@ export const HARNESS_MERCHANT: MerchantDashboardMerchant = {
   business_name: "Old Crown Girton",
   status: "active",
 }
+
+export const HARNESS_LOCATIONS: MerchantLocationQrSummary[] = [
+  {
+    id: "loc_old_crown",
+    name: "Old Crown Girton",
+    address: "12 High Street, Girton, CB3 0QH",
+    isPrimary: true,
+    activeCardName: "Mystery Visit Card",
+    joinQrCodeId: "qr_harness",
+    joinQrPath: "/q/old-crown-girton",
+    pngPath: "/app/qr/image/qr_harness",
+  },
+  {
+    id: "loc_white_horse",
+    name: "White Horse Milton",
+    address: "1 High Street, Milton, CB24 6DF",
+    isPrimary: false,
+    activeCardName: "Mystery Visit Card",
+    joinQrCodeId: "qr_white_horse",
+    joinQrPath: "/q/white-horse-milton",
+    pngPath: "/app/qr/image/qr_white_horse",
+  },
+]
 
 // ─── Dashboard KPI strip ────────────────────────────────────────────────────
 

@@ -106,12 +106,25 @@ test("Given merchant QR images are fetched by internal id When the owned context
     "[qrCodeId]",
     "route.ts"
   )
+  const loaderStart = qrCode.indexOf("async function loadOwnedQrImageContext")
+  const loader = loaderStart === -1 ? "" : qrCode.slice(loaderStart)
 
   assert.match(imageRoute, /getOwnedQrImageContext\(qrCodeId\)/)
+  assert.ok(loader, "QR image loader source must be present")
   assert.match(
-    qrCode,
-    /getOwnedQrImageContext[\s\S]*\.eq\("id", qrCodeId\)[\s\S]*\.eq\("merchant_id", merchant\.id\)[\s\S]*\.eq\("location_id", location\.id\)[\s\S]*\.eq\("loyalty_card_id", activeCard\.id\)[\s\S]*\.eq\("destination_type", "join"\)[\s\S]*\.eq\("is_active", true\)[\s\S]*\.maybeSingle\(\)/
+    loader,
+    /loadOwnedQrImageContext[\s\S]*\.eq\("id", qrCodeId\)[\s\S]*\.eq\("merchant_id", merchant\.id\)[\s\S]*\.eq\("destination_type", "join"\)[\s\S]*\.eq\("is_active", true\)[\s\S]*\.maybeSingle\(\)/
   )
+  assert.match(
+    loader,
+    /merchant_locations[\s\S]*\.eq\("id", qrCode\.location_id\)[\s\S]*\.eq\("merchant_id", merchant\.id\)/
+  )
+  assert.match(
+    loader,
+    /loyalty_cards[\s\S]*\.eq\("id", qrCode\.loyalty_card_id\)[\s\S]*\.eq\("merchant_id", merchant\.id\)[\s\S]*\.eq\("location_id", qrCode\.location_id\)/
+  )
+  assert.doesNotMatch(loader, /\.eq\("location_id", location\.id\)/)
+  assert.doesNotMatch(loader, /\.eq\("loyalty_card_id", activeCard\.id\)/)
 })
 
 test("Given the merchant QR image route is hit When the owned context is absent Then only the owned active join QR path can render private PNG bytes", () => {

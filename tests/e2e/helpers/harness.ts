@@ -21,6 +21,7 @@ export const HARNESS_ROUTES = {
   scan: "/dev/app-harness/scan",
   rewardScan: "/dev/app-harness/reward-scan",
   launch: "/dev/app-harness/launch",
+  announcements: "/dev/app-harness/announcements",
   onboarding: "/dev/app-harness/onboarding",
   skeletons: "/dev/app-harness/skeletons",
   states: "/dev/app-harness/states",

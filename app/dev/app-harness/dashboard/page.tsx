@@ -2,7 +2,6 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import {
   Activity03Icon,
-  ArrowRight01Icon,
   Camera01Icon,
   CheckmarkBadge04Icon,
   GiftIcon,
@@ -20,14 +19,16 @@ import {
 } from "@/components/brand"
 import { TrendChart } from "@/components/data"
 import { ActivityCompactFeed } from "@/components/merchant/activity-compact-feed"
-import { ProgressTrack } from "@/components/loyalty/progress-track"
+import { DashboardLocationFilter } from "@/components/merchant/dashboard-location-filter"
+import { MerchantNextActions } from "@/components/merchant/dashboard-next-actions"
 import { WetInkRise } from "@/components/motion"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { SHARED_MEMBERS_CAPTION } from "@/lib/merchant/dashboard-scope"
 
 import {
   HARNESS_ACTIVITY_ROWS,
   HARNESS_KPIS,
+  HARNESS_LOCATIONS,
   HARNESS_MERCHANT,
   HARNESS_NEXT_ACTIONS,
   HARNESS_TREND_SERIES,
@@ -51,11 +52,27 @@ const KPI_ICON = {
  * per the qa-harness spec — their presentational children are mounted directly.
  * The page header reuses the same PageTitle + Scan-reward CTA as /app/page.tsx.
  */
-export default function DashboardHarnessPage() {
+type DashboardHarnessPageProps = {
+  readonly searchParams?: Promise<{
+    readonly location?: string | readonly string[]
+  }>
+}
+
+export default async function DashboardHarnessPage({
+  searchParams,
+}: DashboardHarnessPageProps) {
   if (process.env.NODE_ENV === "production") {
     notFound()
   }
 
+  const params = searchParams ? await searchParams : {}
+  const requestedLocation =
+    typeof params.location === "string" ? params.location : params.location?.[0]
+  const activeLocationId = HARNESS_LOCATIONS.some(
+    (location) => location.id === requestedLocation
+  )
+    ? requestedLocation
+    : null
   const { readyCount, quietCount, repeatCustomers, members } =
     HARNESS_NEXT_ACTIONS
 
@@ -81,6 +98,16 @@ export default function DashboardHarnessPage() {
           title="How the week is going"
           description="Deltas compare this week with the seven days before; the lines trace the last fortnight."
         />
+        <DashboardLocationFilter
+          locations={HARNESS_LOCATIONS}
+          activeLocationId={activeLocationId}
+          baseHref="/dev/app-harness/dashboard"
+        />
+        {activeLocationId ? (
+          <p className="text-sm leading-6 font-semibold text-muted-foreground">
+            {SHARED_MEMBERS_CAPTION}
+          </p>
+        ) : null}
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {HARNESS_KPIS.map((kpi, index) => (
@@ -113,36 +140,12 @@ export default function DashboardHarnessPage() {
         </ReceiptCard>
       </section>
 
-      <ReceiptCard className="grid gap-4">
-        <SectionHeader title="Do next" />
-        <div className="grid gap-1.5">
-          <NextActionRow
-            href="/app/customers"
-            tone={readyCount > 0 ? "accent" : "leaf"}
-            label={
-              readyCount > 0
-                ? `${readyCount} ${readyCount === 1 ? "reward" : "rewards"} ready to redeem`
-                : "No rewards waiting — you're all caught up"
-            }
-          />
-          <NextActionRow
-            href="/app/customers"
-            tone={quietCount > 0 ? "sun" : "leaf"}
-            label={
-              quietCount > 0
-                ? `${quietCount} ${quietCount === 1 ? "member" : "members"} gone quiet`
-                : "Every member has visited recently"
-            }
-          />
-        </div>
-        <div className="border-t border-dashed border-line pt-4">
-          <ProgressTrack
-            current={repeatCustomers}
-            total={members}
-            label="Repeat members"
-          />
-        </div>
-      </ReceiptCard>
+      <MerchantNextActions
+        readyCount={readyCount}
+        quietCount={quietCount}
+        repeatCustomers={repeatCustomers}
+        members={members}
+      />
 
       <ReceiptCard className="grid gap-4">
         <SectionHeader
@@ -168,43 +171,5 @@ export default function DashboardHarnessPage() {
         />
       </ReceiptCard>
     </div>
-  )
-}
-
-const NEXT_ACTION_DOT: Record<"accent" | "sun" | "leaf", string> = {
-  accent: "bg-primary",
-  sun: "bg-sun",
-  leaf: "bg-leaf",
-}
-
-function NextActionRow({
-  href,
-  tone,
-  label,
-}: {
-  href: string
-  tone: "accent" | "sun" | "leaf"
-  label: string
-}) {
-  return (
-    <Link
-      href={href}
-      className="-mx-2 flex items-center gap-3 rounded-lg border-2 border-transparent px-2 py-2 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:border-ink/15 hover:bg-secondary/50 focus-visible:border-ink/15 focus-visible:bg-secondary/50 focus-visible:outline-none motion-reduce:transition-none"
-    >
-      <span
-        className={cn(
-          "size-2.5 shrink-0 rounded-full border-2 border-ink",
-          NEXT_ACTION_DOT[tone]
-        )}
-      />
-      <span className="min-w-0 flex-1 text-sm font-semibold text-balance">
-        {label}
-      </span>
-      <Icon
-        icon={ArrowRight01Icon}
-        size={16}
-        className="shrink-0 text-ink-soft"
-      />
-    </Link>
   )
 }

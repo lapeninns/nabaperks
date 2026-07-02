@@ -9,6 +9,7 @@
 export const ACCOUNT_TABS = [
   { id: "profile", label: "Profile" },
   { id: "billing", label: "Billing" },
+  { id: "locations", label: "Locations" },
 ] as const
 
 export type AccountTab = (typeof ACCOUNT_TABS)[number]["id"]
@@ -21,6 +22,7 @@ export type AccountSearchParams = {
   readonly tab?: AccountSearchParamValue
   readonly checkout?: AccountSearchParamValue
   readonly portal?: AccountSearchParamValue
+  readonly locations?: AccountSearchParamValue
   readonly [key: string]: AccountSearchParamValue
 }
 

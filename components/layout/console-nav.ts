@@ -5,6 +5,7 @@ import {
   Building02Icon,
   CreditCardIcon,
   Home01Icon,
+  Megaphone01Icon,
   QrCode01Icon,
   SecurityCheckIcon,
   Settings01Icon,
@@ -71,6 +72,7 @@ export const merchantNavItems = [
   { href: "/app/qr", label: "Poster", icon: QrCode01Icon },
   { href: "/app/customers", label: "Members", icon: UserMultiple02Icon },
   { href: "/app/activity", label: "Activity", icon: Activity03Icon },
+  { href: "/app/announcements", label: "Announce", icon: Megaphone01Icon },
 ] satisfies readonly ShellNavItem[]
 
 /** Primary destinations for the merchant mobile bottom tab bar. */
@@ -113,6 +115,11 @@ export const merchantAccountItems = [
     href: "/app/account?tab=billing",
     label: "Billing",
     icon: CreditCardIcon,
+  },
+  {
+    href: "/app/account?tab=locations",
+    label: "Locations",
+    icon: Store01Icon,
   },
 ] satisfies readonly ShellNavItem[]
 

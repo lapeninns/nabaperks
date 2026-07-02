@@ -18,6 +18,7 @@ allowed_blast_radius:
   - components/**
   - config/**
   - docs/architecture-flows/**
+  - docs/product/**
   - eslint.config.mjs
   - lib/**
   - next.config.ts

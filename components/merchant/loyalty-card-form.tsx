@@ -37,6 +37,11 @@ import {
   defaultLoyaltyCardRewardTerms,
   isDefaultLoyaltyCardRewardTerms,
 } from "@/lib/merchant/loyalty-card-copy"
+import {
+  rewardPresetToPoolItemValues,
+  type CardCadencePreset,
+  type RewardPreset,
+} from "@/lib/merchant/reward-presets"
 import { cn } from "@/lib/utils"
 
 type LoyaltyCardFormValues = {
@@ -62,6 +67,7 @@ type LoyaltyCardFormProps = {
   locationName: string
   /** Active pool count — shown in the customer preview sidebar. */
   activeRewardCount?: number
+  cadencePresets?: readonly CardCadencePreset[]
 }
 
 /** Rewards needed active before a final stamp can reveal a prize or the QR launches. */
@@ -75,6 +81,7 @@ export function LoyaltyCardForm({
   merchantName,
   locationName,
   activeRewardCount = 0,
+  cadencePresets = [],
 }: LoyaltyCardFormProps) {
   const [state, action, pending] = useActionState(
     saveLoyaltyCardAction,
@@ -108,6 +115,13 @@ export function LoyaltyCardForm({
       return nextDraft
     })
   }
+
+  const selectedCadencePreset = cadencePresets.find(
+    (preset) => String(preset.stampsRequired) === draft.stampsRequired
+  )
+  const cadenceHint =
+    selectedCadencePreset?.description ??
+    `Choose ${MIN_STAMPS_REQUIRED}–${MAX_STAMPS_REQUIRED} visits. Stamps needed before the reward unseals.`
 
   return (
     <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-6">
@@ -150,10 +164,42 @@ export function LoyaltyCardForm({
             max={MAX_STAMPS_REQUIRED}
             onChange={updateStampsRequired}
           />
-          <p className="hidden text-xs leading-5 text-muted-foreground sm:block sm:max-w-none">
-            Choose {MIN_STAMPS_REQUIRED}–{MAX_STAMPS_REQUIRED} visits. Stamps
-            needed before the reward unseals.
-          </p>
+          {cadencePresets.length > 0 ? (
+            <div
+              aria-label="Visit cadence presets"
+              className="grid gap-2 sm:grid-cols-3"
+            >
+              {cadencePresets.map((preset) => {
+                const selected =
+                  String(preset.stampsRequired) === draft.stampsRequired
+
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() =>
+                      updateStampsRequired(String(preset.stampsRequired))
+                    }
+                    className={cn(
+                      "grid min-h-16 min-w-0 gap-1 rounded-lg border-[1.5px] px-3 py-2.5 text-left transition-[background-color,border-color,color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none",
+                      selected
+                        ? "border-ink bg-ink text-paper shadow-sm"
+                        : "border-border bg-secondary text-foreground hover:border-ink"
+                    )}
+                  >
+                    <span className="text-sm leading-snug font-extrabold text-pretty">
+                      {preset.label}
+                    </span>
+                    <span className="font-mono text-[0.64rem] leading-none font-bold tracking-[0.06em] uppercase">
+                      {preset.stampsRequired} visits
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          ) : null}
+          <p className="text-xs leading-5 text-muted-foreground">{cadenceHint}</p>
           {state.errors?.stampsRequired ? (
             <p className="text-sm text-destructive">
               {state.errors.stampsRequired}
@@ -211,22 +257,34 @@ export function RewardPoolForm({
   rewardPoolItems,
   continueHref,
   continueLabel = "your venue QR",
-}: {
-  loyaltyCardId: string
-  cardName: string
-  rewardPoolItems: RewardPoolItemValues[]
-  /** Shown when the pool meets launch eligibility and no row editor is open. */
-  continueHref?: string | null
-  continueLabel?: string
-}) {
+  presets = [],
+}: RewardPoolFormProps) {
   // The row currently open in the inline editor: a reward id, "new", or null.
   const [editingId, setEditingId] = useState<string | "new" | null>(null)
+  const [newRewardValues, setNewRewardValues] = useState<RewardPoolItemValues>(
+    buildBlankRewardValues(rewardPoolItems.length + 1)
+  )
+  const [newRewardKey, setNewRewardKey] = useState("blank")
 
   const activeRewardCount = rewardPoolItems.filter(
     (item) => item.isActive
   ).length
   const ready = activeRewardCount >= REQUIRED_ACTIVE_REWARDS
   const deficit = REQUIRED_ACTIVE_REWARDS - activeRewardCount
+
+  function openBlankReward() {
+    setNewRewardValues(buildBlankRewardValues(rewardPoolItems.length + 1))
+    setNewRewardKey(`blank-${rewardPoolItems.length + 1}`)
+    setEditingId("new")
+  }
+
+  function openPresetReward(preset: RewardPreset) {
+    setNewRewardValues(
+      rewardPresetToPoolItemValues(preset, rewardPoolItems.length + 1)
+    )
+    setNewRewardKey(preset.id)
+    setEditingId("new")
+  }
 
   return (
     <section className="grid min-w-0 gap-4 rounded-lg border border-border bg-card p-3 sm:p-6">
@@ -262,6 +320,29 @@ export function RewardPoolForm({
         )}
       </p>
 
+      {presets.length > 0 ? (
+        <div className="grid gap-2 rounded-lg bg-secondary p-3">
+          <Eyebrow>Pub reward presets</Eyebrow>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {presets.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => openPresetReward(preset)}
+                className="grid min-h-16 min-w-0 gap-1 rounded-lg border-[1.5px] border-border bg-card px-3 py-2.5 text-left text-foreground transition-[background-color,border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:border-ink hover:bg-background focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none"
+              >
+                <span className="text-sm leading-snug font-extrabold text-pretty">
+                  {preset.rewardName}
+                </span>
+                <span className="text-xs leading-4 text-pretty text-muted-foreground">
+                  {preset.description}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       {rewardPoolItems.length === 0 && editingId !== "new" ? (
         <EmptyState
           icon={GiftIcon}
@@ -292,14 +373,9 @@ export function RewardPoolForm({
 
         {editingId === "new" ? (
           <RewardPoolItemForm
+            key={`new-${newRewardKey}`}
             loyaltyCardId={loyaltyCardId}
-            initialValues={{
-              rewardName: "",
-              rewardTerms: "",
-              weight: "1",
-              displayOrder: String(rewardPoolItems.length + 1),
-              isActive: true,
-            }}
+            initialValues={newRewardValues}
             isNew
             onCancel={() => setEditingId(null)}
           />
@@ -309,7 +385,7 @@ export function RewardPoolForm({
       {editingId !== "new" ? (
         <button
           type="button"
-          onClick={() => setEditingId("new")}
+          onClick={openBlankReward}
           className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-ink/25 bg-transparent px-4 py-3 text-sm font-bold text-foreground transition-[border-color,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:border-ink hover:bg-secondary/60 focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none"
         >
           <Icon icon={Add01Icon} size={16} strokeWidth={2.25} />
@@ -328,6 +404,26 @@ export function RewardPoolForm({
       ) : null}
     </section>
   )
+}
+
+type RewardPoolFormProps = {
+  loyaltyCardId: string
+  cardName: string
+  rewardPoolItems: RewardPoolItemValues[]
+  /** Shown when the pool meets launch eligibility and no row editor is open. */
+  continueHref?: string | null
+  continueLabel?: string
+  presets?: readonly RewardPreset[]
+}
+
+function buildBlankRewardValues(displayOrder: number): RewardPoolItemValues {
+  return {
+    rewardName: "",
+    rewardTerms: "",
+    weight: "1",
+    displayOrder: String(displayOrder),
+    isActive: true,
+  }
 }
 
 /**

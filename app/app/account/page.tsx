@@ -3,11 +3,13 @@ import { Suspense } from "react"
 import { PageTitle } from "@/components/brand"
 import { AccountTabBar } from "@/components/merchant/account/account-tab-bar"
 import {
+  firstAccountSearchParamValue,
   resolveAccountOutcomeParams,
   resolveAccountTab,
   type AccountSearchParams,
 } from "@/components/merchant/account/account-tabs"
 import { BillingPanel } from "@/components/merchant/account/billing-panel"
+import { LocationsPanel } from "@/components/merchant/account/locations-panel"
 import { ProfilePanel } from "@/components/merchant/account/profile-panel"
 import {
   AccountBillingPanelSkeleton,
@@ -25,6 +27,10 @@ const TAB_HEADING = {
     title: "Billing",
     description: "Your plan and payments, handled securely by Stripe.",
   },
+  locations: {
+    title: "Locations",
+    description: "Add venues, review join QR links, and keep each site ready.",
+  },
 } as const
 
 type AccountPageProps = {
@@ -35,6 +41,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   const params = await searchParams
   const tab = resolveAccountTab(params.tab)
   const outcomeParams = resolveAccountOutcomeParams(params)
+  const locationStatus = firstAccountSearchParamValue(params.locations)
 
   const heading = TAB_HEADING[tab]
 
@@ -43,7 +50,11 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
       <PageTitle title={heading.title} description={heading.description} />
       <AccountTabBar activeTab={tab} />
 
-      {tab === "billing" ? (
+      {tab === "locations" ? (
+        <Suspense key="locations" fallback={<AccountProfilePanelSkeleton />}>
+          <LocationsPanel status={locationStatus} />
+        </Suspense>
+      ) : tab === "billing" ? (
         <Suspense key="billing" fallback={<AccountBillingPanelSkeleton />}>
           <BillingPanel params={outcomeParams} />
         </Suspense>

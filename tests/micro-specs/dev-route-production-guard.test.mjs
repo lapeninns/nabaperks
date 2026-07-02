@@ -12,6 +12,7 @@ const projectRoot = path.resolve(
 const expectedDevPages = [
   "app/dev/app-harness/account/page.tsx",
   "app/dev/app-harness/activity/page.tsx",
+  "app/dev/app-harness/announcements/page.tsx",
   "app/dev/app-harness/customers/page.tsx",
   "app/dev/app-harness/dashboard/page.tsx",
   "app/dev/app-harness/launch/page.tsx",

@@ -38,6 +38,7 @@ export const productEventNames = [
   "push_subscription_failed",
   "push_delivery_worker_ran",
   "push_venue_announcement_queued",
+  "merchant_weekly_digest_sent",
   "dashboard_viewed",
   "loyalty_card_updated",
   "merchant_profile_updated",

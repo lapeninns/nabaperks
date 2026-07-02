@@ -51,8 +51,6 @@ type CurrentMerchant = NonNullable<
 type OwnedQrImageScope = {
   qrCodeId: string
   merchant: CurrentMerchant
-  location: NonNullable<QrSetup["location"]>
-  activeCard: ActiveCardSummary
 }
 
 async function getQrSetupUncached(): Promise<QrSetup> {
@@ -166,19 +164,17 @@ export async function getQrSetupFresh(): Promise<QrSetup> {
 }
 
 export async function getOwnedQrImageContext(qrCodeId: string) {
-  const { merchant, location, activeCard } = await getQrSetup()
+  const merchant = await getCurrentMerchant()
 
-  if (!merchant || !location || !activeCard) return null
+  if (!merchant) return null
 
   return cacheByScope(
     () =>
       loadOwnedQrImageContext({
         qrCodeId,
         merchant,
-        location,
-        activeCard,
       }),
-    ["qr-image-context", merchant.id, location.id, activeCard.id, qrCodeId],
+    ["qr-image-context", merchant.id, qrCodeId],
     [merchantCacheTag(merchant.id), qrImageContextCacheTag(qrCodeId)]
   )
 }
@@ -186,17 +182,13 @@ export async function getOwnedQrImageContext(qrCodeId: string) {
 async function loadOwnedQrImageContext({
   qrCodeId,
   merchant,
-  location,
-  activeCard,
 }: OwnedQrImageScope) {
   const supabase = createSupabaseServiceRoleClient()
   const { data: qrCode, error } = await supabase
     .from("qr_codes")
-    .select("id, qr_id, destination_type, is_active")
+    .select("id, qr_id, destination_type, is_active, location_id, loyalty_card_id")
     .eq("id", qrCodeId)
     .eq("merchant_id", merchant.id)
-    .eq("location_id", location.id)
-    .eq("loyalty_card_id", activeCard.id)
     .eq("destination_type", "join")
     .eq("is_active", true)
     .maybeSingle()
@@ -207,10 +199,38 @@ async function loadOwnedQrImageContext({
 
   if (!qrCode) return null
 
+  const [locationResult, cardResult] = await Promise.all([
+    supabase
+      .from("merchant_locations")
+      .select("id, name, address, latitude, longitude, geofence_radius_meters, require_geofence, geocoded_at")
+      .eq("id", qrCode.location_id)
+      .eq("merchant_id", merchant.id)
+      .maybeSingle(),
+    supabase
+      .from("loyalty_cards")
+      .select("id, card_name, reward_name, stamps_required")
+      .eq("id", qrCode.loyalty_card_id)
+      .eq("merchant_id", merchant.id)
+      .eq("location_id", qrCode.location_id)
+      .maybeSingle(),
+  ])
+
+  if (locationResult.error) {
+    throw new Error(
+      `Unable to load QR image location: ${locationResult.error.message}`
+    )
+  }
+
+  if (cardResult.error) {
+    throw new Error(`Unable to load QR image card: ${cardResult.error.message}`)
+  }
+
+  if (!locationResult.data || !cardResult.data) return null
+
   return {
     merchant,
-    location,
-    activeCard,
+    location: locationResult.data,
+    activeCard: cardResult.data,
     qrCode,
   }
 }

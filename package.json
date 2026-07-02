@@ -27,6 +27,7 @@
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "governance:check": "node scripts/check-governance.mjs",
     "governance:run-gates": "node scripts/run-governance-gates.mjs",
+    "governance:sync-skill": "node scripts/sync-skill-bundles.mjs",
     "db:migrate": "node scripts/run-supabase-sql.mjs --apply",
     "db:reset": "node scripts/run-supabase-sql.mjs --reset",
     "db:clean:customers": "node scripts/run-supabase-sql.mjs --reset-customers",

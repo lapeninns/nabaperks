@@ -13,7 +13,7 @@ import { defineConfig, devices } from "@playwright/test"
  * is the e2e runner ONLY; Vitest is intentionally not reintroduced.
  */
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000"
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3146"
 const devOtpCode = process.env.CUSTOMER_DEV_OTP_CODE ?? "424242"
 const authHookSecret = "v1,whsec_dGVzdC1ob29rLXNlY3JldA=="
 const devServerUrl = new URL(baseURL)

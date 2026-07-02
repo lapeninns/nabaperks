@@ -1,0 +1,114 @@
+import assert from "node:assert/strict"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
+import { describe, it } from "node:test"
+
+const projectRoot = process.cwd()
+
+function readProjectFile(...segments) {
+  return readFileSync(join(projectRoot, ...segments), "utf8")
+}
+
+function blockBetween(source, startNeedle, endNeedle) {
+  const start = source.indexOf(startNeedle)
+  const end = source.indexOf(endNeedle, start + startNeedle.length)
+
+  if (start === -1 || end === -1) return ""
+  return source.slice(start, end)
+}
+
+describe("MS-merchant-venue-announcements-ui source contract", () => {
+  it("keeps the existing route validation, rate-limit, and enqueue path unchanged", () => {
+    const route = readProjectFile(
+      "app/api/notifications/venue-announcements/route.ts"
+    )
+
+    assert.match(route, /const merchant = await getCurrentMerchant\(\)/)
+    assert.match(route, /key: `venue-announcement:\$\{merchant\.id\}`/)
+    assert.match(route, /limit: 4/)
+    assert.match(route, /windowMs: 60 \* 60 \* 1000/)
+    assert.match(route, /validateVenueAnnouncementText/)
+    assert.match(route, /enqueueVenueAnnouncement/)
+    assert.doesNotMatch(route, /getVenueAnnouncementAudienceSummary/)
+  })
+
+  it("adds a read-only audience summary that shares the send eligibility resolver", () => {
+    const announcements = readProjectFile(
+      "lib/notifications/venue-announcements.ts"
+    )
+    const summaryHelper = blockBetween(
+      announcements,
+      "export async function getVenueAnnouncementAudienceSummary",
+      "export async function enqueueVenueAnnouncement"
+    )
+
+    assert.match(announcements, /export type VenueAnnouncementAudienceSummary/)
+    assert.match(summaryHelper, /\.from\("customer_memberships"\)/)
+    assert.match(summaryHelper, /\.select\("id, customer_id"\)/)
+    assert.match(summaryHelper, /normalizeVenueAnnouncementMemberships\(data\)/)
+    assert.match(
+      summaryHelper,
+      /resolveAnnouncementAudience\(\s*memberships,\s*merchantId\s*\)/
+    )
+    assert.doesNotMatch(summaryHelper, /enqueueNotificationEvent/)
+  })
+
+  it("renders the merchant announcements page with server auth and audience preview", () => {
+    const page = readProjectFile("app/app/announcements/page.tsx")
+
+    assert.match(page, /export const dynamic = "force-dynamic"/)
+    assert.match(page, /getCurrentMerchant/)
+    assert.match(page, /redirect\("\/app\/onboarding"\)/)
+    assert.match(page, /getVenueAnnouncementAudienceSummary\(merchant\.id\)/)
+    assert.match(page, /<AnnouncementCompose/)
+  })
+
+  it("posts from the client form to the existing API without importing server-only core code", () => {
+    const form = readProjectFile(
+      "components/merchant/announcements/announcement-compose.tsx"
+    )
+    const copy = readProjectFile(
+      "lib/notifications/venue-announcement-form-copy.ts"
+    )
+
+    assert.match(form, /"use client"/)
+    assert.match(form, /fetch\("\/api\/notifications\/venue-announcements"/)
+    assert.match(form, /maxLength=\{80\}/)
+    assert.match(form, /maxLength=\{180\}/)
+    assert.match(form, /venueAnnouncementFormErrorCopy/)
+    assert.match(copy, /rate_limited/)
+    assert.doesNotMatch(form, /venue-announcement-core/)
+    assert.doesNotMatch(form, /use server/)
+  })
+
+  it("adds sidebar and home entry points without adding the route to the mobile tab bar", () => {
+    const nav = readProjectFile("components/layout/console-nav.ts")
+    const home = readProjectFile("app/app/page.tsx")
+    const tabBarBlock = blockBetween(
+      nav,
+      "export const merchantTabBarItems = [",
+      "] satisfies readonly ShellNavItem[]"
+    )
+
+    assert.match(nav, /Megaphone01Icon/)
+    assert.match(nav, /href: "\/app\/announcements"/)
+    assert.match(nav, /label: "Announce"/)
+    assert.doesNotMatch(tabBarBlock, /\/app\/announcements/)
+    assert.match(home, /href="\/app\/announcements"/)
+  })
+
+  it("registers a DB-free harness route for browser, a11y, and visual sweeps", () => {
+    const harness = readProjectFile("tests/e2e/helpers/harness.ts")
+    const page = readProjectFile("app/dev/app-harness/announcements/page.tsx")
+    const client = readProjectFile(
+      "app/dev/app-harness/announcements/harness-client.tsx"
+    )
+
+    assert.match(harness, /announcements: "\/dev\/app-harness\/announcements"/)
+    assert.match(page, /AnnouncementsHarnessClient/)
+    assert.match(client, /AnnouncementCompose/)
+    assert.match(client, /submitAnnouncement/)
+    assert.match(client, /eligible: 18/)
+    assert.match(client, /eligible: 0/)
+  })
+})

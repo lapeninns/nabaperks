@@ -1,7 +1,6 @@
 import Link from "next/link"
 import {
   Activity03Icon,
-  ArrowRight01Icon,
   CheckmarkBadge04Icon,
   GiftIcon,
   UserAdd01Icon,
@@ -10,7 +9,6 @@ import {
 
 import {
   EmptyState,
-  Icon,
   KpiTile,
   ReceiptCard,
   SectionHeader,
@@ -18,8 +16,12 @@ import {
 import { TrendChart } from "@/components/data"
 import { ActivityCompactFeed } from "@/components/merchant/activity-compact-feed"
 import { MerchantBillingNotice } from "@/components/merchant/billing-status"
+import {
+  DashboardLocationFilter,
+  type DashboardLocationOption,
+} from "@/components/merchant/dashboard-location-filter"
+import { MerchantNextActions } from "@/components/merchant/dashboard-next-actions"
 import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
-import { ProgressTrack } from "@/components/loyalty/progress-track"
 import { WetInkRise } from "@/components/motion"
 import { Button } from "@/components/ui/button"
 import { getEnrichedMerchantActivity } from "@/lib/merchant/activity"
@@ -29,28 +31,31 @@ import {
   getMerchantDashboardSeries,
   type MerchantDashboardMerchant,
 } from "@/lib/merchant/dashboard"
+import { dashboardScopeMembersCaption } from "@/lib/merchant/dashboard-scope"
 import { getMerchantLaunchReadiness } from "@/lib/merchant/launch-readiness"
 import { timeServerLoader } from "@/lib/perf/server-timing"
-import { cn } from "@/lib/utils"
 
 export async function MerchantDashboardStream({
   merchant,
+  locationId,
+  locations = [],
 }: {
-  merchant: MerchantDashboardMerchant
+  readonly merchant: MerchantDashboardMerchant
+  readonly locationId?: string | null
+  readonly locations?: readonly DashboardLocationOption[]
 }) {
+  const sharedMembersCaption = dashboardScopeMembersCaption({ locationId })
   const [dashboard, launchReadiness, series, customerCounts] =
     await Promise.all([
       timeServerLoader("/app", "getMerchantDashboardData", () =>
-        getMerchantDashboardData(merchant)
+        getMerchantDashboardData(merchant, { locationId })
       ),
       timeServerLoader("/app", "getMerchantLaunchReadiness", () =>
         getMerchantLaunchReadiness()
       ),
       timeServerLoader("/app", "getMerchantDashboardSeries", () =>
-        getMerchantDashboardSeries(merchant.id)
+        getMerchantDashboardSeries(merchant.id, { locationId })
       ),
-      // "Do next" needs only two integers — load them without pulling the full
-      // (PII-bearing) customer list onto the dashboard path.
       timeServerLoader("/app", "getMerchantDashboardCustomerCounts", () =>
         getMerchantDashboardCustomerCounts(merchant.id)
       ),
@@ -105,6 +110,15 @@ export async function MerchantDashboardStream({
           title="How the week is going"
           description="Deltas compare this week with the seven days before; the lines trace the last fortnight."
         />
+        <DashboardLocationFilter
+          locations={locations}
+          activeLocationId={locationId}
+        />
+        {sharedMembersCaption ? (
+          <p className="text-sm leading-6 font-semibold text-muted-foreground">
+            {sharedMembersCaption}
+          </p>
+        ) : null}
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {kpis.map((kpi, index) => (
@@ -156,90 +170,6 @@ export async function MerchantDashboardStream({
         members={metrics.members}
       />
     </>
-  )
-}
-
-const NEXT_ACTION_DOT: Record<"accent" | "sun" | "leaf", string> = {
-  accent: "bg-primary",
-  sun: "bg-sun",
-  leaf: "bg-leaf",
-}
-
-function MerchantNextActions({
-  readyCount,
-  quietCount,
-  repeatCustomers,
-  members,
-}: {
-  readyCount: number
-  quietCount: number
-  repeatCustomers: number
-  members: number
-}) {
-  return (
-    <ReceiptCard className="grid gap-4">
-      <SectionHeader title="Do next" />
-      <div className="grid gap-1.5">
-        <NextActionRow
-          href="/app/customers"
-          tone={readyCount > 0 ? "accent" : "leaf"}
-          label={
-            readyCount > 0
-              ? `${readyCount} ${readyCount === 1 ? "reward" : "rewards"} ready to redeem`
-              : "No rewards waiting — you're all caught up"
-          }
-        />
-        <NextActionRow
-          href="/app/customers"
-          tone={quietCount > 0 ? "sun" : "leaf"}
-          label={
-            quietCount > 0
-              ? `${quietCount} ${quietCount === 1 ? "member" : "members"} gone quiet`
-              : "Every member has visited recently"
-          }
-        />
-      </div>
-      <div className="border-t border-dashed border-line pt-4">
-        <ProgressTrack
-          current={repeatCustomers}
-          total={members}
-          label="Repeat members"
-        />
-      </div>
-    </ReceiptCard>
-  )
-}
-
-function NextActionRow({
-  href,
-  tone,
-  label,
-}: {
-  href: string
-  tone: "accent" | "sun" | "leaf"
-  label: string
-}) {
-  return (
-    <Link
-      href={href}
-      prefetch={false}
-      className="-mx-2 flex items-center gap-3 rounded-lg border-2 border-transparent px-2 py-2 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:border-ink/15 hover:bg-secondary/50 focus-visible:border-ink/15 focus-visible:bg-secondary/50 focus-visible:outline-none motion-reduce:transition-none"
-    >
-      <span
-        className={cn(
-          "size-2.5 shrink-0 rounded-full border-2 border-ink",
-          NEXT_ACTION_DOT[tone]
-        )}
-      />
-      <span className="min-w-0 flex-1 text-sm font-semibold text-balance">
-        {label}
-      </span>
-      <Icon
-        icon={ArrowRight01Icon}
-        size={16}
-        className="shrink-0 text-ink-soft"
-      />
-    </Link>
   )
 }
 

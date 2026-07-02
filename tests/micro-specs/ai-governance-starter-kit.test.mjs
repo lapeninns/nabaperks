@@ -187,6 +187,72 @@ test("Given invalid package JSON When preview runs Then a clean blocker is repor
   }
 })
 
+test("Given a high-risk spec without durable proof When validated Then governance fails", () => {
+  const targetRoot = mkdtempSync(path.join(tmpdir(), "ai-governance-kit-teeth-"))
+
+  try {
+    writePackageJson(targetRoot, {
+      scripts: {
+        build: "node --version",
+        lint: "node --version",
+        test: "node --test tests/micro-specs/*.test.mjs",
+        typecheck: "node --version",
+        "test:db": "node --version",
+      },
+    })
+
+    execFileSync("node", [path.join(kitRoot, "install-ai-governance.mjs"), targetRoot], {
+      stdio: "pipe",
+    })
+
+    // A billing spec that declares no durable-proof gate even though test:db exists.
+    writeFileSync(
+      path.join(targetRoot, "micro-specs", "billing-no-proof.md"),
+      [
+        "---",
+        "spec_id: MS-billing-no-proof",
+        "status: active",
+        "risk_class: billing",
+        "owner: test",
+        "last_reviewed: 2026-07-01",
+        "allowed_blast_radius:",
+        "  - lib/**",
+        "implementation_surfaces:",
+        "  - lib/x.ts",
+        "related_tests:",
+        "  - tests/unit/x.test.mjs",
+        "verification_gates:",
+        "  - pnpm governance:check",
+        "  - pnpm test",
+        "  - pnpm lint",
+        "  - pnpm typecheck",
+        "  - pnpm build",
+        "required_playwright_projects: []",
+        "evidence_required:",
+        "  - readback",
+        "approved_exceptions: []",
+        "---",
+        "# Billing without durable proof",
+        "",
+      ].join("\n")
+    )
+
+    let output = ""
+    let failed = false
+    try {
+      execFileSync("node", ["scripts/check-governance.mjs"], { cwd: targetRoot, encoding: "utf8" })
+    } catch (error) {
+      failed = true
+      output = `${error.stdout ?? ""}${error.stderr ?? ""}`
+    }
+
+    assert.equal(failed, true, "billing spec without durable proof must fail governance")
+    assert.match(output, /durable-proof gate/)
+  } finally {
+    rmSync(targetRoot, { recursive: true, force: true })
+  }
+})
+
 function writePackageJson(targetRoot, overrides = {}) {
   const packageJson = {
     name: "starter-target",

@@ -1,9 +1,9 @@
 ---
 spec_id: MS-governance-ci-baseline-blockers
-status: active
+status: implemented
 risk_class: ui-only
 owner: codex
-last_reviewed: 2026-06-30
+last_reviewed: 2026-07-02
 allowed_blast_radius:
   - components/ui/sidebar.tsx
   - eslint.config.mjs
@@ -92,3 +92,12 @@ Required gates:
 - `pnpm test:a11y`
 - `pnpm test:visual`
 - `pnpm build`
+
+## Implementation Evidence
+
+2026-07-02 local gate evidence: `pnpm governance:run-gates` passed all 19
+active gates before this spec transitioned to `implemented`, including lint,
+typecheck, governance metadata, unit and Micro-Spec tests, coverage,
+governance Playwright smoke, a11y, visual, build, bundle, Lighthouse, JSON-LD,
+DB proof, and focused sprint e2e gates. Final `verified` status still needs the
+main CI artifact requested by the sprint close checklist.
