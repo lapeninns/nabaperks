@@ -28,6 +28,8 @@ const devServerEnv = [
   "RESEND_FROM=",
   "TWILIO_MESSAGING_SERVICE_SID=",
 ].join(" ")
+const snapshotPlatformSuffix =
+  process.env.CI && process.platform === "linux" ? "-linux" : ""
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -39,7 +41,7 @@ export default defineConfig({
     timeout: 15_000,
   },
   snapshotPathTemplate:
-    "{testDir}/{testFilePath}-snapshots/{arg}-{projectName}{ext}",
+    `{testDir}/{testFilePath}-snapshots/{arg}-{projectName}${snapshotPlatformSuffix}{ext}`,
   use: {
     baseURL,
     trace: "retain-on-failure",
