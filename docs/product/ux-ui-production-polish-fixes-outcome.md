@@ -1,8 +1,8 @@
 # UX/UI Production-Polish Fix Program — Outcome
 
-**Completed:** 2026-07-02 · **Commits:** `a694d675` → `6aa7e031` (5) · **Verdict:** the independent re-audit upgrades the 2026-07-02 audit's **NEARLY READY** to **READY**, with named launch-week conditions.
+**Completed:** 2026-07-02 · **Core commits:** `a694d675` → `d17b854a` (8) · **Production ops proof:** Vercel deployment `dpl_A49ntp6Dgj5ViA2xDtiAP51VKV73` is `READY` and aliased to `nabaperks.com`; the authorised weekly-digest cron check returned 200 with `attempted=3`, `sent=3`, `failed=0`.
 
-The programme executed the 354-row coverage ledger derived from the production-polish audit: every row reached a terminal state — **323 FIXED · 18 BLOCKED (decision packet) · 13 DEFERRED (written reasons)** — with the full gate suite green at every phase boundary and `pnpm governance:run-gates` passing all 17 active-spec gates at head.
+The programme executed the 354-row coverage ledger derived from the production-polish audit: every row reached a terminal state — **341 FIXED · 0 BLOCKED · 13 DEFERRED (written reasons)** — with the full gate suite green at every phase boundary and `pnpm governance:run-gates` passing the current active-spec gates at head.
 
 ## What changed, in one paragraph
 
@@ -14,12 +14,13 @@ Evidence is deliberately kept out of the repo (`.omo/` is untracked):
 
 - `.omo/evidence/ux-ui-production-polish-fixes/fix-report.md` — the full report (ledger accounting, evidence index, residual risk, verdict).
 - `coverage-ledger.md` / `.tsv` — the 354-row source of truth, all terminal.
-- `reports/` — per-lane reports, `verification.md` (90+ true-viewport captures incl. the first real admin runtime evidence and the 7/7 W4 proof set), `re-audit.md` (independent verdict), `decisions-packet.md` (16 decision briefs awaiting the product owner).
-- Governance: active Micro-Specs `micro-specs/platform/ux-production-polish.md` and `micro-specs/admin/member-lookup.md` (to move to `implemented`/`verified` as the lifecycle policy requires).
+- `reports/` — per-lane reports, `verification.md` (90+ true-viewport captures incl. the first real admin runtime evidence and the 7/7 W4 proof set), `re-audit.md` (independent verdict), `decisions-packet.md` (16 decision briefs resolved by accepted recommendations).
+- Governance: Micro-Specs `micro-specs/platform/ux-production-polish.md` and `micro-specs/admin/member-lookup.md` moved to `implemented` after the write-backs and gates passed.
 
-## Open items for the product owner
+## Launch-week follow-ups
 
-1. The 16-brief decision packet (design-contract reconciliations, OTP cursor, circle exemptions, presets, widths, FAQ pattern, WetInkFloat) — each with options + a recommendation.
-2. The weekly-digest ops call: set the production `CRON_SECRET` (recommended) or soften the digest claims — decide by launch day.
-3. A ~30-minute physical-device pass (camera viewfinder, billing-failure branch, thumb-zone CTA).
-4. Follow-ups filed from the re-audit: gate/profile email-resend feedback (P2), the ≥10px arbitrary micro-type tail (P3), a pluralisation nit.
+These are residual operational QA items, not ledger blockers:
+
+1. A ~30-minute physical-device pass (camera viewfinder, billing-failure branch, thumb-zone CTA).
+2. Follow-ups filed from the re-audit: gate/profile email-resend feedback (P2), the >=10px arbitrary micro-type tail (P3), a pluralisation nit.
+3. Actual legal sign-off of the terms wording is an ops receipt outside the repo; the product no longer self-labels as unreviewed.
