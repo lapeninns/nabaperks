@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils"
  * the hero's two-column grid). Server component.
  */
 type SectionSize = "default" | "compact" | "tight" | "flush"
-type SectionWidth = "marketing" | "narrow" | "wide"
+type SectionWidth = "marketing" | "narrow"
 
 const sizePad: Record<SectionSize, string> = {
   default: "py-7 sm:py-10",
@@ -23,9 +23,8 @@ const sizePad: Record<SectionSize, string> = {
 }
 
 const widthMax: Record<SectionWidth, string> = {
-  marketing: "max-w-6xl",
+  marketing: "max-w-marketing",
   narrow: "max-w-3xl",
-  wide: "max-w-7xl",
 }
 
 type SectionProps = {
@@ -49,7 +48,7 @@ export function Section({
         "mx-auto w-full scroll-mt-24 px-6",
         widthMax[width],
         sizePad[size],
-        className,
+        className
       )}
       {...props}
     >

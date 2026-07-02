@@ -80,6 +80,12 @@ export default async function AdminPilotPage() {
           mobileClassName="p-5"
           rows={report.metrics}
           getRowKey={(metric) => metric.label}
+          emptyState={
+            <EmptyState
+              title="No pilot metrics available yet"
+              description="Pilot metrics appear here once the report source returns data."
+            />
+          }
           mobileCard={(metric) => (
             <AdminRecordCard
               title={metric.label}
@@ -164,69 +170,69 @@ export default async function AdminPilotPage() {
                     },
                   ]}
                   action={
-                  <AdminActionForm
-                    action={logPilotNoteAction}
-                    className="gap-3"
-                  >
-                    <input
-                      type="hidden"
-                      name="merchantId"
-                      value={merchant.id}
-                    />
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[220px_160px_minmax(0,1fr)_auto]">
-                      <AdminField label="Note type">
-                        <select
-                          name="noteType"
-                          required
-                          className={adminSelectClasses}
-                          defaultValue="support"
+                    <AdminActionForm
+                      action={logPilotNoteAction}
+                      className="gap-3"
+                    >
+                      <input
+                        type="hidden"
+                        name="merchantId"
+                        value={merchant.id}
+                      />
+                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[220px_160px_minmax(0,1fr)_auto]">
+                        <AdminField label="Note type">
+                          <select
+                            name="noteType"
+                            required
+                            className={adminSelectClasses}
+                            defaultValue="support"
+                          >
+                            <option value="support">Support note</option>
+                            <option value="interview">Interview note</option>
+                            <option value="payment_objection">
+                              Payment objection
+                            </option>
+                            <option value="cancellation_reason">
+                              Cancellation reason
+                            </option>
+                            <option value="launch_self_service_checked">
+                              Self-service launch check
+                            </option>
+                          </select>
+                        </AdminField>
+                        <AdminField
+                          label="Setup check minutes"
+                          helper="Optional for self-service launch checks."
                         >
-                          <option value="support">Support note</option>
-                          <option value="interview">Interview note</option>
-                          <option value="payment_objection">
-                            Payment objection
-                          </option>
-                          <option value="cancellation_reason">
-                            Cancellation reason
-                          </option>
-                          <option value="launch_self_service_checked">
-                            Self-service launch check
-                          </option>
-                        </select>
-                      </AdminField>
-                      <AdminField
-                        label="Setup check minutes"
-                        helper="Optional for self-service launch checks."
-                      >
-                        <Input
-                          name="setupMinutes"
-                          type="number"
-                          min={1}
-                          max={3}
-                          placeholder="1-3"
-                        />
-                      </AdminField>
-                      <AdminField
-                        label="Notes"
-                        className="sm:col-span-2 xl:col-span-1"
-                      >
-                        <Textarea
-                          name="notes"
-                          required
-                          minLength={4}
-                          rows={2}
-                          placeholder="What happened, source, and next action"
-                        />
-                      </AdminField>
-                      <SubmitButton
-                        pendingLabel="Saving…"
-                        className="justify-self-start sm:col-span-2 xl:col-span-1 xl:self-end"
-                      >
-                        <Icon icon={CheckmarkCircle02Icon} size={16} />
-                        Save note
-                      </SubmitButton>
-                    </div>
-                  </AdminActionForm>
+                          <Input
+                            name="setupMinutes"
+                            type="number"
+                            min={1}
+                            max={3}
+                            placeholder="1-3"
+                          />
+                        </AdminField>
+                        <AdminField
+                          label="Notes"
+                          className="sm:col-span-2 xl:col-span-1"
+                        >
+                          <Textarea
+                            name="notes"
+                            required
+                            minLength={4}
+                            rows={2}
+                            placeholder="What happened, source, and next action"
+                          />
+                        </AdminField>
+                        <SubmitButton
+                          pendingLabel="Saving…"
+                          className="justify-self-start sm:col-span-2 xl:col-span-1 xl:self-end"
+                        >
+                          <Icon icon={CheckmarkCircle02Icon} size={16} />
+                          Save note
+                        </SubmitButton>
+                      </div>
+                    </AdminActionForm>
                   }
                 />
               )

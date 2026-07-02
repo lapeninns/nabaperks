@@ -38,15 +38,15 @@ export function ContrastBand({
     <section
       className={cn(
         "scroll-mt-24 border-y-2 border-ink bg-ink text-paper",
-        className,
+        className
       )}
       {...props}
     >
       <div
         className={cn(
-          "mx-auto w-full max-w-6xl px-6",
+          "mx-auto w-full max-w-marketing px-6",
           innerPad[size],
-          containerClassName,
+          containerClassName
         )}
       >
         {children}

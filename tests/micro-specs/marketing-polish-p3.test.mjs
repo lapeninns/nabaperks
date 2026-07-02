@@ -57,7 +57,9 @@ test("Given the offline page When it renders Then EmptyState is the single card 
 test("Given the 404 page When the tab renders Then it is titled Page not found", () => {
   const page = readProjectFile("app", "not-found.tsx")
 
-  assert.ok(page.includes('export const metadata = { title: "Page not found" }'))
+  assert.ok(
+    page.includes('export const metadata = { title: "Page not found" }')
+  )
 })
 
 // --- MKT-P3-01 / MKT-P3-21 — share card and chrome colour ------------------------
@@ -84,7 +86,12 @@ test("Given dark mode When the browser paints its chrome Then themeColor matches
 
 test("Given the OG image and QR mock When colours render Then they are token values, not off-brand literals", () => {
   const og = readProjectFile("app", "opengraph-image.tsx")
-  const qr = readProjectFile("components", "marketing", "landing", "venue-qr.tsx")
+  const qr = readProjectFile(
+    "components",
+    "marketing",
+    "landing",
+    "venue-qr.tsx"
+  )
 
   assert.equal(og.includes("#3b342b"), false, "off-brand grey removed")
   assert.ok(og.includes("#4f473d"), "ink-soft literal (Satori) in place")
@@ -113,7 +120,12 @@ test("Given the marketing card surfaces When radii render Then no hardcoded roun
 // --- MKT-P3-04 / MKT-P3-27 mechanical — jump-nav ------------------------------------
 
 test("Given the jump nav on a phone When chips overflow Then a fade signals it and the chips ride the token dialects", () => {
-  const nav = readProjectFile("components", "marketing", "landing", "jump-nav.tsx")
+  const nav = readProjectFile(
+    "components",
+    "marketing",
+    "landing",
+    "jump-nav.tsx"
+  )
 
   assert.match(
     nav,
@@ -121,10 +133,17 @@ test("Given the jump nav on a phone When chips overflow Then a fade signals it a
     "right-edge fade, hidden once the row wraps at sm"
   )
   assert.ok(nav.includes("focus-ring"), "focus dialect is .focus-ring")
-  assert.equal(nav.includes("focus-visible:ring-3"), false, "banned dialect gone")
+  assert.equal(
+    nav.includes("focus-visible:ring-3"),
+    false,
+    "banned dialect gone"
+  )
   assert.ok(nav.includes("border-line"), "resting border uses the line token")
   assert.equal(nav.includes("border-ink/15"), false)
-  assert.ok(nav.includes("rounded-full"), "chip shape untouched pending the circles decision")
+  assert.ok(
+    nav.includes("rounded-full"),
+    "chip shape is a named circle exception"
+  )
 })
 
 // --- MKT-P3-05 — dead code stays dead -----------------------------------------------
@@ -137,7 +156,11 @@ test("Given the dead story-loop hook When the sweep lands Then the file is delet
     "use-lost-card-story-loop.ts"
   )
 
-  assert.equal(existsSync(deadPath), false, "use-lost-card-story-loop.ts removed")
+  assert.equal(
+    existsSync(deadPath),
+    false,
+    "use-lost-card-story-loop.ts removed"
+  )
 })
 
 // --- MKT-P3-10 / MKT-P3-12 — hub and guide wayfinding ---------------------------------
@@ -153,7 +176,10 @@ test("Given the pub hub and guide spokes When the header renders Then a Log in p
 
   assert.ok(hub.includes('{ href: "/login", label: "Log in" }'))
   assert.ok(guide.includes('{ href: "/login", label: "Log in" }'))
-  assert.ok(guide.includes('aria-current="page"'), "current guide marked in the trail")
+  assert.ok(
+    guide.includes('aria-current="page"'),
+    "current guide marked in the trail"
+  )
   assert.match(guide, /Home\s*<\/Link>/, "trail starts at Home")
 })
 
@@ -185,6 +211,9 @@ test("Given plan and hero checklists When ticks render Then they are reward gree
 
   assert.ok(pricing.includes('className="mt-0.5 shrink-0 text-reward"'))
   assert.ok(hub.includes('className="mt-0.5 shrink-0 text-reward"'))
-  assert.equal(pricing.includes('className="mt-0.5 shrink-0 text-primary"'), false)
+  assert.equal(
+    pricing.includes('className="mt-0.5 shrink-0 text-primary"'),
+    false
+  )
   assert.equal(hub.includes('className="mt-0.5 shrink-0 text-primary"'), false)
 })

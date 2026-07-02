@@ -7,7 +7,7 @@ import {
   type MerchantProfileState,
 } from "@/app/app/profile/actions"
 import { Eyebrow } from "@/components/brand"
-import { FormField, SubmitButton } from "@/components/forms"
+import { FormField, SelectField, SubmitButton } from "@/components/forms"
 import { Input } from "@/components/ui/input"
 
 const businessTypeOptions = [
@@ -57,9 +57,12 @@ export function MerchantProfileForm({
   // useActionState returns a fresh state object on every dispatch.
   useEffect(() => {
     if (!state.errors) return
-    const firstInvalidId = ["businessName", "businessType", "email", "phone"].find(
-      (key) => state.errors?.[key as keyof typeof state.errors]
-    )
+    const firstInvalidId = [
+      "businessName",
+      "businessType",
+      "email",
+      "phone",
+    ].find((key) => state.errors?.[key as keyof typeof state.errors])
     const target = firstInvalidId
       ? document.getElementById(firstInvalidId)
       : null
@@ -86,15 +89,9 @@ export function MerchantProfileForm({
         label={<Eyebrow>Business type</Eyebrow>}
         error={state.errors?.businessType}
       >
-        {/* One input story: the native select opts into the themed input well
-            via data-slot, so border, background, focus and invalid states come
-            from the unlayered Wet Ink layer instead of a private class string.
-            FormField injects id/aria-describedby/aria-invalid. */}
-        <select
+        <SelectField
           name="businessType"
           defaultValue={fields?.businessType ?? ""}
-          data-slot="input"
-          className="h-12 w-full min-w-0 px-4 text-sm transition-[border-color,outline-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none"
         >
           <option value="" disabled>
             Select type
@@ -104,7 +101,7 @@ export function MerchantProfileForm({
               {option.label}
             </option>
           ))}
-        </select>
+        </SelectField>
       </FormField>
       <Field
         id="email"

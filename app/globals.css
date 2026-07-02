@@ -92,6 +92,9 @@
   /* Customer column measure (DESIGN.md "max-width-customer: 410px") — gives
      the max-w-customer utility so one journey stops shipping three widths. */
   --container-customer: 25.625rem;
+  --container-merchant: 72rem;
+  --container-marketing: 72rem;
+  --container-marketing-chrome: 80rem;
 }
 
 :root {
@@ -482,25 +485,6 @@ body[data-grain="true"]::after {
   outline-color: color-mix(in oklch, var(--destructive) 70%, transparent);
 }
 
-[data-slot="input-otp-slot"] {
-  border-color: var(--w-ink);
-  border-top-width: 2px;
-  border-bottom-width: 2px;
-  border-right-width: 2px;
-  background: var(--card);
-}
-
-[data-slot="input-otp-slot"]:first-child {
-  border-left-width: 2px;
-  border-top-left-radius: var(--radius);
-  border-bottom-left-radius: var(--radius);
-}
-
-[data-slot="input-otp-slot"]:last-child {
-  border-top-right-radius: var(--radius);
-  border-bottom-right-radius: var(--radius);
-}
-
 /* Bare Alert honours the 2px ink contract; StatusBanner remains the loyalty
    face and simply layers its tone washes on top. */
 [data-slot="alert"] {
@@ -736,7 +720,8 @@ body[data-grain="true"]::after {
   justify-content: center;
 }
 
-[data-slot="sidebar"][data-collapsible="icon"] [data-slot="sidebar-menu-button"],
+[data-slot="sidebar"][data-collapsible="icon"]
+  [data-slot="sidebar-menu-button"],
 [data-slot="sidebar"][data-collapsible="icon"] [data-collapse-center] {
   justify-content: center;
   padding-inline: 0;

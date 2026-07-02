@@ -72,6 +72,37 @@ export const PUB_REWARD_PRESETS: readonly RewardPreset[] = [
   },
 ]
 
+export const GENERIC_REWARD_PRESETS: readonly RewardPreset[] = [
+  {
+    id: "free-item",
+    rewardName: "Free item",
+    rewardTerms:
+      "One eligible item from the standard menu or service list. Valid from the next UK business day.",
+    description: "A simple reward any local business can tune.",
+  },
+  {
+    id: "member-upgrade",
+    rewardName: "Member upgrade",
+    rewardTerms:
+      "One complimentary upgrade on an eligible purchase. Valid from the next UK business day.",
+    description: "Good when an upsell has low fulfilment risk.",
+  },
+  {
+    id: "ten-percent-off",
+    rewardName: "10% off",
+    rewardTerms:
+      "Ten percent off one eligible purchase, excluding gift cards and third-party fees. Valid from the next UK business day.",
+    description: "Familiar value without naming a venue type.",
+  },
+  {
+    id: "member-perk",
+    rewardName: "Member perk",
+    rewardTerms:
+      "One member-only perk chosen by the business team. Valid from the next UK business day.",
+    description: "A flexible placeholder for teams still deciding.",
+  },
+]
+
 export const CARD_CADENCE_PRESETS: readonly CardCadencePreset[] = [
   {
     id: "lunch-trade",
@@ -92,6 +123,12 @@ export const CARD_CADENCE_PRESETS: readonly CardCadencePreset[] = [
     description: "Pick 6 so a weekly regular unlocks roughly monthly.",
   },
 ]
+
+export function rewardPresetsForBusinessType(
+  businessType: string | null | undefined
+): readonly RewardPreset[] {
+  return businessType === "pub" ? PUB_REWARD_PRESETS : GENERIC_REWARD_PRESETS
+}
 
 export function rewardPresetToPoolItemValues(
   preset: RewardPreset,

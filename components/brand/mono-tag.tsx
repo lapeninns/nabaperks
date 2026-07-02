@@ -4,13 +4,14 @@ import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Icon, type IconGlyph } from "./icon"
 
-type MonoTagTone = "plain" | "accent" | "ink" | "leaf" | "sun"
+type MonoTagTone = "plain" | "accent" | "cobalt" | "ink" | "leaf" | "sun"
 
 const TONE: Record<MonoTagTone, string> = {
   plain: "",
   // Every filled tone carries the ink border — a primary-on-primary border
   // reads as borderless next to its ink-bordered siblings.
   accent: "border-ink bg-primary text-primary-foreground",
+  cobalt: "border-ink bg-cobalt text-paper",
   ink: "border-ink bg-ink text-paper",
   leaf: "border-ink bg-reward text-reward-foreground",
   sun: "border-ink bg-seal text-seal-foreground",

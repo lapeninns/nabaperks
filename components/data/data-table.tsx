@@ -66,10 +66,10 @@ export type DataTableProps<T> = {
   /**
    * Breakpoint at which the card stack switches to the semantic table (only
    * when `mobileCard` is set). `"sm"` (the default) keeps cards on phones and
-   * the table from 640px up — byte-identical to the original behaviour. `"lg"`
-   * and `"xl"` keep cards through wider layouts before switching to the table.
+   * the table from 640px up — byte-identical to the original behaviour. `"xl"`
+   * is the admin console norm, keeping card records through tablet widths.
    */
-  cardBreakpoint?: "sm" | "lg" | "xl"
+  cardBreakpoint?: "sm" | "xl"
 }
 
 /**
@@ -79,7 +79,6 @@ export type DataTableProps<T> = {
  */
 const CARD_BREAKPOINT_CLASSES = {
   sm: { cards: "sm:hidden", table: "hidden sm:block" },
-  lg: { cards: "lg:hidden", table: "hidden lg:block" },
   xl: { cards: "xl:hidden", table: "hidden xl:block" },
 } as const
 

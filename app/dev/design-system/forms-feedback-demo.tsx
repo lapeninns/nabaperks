@@ -4,7 +4,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 import { Eyebrow } from "@/components/brand"
-import { FormField, OtpInput, SubmitButton } from "@/components/forms"
+import { FormField, SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -22,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea"
 /**
  * Forms & feedback — the states where production defects hide: inputs in
  * every state (including invalid via real aria-invalid), the aria-wired
- * FormField, OTP cells, the SubmitButton pending recipe, live toast
+ * FormField, one-time-code input, the SubmitButton pending recipe, live toast
  * triggers, and bare Alert beside its StatusBanner face.
  */
 export function FormsFeedbackDemo() {
@@ -32,7 +32,10 @@ export function FormsFeedbackDemo() {
         <div className="grid content-start gap-4 rounded-lg border-2 border-ink bg-card p-5">
           <Eyebrow>Input states</Eyebrow>
           <div className="grid gap-3">
-            <Input placeholder="Default — focus me" aria-label="Default input" />
+            <Input
+              placeholder="Default — focus me"
+              aria-label="Default input"
+            />
             <Input
               placeholder="Disabled"
               disabled
@@ -68,7 +71,13 @@ export function FormsFeedbackDemo() {
           </FormField>
           <div className="grid gap-2">
             <Eyebrow>One-time passcode</Eyebrow>
-            <OtpInput />
+            <Input
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              aria-label="One-time passcode"
+              className="font-mono tracking-[0.18em]"
+            />
           </div>
         </div>
       </div>
@@ -86,7 +95,9 @@ export function FormsFeedbackDemo() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => toast.success("Estimate copied — show it to the team")}
+              onClick={() =>
+                toast.success("Estimate copied — show it to the team")
+              }
             >
               Success
             </Button>

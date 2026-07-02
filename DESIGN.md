@@ -70,8 +70,9 @@ spacing:
   card-gap: 14px
   section-gap: 22px
   max-width-customer: 410px
-  max-width-merchant: 1060px
-  max-width-marketing: 1100px
+  max-width-merchant: 1152px
+  max-width-marketing: 1152px
+  max-width-marketing-chrome: 1280px
   tap-target-min: 44px
 elevation:
   shadow: "4px 4px 0 ink"
@@ -171,13 +172,17 @@ Both families are served through `next/font/google` as
 Sharp-ish print shapes. **10px radius** (`--radius`) on buttons, inputs,
 cards, and keys; **18px** (`--radius-sheet`) on bottom sheets and large
 panels. **Full circles are reserved for the stamp family** — stamps, seals,
-marks — always rotated -6° to -8°. One named exemption: the `EmptyState` icon
+marks — always rotated -6° to -8°.
+
+Named circle exceptions are narrow and intentional: the `EmptyState` icon
 roundel (a static, unrotated, ink-bordered circle framing a glyph in
-`components/brand/typography.tsx`) is sanctioned outside the stamp family —
-this blessing covers that roundel only, not tab chips, step discs, jump-nav
-circles or any other circular chrome. Borders are **2px solid ink** everywhere;
-**2px dashed** (`.w-rule`) for empty slots, receipt rules, and demo chrome.
-The mono pill `.w-tag` is the only pill shape outside the stamp family.
+`components/brand/typography.tsx`), customer tab-bar chips, join stepper discs,
+marketing jump-nav chips, and the legal-link halo family. These are navigation
+or framing controls, not reward marks; do not extend the list without updating
+this contract. Borders are **2px solid ink** everywhere; **2px dashed**
+(`.w-rule`) for empty slots, receipt rules, demo chrome, and pick-one
+suggestion tiles such as reward presets and add-reward affordances. The mono
+pill `.w-tag` is the only generic pill shape outside the stamp family.
 
 ## Elevation & Depth
 
@@ -191,7 +196,7 @@ in `globals.css`: `shadow-md` is 4px 4px 0 ink (cards), `shadow-sm` 3px 3px 0
 - _Disabled_ — 45–50% opacity.
 - _Focus_ — **one recipe for the whole system**: a 2px vermillion outline at
   2px offset (`outline: 2px solid color-mix(in oklch, var(--ring) 70%,
-  transparent)`). `.pressable` (every Button) and the themed inputs carry it
+transparent)`). `.pressable` (every Button) and the themed inputs carry it
   from the unlayered layer; plain interactive elements add `.focus-ring`.
   Never reintroduce per-component `focus-visible:ring-*` alphas.
 - _Dense tiles_ — a slotted `Card` takes `data-elevation="flat"` for the 2px
@@ -209,8 +214,10 @@ in `globals.css`: `shadow-md` is 4px 4px 0 ink (cards), `shadow-sm` 3px 3px 0
 
 4px base unit. 14px gaps between cards, 22px between sections. Customer
 column max ~410px (thumb zone — use the `max-w-customer` utility, minted from
-`--container-customer`, so one journey ships one width), merchant 1060px,
-marketing 1100px. Primary tap targets ≥ 44px (buttons h-11+, PIN keys 60px).
+`--container-customer`, so one journey ships one width), merchant 1152px
+(`max-w-merchant`), marketing content 1152px (`max-w-marketing`), and
+marketing chrome/header/footer 1280px (`max-w-marketing-chrome`). Primary tap
+targets ≥ 44px (buttons h-11+, PIN keys 60px).
 Compact button sizes (`xs`/`sm`/`icon-sm`) are honest: they render at their
 declared height on fine pointers and grow to the 44px floor on coarse
 (touch) pointers, the FilterPills pattern. Mobile-first, touch-first — hover
@@ -268,7 +275,7 @@ that way: restyle via tokens, the ink layer, wrapper components, or
 project-specific variants.
 
 **Layer precedence.** The Wet Ink `[data-slot=…]` block sits deliberately
-*outside* any `@layer`, so under Tailwind v4 it beats every layered utility
+_outside_ any `@layer`, so under Tailwind v4 it beats every layered utility
 regardless of specificity. A utility such as `rounded-full` or `shadow-lg`
 dropped on a themed primitive will therefore not override it — restyle through a
 token, a wrapper, or a variant instead.
@@ -286,7 +293,7 @@ wrappers, never raw shadcn or inline keyframes:
 - **Motion** (`components/motion`): the `WetInk*` primitives only (see Motion
   above) — never raw `animation: w-*` / `animate-[w-*]`.
 - **Forms / data** (`components/forms`, `components/data`): `FormField`,
-  `OtpInput`, `SubmitButton`, `DataTable`, `ActivityFeed`, `FunnelChart`.
+  `SelectField`, `SubmitButton`, `DataTable`, `ActivityFeed`, `FunnelChart`.
 
 Composed patterns: `StampSlamSequence` (slam + paper shake on a `ReceiptCard
 shaken`), the `RewardSeal`/`RewardTicket` state machine, and the merchant
@@ -320,14 +327,17 @@ admin consoles, where the same data must read on a phone, opt into the
 responsive renderer by passing a `mobileCard` (and an optional
 `mobileClassName`):
 
-- **Breakpoint.** The single switch is `sm`. Below `sm` the component renders a
-  stacked card list (`sm:hidden`); at `sm` and above it renders the semantic
-  table (`hidden sm:block`). This replaces a horizontally scrolling
-  `overflow-x-auto` table on phones with a readable card per row. The
-  `emptyState` is shared and prints in both modes; the `caption`
-  labels both the table (`<caption class="sr-only">`) and the mobile list
-  (`aria-label`). Omitting `mobileCard` leaves the DOM and classes exactly as
-  the plain table, so the opt-in never regresses existing tables.
+- **Breakpoint.** `cardBreakpoint` has two sanctioned switches: `sm` for
+  compact, short-row tables and `xl` for admin consoles. The admin norm is
+  `xl`, so dense support records stay as stacked `AdminRecordCard` rows
+  through tablet widths and switch to the semantic table at desktop width.
+  The old `lg` escape hatch is pruned. The default remains `sm`: below `sm`
+  the component renders a stacked card list (`sm:hidden`); at `sm` and above
+  it renders the semantic table (`hidden sm:block`). The `emptyState` is
+  shared and prints in both modes; the `caption` labels both the table
+  (`<caption class="sr-only">`) and the mobile list (`aria-label`). Omitting
+  `mobileCard` leaves the DOM and classes exactly as the plain table, so the
+  opt-in never regresses existing tables.
 
 - **`AdminRecordCard`** (`components/admin/record-card.tsx`) is the shared
   renderer returned from `mobileCard`. Its API is
@@ -371,8 +381,10 @@ never sits on the reward name.
 
 ### Inputs
 
-Card-background wells with 2px ink borders and 10px radius. OTP boxes are
-ink-bordered card cells where the hard shadow acts as the cursor.
+Card-background wells with 2px ink borders and 10px radius. One-time passcode
+entry is a single native input with `inputMode="numeric"` and
+`autoComplete="one-time-code"`; this keeps iOS autofill reliable and is the
+only OTP/passcode contract.
 
 **One input story.** The themed `[data-slot=input]` well is the single input
 treatment — do not hand-roll `rounded-xl bg-secondary/60` class strings or
@@ -380,10 +392,12 @@ private `Field` clones. State styling lives in the unlayered layer itself:
 focus swaps the border to vermillion plus the shared outline;
 `aria-invalid="true"` swaps it to destructive. Compose fields through
 `FormField` (`components/forms`), which wires `id`, `aria-describedby` and
-`aria-invalid` into its control, so an invalid field is visible *and*
-announced. Pending submits go through `SubmitButton pendingLabel="Saving…"`
-(real ellipsis, never three dots) — it disables itself, announces
-`aria-busy`, and shows the `Spinner`.
+`aria-invalid` into its control, so an invalid field is visible _and_
+announced. Native selects compose through `SelectField`, which keeps the same
+input well and adds the house chevron with the brand `Icon` wrapper. Pending
+submits go through `SubmitButton pendingLabel="Saving…"` (real ellipsis, never
+three dots) — it disables itself, announces `aria-busy`, and shows the
+`Spinner`.
 
 ### Sheets
 
@@ -399,6 +413,16 @@ rule; `.w-tag` is its documented alias for plain (non-Badge) elements. Long
 copy never overflows a row: the pill caps at its container width and
 `MonoTag` truncates its content with an ellipsis — print the venue name as
 text and keep the pill for the status word when both must fit.
+
+Merchant activity categories map to the same spot-ink story everywhere:
+customer joins are cobalt, stamps are vermillion, rewards are leaf, QR events
+are sun, and account events stay quiet secondary/plain.
+
+### FAQ patterns
+
+Both FAQ treatments are sanctioned. Short, pricing-like FAQ lists can use
+dashed receipt rows; longer marketing answers use bordered accordion cards.
+Do not mix the two treatments inside one route.
 
 ### QR Codes
 

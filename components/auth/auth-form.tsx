@@ -93,7 +93,7 @@ function SignInForm({
         <div className="flex justify-end">
           <Link
             href="/reset-password"
-            className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-bold text-primary underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
+            className="focus-ring inline-flex min-h-11 items-center rounded-full px-3 text-sm font-bold text-primary underline-offset-4 hover:underline"
           >
             Forgot password?
           </Link>
@@ -199,7 +199,11 @@ function SignUpForm({
             />
           </>
         )}
-        <input type="hidden" name="intent" value={otpSent ? "resend" : "create"} />
+        <input
+          type="hidden"
+          name="intent"
+          value={otpSent ? "resend" : "create"}
+        />
         <input type="hidden" name="next" value={next} />
         {state.errors?.form ? (
           <Alert variant="destructive">
@@ -302,7 +306,7 @@ function SwitchPromptLink({
     <Link
       href={href}
       className={cn(
-        "inline-flex min-h-11 items-center rounded-full px-3 py-2 font-bold text-primary underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none",
+        "focus-ring inline-flex min-h-11 items-center rounded-full px-3 py-2 font-bold text-primary underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline",
         className
       )}
     >

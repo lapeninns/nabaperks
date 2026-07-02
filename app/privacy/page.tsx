@@ -33,7 +33,7 @@ export const metadata: Metadata = {
 }
 
 const externalLinkClass =
-  "font-bold underline underline-offset-4 hover:text-primary focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
+  "focus-ring font-bold underline underline-offset-4 hover:text-primary"
 
 export default function PrivacyPage() {
   return (
@@ -49,7 +49,7 @@ export default function PrivacyPage() {
               <a
                 key={section.id}
                 href={`#${section.id}`}
-                className="inline-flex min-h-11 items-center rounded-full px-3 py-2 text-sm text-muted-foreground underline-offset-4 hover:bg-accent hover:text-accent-foreground focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
+                className="focus-ring inline-flex min-h-11 items-center rounded-full px-3 py-2 text-sm text-muted-foreground underline-offset-4 hover:bg-accent hover:text-accent-foreground"
               >
                 {section.title}
               </a>
@@ -111,8 +111,8 @@ export default function PrivacyPage() {
               >
                 {OPERATOR.privacyEmail}
               </a>
-              . Our approach is privacy-conscious and consent-led, and follows ICO
-              guidance.
+              . Our approach is privacy-conscious and consent-led, and follows
+              ICO guidance.
             </p>
             <p className="text-sm leading-6 text-muted-foreground">
               Official guidance:{" "}

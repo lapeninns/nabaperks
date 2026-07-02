@@ -194,11 +194,7 @@ test("Given the token guard When extended Then it fails on undefined var() refer
 })
 
 test("Given the loyalty primitives When under width pressure Then StampGrid reserves readable slots and the tag has a truncation story", () => {
-  const stampGrid = readProjectFile(
-    "components",
-    "loyalty",
-    "stamp-grid.tsx"
-  )
+  const stampGrid = readProjectFile("components", "loyalty", "stamp-grid.tsx")
   // Row layout must guarantee a minimum readable track instead of letting
   // discs compress to ellipses.
   assert.match(
@@ -214,11 +210,7 @@ test("Given the loyalty primitives When under width pressure Then StampGrid rese
   // Tag truncation: the badge slot and .w-tag must cap their width.
   assert.match(globalsCss, /\.w-tag[^{]*\{[^}]*max-width:\s*100%/)
   const monoTag = readProjectFile("components", "brand", "mono-tag.tsx")
-  assert.match(
-    monoTag,
-    /truncate/,
-    "MonoTag must truncate long content"
-  )
+  assert.match(monoTag, /truncate/, "MonoTag must truncate long content")
 })
 
 test("Given the catalog acceptance gate When rendered Then forms/feedback and console-viz sections exist", () => {
@@ -239,7 +231,7 @@ test("Given the catalog acceptance gate When rendered Then forms/feedback and co
   )
 })
 
-test("Given the fix-phase leftovers When closed Then card-title, the roundel exemption, the motion vocabulary and the choice-card mode are locked", () => {
+test("Given the fix-phase leftovers When closed Then card-title, circle exceptions, the motion vocabulary and the choice-card mode are locked", () => {
   // DS-P3-12 — the card-title token records the shipped CardTitle default
   // (text-base = 16px); the slot rule owns weight only. A font-size there
   // would silently defeat MetricTile's text-2xl KPI value (unlayered layer
@@ -262,12 +254,21 @@ test("Given the fix-phase leftovers When closed Then card-title, the roundel exe
     "the card-title slot rule must not set a font-size"
   )
 
-  // DS-P3-19 — the EmptyState icon roundel is a named circle-family
-  // exemption, scoped so tab chips / step discs / jump-nav circles stay a
-  // separate pending decision.
+  // DS-P3-19 / ADD-2 — named circle-family exemptions are codified, scoped,
+  // and no longer left as a pending visual decision.
   assert.match(designMd, /EmptyState[\s\S]{0,40}roundel/)
-  assert.match(designMd, /covers that roundel only/)
-  assert.match(designMd, /not tab chips, step discs, jump-nav\s+circles/)
+  assert.match(designMd, /customer tab-bar chips/)
+  assert.match(designMd, /join stepper discs/)
+  assert.match(designMd, /marketing jump-nav chips/)
+  assert.match(designMd, /legal-link halo family/)
+
+  // MER-P3-04 / DS-P2-07 — passcodes use the single native input contract;
+  // the orphaned box stack and input-otp dependency stay gone.
+  assert.match(designMd, /single native input[\s\S]{0,120}one-time-code/)
+  assert.equal(existsInRepo("components/forms/otp-input.tsx"), false)
+  assert.equal(existsInRepo("components/ui/input-otp.tsx"), false)
+  const packageJson = readProjectFile("package.json")
+  assert.doesNotMatch(packageJson, /input-otp/)
 
   // DS-P3-26 — WetInkBreathe is adopted (documented + demoed); WetInkFloat
   // was removed unadopted (zero consumers, zero demos — the Tabs precedent).

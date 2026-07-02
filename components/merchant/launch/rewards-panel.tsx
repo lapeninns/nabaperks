@@ -11,7 +11,7 @@ import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Button } from "@/components/ui/button"
 import { LAUNCH_MIN_ACTIVE_REWARDS } from "@/lib/merchant/launch-readiness-contract"
 import { getLoyaltyCardSetup } from "@/lib/merchant/loyalty-card"
-import { PUB_REWARD_PRESETS } from "@/lib/merchant/reward-presets"
+import { rewardPresetsForBusinessType } from "@/lib/merchant/reward-presets"
 import { seedDefaultRewardPoolForCardIfEmpty } from "@/lib/merchant/seed-default-reward-pool"
 
 export type RewardsPanelParams = {
@@ -102,7 +102,9 @@ export async function RewardsPanel({
         advanceHref={advanceHref}
         continueHref={continueHref ?? billingHref}
         continueLabel={
-          needsBillingActivation ? "billing" : continueLabel ?? "the next step"
+          needsBillingActivation
+            ? "billing"
+            : (continueLabel ?? "the next step")
         }
         rewardsReady={rewardsReady}
         activeRewardPoolItemCount={activeRewardCount}
@@ -114,7 +116,7 @@ export async function RewardsPanel({
         rewardPoolItems={poolItems}
         continueHref={continueHref}
         continueLabel={continueLabel}
-        presets={PUB_REWARD_PRESETS}
+        presets={rewardPresetsForBusinessType(merchant.business_type)}
       />
     </div>
   )
@@ -161,7 +163,9 @@ function RewardsStatus({
         <LaunchSaveNextAction
           nextHref={advanceHref ?? continueHref ?? null}
           nextLabel={
-            needsBillingActivation ? "billing" : continueLabel ?? "the next step"
+            needsBillingActivation
+              ? "billing"
+              : (continueLabel ?? "the next step")
           }
           stayHref="/app/launch?tab=rewards"
           blockedReason={

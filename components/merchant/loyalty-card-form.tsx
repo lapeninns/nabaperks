@@ -20,12 +20,7 @@ import {
   type LoyaltyCardActionState,
   type RewardPoolItemActionState,
 } from "@/app/app/card/actions"
-import {
-  EmptyState,
-  Eyebrow,
-  Icon,
-  MonoTag,
-} from "@/components/brand"
+import { EmptyState, Eyebrow, Icon, MonoTag } from "@/components/brand"
 import { FormField } from "@/components/forms"
 import { CustomerCardPreview } from "@/components/merchant/launch/customer-card-preview"
 import { Disclosure } from "@/components/merchant/launch/disclosure"
@@ -200,7 +195,9 @@ export function LoyaltyCardForm({
               })}
             </div>
           ) : null}
-          <p className="text-xs leading-5 text-muted-foreground">{cadenceHint}</p>
+          <p className="text-xs leading-5 text-muted-foreground">
+            {cadenceHint}
+          </p>
           {state.errors?.stampsRequired ? (
             <p className="text-sm text-destructive">
               {state.errors.stampsRequired}
@@ -322,14 +319,14 @@ export function RewardPoolForm({
 
       {presets.length > 0 ? (
         <div className="grid gap-2 rounded-lg bg-secondary p-3">
-          <Eyebrow>Pub reward presets</Eyebrow>
+          <Eyebrow>Reward ideas</Eyebrow>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {presets.map((preset) => (
               <button
                 key={preset.id}
                 type="button"
                 onClick={() => openPresetReward(preset)}
-                className="grid min-h-16 min-w-0 gap-1 rounded-lg border-[1.5px] border-border bg-card px-3 py-2.5 text-left text-foreground transition-[background-color,border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:border-ink hover:bg-background focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none"
+                className="focus-ring grid min-h-16 min-w-0 gap-1 rounded-lg border-2 border-dashed border-ink/25 bg-transparent px-3 py-2.5 text-left text-foreground transition-[background-color,border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:border-ink hover:bg-card motion-reduce:transition-none"
               >
                 <span className="text-sm leading-snug font-extrabold text-pretty">
                   {preset.rewardName}
@@ -386,7 +383,7 @@ export function RewardPoolForm({
         <button
           type="button"
           onClick={openBlankReward}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-ink/25 bg-transparent px-4 py-3 text-sm font-bold text-foreground transition-[border-color,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:border-ink hover:bg-secondary/60 focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none"
+          className="focus-ring flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-ink/25 bg-transparent px-4 py-3 text-sm font-bold text-foreground transition-[border-color,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:border-ink hover:bg-secondary/60 motion-reduce:transition-none"
         >
           <Icon icon={Add01Icon} size={16} strokeWidth={2.25} />
           Add a reward
@@ -536,7 +533,7 @@ function RewardActiveToggle({
       // coarse pointers (the FilterPills / Button compact-size idiom) — this
       // switch is THE control that activates rewards toward the launch gate.
       className={cn(
-        "w-tag pressable inline-flex shrink-0 items-center justify-center rounded-2xl border transition-[color,background-color,border-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none focus-visible:ring-3 focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-60 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11",
+        "w-tag pressable inline-flex shrink-0 items-center justify-center rounded-2xl border transition-[color,background-color,border-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none focus-visible:ring-3 focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11",
         compact ? "h-5 px-2" : "h-6 px-2.5 py-0.5",
         optimisticActive
           ? "border-ink bg-reward text-reward-foreground"
@@ -858,7 +855,12 @@ function Field({
   error?: string
 }) {
   return (
-    <FormField id={id} label={<Eyebrow>{label}</Eyebrow>} description={hint} error={error}>
+    <FormField
+      id={id}
+      label={<Eyebrow>{label}</Eyebrow>}
+      description={hint}
+      error={error}
+    >
       <Input id={id} className="h-12" {...props} />
     </FormField>
   )
@@ -878,7 +880,12 @@ function TextareaField({
   error?: string
 }) {
   return (
-    <FormField id={id} label={<Eyebrow>{label}</Eyebrow>} description={hint} error={error}>
+    <FormField
+      id={id}
+      label={<Eyebrow>{label}</Eyebrow>}
+      description={hint}
+      error={error}
+    >
       <Textarea id={id} rows={rows} {...props} />
     </FormField>
   )

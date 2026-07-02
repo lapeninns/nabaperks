@@ -2,6 +2,7 @@
 
 import type { InputHTMLAttributes, ReactNode } from "react"
 
+import { SelectField } from "@/components/forms"
 import { Input } from "@/components/ui/input"
 
 /**
@@ -63,18 +64,13 @@ export function BusinessTypeField({
       <RequiredLabel htmlFor="businessType" required>
         Business type
       </RequiredLabel>
-      {/* One input story: the native select opts into the themed input well
-          via data-slot (the profile-form pattern), so border/background/focus
-          and invalid states come from the unlayered Wet Ink layer. */}
-      <select
+      <SelectField
         id="businessType"
         name="businessType"
         required
         aria-required="true"
         defaultValue={value ?? ""}
         onChange={(event) => onChange(event.target.value)}
-        data-slot="input"
-        className="h-12 w-full min-w-0 px-4 text-sm transition-[border-color,outline-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none"
         aria-invalid={Boolean(error)}
         aria-describedby={error ? "businessType-error" : undefined}
       >
@@ -86,7 +82,7 @@ export function BusinessTypeField({
             {option.label}
           </option>
         ))}
-      </select>
+      </SelectField>
       <FieldError id="businessType" error={error} />
     </div>
   )

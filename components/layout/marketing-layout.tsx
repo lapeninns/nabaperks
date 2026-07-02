@@ -17,7 +17,7 @@ const defaultMarketingLinks: MarketingNavLink[] = [
 ]
 
 const legalLinkClass =
-  "inline-flex min-h-11 items-center rounded-full px-3 underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
+  "focus-ring inline-flex min-h-11 items-center rounded-full px-3 underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline"
 
 export function MarketingLayout({
   children,
@@ -42,7 +42,7 @@ export function MarketingLayout({
       </a>
       <Marquee />
       <header className="sticky top-0 z-40 border-b-2 border-ink bg-card">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+        <div className="mx-auto flex w-full max-w-marketing-chrome items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <Logo
             href={logoHref}
             className="max-[420px]:[&>span:last-child]:sr-only"
@@ -52,7 +52,7 @@ export function MarketingLayout({
       </header>
       <main id="main">{children}</main>
       <footer className="border-t-2 border-dashed border-border bg-card">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-6 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+        <div className="mx-auto flex w-full max-w-marketing-chrome flex-col gap-4 px-6 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <Logo href={logoHref} label="nabaperks" />
             <span className="mono-id tracking-[0.08em] whitespace-nowrap text-muted-foreground">

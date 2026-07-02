@@ -3,7 +3,10 @@ import { notFound } from "next/navigation"
 
 import { PageTitle } from "@/components/brand"
 import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
-import { LoyaltyCardForm, RewardPoolForm } from "@/components/merchant/loyalty-card-form"
+import {
+  LoyaltyCardForm,
+  RewardPoolForm,
+} from "@/components/merchant/loyalty-card-form"
 import { QrPanelLive } from "@/components/merchant/launch/qr-panel-live"
 import { VenueLocationForm } from "@/components/merchant/launch/venue-location-form"
 import { Button } from "@/components/ui/button"
@@ -11,7 +14,7 @@ import { buildLaunchReadiness } from "@/lib/merchant/launch-readiness"
 import type { LaunchHubTab } from "@/lib/merchant/launch-readiness"
 import {
   CARD_CADENCE_PRESETS,
-  PUB_REWARD_PRESETS,
+  rewardPresetsForBusinessType,
 } from "@/lib/merchant/reward-presets"
 
 import { HARNESS_MERCHANT } from "../fixtures"
@@ -142,7 +145,7 @@ export default async function LaunchHarnessPage({
             ]}
             continueHref="/app/launch?tab=qr"
             continueLabel="your venue QR"
-            presets={PUB_REWARD_PRESETS}
+            presets={rewardPresetsForBusinessType("cafe")}
           />
         ) : activeTab === "qr" ? (
           <QrPanelLive

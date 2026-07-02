@@ -27,7 +27,7 @@ export type AdminRecordCardProps = {
  * A single Wet Ink surface record card for dense admin data at phone width.
  *
  * Returned from `DataTable`'s `mobileCard` renderer so admin tables read as
- * cards below `sm` instead of clipping in `overflow-x-auto`. The styling
+ * cards below their chosen breakpoint instead of clipping in `overflow-x-auto`. The styling
  * mirrors the existing per-record cards on the admin merchants ("QR records")
  * and privacy ("Data request workflow") pages: a surface card with a 2px ink
  * border, ~10px radius, hard offset shadow, eyebrow, bold title, optional

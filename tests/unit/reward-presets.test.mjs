@@ -3,7 +3,9 @@ import { describe, it } from "node:test"
 
 import {
   CARD_CADENCE_PRESETS,
+  GENERIC_REWARD_PRESETS,
   PUB_REWARD_PRESETS,
+  rewardPresetsForBusinessType,
   rewardPresetToPoolItemValues,
 } from "@/lib/merchant/reward-presets"
 import {
@@ -14,8 +16,22 @@ import {
 describe("merchant reward presets", () => {
   it("keeps every pub reward preset inside server action bounds", () => {
     assert.equal(PUB_REWARD_PRESETS.length, 7)
+    assertRewardPresetsValid(PUB_REWARD_PRESETS)
+  })
 
-    for (const preset of PUB_REWARD_PRESETS) {
+  it("keeps every generic reward preset inside server action bounds", () => {
+    assert.equal(GENERIC_REWARD_PRESETS.length, 4)
+    assertRewardPresetsValid(GENERIC_REWARD_PRESETS)
+  })
+
+  it("selects pub presets only for pub merchants", () => {
+    assert.equal(rewardPresetsForBusinessType("pub"), PUB_REWARD_PRESETS)
+    assert.equal(rewardPresetsForBusinessType("cafe"), GENERIC_REWARD_PRESETS)
+    assert.equal(rewardPresetsForBusinessType(null), GENERIC_REWARD_PRESETS)
+  })
+
+  function assertRewardPresetsValid(presets) {
+    for (const preset of presets) {
       assert.ok(preset.rewardName.length > 0)
       assert.ok(preset.rewardName.length <= 100)
       assert.ok(preset.rewardTerms.length >= 12)
@@ -26,7 +42,7 @@ describe("merchant reward presets", () => {
       assert.doesNotMatch(preset.rewardName, /https?:\/\//)
       assert.doesNotMatch(preset.rewardTerms, /https?:\/\/|!/)
     }
-  })
+  }
 
   it("converts a preset into existing reward pool form values", () => {
     const values = rewardPresetToPoolItemValues(PUB_REWARD_PRESETS[0], 4)

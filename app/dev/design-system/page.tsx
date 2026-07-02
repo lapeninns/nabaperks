@@ -221,7 +221,7 @@ export default function DesignSystemPage() {
                       radius
                     )}
                   />
-                  <span className="mono-id font-normal normal-case text-muted-foreground">
+                  <span className="mono-id font-normal text-muted-foreground normal-case">
                     {radius}
                   </span>
                 </span>
@@ -243,7 +243,7 @@ export default function DesignSystemPage() {
                       shadow.className
                     )}
                   />
-                  <span className="mono-id max-w-16 text-center font-normal normal-case text-muted-foreground">
+                  <span className="mono-id max-w-16 text-center font-normal text-muted-foreground normal-case">
                     {shadow.name}
                   </span>
                 </span>
@@ -272,9 +272,9 @@ export default function DesignSystemPage() {
         <p className="text-sm leading-6 text-muted-foreground">
           A dormant &ldquo;night printing&rdquo; palette ships in the
           <span className="font-mono"> .dark</span> token block — deliberately
-          unreachable by users. Use the Night printing toggle above to check
-          the dark-critical rules: QR codes stay on pure white, and shadows
-          swap to the dark shadow colour.
+          unreachable by users. Use the Night printing toggle above to check the
+          dark-critical rules: QR codes stay on pure white, and shadows swap to
+          the dark shadow colour.
         </p>
       </Section>
 
@@ -297,7 +297,7 @@ export default function DesignSystemPage() {
             description="One step down from the page title."
           />
           <div className="flex flex-wrap gap-2">
-            {(["plain", "accent", "ink", "leaf", "sun"] as const).map(
+            {(["plain", "accent", "cobalt", "ink", "leaf", "sun"] as const).map(
               (tone) => (
                 <MonoTag key={tone} tone={tone}>
                   {tone}
@@ -439,7 +439,7 @@ export default function DesignSystemPage() {
         id="forms-feedback"
         eyebrow="Foundation"
         title="Forms & feedback"
-        description="Inputs in every state, the aria-wired FormField, OTP cells, the SubmitButton pending recipe, themed toasts, and the bare Alert beside its StatusBanner face."
+        description="Inputs in every state, the aria-wired FormField, one-time-code input, the SubmitButton pending recipe, themed toasts, and the bare Alert beside its StatusBanner face."
       >
         <FormsFeedbackDemo />
       </Section>
@@ -841,10 +841,10 @@ export default function DesignSystemPage() {
         id="console-data"
         eyebrow="Console"
         title="Console data tables & record cards"
-        description="The responsive admin list pattern. DataTable renders a semantic table at sm and above; below sm it renders a stacked AdminRecordCard per row via the mobileCard renderer, so dense support data reads on a phone without horizontal scroll. Shared by 7+ admin tables (customers, merchants, fraud, billing, audit, pilot, privacy). Resize below the sm breakpoint to see the table become cards."
+        description="The responsive admin list pattern. DataTable renders card records until the chosen breakpoint, then switches to the semantic table. Admin consoles use xl so dense support data reads on phones and tablets without horizontal scroll. Shared by 7+ admin tables (customers, merchants, fraud, billing, audit, pilot, privacy)."
       >
         <div className="grid gap-3 rounded-lg border-2 border-ink bg-card p-5">
-          <Eyebrow>Responsive DataTable · table at sm+, cards below</Eyebrow>
+          <Eyebrow>Responsive DataTable · admin xl cards</Eyebrow>
           <DataTable
             caption="Demo console membership readback"
             rows={CONSOLE_ROWS}

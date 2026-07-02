@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils"
 import { ACTIVITY_CATEGORY_ICON, type ActivityCategory } from "./icons"
 import { MonoTag } from "./mono-tag"
 
-type CategoryBadgeTone = "plain" | "accent" | "ink" | "leaf" | "sun"
+type CategoryBadgeTone = "plain" | "accent" | "cobalt" | "ink" | "leaf" | "sun"
 
 /**
  * Canonical tone per merchant activity category. Kept in one place so the same
@@ -15,9 +15,9 @@ type CategoryBadgeTone = "plain" | "accent" | "ink" | "leaf" | "sun"
 function categoryBadgeTone(category: ActivityCategory): CategoryBadgeTone {
   switch (category) {
     case "customer":
-      return "accent"
+      return "cobalt"
     case "stamp":
-      return "ink"
+      return "accent"
     case "reward":
       return "leaf"
     case "qr":
@@ -57,7 +57,10 @@ export function CategoryBadge({
     <MonoTag
       tone={tone}
       icon={ACTIVITY_CATEGORY_ICON[category]}
-      className={cn(tone === "plain" && categoryBadgePlainClass(category), className)}
+      className={cn(
+        tone === "plain" && categoryBadgePlainClass(category),
+        className
+      )}
     >
       {label}
     </MonoTag>

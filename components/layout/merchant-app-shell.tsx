@@ -54,14 +54,15 @@ export function MerchantAppShell({
   // uses them to pin a variant regardless of the actual URL.
   const pathname = usePathname() ?? ""
   const activePath = activePathProp ?? pathname
-  const variant = variantProp ?? (isMerchantSetupPath(pathname) ? "setup" : "full")
+  const variant =
+    variantProp ?? (isMerchantSetupPath(pathname) ? "setup" : "full")
   const hideMobileChrome = hideMobileChromeProp ?? isPosterPrintPath(pathname)
 
   if (variant === "setup") {
     return (
       <div className="min-h-svh bg-background [--setup-header-h:3.5rem] sm:[--setup-header-h:4rem]">
         <header className="fixed inset-x-0 top-0 z-40 border-b-2 border-ink bg-card">
-          <div className="mx-auto flex h-(--setup-header-h) w-full max-w-6xl min-w-0 items-center justify-between gap-x-3 overflow-x-clip px-4 sm:px-6">
+          <div className="mx-auto flex h-(--setup-header-h) w-full max-w-merchant min-w-0 items-center justify-between gap-x-3 overflow-x-clip px-4 sm:px-6">
             <Logo
               href="/app/launch"
               prefetch={false}
@@ -100,8 +101,10 @@ export function MerchantAppShell({
             </div>
           </div>
         </header>
-        <main className="w-full min-w-0 overflow-x-clip px-4 pb-16 pt-[calc(var(--setup-header-h)+0.75rem)] sm:px-6 sm:pb-10 sm:pt-[calc(var(--setup-header-h)+2rem)]">
-          <div className="mx-auto w-full min-w-0 max-w-6xl">{children}</div>
+        <main className="w-full min-w-0 overflow-x-clip px-4 pt-[calc(var(--setup-header-h)+0.75rem)] pb-16 sm:px-6 sm:pt-[calc(var(--setup-header-h)+2rem)] sm:pb-10">
+          <div className="mx-auto w-full max-w-merchant min-w-0">
+            {children}
+          </div>
         </main>
       </div>
     )
@@ -155,7 +158,10 @@ export function MerchantAppShell({
       <SidebarInset className="min-w-0">
         {hideMobileChrome ? null : (
           <header className="sticky top-0 z-30 flex min-h-14 items-center gap-3 border-b-2 border-ink bg-card px-4 py-2 pt-[calc(0.5rem_+_env(safe-area-inset-top))] md:hidden">
-            <SidebarTrigger className="size-11 shrink-0" aria-label="Open menu" />
+            <SidebarTrigger
+              className="size-11 shrink-0"
+              aria-label="Open menu"
+            />
             <Logo href="/app" prefetch={false} />
           </header>
         )}
@@ -175,7 +181,7 @@ export function MerchantAppShell({
             className={
               hideMobileChrome
                 ? "w-full min-w-0"
-                : "mx-auto w-full max-w-6xl"
+                : "mx-auto w-full max-w-merchant"
             }
           >
             {children}

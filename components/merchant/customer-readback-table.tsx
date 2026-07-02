@@ -399,9 +399,7 @@ export function CustomerReadbackTable({
 
   // Resolve the scan banner against the *visible* list so it never lingers for a
   // member the current filter/search has hidden.
-  const selected = selectedId
-    ? filtered.find((c) => c.id === selectedId)
-    : null
+  const selected = selectedId ? filtered.find((c) => c.id === selectedId) : null
 
   const columns = useMemo(
     () => buildColumns(highlightedMembershipId),
@@ -444,7 +442,10 @@ export function CustomerReadbackTable({
               Your {totalLabel} members end before page {pagination.page}.
             </p>
           </div>
-          <CustomersPaginationRow pagination={pagination} totalLabel={totalLabel} />
+          <CustomersPaginationRow
+            pagination={pagination}
+            totalLabel={totalLabel}
+          />
           <PrivacyNote />
         </div>
       )
@@ -518,8 +519,8 @@ export function CustomerReadbackTable({
       {pagination.totalPages > 1 ? (
         <p className="px-1 text-xs text-muted-foreground">
           Showing members {pagination.rangeStart}–{pagination.rangeEnd} of{" "}
-          {totalLabel}, newest first — search and filters cover this page
-          only. Older members are on the later pages.
+          {totalLabel}, newest first — search and filters cover this page only.
+          Older members are on the later pages.
         </p>
       ) : null}
 
@@ -557,9 +558,8 @@ export function CustomerReadbackTable({
               sits at lg, not sm, because the md sidebar leaves ~510px of
               content at 768 — too narrow for the five-column table, which
               previously forced page-level horizontal overflow (clipped intro,
-              cut filter pills, chopped Scan action). Mirrors DataTable's
-              cardBreakpoint="lg" classes; the bespoke card list is kept for
-              its concise accessible-name pattern. */}
+              cut filter pills, chopped Scan action). This is a bespoke lg
+              split; DataTable's shared contract only supports sm and xl. */}
           <div className="lg:hidden">
             <CustomerMobileList
               customers={filtered}
@@ -654,8 +654,7 @@ function CustomersPaginationRow({
         )}
       </Button>
       <span className="mono-meta numeric-tabular text-muted-foreground">
-        Page {pagination.page} of {pagination.totalPages} · {totalLabel}{" "}
-        members
+        Page {pagination.page} of {pagination.totalPages} · {totalLabel} members
       </span>
       <Button
         asChild={pagination.hasNext}

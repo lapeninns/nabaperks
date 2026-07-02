@@ -125,7 +125,7 @@ export function ResetPasswordForm({ otpLength }: ResetPasswordFormProps) {
         Remembered it?{" "}
         <Link
           href="/login"
-          className="inline-flex min-h-11 items-center rounded-full px-3 py-2 font-bold text-primary underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
+          className="focus-ring inline-flex min-h-11 items-center rounded-full px-3 py-2 font-bold text-primary underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline"
         >
           Back to log in
         </Link>
