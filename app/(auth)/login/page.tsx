@@ -13,6 +13,24 @@ const trustPoints = [
   "Billing when you activate your live venue QR",
 ]
 
+/**
+ * Copy keyed off the `?error=` value (the LOCATION_STATUS_COPY pattern) so a
+ * future error param never silently inherits OTP-specific guidance. Only
+ * `verification` is minted today (app/auth/confirm/route.ts); anything else
+ * gets honest generic copy.
+ */
+const LOGIN_ERROR_COPY: Record<string, { title: string; body: string }> = {
+  verification: {
+    title: "Email code could not be used",
+    body: "Request a fresh code. Provider details are hidden for safety.",
+  },
+}
+
+const LOGIN_ERROR_FALLBACK = {
+  title: "Sign-in problem",
+  body: "Something went wrong on the way in. Try again, or reset your password if it keeps happening.",
+}
+
 type LoginPageProps = {
   searchParams: Promise<{
     next?: string
@@ -64,13 +82,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </p>
           </div>
           {params.error ? (
-            <Alert
-              variant="destructive"
-              className="mb-4 border-destructive/30 bg-destructive/10"
-            >
-              <AlertTitle>Email code could not be used</AlertTitle>
+            <Alert variant="destructive" className="mb-4">
+              <AlertTitle>
+                {(LOGIN_ERROR_COPY[params.error] ?? LOGIN_ERROR_FALLBACK).title}
+              </AlertTitle>
               <AlertDescription>
-                Request a fresh code. Provider details are hidden for safety.
+                {(LOGIN_ERROR_COPY[params.error] ?? LOGIN_ERROR_FALLBACK).body}
               </AlertDescription>
             </Alert>
           ) : null}

@@ -464,11 +464,13 @@ export function CustomerReadbackTable({
             className="pl-9"
           />
         </div>
+        {/* flex-wrap keeps every pill visible on narrow phones instead of
+            clipping mid-pill in the hidden-scrollbar row with no affordance. */}
         <FilterPills
           aria-label="Filter members by reward status"
           value={filter}
           onValueChange={(id) => setFilter(id as CustomerFilter)}
-          className="sm:justify-end"
+          className="flex-wrap sm:justify-end"
           items={[
             { id: "all", label: "All", count: customers.length },
             { id: "ready", label: "Ready", count: readyCount },
@@ -477,6 +479,19 @@ export function CustomerReadbackTable({
           ]}
         />
       </div>
+
+      {/* Honest-cap note: the loader returns the 100 most recent rows and
+          search/filter run client-side over that window only. Until the list
+          gets server-side search or paging, say so rather than letting a
+          member seem unfindable. */}
+      {typeof totalMembers === "number" && totalMembers > customers.length ? (
+        <p className="px-1 text-xs text-muted-foreground">
+          Showing your {customers.length} most recent members — search and
+          filters cover these only. {totalMembers - customers.length} earlier
+          member{totalMembers - customers.length === 1 ? " is" : "s are"} not
+          listed here yet.
+        </p>
+      ) : null}
 
       {/* Scan-reward banner — table widths only (the card list, shown below
           lg, carries the same CTA inline in the selected card) */}

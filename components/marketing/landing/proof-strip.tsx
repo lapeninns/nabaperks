@@ -34,13 +34,19 @@ export function ProofStrip() {
       <div className="border-y-2 border-dashed border-foreground/25">
         <dl className="grid sm:grid-cols-3">
           {stats.map((stat, index) => (
-            <div key={stat.label} className={bandCellClassName(index)}>
-              <dd className="text-[clamp(1.85rem,4.8vw,2.35rem)] leading-none font-extrabold tracking-[-0.02em] tabular-nums">
-                {stat.value}
-              </dd>
-              <dt className="mono-meta mt-2 leading-snug text-muted-foreground">
+            // Valid dt-before-dd DOM order, flipped visually with flex order-*
+            // (the same trick as nabaperks-proof) so screen readers get the
+            // name/value pairing while the big value still renders first.
+            <div
+              key={stat.label}
+              className={cn(bandCellClassName(index), "flex flex-col")}
+            >
+              <dt className="mono-meta order-2 mt-2 leading-snug text-muted-foreground">
                 {stat.label}
               </dt>
+              <dd className="order-1 text-[clamp(1.85rem,4.8vw,2.35rem)] leading-none font-extrabold tracking-[-0.02em] tabular-nums">
+                {stat.value}
+              </dd>
             </div>
           ))}
         </dl>

@@ -33,7 +33,7 @@ export const OG_IMAGE = {
   url: "/opengraph-image",
   width: 1200,
   height: 630,
-  alt: "Nabaperks — loyalty cards for pubs, cafes and restaurants.",
+  alt: "Nabaperks — loyalty cards for pubs, cafes and takeaways.",
 } as const
 
 /**

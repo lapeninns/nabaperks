@@ -10,6 +10,7 @@ import {
   CustomerFlowShell,
   CustomerReceipt,
 } from "@/components/customer/customer-flow-system"
+import { UnavailableRecoveryActions } from "@/components/customer/unavailable-recovery"
 import { Button } from "@/components/ui/button"
 import {
   getExistingMembershipForCurrentUser,
@@ -21,7 +22,10 @@ import {
 } from "@/lib/security/rate-limit"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 
-export const metadata: Metadata = PRIVATE_ROUTE_METADATA
+export const metadata: Metadata = {
+  ...PRIVATE_ROUTE_METADATA,
+  title: "Venue QR",
+}
 export const dynamic = "force-dynamic"
 
 type PublicQrPageProps = {
@@ -83,32 +87,27 @@ export default async function PublicQrPage({ params }: PublicQrPageProps) {
   redirect(joinUrl)
 }
 
+/**
+ * The error receipts run a single headline (the EmptyState's, inside the
+ * receipt) instead of stacking a second level-1 shell headline with
+ * near-duplicate copy above it (CUS-P2-02), and hide the mono footer so no
+ * placeholder card number reads as fact (CUS-P2-01).
+ */
 function UnavailableQr() {
   return (
     <CustomerFlowShell
-      eyebrow="QR"
-      title="Card unavailable"
-      description="Ask the venue team for the current loyalty QR."
+      eyebrow="QR unavailable"
       className="content-center"
       screenLabel="Unavailable QR"
     >
-      <CustomerReceipt venueName="Nabaperks" eyebrow="QR unavailable">
+      <CustomerReceipt venueName="Nabaperks" eyebrow="QR unavailable" hideFooter>
         <EmptyState
           icon={AlertDiamondIcon}
           title="This loyalty card is unavailable"
           description="Ask a team member for the current loyalty QR."
           headingLevel={1}
           className="w-full"
-          actions={
-            <div className="grid w-full gap-2">
-              <Button asChild size="lg">
-                <Link href="/scan">Scan a QR</Link>
-              </Button>
-              <Button asChild size="lg" variant="secondary">
-                <Link href="/home">Open my cards</Link>
-              </Button>
-            </div>
-          }
+          actions={<UnavailableRecoveryActions />}
         />
       </CustomerReceipt>
     </CustomerFlowShell>
@@ -118,13 +117,15 @@ function UnavailableQr() {
 function RateLimitedQr() {
   return (
     <CustomerFlowShell
-      eyebrow="QR"
-      title="One moment"
-      description="Too many scans just now. Wait a moment, then scan the venue QR again."
+      eyebrow="QR busy"
       className="content-center"
       screenLabel="QR busy"
     >
-      <CustomerReceipt venueName="Nabaperks" eyebrow="Try again shortly">
+      <CustomerReceipt
+        venueName="Nabaperks"
+        eyebrow="Try again shortly"
+        hideFooter
+      >
         <EmptyState
           icon={AlertDiamondIcon}
           title="Too many scans just now"
@@ -132,7 +133,7 @@ function RateLimitedQr() {
           headingLevel={1}
           className="w-full"
           actions={
-            <Button asChild size="lg" variant="secondary">
+            <Button asChild size="lg" variant="secondary" className="w-full">
               <Link href="/home">Open my cards</Link>
             </Button>
           }

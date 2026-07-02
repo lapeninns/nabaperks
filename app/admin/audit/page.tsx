@@ -2,16 +2,22 @@ import {
   AdminPanel,
   SourceLabel,
   first,
-  formatAdminDate,
+  formatAdminAuditDate,
   maskAdminContact,
 } from "@/components/admin/support"
 import { SecurityCheckIcon } from "@hugeicons/core-free-icons"
 
+import { AdminIdChip } from "@/components/admin/id-chip"
 import { AdminRecordCard } from "@/components/admin/record-card"
 import { EmptyState, PageTitle } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { canRenderAdminPage } from "@/lib/admin/auth"
 import { getAdminAuditLogs } from "@/lib/admin/data"
+
+type AdminAuditLogs = Awaited<ReturnType<typeof getAdminAuditLogs>>
+type AdminAuditLog = AdminAuditLogs[number]
+
+export const metadata = { title: "Admin — Audit logs" }
 
 export default async function AdminAuditPage() {
   if (!(await canRenderAdminPage())) return null
@@ -23,7 +29,7 @@ export default async function AdminAuditPage() {
       <PageTitle
         eyebrow="Internal admin"
         title="Audit logs"
-        description="Actor, action, context, timestamp, and non-sensitive metadata."
+        description="Actor, action, context, timestamp, and non-sensitive metadata. Newest first, times in UK local time."
       />
 
       <AdminPanel className="p-0">
@@ -34,6 +40,7 @@ export default async function AdminAuditPage() {
           caption="Admin audit log readback"
           cardBreakpoint="xl"
           className="rounded-none border-0 shadow-none"
+          mobileClassName="p-5"
           rows={logs}
           getRowKey={(log) => log.id}
           emptyState={
@@ -53,12 +60,7 @@ export default async function AdminAuditPage() {
                 fields={[
                   {
                     label: "Actor",
-                    value: (
-                      <>
-                        {log.actor_type}
-                        {log.actor_id ? `:${log.actor_id.slice(0, 8)}` : ""}
-                      </>
-                    ),
+                    value: <AuditActor log={log} />,
                   },
                   {
                     label: "Context",
@@ -75,15 +77,14 @@ export default async function AdminAuditPage() {
                   },
                   {
                     label: "Target",
-                    mono: true,
-                    value: `${log.target_table}:${log.target_id?.slice(0, 8)}`,
+                    value: <AuditTarget log={log} />,
                   },
                   {
                     label: "When",
                     mono: true,
                     value: (
                       <time dateTime={log.created_at}>
-                        {formatAdminDate(log.created_at)}
+                        {formatAdminAuditDate(log.created_at)}
                       </time>
                     ),
                   },
@@ -100,12 +101,7 @@ export default async function AdminAuditPage() {
             {
               key: "actor",
               header: "Actor",
-              cell: (log) => (
-                <span>
-                  {log.actor_type}
-                  {log.actor_id ? `:${log.actor_id.slice(0, 8)}` : ""}
-                </span>
-              ),
+              cell: (log) => <AuditActor log={log} />,
             },
             {
               key: "context",
@@ -126,11 +122,7 @@ export default async function AdminAuditPage() {
             {
               key: "target",
               header: "Target",
-              cell: (log) => (
-                <span className="font-mono text-xs">
-                  {log.target_table}:{log.target_id?.slice(0, 8)}
-                </span>
-              ),
+              cell: (log) => <AuditTarget log={log} />,
             },
             {
               key: "when",
@@ -140,7 +132,7 @@ export default async function AdminAuditPage() {
                   className="text-muted-foreground"
                   dateTime={log.created_at}
                 >
-                  {formatAdminDate(log.created_at)}
+                  {formatAdminAuditDate(log.created_at)}
                 </time>
               ),
             },
@@ -149,4 +141,26 @@ export default async function AdminAuditPage() {
       </AdminPanel>
     </div>
   )
+}
+
+/**
+ * Actor cell: type plus a copyable id chip when an actor id exists — no
+ * truncated-with-no-recourse UUIDs, and no dangling separator when absent.
+ */
+function AuditActor({ log }: { readonly log: AdminAuditLog }) {
+  if (!log.actor_id) {
+    return <span>{log.actor_type}</span>
+  }
+  return <AdminIdChip value={log.actor_id} prefix={log.actor_type} />
+}
+
+/**
+ * Target cell: `table:id` as a copyable chip; a target-less row prints just
+ * the table name instead of the literal "table:undefined".
+ */
+function AuditTarget({ log }: { readonly log: AdminAuditLog }) {
+  if (!log.target_id) {
+    return <span className="font-mono text-xs">{log.target_table}</span>
+  }
+  return <AdminIdChip value={log.target_id} prefix={log.target_table} />
 }

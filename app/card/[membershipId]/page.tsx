@@ -5,7 +5,10 @@ import { deriveCustomerExperience } from "@/lib/customer/experience/derive"
 import { loadCardExperienceContext } from "@/lib/customer/experience/load-card"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 
-export const metadata: Metadata = PRIVATE_ROUTE_METADATA
+export const metadata: Metadata = {
+  ...PRIVATE_ROUTE_METADATA,
+  title: "My loyalty card",
+}
 
 type CustomerCardPageProps = {
   params: Promise<{

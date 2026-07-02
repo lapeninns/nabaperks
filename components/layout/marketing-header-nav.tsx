@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Menu03Icon } from "@hugeicons/core-free-icons"
 
 import { Icon } from "@/components/brand"
@@ -13,14 +14,20 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
+import { cn } from "@/lib/utils"
 
 import type { MarketingNavLink } from "./marketing-layout"
 
 /**
  * Marketing header actions — secondary links collapse into a sheet below `md`
- * so the sticky bar stays one row on narrow phones.
+ * so the sticky bar stays one row on narrow phones. Path links carry
+ * `aria-current="page"` plus an ink underline on the active route (anchor
+ * links on the homepage never match a pathname, so they stay plain).
  */
 export function MarketingHeaderNav({ links }: { links: MarketingNavLink[] }) {
+  const pathname = usePathname()
+  const isActive = (href: string) => href === pathname
+
   return (
     <nav
       aria-label="Marketing"
@@ -28,8 +35,22 @@ export function MarketingHeaderNav({ links }: { links: MarketingNavLink[] }) {
     >
       <div className="hidden items-center gap-2 md:flex">
         {links.map((item) => (
-          <Button key={item.href} asChild variant="ghost" size="sm">
-            <Link href={item.href}>{item.label}</Link>
+          <Button
+            key={item.href}
+            asChild
+            variant="ghost"
+            size="sm"
+            className={cn(
+              isActive(item.href) &&
+                "font-extrabold underline decoration-ink decoration-2 underline-offset-4"
+            )}
+          >
+            <Link
+              href={item.href}
+              aria-current={isActive(item.href) ? "page" : undefined}
+            >
+              {item.label}
+            </Link>
           </Button>
         ))}
       </div>
@@ -54,9 +75,7 @@ export function MarketingHeaderNav({ links }: { links: MarketingNavLink[] }) {
           className="w-[min(100%,18rem)] gap-0 border-l-2 border-ink p-0"
         >
           <SheetHeader className="border-b border-ink/10 px-6 py-5 text-left">
-            <SheetTitle className="font-heading text-lg font-extrabold">
-              Menu
-            </SheetTitle>
+            <SheetTitle className="font-heading text-lg">Menu</SheetTitle>
           </SheetHeader>
           <div className="flex flex-col p-3">
             {links.map((item) => (
@@ -64,9 +83,18 @@ export function MarketingHeaderNav({ links }: { links: MarketingNavLink[] }) {
                 <Button
                   asChild
                   variant="ghost"
-                  className="h-11 w-full justify-start"
+                  className={cn(
+                    "h-11 w-full justify-start",
+                    isActive(item.href) &&
+                      "font-extrabold underline decoration-ink decoration-2 underline-offset-4"
+                  )}
                 >
-                  <Link href={item.href}>{item.label}</Link>
+                  <Link
+                    href={item.href}
+                    aria-current={isActive(item.href) ? "page" : undefined}
+                  >
+                    {item.label}
+                  </Link>
                 </Button>
               </SheetClose>
             ))}

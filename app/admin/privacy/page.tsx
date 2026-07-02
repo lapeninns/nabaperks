@@ -2,6 +2,7 @@ import { PageTitle } from "@/components/brand"
 import { canRenderAdminPage } from "@/lib/admin/auth"
 import {
   getAdminConsentRecords,
+  getAdminDataRequestActivity,
   getAdminPrivacySupportRows,
 } from "@/lib/admin/data"
 import {
@@ -13,6 +14,9 @@ import {
 
 import { ConsentLogPanel } from "./consent-log-panel"
 import { DataRequestWorkflowPanel } from "./data-request-workflow-panel"
+import { LoggedRequestsPanel } from "./logged-requests-panel"
+
+export const metadata = { title: "Admin — Privacy support" }
 
 type AdminPrivacyPageProps = {
   searchParams?: Promise<AdminSearchParams>
@@ -32,13 +36,17 @@ export default async function AdminPrivacyPage({
   const lookup = parseAdminLookupParams(params)
   const consentPage = parsePageParam(params.consentPage)
 
-  const [supportRows, consentRecords] = await Promise.all([
+  const [supportRows, consentRecords, dataRequests] = await Promise.all([
     getAdminPrivacySupportRows(lookup).catch((error: unknown) => {
       console.error("Admin privacy lookup failed", error)
       return null
     }),
     getAdminConsentRecords(consentPage).catch((error: unknown) => {
       console.error("Admin consent readback failed", error)
+      return null
+    }),
+    getAdminDataRequestActivity().catch((error: unknown) => {
+      console.error("Admin data request readback failed", error)
       return null
     }),
   ])
@@ -63,6 +71,7 @@ export default async function AdminPrivacyPage({
           })
         }
       />
+      <LoggedRequestsPanel requests={dataRequests} />
       <ConsentLogPanel
         result={consentRecords}
         hrefForPage={(page) =>

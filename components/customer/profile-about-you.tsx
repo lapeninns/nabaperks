@@ -257,14 +257,16 @@ function AboutYouEmailVerify({ email }: { email: string | null }) {
         </Button>
       </form>
 
+      {/* size="sm" keeps these on the tap contract at the queuing moment —
+          declared 36px on fine pointers, 44px floor on touch (CUS-P2-10). */}
       <div className="flex items-center justify-between gap-3">
         <form action={resendHomeProfileEmailAction}>
-          <Button type="submit" variant="link" size="xs" className="text-xs">
+          <Button type="submit" variant="link" size="sm">
             Email me a new code
           </Button>
         </form>
         <form action={clearHomeProfileEmailAction}>
-          <Button type="submit" variant="link" size="xs" className="text-xs">
+          <Button type="submit" variant="link" size="sm">
             Continue without email
           </Button>
         </form>

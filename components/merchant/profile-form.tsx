@@ -6,7 +6,9 @@ import {
   updateMerchantProfileAction,
   type MerchantProfileState,
 } from "@/app/app/profile/actions"
-import { Button } from "@/components/ui/button"
+import { Eyebrow } from "@/components/brand"
+import { FormField, SubmitButton } from "@/components/forms"
+import { Input } from "@/components/ui/input"
 
 const businessTypeOptions = [
   { value: "cafe", label: "Cafe" },
@@ -43,7 +45,7 @@ export function MerchantProfileForm({
       phone,
     },
   }
-  const [state, action, pending] = useActionState(
+  const [state, action] = useActionState(
     updateMerchantProfileAction,
     initialState
   )
@@ -79,19 +81,20 @@ export function MerchantProfileForm({
         defaultValue={fields?.businessName}
         error={state.errors?.businessName}
       />
-      <div className="grid gap-2">
-        <label htmlFor="businessType" className="eyebrow">
-          Business type
-        </label>
+      <FormField
+        id="businessType"
+        label={<Eyebrow>Business type</Eyebrow>}
+        error={state.errors?.businessType}
+      >
+        {/* One input story: the native select opts into the themed input well
+            via data-slot, so border, background, focus and invalid states come
+            from the unlayered Wet Ink layer instead of a private class string.
+            FormField injects id/aria-describedby/aria-invalid. */}
         <select
-          id="businessType"
           name="businessType"
           defaultValue={fields?.businessType ?? ""}
-          className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none focus:border-ring focus:ring-3 focus:ring-ring/25"
-          aria-invalid={Boolean(state.errors?.businessType)}
-          aria-describedby={
-            state.errors?.businessType ? "businessType-error" : undefined
-          }
+          data-slot="input"
+          className="h-12 w-full min-w-0 px-4 text-sm transition-[border-color,outline-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none"
         >
           <option value="" disabled>
             Select type
@@ -102,12 +105,7 @@ export function MerchantProfileForm({
             </option>
           ))}
         </select>
-        {state.errors?.businessType ? (
-          <p id="businessType-error" className="text-sm text-destructive">
-            {state.errors.businessType}
-          </p>
-        ) : null}
-      </div>
+      </FormField>
       <Field
         id="email"
         name="email"
@@ -141,13 +139,15 @@ export function MerchantProfileForm({
           {state.message}
         </p>
       ) : null}
-      <Button type="submit" disabled={pending}>
-        {pending ? "Saving..." : "Save changes"}
-      </Button>
+      <SubmitButton pendingLabel="Saving…">Save changes</SubmitButton>
     </form>
   )
 }
 
+/**
+ * Thin composition over the one input story (FormField + the themed slot
+ * well) — no private styling or aria wiring lives here. Mirrors AuthField.
+ */
 function Field({
   id,
   label,
@@ -159,22 +159,8 @@ function Field({
   error?: string
 }) {
   return (
-    <div className="grid gap-2">
-      <label htmlFor={id} className="eyebrow">
-        {label}
-      </label>
-      <input
-        id={id}
-        className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none focus:border-ring focus:ring-3 focus:ring-ring/25"
-        aria-invalid={Boolean(error)}
-        aria-describedby={error ? `${id}-error` : undefined}
-        {...props}
-      />
-      {error ? (
-        <p id={`${id}-error`} className="text-sm text-destructive">
-          {error}
-        </p>
-      ) : null}
-    </div>
+    <FormField id={id} label={<Eyebrow>{label}</Eyebrow>} error={error}>
+      <Input id={id} className="h-12" {...props} />
+    </FormField>
   )
 }

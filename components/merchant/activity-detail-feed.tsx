@@ -116,6 +116,9 @@ export function ActivityDetailFeed({
             className="pl-9"
           />
         </div>
+        {/* flex-wrap keeps every pill visible on narrow phones instead of
+            clipping mid-pill in the hidden-scrollbar row with no affordance
+            (same fix as the members table). */}
         <FilterPills
           aria-label="Filter activity by type"
           value={filter}
@@ -124,6 +127,7 @@ export function ActivityDetailFeed({
             setFilter(next)
             updateUrl({ filter: next, query })
           }}
+          className="flex-wrap"
           items={filterOptions.map((option) => ({
             id: option.id,
             label: option.label,

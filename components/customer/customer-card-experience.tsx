@@ -83,15 +83,10 @@ function ExperiencePanel({
     case "redeemed_proof":
       return <RedeemedProofPanel exp={experience} vm={vm} />
     case "unavailable":
-      return <UnavailablePanel exp={experience} vm={vm} />
+      return <UnavailablePanel vm={vm} />
     default:
       // Join states never reach this surface; render the calm fallback.
-      return (
-        <UnavailablePanel
-          exp={{ kind: "unavailable", reason: vm.supportLine ?? "" }}
-          vm={vm}
-        />
-      )
+      return <UnavailablePanel vm={vm} />
   }
 }
 
@@ -344,25 +339,25 @@ function StampScreenPanel({
   )
 }
 
-function UnavailablePanel({
-  exp,
-  vm,
-}: {
-  exp: Extract<CustomerExperience, { kind: "unavailable" }>
-  vm: CustomerExperienceViewModel
-}) {
+function UnavailablePanel({ vm }: { vm: CustomerExperienceViewModel }) {
   return (
     <section className="grid gap-5">
-      <CustomerReceipt venueName="Nabaperks" eyebrow="Nabaperks loyalty">
-        <StatusBanner title="Card unavailable" tone="neutral">
-          {exp.reason}
-        </StatusBanner>
+      {/* The shell already carries the headline and reason, so the receipt
+          keeps only the recovery guidance — no duplicated banner, no mono
+          footer inventing a card number — and the sole CTA clears the tab bar
+          on first paint (VCU-P2-05, CUS-P2-01). */}
+      <CustomerReceipt
+        venueName="Nabaperks"
+        eyebrow="Nabaperks loyalty"
+        hideFooter
+      >
         <CustomerActionNote title="Need a hand?" tone="plain">
           Ask a team member for the current loyalty QR, or open your cards to
           find them.
         </CustomerActionNote>
       </CustomerReceipt>
-      <PrimaryLink action={vm.primaryAction} variant="secondary" />
+      {/* An error page's only action reads as the primary (VCU-P2-06). */}
+      <PrimaryLink action={vm.primaryAction} />
     </section>
   )
 }

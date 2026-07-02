@@ -44,7 +44,9 @@ function CustomerFlowShellSkeleton({
     >
       <div
         className={cn(
-          "mx-auto grid w-full max-w-[410px]",
+          // Same token as the real CustomerFlowShell (CUS-P2-16) so the
+          // skeleton→content swap never jumps width.
+          "mx-auto grid w-full max-w-customer",
           dense ? "gap-4" : "gap-5",
           className
         )}

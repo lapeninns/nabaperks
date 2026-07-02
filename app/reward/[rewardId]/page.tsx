@@ -6,7 +6,10 @@ import { loadRewardExperienceContext } from "@/lib/customer/experience/load-rewa
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 
 export const dynamic = "force-dynamic"
-export const metadata: Metadata = PRIVATE_ROUTE_METADATA
+export const metadata: Metadata = {
+  ...PRIVATE_ROUTE_METADATA,
+  title: "My reward",
+}
 
 type RewardPageProps = {
   params: Promise<{

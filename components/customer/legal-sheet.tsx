@@ -60,7 +60,7 @@ export function CustomerLegalSheet({
         className="max-h-[min(85vh,640px)] gap-0 rounded-t-[18px] border-t-2 border-ink p-0"
       >
         <SheetHeader className="shrink-0 border-b border-ink/10 px-6 pt-6 pb-4 text-left">
-          <SheetTitle className="font-heading text-xl font-extrabold leading-tight">
+          <SheetTitle className="font-heading text-xl leading-tight">
             {title}
           </SheetTitle>
           {description ? (

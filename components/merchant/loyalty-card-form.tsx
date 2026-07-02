@@ -26,9 +26,12 @@ import {
   Icon,
   MonoTag,
 } from "@/components/brand"
+import { FormField } from "@/components/forms"
 import { CustomerCardPreview } from "@/components/merchant/launch/customer-card-preview"
 import { Disclosure } from "@/components/merchant/launch/disclosure"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import {
   MAX_STAMPS_REQUIRED,
   MIN_STAMPS_REQUIRED,
@@ -154,9 +157,7 @@ export function LoyaltyCardForm({
         />
 
         <div className="grid gap-2">
-          <span className="text-sm font-bold text-foreground">
-            Visits to reveal
-          </span>
+          <span className="eyebrow">Visits to reveal</span>
           <Stepper
             label="Visits to reveal"
             value={draft.stampsRequired}
@@ -215,7 +216,6 @@ export function LoyaltyCardForm({
           value={draft.rewardTerms}
           onChange={(event) => updateDraft("rewardTerms", event.target.value)}
           hint="Shown on the member card. The suggested copy updates when you change visits, until you edit this field."
-          hintClassName="hidden sm:block"
           error={state.errors?.rewardTerms}
         />
 
@@ -657,19 +657,55 @@ function RewardPoolItemForm({
   )
 }
 
+/**
+ * Destructive delete with an armed confirm step. No nested `<form>`: the
+ * confirm button submits the surrounding edit form to the delete action via
+ * React 19 `formAction`, which keeps the HTML valid. The hidden input keeps
+ * the control self-contained (the action reads `rewardPoolItemId`; the edit
+ * form's own hidden field carries the same value).
+ */
 function DeleteRewardButton({
   rewardPoolItemId,
 }: {
   rewardPoolItemId: string
 }) {
-  return (
-    <form action={deleteRewardPoolItemAction}>
-      <input type="hidden" name="rewardPoolItemId" value={rewardPoolItemId} />
-      <Button type="submit" variant="outline" size="sm">
+  const [armed, setArmed] = useState(false)
+
+  if (!armed) {
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => setArmed(true)}
+      >
         <Icon icon={Delete02Icon} size={15} />
         Delete
       </Button>
-    </form>
+    )
+  }
+
+  return (
+    <span className="inline-flex flex-wrap items-center gap-2">
+      <input type="hidden" name="rewardPoolItemId" value={rewardPoolItemId} />
+      <Button
+        type="submit"
+        variant="destructive"
+        size="sm"
+        formAction={deleteRewardPoolItemAction}
+      >
+        <Icon icon={Delete02Icon} size={15} />
+        Confirm delete
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => setArmed(false)}
+      >
+        Keep it
+      </Button>
+    </span>
   )
 }
 
@@ -804,7 +840,11 @@ function ToggleRow({
   )
 }
 
-/** A QUIET input — a filled well with a transparent border that inks on focus. */
+/**
+ * Thin composition over the one input story (FormField + the themed slot
+ * well, 2px ink border per DESIGN.md Inputs) — the old "quiet" transparent-
+ * border variant is retired. Mirrors AuthField / profile-form.
+ */
 function Field({
   id,
   label,
@@ -818,26 +858,9 @@ function Field({
   error?: string
 }) {
   return (
-    <div className="grid gap-2">
-      <label htmlFor={id} className="text-sm font-bold text-foreground">
-        {label}
-      </label>
-      <input
-        id={id}
-        className="h-12 w-full min-w-0 max-w-full rounded-lg border-[1.5px] border-transparent bg-secondary px-4 text-sm text-foreground transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none placeholder:text-muted-foreground/70 focus:border-ink focus:ring-3 focus:ring-ring/20 motion-reduce:transition-none"
-        aria-invalid={Boolean(error)}
-        aria-describedby={error ? `${id}-error` : undefined}
-        {...props}
-      />
-      {hint ? (
-        <p className="text-xs leading-5 text-muted-foreground">{hint}</p>
-      ) : null}
-      {error ? (
-        <p id={`${id}-error`} className="text-sm text-destructive">
-          {error}
-        </p>
-      ) : null}
-    </div>
+    <FormField id={id} label={<Eyebrow>{label}</Eyebrow>} description={hint} error={error}>
+      <Input id={id} className="h-12" {...props} />
+    </FormField>
   )
 }
 
@@ -845,7 +868,6 @@ function TextareaField({
   id,
   label,
   hint,
-  hintClassName,
   error,
   rows = 4,
   ...props
@@ -853,42 +875,11 @@ function TextareaField({
   id: string
   label: string
   hint?: string
-  hintClassName?: string
   error?: string
 }) {
-  const describedBy = [hint ? `${id}-hint` : null, error ? `${id}-error` : null]
-    .filter(Boolean)
-    .join(" ")
-
   return (
-    <div className="grid gap-2">
-      <label htmlFor={id} className="text-sm font-bold text-foreground">
-        {label}
-      </label>
-      {hint ? (
-        <p
-          id={`${id}-hint`}
-          className={cn(
-            "text-xs leading-5 text-muted-foreground",
-            hintClassName
-          )}
-        >
-          {hint}
-        </p>
-      ) : null}
-      <textarea
-        id={id}
-        rows={rows}
-        className="w-full min-w-0 max-w-full resize-y rounded-lg border-[1.5px] border-transparent bg-secondary px-4 py-3 text-sm leading-6 text-foreground transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none placeholder:text-muted-foreground/70 focus:border-ink focus:ring-3 focus:ring-ring/20 motion-reduce:transition-none"
-        aria-invalid={Boolean(error)}
-        aria-describedby={describedBy || undefined}
-        {...props}
-      />
-      {error ? (
-        <p id={`${id}-error`} className="text-sm text-destructive">
-          {error}
-        </p>
-      ) : null}
-    </div>
+    <FormField id={id} label={<Eyebrow>{label}</Eyebrow>} description={hint} error={error}>
+      <Textarea id={id} rows={rows} {...props} />
+    </FormField>
   )
 }

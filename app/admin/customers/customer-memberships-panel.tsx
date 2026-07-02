@@ -11,7 +11,6 @@ import {
   AdminField,
   AdminPanel,
   SourceLabel,
-  adminInputClasses,
   first,
   formatAdminDate,
   maskAdminContact,
@@ -20,6 +19,7 @@ import { AdminRecordCard } from "@/components/admin/record-card"
 import { EmptyState, Icon, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { SubmitButton } from "@/components/forms"
+import { Input } from "@/components/ui/input"
 import type { getAdminCustomers } from "@/lib/admin/data"
 import type { AdminLookupState } from "@/lib/admin/lookup-query"
 
@@ -191,20 +191,10 @@ function StampAdjustmentForm({ membershipId }: { membershipId: string }) {
       <input type="hidden" name="membershipId" value={membershipId} />
       <div className="grid gap-2 sm:grid-cols-[96px_1fr]">
         <AdminField label="Delta">
-          <input
-            name="delta"
-            type="number"
-            required
-            className={adminInputClasses}
-          />
+          <Input name="delta" type="number" required />
         </AdminField>
         <AdminField label="Reason">
-          <input
-            name="reason"
-            required
-            minLength={4}
-            className={adminInputClasses}
-          />
+          <Input name="reason" required minLength={4} />
         </AdminField>
       </div>
       <SubmitButton pendingLabel="Adjusting…">

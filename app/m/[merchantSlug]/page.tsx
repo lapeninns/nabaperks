@@ -7,6 +7,7 @@ import {
   CustomerReceipt,
 } from "@/components/customer/customer-flow-system"
 import { CustomerVenueTermsSheet } from "@/components/customer/legal-sheet"
+import { UnavailableRecoveryActions } from "@/components/customer/unavailable-recovery"
 import {
   RewardTeaser,
   StampJourneyPreview,
@@ -17,7 +18,10 @@ import { getMerchantJoinContext } from "@/lib/customer/join"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 import { cn } from "@/lib/utils"
 
-export const metadata: Metadata = PRIVATE_ROUTE_METADATA
+export const metadata: Metadata = {
+  ...PRIVATE_ROUTE_METADATA,
+  title: "Collect your stamp",
+}
 
 type MerchantRewardsPageProps = {
   params: Promise<{
@@ -65,9 +69,13 @@ export default async function MerchantRewardsPage({
         hideFooter
         compact
       >
+        {/* Same treatment as the q-valid join welcome (VCU-P2-02/03): the
+            non-compact journey keeps the reward patch inline with the stamps
+            at every width and prints the venue initials on earned stamps, so
+            the card does not morph between adjacent steps. */}
         <StampJourneyPreview
           total={loyaltyCard.stamps_required}
-          compact
+          venueName={merchant.business_name}
           className="py-1"
         />
         <RewardTeaser
@@ -125,6 +133,8 @@ function UnavailableLanding() {
       >
         Ask a team member for the current loyalty QR.
       </StatusBanner>
+      {/* Same recovery block as /q (CUS-P2-04) — never a dead end. */}
+      <UnavailableRecoveryActions />
     </CustomerFlowShell>
   )
 }

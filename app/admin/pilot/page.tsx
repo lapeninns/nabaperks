@@ -4,8 +4,7 @@ import {
   AdminField,
   AdminPanel,
   SourceLabel,
-  adminInputClasses,
-  adminTextareaClasses,
+  adminSelectClasses,
   first,
   formatAdminDate,
 } from "@/components/admin/support"
@@ -21,8 +20,12 @@ import {
 } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { SubmitButton } from "@/components/forms"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { canRenderAdminPage } from "@/lib/admin/auth"
 import { getAdminPilotMerchants, getAdminPilotReport } from "@/lib/admin/data"
+
+export const metadata = { title: "Admin — Pilot readiness" }
 
 export default async function AdminPilotPage() {
   if (!(await canRenderAdminPage())) return null
@@ -140,23 +143,27 @@ export default async function AdminPilotPage() {
             {merchants.map((merchant) => {
               const billing = first(merchant.billing_customers)
               return (
-                <article
+                <AdminRecordCard
                   key={merchant.id}
-                  className="grid gap-4 rounded-lg border bg-background p-4"
-                >
-                  <div className="grid gap-1 sm:grid-cols-[1fr_auto]">
-                    <div>
-                      <p className="font-bold">{merchant.business_name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {merchant.email} · {merchant.status}
-                      </p>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {billing?.status ?? "no billing record"} ·{" "}
-                      {formatAdminDate(merchant.created_at)}
-                    </p>
-                  </div>
-
+                  title={merchant.business_name}
+                  fields={[
+                    {
+                      label: "Account",
+                      value: `${merchant.email} · ${merchant.status}`,
+                    },
+                    {
+                      label: "Billing",
+                      value: (
+                        <>
+                          {billing?.status ?? "no billing record"} ·{" "}
+                          <time dateTime={merchant.created_at}>
+                            {formatAdminDate(merchant.created_at)}
+                          </time>
+                        </>
+                      ),
+                    },
+                  ]}
+                  action={
                   <AdminActionForm
                     action={logPilotNoteAction}
                     className="gap-3"
@@ -171,7 +178,7 @@ export default async function AdminPilotPage() {
                         <select
                           name="noteType"
                           required
-                          className={adminInputClasses}
+                          className={adminSelectClasses}
                           defaultValue="support"
                         >
                           <option value="support">Support note</option>
@@ -191,22 +198,20 @@ export default async function AdminPilotPage() {
                         label="Setup check minutes"
                         helper="Optional for self-service launch checks."
                       >
-                        <input
+                        <Input
                           name="setupMinutes"
                           type="number"
                           min={1}
                           max={3}
-                          className={adminInputClasses}
                           placeholder="1-3"
                         />
                       </AdminField>
                       <AdminField label="Notes">
-                        <textarea
+                        <Textarea
                           name="notes"
                           required
                           minLength={4}
                           rows={2}
-                          className={adminTextareaClasses}
                           placeholder="What happened, source, and next action"
                         />
                       </AdminField>
@@ -219,7 +224,8 @@ export default async function AdminPilotPage() {
                       </SubmitButton>
                     </div>
                   </AdminActionForm>
-                </article>
+                  }
+                />
               )
             })}
           </div>

@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useActionState } from "react"
+import { useActionState, useEffect } from "react"
 
 import {
   confirmPasswordResetAction,
@@ -9,8 +9,8 @@ import {
   type AuthActionState,
 } from "@/app/(auth)/actions"
 import { AuthField } from "@/components/auth/auth-field"
+import { SubmitButton } from "@/components/forms"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
 
 const initialState: AuthActionState = {}
 
@@ -19,11 +19,11 @@ type ResetPasswordFormProps = {
 }
 
 export function ResetPasswordForm({ otpLength }: ResetPasswordFormProps) {
-  const [requestState, requestAction, requestPending] = useActionState(
+  const [requestState, requestAction] = useActionState(
     requestPasswordResetAction,
     initialState
   )
-  const [confirmState, confirmAction, confirmPending] = useActionState(
+  const [confirmState, confirmAction] = useActionState(
     confirmPasswordResetAction,
     initialState
   )
@@ -31,6 +31,14 @@ export function ResetPasswordForm({ otpLength }: ResetPasswordFormProps) {
   const otpSent = Boolean(
     requestState.fields?.otpSent || confirmState.fields?.otpSent
   )
+
+  // When the confirm step appears, move focus to the reset-code field so
+  // keyboard and screen-reader merchants land on the new input (the
+  // profile-form first-invalid-focus pattern).
+  useEffect(() => {
+    if (!otpSent) return
+    document.getElementById("otp")?.focus()
+  }, [otpSent])
 
   return (
     <div className="grid gap-4">
@@ -45,27 +53,26 @@ export function ResetPasswordForm({ otpLength }: ResetPasswordFormProps) {
           error={requestState.errors?.email}
         />
         {requestState.errors?.form ? (
-          <Alert
-            variant="destructive"
-            className="border-destructive/30 bg-destructive/10"
-          >
+          <Alert variant="destructive">
             <AlertDescription>{requestState.errors.form}</AlertDescription>
           </Alert>
         ) : null}
         {requestState.message ? (
-          <Alert className="border-reward/30 bg-accent">
+          <Alert className="bg-accent">
             <AlertDescription className="text-accent-foreground">
               {requestState.message}
             </AlertDescription>
           </Alert>
         ) : null}
-        <Button type="submit" disabled={requestPending} className="w-full">
-          {requestPending
-            ? "Sending..."
-            : otpSent
-              ? "Resend reset code"
-              : "Send reset code"}
-        </Button>
+        {/* Once the code is out, resend is a quiet secondary action — the one
+            primary CTA on screen is "Set new password" below. */}
+        <SubmitButton
+          pendingLabel="Sending…"
+          variant={otpSent ? "ghost" : "default"}
+          className="w-full"
+        >
+          {otpSent ? "Resend reset code" : "Send reset code"}
+        </SubmitButton>
       </form>
 
       {otpSent ? (
@@ -104,16 +111,13 @@ export function ResetPasswordForm({ otpLength }: ResetPasswordFormProps) {
             error={confirmState.errors?.confirmPassword}
           />
           {confirmState.errors?.form ? (
-            <Alert
-              variant="destructive"
-              className="border-destructive/30 bg-destructive/10"
-            >
+            <Alert variant="destructive">
               <AlertDescription>{confirmState.errors.form}</AlertDescription>
             </Alert>
           ) : null}
-          <Button type="submit" disabled={confirmPending} className="w-full">
-            {confirmPending ? "Saving..." : "Set new password"}
-          </Button>
+          <SubmitButton pendingLabel="Saving…" className="w-full">
+            Set new password
+          </SubmitButton>
         </form>
       ) : null}
 

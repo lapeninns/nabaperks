@@ -56,6 +56,11 @@ function Field({
   step,
   onChange,
 }: FieldProps) {
+  // Local text state so typing is never clamped mid-edit (clearing the field
+  // no longer snaps to `min`); in-range values recalculate live and the clamp
+  // is applied on blur. Fractional steps get the decimal keypad on iOS.
+  const [text, setText] = useState(() => String(value))
+
   return (
     <div className="grid gap-1.5">
       <label
@@ -73,16 +78,32 @@ function Field({
         <input
           id={id}
           type="number"
-          inputMode="numeric"
+          inputMode={Number.isInteger(step) ? "numeric" : "decimal"}
           min={min}
           max={max}
           step={step}
-          value={value}
+          value={text}
           onChange={(event) => {
-            const next = Number(event.target.value)
-            if (Number.isFinite(next)) {
-              onChange(Math.min(max, Math.max(min, next)))
+            const nextText = event.target.value
+            setText(nextText)
+            const next = Number(nextText)
+            if (
+              nextText !== "" &&
+              Number.isFinite(next) &&
+              next >= min &&
+              next <= max
+            ) {
+              onChange(next)
             }
+          }}
+          onBlur={() => {
+            const next = Number(text)
+            const committed =
+              text === "" || !Number.isFinite(next)
+                ? value
+                : Math.min(max, Math.max(min, next))
+            onChange(committed)
+            setText(String(committed))
           }}
           className="w-full bg-transparent text-base font-extrabold tabular-nums outline-none"
         />

@@ -1,3 +1,4 @@
+import Link from "next/link"
 import {
   Cancel01Icon,
   QrCode01Icon,
@@ -9,11 +10,11 @@ import {
 import { regenerateQrAction, setQrActiveAction } from "@/app/admin/actions"
 import { AdminActionForm } from "@/components/admin/action-form"
 import {
+  AdminConfirmCheck,
   AdminField,
   AdminPanel,
   SourceLabel,
   StatusPill,
-  adminInputClasses,
   first,
   formatAdminDate,
 } from "@/components/admin/support"
@@ -21,12 +22,34 @@ import { AdminRecordCard } from "@/components/admin/record-card"
 import { EmptyState, Icon, PageTitle, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { SubmitButton } from "@/components/forms"
+import { Input } from "@/components/ui/input"
 import { canRenderAdminPage } from "@/lib/admin/auth"
 import { getAdminMerchants, getAdminQrCodes } from "@/lib/admin/data"
+import { formatAdminBillingStatus } from "@/lib/admin/billing-redaction"
+import { buildLookupHref } from "@/lib/admin/lookup-query"
+
+export const metadata = { title: "Admin — Merchants" }
 
 type AdminMerchants = Awaited<ReturnType<typeof getAdminMerchants>>
+type AdminMerchant = AdminMerchants[number]
 type AdminQrCodes = Awaited<ReturnType<typeof getAdminQrCodes>>
 type AdminQrCode = AdminQrCodes[number]
+
+/** merchants.status check constraint: trial/active/paused/cancelled/suspended. */
+const ACCOUNT_STATUS_TONE: Record<
+  string,
+  "neutral" | "good" | "warning" | "danger"
+> = {
+  trial: "good",
+  active: "good",
+  paused: "warning",
+  cancelled: "danger",
+  suspended: "danger",
+}
+
+function accountStatusTone(status: string) {
+  return ACCOUNT_STATUS_TONE[status.toLowerCase()] ?? "neutral"
+}
 
 export default async function AdminMerchantsPage() {
   if (!(await canRenderAdminPage())) return null
@@ -51,6 +74,46 @@ export default async function AdminMerchantsPage() {
   )
 }
 
+/**
+ * Cross-links from a merchant row to its related records: venue-filtered
+ * members and privacy lookups, the billing list, and the QR records further
+ * down this page.
+ */
+function MerchantCrossLinks({
+  merchant,
+}: {
+  readonly merchant: AdminMerchant
+}) {
+  const linkClasses =
+    "focus-ring rounded-sm font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
+  return (
+    <span className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
+      <Link
+        className={linkClasses}
+        href={buildLookupHref("/admin/customers", {
+          venue: merchant.business_name,
+        })}
+      >
+        Members
+      </Link>
+      <Link className={linkClasses} href="/admin/billing">
+        Billing
+      </Link>
+      <Link
+        className={linkClasses}
+        href={buildLookupHref("/admin/privacy", {
+          venue: merchant.business_name,
+        })}
+      >
+        Privacy
+      </Link>
+      <Link className={linkClasses} href="#qr-records">
+        QR records
+      </Link>
+    </span>
+  )
+}
+
 function MerchantAccountsPanel({
   merchants,
 }: {
@@ -71,6 +134,7 @@ function MerchantAccountsPanel({
         caption="Admin merchant account readback"
         cardBreakpoint="xl"
         className="rounded-none border-0 shadow-none"
+        mobileClassName="p-5"
         rows={merchants}
         getRowKey={(merchant) => merchant.id}
         emptyState={
@@ -91,6 +155,7 @@ function MerchantAccountsPanel({
                 <span className="font-mono text-xs text-muted-foreground">
                   {merchant.business_slug}
                 </span>
+                <MerchantCrossLinks merchant={merchant} />
               </div>
             ),
           },
@@ -104,18 +169,20 @@ function MerchantAccountsPanel({
           {
             key: "account",
             header: "Account",
-            cell: (merchant) => <StatusPill>{merchant.status}</StatusPill>,
+            cell: (merchant) => (
+              <StatusPill tone={accountStatusTone(merchant.status)}>
+                {merchant.status}
+              </StatusPill>
+            ),
           },
           {
             key: "billing",
             header: "Billing",
             cell: (merchant) => {
-              const billing = first(merchant.billing_customers)
-              return (
-                <span className="text-muted-foreground">
-                  {billing?.status ?? "not started"}
-                </span>
+              const billing = formatAdminBillingStatus(
+                first(merchant.billing_customers)?.status
               )
+              return <StatusPill tone={billing.tone}>{billing.label}</StatusPill>
             },
           },
           {
@@ -132,17 +199,26 @@ function MerchantAccountsPanel({
           },
         ]}
         mobileCard={(merchant) => {
-          const billing = first(merchant.billing_customers)
+          const billing = formatAdminBillingStatus(
+            first(merchant.billing_customers)?.status
+          )
           return (
             <AdminRecordCard
               title={merchant.business_name}
               eyebrow={merchant.business_slug}
-              status={<StatusPill>{merchant.status}</StatusPill>}
+              status={
+                <>
+                  <StatusPill tone={accountStatusTone(merchant.status)}>
+                    {merchant.status}
+                  </StatusPill>
+                  <StatusPill tone={billing.tone}>{billing.label}</StatusPill>
+                </>
+              }
               fields={[
                 { label: "Email", value: merchant.email },
                 {
-                  label: "Billing",
-                  value: billing?.status ?? "not started",
+                  label: "Links",
+                  value: <MerchantCrossLinks merchant={merchant} />,
                 },
                 {
                   label: "Created",
@@ -163,7 +239,7 @@ function MerchantAccountsPanel({
 
 function QrRecordsPanel({ qrCodes }: { readonly qrCodes: AdminQrCodes }) {
   return (
-    <AdminPanel>
+    <AdminPanel id="qr-records" className="scroll-mt-6">
       <SectionHeader
         title="QR records"
         description="Audited QR activation and regeneration controls. Reasons are required before mutation."
@@ -190,20 +266,34 @@ function QrRecord({ qrCode }: { readonly qrCode: AdminQrCode }) {
   const merchant = first(qrCode.merchants)
 
   return (
-    <article key={qrCode.id} className="grid gap-3 rounded-lg border p-4">
-      <div className="grid gap-1">
-        <p className="font-mono text-sm font-bold">{qrCode.qr_id}</p>
-        <p className="text-sm text-muted-foreground">
-          {merchant?.business_name ?? "Merchant"} ·{" "}
-          {qrCode.is_active ? "active" : "inactive"} ·{" "}
-          {formatAdminDate(qrCode.created_at)}
-        </p>
-      </div>
-      <div className="grid gap-2 lg:grid-cols-2">
-        <QrStateForm qrCodeId={qrCode.id} nextActive={!qrCode.is_active} />
-        <RegenerateQrForm qrCodeId={qrCode.id} />
-      </div>
-    </article>
+    <AdminRecordCard
+      title={<span className="font-mono text-sm">{qrCode.qr_id}</span>}
+      status={
+        <StatusPill tone={qrCode.is_active ? "good" : "danger"}>
+          {qrCode.is_active ? "active" : "inactive"}
+        </StatusPill>
+      }
+      fields={[
+        {
+          label: "Merchant",
+          value: merchant?.business_name ?? "Merchant",
+        },
+        {
+          label: "Created",
+          value: (
+            <time dateTime={qrCode.created_at}>
+              {formatAdminDate(qrCode.created_at)}
+            </time>
+          ),
+        },
+      ]}
+      action={
+        <div className="grid gap-3 lg:grid-cols-2">
+          <QrStateForm qrCodeId={qrCode.id} nextActive={!qrCode.is_active} />
+          <RegenerateQrForm qrCodeId={qrCode.id} />
+        </div>
+      }
+    />
   )
 }
 
@@ -218,13 +308,15 @@ function QrStateForm({
     <AdminActionForm action={setQrActiveAction}>
       <input type="hidden" name="qrCodeId" value={qrCodeId} />
       <input type="hidden" name="isActive" value={String(nextActive)} />
-      <AdminField label="Reason">
-        <input
-          name="reason"
-          required
-          minLength={4}
-          className={adminInputClasses}
-        />
+      <AdminField
+        label="Reason"
+        helper={
+          nextActive
+            ? undefined
+            : "Disabling stops scans immediately; the QR can be re-enabled later."
+        }
+      >
+        <Input name="reason" required minLength={4} />
       </AdminField>
       <SubmitButton
         pendingLabel={nextActive ? "Enabling…" : "Disabling…"}
@@ -241,14 +333,13 @@ function RegenerateQrForm({ qrCodeId }: { readonly qrCodeId: string }) {
   return (
     <AdminActionForm action={regenerateQrAction}>
       <input type="hidden" name="qrCodeId" value={qrCodeId} />
-      <AdminField label="Reason">
-        <input
-          name="reason"
-          required
-          minLength={4}
-          className={adminInputClasses}
-        />
+      <AdminField
+        label="Reason"
+        helper="Regenerating invalidates the QR on the current printed poster; the venue must reprint before customers can scan again. The action is written to the audit log."
+      >
+        <Input name="reason" required minLength={4} />
       </AdminField>
+      <AdminConfirmCheck label="I understand the current printed poster QR will stop working." />
       <SubmitButton pendingLabel="Regenerating…" variant="secondary">
         <Icon icon={RefreshIcon} size={16} />
         Regenerate QR

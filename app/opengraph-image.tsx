@@ -9,7 +9,7 @@ import { ImageResponse } from "next/og"
  * shadow.
  */
 export const alt =
-  "Nabaperks — loyalty cards for pubs, cafes and restaurants. QR scan. Browser-based card. Counter-verified stamps. 30-day pilot, then £29/month."
+  "Nabaperks — loyalty cards for pubs, cafes and takeaways. QR scan. Browser-based card. Counter-verified stamps. 30-day pilot, then £29/month."
 
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
@@ -69,7 +69,7 @@ export default function OpengraphImage() {
               maxWidth: 960,
             }}
           >
-            Loyalty cards for pubs, cafes and restaurants
+            Loyalty cards for pubs, cafes and takeaways
           </div>
           <div style={{ fontSize: 33, maxWidth: 920, color: "#3b342b" }}>
             QR scan. Browser-based card. Counter-verified stamps.

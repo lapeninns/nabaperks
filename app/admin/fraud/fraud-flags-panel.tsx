@@ -12,8 +12,7 @@ import {
   AdminPanel,
   SourceLabel,
   StatusPill,
-  adminInputClasses,
-  formatAdminDate,
+  formatAdminAuditDate,
 } from "@/components/admin/support"
 import {
   EmptyState,
@@ -23,10 +22,26 @@ import {
 } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { SubmitButton } from "@/components/forms"
+import { Input } from "@/components/ui/input"
 import type { getAdminFraudSignals } from "@/lib/admin/data"
 
 type FraudFlags = Awaited<ReturnType<typeof getAdminFraudSignals>>["fraudFlags"]
 type FraudFlag = FraudFlags[number]
+
+/**
+ * fraud_flags.severity check constraint: low/medium/high. Tone-map severity
+ * so triage-by-scan works — high reads as danger, medium as warning, low as
+ * neutral — instead of every severity rendering identical amber.
+ */
+const SEVERITY_TONE: Record<string, "neutral" | "warning" | "danger"> = {
+  low: "neutral",
+  medium: "warning",
+  high: "danger",
+}
+
+function severityTone(severity: string) {
+  return SEVERITY_TONE[severity.toLowerCase()] ?? "warning"
+}
 
 export function FraudFlagsPanel({
   flags,
@@ -84,7 +99,7 @@ export function FraudFlagsPanel({
             key: "severity",
             header: "Severity",
             cell: (flag) => (
-              <StatusPill tone="warning">{flag.severity}</StatusPill>
+              <StatusPill tone={severityTone(flag.severity)}>{flag.severity}</StatusPill>
             ),
           },
           {
@@ -97,7 +112,7 @@ export function FraudFlagsPanel({
             header: "When",
             cell: (flag) => (
               <time className="text-muted-foreground" dateTime={flag.created_at}>
-                {formatAdminDate(flag.created_at)}
+                {formatAdminAuditDate(flag.created_at)}
               </time>
             ),
           },
@@ -112,7 +127,7 @@ export function FraudFlagsPanel({
             title={flag.signal.replaceAll("_", " ")}
             status={
               <>
-                <StatusPill tone="warning">{flag.severity}</StatusPill>
+                <StatusPill tone={severityTone(flag.severity)}>{flag.severity}</StatusPill>
                 <StatusPill>{flag.status}</StatusPill>
               </>
             }
@@ -124,7 +139,7 @@ export function FraudFlagsPanel({
                 label: "When",
                 value: (
                   <time dateTime={flag.created_at}>
-                    {formatAdminDate(flag.created_at)}
+                    {formatAdminAuditDate(flag.created_at)}
                   </time>
                 ),
               },
@@ -207,12 +222,7 @@ function FraudFlagResolutionForm({
       <input type="hidden" name="fraudFlagId" value={flagId} />
       <input type="hidden" name="status" value={status} />
       <AdminField label="Reason">
-        <input
-          name="reason"
-          required
-          minLength={4}
-          className={adminInputClasses}
-        />
+        <Input name="reason" required minLength={4} />
       </AdminField>
       <SubmitButton
         pendingLabel="Saving…"

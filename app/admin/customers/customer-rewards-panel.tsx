@@ -7,11 +7,11 @@ import {
   AdminLookupPagination,
 } from "@/components/admin/lookup-controls"
 import {
+  AdminConfirmCheck,
   AdminField,
   AdminPanel,
   SourceLabel,
   StatusPill,
-  adminInputClasses,
   first,
   formatAdminDate,
   maskAdminContact,
@@ -20,6 +20,7 @@ import { AdminRecordCard } from "@/components/admin/record-card"
 import { EmptyState, Icon, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { SubmitButton } from "@/components/forms"
+import { Input } from "@/components/ui/input"
 import type { getAdminRewards } from "@/lib/admin/data"
 
 type AdminRewardsResult = Awaited<ReturnType<typeof getAdminRewards>>
@@ -172,14 +173,13 @@ function RewardCancelForm({ rewardId }: { rewardId: string }) {
   return (
     <AdminActionForm action={cancelRewardAction} className="min-w-[260px]">
       <input type="hidden" name="rewardId" value={rewardId} />
-      <AdminField label="Reason">
-        <input
-          name="reason"
-          required
-          minLength={4}
-          className={adminInputClasses}
-        />
+      <AdminField
+        label="Reason"
+        helper="Cancelling permanently removes this unlocked reward from the member; it cannot be undone. The action is written to the audit log."
+      >
+        <Input name="reason" required minLength={4} />
       </AdminField>
+      <AdminConfirmCheck label="I understand this cancellation cannot be undone." />
       <SubmitButton pendingLabel="Cancelling…" variant="destructive">
         <Icon icon={Cancel01Icon} size={16} />
         Cancel reward

@@ -33,6 +33,13 @@ export function MarketingLayout({
   const marketingLinks = navLinks ?? defaultMarketingLinks
   return (
     <div className="min-h-[100dvh] overflow-x-clip bg-background">
+      {/* Keyboard/SR users skip the marquee + sticky header on every route. */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:border-2 focus:border-ink focus:bg-card focus:px-4 focus:py-2 focus:text-sm focus:font-bold"
+      >
+        Skip to content
+      </a>
       <Marquee />
       <header className="sticky top-0 z-40 border-b-2 border-ink bg-card">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
@@ -43,12 +50,12 @@ export function MarketingLayout({
           <MarketingHeaderNav links={marketingLinks} />
         </div>
       </header>
-      <main>{children}</main>
+      <main id="main">{children}</main>
       <footer className="border-t-2 border-dashed border-border bg-card">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-6 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <Logo href={logoHref} label="nabaperks" />
-            <span className="font-mono text-[0.65rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+            <span className="mono-id tracking-[0.08em] text-muted-foreground">
               © {new Date().getFullYear()} · Marketing by choice
             </span>
           </div>

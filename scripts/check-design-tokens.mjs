@@ -39,8 +39,6 @@ const MIN_TEXT_PX = 10
  * any other file fail immediately.
  */
 const SUBFLOOR_EXCEPTIONS = new Set([
-  // merchant lane
-  "components/merchant/launch-readiness-panel.tsx",
 ])
 
 /**

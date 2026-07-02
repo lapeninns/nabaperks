@@ -1,7 +1,8 @@
 import Link from "next/link"
 
 import { generateQrCodeAction } from "@/app/app/qr/actions"
-import { PageTitle, ReceiptCard } from "@/components/brand"
+import { ReceiptCard } from "@/components/brand"
+import { PanelTitle } from "@/components/merchant/launch/panel-title"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { QrPanelLive } from "@/components/merchant/launch/qr-panel-live"
 import { LaunchSaveNextAction } from "@/components/merchant/launch/launch-tab-auto-advance"
@@ -47,7 +48,7 @@ export async function QrPanel({
   if (!activeCard) {
     return (
       <ReceiptCard className="grid gap-4">
-        <PageTitle
+        <PanelTitle
           eyebrow="Venue QR"
           title="Build your card first"
           description="Nabaperks needs one active mystery visit card before it can create your permanent venue QR."
@@ -67,7 +68,7 @@ export async function QrPanel({
 
     return (
       <ReceiptCard className="grid gap-4">
-        <PageTitle
+        <PanelTitle
           eyebrow="Venue QR"
           title="Your QR is not live yet"
           description="Create the permanent venue QR once venue, card, and rewards are ready. Billing is the final activation step."

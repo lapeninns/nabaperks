@@ -51,7 +51,8 @@ export function CustomerTabBar() {
       aria-label="Home navigation"
       className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-ink bg-card pb-[env(safe-area-inset-bottom)]"
     >
-      <div className="mx-auto grid w-full max-w-md grid-cols-5">
+      {/* One customer column: the shared 410px token (CUS-P2-12/16). */}
+      <div className="mx-auto grid w-full max-w-customer grid-cols-5">
         {tabs.map((tab) => {
           const active = isActive(pathname, tab.href)
 

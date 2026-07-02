@@ -185,9 +185,11 @@ export function CustomerQrScanner() {
           <h1 className="text-2xl leading-tight font-extrabold tracking-[-0.01em]">
             Scan venue QR
           </h1>
+          {/* Same barista line as the loader fallback — no system vocabulary
+              (CUS-P2-11). */}
           <p className="text-sm leading-6 text-muted-foreground">
-            Point your camera at a Nabaperks venue QR. We will open the existing
-            QR flow so your stamps, OTP checks, and rewards stay protected.
+            Point your camera at a Nabaperks venue QR to collect your stamp. No
+            app, no plastic.
           </p>
         </div>
       </div>

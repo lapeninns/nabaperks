@@ -1,5 +1,6 @@
 import { connection } from "next/server"
 
+import { Eyebrow } from "@/components/brand"
 import { AdminShell } from "@/components/layout"
 import { getAdminAccess } from "@/lib/admin/auth"
 
@@ -14,10 +15,8 @@ export default async function AdminLayout({
   if (access.status !== "allowed") {
     return (
       <main className="flex min-h-svh items-center justify-center px-6 py-10">
-        <section className="w-full max-w-sm rounded-lg border bg-card p-6 text-center shadow-xs">
-          <p className="font-mono text-xs text-muted-foreground uppercase">
-            Internal admin
-          </p>
+        <section className="surface-card w-full max-w-sm p-6 text-center">
+          <Eyebrow>Internal admin</Eyebrow>
           <h1 className="mt-2 text-3xl leading-tight font-extrabold">
             Access denied
           </h1>

@@ -6,7 +6,10 @@ import { deriveCustomerExperience } from "@/lib/customer/experience/derive"
 import { loadJoinExperienceContext } from "@/lib/customer/experience/load-join"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 
-export const metadata: Metadata = PRIVATE_ROUTE_METADATA
+export const metadata: Metadata = {
+  ...PRIVATE_ROUTE_METADATA,
+  title: "Keep your card",
+}
 
 type MerchantJoinPageProps = {
   params: Promise<{

@@ -15,6 +15,7 @@ import type {
 } from "@/components/customer/join-forms"
 import type { CustomerOtpFormProps } from "@/components/customer/join-otp-form"
 import { WelcomeStep } from "@/components/customer/join-welcome-step"
+import { UnavailableRecoveryActions } from "@/components/customer/unavailable-recovery"
 import {
   RewardSeal,
   RewardTicket,
@@ -360,6 +361,8 @@ function UnavailableJoin() {
       >
         Ask a team member for the current loyalty QR.
       </StatusBanner>
+      {/* Same recovery block as /q (CUS-P2-04) — never a dead end. */}
+      <UnavailableRecoveryActions />
     </CustomerFlowShell>
   )
 }

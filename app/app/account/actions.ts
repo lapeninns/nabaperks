@@ -10,6 +10,8 @@ import {
   persistVenueLocationWrite,
   resolveVenueLocationWritePayload,
   validateVenueLocationSubmission,
+  type VenueLocationSubmission,
+  type VenueLocationSubmissionErrors,
 } from "@/lib/merchant/venue-location-submission"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
@@ -20,6 +22,24 @@ type LocationActionStatus =
   | "card-error"
   | "reward-error"
   | "qr-error"
+
+/**
+ * useActionState shape for the add-location form: typed values survive a
+ * failed validation round-trip (field persistence) and errors are per-field
+ * (`venueName` maps to the locationName input). Post-save partial failures
+ * (card/reward/qr) still redirect with a `?locations=` status because the
+ * location row exists by then and the list itself must refresh.
+ */
+export type AddLocationFormState = {
+  fields?: {
+    locationName?: string
+    addressLine1?: string
+    addressLine2?: string
+    addressCity?: string
+    addressPostcode?: string
+  }
+  errors?: VenueLocationSubmissionErrors
+}
 
 type PrimaryCardTemplate = {
   readonly id: string
@@ -37,7 +57,10 @@ type RewardPoolTemplate = {
   readonly display_order: number
 }
 
-export async function addVenueLocationAction(formData: FormData) {
+export async function addVenueLocationAction(
+  _state: AddLocationFormState,
+  formData: FormData
+): Promise<AddLocationFormState> {
   const merchant = await getCurrentMerchant()
   if (!merchant) {
     redirect("/app/onboarding")
@@ -45,12 +68,15 @@ export async function addVenueLocationAction(formData: FormData) {
   const submission = parseVenueLocationSubmission(formData, {
     venueNameField: "locationName",
   })
+  const fields = submissionToFields(submission)
   const { errors, radius } = validateVenueLocationSubmission(submission, {
     validateGeofence: false,
   })
 
   if (Object.keys(errors).length > 0) {
-    redirectToLocations("invalid")
+    // Field persistence: typed values and per-field errors go back to the
+    // form instead of a redirect that wiped everything.
+    return { fields, errors }
   }
   const payloadResult = await resolveVenueLocationWritePayload(submission, {
     merchantId: merchant.id,
@@ -60,7 +86,7 @@ export async function addVenueLocationAction(formData: FormData) {
   })
 
   if ("errors" in payloadResult) {
-    redirectToLocations("invalid")
+    return { fields, errors: payloadResult.errors }
   }
   const supabase = await createSupabaseServerClient()
   const write = await persistVenueLocationWrite({
@@ -69,7 +95,10 @@ export async function addVenueLocationAction(formData: FormData) {
   })
 
   if (write.error || !write.locationId) {
-    redirectToLocations("location-error")
+    return {
+      fields,
+      errors: { form: "The location could not be saved. Try again." },
+    }
   }
   const card = await clonePrimaryActiveCard({
     supabase,
@@ -105,6 +134,115 @@ export async function addVenueLocationAction(formData: FormData) {
   revalidatePath("/app/account")
   revalidatePath("/app/qr")
   redirectToLocations("saved")
+}
+
+/**
+ * Per-location retry for the half-created state MER-P2-13 describes: the
+ * location row saved but its join QR never appeared (reward/card/qr failure).
+ * Re-running the add form would create a second location; this action repairs
+ * the existing one instead — ensure a card, top up rewards only from an empty
+ * pool (re-cloning into a part-filled pool would duplicate rewards), then ask
+ * for the join QR (create_or_get_join_qr is get-or-create by name).
+ */
+export async function createLocationJoinQrAction(formData: FormData) {
+  const merchant = await getCurrentMerchant()
+  if (!merchant) {
+    redirect("/app/onboarding")
+  }
+  const locationId = String(formData.get("locationId") ?? "")
+  if (!locationId) {
+    redirectToLocations("location-error")
+  }
+
+  const supabase = await createSupabaseServerClient()
+  const { data: location } = await supabase
+    .from("merchant_locations")
+    .select("id")
+    .eq("id", locationId)
+    .eq("merchant_id", merchant.id)
+    .maybeSingle()
+
+  if (!location?.id) {
+    redirectToLocations("location-error")
+  }
+
+  const { data: existingCard } = await supabase
+    .from("loyalty_cards")
+    .select("id")
+    .eq("merchant_id", merchant.id)
+    .eq("location_id", locationId)
+    .eq("is_active", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  let cardId = existingCard?.id ?? null
+  if (!cardId) {
+    const card = await clonePrimaryActiveCard({
+      supabase,
+      merchantId: merchant.id,
+      locationId,
+    })
+    if (!card.cardId) {
+      redirectToLocations("card-error")
+    }
+    cardId = card.cardId
+  }
+
+  const { count } = await supabase
+    .from("reward_pool_items")
+    .select("id", { count: "exact", head: true })
+    .eq("merchant_id", merchant.id)
+    .eq("loyalty_card_id", cardId)
+    .eq("is_active", true)
+  const activeRewards = count ?? 0
+
+  if (activeRewards === 0) {
+    const sourceCard = await loadPrimaryActiveCard(supabase, merchant.id)
+    if (!sourceCard) {
+      redirectToLocations("card-error")
+    }
+    const cloned = await cloneActiveRewardPool({
+      supabase,
+      merchantId: merchant.id,
+      sourceCardId: sourceCard.id,
+      targetCardId: cardId,
+    })
+    if (!cloned) {
+      redirectToLocations("reward-error")
+    }
+  } else if (activeRewards < 3) {
+    // A part-filled pool cannot be topped up without duplicating rewards;
+    // surface the same banner so the merchant tops up the primary pool first.
+    redirectToLocations("reward-error")
+  }
+
+  const { error: qrError } = await supabase.rpc("create_or_get_join_qr", {
+    p_merchant_id: merchant.id,
+    p_loyalty_card_id: cardId,
+  })
+
+  if (qrError) {
+    redirectToLocations("qr-error")
+  }
+
+  revalidateMerchantCacheTags(merchant.id)
+  revalidatePath("/app")
+  revalidatePath("/app/account")
+  revalidatePath("/app/qr")
+  redirectToLocations("saved")
+}
+
+function submissionToFields(
+  submission: VenueLocationSubmission
+): NonNullable<AddLocationFormState["fields"]> {
+  return {
+    locationName: submission.venueName,
+    addressLine1: submission.addressFields.addressLine1,
+    addressLine2: submission.addressFields.addressLine2,
+    addressCity: submission.addressFields.addressCity,
+    addressPostcode: submission.addressFields.addressPostcode,
+  }
 }
 
 async function clonePrimaryActiveCard({

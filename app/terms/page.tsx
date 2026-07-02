@@ -108,9 +108,9 @@ function TermsBlock({
       tabIndex={-1}
       className="w-rule grid scroll-mt-28 gap-2 pt-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
     >
-      <p className="font-mono text-[0.7rem] font-bold tracking-[0.08em] text-foreground uppercase">
+      <h2 className="font-mono text-[0.7rem] font-bold tracking-[0.08em] text-foreground uppercase">
         {title}
-      </p>
+      </h2>
       <p className="text-sm leading-6 text-muted-foreground">{body}</p>
     </section>
   )

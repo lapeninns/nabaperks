@@ -132,7 +132,9 @@ function relativeTimeFromNow(value: string): string | null {
 function activityDotClass(category: ActivityCategory) {
   switch (category) {
     case "customer":
-      return "bg-accent"
+      // Joins are cobalt per DESIGN.md spot-ink semantics (`bg-accent`
+      // resolves to the paper tint --w-paper-2 — an invisible dot).
+      return "bg-cobalt"
     case "stamp":
       return "bg-primary"
     case "reward":

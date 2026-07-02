@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 
-import { Eyebrow, ReceiptCard } from "@/components/brand"
+import { Eyebrow, Logo, ReceiptCard } from "@/components/brand"
 import { CustomerShell } from "@/components/layout"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
@@ -101,6 +101,8 @@ export default async function MerchantTermsPage({
 function UnavailableTerms({ merchantSlug }: { merchantSlug: string }) {
   return (
     <CustomerShell className="grid content-center gap-6">
+      <Logo compact className="justify-self-center" />
+
       <StatusBanner title="Terms unavailable" tone="neutral">
         Ask the venue team for the current loyalty QR before joining.
       </StatusBanner>

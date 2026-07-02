@@ -1,11 +1,16 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import type { InputHTMLAttributes } from "react"
 import { QrCode01Icon, Store01Icon } from "@hugeicons/core-free-icons"
 
 import { Icon, ReceiptCard, SectionHeader } from "@/components/brand"
+import { SubmitButton } from "@/components/forms"
 import { Button } from "@/components/ui/button"
-import { addVenueLocationAction } from "@/app/app/account/actions"
+import {
+  addVenueLocationAction,
+  createLocationJoinQrAction,
+  type AddLocationFormState,
+} from "@/app/app/account/actions"
+import { AddLocationForm } from "@/components/merchant/account/add-location-form"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import {
   getMerchantLocationQrSummaries,
@@ -13,12 +18,19 @@ import {
 } from "@/lib/merchant/location"
 import { cn } from "@/lib/utils"
 
-type LocationFormAction = (formData: FormData) => void | Promise<void>
+type LocationFormAction = (
+  state: AddLocationFormState,
+  formData: FormData
+) => Promise<AddLocationFormState>
+
+type LocationRetryAction = (formData: FormData) => void | Promise<void>
 
 type LocationsPanelViewProps = {
   readonly locations: readonly MerchantLocationQrSummary[]
   readonly status?: string | null
   readonly formAction?: LocationFormAction
+  /** Per-location "create join QR" repair action (absent in the harness). */
+  readonly retryAction?: LocationRetryAction
 }
 
 const LOCATION_STATUS_COPY: Record<
@@ -39,15 +51,15 @@ const LOCATION_STATUS_COPY: Record<
   },
   "card-error": {
     tone: "error",
-    body: "The location was saved, but the card snapshot could not be created.",
+    body: "The location was saved, but the card snapshot could not be created. Use Create join QR on the site card to retry.",
   },
   "reward-error": {
     tone: "error",
-    body: "The location was saved, but it needs at least 3 active rewards before a join QR can be created.",
+    body: "The location was saved, but it needs at least 3 active rewards. Top up your primary site's reward pool, then use Create join QR on the site card.",
   },
   "qr-error": {
     tone: "error",
-    body: "The location was saved, but the join QR could not be created.",
+    body: "The location was saved, but the join QR could not be created. Use Create join QR on the site card to retry.",
   },
 }
 
@@ -69,6 +81,7 @@ export async function LocationsPanel({
       locations={locations}
       status={status}
       formAction={addVenueLocationAction}
+      retryAction={createLocationJoinQrAction}
     />
   )
 }
@@ -77,6 +90,7 @@ export function LocationsPanelView({
   locations,
   status,
   formAction,
+  retryAction,
 }: LocationsPanelViewProps) {
   const statusCopy = status ? LOCATION_STATUS_COPY[status] : null
 
@@ -103,7 +117,11 @@ export function LocationsPanelView({
         />
         <div className="grid gap-3">
           {locations.map((location) => (
-            <LocationCard key={location.id} location={location} />
+            <LocationCard
+              key={location.id}
+              location={location}
+              retryAction={retryAction}
+            />
           ))}
         </div>
       </ReceiptCard>
@@ -118,54 +136,7 @@ export function LocationsPanelView({
           title="Add another location"
           description="New locations start with a copy of your primary site's card and rewards, taken when the location is added. Copied cards cannot be edited per location yet — manage rewards on your primary site."
         />
-        <form action={formAction} className="grid gap-4">
-          <LocationField
-            id="locationName"
-            name="locationName"
-            label="Location name"
-            placeholder="White Horse Milton"
-            autoComplete="organization"
-            required
-          />
-          <LocationField
-            id="addressLine1"
-            name="addressLine1"
-            label="Address line 1"
-            placeholder="1 High Street"
-            autoComplete="address-line1"
-            required
-          />
-          <LocationField
-            id="addressLine2"
-            name="addressLine2"
-            label="Address line 2"
-            placeholder="Optional"
-            autoComplete="address-line2"
-          />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <LocationField
-              id="addressCity"
-              name="addressCity"
-              label="Town or city"
-              placeholder="Cambridge"
-              autoComplete="address-level2"
-              required
-            />
-            <LocationField
-              id="addressPostcode"
-              name="addressPostcode"
-              label="Postcode"
-              placeholder="CB24 6DF"
-              autoComplete="postal-code"
-              required
-            />
-          </div>
-          <input type="hidden" name="geofenceRadiusMeters" value="150" />
-          <input type="hidden" name="geofencePinSource" value="geocoded" />
-          <Button type="submit" className="w-full sm:w-fit">
-            Create location QR
-          </Button>
-        </form>
+        <AddLocationForm action={formAction} />
       </ReceiptCard>
     </section>
   )
@@ -173,8 +144,10 @@ export function LocationsPanelView({
 
 function LocationCard({
   location,
+  retryAction,
 }: {
   readonly location: MerchantLocationQrSummary
+  readonly retryAction?: LocationRetryAction
 }) {
   return (
     <article className="grid gap-3 rounded-lg border-2 border-ink bg-secondary/35 p-4 shadow-[var(--shadow-hard-sm)]">
@@ -210,33 +183,30 @@ function LocationCard({
           </Button>
         </div>
       ) : (
-        <p className="rounded-lg border-2 border-dashed border-line bg-card p-3 text-sm font-semibold text-muted-foreground">
-          Create at least 3 active rewards for this location before its join QR
-          appears.
-        </p>
+        <div className="grid gap-3 rounded-lg border-2 border-dashed border-line bg-card p-3">
+          <p className="text-sm font-semibold text-muted-foreground">
+            This site&apos;s join QR is not ready yet. It needs a card with at
+            least 3 active rewards, copied from your primary site.
+          </p>
+          {/* Repair affordance for the half-created state: re-runs the
+              card/reward/QR steps for THIS location instead of forcing a
+              duplicate location through the add form (MER-P2-13). */}
+          {retryAction ? (
+            <form action={retryAction}>
+              <input type="hidden" name="locationId" value={location.id} />
+              <SubmitButton
+                variant="secondary"
+                size="sm"
+                className="w-fit"
+                pendingLabel="Creating join QR…"
+              >
+                <Icon icon={QrCode01Icon} size={15} />
+                Create join QR for {location.name}
+              </SubmitButton>
+            </form>
+          ) : null}
+        </div>
       )}
     </article>
-  )
-}
-
-function LocationField({
-  id,
-  label,
-  ...props
-}: InputHTMLAttributes<HTMLInputElement> & {
-  readonly id: string
-  readonly label: string
-}) {
-  return (
-    <div className="grid gap-2">
-      <label htmlFor={id} className="eyebrow">
-        {label}
-      </label>
-      <input
-        id={id}
-        className="h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none focus:border-ring focus:ring-3 focus:ring-ring/25"
-        {...props}
-      />
-    </div>
   )
 }

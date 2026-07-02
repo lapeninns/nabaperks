@@ -17,7 +17,7 @@ function Mark({ value }: { value: ComparisonCell }) {
         icon={value ? Tick02Icon : Cancel01Icon}
         size={20}
         strokeWidth={2.75}
-        className={cn("mx-auto", value ? "text-reward" : "text-muted-foreground/45")}
+        className={cn("mx-auto", value ? "text-reward" : "text-muted-foreground/70")}
       />
       <span className="sr-only">{value ? "Yes" : "No"}</span>
     </>
@@ -51,12 +51,13 @@ export function ComparisonTable() {
         </p>
       </div>
 
-      <div
-        aria-label="Browser-card comparison table"
-        className="relative mt-6 overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary [-ms-overflow-style:none] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5"
-        role="region"
-        tabIndex={0}
-      >
+      <div className="relative mt-6">
+        <div
+          aria-label="Browser-card comparison table"
+          className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary [-ms-overflow-style:none] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5"
+          role="region"
+          tabIndex={0}
+        >
         <table className="w-full min-w-[34rem] border-separate border-spacing-0 text-left">
           <caption className="sr-only">
             How a Nabaperks browser card compares with wallet-pass loyalty apps,
@@ -122,7 +123,19 @@ export function ComparisonTable() {
             ))}
           </tbody>
         </table>
+        </div>
+        {/* Edge fade — only while the table is actually clipped (it fits once
+            the container clears the 34rem min width): signals the wallet/paper/
+            POS columns sitting off-screen. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 right-0 hidden w-10 bg-gradient-to-l from-background to-transparent max-[37rem]:block"
+        />
       </div>
+
+      <p className="mono-id mt-2 hidden font-normal text-muted-foreground max-[37rem]:block">
+        Swipe for wallet pass · paper · POS →
+      </p>
 
       <p className="mt-5 max-w-[58ch] text-sm leading-relaxed text-pretty text-muted-foreground">
         With wallet-pass tools, customers often end up{" "}

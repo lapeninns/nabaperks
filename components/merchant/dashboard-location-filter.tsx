@@ -38,6 +38,13 @@ export function DashboardLocationFilter({
   )
 }
 
+/**
+ * A site filter in the FilterPills idiom (the sanctioned mono pill voice for
+ * exactly this job — see components/brand/filter-pills.tsx): 36px mono pill
+ * on fine pointers growing to the 44px tap floor on coarse pointers,
+ * selected = vermillion, focus from the shared `.focus-ring` recipe. Links,
+ * not buttons, because the dashboard filter is URL-driven.
+ */
 function LocationPill({
   href,
   active,
@@ -53,13 +60,19 @@ function LocationPill({
       prefetch={false}
       aria-current={active ? "true" : undefined}
       className={cn(
-        "inline-flex min-h-10 items-center rounded-full border-2 border-ink px-4 py-2 text-sm font-black transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:-translate-y-0.5 focus-visible:-translate-y-0.5 focus-visible:outline-none motion-reduce:transition-none",
+        "inline-flex h-9 max-w-full shrink-0 items-center gap-1.5 rounded-full border-2 px-3.5",
+        "[@media(pointer:coarse)]:min-h-11",
+        "font-mono text-[0.6875rem] font-bold tracking-[0.04em] uppercase whitespace-nowrap",
+        "transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)]",
+        "focus-ring outline-none motion-reduce:transition-none",
         active
-          ? "bg-primary text-primary-foreground shadow-[var(--shadow-hard)]"
-          : "bg-card text-ink shadow-[var(--shadow-hard-sm)]"
+          ? "border-ink bg-primary text-primary-foreground shadow-xs"
+          : "border-ink bg-card text-ink-soft hover:bg-secondary"
       )}
     >
-      {children}
+      {/* Long site names truncate rather than overflowing the wrap row (the
+          MonoTag long-copy contract). */}
+      <span className="truncate">{children}</span>
     </Link>
   )
 }

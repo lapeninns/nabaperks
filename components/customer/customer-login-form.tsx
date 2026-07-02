@@ -8,6 +8,7 @@ import {
   type CustomerLoginOtpState,
 } from "@/app/home/actions"
 import { customerInputClass } from "@/components/customer/input-class"
+import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { otpFieldMaxLength } from "@/lib/customer/experience/otp-field"
 
@@ -68,12 +69,9 @@ export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
           ) : null}
         </div>
         {formError && formError !== verifyError ? (
-          <p
-            role="alert"
-            className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-          >
-            {formError}
-          </p>
+          // Wet Ink error treatment (CUS-P2-07): the shared banner (2px ink,
+          // role="alert" via Alert) instead of a hand-rolled 1px box.
+          <StatusBanner tone="error" title={formError} />
         ) : null}
         {state.message ? (
           <div

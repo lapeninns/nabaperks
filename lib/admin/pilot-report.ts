@@ -66,16 +66,18 @@ export async function getAdminPilotReport() {
         value: merchants,
         source: "merchants table",
       },
+      // KPI tiles hold one short word; the provenance lives in target/source
+      // (a sentence at text-2xl extrabold blows the tile rhythm).
       {
         item: "Launch offer",
         target: "30 days free, then GBP 29/mo",
-        value: "Configured in pricing and billing state",
+        value: "Configured",
         source: "app pricing and billing_customers",
       },
       {
         item: "Pilot window",
         target: "60-90 days",
-        value: "Tracked by merchant signup and billing dates",
+        value: "Tracked",
         source: "merchants.created_at",
       },
       {

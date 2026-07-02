@@ -7,6 +7,7 @@ import {
   type GoogleAddressComponent,
   type VenueAddressFormFields,
 } from "@/lib/merchant/venue-address"
+import { cn } from "@/lib/utils"
 
 /** A validated-on-the-client Google Places selection handed to the venue form. */
 export type VenuePlaceSelection = {
@@ -271,16 +272,21 @@ export function VenuePlaceAutocomplete({
   // Unconfigured: render nothing so the manual address fields below stand alone.
   if (!apiKey) return null
 
+  const searchUnavailable = status === "error" || status === "referrer_blocked"
+
   return (
     <div className="grid gap-2">
       <span id={labelId} className="eyebrow">
         Find your venue
       </span>
+      {/* The mount container reserves control height only while a control can
+          still appear; on failure it collapses so the styled fallback well
+          below stands in its place instead of an unexplained blank band. */}
       <div
         ref={containerRef}
         data-testid="venue-place-autocomplete"
         data-status={status}
-        className="min-h-11"
+        className={cn(!searchUnavailable && "min-h-11")}
       />
       {status === "loading" ? (
         <p className="text-xs leading-5 text-muted-foreground">
@@ -292,12 +298,22 @@ export function VenuePlaceAutocomplete({
           Search Google for your venue, or enter the address below.
         </p>
       ) : null}
-      {status === "error" || status === "referrer_blocked" ? (
-        <p className="text-xs leading-5 text-muted-foreground">
-          {status === "referrer_blocked"
-            ? "Google blocked venue search from this origin. In Google Cloud Console, add http://localhost:3000/* and http://localhost/* to your Maps browser key referrers (do not use :* port wildcards), or enter the address below."
-            : "Venue search is unavailable right now. Enter your address below."}
-        </p>
+      {searchUnavailable ? (
+        <div className="rounded-lg border-2 border-dashed border-line bg-card px-4 py-3">
+          {/* Merchant-facing line always; Google Cloud detail is dev-only so
+              venue owners never read key-configuration jargon in production. */}
+          <p className="text-sm font-semibold text-muted-foreground">
+            Venue search is unavailable right now — enter the address below.
+          </p>
+          {status === "referrer_blocked" &&
+          process.env.NODE_ENV !== "production" ? (
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              Dev note: Google blocked this origin. In Google Cloud Console,
+              add http://localhost:3000/* and http://localhost/* to the Maps
+              browser key referrers (do not use :* port wildcards).
+            </p>
+          ) : null}
+        </div>
       ) : null}
     </div>
   )

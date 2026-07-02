@@ -457,7 +457,9 @@ function accessUnavailable(
 function accessProblemReason(access: AccessProblem): string {
   switch (access) {
     case "unauthenticated":
-      return "Verify your identity from the venue QR to continue."
+      // Names the action the recovery button performs (sign in), instead of
+      // pointing at the venue QR while the button opens login (CUS-P2-08).
+      return "Sign in with your number to open this card."
     case "unauthorized":
       return "This belongs to another customer."
     case "not_found":

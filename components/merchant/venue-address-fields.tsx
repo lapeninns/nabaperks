@@ -2,13 +2,16 @@ import type {
   VenueAddressFieldErrors,
   VenueAddressFormFields,
 } from "@/lib/merchant/venue-address"
+import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 
 export function VenueAddressFields({
   values,
   errors,
-  labelClassName = "text-sm font-bold",
-  inputClassName = "h-11 rounded-lg border-2 border-ink bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/35",
+  // One form language across the merchant journey: mono-uppercase labels and
+  // the themed slot well (VME-P2-11). Callers add layout classes only.
+  labelClassName = "eyebrow",
+  inputClassName = "h-12 text-sm",
   columns = 1,
   requireAddress = false,
   onFieldChange,
@@ -152,7 +155,7 @@ function AddressField({
           </>
         ) : null}
       </span>
-      <input
+      <Input
         id={id}
         name={name}
         type="text"

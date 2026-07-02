@@ -10,6 +10,7 @@ import {
 } from "@/app/m/[merchantSlug]/join/actions"
 import { customerInputClass } from "@/components/customer/input-class"
 import { SubmitButton } from "@/components/forms"
+import { StatusBanner } from "@/components/loyalty"
 import { otpFieldMaxLength } from "@/lib/customer/experience/otp-field"
 import type { LocationRequirement } from "@/lib/customer/experience/types"
 
@@ -91,15 +92,13 @@ export function CustomerOtpForm({
             </p>
           )}
         </div>
+        {/* Wet Ink error treatment (CUS-P2-07): the shared banner instead of
+            hand-rolled 1px boxes. */}
         {state.errors?.form ? (
-          <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {state.errors.form}
-          </p>
+          <StatusBanner tone="error" title={state.errors.form} />
         ) : null}
         {state.errors?.contact ? (
-          <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {state.errors.contact}
-          </p>
+          <StatusBanner tone="error" title={state.errors.contact} />
         ) : null}
         <SubmitButton size="lg" className="w-full" pendingLabel="Checking…">
           Save my card

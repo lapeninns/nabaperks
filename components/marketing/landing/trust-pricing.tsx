@@ -34,7 +34,7 @@ export function TrustPricing() {
 
       <div className="surface-card mx-auto mt-6 w-full max-w-[26rem] -rotate-1 p-6 sm:p-7">
         <div className="flex items-baseline justify-between gap-3">
-          <span className="font-mono text-xs font-bold tracking-[0.08em] uppercase">
+          <span className="mono-meta tracking-[0.08em]">
             Growth Plan
           </span>
           <span className="mono-id font-normal text-muted-foreground">

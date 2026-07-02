@@ -12,6 +12,7 @@ import {
 import { Eyebrow, MonoTag } from "@/components/brand"
 import { customerInputClass } from "@/components/customer/input-class"
 import { CustomerLegalConsentLinks } from "@/components/customer/legal-sheet"
+import { StatusBanner } from "@/components/loyalty"
 import type { JoinCard } from "@/lib/customer/experience/types"
 import { Button } from "@/components/ui/button"
 import {
@@ -75,9 +76,9 @@ export function CustomerIdentityForm({
           )}
         </div>
         {state.errors?.form ? (
-          <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {state.errors.form}
-          </p>
+          // Wet Ink error treatment (CUS-P2-07): the shared banner instead of
+          // a hand-rolled 1px box.
+          <StatusBanner tone="error" title={state.errors.form} />
         ) : null}
         <Button
           type="submit"
@@ -177,9 +178,9 @@ export function CustomerJoinForm({
         <p className="text-sm text-destructive">{state.errors.loyaltyTerms}</p>
       ) : null}
       {state.errors?.form ? (
-        <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {state.errors.form}
-        </p>
+        // Wet Ink error treatment (CUS-P2-07): the shared banner instead of
+        // a hand-rolled 1px box.
+        <StatusBanner tone="error" title={state.errors.form} />
       ) : null}
       <p className="text-center text-xs leading-5 text-muted-foreground">
         Finish here and your first stamp lands straight away — no second scan

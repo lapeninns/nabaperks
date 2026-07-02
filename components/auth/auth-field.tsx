@@ -25,12 +25,11 @@ export function AuthField({
       description={description}
       error={error}
     >
+      {/* Well styling (border, ground, radius, focus/invalid) comes from the
+          unlayered [data-slot=input] layer — only layout classes live here. */}
       <Input
         id={id}
-        className={cn(
-          "h-12 rounded-xl border-2 border-ink bg-secondary/60 px-4 text-sm",
-          className
-        )}
+        className={cn("h-12 text-sm", className)}
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
         {...props}

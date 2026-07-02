@@ -11,6 +11,8 @@ import {
 import { CustomerMembershipsPanel } from "./customer-memberships-panel"
 import { CustomerRewardsPanel } from "./customer-rewards-panel"
 
+export const metadata = { title: "Admin — Customers" }
+
 type AdminCustomersPageProps = {
   searchParams?: Promise<AdminSearchParams>
 }

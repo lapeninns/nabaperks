@@ -12,12 +12,15 @@ import {
   AdminField,
   AdminPanel,
   SourceLabel,
-  adminInputClasses,
+  adminSelectClasses,
   first,
   maskAdminContact,
 } from "@/components/admin/support"
+import { AdminIdChip } from "@/components/admin/id-chip"
+import { AdminRecordCard } from "@/components/admin/record-card"
 import { EmptyState, SectionHeader } from "@/components/brand"
 import { SubmitButton } from "@/components/forms"
+import { Input } from "@/components/ui/input"
 import type { getAdminPrivacySupportRows } from "@/lib/admin/data"
 import type { AdminLookupState } from "@/lib/admin/lookup-query"
 import { Shield01Icon } from "@hugeicons/core-free-icons"
@@ -96,22 +99,31 @@ function PrivacySupportRecord({
   const merchant = first(row.merchants)
 
   return (
-    <article className="grid gap-4 rounded-lg border p-4 xl:grid-cols-[1fr_360px_360px]">
-      <div>
-        <p className="font-bold">
-          {maskAdminContact(customer?.email ?? customer?.phone)}
-        </p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {merchant?.business_name ?? "Merchant"}
-        </p>
-        <p className="mt-2 font-mono text-xs text-muted-foreground">
-          customer:{row.customer_id.slice(0, 8)} · merchant:
-          {row.merchant_id.slice(0, 8)} · membership:{row.id.slice(0, 8)}
-        </p>
-      </div>
-      <ConsentOptOutForm row={row} />
-      <DataRequestForm row={row} />
-    </article>
+    <AdminRecordCard
+      title={maskAdminContact(customer?.email ?? customer?.phone)}
+      fields={[
+        {
+          label: "Merchant",
+          value: merchant?.business_name ?? "Merchant",
+        },
+        {
+          label: "References",
+          value: (
+            <span className="flex flex-wrap gap-x-3 gap-y-1">
+              <AdminIdChip value={row.customer_id} prefix="customer" />
+              <AdminIdChip value={row.merchant_id} prefix="merchant" />
+              <AdminIdChip value={row.id} prefix="membership" />
+            </span>
+          ),
+        },
+      ]}
+      action={
+        <div className="grid gap-4 xl:grid-cols-2">
+          <ConsentOptOutForm row={row} />
+          <DataRequestForm row={row} />
+        </div>
+      }
+    />
   )
 }
 
@@ -123,19 +135,14 @@ function ConsentOptOutForm({ row }: { readonly row: PrivacySupportRow }) {
       <input type="hidden" name="source" value="support_request" />
       <input type="hidden" name="policyVersion" value="2026-06-06" />
       <AdminField label="Channel">
-        <select name="channel" required className={adminInputClasses}>
+        <select name="channel" required className={adminSelectClasses}>
           <option value="email">Email</option>
           <option value="sms">SMS</option>
           <option value="whatsapp">WhatsApp</option>
         </select>
       </AdminField>
       <AdminField label="Reason">
-        <input
-          name="reason"
-          required
-          minLength={4}
-          className={adminInputClasses}
-        />
+        <Input name="reason" required minLength={4} />
       </AdminField>
       <SubmitButton pendingLabel="Recording…">Record opt-out</SubmitButton>
     </AdminActionForm>
@@ -149,7 +156,7 @@ function DataRequestForm({ row }: { readonly row: PrivacySupportRow }) {
       <input type="hidden" name="merchantId" value={row.merchant_id} />
       <div className="grid grid-cols-2 gap-2">
         <AdminField label="Request type">
-          <select name="requestType" required className={adminInputClasses}>
+          <select name="requestType" required className={adminSelectClasses}>
             <option value="access">Access</option>
             <option value="export">Export</option>
             <option value="deletion">Deletion</option>
@@ -158,7 +165,7 @@ function DataRequestForm({ row }: { readonly row: PrivacySupportRow }) {
           </select>
         </AdminField>
         <AdminField label="Channel">
-          <select name="channel" required className={adminInputClasses}>
+          <select name="channel" required className={adminSelectClasses}>
             <option value="email">Email</option>
             <option value="phone">Phone</option>
             <option value="in_person">In person</option>
@@ -167,12 +174,7 @@ function DataRequestForm({ row }: { readonly row: PrivacySupportRow }) {
         </AdminField>
       </div>
       <AdminField label="Notes">
-        <input
-          name="notes"
-          required
-          minLength={4}
-          className={adminInputClasses}
-        />
+        <Input name="notes" required minLength={4} />
       </AdminField>
       <SubmitButton pendingLabel="Logging…" variant="secondary">
         Log request

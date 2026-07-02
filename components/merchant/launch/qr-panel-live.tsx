@@ -146,15 +146,15 @@ export function QrPanelLive({
           <hr className="w-rule" />
 
           <section className="grid gap-4" aria-labelledby="qr-print-heading">
+            {/* The section's accessible name is the step heading — never the
+                template list (a ul id here concatenated all five tiles). */}
             <LaunchStep
               step="02"
               title="Print a counter poster"
               description="Pick a layout, open the A4 sheet, and print at 100% scale — no fit-to-page."
+              headingId="qr-print-heading"
             />
-            <ul
-              id="qr-print-heading"
-              className="grid gap-2 sm:grid-cols-2"
-            >
+            <ul className="grid gap-2 sm:grid-cols-2">
               {QR_POSTER_TEMPLATES.map((template) => {
                 const surface = POSTER_SURFACE[template.id]
 
@@ -255,10 +255,13 @@ function LaunchStep({
   step,
   title,
   description,
+  headingId,
 }: {
   readonly step: string
   readonly title: string
   readonly description: string
+  /** Give the h3 an id so a parent section can be aria-labelledby it. */
+  readonly headingId?: string
 }) {
   return (
     <div className="grid gap-2 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-4">
@@ -269,7 +272,9 @@ function LaunchStep({
         Step {step}
       </p>
       <div className="grid gap-1">
-        <h3 className="text-base font-extrabold text-foreground">{title}</h3>
+        <h3 id={headingId} className="text-base font-extrabold text-foreground">
+          {title}
+        </h3>
         <p className="text-sm leading-6 text-muted-foreground">{description}</p>
       </div>
     </div>

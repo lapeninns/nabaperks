@@ -41,7 +41,13 @@ test("Given a customer card URL contains a membership id When the loader runs Th
 test("Given the card route renders customer state When source is inspected Then it stays private and delegates to the card loader", () => {
   const page = readProjectFile("app", "card", "[membershipId]", "page.tsx")
 
-  assert.match(page, /export const metadata: Metadata = PRIVATE_ROUTE_METADATA/)
+  // The route stays private (robots noindex via PRIVATE_ROUTE_METADATA); the
+  // customer tab title added by the production-polish pass (CUS-P2-03) rides
+  // on top through a spread.
+  assert.match(
+    page,
+    /export const metadata: Metadata = \{\s*\.\.\.PRIVATE_ROUTE_METADATA,/
+  )
   assert.match(page, /const \{ membershipId \} = await params/)
   assert.match(page, /loadCardExperienceContext\([\s\S]*membershipId/)
   assert.match(page, /deriveCustomerExperience\(\{ entry: "card", context \}\)/)

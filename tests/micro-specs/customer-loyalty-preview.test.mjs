@@ -19,7 +19,11 @@ test("Given the public merchant preview has no QR context When CTA copy renders 
   assert.match(preview, /href=\{`\/m\/\$\{merchantSlug\}\/join`\}/)
   assert.match(preview, />Join rewards<\/Link>/)
   assert.match(preview, /<CustomerReceipt[\s\S]*\bcompact\b/)
-  assert.match(preview, /<StampJourneyPreview[\s\S]*\bcompact\b/)
+  // The journey preview uses the same non-compact treatment as the q-valid
+  // welcome step (production-polish VCU-P2-02/03): reward patch inline with
+  // the stamps at every width, venue initials on earned stamps.
+  assert.match(preview, /<StampJourneyPreview[\s\S]{0,200}venueName=/)
+  assert.doesNotMatch(preview, /<StampJourneyPreview[\s\S]{0,200}\bcompact\b/)
   assert.doesNotMatch(preview, /Get today's stamp/)
 })
 

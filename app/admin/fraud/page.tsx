@@ -5,6 +5,8 @@ import { getAdminFraudSignals } from "@/lib/admin/data"
 import { FraudFlagsPanel } from "./fraud-flags-panel"
 import { RedemptionFailuresPanel } from "./redemption-failures-panel"
 
+export const metadata = { title: "Admin — Fraud" }
+
 export default async function AdminFraudPage() {
   if (!(await canRenderAdminPage())) return null
 

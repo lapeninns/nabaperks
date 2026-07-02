@@ -51,7 +51,9 @@ export function CustomerFlowShell({
     >
       <div
         className={cn(
-          "mx-auto grid w-full min-w-0 max-w-full sm:max-w-[410px]",
+          // One customer column: the shared 410px token (CUS-P2-12/16), so
+          // skeleton and content agree at every width.
+          "mx-auto grid w-full min-w-0 max-w-customer",
           dense ? "gap-4" : "gap-5",
           className
         )}
@@ -207,8 +209,10 @@ export function CustomerReceipt({
         <>
           <hr className="w-rule" />
           <footer className="flex items-center justify-between gap-3">
+            {/* Receipt voice is for real facts: no placeholder card number
+                when the caller has none to print (CUS-P2-01). */}
             <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
-              {footerLeft ?? "CARD Nº NP-0001"}
+              {footerLeft}
             </span>
             <span className="text-right font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {footerRight}

@@ -3,7 +3,10 @@
 import dynamic from "next/dynamic"
 import type { InputHTMLAttributes } from "react"
 
+import { Eyebrow } from "@/components/brand"
+import { FormField } from "@/components/forms"
 import { Disclosure } from "@/components/merchant/launch/disclosure"
+import { Input } from "@/components/ui/input"
 
 export type VenueCoordinates = {
   latitude: number
@@ -99,6 +102,10 @@ export function AdvancedGpsChecks({
   )
 }
 
+/**
+ * Thin composition over the one input story (FormField + the themed slot
+ * well) — gains proper aria error association the raw input lacked.
+ */
 function GpsField({
   id,
   label,
@@ -110,14 +117,8 @@ function GpsField({
   error?: string
 }) {
   return (
-    <label className="grid gap-2" htmlFor={id}>
-      <span className="text-sm font-bold">{label}</span>
-      <input
-        id={id}
-        {...props}
-        className="h-11 rounded-lg border-2 border-ink bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
-      />
-      {error ? <span className="text-sm text-destructive">{error}</span> : null}
-    </label>
+    <FormField id={id} label={<Eyebrow>{label}</Eyebrow>} error={error}>
+      <Input id={id} className="h-12 text-sm" {...props} />
+    </FormField>
   )
 }

@@ -174,11 +174,24 @@ function cardCollectingViewModel(
 }
 
 function rewardViewModel(exp: RewardExperience): CustomerExperienceViewModel {
+  // The support line matches the state below it (CUS-P2-09): while the reward
+  // waits there is no QR to show, so the line carries the unlock timing
+  // instead of inviting a counter visit the banner underneath then cancels.
   return {
     eyebrow: "Reward",
     headline: exp.reward.rewardName,
-    supportLine: `${exp.merchantName} - show this at the counter when ready.`,
+    supportLine:
+      exp.kind === "reward_waiting"
+        ? waitingRewardSupportLine(exp.reward.redeemableFrom)
+        : `${exp.merchantName} — show this at the counter.`,
   }
+}
+
+function waitingRewardSupportLine(redeemableFrom: string | null): string {
+  if (redeemableFrom) {
+    return `Unlocked — yours from ${formatStampDisplayDateFromIso(redeemableFrom)}.`
+  }
+  return "Unlocked — yours from the next opening day."
 }
 
 function unavailableViewModel(

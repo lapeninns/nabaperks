@@ -225,6 +225,66 @@ export async function getAdminFraudSignals() {
   }
 }
 
+/**
+ * Data-request lifecycle readback for the privacy page (audit_logs is the
+ * source of truth): pending manual requests (`data_request_logged`) plus the
+ * self-executing completions (`customer_data_exported`,
+ * `customer_pii_erased`). Metadata is redacted to the request facts the
+ * console already shows; notes stay out of the list view.
+ */
+const DATA_REQUEST_AUDIT_ACTIONS = [
+  "data_request_logged",
+  "customer_data_exported",
+  "customer_pii_erased",
+] as const
+
+export type AdminDataRequestActivityRow = {
+  readonly id: string
+  readonly action: string
+  readonly requestType: string | null
+  readonly channel: string | null
+  readonly createdAt: string
+  readonly maskedCustomer: string
+  readonly merchant: string
+}
+
+export async function getAdminDataRequestActivity(
+  limit = 20
+): Promise<AdminDataRequestActivityRow[]> {
+  const supabase = await createAdminServiceRoleClient()
+  const { data, error } = await supabase
+    .from("audit_logs")
+    .select(
+      "id, action, metadata, created_at, customers(email, phone), merchants(business_name)"
+    )
+    .in("action", [...DATA_REQUEST_AUDIT_ACTIONS])
+    .order("created_at", { ascending: false })
+    .limit(limit)
+
+  if (error) {
+    throw new Error(`Unable to load data request activity: ${error.message}`)
+  }
+
+  return (Array.isArray(data) ? data : []).map(redactDataRequestActivity)
+}
+
+function redactDataRequestActivity(row: unknown): AdminDataRequestActivityRow {
+  const record = isRecord(row) ? row : {}
+  const metadata = isRecord(record.metadata) ? record.metadata : {}
+  const customer = firstRecord(record.customers)
+  const merchant = firstRecord(record.merchants)
+
+  return {
+    id: fallbackString(record.id, "data-request"),
+    action: fallbackString(record.action, "data_request_logged"),
+    requestType: stringValue(metadata.request_type) ?? null,
+    channel: stringValue(metadata.channel) ?? null,
+    createdAt: fallbackString(record.created_at, ""),
+    maskedCustomer: maskAdminContact(adminCustomerContact(customer)),
+    merchant: fallbackString(merchant?.business_name, "Merchant"),
+  }
+}
+
 export async function getAdminAuditLogs(limit = 100) {
   const supabase = await createAdminServiceRoleClient()
   const { data, error } = await supabase

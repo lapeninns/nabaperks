@@ -155,10 +155,12 @@ export function LaunchReadinessPanel({
                 {readiness.completed} / {readiness.total}
               </MonoTag>
             </div>
+            {/* Track/fill colours come from the unlayered [data-slot=progress]
+                rules — only the height stays per call site. */}
             <Progress
               value={progressValue}
               aria-label={`Setup progress: ${readiness.completed} of ${readiness.total}`}
-              className="h-1.5 bg-accent [&_[data-slot=progress-indicator]]:bg-reward"
+              className="h-1.5"
             />
             <LaunchStepRail
               checklist={checklist}
@@ -184,14 +186,14 @@ export function LaunchReadinessPanel({
                 active={isActive}
               />
               <span className="text-xs font-extrabold sm:text-sm">
-                <span className="hidden font-mono text-[0.6rem] text-muted-foreground sm:inline">
+                <span className="mono-id hidden text-muted-foreground sm:inline">
                   {index + 1}.{" "}
                 </span>
                 {step.label}
               </span>
               <span
                 className={cn(
-                  "font-mono text-[0.58rem] font-bold tracking-[0.06em] uppercase",
+                  "mono-id",
                   step.ready
                     ? "text-reward"
                     : isNext || isActive
@@ -270,9 +272,9 @@ function LaunchMobileTabNav({
           <Progress
             value={progressValue}
             aria-label={`Setup progress: ${readiness.completed} of ${readiness.total}`}
-            className="h-1 min-w-0 flex-1 bg-accent [&_[data-slot=progress-indicator]]:bg-reward"
+            className="h-1 min-w-0 flex-1"
           />
-          <MonoTag tone="leaf" className="numeric-tabular shrink-0 px-1.5 py-0.5 text-[0.62rem]">
+          <MonoTag tone="leaf" className="numeric-tabular shrink-0 px-1.5 py-0.5">
             {readiness.completed}/{readiness.total}
           </MonoTag>
         </div>
@@ -352,14 +354,10 @@ function LaunchStepRail({
                   active={isActive}
                   size="xs"
                 />
-                <span
-                  className={cn(
-                    "w-full text-center leading-tight font-extrabold text-balance",
-                    compact
-                      ? "text-[0.55rem] min-[360px]:text-[0.58rem]"
-                      : "text-[0.58rem] min-[360px]:text-[0.62rem]"
-                  )}
-                >
+                {/* Rail captions print at the sanctioned mono-id floor (10px
+                    mono uppercase) — the old 8.8-9.9px Bricolage sizes sat
+                    below the DESIGN.md micro-type floor. */}
+                <span className="mono-id w-full text-center leading-tight text-balance">
                   <span className="min-[360px]:hidden">
                     {MOBILE_RAIL_LABEL_NARROW[step.id]}
                   </span>

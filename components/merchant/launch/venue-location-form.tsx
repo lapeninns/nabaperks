@@ -1,12 +1,12 @@
 "use client"
 
 import { useActionState, useState } from "react"
+import { PanelTitle } from "@/components/merchant/launch/panel-title"
 
 import {
   saveVenueLocationAction,
   type VenueLocationActionState,
 } from "@/app/app/launch/actions"
-import { PageTitle } from "@/components/brand"
 import { VenueAddressFields } from "@/components/merchant/venue-address-fields"
 import {
   AdvancedGpsChecks,
@@ -120,7 +120,7 @@ export function VenueLocationForm({
 
   return (
     <form action={action} className="surface-card grid gap-5 p-6">
-      <PageTitle
+      <PanelTitle
         eyebrow="Step 1 · Location"
         title="Where do scans happen?"
         description="Your printed QR never changes. GPS is an optional soft check. It never blocks a member's stamp, it only flags an odd one for review."

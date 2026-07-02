@@ -1,3 +1,5 @@
+import Link from "next/link"
+
 import {
   AdminPanel,
   SourceLabel,
@@ -11,6 +13,32 @@ import { EmptyState, PageTitle } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
 import { canRenderAdminPage } from "@/lib/admin/auth"
 import { getAdminBillingRecords } from "@/lib/admin/billing-data"
+import { buildLookupHref } from "@/lib/admin/lookup-query"
+
+/**
+ * Cross-links for a billing investigation: the merchant's account list and
+ * their members, pre-filtered via the venue lookup param.
+ */
+function BillingCrossLinks({ merchantName }: { readonly merchantName: string }) {
+  return (
+    <span className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
+      <Link
+        className="focus-ring rounded-sm font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
+        href="/admin/merchants"
+      >
+        Account
+      </Link>
+      <Link
+        className="focus-ring rounded-sm font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
+        href={buildLookupHref("/admin/customers", { venue: merchantName })}
+      >
+        Members
+      </Link>
+    </span>
+  )
+}
+
+export const metadata = { title: "Admin — Billing" }
 
 export default async function AdminBillingPage() {
   if (!(await canRenderAdminPage())) return null
@@ -33,6 +61,7 @@ export default async function AdminBillingPage() {
           caption="Admin billing subscription readback"
           cardBreakpoint="xl"
           className="rounded-none border-0 shadow-none"
+          mobileClassName="p-5"
           rows={billing}
           getRowKey={(row) => row.id}
           emptyState={
@@ -53,6 +82,7 @@ export default async function AdminBillingPage() {
                     <span className="text-muted-foreground">
                       {row.merchantEmail}
                     </span>
+                    <BillingCrossLinks merchantName={row.merchantName} />
                   </div>
                 )
               },
@@ -104,6 +134,10 @@ export default async function AdminBillingPage() {
                   {
                     label: "Email",
                     value: row.merchantEmail,
+                  },
+                  {
+                    label: "Links",
+                    value: <BillingCrossLinks merchantName={row.merchantName} />,
                   },
                   { label: "Plan", value: row.plan },
                   {

@@ -98,9 +98,13 @@ export async function signUpAction(
     })
 
     if (error) {
+      // House copy only — raw provider messages never reach merchants
+      // (matches the login page's "Provider details are hidden for safety").
       return {
         fields: { name, email, otpSent: true },
-        errors: { form: error.message },
+        errors: {
+          form: "Could not send another code just now. Wait a moment and try again.",
+        },
       }
     }
 
@@ -139,9 +143,12 @@ export async function signUpAction(
   })
 
   if (error) {
+    // House copy only — raw provider messages never reach merchants.
     return {
       fields: { name, email },
-      errors: { form: error.message },
+      errors: {
+        form: "Could not create the account just now. Check your details and try again.",
+      },
     }
   }
 

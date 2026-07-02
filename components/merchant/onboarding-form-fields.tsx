@@ -2,8 +2,15 @@
 
 import type { InputHTMLAttributes, ReactNode } from "react"
 
-export const onboardingInputClassName =
-  "h-12 rounded-lg border-2 border-ink bg-background px-4 text-sm outline-none transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/35"
+import { Input } from "@/components/ui/input"
+
+/**
+ * One input story: the well (2px ink border, card ground, focus and invalid
+ * states) comes from the themed `[data-slot=input]` layer — callers add
+ * layout only. Kept as an export because onboarding-form passes it into
+ * VenueAddressFields.
+ */
+export const onboardingInputClassName = "h-12 text-sm"
 
 export type BusinessTypeOption = {
   readonly value: string
@@ -26,7 +33,7 @@ export function OnboardingField({
       <RequiredLabel htmlFor={id} required={required}>
         {label}
       </RequiredLabel>
-      <input
+      <Input
         id={id}
         className={onboardingInputClassName}
         required={required}
@@ -56,6 +63,9 @@ export function BusinessTypeField({
       <RequiredLabel htmlFor="businessType" required>
         Business type
       </RequiredLabel>
+      {/* One input story: the native select opts into the themed input well
+          via data-slot (the profile-form pattern), so border/background/focus
+          and invalid states come from the unlayered Wet Ink layer. */}
       <select
         id="businessType"
         name="businessType"
@@ -63,7 +73,8 @@ export function BusinessTypeField({
         aria-required="true"
         defaultValue={value ?? ""}
         onChange={(event) => onChange(event.target.value)}
-        className={onboardingInputClassName}
+        data-slot="input"
+        className="h-12 w-full min-w-0 px-4 text-sm transition-[border-color,outline-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none"
         aria-invalid={Boolean(error)}
         aria-describedby={error ? "businessType-error" : undefined}
       >

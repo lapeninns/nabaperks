@@ -1,13 +1,13 @@
 "use client"
 
 import Link from "next/link"
-import { useActionState } from "react"
+import { useActionState, useEffect } from "react"
 
 import type { AuthActionState } from "@/app/(auth)/actions"
 import { AuthField } from "@/components/auth/auth-field"
 import { Eyebrow, VenueMark } from "@/components/brand"
+import { SubmitButton } from "@/components/forms"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
 
 type AuthAction = (
   state: AuthActionState,
@@ -61,7 +61,7 @@ function SignInForm({
   next: string
   embedded: boolean
 }) {
-  const [state, formAction, pending] = useActionState(action, initialState)
+  const [state, formAction] = useActionState(action, initialState)
 
   return (
     <div className="grid gap-4">
@@ -94,16 +94,13 @@ function SignInForm({
           </Link>
         </div>
         {state.errors?.form ? (
-          <Alert
-            variant="destructive"
-            className="border-destructive/30 bg-destructive/10"
-          >
+          <Alert variant="destructive">
             <AlertDescription>{state.errors.form}</AlertDescription>
           </Alert>
         ) : null}
-        <Button type="submit" disabled={pending} className="w-full">
-          {pending ? "Opening..." : "Log in"}
-        </Button>
+        <SubmitButton pendingLabel="Opening…" className="w-full">
+          Log in
+        </SubmitButton>
       </form>
       <SwitchPrompt isSignUp={false} />
     </div>
@@ -123,13 +120,21 @@ function SignUpForm({
   embedded: boolean
   otpLength: number
 }) {
-  const [state, formAction, pending] = useActionState(action, initialState)
-  const [verifyState, verifyFormAction, verifyPending] = useActionState(
+  const [state, formAction] = useActionState(action, initialState)
+  const [verifyState, verifyFormAction] = useActionState(
     verifyAction,
     initialState
   )
   const codeState = verifyState.fields?.otpSent ? verifyState : state
   const otpSent = Boolean(state.fields?.otpSent || verifyState.fields?.otpSent)
+
+  // When the OTP step appears, move focus to the code field so keyboard and
+  // screen-reader merchants land on the new input instead of rediscovering
+  // the form (the profile-form first-invalid-focus pattern).
+  useEffect(() => {
+    if (!otpSent) return
+    document.getElementById("otp")?.focus()
+  }, [otpSent])
 
   return (
     <div className="grid gap-4">
@@ -180,23 +185,26 @@ function SignUpForm({
         <input type="hidden" name="intent" value={otpSent ? "resend" : "create"} />
         <input type="hidden" name="next" value={next} />
         {state.errors?.form ? (
-          <Alert
-            variant="destructive"
-            className="border-destructive/30 bg-destructive/10"
-          >
+          <Alert variant="destructive">
             <AlertDescription>{state.errors.form}</AlertDescription>
           </Alert>
         ) : null}
         {state.message ? (
-          <Alert className="border-reward/30 bg-accent">
+          <Alert className="bg-accent">
             <AlertDescription className="text-accent-foreground">
               {state.message}
             </AlertDescription>
           </Alert>
         ) : null}
-        <Button type="submit" disabled={pending} className="w-full">
-          {pending ? "Sending..." : otpSent ? "Resend code" : "Create account"}
-        </Button>
+        {/* Once the code is out, resend is a quiet secondary action — the one
+            primary CTA on screen is "Verify email" below. */}
+        <SubmitButton
+          pendingLabel="Sending…"
+          variant={otpSent ? "ghost" : "default"}
+          className="w-full"
+        >
+          {otpSent ? "Resend code" : "Create account"}
+        </SubmitButton>
       </form>
 
       {otpSent ? (
@@ -224,16 +232,13 @@ function SignUpForm({
             error={verifyState.errors?.otp}
           />
           {verifyState.errors?.form ? (
-            <Alert
-              variant="destructive"
-              className="border-destructive/30 bg-destructive/10"
-            >
+            <Alert variant="destructive">
               <AlertDescription>{verifyState.errors.form}</AlertDescription>
             </Alert>
           ) : null}
-          <Button type="submit" disabled={verifyPending} className="w-full">
-            {verifyPending ? "Checking..." : "Verify email"}
-          </Button>
+          <SubmitButton pendingLabel="Checking…" className="w-full">
+            Verify email
+          </SubmitButton>
         </form>
       ) : null}
 

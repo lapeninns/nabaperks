@@ -43,12 +43,28 @@ export function parseNavHref(href: string): {
   return { path, tab: new URLSearchParams(queryString).get("tab") }
 }
 
+// The counter scan flows have no nav item of their own; they live under
+// Activity (collection revalidates the activity feed, and the scan 404's CTA
+// already routes back there), so both the sidebar and the tab bar highlight
+// a section on those screens.
+const ACTIVITY_ALIAS_PREFIXES = ["/app/scan", "/app/rewards"]
+
 export function isActiveNavItem(
   currentPath: string,
   currentTab: string | null,
   href: string
 ): boolean {
   const { path, tab: expectedTab } = parseNavHref(href)
+
+  if (
+    path === "/app/activity" &&
+    ACTIVITY_ALIAS_PREFIXES.some(
+      (prefix) =>
+        currentPath === prefix || currentPath.startsWith(`${prefix}/`)
+    )
+  ) {
+    return true
+  }
 
   if (path === "/app" || path === "/admin") {
     return currentPath === path && expectedTab === null

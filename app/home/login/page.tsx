@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 
-import { Eyebrow, ReceiptCard, VenueMark } from "@/components/brand"
+import { ReceiptCard, VenueMark } from "@/components/brand"
 import { CustomerLoginForm } from "@/components/customer/customer-login-form"
 import { CustomerShell } from "@/components/layout"
 import { getCustomerSession } from "@/lib/customer/session"
@@ -35,9 +35,10 @@ export default async function HomeLoginPage({
     <CustomerShell>
       <ReceiptCard edge className="grid gap-6">
         <div className="grid justify-items-center gap-3 text-center">
+          {/* The roundel caption already says My Nabaperks — no duplicate
+              eyebrow stacked under it (VCU-P2-01). */}
           <VenueMark size={56} name="Nabaperks" caption="My Nabaperks" />
           <div className="grid gap-1">
-            <Eyebrow>My Nabaperks</Eyebrow>
             <h1 className="text-2xl leading-tight font-extrabold text-balance">
               Welcome back
             </h1>

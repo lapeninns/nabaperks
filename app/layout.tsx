@@ -85,7 +85,7 @@ export default function RootLayout({
         <ThemeProvider>
           {children}
           <AppPwa />
-          <Toaster richColors closeButton />
+          <Toaster closeButton />
         </ThemeProvider>
         <JsonLd
           id="ld-site"

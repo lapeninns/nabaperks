@@ -18,21 +18,28 @@ const STATUS_PILL_ICON: Record<
   danger: STATUS_ICON.error,
 }
 
-export const adminInputClasses =
-  "min-h-11 rounded-xl border-2 border-ink bg-secondary/60 px-3 text-sm outline-none transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none focus:border-ring focus:ring-3 focus:ring-ring/25"
-
-export const adminTextareaClasses =
-  "min-h-24 rounded-xl border-2 border-ink bg-secondary/60 px-3 py-2 text-sm outline-none transition-[border-color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none focus:border-ring focus:ring-3 focus:ring-ring/25"
+/**
+ * Native `<select>` styling on the one-input story: the same well as the
+ * `[data-slot=input]` layer (2px ink border, 10px radius, card background,
+ * focus-visible border swap + `.focus-ring` outline). Text inputs and
+ * textareas do NOT use this — they compose the themed `Input`/`Textarea`
+ * primitives, which the unlayered ink layer already themes.
+ */
+export const adminSelectClasses =
+  "focus-ring min-h-11 rounded-lg border-2 border-ink bg-card px-3 text-sm outline-none transition-[border-color,outline-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none focus-visible:border-ring"
 
 export function AdminPanel({
   children,
   className,
+  id,
 }: {
   children: ReactNode
   className?: string
+  /** Optional anchor id so cross-links can target a panel on the same page. */
+  id?: string
 }) {
   return (
-    <section className={cn("surface-card grid gap-4 p-5", className)}>
+    <section id={id} className={cn("surface-card grid gap-4 p-5", className)}>
       {children}
     </section>
   )
@@ -58,6 +65,25 @@ export function AdminField({
           {helper}
         </span>
       ) : null}
+    </label>
+  )
+}
+
+/**
+ * Explicit confirmation for irreversible admin actions (regenerate QR,
+ * cancel reward): a required native checkbox, so the form cannot submit until
+ * the operator ticks the consequence statement. Progressive by design — no
+ * client JS involved.
+ */
+export function AdminConfirmCheck({ label }: { label: ReactNode }) {
+  return (
+    <label className="flex items-start gap-2 text-sm font-normal">
+      <input
+        type="checkbox"
+        required
+        className="focus-ring mt-0.5 size-4 shrink-0 accent-primary"
+      />
+      <span className="leading-5 text-muted-foreground">{label}</span>
     </label>
   )
 }
@@ -103,12 +129,37 @@ export function StatusPill({
   )
 }
 
+// Operators are UK-based: pin the console clock to Europe/London so audit and
+// fraud timestamps do not silently read an hour off during BST on UTC hosts.
+const ADMIN_TIME_ZONE = "Europe/London"
+
+const adminDateFormat = new Intl.DateTimeFormat("en-GB", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: ADMIN_TIME_ZONE,
+})
+
+// Audit evidence carries the zone label ("14:05 BST") so a timestamp can be
+// correlated with server logs without guessing the offset. Component options
+// only: ECMA-402 forbids mixing dateStyle/timeStyle with timeZoneName.
+const adminAuditDateFormat = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: ADMIN_TIME_ZONE,
+  timeZoneName: "short",
+})
+
 export function formatAdminDate(value?: string | null) {
   if (!value) return "-"
-  return new Intl.DateTimeFormat("en-GB", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value))
+  return adminDateFormat.format(new Date(value))
+}
+
+export function formatAdminAuditDate(value?: string | null) {
+  if (!value) return "-"
+  return adminAuditDateFormat.format(new Date(value))
 }
 
 export function first<T>(value: T | T[] | null | undefined) {
