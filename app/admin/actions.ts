@@ -3,39 +3,50 @@
 import { revalidatePath } from "next/cache"
 
 import { requireAdminAction } from "@/lib/admin/auth"
+import {
+  adminActionError,
+  adminActionSuccess,
+  type AdminActionState,
+} from "@/lib/admin/action-state"
 import { qrImageContextCacheTag, revalidateCacheTag } from "@/lib/cache/tags"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+
+/**
+ * Admin console actions return structured `AdminActionState` instead of
+ * throwing on validation or RPC failure (MS-platform-ux-production-polish):
+ * `AdminActionForm` renders the outcome inline next to the submit button, and
+ * the segment error boundary stays reserved for render/read failures.
+ * Auth failures still hard-fail via `requireAdminAction` — that gate is
+ * deliberate defence in depth and unchanged.
+ */
 
 function value(formData: FormData, key: string) {
   const raw = formData.get(key)
   return typeof raw === "string" ? raw.trim() : ""
 }
 
-function requireValue(currentValue: string, message: string) {
-  if (!currentValue) {
-    throw new Error(message)
-  }
-}
-
-function assertAdminRpcSuccess(
+function rpcFailure(
   error: { message?: string } | null | undefined,
   safeMessage: string
-) {
-  if (error) {
-    throw new Error(safeMessage)
-  }
+): AdminActionState | null {
+  return error ? adminActionError(safeMessage) : null
 }
 
-export async function adjustStampsAction(formData: FormData) {
+export async function adjustStampsAction(
+  _previousState: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
   await requireAdminAction()
   const membershipId = value(formData, "membershipId")
   const reason = value(formData, "reason")
   const delta = Number.parseInt(value(formData, "delta"), 10)
 
   if (!membershipId || Number.isNaN(delta)) {
-    throw new Error("Membership and stamp delta are required.")
+    return adminActionError("Membership and stamp delta are required.")
   }
-  requireValue(reason, "Operator reason is required.")
+  if (!reason) {
+    return adminActionError("Operator reason is required.")
+  }
 
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.rpc("admin_adjust_membership_stamps", {
@@ -44,24 +55,31 @@ export async function adjustStampsAction(formData: FormData) {
     p_reason: reason,
   })
 
-  assertAdminRpcSuccess(
+  const failure = rpcFailure(
     error,
     "Stamp adjustment failed. Try again or review audit logs."
   )
+  if (failure) return failure
 
   revalidatePath("/admin/customers")
   revalidatePath("/admin/audit")
+  return adminActionSuccess("Stamps adjusted. Logged to the audit trail.")
 }
 
-export async function cancelRewardAction(formData: FormData) {
+export async function cancelRewardAction(
+  _previousState: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
   await requireAdminAction()
   const rewardId = value(formData, "rewardId")
   const reason = value(formData, "reason")
 
   if (!rewardId) {
-    throw new Error("Reward is required.")
+    return adminActionError("Reward is required.")
   }
-  requireValue(reason, "Operator reason is required.")
+  if (!reason) {
+    return adminActionError("Operator reason is required.")
+  }
 
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.rpc("admin_cancel_reward", {
@@ -69,28 +87,35 @@ export async function cancelRewardAction(formData: FormData) {
     p_reason: reason,
   })
 
-  assertAdminRpcSuccess(
+  const failure = rpcFailure(
     error,
     "Reward cancellation failed. Try again or review audit logs."
   )
+  if (failure) return failure
 
   revalidatePath("/admin/customers")
   revalidatePath("/admin/audit")
+  return adminActionSuccess("Reward cancelled. Logged to the audit trail.")
 }
 
-export async function resolveFraudFlagAction(formData: FormData) {
+export async function resolveFraudFlagAction(
+  _previousState: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
   await requireAdminAction()
   const fraudFlagId = value(formData, "fraudFlagId")
   const status = value(formData, "status")
   const reason = value(formData, "reason")
 
   if (!fraudFlagId) {
-    throw new Error("Fraud flag is required.")
+    return adminActionError("Fraud flag is required.")
   }
   if (status !== "reviewed" && status !== "dismissed") {
-    throw new Error("Fraud flag status is invalid.")
+    return adminActionError("Fraud flag status is invalid.")
   }
-  requireValue(reason, "Operator reason is required.")
+  if (!reason) {
+    return adminActionError("Operator reason is required.")
+  }
 
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.rpc("admin_resolve_fraud_flag", {
@@ -99,25 +124,36 @@ export async function resolveFraudFlagAction(formData: FormData) {
     p_reason: reason,
   })
 
-  assertAdminRpcSuccess(
+  const failure = rpcFailure(
     error,
     "Fraud flag update failed. Try again or review audit logs."
   )
+  if (failure) return failure
 
   revalidatePath("/admin/fraud")
   revalidatePath("/admin/audit")
+  return adminActionSuccess(
+    status === "reviewed"
+      ? "Flag marked reviewed. Logged to the audit trail."
+      : "Flag dismissed. Logged to the audit trail."
+  )
 }
 
-export async function setQrActiveAction(formData: FormData) {
+export async function setQrActiveAction(
+  _previousState: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
   await requireAdminAction()
   const qrCodeId = value(formData, "qrCodeId")
   const reason = value(formData, "reason")
   const isActive = value(formData, "isActive") === "true"
 
   if (!qrCodeId) {
-    throw new Error("QR code is required.")
+    return adminActionError("QR code is required.")
   }
-  requireValue(reason, "Operator reason is required.")
+  if (!reason) {
+    return adminActionError("Operator reason is required.")
+  }
 
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.rpc("admin_set_qr_active", {
@@ -126,25 +162,36 @@ export async function setQrActiveAction(formData: FormData) {
     p_reason: reason,
   })
 
-  assertAdminRpcSuccess(
+  const failure = rpcFailure(
     error,
     "QR update failed. Try again or review audit logs."
   )
+  if (failure) return failure
 
   revalidateCacheTag(qrImageContextCacheTag(qrCodeId))
   revalidatePath("/admin/merchants")
   revalidatePath("/admin/audit")
+  return adminActionSuccess(
+    isActive
+      ? "QR code enabled. Logged to the audit trail."
+      : "QR code disabled. Logged to the audit trail."
+  )
 }
 
-export async function regenerateQrAction(formData: FormData) {
+export async function regenerateQrAction(
+  _previousState: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
   await requireAdminAction()
   const qrCodeId = value(formData, "qrCodeId")
   const reason = value(formData, "reason")
 
   if (!qrCodeId) {
-    throw new Error("QR code is required.")
+    return adminActionError("QR code is required.")
   }
-  requireValue(reason, "Operator reason is required.")
+  if (!reason) {
+    return adminActionError("Operator reason is required.")
+  }
 
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.rpc("admin_regenerate_qr_code", {
@@ -152,17 +199,22 @@ export async function regenerateQrAction(formData: FormData) {
     p_reason: reason,
   })
 
-  assertAdminRpcSuccess(
+  const failure = rpcFailure(
     error,
     "QR regeneration failed. Try again or review audit logs."
   )
+  if (failure) return failure
 
   revalidateCacheTag(qrImageContextCacheTag(qrCodeId))
   revalidatePath("/admin/merchants")
   revalidatePath("/admin/audit")
+  return adminActionSuccess("QR code regenerated. Logged to the audit trail.")
 }
 
-export async function recordConsentOptOutAction(formData: FormData) {
+export async function recordConsentOptOutAction(
+  _previousState: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
   await requireAdminAction()
   const customerId = value(formData, "customerId")
   const merchantId = value(formData, "merchantId")
@@ -172,9 +224,11 @@ export async function recordConsentOptOutAction(formData: FormData) {
   const reason = value(formData, "reason")
 
   if (!customerId || !merchantId) {
-    throw new Error("Customer and merchant context are required.")
+    return adminActionError("Customer and merchant context are required.")
   }
-  requireValue(reason, "Operator reason is required.")
+  if (!reason) {
+    return adminActionError("Operator reason is required.")
+  }
 
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.rpc("admin_record_consent_opt_out", {
@@ -186,16 +240,21 @@ export async function recordConsentOptOutAction(formData: FormData) {
     p_reason: reason,
   })
 
-  assertAdminRpcSuccess(
+  const failure = rpcFailure(
     error,
     "Consent opt-out failed. Try again or review audit logs."
   )
+  if (failure) return failure
 
   revalidatePath("/admin/privacy")
   revalidatePath("/admin/audit")
+  return adminActionSuccess("Opt-out recorded. Logged to the audit trail.")
 }
 
-export async function logDataRequestAction(formData: FormData) {
+export async function logDataRequestAction(
+  _previousState: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
   await requireAdminAction()
   const customerId = value(formData, "customerId")
   const merchantId = value(formData, "merchantId")
@@ -204,11 +263,17 @@ export async function logDataRequestAction(formData: FormData) {
   const notes = value(formData, "notes")
 
   if (!customerId || !merchantId) {
-    throw new Error("Customer and merchant context are required.")
+    return adminActionError("Customer and merchant context are required.")
   }
-  requireValue(requestType, "Request type is required.")
-  requireValue(channel, "Support channel is required.")
-  requireValue(notes, "Support notes are required.")
+  if (!requestType) {
+    return adminActionError("Request type is required.")
+  }
+  if (!channel) {
+    return adminActionError("Support channel is required.")
+  }
+  if (!notes) {
+    return adminActionError("Support notes are required.")
+  }
 
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.rpc("admin_log_data_request", {
@@ -219,16 +284,21 @@ export async function logDataRequestAction(formData: FormData) {
     p_notes: notes,
   })
 
-  assertAdminRpcSuccess(
+  const failure = rpcFailure(
     error,
     "Data request log failed. Try again or review audit logs."
   )
+  if (failure) return failure
 
   revalidatePath("/admin/privacy")
   revalidatePath("/admin/audit")
+  return adminActionSuccess("Data request logged to the audit trail.")
 }
 
-export async function logPilotNoteAction(formData: FormData) {
+export async function logPilotNoteAction(
+  _previousState: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
   await requireAdminAction()
   const merchantId = value(formData, "merchantId")
   const noteType = value(formData, "noteType")
@@ -240,16 +310,20 @@ export async function logPilotNoteAction(formData: FormData) {
     : null
 
   if (!merchantId) {
-    throw new Error("Merchant context is required.")
+    return adminActionError("Merchant context is required.")
   }
-  requireValue(noteType, "Note type is required.")
-  requireValue(notes, "Support notes are required.")
+  if (!noteType) {
+    return adminActionError("Note type is required.")
+  }
+  if (!notes) {
+    return adminActionError("Support notes are required.")
+  }
 
   if (setupMinutes !== null && Number.isNaN(setupMinutes)) {
-    throw new Error("Setup check minutes must be a number.")
+    return adminActionError("Setup check minutes must be a number.")
   }
   if (setupMinutes !== null && (setupMinutes < 1 || setupMinutes > 3)) {
-    throw new Error("Setup check minutes must be between 1 and 3.")
+    return adminActionError("Setup check minutes must be between 1 and 3.")
   }
 
   const supabase = await createSupabaseServerClient()
@@ -260,11 +334,13 @@ export async function logPilotNoteAction(formData: FormData) {
     p_training_minutes: setupMinutes,
   })
 
-  assertAdminRpcSuccess(
+  const failure = rpcFailure(
     error,
     "Pilot note log failed. Try again or review audit logs."
   )
+  if (failure) return failure
 
   revalidatePath("/admin/pilot")
   revalidatePath("/admin/audit")
+  return adminActionSuccess("Pilot note logged to the audit trail.")
 }

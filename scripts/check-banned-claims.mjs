@@ -43,6 +43,28 @@ const SKIP = /(\.test\.|\.spec\.|node_modules|\.next)/
  * case-insensitive substring match (used for URL-shaped patterns so we never run
  * an unanchored URL regex — content scan, not URL sanitisation).
  */
+/**
+ * Internal review-voice wording must never render on any public or product
+ * surface: the product must not self-label its legal wording as unreviewed
+ * (production-polish rows MKT-P0-01/02, CUS-P1-03/04). Scanned wider than
+ * SCAN — all rendered source under app/, components/, and lib/ — because the
+ * customer legal sheet and per-venue terms page live outside the marketing
+ * roots. Legal sign-off itself is an ops matter outside the repo; this guard
+ * only keeps the self-labelling out of rendered copy.
+ */
+const REVIEW_VOICE_SCAN = ["app", "components", "lib"]
+
+/** Text-only rendered-source extensions for the review-voice tier. */
+const REVIEW_VOICE_FILES = /\.(ts|tsx|js|jsx|mjs|cjs|json|md|mdx|txt)$/i
+
+const REVIEW_VOICE = [
+  { label: "review-voice: 'review required'", re: /review required/i },
+  { label: "review-voice: 'not final legal wording'", re: /not final legal wording/i },
+  { label: "review-voice: 'human review'", re: /human review/i },
+  { label: "review-voice: 'pilot operation only'", re: /pilot operation only/i },
+  { label: "review-voice: 'review(ed) before launch'", re: /review(ed)?\s+before\s+(public\s+)?launch/i },
+]
+
 const BANNED = [
   { label: "chippy targeting", re: /\bchipp(y|ies)\b/i },
   { label: "bubble tea targeting", re: /bubble\s*tea/i },
@@ -78,21 +100,30 @@ async function collectFiles(entry) {
   return out
 }
 
-const files = (await Promise.all(SCAN.map(collectFiles))).flat()
 const findings = []
 
-for (const file of files) {
-  const text = await readFile(file, "utf8")
-  const lines = text.split("\n")
-  lines.forEach((line, i) => {
-    for (const { label, re, substr } of BANNED) {
-      const hit = re ? re.test(line) : line.toLowerCase().includes(substr)
-      if (hit) {
-        findings.push({ file: relative(ROOT, file), line: i + 1, label, text: line.trim() })
+async function scanFiles(files, patterns) {
+  for (const file of files) {
+    const text = await readFile(file, "utf8")
+    const lines = text.split("\n")
+    lines.forEach((line, i) => {
+      for (const { label, re, substr } of patterns) {
+        const hit = re ? re.test(line) : line.toLowerCase().includes(substr)
+        if (hit) {
+          findings.push({ file: relative(ROOT, file), line: i + 1, label, text: line.trim() })
+        }
       }
-    }
-  })
+    })
+  }
 }
+
+const files = (await Promise.all(SCAN.map(collectFiles))).flat()
+await scanFiles(files, BANNED)
+
+const reviewVoiceFiles = (
+  await Promise.all(REVIEW_VOICE_SCAN.map(collectFiles))
+).flat().filter((file) => REVIEW_VOICE_FILES.test(file))
+await scanFiles(reviewVoiceFiles, REVIEW_VOICE)
 
 if (findings.length) {
   console.error(`✗ ${findings.length} banned-claim match(es) in public marketing surfaces:\n`)
@@ -102,4 +133,6 @@ if (findings.length) {
   process.exit(1)
 }
 
-console.log(`✓ no banned public claims across ${files.length} marketing/SEO files`)
+console.log(
+  `✓ no banned public claims across ${files.length} marketing/SEO files, no review-voice wording across ${reviewVoiceFiles.length} rendered-source files`
+)

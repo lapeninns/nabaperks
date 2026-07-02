@@ -25,13 +25,13 @@ export function OldCrownCandidate() {
           <h2 className="mt-4 max-w-[24ch] text-[clamp(1.6rem,3.4vw,2.4rem)] leading-[1.05] font-extrabold tracking-[-0.02em] text-balance">
             Old Crown Girton runs Nabaperks.
           </h2>
-          <p className="mt-2 font-mono text-[0.7rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+          <p className="mono-meta mt-2 tracking-[0.08em] text-muted-foreground">
             Old Crown · {oldCrown.postcode} · England
           </p>
           <blockquote className="mt-4 max-w-[48ch] border-l-2 border-ink pl-4 text-[1.05rem] leading-relaxed font-semibold text-pretty">
             &ldquo;{oldCrown.review}&rdquo;
           </blockquote>
-          <p className="mt-3 font-mono text-[0.68rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+          <p className="mono-meta mt-3 tracking-[0.08em] text-muted-foreground">
             From the team
           </p>
           <p className="mt-4 max-w-[46ch] text-sm leading-relaxed text-pretty text-muted-foreground">
@@ -49,7 +49,7 @@ export function OldCrownCandidate() {
             of members return, and {PROOF_DISPLAY.rewardsRedeemed} of{" "}
             {PROOF_DISPLAY.rewardsEarned} rewards have been redeemed.
           </p>
-          <p className="mt-3 font-mono text-[0.66rem] leading-relaxed tracking-[0.05em] text-muted-foreground uppercase">
+          <p className="mono-id mt-3 font-normal leading-relaxed text-muted-foreground">
             {PROOF.measuredAcross} — {PROOF.indexName}, {PROOF.asOf}. Programme
             figures, not Old Crown alone.
           </p>

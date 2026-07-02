@@ -55,20 +55,6 @@ export default function manifest(): MetadataRoute.Manifest {
         url: "/scan",
         icons: [{ src: "/icons/nabaperks-icon-192.png", sizes: "192x192" }],
       },
-      {
-        name: "Merchant console",
-        short_name: "Merchant",
-        description: "Open the merchant launch and customer readback tools.",
-        url: "/app",
-        icons: [{ src: "/icons/nabaperks-icon-192.png", sizes: "192x192" }],
-      },
-      {
-        name: "Admin console",
-        short_name: "Admin",
-        description: "Open internal Nabaperks support tools.",
-        url: "/admin",
-        icons: [{ src: "/icons/nabaperks-icon-192.png", sizes: "192x192" }],
-      },
     ],
   }
 }

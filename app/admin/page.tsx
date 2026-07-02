@@ -11,6 +11,7 @@ import { FunnelChart } from "@/components/data/funnel-chart"
 import { adminNavItems } from "@/components/layout/console-nav"
 import { Button } from "@/components/ui/button"
 import { getPilotFunnelCounts } from "@/lib/analytics/funnels"
+import { toPilotFunnelItems } from "@/lib/analytics/pilot-funnel"
 import { canRenderAdminPage } from "@/lib/admin/auth"
 import { getAdminOverview } from "@/lib/admin/data"
 
@@ -51,15 +52,10 @@ export default async function AdminHomePage() {
       <AdminPanel>
         <SectionHeader
           title="Pilot funnel readback"
-          description="Source-of-truth event counts from Supabase product events."
+          description="The eight-stage merchant-to-redemption journey, counted from Supabase product events."
           actions={<SourceLabel>Source: product_events</SourceLabel>}
         />
-        <FunnelChart
-          items={Object.entries(funnelCounts).map(([label, value]) => ({
-            label,
-            value,
-          }))}
-        />
+        <FunnelChart items={toPilotFunnelItems(funnelCounts)} />
       </AdminPanel>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-7">

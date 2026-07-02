@@ -20,7 +20,7 @@ export function VenueProof() {
             Named venues from the Lapen Inns network, with paraphrased operator
             voice rather than verbatim testimonials.
           </p>
-          <dl className="mt-3 flex flex-wrap items-baseline gap-x-5 gap-y-2 font-mono text-[0.64rem] tracking-[0.06em] uppercase sm:gap-x-6">
+          <dl className="mono-id mt-3 flex flex-wrap items-baseline gap-x-5 gap-y-2 font-normal sm:gap-x-6">
             <div className="flex items-baseline gap-2">
               <dt className="text-muted-foreground">Venues quoted</dt>
               <dd className="text-base leading-none font-extrabold tabular-nums text-foreground">

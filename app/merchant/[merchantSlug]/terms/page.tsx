@@ -10,7 +10,7 @@ import { getMerchantJoinContext } from "@/lib/customer/join"
 export const metadata: Metadata = {
   title: "Venue loyalty terms | Nabaperks",
   description:
-    "Venue-specific loyalty terms for Nabaperks rewards, pending human legal review before public launch.",
+    "Venue-specific loyalty terms for Nabaperks rewards — earning rules, redemption, exclusions, and venue contact details.",
   robots: {
     index: false,
     follow: false,
@@ -48,8 +48,8 @@ export default async function MerchantTermsPage({
           {merchant.business_name} loyalty terms
         </h1>
         <p className="text-sm leading-6 text-muted-foreground">
-          These loyalty terms are shown to customers before participation and
-          must be reviewed before launch.
+          These loyalty terms are shown before you join and stay available any
+          time from your loyalty card.
         </p>
       </section>
 
@@ -85,11 +85,6 @@ export default async function MerchantTermsPage({
           value={contact || "Ask the venue team"}
         />
       </ReceiptCard>
-
-      <StatusBanner title="Review required" tone="warning">
-        These terms support current operation. Legal, promotional, and data
-        protection wording needs human review before public launch.
-      </StatusBanner>
 
       <div className="grid gap-3">
         <Button asChild size="lg" className="w-full">

@@ -32,12 +32,33 @@ type PublicQrPageProps = {
 
 export default async function PublicQrPage({ params }: PublicQrPageProps) {
   const { qrId } = await params
+
+  // Dev-only boundary probe: lets the DB-free e2e tier render this segment's
+  // error boundary (tests/e2e/ux-polish-boundaries.spec.ts) without a
+  // database. The NODE_ENV gate keeps it out of production builds, mirroring
+  // the app/dev/layout.tsx guard.
+  if (process.env.NODE_ENV !== "production" && qrId === "dev-boundary-probe") {
+    throw new Error("Customer entry boundary probe")
+  }
+
   let qrContext: Awaited<ReturnType<typeof resolveQrForJoin>>
+  let membership: Awaited<
+    ReturnType<typeof getExistingMembershipForCurrentUser>
+  > = null
 
   try {
     qrContext = await resolveQrForJoin(qrId, {
       scanRateLimitIdentity: rateLimitIdentityFromHeaders(await headers()),
     })
+
+    // The membership lookup stays inside the guard: a failed lookup on a
+    // valid QR must degrade to the same branded unavailable state as a failed
+    // QR resolve, never fall through to the error boundary (CUS-P1-01).
+    if (qrContext?.available) {
+      membership = await getExistingMembershipForCurrentUser(
+        qrContext.merchant.id
+      )
+    }
   } catch (error) {
     // A rate-limited scan is a transient retry, not a dead QR — give it distinct
     // calm copy so the customer waits and re-scans instead of giving up.
@@ -52,9 +73,6 @@ export default async function PublicQrPage({ params }: PublicQrPageProps) {
     return <UnavailableQr />
   }
 
-  const membership = await getExistingMembershipForCurrentUser(
-    qrContext.merchant.id
-  )
   const encodedQrId = encodeURIComponent(qrContext.qrId ?? qrId)
   const joinUrl = `/m/${qrContext.merchant.business_slug}/join?qr=${encodedQrId}`
 

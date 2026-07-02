@@ -1,12 +1,33 @@
 import "server-only"
 
 import { createAdminServiceRoleClient } from "@/lib/admin/service-role"
+import {
+  contactOrIlikeFilter,
+  containsPattern,
+  lookupRange,
+  pageMeta,
+  type AdminLookupState,
+  type AdminPageMeta,
+} from "./lookup-query"
 
 export {
   getAdminBillingRecords,
   type AdminBillingRecord,
 } from "./billing-data"
 export { getAdminPilotMerchants, getAdminPilotReport } from "./pilot-report"
+
+/**
+ * Server-side member lookup query (MS-admin-member-lookup): venue and
+ * masked-contact fragments plus a 1-based page. Terms arrive already
+ * normalised by `parseAdminLookupParams`; they are LIKE-escaped and
+ * PostgREST-quoted here before interpolation.
+ */
+export type AdminLookupQuery = Partial<AdminLookupState>
+
+export type AdminPagedRows<T> = {
+  rows: T[]
+  meta: AdminPageMeta
+}
 
 export async function getAdminOverview() {
   const [merchants, customers, billingIssues, recentAudits] = await Promise.all(
@@ -55,72 +76,116 @@ export async function getAdminQrCodes() {
   return data ?? []
 }
 
-export async function getAdminCustomers() {
+export async function getAdminCustomers(lookup: AdminLookupQuery = {}) {
   const supabase = await createAdminServiceRoleClient()
-  const { data, error } = await supabase
+  const page = lookup.page ?? 1
+  const window = lookupRange(page)
+
+  // `!inner` joins keep the embedded filters (contact/venue) applied to the
+  // parent rows; membership FKs are non-null so the join never drops rows.
+  let query = supabase
     .from("customer_memberships")
     .select(
-      "id, current_stamp_count, total_stamps_earned, total_rewards_redeemed, created_at, customers(email, phone), merchants(business_name)"
+      "id, current_stamp_count, total_stamps_earned, total_rewards_redeemed, created_at, customers!inner(email, phone), merchants!inner(business_name)",
+      { count: "exact" }
     )
+
+  if (lookup.contact) {
+    query = query.or(contactOrIlikeFilter(lookup.contact), {
+      referencedTable: "customers",
+    })
+  }
+  if (lookup.venue) {
+    query = query.ilike(
+      "merchants.business_name",
+      containsPattern(lookup.venue)
+    )
+  }
+
+  const { data, error, count } = await query
     .order("created_at", { ascending: false })
-    .limit(100)
+    .range(window.from, window.to)
 
   if (error) {
     throw new Error(`Unable to load customer memberships: ${error.message}`)
   }
 
-  return data ?? []
+  return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
 }
 
-export async function getAdminPrivacySupportRows() {
+export async function getAdminPrivacySupportRows(
+  lookup: AdminLookupQuery = {}
+) {
   const supabase = await createAdminServiceRoleClient()
-  const { data, error } = await supabase
+  const page = lookup.page ?? 1
+  const window = lookupRange(page)
+
+  let query = supabase
     .from("customer_memberships")
     .select(
-      "id, merchant_id, customer_id, created_at, customers(email, phone), merchants(business_name)"
+      "id, merchant_id, customer_id, created_at, customers!inner(email, phone), merchants!inner(business_name)",
+      { count: "exact" }
     )
+
+  if (lookup.contact) {
+    query = query.or(contactOrIlikeFilter(lookup.contact), {
+      referencedTable: "customers",
+    })
+  }
+  if (lookup.venue) {
+    query = query.ilike(
+      "merchants.business_name",
+      containsPattern(lookup.venue)
+    )
+  }
+
+  const { data, error, count } = await query
     .order("created_at", { ascending: false })
-    .limit(100)
+    .range(window.from, window.to)
 
   if (error) {
     throw new Error(`Unable to load privacy support rows: ${error.message}`)
   }
 
-  return data ?? []
+  return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
 }
 
-export async function getAdminConsentRecords() {
+export async function getAdminConsentRecords(page = 1) {
   const supabase = await createAdminServiceRoleClient()
-  const { data, error } = await supabase
+  const window = lookupRange(page)
+  const { data, error, count } = await supabase
     .from("consent_records")
     .select(
-      "id, channel, consent_status, source, policy_version, created_at, metadata, customers(email, phone), merchants(business_name)"
+      "id, channel, consent_status, source, policy_version, created_at, metadata, customers(email, phone), merchants(business_name)",
+      { count: "exact" }
     )
     .order("created_at", { ascending: false })
-    .limit(100)
+    .range(window.from, window.to)
 
   if (error) {
     throw new Error(`Unable to load consent records: ${error.message}`)
   }
 
-  return data ?? []
+  return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
 }
 
-export async function getAdminRewards() {
+export async function getAdminRewards(page = 1) {
   const supabase = await createAdminServiceRoleClient()
-  const { data, error } = await supabase
+  const window = lookupRange(page)
+  const { data, error, count } = await supabase
     .from("reward_events")
     .select(
-      "id, status, cancelled_reason, created_at, redeemed_at, customers(email, phone), merchants(business_name), loyalty_cards(reward_name)"
+      "id, status, cancelled_reason, created_at, redeemed_at, customers(email, phone), merchants(business_name), loyalty_cards(reward_name)",
+      { count: "exact" }
     )
     .order("created_at", { ascending: false })
-    .limit(100)
+    .range(window.from, window.to)
 
   if (error) {
     throw new Error(`Unable to load rewards: ${error.message}`)
   }
 
-  return data ?? []
+  return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
 }
 
 export async function getAdminFraudSignals() {

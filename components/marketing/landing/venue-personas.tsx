@@ -44,14 +44,14 @@ export function VenuePersonas() {
             {persona.live ? (
               <Link
                 href={persona.spoke}
-                className="mt-3 inline-block font-mono text-[0.68rem] font-bold tracking-[0.06em] text-primary uppercase underline-offset-4 hover:underline"
+                className="mono-meta mt-3 inline-block text-primary underline-offset-4 hover:underline"
               >
                 {persona.cta ?? "See more"} →
               </Link>
             ) : SHOW_PERSONA_SPOKES ? (
               <Link
                 href={persona.spoke}
-                className="mt-3 inline-block font-mono text-[0.68rem] font-bold tracking-[0.06em] text-primary uppercase underline-offset-4 hover:underline"
+                className="mono-meta mt-3 inline-block text-primary underline-offset-4 hover:underline"
               >
                 See more →
               </Link>

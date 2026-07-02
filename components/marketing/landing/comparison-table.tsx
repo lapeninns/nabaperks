@@ -29,8 +29,10 @@ function Mark({ value }: { value: ComparisonCell }) {
  * citable GEO asset. Real semantic <table> markup (with scoped headers and a
  * caption) so answer engines can lift it for "loyalty card without an app" and
  * "X vs Y" queries. Mobile-first: the table scrolls horizontally on narrow
- * screens with the feature column pinned; the Nabaperks column is tinted to read
- * as the row of all-yeses without making a subjective superiority claim.
+ * screens with the feature column pinned (sticky row headers on an opaque
+ * background; `border-separate` so cell borders travel with the sticky cells);
+ * the Nabaperks column is tinted to read as the row of all-yeses without making
+ * a subjective superiority claim.
  */
 export function ComparisonTable() {
   return (
@@ -55,7 +57,7 @@ export function ComparisonTable() {
         role="region"
         tabIndex={0}
       >
-        <table className="w-full min-w-[34rem] border-collapse text-left">
+        <table className="w-full min-w-[34rem] border-separate border-spacing-0 text-left">
           <caption className="sr-only">
             How a Nabaperks browser card compares with wallet-pass loyalty apps,
             paper punch cards and POS loyalty across install, fraud, hardware and
@@ -63,7 +65,10 @@ export function ComparisonTable() {
           </caption>
           <thead>
             <tr>
-              <th scope="col" className="w-[34%] p-0" />
+              <th
+                scope="col"
+                className="sticky left-0 z-[2] w-[34%] border-r border-dashed border-foreground/20 bg-background p-0"
+              />
               {COMPARISON_COLUMNS.map((col) => (
                 <th
                   key={col.key}
@@ -78,7 +83,7 @@ export function ComparisonTable() {
                   </span>
                   <span
                     className={cn(
-                      "mt-0.5 block font-mono text-[0.6rem] tracking-[0.04em] uppercase",
+                      "mono-id mt-0.5 block",
                       col.highlight ? "text-paper/70" : "text-muted-foreground"
                     )}
                   >
@@ -94,8 +99,8 @@ export function ComparisonTable() {
                 <th
                   scope="row"
                   className={cn(
-                    "py-3 pr-3 align-middle text-[0.9rem] leading-snug font-bold text-pretty",
-                    rowIndex > 0 && "border-t border-dashed border-foreground/20"
+                    "sticky left-0 z-[1] border-r border-dashed border-foreground/20 bg-background py-3 pr-3 align-middle text-[0.9rem] leading-snug font-bold text-pretty",
+                    rowIndex > 0 && "border-t"
                   )}
                 >
                   {row.feature}

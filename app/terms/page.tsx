@@ -1,13 +1,38 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 
 import { Eyebrow, PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   PLATFORM_TERMS_META,
   PLATFORM_TERMS_SECTIONS,
 } from "@/lib/legal/content"
+import { OG_IMAGE } from "@/lib/seo/structured-data"
+
+const title = "Terms"
+const description = PLATFORM_TERMS_META.description
+
+export const metadata: Metadata = {
+  title,
+  description,
+  alternates: { canonical: "/terms" },
+  openGraph: {
+    title: `${title} | Nabaperks`,
+    description,
+    type: "website",
+    siteName: "Nabaperks",
+    url: "/terms",
+    locale: "en_GB",
+    images: [OG_IMAGE],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${title} | Nabaperks`,
+    description,
+    images: [OG_IMAGE],
+  },
+}
 
 export default function TermsPage() {
   return (
@@ -58,15 +83,6 @@ export default function TermsPage() {
               />
             ))}
           </ReceiptCard>
-
-          <Alert className="border-destructive/30 bg-destructive/10">
-            <AlertTitle className="text-foreground">Review required</AlertTitle>
-            <AlertDescription>
-              These terms are not final legal wording. UK GDPR, PECR,
-              promotional marketing, and consumer protection obligations need
-              human review before launch.
-            </AlertDescription>
-          </Alert>
 
           <Button asChild variant="secondary" className="w-fit">
             <Link href="/privacy">Privacy notice</Link>

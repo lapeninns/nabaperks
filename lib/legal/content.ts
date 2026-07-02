@@ -36,7 +36,7 @@ export const PLATFORM_TERMS_META = {
   eyebrow: "For venue operators · plain English summary",
   title: "The small print, kept legible.",
   description:
-    "How customer participation, rewards, marketing consent, and fraud prevention work on Nabaperks. The full text travels with your merchant agreement and requires legal review before launch.",
+    "How customer participation, rewards, marketing consent, and fraud prevention work on Nabaperks. The full text travels with your merchant agreement.",
   cardTitle: "Terms, condensed",
   docNumber: "T-2026",
 }
@@ -78,7 +78,7 @@ export const PRIVACY_META = {
   eyebrow: "For venue operators · plain English summary",
   title: "What happens to your customers' data.",
   description:
-    "How Nabaperks handles loyalty records, consent separation, support access, and audit evidence for your venue. The full notice travels with your merchant agreement and needs legal review before launch.",
+    "How Nabaperks handles loyalty records, consent separation, support access, and audit evidence for your venue. The full notice travels with your merchant agreement.",
   cardTitle: "Privacy, condensed",
   docNumber: "P-2026",
 }
@@ -138,7 +138,7 @@ export function venueTermsMeta(merchantName: string) {
   return {
     title: `${merchantName} loyalty terms`,
     description:
-      "These loyalty terms are shown to customers before participation and must be reviewed before launch.",
+      "These loyalty terms are shown before you join and stay available from your loyalty card.",
     cardTitle: "Reward terms",
   }
 }

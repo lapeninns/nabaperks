@@ -78,7 +78,7 @@ export function SampleLoyaltyCard({
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className="font-mono text-[0.7rem] tracking-[0.06em] text-muted-foreground uppercase">
+            <p className="mono-meta font-normal text-muted-foreground">
               {venue}
             </p>
             <div
@@ -117,7 +117,7 @@ export function SampleLoyaltyCard({
           <>
             <hr className="w-rule" />
 
-            <div className="flex items-center justify-between gap-3 font-mono text-[0.6rem] tracking-[0.06em] uppercase">
+            <div className="mono-id flex items-center justify-between gap-3 font-normal">
               <span className="text-muted-foreground">{footerLeft}</span>
               <span className="min-w-[9.75rem] text-right">{footerRight}</span>
             </div>

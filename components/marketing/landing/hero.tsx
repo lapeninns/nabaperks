@@ -52,7 +52,7 @@ export function LandingHero({ qrMatrix }: { qrMatrix: QrMatrix }) {
             Apple or Google Wallet pass to install</strong>. Every stamp is
             verified at your counter.
           </p>
-          <p className="mt-4 max-w-[46ch] font-mono text-[0.68rem] leading-relaxed tracking-[0.04em] text-muted-foreground uppercase">
+          <p className="mono-meta mt-4 max-w-[46ch] font-normal leading-relaxed text-muted-foreground">
             {NABAPERKS_AUTHORITY_LINE}
           </p>
           <ReassuranceBar className="mt-6 max-w-[44ch]" />
@@ -60,7 +60,7 @@ export function LandingHero({ qrMatrix }: { qrMatrix: QrMatrix }) {
             At <strong className="font-semibold text-foreground">£29/mo</strong>, one
             or two extra regulars a week can cover it.
           </p>
-          <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-[0.7rem] tracking-[0.04em] uppercase">
+          <div className="mono-meta mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 font-normal">
             <span className="text-muted-foreground">Already piloting?</span>
             <Link href="/login" className={merchantLinkClass}>
               Log in

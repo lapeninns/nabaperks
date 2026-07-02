@@ -3,7 +3,6 @@
 import type { MouseEvent, ReactNode } from "react"
 
 import { ReceiptCard } from "@/components/brand"
-import { StatusBanner } from "@/components/loyalty"
 import {
   Sheet,
   SheetContent,
@@ -31,7 +30,6 @@ type CustomerLegalSheetProps = {
   sections: LegalSection[]
   cardTitle?: string
   docNumber?: string
-  reviewNotice?: boolean
   triggerClassName?: string
   onTriggerClick?: (event: MouseEvent<HTMLButtonElement>) => void
 }
@@ -43,7 +41,6 @@ export function CustomerLegalSheet({
   sections,
   cardTitle,
   docNumber,
-  reviewNotice = true,
   triggerClassName,
   onTriggerClick,
 }: CustomerLegalSheetProps) {
@@ -89,12 +86,6 @@ export function CustomerLegalSheet({
                 <LegalSectionBlock key={section.id} section={section} />
               ))}
             </ReceiptCard>
-            {reviewNotice ? (
-              <StatusBanner title="Review required" tone="warning">
-                These terms support pilot operation only. Legal, promotional, and
-                data protection wording needs human review before public launch.
-              </StatusBanner>
-            ) : null}
           </div>
         </div>
       </SheetContent>

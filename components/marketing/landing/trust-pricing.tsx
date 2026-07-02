@@ -37,7 +37,7 @@ export function TrustPricing() {
           <span className="font-mono text-xs font-bold tracking-[0.08em] uppercase">
             Growth Plan
           </span>
-          <span className="font-mono text-[0.625rem] tracking-[0.06em] text-muted-foreground uppercase">
+          <span className="mono-id font-normal text-muted-foreground">
             One venue
           </span>
         </div>
@@ -45,7 +45,7 @@ export function TrustPricing() {
           £29
           <span className="text-lg font-bold text-muted-foreground">/month</span>
         </p>
-        <p className="mt-2 font-mono text-[0.625rem] tracking-[0.05em] text-muted-foreground uppercase">
+        <p className="mono-id mt-2 font-normal text-muted-foreground">
           GBP 29/month · one venue · no contracts
         </p>
         <p className="mt-3 text-sm leading-relaxed font-semibold">
@@ -81,7 +81,7 @@ export function TrustPricing() {
         </div>
 
         <hr className="w-rule mt-4 mb-0" />
-        <p className="mt-4 text-center font-mono text-[0.625rem] tracking-[0.05em] text-muted-foreground uppercase">
+        <p className="mono-id mt-4 text-center font-normal text-muted-foreground">
           No contract. Cancel on a month&apos;s notice.
         </p>
       </div>

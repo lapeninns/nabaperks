@@ -190,7 +190,8 @@ export function ActivityFeedSkeleton() {
 
 /**
  * Mirrors {@link CustomerReadbackTable}: a header row plus five data rows as a
- * desktop table (`hidden sm:block`) and stacked mobile cards (`sm:hidden`).
+ * desktop table (`hidden lg:block`) and stacked cards (`lg:hidden`) — the real
+ * table only mounts from lg (the md sidebar leaves too little width at 768).
  */
 export function MerchantCustomersTableSkeleton() {
   const rows = [0, 1, 2, 3, 4]
@@ -224,8 +225,8 @@ export function MerchantCustomersTableSkeleton() {
         </div>
       </div>
 
-      {/* Mobile: stacked cards */}
-      <ul className="grid gap-2.5 sm:hidden">
+      {/* Phone + tablet: stacked cards (the real card list shows below lg) */}
+      <ul className="grid gap-2.5 lg:hidden">
         {rows.map((row) => (
           <li key={row} className="surface-card grid overflow-hidden">
             <div className="flex items-start gap-2.5 px-3 py-3">
@@ -247,14 +248,14 @@ export function MerchantCustomersTableSkeleton() {
         ))}
       </ul>
 
-      {/* Desktop/tablet: table — mirrors buildColumns(): Member (always),
-          Joined (lg+), Stamps (always), Last visit (md+), Reward (always). */}
-      <div className="surface-card hidden overflow-hidden sm:block">
+      {/* Desktop: table (lg+) — mirrors buildColumns(): Member, Joined,
+          Stamps, Last visit, Reward (all columns render at lg+). */}
+      <div className="surface-card hidden overflow-hidden lg:block">
         <div className="flex items-center gap-4 border-b-2 border-ink bg-secondary/60 px-4 py-3">
           <Skeleton className="h-3 w-16 flex-1" />
-          <Skeleton className="hidden h-3 w-12 lg:block" />
+          <Skeleton className="h-3 w-12" />
           <Skeleton className="h-3 w-14" />
-          <Skeleton className="hidden h-3 w-16 md:block" />
+          <Skeleton className="h-3 w-16" />
           <Skeleton className="h-3 w-14" />
         </div>
         {rows.map((row) => (
@@ -269,9 +270,9 @@ export function MerchantCustomersTableSkeleton() {
                 <Skeleton className="h-3 w-24" />
               </span>
             </span>
-            <Skeleton className="hidden h-4 w-20 lg:block" />
+            <Skeleton className="h-4 w-20" />
             <Skeleton className="h-4 w-28" />
-            <Skeleton className="hidden h-4 w-20 md:block" />
+            <Skeleton className="h-4 w-20" />
             <Skeleton className="h-5 w-24 rounded-full" />
           </div>
         ))}

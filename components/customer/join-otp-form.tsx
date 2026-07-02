@@ -9,7 +9,7 @@ import {
   type CustomerIdentityState,
 } from "@/app/m/[merchantSlug]/join/actions"
 import { customerInputClass } from "@/components/customer/input-class"
-import { Button } from "@/components/ui/button"
+import { SubmitButton } from "@/components/forms"
 import { otpFieldMaxLength } from "@/lib/customer/experience/otp-field"
 import type { LocationRequirement } from "@/lib/customer/experience/types"
 
@@ -28,15 +28,25 @@ export function CustomerOtpForm({
   contact,
   location,
 }: CustomerOtpFormProps) {
-  const [verifyState, verifyAction, verifyPending] = useActionState(
+  const [verifyState, verifyAction] = useActionState(
     verifyCustomerOtpAction,
     identityInitialState
   )
-  const [, requestAction, requestPending] = useActionState(
+  const [requestState, requestAction, requestPending] = useActionState(
     requestCustomerIdentityAction,
     identityInitialState
   )
   const state = verifyState
+  // A failed or rate-limited resend returns errors; a successful one returns
+  // a confirmation message. Both surface inside the aria-live card below so
+  // the customer at the counter hears and sees the outcome (CUS-P1-02). While
+  // a fresh resend is in flight the previous outcome clears, so settling
+  // re-announces through the live region.
+  const resendError = requestPending
+    ? undefined
+    : (requestState.errors?.form ?? requestState.errors?.contact)
+  const resendMessage =
+    requestPending || resendError ? undefined : requestState.message
   const phoneStepHref = `/m/${merchantSlug}/join?${
     qrId ? `qr=${encodeURIComponent(qrId)}&` : ""
   }step=phone`
@@ -91,37 +101,42 @@ export function CustomerOtpForm({
             {state.errors.contact}
           </p>
         ) : null}
-        <Button
-          type="submit"
-          size="lg"
-          className="w-full"
-          disabled={verifyPending}
-        >
-          {verifyPending ? "Checking..." : "Save my card"}
-        </Button>
+        <SubmitButton size="lg" className="w-full" pendingLabel="Checking…">
+          Save my card
+        </SubmitButton>
       </form>
 
       <form action={requestAction} className="grid gap-3">
         <input type="hidden" name="merchantSlug" value={merchantSlug} />
         <input type="hidden" name="qrId" value={qrId ?? ""} />
         <input type="hidden" name="contact" value={contact} />
+        {/* Marks this submission as a resend so the action answers in place
+            (returned state) instead of redirecting the phone step forward. */}
+        <input type="hidden" name="resend" value="1" />
         <div
           className="surface-card grid gap-2 p-3 text-left"
           aria-live="polite"
         >
           <div className="flex items-center justify-between gap-3">
             <span className="eyebrow text-muted-foreground">Sent to</span>
-            <Button
-              type="submit"
+            <SubmitButton
               variant="link"
               size="xs"
               className="shrink-0 text-xs"
-              disabled={requestPending}
+              pendingLabel="Sending…"
             >
-              {requestPending ? "Sending..." : "Resend code"}
-            </Button>
+              Resend code
+            </SubmitButton>
           </div>
           <p className="text-sm font-bold tabular-nums">{contact}</p>
+          {resendError ? (
+            <p className="text-sm leading-6 text-destructive">{resendError}</p>
+          ) : null}
+          {resendMessage ? (
+            <p className="text-sm leading-6 font-semibold text-foreground">
+              {resendMessage}
+            </p>
+          ) : null}
           <Link
             href={phoneStepHref}
             className="w-fit text-xs font-bold underline underline-offset-4"

@@ -7,6 +7,7 @@ import {
 } from "@hugeicons/core-free-icons"
 
 import { regenerateQrAction, setQrActiveAction } from "@/app/admin/actions"
+import { AdminActionForm } from "@/components/admin/action-form"
 import {
   AdminField,
   AdminPanel,
@@ -19,7 +20,7 @@ import {
 import { AdminRecordCard } from "@/components/admin/record-card"
 import { EmptyState, Icon, PageTitle, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
-import { Button } from "@/components/ui/button"
+import { SubmitButton } from "@/components/forms"
 import { canRenderAdminPage } from "@/lib/admin/auth"
 import { getAdminMerchants, getAdminQrCodes } from "@/lib/admin/data"
 
@@ -214,7 +215,7 @@ function QrStateForm({
   readonly nextActive: boolean
 }) {
   return (
-    <form action={setQrActiveAction} className="grid gap-2">
+    <AdminActionForm action={setQrActiveAction}>
       <input type="hidden" name="qrCodeId" value={qrCodeId} />
       <input type="hidden" name="isActive" value={String(nextActive)} />
       <AdminField label="Reason">
@@ -225,17 +226,20 @@ function QrStateForm({
           className={adminInputClasses}
         />
       </AdminField>
-      <Button type="submit" variant={nextActive ? "secondary" : "destructive"}>
+      <SubmitButton
+        pendingLabel={nextActive ? "Enabling…" : "Disabling…"}
+        variant={nextActive ? "secondary" : "destructive"}
+      >
         <Icon icon={nextActive ? ToggleOnIcon : Cancel01Icon} size={16} />
         {nextActive ? "Enable QR" : "Disable QR"}
-      </Button>
-    </form>
+      </SubmitButton>
+    </AdminActionForm>
   )
 }
 
 function RegenerateQrForm({ qrCodeId }: { readonly qrCodeId: string }) {
   return (
-    <form action={regenerateQrAction} className="grid gap-2">
+    <AdminActionForm action={regenerateQrAction}>
       <input type="hidden" name="qrCodeId" value={qrCodeId} />
       <AdminField label="Reason">
         <input
@@ -245,10 +249,10 @@ function RegenerateQrForm({ qrCodeId }: { readonly qrCodeId: string }) {
           className={adminInputClasses}
         />
       </AdminField>
-      <Button type="submit" variant="secondary">
+      <SubmitButton pendingLabel="Regenerating…" variant="secondary">
         <Icon icon={RefreshIcon} size={16} />
         Regenerate QR
-      </Button>
-    </form>
+      </SubmitButton>
+    </AdminActionForm>
   )
 }

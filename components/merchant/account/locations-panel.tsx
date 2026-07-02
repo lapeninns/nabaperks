@@ -109,10 +109,14 @@ export function LocationsPanelView({
       </ReceiptCard>
 
       <ReceiptCard className="grid gap-4">
+        {/* Scope note (engineering, not merchant-facing): per-location card
+            editing does not exist yet — each location takes a one-off snapshot
+            of the primary site's card and rewards at add time, and rewards are
+            only manageable on the primary card (see addVenueLocationAction). */}
         <SectionHeader
           eyebrow="Draft"
           title="Add another location"
-          description="Card and rewards are a snapshot of your primary site at the time this location was added. Editing cloned cards is out of scope for this spike."
+          description="New locations start with a copy of your primary site's card and rewards, taken when the location is added. Copied cards cannot be edited per location yet — manage rewards on your primary site."
         />
         <form action={formAction} className="grid gap-4">
           <LocationField

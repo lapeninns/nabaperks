@@ -1,11 +1,36 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 
 import { Eyebrow, PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { OPERATOR } from "@/lib/marketing/facts"
 import { PRIVACY_META, PRIVACY_SECTIONS } from "@/lib/legal/content"
+import { OG_IMAGE } from "@/lib/seo/structured-data"
+
+const title = "Privacy"
+const description = PRIVACY_META.description
+
+export const metadata: Metadata = {
+  title,
+  description,
+  alternates: { canonical: "/privacy" },
+  openGraph: {
+    title: `${title} | Nabaperks`,
+    description,
+    type: "website",
+    siteName: "Nabaperks",
+    url: "/privacy",
+    locale: "en_GB",
+    images: [OG_IMAGE],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${title} | Nabaperks`,
+    description,
+    images: [OG_IMAGE],
+  },
+}
 
 const externalLinkClass =
   "font-bold underline underline-offset-4 hover:text-primary focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
@@ -98,15 +123,6 @@ export default function PrivacyPage() {
               .
             </p>
           </div>
-
-          <Alert className="border-destructive/30 bg-destructive/10">
-            <AlertTitle className="text-foreground">Review required</AlertTitle>
-            <AlertDescription>
-              This page is not final legal wording. UK GDPR, PECR, promotional
-              marketing, and consumer protection terms must be reviewed before
-              launch.
-            </AlertDescription>
-          </Alert>
 
           <Button asChild variant="secondary" className="w-fit">
             <Link href="/terms">Platform terms</Link>

@@ -40,7 +40,7 @@ export function OperatorProof() {
       <ul className="mt-6 grid gap-4 sm:grid-cols-3">
         {faults.map((fault, index) => (
           <li key={fault.title} className="surface-card p-5">
-            <p className="font-mono text-[0.7rem] font-bold tracking-[0.1em] text-primary uppercase">
+            <p className="mono-meta tracking-[0.1em] text-primary">
               Fault {String(index + 1).padStart(2, "0")}
             </p>
             <h3 className="mt-2 text-lg leading-snug font-extrabold text-balance">

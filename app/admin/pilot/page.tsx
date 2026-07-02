@@ -1,4 +1,5 @@
 import { logPilotNoteAction } from "@/app/admin/actions"
+import { AdminActionForm } from "@/components/admin/action-form"
 import {
   AdminField,
   AdminPanel,
@@ -19,7 +20,7 @@ import {
   SectionHeader,
 } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
-import { Button } from "@/components/ui/button"
+import { SubmitButton } from "@/components/forms"
 import { canRenderAdminPage } from "@/lib/admin/auth"
 import { getAdminPilotMerchants, getAdminPilotReport } from "@/lib/admin/data"
 
@@ -156,63 +157,68 @@ export default async function AdminPilotPage() {
                     </p>
                   </div>
 
-                  <form
+                  <AdminActionForm
                     action={logPilotNoteAction}
-                    className="grid gap-3 lg:grid-cols-[220px_160px_minmax(0,1fr)_auto]"
+                    className="gap-3"
                   >
                     <input
                       type="hidden"
                       name="merchantId"
                       value={merchant.id}
                     />
-                    <AdminField label="Note type">
-                      <select
-                        name="noteType"
-                        required
-                        className={adminInputClasses}
-                        defaultValue="support"
+                    <div className="grid gap-3 lg:grid-cols-[220px_160px_minmax(0,1fr)_auto]">
+                      <AdminField label="Note type">
+                        <select
+                          name="noteType"
+                          required
+                          className={adminInputClasses}
+                          defaultValue="support"
+                        >
+                          <option value="support">Support note</option>
+                          <option value="interview">Interview note</option>
+                          <option value="payment_objection">
+                            Payment objection
+                          </option>
+                          <option value="cancellation_reason">
+                            Cancellation reason
+                          </option>
+                          <option value="launch_self_service_checked">
+                            Self-service launch check
+                          </option>
+                        </select>
+                      </AdminField>
+                      <AdminField
+                        label="Setup check minutes"
+                        helper="Optional for self-service launch checks."
                       >
-                        <option value="support">Support note</option>
-                        <option value="interview">Interview note</option>
-                        <option value="payment_objection">
-                          Payment objection
-                        </option>
-                        <option value="cancellation_reason">
-                          Cancellation reason
-                        </option>
-                        <option value="launch_self_service_checked">
-                          Self-service launch check
-                        </option>
-                      </select>
-                    </AdminField>
-                    <AdminField
-                      label="Setup check minutes"
-                      helper="Optional for self-service launch checks."
-                    >
-                      <input
-                        name="setupMinutes"
-                        type="number"
-                        min={1}
-                        max={3}
-                        className={adminInputClasses}
-                        placeholder="1-3"
-                      />
-                    </AdminField>
-                    <AdminField label="Notes">
-                      <textarea
-                        name="notes"
-                        required
-                        minLength={4}
-                        rows={2}
-                        className={adminTextareaClasses}
-                        placeholder="What happened, source, and next action"
-                      />
-                    </AdminField>
-                    <Button type="submit" className="self-end">
-                      <Icon icon={CheckmarkCircle02Icon} size={16} />
-                      Save note
-                    </Button>
-                  </form>
+                        <input
+                          name="setupMinutes"
+                          type="number"
+                          min={1}
+                          max={3}
+                          className={adminInputClasses}
+                          placeholder="1-3"
+                        />
+                      </AdminField>
+                      <AdminField label="Notes">
+                        <textarea
+                          name="notes"
+                          required
+                          minLength={4}
+                          rows={2}
+                          className={adminTextareaClasses}
+                          placeholder="What happened, source, and next action"
+                        />
+                      </AdminField>
+                      <SubmitButton
+                        pendingLabel="Saving…"
+                        className="self-end"
+                      >
+                        <Icon icon={CheckmarkCircle02Icon} size={16} />
+                        Save note
+                      </SubmitButton>
+                    </div>
+                  </AdminActionForm>
                 </article>
               )
             })}

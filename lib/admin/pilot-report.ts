@@ -1,6 +1,7 @@
 import "server-only"
 
 import { getProductEventCounts } from "@/lib/analytics/funnels"
+import { pilotFunnelEventNames } from "@/lib/analytics/pilot-funnel"
 import {
   countAuditActions,
   countBillingStatuses,
@@ -9,17 +10,6 @@ import {
   countRows,
 } from "@/lib/admin/pilot-report-sources"
 import { createAdminServiceRoleClient } from "@/lib/admin/service-role"
-
-const pilotProductEventNames = [
-  "merchant_signed_up",
-  "loyalty_card_created",
-  "qr_created",
-  "qr_scanned",
-  "customer_joined",
-  "stamp_issued",
-  "reward_unlocked",
-  "reward_redeemed",
-] as const
 
 export async function getAdminPilotReport() {
   const [
@@ -34,7 +24,7 @@ export async function getAdminPilotReport() {
     launchSelfServiceProof,
     paidLaunchProofMerchants,
   ] = await Promise.all([
-    getProductEventCounts(pilotProductEventNames),
+    getProductEventCounts(pilotFunnelEventNames),
     countMembershipsWithSecondStamp(),
     countRows("merchants"),
     countBillingStatuses(["trialing"]),

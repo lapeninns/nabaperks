@@ -191,7 +191,7 @@ export function LoyaltyCardForm({
                     <span className="text-sm leading-snug font-extrabold text-pretty">
                       {preset.label}
                     </span>
-                    <span className="font-mono text-[0.64rem] leading-none font-bold tracking-[0.06em] uppercase">
+                    <span className="mono-id leading-none">
                       {preset.stampsRequired} visits
                     </span>
                   </button>
@@ -461,7 +461,7 @@ function RewardRow({
       >
         <p className="text-sm leading-snug font-bold text-pretty break-words text-foreground">
           {rewardName}
-          <span className="ml-1.5 font-mono text-[0.58rem] font-bold tracking-[0.05em] text-muted-foreground uppercase">
+          <span className="mono-id ml-1.5 text-muted-foreground">
             · w{item.weight || "1"}
           </span>
         </p>
@@ -476,7 +476,9 @@ function RewardRow({
           type="button"
           onClick={onEdit}
           aria-label={`Edit ${rewardName}`}
-          className="grid size-8 shrink-0 place-items-center rounded-md border border-border bg-card text-foreground transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:border-ink hover:bg-secondary/60 focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none"
+          // Honest compact size: 32px square on fine pointers, grown to the
+          // 44px tap floor on coarse pointers (the Button icon-xs idiom).
+          className="grid size-8 min-h-8 shrink-0 place-items-center rounded-md border border-border bg-card text-foreground transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:border-ink hover:bg-secondary/60 focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
         >
           <Icon icon={PencilEdit02Icon} size={15} strokeWidth={2} />
         </button>
@@ -528,9 +530,14 @@ function RewardActiveToggle({
       aria-label={`${optimisticActive ? "Deactivate" : "Activate"} ${rewardLabel}`}
       disabled={!item.id || pending}
       onClick={toggleActive}
+      // Type comes from .w-tag (the sanctioned mono-pill metrics — 11px, 700,
+      // uppercase); the old sub-floor arbitrary size overrides are gone.
+      // Honest compact heights on fine pointers grow to the 44px tap floor on
+      // coarse pointers (the FilterPills / Button compact-size idiom) — this
+      // switch is THE control that activates rewards toward the launch gate.
       className={cn(
-        "w-tag pressable inline-flex shrink-0 items-center justify-center rounded-2xl border font-mono font-bold tracking-[0.06em] uppercase transition-[color,background-color,border-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none focus-visible:ring-3 focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-60",
-        compact ? "h-5 px-2 text-[0.58rem]" : "h-6 px-2.5 py-0.5 text-[0.62rem]",
+        "w-tag pressable inline-flex shrink-0 items-center justify-center rounded-2xl border transition-[color,background-color,border-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none focus-visible:ring-3 focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-60 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11",
+        compact ? "h-5 px-2" : "h-6 px-2.5 py-0.5",
         optimisticActive
           ? "border-ink bg-reward text-reward-foreground"
           : "border-ink/35 bg-secondary text-muted-foreground hover:border-ink/60 hover:bg-secondary/80"
@@ -735,12 +742,15 @@ function Stepper({
       aria-label={label}
       className="inline-flex w-max items-stretch overflow-hidden rounded-lg bg-secondary"
     >
+      {/* The +/- buttons declare an honest 36px height on fine pointers and
+          grow to the 44px tap floor on coarse pointers (the compact Button
+          idiom); items-stretch pulls the count cell up with them. */}
       <button
         type="button"
         aria-label="Fewer visits"
         disabled={atMin}
         onClick={() => onChange(String(Math.max(min, current - 1)))}
-        className="grid w-11 place-items-center text-foreground transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:bg-ink/10 focus-visible:ring-3 focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
+        className="grid min-h-9 w-11 place-items-center text-foreground transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:bg-ink/10 focus-visible:ring-3 focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11"
       >
         <Icon icon={MinusSignIcon} size={18} strokeWidth={2.25} />
       </button>
@@ -755,7 +765,7 @@ function Stepper({
         aria-label="More visits"
         disabled={atMax}
         onClick={() => onChange(String(Math.min(max, current + 1)))}
-        className="grid w-11 place-items-center text-foreground transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:bg-ink/10 focus-visible:ring-3 focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
+        className="grid min-h-9 w-11 place-items-center text-foreground transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:bg-ink/10 focus-visible:ring-3 focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11"
       >
         <Icon icon={PlusSignIcon} size={18} strokeWidth={2.25} />
       </button>

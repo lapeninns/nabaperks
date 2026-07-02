@@ -1,4 +1,5 @@
-const CACHE_NAME = "nabaperks-pwa-v1"
+// Bump on offline-shell changes so existing installs re-capture the shell.
+const CACHE_NAME = "nabaperks-pwa-v3"
 const OFFLINE_URL = "/offline"
 const NEXT_STATIC_PREFIX = "/_next/static/"
 const STATIC_ASSET_PATHS = [
@@ -88,11 +89,39 @@ async function cacheOfflineShell(cache) {
   const response = await fetch(OFFLINE_URL)
   const html = await response.clone().text()
   await cache.put(OFFLINE_URL, response)
-  const matches = html.matchAll(
-    /href="([^"]*\/_next\/static\/css\/[^"]+\.css[^"]*)"/g
-  )
-  const paths = [...new Set([...matches].map((match) => match[1]))]
+  // Pre-cache the shell's own hashed CSS (plus its fonts below) so the
+  // offline page renders on-brand without the network. Script chunks are
+  // deliberately NOT captured: hydrating the offline shell while offline
+  // arms the dev HMR client's reload-on-disconnect loop, and the primary
+  // recovery (the same-URL "Try again" anchor) works unhydrated by design.
+  const matches = [
+    ...html.matchAll(/href="([^"]*\/_next\/static\/css\/[^"]+\.css[^"]*)"/g),
+  ]
+  const paths = [...new Set(matches.map((match) => match[1]))]
   await Promise.all(paths.map((path) => cache.add(path)))
+  await cacheShellFonts(cache, paths)
+}
+
+// The shell's stylesheets reference the brand fonts; capture them too so the
+// offline page keeps its type without the network.
+async function cacheShellFonts(cache, shellPaths) {
+  const cssPaths = shellPaths.filter((path) => path.includes("/css/"))
+  const fontPaths = new Set()
+  await Promise.all(
+    cssPaths.map(async (path) => {
+      const cached = await cache.match(path)
+      if (!cached) return
+      const css = await cached.clone().text()
+      for (const match of css.matchAll(
+        /url\((['"]?)([^'")]*\/_next\/static\/media\/[^'")]+)\1\)/g
+      )) {
+        fontPaths.add(match[2])
+      }
+    })
+  )
+  await Promise.all(
+    [...fontPaths].map((path) => cache.add(path).catch(() => undefined))
+  )
 }
 
 async function clearOldCaches() {
@@ -133,9 +162,29 @@ async function cacheFirst(request) {
   const cached = await caches.match(request)
   if (cached) return cached
 
-  const response = await fetch(request)
-  const cache = await caches.open(CACHE_NAME)
-  await cache.put(request, response.clone())
+  const url = new URL(request.url)
+  if (url.pathname.startsWith(NEXT_STATIC_PREFIX)) {
+    // Hashed immutable assets: a ?v= cache-buster never changes the bytes, so
+    // any cached variant is the right answer — critically, offline lookups
+    // must not fall through to the network and stall the document load.
+    const variant = await caches.match(request, { ignoreSearch: true })
+    if (variant) return variant
+  }
+
+  let response
+  try {
+    response = await fetch(request)
+  } catch {
+    // Settle deterministically when offline: a hung asset request must never
+    // block the page's load event.
+    return Response.error()
+  }
+  // Never cache transient failures: a cached 404/500 on a hashed asset would
+  // otherwise persist until the next CACHE_NAME bump.
+  if (response.ok) {
+    const cache = await caches.open(CACHE_NAME)
+    await cache.put(request, response.clone())
+  }
   return response
 }
 

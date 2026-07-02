@@ -80,7 +80,10 @@ export function AdminShell({
         {mfaRequired ? (
           <div
             role="status"
-            className="border-b-2 border-ink bg-reward/12 px-4 py-3 text-sm font-semibold text-reward-foreground sm:px-6"
+            // `text-foreground` on the 12% leaf wash: `--reward-foreground`
+            // is white in light mode (near-black in dark), which is illegible
+            // over a tint of paper in both themes.
+            className="border-b-2 border-ink bg-reward/12 px-4 py-3 text-sm font-semibold text-foreground sm:px-6"
           >
             MFA enforcement is enabled for this admin session.
           </div>

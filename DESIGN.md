@@ -38,7 +38,7 @@ typography:
     lineHeight: "1.05"
   card-title:
     fontFamily: Bricolage Grotesque
-    fontSize: 21px
+    fontSize: 16px
     fontWeight: "800"
   body:
     fontFamily: Bricolage Grotesque
@@ -171,7 +171,11 @@ Both families are served through `next/font/google` as
 Sharp-ish print shapes. **10px radius** (`--radius`) on buttons, inputs,
 cards, and keys; **18px** (`--radius-sheet`) on bottom sheets and large
 panels. **Full circles are reserved for the stamp family** — stamps, seals,
-marks — always rotated -6° to -8°. Borders are **2px solid ink** everywhere;
+marks — always rotated -6° to -8°. One named exemption: the `EmptyState` icon
+roundel (a static, unrotated, ink-bordered circle framing a glyph in
+`components/brand/typography.tsx`) is sanctioned outside the stamp family —
+this blessing covers that roundel only, not tab chips, step discs, jump-nav
+circles or any other circular chrome. Borders are **2px solid ink** everywhere;
 **2px dashed** (`.w-rule`) for empty slots, receipt rules, and demo chrome.
 The mono pill `.w-tag` is the only pill shape outside the stamp family.
 
@@ -227,8 +231,10 @@ which reads its timing from [`lib/motion/tokens.ts`](lib/motion/tokens.ts)
 (a hardcoded mirror of the `--w-dur-*`/`--w-ease*` custom properties,
 drift-guarded by `tests/unit/motion-tokens.test.mjs`):
 `WetInkRise`, `WetInkSlam`, `WetInkSoftStamp`, `WetInkShake`, `WetInkPop`,
-`WetInkWiggle`, `WetInkRipple`, `WetInkMarquee`, `WetInkSheet`, plus the composed
-`StampSlamSequence` (slam + paper shake). **Production code never uses raw
+`WetInkWiggle`, `WetInkBreathe`, `WetInkRipple`, `WetInkMarquee`, `WetInkSheet`,
+plus the composed `StampSlamSequence` (slam + paper shake). This list is the
+complete export surface of the primitive library — an exported primitive that
+is not documented here (or a documented one that no longer ships) is drift. **Production code never uses raw
 `animation: w-*` or `animate-[w-*]`** — those CSS keyframes were removed; reach
 for a `WetInk*` primitive instead. The press tilt (`.pressable`) stays in
 `globals.css`, and the resting stamp tilt is seeded per slot via `--stamp-rot`.
@@ -297,7 +303,12 @@ Ghost and link variants stay flat. Primary is vermillion with white text.
 ### Cards
 
 Card surface (#fbf8f1) with a 2px ink border, 10px radius, and a hard 4px
-offset shadow (`.surface-card` for plain elements). Card titles are weight 800. Receipt-style surfaces can add the `.receipt-edge` perforated zigzag.
+offset shadow (`.surface-card` for plain elements). Card titles are weight 800
+(owned by the unlayered layer) at `CardTitle`'s 16px default — the `card-title`
+token records this shipped size, and the slot rule deliberately does not set a
+font-size, so call sites may scale up where a surface needs it (`MetricTile`'s
+KPI value). Receipt-style surfaces can add the `.receipt-edge` perforated
+zigzag.
 
 ### Console data tables & record cards
 

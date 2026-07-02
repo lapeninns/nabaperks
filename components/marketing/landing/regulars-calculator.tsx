@@ -60,7 +60,7 @@ function Field({
     <div className="grid gap-1.5">
       <label
         htmlFor={id}
-        className="font-mono text-[0.66rem] font-bold tracking-[0.06em] text-muted-foreground uppercase"
+        className="mono-meta text-muted-foreground"
       >
         {label}
       </label>
@@ -87,7 +87,7 @@ function Field({
           className="w-full bg-transparent text-base font-extrabold tabular-nums outline-none"
         />
         {suffix ? (
-          <span className="shrink-0 font-mono text-[0.66rem] font-bold tracking-[0.04em] text-muted-foreground uppercase">
+          <span className="mono-meta shrink-0 text-muted-foreground">
             {suffix}
           </span>
         ) : null}
@@ -182,7 +182,7 @@ export function RegularsCalculator() {
           >
             {gbp(extraRevenuePerMonth)}
           </p>
-          <p className="mt-2 font-mono text-[0.7rem] font-bold tracking-[0.06em] text-muted-foreground uppercase">
+          <p className="mono-meta mt-2 text-muted-foreground">
             extra revenue a month, before costs
           </p>
           <p className="mt-4 text-sm leading-relaxed text-pretty">

@@ -12,7 +12,7 @@ import { ReassuranceBar } from "./reassurance-bar"
 export function FinalCta() {
   return (
     <Section width="narrow" className="max-w-2xl text-center">
-      <p className="font-mono text-[0.72rem] font-bold tracking-[0.1em] text-primary uppercase">
+      <p className="mono-meta tracking-[0.1em] text-primary">
         Your first stamp is waiting
       </p>
       <h2 className="mx-auto mt-4 max-w-[18ch] text-[clamp(1.9rem,4.6vw,3.125rem)] leading-[0.99] font-extrabold tracking-[-0.02em] text-balance">

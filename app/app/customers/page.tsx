@@ -39,7 +39,10 @@ export default async function MerchantCustomersPage({
   const highlightedMembershipId = firstParam(params.highlight)
 
   return (
-    <div className="grid gap-6">
+    // min-w-0: never let the members table's intrinsic width stretch this
+    // grid past the viewport (the intro and filter row clipped at 768 when
+    // the table forced page-level horizontal overflow).
+    <div className="grid min-w-0 gap-6">
       <PageTitle
         eyebrow="Members"
         title="Loyalty members"

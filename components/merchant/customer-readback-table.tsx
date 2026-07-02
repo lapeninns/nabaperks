@@ -97,35 +97,34 @@ function CustomerMobileCard({
         {/* Stamp + date metadata row — decorative detail, named by aria-label */}
         <div
           aria-hidden="true"
-          className="flex items-center justify-between gap-3 border-t-2 border-dashed border-border px-3 pt-2.5 pb-3"
+          className="flex items-start justify-between gap-3 border-t-2 border-dashed border-border px-3 pt-2.5 pb-3"
         >
-          <div className="flex items-center gap-2">
-            <StampGrid
-              current={row.currentStampCount}
-              total={row.stampsRequired}
-              compact
-              className="max-w-[6rem]"
-            />
-            <span className="numeric-tabular text-xs font-bold text-muted-foreground">
-              {row.currentStampCount}/{row.stampsRequired}
-            </span>
-          </div>
+          {/* showCount reserves the always-readable x/y label above the grid;
+              the auto-fit tracks wrap dense cards (e.g. 12 stamps) into extra
+              rows instead of compressing coins over the count. */}
+          <StampGrid
+            current={row.currentStampCount}
+            total={row.stampsRequired}
+            compact
+            showCount
+            className="max-w-[8rem]"
+          />
           <div className="grid gap-0.5 text-right">
             <time
-              className="font-mono text-[0.6rem] font-bold tracking-[0.04em] text-muted-foreground uppercase"
+              className="mono-id text-muted-foreground"
               dateTime={row.joinedIso}
             >
               Joined: {row.joinedLabel}
             </time>
             {row.lastVisitIso ? (
               <time
-                className="font-mono text-[0.6rem] font-bold tracking-[0.04em] text-muted-foreground uppercase"
+                className="mono-id text-muted-foreground"
                 dateTime={row.lastVisitIso}
               >
                 Last: {row.lastVisitLabel}
               </time>
             ) : (
-              <span className="font-mono text-[0.6rem] font-bold tracking-[0.04em] text-muted-foreground uppercase">
+              <span className="mono-id text-muted-foreground">
                 Last: {row.lastVisitLabel}
               </span>
             )}
@@ -221,8 +220,9 @@ function buildColumns(
     {
       key: "joined",
       header: "Joined",
-      // Hidden below lg — at sm/md the card list or compact table covers this
-      className: "hidden lg:table-cell",
+      // No responsive hiding needed: the table renderer itself only mounts at
+      // lg and above (cards cover sm/md), so every column always fits its
+      // renderer.
       cell: (row) => (
         <time
           className="text-sm text-muted-foreground"
@@ -235,25 +235,22 @@ function buildColumns(
     {
       key: "stamps",
       header: "Stamps",
+      // showCount reserves the readable x/y label above the auto-fit grid, so
+      // dense cards wrap into extra coin rows inside the cell instead of
+      // compressing over the count (DESIGN.md, Stamps & Grids width pressure).
       cell: (row) => (
-        <span className="flex items-center gap-2">
-          <StampGrid
-            current={row.currentStampCount}
-            total={row.stampsRequired}
-            compact
-            className="max-w-[8rem]"
-          />
-          <span className="numeric-tabular text-xs font-bold text-muted-foreground">
-            {row.currentStampCount}/{row.stampsRequired}
-          </span>
-        </span>
+        <StampGrid
+          current={row.currentStampCount}
+          total={row.stampsRequired}
+          compact
+          showCount
+          className="max-w-[8rem]"
+        />
       ),
     },
     {
       key: "lastVisit",
       header: "Last visit",
-      // Hidden below md — shown from md (768px) upwards
-      className: "hidden md:table-cell",
       cell: (row) =>
         row.lastVisitIso ? (
           <time
@@ -431,7 +428,10 @@ export function CustomerReadbackTable({
   }
 
   return (
-    <div className="grid gap-4" ref={rootRef}>
+    // min-w-0 keeps the table's intrinsic width from propagating up the grid
+    // chain: at worst the ui Table's own overflow-x-auto container scrolls,
+    // and the page (intro, filter pills) never overflows the viewport.
+    <div className="grid min-w-0 gap-4" ref={rootRef}>
       <StatStrip
         items={[
           {
@@ -478,9 +478,10 @@ export function CustomerReadbackTable({
         />
       </div>
 
-      {/* Scan-reward banner — desktop only (mobile has it inline in the card) */}
+      {/* Scan-reward banner — table widths only (the card list, shown below
+          lg, carries the same CTA inline in the selected card) */}
       {selected?.badge.redeemable ? (
-        <div className="surface-card hidden flex-wrap items-center justify-between gap-3 px-4 py-3 sm:flex">
+        <div className="surface-card hidden flex-wrap items-center justify-between gap-3 px-4 py-3 lg:flex">
           <span className="min-w-0 text-sm font-semibold">
             {selected.identifier} has a reward ready. Ask them to show their
             reward QR.
@@ -507,8 +508,14 @@ export function CustomerReadbackTable({
         </div>
       ) : (
         <>
-          {/* Mobile: card list (hidden at sm and above) */}
-          <div className="sm:hidden">
+          {/* Phone + tablet: card list (hidden at lg and above). The switch
+              sits at lg, not sm, because the md sidebar leaves ~510px of
+              content at 768 — too narrow for the five-column table, which
+              previously forced page-level horizontal overflow (clipped intro,
+              cut filter pills, chopped Scan action). Mirrors DataTable's
+              cardBreakpoint="lg" classes; the bespoke card list is kept for
+              its concise accessible-name pattern. */}
+          <div className="lg:hidden">
             <CustomerMobileList
               customers={filtered}
               selectedId={selectedId}
@@ -517,8 +524,8 @@ export function CustomerReadbackTable({
             />
           </div>
 
-          {/* Desktop/tablet: table (hidden below sm) */}
-          <div className="hidden sm:block">
+          {/* Desktop: table (hidden below lg) */}
+          <div className="hidden min-w-0 lg:block">
             <DataTable
               caption="Your loyalty members and their stamp progress"
               columns={columns}

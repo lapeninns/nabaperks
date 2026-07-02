@@ -39,16 +39,8 @@ const MIN_TEXT_PX = 10
  * any other file fail immediately.
  */
 const SUBFLOOR_EXCEPTIONS = new Set([
-  // marketing lane
-  "components/marketing/landing/comparison-table.tsx",
-  "components/marketing/landing/sample-loyalty-card.tsx",
-  "components/marketing/landing/seal-break-demo.tsx", // dead code, slated for deletion
-  "components/marketing/landing/venue-proof-reviews.tsx",
-  "components/marketing/pilot-proof-strip.tsx",
   // merchant lane
-  "components/merchant/customer-readback-table.tsx",
   "components/merchant/launch-readiness-panel.tsx",
-  "components/merchant/loyalty-card-form.tsx",
 ])
 
 /**

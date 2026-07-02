@@ -28,7 +28,7 @@ test.describe("@public-route-metadata", () => {
       "content",
       /nofollow/
     )
-    await expect(page.getByText(/Terms unavailable|Review required/)).toBeVisible()
+    await expect(page.getByText(/Terms unavailable/)).toBeVisible()
   })
 
   test("public discovery files expose the approved indexable route registry", async ({

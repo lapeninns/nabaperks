@@ -239,6 +239,90 @@ test("Given the catalog acceptance gate When rendered Then forms/feedback and co
   )
 })
 
+test("Given the fix-phase leftovers When closed Then card-title, the roundel exemption, the motion vocabulary and the choice-card mode are locked", () => {
+  // DS-P3-12 — the card-title token records the shipped CardTitle default
+  // (text-base = 16px); the slot rule owns weight only. A font-size there
+  // would silently defeat MetricTile's text-2xl KPI value (unlayered layer
+  // beats layered utilities).
+  const card = readProjectFile("components", "ui", "card.tsx")
+  assert.match(card, /data-slot="card-title"/)
+  assert.match(
+    card,
+    /card-title"\s*\n?\s*className=\{cn\("font-heading text-base/,
+    "CardTitle's shipped default stays text-base (16px)"
+  )
+  assert.match(
+    designMd,
+    /card-title:[\s\S]{0,80}?fontSize: 16px/,
+    "DESIGN.md card-title token must record the shipped 16px"
+  )
+  assert.doesNotMatch(
+    globalsCss,
+    /\[data-slot="card-title"\][^{]*\{[^}]*font-size/,
+    "the card-title slot rule must not set a font-size"
+  )
+
+  // DS-P3-19 — the EmptyState icon roundel is a named circle-family
+  // exemption, scoped so tab chips / step discs / jump-nav circles stay a
+  // separate pending decision.
+  assert.match(designMd, /EmptyState[\s\S]{0,40}roundel/)
+  assert.match(designMd, /covers that roundel only/)
+  assert.match(designMd, /not tab chips, step discs, jump-nav\s+circles/)
+
+  // DS-P3-26 — WetInkBreathe is adopted (documented + demoed); WetInkFloat
+  // was removed unadopted (zero consumers, zero demos — the Tabs precedent).
+  const motionIndex = readProjectFile("components", "motion", "index.ts")
+  const wetInk = readProjectFile("components", "motion", "wet-ink.tsx")
+  const motionTokens = readProjectFile("lib", "motion", "tokens.ts")
+  const playground = readProjectFile(
+    "app",
+    "dev",
+    "design-system",
+    "motion-playground.tsx"
+  )
+  assert.match(motionIndex, /WetInkBreathe/)
+  assert.match(playground, /WetInkBreathe/, "the playground must demo Breathe")
+  assert.match(
+    designMd,
+    /`WetInkWiggle`, `WetInkBreathe`, `WetInkRipple`/,
+    "DESIGN.md motion vocabulary must list WetInkBreathe in library order"
+  )
+  for (const [name, source] of [
+    ["components/motion/index.ts", motionIndex],
+    ["components/motion/wet-ink.tsx", wetInk],
+    ["lib/motion/tokens.ts", motionTokens],
+    ["DESIGN.md", designMd],
+  ]) {
+    assert.doesNotMatch(
+      source,
+      /WetInkFloat/,
+      `${name} must not resurrect the unadopted WetInkFloat`
+    )
+  }
+  assert.doesNotMatch(
+    motionTokens,
+    /\bfloat:/,
+    "the orphaned float timing token must stay removed"
+  )
+
+  // DS-P3-14 — FieldLabel's latent choice-card mode is themed on-contract
+  // from the unlayered layer (2px ink, print radius); the component file
+  // keeps its stock classes (theme, not strip — FieldLabel has a live
+  // consumer in FormField).
+  const field = readProjectFile("components", "ui", "field.tsx")
+  assert.match(field, /has-\[>\[data-slot=field\]\]:rounded-2xl/)
+  assert.match(
+    globalsCss,
+    /\[data-slot="field-label"\]:has\(> \[data-slot="field"\]\)\s*\{[^}]*border:\s*2px solid var\(--w-ink\)/,
+    "choice-card FieldLabel must carry the 2px ink border from the unlayered layer"
+  )
+  assert.match(
+    globalsCss,
+    /\[data-slot="field-label"\]:has\(> \[data-slot="field"\]\)\s*\{[^}]*border-radius:\s*var\(--radius-lg\)/,
+    "choice-card FieldLabel must use the print radius"
+  )
+})
+
 function existsInRepo(relativePath) {
   try {
     readFileSync(path.join(projectRoot, relativePath))

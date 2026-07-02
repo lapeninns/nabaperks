@@ -127,7 +127,7 @@ const VenueReviewReceipt = forwardRef<
                 <span className="block text-sm leading-tight font-extrabold text-balance">
                   {venue.name}
                 </span>
-                <span className="mt-0.5 block font-mono text-[0.62rem] tracking-[0.06em] text-muted-foreground uppercase">
+                <span className="mono-id mt-0.5 block font-normal text-muted-foreground">
                   {venue.postcode}
                 </span>
               </span>
@@ -148,7 +148,7 @@ const VenueReviewReceipt = forwardRef<
 
           <hr className="w-rule !my-2.5" />
 
-          <p className="font-mono text-[0.58rem] tracking-[0.06em] text-muted-foreground uppercase">
+          <p className="mono-id font-normal text-muted-foreground">
             {venue.attribution ?? "Paraphrased operator voice"}
           </p>
         </div>

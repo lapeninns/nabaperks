@@ -5,6 +5,7 @@ import {
 } from "@hugeicons/core-free-icons"
 
 import { resolveFraudFlagAction } from "@/app/admin/actions"
+import { AdminActionForm } from "@/components/admin/action-form"
 import { AdminRecordCard } from "@/components/admin/record-card"
 import {
   AdminField,
@@ -21,10 +22,11 @@ import {
   type IconGlyph,
 } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
-import { Button } from "@/components/ui/button"
+import { SubmitButton } from "@/components/forms"
 import type { getAdminFraudSignals } from "@/lib/admin/data"
 
 type FraudFlags = Awaited<ReturnType<typeof getAdminFraudSignals>>["fraudFlags"]
+type FraudFlag = FraudFlags[number]
 
 export function FraudFlagsPanel({
   flags,
@@ -62,50 +64,21 @@ export function FraudFlagsPanel({
             ),
           },
           {
-            key: "cycle-stamp",
-            header: "Cycle stamp",
-            cell: (flag) => flag.cycleStampNumber ?? "-",
-          },
-          {
-            key: "location-status",
-            header: "Location status",
+            key: "context",
+            header: "Context",
             cell: (flag) => (
-              <span className="font-bold">{flag.locationStatus}</span>
+              <div className="grid gap-1">
+                <span className="font-bold">{flag.merchant}</span>
+                <span className="text-muted-foreground">
+                  {flag.maskedCustomer}
+                </span>
+              </div>
             ),
           },
           {
-            key: "distance",
-            header: "Distance",
-            cell: (flag) => flag.distanceBucket,
-          },
-          {
-            key: "accuracy",
-            header: "Accuracy",
-            cell: (flag) => flag.accuracyBucket,
-          },
-          {
-            key: "confidence",
-            header: "Confidence",
-            cell: (flag) => flag.confidence,
-          },
-          {
-            key: "reason",
-            header: "Reason",
-            cell: (flag) => flag.reason.replaceAll("_", " "),
-          },
-          {
-            key: "merchant",
-            header: "Merchant",
-            cell: (flag) => flag.merchant,
-          },
-          {
-            key: "customer",
-            header: "Customer",
-            cell: (flag) => (
-              <span className="text-muted-foreground">
-                {flag.maskedCustomer}
-              </span>
-            ),
+            key: "evidence",
+            header: "Evidence",
+            cell: (flag) => <FraudFlagEvidence flag={flag} />,
           },
           {
             key: "severity",
@@ -146,13 +119,7 @@ export function FraudFlagsPanel({
             fields={[
               { label: "Merchant", value: flag.merchant },
               { label: "Customer", value: flag.maskedCustomer },
-              {
-                label: "Cycle stamp",
-                value: flag.cycleStampNumber ?? "-",
-              },
-              { label: "Location", value: flag.locationStatus },
-              { label: "Distance", value: flag.distanceBucket },
-              { label: "Reason", value: flag.reason.replaceAll("_", " ") },
+              { label: "Evidence", value: <FraudFlagEvidence flag={flag} /> },
               {
                 label: "When",
                 value: (
@@ -170,6 +137,32 @@ export function FraudFlagsPanel({
   )
 }
 
+/**
+ * Stacked evidence cell (ADM-P1-04): folds reason, location status, distance,
+ * accuracy, confidence, and the cycle stamp into one column so the desktop
+ * table stays scannable at 1280px with identity and review actions
+ * co-visible, instead of the previous 13-column horizontal scroll.
+ */
+function FraudFlagEvidence({ flag }: { readonly flag: FraudFlag }) {
+  return (
+    <div className="grid min-w-44 gap-1 text-xs leading-5">
+      <span className="font-semibold text-foreground">
+        {flag.reason.replaceAll("_", " ")}
+      </span>
+      <span className="text-muted-foreground">
+        location {flag.locationStatus.replaceAll("_", " ")} · distance{" "}
+        {flag.distanceBucket} · accuracy {flag.accuracyBucket}
+      </span>
+      <span className="text-muted-foreground">
+        confidence {flag.confidence}
+        {flag.cycleStampNumber !== null
+          ? ` · cycle stamp ${flag.cycleStampNumber}`
+          : ""}
+      </span>
+    </div>
+  )
+}
+
 function FraudFlagActions({
   flagId,
   compact = false,
@@ -178,7 +171,7 @@ function FraudFlagActions({
   readonly compact?: boolean
 }) {
   return (
-    <div className={compact ? "grid gap-2" : "grid min-w-64 gap-2"}>
+    <div className={compact ? "grid gap-2" : "grid min-w-56 gap-2"}>
       <FraudFlagResolutionForm
         flagId={flagId}
         status="reviewed"
@@ -210,7 +203,7 @@ function FraudFlagResolutionForm({
   readonly variant?: "default" | "secondary"
 }) {
   return (
-    <form action={resolveFraudFlagAction} className="grid gap-2">
+    <AdminActionForm action={resolveFraudFlagAction}>
       <input type="hidden" name="fraudFlagId" value={flagId} />
       <input type="hidden" name="status" value={status} />
       <AdminField label="Reason">
@@ -221,10 +214,14 @@ function FraudFlagResolutionForm({
           className={adminInputClasses}
         />
       </AdminField>
-      <Button type="submit" variant={variant} className="justify-start">
+      <SubmitButton
+        pendingLabel="Saving…"
+        variant={variant}
+        className="justify-start"
+      >
         <Icon icon={icon} size={16} />
         {label}
-      </Button>
-    </form>
+      </SubmitButton>
+    </AdminActionForm>
   )
 }

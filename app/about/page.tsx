@@ -152,7 +152,7 @@ export default function AboutPage() {
                 <p className="text-[0.95rem] leading-snug font-extrabold text-balance">
                   {pub.name}
                 </p>
-                <p className="mt-1 font-mono text-[0.7rem] font-bold tracking-[0.06em] text-muted-foreground uppercase">
+                <p className="mono-meta mt-1 text-muted-foreground">
                   {pub.postcode} · {OPERATOR.region}
                 </p>
               </li>

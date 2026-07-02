@@ -347,46 +347,6 @@ export function WetInkRipple({
 }
 
 /**
- * WetInkFloat — the idle bob on a hero receipt. Drifts a few pixels and nudges
- * rotation so a tilted card on the marketing home reads as resting on the
- * counter, not a frozen screenshot. Pauses under reduced motion.
- */
-export function WetInkFloat({
-  children,
-  className,
-  style,
-  active = true,
-}: MotionBox & { active?: boolean }) {
-  const reduce = useReducedMotionHook()
-
-  if (reduce || !active) {
-    return (
-      <div className={className} style={style}>
-        {children}
-      </div>
-    )
-  }
-
-  return (
-    <m.div
-      className={className}
-      style={style}
-      animate={{
-        y: [0, -5, 0],
-        rotate: [-2, -3.5, -2],
-      }}
-      transition={{
-        duration: wetInkTransition.float.duration,
-        ease: "easeInOut",
-        repeat: Infinity,
-      }}
-    >
-      {children}
-    </m.div>
-  )
-}
-
-/**
  * WetInkMarquee — the horizontal riso strip. Translates its track 0 → -50% on
  * an infinite linear loop (the caller renders the strip twice). Holds still
  * under reduced motion. Replaces the `w-marquee` keyframe.

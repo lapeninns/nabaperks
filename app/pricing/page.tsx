@@ -151,7 +151,7 @@ export default function PricingPage() {
             <div className="grid gap-5">
               <div className="flex flex-wrap items-baseline justify-between gap-3">
                 <Eyebrow>Growth plan</Eyebrow>
-                <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+                <span className="mono-id tracking-[0.08em] text-muted-foreground">
                   30 days free
                 </span>
               </div>
@@ -162,7 +162,7 @@ export default function PricingPage() {
                     /month
                   </span>
                 </p>
-                <p className="mt-2 font-mono text-[0.7rem] font-bold tracking-[0.06em] text-muted-foreground uppercase">
+                <p className="mono-meta mt-2 text-muted-foreground">
                   One venue · month to month · no contracts
                 </p>
               </div>

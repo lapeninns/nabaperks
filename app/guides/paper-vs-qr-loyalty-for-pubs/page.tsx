@@ -1,5 +1,9 @@
 import type { Metadata } from "next"
 
+import {
+  GuideComparisonTable,
+  type GuideComparisonRow,
+} from "@/components/marketing/guides/comparison-table"
 import { GuidePage, GuideSection } from "@/components/marketing/guides/guide-page"
 import { ROUTES } from "@/lib/marketing/facts"
 import { OG_IMAGE } from "@/lib/seo/structured-data"
@@ -30,31 +34,41 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", images: [OG_IMAGE] },
 }
 
-const rows: { feature: string; paper: string; qr: string }[] = [
+const rows: GuideComparisonRow[] = [
   {
     feature: "Lost or left at home",
-    paper: "Lives in a wallet — easily lost or forgotten",
-    qr: "Lives on the customer's phone, always with them",
+    cells: [
+      "Lives in a wallet — easily lost or forgotten",
+      "Lives on the customer's phone, always with them",
+    ],
   },
   {
     feature: "Stamped twice or gamed",
-    paper: "A friendly hand can over-stamp it",
-    qr: "Each stamp is confirmed at the counter, capped one per UK date",
+    cells: [
+      "A friendly hand can over-stamp it",
+      "Each stamp is confirmed at the counter, capped one per UK date",
+    ],
   },
   {
     feature: "Staff time at the bar",
-    paper: "Find the card, find the stamp, stamp it",
-    qr: "The customer scans and stamps themselves",
+    cells: [
+      "Find the card, find the stamp, stamp it",
+      "The customer scans and stamps themselves",
+    ],
   },
   {
     feature: "What the customer installs",
-    paper: "Nothing — but nothing to back it up either",
-    qr: "Nothing: it opens in the browser, no app or wallet pass",
+    cells: [
+      "Nothing — but nothing to back it up either",
+      "Nothing: it opens in the browser, no app or wallet pass",
+    ],
   },
   {
     feature: "Visit & redemption data",
-    paper: "None — the card tells you nothing",
-    qr: "A weekly digest of visits, regulars and redemptions",
+    cells: [
+      "None — the card tells you nothing",
+      "A weekly digest of visits, regulars and redemptions",
+    ],
   },
 ]
 
@@ -68,73 +82,12 @@ export default function PaperVsQrLoyaltyForPubsPage() {
       intro="Paper punch cards are simple and familiar. A browser-based QR loyalty card keeps that simplicity but fixes the parts that cost a pub money. Here is the honest side-by-side."
     >
       <GuideSection heading="Side by side">
-        <div
-          aria-label="Paper loyalty cards versus QR loyalty comparison"
-          className="overflow-x-auto [scrollbar-width:thin]"
-          role="region"
-          tabIndex={0}
-        >
-          <table className="w-full min-w-[34rem] border-collapse text-left text-sm">
-            <caption className="sr-only">
-              Paper loyalty cards compared with a browser-based QR loyalty card
-              for pubs, across loss, gaming, staff time, install and data.
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col" className="w-[28%] p-0" />
-                <th
-                  scope="col"
-                  className="border-b-2 border-ink px-3 py-3 align-bottom font-extrabold"
-                >
-                  Paper card
-                </th>
-                <th
-                  scope="col"
-                  className="rounded-t-[var(--radius)] border-b-2 border-ink bg-ink px-3 py-3 align-bottom font-extrabold text-paper"
-                >
-                  Browser-based QR card
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, index) => (
-                <tr key={row.feature}>
-                  <th
-                    scope="row"
-                    className={
-                      "py-3 pr-3 align-top font-bold text-pretty" +
-                      (index > 0
-                        ? " border-t border-dashed border-foreground/20"
-                        : "")
-                    }
-                  >
-                    {row.feature}
-                  </th>
-                  <td
-                    className={
-                      "px-3 py-3 align-top text-muted-foreground" +
-                      (index > 0
-                        ? " border-t border-dashed border-foreground/20"
-                        : "")
-                    }
-                  >
-                    {row.paper}
-                  </td>
-                  <td
-                    className={
-                      "bg-ink/[0.04] px-3 py-3 align-top dark:bg-paper/[0.06]" +
-                      (index > 0
-                        ? " border-t border-dashed border-foreground/20"
-                        : "")
-                    }
-                  >
-                    {row.qr}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <GuideComparisonTable
+          ariaLabel="Paper loyalty cards versus QR loyalty comparison"
+          caption="Paper loyalty cards compared with a browser-based QR loyalty card for pubs, across loss, gaming, staff time, install and data."
+          columns={["Paper card", "Browser-based QR card"]}
+          rows={rows}
+        />
       </GuideSection>
 
       <GuideSection heading="Where paper still feels right">

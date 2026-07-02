@@ -59,7 +59,7 @@ export function GuidePage({
         <nav aria-label="Breadcrumb">
           <Link
             href={ROUTES.pubHub}
-            className="inline-flex items-center gap-1 font-mono text-[0.68rem] font-bold tracking-[0.06em] text-muted-foreground uppercase underline-offset-4 hover:text-primary hover:underline"
+            className="mono-meta inline-flex items-center gap-1 text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
           >
             <Icon icon={ArrowLeft01Icon} size={14} strokeWidth={2.5} />
             {CTA.pub}
@@ -108,7 +108,7 @@ export function GuidePage({
                     <span className="mt-1.5 text-sm leading-snug text-muted-foreground">
                       {guide.summary}
                     </span>
-                    <span className="mt-3 inline-flex items-center gap-1 font-mono text-[0.66rem] font-bold tracking-[0.06em] text-primary uppercase">
+                    <span className="mono-meta mt-3 inline-flex items-center gap-1 text-primary">
                       Read
                       <Icon
                         icon={ArrowRight01Icon}

@@ -167,6 +167,13 @@ export function CustomerQrScanner() {
 
   const guidance = scannerGuidance(status.kind)
 
+  // Camera-error is the one stuck moment: retrying is the single primary job,
+  // so while the retry shows, the standing exits demote (start → ghost,
+  // cards → secondary) and "Try the camera again" holds the only vermillion
+  // slot (VCU-P1-01). Outside that state the original pair returns.
+  const exitStartVariant = guidance.showRetry ? "ghost" : "secondary"
+  const exitCardsVariant = guidance.showRetry ? "secondary" : undefined
+
   return (
     <ReceiptCard edge className="grid gap-5 p-6">
       <div className="grid gap-3">
@@ -212,10 +219,10 @@ export function CustomerQrScanner() {
       ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Button asChild variant="secondary" className="w-full">
+        <Button asChild variant={exitStartVariant} className="w-full">
           <Link href="/start">Back to start</Link>
         </Button>
-        <Button asChild className="w-full">
+        <Button asChild variant={exitCardsVariant} className="w-full">
           <Link href="/home">Open my cards</Link>
         </Button>
       </div>

@@ -38,7 +38,7 @@ export function ProofStrip() {
               <dd className="text-[clamp(1.85rem,4.8vw,2.35rem)] leading-none font-extrabold tracking-[-0.02em] tabular-nums">
                 {stat.value}
               </dd>
-              <dt className="mt-2 font-mono text-[0.68rem] font-bold leading-snug tracking-[0.06em] text-muted-foreground uppercase">
+              <dt className="mono-meta mt-2 leading-snug text-muted-foreground">
                 {stat.label}
               </dt>
             </div>
@@ -48,7 +48,7 @@ export function ProofStrip() {
         <ul className="grid border-t-2 border-dashed border-foreground/25 sm:grid-cols-3">
           {setupNotes.map((note, index) => (
             <li key={note} className={bandCellClassName(index)}>
-              <span className="font-mono text-[0.66rem] leading-relaxed tracking-[0.05em] text-muted-foreground uppercase">
+              <span className="mono-id font-normal leading-relaxed text-muted-foreground">
                 {note}
               </span>
             </li>

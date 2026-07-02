@@ -38,7 +38,7 @@ export function CounterFlow() {
     <ContrastBand id="how-it-works">
       <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-[22ch]">
-          <p className="font-mono text-[0.72rem] font-bold tracking-[0.1em] text-seal uppercase">
+          <p className="mono-meta tracking-[0.1em] text-seal">
             How it works
           </p>
           <h2 className="mt-3 text-[clamp(2rem,4.6vw,3.125rem)] leading-[1.0] font-extrabold tracking-[-0.02em] text-balance">
@@ -57,7 +57,7 @@ export function CounterFlow() {
             key={item.step}
             className="border-t-2 border-dashed border-paper/30 pt-4"
           >
-            <p className="font-mono text-[0.7rem] font-bold tracking-[0.1em] text-seal uppercase">
+            <p className="mono-meta tracking-[0.1em] text-seal">
               {item.step}
             </p>
             <h3 className="mt-2 text-2xl font-extrabold">{item.title}</h3>

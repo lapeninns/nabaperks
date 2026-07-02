@@ -583,6 +583,17 @@ body[data-grain="true"]::after {
   font-weight: 500;
 }
 
+/* FieldLabel choice-card mode — a FieldLabel wrapping a whole Field (the
+   checkbox/radio choice-card pattern). Zero consumers today; this rule
+   pre-themes the latent state on-contract (2px ink border, print radius) so a
+   first adoption cannot ship the stock rounded-2xl + 1px hairline. The
+   selector only fires when a Field is nested, so plain field labels
+   (FormField) stay borderless. */
+[data-slot="field-label"]:has(> [data-slot="field"]) {
+  border: 2px solid var(--w-ink);
+  border-radius: var(--radius-lg);
+}
+
 /* Toast — the system's feedback moment, themed like every other surface:
    2px ink border, card ground, hard offset shadow, tone washes that mirror
    StatusBanner (leaf success, destructive error, vermillion warning, cobalt

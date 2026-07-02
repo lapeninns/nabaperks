@@ -101,16 +101,6 @@ export const wetInkTransition = {
   },
 
   /**
-   * Hero float: gentle paper bob on a resting receipt card, 4.8s.
-   * Used by WetInkFloat on marketing hero objects.
-   */
-  float: {
-    duration: 4.8,
-    ease: "easeInOut",
-    repeat: Infinity,
-  },
-
-  /**
    * Sheet enter/exit: translateY from 100% → 0 or 0 → 100%, 0.32s.
    * Used by WetInkSheet on bottom sheets (legal, rewards).
    */

@@ -25,7 +25,7 @@ export function JumpNav() {
             <li key={link.href} className="shrink-0">
               <a
                 href={link.href}
-                className="pressable inline-flex items-center rounded-full border-2 border-ink/15 bg-card px-3.5 py-1.5 font-mono text-[0.68rem] font-bold tracking-[0.06em] whitespace-nowrap uppercase transition-colors hover:border-ink hover:bg-accent hover:text-accent-foreground focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
+                className="pressable mono-meta inline-flex items-center rounded-full border-2 border-ink/15 bg-card px-3.5 py-1.5 whitespace-nowrap transition-colors hover:border-ink hover:bg-accent hover:text-accent-foreground focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
               >
                 {link.label}
               </a>

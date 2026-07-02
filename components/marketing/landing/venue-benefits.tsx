@@ -43,10 +43,10 @@ export function VenueBenefits({ qrMatrix }: { qrMatrix: QrMatrix }) {
       </div>
 
       <div>
-        <p className="text-center font-mono text-[0.7rem] font-bold tracking-[0.08em] text-primary uppercase">
+        <p className="mono-meta text-center tracking-[0.08em] text-primary">
           Your programme setup
         </p>
-        <p className="mt-1.5 text-center font-mono text-[0.65rem] tracking-[0.05em] text-muted-foreground uppercase">
+        <p className="mono-id mt-1.5 text-center font-normal text-muted-foreground">
           What you configure · what customers see
         </p>
         <div className="mt-6">

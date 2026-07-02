@@ -247,7 +247,7 @@ test("Given merchant email OTP aliases are six digits When auth copy is reviewed
   assert.match(resetPasswordForm, /maxLength=\{otpLength\}/)
 })
 
-test("Given merchant-specific legal terms need review When crawlers inspect the page Then the route is noindexed", () => {
+test("Given merchant-specific legal terms are venue-scoped When crawlers inspect the page Then the route is noindexed without review-voice copy", () => {
   const merchantTerms = readProjectFile(
     "app",
     "merchant",
@@ -260,7 +260,7 @@ test("Given merchant-specific legal terms need review When crawlers inspect the 
   assert.match(merchantTerms, /export const metadata: Metadata = \{/)
   assert.match(merchantTerms, /robots: \{[\s\S]*index: false/)
   assert.match(merchantTerms, /robots: \{[\s\S]*follow: false/)
-  assert.match(merchantTerms, /Review required/)
+  assert.doesNotMatch(merchantTerms, /Review required/)
 })
 
 test("Given public routes feed SEO and AI discovery When the registry is inspected Then sitemap and llms entries cannot drift", () => {

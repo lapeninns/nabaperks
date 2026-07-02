@@ -1,10 +1,15 @@
 import "server-only"
 
 import { createAdminServiceRoleClient } from "@/lib/admin/service-role"
-import { productEventNames } from "@/lib/analytics/events"
+import { pilotFunnelEventNames } from "@/lib/analytics/pilot-funnel"
 
+/**
+ * Counts for the curated eight-stage pilot funnel (lib/analytics/pilot-funnel)
+ * — not the whole product-event stream, which is readback noise on a funnel
+ * chart. `getProductEventCounts` stays available for arbitrary event sets.
+ */
 export async function getPilotFunnelCounts() {
-  return getProductEventCounts(productEventNames)
+  return getProductEventCounts(pilotFunnelEventNames)
 }
 
 export async function getProductEventCounts(eventNames: readonly string[]) {

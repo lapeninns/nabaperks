@@ -71,7 +71,7 @@ export function CounterVerifiedStamp() {
               <span className="grid size-9 shrink-0 place-items-center rounded-full border-2 border-paper/30 text-seal">
                 <Icon icon={check.icon} size={18} strokeWidth={2.25} />
               </span>
-              <p className="font-mono text-[0.7rem] font-bold tracking-[0.1em] text-seal uppercase">
+              <p className="mono-meta tracking-[0.1em] text-seal">
                 Check {String(index + 1).padStart(2, "0")}
               </p>
             </div>

@@ -123,7 +123,7 @@ export default function LoyaltyForPubsPage() {
             {PRODUCT.cardLine} One permanent QR covers the bar, the tables and
             the takeaway hatch — and every stamp is{" "}
             <strong className="font-semibold text-foreground">
-              {PRODUCT.counterStamp}
+              counter-verified
             </strong>
             .
           </p>
@@ -135,7 +135,7 @@ export default function LoyaltyForPubsPage() {
               <Link href={ROUTES.pricing}>View pricing</Link>
             </Button>
           </div>
-          <p className="font-mono text-[0.7rem] leading-relaxed tracking-[0.04em] text-muted-foreground uppercase">
+          <p className="mono-meta font-normal leading-relaxed text-muted-foreground">
             {PRODUCT.pilot}, then {PRODUCT.price} · no contract ·{" "}
             {PRODUCT.posLine}
           </p>
@@ -179,7 +179,7 @@ export default function LoyaltyForPubsPage() {
         <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {painPoints.map((point, index) => (
             <li key={point.title} className="surface-card p-5">
-              <p className="font-mono text-[0.7rem] font-bold tracking-[0.1em] text-primary uppercase">
+              <p className="mono-meta tracking-[0.1em] text-primary">
                 {String(index + 1).padStart(2, "0")}
               </p>
               <h3 className="mt-2 text-lg leading-snug font-extrabold text-balance">
@@ -229,7 +229,7 @@ export default function LoyaltyForPubsPage() {
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   {guide.summary}
                 </p>
-                <span className="mt-4 inline-flex items-center gap-1 font-mono text-[0.68rem] font-bold tracking-[0.06em] text-primary uppercase">
+                <span className="mono-meta mt-4 inline-flex items-center gap-1 text-primary">
                   {CTA.guideLink}
                   <Icon
                     icon={ArrowRight01Icon}

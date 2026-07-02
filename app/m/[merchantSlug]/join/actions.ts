@@ -123,6 +123,17 @@ export async function requestCustomerIdentityAction(
     }
   }
 
+  // A resend from the OTP step answers in place instead of redirecting, so
+  // the form can announce the outcome inside its live-region card
+  // (CUS-P1-02). The phone step never sends this field and keeps the
+  // redirect that advances it to the OTP step — semantics unchanged.
+  if (value(formData, "resend") === "1") {
+    return {
+      fields: { contact, merchantSlug, qrId, phoneOtpSent: true },
+      message: "New code sent. It can take a moment to arrive.",
+    }
+  }
+
   redirect(`/m/${merchantSlug}/join${qrId ? `?qr=${encodeURIComponent(qrId)}` : ""}`)
 }
 

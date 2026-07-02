@@ -28,7 +28,7 @@ export function NabaperksProof() {
         <h2 className="mt-4 max-w-[34ch] text-[clamp(1.6rem,3.4vw,2.4rem)] leading-[1.05] font-extrabold tracking-[-0.02em] text-balance">
           {NABAPERKS_PROOF_HEADLINE}
         </h2>
-        <p className="mt-2 font-mono text-[0.72rem] font-bold tracking-[0.08em] text-primary uppercase">
+        <p className="mono-meta mt-2 tracking-[0.08em] text-primary">
           {PROOF.indexName} · {NABAPERKS_PROOF_AS_OF}
         </p>
         <p className="mt-3 max-w-[60ch] text-sm leading-relaxed text-pretty text-muted-foreground">
@@ -38,7 +38,7 @@ export function NabaperksProof() {
         <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-6 lg:grid-cols-4">
           {nabaperksStats.map((stat) => (
             <div key={stat.label} className="flex flex-col">
-              <dt className="order-2 mt-2 font-mono text-[0.72rem] font-bold tracking-[0.06em] text-foreground uppercase">
+              <dt className="mono-meta order-2 mt-2 text-foreground">
                 {stat.label}
               </dt>
               <dd className="order-1 text-[clamp(2.25rem,5vw,3.25rem)] leading-none font-extrabold tracking-[-0.02em] tabular-nums">
