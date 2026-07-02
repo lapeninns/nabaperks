@@ -2,8 +2,11 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import {
+  VENUE_ANNOUNCEMENT_DAILY_LIMIT,
+  VENUE_ANNOUNCEMENT_DAILY_WINDOW_MS,
   resolveVenueAnnouncementAudienceCustomerIds,
   validateVenueAnnouncementText,
+  venueAnnouncementDailyLimitKey,
   venueAnnouncementDedupeKey,
 } from "@/lib/notifications/venue-announcement-core"
 
@@ -113,5 +116,17 @@ test("Given an announcement When a dedupe key is built Then it is stable per mer
   assert.notEqual(
     venueAnnouncementDedupeKey({ ...base, customerId: "customer-2" }),
     first
+  )
+})
+
+test("Given a merchant business date When a daily limit key is built Then announcements are capped to two per day", () => {
+  assert.equal(VENUE_ANNOUNCEMENT_DAILY_LIMIT, 2)
+  assert.equal(VENUE_ANNOUNCEMENT_DAILY_WINDOW_MS, 24 * 60 * 60 * 1000)
+  assert.equal(
+    venueAnnouncementDailyLimitKey({
+      merchantId: "merchant-1",
+      businessDate: "2026-07-02",
+    }),
+    "venue-announcement:merchant-1:2026-07-02"
   )
 })

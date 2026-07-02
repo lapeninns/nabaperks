@@ -1,6 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server"
 
 import { getCurrentMerchant } from "@/lib/auth/session"
+import { londonBusinessDate } from "@/lib/notifications/london-time"
+import {
+  VENUE_ANNOUNCEMENT_DAILY_LIMIT,
+  VENUE_ANNOUNCEMENT_DAILY_WINDOW_MS,
+  venueAnnouncementDailyLimitKey,
+} from "@/lib/notifications/venue-announcement-core"
 import {
   enqueueVenueAnnouncement,
   validateVenueAnnouncementText,
@@ -14,11 +20,21 @@ export async function POST(request: NextRequest) {
   const merchant = await getCurrentMerchant()
   if (!merchant) return json({ error: "unauthenticated" }, 401)
 
+  const body = await request.json().catch(() => null)
+  const validated = validateVenueAnnouncementText({
+    title: readString(body, "title"),
+    body: readString(body, "body"),
+  })
+  if (!validated.ok) return json({ error: validated.error }, 400)
+
   try {
     await enforceRateLimit({
-      key: `venue-announcement:${merchant.id}`,
-      limit: 4,
-      windowMs: 60 * 60 * 1000,
+      key: venueAnnouncementDailyLimitKey({
+        merchantId: merchant.id,
+        businessDate: londonBusinessDate(new Date()),
+      }),
+      limit: VENUE_ANNOUNCEMENT_DAILY_LIMIT,
+      windowMs: VENUE_ANNOUNCEMENT_DAILY_WINDOW_MS,
     })
   } catch (error) {
     if (error instanceof RateLimitError) {
@@ -26,13 +42,6 @@ export async function POST(request: NextRequest) {
     }
     throw error
   }
-
-  const body = await request.json().catch(() => null)
-  const validated = validateVenueAnnouncementText({
-    title: readString(body, "title"),
-    body: readString(body, "body"),
-  })
-  if (!validated.ok) return json({ error: validated.error }, 400)
 
   const result = await enqueueVenueAnnouncement({
     merchantId: merchant.id,

@@ -30,6 +30,14 @@ export type VenueAnnouncementDedupeInput = {
   readonly body: string
 }
 
+export type VenueAnnouncementDailyLimitInput = {
+  readonly merchantId: string
+  readonly businessDate: string
+}
+
+export const VENUE_ANNOUNCEMENT_DAILY_LIMIT = 2
+export const VENUE_ANNOUNCEMENT_DAILY_WINDOW_MS = 24 * 60 * 60 * 1000
+
 export function validateVenueAnnouncementText(input: {
   readonly title: unknown
   readonly body: unknown
@@ -99,6 +107,12 @@ export function venueAnnouncementDedupeKey(
     .slice(0, 16)
 
   return `venue_announcement:${input.merchantId}:${input.customerId}:${digest}`
+}
+
+export function venueAnnouncementDailyLimitKey(
+  input: VenueAnnouncementDailyLimitInput
+) {
+  return `venue-announcement:${input.merchantId}:${input.businessDate}`
 }
 
 function marketingPreferenceCustomerIds(value: unknown) {

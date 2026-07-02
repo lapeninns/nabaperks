@@ -64,15 +64,8 @@ export const getAdminAccess = cache(async (): Promise<AdminAccess> => {
   }
 })
 
-export function isAdminMfaRequired(
-  nodeEnv: string | undefined = process.env.NODE_ENV,
-  configured = process.env.ADMIN_MFA_REQUIRED
-) {
-  const normalized = configured?.trim().toLowerCase()
-  if (nodeEnv === "production") return true
-  if (normalized === "true") return true
-  if (normalized === "false") return false
-  return false
+export function isAdminMfaRequired() {
+  return true
 }
 
 export async function requireAdminRead() {

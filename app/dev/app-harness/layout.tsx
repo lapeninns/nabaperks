@@ -35,8 +35,7 @@ async function noopSignOutAction() {
   "use server"
 }
 
-/** Lanes that render under the no-sidebar "setup" shell variant. */
-const SETUP_LANES = new Set(["launch", "onboarding"])
+const SETUP_LANES = new Set(["onboarding"])
 
 /** Map a harness lane segment to the activePath the real shell nav highlights. */
 const LANE_ACTIVE_PATH: Record<string, string> = {

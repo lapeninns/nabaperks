@@ -70,9 +70,10 @@ test("Given a merchant sends a venue announcement When source is inspected Then 
     route,
     /if \(!merchant\) return json\(\{ error: "unauthenticated" \}, 401\)/
   )
-  assert.match(route, /key: `venue-announcement:\$\{merchant\.id\}`/)
-  assert.match(route, /limit: 4/)
-  assert.match(route, /windowMs: 60 \* 60 \* 1000/)
+  assert.match(route, /venueAnnouncementDailyLimitKey/)
+  assert.match(route, /businessDate: londonBusinessDate\(new Date\(\)\)/)
+  assert.match(route, /limit: VENUE_ANNOUNCEMENT_DAILY_LIMIT/)
+  assert.match(route, /windowMs: VENUE_ANNOUNCEMENT_DAILY_WINDOW_MS/)
   assert.match(route, /headers: \{ "cache-control": "no-store, max-age=0" \}/)
   assert.match(route, /validateVenueAnnouncementText/)
   assert.match(core, /moderation_rejected/)

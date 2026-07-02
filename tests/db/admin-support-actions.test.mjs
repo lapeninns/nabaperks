@@ -29,6 +29,16 @@ const PICK_MEMBERSHIP = /* sql */ `
   order by created_at
   limit 1`
 
+async function actAsAuthenticated(tx, userId, aal = "aal2") {
+  await tx`select set_config('request.jwt.claim.role', 'authenticated', true)`
+  await tx`select set_config('request.jwt.claim.sub', ${userId}, true)`
+  await tx`select set_config('request.jwt.claim.aal', ${aal}, true)`
+}
+
+function isAdminRejection(error) {
+  return /admin|mfa|privilege|authori/i.test(String(error.message))
+}
+
 test(
   "admin fraud resolution is gated, persists status, and writes audit evidence",
   { skip },
@@ -65,16 +75,28 @@ test(
       let refusedNonAdmin = false
       try {
         await tx.savepoint(async (sp) => {
-          await sp`select set_config('request.jwt.claim.sub', ${randomUUID()}, true)`
+          await actAsAuthenticated(sp, randomUUID())
           await sp`select public.admin_resolve_fraud_flag(
             ${flagId}::uuid, 'reviewed', ${reason})`
         })
       } catch (error) {
-        refusedNonAdmin = /admin|privilege|authori/i.test(String(error.message))
+        refusedNonAdmin = isAdminRejection(error)
       }
       assert.ok(refusedNonAdmin, "a non-admin caller cannot resolve fraud flags")
 
-      await tx`select set_config('request.jwt.claim.sub', ${ADMIN_UID}, true)`
+      let refusedAal1Admin = false
+      try {
+        await tx.savepoint(async (sp) => {
+          await actAsAuthenticated(sp, ADMIN_UID, "aal1")
+          await sp`select public.admin_resolve_fraud_flag(
+            ${flagId}::uuid, 'reviewed', ${reason})`
+        })
+      } catch (error) {
+        refusedAal1Admin = isAdminRejection(error)
+      }
+      assert.ok(refusedAal1Admin, "an admin without AAL2 cannot resolve fraud flags")
+
+      await actAsAuthenticated(tx, ADMIN_UID)
       await tx`select public.admin_resolve_fraud_flag(
         ${flagId}::uuid, 'dismissed', ${reason})`
 
@@ -114,7 +136,7 @@ test(
       let refusedNonAdmin = false
       try {
         await tx.savepoint(async (sp) => {
-          await sp`select set_config('request.jwt.claim.sub', ${randomUUID()}, true)`
+          await actAsAuthenticated(sp, randomUUID())
           await sp`select public.admin_log_data_request(
             ${membership.customer_id}::uuid,
             ${membership.merchant_id}::uuid,
@@ -124,11 +146,31 @@ test(
           )`
         })
       } catch (error) {
-        refusedNonAdmin = /admin|privilege|authori/i.test(String(error.message))
+        refusedNonAdmin = isAdminRejection(error)
       }
       assert.ok(refusedNonAdmin, "a non-admin caller cannot log privacy requests")
 
-      await tx`select set_config('request.jwt.claim.sub', ${ADMIN_UID}, true)`
+      let refusedAal1Admin = false
+      try {
+        await tx.savepoint(async (sp) => {
+          await actAsAuthenticated(sp, ADMIN_UID, "aal1")
+          await sp`select public.admin_log_data_request(
+            ${membership.customer_id}::uuid,
+            ${membership.merchant_id}::uuid,
+            'access',
+            'email',
+            ${accessNotes}
+          )`
+        })
+      } catch (error) {
+        refusedAal1Admin = isAdminRejection(error)
+      }
+      assert.ok(
+        refusedAal1Admin,
+        "an admin without AAL2 cannot log privacy requests"
+      )
+
+      await actAsAuthenticated(tx, ADMIN_UID)
 
       const [{ result: accessResult }] = await tx`
         select public.admin_log_data_request(

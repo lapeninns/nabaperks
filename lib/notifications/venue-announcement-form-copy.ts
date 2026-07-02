@@ -8,8 +8,8 @@ export type VenueAnnouncementFormErrorCopy = {
 
 const ERROR_COPY: Record<string, VenueAnnouncementFormErrorCopy> = {
   rate_limited: {
-    title: "Hourly limit reached",
-    body: "Announcements can go out up to 4 an hour. Try again shortly.",
+    title: "Daily limit reached",
+    body: "Announcements can go out up to 2 a day. Try again tomorrow.",
     tone: "warning",
   },
   invalid_title: {

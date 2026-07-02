@@ -6,9 +6,7 @@ import { dismissPwaInstall } from "./helpers/harness"
  * Regression: the merchant `/app` shell lives in a single shared layout that the
  * App Router preserves across soft (client-side) navigations. When the shell's
  * variant was computed server-side from the request path, it went stale on soft
- * nav — e.g. after navigating a full-shell page (poster) -> /app/launch (setup),
- * the sidebar would sometimes stay, or after launch -> dashboard it would stay
- * gone. The shell now derives its variant from `usePathname()`, which updates on
+ * nav. The shell now derives its variant from `usePathname()`, which updates on
  * every navigation. These tests exercise real in-app links (soft nav), which is
  * the only way to reproduce the bug — a hard reload always re-renders correctly.
  */
@@ -16,9 +14,6 @@ import { dismissPwaInstall } from "./helpers/harness"
 const SEED_MERCHANT_EMAIL = "mia@old-crown-girton.test"
 const SEED_MERCHANT_PASSWORD = "NabaperksDemo1!"
 
-// Unique, collision-free chrome indicators:
-// - Full console shell: the desktop sidebar navigation trigger.
-// - Setup shell (onboarding / launch): the focused header's account link.
 const fullShellControl = (page: Page) =>
   page.getByRole("button", { name: "Toggle navigation" }).first()
 const setupAccountLink = (page: Page) =>
@@ -51,7 +46,7 @@ test.describe("merchant shell variant survives client-side navigation", () => {
     await dismissPwaInstall(page)
   })
 
-  test("full -> setup: sidebar drops when navigating to /app/launch", async ({
+  test("full -> launch: sidebar stays when navigating to /app/launch", async ({
     page,
   }) => {
     await signIn(page, "/app", "a101")
@@ -63,20 +58,19 @@ test.describe("merchant shell variant survives client-side navigation", () => {
     await sidebarNav(page).getByRole("link", { name: "Setup" }).click()
     await page.waitForURL((url) => url.pathname === "/app/launch")
 
-    await expect(setupAccountLink(page)).toBeVisible()
-    await expect(fullShellControl(page)).toHaveCount(0)
+    await expect(fullShellControl(page)).toBeVisible()
+    await expect(setupAccountLink(page)).toHaveCount(0)
   })
 
-  test("setup -> full: sidebar returns when navigating back to /app", async ({
+  test("launch -> full: sidebar stays when navigating back to /app", async ({
     page,
   }) => {
     await signIn(page, "/app/launch", "b202")
     await page.waitForURL((url) => url.pathname === "/app/launch")
-    await expect(setupAccountLink(page)).toBeVisible()
-    await expect(fullShellControl(page)).toHaveCount(0)
+    await expect(fullShellControl(page)).toBeVisible()
+    await expect(setupAccountLink(page)).toHaveCount(0)
 
-    // Soft navigation via the setup header's "Dashboard" link.
-    await page.getByRole("link", { name: "Dashboard" }).click()
+    await sidebarNav(page).getByRole("link", { name: "Dashboard" }).click()
     await page.waitForURL((url) => url.pathname === "/app")
 
     await expect(fullShellControl(page)).toBeVisible()

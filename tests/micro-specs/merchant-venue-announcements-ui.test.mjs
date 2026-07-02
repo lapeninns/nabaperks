@@ -18,16 +18,17 @@ function blockBetween(source, startNeedle, endNeedle) {
 }
 
 describe("MS-merchant-venue-announcements-ui source contract", () => {
-  it("keeps the existing route validation, rate-limit, and enqueue path unchanged", () => {
+  it("keeps route validation, daily rate-limit, and enqueue path server-side", () => {
     const route = readProjectFile(
       "app/api/notifications/venue-announcements/route.ts"
     )
 
     assert.match(route, /const merchant = await getCurrentMerchant\(\)/)
-    assert.match(route, /key: `venue-announcement:\$\{merchant\.id\}`/)
-    assert.match(route, /limit: 4/)
-    assert.match(route, /windowMs: 60 \* 60 \* 1000/)
     assert.match(route, /validateVenueAnnouncementText/)
+    assert.match(route, /venueAnnouncementDailyLimitKey/)
+    assert.match(route, /businessDate: londonBusinessDate\(new Date\(\)\)/)
+    assert.match(route, /limit: VENUE_ANNOUNCEMENT_DAILY_LIMIT/)
+    assert.match(route, /windowMs: VENUE_ANNOUNCEMENT_DAILY_WINDOW_MS/)
     assert.match(route, /enqueueVenueAnnouncement/)
     assert.doesNotMatch(route, /getVenueAnnouncementAudienceSummary/)
   })

@@ -9,16 +9,8 @@
  * decide which variant to show. Keep these pure and framework-free.
  */
 
-/** Paths that render the focused setup chrome (logo + account header, no
- *  sidebar) instead of the full merchant console shell. Mirrors the
- *  `/app/onboarding` and `/app/launch` route trees. */
 export function isMerchantSetupPath(path: string): boolean {
-  return (
-    path === "/app/onboarding" ||
-    path.startsWith("/app/onboarding/") ||
-    path === "/app/launch" ||
-    path.startsWith("/app/launch/")
-  )
+  return path === "/app/onboarding" || path.startsWith("/app/onboarding/")
 }
 
 /** The poster print preview is a full-bleed surface that carries its own header

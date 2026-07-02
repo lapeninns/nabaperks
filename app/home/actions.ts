@@ -16,9 +16,12 @@ import {
   checkCustomerPhoneVerification,
   startCustomerPhoneVerification,
 } from "@/lib/customer/verification"
+import {
+  enforceCustomerOtpSendRateLimit,
+  enforceCustomerOtpVerifyRateLimit,
+} from "@/lib/customer/otp-rate-limit"
 import { safeNextPath } from "@/lib/navigation/safe-next-path"
 import {
-  enforceRateLimit,
   RateLimitError,
   rateLimitIdentityFromHeaders,
 } from "@/lib/security/rate-limit"
@@ -62,10 +65,9 @@ export async function requestCustomerLoginOtpAction(
   const contact = normalized.phone.e164
 
   try {
-    await enforceRateLimit({
-      key: `customer-login:${contact.toLowerCase()}:${requestIdentity}`,
-      limit: 5,
-      windowMs: 15 * 60_000,
+    await enforceCustomerOtpSendRateLimit({
+      phone: contact,
+      requestIdentity,
     })
   } catch (error) {
     if (error instanceof RateLimitError) {
@@ -120,6 +122,8 @@ export async function verifyCustomerLoginOtpAction(
   const otp = value(formData, "otp")
   const next = safeNextPath(value(formData, "next"))
   const pending = await getPendingPhoneVerification()
+  const requestHeaders = await headers()
+  const requestIdentity = rateLimitIdentityFromHeaders(requestHeaders)
 
   if (!pending || pending.purpose !== "wallet") {
     return { errors: { contact: "Request a new phone code." } }
@@ -132,6 +136,22 @@ export async function verifyCustomerLoginOtpAction(
       fields: { contact, otpSent: true },
       errors: { otp: "Enter the verification code." },
     }
+  }
+
+  try {
+    await enforceCustomerOtpVerifyRateLimit({
+      phone: contact,
+      requestIdentity,
+    })
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      return {
+        fields: { contact, otpSent: true },
+        errors: { form: "Too many code attempts. Request a new code shortly." },
+      }
+    }
+
+    throw error
   }
 
   const verification = await checkCustomerPhoneVerification(contact, otp)

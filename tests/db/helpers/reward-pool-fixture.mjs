@@ -30,6 +30,7 @@ export async function actAsMerchantOwner(tx, ownerUserId) {
 export async function actAsInternalAdmin(tx, adminUserId) {
   await tx`select set_config('request.jwt.claim.role', 'authenticated', true)`
   await tx`select set_config('request.jwt.claim.sub', ${adminUserId}, true)`
+  await tx`select set_config('request.jwt.claim.aal', 'aal2', true)`
 }
 
 export async function expectRewardPoolRpcRejection(

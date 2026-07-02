@@ -32,7 +32,7 @@ export function describeMerchantAnnouncements() {
       )
     })
 
-    test("Given the API rate-limits a send When the form returns 429 Then hourly copy is shown", async ({
+    test("Given the API rate-limits a send When the form returns 429 Then daily copy is shown", async ({
       page,
     }) => {
       await dismissPwaInstall(page)
@@ -49,8 +49,8 @@ export function describeMerchantAnnouncements() {
         .fill("This fixture returns a rate-limit response from the harness.")
       await composer.getByRole("button", { name: /Send announcement/ }).click()
 
-      await expect(composer.getByText("Hourly limit reached")).toBeVisible()
-      await expect(composer).toContainText("up to 4 an hour")
+      await expect(composer.getByText("Daily limit reached")).toBeVisible()
+      await expect(composer).toContainText("up to 2 a day")
     })
 
     test("Given the API rejects copy When moderation fails Then plain guidance is shown", async ({
