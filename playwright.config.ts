@@ -28,8 +28,12 @@ const devServerEnv = [
   "RESEND_FROM=",
   "TWILIO_MESSAGING_SERVICE_SID=",
 ].join(" ")
-const snapshotPlatformSuffix =
-  process.env.CI && process.platform === "linux" ? "-linux" : ""
+const snapshotPathTemplate =
+  "{testDir}/{testFilePath}-snapshots/{arg}-{projectName}{ext}"
+const ciLinuxSnapshotPathTemplate =
+  process.env.CI && process.platform === "linux"
+    ? "{testDir}/{testFilePath}-snapshots/{arg}-{projectName}-linux{ext}"
+    : undefined
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -40,8 +44,7 @@ export default defineConfig({
   expect: {
     timeout: 15_000,
   },
-  snapshotPathTemplate:
-    `{testDir}/{testFilePath}-snapshots/{arg}-{projectName}${snapshotPlatformSuffix}{ext}`,
+  snapshotPathTemplate,
   use: {
     baseURL,
     trace: "retain-on-failure",
@@ -50,6 +53,7 @@ export default defineConfig({
   projects: [
     {
       name: "mobile-safari",
+      snapshotPathTemplate: ciLinuxSnapshotPathTemplate,
       // Desktop-only scenarios (e.g. the merchant pin-map proof) opt out of the
       // mobile project via `testIgnore` so mobile captures stay iPhone-only.
       testIgnore: "**/*.desktop.spec.ts",
@@ -59,6 +63,7 @@ export default defineConfig({
     },
     {
       name: "chromium",
+      snapshotPathTemplate: ciLinuxSnapshotPathTemplate,
       testMatch: ["**/*.desktop.spec.ts", "**/visual.spec.ts"],
       use: {
         ...devices["Desktop Chrome"],
