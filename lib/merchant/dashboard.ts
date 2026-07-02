@@ -94,11 +94,20 @@ const REDEEMED_HISTORY_WINDOW_DAYS = 90
  * Masked-safe customer rows for the Customers table. The merchant session reads
  * customer contact details from the `customers_masked` DB view, which withholds
  * raw contact columns even if a future caller forgets the app-level formatter.
+ *
+ * Read-path paging (MER-P2-10): `offset`/`limit` window the newest-first list
+ * so merchants beyond the first page can reach every member. Defaults keep the
+ * historical behaviour (first 100 rows) for callers that pass no options; the
+ * masked fields, RLS posture, and per-row shape are unchanged.
  */
 export async function getMerchantCustomers(
   merchantId: string,
-  now: Date = new Date()
+  now: Date = new Date(),
+  options?: { readonly limit?: number; readonly offset?: number }
 ): Promise<MerchantCustomerReadbackRow[]> {
+  const limit = Math.max(1, Math.floor(options?.limit ?? 100))
+  const offset = Math.max(0, Math.floor(options?.offset ?? 0))
+
   // RLS-backed client: merchant-scoped SELECT policies on customer_memberships
   // and the customers_masked view act as a DB backstop in addition to the
   // app-level merchant_id filter.
@@ -110,7 +119,7 @@ export async function getMerchantCustomers(
     )
     .eq("merchant_id", merchantId)
     .order("created_at", { ascending: false })
-    .limit(100)
+    .range(offset, offset + limit - 1)
 
   if (error) {
     throw new Error(`Unable to load customers: ${error.message}`)

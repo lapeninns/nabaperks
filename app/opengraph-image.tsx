@@ -71,7 +71,8 @@ export default function OpengraphImage() {
           >
             Loyalty cards for pubs, cafes and takeaways
           </div>
-          <div style={{ fontSize: 33, maxWidth: 920, color: "#3b342b" }}>
+          {/* Satori needs literals — this is the ink-soft token (--w-ink-soft). */}
+          <div style={{ fontSize: 33, maxWidth: 920, color: "#4f473d" }}>
             QR scan. Browser-based card. Counter-verified stamps.
           </div>
         </div>

@@ -1,7 +1,6 @@
 "use client"
 
 import { useActionState, useState } from "react"
-import { PanelTitle } from "@/components/merchant/launch/panel-title"
 
 import {
   saveVenueLocationAction,
@@ -16,8 +15,10 @@ import {
   VenuePlaceAutocomplete,
   type VenuePlaceSelection,
 } from "@/components/merchant/launch/venue-place-autocomplete"
+import { Eyebrow, PageTitle } from "@/components/brand"
+import { FormField, SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty/status-banner"
-import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { LaunchSaveNextAction } from "@/components/merchant/launch/launch-tab-auto-advance"
 import type {
   GeofencePinSource,
@@ -52,7 +53,7 @@ export function VenueLocationForm({
   /** Dev-preview-only key injection; production uses the public env var. */
   googleMapsApiKey?: string
 }) {
-  const [state, action, pending] = useActionState(
+  const [state, action] = useActionState(
     saveVenueLocationAction,
     initialState
   )
@@ -120,7 +121,8 @@ export function VenueLocationForm({
 
   return (
     <form action={action} className="surface-card grid gap-5 p-6">
-      <PanelTitle
+      <PageTitle
+        headingLevel={2}
         eyebrow="Step 1 · Location"
         title="Where do scans happen?"
         description="Your printed QR never changes. GPS is an optional soft check. It never blocks a member's stamp, it only flags an odd one for review."
@@ -157,12 +159,27 @@ export function VenueLocationForm({
       <input type="hidden" name="venueLongitude" value={pin?.longitude ?? ""} />
       <input type="hidden" name="geofencePinSource" value={pendingPinSource} />
 
-      <input type="hidden" name="venueName" value={venueName} />
+      {/* venueName normally travels hidden (set via Google place selection,
+          defaulting to "Main venue"), but a server venueName error must never
+          strand the merchant against an invisible field — surface an editable
+          input whenever the error is present. */}
       {state.errors?.venueName ? (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {state.errors.venueName}
-        </p>
-      ) : null}
+        <FormField
+          id="venueName"
+          label={<Eyebrow>Venue name</Eyebrow>}
+          error={state.errors.venueName}
+        >
+          <Input
+            id="venueName"
+            name="venueName"
+            className="h-12 text-sm"
+            value={venueName}
+            onChange={(event) => setVenueName(event.target.value)}
+          />
+        </FormField>
+      ) : (
+        <input type="hidden" name="venueName" value={venueName} />
+      )}
 
       <AdvancedGpsChecks
         requireGeofence={requireGeofence}
@@ -186,9 +203,9 @@ export function VenueLocationForm({
         </p>
       ) : null}
 
-      <Button type="submit" disabled={pending} className="w-full">
-        {pending ? "Saving location..." : "Save venue address"}
-      </Button>
+      <SubmitButton pendingLabel="Saving location…" className="w-full">
+        Save venue address
+      </SubmitButton>
     </form>
   )
 }

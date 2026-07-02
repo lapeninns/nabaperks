@@ -47,7 +47,7 @@ export default async function AdminHomePage() {
   return (
     <div className="grid gap-6">
       <PageTitle
-        eyebrow="Internal support"
+        eyebrow="Internal admin"
         title="Admin console"
         description="Restricted support views and audited manual actions."
       />

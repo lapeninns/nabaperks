@@ -117,7 +117,9 @@ export function StatusPill({
       tone="plain"
       icon={STATUS_PILL_ICON[tone]}
       className={cn(
-        "border-ink capitalize",
+        // No text-transform utility here: the unlayered [data-slot="badge"]
+        // rule forces uppercase and defeats any layered utility.
+        "border-ink",
         tone === "good" && "bg-reward/15 text-foreground",
         tone === "warning" && "bg-primary/15 text-foreground",
         tone === "danger" && "bg-destructive/15 text-foreground",

@@ -60,6 +60,8 @@ const navLinks = [
   { href: "#how-it-fits", label: "How it works" },
   { href: "#pub-guides", label: "Guides" },
   { href: "/pricing", label: "Pricing" },
+  // Returning pilot merchants land on the hub too — keep the sign-in path.
+  { href: "/login", label: "Log in" },
 ]
 
 /** The pub-specific frictions the hub is built to answer (PDF query spectrum). */
@@ -150,7 +152,7 @@ export default function LoyaltyForPubsPage() {
                   icon={Tick02Icon}
                   size={18}
                   strokeWidth={2.5}
-                  className="mt-0.5 shrink-0 text-primary"
+                  className="mt-0.5 shrink-0 text-reward"
                 />
                 <span className="text-[0.95rem] leading-snug font-bold text-pretty">
                   {benefit}
@@ -230,7 +232,7 @@ export default function LoyaltyForPubsPage() {
                   {guide.summary}
                 </p>
                 <span className="mono-meta mt-4 inline-flex items-center gap-1 text-primary">
-                  {CTA.guideLink}
+                  Read the guide
                   <Icon
                     icon={ArrowRight01Icon}
                     size={14}

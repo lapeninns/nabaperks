@@ -3,8 +3,19 @@ import type { MetadataRoute } from "next"
 import { PRIVATE_ROUTE_PREFIXES } from "@/lib/seo/metadata"
 import { SITE_URL } from "@/lib/seo/structured-data"
 
-/** Private product surfaces — keep these out of search and AI indexes. */
-const disallow = Array.from(PRIVATE_ROUTE_PREFIXES)
+/**
+ * Private product surfaces — keep these out of search and AI indexes. Each
+ * trailing-slash prefix is also disallowed in its bare form so `/app`,
+ * `/admin`, `/home` (etc.) are covered, not just their children.
+ */
+const disallow = Array.from(
+  new Set(
+    Array.from(PRIVATE_ROUTE_PREFIXES).flatMap((prefix) => [
+      prefix,
+      prefix.endsWith("/") ? prefix.slice(0, -1) : prefix,
+    ])
+  )
+)
 
 /**
  * robots.txt — open the public marketing + legal pages to every crawler, keep

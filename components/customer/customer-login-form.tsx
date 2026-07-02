@@ -10,6 +10,7 @@ import {
 import { customerInputClass } from "@/components/customer/input-class"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
+import { JOIN_PHONE_CODE_HINT } from "@/lib/customer/experience/copy"
 import { otpFieldMaxLength } from "@/lib/customer/experience/otp-field"
 
 const initialState: CustomerLoginOtpState = {}
@@ -59,14 +60,23 @@ export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
             className={customerInputClass}
             aria-invalid={Boolean(state.errors?.contact)}
             aria-describedby={
-              state.errors?.contact ? "contact-error" : undefined
+              state.errors?.contact ? "contact-error" : "contact-hint"
             }
           />
           {state.errors?.contact ? (
             <p id="contact-error" className="text-sm text-destructive">
               {state.errors.contact}
             </p>
-          ) : null}
+          ) : (
+            // Same expectation-setting hint as the join phone step
+            // (CUS-P3-14).
+            <p
+              id="contact-hint"
+              className="text-xs leading-5 text-muted-foreground"
+            >
+              {JOIN_PHONE_CODE_HINT}
+            </p>
+          )}
         </div>
         {formError && formError !== verifyError ? (
           // Wet Ink error treatment (CUS-P2-07): the shared banner (2px ink,
@@ -87,7 +97,7 @@ export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
         ) : null}
         <Button type="submit" disabled={requestPending}>
           {requestPending
-            ? "Sending..."
+            ? "Sending…"
             : otpSent
               ? "Resend code"
               : "Send code"}
@@ -129,7 +139,7 @@ export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
             ) : null}
           </div>
           <Button type="submit" disabled={verifyPending}>
-            {verifyPending ? "Checking..." : "Open my cards"}
+            {verifyPending ? "Checking…" : "Open my cards"}
           </Button>
         </form>
       ) : null}

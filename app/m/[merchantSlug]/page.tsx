@@ -53,7 +53,7 @@ export default async function MerchantRewardsPage({
 
   return (
     <CustomerFlowShell
-      eyebrow="No app loyalty"
+      eyebrow="No-app loyalty"
       title="Collect your stamp"
       description={`Save ${merchant.business_name}'s card to your number, collect ${loyaltyCard.stamps_required} stamps to unseal a mystery reward. No app, no plastic.`}
       dense

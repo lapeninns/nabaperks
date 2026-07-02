@@ -1,10 +1,12 @@
+import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Suspense } from "react"
-import { Activity03Icon } from "@hugeicons/core-free-icons"
+import { Activity03Icon, QrCode01Icon } from "@hugeicons/core-free-icons"
 
-import { EmptyState, PageTitle } from "@/components/brand"
+import { EmptyState, Icon, PageTitle } from "@/components/brand"
 import { ActivityDetailFeed } from "@/components/merchant/activity-detail-feed"
 import { ActivityFeedSkeleton } from "@/components/merchant/loading-skeletons"
+import { Button } from "@/components/ui/button"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import {
   type ActivityCategory,
@@ -47,16 +49,14 @@ export default async function MerchantActivityPage({
         description="Everything happening on your loyalty card: joins, stamps, rewards, and QR downloads."
       />
 
-      {/* Re-key the streamed feed on the discrete nav params (filter pill and
-          "Load more" limit) so its client filter/search state re-initializes
-          from the new searchParams on soft nav. `q` is deliberately excluded:
-          it refetches on the server via props but must not remount the live
-          search box on every keystroke — a "Load more" still carries q in the
-          URL, and the limit change here remounts and re-reads it. */}
-      <Suspense
-        key={`${filter}:${limit}`}
-        fallback={<ActivityFeedSkeleton />}
-      >
+      {/* Re-key the streamed feed on the filter pill only, so its client
+          filter/search state re-initializes on a real filter nav. `limit` is
+          deliberately NOT in the key: "Load more" must extend the list in
+          place (rows arrive via props during the Link transition) instead of
+          unmounting everything the merchant has read into a skeleton. `q` is
+          also excluded: it refetches via props but must not remount the live
+          search box on every keystroke. */}
+      <Suspense key={filter} fallback={<ActivityFeedSkeleton />}>
         <ActivityFeedStream
           merchantId={merchant.id}
           filter={filter}
@@ -100,6 +100,14 @@ async function ActivityFeedStream({
           title="No activity yet"
           description="Activity will appear after members join, add stamps, redeem rewards, or download QR assets."
           icon={Activity03Icon}
+          actions={
+            <Button asChild>
+              <Link href="/app/qr" prefetch={false}>
+                <Icon icon={QrCode01Icon} size={16} />
+                Open your Poster kit
+              </Link>
+            </Button>
+          }
         />
       }
     />

@@ -53,8 +53,8 @@ export function AdminRecordCard({
       </div>
 
       <dl className="grid gap-2.5">
-        {fields.map((field) => (
-          <div key={field.label} className="grid gap-1 text-sm">
+        {fields.map((field, index) => (
+          <div key={`${index}-${field.label}`} className="grid gap-1 text-sm">
             <dt className="eyebrow">{field.label}</dt>
             <dd
               className={cn(

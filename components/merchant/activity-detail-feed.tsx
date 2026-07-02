@@ -1,8 +1,8 @@
 "use client"
 
-import Link from "next/link"
+import Link, { useLinkStatus } from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { useMemo, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 
 import { Search01Icon } from "@hugeicons/core-free-icons"
 
@@ -60,6 +60,34 @@ export function ActivityDetailFeed({
   const [query, setQuery] = useState(() => initialQuery)
   const normalizedQuery = query.trim().toLowerCase()
 
+  // Debounce the URL write for typed searches: client filtering is already
+  // instant, so the router.replace (an RSC refetch on this force-dynamic
+  // page) only needs to fire once the merchant pauses, not per keystroke.
+  const urlWriteTimer = useRef<number | null>(null)
+  useEffect(
+    () => () => {
+      if (urlWriteTimer.current !== null) {
+        window.clearTimeout(urlWriteTimer.current)
+      }
+    },
+    []
+  )
+
+  function cancelPendingUrlWrite() {
+    if (urlWriteTimer.current !== null) {
+      window.clearTimeout(urlWriteTimer.current)
+      urlWriteTimer.current = null
+    }
+  }
+
+  function scheduleQueryUrlWrite(nextQuery: string) {
+    cancelPendingUrlWrite()
+    urlWriteTimer.current = window.setTimeout(() => {
+      urlWriteTimer.current = null
+      updateUrl({ filter, query: nextQuery })
+    }, 300)
+  }
+
   const filteredRows = useMemo(() => {
     return rows.filter((row) => {
       const categoryMatches = filter === "all" || row.category === filter
@@ -109,7 +137,7 @@ export function ActivityDetailFeed({
             onChange={(event) => {
               const nextQuery = event.target.value
               setQuery(nextQuery)
-              updateUrl({ filter, query: nextQuery })
+              scheduleQueryUrlWrite(nextQuery)
             }}
             placeholder="Search activity"
             aria-label="Search activity"
@@ -125,6 +153,10 @@ export function ActivityDetailFeed({
           onValueChange={(id) => {
             const next = normalizeFilter(id)
             setFilter(next)
+            // A pill click writes filter + current query immediately; cancel
+            // any debounced query write so it cannot land afterwards with the
+            // previous filter captured.
+            cancelPendingUrlWrite()
             updateUrl({ filter: next, query })
           }}
           className="flex-wrap"
@@ -188,7 +220,12 @@ export function ActivityDetailFeed({
             size="sm"
             className="min-h-11 sm:min-h-9"
           >
-            <Link href={loadMoreHref({ filter, limit, query })}>Load more</Link>
+            {/* The feed's Suspense boundary is keyed on filter only, so this
+                navigation extends the list in place — the label is the only
+                loading signal, hence the useLinkStatus pending swap. */}
+            <Link href={loadMoreHref({ filter, limit, query })}>
+              <LoadMoreLabel />
+            </Link>
           </Button>
         ) : null}
       </footer>
@@ -228,6 +265,12 @@ export function ActivityDetailFeed({
       scroll: false,
     })
   }
+}
+
+/** Pending feedback for the in-place "Load more" navigation. */
+function LoadMoreLabel() {
+  const { pending } = useLinkStatus()
+  return <>{pending ? "Loading…" : "Load more"}</>
 }
 
 function groupRowsByDate(rows: ActivityDisplayRow[]) {

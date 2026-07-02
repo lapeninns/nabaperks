@@ -267,9 +267,12 @@ export function MerchantRewardScanner() {
     <ReceiptCard edge className="grid gap-5 p-6">
       <ScanCardHeader />
 
+      {/* role="group", not role="img": a live video region announced as a
+          static image reads wrong to screen readers — a labelled plain region
+          is enough, and the aria-live status line below narrates state. */}
       <div
         id={SCANNER_ELEMENT_ID}
-        role="img"
+        role="group"
         aria-label="Camera viewfinder"
         className="min-h-64 overflow-hidden rounded-[var(--radius-lg)] border-2 border-dashed border-ink/35 bg-card [&_video]:min-h-64 [&_video]:object-cover"
       />

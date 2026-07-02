@@ -7,10 +7,12 @@ import {
 
 import { setQrActiveAction } from "@/app/app/qr/actions"
 import { Eyebrow, Icon, MonoTag, SectionHeader, STATUS_ICON } from "@/components/brand"
+import { SubmitButton } from "@/components/forms"
 import { QrFrame } from "@/components/loyalty/qr-frame"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { CopyUrlButton } from "@/components/merchant/copy-url-button"
 import { Disclosure } from "@/components/merchant/launch/disclosure"
+import { QrErrorBanner } from "@/components/merchant/launch/qr-error-banner"
 import { Button } from "@/components/ui/button"
 import {
   QR_POSTER_TEMPLATES,
@@ -34,24 +36,24 @@ const POSTER_SURFACE: Record<
   { readonly card: string; readonly tag: string }
 > = {
   editorial: {
-    card: "border-l-[3px] border-l-[var(--w-cobalt)] bg-card",
-    tag: "text-[var(--w-cobalt)]",
+    card: "border-l-[3px] border-l-cobalt bg-card",
+    tag: "text-cobalt",
   },
   bold: {
-    card: "border-l-[3px] border-l-ink bg-ink text-[var(--w-paper)]",
-    tag: "text-[var(--w-paper)]/80",
+    card: "border-l-[3px] border-l-ink bg-ink text-paper",
+    tag: "text-paper/80",
   },
   ticket: {
     card: "border-l-[3px] border-l-primary bg-card",
     tag: "text-primary",
   },
   northstar: {
-    card: "border-l-[3px] border-l-[var(--w-sun)] bg-ink text-[var(--w-paper)]",
-    tag: "text-[var(--w-sun)]",
+    card: "border-l-[3px] border-l-sun bg-ink text-paper",
+    tag: "text-sun",
   },
   thermal: {
-    card: "border-l-[3px] border-l-[var(--w-ink-soft)] bg-[var(--w-paper-2)]",
-    tag: "text-[var(--w-ink-soft)]",
+    card: "border-l-[3px] border-l-ink-soft bg-paper-deep",
+    tag: "text-ink-soft",
   },
 }
 
@@ -66,7 +68,7 @@ export function QrPanelLive({
 }: QrPanelLiveProps) {
   return (
     <article className="surface-card overflow-hidden">
-      <header className="grid gap-4 border-b-2 border-ink bg-[var(--w-paper-2)]/55 px-4 py-5 sm:px-6 sm:py-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start lg:gap-6">
+      <header className="grid gap-4 border-b-2 border-ink bg-paper-deep/55 px-4 py-5 sm:px-6 sm:py-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start lg:gap-6">
         <div className="grid min-w-0 gap-2">
           <Eyebrow>Venue QR</Eyebrow>
           <h2 className="text-2xl leading-tight font-extrabold text-balance break-words sm:text-3xl">
@@ -101,7 +103,7 @@ export function QrPanelLive({
         </aside>
 
         <div className="grid min-w-0 content-start gap-6 p-4 sm:gap-7 sm:p-6">
-          <QrPanelError error={error} />
+          <QrErrorBanner error={error} />
 
           {!hasVenueAddress ? (
             <StatusBanner tone="warning" title="Add your venue address before print.">
@@ -122,7 +124,7 @@ export function QrPanelLive({
               title="Share the link"
               description="Drop this URL anywhere you already talk about loyalty — socials, email footers, or your website."
             />
-            <div className="grid gap-3 rounded-lg border-2 border-dashed border-ink/25 bg-[var(--w-paper-2)]/40 p-3 sm:p-4">
+            <div className="grid gap-3 rounded-lg border-2 border-dashed border-ink/25 bg-paper-deep/40 p-3 sm:p-4">
               <div className="grid gap-1.5">
                 <p id="qr-share-heading" className="eyebrow">
                   Permanent venue link
@@ -182,7 +184,7 @@ export function QrPanelLive({
                           className={cn(
                             "text-xs leading-5",
                             template.id === "bold" || template.id === "northstar"
-                              ? "text-[var(--w-paper)]/75"
+                              ? "text-paper/75"
                               : "text-muted-foreground"
                           )}
                         >
@@ -237,12 +239,14 @@ export function QrPanelLive({
                 value={isActive ? "false" : "true"}
               />
               <input type="hidden" name="returnTo" value={returnHref} />
-              <Button
-                type="submit"
+              {/* Shared pending recipe: disables against double-taps and
+                  gives feedback before the redirect lands. */}
+              <SubmitButton
                 variant={isActive ? "outline" : "reward"}
+                pendingLabel={isActive ? "Disabling…" : "Enabling…"}
               >
                 {isActive ? "Disable QR" : "Enable QR"}
-              </Button>
+              </SubmitButton>
             </form>
           </div>
         </div>
@@ -297,19 +301,3 @@ function QrLiveStatus({ isActive }: { readonly isActive: boolean }) {
   )
 }
 
-function QrPanelError({ error }: { readonly error?: string }) {
-  if (!error) return null
-
-  const message =
-    error === "Add at least 3 active mystery rewards before launching the QR."
-      ? error
-      : error === "Unable to update QR"
-        ? "Unable to update QR. Check the QR status and try again."
-        : "Unable to create QR. Check your card and reward setup, then try again."
-
-  return (
-    <StatusBanner tone="error" title="QR action failed.">
-      {message}
-    </StatusBanner>
-  )
-}

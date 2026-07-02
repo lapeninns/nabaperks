@@ -11,6 +11,10 @@ import { FilterPills, Icon, MonoTag, VenueMark } from "@/components/brand"
 import { StampGrid } from "@/components/loyalty/stamp-grid"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  buildCustomersPagination,
+  type CustomersPagination,
+} from "@/lib/merchant/customers-paging"
 import { formatMerchantCustomerIdentifier } from "@/lib/merchant/customer-identity-display"
 import type {
   MerchantCustomerReadbackRow,
@@ -345,18 +349,22 @@ export function CustomerReadbackTable({
   emptyState,
   highlightedMembershipId,
   totalMembers,
+  page = 1,
 }: {
   customers: MerchantCustomerReadbackRow[]
   emptyState: ReactNode
   highlightedMembershipId?: string
   /**
    * True membership count from a server-side COUNT. The `customers` list is
-   * capped at 100 rows, so its length understates the real total for large
-   * merchants. When provided, the "Members" stat shows this number; when
-   * omitted it falls back to `customers.length`, keeping the prior behaviour
-   * for any caller that does not pass it.
+   * one page of at most CUSTOMERS_PAGE_SIZE rows, so its length understates
+   * the real total for large merchants. When provided, the "Members" stat
+   * shows this number and drives the pagination; when omitted it falls back
+   * to `customers.length`, keeping the prior behaviour for any caller that
+   * does not pass it.
    */
   totalMembers?: number
+  /** 1-based page the loader used (drives the Prev/Next links). */
+  page?: number
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(
     highlightedMembershipId ?? null
@@ -418,7 +426,30 @@ export function CustomerReadbackTable({
     target.focus({ preventScroll: true })
   }, [highlightedMembershipId])
 
+  const pagination = buildCustomersPagination(
+    page,
+    totalMembers ?? customers.length
+  )
+  const totalLabel = (totalMembers ?? customers.length).toLocaleString("en-GB")
+
   if (customers.length === 0) {
+    // Distinguish "no members at all" from "this page is empty" (a stale
+    // ?page= link beyond the end): the latter keeps navigation back.
+    if ((totalMembers ?? 0) > 0) {
+      return (
+        <div className="grid gap-3">
+          <div className="surface-card px-4 py-10 text-center">
+            <p className="text-sm font-semibold">Nothing on this page</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Your {totalLabel} members end before page {pagination.page}.
+            </p>
+          </div>
+          <CustomersPaginationRow pagination={pagination} totalLabel={totalLabel} />
+          <PrivacyNote />
+        </div>
+      )
+    }
+
     return (
       <div className="grid gap-3">
         {emptyState}
@@ -436,10 +467,11 @@ export function CustomerReadbackTable({
         items={[
           {
             label: "Members",
-            // Prefer the true server-side total over the (capped) loaded count
-            // so large merchants see their real membership size; fall back to
-            // the loaded length when no total was supplied.
-            value: totalMembers ?? customers.length,
+            // Prefer the true server-side total over the (paged) loaded count
+            // so large merchants see their real membership size — formatted
+            // with en-GB grouping to match the dashboard KPI ("1,842", not
+            // "1842").
+            value: totalLabel,
             tone: "ink",
           },
           { label: "Ready", value: readyCount, tone: "primary" },
@@ -480,16 +512,14 @@ export function CustomerReadbackTable({
         />
       </div>
 
-      {/* Honest-cap note: the loader returns the 100 most recent rows and
-          search/filter run client-side over that window only. Until the list
-          gets server-side search or paging, say so rather than letting a
-          member seem unfindable. */}
-      {typeof totalMembers === "number" && totalMembers > customers.length ? (
+      {/* Multi-page honesty: search/filter run client-side over the loaded
+          page only, so say so — every member is reachable via the page
+          controls below the list. */}
+      {pagination.totalPages > 1 ? (
         <p className="px-1 text-xs text-muted-foreground">
-          Showing your {customers.length} most recent members — search and
-          filters cover these only. {totalMembers - customers.length} earlier
-          member{totalMembers - customers.length === 1 ? " is" : "s are"} not
-          listed here yet.
+          Showing members {pagination.rangeStart}–{pagination.rangeEnd} of{" "}
+          {totalLabel}, newest first — search and filters cover this page
+          only. Older members are on the later pages.
         </p>
       ) : null}
 
@@ -583,9 +613,71 @@ export function CustomerReadbackTable({
         </>
       )}
 
+      <CustomersPaginationRow pagination={pagination} totalLabel={totalLabel} />
+
       <PrivacyNote />
     </div>
   )
+}
+
+/**
+ * Prev/Next page links (URL-driven so back/refresh/deep links work) with a
+ * mono "Page X of Y" readback. Renders nothing for a single page, so callers
+ * without paging (e.g. the DB-free harness) are unchanged.
+ */
+function CustomersPaginationRow({
+  pagination,
+  totalLabel,
+}: {
+  pagination: CustomersPagination
+  totalLabel: string
+}) {
+  if (pagination.totalPages <= 1) return null
+
+  return (
+    <nav
+      aria-label="Members pages"
+      className="flex flex-wrap items-center justify-between gap-3"
+    >
+      <Button
+        asChild={pagination.hasPrev}
+        variant="secondary"
+        size="sm"
+        disabled={!pagination.hasPrev}
+      >
+        {pagination.hasPrev ? (
+          <Link href={customersPageHref(pagination.page - 1)} prefetch={false}>
+            Previous page
+          </Link>
+        ) : (
+          <span>Previous page</span>
+        )}
+      </Button>
+      <span className="mono-meta numeric-tabular text-muted-foreground">
+        Page {pagination.page} of {pagination.totalPages} · {totalLabel}{" "}
+        members
+      </span>
+      <Button
+        asChild={pagination.hasNext}
+        variant="secondary"
+        size="sm"
+        disabled={!pagination.hasNext}
+      >
+        {pagination.hasNext ? (
+          <Link href={customersPageHref(pagination.page + 1)} prefetch={false}>
+            Next page
+          </Link>
+        ) : (
+          <span>Next page</span>
+        )}
+      </Button>
+    </nav>
+  )
+}
+
+/** Page 1 keeps a clean URL; later pages carry ?page=N. */
+function customersPageHref(page: number) {
+  return page <= 1 ? "/app/customers" : `/app/customers?page=${page}`
 }
 
 function PrivacyNote() {

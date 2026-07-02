@@ -9,6 +9,7 @@ import {
   type AdminActionState,
 } from "@/lib/admin/action-state"
 import { qrImageContextCacheTag, revalidateCacheTag } from "@/lib/cache/tags"
+import { MARKETING_POLICY_VERSION } from "@/lib/customer/consent"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 /**
@@ -220,7 +221,8 @@ export async function recordConsentOptOutAction(
   const merchantId = value(formData, "merchantId")
   const channel = value(formData, "channel")
   const source = value(formData, "source") || "support_request"
-  const policyVersion = value(formData, "policyVersion") || "2026-06-06"
+  const policyVersion =
+    value(formData, "policyVersion") || MARKETING_POLICY_VERSION
   const reason = value(formData, "reason")
 
   if (!customerId || !merchantId) {

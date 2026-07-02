@@ -62,7 +62,7 @@ export function blockReasonCopy(reason: CustomerBlockReason): string {
     case "already_stamped_today":
       return "You're already stamped today. Come back tomorrow."
     case "reward_ready_first":
-      return "Your reward is ready - redeem it before collecting more stamps."
+      return "Your reward is ready — redeem it before collecting more stamps."
     case "billing_required":
       return "This venue isn't taking stamps yet."
     case "rate_limited":
@@ -72,7 +72,7 @@ export function blockReasonCopy(reason: CustomerBlockReason): string {
     case "unauthenticated":
       return "Verify your identity from the venue QR before continuing."
     case "profile_incomplete":
-      return "Add your details before collection - a name and date of birth, plus a verified email if you add one."
+      return "Add your details before collection — a name and date of birth, plus a verified email if you add one."
     case "unavailable":
       return "This loyalty programme is unavailable right now."
     case "unknown":

@@ -175,7 +175,19 @@ export function ActivityFeedSkeleton() {
               {[0, 1, 2].map((row) => (
                 <li key={row} className="relative pl-5">
                   <Skeleton className="absolute top-4 left-0 size-2.5 rounded-full" />
-                  <Skeleton className="h-[68px]" />
+                  {/* Mirrors the real ActivityDetailCard shape — badge + time
+                      line, headline, right-side action slot — not a plain
+                      slab, so the swap-in never shifts. */}
+                  <div className="grid gap-3 rounded-lg border-2 border-ink/15 bg-card p-4 sm:grid-cols-[1fr_auto] sm:items-center">
+                    <div className="grid gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Skeleton className="h-5 w-16 rounded-full" />
+                        <Skeleton className="h-3 w-12" />
+                      </div>
+                      <Skeleton className="h-4 w-3/5" />
+                    </div>
+                    <Skeleton className="h-9 w-24 justify-self-start sm:justify-self-end" />
+                  </div>
                 </li>
               ))}
             </ol>
@@ -486,7 +498,7 @@ export function AccountBillingPanelSkeleton() {
 export function RewardScanContentSkeleton() {
   return (
     <div className="grid gap-4" role="status" aria-label="Loading reward">
-      <div className="flex overflow-hidden rounded-[10px] border-2 border-ink bg-card">
+      <div className="flex overflow-hidden rounded-lg border-2 border-ink bg-card">
         <div className="grid flex-1 content-center gap-2 p-4">
           <Skeleton className="h-3 w-24" />
           <Skeleton className="h-5 w-40 max-w-full" />

@@ -76,11 +76,11 @@ export default function AboutPage() {
         />
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-          <article className="flex flex-col gap-4">
+          <article className="flex max-w-[65ch] flex-col gap-4">
             {story.map((paragraph) => (
               <p
                 key={paragraph.slice(0, 24)}
-                className="text-[0.975rem] leading-relaxed text-pretty text-muted-foreground"
+                className="text-[0.975rem] leading-relaxed text-pretty text-foreground"
               >
                 {paragraph}
               </p>
@@ -145,7 +145,7 @@ export default function AboutPage() {
             pressure-tested.
           </p>
 
-          <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3">
+          <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {OPERATOR_ESTATE.map((pub) => (
               <li
                 key={pub.postcode}

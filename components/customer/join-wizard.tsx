@@ -4,7 +4,6 @@ import dynamic from "next/dynamic"
 
 import { VenueMark } from "@/components/brand"
 import {
-  CustomerActionNote,
   CustomerFlowShell,
   CustomerStampCard,
   type FlowProgress,
@@ -180,7 +179,9 @@ function PhoneUnlockingReminder({
         <span className="eyebrow text-muted-foreground">
           You&apos;re unlocking
         </span>
-        <span className="truncate text-sm leading-tight font-extrabold">
+        {/* Two lines before clipping — long venue · card compounds stay
+            readable at 375 (VCU-P3-09). */}
+        <span className="line-clamp-2 text-sm leading-tight font-extrabold break-words">
           {merchant.name} · {card.name}
         </span>
         <p className="text-xs leading-snug text-muted-foreground">
@@ -210,7 +211,9 @@ function TermsFirstStampPreview({
           <span className="eyebrow text-muted-foreground">
             Your first stamp
           </span>
-          <span className="truncate text-sm leading-tight font-extrabold">
+          {/* Two lines before clipping (VCU-P3-09, shared with the phone
+              chip). */}
+          <span className="line-clamp-2 text-sm leading-tight font-extrabold break-words">
             {merchant.name} · {card.name}
           </span>
         </div>
@@ -255,9 +258,9 @@ function ReturningStep({
         <StatusBanner title="You're already joined" tone="success">
           Your stamp card is ready. Continue from your current progress.
         </StatusBanner>
-        <CustomerActionNote title="Current progress" tone="leaf">
-          {exp.current} of {exp.total} stamps collected.
-        </CustomerActionNote>
+        {/* One progress signal per screen (customer-flow-system rule): the
+            hero card's grid + the support line already carry the count, so no
+            extra "Current progress" note (CUS-P3-04). */}
         {vm.primaryAction ? (
           <Button asChild size="lg" className="w-full">
             <Link href={vm.primaryAction.href}>{vm.primaryAction.label}</Link>

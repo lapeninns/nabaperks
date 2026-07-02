@@ -103,9 +103,14 @@ export default async function AdminBillingPage() {
               key: "period",
               header: "Period end",
               cell: (row) => (
-                <span className="text-muted-foreground">
-                  {formatAdminDate(row.currentPeriodEnd)}
-                </span>
+                <div className="grid gap-1">
+                  <span className="text-muted-foreground">
+                    {formatAdminDate(row.currentPeriodEnd)}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    Updated {formatAdminDate(row.updatedAt)}
+                  </span>
+                </div>
               ),
             },
             {
@@ -143,6 +148,10 @@ export default async function AdminBillingPage() {
                   {
                     label: "Period end",
                     value: formatAdminDate(row.currentPeriodEnd),
+                  },
+                  {
+                    label: "Updated",
+                    value: formatAdminDate(row.updatedAt),
                   },
                   {
                     label: "Stripe subscription",

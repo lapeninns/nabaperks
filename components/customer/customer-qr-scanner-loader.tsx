@@ -25,8 +25,10 @@ function CustomerQrScannerLoading() {
         </span>
         <div className="grid gap-1.5">
           <Eyebrow>Customer scanner</Eyebrow>
+          {/* Same headline as the loaded scanner (CUS-P3-11) — no string flip
+              when the chunk lands. */}
           <h1 className="text-2xl leading-tight font-extrabold tracking-[-0.01em]">
-            Scan a venue QR
+            Scan venue QR
           </h1>
           <p className="text-sm leading-6 text-muted-foreground">
             Point your camera at a Nabaperks venue QR to collect your stamp. No

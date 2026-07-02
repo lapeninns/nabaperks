@@ -33,25 +33,28 @@ export function CustomerRewardsPanel({
   readonly hrefForPage: (page: number) => string
 }) {
   return (
-    <AdminPanel>
-      <SectionHeader
-        title="Rewards"
-        description="Assigned reward readbacks preserve customer masking and require a reason before cancellation."
-        actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
-      />
+    <AdminPanel className="p-0">
+      <div className="border-b p-5">
+        <SectionHeader
+          title="Rewards"
+          description="Assigned reward readbacks preserve customer masking and require a reason before cancellation."
+          actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
+        />
+      </div>
       {result ? (
         <>
           <DataTable
             caption="Admin reward support readback"
             cardBreakpoint="xl"
-            className="rounded-lg shadow-none"
+            className="rounded-none border-0 shadow-none"
+            mobileClassName="p-5"
             rows={result.rows}
             getRowKey={(reward) => reward.id}
             emptyState={
               <EmptyState
                 icon={GiftIcon}
                 title="No rewards yet"
-                className="rounded-none border-0 p-0 shadow-none"
+                className="rounded-none border-0 shadow-none"
               />
             }
             mobileCard={(reward) => {
@@ -155,15 +158,21 @@ export function CustomerRewardsPanel({
               },
             ]}
           />
-          <AdminLookupPagination
-            label="Reward pages"
-            unit="reward events"
-            meta={result.meta}
-            hrefForPage={hrefForPage}
-          />
+          {result.meta.total > 0 ? (
+            <div className="p-5 pt-0">
+              <AdminLookupPagination
+                label="Reward pages"
+                unit="reward events"
+                meta={result.meta}
+                hrefForPage={hrefForPage}
+              />
+            </div>
+          ) : null}
         </>
       ) : (
-        <AdminLookupErrorState title="Reward readback unavailable" />
+        <div className="p-5 pt-0">
+          <AdminLookupErrorState title="Reward readback unavailable" />
+        </div>
       )}
     </AdminPanel>
   )

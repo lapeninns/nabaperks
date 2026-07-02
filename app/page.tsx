@@ -26,6 +26,7 @@ import {
 } from "@/components/marketing/landing"
 import { JsonLd } from "@/components/seo/json-ld"
 import {
+  OG_IMAGE,
   ORG_ID,
   SITE_URL,
   absoluteUrl,
@@ -60,11 +61,14 @@ export const metadata: Metadata = {
     siteName: "Nabaperks",
     url: SITE_URL,
     locale: "en_GB",
+    images: [OG_IMAGE],
   },
+  // The most-shared URL gets the large card, like every other marketing route.
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: `${title} | Nabaperks`,
     description,
+    images: [OG_IMAGE],
   },
 }
 

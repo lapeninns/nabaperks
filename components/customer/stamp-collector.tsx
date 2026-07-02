@@ -6,7 +6,7 @@ import { selfStampAction } from "@/app/card/[membershipId]/actions"
 import { CustomerStampCard } from "@/components/customer/customer-flow-system"
 import { StampPressButton } from "@/components/customer/stamp-press-button"
 import { RewardCelebration, StatusBanner } from "@/components/loyalty"
-import { StampCelebration, WetInkShake } from "@/components/motion"
+import { StampCelebration, StampSlamSequence } from "@/components/motion"
 import {
   addLocationCapture,
   resolveStampLocation,
@@ -97,7 +97,9 @@ function stampView(args: {
     slamIndex: showStamp ? displayCurrent - 1 : -1,
     dates,
     cardComplete,
-    geoFlagged: issued?.geoFlagged ?? false,
+    // Deliberately NOT surfaced: a geo-flagged stamp still lands and the
+    // review happens merchant-side — the customer is never shamed for a soft
+    // location miss (CUS-P3-08). The flag stays server/merchant vocabulary.
     secured: committed || armed || !canStamp,
   }
 }
@@ -229,7 +231,10 @@ export function StampCollector({
   }
 
   return (
-    <WetInkShake active={shake} onComplete={() => setShake(false)}>
+    // The flagship stamp beat uses the flagship primitive (CUS-P3-06): the
+    // composed slam-plus-paper-shake, with the per-dot slam still driven by
+    // `slamIndex` inside the grid.
+    <StampSlamSequence active={shake} onComplete={() => setShake(false)}>
       <CustomerStampCard
         venueName={venueName}
         cardName={cardName}
@@ -292,6 +297,6 @@ export function StampCollector({
           ) : null}
         </div>
       </CustomerStampCard>
-    </WetInkShake>
+    </StampSlamSequence>
   )
 }

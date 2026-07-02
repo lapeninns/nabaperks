@@ -49,13 +49,13 @@ export default async function StartPage() {
             asChild
             variant="ghost"
             size="sm"
-            className="justify-self-center text-muted-foreground"
+            className="justify-self-center text-muted-foreground underline underline-offset-4"
           >
             <Link href="/login">Merchant sign-in</Link>
           </Button>
         </div>
 
-        <p className="border-t-2 border-ink/15 pt-4 text-center text-sm leading-6 text-muted-foreground">
+        <p className="border-t-2 border-dashed border-foreground/25 pt-4 text-center text-sm leading-6 text-muted-foreground">
           New here? Scan a venue&apos;s QR code to collect your first stamp —
           your first card is created automatically.
         </p>

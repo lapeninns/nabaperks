@@ -46,7 +46,12 @@ export function CustomerFlowShell({
     <main
       className={cn(
         "min-h-[100dvh] overflow-x-hidden bg-background px-4 text-foreground sm:px-6",
-        dense ? "py-4 sm:py-6" : "py-5 sm:py-8"
+        // Bottom padding respects the home-indicator safe area so the last
+        // CTA or link never sits clipped against the screen edge
+        // (VCU-P3-06/08).
+        dense
+          ? "pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pt-6 sm:pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+          : "pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pt-8 sm:pb-[max(2rem,env(safe-area-inset-bottom))]"
       )}
     >
       <div
@@ -113,14 +118,16 @@ function OnboardingProgress({ progress }: { progress: FlowProgress }) {
   const step = Math.min(Math.max(progress.step, 1), total)
 
   return (
-    <div className="grid gap-2" aria-hidden="true">
+    // The text row ("Step 2 of 3") is real content and stays readable to
+    // screen readers; only the decorative bars hide (CUS-P3-03).
+    <div className="grid gap-2">
       <div className="flex items-center justify-between font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
         <span>{progress.label ?? "Setup"}</span>
         <span>
           Step {step} of {total}
         </span>
       </div>
-      <div className="flex gap-1.5">
+      <div className="flex gap-1.5" aria-hidden="true">
         {Array.from({ length: total }).map((_, index) => (
           <span
             key={index}
@@ -208,13 +215,16 @@ export function CustomerReceipt({
       {hideFooter ? null : (
         <>
           <hr className="w-rule" />
-          <footer className="flex items-center justify-between gap-3">
+          {/* The mono cells stack deliberately below 420px instead of
+              wrapping mid-token ("CARD Nº NP-/0001", orphaned "DAY") —
+              VCU-P3-04/12. */}
+          <footer className="grid gap-1 min-[420px]:flex min-[420px]:items-center min-[420px]:justify-between min-[420px]:gap-3">
             {/* Receipt voice is for real facts: no placeholder card number
                 when the caller has none to print (CUS-P2-01). */}
             <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {footerLeft}
             </span>
-            <span className="text-right font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+            <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase min-[420px]:text-right">
               {footerRight}
             </span>
           </footer>

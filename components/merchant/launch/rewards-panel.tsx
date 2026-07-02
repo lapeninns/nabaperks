@@ -1,8 +1,7 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
-import { ReceiptCard } from "@/components/brand"
-import { PanelTitle } from "@/components/merchant/launch/panel-title"
+import { PageTitle, ReceiptCard } from "@/components/brand"
 import { LaunchSaveNextAction } from "@/components/merchant/launch/launch-tab-auto-advance"
 import {
   RewardPoolForm,
@@ -58,7 +57,8 @@ export async function RewardsPanel({
   if (!location) {
     return (
       <ReceiptCard>
-        <PanelTitle
+        <PageTitle
+          headingLevel={2}
           title="Finish onboarding first"
           description="Add your venue before you build your reward pool."
           titleClassName="sm:text-3xl"
@@ -70,7 +70,8 @@ export async function RewardsPanel({
   if (!card) {
     return (
       <ReceiptCard className="grid gap-4">
-        <PanelTitle
+        <PageTitle
+          headingLevel={2}
           eyebrow="Step 3 · Rewards"
           title="Build your card first"
           description="The reward pool is tied to a saved visit card. Create the card, then come back here to load at least 3 active mystery rewards."

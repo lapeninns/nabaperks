@@ -17,12 +17,15 @@ export function Headline({
 }) {
   const { headline } = copy
 
+  // h2, not h1: on the preview document the page heading is the chrome's h1
+  // (poster-preview-chrome.tsx); a second h1 here doubled the document
+  // outline. Print output is unaffected — the classes drive the type.
   return (
-    <h1 className={className}>
+    <h2 className={className}>
       {headline.beforeAccent}
       <span className={styles.hookWin}>{headline.accent}</span>
       {headline.afterAccent}
-    </h1>
+    </h2>
   )
 }
 

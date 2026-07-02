@@ -1,5 +1,6 @@
 import { Tick02Icon } from "@hugeicons/core-free-icons"
 
+import { AUTH_SECTION_MIN_H } from "@/app/(auth)/viewport"
 import { ResetPasswordForm } from "@/components/auth/reset-password-form"
 import { Eyebrow, Icon, PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout } from "@/components/layout"
@@ -7,6 +8,7 @@ import {
   merchantEmailOtpAliasDigitLabel,
   merchantEmailOtpAliasLength,
 } from "@/lib/auth/merchant-email-otp-alias"
+import { cn } from "@/lib/utils"
 
 const otpCodeLabel = merchantEmailOtpAliasDigitLabel()
 const trustPoints = [
@@ -18,7 +20,12 @@ const trustPoints = [
 export default function ResetPasswordPage() {
   return (
     <MarketingLayout>
-      <section className="mx-auto grid min-h-[calc(100dvh-73px)] w-full max-w-5xl content-start gap-8 px-6 py-6 sm:gap-10 sm:py-10 lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] lg:content-center lg:items-center">
+      <section
+        className={cn(
+          "mx-auto grid w-full max-w-5xl content-start gap-8 px-6 py-6 sm:gap-10 sm:py-10 lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] lg:content-center lg:items-center",
+          AUTH_SECTION_MIN_H
+        )}
+      >
         <div className="order-2 grid gap-6 lg:order-1">
           <PageTitle
             eyebrow="Merchant access"

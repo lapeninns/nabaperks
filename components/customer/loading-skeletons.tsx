@@ -37,7 +37,11 @@ function CustomerFlowShellSkeleton({
     <main
       className={cn(
         "min-h-[100dvh] overflow-x-hidden bg-background px-4 text-foreground sm:px-6",
-        dense ? "py-4 sm:py-6" : "py-5 sm:py-8"
+        // Mirrors CustomerFlowShell's safe-area bottom padding so the
+        // skeleton→content swap never shifts (VCU-P3-06/08 parity).
+        dense
+          ? "pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pt-6 sm:pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+          : "pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pt-8 sm:pb-[max(2rem,env(safe-area-inset-bottom))]"
       )}
       role="status"
       aria-label="Loading"
@@ -80,7 +84,7 @@ function CustomerFlowShellSkeleton({
 /** The receipt's reward-ticket chit: face + dashed tear-line + seal stub. */
 function RewardTicketSkeleton() {
   return (
-    <div className="flex overflow-hidden rounded-[10px] border-2 border-ink bg-card">
+    <div className="flex overflow-hidden rounded-lg border-2 border-ink bg-card">
       <div className="grid flex-1 content-center gap-2 p-4">
         <Skeleton className="h-3 w-20" />
         <Skeleton className="h-5 w-36 max-w-full" />

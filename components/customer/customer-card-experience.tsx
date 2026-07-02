@@ -3,6 +3,7 @@ import Link from "next/link"
 import { ArrowDown01Icon, ArrowLeft01Icon } from "@hugeicons/core-free-icons"
 
 import { Icon } from "@/components/brand"
+import { CelebrationUrlCleanup } from "@/components/customer/celebration-url-cleanup"
 import {
   CustomerActionNote,
   CustomerFlowShell,
@@ -150,6 +151,14 @@ function CardProgressPanel({
 
   return (
     <div className="grid gap-4">
+      {/* Strip the one-shot celebration params after the first render so a
+          refresh does not replay the welcome/stamp moment (CUS-P3-07). */}
+      {exp.justStamped ||
+      exp.justJoined ||
+      exp.justRedeemed ||
+      exp.firstStampPending ? (
+        <CelebrationUrlCleanup />
+      ) : null}
       <Link
         href="/home"
         className="inline-flex w-fit items-center gap-1.5 text-sm font-bold text-ink-soft underline-offset-4 transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:text-foreground hover:underline motion-reduce:transition-none"

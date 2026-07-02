@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { usePathname } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 type InstallOutcome = "accepted" | "dismissed"
 
@@ -66,6 +67,24 @@ function routeSurface(pathname: string): AppSurface {
   }
 
   return "marketing"
+}
+
+/**
+ * Routes that render the fixed `CustomerTabBar` (the card/reward experience
+ * and the authed home shell). The install prompt lifts above the bar there so
+ * it never floats over the tabs' top edge (VCU-P3-13). `/scan` stays at the
+ * default offset: its most common, unauthenticated state has no tab bar.
+ */
+function hasCustomerTabBar(pathname: string): boolean {
+  if (pathname.startsWith("/card/") || pathname.startsWith("/reward/")) {
+    return true
+  }
+
+  if (pathname === "/home" || pathname.startsWith("/home/")) {
+    return pathname !== "/home/login"
+  }
+
+  return false
 }
 
 function readDismissedPreference(): boolean {
@@ -225,7 +244,10 @@ export function AppPwa() {
     !hasMounted ||
     pathname === "/offline" ||
     pathname.startsWith("/m/") ||
-    surface === "marketing" ||
+    // Marketing routes never prompt — except /start, the manifest start_url
+    // and customer switchboard, where the install offer is the point (this is
+    // what makes INSTALL_COPY.marketing reachable).
+    (surface === "marketing" && pathname !== "/start") ||
     isStandalone ||
     isEditingText ||
     dismissed
@@ -250,14 +272,21 @@ export function AppPwa() {
   return (
     <aside
       aria-label="Install Nabaperks"
-      className="fixed right-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-3 z-50 mx-auto grid max-w-md gap-3 rounded-lg border-2 border-ink bg-card p-4 text-foreground shadow-xs sm:right-5 sm:left-auto sm:w-[24rem]"
+      className={cn(
+        "fixed right-3 left-3 z-50 mx-auto grid max-w-md gap-3 rounded-lg border-2 border-ink bg-card p-4 text-foreground shadow-xs sm:right-5 sm:left-auto sm:w-[24rem]",
+        // Above the fixed customer tab bar (56px bar + border + breathing
+        // room) instead of floating over its top edge (VCU-P3-13).
+        hasCustomerTabBar(pathname)
+          ? "bottom-[calc(env(safe-area-inset-bottom)+4.5rem)]"
+          : "bottom-[max(0.75rem,env(safe-area-inset-bottom))]"
+      )}
     >
       <div className="flex items-start gap-3">
         <span
           aria-hidden="true"
           className="grid size-9 shrink-0 -rotate-6 place-items-center rounded-full border-2 border-ink bg-primary text-base leading-none font-extrabold text-primary-foreground shadow-xs"
         >
-          *
+          {/* Same glyph as the brand Logo roundel. */}✱
         </span>
         <div className="grid gap-1">
           <p className="text-sm leading-tight font-extrabold">{copy.title}</p>

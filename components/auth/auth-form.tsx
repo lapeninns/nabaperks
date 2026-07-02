@@ -8,6 +8,7 @@ import { AuthField } from "@/components/auth/auth-field"
 import { Eyebrow, VenueMark } from "@/components/brand"
 import { SubmitButton } from "@/components/forms"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { cn } from "@/lib/utils"
 
 type AuthAction = (
   state: AuthActionState,
@@ -28,6 +29,9 @@ type SignUpAuthFormProps = BaseAuthFormProps & {
   mode: "sign-up"
   verifyAction?: AuthAction
   otpLength: number
+  /** Prefill for the email field — e.g. arriving from the sign-in
+   *  "get a fresh code" path with `/signup?email=…`. */
+  initialEmail?: string
 }
 
 type AuthFormProps = SignInAuthFormProps | SignUpAuthFormProps
@@ -46,6 +50,7 @@ export function AuthForm(props: AuthFormProps) {
       next={next}
       embedded={embedded}
       otpLength={props.otpLength}
+      initialEmail={props.initialEmail}
     />
   ) : (
     <SignInForm action={action} next={next} embedded={embedded} />
@@ -88,7 +93,7 @@ function SignInForm({
         <div className="flex justify-end">
           <Link
             href="/reset-password"
-            className="inline-flex min-h-9 items-center rounded-full px-2 text-sm font-bold text-primary underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
+            className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-bold text-primary underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
           >
             Forgot password?
           </Link>
@@ -97,6 +102,16 @@ function SignInForm({
           <Alert variant="destructive">
             <AlertDescription>{state.errors.form}</AlertDescription>
           </Alert>
+        ) : null}
+        {/* Unverified email: a direct fresh-code path with the email carried
+            over, instead of "sign up again" prose. */}
+        {state.fields?.needsVerification && state.fields.email ? (
+          <SwitchPromptLink
+            href={`/signup?email=${encodeURIComponent(state.fields.email)}`}
+            className="justify-self-center"
+          >
+            Get a fresh code
+          </SwitchPromptLink>
         ) : null}
         <SubmitButton pendingLabel="Opening…" className="w-full">
           Log in
@@ -113,12 +128,14 @@ function SignUpForm({
   next,
   embedded,
   otpLength,
+  initialEmail,
 }: {
   action: AuthAction
   verifyAction: AuthAction
   next: string
   embedded: boolean
   otpLength: number
+  initialEmail?: string
 }) {
   const [state, formAction] = useActionState(action, initialState)
   const [verifyState, verifyFormAction] = useActionState(
@@ -154,7 +171,7 @@ function SignUpForm({
           name="email"
           type="email"
           autoComplete="email"
-          defaultValue={codeState.fields?.email}
+          defaultValue={codeState.fields?.email ?? initialEmail}
           error={state.errors?.email}
         />
         {otpSent ? (
@@ -263,12 +280,33 @@ function SwitchPrompt({ isSignUp }: { isSignUp: boolean }) {
   return (
     <p className="text-center text-sm text-muted-foreground">
       {isSignUp ? "Already piloting?" : "New venue?"}{" "}
-      <Link
-        href={isSignUp ? "/login" : "/signup"}
-        className="inline-flex min-h-11 items-center rounded-full px-3 py-2 font-bold text-primary underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
-      >
+      <SwitchPromptLink href={isSignUp ? "/login" : "/signup"}>
         {isSignUp ? "Log in" : "Start free pilot"}
-      </Link>
+      </SwitchPromptLink>
     </p>
+  )
+}
+
+/** The 44px in-copy link treatment shared by the switch prompt and the
+ *  unverified-email fresh-code path. */
+function SwitchPromptLink({
+  href,
+  className,
+  children,
+}: {
+  href: string
+  className?: string
+  children: React.ReactNode
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "inline-flex min-h-11 items-center rounded-full px-3 py-2 font-bold text-primary underline-offset-4 hover:bg-accent hover:text-accent-foreground hover:underline focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none",
+        className
+      )}
+    >
+      {children}
+    </Link>
   )
 }

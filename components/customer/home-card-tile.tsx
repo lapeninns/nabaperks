@@ -35,7 +35,7 @@ export function HomeCardTile({ card }: { card: HomeCard }) {
         <div className="flex items-start justify-between gap-4">
           <div className="grid min-w-0 gap-1">
             <Eyebrow>{card.cardName ?? "Loyalty card"}</Eyebrow>
-            <h2 className="text-lg leading-tight font-extrabold text-balance">
+            <h2 className="text-lg leading-tight font-extrabold text-balance break-words">
               {card.businessName}
             </h2>
           </div>

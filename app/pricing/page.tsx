@@ -176,7 +176,7 @@ export default function PricingPage() {
                         icon={Tick02Icon}
                         size={18}
                         strokeWidth={2.5}
-                        className="mt-0.5 shrink-0 text-primary"
+                        className="mt-0.5 shrink-0 text-reward"
                       />
                       <span className="text-[0.95rem] leading-snug font-bold text-pretty">
                         {item}
@@ -212,7 +212,7 @@ export default function PricingPage() {
                 Your dashboard counts the regulars; you do the maths.
               </p>
             </div>
-            <div className="rounded-[10px] border-2 border-dashed border-border p-5">
+            <div className="rounded-lg border-2 border-dashed border-border p-5">
               <Eyebrow className="mb-2">After day 30</Eyebrow>
               <p className="text-sm leading-6 text-pretty text-muted-foreground">
                 Billing starts after your free pilot. Leave any time with one

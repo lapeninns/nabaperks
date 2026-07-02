@@ -1,11 +1,13 @@
 import { Tick02Icon } from "@hugeicons/core-free-icons"
 
 import { signInAction } from "@/app/(auth)/actions"
+import { AUTH_SECTION_MIN_H } from "@/app/(auth)/viewport"
 
 import { Eyebrow, Icon, PageTitle, ReceiptCard } from "@/components/brand"
 import { AuthForm } from "@/components/auth/auth-form"
 import { MarketingLayout } from "@/components/layout"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { cn } from "@/lib/utils"
 
 const trustPoints = [
   "QR kit, stamps, and rewards in one console",
@@ -43,7 +45,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <MarketingLayout>
-      <section className="mx-auto grid min-h-[calc(100dvh-73px)] w-full max-w-5xl content-start gap-8 px-6 py-6 sm:gap-10 sm:py-10 lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] lg:content-center lg:items-center">
+      <section
+        className={cn(
+          "mx-auto grid w-full max-w-5xl content-start gap-8 px-6 py-6 sm:gap-10 sm:py-10 lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] lg:content-center lg:items-center",
+          AUTH_SECTION_MIN_H
+        )}
+      >
         <div className="order-2 grid gap-6 lg:order-1">
           <PageTitle
             eyebrow="Merchant access"

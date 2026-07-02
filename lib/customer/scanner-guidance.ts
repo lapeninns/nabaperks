@@ -17,8 +17,10 @@ export type ScannerGuidance = {
   readonly showRetry: boolean
 }
 
+// The printed venue QR works with any native camera, so the denied state
+// offers that path instead of dead-ending on the permission (CUS-P3-12).
 const CAMERA_ERROR_DETAIL =
-  "We could not open your camera. Allow camera access, then try again."
+  "We could not open your camera. Allow camera access, then try again. Or scan the venue QR with your phone's camera app."
 
 const INVALID_DETAIL =
   "Point your camera at the venue QR on the table or counter."

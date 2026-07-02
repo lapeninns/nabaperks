@@ -22,6 +22,7 @@ import { EmptyState, SectionHeader } from "@/components/brand"
 import { SubmitButton } from "@/components/forms"
 import { Input } from "@/components/ui/input"
 import type { getAdminPrivacySupportRows } from "@/lib/admin/data"
+import { MARKETING_POLICY_VERSION } from "@/lib/customer/consent"
 import type { AdminLookupState } from "@/lib/admin/lookup-query"
 import { Shield01Icon } from "@hugeicons/core-free-icons"
 
@@ -133,7 +134,11 @@ function ConsentOptOutForm({ row }: { readonly row: PrivacySupportRow }) {
       <input type="hidden" name="customerId" value={row.customer_id} />
       <input type="hidden" name="merchantId" value={row.merchant_id} />
       <input type="hidden" name="source" value="support_request" />
-      <input type="hidden" name="policyVersion" value="2026-06-06" />
+      <input
+        type="hidden"
+        name="policyVersion"
+        value={MARKETING_POLICY_VERSION}
+      />
       <AdminField label="Channel">
         <select name="channel" required className={adminSelectClasses}>
           <option value="email">Email</option>

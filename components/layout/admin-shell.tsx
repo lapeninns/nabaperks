@@ -48,24 +48,35 @@ export function AdminShell({
             activePath={activePath}
           />
         </SidebarContent>
+        {/* Footer tags truncate at sidebar width; each carries `title` (via a
+            wrapper, MonoTag exposes no title prop) so a long operator email is
+            still readable on hover. */}
         <SidebarFooter className="border-t-2 border-ink p-4">
           {operatorEmail ? (
-            <MonoTag tone="ink" className="max-w-full truncate">
-              Operator: {operatorEmail}
-            </MonoTag>
+            <span title={`Operator: ${operatorEmail}`} className="grid min-w-0">
+              <MonoTag tone="ink" className="max-w-full truncate">
+                Operator: {operatorEmail}
+              </MonoTag>
+            </span>
           ) : null}
           {supportStatusItems.map((item) => (
-            <MonoTag
-              key={item}
-              tone="plain"
-              className="max-w-full truncate border-ink bg-background text-muted-foreground"
-            >
-              {item}
-            </MonoTag>
+            <span key={item} title={item} className="grid min-w-0">
+              <MonoTag
+                tone="plain"
+                className="max-w-full truncate border-ink bg-background text-muted-foreground"
+              >
+                {item}
+              </MonoTag>
+            </span>
           ))}
-          <MonoTag tone="leaf" className="max-w-full truncate">
-            {mfaRequired ? "AAL2 verified" : "Admin verified"}
-          </MonoTag>
+          <span
+            title={mfaRequired ? "AAL2 verified" : "Admin verified"}
+            className="grid min-w-0"
+          >
+            <MonoTag tone="leaf" className="max-w-full truncate">
+              {mfaRequired ? "AAL2 verified" : "Admin verified"}
+            </MonoTag>
+          </span>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="min-w-0">

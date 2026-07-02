@@ -41,8 +41,11 @@ test("customer QR scanner rejects non-venue and cross-origin payloads", () => {
 })
 
 test("customer scanner guidance exposes retry only for camera errors", () => {
+  // The denied state also offers the native-camera path (production-polish
+  // CUS-P3-12) — the printed venue QR works with any phone camera app.
   assert.deepEqual(scannerGuidance("camera-error"), {
-    detail: "We could not open your camera. Allow camera access, then try again.",
+    detail:
+      "We could not open your camera. Allow camera access, then try again. Or scan the venue QR with your phone's camera app.",
     showRetry: true,
   })
   assert.deepEqual(scannerGuidance("invalid"), {

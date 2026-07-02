@@ -13,6 +13,7 @@ import {
   MerchantCompactActivitySkeleton,
   MerchantDashboardMetricsSkeleton,
 } from "@/components/merchant/loading-skeletons"
+import { StreamErrorBoundary } from "@/components/merchant/stream-error-boundary"
 import { Button } from "@/components/ui/button"
 import {
   capturePostHogEvent,
@@ -87,17 +88,24 @@ export default async function MerchantAppPage({
         }
       />
 
-      <Suspense fallback={<MerchantDashboardMetricsSkeleton />}>
-        <MerchantDashboardStream
-          merchant={merchant}
-          locationId={locationId}
-          locations={locations}
-        />
-      </Suspense>
+      {/* Per-stream boundaries: a failure inside one stream keeps the other
+          (and the page chrome) up instead of tripping the segment-wide
+          app/app/error.tsx. */}
+      <StreamErrorBoundary label="your dashboard numbers">
+        <Suspense fallback={<MerchantDashboardMetricsSkeleton />}>
+          <MerchantDashboardStream
+            merchant={merchant}
+            locationId={locationId}
+            locations={locations}
+          />
+        </Suspense>
+      </StreamErrorBoundary>
 
-      <Suspense fallback={<MerchantCompactActivitySkeleton />}>
-        <MerchantCompactActivityStream merchantId={merchant.id} />
-      </Suspense>
+      <StreamErrorBoundary label="recent activity">
+        <Suspense fallback={<MerchantCompactActivitySkeleton />}>
+          <MerchantCompactActivityStream merchantId={merchant.id} />
+        </Suspense>
+      </StreamErrorBoundary>
     </div>
   )
 }

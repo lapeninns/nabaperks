@@ -2,7 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { QrCode01Icon, Store01Icon } from "@hugeicons/core-free-icons"
 
-import { Icon, ReceiptCard, SectionHeader } from "@/components/brand"
+import { Icon, MonoTag, ReceiptCard, SectionHeader } from "@/components/brand"
 import { SubmitButton } from "@/components/forms"
 import { Button } from "@/components/ui/button"
 import {
@@ -163,10 +163,12 @@ function LocationCard({
             </p>
           ) : null}
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-ink bg-card px-3 py-1 text-xs font-black">
-          <Icon icon={Store01Icon} size={14} />
+        {/* MonoTag, not a hand-rolled pill — the mono tag is the only
+            sanctioned pill outside the stamp family, and it truncates long
+            card names instead of overflowing the row. */}
+        <MonoTag icon={Store01Icon} className="mt-0.5 shrink-0">
           {location.activeCardName ?? "No active card"}
-        </span>
+        </MonoTag>
       </div>
 
       {location.joinQrPath && location.pngPath ? (

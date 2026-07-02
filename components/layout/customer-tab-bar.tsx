@@ -2,7 +2,6 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { HugeiconsIcon } from "@hugeicons/react"
 import {
   Activity03Icon,
   GiftIcon,
@@ -11,6 +10,7 @@ import {
   Home01Icon,
 } from "@hugeicons/core-free-icons"
 
+import { Icon } from "@/components/brand"
 import { cn } from "@/lib/utils"
 
 type TabItem = {
@@ -77,7 +77,7 @@ export function CustomerTabBar() {
                     : "border-transparent text-ink-soft group-hover:border-ink/30"
                 )}
               >
-                <HugeiconsIcon icon={tab.icon} size={20} strokeWidth={2} />
+                <Icon icon={tab.icon} size={20} />
               </span>
               {tab.label}
             </Link>

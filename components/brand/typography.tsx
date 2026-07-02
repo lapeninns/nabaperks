@@ -37,6 +37,7 @@ export function PageTitle({
   className,
   titleClassName,
   descriptionClassName,
+  headingLevel = 1,
 }: {
   eyebrow?: ReactNode
   title: ReactNode
@@ -45,7 +46,15 @@ export function PageTitle({
   className?: string
   titleClassName?: string
   descriptionClassName?: string
+  /**
+   * Heading rank (default h1). Panels rendered UNDER a page-level h1 (the
+   * launch tabs, /app/qr) pass 2 so a document never carries two h1s — the
+   * EmptyState headingLevel pattern.
+   */
+  headingLevel?: 1 | 2 | 3
 }) {
+  const Heading = `h${headingLevel}` as const
+
   return (
     <section
       className={cn(
@@ -55,14 +64,14 @@ export function PageTitle({
     >
       <div className="grid min-w-0 gap-3">
         {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-        <h1
+        <Heading
           className={cn(
             "max-w-3xl min-w-0 text-3xl leading-tight font-extrabold text-balance break-words text-foreground sm:text-4xl",
             titleClassName
           )}
         >
           {title}
-        </h1>
+        </Heading>
         {description ? (
           <p
             className={cn(

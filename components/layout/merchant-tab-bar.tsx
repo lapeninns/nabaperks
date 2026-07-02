@@ -13,8 +13,12 @@ export function MerchantTabBar() {
   const currentTab = searchParams.get("tab")
 
   return (
+    // "Merchant quick navigation" (not "Merchant navigation") so this nav and
+    // the sidebar nav carry distinct accessible names. Slot economy is
+    // deliberate: five tabs (Home/Poster/Members/Activity/Account) — Announce
+    // stays drawer-only on mobile despite its top-level desktop sidebar slot.
     <nav
-      aria-label="Merchant navigation"
+      aria-label="Merchant quick navigation"
       className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-ink bg-card pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       <div className="mx-auto grid w-full max-w-lg grid-cols-5">

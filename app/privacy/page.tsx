@@ -42,7 +42,7 @@ export default function PrivacyPage() {
         as="div"
         className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start"
       >
-        <aside className="surface-card p-4 lg:sticky lg:top-20">
+        <aside className="surface-card order-last p-4 lg:sticky lg:top-20 lg:order-none">
           <Eyebrow className="mb-3">On this page</Eyebrow>
           <nav aria-label="Privacy sections" className="grid gap-1">
             {PRIVACY_SECTIONS.map((section) => (
@@ -65,6 +65,19 @@ export default function PrivacyPage() {
             titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
             className="md:grid-cols-1"
           />
+
+          <div className="surface-card grid gap-2 p-5">
+            <Eyebrow>If you&apos;re a customer</Eyebrow>
+            <p className="text-sm leading-6 text-muted-foreground">
+              This summary is written for the venues that run Nabaperks, but it
+              covers your data too. Joining a venue&apos;s loyalty card stores
+              your verified phone number, stamps, rewards, and consent choices,
+              scoped to that venue and Nabaperks support. Marketing is optional
+              and separate from collecting stamps, and you can ask for access,
+              deletion, or export at any time using the contact details further
+              down this page.
+            </p>
+          </div>
 
           <ReceiptCard edge className="grid gap-0">
             <div className="flex items-baseline justify-between gap-4">

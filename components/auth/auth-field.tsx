@@ -26,14 +26,11 @@ export function AuthField({
       error={error}
     >
       {/* Well styling (border, ground, radius, focus/invalid) comes from the
-          unlayered [data-slot=input] layer — only layout classes live here. */}
-      <Input
-        id={id}
-        className={cn("h-12 text-sm", className)}
-        aria-invalid={Boolean(error)}
-        aria-describedby={error ? `${id}-error` : undefined}
-        {...props}
-      />
+          unlayered [data-slot=input] layer — only layout classes live here.
+          Aria wiring comes from FormField, which injects aria-describedby
+          covering BOTH the description (e.g. the password rules hint) and the
+          error id, plus aria-invalid — no manual duplicates here. */}
+      <Input id={id} className={cn("h-12 text-sm", className)} {...props} />
     </FormField>
   )
 }

@@ -36,7 +36,9 @@ function HeroRewardRow({
       description={
         revealed
           ? "Ready for merchant scan at the counter."
-          : "Mystery reward stays sealed until the final stamp."
+          : // Short enough to never hit the ticket's two-line clamp — the
+            // sealed name above already carries the mystery.
+            "Stays sealed until the final stamp."
       }
       sealSlammed={revealSlam}
       className={HERO_REWARD_TICKET_CLASS}

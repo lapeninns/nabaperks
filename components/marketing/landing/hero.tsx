@@ -12,8 +12,6 @@ import { type QrMatrix } from "./venue-qr"
 const merchantLinkClass =
   "rounded-sm underline underline-offset-4 transition-colors hover:text-primary focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
 
-const mobileCtaClass = "max-sm:h-10 max-sm:px-4 max-sm:text-sm"
-
 /**
  * Hero — the value before the friction. On narrow screens the hook and CTAs stay
  * tight so the sample card lands in the first viewport; from `lg` the full copy
@@ -37,10 +35,10 @@ export function LandingHero({ qrMatrix }: { qrMatrix: QrMatrix }) {
           pass. Every stamp verified at your counter.
         </p>
         <div className="mt-4 flex max-w-xl flex-wrap items-center gap-2.5 max-sm:order-4 sm:mt-7 sm:gap-3">
-          <Button asChild size="lg" className={mobileCtaClass}>
+          <Button asChild size="lg">
             <Link href="/signup">Start free pilot</Link>
           </Button>
-          <Button asChild size="lg" variant="outline" className={mobileCtaClass}>
+          <Button asChild size="lg" variant="outline">
             <a href="#how-it-works">See how it works</a>
           </Button>
         </div>

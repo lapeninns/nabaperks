@@ -15,15 +15,18 @@ export function CopyUrlButton({ url }: { url: string }) {
       setFailed(false)
       window.setTimeout(() => setCopied(false), 1600)
     } catch {
+      // Mirror the failure visibly (the sr-only line alone left sighted
+      // merchants staring at a silently unchanged "Copy URL").
       setCopied(false)
       setFailed(true)
+      window.setTimeout(() => setFailed(false), 2400)
     }
   }
 
   return (
     <span className="inline-grid gap-1">
       <Button type="button" variant="secondary" onClick={copyUrl}>
-        {copied ? "Copied" : "Copy URL"}
+        {failed ? "Copy failed — copy it by hand" : copied ? "Copied" : "Copy URL"}
       </Button>
       <span className="sr-only" aria-live="polite">
         {failed

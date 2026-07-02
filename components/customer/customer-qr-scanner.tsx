@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Eyebrow, Icon, ReceiptCard } from "@/components/brand"
 import { normalizeScannedQrDestination } from "@/lib/customer/qr-scanner"
 import { scannerGuidance } from "@/lib/customer/scanner-guidance"
+import { cn } from "@/lib/utils"
 
 type ScannerStatus =
   | { readonly kind: "idle" }
@@ -156,11 +157,11 @@ export function CustomerQrScanner() {
 
   const statusText =
     status.kind === "idle"
-      ? "Starting camera..."
+      ? "Starting camera…"
       : status.kind === "scanning"
-        ? "Scanning for a Nabaperks QR..."
+        ? "Scanning for a Nabaperks QR…"
         : status.kind === "decoded"
-          ? "QR found. Opening your venue card..."
+          ? "QR found. Opening your venue card…"
           : status.kind === "invalid"
             ? "That is not a Nabaperks QR. Point your camera at the venue QR to collect a stamp."
             : "Camera unavailable"
@@ -194,7 +195,16 @@ export function CustomerQrScanner() {
         </div>
       </div>
 
-      <div className="aspect-square overflow-hidden rounded-[var(--radius)] border-2 border-dashed border-border bg-card">
+      {/* The dead viewfinder collapses once the camera errors so the recovery
+          actions sit high on small phones (VCU-P3-03). The element stays in
+          the DOM (hidden) — retry resets status to idle first, so the box is
+          visible again before the scanner restarts into it. */}
+      <div
+        className={cn(
+          "aspect-square overflow-hidden rounded-[var(--radius)] border-2 border-dashed border-border bg-card",
+          status.kind === "camera-error" && "hidden"
+        )}
+      >
         <div
           id={SCANNER_ELEMENT_ID}
           className="size-full [&_video]:size-full [&_video]:object-cover"

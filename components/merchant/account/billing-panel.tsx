@@ -65,7 +65,16 @@ export async function BillingPanel({
 
       {billingLoadFailed ? (
         <StatusBanner tone="error" title="Billing details could not be loaded">
-          Try again.
+          This is usually temporary.{" "}
+          {/* A real control, not bare prose — the force-dynamic tab refetches
+              billing on navigation. */}
+          <Link
+            href="/app/account?tab=billing"
+            className="font-bold underline underline-offset-4"
+          >
+            Try again
+          </Link>
+          .
         </StatusBanner>
       ) : null}
 
@@ -105,7 +114,7 @@ function SetupBillingActivationCard() {
 
       <dl className="grid gap-0 rounded-lg border border-border bg-secondary/40 px-3 py-1 text-sm">
         <PlanRow label="Free trial" value="30 days" />
-        <PlanRow label="Then" value="GBP 29 / month" />
+        <PlanRow label="Then" value="£29 a month" />
         <PlanRow label="Billed" value="Per location" />
       </dl>
 
@@ -165,7 +174,7 @@ function AccountBillingCard({
 
       <dl className="grid gap-0 text-sm">
         <PlanRow label="Free trial" value="30 days" />
-        <PlanRow label="Then" value="GBP 29 / month" />
+        <PlanRow label="Then" value="£29 a month" />
         <PlanRow label="Billed" value="Per location" />
       </dl>
 

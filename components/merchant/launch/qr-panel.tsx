@@ -1,8 +1,9 @@
 import Link from "next/link"
 
 import { generateQrCodeAction } from "@/app/app/qr/actions"
-import { ReceiptCard } from "@/components/brand"
-import { PanelTitle } from "@/components/merchant/launch/panel-title"
+import { PageTitle, ReceiptCard } from "@/components/brand"
+import { SubmitButton } from "@/components/forms"
+import { QrErrorBanner } from "@/components/merchant/launch/qr-error-banner"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { QrPanelLive } from "@/components/merchant/launch/qr-panel-live"
 import { LaunchSaveNextAction } from "@/components/merchant/launch/launch-tab-auto-advance"
@@ -48,7 +49,8 @@ export async function QrPanel({
   if (!activeCard) {
     return (
       <ReceiptCard className="grid gap-4">
-        <PanelTitle
+        <PageTitle
+          headingLevel={2}
           eyebrow="Venue QR"
           title="Build your card first"
           description="Nabaperks needs one active mystery visit card before it can create your permanent venue QR."
@@ -68,7 +70,8 @@ export async function QrPanel({
 
     return (
       <ReceiptCard className="grid gap-4">
-        <PanelTitle
+        <PageTitle
+          headingLevel={2}
           eyebrow="Venue QR"
           title="Your QR is not live yet"
           description="Create the permanent venue QR once venue, card, and rewards are ready. Billing is the final activation step."
@@ -90,9 +93,11 @@ export async function QrPanel({
         ) : canCreateQr ? (
           <form action={generateQrCodeAction}>
             <input type="hidden" name="returnTo" value={returnHref} />
-            <Button type="submit" variant="reward">
+            {/* Shared pending recipe: disables against double-taps and gives
+                feedback before the redirect lands. */}
+            <SubmitButton variant="reward" pendingLabel="Creating QR…">
               Create QR
-            </Button>
+            </SubmitButton>
           </form>
         ) : readiness.nextStep ? (
           <StatusBanner tone="warning" title="Finish setup to go live.">
@@ -167,19 +172,3 @@ function statusMessage(
   )
 }
 
-function QrErrorBanner({ error }: { error?: string }) {
-  if (!error) return null
-
-  const message =
-    error === "Add at least 3 active mystery rewards before launching the QR."
-      ? error
-      : error === "Unable to update QR"
-        ? "Unable to update QR. Check the QR status and try again."
-        : "Unable to create QR. Check your card and reward setup, then try again."
-
-  return (
-    <StatusBanner tone="error" title="QR action failed.">
-      {message}
-    </StatusBanner>
-  )
-}

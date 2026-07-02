@@ -21,6 +21,8 @@ export type AuthActionState = {
     name?: string
     email?: string
     otpSent?: boolean
+    /** Sign-in hit an unverified email — the form offers a fresh-code path. */
+    needsVerification?: boolean
   }
   errors?: {
     name?: string
@@ -193,10 +195,13 @@ export async function signInAction(
 
   if (error) {
     if (error.code === "email_not_confirmed") {
+      // needsVerification lets the form render a direct fresh-code link
+      // (prefilled signup) instead of sending the merchant back through the
+      // whole signup form by hand.
       return {
-        fields: { email },
+        fields: { email, needsVerification: true },
         errors: {
-          form: "Verify your email first. Sign up again to get a fresh code.",
+          form: "Verify your email first — get a fresh code and finish verification.",
         },
       }
     }

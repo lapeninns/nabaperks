@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useState } from "react"
 
 import { QrFrame, StatusBanner } from "@/components/loyalty"
@@ -8,6 +9,7 @@ import {
   rewardQrCacheBustedSrc,
   rewardQrRefreshIntervalMs,
 } from "@/lib/customer/reward-qr"
+import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 
 /**
  * The customer-held reward QR. The encoded scan token has a 10-minute TTL
@@ -29,6 +31,10 @@ export function RewardCollectionQr({
   const [tick, setTick] = useState(0)
   const [loaded, setLoaded] = useState(false)
   const [errored, setErrored] = useState(false)
+  // Consecutive image failures. An expired session mid-queue makes `qr.png`
+  // 404 forever, so repeated failures surface a sign-in path instead of an
+  // unwinnable retry loop (CUS-P3-10). A successful load resets it.
+  const [failCount, setFailCount] = useState(0)
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -46,12 +52,28 @@ export function RewardCollectionQr({
     setTick((value) => value + 1)
   }
 
+  const suggestSignIn = failCount >= 2
+
   return (
     <div className="grid gap-3">
       {errored ? (
         <StatusBanner title="We could not show your reward QR" tone="warning">
           <span className="grid gap-3">
             <span>Pull down to refresh, or ask a team member.</span>
+            {suggestSignIn ? (
+              <span>
+                Still not showing? You may be signed out on this phone —{" "}
+                <Link
+                  // The shared helper mirrors load-reward.ts's expired-session
+                  // redirect target and routes `next` through safeNextPath.
+                  href={customerLoginHref(`/reward/${rewardId}`)}
+                  className="font-bold underline underline-offset-4"
+                >
+                  sign in with your number
+                </Link>{" "}
+                to bring it back.
+              </span>
+            ) : null}
             <Button
               type="button"
               size="lg"
@@ -77,8 +99,14 @@ export function RewardCollectionQr({
               src={rewardQrCacheBustedSrc(rewardId, tick)}
               alt={`QR code for collecting ${rewardName}`}
               className="aspect-square w-full object-contain"
-              onLoad={() => setLoaded(true)}
-              onError={() => setErrored(true)}
+              onLoad={() => {
+                setLoaded(true)
+                setFailCount(0)
+              }}
+              onError={() => {
+                setErrored(true)
+                setFailCount((count) => count + 1)
+              }}
             />
           </div>
         </QrFrame>

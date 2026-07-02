@@ -8,7 +8,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Nabaperks",
     short_name: "Nabaperks",
     description:
-      "No-app digital loyalty cards and merchant tools for local businesses.",
+      "No-app digital loyalty cards and merchant tools for UK pubs, cafes and takeaways.",
     start_url: "/start",
     scope: "/",
     display: "standalone",

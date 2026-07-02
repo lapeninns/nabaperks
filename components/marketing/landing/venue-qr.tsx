@@ -45,7 +45,7 @@ export function VenueQr({
       shapeRendering="crispEdges"
       className={cn("block size-full", className)}
     >
-      <path d={path} fill="#111111" />
+      <path d={path} fill="var(--qr)" />
     </svg>
   )
 }

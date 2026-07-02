@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation"
 
-import { ReceiptCard } from "@/components/brand"
-import { PanelTitle } from "@/components/merchant/launch/panel-title"
+import { PageTitle, ReceiptCard } from "@/components/brand"
 import { LaunchSaveNextAction } from "@/components/merchant/launch/launch-tab-auto-advance"
 import { LoyaltyCardForm } from "@/components/merchant/loyalty-card-form"
 import { StatusBanner } from "@/components/loyalty/status-banner"
@@ -35,7 +34,8 @@ export async function CardPanel({
   if (!location) {
     return (
       <ReceiptCard>
-        <PanelTitle
+        <PageTitle
+          headingLevel={2}
           title="Finish onboarding first"
           description="Add your venue before you build your loyalty card."
           titleClassName="sm:text-3xl"

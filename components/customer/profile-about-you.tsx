@@ -199,7 +199,7 @@ function AboutYouEditForm({
 
       <div className="grid gap-2">
         <Button type="submit" size="lg" disabled={pending} className="w-full">
-          {pending ? "Saving..." : "Save changes"}
+          {pending ? "Saving…" : "Save changes"}
         </Button>
         <Button
           type="button"
@@ -240,9 +240,19 @@ function AboutYouEmailVerify({ email }: { email: string | null }) {
             autoFocus
             className={`${profileInputClass} font-mono`}
             aria-invalid={Boolean(state.errors?.otp)}
+            aria-describedby={
+              state.errors?.otp ? "home-profile-otp-error" : undefined
+            }
           />
           {state.errors?.otp ? (
-            <p className="text-sm text-destructive">{state.errors.otp}</p>
+            // Linked from the input via aria-describedby (CUS-P3-09
+            // same-class).
+            <p
+              id="home-profile-otp-error"
+              className="text-sm text-destructive"
+            >
+              {state.errors.otp}
+            </p>
           ) : null}
         </div>
 
@@ -253,7 +263,7 @@ function AboutYouEmailVerify({ email }: { email: string | null }) {
         ) : null}
 
         <Button type="submit" size="lg" disabled={pending} className="w-full">
-          {pending ? "Confirming..." : "Confirm email"}
+          {pending ? "Confirming…" : "Confirm email"}
         </Button>
       </form>
 

@@ -39,14 +39,14 @@ type PosterPreviewChromeProps = PosterChromeProps & {
  */
 const TEMPLATE_TAB_ACCENT: Record<QrPosterTemplateId, string> = {
   editorial:
-    "data-[active=true]:border-l-[var(--w-cobalt)] data-[active=true]:bg-[var(--w-paper-2)]",
-  bold: "data-[active=true]:border-l-ink data-[active=true]:bg-ink data-[active=true]:text-[var(--w-paper)]",
+    "data-[active=true]:border-l-cobalt data-[active=true]:bg-paper-deep",
+  bold: "data-[active=true]:border-l-ink data-[active=true]:bg-ink data-[active=true]:text-paper",
   ticket:
-    "data-[active=true]:border-l-primary data-[active=true]:bg-[var(--w-paper-2)]",
+    "data-[active=true]:border-l-primary data-[active=true]:bg-paper-deep",
   northstar:
-    "data-[active=true]:border-l-[var(--w-sun)] data-[active=true]:bg-ink data-[active=true]:text-[var(--w-paper)]",
+    "data-[active=true]:border-l-sun data-[active=true]:bg-ink data-[active=true]:text-paper",
   thermal:
-    "data-[active=true]:border-l-[var(--w-ink-soft)] data-[active=true]:bg-[var(--w-paper-2)]",
+    "data-[active=true]:border-l-ink-soft data-[active=true]:bg-paper-deep",
 }
 
 function venueLabelOf(merchantName: string, locationName: string) {
@@ -71,7 +71,7 @@ function PrintButton({ className }: { readonly className?: string }) {
 
 function PosterGuidanceText() {
   return (
-    <p className="rounded-lg border-2 border-dashed border-ink/25 bg-[var(--w-paper-2)]/50 px-3 py-2 text-sm leading-6 text-muted-foreground">
+    <p className="rounded-lg border-2 border-dashed border-ink/25 bg-paper-deep/50 px-3 py-2 text-sm leading-6 text-muted-foreground">
       Preview matches print. Use{" "}
       <strong className="font-extrabold text-foreground">A4 portrait</strong> at{" "}
       <strong className="font-extrabold text-foreground">100% scale</strong> — no
@@ -83,12 +83,17 @@ function PosterGuidanceText() {
 function PosterTemplateLinks({
   template,
   qrCodeId,
+  backHref,
   layout,
   activePillRef,
   navRef,
 }: {
   readonly template: QrPosterTemplateId
   readonly qrCodeId: string
+  /** Resolved return base — threaded through `?from=` so switching template
+   *  keeps the Back button pointing at the shell the merchant came from
+   *  (previously dropped, falling back to /app/qr after one switch). */
+  readonly backHref?: string
   readonly layout: "strip" | "stack"
   activePillRef?: Ref<HTMLAnchorElement>
   navRef?: Ref<HTMLElement>
@@ -112,7 +117,7 @@ function PosterTemplateLinks({
           <Link
             key={item.id}
             ref={isActive ? activePillRef : undefined}
-            href={`/app/qr/poster/${item.id}?qr=${qrCodeId}`}
+            href={`/app/qr/poster/${item.id}?qr=${qrCodeId}${backHref ? `&from=${encodeURIComponent(backHref)}` : ""}`}
             title={item.description}
             data-active={isActive ? "true" : "false"}
             aria-current={isActive ? "page" : undefined}
@@ -168,7 +173,7 @@ export function PosterPreviewChrome({
   return (
     <header
       ref={ref}
-      className="qr-poster-chrome sticky top-0 z-20 border-b-2 border-ink bg-[var(--w-paper)]/95 backdrop-blur-sm"
+      className="qr-poster-chrome sticky top-0 z-20 border-b-2 border-ink bg-paper/95 backdrop-blur-sm"
     >
       <div className="mx-auto flex w-full max-w-[var(--poster-frame-max)] items-center gap-3 px-4 py-2.5 sm:px-6 sm:py-3 lg:max-w-none">
         {showSidebarTrigger ? (
@@ -208,7 +213,7 @@ export function PosterPreviewChrome({
           onClick={() => setGuidanceOpen((open) => !open)}
           className={cn(
             "pressable inline-grid size-11 shrink-0 place-items-center rounded-full border-2 border-ink bg-card text-ink shadow-sm transition-[transform,box-shadow,background-color] hover:-translate-y-px hover:shadow-md focus-visible:ring-3 focus-visible:ring-primary/35 focus-visible:outline-none motion-reduce:transition-none lg:hidden",
-            guidanceOpen && "bg-[var(--w-paper-2)]"
+            guidanceOpen && "bg-paper-deep"
           )}
         >
           <Icon icon={InformationCircleIcon} size={18} />
@@ -220,6 +225,7 @@ export function PosterPreviewChrome({
         <PosterTemplateLinks
           template={template}
           qrCodeId={qrCodeId}
+          backHref={backHref}
           layout="strip"
           activePillRef={activePillRef}
           navRef={navRef}
@@ -246,11 +252,12 @@ export function PosterPreviewChrome({
 export function PosterDesktopSidecar({
   template,
   qrCodeId,
-}: Pick<PosterChromeProps, "template" | "qrCodeId">) {
+  backHref,
+}: Pick<PosterChromeProps, "template" | "qrCodeId" | "backHref">) {
   if (!qrCodeId) return null
 
   return (
-    <aside className="qr-poster-sidecar hidden min-h-0 min-w-0 flex-col gap-4 border-l-2 border-ink bg-[var(--w-paper)]/95 p-4 lg:flex lg:overflow-y-auto">
+    <aside className="qr-poster-sidecar hidden min-h-0 min-w-0 flex-col gap-4 border-l-2 border-ink bg-paper/95 p-4 lg:flex lg:overflow-y-auto">
       <div className="grid gap-2">
         <p className="font-mono text-[10px] font-bold tracking-[0.12em] text-muted-foreground uppercase">
           Templates
@@ -258,6 +265,7 @@ export function PosterDesktopSidecar({
         <PosterTemplateLinks
           template={template}
           qrCodeId={qrCodeId}
+          backHref={backHref}
           layout="stack"
         />
       </div>
@@ -288,7 +296,7 @@ export function PosterActionBar({ ref }: PosterActionBarProps) {
   return (
     <footer
       ref={ref}
-      className="qr-poster-action-bar border-t-2 border-ink bg-[var(--w-paper)]/95 backdrop-blur-sm lg:hidden"
+      className="qr-poster-action-bar border-t-2 border-ink bg-paper/95 backdrop-blur-sm lg:hidden"
     >
       <div className="mx-auto grid w-full max-w-[var(--poster-frame-max)] gap-2 px-4 py-2.5 sm:grid-cols-[1fr_auto] sm:items-center sm:gap-4 sm:px-6 sm:py-3">
         <p className="font-mono text-[10px] font-bold tracking-[0.1em] text-muted-foreground uppercase">

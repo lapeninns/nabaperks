@@ -86,21 +86,22 @@ export function CustomerIdentityForm({
           className="w-full"
           disabled={requestPending}
         >
-          {requestPending ? "Sending..." : "Text me the code"}
+          {requestPending ? "Sending…" : "Text me the code"}
         </Button>
         <p role="status" aria-live="polite" className="sr-only">
           {requestPending ? "Sending your code" : ""}
         </p>
       </form>
 
-      {qrId ? (
-        <Link
-          href={joinWelcomeHref(merchantSlug, qrId)}
-          className="text-center text-xs font-bold underline underline-offset-4"
-        >
-          {JOIN_PHONE_BACK_LABEL}
-        </Link>
-      ) : null}
+      {/* A back affordance to re-read the offer always renders (VCU-P3-10):
+          the QR journey returns to the welcome step; a direct join links the
+          venue landing, which carries the same preview. */}
+      <Link
+        href={qrId ? joinWelcomeHref(merchantSlug, qrId) : `/m/${merchantSlug}`}
+        className="text-center text-xs font-bold underline underline-offset-4"
+      >
+        {JOIN_PHONE_BACK_LABEL}
+      </Link>
     </div>
   )
 }
@@ -139,6 +140,9 @@ export function CustomerJoinForm({
             type="checkbox"
             className="mt-0.5 size-5 shrink-0 accent-primary"
             aria-invalid={Boolean(state.errors?.loyaltyTerms)}
+            aria-describedby={
+              state.errors?.loyaltyTerms ? "loyalty-terms-error" : undefined
+            }
           />
           <span className="grid gap-1">
             <span className="flex flex-wrap items-center gap-2">
@@ -175,7 +179,11 @@ export function CustomerJoinForm({
         </label>
       </fieldset>
       {state.errors?.loyaltyTerms ? (
-        <p className="text-sm text-destructive">{state.errors.loyaltyTerms}</p>
+        // Linked from the checkbox via aria-describedby, matching the phone
+        // field's pattern (CUS-P3-02).
+        <p id="loyalty-terms-error" className="text-sm text-destructive">
+          {state.errors.loyaltyTerms}
+        </p>
       ) : null}
       {state.errors?.form ? (
         // Wet Ink error treatment (CUS-P2-07): the shared banner instead of
@@ -187,7 +195,7 @@ export function CustomerJoinForm({
         needed.
       </p>
       <Button type="submit" size="lg" disabled={pending} className="w-full">
-        {pending ? "Stamping..." : "Get my first stamp"}
+        {pending ? "Stamping…" : "Get my first stamp"}
       </Button>
     </form>
   )

@@ -66,7 +66,12 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#cf330a",
+  // Vermillion chrome on light paper; dark scheme matches the dark paper so
+  // the browser chrome does not stay vermillion against #1b1712.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#cf330a" },
+    { media: "(prefers-color-scheme: dark)", color: "#1b1712" },
+  ],
 }
 
 export default function RootLayout({

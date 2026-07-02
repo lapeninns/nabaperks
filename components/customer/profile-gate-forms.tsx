@@ -93,7 +93,7 @@ function ProfileDetailsStep({
       ) : null}
 
       <Button type="submit" size="lg" disabled={pending} className="w-full">
-        {pending ? "Saving..." : "Save my details"}
+        {pending ? "Saving…" : "Save my details"}
       </Button>
     </form>
   )
@@ -132,9 +132,16 @@ function ProfileEmailStep({
             maxLength={otpFieldMaxLength()}
             className={`${profileInputClass} font-mono`}
             aria-invalid={Boolean(state.errors?.otp)}
+            aria-describedby={
+              state.errors?.otp ? "profile-otp-error" : undefined
+            }
           />
           {state.errors?.otp ? (
-            <p className="text-sm text-destructive">{state.errors.otp}</p>
+            // Linked from the input via aria-describedby, matching the shared
+            // Field pattern (CUS-P3-09).
+            <p id="profile-otp-error" className="text-sm text-destructive">
+              {state.errors.otp}
+            </p>
           ) : null}
         </div>
 
@@ -145,7 +152,7 @@ function ProfileEmailStep({
         ) : null}
 
         <Button type="submit" size="lg" disabled={pending} className="w-full">
-          {pending ? "Confirming..." : "Confirm email"}
+          {pending ? "Confirming…" : "Confirm email"}
         </Button>
       </form>
 

@@ -28,7 +28,7 @@ export function buildHomeSummary(cards: readonly HomeCard[]): HomeSummary {
 }
 
 export function homeCardStatusCopy(card: HomeCard): string {
-  if (card.primaryRewardId) return "Reward ready - show QR at the counter"
+  if (card.primaryRewardId) return "Reward ready — show QR at the counter"
   if (!card.available) {
     return card.unavailableReason ?? "This card is unavailable right now."
   }
@@ -36,11 +36,11 @@ export function homeCardStatusCopy(card: HomeCard): string {
   // progress copy so it is not hidden — `redeemable_from` may skip weekends, so
   // avoid promising "tomorrow".
   if (card.unlockedRewards > 0) {
-    return "Reward almost ready - back on the next opening day"
+    return "Reward almost ready — back on the next opening day"
   }
   if (card.stampedToday) return "Stamp secured for today"
   if (card.stampsRequired !== null) {
-    return `${card.currentStamps} of ${card.stampsRequired} stamps - ${card.stampsRemaining} more to unlock`
+    return `${card.currentStamps} of ${card.stampsRequired} stamps — ${card.stampsRemaining} more to unlock`
   }
   return "Open this card for the latest loyalty status"
 }

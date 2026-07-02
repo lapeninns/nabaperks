@@ -3,6 +3,7 @@ import Link from "next/link"
 
 import { Eyebrow, Logo, ReceiptCard } from "@/components/brand"
 import { CustomerShell } from "@/components/layout"
+import { UnavailableRecoveryActions } from "@/components/customer/unavailable-recovery"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { getMerchantJoinContext } from "@/lib/customer/join"
@@ -32,10 +33,10 @@ export default async function MerchantTermsPage({
   try {
     context = await getMerchantJoinContext(merchantSlug)
   } catch {
-    return <UnavailableTerms merchantSlug={merchantSlug} />
+    return <UnavailableTerms />
   }
 
-  if (!context) return <UnavailableTerms merchantSlug={merchantSlug} />
+  if (!context) return <UnavailableTerms />
 
   const { merchant, loyaltyCard } = context
   const contact = [merchant.email, merchant.phone].filter(Boolean).join(" · ")
@@ -98,7 +99,7 @@ export default async function MerchantTermsPage({
   )
 }
 
-function UnavailableTerms({ merchantSlug }: { merchantSlug: string }) {
+function UnavailableTerms() {
   return (
     <CustomerShell className="grid content-center gap-6">
       <Logo compact className="justify-self-center" />
@@ -107,14 +108,7 @@ function UnavailableTerms({ merchantSlug }: { merchantSlug: string }) {
         Ask the venue team for the current loyalty QR before joining.
       </StatusBanner>
 
-      <div className="grid gap-3">
-        <Button asChild size="lg" className="w-full">
-          <Link href={`/m/${merchantSlug}`}>Back to loyalty card</Link>
-        </Button>
-        <Button asChild size="lg" variant="secondary" className="w-full">
-          <Link href="/privacy">Privacy notice</Link>
-        </Button>
-      </div>
+      <UnavailableRecoveryActions />
     </CustomerShell>
   )
 }

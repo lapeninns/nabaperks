@@ -128,7 +128,7 @@ export function A4Poster({
             </div>
           </div>
         </div>
-        <PosterDesktopSidecar template={template} qrCodeId={qrCodeId} />
+        <PosterDesktopSidecar template={template} qrCodeId={qrCodeId} backHref={backHref} />
       </div>
       <PosterActionBar ref={actionBarRef} />
     </main>

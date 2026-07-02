@@ -18,7 +18,7 @@ export function CardInfoRow({
   framed?: boolean
 }) {
   return (
-    <div className="flex min-h-[4.25rem] items-center gap-3 rounded-[10px] border-2 border-ink bg-background p-3 shadow-xs">
+    <div className="flex min-h-[4.25rem] items-center gap-3 rounded-lg border-2 border-ink bg-background p-3 shadow-xs">
       {framed ? (
         <span className="grid size-[3.25rem] shrink-0 place-items-center rounded-md border-2 border-ink bg-white p-1">
           {icon}
@@ -72,7 +72,7 @@ export function CardStampRow({
   slamIndex?: number
 }) {
   return (
-    <div className="min-h-[5rem] rounded-[10px] bg-accent px-3 py-3.5">
+    <div className="min-h-[5rem] rounded-lg bg-accent px-3 py-3.5">
       <StampGrid
         current={current}
         total={total}

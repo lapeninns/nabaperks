@@ -221,7 +221,9 @@ function FraudFlagResolutionForm({
     <AdminActionForm action={resolveFraudFlagAction}>
       <input type="hidden" name="fraudFlagId" value={flagId} />
       <input type="hidden" name="status" value={status} />
-      <AdminField label="Reason">
+      <AdminField
+        label={status === "reviewed" ? "Review reason" : "Dismissal reason"}
+      >
         <Input name="reason" required minLength={4} />
       </AdminField>
       <SubmitButton

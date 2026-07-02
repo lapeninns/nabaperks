@@ -137,6 +137,13 @@ async function RewardScanStream({
         </>
       )}
 
+      {/* Post-collection the natural next task at a busy counter is the NEXT
+          member — lead with "Scan another" once this reward is closed. */}
+      {isRedeemed ? (
+        <Button asChild>
+          <Link href="/app/scan">Scan another reward</Link>
+        </Button>
+      ) : null}
       <Button asChild variant="secondary">
         <Link href="/app">Back to dashboard</Link>
       </Button>

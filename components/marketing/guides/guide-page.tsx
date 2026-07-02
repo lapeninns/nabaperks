@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
 
-import { ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons"
+import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
 
 import { Eyebrow, Icon, MonoTag } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
@@ -42,6 +42,8 @@ export function GuidePage({
   const navLinks = [
     { href: ROUTES.pubHub, label: "Loyalty for pubs" },
     { href: ROUTES.pricing, label: "Pricing" },
+    // Returning pilot merchants reach guides from search — keep sign-in.
+    { href: "/login", label: "Log in" },
   ]
 
   const graph = marketingPageGraph({
@@ -56,14 +58,32 @@ export function GuidePage({
   return (
     <MarketingLayout navLinks={navLinks}>
       <Section width="narrow" className="max-w-3xl">
+        {/* Real three-level trail matching the JSON-LD BreadcrumbList, so a
+            reader landing from search can orient and step up a level. */}
         <nav aria-label="Breadcrumb">
-          <Link
-            href={ROUTES.pubHub}
-            className="mono-meta inline-flex items-center gap-1 text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
-          >
-            <Icon icon={ArrowLeft01Icon} size={14} strokeWidth={2.5} />
-            {CTA.pub}
-          </Link>
+          <ol className="mono-meta flex flex-wrap items-center gap-1.5 text-muted-foreground">
+            <li>
+              <Link
+                href={ROUTES.home}
+                className="underline-offset-4 hover:text-primary hover:underline"
+              >
+                Home
+              </Link>
+            </li>
+            <li aria-hidden="true">/</li>
+            <li>
+              <Link
+                href={ROUTES.pubHub}
+                className="underline-offset-4 hover:text-primary hover:underline"
+              >
+                {CTA.pub}
+              </Link>
+            </li>
+            <li aria-hidden="true">/</li>
+            <li aria-current="page" className="text-foreground">
+              {guideByHref(href)?.nav ?? title}
+            </li>
+          </ol>
         </nav>
 
         <header className="mt-5">

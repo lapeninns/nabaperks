@@ -84,6 +84,14 @@ export function AnnouncementCompose({
         body: trimmedBody,
       })
       setResult(nextResult)
+      if (nextResult.ok) {
+        // A sent announcement clears the fields: the disabled button then
+        // reads as "nothing to send" instead of inviting a duplicate submit
+        // of the same copy (server-side dedupe would only soften that to
+        // "skipped").
+        setTitle("")
+        setBody("")
+      }
     } catch {
       setResult({ ok: false, status: 0, error: "network_error" })
     } finally {
@@ -167,13 +175,17 @@ export function AnnouncementCompose({
         <p className="max-w-md text-xs leading-5 text-muted-foreground">
           Sent only to members with push updates enabled for this venue.
         </p>
+        {/* Muted secondary while unsendable: a half-opacity vermillion reads
+            as an off-palette pink button rather than a disabled state. Real
+            ellipsis on the pending label (console-wide convention). */}
         <Button
           type="submit"
+          variant={canSubmit || pending ? "default" : "secondary"}
           disabled={!canSubmit}
           className="w-full sm:w-auto"
         >
           <Icon icon={Megaphone01Icon} size={16} />
-          {pending ? "Sending" : "Send announcement"}
+          {pending ? "Sending…" : "Send announcement"}
         </Button>
       </div>
     </form>

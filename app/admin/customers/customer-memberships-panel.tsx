@@ -37,23 +37,26 @@ export function CustomerMembershipsPanel({
   const searching = Boolean(lookup.venue || lookup.contact)
 
   return (
-    <AdminPanel>
-      <SectionHeader
-        title="Memberships"
-        description="Search every membership by venue or masked-contact fragment. Masked customer contacts and merchant-scoped stamp counters from service-role support reads."
-        actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
-      />
-      <AdminLookupControls
-        basePath="/admin/customers"
-        lookup={lookup}
-        label="Membership lookup"
-      />
+    <AdminPanel className="p-0">
+      <div className="grid gap-4 border-b p-5">
+        <SectionHeader
+          title="Memberships"
+          description="Search every membership by venue or masked-contact fragment. Masked customer contacts and merchant-scoped stamp counters from service-role support reads."
+          actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
+        />
+        <AdminLookupControls
+          basePath="/admin/customers"
+          lookup={lookup}
+          label="Membership lookup"
+        />
+      </div>
       {result ? (
         <>
           <DataTable
             caption="Admin customer membership support readback"
             cardBreakpoint="xl"
-            className="rounded-lg shadow-none"
+            className="rounded-none border-0 shadow-none"
+            mobileClassName="p-5"
             rows={result.rows}
             getRowKey={(row) => row.id}
             emptyState={
@@ -62,13 +65,13 @@ export function CustomerMembershipsPanel({
                   icon={UserMultiple02Icon}
                   title="No matching memberships"
                   description="Adjust the venue or contact search, or clear it to see the newest memberships."
-                  className="rounded-none border-0 p-0 shadow-none"
+                  className="rounded-none border-0 shadow-none"
                 />
               ) : (
                 <EmptyState
                   icon={UserMultiple02Icon}
                   title="No customer memberships yet"
-                  className="rounded-none border-0 p-0 shadow-none"
+                  className="rounded-none border-0 shadow-none"
                 />
               )
             }
@@ -171,15 +174,21 @@ export function CustomerMembershipsPanel({
               },
             ]}
           />
-          <AdminLookupPagination
-            label="Membership pages"
-            unit="memberships"
-            meta={result.meta}
-            hrefForPage={hrefForPage}
-          />
+          {result.meta.total > 0 ? (
+            <div className="p-5 pt-0">
+              <AdminLookupPagination
+                label="Membership pages"
+                unit="memberships"
+                meta={result.meta}
+                hrefForPage={hrefForPage}
+              />
+            </div>
+          ) : null}
         </>
       ) : (
-        <AdminLookupErrorState title="Membership lookup unavailable" />
+        <div className="p-5 pt-0">
+          <AdminLookupErrorState title="Membership lookup unavailable" />
+        </div>
       )}
     </AdminPanel>
   )
@@ -190,8 +199,11 @@ function StampAdjustmentForm({ membershipId }: { membershipId: string }) {
     <AdminActionForm action={adjustStampsAction} className="min-w-[280px]">
       <input type="hidden" name="membershipId" value={membershipId} />
       <div className="grid gap-2 sm:grid-cols-[96px_1fr]">
-        <AdminField label="Delta">
-          <Input name="delta" type="number" required />
+        <AdminField
+          label="Delta"
+          helper="Positive adds stamps, negative removes them."
+        >
+          <Input name="delta" type="number" required min={-25} max={25} />
         </AdminField>
         <AdminField label="Reason">
           <Input name="reason" required minLength={4} />

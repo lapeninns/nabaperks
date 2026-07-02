@@ -159,6 +159,11 @@ export function MerchantAppShell({
             <Logo href="/app" prefetch={false} />
           </header>
         )}
+        {/* hideMobileChrome strips ALL content padding for the full-bleed
+            poster sheet. Contract: any non-poster surface reachable under a
+            chromeless path must self-pad — app/app/error.tsx and the scoped
+            app/app/qr/poster/[template]/not-found.tsx both carry px-6 py-10
+            for exactly this reason. */}
         <div
           className={
             hideMobileChrome

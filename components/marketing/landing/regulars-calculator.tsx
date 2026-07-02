@@ -226,6 +226,7 @@ export function RegularsCalculator() {
               type="button"
               size="sm"
               variant="ghost"
+              className="underline underline-offset-4"
               onClick={() => {
                 navigator.clipboard
                   ?.writeText(summary)

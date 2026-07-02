@@ -173,7 +173,7 @@ export default async function AdminPilotPage() {
                       name="merchantId"
                       value={merchant.id}
                     />
-                    <div className="grid gap-3 lg:grid-cols-[220px_160px_minmax(0,1fr)_auto]">
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[220px_160px_minmax(0,1fr)_auto]">
                       <AdminField label="Note type">
                         <select
                           name="noteType"
@@ -206,7 +206,10 @@ export default async function AdminPilotPage() {
                           placeholder="1-3"
                         />
                       </AdminField>
-                      <AdminField label="Notes">
+                      <AdminField
+                        label="Notes"
+                        className="sm:col-span-2 xl:col-span-1"
+                      >
                         <Textarea
                           name="notes"
                           required
@@ -217,7 +220,7 @@ export default async function AdminPilotPage() {
                       </AdminField>
                       <SubmitButton
                         pendingLabel="Saving…"
-                        className="self-end"
+                        className="justify-self-start sm:col-span-2 xl:col-span-1 xl:self-end"
                       >
                         <Icon icon={CheckmarkCircle02Icon} size={16} />
                         Save note

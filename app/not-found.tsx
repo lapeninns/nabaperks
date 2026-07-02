@@ -4,6 +4,8 @@ import { AlertDiamondIcon } from "@hugeicons/core-free-icons"
 import { EmptyState, Logo } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 
+export const metadata = { title: "Page not found" }
+
 export default function NotFound() {
   return (
     <main className="grid min-h-svh place-items-center px-6 py-10">

@@ -92,9 +92,11 @@ export function NorthStarPoster({
           <p className={styles.venueName}>{venueName}</p>
         </header>
 
-        <h1 className={styles.hook}>
+        {/* h2, not h1 — the preview page's h1 is the chrome heading; the
+            poster sheet is content (same fix as poster-pieces Headline). */}
+        <h2 className={styles.hook}>
           Everyone <span className={styles.hookAccent}>wins</span> something.
-        </h1>
+        </h2>
 
         <p className={styles.ease}>No app · 20 seconds · No spam</p>
 

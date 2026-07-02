@@ -1,21 +1,28 @@
+import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Suspense } from "react"
-import { UserMultiple02Icon } from "@hugeicons/core-free-icons"
+import { QrCode01Icon, UserMultiple02Icon } from "@hugeicons/core-free-icons"
 
-import { EmptyState, PageTitle } from "@/components/brand"
+import { EmptyState, Icon, PageTitle } from "@/components/brand"
 import { CustomerReadbackTable } from "@/components/merchant/customer-readback-table"
 import { MerchantCustomersTableSkeleton } from "@/components/merchant/loading-skeletons"
+import { Button } from "@/components/ui/button"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import {
   getMerchantCustomers,
   getMerchantCustomerCount,
 } from "@/lib/merchant/dashboard"
+import {
+  CUSTOMERS_PAGE_SIZE,
+  resolveCustomersPageRequest,
+} from "@/lib/merchant/customers-paging"
 
 export const dynamic = "force-dynamic"
 
 type CustomersPageProps = {
   searchParams?: Promise<{
     highlight?: string | string[]
+    page?: string | string[]
   }>
 }
 
@@ -37,6 +44,7 @@ export default async function MerchantCustomersPage({
     : ({} satisfies CustomersSearchParams)
 
   const highlightedMembershipId = firstParam(params.highlight)
+  const pageRequest = resolveCustomersPageRequest(params.page)
 
   return (
     // min-w-0: never let the members table's intrinsic width stretch this
@@ -49,9 +57,14 @@ export default async function MerchantCustomersPage({
         description="Stamp progress and reward status for everyone who has joined your card."
       />
 
-      <Suspense fallback={<MerchantCustomersTableSkeleton />}>
+      <Suspense
+        key={pageRequest.page}
+        fallback={<MerchantCustomersTableSkeleton />}
+      >
         <CustomersTableStream
           merchantId={merchant.id}
+          page={pageRequest.page}
+          offset={pageRequest.offset}
           highlightedMembershipId={highlightedMembershipId}
         />
       </Suspense>
@@ -61,20 +74,27 @@ export default async function MerchantCustomersPage({
 
 async function CustomersTableStream({
   merchantId,
+  page,
+  offset,
   highlightedMembershipId,
 }: {
   merchantId: string
+  page: number
+  offset: number
   highlightedMembershipId?: string
 }) {
   // getMerchantCustomers masks every row inside lib/merchant/* and returns the
   // pre-masked view models directly, so raw email/phone never reach this server
   // component or the client bundle. The client table owns its own summary /
   // search / filter UI over these masked rows.
-  // The masked rows are capped at 100; fetch the true member count alongside
-  // them (PII-free, head:true) so the "Members" stat reports the real total
-  // even when the table list is truncated.
+  // Pages window the newest-first list (CUSTOMERS_PAGE_SIZE rows each); the
+  // true member count loads in parallel (PII-free, head:true) so the "Members"
+  // stat and the pagination stay honest beyond the first page.
   const [customers, totalMembers] = await Promise.all([
-    getMerchantCustomers(merchantId),
+    getMerchantCustomers(merchantId, new Date(), {
+      limit: CUSTOMERS_PAGE_SIZE,
+      offset,
+    }),
     getMerchantCustomerCount(merchantId),
   ])
 
@@ -82,12 +102,21 @@ async function CustomersTableStream({
     <CustomerReadbackTable
       customers={customers}
       totalMembers={totalMembers}
+      page={page}
       highlightedMembershipId={highlightedMembershipId}
       emptyState={
         <EmptyState
           title="No members yet"
           description="Members will appear here after they join via the venue QR."
           icon={UserMultiple02Icon}
+          actions={
+            <Button asChild>
+              <Link href="/app/qr" prefetch={false}>
+                <Icon icon={QrCode01Icon} size={16} />
+                Open your Poster kit
+              </Link>
+            </Button>
+          }
         />
       }
     />

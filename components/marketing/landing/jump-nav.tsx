@@ -19,19 +19,25 @@ const jumpLinks = [
 export function JumpNav() {
   return (
     <Section as="div" size="tight">
-      <nav aria-label="On this page">
+      <nav aria-label="On this page" className="relative">
         <ul className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden">
           {jumpLinks.map((link) => (
             <li key={link.href} className="shrink-0">
               <a
                 href={link.href}
-                className="pressable mono-meta inline-flex items-center rounded-full border-2 border-ink/15 bg-card px-3.5 py-1.5 whitespace-nowrap transition-colors hover:border-ink hover:bg-accent hover:text-accent-foreground focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
+                className="pressable mono-meta focus-ring inline-flex items-center rounded-full border-2 border-line bg-card px-3.5 py-1.5 whitespace-nowrap transition-colors hover:border-ink hover:bg-accent hover:text-accent-foreground"
               >
                 {link.label}
               </a>
             </li>
           ))}
         </ul>
+        {/* Right-edge fade: signals that more chips scroll off-screen on
+            phones; the row wraps from `sm` so the hint disappears there. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent sm:hidden"
+        />
       </nav>
     </Section>
   )
