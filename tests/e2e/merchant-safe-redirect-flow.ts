@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto"
 import { expect, test } from "@playwright/test"
 
 import { adminLiveDbSkipReason } from "./helpers/admin-live-db"
@@ -10,6 +11,7 @@ export function describeMerchantSafeRedirects(): void {
   test.describe("@admin-live-db merchant safe redirects", () => {
     const reason = adminLiveDbSkipReason()
     test.skip(Boolean(reason), reason)
+    test.use({ serviceWorkers: "block" })
 
     test.beforeEach(async ({ page }) => {
       await dismissPwaInstall(page)
@@ -20,6 +22,9 @@ export function describeMerchantSafeRedirects(): void {
     }) => {
       const unsafeNext = "/\t/evil.example"
 
+      await page.setExtraHTTPHeaders({
+        "x-vercel-forwarded-for": localLoopbackIp(randomUUID()),
+      })
       await page.goto(`/login?next=${encodeURIComponent(unsafeNext)}`)
       const sameOrigin = new URL(page.url()).origin
 
@@ -39,4 +44,10 @@ export function describeMerchantSafeRedirects(): void {
       expect(redirectedUrl.pathname).toBe("/app")
     })
   })
+}
+
+function localLoopbackIp(nonce: string): string {
+  const first = Number.parseInt(nonce.slice(0, 2), 16) || 1
+  const second = Number.parseInt(nonce.slice(2, 4), 16) || 1
+  return `127.${first}.${second}.1`
 }

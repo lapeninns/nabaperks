@@ -2,6 +2,7 @@ export { CategoryBadge } from "./category-badge"
 export { Logo } from "./logo"
 export { MonoTag } from "./mono-tag"
 export { ReceiptCard } from "./receipt-card"
+export { MemberMark, type MemberMarkTone } from "./member-mark"
 export { VenueMark, deriveVenueInitials } from "./venue-mark"
 export {
   EmptyState,

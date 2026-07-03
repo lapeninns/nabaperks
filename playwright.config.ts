@@ -28,6 +28,13 @@ const devServerEnv = [
   "RESEND_FROM=",
   "TWILIO_MESSAGING_SERVICE_SID=",
 ].join(" ")
+const localWorkerOverride = process.env.PLAYWRIGHT_WORKERS
+  ? Number.parseInt(process.env.PLAYWRIGHT_WORKERS, 10)
+  : 1
+const localWorkers =
+  Number.isFinite(localWorkerOverride) && localWorkerOverride > 0
+    ? localWorkerOverride
+    : 1
 const snapshotPathTemplate =
   "{testDir}/{testFilePath}-snapshots/{arg}-{projectName}{ext}"
 const ciLinuxSnapshotPathTemplate =
@@ -40,13 +47,16 @@ export default defineConfig({
   timeout: 180_000,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 1 : localWorkers,
   expect: {
     timeout: 15_000,
   },
   snapshotPathTemplate,
   use: {
     baseURL,
+    contextOptions: {
+      reducedMotion: "reduce",
+    },
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },

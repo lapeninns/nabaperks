@@ -7,7 +7,7 @@ import Link from "next/link"
 import { ScanIcon, Search01Icon } from "@hugeicons/core-free-icons"
 
 import { DataTable, StatStrip, type DataTableColumn } from "@/components/data"
-import { FilterPills, Icon, MonoTag, VenueMark } from "@/components/brand"
+import { FilterPills, Icon, MemberMark, MonoTag } from "@/components/brand"
 import { StampGrid } from "@/components/loyalty/stamp-grid"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -82,7 +82,11 @@ function CustomerMobileCard({
       >
         {/* Identity row: avatar + identifier + badge */}
         <div className="flex min-w-0 items-start gap-2.5 px-3 py-3">
-          <VenueMark initials={row.initials || "?"} size={36} />
+          <MemberMark
+            initials={row.initials || "?"}
+            tone={row.badge.tone}
+            size={36}
+          />
           <span className="grid min-w-0 flex-1 gap-0.5 pt-0.5">
             <span className="truncate text-sm leading-snug font-bold">
               {row.identifier}
@@ -205,7 +209,11 @@ function buildColumns(
               ? { "data-customer-highlight": "true", tabIndex: -1 }
               : {})}
           >
-            <VenueMark initials={row.initials || "?"} size={32} />
+            <MemberMark
+              initials={row.initials || "?"}
+              tone={row.badge.tone}
+              size={32}
+            />
             <span className="grid min-w-0 gap-0.5">
               <span className="truncate text-sm leading-snug font-bold">
                 {row.identifier}

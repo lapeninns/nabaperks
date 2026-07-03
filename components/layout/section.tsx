@@ -1,5 +1,6 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react"
 
+import { WetInkRise } from "@/components/motion"
 import { cn } from "@/lib/utils"
 
 /**
@@ -10,7 +11,9 @@ import { cn } from "@/lib/utils"
  * scattered across ~16 components). `scroll-mt-24` is always on so JumpNav /
  * hero anchors clear the sticky header. Pass `className` to extend or override —
  * it merges last via `cn`, so a caller can swap in its own grid/padding (e.g.
- * the hero's two-column grid). Server component.
+ * the hero's two-column grid). `entrance` defaults on so marketing sections
+ * rise independently as they enter the viewport; opt out for sticky chrome.
+ * Server component.
  */
 type SectionSize = "default" | "compact" | "tight" | "flush"
 type SectionWidth = "marketing" | "narrow"
@@ -31,6 +34,7 @@ type SectionProps = {
   as?: "section" | "div"
   size?: SectionSize
   width?: SectionWidth
+  entrance?: boolean
   children: ReactNode
 } & Omit<ComponentPropsWithoutRef<"section">, "children">
 
@@ -38,20 +42,34 @@ export function Section({
   as: Tag = "section",
   size = "default",
   width = "marketing",
+  entrance = true,
   className,
   children,
   ...props
 }: SectionProps) {
+  const sectionClassName = cn(
+    "mx-auto w-full scroll-mt-24 px-6",
+    widthMax[width],
+    sizePad[size],
+    className
+  )
+
+  if (entrance) {
+    return (
+      <WetInkRise
+        as={Tag}
+        inView
+        distance={12}
+        className={sectionClassName}
+        {...props}
+      >
+        {children}
+      </WetInkRise>
+    )
+  }
+
   return (
-    <Tag
-      className={cn(
-        "mx-auto w-full scroll-mt-24 px-6",
-        widthMax[width],
-        sizePad[size],
-        className
-      )}
-      {...props}
-    >
+    <Tag className={sectionClassName} {...props}>
       {children}
     </Tag>
   )

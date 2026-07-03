@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation"
 import { Suspense } from "react"
 
 import { PageTitle } from "@/components/brand"
+import { CelebrationUrlCleanup } from "@/components/customer/celebration-url-cleanup"
 import { RewardScanContentSkeleton } from "@/components/merchant/loading-skeletons"
 import { MerchantRewardCollectionForm } from "@/components/merchant/reward-collection-form"
 import { RewardTicket, StatusBanner } from "@/components/loyalty"
@@ -97,10 +98,12 @@ async function RewardScanStream({
 
   return (
     <>
+      {isRedeemed && collected ? <CelebrationUrlCleanup /> : null}
       <RewardTicket
         state={isRedeemed ? "redeemed" : "ready"}
         name={context.rewardName}
         description={context.rewardTerms}
+        sealSlammed={isRedeemed && collected}
       />
 
       <h2 className="sr-only">Member and card details</h2>
@@ -120,8 +123,8 @@ async function RewardScanStream({
       {isRedeemed ? (
         <StatusBanner title="Reward collected" tone="success">
           {collected ? "Reward marked collected. " : null}
-          This reward is now closed. The member can scan the venue QR again
-          when they are ready for their next stamp.
+          This reward is now closed. The member can scan the venue QR again when
+          they are ready for their next stamp.
         </StatusBanner>
       ) : context.status === "blocked" ? (
         <StatusBanner title="Cannot collect this reward" tone="warning">

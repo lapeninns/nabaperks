@@ -6,6 +6,7 @@ import {
   connectLocalDb,
   type Sql,
 } from "./helpers/admin-live-db"
+import { installSeededAdminAal2Session } from "./helpers/admin-mfa-session"
 import { dismissPwaInstall } from "./helpers/harness"
 
 type BillingSeedRow = {
@@ -25,27 +26,17 @@ type BillingRedactionFixture = {
   readonly maskedSubscriptionRef: string
 }
 
-const ADMIN_EMAIL = "admin@nabaperks.test"
-const ADMIN_PASSWORD = "NabaperksDemo1!"
-
 const BILLING_FIXTURE_IDS = {
   chromium: "19000000-0000-0000-0000-000000000001",
   "mobile-safari": "19000000-0000-0000-0000-000000000002",
 } as const
+const LIVE_ADMIN_CONTENT_TIMEOUT_MS = 30_000
 
-async function signInAsSeededAdmin(page: Page): Promise<void> {
-  await page.goto("/login?next=/admin/billing")
-  await expect(
-    page.getByRole("heading", { name: "Back to the counter" })
-  ).toBeVisible()
-
-  await page.locator("#email").fill(ADMIN_EMAIL)
-  await page.locator("#password").fill(ADMIN_PASSWORD)
-  await page.getByRole("button", { name: "Log in" }).click()
-
+async function openBillingAsSeededAdmin(page: Page): Promise<void> {
+  await page.goto("/admin/billing", { waitUntil: "domcontentloaded" })
   await expect(
     page.getByRole("heading", { exact: true, name: "Billing" })
-  ).toBeVisible()
+  ).toBeVisible({ timeout: LIVE_ADMIN_CONTENT_TIMEOUT_MS })
   expect(new URL(page.url()).pathname).toBe("/admin/billing")
 }
 
@@ -111,6 +102,7 @@ export function describeAdminBillingRedaction(): void {
   test.describe("@admin-live-db admin billing redaction", () => {
     const reason = adminLiveDbSkipReason()
     test.skip(Boolean(reason), reason)
+    test.use({ serviceWorkers: "block" })
 
     test.beforeEach(async ({ page }) => {
       await dismissPwaInstall(page)
@@ -132,17 +124,25 @@ export function describeAdminBillingRedaction(): void {
           const visibleText = (text: string) =>
             page.getByText(text).filter({ visible: true }).first()
 
-          await signInAsSeededAdmin(page)
-          await expect(
-            visibleText(fixture.previous.merchant_name)
-          ).toBeVisible()
-          await expect(visibleText(fixture.maskedSubscriptionRef)).toBeVisible()
-          await expect(visibleText(fixture.maskedCustomerRef)).toBeVisible()
-          await expect(visibleText("Past due")).toBeVisible()
+          const cleanupAdminMfa = await installSeededAdminAal2Session(
+            page.context()
+          )
 
-          const html = await page.content()
-          expect(html).not.toContain(fixture.stripeSubscriptionId)
-          expect(html).not.toContain(fixture.stripeCustomerId)
+          try {
+            await openBillingAsSeededAdmin(page)
+            await expect(
+              visibleText(fixture.previous.merchant_name)
+            ).toBeVisible()
+            await expect(visibleText(fixture.maskedSubscriptionRef)).toBeVisible()
+            await expect(visibleText(fixture.maskedCustomerRef)).toBeVisible()
+            await expect(visibleText("Past due")).toBeVisible()
+
+            const html = await page.content()
+            expect(html).not.toContain(fixture.stripeSubscriptionId)
+            expect(html).not.toContain(fixture.stripeCustomerId)
+          } finally {
+            await cleanupAdminMfa()
+          }
         } finally {
           await restoreBillingRedactionFixture(sql, fixture)
         }

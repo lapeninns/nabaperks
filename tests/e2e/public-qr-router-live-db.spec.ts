@@ -22,7 +22,7 @@ import {
   type PublicQrRouterFixture,
 } from "./helpers/public-qr-router-live-db"
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000"
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3146"
 
 test.describe("@customer-flow public QR router live DB", () => {
   const reason = customerReadbackLiveDbSkipReason()

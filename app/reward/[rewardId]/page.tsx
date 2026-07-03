@@ -15,12 +15,25 @@ type RewardPageProps = {
   params: Promise<{
     rewardId: string
   }>
+  searchParams: Promise<{
+    reward?: string | string[]
+  }>
 }
 
-export default async function RewardPage({ params }: RewardPageProps) {
+export default async function RewardPage({
+  params,
+  searchParams,
+}: RewardPageProps) {
   const { rewardId } = await params
-  const context = await loadRewardExperienceContext(rewardId)
+  const query = await searchParams
+  const context = await loadRewardExperienceContext(rewardId, {
+    justRedeemed: firstParam(query.reward) === "redeemed",
+  })
   const experience = deriveCustomerExperience({ entry: "reward", context })
 
   return <CustomerCardExperience experience={experience} />
+}
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value
 }

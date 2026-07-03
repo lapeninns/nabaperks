@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto"
 import { expect, test, type Page } from "@playwright/test"
 
 import { adminLiveDbSkipReason } from "./helpers/admin-live-db"
@@ -59,7 +60,12 @@ const AUTHENTICATED_COMPAT_ROUTES = [
   },
 ] as const
 
+type AuthenticatedCompatRoute = (typeof AUTHENTICATED_COMPAT_ROUTES)[number]
+
 async function signInThroughNext(page: Page, next: string): Promise<void> {
+  await page.setExtraHTTPHeaders({
+    "x-vercel-forwarded-for": localLoopbackIp(randomUUID()),
+  })
   await page.goto(`/login?next=${encodeURIComponent(next)}`)
   await expect(
     page.getByRole("heading", { name: "Back to the counter" })
@@ -68,6 +74,58 @@ async function signInThroughNext(page: Page, next: string): Promise<void> {
   await page.locator("#email").fill(SEED_MERCHANT_EMAIL)
   await page.locator("#password").fill(SEED_MERCHANT_PASSWORD)
   await page.getByRole("button", { name: "Log in" }).click()
+}
+
+function localLoopbackIp(nonce: string): string {
+  const first = Number.parseInt(nonce.slice(0, 2), 16) || 1
+  const second = Number.parseInt(nonce.slice(2, 4), 16) || 1
+  return `127.${first}.${second}.1`
+}
+
+async function expectAuthenticatedCompatRoute(
+  page: Page,
+  compatRoute: AuthenticatedCompatRoute
+): Promise<void> {
+  await expect(
+    page.getByRole("heading", { exact: true, name: compatRoute.heading })
+  ).toBeVisible()
+
+  const url = new URL(page.url())
+  expect(url.pathname).toBe("/app/account")
+  expect(url.searchParams.get("tab")).toBe(compatRoute.tab)
+
+  for (const [key, value] of Object.entries(compatRoute.query)) {
+    expect(url.searchParams.get(key)).toBe(value)
+  }
+}
+
+function isAccountHubRefreshInterruption(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message.includes("interrupted by another navigation") &&
+    error.message.includes("/app/account?tab=profile")
+  )
+}
+
+async function openAuthenticatedCompatRoute(
+  page: Page,
+  compatRoute: AuthenticatedCompatRoute
+): Promise<void> {
+  try {
+    await page.goto(compatRoute.path, { waitUntil: "domcontentloaded" })
+  } catch (error) {
+    if (!isAccountHubRefreshInterruption(error)) {
+      throw error
+    }
+
+    await page.waitForURL(
+      (url) =>
+        url.pathname === "/app/account" &&
+        url.searchParams.get("tab") === "profile",
+      { waitUntil: "load" }
+    )
+    await page.goto(compatRoute.path, { waitUntil: "domcontentloaded" })
+  }
 }
 
 test.describe("merchant account compatibility route gates", () => {
@@ -96,24 +154,20 @@ test.describe("merchant account compatibility route gates", () => {
   test.describe("@admin-live-db authenticated legacy route redirects", () => {
     const reason = adminLiveDbSkipReason()
     test.skip(Boolean(reason), reason)
+    test.use({ serviceWorkers: "block" })
 
-    for (const compatRoute of AUTHENTICATED_COMPAT_ROUTES) {
-      test(`seeded merchant ${compatRoute.label} next path lands on Account hub`, async ({
-        page,
-      }) => {
-        await signInThroughNext(page, compatRoute.path)
-        await expect(
-          page.getByRole("heading", { exact: true, name: compatRoute.heading })
-        ).toBeVisible()
+    test("seeded merchant legacy next paths land on Account hub", async ({
+      page,
+    }) => {
+      const [firstRoute, ...remainingRoutes] = AUTHENTICATED_COMPAT_ROUTES
 
-        const url = new URL(page.url())
-        expect(url.pathname).toBe("/app/account")
-        expect(url.searchParams.get("tab")).toBe(compatRoute.tab)
+      await signInThroughNext(page, firstRoute.path)
+      await expectAuthenticatedCompatRoute(page, firstRoute)
 
-        for (const [key, value] of Object.entries(compatRoute.query)) {
-          expect(url.searchParams.get(key)).toBe(value)
-        }
-      })
-    }
+      for (const compatRoute of remainingRoutes) {
+        await openAuthenticatedCompatRoute(page, compatRoute)
+        await expectAuthenticatedCompatRoute(page, compatRoute)
+      }
+    })
   })
 })

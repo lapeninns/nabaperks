@@ -84,7 +84,7 @@ export function isActiveNavItem(
 }
 
 export const merchantNavItems = [
-  { href: "/app", label: "Home", icon: Home01Icon, prefetch: "auto" },
+  { href: "/app", label: "Dashboard", icon: Home01Icon, prefetch: "auto" },
   { href: "/app/launch", label: "Setup", icon: Settings01Icon },
   { href: "/app/qr", label: "Poster", icon: QrCode01Icon, prefetch: "auto" },
   {

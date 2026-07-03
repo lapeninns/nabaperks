@@ -1,10 +1,12 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
 
+import { CelebrationUrlCleanup } from "@/components/customer/celebration-url-cleanup"
 import { CustomerReceipt } from "@/components/customer/customer-flow-system"
 import { CustomerProfileGateForm } from "@/components/customer/profile-gate-forms"
 import { RewardCollectionLive } from "@/components/customer/reward-collection-live"
 import { RewardTicket, StatusBanner } from "@/components/loyalty"
+import { StampCelebration } from "@/components/motion"
 import { Button } from "@/components/ui/button"
 import {
   waitingRewardTiming,
@@ -91,34 +93,42 @@ export function RedeemedProofPanel({
   exp: Extract<CustomerExperience, { kind: "redeemed_proof" }>
   vm: CustomerExperienceViewModel
 }) {
-  // `redeemedAt` rides on the reward facts (see derive.ts) but the union shape for
-  // this case does not name it — narrow locally to read the collection instant.
-  const redeemedAt = (exp.reward as RewardView & { redeemedAt?: string | null })
-    .redeemedAt
-  const proofLine = formatRedeemedProofLine(redeemedAt, exp.merchantName)
+  const proofLine = formatRedeemedProofLine(
+    exp.reward.redeemedAt,
+    exp.merchantName
+  )
+  const receipt = (
+    <CustomerReceipt
+      venueName={exp.merchantName}
+      eyebrow="Redeemed"
+      footerLeft={cardNumber(exp.reward.membershipId)}
+      footerRight="REDEEMED"
+    >
+      <RewardTicket
+        state="redeemed"
+        name={exp.reward.rewardName}
+        description={rewardTermsNode(exp.reward)}
+        sealSlammed={exp.justRedeemed}
+      />
+      <StatusBanner title="Reward collected." tone="success">
+        The merchant has scanned your QR. A new stamp cycle has started.
+      </StatusBanner>
+      {proofLine ? (
+        <p className="text-center font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+          {proofLine}
+        </p>
+      ) : null}
+    </CustomerReceipt>
+  )
 
   return (
     <section className="grid gap-5">
-      <CustomerReceipt
-        venueName={exp.merchantName}
-        eyebrow="Redeemed"
-        footerLeft={cardNumber(exp.reward.membershipId)}
-        footerRight="REDEEMED"
-      >
-        <RewardTicket
-          state="redeemed"
-          name={exp.reward.rewardName}
-          description={rewardTermsNode(exp.reward)}
-        />
-        <StatusBanner title="Reward collected." tone="success">
-          The merchant has scanned your QR. A new stamp cycle has started.
-        </StatusBanner>
-        {proofLine ? (
-          <p className="text-center font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
-            {proofLine}
-          </p>
-        ) : null}
-      </CustomerReceipt>
+      {exp.justRedeemed ? <CelebrationUrlCleanup /> : null}
+      {exp.justRedeemed ? (
+        <StampCelebration>{receipt}</StampCelebration>
+      ) : (
+        receipt
+      )}
       <PrimaryLink action={vm.primaryAction} />
     </section>
   )

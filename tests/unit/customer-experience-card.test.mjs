@@ -22,6 +22,28 @@ function cardContext(overrides = {}) {
   }
 }
 
+function rewardContext(overrides = {}) {
+  return {
+    reward: {
+      rewardId: "reward_1",
+      membershipId: "membership_1",
+      rewardName: "Mystery round",
+      rewardTerms: "Ask at the bar.",
+      redeemableFrom: null,
+    },
+    merchantName: "The Test Arms",
+    status: "redeemed",
+    redeemable: false,
+    redeemedAt: "2026-07-03T12:30:00.000Z",
+    justRedeemed: false,
+    location: {
+      requireGeofence: false,
+      geofenceRadiusMeters: 0,
+    },
+    ...overrides,
+  }
+}
+
 test("card ownership failures render a non-leaking unavailable state", () => {
   const experience = deriveCustomerExperience({
     entry: "card",
@@ -104,4 +126,15 @@ test("full cards without an unlocked reward show recovery instead of inviting an
     kind: "unavailable",
     reason: "We're sorting your reward. Check back shortly, or ask a team member.",
   })
+})
+
+test("redeemed reward proof carries collection time and one-shot celebration flag", () => {
+  const experience = deriveCustomerExperience({
+    entry: "reward",
+    context: rewardContext({ justRedeemed: true }),
+  })
+
+  assert.equal(experience.kind, "redeemed_proof")
+  assert.equal(experience.reward.redeemedAt, "2026-07-03T12:30:00.000Z")
+  assert.equal(experience.justRedeemed, true)
 })

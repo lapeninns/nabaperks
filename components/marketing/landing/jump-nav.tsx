@@ -18,7 +18,7 @@ const jumpLinks = [
 
 export function JumpNav() {
   return (
-    <Section as="div" size="tight">
+    <Section as="div" size="tight" entrance={false}>
       <nav aria-label="On this page" className="relative">
         <ul className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden">
           {jumpLinks.map((link) => (

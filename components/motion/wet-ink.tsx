@@ -5,11 +5,18 @@
  * choreographed beat in DESIGN.md. Each primitive is a thin, typed wrapper over
  * `motion/react` that reads its timing from `lib/motion/tokens.ts` and renders
  * static children when `prefers-reduced-motion` is set (no opacity blanking, no
- * empty states). Production code uses these instead of inline `animation: w-*`
- * CSS — the keyframes in globals.css remain only for the resting tilt fallback.
+ * empty states). Production code uses these instead of inline w-prefixed CSS
+ * animation hooks — the keyframes in globals.css remain only for the resting
+ * tilt fallback.
  */
 
-import type { CSSProperties, ReactNode } from "react"
+import {
+  useEffect,
+  useState,
+  type AriaRole,
+  type CSSProperties,
+  type ReactNode,
+} from "react"
 import * as m from "motion/react-m"
 
 import { useReducedMotionHook } from "@/lib/motion/use-reduced-motion"
@@ -27,6 +34,37 @@ type MotionBox = {
   style?: CSSProperties
 }
 
+type WetInkRiseBase = MotionBox & {
+  delay?: number
+  distance?: number
+  inView?: boolean
+}
+
+type WetInkForwardProps = {
+  id?: string
+  role?: AriaRole
+  tabIndex?: number
+  title?: string
+  [ariaAttribute: `aria-${string}`]: string | number | boolean | undefined
+  [dataAttribute: `data-${string}`]: string | number | boolean | undefined
+}
+
+type WetInkRiseProps = WetInkRiseBase &
+  WetInkForwardProps & {
+    as?: "div" | "section"
+  }
+
+function useWetInkAnimationEnabled() {
+  const reduce = useReducedMotionHook()
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    setReady(true)
+  }, [])
+
+  return ready && !reduce
+}
+
 /** One-shot primitives only animate while `active`; toggling it re-fires them. */
 type Triggered = MotionBox & {
   active?: boolean
@@ -36,21 +74,71 @@ type Triggered = MotionBox & {
 
 /**
  * WetInkRise — standard entrance. Rises 14px (default) into place and settles
- * scale. Animates position/scale only, never opacity, so wrapped content stays
- * legible if the entrance never runs. Replaces the `w-rise` keyframe.
+ * scale. Use `inView` for section entrances that should fire once when scrolled
+ * into view, and `as` when the animated node must be the semantic element.
+ * Animates position/scale only, never opacity, so wrapped content stays legible
+ * if the entrance never runs. Replaces the `w-rise` keyframe.
  */
-export function WetInkRise({
-  children,
-  className,
-  style,
-  delay = 0,
-  distance = 14,
-}: MotionBox & { delay?: number; distance?: number }) {
-  const reduce = useReducedMotionHook()
+export function WetInkRise({ ...riseProps }: WetInkRiseProps) {
+  const shouldAnimate = useWetInkAnimationEnabled()
+  const target = { y: 0, scale: 1 }
+  const viewport = riseProps.inView ? { once: true, amount: 0.2 } : undefined
+  const transition = {
+    duration: wetInkTransition.rise.duration,
+    ease: STANDARD_EASE,
+    delay: riseProps.delay ?? 0,
+  }
 
-  if (reduce) {
+  if (riseProps.as === "section") {
+    const {
+      as: _as,
+      children,
+      className,
+      style,
+      delay: _delay,
+      distance = 14,
+      inView = false,
+      ...sectionProps
+    } = riseProps
+
+    if (!shouldAnimate) {
+      return (
+        <section {...sectionProps} className={className} style={style}>
+          {children}
+        </section>
+      )
+    }
+
     return (
-      <div className={className} style={style}>
+      <m.section
+        {...sectionProps}
+        className={className}
+        style={style}
+        initial={{ y: distance, scale: 0.98 }}
+        animate={inView ? undefined : target}
+        whileInView={inView ? target : undefined}
+        viewport={viewport}
+        transition={transition}
+      >
+        {children}
+      </m.section>
+    )
+  }
+
+  const {
+    as: _as,
+    children,
+    className,
+    style,
+    delay: _delay,
+    distance = 14,
+    inView = false,
+    ...divProps
+  } = riseProps
+
+  if (!shouldAnimate) {
+    return (
+      <div {...divProps} className={className} style={style}>
         {children}
       </div>
     )
@@ -58,15 +146,14 @@ export function WetInkRise({
 
   return (
     <m.div
+      {...divProps}
       className={className}
       style={style}
       initial={{ y: distance, scale: 0.98 }}
-      animate={{ y: 0, scale: 1 }}
-      transition={{
-        duration: wetInkTransition.rise.duration,
-        ease: STANDARD_EASE,
-        delay,
-      }}
+      animate={inView ? undefined : target}
+      whileInView={inView ? target : undefined}
+      viewport={viewport}
+      transition={transition}
     >
       {children}
     </m.div>
@@ -87,9 +174,9 @@ export function WetInkSlam({
   active = false,
   onComplete,
 }: Triggered) {
-  const reduce = useReducedMotionHook()
+  const shouldAnimate = useWetInkAnimationEnabled()
 
-  if (reduce || !active) {
+  if (!shouldAnimate || !active) {
     return (
       <span className={className} style={style}>
         {children}
@@ -126,9 +213,9 @@ export function WetInkSoftStamp({
   active = false,
   onComplete,
 }: Triggered) {
-  const reduce = useReducedMotionHook()
+  const shouldAnimate = useWetInkAnimationEnabled()
 
-  if (reduce || !active) {
+  if (!shouldAnimate || !active) {
     return (
       <span className={className} style={style}>
         {children}
@@ -165,9 +252,9 @@ export function WetInkShake({
   active = false,
   onComplete,
 }: Triggered) {
-  const reduce = useReducedMotionHook()
+  const shouldAnimate = useWetInkAnimationEnabled()
 
-  if (reduce || !active) {
+  if (!shouldAnimate || !active) {
     return (
       <div className={className} style={style}>
         {children}
@@ -211,9 +298,9 @@ export function WetInkPop({
   delay = 0,
   onComplete,
 }: Triggered & { delay?: number }) {
-  const reduce = useReducedMotionHook()
+  const shouldAnimate = useWetInkAnimationEnabled()
 
-  if (reduce || !active) {
+  if (!shouldAnimate || !active) {
     return (
       <span className={className} style={style}>
         {children}
@@ -250,9 +337,9 @@ export function WetInkWiggle({
   style,
   active = true,
 }: MotionBox & { active?: boolean }) {
-  const reduce = useReducedMotionHook()
+  const shouldAnimate = useWetInkAnimationEnabled()
 
-  if (reduce || !active) {
+  if (!shouldAnimate || !active) {
     return (
       <span className={className} style={style}>
         {children}
@@ -289,9 +376,9 @@ export function WetInkBreathe({
   style,
   active = true,
 }: MotionBox & { active?: boolean }) {
-  const reduce = useReducedMotionHook()
+  const shouldAnimate = useWetInkAnimationEnabled()
 
-  if (reduce || !active) {
+  if (!shouldAnimate || !active) {
     return (
       <span className={className} style={style}>
         {children}
@@ -325,9 +412,9 @@ export function WetInkRipple({
   style,
   active = false,
 }: Triggered) {
-  const reduce = useReducedMotionHook()
+  const shouldAnimate = useWetInkAnimationEnabled()
 
-  if (reduce || !active) return null
+  if (!shouldAnimate || !active) return null
 
   return (
     <m.span
@@ -357,9 +444,9 @@ export function WetInkMarquee({
   style,
   durationSeconds = wetInkTransition.marquee.duration,
 }: MotionBox & { durationSeconds?: number }) {
-  const reduce = useReducedMotionHook()
+  const shouldAnimate = useWetInkAnimationEnabled()
 
-  if (reduce) {
+  if (!shouldAnimate) {
     return (
       <div className={className} style={style}>
         {children}
@@ -388,9 +475,9 @@ export function WetInkMarquee({
  * the `w-sheet-up` keyframe.
  */
 export function WetInkSheet({ children, className, style }: MotionBox) {
-  const reduce = useReducedMotionHook()
+  const shouldAnimate = useWetInkAnimationEnabled()
 
-  if (reduce) {
+  if (!shouldAnimate) {
     return (
       <div className={className} style={style}>
         {children}

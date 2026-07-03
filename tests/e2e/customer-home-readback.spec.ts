@@ -10,7 +10,7 @@ import {
   type CustomerReadbackFixture,
 } from "./helpers/customer-readback-live-db"
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000"
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3146"
 
 test.describe("@customer-flow customer home readback", () => {
   const reason = customerReadbackLiveDbSkipReason()
@@ -37,7 +37,7 @@ test.describe("@customer-flow customer home readback", () => {
 
       await installCustomerSession(context, fixture.populatedSession)
 
-      await page.goto("/home/rewards")
+      await openCustomerReadbackPage(page, "/home/rewards")
       await expect(
         page.getByRole("heading", { level: 1, name: "Rewards" })
       ).toBeVisible()
@@ -68,7 +68,7 @@ test.describe("@customer-flow customer home readback", () => {
       )
       await expectNoHorizontalOverflow(page)
 
-      await page.goto("/home/activity")
+      await openCustomerReadbackPage(page, "/home/activity")
       await expect(
         page.getByRole("heading", { level: 1, name: "Activity" })
       ).toBeVisible()
@@ -123,7 +123,7 @@ test.describe("@customer-flow customer home readback", () => {
 
       await installCustomerSession(context, fixture.emptySession)
 
-      await page.goto("/home/rewards")
+      await openCustomerReadbackPage(page, "/home/rewards")
       await expect(
         page.getByRole("heading", { level: 1, name: "Rewards" })
       ).toBeVisible()
@@ -134,7 +134,7 @@ test.describe("@customer-flow customer home readback", () => {
       await expect(page.getByText(fixture.expiredRewardName)).toHaveCount(0)
       await expectNoHorizontalOverflow(page)
 
-      await page.goto("/home/activity")
+      await openCustomerReadbackPage(page, "/home/activity")
       await expect(
         page.getByRole("heading", { level: 1, name: "Activity" })
       ).toBeVisible()
@@ -167,6 +167,33 @@ async function installCustomerSession(
       expires: session.expiresAt,
     },
   ])
+}
+
+function isRewardsRefreshInterruption(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message.includes("interrupted by another navigation") &&
+    error.message.includes("/home/activity") &&
+    error.message.includes("/home/rewards")
+  )
+}
+
+async function openCustomerReadbackPage(
+  page: Page,
+  path: "/home/rewards" | "/home/activity"
+): Promise<void> {
+  try {
+    await page.goto(path, { waitUntil: "domcontentloaded" })
+  } catch (error) {
+    if (path !== "/home/activity" || !isRewardsRefreshInterruption(error)) {
+      throw error
+    }
+
+    await page.waitForURL((url) => url.pathname === "/home/rewards", {
+      waitUntil: "domcontentloaded",
+    })
+    await page.goto(path, { waitUntil: "domcontentloaded" })
+  }
 }
 
 async function expectNoHorizontalOverflow(page: Page): Promise<void> {

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto"
 import { expect, type Page, type TestInfo, test } from "@playwright/test"
 
 import { adminLiveDbSkipReason, connectLocalDb } from "./helpers/admin-live-db"
@@ -25,9 +26,9 @@ type AdminResponseError = {
 }
 
 const PASSWORD = "NabaperksDemo1!"
-const MFA_REQUIRED_FLAG = "true"
 const INTERNAL_ADMIN_REASON = "Internal admin access is required."
 const MFA_REASON = "Admin MFA verification is required."
+const ADMIN_REDIRECT_TIMEOUT_MS = 30_000
 
 const ACTIVE_ADMIN = {
   email: "admin@nabaperks.test",
@@ -35,9 +36,9 @@ const ACTIVE_ADMIN = {
 } satisfies AdminCredentials
 
 const MERCHANT_ACCOUNT = {
-  label: "seed merchant",
-  userId: "00000000-0000-0000-0000-000000000101",
-  email: "mia@old-crown-girton.test",
+  label: "alternate seed merchant",
+  userId: "00000000-0000-0000-0000-000000000102",
+  email: "jordan@bubble-yard.test",
   password: PASSWORD,
 } satisfies AdminGateAccount
 
@@ -65,6 +66,9 @@ async function signInToAdmin(
   page: Page,
   credentials: AdminCredentials
 ): Promise<void> {
+  await page.setExtraHTTPHeaders({
+    "x-vercel-forwarded-for": localLoopbackIp(randomUUID()),
+  })
   await page.goto("/login?next=/admin")
   await expect(
     page.getByRole("heading", { name: "Back to the counter" })
@@ -72,7 +76,19 @@ async function signInToAdmin(
 
   await page.locator("#email").fill(credentials.email)
   await page.locator("#password").fill(credentials.password)
-  await page.getByRole("button", { name: "Log in" }).click()
+  await Promise.all([
+    page.waitForURL((url) => url.pathname === "/admin", {
+      waitUntil: "domcontentloaded",
+      timeout: ADMIN_REDIRECT_TIMEOUT_MS,
+    }),
+    page.getByRole("button", { name: "Log in" }).click(),
+  ])
+}
+
+function localLoopbackIp(nonce: string): string {
+  const first = Number.parseInt(nonce.slice(0, 2), 16) || 1
+  const second = Number.parseInt(nonce.slice(2, 4), 16) || 1
+  return `127.${first}.${second}.1`
 }
 
 function collectAdminResponseErrors(page: Page): AdminResponseError[] {
@@ -109,6 +125,7 @@ export function describeAdminGateStates(): void {
   test.describe("@admin-live-db admin access gate states", () => {
     const reason = adminLiveDbSkipReason()
     test.skip(Boolean(reason), reason)
+    test.use({ serviceWorkers: "block" })
 
     test.beforeEach(async ({ page }) => {
       await dismissPwaInstall(page)
@@ -182,11 +199,6 @@ export function describeAdminGateStates(): void {
     test("denies a seeded admin without aal2 when MFA is required", async ({
       page,
     }) => {
-      test.skip(
-        process.env.ADMIN_MFA_REQUIRED !== MFA_REQUIRED_FLAG,
-        "set ADMIN_MFA_REQUIRED=true to prove the admin MFA gate"
-      )
-
       const adminResponseErrors = collectAdminResponseErrors(page)
       await signInToAdmin(page, ACTIVE_ADMIN)
       await expectAccessDenied(page, MFA_REASON, adminResponseErrors)

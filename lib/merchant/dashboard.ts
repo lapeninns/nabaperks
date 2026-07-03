@@ -265,6 +265,7 @@ function getUnlockedRewardResult(
     .eq("merchant_id", merchantId)
     .eq("status", "unlocked")
     .in("membership_id", membershipIds)
+    .order("redeemable_from", { ascending: true })
 }
 
 function resolveStampsRequired(cardResult: ActiveCardResult): number {

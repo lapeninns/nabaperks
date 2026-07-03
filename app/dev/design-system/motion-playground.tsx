@@ -94,6 +94,17 @@ export function MotionPlayground() {
       </MotionDemo>
 
       <MotionDemo
+        name="WetInkRise inView"
+        blurb="Section entrance — rises once when the row enters the viewport."
+      >
+        {(nonce) => (
+          <WetInkRise key={nonce} inView distance={12}>
+            <Chip>Viewport rise</Chip>
+          </WetInkRise>
+        )}
+      </MotionDemo>
+
+      <MotionDemo
         name="WetInkSlam"
         blurb="Stamp landing — overshoots onto the resting tilt."
       >

@@ -104,6 +104,7 @@ export type RewardContext =
       redeemable: boolean
       /** Server-confirmed collection instant for the redeemed-proof line (F26). */
       redeemedAt?: string | null
+      justRedeemed: boolean
       location: LocationRequirement
       profileGate?: ProfileGate
     }
@@ -289,10 +290,9 @@ function deriveStamp(context: StampContext): CustomerExperience {
 
   const candidates: CustomerExperienceKind[] = []
 
-  if (context.unlockedReward) {
-    candidates.push(
-      context.unlockedReward.redeemable ? "reward_ready" : "reward_waiting"
-    )
+  const unlockedReward = context.unlockedReward
+  if (unlockedReward) {
+    candidates.push(unlockedReward.redeemable ? "reward_ready" : "reward_waiting")
   }
   if (context.alreadyStampedToday) candidates.push("card_stamped_today")
   if (context.qrValid) candidates.push("stamp_confirm")
@@ -301,18 +301,30 @@ function deriveStamp(context: StampContext): CustomerExperience {
 
   switch (kind) {
     case "reward_ready":
+      if (!unlockedReward) {
+        return {
+          kind: "unavailable",
+          reason: "Scan the venue code again to add your stamp.",
+        }
+      }
       return {
         kind: "reward_ready",
-        reward: stripRedeemable(context.unlockedReward!),
+        reward: stripRedeemable(unlockedReward),
         merchantName: context.merchantName,
         location: context.location,
         fromCard: false,
         profileGate: context.profileGate ?? COMPLETE_GATE,
       }
     case "reward_waiting":
+      if (!unlockedReward) {
+        return {
+          kind: "unavailable",
+          reason: "Scan the venue code again to add your stamp.",
+        }
+      }
       return {
         kind: "reward_waiting",
-        reward: stripRedeemable(context.unlockedReward!),
+        reward: stripRedeemable(unlockedReward),
         merchantName: context.merchantName,
         fromCard: false,
       }
@@ -348,16 +360,12 @@ function deriveReward(context: RewardContext): CustomerExperience {
 
   switch (kind) {
     case "redeemed_proof":
-      // The collection instant rides on the reward facts so the panel can show a
-      // quiet proof line (F26). The union shape is unchanged for every other
-      // reader; the panel narrows `reward` locally to read the extra field. The
-      // cast mirrors `stampScreenExperience` above — a structurally-additive
-      // field that the type for this case does not name.
       return {
         kind: "redeemed_proof",
         reward: { ...context.reward, redeemedAt: context.redeemedAt ?? null },
         merchantName: context.merchantName,
-      } as CustomerExperience
+        justRedeemed: context.justRedeemed,
+      }
     case "reward_ready":
       return {
         kind: "reward_ready",
@@ -391,27 +399,37 @@ function deriveJoin(context: JoinContext): CustomerExperience {
     }
   }
 
+  const membership = context.membership
+  const qrId = context.qrId
   const candidates: CustomerExperienceKind[] = []
-  if (context.membership) candidates.push("join_returning")
+  if (membership) candidates.push("join_returning")
   if (context.hasSession) candidates.push("join_terms")
   if (context.pendingOtp) candidates.push("join_otp")
   // Welcome and phone are mutually exclusive: a QR scan lands on welcome, then
   // the welcome CTA carries `step=phone` to advance to the phone form.
-  if (context.qrId && context.step !== "phone") candidates.push("join_welcome")
+  if (qrId && context.step !== "phone") candidates.push("join_welcome")
   else candidates.push("join_phone")
 
   const kind = pickByPriority("join", candidates)
 
   switch (kind) {
     case "join_returning":
+      if (!membership) {
+        return {
+          kind: "join_phone",
+          merchant: context.merchant,
+          card: context.card,
+          qrId,
+        }
+      }
       return {
         kind: "join_returning",
         merchant: context.merchant,
         card: context.card,
-        membershipId: context.membership!.id,
-        current: context.membership!.current,
+        membershipId: membership.id,
+        current: membership.current,
         total: context.card.stampsRequired,
-        qrId: context.qrId,
+        qrId,
       }
     case "join_terms":
       return {
@@ -431,11 +449,19 @@ function deriveJoin(context: JoinContext): CustomerExperience {
         location: context.location,
       }
     case "join_welcome":
+      if (!qrId) {
+        return {
+          kind: "join_phone",
+          merchant: context.merchant,
+          card: context.card,
+          qrId,
+        }
+      }
       return {
         kind: "join_welcome",
         merchant: context.merchant,
         card: context.card,
-        qrId: context.qrId!,
+        qrId,
       }
     default:
       return {

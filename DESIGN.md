@@ -229,10 +229,19 @@ One slam easing (overshoot, `cubic-bezier(0.16, 1.2, 0.3, 1)`) for stamps; one
 standard easing (`--w-ease`) for everything else. Press 90ms; sheets/moves
 320ms; stamp slam 380ms plus a 300ms paper shake (`--w-dur-shake`).
 
-**Motion lives in Framer Motion, not CSS.** The one sanctioned CSS-animation
-exception is the loading spinner (`animate-spin` in `Spinner` and the sonner
-loading icon, both guarded by `motion-reduce:animate-none`). The vocabulary
-is the `WetInk*` primitive library in
+**Motion is split by job.** Choreography lives in Framer Motion/Wet Ink:
+entrances, stamps, reward reveals, celebrations, marquees, and sheets. CSS is
+allowed only for micro-states and pre-hydration loading: `animate-spin` in
+`Spinner` and the sonner loading icon; the guarded loading pulse family
+(`Skeleton`, `customer-qr-scanner-loader`, the reward-collection QR shimmer,
+and the stamp-press pending disc); `.pressable` press tilt; sidebar width
+transition; Radix data-state sheet overlay/content transitions; and
+token-driven hover/focus transitions. CSS animations must be
+`motion-reduce:animate-none` guarded or `motion-safe:` scoped. CSS transitions
+use the `--w-*` timing tokens for micro-states and loading shells; Wet Ink
+primitives handle product choreography.
+
+The vocabulary is the `WetInk*` primitive library in
 [`components/motion/wet-ink.tsx`](components/motion/wet-ink.tsx),
 which reads its timing from [`lib/motion/tokens.ts`](lib/motion/tokens.ts)
 (a hardcoded mirror of the `--w-dur-*`/`--w-ease*` custom properties,
@@ -241,10 +250,12 @@ drift-guarded by `tests/unit/motion-tokens.test.mjs`):
 `WetInkWiggle`, `WetInkBreathe`, `WetInkRipple`, `WetInkMarquee`, `WetInkSheet`,
 plus the composed `StampSlamSequence` (slam + paper shake). This list is the
 complete export surface of the primitive library — an exported primitive that
-is not documented here (or a documented one that no longer ships) is drift. **Production code never uses raw
-`animation: w-*` or `animate-[w-*]`** — those CSS keyframes were removed; reach
-for a `WetInk*` primitive instead. The press tilt (`.pressable`) stays in
-`globals.css`, and the resting stamp tilt is seeded per slot via `--stamp-rot`.
+is not documented here (or a documented one that no longer ships) is drift.
+`WetInkRise` also has an in-view mode for section entrances: it animates the
+semantic section/container itself once as it enters the viewport, with no
+opacity blanking. **Production code never uses raw `animation: w-*` or
+`animate-[w-*]`** — those CSS keyframes were removed; reach for a `WetInk*`
+primitive instead. The resting stamp tilt is seeded per slot via `--stamp-rot`.
 Every primitive renders static children under `prefers-reduced-motion` (no
 opacity blanking), and a global reduce rule neutralises any residual animation.
 

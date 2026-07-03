@@ -29,6 +29,7 @@ function rewardContext(overrides = {}) {
     status: "unlocked",
     redeemable: false,
     location: locationRequirement(),
+    justRedeemed: false,
     ...overrides,
   }
 }
@@ -126,6 +127,7 @@ test("redeemed rewards render proof before any ready or waiting state", () => {
     redeemedAt: "2026-07-01T12:00:00.000Z",
   })
   assert.equal(experience.merchantName, "The Test Arms")
+  assert.equal(experience.justRedeemed, false)
 })
 
 test("blocked or expired reward facts render unavailable copy instead of collection UI", () => {

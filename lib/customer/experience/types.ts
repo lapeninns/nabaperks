@@ -85,6 +85,10 @@ export type RewardView = {
   redeemableFrom: string | null
 }
 
+export type RedeemedRewardView = RewardView & {
+  redeemedAt: string | null
+}
+
 export type CustomerExperience =
   // --- Join wizard (one job per screen) ---
   | {
@@ -198,7 +202,12 @@ export type CustomerExperience =
       fromCard: boolean
       profileGate: ProfileGate
     }
-  | { kind: "redeemed_proof"; reward: RewardView; merchantName: string }
+  | {
+      kind: "redeemed_proof"
+      reward: RedeemedRewardView
+      merchantName: string
+      justRedeemed: boolean
+    }
   // --- Catch-all ---
   | { kind: "unavailable"; reason: string; recovery?: AccessRecovery }
 

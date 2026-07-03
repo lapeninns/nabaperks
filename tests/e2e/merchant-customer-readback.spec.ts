@@ -25,6 +25,7 @@ type MerchantCustomerReadbackFixture = CustomerReadbackSeed & {
 test.describe("@admin-live-db merchant customer readback", () => {
   const reason = adminLiveDbSkipReason()
   test.skip(Boolean(reason), reason)
+  test.use({ serviceWorkers: "block" })
 
   test.beforeEach(async ({ page }) => {
     await dismissPwaInstall(page)

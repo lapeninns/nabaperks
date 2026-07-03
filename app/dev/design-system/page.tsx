@@ -10,6 +10,7 @@ import {
   Icon,
   KpiTile,
   Logo,
+  MemberMark,
   MetricTile,
   MonoTag,
   PageTitle,
@@ -387,6 +388,18 @@ export default function DesignSystemPage() {
             <Logo compact />
             <VenueMark size={56} />
             <VenueMark name="The Old Crown" size={56} />
+          </div>
+          <div className="grid gap-2">
+            <Eyebrow>Member marks · merchant member lists</Eyebrow>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Paper ledger roundels for people — not venue stamps or visit discs.
+            </p>
+            <div className="flex flex-wrap items-center gap-4">
+              <MemberMark initials="JE" tone="collecting" size={36} />
+              <MemberMark initials="PP" tone="ready" size={36} />
+              <MemberMark initials="FO" tone="quiet" size={36} />
+              <MemberMark initials="JW" tone="new" size={32} />
+            </div>
           </div>
         </div>
 

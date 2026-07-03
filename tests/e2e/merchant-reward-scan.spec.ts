@@ -85,6 +85,7 @@ test.describe("merchant reward scan — collection surface", () => {
   test.describe("@admin-live-db merchant collection route", () => {
     const reason = adminLiveDbSkipReason()
     test.skip(Boolean(reason), reason)
+    test.use({ serviceWorkers: "block" })
 
     test.beforeEach(async ({ page }) => {
       await dismissPwaInstall(page)

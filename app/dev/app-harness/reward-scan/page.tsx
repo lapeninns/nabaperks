@@ -54,6 +54,7 @@ export default async function RewardScanHarnessPage({
           state={collected ? "redeemed" : "ready"}
           name={rewardName}
           description={rewardTerms}
+          sealSlammed={collected}
         />
 
         <h2 className="sr-only">Member and card details</h2>
@@ -78,8 +79,8 @@ export default async function RewardScanHarnessPage({
         ) : (
           <>
             <StatusBanner title="Ready to collect" tone="success">
-              Check the reward against the order. Mark it collected when you have
-              served it.
+              Check the reward against the order. Mark it collected when you
+              have served it.
             </StatusBanner>
             <MerchantRewardCollectionForm scanToken={HARNESS_SCAN_TOKEN} />
           </>

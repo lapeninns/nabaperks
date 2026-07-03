@@ -1,6 +1,6 @@
 "use client"
 
-import type { ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import { CheckmarkBadge04Icon } from "@hugeicons/core-free-icons"
 import * as m from "motion/react-m"
 
@@ -16,12 +16,23 @@ const burstDots = [
   { x: 56, y: 18, size: "size-1.5" },
 ]
 
-export function StampCelebration({ children }: { children: ReactNode }) {
+function useCelebrationAnimationEnabled() {
   const shouldReduceMotion = useReducedMotionHook()
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    setReady(true)
+  }, [])
+
+  return ready && !shouldReduceMotion
+}
+
+export function StampCelebration({ children }: { children: ReactNode }) {
+  const shouldAnimate = useCelebrationAnimationEnabled()
   const entryTransition = wetInkTransition.celebration.entry
   const burstTransition = wetInkTransition.celebration.burst
 
-  if (shouldReduceMotion) {
+  if (!shouldAnimate) {
     return <div>{children}</div>
   }
 

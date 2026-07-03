@@ -101,6 +101,42 @@ test.describe("customer entry error boundaries", { tag: "@polish" }, () => {
   })
 })
 
+test.describe("root not-found boundary", { tag: "@polish" }, () => {
+  test.beforeEach(async ({ page }) => {
+    await dismissPwaInstall(page)
+  })
+
+  test("unknown public paths render the branded 404 without CSP failures", async ({
+    page,
+  }) => {
+    const cspViolations: string[] = []
+    const pageErrors: string[] = []
+
+    page.on("console", (message) => {
+      const text = message.text()
+      if (
+        message.type() === "error" &&
+        text.toLowerCase().includes("content security policy")
+      ) {
+        cspViolations.push(text)
+      }
+    })
+    page.on("pageerror", (error) => pageErrors.push(error.message))
+
+    const response = await page.goto("/not-a-real-page")
+
+    expect(response?.status()).toBe(404)
+    await expect(
+      page.getByRole("heading", { name: "Page not found" })
+    ).toBeVisible()
+    await expect(
+      page.locator('a[data-slot="button"]', { hasText: "Nabaperks home" })
+    ).toHaveAttribute("href", "/")
+    expect(cspViolations).toEqual([])
+    expect(pageErrors).toEqual([])
+  })
+})
+
 test.describe("scan camera-unavailable hierarchy", { tag: "@polish" }, () => {
   test.beforeEach(async ({ page }) => {
     await dismissPwaInstall(page)

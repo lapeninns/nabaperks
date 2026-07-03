@@ -10,6 +10,7 @@ allowed_blast_radius:
   - .lighthouserc.json
   - .zap/**
   - AGENTS.md
+  - DESIGN.md
   - Instructions_MircroSpecsCreation.md
   - Instructions_tdd.md
   - README.md
@@ -53,6 +54,7 @@ implementation_surfaces:
   - .lighthouserc.json
   - .zap/rules.tsv
   - AGENTS.md
+  - DESIGN.md
   - ai-governance-starter-kit/install-ai-governance.mjs
   - ai-governance-starter-kit/templates/AGENTS.md.template
   - ai-governance-starter-kit/templates/micro-specs/README.md
@@ -93,6 +95,7 @@ implementation_surfaces:
   - tests/unit/uk-date.test.mjs
 related_docs:
   - AGENTS.md
+  - DESIGN.md
   - micro-specs/GLOBAL_CONTEXT.md
 related_tests:
   - tests/micro-specs/ai-governance-starter-kit.test.mjs

@@ -62,7 +62,7 @@ async function testHarnessSurface(
   page: Page,
   surface: HarnessSurfaceCheck
 ): Promise<void> {
-  const response = await page.goto(surface.path)
+  const response = await gotoHarnessSurface(page, surface.path)
 
   expect(response?.status(), `${surface.name} returned HTTP 200`).toBe(200)
   await expect(page.locator("body")).toContainText(surface.visibleText)
@@ -95,4 +95,21 @@ async function testHarnessSurface(
   expect(hasHorizontalOverflow, `${surface.name} has no horizontal overflow`).toBe(
     false
   )
+}
+
+async function gotoHarnessSurface(page: Page, path: string) {
+  try {
+    return await page.goto(path, { waitUntil: "domcontentloaded" })
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      /NS_BINDING_ABORTED|NS_ERROR_FAILURE|frame was detached/i.test(
+        error.message
+      )
+    ) {
+      return page.goto(path, { waitUntil: "domcontentloaded" })
+    }
+
+    throw error
+  }
 }

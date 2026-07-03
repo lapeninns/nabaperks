@@ -10,8 +10,9 @@ import { RewardCollectionQr } from "@/components/customer/reward-collection-qr"
  * the no-store status endpoint about once a second, checking immediately on
  * mount and again whenever the tab regains focus or visibility. The merchant
  * scan is the only mutation — this leaf only *observes* `reward_events.status`.
- * Once the server confirms the reward is collected it refreshes the server
- * component (which re-renders into the collected proof) and stops polling.
+ * Once the server confirms the reward is collected it adds the one-shot reward
+ * flag, refreshes the server component into the collected proof, and stops
+ * polling.
  */
 const POLL_INTERVAL_MS = 1500
 
@@ -60,6 +61,10 @@ export function RewardCollectionLive({
           const data = (await res.json()) as { redeemed?: boolean }
           if (data.redeemed) {
             setRedeemed(true)
+            router.replace(
+              `/reward/${encodeURIComponent(rewardId)}?reward=redeemed`,
+              { scroll: false }
+            )
             router.refresh()
             return
           }

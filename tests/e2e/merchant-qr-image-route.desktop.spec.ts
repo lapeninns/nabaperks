@@ -206,6 +206,7 @@ test.describe("Merchant QR image route", () => {
   test.describe("@admin-live-db authenticated merchant QR image route", () => {
     const reason = adminLiveDbSkipReason()
     test.skip(Boolean(reason), reason)
+    test.use({ serviceWorkers: "block" })
 
     test.beforeEach(async ({ page }) => {
       await dismissPwaInstall(page)

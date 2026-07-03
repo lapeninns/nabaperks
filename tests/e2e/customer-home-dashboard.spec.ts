@@ -10,7 +10,7 @@ import {
 } from "./helpers/customer-readback-live-db"
 import { dismissPwaInstall } from "./helpers/harness"
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000"
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3146"
 
 test.describe("@customer-flow customer home dashboard", () => {
   const reason = customerReadbackLiveDbSkipReason()

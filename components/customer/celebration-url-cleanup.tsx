@@ -4,11 +4,11 @@ import { useEffect } from "react"
 
 /**
  * One-shot celebration flags (`welcome=1`, `stamp=issued`, `reward=redeemed`,
- * `geo=flagged`, `firststamp=pending`) arrive on the card URL from the join
- * and stamp handoffs (lib/customer/experience/load-card.ts). Once the screen
- * has rendered them, this strips the params via `history.replaceState` — no
- * navigation, no re-render — so a refresh or a shared link does not replay
- * the celebration as if it just happened (CUS-P3-07).
+ * `geo=flagged`, `firststamp=pending`, `collected=1`) arrive on the customer
+ * and merchant reward URLs from one-shot handoffs. Once the screen has rendered
+ * them, this strips the params via `history.replaceState` — no navigation, no
+ * re-render — so a refresh or a shared link does not replay the celebration as
+ * if it just happened (CUS-P3-07).
  */
 const CELEBRATION_PARAMS = [
   "welcome",
@@ -16,6 +16,7 @@ const CELEBRATION_PARAMS = [
   "reward",
   "geo",
   "firststamp",
+  "collected",
 ] as const
 
 export function CelebrationUrlCleanup() {

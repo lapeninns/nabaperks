@@ -70,6 +70,9 @@ export function AnnouncementCompose({
   const trimmedBody = body.trim()
   const hasEligibleAudience = audienceSummary.eligible > 0
   const dailyLimitReached = sentToday >= dailyUsage.limit
+  const resultShowsDailyLimit =
+    result !== null && !result.ok && result.error === "rate_limited"
+  const showDailyLimitBanner = dailyLimitReached && !resultShowsDailyLimit
   const canSubmit =
     hasEligibleAudience &&
     !dailyLimitReached &&
@@ -127,7 +130,7 @@ export function AnnouncementCompose({
         dailyUsage={{ used: sentToday, limit: dailyUsage.limit }}
       />
 
-      {dailyLimitReached ? (
+      {showDailyLimitBanner ? (
         <StatusBanner title="Daily limit reached" tone="warning">
           You have sent {formatNumber(dailyUsage.limit)} announcements today.
           You can send more tomorrow.

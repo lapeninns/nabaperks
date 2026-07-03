@@ -1,5 +1,6 @@
 import assert from "node:assert/strict"
 import { createHash } from "node:crypto"
+import { readFileSync } from "node:fs"
 import { test } from "node:test"
 import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
@@ -8,6 +9,7 @@ import { ThemeProvider } from "next-themes"
 import {
   dynamicContentSecurityPolicy,
   isStaticMarketingPath,
+  NEXT_THEMES_APP_RENDER_SCRIPT_SHA256,
   NEXT_THEMES_SERVER_RENDER_SCRIPT_SHA256,
   NEXT_THEMES_SCRIPT_SHA256,
   staticMarketingContentSecurityPolicy,
@@ -40,8 +42,9 @@ test("Given next-themes renders its bootstrap script When CSP is built Then the 
   const csp = dynamicContentSecurityPolicy("test-nonce")
 
   assert.equal(hash, NEXT_THEMES_SERVER_RENDER_SCRIPT_SHA256)
-  assert.match(csp, new RegExp(`'${NEXT_THEMES_SCRIPT_SHA256}'`))
-  assert.match(csp, new RegExp(`'${NEXT_THEMES_SERVER_RENDER_SCRIPT_SHA256}'`))
+  assert.ok(csp.includes(`'${NEXT_THEMES_SCRIPT_SHA256}'`))
+  assert.ok(csp.includes(`'${NEXT_THEMES_SERVER_RENDER_SCRIPT_SHA256}'`))
+  assert.ok(csp.includes(`'${NEXT_THEMES_APP_RENDER_SCRIPT_SHA256}'`))
   assert.match(csp, /'nonce-test-nonce'/)
   assert.match(csp, /'strict-dynamic'/)
   assert.doesNotMatch(csp, /script-src[^;]*'unsafe-inline'/)
@@ -83,4 +86,14 @@ test("Given route groups are classified When proxy selects CSP Then only brochur
   ]) {
     assert.equal(isStaticMarketingPath(pathname), false, pathname)
   }
+})
+
+test("Given nonce CSP protects dynamic pages When the root not-found boundary renders Then it opts into request-time rendering", () => {
+  const notFound = readFileSync(
+    new URL("../../app/not-found.tsx", import.meta.url),
+    "utf8"
+  )
+
+  assert.match(notFound, /from "next\/server"/)
+  assert.match(notFound, /connection\(\)/)
 })

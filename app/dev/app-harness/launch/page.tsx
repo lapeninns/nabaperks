@@ -145,7 +145,7 @@ export default async function LaunchHarnessPage({
             ]}
             continueHref="/app/launch?tab=qr"
             continueLabel="your venue QR"
-            presets={rewardPresetsForBusinessType("cafe")}
+            presets={rewardPresetsForBusinessType("pub")}
           />
         ) : activeTab === "qr" ? (
           <QrPanelLive
