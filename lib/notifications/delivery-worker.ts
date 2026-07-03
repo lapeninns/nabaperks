@@ -449,6 +449,12 @@ async function enqueueRewardReady(now: Date) {
       "id, customer_id, merchant_id, membership_id, reward_name, redeemable_from, cycle_number, merchants(business_name)"
     )
     .eq("status", "unlocked")
+    // "Reward ready" is the earned-card celebration. Issued rewards (birthday /
+    // merchant-sent) get their own arrival push at issue time, so scoping to
+    // stamp_cycle here stops them re-pushing a transactional reward_ready every
+    // day they sit unredeemed. The expiry reminders below stay unscoped —
+    // they are bounded and useful for issued rewards too.
+    .eq("source", "stamp_cycle")
     .lte("redeemable_from", londonBusinessDate(now))
     .limit(100)
 

@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation"
 import { GiftIcon } from "@hugeicons/core-free-icons"
 
 import { EmptyState, PageTitle, SectionHeader } from "@/components/brand"
@@ -6,14 +7,24 @@ import {
   RedeemableReward,
 } from "@/components/customer/reward-list-cards"
 import { formatDate } from "@/lib/customer/format"
-import { getCustomerRewards } from "@/lib/customer/rewards"
 
-export const metadata = {
-  title: "Your rewards · Nabaperks",
-}
+import { HOME_HARNESS_REWARDS } from "../fixtures"
 
-export default async function HomeRewardsPage() {
-  const { redeemable, upcoming, redeemed, expired } = await getCustomerRewards()
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
+
+/**
+ * Rewards wallet harness — mirrors app/home/(authed)/rewards/page.tsx but fed by
+ * static fixtures so the issued-reward badges + expiry notes render with no auth
+ * or DB. Kept a faithful copy of the section layout (the real page keeps its own
+ * note-building so its source-contract test stays anchored there).
+ */
+export default function HomeHarnessRewardsPage() {
+  if (process.env.NODE_ENV === "production") {
+    notFound()
+  }
+
+  const { redeemable, upcoming, redeemed, expired } = HOME_HARNESS_REWARDS
   const hasAny =
     redeemable.length + upcoming.length + redeemed.length + expired.length > 0
 
