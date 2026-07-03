@@ -165,7 +165,8 @@
     "name": "CUSTOMER_EMAIL_HMAC_SECRET",
     "visibility": "server",
     "kind": "string",
-    "description": "High-entropy secret for deterministic HMAC matching of pending reward-invite email addresses (never stored raw)."
+    "description": "High-entropy secret for deterministic HMAC matching of pending reward-invite email addresses (never stored raw). Optional at the env level so the rest of the app runs without it; required only to send/match email invites, enforced at call time in lib/customer/email-pii-core.ts.",
+    "optional": true
   },
   {
     "name": "CUSTOMER_PHONE_ENCRYPTION_KEY",
