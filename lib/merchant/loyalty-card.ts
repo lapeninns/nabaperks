@@ -22,6 +22,9 @@ export type LoyaltyCardSummary = {
   reward_name: string
   reward_terms: string
   is_active: boolean
+  birthday_reward_enabled: boolean
+  birthday_reward_name: string | null
+  birthday_reward_terms: string | null
 }
 
 export type RewardPoolItemSummary = {
@@ -88,7 +91,7 @@ async function loadLoyaltyCardSetup(
   const { data: card, error: cardError } = await supabase
     .from("loyalty_cards")
     .select(
-      "id, card_name, stamps_required, reward_name, reward_terms, is_active"
+      "id, card_name, stamps_required, reward_name, reward_terms, is_active, birthday_reward_enabled, birthday_reward_name, birthday_reward_terms"
     )
     .eq("merchant_id", merchant.id)
     .eq("location_id", location.id)

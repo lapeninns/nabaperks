@@ -2,6 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 
 import { PageTitle, ReceiptCard } from "@/components/brand"
+import { BirthdayRewardPanel } from "@/components/merchant/launch/birthday-panel"
 import { LaunchSaveNextAction } from "@/components/merchant/launch/launch-tab-auto-advance"
 import {
   RewardPoolForm,
@@ -118,6 +119,12 @@ export async function RewardsPanel({
         continueLabel={continueLabel}
         presets={rewardPresetsForBusinessType(merchant.business_type)}
       />
+      <BirthdayRewardPanel
+        loyaltyCardId={card.id}
+        enabled={card.birthday_reward_enabled}
+        rewardName={card.birthday_reward_name}
+        rewardTerms={card.birthday_reward_terms}
+      />
     </div>
   )
 }
@@ -139,6 +146,15 @@ function RewardsStatus({
   activeRewardPoolItemCount: number
   needsBillingActivation: boolean
 }) {
+  if (params.saved === "birthday") {
+    return (
+      <StatusBanner tone="success" title="Birthday reward saved.">
+        Members with a saved birthday get it automatically during their birthday
+        month.
+      </StatusBanner>
+    )
+  }
+
   if (params.saved === "pool") {
     const title = needsBillingActivation
       ? "Your account is created."

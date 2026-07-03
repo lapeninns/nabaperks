@@ -23,6 +23,7 @@ const expectedDevPages = [
   "app/dev/app-harness/skeletons/page.tsx",
   "app/dev/app-harness/states/page.tsx",
   "app/dev/design-system/page.tsx",
+  "app/dev/home-harness/home/page.tsx",
   "app/dev/home-harness/rewards/page.tsx",
   "app/dev/poster-preview/page.tsx",
 ]

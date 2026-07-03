@@ -1,0 +1,39 @@
+import { PageTitle } from "@/components/brand"
+import { BirthdayRewardForm } from "@/components/merchant/launch/birthday-reward-form"
+
+/**
+ * The merchant birthday-reward config, rendered inside the Rewards panel from
+ * the same `getLoyaltyCardSetup` card row (zero extra queries). Presentational;
+ * the client form owns the save action.
+ */
+export function BirthdayRewardPanel({
+  loyaltyCardId,
+  enabled,
+  rewardName,
+  rewardTerms,
+}: {
+  loyaltyCardId: string
+  enabled: boolean
+  rewardName: string | null
+  rewardTerms: string | null
+}) {
+  return (
+    <section className="grid min-w-0 gap-4 rounded-lg border border-border bg-card p-3 sm:p-6">
+      <PageTitle
+        headingLevel={2}
+        eyebrow="Optional"
+        title="Birthday treat"
+        description="Automatically issue a reward during each member's birthday month. It redeems like any other reward and expires at month end."
+        titleClassName="sm:text-xl"
+      />
+      <BirthdayRewardForm
+        loyaltyCardId={loyaltyCardId}
+        initialValues={{
+          enabled,
+          rewardName: rewardName ?? "",
+          rewardTerms: rewardTerms ?? "",
+        }}
+      />
+    </section>
+  )
+}

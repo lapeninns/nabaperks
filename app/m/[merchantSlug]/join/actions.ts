@@ -2,8 +2,10 @@
 
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
+import { after } from "next/server"
 
 import { capturePostHogEvent } from "@/lib/analytics/events"
+import { triggerBirthdayIssuanceForCustomer } from "@/lib/rewards/issue-birthday"
 import {
   getCurrentCustomer,
   getOrCreateCustomerByVerifiedPhone,
@@ -303,6 +305,11 @@ export async function joinRewardsAction(
         },
       })
     }
+
+    // A member who already set a birthday may be owed a treat here — issue it
+    // best-effort. `after` callbacks registered before the redirect throw still
+    // run, so this survives the redirect below.
+    after(() => triggerBirthdayIssuanceForCustomer(customer.id))
 
     // Onboarding completes onto the card itself: a freshly issued first stamp
     // celebrates with `welcome=1&stamp=issued`; a no-QR/direct join lands on a

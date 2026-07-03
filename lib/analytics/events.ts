@@ -17,6 +17,8 @@ export const productEventNames = [
   "reward_issued",
   "reward_sent",
   "reward_invite_sent",
+  "birthday_reward_enabled",
+  "birthday_reward_disabled",
   "merchant_signed_up",
   "loyalty_card_created",
   "qr_created",
