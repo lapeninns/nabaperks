@@ -28,11 +28,11 @@ export const faqs: readonly Faq[] = [
   },
   {
     q: "How much does it cost, and am I tied into a contract?",
-    a: "A 30-day free pilot, then £29/month per venue, with no contract. You build your card free and only add billing when you switch your live venue QR on.",
+    a: "A 30-day free pilot, then £29/month per venue, with no contract. Card required — cancel anytime.",
   },
   {
     q: "Can I try it before I pay?",
-    a: "Yes. Build your card and preview the whole QR flow for free; billing only starts when you go live, and the first 30 days are then free. You don't need card details to start.",
+    a: "Yes. You can preview the QR flow during the 30-day pilot. Card required — cancel anytime.",
   },
   {
     q: "Will it spam my customers, and is their data safe?",

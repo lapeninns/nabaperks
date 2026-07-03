@@ -169,8 +169,8 @@ export default function AboutPage() {
           Run a venue? Try it on your own counter.
         </h2>
         <p className="mx-auto mt-3 max-w-[44ch] text-base leading-relaxed text-muted-foreground">
-          Build your card, preview the QR flow, and start a {PRODUCT.pilot} when
-          you activate your live venue QR.
+          Build your card, preview the QR flow, and start a {PRODUCT.pilot}.
+          Card required — cancel anytime.
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           <Button asChild size="lg">

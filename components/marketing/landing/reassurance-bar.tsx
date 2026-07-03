@@ -4,14 +4,14 @@ import { Icon } from "@/components/brand"
 import { cn } from "@/lib/utils"
 
 const defaultPoints = [
-  "Build free — no payment to start",
+  "Card required — cancel anytime",
   "30-day pilot, then £29/mo",
   "No contract, month to month",
 ] as const
 
 /**
  * Risk-reversal strip — the honest conversion lever: name what removes the
- * buyer's fear (no upfront card, a real free pilot, no lock-in) right at the
+ * buyer's fear (a cancellable card-backed pilot, no lock-in) right at the
  * decision point. Every point must stay literally true; this is reassurance,
  * not manufactured pressure. The defaults carry the offer; pass `points` for a
  * context-specific set (e.g. the closing CTA).

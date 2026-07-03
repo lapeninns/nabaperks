@@ -5,11 +5,13 @@ import { Suspense } from "react"
 import { Camera01Icon, Megaphone01Icon } from "@hugeicons/core-free-icons"
 
 import { Icon, PageTitle } from "@/components/brand"
+import { DashboardQrCard } from "@/components/merchant/dashboard-qr-card"
 import {
   MerchantCompactActivityStream,
   MerchantDashboardStream,
 } from "@/components/merchant/dashboard-home-streams"
 import {
+  DashboardQrCardSkeleton,
   MerchantCompactActivitySkeleton,
   MerchantDashboardMetricsSkeleton,
 } from "@/components/merchant/loading-skeletons"
@@ -67,6 +69,16 @@ export default async function MerchantAppPage() {
           </>
         }
       />
+
+      {/* Counter QR sits first: the code a customer scans is the most-reached-for
+          action at the till, so it renders one glance (one tap to full screen)
+          away instead of a nav hop to the Poster page. Its own boundary keeps
+          the extra QR read off the header/metrics critical path. */}
+      <StreamErrorBoundary label="your venue QR">
+        <Suspense fallback={<DashboardQrCardSkeleton />}>
+          <DashboardQrCard />
+        </Suspense>
+      </StreamErrorBoundary>
 
       {/* Per-stream boundaries: a failure inside one stream keeps the other
           (and the page chrome) up instead of tripping the segment-wide

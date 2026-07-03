@@ -19,6 +19,7 @@ import {
 } from "@/components/brand"
 import { TrendChart } from "@/components/data"
 import { ActivityCompactFeed } from "@/components/merchant/activity-compact-feed"
+import { DashboardQrCardView } from "@/components/merchant/dashboard-qr-card"
 import { MerchantNextActions } from "@/components/merchant/dashboard-next-actions"
 import { WetInkRise } from "@/components/motion"
 import { Button } from "@/components/ui/button"
@@ -71,6 +72,13 @@ export default async function DashboardHarnessPage() {
             </Link>
           </Button>
         }
+      />
+
+      <DashboardQrCardView
+        qrCodeId="qr_harness"
+        venueName={HARNESS_MERCHANT.business_name}
+        shareUrl="https://nabaperks.com/q/old-crown-girton"
+        isActive
       />
 
       <section className="grid gap-3">

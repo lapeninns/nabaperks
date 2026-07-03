@@ -29,6 +29,29 @@ export function MerchantPageTitleSkeleton() {
   )
 }
 
+// ─── Dashboard QR quick-access ─────────────────────────────────────────────────
+
+/** Mirrors {@link DashboardQrCardView}: the QR thumbnail beside its copy and
+ *  the present/copy action row. */
+export function DashboardQrCardSkeleton() {
+  return (
+    <ReceiptCard className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:gap-6">
+      <Skeleton className="mx-auto aspect-square w-full max-w-[148px] rounded-lg sm:mx-0" />
+      <div className="grid gap-3">
+        <div className="grid gap-2">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-6 w-52 max-w-full" />
+          <Skeleton className="h-4 w-full max-w-md" />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Skeleton className="h-11 w-40" />
+          <Skeleton className="h-11 w-28" />
+        </div>
+      </div>
+    </ReceiptCard>
+  )
+}
+
 // ─── Dashboard metrics ─────────────────────────────────────────────────────────
 
 /**

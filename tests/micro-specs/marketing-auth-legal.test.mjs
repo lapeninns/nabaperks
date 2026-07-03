@@ -82,12 +82,14 @@ test("Given trust and pricing copy When legal friction is reviewed Then billing 
   assert.match(proofStrip, /label: "free to pilot"/)
   assert.match(
     acquisitionCopy,
-    /billing when you activate your live venue\s+QR|Card required when you activate your live QR/
+    /Card required — cancel anytime\./
   )
   assert.match(
     homepagePricingCopy,
     /one or two extra regulars a week can cover/
   )
+  assert.doesNotMatch(acquisitionCopy, /No card to start/)
+  assert.doesNotMatch(homepagePricingCopy, /No payment to start/)
   assert.doesNotMatch(acquisitionCopy, /free, card required/)
   assert.doesNotMatch(acquisitionCopy, /Card required to go live/)
   assert.doesNotMatch(acquisitionCopy, /card required to activate/)
