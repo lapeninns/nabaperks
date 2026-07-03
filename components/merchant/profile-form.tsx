@@ -1,6 +1,11 @@
 "use client"
 
-import { useActionState, useEffect } from "react"
+import {
+  useActionState,
+  useEffect,
+  type InputHTMLAttributes,
+  type ReactNode,
+} from "react"
 
 import {
   updateMerchantProfileAction,
@@ -74,7 +79,8 @@ export function MerchantProfileForm({
       <div className="grid gap-1">
         <p className="eyebrow">Business profile</p>
         <p className="text-sm leading-6 text-muted-foreground">
-          This is the name customers see on cards, rewards, and QR flows.
+          These details appear on customer cards, terms, billing setup, and
+          merchant emails. Your sign-in email is managed separately.
         </p>
       </div>
       <Field
@@ -107,7 +113,8 @@ export function MerchantProfileForm({
         id="email"
         name="email"
         type="email"
-        label="Contact email"
+        label="Business contact email"
+        description="Used for customer contact, billing setup, and merchant notifications. Changing this does not change the email you use to sign in."
         defaultValue={fields?.email}
         error={state.errors?.email}
       />
@@ -148,15 +155,22 @@ export function MerchantProfileForm({
 function Field({
   id,
   label,
+  description,
   error,
   ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & {
+}: InputHTMLAttributes<HTMLInputElement> & {
   id: string
   label: string
+  description?: ReactNode
   error?: string
 }) {
   return (
-    <FormField id={id} label={<Eyebrow>{label}</Eyebrow>} error={error}>
+    <FormField
+      id={id}
+      label={<Eyebrow>{label}</Eyebrow>}
+      description={description}
+      error={error}
+    >
       <Input id={id} className="h-12" {...props} />
     </FormField>
   )

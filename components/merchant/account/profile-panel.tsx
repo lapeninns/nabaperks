@@ -67,9 +67,9 @@ export async function ProfilePanel() {
           phone={profile.merchant.phone ?? ""}
         />
         <p className="text-sm leading-6 text-muted-foreground">
-          Address and GPS checks are managed in Setup. Your business name is
-          saved here because it is reused on customer cards, reward screens,
-          venue QR flows, billing, and support.
+          Address and GPS checks are managed in Setup. Business contact details
+          saved here feed customer terms, billing setup, merchant notifications,
+          and support; sign-in credentials stay separate.
         </p>
       </div>
     </section>
