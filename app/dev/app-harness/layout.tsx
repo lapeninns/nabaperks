@@ -16,10 +16,10 @@ export const metadata: Metadata = {
 
 /**
  * Unauthenticated harness shell. Mounts the REAL {@link MerchantAppShell} (the
- * same collapsible sidebar / mobile header / bottom tab bar the auth-gated /app
- * routes use) so the responsive merchant surface — sidebar collapse, the
- * md:hidden fixed tab bar, per-page bodies — is screenshot-provable at every
- * breakpoint with NO Supabase login. Additive verification scaffolding only:
+ * same collapsible sidebar + mobile header the auth-gated /app routes use) so
+ * the responsive merchant surface — sidebar collapse, the hamburger drawer,
+ * per-page bodies — is screenshot-provable at every breakpoint with NO
+ * Supabase login. Additive verification scaffolding only:
  * no /app page, component, or data-fetching path is modified.
  *
  * The shell's `signOutAction` is a no-op server action (the harness never signs

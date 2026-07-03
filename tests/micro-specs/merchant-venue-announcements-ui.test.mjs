@@ -87,19 +87,18 @@ describe("MS-merchant-venue-announcements-ui source contract", () => {
     assert.doesNotMatch(form, /use server/)
   })
 
-  it("adds sidebar and home entry points without adding the route to the mobile tab bar", () => {
+  it("adds sidebar and home entry points for the announcements route", () => {
     const nav = readProjectFile("components/layout/console-nav.ts")
     const home = readProjectFile("app/app/page.tsx")
-    const tabBarBlock = blockBetween(
+    const navBlock = blockBetween(
       nav,
-      "export const merchantTabBarItems = [",
+      "export const merchantNavItems = [",
       "] satisfies readonly ShellNavItem[]"
     )
 
     assert.match(nav, /Megaphone01Icon/)
-    assert.match(nav, /href: "\/app\/announcements"/)
-    assert.match(nav, /label: "Announce"/)
-    assert.doesNotMatch(tabBarBlock, /\/app\/announcements/)
+    assert.match(navBlock, /href: "\/app\/announcements"/)
+    assert.match(navBlock, /label: "Announce"/)
     assert.match(home, /href="\/app\/announcements"/)
   })
 

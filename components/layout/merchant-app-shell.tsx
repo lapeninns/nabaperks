@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Suspense, type ComponentProps, type ReactNode } from "react"
+import type { ComponentProps, ReactNode } from "react"
 import { Building02Icon, Logout01Icon } from "@hugeicons/core-free-icons"
 
 import {
@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/sidebar"
 import { CONSOLE_SIDEBAR_STYLE, ConsoleSidebarNav } from "./console-sidebar-nav"
 import { merchantAccountItems, merchantNavItems } from "./console-nav"
-import { MerchantTabBar } from "./merchant-tab-bar"
 
 export function MerchantAppShell({
   children,
@@ -174,7 +173,7 @@ export function MerchantAppShell({
           className={
             hideMobileChrome
               ? "w-full min-w-0"
-              : "w-full px-4 py-8 pb-32 sm:px-6 md:pb-10"
+              : "w-full px-4 py-8 pb-16 sm:px-6 md:pb-10"
           }
         >
           <div
@@ -187,11 +186,6 @@ export function MerchantAppShell({
             {children}
           </div>
         </div>
-        {hideMobileChrome ? null : (
-          <Suspense fallback={null}>
-            <MerchantTabBar activePath={activePath} />
-          </Suspense>
-        )}
       </SidebarInset>
     </SidebarProvider>
   )

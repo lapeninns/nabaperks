@@ -46,8 +46,8 @@ export function parseNavHref(href: string): {
 
 // The counter scan flows have no nav item of their own; they live under
 // Activity (collection revalidates the activity feed, and the scan 404's CTA
-// already routes back there), so both the sidebar and the tab bar highlight
-// a section on those screens.
+// already routes back there), so the sidebar highlights a section on those
+// screens.
 const ACTIVITY_ALIAS_PREFIXES = ["/app/scan", "/app/rewards"]
 
 export function isActiveNavItem(
@@ -101,46 +101,6 @@ export const merchantNavItems = [
   },
   { href: "/app/announcements", label: "Announce", icon: Megaphone01Icon },
 ] satisfies readonly ShellNavItem[]
-
-/** Primary destinations for the merchant mobile bottom tab bar. */
-export const merchantTabBarItems = [
-  { href: "/app", label: "Home", icon: Home01Icon, prefetch: "auto" },
-  { href: "/app/qr", label: "Poster", icon: QrCode01Icon, prefetch: "auto" },
-  {
-    href: "/app/customers",
-    label: "Members",
-    icon: UserMultiple02Icon,
-    prefetch: "auto",
-  },
-  {
-    href: "/app/activity",
-    label: "Activity",
-    icon: Activity03Icon,
-    prefetch: "auto",
-  },
-  {
-    href: "/app/account?tab=profile",
-    label: "Account",
-    icon: Building02Icon,
-  },
-] satisfies readonly ShellNavItem[]
-
-export function isMerchantTabActive(
-  currentPath: string,
-  currentTab: string | null,
-  href: string
-) {
-  const { path } = parseNavHref(href)
-
-  if (path === "/app/account") {
-    return (
-      currentPath === "/app/account" ||
-      currentPath.startsWith("/app/account/")
-    )
-  }
-
-  return isActiveNavItem(currentPath, currentTab, href)
-}
 
 export const merchantAccountItems = [
   {
