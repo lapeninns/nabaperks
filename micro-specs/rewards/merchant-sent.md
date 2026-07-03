@@ -16,10 +16,25 @@ allowed_blast_radius:
   - app/dev/app-harness/send-reward/**
   - app/dev/app-harness/layout.tsx
   - app/dev/app-harness/customers/page.tsx
+  - supabase/migrations/20260704095000_pending_reward_invites.sql
+  - supabase/migrations/20260704096000_erase_reward_invites.sql
+  - lib/customer/email-pii-core.ts
+  - lib/customer/reward-invites.ts
+  - lib/customer/identity.ts
+  - lib/customer/profile.ts
+  - lib/notifications/reward-invite-email.ts
+  - app/m/[merchantSlug]/join/actions.ts
+  - app/api/cron/privacy-retention/route.ts
+  - app/claim/**
+  - config/env-contract.json
   - micro-specs/rewards/**
   - tests/db/issued-rewards-direct.test.mjs
+  - tests/db/issued-rewards-invites.test.mjs
   - tests/unit/send-reward-fields.test.mjs
+  - tests/unit/email-pii.test.mjs
+  - tests/unit/reward-invite-email.test.mjs
   - tests/micro-specs/issued-reward-merchant-sent.test.mjs
+  - tests/micro-specs/issued-reward-invites.test.mjs
   - tests/micro-specs/dev-route-production-guard.test.mjs
   - tests/e2e/merchant-send-reward.spec.ts
   - tests/visual/**
@@ -36,8 +51,12 @@ related_docs:
   - micro-specs/rewards/customer-birthday.md
 related_tests:
   - tests/db/issued-rewards-direct.test.mjs
+  - tests/db/issued-rewards-invites.test.mjs
   - tests/unit/send-reward-fields.test.mjs
+  - tests/unit/email-pii.test.mjs
+  - tests/unit/reward-invite-email.test.mjs
   - tests/micro-specs/issued-reward-merchant-sent.test.mjs
+  - tests/micro-specs/issued-reward-invites.test.mjs
   - tests/e2e/merchant-send-reward.spec.ts
 verification_gates:
   - pnpm lint
@@ -117,7 +136,29 @@ extension of this spec.
   message whether or not a typed contact matches a member, and SHALL NOT echo the
   raw contact back.
 - **R-7 (sent list):** THE merchant SHALL see their sent `merchant_direct` rewards
-  with a masked member identifier and status.
+  and pending invites with a masked identifier and status (invite pending+matched
+  collapse to "Invited" so a contact's Nabaperks membership stays private).
+
+### Phase 4 — pending invites
+
+- **R-8 (invite create):** WHEN a send targets a contact that matches no member,
+  THE system SHALL store a pending invite keyed ONLY by an HMAC of the contact
+  (never raw), deduping an existing active invite for the same
+  (merchant, contact).
+- **R-9 (hashed matching + attach):** WHEN a person whose verified phone/email
+  HMAC matches a live invite becomes a member of that merchant (via join, phone
+  verify, email verify, or a claim link), THE system SHALL attach the invite as a
+  `merchant_direct` reward and scrub the stored hashes.
+- **R-10 (sticky match):** THE first verified match SHALL win; a later identity or
+  a forwarded claim token SHALL NOT re-target an invite already matched to someone
+  else.
+- **R-11 (one-off email + suppression):** THE system SHALL send at most one
+  merchant-attributed invite email per invite, with a reason line + unsubscribe
+  link, honouring a permanent suppression list and a 3-per-30-day fatigue cap; a
+  phone invite SHALL send no message and attach silently.
+- **R-12 (retention + erasure):** Invites SHALL expire + scrub after 90 days,
+  hard-delete 365 days after going terminal, and a customer erasure SHALL cancel +
+  scrub that customer's live invites.
 
 ## Verification method
 
@@ -157,3 +198,36 @@ and records nothing; **Phase 4 replaces it with a pending invite.**
 
 Verdict: **IMPLEMENTED** (direct path). Pending invites complete this spec in
 Phase 4.
+
+## Verification log — Phase 4 (2026-07-03)
+
+Pending invites landed on the shared core (the direct RPC now delegates to
+`internal_issue_merchant_direct_reward`; the Phase 3 direct test still passes).
+
+- `pnpm test:db` — **79/79** (9 new invite invariants: lifecycle
+  pending→matched→attached with scrubbed hashes, sticky match / token
+  no-retarget, dedupe, attach-without-membership + billing-blocked, idempotency,
+  expiry-scrub + 365-day hard delete, cancel, RLS admin-only, erasure scrubs
+  invites, and no raw contact in the audit). Proves R-8…R-12.
+- `pnpm test` — micro 260 + unit 222 (email PII codec + invite email builder
+  escaping/unsubscribe + the full invite wiring source contract).
+- `pnpm test:coverage` — `lib/**` 93.3 / 84.1 / 91.3.
+- `pnpm typecheck`, `pnpm governance:check`, `pnpm lint` (own files) green;
+  production build via `next build --webpack` (incl. `/claim/[token]`).
+
+Notes: the send action holds an unmatched contact as a hashed invite + one-off
+email (suppression + 3/30-day fatigue cap); attach hooks fire at every creation
+choke point (`getOrCreateCustomerByVerifiedPhone`, `markCustomerEmailVerified`,
+`joinRewardsAction`) plus the `/claim/[token]` landing; `CUSTOMER_EMAIL_HMAC_SECRET`
+is required in the env contract; retention runs in `privacy-retention`.
+
+**⚠️ PECR/legal review is recommended before enabling invite emails in production
+(D9).** The code implements the mitigations (single send, suppression list,
+unsubscribe, merchant attribution, hashed-at-rest, 90-day expiry, 365-day delete)
+but the launch decision is a legal one.
+
+Deferred polish (not blocking): the `/home` "join to claim" invite prompt for a
+matched non-member — organic attach via the join/verify hooks already delivers
+the reward when they join; the prompt is a nudge, left for a follow-up.
+
+Verdict: **IMPLEMENTED** — direct send + pending invites complete.

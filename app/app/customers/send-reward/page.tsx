@@ -79,40 +79,12 @@ function SentRow({ reward }: { reward: SentReward }) {
         </span>
         <span className="text-xs text-muted-foreground">
           {reward.memberLabel} · {dateFormatter.format(new Date(reward.createdAt))}
+          {reward.kind === "invite" ? " · Invite" : ""}
         </span>
       </div>
-      <MonoTag tone={statusTone(reward.status)}>
-        {statusLabel(reward.status)}
-      </MonoTag>
+      <MonoTag tone={reward.statusTone}>{reward.statusLabel}</MonoTag>
     </li>
   )
-}
-
-function statusLabel(status: string) {
-  switch (status) {
-    case "unlocked":
-      return "Sent"
-    case "redeemed":
-      return "Redeemed"
-    case "expired":
-      return "Expired"
-    case "cancelled":
-      return "Cancelled"
-    default:
-      return status
-  }
-}
-
-function statusTone(status: string): "leaf" | "sun" | "plain" {
-  switch (status) {
-    case "redeemed":
-      return "leaf"
-    case "expired":
-    case "cancelled":
-      return "plain"
-    default:
-      return "sun"
-  }
 }
 
 function firstParam(value: string | string[] | undefined) {

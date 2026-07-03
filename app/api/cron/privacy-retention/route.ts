@@ -33,12 +33,24 @@ export async function GET(request: NextRequest) {
     )
   }
 
+  // Expire + scrub lapsed reward invites, and hard-delete old terminal ones. A
+  // failure here is logged but does not fail the customer-PII purge above.
+  const { data: expiredInvites, error: inviteError } = await supabase.rpc(
+    "expire_and_purge_reward_invites"
+  )
+  if (inviteError) {
+    logger.warn("privacy_retention_invite_purge_failed", {
+      reason: inviteError.message,
+    })
+  }
+
   return NextResponse.json(
     {
       ok: true,
       result: {
         cutoff,
         purgedCount: typeof data === "number" ? data : 0,
+        expiredInviteCount: typeof expiredInvites === "number" ? expiredInvites : 0,
       },
     },
     { headers: { "cache-control": "no-store, max-age=0" } }

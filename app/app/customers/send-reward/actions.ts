@@ -1,6 +1,15 @@
 "use server"
 
+import { createHash, randomBytes } from "node:crypto"
+
+import { after } from "next/server"
+
 import { getCurrentMerchant } from "@/lib/auth/session"
+import {
+  customerEmailHmac,
+  looksLikeEmail,
+  maskEmail,
+} from "@/lib/customer/email-pii-core"
 import { normalizePhone } from "@/lib/customer/phone"
 import { customerPhoneHmac } from "@/lib/customer/phone-pii-core"
 import {
@@ -9,6 +18,8 @@ import {
   validateSendRewardFields,
   type SendRewardErrors,
 } from "@/lib/merchant/send-reward-fields"
+import { buildRewardInviteEmail } from "@/lib/notifications/reward-invite-email"
+import { sendTransactionalEmail } from "@/lib/notifications/resend"
 import { RateLimitError, enforceRateLimit } from "@/lib/security/rate-limit"
 import {
   createSupabaseServerClient,
@@ -97,6 +108,125 @@ async function matchMerchantMembershipForContact(
   return (data?.id as string | undefined) ?? null
 }
 
+async function isInviteEmailSuppressed(emailHmac: string): Promise<boolean> {
+  const supabase = createSupabaseServiceRoleClient()
+  const { data } = await supabase
+    .from("reward_invite_email_suppressions")
+    .select("email_hmac")
+    .eq("email_hmac", emailHmac)
+    .maybeSingle()
+  return Boolean(data)
+}
+
+/**
+ * A typed contact that matches no existing member becomes a pending invite. The
+ * contact is hashed (never stored raw); an email invite additionally gets one
+ * one-off email (unless deduped, suppressed, or over the fatigue cap). Phone
+ * invites have no SMS — they attach silently when the person joins.
+ */
+async function createRewardInviteForUnmatchedContact(
+  merchant: { id: string; business_name?: string | null },
+  input: { contact: string; rewardName: string; rewardTerms: string; message: string },
+  expiresInDays: number
+): Promise<void> {
+  const raw = input.contact.trim()
+  const isEmail = looksLikeEmail(raw)
+
+  let emailHmac: string | null = null
+  let emailMasked: string | null = null
+  let phoneHmac: string | null = null
+  let phoneLast4: string | null = null
+
+  if (isEmail) {
+    try {
+      emailHmac = customerEmailHmac(raw)
+      emailMasked = maskEmail(raw)
+    } catch {
+      return
+    }
+  } else {
+    const normalized = normalizePhone(raw, "GB")
+    if (!normalized.ok) return
+    try {
+      phoneHmac = customerPhoneHmac(normalized.phone.e164)
+      phoneLast4 = normalized.phone.e164.replace(/\D/g, "").slice(-4)
+    } catch {
+      return
+    }
+  }
+
+  const token = randomBytes(32).toString("base64url")
+  const claimTokenHash = createHash("sha256").update(token).digest("hex")
+
+  const supabase = await createSupabaseServerClient()
+  const { data, error } = await supabase.rpc("create_merchant_reward_invite", {
+    p_merchant_id: merchant.id,
+    p_email_hmac: emailHmac,
+    p_phone_hmac: phoneHmac,
+    p_email_masked: emailMasked,
+    p_phone_last4: phoneLast4,
+    p_reward_name: input.rewardName,
+    p_reward_terms: input.rewardTerms,
+    p_personal_message: input.message || null,
+    p_reward_expires_after_days: expiresInDays,
+    p_claim_token_hash: claimTokenHash,
+  })
+  if (error) return
+
+  const inviteId = data?.[0]?.invite_id as string | undefined
+  const deduped = data?.[0]?.deduped === true
+
+  if (!isEmail || !emailHmac || deduped) return
+  if (await isInviteEmailSuppressed(emailHmac)) return
+
+  try {
+    await enforceRateLimit({
+      key: `invite-email:${emailHmac}`,
+      limit: 3,
+      windowMs: 30 * 86_400_000,
+    })
+  } catch (error) {
+    if (error instanceof RateLimitError) return
+    throw error
+  }
+
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://nabaperks.com"
+  const claimUrl = `${appUrl}/claim/${token}`
+  const email = buildRewardInviteEmail({
+    businessName: merchant.business_name ?? "A local venue",
+    rewardName: input.rewardName,
+    personalMessage: input.message || null,
+    claimUrl,
+    unsubscribeUrl: `${claimUrl}?unsubscribe=1`,
+  })
+
+  after(async () => {
+    const service = createSupabaseServiceRoleClient()
+    try {
+      await sendTransactionalEmail({
+        to: raw,
+        subject: email.subject,
+        text: email.text,
+        html: email.html,
+      })
+      if (inviteId) {
+        await service
+          .from("pending_reward_invites")
+          .update({ email_send_status: "sent" })
+          .eq("id", inviteId)
+      }
+    } catch {
+      if (inviteId) {
+        await service
+          .from("pending_reward_invites")
+          .update({ email_send_status: "failed" })
+          .eq("id", inviteId)
+      }
+    }
+  })
+}
+
 export async function sendMerchantRewardAction(
   _state: SendRewardState,
   formData: FormData
@@ -148,8 +278,18 @@ export async function sendMerchantRewardAction(
       input.contact
     )
     if (!membershipId) {
-      // Phase 3 records nothing for an unmatched contact (invites land in
-      // Phase 4); the uniform response keeps membership unprobeable.
+      // No existing member matches — hold it as a pending invite that attaches
+      // when they join. The uniform response keeps membership unprobeable.
+      await createRewardInviteForUnmatchedContact(
+        merchant,
+        {
+          contact: input.contact,
+          rewardName: input.rewardName,
+          rewardTerms: input.rewardTerms,
+          message: input.message,
+        },
+        expiresInDays
+      )
       return { message: SEND_REWARD_SUCCESS }
     }
   }

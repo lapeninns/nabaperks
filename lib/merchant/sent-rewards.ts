@@ -4,18 +4,22 @@ import { getCurrentMerchant } from "@/lib/auth/session"
 import { formatMerchantCustomerIdentifier } from "@/lib/merchant/customer-identity-display"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
+export type SentRewardTone = "leaf" | "sun" | "plain"
+
 export type SentReward = {
   rewardId: string
   memberLabel: string
   rewardName: string
-  status: string
+  statusLabel: string
+  statusTone: SentRewardTone
   createdAt: string
-  expiresAt: string | null
+  kind: "reward" | "invite"
 }
 
 /**
- * A merchant's own sent (`merchant_direct`) rewards, newest first, with the
- * recipient masked. Invite rows join this list in Phase 4.
+ * A merchant's own sent rewards + pending invites, newest first, with the
+ * recipient masked. Invite statuses are collapsed (pending+matched → "Invited")
+ * so the merchant can't learn a contact is already a Nabaperks customer.
  */
 export async function getMerchantSentRewards(
   merchantId: string,
@@ -27,36 +31,97 @@ export async function getMerchantSentRewards(
   }
 
   const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase
-    .from("reward_events")
-    .select("id, reward_name, status, created_at, expires_at, customer_id")
-    .eq("merchant_id", merchantId)
-    .eq("source", "merchant_direct")
-    .order("created_at", { ascending: false })
-    .limit(limit)
+  const [rewardsResult, invitesResult] = await Promise.all([
+    supabase
+      .from("reward_events")
+      .select("id, reward_name, status, created_at, customer_id")
+      .eq("merchant_id", merchantId)
+      .eq("source", "merchant_direct")
+      .order("created_at", { ascending: false })
+      .limit(limit),
+    supabase
+      .from("pending_reward_invites")
+      .select("id, reward_name, status, created_at, email_masked, phone_last4")
+      .eq("merchant_id", merchantId)
+      .order("created_at", { ascending: false })
+      .limit(limit),
+  ])
 
-  if (error) {
-    throw new Error(`Unable to load sent rewards: ${error.message}`)
+  if (rewardsResult.error) {
+    throw new Error(`Unable to load sent rewards: ${rewardsResult.error.message}`)
+  }
+  if (invitesResult.error) {
+    throw new Error(`Unable to load reward invites: ${invitesResult.error.message}`)
   }
 
-  const rows = data ?? []
+  const rewardRows = rewardsResult.data ?? []
   const customerIds = [
     ...new Set(
-      rows.map((row) => row.customer_id).filter((id): id is string => Boolean(id))
+      rewardRows
+        .map((row) => row.customer_id)
+        .filter((id): id is string => Boolean(id))
     ),
   ]
   const maskedById = await loadMaskedCustomers(customerIds)
 
-  return rows.map((row) => ({
+  const rewards: SentReward[] = rewardRows.map((row) => ({
     rewardId: row.id as string,
     memberLabel: formatMerchantCustomerIdentifier(
       row.customer_id ? (maskedById.get(row.customer_id) ?? null) : null
     ),
     rewardName: row.reward_name as string,
-    status: row.status as string,
+    ...rewardStatus(row.status as string),
     createdAt: row.created_at as string,
-    expiresAt: (row.expires_at as string | null) ?? null,
+    kind: "reward" as const,
   }))
+
+  const invites: SentReward[] = (invitesResult.data ?? []).map((row) => ({
+    rewardId: row.id as string,
+    memberLabel:
+      (row.email_masked as string | null) ??
+      (row.phone_last4 ? `Phone ending ${row.phone_last4}` : "New contact"),
+    rewardName: row.reward_name as string,
+    ...inviteStatus(row.status as string),
+    createdAt: row.created_at as string,
+    kind: "invite" as const,
+  }))
+
+  return [...rewards, ...invites]
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, limit)
+}
+
+function rewardStatus(status: string): {
+  statusLabel: string
+  statusTone: SentRewardTone
+} {
+  switch (status) {
+    case "redeemed":
+      return { statusLabel: "Redeemed", statusTone: "leaf" }
+    case "expired":
+      return { statusLabel: "Expired", statusTone: "plain" }
+    case "cancelled":
+      return { statusLabel: "Cancelled", statusTone: "plain" }
+    default:
+      return { statusLabel: "Sent", statusTone: "sun" }
+  }
+}
+
+function inviteStatus(status: string): {
+  statusLabel: string
+  statusTone: SentRewardTone
+} {
+  switch (status) {
+    case "attached":
+      return { statusLabel: "Delivered", statusTone: "leaf" }
+    case "expired":
+      return { statusLabel: "Expired", statusTone: "plain" }
+    case "cancelled":
+      return { statusLabel: "Cancelled", statusTone: "plain" }
+    default:
+      // pending + matched collapse to a single "Invited" (anti-enumeration).
+      return { statusLabel: "Invited", statusTone: "sun" }
+  }
 }
 
 async function loadMaskedCustomers(ids: string[]) {
