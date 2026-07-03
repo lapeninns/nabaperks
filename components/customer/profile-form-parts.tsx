@@ -76,6 +76,7 @@ export function ProfileField({
   defaultValue?: string
   autoComplete?: string
   inputMode?: "email" | "numeric"
+  max?: string
 }) {
   const describedBy = error
     ? `${name}-error`

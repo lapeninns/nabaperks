@@ -136,6 +136,10 @@ function merchantCollectionBlockedCopy(message: string): string {
       ["Complete your profile"],
       "Ask the customer to finish their profile before this reward can be collected.",
     ],
+    [
+      ["must be 18 or over"],
+      "This customer must be 18 or over to collect this reward.",
+    ],
     [["This loyalty card is not active"], "This loyalty card is not active."],
     [
       ["Reward is not ready to redeem"],
