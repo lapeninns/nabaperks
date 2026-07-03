@@ -47,6 +47,7 @@ const LANE_ACTIVE_PATH: Record<string, string> = {
   qr: "/app/qr",
   scan: "/app/scan",
   "reward-scan": "/app/activity",
+  "send-reward": "/app/customers",
   launch: "/app/launch",
   onboarding: "/app/onboarding",
 }

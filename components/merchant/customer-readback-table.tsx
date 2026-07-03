@@ -139,16 +139,25 @@ function CustomerMobileCard({
         </div>
       </button>
 
-      {isSelected && row.badge.redeemable ? (
-        <div className="border-t-2 border-ink/15 px-3 py-2.5">
-          <Button
-            asChild
-            size="default"
-            className="w-full gap-1.5 font-mono text-[0.7rem] tracking-[0.06em] uppercase"
-          >
-            <Link href="/app/scan">
-              <Icon icon={ScanIcon} size={14} />
-              Open scanner
+      {isSelected ? (
+        <div className="grid gap-2 border-t-2 border-ink/15 px-3 py-2.5">
+          {row.badge.redeemable ? (
+            <Button
+              asChild
+              size="default"
+              className="w-full gap-1.5 font-mono text-[0.7rem] tracking-[0.06em] uppercase"
+            >
+              <Link href="/app/scan">
+                <Icon icon={ScanIcon} size={14} />
+                Open scanner
+              </Link>
+            </Button>
+          ) : null}
+          <Button asChild size="default" variant="secondary" className="w-full">
+            <Link
+              href={`/app/customers/send-reward?member=${encodeURIComponent(row.id)}&label=${encodeURIComponent(row.identifier)}`}
+            >
+              Send reward
             </Link>
           </Button>
         </div>
@@ -300,6 +309,20 @@ function buildColumns(
                 </Link>
               </Button>
             ) : null}
+            <Button
+              asChild
+              size="sm"
+              variant="secondary"
+              className="gap-1.5 font-mono text-[0.65rem] tracking-[0.06em] uppercase [@media(pointer:coarse)]:min-h-11"
+            >
+              <Link
+                href={`/app/customers/send-reward?member=${encodeURIComponent(row.id)}&label=${encodeURIComponent(row.identifier)}`}
+                onClick={(event) => event.stopPropagation()}
+                aria-label={`Send a reward to ${row.identifier}`}
+              >
+                Send
+              </Link>
+            </Button>
           </span>
         )
       },
