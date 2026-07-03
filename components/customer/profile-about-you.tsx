@@ -19,6 +19,7 @@ import {
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { formatDateOfBirth } from "@/lib/customer/format"
+import { latestAdultBirthDate } from "@/lib/customer/profile-fields"
 
 const initialState: ProfileEditState = {}
 
@@ -171,6 +172,7 @@ function AboutYouEditForm({
         name="dateOfBirth"
         type="date"
         autoComplete="bday"
+        max={latestAdultBirthDate()}
         defaultValue={state.fields?.dateOfBirth ?? profile.dateOfBirth ?? ""}
         error={state.errors?.dateOfBirth}
       />

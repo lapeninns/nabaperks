@@ -14,6 +14,7 @@ import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { otpFieldMaxLength } from "@/lib/customer/experience/otp-field"
 import type { ProfileGate } from "@/lib/customer/experience/types"
+import { latestAdultBirthDate } from "@/lib/customer/profile-fields"
 
 const initialState: ProfileGateActionState = {}
 
@@ -51,7 +52,8 @@ function ProfileDetailsStep({
         title="A few details before this one's yours"
         tone="neutral"
       >
-        Add your name and date of birth before collection. Email is optional.
+        Add your name and date of birth before collection — you must be 18 or
+        over. Email is optional.
       </StatusBanner>
 
       <Field
@@ -66,6 +68,7 @@ function ProfileDetailsStep({
         name="dateOfBirth"
         type="date"
         autoComplete="bday"
+        max={latestAdultBirthDate()}
         defaultValue={state.fields?.dateOfBirth ?? gate.dateOfBirth ?? ""}
         error={state.errors?.dateOfBirth}
       />
@@ -192,6 +195,7 @@ function Field({
   defaultValue?: string
   autoComplete?: string
   inputMode?: "email" | "numeric"
+  max?: string
 }) {
   const describedBy = error
     ? `${name}-error`

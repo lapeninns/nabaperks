@@ -271,6 +271,43 @@ test("scan-token minting refuses future, availability-blocked, and incomplete-pr
   })
 })
 
+test("an under-18 customer cannot mint or redeem (18+ age gate)", { skip }, async () => {
+  await inRolledBackTxn(async (tx) => {
+    const [m] = await tx.unsafe(PICK)
+    assert.ok(m, "a billing-eligible seeded membership exists")
+    const rewardId = await readyReward(tx, m)
+
+    // Make ONLY age the blocker: readyReward already set a name + verified email,
+    // so the profile is otherwise complete — just push the DOB under 18.
+    await tx`update public.customers
+             set date_of_birth = ((now() at time zone 'Europe/London')::date - interval '10 years')
+             where id = ${m.customer_id}`
+
+    // Mint (customer-side) refuses to issue a collection token.
+    await assertMintRejected(
+      tx,
+      rewardId,
+      m.customer_id,
+      /18 or over/i,
+      "an under-18 customer cannot mint a scan token"
+    )
+
+    // Collect (merchant-side) refuses too, and the reward is NOT consumed.
+    let rejected = false
+    try {
+      await tx.savepoint(async () => {
+        await tx`select * from public.redeem_self_service_reward(
+          ${rewardId}::uuid, ${m.customer_id}::uuid, null, null)`
+      })
+    } catch (error) {
+      rejected = /18 or over/i.test(String(error.message))
+    }
+    assert.ok(rejected, "an under-18 customer cannot redeem")
+    const [{ status }] = await tx`select status from public.reward_events where id = ${rewardId}`
+    assert.equal(status, "unlocked", "the reward is not consumed by an under-age attempt")
+  })
+})
+
 test("a token can only be collected by the merchant it belongs to", { skip }, async () => {
   await inRolledBackTxn(async (tx) => {
     const [m] = await tx.unsafe(PICK)
