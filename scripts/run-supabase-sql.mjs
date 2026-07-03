@@ -77,6 +77,10 @@ try {
       "supabase/seed-two-of-three-stamps.sql",
       "Seed two of three stamps"
     )
+    await runFile(
+      "supabase/seed-announcement-audience.sql",
+      "Seed announcement audience"
+    )
   }
 
   console.log("Supabase SQL workflow completed.")

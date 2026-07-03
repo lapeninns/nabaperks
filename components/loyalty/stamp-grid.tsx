@@ -81,6 +81,8 @@ type StampGridSlot =
   | { kind: "reward"; slotState: RewardSlotState }
 
 type StampGridLayout = "row" | "wrap"
+type StampGridFlow = "adaptive" | "horizontal"
+type StampGridCountPlacement = "above" | "inline"
 
 export function StampGrid({
   current,
@@ -92,8 +94,10 @@ export function StampGrid({
   previewJourney = false,
   compact = false,
   layout = "row",
+  flow = "adaptive",
   wrapColumns = 3,
   showCount = false,
+  countPlacement = "above",
   venueName,
   venueInitials,
   className,
@@ -111,6 +115,11 @@ export function StampGrid({
   compact?: boolean
   /** Single row (default) or wrapped rows for narrow surfaces. */
   layout?: StampGridLayout
+  /**
+   * Adaptive (default) wraps discs via auto-fit when space is tight; horizontal
+   * keeps every slot on one row at the minimum track size (members tables).
+   */
+  flow?: StampGridFlow
   /** Max slots per row when layout is wrap (stamps + reward chip). */
   wrapColumns?: number
   /**
@@ -119,6 +128,8 @@ export function StampGrid({
    * (dense table cells, very narrow columns).
    */
   showCount?: boolean
+  /** Place the count above the grid (default) or inline before the row. */
+  countPlacement?: StampGridCountPlacement
   venueName?: string
   venueInitials?: string
   className?: string
@@ -170,26 +181,35 @@ export function StampGrid({
     )
   }
 
-  // Width-pressure strategy: row layout wraps via auto-fit tracks with a hard
-  // minimum (44px, 36px compact), so discs keep their circle and never
-  // compress into overlapping ellipses inside narrow cells. When everything
-  // fits on one line the empty tracks collapse and the render matches the old
-  // fixed-column grid.
+  // Width-pressure strategy: adaptive row layout wraps via auto-fit tracks with
+  // a hard minimum (44px, 36px compact), so discs keep their circle and never
+  // compress into overlapping ellipses inside narrow cells. Horizontal flow pins
+  // one fixed track per slot so dense readbacks stay a single row; the table's
+  // overflow-x container absorbs any extra width.
   const minTrack = compact ? "2.25rem" : "2.75rem"
   const gridStyle: CSSProperties =
-    layout === "wrap"
+    flow === "horizontal"
       ? {
-          gridTemplateColumns: `repeat(${Math.max(wrapColumns, 1)}, minmax(0, 1fr))`,
+          gridTemplateColumns: `repeat(${Math.max(slots.length, 1)}, ${minTrack})`,
         }
-      : {
-          gridTemplateColumns: `repeat(auto-fit, minmax(min(${minTrack}, 100%), 1fr))`,
-        }
+      : layout === "wrap"
+        ? {
+            gridTemplateColumns: `repeat(${Math.max(wrapColumns, 1)}, minmax(0, 1fr))`,
+          }
+        : {
+            gridTemplateColumns: `repeat(auto-fit, minmax(min(${minTrack}, 100%), 1fr))`,
+          }
 
   const grid = (
     <div
       role="list"
       aria-label={listLabel}
-      className={cn("grid", layout === "wrap" && "w-full", gapClass, showCount ? undefined : className)}
+      className={cn(
+        flow === "horizontal" ? "inline-grid w-max max-w-full" : "grid",
+        layout === "wrap" && flow !== "horizontal" && "w-full",
+        gapClass,
+        showCount ? undefined : className
+      )}
       style={gridStyle}
     >
       {slots.map((slot, index) => renderSlot(slot, String(index)))}
@@ -198,6 +218,25 @@ export function StampGrid({
 
   if (!showCount) {
     return grid
+  }
+
+  if (countPlacement === "inline") {
+    return (
+      <div
+        className={cn(
+          "flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1",
+          className
+        )}
+      >
+        <span
+          aria-hidden="true"
+          className="mono-id numeric-tabular shrink-0 text-muted-foreground"
+        >
+          {safeCurrent} / {safeTotal}
+        </span>
+        {grid}
+      </div>
+    )
   }
 
   return (

@@ -16,13 +16,11 @@ import {
 import { TrendChart } from "@/components/data"
 import { ActivityCompactFeed } from "@/components/merchant/activity-compact-feed"
 import { MerchantBillingNotice } from "@/components/merchant/billing-status"
-import { MerchantNextActions } from "@/components/merchant/dashboard-next-actions"
 import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
 import { WetInkRise } from "@/components/motion"
 import { Button } from "@/components/ui/button"
 import { getEnrichedMerchantActivity } from "@/lib/merchant/activity"
 import {
-  getMerchantDashboardCustomerCounts,
   getMerchantDashboardData,
   getMerchantDashboardSeries,
   type MerchantDashboardMerchant,
@@ -35,25 +33,19 @@ export async function MerchantDashboardStream({
 }: {
   readonly merchant: MerchantDashboardMerchant
 }) {
-  const [dashboard, launchReadiness, series, customerCounts] =
-    await Promise.all([
-      timeServerLoader("/app", "getMerchantDashboardData", () =>
-        getMerchantDashboardData(merchant)
-      ),
-      timeServerLoader("/app", "getMerchantLaunchReadiness", () =>
-        getMerchantLaunchReadiness()
-      ),
-      timeServerLoader("/app", "getMerchantDashboardSeries", () =>
-        getMerchantDashboardSeries(merchant.id)
-      ),
-      timeServerLoader("/app", "getMerchantDashboardCustomerCounts", () =>
-        getMerchantDashboardCustomerCounts(merchant.id)
-      ),
-    ])
+  const [dashboard, launchReadiness, series] = await Promise.all([
+    timeServerLoader("/app", "getMerchantDashboardData", () =>
+      getMerchantDashboardData(merchant)
+    ),
+    timeServerLoader("/app", "getMerchantLaunchReadiness", () =>
+      getMerchantLaunchReadiness()
+    ),
+    timeServerLoader("/app", "getMerchantDashboardSeries", () =>
+      getMerchantDashboardSeries(merchant.id)
+    ),
+  ])
   const metrics = dashboard.metrics
   const trends = dashboard.trends
-
-  const { readyCount, quietCount } = customerCounts
 
   const kpis = [
     {
@@ -143,13 +135,6 @@ export async function MerchantDashboardStream({
           />
         </ReceiptCard>
       </section>
-
-      <MerchantNextActions
-        readyCount={readyCount}
-        quietCount={quietCount}
-        repeatCustomers={metrics.repeatCustomers}
-        members={metrics.members}
-      />
     </>
   )
 }

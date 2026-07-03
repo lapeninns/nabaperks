@@ -5,7 +5,7 @@
  * purpose — unit-tested via tests/unit/customers-paging.test.mjs.
  */
 
-export const CUSTOMERS_PAGE_SIZE = 100
+export const CUSTOMERS_PAGE_SIZE = 15
 
 export type CustomersPageRequest = {
   /** 1-based page, clamped to >= 1 (bad input resolves to 1). */

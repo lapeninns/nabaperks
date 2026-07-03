@@ -50,27 +50,28 @@ describe("resolveCustomersPageRequest — mangled input", () => {
 
 describe("buildCustomersPagination", () => {
   it("is a single page at or below the page size", () => {
-    assert.deepEqual(buildCustomersPagination(1, 100), {
+    assert.deepEqual(buildCustomersPagination(1, CUSTOMERS_PAGE_SIZE), {
       page: 1,
       totalPages: 1,
       hasPrev: false,
       hasNext: false,
       rangeStart: 1,
-      rangeEnd: 100,
+      rangeEnd: CUSTOMERS_PAGE_SIZE,
     })
   })
 
   it("splits beyond-cap totals into pages with an honest row range", () => {
-    assert.deepEqual(buildCustomersPagination(2, 240), {
+    const total = CUSTOMERS_PAGE_SIZE * 3 + 10
+    assert.deepEqual(buildCustomersPagination(2, total), {
       page: 2,
-      totalPages: 3,
+      totalPages: 4,
       hasPrev: true,
       hasNext: true,
-      rangeStart: 101,
-      rangeEnd: 200,
+      rangeStart: CUSTOMERS_PAGE_SIZE + 1,
+      rangeEnd: CUSTOMERS_PAGE_SIZE * 2,
     })
-    assert.deepEqual(buildCustomersPagination(3, 240).rangeEnd, 240)
-    assert.equal(buildCustomersPagination(3, 240).hasNext, false)
+    assert.deepEqual(buildCustomersPagination(4, total).rangeEnd, total)
+    assert.equal(buildCustomersPagination(4, total).hasNext, false)
   })
 
   it("keeps zero members coherent (one empty page, 0-0 range)", () => {
@@ -85,8 +86,9 @@ describe("buildCustomersPagination", () => {
   })
 
   it("renders a beyond-the-end page as empty but navigable back", () => {
-    const beyond = buildCustomersPagination(9, 240)
-    assert.equal(beyond.totalPages, 3)
+    const total = CUSTOMERS_PAGE_SIZE * 3 + 10
+    const beyond = buildCustomersPagination(9, total)
+    assert.equal(beyond.totalPages, 4)
     assert.equal(beyond.hasPrev, true)
     assert.equal(beyond.hasNext, false)
     assert.equal(beyond.rangeStart, 0)

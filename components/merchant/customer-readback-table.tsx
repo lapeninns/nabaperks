@@ -98,22 +98,21 @@ function CustomerMobileCard({
           </MonoTag>
         </div>
 
-        {/* Stamp + date metadata row — decorative detail, named by aria-label */}
+        {/* Stamp + date metadata — full-width stamp row, dates below */}
         <div
           aria-hidden="true"
-          className="flex items-start justify-between gap-3 border-t-2 border-dashed border-border px-3 pt-2.5 pb-3"
+          className="grid gap-2.5 border-t-2 border-dashed border-border px-3 pt-2.5 pb-3"
         >
-          {/* showCount reserves the always-readable x/y label above the grid;
-              the auto-fit tracks wrap dense cards (e.g. 12 stamps) into extra
-              rows instead of compressing coins over the count. */}
           <StampGrid
             current={row.currentStampCount}
             total={row.stampsRequired}
             compact
             showCount
-            className="max-w-[8rem]"
+            flow="horizontal"
+            countPlacement="inline"
+            className="min-w-0"
           />
-          <div className="grid gap-0.5 text-right">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
             <time
               className="mono-id text-muted-foreground"
               dateTime={row.joinedIso}
@@ -200,7 +199,7 @@ function buildColumns(
           <span
             className="flex min-w-0 items-center gap-2.5 outline-none"
             // Deep-link target: the mount effect scrolls + focuses this so an
-            // arriving member is brought into view among up to 100 rows. The
+            // arriving member is brought into view on the loaded page. The
             // shared DataTable owns the <tr>, so the marker lives on the cell.
             {...(isHighlighted
               ? { "data-customer-highlight": "true", tabIndex: -1 }
@@ -239,16 +238,15 @@ function buildColumns(
     {
       key: "stamps",
       header: "Stamps",
-      // showCount reserves the readable x/y label above the auto-fit grid, so
-      // dense cards wrap into extra coin rows inside the cell instead of
-      // compressing over the count (DESIGN.md, Stamps & Grids width pressure).
+      className: "whitespace-normal align-middle",
       cell: (row) => (
         <StampGrid
           current={row.currentStampCount}
           total={row.stampsRequired}
           compact
           showCount
-          className="max-w-[8rem]"
+          flow="horizontal"
+          countPlacement="inline"
         />
       ),
     },
@@ -407,7 +405,7 @@ export function CustomerReadbackTable({
   )
 
   // Deep-link arrival: bring the highlighted member into view (it can sit below
-  // the fold among up to 100 rows) and move focus to it. Runs once per id. Both
+  // the fold on a long page) and move focus to it. Runs once per id. Both
   // the mobile card and the desktop table carry the marker, only one of which is
   // visible at a time, so target the one that is actually rendered (the hidden
   // renderer has a null offsetParent under `display:none`).

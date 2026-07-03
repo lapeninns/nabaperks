@@ -4,10 +4,10 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 
 import {
   buildMerchantCustomerReadback,
-  deriveMerchantCustomerRewardBadge,
   DEFAULT_STAMPS_REQUIRED,
   type MerchantCustomerReadbackRow,
 } from "@/lib/merchant/customer-readback"
+import { CUSTOMERS_PAGE_SIZE } from "@/lib/merchant/customers-paging"
 import {
   createSupabaseServerClient,
   createSupabaseServiceRoleClient,
@@ -97,7 +97,7 @@ const REDEEMED_HISTORY_WINDOW_DAYS = 90
  *
  * Read-path paging (MER-P2-10): `offset`/`limit` window the newest-first list
  * so merchants beyond the first page can reach every member. Defaults keep the
- * historical behaviour (first 100 rows) for callers that pass no options; the
+ * historical behaviour (first page of rows) for callers that pass no options; the
  * masked fields, RLS posture, and per-row shape are unchanged.
  */
 export async function getMerchantCustomers(
@@ -105,7 +105,7 @@ export async function getMerchantCustomers(
   now: Date = new Date(),
   options?: { readonly limit?: number; readonly offset?: number }
 ): Promise<MerchantCustomerReadbackRow[]> {
-  const limit = Math.max(1, Math.floor(options?.limit ?? 100))
+  const limit = Math.max(1, Math.floor(options?.limit ?? CUSTOMERS_PAGE_SIZE))
   const offset = Math.max(0, Math.floor(options?.offset ?? 0))
 
   // RLS-backed client: merchant-scoped SELECT policies on customer_memberships
@@ -220,10 +220,10 @@ async function loadMaskedCustomers(
 
 /**
  * True membership count for a merchant. `getMerchantCustomers` caps its row read
- * at 100, so its `.length` understates the real total once a merchant grows past
+ * per page, so its `.length` understates the real total once a merchant grows past
  * that. This is a `head: true` COUNT — it transfers only the integer, no rows and
  * no PII — so the Customers "Members" stat can show the real total while the list
- * stays capped (full >100 pagination is intentionally out of scope). Uses the
+ * is paged via {@link CUSTOMERS_PAGE_SIZE}. Uses the
  * RLS-backed server client to match `getMerchantCustomers`' merchant-scoped read.
  */
 export async function getMerchantCustomerCount(
@@ -240,80 +240,6 @@ export async function getMerchantCustomerCount(
   }
 
   return count ?? 0
-}
-
-export type MerchantDashboardCustomerCounts = {
-  readyCount: number
-  quietCount: number
-}
-
-/**
- * The dashboard "Do next" card needs only two integers — how many members have
- * a reward ready and how many have gone quiet. Deriving those from the full
- * masked customer list pulled PII into the dashboard path and ran four queries
- * for two numbers. This computes the same counts from a PII-free projection,
- * reusing the single badge source of truth so first-match precedence (ready →
- * waiting → new → quiet) stays identical. The redeemed-history query is dropped
- * entirely: redeemed/collecting both rank below quiet and never change either
- * count.
- */
-export async function getMerchantDashboardCustomerCounts(
-  merchantId: string,
-  now: Date = new Date()
-): Promise<MerchantDashboardCustomerCounts> {
-  const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase
-    .from("customer_memberships")
-    .select("id, current_stamp_count, last_visit_at, created_at")
-    .eq("merchant_id", merchantId)
-    .order("created_at", { ascending: false })
-    .limit(100)
-
-  if (error) {
-    throw new Error(`Unable to load customer counts: ${error.message}`)
-  }
-
-  const memberships = data ?? []
-  if (!memberships.length) return { readyCount: 0, quietCount: 0 }
-
-  const membershipIds = memberships.map((row) => row.id)
-  const [cardResult, rewardResult] = await Promise.all([
-    getActiveCardResult(supabase, merchantId),
-    getUnlockedRewardResult(supabase, merchantId, membershipIds),
-  ])
-
-  const stampsRequired = resolveStampsRequired(cardResult)
-  const rewardByMembership = indexUnlockedRewards(rewardResult)
-
-  let readyCount = 0
-  let quietCount = 0
-  for (const row of memberships) {
-    const m = row as {
-      id: string
-      current_stamp_count: number
-      last_visit_at: string | null
-      created_at: string
-    }
-    const activeReward = rewardByMembership.get(m.id) ?? null
-    const badge = deriveMerchantCustomerRewardBadge(
-      {
-        createdAt: m.created_at,
-        lastVisitAt: m.last_visit_at,
-        currentStampCount: m.current_stamp_count,
-        stampsRequired,
-        // Below quiet in precedence and irrelevant to ready/quiet, so omitted.
-        lastRedeemedAt: null,
-        activeReward: activeReward
-          ? { id: activeReward.id, redeemableFrom: activeReward.redeemable_from }
-          : null,
-      },
-      now
-    )
-    if (badge.tone === "ready") readyCount += 1
-    else if (badge.tone === "quiet") quietCount += 1
-  }
-
-  return { readyCount, quietCount }
 }
 
 type ActiveCardResult = Awaited<ReturnType<typeof getActiveCardResult>>
