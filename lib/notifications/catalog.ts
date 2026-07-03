@@ -14,6 +14,8 @@ export const notificationEventTypes = [
   "reward_collected_cycle_started",
   "dormant_progress",
   "venue_announcement",
+  "birthday_reward_issued",
+  "merchant_reward_received",
 ] as const
 
 export type NotificationEventType = (typeof notificationEventTypes)[number]
@@ -65,6 +67,8 @@ const EVENT_CATEGORY: Record<NotificationEventType, NotificationCategory> = {
   reward_collected_cycle_started: "transactional",
   dormant_progress: "marketing",
   venue_announcement: "marketing",
+  birthday_reward_issued: "marketing",
+  merchant_reward_received: "marketing",
 }
 
 const BLOCKED_METADATA_KEYS = new Set([
@@ -154,6 +158,14 @@ const PAYLOAD_COPY: Record<
   venue_announcement: (input) => ({
     title: input.announcementTitle ?? input.businessName,
     body: input.announcementBody ?? `${input.businessName} has an update.`,
+  }),
+  birthday_reward_issued: (input) => ({
+    title: "Birthday treat",
+    body: `${input.rewardName} is waiting at ${input.businessName}.`,
+  }),
+  merchant_reward_received: (input) => ({
+    title: "A reward for you",
+    body: `${input.businessName} sent you ${input.rewardName}.`,
   }),
 }
 

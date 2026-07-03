@@ -807,7 +807,7 @@ function Stepper({
 }
 
 /** A QUIET inline toggle — a filled well, not a hard-bordered card. */
-function ToggleRow({
+export function ToggleRow({
   name,
   label,
   hint,
@@ -842,7 +842,7 @@ function ToggleRow({
  * well, 2px ink border per DESIGN.md Inputs) — the old "quiet" transparent-
  * border variant is retired. Mirrors AuthField / profile-form.
  */
-function Field({
+export function Field({
   id,
   label,
   hint,
@@ -866,7 +866,7 @@ function Field({
   )
 }
 
-function TextareaField({
+export function TextareaField({
   id,
   label,
   hint,

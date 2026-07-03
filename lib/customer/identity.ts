@@ -1,6 +1,7 @@
 import "server-only"
 
 import { cache } from "react"
+import { after } from "next/server"
 
 import {
   customerPhoneHmac,
@@ -8,6 +9,7 @@ import {
   maskedPhoneFromLast4,
 } from "@/lib/customer/phone-pii"
 import type { NormalizedPhone } from "@/lib/customer/phone"
+import { attachRewardInvitesForCustomer } from "@/lib/customer/reward-invites"
 import { getCustomerSession } from "@/lib/customer/session"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
@@ -104,6 +106,10 @@ export async function getOrCreateCustomerByVerifiedPhone(
   if (!customer) {
     throw new Error("Unable to create customer.")
   }
+
+  // Single creation choke point: a merchant may have sent this phone a reward
+  // invite before they joined — attach any match (best-effort, after response).
+  after(() => attachRewardInvitesForCustomer(customer.id))
 
   return customer
 }

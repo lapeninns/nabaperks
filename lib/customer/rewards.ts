@@ -2,6 +2,10 @@ import "server-only"
 
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { firstOf, getCurrentCustomer } from "@/lib/customer/identity"
+import {
+  narrowRewardSource,
+  type RewardSource,
+} from "@/lib/customer/issued-reward-display"
 import { isRedeemableFrom } from "@/lib/customer/uk-date"
 
 export type CustomerRewardItem = {
@@ -10,6 +14,7 @@ export type CustomerRewardItem = {
   businessName: string
   rewardName: string
   rewardTerms: string
+  source: RewardSource
   redeemableFrom: string | null
   expiresAt: string | null
   expiredAt: string | null
@@ -28,6 +33,7 @@ type RawRewardEvent = {
   id: string
   membership_id: string
   status: string
+  source: string | null
   reward_name: string
   reward_terms: string
   redeemable_from: string | null
@@ -49,7 +55,7 @@ export async function getCustomerRewards(): Promise<CustomerRewards> {
   const { data, error } = await supabase
     .from("reward_events")
     .select(
-      "id, membership_id, status, reward_name, reward_terms, redeemable_from, expires_at, expired_at, redeemed_at, created_at, merchants(business_name)"
+      "id, membership_id, status, source, reward_name, reward_terms, redeemable_from, expires_at, expired_at, redeemed_at, created_at, merchants(business_name)"
     )
     .eq("customer_id", customer.id)
     .in("status", ["unlocked", "redeemed", "expired"])
@@ -73,6 +79,7 @@ export async function getCustomerRewards(): Promise<CustomerRewards> {
       businessName: merchant?.business_name ?? "Unknown venue",
       rewardName: row.reward_name,
       rewardTerms: row.reward_terms,
+      source: narrowRewardSource(row.source),
       redeemableFrom: row.redeemable_from,
       expiresAt: row.expires_at,
       expiredAt: row.expired_at,

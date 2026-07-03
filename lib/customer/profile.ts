@@ -1,7 +1,10 @@
 import "server-only"
 
+import { after } from "next/server"
+
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { getCurrentCustomer } from "@/lib/customer/identity"
+import { attachRewardInvitesForCustomer } from "@/lib/customer/reward-invites"
 import type { MarketingChannel } from "@/lib/customer/consent"
 
 export type ConsentChannel = MarketingChannel
@@ -179,6 +182,9 @@ export async function markCustomerEmailVerified(email: string): Promise<void> {
     .eq("id", customer.id)
 
   if (error) throw new Error(`Unable to confirm email: ${error.message}`)
+
+  // A newly verified email may match a pending reward invite — attach it.
+  after(() => attachRewardInvitesForCustomer(customer.id))
 }
 
 export async function clearCustomerEmail(): Promise<ClearCustomerEmailResult> {

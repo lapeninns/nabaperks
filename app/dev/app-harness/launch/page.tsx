@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 
 import { PageTitle } from "@/components/brand"
 import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
+import { BirthdayRewardPanel } from "@/components/merchant/launch/birthday-panel"
 import {
   LoyaltyCardForm,
   RewardPoolForm,
@@ -114,6 +115,7 @@ export default async function LaunchHarnessPage({
             cadencePresets={CARD_CADENCE_PRESETS}
           />
         ) : activeTab === "rewards" ? (
+          <div className="grid min-w-0 gap-3 sm:gap-5">
           <RewardPoolForm
             loyaltyCardId="card_harness"
             cardName="Mystery Visit Card"
@@ -147,6 +149,13 @@ export default async function LaunchHarnessPage({
             continueLabel="your venue QR"
             presets={rewardPresetsForBusinessType("pub")}
           />
+          <BirthdayRewardPanel
+            loyaltyCardId="card_harness"
+            enabled={false}
+            rewardName={null}
+            rewardTerms={null}
+          />
+          </div>
         ) : activeTab === "qr" ? (
           <QrPanelLive
             activeCardName="Mystery Visit Card"

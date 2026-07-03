@@ -283,6 +283,95 @@ export async function saveRewardPoolItemAction(
   )
 }
 
+export type BirthdayRewardActionState = {
+  fields?: {
+    loyaltyCardId?: string
+    enabled?: boolean
+    rewardName?: string
+    rewardTerms?: string
+  }
+  errors?: {
+    rewardName?: string
+    rewardTerms?: string
+    form?: string
+  }
+}
+
+const BIRTHDAY_SAVE_ERROR =
+  "Birthday reward could not be saved. Check your details and try again."
+
+export async function saveBirthdayRewardAction(
+  _state: BirthdayRewardActionState,
+  formData: FormData
+): Promise<BirthdayRewardActionState> {
+  const merchant = await getCurrentMerchant()
+
+  if (!merchant) {
+    return {
+      errors: {
+        form: "Complete merchant onboarding before saving a birthday reward.",
+      },
+    }
+  }
+
+  const loyaltyCardId = value(formData, "loyaltyCardId")
+  const enabled = formData.get("enabled") === "on"
+  const rewardName = value(formData, "rewardName")
+  const rewardTerms = value(formData, "rewardTerms")
+  const fields = { loyaltyCardId, enabled, rewardName, rewardTerms }
+  const errors: NonNullable<BirthdayRewardActionState["errors"]> = {}
+
+  if (!loyaltyCardId) {
+    errors.form = "Save your mystery card before setting up a birthday reward."
+  }
+
+  // Enabling requires both fields; the length ceilings apply whenever a value is
+  // present so stored copy stays valid after a disable/re-enable.
+  if (enabled && !rewardName) {
+    errors.rewardName = "Enter the birthday reward name."
+  } else if (rewardName.length > 100) {
+    errors.rewardName = "Use 100 characters or fewer."
+  }
+
+  if (enabled && !rewardTerms) {
+    errors.rewardTerms = "Enter clear birthday reward terms."
+  } else if (rewardTerms && rewardTerms.length < 12) {
+    errors.rewardTerms =
+      "Add enough detail for members to understand the offer."
+  } else if (rewardTerms.length > 500) {
+    errors.rewardTerms = "Use 500 characters or fewer."
+  }
+
+  if (Object.keys(errors).length) {
+    return { fields, errors }
+  }
+
+  const supabase = await createSupabaseServerClient()
+  const { error } = await supabase.rpc("save_loyalty_card_birthday_reward", {
+    p_merchant_id: merchant.id,
+    p_loyalty_card_id: loyaltyCardId,
+    p_enabled: enabled,
+    p_reward_name: rewardName || null,
+    p_reward_terms: rewardTerms || null,
+  })
+
+  if (error) {
+    return { fields, errors: { form: BIRTHDAY_SAVE_ERROR } }
+  }
+
+  await capturePostHogEvent({
+    eventName: enabled ? "birthday_reward_enabled" : "birthday_reward_disabled",
+    merchantId: merchant.id,
+    actorType: "merchant",
+    actorId: merchant.id,
+    metadata: { loyalty_card_id: loyaltyCardId },
+  })
+
+  revalidateMerchantCacheTags(merchant.id)
+  revalidatePath("/app/launch")
+  redirect("/app/launch?tab=rewards&saved=birthday")
+}
+
 export async function toggleRewardPoolItemActiveAction(formData: FormData) {
   const merchant = await getCurrentMerchant()
 

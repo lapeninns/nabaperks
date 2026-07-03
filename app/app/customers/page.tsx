@@ -55,6 +55,11 @@ export default async function MerchantCustomersPage({
         eyebrow="Members"
         title="Loyalty members"
         description="Stamp progress and reward status for everyone who has joined your card."
+        actions={
+          <Button asChild variant="secondary">
+            <Link href="/app/customers/send-reward">Send a reward</Link>
+          </Button>
+        }
       />
 
       <Suspense

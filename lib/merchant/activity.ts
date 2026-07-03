@@ -17,6 +17,9 @@ const activityEvents = [
   "stamp_issued",
   "reward_unlocked",
   "reward_redeemed",
+  "reward_issued",
+  "reward_sent",
+  "reward_invite_sent",
   "qr_downloaded",
   "qr_created",
   "qr_enabled",
@@ -237,7 +240,13 @@ export async function getEnrichedMerchantActivity(
 const eventsByCategory: Record<ActivityCategory, ActivityEventName[]> = {
   customer: ["customer_joined"],
   stamp: ["stamp_claim_started", "stamp_issued"],
-  reward: ["reward_unlocked", "reward_redeemed"],
+  reward: [
+    "reward_unlocked",
+    "reward_redeemed",
+    "reward_issued",
+    "reward_sent",
+    "reward_invite_sent",
+  ],
   qr: [
     "qr_scanned",
     "qr_downloaded",
@@ -619,6 +628,70 @@ function toActivityDisplayRow(
                 label: "Total redemptions",
                 value: String(membership.total_rewards_redeemed),
               }
+            : null,
+        ].filter(isDetail),
+      }
+
+    case "reward_issued": {
+      const isBirthday = metadata.source === "birthday_month"
+      return {
+        id: row.id,
+        eventName,
+        category,
+        badgeLabel: isBirthday ? "Birthday treat" : "Reward issued",
+        headline: isBirthday
+          ? `Birthday treat issued to ${customerName(customerLabel)}`
+          : `${rewardLabel(rewardName)} issued to ${customerName(customerLabel)}`,
+        summary: isBirthday
+          ? "An automatic birthday reward was issued to this member."
+          : "A reward was issued to this member.",
+        timestamp,
+        ...base,
+        details: [
+          ...sharedDetails,
+          rewardName ? { label: "Reward", value: rewardName } : null,
+          isBirthday ? { label: "Source", value: "Birthday" } : null,
+        ].filter(isDetail),
+      }
+    }
+
+    case "reward_sent":
+      return {
+        id: row.id,
+        eventName,
+        category,
+        badgeLabel: "Reward sent",
+        headline: `Reward sent to ${customerName(customerLabel)}`,
+        summary: metadata.reward_name
+          ? `${String(metadata.reward_name)} was sent to this member.`
+          : "A reward was sent to this member.",
+        timestamp,
+        ...base,
+        details: [
+          ...sharedDetails,
+          metadata.reward_name
+            ? { label: "Reward", value: String(metadata.reward_name) }
+            : rewardName
+              ? { label: "Reward", value: rewardName }
+              : null,
+        ].filter(isDetail),
+      }
+
+    case "reward_invite_sent":
+      return {
+        id: row.id,
+        eventName,
+        category,
+        badgeLabel: "Invite sent",
+        headline: "Reward invite sent",
+        summary:
+          "A reward invite was sent to someone not yet on Nabaperks; it attaches when they join.",
+        timestamp,
+        ...base,
+        details: [
+          ...sharedDetails,
+          metadata.reward_name
+            ? { label: "Reward", value: String(metadata.reward_name) }
             : null,
         ].filter(isDetail),
       }
@@ -1135,6 +1208,9 @@ function activityCategory(eventName: string): ActivityCategory {
       return "stamp"
     case "reward_unlocked":
     case "reward_redeemed":
+    case "reward_issued":
+    case "reward_sent":
+    case "reward_invite_sent":
       return "reward"
     case "qr_scanned":
     case "qr_downloaded":

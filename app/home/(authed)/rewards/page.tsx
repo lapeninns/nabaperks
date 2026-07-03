@@ -1,19 +1,12 @@
-import Link from "next/link"
 import { GiftIcon } from "@hugeicons/core-free-icons"
 
+import { EmptyState, PageTitle, SectionHeader } from "@/components/brand"
 import {
-  EmptyState,
-  MonoTag,
-  PageTitle,
-  ReceiptCard,
-  SectionHeader,
-} from "@/components/brand"
-import { Button } from "@/components/ui/button"
-import {
-  getCustomerRewards,
-  type CustomerRewardItem,
-} from "@/lib/customer/rewards"
+  QuietReward,
+  RedeemableReward,
+} from "@/components/customer/reward-list-cards"
 import { formatDate } from "@/lib/customer/format"
+import { getCustomerRewards } from "@/lib/customer/rewards"
 
 export const metadata = {
   title: "Your rewards · Nabaperks",
@@ -115,62 +108,5 @@ export default async function HomeRewardsPage() {
         </div>
       )}
     </div>
-  )
-}
-
-/**
- * Reward terms double as the hero-tile description, but empty or boilerplate
- * exclusion text (the lib/legal/content.ts fallback) reads as a broken
- * description under the reward name — hide it there (CUS-P3-17).
- */
-function rewardDescription(reward: CustomerRewardItem): string | null {
-  const terms = reward.rewardTerms?.trim()
-  if (!terms || terms === "No additional exclusions configured.") return null
-  return terms
-}
-
-function RedeemableReward({ reward }: { reward: CustomerRewardItem }) {
-  const description = rewardDescription(reward)
-
-  return (
-    <ReceiptCard className="grid gap-3 bg-accent text-accent-foreground">
-      <div className="flex items-center justify-between gap-3">
-        <MonoTag tone="leaf">{reward.businessName}</MonoTag>
-        <MonoTag tone="leaf">Ready</MonoTag>
-      </div>
-      <h2 className="text-lg leading-tight font-extrabold">
-        {reward.rewardName}
-      </h2>
-      {description ? (
-        <p className="text-sm leading-6 text-muted-foreground">
-          {description}
-        </p>
-      ) : null}
-      <Button asChild size="lg" variant="reward" className="w-full">
-        <Link href={`/reward/${reward.rewardId}`}>Open reward QR</Link>
-      </Button>
-    </ReceiptCard>
-  )
-}
-
-function QuietReward({
-  reward,
-  tone,
-  note,
-}: {
-  reward: CustomerRewardItem
-  tone: "sun" | "plain"
-  note: string
-}) {
-  return (
-    <ReceiptCard className="grid gap-2">
-      <div className="flex items-center justify-between gap-3">
-        <MonoTag tone={tone}>{reward.businessName}</MonoTag>
-      </div>
-      <h2 className="text-base leading-tight font-extrabold">
-        {reward.rewardName}
-      </h2>
-      <p className="text-sm leading-6 text-muted-foreground">{note}</p>
-    </ReceiptCard>
   )
 }

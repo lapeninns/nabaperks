@@ -11,14 +11,13 @@
  */
 
 import {
-  useEffect,
-  useState,
   type AriaRole,
   type CSSProperties,
   type ReactNode,
 } from "react"
 import * as m from "motion/react-m"
 
+import { useHydrated } from "@/lib/motion/use-hydrated"
 import { useReducedMotionHook } from "@/lib/motion/use-reduced-motion"
 import { wetInkTransition } from "@/lib/motion/tokens"
 
@@ -56,13 +55,7 @@ type WetInkRiseProps = WetInkRiseBase &
 
 function useWetInkAnimationEnabled() {
   const reduce = useReducedMotionHook()
-  const [ready, setReady] = useState(false)
-
-  useEffect(() => {
-    setReady(true)
-  }, [])
-
-  return ready && !reduce
+  return useHydrated() && !reduce
 }
 
 /** One-shot primitives only animate while `active`; toggling it re-fires them. */

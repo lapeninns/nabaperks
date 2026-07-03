@@ -1,7 +1,9 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { after } from "next/server"
 
+import { triggerBirthdayIssuanceForCustomer } from "@/lib/rewards/issue-birthday"
 import {
   isMarketingChannel,
   updateCustomerMarketingConsent,
@@ -69,6 +71,15 @@ export async function saveHomeProfileAction(
     return {
       fields,
       errors: { form: "We couldn't save your details. Try again." },
+    }
+  }
+
+  // A saved DOB may make the member eligible for a birthday reward this month;
+  // issue it best-effort after the response (covers both success branches below).
+  if (dateOfBirth) {
+    const customer = await getCurrentCustomer()
+    if (customer) {
+      after(() => triggerBirthdayIssuanceForCustomer(customer.id))
     }
   }
 
