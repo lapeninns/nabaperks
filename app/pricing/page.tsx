@@ -20,7 +20,7 @@ import {
 import { PricingCheckoutAlert } from "./checkout-alert"
 
 const title = "Pricing — £29/month per venue"
-const description = `Start with a ${PRODUCT.pilot}, then ${PRODUCT.price} per venue. Build your card first; add billing when you activate your live venue QR.`
+const description = `Start with a ${PRODUCT.pilot}, then ${PRODUCT.price} per venue. Card required — cancel anytime.`
 
 export const metadata: Metadata = {
   title,
@@ -61,7 +61,7 @@ const planIncludes = [
 const faqs = [
   {
     q: "Is there a contract?",
-    a: "No. It is month to month after the pilot. £29, one venue, one month's notice to leave. Add billing when you activate your live venue QR, with 30 days free before billing starts.",
+    a: "No. It is month to month after the pilot. £29, one venue, one month's notice to leave. Card required — cancel anytime, with 30 days free before billing starts.",
   },
   {
     q: "Do I need any hardware?",
@@ -132,7 +132,7 @@ export default function PricingPage() {
         <PageTitle
           eyebrow="Pricing"
           title="One price. Everything included."
-          description="30 days free to pilot, then £29/month per venue. Build your card first; add billing when you activate your live venue QR."
+          description="30 days free to pilot, then £29/month per venue. Card required — cancel anytime."
           titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
           descriptionClassName="text-base leading-7 text-pretty"
           className="md:grid-cols-1"
@@ -193,8 +193,8 @@ export default function PricingPage() {
                   <Link href="/login">Log in</Link>
                 </Button>
                 <p className="text-center text-xs leading-5 text-pretty text-muted-foreground">
-                  Billing when you activate your live venue QR. One month&apos;s
-                  notice to leave.
+                  Card required — cancel anytime. One month&apos;s notice to
+                  leave.
                 </p>
               </div>
             </div>

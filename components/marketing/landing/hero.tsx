@@ -85,6 +85,14 @@ export function LandingHero({ qrMatrix }: { qrMatrix: QrMatrix }) {
 
       <div className="max-sm:order-5 lg:col-start-2 lg:row-start-1 lg:self-center">
         <HeroSampleCard qrMatrix={qrMatrix} />
+        <p className="mt-3 text-center">
+          <Link
+            href="/demo"
+            className={`${merchantLinkClass} mono-meta font-normal text-muted-foreground`}
+          >
+            Try this card yourself &rarr;
+          </Link>
+        </p>
       </div>
     </Section>
   )

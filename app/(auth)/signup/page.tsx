@@ -15,7 +15,7 @@ const otpCodeLabel = merchantEmailOtpAliasDigitLabel()
 const trustPoints = [
   "No app for your customers to download",
   "Customers stamp themselves from your venue QR",
-  "Billing when you activate your live venue QR",
+  "Card required — cancel anytime.",
 ]
 
 type SignUpPageProps = {
@@ -71,7 +71,7 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
             </h2>
             <p className="text-sm leading-6 text-pretty text-muted-foreground">
               Create your account and verify your email with a {otpCodeLabel} code.
-              No card to start; billing when you activate your live venue QR.
+              Card required — cancel anytime.
             </p>
           </div>
           <AuthForm

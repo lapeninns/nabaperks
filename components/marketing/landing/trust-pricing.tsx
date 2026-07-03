@@ -27,8 +27,8 @@ export function TrustPricing() {
           £29/month per venue. 30 days free. No contract.
         </h2>
         <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-          One plain price for no-app loyalty with till-verified stamps. Build your card
-          free — add billing only when you switch your live venue QR on.
+          One plain price for no-app loyalty with till-verified stamps. Card
+          required — cancel anytime.
         </p>
       </div>
 
@@ -82,7 +82,7 @@ export function TrustPricing() {
 
         <hr className="w-rule mt-4 mb-0" />
         <p className="mono-id mt-4 text-center font-normal text-muted-foreground">
-          No contract. Cancel on a month&apos;s notice.
+          Card required — cancel anytime.
         </p>
       </div>
     </Section>

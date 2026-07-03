@@ -93,7 +93,13 @@ function buildQrMatrix(text: string): QrMatrix {
   return { size, bits }
 }
 
-const qrMatrix = buildQrMatrix("https://nabaperks.com")
+// The hero's sample card carries a live QR: scanning it opens the interactive
+// /demo customer card, so a curious prospect lands on the product itself, not
+// back on this marketing page.
+const demoQrMatrix = buildQrMatrix(absoluteUrl("/demo"))
+// The venue-benefits card illustrates the merchant's own venue QR (a setup
+// preview), so it stays pointed at the site root.
+const venueQrMatrix = buildQrMatrix(SITE_URL)
 
 /** Page-level entity graph: the page (WebPage, reviewed by the operator), the
  * product (SoftwareApplication + Offer), the objection set (FAQPage, byte-synced
@@ -149,7 +155,7 @@ function buildPageGraph() {
 export default function HomePage() {
   return (
     <MarketingLayout navLinks={navLinks}>
-      <LandingHero qrMatrix={qrMatrix} />
+      <LandingHero qrMatrix={demoQrMatrix} />
       <JumpNav />
       <ProofStrip />
       <OperatorProof />
@@ -159,7 +165,7 @@ export default function HomePage() {
       <ComparisonTable />
       <CounterVerifiedStamp />
       <MidPageCta />
-      <VenueBenefits qrMatrix={qrMatrix} />
+      <VenueBenefits qrMatrix={venueQrMatrix} />
       <VenuePersonas />
       <VenueProof />
       <SeparateMarketing />

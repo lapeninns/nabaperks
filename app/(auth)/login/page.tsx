@@ -1,4 +1,5 @@
 import { Tick02Icon } from "@hugeicons/core-free-icons"
+import { redirect } from "next/navigation"
 
 import { signInAction } from "@/app/(auth)/actions"
 import { AUTH_SECTION_MIN_H } from "@/app/(auth)/viewport"
@@ -7,6 +8,8 @@ import { Eyebrow, Icon, PageTitle, ReceiptCard } from "@/components/brand"
 import { AuthForm } from "@/components/auth/auth-form"
 import { MarketingLayout } from "@/components/layout"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { getCurrentUser } from "@/lib/auth/session"
+import { safeMerchantNextPath } from "@/lib/navigation/safe-next-path"
 import { cn } from "@/lib/utils"
 
 const trustPoints = [
@@ -42,6 +45,11 @@ type LoginPageProps = {
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams
+  const user = await getCurrentUser()
+
+  if (user) {
+    redirect(safeMerchantNextPath(params.next ?? "/app"))
+  }
 
   return (
     <MarketingLayout>
