@@ -2,6 +2,7 @@
 
 import { CustomerErrorState } from "@/components/customer/customer-error-state"
 import { CustomerShell } from "@/components/layout"
+import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 
 export default function CustomerScanError({
   reset,
@@ -15,7 +16,7 @@ export default function CustomerScanError({
         title="Scanner unavailable"
         description="The scanner could not be opened safely. Try again, or point your phone's camera at the printed venue QR."
         reset={reset}
-        secondaryAction={{ label: "Open my cards", href: "/home" }}
+        secondaryAction={{ label: OPEN_MY_CARDS_LABEL, href: "/home" }}
       />
     </CustomerShell>
   )

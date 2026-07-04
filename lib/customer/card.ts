@@ -2,6 +2,10 @@ import "server-only"
 
 import { loyaltyAvailability } from "@/lib/customer/availability"
 import { getCurrentCustomer } from "@/lib/customer/identity"
+import {
+  pickPrimaryUnlockedReward,
+  pickStampBlockingUnlockedReward,
+} from "@/lib/customer/primary-reward"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export {
@@ -36,6 +40,15 @@ export type CustomerCardState =
         is_active: boolean
       } | null
       latestReward: {
+        id: string
+        status: string
+        reward_name: string
+        reward_terms: string
+        redeemable_from: string | null
+        expires_at: string | null
+      } | null
+      /** Unlocked stamp-cycle reward only — blocks stamping when present. */
+      stampCycleReward: {
         id: string
         status: string
         reward_name: string
@@ -99,7 +112,7 @@ export async function getCustomerCardState(
 
   const [
     { data: loyaltyCard, error: cardError },
-    { data: latestReward, error: rewardError },
+    { data: unlockedRewards, error: rewardError },
     { data: billing, error: billingError },
   ] = await Promise.all([
     supabase
@@ -115,13 +128,11 @@ export async function getCustomerCardState(
     supabase
       .from("reward_events")
       .select(
-        "id, status, reward_name, reward_terms, redeemable_from, expires_at"
+        "id, status, reward_name, reward_terms, redeemable_from, expires_at, source, created_at"
       )
       .eq("membership_id", membership.id)
       .eq("status", "unlocked")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+      .order("created_at", { ascending: false }),
     supabase
       .from("billing_customers")
       .select("status")
@@ -146,6 +157,10 @@ export async function getCustomerCardState(
     merchant.requires_billing
   )
 
+  const unlockedRewardRows = unlockedRewards ?? []
+  const primaryReward = pickPrimaryUnlockedReward(unlockedRewardRows)
+  const stampCycleReward = pickStampBlockingUnlockedReward(unlockedRewardRows)
+
   return {
     status: "ready",
     unavailableReason,
@@ -162,17 +177,31 @@ export async function getCustomerCardState(
       status: merchant.status,
     },
     loyaltyCard,
-    latestReward: latestReward
-      ? {
-          id: latestReward.id,
-          status: latestReward.status,
-          reward_name: latestReward.reward_name,
-          reward_terms: latestReward.reward_terms,
-          redeemable_from: latestReward.redeemable_from,
-          expires_at: latestReward.expires_at,
-        }
-      : null,
+    latestReward: mapRewardSummary(primaryReward),
+    stampCycleReward: mapRewardSummary(stampCycleReward),
     billingStatus: billing?.status ?? null,
+  }
+}
+
+function mapRewardSummary(
+  reward: {
+    id: string
+    status: string
+    reward_name: string
+    reward_terms: string
+    redeemable_from: string | null
+    expires_at: string | null
+  } | null
+) {
+  if (!reward) return null
+
+  return {
+    id: reward.id,
+    status: reward.status,
+    reward_name: reward.reward_name,
+    reward_terms: reward.reward_terms,
+    redeemable_from: reward.redeemable_from,
+    expires_at: reward.expires_at,
   }
 }
 

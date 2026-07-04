@@ -4,6 +4,14 @@ export type LegalSection = {
   body: string
 }
 
+/**
+ * Fallback shown for a venue's reward exclusions when the merchant has set none.
+ * Exported so the few places that special-case it (e.g. hiding it as a reward
+ * description in reward-list-cards) compare against one source of truth rather
+ * than a copy-pasted string literal that can silently drift.
+ */
+export const NO_ADDITIONAL_EXCLUSIONS = "No additional exclusions configured."
+
 export const PLATFORM_TERMS_SECTIONS: LegalSection[] = [
   {
     id: "participation",
@@ -114,12 +122,12 @@ export function buildVenueTermsSections({
     {
       id: "redemption",
       title: "Redemption",
-      body: "The assigned reward can be redeemed from the next UK business day after it is revealed. Tap redeem from your reward page while you are at the venue.",
+      body: "The assigned reward can be redeemed from the next UK business day after it is revealed. Show your reward QR at the counter and the venue team scans it.",
     },
     {
       id: "exclusions",
       title: "Exclusions",
-      body: rewardTerms || "No additional exclusions configured.",
+      body: rewardTerms || NO_ADDITIONAL_EXCLUSIONS,
     },
     {
       id: "fraud-and-abuse",

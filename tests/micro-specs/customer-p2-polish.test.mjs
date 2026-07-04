@@ -41,8 +41,9 @@ test("CUS-P2-02: the /q error states carry one headline and one description", ()
   assert.doesNotMatch(page, /title="Card unavailable"/)
   assert.doesNotMatch(page, /title="One moment"/)
   // The near-duplicate shell description is gone; the receipt keeps one.
+  // Copy is centralised in lib/copy/product-copy — assert the wired constant.
   assert.doesNotMatch(page, /Ask the venue team for the current loyalty QR\./)
-  assert.match(page, /Ask a team member for the current loyalty QR\./)
+  assert.match(page, /ASK_TEAM_FOR_QR/)
   // Error receipts are honest: no mono footer pretending technical facts.
   const unavailable = page.slice(page.indexOf("function UnavailableQr"))
   assert.match(unavailable, /hideFooter/)

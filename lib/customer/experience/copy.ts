@@ -1,3 +1,4 @@
+import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
 
 import { assertNever, type CustomerExperience } from "./types"
@@ -202,7 +203,7 @@ function unavailableViewModel(
     headline: "Card unavailable",
     supportLine: exp.reason,
     primaryAction: exp.recovery
-      ? { label: "Open my cards", href: exp.recovery.loginHref }
+      ? { label: OPEN_MY_CARDS_LABEL, href: exp.recovery.loginHref }
       : undefined,
   }
 }

@@ -6,6 +6,7 @@ import Link from "next/link"
 
 import { Eyebrow, Icon, ReceiptCard } from "@/components/brand"
 import { Button } from "@/components/ui/button"
+import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 
 const CustomerQrScanner = dynamic(
   () =>
@@ -58,7 +59,7 @@ function CustomerQrScannerLoading() {
           <Link href="/start">Back to start</Link>
         </Button>
         <Button asChild className="w-full">
-          <Link href="/home">Open my cards</Link>
+          <Link href="/home">{OPEN_MY_CARDS_LABEL}</Link>
         </Button>
       </div>
     </ReceiptCard>

@@ -27,7 +27,7 @@ export function TrustPricing() {
           £29/month per venue. 30 days free. No contract.
         </h2>
         <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-          One plain price for no-app loyalty with till-verified stamps. Card
+          One plain price for no-app loyalty with counter-verified stamps. Card
           required — cancel anytime.
         </p>
       </div>

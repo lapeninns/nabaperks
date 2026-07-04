@@ -4,6 +4,7 @@ import { AlertDiamondIcon } from "@hugeicons/core-free-icons"
 
 import { EmptyState, Logo } from "@/components/brand"
 import { Button } from "@/components/ui/button"
+import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 
 export const metadata = { title: "Page not found" }
 
@@ -25,7 +26,7 @@ export default async function NotFound() {
                 <Link href="/">Nabaperks home</Link>
               </Button>
               <Button asChild variant="secondary">
-                <Link href="/home">Open my cards</Link>
+                <Link href="/home">{OPEN_MY_CARDS_LABEL}</Link>
               </Button>
             </div>
           }

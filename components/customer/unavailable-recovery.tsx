@@ -1,6 +1,7 @@
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
+import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 import { cn } from "@/lib/utils"
 
 /**
@@ -19,7 +20,7 @@ export function UnavailableRecoveryActions({
         <Link href="/scan">Scan a QR</Link>
       </Button>
       <Button asChild size="lg" variant="secondary">
-        <Link href="/home">Open my cards</Link>
+        <Link href="/home">{OPEN_MY_CARDS_LABEL}</Link>
       </Button>
     </div>
   )

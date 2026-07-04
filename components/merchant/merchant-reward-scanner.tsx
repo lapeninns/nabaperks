@@ -254,7 +254,7 @@ export function MerchantRewardScanner() {
 
   const statusText =
     status.kind === "idle"
-      ? "Starting camera..."
+      ? "Starting camera…"
       : status.kind === "scanning"
         ? "Scanning for a reward QR…"
         : status.kind === "decoded"

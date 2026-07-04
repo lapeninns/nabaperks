@@ -7,6 +7,7 @@ import {
 
 import { Icon, type IconGlyph } from "@/components/brand"
 import { WetInkBreathe, WetInkPop, WetInkWiggle } from "@/components/motion"
+import { MYSTERY_REWARD_SEALED_LABEL } from "@/lib/copy/product-copy"
 import { cn } from "@/lib/utils"
 
 export type RewardSealState = "sealed" | "waiting" | "ready" | "redeemed"
@@ -28,7 +29,7 @@ const ICON_PX: Record<RewardSealSize, number> = {
 }
 
 const DEFAULT_LABEL: Record<RewardSealState, string> = {
-  sealed: "Mystery reward, sealed",
+  sealed: MYSTERY_REWARD_SEALED_LABEL,
   waiting: "Reward unlocked, resting until it's ready",
   ready: "Reward ready for merchant scan",
   redeemed: "Reward redeemed",

@@ -24,6 +24,7 @@ import {
 } from "@/components/loyalty"
 import { StampCelebration } from "@/components/motion"
 import { Button } from "@/components/ui/button"
+import { SEALED_REWARD_NAME, SEALED_REWARD_NOTE } from "@/lib/copy/product-copy"
 import {
   getCustomerExperienceViewModel,
   waitingRewardTiming,
@@ -105,7 +106,7 @@ function CardProgressPanel({
         : "sealed"
   const rewardName =
     rewardState === "sealed"
-      ? "Something's under there."
+      ? SEALED_REWARD_NAME
       : (exp.rewardName ?? "Your reward")
   const rewardReadyDate =
     rewardState === "waiting" && exp.rewardRedeemableFrom
@@ -126,9 +127,9 @@ function CardProgressPanel({
     // Show the longer mystery terms only when the action band is informational
     // (stamp secured), not while it is instructing the customer to act.
     rewardDescription = hasPrimaryAction ? (
-      "Mystery reward stays sealed until the final stamp."
+      SEALED_REWARD_NOTE
     ) : (
-      <>Mystery reward stays sealed until the final stamp. {exp.rewardTerms}</>
+      <>{SEALED_REWARD_NOTE} {exp.rewardTerms}</>
     )
   } else if (rewardState === "waiting") {
     // The waiting notice in the action band already explains the wait.
@@ -330,7 +331,7 @@ function StampScreenPanel({
         total={exp.total}
         stampDates={exp.stampDates}
         todayLabel={exp.todayLabel}
-        rewardName="Something's under there."
+        rewardName={SEALED_REWARD_NAME}
         location={exp.location}
       />
       {unlockedReward ? (

@@ -19,6 +19,7 @@ import {
 } from "@/lib/customer/self-stamp-action-state"
 import { stampAnnouncement } from "@/lib/customer/experience/stamp-announcement"
 import { stampDiscState } from "@/lib/customer/experience/stamp-disc-state"
+import { SEALED_REWARD_NOTE } from "@/lib/copy/product-copy"
 
 export type StampCollectorProps = {
   membershipId: string
@@ -245,7 +246,7 @@ export function StampCollector({
         reward={{
           state: "sealed",
           name: rewardName,
-          description: "Mystery reward stays sealed until the final stamp.",
+          description: SEALED_REWARD_NOTE,
         }}
         hideFooter
         hideHeaderText

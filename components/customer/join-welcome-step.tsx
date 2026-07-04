@@ -7,6 +7,7 @@ import {
 import { CustomerVenueTermsSheet } from "@/components/customer/legal-sheet"
 import { RewardTicket, StampJourneyPreview } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
+import { MYSTERY_REWARD_SEALED_LABEL } from "@/lib/copy/product-copy"
 import {
   JOIN_WELCOME_ALREADY_HAVE_CARD_LABEL,
   JOIN_WELCOME_HOW_IT_WORKS,
@@ -88,7 +89,7 @@ function JoinWelcomeCard({
       />
       <RewardTicket
         state="sealed"
-        name="Mystery reward, sealed"
+        name={MYSTERY_REWARD_SEALED_LABEL}
         description={
           <>
             Collect {card.stampsRequired} stamps to unlock a surprise reward,

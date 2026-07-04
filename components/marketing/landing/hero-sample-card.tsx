@@ -5,6 +5,7 @@ import { useState } from "react"
 import { RewardTicket, type RewardTicketState } from "@/components/loyalty"
 import { useStampJourneyLoop } from "@/components/loyalty/use-stamp-journey-loop"
 import { stampDisplayDatesEndingToday } from "@/lib/customer/uk-calendar"
+import { SEALED_REWARD_NAME } from "@/lib/copy/product-copy"
 
 import { heroSampleReward } from "./hero-sample-rewards"
 import { CardScanRow, CardStampRow } from "./sample-card-rows"
@@ -13,7 +14,6 @@ import { type QrMatrix } from "./venue-qr"
 
 const STAMP_TOTAL = 3
 const HERO_CARD_NAME = "Mystery card"
-const SEALED_REWARD_NAME = "Something's under there."
 
 const HERO_REWARD_TICKET_CLASS =
   "min-h-[9rem] [&>div:first-child]:content-start [&_h3]:line-clamp-2 [&_p]:line-clamp-2"

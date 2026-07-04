@@ -12,6 +12,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Eyebrow, Icon, ReceiptCard } from "@/components/brand"
+import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 import { normalizeScannedQrDestination } from "@/lib/customer/qr-scanner"
 import { scannerGuidance } from "@/lib/customer/scanner-guidance"
 import { cn } from "@/lib/utils"
@@ -235,7 +236,7 @@ export function CustomerQrScanner() {
           <Link href="/start">Back to start</Link>
         </Button>
         <Button asChild variant={exitCardsVariant} className="w-full">
-          <Link href="/home">Open my cards</Link>
+          <Link href="/home">{OPEN_MY_CARDS_LABEL}</Link>
         </Button>
       </div>
     </ReceiptCard>

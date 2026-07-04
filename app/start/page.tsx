@@ -6,6 +6,7 @@ import { connection } from "next/server"
 import { Eyebrow, ReceiptCard, VenueMark } from "@/components/brand"
 import { CustomerShell } from "@/components/layout"
 import { Button } from "@/components/ui/button"
+import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 import { resolveLaunchDestination } from "@/lib/launch/resolve"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 
@@ -43,7 +44,7 @@ export default async function StartPage() {
             <Link href="/scan">Scan a QR</Link>
           </Button>
           <Button asChild variant="secondary" size="lg">
-            <Link href="/home/login">Open my cards</Link>
+            <Link href="/home/login">{OPEN_MY_CARDS_LABEL}</Link>
           </Button>
           <Button
             asChild

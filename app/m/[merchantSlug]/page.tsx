@@ -14,6 +14,11 @@ import {
   StatusBanner,
 } from "@/components/loyalty"
 import { Button, buttonVariants } from "@/components/ui/button"
+import {
+  ASK_TEAM_FOR_QR,
+  CARD_UNAVAILABLE_TITLE,
+  MYSTERY_REWARD_SEALED_LABEL,
+} from "@/lib/copy/product-copy"
 import { getMerchantJoinContext } from "@/lib/customer/join"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 import { cn } from "@/lib/utils"
@@ -81,7 +86,7 @@ export default async function MerchantRewardsPage({
         <RewardTeaser
           locked
           hideSeal
-          title="Mystery reward, sealed"
+          title={MYSTERY_REWARD_SEALED_LABEL}
           description={
             <>
               Collect {loyaltyCard.stamps_required} stamps to unseal a surprise
@@ -127,11 +132,11 @@ function UnavailableLanding() {
       className="content-center"
     >
       <StatusBanner
-        title="This loyalty card is unavailable"
+        title={CARD_UNAVAILABLE_TITLE}
         tone="neutral"
         className="text-center"
       >
-        Ask a team member for the current loyalty QR.
+        {ASK_TEAM_FOR_QR}
       </StatusBanner>
       {/* Same recovery block as /q (CUS-P2-04) — never a dead end. */}
       <UnavailableRecoveryActions />

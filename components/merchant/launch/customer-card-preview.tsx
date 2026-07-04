@@ -14,6 +14,7 @@ import {
 import { DEFAULT_STAMPS_REQUIRED } from "@/lib/merchant/customer-readback"
 import { formatMerchantVenueLabel } from "@/lib/merchant/venue-label"
 import { cn } from "@/lib/utils"
+import { SEALED_REWARD_NAME, SEALED_REWARD_NOTE } from "@/lib/copy/product-copy"
 
 type CustomerCardPreviewDraft = {
   cardName: string
@@ -123,8 +124,8 @@ function CustomerCardPreviewBody({
         compact
         reward={{
           state: "sealed",
-          name: "Something's under there.",
-          description: "Mystery reward stays sealed until the final stamp.",
+          name: SEALED_REWARD_NAME,
+          description: SEALED_REWARD_NOTE,
         }}
         hideFooter
       />

@@ -232,7 +232,7 @@ export function LoyaltyCardForm({
 
         <div className="sticky bottom-3 z-10 border-t border-border/80 bg-card/95 pt-3 backdrop-blur-sm sm:static sm:border-0 sm:bg-transparent sm:pt-0 sm:backdrop-blur-none">
           <Button type="submit" disabled={pending} className="w-full">
-            {pending ? "Saving..." : draft.cardId ? "Save card" : "Create card"}
+            {pending ? "Saving…" : draft.cardId ? "Save card" : "Create card"}
           </Button>
         </div>
       </form>
@@ -637,7 +637,7 @@ function RewardPoolItemForm({
 
         <div className="flex flex-wrap items-center gap-2">
           <Button type="submit" disabled={pending}>
-            {pending ? "Saving..." : isNew ? "Add reward" : "Save reward"}
+            {pending ? "Saving…" : isNew ? "Add reward" : "Save reward"}
           </Button>
           <Button type="button" variant="ghost" onClick={onCancel}>
             <Icon icon={Cancel01Icon} size={16} />

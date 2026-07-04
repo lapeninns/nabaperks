@@ -1,4 +1,5 @@
 import { isRedeemableFrom } from "@/lib/customer/uk-date"
+import { pickPrimaryUnlockedReward } from "@/lib/customer/primary-reward"
 import type { HomeCard, TopRedeemable } from "@/lib/customer/home-types"
 
 export type RawHomeReward = {
@@ -6,6 +7,8 @@ export type RawHomeReward = {
   membership_id: string
   reward_name: string
   redeemable_from: string | null
+  source?: string | null
+  created_at?: string | null
 }
 
 export type RewardCounts = {
@@ -31,28 +34,41 @@ export function emptyRewardCounts(): RewardCounts {
 export function buildRewardCountsByMembership(
   rows: readonly RawHomeReward[]
 ): Map<string, RewardCounts> {
-  const rewardsByMembership = new Map<string, RewardCounts>()
+  const rewardsByMembership = new Map<string, RawHomeReward[]>()
 
   for (const row of rows) {
-    const entry =
-      rewardsByMembership.get(row.membership_id) ?? emptyRewardCounts()
-    entry.total += 1
-    if (isRedeemableFrom(row.redeemable_from)) {
-      entry.redeemable += 1
-      if (!entry.primaryRewardId) {
-        entry.primaryRewardId = row.id
-        entry.primaryRewardName = row.reward_name
-      }
-    } else if (!entry.revealedRewardName) {
-      // The first waiting reward (won, not yet redeemable) names the wallet
-      // mini ticket and its "ready from" timing.
-      entry.revealedRewardName = row.reward_name
-      entry.revealedRewardRedeemableFrom = row.redeemable_from
-    }
+    const entry = rewardsByMembership.get(row.membership_id) ?? []
+    entry.push(row)
     rewardsByMembership.set(row.membership_id, entry)
   }
 
-  return rewardsByMembership
+  const countsByMembership = new Map<string, RewardCounts>()
+
+  for (const [membershipId, membershipRows] of rewardsByMembership) {
+    const entry = emptyRewardCounts()
+    entry.total = membershipRows.length
+    entry.redeemable = membershipRows.filter((row) =>
+      isRedeemableFrom(row.redeemable_from)
+    ).length
+
+    const primary = pickPrimaryUnlockedReward(membershipRows)
+    if (primary && isRedeemableFrom(primary.redeemable_from)) {
+      entry.primaryRewardId = primary.id
+      entry.primaryRewardName = primary.reward_name
+    }
+
+    const waiting = pickPrimaryUnlockedReward(
+      membershipRows.filter((row) => !isRedeemableFrom(row.redeemable_from))
+    )
+    if (waiting) {
+      entry.revealedRewardName = waiting.reward_name
+      entry.revealedRewardRedeemableFrom = waiting.redeemable_from
+    }
+
+    countsByMembership.set(membershipId, entry)
+  }
+
+  return countsByMembership
 }
 
 export function getTopRedeemable(

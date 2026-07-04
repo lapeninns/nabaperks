@@ -7,6 +7,7 @@ import { UnavailableRecoveryActions } from "@/components/customer/unavailable-re
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { getMerchantJoinContext } from "@/lib/customer/join"
+import { buildVenueTermsSections } from "@/lib/legal/content"
 
 export const metadata: Metadata = {
   title: "Venue loyalty terms | Nabaperks",
@@ -40,6 +41,12 @@ export default async function MerchantTermsPage({
 
   const { merchant, loyaltyCard } = context
   const contact = [merchant.email, merchant.phone].filter(Boolean).join(" · ")
+  const termsSections = buildVenueTermsSections({
+    merchantName: merchant.business_name,
+    stampsRequired: loyaltyCard.stamps_required,
+    rewardTerms: loyaltyCard.reward_terms ?? "",
+    contact,
+  })
 
   return (
     <CustomerShell className="grid content-center gap-6">
@@ -55,36 +62,9 @@ export default async function MerchantTermsPage({
       </section>
 
       <ReceiptCard edge className="grid gap-4">
-        <Term
-          label="Reward"
-          value="A mystery reward is assigned from the venue reward pool when the customer earns the final visit stamp."
-        />
-        <Term
-          label="Earning rule"
-          value={`Collect ${loyaltyCard.stamps_required} visit stamps from the venue QR. One stamp may be issued per UK date.`}
-        />
-        <Term
-          label="Stamps needed"
-          value={`${loyaltyCard.stamps_required} stamps`}
-        />
-        <Term
-          label="Redemption"
-          value="The assigned reward can be collected from the next UK business day after it is revealed. Show your reward QR at the counter and the venue team scans it to collect."
-        />
-        <Term
-          label="Exclusions"
-          value={
-            loyaltyCard.reward_terms || "No additional exclusions configured."
-          }
-        />
-        <Term
-          label="Fraud and abuse"
-          value="The merchant may refuse, cancel, or adjust stamps and rewards where abuse, duplicate claims, QR misuse, or location anomalies are suspected."
-        />
-        <Term
-          label="Merchant contact"
-          value={contact || "Ask the venue team"}
-        />
+        {termsSections.map((section) => (
+          <Term key={section.id} label={section.title} value={section.body} />
+        ))}
       </ReceiptCard>
 
       <div className="grid gap-3">

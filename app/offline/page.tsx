@@ -4,6 +4,7 @@ import { NoInternetIcon } from "@hugeicons/core-free-icons"
 
 import { EmptyState } from "@/components/brand"
 import { Button } from "@/components/ui/button"
+import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 
 import { OfflineAutoReload } from "./auto-reload"
@@ -35,7 +36,7 @@ export default function OfflinePage() {
                 <a href="">Try again</a>
               </Button>
               <Button asChild variant="outline">
-                <Link href="/home">Open my cards</Link>
+                <Link href="/home">{OPEN_MY_CARDS_LABEL}</Link>
               </Button>
             </div>
           }

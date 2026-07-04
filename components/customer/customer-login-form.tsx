@@ -10,6 +10,7 @@ import {
 import { customerInputClass } from "@/components/customer/input-class"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
+import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 import { JOIN_PHONE_CODE_HINT } from "@/lib/customer/experience/copy"
 import { otpFieldMaxLength } from "@/lib/customer/experience/otp-field"
 
@@ -139,7 +140,7 @@ export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
             ) : null}
           </div>
           <Button type="submit" disabled={verifyPending}>
-            {verifyPending ? "Checking…" : "Open my cards"}
+            {verifyPending ? "Checking…" : OPEN_MY_CARDS_LABEL}
           </Button>
         </form>
       ) : null}

@@ -2,6 +2,7 @@
 
 import { CustomerErrorState } from "@/components/customer/customer-error-state"
 import { CustomerShell } from "@/components/layout"
+import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 
 export default function CustomerRewardError({
   reset,
@@ -15,7 +16,7 @@ export default function CustomerRewardError({
         title="Reward unavailable"
         description="This reward could not be loaded safely. Return to the customer card or ask a team member for help."
         reset={reset}
-        secondaryAction={{ label: "Open my cards", href: "/home" }}
+        secondaryAction={{ label: OPEN_MY_CARDS_LABEL, href: "/home" }}
       />
     </CustomerShell>
   )

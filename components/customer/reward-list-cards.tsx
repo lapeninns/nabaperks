@@ -7,6 +7,7 @@ import {
   rewardSourceBadge,
 } from "@/lib/customer/issued-reward-display"
 import type { CustomerRewardItem } from "@/lib/customer/rewards"
+import { NO_ADDITIONAL_EXCLUSIONS } from "@/lib/legal/content"
 
 /**
  * The wallet reward cards, shared by the rewards page and the /dev home-harness.
@@ -20,7 +21,7 @@ import type { CustomerRewardItem } from "@/lib/customer/rewards"
  */
 function rewardDescription(reward: CustomerRewardItem): string | null {
   const terms = reward.rewardTerms?.trim()
-  if (!terms || terms === "No additional exclusions configured.") return null
+  if (!terms || terms === NO_ADDITIONAL_EXCLUSIONS) return null
   return terms
 }
 

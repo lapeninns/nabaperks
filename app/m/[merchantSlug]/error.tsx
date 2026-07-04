@@ -2,6 +2,7 @@
 
 import { CustomerErrorState } from "@/components/customer/customer-error-state"
 import { CustomerShell } from "@/components/layout"
+import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 
 export default function CustomerVenueError({
   reset,
@@ -15,7 +16,7 @@ export default function CustomerVenueError({
         title="Venue unavailable"
         description="This venue page could not be loaded safely. Try again, or ask a team member for the current loyalty QR."
         reset={reset}
-        secondaryAction={{ label: "Open my cards", href: "/home" }}
+        secondaryAction={{ label: OPEN_MY_CARDS_LABEL, href: "/home" }}
       />
     </CustomerShell>
   )

@@ -75,7 +75,7 @@ test("Given the customer entry segments When their error boundaries are inspecte
     )
     assert.match(
       source,
-      /secondaryAction=\{\{ label: ".+", href: "\/(home|scan)" \}\}/,
+      /secondaryAction=\{\{ label: (?:".+"|OPEN_MY_CARDS_LABEL), href: "\/(home|scan)" \}\}/,
       `${label} boundary must offer a secondary recovery path`
     )
     // Calm branded copy, never the framework default error text and never

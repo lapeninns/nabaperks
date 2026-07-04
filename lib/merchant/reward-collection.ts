@@ -3,6 +3,7 @@ import "server-only"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { formatMerchantCustomerIdentifier } from "@/lib/merchant/customer-identity-display"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+import { LOYALTY_PROGRAMME_UNAVAILABLE } from "@/lib/copy/product-copy"
 
 export type MerchantRewardScanContext =
   | { status: "unauthenticated" | "not_found" | "unauthorized" | "expired" }
@@ -151,7 +152,7 @@ function merchantCollectionBlockedCopy(message: string): string {
     ],
     [
       ["not active", "unavailable"],
-      "This loyalty programme is unavailable right now.",
+      LOYALTY_PROGRAMME_UNAVAILABLE,
     ],
     [
       ["Reward not found", "ownership required", "Verified customer required"],

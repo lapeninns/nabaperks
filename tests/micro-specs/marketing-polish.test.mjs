@@ -60,7 +60,7 @@ test("Given the offline page When rendered Then it offers a Try again reload and
     "Try again is a plain same-URL anchor so it works even without hydration"
   )
   assert.ok(
-    page.includes('href="/home"') && page.includes("Open my cards"),
+    page.includes('href="/home"') && page.includes("OPEN_MY_CARDS_LABEL"),
     "Open my cards remains for the reconnected case (pinned by the PWA e2e)"
   )
 })

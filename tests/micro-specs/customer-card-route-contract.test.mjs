@@ -64,12 +64,13 @@ test("Given a card membership is owned When card detail is loaded Then only acti
   assert.match(loader, /\.from\("reward_events"\)/)
   assert.match(
     loader,
-    /\.select\(\s*"id, status, reward_name, reward_terms, redeemable_from, expires_at"\s*\)/
+    /\.select\(\s*"id, status, reward_name, reward_terms, redeemable_from, expires_at, source, created_at"\s*\)/
   )
   assert.match(loader, /\.eq\("membership_id", membership\.id\)/)
   assert.match(loader, /\.eq\("status", "unlocked"\)/)
-  assert.match(loader, /\.order\("created_at", \{ ascending: false \}\)/)
-  assert.match(loader, /\.limit\(1\)/)
+  assert.match(loader, /pickPrimaryUnlockedReward/)
+  assert.match(loader, /pickStampBlockingUnlockedReward/)
+  assert.doesNotMatch(loader, /\.limit\(1\)/)
   assert.doesNotMatch(loader, /\.in\("status"/)
 })
 

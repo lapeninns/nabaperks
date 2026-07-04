@@ -58,9 +58,8 @@ export async function loadStampExperienceContext(
     }
   }
 
-  // An unlocked reward blocks new stamps until collected; surface the reward QR
-  // first so the customer sees the collection path instead of a stamp block.
-  const unlocked = cardState.latestReward
+  // A stamp-cycle reward blocks new stamps until collected; issued rewards do not.
+  const unlocked = cardState.stampCycleReward
   if (unlocked && unlocked.status === "unlocked") {
     const redeemable = isRedeemableFrom(unlocked.redeemable_from)
     const unlockedReward = {

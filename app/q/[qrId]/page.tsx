@@ -13,6 +13,11 @@ import {
 import { UnavailableRecoveryActions } from "@/components/customer/unavailable-recovery"
 import { Button } from "@/components/ui/button"
 import {
+  ASK_TEAM_FOR_QR,
+  CARD_UNAVAILABLE_TITLE,
+  OPEN_MY_CARDS_LABEL,
+} from "@/lib/copy/product-copy"
+import {
   getExistingMembershipForCurrentUser,
   resolveQrForJoin,
 } from "@/lib/customer/join"
@@ -103,8 +108,8 @@ function UnavailableQr() {
       <CustomerReceipt venueName="Nabaperks" eyebrow="QR unavailable" hideFooter>
         <EmptyState
           icon={AlertDiamondIcon}
-          title="This loyalty card is unavailable"
-          description="Ask a team member for the current loyalty QR."
+          title={CARD_UNAVAILABLE_TITLE}
+          description={ASK_TEAM_FOR_QR}
           headingLevel={1}
           className="w-full"
           actions={<UnavailableRecoveryActions />}
@@ -134,7 +139,7 @@ function RateLimitedQr() {
           className="w-full"
           actions={
             <Button asChild size="lg" variant="secondary" className="w-full">
-              <Link href="/home">Open my cards</Link>
+              <Link href="/home">{OPEN_MY_CARDS_LABEL}</Link>
             </Button>
           }
         />

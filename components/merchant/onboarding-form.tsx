@@ -301,7 +301,7 @@ export function OnboardingForm({
         aria-busy={pending}
         className="w-full"
       >
-        {pending ? "Saving..." : "Finish setup"}
+        {pending ? "Saving…" : "Finish setup"}
       </Button>
     </form>
   )

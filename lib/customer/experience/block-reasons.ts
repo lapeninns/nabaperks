@@ -1,5 +1,7 @@
 import type { StampBlockReason } from "./types"
 
+import { LOYALTY_PROGRAMME_UNAVAILABLE } from "@/lib/copy/product-copy"
+
 type CustomerBlockReason = StampBlockReason | "billing_required"
 
 /**
@@ -74,7 +76,7 @@ export function blockReasonCopy(reason: CustomerBlockReason): string {
     case "profile_incomplete":
       return "Add your details before collection — a name and date of birth, plus a verified email if you add one."
     case "unavailable":
-      return "This loyalty programme is unavailable right now."
+      return LOYALTY_PROGRAMME_UNAVAILABLE
     case "unknown":
       return "That didn't go through. Try again or ask the venue team."
   }

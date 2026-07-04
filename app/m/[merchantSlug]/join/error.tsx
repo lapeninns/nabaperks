@@ -2,6 +2,7 @@
 
 import { CustomerErrorState } from "@/components/customer/customer-error-state"
 import { CustomerShell } from "@/components/layout"
+import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 
 export default function CustomerJoinError({
   reset,
@@ -15,7 +16,7 @@ export default function CustomerJoinError({
         title="Join unavailable"
         description="This step could not be loaded safely. Your stamps are safe — try again, or ask a team member for help."
         reset={reset}
-        secondaryAction={{ label: "Open my cards", href: "/home" }}
+        secondaryAction={{ label: OPEN_MY_CARDS_LABEL, href: "/home" }}
       />
     </CustomerShell>
   )

@@ -92,15 +92,17 @@ function rewardDestinationFromCardState(
   cardState: CustomerCardState,
   cardPath: string
 ): string | null {
-  if (
-    cardState.status !== "ready" ||
-    cardState.latestReward?.status !== "unlocked"
-  ) {
+  if (cardState.status !== "ready") {
     return null
   }
 
-  return isRedeemableFrom(cardState.latestReward.redeemable_from)
-    ? `/reward/${cardState.latestReward.id}`
+  const reward = cardState.stampCycleReward
+  if (!reward || reward.status !== "unlocked") {
+    return null
+  }
+
+  return isRedeemableFrom(reward.redeemable_from)
+    ? `/reward/${reward.id}`
     : cardPath
 }
 
