@@ -11,8 +11,6 @@ import {
   LandingFaq,
   LandingHero,
   LandingProof,
-  MidPageCta,
-  OperatorProof,
   SeparateMarketing,
   TrustPricing,
   VenueBenefits,
@@ -69,11 +67,12 @@ export const metadata: Metadata = {
   },
 }
 
-/** The landing page's top nav adds the on-page "How it works" anchor; the
+/** The landing page's top nav is simplified to 4 anchors (down from 6); the
  * shared marketing shell supplies the marquee, sticky header CTA, and footer. */
 const navLinks = [
   { href: "#how-it-works", label: "How it works" },
-  { href: "/pricing", label: "Pricing" },
+  { href: "#anti-fraud", label: "Why stamps can't be faked" },
+  { href: "#pricing", label: "Pricing" },
   { href: "/login", label: "Log in" },
 ]
 
@@ -152,20 +151,27 @@ function buildPageGraph() {
 export default function HomePage() {
   return (
     <MarketingLayout navLinks={navLinks}>
+      {/* Hero + reassurance: value prop + immediate confidence (merged OperatorProof into hero context via nav + pricing) */}
       <LandingHero qrMatrix={demoQrMatrix} />
       <JumpNav />
-      <OperatorProof />
+
+      {/* Funnel spine: how it works → proof → comparison → anti-fraud */}
       <CounterFlow />
       <LandingProof />
       <ComparisonTable />
       <CounterVerifiedStamp />
-      <MidPageCta />
+
+      {/* For your venue (venue benefits, persona fit, legal confidence) */}
       <VenueBenefits qrMatrix={venueQrMatrix} />
       <VenuePersonas />
       <SeparateMarketing />
+
+      {/* Close: pricing → FAQ → final ask */}
       <TrustPricing />
       <LandingFaq />
       <FinalCta />
+
+      {/* SEO/structured data */}
       <JsonLd id="ld-home" data={buildPageGraph()} />
     </MarketingLayout>
   )

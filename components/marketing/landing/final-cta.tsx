@@ -33,9 +33,6 @@ export function FinalCta() {
         <Button asChild size="lg" variant="outline">
           <Link href="/pricing">View pricing</Link>
         </Button>
-        <Button asChild variant="ghost">
-          <Link href="/login">Log in</Link>
-        </Button>
       </div>
       <ReassuranceBar
         points={[

@@ -13,11 +13,9 @@ import { cn } from "@/lib/utils"
 
 const jumpLinks = [
   { href: "#how-it-works", label: "How it works" },
-  { href: "#no-app", label: "No app vs wallet vs paper" },
   { href: "#anti-fraud", label: "Why stamps can’t be faked" },
   { href: "#for-venues", label: "For your venue" },
   { href: "#pricing", label: "Pricing" },
-  { href: "#faq", label: "FAQ" },
 ] as const
 
 const chipLinkClassName =
