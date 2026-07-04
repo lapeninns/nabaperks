@@ -60,6 +60,14 @@ test("Given a card membership is owned When card detail is loaded Then only acti
     card.indexOf("export async function getCustomerCardState"),
     card.indexOf("export function unavailableMessage")
   )
+  // Scope to the reward_events query specifically: the loader's other
+  // Promise.all query (loyalty_cards) legitimately keeps `.limit(1)` (only
+  // one active card per merchant), so a whole-function `.limit(1)` check
+  // would false-positive on that unrelated query.
+  const rewardQuery = loader.slice(
+    loader.indexOf('.from("reward_events")'),
+    loader.indexOf('.from("billing_customers")')
+  )
 
   assert.match(loader, /\.from\("reward_events"\)/)
   assert.match(
@@ -70,7 +78,7 @@ test("Given a card membership is owned When card detail is loaded Then only acti
   assert.match(loader, /\.eq\("status", "unlocked"\)/)
   assert.match(loader, /pickPrimaryUnlockedReward/)
   assert.match(loader, /pickStampBlockingUnlockedReward/)
-  assert.doesNotMatch(loader, /\.limit\(1\)/)
+  assert.doesNotMatch(rewardQuery, /\.limit\(1\)/)
   assert.doesNotMatch(loader, /\.in\("status"/)
 })
 
