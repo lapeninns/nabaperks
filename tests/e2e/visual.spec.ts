@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test"
 
 const routes = [
   { name: "home", path: "/" },
+  { name: "how-it-works", path: "/how-it-works" },
   { name: "pricing", path: "/pricing" },
   { name: "loyalty-for-pubs", path: "/loyalty-for-pubs" },
   { name: "harness-dashboard", path: "/dev/app-harness/dashboard" },

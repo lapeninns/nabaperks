@@ -12,6 +12,7 @@ export type MarketingNavLink = {
 }
 
 const defaultMarketingLinks: MarketingNavLink[] = [
+  { href: "/how-it-works", label: "How it works" },
   { href: "/pricing", label: "Pricing" },
   { href: "/login", label: "Log in" },
 ]
@@ -60,6 +61,9 @@ export function MarketingLayout({
             </span>
           </div>
           <nav aria-label="Merchant links" className="flex flex-wrap gap-2">
+            <Link className={legalLinkClass} href="/how-it-works">
+              How it works
+            </Link>
             <Link className={legalLinkClass} href="/loyalty-for-pubs">
               Loyalty for pubs
             </Link>

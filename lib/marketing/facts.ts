@@ -118,6 +118,7 @@ export const PROOF_DISPLAY = {
 
 export const ROUTES = {
   home: "/",
+  howItWorks: "/how-it-works",
   pubHub: "/loyalty-for-pubs",
   about: "/about",
   pricing: "/pricing",
@@ -139,6 +140,11 @@ export type PublicSiteRoute = {
 
 export const PUBLIC_SITE_ROUTES = [
   { path: ROUTES.home, priority: 1, changeFrequency: "weekly" },
+  {
+    path: ROUTES.howItWorks,
+    priority: 0.9,
+    changeFrequency: "monthly",
+  },
   { path: ROUTES.pubHub, priority: 0.9, changeFrequency: "monthly" },
   { path: ROUTES.pricing, priority: 0.9, changeFrequency: "monthly" },
   { path: ROUTES.about, priority: 0.6, changeFrequency: "monthly" },

@@ -14,6 +14,7 @@ const NEXT_THEMES_SCRIPT_HASHES: readonly string[] = [
 const STATIC_MARKETING_EXACT_PATHS: ReadonlySet<string> = new Set([
   "/",
   "/about",
+  "/how-it-works",
   "/loyalty-for-pubs",
   "/pricing",
   "/privacy",

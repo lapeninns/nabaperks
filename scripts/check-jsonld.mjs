@@ -227,6 +227,40 @@ if (webpage) {
   )
 }
 
+// --- How it works (the standalone mechanism page) ---------------------------
+// Renders the same single-source sections as `/`, so it emits its own HowTo +
+// FAQPage — with route-distinct @ids so they never collide with home's graph.
+const mechanism = await load("how-it-works.html", "/how-it-works")
+const mechanismTypes = types(mechanism)
+for (const t of ["WebPage", "BreadcrumbList", "HowTo", "FAQPage"]) {
+  check(mechanismTypes.has(t), `how-it-works: missing ${t} node`)
+}
+check(!deepHasPerson(mechanism), "how-it-works: a Person node is present")
+
+const mechanismHowTo = mechanism.find((n) => n["@type"] === "HowTo")
+if (mechanismHowTo) {
+  const stepNames = (mechanismHowTo.step || []).map((s) => s.name)
+  check(
+    JSON.stringify(stepNames) ===
+      JSON.stringify(["Scan", "Save", "Stamp", "Reward"]),
+    `how-it-works: HowTo steps != Scan/Save/Stamp/Reward (got ${stepNames.join("/")})`
+  )
+  check(
+    mechanismHowTo["@id"] === "https://nabaperks.com/how-it-works#howto",
+    "how-it-works: HowTo @id must be route-distinct (/how-it-works#howto)"
+  )
+}
+const mechanismFaq = mechanism.find((n) => n["@type"] === "FAQPage")
+if (mechanismFaq) {
+  const questions = Array.isArray(mechanismFaq.mainEntity)
+    ? mechanismFaq.mainEntity
+    : []
+  check(
+    questions.length === 8,
+    `how-it-works: FAQ should expose 8 questions, got ${questions.length}`
+  )
+}
+
 // --- Hub ------------------------------------------------------------------
 const hub = await load("loyalty-for-pubs.html", "/loyalty-for-pubs")
 const hubTypes = types(hub)

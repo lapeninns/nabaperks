@@ -191,14 +191,17 @@ export type HowToStepInput = { title: string; body: string }
 /**
  * HowTo for the Scan/Save/Stamp/Reward flow. Steps are passed in from the page
  * that renders them, so the schema step labels stay byte-aligned with the
- * visible steps (the PDF's HowTo-parity rule).
+ * visible steps (the PDF's HowTo-parity rule). Pages that are not the hub pass
+ * a route-distinct `id` so their HowTo never collides with another page's
+ * `@graph` (MS-marketing-multipage).
  */
 export function howToSchema(
-  steps: readonly HowToStepInput[]
+  steps: readonly HowToStepInput[],
+  { id = `${SITE_URL}/#how-it-works` }: { id?: string } = {}
 ): Record<string, unknown> {
   return {
     "@type": "HowTo",
-    "@id": `${SITE_URL}/#how-it-works`,
+    "@id": id,
     name: "How Nabaperks loyalty works",
     step: steps.map((step, index) => ({
       "@type": "HowToStep",

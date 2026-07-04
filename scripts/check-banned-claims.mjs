@@ -22,6 +22,7 @@ const SCAN = [
   "app/sitemap.ts",
   "app/robots.ts",
   "app/about",
+  "app/how-it-works",
   "app/loyalty-for-pubs",
   "app/guides",
   "app/pricing",

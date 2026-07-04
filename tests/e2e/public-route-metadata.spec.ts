@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test"
 
 const PUBLIC_SITE_URLS = [
   "https://nabaperks.com/",
+  "https://nabaperks.com/how-it-works",
   "https://nabaperks.com/loyalty-for-pubs",
   "https://nabaperks.com/pricing",
   "https://nabaperks.com/about",

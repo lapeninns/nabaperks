@@ -29,6 +29,7 @@
 
 ## Key pages
 - Home / product overview: https://nabaperks.com/
+- How it works (mechanism + anti-fraud checks): https://nabaperks.com/how-it-works
 - Loyalty for pubs: https://nabaperks.com/loyalty-for-pubs
 - About (operator): https://nabaperks.com/about
 - Pricing: https://nabaperks.com/pricing
