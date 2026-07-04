@@ -14,9 +14,9 @@ import { CTA, ROUTES } from "@/lib/marketing/facts"
  * approved vertical language (pubs, cafes, takeaways, bars/wine bars); the
  * non-approved verticals are deliberately not targeted here.
  *
- * The pub persona is live: its spoke (`/loyalty-for-pubs`) is built, so it shows
- * the "Loyalty for pubs" CTA. The other personas read as plain text until their
- * spokes ship, so no link 404s.
+ * All four personas are live: each spoke route is built, so every card links
+ * out with its persona CTA and no link 404s. The flag below is vestigial (the
+ * per-persona `live` flag is what lights a card up) and stays false.
  */
 export const SHOW_PERSONA_SPOKES = false
 
@@ -47,20 +47,26 @@ export const personas: readonly Persona[] = [
     icon: Coffee02Icon,
     title: "Cafes & coffee shops",
     hook: "Turn the daily-habit visit into a stamp. The card opens before the coffee cools — no app, no queue at the till.",
-    spoke: "/loyalty-for-cafes",
+    spoke: ROUTES.cafeHub,
+    live: true,
+    cta: CTA.cafe,
   },
   {
     id: "takeaways",
     icon: DeliveryBox01Icon,
     title: "Takeaways",
     hook: "Works on any till, even cash-only. No POS to buy, no number to type — just the QR by the counter.",
-    spoke: "/loyalty-for-takeaways",
+    spoke: ROUTES.takeawayHub,
+    live: true,
+    cta: CTA.takeaway,
   },
   {
     id: "bars",
     icon: DrinkIcon,
     title: "Bars & wine bars",
     hook: "Give regulars a reason to choose your bar again. The card lives on their phone, so there is nothing to lose between rounds.",
-    spoke: "/loyalty-for-bars",
+    spoke: ROUTES.barHub,
+    live: true,
+    cta: CTA.bar,
   },
 ]

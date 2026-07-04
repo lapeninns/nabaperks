@@ -14,6 +14,11 @@
 - Guide — How to reward regulars without an app: https://nabaperks.com/guides/reward-regulars-without-an-app
 - Guide — Paper loyalty cards vs QR loyalty for pubs: https://nabaperks.com/guides/paper-vs-qr-loyalty-for-pubs
 
+## Loyalty by venue type
+- Cafes & coffee shops: https://nabaperks.com/loyalty-for-cafes — turn the daily-habit visit into counter-verified stamps; no app, no queue at the till.
+- Takeaways: https://nabaperks.com/loyalty-for-takeaways — works on any till, even cash-only; no POS to buy and nothing to type at the counter.
+- Bars & wine bars: https://nabaperks.com/loyalty-for-bars — give regulars a reason to choose your bar again; nothing to lose between rounds.
+
 ## Pricing
 - 30-day free pilot, then £29/month per venue (GBP). No contract.
 - Build the card and preview the QR flow for free; billing starts only when the live venue QR is activated.
@@ -31,6 +36,9 @@
 - Home / product overview: https://nabaperks.com/
 - How it works (mechanism + anti-fraud checks): https://nabaperks.com/how-it-works
 - Loyalty for pubs: https://nabaperks.com/loyalty-for-pubs
+- Loyalty for cafes: https://nabaperks.com/loyalty-for-cafes
+- Loyalty for takeaways: https://nabaperks.com/loyalty-for-takeaways
+- Loyalty for bars: https://nabaperks.com/loyalty-for-bars
 - About (operator): https://nabaperks.com/about
 - Pricing: https://nabaperks.com/pricing
 - Start a merchant trial: https://nabaperks.com/signup

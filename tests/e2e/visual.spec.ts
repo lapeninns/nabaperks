@@ -5,6 +5,9 @@ const routes = [
   { name: "how-it-works", path: "/how-it-works" },
   { name: "pricing", path: "/pricing" },
   { name: "loyalty-for-pubs", path: "/loyalty-for-pubs" },
+  { name: "loyalty-for-cafes", path: "/loyalty-for-cafes" },
+  { name: "loyalty-for-takeaways", path: "/loyalty-for-takeaways" },
+  { name: "loyalty-for-bars", path: "/loyalty-for-bars" },
   { name: "harness-dashboard", path: "/dev/app-harness/dashboard" },
   { name: "harness-qr", path: "/dev/app-harness/qr" },
 ] as const

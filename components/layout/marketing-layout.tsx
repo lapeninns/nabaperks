@@ -67,6 +67,15 @@ export function MarketingLayout({
             <Link className={legalLinkClass} href="/loyalty-for-pubs">
               Loyalty for pubs
             </Link>
+            <Link className={legalLinkClass} href="/loyalty-for-cafes">
+              Loyalty for cafes
+            </Link>
+            <Link className={legalLinkClass} href="/loyalty-for-takeaways">
+              Loyalty for takeaways
+            </Link>
+            <Link className={legalLinkClass} href="/loyalty-for-bars">
+              Loyalty for bars
+            </Link>
             <Link className={legalLinkClass} href="/about">
               About
             </Link>

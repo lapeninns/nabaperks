@@ -269,6 +269,29 @@ for (const t of ["WebPage", "BreadcrumbList", "HowTo", "Dataset"]) {
 }
 check(!deepHasPerson(hub), "hub: a Person node is present")
 
+// --- Persona spokes (cafes / takeaways / bars) ------------------------------
+// Each mounts the generic Scan/Save/Stamp/Reward flow and cites the Dataset,
+// with a route-distinct HowTo @id so nothing collides with home's graph.
+for (const slug of [
+  "loyalty-for-cafes",
+  "loyalty-for-takeaways",
+  "loyalty-for-bars",
+]) {
+  const spoke = await load(`${slug}.html`, `/${slug}`)
+  const spokeTypes = types(spoke)
+  for (const t of ["WebPage", "BreadcrumbList", "HowTo", "Dataset"]) {
+    check(spokeTypes.has(t), `${slug}: missing ${t} node`)
+  }
+  check(!deepHasPerson(spoke), `${slug}: a Person node is present`)
+  const spokeHowTo = spoke.find((n) => n["@type"] === "HowTo")
+  if (spokeHowTo) {
+    check(
+      spokeHowTo["@id"] === `https://nabaperks.com/${slug}#howto`,
+      `${slug}: HowTo @id must be route-distinct (/${slug}#howto)`
+    )
+  }
+}
+
 const pricing = await load("pricing.html", "/pricing")
 const pricingTypes = types(pricing)
 for (const t of ["WebPage", "BreadcrumbList", "Offer", "FAQPage"]) {

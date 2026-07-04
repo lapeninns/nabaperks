@@ -120,6 +120,9 @@ export const ROUTES = {
   home: "/",
   howItWorks: "/how-it-works",
   pubHub: "/loyalty-for-pubs",
+  cafeHub: "/loyalty-for-cafes",
+  takeawayHub: "/loyalty-for-takeaways",
+  barHub: "/loyalty-for-bars",
   about: "/about",
   pricing: "/pricing",
   signup: "/signup",
@@ -146,6 +149,9 @@ export const PUBLIC_SITE_ROUTES = [
     changeFrequency: "monthly",
   },
   { path: ROUTES.pubHub, priority: 0.9, changeFrequency: "monthly" },
+  { path: ROUTES.cafeHub, priority: 0.9, changeFrequency: "monthly" },
+  { path: ROUTES.takeawayHub, priority: 0.9, changeFrequency: "monthly" },
+  { path: ROUTES.barHub, priority: 0.9, changeFrequency: "monthly" },
   { path: ROUTES.pricing, priority: 0.9, changeFrequency: "monthly" },
   { path: ROUTES.about, priority: 0.6, changeFrequency: "monthly" },
   {
@@ -171,6 +177,10 @@ export const PUBLIC_SITE_ROUTES = [
 export const CTA = {
   /** Persona + hero persona CTA for the pub hub. */
   pub: "Loyalty for pubs",
+  /** Persona CTAs for the cafe/takeaway/bar spokes. */
+  cafe: "Loyalty for cafes",
+  takeaway: "Loyalty for takeaways",
+  bar: "Loyalty for bars",
   /** Standard label whenever a guide links back to the hub. */
   guideLink: "See the pub loyalty guide",
   startPilot: "Start free pilot",
