@@ -32,7 +32,9 @@ export function SeparateMarketing() {
         </p>
       </div>
 
-      <ul className="grid gap-5">
+      {/* 2-up on phones (short bodies pack cleanly); single column from `sm`
+          where the lg two-column section split takes over. */}
+      <ul className="grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-1 sm:gap-5">
         <BenefitPoint title="Loyalty ≠ a marketing list">
           A customer can collect and redeem rewards without ever agreeing to
           promotional messages. The two choices are recorded separately.

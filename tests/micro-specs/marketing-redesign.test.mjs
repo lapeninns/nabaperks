@@ -124,8 +124,14 @@ test("Given venue proof When the landing source is checked Then all nine venues 
     ["White Horse", "CB25 9HP"],
   ]
 
-  // When / Then
-  assert.match(homepage, /<VenueProof \/>/)
+  // When / Then — the venue proof renders inside the merged LandingProof
+  // section (MS-landing-mobile-density): the homepage composes <LandingProof />
+  // and proof.tsx composes the untouched <VenueProof /> body.
+  assert.match(homepage, /<LandingProof \/>/)
+  assert.match(
+    readProjectFile("components", "marketing", "landing", "proof.tsx"),
+    /<VenueProof \/>/
+  )
   assert.match(venueProof, /What venues say/)
   assert.match(venueProof, /VenueProofReviews/)
   assert.match(

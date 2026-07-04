@@ -9,6 +9,10 @@ import {
 import { Icon, MonoTag } from "@/components/brand"
 import type { IconGlyph } from "@/components/brand"
 import { ContrastBand } from "@/components/layout"
+import { cn } from "@/lib/utils"
+
+import { ReadMore } from "./read-more"
+import { SNAP_RAIL_ITEM, SnapRail } from "./snap-rail"
 
 /**
  * Counter-verified stamps — Nabaperks' anti-fraud method. Describing the
@@ -61,11 +65,22 @@ export function CounterVerifiedStamp() {
         </p>
       </div>
 
-      <ol className="mt-8 grid grid-cols-2 gap-x-5 gap-y-6 lg:grid-cols-3 [&>li:last-child]:col-span-2 lg:[&>li:last-child]:col-span-1">
+      <SnapRail
+        as="ol"
+        label="The five anti-fraud checks"
+        hint="Swipe for all five checks →"
+        fadeFrom="ink"
+        className="mt-8"
+        trackClassName="sm:grid sm:grid-cols-2 sm:gap-x-5 sm:gap-y-6 lg:grid-cols-3 sm:[&>li:last-child]:col-span-2 lg:[&>li:last-child]:col-span-1"
+      >
         {checks.map((check, index) => (
           <li
             key={check.title}
-            className="border-t-2 border-dashed border-paper/25 pt-4"
+            className={cn(
+              "border-t-2 border-dashed border-paper/25 pt-4",
+              SNAP_RAIL_ITEM,
+              "max-sm:w-[min(17rem,76vw)]"
+            )}
           >
             <div className="flex items-center gap-3">
               <span className="grid size-9 shrink-0 place-items-center rounded-full border-2 border-paper/30 text-seal">
@@ -81,14 +96,19 @@ export function CounterVerifiedStamp() {
             </p>
           </li>
         ))}
-      </ol>
+      </SnapRail>
 
-      <p className="mt-8 max-w-[60ch] border-t-2 border-dashed border-paper/25 pt-5 text-sm leading-relaxed text-pretty text-paper/70">
-        A paper card is trivially faked — stamps bought online, self-stamping,
-        a quick photocopy — and most are lost before they’re ever redeemed.
-        Wallet-pass rivals stamp from a sharable staff code. Nabaperks checks
-        every stamp where it’s claimed, so the phone never crosses the counter.
-      </p>
+      <ReadMore
+        summary="How paper and wallet passes get faked"
+        className="mt-5 border-paper/30 bg-transparent"
+      >
+        <p className="mt-4 max-w-[60ch] border-t-2 border-dashed border-paper/25 pt-5 text-sm leading-relaxed text-pretty text-paper/70 sm:mt-8">
+          A paper card is trivially faked — stamps bought online, self-stamping,
+          a quick photocopy — and most are lost before they’re ever redeemed.
+          Wallet-pass rivals stamp from a sharable staff code. Nabaperks checks
+          every stamp where it’s claimed, so the phone never crosses the counter.
+        </p>
+      </ReadMore>
     </ContrastBand>
   )
 }

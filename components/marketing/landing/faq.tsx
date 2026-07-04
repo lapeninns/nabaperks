@@ -65,7 +65,7 @@ export function LandingFaq() {
             key={faq.q}
             className="group rounded-[var(--radius)] border-2 border-ink bg-card shadow-sm [&_summary::-webkit-details-marker]:hidden"
           >
-            <summary className="pressable flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-[1.05rem] leading-snug font-extrabold outline-none focus-visible:ring-3 focus-visible:ring-ring/35">
+            <summary className="pressable flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 text-[1.05rem] leading-snug font-extrabold outline-none focus-visible:ring-3 focus-visible:ring-ring/35 sm:px-5 sm:py-4">
               <span>{faq.q}</span>
               <span
                 aria-hidden="true"

@@ -25,7 +25,7 @@ export function VenueBenefits({ qrMatrix }: { qrMatrix: QrMatrix }) {
         <h2 className="mt-4 max-w-[15ch] text-[clamp(1.85rem,4vw,2.75rem)] leading-[1.02] font-extrabold tracking-[-0.02em] text-balance">
           Built for the counter, not the boardroom.
         </h2>
-        <ul className="mt-6 grid gap-5">
+        <ul className="mt-5 grid gap-4 sm:mt-6 sm:gap-5">
           <BenefitPoint title="Simple rewards customers understand">
             Start with one clear reward, then add a surprise reward later if it
             fits your venue — no points maths, no tiers to explain.

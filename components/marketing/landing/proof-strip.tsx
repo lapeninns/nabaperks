@@ -1,4 +1,3 @@
-import { Section } from "@/components/layout"
 import { cn } from "@/lib/utils"
 
 import { PilotProofStrip } from "../pilot-proof-strip"
@@ -16,10 +15,11 @@ const setupNotes = [
 ] as const
 
 function bandCellClassName(index: number) {
+  // 3-up from the smallest phones — the band reads as one receipt row instead
+  // of six stacked cells; vertical rules separate columns at every width.
   return cn(
-    "px-4 py-5 text-center sm:px-8 sm:py-6",
-    index > 0 &&
-      "border-t-2 border-dashed border-foreground/25 sm:border-t-0 sm:border-l-2"
+    "px-2 py-3.5 text-center sm:px-8 sm:py-6",
+    index > 0 && "border-l-2 border-dashed border-foreground/25"
   )
 }
 
@@ -27,12 +27,14 @@ function bandCellClassName(index: number) {
  * Proof strip — three setup numbers and three honest setup facts in a receipt
  * band between dashed rules. Mobile-first: each column stacks with horizontal
  * rules; from `sm` the band splits into three equal columns with vertical rules.
+ * Renders as the always-visible stat band inside the landing's merged proof
+ * section (the parent Section owns the vertical rhythm).
  */
 export function ProofStrip() {
   return (
-    <Section size="compact">
+    <div>
       <div className="border-y-2 border-dashed border-foreground/25">
-        <dl className="grid sm:grid-cols-3">
+        <dl className="grid grid-cols-3">
           {stats.map((stat, index) => (
             // Valid dt-before-dd DOM order, flipped visually with flex order-*
             // (the same trick as nabaperks-proof) so screen readers get the
@@ -44,14 +46,14 @@ export function ProofStrip() {
               <dt className="mono-meta order-2 mt-2 leading-snug text-muted-foreground">
                 {stat.label}
               </dt>
-              <dd className="order-1 text-[clamp(1.85rem,4.8vw,2.35rem)] leading-none font-extrabold tracking-[-0.02em] tabular-nums">
+              <dd className="order-1 text-[clamp(1.05rem,4.8vw,2.35rem)] leading-tight font-extrabold tracking-[-0.02em] tabular-nums sm:leading-none">
                 {stat.value}
               </dd>
             </div>
           ))}
         </dl>
 
-        <ul className="grid border-t-2 border-dashed border-foreground/25 sm:grid-cols-3">
+        <ul className="grid grid-cols-3 border-t-2 border-dashed border-foreground/25">
           {setupNotes.map((note, index) => (
             <li key={note} className={bandCellClassName(index)}>
               <span className="mono-id font-normal leading-relaxed text-muted-foreground">
@@ -62,6 +64,6 @@ export function ProofStrip() {
         </ul>
       </div>
       <PilotProofStrip />
-    </Section>
+    </div>
   )
 }

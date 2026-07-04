@@ -10,16 +10,13 @@ import {
   JumpNav,
   LandingFaq,
   LandingHero,
+  LandingProof,
   MidPageCta,
-  OldCrownCandidate,
   OperatorProof,
-  ProofStrip,
   SeparateMarketing,
   TrustPricing,
   VenueBenefits,
   VenuePersonas,
-  VenueProof,
-  NabaperksProof,
   counterFlowSteps,
   faqs,
   type QrMatrix,
@@ -157,17 +154,14 @@ export default function HomePage() {
     <MarketingLayout navLinks={navLinks}>
       <LandingHero qrMatrix={demoQrMatrix} />
       <JumpNav />
-      <ProofStrip />
       <OperatorProof />
       <CounterFlow />
-      <NabaperksProof />
-      <OldCrownCandidate />
+      <LandingProof />
       <ComparisonTable />
       <CounterVerifiedStamp />
       <MidPageCta />
       <VenueBenefits qrMatrix={venueQrMatrix} />
       <VenuePersonas />
-      <VenueProof />
       <SeparateMarketing />
       <TrustPricing />
       <LandingFaq />

@@ -1,4 +1,7 @@
 import { ContrastBand } from "@/components/layout"
+import { cn } from "@/lib/utils"
+
+import { SNAP_RAIL_ITEM, SnapRail } from "./snap-rail"
 
 /**
  * The four-beat flow — exported so the homepage can emit a HowTo whose step
@@ -51,11 +54,22 @@ export function CounterFlow() {
         </p>
       </div>
 
-      <ol className="mt-8 grid grid-cols-2 gap-x-5 gap-y-6 lg:grid-cols-4">
+      <SnapRail
+        as="ol"
+        label="How it works, step by step"
+        hint="Swipe for all four steps →"
+        fadeFrom="ink"
+        className="mt-8"
+        trackClassName="sm:grid sm:grid-cols-2 sm:gap-x-5 sm:gap-y-6 lg:grid-cols-4"
+      >
         {counterFlowSteps.map((item) => (
           <li
             key={item.step}
-            className="border-t-2 border-dashed border-paper/30 pt-4"
+            className={cn(
+              "border-t-2 border-dashed border-paper/30 pt-4",
+              SNAP_RAIL_ITEM,
+              "max-sm:w-[min(17rem,76vw)]"
+            )}
           >
             <p className="mono-meta tracking-[0.1em] text-seal">
               {item.step}
@@ -66,7 +80,7 @@ export function CounterFlow() {
             </p>
           </li>
         ))}
-      </ol>
+      </SnapRail>
     </ContrastBand>
   )
 }

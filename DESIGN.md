@@ -177,7 +177,9 @@ marks — always rotated -6° to -8°.
 Named circle exceptions are narrow and intentional: the `EmptyState` icon
 roundel (a static, unrotated, ink-bordered circle framing a glyph in
 `components/brand/typography.tsx`), customer tab-bar chips, join stepper discs,
-marketing jump-nav chips, and the legal-link halo family. These are navigation
+marketing jump-nav chips, the landing proof-tab chips
+(`components/marketing/landing/proof-tabs.tsx`, same chip recipe as jump-nav),
+and the legal-link halo family. These are navigation
 or framing controls, not reward marks; do not extend the list without updating
 this contract. Borders are **2px solid ink** everywhere; **2px dashed**
 (`.w-rule`) for empty slots, receipt rules, demo chrome, and pick-one

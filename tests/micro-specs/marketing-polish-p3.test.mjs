@@ -119,7 +119,7 @@ test("Given the marketing card surfaces When radii render Then no hardcoded roun
 
 // --- MKT-P3-04 / MKT-P3-27 mechanical — jump-nav ------------------------------------
 
-test("Given the jump nav on a phone When chips overflow Then a fade signals it and the chips ride the token dialects", () => {
+test("Given the jump nav When mobile and desktop variants are checked Then disclosure replaces chip hunt and chips ride the token dialects", () => {
   const nav = readProjectFile(
     "components",
     "marketing",
@@ -129,8 +129,13 @@ test("Given the jump nav on a phone When chips overflow Then a fade signals it a
 
   assert.match(
     nav,
-    /bg-gradient-to-l from-background to-transparent sm:hidden/,
-    "right-edge fade, hidden once the row wraps at sm"
+    /<details className="group[\s\S]*sm:hidden/,
+    "mobile uses a native details disclosure instead of horizontal chip hunt"
+  )
+  assert.match(
+    nav,
+    /hidden gap-2 sm:flex sm:flex-wrap/,
+    "chip bar is sm+ only and wraps in place"
   )
   assert.ok(nav.includes("focus-ring"), "focus dialect is .focus-ring")
   assert.equal(

@@ -1,21 +1,25 @@
 import { MonoTag } from "@/components/brand"
-import { Section } from "@/components/layout"
 
 import { VENUE_PROOF_POOL_SIZE, DEFAULT_VENUE_PROOF_INDICES } from "./venue-proof-data"
 import { VenueProofReviews } from "./venue-proof-reviews"
 
+/**
+ * Named-venue operator voice. Renders as a panel body inside the landing's
+ * merged proof section (the `#venue-proof` anchor lives on the panel wrapper
+ * there; heading is h3 under the section's shared h2).
+ */
 export function VenueProof() {
   return (
-    <Section aria-labelledby="venue-proof-heading" size="compact">
+    <div aria-labelledby="venue-proof-heading">
       <div className="grid gap-4 sm:gap-5 md:gap-6 xl:grid-cols-[0.9fr_1.1fr] xl:items-start">
         <div className="min-w-0">
           <MonoTag tone="leaf">What venues say</MonoTag>
-          <h2
+          <h3
             id="venue-proof-heading"
             className="mt-2 max-w-[28ch] text-[clamp(1.45rem,2.8vw,2rem)] leading-[1.05] font-extrabold text-balance sm:max-w-[32ch] xl:max-w-[20ch]"
           >
             Pubs and cafes already on the counter.
-          </h2>
+          </h3>
           <p className="mt-2 max-w-[40ch] text-sm leading-6 text-muted-foreground sm:max-w-[48ch] xl:max-w-[40ch]">
             Named venues from the Lapen Inns network, with paraphrased operator
             voice rather than verbatim testimonials.
@@ -38,6 +42,6 @@ export function VenueProof() {
           <VenueProofReviews initialIndices={DEFAULT_VENUE_PROOF_INDICES} />
         </div>
       </div>
-    </Section>
+    </div>
   )
 }

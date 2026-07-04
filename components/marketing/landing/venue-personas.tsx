@@ -2,8 +2,10 @@ import Link from "next/link"
 
 import { Icon, MonoTag } from "@/components/brand"
 import { Section } from "@/components/layout"
+import { cn } from "@/lib/utils"
 
 import { personas, SHOW_PERSONA_SPOKES } from "./persona-data"
+import { SNAP_RAIL_ITEM, SnapRail } from "./snap-rail"
 
 /**
  * Persona chapters — the Solution-Aware "for [my venue type]" cluster, each block
@@ -25,12 +27,22 @@ export function VenuePersonas() {
         </p>
       </div>
 
-      <ul className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <SnapRail
+        as="ul"
+        label="Venue types"
+        hint="Swipe for all four venue types →"
+        className="mt-6"
+        trackClassName="gap-3 sm:grid sm:grid-cols-2 sm:gap-4 lg:grid-cols-4"
+      >
         {personas.map((persona) => (
           <li
             key={persona.id}
             id={persona.id}
-            className="surface-card scroll-mt-24 p-4 sm:p-5"
+            className={cn(
+              "surface-card scroll-mt-24 p-4 sm:p-5",
+              SNAP_RAIL_ITEM,
+              "max-sm:w-[min(15rem,68vw)]"
+            )}
           >
             <span className="grid size-11 place-items-center rounded-full border-2 border-ink bg-secondary text-foreground">
               <Icon icon={persona.icon} size={22} strokeWidth={2} />
@@ -58,7 +70,7 @@ export function VenuePersonas() {
             ) : null}
           </li>
         ))}
-      </ul>
+      </SnapRail>
     </Section>
   )
 }

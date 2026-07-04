@@ -1,5 +1,6 @@
 import { MonoTag } from "@/components/brand"
 import { Section } from "@/components/layout"
+import { cn } from "@/lib/utils"
 
 /**
  * Operator proof — the E-E-A-T "Experience" block: the first-person operator POV
@@ -37,9 +38,20 @@ export function OperatorProof() {
         </p>
       </div>
 
-      <ul className="mt-6 grid gap-4 sm:grid-cols-3">
+      {/*
+        Mobile: one receipt card with dashed rules — all three faults visible
+        without a sideways hunt. sm+: the original three-up grid of cards.
+      */}
+      <ul
+        aria-label="The three designed-out faults"
+        className={cn(
+          "mt-6 flex flex-col",
+          "max-sm:surface-card max-sm:divide-y-2 max-sm:divide-dashed max-sm:divide-line",
+          "sm:grid sm:grid-cols-3 sm:gap-4"
+        )}
+      >
         {faults.map((fault, index) => (
-          <li key={fault.title} className="surface-card p-5">
+          <li key={fault.title} className={cn("p-5", "sm:surface-card")}>
             <p className="mono-meta tracking-[0.1em] text-primary">
               Fault {String(index + 1).padStart(2, "0")}
             </p>

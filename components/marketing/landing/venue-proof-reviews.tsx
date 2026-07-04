@@ -239,10 +239,12 @@ export function VenueProofReviews({
   return (
     <div
       ref={ribbonRef}
-      className="min-w-0 overflow-x-auto overflow-y-hidden py-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:overflow-visible [&::-webkit-scrollbar]:hidden"
+      // `scroll-snap-type` must sit on the scroll container — on the inner
+      // `w-max` track it is inert (the track never scrolls).
+      className="min-w-0 overflow-x-auto overflow-y-hidden py-1 [-ms-overflow-style:none] [scrollbar-width:none] max-sm:snap-x max-sm:snap-proximity sm:overflow-visible [&::-webkit-scrollbar]:hidden"
       aria-live="polite"
     >
-      <div className="flex w-max max-w-full items-start gap-3 pb-1 snap-x snap-mandatory max-sm:pe-1 sm:grid sm:w-full sm:grid-cols-2 sm:gap-4 sm:pb-0 sm:snap-none lg:grid-cols-4 xl:grid-cols-2 xl:gap-3">
+      <div className="flex w-max max-w-full items-start gap-3 pb-1 max-sm:pe-1 sm:grid sm:w-full sm:grid-cols-2 sm:gap-4 sm:pb-0 lg:grid-cols-4 xl:grid-cols-2 xl:gap-3">
         {venues.map((venue, index) => (
           <VenueReviewReceipt
             key={`${shuffleGeneration}-${venue.name}`}

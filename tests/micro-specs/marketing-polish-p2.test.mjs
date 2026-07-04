@@ -37,27 +37,45 @@ test("Given the landing comparison table When 'No' marks render Then they hold n
   assert.ok(table.includes('{value ? "Yes" : "No"}'), "sr-only fallback kept")
 })
 
-test("Given the comparison table at narrow widths When columns are clipped Then an edge fade and swipe hint appear and vanish once the table fits", () => {
+test("Given the comparison table at narrow widths When viewed on a phone Then a compact Nabaperks wedge replaces the horizontal scroll and the table stays for md+", () => {
   const table = readProjectFile(
     "components",
     "marketing",
     "landing",
     "comparison-table.tsx"
   )
+  const data = readProjectFile(
+    "components",
+    "marketing",
+    "landing",
+    "comparison-data.ts"
+  )
 
   assert.match(
     table,
-    /bg-gradient-to-l from-background to-transparent max-\[37rem\]:block/,
-    "right edge fade shows only while the 34rem table is clipped"
-  )
-  assert.ok(
-    table.includes("Swipe for wallet pass · paper · POS"),
-    "the hint names the off-screen columns"
+    /ComparisonMobileWedge/,
+    "mobile renders the Nabaperks-first wedge"
   )
   assert.match(
     table,
-    /mono-id mt-2 hidden font-normal text-muted-foreground max-\[37rem\]:block/,
-    "hint is mobile-only and rides the micro-type token"
+    /Where wallet pass, paper and POS fall short/,
+    "alternative gaps sit behind one disclosure"
+  )
+  assert.match(data, /comparisonGapsForColumn/, "gaps derive from the shared table data")
+  assert.match(
+    table,
+    /md:hidden/,
+    "mobile wedge hides from md up"
+  )
+  assert.match(
+    table,
+    /hidden md:block/,
+    "the semantic table is desktop/tablet only"
+  )
+  assert.equal(
+    table.includes("Swipe for wallet pass · paper · POS"),
+    false,
+    "the clipped-table swipe hint is gone"
   )
 })
 

@@ -40,3 +40,8 @@ export const COMPARISON_ROWS: readonly ComparisonRow[] = [
   { feature: "The phone never crosses the counter", cells: [true, false, true, false] },
   { feature: "Gives you visit & redemption data", cells: [true, true, false, true] },
 ]
+
+/** Rows an alternative category does not satisfy — for compact mobile summaries. */
+export function comparisonGapsForColumn(columnIndex: number) {
+  return COMPARISON_ROWS.filter((row) => !row.cells[columnIndex])
+}
