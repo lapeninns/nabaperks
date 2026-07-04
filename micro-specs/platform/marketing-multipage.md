@@ -1,6 +1,6 @@
 ---
 spec_id: MS-marketing-multipage
-status: active
+status: implemented
 risk_class: ui-only
 owner: claude-code agent (amanshresthaa)
 last_reviewed: 2026-07-04
