@@ -81,3 +81,82 @@ test("Given the constants contract When export keys are compared Then repo and k
     "governance-constants.mjs export names must match the kit (values may differ)"
   )
 })
+
+test("Given the kit-canonical SKILL.md When bundled Then the .factory bundle SKILL.md matches", () => {
+  assert.equal(
+    readFileSync(
+      path.join(projectRoot, ".factory/skills/ai-governance-starter-kit/SKILL.md"),
+      "utf8"
+    ),
+    readFileSync(path.join(source, "SKILL.md"), "utf8"),
+    "the bundle SKILL.md is a mirror of the kit's — run: node scripts/sync-skill-bundles.mjs"
+  )
+})
+
+test("Given the station suite When mirrored Then each .factory mirror equals its kit source and carries the marker", () => {
+  const suiteRoot = path.join(source, "skills")
+  const names = readdirSync(suiteRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort()
+
+  assert.ok(names.length >= 4, "the suite ships at least the four station skills")
+
+  for (const name of names) {
+    const kitSkill = path.join(suiteRoot, name)
+    const mirror = path.join(projectRoot, ".factory/skills", name)
+
+    assert.deepEqual(
+      listFiles(mirror),
+      listFiles(kitSkill),
+      `${name} mirror file list differs — run: node scripts/sync-skill-bundles.mjs`
+    )
+    for (const file of listFiles(kitSkill)) {
+      assert.equal(
+        readFileSync(path.join(mirror, file), "utf8"),
+        readFileSync(path.join(kitSkill, file), "utf8"),
+        `${name}/${file} mirror is out of sync — run: node scripts/sync-skill-bundles.mjs`
+      )
+    }
+    assert.match(
+      readFileSync(path.join(kitSkill, "SKILL.md"), "utf8"),
+      /managed-by: ai-governance-starter-kit/,
+      `${name} SKILL.md must carry the managed-by marker (the sync guard keys on it)`
+    )
+  }
+})
+
+test("Given the plugin manifest When compared to skills/ Then the declared list matches the directory", () => {
+  const manifest = JSON.parse(
+    readFileSync(path.join(source, ".claude-plugin/plugin.json"), "utf8")
+  )
+  const names = readdirSync(path.join(source, "skills"), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort()
+
+  assert.deepEqual(
+    manifest.skills,
+    names.map((name) => `./skills/${name}`),
+    "plugin.json skills must equal the skills/ directory listing"
+  )
+})
+
+test("Given the shared-test lockstep When compared Then repo tests equal the kit templates", async () => {
+  const { SHARED_TEST_FILES } = await import("../../scripts/governance-version.mjs")
+
+  assert.ok(SHARED_TEST_FILES.length >= 3, "the shared-test manifest lists the shared suites")
+  assert.equal(
+    SHARED_TEST_FILES.includes("governance-enforcement.test.mjs"),
+    false,
+    "the enforcement-test flavors legitimately differ and stay dual-edited"
+  )
+
+  for (const file of SHARED_TEST_FILES) {
+    assert.equal(
+      readFileSync(path.join(projectRoot, "tests/micro-specs", file), "utf8"),
+      readFileSync(path.join(source, "templates/tests/micro-specs", file), "utf8"),
+      `tests/micro-specs/${file} drifted from the kit template — run: node scripts/sync-skill-bundles.mjs`
+    )
+  }
+})

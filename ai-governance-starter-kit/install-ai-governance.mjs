@@ -19,6 +19,7 @@ const args = process.argv.slice(2)
 const targetRoot = args.find((arg) => !arg.startsWith("--")) ?? process.cwd()
 const force = args.includes("--force")
 const upgrade = args.includes("--upgrade")
+const noSkills = args.includes("--no-skills")
 const preview = args.includes("--preview") || args.includes("--dry-run")
 const now = new Date().toISOString().replace(/[:.]/g, "-")
 
@@ -33,7 +34,7 @@ const ENGINE_OWNED_PATHS = new Set([
   ".github/workflows/ai-governance.yml",
 ])
 
-const plan = buildInstallPlan(targetRoot, { force, upgrade })
+const plan = buildInstallPlan(targetRoot, { force, noSkills, upgrade })
 printReport(plan, { preview })
 
 if (plan.blockers.length > 0) {
@@ -74,6 +75,10 @@ function buildInstallPlan(root, options = {}) {
     force: options.force,
     upgrade: options.upgrade,
   })
+
+  if (!options.noSkills) {
+    planSkillSuiteActions(root, actions, options)
+  }
 
   if (packageResult.ok && packageResult.exists) {
     planPackageAction(root, packageJson, actions, options)
@@ -239,6 +244,65 @@ function planTemplateActions(fromDir, toDir, replacements, actions, options) {
       path: destination,
       relativePath,
     })
+  }
+}
+
+// The station skills are planted into the TARGET's own .claude/skills/ so
+// agents working in that repo discover them — verbatim copies (no template
+// tokens), and never the kit-root router (targets reach the kit skill from
+// wherever the operator's kit lives). These actions carry owned: true — the
+// kit refreshes them on --upgrade (with backups) like ENGINE_OWNED_PATHS,
+// while plain installs skip-if-exists so a repo's deliberate adaptations
+// survive. --no-skills opts out entirely.
+function planSkillSuiteActions(root, actions, options) {
+  const suiteRoot = join(kitRoot, "skills")
+  if (!existsSync(suiteRoot)) return
+
+  const names = readdirSync(suiteRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort()
+
+  for (const name of names) {
+    for (const file of listFiles(join(suiteRoot, name))) {
+      const source = join(suiteRoot, name, file)
+      const destination = join(root, ".claude/skills", name, file)
+      const relativePath = relative(targetRoot, destination)
+      const text = readFileSync(source, "utf8")
+      const refresh = options.upgrade || options.force
+
+      if (existsSync(destination)) {
+        if (!refresh) {
+          actions.push({
+            kind: "skip",
+            owned: true,
+            path: destination,
+            reason: "file already exists",
+            relativePath,
+          })
+          continue
+        }
+        if (readFileSync(destination, "utf8") === text) {
+          actions.push({
+            kind: "noop",
+            owned: true,
+            path: destination,
+            reason: "already at kit version",
+            relativePath,
+          })
+          continue
+        }
+      }
+
+      actions.push({
+        backup: existsSync(destination),
+        content: text,
+        kind: "write",
+        owned: true,
+        path: destination,
+        relativePath,
+      })
+    }
   }
 }
 
