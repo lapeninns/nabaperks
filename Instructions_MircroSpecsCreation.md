@@ -13,7 +13,7 @@ before Engineering can treat it as implementation-ready:
 
 ```yaml
 spec_id: MS-<area>-<slug>
-status: draft | active | implemented | verified | superseded
+status: draft | active | implemented | verified | closed | superseded
 risk_class: docs-tooling | ui-only | product-analytics | customer-pii | auth-session | billing | webhooks | rls-rpc-ledger | migrations
 owner: <person-or-agent>
 last_reviewed: YYYY-MM-DD
@@ -49,7 +49,10 @@ which pre-resolves the risk-class gate floor against the repo's real package
 scripts and emits the six required section headings. Never hand-edit the
 `status:` line afterwards — lifecycle moves only through
 `pnpm governance:advance <spec-id> --to <status>`, which runs the declared
-gates fresh and records the evidence ledger the checker enforces.
+gates fresh and records the evidence ledger the checker enforces. The happy
+path ends at `closed`: after verification, the body is rewritten from a build
+plan into a rationale record the engine validates (see
+`micro-specs/README.md`, "Closed-Record Contract").
 
 Each Micro-Spec must include the following elements:
 

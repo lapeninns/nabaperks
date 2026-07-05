@@ -10,7 +10,7 @@ The governance contract in `micro-specs/README.md` is binding for metadata, sour
 
 ```yaml
 spec_id: MS-<area>-<slug>
-status: draft | active | implemented | verified | superseded
+status: draft | active | implemented | verified | closed | superseded
 risk_class: docs-tooling | ui-only | data-model | auth-session | billing | webhooks | migrations | infra | security | ai-agent
 owner: <person-or-agent>
 last_reviewed: YYYY-MM-DD
@@ -37,7 +37,10 @@ which pre-resolves the risk-class gate floor against the repo's real package
 scripts and emits the six required section headings. Never hand-edit the
 `status:` line afterwards — lifecycle moves only through
 `governance:advance <spec-id> --to <status>`, which runs the declared gates
-fresh and records the evidence ledger the checker enforces.
+fresh and records the evidence ledger the checker enforces. The happy path
+ends at `closed`: after verification, the body is rewritten from a build plan
+into a rationale record the engine validates (see `micro-specs/README.md`,
+"Closed-Record Contract").
 
 For active specs, `verification_gates` must satisfy the risk-class gate matrix in `micro-specs/README.md`. Each gate is either an executable script (`<pkg> <script>`, e.g. `pnpm test`, `npm run test`, `yarn test`, `bun test`) or a manual gate written as `manual:<kebab-case>` (e.g. `manual:security-review`). Every class must declare the governance-check and test scripts; higher-risk classes add lint / typecheck / build where the repo defines them. Browser-required specs must list `required_playwright_projects` and point `related_tests` at your end-to-end suite. Data-model, auth-session, billing, webhooks, and migration specs must declare a **durable-proof** gate (an integration, contract, database, or end-to-end test script) — a browser-only or static check does not satisfy that requirement. Where the repo genuinely lacks such a gate, carry a dated `approved_exceptions` entry that explains the gap.
 
