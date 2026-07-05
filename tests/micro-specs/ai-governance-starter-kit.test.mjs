@@ -13,6 +13,13 @@ const projectRoot = path.resolve(
 
 const kitRoot = path.join(projectRoot, "ai-governance-starter-kit")
 
+// Temp-repo governance checks must be hermetic: an ambient
+// GOVERNANCE_CHANGED_FILES (e.g. injected by a governance:advance run whose
+// test gate spawned this suite) would otherwise leak this repo's changed-file
+// list into the sandbox and fail its blast radius.
+const hermeticEnv = { ...process.env }
+delete hermeticEnv.GOVERNANCE_CHANGED_FILES
+
 test("Given the starter kit When files are inspected Then the Factory skill and templates exist", () => {
   for (const file of [
     ".factory/skills/ai-governance-starter-kit/SKILL.md",
@@ -44,6 +51,7 @@ test("Given a package repo When the installer runs Then governance is installed 
     const output = execFileSync("node", ["scripts/check-governance.mjs"], {
       cwd: targetRoot,
       encoding: "utf8",
+      env: hermeticEnv,
     })
     assert.match(output, /Governance check passed/)
   } finally {
@@ -240,7 +248,11 @@ test("Given a high-risk spec without durable proof When validated Then governanc
     let output = ""
     let failed = false
     try {
-      execFileSync("node", ["scripts/check-governance.mjs"], { cwd: targetRoot, encoding: "utf8" })
+      execFileSync("node", ["scripts/check-governance.mjs"], {
+        cwd: targetRoot,
+        encoding: "utf8",
+        env: hermeticEnv,
+      })
     } catch (error) {
       failed = true
       output = `${error.stdout ?? ""}${error.stderr ?? ""}`

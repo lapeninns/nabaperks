@@ -206,13 +206,20 @@ let executed = null
 
 if (runsGates) {
   const gates = runnableGates(spec)
-  // Scope the child governance:check gate to the branch diff so unrelated
-  // working-tree noise (other programs' WIP) cannot fail the advance.
+  // Scope the branch diff to the governance:check gate ONLY: it keeps
+  // unrelated working-tree noise (other programs' WIP) from failing the
+  // advance, while test gates stay hermetic — their own sandboxed governance
+  // checks must never inherit this repo's changed-file list.
   const changed = branchChangedFiles(root)
-  if (changed.length > 0 && !process.env.GOVERNANCE_CHANGED_FILES) {
-    process.env.GOVERNANCE_CHANGED_FILES = changed.join(",")
+  const envForGate = (parsed) => {
+    const env = { ...process.env }
+    delete env.GOVERNANCE_CHANGED_FILES
+    if (parsed.scriptName === "governance:check" && changed.length > 0) {
+      env.GOVERNANCE_CHANGED_FILES = changed.join(",")
+    }
+    return env
   }
-  executed = executeGates(root, gates)
+  executed = executeGates(root, gates, { envForGate })
   const failed = executed.find((result) => result.exit_code !== 0)
   if (failed) {
     const ledger = loadLedger(options.specId)
