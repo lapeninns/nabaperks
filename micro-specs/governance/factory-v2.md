@@ -1,6 +1,6 @@
 ---
 spec_id: MS-governance-factory-v2
-status: verified
+status: closed
 risk_class: docs-tooling
 owner: claude-code agent (amanshresthaa)
 last_reviewed: 2026-07-05
