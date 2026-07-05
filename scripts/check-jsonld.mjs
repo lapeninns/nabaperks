@@ -326,8 +326,12 @@ if (pricingFaq) {
     ? pricingFaq.mainEntity
     : []
   check(
-    questions.length === 5,
-    `pricing: FAQ should expose 5 questions, got ${questions.length}`
+    questions.length === 6,
+    `pricing: FAQ should expose 6 questions, got ${questions.length}`
+  )
+  check(
+    questions.some((q) => /bring back a regular/.test(q.name ?? "")),
+    "pricing: FAQ should carry the First-Regular Guarantee question (MS-marketing-offer-v1)"
   )
 }
 

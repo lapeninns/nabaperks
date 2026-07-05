@@ -11,12 +11,12 @@ import {
   merchantEmailOtpAliasDigitLabel,
   merchantEmailOtpAliasLength,
 } from "@/lib/auth/merchant-email-otp-alias"
-import { PRODUCT, ROUTES } from "@/lib/marketing/facts"
+import { GUARANTEE, PRODUCT, ROUTES } from "@/lib/marketing/facts"
 import { OG_IMAGE } from "@/lib/seo/structured-data"
 import { cn } from "@/lib/utils"
 
 const title = "Start Your Free Pilot — No-App QR Loyalty"
-// 155 code points (budget 145–159); the cancellation term renders only via
+// 158 code points (budget 145–159); the cancellation term renders only via
 // the single-source constant (marketing-auth-legal contract).
 const description = `Create your account, build your card and go live from one venue QR — ${PRODUCT.pilot}, then ${PRODUCT.price}. ${PRODUCT.cancelLine}`
 
@@ -48,6 +48,7 @@ const trustPoints = [
   "No app for your customers to download",
   "Customers stamp themselves from your venue QR",
   PRODUCT.cancelLine,
+  GUARANTEE.line,
 ]
 
 type SignUpPageProps = {

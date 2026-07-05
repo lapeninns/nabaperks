@@ -11,6 +11,10 @@
  * identifiers, a registered-office address, founding details, a public count of
  * live venues in the proof methodology, or hard compliance/guarantee claims.
  * The exact banned strings are enforced by `scripts/check-banned-claims.mjs`.
+ * The First-Regular Guarantee (`GUARANTEE`) is the one owner-approved
+ * exception: a commercial trial-extension promise (2026-07-05,
+ * MS-marketing-offer-v1) — a business term, not a compliance claim;
+ * compliance-assurance wording stays banned.
  */
 
 // --- Public operator entity (the E-E-A-T Organization fact sheet) ----------
@@ -84,13 +88,29 @@ export const PRODUCT = {
   counterStamp: "counter-verified stamps",
   counterStampLong: "stamps confirmed at the counter",
   /**
-   * The one cancellation term — ALWAYS carried with the notice period so
-   * "cancel anytime" can never render without the honest qualifier
-   * (ASA material-information). Sentence + chip forms; use these, never a
-   * bare "cancel anytime".
+   * The one cancellation term — a true cancel-anytime as of offer v1
+   * (MS-marketing-offer-v1). Cancellation is self-serve from the billing
+   * page and takes effect at the end of the current billing month; the
+   * card-required qualifier stays in the sentence form (ASA
+   * material-information). Sentence + chip forms; use these, never a bare
+   * literal.
    */
-  cancelLine: "Card required — cancel anytime, one month's notice.",
-  cancelChip: "Cancel anytime — one month's notice",
+  cancelLine: "Card required — cancel anytime from your billing page.",
+  cancelChip: "Cancel anytime",
+} as const
+
+/**
+ * The First-Regular Guarantee — the offer's risk reversal, owner-approved
+ * 2026-07-05 (MS-marketing-offer-v1). A commercial trial-extension promise
+ * honoured by support as a manual Stripe trial extension, so no billing code
+ * depends on this copy. Compose surfaces from these parts; never fork the
+ * promise as a page literal.
+ */
+export const GUARANTEE = {
+  name: "First-Regular Guarantee",
+  line: "If your live card hasn't brought back a first regular by the end of your 30-day pilot, the pilot stays free until it does.",
+  applies: "Applies from the day your venue QR goes live.",
+  claim: `Email ${OPERATOR.supportEmail} and the team applies the extension.`,
 } as const
 
 /**
@@ -105,6 +125,41 @@ export const PLAN_INCLUDES = [
   "Permanent venue QR",
   "Weekly digest of visits, regulars and redemptions",
   "Optional location checks at your venue",
+] as const
+
+/**
+ * The named bonus stack /pricing presents under the one price — already
+ * shipped product, framed as included; no unbundled price anchors. Factual
+ * anchors: the five A4 poster templates, the seeded default reward pool,
+ * optional birthday automation + the weekly digest, the consent/age-gate/
+ * retention mechanics, and the three public guides.
+ */
+export const OFFER_STACK = [
+  {
+    name: "Launch-ready till poster kit",
+    detail:
+      "Five print-ready A4 posters — Editorial, Bold, Ticket, Night Card and Receipt — with your venue QR and counter copy already laid out.",
+  },
+  {
+    name: "Done-for-you mystery reward pool",
+    detail:
+      "A starter pool of weighted mystery rewards is seeded with your card — edit it or launch with it as-is.",
+  },
+  {
+    name: "Set-and-forget retention automations",
+    detail:
+      "Optional birthday treats send automatically, and a weekly digest of visits, regulars and redemptions lands in your inbox.",
+  },
+  {
+    name: "Privacy jobs, handled",
+    detail:
+      "Consent-led marketing kept separate from loyalty, an 18+ age gate at redemption, and automatic data-retention tidy-ups.",
+  },
+  {
+    name: "The operator's loyalty guides",
+    detail:
+      "Three practical guides from the counter: reward ideas that suit a pub, paper vs QR, and rewarding regulars without an app.",
+  },
 ] as const
 
 // --- First-party proof (the citable data asset) ----------------------------

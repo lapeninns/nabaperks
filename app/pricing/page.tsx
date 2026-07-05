@@ -9,7 +9,14 @@ import { MarketingLayout, Section } from "@/components/layout"
 import { FaqDetailsList } from "@/components/marketing/landing"
 import { JsonLd } from "@/components/seo/json-ld"
 import { Button } from "@/components/ui/button"
-import { CTA, PLAN_INCLUDES, PRODUCT, ROUTES } from "@/lib/marketing/facts"
+import {
+  CTA,
+  GUARANTEE,
+  OFFER_STACK,
+  PLAN_INCLUDES,
+  PRODUCT,
+  ROUTES,
+} from "@/lib/marketing/facts"
 import {
   ORG_ID,
   SITE_URL,
@@ -74,7 +81,11 @@ const faqs = [
   },
   {
     q: "What if I want to cancel?",
-    a: "One month's notice from your billing page, any time. Earned rewards stay redeemable while things wind down, so no regular is left holding a broken seal.",
+    a: "Cancel from your billing page any time — it takes effect at the end of your current billing month and you will not be charged again. Earned rewards stay redeemable while things wind down, so no regular is left holding a broken seal.",
+  },
+  {
+    q: "What if it doesn't bring back a regular?",
+    a: `${GUARANTEE.line} ${GUARANTEE.applies} ${GUARANTEE.claim}`,
   },
 ]
 
@@ -216,15 +227,48 @@ export default function PricingPage() {
                 .
               </p>
             </div>
+            <div className="grid gap-2">
+              <Eyebrow>{GUARANTEE.name}</Eyebrow>
+              <p className="text-[clamp(1.25rem,2.5vw,1.5rem)] leading-snug font-extrabold text-balance">
+                {GUARANTEE.line}
+              </p>
+              <p className="text-sm leading-6 text-pretty text-muted-foreground">
+                {GUARANTEE.applies} {GUARANTEE.claim}
+              </p>
+            </div>
             <div className="rounded-lg border-2 border-dashed border-border p-5">
               <Eyebrow className="mb-2">After day 30</Eyebrow>
               <p className="text-sm leading-6 text-pretty text-muted-foreground">
-                Billing starts after your free pilot. Leave any time with one
-                month&apos;s notice from your billing page. Earned rewards stay
-                good for your regulars.
+                Billing starts after your free pilot. Cancel any time from your
+                billing page — no further charges after your current month.
+                Earned rewards stay good for your regulars.
               </p>
             </div>
           </div>
+        </div>
+
+        <div className="mt-10">
+          <div className="mb-5 grid gap-2">
+            <Eyebrow>Included with every venue</Eyebrow>
+            <h2 className="text-[clamp(1.5rem,3vw,2rem)] font-extrabold text-balance">
+              The launch kit, thrown in.
+            </h2>
+          </div>
+          <ul className="grid gap-4 sm:grid-cols-2">
+            {OFFER_STACK.map((bonus) => (
+              <li
+                key={bonus.name}
+                className="rounded-lg border-2 border-dashed border-border p-5"
+              >
+                <p className="text-[0.95rem] leading-snug font-extrabold">
+                  {bonus.name}
+                </p>
+                <p className="mt-1.5 text-sm leading-6 text-pretty text-muted-foreground">
+                  {bonus.detail}
+                </p>
+              </li>
+            ))}
+          </ul>
         </div>
 
         <div className="mx-auto mt-10 max-w-2xl">

@@ -80,14 +80,17 @@ test("Given trust and pricing copy When legal friction is reviewed Then billing 
   )
   assert.match(proofStrip, /value: "30 days"/)
   assert.match(proofStrip, /label: "free to pilot"/)
-  // Cancellation renders only via the single-source constant, and the
-  // constant always carries the notice period — "cancel anytime" must never
-  // appear as a bare literal without the honest qualifier.
+  // Cancellation renders only via the single-source constant. Offer v1
+  // (MS-marketing-offer-v1) made the policy a true cancel-anytime — effective
+  // at the end of the current billing month, mechanics stated in the pricing
+  // FAQ — so the constant carries the card-required qualifier and must never
+  // mention a notice period.
   const facts = readProjectFile("lib", "marketing", "facts.ts")
   assert.match(
     facts,
-    /cancelLine: "Card required — cancel anytime, one month's notice\."/
+    /cancelLine: "Card required — cancel anytime from your billing page\."/
   )
+  assert.doesNotMatch(facts, /notice period|month's notice/i)
   for (const surface of [trustPricing, finalCta, signup]) {
     assert.match(surface, /PRODUCT\.cancelLine/)
   }
