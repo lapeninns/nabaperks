@@ -33,7 +33,7 @@ verification_gates:
   - pnpm build
   - pnpm test:e2e -- --grep "PWA offline fallback"
   - pnpm test:a11y
-  - pnpm test:visual
+  - pnpm test:visual -- --project=chromium --project=mobile-safari
 required_playwright_projects:
   - chromium
   - mobile-safari
