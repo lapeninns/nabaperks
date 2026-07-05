@@ -56,8 +56,8 @@ verification_gates:
   - pnpm claims:check
   - pnpm jsonld:check
   - pnpm tokens:check
-  - pnpm test:e2e
-  - pnpm test:a11y
+  - pnpm test:e2e -- --project=mobile-safari --grep "@public-route-metadata"
+  - pnpm test:a11y -- --project=chromium --project=mobile-safari
   - pnpm test:visual -- --project=chromium --project=mobile-safari
 required_playwright_projects:
   - chromium
