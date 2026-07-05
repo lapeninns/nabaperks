@@ -1,7 +1,77 @@
 {
   "schema": 1,
   "spec_id": "MS-marketing-offer-v2",
-  "runs": [],
+  "runs": [
+    {
+      "timestamp": "2026-07-05T20:29:18.184Z",
+      "git_sha": "77b8b679e8b62f0af388364c148f33420d7c4d72",
+      "git_branch": "feat/marketing-offer-v2",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 5413
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 996
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10368
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 6434
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 663
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 151
+        },
+        {
+          "command": "pnpm claims:check",
+          "exit_code": 0,
+          "duration_ms": 196
+        },
+        {
+          "command": "pnpm jsonld:check",
+          "exit_code": 0,
+          "duration_ms": 2244
+        },
+        {
+          "command": "pnpm tokens:check",
+          "exit_code": 0,
+          "duration_ms": 189
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@public-route-metadata|pricing checkout return alert\"",
+          "exit_code": 0,
+          "duration_ms": 24231
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari --grep \"no axe violations: /(pricing|signup|terms|how-it-works)\"",
+          "exit_code": 0,
+          "duration_ms": 20000
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 27438
+        }
+      ],
+      "all_passed": true
+    }
+  ],
   "manual_attestations": [],
   "transitions": [
     {
@@ -10,6 +80,14 @@
       "at": "2026-07-05T20:02:10.735Z",
       "sha": "603156f70cd3cb3766de9f2599dc01252a794cd9",
       "dirty": true,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-05T20:29:18.184Z",
+      "sha": "77b8b679e8b62f0af388364c148f33420d7c4d72",
+      "dirty": false,
       "by": "amankumarshrestha"
     }
   ]

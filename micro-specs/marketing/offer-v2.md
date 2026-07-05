@@ -1,6 +1,6 @@
 ---
 spec_id: MS-marketing-offer-v2
-status: active
+status: implemented
 risk_class: ui-only
 owner: amankumarshrestha
 last_reviewed: 2026-07-05
