@@ -155,7 +155,8 @@ export const RELATED_TESTS_EXEMPT_STATUSES = Object.freeze(["draft"])
 // Tracked, machine-readable gate-run ledgers live here (one JSON per spec).
 export const EVIDENCE_DIR = "micro-specs/evidence"
 
-// The rollout switch for ledger enforcement: implemented/verified specs are
-// required to carry valid evidence only when this is a YYYY-MM-DD date.
-// Stays null until the grandfathering backfill lands (MS-governance-factory-v2).
-export const EVIDENCE_ADOPTION_DATE = null
+// The rollout switch for ledger enforcement: implemented/verified specs must
+// carry valid evidence ledgers from this date. Pre-existing implemented specs
+// were grandfathered via backfill stubs on the same day (MS-governance-factory-v2);
+// a stub stays valid only until its spec's first machine transition.
+export const EVIDENCE_ADOPTION_DATE = "2026-07-05"

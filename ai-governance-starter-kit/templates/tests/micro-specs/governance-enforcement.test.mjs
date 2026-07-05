@@ -263,6 +263,9 @@ function run(root, options = {}) {
   return validateGovernance(root, {
     enforceChangedFiles: false,
     now: NOW,
+    // Fixtures exercise the metadata/drift rules; the ledger contract has its
+    // own suite (governance-evidence.test.mjs) and is pinned off here.
+    evidenceAdoptionDate: null,
     ...options,
   })
 }

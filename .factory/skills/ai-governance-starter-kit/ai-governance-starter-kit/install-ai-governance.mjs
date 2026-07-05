@@ -199,6 +199,7 @@ function planPackageAction(root, packageJson, actions, options) {
     options
   )
   mergeScript(packageJson.scripts, "governance:new-spec", "node scripts/new-spec.mjs", options)
+  mergeScript(packageJson.scripts, "governance:advance", "node scripts/advance-spec.mjs", options)
   mergeScript(
     packageJson.scripts,
     "test:micro-specs",

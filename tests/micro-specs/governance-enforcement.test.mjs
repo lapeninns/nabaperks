@@ -397,7 +397,14 @@ test("Given CI and README gate lists When they drift Then both directions fail",
 })
 
 function run(root, options = {}) {
-  return validateGovernance(root, { changedFiles: [], now: NOW, ...options })
+  return validateGovernance(root, {
+    changedFiles: [],
+    now: NOW,
+    // Fixtures exercise the metadata/drift rules; the ledger contract has its
+    // own suites (governance-evidence / advance-spec tests) and is pinned off.
+    evidenceAdoptionDate: null,
+    ...options,
+  })
 }
 
 function fixtureRepo(t, { spec, extraSpecs = {}, ciLines = null, readmeGates = null }) {

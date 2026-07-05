@@ -13,6 +13,7 @@
 export const KIT_VERSION = "0.2.0"
 
 export const ENGINE_FILES = Object.freeze([
+  "advance-spec.mjs",
   "check-governance.mjs",
   "governance-commands.mjs",
   "governance-evidence.mjs",

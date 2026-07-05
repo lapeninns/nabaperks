@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "spec_id": "MS-marketing-seo",
+  "runs": [],
+  "manual_attestations": [
+    {
+      "gate": "evidence:grandfathered",
+      "by": "claude-code agent (amanshresthaa)",
+      "at": "2026-07-05T00:00:00.000Z",
+      "note": "Pre-adoption implemented spec grandfathered at evidence-ledger rollout."
+    }
+  ],
+  "transitions": []
+}

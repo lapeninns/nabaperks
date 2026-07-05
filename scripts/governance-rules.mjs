@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs"
+import { existsSync, readdirSync } from "node:fs"
 import { join } from "node:path"
 
 import {
@@ -7,6 +7,8 @@ import {
 } from "./governance-commands.mjs"
 import {
   DURABLE_PROOF_SCRIPTS,
+  EVIDENCE_ADOPTION_DATE,
+  EVIDENCE_DIR,
   EVIDENCE_GATE_INFERENCE,
   RELATED_TESTS_EXEMPT_STATUSES,
   RELATED_TESTS_SENTINEL,
@@ -18,6 +20,7 @@ import {
   STALE_REVIEW_DAYS,
   STATUS_VALUES,
 } from "./governance-constants.mjs"
+import { evaluateLedger, readLedger } from "./governance-evidence.mjs"
 import { matchesPattern } from "./governance-glob.mjs"
 import {
   findChangedFiles,
@@ -53,6 +56,11 @@ export function validateGovernance(root, options = {}) {
     validateActiveSpec(spec, packageScripts, failures)
   }
   validateDocsDrift(root, ciCommands, failures)
+  // "in" (not ??): an explicit evidenceAdoptionDate: null must DISABLE the
+  // ledger contract, not fall through to the constant.
+  const adoptionDate =
+    "evidenceAdoptionDate" in options ? options.evidenceAdoptionDate : EVIDENCE_ADOPTION_DATE
+  validateEvidenceLedgers(root, specs, adoptionDate, failures)
 
   const changedFiles =
     options.changedFiles ?? findChangedFiles(root, options.env ?? process.env)
@@ -276,6 +284,29 @@ function validateDocsDrift(root, ciCommands, failures) {
       failures.push(
         `micro-specs/README.md Current Verification Gates lists "${command}" but no CI workflow runs it.`
       )
+    }
+  }
+}
+
+// Ledger contract for implemented/verified specs, plus orphan detection —
+// entirely disabled while the adoption date is null (pre-rollout).
+function validateEvidenceLedgers(root, specs, adoptionDate, failures) {
+  if (!adoptionDate) return
+
+  for (const spec of specs) {
+    if (spec.parseErrors?.length > 0) continue
+    const ledger = spec.metadata.spec_id ? readLedger(root, spec.metadata.spec_id) : null
+    failures.push(...evaluateLedger(spec, ledger, adoptionDate))
+  }
+
+  const dir = join(root, EVIDENCE_DIR)
+  if (!existsSync(dir)) return
+  const knownIds = new Set(specs.map((spec) => spec.metadata.spec_id).filter(Boolean))
+  for (const entry of readdirSync(dir)) {
+    if (!entry.endsWith(".json")) continue
+    const specId = entry.slice(0, -5)
+    if (!knownIds.has(specId)) {
+      failures.push(`${EVIDENCE_DIR}/${entry} is an orphan ledger: no Micro-Spec declares spec_id "${specId}".`)
     }
   }
 }

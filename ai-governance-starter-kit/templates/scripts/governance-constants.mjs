@@ -177,5 +177,6 @@ export const EVIDENCE_DIR = "micro-specs/evidence"
 
 // The rollout switch for ledger enforcement: implemented/verified specs are
 // required to carry valid evidence only when this is a YYYY-MM-DD date.
-// null disables all ledger validation (pre-adoption).
-export const EVIDENCE_ADOPTION_DATE = null
+// Fresh installs adopt from day one (the installer stamps the install date);
+// pre-existing repos set null first, backfill grandfather stubs, then flip.
+export const EVIDENCE_ADOPTION_DATE = "{{TODAY}}"
