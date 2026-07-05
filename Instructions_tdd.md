@@ -227,6 +227,7 @@ The implementation is complete when:
 
 - Every in-scope EARS requirement maps to at least one passing test; a green suite with an uncovered in-scope requirement is not done.
 - All required tests and verification gates pass.
+- The spec's evidence ledger carries a covering, all-passed latest run — recorded by `pnpm governance:advance` (or `pnpm governance:run-gates --spec <id> --record`), not written by hand.
 - The production code satisfies only the required behavior.
 - Fake implementations have been replaced through triangulation where needed.
 - Refactoring has improved structure without changing behavior.

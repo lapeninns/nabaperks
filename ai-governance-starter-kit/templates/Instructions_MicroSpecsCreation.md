@@ -31,6 +31,14 @@ approved_exceptions: []
 
 Every field above is required — the governance check rejects a spec that omits any of them, and the list fields must be non-empty. `related_docs` is optional; add it when the spec leans on a design doc or ADR.
 
+Do not author the frontmatter by hand: scaffold with
+`governance:new-spec --id MS-<area>-<slug> --risk <class> --title "<text>"`,
+which pre-resolves the risk-class gate floor against the repo's real package
+scripts and emits the six required section headings. Never hand-edit the
+`status:` line afterwards — lifecycle moves only through
+`governance:advance <spec-id> --to <status>`, which runs the declared gates
+fresh and records the evidence ledger the checker enforces.
+
 For active specs, `verification_gates` must satisfy the risk-class gate matrix in `micro-specs/README.md`. Each gate is either an executable script (`<pkg> <script>`, e.g. `pnpm test`, `npm run test`, `yarn test`, `bun test`) or a manual gate written as `manual:<kebab-case>` (e.g. `manual:security-review`). Every class must declare the governance-check and test scripts; higher-risk classes add lint / typecheck / build where the repo defines them. Browser-required specs must list `required_playwright_projects` and point `related_tests` at your end-to-end suite. Data-model, auth-session, billing, webhooks, and migration specs must declare a **durable-proof** gate (an integration, contract, database, or end-to-end test script) — a browser-only or static check does not satisfy that requirement. Where the repo genuinely lacks such a gate, carry a dated `approved_exceptions` entry that explains the gap.
 
 Each Micro-Spec must include the following elements.

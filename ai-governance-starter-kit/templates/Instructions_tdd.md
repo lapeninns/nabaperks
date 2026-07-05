@@ -182,6 +182,7 @@ When implementing a Micro-Spec, follow this sequence:
 8. Adjust step size based on problem complexity.
 9. Repeat until every in-scope requirement has a passing test.
 10. For any gate beyond the base test command — durable-proof, end-to-end, accessibility, or visual — run the narrowest focused invocation first for a fast signal (scope it to the tag, title, or suite you changed), then run the full gate the active Micro-Spec declares.
+11. Record proof as you converge: `governance:run-gates --spec <spec-id> --record` writes the spec's evidence ledger (red runs included — honest history). When every requirement is covered, move the lifecycle with `governance:advance <spec-id> --to implemented`, which re-runs the gates fresh and records the transition; do not edit the `status:` line by hand.
 
 ---
 
@@ -220,6 +221,7 @@ The implementation is complete when:
 
 - Every in-scope EARS requirement maps to at least one passing test; a green suite with an uncovered in-scope requirement is not done.
 - All of the active Micro-Spec's `verification_gates` pass, and every item in its `evidence_required` has been produced.
+- The spec's evidence ledger carries a covering, all-passed latest run — recorded by `governance:advance` (or `run-gates --spec <id> --record`), not written by hand.
 - The production code satisfies only the required behavior.
 - Fake implementations have been replaced through triangulation where needed.
 - Refactoring has improved structure without changing behavior.

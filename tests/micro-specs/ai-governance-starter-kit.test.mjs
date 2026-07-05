@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { test } from "node:test"
@@ -248,6 +248,59 @@ test("Given a high-risk spec without durable proof When validated Then governanc
 
     assert.equal(failed, true, "billing spec without durable proof must fail governance")
     assert.match(output, /durable-proof gate/)
+  } finally {
+    rmSync(targetRoot, { recursive: true, force: true })
+  }
+})
+
+test("Given an installed kit When upgraded Then engine files refresh with backups and seed files survive", () => {
+  const targetRoot = mkdtempSync(path.join(tmpdir(), "ai-governance-kit-upgrade-"))
+
+  try {
+    writePackageJson(targetRoot)
+    execFileSync("node", [path.join(kitRoot, "install-ai-governance.mjs"), targetRoot], {
+      stdio: "pipe",
+    })
+
+    // Simulate a stale engine + adapted seed files.
+    const enginePath = path.join(targetRoot, "scripts", "governance-glob.mjs")
+    writeFileSync(enginePath, "// stale engine from an older kit\n")
+    const agentsPath = path.join(targetRoot, "AGENTS.md")
+    writeFileSync(agentsPath, "# Adapted by the repo\n")
+    const constantsPath = path.join(targetRoot, "scripts", "governance-constants.mjs")
+    const adaptedConstants = readFileSync(constantsPath, "utf8").replace(
+      "export const STALE_REVIEW_DAYS = 90",
+      "export const STALE_REVIEW_DAYS = 14"
+    )
+    writeFileSync(constantsPath, adaptedConstants)
+
+    const output = execFileSync(
+      "node",
+      [path.join(kitRoot, "install-ai-governance.mjs"), "--upgrade", targetRoot],
+      { encoding: "utf8" }
+    )
+
+    assert.match(output, /upgraded in/)
+    assert.match(output, /Post-upgrade review/)
+    assert.match(
+      readFileSync(enginePath, "utf8"),
+      /Glob matching for blast-radius/,
+      "stale engine file is refreshed to the kit version"
+    )
+    const backups = readdirSync(path.join(targetRoot, "scripts")).filter((file) =>
+      file.startsWith("governance-glob.mjs.bak.")
+    )
+    assert.equal(backups.length, 1, "the overwritten engine file leaves a backup")
+    assert.equal(
+      readFileSync(agentsPath, "utf8"),
+      "# Adapted by the repo\n",
+      "seed files are never overwritten by --upgrade"
+    )
+    assert.match(
+      readFileSync(constantsPath, "utf8"),
+      /STALE_REVIEW_DAYS = 14/,
+      "governance-constants.mjs (repo tuning) is never overwritten by --upgrade"
+    )
   } finally {
     rmSync(targetRoot, { recursive: true, force: true })
   }

@@ -10,6 +10,8 @@
 // With --record, a failing run is still recorded (all_passed: false) before
 // exiting non-zero — the ledger keeps honest history, including red runs.
 
+import { appendFileSync } from "node:fs"
+
 import { executeGates, isManualInspectionGate, gitInfo } from "./governance-commands.mjs"
 import {
   readLedger,
@@ -89,6 +91,8 @@ if (record) {
   }
 }
 
+writeStepSummary(results, failed)
+
 if (failed) {
   console.error(`Gate failed: ${failed.command}`)
   if (failed.error) console.error(failed.error)
@@ -96,3 +100,35 @@ if (failed) {
 }
 
 console.log(`\nGovernance gate runner passed: ${results.length} gate(s).`)
+
+function writeStepSummary(gateResults, failure) {
+  const summaryFile = process.env.GITHUB_STEP_SUMMARY
+  if (!summaryFile) return
+
+  const lines = [
+    "## Governance gates",
+    "",
+    failure ? `**FAILED** at ${mdCell(failure.command)}` : "**PASSED**",
+    "",
+    "| Gate | Exit | Duration |",
+    "| --- | --- | --- |",
+    ...gateResults.map(
+      (result) =>
+        `| ${mdCell(result.command)} | ${result.exit_code ?? "spawn-error"} | ${result.duration_ms}ms |`
+    ),
+    "",
+  ]
+
+  try {
+    appendFileSync(summaryFile, `${lines.join("\n")}\n`)
+  } catch {
+    // Best-effort only.
+  }
+}
+
+function mdCell(value) {
+  return String(value)
+    .replace(/\|/g, "\\|")
+    .replace(/`/g, "'")
+    .replace(/\r?\n/g, " ")
+}

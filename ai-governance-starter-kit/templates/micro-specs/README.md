@@ -12,9 +12,15 @@ implement, which files they may touch, and which gates prove the work.
 - `micro-specs/GLOBAL_CONTEXT.md` — reusable, repo-specific constraints.
 - `AGENTS.md` — agent entrypoint and working rules.
 - `scripts/check-governance.mjs` — validates metadata, risk gates, blast
-  radius, docs drift, and gate-command shape.
+  radius, docs drift, evidence ledgers, and gate-command shape.
 - `scripts/run-governance-gates.mjs` — runs the verification gates declared by
-  active Micro-Specs.
+  active Micro-Specs (`--spec <id>` for one spec, `--record` to write ledgers).
+- `scripts/new-spec.mjs` — scaffolds a floor-satisfying draft Micro-Spec
+  (`governance:new-spec`).
+- `scripts/advance-spec.mjs` — the only sanctioned way to change a spec's
+  status (`governance:advance`).
+- `scripts/governance-evidence.mjs` — the evidence-ledger module
+  (`show <spec-id>` / `backfill --by <who>`).
 
 ## Source-of-Truth Hierarchy
 
@@ -91,12 +97,16 @@ implementation inputs.
 
 ## Lifecycle Transition Policy
 
-| From          | To            | Required evidence                                                                                     |
-| ------------- | ------------- | ----------------------------------------------------------------------------------------------------- |
-| `draft`       | `active`      | Complete metadata, testable acceptance criteria, risk class, blast radius, gates, evidence needs.     |
-| `active`      | `implemented` | Requirements mapped to checks, Red → Green → Refactor evidence where applicable, in-scope files only. |
-| `implemented` | `verified`    | Passing gates, review notes, and manual QA evidence when the changed surface is user-visible.         |
-| `active`      | `superseded`  | Supersession link or rationale.                                                                        |
+Status lines are rewritten by `governance:advance`, never by hand — once
+evidence enforcement is on, a hand-flipped implemented/verified status has no
+recorded transition and fails the checker.
+
+| From          | To            | Machine enforcement (`governance:advance <spec-id> --to <status>`)                                              |
+| ------------- | ------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `draft`       | `active`      | Six numbered sections present; full metadata + risk-floor validation of the activated spec (reverts on failure). |
+| `active`      | `implemented` | Clean tree (or `--allow-dirty --note` + waiver); branch diff inside this spec's radius; fresh all-pass gate run recorded. |
+| `implemented` | `verified`    | Everything above, plus `--attest` per declared `manual:*` gate and `--ack` per `evidence_required` item (exact text). |
+| `active`/`implemented`/`verified` | `superseded` | `--superseded-by <spec-id>` (must exist) XOR `--reason "<text>"`; inserts `superseded_by:`.        |
 
 ## Risk Gate Matrix
 
@@ -161,8 +171,38 @@ Micro-Spec before implementation.
   gates when declared.
 - CI artifacts: reports, traces, and screenshots on failure when browser gates
   are declared.
-- Spec status-transition notes stay inside the Micro-Spec.
-- No tracked screenshot or evidence folders unless explicitly requested.
+- Machine-readable gate-run ledgers under `micro-specs/evidence/` ARE tracked
+  (see below). Binary evidence — screenshots, traces, recordings — is never
+  committed unless explicitly requested.
+
+## Evidence Ledger
+
+One JSON file per spec at `micro-specs/evidence/<spec_id>.json` records gate
+`runs` (newest last, capped history), lifecycle `transitions`, and
+`manual_attestations`. Written by `governance:run-gates --record` and
+`governance:advance`; committed alongside the code they prove.
+
+Once `EVIDENCE_ADOPTION_DATE` is set in `scripts/governance-constants.mjs`
+(fresh installs stamp the install date), the checker enforces for every
+implemented/verified spec:
+
+- the ledger exists, parses, and matches the spec_id;
+- the status was reached by a recorded transition (provenance — hand-edited
+  status lines fail);
+- the LATEST run covers every currently declared runnable gate with exit 0,
+  compared by exact command string — editing `verification_gates` invalidates
+  old evidence and forces a re-proof;
+- `all_passed` agrees with the recorded exit codes (hand-doctored flags fail);
+- the latest transition was not recorded on a dirty tree, unless the spec
+  carries a dated `evidence-waiver` approved exception;
+- verified specs carry an attestation per `manual:*` gate and an
+  acknowledgement per `evidence_required` item.
+
+A red run recorded on an implemented spec correctly fails the checker — that
+is a regression being reported, not a bookkeeping error; fix the code and
+re-record rather than deleting history. Pre-adoption specs may carry a
+grandfather stub (`governance-evidence.mjs backfill`), valid only until the
+spec's first machine transition. Orphan ledgers (no matching spec) fail.
 
 ## Working Rule
 

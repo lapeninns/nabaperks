@@ -7,8 +7,9 @@ disable-model-invocation: false
 
 # AI Governance Starter Kit
 
-Install a portable, CI-enforced governance spine that makes AI-assisted delivery
-safe, auditable, and repeatable in any repository.
+Install a portable, CI-enforced **AI software factory**: spec intake → TDD →
+gates → machine-readable evidence → machine-enforced lifecycle → CI audit
+trail, in any repository, with zero dependencies.
 
 ## What it installs
 
@@ -17,14 +18,42 @@ safe, auditable, and repeatable in any repository.
   Micro-Specs (EARS) and implement them (Red → Green → Refactor).
 - `micro-specs/` — governance index, risk-gate matrix, `GLOBAL_CONTEXT.md`, and a
   starter **active** Micro-Spec.
-- `scripts/` — the enforcement engine (`check-governance.mjs`,
-  `run-governance-gates.mjs`, and the `governance-*.mjs` modules).
-- A `governance` CI workflow (added only when CI does not already run it).
+- `scripts/` — the enforcement engine (strict frontmatter parser, engine-fixed
+  glob dialect, `check-governance.mjs`, `run-governance-gates.mjs`) plus the
+  factory stations: `new-spec.mjs` (intake), `advance-spec.mjs` (lifecycle),
+  `governance-evidence.mjs` (tracked gate-run ledgers).
+- A `governance` CI workflow (added only when CI does not already run it),
+  with step-summary audit output on every run.
 
-The engine enforces, per pull request: Micro-Spec metadata, a risk-class gate
-floor (high-risk work must declare durable non-browser-only proof),
-**blast-radius** (changed files must fall inside an active spec's allowlist),
-and docs-drift between CI and the README gate list.
+The engine enforces, per pull request: strict Micro-Spec metadata (parse
+failures carry file:line), a risk-class gate floor (high-risk work must
+declare durable non-browser-only proof), **blast-radius** (changed files must
+fall inside an active spec's allowlist, with per-spec attribution),
+bidirectional docs-drift between CI and the README gate list, exception
+expiry, active-spec review freshness, and — once adopted — the **evidence
+ledger**: implemented/verified statuses must be reached by a recorded
+`governance:advance` transition whose latest gate run covers the declared
+gates. Hand-flipped statuses and doctored ledgers fail.
+
+## Factory loop (after install)
+
+```sh
+<pkg> governance:new-spec --id MS-<area>-<slug> --risk <class> --title "..."
+<pkg> governance:advance MS-<area>-<slug> --to active
+# implement test-first per Instructions_tdd.md, then:
+<pkg> governance:run-gates --spec MS-<area>-<slug> --record   # proof as you go
+<pkg> governance:advance MS-<area>-<slug> --to implemented    # fresh gates + ledger
+<pkg> governance:advance MS-<area>-<slug> --to verified --attest "..." --ack "..."
+```
+
+## Upgrading an existing install
+
+Re-run the installer with `--upgrade`: engine-owned files (scripts, the two
+instruction guides, the kit workflow) are refreshed in place with `.bak`
+backups; seed files the repo adapts (`AGENTS.md`, `GLOBAL_CONTEXT.md`, the
+governance README, specs, and `governance-constants.mjs` — the per-repo
+tuning point) are never overwritten. The report prints the installed vs
+shipped `KIT_VERSION` and a post-upgrade review list.
 
 ## This skill is self-contained
 
@@ -55,7 +84,8 @@ find "$HOME/.claude/skills" "$PWD/.factory/skills" -name install-ai-governance.m
 2. **Preview.** Run the installer with `--preview` and read the plan (writes,
    skips, missing scripts, CI wiring, blockers). Resolve blockers first.
 3. **Install.** Run without `--preview`. It copies templates, merges
-   `governance:check` / `governance:run-gates` / `test:micro-specs` scripts
+   `governance:check` / `governance:run-gates` / `governance:new-spec` /
+   `governance:advance` / `test:micro-specs` scripts
    (preserving any the repo already defines), and adds a governance workflow
    when CI is not already wired. Use `--force` only after checking `git status`;
    it backs up overwritten files.

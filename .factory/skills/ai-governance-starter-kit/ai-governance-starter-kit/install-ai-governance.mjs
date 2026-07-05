@@ -11,16 +11,29 @@ import {
   detectPackageManager,
   floorGatesFor,
 } from "./templates/scripts/governance-commands.mjs"
+import { ENGINE_FILES, KIT_VERSION } from "./templates/scripts/governance-version.mjs"
 
 const kitRoot = dirname(fileURLToPath(import.meta.url))
 const templatesRoot = join(kitRoot, "templates")
 const args = process.argv.slice(2)
 const targetRoot = args.find((arg) => !arg.startsWith("--")) ?? process.cwd()
 const force = args.includes("--force")
+const upgrade = args.includes("--upgrade")
 const preview = args.includes("--preview") || args.includes("--dry-run")
 const now = new Date().toISOString().replace(/[:.]/g, "-")
 
-const plan = buildInstallPlan(targetRoot, { force })
+// Files the kit OWNS: safe to overwrite on --upgrade (with backups). Seed
+// files a repo adapts (AGENTS.md, GLOBAL_CONTEXT.md, the governance README,
+// specs, and governance-constants.mjs — the per-repo tuning point) are never
+// overwritten by an upgrade.
+const ENGINE_OWNED_PATHS = new Set([
+  ...ENGINE_FILES.map((file) => `scripts/${file}`),
+  "Instructions_MicroSpecsCreation.md",
+  "Instructions_tdd.md",
+  ".github/workflows/ai-governance.yml",
+])
+
+const plan = buildInstallPlan(targetRoot, { force, upgrade })
 printReport(plan, { preview })
 
 if (plan.blockers.length > 0) {
@@ -37,6 +50,7 @@ function buildInstallPlan(root, options = {}) {
   const actions = []
   const warnings = []
   const ciStatus = detectCiStatus(root)
+  const installedVersion = detectInstalledVersion(root)
 
   if (!existsSync(root)) {
     blockers.push(`Target directory does not exist: ${root}`)
@@ -46,9 +60,19 @@ function buildInstallPlan(root, options = {}) {
     warnings.push("No package.json found. Governance files can be copied, but package scripts cannot be merged.")
   }
 
+  if (options.upgrade && !installedVersion) {
+    warnings.push("--upgrade requested but no installed kit was detected; running as a fresh install.")
+  }
+  if (installedVersion && !options.upgrade && installedVersion !== KIT_VERSION) {
+    warnings.push(
+      `Installed kit version ${installedVersion} differs from this kit (${KIT_VERSION}); re-run with --upgrade to refresh engine-owned files.`
+    )
+  }
+
   planTemplateActions(templatesRoot, root, context, actions, {
     ciStatus,
     force: options.force,
+    upgrade: options.upgrade,
   })
 
   if (packageResult.ok && packageResult.exists) {
@@ -61,9 +85,18 @@ function buildInstallPlan(root, options = {}) {
     ciStatus,
     context,
     force: options.force,
+    upgrade: options.upgrade,
+    installedVersion,
     root,
     warnings,
   }
+}
+
+function detectInstalledVersion(root) {
+  const versionFile = join(root, "scripts/governance-version.mjs")
+  if (!existsSync(versionFile)) return null
+  const match = readFileSync(versionFile, "utf8").match(/KIT_VERSION\s*=\s*["']([^"']+)["']/)
+  return match ? match[1] : "unknown"
 }
 
 function applyInstallPlan(plan) {
@@ -81,8 +114,15 @@ function applyInstallPlan(plan) {
     }
   }
 
-  console.log(`\nAI Governance Starter Kit installed in ${plan.root}`)
+  console.log(`\nAI Governance Starter Kit ${plan.upgrade ? "upgraded" : "installed"} in ${plan.root}`)
   for (const file of writes) console.log(`- ${file}`)
+
+  if (plan.upgrade) {
+    console.log("\nPost-upgrade review (never overwritten automatically):")
+    console.log("- scripts/governance-constants.mjs — diff against the template for new keys; the constants-contract test enforces key parity")
+    console.log("- micro-specs/README.md — reconcile the risk-gate matrix and gate list with the template")
+    console.log("- AGENTS.md / micro-specs/GLOBAL_CONTEXT.md — adopt any new working rules that matter to this repo")
+  }
 }
 
 function buildContext(root, packageJson = {}) {
@@ -166,7 +206,12 @@ function planTemplateActions(fromDir, toDir, replacements, actions, options) {
       continue
     }
 
-    if (existsSync(destination) && !options.force) {
+    // --upgrade refreshes kit-owned files in place (with backups) while
+    // leaving every seed file — including governance-constants.mjs, the
+    // per-repo tuning point — untouched.
+    const upgradeOwned = options.upgrade && ENGINE_OWNED_PATHS.has(relativePath)
+
+    if (existsSync(destination) && !options.force && !upgradeOwned) {
       actions.push({
         kind: "skip",
         path: destination,
@@ -176,8 +221,18 @@ function planTemplateActions(fromDir, toDir, replacements, actions, options) {
       continue
     }
 
+    if (upgradeOwned && existsSync(destination) && readFileSync(destination, "utf8") === text) {
+      actions.push({
+        kind: "noop",
+        path: destination,
+        reason: "already at kit version",
+        relativePath,
+      })
+      continue
+    }
+
     actions.push({
-      backup: existsSync(destination) && options.force,
+      backup: existsSync(destination) && (options.force || upgradeOwned),
       content: text,
       kind: "write",
       path: destination,
@@ -345,6 +400,7 @@ function listFiles(dir, base = dir) {
 function printReport(plan, options) {
   const mode = options.preview ? "preview" : "install"
   console.log(`AI Governance Starter Kit ${mode} for ${plan.root}`)
+  console.log(`Kit version: ${KIT_VERSION}${plan.installedVersion ? ` (installed: ${plan.installedVersion})` : ""}`)
   console.log(`Package manager: ${plan.context.packageManager}`)
   console.log(`Stack profile: ${plan.context.stack.profile}`)
   console.log(`Stack markers: ${plan.context.stack.summary}`)
