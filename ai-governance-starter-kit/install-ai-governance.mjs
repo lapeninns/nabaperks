@@ -122,6 +122,7 @@ function applyInstallPlan(plan) {
     console.log("- scripts/governance-constants.mjs — diff against the template for new keys; the constants-contract test enforces key parity")
     console.log("- micro-specs/README.md — reconcile the risk-gate matrix and gate list with the template")
     console.log("- AGENTS.md / micro-specs/GLOBAL_CONTEXT.md — adopt any new working rules that matter to this repo")
+    console.log("- *.bak.<timestamp> backups — review the overwritten files, then delete the backups (the blast-radius check will flag them until you do)")
   }
 }
 

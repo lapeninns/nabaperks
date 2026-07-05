@@ -119,8 +119,11 @@ export function floorGatesFor(riskClass, packageScripts, packageManager) {
 
 // Execute runnable gates sequentially with shell:false, fail-fast. Returns
 // one result per gate that actually ran — including the failing one — so the
-// evidence ledger can record honest history.
-export function executeGates(root, gates) {
+// evidence ledger can record honest history. options.envForGate(parsed, gate)
+// may supply a per-gate environment (the lifecycle CLI uses it to scope
+// GOVERNANCE_CHANGED_FILES to the governance:check gate only — leaking it
+// into test gates would pollute any hermetic sandbox those tests spawn).
+export function executeGates(root, gates, options = {}) {
   const results = []
 
   for (const gate of gates) {
@@ -133,7 +136,7 @@ export function executeGates(root, gates) {
     const started = Date.now()
     const child = spawnSync(parsed.manager, packageArgs(parsed), {
       cwd: root,
-      env: process.env,
+      env: options.envForGate ? options.envForGate(parsed, gate) : process.env,
       stdio: "inherit",
       shell: false,
     })
