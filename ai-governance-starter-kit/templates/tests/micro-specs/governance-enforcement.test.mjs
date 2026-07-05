@@ -1,16 +1,25 @@
 import assert from "node:assert/strict"
-import { existsSync } from "node:fs"
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
 import path from "node:path"
 import { test } from "node:test"
 import { fileURLToPath } from "node:url"
 
+import { matchesPattern } from "../../scripts/governance-glob.mjs"
 import { parseFrontmatter } from "../../scripts/governance-io.mjs"
-import { isManualInspectionGate, parsePackageScriptGate, validateGovernance } from "../../scripts/governance-rules.mjs"
+import {
+  isManualInspectionGate,
+  parsePackageScriptGate,
+  validateGovernance,
+} from "../../scripts/governance-rules.mjs"
 
 const projectRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../.."
 )
+
+// A stable "today" so freshness/expiry tests are deterministic.
+const NOW = new Date("2026-07-05T12:00:00Z")
 
 test("Given governance is installed When required files are checked Then the spine exists", () => {
   for (const file of [
@@ -20,26 +29,116 @@ test("Given governance is installed When required files are checked Then the spi
     "micro-specs/README.md",
     "micro-specs/GLOBAL_CONTEXT.md",
     "scripts/check-governance.mjs",
+    "scripts/governance-commands.mjs",
+    "scripts/governance-frontmatter.mjs",
+    "scripts/governance-glob.mjs",
     "scripts/run-governance-gates.mjs",
   ]) {
     assert.equal(existsSync(path.join(projectRoot, file)), true, `${file} exists`)
   }
 })
 
-test("Given Micro-Spec metadata When frontmatter is parsed Then list fields stay lists", () => {
-  const metadata = parseFrontmatter(`---
+test("Given supported frontmatter When parsed Then lists, flow lists, and quotes survive", () => {
+  const parsed = parseFrontmatter(`---
 spec_id: MS-example
 status: active
-risk_class: docs-tooling
+# a comment line
 allowed_blast_radius:
   - scripts/**
+  - "quoted path/with spaces"
 required_playwright_projects: []
+tags: [a, b, "c d"]
+title: "Quoted: scalar"
 ---
 # Example
 `)
 
-  assert.deepEqual(metadata.allowed_blast_radius, ["scripts/**"])
-  assert.deepEqual(metadata.required_playwright_projects, [])
+  assert.deepEqual(parsed.errors, [])
+  assert.deepEqual(parsed.metadata.allowed_blast_radius, ["scripts/**", "quoted path/with spaces"])
+  assert.deepEqual(parsed.metadata.required_playwright_projects, [])
+  assert.deepEqual(parsed.metadata.tags, ["a", "b", "c d"])
+  assert.equal(parsed.metadata.title, "Quoted: scalar")
+})
+
+test("Given out-of-subset frontmatter When parsed Then each construct fails with its line", () => {
+  const cases = [
+    {
+      source: "---\nspec_id: MS-x\nevidence_required:\n  - a wrapped entry that\n    continues on the next line\n---\n",
+      line: 5,
+      message: /continuation lines are not supported/,
+    },
+    {
+      source: "---\nitems:\n  - key: value\n---\n",
+      line: 3,
+      message: /nested maps are not supported/,
+    },
+    {
+      source: "---\nnotes: |\n  block\n---\n",
+      line: 2,
+      message: /block scalars are not supported/,
+    },
+    {
+      source: "---\nspec_id: MS-x\nspec_id: MS-y\n---\n",
+      line: 3,
+      message: /duplicate metadata key/,
+    },
+    {
+      source: "---\nitems:\n\t- tabbed\n---\n",
+      line: 3,
+      message: /tab indentation/,
+    },
+    {
+      source: "---\nspec_id: MS-x\n  - stray item\n---\n",
+      line: 3,
+      message: /list item has no open list key/,
+    },
+    {
+      source: "---\ntags: [a, b\n---\n",
+      line: 2,
+      message: /unterminated flow list/,
+    },
+    {
+      source: "---\nconfig: { a: 1 }\n---\n",
+      line: 2,
+      message: /flow maps are not supported/,
+    },
+  ]
+
+  for (const { source, line, message } of cases) {
+    const parsed = parseFrontmatter(source)
+    assert.ok(parsed.errors.length > 0, `expected errors for: ${source}`)
+    const hit = parsed.errors.find((error) => message.test(error.message))
+    assert.ok(hit, `expected ${message} in ${JSON.stringify(parsed.errors)}`)
+    assert.equal(hit.line, line, `expected line ${line} for ${message}`)
+  }
+})
+
+test("Given glob patterns When matched Then the engine dialect holds", () => {
+  const table = [
+    ["src/**/*.ts", "src/a.ts", true],
+    ["src/**/*.ts", "src/x/y/z.ts", true],
+    ["src/**/*.ts", "src/a.tsx", false],
+    ["scripts/**", "scripts/check.mjs", true],
+    ["scripts/**", "scripts-other/x", false],
+    ["p/**", "p", true],
+    ["p/**", "p/a/b", true],
+    ["a/*.ts", "a/b.ts", true],
+    ["a/*.ts", "a/b/c.ts", false],
+    ["a?c", "abc", true],
+    ["a?c", "a/c", false],
+    ["docs", "docs", true],
+    ["docs", "docs/guide.md", true],
+    ["docs", "docsy", false],
+    ["app/(auth)/**", "app/(auth)/signup/page.tsx", true],
+  ]
+
+  for (const [pattern, file, expected] of table) {
+    assert.equal(
+      matchesPattern(file, pattern),
+      expected,
+      `matchesPattern(${file}, ${pattern}) should be ${expected}`
+    )
+  }
 })
 
 test("Given a package-script gate When parsed Then manager and script are recovered", () => {
@@ -49,7 +148,10 @@ test("Given a package-script gate When parsed Then manager and script are recove
     args: undefined,
   })
   assert.equal(parsePackageScriptGate("npm run build").scriptName, "build")
+  assert.equal(parsePackageScriptGate("yarn run lint").manager, "yarn")
+  assert.equal(parsePackageScriptGate("bun typecheck").manager, "bun")
   assert.equal(parsePackageScriptGate("rm -rf /"), null)
+  assert.equal(parsePackageScriptGate("node scripts/x.mjs"), null)
 })
 
 test("Given a manual gate token When checked Then it is recognised", () => {
@@ -66,16 +168,15 @@ test("Given the current repo When governance is validated Then metadata passes",
   assert.deepEqual(result.failures, [])
 })
 
-test("Given a changed file outside blast radius When validated Then enforcement fails", () => {
+test("Given a changed file outside blast radius When validated Then enforcement fails with attribution", () => {
   const result = validateGovernance(projectRoot, {
     changedFiles: ["src/definitely/not/governed/secret.txt"],
   })
 
   assert.equal(result.ok, false)
-  assert.ok(
-    result.failures.some((failure) => failure.includes("allowed_blast_radius")),
-    "expected a blast-radius failure"
-  )
+  const failure = result.failures.find((entry) => entry.includes("allowed_blast_radius"))
+  assert.ok(failure, "expected a blast-radius failure")
+  assert.match(failure, /consulted: MS-/, "failure names the active specs consulted")
 })
 
 test("Given a changed file inside blast radius When validated Then blast radius passes", () => {
@@ -88,4 +189,319 @@ test("Given a changed file inside blast radius When validated Then blast radius 
     0,
     "expected no blast-radius failure for an in-scope file"
   )
+})
+
+// ---------------------------------------------------------------------------
+// Fixture-based enforcement tests: each writes a tiny throwaway repo and runs
+// the real validator against it.
+// ---------------------------------------------------------------------------
+
+const DEFAULT_SCRIPTS = {
+  "governance:check": "node scripts/check-governance.mjs",
+  test: "node --test tests/micro-specs/*.test.mjs",
+  lint: "node --version",
+  typecheck: "node --version",
+}
+
+function makeFixture(t, { scripts = DEFAULT_SCRIPTS, specs = {}, extraFiles = {} } = {}) {
+  const root = mkdtempSync(path.join(tmpdir(), "governance-fixture-"))
+  t.after(() => rmSync(root, { recursive: true, force: true }))
+
+  writeFileSync(
+    path.join(root, "package.json"),
+    `${JSON.stringify({ name: "fixture", type: "module", scripts }, null, 2)}\n`
+  )
+  mkdirSync(path.join(root, "micro-specs"), { recursive: true })
+  for (const [name, source] of Object.entries(specs)) {
+    const file = path.join(root, "micro-specs", name)
+    mkdirSync(path.dirname(file), { recursive: true })
+    writeFileSync(file, source)
+  }
+  for (const [name, source] of Object.entries(extraFiles)) {
+    const file = path.join(root, name)
+    mkdirSync(path.dirname(file), { recursive: true })
+    writeFileSync(file, source)
+  }
+  return root
+}
+
+function specSource(overrides = {}) {
+  const metadata = {
+    spec_id: "MS-fixture-example",
+    status: "active",
+    risk_class: "docs-tooling",
+    owner: "fixture",
+    last_reviewed: "2026-07-01",
+    allowed_blast_radius: ["lib/**"],
+    implementation_surfaces: ["lib/x.ts"],
+    related_tests: ["not-yet-created"],
+    verification_gates: ["pnpm governance:check", "pnpm test", "pnpm lint", "pnpm typecheck"],
+    required_playwright_projects: [],
+    evidence_required: ["readback"],
+    approved_exceptions: [],
+    ...overrides,
+  }
+
+  const lines = ["---"]
+  for (const [key, value] of Object.entries(metadata)) {
+    if (Array.isArray(value)) {
+      if (value.length === 0) {
+        lines.push(`${key}: []`)
+      } else {
+        lines.push(`${key}:`)
+        for (const item of value) lines.push(`  - ${item}`)
+      }
+    } else {
+      lines.push(`${key}: ${value}`)
+    }
+  }
+  lines.push("---", "", "# Fixture spec", "")
+  return lines.join("\n")
+}
+
+function run(root, options = {}) {
+  return validateGovernance(root, {
+    enforceChangedFiles: false,
+    now: NOW,
+    ...options,
+  })
+}
+
+test("Given a well-formed fixture repo When validated Then it passes", (t) => {
+  const root = makeFixture(t, { specs: { "example.md": specSource() } })
+  assert.deepEqual(run(root).failures, [])
+})
+
+test("Given approved_exceptions entries When malformed or expired Then validation fails", (t) => {
+  const root = makeFixture(t, {
+    specs: {
+      "no-expiry.md": specSource({
+        spec_id: "MS-fixture-no-expiry",
+        approved_exceptions: ["waiting on harness"],
+      }),
+      "expired.md": specSource({
+        spec_id: "MS-fixture-expired",
+        approved_exceptions: ["waiting on harness (expires: 2026-01-01)"],
+      }),
+      "current.md": specSource({
+        spec_id: "MS-fixture-current",
+        approved_exceptions: ["waiting on harness (expires: 2026-12-31)"],
+      }),
+    },
+  })
+
+  const { failures } = run(root)
+  assert.ok(failures.some((f) => f.includes("no-expiry.md") && f.includes('must end with "(expires: YYYY-MM-DD)"')))
+  assert.ok(failures.some((f) => f.includes("expired.md") && f.includes("expired on 2026-01-01")))
+  assert.equal(failures.filter((f) => f.includes("current.md")).length, 0)
+})
+
+test("Given an active spec When last_reviewed is stale Then validation fails; implemented is exempt", (t) => {
+  const root = makeFixture(t, {
+    specs: {
+      "stale-active.md": specSource({
+        spec_id: "MS-fixture-stale-active",
+        last_reviewed: "2025-01-01",
+      }),
+      "old-implemented.md": specSource({
+        spec_id: "MS-fixture-old-implemented",
+        status: "implemented",
+        last_reviewed: "2025-01-01",
+      }),
+    },
+  })
+
+  const { failures } = run(root)
+  assert.ok(failures.some((f) => f.includes("MS-fixture-stale-active") && f.includes("last_reviewed is")))
+  assert.equal(failures.filter((f) => f.includes("MS-fixture-old-implemented")).length, 0)
+})
+
+test("Given related_tests entries When missing, glob, or sentinel Then only real paths pass", (t) => {
+  const root = makeFixture(t, {
+    specs: {
+      "missing-test.md": specSource({
+        spec_id: "MS-fixture-missing-test",
+        related_tests: ["tests/unit/does-not-exist.test.mjs"],
+      }),
+      "glob-test.md": specSource({
+        spec_id: "MS-fixture-glob-test",
+        related_tests: ["tests/unit/*.test.mjs"],
+      }),
+      "draft-missing.md": specSource({
+        spec_id: "MS-fixture-draft-missing",
+        status: "draft",
+        related_tests: ["tests/unit/does-not-exist.test.mjs"],
+      }),
+      "real-test.md": specSource({
+        spec_id: "MS-fixture-real-test",
+        related_tests: ["tests/unit/real.test.mjs"],
+      }),
+    },
+    extraFiles: { "tests/unit/real.test.mjs": "// present\n" },
+  })
+
+  const { failures } = run(root)
+  assert.ok(failures.some((f) => f.includes("MS-fixture-missing-test".replace("MS-fixture-", "missing-test")) || f.includes("missing-test.md")))
+  assert.ok(failures.some((f) => f.includes("glob-test.md") && f.includes("is a glob")))
+  assert.equal(failures.filter((f) => f.includes("draft-missing.md")).length, 0)
+  assert.equal(failures.filter((f) => f.includes("real-test.md")).length, 0)
+})
+
+test("Given implementation surfaces outside the spec's own radius Then validation fails", (t) => {
+  const root = makeFixture(t, {
+    specs: {
+      "escaping.md": specSource({
+        spec_id: "MS-fixture-escaping",
+        allowed_blast_radius: ["lib/**"],
+        implementation_surfaces: ["lib/x.ts", "supabase/migrations/001.sql"],
+      }),
+    },
+  })
+
+  const { failures } = run(root)
+  assert.ok(
+    failures.some((f) => f.includes('surface "supabase/migrations/001.sql" is outside'))
+  )
+})
+
+test("Given a radius pattern with whitespace Then validation fails", (t) => {
+  const root = makeFixture(t, {
+    specs: {
+      "junk.md": specSource({
+        spec_id: "MS-fixture-junk",
+        allowed_blast_radius: ["scripts/** (tooling only)"],
+      }),
+    },
+  })
+
+  const { failures } = run(root)
+  assert.ok(failures.some((f) => f.includes("contains whitespace")))
+})
+
+test("Given CI and README gate lists When they drift Then both directions fail", (t) => {
+  const readme = [
+    "# Governance",
+    "",
+    "## Current Verification Gates",
+    "",
+    "- pnpm governance:check",
+    "- pnpm test",
+    "- pnpm lint",
+    "",
+  ].join("\n")
+  const workflow = [
+    "name: CI",
+    "jobs:",
+    "  build:",
+    "    steps:",
+    "      - run: pnpm install",
+    "      - run: |",
+    "          pnpm governance:check",
+    "          pnpm typecheck",
+    "      - run: pnpm test",
+    "",
+  ].join("\n")
+
+  const root = makeFixture(t, {
+    specs: { "example.md": specSource() },
+    extraFiles: {
+      "micro-specs/README.md": readme,
+      ".github/workflows/ci.yml": workflow,
+    },
+  })
+
+  const { failures } = run(root)
+  // CI runs typecheck (inside the run:| block) but the README omits it.
+  assert.ok(failures.some((f) => f.includes('omits CI command "pnpm typecheck"')))
+  // The README lists lint but CI never runs it.
+  assert.ok(failures.some((f) => f.includes('lists "pnpm lint" but no CI workflow runs it')))
+  // Setup commands are filtered symmetrically and never counted.
+  assert.equal(failures.filter((f) => f.includes("pnpm install")).length, 0)
+})
+
+test("Given a declared Playwright project When the config does not define it Then validation fails", (t) => {
+  const root = makeFixture(t, {
+    specs: {
+      "browser.md": specSource({
+        spec_id: "MS-fixture-browser",
+        required_playwright_projects: ["chromium", "made-up-project"],
+      }),
+    },
+    extraFiles: {
+      "playwright.config.ts": 'export default { projects: [{ name: "chromium" }] }\n',
+    },
+  })
+
+  const { failures } = run(root)
+  assert.ok(failures.some((f) => f.includes('unknown Playwright project "made-up-project"')))
+  assert.equal(failures.filter((f) => f.includes('"chromium"')).length, 0)
+})
+
+test("Given a billing spec without durable proof When the repo has test:db Then validation fails", (t) => {
+  const root = makeFixture(t, {
+    scripts: { ...DEFAULT_SCRIPTS, build: "node --version", "test:db": "node --version" },
+    specs: {
+      "billing.md": specSource({
+        spec_id: "MS-fixture-billing",
+        risk_class: "billing",
+        verification_gates: [
+          "pnpm governance:check",
+          "pnpm test",
+          "pnpm lint",
+          "pnpm typecheck",
+          "pnpm build",
+        ],
+      }),
+    },
+  })
+
+  const { failures } = run(root)
+  assert.ok(failures.some((f) => f.includes("durable-proof gate")))
+})
+
+test("Given gates with shell metacharacters When validated Then they are rejected", (t) => {
+  const root = makeFixture(t, {
+    specs: {
+      "unsafe.md": specSource({
+        spec_id: "MS-fixture-unsafe",
+        verification_gates: [
+          "pnpm governance:check",
+          "pnpm test",
+          "pnpm lint",
+          "pnpm typecheck",
+          "pnpm test -- --grep x; rm -rf /",
+        ],
+      }),
+    },
+  })
+
+  const { failures } = run(root)
+  assert.ok(failures.some((f) => f.includes("unknown or unsafe gate")))
+})
+
+test("Given a spec with broken frontmatter When validated Then parse errors surface once", (t) => {
+  const root = makeFixture(t, {
+    specs: {
+      "broken.md": [
+        "---",
+        "spec_id: MS-fixture-broken",
+        "status: active",
+        "evidence_required:",
+        "  - a wrapped entry that",
+        "    continues on the next line",
+        "---",
+        "# Broken",
+        "",
+      ].join("\n"),
+      "example.md": specSource(),
+    },
+  })
+
+  const { failures } = run(root)
+  assert.ok(
+    failures.some((f) => f.includes("broken.md:6") && f.includes("continuation lines")),
+    `expected file:line parse failure, got ${JSON.stringify(failures)}`
+  )
+  // Parse failures suppress cascading metadata noise for that spec.
+  assert.equal(failures.filter((f) => f.includes("broken.md is missing metadata field")).length, 0)
 })

@@ -54,6 +54,28 @@ evidence_required:
 approved_exceptions: []
 ```
 
+### Strict Metadata Enforcement
+
+The checker parses frontmatter with a strict YAML subset and refuses to
+guess. Supported: `key: scalar` (optionally quoted), `key:` + dash list,
+`key: []`, inline flow lists `[a, b]`, comments, and blank lines. Anything
+else — wrapped/continuation lines, nested maps, block scalars, tabs,
+duplicate keys — fails with a file:line error. Keep every entry on one line.
+
+Additional enforced rules:
+
+- `allowed_blast_radius` / `implementation_surfaces` patterns must be bare
+  paths or globs (`**` crosses segments, `*` stays within one, `?` is one
+  character) with no whitespace.
+- Every `implementation_surfaces` entry must fall inside the spec's own
+  `allowed_blast_radius`.
+- `related_tests` entries must be literal existing paths (or the
+  `not-yet-created` sentinel); `draft` specs are exempt.
+- `approved_exceptions` entries must end with `(expires: YYYY-MM-DD)` and
+  fail once expired — exceptions are temporary by construction.
+- An `active` spec whose `last_reviewed` is older than the configured
+  staleness window fails until it is re-reviewed and the date bumped.
+
 ## Lifecycle Status Vocabulary
 
 - `draft`: intent can be refined, but implementation must not start.

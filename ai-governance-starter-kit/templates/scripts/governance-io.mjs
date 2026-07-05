@@ -2,6 +2,15 @@ import { execFileSync } from "node:child_process"
 import { existsSync, readFileSync, readdirSync } from "node:fs"
 import { join, relative } from "node:path"
 
+import { isGateCommandCandidate } from "./governance-commands.mjs"
+import {
+  CI_WORKFLOW_FILES,
+  README_GATES_SECTION_TITLE,
+} from "./governance-constants.mjs"
+import { parseFrontmatter } from "./governance-frontmatter.mjs"
+
+export { parseFrontmatter }
+
 export function readPackageJson(root, failures = []) {
   try {
     return JSON.parse(readFileSync(join(root, "package.json"), "utf8"))
@@ -15,20 +24,74 @@ export function readPackageScripts(root, failures = []) {
   return readPackageJson(root, failures).scripts ?? {}
 }
 
+// Collect gate-candidate commands from CI workflows. Handles single-line
+// `run: <cmd>` steps and `run: |` / `run: >` block scalars (each block line is
+// considered separately). Which workflow files are scanned is controlled by
+// CI_WORKFLOW_FILES; the symmetric isGateCommandCandidate filter decides what
+// counts as a gate command.
 export function readCiCommands(root) {
   const workflowDir = join(root, ".github/workflows")
   if (!existsSync(workflowDir)) return []
-  return listFiles(workflowDir)
+
+  const files = listFiles(workflowDir)
     .filter((file) => /\.(ya?ml)$/.test(file))
-    .flatMap((file) => {
-      const source = readFileSync(join(workflowDir, file), "utf8")
-      return [...source.matchAll(/run:\s*([^\n]+)/g)].map((match) => match[1].trim())
-    })
-    .filter((command) =>
-      /\b(governance:check|governance:run-gates|test|test:[a-z:-]+|build|lint|typecheck|bundle:check)\b/.test(
-        command
-      )
-    )
+    .filter((file) => CI_WORKFLOW_FILES === null || CI_WORKFLOW_FILES.includes(file))
+
+  const commands = []
+  for (const file of files) {
+    const lines = readFileSync(join(workflowDir, file), "utf8").split(/\r?\n/)
+    for (let i = 0; i < lines.length; i += 1) {
+      const step = lines[i].match(/^(\s*)(?:-\s+)?run:\s*(.*)$/)
+      if (!step) continue
+
+      const indent = step[1].length
+      const value = step[2].trim()
+      if (/^[|>]/.test(value)) {
+        // Block scalar: consume the more-indented lines that follow.
+        for (let j = i + 1; j < lines.length; j += 1) {
+          const blockLine = lines[j]
+          if (blockLine.trim() === "") continue
+          const blockIndent = blockLine.match(/^\s*/)[0].length
+          if (blockIndent <= indent) break
+          commands.push(blockLine.trim())
+          i = j
+        }
+      } else if (value !== "") {
+        commands.push(value)
+      }
+    }
+  }
+
+  return unique(commands.filter(isGateCommandCandidate))
+}
+
+// Collect gate-candidate commands from the README's gate section. Accepts
+// dash items (`- cmd`, `- \`cmd\``) and fenced-code-block lines, then applies
+// the SAME filter as readCiCommands so the two sides compare like for like.
+export function readReadmeGateCommands(root) {
+  const readmePath = join(root, "micro-specs/README.md")
+  if (!existsSync(readmePath)) return null
+
+  const section = namedSection(readFileSync(readmePath, "utf8"), README_GATES_SECTION_TITLE)
+  if (!section) return null
+
+  const commands = []
+  let inFence = false
+  for (const rawLine of section.split(/\r?\n/)) {
+    const line = rawLine.trim()
+    if (line.startsWith("```")) {
+      inFence = !inFence
+      continue
+    }
+    if (inFence) {
+      if (line !== "") commands.push(line)
+      continue
+    }
+    const item = line.match(/^-\s+(.+)$/)
+    if (item) commands.push(item[1].trim().replace(/^`(.+)`$/, "$1"))
+  }
+
+  return unique(commands.filter(isGateCommandCandidate))
 }
 
 export function readPlaywrightProjectNames(root) {
@@ -48,12 +111,15 @@ export function readSpecs(root, failures) {
     .filter((file) => !["README.md", "GLOBAL_CONTEXT.md"].includes(file))
     .map((file) => {
       const source = readFileSync(join(dir, file), "utf8")
-      const metadata = parseFrontmatter(source)
-      if (!metadata) {
+      const parsed = parseFrontmatter(source)
+      if (!parsed) {
         failures.push(`${specPath(file)} is missing YAML frontmatter metadata.`)
-        return { file, source, metadata: {} }
+        return { file, source, metadata: {}, parseErrors: [] }
       }
-      return { file, source, metadata }
+      for (const error of parsed.errors) {
+        failures.push(`${specPath(file)}:${error.line}: ${error.message}`)
+      }
+      return { file, source, metadata: parsed.metadata, parseErrors: parsed.errors }
     })
 }
 
@@ -91,26 +157,6 @@ export function findChangedFiles(root, env) {
   return untracked
 }
 
-export function parseFrontmatter(source) {
-  const match = source.match(/^---\n([\s\S]*?)\n---\n/)
-  if (!match) return null
-  const metadata = {}
-  let currentKey = ""
-  for (const rawLine of match[1].split(/\r?\n/)) {
-    if (!rawLine.trim()) continue
-    const item = rawLine.match(/^\s+-\s*(.+?)\s*$/)
-    if (item && currentKey) {
-      metadata[currentKey].push(stripQuotes(item[1]))
-      continue
-    }
-    const pair = rawLine.match(/^([A-Za-z0-9_]+):\s*(.*?)\s*$/)
-    if (!pair) continue
-    currentKey = pair[1]
-    metadata[currentKey] = pair[2] === "" ? [] : parseScalar(pair[2])
-  }
-  return metadata
-}
-
 export function namedSection(source, title) {
   const start = source.indexOf(`## ${title}`)
   if (start === -1) return ""
@@ -144,19 +190,8 @@ function gitFiles(root, args) {
   }
 }
 
-function parseScalar(value) {
-  if (value === "[]") return []
-  return stripQuotes(value)
-}
-
-function stripQuotes(value) {
-  if (
-    (value.startsWith('"') && value.endsWith('"')) ||
-    (value.startsWith("'") && value.endsWith("'"))
-  ) {
-    return value.slice(1, -1)
-  }
-  return value
+function unique(values) {
+  return [...new Set(values)]
 }
 
 function errorMessage(error) {

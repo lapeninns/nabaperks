@@ -16,6 +16,13 @@ allowed_blast_radius:
   - scripts/governance-constants.mjs
   - scripts/governance-io.mjs
   - scripts/governance-rules.mjs
+  - scripts/governance-frontmatter.mjs
+  - scripts/governance-glob.mjs
+  - scripts/governance-commands.mjs
+  - scripts/governance-evidence.mjs
+  - scripts/governance-version.mjs
+  - scripts/new-spec.mjs
+  - scripts/advance-spec.mjs
   - scripts/run-governance-gates.mjs
   - tests/micro-specs/**
 implementation_surfaces:
@@ -29,6 +36,13 @@ implementation_surfaces:
   - scripts/governance-constants.mjs
   - scripts/governance-io.mjs
   - scripts/governance-rules.mjs
+  - scripts/governance-frontmatter.mjs
+  - scripts/governance-glob.mjs
+  - scripts/governance-commands.mjs
+  - scripts/governance-evidence.mjs
+  - scripts/governance-version.mjs
+  - scripts/new-spec.mjs
+  - scripts/advance-spec.mjs
   - scripts/run-governance-gates.mjs
   - tests/micro-specs/governance-enforcement.test.mjs
 related_tests:

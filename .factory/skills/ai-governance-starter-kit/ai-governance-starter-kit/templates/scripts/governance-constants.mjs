@@ -126,10 +126,56 @@ export const SCRIPT_ALIASES = Object.freeze({
 })
 
 // Manual inspection gates are recorded for auditability but never executed by
-// the gate runner. Any `manual:<kebab>` token is treated as manual.
+// the gate runner. Any token matching one of these patterns (or the literal
+// list) is treated as manual. Forks append repo-specific patterns here.
 export const KNOWN_MANUAL_INSPECTION_GATES = Object.freeze([
   "manual:review",
   "manual:security-review",
 ])
 
-export const MANUAL_INSPECTION_GATE_PATTERN = /^manual:[a-z][a-z0-9-]*$/
+export const KNOWN_MANUAL_INSPECTION_GATE_PATTERNS = Object.freeze([
+  /^manual:[a-z][a-z0-9-]*$/,
+])
+
+// --- Enforcement tuning -----------------------------------------------------
+
+// ACTIVE specs older than this many days (by last_reviewed) fail the checker;
+// reviewing a spec is what earns the date bump. null disables the check.
+export const STALE_REVIEW_DAYS = 90
+
+// When true, every approved_exceptions entry must carry an inline expiry in
+// the engine-fixed format "<reason> (expires: YYYY-MM-DD)" and expired
+// entries fail the checker. The format is single-line on purpose so it stays
+// inside the strict frontmatter subset.
+export const REQUIRE_EXCEPTION_EXPIRY = true
+
+// Which workflow files feed the docs-drift comparison. null scans every
+// *.yml/*.yaml under .github/workflows; a list pins specific file names.
+export const CI_WORKFLOW_FILES = null
+
+// Optional extra filter applied (symmetrically) to CI and README gate lines
+// during docs-drift comparison. null means only the engine's built-in filter
+// (parseable package-script command, not a NON_GATE script) applies.
+export const CI_COMMAND_INCLUDE_PATTERN = null
+
+// Script names that never count as verification gates even though they parse
+// as package-script commands (setup/lifecycle scripts).
+export const NON_GATE_SCRIPT_NAMES = Object.freeze(["install", "start", "dev"])
+
+// The README section (## heading) that must stay in sync with CI.
+export const README_GATES_SECTION_TITLE = "Current Verification Gates"
+
+// related_tests entries must be literal, existing paths — except this
+// sentinel, and except specs whose status is listed as exempt.
+export const RELATED_TESTS_SENTINEL = "not-yet-created"
+export const RELATED_TESTS_EXEMPT_STATUSES = Object.freeze(["draft"])
+
+// --- Evidence ledger (factory stations) -------------------------------------
+
+// Tracked, machine-readable gate-run ledgers live here (one JSON per spec).
+export const EVIDENCE_DIR = "micro-specs/evidence"
+
+// The rollout switch for ledger enforcement: implemented/verified specs are
+// required to carry valid evidence only when this is a YYYY-MM-DD date.
+// null disables all ledger validation (pre-adoption).
+export const EVIDENCE_ADOPTION_DATE = null
