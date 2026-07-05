@@ -11,7 +11,7 @@ import {
   merchantEmailOtpAliasDigitLabel,
   merchantEmailOtpAliasLength,
 } from "@/lib/auth/merchant-email-otp-alias"
-import { GUARANTEE, PRODUCT, ROUTES } from "@/lib/marketing/facts"
+import { GUARANTEE, PRODUCT, PROMO, ROUTES } from "@/lib/marketing/facts"
 import { OG_IMAGE } from "@/lib/seo/structured-data"
 import { cn } from "@/lib/utils"
 
@@ -44,11 +44,14 @@ export const metadata: Metadata = {
 }
 
 const otpCodeLabel = merchantEmailOtpAliasDigitLabel()
+// Body-only trust points — the promo perk joins when the seasonal promo is
+// live (never enters the pinned meta description, which sits at budget).
 const trustPoints = [
   "No app for your customers to download",
   "Customers stamp themselves from your venue QR",
   PRODUCT.cancelLine,
   GUARANTEE.line,
+  ...(PROMO.enabled ? [PROMO.perk] : []),
 ]
 
 type SignUpPageProps = {

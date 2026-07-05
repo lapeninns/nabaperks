@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-marketing-offer-v2",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-05T20:02:10.735Z",
+      "sha": "603156f70cd3cb3766de9f2599dc01252a794cd9",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}

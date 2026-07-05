@@ -18,7 +18,7 @@ import {
 import { buildQrMatrix } from "@/components/marketing/landing/qr-matrix"
 import { JsonLd } from "@/components/seo/json-ld"
 import { Button } from "@/components/ui/button"
-import { ROUTES } from "@/lib/marketing/facts"
+import { ROUTES, SETUP } from "@/lib/marketing/facts"
 import {
   OG_IMAGE,
   SITE_URL,
@@ -115,6 +115,9 @@ export default function HowItWorksPage() {
           The whole mechanism on one page: how customers scan, save and stamp,
           the five checks behind every counter-verified stamp, and how it
           compares to paper cards, loyalty apps and wallet passes.
+        </p>
+        <p className="mx-auto mt-3 max-w-[52ch] text-sm leading-6 text-pretty font-semibold">
+          {SETUP.steps} {SETUP.line}
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           <Button asChild size="lg">

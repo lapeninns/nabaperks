@@ -3,6 +3,7 @@ import Link from "next/link"
 import { MonoTag } from "@/components/brand"
 import { Section } from "@/components/layout"
 import { Button } from "@/components/ui/button"
+import { PROMO, SETUP } from "@/lib/marketing/facts"
 
 import { HeroSampleCard } from "./hero-sample-card"
 import { NABAPERKS_AUTHORITY_LINE } from "./nabaperks-proof-data"
@@ -27,6 +28,11 @@ export function LandingHero({ qrMatrix }: { qrMatrix: QrMatrix }) {
         <MonoTag tone="accent" className="max-sm:order-1">
           No-app QR loyalty · UK food &amp; drink
         </MonoTag>
+        {PROMO.enabled && (
+          <MonoTag tone="plain" className="max-sm:order-1">
+            {PROMO.name} — ends {PROMO.deadlineLabel}
+          </MonoTag>
+        )}
         <h1 className="mt-3 max-w-[18ch] text-[clamp(1.85rem,6.4vw,4.25rem)] leading-[1.0] font-extrabold tracking-[-0.02em] text-balance max-sm:order-2 sm:mt-5">
           The loyalty card that just opens.
         </h1>
@@ -49,6 +55,9 @@ export function LandingHero({ qrMatrix }: { qrMatrix: QrMatrix }) {
             with <strong className="font-semibold text-foreground">no app and no
             Apple or Google Wallet pass to install</strong>. Every stamp is
             verified at your counter.
+          </p>
+          <p className="mt-4 max-w-[44ch] text-base leading-relaxed font-semibold text-foreground">
+            {SETUP.line}
           </p>
           <p className="mono-meta mt-4 max-w-[46ch] font-normal leading-relaxed text-muted-foreground">
             {NABAPERKS_AUTHORITY_LINE}

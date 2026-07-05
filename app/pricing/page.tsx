@@ -12,10 +12,13 @@ import { Button } from "@/components/ui/button"
 import {
   CTA,
   GUARANTEE,
+  OFFER,
   OFFER_STACK,
   PLAN_INCLUDES,
   PRODUCT,
+  PROMO,
   ROUTES,
+  SETUP,
 } from "@/lib/marketing/facts"
 import {
   ORG_ID,
@@ -150,6 +153,18 @@ export default function PricingPage() {
           <PricingCheckoutAlert />
         </Suspense>
 
+        {PROMO.enabled && (
+          <div className="mt-6 rounded-lg border-2 border-dashed border-border p-5">
+            <Eyebrow className="mb-2 text-reward">{PROMO.name}</Eyebrow>
+            <p className="text-[0.95rem] leading-snug font-extrabold text-balance">
+              {PROMO.perk}
+            </p>
+            <p className="mono-meta mt-2 text-muted-foreground">
+              {PROMO.claim}
+            </p>
+          </div>
+        )}
+
         <div className="mt-6 grid gap-6 sm:gap-8 lg:grid-cols-[minmax(0,0.52fr)_minmax(0,0.48fr)] lg:items-start">
           <ReceiptCard
             edge
@@ -232,6 +247,9 @@ export default function PricingPage() {
               <p className="text-[clamp(1.25rem,2.5vw,1.5rem)] leading-snug font-extrabold text-balance">
                 {GUARANTEE.line}
               </p>
+              <p className="text-sm leading-6 text-pretty font-semibold">
+                {OFFER.riskFraming}
+              </p>
               <p className="text-sm leading-6 text-pretty text-muted-foreground">
                 {GUARANTEE.applies} {GUARANTEE.claim}
               </p>
@@ -247,12 +265,28 @@ export default function PricingPage() {
           </div>
         </div>
 
+        <div className="mt-10 grid gap-2">
+          <Eyebrow>How fast you&apos;re live</Eyebrow>
+          <h2 className="text-[clamp(1.5rem,3vw,2rem)] font-extrabold text-balance">
+            {SETUP.line}
+          </h2>
+          <p className="text-base leading-7 text-pretty text-muted-foreground">
+            {SETUP.steps} {SETUP.noFriction}
+          </p>
+          <p className="text-sm leading-6 text-pretty font-semibold">
+            {SETUP.earlyWin}
+          </p>
+        </div>
+
         <div className="mt-10">
           <div className="mb-5 grid gap-2">
             <Eyebrow>Included with every venue</Eyebrow>
             <h2 className="text-[clamp(1.5rem,3vw,2rem)] font-extrabold text-balance">
-              The launch kit, thrown in.
+              {OFFER.name}
             </h2>
+            <p className="text-base leading-7 text-pretty text-muted-foreground">
+              Everything below is in the £29 — the launch kit, thrown in.
+            </p>
           </div>
           <ul className="grid gap-4 sm:grid-cols-2">
             {OFFER_STACK.map((bonus) => (
@@ -260,12 +294,20 @@ export default function PricingPage() {
                 key={bonus.name}
                 className="rounded-lg border-2 border-dashed border-border p-5"
               >
-                <p className="text-[0.95rem] leading-snug font-extrabold">
+                <p className="mono-meta text-muted-foreground">
+                  {bonus.obstacle}
+                </p>
+                <p className="mt-1 text-[0.95rem] leading-snug font-extrabold">
                   {bonus.name}
                 </p>
                 <p className="mt-1.5 text-sm leading-6 text-pretty text-muted-foreground">
                   {bonus.detail}
                 </p>
+                {bonus.anchor && (
+                  <p className="mt-2 text-sm leading-6 text-pretty font-semibold">
+                    {bonus.anchor}
+                  </p>
+                )}
               </li>
             ))}
           </ul>

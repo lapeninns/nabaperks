@@ -1,0 +1,139 @@
+import assert from "node:assert/strict"
+import { readFileSync } from "node:fs"
+import path from "node:path"
+import { test } from "node:test"
+import { fileURLToPath } from "node:url"
+
+const projectRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../.."
+)
+
+function readProjectFile(...segments) {
+  return readFileSync(path.join(projectRoot, ...segments), "utf8")
+}
+
+test("OV2-1 Given the offer name When facts + pricing are inspected Then OFFER.name is the single-source wrapper and the hero product headline is untouched", () => {
+  const facts = readProjectFile("lib", "marketing", "facts.ts")
+  const pricing = readProjectFile("app", "pricing", "page.tsx")
+  const hero = readProjectFile(
+    "components",
+    "marketing",
+    "landing",
+    "hero.tsx"
+  )
+
+  assert.match(facts, /export const OFFER = \{/)
+  assert.match(facts, /name: "The 30-Day First-Regular Launch"/)
+  assert.match(pricing, /OFFER\.name/)
+  // The name is the offer wrapper — the product headline stays as-is.
+  assert.match(hero, /The loyalty card that just opens\./)
+  assert.doesNotMatch(hero, /The 30-Day First-Regular Launch/)
+})
+
+test("OV2-2 Given the speed lever When SETUP renders Then the four-step same-afternoon copy is single-sourced and shown on pricing", () => {
+  const facts = readProjectFile("lib", "marketing", "facts.ts")
+  const pricing = readProjectFile("app", "pricing", "page.tsx")
+
+  assert.match(facts, /export const SETUP = \{/)
+  assert.match(facts, /line: "Live on your counter the same afternoon\."/)
+  assert.match(
+    facts,
+    /Four guided steps — add your venue, build the card, confirm your pre-filled rewards, and print your QR\./
+  )
+  assert.match(
+    facts,
+    /noFriction: "No app to build, no POS to connect, nothing to install\."/
+  )
+  assert.match(
+    facts,
+    /Your first member can stamp the moment the poster hits the counter\./
+  )
+  assert.match(pricing, /SETUP\./)
+})
+
+test("OV2-3 Given the bonus stack When enriched Then each item carries an obstacle, anchors are justified external comparisons, and privacy stays mechanism-only", () => {
+  const facts = readProjectFile("lib", "marketing", "facts.ts")
+  const pricing = readProjectFile("app", "pricing", "page.tsx")
+
+  // Every item gained an obstacle; the poster + automation items carry
+  // real, justified external anchors.
+  assert.match(facts, /obstacle:/)
+  assert.match(facts, /you'd pay a freelance designer £150\+ to make/)
+  assert.match(facts, /you'd otherwise chase by hand every week/)
+  // Pricing renders the obstacle and the anchor.
+  assert.match(pricing, /bonus\.obstacle/)
+  assert.match(pricing, /bonus\.anchor/)
+  // No invented reference/RRP price or unbundling theatre anywhere.
+  assert.doesNotMatch(
+    [facts, pricing].join("\n"),
+    /sold separately|normally sold|worth £|\bRRP\b|was £/i
+  )
+  // Privacy item still sells mechanisms, never a price or compliance claim.
+  assert.match(facts, /consent-led marketing kept separate/i)
+})
+
+test("OV2-4 Given the guarantee When surfaced under the offer Then the best/worst framing is single-sourced and pricing never forks the promise literal", () => {
+  const facts = readProjectFile("lib", "marketing", "facts.ts")
+  const pricing = readProjectFile("app", "pricing", "page.tsx")
+
+  assert.match(facts, /riskFraming:/)
+  assert.match(
+    facts,
+    /Best case, your regulars come back and the £29 pays for itself\. Worst case, you pay nothing more until one does\./
+  )
+  assert.match(pricing, /OFFER\.riskFraming/)
+  assert.match(pricing, /GUARANTEE\.line/)
+  // Best/worst copy is not forked as a literal on the page.
+  assert.doesNotMatch(pricing, /Best case, your regulars come back/)
+})
+
+test("OV2-5 Given the rolling seasonal promo When enabled Then it is single-sourced and rendered on pricing, signup and the hero via PROMO", () => {
+  const facts = readProjectFile("lib", "marketing", "facts.ts")
+  const pricing = readProjectFile("app", "pricing", "page.tsx")
+  const signup = readProjectFile("app", "(auth)", "signup", "page.tsx")
+  const hero = readProjectFile(
+    "components",
+    "marketing",
+    "landing",
+    "hero.tsx"
+  )
+
+  assert.match(facts, /export const PROMO = \{/)
+  assert.match(facts, /enabled: true/)
+  assert.match(facts, /name: "Summer First-Regular promo"/)
+  assert.match(facts, /endDateISO: "2026-08-31"/)
+  assert.match(facts, /deadlineLabel: "31 August 2026"/)
+  // The perk names the same human date as endDateISO (drift guard).
+  assert.match(
+    facts,
+    /Go live by 31 August 2026 and we print and post your first counter-poster run — free\./
+  )
+  // Rendered from the constant on all three surfaces, gated on enabled.
+  assert.match(pricing, /PROMO\.enabled/)
+  assert.match(signup, /PROMO\.enabled/)
+  assert.match(hero, /PROMO\.enabled/)
+})
+
+test("OV2-6 Given promo honesty When terms + surfaces are checked Then /terms records the promo and no acquisition surface forks the promo perk off-constant", () => {
+  const facts = readProjectFile("lib", "marketing", "facts.ts")
+  const legal = readProjectFile("lib", "legal", "content.ts")
+  const pricing = readProjectFile("app", "pricing", "page.tsx")
+  const signup = readProjectFile("app", "(auth)", "signup", "page.tsx")
+  const hero = readProjectFile(
+    "components",
+    "marketing",
+    "landing",
+    "hero.tsx"
+  )
+
+  // Terms carry a durable plain-English promo record.
+  assert.match(legal, /id: "summer-first-regular-promo"/)
+  // The staleness helper exists so a lapsed promo trips CI rather than lingering.
+  assert.match(facts, /export function isPromoStale\(/)
+  // The perk is only ever the PROMO constant on acquisition surfaces.
+  assert.doesNotMatch(
+    [pricing, signup, hero].join("\n"),
+    /print and post your first counter-poster run/
+  )
+})
