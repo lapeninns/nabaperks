@@ -5,12 +5,12 @@ import {
   type GuideComparisonRow,
 } from "@/components/marketing/guides/comparison-table"
 import { GuidePage, GuideSection } from "@/components/marketing/guides/guide-page"
-import { ROUTES } from "@/lib/marketing/facts"
+import { PROOF, PROOF_DISPLAY, ROUTES } from "@/lib/marketing/facts"
 import { OG_IMAGE } from "@/lib/seo/structured-data"
 
 const title = "Paper Loyalty Cards vs QR Loyalty for Pubs"
 const description =
-  "Paper punch cards or a browser-based QR loyalty card for your pub? A side-by-side on loss, gaming, staff time, the till and the data you get back — so you can pick the right card for your bar."
+  "Paper punch cards or a browser-based QR loyalty card for your pub? A side-by-side on loss, faking, staff time, the till and the data you get back."
 
 export const metadata: Metadata = {
   title,
@@ -114,6 +114,11 @@ export default function PaperVsQrLoyaltyForPubsPage() {
           nothing; a QR card gives you a weekly digest of visits, regulars and
           redemptions — the quiet signal of who is coming back, which a punch card
           could never show.
+        </p>
+        <p>
+          It shows up in the numbers: in the {PROOF.indexName} ({PROOF.asOf}{" "}
+          snapshot), {PROOF_DISPLAY.repeatRate} of {PROOF_DISPLAY.members} loyalty
+          members returned.
         </p>
       </GuideSection>
     </GuidePage>

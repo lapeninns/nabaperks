@@ -11,7 +11,7 @@ import { VenueProof } from "./venue-proof"
 
 /**
  * LandingProof — the merged proof section: setup stat band (always visible)
- * plus the three proof bodies (live numbers, case study, operator voice) as
+ * plus the three proof bodies (live numbers, case study, pub voices) as
  * chip-switched panels below `lg` and a stacked sequence from `lg`.
  *
  * `entrance={false}` deliberately: at desktop this section spans several
@@ -49,7 +49,7 @@ export function LandingProof() {
 
   panels.push({
     id: "venue-proof",
-    label: "What venues say",
+    label: "What pubs say",
     content: (
       <WetInkRise as="div" inView distance={12}>
         <VenueProof />

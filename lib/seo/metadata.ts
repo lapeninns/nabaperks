@@ -21,4 +21,8 @@ export const PRIVATE_ROUTE_PREFIXES = [
   "/start",
   "/m/",
   "/merchant/",
+  // The interactive demo card is an app-like surface, not indexable content —
+  // disallow it rather than leave it a crawlable-but-unlisted grey zone
+  // (2026-07-05 GEO audit). Reverse + add to PUBLIC_SITE_ROUTES to index it.
+  "/demo",
 ] as const

@@ -83,13 +83,13 @@ land in the same change so no marketing link 404s at any commit.
 - Three new server-rendered, statically prerenderable pages:
   `app/loyalty-for-cafes/page.tsx`, `app/loyalty-for-takeaways/page.tsx`,
   `app/loyalty-for-bars/page.tsx`, composed from EXISTING landing components
-  (`CounterFlow`, `NabaperksProof`, `ComparisonTable`, `RegularsCalculator`,
-  `FinalCta`) plus per-persona hero and fit sections.
+  CounterFlow, NabaperksProof, a cross-link to `/how-it-works`, and FinalCta.
+  `RegularsCalculator` lives on the pub hub only; the three persona spokes
+  link to it from the mechanism wedge.
 - `lib/marketing/facts.ts`: `ROUTES.cafeHub/takeawayHub/barHub` +
   three `PUBLIC_SITE_ROUTES` rows (priority 0.9, monthly).
 - `components/marketing/landing/persona-data.ts`: spoke hrefs move to
-  `ROUTES.*` references; `live: true` on cafes/takeaways/bars
-  (`SHOW_PERSONA_SPOKES` stays untouched as a vestigial fallback).
+  `ROUTES.*` references; `live: true` on cafes/takeaways/bars.
 - Route registries: `public/llms.txt`, CSP `STATIC_MARKETING_EXACT_PATHS`,
   banned-claims `SCAN` roots, per-spoke `check-jsonld` blocks, and the
   visual/a11y-sweep/route-metadata e2e rosters.
@@ -129,8 +129,7 @@ land in the same change so no marketing link 404s at any commit.
   `/loyalty-for-cafes`, `/loyalty-for-takeaways`, `/loyalty-for-bars`,
   mirroring the pub hub, per the SEO playbook audit P0 prescription.
 - Sitemap priority 0.9 / monthly, matching the pub hub.
-- Persona cards go live via per-persona `live: true`, not the
-  `SHOW_PERSONA_SPOKES` flag flip.
+- Persona cards go live via per-persona `live: true`.
 - Proof on spokes is the Counter-Loyalty Index (vertical-agnostic); no
   operator estate claims outside pubs.
 
@@ -141,8 +140,15 @@ land in the same change so no marketing link 404s at any commit.
   persona hero (h1 naming the vertical, hook-derived supporting copy, a
   benefits card built from `PRODUCT.*` facts, `Start free pilot` →
   `/signup`, `View pricing` → `/pricing`), a persona fit section,
-  CounterFlow, NabaperksProof, ComparisonTable, RegularsCalculator, a
-  cross-link to `/how-it-works`, and FinalCta.
+  CounterFlow, NabaperksProof, a cross-link to `/how-it-works`, and FinalCta.
+  *(Partially superseded 2026-07-05 by MS-marketing-audit-v2-fixes: the
+  spokes no longer mount ComparisonTable — a single merged mechanism-wedge
+  band with a venue-true clause links `/how-it-works#no-app` instead, and it
+  also replaces the separate cross-link Section. RegularsCalculator was moved
+  to the pub hub only in the follow-up trim; spokes link
+  `/loyalty-for-pubs#regulars-calculator` from the wedge. The rest of PS-1 and
+  PS-2…PS-7 remain binding; the route-distinct HowTo id rule is extended to
+  the pub hub by AV-1.)*
 - **PS-2 (honest copy):** THE spoke copy SHALL use only approved facts and
   the vertical vocabulary permitted above; `pnpm claims:check` SHALL pass
   with `app/loyalty-for-cafes`, `app/loyalty-for-takeaways` and

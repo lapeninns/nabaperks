@@ -1,10 +1,11 @@
 import { Tick02Icon } from "@hugeicons/core-free-icons"
 
 import { Icon } from "@/components/brand"
+import { PRODUCT } from "@/lib/marketing/facts"
 import { cn } from "@/lib/utils"
 
 const defaultPoints = [
-  "Card required — cancel anytime",
+  PRODUCT.cancelChip,
   "30-day pilot, then £29/mo",
   "No contract, month to month",
 ] as const

@@ -181,11 +181,21 @@ test("Given landing venue proof uses real venues When copy is editorial Then pro
     "landing",
     "venue-proof-reviews.tsx"
   )
+  const data = readProjectFile(
+    "components",
+    "marketing",
+    "landing",
+    "venue-proof-data.ts"
+  )
 
-  assert.match(proof, /paraphrased operator/)
-  assert.match(proof, /rather than verbatim testimonials/)
-  assert.match(reviews, /Operator voice/)
-  assert.match(reviews, /Paraphrased operator voice/)
+  assert.match(proof, /independent pub/)
+  assert.match(proof, /day-to-day service/)
+  assert.match(reviews, /Independent pub/)
+  assert.match(reviews, /venueProofSignoff/)
+  assert.match(data, /Paraphrased pub team feedback/)
+  assert.doesNotMatch(data, /attribution:\s*"/)
   assert.doesNotMatch(reviews, /In their words/)
   assert.doesNotMatch(proof, /Real words from/)
+  assert.doesNotMatch(data, /Paraphrased operator voice/)
+  assert.doesNotMatch(data, /Operator voice/)
 })

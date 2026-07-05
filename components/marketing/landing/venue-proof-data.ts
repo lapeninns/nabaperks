@@ -1,68 +1,97 @@
+export type VenueProofSignoff = "paraphrased" | "neutral" | "venue"
+
 export type VenueProofEntry = {
   name: string
   postcode: string
   review: string
   /**
-   * Optional real credit the named operator has approved (e.g. "Mark, landlord").
-   * Leave undefined to render the neutral "From the venue team" signoff — never
-   * invent a name; only set this to a credit the venue has actually confirmed.
+   * Optional real credit the venue team has approved (e.g. "Mark, landlord").
+   * Leave undefined to render a neutral signoff — never invent a name; only set
+   * this to a credit the venue has actually confirmed.
    */
   attribution?: string
+  /**
+   * Fallback signoff when `attribution` is empty. Use `neutral` or `venue` only
+   * when the pub has asked for a no-name label.
+   */
+  signoff?: VenueProofSignoff
 }
 
-/** Lapen Inns venue network — operator quotes for the landing proof ribbon. */
+/** Neutral signoff when no approved name+role credit exists. */
+export function venueProofSignoff(entry: VenueProofEntry): string {
+  if (entry.attribution) return entry.attribution
+  switch (entry.signoff) {
+    case "neutral":
+      return "Pub team feedback"
+    case "venue":
+      return "Venue team feedback"
+    default:
+      return "Paraphrased pub team feedback"
+  }
+}
+
+/** Nine independent pubs across England — neutral team feedback for proof. */
 export const venueProofPool: readonly VenueProofEntry[] = [
   {
     name: "The Prince of Wales",
     postcode: "MK43 8PE",
+    signoff: "neutral",
     review:
       "Regulars save it with their pint in hand — no app, no fuss. We're seeing the same faces come back more often, which is the whole point of it.",
   },
   {
     name: "Old School House",
     postcode: "MK11 1JA",
+    signoff: "neutral",
     review:
       "We got through boxes of paper cards that always ended up in the wash. This one lives on the customer's phone, so nobody loses their stamps.",
   },
   {
     name: "Barley Mow",
     postcode: "PE29 1XU",
+    signoff: "neutral",
     review:
       "What sold me is that the stamps can't be faked — they're checked against our QR, so a full card actually means something.",
   },
   {
     name: "The Queen Elizabeth",
     postcode: "PE30 4EL",
+    signoff: "neutral",
     review:
       "It suits a food-led pub rather than feeling like some generic system bolted on. We had it running in an afternoon.",
   },
   {
     name: "The Railway",
     postcode: "PE7 1UF",
+    signoff: "neutral",
     review:
       "Quick enough for a Friday rush — they scan, they're stamped, on to the next order. It's never once held the bar up.",
   },
   {
     name: "The Bell",
     postcode: "PE28 5UY",
+    signoff: "neutral",
     review:
       "One code on the bar covers the tables and the takeaway hatch too. Far simpler than I expected for the money.",
   },
   {
     name: "Old Crown",
     postcode: "CB3 0QD",
+    signoff: "neutral",
     review:
       "The weekly note on who's coming back is something a paper card could never tell us. It's quietly changed how we look after our regulars.",
   },
   {
     name: "The Corner House",
     postcode: "CB5 8JE",
+    signoff: "neutral",
     review:
       "There's nothing to download, so customers get it straight away. Even the ones who can't stand apps are happy to save it.",
   },
   {
     name: "White Horse",
     postcode: "CB25 9HP",
+    signoff: "neutral",
     review:
       "It keeps the phone in the customer's hand and doesn't pester them with messages. People round here trust that.",
   },

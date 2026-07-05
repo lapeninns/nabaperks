@@ -1,5 +1,7 @@
 import { MonoTag } from "@/components/brand"
 import { Section } from "@/components/layout"
+import { PRODUCT } from "@/lib/marketing/facts"
+import { cn } from "@/lib/utils"
 
 export type Faq = { q: string; a: string }
 
@@ -28,11 +30,11 @@ export const faqs: readonly Faq[] = [
   },
   {
     q: "How much does it cost, and am I tied into a contract?",
-    a: "A 30-day free pilot, then £29/month per venue, with no contract. Card required — cancel anytime.",
+    a: `A 30-day free pilot, then £29/month per venue, with no contract. ${PRODUCT.cancelLine}`,
   },
   {
     q: "Can I try it before I pay?",
-    a: "Yes. You can preview the QR flow during the 30-day pilot. Card required — cancel anytime.",
+    a: `Yes. You can preview the QR flow during the 30-day pilot. ${PRODUCT.cancelLine}`,
   },
   {
     q: "Will it spam my customers, and is their data safe?",
@@ -45,9 +47,46 @@ export const faqs: readonly Faq[] = [
 ]
 
 /**
- * FAQ — the honest answers, as native `<details>` so the accordion needs no
- * client JavaScript and stays keyboard- and screen-reader-friendly. Each panel
- * is its own receipt card with a vermillion +/– marker that flips on open.
+ * The one FAQ face — native `<details>` receipt cards with the vermillion +/–
+ * marker, shared by every marketing accordion (landing, /how-it-works,
+ * /pricing) so the site keeps a single FAQ treatment. No client JavaScript;
+ * keyboard- and screen-reader-friendly.
+ */
+export function FaqDetailsList({
+  items,
+  className,
+}: {
+  items: readonly Faq[]
+  className?: string
+}) {
+  return (
+    <div className={cn("grid gap-x-8 gap-y-3", className)}>
+      {items.map((faq) => (
+        <details
+          key={faq.q}
+          className="group rounded-[var(--radius)] border-2 border-ink bg-card shadow-sm [&_summary::-webkit-details-marker]:hidden"
+        >
+          <summary className="pressable flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 text-[1.05rem] leading-snug font-extrabold outline-none focus-visible:ring-3 focus-visible:ring-ring/35 sm:px-5 sm:py-4">
+            <span>{faq.q}</span>
+            <span
+              aria-hidden="true"
+              className="shrink-0 font-mono text-2xl leading-none text-primary"
+            >
+              <span className="group-open:hidden">+</span>
+              <span className="hidden group-open:inline">–</span>
+            </span>
+          </summary>
+          <p className="max-w-[62ch] px-5 pb-4 text-sm leading-relaxed text-muted-foreground">
+            {faq.a}
+          </p>
+        </details>
+      ))}
+    </div>
+  )
+}
+
+/**
+ * FAQ — the honest answers, rendered with the shared FAQ face.
  *
  * `limit` renders only the first N questions (the conversion spine shows 4;
  * /how-it-works keeps the full set). Callers slicing the FAQPage schema must
@@ -64,28 +103,7 @@ export function LandingFaq({ limit }: { limit?: number } = {}) {
         </h2>
       </div>
 
-      <div className="mt-6 grid gap-x-8 gap-y-3 lg:grid-cols-2">
-        {shown.map((faq) => (
-          <details
-            key={faq.q}
-            className="group rounded-[var(--radius)] border-2 border-ink bg-card shadow-sm [&_summary::-webkit-details-marker]:hidden"
-          >
-            <summary className="pressable flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 text-[1.05rem] leading-snug font-extrabold outline-none focus-visible:ring-3 focus-visible:ring-ring/35 sm:px-5 sm:py-4">
-              <span>{faq.q}</span>
-              <span
-                aria-hidden="true"
-                className="shrink-0 font-mono text-2xl leading-none text-primary"
-              >
-                <span className="group-open:hidden">+</span>
-                <span className="hidden group-open:inline">–</span>
-              </span>
-            </summary>
-            <p className="max-w-[62ch] px-5 pb-4 text-sm leading-relaxed text-muted-foreground">
-              {faq.a}
-            </p>
-          </details>
-        ))}
-      </div>
+      <FaqDetailsList items={shown} className="mt-6 lg:grid-cols-2" />
     </Section>
   )
 }

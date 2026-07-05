@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils"
 import {
   DEFAULT_VENUE_PROOF_INDICES,
   shuffleVenueProofIndices,
+  venueProofSignoff,
   type VenueProofEntry,
   venuesForIndices,
 } from "./venue-proof-data"
@@ -121,7 +122,7 @@ const VenueReviewReceipt = forwardRef<
       >
         <div className="rounded-t-[var(--radius)] border-2 border-b-0 border-ink bg-card px-4 pt-3.5 pb-3">
           <figcaption>
-            <p className="eyebrow text-primary">Operator voice</p>
+            <p className="eyebrow text-primary">Independent pub</p>
             <div className="mt-1.5 flex items-start justify-between gap-2">
               <span className="min-w-0">
                 <span className="block text-sm leading-tight font-extrabold text-balance">
@@ -149,7 +150,7 @@ const VenueReviewReceipt = forwardRef<
           <hr className="w-rule !my-2.5" />
 
           <p className="mono-id font-normal text-muted-foreground">
-            {venue.attribution ?? "Paraphrased operator voice"}
+            {venueProofSignoff(venue)}
           </p>
         </div>
         <div aria-hidden="true" className="receipt-edge" />

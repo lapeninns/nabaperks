@@ -137,7 +137,7 @@ test("Given venue proof When the landing source is checked Then all nine venues 
     readProjectFile("components", "marketing", "landing", "proof.tsx"),
     /<VenueProof \/>/
   )
-  assert.match(venueProof, /What venues say/)
+  assert.match(venueProof, /Independent pub voices/)
   assert.match(venueProof, /VenueProofReviews/)
   assert.match(
     readProjectFile(
@@ -149,6 +149,11 @@ test("Given venue proof When the landing source is checked Then all nine venues 
     /See more/
   )
   assert.match(venueProofData, /shuffleVenueProofIndices/)
+  assert.doesNotMatch(venueProofData, /attribution:\s*"/)
+  assert.match(
+    readProjectFile("app", "about", "page.tsx"),
+    /<VenueProof headingLevel="h2" \/>/
+  )
   assert.doesNotMatch(venueProof, /[Dd]raft/)
   assert.doesNotMatch(venueProof, /grid-rows-3/)
 

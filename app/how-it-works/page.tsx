@@ -23,13 +23,15 @@ import {
   OG_IMAGE,
   SITE_URL,
   absoluteUrl,
+  counterLoyaltyIndexDataset,
+  glossarySchema,
   howToSchema,
   marketingPageGraph,
 } from "@/lib/seo/structured-data"
 
 const title = "How It Works — No-App QR Loyalty, Step by Step"
 const description =
-  "How Nabaperks works: customers scan your till QR, save a browser-based loyalty card — no app, no wallet pass — and collect counter-verified stamps. See the five anti-fraud checks and how it compares to paper cards and loyalty apps."
+  "How Nabaperks works: scan the till QR, save a browser-based card — no app, no wallet pass — and collect counter-verified stamps. Five anti-fraud checks inside."
 
 export const metadata: Metadata = {
   title,
@@ -65,14 +67,17 @@ export const metadata: Metadata = {
 const venueQrMatrix = buildQrMatrix(SITE_URL)
 
 /** Page graph: the WebPage, the Scan/Save/Stamp/Reward HowTo (byte-synced to
- * the visible steps below) and the objection set (byte-synced to the visible
- * FAQ), each with route-distinct @ids so nothing collides with home's graph. */
+ * the visible steps below), the objection set (byte-synced to the visible
+ * FAQ), the term glossary (the page that defines the terms carries the
+ * DefinedTermSet) and the Counter-Loyalty Index (visible in the proof tabs),
+ * each with route-distinct @ids so nothing collides with home's graph. */
 function buildPageGraph() {
   return marketingPageGraph({
     page: {
       path: ROUTES.howItWorks,
       name: `${title} | Nabaperks`,
       description,
+      reviewedByOperator: true,
     },
     breadcrumbs: [
       { name: "Home", path: "/" },
@@ -91,6 +96,8 @@ function buildPageGraph() {
           acceptedAnswer: { "@type": "Answer", text: faq.a },
         })),
       },
+      glossarySchema(),
+      counterLoyaltyIndexDataset(),
     ],
   })
 }

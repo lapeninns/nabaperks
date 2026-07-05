@@ -6,9 +6,10 @@ import { Tick02Icon } from "@hugeicons/core-free-icons"
 
 import { Eyebrow, Icon, PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
+import { FaqDetailsList } from "@/components/marketing/landing"
 import { JsonLd } from "@/components/seo/json-ld"
 import { Button } from "@/components/ui/button"
-import { CTA, PRODUCT, ROUTES } from "@/lib/marketing/facts"
+import { CTA, PLAN_INCLUDES, PRODUCT, ROUTES } from "@/lib/marketing/facts"
 import {
   ORG_ID,
   SITE_URL,
@@ -20,7 +21,7 @@ import {
 import { PricingCheckoutAlert } from "./checkout-alert"
 
 const title = "Pricing — £29/month per venue"
-const description = `Start with a ${PRODUCT.pilot}, then ${PRODUCT.price} per venue. Card required — cancel anytime.`
+const description = `Start with a ${PRODUCT.pilot}, then ${PRODUCT.price} per venue — unlimited stamps and members included. ${PRODUCT.cancelLine}`
 
 export const metadata: Metadata = {
   title,
@@ -50,18 +51,14 @@ export const metadata: Metadata = {
   },
 }
 
-const planIncludes = [
-  "Unlimited stamps and members",
-  "Simple reward setup",
-  "Permanent venue QR",
-  "Optional location checks at your venue",
-  "Weekly digest of visits, regulars, and redemptions",
-]
+// Single-source superset — TrustPricing teases the first four of the same
+// list (MS-marketing-audit-v2-fixes AV-4).
+const planIncludes = PLAN_INCLUDES
 
 const faqs = [
   {
     q: "Is there a contract?",
-    a: "No. It is month to month after the pilot. £29, one venue, one month's notice to leave. Card required — cancel anytime, with 30 days free before billing starts.",
+    a: `No. It is month to month after the pilot — £29, one venue. ${PRODUCT.cancelLine} 30 days free before billing starts.`,
   },
   {
     q: "Do I need any hardware?",
@@ -73,7 +70,7 @@ const faqs = [
   },
   {
     q: "What counts as a visit?",
-    a: "A visit counts when a customer stamps from your venue QR — one earned stamp per customer per UK date. Optional location checks can flag odd visits without blocking legitimate customers.",
+    a: "A visit counts when a customer stamps from your venue QR — one earned stamp per customer per UK date. The stamp is confirmed at the counter before it lands in your weekly digest.",
   },
   {
     q: "What if I want to cancel?",
@@ -132,7 +129,7 @@ export default function PricingPage() {
         <PageTitle
           eyebrow="Pricing"
           title="One price. Everything included."
-          description="30 days free to pilot, then £29/month per venue. Card required — cancel anytime."
+          description={`30 days free to pilot, then £29/month per venue. ${PRODUCT.cancelLine}`}
           titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
           descriptionClassName="text-base leading-7 text-pretty"
           className="md:grid-cols-1"
@@ -193,8 +190,7 @@ export default function PricingPage() {
                   <Link href="/login">Log in</Link>
                 </Button>
                 <p className="text-center text-xs leading-5 text-pretty text-muted-foreground">
-                  Card required — cancel anytime. One month&apos;s notice to
-                  leave.
+                  {PRODUCT.cancelLine}
                 </p>
               </div>
             </div>
@@ -205,11 +201,19 @@ export default function PricingPage() {
               <Eyebrow>The maths</Eyebrow>
               <p className="text-[clamp(1.25rem,2.5vw,1.5rem)] leading-snug font-extrabold text-balance">
                 One or two extra regulars a week can cover the cost for many
-                cafes.
+                venues.
               </p>
               <p className="text-sm leading-6 text-pretty text-muted-foreground">
                 Most venues see their first repeat visit inside the first week.
-                Your dashboard counts the regulars; you do the maths.
+                Your dashboard counts the regulars; you do the maths — or try
+                the{" "}
+                <Link
+                  href={`${ROUTES.pubHub}#regulars-calculator`}
+                  className="font-semibold text-primary underline-offset-4 hover:underline"
+                >
+                  regulars calculator
+                </Link>
+                .
               </p>
             </div>
             <div className="rounded-lg border-2 border-dashed border-border p-5">
@@ -227,28 +231,7 @@ export default function PricingPage() {
           <h2 className="mb-2 text-[clamp(1.5rem,3vw,2rem)] font-extrabold text-balance">
             Asked at the counter
           </h2>
-          <div className="border-b-2 border-dashed border-border">
-            {faqs.map((faq) => (
-              <details
-                key={faq.q}
-                className="group border-t-2 border-dashed border-border [&_summary::-webkit-details-marker]:hidden"
-              >
-                <summary className="pressable flex cursor-pointer items-center justify-between gap-4 py-4 outline-none">
-                  <span className="text-[1.05rem] font-extrabold">{faq.q}</span>
-                  <span
-                    aria-hidden="true"
-                    className="grid size-7 shrink-0 -rotate-6 place-items-center rounded-full border-2 border-ink bg-card font-mono text-base font-bold group-open:bg-primary group-open:text-primary-foreground"
-                  >
-                    <span className="group-open:hidden">+</span>
-                    <span className="hidden group-open:inline">–</span>
-                  </span>
-                </summary>
-                <p className="max-w-[62ch] pb-4 text-sm leading-6 text-pretty text-muted-foreground">
-                  {faq.a}
-                </p>
-              </details>
-            ))}
-          </div>
+          <FaqDetailsList items={faqs} className="mt-4" />
           <div className="mt-6 flex justify-center">
             <Button asChild size="lg">
               <Link href={ROUTES.signup}>{CTA.startPilot}</Link>

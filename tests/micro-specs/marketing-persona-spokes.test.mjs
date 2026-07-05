@@ -44,12 +44,29 @@ test("PS-1 Given the three spokes When their composition is checked Then each mo
     for (const tag of [
       "<CounterFlow",
       "<NabaperksProof",
-      "<ComparisonTable",
-      "<RegularsCalculator",
       "<FinalCta",
     ]) {
       assert.ok(page.includes(tag), `${tag} renders on /${slug}`)
     }
+    assert.ok(
+      !page.includes("<RegularsCalculator"),
+      `${slug} does not mount RegularsCalculator (lives on the pub hub)`
+    )
+    assert.ok(
+      page.includes("#regulars-calculator"),
+      `${slug} links the pub-hub calculator from the wedge band`
+    )
+    // AV-3 (MS-marketing-audit-v2-fixes, partially superseding PS-1): the
+    // comparison authority is /how-it-works — spokes mount the wedge band
+    // that deep-links it, never the full table.
+    assert.ok(
+      !page.includes("<ComparisonTable"),
+      `${slug} does not mount ComparisonTable (the wedge links the comparison)`
+    )
+    assert.ok(
+      page.includes("#no-app"),
+      `${slug} wedge deep-links /how-it-works#no-app`
+    )
     assert.match(
       page,
       new RegExp(`canonical:\\s*("/${slug}"|ROUTES\\.${routeKey})`),

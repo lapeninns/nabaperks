@@ -61,7 +61,7 @@ export function CounterVerifiedStamp() {
           customer&apos;s membership, your live account, a{" "}
           <strong className="font-bold text-paper">one-stamp-per-customer-per-UK-date
           cap</strong>, and optional unusual-location checks. Fraud is designed
-          out — not “mitigated”.
+          out — not &ldquo;mitigated&rdquo;.
         </p>
       </div>
 
@@ -104,9 +104,10 @@ export function CounterVerifiedStamp() {
       >
         <p className="mt-4 max-w-[60ch] border-t-2 border-dashed border-paper/25 pt-5 text-sm leading-relaxed text-pretty text-paper/70 sm:mt-8">
           A paper card is trivially faked — stamps bought online, self-stamping,
-          a quick photocopy — and most are lost before they’re ever redeemed.
-          Wallet-pass rivals stamp from a sharable staff code. Nabaperks checks
-          every stamp where it’s claimed, so the phone never crosses the counter.
+          a quick photocopy — and most are lost before they&rsquo;re ever
+          redeemed. Wallet-pass rivals stamp from a sharable staff code.
+          Nabaperks checks every stamp where it&rsquo;s claimed, so the phone
+          never crosses the counter.
         </p>
       </ReadMore>
     </ContrastBand>

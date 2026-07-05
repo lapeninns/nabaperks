@@ -3,6 +3,7 @@ import Link from "next/link"
 
 import { Eyebrow, Icon, MonoTag, PageTitle } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
+import { VenueProof } from "@/components/marketing/landing"
 import { Button } from "@/components/ui/button"
 import { Mail01Icon, Tick02Icon } from "@hugeicons/core-free-icons"
 import { JsonLd } from "@/components/seo/json-ld"
@@ -15,8 +16,8 @@ import {
 } from "@/lib/marketing/facts"
 import { marketingPageGraph, OG_IMAGE } from "@/lib/seo/structured-data"
 
-const title = "About Nabaperks"
-const description = `Nabaperks is built and run by ${OPERATOR.name}, a ${OPERATOR.role} running ${OPERATOR.estateShort}. A browser-based loyalty card with counter-verified stamps, made by people who run the counter.`
+const title = "About"
+const description = `Nabaperks is built and run by ${OPERATOR.name}, a ${OPERATOR.role} running ${OPERATOR.estateShort} — a browser-based loyalty card from people who run the counter.`
 
 export const metadata: Metadata = {
   title,
@@ -42,20 +43,26 @@ export const metadata: Metadata = {
 const story = [
   // The lede above already introduces the operator; open on what we make so
   // the page does not repeat its first sentence verbatim.
-  "We make a browser-based loyalty card with counter-verified stamps — and we run it across our own bars before we ask anyone else to.",
+  "We make a browser-based loyalty card with counter-verified stamps — shaped with pub teams already using Nabaperks on busy shifts.",
   "We built it because the loyalty tools we tried got in the way of the counter: an app to download for a pint, a wallet pass to install, paper cards lost in the wash, or a POS we did not want to replace. So we made the opposite — a card that opens from a QR in the browser, saves in one tap, and verifies every stamp at the counter.",
-  "That operator's view is the whole point. Nabaperks is shaped by what actually works on a busy shift, in a real pub, with real regulars.",
+  "That counter-first view is the whole point. Nabaperks is built for what actually works on a busy shift, in a real pub, with real regulars.",
 ]
 
 const principles = [
-  "Built by an operator that runs its own pubs, not a software house guessing at the counter",
+  `Built by ${OPERATOR.name}, a ${OPERATOR.role} — shaped by pub teams using Nabaperks day to day`,
   PRODUCT.posLine,
   "Loyalty kept separate from marketing — a regular can collect and redeem without joining any list",
   "Counter-verified stamps, so a finished card always means a real regular",
 ]
 
 const aboutGraph = marketingPageGraph({
-  page: { path: ROUTES.about, name: `${title} | Nabaperks`, description },
+  // The operator page carries the operator's own attribution (AV-8).
+  page: {
+    path: ROUTES.about,
+    name: `${title} | Nabaperks`,
+    description,
+    reviewedByOperator: true,
+  },
   breadcrumbs: [
     { name: "Home", path: ROUTES.home },
     { name: "About", path: ROUTES.about },
@@ -133,16 +140,23 @@ export default function AboutPage() {
         </div>
       </Section>
 
-      {/* The operating estate */}
+      {/* E-E-A-T flagship: named pub quotes with honest provenance */}
+      <Section id="venue-proof" size="compact">
+        <div className="surface-card px-6 py-8 sm:px-10 sm:py-10">
+          <VenueProof headingLevel="h2" />
+        </div>
+      </Section>
+
+      {/* Pubs using Nabaperks across England */}
       <Section id="estate" size="compact">
         <div className="surface-card px-6 py-8 sm:px-10 sm:py-10">
-          <MonoTag tone="leaf">Our pubs</MonoTag>
+          <MonoTag tone="leaf">Pubs on Nabaperks</MonoTag>
           <h2 className="mt-4 max-w-[34ch] text-[clamp(1.6rem,3.4vw,2.4rem)] leading-[1.05] font-extrabold tracking-[-0.02em] text-balance">
             {OPERATOR.estateShort}.
           </h2>
           <p className="mt-3 max-w-[60ch] text-sm leading-relaxed text-pretty text-muted-foreground">
-            The {OPERATOR.name} estate — the pubs where Nabaperks is built, run and
-            pressure-tested.
+            Named independent pubs across England where Nabaperks runs on the
+            counter — the same venues quoted above.
           </p>
 
           <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -169,8 +183,8 @@ export default function AboutPage() {
           Run a venue? Try it on your own counter.
         </h2>
         <p className="mx-auto mt-3 max-w-[44ch] text-base leading-relaxed text-muted-foreground">
-          Build your card, preview the QR flow, and start a {PRODUCT.pilot}.
-          Card required — cancel anytime.
+          Build your card, preview the QR flow, and start a {PRODUCT.pilot}.{" "}
+          {PRODUCT.cancelLine}
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           <Button asChild size="lg">

@@ -15,11 +15,8 @@ import { CTA, ROUTES } from "@/lib/marketing/facts"
  * non-approved verticals are deliberately not targeted here.
  *
  * All four personas are live: each spoke route is built, so every card links
- * out with its persona CTA and no link 404s. The flag below is vestigial (the
- * per-persona `live` flag is what lights a card up) and stays false.
+ * out with its persona CTA and no link 404s.
  */
-export const SHOW_PERSONA_SPOKES = false
-
 export type Persona = {
   id: string
   icon: IconGlyph

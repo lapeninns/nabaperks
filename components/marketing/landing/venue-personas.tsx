@@ -4,14 +4,12 @@ import { Icon, MonoTag } from "@/components/brand"
 import { Section } from "@/components/layout"
 import { cn } from "@/lib/utils"
 
-import { personas, SHOW_PERSONA_SPOKES } from "./persona-data"
+import { personas } from "./persona-data"
 import { SNAP_RAIL_ITEM, SnapRail } from "./snap-rail"
 
 /**
  * Persona chapters — the Solution-Aware "for [my venue type]" cluster, each block
- * addressable by anchor and (once built) linking to its Stage-0/1 spoke. Until
- * the spokes exist, the hook reads as plain text so no link 404s. Server
- * component; mobile-first 1→2→4 column grid.
+ * addressable by anchor and linking to its spoke when `live` is set.
  */
 export function VenuePersonas() {
   return (
@@ -56,16 +54,9 @@ export function VenuePersonas() {
             {persona.live ? (
               <Link
                 href={persona.spoke}
-                className="mono-meta mt-3 inline-block text-primary underline-offset-4 hover:underline"
+                className="mono-meta mt-1 inline-flex min-h-11 items-center text-primary underline-offset-4 hover:underline"
               >
                 {persona.cta ?? "See more"} →
-              </Link>
-            ) : SHOW_PERSONA_SPOKES ? (
-              <Link
-                href={persona.spoke}
-                className="mono-meta mt-3 inline-block text-primary underline-offset-4 hover:underline"
-              >
-                See more →
               </Link>
             ) : null}
           </li>

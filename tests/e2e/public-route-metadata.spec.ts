@@ -17,7 +17,65 @@ const PUBLIC_SITE_URLS = [
   "https://nabaperks.com/terms",
 ] as const
 
+/** Indexable marketing routes (legal pages excluded) — AV-5 budget scope. */
+const MARKETING_ROUTES = [
+  "/",
+  "/how-it-works",
+  "/loyalty-for-pubs",
+  "/loyalty-for-cafes",
+  "/loyalty-for-takeaways",
+  "/loyalty-for-bars",
+  "/pricing",
+  "/about",
+  "/guides/best-loyalty-ideas-for-pubs",
+  "/guides/reward-regulars-without-an-app",
+  "/guides/paper-vs-qr-loyalty-for-pubs",
+  "/signup",
+] as const
+
 test.describe("@public-route-metadata", () => {
+  test("indexable marketing routes keep the 145-159 description budget and self-canonicals", async ({
+    page,
+  }) => {
+    for (const route of MARKETING_ROUTES) {
+      await page.goto(route)
+
+      const description = await page
+        .locator('meta[name="description"]')
+        .getAttribute("content")
+      expect(description, `${route} serves a meta description`).toBeTruthy()
+      // Code points, not UTF-16 units or bytes (the em-dash measurement trap).
+      const length = [...(description ?? "")].length
+      expect(
+        length,
+        `${route} description is ${length} code points (budget 145-159)`
+      ).toBeGreaterThanOrEqual(145)
+      expect(
+        length,
+        `${route} description is ${length} code points (budget 145-159)`
+      ).toBeLessThanOrEqual(159)
+
+      const canonical = await page
+        .locator('link[rel="canonical"]')
+        .getAttribute("href")
+      expect(canonical, `${route} carries a self-canonical`).toBe(
+        `https://nabaperks.com${route === "/" ? "" : route}`
+      )
+    }
+  })
+
+  test("signup serves its own acquisition head, not the root fallback", async ({
+    page,
+  }) => {
+    await page.goto("/signup")
+
+    await expect(page).toHaveTitle(/Start Your Free Pilot/)
+    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
+      "content",
+      /Start Your Free Pilot/
+    )
+  })
+
   test("merchant terms route is noindexed while legal copy requires review", async ({
     page,
   }) => {

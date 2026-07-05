@@ -13,6 +13,18 @@ import { marketingPageGraph } from "@/lib/seo/structured-data"
 
 import { guideByHref, otherGuides } from "./guides-data"
 
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+]
+
+/** ISO "YYYY-MM-DD" → "27 June 2026". Manual parse (no Date/TZ) so the string
+ * is deterministic and can't shift a day across server timezones. */
+function formatIsoDate(iso: string): string {
+  const [year, month, day] = iso.split("-").map(Number)
+  return `${day} ${MONTHS[month - 1]} ${year}`
+}
+
 /**
  * GuidePage — the shared shell for the pub-led guide spokes. Keeps every guide
  * consistent (hero, body, reciprocal hub link, related spokes, close) so the
@@ -39,6 +51,7 @@ export function GuidePage({
   children: ReactNode
 }) {
   const related = otherGuides(href)
+  const meta = guideByHref(href)
   const navLinks = [
     { href: ROUTES.pubHub, label: "Loyalty for pubs" },
     { href: ROUTES.pricing, label: "Pricing" },
@@ -47,11 +60,18 @@ export function GuidePage({
   ]
 
   const graph = marketingPageGraph({
-    page: { path: href, name: `${title} | Nabaperks`, description, isArticle: true },
+    page: {
+      path: href,
+      name: `${title} | Nabaperks`,
+      description,
+      isArticle: true,
+      datePublished: meta?.datePublished,
+      dateModified: meta?.dateModified,
+    },
     breadcrumbs: [
       { name: "Home", path: ROUTES.home },
       { name: CTA.pub, path: ROUTES.pubHub },
-      { name: guideByHref(href)?.nav ?? title, path: href },
+      { name: meta?.nav ?? title, path: href },
     ],
   })
 
@@ -81,7 +101,7 @@ export function GuidePage({
             </li>
             <li aria-hidden="true">/</li>
             <li aria-current="page" className="text-foreground">
-              {guideByHref(href)?.nav ?? title}
+              {meta?.nav ?? title}
             </li>
           </ol>
         </nav>
@@ -94,6 +114,21 @@ export function GuidePage({
           <p className="mt-4 text-base leading-relaxed text-pretty text-muted-foreground sm:text-lg">
             {intro}
           </p>
+          {meta ? (
+            <p className="mono-meta mt-4 text-muted-foreground">
+              <time dateTime={meta.datePublished}>
+                Published {formatIsoDate(meta.datePublished)}
+              </time>
+              {meta.dateModified !== meta.datePublished ? (
+                <>
+                  {" · updated "}
+                  <time dateTime={meta.dateModified}>
+                    {formatIsoDate(meta.dateModified)}
+                  </time>
+                </>
+              ) : null}
+            </p>
+          ) : null}
         </header>
 
         <div className="mt-8 flex flex-col gap-8">{children}</div>

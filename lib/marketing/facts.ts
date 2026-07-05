@@ -83,7 +83,29 @@ export const PRODUCT = {
   /** Public phrasing for the anti-fraud method — not a hero-level brand push. */
   counterStamp: "counter-verified stamps",
   counterStampLong: "stamps confirmed at the counter",
+  /**
+   * The one cancellation term — ALWAYS carried with the notice period so
+   * "cancel anytime" can never render without the honest qualifier
+   * (ASA material-information). Sentence + chip forms; use these, never a
+   * bare "cancel anytime".
+   */
+  cancelLine: "Card required — cancel anytime, one month's notice.",
+  cancelChip: "Cancel anytime — one month's notice",
 } as const
+
+/**
+ * What the £29 plan includes — the single source for the /pricing superset
+ * and the TrustPricing teaser (`PLAN_INCLUDES.slice(0, 4)`), so the two
+ * surfaces can never drift. Location checks sit last so the teaser is a
+ * plain prefix of the full list.
+ */
+export const PLAN_INCLUDES = [
+  "Unlimited stamps and members",
+  "Simple reward setup",
+  "Permanent venue QR",
+  "Weekly digest of visits, regulars and redemptions",
+  "Optional location checks at your venue",
+] as const
 
 // --- First-party proof (the citable data asset) ----------------------------
 

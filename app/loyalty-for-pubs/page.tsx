@@ -17,15 +17,16 @@ import { JsonLd } from "@/components/seo/json-ld"
 import { GUIDES } from "@/components/marketing/guides/guides-data"
 import { CTA, PRODUCT, ROUTES } from "@/lib/marketing/facts"
 import {
+  absoluteUrl,
   counterLoyaltyIndexDataset,
   howToSchema,
   marketingPageGraph,
   OG_IMAGE,
 } from "@/lib/seo/structured-data"
 
-const title = "Loyalty for Pubs & Gastropubs — No-App QR Stamp Cards"
+const title = "Pub Loyalty Cards — No-App QR Stamp Cards"
 const description =
-  "Reward regulars without an app or a CRM. One venue QR for the bar, the tables and the takeaway hatch — a browser-based loyalty card with counter-verified stamps. No POS or EPOS integration required. £29/month, 30-day free pilot."
+  "Reward regulars without an app or a CRM. One venue QR for the bar and the tables — counter-verified stamps, no POS needed. £29/month, 30-day free pilot."
 
 export const metadata: Metadata = {
   title,
@@ -75,7 +76,7 @@ const painPoints = [
     body: "Regulars will not download an app for a pint, and you do not want another CRM to run. The card opens in the browser and saves in one tap, with nothing to install.",
   },
   {
-    title: "Paper cards lost and gamed",
+    title: "Paper cards lost and faked",
     body: "Paper stamp cards end up in the wash or stamped twice by a friendly hand. A browser-based card lives on the customer's phone and every stamp is counter-verified.",
   },
   {
@@ -107,7 +108,14 @@ const hubGraph = marketingPageGraph({
     { name: "Home", path: ROUTES.home },
     { name: CTA.pub, path: ROUTES.pubHub },
   ],
-  extraNodes: [howToSchema(pubCounterFlowSteps), counterLoyaltyIndexDataset()],
+  extraNodes: [
+    // Route-distinct @id — the shared default #how-it-works id is reserved
+    // for the home graph (AV-1; the pub steps differ from home's).
+    howToSchema(pubCounterFlowSteps, {
+      id: `${absoluteUrl(ROUTES.pubHub)}#howto`,
+    }),
+    counterLoyaltyIndexDataset(),
+  ],
 })
 
 export default function LoyaltyForPubsPage() {

@@ -1,7 +1,7 @@
 import { Eyebrow, MonoTag } from "@/components/brand"
 import { PROOF, PROOF_DISPLAY } from "@/lib/marketing/facts"
 
-import { venueProofPool } from "./venue-proof-data"
+import { venueProofPool, venueProofSignoff } from "./venue-proof-data"
 
 /**
  * Old Crown case-study CANDIDATE block. Names the venue (Old Crown Girton,
@@ -39,7 +39,7 @@ export function OldCrownCandidate() {
           &ldquo;{oldCrown.review}&rdquo;
         </blockquote>
         <p className="mono-meta mt-3 tracking-[0.08em] text-muted-foreground">
-          From the team
+          {venueProofSignoff(oldCrown)}
         </p>
         <p className="mt-4 max-w-[46ch] text-sm leading-relaxed text-pretty text-muted-foreground">
           From paper cards lost in the wash to a weekly note on who&rsquo;s

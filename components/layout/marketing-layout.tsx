@@ -3,6 +3,7 @@ import Link from "next/link"
 
 import { Logo } from "@/components/brand"
 import { Marquee } from "@/components/marketing"
+import { GUIDES } from "@/components/marketing/guides/guides-data"
 
 import { MarketingHeaderNav } from "./marketing-header-nav"
 
@@ -85,6 +86,13 @@ export function MarketingLayout({
             <Link className={legalLinkClass} href="/signup">
               Start free pilot
             </Link>
+          </nav>
+          <nav aria-label="Pub loyalty guides" className="flex flex-wrap gap-2">
+            {GUIDES.map((guide) => (
+              <Link key={guide.href} className={legalLinkClass} href={guide.href}>
+                {guide.nav}
+              </Link>
+            ))}
           </nav>
           <nav aria-label="Legal links" className="flex flex-wrap gap-2">
             <Link className={legalLinkClass} href="/terms">

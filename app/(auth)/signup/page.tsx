@@ -1,3 +1,5 @@
+import type { Metadata } from "next"
+
 import { Tick02Icon } from "@hugeicons/core-free-icons"
 
 import { signUpAction, verifyEmailOtpAction } from "@/app/(auth)/actions"
@@ -9,13 +11,43 @@ import {
   merchantEmailOtpAliasDigitLabel,
   merchantEmailOtpAliasLength,
 } from "@/lib/auth/merchant-email-otp-alias"
+import { PRODUCT, ROUTES } from "@/lib/marketing/facts"
+import { OG_IMAGE } from "@/lib/seo/structured-data"
 import { cn } from "@/lib/utils"
+
+const title = "Start Your Free Pilot — No-App QR Loyalty"
+// 155 code points (budget 145–159); the cancellation term renders only via
+// the single-source constant (marketing-auth-legal contract).
+const description = `Create your account, build your card and go live from one venue QR — ${PRODUCT.pilot}, then ${PRODUCT.price}. ${PRODUCT.cancelLine}`
+
+/** /signup is an indexable acquisition route (sitemap 0.7) that accepts an
+ * ?email= param — the self-canonical collapses those variants (AV-2). */
+export const metadata: Metadata = {
+  title,
+  description,
+  alternates: { canonical: ROUTES.signup },
+  openGraph: {
+    title: `${title} | Nabaperks`,
+    description,
+    type: "website",
+    siteName: "Nabaperks",
+    url: ROUTES.signup,
+    locale: "en_GB",
+    images: [OG_IMAGE],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${title} | Nabaperks`,
+    description,
+    images: [OG_IMAGE],
+  },
+}
 
 const otpCodeLabel = merchantEmailOtpAliasDigitLabel()
 const trustPoints = [
   "No app for your customers to download",
   "Customers stamp themselves from your venue QR",
-  "Card required — cancel anytime.",
+  PRODUCT.cancelLine,
 ]
 
 type SignUpPageProps = {
@@ -70,8 +102,8 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
               Open your till
             </h2>
             <p className="text-sm leading-6 text-pretty text-muted-foreground">
-              Create your account and verify your email with a {otpCodeLabel} code.
-              Card required — cancel anytime.
+              Create your account and verify your email with a {otpCodeLabel}{" "}
+              code. {PRODUCT.cancelLine}
             </p>
           </div>
           <AuthForm

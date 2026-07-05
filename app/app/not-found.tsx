@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 
 // Rendered inside MerchantAppShell via app/app/layout, so notFound() from any
-// /app route resolves to a merchant-scoped 404 (operator voice, in-shell)
+// /app route resolves to a merchant-scoped 404 (merchant voice, in-shell)
 // rather than ejecting to the root customer-wallet app/not-found.tsx.
 // Flow-specific copy lives in scoped boundaries (rewards/scan/[scanToken],
 // qr/poster/[template]); this segment-wide fallback stays generic.

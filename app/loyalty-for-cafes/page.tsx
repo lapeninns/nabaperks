@@ -4,11 +4,9 @@ import Link from "next/link"
 import { Eyebrow, Icon, MonoTag } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
 import {
-  ComparisonTable,
   CounterFlow,
   FinalCta,
   NabaperksProof,
-  RegularsCalculator,
   counterFlowSteps,
 } from "@/components/marketing/landing"
 import { Button } from "@/components/ui/button"
@@ -23,9 +21,9 @@ import {
   OG_IMAGE,
 } from "@/lib/seo/structured-data"
 
-const title = "Loyalty for Cafes & Coffee Shops — No-App QR Stamp Cards"
+const title = "Cafe Loyalty Cards — No-App QR Stamp Cards"
 const description =
-  "Turn the daily coffee habit into counter-verified stamps. Customers scan one till QR and save a browser-based loyalty card — no app, no wallet pass, no queue at the till. No POS or EPOS integration required. £29/month, 30-day free pilot."
+  "Turn the daily coffee habit into counter-verified stamps. One till QR opens a browser-based card — no app, no wallet pass. £29/month, 30-day free pilot."
 
 export const metadata: Metadata = {
   title,
@@ -60,32 +58,32 @@ export const metadata: Metadata = {
  * broad "cafes" noun is the approved vertical language for this page). */
 const painPoints = [
   {
-    title: "No app at the counter",
-    body: "Nobody downloads an app while their coffee is being made. The card opens in the phone browser from your till QR and saves in one tap — no app store, no wallet pass, no password.",
+    title: "No app in the coffee queue",
+    body: "Nobody downloads an app while the milk steams. The card opens in the phone browser from your till QR and saves in one tap — done before the flat white is.",
   },
   {
-    title: "A queue that keeps moving",
-    body: "Scanning takes a second and the phone never crosses the counter. Customers stamp on their own phones while your team makes the drinks.",
+    title: "The morning rush keeps moving",
+    body: "Scanning takes a second from the customer's side of the counter, so the queue never bunches. They stamp their own phone while your team pulls the shots.",
   },
   {
-    title: "Paper cards lost and gamed",
-    body: "Paper stamp cards get lost, washed and over-stamped. A browser-based card lives on the customer's phone and every stamp is counter-verified against your venue QR.",
+    title: "Paper cards die in pockets",
+    body: "Punch cards go through the wash, hide in other wallets and turn up over-stamped. The browser card can't be lost between visits, and every stamp is checked against your real till QR before it counts.",
   },
   {
     title: "Nothing new on the till",
     body: "One printed QR by the till is the whole setup. No extra hardware, no POS or EPOS integration, nothing for staff to key in.",
   },
   {
-    title: "Daily habits, rewarded",
-    body: "A visible stamp card gives the regular visit a finish line: reach the threshold, unlock the reward, redeem it in-store. One stamp per customer per UK date keeps it fair.",
+    title: "The daily habit, made visible",
+    body: "The same faces order the same drink most days. A stamp card gives that habit a finish line — reach the threshold, unlock the reward, redeem it in-store — one stamp per customer per UK date.",
   },
 ]
 
 const benefits = [
   "One permanent QR by the till — the whole setup",
-  "Counter-verified stamps that can't be faked or double-claimed",
+  "Counter-verified stamps, each checked against your real till QR",
+  "Quick enough for the morning queue — customers stamp their own phones",
   "A weekly digest of visits, regulars and redemptions",
-  "Loyalty kept separate from marketing — customers opt in only if they choose",
   PRODUCT.posLine,
 ]
 
@@ -161,7 +159,7 @@ export default function LoyaltyForCafesPage() {
       </Section>
 
       {/* Cafe counter frictions */}
-      <Section id="fit">
+      <Section>
         <div className="max-w-[46ch]">
           <MonoTag tone="leaf">Built for the counter</MonoTag>
           <h2 className="mt-4 text-[clamp(1.85rem,4vw,2.75rem)] leading-[1.02] font-extrabold tracking-[-0.02em] text-balance">
@@ -197,28 +195,40 @@ export default function LoyaltyForCafesPage() {
       {/* Real proof (Counter-Loyalty Index) */}
       <NabaperksProof />
 
-      {/* Browser card vs the alternatives */}
-      <ComparisonTable />
-
-      {/* Ungated value-first tool */}
-      <RegularsCalculator />
-
-      {/* Mechanism cross-link (replaces the pub hub's guides rail) */}
+      {/* Comparison wedge + mechanism cross-link — one band; the full table
+          lives on /how-it-works (MS-marketing-audit-v2-fixes AV-3) */}
       <Section width="narrow" className="text-center">
         <MonoTag tone="plain">The mechanism</MonoTag>
         <h2 className="mx-auto mt-4 max-w-[24ch] text-[clamp(1.75rem,3.6vw,2.5rem)] leading-[1.04] font-extrabold tracking-[-0.02em] text-balance">
           How counter-verified stamps work.
         </h2>
         <p className="mx-auto mt-3 max-w-[52ch] text-base leading-relaxed text-pretty text-muted-foreground">
-          The four beats above are the short version. The full mechanism — the
-          five anti-fraud checks and how the card compares to paper, apps and
-          wallet passes — lives on one page.
+          Most &ldquo;no-app&rdquo; loyalty cards still make customers install
+          an Apple or Google Wallet pass. Nabaperks opens in the phone browser
+          from your till QR and saves in one tap —{" "}
+          quick enough for the morning rush.
+        </p>
+        <p className="mx-auto mt-3 max-w-[52ch] text-base leading-relaxed text-pretty text-muted-foreground">
+          The five anti-fraud checks — and the full side-by-side against paper
+          cards, wallet-pass apps and POS loyalty — live on one page.
         </p>
         <div className="mt-6 flex justify-center">
           <Button asChild size="lg" variant="outline">
-            <Link href={ROUTES.howItWorks}>See how it works</Link>
+            <Link href={`${ROUTES.howItWorks}#no-app`}>
+              See the full comparison
+            </Link>
           </Button>
         </div>
+        <p className="mx-auto mt-4 max-w-[52ch] text-sm leading-relaxed text-pretty text-muted-foreground">
+          <Link
+            href={`${ROUTES.pubHub}#regulars-calculator`}
+            className="font-semibold text-primary underline-offset-4 hover:underline"
+          >
+            Work out the maths for your venue
+          </Link>
+          {" "}
+          with the regulars calculator on the pub loyalty hub.
+        </p>
       </Section>
 
       <FinalCta />
