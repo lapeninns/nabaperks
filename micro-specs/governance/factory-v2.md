@@ -1,6 +1,6 @@
 ---
 spec_id: MS-governance-factory-v2
-status: active
+status: implemented
 risk_class: docs-tooling
 owner: claude-code agent (amanshresthaa)
 last_reviewed: 2026-07-05
@@ -55,7 +55,8 @@ required_playwright_projects: []
 evidence_required:
   - Governance checker and micro-spec test output for the hardened engine.
   - Factory smoke evidence from a scratch repo (install, scaffold, activate, advance, tamper-detect).
-approved_exceptions: []
+approved_exceptions:
+  - evidence-waiver: dogfood advance recorded while the shared working tree carries unrelated marketing WIP from a concurrent session (expires: 2026-08-05)
 ---
 
 # MS-governance-factory-v2 — Close the loop: hardened engine + machine-enforced lifecycle
