@@ -48,8 +48,13 @@ export const faqs: readonly Faq[] = [
  * FAQ — the honest answers, as native `<details>` so the accordion needs no
  * client JavaScript and stays keyboard- and screen-reader-friendly. Each panel
  * is its own receipt card with a vermillion +/– marker that flips on open.
+ *
+ * `limit` renders only the first N questions (the conversion spine shows 4;
+ * /how-it-works keeps the full set). Callers slicing the FAQPage schema must
+ * use the SAME slice so visible copy === structured data.
  */
-export function LandingFaq() {
+export function LandingFaq({ limit }: { limit?: number } = {}) {
+  const shown = limit ? faqs.slice(0, limit) : faqs
   return (
     <Section id="faq" width="narrow">
       <div className="text-center">
@@ -60,7 +65,7 @@ export function LandingFaq() {
       </div>
 
       <div className="mt-6 grid gap-x-8 gap-y-3 lg:grid-cols-2">
-        {faqs.map((faq) => (
+        {shown.map((faq) => (
           <details
             key={faq.q}
             className="group rounded-[var(--radius)] border-2 border-ink bg-card shadow-sm [&_summary::-webkit-details-marker]:hidden"

@@ -68,16 +68,16 @@ test("Given the root route When section composition is checked Then the landing 
     "landing",
     "faq.tsx"
   )
-  // The research-backed hub must carry the core funnel plus the high-leverage
-  // SEO/GEO sections (the comparison table + the named anti-fraud method) and a
-  // skimmable jump-nav. (Supersedes the earlier "compact, <=8 sections" rule —
-  // the page is now a jump-navigable hub by design.)
+  // The homepage is the conversion spine (MS-landing-conversion-spine
+  // partially supersedes the earlier hub composition): hero, the four-beat
+  // flow, condensed proof, persona links, pricing teaser, FAQ subset, ask.
+  // The comparison table and anti-fraud chapters live on /how-it-works.
   const requiredSections = [
     "LandingHero",
-    "JumpNav",
     "CounterFlow",
-    "ComparisonTable",
-    "CounterVerifiedStamp",
+    "ProofStrip",
+    "NabaperksProofBody",
+    "VenuePersonas",
     "TrustPricing",
     "LandingFaq",
     "FinalCta",
@@ -125,9 +125,14 @@ test("Given venue proof When the landing source is checked Then all nine venues 
   ]
 
   // When / Then — the venue proof renders inside the merged LandingProof
-  // section (MS-landing-mobile-density): the homepage composes <LandingProof />
-  // and proof.tsx composes the untouched <VenueProof /> body.
-  assert.match(homepage, /<LandingProof \/>/)
+  // section, which now lives on /how-it-works (MS-landing-conversion-spine);
+  // the homepage keeps the condensed strip and proof.tsx still composes the
+  // untouched <VenueProof /> body.
+  assert.match(
+    readProjectFile("app", "how-it-works", "page.tsx"),
+    /<LandingProof \/>/
+  )
+  assert.match(homepage, /<ProofStrip \/>/)
   assert.match(
     readProjectFile("components", "marketing", "landing", "proof.tsx"),
     /<VenueProof \/>/

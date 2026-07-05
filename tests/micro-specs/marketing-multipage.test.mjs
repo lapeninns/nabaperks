@@ -13,23 +13,24 @@ function readProjectFile(...segments) {
   return readFileSync(path.join(projectRoot, ...segments), "utf8")
 }
 
-// MS-marketing-multipage — the marketing site is multi-page ADDITIVELY: the
-// landing stays the full one-page funnel (its own contract lives in
-// marketing-redesign.test.mjs) and /how-it-works exists as a standalone
-// mechanism page mounting the same single-source sections.
+// MS-marketing-multipage — /how-it-works is the standalone mechanism page
+// mounting the same single-source sections as the rest of the marketing site.
+// HW-1's original home-freeze is superseded by MS-landing-conversion-spine:
+// the homepage is now the conversion spine (its contract lives in
+// landing-conversion-spine.test.mjs); this check pins the spine composition.
 
-test("HW-1 Given the additive split When the homepage is checked Then it keeps the full one-page funnel untouched", () => {
+test("HW-1 Given the conversion spine When the homepage is checked Then it keeps the spine composition (per MS-landing-conversion-spine)", () => {
   // Given
   const homepage = readProjectFile("app", "page.tsx")
 
-  // When / Then — the landing hub composition is intact (belt to the
-  // marketing-redesign contract's braces)…
+  // When / Then — the spine composition is intact (belt to the
+  // landing-conversion-spine contract's braces)…
   for (const tag of [
     "<LandingHero",
-    "<JumpNav",
     "<CounterFlow",
-    "<ComparisonTable",
-    "<CounterVerifiedStamp",
+    "<ProofStrip",
+    "<NabaperksProofBody",
+    "<VenuePersonas",
     "<TrustPricing",
     "<LandingFaq",
     "<FinalCta",

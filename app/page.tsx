@@ -1,19 +1,16 @@
 import type { Metadata } from "next"
 import QRCode from "qrcode"
 
-import { MarketingLayout } from "@/components/layout"
+import { MonoTag } from "@/components/brand"
+import { MarketingLayout, Section } from "@/components/layout"
 import {
-  ComparisonTable,
   CounterFlow,
-  CounterVerifiedStamp,
   FinalCta,
-  JumpNav,
   LandingFaq,
   LandingHero,
-  LandingProof,
-  SeparateMarketing,
+  NabaperksProofBody,
+  ProofStrip,
   TrustPricing,
-  VenueBenefits,
   VenuePersonas,
   counterFlowSteps,
   faqs,
@@ -67,18 +64,8 @@ export const metadata: Metadata = {
   },
 }
 
-/** The landing page's top nav is simplified to 4 anchors (down from 6); the
- * shared marketing shell supplies the marquee, sticky header CTA, and footer. */
-const navLinks = [
-  { href: "#how-it-works", label: "How it works" },
-  { href: "#anti-fraud", label: "Why stamps can't be faked" },
-  { href: "#pricing", label: "Pricing" },
-  { href: "/login", label: "Log in" },
-]
-
 /** The venue QR is a real code, computed once on the server and handed to the
- * sample card and the reward reveal so the `qrcode` library never ships to the
- * browser. */
+ * sample card so the `qrcode` library never ships to the browser. */
 function buildQrMatrix(text: string): QrMatrix {
   const qr = QRCode.create(text, { errorCorrectionLevel: "M" })
   const { size, data } = qr.modules
@@ -93,15 +80,13 @@ function buildQrMatrix(text: string): QrMatrix {
 // /demo customer card, so a curious prospect lands on the product itself, not
 // back on this marketing page.
 const demoQrMatrix = buildQrMatrix(absoluteUrl("/demo"))
-// The venue-benefits card illustrates the merchant's own venue QR (a setup
-// preview), so it stays pointed at the site root.
-const venueQrMatrix = buildQrMatrix(SITE_URL)
 
 /** Page-level entity graph: the page (WebPage, reviewed by the operator), the
  * product (SoftwareApplication + Offer), the objection set (FAQPage, byte-synced
- * to the visible FAQ), the Scan/Save/Stamp/Reward HowTo (byte-synced to the
- * visible flow), the first-party proof (Dataset), the term glossary
- * (DefinedTermSet) and breadcrumbs — all cross-referenced by stable @id. */
+ * to the visible FAQ subset — the full set lives on /how-it-works), the
+ * Scan/Save/Stamp/Reward HowTo (byte-synced to the visible flow), the
+ * first-party proof (Dataset), the term glossary (DefinedTermSet) and
+ * breadcrumbs — all cross-referenced by stable @id. */
 function buildPageGraph() {
   const graph: Record<string, unknown>[] = [
     webPageSchema({
@@ -133,7 +118,9 @@ function buildPageGraph() {
     {
       "@type": "FAQPage",
       "@id": `${SITE_URL}/#faq`,
-      mainEntity: faqs.map((faq) => ({
+      // The spine renders the first 4 questions; the schema mirrors the SAME
+      // slice (visible copy === structured data). All 8 stay on /how-it-works.
+      mainEntity: faqs.slice(0, 4).map((faq) => ({
         "@type": "Question",
         name: faq.q,
         acceptedAnswer: { "@type": "Answer", text: faq.a },
@@ -148,27 +135,40 @@ function buildPageGraph() {
   return { "@context": "https://schema.org", "@graph": graph }
 }
 
+/** The conversion spine (MS-landing-conversion-spine): pitch → mechanism →
+ * proof → persona routing → pricing teaser → objections → ask. The deep
+ * chapters live on their own routes: mechanism + anti-fraud + comparison on
+ * /how-it-works, persona fit on /loyalty-for-*, full pricing on /pricing. */
 export default function HomePage() {
   return (
-    <MarketingLayout navLinks={navLinks}>
-      {/* Hero + reassurance: value prop + immediate confidence (merged OperatorProof into hero context via nav + pricing) */}
+    <MarketingLayout>
+      {/* Pitch: value prop with the live demo QR */}
       <LandingHero qrMatrix={demoQrMatrix} />
-      <JumpNav />
 
-      {/* Funnel spine: how it works → proof → comparison → anti-fraud */}
+      {/* The four-beat mechanism (deep dive lives on /how-it-works) */}
       <CounterFlow />
-      <LandingProof />
-      <ComparisonTable />
-      <CounterVerifiedStamp />
 
-      {/* For your venue (venue benefits, persona fit, legal confidence) */}
-      <VenueBenefits qrMatrix={venueQrMatrix} />
+      {/* Condensed proof: setup stat band + the citable Counter-Loyalty Index
+          (the full tabs — case study, venue voices — live on /how-it-works) */}
+      <Section id="proof" size="compact">
+        <MonoTag tone="leaf">Proof</MonoTag>
+        <h2 className="mt-3 max-w-[26ch] text-[clamp(1.6rem,3.4vw,2.4rem)] leading-[1.05] font-extrabold tracking-[-0.02em] text-balance">
+          Proof from the counter.
+        </h2>
+        <div className="mt-4 sm:mt-5">
+          <ProofStrip />
+        </div>
+        <div className="mt-6">
+          <NabaperksProofBody headingLevel="h3" />
+        </div>
+      </Section>
+
+      {/* Persona routing: which venue is yours */}
       <VenuePersonas />
-      <SeparateMarketing />
 
-      {/* Close: pricing → FAQ → final ask */}
+      {/* Close: pricing teaser → top objections → final ask */}
       <TrustPricing />
-      <LandingFaq />
+      <LandingFaq limit={4} />
       <FinalCta />
 
       {/* SEO/structured data */}

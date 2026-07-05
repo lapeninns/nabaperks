@@ -9,6 +9,7 @@ import {
   CounterVerifiedStamp,
   FinalCta,
   LandingFaq,
+  LandingProof,
   SeparateMarketing,
   VenueBenefits,
   counterFlowSteps,
@@ -119,11 +120,14 @@ export default function HowItWorksPage() {
       </Section>
 
       {/* The four beats, then the trust chapters in objection order:
-          how it runs → how it compares → why it can't be faked → what you
-          configure → the consent posture → every question → the ask. */}
+          how it runs → how it compares → why it can't be faked → the proof →
+          what you configure → the consent posture → every question → the ask.
+          The full proof tabs moved here from the homepage spine
+          (MS-landing-conversion-spine): sitewide copy preservation. */}
       <CounterFlow />
       <ComparisonTable />
       <CounterVerifiedStamp />
+      <LandingProof />
       <VenueBenefits qrMatrix={venueQrMatrix} />
       <SeparateMarketing />
       <LandingFaq />
