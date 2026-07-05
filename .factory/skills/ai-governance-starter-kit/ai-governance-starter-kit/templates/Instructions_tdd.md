@@ -32,7 +32,7 @@ Choose the proof tier that matches the risk. A browser-driven or DB-free UI harn
 
 A Micro-Spec describes the target end state; it is not proof the work is unstarted. Before writing tests, inspect the live code and reduce the task to the in-scope requirements that are not already satisfied — do not re-implement existing behavior. (See the governance index's working rule.)
 
-Before Red → Green → Refactor starts, confirm the Micro-Spec's lifecycle status in the governance index. Only `active` specs are default implementation inputs. `draft`, `implemented`, `verified`, and `superseded` specs require a refreshed active spec or an `approved_exceptions` entry before tests or production code are written.
+Before Red → Green → Refactor starts, confirm the Micro-Spec's lifecycle status in the governance index. Only `active` specs are default implementation inputs. `draft`, `implemented`, `verified`, `closed`, and `superseded` specs require a refreshed active spec or an `approved_exceptions` entry before tests or production code are written.
 
 If an in-scope requirement is ambiguous, contradicts live code, or cannot be satisfied without editing a file outside the Micro-Spec's declared blast radius, adding a dependency, or making a product decision: **stop and surface the question first.** Do not invent product behavior, silently widen the blast radius, or skip the requirement under the cover of TDD. Record the assumption you would otherwise have made so a human can confirm or correct it.
 
@@ -222,6 +222,7 @@ The implementation is complete when:
 - Every in-scope EARS requirement maps to at least one passing test; a green suite with an uncovered in-scope requirement is not done.
 - All of the active Micro-Spec's `verification_gates` pass, and every item in its `evidence_required` has been produced.
 - The spec's evidence ledger carries a covering, all-passed latest run — recorded by `governance:advance` (or `run-gates --spec <id> --record`), not written by hand.
+- After review evidence completes, the lifecycle continues past `implemented`: `verified` (attestations + acknowledgements), then `closed` — the body rewritten into a machine-validated rationale record per `micro-specs/README.md`, "Closed-Record Contract".
 - The production code satisfies only the required behavior.
 - Fake implementations have been replaced through triangulation where needed.
 - Refactoring has improved structure without changing behavior.

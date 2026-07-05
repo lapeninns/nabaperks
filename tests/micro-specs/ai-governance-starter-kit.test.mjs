@@ -318,6 +318,89 @@ test("Given an installed kit When upgraded Then engine files refresh with backup
   }
 })
 
+const SUITE_SKILLS = ["close-micro-spec", "implement-micro-spec", "install-governance", "write-micro-spec"]
+
+test("Given a fresh install When the installer runs Then the station suite lands in .claude/skills", () => {
+  const targetRoot = mkdtempSync(path.join(tmpdir(), "ai-governance-kit-suite-"))
+
+  try {
+    writePackageJson(targetRoot)
+    execFileSync("node", [path.join(kitRoot, "install-ai-governance.mjs"), targetRoot], {
+      stdio: "pipe",
+    })
+
+    for (const name of SUITE_SKILLS) {
+      const skillMd = path.join(targetRoot, ".claude/skills", name, "SKILL.md")
+      assert.equal(existsSync(skillMd), true, `${name} lands in the target's .claude/skills`)
+      assert.match(
+        readFileSync(skillMd, "utf8"),
+        /managed-by: ai-governance-starter-kit/,
+        `${name} carries the managed-by marker`
+      )
+    }
+    assert.equal(
+      existsSync(path.join(targetRoot, ".claude/skills/ai-governance-starter-kit")),
+      false,
+      "the router is never planted into targets"
+    )
+  } finally {
+    rmSync(targetRoot, { recursive: true, force: true })
+  }
+})
+
+test("Given --no-skills When installing Then no suite skills are planned or written", () => {
+  const targetRoot = mkdtempSync(path.join(tmpdir(), "ai-governance-kit-noskills-"))
+
+  try {
+    writePackageJson(targetRoot)
+    const output = execFileSync(
+      "node",
+      [path.join(kitRoot, "install-ai-governance.mjs"), "--no-skills", targetRoot],
+      { encoding: "utf8" }
+    )
+
+    assert.doesNotMatch(output, /\.claude\/skills/)
+    assert.equal(existsSync(path.join(targetRoot, ".claude/skills")), false)
+    assert.equal(existsSync(path.join(targetRoot, "scripts/check-governance.mjs")), true)
+  } finally {
+    rmSync(targetRoot, { recursive: true, force: true })
+  }
+})
+
+test("Given an installed suite When re-installed and upgraded Then adaptations survive installs and --upgrade refreshes with a backup", () => {
+  const targetRoot = mkdtempSync(path.join(tmpdir(), "ai-governance-kit-suite-upgrade-"))
+
+  try {
+    writePackageJson(targetRoot)
+    execFileSync("node", [path.join(kitRoot, "install-ai-governance.mjs"), targetRoot], {
+      stdio: "pipe",
+    })
+
+    const doctored = path.join(targetRoot, ".claude/skills/write-micro-spec/SKILL.md")
+    writeFileSync(doctored, "# adapted by the repo\n")
+
+    // A plain re-install honors the adaptation (skip-if-exists).
+    execFileSync("node", [path.join(kitRoot, "install-ai-governance.mjs"), targetRoot], {
+      stdio: "pipe",
+    })
+    assert.equal(readFileSync(doctored, "utf8"), "# adapted by the repo\n")
+
+    // --upgrade refreshes the owned suite file, leaving a backup.
+    execFileSync(
+      "node",
+      [path.join(kitRoot, "install-ai-governance.mjs"), "--upgrade", targetRoot],
+      { stdio: "pipe" }
+    )
+    assert.match(readFileSync(doctored, "utf8"), /name: write-micro-spec/)
+    const backups = readdirSync(path.join(targetRoot, ".claude/skills/write-micro-spec")).filter(
+      (file) => file.startsWith("SKILL.md.bak.")
+    )
+    assert.equal(backups.length, 1, "the overwritten suite skill leaves a backup")
+  } finally {
+    rmSync(targetRoot, { recursive: true, force: true })
+  }
+})
+
 function writePackageJson(targetRoot, overrides = {}) {
   const packageJson = {
     name: "starter-target",

@@ -371,6 +371,73 @@ test("Given a radius pattern with prose whitespace Then validation fails", (t) =
   assert.match(result.failures.join("\n"), /contains whitespace/)
 })
 
+test("Given closed specs When their records conform or rot Then the closed-record contract is enforced", (t) => {
+  const root = fixtureRepo(t, {
+    spec: specFile({ riskClass: "docs-tooling" }),
+    extraSpecs: {
+      "governance/closed-good.md": specFile({
+        specId: "MS-test-closed-good",
+        status: "closed",
+        riskClass: "docs-tooling",
+        body: closedRecordBody(),
+      }),
+      "governance/closed-plan.md": specFile({
+        specId: "MS-test-closed-plan",
+        status: "closed",
+        riskClass: "docs-tooling",
+        body: [...closedRecordBody(), "## 5. Behavioral Requirements (EARS)", ""],
+      }),
+      "governance/closed-stale.md": specFile({
+        specId: "MS-test-closed-stale",
+        status: "closed",
+        riskClass: "docs-tooling",
+        body: closedRecordBody("tests/micro-specs/renamed-away.test.mjs"),
+      }),
+      "governance/closed-bare.md": specFile({
+        specId: "MS-test-closed-bare",
+        status: "closed",
+        riskClass: "docs-tooling",
+        body: ["## Why It Exists", "", "Only one heading survived.", ""],
+      }),
+      "governance/closed-sentinel.md": specFile({
+        specId: "MS-test-closed-sentinel",
+        status: "closed",
+        riskClass: "docs-tooling",
+        tests: ["not-yet-created"],
+        body: closedRecordBody(),
+      }),
+    },
+  })
+
+  const { failures } = run(root)
+
+  assert.equal(
+    failures.filter((f) => f.includes("closed-good.md")).length,
+    0,
+    `a conforming record (file + directory pointers) must pass, got ${JSON.stringify(failures)}`
+  )
+  assert.ok(
+    failures.some((f) => f.includes("closed-plan.md") && f.includes("build-plan heading")),
+    "a lingering activation heading proves the rewrite never happened"
+  )
+  assert.ok(
+    failures.some(
+      (f) =>
+        f.includes("closed-stale.md") &&
+        f.includes('"tests/micro-specs/renamed-away.test.mjs" does not resolve')
+    ),
+    "a stale pointer is a failure, not a warning"
+  )
+  assert.ok(
+    failures.some(
+      (f) => f.includes("closed-bare.md") && f.includes('missing the required heading "## Invariants"')
+    )
+  )
+  assert.ok(
+    failures.some((f) => f.includes("closed-sentinel.md") && f.includes("related_tests sentinel"))
+  )
+})
+
 test("Given CI and README gate lists When they drift Then both directions fail", (t) => {
   const root = fixtureRepo(t, {
     spec: specFile({ riskClass: "docs-tooling" }),
@@ -405,6 +472,30 @@ function run(root, options = {}) {
     evidenceAdoptionDate: null,
     ...options,
   })
+}
+
+// A conforming closed-record body: every required heading, one file pointer,
+// one directory pointer, and a bare symbol that must parse as prose.
+function closedRecordBody(pointer = "tests/micro-specs/example.test.mjs") {
+  return [
+    "## Why It Exists",
+    "",
+    "Pins the closed-record contract in fixtures.",
+    "",
+    "## Invariants",
+    "",
+    "- Status lines are machine-written.",
+    "",
+    "## Code Pointers",
+    "",
+    `- \`validateGovernance\` behavior pinned by \`${pointer}\`.`,
+    "- Harness directory: `tests/micro-specs` (directory pointers are sanctioned).",
+    "",
+    "## Dead Ends",
+    "",
+    "None.",
+    "",
+  ]
 }
 
 function fixtureRepo(t, { spec, extraSpecs = {}, ciLines = null, readmeGates = null }) {
@@ -521,6 +612,7 @@ function specFile({
   playwrightProjects = [],
   evidence = ["CI output"],
   exceptions = [],
+  body = [],
 }) {
   return [
     "---",
@@ -540,6 +632,7 @@ function specFile({
     "",
     "# Test spec",
     "",
+    ...body,
   ].join("\n")
 }
 

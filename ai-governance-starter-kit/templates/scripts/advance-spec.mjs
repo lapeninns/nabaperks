@@ -6,7 +6,7 @@
 // and fails the checker once evidence enforcement is on.
 //
 // usage:
-//   node scripts/advance-spec.mjs <spec-id> --to <active|implemented|verified|superseded>
+//   node scripts/advance-spec.mjs <spec-id> --to <active|implemented|verified|closed|superseded>
 //       [--attest "<manual-gate> by <who>: <note>"]...   (verified)
 //       [--ack "<exact evidence_required item>"]...      (verified)
 //       [--superseded-by <spec-id> | --reason "<text>"]  (superseded)
@@ -41,24 +41,20 @@ import {
   writeLedger,
 } from "./governance-evidence.mjs"
 import { readSpecs, specPath } from "./governance-io.mjs"
-import { validateGovernance } from "./governance-rules.mjs"
+import {
+  REQUIRED_SECTION_HEADINGS,
+  validateClosedRecord,
+  validateGovernance,
+} from "./governance-rules.mjs"
 
 const ALLOWED_TRANSITIONS = Object.freeze({
   draft: ["active"],
   active: ["implemented", "superseded"],
   implemented: ["verified", "superseded"],
-  verified: ["superseded"],
+  verified: ["closed", "superseded"],
+  closed: ["superseded"],
   superseded: [],
 })
-
-const REQUIRED_SECTION_HEADINGS = Object.freeze([
-  "## 1. Exact Goal and User-Visible Outcomes",
-  "## 2. Blast Radius",
-  "## 3. Strict Constraints and Assumptions",
-  "## 4. Decisions Already Made",
-  "## 5. Behavioral Requirements (EARS)",
-  "## 6. Verification Criteria and Task Breakdown",
-])
 
 const root = process.cwd()
 const options = parseArgs(process.argv.slice(2))
@@ -117,7 +113,7 @@ if (to === "verified") {
 }
 
 const git = gitInfo(root)
-const runsGates = to === "implemented" || to === "verified"
+const runsGates = to === "implemented" || to === "verified" || to === "closed"
 
 if (runsGates && git.dirty && !options.allowDirty) {
   refuse(
@@ -126,7 +122,7 @@ if (runsGates && git.dirty && !options.allowDirty) {
 }
 if (options.allowDirty && !options.note) refuse("--allow-dirty requires --note \"<why>\"")
 
-// Blast-radius attribution for the branch diff (implemented/verified only).
+// Blast-radius attribution for the branch diff (gates-running transitions).
 if (runsGates) {
   const changed = branchChangedFiles(root)
   const activeOthers = specs.filter(
@@ -170,6 +166,20 @@ if (to === "active") {
     if (!originalSource.includes(heading)) {
       refuse(`activation requires the section heading "${heading}" in the spec body`)
     }
+  }
+}
+
+// --- Closed-record validation (verified -> closed) ----------------------------
+
+if (to === "closed") {
+  // The body must already be a rationale record; validated by exactly the
+  // checker code that will re-validate it on every future run, and refused
+  // BEFORE gates so a red rewrite costs seconds, not a gate run.
+  const problems = validateClosedRecord({ ...spec, source: originalSource }, root)
+  if (problems.length > 0) {
+    console.error(`advance: ${options.specId} does not satisfy the closed-record contract:`)
+    for (const problem of problems) console.error(`- ${problem}`)
+    process.exit(1)
   }
 }
 
@@ -372,8 +382,8 @@ function parseArgs(argv) {
   }
 
   if (!parsed.specId) usage("a <spec-id> argument is required")
-  if (!["active", "implemented", "verified", "superseded"].includes(parsed.to ?? "")) {
-    usage("--to must be one of: active, implemented, verified, superseded")
+  if (!["active", "implemented", "verified", "closed", "superseded"].includes(parsed.to ?? "")) {
+    usage("--to must be one of: active, implemented, verified, closed, superseded")
   }
   return parsed
 }
@@ -392,7 +402,7 @@ function refuse(message) {
 function usage(problem) {
   console.error(`advance: ${problem}`)
   console.error(
-    'usage: node scripts/advance-spec.mjs <spec-id> --to <active|implemented|verified|superseded> [--attest "<gate> by <who>: <note>"]... [--ack "<evidence item>"]... [--superseded-by <id> | --reason "<text>"] [--allow-dirty --note "<why>"] [--strict] [--dry-run] [--by <who>]'
+    'usage: node scripts/advance-spec.mjs <spec-id> --to <active|implemented|verified|closed|superseded> [--attest "<gate> by <who>: <note>"]... [--ack "<evidence item>"]... [--superseded-by <id> | --reason "<text>"] [--allow-dirty --note "<why>"] [--strict] [--dry-run] [--by <who>]'
   )
   process.exit(2)
 }

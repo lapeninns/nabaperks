@@ -30,6 +30,12 @@ a CI-enforced AI governance spine.
 - Keep governance current-only. Add planning packs, generated route docs,
   screenshot evidence folders, design-source mirrors, or `.omo` evidence files
   only when the user explicitly asks for them.
+- Micro-Spec statuses are machine-owned: scaffold with
+  `pnpm governance:new-spec`, move the lifecycle only with
+  `pnpm governance:advance` (`draft -> active -> implemented -> verified ->
+  closed`; `superseded` is the exit ramp). Closing rewrites the body into a
+  rationale record the checker validates — see the close-micro-spec station
+  skill and `micro-specs/README.md`, "Closed-Record Contract".
 - Read the relevant Next.js 16 guide in `node_modules/next/dist/docs/` before
   changing app-router APIs, route handlers, server actions, or config.
 - Server state remains authoritative. Browser storage is cache only; loyalty and
@@ -55,8 +61,14 @@ The governance spine is deliberately small and enforceable:
   risk-gate/CI contract.
 - `micro-specs/GLOBAL_CONTEXT.md` holds reusable project constraints.
 - `scripts/check-governance.mjs` validates metadata, risk gates, blast radius,
-  docs drift, and safe gate-command shapes.
-- `scripts/run-governance-gates.mjs` runs active Micro-Spec verification gates.
+  docs drift, evidence ledgers, closed-record contracts, and safe gate-command
+  shapes.
+- `scripts/run-governance-gates.mjs` runs active Micro-Spec verification gates
+  (`--spec <id> --record` writes the evidence ledger).
+- The station skills mirrored into `.factory/skills/` (write-micro-spec,
+  implement-micro-spec, close-micro-spec, install-governance) carry the
+  authoring, implementation, and closing procedures; the canonical copies
+  live in `ai-governance-starter-kit/skills/`.
 
 There are currently no active feature Micro-Specs checked in. The active
 docs-tooling Micro-Spec is `micro-specs/governance/ai-delivery-framework.md`.

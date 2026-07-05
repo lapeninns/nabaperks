@@ -42,7 +42,7 @@ this YAML frontmatter. Only `status: active` can drive implementation.
 
 ```yaml
 spec_id: MS-<area>-<slug>
-status: draft | active | implemented | verified | superseded
+status: draft | active | implemented | verified | closed | superseded
 risk_class: docs-tooling | ui-only | data-model | auth-session | billing | webhooks | migrations | infra | security | ai-agent
 owner: <person-or-agent>
 last_reviewed: YYYY-MM-DD
@@ -90,9 +90,14 @@ Additional enforced rules:
   evidence is not complete.
 - `verified`: implementation evidence, review notes, and required gates are
   complete.
+- `closed`: the terminal happy status. The work shipped and was verified, and
+  the spec body has been rewritten from a build plan into a durable rationale
+  record (why it exists, invariants, code pointers, dead ends) that the
+  checker machine-validates on every run. Closed specs are reference, not
+  implementation input.
 - `superseded`: non-current and blocked for implementation.
 
-Draft, implemented, verified, and superseded specs are not valid new
+Draft, implemented, verified, closed, and superseded specs are not valid new
 implementation inputs.
 
 ## Lifecycle Transition Policy
@@ -106,7 +111,33 @@ recorded transition and fails the checker.
 | `draft`       | `active`      | Six numbered sections present; full metadata + risk-floor validation of the activated spec (reverts on failure). |
 | `active`      | `implemented` | Clean tree (or `--allow-dirty --note` + waiver); branch diff inside this spec's radius; fresh all-pass gate run recorded. |
 | `implemented` | `verified`    | Everything above, plus `--attest` per declared `manual:*` gate and `--ack` per `evidence_required` item (exact text). |
-| `active`/`implemented`/`verified` | `superseded` | `--superseded-by <spec-id>` (must exist) XOR `--reason "<text>"`; inserts `superseded_by:`.        |
+| `verified`    | `closed`      | Everything above, plus the spec body satisfies the closed-record contract (validated before gates run; see below).   |
+| `active`/`implemented`/`verified`/`closed` | `superseded` | `--superseded-by <spec-id>` (must exist) XOR `--reason "<text>"`; inserts `superseded_by:`.        |
+
+## Closed-Record Contract
+
+Closing is the archive station: the body is rewritten from a build plan into
+a durable rationale record — the why, the invariants, and a pointer map into
+the code — and the engine validates the RESULT, both at `--to closed` and on
+every subsequent governance-check run:
+
+- Required headings: `## Why It Exists`, `## Invariants`, `## Code Pointers`,
+  and `## Dead Ends` (required even when the content is "None." — the
+  attestation is the point).
+- None of the six numbered build-plan headings may remain — a body that still
+  says "will" through an activation heading is still a plan.
+- Every `- ` line under `## Code Pointers` must carry at least one
+  backtick-wrapped repo path (at least one `/`, no whitespace or globs, no
+  leading slash) that resolves to an existing file **or directory**.
+  Directory pointers are the sanctioned valve for volatile file names; a
+  stale pointer is a failure, not a warning. Bare symbol names and URLs in
+  backticks read as prose.
+- `related_tests` may not keep the `not-yet-created` sentinel.
+
+Healing a rotted record (for example after a rename): hand-edit the body —
+the `status:` line stays machine-owned — then re-prove with
+`governance:run-gates --spec <spec-id> --record` and commit the spec and
+ledger together.
 
 ## Risk Gate Matrix
 
@@ -184,7 +215,7 @@ One JSON file per spec at `micro-specs/evidence/<spec_id>.json` records gate
 
 Once `EVIDENCE_ADOPTION_DATE` is set in `scripts/governance-constants.mjs`
 (fresh installs stamp the install date), the checker enforces for every
-implemented/verified spec:
+implemented/verified/closed spec:
 
 - the ledger exists, parses, and matches the spec_id;
 - the status was reached by a recorded transition (provenance — hand-edited
@@ -195,8 +226,10 @@ implemented/verified spec:
 - `all_passed` agrees with the recorded exit codes (hand-doctored flags fail);
 - the latest transition was not recorded on a dirty tree, unless the spec
   carries a dated `evidence-waiver` approved exception;
-- verified specs carry an attestation per `manual:*` gate and an
-  acknowledgement per `evidence_required` item.
+- verified and closed specs carry an attestation per declared
+  manual-inspection gate and a `gate:"evidence"` acknowledgement matching
+  each current `evidence_required` item exactly — a hand-assembled ledger
+  cannot skip the human step.
 
 A red run recorded on an implemented spec correctly fails the checker — that
 is a regression being reported, not a bookkeeping error; fix the code and

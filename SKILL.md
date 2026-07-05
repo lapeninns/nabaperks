@@ -15,14 +15,13 @@ in:
 - `micro-specs/GLOBAL_CONTEXT.md`
 - `DESIGN.md`
 
-The current tracked repo keeps only build-facing gates:
+The CI-enforced gate baseline is the "Current Verification Gates" list in
+`micro-specs/README.md` (lint, typecheck, governance checks, node/unit/DB
+tests, Playwright e2e/a11y/visual tiers, build and budget checks — the checker
+fails when that list drifts from `ci.yml`).
 
-```bash
-pnpm lint
-pnpm typecheck
-pnpm build
-```
-
-Use only the current checked-in gates unless a new active Micro-Spec explicitly
-adds the required test, database, security, or browser automation harness inside
-its approved blast radius.
+Micro-Spec lifecycle moves only through `pnpm governance:advance`
+(`draft -> active -> implemented -> verified -> closed`; `superseded` is the
+exit ramp), with `pnpm governance:new-spec` as intake. The station skills in
+`.factory/skills/` — write-micro-spec, implement-micro-spec,
+close-micro-spec, install-governance — carry the working procedures.

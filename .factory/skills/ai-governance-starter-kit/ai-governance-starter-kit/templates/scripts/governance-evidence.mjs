@@ -3,7 +3,7 @@
 // EVIDENCE_DIR recording gate runs, lifecycle transitions, and manual
 // attestations. The ledger is what turns "trust me, the gates passed" into a
 // reviewable artifact — and what the checker validates for implemented /
-// verified specs once EVIDENCE_ADOPTION_DATE is set.
+// verified / closed specs once EVIDENCE_ADOPTION_DATE is set.
 //
 // Design invariants:
 // - Only the LATEST run is ever judged (older entries are history/context),
@@ -116,7 +116,9 @@ export function runEntryFor(spec, executedResults, git, timestamp) {
 export function evaluateLedger(spec, ledger, adoptionDate) {
   if (!adoptionDate) return []
   const status = spec.metadata.status
-  if (status !== "implemented" && status !== "verified") return []
+  if (status !== "implemented" && status !== "verified" && status !== "closed") {
+    return []
+  }
 
   const id = spec.metadata.spec_id ?? spec.file
   if (!ledger) {
@@ -160,6 +162,28 @@ export function evaluateLedger(spec, ledger, adoptionDate) {
     failures.push(
       `${id} latest transition was recorded on a dirty tree; add a dated "evidence-waiver" approved_exceptions entry or re-advance from a clean tree.`
     )
+  }
+
+  // Human proof (verified/closed): the lifecycle CLI writes an attestation per
+  // declared manual-inspection gate and a gate:"evidence" note per
+  // acknowledged evidence_required item; requiring them here means a
+  // hand-assembled ledger cannot skip the human step.
+  if (status === "verified" || status === "closed") {
+    const attestations = ledger.manual_attestations ?? []
+    for (const gate of (spec.metadata.verification_gates ?? []).filter(isManualInspectionGate)) {
+      if (!attestations.some((entry) => entry.gate === gate)) {
+        failures.push(
+          `${id} is ${status} but the ledger has no attestation for manual gate "${gate}".`
+        )
+      }
+    }
+    for (const item of (spec.metadata.evidence_required ?? []).map((entry) => String(entry).trim())) {
+      if (!attestations.some((entry) => entry.gate === "evidence" && entry.note === item)) {
+        failures.push(
+          `${id} is ${status} but the ledger has no evidence acknowledgement matching "${item}".`
+        )
+      }
+    }
   }
 
   // Covering run: latest run must contain every currently declared runnable
@@ -230,6 +254,10 @@ if (invokedDirectly) {
     let created = 0
     for (const spec of specs) {
       const status = spec.metadata.status
+      // implemented|verified only — no "closed" here on purpose: the closed
+      // status shipped after evidence enforcement, so a closed spec can never
+      // predate adoption; every closed status is machine-recorded by
+      // construction and a stub would only paper over a hand flip.
       if (status !== "implemented" && status !== "verified") continue
       const id = spec.metadata.spec_id
       if (!id || readLedger(root, id)) continue
