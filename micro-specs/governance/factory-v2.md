@@ -57,7 +57,7 @@ evidence_required:
 approved_exceptions: []
 ---
 
-# Why It Exists
+## Why It Exists
 
 An audit of the original starter kit rated it 8.5/10 and found enforcement
 that trusted silently: the frontmatter parser dropped wrapped continuation
@@ -72,7 +72,7 @@ ledger the checker audits. The repo's live engine is byte-identical to the
 kit it ships (lockstep), so this repository always runs exactly what
 consumers install.
 
-# Invariants
+## Invariants
 
 - Engine files are byte-identical kit <-> repo <-> distributed bundles;
   `scripts/governance-constants.mjs` is the only divergent file, and even it
@@ -100,7 +100,7 @@ consumers install.
   gate commands must stay equal, both filtered through the same
   candidate test.
 
-# Code Pointers
+## Code Pointers
 
 - Checker: `scripts/governance-rules.mjs` (metadata, risk floors, blast
   radius, docs drift, evidence, closed records), entry point
@@ -121,7 +121,7 @@ consumers install.
   `tests/micro-specs/ai-governance-starter-kit.test.mjs` (installer,
   upgrade, scratch-repo loop).
 
-# Dead Ends
+## Dead Ends
 
 - Per-repo configurable glob semantics: rejected — lockstep is meaningless if
   pattern matching differs between the kit and a consumer; the dialect is
