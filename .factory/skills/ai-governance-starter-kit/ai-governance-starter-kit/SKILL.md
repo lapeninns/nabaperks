@@ -53,5 +53,8 @@ manifest exists at the product repo's root on purpose.
 
 The kit is canonical for ALL skill content, including this file. After
 editing anything under the kit: `node scripts/sync-skill-bundles.mjs`
-(add `--claude-home` to refresh `~/.claude/skills`); the drift-guard test
-fails CI when bundles, suite mirrors, or shared tests diverge.
+(add `--all-homes` to also refresh the agent homes on this machine —
+`~/.claude`, `~/.factory`, `~/.codex`, `~/.agents` — or a single
+`--claude-home` / `--factory-home` / `--codex-home` / `--agents-home`);
+the drift-guard test fails CI when bundles, suite mirrors, or shared
+tests diverge.

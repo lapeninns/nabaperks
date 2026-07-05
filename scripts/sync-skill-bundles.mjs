@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 // Vendors the canonical starter kit into the self-contained skill bundles so
-// every distribution (Factory `.factory/skills`, Claude `~/.claude/skills`)
-// ships the exact same installer + templates, and mirrors the kit's station
-// skills (`skills/<name>/`) to top-level skill directories next to each
-// bundle so they are discoverable — skill discovery is one level deep, so the
-// copies nested inside the vendored kit are inert. The kit is canonical for
-// ALL skill content, including SKILL.md.
+// every distribution (the repo's `.factory/skills` plus the per-agent home
+// directories — Claude `~/.claude/skills`, droid `~/.factory/skills`, Codex
+// `~/.codex/skills`, and the shared `~/.agents/skills`) ships the exact same
+// installer + templates, and mirrors the kit's station skills
+// (`skills/<name>/`) to top-level skill directories next to each bundle so
+// they are discoverable — skill discovery is one level deep, so the copies
+// nested inside the vendored kit are inert. The kit is canonical for ALL
+// skill content, including SKILL.md.
 //
 // It also enforces LOCKSTEP for the repo's own governance engine and shared
 // tests: every ENGINE_FILES entry under scripts/ and every SHARED_TEST_FILES
@@ -22,7 +24,11 @@
 // Usage:
 //   node scripts/sync-skill-bundles.mjs                # sync .factory bundle, mirrors, repo engine/tests
 //   node scripts/sync-skill-bundles.mjs --check        # fail (exit 1) on any drift
-//   node scripts/sync-skill-bundles.mjs --claude-home  # also refresh ~/.claude/skills
+//   node scripts/sync-skill-bundles.mjs --all-homes    # also refresh every agent home below
+//   node scripts/sync-skill-bundles.mjs --claude-home  # ~/.claude/skills (Claude Code)
+//   node scripts/sync-skill-bundles.mjs --factory-home # ~/.factory/skills (droid)
+//   node scripts/sync-skill-bundles.mjs --codex-home   # ~/.codex/skills (Codex)
+//   node scripts/sync-skill-bundles.mjs --agents-home  # ~/.agents/skills (cross-agent)
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from "node:fs"
 import { homedir } from "node:os"
 import { dirname, join, relative } from "node:path"
@@ -40,9 +46,20 @@ const sourceKit = join(repoRoot, "ai-governance-starter-kit")
 const sourceSkillMd = join(sourceKit, "SKILL.md")
 const suiteRoot = join(sourceKit, "skills")
 
+// Per-agent home skill roots on this machine; each is opt-in by flag (or all
+// at once) so CI and plain repo syncs never touch the user's home directory.
+const HOME_ROOTS = [
+  ["--claude-home", ".claude/skills"],
+  ["--factory-home", ".factory/skills"],
+  ["--codex-home", ".codex/skills"],
+  ["--agents-home", ".agents/skills"],
+]
+
 const skillsRoots = [join(repoRoot, ".factory/skills")]
-if (args.includes("--claude-home")) {
-  skillsRoots.push(join(homedir(), ".claude/skills"))
+for (const [flag, homePath] of HOME_ROOTS) {
+  if (args.includes(flag) || args.includes("--all-homes")) {
+    skillsRoots.push(join(homedir(), homePath))
+  }
 }
 
 const suiteSkills = existsSync(suiteRoot)
