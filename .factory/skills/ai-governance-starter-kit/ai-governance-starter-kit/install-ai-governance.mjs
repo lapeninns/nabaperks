@@ -3,6 +3,15 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { dirname, join, relative } from "node:path"
 import { fileURLToPath } from "node:url"
 
+// The installer shares the engine's package-manager and gate-floor logic so
+// the bootstrap spec's gates are resolved by exactly the code that will later
+// validate them.
+import {
+  commandFor,
+  detectPackageManager,
+  floorGatesFor,
+} from "./templates/scripts/governance-commands.mjs"
+
 const kitRoot = dirname(fileURLToPath(import.meta.url))
 const templatesRoot = join(kitRoot, "templates")
 const args = process.argv.slice(2)
@@ -88,16 +97,10 @@ function buildContext(root, packageJson = {}) {
     (scriptName) => !scripts[scriptName]
   )
 
-  // Gate list for the bootstrap docs-tooling Micro-Spec, generated from the
-  // scripts the repo actually exposes so it satisfies the risk floor on first
-  // run (docs-tooling requires governance:check + test, plus lint/typecheck
-  // when those scripts exist).
-  const bootstrapGates = [
-    commandFor(packageManager, { "governance:check": true }, "governance:check"),
-    commandFor(packageManager, scripts, "test"),
-  ]
-  if (scripts.lint) bootstrapGates.push(commandFor(packageManager, scripts, "lint"))
-  if (scripts.typecheck) bootstrapGates.push(commandFor(packageManager, scripts, "typecheck"))
+  // Gate list for the bootstrap docs-tooling Micro-Spec, resolved by the same
+  // floorGatesFor the intake scaffolder uses, so it satisfies the risk floor
+  // on first run by construction.
+  const bootstrapGates = floorGatesFor("docs-tooling", scripts, packageManager).gates
 
   return {
     "{{PROJECT_NAME}}": projectName,
@@ -195,6 +198,7 @@ function planPackageAction(root, packageJson, actions, options) {
     "node scripts/run-governance-gates.mjs",
     options
   )
+  mergeScript(packageJson.scripts, "governance:new-spec", "node scripts/new-spec.mjs", options)
   mergeScript(
     packageJson.scripts,
     "test:micro-specs",
@@ -220,15 +224,6 @@ function planPackageAction(root, packageJson, actions, options) {
     path,
     relativePath: "package.json",
   })
-}
-
-function detectPackageManager(root, packageJson) {
-  const declared = packageJson.packageManager?.split("@")[0]
-  if (declared) return declared
-  if (existsSync(join(root, "pnpm-lock.yaml"))) return "pnpm"
-  if (existsSync(join(root, "yarn.lock"))) return "yarn"
-  if (existsSync(join(root, "bun.lockb")) || existsSync(join(root, "bun.lock"))) return "bun"
-  return "npm"
 }
 
 function detectStack(root, packageJson) {
@@ -280,16 +275,6 @@ function detectCiStatus(root) {
       ? "Existing CI already references governance:check."
       : "Existing CI found; a separate AI governance workflow will be added.",
   }
-}
-
-function commandFor(packageManager, scripts, scriptName) {
-  if (!scripts[scriptName] && scriptName === "test") {
-    return commandFor(packageManager, { "test:micro-specs": true }, "test:micro-specs")
-  }
-  if (!scripts[scriptName]) return `echo "No ${scriptName} script configured"`
-  if (packageManager === "npm") return `npm run ${scriptName}`
-  if (packageManager === "bun") return `bun run ${scriptName}`
-  return `${packageManager} ${scriptName}`
 }
 
 function mergeScript(scripts, scriptName, value, options) {

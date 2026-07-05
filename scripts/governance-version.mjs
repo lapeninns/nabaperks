@@ -15,10 +15,12 @@ export const KIT_VERSION = "0.2.0"
 export const ENGINE_FILES = Object.freeze([
   "check-governance.mjs",
   "governance-commands.mjs",
+  "governance-evidence.mjs",
   "governance-frontmatter.mjs",
   "governance-glob.mjs",
   "governance-io.mjs",
   "governance-rules.mjs",
   "governance-version.mjs",
+  "new-spec.mjs",
   "run-governance-gates.mjs",
 ])

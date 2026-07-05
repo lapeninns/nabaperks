@@ -46,7 +46,8 @@
     "env:set-posthog": "node scripts/env-keys.mjs set-posthog",
     "env:set-resend": "node scripts/env-keys.mjs set-resend",
     "env:push-vercel": "node scripts/env-keys.mjs push-vercel",
-    "env:write-local": "node scripts/env-keys.mjs write-local"
+    "env:write-local": "node scripts/env-keys.mjs write-local",
+    "governance:new-spec": "node scripts/new-spec.mjs"
   },
   "engines": {
     "node": ">=22.0.0",

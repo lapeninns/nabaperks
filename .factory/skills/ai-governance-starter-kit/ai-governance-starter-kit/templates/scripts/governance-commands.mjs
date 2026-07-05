@@ -1,13 +1,19 @@
-// Pure command-parsing helpers shared by the whole engine (rules, io, the
-// gate runner, and the factory-station CLIs). Keeping them here breaks the
-// import cycle that would otherwise exist between governance-io.mjs and
-// governance-rules.mjs.
+// Command helpers shared by the whole engine (rules, io, the gate runner,
+// the installer, and the factory-station CLIs). Keeping the pure parsers here
+// breaks the import cycle that would otherwise exist between
+// governance-io.mjs and governance-rules.mjs.
+
+import { execFileSync, spawnSync } from "node:child_process"
+import { existsSync } from "node:fs"
+import { join } from "node:path"
 
 import {
   CI_COMMAND_INCLUDE_PATTERN,
+  DURABLE_PROOF_SCRIPTS,
   KNOWN_MANUAL_INSPECTION_GATES,
   KNOWN_MANUAL_INSPECTION_GATE_PATTERNS,
   NON_GATE_SCRIPT_NAMES,
+  RISK_REQUIRED_SCRIPTS,
 } from "./governance-constants.mjs"
 
 // Parse "<manager> [run] <script> [args]" for npm, pnpm, yarn, and bun.
@@ -49,4 +55,137 @@ export function isGateCommandCandidate(command) {
     return false
   }
   return true
+}
+
+// --- Package-manager awareness (shared with the installer) ------------------
+
+export function detectPackageManager(root, packageJson = {}) {
+  const declared = packageJson.packageManager?.split("@")[0]
+  if (declared) return declared
+  if (existsSync(join(root, "pnpm-lock.yaml"))) return "pnpm"
+  if (existsSync(join(root, "yarn.lock"))) return "yarn"
+  if (existsSync(join(root, "bun.lockb")) || existsSync(join(root, "bun.lock"))) return "bun"
+  return "npm"
+}
+
+export function commandFor(packageManager, scripts, scriptName) {
+  if (!scripts[scriptName] && scriptName === "test") {
+    return commandFor(packageManager, { "test:micro-specs": true }, "test:micro-specs")
+  }
+  if (!scripts[scriptName]) return `echo "No ${scriptName} script configured"`
+  if (packageManager === "npm") return `npm run ${scriptName}`
+  if (packageManager === "bun") return `bun run ${scriptName}`
+  return `${packageManager} ${scriptName}`
+}
+
+// Resolve the full gate floor for a risk class against the repo's REAL
+// package scripts: every `always` script, each `whenPresent` script the repo
+// defines, the first available durable-proof script when the class demands
+// one, and the class's manual-review gate. Used by the intake scaffolder and
+// the installer's bootstrap spec.
+export function floorGatesFor(riskClass, packageScripts, packageManager) {
+  const floor = RISK_REQUIRED_SCRIPTS[riskClass]
+  if (!floor) return { gates: [], needsDurableProofException: false }
+
+  const gates = []
+  const push = (scriptName) => {
+    const command = commandFor(packageManager, { ...packageScripts, "governance:check": true }, scriptName)
+    if (!gates.includes(command)) gates.push(command)
+  }
+
+  for (const scriptName of floor.always ?? []) push(scriptName)
+  for (const scriptName of floor.whenPresent ?? []) {
+    if (packageScripts[scriptName]) push(scriptName)
+  }
+
+  let needsDurableProofException = false
+  if (floor.durableProof) {
+    const available = DURABLE_PROOF_SCRIPTS.find((name) => packageScripts[name])
+    if (available) {
+      push(available)
+    } else {
+      needsDurableProofException = true
+    }
+  }
+
+  if (floor.manualReview && !gates.includes(floor.manualReview)) {
+    gates.push(floor.manualReview)
+  }
+
+  return { gates, needsDurableProofException }
+}
+
+// --- Gate execution (shared by the gate runner and the lifecycle CLI) -------
+
+// Execute runnable gates sequentially with shell:false, fail-fast. Returns
+// one result per gate that actually ran — including the failing one — so the
+// evidence ledger can record honest history.
+export function executeGates(root, gates) {
+  const results = []
+
+  for (const gate of gates) {
+    const parsed = parsePackageScriptGate(gate)
+    if (!parsed) {
+      results.push({ command: gate, exit_code: null, duration_ms: 0, error: "unsupported gate command" })
+      break
+    }
+
+    const started = Date.now()
+    const child = spawnSync(parsed.manager, packageArgs(parsed), {
+      cwd: root,
+      env: process.env,
+      stdio: "inherit",
+      shell: false,
+    })
+    const result = {
+      command: gate,
+      exit_code: child.error ? null : child.status ?? 1,
+      duration_ms: Date.now() - started,
+    }
+    if (child.error) result.error = child.error.message
+    results.push(result)
+    if (result.exit_code !== 0) break
+  }
+
+  return results
+}
+
+export function packageArgs(gate) {
+  const base = gate.manager === "npm" ? ["run", gate.scriptName] : [gate.scriptName]
+  if (!gate.args) return base
+  return [...base, ...splitArgs(gate.args)]
+}
+
+function splitArgs(source) {
+  const args = []
+  const pattern = /"([^"]*)"|'([^']*)'|(\S+)/g
+  for (const match of source.matchAll(pattern)) {
+    args.push(match[1] ?? match[2] ?? match[3])
+  }
+  return args
+}
+
+// --- Git state (shared by the evidence ledger and the lifecycle CLI) --------
+
+export function gitInfo(root) {
+  const sha = gitOutput(root, ["rev-parse", "HEAD"])
+  const branch = gitOutput(root, ["rev-parse", "--abbrev-ref", "HEAD"])
+  const status = gitOutput(root, ["status", "--porcelain"])
+  return {
+    sha: sha || null,
+    branch: branch || null,
+    dirty: status === null ? null : status.length > 0,
+  }
+}
+
+function gitOutput(root, args) {
+  try {
+    return execFileSync("git", args, {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim()
+  } catch {
+    return null
+  }
 }
