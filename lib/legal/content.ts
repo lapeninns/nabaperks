@@ -38,6 +38,11 @@ export const PLATFORM_TERMS_SECTIONS: LegalSection[] = [
     title: "Availability restrictions",
     body: "The service may restrict new joins, stamps, QR scans, or redemptions when a merchant loyalty card is inactive, QR access is disabled, a reward is not yet redeemable, or billing is suspended.",
   },
+  {
+    id: "first-regular-guarantee",
+    title: "First-Regular Guarantee",
+    body: "Venue pilots carry the First-Regular Guarantee: if a venue's live loyalty card has not recorded its first returning member — a customer who stamps again on a later UK date — by the end of the 30-day free pilot, Nabaperks extends the free pilot at no charge until it does. The guarantee applies from the day the venue QR goes live and is claimed through support.",
+  },
 ]
 
 export const PLATFORM_TERMS_META = {

@@ -14,6 +14,7 @@ allowed_blast_radius:
   - components/marketing/**
   - tests/micro-specs/**
   - tests/e2e/visual.spec.ts-snapshots/**
+  - scripts/check-jsonld.mjs
 implementation_surfaces:
   - micro-specs/marketing/offer-v1.md
   - lib/marketing/facts.ts
@@ -23,6 +24,7 @@ implementation_surfaces:
   - components/marketing/**
   - tests/micro-specs/**
   - tests/e2e/visual.spec.ts-snapshots/**
+  - scripts/check-jsonld.mjs
 related_tests:
   - tests/micro-specs/marketing-auth-legal.test.mjs
   - tests/micro-specs/marketing-audit-v2-fixes.test.mjs
@@ -41,7 +43,7 @@ verification_gates:
   - pnpm jsonld:check
   - pnpm tokens:check
   - pnpm test:e2e -- --project=chromium --project=mobile-safari --grep "@public-route-metadata|pricing checkout return alert"
-  - pnpm test:a11y -- --project=chromium --project=mobile-safari
+  - pnpm test:a11y -- --project=chromium --project=mobile-safari --grep "no axe violations: /(pricing|signup|terms)"
   - pnpm test:visual -- --project=chromium --project=mobile-safari
 required_playwright_projects:
   - chromium
@@ -87,8 +89,11 @@ stack section), `app/(auth)/signup/page.tsx` (one added trust point),
 `components/marketing/**` (only if a small shared renderer for the bonus
 stack is cleaner than inlining it in the pricing page), the micro-spec node
 tests under `tests/micro-specs/**` (pinned-wording lockstep + new offer
-test), visual baselines under `tests/e2e/visual.spec.ts-snapshots/**`, and
-this spec + its evidence ledger.
+test), visual baselines under `tests/e2e/visual.spec.ts-snapshots/**`,
+`scripts/check-jsonld.mjs` (the guard pins the /pricing FAQPage question
+count — the guarantee FAQ moves it 5 → 6, a lockstep contract update
+discovered by the first recorded gate run), and this spec + its evidence
+ledger.
 
 Out of scope — must not change:
 
@@ -132,6 +137,11 @@ Out of scope — must not change:
 - The /pricing FAQ array is the single source for both the rendered FAQ and
   the FAQPage JSON-LD; the guarantee Q&A must flow through it (jsonld:check
   and the marketing-auth-legal FAQ dry-run test both inspect this surface).
+- The a11y gate is grep-scoped to this spec's changed routes
+  (/pricing, /signup, /terms): the /login and /start sweep lanes fail on
+  env-gapped local machines (customer-auth secrets absent since the
+  2026-07-04 environment split) independently of this spec, and CI's own
+  baseline job still runs the full sweep with secrets present.
 - Assumption: the business terms change (dropping the notice period) is
   approved by the owner in this conversation (2026-07-05). Stripe portal
   cancellation already behaves as cancel-at-period-end, so no billing code is

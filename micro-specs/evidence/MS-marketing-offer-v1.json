@@ -1,7 +1,185 @@
 {
   "schema": 1,
   "spec_id": "MS-marketing-offer-v1",
-  "runs": [],
+  "runs": [
+    {
+      "timestamp": "2026-07-05T18:39:21.642Z",
+      "git_sha": "8d1680fb047ede0f9c0802d284ecacae48754eb4",
+      "git_branch": "feat/offer-v1-guarantee-trim",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6442
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1371
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10981
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 7211
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 711
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 161
+        },
+        {
+          "command": "pnpm claims:check",
+          "exit_code": 0,
+          "duration_ms": 226
+        },
+        {
+          "command": "pnpm jsonld:check",
+          "exit_code": 1,
+          "duration_ms": 867
+        }
+      ],
+      "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-05T18:49:19.136Z",
+      "git_sha": "8d1680fb047ede0f9c0802d284ecacae48754eb4",
+      "git_branch": "feat/offer-v1-guarantee-trim",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6813
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1208
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 12579
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 7539
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 717
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 174
+        },
+        {
+          "command": "pnpm claims:check",
+          "exit_code": 0,
+          "duration_ms": 219
+        },
+        {
+          "command": "pnpm jsonld:check",
+          "exit_code": 0,
+          "duration_ms": 2334
+        },
+        {
+          "command": "pnpm tokens:check",
+          "exit_code": 0,
+          "duration_ms": 197
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@public-route-metadata|pricing checkout return alert\"",
+          "exit_code": 1,
+          "duration_ms": 1871
+        }
+      ],
+      "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-05T18:52:30.704Z",
+      "git_sha": "8d1680fb047ede0f9c0802d284ecacae48754eb4",
+      "git_branch": "feat/offer-v1-guarantee-trim",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6164
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1140
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 12756
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 7264
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 710
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 159
+        },
+        {
+          "command": "pnpm claims:check",
+          "exit_code": 0,
+          "duration_ms": 203
+        },
+        {
+          "command": "pnpm jsonld:check",
+          "exit_code": 0,
+          "duration_ms": 2264
+        },
+        {
+          "command": "pnpm tokens:check",
+          "exit_code": 0,
+          "duration_ms": 196
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@public-route-metadata|pricing checkout return alert\"",
+          "exit_code": 0,
+          "duration_ms": 26170
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari --grep \"no axe violations: /(pricing|signup|terms)\"",
+          "exit_code": 0,
+          "duration_ms": 15789
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 27793
+        }
+      ],
+      "all_passed": true
+    }
+  ],
   "manual_attestations": [],
   "transitions": [
     {
