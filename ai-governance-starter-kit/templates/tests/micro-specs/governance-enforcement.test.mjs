@@ -225,7 +225,7 @@ function makeFixture(t, { scripts = DEFAULT_SCRIPTS, specs = {}, extraFiles = {}
   return root
 }
 
-function specSource(overrides = {}) {
+function specSource(overrides = {}, body = []) {
   const metadata = {
     spec_id: "MS-fixture-example",
     status: "active",
@@ -255,8 +255,32 @@ function specSource(overrides = {}) {
       lines.push(`${key}: ${value}`)
     }
   }
-  lines.push("---", "", "# Fixture spec", "")
+  lines.push("---", "", "# Fixture spec", "", ...body)
   return lines.join("\n")
+}
+
+// A conforming closed-record body: every required heading, one file pointer,
+// one directory pointer, and a bare symbol that must parse as prose.
+function closedRecordBody(pointer = "tests/unit/real.test.mjs") {
+  return [
+    "## Why It Exists",
+    "",
+    "Pins the closed-record contract in fixtures.",
+    "",
+    "## Invariants",
+    "",
+    "- Status lines are machine-written.",
+    "",
+    "## Code Pointers",
+    "",
+    `- \`validateGovernance\` behavior pinned by \`${pointer}\`.`,
+    "- Harness directory: `tests/unit` (directory pointers are sanctioned).",
+    "",
+    "## Dead Ends",
+    "",
+    "None.",
+    "",
+  ]
 }
 
 function run(root, options = {}) {
@@ -480,6 +504,62 @@ test("Given gates with shell metacharacters When validated Then they are rejecte
 
   const { failures } = run(root)
   assert.ok(failures.some((f) => f.includes("unknown or unsafe gate")))
+})
+
+test("Given closed specs When their records conform or rot Then the closed-record contract is enforced", (t) => {
+  const root = makeFixture(t, {
+    specs: {
+      "closed-good.md": specSource(
+        { spec_id: "MS-fixture-closed-good", status: "closed", related_tests: ["tests/unit/real.test.mjs"] },
+        closedRecordBody()
+      ),
+      "closed-plan.md": specSource(
+        { spec_id: "MS-fixture-closed-plan", status: "closed", related_tests: ["tests/unit/real.test.mjs"] },
+        [...closedRecordBody(), "## 2. Blast Radius", ""]
+      ),
+      "closed-stale.md": specSource(
+        { spec_id: "MS-fixture-closed-stale", status: "closed", related_tests: ["tests/unit/real.test.mjs"] },
+        closedRecordBody("tests/unit/renamed-away.test.mjs")
+      ),
+      "closed-bare.md": specSource(
+        { spec_id: "MS-fixture-closed-bare", status: "closed", related_tests: ["tests/unit/real.test.mjs"] },
+        ["## Why It Exists", "", "Only one heading survived.", ""]
+      ),
+      "closed-sentinel.md": specSource(
+        { spec_id: "MS-fixture-closed-sentinel", status: "closed" },
+        closedRecordBody()
+      ),
+    },
+    extraFiles: { "tests/unit/real.test.mjs": "// present\n" },
+  })
+
+  const { failures } = run(root)
+
+  assert.equal(
+    failures.filter((f) => f.includes("closed-good.md")).length,
+    0,
+    `a conforming record (file + directory pointers) must pass, got ${JSON.stringify(failures)}`
+  )
+  assert.ok(
+    failures.some((f) => f.includes("closed-plan.md") && f.includes("build-plan heading")),
+    "a lingering activation heading proves the rewrite never happened"
+  )
+  assert.ok(
+    failures.some(
+      (f) =>
+        f.includes("closed-stale.md") &&
+        f.includes('"tests/unit/renamed-away.test.mjs" does not resolve')
+    ),
+    "a stale pointer is a failure, not a warning"
+  )
+  assert.ok(
+    failures.some(
+      (f) => f.includes("closed-bare.md") && f.includes('missing the required heading "## Invariants"')
+    )
+  )
+  assert.ok(
+    failures.some((f) => f.includes("closed-sentinel.md") && f.includes("related_tests sentinel"))
+  )
 })
 
 test("Given a spec with broken frontmatter When validated Then parse errors surface once", (t) => {

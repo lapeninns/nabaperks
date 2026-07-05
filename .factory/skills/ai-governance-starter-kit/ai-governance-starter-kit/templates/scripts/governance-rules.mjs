@@ -24,6 +24,7 @@ import { evaluateLedger, readLedger } from "./governance-evidence.mjs"
 import { matchesPattern } from "./governance-glob.mjs"
 import {
   findChangedFiles,
+  namedSection,
   readCiCommands,
   readPackageScripts,
   readPlaywrightProjectNames,
@@ -35,6 +36,33 @@ import {
 // Re-exported so the gate runner and existing tests keep a single import
 // surface; the implementations live in governance-commands.mjs.
 export { isManualInspectionGate, parsePackageScriptGate }
+
+// The six numbered headings that make a spec body a build plan. Activation
+// requires all of them (enforced by the lifecycle CLI); a closed record must
+// contain none of them.
+export const REQUIRED_SECTION_HEADINGS = Object.freeze([
+  "## 1. Exact Goal and User-Visible Outcomes",
+  "## 2. Blast Radius",
+  "## 3. Strict Constraints and Assumptions",
+  "## 4. Decisions Already Made",
+  "## 5. Behavioral Requirements (EARS)",
+  "## 6. Verification Criteria and Task Breakdown",
+])
+
+// The headings a closed spec's body must carry instead: the rewrite from a
+// build plan into a durable rationale record. "## Dead Ends" is required even
+// when its content is "None." — the attestation is the point.
+export const CLOSED_RECORD_HEADINGS = Object.freeze([
+  "## Why It Exists",
+  "## Invariants",
+  "## Code Pointers",
+  "## Dead Ends",
+])
+
+// A backtick-wrapped token inside "## Code Pointers" counts as a repo path
+// only in this shape: at least one "/", no whitespace, no glob stars, no
+// leading slash. Bare symbol names and URLs deliberately parse as prose.
+const POINTER_PATH_PATTERN = /^[A-Za-z0-9_.-]+(\/[A-Za-z0-9_.()@\[\]-]+)+$/
 
 export function validateGovernance(root, options = {}) {
   const failures = []
@@ -54,6 +82,11 @@ export function validateGovernance(root, options = {}) {
   for (const spec of activeSpecs(specs)) {
     if (spec.parseErrors?.length > 0) continue
     validateActiveSpec(spec, packageScripts, failures)
+  }
+  for (const spec of specs) {
+    if (spec.parseErrors?.length > 0) continue
+    if (spec.metadata.status !== "closed") continue
+    failures.push(...validateClosedRecord(spec, root))
   }
   validateDocsDrift(root, ciCommands, failures)
   // "in" (not ??): an explicit evidenceAdoptionDate: null must DISABLE the
@@ -204,6 +237,70 @@ function validateReviewFreshness(spec, now, failures) {
       `${specId(spec)} is active but last_reviewed is ${ageDays} days old (limit ${STALE_REVIEW_DAYS}); re-review the spec and bump the date.`
     )
   }
+}
+
+// The closed-record contract: a closed spec's body is a rationale record, not
+// a build plan. Machine-checkable pieces only — required headings, the
+// negative rule (no activation headings may remain), a pointer grammar whose
+// extracted paths must exist (file OR directory — directory pointers are the
+// sanctioned valve for volatile file names; a stale pointer is a failure, not
+// a warning), and a ban on the related_tests sentinel. Shared verbatim by the
+// checker (status === "closed") and the lifecycle CLI's --to closed
+// precondition, so the advance refuses exactly what the checker would flag.
+export function validateClosedRecord(spec, root) {
+  const failures = []
+  const where = specPath(spec.file)
+  const source = spec.source ?? ""
+
+  for (const heading of CLOSED_RECORD_HEADINGS) {
+    if (!source.includes(heading)) {
+      failures.push(`${where} closed record is missing the required heading "${heading}".`)
+    }
+  }
+
+  for (const heading of REQUIRED_SECTION_HEADINGS) {
+    if (source.includes(heading)) {
+      failures.push(
+        `${where} closed record still contains the build-plan heading "${heading}"; rewrite the body into a rationale record.`
+      )
+    }
+  }
+
+  const section = namedSection(source, "Code Pointers")
+  if (section) {
+    const pointerLines = section.split(/\r?\n/).filter((line) => /^\s*-\s/.test(line))
+    if (pointerLines.length === 0) {
+      failures.push(
+        `${where} closed record "## Code Pointers" needs at least one "- " pointer line into the code.`
+      )
+    }
+    for (const line of pointerLines) {
+      const paths = [...line.matchAll(/`([^`]+)`/g)]
+        .map((match) => match[1])
+        .filter((candidate) => POINTER_PATH_PATTERN.test(candidate))
+      if (paths.length === 0) {
+        failures.push(
+          `${where} closed record pointer line carries no backtick-wrapped repo path: "${line.trim()}".`
+        )
+        continue
+      }
+      for (const pointer of paths) {
+        if (!existsSync(join(root, pointer))) {
+          failures.push(
+            `${where} closed record code pointer "${pointer}" does not resolve to an existing file or directory.`
+          )
+        }
+      }
+    }
+  }
+
+  if (listField(spec, "related_tests").includes(RELATED_TESTS_SENTINEL)) {
+    failures.push(
+      `${where} closed record cannot keep the "${RELATED_TESTS_SENTINEL}" related_tests sentinel; cite the real tests.`
+    )
+  }
+
+  return failures
 }
 
 function validateActiveSpec(spec, packageScripts, failures) {

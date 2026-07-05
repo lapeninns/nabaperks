@@ -25,6 +25,7 @@ function spec({
   status = "implemented",
   gates = ["pnpm test", "pnpm lint"],
   exceptions = [],
+  evidence = [],
 } = {}) {
   return {
     file: "governance/test-evidence.md",
@@ -33,6 +34,7 @@ function spec({
       status,
       verification_gates: gates,
       approved_exceptions: exceptions,
+      evidence_required: evidence,
     },
   }
 }
@@ -168,6 +170,86 @@ test("Given a grandfather stub When evaluated Then it passes only until the firs
     failures.some((f) => f.includes("does not cover") || f.includes("no recorded gate runs")),
     "a transitioned ledger must carry real covering runs"
   )
+})
+
+test("Given a hand-flipped closed status When evaluated Then provenance fails", () => {
+  const ledger = newLedger("MS-test-evidence")
+  recordTransition(ledger, implementedTransition())
+  recordRun(ledger, passingRun())
+
+  const failures = evaluateLedger(spec({ status: "closed" }), ledger, ADOPTION)
+  assert.ok(
+    failures.some((f) => f.includes('no transition to "closed"')),
+    "closed must not be the one post-implementation status exempt from provenance"
+  )
+})
+
+test("Given a closed spec with a closed transition and covering run Then the ledger passes; stale coverage fails", () => {
+  const ledger = newLedger("MS-test-evidence")
+  recordTransition(ledger, implementedTransition())
+  recordTransition(ledger, implementedTransition({ from: "implemented", to: "verified" }))
+  recordTransition(ledger, implementedTransition({ from: "verified", to: "closed" }))
+  recordRun(ledger, passingRun())
+
+  assert.deepEqual(evaluateLedger(spec({ status: "closed" }), ledger, ADOPTION), [])
+
+  const edited = spec({ status: "closed", gates: ["pnpm test", "pnpm lint", "pnpm typecheck"] })
+  const failures = evaluateLedger(edited, ledger, ADOPTION)
+  assert.ok(failures.some((f) => f.includes('does not cover gate "pnpm typecheck"')))
+})
+
+test("Given a verified spec When the ledger lacks manual attestations or evidence acks Then evaluation fails until both exist", () => {
+  const verifiedSpec = spec({
+    status: "verified",
+    gates: ["pnpm test", "pnpm lint", "manual:security-review"],
+    evidence: ["Command output for the declared verification gates."],
+  })
+
+  const ledger = newLedger("MS-test-evidence")
+  recordTransition(ledger, implementedTransition({ from: "implemented", to: "verified" }))
+  recordRun(ledger, passingRun())
+
+  const failures = evaluateLedger(verifiedSpec, ledger, ADOPTION)
+  assert.ok(failures.some((f) => f.includes('no attestation for manual gate "manual:security-review"')))
+  assert.ok(failures.some((f) => f.includes("no evidence acknowledgement matching")))
+
+  recordAttestation(ledger, {
+    gate: "manual:security-review",
+    by: "tester",
+    at: "2026-07-05T10:00:00.000Z",
+    note: "reviewed the surface",
+  })
+  recordAttestation(ledger, {
+    gate: "evidence",
+    by: "tester",
+    at: "2026-07-05T10:00:00.000Z",
+    note: "Command output for the declared verification gates.",
+  })
+  assert.deepEqual(evaluateLedger(verifiedSpec, ledger, ADOPTION), [])
+})
+
+test("Given a closed spec When an evidence_required item has no matching ack Then evaluation fails", () => {
+  const closedSpec = spec({
+    status: "closed",
+    evidence: ["Scratch-repo smoke output."],
+  })
+
+  const ledger = newLedger("MS-test-evidence")
+  recordTransition(ledger, implementedTransition({ from: "verified", to: "closed" }))
+  recordRun(ledger, passingRun())
+
+  const failures = evaluateLedger(closedSpec, ledger, ADOPTION)
+  assert.ok(
+    failures.some((f) => f.includes('no evidence acknowledgement matching "Scratch-repo smoke output."'))
+  )
+
+  recordAttestation(ledger, {
+    gate: "evidence",
+    by: "tester",
+    at: "2026-07-05T10:00:00.000Z",
+    note: "Scratch-repo smoke output.",
+  })
+  assert.deepEqual(evaluateLedger(closedSpec, ledger, ADOPTION), [])
 })
 
 test("Given a union execution When attributed per spec Then only declared gates are recorded", () => {

@@ -77,8 +77,14 @@ const GATES = [
   "npm run test:coverage",
 ]
 
-function specSource({ status = "draft", gates = GATES, headings = true } = {}) {
-  const body = headings
+function specSource({
+  status = "draft",
+  gates = GATES,
+  headings = true,
+  body = null,
+  relatedTests = ["tests/micro-specs/example.test.mjs"],
+} = {}) {
+  const defaultBody = headings
     ? [
         "## 1. Exact Goal and User-Visible Outcomes",
         "",
@@ -119,7 +125,7 @@ function specSource({ status = "draft", gates = GATES, headings = true } = {}) {
     "implementation_surfaces:",
     "  - micro-specs/governance/example.md",
     "related_tests:",
-    "  - tests/micro-specs/example.test.mjs",
+    ...relatedTests.map((entry) => `  - ${entry}`),
     "verification_gates:",
     ...gates.map((gate) => `  - ${gate}`),
     "required_playwright_projects: []",
@@ -130,9 +136,27 @@ function specSource({ status = "draft", gates = GATES, headings = true } = {}) {
     "",
     "# MS-test-advance — fixture",
     "",
-    ...body,
+    ...(body ?? defaultBody),
     "",
   ].join("\n")
+}
+
+// A body satisfying the closed-record contract, with dials for each defect the
+// station must refuse.
+function closedBody({ omitHeading = null, extraHeading = null, pointer = "tests/micro-specs/example.test.mjs" } = {}) {
+  const sections = [
+    ["## Why It Exists", "Pins the closed-record station in fixtures."],
+    ["## Invariants", "- The status line is machine-written."],
+    ["## Code Pointers", `- Fixture harness: \`${pointer}\` pins this behavior.`],
+    ["## Dead Ends", "None."],
+  ]
+  const lines = []
+  for (const [heading, content] of sections) {
+    if (heading === omitHeading) continue
+    lines.push(heading, "", content, "")
+  }
+  if (extraHeading) lines.push(extraHeading, "", "Leftover plan prose.", "")
+  return lines
 }
 
 test("Given a draft with complete sections When advanced to active Then status is rewritten surgically", (t) => {
@@ -274,7 +298,7 @@ test("Given invalid targets When advancing Then refusals are specific", (t) => {
 
   const badUsage = runCli(root, ["MS-test-advance", "--to", "shipped"])
   assert.equal(badUsage.status, 2)
-  assert.match(badUsage.stderr, /--to must be one of/)
+  assert.match(badUsage.stderr, /--to must be one of: active, implemented, verified, closed, superseded/)
 })
 
 test("Given implemented -> verified When attestations or acks are missing Then it refuses, and passes with both", (t) => {
@@ -348,6 +372,79 @@ test("Given supersession When advancing Then superseded-by XOR reason is enforce
   assert.match(source, /^status: superseded$/m)
   const ledger = readLedger(root, "MS-test-advance")
   assert.equal(ledger.transitions.at(-1).reason, "fixture retirement")
+})
+
+test("Given a verified spec with a conforming closed record When advanced to closed Then gates run fresh and the ledger records it", (t) => {
+  const root = makeRepo(t, { spec: specSource({ status: "verified", body: closedBody() }) })
+
+  const result = runCli(root, ["MS-test-advance", "--to", "closed"])
+  assert.equal(result.status, 0, result.stderr)
+
+  const source = readFileSync(path.join(root, "micro-specs/governance/example.md"), "utf8")
+  assert.match(source, /^status: closed$/m)
+
+  const ledger = readLedger(root, "MS-test-advance")
+  assert.equal(ledger.runs.length, 1, "closed runs the gates fresh like implemented/verified")
+  assert.equal(ledger.runs[0].all_passed, true)
+  assert.equal(ledger.transitions.at(-1).to, "closed")
+  assert.equal(ledger.transitions.at(-1).dirty, false)
+})
+
+test("Given closed-record defects When advancing to closed Then each refusal names the defect and leaves the file untouched", (t) => {
+  const cases = [
+    {
+      spec: specSource({ status: "verified", body: closedBody({ omitHeading: "## Dead Ends" }) }),
+      message: /missing the required heading "## Dead Ends"/,
+    },
+    {
+      spec: specSource({ status: "verified", body: closedBody({ extraHeading: "## 2. Blast Radius" }) }),
+      message: /still contains the build-plan heading "## 2\. Blast Radius"/,
+    },
+    {
+      spec: specSource({
+        status: "verified",
+        body: closedBody({ pointer: "tests/micro-specs/renamed-away.test.mjs" }),
+      }),
+      message: /"tests\/micro-specs\/renamed-away\.test\.mjs" does not resolve to an existing file or directory/,
+    },
+    {
+      spec: specSource({ status: "verified", body: closedBody(), relatedTests: ["not-yet-created"] }),
+      message: /cannot keep the "not-yet-created" related_tests sentinel/,
+    },
+  ]
+
+  for (const { spec, message } of cases) {
+    const root = makeRepo(t, { spec })
+    const before = readFileSync(path.join(root, "micro-specs/governance/example.md"), "utf8")
+
+    const result = runCli(root, ["MS-test-advance", "--to", "closed"])
+    assert.equal(result.status, 1, `expected a refusal for ${message}`)
+    assert.match(result.stderr, /does not satisfy the closed-record contract/)
+    assert.match(result.stderr, message)
+    assert.equal(
+      readFileSync(path.join(root, "micro-specs/governance/example.md"), "utf8"),
+      before,
+      "a refused close must leave the spec untouched"
+    )
+    assert.equal(existsSync(path.join(root, "micro-specs/evidence/MS-test-advance.json")), false)
+  }
+})
+
+test("Given a closed spec When superseded Then the terminal escape hatch still works", (t) => {
+  const root = makeRepo(t, { spec: specSource({ status: "closed", body: closedBody() }) })
+
+  const result = runCli(root, [
+    "MS-test-advance",
+    "--to",
+    "superseded",
+    "--reason",
+    "fixture retirement",
+  ])
+  assert.equal(result.status, 0, result.stderr)
+  assert.match(
+    readFileSync(path.join(root, "micro-specs/governance/example.md"), "utf8"),
+    /^status: superseded$/m
+  )
 })
 
 test("Given a hand-flipped status When the checker runs with adoption on Then provenance fails", (t) => {

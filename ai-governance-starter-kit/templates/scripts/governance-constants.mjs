@@ -18,6 +18,7 @@ export const STATUS_VALUES = Object.freeze([
   "active",
   "implemented",
   "verified",
+  "closed",
   "superseded",
 ])
 
