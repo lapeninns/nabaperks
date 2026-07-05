@@ -29,9 +29,9 @@ import {
   webPageSchema,
 } from "@/lib/seo/structured-data"
 
-const title = "No-App QR Loyalty Cards for UK Pubs & Cafes"
+const title = "No-App QR Loyalty for UK Food & Drink Venues"
 const description =
-  "Replace paper stamp cards with one venue QR. Customers scan, save a browser-based loyalty card (no app, no wallet pass), and collect counter-verified stamps. £29/mo, 30-day free pilot."
+  "One venue QR replaces paper stamp cards: a browser-based loyalty card — no app, no wallet pass — with counter-verified stamps. £29/mo, 30-day free pilot."
 
 export const metadata: Metadata = {
   title: { absolute: `${title} | Nabaperks` },

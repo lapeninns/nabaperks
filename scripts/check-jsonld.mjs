@@ -268,6 +268,16 @@ for (const t of ["WebPage", "BreadcrumbList", "HowTo", "Dataset"]) {
   check(hubTypes.has(t), `hub: missing ${t} node`)
 }
 check(!deepHasPerson(hub), "hub: a Person node is present")
+// The hub's steps differ from home's, so a shared @id would assert two
+// payloads at one entity URI (2026-07-05 v2 audit P1-1) — pin the
+// route-distinct id exactly as the persona-spoke blocks below do.
+const hubHowTo = hub.find((n) => n["@type"] === "HowTo")
+if (hubHowTo) {
+  check(
+    hubHowTo["@id"] === "https://nabaperks.com/loyalty-for-pubs#howto",
+    "hub: HowTo @id must be route-distinct (/loyalty-for-pubs#howto)"
+  )
+}
 
 // --- Persona spokes (cafes / takeaways / bars) ------------------------------
 // Each mounts the generic Scan/Save/Stamp/Reward flow and cites the Dataset,
@@ -329,24 +339,41 @@ for (const t of ["WebPage", "BreadcrumbList", "Organization"]) {
 }
 check(!deepHasPerson(about), "about: a Person node is present")
 
-// --- Guide (Article author = Organization) --------------------------------
-const guide = await load(
-  "guides/best-loyalty-ideas-for-pubs.html",
-  "/guides/best-loyalty-ideas-for-pubs"
-)
-const guideTypes = types(guide)
-check(guideTypes.has("Article"), "guide: missing Article node")
-check(guideTypes.has("BreadcrumbList"), "guide: missing BreadcrumbList node")
-check(
-  !deepHasPerson(guide),
-  "guide: a Person node is present (author must be Organization)"
-)
-const article = guide.find((n) => n["@type"] === "Article")
-if (article) {
+// --- Guides (Article author = Organization, real ISO dates) ----------------
+// All three guides are validated — the single-guide block was the guard gap
+// the 2026-07-05 v2 audit flagged, and the dates exist now (GuideMeta).
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+for (const slug of [
+  "best-loyalty-ideas-for-pubs",
+  "reward-regulars-without-an-app",
+  "paper-vs-qr-loyalty-for-pubs",
+]) {
+  const guide = await load(`guides/${slug}.html`, `/guides/${slug}`)
+  const guideTypes = types(guide)
+  check(guideTypes.has("Article"), `guide ${slug}: missing Article node`)
   check(
-    article.author && typeof article.author["@id"] === "string",
-    "guide: Article.author is not an @id reference to an Organization"
+    guideTypes.has("BreadcrumbList"),
+    `guide ${slug}: missing BreadcrumbList node`
   )
+  check(
+    !deepHasPerson(guide),
+    `guide ${slug}: a Person node is present (author must be Organization)`
+  )
+  const article = guide.find((n) => n["@type"] === "Article")
+  if (article) {
+    check(
+      article.author && typeof article.author["@id"] === "string",
+      `guide ${slug}: Article.author is not an @id reference to an Organization`
+    )
+    check(
+      ISO_DATE.test(article.datePublished ?? ""),
+      `guide ${slug}: Article.datePublished missing or not ISO (got ${article.datePublished})`
+    )
+    check(
+      ISO_DATE.test(article.dateModified ?? ""),
+      `guide ${slug}: Article.dateModified missing or not ISO (got ${article.dateModified})`
+    )
+  }
 }
 
 if (failures.length) {

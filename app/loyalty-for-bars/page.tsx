@@ -4,11 +4,9 @@ import Link from "next/link"
 import { Eyebrow, Icon, MonoTag } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
 import {
-  ComparisonTable,
   CounterFlow,
   FinalCta,
   NabaperksProof,
-  RegularsCalculator,
   counterFlowSteps,
 } from "@/components/marketing/landing"
 import { Button } from "@/components/ui/button"
@@ -23,9 +21,9 @@ import {
   OG_IMAGE,
 } from "@/lib/seo/structured-data"
 
-const title = "Loyalty for Bars & Wine Bars — No-App QR Stamp Cards"
+const title = "Bar & Wine Bar Loyalty — No-App QR Stamp Cards"
 const description =
-  "Give regulars a reason to choose your bar again. A browser-based loyalty card with counter-verified stamps — no app, no wallet pass, nothing to lose between rounds. No POS or EPOS integration required. £29/month, 30-day free pilot."
+  "Give regulars a reason to choose your bar again — a browser-based card with counter-verified stamps, nothing lost between rounds. £29/month, 30-day free pilot."
 
 export const metadata: Metadata = {
   title,
@@ -60,32 +58,32 @@ export const metadata: Metadata = {
  * vertical language, so the copy can speak to the room directly. */
 const painPoints = [
   {
-    title: "Busy nights, quick scans",
-    body: "Scanning takes a second and never holds up the round. Customers stamp on their own phones while your team pours — the phone never crosses the counter.",
+    title: "One scan, mid-round",
+    body: "A round is ordered, poured and paid in a couple of minutes. Scanning takes a second from the customer's side of the bar and never holds up the pour — no card handed over, no staff step.",
   },
   {
     title: "No app between rounds",
     body: "Nobody downloads an app at the bar. The card opens in the phone browser from your venue QR and saves in one tap — no app store, no wallet pass, no password.",
   },
   {
-    title: "Stamps that survive the night",
-    body: "One stamp per customer per UK date, verified at the counter against your venue QR and their saved card — no over-stamping late in the evening.",
+    title: "Stamps that survive last orders",
+    body: "One stamp per customer per UK date, verified at the counter against your venue QR and their saved card — a late, loud night can't be over-stamped.",
   },
   {
     title: "Regulars you can actually see",
     body: "A bar runs on regulars. The weekly digest shows who is coming back — visits, regulars and redemptions — without a CRM to run.",
   },
   {
-    title: "Quieter nights, filled",
-    body: "Give regulars a visible reason to come in midweek, not just on the weekend: a stamp card with a clear finish line and a reward redeemed in-store.",
+    title: "A reason to come back midweek",
+    body: "Weeknights need a nudge the weekend doesn't. A visible stamp card gives regulars a running reason to choose your room midweek, with the reward redeemed in-store.",
   },
 ]
 
 const benefits = [
   "One venue QR for the bar and the tables",
-  "Counter-verified stamps that can't be faked or double-claimed",
-  "A weekly digest of visits, regulars and redemptions",
-  "Loyalty kept separate from marketing — regulars opt in only if they choose",
+  "Counter-verified stamps — one per customer per UK date",
+  "Quick enough mid-round — customers stamp their own phones",
+  "A weekly digest that shows your regulars coming back",
   PRODUCT.posLine,
 ]
 
@@ -161,7 +159,7 @@ export default function LoyaltyForBarsPage() {
       </Section>
 
       {/* Bar-floor frictions */}
-      <Section id="fit">
+      <Section>
         <div className="max-w-[46ch]">
           <MonoTag tone="leaf">Built for the bar</MonoTag>
           <h2 className="mt-4 text-[clamp(1.85rem,4vw,2.75rem)] leading-[1.02] font-extrabold tracking-[-0.02em] text-balance">
@@ -197,28 +195,40 @@ export default function LoyaltyForBarsPage() {
       {/* Real proof (Counter-Loyalty Index) */}
       <NabaperksProof />
 
-      {/* Browser card vs the alternatives */}
-      <ComparisonTable />
-
-      {/* Ungated value-first tool */}
-      <RegularsCalculator />
-
-      {/* Mechanism cross-link (replaces the pub hub's guides rail) */}
+      {/* Comparison wedge + mechanism cross-link — one band; the full table
+          lives on /how-it-works (MS-marketing-audit-v2-fixes AV-3) */}
       <Section width="narrow" className="text-center">
         <MonoTag tone="plain">The mechanism</MonoTag>
         <h2 className="mx-auto mt-4 max-w-[24ch] text-[clamp(1.75rem,3.6vw,2.5rem)] leading-[1.04] font-extrabold tracking-[-0.02em] text-balance">
           How counter-verified stamps work.
         </h2>
         <p className="mx-auto mt-3 max-w-[52ch] text-base leading-relaxed text-pretty text-muted-foreground">
-          The four beats above are the short version. The full mechanism — the
-          five anti-fraud checks and how the card compares to paper, apps and
-          wallet passes — lives on one page.
+          Most &ldquo;no-app&rdquo; loyalty cards still make customers install
+          an Apple or Google Wallet pass. Nabaperks opens in the phone browser
+          from your venue QR and saves in one tap —{" "}
+          quick enough between rounds.
+        </p>
+        <p className="mx-auto mt-3 max-w-[52ch] text-base leading-relaxed text-pretty text-muted-foreground">
+          The five anti-fraud checks — and the full side-by-side against paper
+          cards, wallet-pass apps and POS loyalty — live on one page.
         </p>
         <div className="mt-6 flex justify-center">
           <Button asChild size="lg" variant="outline">
-            <Link href={ROUTES.howItWorks}>See how it works</Link>
+            <Link href={`${ROUTES.howItWorks}#no-app`}>
+              See the full comparison
+            </Link>
           </Button>
         </div>
+        <p className="mx-auto mt-4 max-w-[52ch] text-sm leading-relaxed text-pretty text-muted-foreground">
+          <Link
+            href={`${ROUTES.pubHub}#regulars-calculator`}
+            className="font-semibold text-primary underline-offset-4 hover:underline"
+          >
+            Work out the maths for your venue
+          </Link>
+          {" "}
+          with the regulars calculator on the pub loyalty hub.
+        </p>
       </Section>
 
       <FinalCta />

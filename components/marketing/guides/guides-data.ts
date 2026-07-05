@@ -13,6 +13,11 @@ export type GuideMeta = {
   nav: string
   /** One-line summary for related-guide cards. */
   summary: string
+  /** ISO dates (real, git-grounded) → Article datePublished/dateModified +
+   * the visible "Published … · updated …" dateline. Bump dateModified when a
+   * guide's body materially changes. */
+  datePublished: string
+  dateModified: string
 }
 
 export const GUIDES: readonly GuideMeta[] = [
@@ -22,6 +27,8 @@ export const GUIDES: readonly GuideMeta[] = [
     nav: "Best loyalty ideas for pubs",
     summary:
       "Reward shapes that suit a pub — a simple threshold, quieter-day perks — and which ones bring regulars back.",
+    datePublished: "2026-06-27",
+    dateModified: "2026-07-05",
   },
   {
     href: ROUTES.guides.rewardRegulars,
@@ -29,6 +36,8 @@ export const GUIDES: readonly GuideMeta[] = [
     nav: "Reward regulars without an app",
     summary:
       "Why an app is the wrong ask for a pint, and how a browser-based loyalty card rewards regulars with nothing to install.",
+    datePublished: "2026-06-27",
+    dateModified: "2026-07-05",
   },
   {
     href: ROUTES.guides.paperVsQr,
@@ -36,6 +45,8 @@ export const GUIDES: readonly GuideMeta[] = [
     nav: "Paper vs QR loyalty for pubs",
     summary:
       "A side-by-side on loss, fraud, staff time and the data you get back, so you can pick the right card for your bar.",
+    datePublished: "2026-06-27",
+    dateModified: "2026-07-05",
   },
 ] as const
 

@@ -5,13 +5,11 @@ import { Tick02Icon } from "@hugeicons/core-free-icons"
 import { Icon, MonoTag } from "@/components/brand"
 import { Section } from "@/components/layout"
 import { Button } from "@/components/ui/button"
+import { PLAN_INCLUDES, PRODUCT } from "@/lib/marketing/facts"
 
-const planIncludes = [
-  "Unlimited stamps and members",
-  "Simple reward setup",
-  "Permanent venue QR",
-  "Weekly digest of visits and redemptions",
-] as const
+// The teaser is the first four items of the single-source list; /pricing
+// renders the full set (MS-marketing-audit-v2-fixes AV-4).
+const planIncludes = PLAN_INCLUDES.slice(0, 4)
 
 /**
  * Pricing — the Stage-4 purchase answer, deliberately plain: one number, no
@@ -27,8 +25,8 @@ export function TrustPricing() {
           £29/month per venue. 30 days free. No contract.
         </h2>
         <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-          One plain price for no-app loyalty with counter-verified stamps. Card
-          required — cancel anytime.
+          One plain price for no-app loyalty with counter-verified stamps.{" "}
+          {PRODUCT.cancelLine}
         </p>
       </div>
 
@@ -50,7 +48,7 @@ export function TrustPricing() {
         </p>
         <p className="mt-3 text-sm leading-relaxed font-semibold">
           At £29/month, one or two extra regulars a week can cover the cost for
-          many cafes.
+          many venues.
         </p>
 
         <hr className="w-rule my-5" />
@@ -82,7 +80,7 @@ export function TrustPricing() {
 
         <hr className="w-rule mt-4 mb-0" />
         <p className="mono-id mt-4 text-center font-normal text-muted-foreground">
-          Card required — cancel anytime.
+          {PRODUCT.cancelLine}
         </p>
       </div>
     </Section>

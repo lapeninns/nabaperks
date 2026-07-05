@@ -2,6 +2,9 @@ import type { NextConfig } from "next"
 import withBundleAnalyzer from "@next/bundle-analyzer"
 
 const nextConfig: NextConfig = {
+  // Drop the `x-powered-by: Next.js` response header — a free stack info-leak
+  // hardening (flagged in the 2026-07-05 GEO/technical audit).
+  poweredByHeader: false,
   turbopack: {
     root: process.cwd(),
   },

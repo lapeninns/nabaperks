@@ -99,8 +99,9 @@ MS-marketing-seo requirements (SE-1…SE-6) remain binding.
   shadows, `.mono-meta`/`.mono-id` (no hand-rolled `font-mono uppercase`),
   `.focus-ring`, 10px type floor, no emoji/exclamation marks.
 - Copy-pinning tests are binding: proof-strip.tsx keeps `<PilotProofStrip />`
-  and its stat strings; venue-proof.tsx keeps "What venues say",
-  "VenueProofReviews" and the paraphrased-operator intro; venue names +
+  and its stat strings; venue-proof.tsx keeps independent-pub framing
+  ("Independent pub voices", "What 9 independent pubs say"), "VenueProofReviews"
+  and the neutral pub-team signoff via `venueProofSignoff`; venue names +
   postcodes stay greppable across `components/marketing/landing/`.
 - app/page.tsx keeps the 8 required section tags (LandingHero, JumpNav,
   CounterFlow, ComparisonTable, CounterVerifiedStamp, TrustPricing,

@@ -1,12 +1,12 @@
 import type { Metadata } from "next"
 
 import { GuidePage, GuideSection } from "@/components/marketing/guides/guide-page"
-import { ROUTES } from "@/lib/marketing/facts"
+import { PROOF, PROOF_DISPLAY, ROUTES } from "@/lib/marketing/facts"
 import { OG_IMAGE } from "@/lib/seo/structured-data"
 
 const title = "Best Loyalty Ideas for Pubs"
 const description =
-  "Loyalty ideas that actually suit a pub: one clear stamp threshold, quieter-day perks, rewards that taste like your bar, and the schemes to skip. A practical guide for landlords and pub operators."
+  "Loyalty ideas that actually suit a pub: one clear stamp threshold, quieter-day perks, rewards that taste like your bar — and the schemes to skip."
 
 export const metadata: Metadata = {
   title,
@@ -73,6 +73,11 @@ export default function BestLoyaltyIdeasForPubsPage() {
           confirmed at the counter — checked against your QR, their saved card and
           a one-stamp-per-customer-per-UK-date rule. The phone never crosses the
           counter and the bar never slows down.
+        </p>
+        <p>
+          And a scheme kept honest is one worth coming back to: in the{" "}
+          {PROOF.indexName} ({PROOF.asOf} snapshot), {PROOF_DISPLAY.repeatRate} of{" "}
+          {PROOF_DISPLAY.members} loyalty members returned.
         </p>
       </GuideSection>
 

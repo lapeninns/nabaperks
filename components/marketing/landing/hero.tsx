@@ -31,8 +31,8 @@ export function LandingHero({ qrMatrix }: { qrMatrix: QrMatrix }) {
           The loyalty card that just opens.
         </h1>
         <p className="mt-3 max-w-[44ch] text-sm leading-relaxed text-pretty text-muted-foreground max-sm:order-3 sm:hidden">
-          Scan your till QR — the card opens in their browser. No app, no wallet
-          pass. Every stamp verified at your counter.
+          Scan your till QR — the card opens in their browser. No app, no Apple
+          or Google Wallet pass. Every stamp verified at your counter.
         </p>
         <div className="mt-4 flex max-w-xl flex-wrap items-center gap-2.5 max-sm:order-4 sm:mt-7 sm:gap-3">
           <Button asChild size="lg">
@@ -79,6 +79,9 @@ export function LandingHero({ qrMatrix }: { qrMatrix: QrMatrix }) {
           <p className="mt-3 max-w-[44ch] text-sm leading-relaxed text-muted-foreground">
             At <strong className="font-semibold text-foreground">£29/mo</strong>, one
             or two extra regulars a week can cover it.
+          </p>
+          <p className="mono-meta mt-3 max-w-[46ch] font-normal leading-relaxed text-muted-foreground">
+            {NABAPERKS_AUTHORITY_LINE}
           </p>
         </div>
       </div>

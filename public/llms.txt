@@ -3,7 +3,7 @@
 > No-app QR loyalty for UK food & drink venues. Customers scan one permanent venue QR, a browser-based loyalty card opens in their phone browser (no app download and no Apple/Google Wallet pass), they save it in one tap, and collect counter-verified stamps. Reach the threshold and they unlock a reward redeemed in-store. Built for pubs, gastropubs, bars, cafes and takeaways.
 
 ## What makes Nabaperks different
-- A true browser-based loyalty card, not a wallet pass: nothing to download or install, on any iPhone or Android. Rivals that say "no app" still require an Apple/Google Wallet pass.
+- A true browser-based loyalty card, not a wallet pass: nothing to download or install, on any iPhone or Android. Most rivals that say "no app" still require an Apple/Google Wallet pass.
 - Counter-verified stamps: every stamp is confirmed at the counter against the physical venue QR, the customer's membership, the venue's billing status, a one-stamp-per-customer-per-UK-calendar-date cap, and optional location-anomaly signals. Rewards are verified live at redemption, not from a screenshot. The phone never crosses the counter.
 - No POS and no hardware: works on any phone, tablet or till, including cash-only takeaways. No POS or EPOS integration required. A permanent venue QR handles joins, stamps, and rewards.
 - Loyalty and marketing kept separate: customers can earn and redeem without joining a marketing list (consent-led marketing opt-in).

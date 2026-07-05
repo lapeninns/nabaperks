@@ -1,12 +1,12 @@
 import type { Metadata } from "next"
 
 import { GuidePage, GuideSection } from "@/components/marketing/guides/guide-page"
-import { PRODUCT, ROUTES } from "@/lib/marketing/facts"
+import { PRODUCT, PROOF, PROOF_DISPLAY, ROUTES } from "@/lib/marketing/facts"
 import { OG_IMAGE } from "@/lib/seo/structured-data"
 
 const title = "How to Reward Pub Regulars Without an App"
 const description =
-  "Your regulars won't download an app for a pint — and you don't want another CRM. Here's how a browser-based loyalty card rewards pub regulars with nothing to install and no POS or EPOS integration."
+  "Your regulars won't download an app for a pint — and you don't want a CRM. How a browser-based loyalty card rewards pub regulars with nothing to install."
 
 export const metadata: Metadata = {
   title,
@@ -74,6 +74,11 @@ export default function RewardRegularsWithoutAnAppPage() {
           one per customer per UK date. Rewards are checked when they are
           redeemed, never from a screenshot — so a finished card always means a
           real regular.
+        </p>
+        <p>
+          And it brings them back: in the {PROOF.indexName} ({PROOF.asOf}{" "}
+          snapshot), {PROOF_DISPLAY.repeatRate} of {PROOF_DISPLAY.members} loyalty
+          members returned.
         </p>
       </GuideSection>
 

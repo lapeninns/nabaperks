@@ -99,6 +99,10 @@ type WebPageInput = {
   isArticle?: boolean
   /** Attach reviewedBy/author = Lapen Inns (operator) for proof/experience pages. */
   reviewedByOperator?: boolean
+  /** ISO dates (YYYY-MM-DD). Emitted on Article nodes so answer engines can
+   * weight freshness; real dates only — never a build-time `new Date()`. */
+  datePublished?: string
+  dateModified?: string
 }
 
 /** A WebPage (or Article) node wired into the WebSite + Organization graph. */
@@ -108,6 +112,8 @@ export function webPageSchema({
   description,
   isArticle = false,
   reviewedByOperator = false,
+  datePublished,
+  dateModified,
 }: WebPageInput): Record<string, unknown> {
   const url = absoluteUrl(path)
   return {
@@ -125,6 +131,8 @@ export function webPageSchema({
     ...(reviewedByOperator
       ? { reviewedBy: { "@id": OPERATOR_ID }, author: { "@id": OPERATOR_ID } }
       : {}),
+    ...(datePublished ? { datePublished } : {}),
+    ...(dateModified ? { dateModified } : {}),
   }
 }
 
@@ -158,6 +166,10 @@ export function counterLoyaltyIndexDataset(): Record<string, unknown> {
     publisher: { "@id": ORG_ID },
     isAccessibleForFree: true,
     temporalCoverage: "2024-03/2026-06",
+    // Snapshot month-end (PROOF.asOf = "June 2026"); gives the Dataset a
+    // machine-readable recency signal alongside temporalCoverage.
+    datePublished: "2026-06-30",
+    dateModified: "2026-06-30",
     measurementTechnique: PROOF.calculatedFrom,
     variableMeasured: [
       { "@type": "PropertyValue", name: "Loyalty members", value: stats.members },

@@ -4,11 +4,9 @@ import Link from "next/link"
 import { Eyebrow, Icon, MonoTag } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
 import {
-  ComparisonTable,
   CounterFlow,
   FinalCta,
   NabaperksProof,
-  RegularsCalculator,
   counterFlowSteps,
 } from "@/components/marketing/landing"
 import { Button } from "@/components/ui/button"
@@ -23,9 +21,9 @@ import {
   OG_IMAGE,
 } from "@/lib/seo/structured-data"
 
-const title = "Loyalty for Takeaways — QR Stamp Cards on Any Till"
+const title = "Takeaway Loyalty — QR Stamp Cards on Any Till"
 const description =
-  "A loyalty card that works on any till, even cash-only. Customers scan the QR by the counter, save a browser-based loyalty card and collect counter-verified stamps. No app, no POS or EPOS integration, no hardware. £29/month, 30-day free pilot."
+  "A loyalty card that works on any till, even cash-only: scan the counter QR, collect counter-verified stamps — no app, no POS. £29/month, 30-day free pilot."
 
 export const metadata: Metadata = {
   title,
@@ -64,28 +62,28 @@ const painPoints = [
     body: "No card machine integration and no POS. The loyalty card runs entirely on the customer's phone browser from one printed QR — if your counter takes cash, it takes stamps.",
   },
   {
-    title: "A counter that moves at rush",
-    body: "Orders stack up fast. Scanning takes a second, customers stamp on their own phones, and the phone never crosses the counter.",
+    title: "Stamps while they wait for the order",
+    body: "The wait between paying and collection is when phones are already out. Customers scan the counter QR and stamp on their own phone — done before their order is called, no staff step at the till.",
   },
   {
     title: "Nothing for staff to type",
     body: "No phone numbers collected at the till and no codes to key in. The counter-verified stamp checks your venue QR, the saved card and the one-stamp-per-UK-date rule on its own.",
   },
   {
-    title: "Paper cards don't survive the counter",
-    body: "Heat, steam and pockets are hard on paper stamp cards. A browser-based card lives on the customer's phone and cannot be over-stamped.",
+    title: "Paper doesn't survive a takeaway counter",
+    body: "Heat, steam and pockets finish off paper stamp cards. The browser card lives on the customer's phone, and one stamp per customer per UK date means it can't be over-stamped.",
   },
   {
-    title: "Repeat orders, made visible",
-    body: "Regular customers stop being anonymous: the weekly digest shows visits, regulars and redemptions — without a CRM to run.",
+    title: "The Friday-night order, made visible",
+    body: "The customer who orders every week is easy to miss at a busy counter. The weekly digest shows who is coming back — visits, regulars and redemptions — without a CRM to run.",
   },
 ]
 
 const benefits = [
   "Works on any till — cash-only included",
-  "Counter-verified stamps that can't be faked or double-claimed",
-  "A weekly digest of visits, regulars and redemptions",
-  "Loyalty kept separate from marketing — customers opt in only if they choose",
+  "Counter-verified stamps checked at the counter, never from a screenshot",
+  "No staff step — customers stamp while they wait for their order",
+  "A weekly digest showing who comes back — no CRM to run",
   PRODUCT.posLine,
 ]
 
@@ -161,7 +159,7 @@ export default function LoyaltyForTakeawaysPage() {
       </Section>
 
       {/* Takeaway counter frictions */}
-      <Section id="fit">
+      <Section>
         <div className="max-w-[46ch]">
           <MonoTag tone="leaf">Built for the counter</MonoTag>
           <h2 className="mt-4 text-[clamp(1.85rem,4vw,2.75rem)] leading-[1.02] font-extrabold tracking-[-0.02em] text-balance">
@@ -197,28 +195,40 @@ export default function LoyaltyForTakeawaysPage() {
       {/* Real proof (Counter-Loyalty Index) */}
       <NabaperksProof />
 
-      {/* Browser card vs the alternatives */}
-      <ComparisonTable />
-
-      {/* Ungated value-first tool */}
-      <RegularsCalculator />
-
-      {/* Mechanism cross-link (replaces the pub hub's guides rail) */}
+      {/* Comparison wedge + mechanism cross-link — one band; the full table
+          lives on /how-it-works (MS-marketing-audit-v2-fixes AV-3) */}
       <Section width="narrow" className="text-center">
         <MonoTag tone="plain">The mechanism</MonoTag>
         <h2 className="mx-auto mt-4 max-w-[24ch] text-[clamp(1.75rem,3.6vw,2.5rem)] leading-[1.04] font-extrabold tracking-[-0.02em] text-balance">
           How counter-verified stamps work.
         </h2>
         <p className="mx-auto mt-3 max-w-[52ch] text-base leading-relaxed text-pretty text-muted-foreground">
-          The four beats above are the short version. The full mechanism — the
-          five anti-fraud checks and how the card compares to paper, apps and
-          wallet passes — lives on one page.
+          Most &ldquo;no-app&rdquo; loyalty cards still make customers install
+          an Apple or Google Wallet pass. Nabaperks opens in the phone browser
+          from your counter QR and saves in one tap —{" "}
+          quick enough for the collection wait.
+        </p>
+        <p className="mx-auto mt-3 max-w-[52ch] text-base leading-relaxed text-pretty text-muted-foreground">
+          The five anti-fraud checks — and the full side-by-side against paper
+          cards, wallet-pass apps and POS loyalty — live on one page.
         </p>
         <div className="mt-6 flex justify-center">
           <Button asChild size="lg" variant="outline">
-            <Link href={ROUTES.howItWorks}>See how it works</Link>
+            <Link href={`${ROUTES.howItWorks}#no-app`}>
+              See the full comparison
+            </Link>
           </Button>
         </div>
+        <p className="mx-auto mt-4 max-w-[52ch] text-sm leading-relaxed text-pretty text-muted-foreground">
+          <Link
+            href={`${ROUTES.pubHub}#regulars-calculator`}
+            className="font-semibold text-primary underline-offset-4 hover:underline"
+          >
+            Work out the maths for your venue
+          </Link>
+          {" "}
+          with the regulars calculator on the pub loyalty hub.
+        </p>
       </Section>
 
       <FinalCta />

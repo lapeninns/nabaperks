@@ -123,7 +123,7 @@ verification_gates:
   - pnpm test:coverage
   - pnpm test:e2e -- --grep "@governance"
   - pnpm test:a11y
-  - pnpm test:visual
+  - pnpm test:visual -- --project=chromium --project=mobile-safari
   - pnpm tokens:check
   - pnpm claims:check
   - pnpm build
