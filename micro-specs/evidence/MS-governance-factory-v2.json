@@ -64,9 +64,56 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-05T15:09:24.189Z",
+      "git_sha": "a44deb2d95270433bab9bd6354edd2a300f3b95c",
+      "git_branch": "skills-suite",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 162
+        },
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 5668
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1038
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 6752
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 683
+        }
+      ],
+      "all_passed": true
     }
   ],
-  "manual_attestations": [],
+  "manual_attestations": [
+    {
+      "gate": "evidence",
+      "by": "claude-code agent (amanshresthaa)",
+      "at": "2026-07-05T15:09:24.189Z",
+      "note": "Governance checker and micro-spec test output for the hardened engine."
+    },
+    {
+      "gate": "evidence",
+      "by": "claude-code agent (amanshresthaa)",
+      "at": "2026-07-05T15:09:24.189Z",
+      "note": "Factory smoke evidence from a scratch repo (install, scaffold, activate, advance, tamper-detect)."
+    }
+  ],
   "transitions": [
     {
       "from": "active",
@@ -76,6 +123,14 @@
       "dirty": true,
       "by": "claude-code agent (amanshresthaa)",
       "note": "shared tree carries unrelated marketing WIP; program commits are clean on branch factory-v2"
+    },
+    {
+      "from": "implemented",
+      "to": "verified",
+      "at": "2026-07-05T15:09:24.189Z",
+      "sha": "a44deb2d95270433bab9bd6354edd2a300f3b95c",
+      "dirty": false,
+      "by": "claude-code agent (amanshresthaa)"
     }
   ]
 }
