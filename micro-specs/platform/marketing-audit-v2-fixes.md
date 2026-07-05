@@ -1,6 +1,6 @@
 ---
 spec_id: MS-marketing-audit-v2-fixes
-status: implemented
+status: active
 risk_class: ui-only
 owner: claude-code agent (amanshresthaa)
 last_reviewed: 2026-07-05
