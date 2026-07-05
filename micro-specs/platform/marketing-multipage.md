@@ -138,6 +138,9 @@ of scope except for the shared marketing footer/header registry.
   MS-landing-mobile-density composition — section tags, anchors, FAQ set and
   page graph unchanged; the existing home visual baselines SHALL pass
   without regeneration.
+  *(Superseded 2026-07-05 by MS-landing-conversion-spine — the homepage is
+  now the conversion spine and its baselines were regenerated under that
+  spec. HW-2…HW-7 remain binding unmodified.)*
 - **HW-2 (mechanism page):** THE site SHALL serve `/how-it-works` composing:
   a page header (h1 + `Start free pilot` CTA), CounterFlow, ComparisonTable,
   CounterVerifiedStamp, VenueBenefits, SeparateMarketing, LandingFaq (all

@@ -63,6 +63,14 @@ Partially supersedes MS-marketing-seo's landing section-composition contract
 (the four proof sections merge into one `<LandingProof />`); all other
 MS-marketing-seo requirements (SE-1…SE-6) remain binding.
 
+> Supersession note (2026-07-05): this spec's landing composition contract —
+> LMD-1 zero-copy-loss-on-`/`, the 8-section-tag and 6-anchor strict
+> constraints, LMD-4/LMD-5/LMD-7 and the "no copy change on /" scope-out —
+> is PARTIALLY SUPERSEDED by MS-landing-conversion-spine (owner decision
+> 2026-07-04): `/` is now the conversion spine and `<LandingProof />` lives
+> on `/how-it-works`. LMD-8's export-level schema parity and the DESIGN.md
+> rules remain binding.
+
 ## Scope (in)
 
 - `/` landing only: `app/page.tsx` + `components/marketing/landing/**`.
