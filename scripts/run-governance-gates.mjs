@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process"
 
 import {
   isManualInspectionGate,
+  parsePackageScriptGate,
   validateGovernance,
 } from "./governance-rules.mjs"
 
@@ -25,7 +26,9 @@ const gates = [
   ),
 ]
 
-if (gates.length === 0) {
+const runnable = gates.filter((gate) => !isManualInspectionGate(gate))
+
+if (runnable.length === 0) {
   console.log("No active Micro-Spec verification gates to run.")
   process.exit(0)
 }
@@ -36,68 +39,44 @@ for (const gate of gates) {
     continue
   }
 
-  const parts = splitCommand(gate)
-  const command = parts[0]
-  const args = parts.slice(1)
-
-  console.log(`\n$ ${gate}`)
-
-  const result = spawnSync(command, args, {
-    cwd: root,
-    env: process.env,
-    stdio: "inherit",
-  })
-
-  if (result.error) {
-    console.error(`Gate failed to start: ${gate}`)
-    console.error(result.error.message)
+  const parsed = parsePackageScriptGate(gate)
+  if (!parsed) {
+    console.error(`Unsupported gate command: ${gate}`)
     process.exit(1)
   }
 
-  if (result.status !== 0) {
+  console.log(`\n$ ${gate}`)
+  const child = spawnSync(parsed.manager, packageArgs(parsed), {
+    cwd: root,
+    env: process.env,
+    stdio: "inherit",
+    shell: false,
+  })
+
+  if (child.error) {
+    console.error(`Gate failed to start: ${gate}`)
+    console.error(child.error.message)
+    process.exit(1)
+  }
+  if (child.status !== 0) {
     console.error(`Gate failed: ${gate}`)
-    process.exit(result.status ?? 1)
+    process.exit(child.status ?? 1)
   }
 }
 
-console.log(`\nGovernance gate runner passed: ${gates.length} active gate(s).`)
+console.log(`\nGovernance gate runner passed: ${runnable.length} active gate(s).`)
 
-function splitCommand(command) {
-  const parts = []
-  let current = ""
-  let quote = ""
+function packageArgs(gate) {
+  const base = gate.manager === "npm" ? ["run", gate.scriptName] : [gate.scriptName]
+  if (!gate.args) return base
+  return [...base, ...splitArgs(gate.args)]
+}
 
-  for (const character of command) {
-    if (quote) {
-      if (character === quote) {
-        quote = ""
-      } else {
-        current += character
-      }
-      continue
-    }
-
-    if (character === '"' || character === "'") {
-      quote = character
-      continue
-    }
-
-    if (/\s/.test(character)) {
-      if (current) {
-        parts.push(current)
-        current = ""
-      }
-      continue
-    }
-
-    current += character
+function splitArgs(source) {
+  const args = []
+  const pattern = /"([^"]*)"|'([^']*)'|(\S+)/g
+  for (const match of source.matchAll(pattern)) {
+    args.push(match[1] ?? match[2] ?? match[3])
   }
-
-  if (quote) {
-    throw new Error(`Unclosed quote in gate command: ${command}`)
-  }
-
-  if (current) parts.push(current)
-
-  return parts
+  return args
 }
