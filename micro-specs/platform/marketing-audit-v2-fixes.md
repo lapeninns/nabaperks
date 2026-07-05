@@ -58,7 +58,7 @@ verification_gates:
   - pnpm tokens:check
   - pnpm test:e2e
   - pnpm test:a11y
-  - pnpm test:visual
+  - pnpm test:visual -- --project=chromium --project=mobile-safari
 required_playwright_projects:
   - chromium
   - mobile-safari
@@ -220,7 +220,7 @@ sentence on pricing (AV-11); no literal curly quotes in the stamp component
 `pnpm lint` · `pnpm typecheck` · `pnpm build` · `pnpm test` ·
 `pnpm test:coverage` · `pnpm bundle:check` · `pnpm claims:check` ·
 `pnpm jsonld:check` · `pnpm tokens:check` · `pnpm test:e2e` ·
-`pnpm test:a11y` · `pnpm test:visual`.
+`pnpm test:a11y` · `pnpm test:visual -- --project=chromium --project=mobile-safari` (the repo's CI visual convention — linux twins exist for those two projects).
 
 Known local caveat (unchanged surfaces): this machine's `.env.local` lacks the
 customer-auth secrets since the 2026-07-04 environment split, so `/start`- and
