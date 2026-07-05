@@ -9,6 +9,7 @@ allowed_blast_radius:
   - app/app/rewards/scan/**
   - lib/merchant/reward-collection.ts
   - micro-specs/merchant/**
+  - supabase/migrations/20260630123000_cleanup_reward_scan_tokens.sql
   - tests/e2e/merchant-reward-scan*.spec.ts
 implementation_surfaces:
   - app/app/scan/page.tsx

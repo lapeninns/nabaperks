@@ -55,8 +55,7 @@ required_playwright_projects:
 evidence_required:
   - Command output for the declared verification gates.
   - Approved visual baselines for /how-it-works on all four browser projects.
-  - Confirmation the homepage render is unchanged (existing home baselines
-    still pass without regeneration).
+  - Confirmation the homepage render is unchanged (existing home baselines still pass without regeneration).
 approved_exceptions: []
 ---
 

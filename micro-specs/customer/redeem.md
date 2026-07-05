@@ -8,6 +8,9 @@ allowed_blast_radius:
   - app/reward/**
   - lib/customer/**
   - micro-specs/customer/**
+  - supabase/migrations/20260615130000_reward_redemption_cycles.sql
+  - supabase/migrations/20260617110000_backend_hardening.sql
+  - supabase/migrations/20260630123000_cleanup_reward_scan_tokens.sql
   - tests/e2e/customer-redeem*.spec.ts
 implementation_surfaces:
   - app/reward/[rewardId]/page.tsx

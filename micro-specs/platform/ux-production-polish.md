@@ -70,9 +70,7 @@ required_playwright_projects:
   - mobile-safari
 evidence_required:
   - Command output for the declared verification gates.
-  - True-viewport (375/768/1280) screenshot evidence for touched user-visible
-    surfaces under .omo/evidence/ux-ui-production-polish-fixes/screenshots/
-    (a11y and visual gate output included).
+  - True-viewport (375/768/1280) screenshot evidence for touched user-visible surfaces under .omo/evidence/ux-ui-production-polish-fixes/screenshots/ (a11y and visual gate output included).
 approved_exceptions: []
 ---
 
