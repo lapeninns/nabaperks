@@ -34,10 +34,12 @@ const MARKETING_ROUTES = [
 ] as const
 
 test.describe("@public-route-metadata", () => {
-  test("indexable marketing routes keep the 145-159 description budget and self-canonicals", async ({
-    page,
-  }) => {
-    for (const route of MARKETING_ROUTES) {
+  // One test per route (a11y-sweep pattern): a fresh page per navigation keeps
+  // the one-time service-worker claim reload from interrupting a second goto.
+  for (const route of MARKETING_ROUTES) {
+    test(`description budget and self-canonical: ${route}`, async ({
+      page,
+    }) => {
       await page.goto(route)
 
       const description = await page
@@ -61,8 +63,8 @@ test.describe("@public-route-metadata", () => {
       expect(canonical, `${route} carries a self-canonical`).toBe(
         `https://nabaperks.com${route === "/" ? "" : route}`
       )
-    }
-  })
+    })
+  }
 
   test("signup serves its own acquisition head, not the root fallback", async ({
     page,
