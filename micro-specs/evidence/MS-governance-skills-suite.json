@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-governance-skills-suite",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-05T14:46:44.748Z",
+      "sha": "e356375e44323d9ae369bce03c34fe88494e8cb1",
+      "dirty": true,
+      "by": "claude-code agent (amanshresthaa)"
+    }
+  ]
+}
