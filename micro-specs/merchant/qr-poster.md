@@ -24,7 +24,6 @@ related_docs:
   - micro-specs/merchant/launch.md
 related_tests:
   - tests/micro-specs/qr-a4-poster-templates.test.mjs
-  - tests/e2e/merchant-qr-poster.spec.ts
   - app/dev/app-harness/qr/page.tsx
   - app/dev/poster-preview/page.tsx
 verification_gates:

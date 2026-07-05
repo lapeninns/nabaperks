@@ -9,6 +9,7 @@ allowed_blast_radius:
   - app/m/**
   - lib/customer/**
   - micro-specs/customer/**
+  - supabase/migrations/20260624140000_security_scan_hardening.sql
   - tests/e2e/customer-join*.spec.ts
 implementation_surfaces:
   - app/q/[qrId]/page.tsx

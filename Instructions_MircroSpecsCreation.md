@@ -43,6 +43,14 @@ migration specs must declare `pnpm test:db` where the matrix requires live DB
 behavioral proof. Browser-only or static SQL checks do not satisfy those DB
 proof requirements.
 
+Do not author the frontmatter by hand: scaffold with
+`pnpm governance:new-spec --id MS-<area>-<slug> --risk <class> --title "<text>"`,
+which pre-resolves the risk-class gate floor against the repo's real package
+scripts and emits the six required section headings. Never hand-edit the
+`status:` line afterwards — lifecycle moves only through
+`pnpm governance:advance <spec-id> --to <status>`, which runs the declared
+gates fresh and records the evidence ledger the checker enforces.
+
 Each Micro-Spec must include the following elements:
 
 ---

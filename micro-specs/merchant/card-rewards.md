@@ -9,6 +9,8 @@ allowed_blast_radius:
   - components/merchant/reward-collection-form.tsx
   - components/merchant/launch/rewards-panel.tsx
   - micro-specs/merchant/**
+  - supabase/migrations/20260630131000_guard_reward_pool_minimum.sql
+  - supabase/migrations/20260606142000_initial_schema_rls.sql
   - tests/db/merchant-card-rewards*.test.mjs
 implementation_surfaces:
   - app/app/card/page.tsx

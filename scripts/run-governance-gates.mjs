@@ -1,13 +1,41 @@
 #!/usr/bin/env node
-import { spawnSync } from "node:child_process"
+// Runs Micro-Spec verification gates.
+//
+//   node scripts/run-governance-gates.mjs                    # union of ACTIVE specs' gates
+//   node scripts/run-governance-gates.mjs --spec <spec-id>   # one spec's gates (any status)
+//   node scripts/run-governance-gates.mjs --record           # also write evidence ledgers
+//
+// One union execution attributes per-spec evidence: each spec's ledger entry
+// contains only ITS declared gates with the results from the shared run.
+// With --record, a failing run is still recorded (all_passed: false) before
+// exiting non-zero — the ledger keeps honest history, including red runs.
 
+import { appendFileSync } from "node:fs"
+
+import { executeGates, isManualInspectionGate, gitInfo } from "./governance-commands.mjs"
 import {
-  isManualInspectionGate,
-  validateGovernance,
-} from "./governance-rules.mjs"
+  readLedger,
+  newLedger,
+  recordRun,
+  runEntryFor,
+  runnableGates,
+  writeLedger,
+} from "./governance-evidence.mjs"
+import { validateGovernance } from "./governance-rules.mjs"
 
 const root = process.cwd()
-const validation = validateGovernance(root)
+const args = process.argv.slice(2)
+const record = args.includes("--record")
+const specIndex = args.indexOf("--spec")
+const specId = specIndex !== -1 ? args[specIndex + 1] : null
+if (specIndex !== -1 && !specId) {
+  console.error("usage: node scripts/run-governance-gates.mjs [--spec <spec-id>] [--record]")
+  process.exit(2)
+}
+
+// A mid-implementation tree legitimately has changed files everywhere; gate
+// execution needs valid metadata, not blast-radius cleanliness.
+const validation = validateGovernance(root, { enforceChangedFiles: false })
 
 if (!validation.ok) {
   console.error("Governance gates were not run because governance validation failed:")
@@ -17,87 +45,90 @@ if (!validation.ok) {
   process.exit(1)
 }
 
-const gates = [
-  ...new Set(
-    validation.specs
-      .filter((spec) => spec.metadata.status === "active")
-      .flatMap((spec) => spec.metadata.verification_gates ?? [])
-  ),
-]
-
-if (gates.length === 0) {
-  console.log("No active Micro-Spec verification gates to run.")
-  process.exit(0)
+let targetSpecs
+if (specId) {
+  targetSpecs = validation.specs.filter((spec) => spec.metadata.spec_id === specId)
+  if (targetSpecs.length === 0) {
+    console.error(`No Micro-Spec found with spec_id "${specId}".`)
+    process.exit(1)
+  }
+} else {
+  targetSpecs = validation.specs.filter((spec) => spec.metadata.status === "active")
 }
+
+const gates = [
+  ...new Set(targetSpecs.flatMap((spec) => spec.metadata.verification_gates ?? [])),
+]
+const runnable = gates.filter((gate) => !isManualInspectionGate(gate))
 
 for (const gate of gates) {
   if (isManualInspectionGate(gate)) {
     console.log(`Skipping manual inspection gate in CI runner: ${gate}`)
-    continue
-  }
-
-  const parts = splitCommand(gate)
-  const command = parts[0]
-  const args = parts.slice(1)
-
-  console.log(`\n$ ${gate}`)
-
-  const result = spawnSync(command, args, {
-    cwd: root,
-    env: process.env,
-    stdio: "inherit",
-  })
-
-  if (result.error) {
-    console.error(`Gate failed to start: ${gate}`)
-    console.error(result.error.message)
-    process.exit(1)
-  }
-
-  if (result.status !== 0) {
-    console.error(`Gate failed: ${gate}`)
-    process.exit(result.status ?? 1)
   }
 }
 
-console.log(`\nGovernance gate runner passed: ${gates.length} active gate(s).`)
+if (runnable.length === 0) {
+  console.log("No runnable Micro-Spec verification gates to run.")
+  process.exit(0)
+}
 
-function splitCommand(command) {
-  const parts = []
-  let current = ""
-  let quote = ""
+for (const gate of runnable) console.log(`queued: ${gate}`)
 
-  for (const character of command) {
-    if (quote) {
-      if (character === quote) {
-        quote = ""
-      } else {
-        current += character
-      }
-      continue
-    }
+const results = executeGates(root, runnable)
+const failed = results.find((result) => result.exit_code !== 0)
 
-    if (character === '"' || character === "'") {
-      quote = character
-      continue
-    }
-
-    if (/\s/.test(character)) {
-      if (current) {
-        parts.push(current)
-        current = ""
-      }
-      continue
-    }
-
-    current += character
+if (record) {
+  const git = gitInfo(root)
+  const timestamp = new Date().toISOString()
+  for (const spec of targetSpecs) {
+    if (!spec.metadata.spec_id || runnableGates(spec).length === 0) continue
+    const existing = readLedger(root, spec.metadata.spec_id)
+    const ledger =
+      existing && !existing.parseError ? existing : newLedger(spec.metadata.spec_id)
+    recordRun(ledger, runEntryFor(spec, results, git, timestamp))
+    const file = writeLedger(root, ledger)
+    console.log(`recorded: ${file}`)
   }
+}
 
-  if (quote) {
-    throw new Error(`Unclosed quote in gate command: ${command}`)
+writeStepSummary(results, failed)
+
+if (failed) {
+  console.error(`Gate failed: ${failed.command}`)
+  if (failed.error) console.error(failed.error)
+  process.exit(failed.exit_code ?? 1)
+}
+
+console.log(`\nGovernance gate runner passed: ${results.length} gate(s).`)
+
+function writeStepSummary(gateResults, failure) {
+  const summaryFile = process.env.GITHUB_STEP_SUMMARY
+  if (!summaryFile) return
+
+  const lines = [
+    "## Governance gates",
+    "",
+    failure ? `**FAILED** at ${mdCell(failure.command)}` : "**PASSED**",
+    "",
+    "| Gate | Exit | Duration |",
+    "| --- | --- | --- |",
+    ...gateResults.map(
+      (result) =>
+        `| ${mdCell(result.command)} | ${result.exit_code ?? "spawn-error"} | ${result.duration_ms}ms |`
+    ),
+    "",
+  ]
+
+  try {
+    appendFileSync(summaryFile, `${lines.join("\n")}\n`)
+  } catch {
+    // Best-effort only.
   }
+}
 
-  if (current) parts.push(current)
-
-  return parts
+function mdCell(value) {
+  return String(value)
+    .replace(/\|/g, "\\|")
+    .replace(/`/g, "'")
+    .replace(/\r?\n/g, " ")
 }

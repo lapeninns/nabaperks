@@ -47,8 +47,7 @@ required_playwright_projects:
   - mobile-safari
 evidence_required:
   - Command output for the declared verification gates.
-  - Regenerated and approved home visual baselines on all four browser
-    projects (the HW-1 "no regeneration" clause is superseded here).
+  - Regenerated and approved home visual baselines on all four browser projects (the HW-1 "no regeneration" clause is superseded here).
   - Anchor audit output showing no dangling anchor reference remains on /.
 approved_exceptions: []
 ---

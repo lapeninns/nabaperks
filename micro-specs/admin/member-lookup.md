@@ -37,8 +37,7 @@ required_playwright_projects:
   - chromium
 evidence_required:
   - Command output for the declared verification gates.
-  - Evidence that no additional customer personal data is exposed beyond the
-    existing masked display (source diff review note in the fix report).
+  - Evidence that no additional customer personal data is exposed beyond the existing masked display (source diff review note in the fix report).
 approved_exceptions: []
 ---
 

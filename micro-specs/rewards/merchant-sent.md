@@ -70,8 +70,7 @@ required_playwright_projects:
   - chromium
   - mobile-safari
 evidence_required:
-  - Live-DB proof that a direct reward respects tenancy, billing, and the daily
-    caps, and that a non-owner cannot send.
+  - Live-DB proof that a direct reward respects tenancy, billing, and the daily caps, and that a non-owner cannot send.
   - Evidence that a recipient's raw contact is never echoed back to the merchant.
 approved_exceptions: []
 ---

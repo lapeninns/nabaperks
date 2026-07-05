@@ -8,6 +8,8 @@ allowed_blast_radius:
   - app/card/**
   - lib/customer/**
   - micro-specs/customer/**
+  - supabase/migrations/20260619120000_cycle_stamp_soft_geofence.sql
+  - supabase/migrations/20260606190000_mystery_visit_rewards.sql
   - tests/e2e/customer-card-stamp*.spec.ts
 implementation_surfaces:
   - app/card/[membershipId]/page.tsx

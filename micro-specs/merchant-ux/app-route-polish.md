@@ -16,8 +16,8 @@ allowed_blast_radius:
   - lib/merchant/launch-readiness.ts
   - lib/qr/poster-templates.ts
   - micro-specs/merchant-ux/**
-  - scripts/** (screenshot / QA harness additions only; no runtime behavior change)
-  - tests/micro-specs/** (if UI-contract tests are added)
+  - scripts/**
+  - tests/micro-specs/**
 implementation_surfaces:
   - app/app/page.tsx
   - app/app/layout.tsx
@@ -41,7 +41,8 @@ related_docs:
   - AGENTS.md
   - micro-specs/GLOBAL_CONTEXT.md
 related_tests:
-  - tests/micro-specs/*.test.mjs
+  - tests/micro-specs/merchant-sidebar-state.test.mjs
+  - tests/micro-specs/merchant-account-compat-routes.test.mjs
   - not-yet-created
 verification_gates:
   - pnpm lint

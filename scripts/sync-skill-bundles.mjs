@@ -4,14 +4,21 @@
 // ships the exact same installer + templates. A skill directory must carry its
 // own installer — the SKILL.md cannot assume the target repo has a copy.
 //
+// It also enforces LOCKSTEP for this repo's own governance engine: every file
+// in ENGINE_FILES under scripts/ is copied from (and byte-compared against)
+// the canonical kit templates. governance-constants.mjs is the one file that
+// may differ — it carries the repo tuning.
+//
 // Usage:
-//   node scripts/sync-skill-bundles.mjs            # sync the in-repo .factory bundle
-//   node scripts/sync-skill-bundles.mjs --check    # fail (exit 1) if the bundle is stale
+//   node scripts/sync-skill-bundles.mjs            # sync the .factory bundle + repo engine
+//   node scripts/sync-skill-bundles.mjs --check    # fail (exit 1) on any drift
 //   node scripts/sync-skill-bundles.mjs --claude-home  # also refresh ~/.claude/skills
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from "node:fs"
 import { homedir } from "node:os"
 import { dirname, join, relative } from "node:path"
 import { fileURLToPath } from "node:url"
+
+import { ENGINE_FILES } from "./governance-version.mjs"
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..")
 const args = process.argv.slice(2)
@@ -19,6 +26,8 @@ const check = args.includes("--check")
 
 const sourceKit = join(repoRoot, "ai-governance-starter-kit")
 const sourceSkill = join(repoRoot, ".factory/skills/ai-governance-starter-kit/SKILL.md")
+const templateScripts = join(sourceKit, "templates/scripts")
+const repoScripts = join(repoRoot, "scripts")
 
 const bundles = [
   {
@@ -61,10 +70,34 @@ for (const bundle of bundles) {
   console.log(`Synced ${bundle.label} <- ${relative(repoRoot, sourceKit)}`)
 }
 
+// Lockstep: repo engine files must match the canonical kit templates.
+for (const file of ENGINE_FILES) {
+  const source = join(templateScripts, file)
+  const target = join(repoScripts, file)
+
+  if (!existsSync(source)) {
+    console.error(`Engine file missing from kit templates: ${file}`)
+    drift = true
+    continue
+  }
+
+  if (check) {
+    if (fileDiffers(source, target)) {
+      console.error(`Drift: scripts/${file} differs from the kit template.`)
+      drift = true
+    }
+    continue
+  }
+
+  cpSync(source, target)
+}
+if (!check) console.log(`Synced ${ENGINE_FILES.length} engine file(s) into scripts/ (lockstep).`)
+
 if (check && drift) {
   console.error('\nRun "node scripts/sync-skill-bundles.mjs" to refresh the bundles.')
   process.exit(1)
 }
+if (!check && drift) process.exit(1)
 if (check) console.log("Skill bundles are in sync.")
 
 function listFiles(dir, base = dir) {

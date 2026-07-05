@@ -49,7 +49,6 @@ related_docs:
   - micro-specs/GLOBAL_CONTEXT.md
 related_tests:
   - tests/db/issued-rewards-birthday.test.mjs
-  - tests/db/loyalty-card-birthday-config.test.mjs
   - tests/unit/birthday-window.test.mjs
   - tests/micro-specs/issued-reward-birthday.test.mjs
   - tests/e2e/customer-birthday-prompt.spec.ts
@@ -65,10 +64,8 @@ required_playwright_projects:
   - chromium
   - mobile-safari
 evidence_required:
-  - Live-DB proof that birthday issuance is idempotent, respects every gate,
-    and never re-arms the stale-PII purge clock for lapsed members.
-  - Evidence that a customer's DOB is only ever used to gate/issue, never
-    exposed to a merchant beyond the reward itself.
+  - Live-DB proof that birthday issuance is idempotent, respects every gate, and never re-arms the stale-PII purge clock for lapsed members.
+  - Evidence that a customer's DOB is only ever used to gate/issue, never exposed to a merchant beyond the reward itself.
 approved_exceptions: []
 ---
 

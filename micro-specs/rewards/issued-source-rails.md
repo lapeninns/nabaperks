@@ -63,8 +63,7 @@ required_playwright_projects:
   - mobile-safari
 evidence_required:
   - Command output for the declared verification gates and related tests.
-  - Live-DB proof that issued rewards redeem without touching the stamp cycle
-    while every other trust gate still fires.
+  - Live-DB proof that issued rewards redeem without touching the stamp cycle while every other trust gate still fires.
 approved_exceptions: []
 ---
 

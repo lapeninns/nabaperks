@@ -20,6 +20,10 @@ hosting choices. Keep `micro-specs/GLOBAL_CONTEXT.md` as the detailed record.
   Micro-Spec is driving the work.
 - Only `status: active` Micro-Specs can drive implementation. Treat the
   governance docs as governance-only unless an active spec exists.
+- Scaffold new specs with `governance:new-spec`; change a spec's lifecycle
+  status only through `governance:advance` (it runs the gates fresh and
+  records the evidence ledger). Never hand-edit `status:` lines or ledger
+  files under `micro-specs/evidence/`.
 - For risky, cross-cutting, security, data, billing, auth, migration, or
   production-adjacent work, create or activate a Micro-Spec first.
 - Server state remains authoritative. Browser storage is cache only; changes
@@ -51,7 +55,10 @@ hosting choices. Keep `micro-specs/GLOBAL_CONTEXT.md` as the detailed record.
 - Test: `{{TEST_COMMAND}}`
 - Build: `{{BUILD_COMMAND}}`
 - Governance check: `{{GOVERNANCE_CHECK_COMMAND}}`
-- Active gates: `{{GOVERNANCE_RUN_GATES_COMMAND}}`
+- Active gates: `{{GOVERNANCE_RUN_GATES_COMMAND}}` (add `--spec <id>` /
+  `--record` to scope and to write evidence ledgers)
+- New spec: `governance:new-spec --id MS-<area>-<slug> --risk <class> --title "<text>"`
+- Lifecycle: `governance:advance <spec-id> --to <status>`
 
 If a command is missing, inspect the repository and update this guide with the
 correct command instead of inventing one.

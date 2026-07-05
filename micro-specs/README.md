@@ -11,6 +11,12 @@ validate, execute, and verify Micro-Specs against the current buildable app.
 - `micro-specs/GLOBAL_CONTEXT.md` - reusable project rules and constraints.
 - `AGENTS.md` - agent entrypoint for the current app and governance routing.
 - `DESIGN.md` - Wet Ink design-system source of truth.
+- `scripts/new-spec.mjs` (`pnpm governance:new-spec`) - scaffolds a
+  floor-satisfying draft Micro-Spec.
+- `scripts/advance-spec.mjs` (`pnpm governance:advance`) - the only sanctioned
+  way to change a spec's status; runs gates fresh and records evidence.
+- `scripts/governance-evidence.mjs` - the evidence-ledger module
+  (`show <spec-id>` / `backfill --by <who>`).
 
 ## Current State
 
@@ -71,6 +77,32 @@ approved_exceptions: []
 browser, DB, webhook, RLS, ledger, migration, accessibility, or visual proof.
 Add the harness inside the spec blast radius first.
 
+### Strict Metadata Enforcement
+
+The checker parses frontmatter with a strict YAML subset and refuses to
+guess. Supported: `key: scalar` (optionally quoted), `key:` + dash list,
+`key: []`, inline flow lists `[a, b]`, comments, and blank lines. Anything
+else — wrapped/continuation lines, nested maps, block scalars, tabs,
+duplicate keys — fails with a file:line error. Keep every entry on one line.
+
+Additional enforced rules:
+
+- `allowed_blast_radius` / `implementation_surfaces` patterns must be bare
+  paths or globs (`**` crosses segments, `*` stays within one, `?` is one
+  character) with no whitespace.
+- Every `implementation_surfaces` entry must fall inside the spec's own
+  `allowed_blast_radius`.
+- `related_tests` entries must be literal existing paths (or the
+  `not-yet-created` sentinel); `draft` specs are exempt from the existence
+  check.
+- `approved_exceptions` entries must end with `(expires: YYYY-MM-DD)` and
+  fail once expired — exceptions are temporary by construction.
+- An `active` spec whose `last_reviewed` is more than 30 days old fails until
+  it is re-reviewed and the date bumped.
+- Docs-drift is bidirectional: the gate list below must equal the gate
+  commands `ci.yml` actually runs (`run: |` blocks included), in both
+  directions.
+
 ## Lifecycle Status Vocabulary
 
 - `draft`: intent can be refined, but implementation must not start.
@@ -87,13 +119,16 @@ implementation inputs.
 
 ## Lifecycle Transition Policy
 
-| From          | To            | Required evidence                                                                                              |
-| ------------- | ------------- | -------------------------------------------------------------------------------------------------------------- |
-| `draft`       | `active`      | Complete metadata, EARS requirements, risk class, blast radius, verification gates, and evidence requirements. |
-| `active`      | `implemented` | Requirement IDs mapped to checks, Red -> Green -> Refactor evidence where applicable, and in-scope files only. |
-| `implemented` | `verified`    | Passing gates, review notes, CI artifacts, and manual QA evidence when the changed surface is user-visible.    |
-| `active`      | `superseded`  | Supersession link or rationale.                                                                                |
-| `implemented` | `superseded`  | Replacement spec or explicit product decision.                                                                 |
+Status lines are rewritten by `pnpm governance:advance`, never by hand — a
+hand-flipped implemented/verified status has no recorded ledger transition and
+fails `pnpm governance:check` (evidence enforcement is on as of 2026-07-05).
+
+| From          | To            | Machine enforcement (`pnpm governance:advance <spec-id> --to <status>`)                                           |
+| ------------- | ------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `draft`       | `active`      | Six numbered sections present; full metadata + risk-floor validation of the activated spec (reverts on failure).   |
+| `active`      | `implemented` | Clean tree (or `--allow-dirty --note` + dated `evidence-waiver` exception); branch diff inside this spec's radius; fresh all-pass gate run recorded. |
+| `implemented` | `verified`    | Everything above, plus `--attest` per declared `manual:*` gate and `--ack` per `evidence_required` item (exact text). |
+| `active`/`implemented`/`verified` | `superseded` | `--superseded-by <spec-id>` (must exist) XOR `--reason "<text>"`; inserts `superseded_by:`.       |
 
 ## Risk Gate Matrix
 
@@ -187,8 +222,37 @@ When browser evidence is required, the Micro-Spec must declare
   Playwright gates are declared.
 - Test output: lint, typecheck, build, node tests, DB tests, e2e, a11y, visual,
   token checks, claims checks, JSON-LD checks, and governance checks.
-- Spec status transition notes stay inside the Micro-Spec.
-- No tracked screenshot evidence folders unless explicitly requested.
+- Machine-readable gate-run ledgers under `micro-specs/evidence/` ARE tracked
+  (see below). Binary evidence — screenshots, traces, recordings — is never
+  committed unless explicitly requested.
+
+## Evidence Ledger
+
+One JSON file per spec at `micro-specs/evidence/<spec_id>.json` records gate
+`runs` (newest last, capped history), lifecycle `transitions`, and
+`manual_attestations`. Written by `pnpm governance:run-gates --record` and
+`pnpm governance:advance`; committed alongside the code they prove.
+
+`EVIDENCE_ADOPTION_DATE` is `2026-07-05` in `scripts/governance-constants.mjs`.
+For every implemented/verified spec the checker enforces:
+
+- the ledger exists, parses, and matches the spec_id;
+- the status was reached by a recorded transition (provenance — hand-edited
+  status lines fail);
+- the LATEST run covers every currently declared runnable gate with exit 0,
+  compared by exact command string — editing `verification_gates` invalidates
+  old evidence and forces a re-proof;
+- `all_passed` agrees with the recorded exit codes (hand-doctored flags fail);
+- the latest transition was not recorded on a dirty tree, unless the spec
+  carries a dated `evidence-waiver` approved exception;
+- verified specs carry an attestation per `manual:*` gate and an
+  acknowledgement per `evidence_required` item.
+
+A red run recorded on an implemented spec correctly fails the checker — that
+is a regression being reported, not a bookkeeping error; fix and re-record
+rather than deleting history. The 32 specs implemented before adoption carry
+grandfather stubs (`node scripts/governance-evidence.mjs backfill`), each
+valid only until its spec's first machine transition. Orphan ledgers fail.
 
 ## Working Rule
 

@@ -9,6 +9,7 @@ allowed_blast_radius:
   - app/api/cron/notifications/**
   - app/api/notifications/**
   - micro-specs/platform/**
+  - supabase/migrations/20260630121000_claim_due_notification_events.sql
   - tests/db/notifications*.test.mjs
 implementation_surfaces:
   - lib/notifications/events.ts

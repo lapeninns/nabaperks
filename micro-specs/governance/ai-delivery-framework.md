@@ -3,7 +3,7 @@ spec_id: MS-governance-ai-delivery-framework
 status: active
 risk_class: docs-tooling
 owner: codex
-last_reviewed: 2026-07-01
+last_reviewed: 2026-07-05
 allowed_blast_radius:
   - .factory/skills/**
   - .github/workflows/**
@@ -74,6 +74,9 @@ implementation_surfaces:
   - scripts/governance-constants.mjs
   - scripts/governance-io.mjs
   - scripts/governance-rules.mjs
+  - scripts/governance-frontmatter.mjs
+  - scripts/governance-glob.mjs
+  - scripts/governance-commands.mjs
   - scripts/run-playwright.mjs
   - scripts/run-governance-gates.mjs
   - stryker.conf.json

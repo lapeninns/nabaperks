@@ -57,10 +57,8 @@ required_playwright_projects:
   - mobile-safari
 evidence_required:
   - Command output for the declared verification gates.
-  - Approved visual baselines for the three spoke routes on all four browser
-    projects.
-  - Click-through evidence that every VenuePersonas card link resolves 200
-    (SE-5 preserved).
+  - Approved visual baselines for the three spoke routes on all four browser projects.
+  - Click-through evidence that every VenuePersonas card link resolves 200 (SE-5 preserved).
 approved_exceptions: []
 ---
 

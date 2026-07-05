@@ -8,6 +8,7 @@ allowed_blast_radius:
   - app/app/onboarding/**
   - lib/merchant/onboarding.ts
   - micro-specs/merchant/**
+  - supabase/migrations/20260606142000_initial_schema_rls.sql
   - tests/db/merchant-onboarding*.test.mjs
 implementation_surfaces:
   - app/app/onboarding/page.tsx
