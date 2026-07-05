@@ -44,7 +44,6 @@ related_tests:
   - tests/micro-specs/governance-enforcement.test.mjs
   - tests/micro-specs/skill-bundle-sync.test.mjs
   - tests/micro-specs/ai-governance-starter-kit.test.mjs
-  - not-yet-created
 verification_gates:
   - pnpm governance:check
   - pnpm lint
@@ -55,113 +54,85 @@ required_playwright_projects: []
 evidence_required:
   - Governance checker and micro-spec test output for the hardened engine.
   - Factory smoke evidence from a scratch repo (install, scaffold, activate, advance, tamper-detect).
-approved_exceptions:
-  - evidence-waiver: dogfood advance recorded while the shared working tree carries unrelated marketing WIP from a concurrent session (expires: 2026-08-05)
+approved_exceptions: []
 ---
 
-# MS-governance-factory-v2 — Close the loop: hardened engine + machine-enforced lifecycle
+# Why It Exists
 
-## 1. Exact Goal and User-Visible Outcomes
+An audit of the original starter kit rated it 8.5/10 and found enforcement
+that trusted silently: the frontmatter parser dropped wrapped continuation
+lines (eleven lines of real spec content were being lost in this repo alone),
+the glob matcher was a bare prefix test (`scripts/**` wrongly matched
+`scripts-other/x`), exceptions never expired, statuses were hand-edited
+prose, and "evidence" was unverifiable claims. Factory-v2 rebuilt the kit
+into a closed loop — scaffold, prove, transition — where anything the engine
+cannot parse or verify is a named failure with file/line context, statuses
+are machine-written against fresh gate runs, and evidence is a tracked JSON
+ledger the checker audits. The repo's live engine is byte-identical to the
+kit it ships (lockstep), so this repository always runs exactly what
+consumers install.
 
-The AI Governance Starter Kit becomes a closed factory loop. An operator can
-scaffold a well-formed Micro-Spec with `governance:new-spec`, prove it with
-recorded gate runs, and move it through its lifecycle with
-`governance:advance` — which runs the declared gates fresh, records
-machine-readable evidence under `micro-specs/evidence/`, and rewrites the
-spec's `status:` line only when the transition rules hold. The enforcement
-engine stops trusting silently: malformed frontmatter, out-of-contract globs,
-expired exceptions, stale reviews, and hand-flipped statuses all become named
-governance failures. The repo's live engine and the kit's templates are
-byte-identical (lockstep), so this repository always runs exactly what the kit
-ships.
+# Invariants
 
-## 2. Blast Radius
+- Engine files are byte-identical kit <-> repo <-> distributed bundles;
+  `scripts/governance-constants.mjs` is the only divergent file, and even it
+  keeps export-shape parity with the kit template. Sync direction is kit ->
+  everywhere.
+- `status:` lines and the ledgers under `micro-specs/evidence` are
+  machine-written only: the lifecycle CLI runs the spec's declared gates
+  fresh before rewriting a status, records the run and transition, and the
+  checker fails any enforced status with no matching recorded transition.
+- The frontmatter dialect is a strict subset — one line per entry, inline
+  `[]`, no nested maps, block scalars, tabs, or continuations; parse failures
+  carry file:line and suppress that spec's cascading metadata noise.
+- The glob dialect is engine-fixed, never per-repo: `**` crosses segments,
+  `*` stays within one, `?` is one character, and a bare path matches itself
+  and its subtree.
+- Exceptions are temporary by construction: every `approved_exceptions` entry
+  carries `(expires: YYYY-MM-DD)` and fails past its date; active specs go
+  stale without review inside the configured window.
+- Evidence enforcement is adoption-gated (`EVIDENCE_ADOPTION_DATE`,
+  2026-07-05 in this repo); pre-adoption implemented specs carry grandfather
+  stubs that permanently expire on their spec's first machine transition.
+- Gate execution stays `shell: false` and is restricted to package-script
+  invocations plus recorded-but-never-executed `manual:*` tokens.
+- Docs-drift is bidirectional: the README gate list and the CI workflow's
+  gate commands must stay equal, both filtered through the same
+  candidate test.
 
-In scope: the canonical kit under `ai-governance-starter-kit/`, its synced
-bundles under `.factory/skills/`, the repo's live governance scripts named in
-the metadata, governance tests under `tests/micro-specs/`, the `micro-specs/`
-tree (spec corpus fixes, this spec, evidence ledgers), `package.json` script
-merges, and the agent-facing governance docs.
+# Code Pointers
 
-Out of scope: product feature code (`app/`, `components/`, `lib/` outside the
-listed files), CI workflow files other than the kit's template, deployment
-configuration, and any change to what existing product specs *require* — their
-frontmatter may be repaired (joined lines, dead references) but their
-obligations must not be weakened.
+- Checker: `scripts/governance-rules.mjs` (metadata, risk floors, blast
+  radius, docs drift, evidence, closed records), entry point
+  `scripts/check-governance.mjs`.
+- Strict parser and glob dialect: `scripts/governance-frontmatter.mjs` and
+  `scripts/governance-glob.mjs`.
+- Factory stations: `scripts/new-spec.mjs` (intake),
+  `scripts/advance-spec.mjs` (lifecycle), `scripts/governance-evidence.mjs`
+  (ledger read/write/evaluate), `scripts/run-governance-gates.mjs`
+  (proof runs, `--record`).
+- Canonical kit: `ai-governance-starter-kit/templates/scripts` (engine
+  templates) with installer `ai-governance-starter-kit/install-ai-governance.mjs`;
+  lockstep + bundle sync in `scripts/sync-skill-bundles.mjs`.
+- Behavior pins: `tests/micro-specs/governance-enforcement.test.mjs`,
+  `tests/micro-specs/advance-spec.test.mjs`,
+  `tests/micro-specs/governance-evidence.test.mjs`,
+  `tests/micro-specs/skill-bundle-sync.test.mjs`, and
+  `tests/micro-specs/ai-governance-starter-kit.test.mjs` (installer,
+  upgrade, scratch-repo loop).
 
-## 3. Strict Constraints and Assumptions
+# Dead Ends
 
-- Zero-dependency: engine and station scripts import only `node:*` modules.
-- Strictness-first: anything the engine cannot parse or verify is a failure
-  with file/line context, never a silent pass.
-- Engine files are byte-identical between `ai-governance-starter-kit/templates/scripts/`
-  and `scripts/`; all repo-specific tuning lives in
-  `scripts/governance-constants.mjs` only.
-- The gate runner keeps `shell: false`; gate commands remain restricted to
-  package-manager script invocations or `manual:*` tokens.
-- Evidence ledgers are tracked JSON only — no binary or screenshot evidence
-  folders are added to the repository.
-- Assumption: the repo's own CI (`.github/workflows/ci.yml`) already runs the
-  governance check and gate runner; this program does not restructure CI jobs.
-
-## 4. Decisions Already Made
-
-- Lifecycle transitions are machine-operated: `status:` is rewritten only by
-  `governance:advance`; hand edits to implemented/verified without a recorded
-  transition become checker failures once evidence enforcement is switched on.
-- Evidence enforcement is gated by `EVIDENCE_ADOPTION_DATE` in constants
-  (`null` = off) and existing implemented specs are grandfathered via backfill
-  stubs that expire on first machine transition.
-- Exceptions carry an inline expiry: `- <reason> (expires: YYYY-MM-DD)`.
-- The glob dialect is engine-fixed (`**` crosses segments, `*` within a
-  segment, `?` one character) and is not configurable per repo.
-- The kit remains the canonical source; sync direction is kit → repo → bundles.
-
-## 5. Behavioral Requirements (EARS)
-
-- THE governance checker SHALL reject any Micro-Spec whose frontmatter uses
-  YAML constructs outside the supported subset, naming the file and line.
-- THE governance checker SHALL fail when an implemented or verified spec lacks
-  a ledger transition matching its status, once evidence enforcement is on.
-- WHEN `governance:advance` is invoked for a valid transition, THE system
-  SHALL run the spec's runnable gates fresh and record the run and transition
-  in the spec's ledger before rewriting its status line.
-- WHEN `governance:new-spec` is invoked with a valid id, risk class, and
-  title, THE system SHALL scaffold a draft spec whose verification gates
-  satisfy the risk-class floor resolved against the repository's real
-  package scripts.
-- WHILE a spec's latest recorded run does not cover its currently declared
-  runnable gates with exit code 0, THE checker SHALL treat implemented and
-  verified statuses as failures (adoption-gated).
-- WHERE `$GITHUB_STEP_SUMMARY` is set, THE checker and gate runner SHALL
-  append an escaped markdown summary of specs, attribution, and gate results.
-- IF a tree is dirty, THEN `governance:advance` SHALL refuse the transition
-  unless explicitly waived, and SHALL stamp any waived transition as dirty.
-- IF an `approved_exceptions` entry is malformed or past its expiry date,
-  THEN THE checker SHALL fail that spec.
-- IF an engine file under `scripts/` differs from its kit template, THEN THE
-  sync check SHALL fail.
-
-## 6. Verification Criteria and Task Breakdown
-
-Acceptance criteria — observable behaviors to verify:
-
-- A spec file with an inline flow list parses to a real list; a nested map or
-  continuation line is rejected with its line number.
-- `src/**/*.ts` matches `src/a.ts`; `scripts/**` does not match
-  `scripts-other/x`.
-- An expired exception, a stale active review, and a missing related test each
-  produce a named failure.
-- A hand-flipped `implemented` status without a ledger transition fails the
-  checker once the adoption date is set; a grandfathered stub passes until its
-  spec first transitions by machine.
-- `governance:advance` refuses a dirty tree, an unknown spec, a wrong
-  from-status, and an uncovered gate set; on success the spec body is
-  byte-identical apart from the rewritten metadata lines.
-- The kit installs into a scratch repository and the full loop (scaffold →
-  activate → implement → advance) runs there end to end.
-
-Tasks (implement and verify one at a time): spec-corpus data repair (this
-commit); kit-side engine hardening; repo engine cutover; lockstep sync
-enforcement; evidence + intake stations; lifecycle CLI + adoption flip;
-step summaries, installer upgrade path, and documentation.
+- Per-repo configurable glob semantics: rejected — lockstep is meaningless if
+  pattern matching differs between the kit and a consumer; the dialect is
+  engine-fixed and documented as such.
+- Auto-repairing malformed frontmatter: rejected — silent tolerance is
+  exactly how the historical parser lost spec content; strictness-first means
+  refusing with a clickable file:line.
+- Binary evidence folders (screenshots, traces) in the repo: rejected —
+  evidence stays tracked JSON so ledger diffs review like code.
+- Passing the changed-file list into every gate's environment: rejected after
+  it leaked into hermetic test sandboxes during this spec's own dogfood
+  advance (the harness installs the kit into temp repos and runs the checker
+  there); the lifecycle CLI scopes it to the governance-check gate only, and
+  the red run it caused is preserved in this spec's ledger as honest history.
