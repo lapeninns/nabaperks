@@ -1,6 +1,6 @@
 ---
 spec_id: MS-analytics-qr-downloaded-wire
-status: active
+status: implemented
 risk_class: product-analytics
 owner: amankumarshrestha
 last_reviewed: 2026-07-06
@@ -19,7 +19,8 @@ related_docs:
   - micro-specs/GLOBAL_CONTEXT.md
   - reports/db-schema-audit-2026-07-06.md
 related_tests:
-  - not-yet-created
+  - tests/unit/qr-downloaded-tracking.test.mjs
+  - tests/micro-specs/analytics-qr-downloaded-wire.test.mjs
 verification_gates:
   - pnpm lint
   - pnpm typecheck
