@@ -115,9 +115,10 @@ every RPC body except the new purge function.
   after its existing calls; failures are logged, non-fatal to the other
   retention steps (matching how the route already sequences multiple purges).
 - `VALIDATE CONSTRAINT push_subscriptions_allowed_endpoint_check`; if legacy
-  rows violate it, the migration disables them
-  (`enabled=false, revoked_at=now()`) before validating — a nonconforming
-  endpoint is undeliverable anyway.
+  rows violate it, the migration DELETES them before validating (corrected at
+  implementation time: disabling cannot satisfy a content CHECK, and a
+  nonconforming endpoint is undeliverable dead weight; delivery history
+  survives via the SET NULL foreign key). Local data has zero such rows.
 
 ## 5. Behavioral Requirements (EARS)
 
