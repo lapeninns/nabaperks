@@ -45,6 +45,16 @@ export function rewardSourceBadge(
   }
 }
 
+/** Stamp count gate applies to earned rewards only — mirrors create_reward_scan_token. */
+export function rewardStampThresholdMet(
+  source: string | null | undefined,
+  currentStampCount: number,
+  stampsRequired: number
+): boolean {
+  if (narrowRewardSource(source) !== "stamp_cycle") return true
+  return currentStampCount >= stampsRequired
+}
+
 /** "Expires 15 Jul 2026" for a reward with an expiry instant, else null. */
 export function rewardExpiryNote(expiresAt: string | null): string | null {
   if (!expiresAt) return null

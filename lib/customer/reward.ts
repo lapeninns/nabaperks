@@ -21,6 +21,7 @@ export type CustomerRewardState =
         redeemable_from: string | null
         expires_at: string | null
         expired_at: string | null
+        source: string | null
       }
       assignedReward: {
         reward_name: string
@@ -78,6 +79,7 @@ type RawReward = {
   redeemable_from: string | null
   expires_at: string | null
   expired_at: string | null
+  source: string | null
   customer_memberships:
     | {
         current_stamp_count: number
@@ -174,7 +176,7 @@ export async function getCustomerRewardState(
   const { data, error } = await supabase
     .from("reward_events")
     .select(
-      "id, status, membership_id, merchant_id, customer_id, created_at, redeemed_at, reward_name, reward_terms, redeemable_from, expires_at, expired_at, customer_memberships!reward_events_membership_id_fkey(current_stamp_count, total_rewards_redeemed), merchants(business_name, business_slug, status, requires_billing, billing_customers(status)), loyalty_cards(card_name, stamps_required, reward_name, reward_terms, location_id, is_active)"
+      "id, status, membership_id, merchant_id, customer_id, created_at, redeemed_at, reward_name, reward_terms, redeemable_from, expires_at, expired_at, source, customer_memberships!reward_events_membership_id_fkey(current_stamp_count, total_rewards_redeemed), merchants(business_name, business_slug, status, requires_billing, billing_customers(status)), loyalty_cards(card_name, stamps_required, reward_name, reward_terms, location_id, is_active)"
     )
     .eq("id", rewardId)
     .maybeSingle()
@@ -218,6 +220,7 @@ export async function getCustomerRewardState(
       redeemable_from: reward.redeemable_from,
       expires_at: reward.expires_at,
       expired_at: reward.expired_at,
+      source: reward.source,
     },
     assignedReward: {
       reward_name: reward.reward_name,

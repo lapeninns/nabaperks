@@ -34,6 +34,8 @@
     "db:reset:today-stamps": "node scripts/run-supabase-sql.mjs --reset-today-stamps",
     "db:seed": "node scripts/run-supabase-sql.mjs --seed",
     "db:setup": "node scripts/run-supabase-sql.mjs --apply --seed",
+    "db:migrate:list:linked": "node scripts/supabase-linked.mjs migration list --linked",
+    "db:push:linked": "node scripts/supabase-linked.mjs db push --linked",
     "env:check": "node scripts/check-env.mjs",
     "env:check:production": "node scripts/check-env.mjs --profile=production",
     "tokens:check": "node scripts/check-design-tokens.mjs",

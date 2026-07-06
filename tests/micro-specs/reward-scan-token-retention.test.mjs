@@ -59,10 +59,7 @@ test("Given a reward QR image is requested When source is inspected Then token m
   assert.match(route, /return new NextResponse\("Reward QR not found", \{ status: 404 \}\)/)
   assert.match(route, /rewardState\.reward\.status === "unlocked"/)
   assert.match(route, /!rewardState\.unavailableReason/)
-  assert.match(
-    route,
-    /rewardState\.membership\.current_stamp_count >=\s*rewardState\.loyaltyCard\.stamps_required/
-  )
+  assert.match(route, /rewardStampThresholdMet\(/)
   assert.match(route, /isRedeemableFrom\(rewardState\.reward\.redeemable_from\)/)
   assert.match(route, /return new NextResponse\("Reward QR not ready", \{ status: 404 \}\)/)
   assert.match(route, /rewardId,\s*customerId: rewardState\.customerId/)

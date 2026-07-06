@@ -9,6 +9,7 @@ import {
 } from "@/lib/customer/card"
 import { captureJoinFunnelEvent } from "@/lib/customer/join-funnel"
 import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
+import { rewardStampThresholdMet } from "@/lib/customer/issued-reward-display"
 import { isRedeemableFrom, ukTodayIso } from "@/lib/customer/uk-date"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 import { logger } from "@/lib/observability/logger"
@@ -106,7 +107,13 @@ export async function loadCardExperienceContext(
           name: latestReward.reward_name,
           terms: latestReward.reward_terms,
           redeemableFrom: latestReward.redeemable_from,
-          redeemable: isRedeemableFrom(latestReward.redeemable_from),
+          redeemable:
+            isRedeemableFrom(latestReward.redeemable_from) &&
+            rewardStampThresholdMet(
+              latestReward.source,
+              membership.current_stamp_count,
+              target
+            ),
         }
       : null
 

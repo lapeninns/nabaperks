@@ -34,10 +34,7 @@ test("Given a reward might be waiting, blocked, or ready When the loader compute
 
   assert.match(redeemableBlock, /reward\.status === "unlocked"/)
   assert.match(redeemableBlock, /!rewardState\.unavailableReason/)
-  assert.match(
-    redeemableBlock,
-    /membership\.current_stamp_count >= loyaltyCard\.stamps_required/
-  )
+  assert.match(redeemableBlock, /rewardStampThresholdMet\(/)
   assert.match(redeemableBlock, /isRedeemableFrom\(reward\.redeemable_from\)/)
 })
 

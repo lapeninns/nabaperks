@@ -2,6 +2,7 @@ import "server-only"
 
 import { getCustomerRewardState } from "@/lib/customer/reward"
 import { getLocationRequirement } from "@/lib/customer/stamp"
+import { rewardStampThresholdMet } from "@/lib/customer/issued-reward-display"
 import { isRedeemableFrom } from "@/lib/customer/uk-date"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 
@@ -40,7 +41,11 @@ export async function loadRewardExperienceContext(
   const redeemable =
     reward.status === "unlocked" &&
     !rewardState.unavailableReason &&
-    membership.current_stamp_count >= loyaltyCard.stamps_required &&
+    rewardStampThresholdMet(
+      reward.source,
+      membership.current_stamp_count,
+      loyaltyCard.stamps_required
+    ) &&
     isRedeemableFrom(reward.redeemable_from)
   // The gate only governs a ready reward — skip the profile lookup otherwise.
   const profileGate = redeemable ? await loadProfileGate() : undefined

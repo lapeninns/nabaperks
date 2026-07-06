@@ -46,6 +46,7 @@ export type CustomerCardState =
         reward_terms: string
         redeemable_from: string | null
         expires_at: string | null
+        source: string | null
       } | null
       /** Unlocked stamp-cycle reward only — blocks stamping when present. */
       stampCycleReward: {
@@ -55,6 +56,7 @@ export type CustomerCardState =
         reward_terms: string
         redeemable_from: string | null
         expires_at: string | null
+        source: string | null
       } | null
       billingStatus: string | null
     }
@@ -191,6 +193,7 @@ function mapRewardSummary(
     reward_terms: string
     redeemable_from: string | null
     expires_at: string | null
+    source: string | null
   } | null
 ) {
   if (!reward) return null
@@ -202,6 +205,7 @@ function mapRewardSummary(
     reward_terms: reward.reward_terms,
     redeemable_from: reward.redeemable_from,
     expires_at: reward.expires_at,
+    source: reward.source,
   }
 }
 

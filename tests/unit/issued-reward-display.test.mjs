@@ -5,6 +5,7 @@ import {
   narrowRewardSource,
   rewardExpiryNote,
   rewardSourceBadge,
+  rewardStampThresholdMet,
 } from "@/lib/customer/issued-reward-display"
 
 /**
@@ -36,4 +37,11 @@ test("rewardExpiryNote formats a London date (matching the wallet style) and pas
     rewardExpiryNote("2026-07-15T12:00:00.000Z"),
     "Expires 15 Jul 2026"
   )
+})
+
+test("rewardStampThresholdMet requires a full card for earned rewards only", () => {
+  assert.equal(rewardStampThresholdMet("stamp_cycle", 2, 3), false)
+  assert.equal(rewardStampThresholdMet("stamp_cycle", 3, 3), true)
+  assert.equal(rewardStampThresholdMet("merchant_direct", 1, 3), true)
+  assert.equal(rewardStampThresholdMet("birthday_month", 0, 3), true)
 })

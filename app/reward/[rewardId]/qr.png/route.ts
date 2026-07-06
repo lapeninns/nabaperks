@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 
 import { getCustomerRewardState } from "@/lib/customer/reward"
 import { createRewardScanToken } from "@/lib/customer/reward-scan-token"
+import { rewardStampThresholdMet } from "@/lib/customer/issued-reward-display"
 import { isRedeemableFrom } from "@/lib/customer/uk-date"
 import { getServerEnv } from "@/lib/env/server"
 import { renderQrCodePng } from "@/lib/qr/assets"
@@ -26,8 +27,11 @@ export async function GET(_request: Request, context: RewardQrRouteContext) {
   const redeemable =
     rewardState.reward.status === "unlocked" &&
     !rewardState.unavailableReason &&
-    rewardState.membership.current_stamp_count >=
-      rewardState.loyaltyCard.stamps_required &&
+    rewardStampThresholdMet(
+      rewardState.reward.source,
+      rewardState.membership.current_stamp_count,
+      rewardState.loyaltyCard.stamps_required
+    ) &&
     isRedeemableFrom(rewardState.reward.redeemable_from)
 
   if (!redeemable) {
