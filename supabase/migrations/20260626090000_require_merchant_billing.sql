@@ -167,6 +167,9 @@ $$;
 drop function if exists public.approve_stamp_token(uuid, text, uuid, uuid);
 drop function if exists public.redeem_reward_token(uuid, text, uuid, uuid);
 
+-- Replay guard (MS-db-dead-field-cleanup): the final chain shape drops
+-- min_spend_pence, so replays must drop before recreating this older shape.
+drop function if exists public.get_reward_scan_context(uuid, uuid);
 create or replace function public.get_reward_scan_context(
   p_scan_token uuid,
   p_merchant_id uuid

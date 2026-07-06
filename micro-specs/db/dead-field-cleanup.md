@@ -1,17 +1,29 @@
 ---
 spec_id: MS-db-dead-field-cleanup
-status: active
+status: implemented
 risk_class: migrations
 owner: amankumarshrestha
 last_reviewed: 2026-07-06
 allowed_blast_radius:
   - micro-specs/db/**
   - supabase/migrations/20260707091000_dead_field_cleanup.sql
+  - supabase/migrations/20260606190000_mystery_visit_rewards.sql
+  - supabase/migrations/20260616104000_add_food_and_icecream_rewards.sql
+  - supabase/migrations/20260617110000_backend_hardening.sql
+  - supabase/migrations/20260626090000_require_merchant_billing.sql
+  - supabase/migrations/20260628122828_reward_scan_context_expired_status.sql
+  - supabase/migrations/20260704091000_issued_reward_source_gates.sql
   - supabase/seed.sql
   - tests/db/dead-field-cleanup.test.mjs
   - tests/micro-specs/db-dead-field-cleanup.test.mjs
 implementation_surfaces:
   - supabase/migrations/20260707091000_dead_field_cleanup.sql
+  - supabase/migrations/20260606190000_mystery_visit_rewards.sql
+  - supabase/migrations/20260616104000_add_food_and_icecream_rewards.sql
+  - supabase/migrations/20260617110000_backend_hardening.sql
+  - supabase/migrations/20260626090000_require_merchant_billing.sql
+  - supabase/migrations/20260628122828_reward_scan_context_expired_status.sql
+  - supabase/migrations/20260704091000_issued_reward_source_gates.sql
   - supabase/seed.sql
   - tests/db/dead-field-cleanup.test.mjs
   - tests/micro-specs/db-dead-field-cleanup.test.mjs
@@ -84,6 +96,29 @@ MS-db-phone-plaintext-retirement); all app code; all RLS policies.
 - Verify at implementation time (schema grep on a migrated DB) that no other
   live function body references a doomed column; if one is found, stop and
   amend the spec rather than improvising.
+- Implementation-time finding (replay contract): the local runner replays the
+  ENTIRE migration chain, so the one-time backfill UPDATE in
+  `20260606190000_mystery_visit_rewards.sql` — which reads
+  `loyalty_cards.min_spend_pence` — breaks once the column is dropped (the
+  initial CREATE TABLE skips on replay and no longer re-adds it). That
+  historical backfill is wrapped in a column-existence guard (a DO block);
+  its data work completed in 2026-06 and the guard changes nothing for fresh
+  databases, where the column still exists mid-chain. Prod is unaffected
+  (supabase db push applies only new migrations). Same replay contract, three
+  more retrofits: the food/ice-cream pool insert (20260616104000) stops
+  naming the dead column (it only ever inserted NULL), and the four
+  historical `create or replace` recreations of `get_reward_scan_context`
+  (20260617110000, 20260626090000, 20260628122828, 20260704091000) gain the
+  drop-first line remove_minimum_spend already used, because OR REPLACE
+  cannot overwrite the new final RETURNS shape on replays. Function-body
+  references elsewhere are lazily parsed and replaced later in the chain —
+  left untouched.
+- Implementation-time finding (2026-07-06 schema grep): `create_merchant_onboarding`
+  names `merchant_locations.timezone` in its INSERT (the only other live
+  reference; the ROI trio is referenced by nothing — its zeros come from
+  column DEFAULTs). The migration therefore also recreates
+  `create_merchant_onboarding` via CREATE OR REPLACE (shape unchanged, so
+  grants survive) with the timezone lines removed, BEFORE the column drop.
 - Dropping a column drops its CHECK constraints implicitly; no separate
   constraint handling needed.
 - `record_qr_download` may be dropped because MS-analytics-qr-downloaded-wire

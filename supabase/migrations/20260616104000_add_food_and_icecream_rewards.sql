@@ -20,7 +20,6 @@ new_rewards as (
     target_card.loyalty_card_id,
     '10% off Food'::text as reward_name,
     'Get 10% off food items. Valid from the next UK business day.'::text as reward_terms,
-    null::integer as min_spend_pence,
     2::integer as weight,
     true as is_active,
     target_card.base_display_order + 1 as display_order
@@ -32,7 +31,6 @@ new_rewards as (
     target_card.loyalty_card_id,
     'Free Honey Toffee IceCream'::text as reward_name,
     'One free Honey Toffee IceCream. Valid from the next UK business day.'::text as reward_terms,
-    null::integer as min_spend_pence,
     2::integer as weight,
     true as is_active,
     target_card.base_display_order + 2 as display_order
@@ -44,7 +42,6 @@ insert into public.reward_pool_items (
   loyalty_card_id,
   reward_name,
   reward_terms,
-  min_spend_pence,
   weight,
   is_active,
   display_order
@@ -55,7 +52,6 @@ select
   nr.loyalty_card_id,
   nr.reward_name,
   nr.reward_terms,
-  nr.min_spend_pence,
   nr.weight,
   nr.is_active,
   nr.display_order
