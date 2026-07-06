@@ -1,7 +1,47 @@
 {
   "schema": 1,
   "spec_id": "MS-auth-otp-alias-token-encryption",
-  "runs": [],
+  "runs": [
+    {
+      "timestamp": "2026-07-06T15:17:44.156Z",
+      "git_sha": "37430b85235d05ac9d53a83d03fa4157b2721f6f",
+      "git_branch": "feat/ms-auth-otp-alias-token-encryption",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6189
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1164
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11334
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 6982
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 766
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --grep \"@governance\"",
+          "exit_code": 1,
+          "duration_ms": 1931
+        }
+      ],
+      "all_passed": false
+    }
+  ],
   "manual_attestations": [],
   "transitions": [
     {
