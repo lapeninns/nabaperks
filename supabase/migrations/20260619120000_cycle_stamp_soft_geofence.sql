@@ -1,12 +1,23 @@
 alter table public.merchant_locations
   add column if not exists soft_geofence_trigger_stamp_number integer not null default 3;
 
-alter table public.merchant_locations
-  drop constraint if exists merchant_locations_soft_geofence_trigger_stamp_number_check;
-
-alter table public.merchant_locations
-  add constraint merchant_locations_soft_geofence_trigger_stamp_number_check
-  check (soft_geofence_trigger_stamp_number = 3);
+-- Replay guard (MS-merchant-soft-geofence-knob): once the chain's tail widens
+-- the bound to 1–99, re-adding the =3 constant here would fail validation on
+-- any database whose merchants already chose another trigger stamp.
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'merchant_locations_soft_geofence_trigger_range_check'
+  ) then
+    alter table public.merchant_locations
+      drop constraint if exists merchant_locations_soft_geofence_trigger_stamp_number_check;
+    alter table public.merchant_locations
+      add constraint merchant_locations_soft_geofence_trigger_stamp_number_check
+      check (soft_geofence_trigger_stamp_number = 3);
+  end if;
+end
+$$;
 
 create or replace function public.record_cycle_stamp_soft_geofence_flag(
   p_merchant_id uuid,

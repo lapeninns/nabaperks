@@ -38,6 +38,9 @@ function initialVenueFormValues(location: CurrentVenueLocation) {
     }),
     geofenceRadiusMeters: String(location?.geofence_radius_meters ?? 150),
     requireGeofence: location?.require_geofence ?? false,
+    softGeofenceTriggerStamp: String(
+      location?.soft_geofence_trigger_stamp_number ?? 3
+    ),
   }
 }
 

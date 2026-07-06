@@ -139,8 +139,11 @@ Observable behaviors to verify:
   signal at stamp N and not at 3; with the default, at 3 (extend the existing
   stamp-edges fixtures).
 - Live DB: CHECK rejects 0, 100, and non-integers at the SQL layer.
-- Browser: merchant sets the value on the venue surface, saves, reloads, and
-  sees it persisted; invalid input shows the form error.
+- Browser (amended to the house harness pattern, same as the birthday-config
+  proof): the control renders on the real venue form in the DB-free harness
+  with the 3 default and accepts input (`@soft-geofence`). Persistence and
+  the 1–99 rejection are proven in the live-DB tier (the CHECK) plus the
+  server-side validator; the harness tier cannot exercise an authed save.
 - Accessibility: the hosting surface passes the a11y gate with the new
   control present.
 

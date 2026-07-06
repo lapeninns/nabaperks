@@ -27,23 +27,29 @@ export function AdvancedGpsChecks({
   requireGeofence,
   geofenceRadiusMeters,
   geofenceRadiusError,
+  softGeofenceTriggerStamp,
+  softGeofenceTriggerStampError,
   pin,
   geocoded,
   hasGeocode,
   mapRadiusMeters,
   onRequireGeofenceChange,
   onRadiusChange,
+  onTriggerStampChange,
   onPinChange,
 }: {
   requireGeofence: boolean
   geofenceRadiusMeters: string
   geofenceRadiusError?: string
+  softGeofenceTriggerStamp: string
+  softGeofenceTriggerStampError?: string
   pin: VenueCoordinates | null
   geocoded?: { latitude: number | null; longitude: number | null } | null
   hasGeocode: boolean
   mapRadiusMeters: number
   onRequireGeofenceChange: (checked: boolean) => void
   onRadiusChange: (value: string) => void
+  onTriggerStampChange: (value: string) => void
   onPinChange: (coordinates: VenueCoordinates) => void
 }) {
   return (
@@ -78,6 +84,20 @@ export function AdvancedGpsChecks({
       <p className="text-xs leading-5 text-muted-foreground">
         100m suits most small, single-site venues. Set anything from 25m to
         1000m.
+      </p>
+      <GpsField
+        id="softGeofenceTriggerStamp"
+        label="Check on stamp number"
+        name="softGeofenceTriggerStamp"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        value={softGeofenceTriggerStamp}
+        onChange={(event) => onTriggerStampChange(event.target.value)}
+        error={softGeofenceTriggerStampError}
+      />
+      <p className="text-xs leading-5 text-muted-foreground">
+        Which stamp in each card cycle runs the location check. 3 works for
+        most venues; use 1–99.
       </p>
       {requireGeofence && pin ? (
         <div className="grid gap-2">

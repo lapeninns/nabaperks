@@ -29,6 +29,8 @@ type VenueLocationFormValues = VenueAddressFormFields & {
   venueName: string
   geofenceRadiusMeters: string
   requireGeofence: boolean
+  /** Optional so callers that never expose the knob (dev harness) keep the 3 default. */
+  softGeofenceTriggerStamp?: string
 }
 
 import {
@@ -64,6 +66,9 @@ export function VenueLocationForm({
   )
   const [requireGeofence, setRequireGeofence] = useState(
     initialValues.requireGeofence
+  )
+  const [softGeofenceTriggerStamp, setSoftGeofenceTriggerStamp] = useState(
+    initialValues.softGeofenceTriggerStamp ?? "3"
   )
 
   // Controlled address fields so a Google selection can fill them through state.
@@ -185,12 +190,15 @@ export function VenueLocationForm({
         requireGeofence={requireGeofence}
         geofenceRadiusMeters={geofenceRadiusMeters}
         geofenceRadiusError={state.errors?.geofenceRadiusMeters}
+        softGeofenceTriggerStamp={softGeofenceTriggerStamp}
+        softGeofenceTriggerStampError={state.errors?.softGeofenceTriggerStamp}
         pin={pin}
         geocoded={geocoded}
         hasGeocode={hasGeocode}
         mapRadiusMeters={mapRadiusMeters}
         onRequireGeofenceChange={setRequireGeofence}
         onRadiusChange={setGeofenceRadiusMeters}
+        onTriggerStampChange={setSoftGeofenceTriggerStamp}
         onPinChange={(coordinates) => {
           setPin(coordinates)
           setPendingPinSource("merchant_pin")
