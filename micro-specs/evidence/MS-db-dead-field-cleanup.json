@@ -1,7 +1,37 @@
 {
   "schema": 1,
   "spec_id": "MS-db-dead-field-cleanup",
-  "runs": [],
+  "runs": [
+    {
+      "timestamp": "2026-07-06T16:34:42.338Z",
+      "git_sha": "c14885e591578497d4d5710a17821a0cf61863c3",
+      "git_branch": "feat/ms-db-dead-field-cleanup",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6443
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1295
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10346
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 1,
+          "duration_ms": 6302
+        }
+      ],
+      "all_passed": false
+    }
+  ],
   "manual_attestations": [],
   "transitions": [
     {
