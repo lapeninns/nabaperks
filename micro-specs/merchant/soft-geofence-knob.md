@@ -1,6 +1,6 @@
 ---
 spec_id: MS-merchant-soft-geofence-knob
-status: active
+status: implemented
 risk_class: rls-rpc-ledger
 owner: amankumarshrestha
 last_reviewed: 2026-07-06

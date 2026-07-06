@@ -79,6 +79,55 @@
         }
       ],
       "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-06T17:25:03.037Z",
+      "git_sha": "fcfbb2f566a4f6d1680e575979459f3e2d0eecd8",
+      "git_branch": "feat/ms-merchant-soft-geofence-knob",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 5470
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 962
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 9117
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 6385
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 696
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 470
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@governance|@soft-geofence\"",
+          "exit_code": 0,
+          "duration_ms": 8514
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium",
+          "exit_code": 0,
+          "duration_ms": 78850
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
@@ -89,6 +138,14 @@
       "at": "2026-07-06T14:48:01.339Z",
       "sha": "ee9feee1d6ecf70dfc69752653f5c5ca8b002423",
       "dirty": true,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-06T17:25:03.037Z",
+      "sha": "fcfbb2f566a4f6d1680e575979459f3e2d0eecd8",
+      "dirty": false,
       "by": "amankumarshrestha"
     }
   ]
