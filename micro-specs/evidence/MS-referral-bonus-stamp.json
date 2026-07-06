@@ -45,6 +45,50 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-06T21:28:59.355Z",
+      "git_sha": "d82732defeb32ff11a1367123e1f53f7ebb56e03",
+      "git_branch": "claude/happy-bell-85499a",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 5468
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 997
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 9200
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 6404
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 705
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 466
+        },
+        {
+          "command": "pnpm test:e2e -- --grep \"referral bonus\" --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 3857
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
@@ -55,6 +99,14 @@
       "at": "2026-07-06T20:43:10.435Z",
       "sha": "64fb6d018551420c1f2c08daba59a16fd6a45e2c",
       "dirty": true,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-06T21:28:59.355Z",
+      "sha": "d82732defeb32ff11a1367123e1f53f7ebb56e03",
+      "dirty": false,
       "by": "amankumarshrestha"
     }
   ]
