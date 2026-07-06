@@ -1,5 +1,13 @@
-alter table public.staff_users
-  add column if not exists pin_ciphertext text;
+-- Replay guard (MS-db-staff-excision): staff_users is dropped at the end of
+-- the chain and its creator (the skipped initial migration) never re-adds it.
+do $$
+begin
+  if to_regclass('public.staff_users') is not null then
+    alter table public.staff_users
+      add column if not exists pin_ciphertext text;
+  end if;
+end
+$$;
 
 drop function if exists public.get_merchant_staff_pin_status(uuid);
 

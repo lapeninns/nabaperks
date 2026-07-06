@@ -284,37 +284,6 @@ on conflict (id) do update
 set name = excluded.name,
     address = excluded.address;
 
-insert into public.staff_users (
-  id,
-  merchant_id,
-  location_id,
-  auth_user_id,
-  display_name,
-  pin_hash
-)
-values
-  (
-    '12000000-0000-0000-0000-000000000001',
-    '10000000-0000-0000-0000-000000000001',
-    '11000000-0000-0000-0000-000000000001',
-    '00000000-0000-0000-0000-000000000201',
-    'Ella (Counter)',
-    extensions.crypt('1234', extensions.gen_salt('bf'))
-  ),
-  (
-    '12000000-0000-0000-0000-000000000002',
-    '10000000-0000-0000-0000-000000000002',
-    '11000000-0000-0000-0000-000000000002',
-    '00000000-0000-0000-0000-000000000202',
-    'Noah (Counter)',
-    extensions.crypt('1357', extensions.gen_salt('bf'))
-  )
-on conflict (id) do update
-set display_name = excluded.display_name,
-    auth_user_id = excluded.auth_user_id,
-    pin_hash = excluded.pin_hash,
-    is_active = true;
-
 insert into public.loyalty_cards (
   id,
   merchant_id,
