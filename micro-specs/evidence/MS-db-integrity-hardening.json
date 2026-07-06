@@ -1,7 +1,86 @@
 {
   "schema": 1,
   "spec_id": "MS-db-integrity-hardening",
-  "runs": [],
+  "runs": [
+    {
+      "timestamp": "2026-07-06T16:53:13.324Z",
+      "git_sha": "754942e1415b6e17d0cc3eea3f7528c8471e4960",
+      "git_branch": "feat/ms-db-integrity-hardening",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 5724
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1008
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 9667
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 7332
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 736
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 1,
+          "duration_ms": 506
+        }
+      ],
+      "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-06T16:55:19.134Z",
+      "git_sha": "3012cfd420f2e2bba5c13102ff3decae3483ad86",
+      "git_branch": "feat/ms-db-integrity-hardening",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6322
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1050
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10266
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 7513
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 746
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 502
+        }
+      ],
+      "all_passed": true
+    }
+  ],
   "manual_attestations": [],
   "transitions": [
     {
@@ -10,6 +89,14 @@
       "at": "2026-07-06T14:46:05.230Z",
       "sha": "ee9feee1d6ecf70dfc69752653f5c5ca8b002423",
       "dirty": true,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-06T16:55:19.134Z",
+      "sha": "3012cfd420f2e2bba5c13102ff3decae3483ad86",
+      "dirty": false,
       "by": "amankumarshrestha"
     }
   ]

@@ -177,7 +177,8 @@ test("scan-token minting refuses redeemed and not-ready rewards", { skip }, asyn
     const cancelledRewardId = await readyReward(tx, m)
     await tx`
       update public.reward_events
-      set status = 'cancelled'
+      set status = 'cancelled',
+          cancelled_reason = 'Cancelled by the venue (test fixture).'
       where id = ${cancelledRewardId}`
     await assertMintRejected(
       tx,

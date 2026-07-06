@@ -44,6 +44,17 @@ export async function GET(request: NextRequest) {
     })
   }
 
+  // Drop rate-limit buckets whose window ended over 24h ago — per-IP/email
+  // keys otherwise accumulate forever (MS-db-integrity-hardening).
+  const { data: purgedBuckets, error: bucketError } = await supabase.rpc(
+    "purge_stale_rate_limit_buckets"
+  )
+  if (bucketError) {
+    logger.warn("privacy_retention_bucket_purge_failed", {
+      reason: bucketError.message,
+    })
+  }
+
   return NextResponse.json(
     {
       ok: true,
@@ -51,6 +62,8 @@ export async function GET(request: NextRequest) {
         cutoff,
         purgedCount: typeof data === "number" ? data : 0,
         expiredInviteCount: typeof expiredInvites === "number" ? expiredInvites : 0,
+        purgedRateLimitBuckets:
+          typeof purgedBuckets === "number" ? purgedBuckets : 0,
       },
     },
     { headers: { "cache-control": "no-store, max-age=0" } }

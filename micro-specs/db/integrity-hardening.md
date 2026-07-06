@@ -1,6 +1,6 @@
 ---
 spec_id: MS-db-integrity-hardening
-status: active
+status: implemented
 risk_class: migrations
 owner: amankumarshrestha
 last_reviewed: 2026-07-06
@@ -10,12 +10,16 @@ allowed_blast_radius:
   - app/api/cron/privacy-retention/**
   - lib/security/**
   - tests/db/integrity-hardening.test.mjs
+  - tests/db/issued-rewards-birthday.test.mjs
+  - tests/db/reward-redemption-edges.test.mjs
   - tests/micro-specs/db-integrity-hardening.test.mjs
 implementation_surfaces:
   - supabase/migrations/20260707094000_integrity_hardening.sql
   - app/api/cron/privacy-retention/**
   - lib/security/**
   - tests/db/integrity-hardening.test.mjs
+  - tests/db/issued-rewards-birthday.test.mjs
+  - tests/db/reward-redemption-edges.test.mjs
   - tests/micro-specs/db-integrity-hardening.test.mjs
 related_docs:
   - micro-specs/GLOBAL_CONTEXT.md
@@ -90,6 +94,12 @@ every RPC body except the new purge function.
   within its window).
 - Index list is fixed (see decisions); partial `WHERE <col> IS NOT NULL`
   indexes on nullable FK columns; plain b-tree on NOT NULL ones.
+- Implementation-time finding: two existing DB fixtures wrote the incoherent
+  cancelled shape directly (`issued-rewards-birthday.test.mjs`,
+  `reward-redemption-edges.test.mjs` — `set status='cancelled'` with no
+  reason). Their intent (cancelled blocks re-issue / re-mint) is unchanged;
+  the fixtures now write the coherent shape the admin cancel RPC always
+  writes, and both files join the radius for exactly that line each.
 - Everything idempotent and replay-safe.
 
 ## 4. Decisions Already Made
@@ -115,9 +125,10 @@ every RPC body except the new purge function.
   after its existing calls; failures are logged, non-fatal to the other
   retention steps (matching how the route already sequences multiple purges).
 - `VALIDATE CONSTRAINT push_subscriptions_allowed_endpoint_check`; if legacy
-  rows violate it, the migration disables them
-  (`enabled=false, revoked_at=now()`) before validating — a nonconforming
-  endpoint is undeliverable anyway.
+  rows violate it, the migration DELETES them before validating (corrected at
+  implementation time: disabling cannot satisfy a content CHECK, and a
+  nonconforming endpoint is undeliverable dead weight; delivery history
+  survives via the SET NULL foreign key). Local data has zero such rows.
 
 ## 5. Behavioral Requirements (EARS)
 
