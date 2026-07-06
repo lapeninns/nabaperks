@@ -1,6 +1,6 @@
 ---
 spec_id: MS-db-staff-excision
-status: active
+status: implemented
 risk_class: rls-rpc-ledger
 owner: amankumarshrestha
 last_reviewed: 2026-07-06
