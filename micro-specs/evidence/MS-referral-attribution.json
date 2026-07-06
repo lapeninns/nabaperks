@@ -1,7 +1,37 @@
 {
   "schema": 1,
   "spec_id": "MS-referral-attribution",
-  "runs": [],
+  "runs": [
+    {
+      "timestamp": "2026-07-06T19:08:14.900Z",
+      "git_sha": "403341907b4a2165de8f2065ff3652683d361972",
+      "git_branch": "feat/ms-member-referral",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6115
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 4161
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 9380
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 1,
+          "duration_ms": 5893
+        }
+      ],
+      "all_passed": false
+    }
+  ],
   "manual_attestations": [],
   "transitions": [
     {

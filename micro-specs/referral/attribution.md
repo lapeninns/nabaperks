@@ -41,7 +41,7 @@ verification_gates:
   - pnpm test
   - pnpm test:coverage
   - pnpm test:db
-  - pnpm test:e2e customer-referral-attribution.spec.ts --project=mobile-safari
+  - pnpm test:e2e -- --grep "referral attribution" --project=mobile-safari
 required_playwright_projects:
   - mobile-safari
 evidence_required:
