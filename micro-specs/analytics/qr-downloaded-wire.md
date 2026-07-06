@@ -7,10 +7,12 @@ last_reviewed: 2026-07-06
 allowed_blast_radius:
   - micro-specs/analytics/**
   - app/app/qr/**
+  - components/merchant/qr-poster/**
   - tests/unit/qr-downloaded-tracking.test.mjs
   - tests/micro-specs/analytics-qr-downloaded-wire.test.mjs
 implementation_surfaces:
   - app/app/qr/**
+  - components/merchant/qr-poster/**
   - tests/unit/qr-downloaded-tracking.test.mjs
   - tests/micro-specs/analytics-qr-downloaded-wire.test.mjs
 related_docs:
@@ -90,6 +92,19 @@ merchant asset download); dev-harness fixtures.
   fit.
 - No dedup/throttling: raw counts are the product intent; repeated downloads
   count repeatedly.
+- Implementation-time finding (2026-07-06 affordance inventory): the ONLY
+  explicit download/print affordance today is the poster "Print or save PDF"
+  button (`window.print()`), which physically lives in
+  `components/merchant/qr-poster/poster-preview-chrome.tsx`, with its mobile
+  twin threaded through `a4-poster.tsx`'s PosterActionBar — hence the
+  `components/merchant/qr-poster/**` family joins the radius. The bare QR image URL (`/app/qr/image/[qrCodeId]`) is used
+  exclusively as an inline `<img>` (no download link exists), so `qr_png`
+  stays reserved vocabulary until such an affordance ships.
+- The client print handler fires the tracking server action WITHOUT awaiting
+  it (`void`), so the print dialog can never be delayed or failed by
+  analytics; the action itself resolves merchant + active QR server-side
+  (client input is just the template id, validated against the template
+  registry) and swallows all errors.
 
 ## 5. Behavioral Requirements (EARS)
 

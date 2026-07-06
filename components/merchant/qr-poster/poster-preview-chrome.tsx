@@ -8,6 +8,7 @@ import {
   PrinterIcon,
 } from "@hugeicons/core-free-icons"
 
+import { recordPosterPrintAction } from "@/app/app/qr/poster/actions"
 import { Icon } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import { SidebarTrigger } from "@/components/ui/sidebar"
@@ -55,13 +56,23 @@ function venueLabelOf(merchantName: string, locationName: string) {
     : `${merchantName} · ${locationName}`
 }
 
-function PrintButton({ className }: { readonly className?: string }) {
+function PrintButton({
+  className,
+  template,
+}: {
+  readonly className?: string
+  readonly template: QrPosterTemplateId
+}) {
   return (
     <Button
       type="button"
       variant="reward"
       className={cn("min-h-11 sm:min-h-9", className)}
-      onClick={() => window.print()}
+      onClick={() => {
+        // Fire-and-forget: printing must never wait on analytics.
+        void recordPosterPrintAction(template)
+        window.print()
+      }}
     >
       <Icon icon={PrinterIcon} size={16} />
       Print or save PDF
@@ -204,7 +215,7 @@ export function PosterPreviewChrome({
           </p>
         </div>
 
-        <PrintButton className="hidden shrink-0 lg:inline-flex" />
+        <PrintButton className="hidden shrink-0 lg:inline-flex" template={template} />
 
         <button
           type="button"
@@ -286,13 +297,14 @@ export function PosterDesktopSidecar({
 type PosterActionBarProps = {
   /** Forwarded so A4Poster can measure the bar and reserve space in the scale. */
   readonly ref?: Ref<HTMLElement>
+  readonly template: QrPosterTemplateId
 }
 
 /**
  * Sticky bottom action bar — the print CTA lives in the thumb zone on mobile.
  * At lg+ the header and sidecar own print actions, so this bar is hidden.
  */
-export function PosterActionBar({ ref }: PosterActionBarProps) {
+export function PosterActionBar({ ref, template }: PosterActionBarProps) {
   return (
     <footer
       ref={ref}
@@ -302,7 +314,7 @@ export function PosterActionBar({ ref }: PosterActionBarProps) {
         <p className="font-mono text-[10px] font-bold tracking-[0.1em] text-muted-foreground uppercase">
           A4 portrait · 210×297 mm · print at 100%
         </p>
-        <PrintButton className="w-full sm:w-fit" />
+        <PrintButton className="w-full sm:w-fit" template={template} />
       </div>
     </footer>
   )
