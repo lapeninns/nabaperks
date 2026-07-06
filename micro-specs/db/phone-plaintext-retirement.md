@@ -1,6 +1,6 @@
 ---
 spec_id: MS-db-phone-plaintext-retirement
-status: active
+status: implemented
 risk_class: customer-pii
 owner: amankumarshrestha
 last_reviewed: 2026-07-06
