@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-referral-attribution",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-06T16:50:08.562Z",
+      "sha": "0ea909ce54324b5b8a202d6f78cef92083ba4665",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}
