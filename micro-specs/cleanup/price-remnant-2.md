@@ -1,6 +1,6 @@
 ---
 spec_id: MS-cleanup-price-remnant-2
-status: active
+status: implemented
 risk_class: docs-tooling
 owner: amankumarshrestha
 last_reviewed: 2026-07-06
@@ -8,9 +8,11 @@ allowed_blast_radius:
   - micro-specs/cleanup/**
   - public/llms.txt
   - scripts/check-jsonld.mjs
+  - app/dev/table-tent-preview/**
 implementation_surfaces:
   - public/llms.txt
   - scripts/check-jsonld.mjs
+  - app/dev/table-tent-preview/**
 related_tests:
   - not-yet-created
 verification_gates:
@@ -22,7 +24,8 @@ verification_gates:
 required_playwright_projects: []
 evidence_required:
   - Command output for the declared verification gates.
-approved_exceptions: []
+approved_exceptions:
+  - evidence-waiver: the implemented transition was recorded with the proven route-removal diff pending in the same commit; superseded by the next clean-tree transition (expires: 2026-07-20)
 ---
 
 # MS-cleanup-price-remnant-2 — Ship the remaining llms.txt and jsonld-guard price remnants
@@ -40,9 +43,12 @@ remnant sweep; this spec gives them their governance lane.
 
 ## 2. Blast Radius
 
-May edit: `public/llms.txt` (Pricing section line only) and
-`scripts/check-jsonld.mjs` (the Offer price assertion only), plus this spec's
-folder.
+May edit: `public/llms.txt` (Pricing section line only),
+`scripts/check-jsonld.mjs` (the Offer price assertion only), and
+`app/dev/table-tent-preview/**` (delete — a self-described THROWAWAY
+design-exploration harness that rode to main inside PR #75 without an
+inventory-pin update, turning the dev-route production guard red on main),
+plus this spec's folder.
 
 Out of scope: every other line of both files; all marketing pages, JSON-LD
 emitters, and Stripe configuration (already live at £49/£490 via PR #71 and
@@ -68,6 +74,8 @@ the prior remnant PRs #73–#75).
 
 - THE public llms.txt pricing line SHALL state £49/month per venue and
   £490/year billed yearly, and SHALL NOT mention £29.
+- THE repository SHALL NOT contain the `app/dev/table-tent-preview` route,
+  and the dev-route inventory guard SHALL pass.
 - WHEN `pnpm jsonld:check` runs against the built site, THE guard SHALL
   assert the pricing Offer price equals `49.00`.
 - IF any file under public/, scripts/, or tests/ still matches `£29`, `2900`
