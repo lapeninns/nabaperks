@@ -41,14 +41,26 @@ type CustomerIdRow = {
 export async function openOtpStep(
   page: Page,
   fixture: PublicQrRouterFixture,
-  phone: DisposablePhone
+  phone: DisposablePhone,
+  options?: { ref?: string }
 ): Promise<void> {
-  await page.goto(publicQrPath(fixture.activeQrId))
-  await expect(
-    page.getByRole("heading", { name: "Keep your card on your phone" })
-  ).toBeVisible()
+  const ref = options?.ref
 
-  await page.getByRole("link", { name: "Get today's stamp" }).click()
+  if (ref) {
+    // The real referral link a member shares: no QR scan, just ?ref. With no qr
+    // the join route derives straight to the phone step (derive.ts).
+    await page.goto(
+      `/m/${fixture.merchantSlug}/join?ref=${encodeURIComponent(ref)}`
+    )
+  } else {
+    await page.goto(publicQrPath(fixture.activeQrId))
+    await expect(
+      page.getByRole("heading", { name: "Keep your card on your phone" })
+    ).toBeVisible()
+
+    await page.getByRole("link", { name: "Get today's stamp" }).click()
+  }
+
   await expect(
     page.getByRole("heading", { name: "Save your card to your number" })
   ).toBeVisible()
@@ -59,13 +71,18 @@ export async function openOtpStep(
     page.getByRole("heading", { name: "Enter your code" })
   ).toBeVisible()
   await expect(page.locator("#otp")).toBeVisible()
+
+  // The "Use a different number" back link preserves the entry params — the QR
+  // id and (when present) the referral code — so a bounce-back re-hydrates them.
+  const backParams = new URLSearchParams()
+  if (ref) backParams.set("ref", ref)
+  else backParams.set("qr", fixture.activeQrId)
+  backParams.set("step", "phone")
   await expect(
     page.getByRole("link", { name: "Use a different number" })
   ).toHaveAttribute(
     "href",
-    `/m/${fixture.merchantSlug}/join?qr=${encodeURIComponent(
-      fixture.activeQrId
-    )}&step=phone`
+    `/m/${fixture.merchantSlug}/join?${backParams.toString()}`
   )
 }
 
@@ -187,6 +204,71 @@ export async function readMerchantMembershipCount(
     where merchant_id = ${fixture.merchantId}::uuid`
 
   return rows.at(0)?.membership_count ?? 0
+}
+
+export type SeededReferrer = {
+  readonly membershipId: string
+  readonly referralCode: string
+  readonly customerId: string
+}
+
+// Enrol a referrer at the fixture venue and return their minted referral code —
+// the value a friend carries as ?ref. Uses an email-only customer (the friend's
+// phone stays distinct, so the friend is a genuinely different regular).
+export async function seedReferrerMembership(
+  sql: Sql,
+  fixture: PublicQrRouterFixture
+): Promise<SeededReferrer> {
+  const [customer] = await sql<readonly { id: string }[]>`
+    insert into public.customers (email, email_verified_at, created_at, updated_at)
+    values (${`ref-${randomUUID()}@test.local`}, now(), now(), now())
+    returning id::text as id`
+
+  // Enrol by direct insert (like the fixture's own membership seed) so the
+  // referral_code DEFAULT mints a code. The join RPC's service-role GUC bypass
+  // isn't set on this raw connection; the friend's join below exercises the real
+  // RPC end-to-end via the dev server's service-role client.
+  const [membership] = await sql<
+    readonly { membership_id: string; referral_code: string }[]
+  >`
+    insert into public.customer_memberships (merchant_id, customer_id)
+    values (${fixture.merchantId}::uuid, ${customer.id}::uuid)
+    returning id::text as membership_id, referral_code`
+
+  return {
+    membershipId: membership.membership_id,
+    referralCode: membership.referral_code,
+    customerId: customer.id,
+  }
+}
+
+export type ReferralEdge = {
+  readonly referrerMembershipId: string
+  readonly referralCodeUsed: string
+}
+
+export async function readReferralEdge(
+  sql: Sql,
+  referredMembershipId: string
+): Promise<ReferralEdge | undefined> {
+  const rows = await sql<
+    readonly {
+      referrer_membership_id: string
+      referral_code_used: string
+    }[]
+  >`
+    select
+      referrer_membership_id::text as referrer_membership_id,
+      referral_code_used
+    from public.referrals
+    where referred_membership_id = ${referredMembershipId}::uuid`
+
+  const row = rows.at(0)
+  if (!row) return undefined
+  return {
+    referrerMembershipId: row.referrer_membership_id,
+    referralCodeUsed: row.referral_code_used,
+  }
 }
 
 export async function cleanupCustomerJoinRows(

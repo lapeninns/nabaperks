@@ -154,11 +154,11 @@ async function insertMerchantRows(
     )`
   await sql`
     insert into public.merchant_locations (
-      id, merchant_id, name, address, timezone, is_primary, require_geofence
+      id, merchant_id, name, address, is_primary, require_geofence
     )
     values (
       ${fixture.locationId}::uuid, ${fixture.merchantId}::uuid,
-      'Public QR E2E Bar', '1 Browser Lane, Cambridge', 'Europe/London',
+      'Public QR E2E Bar', '1 Browser Lane, Cambridge',
       true, false
     )`
   await sql`

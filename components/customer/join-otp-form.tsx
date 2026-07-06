@@ -19,6 +19,7 @@ const identityInitialState: CustomerIdentityState = {}
 export type CustomerOtpFormProps = {
   merchantSlug: string
   qrId?: string
+  referralCode?: string
   contact: string
   location: LocationRequirement
 }
@@ -26,6 +27,7 @@ export type CustomerOtpFormProps = {
 export function CustomerOtpForm({
   merchantSlug,
   qrId,
+  referralCode,
   contact,
   location,
 }: CustomerOtpFormProps) {
@@ -50,7 +52,7 @@ export function CustomerOtpForm({
     requestPending || resendError ? undefined : requestState.message
   const phoneStepHref = `/m/${merchantSlug}/join?${
     qrId ? `qr=${encodeURIComponent(qrId)}&` : ""
-  }step=phone`
+  }${referralCode ? `ref=${encodeURIComponent(referralCode)}&` : ""}step=phone`
 
   void location
 
@@ -59,6 +61,7 @@ export function CustomerOtpForm({
       <form action={verifyAction} className="grid gap-4">
         <input type="hidden" name="merchantSlug" value={merchantSlug} />
         <input type="hidden" name="qrId" value={qrId ?? ""} />
+        <input type="hidden" name="ref" value={referralCode ?? ""} />
         <div className="grid gap-2">
           <label htmlFor="otp" className="eyebrow">
             Text code
@@ -108,6 +111,7 @@ export function CustomerOtpForm({
       <form action={requestAction} className="grid gap-3">
         <input type="hidden" name="merchantSlug" value={merchantSlug} />
         <input type="hidden" name="qrId" value={qrId ?? ""} />
+        <input type="hidden" name="ref" value={referralCode ?? ""} />
         <input type="hidden" name="contact" value={contact} />
         {/* Marks this submission as a resend so the action answers in place
             (returned state) instead of redirecting the phone step forward. */}

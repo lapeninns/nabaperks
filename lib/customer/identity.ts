@@ -83,7 +83,6 @@ export async function getOrCreateCustomerByVerifiedPhone(
     .insert({
       auth_user_id: null,
       email: null,
-      phone: null,
       phone_hmac: pii.phoneHmac,
       phone_ciphertext: pii.phoneCiphertext,
       phone_last4: pii.phoneLast4,

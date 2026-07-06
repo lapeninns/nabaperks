@@ -70,6 +70,7 @@ export async function requestCustomerIdentityAction(
   const rawContact = value(formData, "contact")
   const merchantSlug = value(formData, "merchantSlug")
   const qrId = value(formData, "qrId")
+  const ref = value(formData, "ref")
   const requestHeaders = await headers()
   const country = defaultCountryFromHeaders(requestHeaders)
   const requestIdentity = rateLimitIdentityFromHeaders(requestHeaders)
@@ -139,7 +140,11 @@ export async function requestCustomerIdentityAction(
     }
   }
 
-  redirect(`/m/${merchantSlug}/join${qrId ? `?qr=${encodeURIComponent(qrId)}` : ""}`)
+  redirect(
+    `/m/${merchantSlug}/join${qrId ? `?qr=${encodeURIComponent(qrId)}` : ""}${
+      ref ? `${qrId ? "&" : "?"}ref=${encodeURIComponent(ref)}` : ""
+    }`
+  )
 }
 
 function logVerificationSendFailure(scope: "join", error: unknown): void {
@@ -155,6 +160,7 @@ export async function verifyCustomerOtpAction(
 ): Promise<CustomerIdentityState> {
   const merchantSlug = value(formData, "merchantSlug")
   const qrId = value(formData, "qrId")
+  const ref = value(formData, "ref")
   const otp = value(formData, "otp")
   const pending = await getPendingPhoneVerification()
   const requestHeaders = await headers()
@@ -224,7 +230,11 @@ export async function verifyCustomerOtpAction(
     if (destination) redirect(destination)
   }
 
-  redirect(`/m/${merchantSlug}/join${qrId ? `?qr=${encodeURIComponent(qrId)}` : ""}`)
+  redirect(
+    `/m/${merchantSlug}/join${qrId ? `?qr=${encodeURIComponent(qrId)}` : ""}${
+      ref ? `${qrId ? "&" : "?"}ref=${encodeURIComponent(ref)}` : ""
+    }`
+  )
 }
 
 export async function joinRewardsAction(
@@ -234,6 +244,7 @@ export async function joinRewardsAction(
   const customer = await getCurrentCustomer()
   const merchantSlug = value(formData, "merchantSlug")
   const qrId = value(formData, "qrId")
+  const ref = value(formData, "ref")
   const acceptedTerms = formData.get("loyaltyTerms") === "on"
   const marketingOptIn = formData.get("marketingOptIn") === "on"
 
@@ -257,15 +268,20 @@ export async function joinRewardsAction(
   })
 
   const supabase = createSupabaseServiceRoleClient()
+  // Omit p_ref unless a referral code is actually present, so the call still
+  // resolves against the pre-referral 7-arg RPC. This decouples the deploy from
+  // the migration: ordinary joins keep working before `p_ref` lands on the DB,
+  // and only referral-link joins (none exist yet) need the migration applied.
+  const joinArgs = {
+    p_customer_id: customer.id,
+    p_merchant_slug: merchantSlug,
+    p_qr_id: qrId || null,
+    p_marketing_opt_in: marketingOptIn,
+    p_policy_version: policyVersion,
+  }
   const { data, error } = await supabase.rpc(
     "join_customer_membership_with_first_stamp",
-    {
-      p_customer_id: customer.id,
-      p_merchant_slug: merchantSlug,
-      p_qr_id: qrId || null,
-      p_marketing_opt_in: marketingOptIn,
-      p_policy_version: policyVersion,
-    }
+    ref ? { ...joinArgs, p_ref: ref } : joinArgs
   )
 
   if (error) {
@@ -328,5 +344,9 @@ export async function joinRewardsAction(
     redirect(`/card/${membershipId}?${params.toString()}`)
   }
 
-  redirect(`/m/${merchantSlug}/join${qrId ? `?qr=${encodeURIComponent(qrId)}&` : "?"}membership=existing`)
+  redirect(
+    `/m/${merchantSlug}/join?${qrId ? `qr=${encodeURIComponent(qrId)}&` : ""}${
+      ref ? `ref=${encodeURIComponent(ref)}&` : ""
+    }membership=existing`
+  )
 }
