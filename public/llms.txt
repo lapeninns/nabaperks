@@ -20,7 +20,7 @@
 - Bars & wine bars: https://nabaperks.com/loyalty-for-bars — give regulars a reason to choose your bar again; nothing to lose between rounds.
 
 ## Pricing
-- 30-day free pilot, then £29/month per venue (GBP). No contract.
+- 30-day free pilot, then £49/month per venue (GBP), or £490/year billed yearly (two months free). No contract.
 - Build the card and preview the QR flow for free; billing starts only when the live venue QR is activated.
 
 ## Operator
