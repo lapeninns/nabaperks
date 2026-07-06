@@ -99,7 +99,9 @@ test("R-2: issuance is idempotent and a cancelled reward does not free a re-issu
     assert.equal(await issue(tx, fixture), 0, "second run issues nothing")
 
     await tx`
-      update public.reward_events set status = 'cancelled'
+      update public.reward_events
+      set status = 'cancelled',
+          cancelled_reason = 'Cancelled by the venue (test fixture).'
       where source = 'birthday_month' and customer_id = ${fixture.customerId}::uuid`
     assert.equal(await issue(tx, fixture), 0, "a cancelled birthday reward still blocks re-issue")
   })

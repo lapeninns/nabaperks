@@ -10,12 +10,16 @@ allowed_blast_radius:
   - app/api/cron/privacy-retention/**
   - lib/security/**
   - tests/db/integrity-hardening.test.mjs
+  - tests/db/issued-rewards-birthday.test.mjs
+  - tests/db/reward-redemption-edges.test.mjs
   - tests/micro-specs/db-integrity-hardening.test.mjs
 implementation_surfaces:
   - supabase/migrations/20260707094000_integrity_hardening.sql
   - app/api/cron/privacy-retention/**
   - lib/security/**
   - tests/db/integrity-hardening.test.mjs
+  - tests/db/issued-rewards-birthday.test.mjs
+  - tests/db/reward-redemption-edges.test.mjs
   - tests/micro-specs/db-integrity-hardening.test.mjs
 related_docs:
   - micro-specs/GLOBAL_CONTEXT.md
@@ -90,6 +94,12 @@ every RPC body except the new purge function.
   within its window).
 - Index list is fixed (see decisions); partial `WHERE <col> IS NOT NULL`
   indexes on nullable FK columns; plain b-tree on NOT NULL ones.
+- Implementation-time finding: two existing DB fixtures wrote the incoherent
+  cancelled shape directly (`issued-rewards-birthday.test.mjs`,
+  `reward-redemption-edges.test.mjs` — `set status='cancelled'` with no
+  reason). Their intent (cancelled blocks re-issue / re-mint) is unchanged;
+  the fixtures now write the coherent shape the admin cancel RPC always
+  writes, and both files join the radius for exactly that line each.
 - Everything idempotent and replay-safe.
 
 ## 4. Decisions Already Made
