@@ -66,6 +66,8 @@ export type CardContext =
       firstStampPending?: boolean
       geoFlagged: boolean
       justRedeemed: boolean
+      /** Shareable "Bring a Regular" join link (opaque referral_code), or absent. */
+      referralShareUrl?: string
     }
 
 export type StampContext =
@@ -187,6 +189,7 @@ function deriveCard(context: CardContext): CustomerExperience {
     firstStampPending: context.firstStampPending,
     geoFlagged: context.geoFlagged,
     justRedeemed: context.justRedeemed,
+    referralShareUrl: context.referralShareUrl,
   }
 }
 
@@ -292,7 +295,9 @@ function deriveStamp(context: StampContext): CustomerExperience {
 
   const unlockedReward = context.unlockedReward
   if (unlockedReward) {
-    candidates.push(unlockedReward.redeemable ? "reward_ready" : "reward_waiting")
+    candidates.push(
+      unlockedReward.redeemable ? "reward_ready" : "reward_waiting"
+    )
   }
   if (context.alreadyStampedToday) candidates.push("card_stamped_today")
   if (context.qrValid) candidates.push("stamp_confirm")

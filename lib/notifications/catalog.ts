@@ -16,6 +16,7 @@ export const notificationEventTypes = [
   "venue_announcement",
   "birthday_reward_issued",
   "merchant_reward_received",
+  "referral_bonus_stamp_issued",
 ] as const
 
 export type NotificationEventType = (typeof notificationEventTypes)[number]
@@ -69,6 +70,7 @@ const EVENT_CATEGORY: Record<NotificationEventType, NotificationCategory> = {
   venue_announcement: "marketing",
   birthday_reward_issued: "marketing",
   merchant_reward_received: "marketing",
+  referral_bonus_stamp_issued: "transactional",
 }
 
 const BLOCKED_METADATA_KEYS = new Set([
@@ -166,6 +168,10 @@ const PAYLOAD_COPY: Record<
   merchant_reward_received: (input) => ({
     title: "A reward for you",
     body: `${input.businessName} sent you ${input.rewardName}.`,
+  }),
+  referral_bonus_stamp_issued: (input) => ({
+    title: "You earned a bonus stamp",
+    body: `Someone you invited to ${input.businessName} collected their first stamp — you both got one.`,
   }),
 }
 

@@ -11,6 +11,7 @@ import {
   CustomerStampCard,
 } from "@/components/customer/customer-flow-system"
 import { CustomerTabBar } from "@/components/layout"
+import { ReferralSharePanel } from "@/components/customer/referral-share-panel"
 import { StampCollector } from "@/components/customer/stamp-collector"
 import {
   RedeemedProofPanel,
@@ -129,7 +130,9 @@ function CardProgressPanel({
     rewardDescription = hasPrimaryAction ? (
       SEALED_REWARD_NOTE
     ) : (
-      <>{SEALED_REWARD_NOTE} {exp.rewardTerms}</>
+      <>
+        {SEALED_REWARD_NOTE} {exp.rewardTerms}
+      </>
     )
   } else if (rewardState === "waiting") {
     // The waiting notice in the action band already explains the wait.
@@ -266,6 +269,14 @@ function CardProgressPanel({
           </div>
         )}
       </CustomerStampCard>
+
+      {exp.referralShareUrl ? (
+        <ReferralSharePanel
+          url={exp.referralShareUrl}
+          membershipId={exp.membershipId}
+          venueName={exp.merchantName}
+        />
+      ) : null}
 
       <CardDetailsDisclosure cardNumber={cardNumber(exp.membershipId)} />
     </div>
