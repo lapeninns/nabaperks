@@ -227,19 +227,19 @@ export async function seedReferrerMembership(
     values (${`ref-${randomUUID()}@test.local`}, now(), now(), now())
     returning id::text as id`
 
-  const [joined] = await sql<readonly { membership_id: string }[]>`
-    select membership_id::text as membership_id
-    from public.join_customer_membership_with_first_stamp(
-      ${customer.id}::uuid, ${fixture.merchantSlug}, ${fixture.activeQrId},
-      false, '2026-06-06')`
-
-  const [membership] = await sql<readonly { referral_code: string }[]>`
-    select referral_code
-    from public.customer_memberships
-    where id = ${joined.membership_id}::uuid`
+  // Enrol by direct insert (like the fixture's own membership seed) so the
+  // referral_code DEFAULT mints a code. The join RPC's service-role GUC bypass
+  // isn't set on this raw connection; the friend's join below exercises the real
+  // RPC end-to-end via the dev server's service-role client.
+  const [membership] = await sql<
+    readonly { membership_id: string; referral_code: string }[]
+  >`
+    insert into public.customer_memberships (merchant_id, customer_id)
+    values (${fixture.merchantId}::uuid, ${customer.id}::uuid)
+    returning id::text as membership_id, referral_code`
 
   return {
-    membershipId: joined.membership_id,
+    membershipId: membership.membership_id,
     referralCode: membership.referral_code,
     customerId: customer.id,
   }
