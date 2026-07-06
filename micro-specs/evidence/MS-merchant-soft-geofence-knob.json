@@ -40,6 +40,45 @@
         }
       ],
       "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-06T17:18:58.785Z",
+      "git_sha": "cfb64c95dedb787f50fd80f415974b67defe595a",
+      "git_branch": "feat/ms-merchant-soft-geofence-knob",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 5550
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1029
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 9344
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 6606
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 725
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 1,
+          "duration_ms": 506
+        }
+      ],
+      "all_passed": false
     }
   ],
   "manual_attestations": [],
