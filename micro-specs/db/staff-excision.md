@@ -7,12 +7,20 @@ last_reviewed: 2026-07-06
 allowed_blast_radius:
   - micro-specs/db/**
   - supabase/migrations/20260707092000_staff_subsystem_excision.sql
+  - supabase/migrations/20260606175000_merchant_staff_pin_settings.sql
+  - supabase/migrations/20260607110000_staff_pin_reveal_ciphertext.sql
+  - supabase/migrations/20260609120000_daily_staff_pin_rotation.sql
+  - supabase/migrations/20260613130000_remove_shared_pin_surfaces.sql
   - lib/merchant/staff-members.ts
   - supabase/seed.sql
   - tests/db/staff-excision.test.mjs
   - tests/micro-specs/db-staff-excision.test.mjs
 implementation_surfaces:
   - supabase/migrations/20260707092000_staff_subsystem_excision.sql
+  - supabase/migrations/20260606175000_merchant_staff_pin_settings.sql
+  - supabase/migrations/20260607110000_staff_pin_reveal_ciphertext.sql
+  - supabase/migrations/20260609120000_daily_staff_pin_rotation.sql
+  - supabase/migrations/20260613130000_remove_shared_pin_surfaces.sql
   - lib/merchant/staff-members.ts
   - supabase/seed.sql
   - tests/db/staff-excision.test.mjs
@@ -77,12 +85,23 @@ be preserved exactly); every other RLS policy.
 
 ## 3. Strict Constraints and Assumptions
 
-- `is_staff_for_merchant` is referenced by exactly two policies:
-  `qr_codes_select_owner_staff_admin` and
-  `reward_pool_items_select_owner_staff_admin` (audit finding). Verify by
-  grep over the live schema dump at implementation time; if any additional
-  reference exists (policy, function, trigger), stop and amend this spec
-  rather than improvising.
+- Implementation-time correction (live pg_policy scan, 2026-07-06): the audit
+  undercounted — `is_staff_for_merchant` is referenced by NINE SELECT
+  policies, not two. Besides the two `_staff_`-named ones, the staff arm also
+  sits inside `merchants_select_owned_or_admin`,
+  `merchant_locations_select_scoped`, `loyalty_cards_select_scoped`,
+  `customer_memberships_select_scoped`, `stamp_events_select_scoped`,
+  `reward_events_select_scoped`, and `audit_logs_select_scoped`. All nine are
+  recreated byte-equivalent minus that arm (the two `_staff_` names become
+  `_owner_admin`); no function, trigger, or other object references the
+  helper (pg_proc scan clean).
+- Replay contract: the four historical staff-PIN migrations
+  (20260606175000, 20260607110000, 20260609120000, 20260613130000) carried
+  top-level `alter table public.staff_users` statements that break full-chain
+  replays once the table is dropped (the initial migration is skipped on
+  replays and never re-creates it). Each gains a `to_regclass` DO-block guard;
+  function-body references stay untouched (lazily parsed, replaced later in
+  the chain). Prod is unaffected (db push applies only new migrations).
 - Policy rewrite must be drop-and-recreate with the staff arm removed and
   every other predicate byte-for-byte equivalent; renaming the policies to
   drop the `_staff_` token is allowed and preferred

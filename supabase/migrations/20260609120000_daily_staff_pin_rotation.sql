@@ -1,9 +1,16 @@
-alter table public.staff_users
-  add column if not exists pin_rotated_on date;
-
-create index if not exists staff_users_pin_rotation_idx
-  on public.staff_users (pin_rotated_on, updated_at desc)
-  where is_active;
+-- Replay guard (MS-db-staff-excision): staff_users is dropped at the end of
+-- the chain and its creator (the skipped initial migration) never re-adds it.
+do $$
+begin
+  if to_regclass('public.staff_users') is not null then
+    alter table public.staff_users
+      add column if not exists pin_rotated_on date;
+    create index if not exists staff_users_pin_rotation_idx
+      on public.staff_users (pin_rotated_on, updated_at desc)
+      where is_active;
+  end if;
+end
+$$;
 
 drop function if exists public.get_merchant_staff_pin_status(uuid);
 

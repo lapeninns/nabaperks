@@ -1217,12 +1217,20 @@ alter table public.reward_pool_items force row level security;
 
 do $$
 begin
+  -- Replay guard (MS-db-staff-excision): once the chain's tail drops
+  -- is_staff_for_merchant, this legacy policy can no longer be created on
+  -- replays; the excision migration provides its owner/admin replacement.
   if not exists (
     select 1
     from pg_policies
     where schemaname = 'public'
       and tablename = 'reward_pool_items'
       and policyname = 'reward_pool_items_select_owner_staff_admin'
+  ) and exists (
+    select 1
+    from pg_proc
+    where pronamespace = 'public'::regnamespace
+      and proname = 'is_staff_for_merchant'
   ) then
     create policy reward_pool_items_select_owner_staff_admin
       on public.reward_pool_items for select to authenticated
