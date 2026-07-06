@@ -325,6 +325,15 @@
       "sha": "2703d118a19dbf85a5c24877dedbe14606c175b7",
       "dirty": false,
       "by": "amankumarshrestha"
+    },
+    {
+      "from": "implemented",
+      "to": "superseded",
+      "at": "2026-07-06T09:34:35.583Z",
+      "sha": "c1cf4364624564e0077eae5f0df5b2334ccf0280",
+      "dirty": true,
+      "by": "amankumarshrestha",
+      "superseded_by": "MS-marketing-offer-v2"
     }
   ]
 }

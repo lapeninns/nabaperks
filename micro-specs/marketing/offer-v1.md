@@ -1,9 +1,10 @@
 ---
 spec_id: MS-marketing-offer-v1
-status: implemented
+status: superseded
+superseded_by: MS-marketing-offer-v2
 risk_class: ui-only
 owner: amankumarshrestha
-last_reviewed: 2026-07-05
+last_reviewed: 2026-07-06
 allowed_blast_radius:
   - micro-specs/marketing/**
   - micro-specs/evidence/MS-marketing-offer-v1.json
