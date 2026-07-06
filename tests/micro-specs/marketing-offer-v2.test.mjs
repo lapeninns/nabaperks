@@ -80,7 +80,7 @@ test("OV2-4 Given the guarantee When surfaced under the offer Then the best/wors
   assert.match(facts, /riskFraming:/)
   assert.match(
     facts,
-    /Best case, your regulars come back and the £29 pays for itself\. Worst case, you pay nothing more until one does\./
+    /Best case, your regulars come back and the £49 pays for itself\. Worst case, you pay nothing more until one does\./
   )
   assert.match(pricing, /OFFER\.riskFraming/)
   assert.match(pricing, /GUARANTEE\.line/)
@@ -88,8 +88,8 @@ test("OV2-4 Given the guarantee When surfaced under the offer Then the best/wors
   assert.doesNotMatch(pricing, /Best case, your regulars come back/)
 })
 
-test("OV2-5 Given the rolling seasonal promo When enabled Then it is single-sourced and rendered on pricing, signup and the hero via PROMO", () => {
-  const facts = readProjectFile("lib", "marketing", "facts.ts")
+test("OV2-5 Given the rolling monthly promo When enabled Then it is single-sourced and rendered on pricing, signup and the hero via getActivePromo", () => {
+  const promoModule = readProjectFile("lib", "marketing", "promo.ts")
   const pricing = readProjectFile("app", "pricing", "page.tsx")
   const signup = readProjectFile("app", "(auth)", "signup", "page.tsx")
   const hero = readProjectFile(
@@ -99,24 +99,22 @@ test("OV2-5 Given the rolling seasonal promo When enabled Then it is single-sour
     "hero.tsx"
   )
 
-  assert.match(facts, /export const PROMO = \{/)
-  assert.match(facts, /enabled: true/)
-  assert.match(facts, /name: "Summer First-Regular promo"/)
-  assert.match(facts, /endDateISO: "2026-08-31"/)
-  assert.match(facts, /deadlineLabel: "31 August 2026"/)
-  // The perk names the same human date as endDateISO (drift guard).
-  assert.match(
-    facts,
-    /Go live by 31 August 2026 and we print and post your first counter-poster run — free\./
-  )
-  // Rendered from the constant on all three surfaces, gated on enabled.
-  assert.match(pricing, /PROMO\.enabled/)
-  assert.match(signup, /PROMO\.enabled/)
-  assert.match(hero, /PROMO\.enabled/)
+  assert.match(promoModule, /export const PROMO_CONFIG = \{/)
+  assert.match(promoModule, /enabled: true/)
+  assert.match(promoModule, /monthlyCap: 40/)
+  assert.match(promoModule, /export function getActivePromo\(/)
+  assert.match(promoModule, /First-Regular promo/)
+  assert.match(promoModule, /print and post your first counter-poster run — free/)
+  // Rendered from getActivePromo on all three surfaces.
+  assert.match(pricing, /getActivePromo\(/)
+  assert.match(signup, /getActivePromo\(/)
+  assert.match(hero, /promo\.name/)
+  assert.match(hero, /promo\.scarcityChip/)
+  assert.match(pricing, /promo\.scarcityLine/)
 })
 
 test("OV2-6 Given promo honesty When terms + surfaces are checked Then /terms records the promo and no acquisition surface forks the promo perk off-constant", () => {
-  const facts = readProjectFile("lib", "marketing", "facts.ts")
+  const promoModule = readProjectFile("lib", "marketing", "promo.ts")
   const legal = readProjectFile("lib", "legal", "content.ts")
   const pricing = readProjectFile("app", "pricing", "page.tsx")
   const signup = readProjectFile("app", "(auth)", "signup", "page.tsx")
@@ -128,10 +126,11 @@ test("OV2-6 Given promo honesty When terms + surfaces are checked Then /terms re
   )
 
   // Terms carry a durable plain-English promo record.
-  assert.match(legal, /id: "summer-first-regular-promo"/)
-  // The staleness helper exists so a lapsed promo trips CI rather than lingering.
-  assert.match(facts, /export function isPromoStale\(/)
-  // The perk is only ever the PROMO constant on acquisition surfaces.
+  assert.match(legal, /id: "monthly-first-regular-promo"/)
+  assert.match(legal, /monthly print-run capacity/)
+  // The staleness helper exists so a lapsed promo can still be checked in tests.
+  assert.match(promoModule, /export function isPromoStale\(/)
+  // The perk is only ever composed inside getActivePromo — not forked on pages.
   assert.doesNotMatch(
     [pricing, signup, hero].join("\n"),
     /print and post your first counter-poster run/

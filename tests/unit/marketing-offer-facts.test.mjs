@@ -4,9 +4,8 @@ import { test } from "node:test"
 import {
   OFFER,
   OFFER_STACK,
-  PROMO,
+  PRODUCT,
   SETUP,
-  isPromoStale,
 } from "@/lib/marketing/facts"
 
 test("OFFER + SETUP expose the offer wrapper and the speed copy", () => {
@@ -33,33 +32,13 @@ test("OFFER_STACK: five items, each with an obstacle; only substantiable items c
   assert.match(posters.anchor, /£150\+/)
 })
 
-test("PROMO.deadlineLabel is the en-GB rendering of endDateISO (drift guard)", () => {
-  const rendered = new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(`${PROMO.endDateISO}T00:00:00Z`))
-  assert.equal(PROMO.deadlineLabel, rendered)
-  // The perk sentence names the same human date.
-  assert.ok(PROMO.perk.includes(PROMO.deadlineLabel))
-})
-
-test("isPromoStale: a disabled promo is never stale", () => {
-  assert.equal(
-    isPromoStale({ enabled: false, endDateISO: "2000-01-01" }, "2026-07-05T00:00:00Z"),
-    false
-  )
-})
-
-test("isPromoStale: an enabled promo is live through its final calendar day and stale after", () => {
-  const promo = { enabled: true, endDateISO: "2026-08-31" }
-  assert.equal(isPromoStale(promo, "2026-08-31T18:00:00Z"), false)
-  assert.equal(isPromoStale(promo, "2026-09-01T00:00:00Z"), true)
-})
-
-test("CI staleness tripwire: the shipped PROMO is not already stale", () => {
-  // Fails the build once an enabled promo's deadline passes — forcing a
-  // deliberate refresh or disable rather than a stale, past-dated promo.
-  assert.equal(isPromoStale(PROMO, new Date().toISOString()), false)
+test("PRODUCT pricing: £49/month core with a £490/year annual option (two months free)", () => {
+  assert.equal(PRODUCT.price, "£49/month")
+  assert.equal(PRODUCT.priceShort, "£49/mo")
+  assert.equal(PRODUCT.priceAnnual, "£490/year")
+  assert.equal(PRODUCT.annualSaving, "2 months free")
+  const monthly = Number(PRODUCT.price.replace(/[^0-9.]/g, ""))
+  const annual = Number(PRODUCT.priceAnnual.replace(/[^0-9.]/g, ""))
+  assert.ok(annual < monthly * 12, "annual is cheaper than 12 monthly payments")
+  assert.equal(monthly * 12 - annual, 98) // exactly two months free at £49
 })

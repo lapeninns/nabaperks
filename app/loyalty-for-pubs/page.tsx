@@ -26,7 +26,7 @@ import {
 
 const title = "Pub Loyalty Cards — No-App QR Stamp Cards"
 const description =
-  "Reward regulars without an app or a CRM. One venue QR for the bar and the tables — counter-verified stamps, no POS needed. £29/month, 30-day free pilot."
+  "Reward regulars without an app or a CRM. One venue QR for the bar and the tables — counter-verified stamps, no POS needed. £49/month, 30-day free pilot."
 
 export const metadata: Metadata = {
   title,

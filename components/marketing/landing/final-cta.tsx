@@ -21,7 +21,7 @@ export function FinalCta() {
       </h2>
       <p className="mx-auto mt-4 max-w-[44ch] text-base leading-relaxed text-muted-foreground">
         Build your card, preview the QR flow, and start a 30-day pilot. Then it
-        is £29/month for one venue. {PRODUCT.cancelLine}
+        is £49/month for one venue. {PRODUCT.cancelLine}
       </p>
       <p className="mx-auto mt-3 max-w-[46ch] text-sm leading-relaxed text-muted-foreground">
         No app for your customers, no POS for you — it works on any phone, tablet

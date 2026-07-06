@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 
 const defaultPoints = [
   PRODUCT.cancelChip,
-  "30-day pilot, then £29/mo",
+  "30-day pilot, then £49/mo",
   "No contract, month to month",
 ] as const
 

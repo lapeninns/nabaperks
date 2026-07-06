@@ -15,8 +15,9 @@
  * commercial trial-extension promise (2026-07-05, MS-marketing-offer-v1) — a
  * business term, not a compliance claim; compliance-assurance wording stays
  * banned. Offer v2 (2026-07-05, MS-marketing-offer-v2) adds two more
- * owner-approved commercial terms: the rolling seasonal `PROMO` (a real,
- * fulfilled, time-boxed perk) and the `OFFER_STACK` `anchor`s (justified
+ * owner-approved commercial terms: the rolling monthly `PROMO` in
+ * `lib/marketing/promo.ts` (a real, fulfilled, time-boxed perk with a monthly
+ * print-run capacity) and the `OFFER_STACK` `anchor`s (justified
  * external cost/time comparisons — never an invented reference or headline
  * price). The privacy bonus still describes mechanisms only, never a
  * compliance assurance.
@@ -86,8 +87,17 @@ export const PRODUCT = {
   term: "browser-based loyalty card",
   cardLine: "A browser-based loyalty card customers open from your QR code.",
   posLine: "No extra hardware. No POS or EPOS integration required.",
-  price: "£29/month",
-  priceShort: "£29/mo",
+  price: "£49/month",
+  priceShort: "£49/mo",
+  /**
+   * Annual plan — 12 × £49 = £588, offered at £490 up front = exactly two
+   * months free. The annual Stripe Price is created by the operator; the
+   * optional `STRIPE_GROWTH_ANNUAL_PRICE_ID` gates the annual checkout option
+   * until it exists, so a stray annual submit can never bill an undefined price.
+   */
+  priceAnnual: "£490/year",
+  priceAnnualShort: "£490/yr",
+  annualSaving: "2 months free",
   pilot: "30-day free pilot",
   /** Public phrasing for the anti-fraud method — not a hero-level brand push. */
   counterStamp: "counter-verified stamps",
@@ -119,7 +129,7 @@ export const GUARANTEE = {
 } as const
 
 /**
- * What the £29 plan includes — the single source for the /pricing superset
+ * What the £49 plan includes — the single source for the /pricing superset
  * and the TrustPricing teaser (`PLAN_INCLUDES.slice(0, 4)`), so the two
  * surfaces can never drift. Location checks sit last so the teaser is a
  * plain prefix of the full list.
@@ -143,7 +153,7 @@ export const PLAN_INCLUDES = [
 export const OFFER = {
   name: "The 30-Day First-Regular Launch",
   riskFraming:
-    "Best case, your regulars come back and the £29 pays for itself. Worst case, you pay nothing more until one does.",
+    "Best case, your regulars come back and the £49 pays for itself. Worst case, you pay nothing more until one does.",
 } as const
 
 /**
@@ -213,45 +223,6 @@ export const OFFER_STACK = [
     anchor: null,
   },
 ] as const
-
-/**
- * Rolling seasonal promo — Hormozi urgency done honestly. A REAL owner
- * commitment: a genuine free perk and a real deadline the operator will fulfil,
- * refreshed each season (MS-marketing-offer-v2, owner-approved 2026-07-05).
- * Render is gated on `enabled` (a build-time flag) so visual/a11y/e2e baselines
- * stay deterministic and never depend on the wall clock; the deadline shows as
- * urgency copy. `isPromoStale` trips the offer-v2 test once the deadline
- * passes, so a lapsed promo can never silently linger or show a past date — the
- * owner refreshes the perk/date or flips `enabled` to false to roll it.
- * `deadlineLabel` is the en-GB rendering of `endDateISO`; the two are kept in
- * lockstep by the offer-v2 unit test.
- */
-export const PROMO = {
-  enabled: true,
-  name: "Summer First-Regular promo",
-  deadlineLabel: "31 August 2026",
-  endDateISO: "2026-08-31",
-  perk: "Go live by 31 August 2026 and we print and post your first counter-poster run — free.",
-  claim: `Go live before the date, then email ${OPERATOR.supportEmail} and we sort your print run.`,
-} as const
-
-/**
- * A promo is stale when it is still enabled but its deadline has passed. Used as
- * a CI tripwire (offer-v2 test): a stale promo fails the build so it gets
- * refreshed or disabled rather than lingering with a past date. Compared at
- * end-of-day UTC so the promo stays live through its final calendar day.
- */
-export function isPromoStale(
-  promo: { readonly enabled: boolean; readonly endDateISO: string },
-  nowISO: string
-): boolean {
-  if (!promo.enabled) {
-    return false
-  }
-
-  const deadline = new Date(`${promo.endDateISO}T23:59:59.999Z`)
-  return new Date(nowISO).getTime() > deadline.getTime()
-}
 
 // --- First-party proof (the citable data asset) ----------------------------
 

@@ -70,7 +70,7 @@ export async function getAdminPilotReport() {
       // (a sentence at text-2xl extrabold blows the tile rhythm).
       {
         item: "Launch offer",
-        target: "30 days free, then GBP 29/mo",
+        target: "30 days free, then GBP 49/mo",
         value: "Configured",
         source: "app pricing and billing_customers",
       },

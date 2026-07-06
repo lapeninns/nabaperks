@@ -15,6 +15,7 @@ import {
 } from "@/components/merchant/billing-status"
 import { Button } from "@/components/ui/button"
 import { getCurrentMerchant } from "@/lib/auth/session"
+import { PRODUCT } from "@/lib/marketing/facts"
 import { getMerchantBilling, type MerchantBilling } from "@/lib/merchant/billing"
 import { syncMerchantBillingFromStripe } from "@/lib/stripe/billing"
 
@@ -55,6 +56,11 @@ export async function BillingPanel({
   const needsBillingAttention = shouldShowMerchantDashboardBillingNotice(status)
   const needsCardToActivate = status === "not_started"
   const setupActivation = mode === "setup" && needsCardToActivate
+  // The annual option only appears once the operator has created the annual
+  // Stripe Price and set STRIPE_GROWTH_ANNUAL_PRICE_ID; until then, monthly only.
+  const annualBillingAvailable = Boolean(
+    process.env.STRIPE_GROWTH_ANNUAL_PRICE_ID
+  )
 
   return (
     <section className="grid gap-3 sm:gap-4">
@@ -79,7 +85,9 @@ export async function BillingPanel({
       ) : null}
 
       {setupActivation ? (
-        <SetupBillingActivationCard />
+        <SetupBillingActivationCard
+          annualBillingAvailable={annualBillingAvailable}
+        />
       ) : (
         <AccountBillingCard
           mode={mode}
@@ -87,6 +95,7 @@ export async function BillingPanel({
           needsBillingAttention={needsBillingAttention}
           needsCardToActivate={needsCardToActivate}
           status={status}
+          annualBillingAvailable={annualBillingAvailable}
         />
       )}
     </section>
@@ -94,7 +103,11 @@ export async function BillingPanel({
 }
 
 /** Final launch step — plan facts, one primary action, no duplicate copy. */
-function SetupBillingActivationCard() {
+function SetupBillingActivationCard({
+  annualBillingAvailable,
+}: {
+  annualBillingAvailable: boolean
+}) {
   return (
     <ReceiptCard
       edge
@@ -114,19 +127,28 @@ function SetupBillingActivationCard() {
 
       <dl className="grid gap-0 rounded-lg border border-border bg-secondary/40 px-3 py-1 text-sm">
         <PlanRow label="Free trial" value="30 days" />
-        <PlanRow label="Then" value="£29 a month" />
+        <PlanRow label="Then" value="£49 a month" />
         <PlanRow label="Billed" value="Per location" />
       </dl>
 
-      <form action={startCheckoutAction} className="grid gap-2">
-        <Button type="submit" className="w-full">
-          <Icon icon={CreditCardIcon} size={16} />
-          Proceed to billing
-        </Button>
+      <div className="grid gap-2">
+        <form action={startCheckoutAction.bind(null, "month")}>
+          <Button type="submit" className="w-full">
+            <Icon icon={CreditCardIcon} size={16} />
+            Proceed to billing · {PRODUCT.priceShort}
+          </Button>
+        </form>
+        {annualBillingAvailable ? (
+          <form action={startCheckoutAction.bind(null, "year")}>
+            <Button type="submit" variant="outline" className="w-full">
+              Pay yearly · {PRODUCT.priceAnnual} · {PRODUCT.annualSaving}
+            </Button>
+          </form>
+        ) : null}
         <p className="text-center text-xs leading-5 text-muted-foreground">
           Secure checkout via Stripe. Cancel anytime during the trial.
         </p>
-      </form>
+      </div>
 
       <p className="text-xs leading-5 text-muted-foreground">
         <Link
@@ -147,12 +169,14 @@ function AccountBillingCard({
   needsBillingAttention,
   needsCardToActivate,
   status,
+  annualBillingAvailable,
 }: {
   mode: "account" | "setup"
   billing: MerchantBilling | null
   needsBillingAttention: boolean
   needsCardToActivate: boolean
   status: string
+  annualBillingAvailable: boolean
 }) {
   // The Stripe portal only exists once a customer is created. Keep the button
   // focusable (aria-disabled, not native disabled) and announce the reason via
@@ -174,7 +198,7 @@ function AccountBillingCard({
 
       <dl className="grid gap-0 text-sm">
         <PlanRow label="Free trial" value="30 days" />
-        <PlanRow label="Then" value="£29 a month" />
+        <PlanRow label="Then" value="£49 a month" />
         <PlanRow label="Billed" value="Per location" />
       </dl>
 
@@ -191,12 +215,21 @@ function AccountBillingCard({
       <div className="grid gap-4 border-t-2 border-dashed border-ink/20 pt-5">
         <div className="flex flex-wrap gap-2">
           {needsCardToActivate ? (
-            <form action={startCheckoutAction}>
-              <Button type="submit">
-                <Icon icon={CreditCardIcon} size={16} />
-                Start checkout
-              </Button>
-            </form>
+            <>
+              <form action={startCheckoutAction.bind(null, "month")}>
+                <Button type="submit">
+                  <Icon icon={CreditCardIcon} size={16} />
+                  Start checkout · {PRODUCT.priceShort}
+                </Button>
+              </form>
+              {annualBillingAvailable ? (
+                <form action={startCheckoutAction.bind(null, "year")}>
+                  <Button type="submit" variant="outline">
+                    Pay yearly · {PRODUCT.annualSaving}
+                  </Button>
+                </form>
+              ) : null}
+            </>
           ) : null}
           <form action={openCustomerPortalAction}>
             <Button

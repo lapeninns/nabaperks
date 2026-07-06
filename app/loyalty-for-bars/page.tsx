@@ -23,7 +23,7 @@ import {
 
 const title = "Bar & Wine Bar Loyalty — No-App QR Stamp Cards"
 const description =
-  "Give regulars a reason to choose your bar again — a browser-based card with counter-verified stamps, nothing lost between rounds. £29/month, 30-day free pilot."
+  "Give regulars a reason to choose your bar again — a browser-based card with counter-verified stamps, nothing lost between rounds. £49/month, 30-day free pilot."
 
 export const metadata: Metadata = {
   title,

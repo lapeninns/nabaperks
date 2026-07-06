@@ -23,7 +23,7 @@ import {
 
 const title = "Takeaway Loyalty — QR Stamp Cards on Any Till"
 const description =
-  "A loyalty card that works on any till, even cash-only: scan the counter QR, collect counter-verified stamps — no app, no POS. £29/month, 30-day free pilot."
+  "A loyalty card that works on any till, even cash-only: scan the counter QR, collect counter-verified stamps — no app, no POS. £49/month, 30-day free pilot."
 
 export const metadata: Metadata = {
   title,

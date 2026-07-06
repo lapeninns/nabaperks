@@ -2,7 +2,7 @@
 
 **The Complete Grand Slam Offer**
 
-No-app QR loyalty for UK hospitality · £29/month · Operated by Lapen Inns
+No-app QR loyalty for UK hospitality · £49/month · Operated by Lapen Inns
 
 | | |
 |---|---|
@@ -22,7 +22,7 @@ No-app QR loyalty for UK hospitality · £29/month · Operated by Lapen Inns
 
 Nabaperks turns one-time customers into regulars for UK pubs, cafes, bars and takeaways — with **no app, no wallet pass and no POS integration**. The customer scans a till QR, a loyalty card opens in their browser and saves in one tap, and every stamp is confirmed at the counter.
 
-The core price is deliberately plain: **£29/month per venue, with a 30-day free pilot and cancel-anytime**. The offer *around* that price is what makes it a Grand Slam Offer — four moves, each drawn straight from the *$100M Offers* playbook:
+The core price is deliberately plain: **£49/month per venue, with a 30-day free pilot and cancel-anytime**. The offer *around* that price is what makes it a Grand Slam Offer — four moves, each drawn straight from the *$100M Offers* playbook:
 
 - **Speed.** The venue is live the same afternoon in four guided steps — "fast beats free."
 - **A stacked launch kit.** Five already-built assets, presented as named bonuses, each answering a real objection.
@@ -40,7 +40,7 @@ Every claim is single-sourced and honest: no invented "was" prices, no fake coun
 | Element | Detail |
 |---|---|
 | **The product** | A browser-based loyalty card customers open from your QR — no app, no Apple/Google Wallet pass, no POS or EPOS integration. Every stamp is counter-verified. |
-| **The price** | £29/month per venue · 30-day free pilot · month to month · no contract · card required, cancel anytime from your billing page. |
+| **The price** | £49/month per venue (or £490/year — two months free) · 30-day free pilot · month to month · no contract · card required, cancel anytime from your billing page. |
 | **The named offer** | The 30-Day First-Regular Launch. |
 | **Speed to value** | Live on your counter the same afternoon — four guided steps, rewards pre-filled. |
 | **The guarantee** | First-Regular Guarantee — if your live card hasn't brought back a first regular by the end of your 30-day pilot, the pilot stays free until it does. |
@@ -71,7 +71,7 @@ You raise the top and drive the bottom toward zero. Here is how The 30-Day First
 
 ## 4. The core offer: one price, everything included
 
-£29/month per venue. A 30-day free pilot before billing starts. Month to month, no contract, and a true cancel-anytime from your billing page. What the plan includes:
+£49/month per venue, or £490/year if you'd rather pay yearly (two months free). A 30-day free pilot before billing starts. Month to month, no contract, and a true cancel-anytime from your billing page. What the plan includes:
 
 - Unlimited stamps and members
 - Simple reward setup
@@ -122,7 +122,7 @@ A single offer is worth less than the same offer broken into named, stacked part
 | **Privacy jobs, handled** | The data rules feel like a minefield. | Consent-led marketing kept separate from loyalty, an 18+ age gate at redemption, and automatic data-retention tidy-ups. | *(mechanisms only — no price)* |
 | **The operator's loyalty guides** | Unsure what actually works in a pub. | Three practical guides from the counter: reward ideas that suit a pub, paper vs QR, and rewarding regulars without an app. | *(included)* |
 
-The value of the stack is designed to eclipse the £29 — not with a fabricated total, but with real, defensible comparisons (a designer's poster fee alone clears £150) and hours-per-week saved. Everything is framed as **included with the one price**, never "normally sold separately."
+The value of the stack is designed to eclipse the £49 — not with a fabricated total, but with real, defensible comparisons (a designer's poster fee alone clears £150) and hours-per-week saved. Everything is framed as **included with the one price**, never "normally sold separately."
 
 ---
 
@@ -133,7 +133,7 @@ Reversing risk is the number-one way to lift conversion. This is a **conditional
 > ### First-Regular Guarantee
 > **If your live card hasn't brought back a first regular by the end of your 30-day pilot, the pilot stays free until it does.**
 >
-> Best case, your regulars come back and the £29 pays for itself. Worst case, you pay nothing more until one does.
+> Best case, your regulars come back and the £49 pays for itself. Worst case, you pay nothing more until one does.
 >
 > Applies from the day your venue QR goes live. Email info@lapeninns.com and the team applies the extension.
 
@@ -173,13 +173,13 @@ What makes this offer defensible as well as persuasive:
 
 No-app QR loyalty for UK cafes, takeaways and pubs. Your customer scans the till QR and the card opens in their browser — saved in one tap, with no app and no Apple or Google Wallet pass to install. Every stamp is verified at your counter.
 
-**One price. Everything included.** £29/month per venue, a 30-day free pilot, month to month, cancel anytime. At £29/month, one or two extra regulars a week can cover it.
+**One price. Everything included.** £49/month per venue, a 30-day free pilot, month to month, cancel anytime. At £49/month, one or two extra regulars a week can cover it.
 
 **Live on your counter the same afternoon.** Four guided steps — add your venue, build the card, confirm your pre-filled rewards, and print your QR. Your first member can stamp the moment the poster hits the counter.
 
 **The 30-Day First-Regular Launch — the launch kit, thrown in.** A launch-ready till poster kit, a done-for-you mystery reward pool, set-and-forget retention automations, your privacy jobs handled, and the operator's loyalty guides — all included with the one price.
 
-**The First-Regular Guarantee.** If your live card hasn't brought back a first regular by the end of your 30-day pilot, the pilot stays free until it does. Best case, your regulars come back and the £29 pays for itself. Worst case, you pay nothing more until one does.
+**The First-Regular Guarantee.** If your live card hasn't brought back a first regular by the end of your 30-day pilot, the pilot stays free until it does. Best case, your regulars come back and the £49 pays for itself. Worst case, you pay nothing more until one does.
 
 **Start this season.** Go live by 31 August 2026 and we print and post your first counter-poster run — free. Start your free pilot today.
 

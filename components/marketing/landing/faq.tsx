@@ -30,7 +30,7 @@ export const faqs: readonly Faq[] = [
   },
   {
     q: "How much does it cost, and am I tied into a contract?",
-    a: `A 30-day free pilot, then £29/month per venue, with no contract. ${PRODUCT.cancelLine}`,
+    a: `A 30-day free pilot, then £49/month per venue, with no contract. ${PRODUCT.cancelLine}`,
   },
   {
     q: "Can I try it before I pay?",

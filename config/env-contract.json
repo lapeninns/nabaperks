@@ -74,7 +74,14 @@
     "name": "STRIPE_GROWTH_PRICE_ID",
     "visibility": "server",
     "kind": "string",
-    "description": "Stripe recurring Price ID for the Growth Plan at GBP 29/month."
+    "description": "Stripe recurring Price ID for the Growth Plan at GBP 49/month."
+  },
+  {
+    "name": "STRIPE_GROWTH_ANNUAL_PRICE_ID",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Stripe recurring Price ID for the Growth Plan annual option at GBP 490/year (2 months free). Optional until the annual Price is created in Stripe.",
+    "optional": true
   },
   {
     "name": "STRIPE_WEBHOOK_SECRET",

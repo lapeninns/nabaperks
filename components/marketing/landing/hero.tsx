@@ -3,7 +3,8 @@ import Link from "next/link"
 import { MonoTag } from "@/components/brand"
 import { Section } from "@/components/layout"
 import { Button } from "@/components/ui/button"
-import { PROMO, SETUP } from "@/lib/marketing/facts"
+import { SETUP } from "@/lib/marketing/facts"
+import type { ActivePromo } from "@/lib/marketing/promo"
 
 import { HeroSampleCard } from "./hero-sample-card"
 import { NABAPERKS_AUTHORITY_LINE } from "./nabaperks-proof-data"
@@ -18,7 +19,13 @@ const merchantLinkClass =
  * tight so the sample card lands in the first viewport; from `lg` the full copy
  * and card sit side by side.
  */
-export function LandingHero({ qrMatrix }: { qrMatrix: QrMatrix }) {
+export function LandingHero({
+  qrMatrix,
+  promo,
+}: {
+  qrMatrix: QrMatrix
+  promo: ActivePromo | null
+}) {
   return (
     <Section
       id="top"
@@ -28,10 +35,15 @@ export function LandingHero({ qrMatrix }: { qrMatrix: QrMatrix }) {
         <MonoTag tone="accent" className="max-sm:order-1">
           No-app QR loyalty · UK food &amp; drink
         </MonoTag>
-        {PROMO.enabled && (
-          <MonoTag tone="plain" className="max-sm:order-1">
-            {PROMO.name} — ends {PROMO.deadlineLabel}
-          </MonoTag>
+        {promo && (
+          <>
+            <MonoTag tone="plain" className="max-sm:order-1">
+              {promo.name} — ends {promo.deadlineLabel}
+            </MonoTag>
+            <MonoTag tone="accent" className="max-sm:order-1">
+              {promo.scarcityChip}
+            </MonoTag>
+          </>
         )}
         <h1 className="mt-3 max-w-[18ch] text-[clamp(1.85rem,6.4vw,4.25rem)] leading-[1.0] font-extrabold tracking-[-0.02em] text-balance max-sm:order-2 sm:mt-5">
           The loyalty card that just opens.
@@ -64,7 +76,7 @@ export function LandingHero({ qrMatrix }: { qrMatrix: QrMatrix }) {
           </p>
           <ReassuranceBar className="mt-6 max-w-[44ch]" />
           <p className="mt-4 max-w-[44ch] text-sm leading-relaxed text-muted-foreground">
-            At <strong className="font-semibold text-foreground">£29/mo</strong>, one
+            At <strong className="font-semibold text-foreground">£49/mo</strong>, one
             or two extra regulars a week can cover it.
           </p>
           <div className="mono-meta mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 font-normal">
@@ -81,12 +93,12 @@ export function LandingHero({ qrMatrix }: { qrMatrix: QrMatrix }) {
           <ReassuranceBar
             points={[
               "Build free — no payment to start",
-              "30-day pilot, then £29/mo",
+              "30-day pilot, then £49/mo",
             ]}
             className="mt-1"
           />
           <p className="mt-3 max-w-[44ch] text-sm leading-relaxed text-muted-foreground">
-            At <strong className="font-semibold text-foreground">£29/mo</strong>, one
+            At <strong className="font-semibold text-foreground">£49/mo</strong>, one
             or two extra regulars a week can cover it.
           </p>
           <p className="mono-meta mt-3 max-w-[46ch] font-normal leading-relaxed text-muted-foreground">
