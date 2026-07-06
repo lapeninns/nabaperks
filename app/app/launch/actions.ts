@@ -25,6 +25,7 @@ export type VenueLocationActionState = {
     venueName?: string
     geofenceRadiusMeters?: string
     requireGeofence?: boolean
+    softGeofenceTriggerStamp?: string
     venueLatitude?: string
     venueLongitude?: string
     geofencePinSource?: string
@@ -32,6 +33,7 @@ export type VenueLocationActionState = {
   errors?: VenueAddressFieldErrors & {
     venueName?: string
     geofenceRadiusMeters?: string
+    softGeofenceTriggerStamp?: string
     form?: string
   }
   saved?: boolean
@@ -49,16 +51,21 @@ export async function saveVenueLocationAction(
 
   const submission = parseVenueLocationSubmission(formData)
   const fields = submissionToFields(submission)
-  const { errors, radius, manualPin } =
+  const { errors, radius, softGeofenceTriggerStamp, manualPin } =
     validateVenueLocationSubmission(submission)
 
-  if (Object.keys(errors).length > 0 || radius === null) {
+  if (
+    Object.keys(errors).length > 0 ||
+    radius === null ||
+    softGeofenceTriggerStamp === null
+  ) {
     return { fields, errors }
   }
 
   const resolved = await resolveVenueLocationWritePayload(submission, {
     merchantId: merchant.id,
     radius,
+    softGeofenceTriggerStamp,
     manualPin,
   })
 
@@ -107,6 +114,7 @@ function submissionToFields(
     ...submission.addressFields,
     geofenceRadiusMeters: submission.geofenceRadiusMeters,
     requireGeofence: submission.requireGeofence,
+    softGeofenceTriggerStamp: submission.softGeofenceTriggerStamp,
     venueLatitude: submission.venueLatitude,
     venueLongitude: submission.venueLongitude,
     geofencePinSource: submission.geofencePinSource,

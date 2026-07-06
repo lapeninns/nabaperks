@@ -16,6 +16,7 @@ export type MerchantVenueLocation = {
   longitude: number | null
   geofence_radius_meters: number
   require_geofence: boolean
+  soft_geofence_trigger_stamp_number: number
   geocoded_at: string | null
   geofence_pin_source: GeofencePinSource
   geofence_pin_updated_at: string | null
@@ -33,7 +34,7 @@ export async function getCurrentVenueLocation() {
   const { data: location, error } = await supabase
     .from("merchant_locations")
     .select(
-      "id, name, address, address_line_1, address_line_2, address_city, address_postcode, latitude, longitude, geofence_radius_meters, require_geofence, geocoded_at, geofence_pin_source, geofence_pin_updated_at, is_primary"
+      "id, name, address, address_line_1, address_line_2, address_city, address_postcode, latitude, longitude, geofence_radius_meters, require_geofence, soft_geofence_trigger_stamp_number, geocoded_at, geofence_pin_source, geofence_pin_updated_at, is_primary"
     )
     .eq("merchant_id", merchant.id)
     .order("is_primary", { ascending: false })
@@ -60,6 +61,8 @@ export async function getCurrentVenueLocation() {
           longitude: location.longitude,
           geofence_radius_meters: location.geofence_radius_meters ?? 150,
           require_geofence: Boolean(location.require_geofence),
+          soft_geofence_trigger_stamp_number:
+            location.soft_geofence_trigger_stamp_number ?? 3,
           geocoded_at: location.geocoded_at,
           geofence_pin_source:
             location.geofence_pin_source === "merchant_pin"

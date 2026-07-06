@@ -18,6 +18,7 @@ export type VenueLocationSubmission = {
   addressFields: VenueAddressFormFields
   geofenceRadiusMeters: string
   requireGeofence: boolean
+  softGeofenceTriggerStamp: string
   geofencePinSource: string
   venueLatitude: string
   venueLongitude: string
@@ -31,6 +32,7 @@ export type VenueLocationSubmission = {
 export type VenueLocationSubmissionErrors = VenueAddressFieldErrors & {
   venueName?: string
   geofenceRadiusMeters?: string
+  softGeofenceTriggerStamp?: string
   form?: string
 }
 
@@ -46,6 +48,7 @@ export type VenueLocationWritePayload = Omit<
   longitude: number
   geofence_radius_meters: number
   require_geofence: boolean
+  soft_geofence_trigger_stamp_number: number
   geocoded_at: string
   geofence_pin_source: "geocoded" | "merchant_pin"
   geofence_pin_updated_at: string
@@ -70,6 +73,7 @@ export function parseVenueLocationSubmission(
     addressFields: parseVenueAddressFields(formData),
     geofenceRadiusMeters: value(formData, "geofenceRadiusMeters") || "150",
     requireGeofence: formData.get("requireGeofence") === "on",
+    softGeofenceTriggerStamp: value(formData, "softGeofenceTriggerStamp") || "3",
     geofencePinSource: value(formData, "geofencePinSource"),
     venueLatitude: value(formData, "venueLatitude"),
     venueLongitude: value(formData, "venueLongitude"),
@@ -87,6 +91,7 @@ export function validateVenueLocationSubmission(
 ): {
   errors: VenueLocationSubmissionErrors
   radius: number | null
+  softGeofenceTriggerStamp: number | null
   manualPin: { latitude: number; longitude: number } | null
 } {
   const validateGeofence = options?.validateGeofence ?? true
@@ -94,6 +99,9 @@ export function validateVenueLocationSubmission(
     ...validateVenueAddressFields(submission.addressFields),
   }
   const radius = parseInteger(submission.geofenceRadiusMeters)
+  const softGeofenceTriggerStamp = parseInteger(
+    submission.softGeofenceTriggerStamp
+  )
   const manualPin =
     submission.geofencePinSource === "merchant_pin"
       ? parseManualGeofencePin(
@@ -122,7 +130,16 @@ export function validateVenueLocationSubmission(
     }
   }
 
-  return { errors, radius, manualPin }
+  // The soft-geofence trigger stamp is validated regardless of the hard
+  // geofence toggle: the soft location check applies whenever coordinates
+  // exist, and the DB CHECK enforces the same 1–99 bound.
+  if (softGeofenceTriggerStamp === null) {
+    errors.softGeofenceTriggerStamp = "Enter a whole stamp number."
+  } else if (softGeofenceTriggerStamp < 1 || softGeofenceTriggerStamp > 99) {
+    errors.softGeofenceTriggerStamp = "Use a stamp number from 1 to 99."
+  }
+
+  return { errors, radius, softGeofenceTriggerStamp, manualPin }
 }
 
 export async function resolveVenueLocationWritePayload(
@@ -131,6 +148,9 @@ export async function resolveVenueLocationWritePayload(
     merchantId: string
     radius: number
     manualPin: { latitude: number; longitude: number } | null
+    /** Cycle stamp that fires the soft location check; defaults to 3 for
+     *  callers that do not expose the knob (e.g. onboarding). */
+    softGeofenceTriggerStamp?: number
     isPrimary?: boolean
   }
 ): Promise<
@@ -168,6 +188,7 @@ export async function resolveVenueLocationWritePayload(
       longitude: options.manualPin?.longitude ?? resolved.payload.longitude,
       geofence_radius_meters: options.radius,
       require_geofence: submission.requireGeofence,
+      soft_geofence_trigger_stamp_number: options.softGeofenceTriggerStamp ?? 3,
       geocoded_at: savedAt,
       geofence_pin_source: options.manualPin ? "merchant_pin" : "geocoded",
       geofence_pin_updated_at: savedAt,
