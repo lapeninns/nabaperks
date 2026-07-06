@@ -268,16 +268,20 @@ export async function joinRewardsAction(
   })
 
   const supabase = createSupabaseServiceRoleClient()
+  // Omit p_ref unless a referral code is actually present, so the call still
+  // resolves against the pre-referral 7-arg RPC. This decouples the deploy from
+  // the migration: ordinary joins keep working before `p_ref` lands on the DB,
+  // and only referral-link joins (none exist yet) need the migration applied.
+  const joinArgs = {
+    p_customer_id: customer.id,
+    p_merchant_slug: merchantSlug,
+    p_qr_id: qrId || null,
+    p_marketing_opt_in: marketingOptIn,
+    p_policy_version: policyVersion,
+  }
   const { data, error } = await supabase.rpc(
     "join_customer_membership_with_first_stamp",
-    {
-      p_customer_id: customer.id,
-      p_merchant_slug: merchantSlug,
-      p_qr_id: qrId || null,
-      p_marketing_opt_in: marketingOptIn,
-      p_policy_version: policyVersion,
-      p_ref: ref || null,
-    }
+    ref ? { ...joinArgs, p_ref: ref } : joinArgs
   )
 
   if (error) {

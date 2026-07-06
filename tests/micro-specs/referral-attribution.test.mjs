@@ -72,5 +72,9 @@ test("the join action forwards ?ref to the RPC as p_ref", () => {
     /const ref = value\(formData, "ref"\)/,
     "the action reads ref from the submitted form"
   )
-  assert.match(actions, /p_ref: ref \|\| null/, "and passes it to the RPC")
+  assert.match(
+    actions,
+    /ref \? \{ \.\.\.joinArgs, p_ref: ref \} : joinArgs/,
+    "and forwards it as p_ref only when present (7-arg-compatible before the migration)"
+  )
 })
