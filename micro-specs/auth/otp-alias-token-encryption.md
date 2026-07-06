@@ -1,6 +1,6 @@
 ---
 spec_id: MS-auth-otp-alias-token-encryption
-status: active
+status: implemented
 risk_class: auth-session
 owner: amankumarshrestha
 last_reviewed: 2026-07-06

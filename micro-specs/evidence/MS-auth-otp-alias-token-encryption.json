@@ -79,6 +79,45 @@
         }
       ],
       "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-06T15:22:21.941Z",
+      "git_sha": "07a7df1daa0d4b9d74322c60eabe5f0d29f4c644",
+      "git_branch": "feat/ms-auth-otp-alias-token-encryption",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 5815
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1035
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10585
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 6661
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 709
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@governance\"",
+          "exit_code": 0,
+          "duration_ms": 5907
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
@@ -89,6 +128,14 @@
       "at": "2026-07-06T14:46:04.008Z",
       "sha": "ee9feee1d6ecf70dfc69752653f5c5ca8b002423",
       "dirty": true,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-06T15:22:21.941Z",
+      "sha": "07a7df1daa0d4b9d74322c60eabe5f0d29f4c644",
+      "dirty": false,
       "by": "amankumarshrestha"
     }
   ]
