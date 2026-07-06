@@ -47,13 +47,10 @@ export async function openOtpStep(
   const ref = options?.ref
 
   if (ref) {
-    // Referral entry: land straight on the phone step carrying the code (the
-    // venue QR rides along so the join context is the same billing-eligible
-    // card the QR flow uses).
+    // The real referral link a member shares: no QR scan, just ?ref. With no qr
+    // the join route derives straight to the phone step (derive.ts).
     await page.goto(
-      `/m/${fixture.merchantSlug}/join?qr=${encodeURIComponent(
-        fixture.activeQrId
-      )}&ref=${encodeURIComponent(ref)}&step=phone`
+      `/m/${fixture.merchantSlug}/join?ref=${encodeURIComponent(ref)}`
     )
   } else {
     await page.goto(publicQrPath(fixture.activeQrId))
@@ -78,8 +75,8 @@ export async function openOtpStep(
   // The "Use a different number" back link preserves the entry params — the QR
   // id and (when present) the referral code — so a bounce-back re-hydrates them.
   const backParams = new URLSearchParams()
-  backParams.set("qr", fixture.activeQrId)
   if (ref) backParams.set("ref", ref)
+  else backParams.set("qr", fixture.activeQrId)
   backParams.set("step", "phone")
   await expect(
     page.getByRole("link", { name: "Use a different number" })
