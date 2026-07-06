@@ -1,7 +1,42 @@
 {
   "schema": 1,
   "spec_id": "MS-analytics-qr-downloaded-wire",
-  "runs": [],
+  "runs": [
+    {
+      "timestamp": "2026-07-06T15:12:13.510Z",
+      "git_sha": "4e3d0cde2477f6244995ca3225b6389fec9b891e",
+      "git_branch": "feat/ms-analytics-qr-downloaded-wire",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6136
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1043
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10822
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 6651
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 701
+        }
+      ],
+      "all_passed": true
+    }
+  ],
   "manual_attestations": [],
   "transitions": [
     {
@@ -10,6 +45,14 @@
       "at": "2026-07-06T14:46:04.243Z",
       "sha": "ee9feee1d6ecf70dfc69752653f5c5ca8b002423",
       "dirty": true,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-06T15:12:13.510Z",
+      "sha": "4e3d0cde2477f6244995ca3225b6389fec9b891e",
+      "dirty": false,
       "by": "amankumarshrestha"
     }
   ]
