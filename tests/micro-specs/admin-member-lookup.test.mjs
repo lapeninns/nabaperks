@@ -68,7 +68,7 @@ test("Given operator search terms When they reach the query Then they pass throu
 
 // MS-admin-member-lookup R3: the lookup exposes no more customer personal data
 // than the existing masked display.
-test("Given the lookup select strings When embeds are inspected Then customer embeds stay email/phone only and panels keep masking", () => {
+test("Given the lookup select strings When embeds are inspected Then customer embeds stay email/phone_last4 only and panels keep masking", () => {
   const data = readProjectFile("lib", "admin", "data.ts")
 
   const embeds = [
@@ -82,7 +82,7 @@ test("Given the lookup select strings When embeds are inspected Then customer em
       .filter(Boolean)
     for (const column of columns) {
       assert.ok(
-        column === "email" || column === "phone",
+        column === "email" || column === "phone_last4",
         `customer embed only selects masked-display fields, got: ${column}`
       )
     }
@@ -100,8 +100,8 @@ test("Given the lookup select strings When embeds are inspected Then customer em
     "privacy",
     "data-request-workflow-panel.tsx"
   )
-  assert.match(membershipsPanel, /maskAdminContact\(/)
-  assert.match(privacyPanel, /maskAdminContact\(/)
+  assert.match(membershipsPanel, /maskAdminCustomer\(/)
+  assert.match(privacyPanel, /maskAdminCustomer\(/)
 })
 
 // MS-admin-member-lookup: query params drive the lookup state so results are

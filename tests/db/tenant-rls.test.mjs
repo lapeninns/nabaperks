@@ -132,7 +132,7 @@ async function assertAuthenticatedCannotReadRawCustomerPii(tx, ownerUserId, cust
       await sp`select set_config('request.jwt.claim.role', 'authenticated', true)`
       await sp`select set_config('request.jwt.claim.sub', ${ownerUserId}, true)`
       await sp`
-        select email, phone
+        select email, phone_hmac
         from public.customers
         where id = ${customerId}::uuid
       `
@@ -238,18 +238,18 @@ async function createTenantFixture(tx) {
 
   await tx`
     insert into public.customers (
-      id, auth_user_id, email, phone, phone_last4, full_name, date_of_birth,
+      id, auth_user_id, email, phone_last4, full_name, date_of_birth,
       email_verified_at
     )
     values
       (
         ${fixture.customerAId}::uuid, ${fixture.customerAUserId}::uuid,
-        'alice@example.test', '+447700901001', '1001', 'Alice Tenant',
+        'alice@example.test', '1001', 'Alice Tenant',
         date '1991-01-01', now()
       ),
       (
         ${fixture.customerBId}::uuid, ${fixture.customerBUserId}::uuid,
-        'bob@example.test', '+447700902002', '2002', 'Bob Tenant',
+        'bob@example.test', '2002', 'Bob Tenant',
         date '1992-02-02', now()
       )
   `

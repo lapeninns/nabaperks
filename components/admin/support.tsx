@@ -180,3 +180,17 @@ export function maskAdminContact(value?: string | null) {
   }
   return `${value.slice(0, 4)}***${value.slice(-2)}`
 }
+
+/**
+ * Masked contact for an admin customer row. Plaintext phone no longer exists
+ * at rest (MS-db-phone-plaintext-retirement); phone-identity customers are
+ * disambiguated by their stored last4.
+ */
+export function maskAdminCustomer(customer?: {
+  email?: string | null
+  phone_last4?: string | null
+} | null) {
+  if (customer?.email) return maskAdminContact(customer.email)
+  if (customer?.phone_last4) return `Phone ending ${customer.phone_last4}`
+  return "Customer"
+}

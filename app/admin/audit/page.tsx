@@ -3,7 +3,7 @@ import {
   SourceLabel,
   first,
   formatAdminAuditDate,
-  maskAdminContact,
+  maskAdminCustomer,
 } from "@/components/admin/support"
 import { SecurityCheckIcon } from "@hugeicons/core-free-icons"
 
@@ -68,9 +68,7 @@ export default async function AdminAuditPage() {
                       <>
                         {merchant?.business_name ?? "No merchant"}
                         {customer
-                          ? ` · ${maskAdminContact(
-                              customer.email ?? customer.phone
-                            )}`
+                          ? ` · ${maskAdminCustomer(customer)}`
                           : ""}
                       </>
                     ),
@@ -113,7 +111,7 @@ export default async function AdminAuditPage() {
                   <span className="text-muted-foreground">
                     {merchant?.business_name ?? "No merchant"}
                     {customer
-                      ? ` · ${maskAdminContact(customer.email ?? customer.phone)}`
+                      ? ` · ${maskAdminCustomer(customer)}`
                       : ""}
                   </span>
                 )

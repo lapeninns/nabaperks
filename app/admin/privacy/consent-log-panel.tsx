@@ -11,7 +11,7 @@ import {
   StatusPill,
   first,
   formatAdminDate,
-  maskAdminContact,
+  maskAdminCustomer,
 } from "@/components/admin/support"
 import { EmptyState, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
@@ -56,7 +56,7 @@ export function ConsentLogPanel({
               const merchant = first(record.merchants)
               return (
                 <AdminRecordCard
-                  title={maskAdminContact(customer?.email ?? customer?.phone)}
+                  title={maskAdminCustomer(customer)}
                   status={
                     <StatusPill>
                       {record.consent_status.replaceAll("_", " ")}
@@ -92,7 +92,7 @@ export function ConsentLogPanel({
                 header: "Customer",
                 cell: (record) => {
                   const customer = first(record.customers)
-                  return maskAdminContact(customer?.email ?? customer?.phone)
+                  return maskAdminCustomer(customer)
                 },
               },
               {
