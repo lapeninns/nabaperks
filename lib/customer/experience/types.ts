@@ -8,6 +8,8 @@
  * facts to `deriveCustomerExperience({ entry, context })`.
  */
 
+import type { RewardSource } from "@/lib/customer/issued-reward-display"
+
 /** Which route the customer entered from. Same facts can mean different UI. */
 export type CustomerExperienceEntry =
   | "qr"
@@ -87,6 +89,19 @@ export type RewardView = {
 
 export type RedeemedRewardView = RewardView & {
   redeemedAt: string | null
+}
+
+/**
+ * An issued reward (birthday / merchant direct) surfaced beside a card as a
+ * distinct gift — never the stamp cycle's completion reward. `redeemable` is
+ * gated only by its own `redeemableFrom`, not by stamp count.
+ */
+export type CardGift = {
+  rewardId: string
+  rewardName: string
+  source: RewardSource
+  redeemable: boolean
+  redeemableFrom: string | null
 }
 
 export type CustomerExperience =
@@ -178,6 +193,9 @@ export type CustomerExperience =
       rewardName?: string
       rewardTerms: string
       rewardRedeemableFrom: string | null
+      /** Issued reward shown as a distinct gift chip, separate from the
+       *  stamp-cycle completion reward above. Absent/null when there is none. */
+      gift?: CardGift | null
       stampDates: string[]
       justStamped: boolean
       justJoined: boolean

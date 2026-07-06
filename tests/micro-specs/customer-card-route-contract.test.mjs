@@ -76,8 +76,10 @@ test("Given a card membership is owned When card detail is loaded Then only acti
   )
   assert.match(loader, /\.eq\("membership_id", membership\.id\)/)
   assert.match(loader, /\.eq\("status", "unlocked"\)/)
-  assert.match(loader, /pickPrimaryUnlockedReward/)
+  // The card face keys off the stamp-cycle reward; issued rewards ride the gift
+  // rail. Both pickers must feed the loader so the two rails stay separate.
   assert.match(loader, /pickStampBlockingUnlockedReward/)
+  assert.match(loader, /pickIssuedUnlockedReward/)
   assert.doesNotMatch(rewardQuery, /\.limit\(1\)/)
   assert.doesNotMatch(loader, /\.in\("status"/)
 })
