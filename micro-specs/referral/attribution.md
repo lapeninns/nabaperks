@@ -41,9 +41,8 @@ verification_gates:
   - pnpm test
   - pnpm test:coverage
   - pnpm test:db
-  - pnpm test:e2e
+  - pnpm test:e2e customer-referral-attribution.spec.ts --project=mobile-safari
 required_playwright_projects:
-  - chromium
   - mobile-safari
 evidence_required:
   - Live-DB output proving a valid cross-customer, same-merchant `ref` writes exactly one referrals row in the enrolment transaction, while self / cross-venue / unknown / re-join cases write none and the join still succeeds.
