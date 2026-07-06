@@ -1,6 +1,10 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
-import { ArrowDown01Icon, ArrowLeft01Icon } from "@hugeicons/core-free-icons"
+import {
+  ArrowDown01Icon,
+  ArrowLeft01Icon,
+  GiftIcon,
+} from "@hugeicons/core-free-icons"
 
 import { Icon } from "@/components/brand"
 import { CelebrationUrlCleanup } from "@/components/customer/celebration-url-cleanup"
@@ -31,6 +35,7 @@ import {
   waitingRewardTiming,
   type CustomerExperienceViewModel,
 } from "@/lib/customer/experience/copy"
+import { rewardSourceBadge } from "@/lib/customer/issued-reward-display"
 import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
 import type {
   CustomerExperience,
@@ -270,6 +275,10 @@ function CardProgressPanel({
         )}
       </CustomerStampCard>
 
+      {exp.gift ? (
+        <CardGiftChip gift={exp.gift} merchantName={exp.merchantName} />
+      ) : null}
+
       {exp.referralShareUrl ? (
         <ReferralSharePanel
           url={exp.referralShareUrl}
@@ -279,6 +288,48 @@ function CardProgressPanel({
       ) : null}
 
       <CardDetailsDisclosure cardNumber={cardNumber(exp.membershipId)} />
+    </div>
+  )
+}
+
+/**
+ * A birthday / merchant-sent reward shown as a distinct gift beside the card —
+ * on its own rail, never implying the stamp card is complete. Redeemable gifts
+ * offer their own QR; a not-yet-open gift shows a calm "ready from" note.
+ */
+function CardGiftChip({
+  gift,
+  merchantName,
+}: {
+  gift: NonNullable<
+    Extract<CustomerExperience, { kind: "card_collecting" }>["gift"]
+  >
+  merchantName: string
+}) {
+  const badge = rewardSourceBadge(gift.source, merchantName) ?? "Gift"
+
+  return (
+    <div className="grid gap-2 rounded-lg border-2 border-ink bg-seal/15 p-3">
+      <div className="flex items-center gap-1.5">
+        <Icon icon={GiftIcon} size={16} />
+        <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-ink uppercase">
+          {badge}
+        </span>
+      </div>
+      <p className="text-sm leading-tight font-extrabold break-words">
+        {gift.rewardName}
+      </p>
+      {gift.redeemable ? (
+        <Button asChild size="sm" variant="reward" className="w-full">
+          <Link href={`/reward/${gift.rewardId}`}>Open gift QR</Link>
+        </Button>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          {gift.redeemableFrom
+            ? `Ready ${formatStampDisplayDateFromIso(gift.redeemableFrom)}.`
+            : "Ready from the next opening day."}
+        </p>
+      )}
     </div>
   )
 }

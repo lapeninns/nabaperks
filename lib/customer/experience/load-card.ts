@@ -13,7 +13,10 @@ import {
   isShareableReferralCode,
 } from "@/lib/customer/referral"
 import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
-import { rewardStampThresholdMet } from "@/lib/customer/issued-reward-display"
+import {
+  narrowRewardSource,
+  rewardStampThresholdMet,
+} from "@/lib/customer/issued-reward-display"
 import { isRedeemableFrom, ukTodayIso } from "@/lib/customer/uk-date"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 import { logger } from "@/lib/observability/logger"
@@ -49,7 +52,8 @@ export async function loadCardExperienceContext(
     }
   }
 
-  const { membership, merchant, loyaltyCard, latestReward } = cardState
+  const { membership, merchant, loyaltyCard, stampCycleReward, issuedReward } =
+    cardState
   scheduleCustomerCardViewed({
     eventName: "customer_card_viewed",
     merchantId: merchant.id,
@@ -104,26 +108,42 @@ export async function loadCardExperienceContext(
           ),
         ]
       : stampDates.slice(0, current)
+  // The card face reflects the STAMP-CYCLE reward only — the reward earned by
+  // completing this card. Issued rewards (birthday/merchant) never drive it, so
+  // an incomplete card never reads as reward-ready.
   const reward =
-    latestReward?.status === "unlocked"
+    stampCycleReward?.status === "unlocked"
       ? {
-          id: latestReward.id,
-          name: latestReward.reward_name,
-          terms: latestReward.reward_terms,
-          redeemableFrom: latestReward.redeemable_from,
+          id: stampCycleReward.id,
+          name: stampCycleReward.reward_name,
+          terms: stampCycleReward.reward_terms,
+          redeemableFrom: stampCycleReward.redeemable_from,
           redeemable:
-            isRedeemableFrom(latestReward.redeemable_from) &&
+            isRedeemableFrom(stampCycleReward.redeemable_from) &&
             rewardStampThresholdMet(
-              latestReward.source,
+              stampCycleReward.source,
               membership.current_stamp_count,
               target
             ),
         }
       : null
 
+  // The gift rail: an issued reward shown as a distinct chip beside the card,
+  // redeemable on its own terms (no stamp threshold), independent of card state.
+  const giftReward =
+    issuedReward?.status === "unlocked"
+      ? {
+          id: issuedReward.id,
+          name: issuedReward.reward_name,
+          source: narrowRewardSource(issuedReward.source),
+          redeemableFrom: issuedReward.redeemable_from,
+          redeemable: isRedeemableFrom(issuedReward.redeemable_from),
+        }
+      : null
+
   // The RPC unlocks a reward at `current_stamp_count >= stamps_required`. If the
-  // count is full but no unlocked reward row exists, the data has drifted: show a
-  // recovery state rather than inviting a stamp the RPC would reject.
+  // count is full but no unlocked stamp-cycle reward row exists, the data has
+  // drifted: show a recovery state rather than inviting a stamp the RPC rejects.
   const fullWithoutReward = membership.current_stamp_count >= target && !reward
   if (fullWithoutReward) {
     logger.warn("customer_full_card_without_reward", {
@@ -146,6 +166,7 @@ export async function loadCardExperienceContext(
     total: target,
     fullWithoutReward,
     reward,
+    giftReward,
     rewardTerms: loyaltyCard.reward_terms,
     stampDates: dates,
     justStamped,

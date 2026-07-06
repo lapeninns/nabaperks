@@ -3,6 +3,7 @@ import {
   assertNever,
   type AccessProblem,
   type AccessRecovery,
+  type CardGift,
   type CustomerExperience,
   type CustomerExperienceKind,
   type JoinCard,
@@ -56,6 +57,14 @@ export type CardContext =
         id: string
         name: string
         terms: string
+        redeemableFrom: string | null
+        redeemable: boolean
+      } | null
+      /** Issued reward (birthday/merchant) to show as a distinct gift chip. */
+      giftReward?: {
+        id: string
+        name: string
+        source: CardGift["source"]
         redeemableFrom: string | null
         redeemable: boolean
       } | null
@@ -170,6 +179,17 @@ function deriveCard(context: CardContext): CustomerExperience {
       : ("waiting" as const)
     : ("none" as const)
 
+  const giftReward = context.giftReward
+  const gift: CardGift | null = giftReward
+    ? {
+        rewardId: giftReward.id,
+        rewardName: giftReward.name,
+        source: giftReward.source,
+        redeemable: giftReward.redeemable,
+        redeemableFrom: giftReward.redeemableFrom,
+      }
+    : null
+
   return {
     kind: "card_collecting",
     membershipId: context.membershipId,
@@ -183,6 +203,7 @@ function deriveCard(context: CardContext): CustomerExperience {
     rewardName: reward?.name,
     rewardTerms: reward?.terms ?? context.rewardTerms,
     rewardRedeemableFrom: reward?.redeemableFrom ?? null,
+    gift,
     stampDates: context.stampDates,
     justStamped: context.justStamped,
     justJoined: context.justJoined,

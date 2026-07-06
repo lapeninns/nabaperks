@@ -1,9 +1,14 @@
 import type { HomeCard, HomeSummary } from "@/lib/customer/home-types"
 
+/** A card has something to collect now — an earned stamp reward or a ready gift. */
+export function hasRedeemableReward(card: HomeCard): boolean {
+  return Boolean(card.stampRewardId) || Boolean(card.gift?.redeemable)
+}
+
 export function sortHomeCards(cards: readonly HomeCard[]): HomeCard[] {
   return [...cards].sort((left, right) => {
-    const leftRedeemable = left.primaryRewardId ? 1 : 0
-    const rightRedeemable = right.primaryRewardId ? 1 : 0
+    const leftRedeemable = hasRedeemableReward(left) ? 1 : 0
+    const rightRedeemable = hasRedeemableReward(right) ? 1 : 0
     if (leftRedeemable !== rightRedeemable)
       return rightRedeemable - leftRedeemable
 
@@ -22,13 +27,13 @@ export function sortHomeCards(cards: readonly HomeCard[]): HomeCard[] {
 export function buildHomeSummary(cards: readonly HomeCard[]): HomeSummary {
   return {
     cardCount: cards.length,
-    redeemableCount: cards.filter((card) => card.primaryRewardId).length,
+    redeemableCount: cards.filter(hasRedeemableReward).length,
     stampAvailableCount: cards.filter(isStampAvailable).length,
   }
 }
 
 export function homeCardStatusCopy(card: HomeCard): string {
-  if (card.primaryRewardId) return "Reward ready — show QR at the counter"
+  if (card.stampRewardId) return "Reward ready — show QR at the counter"
   if (!card.available) {
     return card.unavailableReason ?? "This card is unavailable right now."
   }

@@ -1,23 +1,32 @@
 import Link from "next/link"
+import { GiftIcon } from "@hugeicons/core-free-icons"
 
-import { Eyebrow, MonoTag, ReceiptCard, VenueMark } from "@/components/brand"
+import {
+  Eyebrow,
+  Icon,
+  MonoTag,
+  ReceiptCard,
+  VenueMark,
+} from "@/components/brand"
 import { ReferralShareButton } from "@/components/customer/referral-share-button"
 import { StampGrid } from "@/components/loyalty"
 import { homeCardStatusCopy } from "@/lib/customer/home-dashboard"
+import { rewardSourceBadge } from "@/lib/customer/issued-reward-display"
 import { formatRewardReadyDate } from "@/lib/customer/uk-calendar"
 import type { HomeCard } from "@/lib/customer/home"
+import type { HomeCardGift } from "@/lib/customer/home-types"
 
 export function HomeCardTile({ card }: { card: HomeCard }) {
-  const href = card.primaryRewardId
-    ? `/reward/${card.primaryRewardId}`
+  const href = card.stampRewardId
+    ? `/reward/${card.stampRewardId}`
     : `/card/${card.membershipId}`
   const rewardTag =
-    card.primaryRewardId !== undefined
+    card.stampRewardId !== undefined
       ? { tone: "leaf" as const, label: "Reward ready" }
       : card.unlockedRewards > 0
         ? { tone: "sun" as const, label: "Reward soon" }
         : null
-  const rewardSlot = card.primaryRewardId
+  const rewardSlot = card.stampRewardId
     ? "ready"
     : card.unlockedRewards > 0
       ? "revealed"
@@ -45,8 +54,8 @@ export function HomeCardTile({ card }: { card: HomeCard }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <MonoTag tone={card.primaryRewardId ? "leaf" : "plain"}>
-              {card.primaryRewardId ? "Open reward QR" : "Open card"}
+            <MonoTag tone={card.stampRewardId ? "leaf" : "plain"}>
+              {card.stampRewardId ? "Open reward QR" : "Open card"}
             </MonoTag>
             {rewardTag ? (
               <MonoTag tone={rewardTag.tone}>{rewardTag.label}</MonoTag>
@@ -87,6 +96,10 @@ export function HomeCardTile({ card }: { card: HomeCard }) {
               {homeCardStatusCopy(card)}
             </p>
           )}
+
+          {card.gift ? (
+            <TileGiftChip gift={card.gift} businessName={card.businessName} />
+          ) : null}
         </ReceiptCard>
       </Link>
       {card.referralShareUrl ? (
@@ -96,6 +109,45 @@ export function HomeCardTile({ card }: { card: HomeCard }) {
           venueName={card.businessName}
         />
       ) : null}
+    </div>
+  )
+}
+
+/**
+ * A birthday / merchant-sent reward shown as a distinct gift on the tile — its
+ * own ticket, separate from the stamp card's completion reward, so an incomplete
+ * card is never dressed up as complete. The whole tile links to the card (or the
+ * earned reward); the gift is collected from the card page it opens.
+ */
+function TileGiftChip({
+  gift,
+  businessName,
+}: {
+  gift: HomeCardGift
+  businessName: string
+}) {
+  const badge = rewardSourceBadge(gift.source, businessName) ?? "Gift"
+  const label = gift.redeemable
+    ? "Ready to collect"
+    : gift.redeemableFrom
+      ? `Ready · ${formatRewardReadyDate(gift.redeemableFrom)}`
+      : "Back next opening day"
+
+  return (
+    <div
+      data-reward-ticket="gift"
+      className="grid gap-1.5 rounded-lg border-2 border-ink bg-seal/15 p-3"
+    >
+      <div className="flex items-center gap-1.5">
+        <Icon icon={GiftIcon} size={14} />
+        <Eyebrow>{badge}</Eyebrow>
+      </div>
+      <p className="text-sm leading-tight font-extrabold break-words">
+        {gift.rewardName}
+      </p>
+      <span className="w-fit max-w-full rounded-md border-2 border-ink bg-seal/25 px-2 py-0.5 font-mono text-[0.625rem] font-bold tracking-[0.06em] uppercase">
+        {label}
+      </span>
     </div>
   )
 }

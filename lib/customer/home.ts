@@ -232,13 +232,13 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
         stampsRequired !== null
           ? Math.max(stampsRequired - currentStamps, 0)
           : 0,
-      unlockedRewards: rewards.total,
-      redeemableRewards: rewards.redeemable,
-      ...(rewards.primaryRewardId
-        ? { primaryRewardId: rewards.primaryRewardId }
+      unlockedRewards: rewards.stampUnlocked,
+      ...(rewards.stampRewardId
+        ? { stampRewardId: rewards.stampRewardId }
         : {}),
       revealedRewardName: rewards.revealedRewardName,
       revealedRewardRedeemableFrom: rewards.revealedRewardRedeemableFrom,
+      gift: rewards.gift,
       available: !unavailableReason,
       unavailableReason,
     }

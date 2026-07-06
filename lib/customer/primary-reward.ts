@@ -50,3 +50,17 @@ export function pickStampBlockingUnlockedReward<T extends UnlockedRewardPickRow>
     rows.filter((row) => (row.source ?? "stamp_cycle") === "stamp_cycle")
   )
 }
+
+/**
+ * The issued reward (birthday / merchant direct) to feature on a card as a
+ * distinct gift — the complement of {@link pickStampBlockingUnlockedReward}.
+ * Redeemable-first, then most recent. Kept separate from the stamp cycle so a
+ * gift never makes an incomplete stamp card read as reward-ready.
+ */
+export function pickIssuedUnlockedReward<T extends UnlockedRewardPickRow>(
+  rows: readonly T[]
+): T | null {
+  return pickPrimaryUnlockedReward(
+    rows.filter((row) => (row.source ?? "stamp_cycle") !== "stamp_cycle")
+  )
+}

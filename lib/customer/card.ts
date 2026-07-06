@@ -3,7 +3,7 @@ import "server-only"
 import { loyaltyAvailability } from "@/lib/customer/availability"
 import { getCurrentCustomer } from "@/lib/customer/identity"
 import {
-  pickPrimaryUnlockedReward,
+  pickIssuedUnlockedReward,
   pickStampBlockingUnlockedReward,
 } from "@/lib/customer/primary-reward"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
@@ -40,7 +40,8 @@ export type CustomerCardState =
         reward_terms: string
         is_active: boolean
       } | null
-      latestReward: {
+      /** Unlocked stamp-cycle reward only — the card's own completion reward. */
+      stampCycleReward: {
         id: string
         status: string
         reward_name: string
@@ -49,8 +50,9 @@ export type CustomerCardState =
         expires_at: string | null
         source: string | null
       } | null
-      /** Unlocked stamp-cycle reward only — blocks stamping when present. */
-      stampCycleReward: {
+      /** Best unlocked issued reward (birthday/merchant) — the card's gift rail,
+       *  kept separate so it never drives the stamp-cycle completion state. */
+      issuedReward: {
         id: string
         status: string
         reward_name: string
@@ -162,8 +164,8 @@ export async function getCustomerCardState(
   )
 
   const unlockedRewardRows = unlockedRewards ?? []
-  const primaryReward = pickPrimaryUnlockedReward(unlockedRewardRows)
   const stampCycleReward = pickStampBlockingUnlockedReward(unlockedRewardRows)
+  const issuedReward = pickIssuedUnlockedReward(unlockedRewardRows)
 
   return {
     status: "ready",
@@ -182,8 +184,8 @@ export async function getCustomerCardState(
       status: merchant.status,
     },
     loyaltyCard,
-    latestReward: mapRewardSummary(primaryReward),
     stampCycleReward: mapRewardSummary(stampCycleReward),
+    issuedReward: mapRewardSummary(issuedReward),
     billingStatus: billing?.status ?? null,
   }
 }

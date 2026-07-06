@@ -112,6 +112,73 @@ test("redeemable active rewards drive the card-ready footer without changing the
   assert.equal(experience.rewardRedeemableFrom, "2026-07-01")
 })
 
+test("an incomplete card with only an issued reward never reads as reward-ready", () => {
+  const experience = deriveCustomerExperience({
+    entry: "card",
+    context: cardContext({
+      current: 2,
+      total: 5,
+      reward: null, // no stamp-cycle completion reward
+      giftReward: {
+        id: "gift_1",
+        name: "Birthday fizz",
+        source: "birthday_month",
+        redeemableFrom: "2020-01-01",
+        redeemable: true,
+      },
+    }),
+  })
+
+  assert.equal(experience.kind, "card_collecting")
+  // The stamp card itself is not reward-ready — the issued reward rides its own rail.
+  assert.equal(experience.reward, "none")
+  assert.equal(experience.rewardId, undefined)
+  // ...and surfaces as a distinct, still-collectible gift.
+  assert.equal(experience.gift?.rewardId, "gift_1")
+  assert.equal(experience.gift?.rewardName, "Birthday fizz")
+  assert.equal(experience.gift?.source, "birthday_month")
+  assert.equal(experience.gift?.redeemable, true)
+})
+
+test("a completed stamp card and an issued gift surface side by side", () => {
+  const experience = deriveCustomerExperience({
+    entry: "card",
+    context: cardContext({
+      current: 5,
+      total: 5,
+      reward: {
+        id: "reward_1",
+        name: "Mystery round",
+        terms: "Ask at the bar.",
+        redeemableFrom: "2020-01-01",
+        redeemable: true,
+      },
+      giftReward: {
+        id: "gift_2",
+        name: "Manager's thank-you",
+        source: "merchant_direct",
+        redeemableFrom: "2020-01-01",
+        redeemable: true,
+      },
+    }),
+  })
+
+  assert.equal(experience.reward, "ready")
+  assert.equal(experience.rewardId, "reward_1")
+  assert.equal(experience.gift?.rewardId, "gift_2")
+  assert.equal(experience.gift?.source, "merchant_direct")
+})
+
+test("a card with no issued reward carries no gift", () => {
+  const experience = deriveCustomerExperience({
+    entry: "card",
+    context: cardContext({ reward: null }),
+  })
+
+  assert.equal(experience.kind, "card_collecting")
+  assert.equal(experience.gift, null)
+})
+
 test("full cards without an unlocked reward show recovery instead of inviting another stamp", () => {
   const experience = deriveCustomerExperience({
     entry: "card",
