@@ -135,13 +135,13 @@ async function checkStripePrice({ apiKey, priceId, report }) {
     body.id === priceId &&
     body.active === true &&
     body.currency === "gbp" &&
-    body.unit_amount === 2900 &&
+    body.unit_amount === 4900 &&
     body.recurring?.interval === "month"
 
   if (matchesPlan) {
-    report.pass("stripe-price", "Growth price is active GBP 29/month.")
+    report.pass("stripe-price", "Growth price is active GBP 49/month.")
   } else {
-    report.fail("stripe-price", "Growth price does not match active GBP 29/month.")
+    report.fail("stripe-price", "Growth price does not match active GBP 49/month.")
   }
 }
 
