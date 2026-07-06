@@ -20,6 +20,10 @@ export type PosterHeadline = {
   readonly afterAccent: string
 }
 
+/** Stamp rule + mystery framing — shared footer on every A4 template. */
+export const POSTER_REASSURANCE =
+  "One stamp per day · Mystery until unlock" as const
+
 export type PosterCopy = PosterData & {
   readonly template: CopyPosterTemplateId
   /** Giant headline with one accent word. */
@@ -77,10 +81,10 @@ function buildProgress(stampsRequired: number): string {
 
 function buildSupport(stampsRequired: number): string {
   if (stampsRequired === 1) {
-    return "Your first stamp's on us — and it unlocks a mystery reward."
+    return "Your first stamp's on us — claim it now."
   }
 
-  return "Your first stamp's on us. The rest unlock a mystery reward."
+  return "Your first stamp's already waiting — collect the rest to unlock the mystery."
 }
 
 function buildEyebrow(businessName: string, locationName: string): string {
@@ -121,9 +125,9 @@ const TEMPLATE_HOOKS: Record<
     },
     support: buildSupport(stampsRequired),
     forbidden: "We're not allowed to tell you what it is.",
-    frictionLine: "No app · 20 seconds · No spam",
+    frictionLine: "No app · No download · No spam",
     qrCaption: "Scan to claim your free stamp",
-    reassurance: "One stamp a day · Reward revealed when unlocked",
+    reassurance: POSTER_REASSURANCE,
   }),
   editorial: ({ stampsRequired }) => ({
     headline:
@@ -138,14 +142,11 @@ const TEMPLATE_HOOKS: Record<
             accent: "surprise",
             afterAccent: ".",
           },
-    support:
-      stampsRequired === 1
-        ? "Start with a free stamp — the reward stays a mystery until you unlock it."
-        : "Your first stamp is already waiting. Collect the rest to reveal what you've earned.",
+    support: buildSupport(stampsRequired),
     forbidden: "We can't tell you what it is. That's the point.",
-    frictionLine: "No app download · Scan in 20 seconds",
+    frictionLine: "No app · Opens in your browser",
     qrCaption: "Scan to unlock your mystery reward",
-    reassurance: "Stamps count once per day · Mystery until unlock",
+    reassurance: POSTER_REASSURANCE,
   }),
   ticket: ({ stampsRequired }) => ({
     headline: {
@@ -156,11 +157,11 @@ const TEMPLATE_HOOKS: Record<
     support:
       stampsRequired === 1
         ? "Claim it now — your mystery reward unlocks straight after."
-        : "Claim stamp one today. The rest unlock your mystery reward.",
+        : "Claim stamp one today — the rest unlock the mystery.",
     forbidden: "Staff won't spoil it. We won't either.",
-    frictionLine: "No account needed · Takes 20 seconds",
+    frictionLine: "No account needed · Scan with your camera",
     qrCaption: "Scan here to claim your free stamp",
-    reassurance: "One stamp per visit · Mystery until unlock",
+    reassurance: POSTER_REASSURANCE,
   }),
 }
 

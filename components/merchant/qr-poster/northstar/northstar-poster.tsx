@@ -3,6 +3,8 @@ import type { CSSProperties } from "react"
 import { VenueMark } from "@/components/brand/venue-mark"
 import { StampDot } from "@/components/loyalty/stamp-dot"
 
+import { POSTER_REASSURANCE } from "../poster-copy"
+
 import styles from "./northstar-poster.module.css"
 
 /**
@@ -57,12 +59,12 @@ function buildVenueName(businessName: string, locationName: string): string {
 /** Mystery stated once, mechanism once — the dots carry the count. */
 function buildPromise(stampsRequired: number): string {
   if (stampsRequired === 1) {
-    return "Your first stamp's already inked — scan to claim it and unlock a mystery reward."
+    return "Your first stamp's already inked — scan to claim it now."
   }
 
   const remaining = stampsRequired - 1
   const visitVerb = remaining === 1 ? "visit unlocks" : "visits unlock"
-  return `You're one stamp in — ${spell(remaining)} more ${visitVerb} a mystery reward.`
+  return `You're one stamp in — ${spell(remaining)} more ${visitVerb} the mystery.`
 }
 
 type NorthStarPosterProps = {
@@ -98,7 +100,7 @@ export function NorthStarPoster({
           Everyone <span className={styles.hookAccent}>wins</span> something.
         </h2>
 
-        <p className={styles.ease}>No app · 20 seconds · No spam</p>
+        <p className={styles.ease}>No app · No download · No spam</p>
 
         <section className={styles.cardHero}>
           <span aria-hidden="true" className={styles.cardChip}>
@@ -155,7 +157,7 @@ export function NorthStarPoster({
             </span>
             Powered by nabaperks
           </span>
-          <span>Reward revealed when unlocked</span>
+          <span>{POSTER_REASSURANCE}</span>
         </footer>
       </div>
     </article>

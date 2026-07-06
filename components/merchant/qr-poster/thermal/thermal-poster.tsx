@@ -3,6 +3,8 @@ import type { CSSProperties } from "react"
 import { VenueMark } from "@/components/brand/venue-mark"
 import { StampDot } from "@/components/loyalty/stamp-dot"
 
+import { POSTER_REASSURANCE } from "../poster-copy"
+
 import styles from "./thermal-poster.module.css"
 
 /**
@@ -82,7 +84,7 @@ export function ThermalPoster({
             </div>
 
             <hr className={styles.ruleSolid} />
-            <p className={styles.metaLine}>No cash · No app · 20 seconds</p>
+            <p className={styles.metaLine}>No cash · No app · Opens in your browser</p>
             <hr className={styles.ruleDashed} />
 
             <p className={styles.hook}>
@@ -163,6 +165,7 @@ export function ThermalPoster({
                 </span>
                 Powered by nabaperks
               </span>
+              <p className={styles.metaLine}>{POSTER_REASSURANCE}</p>
               <p className={styles.thanks}>*** Thank you ***</p>
             </div>
           </div>
