@@ -9,7 +9,7 @@ import { ImageResponse } from "next/og"
  * shadow.
  */
 export const alt =
-  "Nabaperks — loyalty cards for pubs, cafes and takeaways. QR scan. Browser-based card. Counter-verified stamps. 30-day pilot, then £29/month."
+  "Nabaperks — loyalty cards for pubs, cafes and takeaways. QR scan. Browser-based card. Counter-verified stamps. 30-day pilot, then £49/month."
 
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
@@ -91,7 +91,7 @@ export default function OpengraphImage() {
               boxShadow: `8px 8px 0 ${VERMILLION}`,
             }}
           >
-            30-day pilot, then £29/month
+            30-day pilot, then £49/month
           </div>
         </div>
       </div>

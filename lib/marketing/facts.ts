@@ -11,10 +11,16 @@
  * identifiers, a registered-office address, founding details, a public count of
  * live venues in the proof methodology, or hard compliance/guarantee claims.
  * The exact banned strings are enforced by `scripts/check-banned-claims.mjs`.
- * The First-Regular Guarantee (`GUARANTEE`) is the one owner-approved
- * exception: a commercial trial-extension promise (2026-07-05,
- * MS-marketing-offer-v1) — a business term, not a compliance claim;
- * compliance-assurance wording stays banned.
+ * The First-Regular Guarantee (`GUARANTEE`) is an owner-approved exception: a
+ * commercial trial-extension promise (2026-07-05, MS-marketing-offer-v1) — a
+ * business term, not a compliance claim; compliance-assurance wording stays
+ * banned. Offer v2 (2026-07-05, MS-marketing-offer-v2) adds two more
+ * owner-approved commercial terms: the rolling monthly `PROMO` in
+ * `lib/marketing/promo.ts` (a real, fulfilled, time-boxed perk with a monthly
+ * print-run capacity) and the `OFFER_STACK` `anchor`s (justified
+ * external cost/time comparisons — never an invented reference or headline
+ * price). The privacy bonus still describes mechanisms only, never a
+ * compliance assurance.
  */
 
 // --- Public operator entity (the E-E-A-T Organization fact sheet) ----------
@@ -81,8 +87,17 @@ export const PRODUCT = {
   term: "browser-based loyalty card",
   cardLine: "A browser-based loyalty card customers open from your QR code.",
   posLine: "No extra hardware. No POS or EPOS integration required.",
-  price: "£29/month",
-  priceShort: "£29/mo",
+  price: "£49/month",
+  priceShort: "£49/mo",
+  /**
+   * Annual plan — 12 × £49 = £588, offered at £490 up front = exactly two
+   * months free. The annual Stripe Price is created by the operator; the
+   * optional `STRIPE_GROWTH_ANNUAL_PRICE_ID` gates the annual checkout option
+   * until it exists, so a stray annual submit can never bill an undefined price.
+   */
+  priceAnnual: "£490/year",
+  priceAnnualShort: "£490/yr",
+  annualSaving: "2 months free",
   pilot: "30-day free pilot",
   /** Public phrasing for the anti-fraud method — not a hero-level brand push. */
   counterStamp: "counter-verified stamps",
@@ -114,7 +129,7 @@ export const GUARANTEE = {
 } as const
 
 /**
- * What the £29 plan includes — the single source for the /pricing superset
+ * What the £49 plan includes — the single source for the /pricing superset
  * and the TrustPricing teaser (`PLAN_INCLUDES.slice(0, 4)`), so the two
  * surfaces can never drift. Location checks sit last so the teaser is a
  * plain prefix of the full list.
@@ -128,37 +143,84 @@ export const PLAN_INCLUDES = [
 ] as const
 
 /**
+ * The offer's public NAME — the Hormozi MAGIC "wrapper" (Goal "first regular" +
+ * Interval "30-day" + Container "Launch"). Rendered as the /pricing offer
+ * heading (MS-marketing-offer-v2). This names the OFFER, not the product: the
+ * hero product headline ("The loyalty card that just opens.") stays separate.
+ * `riskFraming` is the guarantee's best-case/worst-case reversal, composed with
+ * `GUARANTEE` and single-sourced so no surface forks it.
+ */
+export const OFFER = {
+  name: "The 30-Day First-Regular Launch",
+  riskFraming:
+    "Best case, your regulars come back and the £49 pays for itself. Worst case, you pay nothing more until one does.",
+} as const
+
+/**
+ * Speed / time-to-value copy — the Value Equation's "reduce the delay" lever
+ * (Hormozi: fast beats free). Grounded in the real launch checklist
+ * (`lib/merchant/launch-readiness-core`): four steps — venue, card, rewards,
+ * qr — with the reward pool seeded by default, so the "pre-filled rewards" and
+ * "four guided steps" claims are honest. No invented minute count.
+ */
+export const SETUP = {
+  line: "Live on your counter the same afternoon.",
+  steps:
+    "Four guided steps — add your venue, build the card, confirm your pre-filled rewards, and print your QR.",
+  noFriction: "No app to build, no POS to connect, nothing to install.",
+  earlyWin:
+    "Your first member can stamp the moment the poster hits the counter.",
+} as const
+
+/**
  * The named bonus stack /pricing presents under the one price — already
- * shipped product, framed as included; no unbundled price anchors. Factual
- * anchors: the five A4 poster templates, the seeded default reward pool,
- * optional birthday automation + the weekly digest, the consent/age-gate/
- * retention mechanics, and the three public guides.
+ * shipped product, framed as included; no unbundled price theatre. Each item
+ * names the `obstacle` it removes (Hormozi Bonus Bullet #8) and, where a figure
+ * is genuinely substantiable, an `anchor`: a real external cost or time saving
+ * (MS-marketing-offer-v2, owner-approved 2026-07-05). Anchors are NEVER an
+ * invented reference or headline price, and the privacy item stays
+ * mechanism-described with no price (`anchor: null`). Factual anchors: the five
+ * A4 poster templates, the seeded default reward pool, optional birthday
+ * automation + the weekly digest, the consent/age-gate/retention mechanics, and
+ * the three public guides.
  */
 export const OFFER_STACK = [
   {
     name: "Launch-ready till poster kit",
+    obstacle: "No time to design counter posters.",
     detail:
       "Five print-ready A4 posters — Editorial, Bold, Ticket, Night Card and Receipt — with your venue QR and counter copy already laid out.",
+    anchor:
+      "The kind of counter posters you'd pay a freelance designer £150+ to make.",
   },
   {
     name: "Done-for-you mystery reward pool",
+    obstacle: "Not sure what rewards to run.",
     detail:
       "A starter pool of weighted mystery rewards is seeded with your card — edit it or launch with it as-is.",
+    anchor: "A ready-to-run reward game — no blank page to start from.",
   },
   {
     name: "Set-and-forget retention automations",
+    obstacle: "No time to chase regulars by hand.",
     detail:
       "Optional birthday treats send automatically, and a weekly digest of visits, regulars and redemptions lands in your inbox.",
+    anchor:
+      "The birthday messages and weekly numbers you'd otherwise chase by hand every week.",
   },
   {
     name: "Privacy jobs, handled",
+    obstacle: "The data rules feel like a minefield.",
     detail:
       "Consent-led marketing kept separate from loyalty, an 18+ age gate at redemption, and automatic data-retention tidy-ups.",
+    anchor: null,
   },
   {
     name: "The operator's loyalty guides",
+    obstacle: "Unsure what actually works in a pub.",
     detail:
       "Three practical guides from the counter: reward ideas that suit a pub, paper vs QR, and rewarding regulars without an app.",
+    anchor: null,
   },
 ] as const
 

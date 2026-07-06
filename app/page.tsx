@@ -17,6 +17,7 @@ import {
   type QrMatrix,
 } from "@/components/marketing/landing"
 import { JsonLd } from "@/components/seo/json-ld"
+import { getActivePromo } from "@/lib/marketing/promo"
 import {
   OG_IMAGE,
   ORG_ID,
@@ -31,7 +32,7 @@ import {
 
 const title = "No-App QR Loyalty for UK Food & Drink Venues"
 const description =
-  "One venue QR replaces paper stamp cards: a browser-based loyalty card — no app, no wallet pass — with counter-verified stamps. £29/mo, 30-day free pilot."
+  "One venue QR replaces paper stamp cards: a browser-based loyalty card — no app, no wallet pass — with counter-verified stamps. £49/mo, 30-day free pilot."
 
 export const metadata: Metadata = {
   title: { absolute: `${title} | Nabaperks` },
@@ -107,10 +108,10 @@ function buildPageGraph() {
       publisher: { "@id": ORG_ID },
       offers: {
         "@type": "Offer",
-        price: "29.00",
+        price: "49.00",
         priceCurrency: "GBP",
         description:
-          "£29/month per venue, no contract. 30-day free pilot; build the card free and add billing when you activate your live venue QR.",
+          "£49/month per venue, no contract. 30-day free pilot; build the card free and add billing when you activate your live venue QR.",
         availability: "https://schema.org/InStock",
         url: absoluteUrl("/signup"),
       },
@@ -140,10 +141,12 @@ function buildPageGraph() {
  * chapters live on their own routes: mechanism + anti-fraud + comparison on
  * /how-it-works, persona fit on /loyalty-for-*, full pricing on /pricing. */
 export default function HomePage() {
+  const promo = getActivePromo()
+
   return (
     <MarketingLayout>
       {/* Pitch: value prop with the live demo QR */}
-      <LandingHero qrMatrix={demoQrMatrix} />
+      <LandingHero qrMatrix={demoQrMatrix} promo={promo} />
 
       {/* The four-beat mechanism (deep dive lives on /how-it-works) */}
       <CounterFlow />

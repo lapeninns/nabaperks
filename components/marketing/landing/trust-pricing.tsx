@@ -22,7 +22,7 @@ export function TrustPricing() {
       <div className="mx-auto max-w-[46ch] text-center">
         <MonoTag tone="plain">Pricing</MonoTag>
         <h2 className="mt-4 text-[clamp(1.85rem,4vw,2.75rem)] leading-[1.02] font-extrabold tracking-[-0.02em] text-balance">
-          £29/month per venue. 30 days free. No contract.
+          £49/month per venue. 30 days free. No contract.
         </h2>
         <p className="mt-3 text-base leading-relaxed text-muted-foreground">
           One plain price for no-app loyalty with counter-verified stamps.{" "}
@@ -40,14 +40,14 @@ export function TrustPricing() {
           </span>
         </div>
         <p className="mt-3 text-5xl leading-none font-extrabold tracking-[-0.02em] sm:text-6xl">
-          £29
+          £49
           <span className="text-lg font-bold text-muted-foreground">/month</span>
         </p>
         <p className="mono-id mt-2 font-normal text-muted-foreground">
-          GBP 29/month · one venue · no contracts
+          GBP 49/month · one venue · no contracts
         </p>
         <p className="mt-3 text-sm leading-relaxed font-semibold">
-          At £29/month, one or two extra regulars a week can cover the cost for
+          At £49/month, one or two extra regulars a week can cover the cost for
           many venues.
         </p>
 

@@ -9,7 +9,7 @@ import { getStripe } from "@/lib/stripe/server"
 
 const BILLING_ACTION_ERROR = "Billing action could not be completed. Try again."
 
-export async function startCheckoutAction() {
+export async function startCheckoutAction(interval: "month" | "year" = "month") {
   const merchant = await getCurrentMerchant()
 
   if (!merchant) {
@@ -54,12 +54,23 @@ export async function startCheckoutAction() {
         })
       ).id
 
+    const priceId =
+      interval === "year"
+        ? env.STRIPE_GROWTH_ANNUAL_PRICE_ID
+        : env.STRIPE_GROWTH_PRICE_ID
+
+    // The annual Price is optional until the operator creates it in Stripe, so
+    // guard here — a stray annual submit can never check out an undefined price.
+    if (!priceId) {
+      throw new Error(BILLING_ACTION_ERROR)
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer,
       line_items: [
         {
-          price: env.STRIPE_GROWTH_PRICE_ID,
+          price: priceId,
           quantity: 1,
         },
       ],
@@ -68,11 +79,13 @@ export async function startCheckoutAction() {
         metadata: {
           merchant_id: merchant.id,
           plan: "growth",
+          interval,
         },
       },
       metadata: {
         merchant_id: merchant.id,
         plan: "growth",
+        interval,
       },
       success_url: `${env.NEXT_PUBLIC_APP_URL}/app/billing?checkout=success`,
       cancel_url: `${env.NEXT_PUBLIC_APP_URL}/app/billing?checkout=cancelled`,

@@ -23,7 +23,7 @@ import {
 
 const title = "Cafe Loyalty Cards — No-App QR Stamp Cards"
 const description =
-  "Turn the daily coffee habit into counter-verified stamps. One till QR opens a browser-based card — no app, no wallet pass. £29/month, 30-day free pilot."
+  "Turn the daily coffee habit into counter-verified stamps. One till QR opens a browser-based card — no app, no wallet pass. £49/month, 30-day free pilot."
 
 export const metadata: Metadata = {
   title,

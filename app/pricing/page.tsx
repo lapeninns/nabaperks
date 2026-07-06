@@ -12,11 +12,14 @@ import { Button } from "@/components/ui/button"
 import {
   CTA,
   GUARANTEE,
+  OFFER,
   OFFER_STACK,
   PLAN_INCLUDES,
   PRODUCT,
   ROUTES,
+  SETUP,
 } from "@/lib/marketing/facts"
+import { getActivePromo } from "@/lib/marketing/promo"
 import {
   ORG_ID,
   SITE_URL,
@@ -27,7 +30,7 @@ import {
 
 import { PricingCheckoutAlert } from "./checkout-alert"
 
-const title = "Pricing — £29/month per venue"
+const title = "Pricing — £49/month per venue"
 const description = `Start with a ${PRODUCT.pilot}, then ${PRODUCT.price} per venue — unlimited stamps and members included. ${PRODUCT.cancelLine}`
 
 export const metadata: Metadata = {
@@ -65,7 +68,7 @@ const planIncludes = PLAN_INCLUDES
 const faqs = [
   {
     q: "Is there a contract?",
-    a: `No. It is month to month after the pilot — £29, one venue. ${PRODUCT.cancelLine} 30 days free before billing starts.`,
+    a: `No. It is month to month after the pilot — £49, one venue, or £490/year if you'd rather pay yearly (two months free). ${PRODUCT.cancelLine} 30 days free before billing starts.`,
   },
   {
     q: "Do I need any hardware?",
@@ -93,9 +96,29 @@ const pricingOffer = {
   "@type": "Offer",
   "@id": `${SITE_URL}${ROUTES.pricing}#monthly-offer`,
   name: "Nabaperks Growth Plan",
-  price: "29.00",
+  price: "49.00",
   priceCurrency: "GBP",
   description: `${PRODUCT.price} per venue after a ${PRODUCT.pilot}, month to month with no contract.`,
+  availability: "https://schema.org/InStock",
+  url: absoluteUrl(ROUTES.pricing),
+  eligibleRegion: { "@type": "Country", name: "United Kingdom" },
+  itemOffered: {
+    "@type": "SoftwareApplication",
+    "@id": `${SITE_URL}/#software`,
+    name: "Nabaperks",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web browser",
+    publisher: { "@id": ORG_ID },
+  },
+} satisfies Record<string, unknown>
+
+const pricingAnnualOffer = {
+  "@type": "Offer",
+  "@id": `${SITE_URL}${ROUTES.pricing}#annual-offer`,
+  name: "Nabaperks Growth Plan (annual)",
+  price: "490.00",
+  priceCurrency: "GBP",
+  description: `${PRODUCT.priceAnnual} billed yearly — ${PRODUCT.annualSaving} versus paying monthly.`,
   availability: "https://schema.org/InStock",
   url: absoluteUrl(ROUTES.pricing),
   eligibleRegion: { "@type": "Country", name: "United Kingdom" },
@@ -130,17 +153,19 @@ const pricingGraph = marketingPageGraph({
     { name: "Home", path: ROUTES.home },
     { name: "Pricing", path: ROUTES.pricing },
   ],
-  extraNodes: [pricingOffer, pricingFaqSchema],
+  extraNodes: [pricingOffer, pricingAnnualOffer, pricingFaqSchema],
 })
 
 export default function PricingPage() {
+  const promo = getActivePromo()
+
   return (
     <MarketingLayout>
       <Section>
         <PageTitle
           eyebrow="Pricing"
           title="One price. Everything included."
-          description={`30 days free to pilot, then £29/month per venue. ${PRODUCT.cancelLine}`}
+          description={`30 days free to pilot, then £49/month per venue. ${PRODUCT.cancelLine}`}
           titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
           descriptionClassName="text-base leading-7 text-pretty"
           className="md:grid-cols-1"
@@ -149,6 +174,21 @@ export default function PricingPage() {
         <Suspense fallback={null}>
           <PricingCheckoutAlert />
         </Suspense>
+
+        {promo && (
+          <div className="mt-6 rounded-lg border-2 border-dashed border-border p-5">
+            <Eyebrow className="mb-2 text-reward">{promo.name}</Eyebrow>
+            <p className="text-[0.95rem] leading-snug font-extrabold text-balance">
+              {promo.perk}
+            </p>
+            <p className="mt-2 text-sm leading-snug font-semibold text-balance">
+              {promo.scarcityLine}
+            </p>
+            <p className="mono-meta mt-2 text-muted-foreground">
+              {promo.claim}
+            </p>
+          </div>
+        )}
 
         <div className="mt-6 grid gap-6 sm:gap-8 lg:grid-cols-[minmax(0,0.52fr)_minmax(0,0.48fr)] lg:items-start">
           <ReceiptCard
@@ -165,13 +205,17 @@ export default function PricingPage() {
               </div>
               <div>
                 <p className="text-[clamp(2.75rem,8vw,3.25rem)] leading-none font-extrabold tabular-nums">
-                  £29
+                  £49
                   <span className="text-lg font-bold text-muted-foreground">
                     /month
                   </span>
                 </p>
                 <p className="mono-meta mt-2 text-muted-foreground">
                   One venue · month to month · no contracts
+                </p>
+                <p className="mt-2 text-sm leading-snug font-semibold text-balance">
+                  Or {PRODUCT.priceAnnual} billed yearly —{" "}
+                  <span className="text-reward">{PRODUCT.annualSaving}</span>.
                 </p>
               </div>
               <hr className="w-rule" />
@@ -232,6 +276,9 @@ export default function PricingPage() {
               <p className="text-[clamp(1.25rem,2.5vw,1.5rem)] leading-snug font-extrabold text-balance">
                 {GUARANTEE.line}
               </p>
+              <p className="text-sm leading-6 text-pretty font-semibold">
+                {OFFER.riskFraming}
+              </p>
               <p className="text-sm leading-6 text-pretty text-muted-foreground">
                 {GUARANTEE.applies} {GUARANTEE.claim}
               </p>
@@ -247,12 +294,28 @@ export default function PricingPage() {
           </div>
         </div>
 
+        <div className="mt-10 grid gap-2">
+          <Eyebrow>How fast you&apos;re live</Eyebrow>
+          <h2 className="text-[clamp(1.5rem,3vw,2rem)] font-extrabold text-balance">
+            {SETUP.line}
+          </h2>
+          <p className="text-base leading-7 text-pretty text-muted-foreground">
+            {SETUP.steps} {SETUP.noFriction}
+          </p>
+          <p className="text-sm leading-6 text-pretty font-semibold">
+            {SETUP.earlyWin}
+          </p>
+        </div>
+
         <div className="mt-10">
           <div className="mb-5 grid gap-2">
             <Eyebrow>Included with every venue</Eyebrow>
             <h2 className="text-[clamp(1.5rem,3vw,2rem)] font-extrabold text-balance">
-              The launch kit, thrown in.
+              {OFFER.name}
             </h2>
+            <p className="text-base leading-7 text-pretty text-muted-foreground">
+              Everything below is in the £49 — the launch kit, thrown in.
+            </p>
           </div>
           <ul className="grid gap-4 sm:grid-cols-2">
             {OFFER_STACK.map((bonus) => (
@@ -260,12 +323,20 @@ export default function PricingPage() {
                 key={bonus.name}
                 className="rounded-lg border-2 border-dashed border-border p-5"
               >
-                <p className="text-[0.95rem] leading-snug font-extrabold">
+                <p className="mono-meta text-muted-foreground">
+                  {bonus.obstacle}
+                </p>
+                <p className="mt-1 text-[0.95rem] leading-snug font-extrabold">
                   {bonus.name}
                 </p>
                 <p className="mt-1.5 text-sm leading-6 text-pretty text-muted-foreground">
                   {bonus.detail}
                 </p>
+                {bonus.anchor && (
+                  <p className="mt-2 text-sm leading-6 text-pretty font-semibold">
+                    {bonus.anchor}
+                  </p>
+                )}
               </li>
             ))}
           </ul>

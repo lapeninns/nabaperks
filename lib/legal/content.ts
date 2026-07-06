@@ -43,6 +43,11 @@ export const PLATFORM_TERMS_SECTIONS: LegalSection[] = [
     title: "First-Regular Guarantee",
     body: "Venue pilots carry the First-Regular Guarantee: if a venue's live loyalty card has not recorded its first returning member — a customer who stamps again on a later UK date — by the end of the 30-day free pilot, Nabaperks extends the free pilot at no charge until it does. The guarantee applies from the day the venue QR goes live and is claimed through support.",
   },
+  {
+    id: "monthly-first-regular-promo",
+    title: "Monthly launch promotion",
+    body: "From time to time Nabaperks runs a limited-time monthly promotion for new venues. Under the current First-Regular promo, a venue whose loyalty card goes live by the promotional deadline shown on the pricing and signup pages receives its first run of counter posters professionally printed and posted at no charge, subject to a monthly print-run capacity shown on those pages. The promotion is time-limited, refreshes each calendar month, may be withdrawn at any time, applies to the first counter-poster run per venue, and is arranged through support once the venue is live. It does not change the £49 monthly price, the free pilot, or the First-Regular Guarantee.",
+  },
 ]
 
 export const PLATFORM_TERMS_META = {
