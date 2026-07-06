@@ -2,6 +2,11 @@ import "server-only"
 
 import { randomInt } from "node:crypto"
 
+import {
+  OtpAliasTokenIntegrityError,
+  decryptOtpAliasToken,
+  encryptOtpAliasToken,
+} from "@/lib/security/otp-alias-token"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 const MERCHANT_EMAIL_OTP_ALIAS_LENGTH = 6
@@ -42,7 +47,7 @@ export async function createMerchantEmailOtpAlias({
     const { error } = await supabase.from("merchant_email_otp_aliases").insert({
       email: normalizedEmail,
       alias_code: aliasCode,
-      supabase_token: supabaseToken,
+      supabase_token: encryptOtpAliasToken(supabaseToken),
       expires_at: expiresAt,
     })
 
@@ -75,7 +80,17 @@ export async function consumeMerchantEmailOtpAlias({
   }
 
   const [row] = Array.isArray(data) ? (data as ConsumeAliasRow[]) : []
-  return row?.supabase_token ?? null
+  const stored = row?.supabase_token
+  if (!stored) return null
+
+  try {
+    return decryptOtpAliasToken(stored)
+  } catch (error) {
+    // A tampered/garbled row behaves like a wrong code; a missing encryption
+    // key is a config error and must stay loud.
+    if (error instanceof OtpAliasTokenIntegrityError) return null
+    throw error
+  }
 }
 
 async function purgeMerchantEmailOtpAliases(

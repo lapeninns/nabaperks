@@ -40,10 +40,11 @@ verification_gates:
   - pnpm test
   - pnpm test:coverage
   - pnpm test:db
-  - pnpm test:e2e -- --project=chromium --grep "@governance|@soft-geofence"
+  - pnpm test:e2e -- --project=chromium --project=mobile-safari --grep "@governance|@soft-geofence"
   - pnpm test:a11y -- --project=chromium
 required_playwright_projects:
   - chromium
+  - mobile-safari
 evidence_required:
   - Command output for the declared verification gates.
   - pnpm test:db output proving the stamping flow records its soft-geofence signal on the configured cycle-stamp number and defaults to 3 when unset.
