@@ -69,14 +69,38 @@ set earned_business_date = public.uk_business_date(created_at)
 where event_type = 'earned'
   and earned_business_date is null;
 
-update public.reward_events
-set
-  reward_name = coalesce(reward_events.reward_name, loyalty_cards.reward_name),
-  reward_terms = coalesce(reward_events.reward_terms, loyalty_cards.reward_terms),
-  min_spend_pence = coalesce(reward_events.min_spend_pence, loyalty_cards.min_spend_pence),
-  redeemable_from = coalesce(reward_events.redeemable_from, public.next_uk_business_date(reward_events.created_at))
-from public.loyalty_cards
-where loyalty_cards.id = reward_events.loyalty_card_id;
+-- Replay guard (MS-db-dead-field-cleanup, 2026-07-07): this one-time backfill
+-- completed in 2026-06. Once 20260707091000 drops the min_spend_pence
+-- columns, the min-spend branch can no longer parse on full-chain replays —
+-- so it only runs while the column still exists (fresh databases mid-chain).
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'loyalty_cards'
+      and column_name = 'min_spend_pence'
+  ) then
+    update public.reward_events
+    set
+      reward_name = coalesce(reward_events.reward_name, loyalty_cards.reward_name),
+      reward_terms = coalesce(reward_events.reward_terms, loyalty_cards.reward_terms),
+      min_spend_pence = coalesce(reward_events.min_spend_pence, loyalty_cards.min_spend_pence),
+      redeemable_from = coalesce(reward_events.redeemable_from, public.next_uk_business_date(reward_events.created_at))
+    from public.loyalty_cards
+    where loyalty_cards.id = reward_events.loyalty_card_id;
+  else
+    update public.reward_events
+    set
+      reward_name = coalesce(reward_events.reward_name, loyalty_cards.reward_name),
+      reward_terms = coalesce(reward_events.reward_terms, loyalty_cards.reward_terms),
+      redeemable_from = coalesce(reward_events.redeemable_from, public.next_uk_business_date(reward_events.created_at))
+    from public.loyalty_cards
+    where loyalty_cards.id = reward_events.loyalty_card_id;
+  end if;
+end
+$$;
 
 alter table public.reward_events
   alter column reward_name set not null,

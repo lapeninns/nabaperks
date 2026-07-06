@@ -203,9 +203,6 @@ insert into public.merchants (
   business_type,
   email,
   phone,
-  average_order_value_pence,
-  estimated_gross_margin_bps,
-  reward_cost_pence,
   status
 )
 values
@@ -217,9 +214,6 @@ values
     'cafe',
     'mia@old-crown-girton.test',
     '+447700900101',
-    485,
-    6800,
-    135,
     'active'
   ),
   (
@@ -230,9 +224,6 @@ values
     'bubble_tea',
     'jordan@bubble-yard.test',
     '+447700900102',
-    620,
-    7200,
-    165,
     'trial'
   )
 on conflict (id) do update
@@ -241,9 +232,6 @@ set business_name = excluded.business_name,
     business_type = excluded.business_type,
     email = excluded.email,
     phone = excluded.phone,
-    average_order_value_pence = excluded.average_order_value_pence,
-    estimated_gross_margin_bps = excluded.estimated_gross_margin_bps,
-    reward_cost_pence = excluded.reward_cost_pence,
     status = excluded.status;
 
 -- Old Crown Girton pilot venue: operator-supplied entrance coordinates, a 100m
