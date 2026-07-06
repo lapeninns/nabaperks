@@ -7,22 +7,36 @@ last_reviewed: 2026-07-06
 allowed_blast_radius:
   - micro-specs/db/**
   - supabase/migrations/20260707095000_phone_plaintext_retirement.sql
+  - supabase/migrations/20260613210000_customer_phone_identity.sql
+  - supabase/migrations/20260630128000_mask_customer_contact_backstop.sql
+  - supabase/seed-activity-demo.sql
   - lib/customer/**
   - lib/admin/**
   - app/admin/**
+  - components/admin/support.tsx
   - app/home/**
   - tests/db/phone-plaintext-retirement.test.mjs
   - tests/db/customer-profile.test.mjs
+  - tests/db/customer-erasure.test.mjs
+  - tests/micro-specs/admin-member-lookup.test.mjs
+  - tests/db/tenant-rls.test.mjs
   - tests/unit/admin-lookup-query.test.mjs
   - tests/micro-specs/db-phone-plaintext-retirement.test.mjs
 implementation_surfaces:
   - supabase/migrations/20260707095000_phone_plaintext_retirement.sql
+  - supabase/migrations/20260613210000_customer_phone_identity.sql
+  - supabase/migrations/20260630128000_mask_customer_contact_backstop.sql
+  - supabase/seed-activity-demo.sql
   - lib/customer/**
   - lib/admin/**
   - app/admin/**
+  - components/admin/support.tsx
   - app/home/**
   - tests/db/phone-plaintext-retirement.test.mjs
   - tests/db/customer-profile.test.mjs
+  - tests/db/customer-erasure.test.mjs
+  - tests/micro-specs/admin-member-lookup.test.mjs
+  - tests/db/tenant-rls.test.mjs
   - tests/unit/admin-lookup-query.test.mjs
   - tests/micro-specs/db-phone-plaintext-retirement.test.mjs
 related_docs:
@@ -31,6 +45,8 @@ related_docs:
 related_tests:
   - tests/db/customer-profile.test.mjs
   - tests/db/customer-erasure.test.mjs
+  - tests/micro-specs/admin-member-lookup.test.mjs
+  - tests/db/tenant-rls.test.mjs
   - tests/unit/admin-lookup-query.test.mjs
   - tests/e2e/customer-login.spec.ts
 verification_gates:

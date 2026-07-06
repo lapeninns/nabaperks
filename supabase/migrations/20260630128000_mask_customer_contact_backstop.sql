@@ -1,3 +1,17 @@
+-- Replay guard (MS-db-phone-plaintext-retirement): this view reads the
+-- plaintext phone column dropped at the end of the chain; view creation
+-- validates columns, so post-drop replays skip it (the retirement migration
+-- provides the current, last4-only view).
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'customers' and column_name = 'phone'
+  ) then
+    return;
+  end if;
+
+  execute $view$
 create or replace view public.customers_masked
 with (security_barrier = true)
 as
@@ -40,7 +54,10 @@ cross join lateral (
 where
   customers.auth_user_id = (select auth.uid())
   or (select public.merchant_can_access_customer(customers.id))
-  or (select public.is_internal_admin());
+  or (select public.is_internal_admin())
+$view$;
+end
+$$;
 
 revoke all on table public.customers_masked from anon;
 grant select on table public.customers_masked to authenticated, service_role;

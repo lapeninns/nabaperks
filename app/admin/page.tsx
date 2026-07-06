@@ -12,7 +12,7 @@ import {
   SourceLabel,
   first,
   formatAdminAuditDate,
-  maskAdminContact,
+  maskAdminCustomer,
 } from "@/components/admin/support"
 import {
   EmptyState,
@@ -133,7 +133,7 @@ function toRecentAuditItem(log: AdminRecentAudit) {
       <>
         {merchant?.business_name ?? "No merchant"}
         {customer
-          ? ` · ${maskAdminContact(customer.email ?? customer.phone)}`
+          ? ` · ${maskAdminCustomer(customer)}`
           : ""}
       </>
     ),

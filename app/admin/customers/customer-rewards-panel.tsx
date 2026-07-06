@@ -14,7 +14,7 @@ import {
   StatusPill,
   first,
   formatAdminDate,
-  maskAdminContact,
+  maskAdminCustomer,
 } from "@/components/admin/support"
 import { AdminRecordCard } from "@/components/admin/record-card"
 import { EmptyState, Icon, SectionHeader } from "@/components/brand"
@@ -73,7 +73,7 @@ export function CustomerRewardsPanel({
                       value: (
                         <>
                           {merchant?.business_name ?? "Merchant"} ·{" "}
-                          {maskAdminContact(customer?.email ?? customer?.phone)}
+                          {maskAdminCustomer(customer)}
                         </>
                       ),
                     },
@@ -121,7 +121,7 @@ export function CustomerRewardsPanel({
                   return (
                     <span className="text-muted-foreground">
                       {merchant?.business_name ?? "Merchant"} ·{" "}
-                      {maskAdminContact(customer?.email ?? customer?.phone)}
+                      {maskAdminCustomer(customer)}
                     </span>
                   )
                 },

@@ -14,7 +14,7 @@ import {
   SourceLabel,
   adminSelectClasses,
   first,
-  maskAdminContact,
+  maskAdminCustomer,
 } from "@/components/admin/support"
 import { AdminIdChip } from "@/components/admin/id-chip"
 import { AdminRecordCard } from "@/components/admin/record-card"
@@ -101,7 +101,7 @@ function PrivacySupportRecord({
 
   return (
     <AdminRecordCard
-      title={maskAdminContact(customer?.email ?? customer?.phone)}
+      title={maskAdminCustomer(customer)}
       fields={[
         {
           label: "Merchant",

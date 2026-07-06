@@ -86,7 +86,7 @@ export async function getAdminCustomers(lookup: AdminLookupQuery = {}) {
   let query = supabase
     .from("customer_memberships")
     .select(
-      "id, current_stamp_count, total_stamps_earned, total_rewards_redeemed, created_at, customers!inner(email, phone), merchants!inner(business_name)",
+      "id, current_stamp_count, total_stamps_earned, total_rewards_redeemed, created_at, customers!inner(email, phone_last4), merchants!inner(business_name)",
       { count: "exact" }
     )
 
@@ -123,7 +123,7 @@ export async function getAdminPrivacySupportRows(
   let query = supabase
     .from("customer_memberships")
     .select(
-      "id, merchant_id, customer_id, created_at, customers!inner(email, phone), merchants!inner(business_name)",
+      "id, merchant_id, customer_id, created_at, customers!inner(email, phone_last4), merchants!inner(business_name)",
       { count: "exact" }
     )
 
@@ -156,7 +156,7 @@ export async function getAdminConsentRecords(page = 1) {
   const { data, error, count } = await supabase
     .from("consent_records")
     .select(
-      "id, channel, consent_status, source, policy_version, created_at, metadata, customers(email, phone), merchants(business_name)",
+      "id, channel, consent_status, source, policy_version, created_at, metadata, customers(email, phone_last4), merchants(business_name)",
       { count: "exact" }
     )
     .order("created_at", { ascending: false })
@@ -175,7 +175,7 @@ export async function getAdminRewards(page = 1) {
   const { data, error, count } = await supabase
     .from("reward_events")
     .select(
-      "id, status, cancelled_reason, created_at, redeemed_at, customers(email, phone), merchants(business_name), loyalty_cards(reward_name)",
+      "id, status, cancelled_reason, created_at, redeemed_at, customers(email, phone_last4), merchants(business_name), loyalty_cards(reward_name)",
       { count: "exact" }
     )
     .order("created_at", { ascending: false })
@@ -197,7 +197,7 @@ export async function getAdminFraudSignals() {
     supabase
       .from("fraud_flags")
       .select(
-        "id, signal, severity, status, metadata, created_at, merchants(business_name), customers(email, phone)"
+        "id, signal, severity, status, metadata, created_at, merchants(business_name), customers(email, phone_last4)"
       )
       .order("created_at", { ascending: false })
       .limit(100),
@@ -255,7 +255,7 @@ export async function getAdminDataRequestActivity(
   const { data, error } = await supabase
     .from("audit_logs")
     .select(
-      "id, action, metadata, created_at, customers(email, phone), merchants(business_name)"
+      "id, action, metadata, created_at, customers(email, phone_last4), merchants(business_name)"
     )
     .in("action", [...DATA_REQUEST_AUDIT_ACTIONS])
     .order("created_at", { ascending: false })
@@ -280,7 +280,7 @@ function redactDataRequestActivity(row: unknown): AdminDataRequestActivityRow {
     requestType: stringValue(metadata.request_type) ?? null,
     channel: stringValue(metadata.channel) ?? null,
     createdAt: fallbackString(record.created_at, ""),
-    maskedCustomer: maskAdminContact(adminCustomerContact(customer)),
+    maskedCustomer: adminMaskedCustomer(customer),
     merchant: fallbackString(merchant?.business_name, "Merchant"),
   }
 }
@@ -290,7 +290,7 @@ export async function getAdminAuditLogs(limit = 100) {
   const { data, error } = await supabase
     .from("audit_logs")
     .select(
-      "id, actor_type, actor_id, action, target_table, target_id, metadata, created_at, merchants(business_name), customers(email, phone)"
+      "id, actor_type, actor_id, action, target_table, target_id, metadata, created_at, merchants(business_name), customers(email, phone_last4)"
     )
     .order("created_at", { ascending: false })
     .limit(limit)
@@ -364,7 +364,7 @@ function redactFraudFlag(row: unknown): AdminFraudFlag {
     confidence: fallbackString(metadata.confidence, "unknown"),
     reason: fraudFlagReason(metadata, record),
     merchant: fallbackString(merchant?.business_name, "Merchant"),
-    maskedCustomer: maskAdminContact(adminCustomerContact(customer)),
+    maskedCustomer: adminMaskedCustomer(customer),
   }
 }
 
@@ -385,8 +385,11 @@ function fraudFlagReason(
   return stringValue(metadata.reason) ?? stringValue(record.signal) ?? "review"
 }
 
-function adminCustomerContact(customer: Record<string, unknown> | undefined) {
-  return stringValue(customer?.email) ?? stringValue(customer?.phone)
+function adminMaskedCustomer(customer: Record<string, unknown> | undefined) {
+  const email = stringValue(customer?.email)
+  if (email) return maskAdminContact(email)
+  const last4 = stringValue(customer?.phone_last4)
+  return last4 ? `Phone ending ${last4}` : "Customer"
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

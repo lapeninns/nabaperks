@@ -13,7 +13,7 @@ import {
   SourceLabel,
   first,
   formatAdminDate,
-  maskAdminContact,
+  maskAdminCustomer,
 } from "@/components/admin/support"
 import { AdminRecordCard } from "@/components/admin/record-card"
 import { EmptyState, Icon, SectionHeader } from "@/components/brand"
@@ -80,7 +80,7 @@ export function CustomerMembershipsPanel({
               const merchant = first(row.merchants)
               return (
                 <AdminRecordCard
-                  title={maskAdminContact(customer?.email ?? customer?.phone)}
+                  title={maskAdminCustomer(customer)}
                   fields={[
                     {
                       label: "Merchant",
@@ -127,7 +127,7 @@ export function CustomerMembershipsPanel({
                   return (
                     <div className="grid gap-1">
                       <span className="font-bold">
-                        {maskAdminContact(customer?.email ?? customer?.phone)}
+                        {maskAdminCustomer(customer)}
                       </span>
                       <span className="text-muted-foreground">
                         {merchant?.business_name ?? "Merchant"}

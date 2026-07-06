@@ -6,17 +6,32 @@ alter table public.customers
   add column if not exists phone_country text,
   add column if not exists phone_verified_at timestamptz;
 
-update public.customers
-set phone_last4 = right(regexp_replace(phone, '\D', '', 'g'), 4)
-where phone_last4 is null
-  and phone is not null;
+-- Replay guard (MS-db-phone-plaintext-retirement): the backfill and this
+-- CHECK read the plaintext phone column dropped at the end of the chain;
+-- post-drop replays skip both (the retirement migration owns the current
+-- CHECK: email | phone_hmac | phone_last4).
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'customers' and column_name = 'phone'
+  ) then
+    return;
+  end if;
 
-alter table public.customers
-  drop constraint if exists customers_contact_present;
+  update public.customers
+  set phone_last4 = right(regexp_replace(phone, '\D', '', 'g'), 4)
+  where phone_last4 is null
+    and phone is not null;
 
-alter table public.customers
-  add constraint customers_contact_present
-  check (email is not null or phone is not null or phone_hmac is not null);
+  alter table public.customers
+    drop constraint if exists customers_contact_present;
+
+  alter table public.customers
+    add constraint customers_contact_present
+    check (email is not null or phone is not null or phone_hmac is not null);
+end
+$$;
 
 create unique index if not exists customers_phone_hmac_unique_idx
   on public.customers (phone_hmac)

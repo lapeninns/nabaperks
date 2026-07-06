@@ -91,7 +91,7 @@ test(
 
       // ---- PII is anonymised.
       const [erased] = await tx`
-        select email, full_name, date_of_birth, phone, phone_hmac,
+        select email, full_name, date_of_birth, phone_hmac,
                phone_ciphertext, phone_last4, auth_user_id, email_verified_at
         from public.customers where id = ${customer.id}`
       assert.match(
