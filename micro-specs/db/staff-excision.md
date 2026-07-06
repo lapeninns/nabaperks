@@ -31,9 +31,10 @@ verification_gates:
   - pnpm test
   - pnpm test:coverage
   - pnpm test:db
-  - pnpm test:e2e -- --project=chromium --grep "@governance"
+  - pnpm test:e2e -- --project=chromium --project=mobile-safari --grep "@governance"
 required_playwright_projects:
   - chromium
+  - mobile-safari
 evidence_required:
   - Command output for the declared verification gates.
   - Schema readback on a migrated disposable database showing staff_users, add_staff_member, set_staff_member_active, and is_staff_for_merchant absent.

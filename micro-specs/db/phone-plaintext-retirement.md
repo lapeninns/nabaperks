@@ -39,10 +39,11 @@ verification_gates:
   - pnpm build
   - pnpm test
   - pnpm test:coverage
-  - pnpm test:e2e -- --project=chromium --grep "@governance"
+  - pnpm test:e2e -- --project=chromium --project=mobile-safari --grep "@governance"
   - pnpm test:db
 required_playwright_projects:
   - chromium
+  - mobile-safari
 evidence_required:
   - Command output for the declared verification gates.
   - Schema readback on a migrated disposable database showing customers.phone absent, the masked view and contact trigger free of plaintext-phone references, and the contact-present CHECK covering email/phone_hmac/phone_last4.

@@ -29,9 +29,10 @@ verification_gates:
   - pnpm build
   - pnpm test
   - pnpm test:coverage
-  - pnpm test:e2e -- --project=chromium --grep "@governance"
+  - pnpm test:e2e -- --project=chromium --project=mobile-safari --grep "@governance"
 required_playwright_projects:
   - chromium
+  - mobile-safari
 evidence_required:
   - Command output for the declared verification gates.
   - Unit test output covering encrypt/decrypt round-trip, auth-tag tamper rejection, and legacy plaintext fallback on consume.
