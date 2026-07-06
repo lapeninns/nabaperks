@@ -21,6 +21,10 @@ import type {
   HomeSummary,
 } from "@/lib/customer/home-types"
 import { firstOf, getCurrentCustomer } from "@/lib/customer/identity"
+import {
+  buildReferralJoinUrl,
+  isShareableReferralCode,
+} from "@/lib/customer/referral"
 import { ukTodayIso } from "@/lib/customer/uk-date"
 
 export type {
@@ -37,6 +41,7 @@ type RawHomeMembership = {
   current_stamp_count: number
   active_cycle_number: number
   last_visit_at: string | null
+  referral_code: string
   merchants:
     | {
         business_name: string
@@ -88,7 +93,7 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
   const { data: membershipRows, error } = await supabase
     .from("customer_memberships")
     .select(
-      "id, merchant_id, current_stamp_count, active_cycle_number, last_visit_at, merchants(business_name, business_slug, status, requires_billing)"
+      "id, merchant_id, current_stamp_count, active_cycle_number, last_visit_at, referral_code, merchants(business_name, business_slug, status, requires_billing)"
     )
     .eq("customer_id", customer.id)
     .order("last_visit_at", { ascending: false, nullsFirst: false })
@@ -126,7 +131,9 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
       .order("created_at", { ascending: true }),
     supabase
       .from("reward_events")
-      .select("id, membership_id, reward_name, redeemable_from, source, created_at")
+      .select(
+        "id, membership_id, reward_name, redeemable_from, source, created_at"
+      )
       .in("membership_id", membershipIds)
       .eq("status", "unlocked"),
     supabase
@@ -204,11 +211,16 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
       stampsRequired !== null
         ? stampInfo.stampDates.slice(0, currentStamps)
         : stampInfo.stampDates
+    const referralShareUrl =
+      merchant && isShareableReferralCode(membership.referral_code)
+        ? buildReferralJoinUrl(merchant.business_slug, membership.referral_code)
+        : undefined
 
     return {
       membershipId: membership.id,
       businessName: merchant?.business_name ?? "Unknown venue",
       businessSlug: merchant?.business_slug ?? "",
+      ...(referralShareUrl ? { referralShareUrl } : {}),
       cardName: card?.card_name ?? null,
       rewardName: card?.reward_name ?? null,
       currentStamps,

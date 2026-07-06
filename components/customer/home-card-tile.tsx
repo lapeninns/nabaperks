@@ -1,7 +1,14 @@
 import Link from "next/link"
 import { GiftIcon } from "@hugeicons/core-free-icons"
 
-import { Eyebrow, Icon, MonoTag, ReceiptCard, VenueMark } from "@/components/brand"
+import {
+  Eyebrow,
+  Icon,
+  MonoTag,
+  ReceiptCard,
+  VenueMark,
+} from "@/components/brand"
+import { ReferralShareButton } from "@/components/customer/referral-share-button"
 import { StampGrid } from "@/components/loyalty"
 import { homeCardStatusCopy } from "@/lib/customer/home-dashboard"
 import { rewardSourceBadge } from "@/lib/customer/issued-reward-display"
@@ -29,71 +36,80 @@ export function HomeCardTile({ card }: { card: HomeCard }) {
     : "Back next opening day"
 
   return (
-    <Link
-      href={href}
-      className="block rounded-[var(--radius)] transition-[box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none focus-visible:ring-3 focus-visible:ring-ring/35"
-      aria-label={`Open your ${card.businessName} card`}
-    >
-      <ReceiptCard className="grid gap-4 transition-shadow duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none hover:shadow-md">
-        <div className="flex items-start justify-between gap-4">
-          <div className="grid min-w-0 gap-1">
-            <Eyebrow>{card.cardName ?? "Loyalty card"}</Eyebrow>
-            <h2 className="text-lg leading-tight font-extrabold text-balance break-words">
-              {card.businessName}
-            </h2>
+    <div className="grid gap-2">
+      <Link
+        href={href}
+        className="block rounded-[var(--radius)] transition-[box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none"
+        aria-label={`Open your ${card.businessName} card`}
+      >
+        <ReceiptCard className="grid gap-4 transition-shadow duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:shadow-md motion-reduce:transition-none">
+          <div className="flex items-start justify-between gap-4">
+            <div className="grid min-w-0 gap-1">
+              <Eyebrow>{card.cardName ?? "Loyalty card"}</Eyebrow>
+              <h2 className="text-lg leading-tight font-extrabold text-balance break-words">
+                {card.businessName}
+              </h2>
+            </div>
+            <VenueMark size={48} name={card.businessName} />
           </div>
-          <VenueMark size={48} name={card.businessName} />
-        </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <MonoTag tone={card.stampRewardId ? "leaf" : "plain"}>
-            {card.stampRewardId ? "Open reward QR" : "Open card"}
-          </MonoTag>
-          {rewardTag ? (
-            <MonoTag tone={rewardTag.tone}>{rewardTag.label}</MonoTag>
-          ) : null}
-        </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <MonoTag tone={card.stampRewardId ? "leaf" : "plain"}>
+              {card.stampRewardId ? "Open reward QR" : "Open card"}
+            </MonoTag>
+            {rewardTag ? (
+              <MonoTag tone={rewardTag.tone}>{rewardTag.label}</MonoTag>
+            ) : null}
+          </div>
 
-        {card.stampsRequired !== null && card.available ? (
-          <StampGrid
-            current={card.currentStamps}
-            total={card.stampsRequired}
-            dates={card.stampDates}
-            showEmptySlotNumbers
-            rewardSlot={rewardSlot}
-            venueName={card.businessName}
-            compact
-            className="rounded-lg bg-accent p-3"
-          />
-        ) : (
-          <div className="rounded-lg border-2 border-dashed border-ink/20 bg-card p-3" />
-        )}
+          {card.stampsRequired !== null && card.available ? (
+            <StampGrid
+              current={card.currentStamps}
+              total={card.stampsRequired}
+              dates={card.stampDates}
+              showEmptySlotNumbers
+              rewardSlot={rewardSlot}
+              venueName={card.businessName}
+              compact
+              className="rounded-lg bg-accent p-3"
+            />
+          ) : (
+            <div className="rounded-lg border-2 border-dashed border-ink/20 bg-card p-3" />
+          )}
 
-        {rewardSlot === "revealed" ? (
-          <div
-            data-reward-ticket="revealed"
-            className="grid gap-1.5 rounded-lg border-2 border-ink bg-seal/15 p-3"
-          >
-            <Eyebrow>Your reward</Eyebrow>
-            {/* Reward name wraps freely on its own row — never truncated or clipped. */}
-            <p className="text-sm leading-tight font-extrabold break-words">
-              {card.revealedRewardName ?? "Your reward"}
+          {rewardSlot === "revealed" ? (
+            <div
+              data-reward-ticket="revealed"
+              className="grid gap-1.5 rounded-lg border-2 border-ink bg-seal/15 p-3"
+            >
+              <Eyebrow>Your reward</Eyebrow>
+              {/* Reward name wraps freely on its own row — never truncated or clipped. */}
+              <p className="text-sm leading-tight font-extrabold break-words">
+                {card.revealedRewardName ?? "Your reward"}
+              </p>
+              <span className="w-fit max-w-full rounded-md border-2 border-ink bg-seal/25 px-2 py-0.5 font-mono text-[0.625rem] font-bold tracking-[0.06em] uppercase">
+                {rewardReadyLabel}
+              </span>
+            </div>
+          ) : (
+            <p className="text-sm leading-6 text-muted-foreground">
+              {homeCardStatusCopy(card)}
             </p>
-            <span className="w-fit max-w-full rounded-md border-2 border-ink bg-seal/25 px-2 py-0.5 font-mono text-[0.625rem] font-bold tracking-[0.06em] uppercase">
-              {rewardReadyLabel}
-            </span>
-          </div>
-        ) : (
-          <p className="text-sm leading-6 text-muted-foreground">
-            {homeCardStatusCopy(card)}
-          </p>
-        )}
+          )}
 
-        {card.gift ? (
-          <TileGiftChip gift={card.gift} businessName={card.businessName} />
-        ) : null}
-      </ReceiptCard>
-    </Link>
+          {card.gift ? (
+            <TileGiftChip gift={card.gift} businessName={card.businessName} />
+          ) : null}
+        </ReceiptCard>
+      </Link>
+      {card.referralShareUrl ? (
+        <ReferralShareButton
+          url={card.referralShareUrl}
+          membershipId={card.membershipId}
+          venueName={card.businessName}
+        />
+      ) : null}
+    </div>
   )
 }
 

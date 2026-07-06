@@ -8,6 +8,10 @@ import {
   reconcileCardStampCount,
 } from "@/lib/customer/card"
 import { captureJoinFunnelEvent } from "@/lib/customer/join-funnel"
+import {
+  buildReferralJoinUrl,
+  isShareableReferralCode,
+} from "@/lib/customer/referral"
 import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
 import {
   narrowRewardSource,
@@ -150,6 +154,10 @@ export async function loadCardExperienceContext(
     })
   }
 
+  const referralShareUrl = isShareableReferralCode(membership.referral_code)
+    ? buildReferralJoinUrl(merchant.business_slug, membership.referral_code)
+    : undefined
+
   return {
     membershipId: membership.id,
     merchantName: merchant.business_name,
@@ -166,6 +174,7 @@ export async function loadCardExperienceContext(
     firstStampPending,
     geoFlagged,
     justRedeemed,
+    referralShareUrl,
   }
 }
 

@@ -17,6 +17,8 @@ export const productEventNames = [
   "reward_issued",
   "reward_sent",
   "reward_invite_sent",
+  "referral_link_shared",
+  "referral_bonus_awarded",
   "birthday_reward_enabled",
   "birthday_reward_disabled",
   "merchant_signed_up",
