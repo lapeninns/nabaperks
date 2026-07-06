@@ -310,7 +310,7 @@ for (const t of ["WebPage", "BreadcrumbList", "Offer", "FAQPage"]) {
 check(!deepHasPerson(pricing), "pricing: a Person node is present")
 const pricingOffer = pricing.find((n) => n["@type"] === "Offer")
 if (pricingOffer) {
-  check(pricingOffer.price === "29.00", "pricing: Offer price should be 29.00")
+  check(pricingOffer.price === "49.00", "pricing: Offer price should be 49.00")
   check(
     pricingOffer.priceCurrency === "GBP",
     "pricing: Offer currency should be GBP"

@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-cleanup-price-remnant-2",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-06T14:45:41.042Z",
+      "sha": "ee9feee1d6ecf70dfc69752653f5c5ca8b002423",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}
