@@ -61,18 +61,24 @@ const CustomerOtpForm = dynamic<CustomerOtpFormProps>(() =>
  * derives a join {@link CustomerExperience}; this maps it to chrome + the step.
  * Backend order: verify phone → terms → membership + first stamp (via QR join).
  */
-export function JoinWizard({ experience }: { experience: CustomerExperience }) {
+export function JoinWizard({
+  experience,
+  referralCode,
+}: {
+  experience: CustomerExperience
+  referralCode?: string
+}) {
   const vm = getCustomerExperienceViewModel(experience)
 
   switch (experience.kind) {
     case "join_welcome":
       return <WelcomeStep exp={experience} vm={vm} />
     case "join_phone":
-      return <PhoneStep exp={experience} vm={vm} />
+      return <PhoneStep exp={experience} vm={vm} referralCode={referralCode} />
     case "join_otp":
-      return <OtpStep exp={experience} vm={vm} />
+      return <OtpStep exp={experience} vm={vm} referralCode={referralCode} />
     case "join_terms":
-      return <TermsStep exp={experience} vm={vm} />
+      return <TermsStep exp={experience} vm={vm} referralCode={referralCode} />
     case "join_returning":
       return <ReturningStep exp={experience} vm={vm} />
     default:
@@ -85,9 +91,11 @@ const ONBOARDING_STEPS = 3
 function PhoneStep({
   exp,
   vm,
+  referralCode,
 }: {
   exp: Extract<CustomerExperience, { kind: "join_phone" }>
   vm: CustomerExperienceViewModel
+  referralCode?: string
 }) {
   return (
     <JoinShell vm={vm} progress={joinProgress("join_phone")} dense>
@@ -96,7 +104,11 @@ function PhoneStep({
         card={exp.card}
         variant="phone"
       />
-      <CustomerIdentityForm merchantSlug={exp.merchant.slug} qrId={exp.qrId} />
+      <CustomerIdentityForm
+        merchantSlug={exp.merchant.slug}
+        qrId={exp.qrId}
+        referralCode={referralCode}
+      />
     </JoinShell>
   )
 }
@@ -104,9 +116,11 @@ function PhoneStep({
 function OtpStep({
   exp,
   vm,
+  referralCode,
 }: {
   exp: Extract<CustomerExperience, { kind: "join_otp" }>
   vm: CustomerExperienceViewModel
+  referralCode?: string
 }) {
   return (
     <JoinShell vm={vm} progress={joinProgress("join_otp")} dense>
@@ -115,6 +129,7 @@ function OtpStep({
         qrId={exp.qrId}
         contact={exp.contact}
         location={exp.location}
+        referralCode={referralCode}
       />
     </JoinShell>
   )
@@ -123,9 +138,11 @@ function OtpStep({
 function TermsStep({
   exp,
   vm,
+  referralCode,
 }: {
   exp: Extract<CustomerExperience, { kind: "join_terms" }>
   vm: CustomerExperienceViewModel
+  referralCode?: string
 }) {
   return (
     <JoinShell vm={vm} progress={joinProgress("join_terms")} dense>
@@ -141,6 +158,7 @@ function TermsStep({
         card={exp.card}
         requireGeofence={exp.location.requireGeofence}
         geofenceRadiusMeters={exp.location.geofenceRadiusMeters}
+        referralCode={referralCode}
       />
     </JoinShell>
   )

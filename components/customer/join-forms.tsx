@@ -27,11 +27,13 @@ const joinInitialState: CustomerJoinState = {}
 export type CustomerIdentityFormProps = {
   merchantSlug: string
   qrId?: string
+  referralCode?: string
 }
 
 export function CustomerIdentityForm({
   merchantSlug,
   qrId,
+  referralCode,
 }: CustomerIdentityFormProps) {
   const [state, requestAction, requestPending] = useActionState(
     requestCustomerIdentityAction,
@@ -43,6 +45,7 @@ export function CustomerIdentityForm({
       <form action={requestAction} className="grid gap-4">
         <input type="hidden" name="merchantSlug" value={merchantSlug} />
         <input type="hidden" name="qrId" value={qrId ?? ""} />
+        <input type="hidden" name="ref" value={referralCode ?? ""} />
         <div className="grid gap-2">
           <label htmlFor="contact" className="eyebrow">
             Phone number
@@ -109,6 +112,7 @@ export function CustomerIdentityForm({
 export type CustomerJoinFormProps = {
   merchantSlug: string
   qrId?: string
+  referralCode?: string
   merchantName: string
   card: JoinCard
   requireGeofence: boolean
@@ -118,6 +122,7 @@ export type CustomerJoinFormProps = {
 export function CustomerJoinForm({
   merchantSlug,
   qrId,
+  referralCode,
   merchantName,
   card,
 }: CustomerJoinFormProps) {
@@ -130,6 +135,7 @@ export function CustomerJoinForm({
     <form action={action} className="grid gap-4">
       <input type="hidden" name="merchantSlug" value={merchantSlug} />
       <input type="hidden" name="qrId" value={qrId ?? ""} />
+      <input type="hidden" name="ref" value={referralCode ?? ""} />
       {/* One flat wrapper, two inline checkboxes — the consent rows share a
           single surface instead of two stacked bordered cards, so the primary
           CTA stays above the fold on small screens. */}

@@ -10,20 +10,24 @@ allowed_blast_radius:
   - app/m/**
   - components/customer/join-forms.tsx
   - components/customer/join-wizard.tsx
+  - components/customer/join-otp-form.tsx
   - lib/customer/**
   - tests/db/**
   - tests/e2e/**
   - tests/micro-specs/referral-attribution.test.mjs
+  - tests/micro-specs/customer-error-boundaries.test.mjs
 implementation_surfaces:
   - supabase/migrations/20260708090000_referral_attribution.sql
   - app/m/[merchantSlug]/join/page.tsx
   - app/m/[merchantSlug]/join/actions.ts
   - components/customer/join-forms.tsx
   - components/customer/join-wizard.tsx
-  - lib/customer/referral.ts
+  - components/customer/join-otp-form.tsx
   - tests/db/referral-attribution.test.mjs
   - tests/micro-specs/referral-attribution.test.mjs
+  - tests/micro-specs/customer-error-boundaries.test.mjs
   - tests/e2e/customer-referral-attribution.spec.ts
+  - tests/e2e/helpers/customer-join-live-db.ts
 related_docs:
   - micro-specs/GLOBAL_CONTEXT.md
   - micro-specs/customer/join.md
@@ -77,10 +81,15 @@ In scope (may be edited):
   `join_customer_membership_with_first_stamp` to mint the new membership's code,
   accept an optional `p_ref`, apply the guards, and insert the attribution edge.
 - `?ref` threading only: `app/m/[merchantSlug]/join/page.tsx` (read the query
-  value), `components/customer/join-wizard.tsx` and
-  `components/customer/join-forms.tsx` (carry it as a hidden input across the
+  value), `components/customer/join-wizard.tsx`,
+  `components/customer/join-forms.tsx`, and
+  `components/customer/join-otp-form.tsx` (carry it as a hidden input across the
   three steps, mirroring `qrId`), and `app/m/[merchantSlug]/join/actions.ts`
-  (recover it in the three actions and pass `p_ref` to the RPC).
+  (recover it in the three actions, preserve it on the inter-step redirects, and
+  pass `p_ref` to the RPC). Because the redirects now carry an optional `&ref=`,
+  the phone-step redirect pin in
+  `tests/micro-specs/customer-error-boundaries.test.mjs` is widened to still
+  guard the `qr` encoding while allowing the `ref` suffix.
 - `lib/customer/referral.ts` for code validation/format helpers if needed.
 - The three test tiers under `tests/db/**`, `tests/e2e/**`, and
   `tests/micro-specs/referral-attribution.test.mjs`.

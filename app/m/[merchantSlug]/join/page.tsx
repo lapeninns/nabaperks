@@ -19,6 +19,7 @@ type MerchantJoinPageProps = {
     qr?: string
     step?: string
     membership?: string
+    ref?: string
   }>
 }
 
@@ -46,5 +47,7 @@ export default async function MerchantJoinPage({
 
   const experience = deriveCustomerExperience({ entry: "join", context })
 
-  return <JoinWizard experience={experience} />
+  return (
+    <JoinWizard experience={experience} referralCode={resolvedSearchParams.ref} />
+  )
 }

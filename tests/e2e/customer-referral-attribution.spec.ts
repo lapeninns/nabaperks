@@ -18,11 +18,11 @@ import {
   type PublicQrRouterFixture,
 } from "./helpers/public-qr-router-live-db"
 
-// MS-referral-attribution — proves RA-2 (a `ref` supplied on the join URL
-// survives the phone -> OTP -> terms wizard) and RA-3 (a friend joining via a
-// referrer's code is durably attributed to that referrer), plus RA-4
-// (self-referral is silently skipped). Live-DB tier: drive the real wizard with
-// the dev OTP, then assert the `referrals` edge in Postgres.
+// MS-referral-attribution — RA-2 + RA-3. A `ref` supplied on the join URL
+// survives the phone -> OTP -> terms wizard, and the friend's new membership is
+// durably attributed to the referrer. Live-DB tier: drive the real wizard with
+// the dev OTP, then assert the referrals edge in Postgres. (Self / cross-venue /
+// unknown / returning guards are proven at the DB tier.)
 test.describe("@customer-flow referral attribution live DB", () => {
   const reason = customerReadbackLiveDbSkipReason()
   test.skip(Boolean(reason), reason)
@@ -31,7 +31,7 @@ test.describe("@customer-flow referral attribution live DB", () => {
     await dismissPwaInstall(page)
   })
 
-  test("a friend joining via ?ref is attributed to the referrer (RA-2, RA-3)", async ({
+  test("a friend joining via ?ref is attributed to the referrer", async ({
     page,
   }) => {
     const sql = connectLocalDb()
@@ -40,20 +40,19 @@ test.describe("@customer-flow referral attribution live DB", () => {
 
     let fixture: PublicQrRouterFixture | undefined
     const friendPhone = disposableUkMobile()
-    const referrerPhone = disposableUkMobile()
 
     try {
       fixture = await createPublicQrRouterFixture(sql)
       test.skip(!fixture, "seed merchant owner is not available")
       if (!fixture) return
 
-      // Referrer A: an existing member at this venue, holding a share code.
-      const referrer = await seedReferrerMembership(sql, fixture, referrerPhone)
+      // Referrer A holds a card at this venue and a minted share code.
+      const referrer = await seedReferrerMembership(sql, fixture)
 
-      // Friend B lands on the venue join link carrying A's referral code and
-      // completes the normal, consented wizard.
-      await openOtpStep(page, fixture, friendPhone, { ref: referrer.referral_code })
-
+      // Friend B arrives on A's referral link and completes the normal wizard.
+      await openOtpStep(page, fixture, friendPhone, {
+        ref: referrer.referralCode,
+      })
       await page.locator("#otp").fill(DEV_OTP)
       await page.getByRole("button", { name: "Save my card" }).click()
       await expect(
@@ -71,47 +70,13 @@ test.describe("@customer-flow referral attribution live DB", () => {
         throw new Error("Friend join did not create a membership.")
       }
 
-      // The attribution edge links the friend (referred) to the referrer.
+      // The `ref` survived every step: the edge links friend -> referrer.
       const edge = await readReferralEdge(sql, friend.membership_id)
       expect(edge).toBeTruthy()
-      expect(edge?.referrer_membership_id).toBe(referrer.membership_id)
-      expect(edge?.referral_code_used).toBe(referrer.referral_code)
+      expect(edge?.referrerMembershipId).toBe(referrer.membershipId)
+      expect(edge?.referralCodeUsed).toBe(referrer.referralCode)
     } finally {
       await cleanupCustomerJoinRows(sql, fixture, friendPhone)
-      await cleanupCustomerJoinRows(sql, fixture, referrerPhone)
-      await cleanupPublicQrRouterFixture(sql, fixture)
-      await sql.end()
-    }
-  })
-
-  test("a member using their own code is not self-attributed (RA-4)", async ({
-    page,
-  }) => {
-    const sql = connectLocalDb()
-    test.skip(!sql, "local Supabase DB is not configured")
-    if (!sql) return
-
-    let fixture: PublicQrRouterFixture | undefined
-    const phone = disposableUkMobile()
-
-    try {
-      fixture = await createPublicQrRouterFixture(sql)
-      test.skip(!fixture, "seed merchant owner is not available")
-      if (!fixture) return
-
-      // Seed the member and reuse THEIR OWN code as the ref on a fresh join.
-      const self = await seedReferrerMembership(sql, fixture, phone)
-
-      await openOtpStep(page, fixture, phone, { ref: self.referral_code })
-      await page.locator("#otp").fill(DEV_OTP)
-      await page.getByRole("button", { name: "Save my card" }).click()
-
-      // Same phone -> same customer -> returning member, so no new attribution
-      // edge is ever written for this membership.
-      const edge = await readReferralEdge(sql, self.membership_id)
-      expect(edge).toBeFalsy()
-    } finally {
-      await cleanupCustomerJoinRows(sql, fixture, phone)
       await cleanupPublicQrRouterFixture(sql, fixture)
       await sql.end()
     }
