@@ -129,6 +129,21 @@ export const STALE_REVIEW_DAYS = 30
 // engine-fixed format "<reason> (expires: YYYY-MM-DD)"; expired entries fail.
 export const REQUIRE_EXCEPTION_EXPIRY = true
 
+// Active specs must scope these Playwright-backed suite scripts to their own
+// tests with a --grep filter: a whole-suite run drags unrelated surfaces
+// (e.g. marketing visual-baseline drift) into a spec's gate, so bare runs are
+// reserved for specs that deliberately change global browser behavior and say
+// so via a BROAD_BROWSER_GATE_EXCEPTION_TOKEN approved exception. test:a11y
+// and test:visual are absent on purpose — they are already tag-scoped
+// wrappers (--grep @a11y / --grep @visual). [] disables the rule.
+export const SCOPED_BROWSER_GATE_SCRIPTS = Object.freeze(["test:e2e"])
+
+// An approved_exceptions entry containing this token authorizes a broad
+// (grep-less) browser gate on the spec that carries it, written as
+// "broad-browser-gate: <why global coverage is the point> (expires: YYYY-MM-DD)"
+// — the engine-fixed dated-expiry format still applies to the entry.
+export const BROAD_BROWSER_GATE_EXCEPTION_TOKEN = "broad-browser-gate"
+
 // Docs-drift compares against ci.yml only: nightly.yml runs the extended
 // (non-blocking-baseline) tier and is documented separately in the README.
 export const CI_WORKFLOW_FILES = Object.freeze(["ci.yml"])

@@ -19,3 +19,31 @@ export function isMerchantSetupPath(path: string): boolean {
 export function isPosterPrintPath(path: string): boolean {
   return path.startsWith("/app/qr/poster/")
 }
+
+/** Strip query/hash before route predicates run. */
+export function normalizeMerchantPath(path: string): string {
+  return path.split(/[?#]/, 1)[0] ?? path
+}
+
+/** Show the compact setup reminder on merchant console routes except launch/onboarding. */
+export function shouldShowMerchantSetupReminder(path: string): boolean {
+  const normalized = normalizeMerchantPath(path)
+
+  if (!normalized.startsWith("/app")) {
+    return false
+  }
+
+  if (isMerchantSetupPath(normalized)) {
+    return false
+  }
+
+  if (normalized === "/app/launch" || normalized.startsWith("/app/launch/")) {
+    return false
+  }
+
+  if (isPosterPrintPath(normalized)) {
+    return false
+  }
+
+  return true
+}

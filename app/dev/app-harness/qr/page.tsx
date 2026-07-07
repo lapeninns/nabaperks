@@ -31,6 +31,7 @@ export default function QrHarnessPage() {
         activeCardName="Mystery Visit Card"
         qrCodeId="qr_harness"
         isActive
+        scansAvailable
         shareUrl="https://nabaperks.com/q/old-crown-girton"
         hasVenueAddress
         returnHref="/app/qr"

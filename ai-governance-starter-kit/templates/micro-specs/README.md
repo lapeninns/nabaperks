@@ -172,6 +172,20 @@ also list non-empty `required_playwright_projects` and a related test under
 too: `a11y`/`accessibility`, `visual`, or `coverage` in `evidence_required`
 force the matching gate when that script exists.
 
+Browser gates are scoped by default: an **active** spec's `test:e2e` gate must
+carry a `--grep` filter selecting the spec's own tests (multiple `--project`
+flags are fine — projects pick devices, not tests), e.g.
+`pnpm test:e2e -- --project=chromium --grep "@MS-<area>-<slug>"`. A grep-less
+browser gate on an active spec fails the checker, because whole-suite runs
+surface failures from surfaces the spec never touched. A spec that
+deliberately changes global browser behavior may keep a broad gate by
+recording a dated approved exception:
+`broad-browser-gate: <why global coverage is the point> (expires: YYYY-MM-DD)`.
+Wrapper scripts that already embed a tag filter (for example `test:a11y`
+defined as `playwright test --grep @a11y`) are exempt via
+`SCOPED_BROWSER_GATE_SCRIPTS` in `scripts/governance-constants.mjs`; forks
+tune that list.
+
 ## Current Verification Gates
 
 Keep this section synchronized with CI — the checker fails on drift between the

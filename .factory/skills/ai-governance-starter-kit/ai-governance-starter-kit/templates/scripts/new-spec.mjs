@@ -20,7 +20,7 @@ import {
   isManualInspectionGate,
   parsePackageScriptGate,
 } from "./governance-commands.mjs"
-import { RISK_CLASSES } from "./governance-constants.mjs"
+import { RISK_CLASSES, SCOPED_BROWSER_GATE_SCRIPTS } from "./governance-constants.mjs"
 import { readSpecs } from "./governance-io.mjs"
 
 const SPEC_ID_PATTERN = /^MS-[a-z0-9]+(-[a-z0-9]+)+$/
@@ -56,11 +56,12 @@ if (existsSync(join(root, outPath))) {
 
 const packageJson = readPackageJson(root)
 const manager = detectPackageManager(root, packageJson)
-const { gates, needsDurableProofException } = floorGatesFor(
-  options.risk,
-  packageJson.scripts ?? {},
-  manager
-)
+const floor = floorGatesFor(options.risk, packageJson.scripts ?? {}, manager)
+const needsDurableProofException = floor.needsDurableProofException
+// Browser floor gates are born scoped: once the spec is active the checker
+// rejects a grep-less browser gate, so the scaffold emits a spec-owned tag
+// placeholder instead of a whole-suite run.
+const gates = floor.gates.map((gate) => scopeBrowserGate(gate, id))
 
 for (const gate of options.gates) {
   if (!parsePackageScriptGate(gate) && !isManualInspectionGate(gate)) {
@@ -75,6 +76,16 @@ const surfaces = options.surfaces.length > 0 ? options.surfaces : [specRelPath]
 const radius = [...new Set([`micro-specs/${area}/**`, ...options.surfaces])]
 const exceptions = needsDurableProofException
   ? [`durable-proof harness not present at scaffold time (expires: ${expiry})`]
+  : []
+
+const scopedTagNote = gates.some((gate) => gate.includes(`--grep "@${id}"`))
+  ? [
+      `Browser gates above are pre-scoped to the placeholder tag \`@${id}\`;`,
+      "tag this spec's Playwright test titles with it (or swap in your own",
+      "stable --grep value) before activation. A broad, whole-suite browser",
+      "gate needs a dated `broad-browser-gate:` approved_exceptions entry.",
+      "",
+    ]
   : []
 
 const source = [
@@ -126,6 +137,7 @@ const source = [
   "",
   "## 6. Verification Criteria and Task Breakdown",
   "",
+  ...scopedTagNote,
   "TODO: observable behaviors to verify (not test file names), then small",
   "tasks to implement one at a time. Prove the work with",
   "`governance:run-gates --spec " + id + " --record` and advance the",
@@ -145,6 +157,14 @@ if (needsDurableProofException) {
   console.log(
     "Note: no durable-proof script exists in package.json; a dated approved_exceptions placeholder was added — resolve it before the expiry."
   )
+}
+
+function scopeBrowserGate(gate, specId) {
+  const parsed = parsePackageScriptGate(gate)
+  if (!parsed || parsed.args || !SCOPED_BROWSER_GATE_SCRIPTS.includes(parsed.scriptName)) {
+    return gate
+  }
+  return `${gate} -- --grep "@${specId}"`
 }
 
 function field(key, values) {

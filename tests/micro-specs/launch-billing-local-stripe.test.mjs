@@ -78,6 +78,7 @@ test("Given the launch QR panel When billing activation is checked Then it does 
   // When / Then
   assert.doesNotMatch(qrPanel, /LaunchBillingActivationBanner/)
   assert.match(qrPanel, /LaunchSaveNextAction/)
-  assert.match(launchPage, /import \{ LaunchBillingActivationBanner \}/)
+  assert.match(launchPage, /variant="full"/)
+  assert.match(launchPage, /Proceed to billing/)
   assert.match(launchBillingCta, /export function LaunchBillingActivationBanner/)
 })

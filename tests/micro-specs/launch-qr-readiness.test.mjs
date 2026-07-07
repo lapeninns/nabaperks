@@ -206,6 +206,32 @@ test("Given launch and QR pages render setup When the model loads Then GET rende
   assert.match(qrPanel, /<form action={generateQrCodeAction}>/)
 })
 
+test("Given billing is pending When the merchant QR is enabled Then the QR panel does not claim scans are accepted", () => {
+  const qrPanel = readProjectFile(
+    "components",
+    "merchant",
+    "launch",
+    "qr-panel.tsx"
+  )
+  const livePanel = readProjectFile(
+    "components",
+    "merchant",
+    "launch",
+    "qr-panel-live.tsx"
+  )
+
+  assert.match(qrPanel, /scansAvailable=\{qrCode\.is_active && !billingHref\}/)
+  assert.match(
+    livePanel,
+    /function QrLiveStatus\(\{[\s\S]*isActive,[\s\S]*scansAvailable/
+  )
+  assert.match(livePanel, /Enabled · billing needed/)
+  assert.match(
+    livePanel,
+    /Customers cannot join or collect stamps until billing is active\./
+  )
+})
+
 test("Given the card setup form is saved When source is inspected Then validation RPC seed and redirect decisions stay coupled to the server action", () => {
   const cardActions = readProjectFile("app", "app", "card", "actions.ts")
 

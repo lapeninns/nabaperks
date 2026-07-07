@@ -16,7 +16,6 @@ import {
 import { TrendChart } from "@/components/data"
 import { ActivityCompactFeed } from "@/components/merchant/activity-compact-feed"
 import { MerchantBillingNotice } from "@/components/merchant/billing-status"
-import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
 import { WetInkRise } from "@/components/motion"
 import { Button } from "@/components/ui/button"
 import { getEnrichedMerchantActivity } from "@/lib/merchant/activity"
@@ -25,7 +24,6 @@ import {
   getMerchantDashboardSeries,
   type MerchantDashboardMerchant,
 } from "@/lib/merchant/dashboard"
-import { getMerchantLaunchReadiness } from "@/lib/merchant/launch-readiness"
 import { timeServerLoader } from "@/lib/perf/server-timing"
 
 export async function MerchantDashboardStream({
@@ -33,12 +31,9 @@ export async function MerchantDashboardStream({
 }: {
   readonly merchant: MerchantDashboardMerchant
 }) {
-  const [dashboard, launchReadiness, series] = await Promise.all([
+  const [dashboard, series] = await Promise.all([
     timeServerLoader("/app", "getMerchantDashboardData", () =>
       getMerchantDashboardData(merchant)
-    ),
-    timeServerLoader("/app", "getMerchantLaunchReadiness", () =>
-      getMerchantLaunchReadiness()
     ),
     timeServerLoader("/app", "getMerchantDashboardSeries", () =>
       getMerchantDashboardSeries(merchant.id)
@@ -82,9 +77,6 @@ export async function MerchantDashboardStream({
   return (
     <>
       <MerchantBillingNotice status={dashboard.billingStatus} />
-      {!launchReadiness.launchReady ? (
-        <LaunchReadinessPanel readiness={launchReadiness} />
-      ) : null}
 
       <section className="grid gap-3">
         <SectionHeader

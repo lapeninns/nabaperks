@@ -486,6 +486,61 @@ test("Given a billing spec without durable proof When the repo has test:db Then 
   assert.ok(failures.some((f) => f.includes("durable-proof gate")))
 })
 
+test("Given active browser gates When broad, scoped, waived, or already shipped Then only the grep-less active gate fails", (t) => {
+  const browserSpec = (id, gate, overrides = {}) =>
+    specSource({
+      spec_id: id,
+      verification_gates: ["pnpm governance:check", "pnpm test", "pnpm lint", "pnpm typecheck", gate],
+      required_playwright_projects: ["chromium"],
+      related_tests: ["tests/e2e/example.spec.ts"],
+      ...overrides,
+    })
+  const root = makeFixture(t, {
+    scripts: { ...DEFAULT_SCRIPTS, "test:e2e": "node --version" },
+    specs: {
+      "broad.md": browserSpec("MS-fixture-broad", "pnpm test:e2e"),
+      "scoped.md": browserSpec(
+        "MS-fixture-scoped",
+        'pnpm test:e2e -- --project=chromium --grep "@some-tag"'
+      ),
+      "waived.md": browserSpec("MS-fixture-waived", "pnpm test:e2e", {
+        approved_exceptions: [
+          "broad-browser-gate: this spec changes global browser behavior (expires: 2026-12-31)",
+        ],
+      }),
+      "shipped.md": browserSpec("MS-fixture-shipped", "pnpm test:e2e", { status: "implemented" }),
+    },
+    extraFiles: {
+      "tests/e2e/example.spec.ts": "// present\n",
+      "playwright.config.ts": 'export default { projects: [{ name: "chromium" }] }\n',
+    },
+  })
+
+  const { failures } = run(root)
+  const broad = failures.find(
+    (f) => f.includes("MS-fixture-broad") && f.includes('broad browser gate "pnpm test:e2e"')
+  )
+  assert.ok(broad, `expected the grep-less active gate to fail, got ${JSON.stringify(failures)}`)
+  assert.match(broad, /--grep/)
+  assert.match(broad, /broad-browser-gate/)
+  assert.equal(failures.filter((f) => f.includes("MS-fixture-scoped")).length, 0)
+  assert.equal(failures.filter((f) => f.includes("MS-fixture-waived")).length, 0)
+  assert.equal(
+    failures.filter((f) => f.includes("MS-fixture-shipped") || f.includes("shipped.md")).length,
+    0,
+    "the scoped-gate rule applies to active specs only"
+  )
+})
+
+test("Given non-browser gates without --grep When validated Then they are not rejected as broad", (t) => {
+  const root = makeFixture(t, { specs: { "example.md": specSource() } })
+
+  assert.equal(
+    run(root).failures.filter((f) => f.includes("broad browser gate")).length,
+    0
+  )
+})
+
 test("Given gates with shell metacharacters When validated Then they are rejected", (t) => {
   const root = makeFixture(t, {
     specs: {

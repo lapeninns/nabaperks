@@ -44,6 +44,8 @@ into a rationale record the engine validates (see `micro-specs/README.md`,
 
 For active specs, `verification_gates` must satisfy the risk-class gate matrix in `micro-specs/README.md`. Each gate is either an executable script (`<pkg> <script>`, e.g. `pnpm test`, `npm run test`, `yarn test`, `bun test`) or a manual gate written as `manual:<kebab-case>` (e.g. `manual:security-review`). Every class must declare the governance-check and test scripts; higher-risk classes add lint / typecheck / build where the repo defines them. Browser-required specs must list `required_playwright_projects` and point `related_tests` at your end-to-end suite. Data-model, auth-session, billing, webhooks, and migration specs must declare a **durable-proof** gate (an integration, contract, database, or end-to-end test script) — a browser-only or static check does not satisfy that requirement. Where the repo genuinely lacks such a gate, carry a dated `approved_exceptions` entry that explains the gap.
 
+Gates default to the spec's blast radius, not the whole app. A Playwright gate on an active spec must be scoped with a spec-owned grep tag — e.g. `pnpm test:e2e -- --project=chromium --grep "@merchant-launch-save-flow"` (multiple `--project` flags are supported) — and a broad, whole-suite browser gate requires a dated `broad-browser-gate: <why> (expires: YYYY-MM-DD)` approved exception explaining why global coverage is the point. Name the spec's specific test files in `related_tests` (including the specific database test files when the spec touches data/RLS/RPC behavior) rather than pointing at whole directories.
+
 Each Micro-Spec must include the following elements.
 
 ---

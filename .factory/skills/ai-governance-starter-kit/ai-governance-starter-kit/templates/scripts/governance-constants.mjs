@@ -150,6 +150,21 @@ export const STALE_REVIEW_DAYS = 90
 // inside the strict frontmatter subset.
 export const REQUIRE_EXCEPTION_EXPIRY = true
 
+// Active specs must scope these Playwright-backed suite scripts to their own
+// tests with a --grep filter; a whole-suite browser run surfaces failures
+// from surfaces the spec never touched, so bare runs are reserved for specs
+// that deliberately change global browser behavior and say so via a
+// BROAD_BROWSER_GATE_EXCEPTION_TOKEN approved exception. Wrapper scripts that
+// already embed a tag filter (e.g. a test:a11y script defined as
+// `playwright test --grep @a11y`) belong off this list. [] disables the rule.
+export const SCOPED_BROWSER_GATE_SCRIPTS = Object.freeze(["test:e2e"])
+
+// An approved_exceptions entry containing this token authorizes a broad
+// (grep-less) browser gate on the spec that carries it, written as
+// "broad-browser-gate: <why global coverage is the point> (expires: YYYY-MM-DD)"
+// — the engine-fixed dated-expiry format still applies to the entry.
+export const BROAD_BROWSER_GATE_EXCEPTION_TOKEN = "broad-browser-gate"
+
 // Which workflow files feed the docs-drift comparison. null scans every
 // *.yml/*.yaml under .github/workflows; a list pins specific file names.
 export const CI_WORKFLOW_FILES = null

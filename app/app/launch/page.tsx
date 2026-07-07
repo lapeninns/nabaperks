@@ -5,7 +5,6 @@ import { Suspense } from "react"
 import { PageTitle } from "@/components/brand"
 import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
 import { BillingPanel } from "@/components/merchant/account/billing-panel"
-import { LaunchBillingActivationBanner } from "@/components/merchant/launch/launch-billing-cta"
 import { LaunchTransientQueryCleanup } from "@/components/merchant/launch/launch-tab-auto-advance"
 import {
   AccountBillingPanelSkeleton,
@@ -113,11 +112,8 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
         readiness={readiness}
         showHeader={false}
         activeTab={activeTab}
+        variant="full"
       />
-
-      {needsBilling && activeTab !== "billing" ? (
-        <LaunchBillingActivationBanner compact />
-      ) : null}
 
       <LaunchTransientQueryCleanup cleanHref={transientCleanHref} />
 

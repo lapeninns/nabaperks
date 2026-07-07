@@ -194,8 +194,10 @@ When implementing a Micro-Spec, follow this sequence:
 9. Repeat until every in-scope requirement has a passing test.
 10. For browser-required specs, run the focused Playwright CLI command first
     (`pnpm test:e2e -- --grep "<tag-or-title>"` or
-    `pnpm test:e2e -- --project=<project>`), then the declared full browser,
-    a11y, or visual gate.
+    `pnpm test:e2e -- --project=<project>`), then the spec's declared browser,
+    a11y, and visual gates exactly as written in `verification_gates` —
+    active specs declare grep-scoped e2e gates, and a whole-suite browser run
+    requires a dated `broad-browser-gate` approved exception.
 
 ---
 

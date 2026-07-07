@@ -43,6 +43,22 @@ migration specs must declare `pnpm test:db` where the matrix requires live DB
 behavioral proof. Browser-only or static SQL checks do not satisfy those DB
 proof requirements.
 
+Gates default to the spec's blast radius, not the whole app. Playwright gates
+must be scoped with a spec-owned grep tag, for example:
+`pnpm test:e2e -- --project=chromium --project=mobile-safari --grep "@merchant-launch-save-flow"`
+(multiple `--project` flags are supported). Reserve broad browser gates — bare
+`pnpm test:e2e`, all-project visual sweeps — for specs that intentionally
+change global or browser-wide behavior, and record why as a dated
+`approved_exceptions` entry, `broad-browser-gate: <why> (expires: YYYY-MM-DD)`;
+the checker rejects a grep-less `test:e2e` gate on an active spec otherwise.
+(`pnpm test:a11y` / `pnpm test:visual` are already tag-scoped wrappers and
+remain valid as declared.) The node tiers (`pnpm test`, `pnpm test:db`) run
+the whole hermetic suite by construction, so declare the file-level focus in
+`related_tests`: name the spec's specific `tests/micro-specs/*.test.mjs`
+files, its unit test files, and — whenever the spec touches DB/RLS/RPC
+behavior — the specific `tests/db/**` files that prove it. See "Scoped
+Browser Gates" in `micro-specs/README.md`.
+
 Do not author the frontmatter by hand: scaffold with
 `pnpm governance:new-spec --id MS-<area>-<slug> --risk <class> --title "<text>"`,
 which pre-resolves the risk-class gate floor against the repo's real package

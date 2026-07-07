@@ -1,9 +1,11 @@
 import type { Metadata } from "next"
 import { cookies, headers } from "next/headers"
 import { redirect } from "next/navigation"
+import { Suspense } from "react"
 
 import { signOutAction } from "@/app/(auth)/actions"
 import { MerchantAppShell } from "@/components/layout"
+import { MerchantSetupReminder } from "@/components/merchant/merchant-setup-reminder"
 import { getCurrentUser } from "@/lib/auth/session"
 import { merchantLoginHref } from "@/lib/navigation/safe-next-path"
 import { readMerchantRequestPath } from "@/lib/navigation/request-path"
@@ -37,6 +39,9 @@ export default async function MerchantAppLayout({
       signOutAction={signOutAction}
       defaultSidebarOpen={sidebarCookieOpen}
     >
+      <Suspense fallback={null}>
+        <MerchantSetupReminder />
+      </Suspense>
       {children}
     </MerchantAppShell>
   )

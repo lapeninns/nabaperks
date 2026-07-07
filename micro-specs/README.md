@@ -97,6 +97,10 @@ Additional enforced rules:
   check.
 - `approved_exceptions` entries must end with `(expires: YYYY-MM-DD)` and
   fail once expired — exceptions are temporary by construction.
+- Active specs must scope browser-suite gates: a `test:e2e` gate needs a
+  `--grep` filter that selects this spec's own tests, unless the spec carries
+  a dated `broad-browser-gate:` approved exception (see "Scoped Browser
+  Gates" below).
 - An `active` spec whose `last_reviewed` is more than 30 days old fails until
   it is re-reviewed and the date bumped.
 - Docs-drift is bidirectional: the gate list below must equal the gate
@@ -182,6 +186,38 @@ must declare `pnpm test:visual`. Playwright DB-free harness routes are useful
 for UI proof, but they are not proof of RLS, billing, webhook, or ledger
 correctness.
 
+## Scoped Browser Gates
+
+The gate floor names script *roles*; the declared command should be the
+narrowest run that proves this spec's own surfaces. A whole-suite browser run
+drags unrelated failures (for example marketing visual-baseline drift) into a
+spec's gate and its recorded evidence, so the checker enforces scoping on
+active specs:
+
+- A `pnpm test:e2e` gate MUST carry a `--grep` filter owned by the spec — tag
+  the spec's Playwright test titles and reference the tag, e.g.
+  `pnpm test:e2e -- --project=chromium --project=mobile-safari --grep "@merchant-launch-save-flow"`.
+  Multiple `--project` flags remain supported; projects select devices, not
+  tests, so they do not substitute for `--grep`.
+- Bare `pnpm test:e2e`, all-project visual sweeps, and other whole-suite
+  browser runs are reserved for specs that intentionally change global or
+  browser-wide behavior (navigation shell, service worker, design tokens).
+  Such a spec must record a dated approved exception —
+  `broad-browser-gate: <why global coverage is the point> (expires: YYYY-MM-DD)`
+  — or the checker rejects the gate at activation and on every run.
+- `pnpm test:a11y` and `pnpm test:visual` are already tag-scoped wrapper
+  scripts (`--grep @a11y` / `--grep @visual`) and stay valid as declared; they
+  are appropriate whenever the spec touches user-visible surfaces those tags
+  cover. Add `--project` flags when the spec's device matrix is narrower than
+  the default.
+- The node tiers (`pnpm test`, `pnpm test:coverage`, `pnpm test:db`) run the
+  whole hermetic suite by construction and stay whole-suite. The file-level
+  focus for unit, Micro-Spec, and DB proof is declared in `related_tests` —
+  name the spec's exact `tests/micro-specs/*.test.mjs` files, unit test
+  files, and (whenever the spec touches DB/RLS/RPC behavior) the specific
+  `tests/db/**` files that prove it — and in Section 6's focused red -> green
+  commands.
+
 ## Current Verification Gates
 
 The current CI-enforced baseline is:
@@ -238,8 +274,10 @@ When browser evidence is required, the Micro-Spec must declare
 
 - Red: `pnpm test:e2e -- --grep "<tag-or-title>"` to prove the targeted
   browser requirement fails for the right reason.
-- Green: `pnpm test:e2e -- --project=<project>` for the affected browser/device
-  project, then `pnpm test:e2e` for the full e2e gate.
+- Green: the spec's declared scoped gate, e.g.
+  `pnpm test:e2e -- --project=chromium --project=mobile-safari --grep "@<spec-tag>"`.
+  Bare `pnpm test:e2e` is only for specs carrying a `broad-browser-gate`
+  exception (see "Scoped Browser Gates").
 - Refactor: `pnpm test:e2e:headed` for interaction debugging and
   `pnpm test:e2e:ui` for local traceable exploration.
 - Review: `pnpm exec playwright show-report` for the HTML report and

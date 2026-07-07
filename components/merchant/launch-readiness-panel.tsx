@@ -26,7 +26,10 @@ import type {
   LaunchReadinessAction,
 } from "@/lib/merchant/launch-readiness"
 import type { LaunchChecklistStepId } from "@/lib/merchant/launch-readiness-contract"
+import { MERCHANT_SETUP_STEPS } from "@/lib/merchant/launch-readiness-contract"
 import { cn } from "@/lib/utils"
+
+export type LaunchReadinessPanelVariant = "full" | "compact"
 
 /** Each checklist step reaches for the same glyph everywhere it appears. */
 const STEP_ICON: Record<LaunchChecklistStepId, IconGlyph> = {
@@ -70,6 +73,7 @@ export function LaunchReadinessPanel({
   showHeader = true,
   activeTab,
   className,
+  variant = "full",
 }: {
   readiness: LaunchReadiness
   /** Render the "Launch readiness" section header (on by default). */
@@ -77,23 +81,45 @@ export function LaunchReadinessPanel({
   /** Set on the launch hub to drive tab nav from the stamps themselves. */
   activeTab?: LaunchHubTab
   className?: string
+  /** Compact mode is a single CTA strip; full mode renders the stamp checklist. */
+  variant?: LaunchReadinessPanelVariant
 }) {
   const nextStep = readiness.nextStep
   const tabMode = activeTab !== undefined
   const checklist = readiness.checklist
+
+  if (variant === "compact") {
+    if (readiness.launchReady) {
+      return null
+    }
+
+    return (
+      <>
+        {tabMode ? (
+          <LaunchMobileTabNav
+            readiness={readiness}
+            checklist={checklist}
+            nextStep={nextStep}
+            activeTab={activeTab}
+            progressValue={readinessProgressValue(readiness)}
+          />
+        ) : null}
+        <LaunchReadinessCompact
+          readiness={readiness}
+          nextStep={nextStep}
+          className={cn(tabMode && "hidden sm:grid", className)}
+        />
+      </>
+    )
+  }
+
   const columnClass =
     checklist.length === 5
       ? "grid-cols-2 sm:grid-cols-5"
       : checklist.length === 4
         ? "grid-cols-2 sm:grid-cols-4"
         : "grid-cols-2 sm:grid-cols-3"
-  const progressValue =
-    readiness.total > 0
-      ? Math.min(
-          Math.max((readiness.completed / readiness.total) * 100, 0),
-          100
-        )
-      : 0
+  const progressValue = readinessProgressValue(readiness)
 
   return (
     <>
@@ -248,6 +274,71 @@ export function LaunchReadinessPanel({
       ) : null}
       </ReceiptCard>
     </>
+  )
+}
+
+function readinessProgressValue(readiness: LaunchReadiness) {
+  if (readiness.total <= 0) {
+    return 0
+  }
+
+  return Math.min(
+    Math.max((readiness.completed / readiness.total) * 100, 0),
+    100
+  )
+}
+
+function LaunchReadinessCompact({
+  readiness,
+  nextStep,
+  className,
+}: {
+  readiness: LaunchReadiness
+  nextStep: LaunchReadinessAction | null
+  className?: string
+}) {
+  const progressValue = readinessProgressValue(readiness)
+  const stepHint =
+    MERCHANT_SETUP_STEPS.find((step) => step.id === nextStep?.id)?.description ??
+    "Complete the remaining steps before customers can collect stamps."
+
+  return (
+    <ReceiptCard
+      edge
+      padding="sm"
+      className={cn(
+        "grid gap-3 overflow-hidden sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-4 sm:[--card-spacing:--spacing(5)]",
+        className
+      )}
+    >
+      <div className="grid min-w-0 gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <MonoTag tone="sun" className="numeric-tabular">
+            {readiness.completed} of {readiness.total} complete
+          </MonoTag>
+          <span className="eyebrow">Setup</span>
+        </div>
+        <div className="grid gap-1">
+          <p className="text-base font-extrabold leading-snug text-balance">
+            {nextStep ? `Next: ${nextStep.label}` : "Finish setup to go live"}
+          </p>
+          <p className="text-sm leading-6 text-pretty text-muted-foreground">
+            {stepHint}
+          </p>
+        </div>
+        <Progress
+          value={progressValue}
+          aria-label={`Setup progress: ${readiness.completed} of ${readiness.total}`}
+          className="h-1.5 sm:max-w-xs"
+        />
+      </div>
+      <Button asChild className="w-full shrink-0 sm:w-auto">
+        <Link href={nextStep?.href ?? "/app/launch"} prefetch={false}>
+          {nextStep?.actionLabel ?? "Open setup"}
+          <Icon icon={ArrowRight02Icon} size={15} />
+        </Link>
+      </Button>
+    </ReceiptCard>
   )
 }
 

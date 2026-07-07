@@ -145,6 +145,33 @@ test("Given --dry-run When scaffolding Then the spec prints to stdout and nothin
   assert.equal(existsSync(path.join(root, "micro-specs/billing/refunds.md")), false)
 })
 
+test("Given a risk class whose floor includes a browser suite When scaffolding Then the gate is emitted grep-scoped", (t) => {
+  const root = makeRepo(t, {
+    scripts: {
+      "governance:check": "node scripts/check-governance.mjs",
+      test: "node --test tests/micro-specs/*.test.mjs",
+      "test:coverage": "node --version",
+      lint: "node --version",
+      typecheck: "node --version",
+      build: "node --version",
+      "test:db": "node --version",
+      "test:e2e": "node --version",
+    },
+  })
+
+  const result = runCli(root, ["--id", "MS-billing-charge", "--risk", "billing", "--title", "Charge"])
+  assert.equal(result.status, 0, result.stderr)
+
+  const source = readFileSync(path.join(root, "micro-specs/billing/charge.md"), "utf8")
+  assert.match(source, /^ {2}- pnpm test:e2e -- --grep "@MS-billing-charge"$/m)
+  assert.doesNotMatch(source, /^ {2}- pnpm test:e2e$/m)
+  assert.match(source, /pre-scoped to the placeholder tag/)
+
+  // The scoped draft must validate under the engine that will police it.
+  const validation = validateGovernance(root, { enforceChangedFiles: false })
+  assert.deepEqual(validation.failures, [])
+})
+
 test("Given a durable-proof class When the repo lacks a proof script Then a dated exception placeholder is emitted", (t) => {
   const withProof = makeRepo(t, {
     scripts: {

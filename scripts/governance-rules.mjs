@@ -6,6 +6,7 @@ import {
   parsePackageScriptGate,
 } from "./governance-commands.mjs"
 import {
+  BROAD_BROWSER_GATE_EXCEPTION_TOKEN,
   DURABLE_PROOF_SCRIPTS,
   EVIDENCE_ADOPTION_DATE,
   EVIDENCE_DIR,
@@ -16,6 +17,7 @@ import {
   REQUIRE_EXCEPTION_EXPIRY,
   RISK_CLASSES,
   RISK_REQUIRED_SCRIPTS,
+  SCOPED_BROWSER_GATE_SCRIPTS,
   SCRIPT_ALIASES,
   STALE_REVIEW_DAYS,
   STATUS_VALUES,
@@ -352,11 +354,40 @@ function validateActiveSpec(spec, packageScripts, failures) {
     }
   }
 
+  validateScopedBrowserGates(spec, failures)
+
   const evidence = listField(spec, "evidence_required").join(" ").toLowerCase()
   for (const { keyword, script } of EVIDENCE_GATE_INFERENCE) {
     if (evidence.includes(keyword) && scriptExists(packageScripts, script) && !hasScriptGate(spec, script)) {
       failures.push(`${specId(spec)} declares "${keyword}" evidence but no "${script}" gate.`)
     }
+  }
+}
+
+// Scoped-gate doctrine for ACTIVE specs: a browser-suite gate must be
+// narrowed to the spec's own tests with --grep. A whole-suite run drags every
+// unrelated browser surface into the spec's gate (and its recorded evidence),
+// so bare runs are reserved for specs that deliberately change global browser
+// behavior — said out loud via an approved_exceptions entry carrying the
+// exception token (the engine-fixed dated-expiry format still applies to it).
+// Only the scripts in SCOPED_BROWSER_GATE_SCRIPTS are policed; wrapper
+// scripts that already embed a tag filter (e.g. a test:a11y script defined as
+// `playwright test --grep @a11y`) belong off that list. --project flags are
+// welcome but select devices, not tests, so they do not satisfy the rule.
+function validateScopedBrowserGates(spec, failures) {
+  if (SCOPED_BROWSER_GATE_SCRIPTS.length === 0) return
+  const waived = listField(spec, "approved_exceptions").some((entry) =>
+    String(entry).includes(BROAD_BROWSER_GATE_EXCEPTION_TOKEN)
+  )
+  if (waived) return
+
+  for (const gate of listField(spec, "verification_gates")) {
+    const parsed = parsePackageScriptGate(gate)
+    if (!parsed || !SCOPED_BROWSER_GATE_SCRIPTS.includes(parsed.scriptName)) continue
+    if (/(^|\s)--grep(=|\s)/.test(parsed.args ?? "")) continue
+    failures.push(
+      `${specId(spec)} declares broad browser gate "${gate}"; scope it with --grep "<spec-tag>" or record a "${BROAD_BROWSER_GATE_EXCEPTION_TOKEN}: <why> (expires: YYYY-MM-DD)" approved_exceptions entry.`
+    )
   }
 }
 

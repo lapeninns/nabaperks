@@ -125,6 +125,7 @@ export async function QrPanel({
         activeCardName={activeCard.card_name}
         qrCodeId={qrCode.id}
         isActive={qrCode.is_active}
+        scansAvailable={qrCode.is_active && !billingHref}
         shareUrl={shareUrl}
         hasVenueAddress={Boolean(location?.address)}
         error={params.error}
@@ -171,4 +172,3 @@ function statusMessage(
     </StatusBanner>
   )
 }
-

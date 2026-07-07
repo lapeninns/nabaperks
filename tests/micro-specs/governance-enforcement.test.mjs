@@ -153,6 +153,152 @@ test("Given a Playwright gate with multiple project flags When validation runs T
   assert.deepEqual(result.failures, [])
 })
 
+test("Given an active spec with a bare test:e2e gate When validated Then the broad browser gate is rejected", (t) => {
+  const root = fixtureRepo(t, {
+    spec: specFile({
+      riskClass: "ui-only",
+      gates: [
+        "pnpm lint",
+        "pnpm typecheck",
+        "pnpm build",
+        "pnpm test",
+        "pnpm test:coverage",
+        "pnpm bundle:check",
+        "pnpm test:e2e",
+        "pnpm test:a11y",
+        "pnpm test:visual",
+      ],
+      tests: ["tests/e2e/example.spec.ts"],
+      playwrightProjects: ["chromium", "mobile-safari"],
+      evidence: ["Playwright report for changed UI"],
+    }),
+  })
+
+  const result = run(root)
+
+  const broad = result.failures.filter((entry) => entry.includes("broad browser gate"))
+  assert.equal(
+    broad.length,
+    1,
+    `only the grep-less test:e2e gate is broad (the tag-scoped test:a11y/test:visual wrappers are not), got ${JSON.stringify(result.failures)}`
+  )
+  assert.match(broad[0], /broad browser gate "pnpm test:e2e"/)
+  assert.match(broad[0], /--grep/)
+  assert.match(broad[0], /broad-browser-gate/)
+})
+
+test("Given an active spec When its e2e gate carries a spec-owned --grep tag Then the scoped gate passes", (t) => {
+  const root = fixtureRepo(t, {
+    spec: specFile({
+      riskClass: "ui-only",
+      gates: [
+        "pnpm lint",
+        "pnpm typecheck",
+        "pnpm build",
+        "pnpm test",
+        "pnpm test:coverage",
+        "pnpm bundle:check",
+        'pnpm test:e2e -- --grep "@some-tag"',
+        "pnpm test:a11y",
+        "pnpm test:visual",
+      ],
+      tests: ["tests/e2e/example.spec.ts"],
+      playwrightProjects: ["chromium", "mobile-safari"],
+      evidence: ["Playwright report for changed UI"],
+    }),
+  })
+
+  assert.deepEqual(run(root).failures, [])
+})
+
+test("Given a broad browser gate When a dated broad-browser-gate exception exists Then only an expired waiver fails", (t) => {
+  const gates = [
+    "pnpm lint",
+    "pnpm typecheck",
+    "pnpm build",
+    "pnpm test",
+    "pnpm test:coverage",
+    "pnpm bundle:check",
+    "pnpm test:e2e",
+    "pnpm test:a11y",
+    "pnpm test:visual",
+  ]
+  const browserSpec = { gates, tests: ["tests/e2e/example.spec.ts"], playwrightProjects: ["chromium"], evidence: ["Playwright report for changed UI"] }
+  const root = fixtureRepo(t, {
+    spec: specFile({
+      riskClass: "ui-only",
+      ...browserSpec,
+      exceptions: [
+        "broad-browser-gate: rewires the global nav shell across every journey (expires: 2026-12-31)",
+      ],
+    }),
+    extraSpecs: {
+      "governance/expired-waiver.md": specFile({
+        specId: "MS-test-expired-waiver",
+        riskClass: "ui-only",
+        ...browserSpec,
+        exceptions: ["broad-browser-gate: stale justification (expires: 2026-01-01)"],
+      }),
+    },
+  })
+
+  const result = run(root)
+
+  assert.equal(
+    result.failures.filter((f) => f.includes("broad browser gate")).length,
+    0,
+    "the token waives the scoped-gate rule; entry freshness is policed by the expiry rule"
+  )
+  assert.equal(result.failures.filter((f) => f.includes("MS-test-governance")).length, 0)
+  assert.ok(
+    result.failures.some((f) => f.includes("expired-waiver.md") && f.includes("expired on 2026-01-01")),
+    `an expired waiver must still fail the spec, got ${JSON.stringify(result.failures)}`
+  )
+})
+
+test("Given an implemented spec with a bare test:e2e gate When validated Then the scoped-gate rule does not apply", (t) => {
+  const root = fixtureRepo(t, {
+    spec: specFile({ riskClass: "docs-tooling" }),
+    extraSpecs: {
+      "governance/shipped.md": specFile({
+        specId: "MS-test-shipped",
+        status: "implemented",
+        riskClass: "ui-only",
+        gates: ["pnpm lint", "pnpm typecheck", "pnpm build", "pnpm test", "pnpm test:e2e"],
+        tests: ["tests/e2e/example.spec.ts"],
+        playwrightProjects: ["chromium"],
+        evidence: ["Playwright report for changed UI"],
+      }),
+    },
+  })
+
+  const result = run(root)
+
+  assert.equal(
+    result.failures.filter((f) => f.includes("MS-test-shipped") || f.includes("shipped.md")).length,
+    0,
+    `implemented specs keep their recorded gates, got ${JSON.stringify(result.failures)}`
+  )
+})
+
+test("Given non-Playwright gates without --grep When validated Then they are not rejected as broad", (t) => {
+  const root = fixtureRepo(t, {
+    spec: specFile({
+      riskClass: "docs-tooling",
+      gates: [
+        "pnpm lint",
+        "pnpm typecheck",
+        "pnpm governance:check",
+        "pnpm test",
+        "pnpm test:coverage",
+        "pnpm test:db",
+      ],
+    }),
+  })
+
+  assert.deepEqual(run(root).failures, [])
+})
+
 test("Given a spec with an unknown Playwright project When validation runs Then the project drift is rejected", (t) => {
   const root = fixtureRepo(t, {
     spec: specFile({

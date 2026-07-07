@@ -24,6 +24,7 @@ type QrPanelLiveProps = {
   readonly activeCardName: string
   readonly qrCodeId: string
   readonly isActive: boolean
+  readonly scansAvailable: boolean
   readonly shareUrl: string
   readonly hasVenueAddress: boolean
   readonly error?: string
@@ -61,6 +62,7 @@ export function QrPanelLive({
   activeCardName,
   qrCodeId,
   isActive,
+  scansAvailable,
   shareUrl,
   hasVenueAddress,
   error,
@@ -79,7 +81,7 @@ export function QrPanelLive({
             today&apos;s stamp, and unlock a surprise reward.
           </p>
         </div>
-        <QrLiveStatus isActive={isActive} />
+        <QrLiveStatus isActive={isActive} scansAvailable={scansAvailable} />
       </header>
 
       <div className="grid gap-6 p-4 sm:gap-7 sm:p-6">
@@ -106,6 +108,12 @@ export function QrPanelLive({
         </section>
 
         <QrErrorBanner error={error} />
+
+        {isActive && !scansAvailable ? (
+          <StatusBanner tone="warning" title="Finish billing to accept scans.">
+            Customers cannot join or collect stamps until billing is active.
+          </StatusBanner>
+        ) : null}
 
         {!hasVenueAddress ? (
           <StatusBanner tone="warning" title="Add your venue address before print.">
@@ -286,11 +294,25 @@ function LaunchStep({
   )
 }
 
-function QrLiveStatus({ isActive }: { readonly isActive: boolean }) {
-  if (isActive) {
+function QrLiveStatus({
+  isActive,
+  scansAvailable,
+}: {
+  readonly isActive: boolean
+  readonly scansAvailable: boolean
+}) {
+  if (isActive && scansAvailable) {
     return (
       <MonoTag tone="leaf" icon={STATUS_ICON.success} className="w-fit">
         Live · accepting scans
+      </MonoTag>
+    )
+  }
+
+  if (isActive) {
+    return (
+      <MonoTag tone="sun" icon={STATUS_ICON.warning} className="w-fit">
+        Enabled · billing needed
       </MonoTag>
     )
   }
@@ -301,4 +323,3 @@ function QrLiveStatus({ isActive }: { readonly isActive: boolean }) {
     </MonoTag>
   )
 }
-

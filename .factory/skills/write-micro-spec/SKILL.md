@@ -25,6 +25,10 @@ A Micro-Spec is implementation input only while `status: active`.
 3. **Scaffold:** `<pkg> governance:new-spec --id MS-<area>-<slug> --risk <class> --title "<text>"`.
    The draft's verification gates already satisfy the risk-class floor
    resolved against the repo's real package scripts — extend them, never trim.
+   Browser floor gates arrive pre-scoped to a placeholder grep tag
+   (`@MS-<area>-<slug>`): tag the spec's Playwright test titles to match, and
+   keep gates matched to the spec's blast radius — a whole-suite browser gate
+   needs a dated `broad-browser-gate:` approved exception.
 4. **Fill the six numbered sections.** Goal as a user-visible outcome;
    blast radius prose agreeing with the frontmatter lists; constraints and
    assumptions; decisions the implementer must not re-litigate; one EARS
