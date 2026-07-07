@@ -3,7 +3,9 @@ import "server-only"
 import {
   buildDayBuckets,
   bucketize,
+  mapSeriesRowsToBuckets,
   DASHBOARD_SERIES_DAYS,
+  type DayBucket,
 } from "@/lib/merchant/dashboard-buckets"
 import {
   countMembersBefore,
@@ -76,6 +78,69 @@ export async function getMerchantDashboardSeriesByQuery(
   merchantId: string
 ): Promise<MerchantDashboardSeries> {
   const buckets = buildDayBuckets(DASHBOARD_SERIES_DAYS)
+
+  // SQL-side aggregation is the primary path: PostgREST caps row responses
+  // at 1,000, so the legacy row-fetch under-counts a busy venue's window.
+  // The RPC returns one bounded row per London day instead.
+  const rpcSeries = await getMerchantDashboardSeriesViaRpc(merchantId, buckets)
+  if (rpcSeries) return rpcSeries
+
+  return getMerchantDashboardSeriesByRowFetch(merchantId, buckets)
+}
+
+async function getMerchantDashboardSeriesViaRpc(
+  merchantId: string,
+  buckets: readonly DayBucket[]
+): Promise<MerchantDashboardSeries | null> {
+  const sinceIso = buckets[0]?.iso ?? new Date().toISOString()
+  const supabase = createSupabaseServiceRoleClient()
+  const [{ data, error }, baselineMembers] = await Promise.all([
+    supabase.rpc("get_merchant_dashboard_series", {
+      target_merchant_id: merchantId,
+      p_days: buckets.length,
+    }),
+    countMembersBefore(merchantId, sinceIso),
+  ])
+
+  if (error) {
+    // Deploy-before-migrate safety: fall back to the row-fetch path until
+    // the aggregation RPC exists in this environment.
+    if (isMissingSeriesRpcError(error)) return null
+    throw new Error(`Unable to load dashboard series: ${error.message}`)
+  }
+
+  const { joins, stamps, rewards } = mapSeriesRowsToBuckets(
+    Array.isArray(data) ? data : [],
+    buckets
+  )
+
+  let running = baselineMembers
+  const members = joins.map((value) => (running += value))
+
+  return {
+    days: buckets.map((bucket) => bucket.key),
+    joins,
+    stamps,
+    rewards,
+    members,
+  }
+}
+
+function isMissingSeriesRpcError(error: {
+  readonly code?: string
+  readonly message?: string
+}) {
+  if (error.code === "PGRST202") return true
+  return (
+    typeof error.message === "string" &&
+    error.message.includes("Could not find the function")
+  )
+}
+
+async function getMerchantDashboardSeriesByRowFetch(
+  merchantId: string,
+  buckets: readonly DayBucket[]
+): Promise<MerchantDashboardSeries> {
   const sinceIso = buckets[0]?.iso ?? new Date().toISOString()
   const supabase = createSupabaseServiceRoleClient()
   const stampQuery = supabase

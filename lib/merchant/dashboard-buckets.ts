@@ -32,6 +32,59 @@ export function bucketize(
   return counts
 }
 
+export type SeriesRpcRow = {
+  readonly day?: unknown
+  readonly joins?: unknown
+  readonly stamps?: unknown
+  readonly rewards?: unknown
+}
+
+export type MappedSeriesBuckets = {
+  readonly joins: number[]
+  readonly stamps: number[]
+  readonly rewards: number[]
+}
+
+/**
+ * Maps the get_merchant_dashboard_series RPC's sparse per-day rows onto the
+ * dense, bucket-ordered arrays the dashboard renders. Days without an RPC
+ * row stay 0; counts arrive as numbers or PostgREST bigint strings; rows
+ * for days outside the bucket window are dropped.
+ */
+export function mapSeriesRowsToBuckets(
+  rows: readonly SeriesRpcRow[] | null | undefined,
+  buckets: readonly DayBucket[]
+): MappedSeriesBuckets {
+  const indexByKey = new Map(
+    buckets.map((bucket, index) => [bucket.key, index])
+  )
+  const joins = new Array<number>(buckets.length).fill(0)
+  const stamps = new Array<number>(buckets.length).fill(0)
+  const rewards = new Array<number>(buckets.length).fill(0)
+
+  for (const row of rows ?? []) {
+    const day = typeof row?.day === "string" ? row.day : null
+    if (!day) continue
+    const index = indexByKey.get(day)
+    if (index === undefined) continue
+    joins[index] = parseSeriesCount(row.joins)
+    stamps[index] = parseSeriesCount(row.stamps)
+    rewards[index] = parseSeriesCount(row.rewards)
+  }
+
+  return { joins, stamps, rewards }
+}
+
+function parseSeriesCount(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.max(0, Math.floor(value))
+  }
+  if (typeof value === "string" && /^\d+$/.test(value)) {
+    return Number(value)
+  }
+  return 0
+}
+
 function londonMidnightFloorIso(dayKey: string): string {
   return new Date(Date.parse(`${dayKey}T00:00:00Z`) - 3_600_000).toISOString()
 }

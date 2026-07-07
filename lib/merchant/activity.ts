@@ -323,17 +323,6 @@ async function loadMerchantActivitySummary(
     Date.now() - ACTIVITY_SUMMARY_WINDOW_DAYS * 86_400_000
   ).toISOString()
   const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase
-    .from("product_events")
-    .select("event_name")
-    .eq("merchant_id", scopedMerchantId)
-    .in("event_name", [...activityEvents])
-    .gte("created_at", since)
-
-  if (error) {
-    throw new Error(`Unable to load activity summary: ${error.message}`)
-  }
-
   const summary: ActivitySummary = {
     total: 0,
     joins: 0,
@@ -343,33 +332,101 @@ async function loadMerchantActivitySummary(
     accountEvents: 0,
   }
 
-  for (const raw of data ?? []) {
-    const name = raw.event_name
-    switch (name) {
-      case "customer_joined":
-        summary.joins += 1
-        break
-      case "stamp_issued":
-        summary.stamps += 1
-        break
-      case "reward_redeemed":
-        summary.rewards += 1
-        break
-      case "qr_downloaded":
-      case "qr_scanned":
-        summary.qrEvents += 1
-        break
-      default:
-        if (activityCategory(name) === "account") {
-          summary.accountEvents += 1
-          break
-        }
-        continue
+  // SQL-side aggregation is the primary path: PostgREST caps row responses
+  // at 1,000, so tallying fetched rows under-counts a busy week. The RPC
+  // returns one bounded row per event name instead.
+  const { data, error } = await supabase.rpc(
+    "get_merchant_activity_event_counts",
+    {
+      target_merchant_id: scopedMerchantId,
+      p_since: since,
+      p_event_names: [...activityEvents],
     }
-    summary.total += 1
+  )
+
+  if (!error) {
+    for (const row of Array.isArray(data) ? data : []) {
+      const name =
+        typeof row?.event_name === "string" ? row.event_name : null
+      if (!name) continue
+      applyActivityEventCount(summary, name, parseActivityEventCount(row.event_count))
+    }
+    return summary
+  }
+
+  // Deploy-before-migrate safety: fall back to the row-fetch tally until
+  // the aggregation RPC exists in this environment.
+  if (!isMissingActivityRpcError(error)) {
+    throw new Error(`Unable to load activity summary: ${error.message}`)
+  }
+
+  const { data: rows, error: rowError } = await supabase
+    .from("product_events")
+    .select("event_name")
+    .eq("merchant_id", scopedMerchantId)
+    .in("event_name", [...activityEvents])
+    .gte("created_at", since)
+
+  if (rowError) {
+    throw new Error(`Unable to load activity summary: ${rowError.message}`)
+  }
+
+  for (const raw of rows ?? []) {
+    applyActivityEventCount(summary, raw.event_name, 1)
   }
 
   return summary
+}
+
+function applyActivityEventCount(
+  summary: ActivitySummary,
+  eventName: string,
+  count: number
+) {
+  if (count <= 0) return
+  switch (eventName) {
+    case "customer_joined":
+      summary.joins += count
+      break
+    case "stamp_issued":
+      summary.stamps += count
+      break
+    case "reward_redeemed":
+      summary.rewards += count
+      break
+    case "qr_downloaded":
+    case "qr_scanned":
+      summary.qrEvents += count
+      break
+    default:
+      if (activityCategory(eventName) === "account") {
+        summary.accountEvents += count
+        break
+      }
+      return
+  }
+  summary.total += count
+}
+
+function parseActivityEventCount(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.max(0, Math.floor(value))
+  }
+  if (typeof value === "string" && /^\d+$/.test(value)) {
+    return Number(value)
+  }
+  return 0
+}
+
+function isMissingActivityRpcError(error: {
+  readonly code?: string
+  readonly message?: string
+}) {
+  if (error.code === "PGRST202") return true
+  return (
+    typeof error.message === "string" &&
+    error.message.includes("Could not find the function")
+  )
 }
 
 async function requireCurrentMerchantId(merchantId: string) {
