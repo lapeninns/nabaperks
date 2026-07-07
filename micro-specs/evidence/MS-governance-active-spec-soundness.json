@@ -127,6 +127,40 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-07T18:29:57.727Z",
+      "git_sha": "f4ab9184917af1e83b7560dfbb0bb322ee71e6fb",
+      "git_branch": "feat/governance-hardening",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6698
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1132
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 184
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 8332
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 886
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
