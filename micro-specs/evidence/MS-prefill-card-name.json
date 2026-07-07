@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-prefill-card-name",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-07T10:13:30.053Z",
+      "sha": "9c527a432e28806f50160cc0f3c5a4df00050e07",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}
