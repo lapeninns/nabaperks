@@ -64,6 +64,35 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-07T17:53:44.329Z",
+      "git_sha": "eec6016a3b0c223c97ce4c106af59cd4836bc1ad",
+      "git_branch": "feat/governance-hardening",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 5999
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1043
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 185
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 1,
+          "duration_ms": 6215
+        }
+      ],
+      "all_passed": false
     }
   ],
   "manual_attestations": [],
