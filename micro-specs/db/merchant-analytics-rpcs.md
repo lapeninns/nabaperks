@@ -1,6 +1,6 @@
 ---
 spec_id: MS-db-merchant-analytics-rpcs
-status: active
+status: implemented
 risk_class: migrations
 owner: claude-code agent (amanshresthaa)
 last_reviewed: 2026-07-07
