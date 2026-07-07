@@ -2,6 +2,11 @@ import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import postgres from "postgres"
 
+import {
+  isDatabaseConnectionRefused,
+  printDatabaseConnectionHelp,
+} from "./db-connection-help.mjs"
+
 const projectDir = process.cwd()
 const args = new Set(process.argv.slice(2))
 const shouldApply = args.has("--apply")
@@ -51,6 +56,7 @@ const sql = postgres(dbUrl, {
 
 try {
   const target = safeDbTarget(dbUrl)
+  await sql`select 1 as ok`
   console.log(`Connected to ${target}.`)
 
   if (shouldReset) {
@@ -73,6 +79,10 @@ try {
     await runFile("supabase/seed.sql", "Seed fixtures")
     await runFile("supabase/seed-activity-demo.sql", "Seed activity demo")
     await runOptionalFile("supabase/seed-user-aman.sql", "Seed user Aman")
+    await runOptionalFile(
+      "supabase/seed-user-aman-plus32.sql",
+      "Seed merchant Aman +32"
+    )
     await runFile(
       "supabase/seed-two-of-three-stamps.sql",
       "Seed two of three stamps"
@@ -84,6 +94,15 @@ try {
   }
 
   console.log("Supabase SQL workflow completed.")
+} catch (error) {
+  if (isDatabaseConnectionRefused(error)) {
+    printDatabaseConnectionHelp(
+      safeDbTarget(dbUrl),
+      "pnpm db:supabase:start && pnpm db:setup"
+    )
+    process.exit(1)
+  }
+  throw error
 } finally {
   await sql.end({ timeout: 5 })
 }
