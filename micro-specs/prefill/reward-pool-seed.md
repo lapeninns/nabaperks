@@ -1,6 +1,6 @@
 ---
 spec_id: MS-prefill-reward-pool-seed
-status: active
+status: implemented
 risk_class: rls-rpc-ledger
 owner: claude
 last_reviewed: 2026-07-07
