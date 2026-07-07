@@ -2,7 +2,14 @@ import { after, test } from "node:test"
 import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
-import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
+import postgres from "postgres"
+
+import {
+  closeDb,
+  dbUrl,
+  inRolledBackTxn,
+  isLiveDbReady,
+} from "./helpers/db.mjs"
 
 /**
  * MS-referral-bonus-stamp — live-DB invariant tier (primary proof).
@@ -12,14 +19,43 @@ import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
  * to the referrer (event_type='earned', source='referral_bonus',
  * earned_business_date NULL) in the friend's stamp transaction, advancing the
  * referrer's cycle, while the friend's own outcome is unchanged. Covers
- * RB-1, RB-2, RB-3, RB-5, RB-6, RB-7, RB-8, RB-10, RB-12. All work runs inside
- * rolled-back transactions with freshly-created customers so nothing persists.
+ * RB-1, RB-2, RB-3, RB-5, RB-6, RB-7, RB-8, RB-10, RB-12. Most work runs inside
+ * rolled-back transactions with freshly-created customers so nothing persists;
+ * the double-award race test uses committed rows across two connections (the
+ * only way to race a lock) and tears them down afterwards.
  */
 
 const ready = await isLiveDbReady()
 const skip = ready ? false : "live Supabase DB not reachable/current"
 
+// Committed customers created by the concurrency test (two real connections must
+// see the same row) are tracked here and torn down after the run; deleting a
+// customer cascades its memberships, referrals, and stamp_events.
+const committedCustomerIds = new Set()
+
+function rawClient() {
+  const url = dbUrl()
+  return postgres(url, {
+    max: 1,
+    idle_timeout: 5,
+    ssl:
+      url.includes("127.0.0.1") || url.includes("localhost")
+        ? undefined
+        : "require",
+  })
+}
+
 after(async () => {
+  if (committedCustomerIds.size > 0) {
+    const admin = rawClient()
+    try {
+      for (const id of committedCustomerIds) {
+        await admin`delete from public.customers where id = ${id}::uuid`
+      }
+    } finally {
+      await admin.end({ timeout: 5 })
+    }
+  }
   await closeDb()
 })
 
@@ -434,6 +470,176 @@ test(
       select count(*)::int as n from public.fraud_flags
       where membership_id = ${referrer.membership_id} and signal = 'referral_bonus_velocity'`
       assert.ok(n >= 1, "a referral_bonus_velocity fraud flag was recorded")
+    })
+  }
+)
+
+test(
+  "RB-3 (race): two concurrent award attempts on one edge issue exactly one bonus",
+  { skip },
+  async () => {
+    const setup = rawClient()
+    const a = rawClient()
+    const b = rawClient()
+    try {
+      const [qr] = await setup.unsafe(PICK_QR)
+      assert.ok(qr, "an active join QR exists")
+      const [card] = await setup`
+        select id, location_id from public.loyalty_cards
+        where merchant_id = ${qr.merchant_id} and is_active
+        order by created_at asc limit 1`
+
+      // Committed seed: a referrer with room, and a friend whose first earned
+      // stamp is inserted DIRECTLY (not via the hook) so the bonus is owed but
+      // unawarded — the exact state two award calls can race on.
+      const [referrerCustomer] = await setup`
+        insert into public.customers (email, email_verified_at, created_at, updated_at)
+        values (${`race-ref-${randomUUID()}@test.local`}, now(), now(), now())
+        returning id`
+      committedCustomerIds.add(referrerCustomer.id)
+      const [referrer] = await setup`
+        insert into public.customer_memberships (merchant_id, customer_id)
+        values (${qr.merchant_id}::uuid, ${referrerCustomer.id}::uuid)
+        returning id, referral_code`
+
+      const [friendCustomer] = await setup`
+        insert into public.customers (email, email_verified_at, created_at, updated_at)
+        values (${`race-friend-${randomUUID()}@test.local`}, now(), now(), now())
+        returning id`
+      committedCustomerIds.add(friendCustomer.id)
+      const [friend] = await setup`
+        insert into public.customer_memberships (merchant_id, customer_id)
+        values (${qr.merchant_id}::uuid, ${friendCustomer.id}::uuid)
+        returning id`
+
+      await setup`
+        insert into public.referrals (
+          referred_membership_id, referrer_membership_id, referral_code_used)
+        values (${friend.id}::uuid, ${referrer.id}::uuid, ${referrer.referral_code})`
+      await setup`
+        insert into public.stamp_events (
+          merchant_id, customer_id, membership_id, loyalty_card_id, location_id,
+          event_type, stamps_delta, earned_business_date, cycle_number, metadata)
+        values (${qr.merchant_id}::uuid, ${friendCustomer.id}::uuid, ${friend.id}::uuid,
+          ${card.id}::uuid, ${card.location_id}, 'earned', 1,
+          public.uk_business_date(now()), 1,
+          jsonb_build_object('source', 'merchant_qr_action'))`
+
+      // Race two award calls for the same edge on two connections. The loser
+      // does not error — it no-ops when the winner's commit fails its
+      // `awarded_at is null` guard — so the invariant is the OUTCOME: one bonus.
+      const attempts = await Promise.allSettled([
+        a`select public.award_referrer_bonus_stamp(${friend.id}::uuid, null)`,
+        b`select public.award_referrer_bonus_stamp(${friend.id}::uuid, null)`,
+      ])
+      for (const attempt of attempts) {
+        assert.equal(attempt.status, "fulfilled", "neither award call errors")
+      }
+
+      const [{ n: bonuses }] = await setup`
+        select count(*)::int as n from public.stamp_events
+        where membership_id = ${referrer.id}::uuid
+          and event_type = 'earned'
+          and metadata->>'source' = 'referral_bonus'`
+      assert.equal(bonuses, 1, "exactly one bonus stamp despite the race")
+
+      const [{ current_stamp_count }] = await setup`
+        select current_stamp_count from public.customer_memberships
+        where id = ${referrer.id}::uuid`
+      assert.equal(
+        current_stamp_count,
+        1,
+        "the referrer advanced by exactly one"
+      )
+
+      const [{ n: awarded }] = await setup`
+        select count(*)::int as n from public.referrals
+        where referred_membership_id = ${friend.id}::uuid
+          and referrer_bonus_awarded_at is not null`
+      assert.equal(awarded, 1, "the edge is marked awarded exactly once")
+    } finally {
+      await Promise.all([
+        setup.end({ timeout: 5 }),
+        a.end({ timeout: 5 }),
+        b.end({ timeout: 5 }),
+      ])
+    }
+  }
+)
+
+test(
+  "RB-6 (any-path visit): a first earned stamp issued by any means drains to the referrer",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const [qr] = await tx.unsafe(PICK_QR)
+      const s = await seedReferrerAndFriend(tx, qr)
+      const [card] = await tx`
+        select id, location_id from public.loyalty_cards
+        where merchant_id = ${qr.merchant_id} and is_active
+        order by created_at asc limit 1`
+
+      // Not the self-service hook: the friend's first earned stamp is inserted
+      // directly (as a merchant staff-pin / mystery stamp would), so the instant
+      // award never ran — the drain sweep must still pay the referrer.
+      await tx`
+        insert into public.stamp_events (
+          merchant_id, customer_id, membership_id, loyalty_card_id, location_id,
+          event_type, stamps_delta, earned_business_date, cycle_number, metadata)
+        values (${qr.merchant_id}::uuid, ${s.friendCustomer}::uuid, ${s.friend.membership_id}::uuid,
+          ${card.id}::uuid, ${card.location_id}, 'earned', 1,
+          public.uk_business_date(now()), 1,
+          jsonb_build_object('source', 'merchant_qr_action'))`
+
+      assert.equal(
+        (await bonusStampsFor(tx, s.referrer.membership_id)).length,
+        0,
+        "no instant bonus (the self-service hook never fired)"
+      )
+
+      await tx`select public.drain_due_referrer_bonuses()`
+
+      assert.equal(
+        (await bonusStampsFor(tx, s.referrer.membership_id)).length,
+        1,
+        "the drain pays the bonus for a non-self-service first stamp"
+      )
+      assert.ok(
+        (await edgeState(tx, s.friend.membership_id)).referrer_bonus_awarded_at,
+        "the edge is awarded"
+      )
+    })
+  }
+)
+
+test(
+  "RB-5 (pool guard): a completing bonus with too few active rewards is held due, not issued",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const [qr] = await tx.unsafe(PICK_QR)
+      const s = await seedReferrerAndFriend(tx, qr)
+      const required = await stampsRequiredFor(tx, qr.merchant_id)
+
+      // Referrer one short of full, but the merchant's reward pool is below the
+      // 3-active minimum the ledger needs to unlock — the bonus must hold, not
+      // push the card into an uncompletable full state.
+      await tx`update public.customer_memberships
+               set current_stamp_count = ${required - 1}
+               where id = ${s.referrer.membership_id}`
+      await tx`update public.reward_pool_items set is_active = false
+               where merchant_id = ${qr.merchant_id}`
+
+      await stamp(tx, s.friend.membership_id, s.friendCustomer, qr.qr_id)
+
+      assert.equal(
+        (await bonusStampsFor(tx, s.referrer.membership_id)).length,
+        0,
+        "no bonus onto a card that cannot complete cleanly"
+      )
+      const edge = await edgeState(tx, s.friend.membership_id)
+      assert.ok(edge.referrer_bonus_due_at, "the bonus is held due")
+      assert.equal(edge.referrer_bonus_awarded_at, null, "and not awarded")
     })
   }
 )
