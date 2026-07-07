@@ -3,7 +3,7 @@
 import { type FormEvent, useId, useState } from "react"
 import { Megaphone01Icon } from "@hugeicons/core-free-icons"
 
-import { EmptyState, Icon, SectionHeader } from "@/components/brand"
+import { Eyebrow, EmptyState, Icon, SectionHeader } from "@/components/brand"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,6 +19,7 @@ import type {
   VenueAnnouncementDailyUsage,
   VenueAnnouncementResult,
 } from "@/lib/notifications/venue-announcements"
+import type { AnnouncementTemplate } from "@/lib/notifications/announcement-templates"
 
 const TITLE_LIMIT = 80
 const BODY_LIMIT = 180
@@ -50,6 +51,8 @@ export type AnnouncementComposeProps = {
   readonly audienceSummary: VenueAnnouncementAudienceSummary
   readonly dailyUsage: VenueAnnouncementDailyUsage
   readonly submitAnnouncement?: AnnouncementSubmit
+  /** Business-typed quick-fill templates. Prefill only — never auto-sent. */
+  readonly templates?: readonly AnnouncementTemplate[]
   readonly className?: string
 }
 
@@ -57,6 +60,7 @@ export function AnnouncementCompose({
   audienceSummary,
   dailyUsage,
   submitAnnouncement = submitVenueAnnouncement,
+  templates = [],
   className,
 }: AnnouncementComposeProps) {
   const fieldId = useId()
@@ -148,6 +152,33 @@ export function AnnouncementCompose({
       ) : null}
 
       {result ? <AnnouncementResultBanner result={result} /> : null}
+
+      {templates.length > 0 ? (
+        <div className="grid gap-2 rounded-lg bg-secondary/60 p-3">
+          <Eyebrow>Quick fill</Eyebrow>
+          <div
+            role="group"
+            aria-label="Announcement templates"
+            className="flex flex-wrap gap-2"
+          >
+            {templates.map((template) => (
+              <button
+                key={template.id}
+                type="button"
+                onClick={() => {
+                  // Prefill only: fills the draft fields. The announcement is
+                  // not sent until the merchant presses Send.
+                  setTitle(template.title)
+                  setBody(template.body)
+                }}
+                className="focus-ring rounded-lg border-2 border-dashed border-ink/25 bg-transparent px-3 py-1.5 text-sm font-bold text-foreground transition-[background-color,border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:border-ink hover:bg-card motion-reduce:transition-none"
+              >
+                {template.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid gap-2">
         <div className="flex items-center justify-between gap-3">

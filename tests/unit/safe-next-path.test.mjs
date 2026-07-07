@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
+import { merchantSignupVerifyHref } from "@/lib/navigation/merchant-auth-hrefs"
 import {
   safeMerchantNextPath,
   safeNextPath,
@@ -38,4 +39,16 @@ test("preserves safe same-origin paths including search and hash", () => {
 test("blocks auth-loop redirects", () => {
   assert.equal(safeNextPath("/home/login?next=/home"), "/home")
   assert.equal(safeMerchantNextPath("/signup?next=/app"), "/app")
+  assert.equal(safeMerchantNextPath("/signup/verify?next=/app"), "/app")
+})
+
+test("builds merchant signup verification hrefs with optional context", () => {
+  assert.equal(
+    merchantSignupVerifyHref({
+      email: "new@venue.test",
+      name: "Asha Patel",
+      next: "/app/onboarding?step=venue",
+    }),
+    "/signup/verify?email=new%40venue.test&name=Asha+Patel&next=%2Fapp%2Fonboarding%3Fstep%3Dvenue"
+  )
 })

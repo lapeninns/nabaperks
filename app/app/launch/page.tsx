@@ -17,6 +17,7 @@ import { RewardsPanel } from "@/components/merchant/launch/rewards-panel"
 import { VenuePanel } from "@/components/merchant/launch/venue-panel"
 import { Button } from "@/components/ui/button"
 import { getCurrentMerchant } from "@/lib/auth/session"
+import { completeBillingCheckoutReturn } from "@/lib/merchant/billing-checkout-return"
 import { getLaunchPageModel } from "@/lib/merchant/launch-page-model"
 import {
   rewardsContinueLabel,
@@ -43,6 +44,17 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
 
   if (!merchant) {
     redirect("/app/onboarding")
+  }
+
+  if (params.checkout === "success") {
+    try {
+      await completeBillingCheckoutReturn(merchant.id)
+    } catch (error) {
+      console.error(
+        "[launch] billing checkout return sync failed",
+        error instanceof Error ? error.message : error
+      )
+    }
   }
 
   const {

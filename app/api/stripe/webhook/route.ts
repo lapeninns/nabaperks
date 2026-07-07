@@ -2,6 +2,7 @@ import { after, NextResponse } from "next/server"
 import Stripe from "stripe"
 
 import { recordProductEvent } from "@/lib/analytics/events"
+import { revalidateMerchantLaunchSurfaces } from "@/lib/merchant/revalidate-launch-surfaces"
 import { getServerEnv } from "@/lib/env/server"
 import {
   setBillingStatusForSubscription,
@@ -83,6 +84,7 @@ async function handleStripeEvent(
           subscription,
           merchantId: session.metadata?.merchant_id,
         })
+        revalidateMerchantLaunchSurfaces(result.merchantId)
         productEvents.push({
           eventName: "subscription_started",
           merchantId: result.merchantId,
@@ -101,6 +103,7 @@ async function handleStripeEvent(
       const result = await syncStripeSubscription({
         subscription: event.data.object as Stripe.Subscription,
       })
+      revalidateMerchantLaunchSurfaces(result.merchantId)
       if (result.status === "cancelled") {
         productEvents.push({
           eventName: "subscription_cancelled",
@@ -132,7 +135,8 @@ async function handleStripeEvent(
 
       if (subscriptionId) {
         const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-        await syncStripeSubscription({ subscription })
+        const result = await syncStripeSubscription({ subscription })
+        revalidateMerchantLaunchSurfaces(result.merchantId)
       }
       break
     }

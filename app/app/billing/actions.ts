@@ -4,13 +4,21 @@ import { redirect } from "next/navigation"
 
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { getServerEnv } from "@/lib/env/server"
+import {
+  billingReturnHref,
+  resolveBillingReturnBase,
+} from "@/lib/merchant/billing-nav"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getStripe } from "@/lib/stripe/server"
 
 const BILLING_ACTION_ERROR = "Billing action could not be completed. Try again."
 
-export async function startCheckoutAction(interval: "month" | "year" = "month") {
+export async function startCheckoutAction(
+  interval: "month" | "year",
+  formData: FormData
+) {
   const merchant = await getCurrentMerchant()
+  const returnBase = resolveBillingReturnBase(formData.get("returnTo"))
 
   if (!merchant) {
     redirect("/app/onboarding")
@@ -87,8 +95,12 @@ export async function startCheckoutAction(interval: "month" | "year" = "month") 
         plan: "growth",
         interval,
       },
-      success_url: `${env.NEXT_PUBLIC_APP_URL}/app/billing?checkout=success`,
-      cancel_url: `${env.NEXT_PUBLIC_APP_URL}/app/billing?checkout=cancelled`,
+      success_url: `${env.NEXT_PUBLIC_APP_URL}${billingReturnHref(returnBase, {
+        checkout: "success",
+      })}`,
+      cancel_url: `${env.NEXT_PUBLIC_APP_URL}${billingReturnHref(returnBase, {
+        checkout: "cancelled",
+      })}`,
     })
 
     if (!session.url) {
@@ -103,8 +115,9 @@ export async function startCheckoutAction(interval: "month" | "year" = "month") 
   redirect(checkoutUrl)
 }
 
-export async function openCustomerPortalAction() {
+export async function openCustomerPortalAction(formData: FormData) {
   const merchant = await getCurrentMerchant()
+  const returnBase = resolveBillingReturnBase(formData.get("returnTo"))
 
   if (!merchant) {
     redirect("/app/onboarding")
@@ -133,7 +146,11 @@ export async function openCustomerPortalAction() {
   }
 
   if (!billingCustomerId) {
-    redirect("/app/billing?portal=missing")
+    redirect(
+      billingReturnHref(returnBase, {
+        portal: "missing",
+      })
+    )
   }
 
   let portalUrl: string
@@ -142,7 +159,7 @@ export async function openCustomerPortalAction() {
     const stripe = getStripe()
     const portal = await stripe.billingPortal.sessions.create({
       customer: billingCustomerId,
-      return_url: `${env.NEXT_PUBLIC_APP_URL}/app/billing`,
+      return_url: `${env.NEXT_PUBLIC_APP_URL}${returnBase}`,
     })
 
     if (!portal.url) {

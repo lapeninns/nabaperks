@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "spec_id": "MS-prefill-card-name",
+  "runs": [
+    {
+      "timestamp": "2026-07-07T10:31:17.482Z",
+      "git_sha": "fab1306a55d1ffbe9db51951afca09b2a017baba",
+      "git_branch": "feat/prefill-from-template",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 5467
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 4036
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10234
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 6293
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 700
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 150
+        },
+        {
+          "command": "pnpm test:e2e -- --grep \"@reward-presets\"",
+          "exit_code": 0,
+          "duration_ms": 15635
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 128389
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 25342
+        }
+      ],
+      "all_passed": true
+    }
+  ],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-07T10:13:30.053Z",
+      "sha": "9c527a432e28806f50160cc0f3c5a4df00050e07",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-07T10:31:17.482Z",
+      "sha": "fab1306a55d1ffbe9db51951afca09b2a017baba",
+      "dirty": false,
+      "by": "amankumarshrestha"
+    }
+  ]
+}

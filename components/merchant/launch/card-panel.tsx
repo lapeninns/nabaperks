@@ -6,6 +6,7 @@ import { LoyaltyCardForm } from "@/components/merchant/loyalty-card-form"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import {
   clampStampsRequired,
+  defaultLoyaltyCardName,
   resolveLoyaltyCardRewardTerms,
 } from "@/lib/merchant/loyalty-card-copy"
 import { DEFAULT_STAMPS_REQUIRED } from "@/lib/merchant/customer-readback"
@@ -55,7 +56,7 @@ export async function CardPanel({
         }
         initialValues={{
           cardId: card?.id,
-          cardName: card?.card_name ?? "Mystery Visit Card",
+          cardName: card?.card_name ?? defaultLoyaltyCardName(merchant.business_name),
           stampsRequired: String(
             clampStampsRequired(
               card?.stamps_required ?? DEFAULT_STAMPS_REQUIRED

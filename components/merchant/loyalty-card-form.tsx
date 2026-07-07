@@ -1,7 +1,15 @@
 "use client"
 
 import Link from "next/link"
-import { useActionState, useOptimistic, useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
+import {
+  useActionState,
+  useEffect,
+  useOptimistic,
+  useRef,
+  useState,
+  useTransition,
+} from "react"
 import {
   Add01Icon,
   Cancel01Icon,
@@ -258,29 +266,57 @@ export function RewardPoolForm({
 }: RewardPoolFormProps) {
   // The row currently open in the inline editor: a reward id, "new", or null.
   const [editingId, setEditingId] = useState<string | "new" | null>(null)
+  const [items, setItems] = useState(rewardPoolItems)
   const [newRewardValues, setNewRewardValues] = useState<RewardPoolItemValues>(
     buildBlankRewardValues(rewardPoolItems.length + 1)
   )
   const [newRewardKey, setNewRewardKey] = useState("blank")
 
-  const activeRewardCount = rewardPoolItems.filter(
-    (item) => item.isActive
-  ).length
+  useEffect(() => {
+    setItems(rewardPoolItems)
+  }, [rewardPoolItems])
+
+  const activeRewardCount = items.filter((item) => item.isActive).length
   const ready = activeRewardCount >= REQUIRED_ACTIVE_REWARDS
   const deficit = REQUIRED_ACTIVE_REWARDS - activeRewardCount
 
   function openBlankReward() {
-    setNewRewardValues(buildBlankRewardValues(rewardPoolItems.length + 1))
-    setNewRewardKey(`blank-${rewardPoolItems.length + 1}`)
+    setNewRewardValues(buildBlankRewardValues(items.length + 1))
+    setNewRewardKey(`blank-${items.length + 1}`)
     setEditingId("new")
   }
 
   function openPresetReward(preset: RewardPreset) {
-    setNewRewardValues(
-      rewardPresetToPoolItemValues(preset, rewardPoolItems.length + 1)
-    )
+    setNewRewardValues(rewardPresetToPoolItemValues(preset, items.length + 1))
     setNewRewardKey(preset.id)
     setEditingId("new")
+  }
+
+  function handleItemSaved(saved: RewardPoolItemValues) {
+    setItems((current) => {
+      const index = current.findIndex((item) => item.id === saved.id)
+
+      if (index >= 0) {
+        const next = [...current]
+        next[index] = saved
+        return next
+      }
+
+      return [...current, saved].sort(
+        (left, right) =>
+          Number.parseInt(left.displayOrder, 10) -
+          Number.parseInt(right.displayOrder, 10)
+      )
+    })
+    setEditingId(null)
+  }
+
+  function handleItemToggled(rewardPoolItemId: string, nextActive: boolean) {
+    setItems((current) =>
+      current.map((item) =>
+        item.id === rewardPoolItemId ? { ...item, isActive: nextActive } : item
+      )
+    )
   }
 
   return (
@@ -340,7 +376,7 @@ export function RewardPoolForm({
         </div>
       ) : null}
 
-      {rewardPoolItems.length === 0 && editingId !== "new" ? (
+      {items.length === 0 && editingId !== "new" ? (
         <EmptyState
           icon={GiftIcon}
           title="No rewards in the pool yet"
@@ -350,13 +386,14 @@ export function RewardPoolForm({
       ) : null}
 
       <div className="grid gap-2">
-        {rewardPoolItems.map((item) =>
+        {items.map((item) =>
           editingId === item.id ? (
             <RewardPoolItemForm
               key={item.id}
               loyaltyCardId={loyaltyCardId}
               initialValues={item}
               onCancel={() => setEditingId(null)}
+              onSaved={handleItemSaved}
             />
           ) : (
             <RewardRow
@@ -364,6 +401,7 @@ export function RewardPoolForm({
               item={item}
               loyaltyCardId={loyaltyCardId}
               onEdit={() => setEditingId(item.id ?? null)}
+              onToggle={handleItemToggled}
             />
           )
         )}
@@ -375,6 +413,7 @@ export function RewardPoolForm({
             initialValues={newRewardValues}
             isNew
             onCancel={() => setEditingId(null)}
+            onSaved={handleItemSaved}
           />
         ) : null}
       </div>
@@ -431,10 +470,12 @@ function RewardRow({
   item,
   loyaltyCardId,
   onEdit,
+  onToggle,
 }: {
   item: RewardPoolItemValues
   loyaltyCardId: string
   onEdit: () => void
+  onToggle: (rewardPoolItemId: string, nextActive: boolean) => void
 }) {
   const rewardName = item.rewardName || "Untitled reward"
 
@@ -468,7 +509,12 @@ function RewardRow({
       </button>
 
       <div className="flex shrink-0 items-center gap-1 self-start">
-        <RewardActiveToggle loyaltyCardId={loyaltyCardId} item={item} compact />
+        <RewardActiveToggle
+          loyaltyCardId={loyaltyCardId}
+          item={item}
+          compact
+          onToggle={onToggle}
+        />
         <button
           type="button"
           onClick={onEdit}
@@ -489,11 +535,14 @@ function RewardActiveToggle({
   loyaltyCardId,
   item,
   compact = false,
+  onToggle,
 }: {
   loyaltyCardId: string
   item: RewardPoolItemValues
   compact?: boolean
+  onToggle: (rewardPoolItemId: string, nextActive: boolean) => void
 }) {
+  const router = useRouter()
   const [optimisticActive, setOptimisticActive] = useOptimistic(item.isActive)
   const [pending, startTransition] = useTransition()
   const rewardLabel = item.rewardName || "reward"
@@ -515,7 +564,21 @@ function RewardActiveToggle({
 
       if (result?.error) {
         setOptimisticActive(!nextActive)
+        return
       }
+
+      onToggle(item.id!, nextActive)
+
+      if (result.qrStatus) {
+        const params = new URLSearchParams({
+          tab: "rewards",
+          saved: "pool",
+          qr: result.qrStatus,
+        })
+        router.replace(`/app/launch?${params.toString()}`)
+      }
+
+      router.refresh()
     })
   }
 
@@ -550,17 +613,21 @@ function RewardPoolItemForm({
   initialValues,
   isNew = false,
   onCancel,
+  onSaved,
 }: {
   loyaltyCardId: string
   initialValues: RewardPoolItemValues
   isNew?: boolean
   onCancel: () => void
+  onSaved: (item: RewardPoolItemValues) => void
 }) {
+  const router = useRouter()
   const [state, action, pending] = useActionState(
     saveRewardPoolItemAction,
     initialPoolState
   )
   const [draft, setDraft] = useState(initialValues)
+  const handledSaveRef = useRef<string | null>(null)
 
   function updateDraft<K extends keyof RewardPoolItemValues>(
     field: K,
@@ -568,6 +635,31 @@ function RewardPoolItemForm({
   ) {
     setDraft((currentDraft) => ({ ...currentDraft, [field]: value }))
   }
+
+  useEffect(() => {
+    if (!state.saved || !state.fields?.rewardPoolItemId) return
+    if (handledSaveRef.current === state.fields.rewardPoolItemId) return
+
+    handledSaveRef.current = state.fields.rewardPoolItemId
+
+    onSaved({
+      id: state.fields.rewardPoolItemId,
+      rewardName: state.fields.rewardName ?? "",
+      rewardTerms: state.fields.rewardTerms ?? "",
+      weight: state.fields.weight ?? "1",
+      displayOrder: state.fields.displayOrder ?? "0",
+      isActive: state.fields.isActive ?? false,
+    })
+
+    const params = new URLSearchParams({
+      tab: "rewards",
+      saved: "pool",
+    })
+    if (state.qrStatus) params.set("qr", state.qrStatus)
+
+    router.replace(`/app/launch?${params.toString()}`)
+    router.refresh()
+  }, [onSaved, router, state])
 
   const advancedTouched =
     Boolean(state.errors?.weight) || Boolean(state.errors?.displayOrder)

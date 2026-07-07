@@ -3,6 +3,7 @@ import { Megaphone01Icon } from "@hugeicons/core-free-icons"
 
 import { Icon, PageTitle } from "@/components/brand"
 import { AnnouncementCompose } from "@/components/merchant/announcements/announcement-compose"
+import { announcementTemplatesForBusinessType } from "@/lib/notifications/announcement-templates"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import {
   getVenueAnnouncementAudienceSummary,
@@ -40,6 +41,9 @@ export default async function MerchantAnnouncementsPage() {
         <AnnouncementCompose
           audienceSummary={audienceSummary}
           dailyUsage={dailyUsage}
+          templates={announcementTemplatesForBusinessType(
+            merchant.business_type
+          )}
         />
       </section>
     </div>

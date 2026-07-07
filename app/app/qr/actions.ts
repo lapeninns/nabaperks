@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation"
 
 import { capturePostHogEvent } from "@/lib/analytics/events"
-import { revalidateMerchantCacheTags } from "@/lib/cache/tags"
+import { revalidateMerchantLaunchSurfaces } from "@/lib/merchant/revalidate-launch-surfaces"
 import { LAUNCH_MIN_ACTIVE_REWARDS } from "@/lib/merchant/launch-readiness-contract"
 import { getQrSetup } from "@/lib/merchant/qr-code"
 import { qrReturnHref, resolveQrReturnBase } from "@/lib/merchant/qr-nav"
@@ -55,7 +55,7 @@ export async function generateQrCodeAction(formData: FormData) {
     metadata: { source: "merchant_qr_action" },
   })
 
-  revalidateMerchantCacheTags(merchant.id)
+  revalidateMerchantLaunchSurfaces(merchant.id)
 
   redirect(qrReturnHref(returnBase, "created=1"))
 }
@@ -106,7 +106,7 @@ export async function setQrActiveAction(formData: FormData) {
     },
   })
 
-  revalidateMerchantCacheTags(merchant.id)
+  revalidateMerchantLaunchSurfaces(merchant.id)
 
   redirect(qrReturnHref(returnBase, `${nextActive ? "enabled" : "disabled"}=1`))
 }

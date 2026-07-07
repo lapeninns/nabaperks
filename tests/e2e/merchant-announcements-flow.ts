@@ -95,5 +95,28 @@ export function describeMerchantAnnouncements() {
         emptyComposer.getByRole("button", { name: /Send announcement/ })
       ).toBeDisabled()
     })
+
+    test("Given a template chip When it is clicked Then the fields prefill and nothing is sent", async ({
+      page,
+    }) => {
+      await dismissPwaInstall(page)
+      await page.goto(HARNESS_ROUTES.announcements)
+
+      const composer = page.getByRole("region", {
+        name: "Announcement composer",
+        exact: true,
+      })
+
+      await composer.getByRole("button", { name: "Quiz night" }).click()
+
+      await expect(composer.getByLabel("Announcement title")).toHaveValue(
+        "Quiz night is back this week"
+      )
+      await expect(composer.getByLabel("Announcement body")).toHaveValue(
+        /Bring a team and play for the top table\./
+      )
+      // Prefill only: tapping a template must not send.
+      await expect(composer.getByText("Announcement queued")).toHaveCount(0)
+    })
   })
 }

@@ -5,6 +5,7 @@ import {
   type AnnouncementSubmitInput,
   type AnnouncementSubmitResult,
 } from "@/components/merchant/announcements/announcement-compose"
+import { PUB_ANNOUNCEMENT_TEMPLATES } from "@/lib/notifications/announcement-templates"
 
 const ANNOUNCEMENT_AUDIENCE = {
   members: 24,
@@ -29,6 +30,7 @@ export function AnnouncementsHarnessClient() {
           audienceSummary={ANNOUNCEMENT_AUDIENCE}
           dailyUsage={DEFAULT_DAILY_USAGE}
           submitAnnouncement={submitAnnouncement}
+          templates={PUB_ANNOUNCEMENT_TEMPLATES}
         />
       </section>
 

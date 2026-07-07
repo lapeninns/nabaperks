@@ -1,17 +1,15 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
 import { capturePostHogEvent } from "@/lib/analytics/events"
 import { getCurrentMerchant } from "@/lib/auth/session"
-import { revalidateMerchantCacheTags } from "@/lib/cache/tags"
+import { revalidateMerchantLaunchSurfaces } from "@/lib/merchant/revalidate-launch-surfaces"
 import {
   DEFAULT_STAMPS_REQUIRED,
   MAX_STAMPS_REQUIRED,
 } from "@/lib/merchant/customer-readback"
 import { autoProvisionJoinQrFromSetup } from "@/lib/merchant/ensure-join-qr"
-import { seedDefaultRewardPoolIfEmpty } from "@/lib/merchant/seed-default-reward-pool"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 const CARD_SAVE_ERROR =
@@ -56,6 +54,8 @@ export type RewardPoolItemActionState = {
     displayOrder?: string
     form?: string
   }
+  saved?: boolean
+  qrStatus?: "created" | "enabled"
 }
 
 function value(formData: FormData, key: string) {
@@ -160,13 +160,7 @@ export async function saveLoyaltyCardAction(
     }
   }
 
-  const savedCardId = data?.[0]?.loyalty_card_id
   const savedAction = data?.[0]?.saved_action
-
-  if (savedCardId && savedAction === "loyalty_card_created") {
-    await seedDefaultRewardPoolIfEmpty(supabase, merchant.id, savedCardId)
-    revalidatePath("/app/launch")
-  }
 
   await capturePostHogEvent({
     eventName: cardId ? "loyalty_card_updated" : "loyalty_card_created",
@@ -175,16 +169,13 @@ export async function saveLoyaltyCardAction(
     actorId: merchant.id,
   })
 
-  revalidateMerchantCacheTags(merchant.id)
-
-  const redirectTab =
-    savedAction === "loyalty_card_created" ? "rewards" : "card"
-  const redirectSaved = savedAction === "loyalty_card_created" ? "pool" : "1"
-
+  revalidateMerchantLaunchSurfaces(merchant.id)
+  // rewards explicitly (prefilled from the preset chips) on the rewards tab, so
+  // nothing is auto-seeded to the database.
   redirect(
-    `/app/launch?tab=${redirectTab}&saved=${redirectSaved}${
-      savedAction === "loyalty_card_created" ? "&seeded=1" : ""
-    }`
+    savedAction === "loyalty_card_created"
+      ? "/app/launch?tab=rewards"
+      : "/app/launch?tab=card&saved=1"
   )
 }
 
@@ -274,13 +265,16 @@ export async function saveRewardPoolItemAction(
 
   const { provisioned, created } = await autoProvisionJoinQrFromSetup()
 
-  revalidateMerchantCacheTags(merchant.id)
+  revalidateMerchantLaunchSurfaces(merchant.id)
 
-  redirect(
-    `/app/launch?tab=rewards&saved=pool${
-      provisioned ? (created ? "&qr=created" : "&qr=enabled") : ""
-    }`
-  )
+  return {
+    fields: {
+      ...fields,
+      rewardPoolItemId: data?.[0]?.reward_pool_item_id ?? fields.rewardPoolItemId,
+    },
+    saved: true,
+    qrStatus: provisioned ? (created ? "created" : "enabled") : undefined,
+  }
 }
 
 export type BirthdayRewardActionState = {
@@ -367,8 +361,7 @@ export async function saveBirthdayRewardAction(
     metadata: { loyalty_card_id: loyaltyCardId },
   })
 
-  revalidateMerchantCacheTags(merchant.id)
-  revalidatePath("/app/launch")
+  revalidateMerchantLaunchSurfaces(merchant.id)
   redirect("/app/launch?tab=rewards&saved=birthday")
 }
 
@@ -428,13 +421,17 @@ export async function toggleRewardPoolItemActiveAction(formData: FormData) {
     },
   })
 
+  let qrStatus: "created" | "enabled" | undefined
+
   if (nextActive) {
-    await autoProvisionJoinQrFromSetup()
+    const { provisioned, created } = await autoProvisionJoinQrFromSetup()
+    if (provisioned) {
+      qrStatus = created ? "created" : "enabled"
+    }
   }
 
-  revalidateMerchantCacheTags(merchant.id)
-  revalidatePath("/app/launch")
-  return { ok: true as const }
+  revalidateMerchantLaunchSurfaces(merchant.id)
+  return { ok: true as const, qrStatus }
 }
 
 export async function deleteRewardPoolItemAction(formData: FormData) {
@@ -471,7 +468,7 @@ export async function deleteRewardPoolItemAction(formData: FormData) {
     metadata: { reward_pool_item_id: rewardPoolItemId },
   })
 
-  revalidateMerchantCacheTags(merchant.id)
+  revalidateMerchantLaunchSurfaces(merchant.id)
 
   redirect("/app/launch?tab=rewards&saved=pool")
 }

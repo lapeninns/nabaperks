@@ -9,6 +9,7 @@ import {
   getMerchantSentRewards,
   type SentReward,
 } from "@/lib/merchant/sent-rewards"
+import { rewardPresetsForBusinessType } from "@/lib/merchant/reward-presets"
 
 export const dynamic = "force-dynamic"
 
@@ -51,7 +52,11 @@ export default async function SendRewardPage({
       />
 
       <section className="grid gap-4 rounded-lg border border-border bg-card p-4 sm:p-6">
-        <SendRewardForm membershipId={membershipId} memberLabel={memberLabel} />
+        <SendRewardForm
+          membershipId={membershipId}
+          memberLabel={memberLabel}
+          presets={rewardPresetsForBusinessType(merchant.business_type)}
+        />
       </section>
 
       {sent.length > 0 ? (

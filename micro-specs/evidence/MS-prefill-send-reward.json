@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "spec_id": "MS-prefill-send-reward",
+  "runs": [
+    {
+      "timestamp": "2026-07-07T11:14:02.092Z",
+      "git_sha": "91e9749befd188e9d6117f4dbe563c10c729f77c",
+      "git_branch": "feat/prefill-from-template",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 5485
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1039
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 9541
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 6576
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 762
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 153
+        },
+        {
+          "command": "pnpm test:e2e -- --grep \"@merchant-flow merchant send reward\"",
+          "exit_code": 0,
+          "duration_ms": 8744
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 167365
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 27927
+        }
+      ],
+      "all_passed": true
+    }
+  ],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-07T11:13:41.912Z",
+      "sha": "083ec627e06791d489d1253fa010b8457bd539db",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-07T11:14:02.092Z",
+      "sha": "91e9749befd188e9d6117f4dbe563c10c729f77c",
+      "dirty": false,
+      "by": "amankumarshrestha"
+    }
+  ]
+}

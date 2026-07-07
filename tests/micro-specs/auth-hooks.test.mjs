@@ -17,6 +17,16 @@ test("Given merchant auth When signup and login are inspected Then passwords pai
   // Given
   const actions = readProjectFile("app", "(auth)", "actions.ts")
   const authForm = readProjectFile("components", "auth", "auth-form.tsx")
+  const signupDetailsForm = readProjectFile(
+    "components",
+    "auth",
+    "signup-details-form.tsx"
+  )
+  const signupVerifyForm = readProjectFile(
+    "components",
+    "auth",
+    "signup-verify-form.tsx"
+  )
   const resetForm = readProjectFile(
     "components",
     "auth",
@@ -35,11 +45,19 @@ test("Given merchant auth When signup and login are inspected Then passwords pai
   const resend = readProjectFile("lib", "notifications", "resend.ts")
 
   // When
-  const authScreens = [authForm, resetForm, signup, login].join("\n")
+  const authScreens = [
+    authForm,
+    signupDetailsForm,
+    signupVerifyForm,
+    resetForm,
+    signup,
+    login,
+  ].join("\n")
 
   // Then — signup creates a password account confirmed by a one-time code,
   // login uses the password, and reset re-verifies by code before updateUser.
-  assert.match(actions, /signUp\(/)
+  assert.match(actions, /validatePassword/)
+  assert.match(actions, /from "@\/lib\/auth\/password"/)
   assert.match(actions, /signInWithPassword/)
   assert.match(actions, /verifyOtp/)
   assert.match(actions, /type: "signup"/)
@@ -48,12 +66,14 @@ test("Given merchant auth When signup and login are inspected Then passwords pai
   assert.match(actions, /updateUser/)
   assert.doesNotMatch(actions, /signInWithOtp/)
 
-  assert.match(authForm, /name="password"/)
-  assert.match(authForm, /name="confirmPassword"/)
-  assert.match(authForm, /autoComplete="new-password"/)
+  assert.match(signupDetailsForm, /name="password"/)
+  assert.match(signupDetailsForm, /name="confirmPassword"/)
+  assert.match(signupDetailsForm, /PasswordRequirements/)
+  assert.match(signupDetailsForm, /validatePassword/)
+  assert.match(signupDetailsForm, /autoComplete="new-password"/)
   assert.match(authForm, /autoComplete="current-password"/)
-  assert.match(authForm, /autoComplete="one-time-code"/)
-  assert.match(authForm, /Verify email/)
+  assert.match(signupVerifyForm, /autoComplete="one-time-code"/)
+  assert.match(signupVerifyForm, /Verify email/)
   assert.match(authForm, /Forgot password\?/)
 
   assert.match(resetForm, /name="password"/)

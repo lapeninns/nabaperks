@@ -221,24 +221,14 @@ test("Given the card setup form is saved When source is inspected Then validatio
     cardActions,
     /\.rpc\("save_loyalty_card", \{[\s\S]*p_merchant_id: merchant\.id[\s\S]*p_card_id: cardId \|\| null[\s\S]*p_stamps_required: parsedStampsRequired[\s\S]*p_is_active: isActive/
   )
-  assert.match(
-    cardActions,
-    /savedAction === "loyalty_card_created"[\s\S]*seedDefaultRewardPoolIfEmpty\(supabase, merchant\.id, savedCardId\)[\s\S]*revalidatePath\("\/app\/launch"\)/
-  )
+  assert.doesNotMatch(cardActions, /seedDefaultRewardPool/)
   assert.match(
     cardActions,
     /eventName: cardId \? "loyalty_card_updated" : "loyalty_card_created"/
   )
   assert.match(
     cardActions,
-    /savedAction === "loyalty_card_created" \? "rewards" : "card"/
+    /savedAction === "loyalty_card_created"[\s\S]*"\/app\/launch\?tab=rewards"[\s\S]*"\/app\/launch\?tab=card&saved=1"/
   )
-  assert.match(
-    cardActions,
-    /savedAction === "loyalty_card_created" \? "pool" : "1"/
-  )
-  assert.match(
-    cardActions,
-    /savedAction === "loyalty_card_created" \? "&seeded=1"/
-  )
+  assert.doesNotMatch(cardActions, /seeded=1/)
 })

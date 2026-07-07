@@ -19,6 +19,7 @@ const PUBLIC_ROUTES = [
   "/guides/reward-regulars-without-an-app",
   "/guides/paper-vs-qr-loyalty-for-pubs",
   "/signup",
+  "/signup/verify?email=test@example.com",
   "/login",
   "/reset-password",
   "/home/login",
