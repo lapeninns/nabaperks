@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-prefill-announcement-templates",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-07T10:56:45.993Z",
+      "sha": "6cf2f12df1980decc86a8e2c66f672772e0a0400",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}
