@@ -140,7 +140,8 @@ evidence_required:
   - Governance checker output proving metadata, risk gates, docs drift, blast-radius rules, and safe gate-command parsing.
   - Live DB proof from pnpm test:db when SUPABASE_DB_URL is available; DB-free browser harnesses do not count as RLS, billing, webhook, or ledger proof.
   - Nightly workflow output for full cross-browser Playwright, Stryker mutation, k6 load checks, and ZAP full scan.
-approved_exceptions: []
+approved_exceptions:
+  - "broad-blast-radius: the repo-wide governance framework spec deliberately owns the engine, docs, CI, and every governed surface (expires: 2026-10-05)"
 ---
 
 # MS-governance-ai-delivery-framework

@@ -100,7 +100,22 @@ Additional enforced rules:
 - Active specs must scope browser-suite gates: a `test:e2e` gate needs a
   `--grep` filter that selects this spec's own tests, unless the spec carries
   a dated `broad-browser-gate:` approved exception (see "Scoped Browser
-  Gates" below).
+  Gates" below). The `--grep` pattern must compile as a regular expression
+  and match the content of at least one of the spec's declared
+  `tests/e2e|a11y|visual` related tests — a tag that selects someone else's
+  tests proves the wrong thing.
+- Active specs' `implementation_surfaces` are cross-checked against the
+  risk-radius hints in `scripts/governance-constants.mjs`: a surface matching
+  a hinted high-risk path (for example `supabase/migrations/**` or
+  `app/api/stripe/webhook/**`) forces one of that hint's risk classes — the
+  gate floor keys off risk_class, so high-risk paths must not ride under a
+  weaker class.
+- Active specs may claim at most one exact broad radius root (`app/**`,
+  `components/**`, `lib/**`, `scripts/**`, …). Beyond the limit the spec must
+  carry a dated `broad-blast-radius: <why> (expires: YYYY-MM-DD)` approved
+  exception — one repo-wide spec otherwise makes blast-radius enforcement
+  vacuous for every file. Scoped subpaths (`components/pwa/**`) never count
+  as broad.
 - An `active` spec whose `last_reviewed` is more than 30 days old fails until
   it is re-reviewed and the date bumped.
 - Docs-drift is bidirectional: the gate list below must equal the gate

@@ -121,7 +121,7 @@ function specSource({
     "last_reviewed: 2020-01-01",
     "allowed_blast_radius:",
     "  - micro-specs/**",
-    "  - tests/**",
+    "  - tests/micro-specs/**",
     "implementation_surfaces:",
     "  - micro-specs/governance/example.md",
     "related_tests:",

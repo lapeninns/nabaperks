@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from "node:fs"
+import { existsSync, readFileSync, readdirSync } from "node:fs"
 import { join } from "node:path"
 
 import {
@@ -7,6 +7,9 @@ import {
 } from "./governance-commands.mjs"
 import {
   BROAD_BROWSER_GATE_EXCEPTION_TOKEN,
+  BROAD_RADIUS_EXCEPTION_TOKEN,
+  BROAD_RADIUS_LIMIT,
+  BROAD_RADIUS_ROOTS,
   DURABLE_PROOF_SCRIPTS,
   EVIDENCE_ADOPTION_DATE,
   EVIDENCE_DIR,
@@ -16,6 +19,7 @@ import {
   REQUIRED_METADATA_FIELDS,
   REQUIRE_EXCEPTION_EXPIRY,
   RISK_CLASSES,
+  RISK_RADIUS_HINTS,
   RISK_REQUIRED_SCRIPTS,
   SCOPED_BROWSER_GATE_SCRIPTS,
   SCRIPT_ALIASES,
@@ -83,7 +87,7 @@ export function validateGovernance(root, options = {}) {
   }
   for (const spec of activeSpecs(specs)) {
     if (spec.parseErrors?.length > 0) continue
-    validateActiveSpec(spec, packageScripts, failures)
+    validateActiveSpec(spec, packageScripts, root, failures)
   }
   for (const spec of specs) {
     if (spec.parseErrors?.length > 0) continue
@@ -305,7 +309,11 @@ export function validateClosedRecord(spec, root) {
   return failures
 }
 
-function validateActiveSpec(spec, packageScripts, failures) {
+function validateActiveSpec(spec, packageScripts, root, failures) {
+  validateRiskRadiusHints(spec, failures)
+  validateRadiusBreadth(spec, failures)
+  validateScopedGrepTags(spec, root, failures)
+
   const floor = RISK_REQUIRED_SCRIPTS[spec.metadata.risk_class]
   if (!floor) return
 
@@ -362,6 +370,87 @@ function validateActiveSpec(spec, packageScripts, failures) {
       failures.push(`${specId(spec)} declares "${keyword}" evidence but no "${script}" gate.`)
     }
   }
+}
+
+// The gate floor keys off the self-declared risk_class, so these hints stop
+// a high-risk surface riding under a weaker class. Surfaces (the spec's
+// claimed edit set) are checked, not the radius (a permission list), and the
+// glob match runs in both directions so a broad surface glob cannot hide a
+// hinted path.
+function validateRiskRadiusHints(spec, failures) {
+  for (const hint of RISK_RADIUS_HINTS) {
+    if (hint.classes.includes(spec.metadata.risk_class)) continue
+    for (const surface of listField(spec, "implementation_surfaces")) {
+      if (matchesPattern(surface, hint.pattern) || matchesPattern(hint.pattern, surface)) {
+        failures.push(
+          `${specId(spec)} implementation surface "${surface}" matches high-risk path "${hint.pattern}"; declare risk_class ${hint.classes.join(" or ")} or restructure the surfaces.`
+        )
+      }
+    }
+  }
+}
+
+// One repo-wide active spec makes blast-radius enforcement vacuous for every
+// file, so claiming more than BROAD_RADIUS_LIMIT exact broad roots must be
+// said out loud via a dated exception. Scoped subpaths never count as broad.
+function validateRadiusBreadth(spec, failures) {
+  if (BROAD_RADIUS_ROOTS.length === 0) return
+  const broad = listField(spec, "allowed_blast_radius").filter((entry) =>
+    BROAD_RADIUS_ROOTS.includes(entry)
+  )
+  if (broad.length <= BROAD_RADIUS_LIMIT) return
+  const waived = listField(spec, "approved_exceptions").some((entry) =>
+    String(entry).includes(BROAD_RADIUS_EXCEPTION_TOKEN)
+  )
+  if (waived) return
+  failures.push(
+    `${specId(spec)} claims ${broad.length} broad radius roots (${broad.join(", ")}) where ${BROAD_RADIUS_LIMIT} is the limit; narrow the radius or record a "${BROAD_RADIUS_EXCEPTION_TOKEN}: <why> (expires: YYYY-MM-DD)" approved_exceptions entry.`
+  )
+}
+
+// A scoped browser gate must prove THIS spec's surfaces: its --grep pattern
+// has to select at least one of the spec's own declared browser tests. Raw
+// file content is matched (a superset of the test titles Playwright greps)
+// to keep false negatives low. Runs only once the related-browser-test rule
+// is satisfied, so a missing harness fails once, not twice.
+function validateScopedGrepTags(spec, root, failures) {
+  if (SCOPED_BROWSER_GATE_SCRIPTS.length === 0) return
+  const relatedBrowserTests = listField(spec, "related_tests").filter(
+    (testPath) =>
+      /^tests\/(e2e|a11y|visual)\//.test(testPath) && existsSync(join(root, testPath))
+  )
+  if (relatedBrowserTests.length === 0) return
+
+  for (const gate of listField(spec, "verification_gates")) {
+    const parsed = parsePackageScriptGate(gate)
+    if (!parsed || !SCOPED_BROWSER_GATE_SCRIPTS.includes(parsed.scriptName)) continue
+    const pattern = grepPatternOf(parsed.args ?? "")
+    if (pattern === null) continue
+
+    let regex
+    try {
+      regex = new RegExp(pattern)
+    } catch {
+      failures.push(
+        `${specId(spec)} gate grep pattern ${JSON.stringify(pattern)} is not a valid regular expression.`
+      )
+      continue
+    }
+    const hit = relatedBrowserTests.some((testPath) =>
+      regex.test(readFileSync(join(root, testPath), "utf8"))
+    )
+    if (!hit) {
+      failures.push(
+        `${specId(spec)} gate grep pattern ${JSON.stringify(pattern)} matches none of the spec's related browser tests (${relatedBrowserTests.join(", ")}); tag the spec's own tests or fix the pattern.`
+      )
+    }
+  }
+}
+
+function grepPatternOf(args) {
+  const match = args.match(/--grep(?:=|\s+)(?:"([^"]*)"|'([^']*)'|(\S+))/)
+  if (!match) return null
+  return match[1] ?? match[2] ?? match[3]
 }
 
 // Scoped-gate doctrine for ACTIVE specs: a browser-suite gate must be

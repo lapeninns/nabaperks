@@ -144,6 +144,37 @@ export const SCOPED_BROWSER_GATE_SCRIPTS = Object.freeze(["test:e2e"])
 // — the engine-fixed dated-expiry format still applies to the entry.
 export const BROAD_BROWSER_GATE_EXCEPTION_TOKEN = "broad-browser-gate"
 
+// The gate floor keys off the self-declared risk_class; these hints stop a
+// high-risk surface riding under a weaker class. An ACTIVE spec whose
+// implementation_surfaces touch `pattern` (matched in both glob directions,
+// so a broad surface glob cannot hide a hinted path) must declare one of
+// `classes`. [] disables the check.
+export const RISK_RADIUS_HINTS = Object.freeze([
+  { pattern: "supabase/migrations/**", classes: ["migrations", "rls-rpc-ledger"] },
+  { pattern: "app/api/stripe/webhook/**", classes: ["webhooks", "billing"] },
+])
+
+// A blast-radius entry that exactly equals one of these roots is "broad";
+// scoped subpaths (components/pwa/**) never count. An ACTIVE spec may claim
+// at most BROAD_RADIUS_LIMIT broad roots — one repo-wide spec otherwise
+// makes blast-radius enforcement vacuous for every file. Beyond the limit
+// the spec must say why with a dated approved exception carrying
+// BROAD_RADIUS_EXCEPTION_TOKEN:
+// "broad-blast-radius: <why> (expires: YYYY-MM-DD)". [] disables the check.
+export const BROAD_RADIUS_ROOTS = Object.freeze([
+  "**",
+  "app/**",
+  "components/**",
+  "lib/**",
+  "micro-specs/**",
+  "public/**",
+  "scripts/**",
+  "supabase/**",
+  "tests/**",
+])
+export const BROAD_RADIUS_LIMIT = 1
+export const BROAD_RADIUS_EXCEPTION_TOKEN = "broad-blast-radius"
+
 // Docs-drift compares against ci.yml only: nightly.yml runs the extended
 // (non-blocking-baseline) tier and is documented separately in the README.
 export const CI_WORKFLOW_FILES = Object.freeze(["ci.yml"])

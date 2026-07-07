@@ -511,7 +511,7 @@ test("Given active browser gates When broad, scoped, waived, or already shipped 
       "shipped.md": browserSpec("MS-fixture-shipped", "pnpm test:e2e", { status: "implemented" }),
     },
     extraFiles: {
-      "tests/e2e/example.spec.ts": "// present\n",
+      "tests/e2e/example.spec.ts": 'test("@some-tag fixture", () => {})\n',
       "playwright.config.ts": 'export default { projects: [{ name: "chromium" }] }\n',
     },
   })
@@ -538,6 +538,85 @@ test("Given non-browser gates without --grep When validated Then they are not re
   assert.equal(
     run(root).failures.filter((f) => f.includes("broad browser gate")).length,
     0
+  )
+})
+
+test("Given an active spec When its radius claims too many broad roots Then breadth fails unless waived", (t) => {
+  const root = makeFixture(t, {
+    specs: {
+      "broad.md": specSource({
+        spec_id: "MS-fixture-broad-radius",
+        allowed_blast_radius: ["app/**", "lib/**", "docs/adr/**"],
+        implementation_surfaces: ["lib/x.ts"],
+      }),
+      "waived.md": specSource({
+        spec_id: "MS-fixture-waived-radius",
+        allowed_blast_radius: ["app/**", "lib/**"],
+        implementation_surfaces: ["lib/x.ts"],
+        approved_exceptions: [
+          "broad-blast-radius: repo-wide sweep is the point of this spec (expires: 2026-12-31)",
+        ],
+      }),
+      "shipped.md": specSource({
+        spec_id: "MS-fixture-shipped-radius",
+        status: "implemented",
+        allowed_blast_radius: ["app/**", "lib/**"],
+        implementation_surfaces: ["lib/x.ts"],
+      }),
+      "scoped.md": specSource({ spec_id: "MS-fixture-scoped-radius" }),
+    },
+  })
+
+  const { failures } = run(root)
+  const breadth = failures.find(
+    (f) => f.includes("MS-fixture-broad-radius") && f.includes("broad radius roots")
+  )
+  assert.ok(breadth, `expected a radius-breadth failure, got ${JSON.stringify(failures)}`)
+  assert.match(breadth, /app\/\*\*, lib\/\*\*/)
+  assert.ok(!breadth.includes("docs/adr/**"), "scoped subpaths never count as broad roots")
+  assert.match(breadth, /broad-blast-radius/)
+  assert.equal(failures.filter((f) => f.includes("MS-fixture-waived-radius")).length, 0)
+  assert.equal(
+    failures.filter((f) => f.includes("MS-fixture-shipped-radius") || f.includes("shipped.md")).length,
+    0,
+    "the breadth lint applies to active specs only"
+  )
+  assert.equal(failures.filter((f) => f.includes("MS-fixture-scoped-radius")).length, 0)
+})
+
+test("Given scoped browser gates When the grep tag hits, misses, or cannot compile Then only the bad gates fail", (t) => {
+  const gateSpec = (id, gate) =>
+    specSource({
+      spec_id: id,
+      verification_gates: ["pnpm governance:check", "pnpm test", "pnpm lint", "pnpm typecheck", gate],
+      required_playwright_projects: ["chromium"],
+      related_tests: ["tests/e2e/example.spec.ts"],
+    })
+  const root = makeFixture(t, {
+    scripts: { ...DEFAULT_SCRIPTS, "test:e2e": "node --version" },
+    specs: {
+      "hit.md": gateSpec("MS-fixture-grep-hit", 'pnpm test:e2e -- --grep "@my-tag"'),
+      "miss.md": gateSpec("MS-fixture-grep-miss", 'pnpm test:e2e -- --grep "@other-tag"'),
+      "invalid.md": gateSpec("MS-fixture-grep-invalid", 'pnpm test:e2e -- --grep "(["'),
+    },
+    extraFiles: {
+      "tests/e2e/example.spec.ts": 'test("@my-tag fixture", () => {})\n',
+      "playwright.config.ts": 'export default { projects: [{ name: "chromium" }] }\n',
+    },
+  })
+
+  const { failures } = run(root)
+  assert.equal(failures.filter((f) => f.includes("MS-fixture-grep-hit")).length, 0)
+  assert.ok(
+    failures.some(
+      (f) => f.includes("MS-fixture-grep-miss") && f.includes("matches none of the spec's related browser tests")
+    ),
+    `expected a grep-miss failure, got ${JSON.stringify(failures)}`
+  )
+  assert.ok(
+    failures.some(
+      (f) => f.includes("MS-fixture-grep-invalid") && f.includes("not a valid regular expression")
+    )
   )
 })
 

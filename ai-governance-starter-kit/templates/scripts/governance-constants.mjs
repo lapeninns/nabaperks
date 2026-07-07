@@ -165,6 +165,33 @@ export const SCOPED_BROWSER_GATE_SCRIPTS = Object.freeze(["test:e2e"])
 // — the engine-fixed dated-expiry format still applies to the entry.
 export const BROAD_BROWSER_GATE_EXCEPTION_TOKEN = "broad-browser-gate"
 
+// The gate floor keys off the self-declared risk_class; these hints stop a
+// high-risk surface riding under a weaker class. An ACTIVE spec whose
+// implementation_surfaces touch `pattern` (matched in both glob directions,
+// so a broad surface glob cannot hide a hinted path) must declare one of
+// `classes`. Paths are repo-specific, so the kit ships none — add entries
+// like { pattern: "db/migrations/**", classes: ["migrations"] } in a fork.
+export const RISK_RADIUS_HINTS = Object.freeze([])
+
+// A blast-radius entry that exactly equals one of these roots is "broad";
+// scoped subpaths (src/auth/**) never count. An ACTIVE spec may claim at
+// most BROAD_RADIUS_LIMIT broad roots — one repo-wide spec otherwise makes
+// blast-radius enforcement vacuous for every file. Beyond the limit the
+// spec must say why with a dated approved exception carrying
+// BROAD_RADIUS_EXCEPTION_TOKEN:
+// "broad-blast-radius: <why> (expires: YYYY-MM-DD)". [] disables the check.
+export const BROAD_RADIUS_ROOTS = Object.freeze([
+  "**",
+  "app/**",
+  "lib/**",
+  "packages/**",
+  "scripts/**",
+  "src/**",
+  "tests/**",
+])
+export const BROAD_RADIUS_LIMIT = 1
+export const BROAD_RADIUS_EXCEPTION_TOKEN = "broad-blast-radius"
+
 // Which workflow files feed the docs-drift comparison. null scans every
 // *.yml/*.yaml under .github/workflows; a list pins specific file names.
 export const CI_WORKFLOW_FILES = null

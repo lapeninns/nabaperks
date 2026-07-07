@@ -299,6 +299,168 @@ test("Given non-Playwright gates without --grep When validated Then they are not
   assert.deepEqual(run(root).failures, [])
 })
 
+test("Given an active spec When a high-risk surface rides a weaker risk class Then the risk hint fails", (t) => {
+  const root = fixtureRepo(t, {
+    spec: specFile({
+      riskClass: "docs-tooling",
+      blastRadius: ["micro-specs/**", "supabase/migrations/**", "package.json"],
+      surfaces: ["supabase/migrations/0001_example.sql"],
+    }),
+  })
+
+  const result = run(root)
+
+  const hint = result.failures.find((entry) => entry.includes("high-risk path"))
+  assert.ok(hint, `expected a risk-radius hint failure, got ${JSON.stringify(result.failures)}`)
+  assert.match(hint, /"supabase\/migrations\/0001_example\.sql"/)
+  assert.match(hint, /"supabase\/migrations\/\*\*"/)
+  assert.match(hint, /migrations or rls-rpc-ledger/)
+})
+
+test("Given an active spec When a broad surface glob hides a hinted path Then the risk hint still fails", (t) => {
+  const root = fixtureRepo(t, {
+    spec: specFile({
+      riskClass: "docs-tooling",
+      blastRadius: ["micro-specs/**", "supabase/**", "package.json"],
+      surfaces: ["supabase/**"],
+    }),
+  })
+
+  const result = run(root)
+
+  assert.ok(
+    result.failures.some((entry) => entry.includes("high-risk path")),
+    `a surface glob covering supabase/migrations must trip the hint, got ${JSON.stringify(result.failures)}`
+  )
+})
+
+test("Given an active migrations spec with a migrations surface Then the risk hint is satisfied", (t) => {
+  const root = fixtureRepo(t, {
+    spec: specFile({
+      riskClass: "migrations",
+      blastRadius: ["micro-specs/**", "supabase/migrations/**", "package.json"],
+      surfaces: ["supabase/migrations/0001_example.sql"],
+      gates: [
+        "pnpm lint",
+        "pnpm typecheck",
+        "pnpm build",
+        "pnpm test",
+        "pnpm test:coverage",
+        "pnpm test:db",
+      ],
+    }),
+  })
+
+  assert.deepEqual(run(root).failures, [])
+})
+
+test("Given an active spec When its radius claims too many broad roots Then breadth fails unless waived", (t) => {
+  const broadRadius = ["app/**", "lib/**", "components/pwa/**", "micro-specs/governance/**", "package.json"]
+  const root = fixtureRepo(t, {
+    spec: specFile({
+      riskClass: "docs-tooling",
+      blastRadius: broadRadius,
+      surfaces: ["micro-specs/governance/example.md"],
+    }),
+    extraSpecs: {
+      "governance/waived-broad.md": specFile({
+        specId: "MS-test-waived-broad",
+        riskClass: "docs-tooling",
+        blastRadius: broadRadius,
+        surfaces: ["micro-specs/governance/waived-broad.md"],
+        exceptions: [
+          "broad-blast-radius: repo-wide sweep is the point of this spec (expires: 2026-12-31)",
+        ],
+      }),
+      "governance/shipped-broad.md": specFile({
+        specId: "MS-test-shipped-broad",
+        status: "implemented",
+        riskClass: "docs-tooling",
+        blastRadius: broadRadius,
+        surfaces: ["micro-specs/governance/shipped-broad.md"],
+      }),
+    },
+  })
+
+  const result = run(root)
+
+  const breadth = result.failures.find(
+    (entry) => entry.includes("MS-test-governance") && entry.includes("broad radius roots")
+  )
+  assert.ok(breadth, `expected a breadth failure, got ${JSON.stringify(result.failures)}`)
+  assert.match(breadth, /app\/\*\*, lib\/\*\*/)
+  assert.match(breadth, /broad-blast-radius/)
+  assert.ok(
+    !breadth.includes("components/pwa/**"),
+    "scoped subpaths never count as broad roots"
+  )
+  assert.equal(result.failures.filter((f) => f.includes("MS-test-waived-broad")).length, 0)
+  assert.equal(
+    result.failures.filter((f) => f.includes("MS-test-shipped-broad") || f.includes("shipped-broad.md")).length,
+    0,
+    "breadth applies to active specs only"
+  )
+})
+
+test("Given a scoped browser gate When its grep tag misses the spec's own tests Then the crosscheck fails", (t) => {
+  const browserGates = [
+    "pnpm lint",
+    "pnpm typecheck",
+    "pnpm build",
+    "pnpm test",
+    "pnpm test:coverage",
+    "pnpm bundle:check",
+    'pnpm test:e2e -- --grep "@missing-tag"',
+    "pnpm test:a11y",
+    "pnpm test:visual",
+  ]
+  const root = fixtureRepo(t, {
+    spec: specFile({
+      riskClass: "ui-only",
+      gates: browserGates,
+      tests: ["tests/e2e/example.spec.ts"],
+      playwrightProjects: ["chromium"],
+      evidence: ["Playwright report for changed UI"],
+    }),
+  })
+
+  const result = run(root)
+
+  const miss = result.failures.find((entry) => entry.includes("matches none of the spec's related browser tests"))
+  assert.ok(miss, `expected a grep crosscheck failure, got ${JSON.stringify(result.failures)}`)
+  assert.match(miss, /@missing-tag/)
+  assert.match(miss, /tests\/e2e\/example\.spec\.ts/)
+})
+
+test("Given a scoped browser gate When its grep pattern is not a valid regex Then the crosscheck fails", (t) => {
+  const root = fixtureRepo(t, {
+    spec: specFile({
+      riskClass: "ui-only",
+      gates: [
+        "pnpm lint",
+        "pnpm typecheck",
+        "pnpm build",
+        "pnpm test",
+        "pnpm test:coverage",
+        "pnpm bundle:check",
+        'pnpm test:e2e -- --grep "(["',
+        "pnpm test:a11y",
+        "pnpm test:visual",
+      ],
+      tests: ["tests/e2e/example.spec.ts"],
+      playwrightProjects: ["chromium"],
+      evidence: ["Playwright report for changed UI"],
+    }),
+  })
+
+  const result = run(root)
+
+  assert.ok(
+    result.failures.some((entry) => entry.includes("is not a valid regular expression")),
+    `expected an invalid-regex failure, got ${JSON.stringify(result.failures)}`
+  )
+})
+
 test("Given a spec with an unknown Playwright project When validation runs Then the project drift is rejected", (t) => {
   const root = fixtureRepo(t, {
     spec: specFile({
@@ -721,13 +883,17 @@ function fixtureRepo(t, { spec, extraSpecs = {}, ciLines = null, readmeGates = n
   )
 
   // Files the default specs reference must actually exist under the new
-  // related_tests existence rule.
+  // related_tests existence rule. The e2e fixture carries the grep tags the
+  // scoped-gate fixtures reference, so the grep crosscheck can match content.
   writeFileSync(path.join(root, "tests/micro-specs/example.test.mjs"), "// fixture\n")
   writeFileSync(
     path.join(root, "tests/micro-specs/governance-enforcement.test.mjs"),
     "// fixture\n"
   )
-  writeFileSync(path.join(root, "tests/e2e/example.spec.ts"), "// fixture\n")
+  writeFileSync(
+    path.join(root, "tests/e2e/example.spec.ts"),
+    'test("@some-tag @governance PWA offline fallback fixture", () => {})\n'
+  )
   writeFileSync(path.join(root, "tests/e2e/billing.spec.ts"), "// fixture\n")
 
   writeFileSync(path.join(root, "micro-specs/governance/example.md"), spec)
@@ -745,7 +911,9 @@ function specFile({
   status = "active",
   riskClass,
   lastReviewed = "2026-07-01",
-  blastRadius = ["micro-specs/**", "scripts/**", "tests/**", "package.json"],
+  // At most one exact broad root, so default fixtures stay under the
+  // radius-breadth limit; breadth cases declare their own radius.
+  blastRadius = ["micro-specs/**", "tests/micro-specs/**", "tests/e2e/**", "package.json"],
   surfaces = null,
   gates = [
     "pnpm lint",

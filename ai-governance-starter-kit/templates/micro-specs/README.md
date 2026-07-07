@@ -184,7 +184,20 @@ recording a dated approved exception:
 Wrapper scripts that already embed a tag filter (for example `test:a11y`
 defined as `playwright test --grep @a11y`) are exempt via
 `SCOPED_BROWSER_GATE_SCRIPTS` in `scripts/governance-constants.mjs`; forks
-tune that list.
+tune that list. The `--grep` pattern must also compile as a regular
+expression and match the content of at least one of the spec's declared
+related browser tests — a tag that selects someone else's tests proves the
+wrong thing.
+
+Two more cross-checks keep active-spec declarations honest. Implementation
+surfaces matching a configured risk-radius hint (`RISK_RADIUS_HINTS`, empty
+by default — add repo-specific entries like
+`{ pattern: "db/migrations/**", classes: ["migrations"] }`) force one of the
+hinted risk classes, because the gate floor keys off the declared class. And
+a blast radius claiming more exact broad roots (`app/**`, `lib/**`, `src/**`,
+…) than `BROAD_RADIUS_LIMIT` allows requires a dated
+`broad-blast-radius: <why> (expires: YYYY-MM-DD)` approved exception — one
+repo-wide active spec otherwise makes blast-radius enforcement vacuous.
 
 ## Current Verification Gates
 
