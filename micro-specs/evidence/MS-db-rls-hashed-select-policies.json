@@ -118,6 +118,45 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-07T20:51:46.124Z",
+      "git_sha": "409dcb4fcb879fc6e1138c4cee262d0ddc701b39",
+      "git_branch": "feat/perf-hardening",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7696
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1230
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 12783
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10645
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1071
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 748
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
@@ -129,6 +168,15 @@
       "sha": "188183dba8df0522840577b9d9d9f4328813848a",
       "dirty": true,
       "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-07T20:51:46.124Z",
+      "sha": "409dcb4fcb879fc6e1138c4cee262d0ddc701b39",
+      "dirty": true,
+      "by": "amankumarshrestha",
+      "note": "unrelated seed/stress WIP rides the working tree per the spec's evidence-waiver; spec files committed separately"
     }
   ]
 }
