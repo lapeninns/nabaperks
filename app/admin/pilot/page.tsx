@@ -1,27 +1,22 @@
 import { logPilotNoteAction } from "@/app/admin/actions"
 import { AdminActionForm } from "@/components/admin/action-form"
 import {
-  AdminField,
   AdminPanel,
   SourceLabel,
-  adminSelectClasses,
   first,
   formatAdminDate,
 } from "@/components/admin/support"
 import { AdminRecordCard } from "@/components/admin/record-card"
-import { CheckmarkCircle02Icon, Store01Icon } from "@hugeicons/core-free-icons"
+import { PilotNoteFields } from "@/components/admin/pilot-note-fields"
+import { Store01Icon } from "@hugeicons/core-free-icons"
 
 import {
   EmptyState,
-  Icon,
   MetricTile,
   PageTitle,
   SectionHeader,
 } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
-import { SubmitButton } from "@/components/forms"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { canRenderAdminPage } from "@/lib/admin/auth"
 import { getAdminPilotMerchants, getAdminPilotReport } from "@/lib/admin/data"
 
@@ -179,59 +174,7 @@ export default async function AdminPilotPage() {
                         name="merchantId"
                         value={merchant.id}
                       />
-                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[220px_160px_minmax(0,1fr)_auto]">
-                        <AdminField label="Note type">
-                          <select
-                            name="noteType"
-                            required
-                            className={adminSelectClasses}
-                            defaultValue="support"
-                          >
-                            <option value="support">Support note</option>
-                            <option value="interview">Interview note</option>
-                            <option value="payment_objection">
-                              Payment objection
-                            </option>
-                            <option value="cancellation_reason">
-                              Cancellation reason
-                            </option>
-                            <option value="launch_self_service_checked">
-                              Self-service launch check
-                            </option>
-                          </select>
-                        </AdminField>
-                        <AdminField
-                          label="Setup check minutes"
-                          helper="Optional for self-service launch checks."
-                        >
-                          <Input
-                            name="setupMinutes"
-                            type="number"
-                            min={1}
-                            max={3}
-                            placeholder="1-3"
-                          />
-                        </AdminField>
-                        <AdminField
-                          label="Notes"
-                          className="sm:col-span-2 xl:col-span-1"
-                        >
-                          <Textarea
-                            name="notes"
-                            required
-                            minLength={4}
-                            rows={2}
-                            placeholder="What happened, source, and next action"
-                          />
-                        </AdminField>
-                        <SubmitButton
-                          pendingLabel="Saving…"
-                          className="justify-self-start sm:col-span-2 xl:col-span-1 xl:self-end"
-                        >
-                          <Icon icon={CheckmarkCircle02Icon} size={16} />
-                          Save note
-                        </SubmitButton>
-                      </div>
+                      <PilotNoteFields />
                     </AdminActionForm>
                   }
                 />

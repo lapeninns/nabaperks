@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-prefill-admin-note",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-07T11:35:40.001Z",
+      "sha": "6f0ba51a5ba25ad5334319ec787af69e34d2327f",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}
