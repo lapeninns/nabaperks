@@ -14,7 +14,7 @@ implementation_surfaces:
   - scripts/sync-skill-bundles.mjs
   - tests/micro-specs/sync-guard.test.mjs
 related_tests:
-  - not-yet-created
+  - tests/micro-specs/sync-guard.test.mjs
 verification_gates:
   - pnpm lint
   - pnpm typecheck

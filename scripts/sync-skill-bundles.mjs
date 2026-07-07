@@ -21,14 +21,23 @@
 // marker. `~/.claude/skills` is a user-owned namespace — an unmarked
 // directory at a mirror path is a collision, and the sync refuses.
 //
+// Guard: the kit is canonical, but a lockstep target with UNCOMMITTED edits
+// that differ from its template is someone's work in flight — the sync
+// refuses it (exit 1) instead of silently clobbering; port the edits into
+// the kit template first, or pass --force to discard them deliberately.
+//
 // Usage:
 //   node scripts/sync-skill-bundles.mjs                # sync .factory bundle, mirrors, repo engine/tests
 //   node scripts/sync-skill-bundles.mjs --check        # fail (exit 1) on any drift
+//   node scripts/sync-skill-bundles.mjs --force        # overwrite dirty lockstep targets
 //   node scripts/sync-skill-bundles.mjs --all-homes    # also refresh every agent home below
 //   node scripts/sync-skill-bundles.mjs --claude-home  # ~/.claude/skills (Claude Code)
 //   node scripts/sync-skill-bundles.mjs --factory-home # ~/.factory/skills (droid)
 //   node scripts/sync-skill-bundles.mjs --codex-home   # ~/.codex/skills (Codex)
 //   node scripts/sync-skill-bundles.mjs --agents-home  # ~/.agents/skills (cross-agent)
+//
+// GOVERNANCE_SYNC_ROOT overrides the repo root (test harness escape hatch).
+import { execFileSync } from "node:child_process"
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from "node:fs"
 import { homedir } from "node:os"
 import { dirname, join, relative } from "node:path"
@@ -38,9 +47,11 @@ import { ENGINE_FILES, SHARED_TEST_FILES } from "./governance-version.mjs"
 
 const MANAGED_BY_MARKER = "managed-by: ai-governance-starter-kit"
 
-const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..")
+const repoRoot =
+  process.env.GOVERNANCE_SYNC_ROOT ?? join(dirname(fileURLToPath(import.meta.url)), "..")
 const args = process.argv.slice(2)
 const check = args.includes("--check")
+const force = args.includes("--force")
 
 const sourceKit = join(repoRoot, "ai-governance-starter-kit")
 const sourceSkillMd = join(sourceKit, "SKILL.md")
@@ -70,6 +81,7 @@ const suiteSkills = existsSync(suiteRoot)
   : []
 
 let drift = false
+let refusals = 0
 
 for (const skillsRootPath of skillsRoots) {
   const bundleDir = join(skillsRootPath, "ai-governance-starter-kit")
@@ -133,6 +145,12 @@ if (check && drift) {
   process.exit(1)
 }
 if (!check && drift) process.exit(1)
+if (refusals > 0) {
+  console.error(
+    `\n${refusals} lockstep file(s) refused (uncommitted edits); everything else was synced.`
+  )
+  process.exit(1)
+}
 if (check) console.log("Skill bundles are in sync.")
 
 function syncLockstep(sourceDir, targetDir, files, prefix) {
@@ -154,9 +172,40 @@ function syncLockstep(sourceDir, targetDir, files, prefix) {
       continue
     }
 
+    // A committed difference is normal kit propagation; a DIRTY difference is
+    // uncommitted work about to be destroyed — refuse it (kit is canonical).
+    if (
+      !force &&
+      existsSync(target) &&
+      fileDiffers(source, target) &&
+      gitDirty(repoRoot, `${prefix}/${file}`)
+    ) {
+      console.error(
+        `Refusing to overwrite ${prefix}/${file}: it has uncommitted edits that differ from the kit template. The kit is canonical — port your edits into ${relative(repoRoot, sourceDir)}/${file} first, or re-run with --force to discard them.`
+      )
+      refusals += 1
+      continue
+    }
+
     cpSync(source, target)
   }
   if (!check) console.log(`Synced ${files.length} ${prefix} lockstep file(s).`)
+}
+
+// Uncommitted state (modified, staged, or untracked-with-content) for one
+// path. Fail-open when git cannot answer: propagation is the primary job.
+function gitDirty(root, relPath) {
+  try {
+    return (
+      execFileSync("git", ["status", "--porcelain", "--", relPath], {
+        cwd: root,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      }).trim().length > 0
+    )
+  } catch {
+    return false
+  }
 }
 
 function carriesMarker(dir) {
