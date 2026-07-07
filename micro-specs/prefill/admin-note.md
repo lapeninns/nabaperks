@@ -12,6 +12,7 @@ allowed_blast_radius:
   - lib/admin/pilot-note-templates.ts
   - tests/unit/pilot-note-templates.test.mjs
   - tests/e2e/admin-pilot-note.spec.ts
+  - tests/micro-specs/dev-route-production-guard.test.mjs
 implementation_surfaces:
   - app/admin/pilot/page.tsx
   - components/admin/pilot-note-fields.tsx
@@ -19,9 +20,11 @@ implementation_surfaces:
   - lib/admin/pilot-note-templates.ts
   - tests/unit/pilot-note-templates.test.mjs
   - tests/e2e/admin-pilot-note.spec.ts
+  - tests/micro-specs/dev-route-production-guard.test.mjs
 related_tests:
   - tests/unit/pilot-note-templates.test.mjs
   - tests/e2e/admin-pilot-note.spec.ts
+  - tests/micro-specs/dev-route-production-guard.test.mjs
 verification_gates:
   - pnpm lint
   - pnpm typecheck
