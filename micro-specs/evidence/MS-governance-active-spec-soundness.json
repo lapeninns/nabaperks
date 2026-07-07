@@ -1,7 +1,37 @@
 {
   "schema": 1,
   "spec_id": "MS-governance-active-spec-soundness",
-  "runs": [],
+  "runs": [
+    {
+      "timestamp": "2026-07-07T17:38:40.489Z",
+      "git_sha": "a65db27490f39e5a6fe46f8e92131d9ddb0f3491",
+      "git_branch": "feat/governance-hardening",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7090
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1510
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 197
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 1,
+          "duration_ms": 8240
+        }
+      ],
+      "all_passed": false
+    }
+  ],
   "manual_attestations": [],
   "transitions": [
     {
