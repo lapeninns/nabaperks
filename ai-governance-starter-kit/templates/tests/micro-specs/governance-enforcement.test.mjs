@@ -718,7 +718,7 @@ test("Given evidence staleness When surfaces changed after the proving run Then 
     return null
   }
 
-  const { failures } = run(root, { changedFilesSince })
+  const { failures } = run(root, { changedFilesSince, env: {} })
   const stale = failures.find(
     (f) => f.includes("MS-fixture-stale") && f.includes("changed after the proving run")
   )
@@ -728,9 +728,9 @@ test("Given evidence staleness When surfaces changed after the proving run Then 
   assert.equal(failures.filter((f) => f.includes("MS-fixture-clean")).length, 0)
   assert.equal(failures.filter((f) => f.includes("MS-fixture-unknowable")).length, 0)
 
-  // A re-proving run (runner/lifecycle CLI) exempts staleness wholesale so
-  // the cure is never blocked by the disease.
-  const exempted = run(root, { changedFilesSince, env: { GOVERNANCE_STALENESS_EXEMPT: "*" } })
+  // A re-proving run (runner/lifecycle CLI) exempts re-proof state wholesale
+  // so the cure is never blocked by the disease it is curing.
+  const exempted = run(root, { changedFilesSince, env: { GOVERNANCE_REPROVING_SPECS: "*" } })
   assert.equal(
     exempted.failures.filter((f) => f.includes("changed after the proving run")).length,
     0

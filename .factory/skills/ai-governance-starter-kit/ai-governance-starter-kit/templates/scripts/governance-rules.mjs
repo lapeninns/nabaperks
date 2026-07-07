@@ -101,12 +101,13 @@ export function validateGovernance(root, options = {}) {
   // ledger contract, not fall through to the constant.
   const adoptionDate =
     "evidenceAdoptionDate" in options ? options.evidenceAdoptionDate : EVIDENCE_ADOPTION_DATE
-  validateEvidenceLedgers(root, specs, adoptionDate, failures)
+  const reproving = reprovingExemptions(options)
+  validateEvidenceLedgers(root, specs, adoptionDate, reproving, failures)
   validateEvidenceStaleness(
     root,
     specs,
     options.changedFilesSince ?? changedFilesSince,
-    stalenessExemptions(options),
+    reproving,
     failures
   )
 
@@ -515,14 +516,18 @@ function validateDocsDrift(root, ciCommands, failures) {
 }
 
 // Ledger contract for implemented/verified specs, plus orphan detection —
-// entirely disabled while the adoption date is null (pre-rollout).
-function validateEvidenceLedgers(root, specs, adoptionDate, failures) {
+// entirely disabled while the adoption date is null (pre-rollout). Specs the
+// current invocation is re-proving keep provenance/attestation enforcement
+// but skip run-freshness (see evaluateLedger).
+function validateEvidenceLedgers(root, specs, adoptionDate, reproving, failures) {
   if (!adoptionDate) return
 
   for (const spec of specs) {
     if (spec.parseErrors?.length > 0) continue
     const ledger = spec.metadata.spec_id ? readLedger(root, spec.metadata.spec_id) : null
-    failures.push(...evaluateLedger(spec, ledger, adoptionDate))
+    const skipRunFreshness =
+      reproving.has("*") || reproving.has(spec.metadata.spec_id)
+    failures.push(...evaluateLedger(spec, ledger, adoptionDate, { skipRunFreshness }))
   }
 
   const dir = join(root, EVIDENCE_DIR)
@@ -537,20 +542,21 @@ function validateEvidenceLedgers(root, specs, adoptionDate, failures) {
   }
 }
 
-// Exempt spec ids for the staleness check: the in-process option plus the
-// GOVERNANCE_STALENESS_EXEMPT environment variable (comma-separated ids, or
-// "*" for all). Re-proving runs (run-governance-gates / advance-spec) set
-// "*" for their nested governance:check gate — staleness enforcement
-// belongs to the standalone check, and a recording run must not be blocked
-// by other specs' staleness (two mutually-stale specs would otherwise
-// deadlock each other's cure).
-function stalenessExemptions(options) {
+// Spec ids the CURRENT invocation is re-proving: the in-process option plus
+// the GOVERNANCE_REPROVING_SPECS environment variable (comma-separated ids,
+// or "*" for all). run-governance-gates and advance-spec set this for their
+// own gate runs — including nested test suites that validate the real repo —
+// because a re-proving run is the cure that staleness and red-run failures
+// prescribe, and it must not be blocked by the disease it is curing (two
+// mutually-stale specs would otherwise deadlock each other). The standalone
+// governance:check keeps full enforcement.
+function reprovingExemptions(options) {
   const env = options.env ?? process.env
-  const fromEnv = String(env.GOVERNANCE_STALENESS_EXEMPT ?? "")
+  const fromEnv = String(env.GOVERNANCE_REPROVING_SPECS ?? "")
     .split(",")
     .map((id) => id.trim())
     .filter(Boolean)
-  return new Set([...(options.stalenessExemptSpecIds ?? []), ...fromEnv])
+  return new Set([...(options.reprovingSpecIds ?? []), ...fromEnv])
 }
 
 // Evidence staleness: a green run proves the commit it ran on, so commits
@@ -560,15 +566,15 @@ function stalenessExemptions(options) {
 // runs, no sha, a sha that no longer resolves or is not an ancestor of HEAD
 // (squash-merged branches) — fails open so the check never invents
 // staleness it cannot prove.
-function validateEvidenceStaleness(root, specs, changedSince, exempt, failures) {
+function validateEvidenceStaleness(root, specs, changedSince, reproving, failures) {
   if (EVIDENCE_STALENESS_STATUSES.length === 0) return
-  if (exempt.has("*")) return
+  if (reproving.has("*")) return
 
   for (const spec of specs) {
     if (spec.parseErrors?.length > 0) continue
     if (!EVIDENCE_STALENESS_STATUSES.includes(spec.metadata.status)) continue
     const id = spec.metadata.spec_id
-    if (!id || exempt.has(id)) continue
+    if (!id || reproving.has(id)) continue
     const ledger = readLedger(root, id)
     if (!ledger || ledger.parseError) continue
     const sha = (ledger.runs ?? []).at(-1)?.git_sha

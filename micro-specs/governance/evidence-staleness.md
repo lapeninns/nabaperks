@@ -96,12 +96,14 @@ after closure); any change to how runs are recorded or to ledger file shape.
 - Statuses checked: `implemented` and `verified` (constant
   `EVIDENCE_STALENESS_STATUSES`; `[]` disables).
 - The exemption protocol is the environment variable
-  `GOVERNANCE_STALENESS_EXEMPT` (comma-separated spec ids, or `*` for all).
-  `run-governance-gates` and `advance-spec` set `*` for their nested
-  `governance:check` gate and pre-validation: staleness enforcement belongs
-  to the standalone check, and a re-proving run must not be blocked by other
-  specs' staleness (two mutually-stale specs would otherwise deadlock each
-  other's cure).
+  `GOVERNANCE_REPROVING_SPECS` (comma-separated spec ids, or `*` for all),
+  and it exempts re-proof state as a whole: staleness AND the ledger's
+  run-freshness rules (red or non-covering latest run) — a recording run
+  exists to replace that run, so failing on it would block the cure.
+  Provenance, dirty-tree, and attestation rules stay enforced.
+  `run-governance-gates` sets `*` on every gate it runs (test suites embed
+  real-repo validations); `advance-spec` sets its own spec id. Standalone
+  `governance:check` keeps full enforcement.
 - The git reader is injectable for tests (`options.changedFilesSince`), with
   the real implementation in `governance-commands.mjs`.
 
@@ -118,13 +120,13 @@ after closure); any change to how runs are recorded or to ledger file shape.
   THEN THE checker SHALL not flag the spec.
 - WHILE a spec's status is not in the configured status list, THE checker
   SHALL not apply this check.
-- WHERE a spec id is listed in the staleness exemption (in-process option or
-  GOVERNANCE_STALENESS_EXEMPT, with `*` exempting all), THE checker SHALL
-  skip that spec so a fresh recording run can cure the staleness it is
-  measuring.
+- WHERE a spec id is listed in the re-proving exemption (in-process option
+  or GOVERNANCE_REPROVING_SPECS, with `*` exempting all), THE checker SHALL
+  skip that spec's staleness and ledger run-freshness rules — and only those
+  — so a fresh recording run can cure the state it is measuring.
 - WHEN run-governance-gates or advance-spec runs gates fresh, THE runner
-  SHALL exempt staleness for its own pre-validation and its nested
-  governance:check gate; the standalone check keeps full enforcement.
+  SHALL carry the re-proving exemption on its pre-validation and every gate
+  it executes; the standalone check keeps full enforcement.
 
 ## 6. Verification Criteria and Task Breakdown
 

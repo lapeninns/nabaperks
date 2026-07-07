@@ -34,14 +34,14 @@ if (specIndex !== -1 && !specId) {
 }
 
 // A mid-implementation tree legitimately has changed files everywhere; gate
-// execution needs valid metadata, not blast-radius cleanliness. Staleness is
-// exempt for the same reason a recording run exists at all: this invocation
-// IS the cure the staleness failure prescribes, and it must not be blocked
-// by other specs' staleness either (the standalone governance:check keeps
-// full enforcement).
+// execution needs valid metadata, not blast-radius cleanliness. Re-proof
+// state (staleness, red latest runs) is exempt for the same reason a
+// recording run exists at all: this invocation IS the cure those failures
+// prescribe, and it must not be blocked by the disease it is curing (the
+// standalone governance:check keeps full enforcement).
 const validation = validateGovernance(root, {
   enforceChangedFiles: false,
-  stalenessExemptSpecIds: ["*"],
+  reprovingSpecIds: ["*"],
 })
 
 if (!validation.ok) {
@@ -81,17 +81,11 @@ if (runnable.length === 0) {
 
 for (const gate of runnable) console.log(`queued: ${gate}`)
 
-// The nested governance:check gate skips staleness (this run is the cure);
-// every other gate keeps a clean environment so hermetic test sandboxes are
-// never contaminated.
-const envForGate = (parsed) => {
-  const env = { ...process.env }
-  delete env.GOVERNANCE_STALENESS_EXEMPT
-  if (parsed.scriptName === "governance:check") {
-    env.GOVERNANCE_STALENESS_EXEMPT = "*"
-  }
-  return env
-}
+// Every gate of a recording run carries the re-proving marker — not just
+// governance:check: test suites embed real-repo validations that would
+// otherwise re-impose the staleness/red-run failures this very run cures.
+// Fixture-based tests stay hermetic by passing their own env explicitly.
+const envForGate = () => ({ ...process.env, GOVERNANCE_REPROVING_SPECS: "*" })
 const results = executeGates(root, runnable, { envForGate })
 const failed = results.find((result) => result.exit_code !== 0)
 

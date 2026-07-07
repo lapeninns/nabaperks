@@ -113,7 +113,9 @@ export function runEntryFor(spec, executedResults, git, timestamp) {
 
 // Checker-side validation. Returns failure strings (empty = healthy).
 // Gated entirely on adoptionDate: null disables the ledger contract.
-export function evaluateLedger(spec, ledger, adoptionDate) {
+// options.skipRunFreshness relaxes ONLY the covering-run rules (red latest
+// run, gate coverage) for a spec that the current invocation is re-proving.
+export function evaluateLedger(spec, ledger, adoptionDate, options = {}) {
   if (!adoptionDate) return []
   const status = spec.metadata.status
   if (status !== "implemented" && status !== "verified" && status !== "closed") {
@@ -185,6 +187,12 @@ export function evaluateLedger(spec, ledger, adoptionDate) {
       }
     }
   }
+
+  // Run-freshness (everything below) is exempt while THIS spec is being
+  // re-proven by the current invocation: a recording run exists to replace
+  // the latest run, so failing on that run's redness or coverage would block
+  // the cure. Provenance, dirty-tree, and attestations above still hold.
+  if (options.skipRunFreshness) return failures
 
   // Covering run: latest run must contain every currently declared runnable
   // gate with exit 0, and its all_passed flag must agree with its own data.

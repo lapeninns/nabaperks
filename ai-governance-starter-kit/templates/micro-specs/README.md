@@ -271,10 +271,13 @@ run fails the checker until re-proven (`governance:run-gates --spec <id>
 spec's own document and its ledger are excluded (status flips are
 bookkeeping, not drift); a recorded sha that no longer resolves or is not an
 ancestor of HEAD (a squash-merged branch commit) is skipped — the check
-never invents staleness it cannot prove. Re-proving runs set
-`GOVERNANCE_STALENESS_EXEMPT=*` for their nested `governance:check` gate so
-the cure is never blocked by the disease; tune or disable via
-`EVIDENCE_STALENESS_STATUSES` in `scripts/governance-constants.mjs`.
+never invents staleness it cannot prove. Re-proving runs carry
+`GOVERNANCE_REPROVING_SPECS` on every gate they execute, exempting exactly
+the staleness and run-freshness (red/non-covering latest run) rules for the
+specs being re-proven — the cure is never blocked by the disease, while
+provenance, dirty-tree, and attestation rules stay enforced. Tune or disable
+staleness via `EVIDENCE_STALENESS_STATUSES` in
+`scripts/governance-constants.mjs`.
 
 ## Working Rule
 

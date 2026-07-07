@@ -767,6 +767,9 @@ test("Given an implemented spec When surfaces changed after the proving run Then
 
   const result = run(root, {
     changedFilesSince: () => ["scripts/thing.mjs", "app/unrelated.tsx"],
+    // Hermetic against an ambient re-proving marker (this suite itself runs
+    // inside recording gate runs).
+    env: {},
   })
 
   const stale = result.failures.find((entry) => entry.includes("changed after the proving run"))
@@ -823,6 +826,7 @@ test("Given staleness edge cases When history is unknowable, non-surface, bookke
       if (sha === "gone00000000000") return null
       return ["scripts/thing.mjs"]
     },
+    env: {},
   })
 
   assert.deepEqual(
@@ -857,7 +861,7 @@ test("Given a stale spec When it is exempted for a re-proving run Then only the 
 
   const viaEnv = run(root, {
     changedFilesSince,
-    env: { GOVERNANCE_STALENESS_EXEMPT: "MS-test-exempted, MS-other" },
+    env: { GOVERNANCE_REPROVING_SPECS: "MS-test-exempted, MS-other" },
   })
   assert.equal(
     viaEnv.failures.filter((f) => f.includes("MS-test-exempted") && f.includes("changed after the proving run")).length,
@@ -872,12 +876,62 @@ test("Given a stale spec When it is exempted for a re-proving run Then only the 
 
   const viaOption = run(root, {
     changedFilesSince,
-    stalenessExemptSpecIds: ["MS-test-exempted", "MS-test-not-exempted"],
+    reprovingSpecIds: ["MS-test-exempted", "MS-test-not-exempted"],
+    env: {},
   })
   assert.equal(
     viaOption.failures.filter((f) => f.includes("changed after the proving run")).length,
     0,
     "the in-process option exempts the listed ids"
+  )
+})
+
+test("Given a red-ledgered implemented spec When it is being re-proven Then run-freshness is exempt but provenance holds", (t) => {
+  const redLedger = {
+    spec_id: "MS-test-red",
+    runs: [{ git_sha: "red0000000", gates: [{ command: "pnpm lint", exit_code: 1 }], all_passed: false }],
+    transitions: [{ from: "active", to: "implemented" }],
+  }
+  const root = fixtureRepo(t, {
+    spec: specFile({ riskClass: "docs-tooling" }),
+    extraSpecs: {
+      "governance/red.md": specFile({
+        specId: "MS-test-red",
+        status: "implemented",
+        riskClass: "docs-tooling",
+      }),
+      "governance/hand-flipped.md": specFile({
+        specId: "MS-test-hand-flipped",
+        status: "implemented",
+        riskClass: "docs-tooling",
+      }),
+    },
+    ledgers: {
+      "MS-test-red": redLedger,
+      "MS-test-hand-flipped": { spec_id: "MS-test-hand-flipped", runs: [], transitions: [] },
+    },
+  })
+
+  const strict = run(root, { evidenceAdoptionDate: "2026-01-01", env: {} })
+  assert.ok(
+    strict.failures.some((f) => f.includes("MS-test-red") && f.includes("does not cover")),
+    `a red/uncovering latest run fails outside a re-proving context, got ${JSON.stringify(strict.failures)}`
+  )
+
+  const reproving = run(root, {
+    evidenceAdoptionDate: "2026-01-01",
+    env: { GOVERNANCE_REPROVING_SPECS: "MS-test-red" },
+  })
+  assert.equal(
+    reproving.failures.filter((f) => f.includes("MS-test-red")).length,
+    0,
+    `run-freshness is exempt for the spec being re-proven, got ${JSON.stringify(reproving.failures)}`
+  )
+  assert.ok(
+    reproving.failures.some(
+      (f) => f.includes("MS-test-hand-flipped") && f.includes("no transition")
+    ),
+    "provenance stays enforced even under the re-proving exemption"
   )
 })
 
