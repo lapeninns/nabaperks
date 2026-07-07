@@ -157,6 +157,45 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-07T21:11:47.653Z",
+      "git_sha": "812ebb88659f39153c12dddfa36ef6e04fa2b9ad",
+      "git_branch": "feat/perf-hardening",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7125
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1256
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11416
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 8772
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 981
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 732
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
