@@ -186,8 +186,25 @@ test(
     const migrationSql = readFileSync(MIGRATION_PATH, "utf8")
 
     await inRolledBackTxn(async (tx) => {
-      await tx.unsafe(migrationSql)
-      await tx.unsafe(migrationSql) // replay must be a no-op, not an error
+      // The policy swap takes AccessExclusive locks on seven hot tables.
+      // Other db-test files run in parallel and hold row locks on the same
+      // tables (e.g. the referral award races), so a lock cycle is possible.
+      // Pin THIS transaction as the deadlock victim (it detects first) and
+      // retry — the concurrent race tests must never be aborted on our
+      // account.
+      await tx`set local deadlock_timeout = '50ms'`
+      for (let attempt = 1; ; attempt += 1) {
+        try {
+          await tx.savepoint(async (sp) => {
+            await sp.unsafe(migrationSql)
+            await sp.unsafe(migrationSql) // replay must be a no-op, not an error
+          })
+          break
+        } catch (error) {
+          if (error?.code !== "40P01" || attempt >= 5) throw error
+          await new Promise((resolve) => setTimeout(resolve, 50 * attempt))
+        }
+      }
 
       const policies = await tx`
         select tablename, policyname
