@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-prefill-reward-pool-seed",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-07T11:54:58.585Z",
+      "sha": "cdd16eb3bf622326eb39ceebc23451c7a0626c80",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}

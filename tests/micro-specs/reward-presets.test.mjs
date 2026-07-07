@@ -27,21 +27,16 @@ describe("MS-merchant-reward-presets source contract", () => {
     )
   })
 
-  it("keeps persistence on existing card actions and seed defaults", () => {
+  it("keeps card and reward persistence but no auto-seed", () => {
     const form = readProjectFile("components/merchant/loyalty-card-form.tsx")
     const actions = readProjectFile("app/app/card/actions.ts")
-    const seedFiles = [
-      "lib/merchant/default-reward-pool.ts",
-      "lib/merchant/seed-default-reward-pool.ts",
-    ]
-      .map((path) => readProjectFile(path))
-      .join("\n")
 
     assert.match(form, /saveLoyaltyCardAction/)
     assert.match(form, /saveRewardPoolItemAction/)
     assert.match(actions, /save_loyalty_card/)
     assert.match(actions, /upsert_reward_pool_item/)
-    assert.doesNotMatch(seedFiles, /PUB_REWARD_PRESETS/)
+    // The reward pool is no longer auto-seeded; the merchant adds rewards.
+    assert.doesNotMatch(actions, /seedDefaultRewardPool/)
   })
 
   it("keeps non-pub merchants away from pub-specific copy", () => {

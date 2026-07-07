@@ -14,11 +14,9 @@ import { Button } from "@/components/ui/button"
 import { LAUNCH_MIN_ACTIVE_REWARDS } from "@/lib/merchant/launch-readiness-contract"
 import { getLoyaltyCardSetup } from "@/lib/merchant/loyalty-card"
 import { rewardPresetsForBusinessType } from "@/lib/merchant/reward-presets"
-import { seedDefaultRewardPoolForCardIfEmpty } from "@/lib/merchant/seed-default-reward-pool"
 
 export type RewardsPanelParams = {
   saved?: string
-  seeded?: string
   error?: string
   qr?: string
 }
@@ -43,17 +41,6 @@ export async function RewardsPanel({
 
   if (!merchant) {
     redirect("/app/onboarding")
-  }
-
-  if (card && rewardPoolItems.length === 0) {
-    const seeded = await seedDefaultRewardPoolForCardIfEmpty(
-      merchant.id,
-      card.id
-    )
-
-    if (seeded) {
-      redirect("/app/launch?tab=rewards&saved=pool&seeded=1")
-    }
   }
 
   if (!location) {
@@ -160,9 +147,7 @@ function RewardsStatus({
   if (params.saved === "pool") {
     const title = needsBillingActivation
       ? "Your account is created."
-      : params.seeded === "1"
-        ? "Starter rewards loaded."
-        : "Reward saved."
+      : "Reward saved."
     const activeRewardCopy = `${activeRewardPoolItemCount} of 3 active rewards`
 
     return (
@@ -174,9 +159,7 @@ function RewardsStatus({
             : params.qr === "enabled"
               ? "Your venue QR is active again."
               : rewardsReady
-                ? params.seeded === "1"
-                  ? "Three default rewards are active and saved. Create your QR once venue and card are ready."
-                  : "Launch eligibility has been refreshed with your latest reward changes."
+                ? "Launch eligibility has been refreshed with your latest reward changes."
                 : `${activeRewardCopy} are ready. Finish the reward pool before setup can complete.`}
         <LaunchSaveNextAction
           nextHref={advanceHref ?? continueHref ?? null}
