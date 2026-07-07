@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-prefill-send-reward",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-07T11:13:41.912Z",
+      "sha": "083ec627e06791d489d1253fa010b8457bd539db",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}

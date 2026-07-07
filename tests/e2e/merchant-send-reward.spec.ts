@@ -32,4 +32,19 @@ test.describe("@merchant-flow merchant send reward", () => {
     await expect(page.getByText(/Sending to/)).toBeVisible()
     await expect(page.getByText("Member email or phone")).toHaveCount(0)
   })
+
+  test("a reward preset chip prefills the name and terms without sending", async ({
+    page,
+  }) => {
+    await page.goto(SEND)
+
+    await page.getByRole("button", { name: "Regulars' pint" }).click()
+
+    await expect(page.getByLabel("Reward name")).toHaveValue("Regulars' pint")
+    await expect(page.getByLabel("Reward terms")).toHaveValue(
+      /Valid from the next UK business day\./
+    )
+    // Prefill only: tapping a preset must not send the reward.
+    await expect(page.getByText("Reward sent.")).toHaveCount(0)
+  })
 })

@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState } from "react"
+import { useActionState, useState } from "react"
 
 import {
   sendMerchantRewardAction,
@@ -14,17 +14,25 @@ import {
   DEFAULT_SEND_REWARD_EXPIRY_DAYS,
   SEND_REWARD_EXPIRY_OPTIONS,
 } from "@/lib/merchant/send-reward-fields"
+import { type RewardPreset } from "@/lib/merchant/reward-presets"
 
 const initialState: SendRewardState = {}
 
 export function SendRewardForm({
   membershipId,
   memberLabel,
+  presets = [],
 }: {
   membershipId?: string
   memberLabel?: string
+  presets?: readonly RewardPreset[]
 }) {
   const [state, action] = useActionState(sendMerchantRewardAction, initialState)
+  // Controlled so a preset chip can fill both fields; React preserves these
+  // across an error re-render, so the old defaultValue echo-back is no longer
+  // needed for name/terms.
+  const [rewardName, setRewardName] = useState("")
+  const [rewardTerms, setRewardTerms] = useState("")
 
   if (state.message) {
     return (
@@ -59,12 +67,40 @@ export function SendRewardForm({
         />
       )}
 
+      {presets.length > 0 ? (
+        <div className="grid gap-2 rounded-lg bg-secondary/60 p-3">
+          <Eyebrow>Quick fill</Eyebrow>
+          <div
+            role="group"
+            aria-label="Reward templates"
+            className="flex flex-wrap gap-2"
+          >
+            {presets.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => {
+                  // Prefill only: fills the draft fields; the reward is not sent
+                  // until the merchant presses Send reward.
+                  setRewardName(preset.rewardName)
+                  setRewardTerms(preset.rewardTerms)
+                }}
+                className="focus-ring rounded-lg border-2 border-dashed border-ink/25 bg-transparent px-3 py-1.5 text-sm font-bold text-foreground transition-[background-color,border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:border-ink hover:bg-card motion-reduce:transition-none"
+              >
+                {preset.rewardName}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <Field
         id="send-reward-name"
         name="rewardName"
         label="Reward name"
         hint="What the member sees, e.g. &ldquo;A drink on us&rdquo;."
-        defaultValue={state.fields?.rewardName}
+        value={rewardName}
+        onChange={(event) => setRewardName(event.target.value)}
         maxLength={100}
         error={state.errors?.rewardName}
       />
@@ -73,7 +109,8 @@ export function SendRewardForm({
         name="rewardTerms"
         label="Reward terms"
         hint="12–500 characters. Anything the member should know before redeeming."
-        defaultValue={state.fields?.rewardTerms}
+        value={rewardTerms}
+        onChange={(event) => setRewardTerms(event.target.value)}
         maxLength={500}
         error={state.errors?.rewardTerms}
       />

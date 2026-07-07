@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 
 import { PageTitle } from "@/components/brand"
 import { SendRewardForm } from "@/components/merchant/send-reward-form"
+import { PUB_REWARD_PRESETS } from "@/lib/merchant/reward-presets"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -34,6 +35,7 @@ export default async function SendRewardHarnessPage({
         <SendRewardForm
           membershipId={membershipId}
           memberLabel={membershipId ? "Phone ending 4242" : undefined}
+          presets={PUB_REWARD_PRESETS}
         />
       </section>
     </div>
