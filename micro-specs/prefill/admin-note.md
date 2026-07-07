@@ -1,6 +1,6 @@
 ---
 spec_id: MS-prefill-admin-note
-status: active
+status: implemented
 risk_class: ui-only
 owner: claude
 last_reviewed: 2026-07-07
