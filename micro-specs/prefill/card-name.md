@@ -1,6 +1,6 @@
 ---
 spec_id: MS-prefill-card-name
-status: active
+status: implemented
 risk_class: ui-only
 owner: claude
 last_reviewed: 2026-07-07
