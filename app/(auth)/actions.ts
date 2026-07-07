@@ -8,12 +8,17 @@ import {
   merchantEmailOtpAliasDigitLabel,
   merchantEmailOtpAliasLength,
 } from "@/lib/auth/merchant-email-otp-alias"
+import { merchantSignupVerifyHref } from "@/lib/navigation/merchant-auth-hrefs"
 import { safeMerchantNextPath } from "@/lib/navigation/safe-next-path"
 import {
   enforceRateLimit,
   RateLimitError,
   rateLimitIdentityFromHeaders,
 } from "@/lib/security/rate-limit"
+import {
+  validateConfirmPassword,
+  validatePassword,
+} from "@/lib/auth/password"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export type AuthActionState = {
@@ -58,16 +63,6 @@ function validateEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
-// Mirrors supabase config: minimum_password_length = 8,
-// password_requirements = "letters_digits".
-function validatePassword(password: string): string | null {
-  if (password.length < 8) return "Use at least 8 characters."
-  if (!/[a-zA-Z]/.test(password) || !/\d/.test(password)) {
-    return "Use a mix of letters and numbers."
-  }
-  return null
-}
-
 function otpPattern() {
   return new RegExp(`^\\d{${merchantEmailOtpAliasLength()}}$`)
 }
@@ -76,45 +71,10 @@ export async function signUpAction(
   _state: AuthActionState,
   formData: FormData
 ): Promise<AuthActionState> {
-  const intent = value(formData, "intent") || "create"
   const name = value(formData, "name")
   const email = value(formData, "email").toLowerCase()
+  const next = value(formData, "next") || defaultNextPath("sign-up")
   const errors: NonNullable<AuthActionState["errors"]> = {}
-
-  if (intent === "resend") {
-    if (!validateEmail(email)) errors.email = "Enter a valid email address."
-
-    if (Object.keys(errors).length) {
-      return { fields: { name, email, otpSent: true }, errors }
-    }
-
-    const rateLimitResult = await enforceAuthRateLimit("merchant-signup", email)
-    if (rateLimitResult) {
-      return { fields: { name, email, otpSent: true }, errors: rateLimitResult }
-    }
-
-    const supabase = await createSupabaseServerClient()
-    const { error } = await supabase.auth.resend({
-      type: "signup",
-      email,
-    })
-
-    if (error) {
-      // House copy only — raw provider messages never reach merchants
-      // (matches the login page's "Provider details are hidden for safety").
-      return {
-        fields: { name, email, otpSent: true },
-        errors: {
-          form: "Could not send another code just now. Wait a moment and try again.",
-        },
-      }
-    }
-
-    return {
-      fields: { name, email, otpSent: true },
-      message: `We sent another ${merchantEmailOtpAliasDigitLabel()} code. Enter it below.`,
-    }
-  }
 
   const password = passwordValue(formData, "password")
   const confirmPassword = passwordValue(formData, "confirmPassword")
@@ -123,8 +83,9 @@ export async function signUpAction(
   if (!validateEmail(email)) errors.email = "Enter a valid email address."
   const passwordError = validatePassword(password)
   if (passwordError) errors.password = passwordError
-  else if (password !== confirmPassword) {
-    errors.confirmPassword = "Passwords do not match."
+  else {
+    const confirmError = validateConfirmPassword(password, confirmPassword)
+    if (confirmError) errors.confirmPassword = confirmError
   }
 
   if (Object.keys(errors).length) {
@@ -165,9 +126,54 @@ export async function signUpAction(
     }
   }
 
+  redirect(
+    merchantSignupVerifyHref({
+      email,
+      name,
+      next: safeMerchantNextPath(next, defaultNextPath("sign-up")),
+    })
+  )
+}
+
+export async function resendSignupOtpAction(
+  _state: AuthActionState,
+  formData: FormData
+): Promise<AuthActionState> {
+  const name = value(formData, "name")
+  const email = value(formData, "email").toLowerCase()
+  const errors: NonNullable<AuthActionState["errors"]> = {}
+
+  if (!validateEmail(email)) errors.email = "Enter a valid email address."
+
+  if (Object.keys(errors).length) {
+    return { fields: { name, email }, errors }
+  }
+
+  const rateLimitResult = await enforceAuthRateLimit("merchant-signup", email)
+  if (rateLimitResult) {
+    return { fields: { name, email }, errors: rateLimitResult }
+  }
+
+  const supabase = await createSupabaseServerClient()
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email,
+  })
+
+  if (error) {
+    // House copy only — raw provider messages never reach merchants
+    // (matches the login page's "Provider details are hidden for safety").
+    return {
+      fields: { name, email },
+      errors: {
+        form: "Could not send another code just now. Wait a moment and try again.",
+      },
+    }
+  }
+
   return {
-    fields: { name, email, otpSent: true },
-    message: `We sent a ${merchantEmailOtpAliasDigitLabel()} code. Enter it below to verify your email.`,
+    fields: { name, email },
+    message: `We sent another ${merchantEmailOtpAliasDigitLabel()} code. Enter it below.`,
   }
 }
 
@@ -223,7 +229,7 @@ export async function verifyEmailOtpAction(
   const email = value(formData, "email").toLowerCase()
   const otp = value(formData, "otp").replace(/\s+/g, "")
   const next = value(formData, "next") || defaultNextPath("sign-up")
-  const fields = { name, email, otpSent: true }
+  const fields = { name, email }
   const errors: NonNullable<AuthActionState["errors"]> = {}
 
   if (!validateEmail(email)) errors.form = "Request a fresh email code."
@@ -311,8 +317,9 @@ export async function confirmPasswordResetAction(
   }
   const passwordError = validatePassword(password)
   if (passwordError) errors.password = passwordError
-  else if (password !== confirmPassword) {
-    errors.confirmPassword = "Passwords do not match."
+  else {
+    const confirmError = validateConfirmPassword(password, confirmPassword)
+    if (confirmError) errors.confirmPassword = confirmError
   }
 
   if (Object.keys(errors).length) {

@@ -27,25 +27,32 @@ export type MerchantBillingResult =
  * Wrapped in React `cache()` so repeat reads within a single request collapse
  * to one query (mirrors `getCurrentMerchant` in `lib/auth/session.ts`).
  */
-export const getMerchantBilling = cache(
-  async (merchantId: string): Promise<MerchantBillingResult> => {
-    try {
-      const supabase = await createSupabaseServerClient()
-      const { data, error } = await supabase
-        .from("billing_customers")
-        .select(
-          "status, current_period_end, stripe_customer_id, stripe_subscription_id"
-        )
-        .eq("merchant_id", merchantId)
-        .maybeSingle()
+async function loadMerchantBilling(
+  merchantId: string
+): Promise<MerchantBillingResult> {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const { data, error } = await supabase
+      .from("billing_customers")
+      .select(
+        "status, current_period_end, stripe_customer_id, stripe_subscription_id"
+      )
+      .eq("merchant_id", merchantId)
+      .maybeSingle()
 
-      if (error) {
-        return { ok: false }
-      }
-
-      return { ok: true, billing: (data as MerchantBilling | null) ?? null }
-    } catch {
+    if (error) {
       return { ok: false }
     }
+
+    return { ok: true, billing: (data as MerchantBilling | null) ?? null }
+  } catch {
+    return { ok: false }
   }
-)
+}
+
+export const getMerchantBilling = cache(loadMerchantBilling)
+
+/** Bypass request memoization after checkout sync or other writes in the same request. */
+export function getMerchantBillingFresh(merchantId: string) {
+  return loadMerchantBilling(merchantId)
+}

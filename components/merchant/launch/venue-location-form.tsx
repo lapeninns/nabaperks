@@ -1,6 +1,7 @@
 "use client"
 
-import { useActionState, useState } from "react"
+import { useActionState, useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 
 import {
   saveVenueLocationAction,
@@ -59,6 +60,12 @@ export function VenueLocationForm({
     saveVenueLocationAction,
     initialState
   )
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!state.saved) return
+    router.refresh()
+  }, [router, state.saved])
 
   const [venueName, setVenueName] = useState(initialValues.venueName)
   const [geofenceRadiusMeters, setGeofenceRadiusMeters] = useState(

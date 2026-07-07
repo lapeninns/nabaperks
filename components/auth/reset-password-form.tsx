@@ -11,6 +11,7 @@ import {
 import { AuthField } from "@/components/auth/auth-field"
 import { SubmitButton } from "@/components/forms"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { PASSWORD_HINT } from "@/lib/auth/password"
 
 const initialState: AuthActionState = {}
 
@@ -99,7 +100,7 @@ export function ResetPasswordForm({ otpLength }: ResetPasswordFormProps) {
             name="password"
             type="password"
             autoComplete="new-password"
-            description="At least 8 characters, with letters and numbers."
+            description={PASSWORD_HINT}
             error={confirmState.errors?.password}
           />
           <AuthField

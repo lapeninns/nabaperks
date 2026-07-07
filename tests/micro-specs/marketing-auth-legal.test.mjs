@@ -226,20 +226,36 @@ test("Given merchant email OTP aliases are six digits When auth copy is reviewed
   const alias = readProjectFile("lib", "auth", "merchant-email-otp-alias.ts")
   const authActions = readProjectFile("app", "(auth)", "actions.ts")
   const signupPage = readProjectFile("app", "(auth)", "signup", "page.tsx")
+  const signupVerifyPage = readProjectFile(
+    "app",
+    "(auth)",
+    "signup",
+    "verify",
+    "page.tsx"
+  )
   const resetPasswordPage = readProjectFile(
     "app",
     "(auth)",
     "reset-password",
     "page.tsx"
   )
-  const authForm = readProjectFile("components", "auth", "auth-form.tsx")
+  const signupVerifyForm = readProjectFile(
+    "components",
+    "auth",
+    "signup-verify-form.tsx"
+  )
   const resetPasswordForm = readProjectFile(
     "components",
     "auth",
     "reset-password-form.tsx"
   )
-  const authForms = [authForm, resetPasswordForm].join("\n")
-  const authSurfaces = [authActions, signupPage, resetPasswordPage].join("\n")
+  const authForms = [signupVerifyForm, resetPasswordForm].join("\n")
+  const authSurfaces = [
+    authActions,
+    signupPage,
+    signupVerifyPage,
+    resetPasswordPage,
+  ].join("\n")
 
   assert.match(alias, /MERCHANT_EMAIL_OTP_ALIAS_LENGTH = 6/)
   assert.match(alias, /merchantEmailOtpAliasDigitLabel/)
@@ -247,16 +263,17 @@ test("Given merchant email OTP aliases are six digits When auth copy is reviewed
   assert.doesNotMatch(authSurfaces, /four-digit (?:reset )?code/i)
   assert.match(authActions, /merchantEmailOtpAliasDigitLabel\(\)/)
   assert.match(signupPage, /merchantEmailOtpAliasDigitLabel\(\)/)
+  assert.match(signupVerifyPage, /merchantEmailOtpAliasDigitLabel\(\)/)
   assert.match(resetPasswordPage, /merchantEmailOtpAliasDigitLabel\(\)/)
-  assert.match(signupPage, /merchantEmailOtpAliasLength\(\)/)
-  assert.match(signupPage, /otpLength=\{merchantEmailOtpAliasLength\(\)\}/)
+  assert.match(signupVerifyPage, /merchantEmailOtpAliasLength\(\)/)
+  assert.match(signupVerifyPage, /otpLength=\{merchantEmailOtpAliasLength\(\)\}/)
   assert.match(resetPasswordPage, /merchantEmailOtpAliasLength\(\)/)
   assert.match(
     resetPasswordPage,
     /otpLength=\{merchantEmailOtpAliasLength\(\)\}/
   )
   assert.doesNotMatch(authForms, /maxLength=\{4\}/)
-  assert.match(authForm, /maxLength=\{otpLength\}/)
+  assert.match(signupVerifyForm, /maxLength=\{otpLength\}/)
   assert.match(resetPasswordForm, /maxLength=\{otpLength\}/)
 })
 

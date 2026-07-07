@@ -2,15 +2,11 @@ import type { Metadata } from "next"
 
 import { Tick02Icon } from "@hugeicons/core-free-icons"
 
-import { signUpAction, verifyEmailOtpAction } from "@/app/(auth)/actions"
 import { AUTH_SECTION_MIN_H } from "@/app/(auth)/viewport"
+import { SignupDetailsForm } from "@/components/auth/signup-details-form"
 import { Eyebrow, Icon, PageTitle, ReceiptCard } from "@/components/brand"
-import { AuthForm } from "@/components/auth/auth-form"
 import { MarketingLayout } from "@/components/layout"
-import {
-  merchantEmailOtpAliasDigitLabel,
-  merchantEmailOtpAliasLength,
-} from "@/lib/auth/merchant-email-otp-alias"
+import { merchantEmailOtpAliasDigitLabel } from "@/lib/auth/merchant-email-otp-alias"
 import { GUARANTEE, PRODUCT, ROUTES } from "@/lib/marketing/facts"
 import { getActivePromo } from "@/lib/marketing/promo"
 import { OG_IMAGE } from "@/lib/seo/structured-data"
@@ -105,21 +101,13 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
           <div className="mb-5 grid gap-1">
             <Eyebrow>30 days free</Eyebrow>
             <h2 className="text-[clamp(1.75rem,4vw,2.25rem)] leading-tight font-extrabold text-balance">
-              Open your till
+              Create your account
             </h2>
             <p className="text-sm leading-6 text-pretty text-muted-foreground">
-              Create your account and verify your email with a {otpCodeLabel}{" "}
-              code. {PRODUCT.cancelLine}
+              Add your details first. Email verification is the next step.
             </p>
           </div>
-          <AuthForm
-            action={signUpAction}
-            verifyAction={verifyEmailOtpAction}
-            mode="sign-up"
-            otpLength={merchantEmailOtpAliasLength()}
-            initialEmail={initialEmail}
-            embedded
-          />
+          <SignupDetailsForm initialEmail={initialEmail} />
         </ReceiptCard>
       </section>
     </MarketingLayout>

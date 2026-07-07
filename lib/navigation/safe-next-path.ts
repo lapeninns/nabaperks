@@ -55,6 +55,7 @@ function isCustomerAuthPath(path: string): boolean {
 function isMerchantAuthPath(path: string): boolean {
   return (
     isSamePathOrDescendant(path, "/login") ||
+    isSamePathOrDescendant(path, "/signup/verify") ||
     isSamePathOrDescendant(path, "/signup")
   )
 }

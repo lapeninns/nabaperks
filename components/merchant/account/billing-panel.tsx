@@ -16,8 +16,13 @@ import {
 import { Button } from "@/components/ui/button"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { PRODUCT } from "@/lib/marketing/facts"
-import { getMerchantBilling, type MerchantBilling } from "@/lib/merchant/billing"
-import { syncMerchantBillingFromStripe } from "@/lib/stripe/billing"
+import { BILLING_LAUNCH_TAB_PATH } from "@/lib/merchant/billing-nav"
+import { completeBillingCheckoutReturn } from "@/lib/merchant/billing-checkout-return"
+import {
+  getMerchantBilling,
+  getMerchantBillingFresh,
+  type MerchantBilling,
+} from "@/lib/merchant/billing"
 
 const SHOW_LOCAL_STRIPE_WEBHOOK_NOTE = process.env.NODE_ENV !== "production"
 
@@ -40,17 +45,28 @@ export async function BillingPanel({
     redirect("/app/onboarding")
   }
 
+  let checkoutSyncFailed = false
+
   if (params.checkout === "success") {
     try {
-      await syncMerchantBillingFromStripe(merchant.id)
-    } catch {
-      // Checkout return sync is best-effort; webhooks remain the durable path.
+      await completeBillingCheckoutReturn(merchant.id)
+    } catch (error) {
+      checkoutSyncFailed = true
+      console.error(
+        "[billing] checkout return sync failed",
+        error instanceof Error ? error.message : error
+      )
     }
   }
 
-  const result = await getMerchantBilling(merchant.id)
+  const result =
+    params.checkout === "success"
+      ? await getMerchantBillingFresh(merchant.id)
+      : await getMerchantBilling(merchant.id)
   const billing = result.ok ? result.billing : null
   const billingLoadFailed = !result.ok
+  const billingReturnTo =
+    mode === "setup" ? BILLING_LAUNCH_TAB_PATH : undefined
 
   const status = billing?.status ?? "not_started"
   const needsBillingAttention = shouldShowMerchantDashboardBillingNotice(status)
@@ -67,6 +83,7 @@ export async function BillingPanel({
       <BillingOutcomeMessages
         checkout={params.checkout}
         portal={params.portal}
+        checkoutSyncFailed={checkoutSyncFailed}
       />
 
       {billingLoadFailed ? (
@@ -75,7 +92,11 @@ export async function BillingPanel({
           {/* A real control, not bare prose — the force-dynamic tab refetches
               billing on navigation. */}
           <Link
-            href="/app/account?tab=billing"
+            href={
+              mode === "setup"
+                ? "/app/launch?tab=billing"
+                : "/app/account?tab=billing"
+            }
             className="font-bold underline underline-offset-4"
           >
             Try again
@@ -87,6 +108,7 @@ export async function BillingPanel({
       {setupActivation ? (
         <SetupBillingActivationCard
           annualBillingAvailable={annualBillingAvailable}
+          billingReturnTo={billingReturnTo}
         />
       ) : (
         <AccountBillingCard
@@ -96,6 +118,7 @@ export async function BillingPanel({
           needsCardToActivate={needsCardToActivate}
           status={status}
           annualBillingAvailable={annualBillingAvailable}
+          billingReturnTo={billingReturnTo}
         />
       )}
     </section>
@@ -105,8 +128,10 @@ export async function BillingPanel({
 /** Final launch step — plan facts, one primary action, no duplicate copy. */
 function SetupBillingActivationCard({
   annualBillingAvailable,
+  billingReturnTo,
 }: {
   annualBillingAvailable: boolean
+  billingReturnTo?: string
 }) {
   return (
     <ReceiptCard
@@ -133,6 +158,9 @@ function SetupBillingActivationCard({
 
       <div className="grid gap-2">
         <form action={startCheckoutAction.bind(null, "month")}>
+          {billingReturnTo ? (
+            <input type="hidden" name="returnTo" value={billingReturnTo} />
+          ) : null}
           <Button type="submit" className="w-full">
             <Icon icon={CreditCardIcon} size={16} />
             Proceed to billing · {PRODUCT.priceShort}
@@ -140,6 +168,9 @@ function SetupBillingActivationCard({
         </form>
         {annualBillingAvailable ? (
           <form action={startCheckoutAction.bind(null, "year")}>
+            {billingReturnTo ? (
+              <input type="hidden" name="returnTo" value={billingReturnTo} />
+            ) : null}
             <Button type="submit" variant="outline" className="w-full">
               Pay yearly · {PRODUCT.priceAnnual} · {PRODUCT.annualSaving}
             </Button>
@@ -170,6 +201,7 @@ function AccountBillingCard({
   needsCardToActivate,
   status,
   annualBillingAvailable,
+  billingReturnTo,
 }: {
   mode: "account" | "setup"
   billing: MerchantBilling | null
@@ -177,6 +209,7 @@ function AccountBillingCard({
   needsCardToActivate: boolean
   status: string
   annualBillingAvailable: boolean
+  billingReturnTo?: string
 }) {
   // The Stripe portal only exists once a customer is created. Keep the button
   // focusable (aria-disabled, not native disabled) and announce the reason via
@@ -217,6 +250,9 @@ function AccountBillingCard({
           {needsCardToActivate ? (
             <>
               <form action={startCheckoutAction.bind(null, "month")}>
+                {billingReturnTo ? (
+                  <input type="hidden" name="returnTo" value={billingReturnTo} />
+                ) : null}
                 <Button type="submit">
                   <Icon icon={CreditCardIcon} size={16} />
                   Start checkout · {PRODUCT.priceShort}
@@ -224,6 +260,13 @@ function AccountBillingCard({
               </form>
               {annualBillingAvailable ? (
                 <form action={startCheckoutAction.bind(null, "year")}>
+                  {billingReturnTo ? (
+                    <input
+                      type="hidden"
+                      name="returnTo"
+                      value={billingReturnTo}
+                    />
+                  ) : null}
                   <Button type="submit" variant="outline">
                     Pay yearly · {PRODUCT.annualSaving}
                   </Button>
@@ -232,6 +275,9 @@ function AccountBillingCard({
             </>
           ) : null}
           <form action={openCustomerPortalAction}>
+            {billingReturnTo ? (
+              <input type="hidden" name="returnTo" value={billingReturnTo} />
+            ) : null}
             <Button
               type="submit"
               variant={
@@ -275,14 +321,17 @@ function PlanRow({ label, value }: { label: string; value: string }) {
 function BillingOutcomeMessages({
   checkout,
   portal,
+  checkoutSyncFailed = false,
 }: {
   checkout?: string
   portal?: string
+  checkoutSyncFailed?: boolean
 }) {
   const hasBanner =
     checkout === "success" ||
     checkout === "cancelled" ||
-    portal === "missing"
+    portal === "missing" ||
+    checkoutSyncFailed
 
   // No outcome params -> render nothing so the parent grid gap doesn't reserve a
   // phantom band on the default view.
@@ -292,13 +341,17 @@ function BillingOutcomeMessages({
 
   return (
     <div className="grid gap-3">
-      {checkout === "success" ? (
+      {checkoutSyncFailed ? (
+        <StatusBanner tone="error" title="Billing sync is still catching up">
+          Checkout finished in Stripe, but we could not refresh your billing
+          status yet. Refresh this page in a moment or check that your Stripe
+          keys and webhook listener are configured for local dev.
+        </StatusBanner>
+      ) : null}
+      {checkout === "success" && !checkoutSyncFailed ? (
         <StatusBanner tone="success" title="Checkout completed">
           <div className="grid gap-2">
-            <p>
-              Your billing status should update on this page within a few
-              seconds.
-            </p>
+            <p>Your billing is active and your launch checklist should reflect it now.</p>
             {SHOW_LOCAL_STRIPE_WEBHOOK_NOTE ? (
               <p className="text-xs leading-5">
                 Local dev: keep the Stripe webhook listener running with{" "}

@@ -1,12 +1,10 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
-
 import { getCurrentMerchant, getCurrentUser } from "@/lib/auth/session"
 import {
-  revalidateMerchantCacheTags,
   revalidateMerchantOnboardingCache,
 } from "@/lib/cache/tags"
+import { revalidateMerchantLaunchSurfaces } from "@/lib/merchant/revalidate-launch-surfaces"
 import {
   parseVenueLocationSubmission,
   persistVenueLocationWrite,
@@ -99,9 +97,7 @@ export async function saveVenueLocationAction(
 
   const user = await getCurrentUser()
   if (user) revalidateMerchantOnboardingCache(user.id)
-  revalidateMerchantCacheTags(merchant.id)
-  revalidatePath("/app/launch")
-  revalidatePath("/app")
+  revalidateMerchantLaunchSurfaces(merchant.id)
 
   return { fields, saved: true }
 }

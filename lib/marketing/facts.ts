@@ -265,6 +265,7 @@ export const ROUTES = {
   about: "/about",
   pricing: "/pricing",
   signup: "/signup",
+  signupVerify: "/signup/verify",
   guides: {
     bestIdeas: "/guides/best-loyalty-ideas-for-pubs",
     rewardRegulars: "/guides/reward-regulars-without-an-app",
