@@ -35,6 +35,40 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-07T21:17:58.776Z",
+      "git_sha": "4f3e1dbd6e4f0c1c1d6de9af116eaef5cbf101c1",
+      "git_branch": "feat/perf-hardening",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6488
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1072
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11356
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 8452
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 866
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
@@ -46,6 +80,15 @@
       "sha": "37632b2673c9fa565192f24ed54a9b37b870be83",
       "dirty": true,
       "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-07T21:17:58.776Z",
+      "sha": "4f3e1dbd6e4f0c1c1d6de9af116eaef5cbf101c1",
+      "dirty": true,
+      "by": "amankumarshrestha",
+      "note": "unrelated seed/stress WIP rides the working tree per the spec's evidence-waiver; spec files committed separately"
     }
   ]
 }
