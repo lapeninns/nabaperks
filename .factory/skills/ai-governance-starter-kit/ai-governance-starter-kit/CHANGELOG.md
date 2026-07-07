@@ -30,6 +30,12 @@ the host repo's `skill-bundle-sync` test enforces it.
   the cure.
 - Kit release hygiene: this changelog, plugin-manifest version parity, and
   an installed-fixture suite run enforced by the host repo's tests.
+- Installer fix: template stamping no longer leaks plan metadata
+  (packageManager, projectName, stack, …) into the replacement map, which
+  used to rewrite identifiers inside installed engine code
+  (`packageJson.packageManager` became `packageJson.<manager>`); only
+  `{{UPPER_SNAKE}}` tokens stamp, and installed engine files are
+  byte-identical to their templates.
 
 ## 0.3.0 — 2026-07-05
 

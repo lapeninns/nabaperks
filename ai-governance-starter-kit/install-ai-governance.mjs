@@ -70,7 +70,7 @@ function buildInstallPlan(root, options = {}) {
     )
   }
 
-  planTemplateActions(templatesRoot, root, context, actions, {
+  planTemplateActions(templatesRoot, root, context.tokens, actions, {
     ciStatus,
     force: options.force,
     upgrade: options.upgrade,
@@ -148,38 +148,46 @@ function buildContext(root, packageJson = {}) {
   // on first run by construction.
   const bootstrapGates = floorGatesFor("docs-tooling", scripts, packageManager).gates
 
+  // `tokens` is the ONLY thing that may reach the template stamper: metadata
+  // (packageManager, stack, …) lives beside it for plan display, and letting
+  // those bare words into the replacement map once rewrote identifiers
+  // inside installed engine code (packageJson.packageManager -> packageJson.pnpm).
   return {
-    "{{PROJECT_NAME}}": projectName,
-    "{{TODAY}}": now.slice(0, 10),
-    "{{GOVERNANCE_SPEC_GATES}}": bootstrapGates.map((gate) => `  - ${gate}`).join("\n"),
-    "{{PACKAGE_MANAGER}}": packageManager,
-    "{{INSTALL_COMMAND}}": installCommand(packageManager),
-    "{{CI_INSTALL_COMMAND}}": ciInstallCommand(packageManager),
-    "{{LINT_COMMAND}}": commandFor(packageManager, scripts, "lint"),
-    "{{TYPECHECK_COMMAND}}": commandFor(packageManager, scripts, "typecheck"),
-    "{{TEST_COMMAND}}": commandFor(packageManager, scripts, "test"),
-    "{{BUILD_COMMAND}}": commandFor(packageManager, scripts, "build"),
-    "{{GOVERNANCE_CHECK_COMMAND}}": commandFor(
-      packageManager,
-      { "governance:check": true },
-      "governance:check"
-    ),
-    "{{GOVERNANCE_RUN_GATES_COMMAND}}": commandFor(
-      packageManager,
-      { "governance:run-gates": true },
-      "governance:run-gates"
-    ),
-    "{{STACK_PROFILE}}": stack.profile,
-    "{{STACK_SUMMARY}}": stack.summary,
-    "{{CI_GOVERNANCE_CHECK_STEP}}": ciStep(
-      commandFor(packageManager, { "governance:check": true }, "governance:check")
-    ),
-    "{{CI_LINT_STEP}}": scripts.lint ? ciStep(commandFor(packageManager, scripts, "lint")) : "",
-    "{{CI_TYPECHECK_STEP}}": scripts.typecheck
-      ? ciStep(commandFor(packageManager, scripts, "typecheck"))
-      : "",
-    "{{CI_TEST_STEP}}": ciStep(commandFor(packageManager, scripts, "test")),
-    "{{CI_BUILD_STEP}}": scripts.build ? ciStep(commandFor(packageManager, scripts, "build")) : "",
+    tokens: {
+      "{{PROJECT_NAME}}": projectName,
+      "{{TODAY}}": now.slice(0, 10),
+      "{{GOVERNANCE_SPEC_GATES}}": bootstrapGates.map((gate) => `  - ${gate}`).join("\n"),
+      "{{PACKAGE_MANAGER}}": packageManager,
+      "{{INSTALL_COMMAND}}": installCommand(packageManager),
+      "{{CI_INSTALL_COMMAND}}": ciInstallCommand(packageManager),
+      "{{LINT_COMMAND}}": commandFor(packageManager, scripts, "lint"),
+      "{{TYPECHECK_COMMAND}}": commandFor(packageManager, scripts, "typecheck"),
+      "{{TEST_COMMAND}}": commandFor(packageManager, scripts, "test"),
+      "{{BUILD_COMMAND}}": commandFor(packageManager, scripts, "build"),
+      "{{GOVERNANCE_CHECK_COMMAND}}": commandFor(
+        packageManager,
+        { "governance:check": true },
+        "governance:check"
+      ),
+      "{{GOVERNANCE_RUN_GATES_COMMAND}}": commandFor(
+        packageManager,
+        { "governance:run-gates": true },
+        "governance:run-gates"
+      ),
+      "{{STACK_PROFILE}}": stack.profile,
+      "{{STACK_SUMMARY}}": stack.summary,
+      "{{CI_GOVERNANCE_CHECK_STEP}}": ciStep(
+        commandFor(packageManager, { "governance:check": true }, "governance:check")
+      ),
+      "{{CI_LINT_STEP}}": scripts.lint ? ciStep(commandFor(packageManager, scripts, "lint")) : "",
+      "{{CI_TYPECHECK_STEP}}": scripts.typecheck
+        ? ciStep(commandFor(packageManager, scripts, "typecheck"))
+        : "",
+      "{{CI_TEST_STEP}}": ciStep(commandFor(packageManager, scripts, "test")),
+      "{{CI_BUILD_STEP}}": scripts.build
+        ? ciStep(commandFor(packageManager, scripts, "build"))
+        : "",
+    },
     foundScripts,
     missingScripts,
     packageManager,
@@ -443,11 +451,13 @@ function readPackageJson(path) {
   }
 }
 
+// Defense-in-depth: even if a metadata key ever leaks back into the map,
+// only {{UPPER_SNAKE}} tokens are eligible to stamp — bare words must never
+// rewrite identifiers inside copied engine code.
 function replaceAll(text, replacements) {
-  return Object.entries(replacements).reduce(
-    (next, [token, value]) => next.replaceAll(token, value),
-    text
-  )
+  return Object.entries(replacements)
+    .filter(([token]) => /^\{\{[A-Z0-9_]+\}\}$/.test(token))
+    .reduce((next, [token, value]) => next.replaceAll(token, value), text)
 }
 
 function basename(path) {

@@ -60,6 +60,41 @@ test("Given a package repo When the installer runs Then governance is installed 
   }
 })
 
+test("Given template stamping When engine files are installed Then no metadata key mangles their code", () => {
+  const targetRoot = mkdtempSync(path.join(tmpdir(), "ai-governance-kit-stamping-"))
+
+  try {
+    // packageManager declared but NO lockfile: the field is the only
+    // detection signal, so a stamped-away `packageJson.packageManager`
+    // property access cannot hide behind lockfile fallback.
+    writePackageJson(targetRoot, { packageManager: "pnpm@10.0.0" })
+
+    execFileSync("node", [path.join(kitRoot, "install-ai-governance.mjs"), targetRoot], {
+      stdio: "pipe",
+    })
+
+    // Engine files carry no {{TOKENS}}, so installing must be a byte-exact
+    // copy — a literal `packageManager`/`stack`/`projectName` in code must
+    // never be treated as a replacement token.
+    assert.equal(
+      readFileSync(path.join(targetRoot, "scripts/governance-commands.mjs"), "utf8"),
+      readFileSync(path.join(kitRoot, "templates/scripts/governance-commands.mjs"), "utf8"),
+      "installed governance-commands.mjs is byte-identical to the kit template"
+    )
+
+    // Real tokens still stamp: the constants template's {{TODAY}} must be a
+    // date in the installed copy.
+    const constants = readFileSync(
+      path.join(targetRoot, "scripts/governance-constants.mjs"),
+      "utf8"
+    )
+    assert.doesNotMatch(constants, /\{\{TODAY\}\}/, "the {{TODAY}} token is stamped")
+    assert.match(constants, /EVIDENCE_ADOPTION_DATE = "\d{4}-\d{2}-\d{2}"/)
+  } finally {
+    rmSync(targetRoot, { recursive: true, force: true })
+  }
+})
+
 test("Given a fresh install When the installed test suite runs Then the kit-flavor tests pass in situ", () => {
   const targetRoot = mkdtempSync(path.join(tmpdir(), "ai-governance-kit-insitu-"))
 
