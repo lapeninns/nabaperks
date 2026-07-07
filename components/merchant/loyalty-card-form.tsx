@@ -267,14 +267,16 @@ export function RewardPoolForm({
   // The row currently open in the inline editor: a reward id, "new", or null.
   const [editingId, setEditingId] = useState<string | "new" | null>(null)
   const [items, setItems] = useState(rewardPoolItems)
+  const [itemsSource, setItemsSource] = useState(rewardPoolItems)
   const [newRewardValues, setNewRewardValues] = useState<RewardPoolItemValues>(
     buildBlankRewardValues(rewardPoolItems.length + 1)
   )
   const [newRewardKey, setNewRewardKey] = useState("blank")
 
-  useEffect(() => {
+  if (itemsSource !== rewardPoolItems) {
+    setItemsSource(rewardPoolItems)
     setItems(rewardPoolItems)
-  }, [rewardPoolItems])
+  }
 
   const activeRewardCount = items.filter((item) => item.isActive).length
   const ready = activeRewardCount >= REQUIRED_ACTIVE_REWARDS

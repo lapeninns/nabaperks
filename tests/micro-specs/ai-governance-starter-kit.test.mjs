@@ -14,11 +14,12 @@ const projectRoot = path.resolve(
 const kitRoot = path.join(projectRoot, "ai-governance-starter-kit")
 
 // Temp-repo governance checks must be hermetic: an ambient
-// GOVERNANCE_CHANGED_FILES (e.g. injected by a governance:advance run whose
-// test gate spawned this suite) would otherwise leak this repo's changed-file
-// list into the sandbox and fail its blast radius.
+// GOVERNANCE_CHANGED_FILES or GOVERNANCE_REPROVING_SPECS (e.g. injected by a
+// governance:advance run whose test gate spawned this suite) would otherwise
+// leak this repo's invocation context into the sandbox.
 const hermeticEnv = { ...process.env }
 delete hermeticEnv.GOVERNANCE_CHANGED_FILES
+delete hermeticEnv.GOVERNANCE_REPROVING_SPECS
 
 test("Given the starter kit When files are inspected Then the Factory skill and templates exist", () => {
   for (const file of [
@@ -54,6 +55,73 @@ test("Given a package repo When the installer runs Then governance is installed 
       env: hermeticEnv,
     })
     assert.match(output, /Governance check passed/)
+  } finally {
+    rmSync(targetRoot, { recursive: true, force: true })
+  }
+})
+
+test("Given template stamping When engine files are installed Then no metadata key mangles their code", () => {
+  const targetRoot = mkdtempSync(path.join(tmpdir(), "ai-governance-kit-stamping-"))
+
+  try {
+    // packageManager declared but NO lockfile: the field is the only
+    // detection signal, so a stamped-away `packageJson.packageManager`
+    // property access cannot hide behind lockfile fallback.
+    writePackageJson(targetRoot, { packageManager: "pnpm@10.0.0" })
+
+    execFileSync("node", [path.join(kitRoot, "install-ai-governance.mjs"), targetRoot], {
+      stdio: "pipe",
+    })
+
+    // Engine files carry no {{TOKENS}}, so installing must be a byte-exact
+    // copy — a literal `packageManager`/`stack`/`projectName` in code must
+    // never be treated as a replacement token.
+    assert.equal(
+      readFileSync(path.join(targetRoot, "scripts/governance-commands.mjs"), "utf8"),
+      readFileSync(path.join(kitRoot, "templates/scripts/governance-commands.mjs"), "utf8"),
+      "installed governance-commands.mjs is byte-identical to the kit template"
+    )
+
+    // Real tokens still stamp: the constants template's {{TODAY}} must be a
+    // date in the installed copy.
+    const constants = readFileSync(
+      path.join(targetRoot, "scripts/governance-constants.mjs"),
+      "utf8"
+    )
+    assert.doesNotMatch(constants, /\{\{TODAY\}\}/, "the {{TODAY}} token is stamped")
+    assert.match(constants, /EVIDENCE_ADOPTION_DATE = "\d{4}-\d{2}-\d{2}"/)
+  } finally {
+    rmSync(targetRoot, { recursive: true, force: true })
+  }
+})
+
+test("Given a fresh install When the installed test suite runs Then the kit-flavor tests pass in situ", () => {
+  const targetRoot = mkdtempSync(path.join(tmpdir(), "ai-governance-kit-insitu-"))
+
+  try {
+    writePackageJson(targetRoot)
+    execFileSync("node", [path.join(kitRoot, "install-ai-governance.mjs"), targetRoot], {
+      stdio: "pipe",
+    })
+
+    // Enumerate the installed test files explicitly (no shell globbing, no
+    // reliance on the runner's directory discovery). A non-zero exit throws.
+    const testFiles = readdirSync(path.join(targetRoot, "tests/micro-specs"))
+      .filter((name) => name.endsWith(".test.mjs"))
+      .map((name) => path.join("tests/micro-specs", name))
+    assert.ok(testFiles.length >= 3, "the installer plants the kit test suite")
+    // NODE_TEST_CONTEXT must not leak: this suite itself runs under node's
+    // test runner, and an inherited context makes the nested `node --test`
+    // act as a silent runner child instead of a standalone run.
+    const childEnv = { ...hermeticEnv }
+    delete childEnv.NODE_TEST_CONTEXT
+    const output = execFileSync("node", ["--test", ...testFiles], {
+      cwd: targetRoot,
+      encoding: "utf8",
+      env: childEnv,
+    })
+    assert.match(output, /\bfail 0\b/, "the installed suite reports zero failures")
+    assert.doesNotMatch(output, /\bpass 0\b/, "the installed suite actually ran tests")
   } finally {
     rmSync(targetRoot, { recursive: true, force: true })
   }

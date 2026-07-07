@@ -37,12 +37,11 @@ export function SignupDetailsForm({
   const [clientErrors, setClientErrors] = useState<ClientErrors>({})
   const [showValidation, setShowValidation] = useState(false)
 
-  const errors = mergeErrors(state.errors, clientErrors)
+  const shouldShowValidation = showValidation || Boolean(state.errors)
+  const errors = mergeErrors(state.errors, state.errors ? {} : clientErrors)
 
   useEffect(() => {
     if (!state.errors) return
-    setClientErrors({})
-    setShowValidation(true)
     const firstInvalidId = [
       "name",
       "email",
@@ -132,7 +131,7 @@ export function SignupDetailsForm({
             value={password}
             onChange={(event) => {
               setPassword(event.target.value)
-              if (showValidation) {
+              if (shouldShowValidation) {
                 setClientErrors((current) => ({
                   ...current,
                   password: validatePassword(event.target.value) ?? undefined,
@@ -160,7 +159,7 @@ export function SignupDetailsForm({
           value={confirmPassword}
           onChange={(event) => {
             setConfirmPassword(event.target.value)
-            if (showValidation) {
+            if (shouldShowValidation) {
               setClientErrors((current) => ({
                 ...current,
                 confirmPassword:

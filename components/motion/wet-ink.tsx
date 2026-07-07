@@ -93,6 +93,8 @@ export function WetInkRise({ ...riseProps }: WetInkRiseProps) {
       inView = false,
       ...sectionProps
     } = riseProps
+    void _as
+    void _delay
 
     if (!shouldAnimate) {
       return (
@@ -128,6 +130,8 @@ export function WetInkRise({ ...riseProps }: WetInkRiseProps) {
     inView = false,
     ...divProps
   } = riseProps
+  void _as
+  void _delay
 
   if (!shouldAnimate) {
     return (

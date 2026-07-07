@@ -59,6 +59,14 @@ files, its unit test files, and — whenever the spec touches DB/RLS/RPC
 behavior — the specific `tests/db/**` files that prove it. See "Scoped
 Browser Gates" in `micro-specs/README.md`.
 
+The checker cross-checks these declarations on active specs: implementation
+surfaces matching a high-risk path (Supabase migrations, the Stripe webhook
+route) force the matching risk class; a blast radius claiming more than one
+broad root (`app/**`, `lib/**`, `scripts/**`, …) needs a dated
+`broad-blast-radius: <why> (expires: YYYY-MM-DD)` exception; and the e2e
+`--grep` tag must actually appear in one of the spec's related browser test
+files.
+
 Do not author the frontmatter by hand: scaffold with
 `pnpm governance:new-spec --id MS-<area>-<slug> --risk <class> --title "<text>"`,
 which pre-resolves the risk-class gate floor against the repo's real package

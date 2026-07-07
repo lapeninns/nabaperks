@@ -184,7 +184,20 @@ recording a dated approved exception:
 Wrapper scripts that already embed a tag filter (for example `test:a11y`
 defined as `playwright test --grep @a11y`) are exempt via
 `SCOPED_BROWSER_GATE_SCRIPTS` in `scripts/governance-constants.mjs`; forks
-tune that list.
+tune that list. The `--grep` pattern must also compile as a regular
+expression and match the content of at least one of the spec's declared
+related browser tests — a tag that selects someone else's tests proves the
+wrong thing.
+
+Two more cross-checks keep active-spec declarations honest. Implementation
+surfaces matching a configured risk-radius hint (`RISK_RADIUS_HINTS`, empty
+by default — add repo-specific entries like
+`{ pattern: "db/migrations/**", classes: ["migrations"] }`) force one of the
+hinted risk classes, because the gate floor keys off the declared class. And
+a blast radius claiming more exact broad roots (`app/**`, `lib/**`, `src/**`,
+…) than `BROAD_RADIUS_LIMIT` allows requires a dated
+`broad-blast-radius: <why> (expires: YYYY-MM-DD)` approved exception — one
+repo-wide active spec otherwise makes blast-radius enforcement vacuous.
 
 ## Current Verification Gates
 
@@ -250,6 +263,26 @@ is a regression being reported, not a bookkeeping error; fix the code and
 re-record rather than deleting history. Pre-adoption specs may carry a
 grandfather stub (`governance-evidence.mjs backfill`), valid only until the
 spec's first machine transition. Orphan ledgers (no matching spec) fail.
+
+`node scripts/governance-status.mjs` prints a read-only portfolio dashboard
+(per-spec lifecycle/evidence table, an attention list of implemented and
+verified specs awaiting their next step, current checker failures); it
+enforces nothing and always exits 0.
+
+Evidence also goes stale: an implemented or verified spec whose
+`implementation_surfaces` changed in commits made after its latest recorded
+run fails the checker until re-proven (`governance:run-gates --spec <id>
+--record`, or the next lifecycle advance). Committed history only; the
+spec's own document and its ledger are excluded (status flips are
+bookkeeping, not drift); a recorded sha that no longer resolves or is not an
+ancestor of HEAD (a squash-merged branch commit) is skipped — the check
+never invents staleness it cannot prove. Re-proving runs carry
+`GOVERNANCE_REPROVING_SPECS` on every gate they execute, exempting exactly
+the staleness and run-freshness (red/non-covering latest run) rules for the
+specs being re-proven — the cure is never blocked by the disease, while
+provenance, dirty-tree, and attestation rules stay enforced. Tune or disable
+staleness via `EVIDENCE_STALENESS_STATUSES` in
+`scripts/governance-constants.mjs`.
 
 ## Working Rule
 

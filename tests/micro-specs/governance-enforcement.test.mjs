@@ -1,10 +1,12 @@
 import assert from "node:assert/strict"
+import { execFileSync } from "node:child_process"
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { test } from "node:test"
 import { fileURLToPath } from "node:url"
 
+import { changedFilesSince } from "../../scripts/governance-commands.mjs"
 import { matchesPattern } from "../../scripts/governance-glob.mjs"
 import { parseFrontmatter } from "../../scripts/governance-io.mjs"
 import {
@@ -299,6 +301,168 @@ test("Given non-Playwright gates without --grep When validated Then they are not
   assert.deepEqual(run(root).failures, [])
 })
 
+test("Given an active spec When a high-risk surface rides a weaker risk class Then the risk hint fails", (t) => {
+  const root = fixtureRepo(t, {
+    spec: specFile({
+      riskClass: "docs-tooling",
+      blastRadius: ["micro-specs/**", "supabase/migrations/**", "package.json"],
+      surfaces: ["supabase/migrations/0001_example.sql"],
+    }),
+  })
+
+  const result = run(root)
+
+  const hint = result.failures.find((entry) => entry.includes("high-risk path"))
+  assert.ok(hint, `expected a risk-radius hint failure, got ${JSON.stringify(result.failures)}`)
+  assert.match(hint, /"supabase\/migrations\/0001_example\.sql"/)
+  assert.match(hint, /"supabase\/migrations\/\*\*"/)
+  assert.match(hint, /migrations or rls-rpc-ledger/)
+})
+
+test("Given an active spec When a broad surface glob hides a hinted path Then the risk hint still fails", (t) => {
+  const root = fixtureRepo(t, {
+    spec: specFile({
+      riskClass: "docs-tooling",
+      blastRadius: ["micro-specs/**", "supabase/**", "package.json"],
+      surfaces: ["supabase/**"],
+    }),
+  })
+
+  const result = run(root)
+
+  assert.ok(
+    result.failures.some((entry) => entry.includes("high-risk path")),
+    `a surface glob covering supabase/migrations must trip the hint, got ${JSON.stringify(result.failures)}`
+  )
+})
+
+test("Given an active migrations spec with a migrations surface Then the risk hint is satisfied", (t) => {
+  const root = fixtureRepo(t, {
+    spec: specFile({
+      riskClass: "migrations",
+      blastRadius: ["micro-specs/**", "supabase/migrations/**", "package.json"],
+      surfaces: ["supabase/migrations/0001_example.sql"],
+      gates: [
+        "pnpm lint",
+        "pnpm typecheck",
+        "pnpm build",
+        "pnpm test",
+        "pnpm test:coverage",
+        "pnpm test:db",
+      ],
+    }),
+  })
+
+  assert.deepEqual(run(root).failures, [])
+})
+
+test("Given an active spec When its radius claims too many broad roots Then breadth fails unless waived", (t) => {
+  const broadRadius = ["app/**", "lib/**", "components/pwa/**", "micro-specs/governance/**", "package.json"]
+  const root = fixtureRepo(t, {
+    spec: specFile({
+      riskClass: "docs-tooling",
+      blastRadius: broadRadius,
+      surfaces: ["micro-specs/governance/example.md"],
+    }),
+    extraSpecs: {
+      "governance/waived-broad.md": specFile({
+        specId: "MS-test-waived-broad",
+        riskClass: "docs-tooling",
+        blastRadius: broadRadius,
+        surfaces: ["micro-specs/governance/waived-broad.md"],
+        exceptions: [
+          "broad-blast-radius: repo-wide sweep is the point of this spec (expires: 2026-12-31)",
+        ],
+      }),
+      "governance/shipped-broad.md": specFile({
+        specId: "MS-test-shipped-broad",
+        status: "implemented",
+        riskClass: "docs-tooling",
+        blastRadius: broadRadius,
+        surfaces: ["micro-specs/governance/shipped-broad.md"],
+      }),
+    },
+  })
+
+  const result = run(root)
+
+  const breadth = result.failures.find(
+    (entry) => entry.includes("MS-test-governance") && entry.includes("broad radius roots")
+  )
+  assert.ok(breadth, `expected a breadth failure, got ${JSON.stringify(result.failures)}`)
+  assert.match(breadth, /app\/\*\*, lib\/\*\*/)
+  assert.match(breadth, /broad-blast-radius/)
+  assert.ok(
+    !breadth.includes("components/pwa/**"),
+    "scoped subpaths never count as broad roots"
+  )
+  assert.equal(result.failures.filter((f) => f.includes("MS-test-waived-broad")).length, 0)
+  assert.equal(
+    result.failures.filter((f) => f.includes("MS-test-shipped-broad") || f.includes("shipped-broad.md")).length,
+    0,
+    "breadth applies to active specs only"
+  )
+})
+
+test("Given a scoped browser gate When its grep tag misses the spec's own tests Then the crosscheck fails", (t) => {
+  const browserGates = [
+    "pnpm lint",
+    "pnpm typecheck",
+    "pnpm build",
+    "pnpm test",
+    "pnpm test:coverage",
+    "pnpm bundle:check",
+    'pnpm test:e2e -- --grep "@missing-tag"',
+    "pnpm test:a11y",
+    "pnpm test:visual",
+  ]
+  const root = fixtureRepo(t, {
+    spec: specFile({
+      riskClass: "ui-only",
+      gates: browserGates,
+      tests: ["tests/e2e/example.spec.ts"],
+      playwrightProjects: ["chromium"],
+      evidence: ["Playwright report for changed UI"],
+    }),
+  })
+
+  const result = run(root)
+
+  const miss = result.failures.find((entry) => entry.includes("matches none of the spec's related browser tests"))
+  assert.ok(miss, `expected a grep crosscheck failure, got ${JSON.stringify(result.failures)}`)
+  assert.match(miss, /@missing-tag/)
+  assert.match(miss, /tests\/e2e\/example\.spec\.ts/)
+})
+
+test("Given a scoped browser gate When its grep pattern is not a valid regex Then the crosscheck fails", (t) => {
+  const root = fixtureRepo(t, {
+    spec: specFile({
+      riskClass: "ui-only",
+      gates: [
+        "pnpm lint",
+        "pnpm typecheck",
+        "pnpm build",
+        "pnpm test",
+        "pnpm test:coverage",
+        "pnpm bundle:check",
+        'pnpm test:e2e -- --grep "(["',
+        "pnpm test:a11y",
+        "pnpm test:visual",
+      ],
+      tests: ["tests/e2e/example.spec.ts"],
+      playwrightProjects: ["chromium"],
+      evidence: ["Playwright report for changed UI"],
+    }),
+  })
+
+  const result = run(root)
+
+  assert.ok(
+    result.failures.some((entry) => entry.includes("is not a valid regular expression")),
+    `expected an invalid-regex failure, got ${JSON.stringify(result.failures)}`
+  )
+})
+
 test("Given a spec with an unknown Playwright project When validation runs Then the project drift is rejected", (t) => {
   const root = fixtureRepo(t, {
     spec: specFile({
@@ -584,6 +748,228 @@ test("Given closed specs When their records conform or rot Then the closed-recor
   )
 })
 
+test("Given an implemented spec When surfaces changed after the proving run Then staleness fails with the cure", (t) => {
+  const root = fixtureRepo(t, {
+    spec: specFile({ riskClass: "docs-tooling" }),
+    extraSpecs: {
+      "governance/stale.md": specFile({
+        specId: "MS-test-stale",
+        status: "implemented",
+        riskClass: "docs-tooling",
+        blastRadius: ["micro-specs/**", "scripts/thing.mjs"],
+        surfaces: ["scripts/thing.mjs"],
+      }),
+    },
+    ledgers: {
+      "MS-test-stale": { spec_id: "MS-test-stale", runs: [{ git_sha: "a1b2c3d4e5f6a7b8", all_passed: true }] },
+    },
+  })
+
+  const result = run(root, {
+    changedFilesSince: () => ["scripts/thing.mjs", "app/unrelated.tsx"],
+    // Hermetic against an ambient re-proving marker (this suite itself runs
+    // inside recording gate runs).
+    env: {},
+  })
+
+  const stale = result.failures.find((entry) => entry.includes("changed after the proving run"))
+  assert.ok(stale, `expected a staleness failure, got ${JSON.stringify(result.failures)}`)
+  assert.match(stale, /MS-test-stale/)
+  assert.match(stale, /a1b2c3d4e5/)
+  assert.match(stale, /scripts\/thing\.mjs/)
+  assert.ok(!stale.includes("app/unrelated.tsx"), "only surface-matching files are named")
+  assert.match(stale, /governance:run-gates --spec MS-test-stale --record/)
+})
+
+test("Given staleness edge cases When history is unknowable, non-surface, bookkeeping-only, or status-exempt Then nothing is flagged", (t) => {
+  const implementedSpec = (specId, file, overrides = {}) =>
+    specFile({
+      specId,
+      status: "implemented",
+      riskClass: "docs-tooling",
+      blastRadius: ["micro-specs/**", "scripts/thing.mjs"],
+      surfaces: ["scripts/thing.mjs", `micro-specs/governance/${file}`],
+      ...overrides,
+    })
+  const root = fixtureRepo(t, {
+    spec: specFile({ riskClass: "docs-tooling" }),
+    extraSpecs: {
+      "governance/clean.md": implementedSpec("MS-test-clean", "clean.md"),
+      "governance/bookkeeping.md": implementedSpec("MS-test-bookkeeping", "bookkeeping.md"),
+      "governance/unknowable.md": implementedSpec("MS-test-unknowable", "unknowable.md"),
+      "governance/no-runs.md": implementedSpec("MS-test-no-runs", "no-runs.md"),
+      "governance/still-active.md": specFile({
+        specId: "MS-test-still-active",
+        riskClass: "docs-tooling",
+        blastRadius: ["micro-specs/**", "scripts/thing.mjs"],
+        surfaces: ["scripts/thing.mjs"],
+      }),
+    },
+    ledgers: {
+      "MS-test-clean": { spec_id: "MS-test-clean", runs: [{ git_sha: "clean0000000000" }] },
+      "MS-test-bookkeeping": { spec_id: "MS-test-bookkeeping", runs: [{ git_sha: "book00000000000" }] },
+      "MS-test-unknowable": { spec_id: "MS-test-unknowable", runs: [{ git_sha: "gone00000000000" }] },
+      "MS-test-no-runs": { spec_id: "MS-test-no-runs", runs: [] },
+      "MS-test-still-active": { spec_id: "MS-test-still-active", runs: [{ git_sha: "act000000000000" }] },
+    },
+  })
+
+  const result = run(root, {
+    changedFilesSince: (rootDir, sha) => {
+      if (sha === "clean0000000000") return ["docs/notes.md"]
+      if (sha === "book00000000000") {
+        return [
+          "micro-specs/governance/bookkeeping.md",
+          "micro-specs/evidence/MS-test-bookkeeping.json",
+        ]
+      }
+      if (sha === "gone00000000000") return null
+      return ["scripts/thing.mjs"]
+    },
+    env: {},
+  })
+
+  assert.deepEqual(
+    result.failures.filter((entry) => entry.includes("changed after the proving run")),
+    [],
+    `no staleness failures expected, got ${JSON.stringify(result.failures)}`
+  )
+})
+
+test("Given a stale spec When it is exempted for a re-proving run Then only the exempted id is skipped", (t) => {
+  const staleSpec = (specId, file) =>
+    specFile({
+      specId,
+      status: "implemented",
+      riskClass: "docs-tooling",
+      blastRadius: ["micro-specs/**", "scripts/thing.mjs"],
+      surfaces: ["scripts/thing.mjs"],
+    })
+  const ledger = (specId) => ({ spec_id: specId, runs: [{ git_sha: `${specId}-sha` }] })
+  const root = fixtureRepo(t, {
+    spec: specFile({ riskClass: "docs-tooling" }),
+    extraSpecs: {
+      "governance/exempted.md": staleSpec("MS-test-exempted", "exempted.md"),
+      "governance/not-exempted.md": staleSpec("MS-test-not-exempted", "not-exempted.md"),
+    },
+    ledgers: {
+      "MS-test-exempted": ledger("MS-test-exempted"),
+      "MS-test-not-exempted": ledger("MS-test-not-exempted"),
+    },
+  })
+  const changedFilesSince = () => ["scripts/thing.mjs"]
+
+  const viaEnv = run(root, {
+    changedFilesSince,
+    env: { GOVERNANCE_REPROVING_SPECS: "MS-test-exempted, MS-other" },
+  })
+  assert.equal(
+    viaEnv.failures.filter((f) => f.includes("MS-test-exempted") && f.includes("changed after the proving run")).length,
+    0,
+    "the env-exempted spec is skipped"
+  )
+  assert.equal(
+    viaEnv.failures.filter((f) => f.includes("MS-test-not-exempted") && f.includes("changed after the proving run")).length,
+    1,
+    "non-exempted specs still fail"
+  )
+
+  const viaOption = run(root, {
+    changedFilesSince,
+    reprovingSpecIds: ["MS-test-exempted", "MS-test-not-exempted"],
+    env: {},
+  })
+  assert.equal(
+    viaOption.failures.filter((f) => f.includes("changed after the proving run")).length,
+    0,
+    "the in-process option exempts the listed ids"
+  )
+})
+
+test("Given a red-ledgered implemented spec When it is being re-proven Then run-freshness is exempt but provenance holds", (t) => {
+  const redLedger = {
+    spec_id: "MS-test-red",
+    runs: [{ git_sha: "red0000000", gates: [{ command: "pnpm lint", exit_code: 1 }], all_passed: false }],
+    transitions: [{ from: "active", to: "implemented" }],
+  }
+  const root = fixtureRepo(t, {
+    spec: specFile({ riskClass: "docs-tooling" }),
+    extraSpecs: {
+      "governance/red.md": specFile({
+        specId: "MS-test-red",
+        status: "implemented",
+        riskClass: "docs-tooling",
+      }),
+      "governance/hand-flipped.md": specFile({
+        specId: "MS-test-hand-flipped",
+        status: "implemented",
+        riskClass: "docs-tooling",
+      }),
+    },
+    ledgers: {
+      "MS-test-red": redLedger,
+      "MS-test-hand-flipped": { spec_id: "MS-test-hand-flipped", runs: [], transitions: [] },
+    },
+  })
+
+  const strict = run(root, { evidenceAdoptionDate: "2026-01-01", env: {} })
+  assert.ok(
+    strict.failures.some((f) => f.includes("MS-test-red") && f.includes("does not cover")),
+    `a red/uncovering latest run fails outside a re-proving context, got ${JSON.stringify(strict.failures)}`
+  )
+
+  const reproving = run(root, {
+    evidenceAdoptionDate: "2026-01-01",
+    env: { GOVERNANCE_REPROVING_SPECS: "MS-test-red" },
+  })
+  assert.equal(
+    reproving.failures.filter((f) => f.includes("MS-test-red")).length,
+    0,
+    `run-freshness is exempt for the spec being re-proven, got ${JSON.stringify(reproving.failures)}`
+  )
+  assert.ok(
+    reproving.failures.some(
+      (f) => f.includes("MS-test-hand-flipped") && f.includes("no transition")
+    ),
+    "provenance stays enforced even under the re-proving exemption"
+  )
+})
+
+test("Given a real git history When changedFilesSince reads it Then ancestors diff and unknowable shas are null", (t) => {
+  const root = mkdtempSync(path.join(tmpdir(), "nabaperks-gitreader-"))
+  t.after(() => rmSync(root, { recursive: true, force: true }))
+  const git = (...args) =>
+    execFileSync("git", args, { cwd: root, stdio: ["ignore", "pipe", "ignore"], encoding: "utf8" }).trim()
+
+  git("init", "-q", "-b", "main")
+  git("config", "user.email", "fixture@example.com")
+  git("config", "user.name", "Fixture")
+  git("config", "commit.gpgsign", "false")
+  writeFileSync(path.join(root, "a.txt"), "one\n")
+  git("add", "a.txt")
+  git("commit", "-q", "-m", "first")
+  const base = git("rev-parse", "HEAD")
+
+  // A side branch: its tip resolves in the clone but is not an ancestor of
+  // main's HEAD — the squash-merge shape the check must treat as unknowable.
+  git("checkout", "-q", "-b", "side")
+  writeFileSync(path.join(root, "c.txt"), "side\n")
+  git("add", "c.txt")
+  git("commit", "-q", "-m", "side")
+  const side = git("rev-parse", "HEAD")
+  git("checkout", "-q", "main")
+
+  writeFileSync(path.join(root, "a.txt"), "two\n")
+  writeFileSync(path.join(root, "b.txt"), "new\n")
+  git("add", ".")
+  git("commit", "-q", "-m", "second")
+
+  assert.deepEqual(changedFilesSince(root, base).sort(), ["a.txt", "b.txt"])
+  assert.equal(changedFilesSince(root, side), null, "a non-ancestor sha is unknowable history")
+  assert.equal(changedFilesSince(root, "0".repeat(40)), null, "an unresolvable sha is unknowable history")
+  assert.equal(changedFilesSince(root, null), null)
+})
+
 test("Given CI and README gate lists When they drift Then both directions fail", (t) => {
   const root = fixtureRepo(t, {
     spec: specFile({ riskClass: "docs-tooling" }),
@@ -644,14 +1030,22 @@ function closedRecordBody(pointer = "tests/micro-specs/example.test.mjs") {
   ]
 }
 
-function fixtureRepo(t, { spec, extraSpecs = {}, ciLines = null, readmeGates = null }) {
+function fixtureRepo(t, { spec, extraSpecs = {}, ciLines = null, readmeGates = null, ledgers = {} }) {
   const root = mkdtempSync(path.join(tmpdir(), "nabaperks-governance-"))
   t.after(() => rmSync(root, { recursive: true, force: true }))
 
   mkdirSync(path.join(root, ".github/workflows"), { recursive: true })
   mkdirSync(path.join(root, "micro-specs/governance"), { recursive: true })
+  mkdirSync(path.join(root, "micro-specs/evidence"), { recursive: true })
   mkdirSync(path.join(root, "tests/micro-specs"), { recursive: true })
   mkdirSync(path.join(root, "tests/e2e"), { recursive: true })
+
+  for (const [specId, ledger] of Object.entries(ledgers)) {
+    writeFileSync(
+      path.join(root, "micro-specs/evidence", `${specId}.json`),
+      `${JSON.stringify(ledger, null, 2)}\n`
+    )
+  }
 
   writeFileSync(
     path.join(root, "package.json"),
@@ -721,13 +1115,17 @@ function fixtureRepo(t, { spec, extraSpecs = {}, ciLines = null, readmeGates = n
   )
 
   // Files the default specs reference must actually exist under the new
-  // related_tests existence rule.
+  // related_tests existence rule. The e2e fixture carries the grep tags the
+  // scoped-gate fixtures reference, so the grep crosscheck can match content.
   writeFileSync(path.join(root, "tests/micro-specs/example.test.mjs"), "// fixture\n")
   writeFileSync(
     path.join(root, "tests/micro-specs/governance-enforcement.test.mjs"),
     "// fixture\n"
   )
-  writeFileSync(path.join(root, "tests/e2e/example.spec.ts"), "// fixture\n")
+  writeFileSync(
+    path.join(root, "tests/e2e/example.spec.ts"),
+    'test("@some-tag @governance PWA offline fallback fixture", () => {})\n'
+  )
   writeFileSync(path.join(root, "tests/e2e/billing.spec.ts"), "// fixture\n")
 
   writeFileSync(path.join(root, "micro-specs/governance/example.md"), spec)
@@ -745,7 +1143,9 @@ function specFile({
   status = "active",
   riskClass,
   lastReviewed = "2026-07-01",
-  blastRadius = ["micro-specs/**", "scripts/**", "tests/**", "package.json"],
+  // At most one exact broad root, so default fixtures stay under the
+  // radius-breadth limit; breadth cases declare their own radius.
+  blastRadius = ["micro-specs/**", "tests/micro-specs/**", "tests/e2e/**", "package.json"],
   surfaces = null,
   gates = [
     "pnpm lint",

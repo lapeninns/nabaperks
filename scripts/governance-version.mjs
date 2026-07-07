@@ -21,6 +21,7 @@ export const ENGINE_FILES = Object.freeze([
   "governance-glob.mjs",
   "governance-io.mjs",
   "governance-rules.mjs",
+  "governance-status.mjs",
   "governance-version.mjs",
   "new-spec.mjs",
   "run-governance-gates.mjs",

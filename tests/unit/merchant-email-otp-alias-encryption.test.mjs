@@ -42,10 +42,12 @@ test("every encryption uses a fresh IV", () => {
 test("a tampered value fails auth-tag verification as an integrity error", () => {
   const stored = encryptOtpAliasToken(TOKEN)
   const parts = stored.split(".")
-  const body = parts[3]
-  const flipped =
-    body.slice(0, -1) + (body.endsWith("A") ? "B" : "A")
-  const tampered = [parts[0], parts[1], parts[2], flipped].join(".")
+  // Tamper in byte space: swapping a base64url CHARACTER can be a no-op when
+  // it only changes the encoding's ignored trailing bits (which made this
+  // test flake); flipping a decoded byte is a guaranteed real change.
+  const body = Buffer.from(parts[3], "base64url")
+  body[0] ^= 0x01
+  const tampered = [parts[0], parts[1], parts[2], body.toString("base64url")].join(".")
 
   assert.throws(
     () => decryptOtpAliasToken(tampered),

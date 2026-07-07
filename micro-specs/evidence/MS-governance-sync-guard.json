@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "spec_id": "MS-governance-sync-guard",
+  "runs": [
+    {
+      "timestamp": "2026-07-07T18:10:21.832Z",
+      "git_sha": "aee5adf6f9beaa389862dd2d3d5c1383f6a49efd",
+      "git_branch": "feat/governance-hardening",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 5968
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 983
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 744
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 7903
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 822
+        }
+      ],
+      "all_passed": true
+    }
+  ],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-07T18:08:13.613Z",
+      "sha": "d17159dd8d9b9aca7102a06bd204c7e310d4e974",
+      "dirty": true,
+      "by": "claude-code agent (amanshresthaa)"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-07T18:10:21.832Z",
+      "sha": "aee5adf6f9beaa389862dd2d3d5c1383f6a49efd",
+      "dirty": false,
+      "by": "claude-code agent (amanshresthaa)"
+    }
+  ]
+}

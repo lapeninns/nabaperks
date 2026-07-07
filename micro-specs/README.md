@@ -17,6 +17,10 @@ validate, execute, and verify Micro-Specs against the current buildable app.
   way to change a spec's status; runs gates fresh and records evidence.
 - `scripts/governance-evidence.mjs` - the evidence-ledger module
   (`show <spec-id>` / `backfill --by <who>`).
+- `scripts/governance-status.mjs` (`pnpm governance:status`) - read-only
+  portfolio dashboard: per-spec lifecycle/evidence table, an attention list
+  of implemented/verified specs awaiting their next step, and the checker's
+  current failures. Enforces nothing (always exits 0).
 
 ## Current State
 
@@ -100,7 +104,22 @@ Additional enforced rules:
 - Active specs must scope browser-suite gates: a `test:e2e` gate needs a
   `--grep` filter that selects this spec's own tests, unless the spec carries
   a dated `broad-browser-gate:` approved exception (see "Scoped Browser
-  Gates" below).
+  Gates" below). The `--grep` pattern must compile as a regular expression
+  and match the content of at least one of the spec's declared
+  `tests/e2e|a11y|visual` related tests — a tag that selects someone else's
+  tests proves the wrong thing.
+- Active specs' `implementation_surfaces` are cross-checked against the
+  risk-radius hints in `scripts/governance-constants.mjs`: a surface matching
+  a hinted high-risk path (for example `supabase/migrations/**` or
+  `app/api/stripe/webhook/**`) forces one of that hint's risk classes — the
+  gate floor keys off risk_class, so high-risk paths must not ride under a
+  weaker class.
+- Active specs may claim at most one exact broad radius root (`app/**`,
+  `components/**`, `lib/**`, `scripts/**`, …). Beyond the limit the spec must
+  carry a dated `broad-blast-radius: <why> (expires: YYYY-MM-DD)` approved
+  exception — one repo-wide spec otherwise makes blast-radius enforcement
+  vacuous for every file. Scoped subpaths (`components/pwa/**`) never count
+  as broad.
 - An `active` spec whose `last_reviewed` is more than 30 days old fails until
   it is re-reviewed and the date bumped.
 - Docs-drift is bidirectional: the gate list below must equal the gate
@@ -324,6 +343,20 @@ is a regression being reported, not a bookkeeping error; fix and re-record
 rather than deleting history. The 32 specs implemented before adoption carry
 grandfather stubs (`node scripts/governance-evidence.mjs backfill`), each
 valid only until its spec's first machine transition. Orphan ledgers fail.
+
+Evidence also goes stale: an implemented or verified spec whose
+`implementation_surfaces` changed in commits made after its latest recorded
+run fails the checker until re-proven (`governance:run-gates --spec <id>
+--record`, or the next lifecycle advance). Committed history only; the
+spec's own document and its ledger are excluded (status flips are
+bookkeeping, not drift); a recorded sha that no longer resolves or is not an
+ancestor of HEAD (a squash-merged branch commit) is skipped — the check
+never invents staleness it cannot prove. Re-proving runs carry
+`GOVERNANCE_REPROVING_SPECS` on every gate they execute, exempting exactly
+the staleness and run-freshness (red/non-covering latest run) rules for the
+specs being re-proven — the cure is never blocked by the disease, while
+provenance, dirty-tree, and attestation rules stay enforced. The standalone
+check keeps full enforcement.
 
 ## Working Rule
 

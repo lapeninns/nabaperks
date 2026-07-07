@@ -34,8 +34,15 @@ if (specIndex !== -1 && !specId) {
 }
 
 // A mid-implementation tree legitimately has changed files everywhere; gate
-// execution needs valid metadata, not blast-radius cleanliness.
-const validation = validateGovernance(root, { enforceChangedFiles: false })
+// execution needs valid metadata, not blast-radius cleanliness. Re-proof
+// state (staleness, red latest runs) is exempt for the same reason a
+// recording run exists at all: this invocation IS the cure those failures
+// prescribe, and it must not be blocked by the disease it is curing (the
+// standalone governance:check keeps full enforcement).
+const validation = validateGovernance(root, {
+  enforceChangedFiles: false,
+  reprovingSpecIds: ["*"],
+})
 
 if (!validation.ok) {
   console.error("Governance gates were not run because governance validation failed:")
@@ -74,7 +81,12 @@ if (runnable.length === 0) {
 
 for (const gate of runnable) console.log(`queued: ${gate}`)
 
-const results = executeGates(root, runnable)
+// Every gate of a recording run carries the re-proving marker — not just
+// governance:check: test suites embed real-repo validations that would
+// otherwise re-impose the staleness/red-run failures this very run cures.
+// Fixture-based tests stay hermetic by passing their own env explicitly.
+const envForGate = () => ({ ...process.env, GOVERNANCE_REPROVING_SPECS: "*" })
+const results = executeGates(root, runnable, { envForGate })
 const failed = results.find((result) => result.exit_code !== 0)
 
 if (record) {

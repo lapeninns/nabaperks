@@ -511,7 +511,7 @@ test("Given active browser gates When broad, scoped, waived, or already shipped 
       "shipped.md": browserSpec("MS-fixture-shipped", "pnpm test:e2e", { status: "implemented" }),
     },
     extraFiles: {
-      "tests/e2e/example.spec.ts": "// present\n",
+      "tests/e2e/example.spec.ts": 'test("@some-tag fixture", () => {})\n',
       "playwright.config.ts": 'export default { projects: [{ name: "chromium" }] }\n',
     },
   })
@@ -538,6 +538,85 @@ test("Given non-browser gates without --grep When validated Then they are not re
   assert.equal(
     run(root).failures.filter((f) => f.includes("broad browser gate")).length,
     0
+  )
+})
+
+test("Given an active spec When its radius claims too many broad roots Then breadth fails unless waived", (t) => {
+  const root = makeFixture(t, {
+    specs: {
+      "broad.md": specSource({
+        spec_id: "MS-fixture-broad-radius",
+        allowed_blast_radius: ["app/**", "lib/**", "docs/adr/**"],
+        implementation_surfaces: ["lib/x.ts"],
+      }),
+      "waived.md": specSource({
+        spec_id: "MS-fixture-waived-radius",
+        allowed_blast_radius: ["app/**", "lib/**"],
+        implementation_surfaces: ["lib/x.ts"],
+        approved_exceptions: [
+          "broad-blast-radius: repo-wide sweep is the point of this spec (expires: 2026-12-31)",
+        ],
+      }),
+      "shipped.md": specSource({
+        spec_id: "MS-fixture-shipped-radius",
+        status: "implemented",
+        allowed_blast_radius: ["app/**", "lib/**"],
+        implementation_surfaces: ["lib/x.ts"],
+      }),
+      "scoped.md": specSource({ spec_id: "MS-fixture-scoped-radius" }),
+    },
+  })
+
+  const { failures } = run(root)
+  const breadth = failures.find(
+    (f) => f.includes("MS-fixture-broad-radius") && f.includes("broad radius roots")
+  )
+  assert.ok(breadth, `expected a radius-breadth failure, got ${JSON.stringify(failures)}`)
+  assert.match(breadth, /app\/\*\*, lib\/\*\*/)
+  assert.ok(!breadth.includes("docs/adr/**"), "scoped subpaths never count as broad roots")
+  assert.match(breadth, /broad-blast-radius/)
+  assert.equal(failures.filter((f) => f.includes("MS-fixture-waived-radius")).length, 0)
+  assert.equal(
+    failures.filter((f) => f.includes("MS-fixture-shipped-radius") || f.includes("shipped.md")).length,
+    0,
+    "the breadth lint applies to active specs only"
+  )
+  assert.equal(failures.filter((f) => f.includes("MS-fixture-scoped-radius")).length, 0)
+})
+
+test("Given scoped browser gates When the grep tag hits, misses, or cannot compile Then only the bad gates fail", (t) => {
+  const gateSpec = (id, gate) =>
+    specSource({
+      spec_id: id,
+      verification_gates: ["pnpm governance:check", "pnpm test", "pnpm lint", "pnpm typecheck", gate],
+      required_playwright_projects: ["chromium"],
+      related_tests: ["tests/e2e/example.spec.ts"],
+    })
+  const root = makeFixture(t, {
+    scripts: { ...DEFAULT_SCRIPTS, "test:e2e": "node --version" },
+    specs: {
+      "hit.md": gateSpec("MS-fixture-grep-hit", 'pnpm test:e2e -- --grep "@my-tag"'),
+      "miss.md": gateSpec("MS-fixture-grep-miss", 'pnpm test:e2e -- --grep "@other-tag"'),
+      "invalid.md": gateSpec("MS-fixture-grep-invalid", 'pnpm test:e2e -- --grep "(["'),
+    },
+    extraFiles: {
+      "tests/e2e/example.spec.ts": 'test("@my-tag fixture", () => {})\n',
+      "playwright.config.ts": 'export default { projects: [{ name: "chromium" }] }\n',
+    },
+  })
+
+  const { failures } = run(root)
+  assert.equal(failures.filter((f) => f.includes("MS-fixture-grep-hit")).length, 0)
+  assert.ok(
+    failures.some(
+      (f) => f.includes("MS-fixture-grep-miss") && f.includes("matches none of the spec's related browser tests")
+    ),
+    `expected a grep-miss failure, got ${JSON.stringify(failures)}`
+  )
+  assert.ok(
+    failures.some(
+      (f) => f.includes("MS-fixture-grep-invalid") && f.includes("not a valid regular expression")
+    )
   )
 })
 
@@ -614,6 +693,47 @@ test("Given closed specs When their records conform or rot Then the closed-recor
   )
   assert.ok(
     failures.some((f) => f.includes("closed-sentinel.md") && f.includes("related_tests sentinel"))
+  )
+})
+
+test("Given evidence staleness When surfaces changed after the proving run Then only the stale spec fails and exemption clears it", (t) => {
+  const implemented = (id) =>
+    specSource({ spec_id: id, status: "implemented", implementation_surfaces: ["lib/x.ts"] })
+  const ledger = (id, sha) => `${JSON.stringify({ spec_id: id, runs: [{ git_sha: sha }] })}\n`
+  const root = makeFixture(t, {
+    specs: {
+      "stale.md": implemented("MS-fixture-stale"),
+      "clean.md": implemented("MS-fixture-clean"),
+      "unknowable.md": implemented("MS-fixture-unknowable"),
+    },
+    extraFiles: {
+      "micro-specs/evidence/MS-fixture-stale.json": ledger("MS-fixture-stale", "sha-stale"),
+      "micro-specs/evidence/MS-fixture-clean.json": ledger("MS-fixture-clean", "sha-clean"),
+      "micro-specs/evidence/MS-fixture-unknowable.json": ledger("MS-fixture-unknowable", "sha-gone"),
+    },
+  })
+  const changedFilesSince = (dir, sha) => {
+    if (sha === "sha-stale") return ["lib/x.ts", "docs/unrelated.md"]
+    if (sha === "sha-clean") return ["docs/unrelated.md"]
+    return null
+  }
+
+  const { failures } = run(root, { changedFilesSince, env: {} })
+  const stale = failures.find(
+    (f) => f.includes("MS-fixture-stale") && f.includes("changed after the proving run")
+  )
+  assert.ok(stale, `expected a staleness failure, got ${JSON.stringify(failures)}`)
+  assert.match(stale, /lib\/x\.ts/)
+  assert.match(stale, /governance:run-gates --spec MS-fixture-stale --record/)
+  assert.equal(failures.filter((f) => f.includes("MS-fixture-clean")).length, 0)
+  assert.equal(failures.filter((f) => f.includes("MS-fixture-unknowable")).length, 0)
+
+  // A re-proving run (runner/lifecycle CLI) exempts re-proof state wholesale
+  // so the cure is never blocked by the disease it is curing.
+  const exempted = run(root, { changedFilesSince, env: { GOVERNANCE_REPROVING_SPECS: "*" } })
+  assert.equal(
+    exempted.failures.filter((f) => f.includes("changed after the proving run")).length,
+    0
   )
 })
 

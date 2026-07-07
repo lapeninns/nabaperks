@@ -219,10 +219,15 @@ if (runsGates) {
   // Scope the branch diff to the governance:check gate ONLY: it keeps
   // unrelated working-tree noise (other programs' WIP) from failing the
   // advance, while test gates stay hermetic — their own sandboxed governance
-  // checks must never inherit this repo's changed-file list.
+  // checks must never inherit this repo's changed-file list. The re-proving
+  // marker for THIS spec rides on every gate (test suites embed real-repo
+  // validations): the fresh run being recorded is the cure that staleness
+  // and red-run failures prescribe, and it lands at the sha the standalone
+  // check will then accept. Other specs' re-proof debt still fails the
+  // check gate, forcing re-records in the right order.
   const changed = branchChangedFiles(root)
   const envForGate = (parsed) => {
-    const env = { ...process.env }
+    const env = { ...process.env, GOVERNANCE_REPROVING_SPECS: options.specId }
     delete env.GOVERNANCE_CHANGED_FILES
     if (parsed.scriptName === "governance:check" && changed.length > 0) {
       env.GOVERNANCE_CHANGED_FILES = changed.join(",")

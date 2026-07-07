@@ -1,0 +1,93 @@
+{
+  "schema": 1,
+  "spec_id": "MS-governance-kit-release-hygiene",
+  "runs": [
+    {
+      "timestamp": "2026-07-07T18:06:11.573Z",
+      "git_sha": "ea4613e7095e72b7b7467c4ccfb5cf23d5868334",
+      "git_branch": "feat/governance-hardening",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6002
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 976
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 662
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 7829
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 789
+        }
+      ],
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-07T18:37:40.567Z",
+      "git_sha": "99fbdba9a762bf44b95fa66560492b8f893f14a5",
+      "git_branch": "feat/governance-hardening",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6046
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1394
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 194
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 8209
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 803
+        }
+      ],
+      "all_passed": true
+    }
+  ],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-07T18:03:14.309Z",
+      "sha": "dc1fe8b15cfc74f095058dab62d40356ee5037e2",
+      "dirty": true,
+      "by": "claude-code agent (amanshresthaa)"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-07T18:06:11.573Z",
+      "sha": "ea4613e7095e72b7b7467c4ccfb5cf23d5868334",
+      "dirty": false,
+      "by": "claude-code agent (amanshresthaa)"
+    }
+  ]
+}

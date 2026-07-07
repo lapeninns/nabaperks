@@ -1,21 +1,27 @@
-import { existsSync, readdirSync } from "node:fs"
+import { existsSync, readFileSync, readdirSync } from "node:fs"
 import { join } from "node:path"
 
 import {
+  changedFilesSince,
   isManualInspectionGate,
   parsePackageScriptGate,
 } from "./governance-commands.mjs"
 import {
   BROAD_BROWSER_GATE_EXCEPTION_TOKEN,
+  BROAD_RADIUS_EXCEPTION_TOKEN,
+  BROAD_RADIUS_LIMIT,
+  BROAD_RADIUS_ROOTS,
   DURABLE_PROOF_SCRIPTS,
   EVIDENCE_ADOPTION_DATE,
   EVIDENCE_DIR,
   EVIDENCE_GATE_INFERENCE,
+  EVIDENCE_STALENESS_STATUSES,
   RELATED_TESTS_EXEMPT_STATUSES,
   RELATED_TESTS_SENTINEL,
   REQUIRED_METADATA_FIELDS,
   REQUIRE_EXCEPTION_EXPIRY,
   RISK_CLASSES,
+  RISK_RADIUS_HINTS,
   RISK_REQUIRED_SCRIPTS,
   SCOPED_BROWSER_GATE_SCRIPTS,
   SCRIPT_ALIASES,
@@ -83,7 +89,7 @@ export function validateGovernance(root, options = {}) {
   }
   for (const spec of activeSpecs(specs)) {
     if (spec.parseErrors?.length > 0) continue
-    validateActiveSpec(spec, packageScripts, failures)
+    validateActiveSpec(spec, packageScripts, root, failures)
   }
   for (const spec of specs) {
     if (spec.parseErrors?.length > 0) continue
@@ -95,7 +101,15 @@ export function validateGovernance(root, options = {}) {
   // ledger contract, not fall through to the constant.
   const adoptionDate =
     "evidenceAdoptionDate" in options ? options.evidenceAdoptionDate : EVIDENCE_ADOPTION_DATE
-  validateEvidenceLedgers(root, specs, adoptionDate, failures)
+  const reproving = reprovingExemptions(options)
+  validateEvidenceLedgers(root, specs, adoptionDate, reproving, failures)
+  validateEvidenceStaleness(
+    root,
+    specs,
+    options.changedFilesSince ?? changedFilesSince,
+    reproving,
+    failures
+  )
 
   const changedFiles =
     options.changedFiles ?? findChangedFiles(root, options.env ?? process.env)
@@ -305,7 +319,11 @@ export function validateClosedRecord(spec, root) {
   return failures
 }
 
-function validateActiveSpec(spec, packageScripts, failures) {
+function validateActiveSpec(spec, packageScripts, root, failures) {
+  validateRiskRadiusHints(spec, failures)
+  validateRadiusBreadth(spec, failures)
+  validateScopedGrepTags(spec, root, failures)
+
   const floor = RISK_REQUIRED_SCRIPTS[spec.metadata.risk_class]
   if (!floor) return
 
@@ -364,6 +382,87 @@ function validateActiveSpec(spec, packageScripts, failures) {
   }
 }
 
+// The gate floor keys off the self-declared risk_class, so these hints stop
+// a high-risk surface riding under a weaker class. Surfaces (the spec's
+// claimed edit set) are checked, not the radius (a permission list), and the
+// glob match runs in both directions so a broad surface glob cannot hide a
+// hinted path.
+function validateRiskRadiusHints(spec, failures) {
+  for (const hint of RISK_RADIUS_HINTS) {
+    if (hint.classes.includes(spec.metadata.risk_class)) continue
+    for (const surface of listField(spec, "implementation_surfaces")) {
+      if (matchesPattern(surface, hint.pattern) || matchesPattern(hint.pattern, surface)) {
+        failures.push(
+          `${specId(spec)} implementation surface "${surface}" matches high-risk path "${hint.pattern}"; declare risk_class ${hint.classes.join(" or ")} or restructure the surfaces.`
+        )
+      }
+    }
+  }
+}
+
+// One repo-wide active spec makes blast-radius enforcement vacuous for every
+// file, so claiming more than BROAD_RADIUS_LIMIT exact broad roots must be
+// said out loud via a dated exception. Scoped subpaths never count as broad.
+function validateRadiusBreadth(spec, failures) {
+  if (BROAD_RADIUS_ROOTS.length === 0) return
+  const broad = listField(spec, "allowed_blast_radius").filter((entry) =>
+    BROAD_RADIUS_ROOTS.includes(entry)
+  )
+  if (broad.length <= BROAD_RADIUS_LIMIT) return
+  const waived = listField(spec, "approved_exceptions").some((entry) =>
+    String(entry).includes(BROAD_RADIUS_EXCEPTION_TOKEN)
+  )
+  if (waived) return
+  failures.push(
+    `${specId(spec)} claims ${broad.length} broad radius roots (${broad.join(", ")}) where ${BROAD_RADIUS_LIMIT} is the limit; narrow the radius or record a "${BROAD_RADIUS_EXCEPTION_TOKEN}: <why> (expires: YYYY-MM-DD)" approved_exceptions entry.`
+  )
+}
+
+// A scoped browser gate must prove THIS spec's surfaces: its --grep pattern
+// has to select at least one of the spec's own declared browser tests. Raw
+// file content is matched (a superset of the test titles Playwright greps)
+// to keep false negatives low. Runs only once the related-browser-test rule
+// is satisfied, so a missing harness fails once, not twice.
+function validateScopedGrepTags(spec, root, failures) {
+  if (SCOPED_BROWSER_GATE_SCRIPTS.length === 0) return
+  const relatedBrowserTests = listField(spec, "related_tests").filter(
+    (testPath) =>
+      /^tests\/(e2e|a11y|visual)\//.test(testPath) && existsSync(join(root, testPath))
+  )
+  if (relatedBrowserTests.length === 0) return
+
+  for (const gate of listField(spec, "verification_gates")) {
+    const parsed = parsePackageScriptGate(gate)
+    if (!parsed || !SCOPED_BROWSER_GATE_SCRIPTS.includes(parsed.scriptName)) continue
+    const pattern = grepPatternOf(parsed.args ?? "")
+    if (pattern === null) continue
+
+    let regex
+    try {
+      regex = new RegExp(pattern)
+    } catch {
+      failures.push(
+        `${specId(spec)} gate grep pattern ${JSON.stringify(pattern)} is not a valid regular expression.`
+      )
+      continue
+    }
+    const hit = relatedBrowserTests.some((testPath) =>
+      regex.test(readFileSync(join(root, testPath), "utf8"))
+    )
+    if (!hit) {
+      failures.push(
+        `${specId(spec)} gate grep pattern ${JSON.stringify(pattern)} matches none of the spec's related browser tests (${relatedBrowserTests.join(", ")}); tag the spec's own tests or fix the pattern.`
+      )
+    }
+  }
+}
+
+function grepPatternOf(args) {
+  const match = args.match(/--grep(?:=|\s+)(?:"([^"]*)"|'([^']*)'|(\S+))/)
+  if (!match) return null
+  return match[1] ?? match[2] ?? match[3]
+}
+
 // Scoped-gate doctrine for ACTIVE specs: a browser-suite gate must be
 // narrowed to the spec's own tests with --grep. A whole-suite run drags every
 // unrelated browser surface into the spec's gate (and its recorded evidence),
@@ -417,14 +516,18 @@ function validateDocsDrift(root, ciCommands, failures) {
 }
 
 // Ledger contract for implemented/verified specs, plus orphan detection —
-// entirely disabled while the adoption date is null (pre-rollout).
-function validateEvidenceLedgers(root, specs, adoptionDate, failures) {
+// entirely disabled while the adoption date is null (pre-rollout). Specs the
+// current invocation is re-proving keep provenance/attestation enforcement
+// but skip run-freshness (see evaluateLedger).
+function validateEvidenceLedgers(root, specs, adoptionDate, reproving, failures) {
   if (!adoptionDate) return
 
   for (const spec of specs) {
     if (spec.parseErrors?.length > 0) continue
     const ledger = spec.metadata.spec_id ? readLedger(root, spec.metadata.spec_id) : null
-    failures.push(...evaluateLedger(spec, ledger, adoptionDate))
+    const skipRunFreshness =
+      reproving.has("*") || reproving.has(spec.metadata.spec_id)
+    failures.push(...evaluateLedger(spec, ledger, adoptionDate, { skipRunFreshness }))
   }
 
   const dir = join(root, EVIDENCE_DIR)
@@ -436,6 +539,62 @@ function validateEvidenceLedgers(root, specs, adoptionDate, failures) {
     if (!knownIds.has(specId)) {
       failures.push(`${EVIDENCE_DIR}/${entry} is an orphan ledger: no Micro-Spec declares spec_id "${specId}".`)
     }
+  }
+}
+
+// Spec ids the CURRENT invocation is re-proving: the in-process option plus
+// the GOVERNANCE_REPROVING_SPECS environment variable (comma-separated ids,
+// or "*" for all). run-governance-gates and advance-spec set this for their
+// own gate runs — including nested test suites that validate the real repo —
+// because a re-proving run is the cure that staleness and red-run failures
+// prescribe, and it must not be blocked by the disease it is curing (two
+// mutually-stale specs would otherwise deadlock each other). The standalone
+// governance:check keeps full enforcement.
+function reprovingExemptions(options) {
+  const env = options.env ?? process.env
+  const fromEnv = String(env.GOVERNANCE_REPROVING_SPECS ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean)
+  return new Set([...(options.reprovingSpecIds ?? []), ...fromEnv])
+}
+
+// Evidence staleness: a green run proves the commit it ran on, so commits
+// after that sha touching the spec's implementation surfaces make the
+// evidence re-proof debt. The spec's own document and ledger are excluded
+// (status flips are bookkeeping, not drift), and unknowable history — no
+// runs, no sha, a sha that no longer resolves or is not an ancestor of HEAD
+// (squash-merged branches) — fails open so the check never invents
+// staleness it cannot prove.
+function validateEvidenceStaleness(root, specs, changedSince, reproving, failures) {
+  if (EVIDENCE_STALENESS_STATUSES.length === 0) return
+  if (reproving.has("*")) return
+
+  for (const spec of specs) {
+    if (spec.parseErrors?.length > 0) continue
+    if (!EVIDENCE_STALENESS_STATUSES.includes(spec.metadata.status)) continue
+    const id = spec.metadata.spec_id
+    if (!id || reproving.has(id)) continue
+    const ledger = readLedger(root, id)
+    if (!ledger || ledger.parseError) continue
+    const sha = (ledger.runs ?? []).at(-1)?.git_sha
+    if (!sha) continue
+    const changed = changedSince(root, sha)
+    if (changed === null || changed === undefined) continue
+
+    const bookkeeping = new Set([`micro-specs/${spec.file}`, `${EVIDENCE_DIR}/${id}.json`])
+    const stale = changed.filter(
+      (file) =>
+        !bookkeeping.has(file) &&
+        listField(spec, "implementation_surfaces").some((pattern) => matchesPattern(file, pattern))
+    )
+    if (stale.length === 0) continue
+
+    const shown = stale.slice(0, 5).join(", ")
+    const more = stale.length > 5 ? ` (+${stale.length - 5} more)` : ""
+    failures.push(
+      `${id} is ${spec.metadata.status} but its implementation surfaces changed after the proving run ${String(sha).slice(0, 10)}: ${shown}${more}; re-prove with governance:run-gates --spec ${id} --record.`
+    )
   }
 }
 
