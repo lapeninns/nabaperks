@@ -1,6 +1,6 @@
 ---
 spec_id: MS-governance-status-cli
-status: active
+status: implemented
 risk_class: docs-tooling
 owner: claude-code agent (amanshresthaa)
 last_reviewed: 2026-07-07
