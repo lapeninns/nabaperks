@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-governance-sync-guard",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-07T18:08:13.613Z",
+      "sha": "d17159dd8d9b9aca7102a06bd204c7e310d4e974",
+      "dirty": true,
+      "by": "claude-code agent (amanshresthaa)"
+    }
+  ]
+}
