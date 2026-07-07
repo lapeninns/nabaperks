@@ -91,6 +91,24 @@ active` → TDD red → green → refactor (`Instructions_tdd.md`) →
 committed, gate-green state before the next begins (the advance step requires a
 clean tree scoped to that spec's radius).
 
+## Delivery Status — 2026-07-07
+
+All six specs are `implemented` and committed on `feat/prefill-from-template`
+(15 commits), each green on its full risk-class gate floor run locally:
+
+| # | spec_id | Status | Local gates |
+|---|---------|--------|-------------|
+| 1 | `MS-prefill-card-name` | implemented | 9/9 (unit + e2e/a11y/visual) |
+| 2 | `MS-prefill-announcement-templates` | implemented | 9/9 (e2e 20, a11y 65, visual 18) |
+| 3 | `MS-prefill-send-reward` | implemented | 9/9 (e2e 3, a11y 65, visual 18) |
+| 4 | `MS-prefill-birthday-reward` | implemented | 9/9 (e2e 2, a11y 65, visual 18) |
+| 5 | `MS-prefill-admin-note` | implemented | 9/9 (e2e 1, a11y 65, visual 18) |
+| 6 | `MS-prefill-reward-pool-seed` | implemented | 7/7 (test:db 123, e2e @reward-presets 8) |
+
+Owner owes, in order: push `feat/prefill-from-template` → CI blesses the refreshed
+`home`/`pricing` `-linux` visual twins → review the PR → merge → then each spec
+advances `verified` (attest/ack) and `closed` (rationale-record rewrite).
+
 ## Stop Condition
 
 Stop only when every spec is `closed` — or `verified` with a single named,
