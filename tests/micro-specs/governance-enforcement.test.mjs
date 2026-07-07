@@ -1,10 +1,12 @@
 import assert from "node:assert/strict"
+import { execFileSync } from "node:child_process"
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { test } from "node:test"
 import { fileURLToPath } from "node:url"
 
+import { changedFilesSince } from "../../scripts/governance-commands.mjs"
 import { matchesPattern } from "../../scripts/governance-glob.mjs"
 import { parseFrontmatter } from "../../scripts/governance-io.mjs"
 import {
@@ -746,6 +748,174 @@ test("Given closed specs When their records conform or rot Then the closed-recor
   )
 })
 
+test("Given an implemented spec When surfaces changed after the proving run Then staleness fails with the cure", (t) => {
+  const root = fixtureRepo(t, {
+    spec: specFile({ riskClass: "docs-tooling" }),
+    extraSpecs: {
+      "governance/stale.md": specFile({
+        specId: "MS-test-stale",
+        status: "implemented",
+        riskClass: "docs-tooling",
+        blastRadius: ["micro-specs/**", "scripts/thing.mjs"],
+        surfaces: ["scripts/thing.mjs"],
+      }),
+    },
+    ledgers: {
+      "MS-test-stale": { spec_id: "MS-test-stale", runs: [{ git_sha: "a1b2c3d4e5f6a7b8", all_passed: true }] },
+    },
+  })
+
+  const result = run(root, {
+    changedFilesSince: () => ["scripts/thing.mjs", "app/unrelated.tsx"],
+  })
+
+  const stale = result.failures.find((entry) => entry.includes("changed after the proving run"))
+  assert.ok(stale, `expected a staleness failure, got ${JSON.stringify(result.failures)}`)
+  assert.match(stale, /MS-test-stale/)
+  assert.match(stale, /a1b2c3d4e5/)
+  assert.match(stale, /scripts\/thing\.mjs/)
+  assert.ok(!stale.includes("app/unrelated.tsx"), "only surface-matching files are named")
+  assert.match(stale, /governance:run-gates --spec MS-test-stale --record/)
+})
+
+test("Given staleness edge cases When history is unknowable, non-surface, bookkeeping-only, or status-exempt Then nothing is flagged", (t) => {
+  const implementedSpec = (specId, file, overrides = {}) =>
+    specFile({
+      specId,
+      status: "implemented",
+      riskClass: "docs-tooling",
+      blastRadius: ["micro-specs/**", "scripts/thing.mjs"],
+      surfaces: ["scripts/thing.mjs", `micro-specs/governance/${file}`],
+      ...overrides,
+    })
+  const root = fixtureRepo(t, {
+    spec: specFile({ riskClass: "docs-tooling" }),
+    extraSpecs: {
+      "governance/clean.md": implementedSpec("MS-test-clean", "clean.md"),
+      "governance/bookkeeping.md": implementedSpec("MS-test-bookkeeping", "bookkeeping.md"),
+      "governance/unknowable.md": implementedSpec("MS-test-unknowable", "unknowable.md"),
+      "governance/no-runs.md": implementedSpec("MS-test-no-runs", "no-runs.md"),
+      "governance/still-active.md": specFile({
+        specId: "MS-test-still-active",
+        riskClass: "docs-tooling",
+        blastRadius: ["micro-specs/**", "scripts/thing.mjs"],
+        surfaces: ["scripts/thing.mjs"],
+      }),
+    },
+    ledgers: {
+      "MS-test-clean": { spec_id: "MS-test-clean", runs: [{ git_sha: "clean0000000000" }] },
+      "MS-test-bookkeeping": { spec_id: "MS-test-bookkeeping", runs: [{ git_sha: "book00000000000" }] },
+      "MS-test-unknowable": { spec_id: "MS-test-unknowable", runs: [{ git_sha: "gone00000000000" }] },
+      "MS-test-no-runs": { spec_id: "MS-test-no-runs", runs: [] },
+      "MS-test-still-active": { spec_id: "MS-test-still-active", runs: [{ git_sha: "act000000000000" }] },
+    },
+  })
+
+  const result = run(root, {
+    changedFilesSince: (rootDir, sha) => {
+      if (sha === "clean0000000000") return ["docs/notes.md"]
+      if (sha === "book00000000000") {
+        return [
+          "micro-specs/governance/bookkeeping.md",
+          "micro-specs/evidence/MS-test-bookkeeping.json",
+        ]
+      }
+      if (sha === "gone00000000000") return null
+      return ["scripts/thing.mjs"]
+    },
+  })
+
+  assert.deepEqual(
+    result.failures.filter((entry) => entry.includes("changed after the proving run")),
+    [],
+    `no staleness failures expected, got ${JSON.stringify(result.failures)}`
+  )
+})
+
+test("Given a stale spec When it is exempted for a re-proving run Then only the exempted id is skipped", (t) => {
+  const staleSpec = (specId, file) =>
+    specFile({
+      specId,
+      status: "implemented",
+      riskClass: "docs-tooling",
+      blastRadius: ["micro-specs/**", "scripts/thing.mjs"],
+      surfaces: ["scripts/thing.mjs"],
+    })
+  const ledger = (specId) => ({ spec_id: specId, runs: [{ git_sha: `${specId}-sha` }] })
+  const root = fixtureRepo(t, {
+    spec: specFile({ riskClass: "docs-tooling" }),
+    extraSpecs: {
+      "governance/exempted.md": staleSpec("MS-test-exempted", "exempted.md"),
+      "governance/not-exempted.md": staleSpec("MS-test-not-exempted", "not-exempted.md"),
+    },
+    ledgers: {
+      "MS-test-exempted": ledger("MS-test-exempted"),
+      "MS-test-not-exempted": ledger("MS-test-not-exempted"),
+    },
+  })
+  const changedFilesSince = () => ["scripts/thing.mjs"]
+
+  const viaEnv = run(root, {
+    changedFilesSince,
+    env: { GOVERNANCE_STALENESS_EXEMPT: "MS-test-exempted, MS-other" },
+  })
+  assert.equal(
+    viaEnv.failures.filter((f) => f.includes("MS-test-exempted") && f.includes("changed after the proving run")).length,
+    0,
+    "the env-exempted spec is skipped"
+  )
+  assert.equal(
+    viaEnv.failures.filter((f) => f.includes("MS-test-not-exempted") && f.includes("changed after the proving run")).length,
+    1,
+    "non-exempted specs still fail"
+  )
+
+  const viaOption = run(root, {
+    changedFilesSince,
+    stalenessExemptSpecIds: ["MS-test-exempted", "MS-test-not-exempted"],
+  })
+  assert.equal(
+    viaOption.failures.filter((f) => f.includes("changed after the proving run")).length,
+    0,
+    "the in-process option exempts the listed ids"
+  )
+})
+
+test("Given a real git history When changedFilesSince reads it Then ancestors diff and unknowable shas are null", (t) => {
+  const root = mkdtempSync(path.join(tmpdir(), "nabaperks-gitreader-"))
+  t.after(() => rmSync(root, { recursive: true, force: true }))
+  const git = (...args) =>
+    execFileSync("git", args, { cwd: root, stdio: ["ignore", "pipe", "ignore"], encoding: "utf8" }).trim()
+
+  git("init", "-q", "-b", "main")
+  git("config", "user.email", "fixture@example.com")
+  git("config", "user.name", "Fixture")
+  git("config", "commit.gpgsign", "false")
+  writeFileSync(path.join(root, "a.txt"), "one\n")
+  git("add", "a.txt")
+  git("commit", "-q", "-m", "first")
+  const base = git("rev-parse", "HEAD")
+
+  // A side branch: its tip resolves in the clone but is not an ancestor of
+  // main's HEAD — the squash-merge shape the check must treat as unknowable.
+  git("checkout", "-q", "-b", "side")
+  writeFileSync(path.join(root, "c.txt"), "side\n")
+  git("add", "c.txt")
+  git("commit", "-q", "-m", "side")
+  const side = git("rev-parse", "HEAD")
+  git("checkout", "-q", "main")
+
+  writeFileSync(path.join(root, "a.txt"), "two\n")
+  writeFileSync(path.join(root, "b.txt"), "new\n")
+  git("add", ".")
+  git("commit", "-q", "-m", "second")
+
+  assert.deepEqual(changedFilesSince(root, base).sort(), ["a.txt", "b.txt"])
+  assert.equal(changedFilesSince(root, side), null, "a non-ancestor sha is unknowable history")
+  assert.equal(changedFilesSince(root, "0".repeat(40)), null, "an unresolvable sha is unknowable history")
+  assert.equal(changedFilesSince(root, null), null)
+})
+
 test("Given CI and README gate lists When they drift Then both directions fail", (t) => {
   const root = fixtureRepo(t, {
     spec: specFile({ riskClass: "docs-tooling" }),
@@ -806,14 +976,22 @@ function closedRecordBody(pointer = "tests/micro-specs/example.test.mjs") {
   ]
 }
 
-function fixtureRepo(t, { spec, extraSpecs = {}, ciLines = null, readmeGates = null }) {
+function fixtureRepo(t, { spec, extraSpecs = {}, ciLines = null, readmeGates = null, ledgers = {} }) {
   const root = mkdtempSync(path.join(tmpdir(), "nabaperks-governance-"))
   t.after(() => rmSync(root, { recursive: true, force: true }))
 
   mkdirSync(path.join(root, ".github/workflows"), { recursive: true })
   mkdirSync(path.join(root, "micro-specs/governance"), { recursive: true })
+  mkdirSync(path.join(root, "micro-specs/evidence"), { recursive: true })
   mkdirSync(path.join(root, "tests/micro-specs"), { recursive: true })
   mkdirSync(path.join(root, "tests/e2e"), { recursive: true })
+
+  for (const [specId, ledger] of Object.entries(ledgers)) {
+    writeFileSync(
+      path.join(root, "micro-specs/evidence", `${specId}.json`),
+      `${JSON.stringify(ledger, null, 2)}\n`
+    )
+  }
 
   writeFileSync(
     path.join(root, "package.json"),

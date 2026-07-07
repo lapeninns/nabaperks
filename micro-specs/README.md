@@ -340,6 +340,18 @@ rather than deleting history. The 32 specs implemented before adoption carry
 grandfather stubs (`node scripts/governance-evidence.mjs backfill`), each
 valid only until its spec's first machine transition. Orphan ledgers fail.
 
+Evidence also goes stale: an implemented or verified spec whose
+`implementation_surfaces` changed in commits made after its latest recorded
+run fails the checker until re-proven (`governance:run-gates --spec <id>
+--record`, or the next lifecycle advance). Committed history only; the
+spec's own document and its ledger are excluded (status flips are
+bookkeeping, not drift); a recorded sha that no longer resolves or is not an
+ancestor of HEAD (a squash-merged branch commit) is skipped — the check
+never invents staleness it cannot prove. Re-proving runs set
+`GOVERNANCE_STALENESS_EXEMPT=*` for their nested `governance:check` gate so
+the cure is never blocked by the disease; the standalone check keeps full
+enforcement.
+
 ## Working Rule
 
 Before implementing any active Micro-Spec, inspect the live repo and narrow the

@@ -223,3 +223,12 @@ export const EVIDENCE_DIR = "micro-specs/evidence"
 // Fresh installs adopt from day one (the installer stamps the install date);
 // pre-existing repos set null first, backfill grandfather stubs, then flip.
 export const EVIDENCE_ADOPTION_DATE = "{{TODAY}}"
+
+// Evidence staleness: specs in these statuses whose implementation surfaces
+// changed in commits made AFTER the latest recorded run are re-proof debt —
+// green evidence stands for code it never saw. Committed history only,
+// fail-open on unknowable shas (squash-merged branches), and re-proving
+// runs are exempt via GOVERNANCE_STALENESS_EXEMPT (see governance-rules.mjs).
+// [] disables the check. Closed specs are excluded by doctrine: code
+// legitimately evolves forever after closure.
+export const EVIDENCE_STALENESS_STATUSES = Object.freeze(["implemented", "verified"])

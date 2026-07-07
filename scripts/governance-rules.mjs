@@ -2,6 +2,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs"
 import { join } from "node:path"
 
 import {
+  changedFilesSince,
   isManualInspectionGate,
   parsePackageScriptGate,
 } from "./governance-commands.mjs"
@@ -14,6 +15,7 @@ import {
   EVIDENCE_ADOPTION_DATE,
   EVIDENCE_DIR,
   EVIDENCE_GATE_INFERENCE,
+  EVIDENCE_STALENESS_STATUSES,
   RELATED_TESTS_EXEMPT_STATUSES,
   RELATED_TESTS_SENTINEL,
   REQUIRED_METADATA_FIELDS,
@@ -100,6 +102,13 @@ export function validateGovernance(root, options = {}) {
   const adoptionDate =
     "evidenceAdoptionDate" in options ? options.evidenceAdoptionDate : EVIDENCE_ADOPTION_DATE
   validateEvidenceLedgers(root, specs, adoptionDate, failures)
+  validateEvidenceStaleness(
+    root,
+    specs,
+    options.changedFilesSince ?? changedFilesSince,
+    stalenessExemptions(options),
+    failures
+  )
 
   const changedFiles =
     options.changedFiles ?? findChangedFiles(root, options.env ?? process.env)
@@ -525,6 +534,61 @@ function validateEvidenceLedgers(root, specs, adoptionDate, failures) {
     if (!knownIds.has(specId)) {
       failures.push(`${EVIDENCE_DIR}/${entry} is an orphan ledger: no Micro-Spec declares spec_id "${specId}".`)
     }
+  }
+}
+
+// Exempt spec ids for the staleness check: the in-process option plus the
+// GOVERNANCE_STALENESS_EXEMPT environment variable (comma-separated ids, or
+// "*" for all). Re-proving runs (run-governance-gates / advance-spec) set
+// "*" for their nested governance:check gate — staleness enforcement
+// belongs to the standalone check, and a recording run must not be blocked
+// by other specs' staleness (two mutually-stale specs would otherwise
+// deadlock each other's cure).
+function stalenessExemptions(options) {
+  const env = options.env ?? process.env
+  const fromEnv = String(env.GOVERNANCE_STALENESS_EXEMPT ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean)
+  return new Set([...(options.stalenessExemptSpecIds ?? []), ...fromEnv])
+}
+
+// Evidence staleness: a green run proves the commit it ran on, so commits
+// after that sha touching the spec's implementation surfaces make the
+// evidence re-proof debt. The spec's own document and ledger are excluded
+// (status flips are bookkeeping, not drift), and unknowable history — no
+// runs, no sha, a sha that no longer resolves or is not an ancestor of HEAD
+// (squash-merged branches) — fails open so the check never invents
+// staleness it cannot prove.
+function validateEvidenceStaleness(root, specs, changedSince, exempt, failures) {
+  if (EVIDENCE_STALENESS_STATUSES.length === 0) return
+  if (exempt.has("*")) return
+
+  for (const spec of specs) {
+    if (spec.parseErrors?.length > 0) continue
+    if (!EVIDENCE_STALENESS_STATUSES.includes(spec.metadata.status)) continue
+    const id = spec.metadata.spec_id
+    if (!id || exempt.has(id)) continue
+    const ledger = readLedger(root, id)
+    if (!ledger || ledger.parseError) continue
+    const sha = (ledger.runs ?? []).at(-1)?.git_sha
+    if (!sha) continue
+    const changed = changedSince(root, sha)
+    if (changed === null || changed === undefined) continue
+
+    const bookkeeping = new Set([`micro-specs/${spec.file}`, `${EVIDENCE_DIR}/${id}.json`])
+    const stale = changed.filter(
+      (file) =>
+        !bookkeeping.has(file) &&
+        listField(spec, "implementation_surfaces").some((pattern) => matchesPattern(file, pattern))
+    )
+    if (stale.length === 0) continue
+
+    const shown = stale.slice(0, 5).join(", ")
+    const more = stale.length > 5 ? ` (+${stale.length - 5} more)` : ""
+    failures.push(
+      `${id} is ${spec.metadata.status} but its implementation surfaces changed after the proving run ${String(sha).slice(0, 10)}: ${shown}${more}; re-prove with governance:run-gates --spec ${id} --record.`
+    )
   }
 }
 

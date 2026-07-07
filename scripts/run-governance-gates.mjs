@@ -34,8 +34,15 @@ if (specIndex !== -1 && !specId) {
 }
 
 // A mid-implementation tree legitimately has changed files everywhere; gate
-// execution needs valid metadata, not blast-radius cleanliness.
-const validation = validateGovernance(root, { enforceChangedFiles: false })
+// execution needs valid metadata, not blast-radius cleanliness. Staleness is
+// exempt for the same reason a recording run exists at all: this invocation
+// IS the cure the staleness failure prescribes, and it must not be blocked
+// by other specs' staleness either (the standalone governance:check keeps
+// full enforcement).
+const validation = validateGovernance(root, {
+  enforceChangedFiles: false,
+  stalenessExemptSpecIds: ["*"],
+})
 
 if (!validation.ok) {
   console.error("Governance gates were not run because governance validation failed:")
@@ -74,7 +81,18 @@ if (runnable.length === 0) {
 
 for (const gate of runnable) console.log(`queued: ${gate}`)
 
-const results = executeGates(root, runnable)
+// The nested governance:check gate skips staleness (this run is the cure);
+// every other gate keeps a clean environment so hermetic test sandboxes are
+// never contaminated.
+const envForGate = (parsed) => {
+  const env = { ...process.env }
+  delete env.GOVERNANCE_STALENESS_EXEMPT
+  if (parsed.scriptName === "governance:check") {
+    env.GOVERNANCE_STALENESS_EXEMPT = "*"
+  }
+  return env
+}
+const results = executeGates(root, runnable, { envForGate })
 const failed = results.find((result) => result.exit_code !== 0)
 
 if (record) {

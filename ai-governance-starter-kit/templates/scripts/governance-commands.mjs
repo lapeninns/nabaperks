@@ -170,6 +170,37 @@ function splitArgs(source) {
 
 // --- Git state (shared by the evidence ledger and the lifecycle CLI) --------
 
+// Committed drift since a recorded run: the files changed between `sha` and
+// HEAD. Returns null when the answer is unknowable — no sha, git missing,
+// the sha not resolving in this clone, or the sha not being an ancestor of
+// HEAD (e.g. a squash-merged branch commit). Callers must treat null as
+// "cannot know", never as "no changes".
+export function changedFilesSince(root, sha) {
+  if (!sha) return null
+  if (!gitSucceeds(root, ["rev-parse", "--verify", "--quiet", `${sha}^{commit}`])) return null
+  if (!gitSucceeds(root, ["merge-base", "--is-ancestor", sha, "HEAD"])) return null
+  try {
+    return execFileSync("git", ["diff", "--name-only", `${sha}..HEAD`], {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .split(/\r?\n/)
+      .filter(Boolean)
+  } catch {
+    return null
+  }
+}
+
+function gitSucceeds(root, args) {
+  try {
+    execFileSync("git", args, { cwd: root, stdio: "ignore" })
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function gitInfo(root) {
   const sha = gitOutput(root, ["rev-parse", "HEAD"])
   const branch = gitOutput(root, ["rev-parse", "--abbrev-ref", "HEAD"])

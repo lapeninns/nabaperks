@@ -219,13 +219,18 @@ if (runsGates) {
   // Scope the branch diff to the governance:check gate ONLY: it keeps
   // unrelated working-tree noise (other programs' WIP) from failing the
   // advance, while test gates stay hermetic — their own sandboxed governance
-  // checks must never inherit this repo's changed-file list.
+  // checks must never inherit this repo's changed-file list. Staleness is
+  // exempt inside the advance's own gate run for the same reason as in
+  // run-governance-gates: this fresh run is the cure, and the recorded
+  // evidence lands at the sha the standalone check will then accept.
   const changed = branchChangedFiles(root)
   const envForGate = (parsed) => {
     const env = { ...process.env }
     delete env.GOVERNANCE_CHANGED_FILES
-    if (parsed.scriptName === "governance:check" && changed.length > 0) {
-      env.GOVERNANCE_CHANGED_FILES = changed.join(",")
+    delete env.GOVERNANCE_STALENESS_EXEMPT
+    if (parsed.scriptName === "governance:check") {
+      if (changed.length > 0) env.GOVERNANCE_CHANGED_FILES = changed.join(",")
+      env.GOVERNANCE_STALENESS_EXEMPT = "*"
     }
     return env
   }

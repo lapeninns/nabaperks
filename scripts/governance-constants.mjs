@@ -207,3 +207,12 @@ export const EVIDENCE_DIR = "micro-specs/evidence"
 // were grandfathered via backfill stubs on the same day (MS-governance-factory-v2);
 // a stub stays valid only until its spec's first machine transition.
 export const EVIDENCE_ADOPTION_DATE = "2026-07-05"
+
+// Evidence staleness: specs in these statuses whose implementation surfaces
+// changed in commits made AFTER the latest recorded run are re-proof debt —
+// green evidence stands for code it never saw. Committed history only,
+// fail-open on unknowable shas (squash-merged branches), and re-proving
+// runs are exempt via GOVERNANCE_STALENESS_EXEMPT (see governance-rules.mjs).
+// [] disables the check. Closed specs are excluded by doctrine: code
+// legitimately evolves forever after closure.
+export const EVIDENCE_STALENESS_STATUSES = Object.freeze(["implemented", "verified"])

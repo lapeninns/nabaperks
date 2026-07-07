@@ -696,6 +696,47 @@ test("Given closed specs When their records conform or rot Then the closed-recor
   )
 })
 
+test("Given evidence staleness When surfaces changed after the proving run Then only the stale spec fails and exemption clears it", (t) => {
+  const implemented = (id) =>
+    specSource({ spec_id: id, status: "implemented", implementation_surfaces: ["lib/x.ts"] })
+  const ledger = (id, sha) => `${JSON.stringify({ spec_id: id, runs: [{ git_sha: sha }] })}\n`
+  const root = makeFixture(t, {
+    specs: {
+      "stale.md": implemented("MS-fixture-stale"),
+      "clean.md": implemented("MS-fixture-clean"),
+      "unknowable.md": implemented("MS-fixture-unknowable"),
+    },
+    extraFiles: {
+      "micro-specs/evidence/MS-fixture-stale.json": ledger("MS-fixture-stale", "sha-stale"),
+      "micro-specs/evidence/MS-fixture-clean.json": ledger("MS-fixture-clean", "sha-clean"),
+      "micro-specs/evidence/MS-fixture-unknowable.json": ledger("MS-fixture-unknowable", "sha-gone"),
+    },
+  })
+  const changedFilesSince = (dir, sha) => {
+    if (sha === "sha-stale") return ["lib/x.ts", "docs/unrelated.md"]
+    if (sha === "sha-clean") return ["docs/unrelated.md"]
+    return null
+  }
+
+  const { failures } = run(root, { changedFilesSince })
+  const stale = failures.find(
+    (f) => f.includes("MS-fixture-stale") && f.includes("changed after the proving run")
+  )
+  assert.ok(stale, `expected a staleness failure, got ${JSON.stringify(failures)}`)
+  assert.match(stale, /lib\/x\.ts/)
+  assert.match(stale, /governance:run-gates --spec MS-fixture-stale --record/)
+  assert.equal(failures.filter((f) => f.includes("MS-fixture-clean")).length, 0)
+  assert.equal(failures.filter((f) => f.includes("MS-fixture-unknowable")).length, 0)
+
+  // A re-proving run (runner/lifecycle CLI) exempts staleness wholesale so
+  // the cure is never blocked by the disease.
+  const exempted = run(root, { changedFilesSince, env: { GOVERNANCE_STALENESS_EXEMPT: "*" } })
+  assert.equal(
+    exempted.failures.filter((f) => f.includes("changed after the proving run")).length,
+    0
+  )
+})
+
 test("Given a spec with broken frontmatter When validated Then parse errors surface once", (t) => {
   const root = makeFixture(t, {
     specs: {
