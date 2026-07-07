@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-governance-active-spec-soundness",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-07T17:29:37.481Z",
+      "sha": "653da15639698510dd4db16ab4c191505b247aa5",
+      "dirty": true,
+      "by": "claude-code agent (amanshresthaa)"
+    }
+  ]
+}
