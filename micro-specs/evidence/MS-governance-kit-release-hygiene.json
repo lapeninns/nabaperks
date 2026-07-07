@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-governance-kit-release-hygiene",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-07T18:03:14.309Z",
+      "sha": "dc1fe8b15cfc74f095058dab62d40356ee5037e2",
+      "dirty": true,
+      "by": "claude-code agent (amanshresthaa)"
+    }
+  ]
+}
