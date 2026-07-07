@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 import { PageTitle } from "@/components/brand"
 import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
 import { BirthdayRewardPanel } from "@/components/merchant/launch/birthday-panel"
+import { birthdayRewardTemplateForBusinessType } from "@/lib/merchant/birthday-reward-template"
 import {
   LoyaltyCardForm,
   RewardPoolForm,
@@ -154,6 +155,7 @@ export default async function LaunchHarnessPage({
             enabled={false}
             rewardName={null}
             rewardTerms={null}
+            template={birthdayRewardTemplateForBusinessType("pub")}
           />
           </div>
         ) : activeTab === "qr" ? (

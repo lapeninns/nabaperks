@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 
 import { PageTitle, ReceiptCard } from "@/components/brand"
 import { BirthdayRewardPanel } from "@/components/merchant/launch/birthday-panel"
+import { birthdayRewardTemplateForBusinessType } from "@/lib/merchant/birthday-reward-template"
 import { LaunchSaveNextAction } from "@/components/merchant/launch/launch-tab-auto-advance"
 import {
   RewardPoolForm,
@@ -124,6 +125,7 @@ export async function RewardsPanel({
         enabled={card.birthday_reward_enabled}
         rewardName={card.birthday_reward_name}
         rewardTerms={card.birthday_reward_terms}
+        template={birthdayRewardTemplateForBusinessType(merchant.business_type)}
       />
     </div>
   )

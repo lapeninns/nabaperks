@@ -1,5 +1,6 @@
 import { PageTitle } from "@/components/brand"
 import { BirthdayRewardForm } from "@/components/merchant/launch/birthday-reward-form"
+import type { BirthdayRewardTemplate } from "@/lib/merchant/birthday-reward-template"
 
 /**
  * The merchant birthday-reward config, rendered inside the Rewards panel from
@@ -11,11 +12,13 @@ export function BirthdayRewardPanel({
   enabled,
   rewardName,
   rewardTerms,
+  template,
 }: {
   loyaltyCardId: string
   enabled: boolean
   rewardName: string | null
   rewardTerms: string | null
+  template: BirthdayRewardTemplate
 }) {
   return (
     <section className="grid min-w-0 gap-4 rounded-lg border border-border bg-card p-3 sm:p-6">
@@ -33,6 +36,7 @@ export function BirthdayRewardPanel({
           rewardName: rewardName ?? "",
           rewardTerms: rewardTerms ?? "",
         }}
+        template={template}
       />
     </section>
   )

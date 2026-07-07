@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-prefill-birthday-reward",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-07T11:25:03.531Z",
+      "sha": "66e60e2d1390e5e3ec6a7189c9d050e2d5190e3d",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}
