@@ -24,7 +24,7 @@ implementation_surfaces:
   - ai-governance-starter-kit/templates/micro-specs/README.md
   - package.json
 related_tests:
-  - not-yet-created
+  - tests/micro-specs/governance-status.test.mjs
 verification_gates:
   - pnpm lint
   - pnpm typecheck

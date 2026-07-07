@@ -264,6 +264,11 @@ re-record rather than deleting history. Pre-adoption specs may carry a
 grandfather stub (`governance-evidence.mjs backfill`), valid only until the
 spec's first machine transition. Orphan ledgers (no matching spec) fail.
 
+`node scripts/governance-status.mjs` prints a read-only portfolio dashboard
+(per-spec lifecycle/evidence table, an attention list of implemented and
+verified specs awaiting their next step, current checker failures); it
+enforces nothing and always exits 0.
+
 Evidence also goes stale: an implemented or verified spec whose
 `implementation_surfaces` changed in commits made after its latest recorded
 run fails the checker until re-proven (`governance:run-gates --spec <id>

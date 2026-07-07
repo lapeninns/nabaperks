@@ -17,6 +17,10 @@ validate, execute, and verify Micro-Specs against the current buildable app.
   way to change a spec's status; runs gates fresh and records evidence.
 - `scripts/governance-evidence.mjs` - the evidence-ledger module
   (`show <spec-id>` / `backfill --by <who>`).
+- `scripts/governance-status.mjs` (`pnpm governance:status`) - read-only
+  portfolio dashboard: per-spec lifecycle/evidence table, an attention list
+  of implemented/verified specs awaiting their next step, and the checker's
+  current failures. Enforces nothing (always exits 0).
 
 ## Current State
 
