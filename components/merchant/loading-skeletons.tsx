@@ -35,8 +35,8 @@ export function MerchantPageTitleSkeleton() {
  *  the present/copy action row. */
 export function DashboardQrCardSkeleton() {
   return (
-    <ReceiptCard className="grid gap-4 sm:grid-cols-[9.25rem_minmax(0,1fr)] sm:items-center sm:gap-6">
-      <Skeleton className="mx-auto aspect-square w-full max-w-[9.25rem] shrink-0 rounded-lg sm:mx-0" />
+    <ReceiptCard className="grid gap-4 sm:grid-cols-[9.25rem_minmax(0,1fr)] sm:items-start sm:gap-6">
+      <Skeleton className="mx-auto aspect-square size-[9.25rem] max-w-full shrink-0 rounded-lg sm:mx-0" />
       <div className="grid gap-3">
         <div className="grid gap-2">
           <Skeleton className="h-3 w-24" />

@@ -15,14 +15,17 @@ type QrImageRouteContext = {
   }>
 }
 
-export async function GET(_request: Request, context: QrImageRouteContext) {
+export async function GET(request: Request, context: QrImageRouteContext) {
   const { qrCodeId } = await context.params
 
   if (
     process.env.NODE_ENV !== "production" &&
     qrCodeId === DEV_HARNESS_QR_CODE_ID
   ) {
-    const png = await renderQrCodePng(DEV_HARNESS_QR_SHARE_URL)
+    const png = await renderQrCodePng(
+      DEV_HARNESS_QR_SHARE_URL,
+      parseQrImageWidth(new URL(request.url).searchParams.get("w"))
+    )
     return qrPngResponse(png)
   }
 
@@ -34,9 +37,21 @@ export async function GET(_request: Request, context: QrImageRouteContext) {
 
   const env = getServerEnv()
   const shareUrl = `${env.NEXT_PUBLIC_APP_URL}/q/${qrContext.qrCode.qr_id}`
-  const png = await renderQrCodePng(shareUrl)
+  const png = await renderQrCodePng(
+    shareUrl,
+    parseQrImageWidth(new URL(request.url).searchParams.get("w"))
+  )
 
   return qrPngResponse(png)
+}
+
+function parseQrImageWidth(value: string | null) {
+  const parsed = Number.parseInt(value ?? "", 10)
+  if (!Number.isFinite(parsed)) {
+    return 720
+  }
+
+  return Math.min(1024, Math.max(128, parsed))
 }
 
 function qrPngResponse(png: Uint8Array) {
