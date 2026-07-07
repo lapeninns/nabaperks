@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-governance-status-cli",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-07T18:12:28.153Z",
+      "sha": "206bad0af676af6d13ac4cac9a92312000eca03f",
+      "dirty": true,
+      "by": "claude-code agent (amanshresthaa)"
+    }
+  ]
+}
