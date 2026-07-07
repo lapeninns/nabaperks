@@ -29,7 +29,7 @@ const PICK_QR = /* sql */ `
       m.requires_billing = false
       or exists (
         select 1 from public.billing_customers bc
-        where bc.merchant_id = m.id and bc.status in ('trial', 'trialing', 'active')
+        where bc.merchant_id = m.id and bc.status is not null and bc.status not in ('cancelled', 'suspended')
       )
     )
   order by q.created_at

@@ -35,7 +35,7 @@ const PICK_MEMBERSHIP = /* sql */ `
       mer.requires_billing = false
       or exists (
         select 1 from public.billing_customers bc
-        where bc.merchant_id = mer.id and bc.status in ('trial', 'active')
+        where bc.merchant_id = mer.id and bc.status is not null and bc.status not in ('cancelled', 'suspended')
       )
     )
   order by cm.created_at
