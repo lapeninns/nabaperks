@@ -24,7 +24,7 @@ describe("MS-platform-merchant-digest-email source contract", () => {
     )
   })
 
-  it("protects the merchant digest cron route with the existing bearer guard shape", () => {
+  it("protects the merchant digest cron route with the shared timing-safe bearer guard", () => {
     // Given
     const route = readProjectFile(
       "app",
@@ -33,16 +33,19 @@ describe("MS-platform-merchant-digest-email source contract", () => {
       "merchant-digest",
       "route.ts"
     )
+    const guard = readProjectFile("lib", "security", "cron-auth.ts")
 
     // When / Then
     assert.match(route, /export const runtime = "nodejs"/)
     assert.match(route, /export const dynamic = "force-dynamic"/)
     assert.match(route, /export const maxDuration = 300/)
     assert.match(route, /runMerchantWeeklyDigest/)
-    assert.match(route, /process\.env\.CRON_SECRET\?\.trim\(\)/)
-    assert.match(route, /headers\.get\("authorization"\) === `Bearer \$\{secret\}`/)
+    assert.match(route, /from "@\/lib\/security\/cron-auth"/)
+    assert.match(route, /isAuthorizedCronRequest\(request\)/)
     assert.match(route, /status: 401/)
     assert.match(route, /cache-control": "no-store, max-age=0"/)
+    assert.match(guard, /process\.env\.CRON_SECRET/)
+    assert.match(guard, /timingSafeEqual/)
   })
 
   it("registers the Monday morning Vercel cron schedule", () => {

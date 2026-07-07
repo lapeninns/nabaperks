@@ -20,11 +20,21 @@ after(async () => {
   await closeDb()
 })
 
-// Seeded fixtures (supabase/seed.sql): two venues with owners + an admin.
-const OWNER_A = "00000000-0000-0000-0000-000000000101" // Old Crown Girton
-const OWNER_B = "00000000-0000-0000-0000-000000000102" // Bubble Yard
+// Seeded fixtures (supabase/seed.sql): two venues + an admin. Owners are
+// derived from the live rows at test time — local fixture seeds (e.g. the
+// +32 perf fixture) may reassign a venue's owner, and this test proves
+// owner-scoped access, not a particular owner identity.
 const ADMIN = "00000000-0000-0000-0000-000000000001"
-const MERCHANT_A = "10000000-0000-0000-0000-000000000001"
+const MERCHANT_A = "10000000-0000-0000-0000-000000000001" // Old Crown Girton
+const MERCHANT_B = "10000000-0000-0000-0000-000000000002" // Bubble Yard
+
+async function seededOwner(tx, merchantId) {
+  const [row] = await tx`
+    select owner_user_id from public.merchants where id = ${merchantId}::uuid
+  `
+  assert.ok(row?.owner_user_id, `merchant ${merchantId} must have a seeded owner`)
+  return row.owner_user_id
+}
 
 test("the staff subsystem is gone from the schema", { skip }, async () => {
   const sql = db()
@@ -82,6 +92,9 @@ test("the two staff-named policies are renamed, the seven scoped ones survive", 
 
 test("owner and admin access is unchanged; other tenants stay locked out", { skip }, async () => {
   await inRolledBackTxn(async (tx) => {
+    const OWNER_A = await seededOwner(tx, MERCHANT_A)
+    const OWNER_B = await seededOwner(tx, MERCHANT_B)
+
     const ownQr = await asAuthenticatedUser(tx, OWNER_A, (sp) =>
       sp`select id from public.qr_codes where merchant_id = ${MERCHANT_A}::uuid`
     )

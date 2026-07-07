@@ -5,6 +5,10 @@ import type { PushSubscription, SendResult } from "web-push"
 
 import { recordProductEvent } from "@/lib/analytics/events"
 import {
+  resolveDrainOptions,
+  shouldContinueDraining,
+} from "@/lib/notifications/drain-plan"
+import {
   buildNotificationPayload,
   isNotificationEventType,
   notificationEventCategory,
@@ -84,11 +88,17 @@ const PUSH_RETRY_BACKOFF_MS = [5 * 60_000, 30 * 60_000] as const
 export async function runPushNotificationDeliveryWorker({
   now = new Date(),
   batchSize = 50,
+  maxEvents,
+  timeBudgetMs,
 }: {
   now?: Date
   batchSize?: number
+  maxEvents?: number
+  timeBudgetMs?: number
 } = {}): Promise<PushDeliveryWorkerResult> {
   const supabase = createSupabaseServiceRoleClient()
+  // Producers run exactly once per invocation, before the drain loop —
+  // re-producing mid-drain could starve the empty-batch exit.
   const produced = await produceDueNotificationEvents(now)
   const result: PushDeliveryWorkerResult = {
     produced,
@@ -104,21 +114,36 @@ export async function runPushNotificationDeliveryWorker({
     return result
   }
 
-  const { data, error } = await supabase.rpc("claim_due_notification_events", {
-    p_limit: batchSize,
-    p_now: now.toISOString(),
-  })
+  // Drain: claim successive batches until the due queue is empty or the run
+  // budget (events / soft time) is spent (MS-notifications-drain-throughput).
+  // Defaults keep the historical single-batch behavior; the cron route opts
+  // into a larger budget explicitly.
+  const options = resolveDrainOptions({ batchSize, maxEvents, timeBudgetMs })
+  const startedAtMs = Date.now()
 
-  if (error) {
-    throw new Error(`Unable to load due notification events: ${error.message}`)
-  }
+  while (true) {
+    const { data, error } = await supabase.rpc("claim_due_notification_events", {
+      p_limit: options.batchSize,
+      p_now: now.toISOString(),
+    })
 
-  for (const event of (data ?? []) as NotificationEventRow[]) {
-    const delivery = await deliverNotificationEvent(supabase, event, now)
-    result.processed += 1
-    result.sent += delivery.sent
-    result.skipped += delivery.skipped
-    result.failed += delivery.failed
+    if (error) {
+      throw new Error(`Unable to load due notification events: ${error.message}`)
+    }
+
+    const events = (data ?? []) as NotificationEventRow[]
+    for (const event of events) {
+      const delivery = await deliverNotificationEvent(supabase, event, now)
+      result.processed += 1
+      result.sent += delivery.sent
+      result.skipped += delivery.skipped
+      result.failed += delivery.failed
+    }
+
+    const state = { processed: result.processed, lastBatchSize: events.length }
+    if (!shouldContinueDraining(state, options, Date.now() - startedAtMs)) {
+      break
+    }
   }
 
   void recordWorkerProductEvent(result, "completed")

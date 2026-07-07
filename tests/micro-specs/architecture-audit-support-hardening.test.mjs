@@ -65,7 +65,11 @@ test("Given an admin handles GDPR requests When export or deletion is requested 
     actions,
     /await requireAdminAction\(\)[\s\S]*admin_log_data_request/
   )
-  assert.match(privacyCron, /CRON_SECRET/)
+  assert.match(privacyCron, /isAuthorizedCronRequest/)
+  assert.match(
+    readProjectFile("lib", "security", "cron-auth.ts"),
+    /CRON_SECRET/
+  )
   assert.match(privacyCron, /admin_purge_stale_customer_pii/)
   assert.match(privacyCron, /STALE_CUSTOMER_PII_RETENTION_DAYS = 365/)
   assert.match(vercel, /"path": "\/api\/cron\/privacy-retention"/)

@@ -57,19 +57,21 @@ export function DashboardQrCardView({
   shareUrl,
   isActive,
 }: DashboardQrCardViewProps) {
+  const thumbnailQrSrc = `/app/qr/image/${qrCodeId}?w=256`
+
   return (
-    <ReceiptCard className="grid gap-4 sm:grid-cols-[9.25rem_minmax(0,1fr)] sm:items-center sm:gap-6">
+    <ReceiptCard className="grid gap-4 sm:grid-cols-[9.25rem_minmax(0,1fr)] sm:items-start sm:gap-6">
       <QrFrame
         label={`Venue QR for ${venueName}`}
-        className="mx-auto w-full max-w-[9.25rem] shrink-0 shadow-[5px_5px_0_var(--w-shadow-color)] sm:mx-0"
+        className="mx-auto min-h-0 min-w-0 w-[9.25rem] max-w-full shrink-0 overflow-hidden shadow-[5px_5px_0_var(--w-shadow-color)] sm:mx-0"
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- protected QR image needs merchant cookies */}
         <img
-          src={`/app/qr/image/${qrCodeId}`}
+          src={thumbnailQrSrc}
           alt={`QR code for ${venueName}`}
           width={148}
           height={148}
-          className="block aspect-square size-full rounded-md bg-white object-contain"
+          className="block aspect-square size-[7.25rem] max-w-full object-contain"
         />
       </QrFrame>
 

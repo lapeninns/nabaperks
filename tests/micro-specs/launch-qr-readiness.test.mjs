@@ -154,7 +154,7 @@ test("Given the merchant QR image route is hit When the owned context is absent 
     imageRoute,
     /const shareUrl = `\$\{env\.NEXT_PUBLIC_APP_URL\}\/q\/\$\{qrContext\.qrCode\.qr_id\}`/
   )
-  assert.match(imageRoute, /renderQrCodePng\(shareUrl\)/)
+  assert.match(imageRoute, /renderQrCodePng\(\s*shareUrl,\s*parseQrImageWidth/)
   assert.match(imageRoute, /"Content-Type": "image\/png"/)
   assert.match(
     imageRoute,
@@ -165,7 +165,14 @@ test("Given the merchant QR image route is hit When the owned context is absent 
       imageRoute.indexOf("const env = getServerEnv()"),
     "route must prove ownership before deriving the public QR URL"
   )
-  assert.doesNotMatch(imageRoute, /searchParams|nextUrl|request\.url/)
+  const ownedRenderPath = imageRoute.slice(
+    imageRoute.indexOf("const qrContext = await getOwnedQrImageContext")
+  )
+  assert.ok(
+    ownedRenderPath.indexOf("parseQrImageWidth") >
+      ownedRenderPath.indexOf("const shareUrl ="),
+    "thumbnail width must not influence which QR URL is rendered"
+  )
 })
 
 test("Given launch and QR pages render setup When the model loads Then GET rendering stays read-only and QR mutations stay behind explicit actions", () => {

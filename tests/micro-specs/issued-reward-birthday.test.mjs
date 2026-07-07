@@ -60,7 +60,8 @@ test("the notification catalog carries both issued marketing types", () => {
 test("R-8: the birthday cron route is registered and authorized", () => {
   const route = read("app", "api", "cron", "birthday-rewards", "route.ts")
   assert.match(route, /issue_birthday_rewards/)
-  assert.match(route, /CRON_SECRET/)
+  assert.match(route, /isAuthorizedCronRequest/)
+  assert.match(read("lib", "security", "cron-auth.ts"), /CRON_SECRET/)
   assert.match(route, /ok: true, issued/)
 
   const vercel = JSON.parse(read("vercel.json"))

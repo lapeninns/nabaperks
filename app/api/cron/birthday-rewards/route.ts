@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 
+import { isAuthorizedCronRequest } from "@/lib/security/cron-auth"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export const runtime = "nodejs"
@@ -32,11 +33,4 @@ export async function GET(request: NextRequest) {
     { ok: true, issued: data ?? 0 },
     { headers: { "cache-control": "no-store, max-age=0" } }
   )
-}
-
-function isAuthorizedCronRequest(request: NextRequest) {
-  const secret = process.env.CRON_SECRET?.trim()
-  if (!secret) return false
-
-  return request.headers.get("authorization") === `Bearer ${secret}`
 }
