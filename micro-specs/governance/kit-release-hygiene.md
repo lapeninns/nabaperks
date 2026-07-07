@@ -59,8 +59,9 @@ bump — 0.4.0 is already current.
 
 - The installed-suite test must be hermetic: scrub
   `GOVERNANCE_CHANGED_FILES` and `GOVERNANCE_REPROVING_SPECS` from the child
-  environment, and run `node --test tests/micro-specs` (directory form — no
-  shell globbing) inside the temp install.
+  environment, and enumerate the installed test files explicitly (no shell
+  globbing, no runner directory-discovery assumptions) inside the temp
+  install.
 - The parity test reads `KIT_VERSION` from the repo engine (lockstep with
   the kit template) and compares the kit source manifest and changelog; no
   hardcoded version strings in tests.

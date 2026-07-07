@@ -126,6 +126,27 @@ test("Given the station suite When mirrored Then each .factory mirror equals its
   }
 })
 
+test("Given the kit release surface When versions are compared Then plugin.json and CHANGELOG track KIT_VERSION", async () => {
+  const { KIT_VERSION } = await import("../../scripts/governance-version.mjs")
+
+  const manifest = JSON.parse(
+    readFileSync(path.join(source, ".claude-plugin/plugin.json"), "utf8")
+  )
+  assert.equal(
+    manifest.version,
+    KIT_VERSION,
+    "the plugin manifest version must track KIT_VERSION (bump both together)"
+  )
+
+  const changelogPath = path.join(source, "CHANGELOG.md")
+  assert.equal(existsSync(changelogPath), true, "the kit ships a CHANGELOG.md")
+  assert.match(
+    readFileSync(changelogPath, "utf8"),
+    new RegExp(`^## ${KIT_VERSION.replaceAll(".", "\\.")}\\b`, "m"),
+    "the changelog carries an entry for the current KIT_VERSION"
+  )
+})
+
 test("Given the plugin manifest When compared to skills/ Then the declared list matches the directory", () => {
   const manifest = JSON.parse(
     readFileSync(path.join(source, ".claude-plugin/plugin.json"), "utf8")
