@@ -1,7 +1,62 @@
 {
   "schema": 1,
   "spec_id": "MS-prefill-birthday-reward",
-  "runs": [],
+  "runs": [
+    {
+      "timestamp": "2026-07-07T11:26:58.629Z",
+      "git_sha": "7c8df94f9fb194f38a42e8de5a7051d50a3bc7ef",
+      "git_branch": "feat/prefill-from-template",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 5640
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 995
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 9347
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 6547
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 768
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 156
+        },
+        {
+          "command": "pnpm test:e2e -- --grep \"@merchant-flow merchant birthday config\"",
+          "exit_code": 0,
+          "duration_ms": 7893
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 160947
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 25836
+        }
+      ],
+      "all_passed": true
+    }
+  ],
   "manual_attestations": [],
   "transitions": [
     {
@@ -10,6 +65,14 @@
       "at": "2026-07-07T11:25:03.531Z",
       "sha": "66e60e2d1390e5e3ec6a7189c9d050e2d5190e3d",
       "dirty": true,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-07T11:26:58.629Z",
+      "sha": "7c8df94f9fb194f38a42e8de5a7051d50a3bc7ef",
+      "dirty": false,
       "by": "amankumarshrestha"
     }
   ]
