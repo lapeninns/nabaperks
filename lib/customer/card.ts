@@ -12,6 +12,7 @@ export {
   getMembershipStampDisplayDates,
   getMembershipStampDisplayDatesByMembership,
   reconcileCardStampCount,
+  stampDisplayLabelsForCount,
   type MembershipStampDisplayDates,
 } from "@/lib/customer/card-stamps"
 

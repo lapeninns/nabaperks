@@ -14,6 +14,7 @@ import {
   CustomerReceipt,
   CustomerStampCard,
 } from "@/components/customer/customer-flow-system"
+import { ReferralBonusBankNotice } from "@/components/customer/referral-bonus-bank-panels"
 import { CustomerTabBar } from "@/components/layout"
 import { ReferralSharePanel } from "@/components/customer/referral-share-panel"
 import { StampCollector } from "@/components/customer/stamp-collector"
@@ -36,6 +37,7 @@ import {
   type CustomerExperienceViewModel,
 } from "@/lib/customer/experience/copy"
 import { rewardSourceBadge } from "@/lib/customer/issued-reward-display"
+import { hasVisibleReferralBonusBank } from "@/lib/customer/referral-bonus-bank-copy"
 import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
 import type {
   CustomerExperience,
@@ -277,6 +279,10 @@ function CardProgressPanel({
 
       {exp.gift ? (
         <CardGiftChip gift={exp.gift} merchantName={exp.merchantName} />
+      ) : null}
+
+      {hasVisibleReferralBonusBank(exp.referralBonusBank) ? (
+        <ReferralBonusBankNotice bank={exp.referralBonusBank} />
       ) : null}
 
       {exp.referralShareUrl ? (

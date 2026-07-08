@@ -1,10 +1,14 @@
 import { randomUUID } from "node:crypto"
 import { expect, test } from "@playwright/test"
 
-import { adminLiveDbSkipReason } from "./helpers/admin-live-db"
+import {
+  adminLiveDbSkipReason,
+  connectLocalDb,
+  seedMerchantOwnerEmail,
+} from "./helpers/admin-live-db"
 import { dismissPwaInstall } from "./helpers/harness"
 
-const SEED_MERCHANT_EMAIL = "mia@old-crown-girton.test"
+const SEED_MERCHANT_SLUG = "old-crown-girton"
 const SEED_MERCHANT_PASSWORD = "NabaperksDemo1!"
 
 export function describeMerchantSafeRedirects(): void {
@@ -20,28 +24,43 @@ export function describeMerchantSafeRedirects(): void {
     test("successful merchant login rejects whitespace open-redirect next payloads", async ({
       page,
     }) => {
+      const sql = connectLocalDb()
+      test.skip(!sql, "local Supabase DB is not configured")
+      if (!sql) return
+
       const unsafeNext = "/\t/evil.example"
 
-      await page.setExtraHTTPHeaders({
-        "x-vercel-forwarded-for": localLoopbackIp(randomUUID()),
-      })
-      await page.goto(`/login?next=${encodeURIComponent(unsafeNext)}`)
-      const sameOrigin = new URL(page.url()).origin
+      try {
+        const merchantEmail = await seedMerchantOwnerEmail(
+          sql,
+          SEED_MERCHANT_SLUG
+        )
+        test.skip(!merchantEmail, "seed merchant owner email is not available")
+        if (!merchantEmail) return
 
-      await expect(
-        page.getByRole("heading", { name: "Back to the counter" })
-      ).toBeVisible()
+        await page.setExtraHTTPHeaders({
+          "x-vercel-forwarded-for": localLoopbackIp(randomUUID()),
+        })
+        await page.goto(`/login?next=${encodeURIComponent(unsafeNext)}`)
+        const sameOrigin = new URL(page.url()).origin
 
-      await page.locator("#email").fill(SEED_MERCHANT_EMAIL)
-      await page.locator("#password").fill(SEED_MERCHANT_PASSWORD)
-      await page.getByRole("button", { name: "Log in" }).click()
+        await expect(
+          page.getByRole("heading", { name: "Back to the counter" })
+        ).toBeVisible()
 
-      await expect(page).toHaveURL((url) => url.pathname !== "/login")
+        await page.locator("#email").fill(merchantEmail)
+        await page.locator("#password").fill(SEED_MERCHANT_PASSWORD)
+        await page.getByRole("button", { name: "Log in" }).click()
 
-      const redirectedUrl = new URL(page.url())
-      expect(redirectedUrl.origin).toBe(sameOrigin)
-      expect(redirectedUrl.hostname).not.toBe("evil.example")
-      expect(redirectedUrl.pathname).toBe("/app")
+        await expect(page).toHaveURL((url) => url.pathname !== "/login")
+
+        const redirectedUrl = new URL(page.url())
+        expect(redirectedUrl.origin).toBe(sameOrigin)
+        expect(redirectedUrl.hostname).not.toBe("evil.example")
+        expect(redirectedUrl.pathname).toBe("/app")
+      } finally {
+        await sql.end({ timeout: 5 })
+      }
     })
   })
 }

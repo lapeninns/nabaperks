@@ -28,16 +28,17 @@ export const getCurrentMerchant = cache(async () => {
       "id, business_name, business_slug, business_type, email, status, requires_billing"
     )
     .eq("owner_user_id", user.id)
-    .maybeSingle()
+    .limit(2)
 
-  // Distinguish a real lookup failure from a genuine "no merchant" result.
-  // A transient Supabase error must propagate so the route's error.tsx can
-  // offer a retry; it must NOT be swallowed into `null`, which callers treat
-  // as "not onboarded" and use to redirect to /app/onboarding. Only the
-  // genuine no-row case (no error, no data) returns null.
   if (error) {
     throw new Error(`Unable to load merchant profile: ${error.message}`)
   }
 
-  return data ?? null
+  if (!data.length) return null
+
+  if (data.length > 1) {
+    throw new Error("Unable to load merchant profile: multiple profiles found")
+  }
+
+  return data[0] ?? null
 })

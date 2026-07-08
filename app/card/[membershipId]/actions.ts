@@ -8,6 +8,7 @@ import {
 } from "@/lib/cache/tags"
 import { blockReasonCopy } from "@/lib/customer/experience/block-reasons"
 import { getStampQrContextForMembership } from "@/lib/customer/join"
+import { drainReferralBonusBank } from "@/lib/customer/referral-bonus-bank"
 import {
   issueSelfServiceStamp,
   type GeoCoordinates,
@@ -55,15 +56,29 @@ export async function selfStampAction(
     return fail(result.reason)
   }
 
+  let bonusStampsApplied = 0
+  try {
+    bonusStampsApplied = await drainReferralBonusBank(membershipId)
+  } catch (error) {
+    if (!(error instanceof Error)) {
+      throw error
+    }
+    logger.warn("referral_bonus_bank_drain_failed", {
+      membershipId,
+      error,
+    })
+  }
+
   // Mark the card route stale so navigating away/back reflects the new stamp.
   // The customer stays on this screen; the UI confirms the stamp in place.
   revalidateCacheTag(merchantActivitySummaryCacheTag(qrContext.merchant.id))
   revalidatePath(`/card/${membershipId}`)
+  revalidatePath("/home")
 
   try {
     await enqueueStampTransitionNotifications({
       membershipId,
-      newStampCount: result.newStampCount,
+      newStampCount: result.newStampCount + bonusStampsApplied,
       rewardUnlocked: result.rewardUnlocked,
     })
   } catch (error) {
@@ -75,9 +90,10 @@ export async function selfStampAction(
 
   return {
     status: "issued",
-    newStampCount: result.newStampCount,
+    newStampCount: result.newStampCount + bonusStampsApplied,
     rewardUnlocked: result.rewardUnlocked,
     geoFlagged: result.geoFlagged,
+    bonusStampsApplied,
   }
 }
 

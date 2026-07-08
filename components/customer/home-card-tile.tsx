@@ -8,10 +8,12 @@ import {
   ReceiptCard,
   VenueMark,
 } from "@/components/brand"
+import { ReferralBonusBankMini } from "@/components/customer/referral-bonus-bank-panels"
 import { ReferralShareButton } from "@/components/customer/referral-share-button"
 import { StampGrid } from "@/components/loyalty"
 import { homeCardStatusCopy } from "@/lib/customer/home-dashboard"
 import { rewardSourceBadge } from "@/lib/customer/issued-reward-display"
+import { hasVisibleReferralBonusBank } from "@/lib/customer/referral-bonus-bank-copy"
 import { formatRewardReadyDate } from "@/lib/customer/uk-calendar"
 import type { HomeCard } from "@/lib/customer/home"
 import type { HomeCardGift } from "@/lib/customer/home-types"
@@ -96,6 +98,10 @@ export function HomeCardTile({ card }: { card: HomeCard }) {
               {homeCardStatusCopy(card)}
             </p>
           )}
+
+          {hasVisibleReferralBonusBank(card.referralBonusBank) ? (
+            <ReferralBonusBankMini bank={card.referralBonusBank} />
+          ) : null}
 
           {card.gift ? (
             <TileGiftChip gift={card.gift} businessName={card.businessName} />

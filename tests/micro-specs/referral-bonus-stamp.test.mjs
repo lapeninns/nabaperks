@@ -20,6 +20,14 @@ const read = (relativePath) =>
 const migration = read(
   "supabase/migrations/20260709090000_referral_bonus_stamp.sql"
 )
+const actions = read("app/card/[membershipId]/actions.ts")
+const cardStampLabels = read("lib/customer/card-stamp-labels.ts")
+const cardStamps = read("lib/customer/card-stamps.ts")
+const cardUi = read("components/customer/customer-card-experience.tsx")
+const homeTile = read("components/customer/home-card-tile.tsx")
+const bankPanels = read("components/customer/referral-bonus-bank-panels.tsx")
+const bankCopy = read("lib/customer/referral-bonus-bank-copy.ts")
+const stampCollector = read("components/customer/stamp-collector.tsx")
 const referral = read("lib/customer/referral.ts")
 
 test("the bonus primitive is SECURITY DEFINER and granted to service_role only", () => {
@@ -71,6 +79,103 @@ test("a drain sweep exists to pay bonuses held due", () => {
     migration,
     /create or replace function public\.drain_due_referrer_bonuses\(/,
     "a drain function pays due bonuses when room frees"
+  )
+})
+
+test("the next venue stamp drains banked referral bonuses for that member", () => {
+  assert.match(
+    migration,
+    /create or replace function public\.drain_due_referrer_bonuses_for_membership\(/,
+    "a member-scoped drain function pays due bonuses after a customer stamps"
+  )
+  assert.match(
+    actions,
+    /drainReferralBonusBank\(membershipId\)/,
+    "the self-stamp action drains the customer's referral bank after the venue stamp lands"
+  )
+  assert.match(
+    actions,
+    /bonusStampsApplied/,
+    "the applied bonus count returns to the client action state"
+  )
+  assert.match(
+    stampCollector,
+    /import \{ REFERRAL_BONUS_STAMP_LABEL \} from "@\/lib\/customer\/card-stamp-labels"/,
+    "drained bonus stamps use the shared label contract"
+  )
+})
+
+test("the referral bonus cap banks after two awards per UK business day", () => {
+  assert.match(
+    migration,
+    /v_daily_bonus_cap\s+constant\s+integer\s*:=\s*2/,
+    "the daily referral bonus cap is two awards per referrer"
+  )
+  assert.match(
+    migration,
+    /public\.uk_business_date\(referrals\.referrer_bonus_awarded_at\)\s*=\s*v_business_date/,
+    "awarded bonuses are counted by UK business day"
+  )
+  assert.match(
+    migration,
+    /set referrer_bonus_due_at = coalesce\(referrer_bonus_due_at, now\(\)\)/,
+    "over-cap bonuses are banked as due instead of dropped"
+  )
+})
+
+test("customer card and wallet surfaces show banked and applied referral bonuses", () => {
+  assert.match(
+    bankPanels,
+    /data-testid="referral-bonus-bank"/,
+    "the customer card exposes the referral bonus bank"
+  )
+  assert.match(
+    bankPanels,
+    /data-testid="home-referral-bonus-bank"/,
+    "the wallet tile exposes the referral bonus bank"
+  )
+  assert.match(
+    bankCopy,
+    /REFERRAL_BONUS_DAILY_CAP\s*=\s*2/,
+    "the UI copy uses the same two-per-day referral bonus limit"
+  )
+  assert.match(
+    bankCopy,
+    /Your venue stamp lands first/,
+    "the UI explains the customer's venue stamp lands before banked referral bonuses"
+  )
+  assert.match(
+    bankCopy,
+    /bonus limit is full/,
+    "the UI explains banked bonuses stay banked after the daily cap is full"
+  )
+  assert.match(
+    homeTile,
+    /ReferralBonusBankMini/,
+    "the wallet tile renders the compact bank panel"
+  )
+})
+
+test("referral bonus stamps stay visible even when their earned date is null", () => {
+  assert.match(
+    cardStampLabels,
+    /REFERRAL_BONUS_STAMP_LABEL\s*=\s*"Bonus"/,
+    "NULL-dated referral bonus stamps use a visible label"
+  )
+  assert.match(
+    cardStampLabels,
+    /membershipCount/,
+    "visible progress is reconciled from the authoritative membership count"
+  )
+  assert.match(
+    cardStampLabels,
+    /stampDisplayLabelsForCount/,
+    "missing labels are padded so earned bonus dots remain visible"
+  )
+  assert.match(
+    cardStamps,
+    /stampEventSource\(event\.metadata\) === "referral_bonus"/,
+    "referral bonus events with no business date use the bonus label"
   )
 })
 

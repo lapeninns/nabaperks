@@ -12,6 +12,7 @@ import {
   type ProfileGate,
   type RewardView,
 } from "./types"
+import type { ReferralBonusBank } from "@/lib/customer/referral-bonus-bank"
 
 /**
  * Pure derivation: loaded facts in, a single {@link CustomerExperience} out.
@@ -77,6 +78,7 @@ export type CardContext =
       justRedeemed: boolean
       /** Shareable "Bring a Regular" join link (opaque referral_code), or absent. */
       referralShareUrl?: string
+      referralBonusBank?: ReferralBonusBank
     }
 
 export type StampContext =
@@ -211,6 +213,7 @@ function deriveCard(context: CardContext): CustomerExperience {
     geoFlagged: context.geoFlagged,
     justRedeemed: context.justRedeemed,
     referralShareUrl: context.referralShareUrl,
+    referralBonusBank: context.referralBonusBank,
   }
 }
 

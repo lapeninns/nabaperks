@@ -52,6 +52,18 @@ const INCOMPLETE_WITH_WAITING_GIFT: HomeCard = {
   },
 }
 
+const INCOMPLETE_WITH_REFERRAL_BANK: HomeCard = {
+  ...BASE,
+  membershipId: "mem_harness_referral_bank",
+  currentStamps: 4,
+  stampsRemaining: 1,
+  stampDates: ["30 Jun", "1 Jul", "Bonus", "Bonus"],
+  referralBonusBank: {
+    banked: 3,
+    awardedToday: 2,
+  },
+}
+
 const COMPLETE_WITH_GIFT: HomeCard = {
   ...BASE,
   membershipId: "mem_harness_3",
@@ -96,6 +108,14 @@ export default function GiftChipHarnessPage() {
           title="A not-yet-open gift shows a calm ready date"
         />
         <HomeCardTile card={INCOMPLETE_WITH_WAITING_GIFT} />
+      </section>
+
+      <section className="grid gap-4">
+        <SectionHeader
+          eyebrow="Incomplete card · referral bank"
+          title="Applied bonuses show on the grid; the rest stay banked"
+        />
+        <HomeCardTile card={INCOMPLETE_WITH_REFERRAL_BANK} />
       </section>
 
       <section className="grid gap-4">

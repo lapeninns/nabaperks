@@ -5,11 +5,11 @@ import type { Page } from "@playwright/test"
 import {
   adminLiveDbSkipReason,
   connectLocalDb,
+  seedMerchantOwnerEmail,
   type Sql,
 } from "./helpers/admin-live-db"
 import { dismissPwaInstall, HARNESS_ROUTES } from "./helpers/harness"
 
-const SEED_MERCHANT_EMAIL = "mia@old-crown-girton.test"
 const SEED_MERCHANT_PASSWORD = "NabaperksDemo1!"
 const SEED_MERCHANT_SLUG = "old-crown-girton"
 
@@ -29,13 +29,16 @@ type SeedQrSetupRow = {
   readonly wrong_merchant_qr_code_id: string | null
 }
 
-async function signInAsSeededMerchant(page: Page): Promise<void> {
+async function signInAsSeededMerchant(
+  page: Page,
+  merchantEmail: string
+): Promise<void> {
   await page.goto("/login?next=/app/qr")
   await expect(
     page.getByRole("heading", { name: "Back to the counter" })
   ).toBeVisible()
 
-  await page.locator("#email").fill(SEED_MERCHANT_EMAIL)
+  await page.locator("#email").fill(merchantEmail)
   await page.locator("#password").fill(SEED_MERCHANT_PASSWORD)
   await page.getByRole("button", { name: "Log in" }).click()
 
@@ -212,6 +215,35 @@ test.describe("Merchant QR image route", () => {
       await dismissPwaInstall(page)
     })
 
+    test("unauthenticated active QR image requests fail closed", async ({
+      request,
+    }) => {
+      const sql = connectLocalDb()
+      test.skip(!sql, "local Supabase DB is not configured")
+      if (!sql) return
+
+      let fixture: SeedQrImageFixture | undefined
+
+      try {
+        fixture = await createSeedQrImageFixture(sql)
+        test.skip(!fixture, "seed merchant QR image fixture is not available")
+        if (!fixture) return
+
+        const response = await request.get(
+          `/app/qr/image/${fixture.validQrCodeId}`
+        )
+
+        expect(response.status()).toBe(404)
+        expect(response.headers()["content-type"] ?? "").not.toContain(
+          "image/png"
+        )
+        await expect(response.text()).resolves.toContain("QR code not found")
+      } finally {
+        await cleanupSeedQrImageFixture(sql, fixture)
+        await sql.end({ timeout: 5 })
+      }
+    })
+
     test("seeded merchant only receives image bytes for an owned active join QR", async ({
       page,
     }) => {
@@ -226,7 +258,14 @@ test.describe("Merchant QR image route", () => {
         test.skip(!fixture, "seed merchant QR image fixture is not available")
         if (!fixture) return
 
-        await signInAsSeededMerchant(page)
+        const merchantEmail = await seedMerchantOwnerEmail(
+          sql,
+          SEED_MERCHANT_SLUG
+        )
+        test.skip(!merchantEmail, "seed merchant owner email is not available")
+        if (!merchantEmail) return
+
+        await signInAsSeededMerchant(page, merchantEmail)
 
         const validResponse = await page.goto(
           `/app/qr/image/${fixture.validQrCodeId}`

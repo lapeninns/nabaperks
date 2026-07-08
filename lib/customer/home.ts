@@ -4,6 +4,7 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import {
   getMembershipStampDisplayDatesByMembership,
   reconcileCardStampCount,
+  stampDisplayLabelsForCount,
   unavailableMessage,
 } from "@/lib/customer/card"
 import { getCustomerActivity } from "@/lib/customer/activity"
@@ -25,6 +26,7 @@ import {
   buildReferralJoinUrl,
   isShareableReferralCode,
 } from "@/lib/customer/referral"
+import { getReferralBonusBanksByMembership } from "@/lib/customer/referral-bonus-bank"
 import { ukTodayIso } from "@/lib/customer/uk-date"
 
 export type {
@@ -119,6 +121,7 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
     rewardsResult,
     billingResult,
     stampDatesByMembership,
+    referralBonusBankByMembership,
     recentActivity,
   ] = await Promise.all([
     supabase
@@ -145,6 +148,7 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
       HOME_STAMP_EVENT_LIMIT,
       activeCycleByMembership
     ),
+    getReferralBonusBanksByMembership(membershipIds),
     getCustomerActivity(3),
   ])
 
@@ -203,14 +207,17 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
       stampsRequired !== null
         ? reconcileCardStampCount({
             membershipCount: membership.current_stamp_count,
-            stampDateCount: stampInfo.stampDates.length,
             total: stampsRequired,
           })
         : membership.current_stamp_count
     const stampDates =
       stampsRequired !== null
-        ? stampInfo.stampDates.slice(0, currentStamps)
+        ? stampDisplayLabelsForCount({
+            labels: stampInfo.stampDates,
+            count: currentStamps,
+          })
         : stampInfo.stampDates
+    const referralBonusBank = referralBonusBankByMembership.get(membership.id)
     const referralShareUrl =
       merchant && isShareableReferralCode(membership.referral_code)
         ? buildReferralJoinUrl(merchant.business_slug, membership.referral_code)
@@ -233,6 +240,7 @@ export async function getCustomerHomeDashboard(): Promise<HomeDashboard> {
           ? Math.max(stampsRequired - currentStamps, 0)
           : 0,
       unlockedRewards: rewards.stampUnlocked,
+      referralBonusBank,
       ...(rewards.stampRewardId
         ? { stampRewardId: rewards.stampRewardId }
         : {}),

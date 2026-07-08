@@ -1,7 +1,11 @@
 import { expect, test } from "@playwright/test"
 import type { Page } from "@playwright/test"
 
-import { adminLiveDbSkipReason, connectLocalDb } from "./helpers/admin-live-db"
+import {
+  adminLiveDbSkipReason,
+  connectLocalDb,
+  seedMerchantOwnerEmail,
+} from "./helpers/admin-live-db"
 import { dismissPwaInstall, HARNESS_ROUTES } from "./helpers/harness"
 import {
   cleanupRewardCollectionFixture,
@@ -10,13 +14,14 @@ import {
   type RewardCollectionFixture,
 } from "./helpers/reward-collection-live-db"
 
-const SEED_MERCHANT_EMAIL = "mia@old-crown-girton.test"
+const SEED_MERCHANT_SLUG = "old-crown-girton"
 const SEED_MERCHANT_PASSWORD = "NabaperksDemo1!"
 
 async function signInAsSeededMerchant(
   page: Page,
   next: string,
-  rateLimitNonce: string
+  rateLimitNonce: string,
+  merchantEmail: string
 ): Promise<void> {
   await page.setExtraHTTPHeaders({
     "x-vercel-forwarded-for": localLoopbackIp(rateLimitNonce),
@@ -26,7 +31,7 @@ async function signInAsSeededMerchant(
     page.getByRole("heading", { name: "Back to the counter" })
   ).toBeVisible()
 
-  await page.locator("#email").fill(SEED_MERCHANT_EMAIL)
+  await page.locator("#email").fill(merchantEmail)
   await page.locator("#password").fill(SEED_MERCHANT_PASSWORD)
   await page.getByRole("button", { name: "Log in" }).click()
   await expect(page).toHaveURL((url) => url.pathname.startsWith("/app"))
@@ -105,10 +110,18 @@ test.describe("merchant reward scan — collection surface", () => {
         test.skip(!fixture, "reward collection fixture is not available")
         if (!fixture) return
 
+        const merchantEmail = await seedMerchantOwnerEmail(
+          sql,
+          SEED_MERCHANT_SLUG
+        )
+        test.skip(!merchantEmail, "seed merchant owner email is not available")
+        if (!merchantEmail) return
+
         await signInAsSeededMerchant(
           page,
           `/r/${fixture.scanToken}`,
-          fixture.scanToken
+          fixture.scanToken,
+          merchantEmail
         )
         const collectedBanner = page
           .getByRole("alert")

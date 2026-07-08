@@ -41,6 +41,8 @@ const ciLinuxSnapshotPathTemplate =
   process.env.CI && process.platform === "linux"
     ? "{testDir}/{testFilePath}-snapshots/{arg}-{projectName}-linux{ext}"
     : undefined
+const reuseExistingServer =
+  !process.env.CI && process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER !== "0"
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -97,7 +99,7 @@ export default defineConfig({
   webServer: {
     command: `${devServerEnv} pnpm exec next dev --webpack`,
     url: baseURL,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer,
     timeout: process.env.CI ? 180_000 : 120_000,
   },
 })

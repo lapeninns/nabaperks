@@ -13,6 +13,10 @@ type FraudStatusRow = {
   readonly status: string
 }
 
+type MerchantOwnerEmailRow = {
+  readonly email: string
+}
+
 export type SeedMembership = {
   readonly membership_id: string
   readonly merchant_id: string
@@ -68,6 +72,21 @@ export function connectLocalDb(): Sql | undefined {
     idle_timeout: 5,
     max: 1,
   })
+}
+
+export async function seedMerchantOwnerEmail(
+  sql: Sql,
+  businessSlug: string
+): Promise<string | undefined> {
+  const rows = await sql<readonly MerchantOwnerEmailRow[]>`
+    select users.email
+    from public.merchants
+    join auth.users
+      on users.id = merchants.owner_user_id
+    where merchants.business_slug = ${businessSlug}
+    limit 1`
+
+  return rows.at(0)?.email
 }
 
 export function createAdminBrowserFixture(

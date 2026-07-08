@@ -7,16 +7,16 @@ import {
   UserMultiple02Icon,
 } from "@hugeicons/core-free-icons"
 
-import { Icon } from "@/components/brand"
+import { Eyebrow, Icon, MonoTag } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import { recordReferralShare } from "@/lib/customer/referral-share"
 
 /**
  * "Bring a Regular" share panel on the collecting card. The link carries this
  * card's opaque referral_code (`?ref=…`) — never the membership UUID. When an
- * invited friend joins and collects their first in-venue stamp, both cards get a
- * stamp (MS-referral-bonus-stamp). Uses the Web Share sheet where available, with
- * a copy-to-clipboard fallback.
+ * invited friend joins and collects their first in-venue stamp, the friend's
+ * normal stamp lands and this card gets one bonus stamp (MS-referral-bonus-stamp).
+ * Uses the Web Share sheet where available, with a copy-to-clipboard fallback.
  */
 export function ReferralSharePanel({
   url,
@@ -34,7 +34,8 @@ export function ReferralSharePanel({
       await navigator.clipboard.writeText(url)
       setCopied(true)
       window.setTimeout(() => setCopied(false), 2000)
-    } catch {
+    } catch (error) {
+      if (!(error instanceof Error)) throw error
       setCopied(false)
     }
   }
@@ -43,7 +44,7 @@ export function ReferralSharePanel({
     void recordReferralShare(membershipId)
     const shareData = {
       title: "Bring a Regular",
-      text: `Join me on the ${venueName} loyalty card — when you collect your first stamp, we both get one.`,
+      text: `Join me on the ${venueName} loyalty card — collect your first stamp and my card gets a bonus stamp too.`,
       url,
     }
     try {
@@ -54,7 +55,8 @@ export function ReferralSharePanel({
         await navigator.share(shareData)
         return
       }
-    } catch {
+    } catch (error) {
+      if (!(error instanceof Error)) throw error
       // Share sheet dismissed or unavailable — fall back to copying the link.
     }
     await copyLink()
@@ -63,21 +65,27 @@ export function ReferralSharePanel({
   return (
     <section
       data-testid="referral-share-panel"
-      className="grid gap-3 rounded-xl border border-border bg-card p-4 text-left"
+      className="grid gap-3 rounded-lg border-2 border-ink bg-card p-4 text-left shadow-xs"
     >
-      <div className="flex items-start gap-3">
-        <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full bg-muted text-foreground">
-          <Icon icon={UserMultiple02Icon} size={18} />
-        </span>
-        <div className="grid gap-1">
-          <h2 className="text-sm font-black text-foreground">
-            Bring a regular
-          </h2>
-          <p className="text-sm text-ink-soft">
-            Know someone who&apos;d love it here? Share your link — when they
-            join and collect their first stamp, you both get one.
-          </p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="mt-0.5 grid size-9 shrink-0 -rotate-6 place-items-center rounded-md border-2 border-ink bg-cobalt text-paper shadow-xs">
+            <Icon icon={UserMultiple02Icon} size={18} strokeWidth={2.25} />
+          </span>
+          <div className="grid min-w-0 gap-1">
+            <Eyebrow>Referral</Eyebrow>
+            <h2 className="text-sm leading-tight font-black text-foreground">
+              Bring a regular
+            </h2>
+            <p className="text-sm leading-6 text-ink-soft">
+              Share your link. When they collect their first stamp, your card
+              gets one bonus stamp.
+            </p>
+          </div>
         </div>
+        <MonoTag tone="cobalt" className="hidden shrink-0 min-[360px]:inline-flex">
+          Bonus +1
+        </MonoTag>
       </div>
 
       {/* Test/analytics hook: the shareable link, carrying the opaque ref code. */}
@@ -85,17 +93,23 @@ export function ReferralSharePanel({
         {url}
       </span>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="grid gap-2">
         <Button
           type="button"
           size="lg"
           onClick={share}
-          className="min-w-[10rem] flex-1"
+          className="w-full"
         >
           <Icon icon={LinkSquare02Icon} size={16} />
           Share your link
         </Button>
-        <Button type="button" size="lg" variant="secondary" onClick={copyLink}>
+        <Button
+          type="button"
+          size="lg"
+          variant="secondary"
+          onClick={copyLink}
+          className="w-full"
+        >
           <Icon icon={copied ? Tick02Icon : LinkSquare02Icon} size={16} />
           {copied ? "Copied" : "Copy link"}
         </Button>

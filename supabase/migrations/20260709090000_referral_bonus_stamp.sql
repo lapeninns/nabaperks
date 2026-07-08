@@ -122,8 +122,9 @@ declare
   v_active_reward_count integer := 0;
   v_weight_threshold integer;
   v_reward record;
-  v_recent_bonus_count integer;
-  v_velocity_cap constant integer := 20; -- awards per referrer, rolling 24h (RB-10)
+  v_today_bonus_count integer;
+  v_daily_bonus_cap constant integer := 2;
+  v_business_date date := public.uk_business_date(now());
 begin
   -- Lock the unpaid edge for this referred membership (RB-3 idempotency).
   select r.id, r.referred_membership_id, r.referrer_membership_id,
@@ -175,22 +176,21 @@ begin
   set referrer_bonus_due_at = coalesce(referrer_bonus_due_at, now())
   where id = v_edge.id;
 
-  -- Velocity cap (RB-10): hold due + flag once, do not auto-issue beyond the cap.
   select count(*)
-  into v_recent_bonus_count
+  into v_today_bonus_count
   from public.referrals
   where referrals.referrer_membership_id = v_edge.referrer_membership_id
     and referrals.referrer_bonus_awarded_at is not null
-    and referrals.referrer_bonus_awarded_at > now() - interval '24 hours';
+    and public.uk_business_date(referrals.referrer_bonus_awarded_at) = v_business_date;
 
-  if v_recent_bonus_count >= v_velocity_cap then
+  if v_today_bonus_count >= v_daily_bonus_cap then
     if not exists (
       select 1 from public.fraud_flags
       where fraud_flags.merchant_id = v_referrer.merchant_id
         and fraud_flags.membership_id = v_referrer.id
         and fraud_flags.signal = 'referral_bonus_velocity'
         and fraud_flags.status = 'open'
-        and fraud_flags.created_at > now() - interval '24 hours'
+        and public.uk_business_date(fraud_flags.created_at) = v_business_date
     ) then
       insert into public.fraud_flags (
         merchant_id, customer_id, membership_id, signal, severity, metadata
@@ -198,8 +198,8 @@ begin
       values (
         v_referrer.merchant_id, v_referrer.customer_id, v_referrer.id,
         'referral_bonus_velocity', 'medium',
-        jsonb_build_object('referral_edge_id', v_edge.id, 'cap', v_velocity_cap,
-          'observed_awards_24h', v_recent_bonus_count)
+        jsonb_build_object('referral_edge_id', v_edge.id, 'cap', v_daily_bonus_cap,
+          'business_date', v_business_date, 'observed_awards_today', v_today_bonus_count)
       );
     end if;
     return; -- held due
@@ -443,6 +443,59 @@ grant execute on function public.issue_self_service_stamp(
 ) to authenticated, service_role;
 
 -- 5. Drain sweep (RB-6) -------------------------------------------------------
+create or replace function public.drain_due_referrer_bonuses_for_membership(
+  p_referrer_membership_id uuid
+)
+returns integer
+language plpgsql
+security definer
+set search_path = public, auth, extensions
+as $$
+declare
+  r record;
+  n integer := 0;
+  v_before_count integer;
+  v_after_count integer;
+begin
+  for r in
+    select distinct e.referred_membership_id
+    from public.referrals e
+    where e.referrer_membership_id = p_referrer_membership_id
+      and e.referrer_bonus_awarded_at is null
+      and exists (
+        select 1 from public.stamp_events s
+        where s.membership_id = e.referred_membership_id
+          and s.event_type = 'earned'
+      )
+    order by e.referred_membership_id
+  loop
+    begin
+      select current_stamp_count
+      into v_before_count
+      from public.customer_memberships
+      where id = p_referrer_membership_id;
+
+      perform public.award_referrer_bonus_stamp(r.referred_membership_id, null);
+
+      select current_stamp_count
+      into v_after_count
+      from public.customer_memberships
+      where id = p_referrer_membership_id;
+
+      n := n + greatest(coalesce(v_after_count, 0) - coalesce(v_before_count, 0), 0);
+    exception
+      when others then
+        raise warning 'referral bonus drain skipped for %: %', r.referred_membership_id, sqlerrm;
+    end;
+  end loop;
+
+  return n;
+end;
+$$;
+
+revoke all on function public.drain_due_referrer_bonuses_for_membership(uuid) from public, anon, authenticated;
+grant execute on function public.drain_due_referrer_bonuses_for_membership(uuid) to service_role;
+
 -- Pays every owed-but-unpaid bonus whose friend has visited, when the referrer
 -- has room. Idempotent: already-awarded edges are excluded; full-card edges stay
 -- due and are retried on the next run.
@@ -457,7 +510,7 @@ declare
   n integer := 0;
 begin
   for r in
-    select distinct e.referred_membership_id
+    select distinct e.referrer_membership_id
     from public.referrals e
     where e.referrer_bonus_awarded_at is null
       and exists (
@@ -467,11 +520,12 @@ begin
       )
   loop
     begin
-      perform public.award_referrer_bonus_stamp(r.referred_membership_id, null);
-      n := n + 1;
+      n := n + public.drain_due_referrer_bonuses_for_membership(
+        r.referrer_membership_id
+      );
     exception
       when others then
-        raise warning 'referral bonus drain skipped for %: %', r.referred_membership_id, sqlerrm;
+        raise warning 'referral bonus drain skipped for referrer %: %', r.referrer_membership_id, sqlerrm;
     end;
   end loop;
   return n;

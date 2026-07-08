@@ -6,18 +6,19 @@ import {
   getCustomerCardState,
   getMembershipStampDisplayDates,
   reconcileCardStampCount,
+  stampDisplayLabelsForCount,
 } from "@/lib/customer/card"
 import { captureJoinFunnelEvent } from "@/lib/customer/join-funnel"
+import { getReferralBonusBank } from "@/lib/customer/referral-bonus-bank"
 import {
   buildReferralJoinUrl,
   isShareableReferralCode,
 } from "@/lib/customer/referral"
-import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
 import {
   narrowRewardSource,
   rewardStampThresholdMet,
 } from "@/lib/customer/issued-reward-display"
-import { isRedeemableFrom, ukTodayIso } from "@/lib/customer/uk-date"
+import { isRedeemableFrom } from "@/lib/customer/uk-date"
 import { customerLoginHref } from "@/lib/navigation/safe-next-path"
 import { logger } from "@/lib/observability/logger"
 
@@ -89,25 +90,22 @@ export async function loadCardExperienceContext(
   }
 
   const target = loyaltyCard.stamps_required
-  const stampDates = await getMembershipStampDisplayDates(
-    membership.id,
-    target,
-    membership.active_cycle_number
-  )
+  const [stampDates, referralBonusBank] = await Promise.all([
+    getMembershipStampDisplayDates(
+      membership.id,
+      target,
+      membership.active_cycle_number
+    ),
+    getReferralBonusBank(membership.id),
+  ])
   const current = reconcileCardStampCount({
     membershipCount: membership.current_stamp_count,
-    stampDateCount: stampDates.length,
     total: target,
   })
-  const dates =
-    justStamped && current > stampDates.length
-      ? [
-          ...stampDates,
-          ...Array.from({ length: current - stampDates.length }, () =>
-            formatStampDisplayDateFromIso(ukTodayIso())
-          ),
-        ]
-      : stampDates.slice(0, current)
+  const dates = stampDisplayLabelsForCount({
+    labels: stampDates,
+    count: current,
+  })
   // The card face reflects the STAMP-CYCLE reward only — the reward earned by
   // completing this card. Issued rewards (birthday/merchant) never drive it, so
   // an incomplete card never reads as reward-ready.
@@ -175,6 +173,7 @@ export async function loadCardExperienceContext(
     geoFlagged,
     justRedeemed,
     referralShareUrl,
+    referralBonusBank,
   }
 }
 

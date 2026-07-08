@@ -17,6 +17,7 @@ import {
   initialSelfStampState,
   type SelfStampActionState,
 } from "@/lib/customer/self-stamp-action-state"
+import { REFERRAL_BONUS_STAMP_LABEL } from "@/lib/customer/card-stamp-labels"
 import { stampAnnouncement } from "@/lib/customer/experience/stamp-announcement"
 import { stampDiscState } from "@/lib/customer/experience/stamp-disc-state"
 import { SEALED_REWARD_NOTE } from "@/lib/copy/product-copy"
@@ -60,7 +61,11 @@ function stampHint(
 
 /** Pure view derivation: turn the action state + props into display values. */
 function stampView(args: {
-  issued: { newStampCount: number; geoFlagged: boolean } | null
+  issued: {
+    newStampCount: number
+    geoFlagged: boolean
+    bonusStampsApplied: number
+  } | null
   armed: boolean
   canStamp: boolean
   current: number
@@ -77,13 +82,19 @@ function stampView(args: {
     : showStamp
       ? current + 1
       : current
+  const missingDateCount = Math.max(displayCurrent - stampDates.length, 0)
+  const bonusDateCount = issued
+    ? Math.min(Math.max(issued.bonusStampsApplied, 0), missingDateCount)
+    : 0
+  const venueStampDateCount = missingDateCount - bonusDateCount
   const dates =
-    showStamp && displayCurrent > stampDates.length
+    showStamp && missingDateCount > 0
       ? [
           ...stampDates,
+          ...Array.from({ length: venueStampDateCount }, () => todayLabel),
           ...Array.from(
-            { length: displayCurrent - stampDates.length },
-            () => todayLabel
+            { length: bonusDateCount },
+            () => REFERRAL_BONUS_STAMP_LABEL
           ),
         ]
       : stampDates.slice(0, displayCurrent)
@@ -109,11 +120,14 @@ function stampView(args: {
 function StampAftermath({
   committed,
   cardComplete,
+  bonusStampsApplied,
 }: {
   committed: boolean
   cardComplete: boolean
+  bonusStampsApplied: number
 }) {
   if (!committed) return null
+  const bonusMessage = referralBonusAppliedMessage(bonusStampsApplied)
   if (cardComplete) {
     // Stay reward-state-agnostic here: the reward may not be redeemable until the
     // next UK business day, so don't promise an at-the-counter claim. The
@@ -121,17 +135,30 @@ function StampAftermath({
     return (
       <RewardCelebration
         title="That's the full card."
-        message="Your mystery reward is unlocked."
+        message={
+          bonusMessage
+            ? `${bonusMessage} Your mystery reward is unlocked.`
+            : "Your mystery reward is unlocked."
+        }
       />
     )
   }
   return (
     <StampCelebration>
       <StatusBanner title="Stamp added." tone="success" className="text-center">
-        That&apos;s one. Your progress is saved.
+        {bonusMessage
+          ? `That's one. ${bonusMessage}`
+          : "That's one. Your progress is saved."}
       </StatusBanner>
     </StampCelebration>
   )
+}
+
+function referralBonusAppliedMessage(count: number): string | null {
+  if (count <= 0) return null
+  return count === 1
+    ? "1 banked bonus stamp was added too."
+    : `${count} banked bonus stamps were added too.`
 }
 
 /**
@@ -254,6 +281,7 @@ export function StampCollector({
           <StampAftermath
             committed={committed}
             cardComplete={view.cardComplete}
+            bonusStampsApplied={issued?.bonusStampsApplied ?? 0}
           />
         }
       >

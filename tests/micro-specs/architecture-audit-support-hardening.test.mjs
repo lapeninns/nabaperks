@@ -160,16 +160,26 @@ test("Given a live join QR depends on three active rewards When reward pool edit
   assert.match(actions, /at least 3 active rewards/)
 })
 
-test("Given wallet progress renders from stamp history When counters drift Then earned dots are capped by dated events", () => {
-  const cardStamps = readProjectFile("lib", "customer", "card-stamps.ts")
+test("Given wallet progress includes referral bonuses When counters drift Then earned dots follow server progress with bonus labels", () => {
+  const cardStampLabels = readProjectFile(
+    "lib",
+    "customer",
+    "card-stamp-labels.ts"
+  )
   const home = readProjectFile("lib", "customer", "home.ts")
 
-  assert.match(cardStamps, /return Math\.min\(stampDateCount, total\)/)
+  assert.match(
+    cardStampLabels,
+    /return Math\.min\(Math\.max\(membershipCount, 0\), Math\.max\(total, 0\)\)/
+  )
   assert.doesNotMatch(
-    cardStamps,
+    cardStampLabels,
     /Math\.max\(membershipCount, stampDateCount\)/
   )
-  assert.match(home, /stampInfo\.stampDates\.slice\(0, currentStamps\)/)
+  assert.match(
+    home,
+    /stampDisplayLabelsForCount\(\{[\s\S]*?count: currentStamps/
+  )
 })
 
 test("Given landing venue proof uses real venues When copy is editorial Then provenance is disclosed", () => {

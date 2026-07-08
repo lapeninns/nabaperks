@@ -143,7 +143,7 @@ Out of scope (explicitly not touched):
 - **Fail-safe hook.** The call to `award_referrer_bonus_stamp` from inside the
   QR-gated `issue_self_service_stamp` is wrapped in a nested `begin … exception
   when others then raise warning … end`, mirroring the join wrapper's first-stamp
-  handling: a bonus failure degrades to *no bonus + warning* and never rolls back
+  handling: a bonus failure degrades to _no bonus + warning_ and never rolls back
   or blocks the friend's stamp.
 - **Backward-compatible redefinition.** The QR-gated `issue_self_service_stamp`
   overload `(uuid, uuid, text, numeric, numeric, numeric, text, integer)` is
@@ -166,7 +166,7 @@ Out of scope (explicitly not touched):
 
 ## 4. Decisions Already Made
 
-- The friend receives only their normal first earned stamp; the *referrer*
+- The friend receives only their normal first earned stamp; the _referrer_
   receives the bonus. Both "get a stamp"; only the referrer's is a bonus.
 - The trigger hook lives inside the inner `issue_self_service_stamp` (covers both
   the QR-join first stamp and a later standalone visit), same transaction.
@@ -180,9 +180,10 @@ Out of scope (explicitly not touched):
 - The bonus bypasses the one-per-UK-day cap (NULL business date) and the
   geofence (a bonus is not a location visit); it respects the referrer's cycle
   size (never pushes a card past `stamps_required`).
-- A per-referrer velocity cap holds excess bonuses `due` and records a
-  `fraud_flags` row (`signal='referral_bonus_velocity'`) rather than
-  auto-issuing beyond the configured rolling-window rate.
+- A per-referrer daily cap issues at most two referral bonuses per UK business
+  day; excess bonuses are banked `due` and record a `fraud_flags` row
+  (`signal='referral_bonus_velocity'`) rather than auto-issuing beyond the
+  configured daily rate.
 - Share surface is the card collecting state plus a home-dashboard tile;
   mechanics are Web Share API with a copy-link fallback over the full
   `…/join?ref=<code>` URL. The `/r/<code>` short link is deferred.
@@ -221,10 +222,10 @@ Out of scope (explicitly not touched):
   their per-membership referral link from their card and home dashboard without
   constructing a URL, and the shared link SHALL carry the opaque `referral_code`,
   never the membership UUID.
-- **RB-10 (velocity cap):** IF awarding a bonus would exceed the configured
-  per-referrer rolling-window rate, THEN THE system SHALL hold the bonus `due`
-  and record one `fraud_flags` row (`referral_bonus_velocity`) instead of
-  issuing it.
+- **RB-10 (daily bank cap):** IF awarding a bonus would exceed two referral
+  bonuses for the referrer on the current UK business day, THEN THE system SHALL
+  hold the bonus `due` and record one `fraud_flags` row
+  (`referral_bonus_velocity`) instead of issuing it.
 - **RB-11 (analytics):** WHEN a share action is invoked THE system SHALL record a
   `referral_link_shared` product event, and WHEN a bonus is awarded THE system
   SHALL record a `referral_bonus_awarded` product event.
@@ -251,8 +252,8 @@ transactions):
 - One `referral_bonus_stamp_issued` notification_events row and one
   `referral_bonus_awarded` product_events row per edge in the award transaction
   (RB-8/RB-11); forcing a bonus error still commits the friend's stamp (RB-7).
-- Over-cap awarding holds `due` and writes a `referral_bonus_velocity` fraud flag
-  (RB-10).
+- Over-cap awarding after two referral bonuses in the current UK business day
+  holds `due` and writes a `referral_bonus_velocity` fraud flag (RB-10).
 
 Browser tier (mobile-safari, secondary journey proof): a referrer viewing their
 card can reach the share panel and invoke copy / Web Share for a link resolving

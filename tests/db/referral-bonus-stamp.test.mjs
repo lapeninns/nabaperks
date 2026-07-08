@@ -317,6 +317,51 @@ test(
 )
 
 test(
+  "RB-6 (member drain): the referrer's next venue stamp can drain their own bank",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const [qr] = await tx.unsafe(PICK_QR)
+      const s = await seedReferrerAndFriend(tx, qr)
+      const required = await stampsRequiredFor(tx, qr.merchant_id)
+
+      await tx`update public.customer_memberships
+             set current_stamp_count = ${required}
+             where id = ${s.referrer.membership_id}`
+      await stamp(tx, s.friend.membership_id, s.friendCustomer, qr.qr_id)
+
+      assert.equal(
+        (await bonusStampsFor(tx, s.referrer.membership_id)).length,
+        0,
+        "the bonus is banked while the referrer's card is full"
+      )
+
+      await tx`update public.customer_memberships set current_stamp_count = 0
+             where id = ${s.referrer.membership_id}`
+      const [{ applied }] = await tx`
+        select public.drain_due_referrer_bonuses_for_membership(
+          ${s.referrer.membership_id}::uuid
+        ) as applied`
+
+      assert.equal(
+        applied,
+        1,
+        "the member-scoped drain applies one banked stamp"
+      )
+      assert.equal(
+        (await bonusStampsFor(tx, s.referrer.membership_id)).length,
+        1,
+        "the referrer's banked bonus is paid"
+      )
+      assert.ok(
+        (await edgeState(tx, s.friend.membership_id)).referrer_bonus_awarded_at,
+        "the referral edge is marked awarded"
+      )
+    })
+  }
+)
+
+test(
   "RB-8/RB-11: awarding a bonus writes a notification and a product event in-txn",
   { skip },
   async () => {
@@ -435,8 +480,8 @@ test(
       )
       const code = await codeFor(tx, referrer.membership_id)
 
-      // Seed the referrer at the cap: 20 already-awarded bonuses in the last 24h.
-      for (let i = 0; i < 20; i++) {
+      // Seed the referrer at the cap: 2 already-awarded bonuses today.
+      for (let i = 0; i < 2; i++) {
         const c = await makeCustomer(tx)
         const [m] = await tx`
         insert into public.customer_memberships (merchant_id, customer_id)
@@ -470,6 +515,56 @@ test(
       select count(*)::int as n from public.fraud_flags
       where membership_id = ${referrer.membership_id} and signal = 'referral_bonus_velocity'`
       assert.ok(n >= 1, "a referral_bonus_velocity fraud flag was recorded")
+    })
+  }
+)
+
+test(
+  "RB-10: the daily referral cap resets on the next UK business day",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const [qr] = await tx.unsafe(PICK_QR)
+      const referrerCustomer = await makeCustomer(tx)
+      const referrer = await joinWithStamp(
+        tx,
+        referrerCustomer,
+        qr.business_slug,
+        qr.qr_id
+      )
+      const code = await codeFor(tx, referrer.membership_id)
+
+      for (let i = 0; i < 2; i++) {
+        const c = await makeCustomer(tx)
+        const [m] = await tx`
+        insert into public.customer_memberships (merchant_id, customer_id)
+        values (${qr.merchant_id}::uuid, ${c}::uuid) returning id`
+        await tx`
+        insert into public.referrals (
+          referred_membership_id, referrer_membership_id, referral_code_used,
+          referrer_bonus_due_at, referrer_bonus_awarded_at)
+        values (${m.id}::uuid, ${referrer.membership_id}::uuid, 'seed', now(),
+          (public.uk_business_date(now())::timestamp - interval '1 hour') at time zone 'Europe/London')`
+      }
+
+      const friendCustomer = await makeCustomer(tx)
+      const friend = await joinNoStamp(
+        tx,
+        friendCustomer,
+        qr.business_slug,
+        code
+      )
+      await stamp(tx, friend.membership_id, friendCustomer, qr.qr_id)
+
+      assert.equal(
+        (await bonusStampsFor(tx, referrer.membership_id)).length,
+        1,
+        "previous-day awards do not consume today's referral bonus cap"
+      )
+      assert.ok(
+        (await edgeState(tx, friend.membership_id)).referrer_bonus_awarded_at,
+        "the new edge is awarded today"
+      )
     })
   }
 )
