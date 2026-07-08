@@ -4,6 +4,7 @@ import {
   getCustomerCardState,
   getMembershipStampDisplayDates,
   reconcileCardStampCount,
+  stampDisplayLabelsForCount,
 } from "@/lib/customer/card"
 import { getStampQrContextForMembership } from "@/lib/customer/join"
 import { getMerchantStampLocationRequirement } from "@/lib/customer/stamp"
@@ -219,7 +220,6 @@ async function loadCardProgress(cardState: {
   )
   const current = reconcileCardStampCount({
     membershipCount: cardState.membership.current_stamp_count,
-    stampDateCount: stampDates.length,
     total,
   })
 
@@ -227,7 +227,10 @@ async function loadCardProgress(cardState: {
     cardName: loyaltyCard.card_name,
     current,
     total,
-    stampDates: stampDates.slice(0, current),
+    stampDates: stampDisplayLabelsForCount({
+      labels: stampDates,
+      count: current,
+    }),
     todayLabel,
   }
 }

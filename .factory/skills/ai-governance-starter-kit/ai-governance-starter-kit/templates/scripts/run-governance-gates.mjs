@@ -67,6 +67,8 @@ const gates = [
   ...new Set(targetSpecs.flatMap((spec) => spec.metadata.verification_gates ?? [])),
 ]
 const runnable = gates.filter((gate) => !isManualInspectionGate(gate))
+const playwrightGateScripts = new Set(["test:e2e", "test:a11y", "test:visual"])
+let playwrightGatePort = 3146
 
 for (const gate of gates) {
   if (isManualInspectionGate(gate)) {
@@ -85,7 +87,16 @@ for (const gate of runnable) console.log(`queued: ${gate}`)
 // governance:check: test suites embed real-repo validations that would
 // otherwise re-impose the staleness/red-run failures this very run cures.
 // Fixture-based tests stay hermetic by passing their own env explicitly.
-const envForGate = () => ({ ...process.env, GOVERNANCE_REPROVING_SPECS: "*" })
+const envForGate = (parsed) => {
+  const env = { ...process.env, GOVERNANCE_REPROVING_SPECS: "*" }
+
+  if (isPlaywrightGate(parsed) && !process.env.PLAYWRIGHT_BASE_URL) {
+    env.PLAYWRIGHT_BASE_URL = `http://127.0.0.1:${playwrightGatePort++}`
+    env.PLAYWRIGHT_REUSE_EXISTING_SERVER = "0"
+  }
+
+  return env
+}
 const results = executeGates(root, runnable, { envForGate })
 const failed = results.find((result) => result.exit_code !== 0)
 
@@ -143,4 +154,8 @@ function mdCell(value) {
     .replace(/\|/g, "\\|")
     .replace(/`/g, "'")
     .replace(/\r?\n/g, " ")
+}
+
+function isPlaywrightGate(parsed) {
+  return parsed && playwrightGateScripts.has(parsed.scriptName)
 }

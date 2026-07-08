@@ -1,10 +1,14 @@
 import { randomUUID } from "node:crypto"
 import { expect, test, type Page } from "@playwright/test"
 
-import { adminLiveDbSkipReason } from "./helpers/admin-live-db"
+import {
+  adminLiveDbSkipReason,
+  connectLocalDb,
+  seedMerchantOwnerEmail,
+} from "./helpers/admin-live-db"
 import { dismissPwaInstall } from "./helpers/harness"
 
-const SEED_MERCHANT_EMAIL = "mia@old-crown-girton.test"
+const SEED_MERCHANT_SLUG = "old-crown-girton"
 const SEED_MERCHANT_PASSWORD = "NabaperksDemo1!"
 
 const MERCHANT_ACCOUNT_COMPAT_ROUTES = [
@@ -62,7 +66,11 @@ const AUTHENTICATED_COMPAT_ROUTES = [
 
 type AuthenticatedCompatRoute = (typeof AUTHENTICATED_COMPAT_ROUTES)[number]
 
-async function signInThroughNext(page: Page, next: string): Promise<void> {
+async function signInThroughNext(
+  page: Page,
+  next: string,
+  merchantEmail: string
+): Promise<void> {
   await page.setExtraHTTPHeaders({
     "x-vercel-forwarded-for": localLoopbackIp(randomUUID()),
   })
@@ -71,7 +79,7 @@ async function signInThroughNext(page: Page, next: string): Promise<void> {
     page.getByRole("heading", { name: "Back to the counter" })
   ).toBeVisible()
 
-  await page.locator("#email").fill(SEED_MERCHANT_EMAIL)
+  await page.locator("#email").fill(merchantEmail)
   await page.locator("#password").fill(SEED_MERCHANT_PASSWORD)
   await page.getByRole("button", { name: "Log in" }).click()
 }
@@ -159,14 +167,29 @@ test.describe("merchant account compatibility route gates", () => {
     test("seeded merchant legacy next paths land on Account hub", async ({
       page,
     }) => {
+      const sql = connectLocalDb()
+      test.skip(!sql, "local Supabase DB is not configured")
+      if (!sql) return
+
       const [firstRoute, ...remainingRoutes] = AUTHENTICATED_COMPAT_ROUTES
 
-      await signInThroughNext(page, firstRoute.path)
-      await expectAuthenticatedCompatRoute(page, firstRoute)
+      try {
+        const merchantEmail = await seedMerchantOwnerEmail(
+          sql,
+          SEED_MERCHANT_SLUG
+        )
+        test.skip(!merchantEmail, "seed merchant owner email is not available")
+        if (!merchantEmail) return
 
-      for (const compatRoute of remainingRoutes) {
-        await openAuthenticatedCompatRoute(page, compatRoute)
-        await expectAuthenticatedCompatRoute(page, compatRoute)
+        await signInThroughNext(page, firstRoute.path, merchantEmail)
+        await expectAuthenticatedCompatRoute(page, firstRoute)
+
+        for (const compatRoute of remainingRoutes) {
+          await openAuthenticatedCompatRoute(page, compatRoute)
+          await expectAuthenticatedCompatRoute(page, compatRoute)
+        }
+      } finally {
+        await sql.end({ timeout: 5 })
       }
     })
   })

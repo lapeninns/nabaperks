@@ -1,6 +1,6 @@
 "use client"
 
-import { type FormEvent, useId, useState } from "react"
+import { type FormEvent, useId, useState, useSyncExternalStore } from "react"
 import { Megaphone01Icon } from "@hugeicons/core-free-icons"
 
 import { Eyebrow, EmptyState, Icon, SectionHeader } from "@/components/brand"
@@ -23,6 +23,30 @@ import type { AnnouncementTemplate } from "@/lib/notifications/announcement-temp
 
 const TITLE_LIMIT = 80
 const BODY_LIMIT = 180
+
+function subscribeToHydration(callback: () => void) {
+  const frameId = window.requestAnimationFrame(callback)
+
+  return () => {
+    window.cancelAnimationFrame(frameId)
+  }
+}
+
+function getHydratedSnapshot() {
+  return true
+}
+
+function getServerHydrationSnapshot() {
+  return false
+}
+
+function useHydrated() {
+  return useSyncExternalStore(
+    subscribeToHydration,
+    getHydratedSnapshot,
+    getServerHydrationSnapshot
+  )
+}
 
 export type AnnouncementSubmitInput = {
   readonly title: string
@@ -69,6 +93,7 @@ export function AnnouncementCompose({
   const [pending, setPending] = useState(false)
   const [result, setResult] = useState<AnnouncementSubmitResult | null>(null)
   const [sentToday, setSentToday] = useState(dailyUsage.used)
+  const quickFillReady = useHydrated()
 
   const trimmedTitle = title.trim()
   const trimmedBody = body.trim()
@@ -165,13 +190,14 @@ export function AnnouncementCompose({
               <button
                 key={template.id}
                 type="button"
+                disabled={!quickFillReady}
                 onClick={() => {
                   // Prefill only: fills the draft fields. The announcement is
                   // not sent until the merchant presses Send.
                   setTitle(template.title)
                   setBody(template.body)
                 }}
-                className="focus-ring rounded-lg border-2 border-dashed border-ink/25 bg-transparent px-3 py-1.5 text-sm font-bold text-foreground transition-[background-color,border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:border-ink hover:bg-card motion-reduce:transition-none"
+                className="focus-ring rounded-lg border-2 border-dashed border-ink/25 bg-transparent px-3 py-1.5 text-sm font-bold text-foreground transition-[background-color,border-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:border-ink hover:bg-card disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none"
               >
                 {template.label}
               </button>

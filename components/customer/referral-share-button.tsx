@@ -28,7 +28,7 @@ export function ReferralShareButton({
     void recordReferralShare(membershipId)
     const shareData = {
       title: "Bring a Regular",
-      text: `Join me on the ${venueName} loyalty card — when you collect your first stamp, we both get one.`,
+      text: `Join me on the ${venueName} loyalty card — collect your first stamp and my card gets a bonus stamp too.`,
       url,
     }
     try {
@@ -39,14 +39,16 @@ export function ReferralShareButton({
         await navigator.share(shareData)
         return
       }
-    } catch {
+    } catch (error) {
+      if (!(error instanceof Error)) throw error
       // Share sheet dismissed or unavailable — fall back to copying the link.
     }
     try {
       await navigator.clipboard.writeText(url)
       setCopied(true)
       window.setTimeout(() => setCopied(false), 2000)
-    } catch {
+    } catch (error) {
+      if (!(error instanceof Error)) throw error
       setCopied(false)
     }
   }

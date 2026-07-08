@@ -1,18 +1,27 @@
 import "server-only"
 
+import { REFERRAL_BONUS_STAMP_LABEL } from "@/lib/customer/card-stamp-labels"
 import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+
+export {
+  reconcileCardStampCount,
+  stampDisplayLabelsForCount,
+} from "@/lib/customer/card-stamp-labels"
 
 type RawMembershipStampEvent = {
   membership_id: string
   earned_business_date: string | null
   cycle_number: number | null
+  metadata: unknown
 }
 
 export type MembershipStampDisplayDates = {
   readonly stampDates: string[]
   readonly latestBusinessDate: string | null
 }
+
+const UNKNOWN_STAMP_LABEL = "Stamp"
 
 export async function getMembershipStampDisplayDates(
   membershipId: string,
@@ -22,7 +31,7 @@ export async function getMembershipStampDisplayDates(
   const supabase = createSupabaseServiceRoleClient()
   let query = supabase
     .from("stamp_events")
-    .select("earned_business_date")
+    .select("earned_business_date, metadata")
     .eq("membership_id", membershipId)
     .eq("event_type", "earned")
 
@@ -31,17 +40,14 @@ export async function getMembershipStampDisplayDates(
   }
 
   const { data, error } = await query
-    .order("earned_business_date", { ascending: true })
+    .order("created_at", { ascending: true })
     .limit(limit)
 
   if (error) {
     throw new Error(`Unable to load stamp dates: ${error.message}`)
   }
 
-  return (data ?? [])
-    .map((row) => row.earned_business_date)
-    .filter((date): date is string => typeof date === "string")
-    .map(formatStampDisplayDateFromIso)
+  return (data ?? []).map(stampEventDisplayLabel)
 }
 
 export async function getMembershipStampDisplayDatesByMembership(
@@ -64,7 +70,7 @@ export async function getMembershipStampDisplayDatesByMembership(
   const supabase = createSupabaseServiceRoleClient()
   let query = supabase
     .from("stamp_events")
-    .select("membership_id, earned_business_date, cycle_number")
+    .select("membership_id, earned_business_date, cycle_number, metadata")
     .in("membership_id", uniqueMembershipIds)
     .eq("event_type", "earned")
 
@@ -84,7 +90,7 @@ export async function getMembershipStampDisplayDatesByMembership(
     query = query.or(activeCycleFilter)
   }
 
-  const { data, error } = await query.order("earned_business_date", {
+  const { data, error } = await query.order("created_at", {
     ascending: true,
   })
 
@@ -92,38 +98,58 @@ export async function getMembershipStampDisplayDatesByMembership(
     throw new Error(`Unable to load stamp dates: ${error.message}`)
   }
 
-  const rawDatesByMembership = new Map<string, string[]>()
+  const labelsByMembership = new Map<string, string[]>()
+  const latestBusinessDateByMembership = new Map<string, string>()
 
   for (const row of (data ?? []) as RawMembershipStampEvent[]) {
-    if (typeof row.earned_business_date !== "string") continue
-
     const activeCycle = activeCycleByMembership?.get(row.membership_id)
     if (activeCycle !== undefined && row.cycle_number !== activeCycle) continue
 
-    const dates = rawDatesByMembership.get(row.membership_id) ?? []
-    if (dates.length < limitByMembership) {
-      dates.push(row.earned_business_date)
-      rawDatesByMembership.set(row.membership_id, dates)
+    const labels = labelsByMembership.get(row.membership_id) ?? []
+    if (labels.length < limitByMembership) {
+      labels.push(stampEventDisplayLabel(row))
+      labelsByMembership.set(row.membership_id, labels)
+    }
+
+    if (typeof row.earned_business_date === "string") {
+      latestBusinessDateByMembership.set(
+        row.membership_id,
+        row.earned_business_date
+      )
     }
   }
 
-  for (const [membershipId, rawDates] of rawDatesByMembership) {
+  for (const [membershipId, stampDates] of labelsByMembership) {
     stampDatesByMembership.set(membershipId, {
-      stampDates: rawDates.map(formatStampDisplayDateFromIso),
-      latestBusinessDate: rawDates.at(-1) ?? null,
+      stampDates,
+      latestBusinessDate:
+        latestBusinessDateByMembership.get(membershipId) ?? null,
     })
   }
 
   return stampDatesByMembership
 }
 
-export function reconcileCardStampCount({
-  stampDateCount,
-  total,
-}: {
-  membershipCount: number
-  stampDateCount: number
-  total: number
-}) {
-  return Math.min(stampDateCount, total)
+function stampEventDisplayLabel(event: {
+  earned_business_date: string | null
+  metadata?: unknown
+}): string {
+  if (typeof event.earned_business_date === "string") {
+    return formatStampDisplayDateFromIso(event.earned_business_date)
+  }
+
+  return stampEventSource(event.metadata) === "referral_bonus"
+    ? REFERRAL_BONUS_STAMP_LABEL
+    : UNKNOWN_STAMP_LABEL
+}
+
+function stampEventSource(metadata: unknown): string | null {
+  if (!isRecord(metadata)) return null
+
+  const source = metadata.source
+  return typeof source === "string" ? source : null
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
 }

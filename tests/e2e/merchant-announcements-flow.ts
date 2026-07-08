@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test"
+import { expect, test, type Locator } from "@playwright/test"
 
 import { dismissPwaInstall, HARNESS_ROUTES } from "./helpers/harness"
 
@@ -19,10 +19,10 @@ export function describeMerchantAnnouncements() {
         "About 18 of your 24 members can receive this."
       )
       await expect(composer).toContainText("Daily announcements 0/2")
-      await composer.getByLabel("Announcement title").fill("Rainy lunch")
-      await composer
-        .getByLabel("Announcement body")
-        .fill("Warm pies and cask ale are ready from noon today.")
+      await fillReadyAnnouncementDraft(composer, {
+        title: "Rainy lunch",
+        body: "Warm pies and cask ale are ready from noon today.",
+      })
 
       await composer.getByRole("button", { name: /Send announcement/ }).click()
 
@@ -45,10 +45,10 @@ export function describeMerchantAnnouncements() {
         exact: true,
       })
 
-      await composer.getByLabel("Announcement title").fill("Rate limit")
-      await composer
-        .getByLabel("Announcement body")
-        .fill("This fixture returns a rate-limit response from the harness.")
+      await fillReadyAnnouncementDraft(composer, {
+        title: "Rate limit",
+        body: "This fixture returns a rate-limit response from the harness.",
+      })
       await composer.getByRole("button", { name: /Send announcement/ }).click()
 
       await expect(composer.getByText("Daily limit reached")).toBeVisible()
@@ -67,10 +67,10 @@ export function describeMerchantAnnouncements() {
         exact: true,
       })
 
-      await composer.getByLabel("Announcement title").fill("Moderation")
-      await composer
-        .getByLabel("Announcement body")
-        .fill("This fixture returns a moderation response from the harness.")
+      await fillReadyAnnouncementDraft(composer, {
+        title: "Moderation",
+        body: "This fixture returns a moderation response from the harness.",
+      })
       await composer.getByRole("button", { name: /Send announcement/ }).click()
 
       await expect(composer.getByText("Check the wording")).toBeVisible()
@@ -119,4 +119,23 @@ export function describeMerchantAnnouncements() {
       await expect(composer.getByText("Announcement queued")).toHaveCount(0)
     })
   })
+}
+
+async function fillReadyAnnouncementDraft(
+  composer: Locator,
+  copy: { readonly title: string; readonly body: string }
+): Promise<void> {
+  const title = composer.getByLabel("Announcement title")
+  const body = composer.getByLabel("Announcement body")
+  const sendButton = composer.getByRole("button", { name: /Send announcement/ })
+
+  await composer.getByRole("button", { name: "Quiz night" }).click()
+  await expect(title).toHaveValue("Quiz night is back this week")
+
+  await title.fill(copy.title)
+  await body.fill(copy.body)
+
+  await expect(composer.getByText(`${copy.title.length}/80`)).toBeVisible()
+  await expect(composer.getByText(`${copy.body.length}/180`)).toBeVisible()
+  await expect(sendButton).toBeEnabled()
 }

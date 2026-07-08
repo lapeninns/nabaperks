@@ -6,6 +6,7 @@ export type SelfStampActionState =
       newStampCount: number
       rewardUnlocked: boolean
       geoFlagged: boolean
+      bonusStampsApplied: number
     }
 
 export const initialSelfStampState: SelfStampActionState = { status: "idle" }

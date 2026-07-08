@@ -1,4 +1,5 @@
 import type { CustomerActivityItem } from "@/lib/customer/activity"
+import type { ReferralBonusBank } from "@/lib/customer/referral-bonus-bank"
 import type { RewardSource } from "@/lib/customer/issued-reward-display"
 
 /**
@@ -29,6 +30,7 @@ export type HomeCard = {
   stampsRemaining: number
   /** Stamp-cycle unlocked reward count — the card's own pending reward(s). */
   unlockedRewards: number
+  referralBonusBank?: ReferralBonusBank
   /** Stamp-cycle redeemable reward → the tile's "Reward ready" state and QR link. */
   stampRewardId?: string
   /** Name of the waiting (unlocked, not-yet-redeemable) stamp-cycle reward, for the mini ticket. */

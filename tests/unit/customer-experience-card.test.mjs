@@ -179,6 +179,17 @@ test("a card with no issued reward carries no gift", () => {
   assert.equal(experience.gift, null)
 })
 
+test("a collecting card carries the referral bonus bank into the card UI model", () => {
+  const referralBonusBank = { banked: 3, awardedToday: 2 }
+  const experience = deriveCustomerExperience({
+    entry: "card",
+    context: cardContext({ referralBonusBank }),
+  })
+
+  assert.equal(experience.kind, "card_collecting")
+  assert.deepEqual(experience.referralBonusBank, referralBonusBank)
+})
+
 test("full cards without an unlocked reward show recovery instead of inviting another stamp", () => {
   const experience = deriveCustomerExperience({
     entry: "card",
@@ -191,7 +202,8 @@ test("full cards without an unlocked reward show recovery instead of inviting an
 
   assert.deepEqual(experience, {
     kind: "unavailable",
-    reason: "We're sorting your reward. Check back shortly, or ask a team member.",
+    reason:
+      "We're sorting your reward. Check back shortly, or ask a team member.",
   })
 })
 

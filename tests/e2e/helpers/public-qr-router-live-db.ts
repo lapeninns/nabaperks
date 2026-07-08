@@ -6,8 +6,6 @@ import {
   type BrowserCustomerSession,
 } from "./customer-readback-live-db"
 
-const SEED_MERCHANT_SLUG = "old-crown-girton"
-
 type OwnerRow = {
   readonly owner_user_id: string
 }
@@ -32,7 +30,7 @@ export type PublicQrRouterFixture = PublicQrRouterRows & {
 export async function createPublicQrRouterFixture(
   sql: Sql
 ): Promise<PublicQrRouterFixture | undefined> {
-  const ownerUserId = await seedMerchantOwnerUserId(sql)
+  const ownerUserId = await seedDetachedOwnerUserId(sql)
   if (!ownerUserId) return undefined
 
   const fixtureRows = createPublicQrRouterRows()
@@ -98,11 +96,16 @@ export function publicQrPath(qrId: string): string {
   return `/q/${encodeURIComponent(qrId)}`
 }
 
-async function seedMerchantOwnerUserId(sql: Sql): Promise<string | undefined> {
+async function seedDetachedOwnerUserId(sql: Sql): Promise<string | undefined> {
   const ownerRows = await sql<readonly OwnerRow[]>`
-    select owner_user_id::text
-    from public.merchants
-    where business_slug = ${SEED_MERCHANT_SLUG}
+    select users.id::text as owner_user_id
+    from auth.users
+    where not exists (
+      select 1
+      from public.merchants
+      where merchants.owner_user_id = users.id
+    )
+    order by users.email
     limit 1`
 
   return ownerRows.at(0)?.owner_user_id

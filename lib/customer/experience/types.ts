@@ -9,6 +9,7 @@
  */
 
 import type { RewardSource } from "@/lib/customer/issued-reward-display"
+import type { ReferralBonusBank } from "@/lib/customer/referral-bonus-bank"
 
 /** Which route the customer entered from. Same facts can mean different UI. */
 export type CustomerExperienceEntry =
@@ -207,6 +208,7 @@ export type CustomerExperience =
       /** Shareable "Bring a Regular" join link carrying this card's opaque
        *  referral_code (never the membership UUID); absent if unshareable. */
       referralShareUrl?: string
+      referralBonusBank?: ReferralBonusBank
     }
   // --- Reward ---
   | {
