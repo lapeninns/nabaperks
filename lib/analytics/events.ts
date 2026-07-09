@@ -27,6 +27,7 @@ export const productEventNames = [
   "qr_downloaded",
   "qr_enabled",
   "qr_disabled",
+  "qr_poster_emailed",
   "reward_pool_item_created",
   "reward_pool_item_updated",
   "reward_pool_item_saved",

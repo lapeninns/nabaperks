@@ -12,6 +12,7 @@ import { QrFrame } from "@/components/loyalty/qr-frame"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { CopyUrlButton } from "@/components/merchant/copy-url-button"
 import { Disclosure } from "@/components/merchant/launch/disclosure"
+import { EmailPosterButton } from "@/components/merchant/launch/email-poster-button"
 import { QrErrorBanner } from "@/components/merchant/launch/qr-error-banner"
 import { Button } from "@/components/ui/button"
 import {
@@ -219,6 +220,7 @@ export function QrPanelLive({
               )
             })}
           </ul>
+          <EmailPosterButton />
         </section>
 
         <Disclosure label="How customers use this QR">
