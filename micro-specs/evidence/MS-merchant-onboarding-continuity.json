@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-merchant-onboarding-continuity",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-09T23:43:21.889Z",
+      "sha": "2a7cfed55c0cb642dda24c67eace99002155ec5b",
+      "dirty": true,
+      "by": "codex"
+    }
+  ]
+}
