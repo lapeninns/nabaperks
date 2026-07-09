@@ -26,11 +26,11 @@ export default async function OnboardingPage() {
       <ReceiptCard className="grid gap-3">
         <PageTitle
           eyebrow="Merchant setup"
-          title="Tell us about your business"
+          title="Set up your business and first venue"
           description={
             setup.status === "missing_location"
-              ? "Your business details are saved. Add your first venue to finish setting up."
-              : "Add your business, find your first venue, and confirm the address to get started."
+              ? "Your business profile is saved. Now add your first venue — its name and customer-facing address."
+              : "Two parts here: your business profile, then your first venue — its name and the customer-facing address where scans happen."
           }
           titleClassName="sm:text-3xl"
         />

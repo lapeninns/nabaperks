@@ -7,7 +7,7 @@ import {
   completeOnboardingAction,
   type OnboardingActionState,
 } from "@/app/app/onboarding/actions"
-import { Eyebrow, VenueMark } from "@/components/brand"
+import { Eyebrow } from "@/components/brand"
 import type {
   VenuePlaceAutocompleteProps,
   VenuePlaceSelection,
@@ -220,11 +220,17 @@ export function OnboardingForm({
       action={action}
       className={cn("surface-card grid gap-4 p-6", className)}
     >
-      <div className="flex items-center gap-3">
-        <VenueMark name="Nabaperks" size={48} />
-        <Eyebrow>Merchant setup</Eyebrow>
+      {/* Part 1 — the business profile: the operator's business behind the
+          loyalty card, not a single venue (more venues can be added later). The
+          page heading above already frames this whole card as "Merchant setup",
+          so the form opens straight into its first labelled group instead of
+          repeating that eyebrow. */}
+      <div className="grid gap-1">
+        <Eyebrow>Your business</Eyebrow>
+        <p className="text-sm leading-6 text-muted-foreground">
+          The business behind the loyalty card.
+        </p>
       </div>
-      <hr className="w-rule" />
       <OnboardingField
         id="businessName"
         label="Business name"
@@ -243,10 +249,47 @@ export function OnboardingForm({
         error={state.errors?.businessType}
         onChange={(value) => updateDraft({ businessType: value })}
       />
+      <OnboardingField
+        id="phone"
+        label="Business phone"
+        name="phone"
+        type="tel"
+        autoComplete="tel"
+        defaultValue={state.fields?.phone}
+        onChange={(event) => updateDraft({ phone: event.target.value })}
+      />
+
+      {/* Part 2 — the first venue: its own name plus the customer-facing
+          address where scans happen. */}
+      <hr className="w-rule" />
+      <div className="grid gap-1">
+        <Eyebrow>Your first venue</Eyebrow>
+        <p className="text-sm leading-6 text-muted-foreground">
+          Where customers scan to collect stamps. Search to autofill the
+          address, then check the details below.
+        </p>
+      </div>
 
       <VenuePlaceAutocomplete
         onPlaceSelected={handlePlaceSelected}
         apiKey={googleMapsApiKey}
+      />
+
+      {/* Venue name is an explicit, editable field (defaulting to the business
+          name) rather than a hidden input: the default is visible, and a venue
+          trading under a different name can be renamed here. */}
+      <OnboardingField
+        id="locationName"
+        label="Venue name"
+        name="locationName"
+        required
+        value={locationName || businessName}
+        onChange={(event) => {
+          setLocationName(event.target.value)
+          updateDraft({ locationName: event.target.value })
+        }}
+        error={state.errors?.locationName}
+        hint="Defaults to your business name. Edit it if this venue trades under a different name."
       />
 
       <VenueAddressFields
@@ -273,24 +316,6 @@ export function OnboardingForm({
         type="hidden"
         name="venueLongitude"
         value={providerCoordinates.longitude}
-      />
-
-      <input
-        type="hidden"
-        name="locationName"
-        value={locationName || businessName}
-      />
-      {state.errors?.locationName ? (
-        <OnboardingFormError>{state.errors.locationName}</OnboardingFormError>
-      ) : null}
-      <OnboardingField
-        id="phone"
-        label="Phone number"
-        name="phone"
-        type="tel"
-        autoComplete="tel"
-        defaultValue={state.fields?.phone}
-        onChange={(event) => updateDraft({ phone: event.target.value })}
       />
       {state.errors?.form ? (
         <OnboardingFormError>{state.errors.form}</OnboardingFormError>

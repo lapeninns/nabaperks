@@ -2,6 +2,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 
 import { PageTitle } from "@/components/brand"
+import { SetupBillingActivationCard } from "@/components/merchant/account/billing-activation-card"
 import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
 import { BirthdayRewardPanel } from "@/components/merchant/launch/birthday-panel"
 import { birthdayRewardTemplateForBusinessType } from "@/lib/merchant/birthday-reward-template"
@@ -14,6 +15,7 @@ import { VenueLocationForm } from "@/components/merchant/launch/venue-location-f
 import { Button } from "@/components/ui/button"
 import { buildLaunchReadiness } from "@/lib/merchant/launch-readiness"
 import type { LaunchHubTab } from "@/lib/merchant/launch-readiness"
+import { resolveLaunchHeaderModel } from "@/lib/merchant/launch-header-copy"
 import {
   CARD_CADENCE_PRESETS,
   rewardPresetsForBusinessType,
@@ -40,7 +42,7 @@ const LOCATION_NAME = "Old Crown Girton"
 export default async function LaunchHarnessPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ tab?: string }>
+  searchParams?: Promise<{ tab?: string; state?: string }>
 }) {
   if (process.env.NODE_ENV === "production") {
     notFound()
@@ -48,9 +50,17 @@ export default async function LaunchHarnessPage({
 
   const params = searchParams ? await searchParams : {}
   const activeTab = resolveTab(params.tab)
+  // Header-state selector so the needsBilling + launchReady header copy and the
+  // jump-CTA suppression render DB-free:
+  //   default → QR not live, billing pending (nextStep = qr — the mixed rail the
+  //             launch specs pin);
+  //   billing → QR live, billing the only pending step (needsBilling);
+  //   live    → QR live + billing not required (launchReady).
+  const state =
+    params.state === "billing" || params.state === "live"
+      ? params.state
+      : "default"
 
-  // Pure, DB-free readiness: venue+card+rewards ready, QR not yet live, billing
-  // pending — exercises the readiness rail's mixed done/pending stamp states.
   const readiness = buildLaunchReadiness({
     activeCard: {
       id: "card_harness",
@@ -63,7 +73,7 @@ export default async function LaunchHarnessPage({
       id: "qr_harness",
       qr_id: "old-crown-girton",
       destination_type: "join",
-      is_active: false,
+      is_active: state !== "default",
     },
     location: {
       id: "loc_harness",
@@ -75,21 +85,40 @@ export default async function LaunchHarnessPage({
       require_geofence: false,
       geocoded_at: "2026-06-20T10:00:00.000Z",
     },
-    billing: { requiresBilling: true, status: null },
+    billing: { requiresBilling: state !== "live", status: null },
   })
+
+  // Heading / context / description / header-CTA come from the same pure helper
+  // the real /app/launch uses, so the harness header stays faithful to it.
+  const header = resolveLaunchHeaderModel(readiness, activeTab)
 
   return (
     <div className="grid min-w-0 gap-2 overflow-x-clip sm:gap-6">
-      <h1 className="sr-only sm:hidden">Bring your venue to life</h1>
+      {/* Mirrors /app/launch: visible mobile setup context above the rail. */}
+      <div className="grid gap-1 sm:hidden">
+        <span className="eyebrow">Merchant setup</span>
+        <h1 className="text-2xl leading-tight font-extrabold text-balance">
+          {header.heading}
+        </h1>
+        <p className="text-sm leading-6 text-pretty text-muted-foreground">
+          {header.mobileContext}
+        </p>
+      </div>
       <div className="hidden sm:grid">
         <PageTitle
           eyebrow="Merchant setup"
-          title="Bring your venue to life"
-          description={`${readiness.total} setup checks and you're live. Create your QR once the earlier steps are done.`}
+          title={header.heading}
+          description={header.description}
           actions={
-            <Button asChild variant="secondary">
-              <Link href="/app/launch?tab=qr">Open venue QR</Link>
-            </Button>
+            header.actionTab === "qr" ? (
+              <Button asChild variant="secondary">
+                <Link href="/app/launch?tab=qr">Open venue QR</Link>
+              </Button>
+            ) : header.actionTab === "billing" ? (
+              <Button asChild>
+                <Link href="/app/launch?tab=billing">Proceed to billing</Link>
+              </Button>
+            ) : undefined
           }
         />
       </div>
@@ -168,6 +197,11 @@ export default async function LaunchHarnessPage({
             hasVenueAddress
             returnHref="/app/launch?tab=qr"
           />
+        ) : activeTab === "billing" ? (
+          <SetupBillingActivationCard
+            annualBillingAvailable={false}
+            billingReturnTo="/app/launch?tab=billing"
+          />
         ) : (
           <VenueLocationForm
             initialValues={{
@@ -193,7 +227,8 @@ function resolveTab(value: string | undefined): LaunchHubTab {
     value === "venue" ||
     value === "card" ||
     value === "rewards" ||
-    value === "qr"
+    value === "qr" ||
+    value === "billing"
   ) {
     return value
   }

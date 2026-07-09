@@ -53,7 +53,10 @@ export default async function MerchantAppPage() {
         title={merchant.business_name}
         description="A quick read on how your loyalty card is doing: members, repeat visits, and rewards."
         actions={
-          <>
+          // flex-col-reverse keeps the primary "Scan reward" on TOP when the
+          // buttons stack full-width on mobile (the secondary would otherwise
+          // sit above it); sm:flex-row restores primary-rightmost on desktop.
+          <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row">
             <Button asChild variant="secondary" className="w-full sm:w-auto">
               <Link href="/app/announcements" prefetch={false}>
                 <Icon icon={Megaphone01Icon} size={16} />
@@ -66,7 +69,7 @@ export default async function MerchantAppPage() {
                 Scan reward
               </Link>
             </Button>
-          </>
+          </div>
         }
       />
 

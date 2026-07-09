@@ -1,0 +1,626 @@
+[
+  {
+    "account": "non-onboarded",
+    "viewport": "mobile",
+    "route": "/app/onboarding",
+    "status": 200,
+    "shot": "live-non-onboarded-app-onboarding-mobile.png",
+    "path": "/app/onboarding",
+    "headings": [
+      {
+        "level": 1,
+        "text": "Set up your business and first venue",
+        "top": 121
+      },
+      {
+        "level": 2,
+        "text": "From sign-up to your first stamp",
+        "top": 1678
+      }
+    ],
+    "ctas": []
+  },
+  {
+    "account": "non-onboarded",
+    "viewport": "mobile",
+    "route": "/app/launch",
+    "status": 200,
+    "shot": "live-non-onboarded-app-launch-mobile.png",
+    "path": "/app/onboarding",
+    "headings": [
+      {
+        "level": 1,
+        "text": "Set up your business and first venue",
+        "top": 121
+      },
+      {
+        "level": 2,
+        "text": "From sign-up to your first stamp",
+        "top": 1678
+      }
+    ],
+    "ctas": []
+  },
+  {
+    "account": "non-onboarded",
+    "viewport": "desktop",
+    "route": "/app/onboarding",
+    "status": 200,
+    "shot": "live-non-onboarded-app-onboarding-desktop.png",
+    "path": "/app/onboarding",
+    "headings": [
+      {
+        "level": 1,
+        "text": "Set up your business and first venue",
+        "top": 149
+      },
+      {
+        "level": 2,
+        "text": "From sign-up to your first stamp",
+        "top": 137
+      }
+    ],
+    "ctas": []
+  },
+  {
+    "account": "non-onboarded",
+    "viewport": "desktop",
+    "route": "/app/launch",
+    "status": 200,
+    "shot": "live-non-onboarded-app-launch-desktop.png",
+    "path": "/app/onboarding",
+    "headings": [
+      {
+        "level": 1,
+        "text": "Set up your business and first venue",
+        "top": 149
+      },
+      {
+        "level": 2,
+        "text": "From sign-up to your first stamp",
+        "top": 137
+      }
+    ],
+    "ctas": []
+  },
+  {
+    "account": "onboarded-trialing",
+    "viewport": "mobile",
+    "route": "/app",
+    "status": 200,
+    "shot": "live-onboarded-trialing-app-mobile.png",
+    "path": "/app",
+    "headings": [
+      {
+        "level": 1,
+        "text": "Old Crown Girton",
+        "top": 121
+      },
+      {
+        "level": 2,
+        "text": "Show a customer, instantly",
+        "top": 585
+      },
+      {
+        "level": 2,
+        "text": "How the week is going",
+        "top": 869
+      },
+      {
+        "level": 2,
+        "text": "Recent activity",
+        "top": 1503
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Toggle Sidebar",
+        "top": 8,
+        "classes": "pressable inline-flex items-center justify-center gap-2 whit"
+      },
+      {
+        "text": "✱Nabaperks",
+        "top": 8,
+        "classes": "pressable inline-flex min-h-11 items-center gap-3 rounded-fu"
+      },
+      {
+        "text": "Announce",
+        "top": 286,
+        "classes": "pressable inline-flex shrink-0 items-center justify-center g"
+      },
+      {
+        "text": "Scan reward",
+        "top": 234,
+        "classes": "pressable inline-flex shrink-0 items-center justify-center g"
+      },
+      {
+        "text": "Show full screen",
+        "top": 700,
+        "classes": "pressable inline-flex shrink-0 items-center justify-center g"
+      },
+      {
+        "text": "Copy URL",
+        "top": 752,
+        "classes": "pressable inline-flex shrink-0 items-center justify-center g"
+      }
+    ]
+  },
+  {
+    "account": "onboarded-trialing",
+    "viewport": "mobile",
+    "route": "/app/launch?tab=billing",
+    "status": 200,
+    "shot": "live-onboarded-trialing-app-launch-tab-billing-mobile.png",
+    "path": "/app/launch?tab=billing",
+    "headings": [
+      {
+        "level": 1,
+        "text": "You're live",
+        "top": 113
+      },
+      {
+        "level": 2,
+        "text": "Growth Plan",
+        "top": 370
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Toggle Sidebar",
+        "top": 8,
+        "classes": "pressable inline-flex items-center justify-center gap-2 whit"
+      },
+      {
+        "text": "✱Nabaperks",
+        "top": 8,
+        "classes": "pressable inline-flex min-h-11 items-center gap-3 rounded-fu"
+      },
+      {
+        "text": "VenueVenue",
+        "top": 209,
+        "classes": "flex min-w-0 w-full flex-col items-center rounded-xl border-"
+      },
+      {
+        "text": "CardCard",
+        "top": 209,
+        "classes": "flex min-w-0 w-full flex-col items-center rounded-xl border-"
+      },
+      {
+        "text": "PoolRewards",
+        "top": 209,
+        "classes": "flex min-w-0 w-full flex-col items-center rounded-xl border-"
+      },
+      {
+        "text": "QRVenue QR",
+        "top": 209,
+        "classes": "flex min-w-0 w-full flex-col items-center rounded-xl border-"
+      },
+      {
+        "text": "BillBilling",
+        "top": 209,
+        "classes": "flex min-w-0 w-full flex-col items-center rounded-xl border-"
+      },
+      {
+        "text": "Open Stripe portal",
+        "top": 667,
+        "classes": "pressable inline-flex shrink-0 items-center justify-center g"
+      }
+    ]
+  },
+  {
+    "account": "onboarded-trialing",
+    "viewport": "mobile",
+    "route": "/app/account?tab=billing",
+    "status": 200,
+    "shot": "live-onboarded-trialing-app-account-tab-billing-mobile.png",
+    "path": "/app/account?tab=billing",
+    "headings": [
+      {
+        "level": 1,
+        "text": "Billing",
+        "top": 94
+      },
+      {
+        "level": 2,
+        "text": "Growth Plan",
+        "top": 320
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Toggle Sidebar",
+        "top": 8,
+        "classes": "pressable inline-flex items-center justify-center gap-2 whit"
+      },
+      {
+        "text": "✱Nabaperks",
+        "top": 8,
+        "classes": "pressable inline-flex min-h-11 items-center gap-3 rounded-fu"
+      },
+      {
+        "text": "Profile",
+        "top": 198,
+        "classes": "flex min-h-11 items-center justify-center rounded-md px-2 py"
+      },
+      {
+        "text": "Billing",
+        "top": 198,
+        "classes": "flex min-h-11 items-center justify-center rounded-md px-2 py"
+      },
+      {
+        "text": "Open Stripe portal",
+        "top": 617,
+        "classes": "pressable inline-flex shrink-0 items-center justify-center g"
+      }
+    ]
+  },
+  {
+    "account": "onboarded-trialing",
+    "viewport": "mobile",
+    "route": "/app/announcements",
+    "status": 200,
+    "shot": "live-onboarded-trialing-app-announcements-mobile.png",
+    "path": "/app/announcements",
+    "headings": [
+      {
+        "level": 1,
+        "text": "Message your regulars",
+        "top": 121
+      },
+      {
+        "level": 2,
+        "text": "Send a venue update",
+        "top": 299
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Toggle Sidebar",
+        "top": 8,
+        "classes": "pressable inline-flex items-center justify-center gap-2 whit"
+      },
+      {
+        "text": "✱Nabaperks",
+        "top": 8,
+        "classes": "pressable inline-flex min-h-11 items-center gap-3 rounded-fu"
+      },
+      {
+        "text": "Fresh bakes",
+        "top": 615,
+        "classes": "focus-ring rounded-lg border-2 border-dashed border-ink/25 b"
+      },
+      {
+        "text": "Quiet window",
+        "top": 615,
+        "classes": "focus-ring rounded-lg border-2 border-dashed border-ink/25 b"
+      },
+      {
+        "text": "Weekend treats",
+        "top": 659,
+        "classes": "focus-ring rounded-lg border-2 border-dashed border-ink/25 b"
+      },
+      {
+        "text": "New on the menu",
+        "top": 703,
+        "classes": "focus-ring rounded-lg border-2 border-dashed border-ink/25 b"
+      },
+      {
+        "text": "Open early",
+        "top": 703,
+        "classes": "focus-ring rounded-lg border-2 border-dashed border-ink/25 b"
+      }
+    ]
+  },
+  {
+    "account": "onboarded-trialing",
+    "viewport": "mobile",
+    "route": "/app/customers",
+    "status": 200,
+    "shot": "live-onboarded-trialing-app-customers-mobile.png",
+    "path": "/app/customers",
+    "headings": [
+      {
+        "level": 1,
+        "text": "Loyalty members",
+        "top": 121
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Toggle Sidebar",
+        "top": 8,
+        "classes": "pressable inline-flex items-center justify-center gap-2 whit"
+      },
+      {
+        "text": "✱Nabaperks",
+        "top": 8,
+        "classes": "pressable inline-flex min-h-11 items-center gap-3 rounded-fu"
+      },
+      {
+        "text": "Send a reward",
+        "top": 234,
+        "classes": "pressable inline-flex shrink-0 items-center justify-center g"
+      },
+      {
+        "text": "All5",
+        "top": 441,
+        "classes": "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full b"
+      },
+      {
+        "text": "Ready0",
+        "top": 441,
+        "classes": "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full b"
+      },
+      {
+        "text": "Active5",
+        "top": 441,
+        "classes": "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full b"
+      },
+      {
+        "text": "Quiet0",
+        "top": 485,
+        "classes": "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full b"
+      },
+      {
+        "text": "JEj***@example.testCollecting2 / 3Joined: YesterdayLast: Tue 7 Jul",
+        "top": 539,
+        "classes": "grid gap-0 text-left"
+      }
+    ]
+  },
+  {
+    "account": "onboarded-trialing",
+    "viewport": "desktop",
+    "route": "/app",
+    "status": 200,
+    "shot": "live-onboarded-trialing-app-desktop.png",
+    "path": "/app",
+    "headings": [
+      {
+        "level": 1,
+        "text": "Old Crown Girton",
+        "top": 59
+      },
+      {
+        "level": 2,
+        "text": "Show a customer, instantly",
+        "top": 211
+      },
+      {
+        "level": 2,
+        "text": "How the week is going",
+        "top": 431
+      },
+      {
+        "level": 2,
+        "text": "Recent activity",
+        "top": 975
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Announce",
+        "top": 64,
+        "classes": "pressable inline-flex shrink-0 items-center justify-center g"
+      },
+      {
+        "text": "Scan reward",
+        "top": 64,
+        "classes": "pressable inline-flex shrink-0 items-center justify-center g"
+      },
+      {
+        "text": "Show full screen",
+        "top": 283,
+        "classes": "pressable inline-flex shrink-0 items-center justify-center g"
+      },
+      {
+        "text": "Copy URL",
+        "top": 283,
+        "classes": "pressable inline-flex shrink-0 items-center justify-center g"
+      }
+    ]
+  },
+  {
+    "account": "onboarded-trialing",
+    "viewport": "desktop",
+    "route": "/app/launch?tab=billing",
+    "status": 200,
+    "shot": "live-onboarded-trialing-app-launch-tab-billing-desktop.png",
+    "path": "/app/launch?tab=billing",
+    "headings": [
+      {
+        "level": 1,
+        "text": "You're live",
+        "top": 59
+      },
+      {
+        "level": 2,
+        "text": "Growth Plan",
+        "top": 581
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Open venue QR",
+        "top": 64,
+        "classes": "pressable inline-flex shrink-0 items-center justify-center g"
+      },
+      {
+        "text": "1. Business & venueReady",
+        "top": 294,
+        "classes": "grid justify-items-center gap-2 rounded-lg px-1 py-2 text-ce"
+      },
+      {
+        "text": "2. Your cardReady",
+        "top": 294,
+        "classes": "grid justify-items-center gap-2 rounded-lg px-1 py-2 text-ce"
+      },
+      {
+        "text": "3. Your rewardsReady",
+        "top": 294,
+        "classes": "grid justify-items-center gap-2 rounded-lg px-1 py-2 text-ce"
+      },
+      {
+        "text": "4. Venue QRReady",
+        "top": 294,
+        "classes": "grid justify-items-center gap-2 rounded-lg px-1 py-2 text-ce"
+      },
+      {
+        "text": "5. BillingReady",
+        "top": 294,
+        "classes": "grid justify-items-center gap-2 rounded-lg px-1 py-2 text-ce"
+      },
+      {
+        "text": "Open Stripe portal",
+        "top": 866,
+        "classes": "pressable inline-flex shrink-0 items-center justify-center g"
+      }
+    ]
+  },
+  {
+    "account": "onboarded-trialing",
+    "viewport": "desktop",
+    "route": "/app/account?tab=billing",
+    "status": 200,
+    "shot": "live-onboarded-trialing-app-account-tab-billing-desktop.png",
+    "path": "/app/account?tab=billing",
+    "headings": [
+      {
+        "level": 1,
+        "text": "Billing",
+        "top": 32
+      },
+      {
+        "level": 2,
+        "text": "Growth Plan",
+        "top": 266
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Profile",
+        "top": 143,
+        "classes": "flex min-h-11 items-center justify-center rounded-md px-2 py"
+      },
+      {
+        "text": "Billing",
+        "top": 143,
+        "classes": "flex min-h-11 items-center justify-center rounded-md px-2 py"
+      },
+      {
+        "text": "Open Stripe portal",
+        "top": 551,
+        "classes": "pressable inline-flex shrink-0 items-center justify-center g"
+      }
+    ]
+  },
+  {
+    "account": "onboarded-trialing",
+    "viewport": "desktop",
+    "route": "/app/announcements",
+    "status": 200,
+    "shot": "live-onboarded-trialing-app-announcements-desktop.png",
+    "path": "/app/announcements",
+    "headings": [
+      {
+        "level": 1,
+        "text": "Message your regulars",
+        "top": 59
+      },
+      {
+        "level": 2,
+        "text": "Send a venue update",
+        "top": 209
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Fresh bakes",
+        "top": 413,
+        "classes": "focus-ring rounded-lg border-2 border-dashed border-ink/25 b"
+      },
+      {
+        "text": "Quiet window",
+        "top": 413,
+        "classes": "focus-ring rounded-lg border-2 border-dashed border-ink/25 b"
+      },
+      {
+        "text": "Weekend treats",
+        "top": 413,
+        "classes": "focus-ring rounded-lg border-2 border-dashed border-ink/25 b"
+      },
+      {
+        "text": "New on the menu",
+        "top": 413,
+        "classes": "focus-ring rounded-lg border-2 border-dashed border-ink/25 b"
+      },
+      {
+        "text": "Open early",
+        "top": 413,
+        "classes": "focus-ring rounded-lg border-2 border-dashed border-ink/25 b"
+      },
+      {
+        "text": "Send announcement",
+        "top": 709,
+        "classes": "pressable inline-flex shrink-0 items-center justify-center g"
+      }
+    ]
+  },
+  {
+    "account": "onboarded-trialing",
+    "viewport": "desktop",
+    "route": "/app/customers",
+    "status": 200,
+    "shot": "live-onboarded-trialing-app-customers-desktop.png",
+    "path": "/app/customers",
+    "headings": [
+      {
+        "level": 1,
+        "text": "Loyalty members",
+        "top": 59
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Send a reward",
+        "top": 64,
+        "classes": "pressable inline-flex shrink-0 items-center justify-center g"
+      },
+      {
+        "text": "All5",
+        "top": 255,
+        "classes": "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full b"
+      },
+      {
+        "text": "Ready0",
+        "top": 255,
+        "classes": "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full b"
+      },
+      {
+        "text": "Active5",
+        "top": 255,
+        "classes": "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full b"
+      },
+      {
+        "text": "Quiet0",
+        "top": 255,
+        "classes": "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full b"
+      },
+      {
+        "text": "Send",
+        "top": 391,
+        "classes": "pressable inline-flex shrink-0 items-center justify-center w"
+      },
+      {
+        "text": "Send",
+        "top": 478,
+        "classes": "pressable inline-flex shrink-0 items-center justify-center w"
+      },
+      {
+        "text": "Send",
+        "top": 565,
+        "classes": "pressable inline-flex shrink-0 items-center justify-center w"
+      }
+    ]
+  }
+]

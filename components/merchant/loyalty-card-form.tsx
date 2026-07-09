@@ -18,6 +18,7 @@ import {
   MinusSignIcon,
   PencilEdit02Icon,
   PlusSignIcon,
+  Tick02Icon,
 } from "@hugeicons/core-free-icons"
 
 import {
@@ -142,10 +143,13 @@ export function LoyaltyCardForm({
           value={draft.stampsRequired}
         />
 
+        {/* Step 2 in the launch order (venue → card → rewards → qr → billing);
+            the readiness rail numbers the card "2" so this must match, not read
+            "Step 1" as it did before venue capture moved into onboarding. */}
         <SectionHead
           title="Your card"
           description={`One active card for ${locationName}. The reward reveals after the final qualifying visit.`}
-          step="Step 1"
+          step="Step 2"
           compactOnMobile
         />
 
@@ -282,6 +286,12 @@ export function RewardPoolForm({
   const ready = activeRewardCount >= REQUIRED_ACTIVE_REWARDS
   const deficit = REQUIRED_ACTIVE_REWARDS - activeRewardCount
 
+  // Names already in the pool — a preset whose idea is present shows a "saved"
+  // state so the merchant can see which ideas they've used at a glance.
+  const pooledRewardNames = new Set(
+    items.map((item) => item.rewardName.trim().toLowerCase()).filter(Boolean)
+  )
+
   function openBlankReward() {
     setNewRewardValues(buildBlankRewardValues(items.length + 1))
     setNewRewardKey(`blank-${items.length + 1}`)
@@ -357,23 +367,80 @@ export function RewardPoolForm({
 
       {presets.length > 0 ? (
         <div className="grid gap-2 rounded-lg bg-secondary p-3">
-          <Eyebrow>Reward ideas</Eyebrow>
+          <div className="grid gap-0.5">
+            <Eyebrow>Reward ideas</Eyebrow>
+            <p className="text-xs leading-4 text-muted-foreground">
+              Tap one to prefill a new reward, then save it to your pool.
+            </p>
+          </div>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {presets.map((preset) => (
-              <button
-                key={preset.id}
-                type="button"
-                onClick={() => openPresetReward(preset)}
-                className="focus-ring grid min-h-16 min-w-0 gap-1 rounded-lg border-2 border-dashed border-ink/25 bg-transparent px-3 py-2.5 text-left text-foreground transition-[background-color,border-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:border-ink hover:bg-card motion-reduce:transition-none"
-              >
-                <span className="text-sm leading-snug font-extrabold text-pretty">
-                  {preset.rewardName}
-                </span>
-                <span className="text-xs leading-4 text-pretty text-muted-foreground">
-                  {preset.description}
-                </span>
-              </button>
-            ))}
+            {presets.map((preset) => {
+              const added = pooledRewardNames.has(
+                preset.rewardName.trim().toLowerCase()
+              )
+              const pending =
+                editingId === "new" && newRewardKey === preset.id
+
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => openPresetReward(preset)}
+                  disabled={added}
+                  aria-pressed={pending || undefined}
+                  aria-label={
+                    added
+                      ? `${preset.rewardName} is already in your pool`
+                      : pending
+                        ? `${preset.rewardName} is open in the editor below`
+                        : `Add reward idea: ${preset.rewardName}`
+                  }
+                  // Dashed suggestion tile (DESIGN.md pick-one affordance). The
+                  // plus/tick and the tint carry the add → pending → saved state.
+                  className={cn(
+                    "focus-ring grid min-h-16 min-w-0 content-start gap-1 rounded-lg border-2 border-dashed px-3 py-2.5 text-left transition-[background-color,border-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] disabled:cursor-default motion-reduce:transition-none",
+                    added
+                      ? "border-reward/45 bg-reward/5"
+                      : pending
+                        ? "border-seal bg-seal/10"
+                        : "border-ink/25 bg-transparent hover:border-ink hover:bg-card"
+                  )}
+                >
+                  <span className="flex items-start justify-between gap-2">
+                    <span className="text-sm leading-snug font-extrabold text-pretty text-foreground">
+                      {preset.rewardName}
+                    </span>
+                    <Icon
+                      icon={added ? Tick02Icon : PlusSignIcon}
+                      size={16}
+                      strokeWidth={2.5}
+                      className={cn(
+                        "mt-0.5 shrink-0",
+                        added
+                          ? "text-reward"
+                          : pending
+                            ? "text-foreground"
+                            : "text-primary"
+                      )}
+                    />
+                  </span>
+                  <span
+                    className={cn(
+                      "text-xs leading-4 text-pretty",
+                      added || pending
+                        ? "font-bold text-foreground"
+                        : "text-muted-foreground"
+                    )}
+                  >
+                    {added
+                      ? "Added to your pool"
+                      : pending
+                        ? "Open below — save to add"
+                        : preset.description}
+                  </span>
+                </button>
+              )
+            })}
           </div>
         </div>
       ) : null}

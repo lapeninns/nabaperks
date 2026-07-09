@@ -7,8 +7,12 @@ import {
 } from "@/app/app/billing/actions"
 import { ArrowRight01Icon, CreditCardIcon } from "@hugeicons/core-free-icons"
 
-import { Eyebrow, Icon, ReceiptCard, SectionHeader } from "@/components/brand"
+import { Icon, ReceiptCard, SectionHeader } from "@/components/brand"
 import { StatusBanner } from "@/components/loyalty/status-banner"
+import {
+  PlanRow,
+  SetupBillingActivationCard,
+} from "@/components/merchant/account/billing-activation-card"
 import {
   MerchantBillingAccessNote,
   shouldShowMerchantDashboardBillingNotice,
@@ -125,75 +129,6 @@ export async function BillingPanel({
   )
 }
 
-/** Final launch step — plan facts, one primary action, no duplicate copy. */
-function SetupBillingActivationCard({
-  annualBillingAvailable,
-  billingReturnTo,
-}: {
-  annualBillingAvailable: boolean
-  billingReturnTo?: string
-}) {
-  return (
-    <ReceiptCard
-      edge
-      padding="sm"
-      className="grid gap-4 sm:[--card-spacing:--spacing(6)] sm:gap-5"
-    >
-      <div className="grid gap-2">
-        <Eyebrow>Step 5 of 5 · Billing</Eyebrow>
-        <h2 className="text-lg leading-snug font-extrabold text-foreground sm:text-xl">
-          Your account is created
-        </h2>
-        <p className="text-sm leading-6 text-pretty text-muted-foreground">
-          Add a card through Stripe to activate your venue and start accepting
-          stamps.
-        </p>
-      </div>
-
-      <dl className="grid gap-0 rounded-lg border border-border bg-secondary/40 px-3 py-1 text-sm">
-        <PlanRow label="Free trial" value="30 days" />
-        <PlanRow label="Then" value="£49 a month" />
-        <PlanRow label="Billed" value="Per location" />
-      </dl>
-
-      <div className="grid gap-2">
-        <form action={startCheckoutAction.bind(null, "month")}>
-          {billingReturnTo ? (
-            <input type="hidden" name="returnTo" value={billingReturnTo} />
-          ) : null}
-          <Button type="submit" className="w-full">
-            <Icon icon={CreditCardIcon} size={16} />
-            Proceed to billing · {PRODUCT.priceShort}
-          </Button>
-        </form>
-        {annualBillingAvailable ? (
-          <form action={startCheckoutAction.bind(null, "year")}>
-            {billingReturnTo ? (
-              <input type="hidden" name="returnTo" value={billingReturnTo} />
-            ) : null}
-            <Button type="submit" variant="outline" className="w-full">
-              Pay yearly · {PRODUCT.priceAnnual} · {PRODUCT.annualSaving}
-            </Button>
-          </form>
-        ) : null}
-        <p className="text-center text-xs leading-5 text-muted-foreground">
-          Secure checkout via Stripe. Cancel anytime during the trial.
-        </p>
-      </div>
-
-      <p className="text-xs leading-5 text-muted-foreground">
-        <Link
-          href="/app/account?tab=billing"
-          className="font-bold text-foreground underline decoration-2 underline-offset-4"
-        >
-          Manage billing in Account
-        </Link>{" "}
-        once your venue is live.
-      </p>
-    </ReceiptCard>
-  )
-}
-
 function AccountBillingCard({
   mode,
   billing,
@@ -255,7 +190,7 @@ function AccountBillingCard({
                 ) : null}
                 <Button type="submit">
                   <Icon icon={CreditCardIcon} size={16} />
-                  Start checkout · {PRODUCT.priceShort}
+                  Proceed to billing · {PRODUCT.priceShort}
                 </Button>
               </form>
               {annualBillingAvailable ? (
@@ -301,20 +236,11 @@ function AccountBillingCard({
           className="text-xs leading-5 text-muted-foreground"
         >
           {portalUnavailable
-            ? "Start checkout to add your card and activate the venue."
+            ? "Proceed to billing to add your card and activate the venue."
             : "Manage your card and invoices in the Stripe portal."}
         </p>
       </div>
     </ReceiptCard>
-  )
-}
-
-function PlanRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-4 border-b border-dashed border-ink/15 py-2 last:border-b-0 sm:py-2.5">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="font-bold">{value}</dd>
-    </div>
   )
 }
 
@@ -372,7 +298,7 @@ function BillingOutcomeMessages({
       ) : null}
       {portal === "missing" ? (
         <StatusBanner tone="error" title="No Stripe customer yet">
-          Start checkout before opening the Stripe portal.
+          Proceed to billing before opening the Stripe portal.
         </StatusBanner>
       ) : null}
     </div>

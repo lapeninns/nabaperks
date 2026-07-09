@@ -104,7 +104,8 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
               Create your account
             </h2>
             <p className="text-sm leading-6 text-pretty text-muted-foreground">
-              Add your details first. Email verification is the next step.
+              This is your operator account. Add your details first — business
+              and venue setup come after you verify your email.
             </p>
           </div>
           <SignupDetailsForm initialEmail={initialEmail} />

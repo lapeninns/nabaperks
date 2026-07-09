@@ -31,8 +31,8 @@ export default function OnboardingHarnessPage() {
       <ReceiptCard className="grid gap-3">
         <PageTitle
           eyebrow="Merchant setup"
-          title="Tell us about your business"
-          description="Add your business, find your first venue, and confirm the address to get started."
+          title="Set up your business and first venue"
+          description="Two parts here: your business profile, then your first venue — its name and the customer-facing address where scans happen."
           titleClassName="sm:text-3xl"
         />
       </ReceiptCard>

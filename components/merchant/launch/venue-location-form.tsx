@@ -135,9 +135,9 @@ export function VenueLocationForm({
     <form action={action} className="surface-card grid gap-5 p-6">
       <PageTitle
         headingLevel={2}
-        eyebrow="Step 1 · Location"
-        title="Where do scans happen?"
-        description="Your printed QR never changes. GPS is an optional soft check. It never blocks a member's stamp, it only flags an odd one for review."
+        eyebrow="Business & venue"
+        title="Review your venue"
+        description="These details came from sign-up — check the name and address customers see, and edit anything that's off. Your printed QR never changes; GPS is an optional soft check that only flags an odd stamp for review, never blocks one."
         titleClassName="sm:text-3xl"
       />
 
@@ -157,6 +157,24 @@ export function VenueLocationForm({
         apiKey={googleMapsApiKey}
       />
 
+      {/* Venue name is always visible and editable — never a hidden default the
+          merchant can't see. It seeds from onboarding / a Google place pick and
+          is the name customers read on their loyalty card. */}
+      <FormField
+        id="venueName"
+        label={<Eyebrow>Venue name</Eyebrow>}
+        description="The name customers see on their loyalty card."
+        error={state.errors?.venueName}
+      >
+        <Input
+          id="venueName"
+          name="venueName"
+          className="h-12 text-sm"
+          value={venueName}
+          onChange={(event) => setVenueName(event.target.value)}
+        />
+      </FormField>
+
       <VenueAddressFields
         values={address}
         errors={state.errors}
@@ -170,28 +188,6 @@ export function VenueLocationForm({
       <input type="hidden" name="venueLatitude" value={pin?.latitude ?? ""} />
       <input type="hidden" name="venueLongitude" value={pin?.longitude ?? ""} />
       <input type="hidden" name="geofencePinSource" value={pendingPinSource} />
-
-      {/* venueName normally travels hidden (set via Google place selection,
-          defaulting to "Main venue"), but a server venueName error must never
-          strand the merchant against an invisible field — surface an editable
-          input whenever the error is present. */}
-      {state.errors?.venueName ? (
-        <FormField
-          id="venueName"
-          label={<Eyebrow>Venue name</Eyebrow>}
-          error={state.errors.venueName}
-        >
-          <Input
-            id="venueName"
-            name="venueName"
-            className="h-12 text-sm"
-            value={venueName}
-            onChange={(event) => setVenueName(event.target.value)}
-          />
-        </FormField>
-      ) : (
-        <input type="hidden" name="venueName" value={venueName} />
-      )}
 
       <AdvancedGpsChecks
         requireGeofence={requireGeofence}
@@ -218,8 +214,8 @@ export function VenueLocationForm({
         </p>
       ) : null}
 
-      <SubmitButton pendingLabel="Saving location…" className="w-full">
-        Save venue address
+      <SubmitButton pendingLabel="Saving venue…" className="w-full">
+        Save venue details
       </SubmitButton>
     </form>
   )

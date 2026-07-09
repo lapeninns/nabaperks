@@ -1,0 +1,4977 @@
+[
+  {
+    "route": "signup",
+    "viewport": "mobile",
+    "status": 200,
+    "url": "http://localhost:3200/signup",
+    "shot": "signup-mobile.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Your first stamp is waiting."
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Your first stamp is waiting.",
+      "visible": true,
+      "top": 1051,
+      "fontSize": "33.6px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Your first stamp is waiting.",
+        "visible": true,
+        "top": 1051,
+        "fontSize": "33.6px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Create your account",
+        "visible": true,
+        "top": 172,
+        "fontSize": "28px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [],
+    "primaryCtaCount": 0,
+    "tintedSurfaces": [
+      {
+        "tag": "div",
+        "top": 127,
+        "text": "30 days freeCreate your accountThis is your operator account"
+      },
+      {
+        "tag": "input",
+        "top": 389,
+        "text": ""
+      },
+      {
+        "tag": "input",
+        "top": 555,
+        "text": ""
+      },
+      {
+        "tag": "input",
+        "top": 646,
+        "text": ""
+      },
+      {
+        "tag": "input",
+        "top": 787,
+        "text": ""
+      }
+    ],
+    "eyebrows": [
+      "30 days free",
+      "Your name",
+      "Email",
+      "Password",
+      "Confirm password"
+    ]
+  },
+  {
+    "route": "signup",
+    "viewport": "desktop",
+    "status": 200,
+    "url": "http://localhost:3200/signup",
+    "shot": "signup-desktop.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Your first stamp is waiting."
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Your first stamp is waiting.",
+      "visible": true,
+      "top": 288,
+      "fontSize": "36px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Your first stamp is waiting.",
+        "visible": true,
+        "top": 288,
+        "fontSize": "36px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Create your account",
+        "visible": true,
+        "top": 188,
+        "fontSize": "36px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Create account",
+        "top": 797,
+        "tag": "button",
+        "primaryGuess": true,
+        "variant": ""
+      },
+      {
+        "text": "Log in",
+        "top": 857,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 1,
+    "tintedSurfaces": [
+      {
+        "tag": "ul",
+        "top": 516,
+        "text": "No app for your customers to downloadCustomers stamp themsel"
+      },
+      {
+        "tag": "div",
+        "top": 143,
+        "text": "30 days freeCreate your accountThis is your operator account"
+      },
+      {
+        "tag": "input",
+        "top": 356,
+        "text": ""
+      },
+      {
+        "tag": "input",
+        "top": 501,
+        "text": ""
+      },
+      {
+        "tag": "input",
+        "top": 592,
+        "text": ""
+      },
+      {
+        "tag": "input",
+        "top": 733,
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "top": 797,
+        "text": "Create account"
+      }
+    ],
+    "eyebrows": [
+      "Start free pilot",
+      "30 days free",
+      "Your name",
+      "Email",
+      "Password"
+    ]
+  },
+  {
+    "route": "signup-verify",
+    "viewport": "mobile",
+    "status": 200,
+    "url": "http://localhost:3200/signup/verify?email=test@example.com&name=Test",
+    "shot": "signup-verify-mobile.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Check your email."
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Check your email.",
+      "visible": true,
+      "top": 753,
+      "fontSize": "33.6px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Check your email.",
+        "visible": true,
+        "top": 753,
+        "fontSize": "33.6px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Enter your code",
+        "visible": true,
+        "top": 172,
+        "fontSize": "28px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Verify email",
+        "top": 493,
+        "tag": "button",
+        "primaryGuess": true,
+        "variant": ""
+      },
+      {
+        "text": "Resend code",
+        "top": 553,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": "ghost"
+      },
+      {
+        "text": "Back to sign up",
+        "top": 613,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 1,
+    "tintedSurfaces": [
+      {
+        "tag": "div",
+        "top": 127,
+        "text": "Verify emailEnter your codeUse the six-digit code from your "
+      },
+      {
+        "tag": "input",
+        "top": 429,
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "top": 493,
+        "text": "Verify email"
+      }
+    ],
+    "eyebrows": [
+      "Email check",
+      "Verify email",
+      "Code sent to",
+      "Email code"
+    ]
+  },
+  {
+    "route": "signup-verify",
+    "viewport": "desktop",
+    "status": 200,
+    "url": "http://localhost:3200/signup/verify?email=test@example.com&name=Test",
+    "shot": "signup-verify-desktop.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Check your email."
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Check your email.",
+      "visible": true,
+      "top": 417,
+      "fontSize": "36px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Check your email.",
+        "visible": true,
+        "top": 417,
+        "fontSize": "36px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Enter your code",
+        "visible": true,
+        "top": 285,
+        "fontSize": "36px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Verify email",
+        "top": 592,
+        "tag": "button",
+        "primaryGuess": true,
+        "variant": ""
+      },
+      {
+        "text": "Resend code",
+        "top": 652,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": "ghost"
+      },
+      {
+        "text": "Back to sign up",
+        "top": 712,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 1,
+    "tintedSurfaces": [
+      {
+        "tag": "div",
+        "top": 549,
+        "text": "Your operator account is created. Verifying your email confi"
+      },
+      {
+        "tag": "div",
+        "top": 240,
+        "text": "Verify emailEnter your codeUse the six-digit code from your "
+      },
+      {
+        "tag": "input",
+        "top": 528,
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "top": 592,
+        "text": "Verify email"
+      }
+    ],
+    "eyebrows": [
+      "Email check",
+      "Verify email",
+      "Code sent to",
+      "Email code"
+    ]
+  },
+  {
+    "route": "login",
+    "viewport": "mobile",
+    "status": 200,
+    "url": "http://localhost:3200/login",
+    "shot": "login-mobile.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Welcome back to your loyalty counter."
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Welcome back to your loyalty counter.",
+      "visible": true,
+      "top": 745,
+      "fontSize": "33.6px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Welcome back to your loyalty counter.",
+        "visible": true,
+        "top": 745,
+        "fontSize": "33.6px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Back to the counter",
+        "visible": true,
+        "top": 172,
+        "fontSize": "28px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Forgot password?",
+        "top": 485,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Log in",
+        "top": 545,
+        "tag": "button",
+        "primaryGuess": true,
+        "variant": ""
+      },
+      {
+        "text": "Start free pilot",
+        "top": 605,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 1,
+    "tintedSurfaces": [
+      {
+        "tag": "div",
+        "top": 127,
+        "text": "Merchant consoleBack to the counterEnter your venue email an"
+      },
+      {
+        "tag": "input",
+        "top": 330,
+        "text": ""
+      },
+      {
+        "tag": "input",
+        "top": 421,
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "top": 545,
+        "text": "Log in"
+      }
+    ],
+    "eyebrows": [
+      "Merchant access",
+      "Merchant console",
+      "Email",
+      "Password"
+    ]
+  },
+  {
+    "route": "login",
+    "viewport": "desktop",
+    "status": 200,
+    "url": "http://localhost:3200/login",
+    "shot": "login-desktop.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Welcome back to your loyalty counter."
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Welcome back to your loyalty counter.",
+      "visible": true,
+      "top": 394,
+      "fontSize": "36px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Welcome back to your loyalty counter.",
+        "visible": true,
+        "top": 394,
+        "fontSize": "36px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Back to the counter",
+        "visible": true,
+        "top": 289,
+        "fontSize": "36px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Forgot password?",
+        "top": 588,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Log in",
+        "top": 648,
+        "tag": "button",
+        "primaryGuess": true,
+        "variant": ""
+      },
+      {
+        "text": "Start free pilot",
+        "top": 708,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 1,
+    "tintedSurfaces": [
+      {
+        "tag": "ul",
+        "top": 566,
+        "text": "QR kit, stamps, and rewards in one consolePick up onboarding"
+      },
+      {
+        "tag": "div",
+        "top": 244,
+        "text": "Merchant consoleBack to the counterEnter your venue email an"
+      },
+      {
+        "tag": "input",
+        "top": 433,
+        "text": ""
+      },
+      {
+        "tag": "input",
+        "top": 524,
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "top": 648,
+        "text": "Log in"
+      }
+    ],
+    "eyebrows": [
+      "Merchant access",
+      "Merchant console",
+      "Email",
+      "Password"
+    ]
+  },
+  {
+    "route": "reset-password",
+    "viewport": "mobile",
+    "status": 200,
+    "url": "http://localhost:3200/reset-password",
+    "shot": "reset-password-mobile.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Reset your console password."
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Reset your console password.",
+      "visible": true,
+      "top": 594,
+      "fontSize": "33.6px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Reset your console password.",
+        "visible": true,
+        "top": 594,
+        "fontSize": "33.6px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Reset password",
+        "visible": true,
+        "top": 172,
+        "fontSize": "28px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Send reset code",
+        "top": 394,
+        "tag": "button",
+        "primaryGuess": true,
+        "variant": "default"
+      },
+      {
+        "text": "Back to log in",
+        "top": 454,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 1,
+    "tintedSurfaces": [
+      {
+        "tag": "div",
+        "top": 127,
+        "text": "Merchant consoleReset passwordEnter your venue email. We wil"
+      },
+      {
+        "tag": "input",
+        "top": 330,
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "top": 394,
+        "text": "Send reset code"
+      }
+    ],
+    "eyebrows": [
+      "Merchant access",
+      "Merchant console",
+      "Email"
+    ]
+  },
+  {
+    "route": "reset-password",
+    "viewport": "desktop",
+    "status": 200,
+    "url": "http://localhost:3200/reset-password",
+    "shot": "reset-password-desktop.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Reset your console password."
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Reset your console password.",
+      "visible": true,
+      "top": 370,
+      "fontSize": "36px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Reset your console password.",
+        "visible": true,
+        "top": 370,
+        "fontSize": "36px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Reset password",
+        "visible": true,
+        "top": 364,
+        "fontSize": "36px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Send reset code",
+        "top": 572,
+        "tag": "button",
+        "primaryGuess": true,
+        "variant": "default"
+      },
+      {
+        "text": "Back to log in",
+        "top": 632,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 1,
+    "tintedSurfaces": [
+      {
+        "tag": "ul",
+        "top": 570,
+        "text": "Reset takes about a minuteWe email a six-digit code to confi"
+      },
+      {
+        "tag": "div",
+        "top": 320,
+        "text": "Merchant consoleReset passwordEnter your venue email. We wil"
+      },
+      {
+        "tag": "input",
+        "top": 508,
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "top": 572,
+        "text": "Send reset code"
+      }
+    ],
+    "eyebrows": [
+      "Merchant access",
+      "Merchant console",
+      "Email"
+    ]
+  },
+  {
+    "route": "harness-onboarding",
+    "viewport": "mobile",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/onboarding",
+    "shot": "harness-onboarding-mobile.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Set up your business and first venue"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Set up your business and first venue",
+      "visible": true,
+      "top": 121,
+      "fontSize": "30px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Set up your business and first venue",
+        "visible": true,
+        "top": 121,
+        "fontSize": "30px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "From sign-up to your first stamp",
+        "visible": true,
+        "top": 1563,
+        "fontSize": "20px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [],
+    "primaryCtaCount": 0,
+    "tintedSurfaces": [
+      {
+        "tag": "div",
+        "top": 68,
+        "text": "Merchant setupSet up your business and first venueTwo parts "
+      },
+      {
+        "tag": "form",
+        "top": 391,
+        "text": "Your businessThe business behind the loyalty card.Business n"
+      },
+      {
+        "tag": "input",
+        "top": 499,
+        "text": ""
+      },
+      {
+        "tag": "select",
+        "top": 586,
+        "text": "Select typeCafeDessert shopBubble teaPub or barTakeaway / qu"
+      },
+      {
+        "tag": "input",
+        "top": 673,
+        "text": ""
+      }
+    ],
+    "eyebrows": [
+      "Merchant setup",
+      "Your business",
+      "Business name * (required)",
+      "Business type * (required)",
+      "Business phone"
+    ]
+  },
+  {
+    "route": "harness-onboarding",
+    "viewport": "desktop",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/onboarding",
+    "shot": "harness-onboarding-desktop.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Set up your business and first venue"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Set up your business and first venue",
+      "visible": true,
+      "top": 149,
+      "fontSize": "30px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Set up your business and first venue",
+        "visible": true,
+        "top": 149,
+        "fontSize": "30px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "From sign-up to your first stamp",
+        "visible": true,
+        "top": 137,
+        "fontSize": "20px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [],
+    "primaryCtaCount": 0,
+    "tintedSurfaces": [
+      {
+        "tag": "div",
+        "top": 96,
+        "text": "Merchant setupSet up your business and first venueTwo parts "
+      },
+      {
+        "tag": "form",
+        "top": 296,
+        "text": "Your businessThe business behind the loyalty card.Business n"
+      },
+      {
+        "tag": "input",
+        "top": 404,
+        "text": ""
+      },
+      {
+        "tag": "select",
+        "top": 491,
+        "text": "Select typeCafeDessert shopBubble teaPub or barTakeaway / qu"
+      },
+      {
+        "tag": "input",
+        "top": 578,
+        "text": ""
+      },
+      {
+        "tag": "input",
+        "top": 794,
+        "text": ""
+      },
+      {
+        "tag": "div",
+        "top": 96,
+        "text": "What happens nextFrom sign-up to your first stampSave this f"
+      }
+    ],
+    "eyebrows": [
+      "Merchant setup",
+      "Your business",
+      "Business name * (required)",
+      "Business type * (required)",
+      "Business phone"
+    ]
+  },
+  {
+    "route": "harness-launch-card",
+    "viewport": "mobile",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/launch?tab=card",
+    "shot": "harness-launch-card-mobile.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Bring your venue to life"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Bring your venue to life",
+      "visible": true,
+      "top": 113,
+      "fontSize": "24px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Bring your venue to life",
+        "visible": true,
+        "top": 113,
+        "fontSize": "24px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Your card",
+        "visible": true,
+        "top": 336,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Mystery Visit Card",
+        "visible": true,
+        "top": 1235,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 3,
+        "text": "Something's under there.",
+        "visible": true,
+        "top": 1462,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Toggle Sidebar",
+        "top": 8,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": "ghost"
+      },
+      {
+        "text": "✱Nabaperks",
+        "top": 8,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "VenueVenue",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "CardCard",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "PoolRewards",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "QRVenue QR",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "BillBilling",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "",
+        "top": 483,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "",
+        "top": 483,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Lunch-trade card3 visits",
+        "top": 527,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Food-led card5 visits",
+        "top": 599,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Wet-led card6 visits",
+        "top": 671,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 0,
+    "tintedSurfaces": [
+      {
+        "tag": "button",
+        "top": 8,
+        "text": "Toggle Sidebar"
+      },
+      {
+        "tag": "a",
+        "top": 211,
+        "text": "CardCard"
+      },
+      {
+        "tag": "a",
+        "top": 211,
+        "text": "QRVenue QR"
+      },
+      {
+        "tag": "input",
+        "top": 400,
+        "text": ""
+      },
+      {
+        "tag": "textarea",
+        "top": 802,
+        "text": "A surprise reward on the house after 3 visits."
+      }
+    ],
+    "eyebrows": [
+      "Merchant setup",
+      "Merchant setup",
+      "Setup progress",
+      "Step 2",
+      "Card name"
+    ]
+  },
+  {
+    "route": "harness-launch-card",
+    "viewport": "desktop",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/launch?tab=card",
+    "shot": "harness-launch-card-desktop.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Bring your venue to life"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Bring your venue to life",
+      "visible": true,
+      "top": 59,
+      "fontSize": "36px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Bring your venue to life",
+        "visible": true,
+        "top": 59,
+        "fontSize": "36px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Your card",
+        "visible": true,
+        "top": 453,
+        "fontSize": "20px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Mystery Visit Card",
+        "visible": true,
+        "top": 552,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 3,
+        "text": "Something's under there.",
+        "visible": true,
+        "top": 783,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "1. Business & venueReady",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "2. Your cardReady",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "3. Your rewardsReady",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "4. Venue QRNext up",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "5. BillingTo do",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "",
+        "top": 674,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "",
+        "top": 674,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Lunch-trade card3 visits",
+        "top": 718,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Food-led card5 visits",
+        "top": 718,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Wet-led card6 visits",
+        "top": 718,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 0,
+    "tintedSurfaces": [
+      {
+        "tag": "div",
+        "top": 164,
+        "text": "1. Business & venueReady2. Your cardReady3. Your rewardsRead"
+      },
+      {
+        "tag": "span",
+        "top": 195,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 195,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 195,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 198,
+        "text": ""
+      },
+      {
+        "tag": "input",
+        "top": 583,
+        "text": ""
+      },
+      {
+        "tag": "textarea",
+        "top": 857,
+        "text": "A surprise reward on the house after 3 visits."
+      },
+      {
+        "tag": "div",
+        "top": 507,
+        "text": "Old Crown GirtonMystery Visit CardOCOC5OC93RewardMystery rew"
+      }
+    ],
+    "eyebrows": [
+      "Merchant setup",
+      "Merchant setup",
+      "Setup progress",
+      "Step 2",
+      "Card name"
+    ]
+  },
+  {
+    "route": "harness-launch-billing",
+    "viewport": "mobile",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/launch?state=billing&tab=billing",
+    "shot": "harness-launch-billing-mobile.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Your account is created"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Your account is created",
+      "visible": true,
+      "top": 113,
+      "fontSize": "24px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Your account is created",
+        "visible": true,
+        "top": 113,
+        "fontSize": "24px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Activate your venue",
+        "visible": true,
+        "top": 364,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Toggle Sidebar",
+        "top": 8,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": "ghost"
+      },
+      {
+        "text": "✱Nabaperks",
+        "top": 8,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "VenueVenue",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "CardCard",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "PoolRewards",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "QRVenue QR",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "BillBilling",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Proceed to billing · £49/mo",
+        "top": 597,
+        "tag": "button",
+        "primaryGuess": true,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 1,
+    "tintedSurfaces": [
+      {
+        "tag": "button",
+        "top": 8,
+        "text": "Toggle Sidebar"
+      },
+      {
+        "tag": "a",
+        "top": 211,
+        "text": "BillBilling"
+      },
+      {
+        "tag": "div",
+        "top": 323,
+        "text": "Step 5 of 5 · BillingActivate your venueAdd a card through S"
+      },
+      {
+        "tag": "button",
+        "top": 597,
+        "text": "Proceed to billing · £49/mo"
+      }
+    ],
+    "eyebrows": [
+      "Merchant setup",
+      "Merchant setup",
+      "Setup progress",
+      "Step 5 of 5 · Billing"
+    ]
+  },
+  {
+    "route": "harness-launch-billing",
+    "viewport": "desktop",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/launch?state=billing&tab=billing",
+    "shot": "harness-launch-billing-desktop.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Your account is created"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Your account is created",
+      "visible": true,
+      "top": 59,
+      "fontSize": "36px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Your account is created",
+        "visible": true,
+        "top": 59,
+        "fontSize": "36px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Activate your venue",
+        "visible": true,
+        "top": 477,
+        "fontSize": "20px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "1. Business & venueReady",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "2. Your cardReady",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "3. Your rewardsReady",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "4. Venue QRReady",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "5. BillingNext up",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Proceed to billing · £49/mo",
+        "top": 708,
+        "tag": "button",
+        "primaryGuess": true,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 1,
+    "tintedSurfaces": [
+      {
+        "tag": "div",
+        "top": 164,
+        "text": "1. Business & venueReady2. Your cardReady3. Your rewardsRead"
+      },
+      {
+        "tag": "span",
+        "top": 195,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 195,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 195,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 195,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 198,
+        "text": ""
+      },
+      {
+        "tag": "div",
+        "top": 428,
+        "text": "Step 5 of 5 · BillingActivate your venueAdd a card through S"
+      },
+      {
+        "tag": "button",
+        "top": 708,
+        "text": "Proceed to billing · £49/mo"
+      }
+    ],
+    "eyebrows": [
+      "Merchant setup",
+      "Merchant setup",
+      "Setup progress",
+      "Step 5 of 5 · Billing"
+    ]
+  },
+  {
+    "route": "harness-launch-live-qr",
+    "viewport": "mobile",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/launch?state=live&tab=qr",
+    "shot": "harness-launch-live-qr-mobile.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "You're live"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "You're live",
+      "visible": true,
+      "top": 113,
+      "fontSize": "24px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "You're live",
+        "visible": true,
+        "top": 113,
+        "fontSize": "24px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Mystery Visit Card",
+        "visible": true,
+        "top": 366,
+        "fontSize": "24px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 3,
+        "text": "Share the link",
+        "visible": true,
+        "top": 989,
+        "fontSize": "16px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 3,
+        "text": "Print a counter poster",
+        "visible": true,
+        "top": 1359,
+        "fontSize": "16px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Pause new scans",
+        "visible": true,
+        "top": 2216,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Toggle Sidebar",
+        "top": 8,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": "ghost"
+      },
+      {
+        "text": "✱Nabaperks",
+        "top": 8,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "VenueVenue",
+        "top": 209,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "CardCard",
+        "top": 209,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "PoolRewards",
+        "top": 209,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "QRVenue QR",
+        "top": 209,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "BillBilling",
+        "top": 209,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 0,
+    "tintedSurfaces": [
+      {
+        "tag": "button",
+        "top": 8,
+        "text": "Toggle Sidebar"
+      },
+      {
+        "tag": "a",
+        "top": 209,
+        "text": "QRVenue QR"
+      },
+      {
+        "tag": "article",
+        "top": 321,
+        "text": "Venue QRMystery Visit CardYour permanent counter code. Custo"
+      },
+      {
+        "tag": "figure",
+        "top": 550,
+        "text": ""
+      }
+    ],
+    "eyebrows": [
+      "Merchant setup",
+      "Merchant setup",
+      "You're live",
+      "Setup progress",
+      "Venue QR"
+    ]
+  },
+  {
+    "route": "harness-launch-live-qr",
+    "viewport": "desktop",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/launch?state=live&tab=qr",
+    "shot": "harness-launch-live-qr-desktop.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "You're live"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "You're live",
+      "visible": true,
+      "top": 59,
+      "fontSize": "36px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "You're live",
+        "visible": true,
+        "top": 59,
+        "fontSize": "36px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Mystery Visit Card",
+        "visible": true,
+        "top": 581,
+        "fontSize": "30px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 3,
+        "text": "Share the link",
+        "visible": true,
+        "top": 1204,
+        "fontSize": "16px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 3,
+        "text": "Print a counter poster",
+        "visible": true,
+        "top": 1495,
+        "fontSize": "16px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Pause new scans",
+        "visible": true,
+        "top": 2084,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "1. Business & venueReady",
+        "top": 294,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "2. Your cardReady",
+        "top": 294,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "3. Your rewardsReady",
+        "top": 294,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "4. Venue QRReady",
+        "top": 294,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "5. BillingReady",
+        "top": 294,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 0,
+    "tintedSurfaces": [
+      {
+        "tag": "div",
+        "top": 164,
+        "text": "You're liveSetup is complete. Customers can scan, join, and "
+      },
+      {
+        "tag": "div",
+        "top": 190,
+        "text": "You're liveSetup is complete. Customers can scan, join, and "
+      },
+      {
+        "tag": "span",
+        "top": 206,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 299,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 299,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 299,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 299,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 299,
+        "text": ""
+      }
+    ],
+    "eyebrows": [
+      "Merchant setup",
+      "Merchant setup",
+      "You're live",
+      "Setup progress",
+      "Venue QR"
+    ]
+  },
+  {
+    "route": "harness-launch-rewards",
+    "viewport": "mobile",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/launch?tab=rewards",
+    "shot": "harness-launch-rewards-mobile.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Bring your venue to life"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Bring your venue to life",
+      "visible": true,
+      "top": 113,
+      "fontSize": "24px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Bring your venue to life",
+        "visible": true,
+        "top": 113,
+        "fontSize": "24px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Reward pool",
+        "visible": true,
+        "top": 336,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Birthday treat",
+        "visible": true,
+        "top": 1570,
+        "fontSize": "30px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Toggle Sidebar",
+        "top": 8,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": "ghost"
+      },
+      {
+        "text": "✱Nabaperks",
+        "top": 8,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "VenueVenue",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "CardCard",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "PoolRewards",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "QRVenue QR",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "BillBilling",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Regulars' pintGood for wet-led regulars.",
+        "top": 634,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Free starterWorks for food-led visits.",
+        "top": 706,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Dessert on the houseUseful after evening meals.",
+        "top": 778,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 0,
+    "tintedSurfaces": [
+      {
+        "tag": "button",
+        "top": 8,
+        "text": "Toggle Sidebar"
+      },
+      {
+        "tag": "a",
+        "top": 211,
+        "text": "PoolRewards"
+      },
+      {
+        "tag": "a",
+        "top": 211,
+        "text": "QRVenue QR"
+      },
+      {
+        "tag": "button",
+        "top": 634,
+        "text": "Regulars' pintGood for wet-led regulars."
+      },
+      {
+        "tag": "button",
+        "top": 706,
+        "text": "Free starterWorks for food-led visits."
+      },
+      {
+        "tag": "button",
+        "top": 778,
+        "text": "Dessert on the houseUseful after evening meals."
+      }
+    ],
+    "eyebrows": [
+      "Merchant setup",
+      "Merchant setup",
+      "Setup progress",
+      "Reward ideas"
+    ]
+  },
+  {
+    "route": "harness-launch-rewards",
+    "viewport": "desktop",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/launch?tab=rewards",
+    "shot": "harness-launch-rewards-desktop.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Bring your venue to life"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Bring your venue to life",
+      "visible": true,
+      "top": 59,
+      "fontSize": "36px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Bring your venue to life",
+        "visible": true,
+        "top": 59,
+        "fontSize": "36px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Reward pool",
+        "visible": true,
+        "top": 453,
+        "fontSize": "20px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Birthday treat",
+        "visible": true,
+        "top": 1312,
+        "fontSize": "20px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "1. Business & venueReady",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "2. Your cardReady",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "3. Your rewardsReady",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "4. Venue QRNext up",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "5. BillingTo do",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Regulars' pintGood for wet-led regulars.",
+        "top": 641,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Free starterWorks for food-led visits.",
+        "top": 641,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Dessert on the houseUseful after evening meals.",
+        "top": 641,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Coffee after lunchFits lunch and daytime trade.",
+        "top": 713,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Kids' meal with adult mainA family-table reward.",
+        "top": 713,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Sunday roast upgradeA Sunday-led nudge.",
+        "top": 713,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "10% off the next billSimple, familiar value.",
+        "top": 785,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 0,
+    "tintedSurfaces": [
+      {
+        "tag": "div",
+        "top": 164,
+        "text": "1. Business & venueReady2. Your cardReady3. Your rewardsRead"
+      },
+      {
+        "tag": "span",
+        "top": 195,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 195,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 195,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 198,
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "top": 641,
+        "text": "Regulars' pintGood for wet-led regulars."
+      },
+      {
+        "tag": "button",
+        "top": 641,
+        "text": "Free starterWorks for food-led visits."
+      },
+      {
+        "tag": "button",
+        "top": 641,
+        "text": "Dessert on the houseUseful after evening meals."
+      }
+    ],
+    "eyebrows": [
+      "Merchant setup",
+      "Merchant setup",
+      "Setup progress",
+      "Reward ideas"
+    ]
+  },
+  {
+    "route": "harness-launch-venue",
+    "viewport": "mobile",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/launch?tab=venue",
+    "shot": "harness-launch-venue-mobile.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Bring your venue to life"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Bring your venue to life",
+      "visible": true,
+      "top": 113,
+      "fontSize": "24px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Bring your venue to life",
+        "visible": true,
+        "top": 113,
+        "fontSize": "24px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Review your venue",
+        "visible": true,
+        "top": 376,
+        "fontSize": "30px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Toggle Sidebar",
+        "top": 8,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": "ghost"
+      },
+      {
+        "text": "✱Nabaperks",
+        "top": 8,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "VenueVenue",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "CardCard",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "PoolRewards",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "QRVenue QR",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "BillBilling",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 0,
+    "tintedSurfaces": [
+      {
+        "tag": "button",
+        "top": 8,
+        "text": "Toggle Sidebar"
+      },
+      {
+        "tag": "a",
+        "top": 211,
+        "text": "VenueVenue"
+      },
+      {
+        "tag": "a",
+        "top": 211,
+        "text": "QRVenue QR"
+      },
+      {
+        "tag": "form",
+        "top": 323,
+        "text": "Business & venueReview your venueThese details came from sig"
+      },
+      {
+        "tag": "div",
+        "top": 620,
+        "text": "Venue search is unavailable right now — enter the address be"
+      },
+      {
+        "tag": "input",
+        "top": 735,
+        "text": ""
+      }
+    ],
+    "eyebrows": [
+      "Merchant setup",
+      "Merchant setup",
+      "Setup progress",
+      "Business & venue",
+      "Find your venue"
+    ]
+  },
+  {
+    "route": "harness-launch-venue",
+    "viewport": "desktop",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/launch?tab=venue",
+    "shot": "harness-launch-venue-desktop.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Bring your venue to life"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Bring your venue to life",
+      "visible": true,
+      "top": 59,
+      "fontSize": "36px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Bring your venue to life",
+        "visible": true,
+        "top": 59,
+        "fontSize": "36px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Review your venue",
+        "visible": true,
+        "top": 481,
+        "fontSize": "30px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "1. Business & venueReady",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "2. Your cardReady",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "3. Your rewardsReady",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "4. Venue QRNext up",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "5. BillingTo do",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 0,
+    "tintedSurfaces": [
+      {
+        "tag": "div",
+        "top": 164,
+        "text": "1. Business & venueReady2. Your cardReady3. Your rewardsRead"
+      },
+      {
+        "tag": "span",
+        "top": 195,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 195,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 195,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 198,
+        "text": ""
+      },
+      {
+        "tag": "form",
+        "top": 428,
+        "text": "Business & venueReview your venueThese details came from sig"
+      },
+      {
+        "tag": "div",
+        "top": 653,
+        "text": "Venue search is unavailable right now — enter the address be"
+      },
+      {
+        "tag": "input",
+        "top": 748,
+        "text": ""
+      }
+    ],
+    "eyebrows": [
+      "Merchant setup",
+      "Merchant setup",
+      "Setup progress",
+      "Business & venue",
+      "Find your venue"
+    ]
+  },
+  {
+    "route": "harness-launch-default-qr",
+    "viewport": "mobile",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/launch?tab=qr",
+    "shot": "harness-launch-default-qr-mobile.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Bring your venue to life"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Bring your venue to life",
+      "visible": true,
+      "top": 113,
+      "fontSize": "24px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Bring your venue to life",
+        "visible": true,
+        "top": 113,
+        "fontSize": "24px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Mystery Visit Card",
+        "visible": true,
+        "top": 368,
+        "fontSize": "24px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 3,
+        "text": "Share the link",
+        "visible": true,
+        "top": 991,
+        "fontSize": "16px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 3,
+        "text": "Print a counter poster",
+        "visible": true,
+        "top": 1361,
+        "fontSize": "16px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Pause new scans",
+        "visible": true,
+        "top": 2218,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Toggle Sidebar",
+        "top": 8,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": "ghost"
+      },
+      {
+        "text": "✱Nabaperks",
+        "top": 8,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "VenueVenue",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "CardCard",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "PoolRewards",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "QRVenue QR",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "BillBilling",
+        "top": 211,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 0,
+    "tintedSurfaces": [
+      {
+        "tag": "button",
+        "top": 8,
+        "text": "Toggle Sidebar"
+      },
+      {
+        "tag": "a",
+        "top": 211,
+        "text": "QRVenue QR"
+      },
+      {
+        "tag": "article",
+        "top": 323,
+        "text": "Venue QRMystery Visit CardYour permanent counter code. Custo"
+      },
+      {
+        "tag": "figure",
+        "top": 552,
+        "text": ""
+      }
+    ],
+    "eyebrows": [
+      "Merchant setup",
+      "Merchant setup",
+      "Setup progress",
+      "Venue QR"
+    ]
+  },
+  {
+    "route": "harness-launch-default-qr",
+    "viewport": "desktop",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/launch?tab=qr",
+    "shot": "harness-launch-default-qr-desktop.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Bring your venue to life"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Bring your venue to life",
+      "visible": true,
+      "top": 59,
+      "fontSize": "36px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Bring your venue to life",
+        "visible": true,
+        "top": 59,
+        "fontSize": "36px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Mystery Visit Card",
+        "visible": true,
+        "top": 477,
+        "fontSize": "30px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 3,
+        "text": "Share the link",
+        "visible": true,
+        "top": 1100,
+        "fontSize": "16px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 3,
+        "text": "Print a counter poster",
+        "visible": true,
+        "top": 1391,
+        "fontSize": "16px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Pause new scans",
+        "visible": true,
+        "top": 1980,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "1. Business & venueReady",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "2. Your cardReady",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "3. Your rewardsReady",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "4. Venue QRNext up",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "5. BillingTo do",
+        "top": 190,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 0,
+    "tintedSurfaces": [
+      {
+        "tag": "div",
+        "top": 164,
+        "text": "1. Business & venueReady2. Your cardReady3. Your rewardsRead"
+      },
+      {
+        "tag": "span",
+        "top": 195,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 195,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 195,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 198,
+        "text": ""
+      },
+      {
+        "tag": "article",
+        "top": 428,
+        "text": "Venue QRMystery Visit CardYour permanent counter code. Custo"
+      },
+      {
+        "tag": "figure",
+        "top": 656,
+        "text": ""
+      }
+    ],
+    "eyebrows": [
+      "Merchant setup",
+      "Merchant setup",
+      "Setup progress",
+      "Venue QR"
+    ]
+  },
+  {
+    "route": "harness-dashboard",
+    "viewport": "mobile",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/dashboard",
+    "shot": "harness-dashboard-mobile.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Old Crown Girton"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Old Crown Girton",
+      "visible": true,
+      "top": 121,
+      "fontSize": "30px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Old Crown Girton",
+        "visible": true,
+        "top": 121,
+        "fontSize": "30px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Show a customer, instantly",
+        "visible": true,
+        "top": 533,
+        "fontSize": "20px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "How the week is going",
+        "visible": true,
+        "top": 817,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Do next",
+        "visible": true,
+        "top": 1451,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Recent activity",
+        "visible": true,
+        "top": 1723,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Toggle Sidebar",
+        "top": 8,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": "ghost"
+      },
+      {
+        "text": "✱Nabaperks",
+        "top": 8,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Scan reward",
+        "top": 234,
+        "tag": "a",
+        "primaryGuess": true,
+        "variant": ""
+      },
+      {
+        "text": "Show full screen",
+        "top": 648,
+        "tag": "button",
+        "primaryGuess": true,
+        "variant": ""
+      },
+      {
+        "text": "Copy URL",
+        "top": 700,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": "secondary"
+      }
+    ],
+    "primaryCtaCount": 2,
+    "tintedSurfaces": [
+      {
+        "tag": "button",
+        "top": 8,
+        "text": "Toggle Sidebar"
+      },
+      {
+        "tag": "a",
+        "top": 234,
+        "text": "Scan reward"
+      },
+      {
+        "tag": "div",
+        "top": 302,
+        "text": "Counter QRShow a customer, instantlyOne tap makes it full sc"
+      },
+      {
+        "tag": "figure",
+        "top": 328,
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "top": 648,
+        "text": "Show full screen"
+      },
+      {
+        "tag": "button",
+        "top": 700,
+        "text": "Copy URL"
+      }
+    ],
+    "eyebrows": [
+      "Your venue",
+      "Counter QR",
+      "Last 14 days"
+    ]
+  },
+  {
+    "route": "harness-dashboard",
+    "viewport": "desktop",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/dashboard",
+    "shot": "harness-dashboard-desktop.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Old Crown Girton"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Old Crown Girton",
+      "visible": true,
+      "top": 59,
+      "fontSize": "36px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Old Crown Girton",
+        "visible": true,
+        "top": 59,
+        "fontSize": "36px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Show a customer, instantly",
+        "visible": true,
+        "top": 211,
+        "fontSize": "24px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "How the week is going",
+        "visible": true,
+        "top": 431,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Do next",
+        "visible": true,
+        "top": 964,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Recent activity",
+        "visible": true,
+        "top": 1247,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Scan reward",
+        "top": 64,
+        "tag": "a",
+        "primaryGuess": true,
+        "variant": ""
+      },
+      {
+        "text": "Show full screen",
+        "top": 283,
+        "tag": "button",
+        "primaryGuess": true,
+        "variant": ""
+      },
+      {
+        "text": "Copy URL",
+        "top": 283,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": "secondary"
+      }
+    ],
+    "primaryCtaCount": 2,
+    "tintedSurfaces": [
+      {
+        "tag": "a",
+        "top": 64,
+        "text": "Scan reward"
+      },
+      {
+        "tag": "div",
+        "top": 164,
+        "text": "Counter QRShow a customer, instantlyOne tap makes it full sc"
+      },
+      {
+        "tag": "figure",
+        "top": 190,
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "top": 283,
+        "text": "Show full screen"
+      },
+      {
+        "tag": "button",
+        "top": 283,
+        "text": "Copy URL"
+      },
+      {
+        "tag": "div",
+        "top": 500,
+        "text": "Members1,842"
+      },
+      {
+        "tag": "div",
+        "top": 500,
+        "text": "New (7d)31+18%"
+      },
+      {
+        "tag": "div",
+        "top": 500,
+        "text": "Stamps (7d)347+12%"
+      }
+    ],
+    "eyebrows": [
+      "Your venue",
+      "Counter QR",
+      "Last 14 days",
+      "Members",
+      "New (7d)"
+    ]
+  },
+  {
+    "route": "harness-dashboard-incomplete",
+    "viewport": "mobile",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/dashboard?setup=incomplete",
+    "shot": "harness-dashboard-incomplete-mobile.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Old Crown Girton"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Old Crown Girton",
+      "visible": true,
+      "top": 364,
+      "fontSize": "30px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Old Crown Girton",
+        "visible": true,
+        "top": 364,
+        "fontSize": "30px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Show a customer, instantly",
+        "visible": true,
+        "top": 776,
+        "fontSize": "20px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "How the week is going",
+        "visible": true,
+        "top": 1060,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Do next",
+        "visible": true,
+        "top": 1694,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Recent activity",
+        "visible": true,
+        "top": 1966,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Toggle Sidebar",
+        "top": 8,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": "ghost"
+      },
+      {
+        "text": "✱Nabaperks",
+        "top": 8,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Add rewards",
+        "top": 240,
+        "tag": "a",
+        "primaryGuess": true,
+        "variant": ""
+      },
+      {
+        "text": "Scan reward",
+        "top": 477,
+        "tag": "a",
+        "primaryGuess": true,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 2,
+    "tintedSurfaces": [
+      {
+        "tag": "button",
+        "top": 8,
+        "text": "Toggle Sidebar"
+      },
+      {
+        "tag": "div",
+        "top": 94,
+        "text": "2 of 4 completeSetupNext: Your rewardsAdd at least three liv"
+      },
+      {
+        "tag": "a",
+        "top": 240,
+        "text": "Add rewards"
+      },
+      {
+        "tag": "a",
+        "top": 477,
+        "text": "Scan reward"
+      },
+      {
+        "tag": "div",
+        "top": 545,
+        "text": "Counter QRShow a customer, instantlyOne tap makes it full sc"
+      },
+      {
+        "tag": "figure",
+        "top": 571,
+        "text": ""
+      }
+    ],
+    "eyebrows": [
+      "Setup",
+      "Your venue",
+      "Counter QR"
+    ]
+  },
+  {
+    "route": "harness-dashboard-incomplete",
+    "viewport": "desktop",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/dashboard?setup=incomplete",
+    "shot": "harness-dashboard-incomplete-desktop.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Old Crown Girton"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Old Crown Girton",
+      "visible": true,
+      "top": 230,
+      "fontSize": "36px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Old Crown Girton",
+        "visible": true,
+        "top": 230,
+        "fontSize": "36px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Show a customer, instantly",
+        "visible": true,
+        "top": 382,
+        "fontSize": "24px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "How the week is going",
+        "visible": true,
+        "top": 602,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Do next",
+        "visible": true,
+        "top": 1135,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Recent activity",
+        "visible": true,
+        "top": 1418,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Add rewards",
+        "top": 78,
+        "tag": "a",
+        "primaryGuess": true,
+        "variant": ""
+      },
+      {
+        "text": "Scan reward",
+        "top": 235,
+        "tag": "a",
+        "primaryGuess": true,
+        "variant": ""
+      },
+      {
+        "text": "Show full screen",
+        "top": 454,
+        "tag": "button",
+        "primaryGuess": true,
+        "variant": ""
+      },
+      {
+        "text": "Copy URL",
+        "top": 454,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": "secondary"
+      }
+    ],
+    "primaryCtaCount": 3,
+    "tintedSurfaces": [
+      {
+        "tag": "div",
+        "top": 32,
+        "text": "2 of 4 completeSetupNext: Your rewardsAdd at least three liv"
+      },
+      {
+        "tag": "a",
+        "top": 78,
+        "text": "Add rewards"
+      },
+      {
+        "tag": "a",
+        "top": 235,
+        "text": "Scan reward"
+      },
+      {
+        "tag": "div",
+        "top": 335,
+        "text": "Counter QRShow a customer, instantlyOne tap makes it full sc"
+      },
+      {
+        "tag": "figure",
+        "top": 361,
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "top": 454,
+        "text": "Show full screen"
+      },
+      {
+        "tag": "button",
+        "top": 454,
+        "text": "Copy URL"
+      },
+      {
+        "tag": "div",
+        "top": 671,
+        "text": "Members1,842"
+      }
+    ],
+    "eyebrows": [
+      "Setup",
+      "Your venue",
+      "Counter QR",
+      "Last 14 days",
+      "Members"
+    ]
+  },
+  {
+    "route": "harness-customers",
+    "viewport": "mobile",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/customers",
+    "shot": "harness-customers-mobile.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Loyalty members"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Loyalty members",
+      "visible": true,
+      "top": 121,
+      "fontSize": "30px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Loyalty members",
+        "visible": true,
+        "top": 121,
+        "fontSize": "30px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Toggle Sidebar",
+        "top": 8,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": "ghost"
+      },
+      {
+        "text": "✱Nabaperks",
+        "top": 8,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "All6",
+        "top": 381,
+        "tag": "button",
+        "primaryGuess": true,
+        "variant": ""
+      },
+      {
+        "text": "Ready1",
+        "top": 381,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Active5",
+        "top": 381,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Quiet1",
+        "top": 425,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "07Phone ending 421Reward ready3 / 3Joined: 12 MayLast: Today 09:42",
+        "top": 543,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "JGj••@gmail.com07 ··· ··· 88Reward waiting3 / 3Joined: 03 JunLast: Wed 24 Jun",
+        "top": 700,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 1,
+    "tintedSurfaces": [
+      {
+        "tag": "button",
+        "top": 8,
+        "text": "Toggle Sidebar"
+      },
+      {
+        "tag": "div",
+        "top": 242,
+        "text": "1,842Members1Ready1Quiet"
+      },
+      {
+        "tag": "input",
+        "top": 325,
+        "text": ""
+      },
+      {
+        "tag": "div",
+        "top": 541,
+        "text": "07Phone ending 421Reward ready3 / 3Joined: 12 MayLast: Today"
+      },
+      {
+        "tag": "div",
+        "top": 603,
+        "text": "3 / 3Joined: 12 MayLast: Today 09:42"
+      },
+      {
+        "tag": "span",
+        "top": 613,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 613,
+        "text": ""
+      },
+      {
+        "tag": "div",
+        "top": 698,
+        "text": "JGj••@gmail.com07 ··· ··· 88Reward waiting3 / 3Joined: 03 Ju"
+      }
+    ],
+    "eyebrows": [
+      "Members",
+      "Members",
+      "Ready",
+      "Quiet",
+      "Member"
+    ]
+  },
+  {
+    "route": "harness-customers",
+    "viewport": "desktop",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/customers",
+    "shot": "harness-customers-desktop.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Loyalty members"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Loyalty members",
+      "visible": true,
+      "top": 59,
+      "fontSize": "36px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Loyalty members",
+        "visible": true,
+        "top": 59,
+        "fontSize": "36px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "All6",
+        "top": 255,
+        "tag": "button",
+        "primaryGuess": true,
+        "variant": ""
+      },
+      {
+        "text": "Ready1",
+        "top": 255,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Active5",
+        "top": 255,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Quiet1",
+        "top": 255,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Scan",
+        "top": 423,
+        "tag": "a",
+        "primaryGuess": true,
+        "variant": ""
+      },
+      {
+        "text": "Send",
+        "top": 465,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": "secondary"
+      },
+      {
+        "text": "Send",
+        "top": 552,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": "secondary"
+      },
+      {
+        "text": "Send",
+        "top": 639,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": "secondary"
+      },
+      {
+        "text": "Send",
+        "top": 726,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": "secondary"
+      },
+      {
+        "text": "Send",
+        "top": 813,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": "secondary"
+      }
+    ],
+    "primaryCtaCount": 2,
+    "tintedSurfaces": [
+      {
+        "tag": "div",
+        "top": 164,
+        "text": "1,842Members1Ready1Quiet"
+      },
+      {
+        "tag": "input",
+        "top": 251,
+        "text": ""
+      },
+      {
+        "tag": "div",
+        "top": 343,
+        "text": "Your loyalty members and their stamp progressMemberJoinedSta"
+      },
+      {
+        "tag": "span",
+        "top": 429,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 429,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 537,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 537,
+        "text": ""
+      },
+      {
+        "tag": "span",
+        "top": 624,
+        "text": ""
+      }
+    ],
+    "eyebrows": [
+      "Members",
+      "Members",
+      "Ready",
+      "Quiet",
+      "Member"
+    ]
+  },
+  {
+    "route": "harness-activity",
+    "viewport": "mobile",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/activity",
+    "shot": "harness-activity-mobile.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Activity"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Activity",
+      "visible": true,
+      "top": 121,
+      "fontSize": "30px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Activity",
+        "visible": true,
+        "top": 121,
+        "fontSize": "30px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Today",
+        "visible": true,
+        "top": 620,
+        "fontSize": "11.5px",
+        "fontWeight": "700"
+      },
+      {
+        "level": 2,
+        "text": "Yesterday",
+        "visible": true,
+        "top": 1233,
+        "fontSize": "11.5px",
+        "fontWeight": "700"
+      },
+      {
+        "level": 2,
+        "text": "Sat 27 Jun",
+        "visible": true,
+        "top": 1660,
+        "fontSize": "11.5px",
+        "fontWeight": "700"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Toggle Sidebar",
+        "top": 8,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": "ghost"
+      },
+      {
+        "text": "✱Nabaperks",
+        "top": 8,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "All",
+        "top": 482,
+        "tag": "button",
+        "primaryGuess": true,
+        "variant": ""
+      },
+      {
+        "text": "Joins",
+        "top": 482,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Stamps",
+        "top": 482,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Rewards",
+        "top": 482,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "QR",
+        "top": 526,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Account",
+        "top": 526,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "View member",
+        "top": 763,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": "secondary"
+      }
+    ],
+    "primaryCtaCount": 1,
+    "tintedSurfaces": [
+      {
+        "tag": "button",
+        "top": 8,
+        "text": "Toggle Sidebar"
+      },
+      {
+        "tag": "div",
+        "top": 265,
+        "text": "347Stamps31Joins14Rewards58QR"
+      },
+      {
+        "tag": "section",
+        "top": 412,
+        "text": "AllJoinsStampsRewardsQRAccount6 shown."
+      },
+      {
+        "tag": "input",
+        "top": 426,
+        "text": ""
+      },
+      {
+        "tag": "article",
+        "top": 643,
+        "text": "Phone ending 305 joinedJoined via venue QR and accepted the "
+      },
+      {
+        "tag": "a",
+        "top": 763,
+        "text": "View member"
+      }
+    ],
+    "eyebrows": [
+      "Activity",
+      "This week",
+      "Stamps",
+      "Joins",
+      "Rewards"
+    ]
+  },
+  {
+    "route": "harness-activity",
+    "viewport": "desktop",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/activity",
+    "shot": "harness-activity-desktop.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Activity"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Activity",
+      "visible": true,
+      "top": 59,
+      "fontSize": "36px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Activity",
+        "visible": true,
+        "top": 59,
+        "fontSize": "36px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Today",
+        "visible": true,
+        "top": 446,
+        "fontSize": "11.5px",
+        "fontWeight": "700"
+      },
+      {
+        "level": 2,
+        "text": "Yesterday",
+        "visible": true,
+        "top": 815,
+        "fontSize": "11.5px",
+        "fontWeight": "700"
+      },
+      {
+        "level": 2,
+        "text": "Sat 27 Jun",
+        "visible": true,
+        "top": 1074,
+        "fontSize": "11.5px",
+        "fontWeight": "700"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "All",
+        "top": 348,
+        "tag": "button",
+        "primaryGuess": true,
+        "variant": ""
+      },
+      {
+        "text": "Joins",
+        "top": 348,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Stamps",
+        "top": 348,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Rewards",
+        "top": 348,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "QR",
+        "top": 348,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Account",
+        "top": 348,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "View member",
+        "top": 483,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": "secondary"
+      },
+      {
+        "text": "View member",
+        "top": 593,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": "secondary"
+      },
+      {
+        "text": "View member",
+        "top": 703,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": "secondary"
+      },
+      {
+        "text": "Open QR",
+        "top": 852,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": "secondary"
+      }
+    ],
+    "primaryCtaCount": 1,
+    "tintedSurfaces": [
+      {
+        "tag": "div",
+        "top": 187,
+        "text": "347Stamps31Joins14Rewards58QR"
+      },
+      {
+        "tag": "section",
+        "top": 274,
+        "text": "AllJoinsStampsRewardsQRAccount6 shown."
+      },
+      {
+        "tag": "input",
+        "top": 292,
+        "text": ""
+      },
+      {
+        "tag": "article",
+        "top": 469,
+        "text": "Phone ending 305 joinedJoined via venue QR and accepted the "
+      },
+      {
+        "tag": "article",
+        "top": 579,
+        "text": "Phone ending 421 collected stamp 3Customer stamp was issued "
+      },
+      {
+        "tag": "article",
+        "top": 689,
+        "text": "Phone ending 770 redeemed a rewardThe customer redeemed a re"
+      },
+      {
+        "tag": "article",
+        "top": 838,
+        "text": "Someone scanned the QRA customer opened the venue QR resolve"
+      }
+    ],
+    "eyebrows": [
+      "Activity",
+      "This week",
+      "Stamps",
+      "Joins",
+      "Rewards"
+    ]
+  },
+  {
+    "route": "harness-announcements",
+    "viewport": "mobile",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/announcements",
+    "shot": "harness-announcements-mobile.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Announcement compose"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Announcement compose",
+      "visible": true,
+      "top": 121,
+      "fontSize": "30px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Announcement compose",
+        "visible": true,
+        "top": 121,
+        "fontSize": "30px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Send a venue update",
+        "visible": true,
+        "top": 321,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Send a venue update",
+        "visible": true,
+        "top": 1200,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Toggle Sidebar",
+        "top": 8,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": "ghost"
+      },
+      {
+        "text": "✱Nabaperks",
+        "top": 8,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Quiz night",
+        "top": 637,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Live music",
+        "top": 637,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Sunday roast",
+        "top": 681,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Kitchen hours",
+        "top": 681,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Sport",
+        "top": 725,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Quiet night",
+        "top": 725,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 0,
+    "tintedSurfaces": [
+      {
+        "tag": "button",
+        "top": 8,
+        "text": "Toggle Sidebar"
+      },
+      {
+        "tag": "form",
+        "top": 280,
+        "text": "AnnouncementSend a venue updateShort member updates for toda"
+      }
+    ],
+    "eyebrows": [
+      "Harness",
+      "Announcement",
+      "Quick fill"
+    ]
+  },
+  {
+    "route": "harness-announcements",
+    "viewport": "desktop",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/announcements",
+    "shot": "harness-announcements-desktop.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Announcement compose"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Announcement compose",
+      "visible": true,
+      "top": 59,
+      "fontSize": "36px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Announcement compose",
+        "visible": true,
+        "top": 59,
+        "fontSize": "36px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Send a venue update",
+        "visible": true,
+        "top": 209,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Send a venue update",
+        "visible": true,
+        "top": 844,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Quiz night",
+        "top": 413,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Live music",
+        "top": 413,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Sunday roast",
+        "top": 413,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Kitchen hours",
+        "top": 413,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Sport",
+        "top": 413,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Quiet night",
+        "top": 413,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Send announcement",
+        "top": 709,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": "secondary"
+      }
+    ],
+    "primaryCtaCount": 0,
+    "tintedSurfaces": [
+      {
+        "tag": "form",
+        "top": 164,
+        "text": "AnnouncementSend a venue updateShort member updates for toda"
+      },
+      {
+        "tag": "input",
+        "top": 505,
+        "text": ""
+      },
+      {
+        "tag": "textarea",
+        "top": 593,
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "top": 709,
+        "text": "Send announcement"
+      },
+      {
+        "tag": "form",
+        "top": 799,
+        "text": "AnnouncementSend a venue updateShort member updates for toda"
+      }
+    ],
+    "eyebrows": [
+      "Harness",
+      "Announcement",
+      "Quick fill",
+      "Announcement"
+    ]
+  },
+  {
+    "route": "harness-qr",
+    "viewport": "mobile",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/qr",
+    "shot": "harness-qr-mobile.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Venue QR"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Venue QR",
+      "visible": true,
+      "top": 121,
+      "fontSize": "30px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Venue QR",
+        "visible": true,
+        "top": 121,
+        "fontSize": "30px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Mystery Visit Card",
+        "visible": true,
+        "top": 295,
+        "fontSize": "24px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 3,
+        "text": "Share the link",
+        "visible": true,
+        "top": 804,
+        "fontSize": "16px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 3,
+        "text": "Print a counter poster",
+        "visible": true,
+        "top": 1174,
+        "fontSize": "16px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Pause new scans",
+        "visible": true,
+        "top": 2031,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Toggle Sidebar",
+        "top": 8,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": "ghost"
+      },
+      {
+        "text": "✱Nabaperks",
+        "top": 8,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 0,
+    "tintedSurfaces": [
+      {
+        "tag": "button",
+        "top": 8,
+        "text": "Toggle Sidebar"
+      },
+      {
+        "tag": "article",
+        "top": 250,
+        "text": "Venue QRMystery Visit CardYour permanent counter code. Custo"
+      },
+      {
+        "tag": "figure",
+        "top": 479,
+        "text": ""
+      }
+    ],
+    "eyebrows": [
+      "Counter poster",
+      "Venue QR"
+    ]
+  },
+  {
+    "route": "harness-qr",
+    "viewport": "desktop",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/qr",
+    "shot": "harness-qr-desktop.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Venue QR"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Venue QR",
+      "visible": true,
+      "top": 59,
+      "fontSize": "36px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Venue QR",
+        "visible": true,
+        "top": 59,
+        "fontSize": "36px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Mystery Visit Card",
+        "visible": true,
+        "top": 237,
+        "fontSize": "30px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 3,
+        "text": "Share the link",
+        "visible": true,
+        "top": 762,
+        "fontSize": "16px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 3,
+        "text": "Print a counter poster",
+        "visible": true,
+        "top": 1053,
+        "fontSize": "16px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Pause new scans",
+        "visible": true,
+        "top": 1642,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [],
+    "primaryCtaCount": 0,
+    "tintedSurfaces": [
+      {
+        "tag": "article",
+        "top": 188,
+        "text": "Venue QRMystery Visit CardYour permanent counter code. Custo"
+      },
+      {
+        "tag": "figure",
+        "top": 416,
+        "text": ""
+      }
+    ],
+    "eyebrows": [
+      "Counter poster",
+      "Venue QR",
+      "Permanent venue link"
+    ]
+  },
+  {
+    "route": "harness-scan",
+    "viewport": "mobile",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/scan",
+    "shot": "harness-scan-mobile.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Scan reward QR"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Scan reward QR",
+      "visible": true,
+      "top": 141,
+      "fontSize": "30px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Scan reward QR",
+        "visible": true,
+        "top": 141,
+        "fontSize": "30px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Toggle Sidebar",
+        "top": 8,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": "ghost"
+      },
+      {
+        "text": "✱Nabaperks",
+        "top": 8,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Try again",
+        "top": 670,
+        "tag": "button",
+        "primaryGuess": true,
+        "variant": ""
+      },
+      {
+        "text": "Back to dashboard",
+        "top": 734,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": "secondary"
+      }
+    ],
+    "primaryCtaCount": 1,
+    "tintedSurfaces": [
+      {
+        "tag": "button",
+        "top": 8,
+        "text": "Toggle Sidebar"
+      },
+      {
+        "tag": "div",
+        "top": 94,
+        "text": "Reward collectionScan reward QRPoint your camera at the QR o"
+      },
+      {
+        "tag": "div",
+        "top": 300,
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "top": 670,
+        "text": "Try again"
+      },
+      {
+        "tag": "a",
+        "top": 734,
+        "text": "Back to dashboard"
+      }
+    ],
+    "eyebrows": [
+      "Reward collection"
+    ]
+  },
+  {
+    "route": "harness-scan",
+    "viewport": "desktop",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/scan",
+    "shot": "harness-scan-desktop.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Scan reward QR"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Scan reward QR",
+      "visible": true,
+      "top": 79,
+      "fontSize": "36px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Scan reward QR",
+        "visible": true,
+        "top": 79,
+        "fontSize": "36px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Try again",
+        "top": 568,
+        "tag": "button",
+        "primaryGuess": true,
+        "variant": ""
+      },
+      {
+        "text": "Back to dashboard",
+        "top": 632,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": "secondary"
+      }
+    ],
+    "primaryCtaCount": 1,
+    "tintedSurfaces": [
+      {
+        "tag": "div",
+        "top": 32,
+        "text": "Reward collectionScan reward QRPoint your camera at the QR o"
+      },
+      {
+        "tag": "div",
+        "top": 198,
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "top": 568,
+        "text": "Try again"
+      },
+      {
+        "tag": "a",
+        "top": 632,
+        "text": "Back to dashboard"
+      }
+    ],
+    "eyebrows": [
+      "Reward collection"
+    ]
+  },
+  {
+    "route": "harness-account-profile",
+    "viewport": "mobile",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/account?tab=profile",
+    "shot": "harness-account-profile-mobile.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Profile"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Profile",
+      "visible": true,
+      "top": 94,
+      "fontSize": "30px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Profile",
+        "visible": true,
+        "top": 94,
+        "fontSize": "30px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Toggle Sidebar",
+        "top": 8,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": "ghost"
+      },
+      {
+        "text": "✱Nabaperks",
+        "top": 8,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Profile",
+        "top": 222,
+        "tag": "a",
+        "primaryGuess": true,
+        "variant": ""
+      },
+      {
+        "text": "Billing",
+        "top": 222,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 1,
+    "tintedSurfaces": [
+      {
+        "tag": "button",
+        "top": 8,
+        "text": "Toggle Sidebar"
+      },
+      {
+        "tag": "ul",
+        "top": 216,
+        "text": "ProfileBilling"
+      },
+      {
+        "tag": "section",
+        "top": 296,
+        "text": "What customers seeOld Crown Girton12 High Street, Girton, Ca"
+      },
+      {
+        "tag": "form",
+        "top": 488,
+        "text": "Business profileThese details appear on customer cards, term"
+      },
+      {
+        "tag": "input",
+        "top": 648,
+        "text": ""
+      },
+      {
+        "tag": "select",
+        "top": 739,
+        "text": "Select typeCafeDessert shopBubble teaPub or barTakeaway / qu"
+      }
+    ],
+    "eyebrows": [
+      "What customers see",
+      "Business profile",
+      "Customer-facing business name",
+      "Business type",
+      "Business contact email"
+    ]
+  },
+  {
+    "route": "harness-account-profile",
+    "viewport": "desktop",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/account?tab=profile",
+    "shot": "harness-account-profile-desktop.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Profile"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Profile",
+      "visible": true,
+      "top": 32,
+      "fontSize": "36px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Profile",
+        "visible": true,
+        "top": 32,
+        "fontSize": "36px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Profile",
+        "top": 143,
+        "tag": "a",
+        "primaryGuess": true,
+        "variant": ""
+      },
+      {
+        "text": "Billing",
+        "top": 143,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Save changes",
+        "top": 892,
+        "tag": "button",
+        "primaryGuess": true,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 2,
+    "tintedSurfaces": [
+      {
+        "tag": "ul",
+        "top": 137,
+        "text": "ProfileBilling"
+      },
+      {
+        "tag": "section",
+        "top": 217,
+        "text": "What customers seeOld Crown Girton12 High Street, Girton, Ca"
+      },
+      {
+        "tag": "form",
+        "top": 410,
+        "text": "Business profileThese details appear on customer cards, term"
+      },
+      {
+        "tag": "input",
+        "top": 522,
+        "text": ""
+      },
+      {
+        "tag": "select",
+        "top": 613,
+        "text": "Select typeCafeDessert shopBubble teaPub or barTakeaway / qu"
+      },
+      {
+        "tag": "input",
+        "top": 704,
+        "text": ""
+      },
+      {
+        "tag": "input",
+        "top": 828,
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "top": 892,
+        "text": "Save changes"
+      }
+    ],
+    "eyebrows": [
+      "What customers see",
+      "Business profile",
+      "Customer-facing business name",
+      "Business type",
+      "Business contact email"
+    ]
+  },
+  {
+    "route": "harness-account-billing",
+    "viewport": "mobile",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/account?tab=billing",
+    "shot": "harness-account-billing-mobile.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Billing"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Billing",
+      "visible": true,
+      "top": 94,
+      "fontSize": "30px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Billing",
+        "visible": true,
+        "top": 94,
+        "fontSize": "30px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Toggle Sidebar",
+        "top": 8,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": "ghost"
+      },
+      {
+        "text": "✱Nabaperks",
+        "top": 8,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Profile",
+        "top": 198,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Billing",
+        "top": 198,
+        "tag": "a",
+        "primaryGuess": true,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 1,
+    "tintedSurfaces": [
+      {
+        "tag": "button",
+        "top": 8,
+        "text": "Toggle Sidebar"
+      },
+      {
+        "tag": "ul",
+        "top": 192,
+        "text": "ProfileBilling"
+      },
+      {
+        "tag": "div",
+        "top": 272,
+        "text": ""
+      },
+      {
+        "tag": "div",
+        "top": 552,
+        "text": ""
+      }
+    ],
+    "eyebrows": []
+  },
+  {
+    "route": "harness-account-billing",
+    "viewport": "desktop",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/account?tab=billing",
+    "shot": "harness-account-billing-desktop.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Billing"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Billing",
+      "visible": true,
+      "top": 32,
+      "fontSize": "36px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Billing",
+        "visible": true,
+        "top": 32,
+        "fontSize": "36px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Profile",
+        "top": 143,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      },
+      {
+        "text": "Billing",
+        "top": 143,
+        "tag": "a",
+        "primaryGuess": true,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 1,
+    "tintedSurfaces": [
+      {
+        "tag": "ul",
+        "top": 137,
+        "text": "ProfileBilling"
+      },
+      {
+        "tag": "div",
+        "top": 217,
+        "text": ""
+      },
+      {
+        "tag": "div",
+        "top": 497,
+        "text": ""
+      }
+    ],
+    "eyebrows": []
+  },
+  {
+    "route": "harness-states",
+    "viewport": "mobile",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/states",
+    "shot": "harness-states-mobile.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Empty & error states"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Empty & error states",
+      "visible": true,
+      "top": 121,
+      "fontSize": "30px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Empty & error states",
+        "visible": true,
+        "top": 121,
+        "fontSize": "30px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Members — empty (no members)",
+        "visible": true,
+        "top": 313,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Activity — empty (no events)",
+        "visible": true,
+        "top": 655,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Dashboard — empty (zeroed metrics + empty activity)",
+        "visible": true,
+        "top": 975,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "How the week is going",
+        "visible": true,
+        "top": 1063,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Recent activity",
+        "visible": true,
+        "top": 1394,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Error fixtures — the real StatusBanner load-failure surfaces",
+        "visible": true,
+        "top": 1740,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [
+      {
+        "text": "Toggle Sidebar",
+        "top": 8,
+        "tag": "button",
+        "primaryGuess": false,
+        "variant": "ghost"
+      },
+      {
+        "text": "✱Nabaperks",
+        "top": 8,
+        "tag": "a",
+        "primaryGuess": false,
+        "variant": ""
+      }
+    ],
+    "primaryCtaCount": 0,
+    "tintedSurfaces": [
+      {
+        "tag": "button",
+        "top": 8,
+        "text": "Toggle Sidebar"
+      },
+      {
+        "tag": "div",
+        "top": 354,
+        "text": "No members yetMembers will appear here after they join via t"
+      },
+      {
+        "tag": "span",
+        "top": 380,
+        "text": ""
+      },
+      {
+        "tag": "div",
+        "top": 695,
+        "text": "No activity yetActivity will appear after members join, add "
+      },
+      {
+        "tag": "span",
+        "top": 721,
+        "text": ""
+      }
+    ],
+    "eyebrows": [
+      "QA harness",
+      "State",
+      "State"
+    ]
+  },
+  {
+    "route": "harness-states",
+    "viewport": "desktop",
+    "status": 200,
+    "url": "http://localhost:3200/dev/app-harness/states",
+    "shot": "harness-states-desktop.png",
+    "scrollOverflow": 0,
+    "h1Count": 1,
+    "h1Texts": [
+      "Empty & error states"
+    ],
+    "firstVisibleHeading": {
+      "level": 1,
+      "text": "Empty & error states",
+      "visible": true,
+      "top": 59,
+      "fontSize": "36px",
+      "fontWeight": "800"
+    },
+    "visibleHeadings": [
+      {
+        "level": 1,
+        "text": "Empty & error states",
+        "visible": true,
+        "top": 59,
+        "fontSize": "36px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Members — empty (no members)",
+        "visible": true,
+        "top": 235,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Activity — empty (no events)",
+        "visible": true,
+        "top": 537,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Dashboard — empty (zeroed metrics + empty activity)",
+        "visible": true,
+        "top": 835,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "How the week is going",
+        "visible": true,
+        "top": 898,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Recent activity",
+        "visible": true,
+        "top": 1109,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      },
+      {
+        "level": 2,
+        "text": "Error fixtures — the real StatusBanner load-failure surfaces",
+        "visible": true,
+        "top": 1432,
+        "fontSize": "18px",
+        "fontWeight": "800"
+      }
+    ],
+    "ctas": [],
+    "primaryCtaCount": 0,
+    "tintedSurfaces": [
+      {
+        "tag": "div",
+        "top": 276,
+        "text": "No members yetMembers will appear here after they join via t"
+      },
+      {
+        "tag": "span",
+        "top": 302,
+        "text": ""
+      },
+      {
+        "tag": "div",
+        "top": 578,
+        "text": "No activity yetActivity will appear after members join, add "
+      },
+      {
+        "tag": "span",
+        "top": 604,
+        "text": ""
+      }
+    ],
+    "eyebrows": [
+      "QA harness",
+      "State",
+      "State",
+      "State",
+      "Last 14 days"
+    ]
+  }
+]

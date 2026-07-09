@@ -35,5 +35,27 @@ export function describeMerchantRewardPresets() {
       await page.getByText("Weighting").click()
       await expect(page.getByLabel("Weight")).toHaveValue("1")
     })
+
+    test("Given the reward harness Then each preset reads as an add affordance that flips to pending once open", async ({
+      page,
+    }) => {
+      await dismissPwaInstall(page)
+      await page.goto(`${HARNESS_ROUTES.launch}?tab=rewards`)
+
+      // The preset is explicitly an "add" action, not just a plain tile.
+      const preset = page.getByRole("button", {
+        name: "Add reward idea: Free starter",
+      })
+      await expect(preset).toBeVisible()
+
+      await preset.click()
+
+      // Once its editor is open the same preset announces the pending state.
+      await expect(
+        page.getByRole("button", {
+          name: "Free starter is open in the editor below",
+        })
+      ).toBeVisible()
+    })
   })
 }

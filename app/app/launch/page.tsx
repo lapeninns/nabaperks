@@ -24,6 +24,10 @@ import {
   type LaunchReadiness,
 } from "@/lib/merchant/launch-readiness-core"
 import {
+  resolveLaunchHeaderModel,
+  type LaunchHeaderActionTab,
+} from "@/lib/merchant/launch-header-copy"
+import {
   parseLaunchSearchParams,
   type LaunchSearchParams,
   type RawLaunchSearchParams,
@@ -67,44 +71,34 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
     transientCleanHref,
   } = await getLaunchPageModel(merchant.id, params)
 
-  const pageHeading = readiness.launchReady
-    ? "You're live"
-    : needsBilling
-      ? "Your account is created"
-      : "Bring your venue to life"
+  // Heading / context / description / header-CTA are one pure, unit-tested
+  // decision (lib/merchant/launch-header-copy) shared with the launch harness so
+  // the two never drift and the hierarchy rules live in one place.
+  const header = resolveLaunchHeaderModel(readiness, activeTab)
+  const headerActions = renderLaunchHeaderAction(header.actionTab, billingHref)
 
   return (
     <div className="grid min-w-0 gap-2 overflow-x-clip sm:gap-6">
-      {/* Stable page-level h1 for mobile, where the visual PageTitle is hidden
-          to save space. Without this, the first heading on the card/rewards/
-          billing tabs jumped to h2, so the heading level shifted per tab. The
-          visible PageTitle h1 (sm+) is the page heading from sm up, so this is
-          sm:hidden to keep exactly one page-level h1 at every breakpoint. */}
-      <h1 className="sr-only sm:hidden">{pageHeading}</h1>
+      {/* Mobile setup context — the visual PageTitle is sm+ only, so on a phone
+          the readiness rail would otherwise appear with no heading or "what's
+          left" line. This carries the single page-level h1 on mobile (sm:hidden);
+          the PageTitle h1 takes over from sm up, so exactly one h1 renders per
+          breakpoint and the heading level never shifts per tab. */}
+      <div className="grid gap-1 sm:hidden">
+        <span className="eyebrow">Merchant setup</span>
+        <h1 className="text-2xl leading-tight font-extrabold text-balance">
+          {header.heading}
+        </h1>
+        <p className="text-sm leading-6 text-pretty text-muted-foreground">
+          {header.mobileContext}
+        </p>
+      </div>
       <div className="hidden sm:grid">
         <PageTitle
           eyebrow="Merchant setup"
-          title={pageHeading}
-          description={
-            readiness.launchReady
-              ? "Customers can scan, join, and collect stamps. Your QR is live below when you need the link."
-              : needsBilling
-                ? "Your account is created. Proceed to billing to activate your venue and start accepting stamps."
-                : `${readiness.total} setup checks and you're live. Create your QR once the earlier steps are done.`
-          }
-          actions={
-            readiness.launchReady ? (
-              <Button asChild variant="secondary">
-                <Link href="/app/launch?tab=qr">Open venue QR</Link>
-              </Button>
-            ) : needsBilling ? (
-              <Button asChild>
-                <Link href={billingHref ?? "/app/launch?tab=billing"}>
-                  Proceed to billing
-                </Link>
-              </Button>
-            ) : undefined
-          }
+          title={header.heading}
+          description={header.description}
+          actions={headerActions}
         />
       </div>
 
@@ -141,6 +135,36 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
       </Suspense>
     </div>
   )
+}
+
+/**
+ * The launch header's jump-to-tab CTA. Renders nothing when the pure header
+ * model suppresses it (actionTab null) — i.e. when it would point at the tab
+ * already on screen, so it never competes with the active panel's primary CTA.
+ */
+function renderLaunchHeaderAction(
+  actionTab: LaunchHeaderActionTab,
+  billingHref: string | null
+) {
+  if (actionTab === "qr") {
+    return (
+      <Button asChild variant="secondary">
+        <Link href={QR_LAUNCH_TAB_PATH}>Open venue QR</Link>
+      </Button>
+    )
+  }
+
+  if (actionTab === "billing") {
+    return (
+      <Button asChild>
+        <Link href={billingHref ?? "/app/launch?tab=billing"}>
+          Proceed to billing
+        </Link>
+      </Button>
+    )
+  }
+
+  return undefined
 }
 
 function LaunchActivePanel({

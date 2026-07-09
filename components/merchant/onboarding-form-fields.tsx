@@ -22,13 +22,19 @@ export function OnboardingField({
   id,
   label,
   error,
+  hint,
   required,
   ...props
 }: InputHTMLAttributes<HTMLInputElement> & {
   readonly id: string
   readonly label: string
   readonly error?: string
+  readonly hint?: string
 }) {
+  const hintId = hint ? `${id}-hint` : undefined
+  const errorId = error ? `${id}-error` : undefined
+  const describedBy = [hintId, errorId].filter(Boolean).join(" ") || undefined
+
   return (
     <div className="grid gap-2">
       <RequiredLabel htmlFor={id} required={required}>
@@ -40,9 +46,14 @@ export function OnboardingField({
         required={required}
         aria-required={required || undefined}
         aria-invalid={Boolean(error)}
-        aria-describedby={error ? `${id}-error` : undefined}
+        aria-describedby={describedBy}
         {...props}
       />
+      {hint ? (
+        <p id={hintId} className="text-xs leading-5 text-muted-foreground">
+          {hint}
+        </p>
+      ) : null}
       <FieldError id={id} error={error} />
     </div>
   )

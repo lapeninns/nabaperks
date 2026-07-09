@@ -47,6 +47,16 @@ export function SignupVerifyForm({
     document.getElementById("otp")?.focus()
   }, [])
 
+  // Mirror the signup form's first-invalid-field focus: when verification comes
+  // back with an error (bad format, a rejected code, or a rate-limit form
+  // error), pull focus back to the code field — the only editable input here —
+  // instead of leaving it on the submit button. Keyed on verifyState only, so a
+  // resend success/error never steals focus into this form.
+  useEffect(() => {
+    if (!verifyState.errors) return
+    document.getElementById("otp")?.focus()
+  }, [verifyState])
+
   return (
     <div className="grid gap-4">
       <div className="rounded-xl border-2 border-dashed border-border bg-secondary/55 px-3 py-2">

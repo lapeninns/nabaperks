@@ -21,8 +21,10 @@ import { TrendChart } from "@/components/data"
 import { ActivityCompactFeed } from "@/components/merchant/activity-compact-feed"
 import { DashboardQrCardView } from "@/components/merchant/dashboard-qr-card"
 import { MerchantNextActions } from "@/components/merchant/dashboard-next-actions"
+import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
 import { WetInkRise } from "@/components/motion"
 import { Button } from "@/components/ui/button"
+import { buildLaunchReadiness } from "@/lib/merchant/launch-readiness"
 
 import {
   HARNESS_ACTIVITY_ROWS,
@@ -43,6 +45,34 @@ const KPI_ICON = {
 } as const
 
 /**
+ * DB-free readiness for the "incomplete setup" reminder state (venue + card
+ * ready, reward pool still short, QR not live) — the same compact
+ * {@link LaunchReadinessPanel} the real merchant layout shows via
+ * MerchantSetupReminder while launch is unfinished. Reached at
+ * `/dev/app-harness/dashboard?setup=incomplete`.
+ */
+const INCOMPLETE_SETUP_READINESS = buildLaunchReadiness({
+  activeCard: {
+    id: "card_harness",
+    card_name: "Mystery Visit Card",
+    reward_name: "Mystery reward",
+    stamps_required: 3,
+  },
+  activeRewardPoolItemCount: 1,
+  qrCode: null,
+  location: {
+    id: "loc_harness",
+    name: "Old Crown Girton",
+    address: "12 High Street, Girton, Cambridge, CB3 0QH",
+    latitude: 52.2399,
+    longitude: 0.0826,
+    geofence_radius_meters: 150,
+    require_geofence: false,
+    geocoded_at: "2026-06-20T10:00:00.000Z",
+  },
+})
+
+/**
  * Dashboard harness — mounts the REAL presentational primitives that
  * {@link MerchantDashboardStream} renders (KpiTile 2-up→4-up grid, TrendChart,
  * the "Do next" ReceiptCard, ProgressTrack, and ActivityCompactFeed) fed
@@ -50,16 +80,32 @@ const KPI_ICON = {
  * per the qa-harness spec — their presentational children are mounted directly.
  * The page header reuses the same PageTitle + Scan-reward CTA as /app/page.tsx.
  */
-export default async function DashboardHarnessPage() {
+export default async function DashboardHarnessPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ setup?: string }>
+}) {
   if (process.env.NODE_ENV === "production") {
     notFound()
   }
+
+  const params = searchParams ? await searchParams : {}
+  const showSetupReminder = params.setup === "incomplete"
 
   const { readyCount, quietCount, repeatCustomers, members } =
     HARNESS_NEXT_ACTIONS
 
   return (
     <div className="grid gap-6">
+      {/* Incomplete-setup reminder — the real compact readiness panel the
+          merchant layout shows while launch is unfinished. */}
+      {showSetupReminder ? (
+        <LaunchReadinessPanel
+          readiness={INCOMPLETE_SETUP_READINESS}
+          variant="compact"
+          showHeader={false}
+        />
+      ) : null}
       <PageTitle
         eyebrow="Your venue"
         title={HARNESS_MERCHANT.business_name}

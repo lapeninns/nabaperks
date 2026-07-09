@@ -67,8 +67,9 @@ export default async function SignupVerifyPage({
           />
           <div className="border-t-2 border-dashed border-border pt-5">
             <p className="max-w-xl text-sm leading-6 font-bold text-pretty">
-              Keep this tab open while you check your inbox. The code confirms
-              the venue email before the loyalty card goes live.
+              Your operator account is created. Verifying your email confirms
+              it — then you set up your business, venue, and rewards. Keep this
+              tab open while you check your inbox.
             </p>
           </div>
         </div>
