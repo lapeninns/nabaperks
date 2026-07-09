@@ -4,9 +4,7 @@ import { expect, test, type APIRequestContext } from "@playwright/test"
 
 const AUTH_HOOK_SECRET = "v1,whsec_dGVzdC1ob29rLXNlY3JldA=="
 
-type HookPath =
-  | "/api/auth/hooks/send-email"
-  | "/api/auth/hooks/send-sms"
+type HookPath = "/api/auth/hooks/send-email" | "/api/auth/hooks/send-sms"
 
 function signedHeaders(body: string) {
   const webhookId = "msg_test_auth_hook"
@@ -42,7 +40,7 @@ async function postHook({
   })
 }
 
-test.describe("Supabase auth hook routes", () => {
+test.describe("Supabase auth hook routes @MS-auth-otp-alias-finalization", () => {
   test("invalid email hook signatures are rejected before payload handling", async ({
     request,
   }) => {

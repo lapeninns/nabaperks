@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-auth-otp-alias-finalization",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-09T20:03:03.043Z",
+      "sha": "f9fcc76920fa2805e65284ccb53234592b2fdb7d",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}
