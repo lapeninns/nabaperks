@@ -1,6 +1,6 @@
 ---
 spec_id: MS-auth-otp-alias-finalization
-status: active
+status: implemented
 risk_class: rls-rpc-ledger
 owner: codex
 last_reviewed: 2026-07-09
