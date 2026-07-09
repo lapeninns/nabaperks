@@ -55,6 +55,7 @@ function onboardingDraftStorageKey(userId: string) {
 }
 
 type OnboardingDraft = NonNullable<OnboardingActionState["fields"]>
+type ClientErrors = NonNullable<OnboardingActionState["errors"]>
 
 export function OnboardingForm({
   className,
@@ -76,6 +77,12 @@ export function OnboardingForm({
     hasInitialFields ? { ...initialState, fields: initialFields } : initialState
   )
   const formRef = useRef<HTMLFormElement>(null)
+  // Inline client validation mirrors the signup form: catch empty required
+  // fields before the server round-trip, surface them in the app's styled
+  // errors, and focus the first invalid field. Format/geocode checks still run
+  // server-side, and server errors take precedence once they return.
+  const [clientErrors, setClientErrors] = useState<ClientErrors>({})
+  const errors = state.errors ?? clientErrors
   const [businessName, setBusinessName] = useState(
     state.fields?.businessName ?? initialFields.businessName ?? ""
   )
@@ -218,6 +225,41 @@ export function OnboardingForm({
     <form
       ref={formRef}
       action={action}
+      noValidate
+      onSubmit={(event) => {
+        const formData = new FormData(event.currentTarget)
+        const readField = (key: string) =>
+          (formData.get(key)?.toString() ?? "").trim()
+        const nextErrors: ClientErrors = {}
+        if (!readField("businessName"))
+          nextErrors.businessName = "Enter the business name."
+        if (!readField("businessType"))
+          nextErrors.businessType = "Choose a business type."
+        if (!readField("locationName"))
+          nextErrors.locationName = "Enter the venue name."
+        if (!readField("addressLine1"))
+          nextErrors.addressLine1 = "Enter the first line of the address."
+        if (!readField("addressCity"))
+          nextErrors.addressCity = "Enter the town or city."
+        if (!readField("addressPostcode"))
+          nextErrors.addressPostcode = "Enter the postcode."
+
+        if (Object.keys(nextErrors).length) {
+          event.preventDefault()
+          setClientErrors(nextErrors)
+          const firstInvalid = [
+            "businessName",
+            "businessType",
+            "locationName",
+            "addressLine1",
+            "addressCity",
+            "addressPostcode",
+          ].find((key) => nextErrors[key as keyof ClientErrors])
+          document.getElementById(firstInvalid ?? "businessName")?.focus()
+          return
+        }
+        setClientErrors({})
+      }}
       className={cn("surface-card grid gap-4 p-6", className)}
     >
       {/* Part 1 — the business profile: the operator's business behind the
@@ -241,12 +283,12 @@ export function OnboardingForm({
           setBusinessName(event.target.value)
           updateDraft({ businessName: event.target.value })
         }}
-        error={state.errors?.businessName}
+        error={errors.businessName}
       />
       <BusinessTypeField
         value={state.fields?.businessType}
         options={businessTypeOptions}
-        error={state.errors?.businessType}
+        error={errors.businessType}
         onChange={(value) => updateDraft({ businessType: value })}
       />
       <OnboardingField
@@ -288,13 +330,13 @@ export function OnboardingForm({
           setLocationName(event.target.value)
           updateDraft({ locationName: event.target.value })
         }}
-        error={state.errors?.locationName}
+        error={errors.locationName}
         hint="Defaults to your business name. Edit it if this venue trades under a different name."
       />
 
       <VenueAddressFields
         values={address}
-        errors={state.errors}
+        errors={errors}
         columns={2}
         requireAddress
         labelClassName="eyebrow"
@@ -317,8 +359,8 @@ export function OnboardingForm({
         name="venueLongitude"
         value={providerCoordinates.longitude}
       />
-      {state.errors?.form ? (
-        <OnboardingFormError>{state.errors.form}</OnboardingFormError>
+      {errors.form ? (
+        <OnboardingFormError>{errors.form}</OnboardingFormError>
       ) : null}
       <Button
         type="submit"

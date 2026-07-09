@@ -49,7 +49,7 @@ export default async function SignupVerifyPage({
   const otpCodeLabel = merchantEmailOtpAliasDigitLabel()
 
   return (
-    <MarketingLayout>
+    <MarketingLayout focused>
       <section
         className={cn(
           "mx-auto grid w-full max-w-5xl content-start gap-8 px-6 py-6 sm:gap-10 sm:py-10 lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] lg:content-center lg:items-center",

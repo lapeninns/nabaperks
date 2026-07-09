@@ -25,12 +25,19 @@ export function MarketingLayout({
   children,
   navLinks,
   logoHref = "/",
+  focused = false,
 }: {
   children: ReactNode
   /** Homepage can pass anchor links; pricing and legal pages use the default. */
   navLinks?: MarketingNavLink[]
   /** Merchant marketing pages should link home to `/`, not the customer `/start` surface. */
   logoHref?: string
+  /**
+   * Auth/checkout funnel mode: drop the marquee, the header nav (incl. the
+   * "Start free pilot" CTA), and the mega footer so /signup, /signup/verify and
+   * /reset-password don't leak clicks out of the flow. Legal links stay.
+   */
+  focused?: boolean
 }) {
   const marketingLinks = navLinks ?? defaultMarketingLinks
   return (
@@ -42,18 +49,38 @@ export function MarketingLayout({
       >
         Skip to content
       </a>
-      <Marquee />
+      {focused ? null : <Marquee />}
       <header className="sticky top-0 z-40 border-b-2 border-ink bg-card">
         <div className="mx-auto flex w-full max-w-marketing-chrome items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <Logo
             href={logoHref}
             className="max-[420px]:[&>span:last-child]:sr-only"
           />
-          <MarketingHeaderNav links={marketingLinks} />
+          {focused ? null : <MarketingHeaderNav links={marketingLinks} />}
         </div>
       </header>
       <main id="main">{children}</main>
-      <footer className="border-t-2 border-dashed border-border bg-card">
+      {focused ? (
+        <footer className="border-t-2 border-dashed border-border bg-card">
+          <div className="mx-auto flex w-full max-w-marketing-chrome flex-col items-center gap-3 px-6 py-6 text-sm text-muted-foreground sm:flex-row sm:justify-between">
+            <div className="flex items-center gap-3">
+              <Logo href={logoHref} label="nabaperks" />
+              <span className="mono-id tracking-[0.08em] whitespace-nowrap text-muted-foreground">
+                © {new Date().getFullYear()}
+              </span>
+            </div>
+            <nav aria-label="Legal links" className="flex flex-wrap gap-2">
+              <Link className={legalLinkClass} href="/terms">
+                Terms
+              </Link>
+              <Link className={legalLinkClass} href="/privacy">
+                Privacy
+              </Link>
+            </nav>
+          </div>
+        </footer>
+      ) : (
+        <footer className="border-t-2 border-dashed border-border bg-card">
         <div className="mx-auto flex w-full max-w-marketing-chrome flex-col gap-4 px-6 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <Logo href={logoHref} label="nabaperks" />
@@ -104,6 +131,7 @@ export function MarketingLayout({
           </nav>
         </div>
       </footer>
+      )}
     </div>
   )
 }
