@@ -25,8 +25,16 @@ allowed_blast_radius:
   - public/llms.txt
   - scripts/check-banned-claims.mjs
   - scripts/check-jsonld.mjs
-  - tests/unit/**
-  - tests/micro-specs/**
+  - tests/unit/marketing-offer-facts.test.mjs
+  - tests/unit/marketing-promo.test.mjs
+  - tests/unit/marketing-trust-continuity.test.mjs
+  - tests/micro-specs/landing-conversion-spine.test.mjs
+  - tests/micro-specs/marketing-audit-v2-fixes.test.mjs
+  - tests/micro-specs/marketing-auth-legal.test.mjs
+  - tests/micro-specs/marketing-offer-v2.test.mjs
+  - tests/micro-specs/marketing-persona-spokes.test.mjs
+  - tests/micro-specs/marketing-polish.test.mjs
+  - tests/micro-specs/marketing-trust-continuity.test.mjs
   - tests/e2e/helpers/merchant-marketing-trust.ts
   - tests/e2e/merchant-marketing-trust.spec.ts
   - tests/e2e/merchant-marketing-trust.desktop.spec.ts
@@ -52,8 +60,16 @@ implementation_surfaces:
   - public/llms.txt
   - scripts/check-banned-claims.mjs
   - scripts/check-jsonld.mjs
-  - tests/unit/**
-  - tests/micro-specs/**
+  - tests/unit/marketing-offer-facts.test.mjs
+  - tests/unit/marketing-promo.test.mjs
+  - tests/unit/marketing-trust-continuity.test.mjs
+  - tests/micro-specs/landing-conversion-spine.test.mjs
+  - tests/micro-specs/marketing-audit-v2-fixes.test.mjs
+  - tests/micro-specs/marketing-auth-legal.test.mjs
+  - tests/micro-specs/marketing-offer-v2.test.mjs
+  - tests/micro-specs/marketing-persona-spokes.test.mjs
+  - tests/micro-specs/marketing-polish.test.mjs
+  - tests/micro-specs/marketing-trust-continuity.test.mjs
   - tests/e2e/helpers/merchant-marketing-trust.ts
   - tests/e2e/merchant-marketing-trust.spec.ts
   - tests/e2e/merchant-marketing-trust.desktop.spec.ts
