@@ -1,5 +1,8 @@
 import assert from "node:assert/strict"
+import { readFileSync } from "node:fs"
+import path from "node:path"
 import { test } from "node:test"
+import { fileURLToPath } from "node:url"
 
 import {
   dateOfBirthForIndex,
@@ -14,6 +17,15 @@ import {
   stressMembershipId,
   STRESS_HISTORY_DAYS,
 } from "../../scripts/seed-stress.mjs"
+
+const projectRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../.."
+)
+
+function readProjectFile(...segments) {
+  return readFileSync(path.join(projectRoot, ...segments), "utf8")
+}
 
 test("parseArgs defaults to 10k members with events enabled", () => {
   const args = parseArgs([])
@@ -53,13 +65,32 @@ test("stress seed dates spread across the history window", () => {
   const stampJoin = stampCreatedAtFor(42, 0, join1)
   const stampReturn = stampCreatedAtFor(42, 1, join1)
   assert.ok(stampJoin >= join1)
-  assert.notEqual(
-    earnedBusinessDateFor(42, 0),
-    earnedBusinessDateFor(42, 1)
-  )
+  assert.notEqual(earnedBusinessDateFor(42, 0), earnedBusinessDateFor(42, 1))
 
   const lastVisit = lastVisitAtForIndex(10, join1, [stampJoin, stampReturn])
   assert.ok(lastVisit >= stampReturn)
 
   assert.notEqual(dateOfBirthForIndex(1), dateOfBirthForIndex(2))
+})
+
+test("stress seed connection diagnostics do not leak credentials or match attacker hosts", () => {
+  const seed = readProjectFile("scripts", "seed-stress.mjs")
+  const help = readProjectFile("scripts", "db-connection-help.mjs")
+
+  assert.match(help, /function safeDatabaseTarget\(dbUrl\)/)
+  assert.ok(
+    help.includes(
+      'return `${url.protocol}//${url.hostname}${url.port ? `:${url.port}` : ""}${url.pathname}`'
+    )
+  )
+  assert.doesNotMatch(help, /url\.(?:username|password)/)
+
+  assert.match(seed, /function isSupabaseHost\(hostname\)/)
+  assert.ok(
+    seed.includes(
+      'return host === "supabase.com" || host.endsWith(".supabase.com")'
+    )
+  )
+  assert.doesNotMatch(seed, /(?:hostname|dbUrl)\.includes\("supabase\.com"\)/)
+  assert.match(seed, /printDatabaseConnectionHelp\(\s*safeDbTarget\(dbUrl\),/)
 })

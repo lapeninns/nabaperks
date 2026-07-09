@@ -160,8 +160,8 @@ export const OFFER = {
  * Speed / time-to-value copy — the Value Equation's "reduce the delay" lever
  * (Hormozi: fast beats free). Grounded in the real launch checklist
  * (`lib/merchant/launch-readiness-core`): four steps — venue, card, rewards,
- * qr — with the reward pool seeded by default, so the "pre-filled rewards" and
- * "four guided steps" claims are honest. No invented minute count.
+ * qr — with merchant-confirmed reward suggestions, so the "pre-filled rewards"
+ * and "four guided steps" claims are honest. No invented minute count.
  */
 export const SETUP = {
   line: "Live on your counter the same afternoon.",

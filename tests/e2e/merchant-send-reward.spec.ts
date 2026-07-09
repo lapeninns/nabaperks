@@ -42,7 +42,7 @@ test.describe("@merchant-flow merchant send reward", () => {
 
     await expect(page.getByLabel("Reward name")).toHaveValue("Regulars' pint")
     await expect(page.getByLabel("Reward terms")).toHaveValue(
-      /Valid from the next UK business day\./
+      /Valid once issued\./
     )
     // Prefill only: tapping a preset must not send the reward.
     await expect(page.getByText("Reward sent.")).toHaveCount(0)

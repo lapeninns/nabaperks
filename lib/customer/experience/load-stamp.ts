@@ -26,7 +26,8 @@ const DEFAULT_LOCATION = { requireGeofence: false, geofenceRadiusMeters: 150 }
  */
 export async function loadStampExperienceContext(
   membershipId: string,
-  qr: string | undefined
+  qr: string | undefined,
+  blockedReason?: string
 ): Promise<StampContext> {
   const cardState = await getCustomerCardState(membershipId)
 
@@ -55,6 +56,21 @@ export async function loadStampExperienceContext(
       alreadyStampedToday: false,
       qrValid: false,
       qrMissing: !qr,
+      location: DEFAULT_LOCATION,
+    }
+  }
+
+  const safeBlockedReason = boundedReason(blockedReason)
+  if (safeBlockedReason) {
+    return {
+      unavailableReason: safeBlockedReason,
+      membershipId,
+      merchantName,
+      unlockedReward: null,
+      alreadyStampedToday: false,
+      qrValid: false,
+      qrMissing: !qr,
+      qrId: qr,
       location: DEFAULT_LOCATION,
     }
   }
@@ -243,6 +259,7 @@ async function isStampedToday(membershipId: string): Promise<boolean> {
     .select("earned_business_date")
     .eq("membership_id", membershipId)
     .eq("event_type", "earned")
+    .not("earned_business_date", "is", null)
     .order("earned_business_date", { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -257,4 +274,11 @@ async function isStampedToday(membershipId: string): Promise<boolean> {
       : null
 
   return latest !== null && latest === ukTodayIso()
+}
+
+function boundedReason(reason: string | undefined): string | null {
+  const trimmed = reason?.trim()
+  if (!trimmed || trimmed.length > 240) return null
+
+  return trimmed
 }

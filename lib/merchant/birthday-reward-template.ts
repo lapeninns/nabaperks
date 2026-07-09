@@ -13,19 +13,19 @@ export type BirthdayRewardTemplate = {
 export const PUB_BIRTHDAY_REWARD: BirthdayRewardTemplate = {
   rewardName: "Birthday drink on us",
   rewardTerms:
-    "One drink on us during your birthday month — a pint, a glass of wine, or a soft drink. Valid from the next UK business day.",
+    "One drink on us during your birthday month — a pint, a glass of wine, or a soft drink. Valid once issued.",
 }
 
 export const CAFE_BIRTHDAY_REWARD: BirthdayRewardTemplate = {
   rewardName: "Birthday coffee and cake",
   rewardTerms:
-    "A coffee and a slice of cake on us during your birthday month. Valid from the next UK business day.",
+    "A coffee and a slice of cake on us during your birthday month. Valid once issued.",
 }
 
 export const GENERIC_BIRTHDAY_REWARD: BirthdayRewardTemplate = {
   rewardName: "A birthday treat",
   rewardTerms:
-    "A little something to mark your birthday month, on us. Valid from the next UK business day.",
+    "A little something to mark your birthday month, on us. Valid once issued.",
 }
 
 /** Birthday template for a merchant, keyed on their `business_type`. */

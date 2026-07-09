@@ -7,6 +7,7 @@ import { recordProductEvent } from "@/lib/analytics/events"
 import {
   resolveDrainOptions,
   shouldContinueDraining,
+  shouldProcessNextEvent,
 } from "@/lib/notifications/drain-plan"
 import {
   buildNotificationPayload,
@@ -121,18 +122,43 @@ export async function runPushNotificationDeliveryWorker({
   const options = resolveDrainOptions({ batchSize, maxEvents, timeBudgetMs })
   const startedAtMs = Date.now()
 
-  while (true) {
-    const { data, error } = await supabase.rpc("claim_due_notification_events", {
-      p_limit: options.batchSize,
-      p_now: now.toISOString(),
-    })
+  while (
+    shouldProcessNextEvent(result.processed, options, Date.now() - startedAtMs)
+  ) {
+    const claimLimit = Math.min(
+      options.batchSize,
+      options.maxEvents - result.processed
+    )
+    const { data, error } = await supabase.rpc(
+      "claim_due_notification_events",
+      {
+        p_limit: claimLimit,
+        p_now: now.toISOString(),
+      }
+    )
 
     if (error) {
-      throw new Error(`Unable to load due notification events: ${error.message}`)
+      throw new Error(
+        `Unable to load due notification events: ${error.message}`
+      )
     }
 
     const events = (data ?? []) as NotificationEventRow[]
-    for (const event of events) {
+    for (let index = 0; index < events.length; index += 1) {
+      if (
+        !shouldProcessNextEvent(
+          result.processed,
+          options,
+          Date.now() - startedAtMs
+        )
+      ) {
+        await releaseClaimedNotificationEvents(supabase, events.slice(index))
+        break
+      }
+
+      const event = events[index]
+      if (!event) continue
+
       const delivery = await deliverNotificationEvent(supabase, event, now)
       result.processed += 1
       result.sent += delivery.sent
@@ -148,6 +174,28 @@ export async function runPushNotificationDeliveryWorker({
 
   void recordWorkerProductEvent(result, "completed")
   return result
+}
+
+async function releaseClaimedNotificationEvents(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  events: readonly NotificationEventRow[]
+) {
+  if (events.length === 0) return
+
+  const { error } = await supabase
+    .from("notification_events")
+    .update({ status: "queued" })
+    .in(
+      "id",
+      events.map((event) => event.id)
+    )
+    .eq("status", "delivering")
+
+  if (error) {
+    throw new Error(
+      `Unable to release claimed notification events: ${error.message}`
+    )
+  }
 }
 
 export async function produceDueNotificationEvents(now = new Date()) {

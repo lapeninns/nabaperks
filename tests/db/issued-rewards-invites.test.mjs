@@ -6,6 +6,7 @@ import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 import {
   actAsInternalAdmin,
   createRewardPoolFixture,
+  expectRewardPoolRpcRejection,
 } from "./helpers/reward-pool-fixture.mjs"
 
 /**
@@ -110,6 +111,22 @@ test("dedupe: a second invite for the same contact returns the first", { skip },
   })
 })
 
+test("create refuses billing-blocked merchants before storing an invite", { skip }, async () => {
+  await inRolledBackTxn(async (tx) => {
+    const fixture = await createRewardPoolFixture(tx)
+    await tx`
+      update public.merchants set requires_billing = true
+      where id = ${fixture.merchantId}::uuid`
+
+    await expectRewardPoolRpcRejection(
+      tx,
+      (sp) => createInvite(sp, fixture.merchantId, { emailHmac: hex64() }),
+      /not active yet|unavailable|billing/i,
+      "billing-blocked merchants cannot create pending reward invites"
+    )
+  })
+})
+
 test("attach is idempotent and billing-blocked members do not attach", { skip }, async () => {
   await inRolledBackTxn(async (tx) => {
     const fixture = await createRewardPoolFixture(tx)
@@ -136,6 +153,33 @@ test("attach is idempotent and billing-blocked members do not attach", { skip },
     const [row] = await tx`
       select status from public.pending_reward_invites where id = ${inv.invite_id}::uuid`
     assert.equal(row.status, "matched")
+  })
+})
+
+test("attach honours the direct reward same-day member cap", { skip }, async () => {
+  await inRolledBackTxn(async (tx) => {
+    const fixture = await createRewardPoolFixture(tx)
+    const emailHmac = hex64()
+    const invite = await createInvite(tx, fixture.merchantId, { emailHmac })
+    await tx`
+      insert into public.reward_events (
+        merchant_id, customer_id, membership_id, loyalty_card_id,
+        status, source, reward_name, reward_terms, redeemable_from, created_at, updated_at)
+      values (
+        ${fixture.merchantId}::uuid, ${fixture.customerId}::uuid,
+        ${fixture.membershipId}::uuid, ${fixture.cardId}::uuid,
+        'unlocked', 'merchant_direct', 'Already sent',
+        'Subject to availability.', public.uk_business_date(now()), now(), now())`
+
+    const attached = await attach(tx, fixture.customerId, { email: emailHmac })
+    assert.equal(attached.length, 0, "the invite stays matched when the member cap is full")
+
+    const [row] = await tx`
+      select status, email_hmac, attached_reward_event_id
+      from public.pending_reward_invites where id = ${invite.invite_id}::uuid`
+    assert.equal(row.status, "matched")
+    assert.equal(row.email_hmac, emailHmac)
+    assert.equal(row.attached_reward_event_id, null)
   })
 })
 
@@ -267,5 +311,27 @@ test("erasure cancels + scrubs a customer's matched invites", { skip }, async ()
       select status, email_hmac from public.pending_reward_invites where id = ${invite.invite_id}::uuid`
     assert.equal(row.status, "cancelled", "a matched invite is cancelled on erasure")
     assert.equal(row.email_hmac, null, "the hash is scrubbed")
+  })
+})
+
+test("erasure cancels + scrubs unmatched email-keyed invites through customer email_hmac", { skip }, async () => {
+  await inRolledBackTxn(async (tx) => {
+    const fixture = await createRewardPoolFixture(tx)
+    const emailHmac = hex64()
+    await tx`
+      update public.customers set email_hmac = ${emailHmac}
+      where id = ${fixture.customerId}::uuid`
+    const invite = await createInvite(tx, fixture.merchantId, { emailHmac })
+
+    await actAsInternalAdmin(tx, fixture.adminUserId)
+    await tx`
+      select public.admin_erase_customer_pii(
+        ${fixture.customerId}::uuid, ${fixture.merchantId}::uuid, 'email', 'Erasure request test notes')`
+
+    await tx`select set_config('request.jwt.claim.role', 'service_role', true)`
+    const [row] = await tx`
+      select status, email_hmac from public.pending_reward_invites where id = ${invite.invite_id}::uuid`
+    assert.equal(row.status, "cancelled", "email-keyed invite is cancelled on erasure")
+    assert.equal(row.email_hmac, null, "the email hash is scrubbed")
   })
 })

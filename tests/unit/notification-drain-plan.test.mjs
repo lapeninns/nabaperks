@@ -4,6 +4,7 @@ import { test } from "node:test"
 import {
   resolveDrainOptions,
   shouldContinueDraining,
+  shouldProcessNextEvent,
 } from "@/lib/notifications/drain-plan"
 
 /**
@@ -36,7 +37,10 @@ test("resolveDrainOptions keeps maxEvents at least one batch and caps it", () =>
     100,
     "maxEvents below one batch rounds up to the batch size"
   )
-  assert.equal(resolveDrainOptions({ batchSize: 50, maxEvents: 400 }).maxEvents, 400)
+  assert.equal(
+    resolveDrainOptions({ batchSize: 50, maxEvents: 400 }).maxEvents,
+    400
+  )
   assert.equal(
     resolveDrainOptions({ batchSize: 50, maxEvents: 1_000_000 }).maxEvents,
     5000,
@@ -50,10 +54,16 @@ test("resolveDrainOptions keeps maxEvents at least one batch and caps it", () =>
 })
 
 test("resolveDrainOptions normalizes the time budget", () => {
-  assert.equal(resolveDrainOptions({ timeBudgetMs: 240_000 }).timeBudgetMs, 240_000)
+  assert.equal(
+    resolveDrainOptions({ timeBudgetMs: 240_000 }).timeBudgetMs,
+    240_000
+  )
   assert.equal(resolveDrainOptions({ timeBudgetMs: 0 }).timeBudgetMs, null)
   assert.equal(resolveDrainOptions({ timeBudgetMs: -1 }).timeBudgetMs, null)
-  assert.equal(resolveDrainOptions({ timeBudgetMs: Number.NaN }).timeBudgetMs, null)
+  assert.equal(
+    resolveDrainOptions({ timeBudgetMs: Number.NaN }).timeBudgetMs,
+    null
+  )
 })
 
 test("a short batch stops the drain (queue is empty)", () => {
@@ -72,16 +82,28 @@ test("a short batch stops the drain (queue is empty)", () => {
 test("a full batch continues until the maxEvents budget is spent", () => {
   const options = resolveDrainOptions({ batchSize: 100, maxEvents: 500 })
   assert.equal(
-    shouldContinueDraining({ processed: 100, lastBatchSize: 100 }, options, 1000),
+    shouldContinueDraining(
+      { processed: 100, lastBatchSize: 100 },
+      options,
+      1000
+    ),
     true
   )
   assert.equal(
-    shouldContinueDraining({ processed: 500, lastBatchSize: 100 }, options, 1000),
+    shouldContinueDraining(
+      { processed: 500, lastBatchSize: 100 },
+      options,
+      1000
+    ),
     false,
     "reaching maxEvents stops the loop"
   )
   assert.equal(
-    shouldContinueDraining({ processed: 620, lastBatchSize: 220 }, options, 1000),
+    shouldContinueDraining(
+      { processed: 620, lastBatchSize: 220 },
+      options,
+      1000
+    ),
     false,
     "an oversized batch still counts fully against the budget"
   )
@@ -94,17 +116,49 @@ test("the soft time budget stops the drain when set", () => {
     timeBudgetMs: 240_000,
   })
   assert.equal(
-    shouldContinueDraining({ processed: 100, lastBatchSize: 100 }, options, 239_999),
+    shouldContinueDraining(
+      { processed: 100, lastBatchSize: 100 },
+      options,
+      239_999
+    ),
     true
   )
   assert.equal(
-    shouldContinueDraining({ processed: 100, lastBatchSize: 100 }, options, 240_000),
+    shouldContinueDraining(
+      { processed: 100, lastBatchSize: 100 },
+      options,
+      240_000
+    ),
     false
   )
   const unbudgeted = resolveDrainOptions({ batchSize: 100, maxEvents: 5000 })
   assert.equal(
-    shouldContinueDraining({ processed: 100, lastBatchSize: 100 }, unbudgeted, 86_400_000),
+    shouldContinueDraining(
+      { processed: 100, lastBatchSize: 100 },
+      unbudgeted,
+      86_400_000
+    ),
     true,
     "no time budget means elapsed time never stops the loop"
+  )
+})
+
+test("per-event processing checks the max event and time budgets", () => {
+  const options = resolveDrainOptions({
+    batchSize: 100,
+    maxEvents: 250,
+    timeBudgetMs: 10_000,
+  })
+
+  assert.equal(shouldProcessNextEvent(249, options, 9_999), true)
+  assert.equal(
+    shouldProcessNextEvent(250, options, 9_999),
+    false,
+    "maxEvents stops before the next event starts"
+  )
+  assert.equal(
+    shouldProcessNextEvent(249, options, 10_000),
+    false,
+    "timeBudgetMs stops before the next event starts"
   )
 })

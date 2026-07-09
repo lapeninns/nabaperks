@@ -25,6 +25,7 @@ export type PendingEmailPayload = {
   readonly version: 1
   readonly email: string
   readonly codeHmac: string
+  readonly customerId: string | null
   readonly issuedAt: number
   readonly expiresAt: number
 }
@@ -175,16 +176,18 @@ function parsePendingEmailPayload(value: unknown): PendingEmailPayload | null {
   const version = value.version
   const email = value.email
   const codeHmac = value.codeHmac
+  const customerId = value.customerId ?? null
   const issuedAt = value.issuedAt
   const expiresAt = value.expiresAt
 
   if (version !== 1) return null
   if (typeof email !== "string") return null
   if (typeof codeHmac !== "string") return null
+  if (customerId !== null && typeof customerId !== "string") return null
   if (typeof issuedAt !== "number") return null
   if (typeof expiresAt !== "number") return null
 
-  return { version, email, codeHmac, issuedAt, expiresAt }
+  return { version, email, codeHmac, customerId, issuedAt, expiresAt }
 }
 
 function parseCustomerSessionPayload(

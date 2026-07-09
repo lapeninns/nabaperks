@@ -291,7 +291,16 @@ export async function requestPasswordResetAction(
 
   const supabase = await createSupabaseServerClient()
   // Ignore the result so the response never reveals whether the email exists.
-  await supabase.auth.resetPasswordForEmail(email)
+  const { error } = await supabase.auth.resetPasswordForEmail(email)
+
+  if (error) {
+    return {
+      fields: { email },
+      errors: {
+        form: "Could not send a reset code just now. Wait a moment and try again.",
+      },
+    }
+  }
 
   return {
     fields: { email, otpSent: true },

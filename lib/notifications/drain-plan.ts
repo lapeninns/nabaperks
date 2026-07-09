@@ -43,9 +43,16 @@ export function resolveDrainOptions(
   // invocation bounded no matter what the caller asks for.
   const maxEvents = Math.min(
     DRAIN_MAX_EVENTS_CAP,
-    Math.max(batchSize, clampInt(input.maxEvents, 1, DRAIN_MAX_EVENTS_CAP, batchSize))
+    Math.max(
+      batchSize,
+      clampInt(input.maxEvents, 1, DRAIN_MAX_EVENTS_CAP, batchSize)
+    )
   )
-  return { batchSize, maxEvents, timeBudgetMs: normalizeTimeBudget(input.timeBudgetMs) }
+  return {
+    batchSize,
+    maxEvents,
+    timeBudgetMs: normalizeTimeBudget(input.timeBudgetMs),
+  }
 }
 
 /**
@@ -59,7 +66,15 @@ export function shouldContinueDraining(
   elapsedMs: number
 ): boolean {
   if (state.lastBatchSize < options.batchSize) return false
-  if (state.processed >= options.maxEvents) return false
+  return shouldProcessNextEvent(state.processed, options, elapsedMs)
+}
+
+export function shouldProcessNextEvent(
+  processed: number,
+  options: DrainOptions,
+  elapsedMs: number
+): boolean {
+  if (processed >= options.maxEvents) return false
   if (options.timeBudgetMs !== null && elapsedMs >= options.timeBudgetMs) {
     return false
   }

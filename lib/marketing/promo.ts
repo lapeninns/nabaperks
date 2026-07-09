@@ -95,7 +95,10 @@ export function getMonthlySpotsRemaining(
 
   if (daysInMonth <= 1) {
     const claimedThisMonth = Math.max(0, monthlyCap - 1)
-    return { spotsRemaining: Math.max(1, monthlyCap - claimedThisMonth), claimedThisMonth }
+    return {
+      spotsRemaining: Math.max(1, monthlyCap - claimedThisMonth),
+      claimedThisMonth,
+    }
   }
 
   const reserve = Math.max(1, Math.min(3, Math.floor(monthlyCap * 0.05)))
@@ -112,8 +115,11 @@ export function getMonthlySpotsRemaining(
 
 /** Returns the live monthly promo, or null when promos are switched off. */
 export function getActivePromo(
-  now: Date = new Date(),
-  config: { readonly enabled: boolean; readonly monthlyCap: number } = PROMO_CONFIG
+  now: Date = defaultPromoNow(),
+  config: {
+    readonly enabled: boolean
+    readonly monthlyCap: number
+  } = PROMO_CONFIG
 ): ActivePromo | null {
   if (!config.enabled) {
     return null
@@ -145,6 +151,18 @@ export function getActivePromo(
     monthlyCap: config.monthlyCap,
     claimedThisMonth,
   }
+}
+
+function defaultPromoNow(): Date {
+  const playwrightNow = process.env.PLAYWRIGHT_MARKETING_PROMO_NOW?.trim()
+  if (playwrightNow) {
+    const parsed = new Date(playwrightNow)
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed
+    }
+  }
+
+  return new Date()
 }
 
 /** True when promos are enabled but the supplied deadline is already past. */

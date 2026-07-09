@@ -8,7 +8,7 @@ export function isDatabaseConnectionRefused(error) {
 }
 
 export function printDatabaseConnectionHelp(dbUrl, commandHint) {
-  console.error(`Cannot reach Postgres at ${dbUrl}.`)
+  console.error(`Cannot reach Postgres at ${safeDatabaseTarget(dbUrl)}.`)
   console.error("Local Supabase is not running on port 54322.")
   console.error("")
   console.error("Start it with:")
@@ -16,4 +16,13 @@ export function printDatabaseConnectionHelp(dbUrl, commandHint) {
   console.error("")
   console.error("Then run:")
   console.error(`  ${commandHint}`)
+}
+
+function safeDatabaseTarget(dbUrl) {
+  try {
+    const url = new URL(dbUrl)
+    return `${url.protocol}//${url.hostname}${url.port ? `:${url.port}` : ""}${url.pathname}`
+  } catch {
+    return "configured database"
+  }
 }

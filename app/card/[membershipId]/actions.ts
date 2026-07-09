@@ -8,7 +8,7 @@ import {
 } from "@/lib/cache/tags"
 import { blockReasonCopy } from "@/lib/customer/experience/block-reasons"
 import { getStampQrContextForMembership } from "@/lib/customer/join"
-import { drainReferralBonusBank } from "@/lib/customer/referral-bonus-bank"
+import { drainReferralBonusBankWithOutcome } from "@/lib/customer/referral-bonus-bank"
 import {
   issueSelfServiceStamp,
   type GeoCoordinates,
@@ -57,8 +57,11 @@ export async function selfStampAction(
   }
 
   let bonusStampsApplied = 0
+  let bonusRewardUnlocked = false
   try {
-    bonusStampsApplied = await drainReferralBonusBank(membershipId)
+    const bonusDrain = await drainReferralBonusBankWithOutcome(membershipId)
+    bonusStampsApplied = bonusDrain.applied
+    bonusRewardUnlocked = bonusDrain.rewardUnlocked
   } catch (error) {
     if (!(error instanceof Error)) {
       throw error
@@ -76,10 +79,11 @@ export async function selfStampAction(
   revalidatePath("/home")
 
   try {
+    const rewardUnlocked = result.rewardUnlocked || bonusRewardUnlocked
     await enqueueStampTransitionNotifications({
       membershipId,
       newStampCount: result.newStampCount + bonusStampsApplied,
-      rewardUnlocked: result.rewardUnlocked,
+      rewardUnlocked,
     })
   } catch (error) {
     logger.warn("push_stamp_transition_enqueue_failed", {
@@ -91,7 +95,7 @@ export async function selfStampAction(
   return {
     status: "issued",
     newStampCount: result.newStampCount + bonusStampsApplied,
-    rewardUnlocked: result.rewardUnlocked,
+    rewardUnlocked: result.rewardUnlocked || bonusRewardUnlocked,
     geoFlagged: result.geoFlagged,
     bonusStampsApplied,
   }

@@ -14,6 +14,7 @@ const shouldSeed = args.has("--seed")
 const shouldReset = args.has("--reset")
 const shouldResetCustomers = args.has("--reset-customers")
 const shouldResetTodayStamps = args.has("--reset-today-stamps")
+const shouldSeedPerfOwner = args.has("--seed-perf-owner")
 const force = args.has("--force")
 
 if (
@@ -24,7 +25,7 @@ if (
   !shouldResetTodayStamps
 ) {
   console.error(
-    "Usage: node scripts/run-supabase-sql.mjs [--apply] [--seed] [--reset] [--reset-customers] [--reset-today-stamps] [--force]"
+    "Usage: node scripts/run-supabase-sql.mjs [--apply] [--seed] [--seed-perf-owner] [--reset] [--reset-customers] [--reset-today-stamps] [--force]"
   )
   process.exit(1)
 }
@@ -79,10 +80,12 @@ try {
     await runFile("supabase/seed.sql", "Seed fixtures")
     await runFile("supabase/seed-activity-demo.sql", "Seed activity demo")
     await runOptionalFile("supabase/seed-user-aman.sql", "Seed user Aman")
-    await runOptionalFile(
-      "supabase/seed-user-aman-plus32.sql",
-      "Seed merchant Aman +32"
-    )
+    if (shouldSeedPerfOwner) {
+      await runOptionalFile(
+        "supabase/seed-user-aman-plus32.sql",
+        "Seed merchant Aman +32"
+      )
+    }
     await runFile(
       "supabase/seed-two-of-three-stamps.sql",
       "Seed two of three stamps"
@@ -211,10 +214,15 @@ function resolveDbUrl(env) {
 function shouldRequireSsl(dbUrl) {
   try {
     const url = new URL(dbUrl)
-    return url.hostname.endsWith("supabase.com")
+    return isSupabaseHost(url.hostname)
   } catch {
     return false
   }
+}
+
+function isSupabaseHost(hostname) {
+  const host = hostname.toLowerCase()
+  return host === "supabase.com" || host.endsWith(".supabase.com")
 }
 
 function safeDbTarget(dbUrl) {

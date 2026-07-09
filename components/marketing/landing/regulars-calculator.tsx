@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { Eyebrow, MonoTag } from "@/components/brand"
 import { Section } from "@/components/layout"
 import { Button } from "@/components/ui/button"
-import { CTA, OPERATOR, PRODUCT, ROUTES } from "@/lib/marketing/facts"
+import { CTA, PRODUCT, ROUTES } from "@/lib/marketing/facts"
 
 /**
  * Regulars calculator — an ungated, value-first utility (PDF interactive-tool
@@ -63,10 +63,7 @@ function Field({
 
   return (
     <div className="grid gap-1.5">
-      <label
-        htmlFor={id}
-        className="mono-meta text-muted-foreground"
-      >
+      <label htmlFor={id} className="mono-meta text-muted-foreground">
         {label}
       </label>
       <div className="flex items-center gap-2 rounded-[var(--radius)] border-2 border-ink bg-card px-3 py-2 focus-within:ring-3 focus-within:ring-ring/35">
@@ -136,7 +133,7 @@ export function RegularsCalculator() {
     extraRevenuePerMonth
   )} extra revenue a month (before costs), at ${gbp(spend)} average spend, ${ordersPerDay} orders a day, ${openDays} days a week. Estimate only — profit depends on your margin.`
 
-  const mailto = `mailto:${OPERATOR.supportEmail}?subject=${encodeURIComponent(
+  const mailto = `mailto:?subject=${encodeURIComponent(
     "My Nabaperks regulars estimate"
   )}&body=${encodeURIComponent(summary)}`
 
@@ -149,8 +146,8 @@ export function RegularsCalculator() {
             What could one small repeat-visit lift be worth?
           </h2>
           <p className="mt-3 max-w-[44ch] text-sm leading-relaxed text-pretty text-muted-foreground">
-            A couple more repeat visits a week can cover the {PRODUCT.price} plan.
-            Profit depends on your margin.
+            A couple more repeat visits a week can cover the {PRODUCT.price}{" "}
+            plan. Profit depends on your margin.
           </p>
 
           <div className="mt-6 grid grid-cols-2 gap-3">
@@ -211,8 +208,8 @@ export function RegularsCalculator() {
             <strong className="font-bold text-foreground">
               {visitsLabel} extra repeat visits a week
             </strong>{" "}
-            from a +{liftPct}pp lift in how many regulars come back. An estimate to
-            sense-check, not a promise — your margin decides the profit.
+            from a +{liftPct}pp lift in how many regulars come back. An estimate
+            to sense-check, not a promise — your margin decides the profit.
           </p>
 
           <div className="mt-5 flex flex-wrap gap-2">
@@ -220,7 +217,7 @@ export function RegularsCalculator() {
               <Link href={ROUTES.signup}>{CTA.startPilot}</Link>
             </Button>
             <Button asChild size="sm" variant="outline">
-              <a href={mailto}>Email me this estimate</a>
+              <a href={mailto}>Email this estimate</a>
             </Button>
             <Button
               type="button"
@@ -230,7 +227,9 @@ export function RegularsCalculator() {
               onClick={() => {
                 navigator.clipboard
                   ?.writeText(summary)
-                  .then(() => toast.success("Estimate copied — show it to the team"))
+                  .then(() =>
+                    toast.success("Estimate copied — show it to the team")
+                  )
                   .catch(() => toast.error("Could not copy — try again"))
               }}
             >

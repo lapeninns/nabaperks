@@ -420,9 +420,9 @@ function validateRadiusBreadth(spec, failures) {
 
 // A scoped browser gate must prove THIS spec's surfaces: its --grep pattern
 // has to select at least one of the spec's own declared browser tests. Raw
-// file content is matched (a superset of the test titles Playwright greps)
-// to keep false negatives low. Runs only once the related-browser-test rule
-// is satisfied, so a missing harness fails once, not twice.
+// test titles are matched, mirroring Playwright grep semantics closely enough
+// for anchored patterns to stay valid. Runs only once the related-browser-test
+// rule is satisfied, so a missing harness fails once, not twice.
 function validateScopedGrepTags(spec, root, failures) {
   if (SCOPED_BROWSER_GATE_SCRIPTS.length === 0) return
   const relatedBrowserTests = listField(spec, "related_tests").filter(
@@ -447,7 +447,7 @@ function validateScopedGrepTags(spec, root, failures) {
       continue
     }
     const hit = relatedBrowserTests.some((testPath) =>
-      regex.test(readFileSync(join(root, testPath), "utf8"))
+      playwrightGrepMatches(regex, readFileSync(join(root, testPath), "utf8"))
     )
     if (!hit) {
       failures.push(
@@ -455,6 +455,17 @@ function validateScopedGrepTags(spec, root, failures) {
       )
     }
   }
+}
+
+function playwrightGrepMatches(regex, source) {
+  const titlePattern =
+    /\btest(?:\.describe)?(?:\.(?:only|skip|fixme))?\(\s*(["'`])([\s\S]*?)\1/g
+  let match
+  while ((match = titlePattern.exec(source)) !== null) {
+    regex.lastIndex = 0
+    if (regex.test(match[2])) return true
+  }
+  return false
 }
 
 function grepPatternOf(args) {

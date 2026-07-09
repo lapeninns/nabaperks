@@ -9,6 +9,13 @@ export type ReferralBonusBank = {
   readonly awardedToday: number
 }
 
+export type ReferralBonusDrainResult = {
+  readonly applied: number
+  readonly rewardUnlocked: boolean
+}
+
+type SupabaseServiceClient = ReturnType<typeof createSupabaseServiceRoleClient>
+
 export function emptyReferralBonusBank(): ReferralBonusBank {
   return { banked: 0, awardedToday: 0 }
 }
@@ -74,6 +81,31 @@ export async function drainReferralBonusBank(
   membershipId: string
 ): Promise<number> {
   const supabase = createSupabaseServiceRoleClient()
+  return drainReferralBonusBankWithClient(supabase, membershipId)
+}
+
+export async function drainReferralBonusBankWithOutcome(
+  membershipId: string
+): Promise<ReferralBonusDrainResult> {
+  const supabase = createSupabaseServiceRoleClient()
+  const rewardCountBefore = await countUnlockedRewards(supabase, membershipId)
+  const applied = await drainReferralBonusBankWithClient(supabase, membershipId)
+
+  if (applied === 0) {
+    return { applied, rewardUnlocked: false }
+  }
+
+  const rewardCountAfter = await countUnlockedRewards(supabase, membershipId)
+  return {
+    applied,
+    rewardUnlocked: rewardCountAfter > rewardCountBefore,
+  }
+}
+
+async function drainReferralBonusBankWithClient(
+  supabase: SupabaseServiceClient,
+  membershipId: string
+): Promise<number> {
   const { data, error } = await supabase.rpc(
     "drain_due_referrer_bonuses_for_membership",
     { p_referrer_membership_id: membershipId }
@@ -84,6 +116,23 @@ export async function drainReferralBonusBank(
   }
 
   return numberValue(data) ?? 0
+}
+
+async function countUnlockedRewards(
+  supabase: SupabaseServiceClient,
+  membershipId: string
+): Promise<number> {
+  const { count, error } = await supabase
+    .from("reward_events")
+    .select("id", { count: "exact", head: true })
+    .eq("membership_id", membershipId)
+    .eq("status", "unlocked")
+
+  if (error) {
+    throw new Error(`Unable to count unlocked rewards: ${error.message}`)
+  }
+
+  return count ?? 0
 }
 
 function incrementBank(

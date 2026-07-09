@@ -35,6 +35,7 @@ type PendingPhoneInput = {
 type PendingEmailInput = {
   email: string
   codeHmac: string
+  customerId?: string | null
 }
 
 const pendingPhoneTtlSeconds = 10 * 60
@@ -91,6 +92,7 @@ export async function setPendingEmailVerification(
     version: 1,
     email: input.email,
     codeHmac: input.codeHmac,
+    customerId: input.customerId ?? null,
     issuedAt,
     expiresAt: issuedAt + pendingEmailTtlSeconds,
   }

@@ -68,27 +68,11 @@ export async function getMembershipStampDisplayDatesByMembership(
   if (uniqueMembershipIds.length === 0) return stampDatesByMembership
 
   const supabase = createSupabaseServiceRoleClient()
-  let query = supabase
+  const query = supabase
     .from("stamp_events")
     .select("membership_id, earned_business_date, cycle_number, metadata")
     .in("membership_id", uniqueMembershipIds)
     .eq("event_type", "earned")
-
-  const activeCycleFilter =
-    activeCycleByMembership && activeCycleByMembership.size > 0
-      ? uniqueMembershipIds
-          .map((membershipId) => {
-            const activeCycle = activeCycleByMembership.get(membershipId)
-            return activeCycle === undefined
-              ? `membership_id.eq.${membershipId}`
-              : `and(membership_id.eq.${membershipId},cycle_number.eq.${activeCycle})`
-          })
-          .join(",")
-      : null
-
-  if (activeCycleFilter !== null && typeof query.or === "function") {
-    query = query.or(activeCycleFilter)
-  }
 
   const { data, error } = await query.order("created_at", {
     ascending: true,
@@ -102,6 +86,13 @@ export async function getMembershipStampDisplayDatesByMembership(
   const latestBusinessDateByMembership = new Map<string, string>()
 
   for (const row of (data ?? []) as RawMembershipStampEvent[]) {
+    if (typeof row.earned_business_date === "string") {
+      latestBusinessDateByMembership.set(
+        row.membership_id,
+        row.earned_business_date
+      )
+    }
+
     const activeCycle = activeCycleByMembership?.get(row.membership_id)
     if (activeCycle !== undefined && row.cycle_number !== activeCycle) continue
 
@@ -111,12 +102,6 @@ export async function getMembershipStampDisplayDatesByMembership(
       labelsByMembership.set(row.membership_id, labels)
     }
 
-    if (typeof row.earned_business_date === "string") {
-      latestBusinessDateByMembership.set(
-        row.membership_id,
-        row.earned_business_date
-      )
-    }
   }
 
   for (const [membershipId, stampDates] of labelsByMembership) {

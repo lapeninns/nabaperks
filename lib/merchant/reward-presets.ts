@@ -25,49 +25,49 @@ export const PUB_REWARD_PRESETS: readonly RewardPreset[] = [
     id: "regulars-pint",
     rewardName: "Regulars' pint",
     rewardTerms:
-      "One house pint, small wine, or soft drink for the member. Valid from the next UK business day.",
+      "One house pint, small wine, or soft drink for the member. Valid once issued.",
     description: "Good for wet-led regulars.",
   },
   {
     id: "free-starter",
     rewardName: "Free starter",
     rewardTerms:
-      "One starter up to GBP 8 with any main meal. Valid from the next UK business day.",
+      "One starter up to GBP 8 with any main meal. Valid once issued.",
     description: "Works for food-led visits.",
   },
   {
     id: "dessert-on-the-house",
     rewardName: "Dessert on the house",
     rewardTerms:
-      "One dessert from the main menu with any paid main. Valid from the next UK business day.",
+      "One dessert from the main menu with any paid main. Valid once issued.",
     description: "Useful after evening meals.",
   },
   {
     id: "coffee-after-lunch",
     rewardName: "Coffee after lunch",
     rewardTerms:
-      "One tea, coffee, or soft drink after a paid lunch. Valid from the next UK business day.",
+      "One tea, coffee, or soft drink after a paid lunch. Valid once issued.",
     description: "Fits lunch and daytime trade.",
   },
   {
     id: "kids-meal",
     rewardName: "Kids' meal with adult main",
     rewardTerms:
-      "One kids' meal with a paid adult main course. Valid from the next UK business day.",
+      "One kids' meal with a paid adult main course. Valid once issued.",
     description: "A family-table reward.",
   },
   {
     id: "sunday-roast-upgrade",
     rewardName: "Sunday roast upgrade",
     rewardTerms:
-      "One roast upgrade or extra side with a Sunday main. Valid from the next UK business day.",
+      "One roast upgrade or extra side with a Sunday main. Valid once issued.",
     description: "A Sunday-led nudge.",
   },
   {
     id: "ten-percent-off",
     rewardName: "10% off the next bill",
     rewardTerms:
-      "Ten percent off food on one visit, excluding drinks. Valid from the next UK business day.",
+      "Ten percent off food on one visit, excluding drinks. Valid once issued.",
     description: "Simple, familiar value.",
   },
 ]
@@ -77,28 +77,28 @@ export const GENERIC_REWARD_PRESETS: readonly RewardPreset[] = [
     id: "free-item",
     rewardName: "Free item",
     rewardTerms:
-      "One eligible item from the standard menu or service list. Valid from the next UK business day.",
+      "One eligible item from the standard menu or service list. Valid once issued.",
     description: "A simple reward any local business can tune.",
   },
   {
     id: "member-upgrade",
     rewardName: "Member upgrade",
     rewardTerms:
-      "One complimentary upgrade on an eligible purchase. Valid from the next UK business day.",
+      "One complimentary upgrade on an eligible purchase. Valid once issued.",
     description: "Good when an upsell has low fulfilment risk.",
   },
   {
     id: "ten-percent-off",
     rewardName: "10% off",
     rewardTerms:
-      "Ten percent off one eligible purchase, excluding gift cards and third-party fees. Valid from the next UK business day.",
+      "Ten percent off one eligible purchase, excluding gift cards and third-party fees. Valid once issued.",
     description: "Familiar value without naming a venue type.",
   },
   {
     id: "member-perk",
     rewardName: "Member perk",
     rewardTerms:
-      "One member-only perk chosen by the business team. Valid from the next UK business day.",
+      "One member-only perk chosen by the business team. Valid once issued.",
     description: "A flexible placeholder for teams still deciding.",
   },
 ]

@@ -24,7 +24,7 @@ const checks: { icon: IconGlyph; title: string; body: string }[] = [
   {
     icon: QrCode01Icon,
     title: "Venue QR verified",
-    body: "The stamp only counts when it comes from your one permanent venue QR — not a screenshot or a shared link.",
+    body: "Each stamp is tied to your one permanent venue QR and the membership that claims it, so every claim lands with a traceable source.",
   },
   {
     icon: UserCheck01Icon,
@@ -59,9 +59,11 @@ export function CounterVerifiedStamp() {
         <p className="mt-4 text-[0.98rem] leading-relaxed text-pretty text-paper/80 sm:text-base">
           Every stamp is checked against your physical venue QR, the
           customer&apos;s membership, your live account, a{" "}
-          <strong className="font-bold text-paper">one-stamp-per-customer-per-UK-date
-          cap</strong>, and optional unusual-location checks. Fraud is designed
-          out — not &ldquo;mitigated&rdquo;.
+          <strong className="font-bold text-paper">
+            one-stamp-per-customer-per-UK-date cap
+          </strong>
+          , and optional unusual-location checks. Fraud is designed out — not
+          &ldquo;mitigated&rdquo;.
         </p>
       </div>
 

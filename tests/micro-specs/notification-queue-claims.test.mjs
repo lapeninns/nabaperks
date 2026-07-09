@@ -24,7 +24,7 @@ test("Given the push worker runs in parallel When due notifications are claimed 
   assert.match(migration, /claim_due_notification_events/)
   assert.match(migration, /for update skip locked/)
   assert.match(migration, /set status = 'delivering'/)
-  assert.match(worker, /rpc\("claim_due_notification_events"/)
+  assert.match(worker, /rpc\(\s*"claim_due_notification_events"/)
   assert.doesNotMatch(
     worker,
     /\.from\("notification_events"\)\s*\.select\([\s\S]*\.eq\("status", "queued"\)/

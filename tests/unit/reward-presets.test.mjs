@@ -36,9 +36,7 @@ describe("merchant reward presets", () => {
       assert.ok(preset.rewardName.length <= 100)
       assert.ok(preset.rewardTerms.length >= 12)
       assert.ok(preset.rewardTerms.length <= 500)
-      assert.ok(
-        preset.rewardTerms.endsWith("Valid from the next UK business day.")
-      )
+      assert.ok(preset.rewardTerms.endsWith("Valid once issued."))
       assert.doesNotMatch(preset.rewardName, /https?:\/\//)
       assert.doesNotMatch(preset.rewardTerms, /https?:\/\/|!/)
     }

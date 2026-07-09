@@ -4,6 +4,8 @@
  * surfaces enforce exactly the same rules. Pure — no I/O, framework-free.
  */
 
+import { formatLondonIso } from "@/lib/customer/uk-calendar"
+
 export type ProfileFieldValues = {
   fullName: string
   dateOfBirth: string
@@ -36,24 +38,25 @@ export function validateProfileFields(
 /** Minimum age (years) required to hold a profile and redeem rewards. */
 export const MINIMUM_AGE_YEARS = 18
 
-export function validateDateOfBirth(raw: string): string | null {
+export function validateDateOfBirth(
+  raw: string,
+  now: Date = new Date()
+): string | null {
   if (!raw) return "Enter your date of birth."
   if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return "Enter a valid date of birth."
 
+  const today = formatLondonIso(now)
   const date = new Date(`${raw}T00:00:00Z`)
   if (Number.isNaN(date.getTime())) return "Enter a valid date of birth."
-  if (date.getTime() > Date.now()) return "Date of birth can't be in the future."
+  if (date.toISOString().slice(0, 10) !== raw) {
+    return "Enter a valid date of birth."
+  }
+  if (raw > today) return "Date of birth can't be in the future."
   if (Number(raw.slice(0, 4)) < 1900) return "Enter a valid date of birth."
 
-  // Age gate: the customer must be at least MINIMUM_AGE_YEARS old. Compare the
-  // Nth birthday (UTC midnight) to now — if it is still in the future they are
-  // under age. On the birthday itself the instant is <= now, so they pass.
-  const nthBirthday = Date.UTC(
-    date.getUTCFullYear() + MINIMUM_AGE_YEARS,
-    date.getUTCMonth(),
-    date.getUTCDate()
-  )
-  if (nthBirthday > Date.now()) return `You must be ${MINIMUM_AGE_YEARS} or over.`
+  if (raw > latestAdultBirthDate(now)) {
+    return `You must be ${MINIMUM_AGE_YEARS} or over.`
+  }
 
   return null
 }
@@ -65,13 +68,10 @@ export function validateDateOfBirth(raw: string): string | null {
  * with the age rule in {@link validateDateOfBirth}.
  */
 export function latestAdultBirthDate(now: Date = new Date()): string {
-  const cutoff = new Date(
-    Date.UTC(
-      now.getUTCFullYear() - MINIMUM_AGE_YEARS,
-      now.getUTCMonth(),
-      now.getUTCDate()
-    )
-  )
+  const today = formatLondonIso(now)
+  const [year, month, day] = today.split("-").map(Number)
+  const cutoff = new Date(Date.UTC(year - MINIMUM_AGE_YEARS, month - 1, day))
+
   return cutoff.toISOString().slice(0, 10)
 }
 

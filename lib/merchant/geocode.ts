@@ -30,12 +30,17 @@ export async function geocodeAddress(
   url.searchParams.set("addressdetails", "0")
 
   try {
-    const response = await resilientFetch("nominatim", url, {
-      headers: {
-        Accept: "application/json",
-        "User-Agent": USER_AGENT,
+    const response = await resilientFetch("nominatim", url, undefined, {
+      retries: 2,
+      initForAttempt() {
+        return {
+          headers: {
+            Accept: "application/json",
+            "User-Agent": USER_AGENT,
+          },
+          signal: AbortSignal.timeout(5_000),
+        }
       },
-      signal: AbortSignal.timeout(5_000),
     })
 
     if (!response.ok) return null

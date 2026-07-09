@@ -43,22 +43,27 @@ export function AdminRecordCard({
   className,
 }: AdminRecordCardProps) {
   return (
-    <article className={cn("surface-card grid gap-3 p-4", className)}>
-      <div className="grid gap-1">
+    <article className={cn("surface-card grid min-w-0 gap-3 p-4", className)}>
+      <div className="grid min-w-0 gap-1">
         {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-        <p className="font-bold">{title}</p>
+        <p className="min-w-0 font-bold [overflow-wrap:anywhere] break-words">
+          {title}
+        </p>
         {status ? (
           <div className="mt-1 flex flex-wrap gap-2">{status}</div>
         ) : null}
       </div>
 
-      <dl className="grid gap-2.5">
+      <dl className="grid min-w-0 gap-2.5">
         {fields.map((field, index) => (
-          <div key={`${index}-${field.label}`} className="grid gap-1 text-sm">
+          <div
+            key={`${index}-${field.label}`}
+            className="grid min-w-0 gap-1 text-sm"
+          >
             <dt className="eyebrow">{field.label}</dt>
             <dd
               className={cn(
-                "text-muted-foreground",
+                "min-w-0 [overflow-wrap:anywhere] break-words text-muted-foreground",
                 field.mono && "font-mono text-xs"
               )}
             >
@@ -68,7 +73,7 @@ export function AdminRecordCard({
         ))}
       </dl>
 
-      {action ? <div className="grid gap-2">{action}</div> : null}
+      {action ? <div className="grid min-w-0 gap-2">{action}</div> : null}
     </article>
   )
 }

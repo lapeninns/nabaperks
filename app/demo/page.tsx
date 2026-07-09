@@ -10,7 +10,7 @@ import { DemoCard } from "./demo-card"
 
 const title = "Try a live loyalty card demo"
 const description =
-  "See exactly what your customers get — a browser-based loyalty card with counter-verified stamps. No app, no wallet pass, no sign-up. Tap to stamp and unlock the reward."
+  "See the browser-based loyalty card flow your customers get. No app, no wallet pass, no sign-up. Tap through a demo stamp and reward unlock."
 
 export const metadata: Metadata = {
   title: { absolute: `${title} | Nabaperks` },
@@ -49,8 +49,8 @@ export default function DemoPage() {
             The card your customers get.
           </h1>
           <p className="max-w-[42ch] text-sm leading-6 text-pretty text-muted-foreground">
-            No app, no wallet pass, no sign-up. Tap the card to stamp it and watch
-            the reward unlock — every stamp is verified at the counter.
+            No app, no wallet pass, no sign-up. Tap the card to walk through a demo
+            stamp and reward unlock.
           </p>
         </header>
 

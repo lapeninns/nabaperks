@@ -119,3 +119,4 @@ revoke all on function public.get_merchant_dashboard_series(uuid, integer) from 
 revoke all on function public.get_merchant_activity_event_counts(uuid, timestamptz, text[]) from public, anon, authenticated;
 grant execute on function public.get_merchant_dashboard_series(uuid, integer) to service_role;
 grant execute on function public.get_merchant_activity_event_counts(uuid, timestamptz, text[]) to service_role;
+notify pgrst, 'reload schema';
