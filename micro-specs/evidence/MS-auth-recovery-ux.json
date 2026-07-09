@@ -1,7 +1,37 @@
 {
   "schema": 1,
   "spec_id": "MS-auth-recovery-ux",
-  "runs": [],
+  "runs": [
+    {
+      "timestamp": "2026-07-09T22:53:10.575Z",
+      "git_sha": "cac396a5e14f425b790fdc6d5a94b450577f8716",
+      "git_branch": "codex/ms-auth-recovery-evidence",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7669
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 4666
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 12467
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 1,
+          "duration_ms": 7397
+        }
+      ],
+      "all_passed": false
+    }
+  ],
   "manual_attestations": [],
   "transitions": [
     {
