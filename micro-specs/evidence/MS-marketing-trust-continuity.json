@@ -139,6 +139,75 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-09T23:03:30.473Z",
+      "git_sha": "0d8a51cbebb5fa6306f37e2b17742e0cf5f68cd3",
+      "git_branch": "codex/ms-marketing-reproof-0d8a51cb-20260709",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 10452
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 4334
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 19414
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 7972
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1024
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 171
+        },
+        {
+          "command": "pnpm claims:check",
+          "exit_code": 0,
+          "duration_ms": 209
+        },
+        {
+          "command": "pnpm jsonld:check",
+          "exit_code": 0,
+          "duration_ms": 2300
+        },
+        {
+          "command": "pnpm tokens:check",
+          "exit_code": 0,
+          "duration_ms": 193
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-marketing-trust-continuity\"",
+          "exit_code": 0,
+          "duration_ms": 36282
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 190390
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari --grep-invert \"Given harness\"",
+          "exit_code": 0,
+          "duration_ms": 29283
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
