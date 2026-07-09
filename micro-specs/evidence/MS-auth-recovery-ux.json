@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-auth-recovery-ux",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-09T20:55:44.810Z",
+      "sha": "1d914997dd5bb5759ad5ce2f05060a537f2e93e8",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}
