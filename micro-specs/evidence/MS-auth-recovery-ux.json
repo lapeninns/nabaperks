@@ -30,6 +30,55 @@
         }
       ],
       "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-09T23:14:52.030Z",
+      "git_sha": "10c8e1310c50538e754c7592cd3da728dfbe64a8",
+      "git_branch": "codex/ms-auth-recovery-evidence",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6455
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 4519
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 9742
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 7972
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 965
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-auth-recovery-ux\"",
+          "exit_code": 0,
+          "duration_ms": 17890
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 139107
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 34691
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
@@ -41,6 +90,14 @@
       "sha": "1d914997dd5bb5759ad5ce2f05060a537f2e93e8",
       "dirty": true,
       "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-09T23:14:52.030Z",
+      "sha": "10c8e1310c50538e754c7592cd3da728dfbe64a8",
+      "dirty": false,
+      "by": "codex"
     }
   ]
 }

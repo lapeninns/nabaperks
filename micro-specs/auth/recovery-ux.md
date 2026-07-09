@@ -1,6 +1,6 @@
 ---
 spec_id: MS-auth-recovery-ux
-status: active
+status: implemented
 risk_class: auth-session
 owner: codex
 last_reviewed: 2026-07-09
