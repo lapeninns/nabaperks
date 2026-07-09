@@ -91,40 +91,41 @@ test("Given merchant auth When signup and login are inspected Then passwords pai
   assert.doesNotMatch(authScreens, /verification\s+link/i)
 })
 
-test("Given merchant email codes bridge Supabase tokens When aliases expire or are consumed Then retention is bounded", () => {
+test("Given merchant email codes bridge Supabase tokens When aliases resolve Then secrets are scrubbed and tombstones stay bounded", () => {
   const aliasModule = readProjectFile(
     "lib",
     "auth",
     "merchant-email-otp-alias.ts"
   )
-  const cleanupMigration = readProjectFile(
+  const finalizationMigration = readProjectFile(
     "supabase",
     "migrations",
-    "20260630122000_cleanup_merchant_email_otp_aliases.sql"
+    "20260710093000_finalize_merchant_email_otp_aliases.sql"
   )
 
-  assert.match(aliasModule, /purge_merchant_email_otp_aliases/)
   assert.match(
     aliasModule,
-    /createMerchantEmailOtpAlias[\s\S]*await purgeMerchantEmailOtpAliases\(supabase, now\)/
+    /createMerchantEmailOtpAlias[\s\S]*create_merchant_email_otp_alias/
   )
   assert.match(
     aliasModule,
-    /consumeMerchantEmailOtpAlias[\s\S]*await purgeMerchantEmailOtpAliases\(supabase, new Date\(\)\)/
+    /reserveMerchantEmailOtpAlias[\s\S]*reserve_merchant_email_otp_alias/
   )
   assert.match(
-    cleanupMigration,
+    finalizationMigration,
     /create or replace function public\.purge_merchant_email_otp_aliases/
   )
   assert.match(
-    cleanupMigration,
-    /delete from public\.merchant_email_otp_aliases aliases[\s\S]*aliases\.expires_at <= p_now/
+    finalizationMigration,
+    /set resolution = coalesce\(aliases\.resolution, 'expired'\)[\s\S]*supabase_token = ''/
   )
-  assert.match(cleanupMigration, /set consumed_at = now\(\),\s+supabase_token = ''/)
-  assert.match(cleanupMigration, /for update skip locked/)
+  assert.match(
+    finalizationMigration,
+    /delete from public\.merchant_email_otp_aliases aliases[\s\S]*interval '1 day'/
+  )
 })
 
-test("Given merchant email codes are user-facing When verification is attempted Then aliases are six digits and lock out per email", () => {
+test("Given merchant email codes are user-facing When verification is attempted Then aliases are six digits with bounded non-sliding abuse controls", () => {
   const aliasModule = readProjectFile(
     "lib",
     "auth",
@@ -135,31 +136,97 @@ test("Given merchant email codes are user-facing When verification is attempted 
     "migrations",
     "20260630124000_harden_merchant_email_otp_aliases.sql"
   )
+  const finalizationMigration = readProjectFile(
+    "supabase",
+    "migrations",
+    "20260710093000_finalize_merchant_email_otp_aliases.sql"
+  )
 
   assert.match(aliasModule, /MERCHANT_EMAIL_OTP_ALIAS_LENGTH = 6/)
   assert.match(hardeningMigration, /alias_code ~ '\^\[0-9\]\{6\}\$'/)
-  assert.match(hardeningMigration, /merchant_email_otp_alias_attempts/)
-  assert.match(hardeningMigration, /failed_attempt_count >= 5/)
+  assert.match(finalizationMigration, /merchant_email_otp_alias_attempts/)
+  assert.match(finalizationMigration, /v_failed_attempt_count >= 20/)
   assert.match(
-    hardeningMigration,
+    finalizationMigration,
     /attempts\.email = normalized_email[\s\S]*attempts\.success = false[\s\S]*interval '15 minutes'/
   )
-  assert.match(hardeningMigration, /force row level security/)
+  assert.match(finalizationMigration, /'\[redacted\]'[\s\S]*false/)
+  assert.match(finalizationMigration, /force row level security/)
+})
+
+test("Given signup and recovery verification When provider checks run Then aliases finalize only after success and release on retryable failure", () => {
+  const aliasModule = readProjectFile(
+    "lib",
+    "auth",
+    "merchant-email-otp-alias.ts"
+  )
+  const providerFlow = readProjectFile(
+    "lib",
+    "auth",
+    "merchant-email-otp-provider.ts"
+  )
+  const actions = readProjectFile("app", "(auth)", "actions.ts")
+  const emailHook = readProjectFile(
+    "app",
+    "api",
+    "auth",
+    "hooks",
+    "send-email",
+    "route.ts"
+  )
+
+  assert.match(
+    aliasModule,
+    /export async function reserveMerchantEmailOtpAlias/
+  )
+  assert.match(
+    aliasModule,
+    /export async function finalizeMerchantEmailOtpAlias/
+  )
+  assert.match(
+    aliasModule,
+    /export async function releaseMerchantEmailOtpAlias/
+  )
+  assert.match(aliasModule, /export async function revokeMerchantEmailOtpAlias/)
+  assert.doesNotMatch(
+    aliasModule,
+    /\.rpc\(\s*"consume_merchant_email_otp_alias"/
+  )
+
+  assert.match(actions, /reserveMerchantEmailOtpAlias/)
+  assert.match(actions, /finalizeMerchantEmailOtpAlias/)
+  assert.match(actions, /releaseMerchantEmailOtpAlias/)
+  assert.doesNotMatch(actions, /consumeMerchantEmailOtpAlias/)
+  assert.match(actions, /runMerchantOtpProviderVerification/)
+  assert.match(actions, /reserveMerchantEmailOtpAlias[\s\S]*verifyOtp/)
+  assert.match(actions, /purpose: "signup"/)
+  assert.match(actions, /purpose: "recovery"/)
+  assert.match(providerFlow, /classifyMerchantOtpProviderOutcome/)
+  assert.match(providerFlow, /outcome === "retryable"[\s\S]*release/)
+  assert.match(providerFlow, /finalize\(outcome\)/)
+  assert.match(providerFlow, /runMerchantOtpDelivery/)
+  assert.match(providerFlow, /Only an[\s\S]*definitive rejection/)
+
+  assert.match(emailHook, /purpose[\s\S]*email_action_type === "recovery"/)
+  assert.match(emailHook, /runMerchantOtpDelivery/)
+  assert.match(emailHook, /revokeMerchantEmailOtpAlias/)
+  assert.match(emailHook, /delivery_failed/)
 })
 
 test("Given auth confirmation accepts a next path When redirects are built Then merchant auth-loop paths use the shared sanitizer", () => {
-  const confirmRoute = readProjectFile(
-    "app",
-    "auth",
-    "confirm",
-    "route.ts"
-  )
+  const confirmRoute = readProjectFile("app", "auth", "confirm", "route.ts")
   const safeNext = readProjectFile("lib", "navigation", "safe-next-path.ts")
 
-  assert.match(safeNext, /safeMerchantNextPath\(path: string, fallback = "\/app"\)/)
+  assert.match(
+    safeNext,
+    /safeMerchantNextPath\(path: string, fallback = "\/app"\)/
+  )
   assert.match(confirmRoute, /import \{ safeMerchantNextPath \}/)
   assert.match(confirmRoute, /const DEFAULT_CONFIRM_NEXT = "\/app\/onboarding"/)
-  assert.match(confirmRoute, /safeMerchantNextPath\([\s\S]*DEFAULT_CONFIRM_NEXT/)
+  assert.match(
+    confirmRoute,
+    /safeMerchantNextPath\([\s\S]*DEFAULT_CONFIRM_NEXT/
+  )
   assert.doesNotMatch(confirmRoute, /return `\\$\\{url\\.pathname\\}/)
 })
 

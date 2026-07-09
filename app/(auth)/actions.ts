@@ -4,10 +4,14 @@ import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
 import {
-  consumeMerchantEmailOtpAlias,
+  finalizeMerchantEmailOtpAlias,
   merchantEmailOtpAliasDigitLabel,
   merchantEmailOtpAliasLength,
+  releaseMerchantEmailOtpAlias,
+  reserveMerchantEmailOtpAlias,
+  type MerchantEmailOtpPurpose,
 } from "@/lib/auth/merchant-email-otp-alias"
+import { runMerchantOtpProviderVerification } from "@/lib/auth/merchant-email-otp-provider"
 import { merchantSignupVerifyHref } from "@/lib/navigation/merchant-auth-hrefs"
 import { safeMerchantNextPath } from "@/lib/navigation/safe-next-path"
 import {
@@ -15,10 +19,7 @@ import {
   RateLimitError,
   rateLimitIdentityFromHeaders,
 } from "@/lib/security/rate-limit"
-import {
-  validateConfirmPassword,
-  validatePassword,
-} from "@/lib/auth/password"
+import { validateConfirmPassword, validatePassword } from "@/lib/auth/password"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export type AuthActionState = {
@@ -245,28 +246,18 @@ export async function verifyEmailOtpAction(
   if (rateLimitResult) return { fields, errors: rateLimitResult }
 
   const supabase = await createSupabaseServerClient()
-  const supabaseToken = await consumeMerchantEmailOtpAlias({
-    email,
+  const verification = await verifyMerchantEmailOtpAlias({
     aliasCode: otp,
-  })
-
-  if (!supabaseToken) {
-    return {
-      fields,
-      errors: { form: "That code was not accepted. Check it and try again." },
-    }
-  }
-
-  const { error } = await supabase.auth.verifyOtp({
     email,
-    token: supabaseToken,
+    purpose: "signup",
+    supabase,
     type: "signup",
   })
 
-  if (error) {
+  if (verification.status === "error") {
     return {
       fields,
-      errors: { form: "That code was not accepted. Check it and try again." },
+      errors: { form: verification.message },
     }
   }
 
@@ -304,8 +295,7 @@ export async function requestPasswordResetAction(
 
   return {
     fields: { email, otpSent: true },
-    message:
-      `If that email has a venue account, we sent a ${merchantEmailOtpAliasDigitLabel()} reset code.`,
+    message: `If that email has a venue account, we sent a ${merchantEmailOtpAliasDigitLabel()} reset code.`,
   }
 }
 
@@ -339,28 +329,18 @@ export async function confirmPasswordResetAction(
   if (rateLimitResult) return { fields, errors: rateLimitResult }
 
   const supabase = await createSupabaseServerClient()
-  const supabaseToken = await consumeMerchantEmailOtpAlias({
-    email,
+  const verification = await verifyMerchantEmailOtpAlias({
     aliasCode: otp,
-  })
-
-  if (!supabaseToken) {
-    return {
-      fields,
-      errors: { form: "That code was not accepted. Check it and try again." },
-    }
-  }
-
-  const { error: verifyError } = await supabase.auth.verifyOtp({
     email,
-    token: supabaseToken,
+    purpose: "recovery",
+    supabase,
     type: "recovery",
   })
 
-  if (verifyError) {
+  if (verification.status === "error") {
     return {
       fields,
-      errors: { form: "That code was not accepted. Check it and try again." },
+      errors: { form: verification.message },
     }
   }
 
@@ -369,7 +349,9 @@ export async function confirmPasswordResetAction(
   if (updateError) {
     return {
       fields,
-      errors: { form: "Could not set that password. Try again." },
+      errors: {
+        form: "Your email was verified, but we could not save that password. Request a fresh reset code and try again.",
+      },
     }
   }
 
@@ -380,6 +362,125 @@ export async function signOutAction() {
   const supabase = await createSupabaseServerClient()
   await supabase.auth.signOut()
   redirect("/login")
+}
+
+type MerchantOtpVerificationResult =
+  | { status: "verified" }
+  | { status: "error"; message: string }
+
+async function verifyMerchantEmailOtpAlias({
+  aliasCode,
+  email,
+  purpose,
+  supabase,
+  type,
+}: {
+  aliasCode: string
+  email: string
+  purpose: MerchantEmailOtpPurpose
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
+  type: "recovery" | "signup"
+}): Promise<MerchantOtpVerificationResult> {
+  let reservation: Awaited<ReturnType<typeof reserveMerchantEmailOtpAlias>>
+
+  try {
+    reservation = await reserveMerchantEmailOtpAlias({
+      aliasCode,
+      email,
+      purpose,
+    })
+  } catch (error) {
+    console.error("Merchant email alias reservation failed", {
+      error: safeServerErrorMessage(error),
+      purpose,
+    })
+    return {
+      status: "error",
+      message:
+        "We could not check your code just now. Your code has not been used — try again.",
+    }
+  }
+
+  if (reservation.status !== "reserved") {
+    return {
+      status: "error",
+      message: merchantOtpReservationMessage(reservation.status),
+    }
+  }
+
+  const providerOutcome = await runMerchantOtpProviderVerification({
+    finalize: (outcome) =>
+      finalizeMerchantEmailOtpAlias({
+        outcome,
+        reservationId: reservation.reservationId,
+      }),
+    onCleanupError: (stage, error) => {
+      console.error("Merchant email alias cleanup failed", {
+        error: error.message,
+        purpose,
+        stage,
+      })
+    },
+    release: () =>
+      releaseMerchantEmailOtpAlias({
+        reservationId: reservation.reservationId,
+      }),
+    verify: () =>
+      supabase.auth.verifyOtp({
+        email,
+        token: reservation.supabaseToken,
+        type,
+      }),
+  })
+
+  switch (providerOutcome) {
+    case "verified":
+      return { status: "verified" }
+    case "retryable":
+      return {
+        status: "error",
+        message:
+          "We could not check your code just now. Your code is still safe to retry.",
+      }
+    case "expired":
+      return {
+        status: "error",
+        message: "That code has expired. Send a fresh code to continue.",
+      }
+    case "rejected":
+      return {
+        status: "error",
+        message:
+          "That code does not match. Check all six digits and try again.",
+      }
+  }
+}
+
+function merchantOtpReservationMessage(
+  status: Exclude<
+    Awaited<ReturnType<typeof reserveMerchantEmailOtpAlias>>["status"],
+    "reserved"
+  >
+) {
+  switch (status) {
+    case "expired":
+      return "That code has expired. Send a fresh code to continue."
+    case "superseded":
+      return "That code is from an earlier email. Use the latest code we sent."
+    case "used":
+      return "That code has already been used. Log in or send a fresh code."
+    case "busy":
+      return "That code is already being checked. Wait a moment and try again."
+    case "throttled":
+      return "Too many code checks. Wait a moment and try again."
+    case "invalid":
+    case "rejected":
+      return "That code does not match. Check all six digits and try again."
+  }
+}
+
+function safeServerErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Unknown server error"
 }
 
 async function enforceAuthRateLimit(

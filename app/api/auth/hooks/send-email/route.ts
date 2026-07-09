@@ -1,6 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server"
 
-import { createMerchantEmailOtpAlias } from "@/lib/auth/merchant-email-otp-alias"
+import {
+  createMerchantEmailOtpAlias,
+  revokeMerchantEmailOtpAlias,
+} from "@/lib/auth/merchant-email-otp-alias"
+import { runMerchantOtpDelivery } from "@/lib/auth/merchant-email-otp-provider"
 import { readEmailOtpConfig, sendEmailOtp } from "@/lib/notifications/resend"
 import { verifyStandardWebhook } from "@/lib/notifications/standard-webhook"
 
@@ -69,15 +73,32 @@ export async function POST(request: NextRequest) {
 
   try {
     readEmailOtpConfig()
-    const aliasCode = await createMerchantEmailOtpAlias({
-      email: to,
-      supabaseToken: code,
-    })
-    const audience =
+    const purpose =
       payload.email_data?.email_action_type === "recovery"
-        ? "merchant-reset"
-        : "merchant-verify"
-    await sendEmailOtp({ to, code: aliasCode, audience })
+        ? "recovery"
+        : "signup"
+    const audience =
+      purpose === "recovery" ? "merchant-reset" : "merchant-verify"
+    await runMerchantOtpDelivery({
+      createAlias: () =>
+        createMerchantEmailOtpAlias({
+          email: to,
+          purpose,
+          supabaseToken: code,
+        }),
+      onRevocationError: (aliasId, revocationError) => {
+        console.error("Merchant email alias revocation failed", {
+          aliasId,
+          error: revocationError.message,
+        })
+      },
+      revokeAlias: (aliasId) =>
+        revokeMerchantEmailOtpAlias({
+          aliasId,
+          outcome: "delivery_failed",
+        }),
+      sendAlias: (aliasCode) => sendEmailOtp({ to, code: aliasCode, audience }),
+    })
   } catch (error) {
     if (!(error instanceof Error)) {
       throw error

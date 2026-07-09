@@ -8,19 +8,23 @@ allowed_blast_radius:
   - micro-specs/auth/**
   - supabase/migrations/20260710093000_finalize_merchant_email_otp_aliases.sql
   - lib/auth/merchant-email-otp-alias.ts
+  - lib/auth/merchant-email-otp-provider.ts
   - app/(auth)/actions.ts
   - app/api/auth/hooks/send-email/route.ts
   - tests/db/merchant-email-otp-alias.test.mjs
   - tests/micro-specs/auth-hooks.test.mjs
+  - tests/unit/merchant-email-otp-provider.test.mjs
   - tests/e2e/merchant-signup-verify.spec.ts
   - tests/e2e/auth-hook-routes.desktop.spec.ts
 implementation_surfaces:
   - supabase/migrations/20260710093000_finalize_merchant_email_otp_aliases.sql
   - lib/auth/merchant-email-otp-alias.ts
+  - lib/auth/merchant-email-otp-provider.ts
   - app/(auth)/actions.ts
   - app/api/auth/hooks/send-email/route.ts
   - tests/db/merchant-email-otp-alias.test.mjs
   - tests/micro-specs/auth-hooks.test.mjs
+  - tests/unit/merchant-email-otp-provider.test.mjs
   - tests/e2e/merchant-signup-verify.spec.ts
   - tests/e2e/auth-hook-routes.desktop.spec.ts
 related_docs:
@@ -30,6 +34,7 @@ related_tests:
   - tests/db/merchant-email-otp-alias.test.mjs
   - tests/micro-specs/auth-hooks.test.mjs
   - tests/unit/merchant-email-otp-alias-encryption.test.mjs
+  - tests/unit/merchant-email-otp-provider.test.mjs
   - tests/e2e/merchant-signup-verify.spec.ts
   - tests/e2e/auth-hook-routes.desktop.spec.ts
 verification_gates:
@@ -93,11 +98,12 @@ this database contract is proven.
 - Definitive provider rejection is terminal and scrubs the token. Retryable
   network, timeout, rate-limit, and server failures release the lease without
   consuming it.
-- Existing consumed rows are marked legacy, never retroactively described as
-  verified. Existing unconsumed rows remain usable during their one-hour
-  compatibility window.
-- Expired and terminal rows scrub provider tokens immediately and retain only
-  bounded metadata for at most one day so expiry and reuse can be diagnosed.
+- Existing consumed rows are marked legacy_consumed, never retroactively
+  described as verified. Existing unconsumed rows remain usable during their
+  one-hour compatibility window.
+- Expired and terminal rows scrub provider tokens immediately. Their bounded
+  metadata becomes eligible for deletion after one day and is deleted by the
+  next alias lifecycle purge.
 - The existing email-plus-request-identity action limiter remains the primary
   abuse guard. Any DB-global invalid-guess ceiling must not slide when already
   throttled and must return a stable retry timestamp.
