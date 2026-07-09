@@ -89,7 +89,7 @@ test("CS-3 Given the FAQ subset When render and schema are checked Then both use
   assert.equal(faqCount, 8, "faqs export keeps all 8 questions")
 })
 
-test("CS-4 Given the home graph When schema sources are checked Then every required node type is still emitted", () => {
+test("CS-4 Given the home graph When schema sources are checked Then required nodes remain and unpublished Dataset stays absent", () => {
   // Given
   const homepage = readProjectFile("app", "page.tsx")
 
@@ -98,13 +98,13 @@ test("CS-4 Given the home graph When schema sources are checked Then every requi
     "SoftwareApplication",
     "FAQPage",
     "howToSchema",
-    "counterLoyaltyIndexDataset",
     "glossarySchema",
     "breadcrumbSchema",
     "webPageSchema",
   ]) {
     assert.ok(homepage.includes(node), `home graph keeps ${node}`)
   }
+  assert.doesNotMatch(homepage, /counterLoyaltyIndexDataset/)
 })
 
 test("CS-5 Given the multipage nav When the home header is checked Then it uses the shared default and drops the dangling anchor", () => {

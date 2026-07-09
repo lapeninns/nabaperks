@@ -3,7 +3,7 @@
  * check-jsonld — parse every <script type="application/ld+json"> from built
  * marketing HTML and assert the connected entity graph: stable @id
  * cross-references, Organization-only authorship (no Person), the operator
- * link, Dataset/HowTo/DefinedTermSet nodes, and no banned sameAs (Companies
+ * link, HowTo/DefinedTermSet nodes, no unpublished Dataset, and no banned sameAs (Companies
  * House / personal profiles). Static builds are read from .next/server/app; if
  * strict CSP nonces make routes dynamic, the script starts `next start` and
  * fetches the rendered HTML. Run after `pnpm build`. Exit 1 on any failure.
@@ -164,7 +164,6 @@ for (const t of [
   "SoftwareApplication",
   "FAQPage",
   "HowTo",
-  "Dataset",
   "DefinedTermSet",
   "BreadcrumbList",
 ]) {
@@ -209,14 +208,10 @@ if (howTo) {
     `home: HowTo steps != Scan/Save/Stamp/Reward (got ${stepNames.join("/")})`
   )
 }
-const dataset = home.find((n) => n["@type"] === "Dataset")
-if (dataset) {
-  check(
-    dataset.name === "Nabaperks Counter-Loyalty Index",
-    "home: Dataset name is not the Counter-Loyalty Index"
-  )
-  check(!!dataset["@id"], "home: Dataset has no stable @id")
-}
+check(
+  !homeTypes.has("Dataset"),
+  "home: unverified quantitative Dataset must remain unpublished"
+)
 const webpage = home.find((n) => n["@type"] === "WebPage")
 if (webpage) {
   check(
@@ -236,6 +231,10 @@ for (const t of ["WebPage", "BreadcrumbList", "HowTo", "FAQPage"]) {
   check(mechanismTypes.has(t), `how-it-works: missing ${t} node`)
 }
 check(!deepHasPerson(mechanism), "how-it-works: a Person node is present")
+check(
+  !mechanismTypes.has("Dataset"),
+  "how-it-works: unverified quantitative Dataset must remain unpublished"
+)
 
 const mechanismHowTo = mechanism.find((n) => n["@type"] === "HowTo")
 if (mechanismHowTo) {
@@ -264,9 +263,13 @@ if (mechanismFaq) {
 // --- Hub ------------------------------------------------------------------
 const hub = await load("loyalty-for-pubs.html", "/loyalty-for-pubs")
 const hubTypes = types(hub)
-for (const t of ["WebPage", "BreadcrumbList", "HowTo", "Dataset"]) {
+for (const t of ["WebPage", "BreadcrumbList", "HowTo"]) {
   check(hubTypes.has(t), `hub: missing ${t} node`)
 }
+check(
+  !hubTypes.has("Dataset"),
+  "hub: unverified quantitative Dataset must remain unpublished"
+)
 check(!deepHasPerson(hub), "hub: a Person node is present")
 // The hub's steps differ from home's, so a shared @id would assert two
 // payloads at one entity URI (2026-07-05 v2 audit P1-1) — pin the
@@ -280,8 +283,8 @@ if (hubHowTo) {
 }
 
 // --- Persona spokes (cafes / takeaways / bars) ------------------------------
-// Each mounts the generic Scan/Save/Stamp/Reward flow and cites the Dataset,
-// with a route-distinct HowTo @id so nothing collides with home's graph.
+// Each mounts the generic Scan/Save/Stamp/Reward flow with a route-distinct
+// HowTo @id so nothing collides with home's graph.
 for (const slug of [
   "loyalty-for-cafes",
   "loyalty-for-takeaways",
@@ -289,9 +292,13 @@ for (const slug of [
 ]) {
   const spoke = await load(`${slug}.html`, `/${slug}`)
   const spokeTypes = types(spoke)
-  for (const t of ["WebPage", "BreadcrumbList", "HowTo", "Dataset"]) {
+  for (const t of ["WebPage", "BreadcrumbList", "HowTo"]) {
     check(spokeTypes.has(t), `${slug}: missing ${t} node`)
   }
+  check(
+    !spokeTypes.has("Dataset"),
+    `${slug}: unverified quantitative Dataset must remain unpublished`
+  )
   check(!deepHasPerson(spoke), `${slug}: a Person node is present`)
   const spokeHowTo = spoke.find((n) => n["@type"] === "HowTo")
   if (spokeHowTo) {
@@ -388,5 +395,5 @@ if (failures.length) {
 }
 await stopNextStart()
 console.log(
-  "✓ JSON-LD graph valid: connected @id, Organization-only, Dataset/HowTo/DefinedTermSet present, no banned sameAs"
+  "✓ JSON-LD graph valid: connected @id, Organization-only, HowTo/DefinedTermSet present, unverified Dataset absent, no banned sameAs"
 )

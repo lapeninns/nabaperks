@@ -70,6 +70,15 @@ const REVIEW_VOICE = [
 ]
 
 const BANNED = [
+  { label: "deprecated counter-verification claim", re: /counter-verified\s+stamps?/i },
+  { label: "impossible-fraud claim", re: /can(?:not|'t) be faked|fraud is designed out/i },
+  { label: "self-stamping prevention claim", re: /stops self-stamping/i },
+  { label: "invented 'spots left' availability", re: /\bspots?\s+left\b/i },
+  { label: "invented numeric onboarding capacity", re: /onboard\s+\d+\s+new venues/i },
+  { label: "unsupported five-minute setup", re: /about five minutes|set up in minutes/i },
+  { label: "unsupported same-afternoon setup", re: /same afternoon/i },
+  { label: "unsupported afternoon setup", re: /set up your venue this afternoon/i },
+  { label: "unsupported first-week outcome", re: /first repeat visit inside the first week/i },
   { label: "chippy targeting", re: /\bchipp(y|ies)\b/i },
   { label: "bubble tea targeting", re: /bubble\s*tea/i },
   { label: "Companies House", re: /companies house/i },

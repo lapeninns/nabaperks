@@ -15,7 +15,6 @@ import { JsonLd } from "@/components/seo/json-ld"
 import { CTA, PRODUCT, ROUTES } from "@/lib/marketing/facts"
 import {
   absoluteUrl,
-  counterLoyaltyIndexDataset,
   howToSchema,
   marketingPageGraph,
   OG_IMAGE,
@@ -23,7 +22,7 @@ import {
 
 const title = "Cafe Loyalty Cards — No-App QR Stamp Cards"
 const description =
-  "Turn the daily coffee habit into counter-verified stamps. One till QR opens a browser-based card — no app, no wallet pass. £49/month, 30-day free pilot."
+  "Turn daily coffee visits into venue-linked stamps. One till QR opens a browser-based card — no app, no wallet pass. £49/month, 30-day free pilot."
 
 export const metadata: Metadata = {
   title,
@@ -59,15 +58,15 @@ export const metadata: Metadata = {
 const painPoints = [
   {
     title: "No app in the coffee queue",
-    body: "Nobody downloads an app while the milk steams. The card opens in the phone browser from your till QR and saves in one tap — done before the flat white is.",
+    body: "Nobody needs to download an app. The card opens in the phone browser from your till QR and saves to the customer's account.",
   },
   {
     title: "The morning rush keeps moving",
-    body: "Scanning takes a second from the customer's side of the counter, so the queue never bunches. They stamp their own phone while your team pulls the shots.",
+    body: "Customers scan and claim on their own phone while your team works the counter, with no staff entry at the till.",
   },
   {
     title: "Paper cards die in pockets",
-    body: "Punch cards go through the wash, hide in other wallets and turn up over-stamped. The browser card can't be lost between visits, and every stamp is checked against your real till QR before it counts.",
+    body: "Punch cards go through the wash, hide in other wallets and turn up over-stamped. The browser card stays on the customer's account, and each claim is linked to your till QR and their saved membership.",
   },
   {
     title: "Nothing new on the till",
@@ -81,8 +80,8 @@ const painPoints = [
 
 const benefits = [
   "One permanent QR by the till — the whole setup",
-  "Counter-verified stamps, each checked against your real till QR",
-  "Quick enough for the morning queue — customers stamp their own phones",
+  "Venue-linked claims capped at one stamp per customer per UK date",
+  "Customer self-service with no staff entry at the till",
   "A weekly digest of visits, regulars and redemptions",
   PRODUCT.posLine,
 ]
@@ -101,7 +100,6 @@ const spokeGraph = marketingPageGraph({
     howToSchema(counterFlowSteps, {
       id: `${absoluteUrl(ROUTES.cafeHub)}#howto`,
     }),
-    counterLoyaltyIndexDataset(),
   ],
 })
 
@@ -117,10 +115,10 @@ export default function LoyaltyForCafesPage() {
           </h1>
           <p className="max-w-[46ch] text-base leading-relaxed text-pretty text-muted-foreground sm:text-lg">
             Turn the daily-habit visit into a stamp. {PRODUCT.cardLine} The
-            card opens before the coffee cools — no app, no queue at the till —
+            card opens from the till QR — no app and no staff entry at the till —
             and every stamp is{" "}
             <strong className="font-semibold text-foreground">
-              counter-verified
+              venue-linked
             </strong>
             .
           </p>
@@ -192,7 +190,7 @@ export default function LoyaltyForCafesPage() {
       {/* The four beats (generic flow — anchor #how-it-works) */}
       <CounterFlow />
 
-      {/* Real proof (Counter-Loyalty Index) */}
+      {/* Aggregate proof is centrally gated until durable evidence exists. */}
       <NabaperksProof />
 
       {/* Comparison wedge + mechanism cross-link — one band; the full table
@@ -200,16 +198,16 @@ export default function LoyaltyForCafesPage() {
       <Section width="narrow" className="text-center">
         <MonoTag tone="plain">The mechanism</MonoTag>
         <h2 className="mx-auto mt-4 max-w-[24ch] text-[clamp(1.75rem,3.6vw,2.5rem)] leading-[1.04] font-extrabold tracking-[-0.02em] text-balance">
-          How counter-verified stamps work.
+          How venue-linked stamps work.
         </h2>
         <p className="mx-auto mt-3 max-w-[52ch] text-base leading-relaxed text-pretty text-muted-foreground">
           Most &ldquo;no-app&rdquo; loyalty cards still make customers install
           an Apple or Google Wallet pass. Nabaperks opens in the phone browser
-          from your till QR and saves in one tap —{" "}
-          quick enough for the morning rush.
+          from your till QR, saves to the customer&apos;s account and needs no
+          staff entry at the coffee counter.
         </p>
         <p className="mx-auto mt-3 max-w-[52ch] text-base leading-relaxed text-pretty text-muted-foreground">
-          The five anti-fraud checks — and the full side-by-side against paper
+          The five claim controls — and the full side-by-side against paper
           cards, wallet-pass apps and POS loyalty — live on one page.
         </p>
         <div className="mt-6 flex justify-center">

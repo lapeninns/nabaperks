@@ -14,7 +14,7 @@ export const pubCounterFlowSteps = [
   {
     step: "Step 03",
     title: "Stamp",
-    body: "They tap to claim. The counter-verified stamp checks your QR, their card and the one-stamp-per-day rule before it counts.",
+    body: "They tap to claim. The stamp is linked to your venue QR and their saved membership, with a one-per-UK-date cap.",
   },
   {
     step: "Step 04",

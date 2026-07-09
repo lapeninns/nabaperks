@@ -99,9 +99,9 @@ export const PRODUCT = {
   priceAnnualShort: "£490/yr",
   annualSaving: "2 months free",
   pilot: "30-day free pilot",
-  /** Public phrasing for the anti-fraud method — not a hero-level brand push. */
-  counterStamp: "counter-verified stamps",
-  counterStampLong: "stamps confirmed at the counter",
+  /** Public phrasing for claims tied to the venue QR and saved membership. */
+  counterStamp: "venue-linked stamps",
+  counterStampLong: "stamps linked to the venue QR",
   /**
    * The one cancellation term — a true cancel-anytime as of offer v1
    * (MS-marketing-offer-v1). Cancellation is self-serve from the billing
@@ -157,19 +157,18 @@ export const OFFER = {
 } as const
 
 /**
- * Speed / time-to-value copy — the Value Equation's "reduce the delay" lever
- * (Hormozi: fast beats free). Grounded in the real launch checklist
- * (`lib/merchant/launch-readiness-core`): four steps — venue, card, rewards,
- * qr — with merchant-confirmed reward suggestions, so the "pre-filled rewards"
- * and "four guided steps" claims are honest. No invented minute count.
+ * Setup copy grounded in the real launch checklist
+ * (`lib/merchant/launch-readiness-core`): four configuration steps — venue,
+ * card, rewards and QR — followed by billing activation. Billing is the gate
+ * that makes the live QR joinable; preparing a poster alone is not activation.
  */
 export const SETUP = {
-  line: "Live on your counter the same afternoon.",
+  line: "Build your card first. Activate it when billing is ready.",
   steps:
-    "Four guided steps — add your venue, build the card, confirm your pre-filled rewards, and print your QR.",
+    "Five guided steps — add your venue, build the card, confirm your pre-filled rewards, prepare your QR, and activate billing.",
   noFriction: "No app to build, no POS to connect, nothing to install.",
   earlyWin:
-    "Your first member can stamp the moment the poster hits the counter.",
+    "Once billing is active, customers can scan your live venue QR to join and collect their first stamp.",
 } as const
 
 /**

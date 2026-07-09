@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     template: "%s | Nabaperks",
   },
   description:
-    "No-app QR loyalty cards for UK pubs, cafes and takeaways. Customers scan a venue QR and save a browser-based loyalty card — nothing to install — then collect counter-verified stamps. £49/month, 30-day free pilot.",
+    "No-app QR loyalty for UK pubs, cafes and takeaways. One venue QR opens a browser card with venue-linked stamps. £49/month after a 30-day free pilot.",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [

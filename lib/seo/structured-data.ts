@@ -10,7 +10,7 @@
  * Person nodes, no company-registry identifiers, no personal profiles. Keep
  * every value byte-aligned with the visible copy it describes.
  */
-import { OPERATOR, OPERATOR_ESTATE, PROOF } from "@/lib/marketing/facts"
+import { OPERATOR, OPERATOR_ESTATE } from "@/lib/marketing/facts"
 
 export const SITE_URL = "https://nabaperks.com"
 
@@ -72,7 +72,7 @@ export function organizationSchema(): Record<string, unknown> {
     url: SITE_URL,
     logo: absoluteUrl("/icons/nabaperks-icon-512.png"),
     description:
-      "No-app QR loyalty for UK food & drink venues. Customers scan a venue QR, save a browser-based loyalty card with nothing to install, and collect counter-verified stamps.",
+      "No-app QR loyalty for UK food and drink venues. Each stamp claim is linked to the venue QR and saved membership, with one claim per customer per UK date.",
     areaServed: { "@type": "Country", name: "United Kingdom" },
     email: OPERATOR.supportEmail,
     parentOrganization: { "@id": OPERATOR_ID },
@@ -150,54 +150,6 @@ export function breadcrumbSchema(
   }
 }
 
-/**
- * The Counter-Loyalty Index — the first-party proof as a citable Dataset, keyed
- * to a stable @id and authored by the Nabaperks Organization. Numbers come from
- * the single approved snapshot in `lib/marketing/facts.ts`.
- */
-export function counterLoyaltyIndexDataset(): Record<string, unknown> {
-  const stats = PROOF.stats
-  return {
-    "@type": "Dataset",
-    "@id": `${SITE_URL}/#counter-loyalty-index`,
-    name: PROOF.indexName,
-    description: PROOF.methodology,
-    creator: { "@id": ORG_ID },
-    publisher: { "@id": ORG_ID },
-    isAccessibleForFree: true,
-    temporalCoverage: "2024-03/2026-06",
-    // Snapshot month-end (PROOF.asOf = "June 2026"); gives the Dataset a
-    // machine-readable recency signal alongside temporalCoverage.
-    datePublished: "2026-06-30",
-    dateModified: "2026-06-30",
-    measurementTechnique: PROOF.calculatedFrom,
-    variableMeasured: [
-      { "@type": "PropertyValue", name: "Loyalty members", value: stats.members },
-      {
-        "@type": "PropertyValue",
-        name: "Members stamped in last 3 months",
-        value: stats.returnedMembers,
-      },
-      {
-        "@type": "PropertyValue",
-        name: "Rewards redeemed",
-        value: stats.rewardsRedeemed,
-      },
-      {
-        "@type": "PropertyValue",
-        name: "Rewards earned",
-        value: stats.rewardsEarned,
-      },
-      {
-        "@type": "PropertyValue",
-        name: "Repeat rate",
-        value: stats.repeatRatePct,
-        unitText: "PERCENT",
-      },
-    ],
-  }
-}
-
 export type HowToStepInput = { title: string; body: string }
 
 /**
@@ -244,9 +196,9 @@ export function glossarySchema(): Record<string, unknown> {
         "Customers join and collect stamps with nothing to install; the card runs in the phone browser.",
     },
     {
-      name: "Counter-verified stamps",
+      name: "Venue-linked stamps",
       description:
-        "Every stamp is confirmed at the counter against the venue QR, the customer's saved card and a one-stamp-per-customer-per-UK-date cap before it counts.",
+        "Each stamp claim is linked to the venue QR and saved membership on the live programme, with one claim per customer per UK date.",
     },
   ]
   return {

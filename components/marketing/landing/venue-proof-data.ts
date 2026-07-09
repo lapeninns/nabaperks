@@ -51,21 +51,21 @@ export const venueProofPool: readonly VenueProofEntry[] = [
     postcode: "PE29 1XU",
     signoff: "neutral",
     review:
-      "What sold me is that the stamps can't be faked — they're checked against our QR, so a full card actually means something.",
+      "What sold me is that each claim is recorded against our QR and the customer's saved card, so the venue has a clear record.",
   },
   {
     name: "The Queen Elizabeth",
     postcode: "PE30 4EL",
     signoff: "neutral",
     review:
-      "It suits a food-led pub rather than feeling like some generic system bolted on. We had it running in an afternoon.",
+      "It suits a food-led pub rather than feeling like some generic system bolted on. The guided setup kept each step clear.",
   },
   {
     name: "The Railway",
     postcode: "PE7 1UF",
     signoff: "neutral",
     review:
-      "Quick enough for a Friday rush — they scan, they're stamped, on to the next order. It's never once held the bar up.",
+      "Customers scan on their own phones and the team has no codes to key in at the bar.",
   },
   {
     name: "The Bell",

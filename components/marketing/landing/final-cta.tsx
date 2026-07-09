@@ -14,14 +14,15 @@ export function FinalCta() {
   return (
     <Section width="narrow" className="max-w-2xl text-center">
       <p className="mono-meta tracking-[0.1em] text-primary">
-        Your first stamp is waiting
+        Your route to live
       </p>
       <h2 className="mx-auto mt-4 max-w-[18ch] text-[clamp(1.9rem,4.6vw,3.125rem)] leading-[0.99] font-extrabold tracking-[-0.02em] text-balance">
-        Set up your venue this afternoon.
+        Build the card. Activate when ready.
       </h2>
       <p className="mx-auto mt-4 max-w-[44ch] text-base leading-relaxed text-muted-foreground">
-        Build your card, preview the QR flow, and start a 30-day pilot. Then it
-        is £49/month for one venue. {PRODUCT.cancelLine}
+        Build your card and preview the QR flow, then activate billing to start
+        the 30-day pilot. After that it is £49/month for one venue.{" "}
+        {PRODUCT.cancelLine}
       </p>
       <p className="mx-auto mt-3 max-w-[46ch] text-sm leading-relaxed text-muted-foreground">
         No app for your customers, no POS for you — it works on any phone, tablet

@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 
 import { GuidePage, GuideSection } from "@/components/marketing/guides/guide-page"
-import { PROOF, PROOF_DISPLAY, ROUTES } from "@/lib/marketing/facts"
+import { ROUTES } from "@/lib/marketing/facts"
 import { OG_IMAGE } from "@/lib/seo/structured-data"
 
 const title = "Best Loyalty Ideas for Pubs"
@@ -69,15 +69,14 @@ export default function BestLoyaltyIdeasForPubsPage() {
       <GuideSection heading="Let regulars stamp themselves — and keep it honest">
         <p>
           A reward only works if a full card means something. With Nabaperks,
-          customers scan your venue QR and stamp themselves, and every stamp is
-          confirmed at the counter — checked against your QR, their saved card and
-          a one-stamp-per-customer-per-UK-date rule. The phone never crosses the
-          counter and the bar never slows down.
+          customers scan your venue QR and claim on their own phone. Each claim
+          is linked to that QR and their saved membership and capped at one per
+          customer per UK date. Staff scan the live reward code when it is
+          collected.
         </p>
         <p>
-          And a scheme kept honest is one worth coming back to: in the{" "}
-          {PROOF.indexName} ({PROOF.asOf} snapshot), {PROOF_DISPLAY.repeatRate} of{" "}
-          {PROOF_DISPLAY.members} loyalty members returned.
+          Your dashboard records visits and returning members, so you can judge
+          whether the reward works from your venue&apos;s own pilot results.
         </p>
       </GuideSection>
 

@@ -52,14 +52,14 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
   const params = await searchParams
   const initialEmail = firstParam(params.email)
   const promo = getActivePromo()
-  // Body-only trust points — promo perk + scarcity join when the monthly promo
-  // is live (never enter the pinned meta description, which sits at budget).
+  // Body-only trust points — the promo perk and support claim join when the
+  // monthly promo is live (never enter the pinned meta-description budget).
   const trustPoints = [
     "No app for your customers to download",
     "Customers stamp themselves from your venue QR",
     PRODUCT.cancelLine,
     GUARANTEE.line,
-    ...(promo ? [promo.perk, promo.scarcityLine] : []),
+    ...(promo ? [promo.perk, promo.claim] : []),
   ]
 
   return (
@@ -73,8 +73,8 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
         <div className="order-2 grid gap-6 lg:order-1">
           <PageTitle
             eyebrow="Start free pilot"
-            title="Your first stamp is waiting."
-            description={`Set up your venue QR loyalty card in about five minutes. Create your account, verify your email with a ${otpCodeLabel} code, then add your venue, rewards, and printed kit.`}
+            title="Your loyalty card starts here."
+            description={`Create your account and verify your email with a ${otpCodeLabel} code. Then add your venue, card, rewards and QR before you activate billing.`}
             titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
             descriptionClassName="text-base leading-7 text-pretty"
             className="md:grid-cols-1"
@@ -99,7 +99,7 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
 
         <ReceiptCard edge className="order-1 w-full lg:order-2">
           <div className="mb-5 grid gap-1">
-            <Eyebrow>30 days free</Eyebrow>
+            <Eyebrow>30 days free · then {PRODUCT.price} per venue</Eyebrow>
             <h2 className="text-[clamp(1.75rem,4vw,2.25rem)] leading-tight font-extrabold text-balance">
               Create your account
             </h2>

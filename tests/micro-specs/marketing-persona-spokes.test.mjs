@@ -107,7 +107,7 @@ test("PS-2 Given the honesty constraints When spoke copy is checked Then banned 
   }
 })
 
-test("PS-3 Given the spoke page graphs When schema sources are checked Then each emits WebPage+Breadcrumb+HowTo+Dataset with a route-distinct HowTo id", () => {
+test("PS-3 Given the spoke page graphs When schema sources are checked Then each emits WebPage+Breadcrumb+HowTo without unpublished Dataset figures", () => {
   const jsonldGuard = readProjectFile("scripts", "check-jsonld.mjs")
   for (const { slug } of SPOKES) {
     // Given
@@ -124,9 +124,10 @@ test("PS-3 Given the spoke page graphs When schema sources are checked Then each
       page.includes("#howto"),
       `${slug} HowTo @id is route-distinct (no home-graph collision)`
     )
-    assert.ok(
-      page.includes("counterLoyaltyIndexDataset"),
-      `${slug} cites the Counter-Loyalty Index dataset`
+    assert.doesNotMatch(
+      page,
+      /counterLoyaltyIndexDataset/,
+      `${slug} does not publish the unverified aggregate dataset`
     )
     assert.ok(
       jsonldGuard.includes(slug),

@@ -15,7 +15,6 @@ import { JsonLd } from "@/components/seo/json-ld"
 import { CTA, PRODUCT, ROUTES } from "@/lib/marketing/facts"
 import {
   absoluteUrl,
-  counterLoyaltyIndexDataset,
   howToSchema,
   marketingPageGraph,
   OG_IMAGE,
@@ -23,7 +22,7 @@ import {
 
 const title = "Bar & Wine Bar Loyalty — No-App QR Stamp Cards"
 const description =
-  "Give regulars a reason to choose your bar again — a browser-based card with counter-verified stamps, nothing lost between rounds. £49/month, 30-day free pilot."
+  "Give regulars a reason to choose your bar again — a browser-based card with venue-linked stamps, nothing lost between rounds. £49/month, 30-day free pilot."
 
 export const metadata: Metadata = {
   title,
@@ -59,7 +58,7 @@ export const metadata: Metadata = {
 const painPoints = [
   {
     title: "One scan, mid-round",
-    body: "A round is ordered, poured and paid in a couple of minutes. Scanning takes a second from the customer's side of the bar and never holds up the pour — no card handed over, no staff step.",
+    body: "Customers scan and claim on their own side of the bar, with no card handed over and no staff entry at the till.",
   },
   {
     title: "No app between rounds",
@@ -67,7 +66,7 @@ const painPoints = [
   },
   {
     title: "Stamps that survive last orders",
-    body: "One stamp per customer per UK date, verified at the counter against your venue QR and their saved card — a late, loud night can't be over-stamped.",
+    body: "Each claim is linked to your venue QR and the customer's saved membership, with a one-stamp-per-customer-per-UK-date cap.",
   },
   {
     title: "Regulars you can actually see",
@@ -81,8 +80,8 @@ const painPoints = [
 
 const benefits = [
   "One venue QR for the bar and the tables",
-  "Counter-verified stamps — one per customer per UK date",
-  "Quick enough mid-round — customers stamp their own phones",
+  "Venue-linked claims — one per customer per UK date",
+  "Customer self-service with no staff entry at the till",
   "A weekly digest that shows your regulars coming back",
   PRODUCT.posLine,
 ]
@@ -101,7 +100,6 @@ const spokeGraph = marketingPageGraph({
     howToSchema(counterFlowSteps, {
       id: `${absoluteUrl(ROUTES.barHub)}#howto`,
     }),
-    counterLoyaltyIndexDataset(),
   ],
 })
 
@@ -120,7 +118,7 @@ export default function LoyaltyForBarsPage() {
             The card lives on their phone — nothing to lose between rounds —
             and every stamp is{" "}
             <strong className="font-semibold text-foreground">
-              counter-verified
+              venue-linked
             </strong>
             .
           </p>
@@ -192,7 +190,7 @@ export default function LoyaltyForBarsPage() {
       {/* The four beats (generic flow — anchor #how-it-works) */}
       <CounterFlow />
 
-      {/* Real proof (Counter-Loyalty Index) */}
+      {/* Aggregate proof is centrally gated until durable evidence exists. */}
       <NabaperksProof />
 
       {/* Comparison wedge + mechanism cross-link — one band; the full table
@@ -200,16 +198,16 @@ export default function LoyaltyForBarsPage() {
       <Section width="narrow" className="text-center">
         <MonoTag tone="plain">The mechanism</MonoTag>
         <h2 className="mx-auto mt-4 max-w-[24ch] text-[clamp(1.75rem,3.6vw,2.5rem)] leading-[1.04] font-extrabold tracking-[-0.02em] text-balance">
-          How counter-verified stamps work.
+          How venue-linked stamps work.
         </h2>
         <p className="mx-auto mt-3 max-w-[52ch] text-base leading-relaxed text-pretty text-muted-foreground">
           Most &ldquo;no-app&rdquo; loyalty cards still make customers install
           an Apple or Google Wallet pass. Nabaperks opens in the phone browser
-          from your venue QR and saves in one tap —{" "}
-          quick enough between rounds.
+          from your venue QR, saves to the customer&apos;s account and needs no
+          staff entry at the bar.
         </p>
         <p className="mx-auto mt-3 max-w-[52ch] text-base leading-relaxed text-pretty text-muted-foreground">
-          The five anti-fraud checks — and the full side-by-side against paper
+          The five claim controls — and the full side-by-side against paper
           cards, wallet-pass apps and POS loyalty — live on one page.
         </p>
         <div className="mt-6 flex justify-center">

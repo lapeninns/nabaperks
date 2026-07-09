@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "spec_id": "MS-marketing-trust-continuity",
+  "runs": [
+    {
+      "timestamp": "2026-07-09T19:47:03.496Z",
+      "git_sha": "d8064e0a346f6591c8b7546511775b9435d511d9",
+      "git_branch": "main",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6597
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1534
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10061
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 8095
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 983
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 160
+        },
+        {
+          "command": "pnpm claims:check",
+          "exit_code": 0,
+          "duration_ms": 213
+        },
+        {
+          "command": "pnpm jsonld:check",
+          "exit_code": 0,
+          "duration_ms": 2300
+        },
+        {
+          "command": "pnpm tokens:check",
+          "exit_code": 0,
+          "duration_ms": 191
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-marketing-trust-continuity\"",
+          "exit_code": 0,
+          "duration_ms": 24567
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 172074
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari --grep-invert \"Given harness\"",
+          "exit_code": 0,
+          "duration_ms": 20500
+        }
+      ],
+      "all_passed": true
+    }
+  ],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-09T19:15:02.219Z",
+      "sha": "d8064e0a346f6591c8b7546511775b9435d511d9",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}

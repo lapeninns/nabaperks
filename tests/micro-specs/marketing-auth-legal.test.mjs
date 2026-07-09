@@ -162,10 +162,10 @@ test("Given public questions When answers are dry-run against code Then they onl
 
   // When / Then
   assert.match(landingFaq, /q: "Can staff or customers fake the stamps\?"/)
-  assert.match(landingFaq, /Customers stamp themselves from your venue QR/)
-  assert.match(landingFaq, /one stamp per customer per UK date/)
-  assert.match(pricing, /stamps from your venue QR/)
-  assert.match(pricing, /one earned stamp per customer per UK date/)
+  assert.match(landingFaq, /Customers claim from your venue QR on their own phones/)
+  assert.match(landingFaq, /one stamp per UK date/)
+  assert.match(pricing, /customer claims from your venue QR/)
+  assert.match(pricing, /one stamp per customer per UK date/)
 
   assert.doesNotMatch(publicQuestions, /staff-approved/i)
   assert.doesNotMatch(publicQuestions, /staff approval/i)

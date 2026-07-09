@@ -11,8 +11,9 @@ import {
 test("OFFER + SETUP expose the offer wrapper and the speed copy", () => {
   assert.equal(OFFER.name, "The 30-Day First-Regular Launch")
   assert.match(OFFER.riskFraming, /Best case/)
-  assert.match(SETUP.line, /same afternoon/)
-  assert.match(SETUP.steps, /Four guided steps/)
+  assert.match(SETUP.line, /billing is ready/)
+  assert.match(SETUP.steps, /Five guided steps/)
+  assert.match(SETUP.earlyWin, /Once billing is active/)
 })
 
 test("OFFER_STACK: five items, each with an obstacle; only substantiable items carry an anchor", () => {
