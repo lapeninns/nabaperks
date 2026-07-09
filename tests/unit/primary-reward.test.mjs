@@ -36,17 +36,19 @@ test("pickStampBlockingUnlockedReward ignores issued rewards", () => {
 })
 
 test("comparePrimaryUnlockedRewards prefers redeemable rewards within the same source", () => {
+  // Fixed far-future/past dates keep this ordering proof independent of the
+  // calendar day on which the suite runs.
   const waiting = {
     id: "stamp-waiting",
     source: "stamp_cycle",
     created_at: "2026-07-04T10:00:00.000Z",
-    redeemable_from: "2026-07-10",
+    redeemable_from: "2099-01-01",
   }
   const ready = {
     id: "stamp-ready",
     source: "stamp_cycle",
     created_at: "2026-07-01T10:00:00.000Z",
-    redeemable_from: "2026-07-01",
+    redeemable_from: "2020-01-01",
   }
 
   assert.ok(comparePrimaryUnlockedRewards(ready, waiting) < 0)

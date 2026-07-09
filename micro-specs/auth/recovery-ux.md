@@ -29,6 +29,8 @@ allowed_blast_radius:
   - tests/unit/merchant-recovery-session-cleanup.test.mjs
   - tests/unit/safe-next-path.test.mjs
   - tests/unit/github-review-ui-fixes.test.mjs
+  - tests/unit/primary-reward.test.mjs
+  - tests/unit/profile-fields.test.mjs
   - tests/micro-specs/auth-recovery-ux.test.mjs
   - tests/e2e/merchant-auth-recovery.spec.ts
   - tests/e2e/merchant-auth-recovery.desktop.spec.ts
@@ -68,6 +70,8 @@ implementation_surfaces:
   - tests/unit/merchant-recovery-session-cleanup.test.mjs
   - tests/unit/safe-next-path.test.mjs
   - tests/unit/github-review-ui-fixes.test.mjs
+  - tests/unit/primary-reward.test.mjs
+  - tests/unit/profile-fields.test.mjs
   - tests/micro-specs/auth-recovery-ux.test.mjs
   - tests/e2e/merchant-auth-recovery.spec.ts
   - tests/e2e/merchant-auth-recovery.desktop.spec.ts
@@ -92,6 +96,8 @@ related_tests:
   - tests/unit/merchant-recovery-session-cleanup.test.mjs
   - tests/unit/safe-next-path.test.mjs
   - tests/unit/github-review-ui-fixes.test.mjs
+  - tests/unit/primary-reward.test.mjs
+  - tests/unit/profile-fields.test.mjs
   - tests/micro-specs/auth-recovery-ux.test.mjs
   - tests/e2e/merchant-auth-recovery.spec.ts
   - tests/e2e/merchant-auth-recovery.desktop.spec.ts
@@ -143,7 +149,9 @@ tests listed in frontmatter. The broad visual gate may also reconcile the two
 stale macOS harness-QR snapshots with the already-shipped email-poster control;
 the Linux baselines already carry that state. Local Supabase hook URI plumbing
 and the DB CI environment may change only to separate local proof from the
-linked production hook.
+linked production hook. The primary-reward and profile-fields unit fixtures may
+change only to correct proof-only date rollover so their ready, waiting, and
+future-DOB assertions remain deterministic across UK and UTC midnight.
 
 Out of scope: the OTP alias database migration and lifecycle RPCs, customer OTP,
 hosted Supabase or Resend configuration, production email-delivery operations,
