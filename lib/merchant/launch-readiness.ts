@@ -1,5 +1,7 @@
 import "server-only"
 
+import { cache } from "react"
+
 import { getQrSetup } from "@/lib/merchant/qr-code"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { getMerchantBilling } from "@/lib/merchant/billing"
@@ -13,6 +15,7 @@ import {
   buildLaunchReadiness,
   isLaunchBillingReady,
   isLaunchSetupCompleteWithoutQr,
+  isVenueOperational,
   needsLaunchBillingActivation,
   resolveLaunchBillingHref,
 } from "@/lib/merchant/launch-readiness-core"
@@ -25,6 +28,7 @@ export {
   buildLaunchReadiness,
   isLaunchBillingReady,
   isLaunchSetupCompleteWithoutQr,
+  isVenueOperational,
   needsLaunchBillingActivation,
   resolveLaunchBillingHref,
 }
@@ -42,7 +46,10 @@ export type {
   LaunchReadinessStep,
 } from "@/lib/merchant/launch-readiness-core"
 
-export async function getMerchantLaunchReadiness() {
+// Request-memoized: the merchant layout (via MerchantSetupReminder) and the
+// dashboard page both read readiness in one render, so cache() collapses the
+// duplicate getQrSetup round-trip chain to a single fetch per request.
+export const getMerchantLaunchReadiness = cache(async () => {
   // Resolve the merchant up front (request-memoized via React cache, so the
   // getQrSetup call below reuses it) to unblock billing readiness, which only
   // needs merchant.id. Billing then runs in parallel with the multi-round-trip
@@ -68,7 +75,7 @@ export async function getMerchantLaunchReadiness() {
     location: setup.location,
     billing,
   })
-}
+})
 
 export async function getLaunchBillingReadiness(
   merchantId: string,

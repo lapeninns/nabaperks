@@ -143,11 +143,16 @@ test("attach is idempotent and billing-blocked members do not attach", { skip },
       where source = 'merchant_direct' and membership_id = ${fixture.membershipId}::uuid`
     assert.equal(n, 1)
 
-    // Billing-blocked: create + attempt attach → stays matched.
+    // Billing lapses AFTER the invite exists. Creating an invite for an
+    // already-billing-blocked merchant is refused up front (see the dedicated
+    // "create refuses billing-blocked merchants" test); the fail-closed
+    // contract that matters here is that attach leaves an existing matched
+    // invite untouched when billing later lapses, holding it for a resumed
+    // programme rather than minting or dropping it.
     const other = await createRewardPoolFixture(tx)
-    await tx`update public.merchants set requires_billing = true where id = ${other.merchantId}::uuid`
     const phoneHmac = hex64()
     const inv = await createInvite(tx, other.merchantId, { phoneHmac })
+    await tx`update public.merchants set requires_billing = true where id = ${other.merchantId}::uuid`
     const blocked = await attach(tx, other.customerId, { phone: phoneHmac })
     assert.equal(blocked.length, 0, "billing fail-closed blocks attach")
     const [row] = await tx`

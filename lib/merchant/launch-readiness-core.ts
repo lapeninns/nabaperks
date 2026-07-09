@@ -49,6 +49,13 @@ export type LaunchReadiness = {
   completed: number
   total: number
   launchReady: boolean
+  /**
+   * Whether a join-QR row exists at all, independent of whether it is active.
+   * Distinguishes a *paused* QR (row present, `is_active=false`) from one that
+   * was *never created* (first run) — a distinction `launchReady`/`tabs.qr`
+   * collapse. See {@link isVenueOperational}.
+   */
+  qrExists: boolean
   nextStep: LaunchReadinessAction | null
   tabs: Record<LaunchReadinessTab, boolean>
 }
@@ -147,6 +154,7 @@ export function buildLaunchReadiness({
     completed,
     total,
     launchReady: completed === total,
+    qrExists: qrCode !== null,
     nextStep: checklist.find((step) => !step.ready) ?? null,
     tabs,
   }
@@ -227,6 +235,26 @@ export function isLaunchSetupCompleteWithoutQr(
   return checklist
     .filter((step) => step.id !== "qr")
     .every((step) => step.ready)
+}
+
+/**
+ * Whether the dashboard should surface the live counter actions ("Scan reward",
+ * "Announce") rather than a "Finish setup" nudge.
+ *
+ * True when the venue is fully launch-ready, OR when every non-QR gate is
+ * complete and the venue's QR exists but is currently paused. Pausing the join
+ * QR only stops *new* sign-ups — existing members keep their cards and still
+ * redeem at the counter — so an already-launched, temporarily-paused venue is
+ * operational, not back in first-run setup. A never-created QR
+ * (`qrExists === false`) stays a setup step: there are no members to scan or
+ * announce to yet. A lapsed non-QR gate (e.g. billing past_due) also keeps it
+ * non-operational, since that is a real gate needing attention, not a pause.
+ */
+export function isVenueOperational(readiness: LaunchReadiness): boolean {
+  return (
+    readiness.launchReady ||
+    (readiness.qrExists && isLaunchSetupCompleteWithoutQr(readiness.checklist))
+  )
 }
 
 // --- Join-QR provisioning eligibility -------------------------------------

@@ -12,6 +12,7 @@ import { QrFrame } from "@/components/loyalty/qr-frame"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { CopyUrlButton } from "@/components/merchant/copy-url-button"
 import { Disclosure } from "@/components/merchant/launch/disclosure"
+import { EmailPosterButton } from "@/components/merchant/launch/email-poster-button"
 import { QrErrorBanner } from "@/components/merchant/launch/qr-error-banner"
 import { Button } from "@/components/ui/button"
 import {
@@ -163,7 +164,7 @@ export function QrPanelLive({
           <LaunchStep
             step="02"
             title="Print a counter poster"
-            description="Pick a layout, open the A4 sheet, and print at 100% scale — no fit-to-page."
+            description="Pick a layout and open the A4 sheet. On a computer, print at 100% (no fit-to-page); on a phone, use your browser to print or save the PDF."
             headingId="qr-print-heading"
           />
           <ul className="grid gap-2 sm:grid-cols-2">
@@ -219,6 +220,7 @@ export function QrPanelLive({
               )
             })}
           </ul>
+          <EmailPosterButton />
         </section>
 
         <Disclosure label="How customers use this QR">

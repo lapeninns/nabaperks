@@ -78,6 +78,11 @@ export async function MerchantDashboardStream({
     <>
       <MerchantBillingNotice status={dashboard.billingStatus} />
 
+      {metrics.members === 0 ? (
+        // Brand-new venue: a grid of zeros reads as failure. Point at the QR
+        // instead — the first join/stamp/reward populates this in place.
+        <DashboardMembersEmptyState />
+      ) : (
       <section className="grid gap-3">
         <SectionHeader
           eyebrow="Last 14 days"
@@ -127,7 +132,28 @@ export async function MerchantDashboardStream({
           />
         </ReceiptCard>
       </section>
+      )}
     </>
+  )
+}
+
+/**
+ * First-run metrics state: shown in place of the KPI grid until the venue has
+ * its first member, so a brand-new merchant sees an encouraging next action
+ * rather than a wall of zeros. Exported so the DB-free dashboard harness can
+ * render the real state via `?members=empty`.
+ */
+export function DashboardMembersEmptyState() {
+  return (
+    <ReceiptCard className="grid gap-4" padding="md">
+      <EmptyState
+        icon={UserMultiple02Icon}
+        title="No members yet — that's expected"
+        description="Show your counter QR to your next customer. Your first join, stamp, and reward will show up here."
+        headingLevel={2}
+        className="bg-background"
+      />
+    </ReceiptCard>
   )
 }
 

@@ -3,10 +3,14 @@
 import { redirect } from "next/navigation"
 
 import { capturePostHogEvent } from "@/lib/analytics/events"
+import { getCurrentUser } from "@/lib/auth/session"
+import { getServerEnv } from "@/lib/env/server"
 import { revalidateMerchantLaunchSurfaces } from "@/lib/merchant/revalidate-launch-surfaces"
 import { LAUNCH_MIN_ACTIVE_REWARDS } from "@/lib/merchant/launch-readiness-contract"
 import { getQrSetup } from "@/lib/merchant/qr-code"
 import { qrReturnHref, resolveQrReturnBase } from "@/lib/merchant/qr-nav"
+import { buildPosterEmailContent } from "@/lib/notifications/poster-email"
+import { sendTransactionalEmail } from "@/lib/notifications/resend"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 const QR_REWARD_POOL_ERROR =
@@ -109,4 +113,63 @@ export async function setQrActiveAction(formData: FormData) {
   revalidateMerchantLaunchSurfaces(merchant.id)
 
   redirect(qrReturnHref(returnBase, `${nextActive ? "enabled" : "disabled"}=1`))
+}
+
+export type EmailPosterState = { ok?: boolean; message?: string }
+
+/**
+ * Email the poster link to the signed-in merchant so they can open and print it
+ * from a computer later — the phone-native alternative to "print A4 at 100%".
+ * Returns inline `useActionState` feedback rather than redirecting, so the QR
+ * panel shows the result without a reload.
+ */
+export async function emailPosterAction(): Promise<EmailPosterState> {
+  const { merchant, activeCard, qrCode } = await getQrSetup()
+
+  if (!merchant || !activeCard || !qrCode) {
+    return {
+      ok: false,
+      message: "Create your venue QR before emailing the poster.",
+    }
+  }
+
+  const user = await getCurrentUser()
+  const to = user?.email?.trim()
+
+  if (!to) {
+    return {
+      ok: false,
+      message: "Add an email to your account before emailing the poster.",
+    }
+  }
+
+  const env = getServerEnv()
+  const content = buildPosterEmailContent({
+    venueName: merchant.business_name,
+    posterUrl: `${env.NEXT_PUBLIC_APP_URL}/app/qr`,
+    shareUrl: `${env.NEXT_PUBLIC_APP_URL}/q/${qrCode.qr_id}`,
+  })
+
+  try {
+    await sendTransactionalEmail({ to, ...content })
+  } catch (error) {
+    console.error(
+      "[qr] poster email failed",
+      error instanceof Error ? error.message : error
+    )
+    return {
+      ok: false,
+      message: "Could not email the poster just now. Try again.",
+    }
+  }
+
+  await capturePostHogEvent({
+    eventName: "qr_poster_emailed",
+    merchantId: merchant.id,
+    actorType: "merchant",
+    actorId: merchant.id,
+    metadata: { source: "merchant_qr_action" },
+  })
+
+  return { ok: true, message: `Poster link sent to ${to}.` }
 }

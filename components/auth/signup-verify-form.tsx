@@ -109,6 +109,10 @@ export function SignupVerifyForm({
         <SubmitButton pendingLabel="Sending…" variant="ghost" className="w-full">
           Resend code
         </SubmitButton>
+        <p className="text-center text-xs leading-5 text-muted-foreground">
+          Codes arrive in under a minute. No email? Check your spam or junk
+          folder, then resend.
+        </p>
       </form>
 
       <p className="text-center text-sm text-muted-foreground">

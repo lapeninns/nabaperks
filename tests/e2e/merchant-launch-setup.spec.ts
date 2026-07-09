@@ -50,7 +50,7 @@ test.describe("merchant launch setup @launch-setup", () => {
 
     // The activation card titles itself with the ACTION ("Activate your
     // venue") — the shared billing-activation title — not by repeating the
-    // page header's state line ("Your account is created").
+    // page header's state line ("One step from live").
     await expect(
       page.getByRole("heading", { name: "Activate your venue" })
     ).toBeVisible()
@@ -59,24 +59,24 @@ test.describe("merchant launch setup @launch-setup", () => {
     ).toBeVisible()
   })
 
-  test("the needsBilling state heads with the account, not a repeated line", async ({
+  test("the needsBilling state heads with the progress, not a repeated line", async ({
     page,
   }) => {
     // ?state=billing = QR live, billing the only pending step. The header states
-    // the STATE once ("Your account is created") and the mobile context states
+    // the progress once ("One step from live") and the mobile context states
     // what's LEFT — it must not repeat the heading.
     await page.goto(`${HARNESS_ROUTES.launch}?state=billing`)
 
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: "Your account is created",
+        name: "One step from live",
       })
     ).toBeVisible()
     // The mobile context line and the desktop PageTitle description carry the
     // same "what's left" string (one is display:none per breakpoint), so match
     // the first (mobile, sm:hidden) — the point is that it states what's LEFT
-    // rather than repeating the "Your account is created" heading.
+    // rather than repeating the "One step from live" heading.
     await expect(
       page.getByText("The last step before your venue goes live.").first()
     ).toBeVisible()

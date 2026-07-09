@@ -146,7 +146,7 @@ function RewardsStatus({
 
   if (params.saved === "pool") {
     const title = needsBillingActivation
-      ? "Your account is created."
+      ? "One step from live."
       : "Reward saved."
     const activeRewardCopy = `${activeRewardPoolItemCount} of 3 active rewards`
 

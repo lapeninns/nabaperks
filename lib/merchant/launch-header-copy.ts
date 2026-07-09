@@ -53,8 +53,8 @@ export function resolveLaunchHeaderModel(
 
   if (needsLaunchBillingActivation(readiness)) {
     return {
-      heading: "Your account is created",
-      // State what's LEFT — never repeat the "Your account is created" heading.
+      heading: "One step from live",
+      // State what's LEFT — never repeat the heading.
       mobileContext: "The last step before your venue goes live.",
       description: "The last step before your venue goes live.",
       // On the billing tab the activation card carries the real Stripe checkout,
