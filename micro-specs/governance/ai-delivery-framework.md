@@ -6,6 +6,7 @@ owner: codex
 last_reviewed: 2026-07-05
 allowed_blast_radius:
   - .factory/skills/**
+  - .env.example
   - .github/workflows/**
   - .lighthouserc.json
   - .zap/**
@@ -49,6 +50,7 @@ allowed_blast_radius:
   - vercel.json
 implementation_surfaces:
   - .factory/skills/ai-governance-starter-kit/SKILL.md
+  - .env.example
   - .github/workflows/ci.yml
   - .github/workflows/nightly.yml
   - .lighthouserc.json

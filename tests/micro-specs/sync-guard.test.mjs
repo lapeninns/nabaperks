@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { test } from "node:test"
@@ -79,6 +79,19 @@ test("Given a kit-side edit with a clean repo copy When synced Then it propagate
   )
 })
 
+test("Given a deleted dirty lockstep file When synced Then the deletion is refused", (t) => {
+  const root = makeSyncFixture(t)
+  const target = path.join(root, "scripts/governance-glob.mjs")
+
+  rmSync(target)
+
+  const result = runSync(root)
+
+  assert.equal(result.status, 1, result.stdout)
+  assert.match(result.stderr, /Refusing to overwrite scripts\/governance-glob\.mjs/)
+  assert.equal(existsSync(target), false)
+})
+
 test("Given a dirty differing repo copy When synced Then it is refused and preserved; --force overrides", (t) => {
   const root = makeSyncFixture(t)
   const target = path.join(root, "scripts/governance-glob.mjs")
@@ -107,6 +120,11 @@ test("Given a missing lockstep target When synced Then it bootstraps without ref
   const root = makeSyncFixture(t)
   const target = path.join(root, "scripts/governance-glob.mjs")
   rmSync(target)
+  execFileSync("git", ["add", "-A"], { cwd: root, stdio: "ignore" })
+  execFileSync("git", ["commit", "-q", "-m", "cleanly remove target"], {
+    cwd: root,
+    stdio: "ignore",
+  })
 
   const result = runSync(root)
 

@@ -4,8 +4,19 @@ import { after } from "next/server"
 
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { getCurrentCustomer } from "@/lib/customer/identity"
+import {
+  customerEmailHmac,
+  normalizeEmail as normalizeCustomerEmail,
+} from "@/lib/customer/email-pii-core"
+import {
+  profileCompletionFrom,
+  type CustomerProfileCompletion,
+} from "@/lib/customer/profile-completion"
 import { attachRewardInvitesForCustomer } from "@/lib/customer/reward-invites"
 import type { MarketingChannel } from "@/lib/customer/consent"
+
+export { profileCompletionFrom }
+export type { CustomerProfileCompletion }
 
 export type ConsentChannel = MarketingChannel
 
@@ -25,53 +36,6 @@ export type CustomerProfile = {
   memberSince: string
   membershipCount: number
   consents: CustomerConsent[]
-}
-
-/** Redeem-time profile gate: Name + DOB required, email optional but verified. */
-export type CustomerProfileCompletion = {
-  complete: boolean
-  fullName: string | null
-  dateOfBirth: string | null
-  email: string | null
-  emailVerified: boolean
-  emailLocked: boolean
-  /** Email is present but not yet confirmed — drives the inline verify step. */
-  needsEmailVerification: boolean
-}
-
-type ProfileFields = {
-  fullName: string | null
-  dateOfBirth: string | null
-  email: string | null
-  emailVerifiedAt: string | null
-}
-
-/**
- * Pure gate rule (no I/O so it unit-tests against fixtures): a profile is complete
- * when a non-blank name and a date of birth are present, and any entered email has
- * been verified. Phone is already verified at sign-up via phone-first identity.
- */
-export function profileCompletionFrom(
-  customer: ProfileFields
-): CustomerProfileCompletion {
-  const fullName = customer.fullName?.trim() ? customer.fullName.trim() : null
-  const dateOfBirth = customer.dateOfBirth ?? null
-  const email = customer.email?.trim() ? customer.email.trim() : null
-  const emailVerified = Boolean(email) && Boolean(customer.emailVerifiedAt)
-  const emailLocked = emailVerified
-  const needsEmailVerification = Boolean(email) && !customer.emailVerifiedAt
-  const complete =
-    Boolean(fullName) && Boolean(dateOfBirth) && !needsEmailVerification
-
-  return {
-    complete,
-    fullName,
-    dateOfBirth,
-    email,
-    emailVerified,
-    emailLocked,
-    needsEmailVerification,
-  }
 }
 
 export async function getCustomerProfileCompletion(): Promise<CustomerProfileCompletion | null> {
@@ -134,6 +98,8 @@ export async function updateCustomerProfile(
 
   if (!emailLocked) {
     update.email = email
+    update.email_hmac =
+      keepsVerifiedEmail && email ? customerEmailHmac(email) : null
     if (!keepsVerifiedEmail) {
       update.email_verified_at = null
     }
@@ -165,18 +131,25 @@ export async function markCustomerEmailVerified(email: string): Promise<void> {
   if (!verifiedEmail) throw new Error("Email is required for confirmation.")
 
   const currentEmail = normalizedEmail(customer.email)
+  const supabase = createSupabaseServiceRoleClient()
   if (hasLockedVerifiedEmail(customer)) {
     if (verifiedEmail !== currentEmail) {
       throw new CustomerContactLockedError("Verified email is locked.")
     }
+    const { error } = await supabase
+      .from("customers")
+      .update({ email_hmac: customerEmailHmac(verifiedEmail) })
+      .eq("id", customer.id)
+
+    if (error) throw new Error(`Unable to confirm email: ${error.message}`)
     return
   }
 
-  const supabase = createSupabaseServiceRoleClient()
   const { error } = await supabase
     .from("customers")
     .update({
       email: verifiedEmail,
+      email_hmac: customerEmailHmac(verifiedEmail),
       email_verified_at: new Date().toISOString(),
     })
     .eq("id", customer.id)
@@ -198,7 +171,7 @@ export async function clearCustomerEmail(): Promise<ClearCustomerEmailResult> {
   const supabase = createSupabaseServiceRoleClient()
   const { error } = await supabase
     .from("customers")
-    .update({ email: null, email_verified_at: null })
+    .update({ email: null, email_hmac: null, email_verified_at: null })
     .eq("id", customer.id)
 
   if (error) throw new Error(`Unable to update profile: ${error.message}`)
@@ -281,5 +254,5 @@ function hasLockedVerifiedEmail(customer: {
 }
 
 function normalizedEmail(email: string | null | undefined) {
-  return email?.trim() ? email.trim() : null
+  return email?.trim() ? normalizeCustomerEmail(email) : null
 }

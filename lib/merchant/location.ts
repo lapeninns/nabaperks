@@ -12,6 +12,9 @@ export type MerchantVenueLocation = {
   address_line_2: string | null
   address_city: string | null
   address_postcode: string | null
+  address_source: "manual_entry" | "provider_lookup" | null
+  address_provider: "google_places" | null
+  address_provider_id: string | null
   latitude: number | null
   longitude: number | null
   geofence_radius_meters: number
@@ -34,7 +37,7 @@ export async function getCurrentVenueLocation() {
   const { data: location, error } = await supabase
     .from("merchant_locations")
     .select(
-      "id, name, address, address_line_1, address_line_2, address_city, address_postcode, latitude, longitude, geofence_radius_meters, require_geofence, soft_geofence_trigger_stamp_number, geocoded_at, geofence_pin_source, geofence_pin_updated_at, is_primary"
+      "id, name, address, address_line_1, address_line_2, address_city, address_postcode, address_source, address_provider, address_provider_id, latitude, longitude, geofence_radius_meters, require_geofence, soft_geofence_trigger_stamp_number, geocoded_at, geofence_pin_source, geofence_pin_updated_at, is_primary"
     )
     .eq("merchant_id", merchant.id)
     .order("is_primary", { ascending: false })
@@ -57,6 +60,17 @@ export async function getCurrentVenueLocation() {
           address_line_2: location.address_line_2,
           address_city: location.address_city,
           address_postcode: location.address_postcode,
+          address_source:
+            location.address_source === "provider_lookup"
+              ? "provider_lookup"
+              : location.address_source === "manual_entry"
+                ? "manual_entry"
+                : null,
+          address_provider:
+            location.address_provider === "google_places"
+              ? "google_places"
+              : null,
+          address_provider_id: location.address_provider_id,
           latitude: location.latitude,
           longitude: location.longitude,
           geofence_radius_meters: location.geofence_radius_meters ?? 150,

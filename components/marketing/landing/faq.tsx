@@ -14,7 +14,7 @@ export type Faq = { q: string; a: string }
 export const faqs: readonly Faq[] = [
   {
     q: "Do my customers have to download an app?",
-    a: "No — and no wallet pass either. Customers scan your till QR and the card opens straight in their phone browser, saved in one tap. It works on any iPhone or Android with nothing to download or install.",
+    a: "No — and no wallet pass either. Customers scan your till QR and the card opens straight in their phone browser. It works on any iPhone or Android with nothing to download or install.",
   },
   {
     q: "Can staff or customers fake the stamps?",

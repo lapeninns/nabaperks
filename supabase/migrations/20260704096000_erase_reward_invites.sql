@@ -23,6 +23,7 @@ declare
   surrogate_email text;
   erased_count integer;
   v_phone_hmac text;
+  v_email_hmac text;
 begin
   admin_user_id := (select auth.uid());
 
@@ -49,7 +50,10 @@ begin
 
   -- Capture the phone HMAC before the update nulls it, so invites keyed only on
   -- the hashed phone can still be found and scrubbed.
-  select phone_hmac into v_phone_hmac from public.customers where id = p_customer_id;
+  select phone_hmac, email_hmac
+  into v_phone_hmac, v_email_hmac
+  from public.customers
+  where id = p_customer_id;
 
   surrogate_email := 'erased+' || replace(p_customer_id::text, '-', '') || '@privacy.invalid';
   perform set_config('app.customer_erasure', 'true', true);
@@ -58,6 +62,7 @@ begin
   set
     auth_user_id = null,
     email = surrogate_email,
+    email_hmac = null,
     email_verified_at = null,
     full_name = null,
     date_of_birth = null,
@@ -84,7 +89,8 @@ begin
       claim_token_hash = 'scrubbed:' || id::text, updated_at = now()
   where matched_customer_id = p_customer_id
      or attached_customer_id = p_customer_id
-     or (v_phone_hmac is not null and phone_hmac = v_phone_hmac);
+     or (v_phone_hmac is not null and phone_hmac = v_phone_hmac)
+     or (v_email_hmac is not null and email_hmac = v_email_hmac);
 
   insert into public.audit_logs (
     actor_type, actor_id, merchant_id, customer_id, target_table, target_id, action, metadata
@@ -117,6 +123,7 @@ declare
   stale_customer record;
   purged_count integer := 0;
   v_phone_hmac text;
+  v_email_hmac text;
 begin
   perform set_config('app.customer_erasure', 'true', true);
 
@@ -141,12 +148,16 @@ begin
           and stamp_events.created_at >= p_cutoff
       )
   loop
-    select phone_hmac into v_phone_hmac from public.customers where id = stale_customer.id;
+    select phone_hmac, email_hmac
+    into v_phone_hmac, v_email_hmac
+    from public.customers
+    where id = stale_customer.id;
 
     update public.customers
     set
       auth_user_id = null,
       email = 'erased+' || replace(stale_customer.id::text, '-', '') || '@privacy.invalid',
+      email_hmac = null,
       email_verified_at = null,
       full_name = null,
       date_of_birth = null,
@@ -165,7 +176,8 @@ begin
         claim_token_hash = 'scrubbed:' || id::text, updated_at = now()
     where matched_customer_id = stale_customer.id
        or attached_customer_id = stale_customer.id
-       or (v_phone_hmac is not null and phone_hmac = v_phone_hmac);
+       or (v_phone_hmac is not null and phone_hmac = v_phone_hmac)
+       or (v_email_hmac is not null and email_hmac = v_email_hmac);
 
     purged_count := purged_count + 1;
   end loop;

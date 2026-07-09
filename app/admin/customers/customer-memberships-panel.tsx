@@ -42,7 +42,9 @@ export function CustomerMembershipsPanel({
         <SectionHeader
           title="Memberships"
           description="Search every membership by venue or masked-contact fragment. Masked customer contacts and merchant-scoped stamp counters from service-role support reads."
-          actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
+          actions={
+            <SourceLabel>Source: service-role admin readback</SourceLabel>
+          }
         />
         <AdminLookupControls
           basePath="/admin/customers"
@@ -141,8 +143,8 @@ export function CustomerMembershipsPanel({
                 header: "Stamps",
                 cell: (row) => (
                   <span className="numeric-tabular">
-                    {row.current_stamp_count} current · {row.total_stamps_earned}{" "}
-                    total
+                    {row.current_stamp_count} current ·{" "}
+                    {row.total_stamps_earned} total
                   </span>
                 ),
               },
@@ -196,7 +198,10 @@ export function CustomerMembershipsPanel({
 
 function StampAdjustmentForm({ membershipId }: { membershipId: string }) {
   return (
-    <AdminActionForm action={adjustStampsAction} className="min-w-[280px]">
+    <AdminActionForm
+      action={adjustStampsAction}
+      className="min-w-0 xl:min-w-[280px]"
+    >
       <input type="hidden" name="membershipId" value={membershipId} />
       <div className="grid gap-2 sm:grid-cols-[96px_minmax(0,1fr)]">
         {/* min-w-0 lets each field shrink to its track — a bare number input's

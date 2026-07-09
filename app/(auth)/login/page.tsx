@@ -38,17 +38,19 @@ const LOGIN_ERROR_FALLBACK = {
 
 type LoginPageProps = {
   searchParams: Promise<{
-    next?: string
-    error?: string
+    next?: string | string[]
+    error?: string | string[]
   }>
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams
   const user = await getCurrentUser()
+  const next = firstSearchParam(params.next) ?? "/app"
+  const error = firstSearchParam(params.error)
 
   if (user) {
-    redirect(safeMerchantNextPath(params.next ?? "/app"))
+    redirect(safeMerchantNextPath(next))
   }
 
   return (
@@ -96,24 +98,25 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               Enter your venue email and password to open the console.
             </p>
           </div>
-          {params.error ? (
+          {error ? (
             <Alert variant="destructive" className="mb-4">
               <AlertTitle>
-                {(LOGIN_ERROR_COPY[params.error] ?? LOGIN_ERROR_FALLBACK).title}
+                {(LOGIN_ERROR_COPY[error] ?? LOGIN_ERROR_FALLBACK).title}
               </AlertTitle>
               <AlertDescription>
-                {(LOGIN_ERROR_COPY[params.error] ?? LOGIN_ERROR_FALLBACK).body}
+                {(LOGIN_ERROR_COPY[error] ?? LOGIN_ERROR_FALLBACK).body}
               </AlertDescription>
             </Alert>
           ) : null}
-          <AuthForm
-            action={signInAction}
-            mode="sign-in"
-            next={params.next}
-            embedded
-          />
+          <AuthForm action={signInAction} mode="sign-in" next={next} embedded />
         </ReceiptCard>
       </section>
     </MarketingLayout>
   )
+}
+
+function firstSearchParam(
+  value: string | string[] | undefined
+): string | undefined {
+  return Array.isArray(value) ? value[0] : value
 }

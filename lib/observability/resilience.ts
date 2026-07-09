@@ -120,12 +120,17 @@ export class CircuitBreaker {
 }
 
 export class HttpError extends Error {
+  readonly status: number
+  readonly url: string
+
   constructor(
-    readonly status: number,
-    readonly url: string
+    status: number,
+    url: string
   ) {
     super(`Request to ${url} failed with status ${status}`)
     this.name = "HttpError"
+    this.status = status
+    this.url = url
   }
 }
 
@@ -156,11 +161,18 @@ export function resilientCall<T>(
   options: ResilientCallOptions = {}
 ): Promise<T> {
   const breaker = breakerFor(name, options.circuit)
-  return withRetry(() => breaker.execute(fn), options.retry)
+  return withRetry(() => breaker.execute(fn), {
+    ...options.retry,
+    shouldRetry(error) {
+      if (error instanceof CircuitOpenError) return false
+      return options.retry?.shouldRetry?.(error) ?? true
+    },
+  })
 }
 
 export type ResilientFetchOptions = {
   retries?: number
+  initForAttempt?: () => RequestInit
   sleep?: (ms: number) => Promise<void>
   /** Override for tests; defaults to the global `fetch`. */
   fetchImpl?: typeof fetch
@@ -184,10 +196,10 @@ export async function resilientFetch(
   return resilientCall(
     name,
     async () => {
-      const response = await doFetch(input, init)
+      const response = await doFetch(input, options.initForAttempt?.() ?? init)
       if (response.status >= 500) throw new HttpError(response.status, url)
       return response
     },
-    { retry: { retries: options.retries ?? 2, sleep: options.sleep } }
+    { retry: { retries: options.retries ?? 0, sleep: options.sleep } }
   )
 }

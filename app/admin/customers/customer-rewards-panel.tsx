@@ -38,7 +38,9 @@ export function CustomerRewardsPanel({
         <SectionHeader
           title="Rewards"
           description="Assigned reward readbacks preserve customer masking and require a reason before cancellation."
-          actions={<SourceLabel>Source: service-role admin readback</SourceLabel>}
+          actions={
+            <SourceLabel>Source: service-role admin readback</SourceLabel>
+          }
         />
       </div>
       {result ? (
@@ -180,7 +182,10 @@ export function CustomerRewardsPanel({
 
 function RewardCancelForm({ rewardId }: { rewardId: string }) {
   return (
-    <AdminActionForm action={cancelRewardAction} className="min-w-[260px]">
+    <AdminActionForm
+      action={cancelRewardAction}
+      className="min-w-0 xl:min-w-[260px]"
+    >
       <input type="hidden" name="rewardId" value={rewardId} />
       <AdminField
         label="Reason"

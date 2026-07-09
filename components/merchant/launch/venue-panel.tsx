@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 
 import { VenueLocationForm } from "@/components/merchant/launch/venue-location-form"
+import type { ProviderProvenance } from "@/components/merchant/venue-provider-provenance-fields"
 import { getCurrentVenueLocation } from "@/lib/merchant/location"
 import { venueAddressFieldsFromLocation } from "@/lib/merchant/venue-address"
 
@@ -21,6 +22,7 @@ export async function VenuePanel() {
         initialValues={initialVenueFormValues(location)}
         geocoded={geocodedCoordinates(location)}
         pinSource={venuePinSource(location)}
+        initialProvenance={venueProviderProvenance(location)}
       />
     </div>
   )
@@ -56,4 +58,24 @@ function venuePinSource(location: CurrentVenueLocation) {
   return location?.geofence_pin_source === "merchant_pin"
     ? "merchant_pin"
     : "geocoded"
+}
+
+function venueProviderProvenance(
+  location: CurrentVenueLocation
+): ProviderProvenance | undefined {
+  if (
+    location?.address_source !== "provider_lookup" ||
+    location.address_provider !== "google_places" ||
+    !location.address_provider_id
+  ) {
+    return undefined
+  }
+
+  return {
+    source: "provider_lookup",
+    provider: "google_places",
+    id: location.address_provider_id,
+    latitude: location.latitude == null ? "" : String(location.latitude),
+    longitude: location.longitude == null ? "" : String(location.longitude),
+  }
 }

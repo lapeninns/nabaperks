@@ -7,6 +7,10 @@ import { CopyUrlButton } from "@/components/merchant/copy-url-button"
 import { PresentQrButton } from "@/components/merchant/present-qr"
 import { Button } from "@/components/ui/button"
 import { getServerEnv } from "@/lib/env/server"
+import {
+  buildLaunchReadiness,
+  getLaunchBillingReadiness,
+} from "@/lib/merchant/launch-readiness"
 import { getQrSetup } from "@/lib/merchant/qr-code"
 
 /**
@@ -29,6 +33,25 @@ export async function DashboardQrCard() {
 
   const env = getServerEnv()
   const shareUrl = `${env.NEXT_PUBLIC_APP_URL}/q/${qrCode.qr_id}`
+  const billing = merchant
+    ? await getLaunchBillingReadiness(
+        merchant.id,
+        merchant.requires_billing !== false
+      )
+    : undefined
+  const readiness = buildLaunchReadiness({
+    activeCard,
+    activeRewardPoolItemCount: setup.activeRewardPoolItemCount,
+    qrCode,
+    location: setup.location,
+    billing,
+  })
+  const fallbackAction = qrCode.is_active
+    ? readiness.nextStep
+    : {
+        href: "/app/qr",
+        actionLabel: "Review QR setup",
+      }
 
   return (
     <DashboardQrCardView
@@ -36,6 +59,9 @@ export async function DashboardQrCard() {
       venueName={venueName}
       shareUrl={shareUrl}
       isActive={qrCode.is_active}
+      scansAvailable={readiness.launchReady}
+      actionHref={fallbackAction?.href ?? "/app/qr"}
+      actionLabel={fallbackAction?.actionLabel ?? "Review QR setup"}
     />
   )
 }
@@ -45,6 +71,9 @@ type DashboardQrCardViewProps = {
   readonly venueName: string
   readonly shareUrl: string
   readonly isActive: boolean
+  readonly scansAvailable: boolean
+  readonly actionHref: string
+  readonly actionLabel: string
 }
 
 /**
@@ -56,23 +85,45 @@ export function DashboardQrCardView({
   venueName,
   shareUrl,
   isActive,
+  scansAvailable,
+  actionHref,
+  actionLabel,
 }: DashboardQrCardViewProps) {
-  const thumbnailQrSrc = `/app/qr/image/${qrCodeId}?w=256`
+  const thumbnailQrSrc = scansAvailable
+    ? `/app/qr/image/${qrCodeId}?w=256`
+    : null
+  const unavailableCopy = isActive
+    ? {
+        label: "Launch gated",
+        title: "Finish launch gates",
+        body: "Customers cannot join or collect stamps until setup and billing are ready.",
+      }
+    : {
+        label: "QR paused",
+        title: "QR paused",
+        body: "New customers cannot join until you re-enable it under Poster.",
+      }
 
   return (
     <ReceiptCard className="grid gap-4 sm:grid-cols-[9.25rem_minmax(0,1fr)] sm:items-start sm:gap-6">
       <QrFrame
         label={`Venue QR for ${venueName}`}
-        className="mx-auto min-h-0 min-w-0 w-[9.25rem] max-w-full shrink-0 overflow-hidden shadow-[5px_5px_0_var(--w-shadow-color)] sm:mx-0"
+        className="mx-auto min-h-0 w-[9.25rem] min-w-0 shrink-0 overflow-hidden shadow-[5px_5px_0_var(--w-shadow-color)] sm:mx-0"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element -- protected QR image needs merchant cookies */}
-        <img
-          src={thumbnailQrSrc}
-          alt={`QR code for ${venueName}`}
-          width={148}
-          height={148}
-          className="block aspect-square size-[7.25rem] max-w-full object-contain"
-        />
+        {thumbnailQrSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element -- protected QR image needs merchant cookies
+          <img
+            src={thumbnailQrSrc}
+            alt={`QR code for ${venueName}`}
+            width={148}
+            height={148}
+            className="block aspect-square size-[7.25rem] shrink-0 object-contain"
+          />
+        ) : (
+          <div className="grid aspect-square size-[7.25rem] place-items-center rounded-md border-2 border-dashed border-ink/25 bg-paper-deep/65 p-3 text-center font-mono text-[10px] leading-4 font-bold tracking-[0.08em] text-muted-foreground uppercase">
+            {unavailableCopy.label}
+          </div>
+        )}
       </QrFrame>
 
       <div className="grid min-w-0 gap-3">
@@ -87,14 +138,31 @@ export function DashboardQrCardView({
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <PresentQrButton
-            qrCodeId={qrCodeId}
-            venueName={venueName}
-            shareUrl={shareUrl}
-          />
-          <CopyUrlButton url={shareUrl} />
-        </div>
+        {scansAvailable ? (
+          <div className="flex flex-wrap gap-2">
+            <PresentQrButton
+              qrCodeId={qrCodeId}
+              venueName={venueName}
+              shareUrl={shareUrl}
+            />
+            <CopyUrlButton url={shareUrl} />
+          </div>
+        ) : (
+          <div className="grid gap-2 rounded-lg border-2 border-dashed border-ink/25 bg-paper-deep/45 p-3">
+            <p className="text-sm leading-5 font-extrabold">
+              {unavailableCopy.title}
+            </p>
+            <p className="text-xs leading-5 font-bold text-muted-foreground">
+              {unavailableCopy.body}
+            </p>
+            <Button asChild variant="outline" size="sm" className="w-fit">
+              <Link href={actionHref} prefetch={false}>
+                {actionLabel}
+                <Icon icon={ArrowRight01Icon} size={14} />
+              </Link>
+            </Button>
+          </div>
+        )}
 
         {!isActive ? (
           <p className="text-xs leading-5 font-bold text-muted-foreground">

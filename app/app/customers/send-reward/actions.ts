@@ -9,6 +9,7 @@ import {
   customerEmailHmac,
   looksLikeEmail,
   maskEmail,
+  normalizeEmail,
 } from "@/lib/customer/email-pii-core"
 import { normalizePhone } from "@/lib/customer/phone"
 import { customerPhoneHmac } from "@/lib/customer/phone-pii-core"
@@ -54,6 +55,8 @@ function sendRewardError(message: string) {
   return "Reward could not be sent. Check the details and try again."
 }
 
+type RewardInviteCreateResult = { readonly ok: true } | { readonly ok: false }
+
 /**
  * Match a typed contact against THIS merchant's own members (phone by HMAC,
  * email by verified plaintext). Returns the membership id or null. Runs at the
@@ -70,11 +73,11 @@ async function matchMerchantMembershipForContact(
   const supabase = createSupabaseServiceRoleClient()
   let customerIds: string[] = []
 
-  if (raw.includes("@")) {
+  if (looksLikeEmail(raw)) {
     const { data } = await supabase
       .from("customers")
       .select("id")
-      .ilike("email", raw)
+      .eq("email", normalizeEmail(raw))
       .not("email_verified_at", "is", null)
       .limit(5)
     customerIds = (data ?? []).map((row) => row.id as string)
@@ -128,7 +131,7 @@ async function createRewardInviteForUnmatchedContact(
   merchant: { id: string; business_name?: string | null },
   input: { contact: string; rewardName: string; rewardTerms: string; message: string },
   expiresInDays: number
-): Promise<void> {
+): Promise<RewardInviteCreateResult> {
   const raw = input.contact.trim()
   const isEmail = looksLikeEmail(raw)
 
@@ -142,16 +145,16 @@ async function createRewardInviteForUnmatchedContact(
       emailHmac = customerEmailHmac(raw)
       emailMasked = maskEmail(raw)
     } catch {
-      return
+      return { ok: false }
     }
   } else {
     const normalized = normalizePhone(raw, "GB")
-    if (!normalized.ok) return
+    if (!normalized.ok) return { ok: false }
     try {
       phoneHmac = customerPhoneHmac(normalized.phone.e164)
       phoneLast4 = normalized.phone.e164.replace(/\D/g, "").slice(-4)
     } catch {
-      return
+      return { ok: false }
     }
   }
 
@@ -171,13 +174,13 @@ async function createRewardInviteForUnmatchedContact(
     p_reward_expires_after_days: expiresInDays,
     p_claim_token_hash: claimTokenHash,
   })
-  if (error) return
+  if (error) return { ok: false }
 
   const inviteId = data?.[0]?.invite_id as string | undefined
   const deduped = data?.[0]?.deduped === true
 
-  if (!isEmail || !emailHmac || deduped) return
-  if (await isInviteEmailSuppressed(emailHmac)) return
+  if (!isEmail || !emailHmac || deduped) return { ok: true }
+  if (await isInviteEmailSuppressed(emailHmac)) return { ok: true }
 
   try {
     await enforceRateLimit({
@@ -186,7 +189,7 @@ async function createRewardInviteForUnmatchedContact(
       windowMs: 30 * 86_400_000,
     })
   } catch (error) {
-    if (error instanceof RateLimitError) return
+    if (error instanceof RateLimitError) return { ok: true }
     throw error
   }
 
@@ -225,6 +228,8 @@ async function createRewardInviteForUnmatchedContact(
       }
     }
   })
+
+  return { ok: true }
 }
 
 export async function sendMerchantRewardAction(
@@ -280,7 +285,7 @@ export async function sendMerchantRewardAction(
     if (!membershipId) {
       // No existing member matches — hold it as a pending invite that attaches
       // when they join. The uniform response keeps membership unprobeable.
-      await createRewardInviteForUnmatchedContact(
+      const inviteResult = await createRewardInviteForUnmatchedContact(
         merchant,
         {
           contact: input.contact,
@@ -290,6 +295,9 @@ export async function sendMerchantRewardAction(
         },
         expiresInDays
       )
+      if (!inviteResult.ok) {
+        return { fields, errors: { form: sendRewardError("") } }
+      }
       return { message: SEND_REWARD_SUCCESS }
     }
   }

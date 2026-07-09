@@ -46,6 +46,7 @@ export function VenueLocationForm({
   initialValues,
   geocoded,
   pinSource,
+  initialProvenance,
   googleMapsApiKey,
 }: {
   initialValues: VenueLocationFormValues
@@ -53,13 +54,11 @@ export function VenueLocationForm({
   geocoded?: { latitude: number | null; longitude: number | null } | null
   /** Saved coordinate provenance; seeds the hidden source field. */
   pinSource?: GeofencePinSource
+  initialProvenance?: ProviderProvenance
   /** Dev-preview-only key injection; production uses the public env var. */
   googleMapsApiKey?: string
 }) {
-  const [state, action] = useActionState(
-    saveVenueLocationAction,
-    initialState
-  )
+  const [state, action] = useActionState(saveVenueLocationAction, initialState)
   const router = useRouter()
 
   useEffect(() => {
@@ -86,7 +85,7 @@ export function VenueLocationForm({
     addressPostcode: initialValues.addressPostcode,
   })
   const [provenance, setProvenance] = useState<ProviderProvenance>(
-    MANUAL_VENUE_PROVENANCE
+    initialProvenance ?? MANUAL_VENUE_PROVENANCE
   )
 
   const savedCoordinates: VenueCoordinates | null =

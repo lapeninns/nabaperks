@@ -76,6 +76,17 @@ describe("DOB gate — Section C: the 18th-birthday boundary", () => {
     const oneDayShort = addDays(latestAdultBirthDate(), 1)
     assert.equal(validateDateOfBirth(oneDayShort), AGE_ERROR)
   })
+
+  test("Given UTC has not rolled but London has When validated Then the UK business date wins", () => {
+    const londonAfterMidnight = new Date("2026-07-09T23:30:00.000Z")
+
+    assert.equal(latestAdultBirthDate(londonAfterMidnight), "2008-07-10")
+    assert.equal(validateDateOfBirth("2008-07-10", londonAfterMidnight), null)
+    assert.equal(
+      validateDateOfBirth("2008-07-11", londonAfterMidnight),
+      AGE_ERROR
+    )
+  })
 })
 
 describe("DOB gate — Section D: the other DOB rejections", () => {

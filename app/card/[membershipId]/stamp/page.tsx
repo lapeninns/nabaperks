@@ -18,6 +18,7 @@ type StampPageProps = {
   }>
   searchParams: Promise<{
     qr?: string
+    blocked?: string
   }>
 }
 
@@ -26,8 +27,8 @@ export default async function StampPage({
   searchParams,
 }: StampPageProps) {
   const { membershipId } = await params
-  const { qr } = await searchParams
-  const context = await loadStampExperienceContext(membershipId, qr)
+  const { qr, blocked } = await searchParams
+  const context = await loadStampExperienceContext(membershipId, qr, blocked)
   const experience = deriveCustomerExperience({ entry: "stamp", context })
 
   if (experience.kind === "reward_ready") {

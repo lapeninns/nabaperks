@@ -77,7 +77,10 @@ export async function destinationForReturningQrVisit(
     membershipId: membership.id,
     merchantSlug,
     customerId: customer.id,
-    coordinates: options.coordinates,
+    coordinates: {
+      ...options.coordinates,
+      qrId: options.coordinates?.qrId ?? qrContext.qrId ?? qrId,
+    },
     stampPath,
     cardPath,
   })
@@ -160,8 +163,7 @@ async function issueStampDestination({
   }
 
   if (result.status !== "issued") {
-    // Already-stamped (and any other block) routes to the stamp status screen.
-    return stampPath
+    return blockedStampPath(stampPath, result.reason)
   }
 
   await capturePostHogEvent({
@@ -179,4 +181,10 @@ async function issueStampDestination({
   const params = new URLSearchParams({ stamp: "issued" })
   if (result.geoFlagged) params.set("geo", "flagged")
   return `${cardPath}?${params.toString()}`
+}
+
+function blockedStampPath(stampPath: string, reason: string): string {
+  const separator = stampPath.includes("?") ? "&" : "?"
+
+  return `${stampPath}${separator}blocked=${encodeURIComponent(reason)}`
 }

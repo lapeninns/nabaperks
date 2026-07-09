@@ -77,3 +77,22 @@ test("drops malformed rows instead of throwing", () => {
   assert.deepEqual(series.stamps, [0, 0, 2])
   assert.deepEqual(series.rewards, [0, 0, 0], "negative counts clamp to 0")
 })
+
+test("computes London midnight floors with winter GMT and summer BST offsets", () => {
+  assert.equal(
+    buckets.londonMidnightFloorIso("2026-01-15"),
+    "2026-01-15T00:00:00.000Z"
+  )
+  assert.equal(
+    buckets.londonMidnightFloorIso("2026-07-05"),
+    "2026-07-04T23:00:00.000Z"
+  )
+  assert.equal(
+    buckets.londonMidnightFloorIso("2026-10-25"),
+    "2026-10-24T23:00:00.000Z"
+  )
+  assert.equal(
+    buckets.londonMidnightFloorIso("2026-10-26"),
+    "2026-10-26T00:00:00.000Z"
+  )
+})

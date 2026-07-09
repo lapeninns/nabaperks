@@ -213,6 +213,30 @@ test("Given an active spec When its e2e gate carries a spec-owned --grep tag The
   assert.deepEqual(run(root).failures, [])
 })
 
+test("Given an active spec When its e2e gate uses an anchored spec-owned --grep tag Then the scoped gate passes", (t) => {
+  const root = fixtureRepo(t, {
+    spec: specFile({
+      riskClass: "ui-only",
+      gates: [
+        "pnpm lint",
+        "pnpm typecheck",
+        "pnpm build",
+        "pnpm test",
+        "pnpm test:coverage",
+        "pnpm bundle:check",
+        'pnpm test:e2e -- --grep "^@some-tag"',
+        "pnpm test:a11y",
+        "pnpm test:visual",
+      ],
+      tests: ["tests/e2e/example.spec.ts"],
+      playwrightProjects: ["chromium", "mobile-safari"],
+      evidence: ["Playwright report for changed UI"],
+    }),
+  })
+
+  assert.deepEqual(run(root).failures, [])
+})
+
 test("Given a broad browser gate When a dated broad-browser-gate exception exists Then only an expired waiver fails", (t) => {
   const gates = [
     "pnpm lint",

@@ -30,7 +30,7 @@ export function describeMerchantRewardPresets() {
 
       await expect(page.getByLabel("Reward name")).toHaveValue("Free starter")
       await expect(page.getByLabel("Reward terms")).toHaveValue(
-        /Valid from the next UK business day\./
+        /Valid once issued\./
       )
       await page.getByText("Weighting").click()
       await expect(page.getByLabel("Weight")).toHaveValue("1")

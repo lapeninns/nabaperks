@@ -38,7 +38,7 @@ export function SignupDetailsForm({
   const [showValidation, setShowValidation] = useState(false)
 
   const shouldShowValidation = showValidation || Boolean(state.errors)
-  const errors = mergeErrors(state.errors, state.errors ? {} : clientErrors)
+  const errors = mergeErrors(state.errors, clientErrors)
 
   useEffect(() => {
     if (!state.errors) return

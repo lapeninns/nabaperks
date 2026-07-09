@@ -253,6 +253,18 @@ test("R-13: admin_export_customer_data includes source and birthday_year", { ski
   await inRolledBackTxn(async (tx) => {
     const fixture = await createRewardPoolFixture(tx)
     await insertReward(tx, fixture, "birthday_month", 2026)
+    const emailHmac = randomUUID().replace(/-/g, "") + randomUUID().replace(/-/g, "")
+    const [invite] = await tx`
+      select * from public.create_merchant_reward_invite(
+        ${fixture.merchantId}::uuid,
+        ${emailHmac}, null,
+        'r***@example.com', null,
+        'Invite reward',
+        'Subject to availability for this invite.',
+        null, 30, ${randomUUID().replace(/-/g, "")})`
+    await tx`
+      select * from public.attach_matched_reward_invites(
+        ${fixture.customerId}::uuid, null, ${emailHmac}, null)`
 
     await actAsInternalAdmin(tx, fixture.adminUserId)
     const [{ payload }] = await tx`
@@ -265,5 +277,11 @@ test("R-13: admin_export_customer_data includes source and birthday_year", { ski
     const birthday = rewards.find((r) => r.source === "birthday_month")
     assert.ok(birthday, "the birthday reward is exported with its source")
     assert.equal(birthday.birthday_year, 2026, "birthday_year is exported")
+
+    const invites = payload.pending_reward_invites
+    assert.ok(Array.isArray(invites), "export carries pending reward invites")
+    const exportedInvite = invites.find((row) => row.id === invite.invite_id)
+    assert.ok(exportedInvite, "the attached invite is exported")
+    assert.equal(exportedInvite.status, "attached")
   })
 })

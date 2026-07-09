@@ -5,6 +5,7 @@ import { createHmac, randomInt, timingSafeEqual } from "node:crypto"
 import { sendEmailOtp } from "@/lib/notifications/resend"
 import {
   clearPendingEmailVerification,
+  getCustomerSession,
   getPendingEmailVerification,
   setPendingEmailVerification,
 } from "@/lib/customer/session"
@@ -26,6 +27,7 @@ export async function startCustomerEmailVerification(
   email: string
 ): Promise<EmailVerificationStartResult> {
   const normalizedEmail = normalizeEmail(email)
+  const customerSession = await getCustomerSession()
   await enforceRateLimit({
     key: `customer-email-verification-send:${normalizedEmail}`,
     limit: 3,
@@ -36,6 +38,7 @@ export async function startCustomerEmailVerification(
   await setPendingEmailVerification({
     email: normalizedEmail,
     codeHmac: emailCodeHmac(normalizedEmail, code),
+    customerId: customerSession?.customerId ?? null,
   })
   await sendEmailOtp({ to: normalizedEmail, code })
 
@@ -47,6 +50,11 @@ export async function checkCustomerEmailVerification(
 ): Promise<EmailVerificationCheckResult> {
   const pending = await getPendingEmailVerification()
   if (!pending) return { status: "rejected" }
+  const customerSession = await getCustomerSession()
+  if (!customerSession || pending.customerId !== customerSession.customerId) {
+    await clearPendingEmailVerification()
+    return { status: "rejected" }
+  }
 
   await enforceRateLimit({
     key: `customer-email-verification-check:${normalizeEmail(pending.email)}`,

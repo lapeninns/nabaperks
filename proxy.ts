@@ -38,15 +38,14 @@ export async function proxy(request: NextRequest) {
       ? staticMarketingContentSecurityPolicy()
       : dynamicContentSecurityPolicy(nonce)
 
-  const requestHeaders = new Headers(request.headers)
-  requestHeaders.set(REQUEST_ID_HEADER, requestId)
-  requestHeaders.set(REQUEST_PATH_HEADER, requestPath)
-  if (nonce !== undefined) {
-    requestHeaders.set("x-nonce", nonce)
-  }
-  requestHeaders.set("Content-Security-Policy", csp)
-
   const response = await refreshSupabaseSession(request, () => {
+    const requestHeaders = forwardedRequestHeaders(
+      request,
+      requestId,
+      requestPath,
+      csp,
+      nonce
+    )
     const nextResponse = NextResponse.next({
       request: { headers: requestHeaders },
     })
@@ -59,6 +58,32 @@ export async function proxy(request: NextRequest) {
   })
 
   return response
+}
+
+function forwardedRequestHeaders(
+  request: NextRequest,
+  requestId: string,
+  requestPath: string,
+  csp: string,
+  nonce: string | undefined
+) {
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set(REQUEST_ID_HEADER, requestId)
+  requestHeaders.set(REQUEST_PATH_HEADER, requestPath)
+  if (nonce !== undefined) {
+    requestHeaders.set("x-nonce", nonce)
+  }
+  requestHeaders.set("Content-Security-Policy", csp)
+
+  const cookies = request.cookies.getAll()
+  if (cookies.length > 0) {
+    requestHeaders.set(
+      "cookie",
+      cookies.map(({ name, value }) => `${name}=${value}`).join("; ")
+    )
+  }
+
+  return requestHeaders
 }
 
 export const config = {

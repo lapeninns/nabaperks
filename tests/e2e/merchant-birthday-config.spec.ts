@@ -40,7 +40,7 @@ test.describe("@merchant-flow merchant birthday config", () => {
       "Birthday drink on us"
     )
     await expect(page.getByLabel("Reward terms")).toHaveValue(
-      /Valid from the next UK business day\./
+      /Valid once issued\./
     )
 
     // Switching off must not leave the un-saved template in the submitted

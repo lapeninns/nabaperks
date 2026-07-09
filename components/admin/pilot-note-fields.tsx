@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { CheckmarkCircle02Icon } from "@hugeicons/core-free-icons"
 
 import { Icon } from "@/components/brand"
@@ -13,16 +13,31 @@ import {
   pilotNotePlaceholder,
 } from "@/lib/admin/pilot-note-templates"
 
+const DEFAULT_PILOT_NOTE_TYPE = "support"
+
 /**
  * The pilot-note fields, extracted so the notes placeholder can follow the
  * selected note type. The placeholder is a scaffold only — the operator still
  * types the note, so no audit justification is ever prefilled as a value.
  */
 export function PilotNoteFields() {
-  const [noteType, setNoteType] = useState("support")
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [noteType, setNoteType] = useState(DEFAULT_PILOT_NOTE_TYPE)
+
+  useEffect(() => {
+    const form = containerRef.current?.closest("form")
+    if (!form) return
+
+    const resetNoteType = () => setNoteType(DEFAULT_PILOT_NOTE_TYPE)
+    form.addEventListener("reset", resetNoteType)
+    return () => form.removeEventListener("reset", resetNoteType)
+  }, [])
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[220px_160px_minmax(0,1fr)_auto]">
+    <div
+      ref={containerRef}
+      className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[220px_160px_minmax(0,1fr)_auto]"
+    >
       <AdminField label="Note type">
         <select
           name="noteType"

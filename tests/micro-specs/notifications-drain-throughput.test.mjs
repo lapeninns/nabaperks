@@ -23,6 +23,7 @@ test("Given a due backlog When the worker runs Then it drains batches via the dr
   )
   assert.match(worker, /resolveDrainOptions\(/)
   assert.match(worker, /shouldContinueDraining\(/)
+  assert.match(worker, /shouldProcessNextEvent\(/)
   assert.match(
     worker,
     /while\s*\(/,
@@ -30,13 +31,29 @@ test("Given a due backlog When the worker runs Then it drains batches via the dr
   )
   assert.match(
     worker,
-    /rpc\("claim_due_notification_events"/,
+    /rpc\(\s*"claim_due_notification_events"/,
     "batches must still come from the atomic claim RPC"
+  )
+  assert.match(
+    worker,
+    /Math\.min\(\s*options\.batchSize,\s*options\.maxEvents - result\.processed\s*\)/,
+    "each claim is clamped to the remaining event budget"
+  )
+  assert.match(
+    worker,
+    /releaseClaimedNotificationEvents\(supabase, events\.slice\(index\)\)/,
+    "unprocessed claimed events are returned to queued when the per-event budget is spent"
   )
 })
 
 test("Given the 15-minute cron tick When it invokes the worker Then it passes the production drain budget", () => {
-  const route = readProjectFile("app", "api", "cron", "notifications", "route.ts")
+  const route = readProjectFile(
+    "app",
+    "api",
+    "cron",
+    "notifications",
+    "route.ts"
+  )
 
   assert.match(
     route,
@@ -63,7 +80,8 @@ test("Given the 15-minute cron tick When it invokes the worker Then it passes th
 test("Given producers and the drain loop When one invocation runs Then producers run exactly once", () => {
   const worker = readProjectFile("lib", "notifications", "delivery-worker.ts")
 
-  const produceCalls = worker.match(/await produceDueNotificationEvents\(/g) ?? []
+  const produceCalls =
+    worker.match(/await produceDueNotificationEvents\(/g) ?? []
   assert.equal(
     produceCalls.length,
     1,

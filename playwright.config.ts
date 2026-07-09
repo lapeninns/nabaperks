@@ -15,6 +15,8 @@ import { defineConfig, devices } from "@playwright/test"
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3146"
 const devOtpCode = process.env.CUSTOMER_DEV_OTP_CODE ?? "424242"
+const visualPromoNow =
+  process.env.PLAYWRIGHT_MARKETING_PROMO_NOW ?? "2026-07-06T12:00:00Z"
 const authHookSecret = "v1,whsec_dGVzdC1ob29rLXNlY3JldA=="
 const devServerUrl = new URL(baseURL)
 const devServerPort =
@@ -22,6 +24,7 @@ const devServerPort =
 const devServerEnv = [
   `PORT=${devServerPort}`,
   `CUSTOMER_DEV_OTP_CODE=${devOtpCode}`,
+  `PLAYWRIGHT_MARKETING_PROMO_NOW=${visualPromoNow}`,
   `SUPABASE_SEND_EMAIL_HOOK_SECRET=${authHookSecret}`,
   `SUPABASE_SEND_SMS_HOOK_SECRET=${authHookSecret}`,
   "RESEND_API_KEY=re_playwright_harness",

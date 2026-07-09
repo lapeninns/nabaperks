@@ -23,12 +23,15 @@ const migration = read(
 const actions = read("app/card/[membershipId]/actions.ts")
 const cardStampLabels = read("lib/customer/card-stamp-labels.ts")
 const cardStamps = read("lib/customer/card-stamps.ts")
+const loadStamp = read("lib/customer/experience/load-stamp.ts")
+const referralBonusBank = read("lib/customer/referral-bonus-bank.ts")
 const cardUi = read("components/customer/customer-card-experience.tsx")
 const homeTile = read("components/customer/home-card-tile.tsx")
 const bankPanels = read("components/customer/referral-bonus-bank-panels.tsx")
 const bankCopy = read("lib/customer/referral-bonus-bank-copy.ts")
 const stampCollector = read("components/customer/stamp-collector.tsx")
 const referral = read("lib/customer/referral.ts")
+const liveDbTest = read("tests/db/referral-bonus-stamp.test.mjs")
 
 test("the bonus primitive is SECURITY DEFINER and granted to service_role only", () => {
   assert.match(
@@ -90,13 +93,23 @@ test("the next venue stamp drains banked referral bonuses for that member", () =
   )
   assert.match(
     actions,
-    /drainReferralBonusBank\(membershipId\)/,
+    /drainReferralBonusBankWithOutcome\(membershipId\)/,
     "the self-stamp action drains the customer's referral bank after the venue stamp lands"
   )
   assert.match(
     actions,
     /bonusStampsApplied/,
     "the applied bonus count returns to the client action state"
+  )
+  assert.match(
+    actions,
+    /result\.rewardUnlocked \|\| bonusRewardUnlocked/,
+    "drained bonuses that unlock a reward are treated as reward transitions"
+  )
+  assert.match(
+    referralBonusBank,
+    /rewardCountBefore[\s\S]*drainReferralBonusBankWithClient[\s\S]*rewardCountAfter/,
+    "the drain helper detects whether the drain created a new unlocked reward"
   )
   assert.match(
     stampCollector,
@@ -176,6 +189,49 @@ test("referral bonus stamps stay visible even when their earned date is null", (
     cardStamps,
     /stampEventSource\(event\.metadata\) === "referral_bonus"/,
     "referral bonus events with no business date use the bonus label"
+  )
+  assert.match(
+    loadStamp,
+    /\.not\("earned_business_date", "is", null\)[\s\S]*\.order\("earned_business_date"/,
+    "same-day stamp checks ignore NULL-dated referral bonus rows"
+  )
+})
+
+test("the live DB referral bonus race harness cleans committed audit rows and synchronizes contenders", () => {
+  assert.match(
+    liveDbTest,
+    /committedMembershipIds/,
+    "committed memberships are tracked alongside committed customers"
+  )
+  assert.match(
+    liveDbTest,
+    /delete from public\.product_events where membership_id/,
+    "race-run product events are removed before customer teardown"
+  )
+  assert.match(
+    liveDbTest,
+    /delete from public\.notification_events where membership_id/,
+    "race-run notification events are removed before customer teardown"
+  )
+  assert.match(
+    liveDbTest,
+    /createStartBarrier\(2\)/,
+    "both award contenders synchronize after opening DB connections"
+  )
+  assert.match(
+    liveDbTest,
+    /awardWithStartBarrier/,
+    "award calls wait at the shared start barrier"
+  )
+  assert.match(
+    liveDbTest,
+    /lc\.stamps_required > 1/,
+    "the pool-guard fixture avoids one-stamp card side effects"
+  )
+  assert.match(
+    liveDbTest,
+    /where loyalty_card_id = \$\{qr\.loyalty_card_id\}::uuid/,
+    "the pool-guard fixture scopes reward-pool changes to one loyalty card"
   )
 })
 

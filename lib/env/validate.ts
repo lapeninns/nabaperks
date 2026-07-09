@@ -11,10 +11,6 @@ export type EnvContractEntry = {
 }
 
 const customerOtpBypassModeAnyFourDigits = "any-4-digits"
-const twilioVerifyEnvNames = new Set([
-  "TWILIO_ACCOUNT_SID",
-  "TWILIO_VERIFY_SERVICE_SID",
-])
 
 export class EnvConfigError extends Error {
   readonly missing: string[]
@@ -47,14 +43,12 @@ export function assertValidEnv(
   const missing: string[] = []
   const invalid: string[] = []
   const customerOtpBypassMode = values.CUSTOMER_OTP_BYPASS_MODE?.trim()
-  const customerOtpTwilioBypassed =
-    customerOtpBypassMode === customerOtpBypassModeAnyFourDigits
 
   for (const entry of contract) {
     const value = values[entry.name]?.trim()
 
     if (!value) {
-      if (canSkipMissingEntry(entry, customerOtpTwilioBypassed)) continue
+      if (entry.optional) continue
 
       missing.push(entry.name)
       continue
@@ -68,16 +62,6 @@ export function assertValidEnv(
   if (missing.length || invalid.length) {
     throw new EnvConfigError({ missing, invalid })
   }
-}
-
-function canSkipMissingEntry(
-  entry: EnvContractEntry,
-  customerOtpTwilioBypassed: boolean
-) {
-  return (
-    entry.optional ||
-    (customerOtpTwilioBypassed && twilioVerifyEnvNames.has(entry.name))
-  )
 }
 
 function validateEnvEntry(entry: EnvContractEntry, value: string) {

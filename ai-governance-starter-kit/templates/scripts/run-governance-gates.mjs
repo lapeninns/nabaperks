@@ -21,6 +21,7 @@ import {
   runnableGates,
   writeLedger,
 } from "./governance-evidence.mjs"
+import { readSpecs } from "./governance-io.mjs"
 import { validateGovernance } from "./governance-rules.mjs"
 
 const root = process.cwd()
@@ -39,9 +40,16 @@ if (specIndex !== -1 && !specId) {
 // recording run exists at all: this invocation IS the cure those failures
 // prescribe, and it must not be blocked by the disease it is curing (the
 // standalone governance:check keeps full enforcement).
+const reprovingSpecIds = specId
+  ? [specId]
+  : readSpecs(root, [])
+      .filter((spec) => spec.metadata.status === "active")
+      .map((spec) => spec.metadata.spec_id)
+      .filter(Boolean)
+
 const validation = validateGovernance(root, {
   enforceChangedFiles: false,
-  reprovingSpecIds: ["*"],
+  reprovingSpecIds,
 })
 
 if (!validation.ok) {
@@ -88,7 +96,10 @@ for (const gate of runnable) console.log(`queued: ${gate}`)
 // otherwise re-impose the staleness/red-run failures this very run cures.
 // Fixture-based tests stay hermetic by passing their own env explicitly.
 const envForGate = (parsed) => {
-  const env = { ...process.env, GOVERNANCE_REPROVING_SPECS: "*" }
+  const env = {
+    ...process.env,
+    GOVERNANCE_REPROVING_SPECS: reprovingSpecIds.join(","),
+  }
 
   if (isPlaywrightGate(parsed) && !process.env.PLAYWRIGHT_BASE_URL) {
     env.PLAYWRIGHT_BASE_URL = `http://127.0.0.1:${playwrightGatePort++}`
@@ -151,6 +162,7 @@ function writeStepSummary(gateResults, failure) {
 
 function mdCell(value) {
   return String(value)
+    .replace(/\\/g, "\\\\")
     .replace(/\|/g, "\\|")
     .replace(/`/g, "'")
     .replace(/\r?\n/g, " ")

@@ -176,7 +176,6 @@ function syncLockstep(sourceDir, targetDir, files, prefix) {
     // uncommitted work about to be destroyed — refuse it (kit is canonical).
     if (
       !force &&
-      existsSync(target) &&
       fileDiffers(source, target) &&
       gitDirty(repoRoot, `${prefix}/${file}`)
     ) {

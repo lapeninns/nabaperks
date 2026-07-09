@@ -15,8 +15,7 @@ const DEFAULT_LOYALTY_CARD_ID = "13000000-0000-0000-0000-000000000001"
 const STRESS_EMAIL_DOMAIN = "example.test"
 const STRESS_SOURCE = "stress_seed"
 const isMain =
-  process.argv[1] &&
-  fileURLToPath(import.meta.url) === process.argv[1]
+  process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]
 const args = isMain ? parseArgs(process.argv.slice(2)) : null
 
 const env = {
@@ -30,54 +29,56 @@ if (isMain) {
 }
 
 async function runCli(env, args) {
-const dbUrl = resolveDbUrl(env)
+  const dbUrl = resolveDbUrl(env)
 
-if (!dbUrl) {
-  console.error("SUPABASE_DB_URL is required for stress seeding.")
-  process.exit(1)
-}
-
-assertWriteTargetIsSafe(dbUrl)
-
-const sql = postgres(dbUrl, {
-  max: 1,
-  ssl: shouldRequireSsl(dbUrl) ? "require" : undefined,
-  transform: postgres.camel,
-})
-
-try {
-  const count = args.count ?? 10_000
-  if (args.dryRun) {
-    printDryRunPlan(count, args)
-    process.exit(0)
+  if (!dbUrl) {
+    console.error("SUPABASE_DB_URL is required for stress seeding.")
+    process.exit(1)
   }
 
-  await verifyDatabaseConnection(sql, dbUrl)
+  assertWriteTargetIsSafe(dbUrl)
 
-  if (args.clean) {
-    await cleanStressData(sql)
-    if (!args.count) {
-      console.log("Stress seed cleanup completed.")
+  const sql = postgres(dbUrl, {
+    max: 1,
+    ssl: shouldRequireSsl(dbUrl) ? "require" : undefined,
+    transform: postgres.camel,
+  })
+
+  try {
+    const count = args.count ?? 10_000
+    if (args.dryRun) {
+      printDryRunPlan(count, args)
       process.exit(0)
     }
-  }
 
-  await seedStressData(sql, count, args)
-  console.log(`Stress seed completed: ${count.toLocaleString()} members on merchant ${args.merchantId}.`)
-} catch (error) {
-  console.error("Stress seed failed.")
-  if (isDatabaseConnectionRefused(error)) {
-    printDatabaseConnectionHelp(
-      safeDbTarget(dbUrl),
-      "pnpm db:setup && pnpm db:seed:stress"
+    await verifyDatabaseConnection(sql, dbUrl)
+
+    if (args.clean) {
+      await cleanStressData(sql)
+      if (!args.count) {
+        console.log("Stress seed cleanup completed.")
+        process.exit(0)
+      }
+    }
+
+    await seedStressData(sql, count, args)
+    console.log(
+      `Stress seed completed: ${count.toLocaleString()} members on merchant ${args.merchantId}.`
     )
-  } else if (error instanceof Error) {
-    console.error(error.message)
+  } catch (error) {
+    console.error("Stress seed failed.")
+    if (isDatabaseConnectionRefused(error)) {
+      printDatabaseConnectionHelp(
+        safeDbTarget(dbUrl),
+        "pnpm db:setup && pnpm db:seed:stress"
+      )
+    } else if (error instanceof Error) {
+      console.error(error.message)
+    }
+    process.exitCode = 1
+  } finally {
+    await sql.end({ timeout: 5 })
   }
-  process.exitCode = 1
-} finally {
-  await sql.end({ timeout: 5 })
-}
 }
 
 export function parseArgs(argv) {
@@ -503,7 +504,9 @@ async function assertMerchantFixture(sql, merchantId) {
     )
   }
 
-  console.log(`Seeding stress members for ${merchant.businessName} (${merchantId}).`)
+  console.log(
+    `Seeding stress members for ${merchant.businessName} (${merchantId}).`
+  )
 }
 
 function printDryRunPlan(count, config) {
@@ -513,7 +516,9 @@ function printDryRunPlan(count, config) {
   console.log(`- merchant: ${config.merchantId}`)
   console.log(`- stamps per member: ${config.stampsPerMember}`)
   console.log(`- product events: ${config.withEvents ? "yes" : "no"}`)
-  console.log(`- history window: ${STRESS_HISTORY_DAYS} days with varied join/visit/stamp times`)
+  console.log(
+    `- history window: ${STRESS_HISTORY_DAYS} days with varied join/visit/stamp times`
+  )
   console.log(`- email pattern: ${stressEmail(1)} … ${stressEmail(count)}`)
 }
 
@@ -566,10 +571,15 @@ function resolveDbUrl(env) {
 function shouldRequireSsl(dbUrl) {
   try {
     const url = new URL(dbUrl)
-    return url.hostname.endsWith("supabase.com")
+    return isSupabaseHost(url.hostname)
   } catch {
     return false
   }
+}
+
+function isSupabaseHost(hostname) {
+  const host = hostname.toLowerCase()
+  return host === "supabase.com" || host.endsWith(".supabase.com")
 }
 
 function safeDbTarget(dbUrl) {

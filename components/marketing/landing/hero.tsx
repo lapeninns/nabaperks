@@ -50,7 +50,7 @@ export function LandingHero({
         </h1>
         <p className="mt-3 max-w-[44ch] text-sm leading-relaxed text-pretty text-muted-foreground max-sm:order-3 sm:hidden">
           Scan your till QR — the card opens in their browser. No app, no Apple
-          or Google Wallet pass. Every stamp verified at your counter.
+          or Google Wallet pass. Stamps are checked against your venue QR.
         </p>
         <div className="mt-4 flex max-w-xl flex-wrap items-center gap-2.5 max-sm:order-4 sm:mt-7 sm:gap-3">
           <Button asChild size="lg">
@@ -63,10 +63,10 @@ export function LandingHero({
         <div className="hidden max-w-xl flex-col sm:order-6 sm:flex lg:order-none">
           <p className="mt-5 max-w-[44ch] text-base leading-relaxed text-pretty text-muted-foreground sm:text-lg">
             No-app QR loyalty for UK cafes, takeaways and pubs. Your customer scans
-            the till QR and the card opens in their browser — saved in one tap,
-            with <strong className="font-semibold text-foreground">no app and no
-            Apple or Google Wallet pass to install</strong>. Every stamp is
-            verified at your counter.
+            the till QR and the card opens in their browser, with{" "}
+            <strong className="font-semibold text-foreground">no app and no
+            Apple or Google Wallet pass to install</strong>. Stamps are checked
+            against your venue QR, their card and your programme before they count.
           </p>
           <p className="mt-4 max-w-[44ch] text-base leading-relaxed font-semibold text-foreground">
             {SETUP.line}
@@ -92,7 +92,7 @@ export function LandingHero({
         <div className="max-w-xl max-sm:order-6 sm:hidden">
           <ReassuranceBar
             points={[
-              "Build free — no payment to start",
+              "30-day pilot included",
               "30-day pilot, then £49/mo",
             ]}
             className="mt-1"

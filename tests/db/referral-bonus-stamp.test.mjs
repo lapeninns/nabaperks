@@ -29,9 +29,11 @@ const ready = await isLiveDbReady()
 const skip = ready ? false : "live Supabase DB not reachable/current"
 
 // Committed customers created by the concurrency test (two real connections must
-// see the same row) are tracked here and torn down after the run; deleting a
-// customer cascades its memberships, referrals, and stamp_events.
+// see the same row) are tracked here and torn down after the run. Product and
+// notification events keep nullable audit pointers, so clean them explicitly
+// before deleting customers/memberships.
 const committedCustomerIds = new Set()
+const committedMembershipIds = new Set()
 
 function rawClient() {
   const url = dbUrl()
@@ -45,11 +47,37 @@ function rawClient() {
   })
 }
 
+function createStartBarrier(expected) {
+  let waiting = 0
+  let release = () => {}
+  const started = new Promise((resolve) => {
+    release = resolve
+  })
+
+  return async function waitForStart() {
+    waiting += 1
+    if (waiting === expected) release()
+    await started
+  }
+}
+
+async function awardWithStartBarrier(sql, referredMembershipId, waitForStart) {
+  await sql`select 1`
+  await waitForStart()
+  return sql`select public.award_referrer_bonus_stamp(${referredMembershipId}::uuid, null)`
+}
+
 after(async () => {
-  if (committedCustomerIds.size > 0) {
+  if (committedCustomerIds.size > 0 || committedMembershipIds.size > 0) {
     const admin = rawClient()
     try {
+      for (const id of committedMembershipIds) {
+        await admin`delete from public.notification_events where membership_id = ${id}::uuid`
+        await admin`delete from public.product_events where membership_id = ${id}::uuid`
+      }
       for (const id of committedCustomerIds) {
+        await admin`delete from public.notification_events where customer_id = ${id}::uuid`
+        await admin`delete from public.product_events where customer_id = ${id}::uuid`
         await admin`delete from public.customers where id = ${id}::uuid`
       }
     } finally {
@@ -596,6 +624,7 @@ test(
         insert into public.customer_memberships (merchant_id, customer_id)
         values (${qr.merchant_id}::uuid, ${referrerCustomer.id}::uuid)
         returning id, referral_code`
+      committedMembershipIds.add(referrer.id)
 
       const [friendCustomer] = await setup`
         insert into public.customers (email, email_verified_at, created_at, updated_at)
@@ -606,6 +635,7 @@ test(
         insert into public.customer_memberships (merchant_id, customer_id)
         values (${qr.merchant_id}::uuid, ${friendCustomer.id}::uuid)
         returning id`
+      committedMembershipIds.add(friend.id)
 
       await setup`
         insert into public.referrals (
@@ -623,9 +653,10 @@ test(
       // Race two award calls for the same edge on two connections. The loser
       // does not error — it no-ops when the winner's commit fails its
       // `awarded_at is null` guard — so the invariant is the OUTCOME: one bonus.
+      const waitForAwardStart = createStartBarrier(2)
       const attempts = await Promise.allSettled([
-        a`select public.award_referrer_bonus_stamp(${friend.id}::uuid, null)`,
-        b`select public.award_referrer_bonus_stamp(${friend.id}::uuid, null)`,
+        awardWithStartBarrier(a, friend.id, waitForAwardStart),
+        awardWithStartBarrier(b, friend.id, waitForAwardStart),
       ])
       for (const attempt of attempts) {
         assert.equal(attempt.status, "fulfilled", "neither award call errors")
@@ -712,18 +743,39 @@ test(
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
-      const [qr] = await tx.unsafe(PICK_QR)
+      const [qr] = await tx`
+        select q.qr_id, m.business_slug, m.id as merchant_id,
+               lc.id as loyalty_card_id, lc.stamps_required
+        from public.qr_codes q
+        join public.merchants m on m.id = q.merchant_id
+        join public.loyalty_cards lc on lc.merchant_id = m.id and lc.is_active
+        where q.is_active
+          and q.destination_type = 'join'
+          and m.status in ('trial', 'active')
+          and lc.stamps_required > 1
+          and (
+            m.requires_billing = false
+            or exists (
+              select 1 from public.billing_customers bc
+              where bc.merchant_id = m.id
+                and bc.status is not null
+                and bc.status not in ('cancelled', 'suspended')
+            )
+          )
+        order by q.created_at
+        limit 1`
+      if (!qr) return // no multi-stamp seeded card; pool guard is data-dependent
       const s = await seedReferrerAndFriend(tx, qr)
-      const required = await stampsRequiredFor(tx, qr.merchant_id)
 
       // Referrer one short of full, but the merchant's reward pool is below the
       // 3-active minimum the ledger needs to unlock — the bonus must hold, not
-      // push the card into an uncompletable full state.
+      // push the card into an uncompletable full state. Scope the pool change to
+      // this loyalty card so other merchant cards are not disturbed.
       await tx`update public.customer_memberships
-               set current_stamp_count = ${required - 1}
+               set current_stamp_count = ${qr.stamps_required - 1}
                where id = ${s.referrer.membership_id}`
       await tx`update public.reward_pool_items set is_active = false
-               where merchant_id = ${qr.merchant_id}`
+               where loyalty_card_id = ${qr.loyalty_card_id}::uuid`
 
       await stamp(tx, s.friend.membership_id, s.friendCustomer, qr.qr_id)
 

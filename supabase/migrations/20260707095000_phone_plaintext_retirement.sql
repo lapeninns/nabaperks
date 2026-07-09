@@ -53,6 +53,7 @@ declare
   surrogate_email text;
   erased_count integer;
   v_phone_hmac text;
+  v_email_hmac text;
 begin
   admin_user_id := (select auth.uid());
 
@@ -79,7 +80,10 @@ begin
 
   -- Capture the phone HMAC before the update nulls it, so invites keyed only on
   -- the hashed phone can still be found and scrubbed.
-  select phone_hmac into v_phone_hmac from public.customers where id = p_customer_id;
+  select phone_hmac, email_hmac
+  into v_phone_hmac, v_email_hmac
+  from public.customers
+  where id = p_customer_id;
 
   surrogate_email := 'erased+' || replace(p_customer_id::text, '-', '') || '@privacy.invalid';
   perform set_config('app.customer_erasure', 'true', true);
@@ -88,6 +92,7 @@ begin
   set
     auth_user_id = null,
     email = surrogate_email,
+    email_hmac = null,
     email_verified_at = null,
     full_name = null,
     date_of_birth = null,
@@ -113,7 +118,8 @@ begin
       claim_token_hash = 'scrubbed:' || id::text, updated_at = now()
   where matched_customer_id = p_customer_id
      or attached_customer_id = p_customer_id
-     or (v_phone_hmac is not null and phone_hmac = v_phone_hmac);
+     or (v_phone_hmac is not null and phone_hmac = v_phone_hmac)
+     or (v_email_hmac is not null and email_hmac = v_email_hmac);
 
   insert into public.audit_logs (
     actor_type, actor_id, merchant_id, customer_id, target_table, target_id, action, metadata
@@ -148,6 +154,7 @@ declare
   membership_json jsonb;
   stamp_json jsonb;
   reward_json jsonb;
+  pending_invite_json jsonb;
   consent_json jsonb;
   notification_json jsonb;
   product_event_json jsonb;
@@ -258,6 +265,32 @@ begin
     where customer_id = p_customer_id
   ) as reward_row;
 
+  select coalesce(jsonb_agg(to_jsonb(invite_row) order by invite_row.created_at), '[]'::jsonb)
+  into pending_invite_json
+  from (
+    select
+      id,
+      merchant_id,
+      status,
+      email_masked,
+      phone_last4,
+      reward_name,
+      reward_terms,
+      personal_message,
+      reward_expires_after_days,
+      email_send_status,
+      invite_expires_at,
+      matched_customer_id,
+      attached_membership_id,
+      attached_reward_event_id,
+      attached_at,
+      created_at,
+      updated_at
+    from public.pending_reward_invites
+    where matched_customer_id = p_customer_id
+       or attached_customer_id = p_customer_id
+  ) as invite_row;
+
   select coalesce(jsonb_agg(to_jsonb(consent_row) order by consent_row.created_at), '[]'::jsonb)
   into consent_json
   from (
@@ -317,6 +350,7 @@ begin
     'memberships', membership_json,
     'stamp_events', stamp_json,
     'reward_events', reward_json,
+    'pending_reward_invites', pending_invite_json,
     'consent_records', consent_json,
     'notification_events', notification_json,
     'product_events', product_event_json
@@ -348,6 +382,7 @@ begin
       'membership_count', jsonb_array_length(membership_json),
       'stamp_event_count', jsonb_array_length(stamp_json),
       'reward_event_count', jsonb_array_length(reward_json),
+      'pending_reward_invite_count', jsonb_array_length(pending_invite_json),
       'consent_record_count', jsonb_array_length(consent_json),
       'notification_event_count', jsonb_array_length(notification_json),
       'product_event_count', jsonb_array_length(product_event_json)
@@ -370,6 +405,7 @@ declare
   stale_customer record;
   purged_count integer := 0;
   v_phone_hmac text;
+  v_email_hmac text;
 begin
   perform set_config('app.customer_erasure', 'true', true);
 
@@ -394,12 +430,16 @@ begin
           and stamp_events.created_at >= p_cutoff
       )
   loop
-    select phone_hmac into v_phone_hmac from public.customers where id = stale_customer.id;
+    select phone_hmac, email_hmac
+    into v_phone_hmac, v_email_hmac
+    from public.customers
+    where id = stale_customer.id;
 
     update public.customers
     set
       auth_user_id = null,
       email = 'erased+' || replace(stale_customer.id::text, '-', '') || '@privacy.invalid',
+      email_hmac = null,
       email_verified_at = null,
       full_name = null,
       date_of_birth = null,
@@ -417,7 +457,8 @@ begin
         claim_token_hash = 'scrubbed:' || id::text, updated_at = now()
     where matched_customer_id = stale_customer.id
        or attached_customer_id = stale_customer.id
-       or (v_phone_hmac is not null and phone_hmac = v_phone_hmac);
+       or (v_phone_hmac is not null and phone_hmac = v_phone_hmac)
+       or (v_email_hmac is not null and email_hmac = v_email_hmac);
 
     purged_count := purged_count + 1;
   end loop;

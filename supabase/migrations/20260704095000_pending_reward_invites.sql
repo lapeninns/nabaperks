@@ -252,6 +252,11 @@ create index if not exists pending_reward_invites_expiry_idx
 create index if not exists customers_email_lower_verified_idx
   on public.customers (lower(email))
   where email_verified_at is not null;
+alter table public.customers
+  add column if not exists email_hmac text;
+create index if not exists customers_email_hmac_idx
+  on public.customers (email_hmac)
+  where email_hmac is not null;
 
 do $$
 begin
@@ -316,9 +321,12 @@ declare
   v_terms text := btrim(coalesce(p_reward_terms, ''));
   v_message text := nullif(btrim(coalesce(p_personal_message, '')), '');
   v_days integer := coalesce(p_reward_expires_after_days, 30);
+  v_billing_status text;
+  v_has_active_card boolean;
+  v_availability_reason text;
   v_id uuid;
 begin
-  select merchants.id, merchants.status, merchants.owner_user_id
+  select merchants.id, merchants.status, merchants.owner_user_id, merchants.requires_billing
   into v_merchant from public.merchants where merchants.id = p_merchant_id for update;
   if v_merchant.id is null then raise insufficient_privilege using message = 'Merchant not found'; end if;
   if not public.is_service_role_request() then
@@ -334,9 +342,32 @@ begin
   if v_days not between 1 and 365 then raise exception 'Reward expiry must be between 1 and 365 days'; end if;
   if p_claim_token_hash is null or btrim(p_claim_token_hash) = '' then raise exception 'A claim token is required'; end if;
 
-  if v_merchant.status not in ('trial', 'active') then raise exception 'This merchant loyalty programme is not active'; end if;
-  if not exists (select 1 from public.loyalty_cards where merchant_id = p_merchant_id and is_active) then
+  select billing_customers.status
+  into v_billing_status
+  from public.billing_customers
+  where billing_customers.merchant_id = p_merchant_id;
+
+  select exists (
+    select 1 from public.loyalty_cards
+    where merchant_id = p_merchant_id and is_active
+  )
+  into v_has_active_card;
+
+  v_availability_reason := public.loyalty_availability_reason(
+    v_merchant.status,
+    v_has_active_card,
+    v_billing_status,
+    v_merchant.requires_billing
+  );
+
+  if v_availability_reason = 'merchant_inactive' then
+    raise exception 'This merchant loyalty programme is not active';
+  elsif v_availability_reason = 'card_inactive' then
     raise exception 'This loyalty card is not active';
+  elsif v_availability_reason = 'billing_required' then
+    raise exception 'This merchant loyalty programme is not active yet';
+  elsif v_availability_reason = 'billing_blocked' then
+    raise exception 'This merchant loyalty programme is unavailable';
   end if;
 
   -- Dedupe: an existing ACTIVE invite for the same contact is returned; the
@@ -403,6 +434,9 @@ declare
   v_merchant record;
   v_card_id uuid;
   v_reward_id uuid;
+  v_business_date date;
+  v_membership_today integer;
+  v_merchant_today integer;
 begin
   if p_customer_id is null then return; end if;
 
@@ -443,11 +477,13 @@ begin
     select cm.id into v_membership
     from public.customer_memberships cm
     where cm.customer_id = p_customer_id and cm.merchant_id = v_invite.merchant_id
-    limit 1;
+    limit 1
+    for update;
     if v_membership.id is null then continue; end if;
 
     select m.id, m.status, m.requires_billing, m.business_name into v_merchant
-    from public.merchants m where m.id = v_invite.merchant_id;
+    from public.merchants m where m.id = v_invite.merchant_id
+    for update;
     if public.loyalty_availability_reason(
          v_merchant.status, true,
          (select status from public.billing_customers where billing_customers.merchant_id = v_invite.merchant_id),
@@ -459,6 +495,22 @@ begin
     where loyalty_cards.merchant_id = v_invite.merchant_id and loyalty_cards.is_active
     order by loyalty_cards.created_at asc limit 1;
     if v_card_id is null then continue; end if;
+
+    v_business_date := public.uk_business_date(v_now);
+
+    select count(*) into v_membership_today
+    from public.reward_events
+    where reward_events.membership_id = v_membership.id
+      and reward_events.source = 'merchant_direct'
+      and public.uk_business_date(reward_events.created_at) = v_business_date;
+    if v_membership_today >= 1 then continue; end if;
+
+    select count(*) into v_merchant_today
+    from public.reward_events
+    where reward_events.merchant_id = v_invite.merchant_id
+      and reward_events.source = 'merchant_direct'
+      and public.uk_business_date(reward_events.created_at) = v_business_date;
+    if v_merchant_today >= 100 then continue; end if;
 
     v_reward_id := public.internal_issue_merchant_direct_reward(
       v_invite.merchant_id, v_membership.id, p_customer_id, v_card_id,

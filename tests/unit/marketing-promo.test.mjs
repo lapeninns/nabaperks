@@ -60,6 +60,24 @@ test("getActivePromo: scarcity line names the monthly cap and remaining spots", 
   assert.ok(promo.claimedThisMonth >= 0)
 })
 
+test("getActivePromo: Playwright can freeze the server-rendered promo clock", () => {
+  const previous = process.env.PLAYWRIGHT_MARKETING_PROMO_NOW
+  process.env.PLAYWRIGHT_MARKETING_PROMO_NOW = "2026-07-06T12:00:00Z"
+
+  try {
+    const promo = getActivePromo()
+    assert.ok(promo)
+    assert.equal(promo.name, "July First-Regular promo")
+    assert.equal(promo.scarcityChip, "34 print-run spots left in July")
+  } finally {
+    if (previous === undefined) {
+      delete process.env.PLAYWRIGHT_MARKETING_PROMO_NOW
+    } else {
+      process.env.PLAYWRIGHT_MARKETING_PROMO_NOW = previous
+    }
+  }
+})
+
 test("getMonthlySpotsRemaining: depletes through the month and keeps at least one spot", () => {
   const start = getMonthlySpotsRemaining(1, 31, 40)
   const mid = getMonthlySpotsRemaining(16, 31, 40)
@@ -72,7 +90,10 @@ test("getMonthlySpotsRemaining: depletes through the month and keeps at least on
 
 test("isPromoStale: a disabled promo is never stale", () => {
   assert.equal(
-    isPromoStale({ enabled: false, endDateISO: "2000-01-01" }, "2026-07-05T00:00:00Z"),
+    isPromoStale(
+      { enabled: false, endDateISO: "2000-01-01" },
+      "2026-07-05T00:00:00Z"
+    ),
     false
   )
 })
@@ -88,5 +109,11 @@ test("CI tripwire: the live monthly promo deadline is never already past", () =>
   if (!promo) {
     return
   }
-  assert.equal(isPromoStale({ enabled: true, endDateISO: promo.endDateISO }, new Date().toISOString()), false)
+  assert.equal(
+    isPromoStale(
+      { enabled: true, endDateISO: promo.endDateISO },
+      new Date().toISOString()
+    ),
+    false
+  )
 })

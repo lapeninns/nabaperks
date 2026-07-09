@@ -85,8 +85,10 @@ function parseSeriesCount(value: unknown): number {
   return 0
 }
 
-function londonMidnightFloorIso(dayKey: string): string {
-  return new Date(Date.parse(`${dayKey}T00:00:00Z`) - 3_600_000).toISOString()
+export function londonMidnightFloorIso(dayKey: string): string {
+  const [year, month, day] = dayKey.split("-").map(Number)
+  const utcMidnight = Date.UTC(year, month - 1, day)
+  return new Date(utcMidnight - londonOffsetMsAt(utcMidnight)).toISOString()
 }
 
 function londonDayKey(value: Date): string {
@@ -100,4 +102,23 @@ function londonDayKey(value: Date): string {
   const month = parts.find((part) => part.type === "month")?.value
   const day = parts.find((part) => part.type === "day")?.value
   return `${year}-${month}-${day}`
+}
+
+function londonOffsetMsAt(timestampMs: number): number {
+  const offset = new Intl.DateTimeFormat("en-GB", {
+    timeZone: LONDON,
+    timeZoneName: "shortOffset",
+  })
+    .formatToParts(new Date(timestampMs))
+    .find((part) => part.type === "timeZoneName")?.value
+
+  if (!offset || offset === "GMT" || offset === "UTC") return 0
+
+  const match = /^GMT([+-])(\d{1,2})(?::(\d{2}))?$/.exec(offset)
+  if (!match) return 0
+
+  const sign = match[1] === "+" ? 1 : -1
+  const hours = Number(match[2])
+  const minutes = Number(match[3] ?? "0")
+  return sign * (hours * 60 + minutes) * 60_000
 }

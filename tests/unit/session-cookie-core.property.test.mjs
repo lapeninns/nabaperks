@@ -41,6 +41,7 @@ const pendingEmailPayloadArbitrary = timestampArbitrary.chain((issuedAt) =>
       version: fc.constant(1),
       email: fc.emailAddress(),
       codeHmac: fc.string({ minLength: 1, maxLength: 80 }),
+      customerId: fc.option(fc.uuid(), { nil: null }),
       issuedAt: fc.constant(issuedAt),
       expiresAt: fc.integer({ min: issuedAt + 1, max: issuedAt + 86_400 }),
     })

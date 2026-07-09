@@ -84,7 +84,7 @@ const INCOMPLETE_SETUP_READINESS = buildLaunchReadiness({
 export default async function DashboardHarnessPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ setup?: string; members?: string }>
+  searchParams?: Promise<{ setup?: string; members?: string; qr?: string }>
 }) {
   if (process.env.NODE_ENV === "production") {
     notFound()
@@ -93,6 +93,9 @@ export default async function DashboardHarnessPage({
   const params = searchParams ? await searchParams : {}
   const showSetupReminder = params.setup === "incomplete"
   const showEmptyMembers = params.members === "empty"
+  const qrPaused = params.qr === "paused"
+  const qrGated = params.qr === "gated"
+  const qrScansAvailable = !qrPaused && !qrGated
 
   const { readyCount, quietCount, repeatCustomers, members } =
     HARNESS_NEXT_ACTIONS
@@ -126,7 +129,10 @@ export default async function DashboardHarnessPage({
         qrCodeId="qr_harness"
         venueName={HARNESS_MERCHANT.business_name}
         shareUrl="https://nabaperks.com/q/old-crown-girton"
-        isActive
+        isActive={!qrPaused}
+        scansAvailable={qrScansAvailable}
+        actionHref={qrGated ? "/app/launch?tab=billing" : "/app/qr"}
+        actionLabel={qrGated ? "Finish launch setup" : "Review QR setup"}
       />
 
       {showEmptyMembers ? (
@@ -165,7 +171,10 @@ export default async function DashboardHarnessPage({
             startLabel="2 weeks ago"
             endLabel="Today"
             aria-label="Daily stamps issued and new members over the last 14 days"
-            series={HARNESS_TREND_SERIES.map((s) => ({ ...s, data: [...s.data] }))}
+            series={HARNESS_TREND_SERIES.map((s) => ({
+              ...s,
+              data: [...s.data],
+            }))}
           />
         </ReceiptCard>
       </section>
