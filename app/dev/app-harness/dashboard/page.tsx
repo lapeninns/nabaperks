@@ -19,6 +19,7 @@ import {
 } from "@/components/brand"
 import { TrendChart } from "@/components/data"
 import { ActivityCompactFeed } from "@/components/merchant/activity-compact-feed"
+import { DashboardMembersEmptyState } from "@/components/merchant/dashboard-home-streams"
 import { DashboardQrCardView } from "@/components/merchant/dashboard-qr-card"
 import { MerchantNextActions } from "@/components/merchant/dashboard-next-actions"
 import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
@@ -83,7 +84,7 @@ const INCOMPLETE_SETUP_READINESS = buildLaunchReadiness({
 export default async function DashboardHarnessPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ setup?: string }>
+  searchParams?: Promise<{ setup?: string; members?: string }>
 }) {
   if (process.env.NODE_ENV === "production") {
     notFound()
@@ -91,6 +92,7 @@ export default async function DashboardHarnessPage({
 
   const params = searchParams ? await searchParams : {}
   const showSetupReminder = params.setup === "incomplete"
+  const showEmptyMembers = params.members === "empty"
 
   const { readyCount, quietCount, repeatCustomers, members } =
     HARNESS_NEXT_ACTIONS
@@ -127,6 +129,9 @@ export default async function DashboardHarnessPage({
         isActive
       />
 
+      {showEmptyMembers ? (
+        <DashboardMembersEmptyState />
+      ) : (
       <section className="grid gap-3">
         <SectionHeader
           eyebrow="Last 14 days"
@@ -164,6 +169,7 @@ export default async function DashboardHarnessPage({
           />
         </ReceiptCard>
       </section>
+      )}
 
       <MerchantNextActions
         readyCount={readyCount}
