@@ -88,7 +88,7 @@ function RequirementChip({
     <li className="group/chip relative">
       <span
         className={cn(
-          "inline-flex min-h-6 cursor-help items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[0.65rem] font-bold tracking-wide uppercase transition-[border-color,background-color,color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
+          "inline-flex min-h-6 cursor-help items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[0.65rem] font-bold tracking-wide transition-[border-color,background-color,color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
           met
             ? "border-ink bg-stamp text-stamp-foreground"
             : "border-dashed border-ink/30 bg-card text-muted-foreground"

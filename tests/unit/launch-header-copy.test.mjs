@@ -72,10 +72,10 @@ test("mid-setup: next-step heading + progress context, no header CTA", () => {
 
 // --- needsBilling: information hierarchy ------------------------------------
 
-test("needsBilling: heading states the account, context states what's LEFT", () => {
+test("needsBilling: heading states the progress, context states what's LEFT", () => {
   const header = resolveLaunchHeaderModel(needsBilling, "venue")
 
-  assert.equal(header.heading, "Your account is created")
+  assert.equal(header.heading, "One step from live")
   assert.equal(header.mobileContext, "The last step before your venue goes live.")
   // The context and description must not repeat the heading text (the redundant
   // triple this pass removed).

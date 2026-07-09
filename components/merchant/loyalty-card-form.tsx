@@ -351,6 +351,15 @@ export function RewardPoolForm({
         </MonoTag>
       </div>
 
+      {/* Screen-reader status: the visual MonoTag count isn't announced when a
+          preset/reward is added or activated, so mirror it in a polite live
+          region so assistive tech hears progress toward the launch gate. */}
+      <p className="sr-only" role="status" aria-live="polite">
+        {ready
+          ? `${activeRewardCount} active rewards — ready to launch.`
+          : `${activeRewardCount} of ${REQUIRED_ACTIVE_REWARDS} active rewards.`}
+      </p>
+
       <p className="text-sm leading-5 text-muted-foreground">
         {ready ? (
           <>

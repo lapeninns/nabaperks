@@ -1,10 +1,10 @@
 import Link from "next/link"
-import { CreditCardIcon } from "@hugeicons/core-free-icons"
+import { CheckmarkBadge04Icon, CreditCardIcon } from "@hugeicons/core-free-icons"
 
 import { startCheckoutAction } from "@/app/app/billing/actions"
 import { Eyebrow, Icon, ReceiptCard } from "@/components/brand"
 import { Button } from "@/components/ui/button"
-import { PRODUCT } from "@/lib/marketing/facts"
+import { GUARANTEE, PRODUCT } from "@/lib/marketing/facts"
 
 /**
  * First-run billing activation surface — plan facts, one primary "Proceed to
@@ -27,8 +27,8 @@ export function SetupBillingActivationCard({
       padding="sm"
       className="grid gap-4 sm:[--card-spacing:--spacing(6)] sm:gap-5"
     >
-      {/* The page header carries the state ("Your account is created"); this
-          card carries the ACTION. Titling it "Activate your venue" matches the
+      {/* The page header carries the state/progress ("One step from live");
+          this card carries the ACTION. Titling it "Activate your venue" matches the
           billing-status copy and the account billing card, so every
           add-a-card surface shares one title instead of repeating the header. */}
       <div className="grid gap-2">
@@ -44,6 +44,7 @@ export function SetupBillingActivationCard({
 
       <dl className="grid gap-0 rounded-lg border border-border bg-secondary/40 px-3 py-1 text-sm">
         <PlanRow label="Free trial" value="30 days" />
+        <PlanRow label="Due today" value="£0" />
         <PlanRow label="Then" value="£49 a month" />
         <PlanRow label="Billed" value="Per location" />
       </dl>
@@ -69,8 +70,20 @@ export function SetupBillingActivationCard({
           </form>
         ) : null}
         <p className="text-center text-xs leading-5 text-muted-foreground">
-          Secure checkout via Stripe. Cancel anytime during the trial.
+          Secure checkout via Stripe. {PRODUCT.cancelChip} from your billing
+          page.
         </p>
+        <div className="flex items-start gap-2 rounded-lg border border-reward/30 bg-reward/8 px-3 py-2">
+          <Icon
+            icon={CheckmarkBadge04Icon}
+            size={16}
+            className="mt-0.5 shrink-0 text-reward"
+          />
+          <p className="text-xs leading-5 text-muted-foreground">
+            <span className="font-bold text-foreground">{GUARANTEE.name}:</span>{" "}
+            {GUARANTEE.line}
+          </p>
+        </div>
       </div>
 
       <p className="text-xs leading-5 text-muted-foreground">

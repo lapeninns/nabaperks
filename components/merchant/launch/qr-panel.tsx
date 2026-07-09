@@ -159,7 +159,7 @@ function statusMessage(
   return (
     <StatusBanner tone="success" title={message}>
       {nextHref
-        ? "Your account is created. Proceed to billing to activate your venue and start accepting stamps."
+        ? "One step from live. Proceed to billing to activate your venue and start accepting stamps."
         : "The permanent resolver and share URL are ready below."}
       {nextHref ? (
         <LaunchSaveNextAction

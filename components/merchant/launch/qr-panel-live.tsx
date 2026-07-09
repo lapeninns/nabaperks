@@ -163,7 +163,7 @@ export function QrPanelLive({
           <LaunchStep
             step="02"
             title="Print a counter poster"
-            description="Pick a layout, open the A4 sheet, and print at 100% scale — no fit-to-page."
+            description="Pick a layout and open the A4 sheet. On a computer, print at 100% (no fit-to-page); on a phone, use your browser to print or save the PDF."
             headingId="qr-print-heading"
           />
           <ul className="grid gap-2 sm:grid-cols-2">
