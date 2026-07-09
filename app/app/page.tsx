@@ -25,7 +25,10 @@ import {
   capturePostHogEvent,
   type ProductEventInput,
 } from "@/lib/analytics/events"
-import { getMerchantLaunchReadiness } from "@/lib/merchant/launch-readiness"
+import {
+  getMerchantLaunchReadiness,
+  isVenueOperational,
+} from "@/lib/merchant/launch-readiness"
 import { getMerchantOnboardingStatus } from "@/lib/merchant/onboarding"
 import { timeServerLoader } from "@/lib/perf/server-timing"
 
@@ -61,11 +64,14 @@ export default async function MerchantAppPage() {
         title={merchant.business_name}
         description="A quick read on how your loyalty card is doing: members, repeat visits, and rewards."
         actions={
-          readiness.launchReady ? (
-            // Live venue: scanning a reward at the counter is the reach-for
-            // action, so it leads. flex-col-reverse keeps it on TOP when the
-            // buttons stack full-width on mobile (the secondary would otherwise
-            // sit above it); sm:flex-row restores primary-rightmost on desktop.
+          isVenueOperational(readiness) ? (
+            // Operational venue — live, or already launched with the join QR
+            // merely paused (existing members still redeem at the counter, so
+            // scanning must stay reachable; a paused QR only stops new joins).
+            // Scanning a reward at the counter is the reach-for action, so it
+            // leads. flex-col-reverse keeps it on TOP when the buttons stack
+            // full-width on mobile (the secondary would otherwise sit above it);
+            // sm:flex-row restores primary-rightmost on desktop.
             <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row">
               <Button asChild variant="secondary" className="w-full sm:w-auto">
                 <Link href="/app/announcements" prefetch={false}>
@@ -81,9 +87,10 @@ export default async function MerchantAppPage() {
               </Button>
             </div>
           ) : (
-            // Not live yet: with no members there is nothing to scan or announce
-            // to, so finishing setup is the only action that matters — a
-            // premature "Scan reward" must not compete with it.
+            // Still in setup (a gate outstanding, or the QR never created): with
+            // no members yet there is nothing to scan or announce to, so
+            // finishing setup is the only action that matters — a premature
+            // "Scan reward" must not compete with it.
             <Button asChild className="w-full sm:w-auto">
               <Link
                 href={readiness.nextStep?.href ?? "/app/launch"}

@@ -7,6 +7,7 @@ import {
   isJoinQrProvisionEligible,
   isLaunchBillingReady,
   isLaunchSetupCompleteWithoutQr,
+  isVenueOperational,
   needsLaunchBillingActivation,
   resolveLaunchActiveTab,
   resolveLaunchBillingHref,
@@ -204,6 +205,75 @@ test("fully ready (billing active) launches with no next step", () => {
   assert.equal(r.nextStep, null)
   assert.equal(needsLaunchBillingActivation(r), false)
   assert.equal(resolveLaunchBillingHref(r), null)
+})
+
+// --- dashboard operational state -------------------------------------------
+
+test("qrExists reflects the QR row, not its active state", () => {
+  assert.equal(
+    buildLaunchReadiness(readyInput({ qrCode: null })).qrExists,
+    false
+  )
+  assert.equal(
+    buildLaunchReadiness(readyInput({ qrCode: activeQr(false) })).qrExists,
+    true,
+    "a paused QR still exists"
+  )
+  assert.equal(
+    buildLaunchReadiness(readyInput({ qrCode: activeQr(true) })).qrExists,
+    true
+  )
+})
+
+test("isVenueOperational: live and paused-but-launched venues stay operational", () => {
+  // Fully launch-ready.
+  const live = buildLaunchReadiness(readyInput())
+  assert.equal(live.launchReady, true)
+  assert.equal(isVenueOperational(live), true)
+
+  // Already launched, join QR paused (row exists, is_active=false). Setup is
+  // otherwise complete, so existing members still redeem at the counter — the
+  // dashboard must keep the live "Scan reward" action, not regress to setup.
+  const paused = buildLaunchReadiness(readyInput({ qrCode: activeQr(false) }))
+  assert.equal(paused.launchReady, false)
+  assert.equal(isVenueOperational(paused), true)
+
+  // Same, for a real requires_billing merchant whose billing is active.
+  const pausedBilling = buildLaunchReadiness(
+    readyInput({
+      qrCode: activeQr(false),
+      billing: { requiresBilling: true, status: "active" },
+    })
+  )
+  assert.equal(pausedBilling.launchReady, false)
+  assert.equal(isVenueOperational(pausedBilling), true)
+})
+
+test("isVenueOperational: first-run, never-created-QR, and gated states are not operational", () => {
+  // First run: nothing set up.
+  const empty = buildLaunchReadiness({
+    activeCard: null,
+    activeRewardPoolItemCount: 0,
+    qrCode: null,
+    location: null,
+  })
+  assert.equal(isVenueOperational(empty), false)
+
+  // Setup otherwise complete but the QR was never created — no members to scan
+  // or announce to yet, so this stays "Finish setup".
+  const neverCreatedQr = buildLaunchReadiness(readyInput({ qrCode: null }))
+  assert.equal(neverCreatedQr.qrExists, false)
+  assert.equal(isVenueOperational(neverCreatedQr), false)
+
+  // A lapsed non-QR gate (billing past_due) with a QR row present is a real
+  // gate needing attention, not a pause: not operational.
+  const billingLapsed = buildLaunchReadiness(
+    readyInput({
+      qrCode: activeQr(false),
+      billing: { requiresBilling: true, status: "past_due" },
+    })
+  )
+  assert.equal(isVenueOperational(billingLapsed), false)
 })
 
 // --- QR provisioning eligibility -------------------------------------------

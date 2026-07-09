@@ -15,6 +15,7 @@ import {
   buildLaunchReadiness,
   isLaunchBillingReady,
   isLaunchSetupCompleteWithoutQr,
+  isVenueOperational,
   needsLaunchBillingActivation,
   resolveLaunchBillingHref,
 } from "@/lib/merchant/launch-readiness-core"
@@ -27,6 +28,7 @@ export {
   buildLaunchReadiness,
   isLaunchBillingReady,
   isLaunchSetupCompleteWithoutQr,
+  isVenueOperational,
   needsLaunchBillingActivation,
   resolveLaunchBillingHref,
 }
