@@ -1,11 +1,13 @@
 import { spawnSync } from "node:child_process"
 
 /**
- * Runs local Supabase CLI commands with the auth hook secret placeholder the
- * CLI requires when parsing supabase/config.toml.
+ * Runs local Supabase CLI commands with the auth hook defaults the CLI needs
+ * when parsing supabase/config.toml. Explicit caller values stay authoritative.
  */
 const hookSecretPlaceholder =
   "v1,whsec_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa="
+const localHookUri =
+  "http://host.docker.internal:3000/api/auth/hooks/send-email"
 
 const args = process.argv.slice(2)
 
@@ -24,6 +26,8 @@ const result = spawnSync("supabase", args, {
     ...process.env,
     SUPABASE_SEND_EMAIL_HOOK_SECRET:
       process.env.SUPABASE_SEND_EMAIL_HOOK_SECRET || hookSecretPlaceholder,
+    SUPABASE_SEND_EMAIL_HOOK_URI:
+      process.env.SUPABASE_SEND_EMAIL_HOOK_URI || localHookUri,
   },
 })
 

@@ -7,19 +7,16 @@ import { useActionState, useEffect, useState } from "react"
 import type { AuthActionState } from "@/app/(auth)/actions"
 import { signUpAction } from "@/app/(auth)/actions"
 import { AuthField } from "@/components/auth/auth-field"
-import {
-  PasswordRequirements,
-} from "@/components/auth/password-requirements"
+import { PasswordRequirements } from "@/components/auth/password-requirements"
 import { SubmitButton } from "@/components/forms"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  validateConfirmPassword,
-  validatePassword,
-} from "@/lib/auth/password"
+import { validateConfirmPassword, validatePassword } from "@/lib/auth/password"
+import { merchantLoginHref } from "@/lib/navigation/merchant-auth-hrefs"
 import { cn } from "@/lib/utils"
 
 type SignupDetailsFormProps = {
   readonly initialEmail?: string
+  readonly initialName?: string
   readonly next?: string
 }
 
@@ -29,6 +26,7 @@ type ClientErrors = NonNullable<AuthActionState["errors"]>
 
 export function SignupDetailsForm({
   initialEmail,
+  initialName,
   next = "/app/onboarding",
 }: SignupDetailsFormProps) {
   const [state, formAction] = useActionState(signUpAction, initialState)
@@ -109,7 +107,7 @@ export function SignupDetailsForm({
           description="The owner or operator running the venue. You add the business name and venue next."
           name="name"
           autoComplete="name"
-          defaultValue={state.fields?.name}
+          defaultValue={state.fields?.name ?? initialName}
           error={errors.name}
         />
         <AuthField
@@ -183,7 +181,14 @@ export function SignupDetailsForm({
       </form>
       <p className="text-center text-sm text-muted-foreground">
         Already piloting?{" "}
-        <AuthPromptLink href="/login">Log in</AuthPromptLink>
+        <AuthPromptLink
+          href={merchantLoginHref({
+            email: state.fields?.email ?? initialEmail,
+            next,
+          })}
+        >
+          Log in
+        </AuthPromptLink>
       </p>
     </div>
   )

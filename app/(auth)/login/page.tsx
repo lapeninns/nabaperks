@@ -38,6 +38,7 @@ const LOGIN_ERROR_FALLBACK = {
 
 type LoginPageProps = {
   searchParams: Promise<{
+    email?: string | string[]
     next?: string | string[]
     error?: string | string[]
   }>
@@ -46,7 +47,8 @@ type LoginPageProps = {
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams
   const user = await getCurrentUser()
-  const next = firstSearchParam(params.next) ?? "/app"
+  const email = firstSearchParam(params.email)
+  const next = safeMerchantNextPath(firstSearchParam(params.next) ?? "/app")
   const error = firstSearchParam(params.error)
 
   if (user) {
@@ -54,7 +56,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   }
 
   return (
-    <MarketingLayout>
+    <MarketingLayout focused>
       <section
         className={cn(
           "mx-auto grid w-full max-w-5xl content-start gap-8 px-6 py-6 sm:gap-10 sm:py-10 lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] lg:content-center lg:items-center",
@@ -108,7 +110,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               </AlertDescription>
             </Alert>
           ) : null}
-          <AuthForm action={signInAction} mode="sign-in" next={next} embedded />
+          <AuthForm
+            action={signInAction}
+            mode="sign-in"
+            next={next}
+            initialEmail={email}
+            embedded
+          />
         </ReceiptCard>
       </section>
     </MarketingLayout>

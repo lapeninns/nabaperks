@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
 import { AUTH_SECTION_MIN_H } from "@/app/(auth)/viewport"
@@ -9,9 +10,11 @@ import {
   merchantEmailOtpAliasDigitLabel,
   merchantEmailOtpAliasLength,
 } from "@/lib/auth/merchant-email-otp-alias"
+import { readMerchantOtpResendCooldown } from "@/lib/auth/merchant-otp-resend"
 import { getCurrentUser } from "@/lib/auth/session"
 import { ROUTES } from "@/lib/marketing/facts"
 import { safeMerchantNextPath } from "@/lib/navigation/safe-next-path"
+import { rateLimitIdentityFromHeaders } from "@/lib/security/rate-limit"
 import { cn } from "@/lib/utils"
 
 export const metadata: Metadata = {
@@ -35,7 +38,10 @@ export default async function SignupVerifyPage({
   const params = await searchParams
   const email = firstParam(params.email)?.toLowerCase()
   const name = firstParam(params.name)
-  const next = firstParam(params.next) ?? "/app/onboarding"
+  const next = safeMerchantNextPath(
+    firstParam(params.next) ?? "/app/onboarding",
+    "/app/onboarding"
+  )
 
   if (!email || !looksLikeEmail(email)) {
     redirect(ROUTES.signup)
@@ -43,10 +49,23 @@ export default async function SignupVerifyPage({
 
   const user = await getCurrentUser()
   if (user) {
-    redirect(safeMerchantNextPath(next))
+    redirect(next)
   }
 
   const otpCodeLabel = merchantEmailOtpAliasDigitLabel()
+  let initialRetryAt: string | undefined
+
+  try {
+    initialRetryAt = await readMerchantOtpResendCooldown({
+      email,
+      purpose: "signup",
+      requestIdentity: rateLimitIdentityFromHeaders(await headers()),
+    })
+  } catch {
+    // The action still enforces the durable server limit. A failed GET peek
+    // must not make the verification route itself unavailable.
+    console.error("Merchant signup OTP cooldown readback failed")
+  }
 
   return (
     <MarketingLayout focused>
@@ -60,16 +79,16 @@ export default async function SignupVerifyPage({
           <PageTitle
             eyebrow="Email check"
             title="Check your email."
-            description={`Enter the ${otpCodeLabel} code we sent, then continue to your venue setup.`}
+            description={`If this email can start a venue account, enter the ${otpCodeLabel} code we sent, then continue to setup.`}
             titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
             descriptionClassName="text-base leading-7 text-pretty"
             className="md:grid-cols-1"
           />
           <div className="border-t-2 border-dashed border-border pt-5">
             <p className="max-w-xl text-sm leading-6 font-bold text-pretty">
-              Your operator account is created. Verifying your email confirms
-              it — then you set up your business, venue, and rewards. Keep this
-              tab open while you check your inbox.
+              A code confirms this email before venue setup. If you have used
+              this address before, log in or reset your password instead. Keep
+              this tab open while you check your inbox.
             </p>
           </div>
         </div>
@@ -81,8 +100,9 @@ export default async function SignupVerifyPage({
               Enter your code
             </h2>
             <p className="text-sm leading-6 text-pretty text-muted-foreground">
-              Use the {otpCodeLabel} code from your email. You can resend it
-              here if the first one has gone missing.
+              Use the {otpCodeLabel} code from your email. No code after a
+              minute? Check spam, resend, or use the account recovery links
+              below.
             </p>
           </div>
           <SignupVerifyForm
@@ -90,6 +110,7 @@ export default async function SignupVerifyPage({
             name={name}
             next={next}
             otpLength={merchantEmailOtpAliasLength()}
+            initialRetryAt={initialRetryAt}
           />
         </ReceiptCard>
       </section>

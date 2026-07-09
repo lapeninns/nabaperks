@@ -55,6 +55,8 @@ function isCustomerAuthPath(path: string): boolean {
 function isMerchantAuthPath(path: string): boolean {
   return (
     isSamePathOrDescendant(path, "/login") ||
+    isSamePathOrDescendant(path, "/reset-password") ||
+    isSamePathOrDescendant(path, "/auth/confirm") ||
     isSamePathOrDescendant(path, "/signup/verify") ||
     isSamePathOrDescendant(path, "/signup")
   )
@@ -64,6 +66,7 @@ function isSamePathOrDescendant(path: string, basePath: string): boolean {
   return (
     path === basePath ||
     path.startsWith(`${basePath}?`) ||
+    path.startsWith(`${basePath}#`) ||
     path.startsWith(`${basePath}/`)
   )
 }

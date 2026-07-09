@@ -4,6 +4,8 @@ import { test } from "node:test"
 import {
   MERCHANT_OTP_OUTCOMES,
   merchantOtpFocusTarget,
+  merchantOtpFreshCodeRequiredAfter,
+  merchantOtpRequiresFreshCode,
   merchantOtpRetryCountdown,
   normalizeMerchantOtpRetryAt,
 } from "@/lib/auth/merchant-auth-action-state"
@@ -34,15 +36,35 @@ test("only an editable invalid code sends focus back to the OTP field", () => {
     "superseded",
     "busy",
     "throttled",
+    "verification_unavailable",
     "delivery_unavailable",
     "password_update_failed",
   ]) {
     assert.equal(merchantOtpFocusTarget(outcome), "recovery", outcome)
   }
 
-  assert.equal(merchantOtpFocusTarget("verification_unavailable"), null)
   assert.equal(merchantOtpFocusTarget("sent"), "otp")
   assert.equal(merchantOtpFocusTarget("idle"), null)
+})
+
+test("terminal code state survives failed resends until a fresh send succeeds", () => {
+  for (const outcome of [
+    "expired",
+    "used",
+    "superseded",
+    "delivery_unavailable",
+    "verification_required",
+    "password_update_failed",
+  ]) {
+    assert.equal(merchantOtpRequiresFreshCode(outcome), true, outcome)
+  }
+
+  let required = merchantOtpFreshCodeRequiredAfter(false, "expired")
+  assert.equal(required, true)
+  required = merchantOtpFreshCodeRequiredAfter(required, "throttled")
+  assert.equal(required, true, "a blocked resend cannot revive the stale code")
+  required = merchantOtpFreshCodeRequiredAfter(required, "sent")
+  assert.equal(required, false, "only a successful send restores verification")
 })
 
 test("retry countdowns ceil partial seconds and never go below zero", () => {

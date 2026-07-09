@@ -31,17 +31,22 @@ test("resend keys normalize email and separate signup from recovery", () => {
 
 test("a resend enforces a 60-second cooldown and bounded long window", async () => {
   const calls = []
+  const enforcedKeys = new Set()
   const retryAt = "2026-07-09T12:01:00.000Z"
   const dependencies = {
-    enforceRateLimit: async (config) => calls.push(["enforce", config]),
+    enforceRateLimit: async (config) => {
+      calls.push(["enforce", config])
+      enforcedKeys.add(config.key)
+    },
     peekRateLimit: async (config) => {
       calls.push(["peek", config])
+      const exhausted = enforcedKeys.has(config.key) && config.limit === 1
       return {
-        used: 1,
+        used: exhausted ? config.limit : 0,
         limit: config.limit,
-        remaining: 0,
+        remaining: exhausted ? 0 : config.limit,
         windowMs: config.windowMs,
-        resetAt: retryAt,
+        resetAt: exhausted ? retryAt : null,
       }
     },
   }
@@ -49,17 +54,25 @@ test("a resend enforces a 60-second cooldown and bounded long window", async () 
   assert.deepEqual(await enforceMerchantOtpResend(input, dependencies), {
     retryAt,
   })
-  assert.equal(calls[0][1].limit, 1)
-  assert.equal(calls[0][1].windowMs, MERCHANT_OTP_RESEND_COOLDOWN_MS)
-  assert.equal(calls[1][1].limit, 5)
-  assert.equal(calls[1][1].windowMs, MERCHANT_OTP_RESEND_WINDOW_MS)
-  assert.equal(calls[2][0], "peek")
+  const enforced = calls
+    .filter(([kind]) => kind === "enforce")
+    .map(([, config]) => config)
+  assert.deepEqual(
+    enforced.map(({ limit, windowMs }) => ({ limit, windowMs })),
+    [
+      { limit: 1, windowMs: MERCHANT_OTP_RESEND_COOLDOWN_MS },
+      { limit: 5, windowMs: MERCHANT_OTP_RESEND_WINDOW_MS },
+    ]
+  )
 })
 
-test("a blocked resend returns the durable non-sliding reset time", async () => {
-  const retryAt = "2026-07-09T12:01:00.000Z"
+test("a blocked resend returns the latest durable non-sliding reset time", async () => {
+  const cooldownRetryAt = "2026-07-09T12:01:00.000Z"
+  const windowRetryAt = "2026-07-09T12:12:00.000Z"
+  let enforceCalls = 0
   const dependencies = {
     enforceRateLimit: async () => {
+      enforceCalls += 1
       throw new RateLimitError()
     },
     peekRateLimit: async ({ limit, windowMs }) => ({
@@ -67,7 +80,10 @@ test("a blocked resend returns the durable non-sliding reset time", async () => 
       limit,
       remaining: 0,
       windowMs,
-      resetAt: retryAt,
+      resetAt:
+        windowMs === MERCHANT_OTP_RESEND_COOLDOWN_MS
+          ? cooldownRetryAt
+          : windowRetryAt,
     }),
   }
 
@@ -75,7 +91,12 @@ test("a blocked resend returns the durable non-sliding reset time", async () => 
     enforceMerchantOtpResend(input, dependencies),
     (error) =>
       error instanceof MerchantOtpResendRateLimitError &&
-      error.retryAt === retryAt
+      error.retryAt === windowRetryAt
+  )
+  assert.equal(
+    enforceCalls,
+    0,
+    "preflight blocks without spending another bucket"
   )
 })
 
@@ -102,5 +123,31 @@ test("initial signup records only the cooldown and GET readback preserves it", a
   assert.equal(
     await readMerchantOtpResendCooldown(input, dependencies),
     retryAt
+  )
+})
+
+test("GET readback preserves the exhausted long window after cooldown expires", async () => {
+  const windowRetryAt = "2026-07-09T12:14:00.000Z"
+  const dependencies = {
+    enforceRateLimit: async () => {
+      throw new Error("readback must not spend a rate-limit bucket")
+    },
+    peekRateLimit: async ({ limit, windowMs }) => ({
+      used:
+        windowMs === MERCHANT_OTP_RESEND_WINDOW_MS
+          ? limit
+          : Math.max(0, limit - 1),
+      limit,
+      remaining:
+        windowMs === MERCHANT_OTP_RESEND_WINDOW_MS ? 0 : Math.max(1, limit),
+      windowMs,
+      resetAt:
+        windowMs === MERCHANT_OTP_RESEND_WINDOW_MS ? windowRetryAt : null,
+    }),
+  }
+
+  assert.equal(
+    await readMerchantOtpResendCooldown(input, dependencies),
+    windowRetryAt
   )
 })

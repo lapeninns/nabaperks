@@ -20,11 +20,15 @@ allowed_blast_radius:
   - components/auth/otp-resend-control.tsx
   - lib/auth/merchant-auth-action-state.ts
   - lib/auth/merchant-otp-resend.ts
+  - lib/auth/merchant-recovery-session-cleanup.ts
   - lib/navigation/merchant-auth-hrefs.ts
+  - lib/navigation/safe-next-path.ts
   - lib/security/rate-limit.ts
   - tests/unit/merchant-auth-action-state.test.mjs
   - tests/unit/merchant-otp-resend.test.mjs
+  - tests/unit/merchant-recovery-session-cleanup.test.mjs
   - tests/unit/safe-next-path.test.mjs
+  - tests/unit/github-review-ui-fixes.test.mjs
   - tests/micro-specs/auth-recovery-ux.test.mjs
   - tests/e2e/merchant-auth-recovery.spec.ts
   - tests/e2e/merchant-auth-recovery.desktop.spec.ts
@@ -32,6 +36,13 @@ allowed_blast_radius:
   - tests/e2e/helpers/merchant-auth-recovery-live-db.ts
   - tests/e2e/visual.spec.ts
   - tests/e2e/visual.spec.ts-snapshots/auth-*.png
+  - tests/e2e/visual.spec.ts-snapshots/harness-qr-chromium.png
+  - tests/e2e/visual.spec.ts-snapshots/harness-qr-mobile-safari.png
+  - supabase/config.toml
+  - scripts/supabase-local.mjs
+  - scripts/supabase-linked.mjs
+  - scripts/check-supabase-migrations.mjs
+  - .github/workflows/ci.yml
 implementation_surfaces:
   - micro-specs/auth/recovery-ux.md
   - micro-specs/evidence/MS-auth-recovery-ux.json
@@ -48,11 +59,15 @@ implementation_surfaces:
   - components/auth/otp-resend-control.tsx
   - lib/auth/merchant-auth-action-state.ts
   - lib/auth/merchant-otp-resend.ts
+  - lib/auth/merchant-recovery-session-cleanup.ts
   - lib/navigation/merchant-auth-hrefs.ts
+  - lib/navigation/safe-next-path.ts
   - lib/security/rate-limit.ts
   - tests/unit/merchant-auth-action-state.test.mjs
   - tests/unit/merchant-otp-resend.test.mjs
+  - tests/unit/merchant-recovery-session-cleanup.test.mjs
   - tests/unit/safe-next-path.test.mjs
+  - tests/unit/github-review-ui-fixes.test.mjs
   - tests/micro-specs/auth-recovery-ux.test.mjs
   - tests/e2e/merchant-auth-recovery.spec.ts
   - tests/e2e/merchant-auth-recovery.desktop.spec.ts
@@ -60,6 +75,13 @@ implementation_surfaces:
   - tests/e2e/helpers/merchant-auth-recovery-live-db.ts
   - tests/e2e/visual.spec.ts
   - tests/e2e/visual.spec.ts-snapshots/auth-*.png
+  - tests/e2e/visual.spec.ts-snapshots/harness-qr-chromium.png
+  - tests/e2e/visual.spec.ts-snapshots/harness-qr-mobile-safari.png
+  - supabase/config.toml
+  - scripts/supabase-local.mjs
+  - scripts/supabase-linked.mjs
+  - scripts/check-supabase-migrations.mjs
+  - .github/workflows/ci.yml
 related_docs:
   - micro-specs/GLOBAL_CONTEXT.md
   - reports/merchant-journey-ux-audit-2026-07-09.md
@@ -67,7 +89,9 @@ related_docs:
 related_tests:
   - tests/unit/merchant-auth-action-state.test.mjs
   - tests/unit/merchant-otp-resend.test.mjs
+  - tests/unit/merchant-recovery-session-cleanup.test.mjs
   - tests/unit/safe-next-path.test.mjs
+  - tests/unit/github-review-ui-fixes.test.mjs
   - tests/micro-specs/auth-recovery-ux.test.mjs
   - tests/e2e/merchant-auth-recovery.spec.ts
   - tests/e2e/merchant-auth-recovery.desktop.spec.ts
@@ -93,6 +117,7 @@ evidence_required:
   - Accessibility proof with zero serious or critical axe violations across signup, verification, login, and password reset.
   - Visual regression proof for the four merchant auth routes at mobile and desktop viewports.
   - Source and runtime proof that passwords, provider tokens, raw provider errors, and untrusted redirect targets never enter action state or browser output.
+  - Runtime proof that the local Auth hook targets the owned local failure sink; synthetic `sent` presentation proof remains labelled separately from real provider delivery.
 approved_exceptions: []
 ---
 
@@ -114,12 +139,17 @@ May edit only the merchant auth actions and public auth pages, their four form
 components plus one shared resend control, the pure action-state and server
 resend helpers, merchant auth URL builders, the existing rate-limit readback,
 and the focused unit, source-contract, Playwright, accessibility, and snapshot
-tests listed in frontmatter.
+tests listed in frontmatter. The broad visual gate may also reconcile the two
+stale macOS harness-QR snapshots with the already-shipped email-poster control;
+the Linux baselines already carry that state. Local Supabase hook URI plumbing
+and the DB CI environment may change only to separate local proof from the
+linked production hook.
 
 Out of scope: the OTP alias database migration and lifecycle RPCs, customer OTP,
 hosted Supabase or Resend configuration, production email-delivery operations,
 password-policy modernisation, funnel analytics, onboarding, billing, shared
-marketing layout redesign, and any new database schema. The focused signup,
+marketing layout redesign, runtime QR-harness changes, and any new database
+schema. The focused signup,
 verification, and reset shell, spam-folder guidance, distinct password-rule
 labels, numeric keyboard, one-time-code autocomplete, and paste-friendly single
 OTP field already exist and must be preserved.
@@ -152,7 +182,9 @@ OTP field already exist and must be preserved.
   form never proves the email exists; only the real code can establish a
   session.
 - Browser proof uses disposable local users and aliases only, never live email
-  delivery or linked/production database writes.
+  delivery or linked/production database writes. The running local Auth
+  container SHALL target an exact local HTTP failure sink that never stores or
+  logs its OTP-bearing request body; the suite refuses any other runtime URI.
 
 ## 4. Decisions Already Made
 
@@ -194,6 +226,13 @@ OTP field already exist and must be preserved.
   announcement; assistive technology hears only cooldown start and availability.
 - Reset reuses the existing live `PasswordRequirements` component and client
   validation, without changing the actual password policy.
+- A resend infrastructure failure before the provider is called maps to a
+  non-destructive unavailable state: the current code remains editable and no
+  delivery claim is made. `delivery_unavailable` is reserved for provider-send
+  attempts where the UI must require a fresh code.
+- Password-update failure cleanup is one tested policy boundary: returned and
+  thrown failures both attempt local-scope revocation, fall back to admin
+  local-scope revocation, and clear browser credentials on every path.
 
 ## 5. Behavioral Requirements (EARS)
 
@@ -205,6 +244,7 @@ OTP field already exist and must be preserved.
 - IF provider verification is temporarily unavailable, THEN THE UI SHALL say the code remains safe to retry and SHALL NOT request a replacement automatically.
 - WHEN a resend succeeds, THE UI SHALL say earlier codes no longer work, clear the obsolete entry, focus the OTP field, and start the server-derived cooldown.
 - IF a resend delivery fails, THEN THE UI SHALL say a fresh email could not be sent and SHALL NOT claim that either the old or new code remains usable.
+- IF resend enforcement fails before provider delivery starts, THEN THE UI SHALL preserve the current code and explain that no fresh send was started.
 - WHILE resend cooldown is active, THE UI SHALL disable resend and show the remaining time without announcing every second.
 - WHEN resend becomes available, THE UI SHALL announce that change once with polite status semantics.
 - WHILE verify is pending, THE UI SHALL disable resend; WHILE resend is pending, THE UI SHALL disable verification.
@@ -212,6 +252,7 @@ OTP field already exist and must be preserved.
 - WHEN a merchant corrects signup details, THE system SHALL preserve email, name, and safe next across signup and verification.
 - WHEN a merchant moves between login and password reset, THE system SHALL preserve the known email and safe next destination.
 - WHEN password-reset verification succeeds but password update fails, THE UI SHALL state that verification succeeded and require a fresh reset code.
+- IF password update returns or throws an error after verification, THEN THE system SHALL clear browser recovery credentials and attempt only local-scope session revocation with an admin local-scope fallback.
 - WHEN reset succeeds, THE system SHALL redirect to the sanitized requested destination instead of a hard-coded route.
 - WHEN a merchant refreshes the reset verify stage, THE code, password, and confirmation fields SHALL remain available without revealing whether the email exists.
 - WHEN confirmation-link verification fails, THE login recovery route SHALL retain the sanitized next destination.
@@ -225,7 +266,8 @@ Verification criteria:
 
 - Pure unit tests cover the complete outcome-to-focus/recovery contract,
   safe retry timestamp handling, purpose-scoped resend keys, cooldown and
-  long-window behavior, blocked reset readback, and no secret-bearing fields.
+  long-window behavior, fail-closed recovery-session cleanup, blocked reset
+  readback, and no secret-bearing fields.
 - Source-contract tests prove the two OTP dispatchers validate their intents,
   signup resend no longer uses the signup bucket, login fresh-code is POST,
   reset resumes from GET safely, and all cross-route context uses shared URL
@@ -234,10 +276,15 @@ Verification criteria:
   countdown and one-time announcement behavior, cross-form pending disabling,
   focus placement, polite versus assertive live regions, context round trips,
   the POST fresh-code path, reset resume, and password-checklist parity.
+- The signup and recovery renderers each prove terminal, waiting, invalid, and
+  temporarily unavailable verification states; reset additionally proves the
+  request-to-resumable-verify sent transition.
 - A local-Supabase integration helper creates disposable signup and recovery
   provider tokens without sending email, inserts encrypted aliases through the
   service-role RPC, drives the real public forms, asserts session-backed
   continuation to the safe route, and removes the disposable users and rows.
+  It verifies the running Docker Auth hook URI and owns a local 503 sink for
+  real delivery-failure proof without a production network destination.
 - The auth routes pass the existing axe sweep and gain stable responsive
   screenshots without regressing the wider Wet Ink baseline.
 - The full lint, type, build, Node, coverage, targeted browser, accessibility,

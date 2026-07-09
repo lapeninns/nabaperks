@@ -17,6 +17,11 @@ test("merchant OTP actions expose one explicit state machine per flow", () => {
   const actions = readProjectFile("app", "(auth)", "actions.ts")
   const state = readProjectFile("lib", "auth", "merchant-auth-action-state.ts")
   const resend = readProjectFile("lib", "auth", "merchant-otp-resend.ts")
+  const recoveryCleanup = readProjectFile(
+    "lib",
+    "auth",
+    "merchant-recovery-session-cleanup.ts"
+  )
 
   assert.match(actions, /export async function signupOtpAction/)
   assert.match(actions, /export async function passwordResetAction/)
@@ -25,13 +30,77 @@ test("merchant OTP actions expose one explicit state machine per flow", () => {
   assert.match(actions, /outcome: "verification_unavailable"/)
   assert.match(actions, /outcome: "delivery_unavailable"/)
   assert.match(actions, /outcome: "password_update_failed"/)
+  assert.match(
+    actions,
+    /updateError[\s\S]{0,400}closeFailedMerchantRecoverySession/,
+    "a failed password update must close the recovery session"
+  )
+  assert.match(actions, /supabase\.auth\.signOut\(\{ scope: "local" \}\)/)
+  assert.match(
+    actions,
+    /serviceRole\.auth\.admin\.signOut\(token, "local"\)/
+  )
+  assert.match(actions, /cleanupFailedMerchantRecoverySession\(accessToken/)
+  assert.match(actions, /merchantAuthCookieName\(cookie\.name\)/)
+  assert.doesNotMatch(actions, /console\.[a-z]+\([^\n]*accessToken/)
+  assert.match(
+    actions,
+    /try[\s\S]{0,300}updateUser\([\s\S]{0,300}catch[\s\S]{0,300}updateError[\s\S]{0,300}closeFailedMerchantRecoverySession/,
+    "thrown and returned password-update failures must share cleanup"
+  )
+  assert.match(recoveryCleanup, /signOutLocal/)
+  assert.match(recoveryCleanup, /signOutAdminLocal/)
+  assert.match(recoveryCleanup, /clearBrowserCredentials/)
+  assert.match(actions, /Merchant OTP provider send failed/)
+  assert.doesNotMatch(actions, /already has a venue account/i)
   assert.match(state, /export const MERCHANT_OTP_OUTCOMES/)
   assert.match(state, /retryAt\?: string/)
   assert.match(resend, /MERCHANT_OTP_RESEND_COOLDOWN_MS = 60_000/)
+  assert.match(
+    actions,
+    /Merchant OTP resend limit failed[\s\S]{0,900}outcome: "verification_unavailable"/
+  )
   assert.doesNotMatch(
     actions,
     /resendSignupOtpAction[\s\S]{0,1800}merchant-signup/
   )
+})
+
+test("local Supabase email hooks cannot silently target production during browser proof", () => {
+  const config = readProjectFile("supabase", "config.toml")
+  const localWrapper = readProjectFile("scripts", "supabase-local.mjs")
+  const linkedWrapper = readProjectFile("scripts", "supabase-linked.mjs")
+  const migrationCheck = readProjectFile(
+    "scripts",
+    "check-supabase-migrations.mjs"
+  )
+  const ci = readProjectFile(".github", "workflows", "ci.yml")
+  const liveHelper = readProjectFile(
+    "tests",
+    "e2e",
+    "helpers",
+    "merchant-auth-recovery-live-db.ts"
+  )
+
+  assert.match(config, /uri = "env\(SUPABASE_SEND_EMAIL_HOOK_URI\)"/)
+  assert.match(
+    localWrapper,
+    /http:\/\/host\.docker\.internal:3000\/api\/auth\/hooks\/send-email/
+  )
+  assert.match(
+    linkedWrapper,
+    /https:\/\/nabaperks\.com\/api\/auth\/hooks\/send-email/
+  )
+  assert.match(
+    migrationCheck,
+    /https:\/\/nabaperks\.com\/api\/auth\/hooks\/send-email/
+  )
+  assert.match(
+    ci,
+    /SUPABASE_SEND_EMAIL_HOOK_URI: http:\/\/host\.docker\.internal:3147\/api\/auth\/hooks\/send-email/
+  )
+  assert.match(liveHelper, /GOTRUE_HOOK_SEND_EMAIL_URI/)
+  assert.match(liveHelper, /Local merchant auth proof email sink/)
 })
 
 test("merchant auth forms coordinate pending work and use correct live regions", () => {
@@ -52,6 +121,7 @@ test("merchant auth forms coordinate pending work and use correct live regions",
   assert.match(reset, /PasswordRequirements/)
   assert.match(login, /signupOtpAction/)
   assert.match(login, /name="intent"[\s\S]*value="resend"/)
+  assert.match(login, /OtpResendControl[\s\S]*freshCodeState\.retryAt/)
   assert.doesNotMatch(login, /Get a fresh code[\s\S]{0,120}<\/a>/)
   assert.match(resendControl, /role="status"/)
   assert.match(resendControl, /aria-live="polite"/)
@@ -89,4 +159,5 @@ test("auth routes preserve safe context and password reset can resume", () => {
   assert.match(confirm, /merchantLoginHref/)
   assert.match(actions, /redirect\(safeMerchantNextPath\(next\)\)/)
   assert.match(rateLimit, /resetAt:/)
+  assert.match(hrefs, /\/reset-password/)
 })

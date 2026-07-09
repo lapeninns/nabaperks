@@ -9,6 +9,7 @@ import { MarketingLayout } from "@/components/layout"
 import { merchantEmailOtpAliasDigitLabel } from "@/lib/auth/merchant-email-otp-alias"
 import { GUARANTEE, PRODUCT, ROUTES } from "@/lib/marketing/facts"
 import { getActivePromo } from "@/lib/marketing/promo"
+import { safeMerchantNextPath } from "@/lib/navigation/safe-next-path"
 import { OG_IMAGE } from "@/lib/seo/structured-data"
 import { cn } from "@/lib/utils"
 
@@ -45,12 +46,19 @@ const otpCodeLabel = merchantEmailOtpAliasDigitLabel()
 type SignUpPageProps = {
   searchParams: Promise<{
     email?: string | string[]
+    name?: string | string[]
+    next?: string | string[]
   }>
 }
 
 export default async function SignUpPage({ searchParams }: SignUpPageProps) {
   const params = await searchParams
   const initialEmail = firstParam(params.email)
+  const initialName = firstParam(params.name)
+  const next = safeMerchantNextPath(
+    firstParam(params.next) ?? "/app/onboarding",
+    "/app/onboarding"
+  )
   const promo = getActivePromo()
   // Body-only trust points — the promo perk and support claim join when the
   // monthly promo is live (never enter the pinned meta-description budget).
@@ -108,7 +116,11 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
               and venue setup come after you verify your email.
             </p>
           </div>
-          <SignupDetailsForm initialEmail={initialEmail} />
+          <SignupDetailsForm
+            initialEmail={initialEmail}
+            initialName={initialName}
+            next={next}
+          />
         </ReceiptCard>
       </section>
     </MarketingLayout>
