@@ -101,11 +101,13 @@ function quotePostgrestValue(value: string): string {
 
 /**
  * Or-filter string for `.or(…, { referencedTable: "customers" })`: matches
- * the contact fragment against the customer email or phone.
+ * the contact fragment against the customer email or phone_last4. The plaintext
+ * `customers.phone` column was retired (20260707095000), so filtering it would
+ * error; `phone_last4` is the surviving searchable contact digits.
  */
 export function contactOrIlikeFilter(term: string): string {
   const quoted = quotePostgrestValue(containsPattern(term))
-  return `email.ilike.${quoted},phone.ilike.${quoted}`
+  return `email.ilike.${quoted},phone_last4.ilike.${quoted}`
 }
 
 /** Zero-based inclusive `.range()` window for a 1-based page. */

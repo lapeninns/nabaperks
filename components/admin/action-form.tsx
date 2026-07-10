@@ -53,6 +53,17 @@ export function AdminActionForm({
           {state.message}
         </p>
       ) : null}
+      {state.status === "success" && state.download ? (
+        <a
+          download={state.download.filename}
+          href={`data:${state.download.mimeType};charset=utf-8,${encodeURIComponent(
+            state.download.content
+          )}`}
+          className="inline-flex w-fit items-center gap-2 rounded-lg border-2 border-ink bg-reward/12 px-3 py-2 text-sm font-semibold text-foreground underline decoration-2 underline-offset-2 hover:bg-reward/20"
+        >
+          Download customer data export
+        </a>
+      ) : null}
       {state.status === "error" ? (
         <p
           role="alert"
