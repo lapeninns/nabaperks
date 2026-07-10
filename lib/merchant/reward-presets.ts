@@ -124,10 +124,98 @@ export const CARD_CADENCE_PRESETS: readonly CardCadencePreset[] = [
   },
 ]
 
+export const MAX_REWARD_PRESET_BATCH = 7
+const INVALID_REWARD_PRESET_SELECTION = "Invalid reward preset selection."
+const DEFINITE_REWARD_PRESET_ROLLBACK_CODES = new Set([
+  "22023",
+  "40001",
+  "40002",
+  "40P01",
+  "42501",
+  "P0001",
+])
+
 export function rewardPresetsForBusinessType(
   businessType: string | null | undefined
 ): readonly RewardPreset[] {
   return businessType === "pub" ? PUB_REWARD_PRESETS : GENERIC_REWARD_PRESETS
+}
+
+/** Stable key shared by preset selection and the database idempotency boundary. */
+export function rewardNameKey(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, " ")
+}
+
+/**
+ * A separately saved reward becomes authoritative immediately. Remove any
+ * selected preset with the same normalized name so the draft tray cannot
+ * submit or count a reward that the pool now already contains.
+ */
+export function reconcileSelectedPresetIdsAfterRewardSave(
+  presets: readonly RewardPreset[],
+  selectedPresetIds: readonly string[],
+  savedRewardName: string
+): string[] {
+  const savedNameKey = rewardNameKey(savedRewardName)
+  const matchingPresetIds = new Set(
+    presets
+      .filter((preset) => rewardNameKey(preset.rewardName) === savedNameKey)
+      .map((preset) => preset.id)
+  )
+
+  return selectedPresetIds.filter((id) => !matchingPresetIds.has(id))
+}
+
+/**
+ * Only codes that prove PostgreSQL rejected/rolled back the RPC may support
+ * absolute no-change copy. Connection and completion-unknown codes stay out.
+ */
+export function isDefiniteRewardPresetRollbackCode(
+  code: string | null | undefined
+): boolean {
+  return (
+    typeof code === "string" &&
+    (DEFINITE_REWARD_PRESET_ROLLBACK_CODES.has(code) ||
+      /^23[0-9A-Z]{3}$/.test(code))
+  )
+}
+
+/**
+ * Resolve untrusted posted ids against the merchant's server-owned catalogue.
+ * The catalogue — not click order — owns persistence order, and one bad id
+ * rejects the whole selection before the action reaches PostgreSQL.
+ */
+export function resolveRewardPresetsByIds(
+  businessType: string | null | undefined,
+  ids: readonly string[]
+): readonly RewardPreset[] {
+  if (ids.length < 1) {
+    throw new Error(INVALID_REWARD_PRESET_SELECTION)
+  }
+
+  const requestedIds = new Set<string>()
+  for (const rawId of ids) {
+    const id = rawId.trim()
+    if (!id) throw new Error(INVALID_REWARD_PRESET_SELECTION)
+    requestedIds.add(id)
+  }
+
+  if (
+    requestedIds.size < 1 ||
+    requestedIds.size > MAX_REWARD_PRESET_BATCH
+  ) {
+    throw new Error(INVALID_REWARD_PRESET_SELECTION)
+  }
+
+  const resolved = rewardPresetsForBusinessType(businessType).filter((preset) =>
+    requestedIds.has(preset.id)
+  )
+
+  if (resolved.length !== requestedIds.size) {
+    throw new Error(INVALID_REWARD_PRESET_SELECTION)
+  }
+
+  return resolved
 }
 
 export function rewardPresetToPoolItemValues(

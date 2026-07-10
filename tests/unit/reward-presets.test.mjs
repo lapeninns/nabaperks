@@ -4,7 +4,9 @@ import { describe, it } from "node:test"
 import {
   CARD_CADENCE_PRESETS,
   GENERIC_REWARD_PRESETS,
+  isDefiniteRewardPresetRollbackCode,
   PUB_REWARD_PRESETS,
+  reconcileSelectedPresetIdsAfterRewardSave,
   resolveRewardPresetsByIds,
   rewardNameKey,
   rewardPresetsForBusinessType,
@@ -41,6 +43,54 @@ describe("merchant reward presets", () => {
     )
   })
 
+  it("removes a selected preset when a separate save makes its normalized name authoritative", () => {
+    assert.deepEqual(
+      reconcileSelectedPresetIdsAfterRewardSave(
+        PUB_REWARD_PRESETS,
+        ["regulars-pint", "free-starter", "unknown-future-id"],
+        "  FREE\tstarter\n"
+      ),
+      ["regulars-pint", "unknown-future-id"]
+    )
+
+    assert.deepEqual(
+      reconcileSelectedPresetIdsAfterRewardSave(
+        PUB_REWARD_PRESETS,
+        ["regulars-pint"],
+        "Free starter"
+      ),
+      ["regulars-pint"],
+      "an unrelated authoritative reward must not disturb the draft selection"
+    )
+  })
+
+  it("uses absolute rollback copy only for definite PostgreSQL failures", () => {
+    for (const code of [
+      "22023",
+      "23505",
+      "23514",
+      "40001",
+      "40002",
+      "40P01",
+      "42501",
+      "P0001",
+    ]) {
+      assert.equal(isDefiniteRewardPresetRollbackCode(code), true, code)
+    }
+
+    for (const code of [
+      undefined,
+      null,
+      "",
+      "08007",
+      "40003",
+      "FETCH",
+      "PGRST301",
+    ]) {
+      assert.equal(isDefiniteRewardPresetRollbackCode(code), false, String(code))
+    }
+  })
+
   it("resolves trimmed repeated preset ids once in catalogue order", () => {
     const resolved = resolveRewardPresetsByIds("pub", [
       " dessert-on-the-house ",
@@ -52,6 +102,14 @@ describe("merchant reward presets", () => {
     assert.deepEqual(
       resolved.map((preset) => preset.id),
       ["regulars-pint", "free-starter", "dessert-on-the-house"]
+    )
+
+    assert.deepEqual(
+      resolveRewardPresetsByIds("pub", Array(8).fill(" free-starter ")).map(
+        (preset) => preset.id
+      ),
+      ["free-starter"],
+      "the catalogue limit applies after valid repeated ids are deduplicated"
     )
   })
 

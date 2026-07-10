@@ -73,7 +73,7 @@ export async function addRewardPoolPresets(tx, fixture, presets) {
     from public.add_reward_pool_presets(
       ${fixture.merchantId}::uuid,
       ${fixture.cardId}::uuid,
-      ${JSON.stringify(presets)}::jsonb
+      ${tx.json(presets)}
     )`
 }
 

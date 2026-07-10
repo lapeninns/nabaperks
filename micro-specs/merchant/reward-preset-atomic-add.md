@@ -10,6 +10,7 @@ allowed_blast_radius:
   - app/app/card/actions.ts
   - app/dev/app-harness/launch/page.tsx
   - components/merchant/loyalty-card-form.tsx
+  - components/pwa/app-pwa.tsx
   - lib/merchant/reward-presets.ts
   - supabase/migrations/20260710110000_atomic_reward_preset_add.sql
   - tests/db/helpers/reward-pool-fixture.mjs
@@ -30,6 +31,7 @@ implementation_surfaces:
   - app/app/card/actions.ts
   - app/dev/app-harness/launch/page.tsx
   - components/merchant/loyalty-card-form.tsx
+  - components/pwa/app-pwa.tsx
   - lib/merchant/reward-presets.ts
   - supabase/migrations/20260710110000_atomic_reward_preset_add.sql
   - tests/db/helpers/reward-pool-fixture.mjs
@@ -55,6 +57,9 @@ related_tests:
   - tests/micro-specs/reward-preset-atomic-add.test.mjs
   - tests/micro-specs/reward-presets.test.mjs
   - tests/e2e/merchant-reward-presets-flow.ts
+  - tests/e2e/merchant-reward-preset-atomic-add-flow.ts
+  - tests/e2e/merchant-reward-preset-atomic-add.spec.ts
+  - tests/e2e/merchant-reward-preset-atomic-add.desktop.spec.ts
 verification_gates:
   - pnpm lint
   - pnpm typecheck
@@ -134,6 +139,8 @@ production data cleanup, or silently merging historical duplicate rewards.
 - Browser selection is a draft only. It remains selected after validation,
   session, or database failure, clears after a successful authoritative result,
   and is not optimistically rendered as a saved reward.
+- While the launch flow owns a persistent phone action, the optional PWA install
+  prompt yields that route instead of covering or competing with the setup CTA.
 - Live proof is local-only, uses disposable identities, scopes fault controls to
   the fixture owner/card, uses one Playwright worker, cleans in `finally`, and
   refuses linked or hosted database URLs.
@@ -155,13 +162,18 @@ production data cleanup, or silently merging historical duplicate rewards.
   44-pixel coarse-pointer Edit/Customise control opens the existing editor.
   Customising removes that preset from the bulk selection first. A matching
   pool item opens for edit instead of creating a duplicate draft.
-- A sticky mobile selection tray shows the current and projected counts, Clear,
-  and one `Add N reward(s)` action. It is hidden while the custom editor is open
-  so only one primary mutation is presented.
+- A persistent mobile selection tray shows the current and projected counts,
+  Clear, and one `Add N reward(s)` action. It stays in immediate reach on phones,
+  returns to document flow on wider screens, and is hidden while the custom
+  editor is open so only one primary mutation is presented.
+- Pending batches disable new custom-reward creation; failed feedback is retired
+  as soon as the selection changes; existing editors and successful batches move
+  focus to their new authoritative context.
 - Success copy distinguishes all-created, partly-existing, and all-existing
-  outcomes. Failure copy says `Rewards not added. Nothing was changed. Your
-  choices are still selected — try again.` Session expiry has equally explicit
-  no-change guidance.
+  outcomes. A confirmed transaction failure says `Rewards not added. Nothing
+  was changed. Your choices are still selected — try again.` An indeterminate
+  transport/response result uses honest confirmation copy, and session expiry
+  has equally explicit no-change guidance.
 - Import `LAUNCH_MIN_ACTIVE_REWARDS` as the one threshold source instead of
   retaining the form's hard-coded literal.
 - The migration also gives one-item upsert and delete the same card lock,
@@ -176,6 +188,9 @@ production data cleanup, or silently merging historical duplicate rewards.
 - **RA-2 (custom continuity):** WHEN a merchant customises a selected or existing
   preset, THE form SHALL remove it from bulk selection, open the existing reward
   editor with trusted values, and return focus to the invoking control on cancel.
+  WHEN a separate single-item save creates or renames a reward to a selected
+  preset's normalized name, THE form SHALL remove that now-existing preset from
+  the draft selection before recalculating or submitting the batch.
 - **RA-3 (trusted resolution):** WHEN preset ids are submitted, THE action SHALL
   derive the merchant's catalogue server-side, deduplicate valid ids in catalogue
   order, reject any unknown or wrong-catalogue id before persistence, and send no
@@ -204,14 +219,18 @@ production data cleanup, or silently merging historical duplicate rewards.
 - **RA-10 (successful continuation):** WHEN the batch commits, THE action SHALL
   attempt QR auto-provisioning once, revalidate merchant launch surfaces, clear
   the selection, merge authoritative rows, announce the added/existing outcome,
-  and expose the normal continuation only when the active minimum is met.
+  move focus to that outcome, and expose the normal continuation only when the
+  active minimum is met.
 - **RA-11 (accessible controls):** WHILE a batch is pending, THE form SHALL
-  disable conflicting preset, Clear, customisation, and Add controls, announce
-  `Adding N rewards…`, preserve touch targets and focus visibility, and avoid
-  horizontal overflow at 375 pixels.
+  disable conflicting preset, Clear, customisation, custom-reward creation, and
+  Add controls, announce `Adding N rewards…`, preserve touch targets and focus
+  visibility, keep the optional install prompt out of the launch action area,
+  and avoid horizontal overflow at 375 pixels.
 - **RA-12 (safe return):** IF the merchant session is missing or the action
   receives malformed input, THEN it SHALL return house-authored no-change copy
-  and never expose SQL, service-role, or provider details.
+  and never expose SQL, service-role, or provider details. IF a transport or
+  malformed response cannot prove rollback, THEN copy SHALL say the result
+  could not be confirmed and explain that an idempotent retry will not duplicate.
 
 ## 6. Verification Criteria and Task Breakdown
 
@@ -230,11 +249,12 @@ production data cleanup, or silently merging historical duplicate rewards.
 4. Replace one-at-a-time preset prefill with keyboard-operable multi-selection,
    separate customisation/edit controls, projected counts, pending/no-change
    feedback, authoritative row merge, selection retention on failure, and the
-   mobile-sticky single Add action while preserving the custom reward editor.
+   mobile-persistent single Add action while preserving the custom reward editor.
 5. Extend the DB-free launch harness for empty, two-active, ready, and
    already-present pools. Prove Space/Enter selection, no pre-Add persistence,
    custom/cancel focus, existing-row editing, failure retention, live-region
-   copy, and 375-pixel overflow behavior on mobile and desktop.
+   copy, saved-name selection reconciliation, and 375-pixel overflow behavior on
+   mobile and desktop.
 6. With disposable local Supabase identities, force an owner-scoped mid-batch
    failure, assert zero browser/DB partial state, remove the fault, retry without
    reselecting, and read back the exact rewards/events/audits/QR state before

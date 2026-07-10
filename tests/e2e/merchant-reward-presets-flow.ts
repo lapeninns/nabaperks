@@ -104,10 +104,12 @@ export function describeMerchantRewardPresets() {
         page.getByText(/Free starter is already in your pool/i)
       ).toBeVisible()
 
-      await page.getByRole("button", { name: "Edit Free starter" }).click()
+      await page.locator("#preset-customise-free-starter").click()
 
       await expect(page.getByText("Edit reward")).toBeVisible()
-      await expect(page.getByLabel("Reward name")).toHaveValue("Free starter")
+      const rewardName = page.getByLabel("Reward name")
+      await expect(rewardName).toHaveValue("Free starter")
+      await expect(rewardName).toBeFocused()
       await expect(page.getByLabel("Reward terms")).toHaveValue(
         /Valid once issued\./
       )
@@ -127,15 +129,31 @@ export function describeMerchantRewardPresets() {
 
       await page.getByRole("button", { name: "Add 2 rewards" }).click()
 
-      await expect(page.getByRole("alert")).toContainText(
-        "Nothing was changed. Your choices are still selected"
-      )
+      await expect(
+        page
+          .getByRole("alert")
+          .filter({
+            hasText: "Nothing was changed. Your choices are still selected",
+          })
+      ).toBeVisible()
       await expect(regularsPint).toHaveAttribute("aria-pressed", "true")
       await expect(freeStarter).toHaveAttribute("aria-pressed", "true")
       await expect(
         page.getByRole("button", { name: "Add 2 rewards" })
       ).toBeEnabled()
       await expect(page.getByText("No rewards in the pool yet")).toBeVisible()
+
+      await page.getByRole("button", { name: "Clear" }).click()
+      await expect(
+        page
+          .getByRole("alert")
+          .filter({
+            hasText: "Nothing was changed. Your choices are still selected",
+          })
+      ).toHaveCount(0)
+      await expect(regularsPint).toHaveAttribute("aria-pressed", "false")
+      await expect(freeStarter).toHaveAttribute("aria-pressed", "false")
+      await expect(regularsPint).toBeFocused()
     })
 
     test("RA-11: the selection tray stays reachable without horizontal overflow", async ({
@@ -153,9 +171,15 @@ export function describeMerchantRewardPresets() {
       await freeStarter.click()
 
       const addButton = page.getByRole("button", { name: "Add 1 reward" })
-      await expect(addButton).toBeInViewport()
+      if (mobile) {
+        await expect(addButton).toBeInViewport()
+      } else {
+        await addButton.scrollIntoViewIfNeeded()
+        await expect(addButton).toBeInViewport()
+      }
       expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1)
     })
+
   })
 }
 

@@ -70,6 +70,7 @@ test(
             'add_reward_pool_presets',
             'assert_reward_pool_launch_ready',
             'delete_reward_pool_item',
+            'enforce_active_join_qr_reward_pool_minimum',
             'upsert_reward_pool_item'
           )
         order by proname`
@@ -80,6 +81,7 @@ test(
           "add_reward_pool_presets",
           "assert_reward_pool_launch_ready",
           "delete_reward_pool_item",
+          "enforce_active_join_qr_reward_pool_minimum",
           "upsert_reward_pool_item",
         ],
         "the atomic RPC and every affected mutation/guard function must exist"
@@ -113,15 +115,18 @@ test(
         assert.equal(fn.prosecdef, true, `${fn.proname} is SECURITY DEFINER`)
         assert.match(
           fn.function_config,
-          fn.proname === "assert_reward_pool_launch_ready"
+          [
+            "assert_reward_pool_launch_ready",
+            "enforce_active_join_qr_reward_pool_minimum",
+          ].includes(fn.proname)
             ? /search_path=(?:public|"public")/
             : /search_path=(?:public, auth|"public", "auth")/,
           `${fn.proname} pins its search path`
         )
         assert.equal(
           fn.authenticated_can_execute,
-          true,
-          `${fn.proname}: authenticated executes`
+          fn.proname !== "enforce_active_join_qr_reward_pool_minimum",
+          `${fn.proname}: authenticated execution is exact`
         )
         assert.equal(
           fn.service_role_can_execute,
@@ -143,6 +148,10 @@ test(
           has_table_privilege('authenticated', oid, 'insert') as authenticated_insert,
           has_table_privilege('authenticated', oid, 'update') as authenticated_update,
           has_table_privilege('authenticated', oid, 'delete') as authenticated_delete,
+          has_table_privilege('authenticated', oid, 'truncate') as authenticated_truncate,
+          has_table_privilege('authenticated', oid, 'references') as authenticated_references,
+          has_table_privilege('authenticated', oid, 'trigger') as authenticated_trigger,
+          has_table_privilege('authenticated', oid, 'maintain') as authenticated_maintain,
           has_table_privilege('service_role', oid, 'select, insert, update, delete') as service_role_maintenance,
           has_table_privilege('anon', oid, 'select, insert, update, delete') as anon_table_access
         from pg_class
@@ -175,6 +184,26 @@ test(
         "direct deletes are revoked"
       )
       assert.equal(
+        table.authenticated_truncate,
+        false,
+        "TRUNCATE cannot bypass the RPC, ledgers, or RLS"
+      )
+      assert.equal(
+        table.authenticated_references,
+        false,
+        "authenticated receives no REFERENCES privilege"
+      )
+      assert.equal(
+        table.authenticated_trigger,
+        false,
+        "authenticated cannot install bypass triggers"
+      )
+      assert.equal(
+        table.authenticated_maintain,
+        false,
+        "authenticated receives no table-maintenance privilege"
+      )
+      assert.equal(
         table.service_role_maintenance,
         true,
         "service-role maintenance remains available"
@@ -183,6 +212,21 @@ test(
         table.anon_table_access,
         false,
         "anonymous table access stays denied"
+      )
+
+      const [qrGuard] = await tx`
+        select
+          trigger.tgenabled,
+          pg_get_triggerdef(trigger.oid) as definition
+        from pg_trigger as trigger
+        where trigger.tgrelid = 'public.qr_codes'::regclass
+          and trigger.tgname = 'qr_codes_guard_active_join_reward_pool'
+          and not trigger.tgisinternal`
+      assert.equal(qrGuard?.tgenabled, "O", "the QR invariant trigger is on")
+      assert.match(
+        qrGuard?.definition ?? "",
+        /before insert or update on public\.qr_codes[\s\S]*enforce_active_join_qr_reward_pool_minimum/i,
+        "every QR insert/activation crosses the card-locked minimum guard"
       )
     })
   }
@@ -377,6 +421,106 @@ test(
 )
 
 test(
+  "tabs and newlines normalize at every reward boundary while whitespace-only values reject atomically",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fixture = await createRewardPoolFixture(tx)
+      await actAsMerchantOwner(tx, fixture.ownerUserId)
+
+      const existing = await upsertRewardPoolItem(tx, fixture, {
+        rewardName: "\tFREE\tstarter\n",
+        rewardTerms:
+          "\nKeep this merchant-authored whitespace variant exactly as saved.\t",
+        displayOrder: 1,
+      })
+      const [matched] = await addRewardPoolPresets(tx, fixture, [
+        rewardPreset(
+          "\tfree-starter\n",
+          "\n Free   starter\t",
+          "One starter with any paid main meal. Valid once issued."
+        ),
+      ])
+
+      assert.equal(matched.preset_id, "free-starter")
+      assert.equal(matched.reward_pool_item_id, existing.reward_pool_item_id)
+      assert.equal(matched.saved_action, "reward_pool_item_existing")
+      assert.equal(
+        matched.reward_name,
+        "FREE\tstarter",
+        "boundary whitespace is trimmed without rewriting merchant-authored internal whitespace"
+      )
+      assert.equal(
+        matched.reward_terms,
+        "Keep this merchant-authored whitespace variant exactly as saved."
+      )
+
+      await expectRewardPoolRpcRejection(
+        tx,
+        () =>
+          addRewardPoolPresets(tx, fixture, [
+            rewardPreset(
+              "blank-name",
+              "\t\n\r",
+              "Whitespace-only names must reject before any write."
+            ),
+          ]),
+        /invalid preset payload|name.*required/i,
+        "non-space whitespace cannot satisfy the batch reward-name requirement"
+      )
+      await expectRewardPoolRpcRejection(
+        tx,
+        () =>
+          addRewardPoolPresets(tx, fixture, [
+            rewardPreset("blank-terms", "Blank terms", "\t\n\r"),
+          ]),
+        /invalid preset payload|terms.*required/i,
+        "non-space whitespace cannot satisfy the batch reward-terms requirement"
+      )
+      await expectRewardPoolRpcRejection(
+        tx,
+        () =>
+          upsertRewardPoolItem(tx, fixture, {
+            rewardName: "\n free starter\t",
+            displayOrder: 2,
+          }),
+        /already exists|duplicate/i,
+        "one-item collision detection uses the same non-space whitespace key"
+      )
+      await expectRewardPoolRpcRejection(
+        tx,
+        () =>
+          upsertRewardPoolItem(tx, fixture, {
+            rewardName: "\t\n\r",
+            displayOrder: 2,
+          }),
+        /reward_name|check constraint/i,
+        "one-item writes reject whitespace-only names"
+      )
+      await expectRewardPoolRpcRejection(
+        tx,
+        () =>
+          upsertRewardPoolItem(tx, fixture, {
+            rewardName: "Blank terms",
+            rewardTerms: "\t\n\r",
+            displayOrder: 2,
+          }),
+        /reward_terms|check constraint/i,
+        "one-item writes reject whitespace-only terms"
+      )
+
+      const [state] = await readRewardBatchState(tx, fixture)
+      assert.deepEqual(state, {
+        reward_count: 1,
+        active_reward_count: 1,
+        product_event_count: 1,
+        audit_count: 1,
+      })
+    })
+  }
+)
+
+test(
   "empty, malformed, and eight-item batches reject before any reward or ledger write",
   { skip },
   async () => {
@@ -455,6 +599,17 @@ test(
         () => addRewardPoolPresets(tx, otherFixture, THREE_PRESETS),
         /ownership|merchant|card|permission|not found/i,
         "one owner cannot add presets to another merchant's card"
+      )
+      await expectRewardPoolRpcRejection(
+        tx,
+        () =>
+          tx`select public.assert_reward_pool_launch_ready(
+            ${otherFixture.merchantId}::uuid,
+            ${otherFixture.cardId}::uuid,
+            ${otherFixture.locationId}::uuid
+          )`,
+        /ownership|merchant|permission|privilege/i,
+        "the standalone launch guard cannot be used to probe another merchant"
       )
 
       await expectRewardPoolRpcRejection(
@@ -694,6 +849,16 @@ test(
 )
 
 test(
+  "QR activation waits on the card lock and cannot race deactivation or deletion below three rewards",
+  { skip, timeout: 15_000 },
+  async () => {
+    for (const removal of ["deactivate", "delete"]) {
+      await assertQrActivationRemovalRace(removal)
+    }
+  }
+)
+
+test(
   "single-item create and rename reject normalized-name collisions without extra ledgers",
   { skip },
   async () => {
@@ -922,6 +1087,208 @@ async function callBatchOnDedicatedConnection(fixture, presets, start) {
   } finally {
     await sql.end({ timeout: 5 })
   }
+}
+
+async function assertQrActivationRemovalRace(removal) {
+  assert.ok(localDbUrl)
+  const setup = db()
+  const fixture = await createRewardPoolFixture(setup)
+  let releaseRemoval
+  let removalPromise
+  let activationPromise
+
+  try {
+    const prepared = await setup.begin(async (tx) => {
+      await actAsMerchantOwner(tx, fixture.ownerUserId)
+      const rewards = await addRewardPoolPresets(tx, fixture, THREE_PRESETS)
+      const qr = await createOrGetJoinQr(tx, fixture)
+      await tx`select public.set_qr_active(
+        ${fixture.merchantId}::uuid,
+        ${qr.qr_code_uuid}::uuid,
+        false
+      )`
+      const [reward] = await tx`
+        select
+          id::text as id,
+          reward_name,
+          reward_terms,
+          weight,
+          display_order
+        from public.reward_pool_items
+        where id = ${rewards[0].reward_pool_item_id}::uuid`
+      return { qrId: qr.qr_code_uuid, reward }
+    })
+
+    const cardLocked = createDeferred()
+    releaseRemoval = createDeferred()
+    removalPromise = removeRewardAfterHoldingCardLock(
+      fixture,
+      prepared.reward,
+      removal,
+      cardLocked,
+      releaseRemoval.promise
+    )
+    await cardLocked.promise
+
+    const applicationName = `reward-qr-race-${randomUUID().slice(0, 12)}`
+    activationPromise = activateQrOnDedicatedConnection(
+      fixture,
+      prepared.qrId,
+      applicationName
+    )
+
+    await waitForDatabaseLock(setup, applicationName)
+    releaseRemoval.resolve()
+
+    const [removalResult, activationResult] = await Promise.allSettled([
+      removalPromise,
+      activationPromise,
+    ])
+    assert.equal(
+      removalResult.status,
+      "fulfilled",
+      `${removal}: the card-lock holder removes the third active reward`
+    )
+    assert.equal(
+      activationResult.status,
+      "rejected",
+      `${removal}: activation must recheck after the card lock is released`
+    )
+    assert.match(
+      String(activationResult.reason?.message ?? activationResult.reason),
+      /3 active mystery rewards/i,
+      `${removal}: activation fails with the launch-minimum invariant`
+    )
+
+    const [state] = await setup`
+      select
+        count(*) filter (where items.is_active)::int as active_reward_count,
+        count(*)::int as reward_count,
+        exists (
+          select 1
+          from public.qr_codes as qr_codes
+          where qr_codes.merchant_id = ${fixture.merchantId}::uuid
+            and qr_codes.loyalty_card_id = ${fixture.cardId}::uuid
+            and qr_codes.destination_type = 'join'
+            and qr_codes.is_active
+        ) as has_active_join_qr
+      from public.reward_pool_items as items
+      where items.merchant_id = ${fixture.merchantId}::uuid
+        and items.loyalty_card_id = ${fixture.cardId}::uuid`
+    assert.deepEqual(state, {
+      active_reward_count: 2,
+      reward_count: removal === "delete" ? 2 : 3,
+      has_active_join_qr: false,
+    })
+  } finally {
+    releaseRemoval?.resolve()
+    await Promise.allSettled(
+      [removalPromise, activationPromise].filter(Boolean)
+    )
+    await cleanupRewardPoolFixture(setup, fixture)
+  }
+}
+
+async function removeRewardAfterHoldingCardLock(
+  fixture,
+  reward,
+  removal,
+  cardLocked,
+  releaseRemoval
+) {
+  assert.ok(localDbUrl)
+  const sql = postgres(localDbUrl, { max: 1 })
+  try {
+    return await sql.begin(async (tx) => {
+      try {
+        await tx`
+          select cards.id
+          from public.loyalty_cards as cards
+          where cards.id = ${fixture.cardId}::uuid
+          for update of cards`
+        cardLocked.resolve()
+      } catch (error) {
+        cardLocked.reject(error)
+        throw error
+      }
+
+      await releaseRemoval
+      await tx`set local role authenticated`
+      await actAsMerchantOwner(tx, fixture.ownerUserId)
+
+      if (removal === "deactivate") {
+        return upsertRewardPoolItem(tx, fixture, {
+          rewardPoolItemId: reward.id,
+          rewardName: reward.reward_name,
+          rewardTerms: reward.reward_terms,
+          weight: reward.weight,
+          isActive: false,
+          displayOrder: reward.display_order,
+        })
+      }
+
+      return tx`
+        select *
+        from public.delete_reward_pool_item(
+          ${fixture.merchantId}::uuid,
+          ${reward.id}::uuid
+        )`
+    })
+  } finally {
+    await sql.end({ timeout: 5 })
+  }
+}
+
+async function activateQrOnDedicatedConnection(
+  fixture,
+  qrId,
+  applicationName
+) {
+  assert.ok(localDbUrl)
+  const sql = postgres(localDbUrl, { max: 1 })
+  try {
+    return await sql.begin(async (tx) => {
+      await tx`select set_config('application_name', ${applicationName}, true)`
+      await tx`set local role authenticated`
+      await actAsMerchantOwner(tx, fixture.ownerUserId)
+      return tx`select public.set_qr_active(
+        ${fixture.merchantId}::uuid,
+        ${qrId}::uuid,
+        true
+      )`
+    })
+  } finally {
+    await sql.end({ timeout: 5 })
+  }
+}
+
+async function waitForDatabaseLock(sql, applicationName) {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const [activity] = await sql`
+      select exists (
+        select 1
+        from pg_stat_activity
+        where application_name = ${applicationName}
+          and state = 'active'
+          and wait_event_type = 'Lock'
+      ) as waiting`
+    if (activity.waiting) return
+    await new Promise((resolve) => setTimeout(resolve, 20))
+  }
+
+  throw new Error(
+    "QR activation did not wait on the shared loyalty-card lock"
+  )
+}
+
+function createDeferred() {
+  let resolve
+  let reject
+  const promise = new Promise((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise
+    reject = rejectPromise
+  })
+  return { promise, reject, resolve }
 }
 
 function createStartBarrier(participantCount) {

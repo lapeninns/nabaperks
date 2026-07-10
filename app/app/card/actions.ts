@@ -10,6 +10,11 @@ import {
   MAX_STAMPS_REQUIRED,
 } from "@/lib/merchant/customer-readback"
 import { autoProvisionJoinQrFromSetup } from "@/lib/merchant/ensure-join-qr"
+import {
+  isDefiniteRewardPresetRollbackCode,
+  MAX_REWARD_PRESET_BATCH,
+  resolveRewardPresetsByIds,
+} from "@/lib/merchant/reward-presets"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 const CARD_SAVE_ERROR =
@@ -19,6 +24,10 @@ const REWARD_SAVE_ERROR =
 const REWARD_UPDATE_ERROR = "Unable to update reward"
 const REWARD_MIN_ACTIVE_ERROR =
   "Keep at least 3 active rewards before launch QR stays live."
+const REWARD_PRESET_ROLLBACK_ERROR =
+  "Rewards not added. Nothing was changed. Your choices are still selected — try again."
+const REWARD_PRESET_CONFIRMATION_ERROR =
+  "We couldn't confirm whether those rewards were added. Your choices are still selected — try again. Already-added rewards won't duplicate."
 
 export type LoyaltyCardActionState = {
   fields?: {
@@ -55,6 +64,34 @@ export type RewardPoolItemActionState = {
     form?: string
   }
   saved?: boolean
+  qrStatus?: "created" | "enabled"
+}
+
+export type RewardPresetBatchItem = {
+  id: string
+  rewardName: string
+  rewardTerms: string
+  weight: string
+  displayOrder: string
+  isActive: boolean
+  presetId: string
+  savedAction: "reward_pool_item_created" | "reward_pool_item_existing"
+}
+
+export type RewardPresetBatchActionState = {
+  fields?: {
+    loyaltyCardId?: string
+    presetIds?: string[]
+  }
+  errors?: {
+    form?: string
+  }
+  items?: RewardPresetBatchItem[]
+  saved?: boolean
+  addedCount?: number
+  existingCount?: number
+  activeRewardCount?: number
+  message?: string
   qrStatus?: "created" | "enabled"
 }
 
@@ -270,10 +307,145 @@ export async function saveRewardPoolItemAction(
   return {
     fields: {
       ...fields,
-      rewardPoolItemId: data?.[0]?.reward_pool_item_id ?? fields.rewardPoolItemId,
+      rewardPoolItemId:
+        data?.[0]?.reward_pool_item_id ?? fields.rewardPoolItemId,
     },
     saved: true,
     qrStatus: provisioned ? (created ? "created" : "enabled") : undefined,
+  }
+}
+
+export async function addRewardPresetsAction(
+  _state: RewardPresetBatchActionState,
+  formData: FormData
+): Promise<RewardPresetBatchActionState> {
+  const loyaltyCardId = value(formData, "loyaltyCardId")
+  const submittedPresetIds = formData
+    .getAll("presetId")
+    .filter((entry): entry is string => typeof entry === "string")
+  let fields = {
+    loyaltyCardId,
+    presetIds: [...new Set(submittedPresetIds.map((id) => id.trim()))]
+      .filter(Boolean)
+      .slice(0, MAX_REWARD_PRESET_BATCH),
+  }
+  const merchant = await getCurrentMerchant()
+
+  if (!merchant) {
+    return {
+      fields,
+      errors: {
+        form: "Your session expired before we could add these. Nothing was changed. Your choices are still selected — sign in again to continue.",
+      },
+    }
+  }
+
+  if (!loyaltyCardId) {
+    return {
+      fields,
+      errors: {
+        form: "Save the mystery card before adding rewards. Nothing was changed.",
+      },
+    }
+  }
+
+  let presets
+  try {
+    presets = resolveRewardPresetsByIds(
+      merchant.business_type,
+      submittedPresetIds
+    )
+  } catch {
+    return {
+      fields: { loyaltyCardId, presetIds: [] },
+      errors: {
+        form: "Those reward choices are no longer available. Nothing was changed — refresh and choose again.",
+      },
+    }
+  }
+
+  fields = {
+    loyaltyCardId,
+    presetIds: presets.map((preset) => preset.id),
+  }
+
+  const supabase = await createSupabaseServerClient()
+  const { data, error } = await supabase.rpc("add_reward_pool_presets", {
+    p_merchant_id: merchant.id,
+    p_loyalty_card_id: loyaltyCardId,
+    p_presets: presets.map((preset) => ({
+      preset_id: preset.id,
+      reward_name: preset.rewardName,
+      reward_terms: preset.rewardTerms,
+    })),
+  })
+
+  if (error) {
+    return {
+      fields,
+      errors: {
+        form: isDefiniteRewardPresetRollbackCode(error.code)
+          ? REWARD_PRESET_ROLLBACK_ERROR
+          : REWARD_PRESET_CONFIRMATION_ERROR,
+      },
+    }
+  }
+
+  if (!Array.isArray(data) || data.length !== presets.length) {
+    return {
+      fields,
+      errors: {
+        form: REWARD_PRESET_CONFIRMATION_ERROR,
+      },
+    }
+  }
+
+  const items: RewardPresetBatchItem[] = data.map((row) => ({
+    id: String(row.reward_pool_item_id),
+    rewardName: String(row.reward_name),
+    rewardTerms: String(row.reward_terms),
+    weight: String(row.weight),
+    displayOrder: String(row.display_order),
+    isActive: row.is_active === true,
+    presetId: String(row.preset_id),
+    savedAction:
+      row.saved_action === "reward_pool_item_existing"
+        ? "reward_pool_item_existing"
+        : "reward_pool_item_created",
+  }))
+  const addedCount = items.filter(
+    (item) => item.savedAction === "reward_pool_item_created"
+  ).length
+  const existingCount = items.length - addedCount
+  const activeRewardCount = Number(data.at(-1)?.active_reward_count ?? 0)
+  let qrStatus: "created" | "enabled" | undefined
+
+  try {
+    const { provisioned, created } = await autoProvisionJoinQrFromSetup()
+    if (provisioned) qrStatus = created ? "created" : "enabled"
+  } catch {
+    // The atomic reward write is authoritative. A safe idempotent retry can
+    // heal QR provisioning without turning a committed batch into a false red.
+  }
+
+  revalidateMerchantLaunchSurfaces(merchant.id)
+
+  const message =
+    addedCount === 0
+      ? "Those rewards are already in your pool. Nothing new was added."
+      : existingCount > 0
+        ? `${addedCount} reward${addedCount === 1 ? "" : "s"} added. ${existingCount} ${existingCount === 1 ? "was" : "were"} already in your pool.`
+        : `${addedCount} reward${addedCount === 1 ? "" : "s"} added.`
+
+  return {
+    fields,
+    items,
+    saved: true,
+    addedCount,
+    existingCount,
+    activeRewardCount,
+    message,
+    qrStatus,
   }
 }
 
