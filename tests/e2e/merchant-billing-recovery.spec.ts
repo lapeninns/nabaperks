@@ -19,9 +19,15 @@ test.describe("merchant billing recovery @MS-billing-checkout-recovery @MS-analy
     await expect(builtAsset).toBeVisible()
     await expect(builtAsset.getByText("Mystery Visit Card")).toBeVisible()
     await expect(builtAsset.getByText("Built · billing needed")).toBeVisible()
-    await expect(
-      builtAsset.getByRole("img", { name: "QR code for Old Crown Girton" })
-    ).toBeVisible()
+    const qrImage = builtAsset.getByRole("img", {
+      name: "QR code for Old Crown Girton",
+    })
+    await expect(qrImage).toBeVisible()
+    expect(
+      await qrImage.evaluate(
+        (image: HTMLImageElement) => image.complete && image.naturalWidth > 0
+      )
+    ).toBe(true)
     await expect(
       page.getByRole("heading", { name: "Activate your venue" })
     ).toBeVisible()
@@ -52,6 +58,11 @@ test.describe("merchant billing recovery @MS-billing-checkout-recovery @MS-analy
           (element) => element.getBoundingClientRect().height
         )
       ).toBeGreaterThanOrEqual(44)
+      expect(
+        await button.evaluate(
+          (element) => element.scrollWidth <= element.clientWidth + 1
+        )
+      ).toBe(true)
     }
 
     const overflow = await page.evaluate(

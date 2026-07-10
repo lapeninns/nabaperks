@@ -52,6 +52,11 @@ export function defineMerchantLaunchFollowThroughTests() {
     await expect(
       page.getByRole("button", { name: "Show full screen" })
     ).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Do next" })).toHaveCount(0)
+    await expect(
+      page.getByRole("heading", { name: "No activity yet" })
+    ).toBeVisible()
+    await expect(page.getByText(/Phone ending/)).toHaveCount(0)
     await expectNoAxeViolations(page, "zero-member merchant dashboard")
     await expectNoHorizontalOverflow(page)
   })

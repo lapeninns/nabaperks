@@ -85,6 +85,8 @@ export const VERTICALS = {
 export const PRODUCT = {
   /** Main public product term. */
   term: "browser-based loyalty card",
+  /** Product plan name used at activation and in account billing. */
+  planName: "Growth Plan",
   cardLine: "A browser-based loyalty card customers open from your QR code.",
   posLine: "No extra hardware. No POS or EPOS integration required.",
   price: "£49/month",

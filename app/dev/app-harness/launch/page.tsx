@@ -5,6 +5,7 @@ import { PageTitle } from "@/components/brand"
 import { SetupBillingActivationCard } from "@/components/merchant/account/billing-activation-card"
 import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
 import { BirthdayRewardPanel } from "@/components/merchant/launch/birthday-panel"
+import { BillingActivationAssetPreview } from "@/components/merchant/launch/billing-activation-asset-preview"
 import { birthdayRewardTemplateForBusinessType } from "@/lib/merchant/birthday-reward-template"
 import {
   LoyaltyCardForm,
@@ -178,10 +179,20 @@ export default async function LaunchHarnessPage({
             returnHref="/app/launch?tab=qr"
           />
         ) : activeTab === "billing" ? (
-          <SetupBillingActivationCard
-            annualBillingAvailable
-            billingReturnTo="/app/launch?tab=billing"
-          />
+          <div className="grid min-w-0 items-start gap-3 xl:grid-cols-[minmax(20rem,0.7fr)_minmax(0,1.3fr)] xl:gap-5">
+            {state === "billing" ? (
+              <BillingActivationAssetPreview
+                venueName={LOCATION_NAME}
+                cardName="Mystery Visit Card"
+                stampsRequired={3}
+                qrCodeId="qr_harness"
+              />
+            ) : null}
+            <SetupBillingActivationCard
+              annualBillingAvailable
+              billingReturnTo="/app/launch?tab=billing"
+            />
+          </div>
         ) : (
           <VenueLocationForm
             initialValues={{

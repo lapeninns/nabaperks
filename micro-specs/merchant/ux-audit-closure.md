@@ -9,6 +9,7 @@ allowed_blast_radius:
   - micro-specs/evidence/MS-merchant-ux-audit-closure.json
   - lib/marketing/facts.ts
   - components/merchant/account/billing-activation-card.tsx
+  - components/merchant/account/billing-checkout-form.tsx
   - components/merchant/account/billing-panel-view.tsx
   - components/merchant/launch/billing-activation-asset-preview.tsx
   - components/merchant/onboarding-journey-orientation.tsx
@@ -16,6 +17,7 @@ allowed_blast_radius:
   - app/dev/app-harness/launch/page.tsx
   - app/app/onboarding/page.tsx
   - app/dev/app-harness/onboarding/page.tsx
+  - app/dev/app-harness/dashboard/page.tsx
   - tests/micro-specs/merchant-ux-audit-closure.test.mjs
   - tests/e2e/merchant-billing-recovery.spec.ts
   - tests/e2e/merchant-billing-recovery.desktop.spec.ts
@@ -28,6 +30,7 @@ implementation_surfaces:
   - micro-specs/evidence/MS-merchant-ux-audit-closure.json
   - lib/marketing/facts.ts
   - components/merchant/account/billing-activation-card.tsx
+  - components/merchant/account/billing-checkout-form.tsx
   - components/merchant/account/billing-panel-view.tsx
   - components/merchant/launch/billing-activation-asset-preview.tsx
   - components/merchant/onboarding-journey-orientation.tsx
@@ -35,6 +38,7 @@ implementation_surfaces:
   - app/dev/app-harness/launch/page.tsx
   - app/app/onboarding/page.tsx
   - app/dev/app-harness/onboarding/page.tsx
+  - app/dev/app-harness/dashboard/page.tsx
   - tests/micro-specs/merchant-ux-audit-closure.test.mjs
   - tests/e2e/merchant-billing-recovery.spec.ts
   - tests/e2e/merchant-billing-recovery.desktop.spec.ts
@@ -123,15 +127,21 @@ linked Supabase writes.
   it instead of forking the plan name. The public offer constant is unchanged.
 - The activation receipt gains `Plan / Growth Plan` and its browser proof pins
   the full guarantee and Stripe cancellation sentence, not partial keywords.
+  Its monthly and annual checkout actions stay stacked so neither plan label
+  depends on platform-font width to remain readable.
 - Carry the built asset into billing as a compact receipt using the real venue,
-  card cadence, and protected QR thumbnail. It is server-rendered and responsive,
-  with the checkout card immediately adjacent on desktop and directly following
-  on mobile.
+  a static card cadence, and protected QR thumbnail. It is server-rendered,
+  introduces no transitive client motion boundary, and stays responsive, with
+  the checkout card immediately adjacent on desktop and directly following on
+  mobile.
 - Shared onboarding components own both the condensed mobile sentence and the
   detailed roadmap so production and the DB-free harness cannot drift.
 - Add visual baselines for the billing asset, mobile onboarding orientation,
   and zero-member dashboard. Existing audit baselines are not repinned unless
   the changed surface legitimately appears in them.
+- The zero-member dashboard harness supplies an empty activity feed and omits
+  populated follow-up fixtures, so its first-join reassurance cannot contradict
+  the evidence rendered directly below it.
 - Measurement-plan gaps are explicitly deferred to a separate privacy-reviewed
   analytics spec; this UI closure does not collect field values, abandonment,
   support tickets, or experiment assignments.
@@ -155,7 +165,8 @@ linked Supabase writes.
   desktop right rail.
 - **UA-6:** IF dashboard members equal zero, THEN the merchant harness SHALL
   prove the encouraging no-members state replaces the KPI/trend section while
-  the real `Show full screen` counter-QR action remains visible.
+  the real `Show full screen` counter-QR action remains visible, populated
+  next-action fixtures are absent, and recent activity uses its empty state.
 - **UA-7:** THE changed surfaces SHALL have no axe violations or horizontal
   overflow at 375×812 and 1280×800 and SHALL match approved Wet Ink baselines.
 - **UA-8:** THE implementation SHALL add no data fetch, mutation, client bundle,

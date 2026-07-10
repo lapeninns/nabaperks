@@ -198,12 +198,14 @@ export default async function DashboardHarnessPage({
         </section>
       )}
 
-      <MerchantNextActions
-        readyCount={readyCount}
-        quietCount={quietCount}
-        repeatCustomers={repeatCustomers}
-        members={members}
-      />
+      {showEmptyMembers ? null : (
+        <MerchantNextActions
+          readyCount={readyCount}
+          quietCount={quietCount}
+          repeatCustomers={repeatCustomers}
+          members={members}
+        />
+      )}
 
       <ReceiptCard className="grid gap-4">
         <SectionHeader
@@ -216,7 +218,7 @@ export default async function DashboardHarnessPage({
         />
         <ActivityCompactFeed
           inset
-          rows={HARNESS_ACTIVITY_ROWS.slice(0, 4)}
+          rows={showEmptyMembers ? [] : HARNESS_ACTIVITY_ROWS.slice(0, 4)}
           emptyState={
             <EmptyState
               title="No activity yet"

@@ -48,6 +48,7 @@ export function SetupBillingActivationCard({
       </div>
 
       <dl className="grid gap-0 rounded-lg border border-border bg-secondary/40 px-3 py-1 text-sm">
+        <PlanRow label="Plan" value={PRODUCT.planName} />
         <PlanRow label="Free trial" value="30 days" />
         <PlanRow label="Due today" value="£0" />
         <PlanRow label="Then" value="£49 a month" />
@@ -59,6 +60,7 @@ export function SetupBillingActivationCard({
           checkoutAction={checkoutAction}
           annualBillingAvailable={annualBillingAvailable}
           returnTo={billingReturnTo}
+          stacked
         />
         <p className="text-center text-xs leading-5 text-muted-foreground">
           Secure checkout via Stripe. {PRODUCT.cancelChip} from your billing

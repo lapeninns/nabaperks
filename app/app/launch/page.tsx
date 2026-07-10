@@ -12,6 +12,7 @@ import {
   LaunchPanelSkeleton,
 } from "@/components/merchant/loading-skeletons"
 import { CardPanel } from "@/components/merchant/launch/card-panel"
+import { BillingActivationAssetPreview } from "@/components/merchant/launch/billing-activation-asset-preview"
 import { QrPanel } from "@/components/merchant/launch/qr-panel"
 import { RewardsPanel } from "@/components/merchant/launch/rewards-panel"
 import { VenuePanel } from "@/components/merchant/launch/venue-panel"
@@ -207,16 +208,40 @@ function LaunchActivePanel({
       ) : activeTab === "venue" ? (
         <VenuePanel />
       ) : activeTab === "billing" ? (
-        <BillingPanel
-          params={{
-            checkout: params.checkout,
-            portal: params.portal,
-            session_id: params.session_id,
-            billing_error: params.billing_error,
-          }}
-          mode="setup"
-          initialOutcome={billingOutcome}
-        />
+        needsBillingActivation &&
+        setup.location &&
+        setup.activeCard &&
+        setup.qrCode?.is_active ? (
+          <div className="grid min-w-0 items-start gap-3 xl:grid-cols-[minmax(20rem,0.7fr)_minmax(0,1.3fr)] xl:gap-5">
+            <BillingActivationAssetPreview
+              venueName={setup.location.name}
+              cardName={setup.activeCard.card_name}
+              stampsRequired={setup.activeCard.stamps_required}
+              qrCodeId={setup.qrCode.id}
+            />
+            <BillingPanel
+              params={{
+                checkout: params.checkout,
+                portal: params.portal,
+                session_id: params.session_id,
+                billing_error: params.billing_error,
+              }}
+              mode="setup"
+              initialOutcome={billingOutcome}
+            />
+          </div>
+        ) : (
+          <BillingPanel
+            params={{
+              checkout: params.checkout,
+              portal: params.portal,
+              session_id: params.session_id,
+              billing_error: params.billing_error,
+            }}
+            mode="setup"
+            initialOutcome={billingOutcome}
+          />
+        )
       ) : (
         <QrPanel
           setup={setup}

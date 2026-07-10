@@ -81,12 +81,12 @@ export function BillingPanelView({
     : null
   const panelTitle =
     restartableReason === "cancelled"
-      ? "Restart your Growth Plan"
+      ? `Restart your ${PRODUCT.planName}`
       : restartableReason === "incomplete_expired"
         ? "Finish billing setup"
         : presentation.eligibility.allowed
           ? "Activate your venue"
-          : "Growth Plan"
+          : PRODUCT.planName
   const panelDescription =
     restartableReason === "cancelled"
       ? "Choose monthly or annual billing to safely restart this venue's plan."

@@ -49,6 +49,7 @@ test.describe("visual regression @visual", () => {
       page,
     }) => {
       const isAuthRoute = route.name.startsWith("auth-")
+      const hideDevOverlay = isAuthRoute || auditClosureRoutes.has(route.name)
       if (isAuthRoute) await dismissPwaInstall(page)
       await page.goto(route.path)
       await page.addStyleTag({
@@ -61,7 +62,7 @@ test.describe("visual regression @visual", () => {
             transition-duration: 0s !important;
             transition-delay: 0s !important;
           }
-          ${isAuthRoute ? "nextjs-portal { display: none !important; }" : ""}
+          ${hideDevOverlay ? "nextjs-portal, [data-nextjs-dev-overlay='true'] { display: none !important; }" : ""}
         `,
       })
       await expect(page.locator("body")).toBeVisible()

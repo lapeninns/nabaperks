@@ -7,6 +7,7 @@ import { Icon, STATUS_ICON } from "@/components/brand"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { PRODUCT } from "@/lib/marketing/facts"
+import { cn } from "@/lib/utils"
 
 export type BillingCheckoutActionState =
   | { status: "idle" }
@@ -25,12 +26,15 @@ export function BillingCheckoutForm({
   checkoutAction,
   annualBillingAvailable,
   returnTo,
+  stacked = false,
   monthlyLabel = `Proceed to billing · ${PRODUCT.price}`,
   annualLabel = `Pay yearly · ${PRODUCT.priceAnnual} · ${PRODUCT.annualSaving}`,
 }: {
   checkoutAction: BillingCheckoutAction
   annualBillingAvailable: boolean
   returnTo?: string
+  /** Keep long first-run plan choices on separate rows at every breakpoint. */
+  stacked?: boolean
   monthlyLabel?: string
   annualLabel?: string
 }) {
@@ -55,7 +59,7 @@ export function BillingCheckoutForm({
         action={formAction}
         aria-busy={pending}
         data-billing-checkout-form
-        className="grid gap-2 sm:grid-cols-2"
+        className={cn("grid gap-2", !stacked && "sm:grid-cols-2")}
       >
         {returnTo ? (
           <input type="hidden" name="returnTo" value={returnTo} />
@@ -91,7 +95,10 @@ export function BillingCheckoutForm({
           <p
             role="status"
             aria-live="polite"
-            className="text-xs leading-5 font-bold text-muted-foreground sm:col-span-2"
+            className={cn(
+              "text-xs leading-5 font-bold text-muted-foreground",
+              !stacked && "sm:col-span-2"
+            )}
           >
             {pendingInterval === "year"
               ? "Opening annual Stripe checkout…"
