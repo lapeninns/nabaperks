@@ -1,7 +1,37 @@
 {
   "schema": 1,
   "spec_id": "MS-merchant-reward-preset-atomic-add",
-  "runs": [],
+  "runs": [
+    {
+      "timestamp": "2026-07-10T00:47:35.271Z",
+      "git_sha": "71f114a8a0f83f6dbe41d5aafcfbfb10b3fa3007",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6429
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1035
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 9945
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 1,
+          "duration_ms": 7422
+        }
+      ],
+      "all_passed": false
+    }
+  ],
   "manual_attestations": [],
   "transitions": [
     {

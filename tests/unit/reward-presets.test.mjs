@@ -5,6 +5,8 @@ import {
   CARD_CADENCE_PRESETS,
   GENERIC_REWARD_PRESETS,
   PUB_REWARD_PRESETS,
+  resolveRewardPresetsByIds,
+  rewardNameKey,
   rewardPresetsForBusinessType,
   rewardPresetToPoolItemValues,
 } from "@/lib/merchant/reward-presets"
@@ -28,6 +30,45 @@ describe("merchant reward presets", () => {
     assert.equal(rewardPresetsForBusinessType("pub"), PUB_REWARD_PRESETS)
     assert.equal(rewardPresetsForBusinessType("cafe"), GENERIC_REWARD_PRESETS)
     assert.equal(rewardPresetsForBusinessType(null), GENERIC_REWARD_PRESETS)
+  })
+
+  it("normalizes reward names for idempotent preset matching", () => {
+    assert.equal(rewardNameKey("  FREE\t starter\n"), "free starter")
+    assert.equal(
+      rewardNameKey("Regulars’   PINT"),
+      "regulars’ pint",
+      "punctuation is preserved while case and whitespace are normalized"
+    )
+  })
+
+  it("resolves trimmed repeated preset ids once in catalogue order", () => {
+    const resolved = resolveRewardPresetsByIds("pub", [
+      " dessert-on-the-house ",
+      "regulars-pint",
+      "dessert-on-the-house",
+      " free-starter ",
+    ])
+
+    assert.deepEqual(
+      resolved.map((preset) => preset.id),
+      ["regulars-pint", "free-starter", "dessert-on-the-house"]
+    )
+  })
+
+  it("rejects the whole selection when an id is blank, unknown, or from another catalogue", () => {
+    for (const ids of [[], [""], ["regulars-pint", "not-a-real-preset"]]) {
+      assert.throws(
+        () => resolveRewardPresetsByIds("pub", ids),
+        { message: "Invalid reward preset selection." },
+        `selection ${JSON.stringify(ids)} must be rejected before persistence`
+      )
+    }
+
+    assert.throws(
+      () => resolveRewardPresetsByIds("cafe", ["free-starter"]),
+      { message: "Invalid reward preset selection." },
+      "a pub-only preset cannot cross the merchant catalogue boundary"
+    )
   })
 
   function assertRewardPresetsValid(presets) {

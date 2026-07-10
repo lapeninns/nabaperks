@@ -50,10 +50,11 @@ related_docs:
   - micro-specs/merchant/card-rewards.md
   - reports/merchant-journey-ux-audit-2026-07-09.md
 related_tests:
+  - tests/db/reward-preset-atomic-add.test.mjs
   - tests/unit/reward-presets.test.mjs
+  - tests/micro-specs/reward-preset-atomic-add.test.mjs
   - tests/micro-specs/reward-presets.test.mjs
   - tests/e2e/merchant-reward-presets-flow.ts
-  - not-yet-created
 verification_gates:
   - pnpm lint
   - pnpm typecheck
@@ -61,7 +62,7 @@ verification_gates:
   - pnpm test
   - pnpm test:coverage
   - pnpm test:db
-  - pnpm test:e2e -- --project=chromium --project=mobile-safari --grep "@reward-presets"
+  - pnpm test:e2e -- --project=chromium --project=mobile-safari --grep "@MS-merchant-reward-preset-atomic-add"
   - pnpm test:a11y -- --project=chromium --project=mobile-safari
   - manual:local-supabase-reward-preset-atomicity-proof
 required_playwright_projects:
