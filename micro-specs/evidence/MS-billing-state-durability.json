@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-billing-state-durability",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-10T02:36:28.235Z",
+      "sha": "4a1db5fcb2ecad55bad520f519b5ba0d9caa3e5d",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}
