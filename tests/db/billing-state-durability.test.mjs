@@ -766,6 +766,16 @@ test(
       assert.equal(state.stripe_state_event_id, newerSubscriptionEvent)
 
       const cursorBeforeCurrent = state.stripe_state_event_id
+      const revisionBeforeCurrent = state.billing_revision
+      const [revisionReadback] = await tx`
+        select updated_at = ${revisionBeforeCurrent}::text::timestamptz as matches
+        from public.billing_customers
+        where merchant_id = ${fixture.merchantId}::uuid`
+      assert.equal(
+        revisionReadback.matches,
+        true,
+        "the captured row revision round-trips exactly"
+      )
       const currentResult = await applyCurrent(tx, {
         merchantId: fixture.merchantId,
         customerId,
@@ -780,6 +790,7 @@ test(
         periodEnd: "2026-08-02T10:00:00Z",
         cancelAtPeriodEnd: true,
         cancelAt: "2026-08-02T10:00:00Z",
+        expectedBillingUpdatedAt: revisionBeforeCurrent,
       })
       assert.equal(currentResult, "applied")
       state = await readBilling(tx, fixture.merchantId)
@@ -800,6 +811,7 @@ test(
         periodEnd: "2026-08-02T10:00:00Z",
         cancelAtPeriodEnd: false,
         cancelAt: "2026-07-20T12:00:00Z",
+        expectedBillingUpdatedAt: revisionBeforeCurrent,
       })
       assert.equal(customCancellationResult, "applied")
       state = await readBilling(tx, fixture.merchantId)
@@ -825,6 +837,7 @@ test(
         periodEnd: "2026-07-01T10:00:00Z",
         cancelAtPeriodEnd: false,
         cancelAt: null,
+        expectedBillingUpdatedAt: revisionBeforeCurrent,
       })
       assert.equal(staleCurrentResult, "stale")
 
@@ -878,6 +891,94 @@ test(
       state = await readBilling(tx, fixture.merchantId)
       assert.equal(state.stripe_price_id, "price_month_49", "failed event rolls billing back")
     })
+  }
+)
+
+test(
+  "a delayed current-provider return cannot roll back a newer webhook snapshot",
+  { skip },
+  async () => {
+    const fixture = await createCommittedMerchant("return-webhook-cas")
+    const customerId = `cus_cas_${fixture.short}`
+    const subscriptionId = `sub_cas_${fixture.short}`
+    const eventId = `evt_cas_cancel_${fixture.short}`
+
+    const activeSnapshot = {
+      merchantId: fixture.merchantId,
+      customerId,
+      subscriptionId,
+      subscriptionCreatedAt: "2026-07-01T10:00:00Z",
+      priceId: "price_month_49",
+      interval: "month",
+      amount: 4900,
+      currency: "gbp",
+      providerStatus: "active",
+      entitlementStatus: "active",
+      periodEnd: "2026-08-01T10:00:00Z",
+      cancelAtPeriodEnd: false,
+      cancelAt: null,
+    }
+
+    try {
+      assert.equal(
+        await applyCurrent(sql, {
+          ...activeSnapshot,
+          expectedBillingUpdatedAt: null,
+        }),
+        "applied"
+      )
+
+      const beforeWebhook = await readBilling(sql, fixture.merchantId)
+      const staleReturnRevision = beforeWebhook.billing_revision
+      await sql`select pg_sleep(0.01)`
+
+      const [claim] = await claimWebhook(
+        sql,
+        eventId,
+        "2026-07-10T13:00:00Z"
+      )
+      assert.equal(
+        await applyEvent(sql, {
+          ...activeSnapshot,
+          eventId,
+          leaseId: claim.lease_id,
+          providerStatus: "canceled",
+          entitlementStatus: "cancelled",
+        }),
+        "applied"
+      )
+
+      const afterWebhook = await readBilling(sql, fixture.merchantId)
+      assert.notEqual(
+        afterWebhook.billing_revision,
+        staleReturnRevision,
+        "the webhook advances the billing-row revision"
+      )
+
+      assert.equal(
+        await applyCurrent(sql, {
+          ...activeSnapshot,
+          expectedBillingUpdatedAt: staleReturnRevision,
+        }),
+        "stale",
+        "the return read before the webhook cannot commit after it"
+      )
+
+      const finalState = await readBilling(sql, fixture.merchantId)
+      assert.equal(finalState.stripe_subscription_status, "canceled")
+      assert.equal(finalState.status, "cancelled")
+      assert.equal(finalState.stripe_state_event_id, eventId)
+      assert.equal(
+        finalState.billing_revision,
+        afterWebhook.billing_revision,
+        "a rejected stale return leaves the authoritative row untouched"
+      )
+    } finally {
+      await sql`
+        delete from public.stripe_webhook_events
+        where stripe_event_id = ${eventId}`
+      await cleanupCommittedMerchant(fixture)
+    }
   }
 )
 
@@ -951,7 +1052,8 @@ async function applyCurrent(tx, snapshot) {
       ${snapshot.periodEnd}::timestamptz,
       ${snapshot.cancelAtPeriodEnd},
       ${snapshot.cancelAt}::timestamptz,
-      ${snapshot.entitlementStatus}
+      ${snapshot.entitlementStatus},
+      ${snapshot.expectedBillingUpdatedAt}::text::timestamptz
     ) as result`
   return row.result
 }
@@ -972,7 +1074,8 @@ async function readBilling(tx, merchantId) {
       cancel_at_period_end,
       cancel_at,
       stripe_state_event_created_at,
-      stripe_state_event_id
+      stripe_state_event_id,
+      updated_at::text as billing_revision
     from public.billing_customers
     where merchant_id = ${merchantId}::uuid`
   return row

@@ -89,8 +89,10 @@ non-secret plan readback columns through that same owner boundary.
   older event for the same Subscription is a no-op. Equal timestamps are never
   ordered lexically by event id; they may reapply the freshly hydrated current
   Subscription so same-second provider changes converge. Unversioned exact-
-  session/Portal reconciliation preserves the webhook cursor and still obeys
-  the current Subscription's provider-created ordering.
+  session/Portal reconciliation carries the `billing_customers.updated_at`
+  revision it read before provider hydration. It preserves the webhook cursor
+  and may apply only while that revision still matches, so a delayed return
+  cannot overwrite a newer webhook or reconciliation result.
 - Webhook claims are database-atomic leases with unguessable UUID fences. Only
   the matching live fence may finalise or fail a claim; processed events are
   terminal and an active lease is not reported as a harmless duplicate.
@@ -148,10 +150,13 @@ non-secret plan readback columns through that same owner boundary.
   Subscription created before the currently stored Subscription, THEN THE
   database SHALL not repoint the merchant even when the old Subscription's event
   arrived later. A newer-created Subscription may replace it.
-- **SD-4 (cursor audit):** WHEN an equal or newer versioned current-provider
-  snapshot applies, THE database SHALL advance the event cursor without treating
-  event ids as sortable; WHEN an unversioned current-provider snapshot applies,
-  THE database SHALL preserve the existing event cursor.
+- **SD-4 (cursor and revision audit):** WHEN an equal or newer versioned
+  current-provider snapshot applies, THE database SHALL advance the event cursor
+  without treating event ids as sortable. WHEN an unversioned current-provider
+  snapshot carries the exact billing-row revision it read, THE database SHALL
+  apply while preserving the existing event cursor; IF that revision changed or
+  a row appeared after a null read, THEN it SHALL leave billing untouched and
+  report the snapshot stale.
 - **SD-5 (durable customer):** WHEN a Checkout worker binds a Stripe customer,
   THE database SHALL retain that mapping outside `billing_customers` and SHALL
   not change loyalty eligibility before a real Subscription snapshot.
@@ -191,8 +196,8 @@ non-secret plan readback columns through that same owner boundary.
    that the absent migration fails for the intended reason.
 2. Add the migration and prove on disposable local PostgreSQL: historical-row
    compatibility, constraints, exact terms readback, newer-then-older ordering,
-   equal timestamp/current-snapshot idempotency, and unversioned cursor
-   preservation.
+   equal timestamp/current-snapshot idempotency, revision-fenced unversioned
+   cursor preservation, and a delayed return losing to a newer webhook.
 3. Prove first claim, concurrent same-interval stable-id convergence/one live
    lease, customer bind fencing, parameter persistence, bound-but-unfinalised
    recovery, interval conflict, exact Session retirement/rotation, stale-worker

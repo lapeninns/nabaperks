@@ -1258,6 +1258,22 @@ begin
 end
 $function$;
 
+drop function if exists public.apply_current_stripe_subscription(
+  uuid,
+  text,
+  text,
+  text,
+  timestamptz,
+  text,
+  text,
+  bigint,
+  text,
+  timestamptz,
+  boolean,
+  timestamptz,
+  text
+);
+
 create or replace function public.apply_current_stripe_subscription(
   p_merchant_id uuid,
   p_stripe_customer_id text,
@@ -1271,7 +1287,8 @@ create or replace function public.apply_current_stripe_subscription(
   p_current_period_end timestamptz,
   p_cancel_at_period_end boolean,
   p_cancel_at timestamptz,
-  p_entitlement_status text
+  p_entitlement_status text,
+  p_expected_updated_at timestamptz
 )
 returns text
 language plpgsql
@@ -1313,7 +1330,15 @@ begin
   where bc.merchant_id = p_merchant_id
   for update;
 
-  if v_billing.id is not null then
+  if v_billing.id is null then
+    if p_expected_updated_at is not null then
+      return 'stale';
+    end if;
+  else
+    if v_billing.updated_at is distinct from p_expected_updated_at then
+      return 'stale';
+    end if;
+
     if v_billing.stripe_subscription_id = p_stripe_subscription_id then
       if v_billing.stripe_subscription_created_at is not null
         and v_billing.stripe_subscription_created_at <> p_stripe_subscription_created_at then
@@ -1445,5 +1470,5 @@ grant execute on function public.complete_stripe_webhook_event(text, uuid) to se
 revoke all on function public.apply_stripe_subscription_event(text, uuid, uuid, text, text, text, timestamptz, text, text, bigint, text, timestamptz, boolean, timestamptz, text) from public, anon, authenticated;
 grant execute on function public.apply_stripe_subscription_event(text, uuid, uuid, text, text, text, timestamptz, text, text, bigint, text, timestamptz, boolean, timestamptz, text) to service_role;
 
-revoke all on function public.apply_current_stripe_subscription(uuid, text, text, text, timestamptz, text, text, bigint, text, timestamptz, boolean, timestamptz, text) from public, anon, authenticated;
-grant execute on function public.apply_current_stripe_subscription(uuid, text, text, text, timestamptz, text, text, bigint, text, timestamptz, boolean, timestamptz, text) to service_role;
+revoke all on function public.apply_current_stripe_subscription(uuid, text, text, text, timestamptz, text, text, bigint, text, timestamptz, boolean, timestamptz, text, timestamptz) from public, anon, authenticated;
+grant execute on function public.apply_current_stripe_subscription(uuid, text, text, text, timestamptz, text, text, bigint, text, timestamptz, boolean, timestamptz, text, timestamptz) to service_role;

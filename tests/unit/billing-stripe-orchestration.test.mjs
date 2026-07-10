@@ -10,6 +10,7 @@ import {
 const NOW = new Date("2026-07-10T12:00:00.000Z")
 const ATTEMPT_EXPIRY = "2026-07-11T12:00:00.000Z"
 const SESSION_EXPIRY = "2026-07-11T11:00:00.000Z"
+const BILLING_UPDATED_AT = "2026-07-10T11:59:00.000Z"
 
 const merchant = {
   id: "merchant_owned",
@@ -116,6 +117,7 @@ function dependencies(overrides = {}) {
       recordedSessionId: "cs_owned",
       stripeCustomerId: "cus_owned",
       stripeSubscriptionId: null,
+      billingUpdatedAt: null,
     }),
     applyCurrentSubscription: async () => "applied",
     ...overrides,
@@ -411,6 +413,12 @@ test("an owned completed trial applies only its exact current Subscription", asy
   const result = await confirmBillingCheckoutReturn(
     { merchantId: merchant.id, sessionId: "cs_owned" },
     dependencies({
+      loadCheckoutOwnership: async () => ({
+        recordedSessionId: "cs_owned",
+        stripeCustomerId: "cus_owned",
+        stripeSubscriptionId: "sub_owned",
+        billingUpdatedAt: BILLING_UPDATED_AT,
+      }),
       applyCurrentSubscription: async (value) => {
         applied = value
         return "applied"
@@ -426,6 +434,7 @@ test("an owned completed trial applies only its exact current Subscription", asy
   assert.equal(applied.merchantId, merchant.id)
   assert.equal(applied.snapshot.stripe_subscription_id, "sub_owned")
   assert.equal(applied.entitlementStatus, "trialing")
+  assert.equal(applied.expectedBillingUpdatedAt, BILLING_UPDATED_AT)
 })
 
 test("provider or database ambiguity returns catching-up rather than success", async () => {
@@ -488,6 +497,7 @@ test("Portal reconciliation hydrates the known Subscription and preserves schedu
         recordedSessionId: null,
         stripeCustomerId: "cus_owned",
         stripeSubscriptionId: "sub_owned",
+        billingUpdatedAt: BILLING_UPDATED_AT,
       }),
       applyCurrentSubscription: async (value) => {
         applied = value
@@ -503,4 +513,5 @@ test("Portal reconciliation hydrates the known Subscription and preserves schedu
   })
   assert.equal(applied.snapshot.cancel_at_period_end, true)
   assert.equal(applied.snapshot.cancel_at, "2025-08-08T13:20:00.000Z")
+  assert.equal(applied.expectedBillingUpdatedAt, BILLING_UPDATED_AT)
 })

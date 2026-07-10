@@ -204,8 +204,10 @@ billing panels, or weakening webhook signature validation.
   one concrete Subscription whose customer and merchant metadata also match.
   A trial may correctly have `payment_status=no_payment_required`.
 - Return reconciliation retrieves and stores that exact current Subscription;
-  broad email/customer searching is not return proof. Webhooks remain the
-  authoritative asynchronous channel.
+  broad email/customer searching is not return proof. It carries the durable
+  billing-row revision observed before provider retrieval, and a revision
+  mismatch becomes `catching_up` rather than overwriting newer state. Webhooks
+  remain the authoritative asynchronous channel.
 - Webhook handlers hydrate the current Subscription from Stripe before applying
   full state, pass the event cursor into the conditional database function, and
   emit revalidation/analytics only for an applied snapshot. Invoice events never
@@ -277,7 +279,8 @@ billing panels, or weakening webhook signature validation.
   `payment_method_types`.
 - **BR-6 (exact return):** WHEN an owned completed subscription Session returns,
   THE system SHALL retrieve and validate that Session and its exact Subscription,
-  apply the current full provider snapshot, refresh launch state once, and return
+  conditionally apply the current full provider snapshot against the billing-row
+  revision captured before retrieval, refresh launch state once, and return
   `confirmed` only after healthy billing readback.
 - **BR-7 (forged return):** IF the Session id is absent, foreign, incomplete,
   wrong-mode, not the merchant's recorded attempt, missing a Subscription, or
@@ -300,7 +303,9 @@ billing panels, or weakening webhook signature validation.
   SHALL NOT offer a duplicate Subscription.
 - **BR-12 (Portal reconciliation):** WHEN Stripe Portal returns, THE system SHALL
   reconcile the known current Subscription once and show scheduled cancellation
-  or updated status only after authoritative readback.
+  or updated status only after authoritative readback; IF a webhook or another
+  reconciliation advances billing meanwhile, THEN it SHALL show `catching_up`
+  and SHALL NOT roll that newer state back.
 - **BR-13 (ordered webhooks):** WHEN a signed supported webhook is claimed, THE
   handler SHALL hydrate current Subscription state, conditionally apply it with
   the event cursor, and suppress stale revalidation/analytics; invoice events

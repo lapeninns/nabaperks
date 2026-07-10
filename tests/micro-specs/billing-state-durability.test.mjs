@@ -143,4 +143,9 @@ test("billing durability is delivered by one replay-safe migration", () => {
     /update public\.stripe_webhook_events[\s\S]*processed_at = v_now[\s\S]*return v_result/i,
     "the versioned apply RPC owns the processed marker in its transaction"
   )
+  assert.match(
+    source,
+    /p_expected_updated_at timestamptz[\s\S]*v_billing\.updated_at is distinct from p_expected_updated_at[\s\S]*return 'stale'/i,
+    "current-provider reconciliation is fenced by the billing row revision"
+  )
 })

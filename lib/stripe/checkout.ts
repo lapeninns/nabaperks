@@ -66,6 +66,7 @@ export type BillingCheckoutOwnership = {
   recordedSessionId: string | null
   stripeCustomerId: string | null
   stripeSubscriptionId: string | null
+  billingUpdatedAt: string | null
 }
 
 export type BillingCheckoutDependencies = {
@@ -157,6 +158,7 @@ export type BillingCheckoutDependencies = {
     merchantId: string
     snapshot: AuthoritativeBillingSnapshot
     entitlementStatus: BillingEntitlementStatus
+    expectedBillingUpdatedAt: string | null
   }) => Promise<"applied" | "stale">
 }
 
@@ -633,6 +635,7 @@ export async function confirmBillingCheckoutReturn(
       merchantId: input.merchantId,
       snapshot,
       entitlementStatus,
+      expectedBillingUpdatedAt: ownership.billingUpdatedAt,
     })
 
     return applied === "applied"
@@ -677,6 +680,7 @@ export async function reconcileBillingPortalReturn(
       merchantId: input.merchantId,
       snapshot,
       entitlementStatus: mapEntitlementStatus(subscription.status),
+      expectedBillingUpdatedAt: ownership.billingUpdatedAt,
     })
 
     return applied === "applied"
@@ -844,7 +848,7 @@ export async function createBillingCheckoutDependencies(): Promise<BillingChecko
           .maybeSingle(),
         supabase
           .from("billing_customers")
-          .select("stripe_customer_id, stripe_subscription_id")
+          .select("stripe_customer_id, stripe_subscription_id, updated_at")
           .eq("merchant_id", merchantId)
           .maybeSingle(),
       ])
@@ -869,12 +873,14 @@ export async function createBillingCheckoutDependencies(): Promise<BillingChecko
         stripeCustomerId: billingCustomer ?? attemptCustomer,
         stripeSubscriptionId:
           billingResult.data?.stripe_subscription_id ?? null,
+        billingUpdatedAt: billingResult.data?.updated_at ?? null,
       }
     },
     applyCurrentSubscription: async ({
       merchantId,
       snapshot,
       entitlementStatus,
+      expectedBillingUpdatedAt,
     }) => {
       const result = (await supabase.rpc("apply_current_stripe_subscription", {
         p_merchant_id: merchantId,
@@ -891,6 +897,7 @@ export async function createBillingCheckoutDependencies(): Promise<BillingChecko
         p_cancel_at_period_end: snapshot.cancel_at_period_end,
         p_cancel_at: snapshot.cancel_at,
         p_entitlement_status: entitlementStatus,
+        p_expected_updated_at: expectedBillingUpdatedAt,
       })) as RpcResult<"applied" | "stale">
       return requireRpcScalar(result, "Current Subscription application")
     },

@@ -208,10 +208,12 @@ export async function applyCurrentStripeSubscription({
   merchantId,
   snapshot,
   entitlementStatus,
+  expectedBillingUpdatedAt,
 }: {
   merchantId: string
   snapshot: AuthoritativeBillingSnapshot
   entitlementStatus: BillingStatus
+  expectedBillingUpdatedAt: string | null
 }): Promise<SubscriptionApplyResult> {
   const { createSupabaseServiceRoleClient } =
     await import("@/lib/supabase/server")
@@ -220,6 +222,7 @@ export async function applyCurrentStripeSubscription({
     "apply_current_stripe_subscription",
     subscriptionRpcArguments(snapshot, entitlementStatus, {
       p_merchant_id: merchantId,
+      p_expected_updated_at: expectedBillingUpdatedAt,
     })
   )
 
@@ -244,7 +247,7 @@ export async function syncMerchantBillingFromStripe(merchantId: string) {
   const stripe = getStripe()
   const { data: billing, error } = await supabase
     .from("billing_customers")
-    .select("stripe_subscription_id")
+    .select("stripe_subscription_id, updated_at")
     .eq("merchant_id", merchantId)
     .maybeSingle()
 
@@ -257,15 +260,21 @@ export async function syncMerchantBillingFromStripe(merchantId: string) {
   const subscription = await stripe.subscriptions.retrieve(
     billing.stripe_subscription_id
   )
-  return syncStripeSubscription({ subscription, merchantId })
+  return syncStripeSubscription({
+    subscription,
+    merchantId,
+    expectedBillingUpdatedAt: billing.updated_at,
+  })
 }
 
 export async function syncStripeSubscription({
   subscription,
   merchantId,
+  expectedBillingUpdatedAt,
 }: {
   subscription: Stripe.Subscription
   merchantId?: string | null
+  expectedBillingUpdatedAt: string | null
 }) {
   const ownership = await resolveStripeSubscriptionMerchant({
     subscription,
@@ -277,6 +286,7 @@ export async function syncStripeSubscription({
     merchantId: ownership.merchantId,
     snapshot: mapStripeSubscriptionSnapshot(subscription),
     entitlementStatus: status,
+    expectedBillingUpdatedAt,
   })
 
   return { merchantId: ownership.merchantId, status, applyStatus }
@@ -332,7 +342,7 @@ async function loadStripeBillingOwnership({
 function subscriptionRpcArguments(
   snapshot: AuthoritativeBillingSnapshot,
   entitlementStatus: BillingStatus,
-  identity: Record<string, string>
+  identity: Record<string, string | null>
 ) {
   return {
     ...identity,
