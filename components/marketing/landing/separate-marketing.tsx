@@ -6,7 +6,7 @@ import { Section } from "@/components/layout"
 import { BenefitPoint } from "./benefit-point"
 
 const legalLinkClass =
-  "rounded-sm font-semibold text-foreground underline underline-offset-4 transition-colors hover:text-primary focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
+  "focus-ring rounded-sm font-semibold text-foreground underline underline-offset-4 transition-colors hover:text-primary"
 
 /**
  * Loyalty and marketing kept separate — neutralises the data-privacy and

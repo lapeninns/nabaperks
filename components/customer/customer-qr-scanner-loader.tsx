@@ -4,7 +4,7 @@ import { Camera01Icon } from "@hugeicons/core-free-icons"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 
-import { Eyebrow, Icon, ReceiptCard } from "@/components/brand"
+import { Eyebrow, Icon, IconRoundel, ReceiptCard } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 
@@ -21,9 +21,7 @@ function CustomerQrScannerLoading() {
   return (
     <ReceiptCard edge className="grid gap-5 p-6">
       <div className="grid gap-3">
-        <span className="grid size-11 place-items-center rounded-full border-2 border-ink bg-accent text-accent-foreground">
-          <Icon icon={Camera01Icon} size={22} />
-        </span>
+        <IconRoundel icon={Camera01Icon} iconSize={22} tone="accent" />
         <div className="grid gap-1.5">
           <Eyebrow>Customer scanner</Eyebrow>
           {/* Same headline as the loaded scanner (CUS-P3-11) — no string flip
@@ -47,7 +45,7 @@ function CustomerQrScannerLoading() {
           />
           <span
             aria-live="polite"
-            className="font-mono text-[0.65rem] font-bold tracking-[0.08em] text-muted-foreground uppercase"
+            className="mono-id tracking-[0.08em] text-muted-foreground"
           >
             Starting camera
           </span>

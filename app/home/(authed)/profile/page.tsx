@@ -55,7 +55,7 @@ export default async function HomeProfilePage() {
 
       <PushNotificationSettingsDisclosure />
 
-      <p className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+      <p className="mono-id tracking-[0.08em] text-muted-foreground">
         Member since {formatMonthYear(profile.memberSince)} · {venueLabel}
       </p>
     </div>

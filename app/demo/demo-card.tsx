@@ -68,8 +68,7 @@ export function DemoCard() {
               onKeyDown: onCardKeyDown,
             })}
         className={cn(
-          "mx-auto w-full max-w-[21rem] rounded-2xl outline-none transition-transform duration-150",
-          "focus-visible:ring-3 focus-visible:ring-ring/45",
+          "focus-ring mx-auto w-full max-w-[21rem] rounded-2xl transition-transform duration-150",
           !complete &&
             "cursor-pointer select-none active:translate-y-px motion-safe:hover:-translate-y-0.5"
         )}

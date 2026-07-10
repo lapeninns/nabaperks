@@ -318,7 +318,7 @@ function CardGiftChip({
     <div className="grid gap-2 rounded-lg border-2 border-ink bg-seal/15 p-3">
       <div className="flex items-center gap-1.5">
         <Icon icon={GiftIcon} size={16} />
-        <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-ink uppercase">
+        <span className="mono-id tracking-[0.08em] text-ink">
           {badge}
         </span>
       </div>
@@ -348,7 +348,7 @@ function CardGiftChip({
 function CardDetailsDisclosure({ cardNumber }: { cardNumber: string }) {
   return (
     <details className="group text-left">
-      <summary className="flex w-fit cursor-pointer list-none items-center gap-1.5 rounded-sm text-xs font-bold text-ink-soft underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/35 [&::-webkit-details-marker]:hidden">
+      <summary className="focus-ring flex w-fit cursor-pointer list-none items-center gap-1.5 rounded-sm text-xs font-bold text-ink-soft underline-offset-4 hover:underline [&::-webkit-details-marker]:hidden">
         Card details
         <Icon
           icon={ArrowDown01Icon}
@@ -356,7 +356,7 @@ function CardDetailsDisclosure({ cardNumber }: { cardNumber: string }) {
           className="text-ink-soft transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] group-open:rotate-180 motion-reduce:transition-none"
         />
       </summary>
-      <dl className="mt-2 grid gap-1.5 font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+      <dl className="mt-2 grid gap-1.5 mono-id tracking-[0.08em] text-muted-foreground">
         <div className="flex justify-between gap-3">
           <dt>{cardNumber}</dt>
           <dd>One stamp per UK business day</dd>

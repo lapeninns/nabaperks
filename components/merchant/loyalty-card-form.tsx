@@ -189,7 +189,7 @@ export function LoyaltyCardForm({
                       updateStampsRequired(String(preset.stampsRequired))
                     }
                     className={cn(
-                      "grid min-h-16 min-w-0 gap-1 rounded-lg border-[1.5px] px-3 py-2.5 text-left transition-[background-color,border-color,color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none",
+                      "grid min-h-16 min-w-0 gap-1 rounded-lg border-[1.5px] px-3 py-2.5 text-left transition-[background-color,border-color,color,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] focus-ring motion-reduce:transition-none",
                       selected
                         ? "border-ink bg-ink text-paper shadow-sm"
                         : "border-border bg-secondary text-foreground hover:border-ink"
@@ -644,7 +644,7 @@ export function RewardPoolForm({
           ref={batchErrorRef}
           role="alert"
           tabIndex={-1}
-          className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+          className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive focus-ring"
         >
           {batchState.errors.form}
         </p>
@@ -654,7 +654,7 @@ export function RewardPoolForm({
           role="status"
           aria-live="polite"
           tabIndex={-1}
-          className="rounded-lg border border-reward/40 bg-reward/10 px-3 py-2 text-sm font-bold text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+          className="rounded-lg border border-reward/40 bg-reward/10 px-3 py-2 text-sm font-bold text-foreground focus-ring"
         >
           {batchState.message}
           {batchState.activeRewardCount !== undefined ? (
@@ -820,7 +820,7 @@ function RewardRow({
         type="button"
         disabled={disabled}
         onClick={onEdit}
-        className="min-w-0 rounded-md text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-60"
+        className="min-w-0 rounded-md text-left focus-ring disabled:cursor-not-allowed disabled:opacity-60"
       >
         <p className="text-sm leading-snug font-bold text-pretty break-words text-foreground">
           {rewardName}
@@ -848,7 +848,7 @@ function RewardRow({
           aria-label={`Edit ${rewardName}`}
           // Honest compact size: 32px square on fine pointers, grown to the
           // 44px tap floor on coarse pointers (the Button icon-xs idiom).
-          className="grid size-8 min-h-8 shrink-0 place-items-center rounded-md border border-border bg-card text-foreground transition-[color,background-color,border-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:border-ink hover:bg-secondary/60 focus-visible:ring-3 focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
+          className="grid size-8 min-h-8 shrink-0 place-items-center rounded-md border border-border bg-card text-foreground transition-[color,background-color,border-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:border-ink hover:bg-secondary/60 focus-ring disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
         >
           <Icon icon={PencilEdit02Icon} size={15} strokeWidth={2} />
         </button>
@@ -925,7 +925,7 @@ function RewardActiveToggle({
       // coarse pointers (the FilterPills / Button compact-size idiom) — this
       // switch is THE control that activates rewards toward the launch gate.
       className={cn(
-        "w-tag pressable inline-flex shrink-0 items-center justify-center rounded-2xl border transition-[color,background-color,border-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none focus-visible:ring-3 focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11",
+        "w-tag pressable inline-flex shrink-0 items-center justify-center rounded-2xl border transition-[color,background-color,border-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] focus-ring disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11",
         compact ? "h-5 px-2" : "h-6 px-2.5 py-0.5",
         optimisticActive
           ? "border-ink bg-reward text-reward-foreground"
@@ -1195,7 +1195,7 @@ function Stepper({
         aria-label="Fewer visits"
         disabled={atMin}
         onClick={() => onChange(String(Math.max(min, current - 1)))}
-        className="grid min-h-9 w-11 place-items-center text-foreground transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:bg-ink/10 focus-visible:ring-3 focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11"
+        className="grid min-h-9 w-11 place-items-center text-foreground transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:bg-ink/10 focus-ring disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11"
       >
         <Icon icon={MinusSignIcon} size={18} strokeWidth={2.25} />
       </button>
@@ -1210,7 +1210,7 @@ function Stepper({
         aria-label="More visits"
         disabled={atMax}
         onClick={() => onChange(String(Math.min(max, current + 1)))}
-        className="grid min-h-9 w-11 place-items-center text-foreground transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:bg-ink/10 focus-visible:ring-3 focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11"
+        className="grid min-h-9 w-11 place-items-center text-foreground transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:bg-ink/10 focus-ring disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11"
       >
         <Icon icon={PlusSignIcon} size={18} strokeWidth={2.25} />
       </button>

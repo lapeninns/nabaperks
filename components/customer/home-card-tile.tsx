@@ -41,10 +41,12 @@ export function HomeCardTile({ card }: { card: HomeCard }) {
     <div className="grid gap-2">
       <Link
         href={href}
-        className="block rounded-[var(--radius)] transition-[box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none"
+        className="focus-ring block rounded-[var(--radius)]"
         aria-label={`Open your ${card.businessName} card`}
       >
-        <ReceiptCard className="grid gap-4 transition-shadow duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:shadow-md motion-reduce:transition-none">
+        {/* No hover shadow utilities here: the unlayered card layer pins the
+            slotted shadow, so hover:shadow-* is silently defeated (DESIGN.md). */}
+        <ReceiptCard className="grid gap-4">
           <div className="flex items-start justify-between gap-4">
             <div className="grid min-w-0 gap-1">
               <Eyebrow>{card.cardName ?? "Loyalty card"}</Eyebrow>
@@ -89,7 +91,7 @@ export function HomeCardTile({ card }: { card: HomeCard }) {
               <p className="text-sm leading-tight font-extrabold break-words">
                 {card.revealedRewardName ?? "Your reward"}
               </p>
-              <span className="w-fit max-w-full rounded-md border-2 border-ink bg-seal/25 px-2 py-0.5 font-mono text-[0.625rem] font-bold tracking-[0.06em] uppercase">
+              <span className="w-fit max-w-full rounded-md border-2 border-ink bg-seal/25 px-2 py-0.5 mono-id">
                 {rewardReadyLabel}
               </span>
             </div>
@@ -151,7 +153,7 @@ function TileGiftChip({
       <p className="text-sm leading-tight font-extrabold break-words">
         {gift.rewardName}
       </p>
-      <span className="w-fit max-w-full rounded-md border-2 border-ink bg-seal/25 px-2 py-0.5 font-mono text-[0.625rem] font-bold tracking-[0.06em] uppercase">
+      <span className="w-fit max-w-full rounded-md border-2 border-ink bg-seal/25 px-2 py-0.5 mono-id">
         {label}
       </span>
     </div>

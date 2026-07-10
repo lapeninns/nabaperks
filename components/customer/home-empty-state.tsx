@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { QrCode01Icon } from "@hugeicons/core-free-icons"
 
-import { EmptyState, MonoTag, ReceiptCard } from "@/components/brand"
+import { EmptyState, IconRoundel, MonoTag, ReceiptCard } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 
 /**
@@ -32,9 +32,13 @@ export function HomeEmptyState() {
             <ol className="grid gap-3">
               {HOME_EMPTY_HOW_IT_WORKS.map((step, index) => (
                 <li key={step} className="grid grid-cols-[2rem_1fr] gap-3">
-                  <span className="grid size-8 place-items-center rounded-full border-2 border-ink bg-primary font-mono text-xs font-extrabold text-primary-foreground">
+                  <IconRoundel
+                    size="sm"
+                    tone="primary"
+                    className="font-mono text-xs font-extrabold"
+                  >
                     {index + 1}
-                  </span>
+                  </IconRoundel>
                   <span className="text-sm leading-6 text-muted-foreground">
                     {step}
                   </span>

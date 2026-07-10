@@ -149,7 +149,7 @@ function SignInForm({
           action={freshCodeAction}
           aria-label="Get a fresh verification code"
           tabIndex={-1}
-          className="grid gap-3 rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+          className="focus-ring grid gap-3 rounded-xl"
         >
           <input type="hidden" name="intent" value="resend" />
           <input type="hidden" name="source" value="login" />

@@ -3,7 +3,7 @@
 import { useState } from "react"
 import dynamic from "next/dynamic"
 
-import { SectionHeader } from "@/components/brand"
+import { IconRoundel, SectionHeader } from "@/components/brand"
 import type { PushNotificationSettingsProps } from "@/components/customer/push-notification-settings"
 
 const DeferredPushNotificationSettings = dynamic<PushNotificationSettingsProps>(
@@ -24,12 +24,12 @@ export function PushNotificationSettingsDisclosure() {
     >
       <summary className="flex cursor-pointer list-none items-center justify-between gap-4 [&::-webkit-details-marker]:hidden">
         <SectionHeader eyebrow="Push" title="Browser notifications" />
-        <span
-          aria-hidden="true"
-          className="grid size-8 shrink-0 place-items-center rounded-full border-2 border-ink font-mono text-sm font-black"
+        <IconRoundel
+          size="sm"
+          className="bg-transparent font-mono text-sm font-black"
         >
           {open ? "-" : "+"}
-        </span>
+        </IconRoundel>
       </summary>
       {open ? (
         <div className="pt-4">

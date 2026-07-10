@@ -375,6 +375,155 @@ function checkSubFloorText(files) {
   return subFloor
 }
 
+/* ------------------------------------------------------------------ */
+/* CHECK 4 — WCAG contrast floors for the token pairs the system ships */
+/*                                                                      */
+/* The palette passes AA with almost no margin in places (primary text  */
+/* on paper is 4.51:1) and the accent is designed to be themeable, so   */
+/* these floors freeze the guarantees: a token tweak or merchant theme  */
+/* that silently breaks 50+ surfaces fails here instead of in the wild. */
+/* Focus-ring alpha is parsed from the live recipe in globals.css, so   */
+/* the assertion follows the shipped mix percentage.                    */
+/* ------------------------------------------------------------------ */
+
+function parseSelectorBlock(cssSource, selector) {
+  const clean = stripComments(cssSource)
+  const start = clean.indexOf(`${selector} {`)
+  if (start === -1) return null
+  const open = clean.indexOf("{", start)
+  let depth = 0
+  let end = -1
+  for (let i = open; i < clean.length; i++) {
+    if (clean[i] === "{") depth++
+    else if (clean[i] === "}") {
+      depth--
+      if (depth === 0) {
+        end = i
+        break
+      }
+    }
+  }
+  if (end === -1) return null
+  const body = clean.slice(open + 1, end)
+  const props = {}
+  for (const decl of body.split(";")) {
+    const m = decl.match(/^\s*(--[A-Za-z0-9_-]+)\s*:\s*([\s\S]+?)\s*$/)
+    if (m) props[m[1]] = m[2].trim()
+  }
+  return props
+}
+
+function hexToRgb(value) {
+  const m = String(value).trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i)
+  if (!m) return null
+  let h = m[1]
+  if (h.length === 3) h = [...h].map((c) => c + c).join("")
+  return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16))
+}
+
+function srgbChannel(c) {
+  const v = c / 255
+  return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+}
+
+function luminance(rgb) {
+  return (
+    0.2126 * srgbChannel(rgb[0]) +
+    0.7152 * srgbChannel(rgb[1]) +
+    0.0722 * srgbChannel(rgb[2])
+  )
+}
+
+function contrastRatio(a, b) {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x)
+  return (hi + 0.05) / (lo + 0.05)
+}
+
+/** sRGB alpha composite of `fg` at `alpha` over opaque `bg`. */
+function composite(fg, alpha, bg) {
+  return fg.map((c, i) => Math.round(alpha * c + (1 - alpha) * bg[i]))
+}
+
+function resolveHex(prop, props) {
+  if (!(prop in props)) return null
+  return hexToRgb(resolveVar(props[prop], props).value)
+}
+
+function checkContrast(themeName, props, ringAlpha) {
+  const problems = []
+  // [foreground token, background token, floor, note]
+  const pairs = [
+    ["--foreground", "--background", 4.5, "body text"],
+    ["--muted-foreground", "--background", 4.5, "muted text on page"],
+    ["--muted-foreground", "--muted", 4.5, "muted text on muted well"],
+    ["--primary", "--background", 4.5, "accent text on page (themeable!)"],
+    ["--primary-foreground", "--primary", 4.5, "primary button text"],
+    ["--seal-foreground", "--seal", 4.5, "seal glyph on sun"],
+    ["--reward-foreground", "--reward", 4.5, "reward text on leaf"],
+    ["--destructive-foreground", "--destructive", 4.5, "filled destructive text"],
+    ["--destructive", "--card", 4.5, "outline-danger button text"],
+  ]
+
+  for (const [fgProp, bgProp, floor, note] of pairs) {
+    const fg = resolveHex(fgProp, props)
+    const bg = resolveHex(bgProp, props)
+    if (!fg || !bg) continue // non-hex (rgba wash) or missing — other checks own those
+    const ratio = contrastRatio(fg, bg)
+    if (ratio < floor) {
+      problems.push(
+        `${themeName}: ${fgProp} on ${bgProp} = ${ratio.toFixed(2)}:1 (needs ${floor}:1 — ${note})`
+      )
+    }
+  }
+
+  // Focus ring: the recipe's color-mix alpha composited over the page must
+  // hold the 3:1 non-text floor (WCAG 1.4.11).
+  const ring = resolveHex("--ring", props)
+  const page = resolveHex("--background", props)
+  if (ring && page && ringAlpha != null) {
+    const ratio = contrastRatio(composite(ring, ringAlpha, page), page)
+    if (ratio < 3) {
+      problems.push(
+        `${themeName}: focus ring (${Math.round(ringAlpha * 100)}% --ring over --background) = ${ratio.toFixed(2)}:1 (needs 3:1 — WCAG 1.4.11)`
+      )
+    }
+  }
+
+  return problems
+}
+
+const ringMixMatch = stripComments(css).match(
+  /outline:\s*2px solid color-mix\(in oklch, var\(--ring\) (\d+)%, transparent\)/
+)
+const ringAlpha = ringMixMatch ? Number(ringMixMatch[1]) / 100 : null
+
+const darkProps = parseSelectorBlock(css, ".dark")
+const contrastProblems = [
+  ...checkContrast("light", rootProps, ringAlpha),
+  ...(darkProps
+    ? checkContrast("dark", { ...rootProps, ...darkProps }, ringAlpha)
+    : []),
+]
+
+if (!ringMixMatch) {
+  contrastProblems.push(
+    "focus-ring recipe not found in globals.css — CHECK 4 cannot verify the ring alpha (did the recipe move or change shape?)"
+  )
+}
+
+if (contrastProblems.length) {
+  console.error(`✗ ${contrastProblems.length} WCAG contrast floor violation(s):\n`)
+  for (const p of contrastProblems) console.error(`  ${p}`)
+  console.error(
+    "\n  Adjust the token (or the ring mix %) until the pair clears its floor — DESIGN.md · Colors.\n"
+  )
+  failed = true
+} else {
+  console.log(
+    `✓ contrast floors held: token pairs pass WCAG in light and dark (ring mix ${ringMixMatch ? ringMixMatch[1] + "%" : "?"})`
+  )
+}
+
 const subFloor = checkSubFloorText(sourceFiles)
 
 if (subFloor.length) {

@@ -133,7 +133,7 @@ function PosterTemplateLinks({
             data-active={isActive ? "true" : "false"}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "border-2 border-ink border-l-[3px] bg-card font-extrabold shadow-sm transition-[transform,box-shadow] hover:-translate-y-px hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none motion-reduce:transition-none motion-reduce:hover:translate-y-0",
+              "focus-ring border-2 border-ink border-l-[3px] bg-card font-extrabold shadow-sm transition-[transform,box-shadow] hover:-translate-y-px hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0",
               isStrip
                 ? "flex min-h-11 shrink-0 items-center rounded-lg px-3.5 text-sm leading-none whitespace-nowrap"
                 : "flex min-h-10 w-full items-center rounded-lg px-3 py-2.5 text-sm leading-snug",
@@ -210,7 +210,7 @@ export function PosterPreviewChrome({
           <h1 className="truncate text-base leading-tight font-extrabold text-balance sm:text-lg">
             {templateName}
           </h1>
-          <p className="truncate font-mono text-[10px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+          <p className="truncate mono-id tracking-[0.08em] text-muted-foreground">
             {venueLabel}
           </p>
         </div>
@@ -223,7 +223,7 @@ export function PosterPreviewChrome({
           aria-controls="poster-guidance-mobile"
           onClick={() => setGuidanceOpen((open) => !open)}
           className={cn(
-            "pressable inline-grid size-11 shrink-0 place-items-center rounded-full border-2 border-ink bg-card text-ink shadow-sm transition-[transform,box-shadow,background-color] hover:-translate-y-px hover:shadow-md focus-visible:ring-3 focus-visible:ring-primary/35 focus-visible:outline-none motion-reduce:transition-none lg:hidden",
+            "pressable inline-grid size-11 shrink-0 place-items-center rounded-full border-2 border-ink bg-card text-ink shadow-sm transition-[transform,box-shadow,background-color] hover:-translate-y-px hover:shadow-md motion-reduce:transition-none lg:hidden",
             guidanceOpen && "bg-paper-deep"
           )}
         >
@@ -270,7 +270,7 @@ export function PosterDesktopSidecar({
   return (
     <aside className="qr-poster-sidecar hidden min-h-0 min-w-0 flex-col gap-4 border-l-2 border-ink bg-paper/95 p-4 lg:flex lg:overflow-y-auto">
       <div className="grid gap-2">
-        <p className="font-mono text-[10px] font-bold tracking-[0.12em] text-muted-foreground uppercase">
+        <p className="mono-id tracking-[0.12em] text-muted-foreground">
           Templates
         </p>
         <PosterTemplateLinks
@@ -282,11 +282,11 @@ export function PosterDesktopSidecar({
       </div>
 
       <div className="grid gap-2">
-        <p className="font-mono text-[10px] font-bold tracking-[0.12em] text-muted-foreground uppercase">
+        <p className="mono-id tracking-[0.12em] text-muted-foreground">
           Print setup
         </p>
         <PosterGuidanceText />
-        <p className="font-mono text-[10px] font-bold tracking-[0.1em] text-muted-foreground uppercase">
+        <p className="mono-id tracking-[0.1em] text-muted-foreground">
           A4 portrait · 210×297 mm · print at 100%
         </p>
       </div>
@@ -311,7 +311,7 @@ export function PosterActionBar({ ref, template }: PosterActionBarProps) {
       className="qr-poster-action-bar border-t-2 border-ink bg-paper/95 backdrop-blur-sm lg:hidden"
     >
       <div className="mx-auto grid w-full max-w-[var(--poster-frame-max)] gap-2 px-4 py-2.5 sm:grid-cols-[1fr_auto] sm:items-center sm:gap-4 sm:px-6 sm:py-3">
-        <p className="font-mono text-[10px] font-bold tracking-[0.1em] text-muted-foreground uppercase">
+        <p className="mono-id tracking-[0.1em] text-muted-foreground">
           A4 portrait · 210×297 mm · print at 100%
         </p>
         <PrintButton className="w-full sm:w-fit" template={template} />

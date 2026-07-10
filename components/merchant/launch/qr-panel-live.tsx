@@ -112,7 +112,7 @@ export function QrPanelLive({
               className="aspect-square w-full rounded-md bg-white"
             />
           </QrFrame>
-          <p className="max-w-sm text-center font-mono text-[10px] leading-5 font-bold tracking-[0.08em] text-muted-foreground uppercase">
+          <p className="max-w-sm text-center mono-id tracking-[0.08em] leading-5 text-muted-foreground">
             Scan once yourself before the first customer
           </p>
         </section>
@@ -201,7 +201,7 @@ export function QrPanelLive({
                     target="_blank"
                     rel="noreferrer"
                     className={cn(
-                      "group grid min-h-[7.5rem] content-between gap-3 rounded-lg border-2 border-ink p-3 shadow-sm transition-[transform,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none motion-reduce:transition-none motion-reduce:hover:translate-y-0",
+                      "group focus-ring grid min-h-[7.5rem] content-between gap-3 rounded-lg border-2 border-ink p-3 shadow-sm transition-[transform,box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:-translate-y-0.5 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0",
                       surface.card
                     )}
                   >
@@ -227,7 +227,7 @@ export function QrPanelLive({
                     </span>
                     <span
                       className={cn(
-                        "inline-flex items-center gap-1 font-mono text-[10px] font-bold tracking-[0.08em] uppercase",
+                        "inline-flex items-center gap-1 mono-id tracking-[0.08em]",
                         surface.tag
                       )}
                     >
@@ -307,7 +307,7 @@ function LaunchStep({
     <div className="grid gap-2 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-4">
       <p
         aria-hidden="true"
-        className="font-mono text-[10px] font-bold tracking-[0.14em] text-primary uppercase"
+        className="mono-id tracking-[0.14em] text-primary"
       >
         Step {step}
       </p>

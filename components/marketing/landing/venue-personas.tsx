@@ -1,6 +1,6 @@
 import Link from "next/link"
 
-import { Icon, MonoTag } from "@/components/brand"
+import { IconRoundel, MonoTag } from "@/components/brand"
 import { Section } from "@/components/layout"
 import { cn } from "@/lib/utils"
 
@@ -42,9 +42,11 @@ export function VenuePersonas() {
               "max-sm:w-[min(15rem,68vw)]"
             )}
           >
-            <span className="grid size-11 place-items-center rounded-full border-2 border-ink bg-secondary text-foreground">
-              <Icon icon={persona.icon} size={22} strokeWidth={2} />
-            </span>
+            <IconRoundel
+              icon={persona.icon}
+              iconSize={22}
+              iconStrokeWidth={2}
+            />
             <h3 className="mt-4 text-lg leading-snug font-extrabold text-balance">
               {persona.title}
             </h3>

@@ -11,7 +11,7 @@ import { ReassuranceBar } from "./reassurance-bar"
 import { type QrMatrix } from "./venue-qr"
 
 const merchantLinkClass =
-  "rounded-sm underline underline-offset-4 transition-colors hover:text-primary focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
+  "focus-ring rounded-sm underline underline-offset-4 transition-colors hover:text-primary"
 
 /**
  * Hero — the value before the friction. On narrow screens the hook and CTAs stay

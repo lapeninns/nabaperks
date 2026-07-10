@@ -93,7 +93,9 @@ export function RewardTicket({
           </p>
         ) : null}
         {state === "waiting" && readyDate ? (
-          <span className="mono-id mt-1 w-fit rounded-md border-2 border-ink bg-seal/25 px-2 py-0.5">
+          // mono-meta, not mono-id: the ready date is the one fact a customer
+          // must read to claim the prize — it stays above the 10px floor.
+          <span className="mono-meta mt-1 w-fit rounded-md border-2 border-ink bg-seal/25 px-2 py-0.5">
             Ready · {readyDate}
           </span>
         ) : null}

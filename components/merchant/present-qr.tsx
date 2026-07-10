@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 import { Cancel01Icon, QrCode01Icon } from "@hugeicons/core-free-icons"
 
@@ -8,46 +8,40 @@ import { Icon } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-type PresentQrButtonProps = {
+type PresentQrDetails = {
   readonly qrCodeId: string
   readonly venueName: string
   readonly shareUrl: string
-  /** Trigger copy — defaults to the counter phrasing. */
-  readonly triggerLabel?: string
-  readonly triggerClassName?: string
 }
 
 /**
- * One-tap "present the join QR to a customer" launcher. The trigger sits on the
- * dashboard; activating it opens a full-screen overlay with a large,
- * scanner-safe QR so the merchant can turn their phone or tablet toward the
- * customer without navigating to the Poster page. Reuses the same protected
- * `/app/qr/image/{id}` endpoint the Poster page renders (merchant-cookie
- * scoped), so the browser can serve it from cache.
+ * Composable "present the join QR" dialog. `PresentQrRoot` owns the open state
+ * and the full-screen overlay; any number of `PresentQrTrigger` surfaces
+ * inside it open the same dialog — the dashboard counter ticket makes both
+ * the QR itself and a labelled button triggers of one overlay. The overlay
+ * reuses the protected `/app/qr/image/{id}` endpoint the Poster page renders
+ * (merchant-cookie scoped), so the browser can serve it from cache.
  */
-export function PresentQrButton({
+export function PresentQrRoot({
   qrCodeId,
   venueName,
   shareUrl,
-  triggerLabel = "Show full screen",
-  triggerClassName,
-}: PresentQrButtonProps) {
+  children,
+}: PresentQrDetails & { children: ReactNode }) {
   const [open, setOpen] = useState(false)
   const shareLabel = shareUrl.replace(/^https?:\/\//, "")
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
-      <DialogPrimitive.Trigger asChild>
-        <Button type="button" className={cn("w-full sm:w-auto", triggerClassName)}>
-          <Icon icon={QrCode01Icon} size={18} />
-          {triggerLabel}
-        </Button>
-      </DialogPrimitive.Trigger>
+      {children}
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-ink/90 opacity-0 transition-opacity duration-[var(--w-dur-fast)] ease-[var(--w-ease)] supports-backdrop-filter:backdrop-blur-sm data-open:opacity-100 data-closed:opacity-0 motion-reduce:transition-none" />
+        {/* Keyframes (animate-in/out), not transitions: Radix Presence only
+            awaits `animationend` on close, so a transition-based exit never
+            plays. Full-screen surface fades in place — no slide. */}
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-ink/90 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:animate-none" />
         <DialogPrimitive.Content
           aria-describedby={undefined}
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 overflow-y-auto p-5 opacity-0 transition-opacity duration-[var(--w-dur-move)] ease-[var(--w-ease)] focus:outline-none data-open:opacity-100 data-closed:opacity-0 motion-reduce:transition-none sm:gap-6"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 overflow-y-auto p-5 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 duration-[var(--w-dur-move)] ease-[var(--w-ease)] focus:outline-none motion-reduce:animate-none sm:gap-6"
         >
           <DialogPrimitive.Close asChild>
             <Button
@@ -62,7 +56,7 @@ export function PresentQrButton({
           </DialogPrimitive.Close>
 
           <div className="grid justify-items-center gap-2 text-center">
-            <p className="font-mono text-[11px] font-bold tracking-[0.2em] text-paper/70 uppercase">
+            <p className="mono-meta tracking-[0.2em] text-paper/70">
               Scan to join
             </p>
             <DialogPrimitive.Title className="max-w-[16ch] text-2xl leading-tight font-extrabold text-balance text-paper sm:text-3xl">
@@ -93,5 +87,46 @@ export function PresentQrButton({
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
+  )
+}
+
+/** Marks any element inside `PresentQrRoot` as an open-the-overlay surface. */
+export function PresentQrTrigger({ children }: { children: ReactNode }) {
+  return <DialogPrimitive.Trigger asChild>{children}</DialogPrimitive.Trigger>
+}
+
+type PresentQrButtonProps = PresentQrDetails & {
+  /** Trigger copy — defaults to the counter phrasing. */
+  readonly triggerLabel?: string
+  readonly triggerClassName?: string
+}
+
+/**
+ * One-tap "present the join QR to a customer" launcher — the self-contained
+ * form of PresentQrRoot for surfaces that just need the labelled button.
+ */
+export function PresentQrButton({
+  qrCodeId,
+  venueName,
+  shareUrl,
+  triggerLabel = "Show full screen",
+  triggerClassName,
+}: PresentQrButtonProps) {
+  return (
+    <PresentQrRoot
+      qrCodeId={qrCodeId}
+      venueName={venueName}
+      shareUrl={shareUrl}
+    >
+      <PresentQrTrigger>
+        <Button
+          type="button"
+          className={cn("w-full sm:w-auto", triggerClassName)}
+        >
+          <Icon icon={QrCode01Icon} size={18} />
+          {triggerLabel}
+        </Button>
+      </PresentQrTrigger>
+    </PresentQrRoot>
   )
 }

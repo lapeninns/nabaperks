@@ -121,7 +121,7 @@ function OnboardingProgress({ progress }: { progress: FlowProgress }) {
     // The text row ("Step 2 of 3") is real content and stays readable to
     // screen readers; only the decorative bars hide (CUS-P3-03).
     <div className="grid gap-2">
-      <div className="flex items-center justify-between font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+      <div className="flex items-center justify-between mono-id tracking-[0.08em] text-muted-foreground">
         <span>{progress.label ?? "Setup"}</span>
         <span>
           Step {step} of {total}
@@ -207,7 +207,7 @@ export function CustomerReceipt({
       <hr className="w-rule" />
       {children}
       {metaLines ? (
-        <div className="grid gap-1 font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+        <div className="grid gap-1 mono-id tracking-[0.08em] text-muted-foreground">
           {metaLines}
         </div>
       ) : null}
@@ -221,10 +221,10 @@ export function CustomerReceipt({
           <footer className="grid gap-1 min-[420px]:flex min-[420px]:items-center min-[420px]:justify-between min-[420px]:gap-3">
             {/* Receipt voice is for real facts: no placeholder card number
                 when the caller has none to print (CUS-P2-01). */}
-            <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+            <span className="mono-id tracking-[0.08em] text-muted-foreground">
               {footerLeft}
             </span>
-            <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase min-[420px]:text-right">
+            <span className="mono-id tracking-[0.08em] text-muted-foreground min-[420px]:text-right">
               {footerRight}
             </span>
           </footer>
@@ -335,7 +335,7 @@ export function CustomerRewardSeal({
   return (
     <div className={cn("grid justify-items-center gap-3", className)}>
       <RewardSeal state={revealed ? "redeemed" : "sealed"} size="lg" />
-      <span className="font-mono text-[0.68rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+      <span className="mono-meta tracking-[0.08em] text-muted-foreground">
         {caption}
       </span>
     </div>

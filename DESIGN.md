@@ -174,14 +174,16 @@ cards, and keys; **18px** (`--radius-sheet`) on bottom sheets and large
 panels. **Full circles are reserved for the stamp family** — stamps, seals,
 marks — always rotated -6° to -8°.
 
-Named circle exceptions are narrow and intentional: the `EmptyState` icon
-roundel (a static, unrotated, ink-bordered circle framing a glyph in
-`components/brand/typography.tsx`), customer tab-bar chips, join stepper discs,
-marketing jump-nav chips, the landing proof-tab chips
-(`components/marketing/landing/proof-tabs.tsx`, same chip recipe as jump-nav),
-and the legal-link halo family. These are navigation
-or framing controls, not reward marks; do not extend the list without updating
-this contract. Borders are **2px solid ink** everywhere; **2px dashed**
+Named circle exceptions are narrow and intentional: the `IconRoundel` brand
+component (`components/brand/icon-roundel.tsx` — the one static, unrotated,
+ink-bordered circle for framing a glyph or step number; the `EmptyState` icon
+roundel in `components/brand/typography.tsx` is its progenitor), the
+customer tab-bar chips, join stepper discs, marketing jump-nav chips, the
+landing proof-tab chips (`components/marketing/landing/proof-tabs.tsx`, same
+chip recipe as jump-nav), the poster-chrome guidance chip, and the
+legal-link halo family. These are navigation or framing controls, not reward marks; new
+framing circles reach for `IconRoundel` rather than hand-rolling
+`rounded-full`, and the list does not grow without updating this contract. Borders are **2px solid ink** everywhere; **2px dashed**
 (`.w-rule`) for empty slots, receipt rules, demo chrome, and pick-one
 suggestion tiles such as reward presets and add-reward affordances. The mono
 pill `.w-tag` is the only generic pill shape outside the stamp family.
@@ -197,9 +199,11 @@ in `globals.css`: `shadow-md` is 4px 4px 0 ink (cards), `shadow-sm` 3px 3px 0
   and link variants stay flat bar a 1px settle — never a scale.
 - _Disabled_ — 45–50% opacity.
 - _Focus_ — **one recipe for the whole system**: a 2px vermillion outline at
-  2px offset (`outline: 2px solid color-mix(in oklch, var(--ring) 70%,
-transparent)`). `.pressable` (every Button) and the themed inputs carry it
-  from the unlayered layer; plain interactive elements add `.focus-ring`.
+  2px offset (`outline: 2px solid color-mix(in oklch, var(--ring) 85%,
+transparent)`). The 85% mix is a floor, not a taste choice: composited over
+  paper it must hold ≥ 3:1 non-text contrast (70% sat at 2.98:1 and failed).
+  `.pressable` (every Button) and the themed inputs carry it from the
+  unlayered layer; plain interactive elements add `.focus-ring`.
   Never reintroduce per-component `focus-visible:ring-*` alphas.
 - _Dense tiles_ — a slotted `Card` takes `data-elevation="flat"` for the 2px
   offset (KpiTile, MetricTile beside StatStrip); shadow utilities on slotted
@@ -228,8 +232,10 @@ effects are minimal.
 ## Motion
 
 One slam easing (overshoot, `cubic-bezier(0.16, 1.2, 0.3, 1)`) for stamps; one
-standard easing (`--w-ease`) for everything else. Press 90ms; sheets/moves
-320ms; stamp slam 380ms plus a 300ms paper shake (`--w-dur-shake`).
+standard easing (`--w-ease`) for everything else. Press feedback lands
+**instantly on the way down** and releases over 90ms (slow where the user
+decides, instant where the system responds); sheets/moves 320ms; stamp slam
+380ms plus a 300ms paper shake (`--w-dur-shake`).
 
 **Motion is split by job.** Choreography lives in Framer Motion/Wet Ink:
 entrances, stamps, reward reveals, celebrations, marquees, and sheets. CSS is
@@ -237,7 +243,10 @@ allowed only for micro-states and pre-hydration loading: `animate-spin` in
 `Spinner` and the sonner loading icon; the guarded loading pulse family
 (`Skeleton`, `customer-qr-scanner-loader`, the reward-collection QR shimmer,
 and the stamp-press pending disc); `.pressable` press tilt; sidebar width
-transition; Radix data-state sheet overlay/content transitions; and
+transition; Radix data-state sheet overlay/content **keyframes**
+(tw-animate-css `animate-in`/`animate-out` — Radix Presence only awaits
+`animationend` on close, so sheet/dialog exits must be keyframe animations,
+never transitions, or the exit silently never plays); and
 token-driven hover/focus transitions. CSS animations must be
 `motion-reduce:animate-none` guarded or `motion-safe:` scoped. CSS transitions
 use the `--w-*` timing tokens for micro-states and loading shells; Wet Ink
@@ -249,7 +258,8 @@ which reads its timing from [`lib/motion/tokens.ts`](lib/motion/tokens.ts)
 (a hardcoded mirror of the `--w-dur-*`/`--w-ease*` custom properties,
 drift-guarded by `tests/unit/motion-tokens.test.mjs`):
 `WetInkRise`, `WetInkSlam`, `WetInkSoftStamp`, `WetInkShake`, `WetInkPop`,
-`WetInkWiggle`, `WetInkBreathe`, `WetInkRipple`, `WetInkMarquee`, `WetInkSheet`,
+`WetInkWiggle`, `WetInkBreathe`, `WetInkRipple`, `WetInkMarquee` (pauses on
+hover/press — WCAG 2.2.2's stop mechanism), `WetInkSheet`,
 plus the composed `StampSlamSequence` (slam + paper shake). This list is the
 complete export surface of the primitive library — an exported primitive that
 is not documented here (or a documented one that no longer ships) is drift.
@@ -319,6 +329,13 @@ every token, primitive, and loyalty state is the
 2px ink border, 10px radius, weight 700, hard 3px offset shadow. On press the
 button translates 2px toward its shadow and the shadow collapses to 1px.
 Ghost and link variants stay flat. Primary is vermillion with white text.
+
+**Destructive is outline danger, never a second filled red.** Primary
+(#cf330a) and destructive (#c0301c) sit ~1.1:1 apart, so a filled destructive
+button is indistinguishable from a primary action. The danger silhouette is
+card ground with destructive border, text, and shadow (the unlayered
+`[data-variant="destructive"]` rules) — primary stays the only filled red on
+any surface, and the different silhouette says "danger" before the copy does.
 
 ### Cards
 

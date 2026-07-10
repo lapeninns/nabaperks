@@ -11,7 +11,15 @@ const projectRoot = path.resolve(
 
 const sourceRoots = ["app", "components", "lib"]
 const sourceExtensions = new Set([".css", ".js", ".mjs", ".ts", ".tsx"])
-const allowedAnimateTokens = new Set(["animate-spin", "animate-pulse"])
+/* animate-in / animate-out are the tw-animate-css enter/exit keyframes used by
+   Radix sheet/dialog surfaces — Radix Presence only awaits `animationend`, so
+   exits must be keyframe animations, never transitions (DESIGN.md · Motion). */
+const allowedAnimateTokens = new Set([
+  "animate-spin",
+  "animate-pulse",
+  "animate-in",
+  "animate-out",
+])
 const guardToken = "motion-reduce:animate-none"
 const animateUtilityPattern = /(?<![\w-])(?:motion-[\w-]+:)?animate-[\w-]+/
 const animateUtilityGlobalPattern =
@@ -54,7 +62,9 @@ function relativePath(filePath) {
 }
 
 function isCommentOnlyLine(line) {
-  return /^\s*(\/\/|\/\*|\*)/.test(line)
+  // JSX comment lines ({/* … */}) count as comments too — a prose mention of
+  // an animate-* token inside one is not a utility usage.
+  return /^\s*(\/\/|\/\*|\{\/\*|\*)/.test(line)
 }
 
 function linesWithMatches(source, regex) {

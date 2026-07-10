@@ -11,11 +11,13 @@
  */
 
 import {
+  useRef,
   type AriaRole,
   type CSSProperties,
   type ReactNode,
 } from "react"
 import * as m from "motion/react-m"
+import { useAnimationFrame, useMotionValue } from "motion/react"
 
 import { useHydrated } from "@/lib/motion/use-hydrated"
 import { useReducedMotionHook } from "@/lib/motion/use-reduced-motion"
@@ -433,7 +435,12 @@ export function WetInkRipple({
 /**
  * WetInkMarquee — the horizontal riso strip. Translates its track 0 → -50% on
  * an infinite linear loop (the caller renders the strip twice). Holds still
- * under reduced motion. Replaces the `w-marquee` keyframe.
+ * under reduced motion, and PAUSES while hovered or pressed — auto-moving
+ * content that runs longer than 5s needs a user pause mechanism
+ * (WCAG 2.2.2); pointer-over on fine pointers and press-and-hold on touch
+ * both stop the strip. The loop drives a motion value imperatively (never
+ * React state), so pausing costs no re-renders. Replaces the `w-marquee`
+ * keyframe.
  */
 export function WetInkMarquee({
   children,
@@ -442,6 +449,16 @@ export function WetInkMarquee({
   durationSeconds = wetInkTransition.marquee.duration,
 }: MotionBox & { durationSeconds?: number }) {
   const shouldAnimate = useWetInkAnimationEnabled()
+  const pausedRef = useRef(false)
+  const offsetRef = useRef(0)
+  const x = useMotionValue("0%")
+
+  useAnimationFrame((_, delta) => {
+    if (!shouldAnimate || pausedRef.current) return
+    offsetRef.current =
+      (offsetRef.current + (delta / (durationSeconds * 1000)) * 50) % 50
+    x.set(`-${offsetRef.current}%`)
+  })
 
   if (!shouldAnimate) {
     return (
@@ -454,12 +471,12 @@ export function WetInkMarquee({
   return (
     <m.div
       className={className}
-      style={style}
-      animate={{ x: ["0%", "-50%"] }}
-      transition={{
-        duration: durationSeconds,
-        ease: "linear",
-        repeat: Infinity,
+      style={{ ...style, x }}
+      onPointerEnter={() => {
+        pausedRef.current = true
+      }}
+      onPointerLeave={() => {
+        pausedRef.current = false
       }}
     >
       {children}

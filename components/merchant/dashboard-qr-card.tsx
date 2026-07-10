@@ -1,10 +1,13 @@
 import Link from "next/link"
-import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
+import { ArrowRight01Icon, PrinterIcon } from "@hugeicons/core-free-icons"
 
-import { Eyebrow, Icon, ReceiptCard } from "@/components/brand"
+import { Eyebrow, Icon, MonoTag, ReceiptCard } from "@/components/brand"
 import { QrFrame } from "@/components/loyalty/qr-frame"
 import { CopyUrlButton } from "@/components/merchant/copy-url-button"
-import { PresentQrButton } from "@/components/merchant/present-qr"
+import {
+  PresentQrRoot,
+  PresentQrTrigger,
+} from "@/components/merchant/present-qr"
 import { Button } from "@/components/ui/button"
 import { getServerEnv } from "@/lib/env/server"
 import {
@@ -77,8 +80,17 @@ type DashboardQrCardViewProps = {
 }
 
 /**
- * Presentational half — mounted directly by the DB-free `/dev/app-harness`
- * with fixture props (the async loader above hits Supabase).
+ * Presentational half — the COUNTER TICKET. Mounted directly by the DB-free
+ * `/dev/app-harness` with fixture props (the async loader above hits
+ * Supabase).
+ *
+ * Design intent: this card's job is the counter moment — a customer is
+ * standing there, get the code up NOW. So the QR itself is the biggest tap
+ * target on the dashboard (the whole ticket opens the full-screen overlay,
+ * with Wet Ink press physics), status is a glanceable spot-ink tag rather
+ * than body copy, the title is the venue's own name, and the perforated edge
+ * says "torn off the till for the counter". The labelled button remains for
+ * discoverability; the QR tap is the shortcut.
  */
 export function DashboardQrCardView({
   qrCodeId,
@@ -92,6 +104,11 @@ export function DashboardQrCardView({
   const thumbnailQrSrc = scansAvailable
     ? `/app/qr/image/${qrCodeId}?w=256`
     : null
+  const status = scansAvailable
+    ? ({ tone: "leaf", label: "Live" } as const)
+    : isActive
+      ? ({ tone: "sun", label: "Gated" } as const)
+      : ({ tone: "plain", label: "Paused" } as const)
   const unavailableCopy = isActive
     ? {
         label: "Launch gated",
@@ -104,14 +121,19 @@ export function DashboardQrCardView({
         body: "New customers cannot join until you re-enable it under Poster.",
       }
 
-  return (
-    <ReceiptCard className="grid gap-4 sm:grid-cols-[9.25rem_minmax(0,1fr)] sm:items-start sm:gap-6">
-      <QrFrame
-        label={`Venue QR for ${venueName}`}
-        className="mx-auto min-h-0 w-[9.25rem] min-w-0 shrink-0 overflow-hidden shadow-[5px_5px_0_var(--w-shadow-color)] sm:mx-0"
+  const ticket = thumbnailQrSrc ? (
+    // The ticket IS the trigger: pressable physics (translate via .pressable,
+    // shadow collapsing on the frame) make the QR press into the paper on tap.
+    <PresentQrTrigger>
+      <button
+        type="button"
+        className="pressable group/ticket mx-auto grid w-fit justify-items-center gap-2 rounded-lg sm:mx-0"
       >
-        {thumbnailQrSrc ? (
-          // eslint-disable-next-line @next/next/no-img-element -- protected QR image needs merchant cookies
+        <QrFrame
+          label={`Venue QR for ${venueName}`}
+          className="w-[9.25rem] shadow-[5px_5px_0_var(--w-shadow-color)] transition-shadow duration-[var(--w-dur-press)] ease-[var(--w-ease)] group-active/ticket:shadow-[2px_2px_0_var(--w-shadow-color)] motion-reduce:transition-none"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- protected QR image needs merchant cookies */}
           <img
             src={thumbnailQrSrc}
             alt={`QR code for ${venueName}`}
@@ -119,34 +141,64 @@ export function DashboardQrCardView({
             height={148}
             className="block aspect-square size-[7.25rem] shrink-0 object-contain"
           />
-        ) : (
-          <div className="grid aspect-square size-[7.25rem] place-items-center rounded-md border-2 border-dashed border-ink/25 bg-paper-deep/65 p-3 text-center font-mono text-[10px] leading-4 font-bold tracking-[0.08em] text-muted-foreground uppercase">
-            {unavailableCopy.label}
-          </div>
-        )}
+        </QrFrame>
+        <span className="mono-id text-muted-foreground">
+          Tap to show full screen
+        </span>
+      </button>
+    </PresentQrTrigger>
+  ) : (
+    <div className="mx-auto grid w-fit justify-items-center gap-2 sm:mx-0">
+      <QrFrame
+        label={`Venue QR for ${venueName}`}
+        className="w-[9.25rem] shadow-[5px_5px_0_var(--w-shadow-color)]"
+      >
+        <div className="grid aspect-square size-[7.25rem] place-items-center rounded-md border-2 border-dashed border-ink/25 bg-paper-deep/65 p-3 text-center mono-id tracking-[0.08em] leading-4 text-muted-foreground">
+          {unavailableCopy.label}
+        </div>
       </QrFrame>
+      <span className="mono-id text-muted-foreground">Not scannable yet</span>
+    </div>
+  )
+
+  const card = (
+    <ReceiptCard
+      edge
+      className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start sm:gap-6"
+    >
+      {ticket}
 
       <div className="grid min-w-0 gap-3">
         <div className="grid gap-1.5">
-          <Eyebrow>Counter QR</Eyebrow>
-          <h2 className="text-xl leading-tight font-extrabold text-balance sm:text-2xl">
-            Show a customer, instantly
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <Eyebrow>Counter QR</Eyebrow>
+            <MonoTag tone={status.tone}>{status.label}</MonoTag>
+          </div>
+          <h2 className="text-xl leading-tight font-extrabold text-balance break-words sm:text-2xl">
+            {venueName}
           </h2>
-          <p className="text-sm leading-6 text-muted-foreground">
-            One tap makes it full screen — customers scan to join and collect
-            today&apos;s stamp. No app to download.
-          </p>
         </div>
 
         {scansAvailable ? (
-          <div className="flex flex-wrap gap-2">
-            <PresentQrButton
-              qrCodeId={qrCodeId}
-              venueName={venueName}
-              shareUrl={shareUrl}
-            />
-            <CopyUrlButton url={shareUrl} />
-          </div>
+          <>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Customers scan to join and take today&apos;s stamp.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <PresentQrTrigger>
+                <Button type="button" className="w-full sm:w-auto">
+                  Show full screen
+                </Button>
+              </PresentQrTrigger>
+              <CopyUrlButton url={shareUrl} />
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/app/qr" prefetch={false}>
+                  <Icon icon={PrinterIcon} size={15} />
+                  Poster &amp; print
+                </Link>
+              </Button>
+            </div>
+          </>
         ) : (
           <div className="grid gap-2 rounded-lg border-2 border-dashed border-ink/25 bg-paper-deep/45 p-3">
             <p className="text-sm leading-5 font-extrabold">
@@ -163,21 +215,27 @@ export function DashboardQrCardView({
             </Button>
           </div>
         )}
-
-        {!isActive ? (
-          <p className="text-xs leading-5 font-bold text-muted-foreground">
-            Paused — new customers can&apos;t join until you re-enable it under
-            Poster.
-          </p>
-        ) : null}
       </div>
     </ReceiptCard>
+  )
+
+  // The dialog root only mounts when there is something to present.
+  return scansAvailable ? (
+    <PresentQrRoot
+      qrCodeId={qrCodeId}
+      venueName={venueName}
+      shareUrl={shareUrl}
+    >
+      {card}
+    </PresentQrRoot>
+  ) : (
+    card
   )
 }
 
 function DashboardQrSetupPrompt() {
   return (
-    <ReceiptCard className="grid gap-3">
+    <ReceiptCard edge className="grid gap-3">
       <div className="grid gap-1.5">
         <Eyebrow>Counter QR</Eyebrow>
         <h2 className="text-xl leading-tight font-extrabold sm:text-2xl">

@@ -31,21 +31,31 @@ export function MerchantPageTitleSkeleton() {
 
 // ─── Dashboard QR quick-access ─────────────────────────────────────────────────
 
-/** Mirrors {@link DashboardQrCardView}: the QR thumbnail beside its copy and
- *  the present/copy action row. */
+/** Mirrors {@link DashboardQrCardView}: the tappable QR ticket (frame +
+ *  mono caption) beside the status row, venue title, and action row. */
 export function DashboardQrCardSkeleton() {
   return (
-    <ReceiptCard className="grid gap-4 sm:grid-cols-[9.25rem_minmax(0,1fr)] sm:items-start sm:gap-6">
-      <Skeleton className="mx-auto aspect-square size-[9.25rem] max-w-full shrink-0 rounded-lg sm:mx-0" />
+    <ReceiptCard
+      edge
+      className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start sm:gap-6"
+    >
+      <div className="mx-auto grid w-fit justify-items-center gap-2 sm:mx-0">
+        <Skeleton className="aspect-square size-[9.25rem] rounded-lg" />
+        <Skeleton className="h-3 w-32" />
+      </div>
       <div className="grid gap-3">
         <div className="grid gap-2">
-          <Skeleton className="h-3 w-24" />
+          <div className="flex items-center gap-2.5">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-5 w-14 rounded-full" />
+          </div>
           <Skeleton className="h-6 w-52 max-w-full" />
-          <Skeleton className="h-4 w-full max-w-md" />
         </div>
+        <Skeleton className="h-4 w-full max-w-md" />
         <div className="flex flex-wrap gap-2">
           <Skeleton className="h-11 w-40" />
           <Skeleton className="h-11 w-28" />
+          <Skeleton className="h-9 w-32" />
         </div>
       </div>
     </ReceiptCard>

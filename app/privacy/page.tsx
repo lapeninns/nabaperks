@@ -82,7 +82,7 @@ export default function PrivacyPage() {
           <ReceiptCard edge className="grid gap-0">
             <div className="flex items-baseline justify-between gap-4">
               <p className="text-xl font-extrabold">{PRIVACY_META.cardTitle}</p>
-              <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+              <span className="mono-id tracking-[0.08em] text-muted-foreground">
                 Nº {PRIVACY_META.docNumber}
               </span>
             </div>
@@ -159,9 +159,9 @@ function PolicyBlock({
     <section
       id={id}
       tabIndex={-1}
-      className="w-rule grid scroll-mt-28 gap-2 pt-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+      className="w-rule focus-ring grid scroll-mt-28 gap-2 pt-4"
     >
-      <h2 className="font-mono text-[0.7rem] font-bold tracking-[0.08em] text-foreground uppercase">
+      <h2 className="mono-meta tracking-[0.08em] text-foreground">
         {title}
       </h2>
       <p className="text-sm leading-6 text-muted-foreground">{body}</p>

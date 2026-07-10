@@ -29,7 +29,7 @@ function MerchantRewardScannerLoading() {
         aria-label="Starting camera"
         className="grid min-h-64 place-items-center rounded-[var(--radius-lg)] border-2 border-dashed border-ink/35 bg-card"
       >
-        <span className="font-mono text-[0.65rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+        <span className="mono-id tracking-[0.08em] text-muted-foreground">
           Starting camera
         </span>
       </div>

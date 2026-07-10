@@ -145,7 +145,7 @@ function CustomerMobileCard({
             <Button
               asChild
               size="default"
-              className="w-full gap-1.5 font-mono text-[0.7rem] tracking-[0.06em] uppercase"
+              className="w-full gap-1.5 mono-meta"
             >
               <Link href="/app/scan">
                 <Icon icon={ScanIcon} size={14} />
@@ -297,7 +297,7 @@ function buildColumns(
               <Button
                 asChild
                 size="sm"
-                className="gap-1.5 font-mono text-[0.65rem] tracking-[0.06em] uppercase [@media(pointer:coarse)]:min-h-11"
+                className="gap-1.5 mono-id [@media(pointer:coarse)]:min-h-11"
               >
                 <Link
                   href="/app/scan"
@@ -313,7 +313,7 @@ function buildColumns(
               asChild
               size="sm"
               variant="secondary"
-              className="gap-1.5 font-mono text-[0.65rem] tracking-[0.06em] uppercase [@media(pointer:coarse)]:min-h-11"
+              className="gap-1.5 mono-id [@media(pointer:coarse)]:min-h-11"
             >
               <Link
                 href={`/app/customers/send-reward?member=${encodeURIComponent(row.id)}&label=${encodeURIComponent(row.identifier)}`}
@@ -564,7 +564,7 @@ export function CustomerReadbackTable({
           <Button
             asChild
             size="sm"
-            className="gap-1.5 font-mono text-[0.7rem] tracking-[0.06em] uppercase"
+            className="gap-1.5 mono-meta"
           >
             <Link href="/app/scan">
               <Icon icon={ScanIcon} size={14} />

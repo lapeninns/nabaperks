@@ -155,7 +155,7 @@ export function GuidePage({
                 <li key={guide.href}>
                   <Link
                     href={guide.href}
-                    className="group surface-card flex h-full flex-col p-4 transition-shadow hover:shadow-md focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
+                    className="group surface-card focus-ring flex h-full flex-col p-4"
                   >
                     <span className="text-[0.95rem] leading-snug font-extrabold text-balance">
                       {guide.nav}

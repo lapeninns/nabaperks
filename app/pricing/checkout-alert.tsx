@@ -38,7 +38,7 @@ export function PricingCheckoutAlert() {
         {checkoutMessage.action ? (
           <Link
             href={checkoutMessage.action.href}
-            className="mt-1 inline-block font-bold text-foreground underline underline-offset-4 hover:text-primary focus-visible:ring-3 focus-visible:ring-ring/35 focus-visible:outline-none"
+            className="focus-ring mt-1 inline-block font-bold text-foreground underline underline-offset-4 hover:text-primary"
           >
             {checkoutMessage.action.label}
           </Link>

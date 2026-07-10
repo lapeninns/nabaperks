@@ -13,10 +13,12 @@ export function HomeRedeemBanner({ topRedeemable }: HomeRedeemBannerProps) {
   return (
     <Link
       href={`/reward/${topRedeemable.rewardId}`}
-      className="block rounded-[var(--radius)] transition-[box-shadow] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none focus-visible:ring-3 focus-visible:ring-ring/35"
+      className="focus-ring block rounded-[var(--radius)]"
       aria-label={`Open reward QR for ${topRedeemable.rewardName} at ${topRedeemable.businessName}`}
     >
-      <ReceiptCard className="grid gap-3 bg-accent text-accent-foreground transition-shadow duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none hover:shadow-md">
+      {/* No hover shadow utilities here: the unlayered card layer pins the
+          slotted shadow, so hover:shadow-* is silently defeated (DESIGN.md). */}
+      <ReceiptCard className="grid gap-3 bg-accent text-accent-foreground">
         <div className="flex items-center justify-between gap-3">
           <MonoTag tone="leaf">Ready for scan</MonoTag>
           <MonoTag tone="leaf">{topRedeemable.businessName}</MonoTag>
@@ -29,7 +31,7 @@ export function HomeRedeemBanner({ topRedeemable }: HomeRedeemBannerProps) {
             Show this QR at the counter when you are ready.
           </p>
         </div>
-        <span className="font-mono text-[0.65rem] font-bold tracking-[0.08em] uppercase">
+        <span className="mono-id tracking-[0.08em]">
           Open reward QR
         </span>
       </ReceiptCard>

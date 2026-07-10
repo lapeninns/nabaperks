@@ -190,7 +190,6 @@
   --ease-stamp: var(--w-ease);
   --duration-fast: var(--w-dur-fast);
   --duration-reveal: var(--w-dur-move);
-  --w-mo: 1;
 }
 
 .dark {
@@ -211,7 +210,16 @@
 
   --w-shadow-color: #0d0a07;
 
-  --destructive: #e0533c;
+  /* Seal glyphs keep warm ink on the sun disc — the flipped (cream) ink
+     would sit at ~1.7:1 on sun. Sun is the one spot ink that stays light
+     in night printing, so its foreground must stay dark. */
+  --seal-foreground: #211c16;
+
+  /* #ea5f46, not the old #e0533c: outline-danger buttons print destructive
+     TEXT on the dark card, and the old value sat at 4.39:1 there (AA floor
+     is 4.5). The lighter ink clears both pairings (5.0 on card, 5.3 under
+     its own foreground) — guarded by tokens:check CHECK 4. */
+  --destructive: #ea5f46;
   --destructive-foreground: #1b1712;
   --destructive-strong: #ff7a65;
 
@@ -285,6 +293,14 @@ body[data-grain="true"]::after {
 
   .pressable:active:not(:disabled, [aria-disabled="true"]) {
     transform: translate(1px, 1px);
+  }
+
+  /* Press feedback lands instantly on the way down; the 90ms ease applies on
+     release only, so the shadow "re-inflates" as the finger lifts. Slow where
+     the user decides, instant where the system responds. */
+  .pressable:active:not(:disabled, [aria-disabled="true"]),
+  [data-slot="button"]:active:not(:disabled, [aria-disabled="true"]) {
+    transition-duration: 0s;
   }
 
   .surface-card {
@@ -411,11 +427,16 @@ body[data-grain="true"]::after {
    reintroduce per-component `focus-visible:ring-*` alphas. */
 .focus-ring:focus-visible,
 .pressable:focus-visible {
-  outline: 2px solid color-mix(in oklch, var(--ring) 70%, transparent);
+  outline: 2px solid color-mix(in oklch, var(--ring) 85%, transparent);
   outline-offset: 2px;
 }
 
-[data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]) {
+/* Destructive is excluded here and owns its full treatment below — its
+   border/shadow are destructive-inked, and leaving it in this rule would
+   need specificity games Lightning CSS's minifier optimises away. */
+[data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]):not(
+    [data-variant="destructive"]
+  ) {
   border: 2px solid var(--w-ink);
   border-radius: var(--radius-lg);
   font-weight: 700;
@@ -423,8 +444,8 @@ body[data-grain="true"]::after {
   --tw-shadow: 3px 3px 0 var(--w-shadow-color);
 }
 
-[data-slot="button"]:not([data-variant="ghost"]):not(
-    [data-variant="link"]
+[data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]):not(
+    [data-variant="destructive"]
   ):active:not(:disabled, [aria-disabled="true"]) {
   translate: 2px 2px;
   scale: none;
@@ -435,6 +456,45 @@ body[data-grain="true"]::after {
 [data-slot="button"][data-variant="ghost"],
 [data-slot="button"][data-variant="link"] {
   border-radius: var(--radius-lg);
+}
+
+/* Destructive buttons — outline danger, not a second filled red. Primary
+   (#cf330a) and destructive (#c0301c) sit ~1.1:1 apart, so a filled
+   destructive button reads as a primary action. The danger silhouette is
+   card ground + destructive border/text/shadow (5.4:1 on card); primary
+   stays the only filled red on any surface. DESIGN.md · Buttons. */
+[data-slot="button"][data-variant="destructive"] {
+  background: var(--card);
+  border: 2px solid var(--destructive);
+  border-radius: var(--radius-lg);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--destructive);
+  --tw-shadow: 3px 3px 0 var(--destructive);
+}
+
+@media (hover: hover) {
+  [data-slot="button"][data-variant="destructive"]:hover {
+    /* Solid fallback first: browsers without color-mix would otherwise get
+       Lightning's stripped fallback (solid destructive) under destructive
+       text — invisible label on hover. */
+    background: var(--secondary);
+    background: color-mix(in oklch, var(--destructive) 10%, var(--card));
+  }
+}
+
+[data-slot="button"][data-variant="destructive"]:active:not(
+    :disabled,
+    [aria-disabled="true"]
+  ) {
+  translate: 2px 2px;
+  scale: none;
+  transform: none;
+  --tw-shadow: 1px 1px 0 var(--destructive);
+}
+
+[data-slot="button"][data-variant="destructive"]:focus-visible {
+  outline-color: color-mix(in oklch, var(--destructive) 85%, transparent);
 }
 
 [data-slot="card"] {
@@ -470,7 +530,7 @@ body[data-grain="true"]::after {
 [data-slot="input"]:focus-visible,
 [data-slot="textarea"]:focus-visible {
   border-color: var(--ring);
-  outline: 2px solid color-mix(in oklch, var(--ring) 70%, transparent);
+  outline: 2px solid color-mix(in oklch, var(--ring) 85%, transparent);
   outline-offset: 2px;
 }
 
@@ -482,7 +542,7 @@ body[data-grain="true"]::after {
 [data-slot="input"][aria-invalid="true"]:focus-visible,
 [data-slot="textarea"][aria-invalid="true"]:focus-visible {
   border-color: var(--destructive);
-  outline-color: color-mix(in oklch, var(--destructive) 70%, transparent);
+  outline-color: color-mix(in oklch, var(--destructive) 85%, transparent);
 }
 
 /* Bare Alert honours the 2px ink contract; StatusBanner remains the loyalty
@@ -665,11 +725,21 @@ body[data-grain="true"]::after {
   font-weight: 800;
 }
 
-[data-slot="sidebar-menu-button"]:hover,
 [data-slot="sidebar-menu-button"]:focus-visible {
   border-color: var(--w-ink);
   background: var(--sidebar-accent);
   color: var(--sidebar-accent-foreground);
+}
+
+/* Hover is pointer-gated by hand: Tailwind gates its hover: utilities behind
+   (hover: hover) automatically, but this is raw CSS — without the gate a
+   drawer tap on touch devices leaves a stuck hover state behind. */
+@media (hover: hover) {
+  [data-slot="sidebar-menu-button"]:hover {
+    border-color: var(--w-ink);
+    background: var(--sidebar-accent);
+    color: var(--sidebar-accent-foreground);
+  }
 }
 
 [data-slot="sidebar-menu-button"][data-active="true"],

@@ -12,7 +12,7 @@ export function HomeSummaryStrip({ summary }: { summary: HomeSummary }) {
   ]
 
   return (
-    <div className="rounded-[var(--radius)] border-2 border-dashed border-ink/25 bg-card px-4 py-3 font-mono text-[0.68rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+    <div className="rounded-[var(--radius)] border-2 border-dashed border-ink/25 bg-card px-4 py-3 mono-meta tracking-[0.08em] text-muted-foreground">
       {parts.join(" / ")}
     </div>
   )

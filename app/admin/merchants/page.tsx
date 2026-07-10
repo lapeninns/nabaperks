@@ -85,7 +85,7 @@ function MerchantCrossLinks({
   readonly merchant: AdminMerchant
 }) {
   const linkClasses =
-    "focus-ring rounded-sm font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
+    "focus-ring rounded-sm font-semibold text-primary underline underline-offset-2 hover:text-[color-mix(in_srgb,var(--primary)_80%,var(--w-ink))]"
   return (
     <span className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
       <Link

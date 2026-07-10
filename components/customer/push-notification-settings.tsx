@@ -7,7 +7,7 @@ import {
   BellRingIcon,
 } from "@hugeicons/core-free-icons"
 
-import { Icon, SectionHeader } from "@/components/brand"
+import { Icon, IconRoundel, SectionHeader } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -229,9 +229,12 @@ export function PushNotificationSettings({
       ) : null}
 
       <div className="flex items-start gap-3 rounded-xl border-2 border-ink bg-secondary/60 p-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-full border-2 border-ink bg-background">
-          <Icon icon={status.icon} size={20} />
-        </span>
+        <IconRoundel
+          icon={status.icon}
+          iconSize={20}
+          size="md"
+          className="bg-background"
+        />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-extrabold text-foreground">
             {status.title}

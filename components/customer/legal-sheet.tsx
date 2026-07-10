@@ -76,7 +76,7 @@ export function CustomerLegalSheet({
                 <div className="flex items-baseline justify-between gap-4">
                   <p className="text-xl font-extrabold">{cardTitle}</p>
                   {docNumber ? (
-                    <span className="font-mono text-[0.625rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+                    <span className="mono-id tracking-[0.08em] text-muted-foreground">
                       Nº {docNumber}
                     </span>
                   ) : null}
@@ -96,7 +96,7 @@ export function CustomerLegalSheet({
 function LegalSectionBlock({ section }: { section: LegalSection }) {
   return (
     <section className="w-rule grid scroll-mt-28 gap-2 pt-4 outline-none">
-      <p className="font-mono text-[0.7rem] font-bold tracking-[0.08em] text-foreground uppercase">
+      <p className="mono-meta tracking-[0.08em] text-foreground">
         {section.title}
       </p>
       <p className="text-sm leading-6 text-muted-foreground">{section.body}</p>

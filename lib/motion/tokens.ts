@@ -102,7 +102,9 @@ export const wetInkTransition = {
 
   /**
    * Sheet enter/exit: translateY from 100% → 0 or 0 → 100%, 0.32s.
-   * Used by WetInkSheet on bottom sheets (legal, rewards).
+   * Reserved by WetInkSheet, which today ships only in the design-system
+   * catalogue (motion playground) — production sheets are the Radix Sheet,
+   * whose keyframe enter/exit reads the same --w-dur-move/--w-ease tokens.
    */
   sheet: {
     duration: 0.32, // --w-dur-move: 320ms

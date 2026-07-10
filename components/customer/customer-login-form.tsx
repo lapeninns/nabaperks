@@ -65,7 +65,10 @@ export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
             }
           />
           {state.errors?.contact ? (
-            <p id="contact-error" className="text-sm text-destructive">
+            // role="alert" so the inline error announces on arrival, matching
+            // the OTP error below — described-by alone stays silent until the
+            // field is re-focused.
+            <p id="contact-error" role="alert" className="text-sm text-destructive">
               {state.errors.contact}
             </p>
           ) : (

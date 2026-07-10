@@ -54,12 +54,12 @@ export function FilterPills({
               // the 44px Wet Ink tap-target minimum (DESIGN.md, WCAG 2.5.8)
               // without distorting the desktop pill height.
               "[@media(pointer:coarse)]:min-h-11",
-              "font-mono text-[0.6875rem] font-bold tracking-[0.04em] uppercase whitespace-nowrap",
+              "mono-meta tracking-[0.04em] whitespace-nowrap",
               "transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)]",
               // Focus comes from the shared .focus-ring recipe (globals.css).
               "focus-ring outline-none motion-reduce:transition-none",
               selected
-                ? "border-ink bg-primary text-primary-foreground shadow-xs"
+                ? "border-ink bg-primary text-primary-foreground shadow-xs forced-colors:underline forced-colors:underline-offset-4"
                 : "border-ink bg-card text-ink-soft hover:bg-secondary"
             )}
           >

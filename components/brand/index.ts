@@ -18,6 +18,7 @@ export {
   type FilterPillsProps,
 } from "./filter-pills"
 export { Icon, type IconGlyph } from "./icon"
+export { IconRoundel } from "./icon-roundel"
 export {
   ACTIVITY_CATEGORY_ICON,
   STATUS_ICON,

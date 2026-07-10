@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { Eyebrow, Icon, ReceiptCard } from "@/components/brand"
+import { Eyebrow, IconRoundel, ReceiptCard } from "@/components/brand"
 import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 import { normalizeScannedQrDestination } from "@/lib/customer/qr-scanner"
 import { scannerGuidance } from "@/lib/customer/scanner-guidance"
@@ -179,9 +179,7 @@ export function CustomerQrScanner() {
   return (
     <ReceiptCard edge className="grid gap-5 p-6">
       <div className="grid gap-3">
-        <span className="grid size-11 place-items-center rounded-full border-2 border-ink bg-accent text-accent-foreground">
-          <Icon icon={Camera01Icon} size={22} />
-        </span>
+        <IconRoundel icon={Camera01Icon} iconSize={22} tone="accent" />
         <div className="grid gap-1.5">
           <Eyebrow>Customer scanner</Eyebrow>
           <h1 className="text-2xl leading-tight font-extrabold tracking-[-0.01em]">

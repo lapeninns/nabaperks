@@ -148,7 +148,7 @@ function StampDateText({
     <span
       aria-hidden="true"
       className={cn(
-        "font-mono text-[0.625rem] leading-none font-bold uppercase",
+        "mono-id leading-none",
         compact
           ? "tracking-[0.04em]"
           : "mt-px border-t border-stamp-foreground/40 pt-px tracking-[0.09em]"

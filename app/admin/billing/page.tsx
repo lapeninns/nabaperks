@@ -23,13 +23,13 @@ function BillingCrossLinks({ merchantName }: { readonly merchantName: string }) 
   return (
     <span className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
       <Link
-        className="focus-ring rounded-sm font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
+        className="focus-ring rounded-sm font-semibold text-primary underline underline-offset-2 hover:text-[color-mix(in_srgb,var(--primary)_80%,var(--w-ink))]"
         href="/admin/merchants"
       >
         Account
       </Link>
       <Link
-        className="focus-ring rounded-sm font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
+        className="focus-ring rounded-sm font-semibold text-primary underline underline-offset-2 hover:text-[color-mix(in_srgb,var(--primary)_80%,var(--w-ink))]"
         href={buildLookupHref("/admin/customers", { venue: merchantName })}
       >
         Members

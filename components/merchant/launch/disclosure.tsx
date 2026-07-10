@@ -30,7 +30,7 @@ export function Disclosure({
         className
       )}
     >
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-sm font-extrabold text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/35 sm:px-4 sm:py-3 [&::-webkit-details-marker]:hidden">
+      <summary className="focus-ring flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-sm font-extrabold text-foreground sm:px-4 sm:py-3 [&::-webkit-details-marker]:hidden">
         <span className="min-w-0 text-pretty break-words">{label}</span>
         <Icon
           icon={ArrowDown01Icon}

@@ -58,7 +58,7 @@ function ActivityRow({ item }: { item: CustomerActivityItem }) {
         </MonoTag>
         <time
           dateTime={item.createdAt}
-          className="font-mono text-[0.625rem] font-bold tracking-[0.06em] text-muted-foreground uppercase"
+          className="mono-id text-muted-foreground"
         >
           {formatRelativeTime(item.createdAt)}
         </time>

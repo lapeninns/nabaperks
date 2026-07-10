@@ -24,9 +24,11 @@ test("Given /terms and /privacy advertise a TOC When section blocks render Then 
   const privacy = readProjectFile("app", "privacy", "page.tsx")
 
   for (const source of [terms, privacy]) {
-    // Section titles are headings, not mono <p> eyebrows.
-    assert.match(source, /<h2\s+className="font-mono/)
-    assert.doesNotMatch(source, /<p className="font-mono/)
+    // Section titles are headings, not mono <p> eyebrows. The mono styling
+    // now comes from the sanctioned .mono-meta utility (DESIGN.md micro-type
+    // scale) rather than a hand-rolled font-mono string.
+    assert.match(source, /<h2\s+className="mono-meta/)
+    assert.doesNotMatch(source, /<p className="(?:font-mono|mono-)/)
     // TOC wiring: nav links to #section-id, section carries the id + focus target.
     assert.match(source, /href=\{`#\$\{section\.id\}`\}/)
     assert.match(source, /<section\s+id=\{id\}\s+tabIndex=\{-1\}/)

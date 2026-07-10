@@ -23,7 +23,7 @@ export function AccountTabBar({ activeTab }: { activeTab: AccountTab }) {
                 prefetch={false}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "flex min-h-11 items-center justify-center rounded-md px-2 py-2 text-sm font-extrabold transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:inline-flex sm:px-4",
+                  "focus-ring flex min-h-11 items-center justify-center rounded-md px-2 py-2 text-sm font-extrabold transition-colors sm:inline-flex sm:px-4",
                   isActive
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-secondary hover:text-foreground"

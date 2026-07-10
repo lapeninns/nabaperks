@@ -153,7 +153,7 @@ export function ResetPasswordForm({
             role="group"
             aria-label="Reset-code recovery options"
             tabIndex={-1}
-            className="grid gap-3 rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+            className="focus-ring grid gap-3 rounded-xl"
           >
             {errors.form ? <ErrorFeedback message={errors.form} /> : null}
             <OtpResendControl
@@ -308,7 +308,7 @@ export function ResetPasswordForm({
             role="group"
             aria-label="Code recovery options"
             tabIndex={-1}
-            className="grid gap-3 rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+            className="focus-ring grid gap-3 rounded-xl"
           >
             {errors.form ? <ErrorFeedback message={errors.form} /> : null}
             {state.message ? <SuccessFeedback message={state.message} /> : null}

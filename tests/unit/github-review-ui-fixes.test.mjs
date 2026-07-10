@@ -28,8 +28,12 @@ test("dashboard QR quick action stays hidden until scans are available", () => {
     /const thumbnailQrSrc = scansAvailable\s+\? `\/app\/qr\/image\/\$\{qrCodeId\}\?w=256`\s+: null/
   )
   assert.match(source, /thumbnailQrSrc \? \([\s\S]*<img/)
-  assert.match(source, /scansAvailable \? \([\s\S]*<PresentQrButton/)
+  // Counter-ticket architecture: present-QR triggers (the tappable ticket and
+  // the labelled button) and the dialog root itself all gate on scan
+  // availability — a gated/paused card presents nothing.
+  assert.match(source, /scansAvailable \? \([\s\S]*<PresentQrTrigger/)
   assert.match(source, /scansAvailable \? \([\s\S]*<CopyUrlButton/)
+  assert.match(source, /return scansAvailable \? \(\s*<PresentQrRoot/)
   assert.match(source, /Launch gated/)
   assert.match(source, /QR paused/)
   assert.doesNotMatch(source, /className="[^"]*max-w-full[^"]*"/)

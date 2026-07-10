@@ -35,7 +35,7 @@ export function HomeActivitySnippet({
               </MonoTag>
               <time
                 dateTime={item.createdAt}
-                className="font-mono text-[0.625rem] font-bold tracking-[0.06em] text-muted-foreground uppercase"
+                className="mono-id text-muted-foreground"
               >
                 {formatRelativeTime(item.createdAt)}
               </time>
@@ -49,7 +49,7 @@ export function HomeActivitySnippet({
       </ol>
       <Link
         href="/home/activity"
-        className="justify-self-start font-mono text-[0.68rem] font-bold tracking-[0.08em] text-foreground uppercase underline-offset-4 hover:underline"
+        className="justify-self-start mono-meta tracking-[0.08em] text-foreground underline-offset-4 hover:underline"
       >
         See all activity
       </Link>

@@ -1,4 +1,4 @@
-import { ReceiptCard } from "@/components/brand"
+import { IconRoundel, ReceiptCard } from "@/components/brand"
 import { MERCHANT_SETUP_STEPS } from "@/lib/merchant/launch-readiness-contract"
 
 type OnboardingJourneyOrientationProps =
@@ -39,9 +39,13 @@ export function OnboardingJourneyOrientation(
         <ol className="grid gap-3">
           {MERCHANT_SETUP_STEPS.map((step, index) => (
             <li key={step.id} className="grid grid-cols-[2rem_1fr] gap-3">
-              <span className="grid size-8 place-items-center rounded-full border-2 border-ink bg-card font-mono text-sm font-bold shadow-sm">
+              <IconRoundel
+                size="sm"
+                tone="card"
+                className="font-mono text-sm font-bold shadow-sm"
+              >
                 {index + 1}
-              </span>
+              </IconRoundel>
               <span className="min-w-0">
                 <span className="block text-sm font-extrabold">
                   {step.title}

@@ -13,10 +13,13 @@ import {
   websiteSchema,
 } from "@/lib/seo/structured-data"
 
+// Loaded as the variable font it is (one file instead of five static
+// instances) with the optical-size axis on, so display sizes render with
+// their drawn-for-size letterforms. Space Mono below is static-only.
 const bricolageGrotesque = Bricolage_Grotesque({
   variable: "--font-bricolage-grotesque",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+  axes: ["opsz"],
   display: "swap",
 })
 

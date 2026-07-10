@@ -43,8 +43,11 @@ export function KpiTile({
   seriesColor,
   className,
 }: KpiTileProps) {
+  // No-trend sparklines rest on neutral ink, never on the brand vermillion:
+  // primary (#cf330a) sits ~1.1:1 from destructive (#c0301c), so a primary
+  // "neutral" line is visually indistinguishable from a falling one.
   const strokeColor =
-    seriesColor ?? (trend ? TREND_STROKE[trend.direction] : "var(--primary)")
+    seriesColor ?? (trend ? TREND_STROKE[trend.direction] : "var(--w-ink-soft)")
 
   return (
     // The data-slot layer owns the surface; data-elevation="flat" pins the
