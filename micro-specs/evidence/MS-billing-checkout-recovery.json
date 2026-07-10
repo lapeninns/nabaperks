@@ -3,60 +3,6 @@
   "spec_id": "MS-billing-checkout-recovery",
   "runs": [
     {
-      "timestamp": "2026-07-10T04:17:38.111Z",
-      "git_sha": "e17e50dfcf7b39d9d849b7f6075136ef009d0807",
-      "git_branch": "codex/merchant-ux-audit-remediation",
-      "dirty": false,
-      "gates": [
-        {
-          "command": "pnpm lint",
-          "exit_code": 0,
-          "duration_ms": 6358
-        },
-        {
-          "command": "pnpm typecheck",
-          "exit_code": 0,
-          "duration_ms": 1080
-        },
-        {
-          "command": "pnpm build",
-          "exit_code": 0,
-          "duration_ms": 9687
-        },
-        {
-          "command": "pnpm test",
-          "exit_code": 0,
-          "duration_ms": 8666
-        },
-        {
-          "command": "pnpm test:coverage",
-          "exit_code": 0,
-          "duration_ms": 1182
-        },
-        {
-          "command": "pnpm test:db",
-          "exit_code": 0,
-          "duration_ms": 4096
-        },
-        {
-          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-billing-checkout-recovery\"",
-          "exit_code": 0,
-          "duration_ms": 20482
-        },
-        {
-          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
-          "exit_code": 0,
-          "duration_ms": 174719
-        },
-        {
-          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
-          "exit_code": 0,
-          "duration_ms": 39769
-        }
-      ],
-      "all_passed": true
-    },
-    {
       "timestamp": "2026-07-10T05:09:05.664Z",
       "git_sha": "d2bd81862c32c72b408bd6bb6b9abb4903064f56",
       "git_branch": "codex/merchant-ux-audit-remediation",
@@ -461,6 +407,60 @@
         }
       ],
       "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-10T12:28:46.165Z",
+      "git_sha": "2537624f49a3e105141b451d1c853fbc897d12b7",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 8033
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1193
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11138
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 11290
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1213
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 200538
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 59988
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 4147
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-billing-checkout-recovery\"",
+          "exit_code": 0,
+          "duration_ms": 27727
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
