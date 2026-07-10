@@ -14,7 +14,8 @@ implement, which files they may touch, and which gates prove the work.
 - `scripts/check-governance.mjs` — validates metadata, risk gates, blast
   radius, docs drift, evidence ledgers, and gate-command shape.
 - `scripts/run-governance-gates.mjs` — runs the verification gates declared by
-  active Micro-Specs (`--spec <id>` for one spec, `--record` to write ledgers).
+  active Micro-Specs (`--spec <id>` selects an explicit spec, repeat it to
+  batch a deduplicated union, and add `--record` to write per-spec ledgers).
 - `scripts/new-spec.mjs` — scaffolds a floor-satisfying draft Micro-Spec
   (`governance:new-spec`).
 - `scripts/advance-spec.mjs` — the only sanctioned way to change a spec's
@@ -283,6 +284,21 @@ specs being re-proven — the cure is never blocked by the disease, while
 provenance, dirty-tree, and attestation rules stay enforced. Tune or disable
 staleness via `EVIDENCE_STALENESS_STATUSES` in
 `scripts/governance-constants.mjs`.
+
+### Gate Cadence and Batched Proof
+
+- During Red -> Green -> Refactor, run the narrowest tests that cover the
+  requirement and directly affected contract. Git commit frequency does not
+  define verification frequency.
+- Run the complete declared gates at a coherent proof boundary and when
+  `governance:advance` changes lifecycle state.
+- When a shared change makes several specs stale, re-prove them together:
+  `governance:run-gates --spec MS-one --spec MS-two --record`. Identical exact
+  commands execute once; each ledger receives only that spec's declared gate
+  results.
+- Before release, run the project-level CI/final-proof lane once. This is
+  complementary portfolio evidence, not a reason to repeat it after every
+  implementation commit.
 
 ## Working Rule
 

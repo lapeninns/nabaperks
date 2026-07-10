@@ -21,6 +21,9 @@ a CI-enforced AI governance spine.
 - Keep the app buildable. Verify meaningful code changes with
   `pnpm governance:check`, `pnpm typecheck`, and `pnpm build`; add
   `pnpm governance:run-gates` when an active Micro-Spec is driving the work.
+- Use focused tests while a change is converging. Run complete recorded gates
+  at coherent proof/lifecycle boundaries, not after every Git commit; when a
+  shared change affects several specs, batch them by repeating `--spec <id>`.
 - Treat the design system as the durable product contract. Preserve
   `DESIGN.md`, `app/globals.css`, and the shared component foundations.
 - Treat `micro-specs/README.md`, `micro-specs/GLOBAL_CONTEXT.md`,

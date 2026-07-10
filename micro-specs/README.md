@@ -17,6 +17,9 @@ validate, execute, and verify Micro-Specs against the current buildable app.
   way to change a spec's status; runs gates fresh and records evidence.
 - `scripts/governance-evidence.mjs` - the evidence-ledger module
   (`show <spec-id>` / `backfill --by <who>`).
+- `scripts/run-governance-gates.mjs` - runs active-spec gates by default;
+  repeat `--spec <id>` to batch an explicit deduplicated multi-spec proof and
+  add `--record` to write each spec's own evidence ledger.
 - `scripts/governance-status.mjs` (`pnpm governance:status`) - read-only
   portfolio dashboard: per-spec lifecycle/evidence table, an attention list
   of implemented/verified specs awaiting their next step, and the checker's
@@ -357,6 +360,21 @@ the staleness and run-freshness (red/non-covering latest run) rules for the
 specs being re-proven — the cure is never blocked by the disease, while
 provenance, dirty-tree, and attestation rules stay enforced. The standalone
 check keeps full enforcement.
+
+### Gate Cadence and Batched Proof
+
+- During Red -> Green -> Refactor, run the narrowest tests that cover the
+  requirement and directly affected contract. Git commit frequency does not
+  define verification frequency.
+- Run complete declared gates at a coherent proof boundary and when
+  `governance:advance` changes lifecycle state.
+- When a shared change makes several specs stale, re-prove them together:
+  `pnpm governance:run-gates --spec MS-one --spec MS-two --record`. Identical
+  exact commands execute once; each ledger receives only that spec's declared
+  gate results.
+- Before release, run the project-level CI/final-proof lane once. This is
+  complementary portfolio evidence, not a reason to repeat it after every
+  implementation commit.
 
 ## Working Rule
 

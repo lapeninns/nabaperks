@@ -55,8 +55,8 @@ hosting choices. Keep `micro-specs/GLOBAL_CONTEXT.md` as the detailed record.
 - Test: `{{TEST_COMMAND}}`
 - Build: `{{BUILD_COMMAND}}`
 - Governance check: `{{GOVERNANCE_CHECK_COMMAND}}`
-- Active gates: `{{GOVERNANCE_RUN_GATES_COMMAND}}` (add `--spec <id>` /
-  `--record` to scope and to write evidence ledgers)
+- Active gates: `{{GOVERNANCE_RUN_GATES_COMMAND}}` (repeat `--spec <id>` to
+  batch a deduplicated multi-spec proof; add `--record` for per-spec ledgers)
 - New spec: `governance:new-spec --id MS-<area>-<slug> --risk <class> --title "<text>"`
 - Lifecycle: `governance:advance <spec-id> --to <status>`
 

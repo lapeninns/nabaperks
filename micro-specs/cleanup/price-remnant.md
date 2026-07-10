@@ -3,7 +3,7 @@ spec_id: MS-cleanup-price-remnant
 status: implemented
 risk_class: docs-tooling
 owner: amankumarshrestha
-last_reviewed: 2026-07-06
+last_reviewed: 2026-07-10
 allowed_blast_radius:
   - micro-specs/cleanup/**
   - scripts/provider-readiness/**
@@ -12,10 +12,11 @@ allowed_blast_radius:
   - micro-specs/evidence/**
   - docs/product/legacy-offer-v1-cleanup-goal.md
 implementation_surfaces:
-  - scripts/provider-readiness/**
-  - tests/micro-specs/**
-  - micro-specs/marketing/**
-  - micro-specs/evidence/**
+  - scripts/provider-readiness/checks.mjs
+  - tests/micro-specs/cleanup-price-remnant.test.mjs
+  - micro-specs/marketing/offer-v1.md
+  - micro-specs/evidence/MS-marketing-offer-v1.json
+  - micro-specs/evidence/MS-cleanup-price-remnant.json
   - docs/product/legacy-offer-v1-cleanup-goal.md
 related_tests:
   - tests/micro-specs/cleanup-price-remnant.test.mjs

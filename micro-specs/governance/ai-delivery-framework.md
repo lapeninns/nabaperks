@@ -3,7 +3,7 @@ spec_id: MS-governance-ai-delivery-framework
 status: active
 risk_class: docs-tooling
 owner: codex
-last_reviewed: 2026-07-05
+last_reviewed: 2026-07-10
 allowed_blast_radius:
   - .factory/skills/**
   - .env.example
@@ -49,6 +49,7 @@ allowed_blast_radius:
   - tsconfig.json
   - vercel.json
 implementation_surfaces:
+  - .factory/skills/**
   - .factory/skills/ai-governance-starter-kit/SKILL.md
   - .env.example
   - .github/workflows/ci.yml
@@ -58,9 +59,17 @@ implementation_surfaces:
   - AGENTS.md
   - DESIGN.md
   - ai-governance-starter-kit/install-ai-governance.mjs
+  - ai-governance-starter-kit/CHANGELOG.md
+  - ai-governance-starter-kit/.claude-plugin/plugin.json
+  - ai-governance-starter-kit/skills/implement-micro-spec/SKILL.md
+  - ai-governance-starter-kit/templates/Instructions_tdd.md
   - ai-governance-starter-kit/templates/AGENTS.md.template
   - ai-governance-starter-kit/templates/micro-specs/README.md
+  - ai-governance-starter-kit/templates/scripts/governance-gate-selection.mjs
   - ai-governance-starter-kit/templates/scripts/governance-rules.mjs
+  - ai-governance-starter-kit/templates/scripts/governance-version.mjs
+  - ai-governance-starter-kit/templates/scripts/run-governance-gates.mjs
+  - ai-governance-starter-kit/templates/tests/micro-specs/governance-gate-selection.test.mjs
   - Instructions_MircroSpecsCreation.md
   - Instructions_tdd.md
   - README.md
@@ -77,6 +86,7 @@ implementation_surfaces:
   - scripts/governance-io.mjs
   - scripts/governance-rules.mjs
   - scripts/governance-frontmatter.mjs
+  - scripts/governance-gate-selection.mjs
   - scripts/governance-glob.mjs
   - scripts/governance-commands.mjs
   - scripts/run-playwright.mjs
@@ -90,6 +100,7 @@ implementation_surfaces:
   - tests/load/public-routes.js
   - tests/load/stamp-redeem-race.js
   - tests/micro-specs/governance-enforcement.test.mjs
+  - tests/micro-specs/governance-gate-selection.test.mjs
   - tests/support/server-only-stub.mjs
   - tests/unit/block-reasons.test.mjs
   - tests/unit/phone-pii.property.test.mjs
@@ -104,6 +115,7 @@ related_docs:
   - micro-specs/GLOBAL_CONTEXT.md
 related_tests:
   - tests/micro-specs/ai-governance-starter-kit.test.mjs
+  - tests/micro-specs/governance-gate-selection.test.mjs
   - tests/db/governance-db.test.mjs
   - tests/db/card-stamp-display-dates.test.mjs
   - tests/db/reward-billing-moat.test.mjs
@@ -190,6 +202,14 @@ Out of scope:
   `micro-specs/README.md` omits commands run by CI.
 - THE governance system SHALL run active Micro-Spec gates through a repo-native
   runner without a shell.
+- WHEN several Micro-Specs require proof at the same delivery boundary, THE
+  governance runner SHALL accept repeatable explicit spec selections, execute
+  their exact-command union once, and record only each spec's declared results
+  in that spec's own evidence ledger.
+- WHILE implementation is still converging, THE delivery workflow SHALL use
+  requirement-focused tests for Red -> Green -> Refactor and SHALL reserve a
+  complete recorded gate run for a meaningful proof or lifecycle boundary,
+  rather than requiring the complete suite after every Git commit.
 - THE browser harness SHALL expose Playwright CLI scripts for e2e, headed, UI,
   a11y, and visual smoke gates.
 - THE DB harness SHALL require a live database URL and SHALL NOT treat static SQL

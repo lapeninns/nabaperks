@@ -2,7 +2,8 @@
 // Runs Micro-Spec verification gates.
 //
 //   node scripts/run-governance-gates.mjs                    # union of ACTIVE specs' gates
-//   node scripts/run-governance-gates.mjs --spec <spec-id>   # one spec's gates (any status)
+//   node scripts/run-governance-gates.mjs --spec <spec-id>   # explicit spec (any status)
+//   node scripts/run-governance-gates.mjs --spec A --spec B  # deduplicated union for A + B
 //   node scripts/run-governance-gates.mjs --record           # also write evidence ledgers
 //
 // One union execution attributes per-spec evidence: each spec's ledger entry
@@ -21,18 +22,23 @@ import {
   runnableGates,
   writeLedger,
 } from "./governance-evidence.mjs"
+import {
+  gateUnionForSpecs,
+  parseGateRunnerArgs,
+  selectGateSpecs,
+} from "./governance-gate-selection.mjs"
 import { readSpecs } from "./governance-io.mjs"
 import { validateGovernance } from "./governance-rules.mjs"
 
 const root = process.cwd()
-const args = process.argv.slice(2)
-const record = args.includes("--record")
-const specIndex = args.indexOf("--spec")
-const specId = specIndex !== -1 ? args[specIndex + 1] : null
-if (specIndex !== -1 && !specId) {
-  console.error("usage: node scripts/run-governance-gates.mjs [--spec <spec-id>] [--record]")
+let options
+try {
+  options = parseGateRunnerArgs(process.argv.slice(2))
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error))
   process.exit(2)
 }
+const { record, specIds } = options
 
 // A mid-implementation tree legitimately has changed files everywhere; gate
 // execution needs valid metadata, not blast-radius cleanliness. Re-proof
@@ -40,8 +46,8 @@ if (specIndex !== -1 && !specId) {
 // recording run exists at all: this invocation IS the cure those failures
 // prescribe, and it must not be blocked by the disease it is curing (the
 // standalone governance:check keeps full enforcement).
-const reprovingSpecIds = specId
-  ? [specId]
+const reprovingSpecIds = specIds.length > 0
+  ? specIds
   : readSpecs(root, [])
       .filter((spec) => spec.metadata.status === "active")
       .map((spec) => spec.metadata.spec_id)
@@ -58,7 +64,7 @@ const gateReprovingSpecIds = [
 
 const validation = validateGovernance(root, {
   enforceChangedFiles: false,
-  reprovingSpecIds,
+  reprovingSpecIds: gateReprovingSpecIds,
 })
 
 if (!validation.ok) {
@@ -70,19 +76,14 @@ if (!validation.ok) {
 }
 
 let targetSpecs
-if (specId) {
-  targetSpecs = validation.specs.filter((spec) => spec.metadata.spec_id === specId)
-  if (targetSpecs.length === 0) {
-    console.error(`No Micro-Spec found with spec_id "${specId}".`)
-    process.exit(1)
-  }
-} else {
-  targetSpecs = validation.specs.filter((spec) => spec.metadata.status === "active")
+try {
+  targetSpecs = selectGateSpecs(validation.specs, specIds)
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error))
+  process.exit(1)
 }
 
-const gates = [
-  ...new Set(targetSpecs.flatMap((spec) => spec.metadata.verification_gates ?? [])),
-]
+const gates = gateUnionForSpecs(targetSpecs)
 const runnable = gates.filter((gate) => !isManualInspectionGate(gate))
 const playwrightGateScripts = new Set(["test:e2e", "test:a11y", "test:visual"])
 let playwrightGatePort = 3146

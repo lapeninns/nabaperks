@@ -10,7 +10,7 @@
 // The installer treats this same list as "engine-owned" during --upgrade:
 // safe to overwrite (with backups), unlike seed files a repo adapts.
 
-export const KIT_VERSION = "0.4.0"
+export const KIT_VERSION = "0.5.0"
 
 export const ENGINE_FILES = Object.freeze([
   "advance-spec.mjs",
@@ -18,6 +18,7 @@ export const ENGINE_FILES = Object.freeze([
   "governance-commands.mjs",
   "governance-evidence.mjs",
   "governance-frontmatter.mjs",
+  "governance-gate-selection.mjs",
   "governance-glob.mjs",
   "governance-io.mjs",
   "governance-rules.mjs",
@@ -34,5 +35,6 @@ export const ENGINE_FILES = Object.freeze([
 export const SHARED_TEST_FILES = Object.freeze([
   "advance-spec.test.mjs",
   "governance-evidence.test.mjs",
+  "governance-gate-selection.test.mjs",
   "new-spec.test.mjs",
 ])

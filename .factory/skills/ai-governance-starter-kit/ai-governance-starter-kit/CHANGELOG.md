@@ -5,6 +5,18 @@ Notable changes to the AI Governance Starter Kit, newest first. The
 in `.claude-plugin/plugin.json` must both match the newest heading here —
 the host repo's `skill-bundle-sync` test enforces it.
 
+## 0.5.0 — 2026-07-10
+
+- Batched evidence proof: repeat `--spec <id>` in one
+  `governance:run-gates --record` invocation to execute the exact-command
+  union once while recording only each Micro-Spec's own declared gate results
+  in its ledger.
+- Delivery cadence: focused requirement tests are the implementation feedback
+  loop; complete recorded gate runs are reserved for coherent proof and
+  lifecycle boundaries, not every Git commit.
+- Strict gate-runner arguments: unknown options, missing spec ids, and unknown
+  requested specs now fail with actionable errors instead of being ignored.
+
 ## 0.4.0 — 2026-07-07
 
 - Scoped browser gates: an active spec's `test:e2e` gate must carry a

@@ -198,6 +198,12 @@ When implementing a Micro-Spec, follow this sequence:
     a11y, and visual gates exactly as written in `verification_gates` —
     active specs declare grep-scoped e2e gates, and a whole-suite browser run
     requires a dated `broad-browser-gate` approved exception.
+11. Treat focused tests as the per-change feedback loop. Do not run every full
+    gate or record a new evidence entry merely because a Git commit was
+    created. At a coherent proof boundary, use
+    `pnpm governance:run-gates --spec <id> --record`. If one change affects
+    several specs, repeat `--spec <id>` in that command so identical gates run
+    once while evidence remains attributable to each spec.
 
 ---
 
