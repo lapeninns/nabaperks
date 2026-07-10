@@ -12,7 +12,7 @@
     "test:micro-specs": "node --test tests/micro-specs/*.test.mjs",
     "test:unit": "node --import ./tests/support/register-alias.mjs --test tests/unit/*.test.mjs",
     "test:coverage": "mkdir -p coverage && node --import ./tests/support/register-alias.mjs --experimental-test-coverage --test-coverage-include='lib/**' --test-coverage-lines=80 --test-coverage-functions=80 --test-coverage-branches=70 --test-reporter=lcov --test-reporter-destination=coverage/lcov.info --test tests/unit/*.test.mjs",
-    "test:db": "node --test tests/db/*.test.mjs",
+    "test:db": "node --test --test-concurrency=1 tests/db/*.test.mjs",
     "test:e2e": "node scripts/run-playwright.mjs",
     "test:e2e:ui": "node scripts/run-playwright.mjs --ui",
     "test:e2e:headed": "node scripts/run-playwright.mjs --headed",

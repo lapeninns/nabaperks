@@ -1,6 +1,18 @@
-import { expect, test } from "@playwright/test"
+import { expect, test, type Page } from "@playwright/test"
 
 import { dismissPwaInstall, HARNESS_ROUTES } from "./helpers/harness"
+import {
+  assertMerchantOnboardingBrowserSession,
+  assertMerchantOnboardingDbState,
+  assertMerchantOnboardingRolledBack,
+  cleanupMerchantOnboardingLiveDbFixture,
+  connectMerchantOnboardingDb,
+  createMerchantOnboardingLiveDbFixture,
+  installMerchantOnboardingAuditFailure,
+  merchantOnboardingLiveDbSkipReason,
+  removeMerchantOnboardingAuditFailure,
+  type MerchantOnboardingLiveDbFixture,
+} from "./helpers/merchant-onboarding-live-db"
 
 const DRAFT_KEY = "nabaperks:onboarding-draft:usr_harness_onboarding"
 
@@ -77,4 +89,174 @@ export function defineMerchantOnboardingContinuityTests() {
     ).toBeVisible()
     expect(actionPosts).toBe(0)
   })
+
+  test("a server failure retains safe fields, announces the recovery message, and focuses it", async ({
+    page,
+  }) => {
+    await page.goto(HARNESS_ROUTES.onboarding)
+    await page.locator('input[name="addressLine1"]').fill("15 Market Street")
+    await page.locator('input[name="addressCity"]').fill("Cambridge")
+    await page.locator('input[name="addressPostcode"]').fill("CB2 3PA")
+
+    await page.getByRole("button", { name: "Finish setup" }).click()
+
+    const sessionError = page
+      .getByRole("alert")
+      .filter({ hasText: "Your session expired. Log in again." })
+    await expect(sessionError).toBeVisible()
+    await expect(sessionError).toBeFocused()
+    await expect(page.locator('input[name="businessName"]')).toHaveValue(
+      "Old Crown Girton"
+    )
+    await expect(page.locator('input[name="addressLine1"]')).toHaveValue(
+      "15 Market Street"
+    )
+    await expect(page.locator('input[name="addressPostcode"]')).toHaveValue(
+      "CB2 3PA"
+    )
+  })
+
+  test.describe("local Supabase transaction proof", () => {
+    const skipReason = merchantOnboardingLiveDbSkipReason()
+    test.skip(Boolean(skipReason), skipReason)
+
+    test("audit failure rolls back the whole setup, preserves the form, and a retry succeeds", async ({
+      page,
+      context,
+    }) => {
+      const sql = connectMerchantOnboardingDb()
+      test.skip(!sql, "local Supabase DB is not configured")
+      if (!sql) return
+
+      let fixture: MerchantOnboardingLiveDbFixture | undefined
+      let proofError: unknown
+
+      try {
+        fixture = await createMerchantOnboardingLiveDbFixture(sql, context)
+        await installMerchantOnboardingAuditFailure(sql, fixture)
+        await page.goto("/app/onboarding")
+
+        await page
+          .locator('input[name="businessName"]')
+          .fill(fixture.expected.businessName)
+        await page
+          .locator('select[name="businessType"]')
+          .selectOption(fixture.expected.businessType)
+        await page
+          .locator('input[name="phone"]')
+          .fill(fixture.expected.phone ?? "")
+        await page
+          .locator('input[name="locationName"]')
+          .fill(fixture.expected.locationName)
+        await page
+          .locator('input[name="addressLine1"]')
+          .fill(fixture.expected.addressLine1)
+        await page
+          .locator('input[name="addressLine2"]')
+          .fill(fixture.expected.addressLine2 ?? "")
+        await page
+          .locator('input[name="addressCity"]')
+          .fill(fixture.expected.addressCity)
+        await page
+          .locator('input[name="addressPostcode"]')
+          .fill(fixture.expected.addressPostcode)
+        await setProviderVenueProvenance(page, fixture)
+
+        await page.getByRole("button", { name: "Finish setup" }).click()
+
+        const saveError = page.getByRole("alert").filter({
+          hasText:
+            "Profile could not be saved. Check your details and try again.",
+        })
+        await expect(saveError).toBeVisible()
+        await expect(saveError).toBeFocused()
+        await expect(page).toHaveURL(
+          (url) => url.pathname === "/app/onboarding"
+        )
+        await expect(page.locator('input[name="businessName"]')).toHaveValue(
+          fixture.expected.businessName
+        )
+        await expect(page.locator('input[name="locationName"]')).toHaveValue(
+          fixture.expected.locationName
+        )
+        await expect(page.locator('input[name="addressLine1"]')).toHaveValue(
+          fixture.expected.addressLine1
+        )
+        await expect(page.locator('input[name="addressPostcode"]')).toHaveValue(
+          fixture.expected.addressPostcode
+        )
+        await assertMerchantOnboardingBrowserSession(page, fixture)
+        await assertMerchantOnboardingRolledBack(sql, fixture)
+
+        await removeMerchantOnboardingAuditFailure(sql)
+        await setProviderVenueProvenance(page, fixture)
+        await page.getByRole("button", { name: "Finish setup" }).click()
+
+        await expect(page).toHaveURL(
+          (url) => `${url.pathname}${url.search}` === "/app/launch?tab=card"
+        )
+        await assertMerchantOnboardingBrowserSession(
+          page,
+          fixture,
+          "/app/launch?tab=card"
+        )
+        await assertMerchantOnboardingDbState(sql, fixture)
+      } catch (error) {
+        proofError = error
+      }
+
+      const cleanupErrors: Error[] = []
+      try {
+        await cleanupMerchantOnboardingLiveDbFixture(sql, fixture)
+      } catch (error) {
+        cleanupErrors.push(asTestError("fixture cleanup", error))
+      }
+      try {
+        await sql.end({ timeout: 5 })
+      } catch (error) {
+        cleanupErrors.push(asTestError("database connection close", error))
+      }
+
+      if (proofError && cleanupErrors.length > 0) {
+        throw new AggregateError(
+          [asTestError("transaction proof", proofError), ...cleanupErrors],
+          "Merchant onboarding proof and cleanup failed."
+        )
+      }
+      if (proofError) throw proofError
+      if (cleanupErrors.length > 0) {
+        throw new AggregateError(
+          cleanupErrors,
+          "Merchant onboarding proof cleanup failed."
+        )
+      }
+    })
+  })
+}
+
+async function setProviderVenueProvenance(
+  page: Page,
+  fixture: MerchantOnboardingLiveDbFixture
+): Promise<void> {
+  const fields = {
+    addressSource: fixture.expected.addressSource,
+    addressProvider: fixture.expected.addressProvider ?? "",
+    addressProviderId: fixture.expected.addressProviderId ?? "",
+    providerLatitude: String(fixture.expected.latitude ?? ""),
+    providerLongitude: String(fixture.expected.longitude ?? ""),
+  }
+
+  for (const [name, value] of Object.entries(fields)) {
+    await page.locator(`input[name="${name}"]`).evaluate((input, nextValue) => {
+      if (!(input instanceof HTMLInputElement)) {
+        throw new Error("Provider provenance field is not an input.")
+      }
+      input.value = nextValue
+    }, value)
+  }
+}
+
+function asTestError(label: string, error: unknown): Error {
+  const message = error instanceof Error ? error.message : String(error)
+  return new Error(`${label}: ${message}`, { cause: error })
 }

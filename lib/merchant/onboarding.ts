@@ -9,6 +9,10 @@ export type MerchantOnboardingFields = {
   businessType?: string
   locationName?: string
   phone?: string
+  addressLine1?: string
+  addressLine2?: string
+  addressCity?: string
+  addressPostcode?: string
 }
 
 export type MerchantForApp = {
@@ -25,6 +29,7 @@ type MerchantOnboardingLocation = {
   name: string | null
   address: string | null
   address_line_1: string | null
+  address_line_2: string | null
   address_city: string | null
   address_postcode: string | null
   latitude: number | null
@@ -70,7 +75,7 @@ async function loadMerchantOnboardingStatus(
   const { data: merchant, error: merchantError } = await supabase
     .from("merchants")
     .select(
-      "id, business_name, business_slug, business_type, email, phone, status, merchant_locations(name, address, address_line_1, address_city, address_postcode, latitude, longitude, require_geofence)"
+      "id, business_name, business_slug, business_type, email, phone, status, merchant_locations(name, address, address_line_1, address_line_2, address_city, address_postcode, latitude, longitude, require_geofence)"
     )
     .eq("owner_user_id", userId)
     .order("is_primary", {
@@ -109,6 +114,10 @@ async function loadMerchantOnboardingStatus(
     businessType: merchantForApp.business_type ?? undefined,
     locationName: location?.name ?? undefined,
     phone: merchantForApp.phone ?? undefined,
+    addressLine1: location?.address_line_1 ?? location?.address ?? undefined,
+    addressLine2: location?.address_line_2 ?? undefined,
+    addressCity: location?.address_city ?? undefined,
+    addressPostcode: location?.address_postcode ?? undefined,
   }
 
   if (!isCompleteOnboardingLocation(location)) {
@@ -137,8 +146,6 @@ function isCompleteOnboardingLocation(
 }
 
 function hasCompleteAddress(location: MerchantOnboardingLocation) {
-  if (hasText(location.address)) return true
-
   return (
     hasText(location.address_line_1) &&
     hasText(location.address_city) &&

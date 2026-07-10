@@ -76,16 +76,50 @@ test(
       const atomic = functions.find(
         (fn) => fn.proname === "complete_merchant_onboarding"
       )
-      assert.match(atomic?.identity_arguments ?? "", /p_business_name text/)
-      assert.match(atomic?.identity_arguments ?? "", /p_address_line_1 text/)
-      assert.match(
+      assert.equal(
         atomic?.identity_arguments ?? "",
-        /p_geofence_pin_source text/
+        [
+          "p_business_name text",
+          "p_business_type text",
+          "p_phone text",
+          "p_location_name text",
+          "p_address_line_1 text",
+          "p_address_line_2 text",
+          "p_address_city text",
+          "p_address_postcode text",
+          "p_address_provider text",
+          "p_address_provider_id text",
+          "p_address_source text",
+          "p_latitude double precision",
+          "p_longitude double precision",
+          "p_geofence_radius_meters integer",
+          "p_require_geofence boolean",
+          "p_soft_geofence_trigger_stamp_number integer",
+          "p_geofence_pin_source text",
+        ].join(", "),
+        "the PostgREST named-argument contract exactly matches the server action"
       )
       assert.doesNotMatch(
         atomic?.identity_arguments ?? "",
         /p_owner_user_id|p_email|p_business_slug|p_address text|p_address_country|p_geocoded_at|p_geofence_pin_updated_at/,
         "identity, slug, display address, country, and timestamps are database-owned"
+      )
+
+      const legacy = functions.find(
+        (fn) => fn.proname === "create_merchant_onboarding"
+      )
+      assert.equal(
+        legacy?.identity_arguments ?? "",
+        [
+          "p_owner_user_id uuid",
+          "p_email text",
+          "p_business_name text",
+          "p_business_slug text",
+          "p_business_type text",
+          "p_phone text",
+          "p_location_name text",
+        ].join(", "),
+        "the legacy seven-argument adapter remains deployment-compatible"
       )
 
       const indexes = await tx`
@@ -251,18 +285,60 @@ test(
 )
 
 test(
-  "an owner-scoped audit failure rolls back merchant, venue, product event, and audit writes",
+  "a canonical complete row missing its historical ledger is reconciled without overwriting data",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
-      const fixture = onboardingFixture("rollback")
+      const fixture = onboardingFixture("complete-ledger-repair")
       await insertAuthUser(tx, fixture)
-      const fault = await installOwnerScopedAuditFailure(
-        tx,
-        fixture.ownerUserId
+
+      const first = await asAuthenticated(tx, fixture.ownerUserId, (sp) =>
+        completeOnboarding(sp, fixture)
+      )
+      await tx`
+        delete from public.audit_logs
+        where merchant_id = ${first.merchant_id}::uuid
+          and action = 'merchant_onboarded'`
+      await tx`
+        delete from public.product_events
+        where merchant_id = ${first.merchant_id}::uuid
+          and event_name = 'merchant_signed_up'`
+
+      const staleFixture = changedOnboardingFixture(fixture)
+      const repaired = await asAuthenticated(tx, fixture.ownerUserId, (sp) =>
+        completeOnboarding(sp, staleFixture)
       )
 
-      try {
+      assert.equal(repaired.merchant_id, first.merchant_id)
+      assert.equal(repaired.location_id, first.location_id)
+      assert.equal(repaired.completed_now, false)
+      const state = await readOnboardingState(tx, fixture)
+      assertCompleteState(state, fixture, first)
+      assert.notEqual(state.merchant?.business_name, staleFixture.businessName)
+      assert.notEqual(state.location?.name, staleFixture.locationName)
+    })
+  }
+)
+
+test(
+  "an owner-scoped audit failure rolls back merchant, venue, product event, and audit writes",
+  { skip },
+  async () => {
+    const fixture = onboardingFixture("rollback")
+    const setup = db()
+    // Commit the owner-scoped trigger before opening the proof transaction.
+    // PostgreSQL otherwise retains the trigger's ACCESS EXCLUSIVE table lock
+    // until rollback, which can deadlock unrelated DB-test files that insert
+    // audit rows in parallel. The random owner predicate keeps the committed
+    // trigger inert for every other test, and finally removes it exactly.
+    const fault = await installOwnerScopedAuditFailure(
+      setup,
+      fixture.ownerUserId
+    )
+
+    try {
+      await inRolledBackTxn(async (tx) => {
+        await insertAuthUser(tx, fixture)
         const failure = await captureFailure(() =>
           asAuthenticated(tx, fixture.ownerUserId, (sp) =>
             completeOnboarding(sp, fixture)
@@ -275,10 +351,10 @@ test(
         assert.equal(state.locationCount, 0)
         assert.equal(state.productEventCount, 0)
         assert.equal(state.auditCount, 0)
-      } finally {
-        await removeOwnerScopedAuditFailure(tx, fault)
-      }
-    })
+      })
+    } finally {
+      await removeOwnerScopedAuditFailure(setup, fault)
+    }
   }
 )
 
@@ -314,6 +390,112 @@ test(
       assert.equal(state.locationCount, 0)
       assert.equal(state.productEventCount, 0)
       assert.equal(state.auditCount, 0)
+    })
+  }
+)
+
+test(
+  "owner table reads succeed while an authenticated outsider cannot see or mutate onboarding state",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const owner = onboardingFixture("rls-owner")
+      const outsider = onboardingFixture("rls-outsider")
+      await insertAuthUser(tx, owner)
+      await insertAuthUser(tx, outsider)
+      const result = await asAuthenticated(tx, owner.ownerUserId, (sp) =>
+        completeOnboarding(sp, owner)
+      )
+
+      const ownerVisibility = await asAuthenticated(
+        tx,
+        owner.ownerUserId,
+        (sp) => readOnboardingVisibility(sp, result.merchant_id)
+      )
+      assert.deepEqual(ownerVisibility, {
+        audits: 1,
+        events: 1,
+        locations: 1,
+        merchants: 1,
+      })
+
+      const outsiderVisibility = await asAuthenticated(
+        tx,
+        outsider.ownerUserId,
+        (sp) => readOnboardingVisibility(sp, result.merchant_id)
+      )
+      assert.deepEqual(outsiderVisibility, {
+        audits: 0,
+        events: 0,
+        locations: 0,
+        merchants: 0,
+      })
+
+      const outsiderMerchantUpdates = await asAuthenticated(
+        tx,
+        outsider.ownerUserId,
+        (sp) => sp`
+          update public.merchants
+          set business_name = 'Cross-owner overwrite'
+          where id = ${result.merchant_id}::uuid
+          returning id`
+      )
+      assert.equal(outsiderMerchantUpdates.length, 0)
+
+      const outsiderLocationUpdates = await asAuthenticated(
+        tx,
+        outsider.ownerUserId,
+        (sp) => sp`
+          update public.merchant_locations
+          set name = 'Cross-owner venue overwrite'
+          where merchant_id = ${result.merchant_id}::uuid
+          returning id`
+      )
+      assert.equal(outsiderLocationUpdates.length, 0)
+
+      const eventInsertFailure = await captureFailure(() =>
+        asAuthenticated(
+          tx,
+          outsider.ownerUserId,
+          (sp) => sp`
+          insert into public.product_events (
+            event_name,
+            merchant_id,
+            actor_type,
+            actor_id
+          ) values (
+            'merchant_signed_up',
+            ${result.merchant_id}::uuid,
+            'merchant',
+            ${outsider.ownerUserId}
+          )`
+        )
+      )
+      assert.match(eventInsertFailure, /row-level security|policy/i)
+
+      const auditInsertFailure = await captureFailure(() =>
+        asAuthenticated(
+          tx,
+          outsider.ownerUserId,
+          (sp) => sp`
+          insert into public.audit_logs (
+            actor_type,
+            actor_id,
+            merchant_id,
+            target_table,
+            target_id,
+            action
+          ) values (
+            'merchant',
+            ${outsider.ownerUserId},
+            ${result.merchant_id}::uuid,
+            'merchants',
+            ${result.merchant_id}::uuid,
+            'merchant_onboarded'
+          )`
+        )
+      )
+      assert.match(auditInsertFailure, /row-level security|policy/i)
     })
   }
 )
@@ -375,12 +557,17 @@ test(
     await insertAuthUser(setup, fixture)
 
     try {
+      const startTogether = createStartBarrier(2)
       const [first, second] = await allFulfilled([
-        callOnDedicatedConnection(fixture, (sql) =>
-          completeOnboarding(sql, fixture)
+        callOnDedicatedConnection(
+          fixture,
+          (sql) => completeOnboarding(sql, fixture),
+          startTogether
         ),
-        callOnDedicatedConnection(fixture, (sql) =>
-          completeOnboarding(sql, fixture)
+        callOnDedicatedConnection(
+          fixture,
+          (sql) => completeOnboarding(sql, fixture),
+          startTogether
         ),
       ])
 
@@ -410,12 +597,17 @@ test(
     await insertAuthUser(setup, fixture)
 
     try {
+      const startTogether = createStartBarrier(2)
       const [legacy, atomic] = await allFulfilled([
-        callOnDedicatedConnection(fixture, (sql) =>
-          createLegacyOnboarding(sql, fixture)
+        callOnDedicatedConnection(
+          fixture,
+          (sql) => createLegacyOnboarding(sql, fixture),
+          startTogether
         ),
-        callOnDedicatedConnection(fixture, (sql) =>
-          completeOnboarding(sql, fixture)
+        callOnDedicatedConnection(
+          fixture,
+          (sql) => completeOnboarding(sql, fixture),
+          startTogether
         ),
       ])
 
@@ -455,6 +647,36 @@ test(
     )
     await cleanupCommittedFixture(setup, fixture)
     await assertCommittedFixtureClean(setup, fixture)
+  }
+)
+
+test(
+  "migration replay rejects a same-named partial unique index with a weaker predicate",
+  { skip },
+  async () => {
+    assert.ok(existsSync(MIGRATION_PATH))
+    const source = readFileSync(MIGRATION_PATH, "utf8")
+
+    await inRolledBackTxn(async (tx) => {
+      const failure = await captureFailure(() =>
+        tx.savepoint(async (sp) => {
+          await sp`
+            drop index public.product_events_merchant_signed_up_once_idx`
+          await sp`
+            create unique index product_events_merchant_signed_up_once_idx
+            on public.product_events (merchant_id)
+            where merchant_id is not null
+              and event_name = 'merchant_signed_up'
+              and false`
+          await sp.unsafe(source)
+        })
+      )
+
+      assert.match(
+        failure,
+        /product_events_merchant_signed_up_once_idx exists with an incompatible definition/i
+      )
+    })
   }
 )
 
@@ -669,6 +891,23 @@ async function readOnboardingState(sql, fixture) {
   }
 }
 
+async function readOnboardingVisibility(sql, merchantId) {
+  const [row] = await sql`
+    select
+      (select count(*)::int from public.merchants
+       where id = ${merchantId}::uuid) as merchants,
+      (select count(*)::int from public.merchant_locations
+       where merchant_id = ${merchantId}::uuid) as locations,
+      (select count(*)::int from public.product_events
+       where merchant_id = ${merchantId}::uuid
+         and event_name = 'merchant_signed_up') as events,
+      (select count(*)::int from public.audit_logs
+       where merchant_id = ${merchantId}::uuid
+         and action = 'merchant_onboarded') as audits`
+
+  return row
+}
+
 function assertCompleteState(state, fixture, result) {
   assert.equal(state.merchantCount, 1)
   assert.equal(state.locationCount, 1)
@@ -768,7 +1007,7 @@ async function asAnon(tx, fn) {
   })
 }
 
-async function callOnDedicatedConnection(fixture, fn) {
+async function callOnDedicatedConnection(fixture, fn, start = async () => {}) {
   assert.ok(localDbUrl)
   const sql = postgres(localDbUrl, { max: 1 })
   try {
@@ -776,10 +1015,25 @@ async function callOnDedicatedConnection(fixture, fn) {
       await tx`set local role authenticated`
       await tx`select set_config('request.jwt.claim.role', 'authenticated', true)`
       await tx`select set_config('request.jwt.claim.sub', ${fixture.ownerUserId}, true)`
+      await start()
       return fn(tx)
     })
   } finally {
     await sql.end({ timeout: 5 })
+  }
+}
+
+function createStartBarrier(participantCount) {
+  let arrived = 0
+  let release
+  const opened = new Promise((resolve) => {
+    release = resolve
+  })
+
+  return async () => {
+    arrived += 1
+    if (arrived === participantCount) release()
+    await opened
   }
 }
 

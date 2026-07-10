@@ -98,7 +98,7 @@ export function VenueAddressFields({
         onAddressChange={onAddressChange}
       />
       {errors?.address ? (
-        <p className={cn("text-sm text-destructive", fullSpan)}>
+        <p role="alert" className={cn("text-sm text-destructive", fullSpan)}>
           {errors.address}
         </p>
       ) : null}
@@ -173,7 +173,11 @@ function AddressField({
         className={inputClassName}
       />
       {error ? (
-        <span id={`${id}-error`} className="text-sm text-destructive">
+        <span
+          id={`${id}-error`}
+          role="alert"
+          className="text-sm text-destructive"
+        >
           {error}
         </span>
       ) : null}

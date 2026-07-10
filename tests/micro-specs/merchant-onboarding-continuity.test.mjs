@@ -62,6 +62,12 @@ test("Given the atomic onboarding migration When source is inspected Then owner,
   assert.match(migration, /security definer/i)
   assert.match(migration, /set search_path (?:=|to) public, auth/i)
   assert.match(migration, /pg_advisory_xact_lock/i)
+  assert.match(migration, /indexes\.indisvalid/i)
+  assert.match(migration, /indexes\.indisready/i)
+  assert.match(
+    migration,
+    /pg_catalog\.pg_get_expr\(indexes\.indpred, indexes\.indrelid\)[\s\S]+?merchant_signed_up/is
+  )
   assert.match(migration, /select auth\.uid\(\)/i)
   assert.match(migration, /from auth\.users/i)
   assert.match(migration, /p_owner_user_id\s*<>\s*\(select auth\.uid\(\)\)/i)
@@ -89,12 +95,23 @@ test("Given the atomic onboarding migration When source is inspected Then owner,
 
 test("Given an incomplete server record and a local draft When the form loads Then server values win and missing fields recover from the draft", () => {
   const form = readProjectFile("components", "merchant", "onboarding-form.tsx")
+  const fields = readProjectFile(
+    "components",
+    "merchant",
+    "onboarding-form-fields.tsx"
+  )
+  const addressFields = readProjectFile(
+    "components",
+    "merchant",
+    "venue-address-fields.tsx"
+  )
   const onboarding = readProjectFile("lib", "merchant", "onboarding.ts")
 
   assert.match(form, /mergeOnboardingDraft/)
   assert.doesNotMatch(form, /if \(hasInitialFields\) return/)
   assert.doesNotMatch(form, /const errors = state\.errors \?\? clientErrors/)
-  assert.match(form, /role="alert"/)
+  assert.match(fields, /role="alert"/)
+  assert.match(addressFields, /role="alert"/)
   assert.match(onboarding, /addressLine1:/)
   assert.match(onboarding, /addressLine2:/)
   assert.match(onboarding, /addressCity:/)
@@ -112,4 +129,13 @@ test("Given the onboarding contract When implementation is reviewed Then complet
   assert.match(spec, /fixture-scoped database trigger/i)
   assert.match(spec, /legacy seven-argument RPC/i)
   assert.match(spec, /PUBLIC or\s+`anon`/)
+})
+
+test("Given DB proofs use short-lived schema controls When the full DB gate runs Then files execute sequentially", () => {
+  const packageJson = JSON.parse(readProjectFile("package.json"))
+
+  assert.match(
+    packageJson.scripts["test:db"],
+    /node --test --test-concurrency=1 tests\/db\/\*\.test\.mjs/
+  )
 })

@@ -10,11 +10,15 @@ allowed_blast_radius:
   - app/app/onboarding/actions.ts
   - components/merchant/onboarding-form.tsx
   - components/merchant/onboarding-form-fields.tsx
+  - components/merchant/venue-address-fields.tsx
   - lib/merchant/venue-location-submission.ts
   - lib/merchant/onboarding.ts
+  - package.json
   - supabase/migrations/20260710100000_atomic_merchant_onboarding.sql
   - tests/db/merchant-onboarding-transaction.test.mjs
   - tests/micro-specs/merchant-onboarding-continuity.test.mjs
+  - tests/micro-specs/merchant-onboarding-completion.test.mjs
+  - tests/micro-specs/architecture-audit-hardening.test.mjs
   - tests/e2e/merchant-onboarding-continuity.spec.ts
   - tests/e2e/merchant-onboarding-continuity.desktop.spec.ts
   - tests/e2e/merchant-onboarding-continuity-flow.ts
@@ -25,11 +29,15 @@ implementation_surfaces:
   - app/app/onboarding/actions.ts
   - components/merchant/onboarding-form.tsx
   - components/merchant/onboarding-form-fields.tsx
+  - components/merchant/venue-address-fields.tsx
   - lib/merchant/venue-location-submission.ts
   - lib/merchant/onboarding.ts
+  - package.json
   - supabase/migrations/20260710100000_atomic_merchant_onboarding.sql
   - tests/db/merchant-onboarding-transaction.test.mjs
   - tests/micro-specs/merchant-onboarding-continuity.test.mjs
+  - tests/micro-specs/merchant-onboarding-completion.test.mjs
+  - tests/micro-specs/architecture-audit-hardening.test.mjs
   - tests/e2e/merchant-onboarding-continuity.spec.ts
   - tests/e2e/merchant-onboarding-continuity.desktop.spec.ts
   - tests/e2e/merchant-onboarding-continuity-flow.ts
@@ -41,6 +49,8 @@ related_docs:
 related_tests:
   - tests/db/merchant-onboarding-transaction.test.mjs
   - tests/micro-specs/merchant-onboarding-continuity.test.mjs
+  - tests/micro-specs/merchant-onboarding-completion.test.mjs
+  - tests/micro-specs/architecture-audit-hardening.test.mjs
   - tests/e2e/merchant-onboarding-continuity.spec.ts
   - tests/e2e/merchant-onboarding-continuity.desktop.spec.ts
   - tests/e2e/merchant-onboarding-continuity-flow.ts
@@ -114,15 +124,21 @@ address-incomplete location as completed onboarding.
   idempotency.
 - Retry updates an existing _incomplete_ merchant and its primary location in
   place. Once the canonical location is complete, later stale onboarding
-  submissions are no-ops (first complete write wins). The RPC preserves the
-  existing business slug and never creates a second merchant, primary location,
-  `merchant_signed_up` event, or `merchant_onboarded` audit row.
+  submissions cannot overwrite it (first complete write wins). The RPC still
+  conflict-safely reconciles either missing durable onboarding ledger row on a
+  historical complete record. It preserves the existing business slug and
+  never creates a second merchant, primary location, `merchant_signed_up`
+  event, or `merchant_onboarded` audit row.
 - PostHog remains best-effort and runs only after the authoritative RPC succeeds.
   Supabase `product_events` and `audit_logs` are the durable ledger.
 - Tests and helpers are local-only, use disposable identities, run schema-level
   fault controls with one Playwright worker, scope any failure trigger to the
   fixture owner, remove it in `finally`, and never write to a linked or hosted
   database.
+- The DB integration gate runs test files sequentially. Several suites replay
+  migrations or install short-lived schema fault controls; parallel files can
+  deadlock on PostgreSQL DDL locks and produce false-red evidence even when the
+  product transaction is correct.
 - One merchant per auth owner is the current product invariant. Multi-business
   ownership is not introduced by this audit-remediation program.
 
@@ -146,7 +162,9 @@ address-incomplete location as completed onboarding.
 - Add durable unique invariants for one merchant per owner and one onboarding
   product/audit ledger row per merchant. The migration locks and preflights
   existing rows and fails explicitly on duplicates; it never guesses which
-  production row to delete or merge.
+  production row to delete or merge. Replay validation requires each index to
+  be ready, valid, unique, on the exact key, and on the exact intended partial
+  predicate rather than trusting a same-named relation.
 - On a new owner, insert the merchant, complete primary venue, product event,
   and audit row in the same function. On retry, complete only an incomplete
   record; a complete record returns its stable identifiers unchanged.
@@ -179,7 +197,8 @@ address-incomplete location as completed onboarding.
   rows.
 - **OC-4a (first complete wins):** IF onboarding is already complete, THEN a
   later onboarding submission SHALL return the stable identifiers without
-  overwriting the complete merchant or venue.
+  overwriting the complete merchant or venue, while conflict-safely restoring
+  a missing durable onboarding event or audit row on historical state.
 - **OC-5 (concurrency):** WHEN two valid onboarding calls for the same owner
   overlap, THE database SHALL serialize them behind a durable unique owner
   invariant and return the same merchant and location identifiers with one
@@ -187,7 +206,9 @@ address-incomplete location as completed onboarding.
 - **OC-6 (authorization):** IF `auth.uid()` is absent, THEN the new RPC SHALL
   fail before reading or writing tenant state; no caller-controlled owner,
   merchant, location, email, slug, primary flag, country, display address, or
-  persistence timestamp SHALL cross its interface.
+  persistence timestamp SHALL cross its interface. Authenticated outsiders
+  SHALL neither read nor mutate the owner's merchant, venue, product-event,
+  or audit state through the underlying RLS tables.
 - **OC-7 (completion):** WHILE a location lacks its required canonical address
   fields or required coordinates, THE onboarding status SHALL remain
   `missing_location`; only complete state may continue to the launch hub.
@@ -220,10 +241,12 @@ address-incomplete location as completed onboarding.
    and the lock-sharing legacy adapter without altering launch or reward rules.
 3. Prove the database directly with disposable auth users: constraint-induced
    rollback at the final audit insert, valid create with every resolved venue
-   column, partial completion, complete-row no-op, new/new and legacy/new
-   concurrency, anonymous and legacy mismatched-owner denial, exact ACLs,
-   fixed search paths, FORCE RLS, unique indexes, slug-collision fallback,
-   migration replay, and zero-row cleanup readback.
+   column, partial completion, complete-row no-overwrite plus missing-ledger
+   repair, owner-visible and outsider-hidden RLS rows/mutations, new/new and
+   legacy/new concurrency, anonymous and legacy mismatched-owner denial, exact
+   ACLs, fixed search paths, FORCE RLS, exact valid/ready unique indexes,
+   malformed same-name index rejection, slug-collision fallback, migration
+   replay, and zero-row cleanup readback.
 4. Refactor venue resolution so onboarding obtains a merchant-independent
    canonical persistence payload before the RPC while the launch venue editor
    retains its existing authenticated/RLS write contract.

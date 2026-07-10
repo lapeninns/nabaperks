@@ -281,6 +281,7 @@ export async function createMerchantOnboardingLiveDbFixture(
 
     const businessName = `Live Merchant ${runId.slice(0, 8)}`
     const locationName = `Live Venue ${runId.slice(0, 8)}`
+    const addressProviderId = `test-place-${runId}`
     const fixture: MerchantOnboardingLiveDbFixture = {
       email,
       name,
@@ -292,15 +293,17 @@ export async function createMerchantOnboardingLiveDbFixture(
         addressLine1: "15 Market Street",
         addressLine2: null,
         addressPostcode: "CB2 3PA",
-        addressProvider: null,
-        addressProviderId: null,
-        addressSource: "manual_entry",
+        addressProvider: "google_places",
+        addressProviderId,
+        addressSource: "provider_lookup",
         businessName,
         businessSlug: `${slugify(businessName)}-${userId.slice(0, 8)}`,
         businessType: "pub",
         geofencePinSource: "geocoded",
         geofenceRadiusMeters: 150,
+        latitude: 52.2053,
         locationName,
+        longitude: 0.1218,
         phone: "+44 7700 900123",
         requireGeofence: false,
         softGeofenceTriggerStamp: 3,

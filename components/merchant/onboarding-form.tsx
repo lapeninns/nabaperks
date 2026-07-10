@@ -57,6 +57,25 @@ function onboardingDraftStorageKey(userId: string) {
 type OnboardingDraft = NonNullable<OnboardingActionState["fields"]>
 type ClientErrors = NonNullable<OnboardingActionState["errors"]>
 
+export function mergeOnboardingDraft(
+  serverFields: OnboardingDraft,
+  draftFields: Partial<OnboardingDraft>
+): OnboardingDraft {
+  const value = (key: keyof OnboardingDraft) =>
+    hasText(serverFields[key]) ? serverFields[key] : draftFields[key]
+
+  return {
+    businessName: value("businessName"),
+    businessType: value("businessType"),
+    locationName: value("locationName"),
+    phone: value("phone"),
+    addressLine1: value("addressLine1"),
+    addressLine2: value("addressLine2"),
+    addressCity: value("addressCity"),
+    addressPostcode: value("addressPostcode"),
+  }
+}
+
 export function OnboardingForm({
   className,
   initialFields = {},
@@ -82,7 +101,8 @@ export function OnboardingForm({
   // errors, and focus the first invalid field. Format/geocode checks still run
   // server-side, and server errors take precedence once they return.
   const [clientErrors, setClientErrors] = useState<ClientErrors>({})
-  const errors = state.errors ?? clientErrors
+  const [validationAttempt, setValidationAttempt] = useState(0)
+  const errors = { ...clientErrors, ...(state.errors ?? {}) }
   const [businessName, setBusinessName] = useState(
     state.fields?.businessName ?? initialFields.businessName ?? ""
   )
@@ -104,70 +124,58 @@ export function OnboardingForm({
   }>({ latitude: "", longitude: "" })
 
   useEffect(() => {
-    if (!state.fields) return
+    if (!state.errors) return
 
-    const fields = state.fields
     const timeoutId = window.setTimeout(() => {
-      if (fields.businessName !== undefined) {
-        setBusinessName(fields.businessName)
-      }
-
-      if (fields.locationName !== undefined) {
-        setLocationName(fields.locationName)
-      }
-
-      setAddress({
-        addressLine1: fields.addressLine1 ?? "",
-        addressLine2: fields.addressLine2 ?? "",
-        addressCity: fields.addressCity ?? "",
-        addressPostcode: fields.addressPostcode ?? "",
-      })
-
       // Move focus to the first invalid field after a failed submit so SR and
       // keyboard users land on the error instead of staying on the button.
       const firstInvalid = formRef.current?.querySelector<HTMLElement>(
         '[aria-invalid="true"]'
       )
-      firstInvalid?.focus()
+      const focusTarget =
+        firstInvalid ??
+        formRef.current?.querySelector<HTMLElement>("#onboarding-form-error")
+      focusTarget?.focus()
     }, 0)
 
     return () => window.clearTimeout(timeoutId)
-  }, [state.fields])
+  }, [state.errors])
 
   useEffect(() => {
     window.localStorage.removeItem(legacyDraftStorageKey)
   }, [])
 
   useEffect(() => {
-    if (hasInitialFields) return
-
     const timeoutId = window.setTimeout(() => {
+      let draft: Partial<OnboardingDraft> = {}
+
       try {
         const savedDraft = window.localStorage.getItem(draftStorageKey)
-        const draft = savedDraft
+        draft = savedDraft
           ? (JSON.parse(savedDraft) as Partial<OnboardingDraft>)
           : {}
-        const form = formRef.current
-        if (!form || Object.values(state.fields ?? {}).some(Boolean)) return
-
-        restoreField(form, "businessName", draft.businessName)
-        if (draft.businessName) setBusinessName(draft.businessName)
-        restoreField(form, "businessType", draft.businessType)
-        restoreField(form, "phone", draft.phone)
-        if (draft.locationName) setLocationName(draft.locationName)
-        setAddress({
-          addressLine1: draft.addressLine1 ?? "",
-          addressLine2: draft.addressLine2 ?? "",
-          addressCity: draft.addressCity ?? "",
-          addressPostcode: draft.addressPostcode ?? "",
-        })
       } catch {
         window.localStorage.removeItem(draftStorageKey)
       }
+
+      const form = formRef.current
+      if (!form) return
+
+      const merged = mergeOnboardingDraft(state.fields ?? initialFields, draft)
+      setBusinessName(merged.businessName ?? "")
+      setLocationName(merged.locationName ?? "")
+      restoreField(form, "businessType", merged.businessType)
+      restoreField(form, "phone", merged.phone)
+      setAddress({
+        addressLine1: merged.addressLine1 ?? "",
+        addressLine2: merged.addressLine2 ?? "",
+        addressCity: merged.addressCity ?? "",
+        addressPostcode: merged.addressPostcode ?? "",
+      })
     }, 0)
 
     return () => window.clearTimeout(timeoutId)
-  }, [draftStorageKey, hasInitialFields, state.fields])
+  }, [draftStorageKey, initialFields, state.fields])
 
   function updateDraft(partial: Partial<OnboardingDraft>) {
     try {
@@ -247,6 +255,7 @@ export function OnboardingForm({
         if (Object.keys(nextErrors).length) {
           event.preventDefault()
           setClientErrors(nextErrors)
+          setValidationAttempt((attempt) => attempt + 1)
           const firstInvalid = [
             "businessName",
             "businessType",
@@ -262,6 +271,11 @@ export function OnboardingForm({
       }}
       className={cn("surface-card grid gap-4 p-6", className)}
     >
+      {validationAttempt > 0 && Object.keys(clientErrors).length > 0 ? (
+        <p key={validationAttempt} role="alert" className="sr-only">
+          Check the highlighted fields. The first problem is focused below.
+        </p>
+      ) : null}
       {/* Part 1 — the business profile: the operator's business behind the
           loyalty card, not a single venue (more venues can be added later). The
           page heading above already frames this whole card as "Merchant setup",
@@ -388,4 +402,8 @@ function restoreField(
   }
 
   field.value = value
+}
+
+function hasText(value: string | undefined) {
+  return typeof value === "string" && value.trim().length > 0
 }

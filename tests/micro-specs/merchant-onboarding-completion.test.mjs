@@ -19,7 +19,7 @@ test("Given a merchant has only a partial location row When onboarding status is
   assert.match(onboarding, /type MerchantOnboardingLocation = \{/)
   assert.match(
     onboarding,
-    /merchant_locations\(name, address, address_line_1, address_city, address_postcode, latitude, longitude, require_geofence\)/
+    /merchant_locations\(name, address, address_line_1, address_line_2, address_city, address_postcode, latitude, longitude, require_geofence\)/
   )
   assert.match(onboarding, /referencedTable: "merchant_locations"/)
   assert.match(
@@ -28,8 +28,24 @@ test("Given a merchant has only a partial location row When onboarding status is
   )
   assert.match(onboarding, /\.maybeSingle\(\)/)
   assert.match(onboarding, /locationName: location\?\.name \?\? undefined/)
+  assert.match(
+    onboarding,
+    /addressLine1:\s*location\?\.address_line_1 \?\? location\?\.address \?\? undefined/
+  )
+  assert.match(
+    onboarding,
+    /addressLine2: location\?\.address_line_2 \?\? undefined/
+  )
   assert.match(onboarding, /isCompleteOnboardingLocation\(location\)/)
   assert.match(onboarding, /hasCompleteAddress\(location\)/)
+  assert.doesNotMatch(
+    onboarding,
+    /if \(hasText\(location\.address\)\) return true/
+  )
+  assert.match(
+    onboarding,
+    /hasText\(location\.address_line_1\)[\s\S]+hasText\(location\.address_city\)[\s\S]+hasText\(location\.address_postcode\)/
+  )
   assert.match(
     onboarding,
     /return location\.latitude !== null && location\.longitude !== null/
