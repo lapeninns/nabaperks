@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-referral-code-controls",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-10T19:03:25.381Z",
+      "sha": "b5d16c955d4543d0b7878e8305e44a08c83451fe",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}
