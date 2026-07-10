@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
 
+import { expectNoAxeViolations } from "./helpers/axe"
 import { dismissPwaInstall, HARNESS_ROUTES } from "./helpers/harness"
 import {
   assertMerchantOnboardingBrowserSession,
@@ -19,6 +20,37 @@ const DRAFT_KEY = "nabaperks:onboarding-draft:usr_harness_onboarding"
 export function defineMerchantOnboardingContinuityTests() {
   test.beforeEach(async ({ page }) => {
     await dismissPwaInstall(page)
+  })
+
+  test("mobile orientation precedes the first field while the full roadmap remains available @MS-merchant-ux-audit-closure @a11y", async ({
+    page,
+  }, testInfo) => {
+    await page.goto(HARNESS_ROUTES.onboarding)
+
+    const summary = page.locator('[data-onboarding-orientation="summary"]')
+    const firstField = page.locator('input[name="businessName"]')
+    const roadmap = page.getByRole("heading", {
+      name: "From sign-up to your first stamp",
+    })
+
+    if (testInfo.project.name === "mobile-safari") {
+      await expect(summary).toBeVisible()
+      const [summaryBox, firstFieldBox] = await Promise.all([
+        summary.boundingBox(),
+        firstField.boundingBox(),
+      ])
+      expect(summaryBox).not.toBeNull()
+      expect(firstFieldBox).not.toBeNull()
+      expect(summaryBox!.y + summaryBox!.height).toBeLessThanOrEqual(
+        firstFieldBox!.y
+      )
+    } else {
+      await expect(summary).toBeHidden()
+    }
+
+    await expect(roadmap).toBeVisible()
+    await expectNoAxeViolations(page, "merchant onboarding orientation")
+    await expectNoHorizontalOverflow(page)
   })
 
   test("server fields stay authoritative while a partial local draft restores the missing address", async ({
@@ -232,6 +264,13 @@ export function defineMerchantOnboardingContinuityTests() {
       }
     })
   })
+}
+
+async function expectNoHorizontalOverflow(page: Page) {
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth
+  )
+  expect(overflow).toBeLessThanOrEqual(1)
 }
 
 async function setProviderVenueProvenance(

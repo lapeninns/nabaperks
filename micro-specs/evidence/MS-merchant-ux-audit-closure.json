@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-merchant-ux-audit-closure",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-10T09:54:48.134Z",
+      "sha": "fb57e93f80637721b0cecfb618cd40de8130a43e",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}

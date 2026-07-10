@@ -36,6 +36,26 @@ export function defineMerchantLaunchFollowThroughTests() {
     )
   })
 
+  test("zero-member dashboard replaces KPI zeros with an encouraging QR next action @MS-merchant-ux-audit-closure @a11y", async ({
+    page,
+  }) => {
+    await page.goto(`${HARNESS_ROUTES.dashboard}?members=empty`)
+
+    await expect(
+      page.getByRole("heading", {
+        name: "No members yet — that's expected",
+      })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "How the week is going" })
+    ).toHaveCount(0)
+    await expect(
+      page.getByRole("button", { name: "Show full screen" })
+    ).toBeVisible()
+    await expectNoAxeViolations(page, "zero-member merchant dashboard")
+    await expectNoHorizontalOverflow(page)
+  })
+
   test("billing-gated dashboard sends the merchant to billing", async ({
     page,
   }) => {

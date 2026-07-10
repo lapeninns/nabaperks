@@ -22,11 +22,30 @@ const routes = [
   },
   { name: "harness-dashboard", path: "/dev/app-harness/dashboard" },
   { name: "harness-qr", path: "/dev/app-harness/qr" },
+  {
+    name: "harness-launch-billing",
+    path: "/dev/app-harness/launch?tab=billing&state=billing",
+  },
+  { name: "harness-onboarding", path: "/dev/app-harness/onboarding" },
+  {
+    name: "harness-dashboard-empty",
+    path: "/dev/app-harness/dashboard?members=empty",
+  },
 ] as const
+
+const auditClosureRoutes = new Set([
+  "harness-launch-billing",
+  "harness-onboarding",
+  "harness-dashboard-empty",
+])
 
 test.describe("visual regression @visual", () => {
   for (const route of routes) {
-    test(`Given ${route.name} When it renders Then the viewport matches the approved Wet Ink baseline`, async ({
+    const microSpecTag = auditClosureRoutes.has(route.name)
+      ? " @MS-merchant-ux-audit-closure"
+      : ""
+
+    test(`Given ${route.name} When it renders Then the viewport matches the approved Wet Ink baseline${microSpecTag}`, async ({
       page,
     }) => {
       const isAuthRoute = route.name.startsWith("auth-")

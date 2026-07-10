@@ -8,17 +8,39 @@ test.describe("merchant billing recovery @MS-billing-checkout-recovery @MS-analy
     await dismissPwaInstall(page)
   })
 
-  test("setup billing keeps the exact trial and price contract usable", async ({
+  test("setup billing keeps the exact plan, reassurance, and built-asset contract usable @MS-merchant-ux-audit-closure @a11y", async ({
     page,
   }) => {
     await page.goto(`${HARNESS_ROUTES.launch}?tab=billing&state=billing`)
 
+    const builtAsset = page.getByRole("region", {
+      name: "Built card and QR preview",
+    })
+    await expect(builtAsset).toBeVisible()
+    await expect(builtAsset.getByText("Mystery Visit Card")).toBeVisible()
+    await expect(builtAsset.getByText("Built · billing needed")).toBeVisible()
+    await expect(
+      builtAsset.getByRole("img", { name: "QR code for Old Crown Girton" })
+    ).toBeVisible()
     await expect(
       page.getByRole("heading", { name: "Activate your venue" })
     ).toBeVisible()
+    await expect(page.getByText("Growth Plan", { exact: true })).toBeVisible()
     await expect(page.getByText("30 days", { exact: true })).toBeVisible()
     await expect(page.getByText("£0", { exact: true })).toBeVisible()
     await expect(page.getByText("£49 a month", { exact: true })).toBeVisible()
+    await expect(
+      page.getByText(
+        "Secure checkout via Stripe. Cancel anytime from your billing page."
+      )
+    ).toBeVisible()
+    await expect(page.getByText("First-Regular Guarantee:")).toBeVisible()
+    await expect(
+      page.getByText(
+        "If your live card hasn't brought back a first regular by the end of your 30-day pilot, the pilot stays free until it does."
+      )
+    ).toBeVisible()
+    await expectNoAxeViolations(page, "setup billing activation continuity")
 
     for (const button of [
       page.getByRole("button", { name: /Proceed to billing.*£49\/month/i }),
