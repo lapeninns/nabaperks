@@ -3,55 +3,6 @@
   "spec_id": "MS-auth-recovery-ux",
   "runs": [
     {
-      "timestamp": "2026-07-10T05:03:55.490Z",
-      "git_sha": "5dc4e5d05d54bfafdcea024a0fdf564d01e5ad0d",
-      "git_branch": "codex/merchant-ux-audit-remediation",
-      "dirty": false,
-      "gates": [
-        {
-          "command": "pnpm lint",
-          "exit_code": 0,
-          "duration_ms": 6232
-        },
-        {
-          "command": "pnpm typecheck",
-          "exit_code": 0,
-          "duration_ms": 1031
-        },
-        {
-          "command": "pnpm build",
-          "exit_code": 0,
-          "duration_ms": 9757
-        },
-        {
-          "command": "pnpm test",
-          "exit_code": 0,
-          "duration_ms": 8209
-        },
-        {
-          "command": "pnpm test:coverage",
-          "exit_code": 0,
-          "duration_ms": 962
-        },
-        {
-          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-auth-recovery-ux\"",
-          "exit_code": 0,
-          "duration_ms": 18883
-        },
-        {
-          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
-          "exit_code": 0,
-          "duration_ms": 178709
-        },
-        {
-          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
-          "exit_code": 0,
-          "duration_ms": 48984
-        }
-      ],
-      "all_passed": true
-    },
-    {
       "timestamp": "2026-07-10T05:57:44.268Z",
       "git_sha": "6d6c3bc40f8ce9f44489f76d5e3ca3553162aa78",
       "git_branch": "codex/merchant-ux-audit-remediation",
@@ -428,6 +379,55 @@
           "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-auth-recovery-ux\"",
           "exit_code": 0,
           "duration_ms": 21367
+        }
+      ],
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-10T12:55:54.015Z",
+      "git_sha": "25b8cca0f4fb04cf1aa303a2e56e96b3945c02d4",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7860
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1164
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11019
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10972
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1298
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-auth-recovery-ux\"",
+          "exit_code": 0,
+          "duration_ms": 22089
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 196030
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 59297
         }
       ],
       "all_passed": true

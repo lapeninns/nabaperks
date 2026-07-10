@@ -84,6 +84,65 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-10T12:55:54.015Z",
+      "git_sha": "25b8cca0f4fb04cf1aa303a2e56e96b3945c02d4",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7860
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1164
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11019
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10972
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1298
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 59297
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 2017
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 4313
+        },
+        {
+          "command": "pnpm db:seed",
+          "exit_code": 0,
+          "duration_ms": 233
+        },
+        {
+          "command": "pnpm test:a11y",
+          "exit_code": 0,
+          "duration_ms": 306537
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
