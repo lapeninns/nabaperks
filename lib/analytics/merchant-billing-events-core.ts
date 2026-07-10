@@ -13,6 +13,16 @@ export type MerchantBillingMilestone = {
 
 export type MerchantBillingScheduler = (input: MerchantBillingMilestone) => void
 
+export type MerchantBillingLaunchObservation = {
+  merchantId: string
+  activeTab: string
+  needsBilling: boolean
+}
+
+export type MerchantBillingCheckoutPreparationResult =
+  | { status: "redirect"; url: string }
+  | { status: "error" }
+
 function scheduleBillingMilestone(
   input: MerchantBillingMilestone,
   schedule: MerchantBillingScheduler
@@ -39,6 +49,16 @@ export function scheduleMerchantBillingReachedWith(
   )
 }
 
+/** Observe only the authoritative launch state that represents billing reach. */
+export function scheduleMerchantBillingReachedForLaunchWith(
+  input: MerchantBillingLaunchObservation,
+  schedule: MerchantBillingScheduler
+): void {
+  if (input.activeTab !== "billing" || !input.needsBilling) return
+
+  scheduleMerchantBillingReachedWith(input.merchantId, schedule)
+}
+
 export function scheduleMerchantBillingCheckoutStartedWith(
   merchantId: string,
   schedule: MerchantBillingScheduler
@@ -52,6 +72,26 @@ export function scheduleMerchantBillingCheckoutStartedWith(
     },
     schedule
   )
+}
+
+/**
+ * Wrap the real Checkout preparation seam. Only a usable redirect is a
+ * checkout-started milestone; the exact product result always passes through.
+ */
+export async function observeMerchantBillingCheckoutPreparationWith<
+  Result extends MerchantBillingCheckoutPreparationResult,
+>(
+  merchantId: string,
+  prepare: () => Promise<Result>,
+  schedule: MerchantBillingScheduler
+): Promise<Result> {
+  const result = await prepare()
+
+  if (result.status === "redirect" && result.url.length > 0) {
+    scheduleMerchantBillingCheckoutStartedWith(merchantId, schedule)
+  }
+
+  return result
 }
 
 export function scheduleMerchantBillingCheckoutReturnedWith(

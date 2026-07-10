@@ -84,46 +84,54 @@ test(
 )
 
 test(
-  "launch reach is scheduled only after the authoritative model resolves the billing gate",
+  "launch reach delegates both authoritative facts to the executable seam",
   requiresTelemetry,
   () => {
     const launchPage = readProjectFile("app", "app", "launch", "page.tsx")
     const modelIndex = launchPage.indexOf("await getLaunchPageModel")
     const scheduleIndex = launchPage.indexOf(
-      "scheduleMerchantBillingReached(",
+      "scheduleMerchantBillingReachedForLaunch(",
       modelIndex
     )
 
     assert.notEqual(modelIndex, -1)
     assert.ok(scheduleIndex > modelIndex)
-    assert.match(
+    assert.match(launchPage, /merchantId:\s*merchant\.id/)
+    assert.match(launchPage, /activeTab,\s*needsBilling/)
+    assert.doesNotMatch(
       launchPage,
-      /if\s*\(activeTab\s*===\s*["']billing["']\s*&&\s*needsBilling\)\s*\{[\s\S]{0,160}scheduleMerchantBillingReached\(merchant\.id\)/
+      /if\s*\(activeTab\s*===\s*["']billing["']\s*&&\s*needsBilling\)/
     )
   }
 )
 
 test(
-  "checkout start is scheduled only in the validated redirect branch",
+  "checkout preparation delegates its exact result to the executable seam after early guards",
   requiresTelemetry,
   () => {
     const actions = readProjectFile("app", "app", "billing", "actions.ts")
-    const prepareIndex = actions.indexOf("await prepareBillingCheckout")
-    const errorBranchIndex = actions.indexOf('result.status === "error"')
-    const scheduleIndex = actions.indexOf(
-      "scheduleMerchantBillingCheckoutStarted(",
-      errorBranchIndex
+    const observerIndex = actions.indexOf(
+      "observeMerchantBillingCheckoutPreparation("
+    )
+    const prepareIndex = actions.indexOf(
+      "prepareBillingCheckout",
+      observerIndex
+    )
+    const errorBranchIndex = actions.indexOf(
+      'result.status === "error"',
+      prepareIndex
     )
     const redirectIndex = actions.lastIndexOf("redirect(checkoutUrl)")
+    const authGuardIndex = actions.indexOf("if (!merchant)")
+    const intervalGuardIndex = actions.indexOf("if (!interval)")
 
+    assert.ok(observerIndex > intervalGuardIndex)
+    assert.ok(intervalGuardIndex > authGuardIndex)
     assert.notEqual(prepareIndex, -1)
     assert.ok(errorBranchIndex > prepareIndex)
-    assert.ok(scheduleIndex > errorBranchIndex)
-    assert.ok(redirectIndex > scheduleIndex)
-    assert.match(
-      actions,
-      /scheduleMerchantBillingCheckoutStarted\(merchant\.id\)/
-    )
+    assert.ok(redirectIndex > errorBranchIndex)
+    assert.match(actions, /merchant\.id,\s*async\s*\(\)\s*=>/)
+    assert.doesNotMatch(actions, /scheduleMerchantBillingCheckoutStarted\(/)
   }
 )
 

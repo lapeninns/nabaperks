@@ -2,8 +2,10 @@ import assert from "node:assert/strict"
 import test from "node:test"
 
 import {
+  observeMerchantBillingCheckoutPreparationWith,
   scheduleMerchantBillingCheckoutReturnedWith,
   scheduleMerchantBillingCheckoutStartedWith,
+  scheduleMerchantBillingReachedForLaunchWith,
   scheduleMerchantBillingReachedWith,
 } from "@/lib/analytics/merchant-billing-events-core"
 import {
@@ -169,6 +171,113 @@ test("billing milestone adapters emit only fixed payloads and fail open", () => 
       })
     )
   }
+})
+
+test("launch billing reach observes only the exact authoritative gate and fails open", () => {
+  const events = []
+  const schedule = (event) => events.push(event)
+
+  for (const launch of [
+    { activeTab: "card", needsBilling: true },
+    { activeTab: "billing", needsBilling: false },
+    { activeTab: "qr", needsBilling: false },
+  ]) {
+    scheduleMerchantBillingReachedForLaunchWith(
+      { merchantId: merchant.id, ...launch },
+      schedule
+    )
+  }
+  assert.deepEqual(events, [])
+
+  scheduleMerchantBillingReachedForLaunchWith(
+    { merchantId: merchant.id, activeTab: "billing", needsBilling: true },
+    schedule
+  )
+  assert.deepEqual(events, [
+    {
+      merchantId: merchant.id,
+      eventName: "merchant_billing_reached",
+      idempotencyKey: "first-entry",
+      source: "merchant_billing",
+    },
+  ])
+
+  assert.doesNotThrow(() =>
+    scheduleMerchantBillingReachedForLaunchWith(
+      { merchantId: merchant.id, activeTab: "billing", needsBilling: true },
+      () => {
+        throw new Error("analytics unavailable")
+      }
+    )
+  )
+})
+
+test("Checkout preparation observation preserves redirect, error, and throw outcomes", async () => {
+  const events = []
+  const schedule = (event) => events.push(event)
+  const errorResult = { status: "error", message: "safe retry" }
+
+  const observedError = await observeMerchantBillingCheckoutPreparationWith(
+    merchant.id,
+    async () => errorResult,
+    schedule
+  )
+  assert.equal(observedError, errorResult)
+  assert.deepEqual(events, [])
+
+  const invalidRedirect = { status: "redirect", url: "" }
+  assert.equal(
+    await observeMerchantBillingCheckoutPreparationWith(
+      merchant.id,
+      async () => invalidRedirect,
+      schedule
+    ),
+    invalidRedirect
+  )
+  assert.deepEqual(events, [])
+
+  const redirectResult = {
+    status: "redirect",
+    url: "https://checkout.stripe.test/cs_owned",
+  }
+  const observedRedirect = await observeMerchantBillingCheckoutPreparationWith(
+    merchant.id,
+    async () => redirectResult,
+    schedule
+  )
+  assert.equal(observedRedirect, redirectResult)
+  assert.deepEqual(events, [
+    {
+      merchantId: merchant.id,
+      eventName: "merchant_billing_checkout_started",
+      idempotencyKey: "first-session-ready",
+      source: "stripe_checkout",
+    },
+  ])
+
+  assert.equal(
+    await observeMerchantBillingCheckoutPreparationWith(
+      merchant.id,
+      async () => redirectResult,
+      () => {
+        throw new Error("analytics unavailable")
+      }
+    ),
+    redirectResult
+  )
+
+  const preparationError = new Error("preparation failed")
+  await assert.rejects(
+    observeMerchantBillingCheckoutPreparationWith(
+      merchant.id,
+      async () => {
+        throw preparationError
+      },
+      schedule
+    ),
+    (error) => error === preparationError
+  )
+  assert.equal(events.length, 1)
 })
 
 test("an existing open attempt resumes its exact Checkout Session without writes", async () => {

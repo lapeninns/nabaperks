@@ -4,7 +4,7 @@ import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
 import type { BillingCheckoutActionState } from "@/components/merchant/account/billing-checkout-form"
-import { scheduleMerchantBillingCheckoutStarted } from "@/lib/analytics/merchant-billing-events"
+import { observeMerchantBillingCheckoutPreparation } from "@/lib/analytics/merchant-billing-events"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { getServerEnv } from "@/lib/env/server"
 import { resolveBillingAppOrigin } from "@/lib/merchant/billing-checkout-core"
@@ -55,28 +55,33 @@ export async function startCheckoutAction(
   try {
     const env = getServerEnv()
     const deps = await createBillingCheckoutDependencies()
-    const result = await prepareBillingCheckout(
-      {
-        merchant: {
-          id: merchant.id,
-        },
-        interval,
-        returnBase,
-        environment:
-          process.env.NODE_ENV === "production" ? "production" : "development",
-        configuredOrigin: env.NEXT_PUBLIC_APP_URL,
-        requestOrigin: await requestOrigin(),
-        monthlyPriceId: env.STRIPE_GROWTH_PRICE_ID,
-        annualPriceId: env.STRIPE_GROWTH_ANNUAL_PRICE_ID,
-      },
-      deps
+    const result = await observeMerchantBillingCheckoutPreparation(
+      merchant.id,
+      async () =>
+        prepareBillingCheckout(
+          {
+            merchant: {
+              id: merchant.id,
+            },
+            interval,
+            returnBase,
+            environment:
+              process.env.NODE_ENV === "production"
+                ? "production"
+                : "development",
+            configuredOrigin: env.NEXT_PUBLIC_APP_URL,
+            requestOrigin: await requestOrigin(),
+            monthlyPriceId: env.STRIPE_GROWTH_PRICE_ID,
+            annualPriceId: env.STRIPE_GROWTH_ANNUAL_PRICE_ID,
+          },
+          deps
+        )
     )
 
     if (result.status === "error") {
       return result
     }
     checkoutUrl = result.url
-    scheduleMerchantBillingCheckoutStarted(merchant.id)
   } catch (error) {
     console.error("[billing] checkout start failed", {
       merchantId: merchant.id,
