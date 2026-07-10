@@ -125,8 +125,10 @@ if (options.allowDirty && !options.note) refuse("--allow-dirty requires --note \
 // Blast-radius attribution for the branch diff (gates-running transitions).
 if (runsGates) {
   const changed = branchChangedFiles(root)
-  const activeOthers = specs.filter(
-    (entry) => entry.metadata.status === "active" && entry.metadata.spec_id !== options.specId
+  const attributableOthers = specs.filter(
+    (entry) =>
+      ["active", "implemented", "verified"].includes(entry.metadata.status) &&
+      entry.metadata.spec_id !== options.specId
   )
   const outside = []
   const otherSpec = []
@@ -135,7 +137,7 @@ if (runsGates) {
       matchesPattern(file, pattern)
     )
     if (mine) continue
-    const owner = activeOthers.find((entry) =>
+    const owner = attributableOthers.find((entry) =>
       (entry.metadata.allowed_blast_radius ?? []).some((pattern) => matchesPattern(file, pattern))
     )
     if (owner) otherSpec.push({ file, owner: owner.metadata.spec_id })
