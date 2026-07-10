@@ -3,6 +3,7 @@ import { test } from "node:test"
 
 import {
   buildExternalAnalyticsProperties,
+  buildPostHogCapturePayload,
   pseudonymizeAnalyticsId,
   resolvePostHogConfig,
 } from "@/lib/analytics/privacy-core"
@@ -26,7 +27,7 @@ const NOW_MS = Date.parse("2026-07-10T12:00:00.000Z")
 const TWO_HOURS_MS = 2 * 60 * 60 * 1_000
 
 const COMPLETE_POSTHOG_ENV = {
-  POSTHOG_PROCESSING_MODE: "pseudonymous",
+  ANALYTICS_EXTERNAL_PROCESSING_MODE: "pseudonymous",
   POSTHOG_PROJECT_KEY: "phc_unit_test",
   POSTHOG_HOST: "https://eu.i.posthog.com",
   ANALYTICS_PSEUDONYM_SECRET: PSEUDONYM_SECRET,
@@ -37,15 +38,15 @@ test("PostHog stays disabled unless pseudonymous mode and every server-only sett
     {},
     {
       ...COMPLETE_POSTHOG_ENV,
-      POSTHOG_PROCESSING_MODE: undefined,
+      ANALYTICS_EXTERNAL_PROCESSING_MODE: undefined,
     },
     {
       ...COMPLETE_POSTHOG_ENV,
-      POSTHOG_PROCESSING_MODE: "PSEUDONYMOUS",
+      ANALYTICS_EXTERNAL_PROCESSING_MODE: "PSEUDONYMOUS",
     },
     {
       ...COMPLETE_POSTHOG_ENV,
-      POSTHOG_PROCESSING_MODE: " pseudonymous",
+      ANALYTICS_EXTERNAL_PROCESSING_MODE: " pseudonymous",
     },
     {
       ...COMPLETE_POSTHOG_ENV,
@@ -60,7 +61,27 @@ test("PostHog stays disabled unless pseudonymous mode and every server-only sett
       ANALYTICS_PSEUDONYM_SECRET: undefined,
     },
     {
-      POSTHOG_PROCESSING_MODE: "pseudonymous",
+      ...COMPLETE_POSTHOG_ENV,
+      POSTHOG_PROJECT_KEY: "project_without_phc_prefix",
+    },
+    {
+      ...COMPLETE_POSTHOG_ENV,
+      ANALYTICS_PSEUDONYM_SECRET: "only-sixteen-ish",
+    },
+    {
+      ...COMPLETE_POSTHOG_ENV,
+      POSTHOG_HOST: "http://analytics.example.com",
+    },
+    {
+      ...COMPLETE_POSTHOG_ENV,
+      POSTHOG_HOST: "https://eu.i.posthog.com/capture",
+    },
+    {
+      ...COMPLETE_POSTHOG_ENV,
+      POSTHOG_HOST: "https://user:pass@eu.i.posthog.com",
+    },
+    {
+      ANALYTICS_EXTERNAL_PROCESSING_MODE: "pseudonymous",
       NEXT_PUBLIC_POSTHOG_KEY: "phc_legacy_public_key",
       NEXT_PUBLIC_POSTHOG_HOST: "https://eu.i.posthog.com",
       ANALYTICS_PSEUDONYM_SECRET: PSEUDONYM_SECRET,
@@ -148,6 +169,9 @@ test("outbound analytics rejects nested personal data, identifiers, URLs, tokens
     ["identifier-shaped unknown key", { merchantId: RAW_MERCHANT_ID }],
     ["array", { source: ["homepage"] }],
     ["unknown key", { campaign_name: "summer_launch" }],
+    ["numeric coordinate in categorical key", { source: 51.5074 }],
+    ["unapproved slug-shaped value", { source: "john_smith" }],
+    ["inherited object key", { constructor: "homepage" }],
   ]
 
   for (const [name, properties] of unsafeCases) {
@@ -214,5 +238,52 @@ test("first-party event UUIDs are deterministic per token and semantic milestone
     marketingViewOne,
     signupClick,
     "different semantic milestones cannot collapse into one event"
+  )
+})
+
+test("external capture payload contains only a pseudonym and profileless allowlisted properties", () => {
+  const config = resolvePostHogConfig(COMPLETE_POSTHOG_ENV)
+  assert.ok(config)
+
+  const payload = buildPostHogCapturePayload(
+    {
+      eventId: "c692c419-ae48-50fd-ae79-ccfbbed2f532",
+      eventName: "merchant_signup_started",
+      identityDomain: "merchant",
+      identityValue: RAW_MERCHANT_ID,
+      properties: { actor_type: "merchant", source: "homepage" },
+    },
+    config
+  )
+  assert.ok(payload)
+  assert.doesNotMatch(JSON.stringify(payload), new RegExp(RAW_MERCHANT_ID, "i"))
+  assert.doesNotMatch(
+    JSON.stringify(payload),
+    /merchant_id|customer_id|qr_code_id/
+  )
+  assert.match(payload.distinct_id, /^ana_v1_/)
+  assert.deepEqual(payload.properties, {
+    actor_type: "merchant",
+    source: "homepage",
+    $insert_id: pseudonymizeAnalyticsId(
+      "event",
+      "c692c419-ae48-50fd-ae79-ccfbbed2f532",
+      PSEUDONYM_SECRET
+    ),
+    $process_person_profile: false,
+  })
+
+  assert.equal(
+    buildPostHogCapturePayload(
+      {
+        eventName: "merchant_signup_started",
+        identityDomain: "merchant",
+        identityValue: RAW_MERCHANT_ID,
+        properties: { source: { email: "landlord@example.com" } },
+      },
+      config
+    ),
+    null,
+    "unsafe nested metadata suppresses the entire external event"
   )
 })

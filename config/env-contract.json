@@ -31,17 +31,31 @@
     "optional": true
   },
   {
-    "name": "NEXT_PUBLIC_POSTHOG_KEY",
-    "visibility": "public",
+    "name": "ANALYTICS_EXTERNAL_PROCESSING_MODE",
+    "visibility": "server",
     "kind": "string",
-    "description": "Optional PostHog project key for product analytics capture.",
+    "description": "Optional external analytics mode. PostHog processing is disabled unless this is exactly pseudonymous.",
     "optional": true
   },
   {
-    "name": "NEXT_PUBLIC_POSTHOG_HOST",
-    "visibility": "public",
+    "name": "POSTHOG_PROJECT_KEY",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Optional server-only PostHog project key used only when pseudonymous external processing is enabled.",
+    "optional": true
+  },
+  {
+    "name": "POSTHOG_HOST",
+    "visibility": "server",
     "kind": "url",
-    "description": "Optional PostHog host, for example https://app.posthog.com or a regional endpoint.",
+    "description": "Optional server-only PostHog ingestion host used only when pseudonymous external processing is enabled.",
+    "optional": true
+  },
+  {
+    "name": "ANALYTICS_PSEUDONYM_SECRET",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Optional dedicated high-entropy HMAC secret for server-side external analytics pseudonyms.",
     "optional": true
   },
   {

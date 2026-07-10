@@ -1,5 +1,12 @@
 import assert from "node:assert/strict"
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { spawnSync } from "node:child_process"
+import {
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import test from "node:test"
@@ -26,6 +33,8 @@ const supabaseMigrationScript = readFileSync(
   "utf8"
 )
 const envCheckScript = readFileSync("scripts/check-env.mjs", "utf8")
+const envKeysScript = readFileSync("scripts/env-keys.mjs", "utf8")
+const envContract = JSON.parse(readFileSync("config/env-contract.json", "utf8"))
 const remediationLog = readFileSync(
   "docs/architecture-flows/11-remediation-log.md",
   "utf8"
@@ -50,7 +59,10 @@ test("provider readiness smoke remains read-only by default", () => {
   assert.match(smokeScript, /read-only smoke did not replay Stripe events/)
   assert.match(smokeScript, /read-only smoke did not send a test OTP/)
   assert.match(smokeScript, /read-only smoke did not send a test email/)
-  assert.match(smokeScript, /read-only smoke did not deliver a Web Push message/)
+  assert.match(
+    smokeScript,
+    /read-only smoke did not deliver a Web Push message/
+  )
   assert.doesNotMatch(smokeScript, /method:\s*["']POST["']/)
   assert.doesNotMatch(smokeScript, /\/Messages\.json/)
   assert.doesNotMatch(smokeScript, /\/capture\//)
@@ -66,6 +78,7 @@ test("provider readiness smoke covers the remaining release gates", () => {
     "vercel-cron-secret",
     "supabase-email-hook-secret",
     "web-push-vapid",
+    "posthog-config",
     "posthog-capture",
   ]) {
     assert.match(smokeScript, new RegExp(gate))
@@ -149,13 +162,11 @@ test("provider readiness keeps explicit Supabase DB URL authoritative", () => {
   assert.equal(resolvedUrl, explicitUrl)
 })
 
-test("production env check requires provider release secrets", () => {
+test("production env check requires provider release secrets without forcing optional external analytics", () => {
   assert.match(envCheckScript, /productionRequiredEnvNames/)
 
   for (const key of [
     "CRON_SECRET",
-    "NEXT_PUBLIC_POSTHOG_HOST",
-    "NEXT_PUBLIC_POSTHOG_KEY",
     "RESEND_FROM",
     "SUPABASE_SEND_EMAIL_HOOK_SECRET",
     "WEB_PUSH_VAPID_PRIVATE_KEY",
@@ -165,6 +176,140 @@ test("production env check requires provider release secrets", () => {
   ]) {
     assert.match(envCheckScript, new RegExp(`"${key}"`))
   }
+
+  const productionRequiredBlock = envCheckScript.match(
+    /const productionRequiredEnvNames = new Set\(\[([\s\S]*?)\]\)/
+  )
+  assert.ok(productionRequiredBlock)
+  assert.doesNotMatch(productionRequiredBlock[1], /POSTHOG|ANALYTICS/)
+})
+
+test("external analytics env becomes mandatory only in exact pseudonymous mode", () => {
+  for (const key of [
+    "ANALYTICS_EXTERNAL_PROCESSING_MODE",
+    "POSTHOG_PROJECT_KEY",
+    "POSTHOG_HOST",
+    "ANALYTICS_PSEUDONYM_SECRET",
+  ]) {
+    assert.match(envCheckScript, new RegExp(key))
+    assert.match(smokeScript, new RegExp(key))
+  }
+
+  assert.match(
+    envCheckScript,
+    /const pseudonymousAnalyticsMode\s*=\s*["']pseudonymous["']/
+  )
+  assert.match(
+    envCheckScript,
+    /ANALYTICS_EXTERNAL_PROCESSING_MODE\s*===\s*pseudonymousAnalyticsMode/
+  )
+  assert.match(smokeScript, /!==\s*["']pseudonymous["']/)
+  assert.match(smokeScript, /external processing is intentionally disabled/i)
+  assert.match(
+    smokeScript,
+    /server-side pseudonymous analytics config is present/i
+  )
+  assert.doesNotMatch(smokeScript, /NEXT_PUBLIC_POSTHOG/)
+})
+
+test("production env validation executes with analytics off and fails closed for incomplete pseudonymous mode", () => {
+  const projectDir = mkdtempSync(join(tmpdir(), "nabaperks-env-check-"))
+  const analyticsNames = new Set([
+    "ANALYTICS_EXTERNAL_PROCESSING_MODE",
+    "POSTHOG_PROJECT_KEY",
+    "POSTHOG_HOST",
+    "ANALYTICS_PSEUDONYM_SECRET",
+  ])
+  const baseValues = Object.fromEntries(
+    envContract
+      .filter(
+        (entry) =>
+          !analyticsNames.has(entry.name) &&
+          entry.name !== "CUSTOMER_OTP_BYPASS_MODE"
+      )
+      .map((entry) => [entry.name, validTestEnvValue(entry)])
+  )
+
+  try {
+    mkdirSync(join(projectDir, "config"), { recursive: true })
+    writeFileSync(
+      join(projectDir, "config", "env-contract.json"),
+      JSON.stringify(envContract)
+    )
+
+    const disabled = runProductionEnvCheck(projectDir, baseValues)
+    assert.equal(disabled.status, 0, disabled.stderr)
+
+    const nonExact = runProductionEnvCheck(projectDir, {
+      ...baseValues,
+      ANALYTICS_EXTERNAL_PROCESSING_MODE: '" pseudonymous"',
+    })
+    assert.equal(nonExact.status, 0, nonExact.stderr)
+
+    const incomplete = runProductionEnvCheck(projectDir, {
+      ...baseValues,
+      ANALYTICS_EXTERNAL_PROCESSING_MODE: "pseudonymous",
+    })
+    assert.equal(incomplete.status, 1)
+    assert.match(incomplete.stderr, /POSTHOG_PROJECT_KEY/)
+    assert.match(incomplete.stderr, /POSTHOG_HOST/)
+    assert.match(incomplete.stderr, /ANALYTICS_PSEUDONYM_SECRET/)
+
+    const complete = runProductionEnvCheck(projectDir, {
+      ...baseValues,
+      ANALYTICS_EXTERNAL_PROCESSING_MODE: "pseudonymous",
+      POSTHOG_PROJECT_KEY: "phc_test_project",
+      POSTHOG_HOST: "https://eu.i.posthog.com",
+      ANALYTICS_PSEUDONYM_SECRET: "test-secret-at-least-32-characters-long",
+    })
+    assert.equal(complete.status, 0, complete.stderr)
+
+    for (const invalidHost of [
+      "http://analytics.example.com",
+      "https://user:pass@eu.i.posthog.com",
+      "https://eu.i.posthog.com/capture?raw=true",
+    ]) {
+      const invalidHostResult = runProductionEnvCheck(projectDir, {
+        ...baseValues,
+        ANALYTICS_EXTERNAL_PROCESSING_MODE: "pseudonymous",
+        POSTHOG_PROJECT_KEY: "phc_test_project",
+        POSTHOG_HOST: invalidHost,
+        ANALYTICS_PSEUDONYM_SECRET: "test-secret-at-least-32-characters-long",
+      })
+      assert.equal(invalidHostResult.status, 1)
+      assert.match(invalidHostResult.stderr, /POSTHOG_HOST/)
+    }
+  } finally {
+    rmSync(projectDir, { recursive: true, force: true })
+  }
+})
+
+test("PostHog env helper writes only server-side pseudonymous settings without printing values", () => {
+  const setPostHogStart = envKeysScript.indexOf("function setPostHog()")
+  const setPostHogEnd = envKeysScript.indexOf(
+    "function pushVercelEnv()",
+    setPostHogStart
+  )
+  assert.notEqual(setPostHogStart, -1)
+  assert.notEqual(setPostHogEnd, -1)
+  const setPostHogSource = envKeysScript.slice(setPostHogStart, setPostHogEnd)
+
+  for (const key of [
+    "ANALYTICS_EXTERNAL_PROCESSING_MODE",
+    "POSTHOG_PROJECT_KEY",
+    "POSTHOG_HOST",
+    "ANALYTICS_PSEUDONYM_SECRET",
+  ]) {
+    assert.match(setPostHogSource, new RegExp(key))
+  }
+
+  assert.match(envKeysScript, /server-side pseudonymous PostHog/i)
+  assert.match(envKeysScript, /without printing secrets/i)
+  assert.doesNotMatch(envKeysScript, /NEXT_PUBLIC_POSTHOG/)
+  assert.doesNotMatch(
+    setPostHogSource,
+    /console\.(?:log|error)\([^)]*(?:postHogKey|postHogHost|pseudonymSecret)/
+  )
 })
 
 test("remediation log points release verification at the provider smoke command", () => {
@@ -172,3 +317,31 @@ test("remediation log points release verification at the provider smoke command"
   assert.match(remediationLog, /pnpm smoke:supabase:migrations/)
   assert.match(remediationLog, /pnpm env:check:production/)
 })
+
+function validTestEnvValue(entry) {
+  if (entry.kind === "url") return "https://example.com"
+  if (entry.kind === "postgres-url") {
+    return "postgres://user:password@example.com/database"
+  }
+
+  return "test-value-at-least-32-characters-long"
+}
+
+function runProductionEnvCheck(projectDir, values) {
+  writeFileSync(
+    join(projectDir, ".env"),
+    `${Object.entries(values)
+      .map(([name, value]) => `${name}=${value}`)
+      .join("\n")}\n`
+  )
+
+  return spawnSync(
+    process.execPath,
+    [join(process.cwd(), "scripts", "check-env.mjs"), "--profile=production"],
+    {
+      cwd: projectDir,
+      encoding: "utf8",
+      env: { NODE_ENV: "test", PATH: process.env.PATH ?? "" },
+    }
+  )
+}

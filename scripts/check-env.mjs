@@ -9,14 +9,18 @@ const envContract = JSON.parse(
 )
 const productionRequiredEnvNames = new Set([
   "CRON_SECRET",
-  "NEXT_PUBLIC_POSTHOG_HOST",
-  "NEXT_PUBLIC_POSTHOG_KEY",
   "RESEND_FROM",
   "SUPABASE_SEND_EMAIL_HOOK_SECRET",
   "STRIPE_GROWTH_ANNUAL_PRICE_ID",
   "WEB_PUSH_VAPID_PRIVATE_KEY",
   "WEB_PUSH_VAPID_PUBLIC_KEY",
   "WEB_PUSH_VAPID_SUBJECT",
+])
+const pseudonymousAnalyticsMode = "pseudonymous"
+const pseudonymousAnalyticsRequiredEnvNames = new Set([
+  "POSTHOG_PROJECT_KEY",
+  "POSTHOG_HOST",
+  "ANALYTICS_PSEUDONYM_SECRET",
 ])
 
 const envFiles = [
@@ -77,15 +81,20 @@ const twilioVerifyEnvNames = new Set([
   "TWILIO_ACCOUNT_SID",
   "TWILIO_VERIFY_SERVICE_SID",
 ])
+const pseudonymousAnalyticsEnabled =
+  values.ANALYTICS_EXTERNAL_PROCESSING_MODE === pseudonymousAnalyticsMode
 
 for (const entry of envContract) {
   const value = values[entry.name]?.trim()
   const requiredByProfile =
     checkProfile === "production" && productionRequiredEnvNames.has(entry.name)
+  const requiredByAnalytics =
+    pseudonymousAnalyticsEnabled &&
+    pseudonymousAnalyticsRequiredEnvNames.has(entry.name)
 
   if (!value) {
     if (
-      (!requiredByProfile && entry.optional) ||
+      (!requiredByProfile && !requiredByAnalytics && entry.optional) ||
       (customerOtpTwilioBypassed && twilioVerifyEnvNames.has(entry.name))
     ) {
       continue
@@ -112,6 +121,26 @@ for (const entry of envContract) {
     } catch {
       invalid.push(`${entry.name} must be a valid URL`)
     }
+  }
+}
+
+if (pseudonymousAnalyticsEnabled) {
+  const projectKey = values.POSTHOG_PROJECT_KEY?.trim()
+  const postHogHost = values.POSTHOG_HOST?.trim()
+  const pseudonymSecret = values.ANALYTICS_PSEUDONYM_SECRET?.trim()
+
+  if (projectKey && !projectKey.startsWith("phc_")) {
+    invalid.push("POSTHOG_PROJECT_KEY must start with phc_")
+  }
+
+  if (pseudonymSecret && pseudonymSecret.length < 32) {
+    invalid.push("ANALYTICS_PSEUDONYM_SECRET must be at least 32 characters")
+  }
+
+  if (postHogHost && !isSafePostHogHost(postHogHost)) {
+    invalid.push(
+      "POSTHOG_HOST must be an HTTPS origin, or local HTTP origin, without credentials, path, query, or fragment"
+    )
   }
 }
 
@@ -143,6 +172,25 @@ if (missing.length || invalid.length) {
 
   console.error("Copy .env.example to .env.local and fill the required values.")
   process.exit(1)
+}
+
+function isSafePostHogHost(value) {
+  try {
+    const url = new URL(value)
+    const localHttp =
+      url.protocol === "http:" &&
+      (url.hostname === "localhost" || url.hostname === "127.0.0.1")
+    return (
+      (url.protocol === "https:" || localHttp) &&
+      !url.username &&
+      !url.password &&
+      url.pathname === "/" &&
+      !url.search &&
+      !url.hash
+    )
+  } catch {
+    return false
+  }
 }
 
 console.log(

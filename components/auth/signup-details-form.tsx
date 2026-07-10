@@ -6,6 +6,10 @@ import { useActionState, useEffect, useState } from "react"
 
 import type { AuthActionState } from "@/app/(auth)/actions"
 import { signUpAction } from "@/app/(auth)/actions"
+import {
+  captureMarketingFunnelEvent,
+  useMarketingFunnelToken,
+} from "@/components/analytics/marketing-funnel-tracker"
 import { AuthField } from "@/components/auth/auth-field"
 import { PasswordRequirements } from "@/components/auth/password-requirements"
 import { SubmitButton } from "@/components/forms"
@@ -34,6 +38,7 @@ export function SignupDetailsForm({
   const [confirmPassword, setConfirmPassword] = useState("")
   const [clientErrors, setClientErrors] = useState<ClientErrors>({})
   const [showValidation, setShowValidation] = useState(false)
+  const funnelToken = useMarketingFunnelToken()
 
   const shouldShowValidation = showValidation || Boolean(state.errors)
   const errors = mergeErrors(state.errors, clientErrors)
@@ -99,6 +104,7 @@ export function SignupDetailsForm({
           }
 
           setClientErrors({})
+          void captureMarketingFunnelEvent("merchant_signup_started")
         }}
       >
         <AuthField
@@ -174,6 +180,7 @@ export function SignupDetailsForm({
           onBlur={() => setShowValidation(true)}
         />
         <input type="hidden" name="next" value={next} />
+        <input type="hidden" name="funnelToken" value={funnelToken ?? ""} />
         {errors.form ? (
           <Alert variant="destructive">
             <AlertDescription>{errors.form}</AlertDescription>

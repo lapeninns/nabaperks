@@ -3,6 +3,7 @@
 import { cookies, headers } from "next/headers"
 import { redirect } from "next/navigation"
 
+import { recordMerchantFunnelEventSafely } from "@/lib/analytics/funnel-events"
 import {
   finalizeMerchantEmailOtpAlias,
   merchantEmailOtpAliasDigitLabel,
@@ -116,7 +117,7 @@ export async function signUpAction(
     }
 
   const supabase = await createSupabaseServerClient()
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -132,6 +133,18 @@ export async function signUpAction(
         form: "Could not create the account just now. Check your details and try again.",
       },
     }
+  }
+
+  // With email-confirmation enabled Supabase deliberately returns an
+  // obfuscated success for an existing account. A real new identity carries
+  // at least one identity row; do not turn the anti-enumeration response into
+  // a false account-created milestone.
+  if (data.user?.identities && data.user.identities.length > 0) {
+    recordMerchantFunnelEventSafely({
+      actorId: data.user.id,
+      event: "merchant_account_created",
+      funnelToken: value(formData, "funnelToken") || undefined,
+    })
   }
 
   try {
@@ -164,6 +177,7 @@ export async function signupOtpAction(
   if (intent === "resend") {
     return sendMerchantOtp({
       context,
+      funnelToken: value(formData, "funnelToken") || undefined,
       redirectToVerify: value(formData, "source") === "login",
     })
   }
@@ -282,6 +296,12 @@ async function verifySignupOtp(
     return merchantOtpVerificationErrorState(context, verification)
   }
 
+  recordMerchantFunnelEventSafely({
+    actorId: verification.userId,
+    event: "merchant_email_verified",
+    funnelToken: value(formData, "funnelToken") || undefined,
+  })
+
   redirect(context.next)
 }
 
@@ -360,9 +380,11 @@ async function confirmMerchantPasswordReset(
 
 async function sendMerchantOtp({
   context,
+  funnelToken,
   redirectToVerify = false,
 }: {
   context: MerchantOtpActionContext
+  funnelToken?: string
   redirectToVerify?: boolean
 }): Promise<MerchantOtpActionState> {
   const verifyContext = { ...context, step: "verify" as const }
@@ -442,6 +464,14 @@ async function sendMerchantOtp({
     }
   }
 
+  if (context.flow === "signup") {
+    recordMerchantFunnelEventSafely({
+      event: "merchant_otp_resent",
+      funnelToken,
+      occurrenceKey: retryAt ?? "provider-success",
+    })
+  }
+
   if (redirectToVerify && context.flow === "signup") {
     redirect(
       merchantSignupVerifyHref({
@@ -464,7 +494,7 @@ async function sendMerchantOtp({
 }
 
 type MerchantOtpVerificationResult =
-  | { status: "verified"; accessToken?: string }
+  | { status: "verified"; accessToken?: string; userId?: string }
   | {
       status: "error"
       outcome: Exclude<
@@ -495,6 +525,7 @@ async function verifyMerchantEmailOtpAlias({
 }): Promise<MerchantOtpVerificationResult> {
   let reservation: Awaited<ReturnType<typeof reserveMerchantEmailOtpAlias>>
   let verifiedAccessToken: string | undefined
+  let verifiedUserId: string | undefined
 
   try {
     reservation = await reserveMerchantEmailOtpAlias({
@@ -545,6 +576,7 @@ async function verifyMerchantEmailOtpAlias({
       })
       if (!result.error) {
         verifiedAccessToken = result.data.session?.access_token
+        verifiedUserId = result.data.user?.id
       }
       return result
     },
@@ -552,7 +584,11 @@ async function verifyMerchantEmailOtpAlias({
 
   switch (providerOutcome) {
     case "verified":
-      return { status: "verified", accessToken: verifiedAccessToken }
+      return {
+        status: "verified",
+        accessToken: verifiedAccessToken,
+        userId: verifiedUserId,
+      }
     case "retryable":
       return {
         status: "error",

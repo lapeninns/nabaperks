@@ -78,7 +78,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   {
     id: "sharing-and-scoping",
     title: "Sharing, scoping, and support access",
-    body: "Customer loyalty data is scoped to the relevant merchant and Nabaperks support administrators. Admin access is used for support, fraud review, privacy requests, and audited operational tasks. PostHog analytics receives minimized event properties where configured.",
+    body: "Customer loyalty data is scoped to the relevant merchant and Nabaperks support administrators. Admin access is used for support, fraud review, privacy requests, and audited operational tasks. First-party session measurement stays within Nabaperks. Optional pseudonymous PostHog processing is disabled unless it is specifically configured. Contact, form, provider, URL, and precise-location values are excluded and are not sent to PostHog.",
   },
   {
     id: "data-requests",

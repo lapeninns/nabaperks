@@ -30,7 +30,9 @@ allowed_blast_radius:
   - lib/legal/content.ts
   - tests/unit/analytics-privacy.test.mjs
   - tests/micro-specs/analytics-funnel-privacy.test.mjs
+  - tests/micro-specs/provider-readiness-smoke.test.mjs
   - tests/e2e/analytics-funnel-privacy.spec.ts
+  - tests/e2e/analytics-funnel-privacy.desktop.spec.ts
 implementation_surfaces:
   - micro-specs/analytics/funnel-identity-privacy.md
   - micro-specs/evidence/MS-analytics-funnel-identity-privacy.json
@@ -56,11 +58,15 @@ implementation_surfaces:
   - lib/legal/content.ts
   - tests/unit/analytics-privacy.test.mjs
   - tests/micro-specs/analytics-funnel-privacy.test.mjs
+  - tests/micro-specs/provider-readiness-smoke.test.mjs
   - tests/e2e/analytics-funnel-privacy.spec.ts
+  - tests/e2e/analytics-funnel-privacy.desktop.spec.ts
 related_tests:
   - tests/unit/analytics-privacy.test.mjs
   - tests/micro-specs/analytics-funnel-privacy.test.mjs
+  - tests/micro-specs/provider-readiness-smoke.test.mjs
   - tests/e2e/analytics-funnel-privacy.spec.ts
+  - tests/e2e/analytics-funnel-privacy.desktop.spec.ts
 verification_gates:
   - pnpm lint
   - pnpm typecheck
@@ -134,6 +140,12 @@ durable activation and billing facts belong to the dependent Micro-Specs.
   persistence.
 - Sign funnel tokens with the existing server session secret under an analytics
   domain separator. Use `ANALYTICS_PSEUDONYM_SECRET` only for external identity.
+- Issue and persist a funnel token before sending the first milestone write, so
+  a lost issuance response cannot create an orphan event and a lost write
+  response retries with the same deterministic UUID.
+- Schedule successful auth milestones with Next `after()` so signup, resend,
+  verification, and redirects never wait on analytics while Vercel keeps the
+  registered server-side write alive after the response.
 - Move PostHog key and host to server-only `POSTHOG_PROJECT_KEY` and
   `POSTHOG_HOST`; public environment variables no longer enable capture.
 - Predeclare downstream activation event names while this spec owns the event
@@ -163,6 +175,9 @@ durable activation and billing facts belong to the dependent Micro-Specs.
 - **FP-6:** WHEN the same funnel milestone is delivered more than once, THE
   first-party recorder SHALL use the same deterministic event ID and retain one
   row without turning the duplicate into a user-visible error.
+- **FP-6a:** IF the first token response is lost, THEN no milestone SHALL have
+  been inserted; IF a later write response is lost, THEN retry SHALL reuse the
+  stored token and deterministic event ID.
 - **FP-7:** WHEN the homepage is shown and a signup CTA is activated, THE system
   SHALL record distinct marketing-view and signup-click milestones while
   preserving normal link navigation.
@@ -196,8 +211,9 @@ durable activation and billing facts belong to the dependent Micro-Specs.
 4. Implement the pure privacy and token cores, then harden external capture
    before adding any new event callers.
 5. Implement bounded same-origin first-party capture and session-only client
-   continuity; instrument acquisition, account creation, verify arrival,
-   successful resend, and successful verification.
+   continuity with issuance-before-write; instrument acquisition, account
+   creation, verify arrival, successful resend, and successful verification,
+   scheduling auth telemetry with `after()`.
 6. Align environment tooling and the privacy summary, run all gates
    sequentially, record evidence, and re-prove every implemented predecessor
    whose declared surface becomes stale.

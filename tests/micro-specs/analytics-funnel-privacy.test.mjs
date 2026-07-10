@@ -53,6 +53,8 @@ test("Given the merchant activation funnel When the registry is inspected Then a
 
 test("Given optional external analytics When PostHog capture is inspected Then it is server-only, explicitly enabled, pseudonymous, and profileless", () => {
   const events = readProjectFile("lib", "analytics", "events.ts")
+  const privacyCore = readProjectFile("lib", "analytics", "privacy-core.ts")
+  const captureSource = `${events}\n${privacyCore}`
   const envExample = readProjectFile(".env.example")
   const publicEnv = readProjectFile("lib", "env", "public.ts")
 
@@ -66,36 +68,42 @@ test("Given optional external analytics When PostHog capture is inspected Then i
     assert.match(envExample, new RegExp(`^${key}=`, "m"))
   }
 
-  assert.match(events, /ANALYTICS_EXTERNAL_PROCESSING_MODE[\s\S]{0,180}pseudonymous/)
+  assert.match(
+    events,
+    /ANALYTICS_EXTERNAL_PROCESSING_MODE[\s\S]{0,180}pseudonymous/
+  )
   assert.match(events, /\/i\/v0\/e\//)
-  assert.match(events, /["']\$process_person_profile["']\s*:\s*false/)
-  assert.match(events, /distinct_id/)
+  assert.match(captureSource, /["']?\$process_person_profile["']?\s*:\s*false/)
+  assert.match(captureSource, /distinct_id/)
   assert.doesNotMatch(events, /NEXT_PUBLIC_POSTHOG/)
   assert.doesNotMatch(envExample, /NEXT_PUBLIC_POSTHOG/)
   assert.doesNotMatch(publicEnv, /NEXT_PUBLIC_POSTHOG/)
 })
 
 test("Given a public funnel capture request When the route contract is inspected Then origin, size, vocabulary, throttling, and cache guards are server-enforced", () => {
-  const route = readProjectFile(
-    "app",
-    "api",
-    "analytics",
-    "funnel",
-    "route.ts"
-  )
+  const route = readProjectFile("app", "api", "analytics", "funnel", "route.ts")
   const contract = readProjectFile("lib", "analytics", "funnel-contract.ts")
   const guardedSource = `${route}\n${contract}`
 
   assert.match(guardedSource, /headers\.get\(["']origin["']\)/i)
-  assert.match(guardedSource, /new URL\(request\.url\)\.origin/)
+  assert.match(guardedSource, /new URL\(request\.url\)/)
+  assert.match(route, /requestUrl\.origin/)
+  assert.match(route, /headers\s*\.get\(["']x-forwarded-host["']\)/)
+  assert.match(route, /headers\.get\(["']host["']\)/)
+  assert.match(route, /allowedOrigins\.has\(requestOrigin\)/)
   assert.match(guardedSource, /MAX_[A-Z_]*BODY[A-Z_]*BYTES/)
   assert.match(guardedSource, /content-length|body\.length|text\.length/i)
   assert.match(route, /enforceRateLimit/)
+  assert.match(route, /trustedClientIp\(request\.headers\)/)
+  assert.doesNotMatch(route, /rateLimitIdentityFromHeaders/)
   assert.match(route, /cache-control[\s\S]{0,80}no-store/i)
   assert.match(contract, /merchant_marketing_viewed/)
   assert.match(contract, /merchant_signup_clicked/)
   assert.match(contract, /merchant_signup_started/)
-  assert.doesNotMatch(route, /createSupabaseServiceRoleClient\([\s\S]*request\.json\(\)[\s\S]*\.insert\(/)
+  assert.doesNotMatch(
+    route,
+    /createSupabaseServiceRoleClient\([\s\S]*request\.json\(\)[\s\S]*\.insert\(/
+  )
 })
 
 test("Given acquisition continuity When the browser tracker is inspected Then its signed token stays in sessionStorage and the capture body", () => {
@@ -111,9 +119,49 @@ test("Given acquisition continuity When the browser tracker is inspected Then it
   assert.match(tracker, /method:\s*["']POST["']/)
   assert.match(tracker, /body:\s*JSON\.stringify\(/)
   assert.doesNotMatch(tracker, /\blocalStorage\b/)
+  assert.doesNotMatch(tracker, /volatileFunnelToken/)
+  assert.match(
+    tracker,
+    /pathname\s*!==\s*["']\/["'][\s\S]{0,120}merchant_signup_clicked/,
+    "landing CTR excludes signup links on pricing, legal, and auth pages"
+  )
   assert.doesNotMatch(tracker, /document\.cookie|cookieStore/)
   assert.doesNotMatch(tracker, /[?&](?:funnel|funnel_token|token)=/i)
-  assert.doesNotMatch(tracker, /(?:searchParams|URLSearchParams)[\s\S]{0,160}(?:funnel|token)/i)
+  assert.doesNotMatch(
+    tracker,
+    /(?:searchParams|URLSearchParams)[\s\S]{0,160}(?:funnel|token)/i
+  )
+})
+
+test("Given a supplied funnel token is invalid When identity recording is inspected Then it rotates without persisting the rejected milestone", () => {
+  const funnelEvents = readProjectFile("lib", "analytics", "funnel-events.ts")
+  const invalidGuard = sourceSection(
+    funnelEvents,
+    "if (!verified)",
+    "const funnelKey"
+  )
+
+  assert.match(invalidGuard, /issueFunnelToken/)
+  assert.doesNotMatch(invalidGuard, /recordProductEvent/)
+})
+
+test("Given the first token response is lost When anonymous capture retries Then issuance has not created an orphan event", () => {
+  const funnelEvents = readProjectFile("lib", "analytics", "funnel-events.ts")
+  const issuanceOnly = sourceSection(
+    funnelEvents,
+    "if (!funnelToken)",
+    "const verified"
+  )
+  const tracker = readProjectFile(
+    "components",
+    "analytics",
+    "marketing-funnel-tracker.tsx"
+  )
+
+  assert.match(issuanceOnly, /issueFunnelToken/)
+  assert.doesNotMatch(issuanceOnly, /recordProductEvent/)
+  assert.match(tracker, /rememberFunnelToken\(result\.token\)/)
+  assert.match(tracker, /postFunnelCapture\(event, result\.token\)/)
 })
 
 test("Given authoritative merchant auth outcomes When source wiring is inspected Then account creation, resend, and verification telemetry is success-only and fail-open", () => {
@@ -137,15 +185,30 @@ test("Given authoritative merchant auth outcomes When source wiring is inspected
 
   assert.match(actions, /from ["']@\/lib\/analytics\/funnel-events["']/)
   assert.match(funnelEvents, /recordProductEvent/)
-  assert.match(funnelEvents, /try\s*\{[\s\S]*?recordProductEvent[\s\S]*?\}\s*catch/)
+  assert.match(funnelEvents, /import \{ after \} from ["']next\/server["']/)
+  assert.match(
+    funnelEvents,
+    /after\(\(\) => persistMerchantFunnelEvent\(input\)\)/
+  )
+  assert.doesNotMatch(actions, /await recordMerchantFunnelEventSafely/)
+  assert.match(
+    funnelEvents,
+    /try\s*\{[\s\S]*?recordProductEvent[\s\S]*?\}\s*catch/
+  )
   assert.doesNotMatch(funnelEvents, /catch[^\n]*\{[\s\S]{0,220}\bthrow\b/)
 
   assert.ok(
     signUp.indexOf("merchant_account_created") > signUp.indexOf("if (error)"),
     "account-created telemetry follows the provider success guard"
   )
+  assert.match(
+    signUp,
+    /identities[\s\S]{0,180}length\s*>\s*0[\s\S]{0,300}merchant_account_created/,
+    "obfuscated existing-account signup success cannot count as a creation"
+  )
   assert.ok(
-    resend.indexOf("merchant_otp_resent") > resend.indexOf("if (deliveryError)"),
+    resend.indexOf("merchant_otp_resent") >
+      resend.indexOf("if (deliveryError)"),
     "resend telemetry follows successful provider delivery"
   )
   assert.ok(
@@ -153,7 +216,10 @@ test("Given authoritative merchant auth outcomes When source wiring is inspected
       verify.indexOf('verification.status === "error"'),
     "verification telemetry follows the authoritative success guard"
   )
-  assert.match(resend, /context\.flow\s*===\s*["']signup["'][\s\S]{0,500}merchant_otp_resent/)
+  assert.match(
+    resend,
+    /context\.flow\s*===\s*["']signup["'][\s\S]{0,500}merchant_otp_resent/
+  )
 })
 
 test("Given a merchant reads the privacy summary When analytics is described Then first-party session measurement is distinct from optional pseudonymous processing", () => {
@@ -170,7 +236,10 @@ test("Given a merchant reads the privacy summary When analytics is described The
   ]) {
     assert.match(
       privacy,
-      new RegExp(`${excludedValue}[^.]{0,120}(?:excluded|not sent)|(?:excluded|not sent)[^.]{0,120}${excludedValue}`, "i"),
+      new RegExp(
+        `${excludedValue}[^.]{0,120}(?:excluded|not sent)|(?:excluded|not sent)[^.]{0,120}${excludedValue}`,
+        "i"
+      ),
       `privacy copy explains ${excludedValue} exclusion`
     )
   }

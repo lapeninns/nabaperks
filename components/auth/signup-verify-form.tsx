@@ -5,6 +5,7 @@ import type { ReactNode } from "react"
 import { useActionState, useEffect, useState } from "react"
 
 import { signupOtpAction } from "@/app/(auth)/actions"
+import { useMarketingFunnelToken } from "@/components/analytics/marketing-funnel-tracker"
 import { AuthField } from "@/components/auth/auth-field"
 import {
   OtpResendControl,
@@ -47,6 +48,7 @@ export function SignupVerifyForm({
   const [lastIntent, setLastIntent] = useState<OtpIntent | null>(null)
   const [savedResendRetryAt, setSavedResendRetryAt] = useState(initialRetryAt)
   const [requiresFreshCode, setRequiresFreshCode] = useState(false)
+  const funnelToken = useMarketingFunnelToken()
 
   async function dispatchOtpAction(
     previousState: Parameters<typeof signupOtpAction>[0],
@@ -136,6 +138,7 @@ export function SignupVerifyForm({
           email={currentEmail}
           name={currentName}
           next={currentNext}
+          funnelToken={funnelToken}
         />
         <AuthField
           id="otp"
@@ -215,6 +218,7 @@ export function SignupVerifyForm({
           email={currentEmail}
           name={currentName}
           next={currentNext}
+          funnelToken={funnelToken}
         />
         <OtpResendControl
           retryAt={resendRetryAt}
@@ -258,11 +262,13 @@ function OtpContextFields({
   email,
   name,
   next,
+  funnelToken,
 }: {
   readonly intent: OtpIntent
   readonly email: string
   readonly name: string
   readonly next: string
+  readonly funnelToken?: string | null
 }) {
   return (
     <>
@@ -270,6 +276,7 @@ function OtpContextFields({
       <input type="hidden" name="name" value={name} />
       <input type="hidden" name="email" value={email} />
       <input type="hidden" name="next" value={next} />
+      <input type="hidden" name="funnelToken" value={funnelToken ?? ""} />
     </>
   )
 }
