@@ -1,7 +1,52 @@
 {
   "schema": 1,
   "spec_id": "MS-referral-code-controls",
-  "runs": [],
+  "runs": [
+    {
+      "timestamp": "2026-07-10T19:03:46.229Z",
+      "git_sha": "1ed7e683ab1040bec76631f791800253924664cb",
+      "git_branch": "claude/referral-v2-architecture-7b8d21",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6860
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1091
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10485
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9179
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1073
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 4355
+        },
+        {
+          "command": "pnpm test:e2e -- --grep \"referral attribution\" --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 7093
+        }
+      ],
+      "all_passed": true
+    }
+  ],
   "manual_attestations": [],
   "transitions": [
     {
@@ -10,6 +55,14 @@
       "at": "2026-07-10T19:03:25.381Z",
       "sha": "b5d16c955d4543d0b7878e8305e44a08c83451fe",
       "dirty": true,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-10T19:03:46.229Z",
+      "sha": "1ed7e683ab1040bec76631f791800253924664cb",
+      "dirty": false,
       "by": "amankumarshrestha"
     }
   ]
