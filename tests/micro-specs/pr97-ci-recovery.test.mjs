@@ -19,8 +19,12 @@ test("active browser proof retains its declared matrices and required launch sna
   const requiredSnapshots = [
     "dashboard-incomplete-follow-through-desktop-firefox.png",
     "dashboard-incomplete-follow-through-desktop-safari.png",
+    "dashboard-incomplete-follow-through-desktop-firefox-linux.png",
+    "dashboard-incomplete-follow-through-desktop-safari-linux.png",
     "launch-qr-follow-through-desktop-firefox.png",
     "launch-qr-follow-through-desktop-safari.png",
+    "launch-qr-follow-through-desktop-firefox-linux.png",
+    "launch-qr-follow-through-desktop-safari-linux.png",
   ]
 
   assert.match(
@@ -100,4 +104,29 @@ test("environment file writes avoid check-then-use races", () => {
   assert.doesNotMatch(mergeSource, /existsSync\(target\)/)
   assert.match(mergeSource, /readEnvFileIfPresent\(target\)/)
   assert.match(source, /error\?\.code === "ENOENT"/)
+})
+
+test("Playwright isolates Next output and keeps Linux snapshots OS-specific", () => {
+  const nextConfig = readProjectFile("next.config.ts")
+  const playwrightConfig = readProjectFile("playwright.config.ts")
+  const runner = readProjectFile("scripts", "run-playwright.mjs")
+  const gitignore = readProjectFile(".gitignore")
+  const tsconfig = JSON.parse(readProjectFile("tsconfig.json"))
+  const linuxSnapshotAssignments =
+    playwrightConfig.match(
+      /snapshotPathTemplate: ciLinuxSnapshotPathTemplate/g
+    ) ?? []
+
+  assert.match(nextConfig, /PLAYWRIGHT_NEXT_DIST_DIR/)
+  assert.match(nextConfig, /distDir:\s*playwrightDistDir/)
+  assert.match(runner, /callerOwnedDistDir \|\| "\.next-e2e"/)
+  assert.match(runner, /PLAYWRIGHT_NEXT_DIST_DIR:\s*playwrightDistDir/)
+  assert.match(
+    runner,
+    /rmSync\(join\(projectDir, playwrightDistDir\),\s*\{[\s\S]*recursive:\s*true,[\s\S]*force:\s*true/
+  )
+  assert.equal(linuxSnapshotAssignments.length, 4)
+  assert.ok(gitignore.includes("/.next-e2e/"))
+  assert.ok(tsconfig.include.includes(".next-e2e/types/**/*.ts"))
+  assert.ok(tsconfig.include.includes(".next-e2e/dev/types/**/*.ts"))
 })
