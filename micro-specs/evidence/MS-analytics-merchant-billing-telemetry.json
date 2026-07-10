@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-analytics-merchant-billing-telemetry",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-10T08:52:57.802Z",
+      "sha": "01ef21759bcc9c599130a7e52d15012a28e0ca0c",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}

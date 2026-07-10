@@ -365,6 +365,10 @@ test("a durable non-restartable billing state creates no provider object", async
 test("missing and foreign return ids perform no billing mutation", async () => {
   let providerReads = 0
   let applies = 0
+  const verifiedReturns = []
+  const options = {
+    onVerifiedReturn: (value) => verifiedReturns.push(value),
+  }
   const deps = dependencies({
     retrieveCheckoutSession: async () => {
       providerReads += 1
@@ -379,7 +383,8 @@ test("missing and foreign return ids perform no billing mutation", async () => {
   assert.deepEqual(
     await confirmBillingCheckoutReturn(
       { merchantId: merchant.id, sessionId: null },
-      deps
+      deps,
+      options
     ),
     { kind: "missing_session" }
   )
@@ -401,15 +406,18 @@ test("missing and foreign return ids perform no billing mutation", async () => {
           applies += 1
           return "applied"
         },
-      })
+      }),
+      options
     ),
     { kind: "rejected", reason: "foreign_session" }
   )
   assert.equal(applies, 0)
+  assert.deepEqual(verifiedReturns, [])
 })
 
 test("an owned completed trial applies only its exact current Subscription", async () => {
   let applied = null
+  const verifiedReturns = []
   const result = await confirmBillingCheckoutReturn(
     { merchantId: merchant.id, sessionId: "cs_owned" },
     dependencies({
@@ -420,10 +428,14 @@ test("an owned completed trial applies only its exact current Subscription", asy
         billingUpdatedAt: BILLING_UPDATED_AT,
       }),
       applyCurrentSubscription: async (value) => {
+        assert.deepEqual(verifiedReturns, [{ merchantId: merchant.id }])
         applied = value
         return "applied"
       },
-    })
+    }),
+    {
+      onVerifiedReturn: (value) => verifiedReturns.push(value),
+    }
   )
 
   assert.deepEqual(result, {
@@ -435,23 +447,32 @@ test("an owned completed trial applies only its exact current Subscription", asy
   assert.equal(applied.snapshot.stripe_subscription_id, "sub_owned")
   assert.equal(applied.entitlementStatus, "trialing")
   assert.equal(applied.expectedBillingUpdatedAt, BILLING_UPDATED_AT)
+  assert.deepEqual(verifiedReturns, [{ merchantId: merchant.id }])
 })
 
 test("provider or database ambiguity returns catching-up rather than success", async () => {
+  let verifiedReturns = 0
   const result = await confirmBillingCheckoutReturn(
     { merchantId: merchant.id, sessionId: "cs_owned" },
     dependencies({
       applyCurrentSubscription: async () => {
         throw new Error("database unavailable")
       },
-    })
+    }),
+    {
+      onVerifiedReturn: () => {
+        verifiedReturns += 1
+      },
+    }
   )
 
   assert.deepEqual(result, { kind: "catching_up" })
+  assert.equal(verifiedReturns, 1)
 })
 
 test("a Subscription with foreign metadata cannot mutate merchant billing", async () => {
   let applies = 0
+  let verifiedReturns = 0
   const result = await confirmBillingCheckoutReturn(
     { merchantId: merchant.id, sessionId: "cs_owned" },
     dependencies({
@@ -461,7 +482,12 @@ test("a Subscription with foreign metadata cannot mutate merchant billing", asyn
         applies += 1
         return "applied"
       },
-    })
+    }),
+    {
+      onVerifiedReturn: () => {
+        verifiedReturns += 1
+      },
+    }
   )
 
   assert.deepEqual(result, {
@@ -469,17 +495,53 @@ test("a Subscription with foreign metadata cannot mutate merchant billing", asyn
     reason: "customer_mismatch",
   })
   assert.equal(applies, 0)
+  assert.equal(verifiedReturns, 0)
 })
 
 test("a stale current sync never renders confirmed success", async () => {
+  let verifiedReturns = 0
   const result = await confirmBillingCheckoutReturn(
     { merchantId: merchant.id, sessionId: "cs_owned" },
     dependencies({
       applyCurrentSubscription: async () => "stale",
-    })
+    }),
+    {
+      onVerifiedReturn: () => {
+        verifiedReturns += 1
+      },
+    }
   )
 
   assert.deepEqual(result, { kind: "catching_up" })
+  assert.equal(verifiedReturns, 1)
+})
+
+test("a throwing verified-return observer cannot change billing apply or success", async () => {
+  let applies = 0
+  let observerCalls = 0
+  const result = await confirmBillingCheckoutReturn(
+    { merchantId: merchant.id, sessionId: "cs_owned" },
+    dependencies({
+      applyCurrentSubscription: async () => {
+        applies += 1
+        return "applied"
+      },
+    }),
+    {
+      onVerifiedReturn: () => {
+        observerCalls += 1
+        throw new Error("analytics unavailable")
+      },
+    }
+  )
+
+  assert.deepEqual(result, {
+    kind: "confirmed",
+    source: "checkout",
+    status: "trialing",
+  })
+  assert.equal(applies, 1)
+  assert.equal(observerCalls, 1)
 })
 
 test("Portal reconciliation hydrates the known Subscription and preserves scheduled cancellation", async () => {

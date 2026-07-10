@@ -3,9 +3,39 @@ import { expect, test } from "@playwright/test"
 import { expectNoAxeViolations } from "./helpers/axe"
 import { dismissPwaInstall, HARNESS_ROUTES } from "./helpers/harness"
 
-test.describe("merchant billing recovery desktop @MS-billing-checkout-recovery", () => {
+test.describe("merchant billing recovery desktop @MS-billing-checkout-recovery @MS-analytics-merchant-billing-telemetry", () => {
   test.beforeEach(async ({ page }) => {
     await dismissPwaInstall(page)
+  })
+
+  test("setup billing keeps the exact trial and price contract usable", async ({
+    page,
+  }) => {
+    await page.goto(`${HARNESS_ROUTES.launch}?tab=billing&state=billing`)
+
+    await expect(
+      page.getByRole("heading", { name: "Activate your venue" })
+    ).toBeVisible()
+    await expect(page.getByText("30 days", { exact: true })).toBeVisible()
+    await expect(page.getByText("£0", { exact: true })).toBeVisible()
+    await expect(page.getByText("£49 a month", { exact: true })).toBeVisible()
+
+    for (const button of [
+      page.getByRole("button", { name: /Proceed to billing.*£49\/month/i }),
+      page.getByRole("button", { name: /Pay yearly.*£490/i }),
+    ]) {
+      await expect(button).toBeVisible()
+      expect(
+        await button.evaluate(
+          (element) => element.getBoundingClientRect().height
+        )
+      ).toBeGreaterThanOrEqual(44)
+    }
+
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth
+    )
+    expect(overflow).toBeLessThanOrEqual(1)
   })
 
   test("owned completed trial confirms once and does not replay on refresh", async ({
