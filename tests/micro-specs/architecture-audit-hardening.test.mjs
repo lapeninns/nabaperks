@@ -154,19 +154,19 @@ test("Given Stripe retries a processed event When analytics recording is schedul
     "webhook",
     "route.ts"
   )
+  const webhookEvents = readProjectFile("lib", "stripe", "webhook-events.ts")
 
-  assert.match(webhookRoute, /productEvents = await handleStripeEvent/)
-  assert.match(
-    webhookRoute,
-    /await markStripeWebhookEventProcessed\(event\.id\)/
-  )
-  assert.match(webhookRoute, /scheduleStripeProductEvents\(productEvents\)/)
+  assert.match(webhookEvents, /if \(claim\.status === "processed"\)/)
+  assert.match(webhookEvents, /dependencies\.processEvent/)
+  assert.match(webhookEvents, /if \(result\.status === "applied"\)/)
+  assert.match(webhookEvents, /dependencies\.scheduleAppliedSideEffects/)
+  assert.match(webhookRoute, /scheduleStripeAppliedSideEffects/)
   assert.match(webhookRoute, /after\(callback\)/)
   assert.match(webhookRoute, /Promise\.allSettled/)
   assert.match(webhookRoute, /stripe_product_event_record_failed/)
-  assert.doesNotMatch(
-    webhookRoute,
-    /await handleStripeEvent\(stripe, event\)[\s\S]*await recordProductEvent[\s\S]*await markStripeWebhookEventProcessed/
+  assert.match(
+    webhookEvents,
+    /if \(claim\.status === "processed"\) \{\s*return Response\.json\(\{ received: true, duplicate: true \}\)\s*\}/
   )
 })
 

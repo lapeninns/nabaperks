@@ -179,7 +179,7 @@ export default async function LaunchHarnessPage({
           />
         ) : activeTab === "billing" ? (
           <SetupBillingActivationCard
-            annualBillingAvailable={false}
+            annualBillingAvailable
             billingReturnTo="/app/launch?tab=billing"
           />
         ) : (

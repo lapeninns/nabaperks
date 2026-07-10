@@ -39,10 +39,16 @@ allowed_blast_radius:
   - scripts/env-keys.mjs
   - scripts/provider-readiness/checks.mjs
   - tests/e2e/helpers/harness.ts
+  - tests/e2e/merchant-billing-recovery.desktop.spec.ts
   - tests/e2e/merchant-billing-recovery.spec.ts
   - tests/e2e/merchant-billing-recovery.visual.spec.ts
   - tests/e2e/merchant-billing-recovery.visual.spec.ts-snapshots/**
+  - tests/e2e/merchant-billing-recovery.visual.desktop.spec.ts
+  - tests/e2e/merchant-billing-recovery.visual.desktop.spec.ts-snapshots/**
   - tests/micro-specs/billing-checkout-recovery.test.mjs
+  - tests/micro-specs/architecture-audit-hardening.test.mjs
+  - tests/micro-specs/launch-billing-local-stripe.test.mjs
+  - tests/micro-specs/marketing-auth-legal.test.mjs
   - tests/micro-specs/provider-readiness-smoke.test.mjs
   - tests/unit/account-tabs.test.mjs
   - tests/unit/billing-checkout-core.test.mjs
@@ -86,10 +92,16 @@ implementation_surfaces:
   - scripts/env-keys.mjs
   - scripts/provider-readiness/checks.mjs
   - tests/e2e/helpers/harness.ts
+  - tests/e2e/merchant-billing-recovery.desktop.spec.ts
   - tests/e2e/merchant-billing-recovery.spec.ts
   - tests/e2e/merchant-billing-recovery.visual.spec.ts
   - tests/e2e/merchant-billing-recovery.visual.spec.ts-snapshots/**
+  - tests/e2e/merchant-billing-recovery.visual.desktop.spec.ts
+  - tests/e2e/merchant-billing-recovery.visual.desktop.spec.ts-snapshots/**
   - tests/micro-specs/billing-checkout-recovery.test.mjs
+  - tests/micro-specs/architecture-audit-hardening.test.mjs
+  - tests/micro-specs/launch-billing-local-stripe.test.mjs
+  - tests/micro-specs/marketing-auth-legal.test.mjs
   - tests/micro-specs/provider-readiness-smoke.test.mjs
   - tests/unit/account-tabs.test.mjs
   - tests/unit/billing-checkout-core.test.mjs
@@ -105,9 +117,14 @@ related_docs:
   - reports/merchant-journey-ux-audit-2026-07-09.md
 related_tests:
   - tests/db/billing-state-durability.test.mjs
+  - tests/e2e/merchant-billing-recovery.desktop.spec.ts
   - tests/e2e/merchant-billing-recovery.spec.ts
   - tests/e2e/merchant-billing-recovery.visual.spec.ts
+  - tests/e2e/merchant-billing-recovery.visual.desktop.spec.ts
   - tests/micro-specs/billing-checkout-recovery.test.mjs
+  - tests/micro-specs/architecture-audit-hardening.test.mjs
+  - tests/micro-specs/launch-billing-local-stripe.test.mjs
+  - tests/micro-specs/marketing-auth-legal.test.mjs
   - tests/micro-specs/provider-readiness-smoke.test.mjs
   - tests/unit/account-tabs.test.mjs
   - tests/unit/billing-checkout-core.test.mjs

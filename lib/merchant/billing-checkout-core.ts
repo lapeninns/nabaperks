@@ -351,8 +351,8 @@ export function mapProviderSubscriptionSnapshot(
     current_period_end: unixSecondsToIso(periodEnd, "current period end"),
     cancel_at_period_end: subscription.cancel_at_period_end,
     cancel_at:
-      subscription.cancel_at == null
+      subscription.cancel_at == null && !subscription.cancel_at_period_end
         ? null
-        : unixSecondsToIso(subscription.cancel_at, "cancel time"),
+        : unixSecondsToIso(subscription.cancel_at ?? periodEnd, "cancel time"),
   }
 }

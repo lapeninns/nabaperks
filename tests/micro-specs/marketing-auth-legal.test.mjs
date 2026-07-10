@@ -122,7 +122,7 @@ test("Given public questions When answers are dry-run against code Then they onl
     "actions.ts"
   )
   const stampService = readProjectFile("lib", "customer", "stamp.ts")
-  const billingAction = readProjectFile("app", "app", "billing", "actions.ts")
+  const billingCheckout = readProjectFile("lib", "stripe", "checkout.ts")
   // The pure readiness domain (builder, predicates, billing copy) lives in
   // launch-readiness-core; launch-readiness.ts is now the server-only data layer
   // that re-exports it.
@@ -162,7 +162,10 @@ test("Given public questions When answers are dry-run against code Then they onl
 
   // When / Then
   assert.match(landingFaq, /q: "Can staff or customers fake the stamps\?"/)
-  assert.match(landingFaq, /Customers claim from your venue QR on their own phones/)
+  assert.match(
+    landingFaq,
+    /Customers claim from your venue QR on their own phones/
+  )
   assert.match(landingFaq, /one stamp per UK date/)
   assert.match(pricing, /customer claims from your venue QR/)
   assert.match(pricing, /one stamp per customer per UK date/)
@@ -184,7 +187,7 @@ test("Given public questions When answers are dry-run against code Then they onl
   assert.match(stampImplementation, /billing_status/)
   assert.match(stampImplementation, /geo_flagged/)
 
-  assert.match(billingAction, /trial_period_days: 30/)
+  assert.match(billingCheckout, /trial_period_days: 30/)
   assert.match(launchReadiness, /Add a card to activate/)
   assert.match(launchReadiness, /qrCode\?\.is_active === true/)
 
@@ -266,7 +269,10 @@ test("Given merchant email OTP aliases are six digits When auth copy is reviewed
   assert.match(signupVerifyPage, /merchantEmailOtpAliasDigitLabel\(\)/)
   assert.match(resetPasswordPage, /merchantEmailOtpAliasDigitLabel\(\)/)
   assert.match(signupVerifyPage, /merchantEmailOtpAliasLength\(\)/)
-  assert.match(signupVerifyPage, /otpLength=\{merchantEmailOtpAliasLength\(\)\}/)
+  assert.match(
+    signupVerifyPage,
+    /otpLength=\{merchantEmailOtpAliasLength\(\)\}/
+  )
   assert.match(resetPasswordPage, /merchantEmailOtpAliasLength\(\)/)
   assert.match(
     resetPasswordPage,
@@ -328,7 +334,9 @@ test("Given public routes feed SEO and AI discovery When the registry is inspect
     assert.match(marketingFacts, new RegExp(`path: ${route.registry}`))
     assert.match(
       llms,
-      new RegExp(`https://nabaperks\\.com${route.path === "/" ? "\\/" : route.path}`)
+      new RegExp(
+        `https://nabaperks\\.com${route.path === "/" ? "\\/" : route.path}`
+      )
     )
   }
 })

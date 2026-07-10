@@ -3,8 +3,9 @@ import { redirect } from "next/navigation"
 import { Suspense } from "react"
 
 import { PageTitle } from "@/components/brand"
-import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
 import { BillingPanel } from "@/components/merchant/account/billing-panel"
+import type { BillingPanelOutcome } from "@/components/merchant/account/billing-panel-view"
+import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
 import { LaunchTransientQueryCleanup } from "@/components/merchant/launch/launch-tab-auto-advance"
 import {
   AccountBillingPanelSkeleton,
@@ -49,16 +50,10 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
     redirect("/app/onboarding")
   }
 
-  if (params.checkout === "success") {
-    try {
-      await completeBillingCheckoutReturn(merchant.id)
-    } catch (error) {
-      console.error(
-        "[launch] billing checkout return sync failed",
-        error instanceof Error ? error.message : error
-      )
-    }
-  }
+  const billingOutcome: BillingPanelOutcome | undefined =
+    params.checkout === "success"
+      ? await completeBillingCheckoutReturn(merchant.id, params.session_id)
+      : undefined
 
   const {
     setup,
@@ -131,6 +126,7 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
           launchReady={readiness.launchReady}
           needsBillingActivation={needsBilling}
           billingHref={billingHref}
+          billingOutcome={billingOutcome}
         />
       </Suspense>
     </div>
@@ -177,6 +173,7 @@ function LaunchActivePanel({
   launchReady,
   needsBillingActivation,
   billingHref,
+  billingOutcome,
 }: {
   activeTab: LaunchHubTab
   params: LaunchSearchParams
@@ -187,6 +184,7 @@ function LaunchActivePanel({
   launchReady: boolean
   needsBillingActivation: boolean
   billingHref: string | null
+  billingOutcome: BillingPanelOutcome | undefined
 }) {
   return (
     <div className="grid min-w-0 gap-3 sm:gap-5">
@@ -205,8 +203,14 @@ function LaunchActivePanel({
         <VenuePanel />
       ) : activeTab === "billing" ? (
         <BillingPanel
-          params={{ checkout: params.checkout, portal: params.portal }}
+          params={{
+            checkout: params.checkout,
+            portal: params.portal,
+            session_id: params.session_id,
+            billing_error: params.billing_error,
+          }}
           mode="setup"
+          initialOutcome={billingOutcome}
         />
       ) : (
         <QrPanel

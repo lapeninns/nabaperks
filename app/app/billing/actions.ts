@@ -1,120 +1,93 @@
 "use server"
 
+import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
+import type { BillingCheckoutActionState } from "@/components/merchant/account/billing-checkout-form"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { getServerEnv } from "@/lib/env/server"
+import { resolveBillingAppOrigin } from "@/lib/merchant/billing-checkout-core"
 import {
   billingReturnHref,
   resolveBillingReturnBase,
 } from "@/lib/merchant/billing-nav"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+import {
+  createBillingCheckoutDependencies,
+  prepareBillingCheckout,
+  type BillingInterval,
+} from "@/lib/stripe/checkout"
 import { getStripe } from "@/lib/stripe/server"
 
-const BILLING_ACTION_ERROR = "Billing action could not be completed. Try again."
+const BILLING_ACTION_ERROR =
+  "Billing was not confirmed. Please try again — it is safe to retry."
 
+function submittedInterval(
+  value: FormDataEntryValue | null
+): BillingInterval | null {
+  return value === "month" || value === "year" ? value : null
+}
+
+async function requestOrigin(): Promise<string | null> {
+  const requestHeaders = await headers()
+  return requestHeaders.get("origin")
+}
+
+/** Start one fenced, provider-idempotent Checkout attempt. */
 export async function startCheckoutAction(
-  interval: "month" | "year",
+  _previousState: BillingCheckoutActionState,
   formData: FormData
-) {
+): Promise<BillingCheckoutActionState> {
   const merchant = await getCurrentMerchant()
   const returnBase = resolveBillingReturnBase(formData.get("returnTo"))
+  const interval = submittedInterval(formData.get("interval"))
 
   if (!merchant) {
     redirect("/app/onboarding")
   }
 
-  let env: ReturnType<typeof getServerEnv>
-  let billingCustomerId: string | null | undefined
-
-  try {
-    env = getServerEnv()
-
-    const supabase = await createSupabaseServerClient()
-    const { data: billing, error } = await supabase
-      .from("billing_customers")
-      .select("stripe_customer_id")
-      .eq("merchant_id", merchant.id)
-      .maybeSingle()
-
-    if (error) {
-      throw new Error(BILLING_ACTION_ERROR)
-    }
-
-    billingCustomerId = billing?.stripe_customer_id
-  } catch {
-    throw new Error(BILLING_ACTION_ERROR)
+  if (!interval) {
+    return { status: "error", message: BILLING_ACTION_ERROR }
   }
 
-  let checkoutUrl: string
-
+  let checkoutUrl: string | null = null
   try {
-    const stripe = getStripe()
-    const customer =
-      billingCustomerId ??
-      (
-        await stripe.customers.create({
-          email: merchant.email,
-          name: merchant.business_name,
-          metadata: {
-            merchant_id: merchant.id,
-          },
-        })
-      ).id
-
-    const priceId =
-      interval === "year"
-        ? env.STRIPE_GROWTH_ANNUAL_PRICE_ID
-        : env.STRIPE_GROWTH_PRICE_ID
-
-    // The annual Price is optional until the operator creates it in Stripe, so
-    // guard here — a stray annual submit can never check out an undefined price.
-    if (!priceId) {
-      throw new Error(BILLING_ACTION_ERROR)
-    }
-
-    const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      customer,
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
+    const env = getServerEnv()
+    const deps = await createBillingCheckoutDependencies()
+    const result = await prepareBillingCheckout(
+      {
+        merchant: {
+          id: merchant.id,
         },
-      ],
-      subscription_data: {
-        trial_period_days: 30,
-        metadata: {
-          merchant_id: merchant.id,
-          plan: "growth",
-          interval,
-        },
-      },
-      metadata: {
-        merchant_id: merchant.id,
-        plan: "growth",
         interval,
+        returnBase,
+        environment:
+          process.env.NODE_ENV === "production" ? "production" : "development",
+        configuredOrigin: env.NEXT_PUBLIC_APP_URL,
+        requestOrigin: await requestOrigin(),
+        monthlyPriceId: env.STRIPE_GROWTH_PRICE_ID,
+        annualPriceId: env.STRIPE_GROWTH_ANNUAL_PRICE_ID,
       },
-      success_url: `${env.NEXT_PUBLIC_APP_URL}${billingReturnHref(returnBase, {
-        checkout: "success",
-      })}`,
-      cancel_url: `${env.NEXT_PUBLIC_APP_URL}${billingReturnHref(returnBase, {
-        checkout: "cancelled",
-      })}`,
-    })
+      deps
+    )
 
-    if (!session.url) {
-      throw new Error(BILLING_ACTION_ERROR)
+    if (result.status === "error") {
+      return result
     }
-
-    checkoutUrl = session.url
-  } catch {
-    throw new Error(BILLING_ACTION_ERROR)
+    checkoutUrl = result.url
+  } catch (error) {
+    console.error("[billing] checkout start failed", {
+      merchantId: merchant.id,
+      code: "checkout_start_failed",
+      error: error instanceof Error ? error.name : "unknown",
+    })
+    return { status: "error", message: BILLING_ACTION_ERROR }
   }
 
   redirect(checkoutUrl)
 }
 
+/** Open the known customer's Stripe Portal with a one-shot return outcome. */
 export async function openCustomerPortalAction(formData: FormData) {
   const merchant = await getCurrentMerchant()
   const returnBase = resolveBillingReturnBase(formData.get("returnTo"))
@@ -123,52 +96,56 @@ export async function openCustomerPortalAction(formData: FormData) {
     redirect("/app/onboarding")
   }
 
-  let env: ReturnType<typeof getServerEnv>
-  let billingCustomerId: string | null | undefined
+  const failureHref = billingReturnHref(returnBase, {
+    billing_error: "action",
+  })
+  let portalUrl: string | null = null
+  let missingCustomer = false
 
   try {
-    env = getServerEnv()
-
-    const supabase = await createSupabaseServerClient()
+    const env = getServerEnv()
+    const supabase = createSupabaseServiceRoleClient()
     const { data: billing, error } = await supabase
       .from("billing_customers")
       .select("stripe_customer_id")
       .eq("merchant_id", merchant.id)
       .maybeSingle()
 
-    if (error) {
-      throw new Error(BILLING_ACTION_ERROR)
-    }
+    if (error) throw new Error("billing_customer_lookup_failed")
+    missingCustomer = !billing?.stripe_customer_id
 
-    billingCustomerId = billing?.stripe_customer_id
-  } catch {
-    throw new Error(BILLING_ACTION_ERROR)
-  }
-
-  if (!billingCustomerId) {
-    redirect(
-      billingReturnHref(returnBase, {
-        portal: "missing",
+    if (billing?.stripe_customer_id) {
+      const origin = resolveBillingAppOrigin({
+        environment:
+          process.env.NODE_ENV === "production" ? "production" : "development",
+        configuredOrigin: env.NEXT_PUBLIC_APP_URL,
+        requestOrigin: await requestOrigin(),
       })
-    )
+      const portal = await getStripe().billingPortal.sessions.create({
+        customer: billing.stripe_customer_id,
+        return_url: `${origin}${billingReturnHref(returnBase, {
+          portal: "returned",
+        })}`,
+      })
+
+      if (!portal.url) throw new Error("portal_url_missing")
+      portalUrl = portal.url
+    }
+  } catch (error) {
+    console.error("[billing] portal start failed", {
+      merchantId: merchant.id,
+      code: "portal_start_failed",
+      error: error instanceof Error ? error.name : "unknown",
+    })
+    redirect(failureHref)
   }
 
-  let portalUrl: string
+  if (missingCustomer) {
+    redirect(billingReturnHref(returnBase, { portal: "missing" }))
+  }
 
-  try {
-    const stripe = getStripe()
-    const portal = await stripe.billingPortal.sessions.create({
-      customer: billingCustomerId,
-      return_url: `${env.NEXT_PUBLIC_APP_URL}${returnBase}`,
-    })
-
-    if (!portal.url) {
-      throw new Error(BILLING_ACTION_ERROR)
-    }
-
-    portalUrl = portal.url
-  } catch {
-    throw new Error(BILLING_ACTION_ERROR)
+  if (!portalUrl) {
+    redirect(failureHref)
   }
 
   redirect(portalUrl)

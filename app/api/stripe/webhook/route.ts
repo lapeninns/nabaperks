@@ -1,175 +1,68 @@
-import { after, NextResponse } from "next/server"
-import Stripe from "stripe"
+import { after } from "next/server"
 
-import { recordProductEvent } from "@/lib/analytics/events"
-import { revalidateMerchantLaunchSurfaces } from "@/lib/merchant/revalidate-launch-surfaces"
+import type { ProductEventInput } from "@/lib/analytics/events"
 import { getServerEnv } from "@/lib/env/server"
-import {
-  setBillingStatusForSubscription,
-  stripeId,
-  stripeInvoiceSubscriptionId,
-  syncStripeSubscription,
-} from "@/lib/stripe/billing"
 import { getStripe } from "@/lib/stripe/server"
 import {
   claimStripeWebhookEvent,
-  markStripeWebhookEventFailed,
-  markStripeWebhookEventProcessed,
+  createStripeWebhookProcessorDependencies,
+  failStripeWebhookEvent,
+  handleStripeWebhookRequest,
+  processStripeWebhookEvent,
+  type StripeWebhookProcessResult,
 } from "@/lib/stripe/webhook-events"
 
 export async function POST(request: Request) {
   const env = getServerEnv()
   const stripe = getStripe()
-  const signature = request.headers.get("stripe-signature")
-  const body = await request.text()
+  const processorDependencies = createStripeWebhookProcessorDependencies(stripe)
 
-  if (!signature) {
-    return NextResponse.json(
-      { error: "Missing Stripe signature" },
-      { status: 400 }
-    )
-  }
-
-  let event: Stripe.Event
-
-  try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      env.STRIPE_WEBHOOK_SECRET
-    )
-  } catch {
-    return NextResponse.json(
-      { error: "Invalid Stripe signature" },
-      { status: 400 }
-    )
-  }
-
-  let productEvents: StripeProductEvent[] = []
-
-  try {
-    const claim = await claimStripeWebhookEvent(event)
-    if (claim.status === "duplicate") {
-      return NextResponse.json({ received: true, duplicate: true })
-    }
-
-    productEvents = await handleStripeEvent(stripe, event)
-    await markStripeWebhookEventProcessed(event.id)
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Webhook failed"
-    await markStripeWebhookEventFailed(event.id, message)
-    return NextResponse.json({ error: message }, { status: 500 })
-  }
-
-  scheduleStripeProductEvents(productEvents)
-  return NextResponse.json({ received: true })
+  return handleStripeWebhookRequest(request, {
+    constructEvent: (body, signature) =>
+      stripe.webhooks.constructEvent(
+        body,
+        signature,
+        env.STRIPE_WEBHOOK_SECRET
+      ),
+    claimEvent: claimStripeWebhookEvent,
+    processEvent: (input) =>
+      processStripeWebhookEvent(input, processorDependencies),
+    failEvent: failStripeWebhookEvent,
+    scheduleAppliedSideEffects: scheduleStripeAppliedSideEffects,
+  })
 }
 
-type StripeProductEvent = Parameters<typeof recordProductEvent>[0]
-
-async function handleStripeEvent(
-  stripe: Stripe,
-  event: Stripe.Event
-): Promise<StripeProductEvent[]> {
-  const productEvents: StripeProductEvent[] = []
-
-  switch (event.type) {
-    case "checkout.session.completed": {
-      const session = event.data.object as Stripe.Checkout.Session
-      const subscriptionId = stripeId(session.subscription)
-
-      if (session.mode === "subscription" && subscriptionId) {
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-        const result = await syncStripeSubscription({
-          subscription,
-          merchantId: session.metadata?.merchant_id,
-        })
-        revalidateMerchantLaunchSurfaces(result.merchantId)
-        productEvents.push({
-          eventName: "subscription_started",
-          merchantId: result.merchantId,
-          actorType: "system",
-          metadata: {
-            stripe_subscription_id: subscription.id,
-            billing_status: result.status,
-          },
-        })
-      }
-      break
-    }
-    case "customer.subscription.created":
-    case "customer.subscription.updated":
-    case "customer.subscription.deleted": {
-      const result = await syncStripeSubscription({
-        subscription: event.data.object as Stripe.Subscription,
-      })
-      revalidateMerchantLaunchSurfaces(result.merchantId)
-      if (result.status === "cancelled") {
-        productEvents.push({
-          eventName: "subscription_cancelled",
-          merchantId: result.merchantId,
-          actorType: "system",
-          metadata: {
-            stripe_subscription_id: (event.data.object as Stripe.Subscription)
-              .id,
-          },
-        })
-      }
-      break
-    }
-    case "invoice.payment_failed": {
-      const invoice = event.data.object as Stripe.Invoice
-      const subscriptionId = stripeInvoiceSubscriptionId(invoice)
-
-      if (subscriptionId) {
-        await setBillingStatusForSubscription({
-          subscriptionId,
-          status: "past_due",
-        })
-      }
-      break
-    }
-    case "invoice.payment_succeeded": {
-      const invoice = event.data.object as Stripe.Invoice
-      const subscriptionId = stripeInvoiceSubscriptionId(invoice)
-
-      if (subscriptionId) {
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-        const result = await syncStripeSubscription({ subscription })
-        revalidateMerchantLaunchSurfaces(result.merchantId)
-      }
-      break
-    }
-    default:
-      break
-  }
-
-  return productEvents
-}
-
-function scheduleStripeProductEvents(productEvents: readonly StripeProductEvent[]) {
-  if (productEvents.length === 0) {
-    return
-  }
+function scheduleStripeAppliedSideEffects(result: StripeWebhookProcessResult) {
+  if (result.status !== "applied" || !result.merchantId) return
 
   scheduleAfterResponse(async () => {
+    const { revalidateMerchantLaunchSurfaces } =
+      await import("@/lib/merchant/revalidate-launch-surfaces")
+    const { recordProductEvent } = await import("@/lib/analytics/events")
+
+    try {
+      revalidateMerchantLaunchSurfaces(result.merchantId as string)
+    } catch (error) {
+      console.warn("stripe_billing_revalidation_failed", {
+        merchantId: result.merchantId,
+        error: errorMessage(error),
+      })
+    }
+
+    const productEvents: readonly ProductEventInput[] = result.productEvents
     const results = await Promise.allSettled(
       productEvents.map((productEvent) => recordProductEvent(productEvent))
     )
 
-    for (const [index, result] of results.entries()) {
-      if (result.status === "fulfilled") {
-        continue
-      }
+    for (const [index, eventResult] of results.entries()) {
+      if (eventResult.status === "fulfilled") continue
 
       const productEvent = productEvents[index]
-      if (!productEvent) {
-        continue
-      }
+      if (!productEvent) continue
 
       console.warn("stripe_product_event_record_failed", {
         eventName: productEvent.eventName,
-        error: errorMessage(result.reason),
+        error: errorMessage(eventResult.reason),
       })
     }
   })

@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test"
 import { expectNoAxeViolations } from "./helpers/axe"
 import { dismissPwaInstall, HARNESS_ROUTES } from "./helpers/harness"
 
-test.describe("merchant billing recovery @MS-billing-checkout-recovery", () => {
+test.describe("merchant billing recovery desktop @MS-billing-checkout-recovery", () => {
   test.beforeEach(async ({ page }) => {
     await dismissPwaInstall(page)
   })
@@ -28,6 +28,9 @@ test.describe("merchant billing recovery @MS-billing-checkout-recovery", () => {
     await expect(
       page.getByRole("heading", { name: "Checkout confirmed" })
     ).toHaveCount(0)
+    await expect
+      .poll(() => new URL(page.url()).searchParams.has("checkout"))
+      .toBe(false)
   })
 
   test("missing and foreign Session ids never claim billing success", async ({
@@ -42,9 +45,6 @@ test.describe("merchant billing recovery @MS-billing-checkout-recovery", () => {
     await expect(
       page.getByRole("heading", { name: "Checkout confirmed" })
     ).toHaveCount(0)
-    await expect
-      .poll(() => new URL(page.url()).searchParams.has("checkout"))
-      .toBe(false)
 
     await page.goto(
       `${HARNESS_ROUTES.account}?tab=billing&billing=none&checkout=success&session_id=cs_harness_foreign`
@@ -65,7 +65,7 @@ test.describe("merchant billing recovery @MS-billing-checkout-recovery", () => {
 
     await expect(page.getByText("£490 a year", { exact: true })).toBeVisible()
     await expect(page.getByText("£49 a month", { exact: true })).toHaveCount(0)
-    await expectNoAxeViolations(page, "annual billing receipt")
+    await expectNoAxeViolations(page, "annual billing receipt desktop")
 
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth
@@ -87,17 +87,8 @@ test.describe("merchant billing recovery @MS-billing-checkout-recovery", () => {
     const form = page.locator("[data-billing-checkout-form]")
 
     await expect(monthly).toBeVisible()
-    expect(
-      await monthly.evaluate((button) => button.getBoundingClientRect().height)
-    ).toBeGreaterThanOrEqual(44)
-    expect(
-      await annual.evaluate((button) => button.getBoundingClientRect().height)
-    ).toBeGreaterThanOrEqual(44)
     await monthly.click()
     await expect(form).toHaveAttribute("aria-busy", "true")
-    await expect(form.getByRole("status")).toHaveText(
-      "Opening monthly Stripe checkout…"
-    )
     await expect(monthly).toBeDisabled()
     await expect(annual).toBeDisabled()
 

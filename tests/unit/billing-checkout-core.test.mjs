@@ -312,3 +312,29 @@ test("annual provider terms and scheduled cancellation remain exact", () => {
   assert.equal(snapshot.cancel_at_period_end, true)
   assert.equal(snapshot.cancel_at, "2023-11-15T22:13:20.000Z")
 })
+
+test("period-end cancellation derives its exact date when Stripe omits cancel_at", () => {
+  const snapshot = mapProviderSubscriptionSnapshot({
+    id: "sub_period_end",
+    created: 1_700_000_000,
+    status: "active",
+    customer: "cus_owned",
+    items: {
+      data: [
+        {
+          current_period_end: 1_700_086_400,
+          price: {
+            id: "price_month",
+            recurring: { interval: "month" },
+            unit_amount: 4_900,
+            currency: "gbp",
+          },
+        },
+      ],
+    },
+    cancel_at_period_end: true,
+    cancel_at: null,
+  })
+
+  assert.equal(snapshot.cancel_at, snapshot.current_period_end)
+})

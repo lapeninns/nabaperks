@@ -13,7 +13,7 @@ function readProjectFile(...segments) {
   return readFileSync(path.join(projectRoot, ...segments), "utf8")
 }
 
-test("launch page syncs billing before assembling readiness on checkout success", () => {
+test("launch page verifies the exact returned Session before assembling readiness", () => {
   const launchPage = readProjectFile("app", "app", "launch", "page.tsx")
 
   const syncIndex = launchPage.indexOf("completeBillingCheckoutReturn")
@@ -23,7 +23,11 @@ test("launch page syncs billing before assembling readiness on checkout success"
   assert.notEqual(modelIndex, -1)
   assert.ok(
     syncIndex < modelIndex,
-    "billing checkout sync must run before getLaunchPageModel"
+    "exact billing checkout verification must run before getLaunchPageModel"
+  )
+  assert.match(
+    launchPage,
+    /completeBillingCheckoutReturn\(merchant\.id, params\.session_id\)/
   )
 })
 
@@ -37,6 +41,17 @@ test("billing panel bypasses cached billing read after checkout success", () => 
 
   assert.match(billingPanel, /getMerchantBillingFresh/)
   assert.match(billingPanel, /completeBillingCheckoutReturn/)
+  assert.match(billingPanel, /completeBillingPortalReturn/)
+})
+
+test("billing action delegates one posted interval to fenced orchestration", () => {
+  const actions = readProjectFile("app", "app", "billing", "actions.ts")
+
+  assert.match(actions, /submittedInterval\(formData\.get\("interval"\)\)/)
+  assert.match(actions, /prepareBillingCheckout/)
+  assert.match(actions, /createBillingCheckoutDependencies/)
+  assert.doesNotMatch(actions, /checkout\.sessions\.create/)
+  assert.doesNotMatch(actions, /startCheckoutAction\.bind/)
 })
 
 test("compatibility billing route preserves exact return and safe error identifiers", () => {

@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test"
 
 import { dismissPwaInstall, HARNESS_ROUTES } from "./helpers/harness"
 
-test("annual billing receipt @MS-billing-checkout-recovery @visual", async ({
+test("annual billing receipt desktop @MS-billing-checkout-recovery @visual", async ({
   page,
 }) => {
   await dismissPwaInstall(page)
@@ -14,9 +14,6 @@ test("annual billing receipt @MS-billing-checkout-recovery @visual", async ({
         animation-delay: 0s !important;
         transition-duration: 0s !important;
         transition-delay: 0s !important;
-      }
-      nextjs-portal, [data-nextjs-dev-overlay="true"] {
-        display: none !important;
       }
     `,
   })
