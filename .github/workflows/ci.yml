@@ -237,6 +237,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SUPABASE_SEND_EMAIL_HOOK_SECRET: v1,whsec_dGVzdF9zdXBhYmFzZV9ob29rX3NlY3JldF8zMl9ieXRlcw==
+      SUPABASE_SEND_EMAIL_HOOK_URI: http://host.docker.internal:3147/api/auth/hooks/send-email
       SUPABASE_DB_URL: postgres://postgres:postgres@127.0.0.1:54322/postgres
     steps:
       - uses: actions/checkout@v7

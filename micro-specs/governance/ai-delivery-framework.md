@@ -3,7 +3,7 @@ spec_id: MS-governance-ai-delivery-framework
 status: active
 risk_class: docs-tooling
 owner: codex
-last_reviewed: 2026-07-05
+last_reviewed: 2026-07-10
 allowed_blast_radius:
   - .factory/skills/**
   - .env.example
@@ -49,6 +49,7 @@ allowed_blast_radius:
   - tsconfig.json
   - vercel.json
 implementation_surfaces:
+  - .factory/skills/**
   - .factory/skills/ai-governance-starter-kit/SKILL.md
   - .env.example
   - .github/workflows/ci.yml
@@ -58,9 +59,20 @@ implementation_surfaces:
   - AGENTS.md
   - DESIGN.md
   - ai-governance-starter-kit/install-ai-governance.mjs
+  - ai-governance-starter-kit/CHANGELOG.md
+  - ai-governance-starter-kit/.claude-plugin/plugin.json
+  - ai-governance-starter-kit/skills/implement-micro-spec/SKILL.md
+  - ai-governance-starter-kit/templates/Instructions_tdd.md
   - ai-governance-starter-kit/templates/AGENTS.md.template
   - ai-governance-starter-kit/templates/micro-specs/README.md
+  - ai-governance-starter-kit/templates/scripts/advance-spec.mjs
+  - ai-governance-starter-kit/templates/scripts/governance-gate-selection.mjs
   - ai-governance-starter-kit/templates/scripts/governance-rules.mjs
+  - ai-governance-starter-kit/templates/scripts/governance-version.mjs
+  - ai-governance-starter-kit/templates/scripts/run-governance-gates.mjs
+  - ai-governance-starter-kit/templates/tests/micro-specs/advance-spec.test.mjs
+  - ai-governance-starter-kit/templates/tests/micro-specs/governance-enforcement.test.mjs
+  - ai-governance-starter-kit/templates/tests/micro-specs/governance-gate-selection.test.mjs
   - Instructions_MircroSpecsCreation.md
   - Instructions_tdd.md
   - README.md
@@ -73,10 +85,12 @@ implementation_surfaces:
   - pnpm-workspace.yaml
   - scripts/check-bundle-size.mjs
   - scripts/check-governance.mjs
+  - scripts/advance-spec.mjs
   - scripts/governance-constants.mjs
   - scripts/governance-io.mjs
   - scripts/governance-rules.mjs
   - scripts/governance-frontmatter.mjs
+  - scripts/governance-gate-selection.mjs
   - scripts/governance-glob.mjs
   - scripts/governance-commands.mjs
   - scripts/run-playwright.mjs
@@ -90,6 +104,8 @@ implementation_surfaces:
   - tests/load/public-routes.js
   - tests/load/stamp-redeem-race.js
   - tests/micro-specs/governance-enforcement.test.mjs
+  - tests/micro-specs/governance-gate-selection.test.mjs
+  - tests/micro-specs/advance-spec.test.mjs
   - tests/support/server-only-stub.mjs
   - tests/unit/block-reasons.test.mjs
   - tests/unit/phone-pii.property.test.mjs
@@ -104,6 +120,8 @@ related_docs:
   - micro-specs/GLOBAL_CONTEXT.md
 related_tests:
   - tests/micro-specs/ai-governance-starter-kit.test.mjs
+  - tests/micro-specs/governance-evidence.test.mjs
+  - tests/micro-specs/governance-gate-selection.test.mjs
   - tests/db/governance-db.test.mjs
   - tests/db/card-stamp-display-dates.test.mjs
   - tests/db/reward-billing-moat.test.mjs
@@ -158,6 +176,8 @@ repo-native delivery contract for future AI-led changes.
 In scope:
 
 - Micro-Spec metadata, lifecycle, risk, verification, and evidence rules.
+- Lifecycle-aware branch attribution for sequential Micro-Specs completed on
+  one delivery branch.
 - A Node governance checker and node:test coverage for its enforcement paths.
 - CI wiring that runs the governance checker and active Micro-Spec gate runner
   automatically.
@@ -186,10 +206,33 @@ Out of scope:
   omit DB behavioral gates.
 - THE governance system SHALL reject changed files outside the active
   Micro-Spec allowed blast radius.
+- WHEN one delivery branch contains sequential governed changes, THE
+  governance system SHALL retain attribution for an implemented, verified, or
+  closed Micro-Spec only when that spec's machine evidence ledger is part of
+  the same changed-file set, and SHALL restrict that retained ownership to the
+  spec's declared implementation surfaces plus its own bookkeeping files.
+- THE lifecycle CLI and standalone checker SHALL use the same attribution
+  rule, so a branch accepted before gate execution cannot fail its embedded
+  governance gate for a different ownership model.
+- A historical implemented, verified, or closed Micro-Spec whose evidence
+  ledger is absent from the current change set SHALL NOT grant permission to
+  edit its old radius; merely touching its prose is insufficient, and draft or
+  superseded specs SHALL never grant changed-file attribution.
 - THE governance system SHALL reject CI/docs drift when
   `micro-specs/README.md` omits commands run by CI.
 - THE governance system SHALL run active Micro-Spec gates through a repo-native
   runner without a shell.
+- WHEN several Micro-Specs require proof at the same delivery boundary, THE
+  governance runner SHALL accept repeatable explicit spec selections, execute
+  their exact-command union once, and record only each spec's declared results
+  in that spec's own evidence ledger.
+- WHILE implementation is still converging, THE delivery workflow SHALL use
+  requirement-focused tests for Red -> Green -> Refactor and SHALL reserve a
+  complete recorded gate run for a meaningful proof or lifecycle boundary,
+  rather than requiring the complete suite after every Git commit.
+- WHEN a lifecycle advance already executes and records the complete declared
+  gates, THE delivery workflow SHALL treat that advance as the proof boundary
+  and SHALL NOT require an identical recorded pre-run.
 - THE browser harness SHALL expose Playwright CLI scripts for e2e, headed, UI,
   a11y, and visual smoke gates.
 - THE DB harness SHALL require a live database URL and SHALL NOT treat static SQL

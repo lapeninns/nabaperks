@@ -86,6 +86,7 @@ export default defineConfig({
     },
     {
       name: "desktop-firefox",
+      snapshotPathTemplate: ciLinuxSnapshotPathTemplate,
       testMatch: ["**/*.desktop.spec.ts", "**/visual.spec.ts"],
       use: {
         ...devices["Desktop Firefox"],
@@ -93,6 +94,7 @@ export default defineConfig({
     },
     {
       name: "desktop-safari",
+      snapshotPathTemplate: ciLinuxSnapshotPathTemplate,
       testMatch: ["**/*.desktop.spec.ts", "**/visual.spec.ts"],
       use: {
         ...devices["Desktop Safari"],

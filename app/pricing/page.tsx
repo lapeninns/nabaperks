@@ -80,7 +80,7 @@ const faqs = [
   },
   {
     q: "What counts as a visit?",
-    a: "A visit counts when a customer stamps from your venue QR — one earned stamp per customer per UK date. The stamp is confirmed at the counter before it lands in your weekly digest.",
+    a: "A visit counts when a customer claims from your venue QR. The claim is linked to their saved membership and limited to one stamp per customer per UK date before it lands in your weekly digest.",
   },
   {
     q: "What if I want to cancel?",
@@ -181,9 +181,6 @@ export default function PricingPage() {
             <p className="text-[0.95rem] leading-snug font-extrabold text-balance">
               {promo.perk}
             </p>
-            <p className="mt-2 text-sm leading-snug font-semibold text-balance">
-              {promo.scarcityLine}
-            </p>
             <p className="mono-meta mt-2 text-muted-foreground">
               {promo.claim}
             </p>
@@ -259,9 +256,8 @@ export default function PricingPage() {
                 venues.
               </p>
               <p className="text-sm leading-6 text-pretty text-muted-foreground">
-                Most venues see their first repeat visit inside the first week.
-                Your dashboard counts the regulars; you do the maths — or try
-                the{" "}
+                Your dashboard records visits and returning customers, so you
+                can judge the pilot from your own results — or try the{" "}
                 <Link
                   href={`${ROUTES.pubHub}#regulars-calculator`}
                   className="font-semibold text-primary underline-offset-4 hover:underline"
@@ -295,7 +291,7 @@ export default function PricingPage() {
         </div>
 
         <div className="mt-10 grid gap-2">
-          <Eyebrow>How fast you&apos;re live</Eyebrow>
+          <Eyebrow>What makes it live</Eyebrow>
           <h2 className="text-[clamp(1.5rem,3vw,2rem)] font-extrabold text-balance">
             {SETUP.line}
           </h2>

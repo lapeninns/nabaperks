@@ -42,13 +42,13 @@ test("login page normalizes repeated next and error search params before redirec
   assert.match(source, /error\?: string \| string\[\]/)
   assert.match(
     source,
-    /const next = firstSearchParam\(params\.next\) \?\? "\/app"/
+    /const next = safeMerchantNextPath\(firstSearchParam\(params\.next\) \?\? "\/app"\)/
   )
   assert.match(source, /const error = firstSearchParam\(params\.error\)/)
   assert.match(source, /redirect\(safeMerchantNextPath\(next\)\)/)
   assert.match(source, /next=\{next\}/)
   assert.match(source, /function firstSearchParam/)
-  assert.doesNotMatch(source, /params\.next \?\? "\/app"/)
+  assert.doesNotMatch(source, /const next = params\.next/)
   assert.doesNotMatch(source, /next=\{params\.next\}/)
 })
 

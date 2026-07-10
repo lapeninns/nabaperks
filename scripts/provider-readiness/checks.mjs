@@ -48,7 +48,10 @@ async function checkSupabaseTarget({ env, offline, report }) {
   }
 
   if (!dbUrl) {
-    report.fail("supabase-db", "SUPABASE_DB_URL is missing; cannot inspect RPC rollout.")
+    report.fail(
+      "supabase-db",
+      "SUPABASE_DB_URL is missing; cannot inspect RPC rollout."
+    )
     return
   }
 
@@ -88,10 +91,16 @@ async function checkRemediationRpcs(dbUrl, report) {
     if (missing.length > 0) {
       report.fail("supabase-rpcs", `missing RPC(s): ${missing.join(", ")}.`)
     } else {
-      report.pass("supabase-rpcs", "remediation RPCs are present in the configured database.")
+      report.pass(
+        "supabase-rpcs",
+        "remediation RPCs are present in the configured database."
+      )
     }
   } catch (error) {
-    report.fail("supabase-rpcs", `RPC presence query failed: ${errorMessage(error)}.`)
+    report.fail(
+      "supabase-rpcs",
+      `RPC presence query failed: ${errorMessage(error)}.`
+    )
   } finally {
     await sql.end({ timeout: 5 })
   }
@@ -99,18 +108,46 @@ async function checkRemediationRpcs(dbUrl, report) {
 
 async function checkStripe({ env, offline, report }) {
   const apiKey = value(env, "STRIPE_SECRET_KEY")
-  const priceId = value(env, "STRIPE_GROWTH_PRICE_ID")
+  const monthlyPriceId = value(env, "STRIPE_GROWTH_PRICE_ID")
+  const annualPriceId = value(env, "STRIPE_GROWTH_ANNUAL_PRICE_ID")
   const webhookSecret = value(env, "STRIPE_WEBHOOK_SECRET")
 
   if (!apiKey) report.fail("stripe-api", "STRIPE_SECRET_KEY is missing.")
-  if (!priceId) report.fail("stripe-price", "STRIPE_GROWTH_PRICE_ID is missing.")
-  if (!webhookSecret) report.fail("stripe-webhook-secret", "STRIPE_WEBHOOK_SECRET is missing.")
-  if (!apiKey || !priceId) return
+  if (!monthlyPriceId) {
+    report.fail("stripe-price-monthly", "STRIPE_GROWTH_PRICE_ID is missing.")
+  }
+  if (!annualPriceId) {
+    report.fail(
+      "stripe-price-annual",
+      "STRIPE_GROWTH_ANNUAL_PRICE_ID is missing."
+    )
+  }
+  if (!webhookSecret)
+    report.fail("stripe-webhook-secret", "STRIPE_WEBHOOK_SECRET is missing.")
+  if (!apiKey) return
 
   if (offline) {
-    report.blocked("stripe-price", "offline mode skipped Stripe Price lookup.")
+    if (monthlyPriceId) {
+      report.blocked(
+        "stripe-price-monthly",
+        "offline mode skipped the monthly Stripe Price lookup."
+      )
+    }
+    if (annualPriceId) {
+      report.blocked(
+        "stripe-price-annual",
+        "offline mode skipped the annual Stripe Price lookup."
+      )
+    }
   } else {
-    await checkStripePrice({ apiKey, priceId, report })
+    await Promise.all([
+      monthlyPriceId
+        ? checkMonthlyStripePrice({ apiKey, priceId: monthlyPriceId, report })
+        : Promise.resolve(),
+      annualPriceId
+        ? checkAnnualStripePrice({ apiKey, priceId: annualPriceId, report })
+        : Promise.resolve(),
+    ])
   }
 
   report.blocked(
@@ -119,18 +156,29 @@ async function checkStripe({ env, offline, report }) {
   )
 }
 
-async function checkStripePrice({ apiKey, priceId, report }) {
+async function loadStripePrice({ apiKey, priceId, gate, report }) {
   const price = await getJson(
     `https://api.stripe.com/v1/prices/${encodeURIComponent(priceId)}`,
     { Authorization: `Bearer ${apiKey}` }
   )
 
   if (!price.ok) {
-    report.fail("stripe-price", `Stripe Price lookup failed with HTTP ${price.status}.`)
-    return
+    report.fail(gate, `Stripe Price lookup failed with HTTP ${price.status}.`)
+    return null
   }
 
-  const body = price.body
+  return price.body
+}
+
+async function checkMonthlyStripePrice({ apiKey, priceId, report }) {
+  const body = await loadStripePrice({
+    apiKey,
+    priceId,
+    gate: "stripe-price-monthly",
+    report,
+  })
+  if (!body) return
+
   const matchesPlan =
     body.id === priceId &&
     body.active === true &&
@@ -139,9 +187,44 @@ async function checkStripePrice({ apiKey, priceId, report }) {
     body.recurring?.interval === "month"
 
   if (matchesPlan) {
-    report.pass("stripe-price", "Growth price is active GBP 49/month.")
+    report.pass(
+      "stripe-price-monthly",
+      "Growth monthly price is active GBP 49/month."
+    )
   } else {
-    report.fail("stripe-price", "Growth price does not match active GBP 49/month.")
+    report.fail(
+      "stripe-price-monthly",
+      "Growth monthly price does not match active GBP 49/month."
+    )
+  }
+}
+
+async function checkAnnualStripePrice({ apiKey, priceId, report }) {
+  const body = await loadStripePrice({
+    apiKey,
+    priceId,
+    gate: "stripe-price-annual",
+    report,
+  })
+  if (!body) return
+
+  const matchesPlan =
+    body.id === priceId &&
+    body.active === true &&
+    body.currency === "gbp" &&
+    body.unit_amount === 49000 &&
+    body.recurring?.interval === "year"
+
+  if (matchesPlan) {
+    report.pass(
+      "stripe-price-annual",
+      "Growth annual price is active GBP 490/year."
+    )
+  } else {
+    report.fail(
+      "stripe-price-annual",
+      "Growth annual price does not match active GBP 490/year."
+    )
   }
 }
 
@@ -156,7 +239,11 @@ async function checkTwilio({ env, offline, report }) {
   })
 
   requireValue(env, report, "TWILIO_ACCOUNT_SID", "twilio-account")
-  if (!verifyServiceSid) report.fail("twilio-verify-service", "TWILIO_VERIFY_SERVICE_SID is missing.")
+  if (!verifyServiceSid)
+    report.fail(
+      "twilio-verify-service",
+      "TWILIO_VERIFY_SERVICE_SID is missing."
+    )
   if (!auth) {
     report.fail(
       "twilio-auth",
@@ -166,7 +253,10 @@ async function checkTwilio({ env, offline, report }) {
   if (!accountSid || !auth || !verifyServiceSid) return
 
   if (offline) {
-    report.blocked("twilio-verify-service", "offline mode skipped Twilio Verify lookup.")
+    report.blocked(
+      "twilio-verify-service",
+      "offline mode skipped Twilio Verify lookup."
+    )
   } else {
     await checkTwilioVerify({ verifyServiceSid, auth, report })
   }
@@ -214,15 +304,26 @@ async function checkResend({ env, offline, report }) {
     }
   }
 
-  report.blocked("resend-email-send", "read-only smoke did not send a test email.")
+  report.blocked(
+    "resend-email-send",
+    "read-only smoke did not send a test email."
+  )
 }
 
 function checkCronAndHooks({ env, report }) {
   requireValue(env, report, "CRON_SECRET", "vercel-cron-secret")
-  requireValue(env, report, "SUPABASE_SEND_EMAIL_HOOK_SECRET", "supabase-email-hook-secret")
+  requireValue(
+    env,
+    report,
+    "SUPABASE_SEND_EMAIL_HOOK_SECRET",
+    "supabase-email-hook-secret"
+  )
 
   if (value(env, "SUPABASE_SEND_SMS_HOOK_SECRET")) {
-    report.pass("supabase-sms-hook-secret", "legacy SMS hook secret is configured.")
+    report.pass(
+      "supabase-sms-hook-secret",
+      "legacy SMS hook secret is configured."
+    )
   } else {
     report.blocked(
       "supabase-sms-hook-secret",
@@ -230,8 +331,14 @@ function checkCronAndHooks({ env, report }) {
     )
   }
 
-  report.blocked("vercel-cron-run", "read-only smoke did not call bearer-protected cron routes.")
-  report.blocked("supabase-auth-hooks", "read-only smoke did not trigger Supabase auth hook delivery.")
+  report.blocked(
+    "vercel-cron-run",
+    "read-only smoke did not call bearer-protected cron routes."
+  )
+  report.blocked(
+    "supabase-auth-hooks",
+    "read-only smoke did not trigger Supabase auth hook delivery."
+  )
 }
 
 function checkWebPush({ env, report }) {
@@ -240,7 +347,10 @@ function checkWebPush({ env, report }) {
     value(env, "WEB_PUSH_VAPID_PRIVATE_KEY") &&
     value(env, "WEB_PUSH_VAPID_SUBJECT")
   ) {
-    report.pass("web-push-vapid", "VAPID public/private key and subject are configured.")
+    report.pass(
+      "web-push-vapid",
+      "VAPID public/private key and subject are configured."
+    )
   } else {
     report.fail(
       "web-push-vapid",
@@ -248,27 +358,113 @@ function checkWebPush({ env, report }) {
     )
   }
 
-  report.blocked("web-push-delivery", "read-only smoke did not deliver a Web Push message.")
+  report.blocked(
+    "web-push-delivery",
+    "read-only smoke did not deliver a Web Push message."
+  )
 }
 
 function checkPostHog({ env, report }) {
-  const key = value(env, "NEXT_PUBLIC_POSTHOG_KEY")
-  const host = value(env, "NEXT_PUBLIC_POSTHOG_HOST")
+  const mode = env.ANALYTICS_EXTERNAL_PROCESSING_MODE ?? ""
 
-  if (!key || !host) {
-    report.fail("posthog-config", "NEXT_PUBLIC_POSTHOG_KEY/NEXT_PUBLIC_POSTHOG_HOST are missing.")
+  if (mode !== "pseudonymous") {
+    report.blocked(
+      "posthog-config",
+      "Optional external processing is intentionally disabled; ANALYTICS_EXTERNAL_PROCESSING_MODE is not exactly pseudonymous."
+    )
+    report.blocked(
+      "posthog-capture",
+      "External processing is intentionally disabled, so the read-only smoke made no analytics write."
+    )
     return
   }
 
+  const key = env.POSTHOG_PROJECT_KEY ?? ""
+  const host = value(env, "POSTHOG_HOST")
+  const pseudonymSecret = value(env, "ANALYTICS_PSEUDONYM_SECRET")
+  const missing = [
+    !value(env, "POSTHOG_PROJECT_KEY") ? "POSTHOG_PROJECT_KEY" : "",
+    !host ? "POSTHOG_HOST" : "",
+    !pseudonymSecret ? "ANALYTICS_PSEUDONYM_SECRET" : "",
+  ].filter(Boolean)
+
+  if (missing.length > 0) {
+    report.fail(
+      "posthog-config",
+      `Pseudonymous external processing is enabled but ${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} missing.`
+    )
+    report.blocked(
+      "posthog-capture",
+      "Read-only smoke made no analytics write because pseudonymous configuration is incomplete."
+    )
+    return
+  }
+
+  const invalid = []
+
+  if (!isValidPostHogProjectKey(key)) {
+    invalid.push(
+      "POSTHOG_PROJECT_KEY must be an exact 1-256 character phc_ key containing only letters, digits, underscores, or hyphens"
+    )
+  }
+
+  if (pseudonymSecret.length < 32) {
+    invalid.push("ANALYTICS_PSEUDONYM_SECRET must be at least 32 characters")
+  }
+
+  if (!isSafePostHogHost(host)) {
+    invalid.push(
+      "POSTHOG_HOST must be an HTTPS origin, or local HTTP origin, without credentials, path, query, or fragment"
+    )
+  }
+
+  if (invalid.length > 0) {
+    report.fail("posthog-config", `${invalid.join("; ")}.`)
+    report.blocked(
+      "posthog-capture",
+      "Read-only smoke made no analytics write because pseudonymous configuration is invalid."
+    )
+    return
+  }
+
+  report.pass(
+    "posthog-config",
+    "Server-side pseudonymous analytics config is present."
+  )
+  report.blocked(
+    "posthog-capture",
+    "Read-only smoke did not write a staging pseudonymous analytics event."
+  )
+}
+
+function isValidPostHogProjectKey(value) {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= 256 &&
+    value === value.trim() &&
+    value.startsWith("phc_") &&
+    /^[a-z\d_-]+$/i.test(value)
+  )
+}
+
+function isSafePostHogHost(value) {
   try {
-    new URL(host)
-    report.pass("posthog-config", "PostHog browser analytics config is present.")
+    const url = new URL(value)
+    const localHttp =
+      url.protocol === "http:" &&
+      (url.hostname === "localhost" || url.hostname === "127.0.0.1")
+    return (
+      (url.protocol === "https:" || localHttp) &&
+      !url.username &&
+      !url.password &&
+      url.pathname === "/" &&
+      !url.search &&
+      !url.hash
+    )
   } catch {
-    report.fail("posthog-config", "NEXT_PUBLIC_POSTHOG_HOST is not a valid URL.")
-    return
+    return false
   }
-
-  report.blocked("posthog-capture", "read-only smoke did not write a staging analytics event.")
 }
 
 function requireValue(env, report, name, gate) {

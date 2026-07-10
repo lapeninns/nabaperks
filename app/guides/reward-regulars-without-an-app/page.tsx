@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 
 import { GuidePage, GuideSection } from "@/components/marketing/guides/guide-page"
-import { PRODUCT, PROOF, PROOF_DISPLAY, ROUTES } from "@/lib/marketing/facts"
+import { PRODUCT, ROUTES } from "@/lib/marketing/facts"
 import { OG_IMAGE } from "@/lib/seo/structured-data"
 
 const title = "How to Reward Pub Regulars Without an App"
@@ -69,16 +69,14 @@ export default function RewardRegularsWithoutAnAppPage() {
 
       <GuideSection heading="Keeping it fair behind the bar">
         <p>
-          Customers stamp themselves, but they cannot game it: every stamp is
-          confirmed at the counter against your QR and their saved card, capped at
-          one per customer per UK date. Rewards are checked when they are
-          redeemed, never from a screenshot — so a finished card always means a
-          real regular.
+          Customers stamp themselves, with each claim linked to your venue QR
+          and their saved membership and capped at one per customer per UK date.
+          Optional location checks flag unusual claims. Venue staff scan the
+          customer&apos;s live reward code and confirm collection in the merchant app.
         </p>
         <p>
-          And it brings them back: in the {PROOF.indexName} ({PROOF.asOf}{" "}
-          snapshot), {PROOF_DISPLAY.repeatRate} of {PROOF_DISPLAY.members} loyalty
-          members returned.
+          Your dashboard records visits and returning members, so you can judge
+          the pilot from your venue&apos;s own results.
         </p>
       </GuideSection>
 

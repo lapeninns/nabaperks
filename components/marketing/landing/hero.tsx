@@ -7,7 +7,6 @@ import { SETUP } from "@/lib/marketing/facts"
 import type { ActivePromo } from "@/lib/marketing/promo"
 
 import { HeroSampleCard } from "./hero-sample-card"
-import { NABAPERKS_AUTHORITY_LINE } from "./nabaperks-proof-data"
 import { ReassuranceBar } from "./reassurance-bar"
 import { type QrMatrix } from "./venue-qr"
 
@@ -36,14 +35,9 @@ export function LandingHero({
           No-app QR loyalty · UK food &amp; drink
         </MonoTag>
         {promo && (
-          <>
-            <MonoTag tone="plain" className="max-sm:order-1">
-              {promo.name} — ends {promo.deadlineLabel}
-            </MonoTag>
-            <MonoTag tone="accent" className="max-sm:order-1">
-              {promo.scarcityChip}
-            </MonoTag>
-          </>
+          <MonoTag tone="plain" className="max-sm:order-1">
+            {promo.name} — ends {promo.deadlineLabel}
+          </MonoTag>
         )}
         <h1 className="mt-3 max-w-[18ch] text-[clamp(1.85rem,6.4vw,4.25rem)] leading-[1.0] font-extrabold tracking-[-0.02em] text-balance max-sm:order-2 sm:mt-5">
           The loyalty card that just opens.
@@ -60,6 +54,9 @@ export function LandingHero({
             <a href="#how-it-works">See how it works</a>
           </Button>
         </div>
+        <p className="mono-meta max-w-[44ch] font-normal leading-relaxed text-foreground max-sm:order-5 sm:mt-4">
+          30-day pilot, then £49/mo per venue · cancel from billing
+        </p>
         <div className="hidden max-w-xl flex-col sm:order-6 sm:flex lg:order-none">
           <p className="mt-5 max-w-[44ch] text-base leading-relaxed text-pretty text-muted-foreground sm:text-lg">
             No-app QR loyalty for UK cafes, takeaways and pubs. Your customer scans
@@ -70,9 +67,6 @@ export function LandingHero({
           </p>
           <p className="mt-4 max-w-[44ch] text-base leading-relaxed font-semibold text-foreground">
             {SETUP.line}
-          </p>
-          <p className="mono-meta mt-4 max-w-[46ch] font-normal leading-relaxed text-muted-foreground">
-            {NABAPERKS_AUTHORITY_LINE}
           </p>
           <ReassuranceBar className="mt-6 max-w-[44ch]" />
           <p className="mt-4 max-w-[44ch] text-sm leading-relaxed text-muted-foreground">
@@ -89,25 +83,9 @@ export function LandingHero({
             </Link>
           </div>
         </div>
-        <div className="max-w-xl max-sm:order-6 sm:hidden">
-          <ReassuranceBar
-            points={[
-              "30-day pilot included",
-              "30-day pilot, then £49/mo",
-            ]}
-            className="mt-1"
-          />
-          <p className="mt-3 max-w-[44ch] text-sm leading-relaxed text-muted-foreground">
-            At <strong className="font-semibold text-foreground">£49/mo</strong>, one
-            or two extra regulars a week can cover it.
-          </p>
-          <p className="mono-meta mt-3 max-w-[46ch] font-normal leading-relaxed text-muted-foreground">
-            {NABAPERKS_AUTHORITY_LINE}
-          </p>
-        </div>
       </div>
 
-      <div className="max-sm:order-5 lg:col-start-2 lg:row-start-1 lg:self-center">
+      <div className="max-sm:order-6 lg:col-start-2 lg:row-start-1 lg:self-center">
         <HeroSampleCard qrMatrix={qrMatrix} />
         <p className="mt-3 text-center">
           <Link

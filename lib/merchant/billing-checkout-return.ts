@@ -1,10 +1,60 @@
 import "server-only"
 
+import { scheduleMerchantBillingCheckoutReturned } from "@/lib/analytics/merchant-billing-events"
 import { revalidateMerchantLaunchSurfaces } from "@/lib/merchant/revalidate-launch-surfaces"
-import { syncMerchantBillingFromStripe } from "@/lib/stripe/billing"
+import {
+  confirmBillingCheckoutReturn,
+  createBillingCheckoutDependencies,
+  reconcileBillingPortalReturn,
+  type BillingReturnOutcome,
+} from "@/lib/stripe/checkout"
 
-/** Pull Stripe subscription state into Postgres and invalidate launch surfaces. */
-export async function completeBillingCheckoutReturn(merchantId: string) {
-  await syncMerchantBillingFromStripe(merchantId)
-  revalidateMerchantLaunchSurfaces(merchantId)
+/** Verify one exact Checkout Session, persist its Subscription, then refresh UI. */
+export async function completeBillingCheckoutReturn(
+  merchantId: string,
+  sessionId: string | null | undefined
+): Promise<BillingReturnOutcome> {
+  if (!sessionId) return { kind: "missing_session" }
+
+  let outcome: BillingReturnOutcome
+  try {
+    outcome = await confirmBillingCheckoutReturn(
+      { merchantId, sessionId },
+      await createBillingCheckoutDependencies(),
+      {
+        onVerifiedReturn: ({ merchantId: verifiedMerchantId }) => {
+          scheduleMerchantBillingCheckoutReturned(verifiedMerchantId)
+        },
+      }
+    )
+  } catch {
+    outcome = { kind: "catching_up" }
+  }
+
+  if (outcome.kind === "confirmed") {
+    revalidateMerchantLaunchSurfaces(merchantId)
+  }
+
+  return outcome
+}
+
+/** Reconcile the already-recorded Subscription after Stripe Portal returns. */
+export async function completeBillingPortalReturn(
+  merchantId: string
+): Promise<BillingReturnOutcome> {
+  let outcome: BillingReturnOutcome
+  try {
+    outcome = await reconcileBillingPortalReturn(
+      { merchantId },
+      await createBillingCheckoutDependencies()
+    )
+  } catch {
+    outcome = { kind: "catching_up" }
+  }
+
+  if (outcome.kind === "confirmed") {
+    revalidateMerchantLaunchSurfaces(merchantId)
+  }
+
+  return outcome
 }

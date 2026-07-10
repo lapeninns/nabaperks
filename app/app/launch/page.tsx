@@ -3,18 +3,21 @@ import { redirect } from "next/navigation"
 import { Suspense } from "react"
 
 import { PageTitle } from "@/components/brand"
-import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
 import { BillingPanel } from "@/components/merchant/account/billing-panel"
+import type { BillingPanelOutcome } from "@/components/merchant/account/billing-panel-view"
+import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
 import { LaunchTransientQueryCleanup } from "@/components/merchant/launch/launch-tab-auto-advance"
 import {
   AccountBillingPanelSkeleton,
   LaunchPanelSkeleton,
 } from "@/components/merchant/loading-skeletons"
 import { CardPanel } from "@/components/merchant/launch/card-panel"
+import { BillingActivationAssetPreview } from "@/components/merchant/launch/billing-activation-asset-preview"
 import { QrPanel } from "@/components/merchant/launch/qr-panel"
 import { RewardsPanel } from "@/components/merchant/launch/rewards-panel"
 import { VenuePanel } from "@/components/merchant/launch/venue-panel"
 import { Button } from "@/components/ui/button"
+import { scheduleMerchantBillingReachedForLaunch } from "@/lib/analytics/merchant-billing-events"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { completeBillingCheckoutReturn } from "@/lib/merchant/billing-checkout-return"
 import { getLaunchPageModel } from "@/lib/merchant/launch-page-model"
@@ -49,16 +52,10 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
     redirect("/app/onboarding")
   }
 
-  if (params.checkout === "success") {
-    try {
-      await completeBillingCheckoutReturn(merchant.id)
-    } catch (error) {
-      console.error(
-        "[launch] billing checkout return sync failed",
-        error instanceof Error ? error.message : error
-      )
-    }
-  }
+  const billingOutcome: BillingPanelOutcome | undefined =
+    params.checkout === "success"
+      ? await completeBillingCheckoutReturn(merchant.id, params.session_id)
+      : undefined
 
   const {
     setup,
@@ -70,6 +67,12 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
     rewardsContinueHref,
     transientCleanHref,
   } = await getLaunchPageModel(merchant.id, params)
+
+  scheduleMerchantBillingReachedForLaunch({
+    merchantId: merchant.id,
+    activeTab,
+    needsBilling,
+  })
 
   // Heading / context / description / header-CTA are one pure, unit-tested
   // decision (lib/merchant/launch-header-copy) shared with the launch harness so
@@ -131,6 +134,7 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
           launchReady={readiness.launchReady}
           needsBillingActivation={needsBilling}
           billingHref={billingHref}
+          billingOutcome={billingOutcome}
         />
       </Suspense>
     </div>
@@ -177,6 +181,7 @@ function LaunchActivePanel({
   launchReady,
   needsBillingActivation,
   billingHref,
+  billingOutcome,
 }: {
   activeTab: LaunchHubTab
   params: LaunchSearchParams
@@ -187,6 +192,7 @@ function LaunchActivePanel({
   launchReady: boolean
   needsBillingActivation: boolean
   billingHref: string | null
+  billingOutcome: BillingPanelOutcome | undefined
 }) {
   return (
     <div className="grid min-w-0 gap-3 sm:gap-5">
@@ -204,10 +210,40 @@ function LaunchActivePanel({
       ) : activeTab === "venue" ? (
         <VenuePanel />
       ) : activeTab === "billing" ? (
-        <BillingPanel
-          params={{ checkout: params.checkout, portal: params.portal }}
-          mode="setup"
-        />
+        needsBillingActivation &&
+        setup.location &&
+        setup.activeCard &&
+        setup.qrCode?.is_active ? (
+          <div className="grid min-w-0 items-start gap-3 xl:grid-cols-[minmax(20rem,0.7fr)_minmax(0,1.3fr)] xl:gap-5">
+            <BillingActivationAssetPreview
+              venueName={setup.location.name}
+              cardName={setup.activeCard.card_name}
+              stampsRequired={setup.activeCard.stamps_required}
+              qrCodeId={setup.qrCode.id}
+            />
+            <BillingPanel
+              params={{
+                checkout: params.checkout,
+                portal: params.portal,
+                session_id: params.session_id,
+                billing_error: params.billing_error,
+              }}
+              mode="setup"
+              initialOutcome={billingOutcome}
+            />
+          </div>
+        ) : (
+          <BillingPanel
+            params={{
+              checkout: params.checkout,
+              portal: params.portal,
+              session_id: params.session_id,
+              billing_error: params.billing_error,
+            }}
+            mode="setup"
+            initialOutcome={billingOutcome}
+          />
+        )
       ) : (
         <QrPanel
           setup={setup}

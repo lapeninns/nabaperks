@@ -20,9 +20,9 @@ function readProjectFile(...segments) {
 const SPOKES = ["loyalty-for-cafes", "loyalty-for-takeaways", "loyalty-for-bars"]
 
 const WEDGE_CLAUSES = {
-  "loyalty-for-cafes": "quick enough for the morning rush",
-  "loyalty-for-takeaways": "quick enough for the collection wait",
-  "loyalty-for-bars": "quick enough between rounds",
+  "loyalty-for-cafes": "no staff entry at the coffee counter",
+  "loyalty-for-takeaways": "no staff entry at the collection counter",
+  "loyalty-for-bars": "no staff entry at the bar",
 }
 
 test("AV-1 Given the pub hub graph When the HowTo id is checked Then it is route-distinct and the jsonld guard pins it", () => {
@@ -77,8 +77,9 @@ test("AV-3 Given the three spokes When the wedge band is checked Then the hedged
       page.includes("Most &ldquo;no-app&rdquo;"),
       `${slug} wedge carries the hedged wallet-pass claim`
     )
-    assert.ok(
-      page.includes(WEDGE_CLAUSES[slug]),
+    assert.match(
+      page,
+      new RegExp(WEDGE_CLAUSES[slug].replaceAll(" ", "\\s+")),
       `${slug} wedge carries its venue-true clause`
     )
   }
@@ -218,14 +219,24 @@ test("AV-9 Given the guides carry real dates When the jsonld guard is checked Th
   )
 })
 
-test("AV-10 Given the spoke benefit lists When the counter-verified bullet is checked Then cafe and takeaway carry venue-true variants", () => {
+test("AV-10 Given the spoke benefit lists When stamp controls are checked Then every venue uses accurate venue-linked wording", () => {
   const cafe = readProjectFile("app", "loyalty-for-cafes", "page.tsx")
   const takeaway = readProjectFile("app", "loyalty-for-takeaways", "page.tsx")
   const pub = readProjectFile("app", "loyalty-for-pubs", "page.tsx")
 
-  assert.doesNotMatch(cafe, /faked or double-claimed/)
-  assert.doesNotMatch(takeaway, /faked or double-claimed/)
-  assert.match(pub, /faked or double-claimed/, "pub hub keeps the original")
+  for (const [name, source] of [
+    ["cafe", cafe],
+    ["takeaway", takeaway],
+    ["pub", pub],
+  ]) {
+    assert.doesNotMatch(source, /faked or double-claimed|counter-verified/)
+    assert.match(source, /venue-linked/, `${name} uses the shared truthful term`)
+    assert.match(
+      source,
+      /one stamp per customer per UK date|one-per-UK-date/,
+      `${name} names the enforced daily cap`
+    )
+  }
 })
 
 test("AV-11 Given /pricing is 500 words When its FAQ answers are checked Then the location-check reassurance appears at most once", () => {

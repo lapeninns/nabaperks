@@ -2,14 +2,22 @@
 
 import Link from "next/link"
 import type { ReactNode } from "react"
-import { useActionState } from "react"
+import { useActionState, useEffect, useRef, useState } from "react"
 
-import type { AuthActionState } from "@/app/(auth)/actions"
+import { signupOtpAction, type AuthActionState } from "@/app/(auth)/actions"
 import { AuthField } from "@/components/auth/auth-field"
+import { OtpResendControl } from "@/components/auth/otp-resend-control"
 import { Eyebrow, VenueMark } from "@/components/brand"
 import { SubmitButton } from "@/components/forms"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { merchantSignupVerifyHref } from "@/lib/navigation/merchant-auth-hrefs"
+import {
+  merchantOtpFocusTarget,
+  merchantOtpInitialState,
+} from "@/lib/auth/merchant-auth-action-state"
+import {
+  merchantPasswordResetHref,
+  merchantSignupHref,
+} from "@/lib/navigation/merchant-auth-hrefs"
 import { cn } from "@/lib/utils"
 
 type AuthAction = (
@@ -21,31 +29,72 @@ type AuthFormProps = {
   readonly action: AuthAction
   readonly mode: "sign-in"
   readonly next?: string
+  readonly initialEmail?: string
   readonly embedded?: boolean
 }
-
-const initialState: AuthActionState = {}
 
 export function AuthForm({
   action,
   next: requestedNext,
+  initialEmail,
   embedded = false,
 }: AuthFormProps) {
   const next = requestedNext ?? "/app"
 
-  return <SignInForm action={action} next={next} embedded={embedded} />
+  return (
+    <SignInForm
+      action={action}
+      next={next}
+      initialEmail={initialEmail}
+      embedded={embedded}
+    />
+  )
 }
 
 function SignInForm({
   action,
   next,
+  initialEmail,
   embedded,
 }: {
   readonly action: AuthAction
   readonly next: string
+  readonly initialEmail?: string
   readonly embedded: boolean
 }) {
-  const [state, formAction] = useActionState(action, initialState)
+  const [email, setEmail] = useState(initialEmail ?? "")
+  const [state, formAction, signInPending] = useActionState(action, {
+    fields: { email: initialEmail, next },
+  })
+  const [freshCodeState, freshCodeAction, freshCodePending] = useActionState(
+    signupOtpAction,
+    merchantOtpInitialState({
+      flow: "signup",
+      step: "verify",
+      email: initialEmail ?? "",
+      next,
+    })
+  )
+  const freshCodeRecoveryRef = useRef<HTMLFormElement>(null)
+  const normalizedEmail = email.trim().toLowerCase()
+  const recoveryEmail = state.fields?.email ?? normalizedEmail
+  const canSendFreshCode =
+    state.outcome === "verification_required" &&
+    Boolean(recoveryEmail) &&
+    recoveryEmail === normalizedEmail
+  const anyPending = signInPending || freshCodePending
+
+  useEffect(() => {
+    const shouldFocusRecovery =
+      state.outcome === "verification_required" ||
+      merchantOtpFocusTarget(freshCodeState.outcome) === "recovery"
+    if (!shouldFocusRecovery) return
+
+    const frame = window.requestAnimationFrame(() => {
+      freshCodeRecoveryRef.current?.focus()
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [freshCodeState, state.outcome])
 
   return (
     <div className="grid gap-4">
@@ -57,7 +106,8 @@ function SignInForm({
           name="email"
           type="email"
           autoComplete="email"
-          defaultValue={state.fields?.email}
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
           error={state.errors?.email}
         />
         <AuthField
@@ -71,7 +121,10 @@ function SignInForm({
         <input type="hidden" name="next" value={next} />
         <div className="flex justify-end">
           <Link
-            href="/reset-password"
+            href={merchantPasswordResetHref({
+              email: normalizedEmail || undefined,
+              next,
+            })}
             className="focus-ring inline-flex min-h-11 items-center rounded-full px-3 text-sm font-bold text-primary underline-offset-4 hover:underline"
           >
             Forgot password?
@@ -82,19 +135,46 @@ function SignInForm({
             <AlertDescription>{state.errors.form}</AlertDescription>
           </Alert>
         ) : null}
-        {state.fields?.needsVerification && state.fields.email ? (
-          <SwitchPromptLink
-            href={merchantSignupVerifyHref({ email: state.fields.email })}
-            className="justify-self-center"
-          >
-            Get a fresh code
-          </SwitchPromptLink>
-        ) : null}
-        <SubmitButton pendingLabel="Opening…" className="w-full">
+        <SubmitButton
+          pendingLabel="Opening…"
+          className="w-full"
+          disabled={anyPending}
+        >
           Log in
         </SubmitButton>
       </form>
-      <SwitchPrompt />
+      {canSendFreshCode ? (
+        <form
+          ref={freshCodeRecoveryRef}
+          action={freshCodeAction}
+          aria-label="Get a fresh verification code"
+          tabIndex={-1}
+          className="grid gap-3 rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+        >
+          <input type="hidden" name="intent" value="resend" />
+          <input type="hidden" name="source" value="login" />
+          <input type="hidden" name="email" value={recoveryEmail} />
+          <input type="hidden" name="next" value={next} />
+          {freshCodeState.errors?.form ? (
+            <Alert variant="destructive">
+              <AlertDescription>{freshCodeState.errors.form}</AlertDescription>
+            </Alert>
+          ) : null}
+          {freshCodeState.message ? (
+            <Alert role="status" aria-live="polite">
+              <AlertDescription>{freshCodeState.message}</AlertDescription>
+            </Alert>
+          ) : null}
+          <OtpResendControl
+            retryAt={freshCodeState.retryAt}
+            disabled={anyPending}
+            variant="outline"
+            buttonLabel="Get a fresh code"
+            pendingLabel="Sending fresh code…"
+          />
+        </form>
+      ) : null}
+      <SwitchPrompt email={normalizedEmail || undefined} next={next} />
     </div>
   )
 }
@@ -108,11 +188,19 @@ function FormHeader() {
   )
 }
 
-function SwitchPrompt() {
+function SwitchPrompt({
+  email,
+  next,
+}: {
+  readonly email?: string
+  readonly next: string
+}) {
   return (
     <p className="text-center text-sm text-muted-foreground">
       New venue?{" "}
-      <SwitchPromptLink href="/signup">Start free pilot</SwitchPromptLink>
+      <SwitchPromptLink href={merchantSignupHref({ email, next })}>
+        Start free pilot
+      </SwitchPromptLink>
     </p>
   )
 }

@@ -67,6 +67,16 @@ export async function upsertRewardPoolItem(tx, fixture, overrides = {}) {
   return row
 }
 
+export async function addRewardPoolPresets(tx, fixture, presets) {
+  return tx`
+    select *
+    from public.add_reward_pool_presets(
+      ${fixture.merchantId}::uuid,
+      ${fixture.cardId}::uuid,
+      ${tx.json(presets)}
+    )`
+}
+
 export async function createOrGetJoinQr(tx, fixture) {
   const [row] = await tx`
     select *
@@ -245,4 +255,86 @@ export async function createRewardPoolFixture(tx) {
     )`
 
   return fixture
+}
+
+export async function cleanupRewardPoolFixture(sql, fixture) {
+  await sql`
+    delete from public.audit_logs
+    where merchant_id = ${fixture.merchantId}::uuid
+       or actor_id in (
+         ${fixture.ownerUserId},
+         ${fixture.adminUserId},
+         ${fixture.customerUserId}
+       )`
+  await sql`
+    delete from public.product_events
+    where merchant_id = ${fixture.merchantId}::uuid
+       or actor_id in (
+         ${fixture.ownerUserId},
+         ${fixture.adminUserId},
+         ${fixture.customerUserId}
+       )`
+  await sql`
+    delete from public.merchants
+    where id = ${fixture.merchantId}::uuid`
+  await sql`
+    delete from public.customers
+    where id = ${fixture.customerId}::uuid`
+  await sql`
+    delete from public.internal_admins
+    where user_id = ${fixture.adminUserId}::uuid`
+  await sql`
+    delete from auth.users
+    where id in (
+      ${fixture.ownerUserId}::uuid,
+      ${fixture.adminUserId}::uuid,
+      ${fixture.customerUserId}::uuid
+    )`
+
+  await assertRewardPoolFixtureClean(sql, fixture)
+}
+
+export async function assertRewardPoolFixtureClean(sql, fixture) {
+  const [state] = await sql`
+    select
+      (select count(*)::int from auth.users
+       where id in (
+         ${fixture.ownerUserId}::uuid,
+         ${fixture.adminUserId}::uuid,
+         ${fixture.customerUserId}::uuid
+       )) as auth_user_count,
+      (select count(*)::int from public.internal_admins
+       where user_id = ${fixture.adminUserId}::uuid) as internal_admin_count,
+      (select count(*)::int from public.merchants
+       where id = ${fixture.merchantId}::uuid) as merchant_count,
+      (select count(*)::int from public.merchant_locations
+       where merchant_id = ${fixture.merchantId}::uuid) as location_count,
+      (select count(*)::int from public.loyalty_cards
+       where merchant_id = ${fixture.merchantId}::uuid) as card_count,
+      (select count(*)::int from public.reward_pool_items
+       where merchant_id = ${fixture.merchantId}::uuid) as reward_count,
+      (select count(*)::int from public.qr_codes
+       where merchant_id = ${fixture.merchantId}::uuid) as qr_count,
+      (select count(*)::int from public.product_events
+       where merchant_id = ${fixture.merchantId}::uuid) as product_event_count,
+      (select count(*)::int from public.audit_logs
+       where merchant_id = ${fixture.merchantId}::uuid) as audit_count,
+      (select count(*)::int from public.customers
+       where id = ${fixture.customerId}::uuid) as customer_count,
+      (select count(*)::int from public.customer_memberships
+       where id = ${fixture.membershipId}::uuid) as membership_count`
+
+  assert.deepEqual(state, {
+    auth_user_count: 0,
+    internal_admin_count: 0,
+    merchant_count: 0,
+    location_count: 0,
+    card_count: 0,
+    reward_count: 0,
+    qr_count: 0,
+    product_event_count: 0,
+    audit_count: 0,
+    customer_count: 0,
+    membership_count: 0,
+  })
 }

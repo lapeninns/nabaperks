@@ -2,77 +2,53 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import {
-  hasPasswordSymbol,
   passwordRequirements,
   validateConfirmPassword,
   validatePassword,
 } from "@/lib/auth/password"
 
-const STRONG_PASSWORD = "Venue123!"
+const POLICY_PASSWORD = "lowercase9"
 
-test("validatePassword rejects passwords missing any required character set", () => {
-  assert.equal(validatePassword("sho1!A"), "Use at least 8 characters.")
+test("validatePassword rejects short, letterless, and digitless passwords", () => {
+  assert.equal(validatePassword("abc123"), "Use at least 8 characters.")
+  assert.equal(
+    validatePassword("12345678"),
+    "Use at least one letter and one number."
+  )
   assert.equal(
     validatePassword("abcdefgh"),
-    "Use upper and lower case, a number, and a symbol."
-  )
-  assert.equal(
-    validatePassword("ABCDEFGH1!"),
-    "Use upper and lower case, a number, and a symbol."
-  )
-  assert.equal(
-    validatePassword("abcdefgh1!"),
-    "Use upper and lower case, a number, and a symbol."
-  )
-  assert.equal(
-    validatePassword("Abcdefgh!"),
-    "Use upper and lower case, a number, and a symbol."
-  )
-  assert.equal(
-    validatePassword("Abcdefg1"),
-    "Use upper and lower case, a number, and a symbol."
+    "Use at least one letter and one number."
   )
 })
 
-test("validatePassword accepts passwords that match Supabase policy", () => {
-  assert.equal(validatePassword(STRONG_PASSWORD), null)
-  assert.equal(validatePassword("  Venue123!  "), null)
-})
-
-test("hasPasswordSymbol only accepts Supabase's allowed symbol set", () => {
-  assert.equal(hasPasswordSymbol("Venue123!"), true)
-  assert.equal(hasPasswordSymbol("Venue123"), false)
-  assert.equal(hasPasswordSymbol("Venue123§"), false)
+test("validatePassword accepts letters plus digits without uppercase or symbols", () => {
+  assert.equal(validatePassword(POLICY_PASSWORD), null)
+  assert.equal(validatePassword("UPPERCASE9"), null)
+  assert.equal(validatePassword("Venue123!"), null)
 })
 
 test("passwordRequirements tracks each rule independently", () => {
   assert.deepEqual(passwordRequirements(""), {
     minLength: false,
-    hasLowercase: false,
-    hasUppercase: false,
+    hasLetter: false,
     hasDigit: false,
-    hasSymbol: false,
   })
-  assert.deepEqual(passwordRequirements("venue1!"), {
+  assert.deepEqual(passwordRequirements("letters"), {
     minLength: false,
-    hasLowercase: true,
-    hasUppercase: false,
-    hasDigit: true,
-    hasSymbol: true,
+    hasLetter: true,
+    hasDigit: false,
   })
-  assert.deepEqual(passwordRequirements(STRONG_PASSWORD), {
+  assert.deepEqual(passwordRequirements(POLICY_PASSWORD), {
     minLength: true,
-    hasLowercase: true,
-    hasUppercase: true,
+    hasLetter: true,
     hasDigit: true,
-    hasSymbol: true,
   })
 })
 
 test("validateConfirmPassword only fails when values differ", () => {
-  assert.equal(validateConfirmPassword(STRONG_PASSWORD, STRONG_PASSWORD), null)
+  assert.equal(validateConfirmPassword(POLICY_PASSWORD, POLICY_PASSWORD), null)
   assert.equal(
-    validateConfirmPassword(STRONG_PASSWORD, "Venue124!"),
+    validateConfirmPassword(POLICY_PASSWORD, "lowercase8"),
     "Passwords do not match."
   )
 })

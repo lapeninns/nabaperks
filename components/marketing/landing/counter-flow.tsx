@@ -21,7 +21,7 @@ export const counterFlowSteps = [
   {
     step: "Step 03",
     title: "Stamp",
-    body: "The customer taps to claim. The counter-verified stamp checks your venue QR, their saved card, and the one-stamp-per-day rule — the phone never crosses the counter.",
+    body: "The customer taps to claim. The stamp is linked to your venue QR and their saved membership, with a one-per-UK-date cap — the phone stays in their hand.",
   },
   {
     step: "Step 04",

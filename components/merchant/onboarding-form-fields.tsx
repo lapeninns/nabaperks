@@ -106,7 +106,9 @@ export function OnboardingFormError({
 }) {
   return (
     <p
+      id="onboarding-form-error"
       role="alert"
+      tabIndex={-1}
       className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
     >
       {children}
@@ -147,7 +149,7 @@ function FieldError({
   readonly error?: string
 }) {
   return error ? (
-    <p id={`${id}-error`} className="text-sm text-destructive">
+    <p id={`${id}-error`} role="alert" className="text-sm text-destructive">
       {error}
     </p>
   ) : null

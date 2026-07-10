@@ -7,6 +7,7 @@ const projectDir = process.cwd()
 const migrationVersionPattern = /^\d{14}$/
 const hookSecretPlaceholder =
   "v1,whsec_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa="
+const linkedHookUri = "https://nabaperks.com/api/auth/hooks/send-email"
 
 if (isMain()) {
   const result = runSupabaseMigrationList(projectDir, process.env)
@@ -29,7 +30,9 @@ if (isMain()) {
   }
 
   if (diff.missingOnRemote.length || diff.extraOnRemote.length) {
-    console.error("Linked Supabase migrations are not aligned with local files.")
+    console.error(
+      "Linked Supabase migrations are not aligned with local files."
+    )
 
     if (diff.missingOnRemote.length) {
       console.error(`Missing on remote: ${diff.missingOnRemote.join(", ")}`)
@@ -54,10 +57,12 @@ export function runSupabaseMigrationList(projectDir, env) {
     env: {
       ...env,
       // `supabase migration list --linked` is read-only, but the CLI still
-      // validates auth hook config before connecting. This placeholder only
-      // unblocks local config parsing when the real value is absent.
+      // validates auth hook config before connecting. These linked defaults
+      // only unblock config parsing when caller values are absent.
       SUPABASE_SEND_EMAIL_HOOK_SECRET:
         env.SUPABASE_SEND_EMAIL_HOOK_SECRET || hookSecretPlaceholder,
+      SUPABASE_SEND_EMAIL_HOOK_URI:
+        env.SUPABASE_SEND_EMAIL_HOOK_URI || linkedHookUri,
     },
     stdio: ["ignore", "pipe", "pipe"],
   })

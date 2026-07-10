@@ -64,14 +64,8 @@ test("Given cross-request merchant caches When loader keys are inspected Then te
     /\[merchantCacheTag\(merchant\.id\), loyaltyCardSetupCacheTag\(merchant\.id\)\]/
   )
   assert.match(activity, /\["merchant-activity-summary", scopedMerchantId\]/)
-  assert.match(
-    activity,
-    /merchantActivitySummaryCacheTag\(scopedMerchantId\)/
-  )
-  assert.match(
-    qrCode,
-    /\["qr-image-context", merchant\.id, qrCodeId\]/
-  )
+  assert.match(activity, /merchantActivitySummaryCacheTag\(scopedMerchantId\)/)
+  assert.match(qrCode, /\["qr-image-context", merchant\.id, qrCodeId\]/)
   assert.match(
     qrCode,
     /\[merchantCacheTag\(merchant\.id\), qrImageContextCacheTag\(qrCodeId\)\]/
@@ -107,7 +101,10 @@ test("Given trust moat regressions need runtime proof When CI is inspected Then 
   assert.match(ci, /run: supabase start/)
   assert.match(ci, /run: pnpm test:db/)
   assert.match(ci, /run: supabase stop --no-backup/)
-  assert.match(packageJson, /"test:db": "node --test tests\/db\/\*\.test\.mjs"/)
+  assert.match(
+    packageJson,
+    /"test:db": "node --test --test-concurrency=1 tests\/db\/\*\.test\.mjs"/
+  )
   assert.match(dbTest, /Promise\.allSettled/)
   assert.match(dbTest, /issue_self_service_stamp/)
   assert.match(dbTest, /collect_reward_scan_token/)
@@ -157,19 +154,19 @@ test("Given Stripe retries a processed event When analytics recording is schedul
     "webhook",
     "route.ts"
   )
+  const webhookEvents = readProjectFile("lib", "stripe", "webhook-events.ts")
 
-  assert.match(webhookRoute, /productEvents = await handleStripeEvent/)
-  assert.match(
-    webhookRoute,
-    /await markStripeWebhookEventProcessed\(event\.id\)/
-  )
-  assert.match(webhookRoute, /scheduleStripeProductEvents\(productEvents\)/)
+  assert.match(webhookEvents, /if \(claim\.status === "processed"\)/)
+  assert.match(webhookEvents, /dependencies\.processEvent/)
+  assert.match(webhookEvents, /if \(result\.status === "applied"\)/)
+  assert.match(webhookEvents, /dependencies\.scheduleAppliedSideEffects/)
+  assert.match(webhookRoute, /scheduleStripeAppliedSideEffects/)
   assert.match(webhookRoute, /after\(callback\)/)
   assert.match(webhookRoute, /Promise\.allSettled/)
   assert.match(webhookRoute, /stripe_product_event_record_failed/)
-  assert.doesNotMatch(
-    webhookRoute,
-    /await handleStripeEvent\(stripe, event\)[\s\S]*await recordProductEvent[\s\S]*await markStripeWebhookEventProcessed/
+  assert.match(
+    webhookEvents,
+    /if \(claim\.status === "processed"\) \{\s*return Response\.json\(\{ received: true, duplicate: true \}\)\s*\}/
   )
 })
 

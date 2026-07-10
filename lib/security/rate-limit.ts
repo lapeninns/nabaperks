@@ -2,8 +2,6 @@ import "server-only"
 
 import { createHash } from "node:crypto"
 
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
-
 export {
   rateLimitIdentityFromHeaders,
   trustedClientIp,
@@ -30,7 +28,7 @@ export async function peekRateLimit({
   windowMs: number
 }) {
   const bucketKey = rateLimitBucketKey(key)
-  const supabase = createSupabaseServiceRoleClient()
+  const supabase = await createRateLimitClient()
   const { data, error } = await supabase
     .from("rate_limit_buckets")
     .select("count, reset_at")
@@ -42,16 +40,17 @@ export async function peekRateLimit({
   }
 
   const now = Date.now()
+  const resetAtMs = data ? new Date(data.reset_at).getTime() : Number.NaN
+  const bucketIsActive = Number.isFinite(resetAtMs) && resetAtMs > now
   const used =
-    data && new Date(data.reset_at).getTime() > now
-      ? Math.min(Math.max(data.count, 0), limit)
-      : 0
+    data && bucketIsActive ? Math.min(Math.max(data.count, 0), limit) : 0
 
   return {
     used,
     limit,
     remaining: Math.max(0, limit - used),
     windowMs,
+    resetAt: bucketIsActive ? new Date(resetAtMs).toISOString() : null,
   }
 }
 
@@ -65,7 +64,7 @@ export async function enforceRateLimit({
   windowMs: number
 }) {
   const bucketKey = rateLimitBucketKey(key)
-  const supabase = createSupabaseServiceRoleClient()
+  const supabase = await createRateLimitClient()
   const { error } = await supabase.rpc("enforce_rate_limit", {
     p_bucket_key: bucketKey,
     p_limit: limit,
@@ -79,4 +78,12 @@ export async function enforceRateLimit({
   }
 
   throw new Error(`Unable to enforce rate limit: ${error.message}`)
+}
+
+async function createRateLimitClient() {
+  // Keep the shared error and dependency contract importable by pure Node
+  // tests without eagerly loading Next's request-bound server APIs.
+  const { createSupabaseServiceRoleClient } =
+    await import("@/lib/supabase/server")
+  return createSupabaseServiceRoleClient()
 }

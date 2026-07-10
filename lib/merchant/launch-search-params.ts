@@ -25,6 +25,8 @@ export type LaunchSearchParams = {
   disabled?: string
   checkout?: string
   portal?: string
+  session_id?: string
+  billing_error?: string
   qr?: string
 }
 
@@ -39,6 +41,8 @@ const LAUNCH_PARAM_KEYS = [
   "disabled",
   "checkout",
   "portal",
+  "session_id",
+  "billing_error",
   "qr",
 ] as const satisfies ReadonlyArray<keyof LaunchSearchParams>
 

@@ -35,7 +35,7 @@ function HeroRewardRow({
       name={revealed ? reward : SEALED_REWARD_NAME}
       description={
         revealed
-          ? "Ready for merchant scan at the counter."
+          ? "Ready for staff to scan in the merchant app."
           : // Short enough to never hit the ticket's two-line clamp — the
             // sealed name above already carries the mystery.
             "Stays sealed until the final stamp."
@@ -73,7 +73,7 @@ export function HeroSampleCard({ qrMatrix }: { qrMatrix: QrMatrix }) {
     >
       <CardScanRow
         qrMatrix={qrMatrix}
-        eyebrow="Scanned at the counter"
+        eyebrow="Venue QR scanned"
         title="Venue QR opens the card in the browser."
       />
       <CardStampRow

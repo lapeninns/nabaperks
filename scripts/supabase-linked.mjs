@@ -3,10 +3,12 @@ import { spawnSync } from "node:child_process"
 /**
  * Runs linked-project Supabase CLI commands. The CLI validates
  * `supabase/config.toml` auth hooks even for read-only remote ops; this
- * supplies a formatted placeholder when the real secret is not in the shell.
+ * supplies safe linked defaults when the values are not in the shell. Explicit
+ * caller values stay authoritative.
  */
 const hookSecretPlaceholder =
   "v1,whsec_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa="
+const linkedHookUri = "https://nabaperks.com/api/auth/hooks/send-email"
 
 const args = process.argv.slice(2)
 
@@ -25,6 +27,8 @@ const result = spawnSync("supabase", args, {
     ...process.env,
     SUPABASE_SEND_EMAIL_HOOK_SECRET:
       process.env.SUPABASE_SEND_EMAIL_HOOK_SECRET || hookSecretPlaceholder,
+    SUPABASE_SEND_EMAIL_HOOK_URI:
+      process.env.SUPABASE_SEND_EMAIL_HOOK_URI || linkedHookUri,
   },
 })
 

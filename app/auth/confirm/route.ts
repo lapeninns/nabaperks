@@ -1,6 +1,7 @@
 import type { EmailOtpType } from "@supabase/supabase-js"
 import { NextResponse, type NextRequest } from "next/server"
 
+import { merchantLoginHref } from "@/lib/navigation/merchant-auth-hrefs"
 import { safeMerchantNextPath } from "@/lib/navigation/safe-next-path"
 import { createSupabaseRouteHandlerClient } from "@/lib/supabase/server"
 
@@ -54,5 +55,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(new URL("/login?error=verification", origin))
+  return NextResponse.redirect(
+    new URL(merchantLoginHref({ error: "verification", next }), origin)
+  )
 }

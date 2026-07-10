@@ -1,4 +1,6 @@
 import type { ReactNode } from "react"
+
+import { MarketingFunnelTracker } from "@/components/analytics/marketing-funnel-tracker"
 import Link from "next/link"
 
 import { Logo } from "@/components/brand"
@@ -42,6 +44,7 @@ export function MarketingLayout({
   const marketingLinks = navLinks ?? defaultMarketingLinks
   return (
     <div className="min-h-[100dvh] overflow-x-clip bg-background">
+      <MarketingFunnelTracker />
       {/* Keyboard/SR users skip the marquee + sticky header on every route. */}
       <a
         href="#main"
@@ -64,7 +67,7 @@ export function MarketingLayout({
         <footer className="border-t-2 border-dashed border-border bg-card">
           <div className="mx-auto flex w-full max-w-marketing-chrome flex-col items-center gap-3 px-6 py-6 text-sm text-muted-foreground sm:flex-row sm:justify-between">
             <div className="flex items-center gap-3">
-              <Logo href={logoHref} label="nabaperks" />
+              <Logo href={logoHref} label="nabaperks" linked={false} />
               <span className="mono-id tracking-[0.08em] whitespace-nowrap text-muted-foreground">
                 © {new Date().getFullYear()}
               </span>
@@ -81,56 +84,63 @@ export function MarketingLayout({
         </footer>
       ) : (
         <footer className="border-t-2 border-dashed border-border bg-card">
-        <div className="mx-auto flex w-full max-w-marketing-chrome flex-col gap-4 px-6 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <Logo href={logoHref} label="nabaperks" />
-            <span className="mono-id tracking-[0.08em] whitespace-nowrap text-muted-foreground">
-              © {new Date().getFullYear()} · Marketing by choice
-            </span>
-          </div>
-          <nav aria-label="Merchant links" className="flex flex-wrap gap-2">
-            <Link className={legalLinkClass} href="/how-it-works">
-              How it works
-            </Link>
-            <Link className={legalLinkClass} href="/loyalty-for-pubs">
-              Loyalty for pubs
-            </Link>
-            <Link className={legalLinkClass} href="/loyalty-for-cafes">
-              Loyalty for cafes
-            </Link>
-            <Link className={legalLinkClass} href="/loyalty-for-takeaways">
-              Loyalty for takeaways
-            </Link>
-            <Link className={legalLinkClass} href="/loyalty-for-bars">
-              Loyalty for bars
-            </Link>
-            <Link className={legalLinkClass} href="/about">
-              About
-            </Link>
-            <Link className={legalLinkClass} href="/pricing">
-              Pricing
-            </Link>
-            <Link className={legalLinkClass} href="/signup">
-              Start free pilot
-            </Link>
-          </nav>
-          <nav aria-label="Pub loyalty guides" className="flex flex-wrap gap-2">
-            {GUIDES.map((guide) => (
-              <Link key={guide.href} className={legalLinkClass} href={guide.href}>
-                {guide.nav}
+          <div className="mx-auto flex w-full max-w-marketing-chrome flex-col gap-4 px-6 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <Logo href={logoHref} label="nabaperks" />
+              <span className="mono-id tracking-[0.08em] whitespace-nowrap text-muted-foreground">
+                © {new Date().getFullYear()} · Marketing by choice
+              </span>
+            </div>
+            <nav aria-label="Merchant links" className="flex flex-wrap gap-2">
+              <Link className={legalLinkClass} href="/how-it-works">
+                How it works
               </Link>
-            ))}
-          </nav>
-          <nav aria-label="Legal links" className="flex flex-wrap gap-2">
-            <Link className={legalLinkClass} href="/terms">
-              Terms
-            </Link>
-            <Link className={legalLinkClass} href="/privacy">
-              Privacy
-            </Link>
-          </nav>
-        </div>
-      </footer>
+              <Link className={legalLinkClass} href="/loyalty-for-pubs">
+                Loyalty for pubs
+              </Link>
+              <Link className={legalLinkClass} href="/loyalty-for-cafes">
+                Loyalty for cafes
+              </Link>
+              <Link className={legalLinkClass} href="/loyalty-for-takeaways">
+                Loyalty for takeaways
+              </Link>
+              <Link className={legalLinkClass} href="/loyalty-for-bars">
+                Loyalty for bars
+              </Link>
+              <Link className={legalLinkClass} href="/about">
+                About
+              </Link>
+              <Link className={legalLinkClass} href="/pricing">
+                Pricing
+              </Link>
+              <Link className={legalLinkClass} href="/signup">
+                Start free pilot
+              </Link>
+            </nav>
+            <nav
+              aria-label="Pub loyalty guides"
+              className="flex flex-wrap gap-2"
+            >
+              {GUIDES.map((guide) => (
+                <Link
+                  key={guide.href}
+                  className={legalLinkClass}
+                  href={guide.href}
+                >
+                  {guide.nav}
+                </Link>
+              ))}
+            </nav>
+            <nav aria-label="Legal links" className="flex flex-wrap gap-2">
+              <Link className={legalLinkClass} href="/terms">
+                Terms
+              </Link>
+              <Link className={legalLinkClass} href="/privacy">
+                Privacy
+              </Link>
+            </nav>
+          </div>
+        </footer>
       )}
     </div>
   )

@@ -43,8 +43,8 @@ export const metadata: Metadata = {
 const story = [
   // The lede above already introduces the operator; open on what we make so
   // the page does not repeat its first sentence verbatim.
-  "We make a browser-based loyalty card with counter-verified stamps — shaped with pub teams already using Nabaperks on busy shifts.",
-  "We built it because the loyalty tools we tried got in the way of the counter: an app to download for a pint, a wallet pass to install, paper cards lost in the wash, or a POS we did not want to replace. So we made the opposite — a card that opens from a QR in the browser, saves in one tap, and verifies every stamp at the counter.",
+  "We make a browser-based loyalty card with venue-linked stamps — shaped with pub teams already using Nabaperks on busy shifts.",
+  "We built it because the loyalty tools we tried got in the way of the counter: an app to download for a pint, a wallet pass to install, paper cards lost in the wash, or a POS we did not want to replace. So we made the opposite — a card that opens from a QR in the browser, saves in one tap, and links each claim to the venue and saved membership.",
   "That counter-first view is the whole point. Nabaperks is built for what actually works on a busy shift, in a real pub, with real regulars.",
 ]
 
@@ -52,7 +52,7 @@ const principles = [
   `Built by ${OPERATOR.name}, a ${OPERATOR.role} — shaped by pub teams using Nabaperks day to day`,
   PRODUCT.posLine,
   "Loyalty kept separate from marketing — a regular can collect and redeem without joining any list",
-  "Counter-verified stamps, so a finished card always means a real regular",
+  "Venue-linked stamp records with a one-per-customer-per-UK-date cap",
 ]
 
 const aboutGraph = marketingPageGraph({

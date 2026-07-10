@@ -1,4 +1,5 @@
 import { Tick02Icon } from "@hugeicons/core-free-icons"
+import { headers } from "next/headers"
 
 import { AUTH_SECTION_MIN_H } from "@/app/(auth)/viewport"
 import { ResetPasswordForm } from "@/components/auth/reset-password-form"
@@ -8,6 +9,9 @@ import {
   merchantEmailOtpAliasDigitLabel,
   merchantEmailOtpAliasLength,
 } from "@/lib/auth/merchant-email-otp-alias"
+import { readMerchantOtpResendCooldown } from "@/lib/auth/merchant-otp-resend"
+import { safeMerchantNextPath } from "@/lib/navigation/safe-next-path"
+import { rateLimitIdentityFromHeaders } from "@/lib/security/rate-limit-core"
 import { cn } from "@/lib/utils"
 
 const otpCodeLabel = merchantEmailOtpAliasDigitLabel()
@@ -17,7 +21,26 @@ const trustPoints = [
   "Your venue setup and loyalty data stay exactly as they were",
 ]
 
-export default function ResetPasswordPage() {
+type ResetPasswordPageProps = {
+  searchParams: Promise<{
+    email?: string | string[]
+    next?: string | string[]
+    stage?: string | string[]
+  }>
+}
+
+export default async function ResetPasswordPage({
+  searchParams,
+}: ResetPasswordPageProps) {
+  const params = await searchParams
+  const initialEmail = (firstParam(params.email) ?? "").trim().toLowerCase()
+  const next = safeMerchantNextPath(firstParam(params.next) ?? "/app")
+  const initialOtpSent =
+    firstParam(params.stage) === "verify" && looksLikeEmail(initialEmail)
+  const initialRetryAt = initialOtpSent
+    ? await recoveryCooldown(initialEmail)
+    : undefined
+
   return (
     <MarketingLayout focused>
       <section
@@ -63,9 +86,41 @@ export default function ResetPasswordPage() {
               Enter your venue email. We will send a {otpCodeLabel} reset code.
             </p>
           </div>
-          <ResetPasswordForm otpLength={merchantEmailOtpAliasLength()} />
+          <ResetPasswordForm
+            key={`${initialOtpSent ? "verify" : "request"}:${initialEmail}:${next}`}
+            otpLength={merchantEmailOtpAliasLength()}
+            initialEmail={initialEmail}
+            initialOtpSent={initialOtpSent}
+            initialRetryAt={initialRetryAt}
+            next={next}
+          />
         </ReceiptCard>
       </section>
     </MarketingLayout>
   )
+}
+
+async function recoveryCooldown(email: string) {
+  try {
+    return await readMerchantOtpResendCooldown({
+      email,
+      purpose: "recovery",
+      requestIdentity: rateLimitIdentityFromHeaders(await headers()),
+    })
+  } catch (error) {
+    // The reset form must stay available when durable rate-limit readback is
+    // temporarily unavailable. The POST action still enforces both limits.
+    console.error("Merchant recovery cooldown readback failed", {
+      error: error instanceof Error ? error.message : "Unknown server error",
+    })
+    return undefined
+  }
+}
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value
+}
+
+function looksLikeEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }

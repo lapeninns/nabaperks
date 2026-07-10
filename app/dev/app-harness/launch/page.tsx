@@ -5,10 +5,12 @@ import { PageTitle } from "@/components/brand"
 import { SetupBillingActivationCard } from "@/components/merchant/account/billing-activation-card"
 import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
 import { BirthdayRewardPanel } from "@/components/merchant/launch/birthday-panel"
+import { BillingActivationAssetPreview } from "@/components/merchant/launch/billing-activation-asset-preview"
 import { birthdayRewardTemplateForBusinessType } from "@/lib/merchant/birthday-reward-template"
 import {
   LoyaltyCardForm,
   RewardPoolForm,
+  type RewardPoolItemValues,
 } from "@/components/merchant/loyalty-card-form"
 import { QrPanelLive } from "@/components/merchant/launch/qr-panel-live"
 import { VenueLocationForm } from "@/components/merchant/launch/venue-location-form"
@@ -42,7 +44,7 @@ const LOCATION_NAME = "Old Crown Girton"
 export default async function LaunchHarnessPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ tab?: string; state?: string }>
+  searchParams?: Promise<{ tab?: string; state?: string; pool?: string }>
 }) {
   if (process.env.NODE_ENV === "production") {
     notFound()
@@ -60,6 +62,10 @@ export default async function LaunchHarnessPage({
     params.state === "billing" || params.state === "live"
       ? params.state
       : "default"
+  const rewardPoolItems = resolveHarnessRewardPool(params.pool)
+  const activeRewardPoolItemCount = rewardPoolItems.filter(
+    (item) => item.isActive
+  ).length
 
   const readiness = buildLaunchReadiness({
     activeCard: {
@@ -68,7 +74,7 @@ export default async function LaunchHarnessPage({
       reward_name: "Mystery reward",
       stamps_required: 3,
     },
-    activeRewardPoolItemCount: 3,
+    activeRewardPoolItemCount,
     qrCode: {
       id: "qr_harness",
       qr_id: "old-crown-girton",
@@ -134,7 +140,7 @@ export default async function LaunchHarnessPage({
           <LoyaltyCardForm
             merchantName={HARNESS_MERCHANT.business_name}
             locationName={LOCATION_NAME}
-            activeRewardCount={3}
+            activeRewardCount={activeRewardPoolItemCount}
             initialValues={{
               cardId: "card_harness",
               cardName: "Mystery Visit Card",
@@ -146,62 +152,47 @@ export default async function LaunchHarnessPage({
           />
         ) : activeTab === "rewards" ? (
           <div className="grid min-w-0 gap-3 sm:gap-5">
-          <RewardPoolForm
-            loyaltyCardId="card_harness"
-            cardName="Mystery Visit Card"
-            rewardPoolItems={[
-              {
-                id: "rwd_1",
-                rewardName: "Free hot drink",
-                rewardTerms: "Any size, on the house.",
-                weight: "3",
-                displayOrder: "1",
-                isActive: true,
-              },
-              {
-                id: "rwd_2",
-                rewardName: "Slice of cake",
-                rewardTerms: "Pick from the counter selection.",
-                weight: "2",
-                displayOrder: "2",
-                isActive: true,
-              },
-              {
-                id: "rwd_3",
-                rewardName: "10% off the bill",
-                rewardTerms: "One visit, food only.",
-                weight: "1",
-                displayOrder: "3",
-                isActive: true,
-              },
-            ]}
-            continueHref="/app/launch?tab=qr"
-            continueLabel="your venue QR"
-            presets={rewardPresetsForBusinessType("pub")}
-          />
-          <BirthdayRewardPanel
-            loyaltyCardId="card_harness"
-            enabled={false}
-            rewardName={null}
-            rewardTerms={null}
-            template={birthdayRewardTemplateForBusinessType("pub")}
-          />
+            <RewardPoolForm
+              loyaltyCardId="card_harness"
+              cardName="Mystery Visit Card"
+              rewardPoolItems={rewardPoolItems}
+              continueHref="/app/launch?tab=qr"
+              continueLabel="your venue QR"
+              presets={rewardPresetsForBusinessType("pub")}
+            />
+            <BirthdayRewardPanel
+              loyaltyCardId="card_harness"
+              enabled={false}
+              rewardName={null}
+              rewardTerms={null}
+              template={birthdayRewardTemplateForBusinessType("pub")}
+            />
           </div>
         ) : activeTab === "qr" ? (
           <QrPanelLive
             activeCardName="Mystery Visit Card"
             qrCodeId="qr_harness"
-            isActive
-            scansAvailable={false}
+            isActive={readiness.tabs.qr}
+            scansAvailable={readiness.launchReady}
             shareUrl="https://nabaperks.com/q/old-crown-girton"
             hasVenueAddress
             returnHref="/app/launch?tab=qr"
           />
         ) : activeTab === "billing" ? (
-          <SetupBillingActivationCard
-            annualBillingAvailable={false}
-            billingReturnTo="/app/launch?tab=billing"
-          />
+          <div className="grid min-w-0 items-start gap-3 xl:grid-cols-[minmax(20rem,0.7fr)_minmax(0,1.3fr)] xl:gap-5">
+            {state === "billing" ? (
+              <BillingActivationAssetPreview
+                venueName={LOCATION_NAME}
+                cardName="Mystery Visit Card"
+                stampsRequired={3}
+                qrCodeId="qr_harness"
+              />
+            ) : null}
+            <SetupBillingActivationCard
+              annualBillingAvailable
+              billingReturnTo="/app/launch?tab=billing"
+            />
+          </div>
         ) : (
           <VenueLocationForm
             initialValues={{
@@ -233,4 +224,54 @@ function resolveTab(value: string | undefined): LaunchHubTab {
     return value
   }
   return "card"
+}
+
+const READY_REWARD_POOL: readonly RewardPoolItemValues[] = [
+  {
+    id: "rwd_1",
+    rewardName: "Free hot drink",
+    rewardTerms: "Any size, on the house.",
+    weight: "3",
+    displayOrder: "1",
+    isActive: true,
+  },
+  {
+    id: "rwd_2",
+    rewardName: "Slice of cake",
+    rewardTerms: "Pick from the counter selection.",
+    weight: "2",
+    displayOrder: "2",
+    isActive: true,
+  },
+  {
+    id: "rwd_3",
+    rewardName: "10% off the bill",
+    rewardTerms: "One visit, food only.",
+    weight: "1",
+    displayOrder: "3",
+    isActive: true,
+  },
+]
+
+function resolveHarnessRewardPool(
+  state: string | undefined
+): RewardPoolItemValues[] {
+  if (state === "empty") return []
+  if (state === "two")
+    return READY_REWARD_POOL.slice(0, 2).map((item) => ({ ...item }))
+  if (state === "existing") {
+    return [
+      {
+        id: "rwd_existing_free_starter",
+        rewardName: "Free starter",
+        rewardTerms:
+          "One starter up to GBP 8 with any main meal. Valid once issued.",
+        weight: "1",
+        displayOrder: "1",
+        isActive: true,
+      },
+    ]
+  }
+
+  return READY_REWARD_POOL.map((item) => ({ ...item }))
 }

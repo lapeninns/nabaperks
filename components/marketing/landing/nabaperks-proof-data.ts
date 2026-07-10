@@ -10,11 +10,10 @@
 
 import { PROOF, PROOF_DISPLAY } from "@/lib/marketing/facts"
 
-export const SHOW_NABAPERKS_PROOF = true
+// Disabled until the figures, denominators and methodology can be regenerated
+// from durable source evidence. This gate applies to every aggregate proof body.
+export const SHOW_NABAPERKS_PROOF = false
 export const NABAPERKS_PROOF_AS_OF = PROOF.asOf
-
-/** Production credibility kicker for the hero (top-of-page). */
-export const NABAPERKS_AUTHORITY_LINE = `${PROOF_DISPLAY.returnedMembers} customers stamped in the last 3 months — already at UK tills`
 
 export const NABAPERKS_PROOF_TAG = "Real numbers"
 

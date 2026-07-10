@@ -6,6 +6,7 @@ export function Logo({
   href = "/start",
   label = "Nabaperks",
   compact = false,
+  linked = true,
   prefetch,
   wordmarkClassName,
   className,
@@ -13,6 +14,7 @@ export function Logo({
   href?: string
   label?: string
   compact?: boolean
+  linked?: boolean
   prefetch?: LinkProps["prefetch"]
   /**
    * Optional classes on the visible wordmark text (ignored when `compact`,
@@ -34,23 +36,35 @@ export function Logo({
     </span>
   )
 
-  return (
-    <Link
-      href={href}
-      prefetch={prefetch}
-      aria-label={`${label} home`}
-      className={cn(
-        // Focus comes from the shared .pressable outline recipe (globals.css).
-        "pressable inline-flex min-h-11 items-center gap-3 rounded-full pr-3 font-extrabold tracking-tight text-foreground lowercase transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none",
-        className
-      )}
-    >
+  const content = (
+    <>
       {mark}
       {compact ? (
         <span className="sr-only">{label}</span>
       ) : (
         <span className={cn(wordmarkClassName)}>{label}</span>
       )}
+    </>
+  )
+  const rootClassName = cn(
+    "inline-flex min-h-11 items-center gap-3 rounded-full pr-3 font-extrabold tracking-tight text-foreground lowercase transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
+    linked && "pressable outline-none",
+    className
+  )
+
+  if (!linked) {
+    return <span className={rootClassName}>{content}</span>
+  }
+
+  return (
+    <Link
+      href={href}
+      prefetch={prefetch}
+      aria-label={`${label} home`}
+      // Focus comes from the shared .pressable outline recipe (globals.css).
+      className={rootClassName}
+    >
+      {content}
     </Link>
   )
 }

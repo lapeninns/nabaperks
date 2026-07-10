@@ -20,7 +20,7 @@ export function VenuePersonas() {
           Made for food &amp; drink — not generic CRM.
         </h2>
         <p className="mt-3 text-base leading-relaxed text-pretty text-muted-foreground">
-          Same browser card, same counter-verified stamps — tuned to how your
+          Same browser card, same venue-linked stamp controls — tuned to how your
           counter actually runs.
         </p>
       </div>

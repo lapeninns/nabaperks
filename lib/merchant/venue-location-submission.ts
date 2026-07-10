@@ -36,21 +36,28 @@ export type VenueLocationSubmissionErrors = VenueAddressFieldErrors & {
   form?: string
 }
 
-export type VenueLocationWritePayload = Omit<
-  VenueAddressPayload,
-  "address_provider" | "address_provider_id"
-> & {
-  merchant_id: string
+export type VenueLocationPersistencePayload = {
   name: string
   address_provider: VenueAddressPayload["address_provider"]
   address_provider_id: VenueAddressPayload["address_provider_id"]
+  address_source: VenueAddressPayload["address_source"]
+  address_line_1: string
+  address_line_2: string | null
+  address_city: string
+  address_postcode: string
   latitude: number
   longitude: number
   geofence_radius_meters: number
   require_geofence: boolean
   soft_geofence_trigger_stamp_number: number
-  geocoded_at: string
   geofence_pin_source: "geocoded" | "merchant_pin"
+}
+
+export type VenueLocationWritePayload = VenueLocationPersistencePayload & {
+  merchant_id: string
+  address: string
+  address_country: "GB"
+  geocoded_at: string
   geofence_pin_updated_at: string
   is_primary: boolean
 }
@@ -73,7 +80,8 @@ export function parseVenueLocationSubmission(
     addressFields: parseVenueAddressFields(formData),
     geofenceRadiusMeters: value(formData, "geofenceRadiusMeters") || "150",
     requireGeofence: formData.get("requireGeofence") === "on",
-    softGeofenceTriggerStamp: value(formData, "softGeofenceTriggerStamp") || "3",
+    softGeofenceTriggerStamp:
+      value(formData, "softGeofenceTriggerStamp") || "3",
     geofencePinSource: value(formData, "geofencePinSource"),
     venueLatitude: value(formData, "venueLatitude"),
     venueLongitude: value(formData, "venueLongitude"),
@@ -157,6 +165,48 @@ export async function resolveVenueLocationWritePayload(
   | { payload: VenueLocationWritePayload }
   | { errors: VenueLocationSubmissionErrors }
 > {
+  const resolved = await resolveVenueLocationPersistencePayload(submission, {
+    radius: options.radius,
+    manualPin: options.manualPin,
+    softGeofenceTriggerStamp: options.softGeofenceTriggerStamp,
+  })
+
+  if ("errors" in resolved) return resolved
+
+  const savedAt = new Date().toISOString()
+  const payload = resolved.payload
+
+  return {
+    payload: {
+      merchant_id: options.merchantId,
+      ...payload,
+      address: [
+        payload.address_line_1,
+        payload.address_line_2,
+        payload.address_city,
+        payload.address_postcode,
+      ]
+        .filter(Boolean)
+        .join(", "),
+      address_country: "GB",
+      geocoded_at: savedAt,
+      geofence_pin_updated_at: savedAt,
+      is_primary: options.isPrimary ?? true,
+    },
+  }
+}
+
+export async function resolveVenueLocationPersistencePayload(
+  submission: VenueLocationSubmission,
+  options: {
+    radius: number
+    manualPin: { latitude: number; longitude: number } | null
+    softGeofenceTriggerStamp?: number
+  }
+): Promise<
+  | { payload: VenueLocationPersistencePayload }
+  | { errors: VenueLocationSubmissionErrors }
+> {
   const isProviderLookup =
     submission.addressSource === "provider_lookup" &&
     submission.addressProvider === "google_places"
@@ -177,22 +227,22 @@ export async function resolveVenueLocationWritePayload(
     return { errors: { address: resolved.error } }
   }
 
-  const savedAt = new Date().toISOString()
-
   return {
     payload: {
-      merchant_id: options.merchantId,
       name: submission.venueName,
-      ...resolved.payload,
+      address_line_1: resolved.payload.address_line_1,
+      address_line_2: resolved.payload.address_line_2,
+      address_city: resolved.payload.address_city,
+      address_postcode: resolved.payload.address_postcode,
+      address_provider: resolved.payload.address_provider,
+      address_provider_id: resolved.payload.address_provider_id,
+      address_source: resolved.payload.address_source,
       latitude: options.manualPin?.latitude ?? resolved.payload.latitude,
       longitude: options.manualPin?.longitude ?? resolved.payload.longitude,
       geofence_radius_meters: options.radius,
       require_geofence: submission.requireGeofence,
       soft_geofence_trigger_stamp_number: options.softGeofenceTriggerStamp ?? 3,
-      geocoded_at: savedAt,
       geofence_pin_source: options.manualPin ? "merchant_pin" : "geocoded",
-      geofence_pin_updated_at: savedAt,
-      is_primary: options.isPrimary ?? true,
     },
   }
 }

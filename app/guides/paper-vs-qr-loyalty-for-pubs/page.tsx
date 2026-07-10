@@ -5,7 +5,7 @@ import {
   type GuideComparisonRow,
 } from "@/components/marketing/guides/comparison-table"
 import { GuidePage, GuideSection } from "@/components/marketing/guides/guide-page"
-import { PROOF, PROOF_DISPLAY, ROUTES } from "@/lib/marketing/facts"
+import { ROUTES } from "@/lib/marketing/facts"
 import { OG_IMAGE } from "@/lib/seo/structured-data"
 
 const title = "Paper Loyalty Cards vs QR Loyalty for Pubs"
@@ -46,7 +46,7 @@ const rows: GuideComparisonRow[] = [
     feature: "Stamped twice or gamed",
     cells: [
       "A friendly hand can over-stamp it",
-      "Each stamp is confirmed at the counter, capped one per UK date",
+      "Each claim is linked to the venue QR and saved membership, capped one per UK date",
     ],
   },
   {
@@ -102,9 +102,9 @@ export default function PaperVsQrLoyaltyForPubsPage() {
       <GuideSection heading="Where a QR card wins">
         <p>
           A browser-based QR loyalty card keeps the scan-and-collect simplicity
-          but cannot be lost, double-stamped or faked. Customers stamp themselves
-          in a second, the bar never slows, and there is still no app to install —
-          the card just opens in the browser.
+          while the card stays on the customer&apos;s account and each claim leaves a
+          venue-linked record. Customers stamp on their own phones with no staff
+          entry at the till, and there is still no app to install.
         </p>
       </GuideSection>
 
@@ -116,9 +116,8 @@ export default function PaperVsQrLoyaltyForPubsPage() {
           could never show.
         </p>
         <p>
-          It shows up in the numbers: in the {PROOF.indexName} ({PROOF.asOf}{" "}
-          snapshot), {PROOF_DISPLAY.repeatRate} of {PROOF_DISPLAY.members} loyalty
-          members returned.
+          That record lets each venue compare visits, returning members and
+          collections during its own pilot instead of relying on paper-card guesswork.
         </p>
       </GuideSection>
     </GuidePage>

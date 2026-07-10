@@ -14,7 +14,8 @@ implement, which files they may touch, and which gates prove the work.
 - `scripts/check-governance.mjs` — validates metadata, risk gates, blast
   radius, docs drift, evidence ledgers, and gate-command shape.
 - `scripts/run-governance-gates.mjs` — runs the verification gates declared by
-  active Micro-Specs (`--spec <id>` for one spec, `--record` to write ledgers).
+  active Micro-Specs (`--spec <id>` selects an explicit spec, repeat it to
+  batch a deduplicated union, and add `--record` to write per-spec ledgers).
 - `scripts/new-spec.mjs` — scaffolds a floor-satisfying draft Micro-Spec
   (`governance:new-spec`).
 - `scripts/advance-spec.mjs` — the only sanctioned way to change a spec's
@@ -215,13 +216,20 @@ commands your CI workflow runs and the list below.
 docs drift, and gate-command shape. `{{GOVERNANCE_RUN_GATES_COMMAND}}` reads
 active Micro-Specs and runs their declared `verification_gates`.
 
-## Active-Spec Rule
+## Changed-File Attribution Rule
 
-If changed files exist and no active Micro-Spec covers them, governance fails.
-On pull requests the checker diffs against the base branch
-(`origin/<base>...HEAD`), so blast-radius enforcement runs in CI — this requires
-a full-history checkout (`fetch-depth: 0`). Create or update an active
-Micro-Spec before implementation.
+Active Micro-Specs own paths inside their `allowed_blast_radius`. An
+implemented, verified, or closed spec retains attribution for earlier work on
+the same delivery branch only when its machine evidence ledger is also in the
+changed-file set, and then owns only its `implementation_surfaces` plus its
+exact spec and ledger files. Historical completed specs grant no standing
+permission; draft and superseded specs grant none. The lifecycle CLI and
+checker use this same resolver.
+
+If a changed file has no attributable owner, governance fails. On pull
+requests the checker diffs against the base branch (`origin/<base>...HEAD`), so
+blast-radius enforcement runs in CI — this requires a full-history checkout
+(`fetch-depth: 0`). Create or update an active Micro-Spec before implementation.
 
 ## Evidence Model
 
@@ -283,6 +291,27 @@ specs being re-proven — the cure is never blocked by the disease, while
 provenance, dirty-tree, and attestation rules stay enforced. Tune or disable
 staleness via `EVIDENCE_STALENESS_STATUSES` in
 `scripts/governance-constants.mjs`.
+
+### Gate Cadence and Batched Proof
+
+- During Red -> Green -> Refactor, run the narrowest tests that cover the
+  requirement and directly affected contract. Git commit frequency does not
+  define verification frequency.
+- For an active spec ready to move lifecycle, `governance:advance` is the
+  complete recorded boundary. Do not immediately pre-run the same suite with
+  `run-gates --record`.
+- Use `run-gates --record` for a genuinely separate intermediate checkpoint or
+  to re-prove implemented/verified specs whose owned surfaces changed.
+- When a shared change makes several specs stale, re-prove them together:
+  `governance:run-gates --spec MS-one --spec MS-two --record`. Identical exact
+  commands execute once; each ledger receives only that spec's declared gate
+  results.
+- The runner is fail-fast. A failed recorded batch writes honest partial/red
+  runs for every selected spec; fix the root cause and re-run the same batch
+  rather than deleting the failed evidence.
+- Before release, run the project-level CI/final-proof lane once. This is
+  complementary portfolio evidence, not a reason to repeat it after every
+  implementation commit.
 
 ## Working Rule
 

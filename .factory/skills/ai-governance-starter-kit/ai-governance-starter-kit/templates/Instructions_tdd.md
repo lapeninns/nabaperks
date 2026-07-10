@@ -182,7 +182,7 @@ When implementing a Micro-Spec, follow this sequence:
 8. Adjust step size based on problem complexity.
 9. Repeat until every in-scope requirement has a passing test.
 10. For any gate beyond the base test command — durable-proof, end-to-end, accessibility, or visual — run the narrowest focused invocation first for a fast signal (scope it to the tag, title, or suite you changed), then run the full gate the active Micro-Spec declares.
-11. Record proof as you converge: `governance:run-gates --spec <spec-id> --record` writes the spec's evidence ledger (red runs included — honest history). When every requirement is covered, move the lifecycle with `governance:advance <spec-id> --to implemented`, which re-runs the gates fresh and records the transition; do not edit the `status:` line by hand.
+11. Treat focused tests as the per-change feedback loop. Do not run every full gate or record a new evidence entry merely because a Git commit was created. If an active spec is ready for implementation, `governance:advance <spec-id> --to implemented` is the complete recorded proof boundary; do not immediately precede it with the same `run-gates --record` suite. Use `governance:run-gates --record` for a genuinely separate checkpoint or to re-prove implemented/verified specs. If one change affects several specs, repeat `--spec <id>` in that single command so identical gates execute once and evidence remains per-spec. Recorded red runs remain honest history; never edit the `status:` line by hand.
 
 ---
 

@@ -14,7 +14,7 @@ import {
   resolveRewardsContinueHref,
   rewardsContinueLabel,
 } from "@/lib/merchant/launch-readiness-core"
-import { QR_LAUNCH_TAB_PATH, QR_POSTER_PATH } from "@/lib/merchant/qr-nav"
+import { QR_LAUNCH_TAB_PATH } from "@/lib/merchant/qr-nav"
 
 // --- fixtures --------------------------------------------------------------
 
@@ -94,12 +94,20 @@ test("venue readiness: address required, coords only when geofenced", () => {
   )
   const noGeofence = buildLaunchReadiness(
     readyInput({
-      location: venue({ require_geofence: false, latitude: null, longitude: null }),
+      location: venue({
+        require_geofence: false,
+        latitude: null,
+        longitude: null,
+      }),
     })
   )
   const geofencedNoCoords = buildLaunchReadiness(
     readyInput({
-      location: venue({ require_geofence: true, latitude: null, longitude: null }),
+      location: venue({
+        require_geofence: true,
+        latitude: null,
+        longitude: null,
+      }),
     })
   )
   const geofencedWithCoords = buildLaunchReadiness(
@@ -113,7 +121,10 @@ test("venue readiness: address required, coords only when geofenced", () => {
 })
 
 test("qr readiness requires an active QR", () => {
-  assert.equal(buildLaunchReadiness(readyInput({ qrCode: null })).tabs.qr, false)
+  assert.equal(
+    buildLaunchReadiness(readyInput({ qrCode: null })).tabs.qr,
+    false
+  )
   assert.equal(
     buildLaunchReadiness(readyInput({ qrCode: activeQr(false) })).tabs.qr,
     false
@@ -124,13 +135,14 @@ test("qr readiness requires an active QR", () => {
   )
 })
 
-test("qr step href flips to the poster path once active", () => {
+test("qr step stays inside the launch hub before and after activation", () => {
   const inactive = buildLaunchReadiness(readyInput({ qrCode: null }))
   const active = buildLaunchReadiness(readyInput())
   const qrStep = (r) => r.steps.find((s) => s.id === "qr")
 
   assert.equal(qrStep(inactive).href, QR_LAUNCH_TAB_PATH)
-  assert.equal(qrStep(active).href, QR_POSTER_PATH)
+  assert.equal(qrStep(active).href, QR_LAUNCH_TAB_PATH)
+  assert.equal(qrStep(active).actionLabel, "Review venue QR")
 })
 
 // --- buildLaunchReadiness: billing gate ------------------------------------
@@ -298,12 +310,18 @@ test("isJoinQrProvisionEligible: all gates required, QR not already active", () 
   )
   assert.equal(isJoinQrProvisionEligible({ ...base, venueReady: false }), false)
   assert.equal(
-    isJoinQrProvisionEligible({ ...base, qrCode: { id: "q", is_active: true } }),
+    isJoinQrProvisionEligible({
+      ...base,
+      qrCode: { id: "q", is_active: true },
+    }),
     false,
     "already-active QR is not eligible"
   )
   assert.equal(
-    isJoinQrProvisionEligible({ ...base, qrCode: { id: "q", is_active: false } }),
+    isJoinQrProvisionEligible({
+      ...base,
+      qrCode: { id: "q", is_active: false },
+    }),
     true,
     "inactive QR is eligible (re-enable)"
   )
@@ -339,7 +357,10 @@ test("resolveRewardsContinueHref: null until pool ready, then routes onward", ()
   assert.equal(resolveRewardsContinueHref(poolShort), null)
   // QR not live yet takes precedence over a not-yet-due billing step.
   assert.equal(resolveRewardsContinueHref(needsQr), QR_LAUNCH_TAB_PATH)
-  assert.equal(resolveRewardsContinueHref(needsBilling), "/app/launch?tab=billing")
+  assert.equal(
+    resolveRewardsContinueHref(needsBilling),
+    "/app/launch?tab=billing"
+  )
 })
 
 test("rewardsContinueLabel maps hrefs to copy", () => {

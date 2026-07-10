@@ -23,7 +23,6 @@ import {
   OG_IMAGE,
   SITE_URL,
   absoluteUrl,
-  counterLoyaltyIndexDataset,
   glossarySchema,
   howToSchema,
   marketingPageGraph,
@@ -31,7 +30,7 @@ import {
 
 const title = "How It Works — No-App QR Loyalty, Step by Step"
 const description =
-  "How Nabaperks works: scan the till QR, save a browser-based card — no app, no wallet pass — and collect counter-verified stamps. Five anti-fraud checks inside."
+  "How Nabaperks works: scan the till QR, save a browser-based card — no app, no wallet pass — and collect venue-linked stamps with clear claim controls."
 
 export const metadata: Metadata = {
   title,
@@ -42,7 +41,7 @@ export const metadata: Metadata = {
     "digital stamp card how it works",
     "can digital loyalty stamps be faked",
     "loyalty card without an app",
-    "counter-verified stamps",
+    "venue-linked loyalty stamps",
     "QR loyalty for pubs and cafes",
   ],
   openGraph: {
@@ -68,9 +67,8 @@ const venueQrMatrix = buildQrMatrix(SITE_URL)
 
 /** Page graph: the WebPage, the Scan/Save/Stamp/Reward HowTo (byte-synced to
  * the visible steps below), the objection set (byte-synced to the visible
- * FAQ), the term glossary (the page that defines the terms carries the
- * DefinedTermSet) and the Counter-Loyalty Index (visible in the proof tabs),
- * each with route-distinct @ids so nothing collides with home's graph. */
+ * FAQ) and the term glossary (the page that defines the terms carries the
+ * DefinedTermSet), each with route-distinct @ids. */
 function buildPageGraph() {
   return marketingPageGraph({
     page: {
@@ -97,7 +95,6 @@ function buildPageGraph() {
         })),
       },
       glossarySchema(),
-      counterLoyaltyIndexDataset(),
     ],
   })
 }
@@ -113,7 +110,7 @@ export default function HowItWorksPage() {
         </h1>
         <p className="mx-auto mt-4 max-w-[52ch] text-base leading-relaxed text-pretty text-muted-foreground">
           The whole mechanism on one page: how customers scan, save and stamp,
-          the five checks behind every counter-verified stamp, and how it
+          the five controls behind every venue-linked stamp, and how it
           compares to paper cards, loyalty apps and wallet passes.
         </p>
         <p className="mx-auto mt-3 max-w-[52ch] text-sm leading-6 text-pretty font-semibold">
@@ -130,7 +127,7 @@ export default function HowItWorksPage() {
       </Section>
 
       {/* The four beats, then the trust chapters in objection order:
-          how it runs → how it compares → why it can't be faked → the proof →
+          how it runs → how it compares → claim controls → proof →
           what you configure → the consent posture → every question → the ask.
           The full proof tabs moved here from the homepage spine
           (MS-landing-conversion-spine): sitewide copy preservation. */}

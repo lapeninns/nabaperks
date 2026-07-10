@@ -1,20 +1,33 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process"
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync, readFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 
 const playwrightArgs = process.argv.slice(2).filter((arg) => arg !== "--")
 const projectDir = process.cwd()
+const callerOwnedDistDir = process.env.PLAYWRIGHT_NEXT_DIST_DIR?.trim()
+const playwrightDistDir = callerOwnedDistDir || ".next-e2e"
 const env = {
   ...readEnvFile(join(projectDir, ".env")),
   ...readEnvFile(join(projectDir, ".env.local")),
   ...process.env,
+  PLAYWRIGHT_NEXT_DIST_DIR: playwrightDistDir,
 }
 
-const result = spawnSync("playwright", ["test", ...playwrightArgs], {
-  env,
-  stdio: "inherit",
-})
+let result
+try {
+  result = spawnSync("playwright", ["test", ...playwrightArgs], {
+    env,
+    stdio: "inherit",
+  })
+} finally {
+  if (!callerOwnedDistDir) {
+    rmSync(join(projectDir, playwrightDistDir), {
+      recursive: true,
+      force: true,
+    })
+  }
+}
 
 if (result.error) {
   console.error(result.error.message)

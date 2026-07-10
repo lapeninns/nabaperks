@@ -1,9 +1,12 @@
 import Link from "next/link"
-import { CheckmarkBadge04Icon, CreditCardIcon } from "@hugeicons/core-free-icons"
+import { CheckmarkBadge04Icon } from "@hugeicons/core-free-icons"
 
 import { startCheckoutAction } from "@/app/app/billing/actions"
 import { Eyebrow, Icon, ReceiptCard } from "@/components/brand"
-import { Button } from "@/components/ui/button"
+import {
+  BillingCheckoutForm,
+  type BillingCheckoutAction,
+} from "@/components/merchant/account/billing-checkout-form"
 import { GUARANTEE, PRODUCT } from "@/lib/marketing/facts"
 
 /**
@@ -17,22 +20,24 @@ import { GUARANTEE, PRODUCT } from "@/lib/marketing/facts"
 export function SetupBillingActivationCard({
   annualBillingAvailable,
   billingReturnTo,
+  checkoutAction = startCheckoutAction,
 }: {
   annualBillingAvailable: boolean
   billingReturnTo?: string
+  checkoutAction?: BillingCheckoutAction
 }) {
   return (
     <ReceiptCard
       edge
       padding="sm"
-      className="grid gap-4 sm:[--card-spacing:--spacing(6)] sm:gap-5"
+      className="grid gap-4 sm:gap-5 sm:[--card-spacing:--spacing(6)]"
     >
       {/* The page header carries the state/progress ("One step from live");
           this card carries the ACTION. Titling it "Activate your venue" matches the
           billing-status copy and the account billing card, so every
           add-a-card surface shares one title instead of repeating the header. */}
       <div className="grid gap-2">
-        <Eyebrow>Step 5 of 5 · Billing</Eyebrow>
+        <Eyebrow>Billing</Eyebrow>
         <h2 className="text-lg leading-snug font-extrabold text-foreground sm:text-xl">
           Activate your venue
         </h2>
@@ -43,6 +48,7 @@ export function SetupBillingActivationCard({
       </div>
 
       <dl className="grid gap-0 rounded-lg border border-border bg-secondary/40 px-3 py-1 text-sm">
+        <PlanRow label="Plan" value={PRODUCT.planName} />
         <PlanRow label="Free trial" value="30 days" />
         <PlanRow label="Due today" value="£0" />
         <PlanRow label="Then" value="£49 a month" />
@@ -50,25 +56,12 @@ export function SetupBillingActivationCard({
       </dl>
 
       <div className="grid gap-2">
-        <form action={startCheckoutAction.bind(null, "month")}>
-          {billingReturnTo ? (
-            <input type="hidden" name="returnTo" value={billingReturnTo} />
-          ) : null}
-          <Button type="submit" className="w-full">
-            <Icon icon={CreditCardIcon} size={16} />
-            Proceed to billing · {PRODUCT.priceShort}
-          </Button>
-        </form>
-        {annualBillingAvailable ? (
-          <form action={startCheckoutAction.bind(null, "year")}>
-            {billingReturnTo ? (
-              <input type="hidden" name="returnTo" value={billingReturnTo} />
-            ) : null}
-            <Button type="submit" variant="outline" className="w-full">
-              Pay yearly · {PRODUCT.priceAnnual} · {PRODUCT.annualSaving}
-            </Button>
-          </form>
-        ) : null}
+        <BillingCheckoutForm
+          checkoutAction={checkoutAction}
+          annualBillingAvailable={annualBillingAvailable}
+          returnTo={billingReturnTo}
+          stacked
+        />
         <p className="text-center text-xs leading-5 text-muted-foreground">
           Secure checkout via Stripe. {PRODUCT.cancelChip} from your billing
           page.

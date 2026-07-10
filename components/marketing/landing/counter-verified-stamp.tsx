@@ -14,27 +14,22 @@ import { cn } from "@/lib/utils"
 import { ReadMore } from "./read-more"
 import { SNAP_RAIL_ITEM, SnapRail } from "./snap-rail"
 
-/**
- * Counter-verified stamps — Nabaperks' anti-fraud method. Describing the
- * mechanism (in plain lowercase, not a hero-level brand push) makes it a citable
- * answer for "how are digital loyalty stamps verified / can they be faked" and an
- * E-E-A-T moat. The five checks read as a numbered list (semantic, AI-liftable).
- */
+/** The five implemented controls behind a venue-linked stamp claim. */
 const checks: { icon: IconGlyph; title: string; body: string }[] = [
   {
     icon: QrCode01Icon,
-    title: "Venue QR verified",
+    title: "Venue QR linked",
     body: "Each stamp is tied to your one permanent venue QR and the membership that claims it, so every claim lands with a traceable source.",
   },
   {
     icon: UserCheck01Icon,
-    title: "Membership verified",
-    body: "We confirm it's a real saved card on your programme before the stamp lands.",
+    title: "Saved membership linked",
+    body: "The claim must belong to a saved membership on your live programme before the stamp lands.",
   },
   {
     icon: Calendar03Icon,
     title: "One per UK date",
-    body: "A hard cap of one stamp per customer per UK calendar date stops self-stamping and stamping mates twice.",
+    body: "A hard cap limits each customer to one stamp on a UK calendar date, even if the QR is scanned again.",
   },
   {
     icon: Location01Icon,
@@ -43,8 +38,8 @@ const checks: { icon: IconGlyph; title: string; body: string }[] = [
   },
   {
     icon: GiftIcon,
-    title: "Reward checked at redemption",
-    body: "A reward is checked when they claim it — not waved through from a screenshot of a full card.",
+    title: "Staff-scanned collection",
+    body: "Venue staff scan the customer's live reward code and confirm collection in the merchant app.",
   },
 ]
 
@@ -54,16 +49,15 @@ export function CounterVerifiedStamp() {
       <div className="max-w-[46ch]">
         <MonoTag tone="sun">Built-in anti-fraud</MonoTag>
         <h2 className="mt-4 text-[clamp(1.9rem,4.2vw,2.85rem)] leading-[1.0] font-extrabold tracking-[-0.02em] text-balance">
-          Stamps confirmed at the counter.
+          Controls behind every stamp.
         </h2>
         <p className="mt-4 text-[0.98rem] leading-relaxed text-pretty text-paper/80 sm:text-base">
-          Every stamp is checked against your physical venue QR, the
-          customer&apos;s membership, your live account, a{" "}
+          Each claim is linked to your venue QR, the customer&apos;s saved
+          membership and your live programme, with a{" "}
           <strong className="font-bold text-paper">
             one-stamp-per-customer-per-UK-date cap
           </strong>
-          , and optional unusual-location checks. Fraud is designed out — not
-          &ldquo;mitigated&rdquo;.
+          . Optional location checks can flag unusual claims for review.
         </p>
       </div>
 
@@ -101,15 +95,14 @@ export function CounterVerifiedStamp() {
       </SnapRail>
 
       <ReadMore
-        summary="How paper and wallet passes get faked"
+        summary="Why recorded claims are stronger than paper"
         className="mt-5 border-paper/30 bg-transparent"
       >
         <p className="mt-4 max-w-[60ch] border-t-2 border-dashed border-paper/25 pt-5 text-sm leading-relaxed text-pretty text-paper/70 sm:mt-8">
-          A paper card is trivially faked — stamps bought online, self-stamping,
-          a quick photocopy — and most are lost before they&rsquo;re ever
-          redeemed. Wallet-pass rivals stamp from a sharable staff code.
-          Nabaperks checks every stamp where it&rsquo;s claimed, so the phone
-          never crosses the counter.
+          Paper cards can be copied, shared or stamped without a visit, and
+          they leave no record for the venue. Nabaperks records the venue QR,
+          saved membership and UK claim date while the customer keeps hold of
+          their phone. Staff scan the live reward code when it is collected.
         </p>
       </ReadMore>
     </ContrastBand>

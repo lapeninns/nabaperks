@@ -6,20 +6,21 @@ import { useActionState, useEffect, useState } from "react"
 
 import type { AuthActionState } from "@/app/(auth)/actions"
 import { signUpAction } from "@/app/(auth)/actions"
-import { AuthField } from "@/components/auth/auth-field"
 import {
-  PasswordRequirements,
-} from "@/components/auth/password-requirements"
+  captureMarketingFunnelEvent,
+  useMarketingFunnelToken,
+} from "@/components/analytics/marketing-funnel-tracker"
+import { AuthField } from "@/components/auth/auth-field"
+import { PasswordRequirements } from "@/components/auth/password-requirements"
 import { SubmitButton } from "@/components/forms"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  validateConfirmPassword,
-  validatePassword,
-} from "@/lib/auth/password"
+import { validateConfirmPassword, validatePassword } from "@/lib/auth/password"
+import { merchantLoginHref } from "@/lib/navigation/merchant-auth-hrefs"
 import { cn } from "@/lib/utils"
 
 type SignupDetailsFormProps = {
   readonly initialEmail?: string
+  readonly initialName?: string
   readonly next?: string
 }
 
@@ -29,6 +30,7 @@ type ClientErrors = NonNullable<AuthActionState["errors"]>
 
 export function SignupDetailsForm({
   initialEmail,
+  initialName,
   next = "/app/onboarding",
 }: SignupDetailsFormProps) {
   const [state, formAction] = useActionState(signUpAction, initialState)
@@ -36,6 +38,7 @@ export function SignupDetailsForm({
   const [confirmPassword, setConfirmPassword] = useState("")
   const [clientErrors, setClientErrors] = useState<ClientErrors>({})
   const [showValidation, setShowValidation] = useState(false)
+  const funnelToken = useMarketingFunnelToken()
 
   const shouldShowValidation = showValidation || Boolean(state.errors)
   const errors = mergeErrors(state.errors, clientErrors)
@@ -101,6 +104,7 @@ export function SignupDetailsForm({
           }
 
           setClientErrors({})
+          void captureMarketingFunnelEvent("merchant_signup_started")
         }}
       >
         <AuthField
@@ -109,7 +113,7 @@ export function SignupDetailsForm({
           description="The owner or operator running the venue. You add the business name and venue next."
           name="name"
           autoComplete="name"
-          defaultValue={state.fields?.name}
+          defaultValue={state.fields?.name ?? initialName}
           error={errors.name}
         />
         <AuthField
@@ -128,6 +132,7 @@ export function SignupDetailsForm({
             name="password"
             type="password"
             autoComplete="new-password"
+            aria-describedby="signup-password-requirements"
             error={errors.password}
             value={password}
             onChange={(event) => {
@@ -148,7 +153,10 @@ export function SignupDetailsForm({
             }}
             onBlur={() => setShowValidation(true)}
           />
-          <PasswordRequirements password={password} />
+          <PasswordRequirements
+            id="signup-password-requirements"
+            password={password}
+          />
         </div>
         <AuthField
           id="confirmPassword"
@@ -172,6 +180,7 @@ export function SignupDetailsForm({
           onBlur={() => setShowValidation(true)}
         />
         <input type="hidden" name="next" value={next} />
+        <input type="hidden" name="funnelToken" value={funnelToken ?? ""} />
         {errors.form ? (
           <Alert variant="destructive">
             <AlertDescription>{errors.form}</AlertDescription>
@@ -183,7 +192,14 @@ export function SignupDetailsForm({
       </form>
       <p className="text-center text-sm text-muted-foreground">
         Already piloting?{" "}
-        <AuthPromptLink href="/login">Log in</AuthPromptLink>
+        <AuthPromptLink
+          href={merchantLoginHref({
+            email: state.fields?.email ?? initialEmail,
+            next,
+          })}
+        >
+          Log in
+        </AuthPromptLink>
       </p>
     </div>
   )

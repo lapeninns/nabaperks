@@ -18,7 +18,7 @@ export const faqs: readonly Faq[] = [
   },
   {
     q: "Can staff or customers fake the stamps?",
-    a: "No. Customers stamp themselves from your venue QR. Each stamp is counter-verified — we check it's your real QR, their saved card, and your programme, capped at one stamp per customer per UK date. Unusual locations can be flagged. Rewards are checked at redemption, never from a screenshot.",
+    a: "Customers claim from your venue QR on their own phones. Nabaperks reduces misuse rather than claiming it is impossible: each claim is linked to their saved membership and your live programme, capped at one stamp per UK date; optional location checks flag unusual claims, and staff scan the live reward code when it is collected.",
   },
   {
     q: "What if a customer loses or changes their phone — do they lose their stamps?",
@@ -42,7 +42,7 @@ export const faqs: readonly Faq[] = [
   },
   {
     q: "How is this different from a paper card or apps like Stamp Me?",
-    a: "It keeps what customers like about a paper card — simple, scan-and-collect, no app — but it can't be lost or faked. And unlike wallet-pass apps such as Stamp Me or Loopy Loyalty, there is nothing to install. You also get a weekly digest of visits and redemptions a paper card can never give you.",
+    a: "It keeps what customers like about a paper card — simple, scan-and-collect, no app — but the card stays on their account and each claim leaves a venue-linked record. Unlike wallet-pass apps such as Stamp Me or Loopy Loyalty, there is nothing to install. You also get a weekly digest of visits and redemptions a paper card cannot provide.",
   },
 ]
 

@@ -63,6 +63,10 @@ function mobileRailColumnClass(count: number) {
   return "grid-cols-3"
 }
 
+function launchStepStateLabel(step: LaunchReadinessAction, isNext: boolean) {
+  return step.ready ? "ready" : isNext ? "next up" : "to do"
+}
+
 /**
  * The launch readiness spine — setup steps drawn as a stamp row over a leaf
  * progress track. Venue leads (captured during onboarding), then card, rewards,
@@ -162,7 +166,8 @@ export function LaunchReadinessPanel({
               <div className="grid gap-1">
                 <span className="eyebrow text-reward">You&apos;re live</span>
                 <p className="text-base font-extrabold">
-                  Setup is complete. Customers can scan, join, and collect stamps.
+                  Setup is complete. Customers can scan, join, and collect
+                  stamps.
                 </p>
               </div>
             </div>
@@ -197,81 +202,94 @@ export function LaunchReadinessPanel({
           </div>
         ) : null}
 
-      <ol className={cn("hidden gap-2 sm:grid sm:gap-3", columnClass)}>
-        {checklist.map((step, index) => {
-          const isNext = !step.ready && step.id === nextStep?.id
-          const isActive = tabMode && step.tab === activeTab
-          const stepIcon = STEP_ICON[step.id]
+        <nav
+          aria-label="Merchant setup steps"
+          className="hidden gap-2 sm:grid sm:gap-3"
+        >
+          {tabMode ? (
+            <p className="eyebrow text-muted-foreground">Choose a setup step</p>
+          ) : null}
+          <ol className={cn("grid gap-2 sm:gap-3", columnClass)}>
+            {checklist.map((step, index) => {
+              const isNext = !step.ready && step.id === nextStep?.id
+              const isActive = tabMode && step.tab === activeTab
+              const stepIcon = STEP_ICON[step.id]
+              const stateLabel = launchStepStateLabel(step, isNext)
 
-          const inner = (
-            <>
-              <LaunchStepStamp
-                glyph={stepIcon}
-                ready={step.ready}
-                isNext={isNext}
-                active={isActive}
-              />
-              <span className="text-xs font-extrabold sm:text-sm">
-                <span className="mono-id hidden text-muted-foreground sm:inline">
-                  {index + 1}.{" "}
-                </span>
-                {step.label}
-              </span>
-              <span
-                className={cn(
-                  "mono-id",
-                  step.ready
-                    ? "text-reward"
-                    : isNext || isActive
-                      ? "text-foreground"
-                      : "text-muted-foreground"
-                )}
-              >
-                {step.ready ? "Ready" : isNext ? "Next up" : "To do"}
-              </span>
-            </>
-          )
+              const inner = (
+                <>
+                  <LaunchStepStamp
+                    glyph={stepIcon}
+                    ready={step.ready}
+                    isNext={isNext}
+                    active={isActive}
+                  />
+                  <span className="text-xs font-extrabold sm:text-sm">
+                    <span className="mono-id hidden text-muted-foreground sm:inline">
+                      {index + 1}.{" "}
+                    </span>
+                    {step.label}
+                  </span>
+                  <span
+                    className={cn(
+                      "mono-id",
+                      step.ready
+                        ? "text-reward"
+                        : isNext || isActive
+                          ? "text-foreground"
+                          : "text-muted-foreground"
+                    )}
+                  >
+                    {step.ready ? "Ready" : isNext ? "Next up" : "To do"}
+                  </span>
+                </>
+              )
 
-          return (
-            <li key={step.id} className="grid">
-              <Link
-                href={step.href}
-                prefetch={false}
-                aria-current={
-                  isActive ? "page" : !tabMode && isNext ? "step" : undefined
-                }
-                aria-label={`${step.label}, ${step.ready ? "ready" : "to do"}`}
-                className="grid justify-items-center gap-2 rounded-lg px-1 py-2 text-center transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none"
-              >
-                {inner}
+              return (
+                <li key={step.id} className="grid">
+                  <Link
+                    href={step.href}
+                    prefetch={false}
+                    aria-current={
+                      isActive
+                        ? "page"
+                        : !tabMode && isNext
+                          ? "step"
+                          : undefined
+                    }
+                    aria-label={`${step.label}, ${stateLabel}`}
+                    className="focus-ring grid min-h-11 justify-items-center gap-2 rounded-lg px-1 py-2 text-center transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:bg-accent motion-reduce:transition-none"
+                  >
+                    {inner}
+                  </Link>
+                </li>
+              )
+            })}
+          </ol>
+        </nav>
+
+        <ProgressTrack
+          current={readiness.completed}
+          total={readiness.total}
+          label="Setup progress"
+          className="hidden sm:grid"
+        />
+
+        {!tabMode && !readiness.launchReady ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border-2 border-ink bg-ink px-4 py-3 text-paper">
+            <p className="max-w-xl text-sm leading-6 text-paper/80">
+              {nextStep
+                ? `Next up: ${nextStep.actionLabel}.`
+                : "Run through the checklist before you print."}
+            </p>
+            <Button asChild variant="secondary">
+              <Link href={nextStep?.href ?? "/app/launch"} prefetch={false}>
+                {nextStep?.actionLabel ?? "Open setup"}
+                <Icon icon={ArrowRight02Icon} size={15} />
               </Link>
-            </li>
-          )
-        })}
-      </ol>
-
-      <ProgressTrack
-        current={readiness.completed}
-        total={readiness.total}
-        label="Setup progress"
-        className="hidden sm:grid"
-      />
-
-      {!tabMode && !readiness.launchReady ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border-2 border-ink bg-ink px-4 py-3 text-paper">
-          <p className="max-w-xl text-sm leading-6 text-paper/80">
-            {nextStep
-              ? `Next up: ${nextStep.actionLabel}.`
-              : "Run through the checklist before you print."}
-          </p>
-          <Button asChild variant="secondary">
-            <Link href={nextStep?.href ?? "/app/launch"} prefetch={false}>
-              {nextStep?.actionLabel ?? "Open setup"}
-              <Icon icon={ArrowRight02Icon} size={15} />
-            </Link>
-          </Button>
-        </div>
-      ) : null}
+            </Button>
+          </div>
+        ) : null}
       </ReceiptCard>
     </>
   )
@@ -299,7 +317,8 @@ function LaunchReadinessCompact({
 }) {
   const progressValue = readinessProgressValue(readiness)
   const stepHint =
-    MERCHANT_SETUP_STEPS.find((step) => step.id === nextStep?.id)?.description ??
+    MERCHANT_SETUP_STEPS.find((step) => step.id === nextStep?.id)
+      ?.description ??
     "Complete the remaining steps before customers can collect stamps."
 
   return (
@@ -319,7 +338,7 @@ function LaunchReadinessCompact({
           <span className="eyebrow">Setup</span>
         </div>
         <div className="grid gap-1">
-          <p className="text-base font-extrabold leading-snug text-balance">
+          <p className="text-base leading-snug font-extrabold text-balance">
             {nextStep ? `Next: ${nextStep.label}` : "Finish setup to go live"}
           </p>
           <p className="text-sm leading-6 text-pretty text-muted-foreground">
@@ -365,7 +384,10 @@ function LaunchMobileTabNav({
             aria-label={`Setup progress: ${readiness.completed} of ${readiness.total}`}
             className="h-1 min-w-0 flex-1"
           />
-          <MonoTag tone="leaf" className="numeric-tabular shrink-0 px-1.5 py-0.5">
+          <MonoTag
+            tone="leaf"
+            className="numeric-tabular shrink-0 px-1.5 py-0.5"
+          >
             {readiness.completed}/{readiness.total}
           </MonoTag>
         </div>
@@ -397,7 +419,12 @@ function LaunchStepRail({
   const columnClass = mobileRailColumnClass(checklist.length)
 
   return (
-    <div className="min-w-0 overflow-x-clip">
+    <nav aria-label="Merchant setup steps" className="min-w-0 overflow-x-clip">
+      {tabMode ? (
+        <p className="eyebrow mb-1 text-muted-foreground">
+          Choose a setup step
+        </p>
+      ) : null}
       <ol
         className={cn(
           "grid w-full min-w-0",
@@ -409,6 +436,7 @@ function LaunchStepRail({
           const isNext = !step.ready && step.id === nextStep?.id
           const isActive = tabMode && step.tab === activeTab
           const stepIcon = STEP_ICON[step.id]
+          const stateLabel = launchStepStateLabel(step, isNext)
 
           return (
             <li key={step.id} className="min-w-0">
@@ -418,16 +446,14 @@ function LaunchStepRail({
                 aria-current={
                   isActive ? "page" : !tabMode && isNext ? "step" : undefined
                 }
-                aria-label={`${step.label}, ${step.ready ? "ready" : "to do"}`}
+                aria-label={`${step.label}, ${stateLabel}`}
                 className={cn(
-                  "flex min-w-0 w-full flex-col items-center rounded-xl border-2 transition-[border-color,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none",
+                  "pressable focus-ring flex min-h-11 w-full min-w-0 flex-col items-center rounded-xl border-2 transition-[border-color,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none motion-reduce:transition-none",
                   compact
                     ? "gap-0.5 px-0.5 py-1 min-[360px]:gap-1 min-[360px]:px-1 min-[360px]:py-1.5"
                     : "gap-1 px-1 py-1.5",
                   isActive && "border-ink bg-accent shadow-xs",
-                  !isActive &&
-                    isNext &&
-                    "border-seal bg-card",
+                  !isActive && isNext && "border-seal bg-card",
                   !isActive &&
                     !isNext &&
                     step.ready &&
@@ -461,7 +487,7 @@ function LaunchStepRail({
           )
         })}
       </ol>
-    </div>
+    </nav>
   )
 }
 
@@ -485,8 +511,7 @@ function LaunchStepStamp({
   active?: boolean
   size?: "xs" | "sm" | "md"
 }) {
-  const iconSize =
-    size === "xs" ? 14 : size === "sm" ? 18 : ready ? 24 : 22
+  const iconSize = size === "xs" ? 14 : size === "sm" ? 18 : ready ? 24 : 22
 
   return (
     <span
@@ -504,7 +529,7 @@ function LaunchStepStamp({
             : "border-dashed border-ink/35 bg-secondary/60 text-muted-foreground",
         active &&
           (size === "xs"
-            ? "ring-2 ring-inset ring-ink"
+            ? "ring-2 ring-ink ring-inset"
             : "ring-2 ring-ink ring-offset-1 ring-offset-card")
       )}
     >

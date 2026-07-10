@@ -35,7 +35,7 @@ export type ComparisonRow = {
 export const COMPARISON_ROWS: readonly ComparisonRow[] = [
   { feature: "Nothing to download or install", cells: [true, false, true, false] },
   { feature: "Can't be lost or left at home", cells: [true, true, false, true] },
-  { feature: "Every stamp is counter-verified — can't be faked", cells: [true, false, false, false] },
+  { feature: "Venue QR + saved membership + UK-date cap", cells: [true, false, false, false] },
   { feature: "No POS or hardware — works on any till", cells: [true, true, true, false] },
   { feature: "The phone never crosses the counter", cells: [true, false, true, false] },
   { feature: "Gives you visit & redemption data", cells: [true, true, false, true] },

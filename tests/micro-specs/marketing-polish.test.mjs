@@ -155,27 +155,20 @@ test("Given the guide comparison table When viewed at narrow widths Then the fea
 
 // --- VMK-P1-01 — pub hub hero grammar ----------------------------------------
 
-test("Given the pub hub hero When the stamp sentence renders Then it does not read 'every stamp is counter-verified stamps'", () => {
+test("Given the pub hub hero When the stamp sentence renders Then it uses the truthful venue-linked term", () => {
   // Given
   const page = readProjectFile("app", "loyalty-for-pubs", "page.tsx")
 
   // Then
-  assert.doesNotMatch(
-    page,
-    /every stamp is[\s\S]{0,200}(counter-verified stamps|\{PRODUCT\.counterStamp\})/,
-    "the hero sentence is grammatical (not 'every stamp is counter-verified stamps')"
-  )
   assert.match(
     page,
-    /every stamp is[\s\S]{0,160}counter-verified/,
-    "the hero still lands the counter-verified claim"
+    /every stamp is[\s\S]{0,160}venue-linked/,
+    "the hero lands the venue-linked mechanism"
   )
 
   const facts = readProjectFile("lib", "marketing", "facts.ts")
-  assert.ok(
-    facts.includes('counterStamp: "counter-verified stamps"'),
-    "the brand term stays intact in facts.ts for other surfaces"
-  )
+  assert.ok(facts.includes('counterStamp: "venue-linked stamps"'))
+  assert.doesNotMatch(`${page}\n${facts}`, /counter-verified|can't be faked/)
 })
 
 // --- CON-P1-01 (marketing slice) — micro type rides the minted tokens ---------

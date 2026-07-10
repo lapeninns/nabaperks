@@ -22,11 +22,13 @@ import {
 } from "@hugeicons/core-free-icons"
 
 import {
+  addRewardPresetsAction,
   deleteRewardPoolItemAction,
   saveLoyaltyCardAction,
   saveRewardPoolItemAction,
   toggleRewardPoolItemActiveAction,
   type LoyaltyCardActionState,
+  type RewardPresetBatchActionState,
   type RewardPoolItemActionState,
 } from "@/app/app/card/actions"
 import { EmptyState, Eyebrow, Icon, MonoTag } from "@/components/brand"
@@ -44,7 +46,10 @@ import {
   defaultLoyaltyCardRewardTerms,
   isDefaultLoyaltyCardRewardTerms,
 } from "@/lib/merchant/loyalty-card-copy"
+import { LAUNCH_MIN_ACTIVE_REWARDS } from "@/lib/merchant/launch-readiness-contract"
 import {
+  reconcileSelectedPresetIdsAfterRewardSave,
+  rewardNameKey,
   rewardPresetToPoolItemValues,
   type CardCadencePreset,
   type RewardPreset,
@@ -77,11 +82,9 @@ type LoyaltyCardFormProps = {
   cadencePresets?: readonly CardCadencePreset[]
 }
 
-/** Rewards needed active before a final stamp can reveal a prize or the QR launches. */
-const REQUIRED_ACTIVE_REWARDS = 3
-
 const initialCardState: LoyaltyCardActionState = {}
 const initialPoolState: RewardPoolItemActionState = {}
+const initialPresetBatchState: RewardPresetBatchActionState = {}
 
 export function LoyaltyCardForm({
   initialValues,
@@ -143,13 +146,9 @@ export function LoyaltyCardForm({
           value={draft.stampsRequired}
         />
 
-        {/* Step 2 in the launch order (venue → card → rewards → qr → billing);
-            the readiness rail numbers the card "2" so this must match, not read
-            "Step 1" as it did before venue capture moved into onboarding. */}
         <SectionHead
           title="Your card"
           description={`One active card for ${locationName}. The reward reveals after the final qualifying visit.`}
-          step="Step 2"
           compactOnMobile
         />
 
@@ -268,43 +267,150 @@ export function RewardPoolForm({
   continueLabel = "your venue QR",
   presets = [],
 }: RewardPoolFormProps) {
-  // The row currently open in the inline editor: a reward id, "new", or null.
+  const router = useRouter()
+  const [batchState, batchAction, batchPending] = useActionState(
+    addRewardPresetsAction,
+    initialPresetBatchState
+  )
   const [editingId, setEditingId] = useState<string | "new" | null>(null)
   const [items, setItems] = useState(rewardPoolItems)
   const [itemsSource, setItemsSource] = useState(rewardPoolItems)
+  const [handledBatchState, setHandledBatchState] = useState(batchState)
+  const [selectedPresetIds, setSelectedPresetIds] = useState<string[]>([])
+  const [dismissedBatchFeedback, setDismissedBatchFeedback] =
+    useState<RewardPresetBatchActionState | null>(null)
+  const [editorReturnFocusId, setEditorReturnFocusId] = useState<string | null>(
+    null
+  )
   const [newRewardValues, setNewRewardValues] = useState<RewardPoolItemValues>(
     buildBlankRewardValues(rewardPoolItems.length + 1)
   )
   const [newRewardKey, setNewRewardKey] = useState("blank")
+  const batchErrorRef = useRef<HTMLParagraphElement>(null)
+  const batchSuccessRef = useRef<HTMLParagraphElement>(null)
 
   if (itemsSource !== rewardPoolItems) {
     setItemsSource(rewardPoolItems)
     setItems(rewardPoolItems)
   }
 
-  const activeRewardCount = items.filter((item) => item.isActive).length
-  const ready = activeRewardCount >= REQUIRED_ACTIVE_REWARDS
-  const deficit = REQUIRED_ACTIVE_REWARDS - activeRewardCount
+  if (handledBatchState !== batchState) {
+    setHandledBatchState(batchState)
 
-  // Names already in the pool — a preset whose idea is present shows a "saved"
-  // state so the merchant can see which ideas they've used at a glance.
-  const pooledRewardNames = new Set(
-    items.map((item) => item.rewardName.trim().toLowerCase()).filter(Boolean)
+    if (batchState.errors?.form) {
+      setSelectedPresetIds(batchState.fields?.presetIds ?? [])
+    } else if (batchState.saved && batchState.items) {
+      setItems((current) =>
+        mergeRewardPoolItems(current, batchState.items ?? [])
+      )
+      setSelectedPresetIds([])
+    }
+  }
+
+  const batchFeedbackVisible = dismissedBatchFeedback !== batchState
+
+  useEffect(() => {
+    if (!batchFeedbackVisible) return
+    if (batchState.errors?.form) batchErrorRef.current?.focus()
+    if (batchState.saved) {
+      batchSuccessRef.current?.focus()
+      router.refresh()
+    }
+  }, [batchFeedbackVisible, batchState, router])
+
+  const activeRewardCount = items.filter((item) => item.isActive).length
+  const ready = activeRewardCount >= LAUNCH_MIN_ACTIVE_REWARDS
+  const deficit = Math.max(0, LAUNCH_MIN_ACTIVE_REWARDS - activeRewardCount)
+  const projectedActiveRewardCount =
+    activeRewardCount + selectedPresetIds.length
+  const pooledRewardsByName = new Map(
+    items.map((item) => [rewardNameKey(item.rewardName), item])
   )
 
+  function dismissBatchFeedback() {
+    if (batchState.errors?.form || batchState.saved) {
+      setDismissedBatchFeedback(batchState)
+    }
+  }
+
   function openBlankReward() {
+    if (batchPending) return
+    dismissBatchFeedback()
+    setEditorReturnFocusId(null)
     setNewRewardValues(buildBlankRewardValues(items.length + 1))
     setNewRewardKey(`blank-${items.length + 1}`)
     setEditingId("new")
   }
 
-  function openPresetReward(preset: RewardPreset) {
+  function togglePreset(preset: RewardPreset) {
+    if (
+      batchPending ||
+      pooledRewardsByName.has(rewardNameKey(preset.rewardName))
+    ) {
+      return
+    }
+
+    dismissBatchFeedback()
+    setSelectedPresetIds((current) =>
+      current.includes(preset.id)
+        ? current.filter((id) => id !== preset.id)
+        : [...current, preset.id]
+    )
+  }
+
+  function openPresetReward(
+    preset: RewardPreset,
+    existingItem: RewardPoolItemValues | undefined
+  ) {
+    if (batchPending) return
+    dismissBatchFeedback()
+    setSelectedPresetIds((current) => current.filter((id) => id !== preset.id))
+    setEditorReturnFocusId(`preset-customise-${preset.id}`)
+
+    if (existingItem?.id) {
+      setEditingId(existingItem.id)
+      return
+    }
+
     setNewRewardValues(rewardPresetToPoolItemValues(preset, items.length + 1))
     setNewRewardKey(preset.id)
     setEditingId("new")
   }
 
+  function closeEditor() {
+    const returnFocusId = editorReturnFocusId
+    setEditingId(null)
+    setEditorReturnFocusId(null)
+
+    if (returnFocusId) {
+      window.requestAnimationFrame(() => {
+        document.getElementById(returnFocusId)?.focus()
+      })
+    }
+  }
+
+  function clearPresetSelection() {
+    const returnFocusId = selectedPresetIds.at(0)
+      ? `preset-select-${selectedPresetIds[0]}`
+      : null
+    dismissBatchFeedback()
+    setSelectedPresetIds([])
+
+    if (returnFocusId) {
+      window.requestAnimationFrame(() => {
+        document.getElementById(returnFocusId)?.focus()
+      })
+    }
+  }
+
   function handleItemSaved(saved: RewardPoolItemValues) {
+    setSelectedPresetIds((current) =>
+      reconcileSelectedPresetIdsAfterRewardSave(
+        presets,
+        current,
+        saved.rewardName
+      )
+    )
     setItems((current) => {
       const index = current.findIndex((item) => item.id === saved.id)
 
@@ -332,7 +438,14 @@ export function RewardPoolForm({
   }
 
   return (
-    <section className="grid min-w-0 gap-4 rounded-lg border border-border bg-card p-3 sm:p-6">
+    <section
+      className={cn(
+        "grid min-w-0 gap-4 rounded-lg border border-border bg-card p-3 sm:p-6",
+        selectedPresetIds.length > 0 &&
+          editingId === null &&
+          "pb-[8.75rem] sm:pb-6"
+      )}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="grid min-w-0 gap-2">
           <h2 className="text-lg leading-snug font-extrabold tracking-tight text-foreground sm:text-xl">
@@ -347,7 +460,7 @@ export function RewardPoolForm({
         <MonoTag tone={ready ? "leaf" : "sun"}>
           {ready
             ? `${activeRewardCount} active · ready`
-            : `${activeRewardCount} / ${REQUIRED_ACTIVE_REWARDS} active`}
+            : `${activeRewardCount} / ${LAUNCH_MIN_ACTIVE_REWARDS} active`}
         </MonoTag>
       </div>
 
@@ -357,7 +470,7 @@ export function RewardPoolForm({
       <p className="sr-only" role="status" aria-live="polite">
         {ready
           ? `${activeRewardCount} active rewards — ready to launch.`
-          : `${activeRewardCount} of ${REQUIRED_ACTIVE_REWARDS} active rewards.`}
+          : `${activeRewardCount} of ${LAUNCH_MIN_ACTIVE_REWARDS} active rewards.`}
       </p>
 
       <p className="text-sm leading-5 text-muted-foreground">
@@ -375,83 +488,186 @@ export function RewardPoolForm({
       </p>
 
       {presets.length > 0 ? (
-        <div className="grid gap-2 rounded-lg bg-secondary p-3">
-          <div className="grid gap-0.5">
+        <div className="grid gap-3 rounded-lg bg-secondary p-3">
+          <div className="grid gap-1">
             <Eyebrow>Reward ideas</Eyebrow>
-            <p className="text-xs leading-4 text-muted-foreground">
-              Tap one to prefill a new reward, then save it to your pool.
+            <p className="max-w-[54ch] text-xs leading-5 text-muted-foreground">
+              Pick a few to start. Nothing is saved until you tap Add. You can
+              edit each reward afterwards.
             </p>
           </div>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {presets.map((preset) => {
-              const added = pooledRewardNames.has(
-                preset.rewardName.trim().toLowerCase()
+              const existingItem = pooledRewardsByName.get(
+                rewardNameKey(preset.rewardName)
               )
-              const pending =
-                editingId === "new" && newRewardKey === preset.id
+              const selected = selectedPresetIds.includes(preset.id)
+              const existing = Boolean(existingItem)
+              const stateCopy = existing
+                ? `${preset.rewardName} is already in your pool${existingItem?.isActive ? "." : " · Off."}`
+                : selected
+                  ? "Selected — review the batch below."
+                  : preset.description
 
               return (
-                <button
+                <div
                   key={preset.id}
-                  type="button"
-                  onClick={() => openPresetReward(preset)}
-                  disabled={added}
-                  aria-pressed={pending || undefined}
-                  aria-label={
-                    added
-                      ? `${preset.rewardName} is already in your pool`
-                      : pending
-                        ? `${preset.rewardName} is open in the editor below`
-                        : `Add reward idea: ${preset.rewardName}`
-                  }
-                  // Dashed suggestion tile (DESIGN.md pick-one affordance). The
-                  // plus/tick and the tint carry the add → pending → saved state.
                   className={cn(
-                    "focus-ring grid min-h-16 min-w-0 content-start gap-1 rounded-lg border-2 border-dashed px-3 py-2.5 text-left transition-[background-color,border-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] disabled:cursor-default motion-reduce:transition-none",
-                    added
+                    "grid min-w-0 grid-cols-[minmax(0,1fr)_auto] overflow-hidden rounded-lg border-2 border-dashed transition-[background-color,border-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
+                    existing
                       ? "border-reward/45 bg-reward/5"
-                      : pending
+                      : selected
                         ? "border-seal bg-seal/10"
                         : "border-ink/25 bg-transparent hover:border-ink hover:bg-card"
                   )}
                 >
-                  <span className="flex items-start justify-between gap-2">
-                    <span className="text-sm leading-snug font-extrabold text-pretty text-foreground">
-                      {preset.rewardName}
-                    </span>
-                    <Icon
-                      icon={added ? Tick02Icon : PlusSignIcon}
-                      size={16}
-                      strokeWidth={2.5}
-                      className={cn(
-                        "mt-0.5 shrink-0",
-                        added
-                          ? "text-reward"
-                          : pending
-                            ? "text-foreground"
-                            : "text-primary"
-                      )}
-                    />
-                  </span>
-                  <span
-                    className={cn(
-                      "text-xs leading-4 text-pretty",
-                      added || pending
-                        ? "font-bold text-foreground"
-                        : "text-muted-foreground"
-                    )}
+                  <button
+                    id={`preset-select-${preset.id}`}
+                    type="button"
+                    aria-pressed={selected}
+                    aria-label={
+                      existing
+                        ? `${preset.rewardName} is already in your pool`
+                        : selected
+                          ? `Remove ${preset.rewardName} from selection`
+                          : `Select ${preset.rewardName}`
+                    }
+                    disabled={existing || batchPending}
+                    onClick={() => togglePreset(preset)}
+                    className="focus-ring grid min-h-16 min-w-0 content-start gap-1 px-3 py-2.5 text-left disabled:cursor-default disabled:opacity-100"
                   >
-                    {added
-                      ? "Added to your pool"
-                      : pending
-                        ? "Open below — save to add"
-                        : preset.description}
-                  </span>
-                </button>
+                    <span className="flex items-start justify-between gap-2">
+                      <span className="text-sm leading-snug font-extrabold text-pretty text-foreground">
+                        {preset.rewardName}
+                      </span>
+                      <Icon
+                        icon={existing || selected ? Tick02Icon : PlusSignIcon}
+                        size={16}
+                        strokeWidth={2.5}
+                        className={cn(
+                          "mt-0.5 shrink-0",
+                          existing
+                            ? "text-reward"
+                            : selected
+                              ? "text-foreground"
+                              : "text-primary"
+                        )}
+                      />
+                    </span>
+                    <span
+                      className={cn(
+                        "text-xs leading-4 text-pretty",
+                        existing || selected
+                          ? "font-bold text-foreground"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      {stateCopy}
+                    </span>
+                  </button>
+                  <button
+                    id={`preset-customise-${preset.id}`}
+                    type="button"
+                    aria-label={
+                      existingItem
+                        ? `Edit ${preset.rewardName}`
+                        : `Customise ${preset.rewardName}`
+                    }
+                    disabled={batchPending}
+                    onClick={() => openPresetReward(preset, existingItem)}
+                    className="focus-ring grid min-h-16 min-w-11 place-items-center border-l border-ink/15 bg-card/45 px-2 text-foreground transition-colors hover:bg-card disabled:cursor-not-allowed disabled:opacity-50 [@media(pointer:coarse)]:min-w-12"
+                  >
+                    <Icon
+                      icon={PencilEdit02Icon}
+                      size={17}
+                      strokeWidth={2.25}
+                    />
+                    <span className="sr-only">
+                      {existingItem ? "Edit" : "Customise"}
+                    </span>
+                  </button>
+                </div>
               )
             })}
           </div>
         </div>
+      ) : null}
+
+      {selectedPresetIds.length > 0 && editingId === null ? (
+        <form
+          action={batchAction}
+          className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 mx-auto grid max-w-[calc(100vw-1.5rem)] gap-3 rounded-lg border-2 border-ink bg-card/95 p-3 shadow-hard backdrop-blur-sm sm:static sm:inset-auto sm:z-auto sm:max-w-none sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:bg-card sm:p-4 sm:backdrop-blur-none"
+        >
+          <input type="hidden" name="loyaltyCardId" value={loyaltyCardId} />
+          {selectedPresetIds.map((presetId) => (
+            <input
+              key={presetId}
+              type="hidden"
+              name="presetId"
+              value={presetId}
+            />
+          ))}
+          <div className="grid gap-0.5">
+            <p className="text-sm font-extrabold text-foreground">
+              {activeRewardCount} active now · {selectedPresetIds.length}{" "}
+              selected · {projectedActiveRewardCount} active after add
+            </p>
+            <p className="text-xs leading-5 text-muted-foreground">
+              One press adds the full selection. If one fails, none are added.
+            </p>
+          </div>
+          <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 sm:flex">
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={batchPending}
+              onClick={clearPresetSelection}
+            >
+              Clear
+            </Button>
+            <Button type="submit" disabled={batchPending}>
+              {batchPending
+                ? `Adding ${selectedPresetIds.length} reward${selectedPresetIds.length === 1 ? "" : "s"}…`
+                : `Add ${selectedPresetIds.length} reward${selectedPresetIds.length === 1 ? "" : "s"}`}
+            </Button>
+          </div>
+          <p className="sr-only" role="status" aria-live="polite">
+            {batchPending
+              ? `Adding ${selectedPresetIds.length} rewards…`
+              : `${selectedPresetIds.length} rewards selected.`}
+          </p>
+        </form>
+      ) : null}
+
+      {batchFeedbackVisible && batchState.errors?.form ? (
+        <p
+          ref={batchErrorRef}
+          role="alert"
+          tabIndex={-1}
+          className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+        >
+          {batchState.errors.form}
+        </p>
+      ) : batchFeedbackVisible && batchState.saved && batchState.message ? (
+        <p
+          ref={batchSuccessRef}
+          role="status"
+          aria-live="polite"
+          tabIndex={-1}
+          className="rounded-lg border border-reward/40 bg-reward/10 px-3 py-2 text-sm font-bold text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+        >
+          {batchState.message}
+          {batchState.activeRewardCount !== undefined ? (
+            <span>
+              {" "}
+              {batchState.activeRewardCount} of {LAUNCH_MIN_ACTIVE_REWARDS}{" "}
+              active
+              {batchState.activeRewardCount >= LAUNCH_MIN_ACTIVE_REWARDS
+                ? " — ready to continue."
+                : "."}
+            </span>
+          ) : null}
+        </p>
       ) : null}
 
       {items.length === 0 && editingId !== "new" ? (
@@ -470,7 +686,7 @@ export function RewardPoolForm({
               key={item.id}
               loyaltyCardId={loyaltyCardId}
               initialValues={item}
-              onCancel={() => setEditingId(null)}
+              onCancel={closeEditor}
               onSaved={handleItemSaved}
             />
           ) : (
@@ -478,7 +694,12 @@ export function RewardPoolForm({
               key={item.id}
               item={item}
               loyaltyCardId={loyaltyCardId}
-              onEdit={() => setEditingId(item.id ?? null)}
+              disabled={batchPending}
+              onEdit={() => {
+                if (batchPending) return
+                setEditorReturnFocusId(null)
+                setEditingId(item.id ?? null)
+              }}
               onToggle={handleItemToggled}
             />
           )
@@ -490,24 +711,28 @@ export function RewardPoolForm({
             loyaltyCardId={loyaltyCardId}
             initialValues={newRewardValues}
             isNew
-            onCancel={() => setEditingId(null)}
+            onCancel={closeEditor}
             onSaved={handleItemSaved}
           />
         ) : null}
       </div>
 
-      {editingId !== "new" ? (
+      {editingId === null ? (
         <button
           type="button"
+          disabled={batchPending}
           onClick={openBlankReward}
-          className="focus-ring flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-ink/25 bg-transparent px-4 py-3 text-sm font-bold text-foreground transition-[border-color,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:border-ink hover:bg-secondary/60 motion-reduce:transition-none"
+          className="focus-ring flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-ink/25 bg-transparent px-4 py-3 text-sm font-bold text-foreground transition-[border-color,background-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] hover:border-ink hover:bg-secondary/60 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none"
         >
           <Icon icon={Add01Icon} size={16} strokeWidth={2.25} />
           Add a reward
         </button>
       ) : null}
 
-      {ready && editingId === null && continueHref ? (
+      {ready &&
+      editingId === null &&
+      selectedPresetIds.length === 0 &&
+      continueHref ? (
         <Button asChild className="w-full">
           <Link href={continueHref}>
             {continueHref.includes("billing")
@@ -540,6 +765,25 @@ function buildBlankRewardValues(displayOrder: number): RewardPoolItemValues {
   }
 }
 
+function mergeRewardPoolItems(
+  current: RewardPoolItemValues[],
+  incoming: readonly RewardPoolItemValues[]
+): RewardPoolItemValues[] {
+  const byId = new Map(
+    current.filter((item) => item.id).map((item) => [item.id!, item])
+  )
+
+  for (const item of incoming) {
+    if (item.id) byId.set(item.id, item)
+  }
+
+  return [...byId.values()].sort(
+    (left, right) =>
+      Number.parseInt(left.displayOrder, 10) -
+      Number.parseInt(right.displayOrder, 10)
+  )
+}
+
 /**
  * A reward at rest — stamp icon, name, terms, and controls in one compact card.
  * Terms clamp to two lines so the pool stays scannable; edit opens the full copy.
@@ -547,11 +791,13 @@ function buildBlankRewardValues(displayOrder: number): RewardPoolItemValues {
 function RewardRow({
   item,
   loyaltyCardId,
+  disabled = false,
   onEdit,
   onToggle,
 }: {
   item: RewardPoolItemValues
   loyaltyCardId: string
+  disabled?: boolean
   onEdit: () => void
   onToggle: (rewardPoolItemId: string, nextActive: boolean) => void
 }) {
@@ -572,8 +818,9 @@ function RewardRow({
 
       <button
         type="button"
+        disabled={disabled}
         onClick={onEdit}
-        className="min-w-0 rounded-md text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/35"
+        className="min-w-0 rounded-md text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <p className="text-sm leading-snug font-bold text-pretty break-words text-foreground">
           {rewardName}
@@ -591,15 +838,17 @@ function RewardRow({
           loyaltyCardId={loyaltyCardId}
           item={item}
           compact
+          disabled={disabled}
           onToggle={onToggle}
         />
         <button
           type="button"
+          disabled={disabled}
           onClick={onEdit}
           aria-label={`Edit ${rewardName}`}
           // Honest compact size: 32px square on fine pointers, grown to the
           // 44px tap floor on coarse pointers (the Button icon-xs idiom).
-          className="grid size-8 min-h-8 shrink-0 place-items-center rounded-md border border-border bg-card text-foreground transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:border-ink hover:bg-secondary/60 focus-visible:ring-3 focus-visible:ring-ring/35 motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
+          className="grid size-8 min-h-8 shrink-0 place-items-center rounded-md border border-border bg-card text-foreground transition-[color,background-color,border-color,opacity] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] outline-none hover:border-ink hover:bg-secondary/60 focus-visible:ring-3 focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
         >
           <Icon icon={PencilEdit02Icon} size={15} strokeWidth={2} />
         </button>
@@ -613,11 +862,13 @@ function RewardActiveToggle({
   loyaltyCardId,
   item,
   compact = false,
+  disabled = false,
   onToggle,
 }: {
   loyaltyCardId: string
   item: RewardPoolItemValues
   compact?: boolean
+  disabled?: boolean
   onToggle: (rewardPoolItemId: string, nextActive: boolean) => void
 }) {
   const router = useRouter()
@@ -626,7 +877,7 @@ function RewardActiveToggle({
   const rewardLabel = item.rewardName || "reward"
 
   function toggleActive() {
-    if (!item.id || pending) return
+    if (disabled || !item.id || pending) return
 
     const nextActive = !optimisticActive
 
@@ -666,7 +917,7 @@ function RewardActiveToggle({
       role="switch"
       aria-checked={optimisticActive}
       aria-label={`${optimisticActive ? "Deactivate" : "Activate"} ${rewardLabel}`}
-      disabled={!item.id || pending}
+      disabled={disabled || !item.id || pending}
       onClick={toggleActive}
       // Type comes from .w-tag (the sanctioned mono-pill metrics — 11px, 700,
       // uppercase); the old sub-floor arbitrary size overrides are gone.
@@ -757,6 +1008,7 @@ function RewardPoolItemForm({
 
         <Field
           id={`${draft.id ?? "new"}-rewardName`}
+          autoFocus
           label="Reward name"
           name="rewardName"
           maxLength={100}
@@ -877,18 +1129,16 @@ function DeleteRewardButton({
 }
 
 /**
- * A section head in the medium-weight family: a sentence-case heading and sub,
- * with the step number as mono metadata on the right (the only mono caps here).
+ * A section head in the medium-weight family: a sentence-case heading and sub.
+ * Global progress stays in the launch header and readiness rail.
  */
 function SectionHead({
   title,
   description,
-  step,
   compactOnMobile = false,
 }: {
   title: string
   description: string
-  step: string
   compactOnMobile?: boolean
 }) {
   return (
@@ -906,14 +1156,6 @@ function SectionHead({
           {description}
         </p>
       </div>
-      <Eyebrow
-        className={cn(
-          "shrink-0 pt-0.5 whitespace-nowrap sm:pt-1",
-          compactOnMobile && "hidden sm:inline"
-        )}
-      >
-        {step}
-      </Eyebrow>
     </div>
   )
 }

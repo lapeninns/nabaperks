@@ -1,0 +1,132 @@
+{
+  "schema": 1,
+  "spec_id": "MS-merchant-onboarding-continuity",
+  "runs": [
+    {
+      "timestamp": "2026-07-10T00:21:54.137Z",
+      "git_sha": "13f1213d7a227f877a56dfc15d28b7d6295bf7ca",
+      "git_branch": "codex/ms-onboarding-continuity-advance",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7597
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 4442
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 12496
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 1,
+          "duration_ms": 7587
+        }
+      ],
+      "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-10T00:24:30.119Z",
+      "git_sha": "fd614bd93c435e9ca5c565c3256579d0a4ec4290",
+      "git_branch": "codex/ms-onboarding-continuity-advance",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6331
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 4547
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 9837
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 1,
+          "duration_ms": 8136
+        }
+      ],
+      "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-10T00:27:41.142Z",
+      "git_sha": "bcb6a14daebaf7b1018f0eefa46a0e5ccd745a79",
+      "git_branch": "codex/ms-onboarding-current-baseline",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7664
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 4607
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 12156
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 8130
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 997
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 3534
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-merchant-onboarding-continuity\"",
+          "exit_code": 0,
+          "duration_ms": 20692
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 145371
+        }
+      ],
+      "all_passed": true
+    }
+  ],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-09T23:43:21.889Z",
+      "sha": "2a7cfed55c0cb642dda24c67eace99002155ec5b",
+      "dirty": true,
+      "by": "codex"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-10T00:27:41.142Z",
+      "sha": "bcb6a14daebaf7b1018f0eefa46a0e5ccd745a79",
+      "dirty": false,
+      "by": "codex"
+    }
+  ]
+}

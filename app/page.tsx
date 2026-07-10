@@ -24,7 +24,6 @@ import {
   SITE_URL,
   absoluteUrl,
   breadcrumbSchema,
-  counterLoyaltyIndexDataset,
   glossarySchema,
   howToSchema,
   webPageSchema,
@@ -32,7 +31,7 @@ import {
 
 const title = "No-App QR Loyalty for UK Food & Drink Venues"
 const description =
-  "One venue QR replaces paper stamp cards: a browser-based loyalty card — no app, no wallet pass — with counter-verified stamps. £49/mo, 30-day free pilot."
+  "One venue QR replaces paper stamp cards: a browser-based loyalty card — no app, no wallet pass — with venue-linked stamps. £49/mo, 30-day free pilot."
 
 export const metadata: Metadata = {
   title: { absolute: `${title} | Nabaperks` },
@@ -86,8 +85,8 @@ const demoQrMatrix = buildQrMatrix(absoluteUrl("/demo"))
  * product (SoftwareApplication + Offer), the objection set (FAQPage, byte-synced
  * to the visible FAQ subset — the full set lives on /how-it-works), the
  * Scan/Save/Stamp/Reward HowTo (byte-synced to the visible flow), the
- * first-party proof (Dataset), the term glossary (DefinedTermSet) and
- * breadcrumbs — all cross-referenced by stable @id. */
+ * term glossary (DefinedTermSet) and breadcrumbs — all cross-referenced by
+ * stable @id. Quantitative proof stays unpublished until it is reproducible. */
 function buildPageGraph() {
   const graph: Record<string, unknown>[] = [
     webPageSchema({
@@ -103,7 +102,7 @@ function buildPageGraph() {
       applicationCategory: "BusinessApplication",
       operatingSystem: "Web browser (iOS, Android, any)",
       description:
-        "No-app QR loyalty for UK food & drink venues. A browser-based loyalty card with counter-verified stamps — every stamp confirmed at the counter before it counts. No app, no wallet pass, no POS.",
+        "No-app QR loyalty for UK food and drink venues. Each stamp claim is linked to the venue QR and saved membership, with one claim per customer per UK date.",
       url: SITE_URL,
       publisher: { "@id": ORG_ID },
       offers: {
@@ -128,7 +127,6 @@ function buildPageGraph() {
       })),
     },
     howToSchema(counterFlowSteps),
-    counterLoyaltyIndexDataset(),
     glossarySchema(),
     breadcrumbSchema([{ name: "Home", path: "/" }]),
   ]
@@ -151,19 +149,17 @@ export default function HomePage() {
       {/* The four-beat mechanism (deep dive lives on /how-it-works) */}
       <CounterFlow />
 
-      {/* Condensed proof: setup stat band + the citable Counter-Loyalty Index
-          (the full tabs — case study, venue voices — live on /how-it-works) */}
+      {/* Product facts only. Quantitative aggregate proof remains unpublished
+          until it can be regenerated from durable evidence. */}
       <Section id="proof" size="compact">
-        <MonoTag tone="leaf">Proof</MonoTag>
+        <MonoTag tone="leaf">Product facts</MonoTag>
         <h2 className="mt-3 max-w-[26ch] text-[clamp(1.6rem,3.4vw,2.4rem)] leading-[1.05] font-extrabold tracking-[-0.02em] text-balance">
-          Proof from the counter.
+          What the launch path includes.
         </h2>
         <div className="mt-4 sm:mt-5">
           <ProofStrip />
         </div>
-        <div className="mt-6">
-          <NabaperksProofBody headingLevel="h3" />
-        </div>
+        <NabaperksProofBody headingLevel="h3" />
       </Section>
 
       {/* Persona routing: which venue is yours */}

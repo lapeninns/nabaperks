@@ -1,7 +1,10 @@
 import type { NextConfig } from "next"
 import withBundleAnalyzer from "@next/bundle-analyzer"
 
+const playwrightDistDir = process.env.PLAYWRIGHT_NEXT_DIST_DIR?.trim()
+
 const nextConfig: NextConfig = {
+  ...(playwrightDistDir ? { distDir: playwrightDistDir } : {}),
   // Drop the `x-powered-by: Next.js` response header — a free stack info-leak
   // hardening (flagged in the 2026-07-05 GEO/technical audit).
   poweredByHeader: false,

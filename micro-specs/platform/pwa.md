@@ -31,8 +31,8 @@ verification_gates:
   - pnpm test:coverage
   - pnpm bundle:check
   - pnpm build
-  - pnpm test:e2e -- --grep "PWA offline fallback"
-  - pnpm test:a11y
+  - pnpm test:e2e -- --project=chromium --grep "PWA offline fallback"
+  - pnpm test:a11y -- --project=chromium --project=mobile-safari
   - pnpm test:visual -- --project=chromium --project=mobile-safari
 required_playwright_projects:
   - chromium
@@ -101,5 +101,6 @@ key is pinned by the harness helper (`tests/e2e/helpers/harness.ts`).
 
 `pnpm lint` · `pnpm typecheck` · `pnpm governance:check` · `pnpm test` ·
 `pnpm test:coverage` · `pnpm bundle:check` · `pnpm build` ·
-`pnpm test:e2e -- --grep "PWA offline fallback"` · `pnpm test:a11y` ·
-`pnpm test:visual`.
+`pnpm test:e2e -- --project=chromium --grep "PWA offline fallback"` ·
+`pnpm test:a11y -- --project=chromium --project=mobile-safari` ·
+`pnpm test:visual -- --project=chromium --project=mobile-safari`.

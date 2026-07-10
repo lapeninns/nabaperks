@@ -11,6 +11,12 @@ const twilioVerifyEnvNames = new Set([
   "TWILIO_ACCOUNT_SID",
   "TWILIO_VERIFY_SERVICE_SID",
 ])
+const pseudonymousAnalyticsMode = "pseudonymous"
+const pseudonymousAnalyticsRequiredEnvNames = new Set([
+  "POSTHOG_PROJECT_KEY",
+  "POSTHOG_HOST",
+  "ANALYTICS_PSEUDONYM_SECRET",
+])
 
 const command = process.argv[2] ?? "status"
 const force = process.argv.includes("--force")
@@ -74,6 +80,9 @@ function printStatus() {
     "  STRIPE_GROWTH_PRICE_ID=<price_... from dashboard or stripe prices list>"
   )
   console.log(
+    "  STRIPE_GROWTH_ANNUAL_PRICE_ID=<price_... for active GBP 490/year>"
+  )
+  console.log(
     "  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY and STRIPE_SECRET_KEY come from Stripe API keys."
   )
   console.log("")
@@ -90,10 +99,12 @@ function printStatus() {
   console.log("")
   console.log("PostHog:")
   console.log("  pnpm dlx @posthog/cli login")
+  console.log("  POSTHOG_PROJECT_KEY=<project key from project settings/API>")
+  console.log("  POSTHOG_HOST=https://eu.i.posthog.com")
+  console.log("  ANALYTICS_PSEUDONYM_SECRET=<dedicated 32+ character secret>")
   console.log(
-    "  NEXT_PUBLIC_POSTHOG_KEY=<project key from project settings/API>"
+    "  ANALYTICS_EXTERNAL_PROCESSING_MODE=pseudonymous enables server-side pseudonymous processing."
   )
-  console.log("  NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com")
   console.log("")
   console.log("Vercel:")
   console.log("  pnpm dlx vercel link")
@@ -111,22 +122,15 @@ function printStatus() {
   console.log("  RESEND_API_KEY=re_... pnpm env:set-resend")
   console.log("")
   console.log(
-    "To merge PostHog browser analytics values without printing them:"
+    "To merge server-side pseudonymous PostHog values without printing secrets:"
   )
   console.log(
-    "  NEXT_PUBLIC_POSTHOG_KEY=phc_... NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com pnpm env:set-posthog"
+    "  POSTHOG_PROJECT_KEY=phc_... POSTHOG_HOST=https://eu.i.posthog.com ANALYTICS_PSEUDONYM_SECRET=<32+ character secret> pnpm env:set-posthog"
   )
 }
 
 function writeLocalEnv() {
   const target = join(projectDir, ".env.local")
-
-  if (existsSync(target) && !force) {
-    console.error(
-      ".env.local already exists. Re-run with --force to overwrite."
-    )
-    process.exit(1)
-  }
 
   const missing = contract
     .filter((entry) => isRequiredContractEntry(entry, process.env))
@@ -155,9 +159,21 @@ function writeLocalEnv() {
     lines.push("")
   }
 
-  writeFileSync(target, `${lines.join("\n").trimEnd()}\n`, {
-    mode: 0o600,
-  })
+  try {
+    writeFileSync(target, `${lines.join("\n").trimEnd()}\n`, {
+      mode: 0o600,
+      flag: force ? "w" : "wx",
+    })
+  } catch (error) {
+    if (!force && error?.code === "EEXIST") {
+      console.error(
+        ".env.local already exists. Re-run with --force to overwrite."
+      )
+      process.exit(1)
+    }
+
+    throw error
+  }
 
   console.log("Wrote .env.local from current shell variables.")
   console.log("Run pnpm env:check to validate it.")
@@ -242,44 +258,54 @@ function setResend() {
 }
 
 function setPostHog() {
-  const postHogKey =
-    process.env.NEXT_PUBLIC_POSTHOG_KEY?.trim() ||
-    process.env.POSTHOG_PROJECT_API_KEY?.trim()
+  const postHogKey = process.env.POSTHOG_PROJECT_KEY?.trim()
   const postHogHost =
-    process.env.NEXT_PUBLIC_POSTHOG_HOST?.trim() ||
+    process.env.POSTHOG_HOST?.trim() ||
     readPostHogCliHost() ||
     "https://eu.i.posthog.com"
+  const pseudonymSecret = process.env.ANALYTICS_PSEUDONYM_SECRET?.trim()
 
   if (!postHogKey) {
-    console.error("Set NEXT_PUBLIC_POSTHOG_KEY in your shell first.")
+    console.error("Set POSTHOG_PROJECT_KEY in your shell first.")
     console.error(
-      "Example: NEXT_PUBLIC_POSTHOG_KEY=phc_... NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com pnpm env:set-posthog"
+      "Example: POSTHOG_PROJECT_KEY=phc_... POSTHOG_HOST=https://eu.i.posthog.com ANALYTICS_PSEUDONYM_SECRET=<32+ character secret> pnpm env:set-posthog"
     )
     process.exit(1)
   }
 
   if (!postHogKey.startsWith("phc_")) {
-    console.error(
-      "NEXT_PUBLIC_POSTHOG_KEY should be the public project key and start with phc_."
-    )
+    console.error("POSTHOG_PROJECT_KEY should start with phc_.")
     console.error("Do not use a personal API token that starts with phx_.")
     process.exit(1)
   }
 
-  try {
-    new URL(postHogHost)
-  } catch {
-    console.error("NEXT_PUBLIC_POSTHOG_HOST must be a valid URL.")
+  if (!pseudonymSecret || pseudonymSecret.length < 32) {
+    console.error(
+      "Set ANALYTICS_PSEUDONYM_SECRET to a dedicated secret of at least 32 characters."
+    )
+    process.exit(1)
+  }
+
+  if (!isSafePostHogHost(postHogHost)) {
+    console.error(
+      "POSTHOG_HOST must be an HTTPS origin, or local HTTP origin, without credentials, path, query, or fragment."
+    )
     process.exit(1)
   }
 
   mergeLocalEnv({
-    NEXT_PUBLIC_POSTHOG_KEY: postHogKey,
-    NEXT_PUBLIC_POSTHOG_HOST: normalizePostHogHost(postHogHost),
+    ANALYTICS_EXTERNAL_PROCESSING_MODE: pseudonymousAnalyticsMode,
+    POSTHOG_PROJECT_KEY: postHogKey,
+    POSTHOG_HOST: normalizePostHogHost(postHogHost),
+    ANALYTICS_PSEUDONYM_SECRET: pseudonymSecret,
   })
-  console.log("Merged PostHog browser analytics values into .env.local:")
-  console.log("- NEXT_PUBLIC_POSTHOG_KEY")
-  console.log("- NEXT_PUBLIC_POSTHOG_HOST")
+  console.log(
+    "Merged server-side pseudonymous PostHog settings into .env.local:"
+  )
+  console.log("- ANALYTICS_EXTERNAL_PROCESSING_MODE")
+  console.log("- POSTHOG_PROJECT_KEY")
+  console.log("- POSTHOG_HOST")
+  console.log("- ANALYTICS_PSEUDONYM_SECRET")
   console.log("Run pnpm env:check to validate the full contract.")
 }
 
@@ -394,7 +420,7 @@ function isLocalHost(hostname) {
 
 function mergeLocalEnv(updates) {
   const target = join(projectDir, ".env.local")
-  const existing = existsSync(target) ? parseEnvFile(target) : {}
+  const existing = readEnvFileIfPresent(target)
   const merged = { ...existing, ...updates }
   const names = contract.map((entry) => entry.name)
   const extraNames = Object.keys(merged).filter((name) => !names.includes(name))
@@ -417,7 +443,23 @@ function mergeLocalEnv(updates) {
   writeFileSync(target, `${lines.join("\n").trimEnd()}\n`, { mode: 0o600 })
 }
 
+function readEnvFileIfPresent(path) {
+  try {
+    return parseEnvFile(path)
+  } catch (error) {
+    if (error?.code === "ENOENT") return {}
+    throw error
+  }
+}
+
 function isRequiredContractEntry(entry, values) {
+  if (
+    values.ANALYTICS_EXTERNAL_PROCESSING_MODE === pseudonymousAnalyticsMode &&
+    pseudonymousAnalyticsRequiredEnvNames.has(entry.name)
+  ) {
+    return true
+  }
+
   if (entry.optional) return false
 
   return !(
@@ -446,6 +488,25 @@ function normalizePostHogHost(host) {
   }
 
   return host
+}
+
+function isSafePostHogHost(value) {
+  try {
+    const url = new URL(value)
+    const localHttp =
+      url.protocol === "http:" &&
+      (url.hostname === "localhost" || url.hostname === "127.0.0.1")
+    return (
+      (url.protocol === "https:" || localHttp) &&
+      !url.username &&
+      !url.password &&
+      url.pathname === "/" &&
+      !url.search &&
+      !url.hash
+    )
+  } catch {
+    return false
+  }
 }
 
 function parseEnvFile(path) {

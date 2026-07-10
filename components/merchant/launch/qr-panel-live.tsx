@@ -6,7 +6,13 @@ import {
 } from "@hugeicons/core-free-icons"
 
 import { setQrActiveAction } from "@/app/app/qr/actions"
-import { Eyebrow, Icon, MonoTag, SectionHeader, STATUS_ICON } from "@/components/brand"
+import {
+  Eyebrow,
+  Icon,
+  MonoTag,
+  SectionHeader,
+  STATUS_ICON,
+} from "@/components/brand"
 import { SubmitButton } from "@/components/forms"
 import { QrFrame } from "@/components/loyalty/qr-frame"
 import { StatusBanner } from "@/components/loyalty/status-banner"
@@ -15,6 +21,7 @@ import { Disclosure } from "@/components/merchant/launch/disclosure"
 import { EmailPosterButton } from "@/components/merchant/launch/email-poster-button"
 import { QrErrorBanner } from "@/components/merchant/launch/qr-error-banner"
 import { Button } from "@/components/ui/button"
+import { getActivePromo } from "@/lib/marketing/promo"
 import {
   QR_POSTER_TEMPLATES,
   type QrPosterTemplateId,
@@ -69,6 +76,8 @@ export function QrPanelLive({
   error,
   returnHref,
 }: QrPanelLiveProps) {
+  const promo = getActivePromo()
+
   return (
     <article className="surface-card overflow-hidden">
       <header className="grid gap-4 border-b-2 border-ink bg-paper-deep/55 px-4 py-5 sm:px-6 sm:py-6">
@@ -117,7 +126,10 @@ export function QrPanelLive({
         ) : null}
 
         {!hasVenueAddress ? (
-          <StatusBanner tone="warning" title="Add your venue address before print.">
+          <StatusBanner
+            tone="warning"
+            title="Add your venue address before print."
+          >
             Stamps need the right location.{" "}
             <Link
               href="/app/launch?tab=venue"
@@ -164,9 +176,20 @@ export function QrPanelLive({
           <LaunchStep
             step="02"
             title="Print a counter poster"
-            description="Pick a layout and open the A4 sheet. On a computer, print at 100% (no fit-to-page); on a phone, use your browser to print or save the PDF."
+            description="On a phone, email yourself the poster link or open an A4 sheet to print or save. On a computer, open an A4 sheet and print at 100% (no fit-to-page)."
             headingId="qr-print-heading"
           />
+          {promo ? (
+            <StatusBanner
+              tone="info"
+              title="Your first printed poster run is included"
+            >
+              <span className="grid gap-1">
+                <span>{promo.perk}</span>
+                <span>{promo.claim}</span>
+              </span>
+            </StatusBanner>
+          ) : null}
           <ul className="grid gap-2 sm:grid-cols-2">
             {QR_POSTER_TEMPLATES.map((template) => {
               const surface = POSTER_SURFACE[template.id]
@@ -225,7 +248,9 @@ export function QrPanelLive({
 
         <Disclosure label="How customers use this QR">
           <ol className="grid list-decimal gap-2.5 pl-5 text-sm leading-6 text-muted-foreground">
-            <li>New customers scan and join on their phone — no app download.</li>
+            <li>
+              New customers scan and join on their phone — no app download.
+            </li>
             <li>
               Returning members scan the same code and tap to collect
               today&apos;s stamp.

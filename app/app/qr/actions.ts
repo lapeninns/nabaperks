@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation"
 
 import { capturePostHogEvent } from "@/lib/analytics/events"
+import { scheduleMerchantActivationEvent } from "@/lib/analytics/merchant-activation-events"
 import { getCurrentUser } from "@/lib/auth/session"
 import { getServerEnv } from "@/lib/env/server"
 import { revalidateMerchantLaunchSurfaces } from "@/lib/merchant/revalidate-launch-surfaces"
@@ -163,12 +164,11 @@ export async function emailPosterAction(): Promise<EmailPosterState> {
     }
   }
 
-  await capturePostHogEvent({
+  scheduleMerchantActivationEvent({
     eventName: "qr_poster_emailed",
     merchantId: merchant.id,
-    actorType: "merchant",
-    actorId: merchant.id,
-    metadata: { source: "merchant_qr_action" },
+    idempotencyKey: "first-success",
+    source: "merchant_qr_action",
   })
 
   return { ok: true, message: `Poster link sent to ${to}.` }

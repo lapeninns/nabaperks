@@ -17,6 +17,9 @@ validate, execute, and verify Micro-Specs against the current buildable app.
   way to change a spec's status; runs gates fresh and records evidence.
 - `scripts/governance-evidence.mjs` - the evidence-ledger module
   (`show <spec-id>` / `backfill --by <who>`).
+- `scripts/run-governance-gates.mjs` - runs active-spec gates by default;
+  repeat `--spec <id>` to batch an explicit deduplicated multi-spec proof and
+  add `--record` to write each spec's own evidence ledger.
 - `scripts/governance-status.mjs` (`pnpm governance:status`) - read-only
   portfolio dashboard: per-spec lifecycle/evidence table, an attention list
   of implemented/verified specs awaiting their next step, and the checker's
@@ -122,6 +125,13 @@ Additional enforced rules:
   as broad.
 - An `active` spec whose `last_reviewed` is more than 30 days old fails until
   it is re-reviewed and the date bumped.
+- Changed-file attribution is lifecycle-aware. Active specs own their
+  `allowed_blast_radius`. An implemented, verified, or closed spec may retain
+  attribution for earlier work on the same delivery branch only when its
+  machine evidence ledger is also in that branch diff, and then owns only its
+  `implementation_surfaces` plus its exact spec and ledger files. Old completed
+  specs grant no standing permission; draft and superseded specs grant none.
+  The lifecycle CLI and checker use this same resolver.
 - Docs-drift is bidirectional: the gate list below must equal the gate
   commands `ci.yml` actually runs (`run: |` blocks included), in both
   directions.
@@ -357,6 +367,27 @@ the staleness and run-freshness (red/non-covering latest run) rules for the
 specs being re-proven — the cure is never blocked by the disease, while
 provenance, dirty-tree, and attestation rules stay enforced. The standalone
 check keeps full enforcement.
+
+### Gate Cadence and Batched Proof
+
+- During Red -> Green -> Refactor, run the narrowest tests that cover the
+  requirement and directly affected contract. Git commit frequency does not
+  define verification frequency.
+- For an active spec ready to move lifecycle, `governance:advance` is the
+  complete recorded boundary. Do not immediately pre-run the same suite with
+  `run-gates --record`.
+- Use `run-gates --record` for a genuinely separate intermediate checkpoint or
+  to re-prove implemented/verified specs whose owned surfaces changed.
+- When a shared change makes several specs stale, re-prove them together:
+  `pnpm governance:run-gates --spec MS-one --spec MS-two --record`. Identical
+  exact commands execute once; each ledger receives only that spec's declared
+  gate results.
+- The runner is fail-fast. A failed recorded batch writes honest partial/red
+  runs for every selected spec; fix the root cause and re-run the same batch
+  rather than deleting the failed evidence.
+- Before release, run the project-level CI/final-proof lane once. This is
+  complementary portfolio evidence, not a reason to repeat it after every
+  implementation commit.
 
 ## Working Rule
 

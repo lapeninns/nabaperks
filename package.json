@@ -12,7 +12,7 @@
     "test:micro-specs": "node --test tests/micro-specs/*.test.mjs",
     "test:unit": "node --import ./tests/support/register-alias.mjs --test tests/unit/*.test.mjs",
     "test:coverage": "mkdir -p coverage && node --import ./tests/support/register-alias.mjs --experimental-test-coverage --test-coverage-include='lib/**' --test-coverage-lines=80 --test-coverage-functions=80 --test-coverage-branches=70 --test-reporter=lcov --test-reporter-destination=coverage/lcov.info --test tests/unit/*.test.mjs",
-    "test:db": "node --test tests/db/*.test.mjs",
+    "test:db": "node --test --test-concurrency=1 tests/db/*.test.mjs",
     "test:e2e": "node scripts/run-playwright.mjs",
     "test:e2e:ui": "node scripts/run-playwright.mjs --ui",
     "test:e2e:headed": "node scripts/run-playwright.mjs --headed",
@@ -84,7 +84,7 @@
     "react-dom": "19.2.7",
     "shadcn": "^4.11.0",
     "sonner": "^2.0.7",
-    "stripe": "^22.2.0",
+    "stripe": "^22.3.1",
     "tailwind-merge": "^3.6.0",
     "tw-animate-css": "^1.4.0",
     "web-push": "^3.6.7"

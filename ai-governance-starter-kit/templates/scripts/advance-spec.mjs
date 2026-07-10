@@ -29,7 +29,6 @@ import {
   isManualInspectionGate,
 } from "./governance-commands.mjs"
 import { parseFrontmatter } from "./governance-frontmatter.mjs"
-import { matchesPattern } from "./governance-glob.mjs"
 import {
   newLedger,
   readLedger,
@@ -42,6 +41,8 @@ import {
 } from "./governance-evidence.mjs"
 import { readSpecs, specPath } from "./governance-io.mjs"
 import {
+  attributionOwnersForFile,
+  buildChangedFileAttribution,
   REQUIRED_SECTION_HEADINGS,
   validateClosedRecord,
   validateGovernance,
@@ -125,19 +126,16 @@ if (options.allowDirty && !options.note) refuse("--allow-dirty requires --note \
 // Blast-radius attribution for the branch diff (gates-running transitions).
 if (runsGates) {
   const changed = branchChangedFiles(root)
-  const activeOthers = specs.filter(
-    (entry) => entry.metadata.status === "active" && entry.metadata.spec_id !== options.specId
-  )
+  const attribution = buildChangedFileAttribution(specs, changed)
   const outside = []
   const otherSpec = []
   for (const file of changed) {
-    const mine = (spec.metadata.allowed_blast_radius ?? []).some((pattern) =>
-      matchesPattern(file, pattern)
+    const owners = attributionOwnersForFile(attribution, file)
+    const mine = owners.some(
+      ({ spec: owner }) => owner.metadata.spec_id === options.specId
     )
     if (mine) continue
-    const owner = activeOthers.find((entry) =>
-      (entry.metadata.allowed_blast_radius ?? []).some((pattern) => matchesPattern(file, pattern))
-    )
+    const owner = owners[0]?.spec
     if (owner) otherSpec.push({ file, owner: owner.metadata.spec_id })
     else outside.push(file)
   }
@@ -150,9 +148,9 @@ if (runsGates) {
   if (otherSpec.length > 0) {
     const lines = otherSpec.map((entry) => `  - ${entry.file} (covered by ${entry.owner})`)
     if (options.strict) {
-      refuse(`--strict: branch diff contains files owned by other active specs:\n${lines.join("\n")}`)
+      refuse(`--strict: branch diff contains files owned by other attributable specs:\n${lines.join("\n")}`)
     }
-    console.warn(`warning: branch diff contains files covered only by other active specs:\n${lines.join("\n")}`)
+    console.warn(`warning: branch diff contains files covered only by other attributable specs:\n${lines.join("\n")}`)
   }
 }
 

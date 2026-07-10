@@ -20,7 +20,7 @@ import type {
   LaunchReadinessTab,
   LaunchSetupStepId,
 } from "@/lib/merchant/launch-readiness-contract"
-import { QR_LAUNCH_TAB_PATH, QR_POSTER_PATH } from "@/lib/merchant/qr-nav"
+import { QR_LAUNCH_TAB_PATH } from "@/lib/merchant/qr-nav"
 import type { ActiveCardSummary, QrCodeSummary } from "@/lib/merchant/qr-code"
 
 export type { LaunchSetupStepId, LaunchReadinessTab, LaunchHubTab }
@@ -126,8 +126,8 @@ export function buildLaunchReadiness({
       tab: "qr" as const,
       label: LAUNCH_SETUP_STEP_LABELS.qr,
       ready: qrReady,
-      href: qrReady ? QR_POSTER_PATH : QR_LAUNCH_TAB_PATH,
-      actionLabel: qrReady ? "Open venue QR" : "Create your QR",
+      href: QR_LAUNCH_TAB_PATH,
+      actionLabel: qrReady ? "Review venue QR" : "Create your QR",
     },
   }
   const setupSteps = LAUNCH_CHECKLIST_STEP_ORDER.map((id) => stepById[id])
@@ -211,7 +211,9 @@ function cardActionLabel(cardReady: boolean): string {
   return cardReady ? "Review card" : "Build card"
 }
 
-export function isLaunchBillingReady(billing: LaunchBilling | undefined): boolean {
+export function isLaunchBillingReady(
+  billing: LaunchBilling | undefined
+): boolean {
   return isBillingReady(billing)
 }
 
@@ -290,7 +292,9 @@ export const LAUNCH_HUB_TABS = [
   { id: "billing", label: LAUNCH_SETUP_STEP_LABELS.billing },
 ] as const satisfies ReadonlyArray<{ id: LaunchHubTab; label: string }>
 
-export function isLaunchHubTab(value: string | undefined): value is LaunchHubTab {
+export function isLaunchHubTab(
+  value: string | undefined
+): value is LaunchHubTab {
   return LAUNCH_HUB_TABS.some((tab) => tab.id === value)
 }
 

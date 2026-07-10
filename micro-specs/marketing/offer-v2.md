@@ -3,7 +3,7 @@ spec_id: MS-marketing-offer-v2
 status: implemented
 risk_class: ui-only
 owner: amankumarshrestha
-last_reviewed: 2026-07-05
+last_reviewed: 2026-07-10
 allowed_blast_radius:
   - micro-specs/marketing/**
   - micro-specs/evidence/MS-marketing-offer-v2.json
@@ -25,8 +25,10 @@ implementation_surfaces:
   - app/(auth)/signup/page.tsx
   - app/how-it-works/page.tsx
   - components/marketing/**
-  - tests/micro-specs/**
-  - tests/unit/**
+  - tests/micro-specs/marketing-offer-v2.test.mjs
+  - tests/micro-specs/marketing-auth-legal.test.mjs
+  - tests/micro-specs/marketing-offer-v1.test.mjs
+  - tests/unit/marketing-offer-facts.test.mjs
   - tests/e2e/visual.spec.ts-snapshots/**
 related_tests:
   - tests/micro-specs/marketing-offer-v2.test.mjs

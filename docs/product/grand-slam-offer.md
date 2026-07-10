@@ -6,13 +6,13 @@ No-app QR loyalty for UK hospitality · £49/month · Operated by Lapen Inns
 
 | | |
 |---|---|
-| **Prepared** | 5 July 2026 |
+| **Prepared** | 9 July 2026 |
 | **Operator** | Lapen Inns — a hospitality operator running 9 pubs across England |
 | **Product** | A browser-based loyalty card customers open from your QR code |
 | **Framework** | Alex Hormozi, *$100M Offers* (Value Equation · Bonuses · Guarantees · Scarcity/Urgency · Naming) |
 | **Source of truth** | Single-sourced in `lib/marketing/facts.ts` · governed by spec `MS-marketing-offer-v2` |
 
-> **Feel stupid saying no.** A loyalty system that's live on your counter the same afternoon, that you don't keep paying for until it brings back a regular — with a launch kit thrown in.
+> **A clear route to live.** Configure your venue, card, rewards and QR, then activate billing before customers join — with a launch kit included.
 
 > **Note:** This is the durable narrative of the offer. The authoritative copy lives in `lib/marketing/facts.ts` (`OFFER`, `SETUP`, `OFFER_STACK`, `GUARANTEE`, `PROMO`); if the two ever disagree, the code is right and this doc should be updated.
 
@@ -20,16 +20,16 @@ No-app QR loyalty for UK hospitality · £49/month · Operated by Lapen Inns
 
 ## 1. Executive summary
 
-Nabaperks turns one-time customers into regulars for UK pubs, cafes, bars and takeaways — with **no app, no wallet pass and no POS integration**. The customer scans a till QR, a loyalty card opens in their browser and saves in one tap, and every stamp is confirmed at the counter.
+Nabaperks gives UK pubs, cafes, bars and takeaways a browser-based loyalty card with **no app, no wallet pass and no POS integration**. The customer scans a till QR, saves the card in their browser, and each stamp is linked to that venue QR and saved membership.
 
 The core price is deliberately plain: **£49/month per venue, with a 30-day free pilot and cancel-anytime**. The offer *around* that price is what makes it a Grand Slam Offer — four moves, each drawn straight from the *$100M Offers* playbook:
 
-- **Speed.** The venue is live the same afternoon in four guided steps — "fast beats free."
+- **A clear setup path.** Four configuration steps are followed by billing activation, so operators know exactly when the venue becomes live.
 - **A stacked launch kit.** Five already-built assets, presented as named bonuses, each answering a real objection.
 - **A guarantee with teeth.** You don't keep paying until the card brings back a first regular.
 - **Honest urgency.** A real, time-boxed seasonal perk — free poster printing for venues that go live this season.
 
-Every claim is single-sourced and honest: no invented "was" prices, no fake countdowns, and no compliance guarantees. That is what lets the offer be **aggressive and defensible under UK advertising rules** at the same time.
+Every claim is single-sourced and honest: no invented "was" prices, fake availability counts, impossible-fraud promises, or compliance guarantees. That keeps the offer useful and defensible under UK advertising rules.
 
 ---
 
@@ -39,14 +39,14 @@ Every claim is single-sourced and honest: no invented "was" prices, no fake coun
 
 | Element | Detail |
 |---|---|
-| **The product** | A browser-based loyalty card customers open from your QR — no app, no Apple/Google Wallet pass, no POS or EPOS integration. Every stamp is counter-verified. |
+| **The product** | A browser-based loyalty card customers open from your QR — no app, no Apple/Google Wallet pass, no POS or EPOS integration. Each stamp is linked to the venue QR and saved membership and limited to one per customer per UK date. |
 | **The price** | £49/month per venue (or £490/year — two months free) · 30-day free pilot · month to month · no contract · card required, cancel anytime from your billing page. |
 | **The named offer** | The 30-Day First-Regular Launch. |
-| **Speed to value** | Live on your counter the same afternoon — four guided steps, rewards pre-filled. |
+| **Activation path** | Four guided configuration steps, then billing activation before customers can join and stamp. |
 | **The guarantee** | First-Regular Guarantee — if your live card hasn't brought back a first regular by the end of your 30-day pilot, the pilot stays free until it does. |
 | **Included (the launch kit)** | Poster kit · seeded mystery reward pool · set-and-forget automations · privacy jobs handled · operator's loyalty guides. |
 | **This season** | Go live by 31 August 2026 and we print and post your first counter-poster run — free. |
-| **The proof** | Nabaperks Counter-Loyalty Index (June 2026): 1,842 members, 812 returned, 46.8% repeat rate across powered venues. |
+| **The proof** | Quantitative aggregate proof stays unpublished until it can be regenerated from a durable evidence source. |
 
 ---
 
@@ -61,11 +61,11 @@ You raise the top and drive the bottom toward zero. Here is how The 30-Day First
 | Value driver | Goal | How the offer moves it |
 |---|---|---|
 | **Dream outcome** | Increase | Regulars who come back — more midweek trade — without an app or a CRM. The whole offer is named after that outcome: your first regular back. |
-| **Perceived likelihood** | Increase | Real first-party proof (46.8% repeat rate across powered venues) plus a guarantee that puts our money where our mouth is. |
-| **Time delay** | Decrease | "Fast beats free." Live the same afternoon; the first member can stamp the moment the poster hits the counter. |
+| **Perceived likelihood** | Increase | A conditional guarantee that puts our money where our mouth is, plus each merchant's own visit and return dashboard. |
+| **Time delay** | Decrease | Four configuration steps are visible up front, followed by one explicit billing activation step. |
 | **Effort & sacrifice** | Decrease | No app to build, no POS to connect, nothing to install. Posters are pre-designed and the reward pool is pre-seeded. |
 
-> **Why the bottom half matters most.** Two products with the same dream outcome are separated by time and effort. Nabaperks wins there: the same-afternoon launch and the zero-friction, no-app mechanic collapse the two denominators that usually stop a busy operator from ever starting.
+> **Why the bottom half matters most.** Two products with the same dream outcome are separated by effort and uncertainty. Nabaperks reduces both with a guided checklist and a no-app mechanic, without promising an unsupported completion time.
 
 ---
 
@@ -79,7 +79,7 @@ You raise the top and drive the bottom toward zero. Here is how The 30-Day First
 - Weekly digest of visits, regulars and redemptions
 - Optional location checks at your venue
 
-**The maths we lead with:** one or two extra regulars a week can cover the cost for many venues. Most see their first repeat visit inside the first week — the dashboard counts the regulars, the owner does the maths.
+**The maths we lead with:** one or two extra regulars a week can cover the cost for many venues. The dashboard records each merchant's visits and returning customers so the owner can judge the pilot from their own results.
 
 ---
 
@@ -99,14 +99,14 @@ An unnamed offer can't be asked for. Hormozi's naming formula makes it magnetic 
 
 ---
 
-## 6. Speed to value: "fast beats free"
+## 6. A clear route to activation
 
-> ### Live on your counter the same afternoon.
-> Four guided steps — add your venue, build the card, confirm your pre-filled rewards, and print your QR. No app to build, no POS to connect, nothing to install.
+> ### Build your card first. Activate it when billing is ready.
+> Five guided steps — add your venue, build the card, confirm your pre-filled rewards, prepare your QR, and activate billing. No app to build, no POS to connect, nothing to install.
 >
-> *Your first member can stamp the moment the poster hits the counter.*
+> *Once billing is active, customers can scan the live venue QR to join and collect their first stamp.*
 
-This is honest speed, grounded in the real setup flow (venue → card → rewards → QR), with the reward pool pre-seeded so step three is a confirmation, not a blank page. No invented minute-count — just the genuine "start this afternoon, print the QR, take your first stamp" path.
+This is grounded in the real setup flow (venue → card → rewards → QR → billing), with the reward pool pre-seeded so step three is a confirmation, not a blank page. No invented minute count or promise that printing the QR alone makes the programme live.
 
 ---
 
@@ -171,11 +171,11 @@ What makes this offer defensible as well as persuasive:
 
 **The loyalty card that just opens.**
 
-No-app QR loyalty for UK cafes, takeaways and pubs. Your customer scans the till QR and the card opens in their browser — saved in one tap, with no app and no Apple or Google Wallet pass to install. Every stamp is verified at your counter.
+No-app QR loyalty for UK cafes, takeaways and pubs. Your customer scans the till QR and the card opens in their browser — saved in one tap, with no app and no Apple or Google Wallet pass to install. Each stamp is tied to the venue QR and saved membership and capped at one per customer per UK date.
 
 **One price. Everything included.** £49/month per venue, a 30-day free pilot, month to month, cancel anytime. At £49/month, one or two extra regulars a week can cover it.
 
-**Live on your counter the same afternoon.** Four guided steps — add your venue, build the card, confirm your pre-filled rewards, and print your QR. Your first member can stamp the moment the poster hits the counter.
+**Build your card first. Activate it when billing is ready.** Four configuration steps prepare the venue, card, rewards and QR; billing is the fifth gate. Once billing is active, customers can join from the live QR and collect stamps.
 
 **The 30-Day First-Regular Launch — the launch kit, thrown in.** A launch-ready till poster kit, a done-for-you mystery reward pool, set-and-forget retention automations, your privacy jobs handled, and the operator's loyalty guides — all included with the one price.
 
@@ -189,7 +189,7 @@ No-app QR loyalty for UK cafes, takeaways and pubs. Your customer scans the till
 
 | *$100M Offers* lever | What it says | What ships in the offer |
 |---|---|---|
-| **Value Equation — time delay** | Fast beats free; cut the delay to value. | `SETUP` speed copy: same-afternoon, four steps, early first-stamp win. |
+| **Value Equation — time delay** | Cut uncertainty and effort. | `SETUP` activation copy: four configuration steps, then billing, then the first live join and stamp. |
 | **Bonuses** | Break the offer into named, stacked parts; ascribe a justified price tag. | `OFFER_STACK`: five named bonuses, each with an objection removed and a real anchor. |
 | **Guarantees** | Reverse risk with a conditional "if not X in Y, then Z." | First-Regular Guarantee (conditional service guarantee) + best/worst framing. |
 | **Scarcity & urgency** | Make it real; never a phony countdown. | Rolling seasonal `PROMO`, real deadline, `isPromoStale` auto-expiry tripwire. |
@@ -207,10 +207,10 @@ No-app QR loyalty for UK cafes, takeaways and pubs. Your customer scans the till
 
 Before this reaches production:
 
-- **Confirm the promo.** The seasonal perk (free first counter-poster print + post) and its deadline (31 August 2026) ship as a placeholder. Confirm the real perk, date, and that Lapen Inns will fulfil it — or switch the promo off with `PROMO.enabled = false`.
+- **Operate the promo.** Keep the free first counter-poster print-and-post commitment staffed, or switch the promo off with `PROMO_CONFIG.enabled = false`. Do not publish availability counts without a durable reservation ledger.
 - **Merge.** Push `feat/marketing-offer-v2` and open a pull request for review.
 - **Refresh cadence.** Roll the promo each season (new perk/date) rather than letting one lapse — the build will remind you (`isPromoStale`) if a deadline passes.
 
 ---
 
-*Nabaperks is operated by Lapen Inns. This document reflects the offer as built on 5 July 2026 and is grounded in Alex Hormozi's* $100M Offers.
+*Nabaperks is operated by Lapen Inns. This document reflects the offer as built on 9 July 2026 and is grounded in Alex Hormozi's* $100M Offers.

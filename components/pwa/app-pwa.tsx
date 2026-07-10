@@ -244,6 +244,9 @@ export function AppPwa() {
     !hasMounted ||
     pathname === "/offline" ||
     pathname.startsWith("/m/") ||
+    // Setup owns the phone's bottom action area. Deferring the optional install
+    // prompt keeps it from covering the reward batch tray or another launch CTA.
+    pathname === "/app/launch" ||
     // Marketing routes never prompt — except /start, the manifest start_url
     // and customer switchboard, where the install offer is the point (this is
     // what makes INSTALL_COPY.marketing reachable).

@@ -89,7 +89,9 @@ describe("MS-merchant-venue-announcements-ui source contract", () => {
 
   it("adds sidebar and home entry points for the announcements route", () => {
     const nav = readProjectFile("components/layout/console-nav.ts")
-    const home = readProjectFile("app/app/page.tsx")
+    const homeActions = readProjectFile(
+      "components/merchant/dashboard-header-actions.tsx"
+    )
     const navBlock = blockBetween(
       nav,
       "export const merchantNavItems = [",
@@ -99,7 +101,7 @@ describe("MS-merchant-venue-announcements-ui source contract", () => {
     assert.match(nav, /Megaphone01Icon/)
     assert.match(navBlock, /href: "\/app\/announcements"/)
     assert.match(navBlock, /label: "Announce"/)
-    assert.match(home, /href="\/app\/announcements"/)
+    assert.match(homeActions, /href="\/app\/announcements"/)
   })
 
   it("registers a DB-free harness route for browser, a11y, and visual sweeps", () => {

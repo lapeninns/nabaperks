@@ -3,8 +3,8 @@ import { cn } from "@/lib/utils"
 import { PilotProofStrip } from "../pilot-proof-strip"
 
 const stats = [
-  { value: "Set up in minutes", label: "for your venue" },
-  { value: "Fast enough", label: "for counter service" },
+  { value: "4 setup steps", label: "before billing" },
+  { value: "Self-serve", label: "on customer phones" },
   { value: "30 days", label: "free to pilot" },
 ] as const
 

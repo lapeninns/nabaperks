@@ -1,0 +1,132 @@
+{
+  "schema": 1,
+  "spec_id": "MS-billing-state-durability",
+  "runs": [
+    {
+      "timestamp": "2026-07-10T04:03:06.476Z",
+      "git_sha": "acdfda7073da5a970ac2f9fc85fa531c59e8b712",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6767
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1139
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10320
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 8003
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1013
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 3941
+        }
+      ],
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-10T04:05:33.476Z",
+      "git_sha": "3e90da6fdba85ca58ba31d87ee854441f33410a3",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6747
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1078
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10087
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 1,
+          "duration_ms": 7519
+        }
+      ],
+      "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-10T04:07:01.412Z",
+      "git_sha": "9b1e5fe5d32a73c11623bd95421582b2b81983a2",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6750
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1059
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10120
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 8169
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1059
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 3935
+        }
+      ],
+      "all_passed": true
+    }
+  ],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-10T02:36:28.235Z",
+      "sha": "4a1db5fcb2ecad55bad520f519b5ba0d9caa3e5d",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-10T04:07:01.412Z",
+      "sha": "9b1e5fe5d32a73c11623bd95421582b2b81983a2",
+      "dirty": false,
+      "by": "amankumarshrestha"
+    }
+  ]
+}

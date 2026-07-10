@@ -110,9 +110,10 @@ describe("DOB gate — Section D: the other DOB rejections", () => {
   }
 
   test("Given a future DOB When validated Then it is rejected as future (before the age check)", () => {
-    const tomorrow = new Date(Date.now() + DAY_MS).toISOString().slice(0, 10)
+    const now = new Date("2026-07-09T12:00:00.000Z")
+    const tomorrow = "2026-07-10"
     assert.equal(
-      validateDateOfBirth(tomorrow),
+      validateDateOfBirth(tomorrow, now),
       "Date of birth can't be in the future."
     )
   })

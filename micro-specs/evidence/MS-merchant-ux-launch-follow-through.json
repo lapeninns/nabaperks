@@ -1,0 +1,352 @@
+{
+  "schema": 1,
+  "spec_id": "MS-merchant-ux-launch-follow-through",
+  "runs": [
+    {
+      "timestamp": "2026-07-10T04:57:38.679Z",
+      "git_sha": "528051c8040ccd732e5bce475a24bd64f611899a",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7053
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1287
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10003
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 1,
+          "duration_ms": 7201
+        }
+      ],
+      "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-10T05:19:06.052Z",
+      "git_sha": "49953cda41e9d55869ba0813a89b6a9a3fb880a3",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6316
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1074
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 9369
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 7868
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 965
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 169
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-merchant-ux-launch-follow-through\"",
+          "exit_code": 0,
+          "duration_ms": 23883
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 178201
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 46719
+        }
+      ],
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-10T10:47:24.880Z",
+      "git_sha": "a08bc9a29481665feefdf9626539539857bf126b",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7744
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1085
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10485
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10530
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1130
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 198866
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 59150
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 211
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-merchant-ux-launch-follow-through\"",
+          "exit_code": 0,
+          "duration_ms": 42239
+        }
+      ],
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-10T11:55:27.794Z",
+      "git_sha": "b09c6d229b5f2937c37e92047ce5b518b51ffe18",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7744
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1205
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 1,
+          "duration_ms": 1205
+        }
+      ],
+      "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-10T11:59:31.849Z",
+      "git_sha": "b09c6d229b5f2937c37e92047ce5b518b51ffe18",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7792
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1219
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 14290
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 4137
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1244
+        }
+      ],
+      "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-10T12:02:36.673Z",
+      "git_sha": "b09c6d229b5f2937c37e92047ce5b518b51ffe18",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6590
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1125
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 9713
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9411
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1101
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 1,
+          "duration_ms": 63875
+        }
+      ],
+      "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-10T12:07:19.968Z",
+      "git_sha": "b09c6d229b5f2937c37e92047ce5b518b51ffe18",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 8744
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 6210
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 13684
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 4377
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1425
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 1,
+          "duration_ms": 132291
+        }
+      ],
+      "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-10T12:28:46.165Z",
+      "git_sha": "2537624f49a3e105141b451d1c853fbc897d12b7",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 8033
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1193
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11138
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 11290
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1213
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 200538
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 59988
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 227
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-merchant-ux-launch-follow-through\"",
+          "exit_code": 0,
+          "duration_ms": 30793
+        }
+      ],
+      "all_passed": true
+    }
+  ],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-10T04:29:55.602Z",
+      "sha": "b76283e098aa4e6a3faef17da8d6c51ceb849cc1",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-10T05:19:06.052Z",
+      "sha": "49953cda41e9d55869ba0813a89b6a9a3fb880a3",
+      "dirty": false,
+      "by": "amankumarshrestha"
+    }
+  ]
+}

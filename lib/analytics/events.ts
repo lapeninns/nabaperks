@@ -1,5 +1,9 @@
 import "server-only"
 
+import {
+  buildPostHogCapturePayload,
+  resolvePostHogConfig,
+} from "@/lib/analytics/privacy-core"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export const productEventNames = [
@@ -21,7 +25,19 @@ export const productEventNames = [
   "referral_bonus_awarded",
   "birthday_reward_enabled",
   "birthday_reward_disabled",
+  "merchant_marketing_viewed",
+  "merchant_signup_clicked",
+  "merchant_signup_started",
+  "merchant_account_created",
+  "merchant_otp_verification_viewed",
+  "merchant_otp_resent",
+  "merchant_email_verified",
   "merchant_signed_up",
+  "merchant_launch_entered",
+  "merchant_billing_reached",
+  "merchant_billing_checkout_started",
+  "merchant_billing_checkout_returned",
+  "merchant_billing_activated",
   "loyalty_card_created",
   "qr_created",
   "qr_downloaded",
@@ -55,6 +71,7 @@ export const productEventNames = [
 export type ProductEventName = (typeof productEventNames)[number]
 
 export type ProductEventInput = {
+  eventId?: string | null
   eventName: ProductEventName
   merchantId?: string | null
   customerId?: string | null
@@ -62,12 +79,24 @@ export type ProductEventInput = {
   qrCodeId?: string | null
   actorType: "merchant" | "customer" | "staff" | "admin" | "system"
   actorId?: string | null
+  analyticsIdentity?: {
+    domain:
+      | "actor"
+      | "customer"
+      | "funnel"
+      | "merchant"
+      | "membership"
+      | "qr"
+      | "system"
+    value: string
+  }
   metadata?: Record<string, unknown>
 }
 
 export async function recordProductEvent(input: ProductEventInput) {
   const supabase = createSupabaseServiceRoleClient()
-  const { error } = await supabase.from("product_events").insert({
+  const row = {
+    ...(input.eventId ? { id: input.eventId } : {}),
     event_name: input.eventName,
     merchant_id: input.merchantId ?? null,
     customer_id: input.customerId ?? null,
@@ -76,7 +105,12 @@ export async function recordProductEvent(input: ProductEventInput) {
     actor_type: input.actorType,
     actor_id: input.actorId ?? null,
     metadata: sanitizeMetadata(input.metadata ?? {}),
-  })
+  }
+  const { error } = input.eventId
+    ? await supabase
+        .from("product_events")
+        .upsert(row, { onConflict: "id", ignoreDuplicates: true })
+    : await supabase.from("product_events").insert(row)
 
   if (error) {
     throw new Error(`Unable to record product event: ${error.message}`)
@@ -86,33 +120,39 @@ export async function recordProductEvent(input: ProductEventInput) {
 }
 
 export async function capturePostHogEvent(input: ProductEventInput) {
-  const apiKey = process.env.NEXT_PUBLIC_POSTHOG_KEY?.trim()
-  const host = process.env.NEXT_PUBLIC_POSTHOG_HOST?.trim()
+  if (process.env.ANALYTICS_EXTERNAL_PROCESSING_MODE !== "pseudonymous") return
 
-  if (!apiKey || !host) return
+  const config = resolvePostHogConfig({
+    ANALYTICS_EXTERNAL_PROCESSING_MODE:
+      process.env.ANALYTICS_EXTERNAL_PROCESSING_MODE,
+    ANALYTICS_PSEUDONYM_SECRET: process.env.ANALYTICS_PSEUDONYM_SECRET,
+    POSTHOG_HOST: process.env.POSTHOG_HOST,
+    POSTHOG_PROJECT_KEY: process.env.POSTHOG_PROJECT_KEY,
+  })
+  if (!config) return
+
+  const identity = analyticsIdentity(input)
+  const externalMetadata = Object.fromEntries(
+    Object.entries(input.metadata ?? {}).filter(([key]) => key !== "funnel_key")
+  )
+  const payload = buildPostHogCapturePayload(
+    {
+      eventName: input.eventName,
+      identityDomain: identity.domain,
+      identityValue: identity.value,
+      eventId: input.eventId,
+      properties: { actor_type: input.actorType, ...externalMetadata },
+    },
+    config
+  )
+  if (!payload) return
 
   try {
-    await fetch(`${host.replace(/\/$/, "")}/capture/`, {
+    await fetch(`${config.host.replace(/\/$/, "")}/i/v0/e/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        api_key: apiKey,
-        event: input.eventName,
-        distinct_id:
-          input.actorId ??
-          input.merchantId ??
-          input.customerId ??
-          input.membershipId ??
-          "system",
-        properties: {
-          merchant_id: input.merchantId,
-          customer_id: input.customerId,
-          membership_id: input.membershipId,
-          qr_code_id: input.qrCodeId,
-          actor_type: input.actorType,
-          ...sanitizeMetadata(input.metadata ?? {}),
-        },
-      }),
+      signal: AbortSignal.timeout(2_000),
+      body: JSON.stringify(payload),
     })
   } catch {
     // PostHog is best-effort; Supabase product_events remain the source of truth.
@@ -136,4 +176,18 @@ export function sanitizeMetadata(metadata: Record<string, unknown>) {
   return Object.fromEntries(
     Object.entries(metadata).filter(([key]) => !blocked.has(key.toLowerCase()))
   )
+}
+
+function analyticsIdentity(input: ProductEventInput) {
+  if (input.analyticsIdentity) return input.analyticsIdentity
+  if (input.merchantId)
+    return { domain: "merchant" as const, value: input.merchantId }
+  if (input.customerId)
+    return { domain: "customer" as const, value: input.customerId }
+  if (input.membershipId) {
+    return { domain: "membership" as const, value: input.membershipId }
+  }
+  if (input.actorId) return { domain: "actor" as const, value: input.actorId }
+  if (input.qrCodeId) return { domain: "qr" as const, value: input.qrCodeId }
+  return { domain: "system" as const, value: input.eventName }
 }

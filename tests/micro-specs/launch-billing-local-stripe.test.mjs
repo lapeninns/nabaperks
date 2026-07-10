@@ -13,28 +13,21 @@ function readProjectFile(...segments) {
   return readFileSync(path.join(projectRoot, ...segments), "utf8")
 }
 
-test("Given local Stripe checkout success When billing copy is reviewed Then webhook-based sync is explicit", () => {
+test("Given local Stripe checkout success When billing sync is reviewed Then exact Session and Subscription proof is explicit", () => {
   // Given
-  const billingPanel = readProjectFile(
-    "components",
+  const checkoutReturn = readProjectFile(
+    "lib",
     "merchant",
-    "account",
-    "billing-panel.tsx"
+    "billing-checkout-return.ts"
   )
-  const webhookRoute = readProjectFile(
-    "app",
-    "api",
-    "stripe",
-    "webhook",
-    "route.ts"
-  )
+  const webhookEvents = readProjectFile("lib", "stripe", "webhook-events.ts")
 
   // When / Then
-  assert.match(webhookRoute, /checkout\.session\.completed/)
-  assert.match(webhookRoute, /syncStripeSubscription/)
-  assert.match(billingPanel, /Stripe webhook/)
-  assert.match(billingPanel, /\/api\/stripe\/webhook/)
-  assert.doesNotMatch(billingPanel, /will update here in a moment/)
+  assert.match(webhookEvents, /case "checkout\.session\.completed"/)
+  assert.match(webhookEvents, /retrieveSubscription/)
+  assert.match(webhookEvents, /applySubscriptionEvent/)
+  assert.match(checkoutReturn, /confirmBillingCheckoutReturn/)
+  assert.doesNotMatch(checkoutReturn, /syncMerchantBillingFromStripe/)
 })
 
 test("Given a failed Stripe webhook event When Stripe retries Then the ledger claim is recoverable", () => {
@@ -49,14 +42,14 @@ test("Given a failed Stripe webhook event When Stripe retries Then the ledger cl
   )
 
   // When / Then
-  assert.match(webhookEvents, /shouldRetryStripeWebhookEvent/)
-  assert.match(
-    webhookEvents,
-    /event\.processed_at === null && event\.failed_at !== null/
-  )
-  assert.match(webhookEvents, /\.not\("failed_at", "is", null\)/)
-  assert.match(webhookEvents, /failed_at: null/)
-  assert.match(webhookRoute, /if \(claim\.status === "duplicate"\)/)
+  assert.match(webhookEvents, /claim_stripe_webhook_event/)
+  assert.match(webhookEvents, /fail_stripe_webhook_event/)
+  assert.match(webhookEvents, /p_lease_id: leaseId/)
+  assert.match(webhookEvents, /claim\.status === "busy"/)
+  assert.match(webhookEvents, /status: 503/)
+  assert.match(webhookEvents, /"Retry-After": "5"/)
+  assert.match(webhookEvents, /claim\.status === "processed"/)
+  assert.match(webhookRoute, /failEvent: failStripeWebhookEvent/)
 })
 
 test("Given the launch QR panel When billing activation is checked Then it does not reference an undefined banner", () => {
@@ -80,5 +73,8 @@ test("Given the launch QR panel When billing activation is checked Then it does 
   assert.match(qrPanel, /LaunchSaveNextAction/)
   assert.match(launchPage, /variant="full"/)
   assert.match(launchPage, /Proceed to billing/)
-  assert.match(launchBillingCta, /export function LaunchBillingActivationBanner/)
+  assert.match(
+    launchBillingCta,
+    /export function LaunchBillingActivationBanner/
+  )
 })

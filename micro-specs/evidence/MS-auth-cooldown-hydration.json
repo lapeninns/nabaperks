@@ -1,0 +1,210 @@
+{
+  "schema": 1,
+  "spec_id": "MS-auth-cooldown-hydration",
+  "runs": [
+    {
+      "timestamp": "2026-07-10T06:14:33.597Z",
+      "git_sha": "d80437047127980d9f36de6d1b0e36272ef1a14b",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6465
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1006
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 9489
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 1,
+          "duration_ms": 7267
+        }
+      ],
+      "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-10T06:26:32.701Z",
+      "git_sha": "1f7b8f53752e610d2b53b0613a74e17d346c1516",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6342
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1024
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 9652
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 7915
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 964
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --grep \"@MS-auth-cooldown-hydration\"",
+          "exit_code": 0,
+          "duration_ms": 11843
+        }
+      ],
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-10T07:24:15.198Z",
+      "git_sha": "02d666a5394a959f1cd4db5eff94ce01ec3855e4",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6332
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1035
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 9692
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 8340
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1022
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --grep \"@MS-auth-cooldown-hydration\"",
+          "exit_code": 0,
+          "duration_ms": 4365
+        }
+      ],
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-10T07:26:46.398Z",
+      "git_sha": "02d666a5394a959f1cd4db5eff94ce01ec3855e4",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6980
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1102
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10235
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 8345
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1026
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --grep \"@MS-auth-cooldown-hydration\"",
+          "exit_code": 1,
+          "duration_ms": 4710
+        }
+      ],
+      "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-10T07:49:04.570Z",
+      "git_sha": "6172309ec78767939ab1ae74031b41af72006be8",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6761
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1041
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10333
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 8311
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1017
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --grep \"@MS-auth-cooldown-hydration\"",
+          "exit_code": 0,
+          "duration_ms": 11355
+        }
+      ],
+      "all_passed": true
+    }
+  ],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-10T06:11:37.014Z",
+      "sha": "d11b7beb1578dc6ca640161acae262d555d02ca1",
+      "dirty": false,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-10T06:26:32.701Z",
+      "sha": "1f7b8f53752e610d2b53b0613a74e17d346c1516",
+      "dirty": false,
+      "by": "amankumarshrestha"
+    }
+  ]
+}

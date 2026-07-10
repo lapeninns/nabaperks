@@ -3,16 +3,13 @@ import { test } from "node:test"
 
 import {
   getActivePromo,
-  getMonthlySpotsRemaining,
   isPromoStale,
-  PROMO_CONFIG,
 } from "@/lib/marketing/promo"
 
 test("getActivePromo: returns null when promos are disabled", () => {
   assert.equal(
     getActivePromo(new Date("2026-07-15T12:00:00Z"), {
       enabled: false,
-      monthlyCap: 40,
     }),
     null
   )
@@ -27,14 +24,13 @@ test("getActivePromo: urgency rolls to the end of the current UK month", () => {
   assert.ok(promo.perk.includes("31 July 2026"))
 })
 
-test("getActivePromo: urgency and scarcity reset on the first day of a new month", () => {
+test("getActivePromo: urgency resets on the first day of a new month", () => {
   const july = getActivePromo(new Date("2026-07-31T12:00:00Z"))
   const august = getActivePromo(new Date("2026-08-01T12:00:00Z"))
   assert.ok(july && august)
   assert.equal(july.monthLabel, "July")
   assert.equal(august.monthLabel, "August")
   assert.equal(august.endDateISO, "2026-08-31")
-  assert.notEqual(july.spotsRemaining, august.spotsRemaining)
 })
 
 test("getActivePromo: deadlineLabel is the en-GB rendering of endDateISO", () => {
@@ -50,14 +46,10 @@ test("getActivePromo: deadlineLabel is the en-GB rendering of endDateISO", () =>
   assert.ok(promo.perk.includes(promo.deadlineLabel))
 })
 
-test("getActivePromo: scarcity line names the monthly cap and remaining spots", () => {
+test("getActivePromo: copy makes no numeric availability claim", () => {
   const promo = getActivePromo(new Date("2026-07-15T12:00:00Z"))
   assert.ok(promo)
-  assert.match(promo.scarcityLine, /onboard 40 new venues per month/)
-  assert.match(promo.scarcityChip, /print-run spots left in July/)
-  assert.equal(promo.monthlyCap, PROMO_CONFIG.monthlyCap)
-  assert.ok(promo.spotsRemaining >= 1)
-  assert.ok(promo.claimedThisMonth >= 0)
+  assert.doesNotMatch(Object.values(promo).join(" "), /spots? left|onboard \d+/i)
 })
 
 test("getActivePromo: Playwright can freeze the server-rendered promo clock", () => {
@@ -68,7 +60,7 @@ test("getActivePromo: Playwright can freeze the server-rendered promo clock", ()
     const promo = getActivePromo()
     assert.ok(promo)
     assert.equal(promo.name, "July First-Regular promo")
-    assert.equal(promo.scarcityChip, "34 print-run spots left in July")
+    assert.equal(promo.endDateISO, "2026-07-31")
   } finally {
     if (previous === undefined) {
       delete process.env.PLAYWRIGHT_MARKETING_PROMO_NOW
@@ -76,16 +68,6 @@ test("getActivePromo: Playwright can freeze the server-rendered promo clock", ()
       process.env.PLAYWRIGHT_MARKETING_PROMO_NOW = previous
     }
   }
-})
-
-test("getMonthlySpotsRemaining: depletes through the month and keeps at least one spot", () => {
-  const start = getMonthlySpotsRemaining(1, 31, 40)
-  const mid = getMonthlySpotsRemaining(16, 31, 40)
-  const end = getMonthlySpotsRemaining(31, 31, 40)
-
-  assert.ok(start.spotsRemaining > mid.spotsRemaining)
-  assert.ok(mid.spotsRemaining > end.spotsRemaining)
-  assert.ok(end.spotsRemaining >= 1)
 })
 
 test("isPromoStale: a disabled promo is never stale", () => {

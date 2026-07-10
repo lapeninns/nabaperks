@@ -18,7 +18,6 @@ import { GUIDES } from "@/components/marketing/guides/guides-data"
 import { CTA, PRODUCT, ROUTES } from "@/lib/marketing/facts"
 import {
   absoluteUrl,
-  counterLoyaltyIndexDataset,
   howToSchema,
   marketingPageGraph,
   OG_IMAGE,
@@ -26,7 +25,7 @@ import {
 
 const title = "Pub Loyalty Cards — No-App QR Stamp Cards"
 const description =
-  "Reward regulars without an app or a CRM. One venue QR for the bar and the tables — counter-verified stamps, no POS needed. £49/month, 30-day free pilot."
+  "Reward regulars without an app or CRM. One venue QR covers the bar and tables, with venue-linked stamps and no POS. £49/month, 30-day free pilot."
 
 export const metadata: Metadata = {
   title,
@@ -76,8 +75,8 @@ const painPoints = [
     body: "Regulars will not download an app for a pint, and you do not want another CRM to run. The card opens in the browser and saves in one tap, with nothing to install.",
   },
   {
-    title: "Paper cards lost and faked",
-    body: "Paper stamp cards end up in the wash or stamped twice by a friendly hand. A browser-based card lives on the customer's phone and every stamp is counter-verified.",
+    title: "Paper cards lost or over-stamped",
+    body: "Paper stamp cards end up in the wash or stamped twice by a friendly hand. The browser card stays on the customer's account and each claim is linked to your venue QR and their saved membership.",
   },
   {
     title: "Stamping that survives a staff change",
@@ -85,13 +84,13 @@ const painPoints = [
   },
   {
     title: "Quieter days, without slowing the bar",
-    body: "Give regulars a reason to come in on a Tuesday, not just a Friday. Scanning takes a second and never holds up the round — the phone never crosses the counter.",
+    body: "Give regulars a reason to come in on a Tuesday, not just a Friday. Customers scan and claim on their own phone, with no staff entry at the till.",
   },
 ]
 
 const benefits = [
   "One venue QR for the bar, the tables and the takeaway hatch",
-  "Counter-verified stamps that can't be faked or double-claimed",
+  "Venue-linked claims capped at one stamp per customer per UK date",
   "A weekly digest of visits, regulars and redemptions",
   "Loyalty kept separate from marketing — regulars opt in only if they choose",
   PRODUCT.posLine,
@@ -114,7 +113,6 @@ const hubGraph = marketingPageGraph({
     howToSchema(pubCounterFlowSteps, {
       id: `${absoluteUrl(ROUTES.pubHub)}#howto`,
     }),
-    counterLoyaltyIndexDataset(),
   ],
 })
 
@@ -133,7 +131,7 @@ export default function LoyaltyForPubsPage() {
             {PRODUCT.cardLine} One permanent QR covers the bar, the tables and
             the takeaway hatch — and every stamp is{" "}
             <strong className="font-semibold text-foreground">
-              counter-verified
+              venue-linked
             </strong>
             .
           </p>
@@ -205,7 +203,7 @@ export default function LoyaltyForPubsPage() {
 
       <PubCounterFlow />
 
-      {/* Real proof (Counter-Loyalty Index) */}
+      {/* Aggregate proof is centrally gated until durable evidence exists. */}
       <NabaperksProof />
 
       {/* Browser card vs the alternatives */}

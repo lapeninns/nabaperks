@@ -58,8 +58,8 @@ export default function DemoPage() {
 
         <div className="grid justify-items-center gap-3 border-t-2 border-dashed border-foreground/25 pt-5 text-center">
           <p className="max-w-[40ch] text-sm leading-6 text-pretty text-muted-foreground">
-            This is what your regulars see at your counter — build yours in
-            minutes.
+            This is what your regulars see at your counter. Build your card,
+            then activate billing when you are ready to go live.
           </p>
           <Button asChild size="lg">
             <Link href="/signup">Start free pilot</Link>

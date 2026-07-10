@@ -388,6 +388,28 @@ values
     2,
     true,
     4
+  ),
+  (
+    '13500000-0000-0000-0000-000000000006',
+    '10000000-0000-0000-0000-000000000002',
+    '11000000-0000-0000-0000-000000000002',
+    '13000000-0000-0000-0000-000000000002',
+    'Free jasmine tea',
+    'One regular jasmine tea on the house. Valid from the next UK business day.',
+    2,
+    true,
+    2
+  ),
+  (
+    '13500000-0000-0000-0000-000000000007',
+    '10000000-0000-0000-0000-000000000002',
+    '11000000-0000-0000-0000-000000000002',
+    '13000000-0000-0000-0000-000000000002',
+    'Large drink upgrade',
+    'Upgrade one regular drink to a large. Valid from the next UK business day.',
+    2,
+    true,
+    3
   )
 on conflict (id) do update
 set reward_name = excluded.reward_name,

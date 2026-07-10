@@ -184,7 +184,7 @@ enable_manual_linking = false
 minimum_password_length = 8
 # Passwords that do not meet the following requirements will be rejected as weak. Supported values
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
-password_requirements = "lower_upper_letters_digits_symbols"
+password_requirements = "letters_digits"
 
 # Configure passkey sign-ins.
 # [auth.passkey]
@@ -289,7 +289,7 @@ max_frequency = "5s"
 
 [auth.hook.send_email]
 enabled = true
-uri = "https://nabaperks.com/api/auth/hooks/send-email"
+uri = "env(SUPABASE_SEND_EMAIL_HOOK_URI)"
 secrets = "env(SUPABASE_SEND_EMAIL_HOOK_SECRET)"
 
 # Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.

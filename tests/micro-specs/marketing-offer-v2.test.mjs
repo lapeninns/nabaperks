@@ -31,15 +31,15 @@ test("OV2-1 Given the offer name When facts + pricing are inspected Then OFFER.n
   assert.doesNotMatch(hero, /The 30-Day First-Regular Launch/)
 })
 
-test("OV2-2 Given the speed lever When SETUP renders Then the four-step same-afternoon copy is single-sourced and shown on pricing", () => {
+test("OV2-2 Given the activation path When SETUP renders Then billing is the fifth single-sourced step shown on pricing", () => {
   const facts = readProjectFile("lib", "marketing", "facts.ts")
   const pricing = readProjectFile("app", "pricing", "page.tsx")
 
   assert.match(facts, /export const SETUP = \{/)
-  assert.match(facts, /line: "Live on your counter the same afternoon\."/)
+  assert.match(facts, /line: "Build your card first\. Activate it when billing is ready\."/)
   assert.match(
     facts,
-    /Four guided steps — add your venue, build the card, confirm your pre-filled rewards, and print your QR\./
+    /Five guided steps — add your venue, build the card, confirm your pre-filled rewards, prepare your QR, and activate billing\./
   )
   assert.match(
     facts,
@@ -47,7 +47,7 @@ test("OV2-2 Given the speed lever When SETUP renders Then the four-step same-aft
   )
   assert.match(
     facts,
-    /Your first member can stamp the moment the poster hits the counter\./
+    /Once billing is active, customers can scan your live venue QR to join and collect their first stamp\./
   )
   assert.match(pricing, /SETUP\./)
 })
@@ -101,7 +101,7 @@ test("OV2-5 Given the rolling monthly promo When enabled Then it is single-sourc
 
   assert.match(promoModule, /export const PROMO_CONFIG = \{/)
   assert.match(promoModule, /enabled: true/)
-  assert.match(promoModule, /monthlyCap: 40/)
+  assert.doesNotMatch(promoModule, /monthlyCap|spotsRemaining|claimedThisMonth/)
   assert.match(promoModule, /export function getActivePromo\(/)
   assert.match(promoModule, /First-Regular promo/)
   assert.match(promoModule, /print and post your first counter-poster run — free/)
@@ -109,8 +109,8 @@ test("OV2-5 Given the rolling monthly promo When enabled Then it is single-sourc
   assert.match(pricing, /getActivePromo\(/)
   assert.match(signup, /getActivePromo\(/)
   assert.match(hero, /promo\.name/)
-  assert.match(hero, /promo\.scarcityChip/)
-  assert.match(pricing, /promo\.scarcityLine/)
+  assert.match(pricing, /promo\.claim/)
+  assert.match(signup, /promo\.claim/)
 })
 
 test("OV2-6 Given promo honesty When terms + surfaces are checked Then /terms records the promo and no acquisition surface forks the promo perk off-constant", () => {
@@ -127,7 +127,7 @@ test("OV2-6 Given promo honesty When terms + surfaces are checked Then /terms re
 
   // Terms carry a durable plain-English promo record.
   assert.match(legal, /id: "monthly-first-regular-promo"/)
-  assert.match(legal, /monthly print-run capacity/)
+  assert.doesNotMatch(legal, /monthly print-run capacity|spots? left/)
   // The staleness helper exists so a lapsed promo can still be checked in tests.
   assert.match(promoModule, /export function isPromoStale\(/)
   // The perk is only ever composed inside getActivePromo — not forked on pages.
