@@ -1,7 +1,37 @@
 {
   "schema": 1,
   "spec_id": "MS-merchant-onboarding-continuity",
-  "runs": [],
+  "runs": [
+    {
+      "timestamp": "2026-07-10T00:21:54.137Z",
+      "git_sha": "13f1213d7a227f877a56dfc15d28b7d6295bf7ca",
+      "git_branch": "codex/ms-onboarding-continuity-advance",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7597
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 4442
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 12496
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 1,
+          "duration_ms": 7587
+        }
+      ],
+      "all_passed": false
+    }
+  ],
   "manual_attestations": [],
   "transitions": [
     {
