@@ -1,15 +1,61 @@
 import { spawnSync } from "node:child_process"
-import { existsSync, readdirSync } from "node:fs"
+import { createHash } from "node:crypto"
+import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { basename, join } from "node:path"
 import { fileURLToPath } from "node:url"
 
 const projectDir = process.cwd()
 const migrationVersionPattern = /^\d{14}$/
+const migrationFilePattern = /^(\d{14})_.*\.sql$/
 const hookSecretPlaceholder =
   "v1,whsec_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa="
 const linkedHookUri = "https://nabaperks.com/api/auth/hooks/send-email"
 
+// Baseline for the append-only rule: a migration already present on this ref is
+// "released" and must not be edited on a feature branch. Versions listed here
+// are explicitly-sanctioned edits (each SHOULD be exceptional and reviewed).
+const APPEND_ONLY_BASELINE_REF = "origin/main"
+const SANCTIONED_MIGRATION_EDITS = []
+
 if (isMain()) {
+  // Git-based structural checks run first and need no linked credentials, so
+  // they catch drift even where `migration list --linked` cannot connect.
+  const localFiles = listLocalMigrationFiles(projectDir)
+  const duplicates = detectDuplicateVersions(localFiles.map((f) => f.version))
+
+  if (duplicates.length) {
+    console.error("Duplicate migration versions found (two files share a version):")
+    for (const version of duplicates) {
+      const names = localFiles.filter((f) => f.version === version).map((f) => f.name)
+      console.error(`  ${version}: ${names.join(", ")}`)
+    }
+    process.exit(1)
+  }
+
+  const editBaseline = gitMigrationBlobs(APPEND_ONLY_BASELINE_REF, projectDir)
+  if (editBaseline.available) {
+    const edited = findEditedAppliedMigrations({
+      baseline: editBaseline.entries,
+      current: workingTreeMigrationBlobs(projectDir, localFiles),
+      sanctioned: SANCTIONED_MIGRATION_EDITS,
+    })
+
+    if (edited.length) {
+      console.error(
+        `Already-released migrations were edited (append-only violation vs ${APPEND_ONLY_BASELINE_REF}):`
+      )
+      console.error(`  ${edited.join(", ")}`)
+      console.error(
+        "Add a NEW forward-only migration instead, or record a sanctioned edit."
+      )
+      process.exit(1)
+    }
+  } else {
+    console.warn(
+      `Skipped append-only edit check: ${APPEND_ONLY_BASELINE_REF} is not available.`
+    )
+  }
+
   const result = runSupabaseMigrationList(projectDir, process.env)
 
   if (result.status !== 0) {
@@ -74,14 +120,96 @@ export function runSupabaseMigrationList(projectDir, env) {
 }
 
 export function listLocalMigrationVersions(projectDir) {
+  return listLocalMigrationFiles(projectDir)
+    .map((file) => file.version)
+    .sort()
+}
+
+export function listLocalMigrationFiles(projectDir) {
   const migrationDir = join(projectDir, "supabase", "migrations")
 
   if (!existsSync(migrationDir)) return []
 
   return readdirSync(migrationDir)
-    .map((file) => basename(file).match(/^(\d{14})_.*\.sql$/)?.[1] || "")
+    .map((file) => {
+      const version = basename(file).match(migrationFilePattern)?.[1] || ""
+      return version ? { version, name: file } : null
+    })
     .filter(Boolean)
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+/**
+ * Versions used by more than one migration file. A duplicate version silently
+ * reorders or shadows a migration in the ledger, which version-set comparison
+ * cannot see. Returned unique and sorted.
+ */
+export function detectDuplicateVersions(versions) {
+  const counts = new Map()
+  for (const version of versions) {
+    counts.set(version, (counts.get(version) ?? 0) + 1)
+  }
+  return [...counts.entries()]
+    .filter(([, count]) => count > 1)
+    .map(([version]) => version)
     .sort()
+}
+
+/**
+ * Versions present in BOTH baseline and current whose content hash changed and
+ * are not on the sanctioned-edit list. baseline/current are arrays of
+ * `{ version, sha }`. New or removed files are ignored — only edits to an
+ * already-released migration are flagged. Returned sorted.
+ */
+export function findEditedAppliedMigrations({ baseline, current, sanctioned = [] }) {
+  const sanctionedSet = new Set(sanctioned)
+  const currentByVersion = new Map(current.map((entry) => [entry.version, entry.sha]))
+  const edited = []
+
+  for (const { version, sha } of baseline) {
+    if (sanctionedSet.has(version)) continue
+    if (!currentByVersion.has(version)) continue
+    if (currentByVersion.get(version) !== sha) edited.push(version)
+  }
+
+  return [...new Set(edited)].sort()
+}
+
+/** `{version, sha}` for each migration blob on a git ref, or unavailable. */
+export function gitMigrationBlobs(ref, projectDir) {
+  const result = spawnSync(
+    "git",
+    ["ls-tree", "-r", ref, "--", "supabase/migrations"],
+    { cwd: projectDir, encoding: "utf8" }
+  )
+
+  if (result.status !== 0) return { available: false, entries: [] }
+
+  const entries = []
+  for (const line of (result.stdout || "").split(/\r?\n/)) {
+    // Format: "<mode> blob <sha>\t<path>"
+    const match = line.match(/^\S+\s+blob\s+(\S+)\t(.+)$/)
+    if (!match) continue
+    const version = basename(match[2]).match(migrationFilePattern)?.[1]
+    if (version) entries.push({ version, sha: match[1] })
+  }
+
+  return { available: true, entries }
+}
+
+/** Working-tree `{version, sha}` using git's own blob-hash algorithm. */
+export function workingTreeMigrationBlobs(projectDir, files = listLocalMigrationFiles(projectDir)) {
+  const migrationDir = join(projectDir, "supabase", "migrations")
+  return files.map((file) => ({
+    version: file.version,
+    sha: gitBlobHash(readFileSync(join(migrationDir, file.name))),
+  }))
+}
+
+/** Git's blob object id: sha1 of "blob <len>\0<content>". */
+export function gitBlobHash(buffer) {
+  const header = Buffer.from(`blob ${buffer.length}\0`)
+  return createHash("sha1").update(Buffer.concat([header, buffer])).digest("hex")
 }
 
 export function parseRemoteMigrationVersions(output) {

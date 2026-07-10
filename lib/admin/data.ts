@@ -150,6 +150,51 @@ export async function getAdminPrivacySupportRows(
   return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
 }
 
+export type AdminUnaffiliatedCustomerRow = {
+  readonly id: string
+  readonly email: string | null
+  readonly phone_last4: string | null
+  readonly is_verified: boolean
+  readonly created_at: string
+}
+
+/**
+ * Verified customers with no membership (MS-db-privacy-lifecycle). Every other
+ * admin lookup queries FROM `customer_memberships`, so a verified customer who
+ * never joined a venue is invisible to support. Reads the service-role-only
+ * `customers_unaffiliated` view (verified only, newest first) so they can be
+ * discovered and serviced, with the same contact-fragment search as the other
+ * lookups.
+ */
+export async function getAdminUnaffiliatedCustomers(
+  lookup: AdminLookupQuery = {}
+): Promise<AdminPagedRows<AdminUnaffiliatedCustomerRow>> {
+  const supabase = await createAdminServiceRoleClient()
+  const page = lookup.page ?? 1
+  const window = lookupRange(page)
+
+  let query = supabase
+    .from("customers_unaffiliated")
+    .select("id, email, phone_last4, is_verified, created_at", {
+      count: "exact",
+    })
+    .eq("is_verified", true)
+
+  if (lookup.contact) {
+    query = query.or(contactOrIlikeFilter(lookup.contact))
+  }
+
+  const { data, error, count } = await query
+    .order("created_at", { ascending: false })
+    .range(window.from, window.to)
+
+  if (error) {
+    throw new Error(`Unable to load unaffiliated customers: ${error.message}`)
+  }
+
+  return { rows: data ?? [], meta: pageMeta(count ?? 0, page) }
+}
+
 export async function getAdminConsentRecords(page = 1) {
   const supabase = await createAdminServiceRoleClient()
   const window = lookupRange(page)

@@ -9,6 +9,7 @@ import {
   type AdminActionState,
 } from "@/lib/admin/action-state"
 import { qrImageContextCacheTag, revalidateCacheTag } from "@/lib/cache/tags"
+import { buildExportDownload } from "@/lib/admin/data-export"
 import { MARKETING_POLICY_VERSION } from "@/lib/customer/consent"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
@@ -278,7 +279,7 @@ export async function logDataRequestAction(
   }
 
   const supabase = await createSupabaseServerClient()
-  const { error } = await supabase.rpc("admin_log_data_request", {
+  const { data, error } = await supabase.rpc("admin_log_data_request", {
     p_customer_id: customerId,
     p_merchant_id: merchantId,
     p_request_type: requestType,
@@ -294,6 +295,18 @@ export async function logDataRequestAction(
 
   revalidatePath("/admin/privacy")
   revalidatePath("/admin/audit")
+
+  // An `export` request returns the customer's data export payload; deliver it
+  // to the admin as a download instead of discarding it, so a GDPR subject-
+  // access request actually produces the data (MS-db-privacy-lifecycle).
+  const download = requestType === "export" ? buildExportDownload(data) : null
+  if (download) {
+    return adminActionSuccess(
+      "Subject-access export ready. Download the customer's data below.",
+      download
+    )
+  }
+
   return adminActionSuccess("Data request logged to the audit trail.")
 }
 
