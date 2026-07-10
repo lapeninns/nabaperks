@@ -609,25 +609,78 @@ function validateEvidenceStaleness(root, specs, changedSince, reproving, failure
   }
 }
 
+const RETAINED_ATTRIBUTION_STATUSES = new Set(["implemented", "verified", "closed"])
+
+// Build the one changed-file ownership model shared by the checker and the
+// lifecycle CLI. Active specs retain implementation-time permission through
+// allowed_blast_radius. Completed specs may explain earlier commits on the
+// same delivery branch only when their machine evidence ledger is itself in
+// the changed set; even then, ownership narrows to implementation_surfaces
+// plus the spec's two bookkeeping files. This lets sequential factory work
+// survive one long branch without turning historical permission radii into
+// standing authorization for future edits.
+export function buildChangedFileAttribution(specs, changedFiles) {
+  const changed = new Set(changedFiles)
+  const attribution = []
+
+  for (const spec of specs) {
+    const id = spec.metadata.spec_id
+    const status = spec.metadata.status
+
+    if (status === "active") {
+      attribution.push({
+        spec,
+        patterns: listField(spec, "allowed_blast_radius"),
+        mode: "active",
+      })
+      continue
+    }
+
+    if (!id || !RETAINED_ATTRIBUTION_STATUSES.has(status)) continue
+    const ledgerPath = `${EVIDENCE_DIR}/${id}.json`
+    if (!changed.has(ledgerPath)) continue
+
+    attribution.push({
+      spec,
+      patterns: [
+        ...new Set([
+          ...listField(spec, "implementation_surfaces"),
+          specPath(spec.file),
+          ledgerPath,
+        ]),
+      ],
+      mode: "retained",
+    })
+  }
+
+  return attribution
+}
+
+export function attributionOwnersForFile(attribution, file) {
+  return attribution.filter(({ patterns }) =>
+    patterns.some((pattern) => matchesPattern(file, pattern))
+  )
+}
+
 function validateBlastRadius(specs, changedFiles, failures) {
   if (changedFiles.length === 0) return
 
-  const active = activeSpecs(specs)
-  if (active.length === 0) {
+  const attribution = buildChangedFileAttribution(specs, changedFiles)
+  if (attribution.length === 0) {
     failures.push(
-      "Changed files exist, but no active Micro-Spec is available for blast-radius enforcement."
+      "Changed files exist, but no attributable Micro-Spec is available for blast-radius enforcement."
     )
     return
   }
 
-  const consulted = active.map((spec) => specId(spec)).join(", ")
+  const consulted = attribution
+    .map(({ spec, mode }) => `${specId(spec)} (${mode})`)
+    .join(", ")
   for (const file of changedFiles) {
-    const coveredBy = active.filter((spec) =>
-      listField(spec, "allowed_blast_radius").some((pattern) => matchesPattern(file, pattern))
-    )
+    const coveredBy = attributionOwnersForFile(attribution, file)
     if (coveredBy.length === 0) {
       failures.push(
-        `${file} is outside every active Micro-Spec allowed_blast_radius (consulted: ${consulted}).`
+        `${file} is outside every attributable Micro-Spec ownership surface (active allowed_blast_radius or branch-local completed implementation_surfaces; consulted: ${consulted}).`
       )
     }
   }

@@ -125,6 +125,13 @@ Additional enforced rules:
   as broad.
 - An `active` spec whose `last_reviewed` is more than 30 days old fails until
   it is re-reviewed and the date bumped.
+- Changed-file attribution is lifecycle-aware. Active specs own their
+  `allowed_blast_radius`. An implemented, verified, or closed spec may retain
+  attribution for earlier work on the same delivery branch only when its
+  machine evidence ledger is also in that branch diff, and then owns only its
+  `implementation_surfaces` plus its exact spec and ledger files. Old completed
+  specs grant no standing permission; draft and superseded specs grant none.
+  The lifecycle CLI and checker use this same resolver.
 - Docs-drift is bidirectional: the gate list below must equal the gate
   commands `ci.yml` actually runs (`run: |` blocks included), in both
   directions.

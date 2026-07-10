@@ -5,6 +5,19 @@ Notable changes to the AI Governance Starter Kit, newest first. The
 in `.claude-plugin/plugin.json` must both match the newest heading here —
 the host repo's `skill-bundle-sync` test enforces it.
 
+## 0.6.0 — 2026-07-10
+
+- Lifecycle-aware branch attribution: active specs own their permission radius,
+  while implemented, verified, and closed specs retain same-branch ownership
+  only through a changed machine evidence ledger and only for declared
+  implementation surfaces plus their exact bookkeeping files.
+- One shared attribution resolver now drives both lifecycle preflight and the
+  embedded governance checker, eliminating sequential-spec deadlocks without
+  granting historical specs standing permission.
+- A real feature-branch lifecycle fixture proves preflight and the checker
+  accept the same multi-spec diff; negative cases pin draft/superseded
+  exclusion and least-privilege narrowing after implementation.
+
 ## 0.5.0 — 2026-07-10
 
 - Batched evidence proof: repeat `--spec <id>` in one

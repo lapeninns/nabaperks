@@ -216,13 +216,20 @@ commands your CI workflow runs and the list below.
 docs drift, and gate-command shape. `{{GOVERNANCE_RUN_GATES_COMMAND}}` reads
 active Micro-Specs and runs their declared `verification_gates`.
 
-## Active-Spec Rule
+## Changed-File Attribution Rule
 
-If changed files exist and no active Micro-Spec covers them, governance fails.
-On pull requests the checker diffs against the base branch
-(`origin/<base>...HEAD`), so blast-radius enforcement runs in CI — this requires
-a full-history checkout (`fetch-depth: 0`). Create or update an active
-Micro-Spec before implementation.
+Active Micro-Specs own paths inside their `allowed_blast_radius`. An
+implemented, verified, or closed spec retains attribution for earlier work on
+the same delivery branch only when its machine evidence ledger is also in the
+changed-file set, and then owns only its `implementation_surfaces` plus its
+exact spec and ledger files. Historical completed specs grant no standing
+permission; draft and superseded specs grant none. The lifecycle CLI and
+checker use this same resolver.
+
+If a changed file has no attributable owner, governance fails. On pull
+requests the checker diffs against the base branch (`origin/<base>...HEAD`), so
+blast-radius enforcement runs in CI — this requires a full-history checkout
+(`fetch-depth: 0`). Create or update an active Micro-Spec before implementation.
 
 ## Evidence Model
 

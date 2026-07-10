@@ -1,6 +1,6 @@
 {
   "name": "ai-governance-starter-kit",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "AI-software-factory governance: Micro-Spec intake, TDD gates, tracked evidence ledgers, and a machine-enforced lifecycle with closed rationale records.",
   "author": {
     "name": "Nabaperks / Lapen Inns"

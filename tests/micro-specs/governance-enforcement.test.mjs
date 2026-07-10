@@ -16,6 +16,7 @@ import { changedFilesSince } from "../../scripts/governance-commands.mjs"
 import { matchesPattern } from "../../scripts/governance-glob.mjs"
 import { parseFrontmatter } from "../../scripts/governance-io.mjs"
 import {
+  buildChangedFileAttribution,
   isManualInspectionGate,
   validateGovernance,
 } from "../../scripts/governance-rules.mjs"
@@ -127,8 +128,137 @@ test("Given an active spec When a changed file is outside the blast radius Then 
 
   const failure = result.failures.find((entry) => entry.includes("app/page.tsx"))
   assert.ok(failure, "expected a blast-radius failure for app/page.tsx")
-  assert.match(failure, /outside every active Micro-Spec allowed_blast_radius/)
+  assert.match(failure, /outside every attributable Micro-Spec ownership surface/)
   assert.match(failure, /consulted: MS-test-governance/)
+})
+
+test("Given lifecycle states When branch attribution is built Then only active and machine-evidenced happy states own files", () => {
+  const statuses = ["active", "implemented", "verified", "closed", "draft", "superseded"]
+  const specs = statuses.map((status) => ({
+    file: `governance/${status}.md`,
+    metadata: {
+      spec_id: `MS-test-${status}`,
+      status,
+      allowed_blast_radius: [`work/${status}/**`],
+      implementation_surfaces: [`work/${status}/result.ts`],
+    },
+  }))
+  const changedFiles = statuses.map(
+    (status) => `micro-specs/evidence/MS-test-${status}.json`
+  )
+
+  const attribution = buildChangedFileAttribution(specs, changedFiles)
+
+  assert.deepEqual(
+    attribution.map(({ spec }) => spec.metadata.spec_id),
+    ["MS-test-active", "MS-test-implemented", "MS-test-verified", "MS-test-closed"]
+  )
+})
+
+test("Given an implemented spec completed on this branch When its declared surface remains in the diff Then attribution survives sequential work", (t) => {
+  const completedPath = "tests/micro-specs/completed.test.mjs"
+  const root = fixtureRepo(t, {
+    spec: specFile({
+      riskClass: "docs-tooling",
+      blastRadius: ["micro-specs/governance/example.md"],
+      surfaces: ["micro-specs/governance/example.md"],
+    }),
+    extraSpecs: {
+      "governance/completed.md": specFile({
+        specId: "MS-test-completed",
+        status: "implemented",
+        riskClass: "docs-tooling",
+        blastRadius: ["tests/micro-specs/**"],
+        surfaces: [completedPath],
+        tests: [completedPath],
+      }),
+    },
+  })
+  writeFileSync(path.join(root, completedPath), "// completed fixture\n")
+
+  const result = run(root, {
+    changedFiles: [
+      "micro-specs/governance/completed.md",
+      "micro-specs/evidence/MS-test-completed.json",
+      completedPath,
+    ],
+  })
+
+  assert.deepEqual(
+    result.failures.filter(
+      (failure) =>
+        failure.includes("completed.md") ||
+        failure.includes("MS-test-completed.json") ||
+        failure.includes(completedPath)
+    ),
+    []
+  )
+})
+
+test("Given an old implemented spec absent from this branch When its former surface changes Then it grants no standing permission", (t) => {
+  const completedPath = "tests/micro-specs/completed.test.mjs"
+  const root = fixtureRepo(t, {
+    spec: specFile({
+      riskClass: "docs-tooling",
+      blastRadius: ["micro-specs/governance/example.md"],
+      surfaces: ["micro-specs/governance/example.md"],
+    }),
+    extraSpecs: {
+      "governance/completed.md": specFile({
+        specId: "MS-test-completed",
+        status: "implemented",
+        riskClass: "docs-tooling",
+        blastRadius: ["tests/micro-specs/**"],
+        surfaces: [completedPath],
+        tests: [completedPath],
+      }),
+    },
+  })
+  writeFileSync(path.join(root, completedPath), "// completed fixture\n")
+
+  const result = run(root, { changedFiles: [completedPath] })
+
+  assert.ok(
+    result.failures.some((failure) => failure.includes(completedPath)),
+    "an untouched historical spec must not authorize a new edit"
+  )
+})
+
+test("Given a completed spec touched on this branch When a file is only in its old permission radius Then implementation surfaces stay least-privilege", (t) => {
+  const completedPath = "tests/micro-specs/completed.test.mjs"
+  const unrelatedPath = "tests/micro-specs/unrelated.test.mjs"
+  const root = fixtureRepo(t, {
+    spec: specFile({
+      riskClass: "docs-tooling",
+      blastRadius: ["micro-specs/governance/example.md"],
+      surfaces: ["micro-specs/governance/example.md"],
+    }),
+    extraSpecs: {
+      "governance/completed.md": specFile({
+        specId: "MS-test-completed",
+        status: "implemented",
+        riskClass: "docs-tooling",
+        blastRadius: ["tests/micro-specs/**"],
+        surfaces: [completedPath],
+        tests: [completedPath],
+      }),
+    },
+  })
+  writeFileSync(path.join(root, completedPath), "// completed fixture\n")
+  writeFileSync(path.join(root, unrelatedPath), "// unrelated fixture\n")
+
+  const result = run(root, {
+    changedFiles: [
+      "micro-specs/governance/completed.md",
+      "micro-specs/evidence/MS-test-completed.json",
+      unrelatedPath,
+    ],
+  })
+
+  assert.ok(
+    result.failures.some((failure) => failure.includes(unrelatedPath)),
+    "a completed spec must not retain its broader implementation-time radius"
+  )
 })
 
 test("Given a verification gate with shell metacharacters When validation runs Then the gate is rejected", (t) => {

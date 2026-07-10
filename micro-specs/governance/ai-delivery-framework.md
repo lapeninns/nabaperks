@@ -65,10 +65,13 @@ implementation_surfaces:
   - ai-governance-starter-kit/templates/Instructions_tdd.md
   - ai-governance-starter-kit/templates/AGENTS.md.template
   - ai-governance-starter-kit/templates/micro-specs/README.md
+  - ai-governance-starter-kit/templates/scripts/advance-spec.mjs
   - ai-governance-starter-kit/templates/scripts/governance-gate-selection.mjs
   - ai-governance-starter-kit/templates/scripts/governance-rules.mjs
   - ai-governance-starter-kit/templates/scripts/governance-version.mjs
   - ai-governance-starter-kit/templates/scripts/run-governance-gates.mjs
+  - ai-governance-starter-kit/templates/tests/micro-specs/advance-spec.test.mjs
+  - ai-governance-starter-kit/templates/tests/micro-specs/governance-enforcement.test.mjs
   - ai-governance-starter-kit/templates/tests/micro-specs/governance-gate-selection.test.mjs
   - Instructions_MircroSpecsCreation.md
   - Instructions_tdd.md
@@ -82,6 +85,7 @@ implementation_surfaces:
   - pnpm-workspace.yaml
   - scripts/check-bundle-size.mjs
   - scripts/check-governance.mjs
+  - scripts/advance-spec.mjs
   - scripts/governance-constants.mjs
   - scripts/governance-io.mjs
   - scripts/governance-rules.mjs
@@ -101,6 +105,7 @@ implementation_surfaces:
   - tests/load/stamp-redeem-race.js
   - tests/micro-specs/governance-enforcement.test.mjs
   - tests/micro-specs/governance-gate-selection.test.mjs
+  - tests/micro-specs/advance-spec.test.mjs
   - tests/support/server-only-stub.mjs
   - tests/unit/block-reasons.test.mjs
   - tests/unit/phone-pii.property.test.mjs
@@ -171,6 +176,8 @@ repo-native delivery contract for future AI-led changes.
 In scope:
 
 - Micro-Spec metadata, lifecycle, risk, verification, and evidence rules.
+- Lifecycle-aware branch attribution for sequential Micro-Specs completed on
+  one delivery branch.
 - A Node governance checker and node:test coverage for its enforcement paths.
 - CI wiring that runs the governance checker and active Micro-Spec gate runner
   automatically.
@@ -199,6 +206,18 @@ Out of scope:
   omit DB behavioral gates.
 - THE governance system SHALL reject changed files outside the active
   Micro-Spec allowed blast radius.
+- WHEN one delivery branch contains sequential governed changes, THE
+  governance system SHALL retain attribution for an implemented, verified, or
+  closed Micro-Spec only when that spec's machine evidence ledger is part of
+  the same changed-file set, and SHALL restrict that retained ownership to the
+  spec's declared implementation surfaces plus its own bookkeeping files.
+- THE lifecycle CLI and standalone checker SHALL use the same attribution
+  rule, so a branch accepted before gate execution cannot fail its embedded
+  governance gate for a different ownership model.
+- A historical implemented, verified, or closed Micro-Spec whose evidence
+  ledger is absent from the current change set SHALL NOT grant permission to
+  edit its old radius; merely touching its prose is insufficient, and draft or
+  superseded specs SHALL never grant changed-file attribution.
 - THE governance system SHALL reject CI/docs drift when
   `micro-specs/README.md` omits commands run by CI.
 - THE governance system SHALL run active Micro-Spec gates through a repo-native

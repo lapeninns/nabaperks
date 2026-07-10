@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { test } from "node:test"
-import { fileURLToPath } from "node:url"
+import { fileURLToPath, pathToFileURL } from "node:url"
 
 import { readLedger } from "../../scripts/governance-evidence.mjs"
 import { validateGovernance } from "../../scripts/governance-rules.mjs"
@@ -17,11 +17,8 @@ const TODAY = new Date().toISOString().slice(0, 10)
 test("Given sequential governed work When branch ownership is checked Then proven specs keep attribution", () => {
   const source = readFileSync(advanceCli, "utf8")
 
-  assert.match(
-    source,
-    /attributableOthers[\s\S]*\["active", "implemented", "verified"\]\.includes/
-  )
-  assert.doesNotMatch(source, /const activeOthers = specs\.filter/)
+  assert.match(source, /attributionOwnersForFile/)
+  assert.doesNotMatch(source, /\["active", "implemented", "verified"\]\.includes/)
 })
 
 // npm-based fixtures so the executed gates work wherever node does.
@@ -93,6 +90,9 @@ function specSource({
   headings = true,
   body = null,
   relatedTests = ["tests/micro-specs/example.test.mjs"],
+  lastReviewed = "2020-01-01",
+  blastRadius = ["micro-specs/**", "tests/micro-specs/**"],
+  surfaces = ["micro-specs/governance/example.md"],
 } = {}) {
   const defaultBody = headings
     ? [
@@ -128,12 +128,11 @@ function specSource({
     `status: ${status}`,
     "risk_class: docs-tooling",
     "owner: fixture",
-    "last_reviewed: 2020-01-01",
+    `last_reviewed: ${lastReviewed}`,
     "allowed_blast_radius:",
-    "  - micro-specs/**",
-    "  - tests/micro-specs/**",
+    ...blastRadius.map((entry) => `  - ${entry}`),
     "implementation_surfaces:",
-    "  - micro-specs/governance/example.md",
+    ...surfaces.map((entry) => `  - ${entry}`),
     "related_tests:",
     ...relatedTests.map((entry) => `  - ${entry}`),
     "verification_gates:",
@@ -150,6 +149,91 @@ function specSource({
     "",
   ].join("\n")
 }
+
+test("Given sequential specs on a feature branch When lifecycle gates run Then preflight and the real checker share attribution", (t) => {
+  const governanceRulesUrl = pathToFileURL(
+    path.join(scriptsDir, "governance-rules.mjs")
+  ).href
+  const scripts = {
+    ...FIXTURE_SCRIPTS,
+    "governance:check": "node scripts/check-governance.mjs",
+  }
+  const root = makeRepo(t, {
+    scripts,
+    spec: specSource({
+      status: "active",
+      lastReviewed: TODAY,
+      blastRadius: [
+        "micro-specs/governance/example.md",
+        "micro-specs/evidence/MS-test-advance.json",
+      ],
+    }),
+  })
+  mkdirSync(path.join(root, "scripts"), { recursive: true })
+  writeFileSync(
+    path.join(root, "scripts/check-governance.mjs"),
+    [
+      `import { validateGovernance } from ${JSON.stringify(governanceRulesUrl)}`,
+      "const result = validateGovernance(process.cwd(), { evidenceAdoptionDate: null })",
+      "if (!result.ok) {",
+      "  for (const failure of result.failures) console.error(failure)",
+      "  process.exit(1)",
+      "}",
+      "",
+    ].join("\n")
+  )
+  git(root, ["add", "scripts/check-governance.mjs", "package.json"])
+  git(root, ["commit", "--amend", "--no-edit", "-q"])
+  git(root, ["switch", "-c", "feature", "-q"])
+
+  const completedTest = "tests/micro-specs/completed.test.mjs"
+  const completedSpec = [
+    "---",
+    "spec_id: MS-test-completed",
+    "status: implemented",
+    "risk_class: docs-tooling",
+    "owner: fixture",
+    `last_reviewed: ${TODAY}`,
+    "allowed_blast_radius:",
+    "  - micro-specs/governance/completed.md",
+    "  - micro-specs/evidence/MS-test-completed.json",
+    `  - ${completedTest}`,
+    "implementation_surfaces:",
+    `  - ${completedTest}`,
+    "related_tests:",
+    `  - ${completedTest}`,
+    "verification_gates:",
+    ...GATES.map((gate) => `  - ${gate}`),
+    "required_playwright_projects: []",
+    "evidence_required:",
+    "  - Command output for the declared verification gates.",
+    "approved_exceptions: []",
+    "---",
+    "",
+    "# Completed fixture",
+    "",
+  ].join("\n")
+  writeFileSync(
+    path.join(root, "micro-specs/governance/completed.md"),
+    completedSpec
+  )
+  mkdirSync(path.join(root, "micro-specs/evidence"), { recursive: true })
+  writeFileSync(
+    path.join(root, "micro-specs/evidence/MS-test-completed.json"),
+    '{"spec_id":"MS-test-completed"}\n'
+  )
+  writeFileSync(path.join(root, completedTest), "// completed feature work\n")
+  git(root, ["add", "-A"])
+  git(root, ["commit", "-qm", "complete first governed slice"])
+
+  const result = runCli(root, ["MS-test-advance", "--to", "implemented"])
+
+  assert.equal(result.status, 0, result.stderr)
+  assert.match(
+    readFileSync(path.join(root, "micro-specs/governance/example.md"), "utf8"),
+    /^status: implemented$/m
+  )
+})
 
 // A body satisfying the closed-record contract, with dials for each defect the
 // station must refuse.

@@ -10,7 +10,7 @@
 // The installer treats this same list as "engine-owned" during --upgrade:
 // safe to overwrite (with backups), unlike seed files a repo adapts.
 
-export const KIT_VERSION = "0.5.0"
+export const KIT_VERSION = "0.6.0"
 
 export const ENGINE_FILES = Object.freeze([
   "advance-spec.mjs",

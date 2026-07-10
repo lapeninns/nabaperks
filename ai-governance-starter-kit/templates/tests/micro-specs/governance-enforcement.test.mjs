@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url"
 import { matchesPattern } from "../../scripts/governance-glob.mjs"
 import { parseFrontmatter } from "../../scripts/governance-io.mjs"
 import {
+  buildChangedFileAttribution,
   isManualInspectionGate,
   parsePackageScriptGate,
   validateGovernance,
@@ -191,6 +192,29 @@ test("Given a changed file inside blast radius When validated Then blast radius 
   )
 })
 
+test("Given lifecycle states When branch attribution is built Then only active and machine-evidenced happy states own files", () => {
+  const statuses = ["active", "implemented", "verified", "closed", "draft", "superseded"]
+  const specs = statuses.map((status) => ({
+    file: `governance/${status}.md`,
+    metadata: {
+      spec_id: `MS-test-${status}`,
+      status,
+      allowed_blast_radius: [`work/${status}/**`],
+      implementation_surfaces: [`work/${status}/result.ts`],
+    },
+  }))
+  const changedFiles = statuses.map(
+    (status) => `micro-specs/evidence/MS-test-${status}.json`
+  )
+
+  const attribution = buildChangedFileAttribution(specs, changedFiles)
+
+  assert.deepEqual(
+    attribution.map(({ spec }) => spec.metadata.spec_id),
+    ["MS-test-active", "MS-test-implemented", "MS-test-verified", "MS-test-closed"]
+  )
+})
+
 // ---------------------------------------------------------------------------
 // Fixture-based enforcement tests: each writes a tiny throwaway repo and runs
 // the real validator against it.
@@ -297,6 +321,65 @@ function run(root, options = {}) {
 test("Given a well-formed fixture repo When validated Then it passes", (t) => {
   const root = makeFixture(t, { specs: { "example.md": specSource() } })
   assert.deepEqual(run(root).failures, [])
+})
+
+test("Given sequential specs on one branch When changed files are attributed Then completed ownership is evidenced and least-privilege", (t) => {
+  const completedPath = "tests/unit/completed.test.mjs"
+  const unrelatedPath = "tests/unit/unrelated.test.mjs"
+  const root = makeFixture(t, {
+    specs: {
+      "active.md": specSource({
+        spec_id: "MS-fixture-active",
+        allowed_blast_radius: ["lib/active.ts"],
+        implementation_surfaces: ["lib/active.ts"],
+      }),
+      "completed.md": specSource({
+        spec_id: "MS-fixture-completed",
+        status: "implemented",
+        allowed_blast_radius: ["tests/unit/**"],
+        implementation_surfaces: [completedPath],
+        related_tests: [completedPath],
+      }),
+    },
+    extraFiles: {
+      [completedPath]: "// completed fixture\n",
+      [unrelatedPath]: "// unrelated fixture\n",
+    },
+  })
+
+  const retained = run(root, {
+    enforceChangedFiles: true,
+    changedFiles: [
+      "micro-specs/completed.md",
+      "micro-specs/evidence/MS-fixture-completed.json",
+      completedPath,
+    ],
+  })
+  assert.deepEqual(
+    retained.failures.filter(
+      (failure) =>
+        failure.includes("completed.md") ||
+        failure.includes("MS-fixture-completed.json") ||
+        failure.includes(completedPath)
+    ),
+    []
+  )
+
+  const historical = run(root, {
+    enforceChangedFiles: true,
+    changedFiles: [completedPath],
+  })
+  assert.ok(historical.failures.some((failure) => failure.includes(completedPath)))
+
+  const overbroad = run(root, {
+    enforceChangedFiles: true,
+    changedFiles: [
+      "micro-specs/completed.md",
+      "micro-specs/evidence/MS-fixture-completed.json",
+      unrelatedPath,
+    ],
+  })
+  assert.ok(overbroad.failures.some((failure) => failure.includes(unrelatedPath)))
 })
 
 test("Given approved_exceptions entries When malformed or expired Then validation fails", (t) => {
