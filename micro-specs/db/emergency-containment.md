@@ -1,6 +1,6 @@
 ---
 spec_id: MS-db-emergency-containment
-status: active
+status: implemented
 risk_class: migrations
 owner: amankumarshrestha
 last_reviewed: 2026-07-10
