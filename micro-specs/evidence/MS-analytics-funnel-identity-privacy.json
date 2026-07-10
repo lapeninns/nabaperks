@@ -40,6 +40,45 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-10T08:28:21.207Z",
+      "git_sha": "64df5f1d97e0ca6ac7e9e457b105a3d0ecd022e6",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6349
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1019
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 9438
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 8086
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1050
+        },
+        {
+          "command": "pnpm test:e2e -- --grep \"@MS-analytics-funnel-identity-privacy\"",
+          "exit_code": 0,
+          "duration_ms": 22000
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
