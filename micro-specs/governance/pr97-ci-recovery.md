@@ -5,13 +5,18 @@ risk_class: migrations
 owner: codex
 last_reviewed: 2026-07-10
 allowed_blast_radius:
-  - micro-specs/governance/**
-  - micro-specs/governance/ai-delivery-framework.md
+  - micro-specs/governance/pr97-ci-recovery.md
+  - micro-specs/evidence/MS-governance-pr97-ci-recovery.json
   - micro-specs/platform/pwa.md
+  - scripts/env-keys.mjs
   - supabase/seed.sql
   - tests/e2e/helpers/auth-password-policy-live-db.ts
   - tests/micro-specs/auth-recovery-ux.test.mjs
   - tests/micro-specs/pr97-ci-recovery.test.mjs
+  - tests/e2e/merchant-launch-follow-through.desktop.spec.ts-snapshots/dashboard-incomplete-follow-through-desktop-firefox.png
+  - tests/e2e/merchant-launch-follow-through.desktop.spec.ts-snapshots/dashboard-incomplete-follow-through-desktop-safari.png
+  - tests/e2e/merchant-launch-follow-through.desktop.spec.ts-snapshots/launch-qr-follow-through-desktop-firefox.png
+  - tests/e2e/merchant-launch-follow-through.desktop.spec.ts-snapshots/launch-qr-follow-through-desktop-safari.png
   - tests/e2e/visual.spec.ts-snapshots/home-*-linux.png
   - tests/e2e/visual.spec.ts-snapshots/how-it-works-*-linux.png
   - tests/e2e/visual.spec.ts-snapshots/pricing-*-linux.png
@@ -20,12 +25,16 @@ allowed_blast_radius:
   - tests/e2e/visual.spec.ts-snapshots/loyalty-for-takeaways-*-linux.png
   - tests/e2e/visual.spec.ts-snapshots/loyalty-for-bars-*-linux.png
 implementation_surfaces:
-  - micro-specs/governance/ai-delivery-framework.md
   - micro-specs/platform/pwa.md
+  - scripts/env-keys.mjs
   - supabase/seed.sql
   - tests/e2e/helpers/auth-password-policy-live-db.ts
   - tests/micro-specs/auth-recovery-ux.test.mjs
   - tests/micro-specs/pr97-ci-recovery.test.mjs
+  - tests/e2e/merchant-launch-follow-through.desktop.spec.ts-snapshots/dashboard-incomplete-follow-through-desktop-firefox.png
+  - tests/e2e/merchant-launch-follow-through.desktop.spec.ts-snapshots/dashboard-incomplete-follow-through-desktop-safari.png
+  - tests/e2e/merchant-launch-follow-through.desktop.spec.ts-snapshots/launch-qr-follow-through-desktop-firefox.png
+  - tests/e2e/merchant-launch-follow-through.desktop.spec.ts-snapshots/launch-qr-follow-through-desktop-safari.png
   - tests/e2e/visual.spec.ts-snapshots/home-*-linux.png
   - tests/e2e/visual.spec.ts-snapshots/how-it-works-*-linux.png
   - tests/e2e/visual.spec.ts-snapshots/pricing-*-linux.png
@@ -34,9 +43,13 @@ implementation_surfaces:
   - tests/e2e/visual.spec.ts-snapshots/loyalty-for-takeaways-*-linux.png
   - tests/e2e/visual.spec.ts-snapshots/loyalty-for-bars-*-linux.png
 related_tests:
+  - tests/e2e/merchant-launch-follow-through.desktop.spec.ts
   - tests/e2e/visual.spec.ts
+  - tests/db/reward-pool-lifecycle.test.mjs
+  - tests/db/reward-preset-atomic-add.test.mjs
   - tests/micro-specs/auth-recovery-ux.test.mjs
   - tests/micro-specs/governance-enforcement.test.mjs
+  - tests/micro-specs/pr97-ci-recovery.test.mjs
 verification_gates:
   - pnpm lint
   - pnpm typecheck
@@ -46,15 +59,18 @@ verification_gates:
   - pnpm test:coverage
   - pnpm test:db
   - pnpm db:seed
+  - pnpm test:a11y
   - pnpm test:visual -- --project=chromium --project=mobile-safari
   - manual:linux-visual-review
 required_playwright_projects:
   - chromium
   - mobile-safari
+  - desktop-firefox
+  - desktop-safari
 evidence_required:
   - Fresh local Supabase seed and database output proving every active join QR satisfies the three-active-reward invariant.
-  - Linux Chromium and mobile Safari screenshots for the seven changed marketing routes, reviewed as intentional baseline updates.
-  - Source-contract output proving active-spec browser gates stay inside their declared Playwright project matrix and CodeQL-sensitive test fixtures remain explicit.
+  - Linux Chromium and mobile Safari screenshots for the seven changed marketing routes plus the four missing Firefox and WebKit launch screenshots, reviewed as intentional baseline updates.
+  - Source-contract output proving the governance browser matrix remains four-project, the PWA gates execute their declared two-project matrix, every required launch snapshot exists, CodeQL-sensitive test fixtures remain explicit, and environment-file writes avoid check-then-use races.
   - GitHub PR check output proving Typecheck and build, DB behavioral moat, Visual regression, and CodeQL all pass on the pushed commit.
 approved_exceptions: []
 ---
@@ -70,11 +86,13 @@ fresh-database, Linux-visual, CodeQL, and governed browser proof in GitHub CI.
 
 ## 2. Blast Radius
 
-In scope are the two active Micro-Spec gate commands that overrun their
-declared browser matrix, the canonical seed rows that violate the current join
-QR invariant on a fresh database, the two test-only CodeQL data-flow/assertion
-sites, a focused governance regression test, and only the fourteen stale Linux
-marketing snapshots named by the failed Visual regression job.
+In scope are the four missing Linux Firefox/WebKit launch snapshots required by
+the active governance matrix, the canonical seed rows that violate the current
+join QR invariant on a fresh database, all five CodeQL findings surfaced as
+blockers on the PR (three test-only data-flow/assertion sites and two
+environment-file check-then-use races), a focused regression test, and only the
+fourteen stale Linux marketing snapshots named by the failed Visual regression
+job.
 
 Out of scope are production password storage, authentication policy, runtime
 rate-limit hashing, merchant schema/RPC changes, marketing redesign, broad
@@ -89,9 +107,16 @@ snapshot refreshes, CI required-check removal, and threshold relaxation.
 - SHA-256 remains the production-compatible rate-limit bucket derivation; test
   password candidates and rate-limit cleanup identities must have separate
   data flow so static analysis cannot confuse that hash with password storage.
-- Browser gates must execute exactly the projects declared in
-  `required_playwright_projects`; missing Firefox/WebKit snapshots are not a
-  reason to invent unrequired proof.
+- Environment helper writes must not suppress CodeQL. Non-force creation must
+  be exclusive, and merge reads must tolerate a concurrently absent file
+  without a separate existence check.
+- The governance browser matrix intentionally covers Chromium, mobile Safari,
+  desktop Firefox, and desktop Safari; the PWA matrix intentionally covers
+  Chromium and mobile Safari. Missing baselines must be supplied rather than
+  shrinking either declared contract.
+- PWA service-worker behavior is Chromium-only, while its accessibility and
+  visual proof must explicitly execute Chromium and mobile Safari instead of
+  relying on implicit project selection.
 - Linux snapshots may change only after a stable two-capture run and visual
   inspection. Pixel thresholds and retries remain unchanged.
 - The full lifecycle proof runs once at `active -> implemented`; focused Red /
@@ -99,21 +124,31 @@ snapshot refreshes, CI required-check removal, and threshold relaxation.
 
 ## 4. Decisions Already Made
 
-- Scope `test:e2e` and `test:a11y` gates in both active specs to Chromium and
-  mobile Safari, matching their existing declared matrix and dedicated CI jobs.
+- Preserve the existing active-spec browser matrices and add only the four
+  missing launch-follow-through baselines required by the four-project
+  governance accessibility gate.
+- Make the active PWA commands executable expressions of its existing matrix:
+  Chromium for the desktop-only service-worker scenario, and Chromium plus
+  mobile Safari for accessibility and visual proof.
 - Add two active Bubble Yard reward-pool rows before the QR upsert; do not
   weaken the database trigger or reorder the QR ahead of valid dependencies.
 - Replace static URL regex assertions with literal containment checks.
 - Separate rejected password values from generated fixture emails rather than
   suppressing CodeQL or changing production password hashing.
+- Replace environment-file preflight checks with exclusive non-force creation
+  and an ENOENT-aware direct read before merge writes.
 - Regenerate only home, how-it-works, pricing, and four persona-spoke Linux
-  twins for Chromium and mobile Safari.
+  twins for Chromium/mobile Safari plus the missing dashboard/QR launch twins
+  for desktop Firefox and desktop Safari.
 
 ## 5. Behavioral Requirements (EARS)
 
-- WHEN the active governance and PWA specs run browser gates, THE gate commands
-  SHALL name Chromium and mobile Safari and SHALL NOT implicitly expand to
-  undeclared desktop Firefox or desktop Safari projects.
+- WHEN the active governance accessibility gate runs its declared four-project
+  matrix, THE repository SHALL provide the dashboard and QR launch baselines
+  required by desktop Firefox and desktop Safari.
+- WHEN the active PWA gates run, THE service-worker scenario SHALL select
+  Chromium explicitly and the accessibility/visual gates SHALL select exactly
+  Chromium and mobile Safari.
 - WHEN the canonical seed is applied to a freshly migrated database, THE
   Bubble Yard join QR SHALL activate only after its card owns at least three
   active rewards.
@@ -122,9 +157,14 @@ snapshot refreshes, CI required-check removal, and threshold relaxation.
   bucket keys remain production-compatible.
 - WHEN auth-hook URL source contracts are checked, THE tests SHALL use exact
   literal URL containment and SHALL NOT use unanchored URL regular expressions.
-- WHEN Linux renders the seven intentionally changed marketing routes, THE
-  committed Chromium and mobile Safari baselines SHALL match stable output and
-  retain the approved Wet Ink layout.
+- WHEN `.env.local` is created without `--force`, THE helper SHALL use an
+  exclusive write and preserve the existing-file refusal contract atomically.
+- WHEN an environment merge reads a file that disappears concurrently, THE
+  helper SHALL treat ENOENT as an empty starting document without a separate
+  existence check, and SHALL rethrow every other read error.
+- WHEN Linux renders the seven intentionally changed marketing routes and the
+  two governed launch states, THE committed baselines SHALL match stable output
+  on every declared project and retain the approved Wet Ink layout.
 - IF any required PR #97 check remains red after the pushed fix, THEN THE work
   SHALL remain unmergeable and the failing job SHALL be triaged from its new
   log rather than bypassed.
@@ -133,20 +173,23 @@ snapshot refreshes, CI required-check removal, and threshold relaxation.
 
 Verification is complete when:
 
-1. A focused source contract fails against the current bare active-spec browser
-   gates and passes after both specs name their declared projects.
+1. A focused source contract proves the governance matrix still names four
+   projects, the PWA commands execute their declared two-project matrix, and
+   all four cross-browser launch snapshot files exist.
 2. A fresh local Supabase reset/seed succeeds and the seeded active join QRs
    each read back at or above three active rewards.
-3. The password-policy and auth-recovery source contracts pass without CodeQL's
-   rejected-password hash or unanchored-URL patterns.
-4. Linux updates exactly fourteen marketing snapshots; the same Linux visual
-   command then passes 38/38 and the refreshed images are reviewed.
+3. The password-policy, auth-recovery, and environment-helper source contracts
+   pass without CodeQL's rejected-password hash, unanchored-URL, or file-race
+   patterns.
+4. Linux updates exactly fourteen marketing snapshots and creates exactly four
+   cross-browser launch snapshots; the full Linux a11y and scoped visual
+   commands pass and the refreshed images are reviewed.
 5. Lint, typecheck, governance, build, unit/Micro-Spec, coverage, database,
    seed, and scoped visual gates pass in the single lifecycle boundary.
 6. PR #97 is updated and the pushed commit reports green Typecheck and build,
    DB behavioral moat, Visual regression, and CodeQL checks.
 
-Task order: activate this contract; add focused Red tests; repair gate scoping;
-repair seed dependencies; repair the CodeQL-sensitive test shapes; regenerate
-and inspect Linux baselines; run the lifecycle proof once; commit, push, update
-the PR body, and monitor required checks.
+Task order: activate this contract; add focused Red tests; repair seed
+dependencies; repair the CodeQL-sensitive test shapes; generate and inspect
+the missing/stale Linux baselines; run the lifecycle proof once; commit, push,
+update the PR body, and monitor required checks.

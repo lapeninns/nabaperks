@@ -132,13 +132,6 @@ function printStatus() {
 function writeLocalEnv() {
   const target = join(projectDir, ".env.local")
 
-  if (existsSync(target) && !force) {
-    console.error(
-      ".env.local already exists. Re-run with --force to overwrite."
-    )
-    process.exit(1)
-  }
-
   const missing = contract
     .filter((entry) => isRequiredContractEntry(entry, process.env))
     .filter((entry) => !process.env[entry.name]?.trim())
@@ -166,9 +159,21 @@ function writeLocalEnv() {
     lines.push("")
   }
 
-  writeFileSync(target, `${lines.join("\n").trimEnd()}\n`, {
-    mode: 0o600,
-  })
+  try {
+    writeFileSync(target, `${lines.join("\n").trimEnd()}\n`, {
+      mode: 0o600,
+      flag: force ? "w" : "wx",
+    })
+  } catch (error) {
+    if (!force && error?.code === "EEXIST") {
+      console.error(
+        ".env.local already exists. Re-run with --force to overwrite."
+      )
+      process.exit(1)
+    }
+
+    throw error
+  }
 
   console.log("Wrote .env.local from current shell variables.")
   console.log("Run pnpm env:check to validate it.")
@@ -415,7 +420,7 @@ function isLocalHost(hostname) {
 
 function mergeLocalEnv(updates) {
   const target = join(projectDir, ".env.local")
-  const existing = existsSync(target) ? parseEnvFile(target) : {}
+  const existing = readEnvFileIfPresent(target)
   const merged = { ...existing, ...updates }
   const names = contract.map((entry) => entry.name)
   const extraNames = Object.keys(merged).filter((name) => !names.includes(name))
@@ -436,6 +441,15 @@ function mergeLocalEnv(updates) {
   }
 
   writeFileSync(target, `${lines.join("\n").trimEnd()}\n`, { mode: 0o600 })
+}
+
+function readEnvFileIfPresent(path) {
+  try {
+    return parseEnvFile(path)
+  } catch (error) {
+    if (error?.code === "ENOENT") return {}
+    throw error
+  }
 }
 
 function isRequiredContractEntry(entry, values) {

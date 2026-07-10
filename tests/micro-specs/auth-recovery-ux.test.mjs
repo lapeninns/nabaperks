@@ -83,21 +83,25 @@ test("local Supabase email hooks cannot silently target production during browse
   )
 
   assert.match(config, /uri = "env\(SUPABASE_SEND_EMAIL_HOOK_URI\)"/)
-  assert.match(
-    localWrapper,
-    /http:\/\/host\.docker\.internal:3000\/api\/auth\/hooks\/send-email/
+  assert.ok(
+    localWrapper.includes(
+      "http://host.docker.internal:3000/api/auth/hooks/send-email"
+    )
   )
-  assert.match(
-    linkedWrapper,
-    /https:\/\/nabaperks\.com\/api\/auth\/hooks\/send-email/
+  assert.ok(
+    linkedWrapper.includes(
+      "https://nabaperks.com/api/auth/hooks/send-email"
+    )
   )
-  assert.match(
-    migrationCheck,
-    /https:\/\/nabaperks\.com\/api\/auth\/hooks\/send-email/
+  assert.ok(
+    migrationCheck.includes(
+      "https://nabaperks.com/api/auth/hooks/send-email"
+    )
   )
-  assert.match(
-    ci,
-    /SUPABASE_SEND_EMAIL_HOOK_URI: http:\/\/host\.docker\.internal:3147\/api\/auth\/hooks\/send-email/
+  assert.ok(
+    ci.includes(
+      "SUPABASE_SEND_EMAIL_HOOK_URI: http://host.docker.internal:3147/api/auth/hooks/send-email"
+    )
   )
   assert.match(liveHelper, /GOTRUE_HOOK_SEND_EMAIL_URI/)
   assert.match(liveHelper, /Local merchant auth proof email sink/)

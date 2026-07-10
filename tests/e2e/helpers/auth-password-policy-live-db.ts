@@ -53,11 +53,15 @@ export async function assertPublicLocalPasswordPolicy(
 
   const runId = randomUUID().replaceAll("-", "").slice(0, 16)
   const acceptedEmail = `password-policy-accepted-${runId}@example.test`
-  const rejected = REJECTED_PASSWORDS.map((candidate, index) => ({
-    ...candidate,
-    email: `password-policy-rejected-${index}-${runId}@example.test`,
-  }))
-  const allEmails = [acceptedEmail, ...rejected.map(({ email }) => email)]
+  // Keep cleanup identities independent from rejected password inputs. The
+  // rate-limit table intentionally stores SHA-256 bucket keys, not passwords;
+  // separating these values also makes that boundary explicit to CodeQL.
+  const rejectedEmails = [
+    `password-policy-rejected-length-${runId}@example.test`,
+    `password-policy-rejected-digits-${runId}@example.test`,
+    `password-policy-rejected-letters-${runId}@example.test`,
+  ] as const
+  const allEmails = [acceptedEmail, ...rejectedEmails]
   const requestIdentity = rateLimitIdentityFromHeaders(
     new Headers({
       "user-agent": AUTH_PASSWORD_POLICY_USER_AGENT,
@@ -94,10 +98,11 @@ export async function assertPublicLocalPasswordPolicy(
     expect(hookSink.requestCount()).toBe(1)
     await expectAuthUserCount(sql, acceptedEmail, 1)
 
-    for (const candidate of rejected) {
+    for (const [index, candidate] of REJECTED_PASSWORDS.entries()) {
+      const email = rejectedEmails[index]
       const hookRequestsBefore = hookSink.requestCount()
       const result = await anon.auth.signUp({
-        email: candidate.email,
+        email,
         password: candidate.password,
       })
 
@@ -110,7 +115,7 @@ export async function assertPublicLocalPasswordPolicy(
       expect([400, 422]).toContain(result.error.status)
       expect(result.error.reasons).toEqual([candidate.reason])
       expect(hookSink.requestCount()).toBe(hookRequestsBefore)
-      await expectAuthUserCount(sql, candidate.email, 0)
+      await expectAuthUserCount(sql, email, 0)
     }
 
     recoveryFixture = await createMerchantRecoveryLiveDbFixture(sql)
