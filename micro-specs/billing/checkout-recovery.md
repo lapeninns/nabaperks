@@ -49,6 +49,8 @@ allowed_blast_radius:
   - tests/unit/billing-checkout-return.test.mjs
   - tests/unit/billing-nav.test.mjs
   - tests/unit/billing-presentation.test.mjs
+  - tests/unit/billing-stripe-orchestration.test.mjs
+  - tests/unit/stripe-webhook-events.test.mjs
 implementation_surfaces:
   - micro-specs/billing/checkout-recovery.md
   - micro-specs/evidence/MS-billing-checkout-recovery.json
@@ -94,6 +96,8 @@ implementation_surfaces:
   - tests/unit/billing-checkout-return.test.mjs
   - tests/unit/billing-nav.test.mjs
   - tests/unit/billing-presentation.test.mjs
+  - tests/unit/billing-stripe-orchestration.test.mjs
+  - tests/unit/stripe-webhook-events.test.mjs
 related_docs:
   - micro-specs/GLOBAL_CONTEXT.md
   - micro-specs/billing.md
@@ -110,6 +114,8 @@ related_tests:
   - tests/unit/billing-checkout-return.test.mjs
   - tests/unit/billing-nav.test.mjs
   - tests/unit/billing-presentation.test.mjs
+  - tests/unit/billing-stripe-orchestration.test.mjs
+  - tests/unit/stripe-webhook-events.test.mjs
 verification_gates:
   - pnpm lint
   - pnpm typecheck
