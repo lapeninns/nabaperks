@@ -21,12 +21,16 @@ export type AccountSearchParams = {
   readonly tab?: AccountSearchParamValue
   readonly checkout?: AccountSearchParamValue
   readonly portal?: AccountSearchParamValue
+  readonly session_id?: AccountSearchParamValue
+  readonly billing_error?: AccountSearchParamValue
   readonly [key: string]: AccountSearchParamValue
 }
 
 export type AccountOutcomeParams = {
   checkout?: string
   portal?: string
+  session_id?: string
+  billing_error?: string
 }
 
 export function isAccountTab(value: string | undefined): value is AccountTab {
@@ -46,14 +50,21 @@ export function resolveAccountTab(value: AccountSearchParamValue): AccountTab {
 }
 
 export function resolveAccountOutcomeParams(
-  params: Pick<AccountSearchParams, "checkout" | "portal">
+  params: Pick<
+    AccountSearchParams,
+    "checkout" | "portal" | "session_id" | "billing_error"
+  >
 ): AccountOutcomeParams {
   const checkout = firstAccountSearchParamValue(params.checkout)
   const portal = firstAccountSearchParamValue(params.portal)
+  const sessionId = firstAccountSearchParamValue(params.session_id)
+  const billingError = firstAccountSearchParamValue(params.billing_error)
   const result: AccountOutcomeParams = {}
 
   if (checkout) result.checkout = checkout
   if (portal) result.portal = portal
+  if (sessionId) result.session_id = sessionId
+  if (billingError) result.billing_error = billingError
 
   return result
 }

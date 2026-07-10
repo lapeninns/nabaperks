@@ -21,6 +21,25 @@ test("keeps only known keys and drops unknown ones", () => {
   assert.deepEqual(parsed, { tab: "rewards", saved: "1" })
 })
 
+test("keeps the exact Stripe return protocol for the billing panel", () => {
+  assert.deepEqual(
+    parseLaunchSearchParams({
+      tab: "billing",
+      checkout: "success",
+      portal: "returned",
+      session_id: ["cs_owned", "cs_other"],
+      billing_error: "retry",
+    }),
+    {
+      tab: "billing",
+      checkout: "success",
+      portal: "returned",
+      session_id: "cs_owned",
+      billing_error: "retry",
+    }
+  )
+})
+
 test("collapses array values to the first entry", () => {
   const parsed = parseLaunchSearchParams({ tab: ["rewards", "qr"] })
   assert.equal(parsed.tab, "rewards")

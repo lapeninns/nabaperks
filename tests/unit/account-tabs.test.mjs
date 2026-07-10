@@ -29,13 +29,20 @@ test("firstAccountSearchParamValue returns the first entry from array params", (
   assert.equal(firstAccountSearchParamValue(undefined), undefined)
 })
 
-test("resolveAccountOutcomeParams keeps single checkout and portal flags", () => {
+test("resolveAccountOutcomeParams keeps the complete one-shot billing protocol", () => {
   assert.deepEqual(
     resolveAccountOutcomeParams({
       checkout: ["success", "cancelled"],
-      portal: ["return", "retry"],
+      portal: ["returned", "retry"],
+      session_id: ["cs_owned", "cs_foreign"],
+      billing_error: ["retry", "ignored"],
     }),
-    { checkout: "success", portal: "return" }
+    {
+      checkout: "success",
+      portal: "returned",
+      session_id: "cs_owned",
+      billing_error: "retry",
+    }
   )
 
   assert.deepEqual(
