@@ -30,6 +30,45 @@
         }
       ],
       "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-10T06:26:32.701Z",
+      "git_sha": "1f7b8f53752e610d2b53b0613a74e17d346c1516",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6342
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1024
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 9652
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 7915
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 964
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --grep \"@MS-auth-cooldown-hydration\"",
+          "exit_code": 0,
+          "duration_ms": 11843
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
@@ -39,6 +78,14 @@
       "to": "active",
       "at": "2026-07-10T06:11:37.014Z",
       "sha": "d11b7beb1578dc6ca640161acae262d555d02ca1",
+      "dirty": false,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-10T06:26:32.701Z",
+      "sha": "1f7b8f53752e610d2b53b0613a74e17d346c1516",
       "dirty": false,
       "by": "amankumarshrestha"
     }
