@@ -50,3 +50,19 @@ test("compatibility billing route preserves exact return and safe error identifi
     /query\.set\("billing_error", params\.billing_error\)/
   )
 })
+
+test("billing outcome cleanup removes only one-shot keys without an RSC navigation", () => {
+  const cleanup = readProjectFile(
+    "components",
+    "merchant",
+    "account",
+    "billing-outcome-query-cleanup.tsx"
+  )
+
+  for (const key of ["checkout", "portal", "session_id", "billing_error"]) {
+    assert.match(cleanup, new RegExp(`searchParams\\.delete\\("${key}"\\)`))
+  }
+
+  assert.match(cleanup, /window\.history\.replaceState/)
+  assert.doesNotMatch(cleanup, /router\.replace/)
+})
