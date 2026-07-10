@@ -57,6 +57,7 @@ required_playwright_projects:
 evidence_required:
   - Command output for the declared verification gates.
   - Live database proof of forced RLS, service-role-only ACLs, replay-safe milestone writes, migration replay, and aggregate accuracy beyond one thousand accounts.
+  - Live database proof that billing activation is first-write-once on the durable billing row and supplemental event-only claims cannot satisfy the activation stage.
   - Live database proof that referral bonuses, reversals, manual adjustments, and non-QR stamp sources never count as a first customer stamp.
   - Browser proof that the gated admin console renders the authoritative merchant activation cohort on phone and desktop.
   - Source and payload proof that the cohort RPC returns aggregate facts only and exposes no owner, funnel, contact, customer, merchant, or provider identifiers.
@@ -106,6 +107,12 @@ reporting contract.
   rows. Three rewards means at least three currently active reward-pool items
   on the active card. Venue readiness mirrors the launch contract: address is
   present and coordinates are present when geofencing is required.
+- Billing activation is the first authoritative `billing_customers` transition
+  into `trialing` or `active`, persisted once as `activated_at`. Supplemental
+  analytics events never determine this stage or its seven-day clock. A
+  webhook-owned insert uses its provider-event time; exact reconciliation
+  without an event cursor uses the durable transaction boundary and never
+  backdates activation to an earlier incomplete subscription creation.
 - Poster readiness requires a live venue QR plus either an explicit poster
   print/download event or a poster email recorded only after provider success.
 - A genuine first customer stamp is exactly `event_type='earned'`,
@@ -124,6 +131,8 @@ reporting contract.
 
 - Add `occurred_at` and nullable `idempotency_key` to `product_events`, with a
   unique partial index on `(merchant_id, event_name, idempotency_key)`.
+- Add a first-write-once `billing_customers.activated_at` timestamp maintained
+  by the billing-row trigger and use it as the cohort's billing truth.
 - Backfill `occurred_at` from `created_at`; keep `created_at` unchanged as the
   database receipt timestamp.
 - Backfill valid owner/funnel links from existing account-created and
@@ -174,9 +183,10 @@ reporting contract.
 - **AL-9:** WHEN first-customer-stamp facts are derived, THE cohort SHALL count
   only positive earned self-service QR stamps with a business date and SHALL
   exclude referral bonuses, reversals, manual adjustments, and other sources.
-- **AL-10:** WHEN billing activation and first-stamp timestamps exist, THE
-  cohort SHALL classify the seven-day outcome as yes, no, or pending relative
-  to the supplied as-of time without double-counting an account.
+- **AL-10:** WHEN the durable first billing activation and first-stamp
+  timestamps exist, THE cohort SHALL classify the seven-day outcome as yes,
+  no, or pending relative to the supplied as-of time without double-counting
+  an account; supplemental event-only claims SHALL NOT activate the account.
 - **AL-11:** WHEN the cohort contains more than 1,000 accounts, THE aggregate
   counts SHALL remain exact and the RPC SHALL still return one row.
 - **AL-12:** THE cohort RPC SHALL return no UUID, HMAC key, contact value,
@@ -197,8 +207,9 @@ Observable proof:
 3. Source-contract tests first fail until the launch layout and successful
    poster-email path use the fail-open activation recorder and the admin page
    uses the cohort loader rather than raw pilot-event totals.
-4. Implement the replay-safe schema, link trigger, event recorder RPC, cohort
-   RPC, FORCE RLS, service-only ACLs, indexes, and PostgREST reload.
+4. Implement the replay-safe schema, link trigger, first-write-once billing
+   activation timestamp, event recorder RPC, cohort RPC, FORCE RLS,
+   service-only ACLs, indexes, and PostgREST reload.
 5. Implement the server-only recorder, nested launch layout, success-only
    poster wiring, cohort loader, and activation funnel presentation.
 6. Run the focused DB, unit, source, and tagged phone/desktop browser proofs

@@ -16,6 +16,104 @@ alter table public.product_events
   alter column occurred_at set default now(),
   alter column occurred_at set not null;
 
+-- Billing activation is a product fact, not an analytics-delivery fact. Keep
+-- the first authoritative transition into trialing/active on the durable
+-- billing row so an after-response crash cannot erase the cohort milestone.
+alter table public.billing_customers
+  add column if not exists activated_at timestamptz;
+
+create or replace function public.preserve_billing_activation_timestamp()
+returns trigger
+language plpgsql
+set search_path = pg_catalog, public
+as $function$
+declare
+  v_candidate timestamptz;
+begin
+  if tg_op = 'UPDATE' and old.activated_at is not null then
+    new.activated_at := old.activated_at;
+    return new;
+  end if;
+
+  new.activated_at := null;
+  if new.status not in ('trialing', 'active') then
+    return new;
+  end if;
+
+  if tg_op = 'INSERT' then
+    -- A webhook insert owns an exact provider-event boundary. Exact
+    -- Checkout/Portal reconciliation has no event cursor, so the durable
+    -- transaction is the earliest trustworthy activation boundary. The
+    -- subscription may have been created earlier in an incomplete state.
+    v_candidate := coalesce(
+      new.stripe_state_event_created_at,
+      transaction_timestamp()
+    );
+  elsif old.status in ('trialing', 'active') then
+    -- Backfill a legacy already-active row from its durable provider identity.
+    v_candidate := coalesce(
+      old.stripe_subscription_created_at,
+      new.stripe_subscription_created_at,
+      old.created_at,
+      transaction_timestamp()
+    );
+  elsif new.stripe_state_event_created_at is distinct from old.stripe_state_event_created_at then
+    -- Webhook apply owns an exact provider-event timestamp.
+    v_candidate := coalesce(
+      new.stripe_state_event_created_at,
+      transaction_timestamp()
+    );
+  else
+    -- Exact Checkout/Portal reconciliation has no provider-event cursor; the
+    -- durable apply transaction itself is the earliest trustworthy boundary.
+    v_candidate := transaction_timestamp();
+  end if;
+
+  new.activated_at := least(v_candidate, transaction_timestamp());
+  return new;
+end;
+$function$;
+
+revoke all on function public.preserve_billing_activation_timestamp()
+  from public, anon, authenticated, service_role;
+
+drop trigger if exists billing_customers_preserve_activation_timestamp
+  on public.billing_customers;
+create trigger billing_customers_preserve_activation_timestamp
+  before insert or update of
+    status,
+    stripe_subscription_status,
+    stripe_subscription_created_at,
+    stripe_state_event_created_at,
+    activated_at
+  on public.billing_customers
+  for each row
+  execute function public.preserve_billing_activation_timestamp();
+
+update public.billing_customers
+set activated_at = coalesce(
+      stripe_subscription_created_at,
+      created_at,
+      transaction_timestamp()
+    )
+where activated_at is null
+  and status in ('trialing', 'active');
+
+do $activation_billing_schema$
+begin
+  if not exists (
+    select 1
+    from pg_catalog.pg_constraint
+    where conrelid = 'public.billing_customers'::regclass
+      and conname = 'billing_customers_activation_coherent'
+  ) then
+    alter table public.billing_customers
+      add constraint billing_customers_activation_coherent
+      check (activated_at is null or stripe_subscription_id is not null);
+  end if;
+end
+$activation_billing_schema$;
+
 do $activation_schema$
 begin
   if not exists (
@@ -455,11 +553,12 @@ begin
         and events.occurred_at <= p_as_of
     ) as billing_reached on true
     left join lateral (
-      select min(events.occurred_at) as billing_activated_at
-      from public.product_events as events
-      where events.merchant_id = accounts.merchant_id
-        and events.event_name = 'merchant_billing_activated'
-        and events.occurred_at <= p_as_of
+      select billing.activated_at as billing_activated_at
+      from public.billing_customers as billing
+      where billing.merchant_id = accounts.merchant_id
+        and billing.activated_at is not null
+        and billing.activated_at <= p_as_of
+      limit 1
     ) as billing_activated on true
     left join lateral (
       select min(stamps.created_at) as first_stamp_at

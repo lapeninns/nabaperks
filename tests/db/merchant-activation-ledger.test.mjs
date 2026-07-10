@@ -62,6 +62,18 @@ test(
         "NO"
       )
 
+      const billingColumns = await tx`
+      select column_name, is_nullable
+      from information_schema.columns
+      where table_schema = 'public'
+        and table_name = 'billing_customers'
+        and column_name = 'activated_at'`
+      assert.deepEqual(
+        billingColumns.map((row) => row.column_name),
+        ["activated_at"],
+        "billing activation needs a durable first-write-once timestamp"
+      )
+
       const relation = await tx`
       select
         relrowsecurity,
@@ -261,6 +273,152 @@ test(
 )
 
 test(
+  "billing activation is first-write-once and the cohort ignores supplemental event-only claims",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const cohortStart = new Date("2002-01-01T00:00:00.000Z")
+      const cohortEnd = new Date("2002-01-03T00:00:00.000Z")
+      const activationAt = "2002-01-01T12:00:00.000Z"
+      const durable = await createMerchantFixture(
+        tx,
+        "durable-billing",
+        "2002-01-01T10:00:00.000Z"
+      )
+      const insertedActive = await createMerchantFixture(
+        tx,
+        "inserted-active",
+        "2002-01-01T10:00:00.000Z"
+      )
+      const reconciledActive = await createMerchantFixture(
+        tx,
+        "reconciled-active",
+        "2002-01-01T10:00:00.000Z"
+      )
+      const eventOnlyOne = await createMerchantFixture(
+        tx,
+        "event-only-one",
+        "2002-01-01T10:00:00.000Z"
+      )
+      const eventOnlyTwo = await createMerchantFixture(
+        tx,
+        "event-only-two",
+        "2002-01-01T10:00:00.000Z"
+      )
+
+      for (const [index, fixture] of [
+        durable,
+        eventOnlyOne,
+        eventOnlyTwo,
+      ].entries()) {
+        await insertAccountEvent(
+          tx,
+          fixture.ownerId,
+          String(index + 1).repeat(64),
+          `2002-01-01T0${index + 7}:00:00.000Z`
+        )
+      }
+
+      await insertBillingSnapshot(tx, insertedActive, {
+        status: "trialing",
+        providerStatus: "trialing",
+        subscriptionCreatedAt: "2002-01-01T10:30:00.000Z",
+        stateEventAt: activationAt,
+        stateEventId: "evt_inserted_trialing",
+      })
+      const [insertedActivation] = await tx`
+        select activated_at::text as activated_at
+        from public.billing_customers
+        where merchant_id = ${insertedActive.merchantId}::uuid`
+      assert.equal(
+        new Date(insertedActivation.activated_at).toISOString(),
+        activationAt,
+        "a webhook insert activates at the provider event, not subscription creation"
+      )
+
+      await insertBillingSnapshot(tx, reconciledActive, {
+        status: "active",
+        providerStatus: "active",
+        subscriptionCreatedAt: "2002-01-01T10:30:00.000Z",
+        stateEventAt: null,
+        stateEventId: null,
+      })
+      const [reconciledActivation] = await tx`
+        select
+          activated_at = transaction_timestamp() as uses_transaction_boundary,
+          activated_at > stripe_subscription_created_at as avoids_creation_backdate
+        from public.billing_customers
+        where merchant_id = ${reconciledActive.merchantId}::uuid`
+      assert.equal(reconciledActivation.uses_transaction_boundary, true)
+      assert.equal(reconciledActivation.avoids_creation_backdate, true)
+
+      await insertBillingSnapshot(tx, durable, {
+        status: "suspended",
+        providerStatus: "incomplete",
+        subscriptionCreatedAt: "2002-01-01T10:30:00.000Z",
+        stateEventAt: "2002-01-01T10:31:00.000Z",
+        stateEventId: "evt_incomplete_durable",
+      })
+      const [before] = await tx`
+        select activated_at
+        from public.billing_customers
+        where merchant_id = ${durable.merchantId}::uuid`
+      assert.equal(before.activated_at, null)
+
+      await tx`
+        update public.billing_customers
+        set status = 'trialing',
+            stripe_subscription_status = 'trialing',
+            stripe_state_event_created_at = ${activationAt}::timestamptz,
+            stripe_state_event_id = 'evt_trialing_durable',
+            updated_at = ${activationAt}::timestamptz
+        where merchant_id = ${durable.merchantId}::uuid`
+      const [activated] = await tx`
+        select activated_at::text as activated_at
+        from public.billing_customers
+        where merchant_id = ${durable.merchantId}::uuid`
+      assert.equal(new Date(activated.activated_at).toISOString(), activationAt)
+
+      await tx`
+        update public.billing_customers
+        set status = 'cancelled',
+            stripe_subscription_status = 'canceled',
+            activated_at = '2099-01-01T00:00:00.000Z'::timestamptz,
+            stripe_state_event_created_at = '2002-01-02T00:00:00.000Z'::timestamptz,
+            stripe_state_event_id = 'evt_cancelled_durable',
+            updated_at = '2002-01-02T00:00:00.000Z'::timestamptz
+        where merchant_id = ${durable.merchantId}::uuid`
+      const [preserved] = await tx`
+        select activated_at::text as activated_at
+        from public.billing_customers
+        where merchant_id = ${durable.merchantId}::uuid`
+      assert.equal(new Date(preserved.activated_at).toISOString(), activationAt)
+
+      for (const fixture of [eventOnlyOne, eventOnlyTwo]) {
+        await tx`
+          insert into public.product_events (
+            event_name, merchant_id, actor_type, actor_id, metadata,
+            idempotency_key, occurred_at, created_at
+          ) values (
+            'merchant_billing_activated', ${fixture.merchantId}::uuid,
+            'merchant', ${fixture.ownerId}, '{}'::jsonb,
+            'first-activation', ${activationAt}::timestamptz,
+            ${activationAt}::timestamptz
+          )`
+      }
+
+      const [facts] = await cohortFacts(tx, cohortStart, cohortEnd, cohortEnd)
+      assert.equal(Number(facts.account_created), 3)
+      assert.equal(
+        Number(facts.billing_activated),
+        1,
+        "only the durable billing ledger can satisfy activation"
+      )
+    })
+  }
+)
+
+test(
   "authoritative stages, stamp exclusions, and seven-day outcomes are derived without double counting",
   { skip },
   async () => {
@@ -360,6 +518,32 @@ async function createMerchantFixture(
   return { ownerId, merchantId }
 }
 
+async function insertBillingSnapshot(
+  tx,
+  fixture,
+  { status, providerStatus, subscriptionCreatedAt, stateEventAt, stateEventId }
+) {
+  await tx`
+    insert into public.billing_customers (
+      merchant_id, stripe_customer_id, stripe_subscription_id, plan, status,
+      current_period_end, stripe_subscription_status,
+      stripe_subscription_created_at, stripe_price_id, billing_interval,
+      unit_amount, currency, cancel_at_period_end, cancel_at,
+      stripe_state_event_created_at, stripe_state_event_id, created_at, updated_at
+    ) values (
+      ${fixture.merchantId}::uuid, ${`cus_${fixture.merchantId}`},
+      ${`sub_${fixture.merchantId}`}, 'growth', ${status},
+      '2002-02-01T00:00:00.000Z'::timestamptz, ${providerStatus},
+      ${subscriptionCreatedAt}::timestamptz, 'price_activation_test', 'month',
+      4900, 'gbp', false, null, ${stateEventAt}::timestamptz,
+      ${stateEventId}, ${subscriptionCreatedAt}::timestamptz,
+      coalesce(
+        ${stateEventAt}::timestamptz,
+        ${subscriptionCreatedAt}::timestamptz
+      )
+    )`
+}
+
 async function seedActivationJourney(tx, options) {
   const fixture = await createMerchantFixture(
     tx,
@@ -376,15 +560,13 @@ async function seedActivationJourney(tx, options) {
   )
 
   const billingAt = options.billingAt
-  await tx`
-    insert into public.product_events (
-      event_name, merchant_id, actor_type, actor_id, metadata,
-      idempotency_key, occurred_at, created_at
-    ) values (
-      'merchant_billing_activated', ${fixture.merchantId}::uuid, 'merchant',
-      ${fixture.ownerId}, '{}'::jsonb, 'first-activation',
-      ${billingAt}::timestamptz, ${billingAt}::timestamptz
-    )`
+  await insertBillingSnapshot(tx, fixture, {
+    status: "trialing",
+    providerStatus: "trialing",
+    subscriptionCreatedAt: billingAt,
+    stateEventAt: billingAt,
+    stateEventId: `evt_${options.slug}_activation`,
+  })
 
   if (!options.setup) return fixture
 

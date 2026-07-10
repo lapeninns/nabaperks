@@ -153,6 +153,11 @@ test("the activation event adapter schedules service-role persistence after the 
   assert.match(activationEvents, /createSupabaseServiceRoleClient/)
   assert.match(activationEvents, /after\(\s*(?:async\s*)?\(\)\s*=>/)
   assert.match(activationEvents, /try\s*\{[\s\S]*?\.rpc\([\s\S]*?\}\s*catch/)
+  assert.match(
+    activationEvents,
+    /capturePostHogEvent\([\s\S]*metadata:\s*\{\s*source:\s*["']merchant_activation["']\s*\}/,
+    "external activation mirrors use the privacy allowlist, not detailed first-party provenance"
+  )
   assert.doesNotMatch(
     activationEvents,
     /catch[^\{]*\{[\s\S]{0,240}\bthrow\b/,

@@ -70,7 +70,9 @@ export function scheduleMerchantActivationEvent(
           merchantId: input.merchantId,
           actorType: "merchant",
           actorId: input.merchantId,
-          metadata: { source: input.source },
+          // Detailed provenance remains first-party. The optional external
+          // mirror uses one closed, privacy-reviewed activation category.
+          metadata: { source: "merchant_activation" },
         })
       } catch (error) {
         console.error("Merchant activation analytics recording failed", {
