@@ -1,7 +1,52 @@
 {
   "schema": 1,
   "spec_id": "MS-referral-fraud-controls",
-  "runs": [],
+  "runs": [
+    {
+      "timestamp": "2026-07-10T19:13:38.936Z",
+      "git_sha": "72ad7514ce37db908ceef23560e1537fce686994",
+      "git_branch": "claude/referral-v2-architecture-7b8d21",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7496
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1185
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10658
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9276
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1072
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 4510
+        },
+        {
+          "command": "pnpm test:e2e -- --grep \"referral attribution\" --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 6908
+        }
+      ],
+      "all_passed": true
+    }
+  ],
   "manual_attestations": [],
   "transitions": [
     {
@@ -10,6 +55,14 @@
       "at": "2026-07-10T19:13:18.509Z",
       "sha": "16678071afaed45b371f660e96003085cb0271c1",
       "dirty": true,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-10T19:13:38.936Z",
+      "sha": "72ad7514ce37db908ceef23560e1537fce686994",
+      "dirty": false,
       "by": "amankumarshrestha"
     }
   ]
