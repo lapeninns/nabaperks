@@ -775,6 +775,78 @@ export function defineMerchantAuthRecoveryTests() {
       }
     })
 
+    test("@MS-auth-cooldown-hydration persisted cooldown hydrates without replacing the auth subtree", async ({
+      page,
+    }) => {
+      const sql = connectMerchantAuthRecoveryDb()
+      test.skip(!sql, "local Supabase DB is not configured")
+      if (!sql) return
+
+      const hydrationErrors: string[] = []
+      const recordHydrationError = (message: string) => {
+        if (
+          /hydration failed|server rendered text didn't match|hydration mismatch/i.test(
+            message
+          )
+        ) {
+          hydrationErrors.push(message)
+        }
+      }
+      page.on("console", (message) => recordHydrationError(message.text()))
+      page.on("pageerror", (error) => recordHydrationError(error.message))
+
+      let fixture: MerchantAuthLiveDbFixture | undefined
+
+      try {
+        await page.addInitScript(() => {
+          const browserNow = Date.now.bind(Date)
+          Date.now = () => browserNow() + 2_100
+        })
+        await page.setExtraHTTPHeaders({
+          "x-vercel-forwarded-for": LIVE_PROOF_IP,
+        })
+        fixture = await createMerchantSignupLiveDbFixture(sql)
+        await seedMerchantAuthResendCooldown(
+          sql,
+          fixture,
+          LIVE_PROOF_IDENTITY,
+          8_000
+        )
+
+        await page.goto(signupVerificationPath(fixture))
+
+        const resendForm = page.getByRole("form", {
+          name: "Request another verification email",
+        })
+        const resendButton = resendForm.getByRole("button", {
+          name: /Resend code(?: in \d+s)?/,
+        })
+        const availability = resendForm.getByRole("status")
+
+        await expect(resendButton).toBeDisabled()
+        await expect(resendButton).toHaveAccessibleName(/Resend code in \d+s/)
+        await expect(availability).toHaveText(
+          "Resend wait started. You can request another code when the timer ends."
+        )
+        await expect(resendButton).toBeEnabled({ timeout: 10_000 })
+        await expect(resendButton).toHaveAccessibleName("Resend code")
+        await expect(availability).toHaveText(
+          "You can request another code now."
+        )
+        expect(hydrationErrors).toEqual([])
+      } finally {
+        try {
+          await cleanupMerchantAuthLiveDbFixture(
+            sql,
+            fixture,
+            LIVE_PROOF_IDENTITY
+          )
+        } finally {
+          await sql.end({ timeout: 5 })
+        }
+      }
+    })
+
     test("server cooldown survives refresh and announces availability once", async ({
       page,
     }) => {
