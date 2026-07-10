@@ -1,7 +1,37 @@
 {
   "schema": 1,
   "spec_id": "MS-auth-cooldown-hydration",
-  "runs": [],
+  "runs": [
+    {
+      "timestamp": "2026-07-10T06:14:33.597Z",
+      "git_sha": "d80437047127980d9f36de6d1b0e36272ef1a14b",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6465
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1006
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 9489
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 1,
+          "duration_ms": 7267
+        }
+      ],
+      "all_passed": false
+    }
+  ],
   "manual_attestations": [],
   "transitions": [
     {
