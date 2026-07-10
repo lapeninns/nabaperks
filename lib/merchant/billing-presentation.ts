@@ -162,7 +162,7 @@ function buildPeriodMessage(
 ): string | null {
   if (!source) return null
 
-  if (source.cancel_at_period_end) {
+  if (source.cancel_at_period_end || source.cancel_at) {
     const cancellationDate = formatBillingDate(source.cancel_at)
     return cancellationDate
       ? `Cancels on ${cancellationDate}.`

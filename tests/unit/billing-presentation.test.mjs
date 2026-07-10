@@ -53,6 +53,16 @@ test("annual billing presents exact stored annual terms and scheduled cancellati
   assert.equal(presentation.periodMessage, "Cancels on 10 July 2027.")
 })
 
+test("a provider custom cancellation date is shown even when it is not period-end", () => {
+  const presentation = buildBillingPresentation({
+    ...monthlyBilling,
+    cancel_at_period_end: false,
+    cancel_at: "2026-08-09T12:00:00.000Z",
+  })
+
+  assert.equal(presentation.periodMessage, "Cancels on 9 August 2026.")
+})
+
 test("cancelled billing exposes restart Checkout while retaining its annual receipt", () => {
   const presentation = buildBillingPresentation({
     ...monthlyBilling,

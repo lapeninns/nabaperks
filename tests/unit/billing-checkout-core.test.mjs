@@ -220,6 +220,31 @@ test("an owned completed trial Session is accepted without requiring payment", (
   })
 })
 
+test("a fast webhook can replace the cleared attempt as durable ownership proof", () => {
+  assert.deepEqual(
+    classifyCheckoutReturnSession({
+      ...ownedSessionInput,
+      recordedSessionId: null,
+      expectedSubscriptionId: "sub_owned",
+    }),
+    {
+      kind: "owned_completed",
+      sessionId: "cs_owned",
+      subscriptionId: "sub_owned",
+      customerId: "cus_owned",
+    }
+  )
+
+  assert.deepEqual(
+    classifyCheckoutReturnSession({
+      ...ownedSessionInput,
+      recordedSessionId: null,
+      expectedSubscriptionId: "sub_newer",
+    }),
+    { kind: "rejected", reason: "stale_session" }
+  )
+})
+
 test("provider subscription terms map to one complete authoritative snapshot", () => {
   assert.deepEqual(
     mapProviderSubscriptionSnapshot({

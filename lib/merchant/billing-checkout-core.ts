@@ -152,6 +152,7 @@ export type ProviderCheckoutSession = {
 export type CheckoutReturnSessionInput = {
   requestedSessionId: string | null | undefined
   recordedSessionId: string | null | undefined
+  expectedSubscriptionId?: string | null
   expectedMerchantId: string
   expectedCustomerId: string
   session: ProviderCheckoutSession | null | undefined
@@ -167,6 +168,7 @@ export type CheckoutReturnSessionClassification =
         | "incomplete_session"
         | "missing_subscription"
         | "customer_mismatch"
+        | "stale_session"
     }
   | {
       kind: "owned_completed"
@@ -188,6 +190,7 @@ export function providerId(value: ProviderIdReference): string | null {
 export function classifyCheckoutReturnSession({
   requestedSessionId,
   recordedSessionId,
+  expectedSubscriptionId,
   expectedMerchantId,
   expectedCustomerId,
   session,
@@ -197,8 +200,6 @@ export function classifyCheckoutReturnSession({
   }
 
   if (
-    !recordedSessionId ||
-    requestedSessionId !== recordedSessionId ||
     session.id !== requestedSessionId ||
     session.metadata?.merchant_id !== expectedMerchantId
   ) {
@@ -217,6 +218,18 @@ export function classifyCheckoutReturnSession({
 
   if (!subscriptionId) {
     return { kind: "rejected", reason: "missing_subscription" }
+  }
+
+  const ownedByAttempt =
+    Boolean(recordedSessionId) && requestedSessionId === recordedSessionId
+  const ownedByCurrentSubscription =
+    Boolean(expectedSubscriptionId) && subscriptionId === expectedSubscriptionId
+
+  if (!ownedByAttempt && !ownedByCurrentSubscription) {
+    return {
+      kind: "rejected",
+      reason: expectedSubscriptionId ? "stale_session" : "foreign_session",
+    }
   }
 
   const customerId = providerId(session.customer)
