@@ -46,6 +46,15 @@ const reprovingSpecIds = specId
       .filter((spec) => spec.metadata.status === "active")
       .map((spec) => spec.metadata.spec_id)
       .filter(Boolean)
+const inheritedReprovingSpecIds = String(
+  process.env.GOVERNANCE_REPROVING_SPECS ?? ""
+)
+  .split(",")
+  .map((id) => id.trim())
+  .filter(Boolean)
+const gateReprovingSpecIds = [
+  ...new Set([...reprovingSpecIds, ...inheritedReprovingSpecIds]),
+]
 
 const validation = validateGovernance(root, {
   enforceChangedFiles: false,
@@ -98,7 +107,7 @@ for (const gate of runnable) console.log(`queued: ${gate}`)
 const envForGate = (parsed) => {
   const env = {
     ...process.env,
-    GOVERNANCE_REPROVING_SPECS: reprovingSpecIds.join(","),
+    GOVERNANCE_REPROVING_SPECS: gateReprovingSpecIds.join(","),
   }
 
   if (isPlaywrightGate(parsed) && !process.env.PLAYWRIGHT_BASE_URL) {

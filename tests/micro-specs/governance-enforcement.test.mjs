@@ -1,6 +1,12 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
+import {
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { test } from "node:test"
@@ -26,6 +32,22 @@ test("Given the current governance files When validation runs Then the metadata 
   const result = validateGovernance(projectRoot, { changedFiles: [] })
 
   assert.deepEqual(result.failures, [])
+})
+
+test("Given mutually stale specs When one gate run inherits both ids Then nested gates retain both exemptions", () => {
+  const runner = readFileSync(
+    path.join(projectRoot, "scripts/run-governance-gates.mjs"),
+    "utf8"
+  )
+
+  assert.match(
+    runner,
+    /gateReprovingSpecIds[\s\S]*new Set\(\[\.\.\.reprovingSpecIds, \.\.\.inheritedReprovingSpecIds\]\)/
+  )
+  assert.match(
+    runner,
+    /GOVERNANCE_REPROVING_SPECS:\s*gateReprovingSpecIds\.join\(","\)/
+  )
 })
 
 test("Given an active ui-only spec When Playwright gates are omitted Then validation fails", (t) => {
