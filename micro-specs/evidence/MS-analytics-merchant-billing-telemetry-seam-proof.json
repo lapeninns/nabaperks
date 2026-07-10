@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-analytics-merchant-billing-telemetry-seam-proof",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-10T10:31:47.029Z",
+      "sha": "a12f63799cc85a1b214630056561352825c69f38",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}
