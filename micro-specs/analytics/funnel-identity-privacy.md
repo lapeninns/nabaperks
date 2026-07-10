@@ -13,6 +13,8 @@ allowed_blast_radius:
   - lib/analytics/funnel-contract.ts
   - lib/analytics/funnel-token.ts
   - lib/analytics/funnel-events.ts
+  - lib/analytics/after-response.ts
+  - lib/analytics/funnel-capture-queue.ts
   - app/api/analytics/funnel/route.ts
   - components/analytics/marketing-funnel-tracker.tsx
   - components/layout/marketing-layout.tsx
@@ -29,6 +31,8 @@ allowed_blast_radius:
   - scripts/provider-readiness/checks.mjs
   - lib/legal/content.ts
   - tests/unit/analytics-privacy.test.mjs
+  - tests/unit/analytics-after-response.test.mjs
+  - tests/unit/funnel-capture-queue.test.mjs
   - tests/micro-specs/analytics-funnel-privacy.test.mjs
   - tests/micro-specs/provider-readiness-smoke.test.mjs
   - tests/e2e/analytics-funnel-privacy.spec.ts
@@ -41,6 +45,8 @@ implementation_surfaces:
   - lib/analytics/funnel-contract.ts
   - lib/analytics/funnel-token.ts
   - lib/analytics/funnel-events.ts
+  - lib/analytics/after-response.ts
+  - lib/analytics/funnel-capture-queue.ts
   - app/api/analytics/funnel/route.ts
   - components/analytics/marketing-funnel-tracker.tsx
   - components/layout/marketing-layout.tsx
@@ -57,12 +63,16 @@ implementation_surfaces:
   - scripts/provider-readiness/checks.mjs
   - lib/legal/content.ts
   - tests/unit/analytics-privacy.test.mjs
+  - tests/unit/analytics-after-response.test.mjs
+  - tests/unit/funnel-capture-queue.test.mjs
   - tests/micro-specs/analytics-funnel-privacy.test.mjs
   - tests/micro-specs/provider-readiness-smoke.test.mjs
   - tests/e2e/analytics-funnel-privacy.spec.ts
   - tests/e2e/analytics-funnel-privacy.desktop.spec.ts
 related_tests:
   - tests/unit/analytics-privacy.test.mjs
+  - tests/unit/analytics-after-response.test.mjs
+  - tests/unit/funnel-capture-queue.test.mjs
   - tests/micro-specs/analytics-funnel-privacy.test.mjs
   - tests/micro-specs/provider-readiness-smoke.test.mjs
   - tests/e2e/analytics-funnel-privacy.spec.ts

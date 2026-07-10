@@ -186,6 +186,15 @@ test.describe("desktop privacy-safe merchant funnel @MS-analytics-funnel-identit
         tampered,
         "merchant_signup_clicked"
       )
+      const {
+        count: signupClickCountBefore,
+        error: signupClickCountBeforeError,
+      } = await supabase
+        .from("product_events")
+        .select("id", { count: "exact", head: true })
+        .eq("event_name", "merchant_signup_clicked")
+      if (signupClickCountBeforeError) throw signupClickCountBeforeError
+
       const rejectedResponse = await page.evaluate(
         async ({ endpoint, token: suppliedToken }) => {
           const response = await fetch(endpoint, {
@@ -214,6 +223,16 @@ test.describe("desktop privacy-safe merchant funnel @MS-analytics-funnel-identit
         .in("id", [rejectedEventId, rejectedFreshEventId])
       if (rejectedError) throw rejectedError
       expect(rejectedCount).toBe(0)
+
+      const {
+        count: signupClickCountAfter,
+        error: signupClickCountAfterError,
+      } = await supabase
+        .from("product_events")
+        .select("id", { count: "exact", head: true })
+        .eq("event_name", "merchant_signup_clicked")
+      if (signupClickCountAfterError) throw signupClickCountAfterError
+      expect(signupClickCountAfter).toBe(signupClickCountBefore)
     } finally {
       const ids = [
         eventId,

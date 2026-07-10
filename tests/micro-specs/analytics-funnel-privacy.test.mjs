@@ -112,6 +112,11 @@ test("Given acquisition continuity When the browser tracker is inspected Then it
     "analytics",
     "marketing-funnel-tracker.tsx"
   )
+  const captureQueue = readProjectFile(
+    "lib",
+    "analytics",
+    "funnel-capture-queue.ts"
+  )
 
   assert.match(tracker, /sessionStorage\.getItem\(/)
   assert.match(tracker, /sessionStorage\.setItem\(/)
@@ -120,6 +125,15 @@ test("Given acquisition continuity When the browser tracker is inspected Then it
   assert.match(tracker, /body:\s*JSON\.stringify\(/)
   assert.doesNotMatch(tracker, /\blocalStorage\b/)
   assert.doesNotMatch(tracker, /volatileFunnelToken/)
+  assert.match(tracker, /createFunnelCaptureQueue/)
+  assert.match(captureQueue, /let queue:\s*Promise<void>/)
+  assert.match(
+    captureQueue,
+    /queue\.then\(async \(\) =>[\s\S]{0,180}readToken\(\)/,
+    "each serialized capture reads current session continuity when it starts"
+  )
+  assert.doesNotMatch(captureQueue, /previousToken/)
+  assert.doesNotMatch(tracker, /Promise<string\s*\|\s*null>/)
   assert.match(
     tracker,
     /pathname\s*!==\s*["']\/["'][\s\S]{0,120}merchant_signup_clicked/,
@@ -157,16 +171,23 @@ test("Given the first token response is lost When anonymous capture retries Then
     "analytics",
     "marketing-funnel-tracker.tsx"
   )
+  const captureQueue = readProjectFile(
+    "lib",
+    "analytics",
+    "funnel-capture-queue.ts"
+  )
 
   assert.match(issuanceOnly, /issueFunnelToken/)
   assert.doesNotMatch(issuanceOnly, /recordProductEvent/)
-  assert.match(tracker, /rememberFunnelToken\(result\.token\)/)
-  assert.match(tracker, /postFunnelCapture\(event, result\.token\)/)
+  assert.match(tracker, /rememberToken:\s*rememberFunnelToken/)
+  assert.match(captureQueue, /rememberToken\(result\.token\)/)
+  assert.match(captureQueue, /postCapture\(event, result\.token\)/)
 })
 
 test("Given authoritative merchant auth outcomes When source wiring is inspected Then account creation, resend, and verification telemetry is success-only and fail-open", () => {
   const actions = readProjectFile("app", "(auth)", "actions.ts")
   const funnelEvents = readProjectFile("lib", "analytics", "funnel-events.ts")
+  const afterResponse = readProjectFile("lib", "analytics", "after-response.ts")
   const signUp = sourceSection(
     actions,
     "export async function signUpAction",
@@ -188,8 +209,10 @@ test("Given authoritative merchant auth outcomes When source wiring is inspected
   assert.match(funnelEvents, /import \{ after \} from ["']next\/server["']/)
   assert.match(
     funnelEvents,
-    /after\(\(\) => persistMerchantFunnelEvent\(input\)\)/
+    /scheduleAfterResponseAnalytics\(after, \(\) => persistMerchantFunnelEvent\(input\)\)/
   )
+  assert.match(afterResponse, /registerAfter\(async \(\) =>/)
+  assert.match(afterResponse, /try\s*\{[\s\S]*await task\(\)[\s\S]*catch/)
   assert.doesNotMatch(actions, /await recordMerchantFunnelEventSafely/)
   assert.match(
     funnelEvents,

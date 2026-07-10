@@ -7,11 +7,16 @@ import {
   parseFunnelCaptureResponse,
   type PublicFunnelEvent,
 } from "@/lib/analytics/funnel-contract"
+import { createFunnelCaptureQueue } from "@/lib/analytics/funnel-capture-queue"
 
 const FUNNEL_SESSION_KEY = "nabaperks:analytics:funnel-token"
 
-let captureQueue: Promise<string | null> = Promise.resolve(null)
 const funnelTokenListeners = new Set<() => void>()
+const funnelCaptureQueue = createFunnelCaptureQueue({
+  postCapture: postFunnelCapture,
+  readToken: readFunnelToken,
+  rememberToken: rememberFunnelToken,
+})
 
 export function MarketingFunnelTracker() {
   const pathname = usePathname()
@@ -46,37 +51,9 @@ export function useMarketingFunnelToken(): string | null {
 }
 
 export function captureMarketingFunnelEvent(
-  event: PublicFunnelEvent,
-  funnelToken?: string | null
-): Promise<string | null> {
-  const queuedCapture = captureQueue.then(async (previousToken) => {
-    const token =
-      funnelToken === undefined
-        ? (readFunnelToken() ?? previousToken)
-        : funnelToken
-
-    try {
-      const result = await postFunnelCapture(event, token)
-      if (!result) return token ?? null
-
-      if (token) {
-        return rememberFunnelToken(result.token) ? result.token : null
-      }
-
-      // The no-token request only issues identity. Persist it before asking the
-      // server to record the milestone, so a lost record response retries with
-      // the same deterministic event UUID instead of creating an orphan row.
-      if (!rememberFunnelToken(result.token)) return null
-      const recorded = await postFunnelCapture(event, result.token)
-      if (!recorded) return result.token
-      return rememberFunnelToken(recorded.token) ? recorded.token : null
-    } catch {
-      return token ?? null
-    }
-  })
-
-  captureQueue = queuedCapture.catch(() => readFunnelToken())
-  return queuedCapture
+  event: PublicFunnelEvent
+): Promise<void> {
+  return funnelCaptureQueue.capture(event)
 }
 
 async function postFunnelCapture(

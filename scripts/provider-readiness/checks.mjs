@@ -379,11 +379,11 @@ function checkPostHog({ env, report }) {
     return
   }
 
-  const key = value(env, "POSTHOG_PROJECT_KEY")
+  const key = env.POSTHOG_PROJECT_KEY ?? ""
   const host = value(env, "POSTHOG_HOST")
   const pseudonymSecret = value(env, "ANALYTICS_PSEUDONYM_SECRET")
   const missing = [
-    !key ? "POSTHOG_PROJECT_KEY" : "",
+    !value(env, "POSTHOG_PROJECT_KEY") ? "POSTHOG_PROJECT_KEY" : "",
     !host ? "POSTHOG_HOST" : "",
     !pseudonymSecret ? "ANALYTICS_PSEUDONYM_SECRET" : "",
   ].filter(Boolean)
@@ -402,8 +402,10 @@ function checkPostHog({ env, report }) {
 
   const invalid = []
 
-  if (!key.startsWith("phc_")) {
-    invalid.push("POSTHOG_PROJECT_KEY must start with phc_")
+  if (!isValidPostHogProjectKey(key)) {
+    invalid.push(
+      "POSTHOG_PROJECT_KEY must be an exact 1-256 character phc_ key containing only letters, digits, underscores, or hyphens"
+    )
   }
 
   if (pseudonymSecret.length < 32) {
@@ -432,6 +434,17 @@ function checkPostHog({ env, report }) {
   report.blocked(
     "posthog-capture",
     "Read-only smoke did not write a staging pseudonymous analytics event."
+  )
+}
+
+function isValidPostHogProjectKey(value) {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= 256 &&
+    value === value.trim() &&
+    value.startsWith("phc_") &&
+    /^[a-z\d_-]+$/i.test(value)
   )
 }
 

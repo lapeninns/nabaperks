@@ -3,6 +3,7 @@ import "server-only"
 import { randomUUID } from "node:crypto"
 import { after } from "next/server"
 
+import { scheduleAfterResponseAnalytics } from "@/lib/analytics/after-response"
 import {
   deterministicFunnelEventId,
   issueFunnelToken,
@@ -65,7 +66,7 @@ export function recordMerchantFunnelEventSafely(input: {
   funnelToken?: string
   occurrenceKey?: string
 }): void {
-  after(() => persistMerchantFunnelEvent(input))
+  scheduleAfterResponseAnalytics(after, () => persistMerchantFunnelEvent(input))
 }
 
 async function persistMerchantFunnelEvent({

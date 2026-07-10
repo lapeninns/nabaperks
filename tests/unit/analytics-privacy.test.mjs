@@ -181,6 +181,22 @@ test("outbound analytics rejects nested personal data, identifiers, URLs, tokens
   }
 })
 
+test("external property allowlist rejects Object.prototype key collisions", () => {
+  const properties = Object.create(null)
+  Object.defineProperty(properties, "toString", {
+    configurable: true,
+    enumerable: true,
+    value: "homepage",
+    writable: true,
+  })
+
+  assert.equal(
+    buildExternalAnalyticsProperties(properties),
+    null,
+    "a key inherited only by the allowlist object must never be treated as allowlisted"
+  )
+})
+
 test("a signed funnel token verifies only before its fixed two-hour expiry", () => {
   const token = issueFunnelToken(FUNNEL_ID, FUNNEL_SECRET, NOW_MS)
 

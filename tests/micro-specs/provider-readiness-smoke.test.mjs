@@ -12,9 +12,11 @@ import { join } from "node:path"
 import test from "node:test"
 
 import {
+  createReport,
   loadProjectEnv,
   resolveSupabaseDbUrl,
 } from "../../scripts/provider-readiness/runtime.mjs"
+import { runReadinessChecks } from "../../scripts/provider-readiness/checks.mjs"
 import {
   diffMigrationVersions,
   parseRemoteMigrationVersions,
@@ -212,6 +214,31 @@ test("external analytics env becomes mandatory only in exact pseudonymous mode",
   assert.doesNotMatch(smokeScript, /NEXT_PUBLIC_POSTHOG/)
 })
 
+test("provider readiness accepts exactly the runtime PostHog project-key contract", async () => {
+  const boundaryKey = `phc_${"a".repeat(252)}`
+  assert.equal(boundaryKey.length, 256)
+
+  for (const projectKey of ["phc_project_123-ABC", boundaryKey]) {
+    const result = await postHogConfigResult(projectKey)
+    assert.equal(result.status, "PASS", result.message)
+  }
+
+  for (const projectKey of [
+    "phc_bad!",
+    "phc_bad key",
+    " phc_leading_space",
+    "phc_trailing_space ",
+    `phc_${"a".repeat(253)}`,
+  ]) {
+    const result = await postHogConfigResult(projectKey)
+    assert.equal(
+      result.status,
+      "FAIL",
+      `provider readiness must reject runtime-disabled key ${JSON.stringify(projectKey)}`
+    )
+  }
+})
+
 test("production env validation executes with analytics off and fails closed for incomplete pseudonymous mode", () => {
   const projectDir = mkdtempSync(join(tmpdir(), "nabaperks-env-check-"))
   const analyticsNames = new Set([
@@ -325,6 +352,25 @@ function validTestEnvValue(entry) {
   }
 
   return "test-value-at-least-32-characters-long"
+}
+
+async function postHogConfigResult(projectKey) {
+  const report = createReport()
+  await runReadinessChecks({
+    env: {
+      ANALYTICS_EXTERNAL_PROCESSING_MODE: "pseudonymous",
+      ANALYTICS_PSEUDONYM_SECRET:
+        "readiness-test-secret-at-least-32-characters",
+      POSTHOG_HOST: "https://eu.i.posthog.com",
+      POSTHOG_PROJECT_KEY: projectKey,
+    },
+    offline: true,
+    report,
+  })
+
+  const result = report.results.find(({ gate }) => gate === "posthog-config")
+  assert.ok(result, "PostHog readiness emits a configuration result")
+  return result
 }
 
 function runProductionEnvCheck(projectDir, values) {
