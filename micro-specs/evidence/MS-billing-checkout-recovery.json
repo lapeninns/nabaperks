@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-billing-checkout-recovery",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-10T02:38:10.576Z",
+      "sha": "8f31ff1e3f96c7299a5290870f0072d0cde04912",
+      "dirty": false,
+      "by": "amankumarshrestha"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 ---
 spec_id: MS-billing-checkout-recovery
-status: draft
+status: active
 risk_class: billing
 owner: codex
 last_reviewed: 2026-07-10
