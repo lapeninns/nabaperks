@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-merchant-reward-preset-atomic-add",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-10T00:37:20.930Z",
+      "sha": "a39667f50312de7bf3bad3fdc9aaffb053c6bfd0",
+      "dirty": true,
+      "by": "codex"
+    }
+  ]
+}
