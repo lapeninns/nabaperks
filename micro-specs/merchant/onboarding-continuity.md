@@ -1,9 +1,9 @@
 ---
 spec_id: MS-merchant-onboarding-continuity
-status: active
+status: implemented
 risk_class: rls-rpc-ledger
 owner: codex
-last_reviewed: 2026-07-09
+last_reviewed: 2026-07-10
 allowed_blast_radius:
   - micro-specs/merchant/onboarding-continuity.md
   - micro-specs/evidence/MS-merchant-onboarding-continuity.json
