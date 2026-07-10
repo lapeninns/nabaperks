@@ -324,6 +324,8 @@ test("SE-10: the drain pays a held bonus once room frees and respects next_retry
     // Not-yet-due rows are skipped: force next_retry_at into the future.
     await tx`update public.referrals set next_retry_at = now() + interval '1 day' where id = ${s.edgeId}`
     await tx`update public.customer_memberships set current_stamp_count = 0 where id = ${s.referrer.membership_id}`
+    await tx`select public.drain_due_referrer_bonuses_for_membership(${s.referrer.membership_id}::uuid)`
+    assert.equal((await bonusStamps(tx, s.referrer.membership_id)).length, 0, "the member drain also respects future next_retry_at")
     await tx`select public.drain_due_referral_bonuses(100)`
     assert.equal((await bonusStamps(tx, s.referrer.membership_id)).length, 0, "a future next_retry_at is not yet drained (SE-10)")
 
@@ -333,6 +335,51 @@ test("SE-10: the drain pays a held bonus once room frees and respects next_retry
     assert.ok(paid >= 1, "the drain reports at least one settled (SE-10)")
     assert.equal((await bonusStamps(tx, s.referrer.membership_id)).length, 1, "the owed bonus is paid")
     assert.equal((await edgeRow(tx, s.friend.membership_id)).status, "awarded", "edge awarded after drain")
+  })
+})
+
+test("review hardening: a referred customer qualifies after leave + rejoin", { skip }, async () => {
+  await inRolledBackTxn(async (tx) => {
+    const [qr] = await tx.unsafe(PICK_QR)
+    const referrerCustomer = await makeCustomer(tx)
+    const referrer = await joinWithStamp(tx, referrerCustomer, qr.business_slug, qr.qr_id)
+    const code = await codeFor(tx, referrer.membership_id)
+    const friendCustomer = await makeCustomer(tx)
+    const oldFriend = await joinNoStamp(tx, friendCustomer, qr.business_slug, code)
+    const [edge] = await tx`select id from public.referrals where referred_membership_id = ${oldFriend.membership_id}`
+
+    await tx`delete from public.customer_memberships where id = ${oldFriend.membership_id}`
+    const newFriend = await joinNoStamp(tx, friendCustomer, qr.business_slug, code)
+    const card = await cardFor(tx, qr.merchant_id)
+    const stampId = await insertFriendVisit(tx, {
+      merchantId: qr.merchant_id,
+      friendCustomer,
+      friend: newFriend,
+    }, card)
+
+    await tx`select public.qualify_referral_on_stamp(${newFriend.membership_id}::uuid, ${stampId}::uuid)`
+    const [relinked] = await tx`
+      select status, referred_membership_id from public.referrals where id = ${edge.id}`
+    assert.equal(relinked.status, "qualified", "the preserved edge qualifies via customer + venue")
+    assert.equal(relinked.referred_membership_id, newFriend.membership_id, "the edge points at the new membership")
+
+    await settle(tx, edge.id)
+    assert.equal((await bonusStamps(tx, referrer.membership_id)).length, 1, "the churned referral settles")
+  })
+})
+
+test("review hardening: a rejoined referrer is relinked before settlement", { skip }, async () => {
+  await inRolledBackTxn(async (tx) => {
+    const [qr] = await tx.unsafe(PICK_QR)
+    const s = await seedQualified(tx, qr)
+    await tx`delete from public.customer_memberships where id = ${s.referrer.membership_id}`
+    const newReferrer = await joinNoStamp(tx, s.referrerCustomer, qr.business_slug, null)
+
+    const outcome = await settle(tx, s.edgeId)
+    assert.equal(outcome, "awarded", "settlement uses the rejoined membership")
+    assert.equal((await bonusStamps(tx, newReferrer.membership_id)).length, 1, "the new card receives the bonus")
+    const [edge] = await tx`select referrer_membership_id from public.referrals where id = ${s.edgeId}`
+    assert.equal(edge.referrer_membership_id, newReferrer.membership_id, "the edge is durably relinked")
   })
 })
 

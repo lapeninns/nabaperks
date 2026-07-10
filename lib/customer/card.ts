@@ -27,6 +27,7 @@ export type CustomerCardState =
         total_rewards_redeemed: number
         active_cycle_number: number
         referral_code: string
+        referral_code_active: boolean
       }
       merchant: {
         id: string
@@ -73,6 +74,7 @@ type RawMembership = {
   total_rewards_redeemed: number
   active_cycle_number: number
   referral_code: string
+  referral_code_active: boolean
   merchants:
     | {
         business_name: string
@@ -99,7 +101,7 @@ export async function getCustomerCardState(
   const { data, error } = await supabase
     .from("customer_memberships")
     .select(
-      "id, merchant_id, customer_id, current_stamp_count, total_rewards_redeemed, active_cycle_number, referral_code, merchants(business_name, business_slug, status, requires_billing)"
+      "id, merchant_id, customer_id, current_stamp_count, total_rewards_redeemed, active_cycle_number, referral_code, referral_code_active, merchants(business_name, business_slug, status, requires_billing)"
     )
     .eq("id", membershipId)
     .maybeSingle()
@@ -177,6 +179,7 @@ export async function getCustomerCardState(
       total_rewards_redeemed: membership.total_rewards_redeemed,
       active_cycle_number: membership.active_cycle_number,
       referral_code: membership.referral_code,
+      referral_code_active: membership.referral_code_active,
     },
     merchant: {
       id: membership.merchant_id,

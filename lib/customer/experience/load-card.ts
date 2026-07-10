@@ -152,9 +152,11 @@ export async function loadCardExperienceContext(
     })
   }
 
-  const referralShareUrl = isShareableReferralCode(membership.referral_code)
-    ? buildReferralJoinUrl(merchant.business_slug, membership.referral_code)
-    : undefined
+  const referralShareUrl =
+    membership.referral_code_active &&
+    isShareableReferralCode(membership.referral_code)
+      ? buildReferralJoinUrl(merchant.business_slug, membership.referral_code)
+      : undefined
 
   return {
     membershipId: membership.id,

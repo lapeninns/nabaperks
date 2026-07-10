@@ -114,6 +114,44 @@ test("FC-4: at or below the threshold, referrals are not paused or flagged", { s
   })
 })
 
+test("review hardening: direct settlement preserves a fraud rejection raised during qualification", { skip }, async () => {
+  await inRolledBackTxn(async (tx) => {
+    await actAsService(tx)
+    const referrerM = await makeMembership(tx, await makeCustomer(tx))
+    for (let i = 0; i < 5; i++) await seedQualified(tx, referrerM)
+
+    const friendCustomer = await makeCustomer(tx)
+    const friendM = await makeMembership(tx, friendCustomer)
+    const [edge] = await tx`
+      insert into public.referrals (
+        referred_membership_id, referrer_membership_id, referral_code_used, status)
+      values (${friendM}::uuid, ${referrerM}::uuid, 'seed', 'attributed') returning id`
+    const [card] = await tx`
+      select id, location_id from public.loyalty_cards
+      where merchant_id = ${MERCHANT_ID}::uuid and is_active
+      order by created_at asc limit 1`
+    await tx`
+      insert into public.stamp_events (
+        merchant_id, customer_id, membership_id, loyalty_card_id, location_id,
+        event_type, stamps_delta, earned_business_date, cycle_number, metadata)
+      values (
+        ${MERCHANT_ID}::uuid, ${friendCustomer}::uuid, ${friendM}::uuid,
+        ${card.id}::uuid, ${card.location_id}, 'earned', 1,
+        public.uk_business_date(now()), 1,
+        jsonb_build_object('source', 'merchant_qr_action'))`
+
+    const [{ settle_referral_bonus: outcome }] = await tx`
+      select public.settle_referral_bonus(${edge.id}::uuid)`
+    assert.equal(outcome, "skipped_terminal", "settlement notices the fraud terminal state")
+    assert.equal(await statusOf(tx, edge.id), "rejected", "the fraud rejection is preserved")
+    const [{ n }] = await tx`
+      select count(*)::int as n from public.stamp_events
+      where membership_id = ${referrerM}::uuid
+        and metadata->>'source' = 'referral_bonus'`
+    assert.equal(n, 0, "no bonus bypasses the fraud pause")
+  })
+})
+
 test("FC-5/FC-6/FC-8: admin_review_referral clears a paused referral and is not re-paused", { skip }, async () => {
   await inRolledBackTxn(async (tx) => {
     await actAsService(tx)
@@ -160,7 +198,15 @@ test("FC-7/FC-8: admin_disable_referral_code deactivates + flags, and the code t
     const [qr] = await tx.unsafe(PICK_QR)
     assert.ok(qr, "an active join QR exists")
     await actAsService(tx)
-    const referrerCustomer = await makeCustomer(tx)
+    const ownerUid = randomUUID()
+    await tx`insert into auth.users (id) values (${ownerUid}::uuid)`
+    const [ownedCustomer] = await tx`
+      insert into public.customers (
+        auth_user_id, email, email_verified_at, created_at, updated_at)
+      values (
+        ${ownerUid}::uuid, ${`fc-owner-${randomUUID()}@test.local`}, now(), now(), now())
+      returning id`
+    const referrerCustomer = ownedCustomer.id
     const [referrer] = await tx`
       select * from public.join_customer_membership_with_first_stamp(
         ${referrerCustomer}::uuid, ${qr.business_slug}, ${qr.qr_id}, false, '2026-06-06', null, null, null)`
@@ -192,6 +238,23 @@ test("FC-7/FC-8: admin_disable_referral_code deactivates + flags, and the code t
       where membership_id = ${referrer.membership_id} and signal = 'referral_code_disabled'`
     assert.ok(flags >= 1, "a referral_code_disabled flag is raised (FC-7)")
 
+    // The owner cannot undo an admin disable through rotate or reactivate.
+    await tx`select set_config('request.jwt.claim.role', 'authenticated', true)`
+    await tx`select set_config('request.jwt.claim.sub', ${ownerUid}, true)`
+    for (const action of [
+      (sp) => sp`select public.rotate_membership_referral_code(${referrer.membership_id}::uuid)`,
+      (sp) => sp`select public.set_membership_referral_code_active(${referrer.membership_id}::uuid, true)`,
+    ]) {
+      let ownerRejected = false
+      try {
+        await tx.savepoint(action)
+      } catch (error) {
+        ownerRejected = isRejection(error)
+      }
+      assert.ok(ownerRejected, "the owner cannot reactivate an admin-disabled link")
+    }
+    await actAsService(tx)
+
     // The disabled code now attributes nothing.
     const friendCustomer = await makeCustomer(tx)
     const [friend] = await tx`
@@ -200,5 +263,35 @@ test("FC-7/FC-8: admin_disable_referral_code deactivates + flags, and the code t
     const [edge] = await tx`
       select id from public.referrals where referred_membership_id = ${friend.membership_id}`
     assert.equal(edge, undefined, "a disabled code attributes nothing (FC-7)")
+  })
+})
+
+test("review hardening: awarded referrals cannot be rewritten by admin review", { skip }, async () => {
+  await inRolledBackTxn(async (tx) => {
+    await actAsService(tx)
+    const referrerM = await makeMembership(tx, await makeCustomer(tx))
+    const awarded = await seedQualified(tx, referrerM)
+    await tx`update public.referrals
+      set status = 'awarded', referrer_bonus_awarded_at = now()
+      where id = ${awarded}`
+
+    await actAsAdmin(tx)
+    for (const action of ["clear", "reject", "cancel"]) {
+      let rejected = false
+      try {
+        await tx.savepoint((sp) =>
+          sp`select public.admin_review_referral(${awarded}::uuid, ${action}, 'late review')`
+        )
+      } catch (error) {
+        rejected = /awarded|review/i.test(String(error.message))
+      }
+      assert.ok(rejected, `${action} is refused after award`)
+    }
+
+    await actAsService(tx)
+    const [edge] = await tx`
+      select status, referrer_bonus_awarded_at from public.referrals where id = ${awarded}`
+    assert.equal(edge.status, "awarded", "the paid status remains coherent")
+    assert.ok(edge.referrer_bonus_awarded_at, "the paid timestamp remains present")
   })
 })

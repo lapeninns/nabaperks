@@ -124,6 +124,14 @@ test("RO-1/RO-6: creating an edge writes referral_attributed + one deduped frien
 
     assert.equal(await eventCount(tx, e.id, "referral_attributed"), 1, "one referral_attributed event (RO-1)")
     assert.equal(await notifCount(tx, referrer.membership_id, "referral_friend_joined"), 1, "one friend-joined notification (RO-1)")
+    const [notification] = await tx`
+      select payload from public.notification_events
+      where membership_id = ${referrer.membership_id}
+        and event_type = 'referral_friend_joined'`
+    assert.equal(notification.payload.title, "Your friend joined", "SQL outbox includes referral title")
+    assert.ok(notification.payload.body.includes("just joined"), "SQL outbox includes referral body")
+    assert.ok(notification.payload.tag, "SQL outbox includes a stable tag")
+    assert.equal(notification.payload.eventType, "referral_friend_joined", "SQL outbox includes event type")
   })
 })
 
@@ -199,5 +207,29 @@ test("RO-9: replenishing the reward pool settles a reward_unavailable hold", { s
     await tx`update public.reward_pool_items set is_active = true where loyalty_card_id = ${qr.loyalty_card_id}::uuid`
     assert.equal((await bonusStamps(tx, s.referrer.membership_id)).length, 1, "the held bonus settled on replenish (RO-9)")
     assert.equal((await edgeRow(tx, s.friend.membership_id)).status, "awarded", "edge awarded")
+  })
+})
+
+test("review hardening: a bonus that completes the card survives the QR transaction", { skip }, async () => {
+  await inRolledBackTxn(async (tx) => {
+    const [qr] = await tx.unsafe(PICK_QR_REWARDS)
+    if (!qr) return
+    const s = await seedQualified(tx, qr)
+    await tx`update public.customer_memberships
+      set current_stamp_count = ${qr.stamps_required - 1}
+      where id = ${s.referrer.membership_id}`
+
+    const [result] = await tx`select * from public.issue_self_service_stamp(
+      ${s.referrer.membership_id}::uuid, ${s.referrerCustomer}::uuid, ${qr.qr_id}, null, null)`
+
+    assert.equal(result.reward_unlocked, true, "the scan reports the reward unlocked by the bonus")
+    assert.equal((await bonusStamps(tx, s.referrer.membership_id)).length, 1, "the completing bonus is not rolled back")
+    assert.equal((await edgeRow(tx, s.friend.membership_id)).status, "awarded", "the referral remains awarded")
+    const [{ n: visits }] = await tx`
+      select count(*)::int as n from public.stamp_events
+      where membership_id = ${s.referrer.membership_id}
+        and event_type = 'earned'
+        and coalesce(metadata->>'source', '') <> 'referral_bonus'`
+    assert.equal(visits, 0, "the wrapper stops before adding a visit stamp to the completed card")
   })
 })
