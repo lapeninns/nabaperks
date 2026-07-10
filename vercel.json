@@ -16,6 +16,10 @@
     {
       "path": "/api/cron/birthday-rewards",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/referral-bonus-drain",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

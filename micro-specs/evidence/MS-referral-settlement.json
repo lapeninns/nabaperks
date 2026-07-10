@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-referral-settlement",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-10T18:22:37.591Z",
+      "sha": "3e4559b61ebff9862f13ee1817c7b8cca97cd9bb",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}
