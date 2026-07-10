@@ -503,6 +503,51 @@ begin
     return;
   end if;
 
+  -- A provider Session always expires before its durable attempt. Once the
+  -- attempt itself has expired, an unrecorded Session can no longer be
+  -- completed, so a worker with no live competing lease may safely recycle the
+  -- attempt. Before expiry the stable attempt id remains the Stripe
+  -- idempotency key, including after an ambiguous provider response.
+  if v_row.stripe_checkout_session_id is null
+    and v_row.attempt_expires_at <= v_now
+    and (
+      v_row.worker_lease_id is null
+      or v_row.worker_lease_expires_at <= v_now
+    ) then
+    update public.billing_checkout_attempts as attempts
+    set attempt_id = extensions.gen_random_uuid(),
+        billing_interval = p_billing_interval,
+        stripe_price_id = p_stripe_price_id,
+        success_url = p_success_url,
+        cancel_url = p_cancel_url,
+        attempt_expires_at = p_attempt_expires_at,
+        worker_lease_id = v_lease_id,
+        worker_lease_expires_at = v_now + interval '5 minutes',
+        stripe_checkout_session_id = null,
+        stripe_checkout_session_url = null,
+        stripe_checkout_session_expires_at = null,
+        updated_at = v_now
+    where attempts.merchant_id = p_merchant_id
+    returning attempts.* into v_row;
+
+    return query select
+      'claimed'::text,
+      v_row.merchant_id,
+      v_row.attempt_id,
+      v_row.billing_interval,
+      v_row.stripe_price_id,
+      v_row.success_url,
+      v_row.cancel_url,
+      v_row.attempt_expires_at,
+      v_row.stripe_customer_id,
+      v_row.stripe_checkout_session_id,
+      v_row.stripe_checkout_session_url,
+      v_row.stripe_checkout_session_expires_at,
+      v_row.worker_lease_id,
+      v_row.worker_lease_expires_at;
+    return;
+  end if;
+
   if v_row.billing_interval <> p_billing_interval then
     return query select
       'interval_conflict'::text,

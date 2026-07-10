@@ -424,6 +424,31 @@ test(
         "rotation returns cancel_url in its own result column"
       )
       assert.ok(rotated.attempt_expires_at instanceof Date)
+
+      const [releasedRotated] = await sql`
+        select public.release_billing_checkout_attempt(
+          ${fixture.merchantId}::uuid,
+          ${rotated.attempt_id}::uuid,
+          ${rotated.worker_lease_id}::uuid
+        ) as released`
+      assert.equal(releasedRotated.released, true)
+      await sql`
+        update public.billing_checkout_attempts
+        set attempt_expires_at = transaction_timestamp() - interval '1 second'
+        where merchant_id = ${fixture.merchantId}::uuid`
+      const [recycled] = await claimCheckout(sql, fixture.merchantId, {
+        interval: "month",
+        priceId: "price_month_recycled",
+      })
+      assert.equal(recycled.claim_status, "claimed")
+      assert.notEqual(
+        recycled.attempt_id,
+        rotated.attempt_id,
+        "an expired attempt without a recorded Session must not strand checkout"
+      )
+      assert.equal(recycled.billing_interval, "month")
+      assert.equal(recycled.stripe_price_id, "price_month_recycled")
+      assert.equal(recycled.stripe_customer_id, customerId)
     } finally {
       await cleanupCommittedMerchant(fixture)
     }

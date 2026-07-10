@@ -63,6 +63,11 @@ test("billing durability is delivered by one replay-safe migration", () => {
     /interval '5 minutes'/i,
     "worker and webhook leases use the specified five-minute duration"
   )
+  assert.match(
+    source,
+    /stripe_checkout_session_id is null[\s\S]*attempt_expires_at <= v_now[\s\S]*attempt_id = extensions\.gen_random_uuid\(\)/i,
+    "expired attempts without a recorded Session are safely recycled"
+  )
 
   for (const fn of [
     "claim_billing_checkout_attempt",
