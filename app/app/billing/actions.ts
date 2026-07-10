@@ -4,6 +4,7 @@ import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
 import type { BillingCheckoutActionState } from "@/components/merchant/account/billing-checkout-form"
+import { scheduleMerchantBillingCheckoutStarted } from "@/lib/analytics/merchant-billing-events"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { getServerEnv } from "@/lib/env/server"
 import { resolveBillingAppOrigin } from "@/lib/merchant/billing-checkout-core"
@@ -75,6 +76,7 @@ export async function startCheckoutAction(
       return result
     }
     checkoutUrl = result.url
+    scheduleMerchantBillingCheckoutStarted(merchant.id)
   } catch (error) {
     console.error("[billing] checkout start failed", {
       merchantId: merchant.id,

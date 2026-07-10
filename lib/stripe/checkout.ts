@@ -189,6 +189,10 @@ export type BillingReturnOutcome =
   | { kind: "catching_up" }
   | { kind: "portal_missing" }
 
+export type BillingCheckoutReturnObservers = {
+  onVerifiedReturn?: (input: { merchantId: string }) => void
+}
+
 const CHECKOUT_ATTEMPT_LIFETIME_MS = 24 * 60 * 60 * 1_000
 const CHECKOUT_SESSION_EXPIRY_MARGIN_MS = 60 * 60 * 1_000
 const SAFE_CHECKOUT_ERROR =
@@ -588,7 +592,8 @@ function subscriptionMatchesMerchant(
 /** Verify the exact returned Session and persist only its exact Subscription. */
 export async function confirmBillingCheckoutReturn(
   input: { merchantId: string; sessionId: string | null | undefined },
-  deps: BillingCheckoutDependencies
+  deps: BillingCheckoutDependencies,
+  observers: BillingCheckoutReturnObservers = {}
 ): Promise<BillingReturnOutcome> {
   if (!input.sessionId) return { kind: "missing_session" }
 
@@ -631,6 +636,16 @@ export async function confirmBillingCheckoutReturn(
 
     const snapshot = mapProviderSubscriptionSnapshot(subscription)
     const entitlementStatus = mapEntitlementStatus(subscription.status)
+
+    // This Session and its exact Subscription are now verified. Observe before
+    // the durable apply so a webhook-winning stale result cannot erase a real
+    // return; analytics must never change the billing outcome.
+    try {
+      observers.onVerifiedReturn?.({ merchantId: input.merchantId })
+    } catch {
+      // Best-effort observer only.
+    }
+
     const applied = await deps.applyCurrentSubscription({
       merchantId: input.merchantId,
       snapshot,

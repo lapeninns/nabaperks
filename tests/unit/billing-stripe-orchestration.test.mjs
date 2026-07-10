@@ -2,6 +2,11 @@ import assert from "node:assert/strict"
 import test from "node:test"
 
 import {
+  scheduleMerchantBillingCheckoutReturnedWith,
+  scheduleMerchantBillingCheckoutStartedWith,
+  scheduleMerchantBillingReachedWith,
+} from "@/lib/analytics/merchant-billing-events-core"
+import {
   confirmBillingCheckoutReturn,
   prepareBillingCheckout,
   reconcileBillingPortalReturn,
@@ -123,6 +128,48 @@ function dependencies(overrides = {}) {
     ...overrides,
   }
 }
+
+test("billing milestone adapters emit only fixed payloads and fail open", () => {
+  const events = []
+  const schedule = (event) => events.push(event)
+
+  scheduleMerchantBillingReachedWith(merchant.id, schedule)
+  scheduleMerchantBillingCheckoutStartedWith(merchant.id, schedule)
+  scheduleMerchantBillingCheckoutReturnedWith(merchant.id, schedule)
+
+  assert.deepEqual(events, [
+    {
+      merchantId: merchant.id,
+      eventName: "merchant_billing_reached",
+      idempotencyKey: "first-entry",
+      source: "merchant_billing",
+    },
+    {
+      merchantId: merchant.id,
+      eventName: "merchant_billing_checkout_started",
+      idempotencyKey: "first-session-ready",
+      source: "stripe_checkout",
+    },
+    {
+      merchantId: merchant.id,
+      eventName: "merchant_billing_checkout_returned",
+      idempotencyKey: "first-verified-return",
+      source: "stripe_checkout",
+    },
+  ])
+
+  for (const observe of [
+    scheduleMerchantBillingReachedWith,
+    scheduleMerchantBillingCheckoutStartedWith,
+    scheduleMerchantBillingCheckoutReturnedWith,
+  ]) {
+    assert.doesNotThrow(() =>
+      observe(merchant.id, () => {
+        throw new Error("scheduler unavailable")
+      })
+    )
+  }
+})
 
 test("an existing open attempt resumes its exact Checkout Session without writes", async () => {
   let createCalls = 0

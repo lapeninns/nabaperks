@@ -19,8 +19,21 @@ const telemetryPath = path.join(
   "analytics",
   "merchant-billing-events.ts"
 )
-const telemetryExists = existsSync(telemetryPath)
-const telemetry = telemetryExists ? readFileSync(telemetryPath, "utf8") : ""
+const telemetryCorePath = path.join(
+  projectRoot,
+  "lib",
+  "analytics",
+  "merchant-billing-events-core.ts"
+)
+const telemetryExists =
+  existsSync(telemetryPath) && existsSync(telemetryCorePath)
+const telemetryAdapter = telemetryExists
+  ? readFileSync(telemetryPath, "utf8")
+  : ""
+const telemetryCore = telemetryExists
+  ? readFileSync(telemetryCorePath, "utf8")
+  : ""
+const telemetry = `${telemetryCore}\n${telemetryAdapter}`
 const requiresTelemetry = telemetryExists
   ? {}
   : { skip: "merchant billing telemetry adapter is the next Green step" }
@@ -29,7 +42,7 @@ test("the server-only merchant billing telemetry adapter exists", () => {
   assert.equal(
     telemetryExists,
     true,
-    "expected lib/analytics/merchant-billing-events.ts"
+    "expected the pure billing milestone contract and server-only adapter"
   )
 })
 
@@ -37,7 +50,7 @@ test(
   "the adapter owns three fixed semantic milestones without provider metadata",
   requiresTelemetry,
   () => {
-    assert.match(telemetry, /import\s+["']server-only["']/)
+    assert.match(telemetryAdapter, /import\s+["']server-only["']/)
 
     for (const [eventName, idempotencyKey, source] of [
       ["merchant_billing_reached", "first-entry", "merchant_billing"],
@@ -76,7 +89,10 @@ test(
   () => {
     const launchPage = readProjectFile("app", "app", "launch", "page.tsx")
     const modelIndex = launchPage.indexOf("await getLaunchPageModel")
-    const scheduleIndex = launchPage.indexOf("scheduleMerchantBillingReached")
+    const scheduleIndex = launchPage.indexOf(
+      "scheduleMerchantBillingReached(",
+      modelIndex
+    )
 
     assert.notEqual(modelIndex, -1)
     assert.ok(scheduleIndex > modelIndex)
@@ -95,7 +111,8 @@ test(
     const prepareIndex = actions.indexOf("await prepareBillingCheckout")
     const errorBranchIndex = actions.indexOf('result.status === "error"')
     const scheduleIndex = actions.indexOf(
-      "scheduleMerchantBillingCheckoutStarted"
+      "scheduleMerchantBillingCheckoutStarted(",
+      errorBranchIndex
     )
     const redirectIndex = actions.lastIndexOf("redirect(checkoutUrl)")
 

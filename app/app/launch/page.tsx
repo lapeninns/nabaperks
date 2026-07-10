@@ -16,6 +16,7 @@ import { QrPanel } from "@/components/merchant/launch/qr-panel"
 import { RewardsPanel } from "@/components/merchant/launch/rewards-panel"
 import { VenuePanel } from "@/components/merchant/launch/venue-panel"
 import { Button } from "@/components/ui/button"
+import { scheduleMerchantBillingReached } from "@/lib/analytics/merchant-billing-events"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { completeBillingCheckoutReturn } from "@/lib/merchant/billing-checkout-return"
 import { getLaunchPageModel } from "@/lib/merchant/launch-page-model"
@@ -65,6 +66,10 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
     rewardsContinueHref,
     transientCleanHref,
   } = await getLaunchPageModel(merchant.id, params)
+
+  if (activeTab === "billing" && needsBilling) {
+    scheduleMerchantBillingReached(merchant.id)
+  }
 
   // Heading / context / description / header-CTA are one pure, unit-tested
   // decision (lib/merchant/launch-header-copy) shared with the launch harness so

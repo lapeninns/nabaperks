@@ -1,5 +1,6 @@
 import "server-only"
 
+import { scheduleMerchantBillingCheckoutReturned } from "@/lib/analytics/merchant-billing-events"
 import { revalidateMerchantLaunchSurfaces } from "@/lib/merchant/revalidate-launch-surfaces"
 import {
   confirmBillingCheckoutReturn,
@@ -19,7 +20,12 @@ export async function completeBillingCheckoutReturn(
   try {
     outcome = await confirmBillingCheckoutReturn(
       { merchantId, sessionId },
-      await createBillingCheckoutDependencies()
+      await createBillingCheckoutDependencies(),
+      {
+        onVerifiedReturn: ({ merchantId: verifiedMerchantId }) => {
+          scheduleMerchantBillingCheckoutReturned(verifiedMerchantId)
+        },
+      }
     )
   } catch {
     outcome = { kind: "catching_up" }

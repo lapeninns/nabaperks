@@ -7,12 +7,14 @@ last_reviewed: 2026-07-10
 allowed_blast_radius:
   - micro-specs/analytics/merchant-billing-telemetry.md
   - micro-specs/evidence/MS-analytics-merchant-billing-telemetry.json
+  - lib/analytics/merchant-billing-events-core.ts
   - lib/analytics/merchant-billing-events.ts
   - app/app/launch/page.tsx
   - app/app/billing/actions.ts
   - lib/merchant/billing-checkout-return.ts
   - lib/stripe/checkout.ts
   - tests/unit/billing-stripe-orchestration.test.mjs
+  - tests/unit/billing-checkout-core.test.mjs
   - tests/micro-specs/merchant-billing-telemetry.test.mjs
   - tests/db/merchant-activation-ledger.test.mjs
   - tests/db/billing-state-durability.test.mjs
@@ -21,6 +23,7 @@ allowed_blast_radius:
 implementation_surfaces:
   - micro-specs/analytics/merchant-billing-telemetry.md
   - micro-specs/evidence/MS-analytics-merchant-billing-telemetry.json
+  - lib/analytics/merchant-billing-events-core.ts
   - lib/analytics/merchant-billing-events.ts
   - app/app/launch/page.tsx
   - app/app/billing/actions.ts
@@ -32,6 +35,7 @@ implementation_surfaces:
   - tests/e2e/merchant-billing-recovery.desktop.spec.ts
 related_tests:
   - tests/unit/billing-stripe-orchestration.test.mjs
+  - tests/unit/billing-checkout-core.test.mjs
   - tests/micro-specs/merchant-billing-telemetry.test.mjs
   - tests/db/merchant-activation-ledger.test.mjs
   - tests/db/billing-state-durability.test.mjs
@@ -69,10 +73,11 @@ unavailable, and no Stripe or contact identifier is added to event metadata.
 
 ## 2. Blast Radius
 
-In scope: one server-only billing milestone adapter; the launch model boundary,
-successful Checkout action boundary, and exact verified-return application
-boundary; focused unit/source proof; existing live billing/activation database
-proof; and phone/desktop billing-gate non-regression proof.
+In scope: one pure billing milestone contract bound by one server-only adapter;
+the launch model boundary, successful Checkout action boundary, and exact
+verified-return application boundary; focused unit/source proof; existing live
+billing/activation database proof; and phone/desktop billing-gate
+non-regression proof.
 
 Out of scope: Supabase schema or RPC changes, the Stripe webhook route,
 subscription mutation semantics, Checkout/Portal provider calls, entitlement
