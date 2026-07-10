@@ -27,7 +27,12 @@ allowed_blast_radius:
   - tests/e2e/merchant-launch-follow-through.desktop.spec.ts
   - tests/e2e/merchant-launch-follow-through.spec.ts-snapshots/**
   - tests/e2e/merchant-launch-follow-through.desktop.spec.ts-snapshots/**
-  - tests/e2e/visual.spec.ts-snapshots/**
+  - tests/e2e/visual.spec.ts-snapshots/harness-dashboard-mobile-safari.png
+  - tests/e2e/visual.spec.ts-snapshots/harness-dashboard-mobile-safari-linux.png
+  - tests/e2e/visual.spec.ts-snapshots/harness-qr-chromium.png
+  - tests/e2e/visual.spec.ts-snapshots/harness-qr-chromium-linux.png
+  - tests/e2e/visual.spec.ts-snapshots/harness-qr-mobile-safari.png
+  - tests/e2e/visual.spec.ts-snapshots/harness-qr-mobile-safari-linux.png
 implementation_surfaces:
   - micro-specs/merchant-ux/launch-follow-through.md
   - micro-specs/evidence/MS-merchant-ux-launch-follow-through.json
@@ -51,7 +56,12 @@ implementation_surfaces:
   - tests/e2e/merchant-launch-follow-through.desktop.spec.ts
   - tests/e2e/merchant-launch-follow-through.spec.ts-snapshots/**
   - tests/e2e/merchant-launch-follow-through.desktop.spec.ts-snapshots/**
-  - tests/e2e/visual.spec.ts-snapshots/**
+  - tests/e2e/visual.spec.ts-snapshots/harness-dashboard-mobile-safari.png
+  - tests/e2e/visual.spec.ts-snapshots/harness-dashboard-mobile-safari-linux.png
+  - tests/e2e/visual.spec.ts-snapshots/harness-qr-chromium.png
+  - tests/e2e/visual.spec.ts-snapshots/harness-qr-chromium-linux.png
+  - tests/e2e/visual.spec.ts-snapshots/harness-qr-mobile-safari.png
+  - tests/e2e/visual.spec.ts-snapshots/harness-qr-mobile-safari-linux.png
 related_docs:
   - micro-specs/GLOBAL_CONTEXT.md
   - micro-specs/merchant/launch.md
