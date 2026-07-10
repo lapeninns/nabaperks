@@ -68,24 +68,18 @@ test("password candidates stay separate from generated rate-limit fixture emails
   assert.doesNotMatch(source, /REJECTED_PASSWORDS\.map\(\(candidate, index\)/)
 })
 
-test("auth hook URL contracts use literal containment rather than URL regexes", () => {
+test("auth hook URL contracts parse and compare complete URLs", () => {
   const source = readProjectFile(
     "tests",
     "micro-specs",
     "auth-recovery-ux.test.mjs"
   )
 
-  assert.ok(
-    source.includes(`linkedWrapper.includes(
-      "https://nabaperks.com/api/auth/hooks/send-email"
-    )`)
-  )
-  assert.ok(
-    source.includes(`migrationCheck.includes(
-      "https://nabaperks.com/api/auth/hooks/send-email"
-    )`)
-  )
-  assert.equal(source.includes("/https:\\\/\\\/nabaperks\\.com"), false)
+  assert.match(source, /function assertHasExactUrl\(source, expectedUrl\)/)
+  assert.match(source, /candidate\.href === expected\.href/)
+  assert.doesNotMatch(source, /localWrapper\.includes\(/)
+  assert.doesNotMatch(source, /linkedWrapper\.includes\(/)
+  assert.doesNotMatch(source, /migrationCheck\.includes\(/)
 })
 
 test("environment file writes avoid check-then-use races", () => {

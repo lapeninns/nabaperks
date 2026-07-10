@@ -13,6 +13,16 @@ function readProjectFile(...segments) {
   return readFileSync(path.join(projectRoot, ...segments), "utf8")
 }
 
+function assertHasExactUrl(source, expectedUrl) {
+  const expected = new URL(expectedUrl)
+  const candidates = source.matchAll(/https?:\/\/[^"'\s]+/g)
+  const hasExactUrl = Array.from(candidates, ([candidate]) => new URL(candidate)).some(
+    (candidate) => candidate.href === expected.href
+  )
+
+  assert.equal(hasExactUrl, true)
+}
+
 test("merchant OTP actions expose one explicit state machine per flow", () => {
   const actions = readProjectFile("app", "(auth)", "actions.ts")
   const state = readProjectFile("lib", "auth", "merchant-auth-action-state.ts")
@@ -83,25 +93,21 @@ test("local Supabase email hooks cannot silently target production during browse
   )
 
   assert.match(config, /uri = "env\(SUPABASE_SEND_EMAIL_HOOK_URI\)"/)
-  assert.ok(
-    localWrapper.includes(
-      "http://host.docker.internal:3000/api/auth/hooks/send-email"
-    )
+  assertHasExactUrl(
+    localWrapper,
+    "http://host.docker.internal:3000/api/auth/hooks/send-email"
   )
-  assert.ok(
-    linkedWrapper.includes(
-      "https://nabaperks.com/api/auth/hooks/send-email"
-    )
+  assertHasExactUrl(
+    linkedWrapper,
+    "https://nabaperks.com/api/auth/hooks/send-email"
   )
-  assert.ok(
-    migrationCheck.includes(
-      "https://nabaperks.com/api/auth/hooks/send-email"
-    )
+  assertHasExactUrl(
+    migrationCheck,
+    "https://nabaperks.com/api/auth/hooks/send-email"
   )
-  assert.ok(
-    ci.includes(
-      "SUPABASE_SEND_EMAIL_HOOK_URI: http://host.docker.internal:3147/api/auth/hooks/send-email"
-    )
+  assertHasExactUrl(
+    ci,
+    "http://host.docker.internal:3147/api/auth/hooks/send-email"
   )
   assert.match(liveHelper, /GOTRUE_HOOK_SEND_EMAIL_URI/)
   assert.match(liveHelper, /Local merchant auth proof email sink/)
