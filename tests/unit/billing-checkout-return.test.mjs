@@ -66,3 +66,20 @@ test("billing outcome cleanup removes only one-shot keys without an RSC navigati
   assert.match(cleanup, /window\.history\.replaceState/)
   assert.doesNotMatch(cleanup, /router\.replace/)
 })
+
+test("merchant billing readback carries exact provider terms and cancellation state", () => {
+  const billing = readProjectFile("lib", "merchant", "billing.ts")
+
+  for (const field of [
+    "stripe_subscription_status",
+    "stripe_subscription_created_at",
+    "stripe_price_id",
+    "billing_interval",
+    "unit_amount",
+    "currency",
+    "cancel_at_period_end",
+    "cancel_at",
+  ]) {
+    assert.match(billing, new RegExp(field))
+  }
+})
