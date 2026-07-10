@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-merchant-ux-launch-follow-through",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-10T04:29:55.602Z",
+      "sha": "b76283e098aa4e6a3faef17da8d6c51ceb849cc1",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}

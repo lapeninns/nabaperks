@@ -14,7 +14,7 @@ import {
   resolveRewardsContinueHref,
   rewardsContinueLabel,
 } from "@/lib/merchant/launch-readiness-core"
-import { QR_LAUNCH_TAB_PATH, QR_POSTER_PATH } from "@/lib/merchant/qr-nav"
+import { QR_LAUNCH_TAB_PATH } from "@/lib/merchant/qr-nav"
 
 // --- fixtures --------------------------------------------------------------
 
@@ -124,13 +124,14 @@ test("qr readiness requires an active QR", () => {
   )
 })
 
-test("qr step href flips to the poster path once active", () => {
+test("qr step stays inside the launch hub before and after activation", () => {
   const inactive = buildLaunchReadiness(readyInput({ qrCode: null }))
   const active = buildLaunchReadiness(readyInput())
   const qrStep = (r) => r.steps.find((s) => s.id === "qr")
 
   assert.equal(qrStep(inactive).href, QR_LAUNCH_TAB_PATH)
-  assert.equal(qrStep(active).href, QR_POSTER_PATH)
+  assert.equal(qrStep(active).href, QR_LAUNCH_TAB_PATH)
+  assert.equal(qrStep(active).actionLabel, "Review venue QR")
 })
 
 // --- buildLaunchReadiness: billing gate ------------------------------------
