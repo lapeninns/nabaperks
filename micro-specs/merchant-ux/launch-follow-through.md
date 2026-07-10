@@ -1,6 +1,6 @@
 ---
 spec_id: MS-merchant-ux-launch-follow-through
-status: active
+status: implemented
 risk_class: ui-only
 owner: codex
 last_reviewed: 2026-07-10

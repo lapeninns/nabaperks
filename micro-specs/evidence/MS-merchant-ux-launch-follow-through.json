@@ -30,6 +30,60 @@
         }
       ],
       "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-10T05:19:06.052Z",
+      "git_sha": "49953cda41e9d55869ba0813a89b6a9a3fb880a3",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6316
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1074
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 9369
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 7868
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 965
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 169
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-merchant-ux-launch-follow-through\"",
+          "exit_code": 0,
+          "duration_ms": 23883
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 178201
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 46719
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
@@ -40,6 +94,14 @@
       "at": "2026-07-10T04:29:55.602Z",
       "sha": "b76283e098aa4e6a3faef17da8d6c51ceb849cc1",
       "dirty": true,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-10T05:19:06.052Z",
+      "sha": "49953cda41e9d55869ba0813a89b6a9a3fb880a3",
+      "dirty": false,
       "by": "amankumarshrestha"
     }
   ]
