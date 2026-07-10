@@ -1,6 +1,6 @@
 ---
 spec_id: MS-analytics-funnel-identity-privacy
-status: active
+status: implemented
 risk_class: customer-pii
 owner: codex
 last_reviewed: 2026-07-10

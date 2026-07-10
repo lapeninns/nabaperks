@@ -1,7 +1,47 @@
 {
   "schema": 1,
   "spec_id": "MS-analytics-funnel-identity-privacy",
-  "runs": [],
+  "runs": [
+    {
+      "timestamp": "2026-07-10T07:50:10.920Z",
+      "git_sha": "aa08e7de13386f62133b4b1723e6b83d58af795c",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6534
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1141
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 9771
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 8013
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 999
+        },
+        {
+          "command": "pnpm test:e2e -- --grep \"@MS-analytics-funnel-identity-privacy\"",
+          "exit_code": 0,
+          "duration_ms": 21607
+        }
+      ],
+      "all_passed": true
+    }
+  ],
   "manual_attestations": [],
   "transitions": [
     {
@@ -11,6 +51,14 @@
       "sha": "9bb8f7e30d3571a431ae232c45cc010c1b91592c",
       "dirty": false,
       "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-10T07:50:10.920Z",
+      "sha": "aa08e7de13386f62133b4b1723e6b83d58af795c",
+      "dirty": false,
+      "by": "codex"
     }
   ]
 }
