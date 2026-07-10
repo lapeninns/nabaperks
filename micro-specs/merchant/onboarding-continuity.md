@@ -19,6 +19,7 @@ allowed_blast_radius:
   - tests/micro-specs/merchant-onboarding-continuity.test.mjs
   - tests/micro-specs/merchant-onboarding-completion.test.mjs
   - tests/micro-specs/architecture-audit-hardening.test.mjs
+  - tests/micro-specs/provider-readiness-smoke.test.mjs
   - tests/e2e/merchant-onboarding-continuity.spec.ts
   - tests/e2e/merchant-onboarding-continuity.desktop.spec.ts
   - tests/e2e/merchant-onboarding-continuity-flow.ts
@@ -38,6 +39,7 @@ implementation_surfaces:
   - tests/micro-specs/merchant-onboarding-continuity.test.mjs
   - tests/micro-specs/merchant-onboarding-completion.test.mjs
   - tests/micro-specs/architecture-audit-hardening.test.mjs
+  - tests/micro-specs/provider-readiness-smoke.test.mjs
   - tests/e2e/merchant-onboarding-continuity.spec.ts
   - tests/e2e/merchant-onboarding-continuity.desktop.spec.ts
   - tests/e2e/merchant-onboarding-continuity-flow.ts
@@ -51,6 +53,7 @@ related_tests:
   - tests/micro-specs/merchant-onboarding-continuity.test.mjs
   - tests/micro-specs/merchant-onboarding-completion.test.mjs
   - tests/micro-specs/architecture-audit-hardening.test.mjs
+  - tests/micro-specs/provider-readiness-smoke.test.mjs
   - tests/e2e/merchant-onboarding-continuity.spec.ts
   - tests/e2e/merchant-onboarding-continuity.desktop.spec.ts
   - tests/e2e/merchant-onboarding-continuity-flow.ts
@@ -139,6 +142,9 @@ address-incomplete location as completed onboarding.
   migrations or install short-lived schema fault controls; parallel files can
   deadlock on PostgreSQL DDL locks and produce false-red evidence even when the
   product transaction is correct.
+- Provider-readiness unit fixtures that exercise hosted pooler discovery
+  isolate their synthetic environment from any local `SUPABASE_DB_URL` exported
+  for this spec's live database gates.
 - One merchant per auth owner is the current product invariant. Multi-business
   ownership is not introduced by this audit-remediation program.
 
@@ -229,6 +235,10 @@ address-incomplete location as completed onboarding.
   legacy create-then-update onboarding path after this change; the compatibility
   signature SHALL share the owner lock and SHALL not be executable by PUBLIC or
   `anon`.
+- **OC-13 (gate isolation):** WHEN the full source-contract suite runs with a
+  local database URL exported for onboarding proof, THEN hosted provider
+  discovery fixtures SHALL remain deterministic and SHALL restore the caller's
+  environment after the assertion.
 
 ## 6. Verification Criteria and Task Breakdown
 
@@ -258,6 +268,9 @@ address-incomplete location as completed onboarding.
    input, retry after the trigger is removed, reach the Card step, and receive
    exact database readback; the trigger cleanup runs in `finally` and the live
    suite requires one worker.
+7. Keep the hosted-pooler provider-readiness fixture hermetic while the governed
+   run exports the local Supabase URL required by the database and browser
+   evidence gates.
 7. Run every declared gate fresh, record the separate local transaction
    attestation honestly, and re-prove `MS-merchant-onboarding` because this spec
    intentionally changes its action/readback surfaces.

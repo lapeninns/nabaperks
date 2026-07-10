@@ -100,8 +100,10 @@ test("Supabase migration smoke detects local and remote drift", () => {
 
 test("provider readiness can derive hosted Supabase DB URL from linked pooler metadata", () => {
   const projectDir = mkdtempSync(join(tmpdir(), "nabaperks-provider-"))
+  const inheritedDbUrl = process.env.SUPABASE_DB_URL
 
   try {
+    delete process.env.SUPABASE_DB_URL
     mkdirSync(join(projectDir, "supabase", ".temp"), { recursive: true })
     writeFileSync(join(projectDir, ".env"), "SUPABASE_DB_PASSWORD=secret123\n")
     writeFileSync(
@@ -116,6 +118,11 @@ test("provider readiness can derive hosted Supabase DB URL from linked pooler me
     assert.equal(url.password, "secret123")
     assert.equal(url.pathname, "/postgres")
   } finally {
+    if (inheritedDbUrl === undefined) {
+      delete process.env.SUPABASE_DB_URL
+    } else {
+      process.env.SUPABASE_DB_URL = inheritedDbUrl
+    }
     rmSync(projectDir, { recursive: true, force: true })
   }
 })
