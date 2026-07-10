@@ -3,7 +3,7 @@ spec_id: MS-auth-recovery-ux
 status: implemented
 risk_class: auth-session
 owner: codex
-last_reviewed: 2026-07-09
+last_reviewed: 2026-07-10
 allowed_blast_radius:
   - micro-specs/auth/recovery-ux.md
   - micro-specs/evidence/MS-auth-recovery-ux.json
@@ -232,8 +232,10 @@ OTP field already exist and must be preserved.
 - Error feedback uses `role="alert"`. Send success and cooldown availability
   use polite status semantics. The visible countdown is not a per-second live
   announcement; assistive technology hears only cooldown start and availability.
-- Reset reuses the existing live `PasswordRequirements` component and client
-  validation, without changing the actual password policy.
+- Reset reuses the live `PasswordRequirements` component and client validation.
+  The former password-policy-invariance statement is superseded by
+  [MS-auth-password-policy-accessibility], which owns provider/app parity and
+  accessible presentation; the recovery-session contract here is unchanged.
 - A resend infrastructure failure before the provider is called maps to a
   non-destructive unavailable state: the current code remains editable and no
   delivery claim is made. `delivery_unavailable` is reserved for provider-send

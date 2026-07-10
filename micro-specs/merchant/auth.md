@@ -3,7 +3,7 @@ spec_id: MS-merchant-auth
 status: implemented
 risk_class: auth-session
 owner: claude-code agent (amanshresthaa)
-last_reviewed: 2026-06-30
+last_reviewed: 2026-07-10
 allowed_blast_radius:
   - app/(auth)/**
   - app/auth/confirm/**
@@ -56,7 +56,8 @@ identity.
 - Customer phone OTP (owned by [MS-customer-join]); admin auth (owned by
   [MS-admin-console]); onboarding itself (owned by [MS-merchant-onboarding]).
   Real email delivery is out; the alias/token mechanics are the tested contract.
-  No change to Supabase Auth config or RLS.
+  No RLS change. The former Supabase Auth config exclusion is superseded only
+  for password-policy alignment by [MS-auth-password-policy-accessibility].
 
 ## Decisions already made
 
@@ -76,7 +77,9 @@ identity.
 - **MA-1 (signup):** WHEN a merchant submits a valid email and a policy-compliant
   password, THE system SHALL create the auth user and issue a 6-digit email OTP.
 - **MA-2 (password policy):** IF the password is shorter than 8 characters or
-  lacks both letters and digits, THEN THE system SHALL reject the signup.
+  lacks at least one letter or lacks at least one digit, THEN THE system SHALL
+  reject the signup. [MS-auth-password-policy-accessibility] owns provider/app
+  parity and accessible presentation of this rule.
 - **MA-3 (verify):** WHEN the merchant submits the correct, unexpired OTP, THE
   system SHALL verify it, establish a session, and route to `/app/onboarding`.
 - **MA-4 (single-use OTP):** THE email-OTP alias SHALL be consumable at most once

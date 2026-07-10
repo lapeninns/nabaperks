@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test"
 
 import { expectNoAxeViolations } from "./helpers/axe"
 import {
+  AUTH_PASSWORD_POLICY_USER_AGENT,
   assertPublicLocalPasswordPolicy,
   authPasswordPolicyLiveDbSkipReason,
 } from "./helpers/auth-password-policy-live-db"
@@ -9,6 +10,7 @@ import { dismissPwaInstall } from "./helpers/harness"
 
 export function defineAuthPasswordPolicyTests() {
   test.use({ serviceWorkers: "block" })
+  test.use({ userAgent: AUTH_PASSWORD_POLICY_USER_AGENT })
 
   test.beforeEach(async ({ page }) => {
     await dismissPwaInstall(page)
@@ -81,9 +83,13 @@ export function defineAuthPasswordPolicyTests() {
     const skipReason = authPasswordPolicyLiveDbSkipReason()
     test.skip(Boolean(skipReason), skipReason)
 
-    test("public signup accepts letters plus digits and rejects each missing rule", async ({
+    test("public signup and recovery accept the policy while missing rules reject", async ({
       page,
     }, testInfo) => {
+      test.skip(
+        testInfo.project.name !== "chromium",
+        "provider-mutating proof runs once in Chromium"
+      )
       if (testInfo.config.workers !== 1) {
         throw new Error(
           "Local Auth policy proof mutates disposable auth users and requires one Playwright worker."

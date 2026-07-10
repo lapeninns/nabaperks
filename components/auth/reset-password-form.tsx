@@ -244,6 +244,7 @@ export function ResetPasswordForm({
                 name="password"
                 type="password"
                 autoComplete="new-password"
+                aria-describedby="reset-password-requirements"
                 value={password}
                 onChange={(event) => {
                   const nextPassword = event.target.value
@@ -265,7 +266,10 @@ export function ResetPasswordForm({
                 onBlur={() => setShowPasswordValidation(true)}
                 error={errors.password}
               />
-              <PasswordRequirements password={password} />
+              <PasswordRequirements
+                id="reset-password-requirements"
+                password={password}
+              />
             </div>
             <AuthField
               id="confirmPassword"

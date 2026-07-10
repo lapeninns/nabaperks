@@ -21,7 +21,7 @@ const LOCAL_EMAIL_HOOK_HOSTS = new Set([
 ])
 const ALIAS_LIFETIME_MS = 60 * 60 * 1000
 const INITIAL_PASSWORD = "NabaperksLive1!"
-const REPLACEMENT_PASSWORD = "NabaperksLive2!"
+const REPLACEMENT_PASSWORD = "venue456"
 
 export type MerchantAuthLivePurpose = "recovery" | "signup"
 export type MerchantAuthAliasTestOutcome =
@@ -109,7 +109,11 @@ export type MerchantAuthLocalEmailHookSink = Readonly<{
   requestCount: () => number
 }>
 
-export async function startMerchantAuthLocalEmailHookSink(): Promise<MerchantAuthLocalEmailHookSink> {
+export async function startMerchantAuthLocalEmailHookSink({
+  response: sinkResponse = "failure",
+}: {
+  readonly response?: "failure" | "success"
+} = {}): Promise<MerchantAuthLocalEmailHookSink> {
   assertLiveDbOptIn()
   const expectedUri = requiredEnv("MERCHANT_AUTH_EXPECTED_LOCAL_EMAIL_HOOK_URI")
   const expectedUrl = localEmailHookUrl(expectedUri)
@@ -130,8 +134,13 @@ export async function startMerchantAuthLocalEmailHookSink(): Promise<MerchantAut
   const server = createServer((request, response) => {
     requests += 1
     // Never retain or print the OTP-bearing hook body. This sink exists only to
-    // prove provider failure without any production network destination.
+    // prove provider outcomes without any production network destination.
     request.resume()
+    if (sinkResponse === "success") {
+      response.writeHead(200, { "content-type": "application/json" })
+      response.end(JSON.stringify({}))
+      return
+    }
     response.writeHead(503, { "content-type": "application/json" })
     response.end(
       JSON.stringify({

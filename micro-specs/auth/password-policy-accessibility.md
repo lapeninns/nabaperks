@@ -21,6 +21,7 @@ allowed_blast_radius:
   - tests/e2e/auth-password-policy-flow.ts
   - tests/e2e/auth-password-policy.spec.ts
   - tests/e2e/auth-password-policy.desktop.spec.ts
+  - tests/e2e/merchant-auth-recovery-flow.ts
   - tests/e2e/helpers/auth-password-policy-live-db.ts
   - tests/e2e/helpers/merchant-auth-recovery-live-db.ts
   - tests/e2e/visual.spec.ts-snapshots/auth-*.png
@@ -41,6 +42,7 @@ implementation_surfaces:
   - tests/e2e/auth-password-policy-flow.ts
   - tests/e2e/auth-password-policy.spec.ts
   - tests/e2e/auth-password-policy.desktop.spec.ts
+  - tests/e2e/merchant-auth-recovery-flow.ts
   - tests/e2e/helpers/auth-password-policy-live-db.ts
   - tests/e2e/helpers/merchant-auth-recovery-live-db.ts
   - tests/e2e/visual.spec.ts-snapshots/auth-*.png
@@ -53,6 +55,7 @@ related_tests:
   - tests/micro-specs/auth-password-policy-accessibility.test.mjs
   - tests/e2e/auth-password-policy.spec.ts
   - tests/e2e/auth-password-policy.desktop.spec.ts
+  - tests/e2e/merchant-auth-recovery-flow.ts
   - tests/e2e/a11y.spec.ts
   - tests/e2e/visual.spec.ts
 verification_gates:

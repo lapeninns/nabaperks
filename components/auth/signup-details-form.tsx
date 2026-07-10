@@ -126,6 +126,7 @@ export function SignupDetailsForm({
             name="password"
             type="password"
             autoComplete="new-password"
+            aria-describedby="signup-password-requirements"
             error={errors.password}
             value={password}
             onChange={(event) => {
@@ -146,7 +147,10 @@ export function SignupDetailsForm({
             }}
             onBlur={() => setShowValidation(true)}
           />
-          <PasswordRequirements password={password} />
+          <PasswordRequirements
+            id="signup-password-requirements"
+            password={password}
+          />
         </div>
         <AuthField
           id="confirmPassword"

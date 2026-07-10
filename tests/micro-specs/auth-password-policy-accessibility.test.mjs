@@ -23,7 +23,10 @@ test("local provider and shared validator declare the same three-rule policy", (
   assert.match(password, /hasLetter/)
   assert.match(password, /hasDigit/)
   assert.doesNotMatch(password, /hasLowercase|hasUppercase|hasSymbol/)
-  assert.doesNotMatch(password, /PASSWORD_SYMBOLS|hasPasswordSymbol/)
+  assert.doesNotMatch(
+    password,
+    /PASSWORD_HINT|PASSWORD_SYMBOLS|hasPasswordSymbol/
+  )
 })
 
 test("signup and reset expose persistent associated password requirements", () => {
@@ -38,6 +41,11 @@ test("signup and reset expose persistent associated password requirements", () =
     "signup-details-form.tsx"
   )
   const reset = readProjectFile("components", "auth", "reset-password-form.tsx")
+  const recoveryFlow = readProjectFile(
+    "tests",
+    "e2e",
+    "merchant-auth-recovery-flow.ts"
+  )
 
   for (const label of [
     "8 or more characters",
@@ -59,6 +67,8 @@ test("signup and reset expose persistent associated password requirements", () =
     reset,
     /<PasswordRequirements[\s\S]{0,160}id="reset-password-requirements"/
   )
+  assert.match(recoveryFlow, /name: "Password requirements"/)
+  assert.doesNotMatch(recoveryFlow, /name: "Password rules"/)
 })
 
 test("focused auth keeps one linked home mark and a static footer wordmark", () => {

@@ -64,7 +64,7 @@ export function MarketingLayout({
         <footer className="border-t-2 border-dashed border-border bg-card">
           <div className="mx-auto flex w-full max-w-marketing-chrome flex-col items-center gap-3 px-6 py-6 text-sm text-muted-foreground sm:flex-row sm:justify-between">
             <div className="flex items-center gap-3">
-              <Logo href={logoHref} label="nabaperks" />
+              <Logo href={logoHref} label="nabaperks" linked={false} />
               <span className="mono-id tracking-[0.08em] whitespace-nowrap text-muted-foreground">
                 © {new Date().getFullYear()}
               </span>

@@ -71,7 +71,7 @@ export function defineMerchantAuthRecoveryTests() {
     await expect(page.getByLabel("Reset code")).toBeVisible()
     await expect(page.getByLabel("New password")).toBeVisible()
     await expect(
-      page.getByRole("region", { name: "Password rules" })
+      page.getByRole("region", { name: "Password requirements" })
     ).toBeVisible()
     await expectNoAxeViolations(page, "merchant password reset verify stage")
 
@@ -79,7 +79,7 @@ export function defineMerchantAuthRecoveryTests() {
 
     await expect(page.getByLabel("Reset code")).toBeVisible()
     await expect(
-      page.getByRole("region", { name: "Password rules" })
+      page.getByRole("region", { name: "Password requirements" })
     ).toBeVisible()
   })
 
