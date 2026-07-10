@@ -30,6 +30,35 @@
         }
       ],
       "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-10T00:24:30.119Z",
+      "git_sha": "fd614bd93c435e9ca5c565c3256579d0a4ec4290",
+      "git_branch": "codex/ms-onboarding-continuity-advance",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6331
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 4547
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 9837
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 1,
+          "duration_ms": 8136
+        }
+      ],
+      "all_passed": false
     }
   ],
   "manual_attestations": [],
