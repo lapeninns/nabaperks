@@ -1,6 +1,6 @@
 ---
 spec_id: MS-db-migration-ledger-apply
-status: active
+status: implemented
 risk_class: docs-tooling
 owner: amankumarshrestha
 last_reviewed: 2026-07-10
