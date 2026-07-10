@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-auth-cooldown-hydration",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-10T06:11:37.014Z",
+      "sha": "d11b7beb1578dc6ca640161acae262d555d02ca1",
+      "dirty": false,
+      "by": "amankumarshrestha"
+    }
+  ]
+}
