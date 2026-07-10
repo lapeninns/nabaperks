@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-governance-merchant-live-proof-isolation",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-10T09:13:24.187Z",
+      "sha": "75986a0af23524f17c42cefa1236744cf07d5ae8",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}
