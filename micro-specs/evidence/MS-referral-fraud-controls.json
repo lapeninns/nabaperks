@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-referral-fraud-controls",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-10T19:13:18.509Z",
+      "sha": "16678071afaed45b371f660e96003085cb0271c1",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}
