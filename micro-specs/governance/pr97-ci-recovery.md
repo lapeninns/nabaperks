@@ -1,6 +1,6 @@
 ---
 spec_id: MS-governance-pr97-ci-recovery
-status: active
+status: implemented
 risk_class: migrations
 owner: codex
 last_reviewed: 2026-07-10
