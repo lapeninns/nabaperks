@@ -1,7 +1,52 @@
 {
   "schema": 1,
   "spec_id": "MS-referral-retry-outbox",
-  "runs": [],
+  "runs": [
+    {
+      "timestamp": "2026-07-10T18:39:55.916Z",
+      "git_sha": "1209b6e2960579f6e63eac4e6ce2842077fd710f",
+      "git_branch": "claude/referral-v2-architecture-7b8d21",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7028
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1072
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10185
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9326
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1140
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 4229
+        },
+        {
+          "command": "pnpm test:e2e -- --grep \"referral bonus\" --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 6984
+        }
+      ],
+      "all_passed": true
+    }
+  ],
   "manual_attestations": [],
   "transitions": [
     {
@@ -10,6 +55,14 @@
       "at": "2026-07-10T18:39:08.218Z",
       "sha": "64171ec1183752ebd4807a5f253c5946bf19c737",
       "dirty": true,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-10T18:39:55.916Z",
+      "sha": "1209b6e2960579f6e63eac4e6ce2842077fd710f",
+      "dirty": false,
       "by": "amankumarshrestha"
     }
   ]
