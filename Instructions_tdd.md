@@ -200,10 +200,13 @@ When implementing a Micro-Spec, follow this sequence:
     requires a dated `broad-browser-gate` approved exception.
 11. Treat focused tests as the per-change feedback loop. Do not run every full
     gate or record a new evidence entry merely because a Git commit was
-    created. At a coherent proof boundary, use
-    `pnpm governance:run-gates --spec <id> --record`. If one change affects
-    several specs, repeat `--spec <id>` in that command so identical gates run
-    once while evidence remains attributable to each spec.
+    created. If an active spec is ready for implementation,
+    `pnpm governance:advance <id> --to implemented` is the complete recorded
+    boundary; do not immediately pre-run the same suite with
+    `governance:run-gates --record`. Use `run-gates --record` for a genuinely
+    separate checkpoint or to re-prove implemented/verified specs. If one
+    change affects several specs, repeat `--spec <id>` in that command so
+    identical gates run once while evidence remains attributable to each spec.
 
 ---
 

@@ -13,7 +13,8 @@ the host repo's `skill-bundle-sync` test enforces it.
   in its ledger.
 - Delivery cadence: focused requirement tests are the implementation feedback
   loop; complete recorded gate runs are reserved for coherent proof and
-  lifecycle boundaries, not every Git commit.
+  lifecycle boundaries, not every Git commit. A lifecycle advance is itself
+  the recorded boundary and does not require an identical recorded pre-run.
 - Strict gate-runner arguments: unknown options, missing spec ids, and unknown
   requested specs now fail with actionable errors instead of being ignored.
 

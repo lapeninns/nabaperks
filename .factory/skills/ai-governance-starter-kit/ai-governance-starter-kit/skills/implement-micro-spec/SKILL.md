@@ -24,12 +24,15 @@ the code proves the spec stale, the spec gets amended first.
    run the narrowest tests that cover the requirement and directly affected
    contract. A Git commit is a checkpoint, not a reason to rerun every full
    gate or write a new evidence-ledger entry.
-4. **Record proof at a coherent boundary:**
-   `<pkg> governance:run-gates --spec MS-<area>-<slug> --record`
-   writes the run into the spec's evidence ledger. When one change makes
-   several specs stale, repeat `--spec <id>` in the same command; the runner
-   executes their exact-command union once and attributes per-spec evidence.
-   Recorded red runs remain honest history, not something to delete.
+4. **Record proof once at a coherent boundary.** If an active spec is ready
+   for `active -> implemented`, step 7's `governance:advance` IS that complete
+   recorded boundary; do not immediately precede it with an identical
+   `governance:run-gates --record`. Use `run-gates --record` for a genuinely
+   separate intermediate checkpoint or to re-prove implemented/verified specs.
+   When one change makes several specs stale, repeat `--spec <id>` in the same
+   command; the runner executes their exact-command union once and attributes
+   per-spec evidence. Recorded red runs remain honest history, not something
+   to delete.
 5. **Amend the spec first** when reality diverges: adjust requirements,
    radius, or gates in the spec file (body edits are sanctioned; the
    `status:` line is machine-owned), then continue implementing against the

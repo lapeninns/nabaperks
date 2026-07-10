@@ -24,6 +24,8 @@ a CI-enforced AI governance spine.
 - Use focused tests while a change is converging. Run complete recorded gates
   at coherent proof/lifecycle boundaries, not after every Git commit; when a
   shared change affects several specs, batch them by repeating `--spec <id>`.
+- `governance:advance` is already the full recorded lifecycle proof; do not
+  immediately precede it with an identical recorded gate run.
 - Treat the design system as the durable product contract. Preserve
   `DESIGN.md`, `app/globals.css`, and the shared component foundations.
 - Treat `micro-specs/README.md`, `micro-specs/GLOBAL_CONTEXT.md`,

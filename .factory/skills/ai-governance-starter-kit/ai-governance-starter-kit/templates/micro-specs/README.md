@@ -290,12 +290,18 @@ staleness via `EVIDENCE_STALENESS_STATUSES` in
 - During Red -> Green -> Refactor, run the narrowest tests that cover the
   requirement and directly affected contract. Git commit frequency does not
   define verification frequency.
-- Run the complete declared gates at a coherent proof boundary and when
-  `governance:advance` changes lifecycle state.
+- For an active spec ready to move lifecycle, `governance:advance` is the
+  complete recorded boundary. Do not immediately pre-run the same suite with
+  `run-gates --record`.
+- Use `run-gates --record` for a genuinely separate intermediate checkpoint or
+  to re-prove implemented/verified specs whose owned surfaces changed.
 - When a shared change makes several specs stale, re-prove them together:
   `governance:run-gates --spec MS-one --spec MS-two --record`. Identical exact
   commands execute once; each ledger receives only that spec's declared gate
   results.
+- The runner is fail-fast. A failed recorded batch writes honest partial/red
+  runs for every selected spec; fix the root cause and re-run the same batch
+  rather than deleting the failed evidence.
 - Before release, run the project-level CI/final-proof lane once. This is
   complementary portfolio evidence, not a reason to repeat it after every
   implementation commit.

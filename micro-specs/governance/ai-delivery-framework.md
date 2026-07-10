@@ -115,6 +115,7 @@ related_docs:
   - micro-specs/GLOBAL_CONTEXT.md
 related_tests:
   - tests/micro-specs/ai-governance-starter-kit.test.mjs
+  - tests/micro-specs/governance-evidence.test.mjs
   - tests/micro-specs/governance-gate-selection.test.mjs
   - tests/db/governance-db.test.mjs
   - tests/db/card-stamp-display-dates.test.mjs
@@ -210,6 +211,9 @@ Out of scope:
   requirement-focused tests for Red -> Green -> Refactor and SHALL reserve a
   complete recorded gate run for a meaningful proof or lifecycle boundary,
   rather than requiring the complete suite after every Git commit.
+- WHEN a lifecycle advance already executes and records the complete declared
+  gates, THE delivery workflow SHALL treat that advance as the proof boundary
+  and SHALL NOT require an identical recorded pre-run.
 - THE browser harness SHALL expose Playwright CLI scripts for e2e, headed, UI,
   a11y, and visual smoke gates.
 - THE DB harness SHALL require a live database URL and SHALL NOT treat static SQL

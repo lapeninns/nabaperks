@@ -77,12 +77,17 @@ test("Given an unknown requested spec When targets are selected Then every missi
 test("Given overlapping spec gates When their union is built Then exact commands execute once in first-seen order", () => {
   const specs = [
     spec("MS-one", "implemented", ["pnpm test", "pnpm test:e2e -- --grep one"]),
-    spec("MS-two", "implemented", ["pnpm test", "pnpm typecheck"]),
+    spec("MS-two", "implemented", [
+      "pnpm test",
+      "pnpm test:e2e -- --grep two",
+      "pnpm typecheck",
+    ]),
   ]
 
   assert.deepEqual(gateUnionForSpecs(specs), [
     "pnpm test",
     "pnpm test:e2e -- --grep one",
+    "pnpm test:e2e -- --grep two",
     "pnpm typecheck",
   ])
 })
