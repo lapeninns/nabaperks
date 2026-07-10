@@ -55,6 +55,60 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-10T05:09:05.664Z",
+      "git_sha": "d2bd81862c32c72b408bd6bb6b9abb4903064f56",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6244
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1060
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 9519
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 7971
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 958
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 3911
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-billing-checkout-recovery\"",
+          "exit_code": 0,
+          "duration_ms": 20067
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 178659
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 48799
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
