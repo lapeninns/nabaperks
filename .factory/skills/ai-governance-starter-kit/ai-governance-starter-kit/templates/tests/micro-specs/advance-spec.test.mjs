@@ -14,6 +14,16 @@ const advanceCli = path.join(scriptsDir, "advance-spec.mjs")
 
 const TODAY = new Date().toISOString().slice(0, 10)
 
+test("Given sequential governed work When branch ownership is checked Then proven specs keep attribution", () => {
+  const source = readFileSync(advanceCli, "utf8")
+
+  assert.match(
+    source,
+    /attributableOthers[\s\S]*\["active", "implemented", "verified"\]\.includes/
+  )
+  assert.doesNotMatch(source, /const activeOthers = specs\.filter/)
+})
+
 // npm-based fixtures so the executed gates work wherever node does.
 const FIXTURE_SCRIPTS = {
   "governance:check": "node --version",
