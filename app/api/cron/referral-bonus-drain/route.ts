@@ -7,10 +7,12 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 /**
- * "Bring a Regular" bonus-drain sweep (MS-referral-bonus-stamp, RB-6). Pays every
- * owed-but-unpaid referrer bonus whose invited friend has visited, once the
- * referrer's card has room. Kept a separate cron from the delivery worker: this
- * WRITES the ledger, the worker DELIVERS. Idempotent, so a missed tick self-heals.
+ * Referral bonus settlement sweep (MS-referral-settlement, SE-10/SE-12). Settles
+ * every due referral bonus (qualified/held, next_retry_at ≤ now) through
+ * settle_referral_bonus, in concurrency-safe FOR UPDATE SKIP LOCKED batches, once
+ * the referrer's card has room and velocity allows. Kept a separate cron from the
+ * delivery worker: this WRITES the ledger, the worker DELIVERS. Idempotent and
+ * retry-aware, so a missed tick self-heals and a persistent block is retried later.
  */
 export async function GET(request: NextRequest) {
   if (!isAuthorizedCronRequest(request)) {
@@ -21,7 +23,9 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase.rpc("drain_due_referrer_bonuses")
+  const { data, error } = await supabase.rpc("drain_due_referral_bonuses", {
+    p_limit: 200,
+  })
 
   if (error) {
     return NextResponse.json(

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import {
   LinkSquare02Icon,
   Tick02Icon,
@@ -9,7 +10,11 @@ import {
 
 import { Eyebrow, Icon, MonoTag } from "@/components/brand"
 import { Button } from "@/components/ui/button"
-import { recordReferralShare } from "@/lib/customer/referral-share"
+import {
+  recordReferralShare,
+  rotateReferralCode,
+  setReferralCodeActive,
+} from "@/lib/customer/referral-share"
 
 /**
  * "Bring a Regular" share panel on the collecting card. The link carries this
@@ -28,6 +33,22 @@ export function ReferralSharePanel({
   venueName: string
 }) {
   const [copied, setCopied] = useState(false)
+  const router = useRouter()
+  const [managing, startManaging] = useTransition()
+
+  function resetLink() {
+    startManaging(async () => {
+      await rotateReferralCode(membershipId)
+      router.refresh()
+    })
+  }
+
+  function pauseInvites() {
+    startManaging(async () => {
+      await setReferralCodeActive(membershipId, false)
+      router.refresh()
+    })
+  }
 
   async function copyLink() {
     try {
@@ -113,6 +134,28 @@ export function ReferralSharePanel({
           <Icon icon={copied ? Tick02Icon : LinkSquare02Icon} size={16} />
           {copied ? "Copied" : "Copy link"}
         </Button>
+      </div>
+
+      <div className="flex items-center justify-center gap-4 pt-0.5 text-xs">
+        <button
+          type="button"
+          onClick={resetLink}
+          disabled={managing}
+          className="font-semibold text-ink-soft underline underline-offset-2 disabled:opacity-50"
+        >
+          Reset link
+        </button>
+        <span aria-hidden className="text-ink-soft/50">
+          ·
+        </span>
+        <button
+          type="button"
+          onClick={pauseInvites}
+          disabled={managing}
+          className="font-semibold text-ink-soft underline underline-offset-2 disabled:opacity-50"
+        >
+          Pause invites
+        </button>
       </div>
     </section>
   )

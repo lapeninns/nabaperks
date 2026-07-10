@@ -123,6 +123,7 @@ export const adminNavItems = [
   { href: "/admin/pilot", label: "Pilot", icon: AnalyticsUpIcon },
   { href: "/admin/merchants", label: "Merchants", icon: Store01Icon },
   { href: "/admin/customers", label: "Customers", icon: UserMultiple02Icon },
+  { href: "/admin/referrals", label: "Referrals", icon: Megaphone01Icon },
   { href: "/admin/billing", label: "Billing", icon: CreditCardIcon },
   { href: "/admin/privacy", label: "Privacy", icon: Shield01Icon },
   { href: "/admin/fraud", label: "Fraud", icon: AlertDiamondIcon },
