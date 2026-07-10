@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-analytics-merchant-activation-ledger",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-10T08:09:41.554Z",
+      "sha": "ec0bd243b7ab0fb8c3fe6ccc19b4791d9ecb6ff9",
+      "dirty": true,
+      "by": "codex"
+    }
+  ]
+}
