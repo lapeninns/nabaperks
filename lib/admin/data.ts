@@ -225,6 +225,61 @@ export async function getAdminFraudSignals() {
   }
 }
 
+export type AdminReferralOpsRow = {
+  readonly referralId: string
+  readonly venueName: string | null
+  readonly status: string
+  readonly holdReason: string | null
+  readonly referrerEmail: string | null
+  readonly referredEmail: string | null
+  readonly attributedAt: string | null
+  readonly qualifiedAt: string | null
+  readonly bonusAwardedAt: string | null
+  readonly retryCount: number
+  readonly fraudFlagCount: number
+}
+
+/**
+ * Support operational referral view (MS-referral-ops-visibility): the
+ * internal-admin detail behind /admin/referrals. Reads the admin_referral_ops RPC
+ * through the gated admin service-role client (its is_service_role_request branch
+ * accepts the loader; requireAdminRead has already gated the page).
+ */
+export async function getAdminReferralOps(): Promise<AdminReferralOpsRow[]> {
+  const supabase = await createAdminServiceRoleClient()
+  const { data, error } = await supabase.rpc("admin_referral_ops", {
+    p_merchant_id: null,
+    p_status: null,
+    p_limit: 100,
+    p_offset: 0,
+  })
+
+  if (error) {
+    throw new Error(`Unable to load referral ops: ${error.message}`)
+  }
+
+  const rows: unknown = data
+  if (!Array.isArray(rows)) return []
+
+  return rows.map((row) => {
+    const r = (row ?? {}) as Record<string, unknown>
+    return {
+      referralId: String(r.referral_id ?? ""),
+      venueName: typeof r.venue_name === "string" ? r.venue_name : null,
+      status: String(r.status ?? ""),
+      holdReason: typeof r.hold_reason === "string" ? r.hold_reason : null,
+      referrerEmail: typeof r.referrer_email === "string" ? r.referrer_email : null,
+      referredEmail: typeof r.referred_email === "string" ? r.referred_email : null,
+      attributedAt: typeof r.attributed_at === "string" ? r.attributed_at : null,
+      qualifiedAt: typeof r.qualified_at === "string" ? r.qualified_at : null,
+      bonusAwardedAt:
+        typeof r.bonus_awarded_at === "string" ? r.bonus_awarded_at : null,
+      retryCount: Number(r.retry_count ?? 0),
+      fraudFlagCount: Number(r.fraud_flag_count ?? 0),
+    }
+  })
+}
+
 /**
  * Data-request lifecycle readback for the privacy page (audit_logs is the
  * source of truth): pending manual requests (`data_request_logged`) plus the

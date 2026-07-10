@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-referral-ops-visibility",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-10T18:55:39.909Z",
+      "sha": "b112c57229d7c09fbf6ff2ec32df8337418c4329",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}
