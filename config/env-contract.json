@@ -80,7 +80,7 @@
     "name": "STRIPE_GROWTH_ANNUAL_PRICE_ID",
     "visibility": "server",
     "kind": "string",
-    "description": "Stripe recurring Price ID for the Growth Plan annual option at GBP 490/year (2 months free). Optional until the annual Price is created in Stripe.",
+    "description": "Stripe recurring Price ID for the Growth Plan annual option at GBP 490/year (2 months free). Optional for local boot and required by the production release profile.",
     "optional": true
   },
   {

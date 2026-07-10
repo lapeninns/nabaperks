@@ -74,6 +74,9 @@ function printStatus() {
     "  STRIPE_GROWTH_PRICE_ID=<price_... from dashboard or stripe prices list>"
   )
   console.log(
+    "  STRIPE_GROWTH_ANNUAL_PRICE_ID=<price_... for active GBP 490/year>"
+  )
+  console.log(
     "  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY and STRIPE_SECRET_KEY come from Stripe API keys."
   )
   console.log("")

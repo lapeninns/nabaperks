@@ -99,18 +99,45 @@ async function checkRemediationRpcs(dbUrl, report) {
 
 async function checkStripe({ env, offline, report }) {
   const apiKey = value(env, "STRIPE_SECRET_KEY")
-  const priceId = value(env, "STRIPE_GROWTH_PRICE_ID")
+  const monthlyPriceId = value(env, "STRIPE_GROWTH_PRICE_ID")
+  const annualPriceId = value(env, "STRIPE_GROWTH_ANNUAL_PRICE_ID")
   const webhookSecret = value(env, "STRIPE_WEBHOOK_SECRET")
 
   if (!apiKey) report.fail("stripe-api", "STRIPE_SECRET_KEY is missing.")
-  if (!priceId) report.fail("stripe-price", "STRIPE_GROWTH_PRICE_ID is missing.")
+  if (!monthlyPriceId) {
+    report.fail("stripe-price-monthly", "STRIPE_GROWTH_PRICE_ID is missing.")
+  }
+  if (!annualPriceId) {
+    report.fail(
+      "stripe-price-annual",
+      "STRIPE_GROWTH_ANNUAL_PRICE_ID is missing."
+    )
+  }
   if (!webhookSecret) report.fail("stripe-webhook-secret", "STRIPE_WEBHOOK_SECRET is missing.")
-  if (!apiKey || !priceId) return
+  if (!apiKey) return
 
   if (offline) {
-    report.blocked("stripe-price", "offline mode skipped Stripe Price lookup.")
+    if (monthlyPriceId) {
+      report.blocked(
+        "stripe-price-monthly",
+        "offline mode skipped the monthly Stripe Price lookup."
+      )
+    }
+    if (annualPriceId) {
+      report.blocked(
+        "stripe-price-annual",
+        "offline mode skipped the annual Stripe Price lookup."
+      )
+    }
   } else {
-    await checkStripePrice({ apiKey, priceId, report })
+    await Promise.all([
+      monthlyPriceId
+        ? checkMonthlyStripePrice({ apiKey, priceId: monthlyPriceId, report })
+        : Promise.resolve(),
+      annualPriceId
+        ? checkAnnualStripePrice({ apiKey, priceId: annualPriceId, report })
+        : Promise.resolve(),
+    ])
   }
 
   report.blocked(
@@ -119,18 +146,29 @@ async function checkStripe({ env, offline, report }) {
   )
 }
 
-async function checkStripePrice({ apiKey, priceId, report }) {
+async function loadStripePrice({ apiKey, priceId, gate, report }) {
   const price = await getJson(
     `https://api.stripe.com/v1/prices/${encodeURIComponent(priceId)}`,
     { Authorization: `Bearer ${apiKey}` }
   )
 
   if (!price.ok) {
-    report.fail("stripe-price", `Stripe Price lookup failed with HTTP ${price.status}.`)
-    return
+    report.fail(gate, `Stripe Price lookup failed with HTTP ${price.status}.`)
+    return null
   }
 
-  const body = price.body
+  return price.body
+}
+
+async function checkMonthlyStripePrice({ apiKey, priceId, report }) {
+  const body = await loadStripePrice({
+    apiKey,
+    priceId,
+    gate: "stripe-price-monthly",
+    report,
+  })
+  if (!body) return
+
   const matchesPlan =
     body.id === priceId &&
     body.active === true &&
@@ -139,9 +177,44 @@ async function checkStripePrice({ apiKey, priceId, report }) {
     body.recurring?.interval === "month"
 
   if (matchesPlan) {
-    report.pass("stripe-price", "Growth price is active GBP 49/month.")
+    report.pass(
+      "stripe-price-monthly",
+      "Growth monthly price is active GBP 49/month."
+    )
   } else {
-    report.fail("stripe-price", "Growth price does not match active GBP 49/month.")
+    report.fail(
+      "stripe-price-monthly",
+      "Growth monthly price does not match active GBP 49/month."
+    )
+  }
+}
+
+async function checkAnnualStripePrice({ apiKey, priceId, report }) {
+  const body = await loadStripePrice({
+    apiKey,
+    priceId,
+    gate: "stripe-price-annual",
+    report,
+  })
+  if (!body) return
+
+  const matchesPlan =
+    body.id === priceId &&
+    body.active === true &&
+    body.currency === "gbp" &&
+    body.unit_amount === 49000 &&
+    body.recurring?.interval === "year"
+
+  if (matchesPlan) {
+    report.pass(
+      "stripe-price-annual",
+      "Growth annual price is active GBP 490/year."
+    )
+  } else {
+    report.fail(
+      "stripe-price-annual",
+      "Growth annual price does not match active GBP 490/year."
+    )
   }
 }
 

@@ -8,6 +8,6 @@ export function getStripe() {
   const env = getServerEnv()
 
   return new Stripe(env.STRIPE_SECRET_KEY, {
-    apiVersion: "2026-05-27.dahlia",
+    apiVersion: "2026-06-24.dahlia",
   })
 }

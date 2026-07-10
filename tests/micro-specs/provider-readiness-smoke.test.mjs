@@ -72,6 +72,18 @@ test("provider readiness smoke covers the remaining release gates", () => {
   }
 })
 
+test("provider readiness makes both Growth billing intervals explicit", () => {
+  for (const key of [
+    "STRIPE_GROWTH_PRICE_ID",
+    "STRIPE_GROWTH_ANNUAL_PRICE_ID",
+  ]) {
+    assert.match(smokeScript, new RegExp(key))
+  }
+
+  assert.match(smokeScript, /active GBP 49\/month/)
+  assert.match(smokeScript, /active GBP 490\/year/)
+})
+
 test("Supabase migration smoke stays read-only", () => {
   assert.match(supabaseMigrationScript, /"migration", "list", "--linked"/)
   assert.doesNotMatch(supabaseMigrationScript, /db push/)
@@ -149,6 +161,7 @@ test("production env check requires provider release secrets", () => {
     "WEB_PUSH_VAPID_PRIVATE_KEY",
     "WEB_PUSH_VAPID_PUBLIC_KEY",
     "WEB_PUSH_VAPID_SUBJECT",
+    "STRIPE_GROWTH_ANNUAL_PRICE_ID",
   ]) {
     assert.match(envCheckScript, new RegExp(`"${key}"`))
   }
