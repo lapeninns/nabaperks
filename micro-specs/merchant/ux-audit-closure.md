@@ -1,6 +1,6 @@
 ---
 spec_id: MS-merchant-ux-audit-closure
-status: active
+status: implemented
 risk_class: ui-only
 owner: amankumarshrestha
 last_reviewed: 2026-07-10
