@@ -4,6 +4,7 @@ import {
   getAdminConsentRecords,
   getAdminDataRequestActivity,
   getAdminPrivacySupportRows,
+  getAdminUnaffiliatedCustomers,
 } from "@/lib/admin/data"
 import {
   buildLookupHref,
@@ -15,6 +16,7 @@ import {
 import { ConsentLogPanel } from "./consent-log-panel"
 import { DataRequestWorkflowPanel } from "./data-request-workflow-panel"
 import { LoggedRequestsPanel } from "./logged-requests-panel"
+import { UnaffiliatedCustomersPanel } from "./unaffiliated-customers-panel"
 
 export const metadata = { title: "Admin — Privacy support" }
 
@@ -35,21 +37,30 @@ export default async function AdminPrivacyPage({
   const params = searchParams ? await searchParams : {}
   const lookup = parseAdminLookupParams(params)
   const consentPage = parsePageParam(params.consentPage)
+  const unaffiliatedPage = parsePageParam(params.unaffiliatedPage)
 
-  const [supportRows, consentRecords, dataRequests] = await Promise.all([
-    getAdminPrivacySupportRows(lookup).catch((error: unknown) => {
-      console.error("Admin privacy lookup failed", error)
-      return null
-    }),
-    getAdminConsentRecords(consentPage).catch((error: unknown) => {
-      console.error("Admin consent readback failed", error)
-      return null
-    }),
-    getAdminDataRequestActivity().catch((error: unknown) => {
-      console.error("Admin data request readback failed", error)
-      return null
-    }),
-  ])
+  const [supportRows, consentRecords, dataRequests, unaffiliated] =
+    await Promise.all([
+      getAdminPrivacySupportRows(lookup).catch((error: unknown) => {
+        console.error("Admin privacy lookup failed", error)
+        return null
+      }),
+      getAdminConsentRecords(consentPage).catch((error: unknown) => {
+        console.error("Admin consent readback failed", error)
+        return null
+      }),
+      getAdminDataRequestActivity().catch((error: unknown) => {
+        console.error("Admin data request readback failed", error)
+        return null
+      }),
+      getAdminUnaffiliatedCustomers({
+        contact: lookup.contact,
+        page: unaffiliatedPage,
+      }).catch((error: unknown) => {
+        console.error("Admin unaffiliated lookup failed", error)
+        return null
+      }),
+    ])
 
   return (
     <div className="grid gap-6">
@@ -68,6 +79,20 @@ export default async function AdminPrivacyPage({
             contact: lookup.contact,
             page,
             consentPage,
+            unaffiliatedPage,
+          })
+        }
+      />
+      <UnaffiliatedCustomersPanel
+        result={unaffiliated}
+        searching={Boolean(lookup.contact)}
+        hrefForPage={(page) =>
+          buildLookupHref("/admin/privacy", {
+            venue: lookup.venue,
+            contact: lookup.contact,
+            page: lookup.page,
+            consentPage,
+            unaffiliatedPage: page,
           })
         }
       />
@@ -80,6 +105,7 @@ export default async function AdminPrivacyPage({
             contact: lookup.contact,
             page: lookup.page,
             consentPage: page,
+            unaffiliatedPage,
           })
         }
       />

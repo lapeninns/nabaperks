@@ -184,7 +184,7 @@ async function releaseClaimedNotificationEvents(
 
   const { error } = await supabase
     .from("notification_events")
-    .update({ status: "queued" })
+    .update({ status: "queued", claimed_at: null, lease_expires_at: null })
     .in(
       "id",
       events.map((event) => event.id)
@@ -481,6 +481,9 @@ async function enqueueRewardExpiringSoon(now: Date) {
     .not("expires_at", "is", null)
     .gt("expires_at", now.toISOString())
     .lte("expires_at", upperBound.toISOString())
+    // Soonest-expiring first: a deterministic order stops the bounded batch from
+    // perpetually starving the same rows when more than 100 are due.
+    .order("expires_at", { ascending: true })
     .limit(100)
 
   if (error) {
@@ -529,6 +532,8 @@ async function enqueueRewardReady(now: Date) {
     // they are bounded and useful for issued rewards too.
     .eq("source", "stamp_cycle")
     .lte("redeemable_from", londonBusinessDate(now))
+    // Longest-ready first (deterministic, non-starving bounded batch).
+    .order("redeemable_from", { ascending: true })
     .limit(100)
 
   if (error) {
@@ -568,6 +573,9 @@ async function enqueueNextStampAvailable(now: Date) {
       "id, customer_id, merchant_id, current_stamp_count, active_cycle_number, merchants(business_name)"
     )
     .gt("current_stamp_count", 0)
+    // Least-recently-updated first: fair rotation so no membership is perpetually
+    // starved of the arbitrary bounded batch.
+    .order("updated_at", { ascending: true })
     .limit(100)
 
   if (error) {
@@ -609,6 +617,8 @@ async function enqueueDormantProgress(now: Date) {
     )
     .gt("current_stamp_count", 0)
     .lte("updated_at", dormantCutoff.toISOString())
+    // Most-dormant first (deterministic, non-starving bounded batch).
+    .order("updated_at", { ascending: true })
     .limit(100)
 
   if (error) {
@@ -660,7 +670,10 @@ async function enqueueRawEvent(
     p_cycle_number: numberValue(row.cycle_number),
     p_business_date: businessDate,
     p_due_at: new Date().toISOString(),
-    p_dedupe_key: `${eventType}:${stringValue(row.id)}:${businessDate}`,
+    // The DB derives the canonical dedupe key for scheduled producer events from
+    // (event_type, membership, cycle, business_date); passing null keeps that
+    // caller-proof. The old ad-hoc `${type}:${id}:${date}` key omitted the cycle.
+    p_dedupe_key: null,
     p_payload: payload,
     p_metadata: metadata,
   })
@@ -834,7 +847,7 @@ async function recordDelivery(
     p_attempt_number: attemptNumber,
     p_response_status: responseStatus || null,
     p_failure_reason: failureReason,
-    p_response_metadata: {},
+    p_metadata: {},
   })
   if (error) {
     throw new Error(`Unable to record notification delivery: ${error.message}`)

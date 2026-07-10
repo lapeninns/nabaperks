@@ -71,13 +71,13 @@ test("escapeLikePattern escapes LIKE wildcards and backslashes", () => {
 test("contactOrIlikeFilter quotes the pattern so PostgREST reserved characters are inert", () => {
   assert.equal(
     contactOrIlikeFilter("jo"),
-    'email.ilike."%jo%",phone.ilike."%jo%"'
+    'email.ilike."%jo%",phone_last4.ilike."%jo%"'
   )
   // A term with a comma, quote, and wildcard must stay a single quoted value.
   const filter = contactOrIlikeFilter('a,b"c%')
   assert.equal(
     filter,
-    'email.ilike."%a,b\\"c\\\\%%",phone.ilike."%a,b\\"c\\\\%%"'
+    'email.ilike."%a,b\\"c\\\\%%",phone_last4.ilike."%a,b\\"c\\\\%%"'
   )
 })
 
