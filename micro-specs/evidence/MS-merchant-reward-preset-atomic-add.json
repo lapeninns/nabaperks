@@ -221,6 +221,55 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-10T09:22:54.242Z",
+      "git_sha": "930c7a6f8b45d091d490d93f5988d4705f0ffd69",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6665
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1043
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10016
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 8351
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1054
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 3962
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-merchant-reward-preset-atomic-add\"",
+          "exit_code": 0,
+          "duration_ms": 19271
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 176244
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
