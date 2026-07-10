@@ -25,8 +25,12 @@ import { ActivityFeed } from "@/components/data/activity-feed"
 import { FunnelChart } from "@/components/data/funnel-chart"
 import { adminNavItems } from "@/components/layout/console-nav"
 import { Button } from "@/components/ui/button"
-import { getPilotFunnelCounts } from "@/lib/analytics/funnels"
-import { toPilotFunnelItems } from "@/lib/analytics/pilot-funnel"
+import {
+  formatFirstStampSevenDayOutcome,
+  formatMedianSignupToPoster,
+  toMerchantActivationFunnelItems,
+} from "@/lib/analytics/merchant-activation-contract"
+import { getMerchantActivationCohortFacts } from "@/lib/analytics/funnels"
 import { canRenderAdminPage } from "@/lib/admin/auth"
 import { getAdminOverview } from "@/lib/admin/data"
 
@@ -39,9 +43,9 @@ type AdminRecentAudit = AdminOverview["recentAudits"][number]
 export default async function AdminHomePage() {
   if (!(await canRenderAdminPage())) return null
 
-  const [overview, funnelCounts] = await Promise.all([
+  const [overview, activationFacts] = await Promise.all([
     getAdminOverview(),
-    getPilotFunnelCounts(),
+    getMerchantActivationCohortFacts(),
   ])
 
   return (
@@ -72,11 +76,30 @@ export default async function AdminHomePage() {
 
       <AdminPanel>
         <SectionHeader
-          title="Pilot funnel readback"
-          description="The eight-stage merchant-to-redemption journey, counted from Supabase product events."
-          actions={<SourceLabel>Source: product_events</SourceLabel>}
+          title="Merchant activation funnel"
+          description="A 30-day account-created cohort for accounts created in the last 30 days, derived from authoritative merchant, setup, billing, and stamp ledgers."
+          actions={<SourceLabel>Source: aggregate ledgers</SourceLabel>}
         />
-        <FunnelChart items={toPilotFunnelItems(funnelCounts)} />
+        <FunnelChart
+          aria-label="Merchant activation funnel"
+          items={toMerchantActivationFunnelItems(activationFacts)}
+        />
+        <div className="grid gap-2 border-t border-ink/20 pt-4 text-sm sm:grid-cols-2">
+          <p>
+            <span className="font-bold">Median account to poster:</span>{" "}
+            <span className="numeric-tabular text-muted-foreground">
+              {formatMedianSignupToPoster(
+                activationFacts.median_signup_to_poster_seconds
+              )}
+            </span>
+          </p>
+          <p>
+            <span className="font-bold">First stamp within 7 days:</span>{" "}
+            <span className="numeric-tabular text-muted-foreground">
+              {formatFirstStampSevenDayOutcome(activationFacts)}
+            </span>
+          </p>
+        </div>
       </AdminPanel>
 
       <AdminPanel>
@@ -132,9 +155,7 @@ function toRecentAuditItem(log: AdminRecentAudit) {
     description: (
       <>
         {merchant?.business_name ?? "No merchant"}
-        {customer
-          ? ` · ${maskAdminCustomer(customer)}`
-          : ""}
+        {customer ? ` · ${maskAdminCustomer(customer)}` : ""}
       </>
     ),
     metadata: (

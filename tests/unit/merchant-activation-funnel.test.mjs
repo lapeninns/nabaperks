@@ -1,12 +1,11 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-const contractLoad = await import(
-  "@/lib/analytics/merchant-activation-contract"
-).then(
-  (contract) => ({ contract, error: null }),
-  (error) => ({ contract: null, error })
-)
+const contractLoad =
+  await import("@/lib/analytics/merchant-activation-contract").then(
+    (contract) => ({ contract, error: null }),
+    (error) => ({ contract: null, error })
+  )
 
 test("the merchant activation presentation contract is importable", () => {
   assert.ok(
@@ -134,9 +133,19 @@ test(
       [{ ...aggregateRow, rewards_ready: -1 }],
       [{ ...aggregateRow, poster_ready: Number.POSITIVE_INFINITY }],
       [{ ...aggregateRow, median_signup_to_poster_seconds: "not-a-number" }],
-      [{ ...aggregateRow, owner_user_id: "00000000-0000-0000-0000-000000000001" }],
+      [
+        {
+          ...aggregateRow,
+          owner_user_id: "00000000-0000-0000-0000-000000000001",
+        },
+      ],
       [{ ...aggregateRow, funnel_key: "a".repeat(64) }],
-      [{ ...aggregateRow, merchant_id: "00000000-0000-0000-0000-000000000002" }],
+      [
+        {
+          ...aggregateRow,
+          merchant_id: "00000000-0000-0000-0000-000000000002",
+        },
+      ],
     ]) {
       assert.throws(
         () => parseMerchantActivationCohortFacts(invalid),
@@ -154,9 +163,15 @@ test(
     const facts = parseMerchantActivationCohortFacts([aggregateRow])
 
     assert.deepEqual(Object.keys(facts), Object.keys(parsedAggregate))
+    assert.ok(
+      Object.values(facts).every(
+        (value) => value === null || typeof value === "number"
+      ),
+      "aggregate facts contain numbers only, never identity values"
+    )
     assert.doesNotMatch(
-      JSON.stringify(facts),
-      /(?:owner|funnel|contact|customer|merchant|provider|stripe|uuid|_id)/i
+      JSON.stringify(Object.values(facts)),
+      /[0-9a-f]{8}-[0-9a-f-]{27,}/i
     )
   }
 )
@@ -201,10 +216,8 @@ test(
   "funnel chart items use the fixed stage order and aggregate values only",
   requiresContract,
   () => {
-    const {
-      MERCHANT_ACTIVATION_STAGES,
-      toMerchantActivationFunnelItems,
-    } = contractLoad.contract
+    const { MERCHANT_ACTIVATION_STAGES, toMerchantActivationFunnelItems } =
+      contractLoad.contract
     const items = toMerchantActivationFunnelItems(parsedAggregate)
 
     assert.deepEqual(

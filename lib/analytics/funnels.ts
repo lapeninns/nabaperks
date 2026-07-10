@@ -1,7 +1,34 @@
 import "server-only"
 
 import { createAdminServiceRoleClient } from "@/lib/admin/service-role"
+import {
+  buildMerchantActivationCohortWindow,
+  parseMerchantActivationCohortFacts,
+} from "@/lib/analytics/merchant-activation-contract"
 import { pilotFunnelEventNames } from "@/lib/analytics/pilot-funnel"
+
+export async function getMerchantActivationCohortFacts(
+  asOfDate: Date = new Date()
+) {
+  const window = buildMerchantActivationCohortWindow(asOfDate)
+  const supabase = await createAdminServiceRoleClient()
+  const { data, error } = await supabase.rpc(
+    "get_merchant_activation_cohort_facts",
+    {
+      p_cohort_start: window.cohortStart,
+      p_cohort_end: window.cohortEnd,
+      p_as_of: window.asOf,
+    }
+  )
+
+  if (error) {
+    throw new Error(
+      `Unable to load merchant activation cohort: ${error.message}`
+    )
+  }
+
+  return parseMerchantActivationCohortFacts(data)
+}
 
 /**
  * Counts for the curated eight-stage pilot funnel (lib/analytics/pilot-funnel)
@@ -32,7 +59,10 @@ export async function getProductEventCounts(eventNames: readonly string[]) {
     throw new Error("Unable to load product event counts: invalid RPC response")
   }
 
-  return toCountRecord(eventNames, await getProductEventCountsByQuery(eventNames))
+  return toCountRecord(
+    eventNames,
+    await getProductEventCountsByQuery(eventNames)
+  )
 }
 
 async function getProductEventCountsByQuery(eventNames: readonly string[]) {

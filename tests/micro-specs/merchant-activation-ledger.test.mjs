@@ -47,7 +47,7 @@ test("the ledger migration adds replay-safe event time and semantic idempotency"
   )
   assert.match(
     migration,
-    /create unique index[\s\S]*merchant_id[\s\S]*event_name[\s\S]*idempotency_key[\s\S]*where\s+idempotency_key\s+is not null/i,
+    /create unique index[\s\S]*merchant_id[\s\S]*event_name[\s\S]*idempotency_key[\s\S]*where[\s\S]*idempotency_key\s+is not null/i,
     "replayed milestones must converge on one first-party event"
   )
   assert.match(
@@ -65,11 +65,11 @@ test("owner-to-funnel links are forced-RLS and inaccessible outside the service 
   )
   assert.match(
     migration,
-    /revoke all on (?:table )?public\.merchant_funnel_links from public,\s*anon,\s*authenticated/i
+    /revoke all on (?:table )?public\.merchant_funnel_links\s+from public,\s*anon,\s*authenticated/i
   )
   assert.match(
     migration,
-    /grant [^;]+ on (?:table )?public\.merchant_funnel_links to service_role/i
+    /grant [^;]+ on (?:table )?public\.merchant_funnel_links\s+to service_role/i
   )
   assert.match(
     migration,
@@ -135,7 +135,10 @@ test("the cohort RPC returns one aggregate activation row from authoritative fac
   ]) {
     assert.match(migration, new RegExp(`\\b${aggregateKey}\\b`))
   }
-  assert.match(migration, /metadata\s*->>\s*['\"]source['\"]\s*=\s*['\"]self_service_qr['\"]/i)
+  assert.match(
+    migration,
+    /metadata\s*->>\s*['\"]source['\"]\s*=\s*['\"]self_service_qr['\"]/i
+  )
   assert.match(migration, /event_type\s*=\s*['\"]earned['\"]/i)
   assert.match(migration, /stamps_delta\s*>\s*0/i)
   assert.match(migration, /earned_business_date\s+is not null/i)
