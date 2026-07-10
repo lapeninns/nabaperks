@@ -16,7 +16,7 @@ import {
 } from "./helpers/merchant-reward-preset-live-db"
 
 const REWARDS_PATH = "/app/launch?tab=rewards"
-const QR_PATH = "/app/qr"
+const QR_PATH = "/app/launch?tab=qr"
 type MerchantRewardPresetSql = NonNullable<
   ReturnType<typeof connectMerchantRewardPresetDb>
 >

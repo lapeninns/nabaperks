@@ -8,11 +8,13 @@ allowed_blast_radius:
   - micro-specs/governance/merchant-live-proof-isolation.md
   - micro-specs/evidence/MS-governance-merchant-live-proof-isolation.json
   - tests/e2e/helpers/merchant-reward-preset-live-db.ts
+  - tests/e2e/merchant-reward-preset-atomic-add-flow.ts
   - tests/micro-specs/merchant-live-proof-isolation.test.mjs
 implementation_surfaces:
   - micro-specs/governance/merchant-live-proof-isolation.md
   - micro-specs/evidence/MS-governance-merchant-live-proof-isolation.json
   - tests/e2e/helpers/merchant-reward-preset-live-db.ts
+  - tests/e2e/merchant-reward-preset-atomic-add-flow.ts
   - tests/micro-specs/merchant-live-proof-isolation.test.mjs
 related_tests:
   - tests/e2e/merchant-reward-preset-atomic-add-flow.ts
@@ -38,12 +40,14 @@ The real-browser reward-preset rollback proof remains accurate when unrelated
 merchant telemetry runs on the same page. Operators can trust that a failed
 atomic reward batch wrote no reward or QR events, while independent launch
 analytics neither create a false failure nor get silently ignored by product
-code.
+code. The same proof follows the ready QR link to the canonical QR tab in the
+merchant launch workspace.
 
 ## 2. Blast Radius
 
-In scope: the reward-preset live-database readback assertion, one focused source
-contract, this Micro-Spec, and its evidence ledger.
+In scope: the reward-preset live-database readback assertion, the proof's
+canonical ready-QR destination, one focused source contract, this Micro-Spec,
+and its evidence ledger.
 
 Out of scope: application code, database migrations or RPCs, event writers,
 launch instrumentation, reward mutation behavior, fixtures, browser UI, and
@@ -58,6 +62,9 @@ provider configuration.
   transaction.
 - Existing detailed assertions for reward rows, audits, QR rows, preset ids,
   display order, and exact successful retry behavior remain unchanged.
+- The ready QR action is part of the consolidated launch workspace and its
+  canonical destination is `/app/launch?tab=qr`; `/app/qr` is legacy proof
+  drift, not a product requirement.
 - The fix is query scoping only. Production behavior and schema are immutable.
 - The destructive browser proof remains explicitly local-only, opt-in, and
   single-worker.
@@ -72,7 +79,7 @@ provider configuration.
   three `reward_pool_item_created` events from `reward_preset_batch` for the
   fixture card plus one `qr_created` event.
 - The live Chromium rerun is evidence for the fix; the normal Node gates keep
-  the query contract from regressing.
+  the query and canonical-route contracts from regressing.
 
 ## 5. Behavioral Requirements (EARS)
 
@@ -87,15 +94,21 @@ provider configuration.
 - **LP-4:** WHEN the unchanged selection retries successfully, THE proof SHALL
   observe exactly three ordered rewards, three matching reward events and
   audits, one active linked QR, and one matching QR event.
-- **LP-5:** THE fix SHALL NOT modify any production file, database object,
+- **LP-5:** WHEN the successful retry's ready QR action is followed, THE proof
+  SHALL require the canonical `/app/launch?tab=qr` destination and verify the
+  QR surface there.
+- **LP-6:** THE fix SHALL NOT modify any production file, database object,
   browser behavior, or merchant data outside disposable local fixtures.
 
 ## 6. Verification Criteria and Task Breakdown
 
 1. First fail a focused source contract against the merchant-wide event count.
-2. Narrow the combined event count to the two operation-owned event families
-   while preserving all dedicated readback assertions.
-3. Rerun the previously failed local Chromium rollback-and-retry proof with all
+2. Fail the same source contract against the proof's legacy standalone QR
+   destination.
+3. Narrow the combined event count to the two operation-owned event families,
+   preserve all dedicated readback assertions, and require the canonical QR
+   tab destination.
+4. Rerun the previously failed local Chromium rollback-and-retry proof with all
    local-only guards enabled; require full cleanup.
-4. Run the declared Node gates from a clean implementation commit and record
+5. Run the declared Node gates from a clean implementation commit and record
    the evidence ledger at the lifecycle boundary.

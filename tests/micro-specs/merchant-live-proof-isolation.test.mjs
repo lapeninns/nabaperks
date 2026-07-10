@@ -18,6 +18,15 @@ const helper = readFileSync(
   ),
   "utf8"
 )
+const rewardFlow = readFileSync(
+  path.join(
+    projectRoot,
+    "tests",
+    "e2e",
+    "merchant-reward-preset-atomic-add-flow.ts"
+  ),
+  "utf8"
+)
 
 test("reward live proof scopes its combined product-event count to the atomic operation", () => {
   const end = helper.indexOf("as product_event_count")
@@ -31,4 +40,12 @@ test("reward live proof scopes its combined product-event count to the atomic op
   assert.match(query, /metadata\s*->>\s*'loyalty_card_id'/)
   assert.match(query, /event_name\s*=\s*'qr_created'/)
   assert.doesNotMatch(query, /merchant_launch_entered/)
+})
+
+test("reward live proof follows the canonical QR tab after a successful retry", () => {
+  assert.match(
+    rewardFlow,
+    /const QR_PATH = ["']\/app\/launch\?tab=qr["']/
+  )
+  assert.doesNotMatch(rewardFlow, /const QR_PATH = ["']\/app\/qr["']/)
 })

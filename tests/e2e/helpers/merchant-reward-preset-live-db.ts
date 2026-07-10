@@ -316,7 +316,10 @@ export async function createMerchantRewardPresetLiveDbFixture(
         },
       }
     )
-    const signIn = await browserAuth.auth.signInWithPassword({ email, password })
+    const signIn = await browserAuth.auth.signInWithPassword({
+      email,
+      password,
+    })
     if (
       signIn.error ||
       signIn.data.user?.id !== userId ||
@@ -537,7 +540,15 @@ export async function readMerchantRewardPresetDbState(
        where merchant_id = ${fixture.merchantId}::uuid
          and loyalty_card_id = ${fixture.cardId}::uuid), '[]'::jsonb) as display_orders,
       (select count(*)::int from public.product_events
-       where merchant_id = ${fixture.merchantId}::uuid) as product_event_count,
+       where merchant_id = ${fixture.merchantId}::uuid
+         and (
+           (
+             event_name = 'reward_pool_item_created'
+             and metadata ->> 'source' = 'reward_preset_batch'
+             and metadata ->> 'loyalty_card_id' = ${fixture.cardId}
+           )
+           or event_name = 'qr_created'
+         )) as product_event_count,
       (select count(*)::int from public.product_events
        where merchant_id = ${fixture.merchantId}::uuid
          and event_name = 'reward_pool_item_created'
@@ -660,7 +671,9 @@ export async function assertMerchantRewardPresetDbState(
 ): Promise<MerchantRewardPresetDbState> {
   const state = await readMerchantRewardPresetDbState(sql, fixture)
   const expectedIds = merchantRewardPresetExpectedRewards.map(({ id }) => id)
-  const expectedNames = merchantRewardPresetExpectedRewards.map(({ name }) => name)
+  const expectedNames = merchantRewardPresetExpectedRewards.map(
+    ({ name }) => name
+  )
 
   expect(state).toEqual({
     activeQrCount: 1,
@@ -700,12 +713,16 @@ export async function cleanupMerchantRewardPresetLiveDbFixture(
   await collectCleanupError(cleanupErrors, "audit fault cleanup", () =>
     removeMerchantRewardPresetAuditFailure(sql)
   )
-  await collectCleanupError(cleanupErrors, "product-event cleanup", async () => {
-    await sql`
+  await collectCleanupError(
+    cleanupErrors,
+    "product-event cleanup",
+    async () => {
+      await sql`
       delete from public.product_events
       where merchant_id = ${fixture.merchantId}::uuid
          or actor_id = ${fixture.userId}`
-  })
+    }
+  )
   await collectCleanupError(cleanupErrors, "audit cleanup", async () => {
     await sql`
       delete from public.audit_logs
@@ -739,7 +756,9 @@ export async function cleanupMerchantRewardPresetLiveDbFixture(
         and owner_user_id = ${fixture.userId}::uuid`
   })
   await collectCleanupError(cleanupErrors, "auth-user cleanup", async () => {
-    const deleted = await serviceRoleClient().auth.admin.deleteUser(fixture.userId)
+    const deleted = await serviceRoleClient().auth.admin.deleteUser(
+      fixture.userId
+    )
     if (deleted.error) throw deleted.error
   })
   await collectCleanupError(cleanupErrors, "zero-row cleanup readback", () =>
