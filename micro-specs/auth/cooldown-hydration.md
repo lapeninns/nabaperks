@@ -8,11 +8,15 @@ allowed_blast_radius:
   - micro-specs/auth/cooldown-hydration.md
   - micro-specs/evidence/MS-auth-cooldown-hydration.json
   - components/auth/otp-resend-control.tsx
+  - components/auth/signup-verify-form.tsx
+  - components/auth/reset-password-form.tsx
   - tests/e2e/merchant-auth-recovery-flow.ts
 implementation_surfaces:
   - micro-specs/auth/cooldown-hydration.md
   - micro-specs/evidence/MS-auth-cooldown-hydration.json
   - components/auth/otp-resend-control.tsx
+  - components/auth/signup-verify-form.tsx
+  - components/auth/reset-password-form.tsx
   - tests/e2e/merchant-auth-recovery-flow.ts
 related_docs:
   - micro-specs/GLOBAL_CONTEXT.md
@@ -50,8 +54,9 @@ subtree or emitting a hydration error.
 
 ## 2. Blast Radius
 
-May edit only the shared OTP resend control, the existing real-route auth
-recovery browser flow, this Micro-Spec, and its evidence ledger.
+May edit only the shared OTP resend control, its two direct countdown-copy
+callers, the existing real-route auth recovery browser flow, this Micro-Spec,
+and its evidence ledger.
 
 Out of scope: changing OTP delivery, aliases, rate-limit duration or identity,
 server actions, sessions, password policy, database schema or RLS, provider

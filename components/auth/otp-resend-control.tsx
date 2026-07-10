@@ -44,7 +44,7 @@ export function OtpResendControl({
         className="w-full"
         disabled={disabled || countdown.active}
       >
-        {countdown.active
+        {countdown.active && countdown.ready
           ? `${buttonLabel} in ${countdown.remainingSeconds}s`
           : buttonLabel}
       </SubmitButton>
@@ -69,48 +69,48 @@ export function OtpResendControl({
 export function useOtpRetryCountdown(retryAt: string | undefined) {
   const [clock, setClock] = useState(() => ({
     retryAt,
-    now: Date.now(),
+    now: undefined as number | undefined,
   }))
   const retryAtMs = retryAt ? Date.parse(retryAt) : Number.NaN
+  const hasParsableRetryAt = Boolean(retryAt) && Number.isFinite(retryAtMs)
   const clockMatchesRetry = clock.retryAt === retryAt
-  const transitionActive =
-    Boolean(retryAt) && !clockMatchesRetry && Number.isFinite(retryAtMs)
-  const now = clock.now
-  const countdown = transitionActive
+  const ready =
+    !hasParsableRetryAt ||
+    (clockMatchesRetry && typeof clock.now === "number")
+  const countdown = !ready
     ? {
         active: true,
-        remainingSeconds: Math.min(
-          15 * 60,
-          Math.max(1, Math.ceil((retryAtMs - now) / 1_000))
-        ),
+        remainingSeconds: 0,
       }
-    : merchantOtpRetryCountdown(retryAt, now)
+    : merchantOtpRetryCountdown(retryAt, clock.now ?? Number.NaN)
 
   useEffect(() => {
-    if (clockMatchesRetry) return
+    if (!hasParsableRetryAt || ready) return
 
     const frame = window.requestAnimationFrame(() => {
       setClock({ retryAt, now: Date.now() })
     })
     return () => window.cancelAnimationFrame(frame)
-  }, [clockMatchesRetry, retryAt])
+  }, [hasParsableRetryAt, ready, retryAt])
 
   useEffect(() => {
-    if (!countdown.active) return
+    if (!ready || !countdown.active) return
 
     const interval = window.setInterval(
       () => setClock({ retryAt, now: Date.now() }),
       1_000
     )
     return () => window.clearInterval(interval)
-  }, [countdown.active, retryAt])
+  }, [countdown.active, ready, retryAt])
 
   return {
     ...countdown,
+    ready,
     elapsed:
+      ready &&
       clockMatchesRetry &&
       Boolean(retryAt) &&
       Number.isFinite(retryAtMs) &&
-      retryAtMs <= now,
+      retryAtMs <= (clock.now ?? Number.NaN),
   } as const
 }

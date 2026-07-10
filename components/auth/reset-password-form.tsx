@@ -312,7 +312,7 @@ export function ResetPasswordForm({
           >
             {errors.form ? <ErrorFeedback message={errors.form} /> : null}
             {state.message ? <SuccessFeedback message={state.message} /> : null}
-            {verificationWait.active ? (
+            {verificationWait.active && verificationWait.ready ? (
               <p className="text-center text-xs leading-5 font-semibold text-muted-foreground tabular-nums">
                 Try this code again in {verificationWait.remainingSeconds}s.
               </p>

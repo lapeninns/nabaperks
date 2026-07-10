@@ -174,7 +174,7 @@ export function SignupVerifyForm({
             verifyCountdown.active
           }
         >
-          {verifyCountdown.active
+          {verifyCountdown.active && verifyCountdown.ready
             ? `Try again in ${verifyCountdown.remainingSeconds}s`
             : "Verify email"}
         </SubmitButton>
