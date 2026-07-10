@@ -25,6 +25,40 @@
         }
       ],
       "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-10T09:43:32.231Z",
+      "git_sha": "ccbad2a64c78a33bd60e34f7faf60ef10a6ea80d",
+      "git_branch": "codex/merchant-ux-audit-remediation",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 8512
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1408
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 1694
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10162
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1018
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
@@ -35,6 +69,14 @@
       "at": "2026-07-10T09:13:24.187Z",
       "sha": "75986a0af23524f17c42cefa1236744cf07d5ae8",
       "dirty": true,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-10T09:43:32.231Z",
+      "sha": "ccbad2a64c78a33bd60e34f7faf60ef10a6ea80d",
+      "dirty": false,
       "by": "amankumarshrestha"
     }
   ]
