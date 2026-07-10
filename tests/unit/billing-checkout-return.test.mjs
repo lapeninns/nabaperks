@@ -38,3 +38,15 @@ test("billing panel bypasses cached billing read after checkout success", () => 
   assert.match(billingPanel, /getMerchantBillingFresh/)
   assert.match(billingPanel, /completeBillingCheckoutReturn/)
 })
+
+test("compatibility billing route preserves exact return and safe error identifiers", () => {
+  const billingPage = readProjectFile("app", "app", "billing", "page.tsx")
+
+  assert.match(billingPage, /params\.session_id/)
+  assert.match(billingPage, /query\.set\("session_id", params\.session_id\)/)
+  assert.match(billingPage, /params\.billing_error/)
+  assert.match(
+    billingPage,
+    /query\.set\("billing_error", params\.billing_error\)/
+  )
+})
