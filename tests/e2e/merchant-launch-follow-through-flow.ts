@@ -21,29 +21,31 @@ export function defineMerchantLaunchFollowThroughTests() {
     await expect(page.getByText("2 of 5 complete")).toBeVisible()
     const finishSetup = page.getByRole("link", { name: "Finish setup" })
     await expect(finishSetup).toBeVisible()
-    await expect(finishSetup).toHaveAttribute(
-      "href",
-      "/app/launch?tab=rewards"
-    )
-    await expect(page.getByRole("link", { name: "Scan reward" })).toHaveCount(0)
-    await expect(page.getByRole("link", { name: "Announce" })).toHaveCount(0)
+    await expect(finishSetup).toHaveAttribute("href", "/app/launch?tab=rewards")
+    const main = page.getByRole("main")
+    await expect(main.getByRole("link", { name: "Scan reward" })).toHaveCount(0)
+    await expect(main.getByRole("link", { name: "Announce" })).toHaveCount(0)
     await expectNoAxeViolations(page, "incomplete merchant dashboard")
     await expectNoHorizontalOverflow(page)
-    await expect(page).toHaveScreenshot("dashboard-incomplete-follow-through.png", {
-      fullPage: true,
-      maxDiffPixelRatio: 0.04,
-    })
+    await expect(page).toHaveScreenshot(
+      "dashboard-incomplete-follow-through.png",
+      {
+        fullPage: true,
+        maxDiffPixelRatio: 0.04,
+      }
+    )
   })
 
-  test("billing-gated dashboard sends the merchant to billing", async ({ page }) => {
+  test("billing-gated dashboard sends the merchant to billing", async ({
+    page,
+  }) => {
     await page.goto(`${HARNESS_ROUTES.dashboard}?qr=gated`)
 
     const finishSetup = page.getByRole("link", { name: "Finish setup" })
-    await expect(finishSetup).toHaveAttribute(
-      "href",
-      "/app/launch?tab=billing"
-    )
-    await expect(page.getByRole("link", { name: "Scan reward" })).toHaveCount(0)
+    await expect(finishSetup).toHaveAttribute("href", "/app/launch?tab=billing")
+    await expect(
+      page.getByRole("main").getByRole("link", { name: "Scan reward" })
+    ).toHaveCount(0)
   })
 
   test("live and paused launched dashboards retain counter actions", async ({
@@ -51,11 +53,14 @@ export function defineMerchantLaunchFollowThroughTests() {
   }) => {
     for (const suffix of ["", "?qr=paused"]) {
       await page.goto(`${HARNESS_ROUTES.dashboard}${suffix}`)
-      await expect(page.getByRole("link", { name: "Scan reward" })).toBeVisible()
-      await expect(page.getByRole("link", { name: "Announce" })).toBeVisible()
-      await expect(page.getByRole("link", { name: "Finish setup" })).toHaveCount(
-        0
-      )
+      const main = page.getByRole("main")
+      await expect(
+        main.getByRole("link", { name: "Scan reward" })
+      ).toBeVisible()
+      await expect(main.getByRole("link", { name: "Announce" })).toBeVisible()
+      await expect(
+        page.getByRole("link", { name: "Finish setup" })
+      ).toHaveCount(0)
     }
   })
 
@@ -68,7 +73,7 @@ export function defineMerchantLaunchFollowThroughTests() {
       name: "Merchant setup steps",
     })
     await expect(rail).toBeVisible()
-    await expect(page.getByText("Choose a setup step")).toBeVisible()
+    await expect(rail.getByText("Choose a setup step")).toBeVisible()
 
     const qrStep = rail.getByRole("link", { name: "Venue QR, ready" })
     await expect(qrStep).toHaveAttribute("href", "/app/launch?tab=qr")
@@ -96,7 +101,9 @@ export function defineMerchantLaunchFollowThroughTests() {
   test("poster moment is truthful, phone-native, and visually approved @a11y @visual", async ({
     page,
   }) => {
-    await page.goto(`${HARNESS_ROUTES.launch}?tab=qr`)
+    // QR is already created and enabled; billing is deliberately still pending.
+    // This is the real value-before-payment poster moment from the merchant flow.
+    await page.goto(`${HARNESS_ROUTES.launch}?state=billing&tab=qr`)
 
     await expect(page.getByText(PROMO_PERK)).toBeVisible()
     await expect(page.getByText(PROMO_CLAIM)).toBeVisible()
@@ -116,13 +123,15 @@ export function defineMerchantLaunchFollowThroughTests() {
     })
   })
 
-  test("live launch harness does not contradict its QR state", async ({ page }) => {
+  test("live launch harness does not contradict its QR state", async ({
+    page,
+  }) => {
     await page.goto(`${HARNESS_ROUTES.launch}?state=live&tab=qr`)
 
     await expect(page.getByText("Live · accepting scans")).toBeVisible()
-    await expect(
-      page.getByText("Finish billing to accept scans.")
-    ).toHaveCount(0)
+    await expect(page.getByText("Finish billing to accept scans.")).toHaveCount(
+      0
+    )
   })
 
   test("panel content does not restart the global setup numbering", async ({

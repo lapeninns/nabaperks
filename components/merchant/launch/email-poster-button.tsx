@@ -18,6 +18,10 @@ import { Spinner } from "@/components/ui/spinner"
 export function EmailPosterButton() {
   const [pending, startTransition] = useTransition()
   const [state, setState] = useState<EmailPosterState>({})
+  const resultMessage = state.message?.replaceAll(
+    "the poster",
+    "the poster link"
+  )
 
   return (
     <div className="grid gap-2">
@@ -38,14 +42,14 @@ export function EmailPosterButton() {
         ) : (
           <Icon icon={Mail01Icon} size={16} />
         )}
-        {pending ? "Sending…" : "Email me the poster"}
+        {pending ? "Emailing link…" : "Email poster link"}
       </Button>
-      {state.message ? (
+      {resultMessage ? (
         <StatusBanner
           tone={state.ok ? "success" : "error"}
-          title={state.ok ? "Poster link sent" : "Could not send the poster"}
+          title={state.ok ? "Poster link sent" : "Could not send poster link"}
         >
-          {state.message}
+          {resultMessage}
         </StatusBanner>
       ) : null}
     </div>

@@ -146,13 +146,9 @@ export function LoyaltyCardForm({
           value={draft.stampsRequired}
         />
 
-        {/* Step 2 in the launch order (venue → card → rewards → qr → billing);
-            the readiness rail numbers the card "2" so this must match, not read
-            "Step 1" as it did before venue capture moved into onboarding. */}
         <SectionHead
           title="Your card"
           description={`One active card for ${locationName}. The reward reveals after the final qualifying visit.`}
-          step="Step 2"
           compactOnMobile
         />
 
@@ -304,7 +300,9 @@ export function RewardPoolForm({
     if (batchState.errors?.form) {
       setSelectedPresetIds(batchState.fields?.presetIds ?? [])
     } else if (batchState.saved && batchState.items) {
-      setItems((current) => mergeRewardPoolItems(current, batchState.items ?? []))
+      setItems((current) =>
+        mergeRewardPoolItems(current, batchState.items ?? [])
+      )
       setSelectedPresetIds([])
     }
   }
@@ -1131,18 +1129,16 @@ function DeleteRewardButton({
 }
 
 /**
- * A section head in the medium-weight family: a sentence-case heading and sub,
- * with the step number as mono metadata on the right (the only mono caps here).
+ * A section head in the medium-weight family: a sentence-case heading and sub.
+ * Global progress stays in the launch header and readiness rail.
  */
 function SectionHead({
   title,
   description,
-  step,
   compactOnMobile = false,
 }: {
   title: string
   description: string
-  step: string
   compactOnMobile?: boolean
 }) {
   return (
@@ -1160,14 +1156,6 @@ function SectionHead({
           {description}
         </p>
       </div>
-      <Eyebrow
-        className={cn(
-          "shrink-0 pt-0.5 whitespace-nowrap sm:pt-1",
-          compactOnMobile && "hidden sm:inline"
-        )}
-      >
-        {step}
-      </Eyebrow>
     </div>
   )
 }

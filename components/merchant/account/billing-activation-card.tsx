@@ -37,7 +37,7 @@ export function SetupBillingActivationCard({
           billing-status copy and the account billing card, so every
           add-a-card surface shares one title instead of repeating the header. */}
       <div className="grid gap-2">
-        <Eyebrow>Step 5 of 5 · Billing</Eyebrow>
+        <Eyebrow>Billing</Eyebrow>
         <h2 className="text-lg leading-snug font-extrabold text-foreground sm:text-xl">
           Activate your venue
         </h2>

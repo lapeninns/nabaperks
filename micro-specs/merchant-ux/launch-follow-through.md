@@ -21,6 +21,7 @@ allowed_blast_radius:
   - lib/merchant/launch-readiness-core.ts
   - tests/unit/launch-readiness-core.test.mjs
   - tests/micro-specs/merchant-launch-follow-through.test.mjs
+  - tests/micro-specs/merchant-venue-announcements-ui.test.mjs
   - tests/e2e/merchant-launch-follow-through-flow.ts
   - tests/e2e/merchant-launch-follow-through.spec.ts
   - tests/e2e/merchant-launch-follow-through.desktop.spec.ts
@@ -44,6 +45,7 @@ implementation_surfaces:
   - lib/merchant/launch-readiness-core.ts
   - tests/unit/launch-readiness-core.test.mjs
   - tests/micro-specs/merchant-launch-follow-through.test.mjs
+  - tests/micro-specs/merchant-venue-announcements-ui.test.mjs
   - tests/e2e/merchant-launch-follow-through-flow.ts
   - tests/e2e/merchant-launch-follow-through.spec.ts
   - tests/e2e/merchant-launch-follow-through.desktop.spec.ts
@@ -58,6 +60,7 @@ related_docs:
 related_tests:
   - tests/unit/launch-readiness-core.test.mjs
   - tests/micro-specs/merchant-launch-follow-through.test.mjs
+  - tests/micro-specs/merchant-venue-announcements-ui.test.mjs
   - tests/e2e/merchant-launch-follow-through.spec.ts
   - tests/e2e/merchant-launch-follow-through.desktop.spec.ts
 verification_gates:
@@ -170,7 +173,7 @@ flows, hosted writes, or redesigning the Wet Ink foundations.
   promo block.
 - **LFT-2 (phone-native poster path):** WHEN a merchant reaches the poster task,
   THE surface SHALL explain phone and computer choices and expose `Email poster
-  link`; WHILE that action is pending or settled, all status copy SHALL describe
+link`; WHILE that action is pending or settled, all status copy SHALL describe
   a link rather than a PDF, attachment, or completed print order.
 - **LFT-3 (authoritative dashboard action):** WHILE setup is incomplete, THE
   dashboard header SHALL expose one primary `Finish setup` link to the current

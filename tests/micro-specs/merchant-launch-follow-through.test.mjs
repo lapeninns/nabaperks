@@ -7,7 +7,9 @@ const read = (path) => (existsSync(path) ? readFileSync(path, "utf8") : "")
 const dashboard = read("app/app/page.tsx")
 const dashboardHarness = read("app/dev/app-harness/dashboard/page.tsx")
 const launchHarness = read("app/dev/app-harness/launch/page.tsx")
-const dashboardActions = read("components/merchant/dashboard-header-actions.tsx")
+const dashboardActions = read(
+  "components/merchant/dashboard-header-actions.tsx"
+)
 const readinessPanel = read("components/merchant/launch-readiness-panel.tsx")
 const qrPanel = read("components/merchant/launch/qr-panel-live.tsx")
 const emailPosterButton = read(

@@ -171,8 +171,8 @@ export default async function LaunchHarnessPage({
           <QrPanelLive
             activeCardName="Mystery Visit Card"
             qrCodeId="qr_harness"
-            isActive
-            scansAvailable={false}
+            isActive={readiness.tabs.qr}
+            scansAvailable={readiness.launchReady}
             shareUrl="https://nabaperks.com/q/old-crown-girton"
             hasVenueAddress
             returnHref="/app/launch?tab=qr"

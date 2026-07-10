@@ -126,7 +126,7 @@ export function BillingPanelView({
       ) : !billingLoadFailed ? (
         <ReceiptCard edge className="grid min-w-0 gap-5">
           <SectionHeader
-            eyebrow={mode === "setup" ? "Step 5 of 5 · Billing" : "Your plan"}
+            eyebrow={mode === "setup" ? "Billing" : "Your plan"}
             title={panelTitle}
             description={panelDescription}
           />

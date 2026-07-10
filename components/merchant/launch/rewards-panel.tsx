@@ -61,7 +61,7 @@ export async function RewardsPanel({
       <ReceiptCard className="grid gap-4">
         <PageTitle
           headingLevel={2}
-          eyebrow="Step 3 · Rewards"
+          eyebrow="Rewards"
           title="Build your card first"
           description="The reward pool is tied to a saved visit card. Create the card, then come back here to load at least 3 active mystery rewards."
           titleClassName="sm:text-3xl"
