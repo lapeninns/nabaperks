@@ -43,7 +43,7 @@ export async function getReferralBonusBanksByMembership(
   const { data, error } = await supabase
     .from("referrals")
     .select(
-      "referrer_membership_id, referrer_bonus_due_at, referrer_bonus_awarded_at"
+      "referrer_membership_id, status, referrer_bonus_awarded_at"
     )
     .in("referrer_membership_id", uniqueMembershipIds)
 
@@ -62,14 +62,20 @@ export async function getReferralBonusBanksByMembership(
     const membershipId = stringValue(row.referrer_membership_id)
     if (!membershipId || !banks.has(membershipId)) continue
 
-    const bonusDue = typeof row.referrer_bonus_due_at === "string"
-    const bonusAwarded = typeof row.referrer_bonus_awarded_at === "string"
+    // Read the explicit referral state machine, not the timestamps: a bonus is
+    // "banked" while it is owed but not yet awarded (qualified / held / settling).
+    const status = stringValue(row.status)
+    const owed =
+      status === "qualified" || status === "held" || status === "settling"
 
-    if (bonusDue && !bonusAwarded) {
+    if (owed) {
       incrementBank(banks, membershipId, "banked")
     }
 
-    if (isAwardedToday(row.referrer_bonus_awarded_at, today)) {
+    if (
+      status === "awarded" &&
+      isAwardedToday(row.referrer_bonus_awarded_at, today)
+    ) {
       incrementBank(banks, membershipId, "awardedToday")
     }
   }

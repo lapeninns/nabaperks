@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-referral-retry-outbox",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-10T18:39:08.218Z",
+      "sha": "64171ec1183752ebd4807a5f253c5946bf19c737",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}

@@ -17,6 +17,9 @@ export const notificationEventTypes = [
   "birthday_reward_issued",
   "merchant_reward_received",
   "referral_bonus_stamp_issued",
+  "referral_friend_joined",
+  "referral_qualified",
+  "referral_bonus_saved",
 ] as const
 
 export type NotificationEventType = (typeof notificationEventTypes)[number]
@@ -71,6 +74,9 @@ const EVENT_CATEGORY: Record<NotificationEventType, NotificationCategory> = {
   birthday_reward_issued: "marketing",
   merchant_reward_received: "marketing",
   referral_bonus_stamp_issued: "transactional",
+  referral_friend_joined: "transactional",
+  referral_qualified: "transactional",
+  referral_bonus_saved: "transactional",
 }
 
 const BLOCKED_METADATA_KEYS = new Set([
@@ -172,6 +178,18 @@ const PAYLOAD_COPY: Record<
   referral_bonus_stamp_issued: (input) => ({
     title: "You earned a bonus stamp",
     body: `Someone you invited to ${input.businessName} collected their first stamp — you both got one.`,
+  }),
+  referral_friend_joined: (input) => ({
+    title: "Your friend joined",
+    body: `Someone you invited to ${input.businessName} just joined.`,
+  }),
+  referral_qualified: (input) => ({
+    title: "Your referral qualified",
+    body: `Your invited friend made their first visit to ${input.businessName} — your bonus is on its way.`,
+  }),
+  referral_bonus_saved: (input) => ({
+    title: "Bonus saved",
+    body: `Your referral bonus at ${input.businessName} is saved and will be added automatically.`,
   }),
 }
 
