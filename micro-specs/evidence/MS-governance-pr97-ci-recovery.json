@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-governance-pr97-ci-recovery",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-10T11:39:17.238Z",
+      "sha": "57fcaaffb7b06ae23a9d5f2571839c924cd139df",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}
