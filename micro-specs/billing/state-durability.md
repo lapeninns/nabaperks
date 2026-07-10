@@ -1,6 +1,6 @@
 ---
 spec_id: MS-billing-state-durability
-status: active
+status: implemented
 risk_class: migrations
 owner: codex
 last_reviewed: 2026-07-10
