@@ -1,6 +1,6 @@
 ---
 spec_id: MS-analytics-merchant-billing-telemetry-seam-proof
-status: active
+status: implemented
 risk_class: billing
 owner: amankumarshrestha
 last_reviewed: 2026-07-10
