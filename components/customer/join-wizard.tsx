@@ -110,7 +110,6 @@ function PhoneStep({
         merchantSlug={exp.merchant.slug}
         qrId={exp.qrId}
         referralCode={referralCode}
-        turnstileSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
       />
     </JoinShell>
   )

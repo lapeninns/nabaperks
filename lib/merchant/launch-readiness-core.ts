@@ -60,6 +60,11 @@ export type LaunchReadiness = {
   tabs: Record<LaunchReadinessTab, boolean>
 }
 
+export type LaunchFlowCta = {
+  readonly label: "Card" | "Rewards" | "Billing" | "Venue QR" | "Dashboard"
+  readonly href: string
+}
+
 export type LaunchLocation = {
   id: string
   name: string
@@ -346,41 +351,28 @@ export function resolveLaunchActiveTab(
     : resolveDefaultLaunchTab(readiness)
 }
 
-/**
- * Where the rewards step's "continue" button should point once the reward pool
- * is complete: billing if that is the outstanding gate, else the QR step, else
- * billing-or-QR as a fallback. Null while the pool is still short.
- */
-export function resolveRewardsContinueHref(
+export function resolveLaunchFlowCta(
+  activeTab: LaunchHubTab,
   readiness: LaunchReadiness
-): string | null {
-  if (!readiness.tabs.rewards) {
-    return null
+): LaunchFlowCta | null {
+  switch (activeTab) {
+    case "venue":
+      return readiness.tabs.venue
+        ? { label: "Card", href: "/app/launch?tab=card" }
+        : null
+    case "card":
+      return readiness.tabs.card
+        ? { label: "Rewards", href: "/app/launch?tab=rewards" }
+        : null
+    case "rewards":
+      return readiness.tabs.rewards
+        ? { label: "Billing", href: "/app/launch?tab=billing" }
+        : null
+    case "billing":
+      return isLaunchReadinessBillingReady(readiness)
+        ? { label: "Venue QR", href: QR_LAUNCH_TAB_PATH }
+        : null
+    case "qr":
+      return readiness.qrExists ? { label: "Dashboard", href: "/app" } : null
   }
-
-  if (needsLaunchBillingActivation(readiness)) {
-    return resolveLaunchBillingHref(readiness)
-  }
-
-  if (!readiness.tabs.qr) {
-    return QR_LAUNCH_TAB_PATH
-  }
-
-  return resolveLaunchBillingHref(readiness) ?? QR_LAUNCH_TAB_PATH
-}
-
-export function rewardsContinueLabel(continueHref: string | null): string {
-  if (!continueHref) {
-    return "the next step"
-  }
-
-  if (continueHref.includes("billing")) {
-    return "billing"
-  }
-
-  if (continueHref.includes("tab=qr")) {
-    return "your venue QR"
-  }
-
-  return "the next step"
 }

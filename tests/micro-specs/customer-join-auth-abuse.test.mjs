@@ -47,3 +47,25 @@ test("Given customer OTP dispatch When policy source is inspected Then GB-only p
     /CUSTOMER_DEV_OTP_CODE must be blank outside local development/
   )
 })
+
+test("Given customer OTP entry When challenge dependencies are inspected Then Cloudflare cannot crash or block the phone step", () => {
+  const joinAction = read("app", "m", "[merchantSlug]", "join", "actions.ts")
+  const walletAction = read("app", "home", "actions.ts")
+  const joinForm = read("components", "customer", "join-forms.tsx")
+  const walletForm = read("components", "customer", "customer-login-form.tsx")
+  const csp = read("lib", "security", "csp.ts")
+  const envContract = read("config", "env-contract.json")
+
+  for (const source of [joinAction, walletAction]) {
+    assert.doesNotMatch(source, /verifyCustomerPhoneChallenge/)
+    assert.doesNotMatch(source, /cf-turnstile-response/)
+  }
+
+  for (const source of [joinForm, walletForm]) {
+    assert.doesNotMatch(source, /CustomerBotChallenge/)
+    assert.doesNotMatch(source, /turnstileSiteKey/)
+  }
+
+  assert.doesNotMatch(csp, /challenges\.cloudflare\.com/)
+  assert.doesNotMatch(envContract, /TURNSTILE/)
+})

@@ -26,7 +26,6 @@ import {
   customerRateLimitIdentityFromHeaders,
   trustedClientIp,
 } from "@/lib/security/rate-limit"
-import { verifyCustomerPhoneChallenge } from "@/lib/security/turnstile"
 
 export type CustomerLoginOtpState = {
   fields?: {
@@ -66,23 +65,6 @@ export async function requestCustomerLoginOtpAction(
   }
 
   const contact = normalized.phone.e164
-
-  const pendingVerification = await getPendingPhoneVerification()
-  const isTrustedResend =
-    pendingVerification?.purpose === "wallet" &&
-    pendingVerification.phone === contact
-  if (!isTrustedResend) {
-    const challenge = await verifyCustomerPhoneChallenge({
-      token: value(formData, "cf-turnstile-response"),
-      remoteIp: clientIp,
-    })
-    if (challenge.status === "rejected") {
-      return {
-        fields: { contact },
-        errors: { form: "Complete the quick security check and try again." },
-      }
-    }
-  }
 
   try {
     await enforceCustomerOtpSendRateLimit({

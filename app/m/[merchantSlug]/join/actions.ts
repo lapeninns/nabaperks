@@ -35,7 +35,6 @@ import {
   customerRateLimitIdentityFromHeaders,
   trustedClientIp,
 } from "@/lib/security/rate-limit"
-import { verifyCustomerPhoneChallenge } from "@/lib/security/turnstile"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
 import { logger } from "@/lib/observability/logger"
@@ -109,19 +108,6 @@ export async function requestCustomerIdentityAction(
     ...(!isTrustedResend ? { contact } : {}),
     merchantSlug,
     qrId,
-  }
-
-  if (!isTrustedResend) {
-    const challenge = await verifyCustomerPhoneChallenge({
-      token: value(formData, "cf-turnstile-response"),
-      remoteIp: clientIp,
-    })
-    if (challenge.status === "rejected") {
-      return {
-        fields: requestFields,
-        errors: { form: "Complete the quick security check and try again." },
-      }
-    }
   }
 
   let joinContext: Awaited<ReturnType<typeof getMerchantJoinContext>>

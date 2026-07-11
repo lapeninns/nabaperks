@@ -40,7 +40,7 @@ function sharedContentSecurityDirectives(): readonly string[] {
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
     "connect-src 'self' https: wss:",
-    "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://challenges.cloudflare.com",
+    "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
     "worker-src 'self' blob:",
     "manifest-src 'self'",
     "object-src 'none'",
@@ -69,8 +69,8 @@ export function dynamicContentSecurityPolicy(nonce: string): string {
 
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' ${nextThemesScriptHashes} 'strict-dynamic' https://js.stripe.com https://challenges.cloudflare.com https://maps.googleapis.com${scriptDevEscape()}`,
-    `script-src-elem 'self' 'nonce-${nonce}' ${nextThemesScriptHashes} https://js.stripe.com https://challenges.cloudflare.com https://maps.googleapis.com`,
+    `script-src 'self' 'nonce-${nonce}' ${nextThemesScriptHashes} 'strict-dynamic' https://js.stripe.com https://maps.googleapis.com${scriptDevEscape()}`,
+    `script-src-elem 'self' 'nonce-${nonce}' ${nextThemesScriptHashes} https://js.stripe.com https://maps.googleapis.com`,
     ...sharedContentSecurityDirectives(),
   ].join("; ")
 }

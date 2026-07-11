@@ -1,10 +1,15 @@
-import Link from "next/link"
 import { notFound } from "next/navigation"
 
+import {
+  openCustomerPortalAction,
+  startCheckoutAction,
+} from "@/app/app/billing/actions"
 import { PageTitle } from "@/components/brand"
 import { SetupBillingActivationCard } from "@/components/merchant/account/billing-activation-card"
+import { BillingPanelView } from "@/components/merchant/account/billing-panel-view"
 import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
 import { BirthdayRewardPanel } from "@/components/merchant/launch/birthday-panel"
+import { LaunchFlowFooter } from "@/components/merchant/launch/launch-flow-footer"
 import { birthdayRewardTemplateForBusinessType } from "@/lib/merchant/birthday-reward-template"
 import {
   LoyaltyCardForm,
@@ -13,10 +18,10 @@ import {
 } from "@/components/merchant/loyalty-card-form"
 import { QrPanel } from "@/components/merchant/launch/qr-panel"
 import { VenueLocationForm } from "@/components/merchant/launch/venue-location-form"
-import { Button } from "@/components/ui/button"
 import {
   buildLaunchReadiness,
   resolveLaunchBillingHref,
+  resolveLaunchFlowCta,
 } from "@/lib/merchant/launch-readiness"
 import type { LaunchHubTab } from "@/lib/merchant/launch-readiness"
 import { resolveLaunchHeaderModel } from "@/lib/merchant/launch-header-copy"
@@ -137,17 +142,6 @@ export default async function LaunchHarnessPage({
           eyebrow="Merchant setup"
           title={header.heading}
           description={header.description}
-          actions={
-            header.actionTab === "qr" ? (
-              <Button asChild variant="secondary">
-                <Link href="/app/launch?tab=qr">Open venue QR</Link>
-              </Button>
-            ) : header.actionTab === "billing" ? (
-              <Button asChild>
-                <Link href="/app/launch?tab=billing">Proceed to billing</Link>
-              </Button>
-            ) : undefined
-          }
         />
       </div>
 
@@ -177,8 +171,6 @@ export default async function LaunchHarnessPage({
               loyaltyCardId="card_harness"
               cardName="Mystery Visit Card"
               rewardPoolItems={rewardPoolItems}
-              continueHref="/app/launch?tab=billing"
-              continueLabel="billing"
               presets={rewardPresetsForBusinessType("pub")}
             />
             <BirthdayRewardPanel
@@ -199,10 +191,30 @@ export default async function LaunchHarnessPage({
             returnHref="/app/launch?tab=qr"
           />
         ) : activeTab === "billing" ? (
-          <SetupBillingActivationCard
-            annualBillingAvailable
-            billingReturnTo="/app/launch?tab=billing"
-          />
+          billing.status === "active" ? (
+            <BillingPanelView
+              billing={{
+                status: "active",
+                stripe_subscription_status: "active",
+                stripe_customer_id: "cus_harness",
+                billing_interval: "month",
+                unit_amount: 4900,
+                currency: "gbp",
+                current_period_end: "2026-08-11T00:00:00.000Z",
+              }}
+              outcome={null}
+              mode="setup"
+              annualBillingAvailable
+              checkoutAction={startCheckoutAction}
+              portalAction={openCustomerPortalAction}
+              billingReturnTo="/app/launch?tab=billing"
+            />
+          ) : (
+            <SetupBillingActivationCard
+              annualBillingAvailable
+              billingReturnTo="/app/launch?tab=billing"
+            />
+          )
         ) : (
           <VenueLocationForm
             initialValues={{
@@ -217,6 +229,7 @@ export default async function LaunchHarnessPage({
             pinSource="geocoded"
           />
         )}
+        <LaunchFlowFooter cta={resolveLaunchFlowCta(activeTab, readiness)} />
       </div>
     </div>
   )

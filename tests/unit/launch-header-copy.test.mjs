@@ -75,23 +75,10 @@ test("needsBilling: activation truthfully unlocks the QR", () => {
 
 // --- needsBilling: interaction hierarchy (CTA never competes) ---------------
 
-test("needsBilling: header CTA jumps to billing from any non-billing tab", () => {
-  for (const tab of ["venue", "card", "rewards", "qr"]) {
-    assert.equal(
-      resolveLaunchHeaderModel(needsBilling, tab).actionTab,
-      "billing",
-      `expected a billing jump-CTA on tab=${tab}`
-    )
+test("needsBilling: header leaves the setup action to the panel footer", () => {
+  for (const tab of ["venue", "card", "rewards", "billing", "qr"]) {
+    assert.equal(resolveLaunchHeaderModel(needsBilling, tab).actionTab, null)
   }
-})
-
-test("needsBilling: header CTA is SUPPRESSED on the billing tab", () => {
-  // On the billing tab the activation card carries the real Stripe checkout, so
-  // a header "Proceed to billing" would be a no-op competing with it.
-  assert.equal(
-    resolveLaunchHeaderModel(needsBilling, "billing").actionTab,
-    null
-  )
 })
 
 // --- needsQr: information + interaction hierarchy --------------------------
@@ -104,11 +91,15 @@ test("needsQr: the QR is the final step after billing", () => {
     header.mobileContext,
     "Create your venue QR to start accepting scans."
   )
-  assert.equal(header.actionTab, "qr")
+  assert.equal(header.actionTab, null)
 })
 
 test("needsQr: header CTA is suppressed on the QR tab", () => {
   assert.equal(resolveLaunchHeaderModel(needsQr, "qr").actionTab, null)
+})
+
+test("needsQr: header CTA is suppressed on rewards", () => {
+  assert.equal(resolveLaunchHeaderModel(needsQr, "rewards").actionTab, null)
 })
 
 // --- launchReady: information + interaction hierarchy -----------------------
@@ -122,16 +113,16 @@ test("launchReady: heading is live, description does not repeat the panel banner
   assert.doesNotMatch(header.description, /Customers can scan/i)
 })
 
-test("launchReady: header CTA jumps to the QR from any non-qr tab", () => {
-  for (const tab of ["venue", "card", "rewards", "billing"]) {
-    assert.equal(
-      resolveLaunchHeaderModel(live, tab).actionTab,
-      "qr",
-      `expected a QR jump-CTA on tab=${tab}`
-    )
+test("launchReady: header leaves navigation to the panel footer", () => {
+  for (const tab of ["venue", "card", "rewards", "billing", "qr"]) {
+    assert.equal(resolveLaunchHeaderModel(live, tab).actionTab, null)
   }
 })
 
 test("launchReady: header CTA is SUPPRESSED on the qr tab", () => {
   assert.equal(resolveLaunchHeaderModel(live, "qr").actionTab, null)
+})
+
+test("launchReady: header CTA is SUPPRESSED on rewards", () => {
+  assert.equal(resolveLaunchHeaderModel(live, "rewards").actionTab, null)
 })

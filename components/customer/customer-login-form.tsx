@@ -8,7 +8,6 @@ import {
   type CustomerLoginOtpState,
 } from "@/app/home/actions"
 import { customerInputClass } from "@/components/customer/input-class"
-import { CustomerBotChallenge } from "@/components/customer/customer-bot-challenge"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
@@ -19,17 +18,13 @@ const initialState: CustomerLoginOtpState = {}
 
 type CustomerLoginFormProps = {
   readonly next: string
-  readonly turnstileSiteKey?: string
 }
 
 function hasLoginActionResult(state: CustomerLoginOtpState) {
   return Boolean(state.fields || state.errors || state.message)
 }
 
-export function CustomerLoginForm({
-  next,
-  turnstileSiteKey,
-}: CustomerLoginFormProps) {
+export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
   const [requestState, requestAction, requestPending] = useActionState(
     requestCustomerLoginOtpAction,
     initialState
@@ -89,9 +84,6 @@ export function CustomerLoginForm({
             </p>
           )}
         </div>
-        {!otpSent ? (
-          <CustomerBotChallenge siteKey={turnstileSiteKey} resetKey={state} />
-        ) : null}
         {formError && formError !== verifyError ? (
           // Wet Ink error treatment (CUS-P2-07): the shared banner (2px ink,
           // role="alert" via Alert) instead of a hand-rolled 1px box.

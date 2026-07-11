@@ -11,7 +11,6 @@ import {
 } from "@/app/m/[merchantSlug]/join/actions"
 import { Eyebrow, MonoTag } from "@/components/brand"
 import { customerInputClass } from "@/components/customer/input-class"
-import { CustomerBotChallenge } from "@/components/customer/customer-bot-challenge"
 import { CustomerLegalConsentLinks } from "@/components/customer/legal-sheet"
 import { StatusBanner } from "@/components/loyalty"
 import type { JoinCard } from "@/lib/customer/experience/types"
@@ -32,14 +31,12 @@ export type CustomerIdentityFormProps = {
   merchantSlug: string
   qrId?: string
   referralCode?: string
-  turnstileSiteKey?: string
 }
 
 export function CustomerIdentityForm({
   merchantSlug,
   qrId,
   referralCode,
-  turnstileSiteKey,
 }: CustomerIdentityFormProps) {
   const [state, requestAction, requestPending] = useActionState(
     requestCustomerIdentityAction,
@@ -87,7 +84,6 @@ export function CustomerIdentityForm({
             </p>
           )}
         </div>
-        <CustomerBotChallenge siteKey={turnstileSiteKey} resetKey={state} />
         {state.errors?.form ? (
           // Wet Ink error treatment (CUS-P2-07): the shared banner instead of
           // a hand-rolled 1px box.

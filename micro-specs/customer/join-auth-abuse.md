@@ -12,7 +12,6 @@ allowed_blast_radius:
   - app/home/login/page.tsx
   - app/q/[qrId]/page.tsx
   - components/customer/join-forms.tsx
-  - components/customer/customer-bot-challenge.tsx
   - components/customer/customer-login-form.tsx
   - components/customer/join-otp-form.tsx
   - components/customer/join-wizard.tsx
@@ -23,7 +22,6 @@ allowed_blast_radius:
   - lib/security/rate-limit-core.ts
   - lib/security/rate-limit.ts
   - lib/security/customer-device-token.ts
-  - lib/security/turnstile.ts
   - lib/security/csp.ts
   - config/env-contract.json
   - proxy.ts
@@ -31,7 +29,6 @@ allowed_blast_radius:
   - .env.example
   - tests/unit/customer-phone.test.mjs
   - tests/unit/customer-verification.test.mjs
-  - tests/unit/customer-turnstile.test.mjs
   - tests/unit/rate-limit-core.test.mjs
   - tests/unit/customer-device-token.test.mjs
   - tests/unit/customer-otp-rate-limit-core.test.mjs
@@ -44,7 +41,6 @@ implementation_surfaces:
   - app/home/login/page.tsx
   - app/q/[qrId]/page.tsx
   - components/customer/join-forms.tsx
-  - components/customer/customer-bot-challenge.tsx
   - components/customer/customer-login-form.tsx
   - components/customer/join-otp-form.tsx
   - components/customer/join-wizard.tsx
@@ -55,7 +51,6 @@ implementation_surfaces:
   - lib/security/rate-limit-core.ts
   - lib/security/rate-limit.ts
   - lib/security/customer-device-token.ts
-  - lib/security/turnstile.ts
   - lib/security/csp.ts
   - config/env-contract.json
   - proxy.ts
@@ -63,7 +58,6 @@ implementation_surfaces:
   - .env.example
   - tests/unit/customer-phone.test.mjs
   - tests/unit/customer-verification.test.mjs
-  - tests/unit/customer-turnstile.test.mjs
   - tests/unit/rate-limit-core.test.mjs
   - tests/unit/customer-device-token.test.mjs
   - tests/unit/customer-otp-rate-limit-core.test.mjs
@@ -76,7 +70,6 @@ related_docs:
 related_tests:
   - tests/unit/customer-phone.test.mjs
   - tests/unit/customer-verification.test.mjs
-  - tests/unit/customer-turnstile.test.mjs
   - tests/unit/rate-limit-core.test.mjs
   - tests/unit/customer-device-token.test.mjs
   - tests/unit/customer-otp-rate-limit-core.test.mjs
@@ -117,13 +110,12 @@ This spec owns the shared customer phone parser, OTP rate-limit policy, Twilio V
 - Limits must cover both repeated sends to one phone and total sends from one trusted request identity; raw phone values must never appear in stored bucket keys or logs.
 - Provider calls have a bounded timeout. Timeout, network, 429, and 5xx outcomes are retryable product states, not incorrect-code states.
 - OTP send and verification remain fail-closed: no pending cookie, customer, or session may be created after a rejected boundary.
-- The hard identity-wide ceiling blocks further sends and an initial send requires a server-verified Turnstile token in production; trusted resends rely on the encrypted pending-phone state.
-- Turnstile is only a challenge signal; server-side Siteverify remains authoritative and tokens are never retained.
+- The phone-wide and hard identity-wide ceilings block repeated sends and number rotation; trusted resends rely on the encrypted pending-phone state.
 
 ## 4. Decisions Already Made
 
 - Join and wallet use the same shared OTP policy.
-- The public Turnstile key and server secret are both required by the production environment profile.
+- Customer OTP abuse protection stays server-side so a third-party challenge cannot block or crash the phone step.
 - GB-only is the initial country policy; expanding it requires a later explicit product decision.
 - Request identity is derived from trusted proxy input and may not depend on user-agent alone for reset resistance.
 - Product copy never exposes Twilio, database, credentials, raw phone values, or provider response bodies.
@@ -135,7 +127,6 @@ This spec owns the shared customer phone parser, OTP rate-limit policy, Twilio V
 - IF a parsed phone is outside the supported country policy, THEN THE system SHALL reject it before rate-limit reservation or provider dispatch.
 - THE system SHALL enforce a phone-wide send limit and an identity-wide daily send ceiling across both join and wallet entry points.
 - IF phone rotation consumes the identity-wide ceiling, THEN THE system SHALL reject the send before calling the provider.
-- IF an initial join send lacks a valid server-verified Turnstile token in a configured environment, THEN THE system SHALL reject it before calling Twilio.
 - IF a verification provider request times out, fails at the network, returns 429, returns 5xx, or returns malformed data, THEN THE form SHALL retain the customer’s flow context and show a retry or resend action without creating identity or session state.
 - IF a provider rejects a syntactically valid code, THEN THE system SHALL show the ordinary incorrect-code response and SHALL NOT classify it as provider unavailability.
 - WHEN a resend is rejected or succeeds, THE OTP screen SHALL announce the settled outcome once without losing QR or referral intent.
