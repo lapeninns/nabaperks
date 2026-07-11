@@ -69,8 +69,8 @@ export function dynamicContentSecurityPolicy(nonce: string): string {
 
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' ${nextThemesScriptHashes} 'strict-dynamic' https://js.stripe.com https://challenges.cloudflare.com${scriptDevEscape()}`,
-    `script-src-elem 'self' 'nonce-${nonce}' ${nextThemesScriptHashes} https://js.stripe.com https://challenges.cloudflare.com`,
+    `script-src 'self' 'nonce-${nonce}' ${nextThemesScriptHashes} 'strict-dynamic' https://js.stripe.com https://challenges.cloudflare.com https://maps.googleapis.com${scriptDevEscape()}`,
+    `script-src-elem 'self' 'nonce-${nonce}' ${nextThemesScriptHashes} https://js.stripe.com https://challenges.cloudflare.com https://maps.googleapis.com`,
     ...sharedContentSecurityDirectives(),
   ].join("; ")
 }

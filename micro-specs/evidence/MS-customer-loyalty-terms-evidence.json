@@ -45,6 +45,89 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-11T01:36:22.175Z",
+      "git_sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
+      "git_branch": "main",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7911
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1210
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10939
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9629
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1227
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 1,
+          "duration_ms": 5722
+        }
+      ],
+      "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-11T01:40:28.590Z",
+      "git_sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
+      "git_branch": "main",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7244
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1236
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10924
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9627
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1205
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 5536
+        },
+        {
+          "command": "pnpm test:e2e -- --grep \"@MS-customer-loyalty-terms-evidence\"",
+          "exit_code": 0,
+          "duration_ms": 6272
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],

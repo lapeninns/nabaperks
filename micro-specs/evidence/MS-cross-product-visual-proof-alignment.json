@@ -1,0 +1,333 @@
+{
+  "schema": 1,
+  "spec_id": "MS-cross-product-visual-proof-alignment",
+  "runs": [
+    {
+      "timestamp": "2026-07-11T01:48:17.978Z",
+      "git_sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
+      "git_branch": "main",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7396
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1102
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11721
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9677
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1230
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 167
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@visual\"",
+          "exit_code": 0,
+          "duration_ms": 56847
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 187573
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 57062
+        }
+      ],
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-11T03:09:54.354Z",
+      "git_sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
+      "git_branch": "main",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7823
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1174
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 12087
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10528
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1289
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 177
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@visual\"",
+          "exit_code": 0,
+          "duration_ms": 29764
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 103419
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 1,
+          "duration_ms": 40197
+        }
+      ],
+      "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-11T03:16:52.776Z",
+      "git_sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
+      "git_branch": "main",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7714
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1161
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 12677
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10472
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1308
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 179
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@visual\"",
+          "exit_code": 0,
+          "duration_ms": 61708
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 202365
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 60789
+        }
+      ],
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-11T03:43:43.643Z",
+      "git_sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
+      "git_branch": "main",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 8263
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1304
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11973
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10616
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1326
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 175
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@visual\"",
+          "exit_code": 0,
+          "duration_ms": 60914
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 165916
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 61103
+        }
+      ],
+      "all_passed": true
+    }
+  ],
+  "manual_attestations": [
+    {
+      "gate": "manual:design-review",
+      "by": "codex",
+      "note": "Two independent macOS reviews and a separate 25-image Linux review approved current Wet Ink rendering with decoded QR assets, no overlay, no clipping, and complete pages.",
+      "at": "2026-07-11T03:16:52.776Z"
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T03:16:52.776Z",
+      "note": "Full first-run visual output identifying exactly 12 failing platform images while 26 images pass."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T03:16:52.776Z",
+      "note": "Two-repeat focused output and hashes proving stable geometry and deterministic rendering within the configured pixel threshold."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T03:16:52.776Z",
+      "note": "Independent dual-review approval of the current marketing, signup, dashboard, QR, onboarding, and empty-dashboard actuals, including a loaded dashboard QR image."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T03:16:52.776Z",
+      "note": "Source-history evidence tying all accepted differences to intentional commits a99c3e05 and 27e11ce5."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T03:16:52.776Z",
+      "note": "A complete post-update Chromium/mobile-Safari visual pass on macOS and Linux, plus independent inspection of every changed Linux image."
+    },
+    {
+      "gate": "manual:design-review",
+      "by": "codex",
+      "note": "Two independent macOS reviews and a separate 25-image Linux review approved current Wet Ink rendering with decoded QR assets, no overlay, no clipping, and complete pages.",
+      "at": "2026-07-11T03:43:43.643Z"
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T03:43:43.643Z",
+      "note": "Full first-run visual output identifying exactly 12 failing platform images while 26 images pass."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T03:43:43.643Z",
+      "note": "Two-repeat focused output and hashes proving stable geometry and deterministic rendering within the configured pixel threshold."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T03:43:43.643Z",
+      "note": "Independent dual-review approval of the current marketing, signup, dashboard, QR, onboarding, and empty-dashboard actuals, including a loaded dashboard QR image."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T03:43:43.643Z",
+      "note": "Source-history evidence tying all accepted differences to intentional commits a99c3e05 and 27e11ce5."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T03:43:43.643Z",
+      "note": "A complete post-update Chromium/mobile-Safari visual pass on macOS and Linux, plus independent inspection of every changed Linux image."
+    }
+  ],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-11T01:32:21.712Z",
+      "sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
+      "dirty": true,
+      "by": "codex"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-11T01:48:17.978Z",
+      "sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
+      "dirty": true,
+      "by": "codex",
+      "note": "three governed audit waves share this atomic reviewed working tree"
+    },
+    {
+      "from": "implemented",
+      "to": "verified",
+      "at": "2026-07-11T03:16:52.776Z",
+      "sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
+      "dirty": true,
+      "by": "codex",
+      "note": "The complete UX audit is one atomic reviewed working-tree programme."
+    },
+    {
+      "from": "verified",
+      "to": "closed",
+      "at": "2026-07-11T03:43:43.643Z",
+      "sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
+      "dirty": true,
+      "by": "codex",
+      "note": "The complete UX audit is one atomic reviewed working-tree programme."
+    }
+  ]
+}

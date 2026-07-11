@@ -27,11 +27,12 @@ export function defineMerchantLaunchFollowThroughTests() {
     await expect(main.getByRole("link", { name: "Announce" })).toHaveCount(0)
     await expectNoAxeViolations(page, "incomplete merchant dashboard")
     await expectNoHorizontalOverflow(page)
+    await expectVenueQrLoaded(page)
     await expect(page).toHaveScreenshot(
       "dashboard-incomplete-follow-through.png",
       {
         fullPage: true,
-        maxDiffPixelRatio: 0.04,
+        maxDiffPixelRatio: 0.001,
       }
     )
   })
@@ -50,7 +51,7 @@ export function defineMerchantLaunchFollowThroughTests() {
       page.getByRole("heading", { name: "How the week is going" })
     ).toHaveCount(0)
     await expect(
-      page.getByRole("button", { name: "Show full screen" })
+      page.getByRole("button", { name: "Show full screen", exact: true })
     ).toBeVisible()
     await expect(page.getByRole("heading", { name: "Do next" })).toHaveCount(0)
     await expect(
@@ -142,9 +143,10 @@ export function defineMerchantLaunchFollowThroughTests() {
     await expect(page.getByText("Step 02")).toBeVisible()
     await expectNoAxeViolations(page, "merchant poster follow-through")
     await expectNoHorizontalOverflow(page)
+    await expectVenueQrLoaded(page)
     await expect(page).toHaveScreenshot("launch-qr-follow-through.png", {
       fullPage: true,
-      maxDiffPixelRatio: 0.04,
+      maxDiffPixelRatio: 0.001,
     })
   })
 
@@ -177,4 +179,22 @@ async function expectNoHorizontalOverflow(
     () => document.documentElement.scrollWidth - window.innerWidth
   )
   expect(overflow).toBeLessThanOrEqual(1)
+}
+
+async function expectVenueQrLoaded(page: import("@playwright/test").Page) {
+  await page.evaluate(async () => {
+    await document.fonts.ready
+  })
+  const qr = page.getByRole("img", { name: /^QR code for / })
+  await expect(qr).toBeVisible()
+  await expect
+    .poll(() =>
+      qr.evaluate(
+        (image) =>
+          image instanceof HTMLImageElement &&
+          image.complete &&
+          image.naturalWidth > 0
+      )
+    )
+    .toBe(true)
 }

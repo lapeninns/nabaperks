@@ -40,6 +40,7 @@ export function RewardTicket({
   sealSlammed = false,
   eyebrow,
   className,
+  headingLevel: Heading = "h3",
 }: {
   state: RewardTicketState
   /** Reward name once revealed, or the sealed mystery title. */
@@ -52,6 +53,7 @@ export function RewardTicket({
   /** Override the state kicker — e.g. "Clear reward" on merchant previews. */
   eyebrow?: string
   className?: string
+  headingLevel?: "h2" | "h3"
 }) {
   const leaf = state === "ready" || state === "redeemed"
   const redeemed = state === "redeemed"
@@ -79,14 +81,14 @@ export function RewardTicket({
         <span className="eyebrow text-muted-foreground">
           {eyebrow ?? KICKER[state]}
         </span>
-        <h3
+        <Heading
           className={cn(
             "text-lg leading-tight font-extrabold text-balance break-words",
             redeemed && "text-muted-foreground"
           )}
         >
           {name}
-        </h3>
+        </Heading>
         {description ? (
           <p className="text-sm leading-6 text-muted-foreground">
             {description}

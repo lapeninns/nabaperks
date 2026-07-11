@@ -47,29 +47,73 @@ test.describe("visual regression @visual", () => {
 
     test(`Given ${route.name} When it renders Then the viewport matches the approved Wet Ink baseline${microSpecTag}`, async ({
       page,
-    }) => {
+    }, testInfo) => {
       const isAuthRoute = route.name.startsWith("auth-")
-      const hideDevOverlay = isAuthRoute || auditClosureRoutes.has(route.name)
       if (isAuthRoute) await dismissPwaInstall(page)
       await page.goto(route.path)
-      await page.addStyleTag({
-        content: `
-          *,
-          *::before,
-          *::after {
-            animation-duration: 0s !important;
-            animation-delay: 0s !important;
-            transition-duration: 0s !important;
-            transition-delay: 0s !important;
-          }
-          ${hideDevOverlay ? "nextjs-portal, [data-nextjs-dev-overlay='true'] { display: none !important; }" : ""}
-        `,
-      })
-      await expect(page.locator("body")).toBeVisible()
+      await expect(async () => {
+        await page.waitForLoadState("domcontentloaded")
+        await page.addStyleTag({
+          content: `
+            *,
+            *::before,
+            *::after {
+              animation-duration: 0s !important;
+              animation-delay: 0s !important;
+              transition-duration: 0s !important;
+              transition-delay: 0s !important;
+            }
+            nextjs-portal,
+            [data-nextjs-dev-overlay='true'] {
+              display: none !important;
+            }
+          `,
+        })
+        await expect(page.locator("body")).toBeVisible()
+        await page.evaluate(async () => {
+          await document.fonts.ready
+        })
+      }).toPass({ timeout: 15_000 })
+      await expect
+        .poll(() =>
+          page.evaluate(
+            () =>
+              getComputedStyle(document.documentElement)
+                .getPropertyValue("--background")
+                .trim().length > 0
+          )
+        )
+        .toBe(true)
+      if (
+        route.name === "harness-dashboard" ||
+        route.name === "harness-dashboard-empty"
+      ) {
+        const qr = page.getByRole("img", {
+          name: "QR code for Old Crown Girton",
+        })
+        await expect(qr).toBeVisible()
+        await expect
+          .poll(() =>
+            qr.evaluate(
+              (image) =>
+                image instanceof HTMLImageElement &&
+                image.complete &&
+                image.naturalWidth > 0
+            )
+          )
+          .toBe(true)
+      }
 
+      const strictComparison =
+        route.name === "harness-dashboard" ||
+        route.name === "harness-dashboard-empty" ||
+        route.name === "loyalty-for-pubs" ||
+        (testInfo.project.name === "mobile-safari" &&
+          (route.name === "harness-qr" ||
+            route.name === "loyalty-for-takeaways"))
       await expect(page).toHaveScreenshot(`${route.name}.png`, {
         fullPage: true,
-        maxDiffPixelRatio: 0.04,
+        maxDiffPixelRatio: strictComparison ? 0.001 : 0.04,
       })
     })
   }

@@ -1,0 +1,225 @@
+{
+  "schema": 1,
+  "spec_id": "MS-auth-proof-acl-restoration",
+  "runs": [
+    {
+      "timestamp": "2026-07-11T01:40:47.215Z",
+      "git_sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
+      "git_branch": "main",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7142
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1071
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10965
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9685
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1238
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-auth-recovery-ux\"",
+          "exit_code": 0,
+          "duration_ms": 98971
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 5734
+        }
+      ],
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-11T03:23:42.270Z",
+      "git_sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
+      "git_branch": "main",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 8486
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1401
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 12841
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10589
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1368
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-auth-recovery-ux\"",
+          "exit_code": 0,
+          "duration_ms": 103164
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 6844
+        }
+      ],
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-11T03:49:12.678Z",
+      "git_sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
+      "git_branch": "main",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 8213
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1325
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11968
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10596
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1386
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-auth-recovery-ux\"",
+          "exit_code": 0,
+          "duration_ms": 103353
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 6637
+        }
+      ],
+      "all_passed": true
+    }
+  ],
+  "manual_attestations": [
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T03:23:42.270Z",
+      "note": "A red local-Postgres containment run proving the existing auth fault-restoration path leaves enforce_rate_limit executable by PUBLIC, anon, and authenticated."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T03:23:42.270Z",
+      "note": "Source-contract output proving the helper restores the exact service_role-only ACL and cannot grant PUBLIC, anon, or authenticated."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T03:23:42.270Z",
+      "note": "Mobile and desktop local-Supabase auth-recovery output covering the rate-limit infrastructure-failure branch and suite cleanup."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T03:23:42.270Z",
+      "note": "A post-auth complete local-Postgres pass proving no public function is executable by PUBLIC or anon and authenticated retains only its allowlist."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T03:49:12.678Z",
+      "note": "A red local-Postgres containment run proving the existing auth fault-restoration path leaves enforce_rate_limit executable by PUBLIC, anon, and authenticated."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T03:49:12.678Z",
+      "note": "Source-contract output proving the helper restores the exact service_role-only ACL and cannot grant PUBLIC, anon, or authenticated."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T03:49:12.678Z",
+      "note": "Mobile and desktop local-Supabase auth-recovery output covering the rate-limit infrastructure-failure branch and suite cleanup."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T03:49:12.678Z",
+      "note": "A post-auth complete local-Postgres pass proving no public function is executable by PUBLIC or anon and authenticated retains only its allowlist."
+    }
+  ],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-11T01:37:45.991Z",
+      "sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
+      "dirty": true,
+      "by": "codex"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-11T01:40:47.215Z",
+      "sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
+      "dirty": true,
+      "by": "codex",
+      "note": "three governed audit waves share this atomic reviewed working tree"
+    },
+    {
+      "from": "implemented",
+      "to": "verified",
+      "at": "2026-07-11T03:23:42.270Z",
+      "sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
+      "dirty": true,
+      "by": "codex",
+      "note": "The complete UX audit is one atomic reviewed working-tree programme."
+    },
+    {
+      "from": "verified",
+      "to": "closed",
+      "at": "2026-07-11T03:49:12.678Z",
+      "sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
+      "dirty": true,
+      "by": "codex",
+      "note": "The complete UX audit is one atomic reviewed working-tree programme."
+    }
+  ]
+}

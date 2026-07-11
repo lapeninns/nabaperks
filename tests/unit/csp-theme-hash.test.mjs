@@ -50,6 +50,21 @@ test("Given next-themes renders its bootstrap script When CSP is built Then the 
   assert.doesNotMatch(csp, /script-src[^;]*'unsafe-inline'/)
 })
 
+test("Given venue search loads Google Places When dynamic CSP is built Then the exact Maps script origin is trusted", () => {
+  const csp = dynamicContentSecurityPolicy("test-nonce")
+  const scriptDirective = csp.match(/(?:^|; )script-src ([^;]+)/)?.[1] ?? ""
+  const scriptElementDirective =
+    csp.match(/(?:^|; )script-src-elem ([^;]+)/)?.[1] ?? ""
+
+  for (const directive of [scriptDirective, scriptElementDirective]) {
+    assert.match(directive, /(?:^| )https:\/\/maps\.googleapis\.com(?: |$)/)
+    assert.doesNotMatch(directive, /\*\.googleapis\.com/)
+  }
+  assert.match(scriptDirective, /'nonce-test-nonce'/)
+  assert.match(scriptDirective, /'strict-dynamic'/)
+  assert.doesNotMatch(scriptDirective, /'unsafe-inline'/)
+})
+
 test("Given static brochure pages are prerendered When CSP is built Then inline scripts are allowed without a nonce", () => {
   const csp = staticMarketingContentSecurityPolicy()
 

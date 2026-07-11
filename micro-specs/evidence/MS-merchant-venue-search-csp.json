@@ -1,0 +1,271 @@
+{
+  "schema": 1,
+  "spec_id": "MS-merchant-venue-search-csp",
+  "runs": [
+    {
+      "timestamp": "2026-07-11T02:59:20.056Z",
+      "git_sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
+      "git_branch": "main",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7751
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1158
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 13499
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10486
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1320
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 175
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --grep \"@MS-merchant-venue-search-csp\"",
+          "exit_code": 0,
+          "duration_ms": 2183
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 100891
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 27469
+        },
+        {
+          "command": "pnpm test -- tests/unit/csp-theme-hash.test.mjs",
+          "exit_code": 0,
+          "duration_ms": 10604
+        }
+      ],
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-11T03:31:38.687Z",
+      "git_sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
+      "git_branch": "main",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 8341
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1313
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11896
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10795
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1337
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 175
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --grep \"@MS-merchant-venue-search-csp\"",
+          "exit_code": 0,
+          "duration_ms": 14198
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 165178
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 60811
+        },
+        {
+          "command": "pnpm test -- tests/unit/csp-theme-hash.test.mjs",
+          "exit_code": 0,
+          "duration_ms": 10834
+        }
+      ],
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-11T03:56:29.936Z",
+      "git_sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
+      "git_branch": "main",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 8507
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1327
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 12230
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10467
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1369
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 204
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --grep \"@MS-merchant-venue-search-csp\"",
+          "exit_code": 0,
+          "duration_ms": 13926
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 201643
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 62038
+        },
+        {
+          "command": "pnpm test -- tests/unit/csp-theme-hash.test.mjs",
+          "exit_code": 0,
+          "duration_ms": 10756
+        }
+      ],
+      "all_passed": true
+    }
+  ],
+  "manual_attestations": [
+    {
+      "gate": "manual:browser-venue-search-csp",
+      "by": "codex",
+      "note": "Real local onboarding reached the ready Places search state after the CSP repair; the manual address fields remained usable and the provider-unavailable fallback was observed before the fix.",
+      "at": "2026-07-11T03:31:38.687Z"
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T03:31:38.687Z",
+      "note": "Focused unit output proving the dynamic CSP names only the trusted Google Maps script origin while retaining nonce and strict-dynamic protections."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T03:31:38.687Z",
+      "note": "Chromium output proving the onboarding venue-search loader reaches a mocked Google Places response without a CSP violation."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T03:31:38.687Z",
+      "note": "Manual browser output proving venue setup retains its manual-address recovery when the external provider is unavailable."
+    },
+    {
+      "gate": "manual:browser-venue-search-csp",
+      "by": "codex",
+      "note": "Real local onboarding reached the ready Places search state after the CSP repair; the manual address fields remained usable and the provider-unavailable fallback was observed before the fix.",
+      "at": "2026-07-11T03:56:29.936Z"
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T03:56:29.936Z",
+      "note": "Focused unit output proving the dynamic CSP names only the trusted Google Maps script origin while retaining nonce and strict-dynamic protections."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T03:56:29.936Z",
+      "note": "Chromium output proving the onboarding venue-search loader reaches a mocked Google Places response without a CSP violation."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T03:56:29.936Z",
+      "note": "Manual browser output proving venue setup retains its manual-address recovery when the external provider is unavailable."
+    }
+  ],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-11T02:42:00.656Z",
+      "sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
+      "dirty": true,
+      "by": "codex",
+      "note": "The complete UX audit is one atomic working-tree programme; this isolated CSP repair does not overwrite any other wave."
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-11T02:59:20.056Z",
+      "sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
+      "dirty": true,
+      "by": "codex",
+      "note": "The complete UX audit is one atomic working-tree programme; this isolated CSP repair and its evidence ship with the reviewed audit waves."
+    },
+    {
+      "from": "implemented",
+      "to": "verified",
+      "at": "2026-07-11T03:31:38.687Z",
+      "sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
+      "dirty": true,
+      "by": "codex",
+      "note": "The complete UX audit is one atomic reviewed working-tree programme."
+    },
+    {
+      "from": "verified",
+      "to": "closed",
+      "at": "2026-07-11T03:56:29.936Z",
+      "sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
+      "dirty": true,
+      "by": "codex",
+      "note": "The complete UX audit is one atomic reviewed working-tree programme."
+    }
+  ]
+}

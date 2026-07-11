@@ -600,11 +600,17 @@ export async function setMerchantAuthRateLimitRpcAvailable(
 
   if (available) {
     await sql`
+      revoke execute on function public.enforce_rate_limit(
+        text,
+        integer,
+        integer
+      ) from public, anon, authenticated`
+    await sql`
       grant execute on function public.enforce_rate_limit(
         text,
         integer,
         integer
-      ) to public, service_role`
+      ) to service_role`
     return
   }
 
@@ -613,7 +619,7 @@ export async function setMerchantAuthRateLimitRpcAvailable(
       text,
       integer,
       integer
-    ) from public, service_role`
+    ) from public, anon, authenticated, service_role`
 }
 
 export async function allowMerchantAuthProviderSend(

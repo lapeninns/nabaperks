@@ -113,6 +113,37 @@ test("local Supabase email hooks cannot silently target production during browse
   assert.match(liveHelper, /Local merchant auth proof email sink/)
 })
 
+test("merchant auth fault cleanup restores the rate-limit RPC to service-role only", () => {
+  const liveHelper = readProjectFile(
+    "tests",
+    "e2e",
+    "helpers",
+    "merchant-auth-recovery-live-db.ts"
+  )
+  const rateLimitHelper = liveHelper.match(
+    /export async function setMerchantAuthRateLimitRpcAvailable\([\s\S]*?\n}\n\nexport async function allowMerchantAuthProviderSend/
+  )?.[0]
+
+  assert.ok(rateLimitHelper)
+  assert.equal((rateLimitHelper.match(/grant execute/g) ?? []).length, 1)
+  assert.doesNotMatch(
+    rateLimitHelper,
+    /grant execute on function public\.enforce_rate_limit\([\s\S]{0,180}\) to (?:public|anon|authenticated)/
+  )
+  assert.match(
+    rateLimitHelper,
+    /revoke execute on function public\.enforce_rate_limit\([\s\S]{0,180}\) from public, anon, authenticated/
+  )
+  assert.match(
+    rateLimitHelper,
+    /grant execute on function public\.enforce_rate_limit\([\s\S]{0,180}\) to service_role/
+  )
+  assert.match(
+    rateLimitHelper,
+    /revoke execute on function public\.enforce_rate_limit\([\s\S]{0,180}\) from public, anon, authenticated, service_role/
+  )
+})
+
 test("merchant auth forms coordinate pending work and use correct live regions", () => {
   const verify = readProjectFile("components", "auth", "signup-verify-form.tsx")
   const reset = readProjectFile("components", "auth", "reset-password-form.tsx")

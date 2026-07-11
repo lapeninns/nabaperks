@@ -16,7 +16,7 @@ const STAMP_TOTAL = 3
 const HERO_CARD_NAME = "Mystery card"
 
 const HERO_REWARD_TICKET_CLASS =
-  "min-h-[9rem] [&>div:first-child]:content-start [&_h3]:line-clamp-2 [&_p]:line-clamp-2"
+  "min-h-[9rem] [&>div:first-child]:content-start [&_h2]:line-clamp-2 [&_p]:line-clamp-2"
 
 function HeroRewardRow({
   revealed,
@@ -42,6 +42,7 @@ function HeroRewardRow({
       }
       sealSlammed={revealSlam}
       className={HERO_REWARD_TICKET_CLASS}
+      headingLevel="h2"
     />
   )
 }
