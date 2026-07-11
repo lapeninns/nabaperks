@@ -31,13 +31,6 @@
     "optional": true
   },
   {
-    "name": "NEXT_PUBLIC_TURNSTILE_SITE_KEY",
-    "visibility": "public",
-    "kind": "string",
-    "description": "Cloudflare Turnstile site key used by the customer OTP-send challenge.",
-    "optional": true
-  },
-  {
     "name": "ANALYTICS_EXTERNAL_PROCESSING_MODE",
     "visibility": "server",
     "kind": "string",
@@ -201,13 +194,6 @@
     "visibility": "server",
     "kind": "string",
     "description": "High-entropy key material used to derive AES-GCM encryption keys for stored customer phone ciphertext."
-  },
-  {
-    "name": "TURNSTILE_SECRET_KEY",
-    "visibility": "server",
-    "kind": "string",
-    "description": "Cloudflare Turnstile Siteverify secret for customer OTP-send bot protection.",
-    "optional": true
   },
   {
     "name": "MERCHANT_OTP_ALIAS_TOKEN_ENCRYPTION_KEY",

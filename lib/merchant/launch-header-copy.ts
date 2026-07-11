@@ -10,9 +10,8 @@
  * - The heading is stated ONCE. The mobile context line and the desktop
  *   description never repeat the heading, and the launchReady description never
  *   repeats the readiness panel banner's "Customers can scan…" sentence.
- * - The header action is a jump-to-tab CTA, so it is SUPPRESSED (actionTab null)
- *   whenever it would point at the tab already on screen — it must never compete
- *   with, or duplicate, the active panel's own primary action.
+ * - Setup actions live after the active panel, so the header never competes
+ *   with the journey's single footer CTA.
  */
 import {
   needsLaunchBillingActivation,
@@ -36,7 +35,7 @@ export type LaunchHeaderModel = {
 
 export function resolveLaunchHeaderModel(
   readiness: LaunchReadiness,
-  activeTab: LaunchHubTab
+  _activeTab: LaunchHubTab
 ): LaunchHeaderModel {
   if (readiness.launchReady) {
     return {
@@ -47,7 +46,7 @@ export function resolveLaunchHeaderModel(
       // the header additive by pointing at the QR rather than repeating it.
       description: "Your QR is live below when you need the link.",
       // On the QR tab this CTA would be a no-op, so suppress it there.
-      actionTab: activeTab === "qr" ? null : "qr",
+      actionTab: null,
     }
   }
 
@@ -59,7 +58,7 @@ export function resolveLaunchHeaderModel(
         "Start your free trial to unlock the venue QR customers scan.",
       // On the billing tab the activation card carries the real Stripe checkout,
       // so the header CTA must not compete with it — suppress it there.
-      actionTab: activeTab === "billing" ? null : "billing",
+      actionTab: null,
     }
   }
 
@@ -69,7 +68,7 @@ export function resolveLaunchHeaderModel(
       mobileContext: "Create your venue QR to start accepting scans.",
       description:
         "Billing is ready. Create your venue QR and place it at the till.",
-      actionTab: activeTab === "qr" ? null : "qr",
+      actionTab: null,
     }
   }
 

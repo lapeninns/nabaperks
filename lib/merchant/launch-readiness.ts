@@ -22,6 +22,7 @@ import {
   isVenueOperational,
   needsLaunchBillingActivation,
   resolveLaunchBillingHref,
+  resolveLaunchFlowCta,
 } from "@/lib/merchant/launch-readiness-core"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
@@ -35,9 +36,15 @@ export {
   isVenueOperational,
   needsLaunchBillingActivation,
   resolveLaunchBillingHref,
+  resolveLaunchFlowCta,
 }
 export { LAUNCH_SETUP_STEP_LABELS }
-export type { LaunchSetupStepId, LaunchReadinessTab, LaunchHubTab }
+export type {
+  LaunchFlowCta,
+  LaunchSetupStepId,
+  LaunchReadinessTab,
+  LaunchHubTab,
+} from "@/lib/merchant/launch-readiness-core"
 export type {
   BuildLaunchReadinessInput,
   LaunchBilling,

@@ -6,7 +6,6 @@ import {
   needsLaunchBillingActivation,
   resolveLaunchActiveTab,
   resolveLaunchBillingHref,
-  resolveRewardsContinueHref,
   type LaunchBilling,
   type LaunchHubTab,
   type LaunchReadiness,
@@ -56,7 +55,6 @@ export type LaunchPageModel = LaunchSetupLoad & {
   needsBilling: boolean
   billingHref: string | null
   continueHref: string | null
-  rewardsContinueHref: string | null
   transientCleanHref: string | null
 }
 
@@ -80,7 +78,6 @@ export async function getLaunchPageModel(
     readiness.checklist,
     { rewardsReady: readiness.tabs.rewards }
   )
-  const rewardsContinueHref = resolveRewardsContinueHref(readiness)
   const transientCleanHref = hasTransientLaunchParam(params)
     ? `/app/launch?tab=${activeTab}`
     : null
@@ -93,7 +90,6 @@ export async function getLaunchPageModel(
     needsBilling,
     billingHref,
     continueHref,
-    rewardsContinueHref,
     transientCleanHref,
   }
 }

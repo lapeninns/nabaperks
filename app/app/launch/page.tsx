@@ -1,4 +1,3 @@
-import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Suspense } from "react"
 
@@ -13,23 +12,20 @@ import {
 } from "@/components/merchant/loading-skeletons"
 import { CardPanel } from "@/components/merchant/launch/card-panel"
 import { BillingActivationAssetPreview } from "@/components/merchant/launch/billing-activation-asset-preview"
+import { LaunchFlowFooter } from "@/components/merchant/launch/launch-flow-footer"
 import { QrPanel } from "@/components/merchant/launch/qr-panel"
 import { RewardsPanel } from "@/components/merchant/launch/rewards-panel"
 import { VenuePanel } from "@/components/merchant/launch/venue-panel"
-import { Button } from "@/components/ui/button"
 import { scheduleMerchantBillingReachedForLaunch } from "@/lib/analytics/merchant-billing-events"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { completeBillingCheckoutReturn } from "@/lib/merchant/billing-checkout-return"
 import { getLaunchPageModel } from "@/lib/merchant/launch-page-model"
 import {
-  rewardsContinueLabel,
+  resolveLaunchFlowCta,
   type LaunchHubTab,
   type LaunchReadiness,
 } from "@/lib/merchant/launch-readiness-core"
-import {
-  resolveLaunchHeaderModel,
-  type LaunchHeaderActionTab,
-} from "@/lib/merchant/launch-header-copy"
+import { resolveLaunchHeaderModel } from "@/lib/merchant/launch-header-copy"
 import {
   parseLaunchSearchParams,
   type LaunchSearchParams,
@@ -64,7 +60,6 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
     needsBilling,
     billingHref,
     continueHref,
-    rewardsContinueHref,
     transientCleanHref,
   } = await getLaunchPageModel(merchant.id, params)
 
@@ -78,7 +73,6 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
   // decision (lib/merchant/launch-header-copy) shared with the launch harness so
   // the two never drift and the hierarchy rules live in one place.
   const header = resolveLaunchHeaderModel(readiness, activeTab)
-  const headerActions = renderLaunchHeaderAction(header.actionTab, billingHref)
 
   return (
     <div className="grid min-w-0 gap-2 overflow-x-clip sm:gap-6">
@@ -101,7 +95,6 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
           eyebrow="Merchant setup"
           title={header.heading}
           description={header.description}
-          actions={headerActions}
         />
       </div>
 
@@ -130,7 +123,6 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
           setup={setup}
           readiness={readiness}
           continueHref={continueHref}
-          rewardsContinueHref={rewardsContinueHref}
           launchReady={readiness.launchReady}
           needsBillingActivation={needsBilling}
           billingHref={billingHref}
@@ -141,43 +133,12 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
   )
 }
 
-/**
- * The launch header's jump-to-tab CTA. Renders nothing when the pure header
- * model suppresses it (actionTab null) — i.e. when it would point at the tab
- * already on screen, so it never competes with the active panel's primary CTA.
- */
-function renderLaunchHeaderAction(
-  actionTab: LaunchHeaderActionTab,
-  billingHref: string | null
-) {
-  if (actionTab === "qr") {
-    return (
-      <Button asChild variant="secondary">
-        <Link href={QR_LAUNCH_TAB_PATH}>Open venue QR</Link>
-      </Button>
-    )
-  }
-
-  if (actionTab === "billing") {
-    return (
-      <Button asChild>
-        <Link href={billingHref ?? "/app/launch?tab=billing"}>
-          Proceed to billing
-        </Link>
-      </Button>
-    )
-  }
-
-  return undefined
-}
-
 function LaunchActivePanel({
   activeTab,
   params,
   setup,
   readiness,
   continueHref,
-  rewardsContinueHref,
   launchReady,
   needsBillingActivation,
   billingHref,
@@ -188,7 +149,6 @@ function LaunchActivePanel({
   setup: QrSetup
   readiness: LaunchReadiness
   continueHref: string | null
-  rewardsContinueHref: string | null
   launchReady: boolean
   needsBillingActivation: boolean
   billingHref: string | null
@@ -197,15 +157,11 @@ function LaunchActivePanel({
   return (
     <div className="grid min-w-0 gap-3 sm:gap-5">
       {activeTab === "card" ? (
-        <CardPanel params={params} advanceHref={continueHref} />
+        <CardPanel params={params} />
       ) : activeTab === "rewards" ? (
         <RewardsPanel
           params={params}
-          advanceHref={continueHref}
-          continueHref={rewardsContinueHref}
-          continueLabel={rewardsContinueLabel(rewardsContinueHref)}
           needsBillingActivation={needsBillingActivation}
-          billingHref={billingHref}
         />
       ) : activeTab === "venue" ? (
         <VenuePanel />
@@ -255,6 +211,7 @@ function LaunchActivePanel({
           returnHref={QR_LAUNCH_TAB_PATH}
         />
       )}
+      <LaunchFlowFooter cta={resolveLaunchFlowCta(activeTab, readiness)} />
     </div>
   )
 }

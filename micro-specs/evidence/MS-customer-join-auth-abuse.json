@@ -113,6 +113,45 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-11T13:11:14.120Z",
+      "git_sha": "6f2e453cadf8aa1395e12411acd5d39e3109c8e8",
+      "git_branch": "codex/launch-billing-before-qr",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6697
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1052
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 20478
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9166
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1375
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-customer-join-auth-abuse\"",
+          "exit_code": 0,
+          "duration_ms": 6439
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],

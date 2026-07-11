@@ -13,8 +13,7 @@ import {
   needsLaunchBillingActivation,
   resolveLaunchActiveTab,
   resolveLaunchBillingHref,
-  resolveRewardsContinueHref,
-  rewardsContinueLabel,
+  resolveLaunchFlowCta,
 } from "@/lib/merchant/launch-readiness-core"
 import { QR_LAUNCH_TAB_PATH } from "@/lib/merchant/qr-nav"
 
@@ -379,36 +378,57 @@ test("resolveLaunchActiveTab: valid request wins, else next step, else qr", () =
   assert.equal(resolveLaunchActiveTab(undefined, ready), "qr")
 })
 
-test("resolveRewardsContinueHref: null until pool ready, then routes onward", () => {
-  const poolShort = buildLaunchReadiness(
-    readyInput({ activeRewardPoolItemCount: 0, qrCode: null })
+test("resolveLaunchFlowCta maps each ready setup tab to the next journey step", () => {
+  const ready = buildLaunchReadiness(
+    readyInput({ billing: { requiresBilling: true, status: "active" } })
   )
-  const needsBillingBeforeQr = buildLaunchReadiness(
+
+  assert.deepEqual(resolveLaunchFlowCta("venue", ready), {
+    label: "Card",
+    href: "/app/launch?tab=card",
+  })
+  assert.deepEqual(resolveLaunchFlowCta("card", ready), {
+    label: "Rewards",
+    href: "/app/launch?tab=rewards",
+  })
+  assert.deepEqual(resolveLaunchFlowCta("rewards", ready), {
+    label: "Billing",
+    href: "/app/launch?tab=billing",
+  })
+  assert.deepEqual(resolveLaunchFlowCta("billing", ready), {
+    label: "Venue QR",
+    href: QR_LAUNCH_TAB_PATH,
+  })
+  assert.deepEqual(resolveLaunchFlowCta("qr", ready), {
+    label: "Dashboard",
+    href: "/app",
+  })
+})
+
+test("resolveLaunchFlowCta hides forward actions until the active step is ready", () => {
+  const empty = buildLaunchReadiness({
+    activeCard: null,
+    activeRewardPoolItemCount: 0,
+    qrCode: null,
+    location: null,
+    billing: { requiresBilling: true, status: null },
+  })
+
+  for (const tab of ["venue", "card", "rewards", "billing", "qr"]) {
+    assert.equal(resolveLaunchFlowCta(tab, empty), null)
+  }
+})
+
+test("resolveLaunchFlowCta keeps Dashboard available for a paused existing QR", () => {
+  const paused = buildLaunchReadiness(
     readyInput({
-      qrCode: null,
-      billing: { requiresBilling: true, status: null },
-    })
-  )
-  const needsQrAfterBilling = buildLaunchReadiness(
-    readyInput({
-      qrCode: null,
+      qrCode: activeQr(false),
       billing: { requiresBilling: true, status: "active" },
     })
   )
 
-  assert.equal(resolveRewardsContinueHref(poolShort), null)
-  assert.equal(
-    resolveRewardsContinueHref(needsBillingBeforeQr),
-    "/app/launch?tab=billing"
-  )
-  assert.equal(
-    resolveRewardsContinueHref(needsQrAfterBilling),
-    QR_LAUNCH_TAB_PATH
-  )
-})
-
-test("rewardsContinueLabel maps hrefs to copy", () => {
-  assert.equal(rewardsContinueLabel(null), "the next step")
-  assert.equal(rewardsContinueLabel("/app/launch?tab=billing"), "billing")
-  assert.equal(rewardsContinueLabel(QR_LAUNCH_TAB_PATH), "your venue QR")
+  assert.deepEqual(resolveLaunchFlowCta("qr", paused), {
+    label: "Dashboard",
+    href: "/app",
+  })
 })

@@ -4,7 +4,6 @@ import { redirect } from "next/navigation"
 import { PageTitle, ReceiptCard } from "@/components/brand"
 import { BirthdayRewardPanel } from "@/components/merchant/launch/birthday-panel"
 import { birthdayRewardTemplateForBusinessType } from "@/lib/merchant/birthday-reward-template"
-import { LaunchSaveNextAction } from "@/components/merchant/launch/launch-tab-auto-advance"
 import {
   RewardPoolForm,
   type RewardPoolItemValues,
@@ -23,18 +22,10 @@ export type RewardsPanelParams = {
 
 export async function RewardsPanel({
   params,
-  advanceHref,
-  continueHref,
-  continueLabel,
   needsBillingActivation = false,
-  billingHref,
 }: {
   params: RewardsPanelParams
-  advanceHref?: string | null
-  continueHref?: string | null
-  continueLabel?: string
   needsBillingActivation?: boolean
-  billingHref?: string | null
 }) {
   const { merchant, location, card, rewardPoolItems } =
     await getLoyaltyCardSetup()
@@ -88,13 +79,6 @@ export async function RewardsPanel({
     <div className="grid min-w-0 gap-3 sm:gap-5">
       <RewardsStatus
         params={params}
-        advanceHref={advanceHref}
-        continueHref={continueHref ?? billingHref}
-        continueLabel={
-          needsBillingActivation
-            ? "billing"
-            : (continueLabel ?? "the next step")
-        }
         rewardsReady={rewardsReady}
         activeRewardPoolItemCount={activeRewardCount}
         needsBillingActivation={needsBillingActivation}
@@ -103,8 +87,6 @@ export async function RewardsPanel({
         loyaltyCardId={card.id}
         cardName={card.card_name}
         rewardPoolItems={poolItems}
-        continueHref={continueHref}
-        continueLabel={continueLabel}
         presets={rewardPresetsForBusinessType(merchant.business_type)}
       />
       <BirthdayRewardPanel
@@ -120,17 +102,11 @@ export async function RewardsPanel({
 
 function RewardsStatus({
   params,
-  advanceHref,
-  continueHref,
-  continueLabel,
   rewardsReady,
   activeRewardPoolItemCount,
   needsBillingActivation,
 }: {
   params: RewardsPanelParams
-  advanceHref?: string | null
-  continueHref?: string | null
-  continueLabel?: string
   rewardsReady: boolean
   activeRewardPoolItemCount: number
   needsBillingActivation: boolean
@@ -161,23 +137,9 @@ function RewardsStatus({
               : rewardsReady
                 ? "Launch eligibility has been refreshed with your latest reward changes."
                 : `${activeRewardCopy} are ready. Finish the reward pool before setup can complete.`}
-        <LaunchSaveNextAction
-          nextHref={advanceHref ?? continueHref ?? null}
-          nextLabel={
-            needsBillingActivation
-              ? "billing"
-              : (continueLabel ?? "the next step")
-          }
-          stayHref="/app/launch?tab=rewards"
-          blockedReason={
-            rewardsReady
-              ? undefined
-              : `${activeRewardCopy}. Add or activate one more reward before continuing.`
-          }
-          primaryLabel={
-            needsBillingActivation ? "Proceed to billing" : undefined
-          }
-        />
+        {!rewardsReady
+          ? ` ${activeRewardCopy}. Add or activate one more reward before continuing.`
+          : null}
       </StatusBanner>
     )
   }

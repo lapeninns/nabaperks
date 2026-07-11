@@ -20,7 +20,6 @@ import { Eyebrow, PageTitle } from "@/components/brand"
 import { FormField, SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { Input } from "@/components/ui/input"
-import { LaunchSaveNextAction } from "@/components/merchant/launch/launch-tab-auto-advance"
 import type {
   GeofencePinSource,
   VenueAddressFormFields,
@@ -140,11 +139,6 @@ export function VenueLocationForm({
       {state.saved ? (
         <StatusBanner tone="success" title="Venue location saved.">
           Your QR and stamp checks now use this address.
-          <LaunchSaveNextAction
-            nextHref="/app/launch?tab=card"
-            nextLabel="your card"
-            stayHref="/app/launch?tab=venue"
-          />
         </StatusBanner>
       ) : null}
 

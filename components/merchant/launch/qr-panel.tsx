@@ -6,7 +6,6 @@ import { SubmitButton } from "@/components/forms"
 import { QrErrorBanner } from "@/components/merchant/launch/qr-error-banner"
 import { StatusBanner } from "@/components/loyalty/status-banner"
 import { QrPanelLive } from "@/components/merchant/launch/qr-panel-live"
-import { LaunchSaveNextAction } from "@/components/merchant/launch/launch-tab-auto-advance"
 import { Button } from "@/components/ui/button"
 import { getServerEnv } from "@/lib/env/server"
 import { LAUNCH_MIN_ACTIVE_REWARDS } from "@/lib/merchant/launch-readiness-contract"
@@ -143,13 +142,7 @@ export async function QrPanel({
 
   return (
     <div className="grid min-w-0 gap-3 sm:gap-5">
-      {statusMessage(
-        params,
-        launchReady,
-        continueHref,
-        billingHref,
-        returnHref
-      )}
+      {statusMessage(params, launchReady, continueHref, billingHref)}
       <QrPanelLive
         activeCardName={activeCard.card_name}
         qrCodeId={qrCode.id}
@@ -169,8 +162,7 @@ function statusMessage(
   params: QrPanelParams,
   launchReady: boolean,
   continueHref?: string | null,
-  billingHref?: string | null,
-  returnHref: string = QR_LAUNCH_TAB_PATH
+  billingHref?: string | null
 ) {
   const message = params.created
     ? "QR code created."
@@ -191,14 +183,6 @@ function statusMessage(
       {nextHref
         ? "One step from live. Proceed to billing to activate your venue and start accepting stamps."
         : "The permanent resolver and share URL are ready below."}
-      {nextHref ? (
-        <LaunchSaveNextAction
-          nextHref={nextHref}
-          nextLabel="billing"
-          primaryLabel="Proceed to billing"
-          stayHref={returnHref}
-        />
-      ) : null}
     </StatusBanner>
   )
 }
