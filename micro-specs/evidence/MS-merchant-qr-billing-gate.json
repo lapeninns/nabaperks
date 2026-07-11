@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-merchant-qr-billing-gate",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-11T12:43:30.647Z",
+      "sha": "4a056b2530bb52b01f3160ddd35b09b474ba6981",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}
