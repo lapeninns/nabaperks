@@ -6,8 +6,10 @@ import {
   buildLaunchReadiness,
   isJoinQrProvisionEligible,
   isLaunchBillingReady,
+  isLaunchReadinessBillingReady,
   isLaunchSetupCompleteWithoutQr,
   isVenueOperational,
+  LAUNCH_HUB_TABS,
   needsLaunchBillingActivation,
   resolveLaunchActiveTab,
   resolveLaunchBillingHref,
@@ -155,7 +157,14 @@ test("billing checklist item only appears when billing is provided", () => {
 
   assert.equal(withoutBilling.total, 4)
   assert.equal(withBilling.total, 5)
-  assert.ok(withBilling.checklist.some((s) => s.id === "billing"))
+  assert.deepEqual(
+    withBilling.checklist.map((step) => step.id),
+    ["venue", "card", "rewards", "billing", "qr"]
+  )
+  assert.deepEqual(
+    withoutBilling.checklist.map((step) => step.id),
+    ["venue", "card", "rewards", "qr"]
+  )
 })
 
 test("billing gate fails closed on null/unknown status, opens on active/trial", () => {
@@ -183,6 +192,20 @@ test("billing gate fails closed on null/unknown status, opens on active/trial", 
       `launchReady for status=${billing.status}`
     )
   }
+})
+
+test("billing readiness stays authoritative when an earlier setup step is also incomplete", () => {
+  const readiness = buildLaunchReadiness(
+    readyInput({
+      activeRewardPoolItemCount: 2,
+      qrCode: activeQr(),
+      billing: { requiresBilling: true, status: "past_due" },
+    })
+  )
+
+  assert.equal(readiness.nextStep?.id, "rewards")
+  assert.equal(resolveLaunchBillingHref(readiness), null)
+  assert.equal(isLaunchReadinessBillingReady(readiness), false)
 })
 
 test("billing-gated setup: everything else ready, billing is the next step", () => {
@@ -296,10 +319,15 @@ test("isJoinQrProvisionEligible: all gates required, QR not already active", () 
     activeCard: { id: "card_1" },
     activeRewardPoolItemCount: LAUNCH_MIN_ACTIVE_REWARDS,
     venueReady: true,
+    billingReady: true,
     qrCode: null,
   }
 
   assert.equal(isJoinQrProvisionEligible(base), true)
+  assert.equal(
+    isJoinQrProvisionEligible({ ...base, billingReady: false }),
+    false
+  )
   assert.equal(isJoinQrProvisionEligible({ ...base, activeCard: null }), false)
   assert.equal(
     isJoinQrProvisionEligible({
@@ -329,6 +357,13 @@ test("isJoinQrProvisionEligible: all gates required, QR not already active", () 
 
 // --- view derivations ------------------------------------------------------
 
+test("launch hub tabs follow venue, card, rewards, billing, then QR", () => {
+  assert.deepEqual(
+    LAUNCH_HUB_TABS.map((tab) => tab.id),
+    ["venue", "card", "rewards", "billing", "qr"]
+  )
+})
+
 test("resolveLaunchActiveTab: valid request wins, else next step, else qr", () => {
   const incomplete = buildLaunchReadiness({
     activeCard: null,
@@ -348,18 +383,27 @@ test("resolveRewardsContinueHref: null until pool ready, then routes onward", ()
   const poolShort = buildLaunchReadiness(
     readyInput({ activeRewardPoolItemCount: 0, qrCode: null })
   )
-  const needsQr = buildLaunchReadiness(readyInput({ qrCode: null }))
-  // QR active but billing pending -> billing is the immediate next step.
-  const needsBilling = buildLaunchReadiness(
-    readyInput({ billing: { requiresBilling: true, status: null } })
+  const needsBillingBeforeQr = buildLaunchReadiness(
+    readyInput({
+      qrCode: null,
+      billing: { requiresBilling: true, status: null },
+    })
+  )
+  const needsQrAfterBilling = buildLaunchReadiness(
+    readyInput({
+      qrCode: null,
+      billing: { requiresBilling: true, status: "active" },
+    })
   )
 
   assert.equal(resolveRewardsContinueHref(poolShort), null)
-  // QR not live yet takes precedence over a not-yet-due billing step.
-  assert.equal(resolveRewardsContinueHref(needsQr), QR_LAUNCH_TAB_PATH)
   assert.equal(
-    resolveRewardsContinueHref(needsBilling),
+    resolveRewardsContinueHref(needsBillingBeforeQr),
     "/app/launch?tab=billing"
+  )
+  assert.equal(
+    resolveRewardsContinueHref(needsQrAfterBilling),
+    QR_LAUNCH_TAB_PATH
   )
 })
 

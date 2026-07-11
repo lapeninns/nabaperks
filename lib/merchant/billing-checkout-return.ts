@@ -1,6 +1,8 @@
 import "server-only"
 
 import { scheduleMerchantBillingCheckoutReturned } from "@/lib/analytics/merchant-billing-events"
+import { autoProvisionJoinQrFromSetup } from "@/lib/merchant/ensure-join-qr"
+import { isLaunchBillingReady } from "@/lib/merchant/launch-readiness-core"
 import { revalidateMerchantLaunchSurfaces } from "@/lib/merchant/revalidate-launch-surfaces"
 import {
   confirmBillingCheckoutReturn,
@@ -31,7 +33,11 @@ export async function completeBillingCheckoutReturn(
     outcome = { kind: "catching_up" }
   }
 
-  if (outcome.kind === "confirmed") {
+  if (
+    outcome.kind === "confirmed" &&
+    isLaunchBillingReady({ requiresBilling: true, status: outcome.status })
+  ) {
+    await autoProvisionJoinQrFromSetup()
     revalidateMerchantLaunchSurfaces(merchantId)
   }
 
@@ -52,7 +58,11 @@ export async function completeBillingPortalReturn(
     outcome = { kind: "catching_up" }
   }
 
-  if (outcome.kind === "confirmed") {
+  if (
+    outcome.kind === "confirmed" &&
+    isLaunchBillingReady({ requiresBilling: true, status: outcome.status })
+  ) {
+    await autoProvisionJoinQrFromSetup()
     revalidateMerchantLaunchSurfaces(merchantId)
   }
 

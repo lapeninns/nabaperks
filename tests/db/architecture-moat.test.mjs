@@ -167,6 +167,44 @@ test("Given a merchant that requires billing When no billing row exists Then sta
   }
 })
 
+test("Given billing is past due When a retained venue QR is stamped Then the RPC fails closed without writing a stamp", async () => {
+  const sql = createSqlClient()
+
+  try {
+    const fixture = await createFixture(sql, {
+      billingStatus: "active",
+      membershipStampCount: 0,
+      rewardToken: false,
+    })
+
+    await setServiceRole(sql)
+    await sql`
+      update public.billing_customers
+      set status = 'past_due'
+      where merchant_id = ${fixture.merchantId}::uuid`
+
+    await assert.rejects(() => issueStamp(sql, fixture), /billing|unavailable/i)
+
+    const [{ stampCount, currentStampCount }] = await sql`
+      select
+        (
+          select count(*)::integer
+          from public.stamp_events
+          where membership_id = ${fixture.membershipId}
+        ) as stamp_count,
+        (
+          select current_stamp_count
+          from public.customer_memberships
+          where id = ${fixture.membershipId}
+        ) as current_stamp_count`
+
+    assert.equal(stampCount, 0)
+    assert.equal(currentStampCount, 0)
+  } finally {
+    await sql.end({ timeout: 5 })
+  }
+})
+
 function createSqlClient() {
   return postgres(dbUrl, {
     max: 1,

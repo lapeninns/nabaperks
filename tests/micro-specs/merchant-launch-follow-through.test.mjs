@@ -65,7 +65,10 @@ test("the launch rail owns global progress while QR keeps its local task order",
   assert.match(qrPanel, /step="02"/)
 })
 
-test("launch harness QR state is derived from readiness", () => {
-  assert.match(launchHarness, /isActive=\{readiness\.tabs\.qr\}/)
-  assert.match(launchHarness, /scansAvailable=\{readiness\.launchReady\}/)
+test("launch harness exposes billing-locked, lapsed, QR-ready, and live states", () => {
+  for (const state of ["billing", "lapsed", "qr", "live"]) {
+    assert.match(launchHarness, new RegExp(`value === ["']${state}["']`))
+  }
+  assert.match(launchHarness, /<QrPanel/)
+  assert.match(launchHarness, /billingHref=\{billingHref\}/)
 })

@@ -46,6 +46,16 @@ test.describe("merchant launch header @launch-header", () => {
     ).toBeVisible()
   })
 
+  test("needsQr: the header CTA links to QR after billing", async ({
+    page,
+  }) => {
+    await page.goto(`${HARNESS_ROUTES.launch}?state=qr&tab=venue`)
+
+    const headerCta = page.getByRole("link", { name: "Open venue QR" })
+    await expect(headerCta).toBeVisible()
+    await expect(headerCta).toHaveAttribute("href", "/app/launch?tab=qr")
+  })
+
   test("launchReady: the header CTA links to the QR off the qr tab", async ({
     page,
   }) => {
@@ -61,8 +71,8 @@ test.describe("merchant launch header @launch-header", () => {
   }) => {
     await page.goto(`${HARNESS_ROUTES.launch}?state=live&tab=qr`)
 
-    await expect(
-      page.getByRole("link", { name: "Open venue QR" })
-    ).toHaveCount(0)
+    await expect(page.getByRole("link", { name: "Open venue QR" })).toHaveCount(
+      0
+    )
   })
 })

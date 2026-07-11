@@ -44,6 +44,56 @@ test("billing panel bypasses cached billing read after checkout success", () => 
   assert.match(billingPanel, /completeBillingPortalReturn/)
 })
 
+test("confirmed checkout and portal returns provision QR before revalidation", () => {
+  const billingReturn = readProjectFile(
+    "lib",
+    "merchant",
+    "billing-checkout-return.ts"
+  )
+  const checkoutStart = billingReturn.indexOf(
+    "export async function completeBillingCheckoutReturn"
+  )
+  const portalStart = billingReturn.indexOf(
+    "export async function completeBillingPortalReturn"
+  )
+  const checkout = billingReturn.slice(checkoutStart, portalStart)
+  const portal = billingReturn.slice(portalStart)
+
+  for (const workflow of [checkout, portal]) {
+    assert.match(workflow, /isLaunchBillingReady/)
+    assert.match(
+      workflow,
+      /outcome\.kind === "confirmed"[\s\S]*await autoProvisionJoinQrFromSetup\(\)[\s\S]*revalidateMerchantLaunchSurfaces/
+    )
+  }
+})
+
+test("confirmed billing outcome links directly to the venue QR", () => {
+  const billingPanelView = readProjectFile(
+    "components",
+    "merchant",
+    "account",
+    "billing-panel-view.tsx"
+  )
+
+  assert.match(billingPanelView, /outcome\.kind === "confirmed"/)
+  assert.match(billingPanelView, /isLaunchBillingReady/)
+  assert.match(billingPanelView, /href="\/app\/launch\?tab=qr"/)
+  assert.match(billingPanelView, /See your venue QR/)
+})
+
+test("automatic QR provisioning bypasses request-cached billing after reconciliation", () => {
+  const ensureQr = readProjectFile("lib", "merchant", "ensure-join-qr.ts")
+  const readiness = readProjectFile("lib", "merchant", "launch-readiness.ts")
+
+  assert.match(ensureQr, /getLaunchBillingReadinessFresh/)
+  assert.match(readiness, /getMerchantBillingFresh/)
+  assert.match(
+    readiness,
+    /export async function getLaunchBillingReadinessFresh/
+  )
+})
+
 test("billing action delegates one posted interval to fenced orchestration", () => {
   const actions = readProjectFile("app", "app", "billing", "actions.ts")
 

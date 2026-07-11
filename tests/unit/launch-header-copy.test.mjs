@@ -32,8 +32,8 @@ function joinQr(is_active) {
   return { id: "qr_1", qr_id: "q", destination_type: "join", is_active }
 }
 
-/** venue+card+rewards ready, QR not live, billing pending → nextStep = qr. */
-const midSetup = buildLaunchReadiness({
+/** venue+card+rewards ready, billing pending, QR not live → billing first. */
+const needsBilling = buildLaunchReadiness({
   activeCard,
   activeRewardPoolItemCount: LAUNCH_MIN_ACTIVE_REWARDS,
   qrCode: joinQr(false),
@@ -41,13 +41,13 @@ const midSetup = buildLaunchReadiness({
   billing: { requiresBilling: true, status: null },
 })
 
-/** venue+card+rewards+QR ready, billing the only pending step → needsBilling. */
-const needsBilling = buildLaunchReadiness({
+/** venue+card+rewards+billing ready, QR not live → QR is the final step. */
+const needsQr = buildLaunchReadiness({
   activeCard,
   activeRewardPoolItemCount: LAUNCH_MIN_ACTIVE_REWARDS,
-  qrCode: joinQr(true),
+  qrCode: joinQr(false),
   location: venue(),
-  billing: { requiresBilling: true, status: null },
+  billing: { requiresBilling: true, status: "active" },
 })
 
 /** Everything ready, billing not required → launchReady. */
@@ -59,28 +59,18 @@ const live = buildLaunchReadiness({
   billing: { requiresBilling: false, status: null },
 })
 
-// --- mid-setup -------------------------------------------------------------
-
-test("mid-setup: next-step heading + progress context, no header CTA", () => {
-  const header = resolveLaunchHeaderModel(midSetup, "card")
-
-  assert.equal(header.heading, "Bring your venue to life")
-  assert.match(header.mobileContext, /steps done\. Next: /)
-  // No jump-CTA until the flow is either live or blocked on billing.
-  assert.equal(header.actionTab, null)
-})
-
 // --- needsBilling: information hierarchy ------------------------------------
 
-test("needsBilling: heading states the progress, context states what's LEFT", () => {
+test("needsBilling: activation truthfully unlocks the QR", () => {
   const header = resolveLaunchHeaderModel(needsBilling, "venue")
 
-  assert.equal(header.heading, "One step from live")
-  assert.equal(header.mobileContext, "The last step before your venue goes live.")
-  // The context and description must not repeat the heading text (the redundant
-  // triple this pass removed).
-  assert.doesNotMatch(header.mobileContext, /account is created/i)
-  assert.doesNotMatch(header.description, /account is created/i)
+  assert.equal(header.heading, "Activate to unlock your QR")
+  assert.equal(
+    header.mobileContext,
+    "Start your free trial, then create your venue QR."
+  )
+  assert.match(header.description, /free trial/i)
+  assert.match(header.description, /venue QR/i)
 })
 
 // --- needsBilling: interaction hierarchy (CTA never competes) ---------------
@@ -98,7 +88,27 @@ test("needsBilling: header CTA jumps to billing from any non-billing tab", () =>
 test("needsBilling: header CTA is SUPPRESSED on the billing tab", () => {
   // On the billing tab the activation card carries the real Stripe checkout, so
   // a header "Proceed to billing" would be a no-op competing with it.
-  assert.equal(resolveLaunchHeaderModel(needsBilling, "billing").actionTab, null)
+  assert.equal(
+    resolveLaunchHeaderModel(needsBilling, "billing").actionTab,
+    null
+  )
+})
+
+// --- needsQr: information + interaction hierarchy --------------------------
+
+test("needsQr: the QR is the final step after billing", () => {
+  const header = resolveLaunchHeaderModel(needsQr, "venue")
+
+  assert.equal(header.heading, "One step from live")
+  assert.equal(
+    header.mobileContext,
+    "Create your venue QR to start accepting scans."
+  )
+  assert.equal(header.actionTab, "qr")
+})
+
+test("needsQr: header CTA is suppressed on the QR tab", () => {
+  assert.equal(resolveLaunchHeaderModel(needsQr, "qr").actionTab, null)
 })
 
 // --- launchReady: information + interaction hierarchy -----------------------

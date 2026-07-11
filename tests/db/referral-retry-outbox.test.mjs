@@ -24,7 +24,7 @@ const PICK_QR = /* sql */ `
   where q.is_active and q.destination_type = 'join' and m.status in ('trial', 'active')
     and (m.requires_billing = false or exists (
       select 1 from public.billing_customers bc
-      where bc.merchant_id = m.id and bc.status is not null and bc.status not in ('cancelled', 'suspended')))
+      where bc.merchant_id = m.id and bc.status in ('trialing', 'active')))
   order by q.created_at limit 1`
 
 const PICK_QR_REWARDS = /* sql */ `
@@ -36,7 +36,7 @@ const PICK_QR_REWARDS = /* sql */ `
     and (select count(*) from public.reward_pool_items rpi where rpi.loyalty_card_id = lc.id and rpi.is_active) >= 3
     and (m.requires_billing = false or exists (
       select 1 from public.billing_customers bc
-      where bc.merchant_id = m.id and bc.status is not null and bc.status not in ('cancelled', 'suspended')))
+      where bc.merchant_id = m.id and bc.status in ('trialing', 'active')))
   order by q.created_at limit 1`
 
 async function makeCustomer(tx) {

@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next"
-import Script from "next/script";
 import { Bricolage_Grotesque, Space_Mono } from "next/font/google"
+import Script from "next/script"
 
 import "./globals.css"
 import { AppPwa } from "@/components/pwa/app-pwa"
@@ -91,9 +91,14 @@ export default function RootLayout({
       className={`${bricolageGrotesque.variable} ${spaceMono.variable} antialiased`}
     >
       <head>
-        {process.env.NODE_ENV === "development" && (
-          <script src="https://unpkg.com/react-scan/dist/auto.global.js" crossOrigin="anonymous" />
-        )}
+        {process.env.NODE_ENV === "development" &&
+          process.env.PLAYWRIGHT_HARNESS !== "1" && (
+            <Script
+              src="https://unpkg.com/react-scan/dist/auto.global.js"
+              crossOrigin="anonymous"
+              strategy="afterInteractive"
+            />
+          )}
 
         {process.env.NODE_ENV === "development" && (
           <Script

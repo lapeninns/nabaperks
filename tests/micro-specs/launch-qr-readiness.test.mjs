@@ -213,7 +213,72 @@ test("Given launch and QR pages render setup When the model loads Then GET rende
   assert.match(qrPanel, /<form action={generateQrCodeAction}>/)
 })
 
-test("Given billing is pending When the merchant QR is enabled Then the QR panel does not claim scans are accepted", () => {
+test("Given billing is not ready When QR provision or enable is attempted Then every app write path fails closed", () => {
+  const readinessCore = readProjectFile(
+    "lib",
+    "merchant",
+    "launch-readiness-core.ts"
+  )
+  const ensureQr = readProjectFile("lib", "merchant", "ensure-join-qr.ts")
+  const qrActions = readProjectFile("app", "app", "qr", "actions.ts")
+
+  assert.match(
+    readinessCore,
+    /type EnsureJoinQrInput[\s\S]*billingReady: boolean/
+  )
+  assert.match(
+    readinessCore,
+    /isJoinQrProvisionEligible[\s\S]*input\.billingReady/
+  )
+  assert.match(ensureQr, /getLaunchBillingReadiness/)
+  assert.match(ensureQr, /billingReady: isLaunchBillingReady\(billing\)/)
+  assert.match(qrActions, /QR_BILLING_ERROR/)
+  assert.match(
+    qrActions,
+    /generateQrCodeAction[\s\S]*isLaunchBillingReady\(billing\)[\s\S]*create_or_get_join_qr/
+  )
+  assert.match(
+    qrActions,
+    /setQrActiveAction[\s\S]*nextActive && !isLaunchBillingReady\(billing\)[\s\S]*set_qr_active/
+  )
+})
+
+test("Given billing confirmation returns When source is inspected Then QR provisioning is an explicit return-only carve-out", () => {
+  const launchPageModel = readProjectFile(
+    "lib",
+    "merchant",
+    "launch-page-model.ts"
+  )
+  const billingReturn = readProjectFile(
+    "lib",
+    "merchant",
+    "billing-checkout-return.ts"
+  )
+
+  assert.doesNotMatch(launchPageModel, /autoProvisionJoinQrFromSetup/)
+  assert.match(
+    billingReturn,
+    /completeBillingCheckoutReturn[\s\S]*outcome\.kind === "confirmed"[\s\S]*autoProvisionJoinQrFromSetup/
+  )
+  assert.match(
+    billingReturn,
+    /completeBillingPortalReturn[\s\S]*outcome\.kind === "confirmed"[\s\S]*autoProvisionJoinQrFromSetup/
+  )
+})
+
+test("Given billing is pending When no QR exists Then the QR panel stays locked without rendering an image", () => {
+  const qrPanel = readProjectFile(
+    "components",
+    "merchant",
+    "launch",
+    "qr-panel.tsx"
+  )
+  assert.match(qrPanel, /if \(!billingReady && !qrCode\)/)
+  assert.match(qrPanel, /Activate billing to unlock your venue QR/)
+  assert.match(qrPanel, /href="\/app\/launch\?tab=billing"/)
+})
+
+test("Given billing lapses When a QR already exists Then scans pause without hiding poster or disable controls", () => {
   const qrPanel = readProjectFile(
     "components",
     "merchant",
@@ -227,16 +292,32 @@ test("Given billing is pending When the merchant QR is enabled Then the QR panel
     "qr-panel-live.tsx"
   )
 
-  assert.match(qrPanel, /scansAvailable=\{qrCode\.is_active && !billingHref\}/)
+  assert.match(qrPanel, /isLaunchReadinessBillingReady\(readiness\)/)
+  assert.doesNotMatch(qrPanel, /billingReady=\{!billingHref\}/)
+  assert.match(livePanel, /Enabled · scans paused/)
+  assert.match(livePanel, /Scans paused — fix billing/)
+  assert.match(livePanel, /href="\/app\/launch\?tab=billing"/)
+  assert.match(livePanel, /EmailPosterButton/)
+  assert.match(livePanel, /Disable QR/)
+})
+
+test("Given scans are available When the QR panel renders Then till and first-stamp guidance is explicit", () => {
+  const livePanel = readProjectFile(
+    "components",
+    "merchant",
+    "launch",
+    "qr-panel-live.tsx"
+  )
+
+  assert.match(livePanel, /scansAvailable[\s\S]*Set up at the till/)
+  assert.match(livePanel, /poster at the till or bar/)
+  assert.match(livePanel, /Brief the team/)
   assert.match(
     livePanel,
-    /function QrLiveStatus\(\{[\s\S]*isActive,[\s\S]*scansAvailable/
+    /customer(?:'|&apos;)s phone joins and collects the stamp/
   )
-  assert.match(livePanel, /Enabled · billing needed/)
-  assert.match(
-    livePanel,
-    /Customers cannot join or collect stamps until billing is active\./
-  )
+  assert.match(livePanel, /Do not use the merchant reward scanner for first stamps/)
+  assert.doesNotMatch(livePanel, /href="\/app\/scan"/)
 })
 
 test("Given the card setup form is saved When source is inspected Then validation RPC seed and redirect decisions stay coupled to the server action", () => {

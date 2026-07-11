@@ -17,7 +17,7 @@ export function OnboardingJourneyOrientation(
       >
         <p className="text-sm leading-6 font-bold text-pretty">
           Save this venue, then we&apos;ll guide you through your card, rewards,
-          QR and billing — one step at a time.
+          billing and QR — one step at a time.
         </p>
       </div>
     )

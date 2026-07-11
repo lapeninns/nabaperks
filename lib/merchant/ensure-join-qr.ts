@@ -1,9 +1,11 @@
 import "server-only"
 
 import { capturePostHogEvent } from "@/lib/analytics/events"
+import { getLaunchBillingReadinessFresh } from "@/lib/merchant/launch-readiness"
 import { buildLaunchReadiness } from "@/lib/merchant/launch-readiness-core"
 import {
   isJoinQrProvisionEligible,
+  isLaunchBillingReady,
   type EnsureJoinQrInput,
 } from "@/lib/merchant/launch-readiness-core"
 import { getQrSetupFresh } from "@/lib/merchant/qr-code"
@@ -79,7 +81,6 @@ export async function ensureJoinQrProvisioned(
   return { provisioned: true, created: false }
 }
 
-/** Create or re-enable the join QR once venue, card, and reward pool are ready. */
 export async function autoProvisionJoinQrFromSetup(): Promise<{
   provisioned: boolean
   created: boolean
@@ -90,11 +91,17 @@ export async function autoProvisionJoinQrFromSetup(): Promise<{
     return { provisioned: false, created: false }
   }
 
+  const billing = await getLaunchBillingReadinessFresh(
+    setup.merchant.id,
+    setup.merchant.requires_billing !== false
+  )
+
   const readiness = buildLaunchReadiness({
     activeCard: setup.activeCard,
     activeRewardPoolItemCount: setup.activeRewardPoolItemCount,
     qrCode: setup.qrCode,
     location: setup.location,
+    billing,
   })
 
   return ensureJoinQrProvisioned({
@@ -102,6 +109,7 @@ export async function autoProvisionJoinQrFromSetup(): Promise<{
     activeCard: setup.activeCard,
     activeRewardPoolItemCount: setup.activeRewardPoolItemCount,
     venueReady: readiness.tabs.venue,
+    billingReady: isLaunchBillingReady(billing),
     qrCode: setup.qrCode,
   })
 }

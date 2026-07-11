@@ -136,7 +136,7 @@ export function buildLaunchReadiness({
     ? buildBillingChecklistItem(billingReady)
     : null
   const checklist = billingChecklist
-    ? [...setupSteps, qrStep, billingChecklist]
+    ? [...setupSteps, billingChecklist, qrStep]
     : [...setupSteps, qrStep]
   const steps = [...setupSteps, qrStep]
   const completed = checklist.filter((step) => step.ready).length
@@ -217,6 +217,14 @@ export function isLaunchBillingReady(
   return isBillingReady(billing)
 }
 
+export function isLaunchReadinessBillingReady(
+  readiness: LaunchReadiness
+): boolean {
+  return (
+    readiness.checklist.find((step) => step.id === "billing")?.ready ?? true
+  )
+}
+
 export function needsLaunchBillingActivation(
   readiness: LaunchReadiness
 ): boolean {
@@ -266,6 +274,7 @@ export type EnsureJoinQrInput = {
   activeCard: { id: string } | null
   activeRewardPoolItemCount: number
   venueReady: boolean
+  billingReady: boolean
   qrCode: { id: string; is_active: boolean } | null
 }
 
@@ -274,6 +283,7 @@ export function isJoinQrProvisionEligible(input: EnsureJoinQrInput): boolean {
     input.activeCard !== null &&
     input.activeRewardPoolItemCount >= LAUNCH_MIN_ACTIVE_REWARDS &&
     input.venueReady &&
+    input.billingReady &&
     input.qrCode?.is_active !== true
   )
 }
@@ -288,8 +298,8 @@ export const LAUNCH_HUB_TABS = [
   { id: "venue", label: LAUNCH_SETUP_STEP_LABELS.venue },
   { id: "card", label: LAUNCH_SETUP_STEP_LABELS.card },
   { id: "rewards", label: LAUNCH_SETUP_STEP_LABELS.rewards },
-  { id: "qr", label: LAUNCH_SETUP_STEP_LABELS.qr },
   { id: "billing", label: LAUNCH_SETUP_STEP_LABELS.billing },
+  { id: "qr", label: LAUNCH_SETUP_STEP_LABELS.qr },
 ] as const satisfies ReadonlyArray<{ id: LaunchHubTab; label: string }>
 
 export function isLaunchHubTab(

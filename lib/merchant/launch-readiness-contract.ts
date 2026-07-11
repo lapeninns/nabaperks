@@ -36,8 +36,7 @@ export const MERCHANT_SETUP_STEPS = [
   {
     id: "venue",
     title: LAUNCH_SETUP_STEP_LABELS.venue,
-    description:
-      "Add your venue name and customer-facing address.",
+    description: "Add your venue name and customer-facing address.",
   },
   {
     id: "card",
@@ -52,15 +51,14 @@ export const MERCHANT_SETUP_STEPS = [
       "Add at least three live rewards so every full card has something to reveal.",
   },
   {
+    id: "billing",
+    title: LAUNCH_SETUP_STEP_LABELS.billing,
+    description: "Start your free trial to unlock your permanent venue QR.",
+  },
+  {
     id: "qr",
     title: LAUNCH_SETUP_STEP_LABELS.qr,
     description:
-      "Review and share the permanent venue QR customers use to collect stamps.",
-  },
-  {
-    id: "billing",
-    title: LAUNCH_SETUP_STEP_LABELS.billing,
-    description:
-      "Add a billing card to activate the venue after the free trial starts.",
+      "Once billing is active, set up and share the venue QR customers use to collect stamps.",
   },
 ] as const satisfies ReadonlyArray<MerchantSetupStep>

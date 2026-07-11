@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { getServerEnv } from "@/lib/env/server"
 import { LAUNCH_MIN_ACTIVE_REWARDS } from "@/lib/merchant/launch-readiness-contract"
 import type { LaunchReadiness } from "@/lib/merchant/launch-readiness"
+import { isLaunchReadinessBillingReady } from "@/lib/merchant/launch-readiness-core"
 import { QR_LAUNCH_TAB_PATH } from "@/lib/merchant/qr-nav"
 import type { QrSetup } from "@/lib/merchant/qr-code"
 
@@ -45,6 +46,7 @@ export async function QrPanel({
 }) {
   const { activeCard, qrCode, location } = setup
   const activeRewardPoolItemCount = setup.activeRewardPoolItemCount
+  const billingReady = isLaunchReadinessBillingReady(readiness)
 
   if (!activeCard) {
     return (
@@ -63,6 +65,27 @@ export async function QrPanel({
     )
   }
 
+  if (!billingReady && !qrCode) {
+    return (
+      <ReceiptCard className="grid gap-4">
+        <PageTitle
+          headingLevel={2}
+          eyebrow="Venue QR"
+          title="Activate billing to unlock your venue QR"
+          description="Your venue, card and rewards are ready. Start the free trial and your permanent QR will be created next."
+          titleClassName="sm:text-3xl"
+        />
+        <StatusBanner tone="warning" title="QR locked until billing is active">
+          There is no venue QR to share or print yet. Activate billing first so
+          the code cannot go live before scans are covered.
+        </StatusBanner>
+        <Button asChild className="w-fit">
+          <Link href="/app/launch?tab=billing">Go to billing</Link>
+        </Button>
+      </ReceiptCard>
+    )
+  }
+
   if (!qrCode) {
     const canCreateQr =
       activeRewardPoolItemCount >= LAUNCH_MIN_ACTIVE_REWARDS &&
@@ -74,7 +97,7 @@ export async function QrPanel({
           headingLevel={2}
           eyebrow="Venue QR"
           title="Your QR is not live yet"
-          description="Create the permanent venue QR once venue, card, and rewards are ready. Billing is the final activation step."
+          description="Create the permanent venue QR once venue, card, rewards and billing are ready."
           titleClassName="sm:text-3xl"
         />
         <QrErrorBanner error={params.error} />
@@ -120,12 +143,19 @@ export async function QrPanel({
 
   return (
     <div className="grid min-w-0 gap-3 sm:gap-5">
-      {statusMessage(params, launchReady, continueHref, billingHref, returnHref)}
+      {statusMessage(
+        params,
+        launchReady,
+        continueHref,
+        billingHref,
+        returnHref
+      )}
       <QrPanelLive
         activeCardName={activeCard.card_name}
         qrCodeId={qrCode.id}
         isActive={qrCode.is_active}
-        scansAvailable={qrCode.is_active && !billingHref}
+        billingReady={billingReady}
+        scansAvailable={qrCode.is_active && billingReady}
         shareUrl={shareUrl}
         hasVenueAddress={Boolean(location?.address)}
         error={params.error}

@@ -115,7 +115,6 @@ export default async function DashboardHarnessPage({
   const showEmptyMembers = params.members === "empty"
   const qrPaused = params.qr === "paused"
   const qrGated = params.qr === "gated"
-  const qrScansAvailable = !qrPaused && !qrGated
   const readiness = buildDashboardHarnessReadiness({
     setupIncomplete: showSetupReminder,
     qrPaused,
@@ -147,8 +146,8 @@ export default async function DashboardHarnessPage({
         qrCodeId="qr_harness"
         venueName={HARNESS_MERCHANT.business_name}
         shareUrl="https://nabaperks.com/q/old-crown-girton"
-        isActive={!qrPaused}
-        scansAvailable={qrScansAvailable}
+        isActive={readiness.tabs.qr}
+        scansAvailable={readiness.launchReady}
         actionHref={qrGated ? "/app/launch?tab=billing" : "/app/qr"}
         actionLabel={qrGated ? "Finish launch setup" : "Review QR setup"}
       />

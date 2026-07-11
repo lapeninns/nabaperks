@@ -49,8 +49,8 @@ export default function DemoPage() {
             The card your customers get.
           </h1>
           <p className="max-w-[42ch] text-sm leading-6 text-pretty text-muted-foreground">
-            No app, no wallet pass, no sign-up. Tap the card to walk through a demo
-            stamp and reward unlock.
+            No app, no wallet pass, no sign-up. Tap the card to walk through a
+            demo stamp and reward unlock.
           </p>
         </header>
 
@@ -58,8 +58,8 @@ export default function DemoPage() {
 
         <div className="grid justify-items-center gap-3 border-t-2 border-dashed border-foreground/25 pt-5 text-center">
           <p className="max-w-[40ch] text-sm leading-6 text-pretty text-muted-foreground">
-            This is what your regulars see at your counter. Build your card,
-            then activate billing when you are ready to go live.
+            This is what your regulars see at your counter. Set up your venue,
+            card, rewards, billing and QR when you are ready to go live.
           </p>
           <Button asChild size="lg">
             <Link href="/signup">Start free pilot</Link>

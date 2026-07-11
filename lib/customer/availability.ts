@@ -49,7 +49,11 @@ export function loyaltyAvailability({
     }
   }
 
-  if (billingStatus === "suspended" || billingStatus === "cancelled") {
+  if (
+    billingStatus !== null &&
+    billingStatus !== "active" &&
+    billingStatus !== "trialing"
+  ) {
     return {
       available: false,
       reason: "billing_blocked",
