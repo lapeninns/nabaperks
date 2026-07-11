@@ -13,9 +13,26 @@ export function defineMerchantLaunchFollowThroughTests() {
     await dismissPwaInstall(page)
   })
 
-  test("incomplete dashboard exposes only its true next job @a11y @visual", async ({
+  test("incomplete dashboard exposes only its true next job @a11y", async ({
     page,
   }) => {
+    await page.goto(`${HARNESS_ROUTES.dashboard}?setup=incomplete`)
+
+    await expect(page.getByText("2 of 5 complete")).toBeVisible()
+    const finishSetup = page.getByRole("link", { name: "Finish setup" })
+    await expect(finishSetup).toBeVisible()
+    await expect(finishSetup).toHaveAttribute("href", "/app/launch?tab=rewards")
+    const main = page.getByRole("main")
+    await expect(main.getByRole("link", { name: "Scan reward" })).toHaveCount(0)
+    await expect(main.getByRole("link", { name: "Announce" })).toHaveCount(0)
+    await expectNoAxeViolations(page, "incomplete merchant dashboard")
+    await expectNoHorizontalOverflow(page)
+    await expect(page.getByRole("img", { name: /^QR code for / })).toHaveCount(
+      0
+    )
+  })
+
+  test("incomplete dashboard visual baseline @visual", async ({ page }) => {
     await page.goto(`${HARNESS_ROUTES.dashboard}?setup=incomplete`)
 
     await expect(page.getByText("2 of 5 complete")).toBeVisible()
@@ -177,9 +194,32 @@ export function defineMerchantLaunchFollowThroughTests() {
     await expectNoHorizontalOverflow(page)
   })
 
-  test("post-billing QR moment is truthful, phone-native, and visually approved @a11y @visual", async ({
+  test("post-billing QR moment is truthful and phone-native @a11y", async ({
     page,
   }) => {
+    await page.goto(`${HARNESS_ROUTES.launch}?state=live&tab=qr`)
+
+    await expect(page.getByText(PROMO_PERK)).toBeVisible()
+    await expect(page.getByText(PROMO_CLAIM)).toBeVisible()
+    await expect(
+      page.getByRole("button", { name: "Email poster PDFs" })
+    ).toBeVisible()
+    await expect(page.getByText(/On a phone/i)).toBeVisible()
+    await expect(page.getByText(/all five poster PDFs/i)).toBeVisible()
+    await expect(page.getByText(/email yourself the poster link/i)).toHaveCount(
+      0
+    )
+    await expect(page.getByText(/on its way/i)).toHaveCount(0)
+    await expect(page.getByText("Step 01")).toBeVisible()
+    await expect(page.getByText("Step 02")).toBeVisible()
+    await expect(page.getByText("Set up at the till")).toBeVisible()
+    await expect(page.getByText("Brief the team")).toBeVisible()
+    await expectNoAxeViolations(page, "merchant poster follow-through")
+    await expectNoHorizontalOverflow(page)
+    await expectVenueQrLoaded(page)
+  })
+
+  test("post-billing QR visual baseline @visual", async ({ page }) => {
     await page.goto(`${HARNESS_ROUTES.launch}?state=live&tab=qr`)
 
     await expect(page.getByText(PROMO_PERK)).toBeVisible()
