@@ -1,5 +1,9 @@
 import "server-only"
 
+import {
+  buildTransactionalEmailPayload,
+  type TransactionalEmailInput,
+} from "@/lib/notifications/transactional-email-payload"
 import { resilientFetch } from "@/lib/observability/resilience"
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails"
@@ -18,13 +22,6 @@ type EmailOtpCopy = {
 type EmailOtpConfig = {
   readonly apiKey: string
   readonly from: string
-}
-
-export type TransactionalEmailInput = {
-  readonly to: string
-  readonly subject: string
-  readonly text: string
-  readonly html: string
 }
 
 const emailOtpCopy = {
@@ -113,6 +110,7 @@ export async function sendTransactionalEmail({
   subject,
   text,
   html,
+  attachments,
 }: TransactionalEmailInput) {
   const { apiKey, from } = readEmailOtpConfig()
 
@@ -122,13 +120,15 @@ export async function sendTransactionalEmail({
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      from,
-      to: [to],
-      subject,
-      text,
-      html,
-    }),
+    body: JSON.stringify(
+      buildTransactionalEmailPayload(from, {
+        to,
+        subject,
+        text,
+        html,
+        ...(attachments ? { attachments } : {}),
+      })
+    ),
   })
 
   if (!res.ok) {

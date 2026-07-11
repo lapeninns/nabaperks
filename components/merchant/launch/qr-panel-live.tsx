@@ -112,7 +112,7 @@ export function QrPanelLive({
               className="aspect-square w-full rounded-md bg-white"
             />
           </QrFrame>
-          <p className="max-w-sm text-center mono-id tracking-[0.08em] leading-5 text-muted-foreground">
+          <p className="mono-id max-w-sm text-center leading-5 tracking-[0.08em] text-muted-foreground">
             Scan once yourself before the first customer
           </p>
         </section>
@@ -176,7 +176,7 @@ export function QrPanelLive({
           <LaunchStep
             step="02"
             title="Print a counter poster"
-            description="On a phone, email yourself the poster link or open an A4 sheet to print or save. On a computer, open an A4 sheet and print at 100% (no fit-to-page)."
+            description="On a phone, email yourself all five poster PDFs. On a computer, open an A4 sheet and print at 100% (no fit-to-page)."
             headingId="qr-print-heading"
           />
           {promo ? (
@@ -227,7 +227,7 @@ export function QrPanelLive({
                     </span>
                     <span
                       className={cn(
-                        "inline-flex items-center gap-1 mono-id tracking-[0.08em]",
+                        "mono-id inline-flex items-center gap-1 tracking-[0.08em]",
                         surface.tag
                       )}
                     >
@@ -305,10 +305,7 @@ function LaunchStep({
 }) {
   return (
     <div className="grid gap-2 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-4">
-      <p
-        aria-hidden="true"
-        className="mono-id tracking-[0.14em] text-primary"
-      >
+      <p aria-hidden="true" className="mono-id tracking-[0.14em] text-primary">
         Step {step}
       </p>
       <div className="grid gap-1">

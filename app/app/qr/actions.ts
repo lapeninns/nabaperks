@@ -11,6 +11,7 @@ import { LAUNCH_MIN_ACTIVE_REWARDS } from "@/lib/merchant/launch-readiness-contr
 import { getQrSetup } from "@/lib/merchant/qr-code"
 import { qrReturnHref, resolveQrReturnBase } from "@/lib/merchant/qr-nav"
 import { buildPosterEmailContent } from "@/lib/notifications/poster-email"
+import { buildPosterPdfAttachments } from "@/lib/notifications/poster-pdf"
 import { sendTransactionalEmail } from "@/lib/notifications/resend"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
@@ -119,8 +120,8 @@ export async function setQrActiveAction(formData: FormData) {
 export type EmailPosterState = { ok?: boolean; message?: string }
 
 /**
- * Email the poster link to the signed-in merchant so they can open and print it
- * from a computer later — the phone-native alternative to "print A4 at 100%".
+ * Email every poster PDF to the signed-in merchant so they can print directly
+ * from any device — the phone-native alternative to browser print controls.
  * Returns inline `useActionState` feedback rather than redirecting, so the QR
  * panel shows the result without a reload.
  */
@@ -145,14 +146,18 @@ export async function emailPosterAction(): Promise<EmailPosterState> {
   }
 
   const env = getServerEnv()
-  const content = buildPosterEmailContent({
-    venueName: merchant.business_name,
-    posterUrl: `${env.NEXT_PUBLIC_APP_URL}/app/qr`,
-    shareUrl: `${env.NEXT_PUBLIC_APP_URL}/q/${qrCode.qr_id}`,
-  })
+  const shareUrl = `${env.NEXT_PUBLIC_APP_URL}/q/${qrCode.qr_id}`
 
   try {
-    await sendTransactionalEmail({ to, ...content })
+    const attachments = await buildPosterPdfAttachments({
+      merchantName: merchant.business_name,
+      shareUrl,
+      stampsRequired: activeCard.stamps_required,
+    })
+    const content = buildPosterEmailContent({
+      venueName: merchant.business_name,
+    })
+    await sendTransactionalEmail({ to, ...content, attachments })
   } catch (error) {
     console.error(
       "[qr] poster email failed",
@@ -171,5 +176,5 @@ export async function emailPosterAction(): Promise<EmailPosterState> {
     source: "merchant_qr_action",
   })
 
-  return { ok: true, message: `Poster link sent to ${to}.` }
+  return { ok: true, message: `Five poster PDFs sent to ${to}.` }
 }

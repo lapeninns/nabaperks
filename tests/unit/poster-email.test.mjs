@@ -5,19 +5,17 @@ import { buildPosterEmailContent } from "@/lib/notifications/poster-email"
 
 const INPUT = {
   venueName: "Old Crown Girton",
-  posterUrl: "https://nabaperks.com/app/qr",
-  shareUrl: "https://nabaperks.com/q/abc123",
 }
 
-test("buildPosterEmailContent includes both links and a poster subject", () => {
+test("buildPosterEmailContent describes five attached PDFs without a poster link", () => {
   const { subject, text, html } = buildPosterEmailContent(INPUT)
 
   assert.match(subject, /poster/i)
-  // Both actionable links appear in the plain-text and HTML parts.
   for (const part of [text, html]) {
-    assert.ok(part.includes(INPUT.posterUrl), "poster URL present")
-    assert.ok(part.includes(INPUT.shareUrl), "share URL present")
     assert.ok(part.includes("Old Crown Girton"), "venue name present")
+    assert.match(part, /five/i)
+    assert.match(part, /attach/i)
+    assert.doesNotMatch(part, /https?:\/\//)
   }
 })
 

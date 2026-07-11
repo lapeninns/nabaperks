@@ -1,7 +1,5 @@
 export type PosterEmailInput = {
   readonly venueName: string
-  readonly posterUrl: string
-  readonly shareUrl: string
 }
 
 export type PosterEmailContent = {
@@ -27,37 +25,25 @@ function escapeHtml(value: string): string {
  */
 export function buildPosterEmailContent({
   venueName,
-  posterUrl,
-  shareUrl,
 }: PosterEmailInput): PosterEmailContent {
-  const subject = "Print your Nabaperks counter poster"
+  const subject = "Your Nabaperks counter poster PDFs"
 
   const text = [
-    `Your Nabaperks counter poster for ${venueName} is ready to print.`,
+    `Your five Nabaperks counter poster PDFs for ${venueName} are attached.`,
     "",
-    "Open your posters (on a computer, then print A4 at 100% — no fit-to-page):",
-    posterUrl,
+    "Choose a layout, then print it on A4 at 100% — no fit-to-page.",
     "",
-    "Your permanent venue link (share it anywhere you talk about loyalty):",
-    shareUrl,
-    "",
-    "Customers scan the poster or open the link to join in their browser — no app to download.",
+    "Customers scan the QR on the poster to join in their browser — no app to download.",
   ].join("\n")
 
   const html = posterEmailHtml({
     venueName: escapeHtml(venueName),
-    posterUrl: escapeHtml(posterUrl),
-    shareUrl: escapeHtml(shareUrl),
   })
 
   return { subject, text, html }
 }
 
-function posterEmailHtml({
-  venueName,
-  posterUrl,
-  shareUrl,
-}: PosterEmailInput): string {
+function posterEmailHtml({ venueName }: PosterEmailInput): string {
   return `<!doctype html>
 <html>
   <body style="margin:0;background:#f6f1e6;font-family:Arial,Helvetica,sans-serif;color:#211c16;padding:24px">
@@ -65,11 +51,9 @@ function posterEmailHtml({
       <tr><td style="padding:24px">
         <div style="display:inline-block;margin:0 0 16px;background:#cf330a;color:#fff;border:2px solid #211c16;border-radius:999px;padding:8px 11px;font-size:18px;font-weight:800;line-height:1;box-shadow:3px 3px 0 #211c16">*</div>
         <p style="margin:0 0 8px;font:700 11px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;text-transform:uppercase;color:#4f473d">Nabaperks counter poster</p>
-        <h1 style="margin:0 0 12px;font-size:24px;line-height:1.15;font-weight:800">Print your poster for ${venueName}</h1>
-        <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#4f473d">Open this on a computer, pick a layout, and print A4 at 100% scale — no fit-to-page. Stand it on the counter and customers scan to join in their browser.</p>
-        <a href="${posterUrl}" style="display:inline-block;background:#cf330a;color:#fff;border:2px solid #211c16;border-radius:999px;padding:12px 20px;font-size:15px;font-weight:800;text-decoration:none;box-shadow:3px 3px 0 #211c16">Open your posters</a>
-        <p style="margin:20px 0 4px;font:700 11px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;text-transform:uppercase;color:#4f473d">Permanent venue link</p>
-        <p style="margin:0;font-size:13px;line-height:1.6;word-break:break-all"><a href="${shareUrl}" style="color:#cf330a">${shareUrl}</a></p>
+        <h1 style="margin:0 0 12px;font-size:24px;line-height:1.15;font-weight:800">Your five poster PDFs for ${venueName}</h1>
+        <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#4f473d">All five A4 layouts are attached to this email. Pick the one you like, print at 100% scale — no fit-to-page — and stand it on the counter.</p>
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#4f473d">Customers scan the QR on the poster to join in their browser. No app download needed.</p>
       </td></tr>
     </table>
   </body>

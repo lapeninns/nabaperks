@@ -39,15 +39,15 @@ test("launch rails identify themselves as navigation and expose honest step stat
   assert.match(readinessPanel, /min-h-11/)
 })
 
-test("poster follow-through consumes the live promo and names the emailed asset honestly", () => {
+test("poster follow-through consumes the live promo and names the attached PDFs honestly", () => {
   assert.match(qrPanel, /getActivePromo/)
   assert.match(qrPanel, /promo\.perk/)
   assert.match(qrPanel, /promo\.claim/)
   assert.doesNotMatch(qrPanel, /on its way/i)
-  assert.match(emailPosterButton, /Email poster link/)
-  assert.match(emailPosterButton, /Emailing link…/)
-  assert.match(emailPosterButton, /Could not send poster link/)
-  assert.doesNotMatch(emailPosterButton, /PDF|attachment/i)
+  assert.match(emailPosterButton, /Email poster PDFs/)
+  assert.match(emailPosterButton, /Emailing PDFs…/)
+  assert.match(emailPosterButton, /Could not send poster PDFs/)
+  assert.doesNotMatch(emailPosterButton, /Email poster link/)
 })
 
 test("the launch rail owns global progress while QR keeps its local task order", () => {
