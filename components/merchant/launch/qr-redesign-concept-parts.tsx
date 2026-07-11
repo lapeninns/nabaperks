@@ -6,6 +6,7 @@ import {
 } from "@hugeicons/core-free-icons"
 
 import { Icon, IconRoundel, MonoTag } from "@/components/brand"
+import { PosterThumbnail } from "@/components/merchant/qr-poster/poster-thumbnail"
 import { Button } from "@/components/ui/button"
 import {
   QR_POSTER_TEMPLATES,
@@ -97,60 +98,26 @@ export function PosterProof({
   templateName,
   qrDataUrl,
   venueName,
+  stampsRequired,
   posterHref,
 }: {
   readonly template: QrPosterTemplateId
   readonly templateName: string
   readonly qrDataUrl: string
   readonly venueName: string
+  readonly stampsRequired: number
   readonly posterHref: string
 }) {
-  const dark = template === "bold" || template === "northstar"
-  const posterHeadline: Record<QrPosterTemplateId, string> = {
-    editorial: "Three visits. One surprise.",
-    bold: "Everyone wins something.",
-    ticket: "First stamp's on us.",
-    northstar: "Your loyalty card, hidden in plain sight.",
-    thermal: "Loyalty receipt",
-  }
-
   return (
     <aside className="grid content-start gap-3 rounded-lg border-2 border-ink bg-paper-deep p-3 shadow-[5px_5px_0_var(--w-shadow-color)] sm:p-4">
-      <div
-        role="img"
-        aria-label={`${templateName} poster preview`}
-        className={cn(
-          "grid min-h-44 grid-cols-[minmax(0,1fr)_6rem] items-center gap-3 rounded-md border-2 border-ink p-3 text-left lg:aspect-[4/5] lg:grid-cols-1 lg:content-between lg:gap-4 lg:p-5 lg:text-center",
-          dark ? "bg-ink text-paper" : "bg-paper text-ink",
-          template === "ticket" && "border-t-[10px] border-t-primary",
-          template === "thermal" && "rounded-none border-dashed"
-        )}
-      >
-        <div className="grid gap-2">
-          <p className={cn("eyebrow", dark && "text-paper/80")}>{venueName}</p>
-          <p
-            className={cn(
-              "text-xl leading-tight font-black lg:text-2xl",
-              template === "thermal" && "font-mono uppercase"
-            )}
-          >
-            {posterHeadline[template]}
-          </p>
-          <p className="text-sm opacity-75">No app. First stamp today.</p>
-        </div>
-        <div className="mx-auto w-full max-w-24 rounded-md border-2 border-ink bg-white p-2 lg:max-w-36">
-          {/* eslint-disable-next-line @next/next/no-img-element -- QR may come from an authenticated merchant route */}
-          <img
-            src={qrDataUrl}
-            alt=""
-            width={256}
-            height={256}
-            className="aspect-square w-full"
-          />
-        </div>
-        <p className="col-span-2 text-center font-mono text-xs font-bold tracking-wide lg:col-span-1">
-          SCAN AT THE TILL
-        </p>
+      <div className="mx-auto w-full max-w-60 rounded-md border-2 border-ink bg-paper p-1.5 lg:max-w-72">
+        <PosterThumbnail
+          previewLabel={`${templateName} poster preview`}
+          template={template}
+          qrDataUrl={qrDataUrl}
+          merchantName={venueName}
+          stampsRequired={stampsRequired}
+        />
       </div>
       <div className="grid gap-1">
         <p className="font-extrabold">{templateName} poster</p>
@@ -191,7 +158,8 @@ export function workspaceHref(
   template: QrPosterTemplateId
 ) {
   const separator = baseHref.includes("?") ? "&" : "?"
-  return `${baseHref}${separator}channel=${channel}&poster=${template}`
+  const anchor = channel === "print" ? "qr-poster-picker" : "qr-distribution"
+  return `${baseHref}${separator}channel=${channel}&poster=${template}#${anchor}`
 }
 
 export function resolveDistributionChannel(

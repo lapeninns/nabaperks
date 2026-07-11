@@ -23,6 +23,7 @@ export function QrRedesignConcept({
   return (
     <QrWorkspace
       activeCardName={activeCardName}
+      stampsRequired={3}
       venueName={venueName}
       shareUrl={shareUrl}
       qrImageSrc={qrDataUrl}

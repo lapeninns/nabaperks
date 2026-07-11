@@ -29,6 +29,7 @@ export default function QrHarnessPage() {
       />
       <QrPanelLive
         activeCardName="Mystery Visit Card"
+        stampsRequired={3}
         venueName="Old Crown Girton"
         qrCodeId="qr_harness"
         isActive

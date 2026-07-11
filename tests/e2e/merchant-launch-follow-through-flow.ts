@@ -306,10 +306,14 @@ export function defineMerchantLaunchFollowThroughTests() {
       ).toBeLessThanOrEqual(2)
     }
 
-    await page.getByRole("link", { name: /Night card/ }).click()
+    const nightCardLink = page.getByRole("link", { name: /Night card/ })
+    await nightCardLink.scrollIntoViewIfNeeded()
+    await nightCardLink.click()
     await expect(
       page.getByRole("img", { name: "Night card poster preview" })
     ).toBeVisible()
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(400)
+    await expect(page).toHaveURL(/#qr-poster-picker$/)
     await expect(
       page.getByRole("link", { name: /Night card/ })
     ).toHaveAttribute("aria-current", "page")

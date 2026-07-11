@@ -36,6 +36,7 @@ const POSTER_USE_CASE: Record<QrPosterTemplateId, string> = {
 export function QrWorkspace({
   activeCardName,
   venueName,
+  stampsRequired,
   shareUrl,
   qrImageSrc,
   channel,
@@ -50,6 +51,7 @@ export function QrWorkspace({
 }: {
   readonly activeCardName: string
   readonly venueName: string
+  readonly stampsRequired: number
   readonly shareUrl: string
   readonly qrImageSrc: string
   readonly channel: DistributionChannel
@@ -135,7 +137,10 @@ export function QrWorkspace({
 
       {warnings}
 
-      <section className="surface-card grid gap-5 p-4 sm:p-6">
+      <section
+        id="qr-distribution"
+        className="surface-card grid scroll-mt-4 gap-5 p-4 sm:p-6"
+      >
         <div className="grid gap-1.5">
           <Eyebrow>Put it in front of customers</Eyebrow>
           <h2 className="text-xl font-extrabold sm:text-2xl">
@@ -165,7 +170,7 @@ export function QrWorkspace({
 
         {channel === "print" ? (
           <div className="grid gap-5 border-t-2 border-ink pt-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(16rem,0.9fr)]">
-            <div className="grid gap-3">
+            <div id="qr-poster-picker" className="grid scroll-mt-4 gap-3">
               <div className="grid gap-1">
                 <h3 className="text-lg font-extrabold">
                   Choose a poster style
@@ -193,6 +198,7 @@ export function QrWorkspace({
               templateName={selectedTemplate.name}
               qrDataUrl={qrImageSrc}
               venueName={venueName}
+              stampsRequired={stampsRequired}
               posterHref={posterHrefs[template]}
             />
             {printNotice ? (

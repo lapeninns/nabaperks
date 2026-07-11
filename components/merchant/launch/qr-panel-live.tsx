@@ -17,6 +17,7 @@ import type { QrPosterTemplateId } from "@/lib/qr/poster-templates"
 
 type QrPanelLiveProps = {
   readonly activeCardName: string
+  readonly stampsRequired: number
   readonly venueName: string
   readonly qrCodeId: string
   readonly isActive: boolean
@@ -33,6 +34,7 @@ type QrPanelLiveProps = {
 
 export function QrPanelLive({
   activeCardName,
+  stampsRequired,
   venueName,
   qrCodeId,
   isActive,
@@ -56,6 +58,7 @@ export function QrPanelLive({
   return (
     <QrWorkspace
       activeCardName={activeCardName}
+      stampsRequired={stampsRequired}
       venueName={venueName}
       shareUrl={shareUrl}
       qrImageSrc={`/app/qr/image/${qrCodeId}`}

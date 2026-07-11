@@ -147,6 +147,7 @@ export async function QrPanel({
       {statusMessage(params, continueHref, billingHref)}
       <QrPanelLive
         activeCardName={activeCard.card_name}
+        stampsRequired={activeCard.stamps_required}
         venueName={setup.merchant?.business_name ?? activeCard.card_name}
         qrCodeId={qrCode.id}
         isActive={qrCode.is_active}

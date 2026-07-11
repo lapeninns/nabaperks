@@ -138,12 +138,17 @@ export function A4Poster({
  * `.sheet` article. Each new concept poster must be handled here before the copy
  * path, which keeps the template narrowing exhaustive at compile time.
  */
-function PosterSheet({
+export type PosterSheetProps = Pick<
+  A4PosterProps,
+  "template" | "qrDataUrl" | "merchantName" | "stampsRequired"
+>
+
+export function PosterSheet({
   template,
   qrDataUrl,
   merchantName,
   stampsRequired,
-}: Omit<A4PosterProps, "shareUrl">) {
+}: PosterSheetProps) {
   if (template === "northstar") {
     return (
       <NorthStarPoster
