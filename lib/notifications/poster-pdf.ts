@@ -1,18 +1,19 @@
 import "server-only"
 
-import {
-  PDFDocument,
-  StandardFonts,
-  type PDFFont,
-  type PDFPage,
-  type RGB,
-} from "pdf-lib"
+import { PDFDocument, StandardFonts } from "pdf-lib"
 import QRCode, { type BitMatrix } from "qrcode"
 
 import {
+  A4_HEIGHT,
+  A4_WIDTH,
+  drawCenteredText,
+  drawQrCode,
+  drawStampRow,
+  drawWrappedText,
+  fitSingleLineText,
   POSTER_PDF_COLOR,
   posterStyle,
-  type PosterStyle,
+  standardFontText,
 } from "@/lib/notifications/poster-pdf-style"
 import {
   QR_POSTER_TEMPLATES,
@@ -30,14 +31,12 @@ type PosterPdfInput = {
   readonly stampsRequired: number
 }
 
-const A4_WIDTH = 595.28
-const A4_HEIGHT = 841.89
-
 export async function buildPosterPdfAttachments({
   merchantName,
   shareUrl,
   stampsRequired,
 }: PosterPdfInput): Promise<readonly PosterPdfAttachment[]> {
+  const boundedMerchantName = merchantName.trim().slice(0, 120)
   const qrModules = QRCode.create(shareUrl, {
     errorCorrectionLevel: "H",
   }).modules
@@ -46,7 +45,7 @@ export async function buildPosterPdfAttachments({
       filename: `nabaperks-poster-${id}.pdf`,
       content: await buildPosterPdf(
         {
-          merchantName,
+          merchantName: boundedMerchantName,
           shareUrl,
           stampsRequired: Math.max(1, stampsRequired),
           template: id,
@@ -108,13 +107,18 @@ async function buildPosterPdf(
   const left = input.template === "thermal" ? 112 : 58
   const contentWidth =
     input.template === "thermal" ? A4_WIDTH - 224 : A4_WIDTH - 116
-  page.drawText(input.merchantName.trim().toUpperCase(), {
+  const merchantLabel = fitSingleLineText(
+    standardFontText(input.merchantName.trim().toUpperCase(), mono),
+    mono,
+    12,
+    contentWidth
+  )
+  page.drawText(merchantLabel, {
     x: left,
     y: 766,
     size: 12,
     font: mono,
     color: style.foreground,
-    maxWidth: contentWidth,
   })
 
   const headlineBottom = drawWrappedText(page, style.headline, {
@@ -148,17 +152,14 @@ async function buildPosterPdf(
     y: supportBottom - 38,
     width: contentWidth,
     height: 28,
-    color: style.accent,
+    color: style.band,
   })
   page.drawText(style.friction, {
     x: left + 10,
     y: supportBottom - 29,
     size: 10,
     font: bold,
-    color:
-      input.template === "northstar"
-        ? POSTER_PDF_COLOR.ink
-        : POSTER_PDF_COLOR.white,
+    color: POSTER_PDF_COLOR.white,
     maxWidth: contentWidth - 20,
   })
 
@@ -182,7 +183,7 @@ async function buildPosterPdf(
     color: style.foreground,
   })
 
-  drawStampRow(page, input.stampsRequired, qrY - 86, style)
+  drawStampRow(page, input.stampsRequired, qrY - 86, style, mono)
   drawCenteredText(page, "ONE STAMP PER DAY  |  MYSTERY UNTIL UNLOCK", {
     y: 82,
     font: mono,
@@ -197,101 +198,4 @@ async function buildPosterPdf(
   })
 
   return Buffer.from(await document.save()).toString("base64")
-}
-
-function drawQrCode(
-  page: PDFPage,
-  modules: BitMatrix,
-  x: number,
-  y: number,
-  size: number
-): void {
-  const quietZone = 4
-  const moduleSize = size / (modules.size + quietZone * 2)
-  for (let row = 0; row < modules.size; row += 1) {
-    for (let column = 0; column < modules.size; column += 1) {
-      if (modules.get(row, column)) {
-        page.drawRectangle({
-          x: x + (column + quietZone) * moduleSize,
-          y: y + (modules.size - row - 1 + quietZone) * moduleSize,
-          width: moduleSize,
-          height: moduleSize,
-          color: POSTER_PDF_COLOR.ink,
-        })
-      }
-    }
-  }
-}
-
-function drawStampRow(
-  page: PDFPage,
-  count: number,
-  y: number,
-  style: PosterStyle
-): void {
-  const visibleCount = Math.min(count, 12)
-  const gap = Math.min(38, 360 / visibleCount)
-  const startX = A4_WIDTH / 2 - (gap * (visibleCount - 1)) / 2
-  for (let index = 0; index < visibleCount; index += 1) {
-    page.drawCircle({
-      x: startX + index * gap,
-      y,
-      size: 12,
-      color: index === 0 ? style.accent : undefined,
-      borderColor: style.foreground,
-      borderWidth: 1.5,
-    })
-  }
-}
-
-function drawCenteredText(
-  page: PDFPage,
-  text: string,
-  options: {
-    readonly y: number
-    readonly font: PDFFont
-    readonly size: number
-    readonly color: RGB
-  }
-): void {
-  const width = options.font.widthOfTextAtSize(text, options.size)
-  page.drawText(text, { x: (A4_WIDTH - width) / 2, ...options })
-}
-
-function drawWrappedText(
-  page: PDFPage,
-  text: string,
-  options: {
-    readonly x: number
-    readonly y: number
-    readonly maxWidth: number
-    readonly font: PDFFont
-    readonly size: number
-    readonly lineHeight: number
-    readonly color: RGB
-  }
-): number {
-  const lines: string[] = []
-  for (const word of text.split(/\s+/)) {
-    const current = lines.at(-1)
-    if (
-      !current ||
-      options.font.widthOfTextAtSize(`${current} ${word}`, options.size) >
-        options.maxWidth
-    ) {
-      lines.push(word)
-    } else {
-      lines[lines.length - 1] = `${current} ${word}`
-    }
-  }
-  lines.forEach((line, index) => {
-    page.drawText(line, {
-      x: options.x,
-      y: options.y - index * options.lineHeight,
-      font: options.font,
-      size: options.size,
-      color: options.color,
-    })
-  })
-  return options.y - lines.length * options.lineHeight
 }

@@ -13,12 +13,15 @@ import { qrReturnHref, resolveQrReturnBase } from "@/lib/merchant/qr-nav"
 import { buildPosterEmailContent } from "@/lib/notifications/poster-email"
 import { buildPosterPdfAttachments } from "@/lib/notifications/poster-pdf"
 import { sendTransactionalEmail } from "@/lib/notifications/resend"
+import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 const QR_REWARD_POOL_ERROR =
   "Add at least 3 active mystery rewards before launching the QR."
 const QR_CREATE_ERROR = "Unable to create QR"
 const QR_UPDATE_ERROR = "Unable to update QR"
+const POSTER_EMAIL_LIMIT = 3
+const POSTER_EMAIL_WINDOW_MS = 60 * 60 * 1_000
 
 export async function generateQrCodeAction(formData: FormData) {
   const returnBase = resolveQrReturnBase(formData.get("returnTo"))
@@ -126,55 +129,68 @@ export type EmailPosterState = { ok?: boolean; message?: string }
  * panel shows the result without a reload.
  */
 export async function emailPosterAction(): Promise<EmailPosterState> {
-  const { merchant, activeCard, qrCode } = await getQrSetup()
-
-  if (!merchant || !activeCard || !qrCode) {
-    return {
-      ok: false,
-      message: "Create your venue QR before emailing the poster.",
-    }
-  }
-
-  const user = await getCurrentUser()
-  const to = user?.email?.trim()
-
-  if (!to) {
-    return {
-      ok: false,
-      message: "Add an email to your account before emailing the poster.",
-    }
-  }
-
-  const env = getServerEnv()
-  const shareUrl = `${env.NEXT_PUBLIC_APP_URL}/q/${qrCode.qr_id}`
-
   try {
+    const { merchant, activeCard, qrCode } = await getQrSetup()
+
+    if (!merchant || !activeCard || !qrCode) {
+      return {
+        ok: false,
+        message: "Create your venue QR before emailing the poster PDFs.",
+      }
+    }
+
+    const user = await getCurrentUser()
+    const to = user?.email?.trim()
+
+    if (!to) {
+      return {
+        ok: false,
+        message:
+          "Add an email to your account before emailing the poster PDFs.",
+      }
+    }
+
+    await enforceRateLimit({
+      key: `poster-email:${merchant.id}`,
+      limit: POSTER_EMAIL_LIMIT,
+      windowMs: POSTER_EMAIL_WINDOW_MS,
+    })
+
+    const env = getServerEnv()
+    const shareUrl = `${env.NEXT_PUBLIC_APP_URL}/q/${qrCode.qr_id}`
+    const venueName = merchant.business_name.trim().slice(0, 120)
     const attachments = await buildPosterPdfAttachments({
-      merchantName: merchant.business_name,
+      merchantName: venueName,
       shareUrl,
       stampsRequired: activeCard.stamps_required,
     })
-    const content = buildPosterEmailContent({
-      venueName: merchant.business_name,
-    })
+    const content = buildPosterEmailContent({ venueName })
     await sendTransactionalEmail({ to, ...content, attachments })
+
+    scheduleMerchantActivationEvent({
+      eventName: "qr_poster_emailed",
+      merchantId: merchant.id,
+      idempotencyKey: "first-success",
+      source: "merchant_qr_action",
+    })
+
+    return { ok: true, message: `Five poster PDFs sent to ${to}.` }
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      return {
+        ok: false,
+        message:
+          "Poster PDFs can be emailed up to 3 times an hour. Try again later.",
+      }
+    }
+
     console.error(
       "[qr] poster email failed",
       error instanceof Error ? error.message : error
     )
     return {
       ok: false,
-      message: "Could not email the poster just now. Try again.",
+      message: "Could not email the poster PDFs just now. Try again.",
     }
   }
-
-  scheduleMerchantActivationEvent({
-    eventName: "qr_poster_emailed",
-    merchantId: merchant.id,
-    idempotencyKey: "first-success",
-    source: "merchant_qr_action",
-  })
-
-  return { ok: true, message: `Five poster PDFs sent to ${to}.` }
 }

@@ -134,10 +134,13 @@ export function defineMerchantLaunchFollowThroughTests() {
     await expect(page.getByText(PROMO_PERK)).toBeVisible()
     await expect(page.getByText(PROMO_CLAIM)).toBeVisible()
     await expect(
-      page.getByRole("button", { name: "Email poster link" })
+      page.getByRole("button", { name: "Email poster PDFs" })
     ).toBeVisible()
     await expect(page.getByText(/On a phone/i)).toBeVisible()
-    await expect(page.getByText(/poster PDF|attachment/i)).toHaveCount(0)
+    await expect(page.getByText(/all five poster PDFs/i)).toBeVisible()
+    await expect(page.getByText(/email yourself the poster link/i)).toHaveCount(
+      0
+    )
     await expect(page.getByText(/on its way/i)).toHaveCount(0)
     await expect(page.getByText("Step 01")).toBeVisible()
     await expect(page.getByText("Step 02")).toBeVisible()

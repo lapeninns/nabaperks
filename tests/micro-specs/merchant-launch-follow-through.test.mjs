@@ -15,6 +15,7 @@ const qrPanel = read("components/merchant/launch/qr-panel-live.tsx")
 const emailPosterButton = read(
   "components/merchant/launch/email-poster-button.tsx"
 )
+const posterActions = read("app/app/qr/actions.ts")
 const cardForm = read("components/merchant/loyalty-card-form.tsx")
 const rewardsPanel = read("components/merchant/launch/rewards-panel.tsx")
 const billingActivation = read(
@@ -48,6 +49,11 @@ test("poster follow-through consumes the live promo and names the attached PDFs 
   assert.match(emailPosterButton, /Emailing PDFs…/)
   assert.match(emailPosterButton, /Could not send poster PDFs/)
   assert.doesNotMatch(emailPosterButton, /Email poster link/)
+  assert.match(posterActions, /enforceRateLimit/)
+  assert.match(posterActions, /poster-email:\$\{merchant\.id\}/)
+  assert.match(posterActions, /up to 3 times an hour/)
+  assert.doesNotMatch(posterActions, /emailing the poster[."']/)
+  assert.doesNotMatch(posterActions, /Could not email the poster just now/)
 })
 
 test("the launch rail owns global progress while QR keeps its local task order", () => {

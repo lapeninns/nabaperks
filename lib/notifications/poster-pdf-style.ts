@@ -1,11 +1,16 @@
-import { rgb, type RGB } from "pdf-lib"
+import { type BitMatrix } from "qrcode"
+import { rgb, type PDFFont, type PDFPage, type RGB } from "pdf-lib"
 
 import type { QrPosterTemplateId } from "@/lib/qr/poster-templates"
+
+export const A4_WIDTH = 595.28
+export const A4_HEIGHT = 841.89
 
 export type PosterStyle = {
   readonly background: RGB
   readonly foreground: RGB
   readonly accent: RGB
+  readonly band: RGB
   readonly panel: RGB
   readonly headline: string
   readonly support: string
@@ -14,14 +19,15 @@ export type PosterStyle = {
 }
 
 export const POSTER_PDF_COLOR = {
-  ink: rgb(0.13, 0.11, 0.09),
-  paper: rgb(0.97, 0.94, 0.86),
+  ink: rgb(33 / 255, 28 / 255, 22 / 255),
+  inkSoft: rgb(79 / 255, 71 / 255, 61 / 255),
+  paper: rgb(246 / 255, 241 / 255, 230 / 255),
   white: rgb(1, 1, 1),
 } as const
 
-const RED = rgb(0.81, 0.2, 0.04)
-const BLUE = rgb(0.12, 0.27, 0.73)
-const YELLOW = rgb(1, 0.78, 0.12)
+const RED = rgb(207 / 255, 51 / 255, 10 / 255)
+const BLUE = rgb(43 / 255, 67 / 255, 200 / 255)
+const SUN = rgb(245 / 255, 166 / 255, 35 / 255)
 
 export function posterStyle(
   template: QrPosterTemplateId,
@@ -36,10 +42,16 @@ export function posterStyle(
       background: POSTER_PDF_COLOR.paper,
       foreground: POSTER_PDF_COLOR.ink,
       accent: BLUE,
+      band: BLUE,
       panel: POSTER_PDF_COLOR.white,
-      headline: `${stamps} visits. One surprise.`,
+      headline:
+        stamps === 1
+          ? "One visit. One surprise."
+          : `${stamps} visits. One surprise.`,
       support:
-        "Your first stamp is already waiting. Collect the rest to unlock the mystery.",
+        stamps === 1
+          ? "Your first stamp is already waiting. Scan now to unlock your mystery reward."
+          : "Your first stamp is already waiting. Collect the rest to unlock the mystery.",
       friction: "NO APP  |  OPENS IN YOUR BROWSER",
       qrCaption: "Scan to unlock your mystery reward",
     },
@@ -47,6 +59,7 @@ export function posterStyle(
       background: POSTER_PDF_COLOR.ink,
       foreground: POSTER_PDF_COLOR.paper,
       accent: RED,
+      band: RED,
       panel: POSTER_PDF_COLOR.white,
       headline: "Everyone wins something.",
       support:
@@ -58,6 +71,7 @@ export function posterStyle(
       background: POSTER_PDF_COLOR.paper,
       foreground: POSTER_PDF_COLOR.ink,
       accent: RED,
+      band: RED,
       panel: POSTER_PDF_COLOR.white,
       headline: "First stamp's free.",
       support: `Claim stamp one today. ${firstStamp}`,
@@ -67,10 +81,14 @@ export function posterStyle(
     northstar: {
       background: POSTER_PDF_COLOR.ink,
       foreground: POSTER_PDF_COLOR.paper,
-      accent: YELLOW,
+      accent: SUN,
+      band: POSTER_PDF_COLOR.inkSoft,
       panel: POSTER_PDF_COLOR.white,
       headline: "Everyone wins something.",
-      support: `You are one stamp in. ${Math.max(0, stamps - 1)} more visits unlock the mystery.`,
+      support:
+        stamps === 1
+          ? "Your first stamp is already inked. Scan to claim it now."
+          : `You are one stamp in. ${stamps - 1} more ${stamps === 2 ? "visit unlocks" : "visits unlock"} the mystery.`,
       friction: "NO APP  |  NO DOWNLOAD  |  NO SPAM",
       qrCaption: "Scan to claim your free stamp",
     },
@@ -78,12 +96,157 @@ export function posterStyle(
       background: POSTER_PDF_COLOR.paper,
       foreground: POSTER_PDF_COLOR.ink,
       accent: RED,
+      band: RED,
       panel: POSTER_PDF_COLOR.white,
       headline: "Loyalty receipt",
-      support: `TODAY'S FIRST STAMP: FREE     VISITS TO UNLOCK: ${stamps}`,
+      support: `TODAY'S FIRST STAMP: FREE     ${stamps === 1 ? "VISIT" : "VISITS"} TO UNLOCK: ${stamps}`,
       friction: "TOTAL TO JOIN: GBP 0.00",
       qrCaption: "Scan to claim your free stamp",
     },
   }
   return styles[template]
+}
+
+export function drawQrCode(
+  page: PDFPage,
+  modules: BitMatrix,
+  x: number,
+  y: number,
+  size: number
+): void {
+  const quietZone = 4
+  const moduleSize = size / (modules.size + quietZone * 2)
+  for (let row = 0; row < modules.size; row += 1) {
+    for (let column = 0; column < modules.size; column += 1) {
+      if (modules.get(row, column)) {
+        page.drawRectangle({
+          x: x + (column + quietZone) * moduleSize,
+          y: y + (modules.size - row - 1 + quietZone) * moduleSize,
+          width: moduleSize,
+          height: moduleSize,
+          color: POSTER_PDF_COLOR.ink,
+        })
+      }
+    }
+  }
+}
+
+export function stampRowLabel(count: number): string | null {
+  return count > 12 ? `${count} VISITS TO UNLOCK` : null
+}
+
+export function drawStampRow(
+  page: PDFPage,
+  count: number,
+  y: number,
+  style: PosterStyle,
+  font: PDFFont
+): void {
+  const label = stampRowLabel(count)
+  if (label) {
+    drawCenteredText(page, label, {
+      y: y - 4,
+      font,
+      size: 11,
+      color: style.foreground,
+    })
+    return
+  }
+
+  const gap = Math.min(38, 360 / count)
+  const startX = A4_WIDTH / 2 - (gap * (count - 1)) / 2
+  for (let index = 0; index < count; index += 1) {
+    page.drawCircle({
+      x: startX + index * gap,
+      y,
+      size: 12,
+      color: index === 0 ? style.accent : undefined,
+      borderColor: style.foreground,
+      borderWidth: 1.5,
+    })
+  }
+}
+
+export function fitSingleLineText(
+  value: string,
+  font: PDFFont,
+  size: number,
+  maxWidth: number
+): string {
+  if (font.widthOfTextAtSize(value, size) <= maxWidth) return value
+
+  const suffix = "..."
+  const characters = Array.from(value)
+  while (characters.length > 0) {
+    characters.pop()
+    const candidate = `${characters.join("").trimEnd()}${suffix}`
+    if (font.widthOfTextAtSize(candidate, size) <= maxWidth) return candidate
+  }
+  return suffix
+}
+
+export function standardFontText(
+  value: string,
+  font: PDFFont,
+  fallback = "YOUR VENUE"
+): string {
+  const supported = new Set(font.getCharacterSet())
+  const printable = Array.from(value.normalize("NFKD"))
+    .filter((character) => supported.has(character.codePointAt(0) ?? -1))
+    .join("")
+    .replace(/\s+/g, " ")
+    .trim()
+  return printable || fallback
+}
+
+export function drawCenteredText(
+  page: PDFPage,
+  text: string,
+  options: {
+    readonly y: number
+    readonly font: PDFFont
+    readonly size: number
+    readonly color: RGB
+  }
+): void {
+  const width = options.font.widthOfTextAtSize(text, options.size)
+  page.drawText(text, { x: (A4_WIDTH - width) / 2, ...options })
+}
+
+export function drawWrappedText(
+  page: PDFPage,
+  text: string,
+  options: {
+    readonly x: number
+    readonly y: number
+    readonly maxWidth: number
+    readonly font: PDFFont
+    readonly size: number
+    readonly lineHeight: number
+    readonly color: RGB
+  }
+): number {
+  const lines: string[] = []
+  for (const word of text.split(/\s+/)) {
+    const current = lines.at(-1)
+    const candidate = current ? `${current} ${word}` : word
+    if (
+      !current ||
+      options.font.widthOfTextAtSize(candidate, options.size) > options.maxWidth
+    ) {
+      lines.push(word)
+    } else {
+      lines[lines.length - 1] = candidate
+    }
+  }
+  lines.forEach((line, index) => {
+    page.drawText(line, {
+      x: options.x,
+      y: options.y - index * options.lineHeight,
+      font: options.font,
+      size: options.size,
+      color: options.color,
+    })
+  })
+  return options.y - lines.length * options.lineHeight
 }

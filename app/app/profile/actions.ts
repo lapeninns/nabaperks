@@ -67,7 +67,11 @@ export async function updateMerchantProfileAction(
 
   const errors: NonNullable<MerchantProfileState["errors"]> = {}
 
-  if (!businessName) errors.businessName = "Enter the venue name."
+  if (!businessName) {
+    errors.businessName = "Enter the venue name."
+  } else if (businessName.length > 120) {
+    errors.businessName = "Use 120 characters or fewer."
+  }
   if (!allowedBusinessTypes.has(businessType)) {
     errors.businessType = "Choose a business type."
   }
