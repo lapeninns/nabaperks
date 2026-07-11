@@ -3,84 +3,6 @@
   "spec_id": "MS-db-privacy-lifecycle",
   "runs": [
     {
-      "timestamp": "2026-07-10T18:31:01.670Z",
-      "git_sha": "a99c3e05584b34403ccc6102de6ced4e34c6d957",
-      "git_branch": "feat/db-emergency-containment",
-      "dirty": true,
-      "gates": [
-        {
-          "command": "pnpm lint",
-          "exit_code": 0,
-          "duration_ms": 8198
-        },
-        {
-          "command": "pnpm typecheck",
-          "exit_code": 0,
-          "duration_ms": 1391
-        },
-        {
-          "command": "pnpm build",
-          "exit_code": 0,
-          "duration_ms": 10790
-        },
-        {
-          "command": "pnpm test",
-          "exit_code": 0,
-          "duration_ms": 9613
-        },
-        {
-          "command": "pnpm test:coverage",
-          "exit_code": 0,
-          "duration_ms": 1171
-        },
-        {
-          "command": "pnpm test:db",
-          "exit_code": 1,
-          "duration_ms": 4697
-        }
-      ],
-      "all_passed": false
-    },
-    {
-      "timestamp": "2026-07-10T18:32:35.086Z",
-      "git_sha": "a99c3e05584b34403ccc6102de6ced4e34c6d957",
-      "git_branch": "feat/db-emergency-containment",
-      "dirty": true,
-      "gates": [
-        {
-          "command": "pnpm lint",
-          "exit_code": 0,
-          "duration_ms": 7479
-        },
-        {
-          "command": "pnpm typecheck",
-          "exit_code": 0,
-          "duration_ms": 1101
-        },
-        {
-          "command": "pnpm build",
-          "exit_code": 0,
-          "duration_ms": 10574
-        },
-        {
-          "command": "pnpm test",
-          "exit_code": 0,
-          "duration_ms": 9539
-        },
-        {
-          "command": "pnpm test:coverage",
-          "exit_code": 0,
-          "duration_ms": 1177
-        },
-        {
-          "command": "pnpm test:db",
-          "exit_code": 1,
-          "duration_ms": 4162
-        }
-      ],
-      "all_passed": false
-    },
-    {
       "timestamp": "2026-07-10T18:33:44.062Z",
       "git_sha": "a99c3e05584b34403ccc6102de6ced4e34c6d957",
       "git_branch": "feat/db-emergency-containment",
@@ -378,6 +300,89 @@
           "command": "pnpm test:e2e -- --project=mobile-safari --grep \"@MS-db-privacy-lifecycle\"",
           "exit_code": 0,
           "duration_ms": 6221
+        }
+      ],
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-11T17:47:42.337Z",
+      "git_sha": "98a3c9fe7b07b83860f7c4b4a4942b99d9ee6108",
+      "git_branch": "main",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7657
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1948
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11110
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10582
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1489
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 5567
+        }
+      ],
+      "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-11T17:55:40.173Z",
+      "git_sha": "98a3c9fe7b07b83860f7c4b4a4942b99d9ee6108",
+      "git_branch": "main",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7531
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1270
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10327
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9468
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1402
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 5688
+        },
+        {
+          "command": "pnpm test:e2e -- --project=mobile-safari --grep \"@MS-db-privacy-lifecycle\"",
+          "exit_code": 0,
+          "duration_ms": 5519
         }
       ],
       "all_passed": true
