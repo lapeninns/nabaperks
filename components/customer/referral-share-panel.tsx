@@ -104,7 +104,10 @@ export function ReferralSharePanel({
             </p>
           </div>
         </div>
-        <MonoTag tone="cobalt" className="hidden shrink-0 min-[360px]:inline-flex">
+        <MonoTag
+          tone="cobalt"
+          className="hidden shrink-0 min-[360px]:inline-flex"
+        >
           Bonus +1
         </MonoTag>
       </div>
@@ -115,12 +118,7 @@ export function ReferralSharePanel({
       </span>
 
       <div className="grid gap-2">
-        <Button
-          type="button"
-          size="lg"
-          onClick={share}
-          className="w-full"
-        >
+        <Button type="button" size="lg" onClick={share} className="w-full">
           <Icon icon={LinkSquare02Icon} size={16} />
           Share your link
         </Button>
@@ -136,12 +134,14 @@ export function ReferralSharePanel({
         </Button>
       </div>
 
+      {/* Coarse pointers get the 44px tap floor + breathing room; fine
+          pointers keep the quiet one-line management row. */}
       <div className="flex items-center justify-center gap-4 pt-0.5 text-xs">
         <button
           type="button"
           onClick={resetLink}
           disabled={managing}
-          className="font-semibold text-ink-soft underline underline-offset-2 disabled:opacity-50"
+          className="focus-ring inline-flex items-center rounded-sm px-1 font-semibold text-ink-soft underline underline-offset-2 disabled:opacity-50 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:px-2"
         >
           Reset link
         </button>
@@ -152,7 +152,7 @@ export function ReferralSharePanel({
           type="button"
           onClick={pauseInvites}
           disabled={managing}
-          className="font-semibold text-ink-soft underline underline-offset-2 disabled:opacity-50"
+          className="focus-ring inline-flex items-center rounded-sm px-1 font-semibold text-ink-soft underline underline-offset-2 disabled:opacity-50 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:px-2"
         >
           Pause invites
         </button>

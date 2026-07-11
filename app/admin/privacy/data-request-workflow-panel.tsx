@@ -17,6 +17,7 @@ import {
   maskAdminCustomer,
 } from "@/components/admin/support"
 import { AdminIdChip } from "@/components/admin/id-chip"
+import { AdminRecordActions } from "@/components/admin/record-actions"
 import { AdminRecordCard } from "@/components/admin/record-card"
 import { EmptyState, SectionHeader } from "@/components/brand"
 import { SubmitButton } from "@/components/forms"
@@ -91,11 +92,7 @@ export function DataRequestWorkflowPanel({
   )
 }
 
-function PrivacySupportRecord({
-  row,
-}: {
-  readonly row: PrivacySupportRow
-}) {
+function PrivacySupportRecord({ row }: { readonly row: PrivacySupportRow }) {
   const customer = first(row.customers)
   const merchant = first(row.merchants)
 
@@ -119,10 +116,12 @@ function PrivacySupportRecord({
         },
       ]}
       action={
-        <div className="grid gap-4 xl:grid-cols-2">
-          <ConsentOptOutForm row={row} />
-          <DataRequestForm row={row} />
-        </div>
+        <AdminRecordActions label="Privacy actions" group="privacy-record">
+          <div className="grid gap-4 xl:grid-cols-2">
+            <ConsentOptOutForm row={row} />
+            <DataRequestForm row={row} />
+          </div>
+        </AdminRecordActions>
       }
     />
   )

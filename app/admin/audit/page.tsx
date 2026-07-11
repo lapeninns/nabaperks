@@ -41,6 +41,7 @@ export default async function AdminAuditPage() {
           cardBreakpoint="xl"
           className="rounded-none border-0 shadow-none"
           mobileClassName="p-5"
+          mobilePageSize={10}
           rows={logs}
           getRowKey={(log) => log.id}
           emptyState={
@@ -67,9 +68,7 @@ export default async function AdminAuditPage() {
                     value: (
                       <>
                         {merchant?.business_name ?? "No merchant"}
-                        {customer
-                          ? ` · ${maskAdminCustomer(customer)}`
-                          : ""}
+                        {customer ? ` · ${maskAdminCustomer(customer)}` : ""}
                       </>
                     ),
                   },
@@ -110,9 +109,7 @@ export default async function AdminAuditPage() {
                 return (
                   <span className="text-muted-foreground">
                     {merchant?.business_name ?? "No merchant"}
-                    {customer
-                      ? ` · ${maskAdminCustomer(customer)}`
-                      : ""}
+                    {customer ? ` · ${maskAdminCustomer(customer)}` : ""}
                   </span>
                 )
               },

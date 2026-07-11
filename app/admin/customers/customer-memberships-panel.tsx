@@ -15,6 +15,7 @@ import {
   formatAdminDate,
   maskAdminCustomer,
 } from "@/components/admin/support"
+import { AdminRecordActions } from "@/components/admin/record-actions"
 import { AdminRecordCard } from "@/components/admin/record-card"
 import { EmptyState, Icon, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
@@ -115,7 +116,14 @@ export function CustomerMembershipsPanel({
                       ),
                     },
                   ]}
-                  action={<StampAdjustmentForm membershipId={row.id} />}
+                  action={
+                    <AdminRecordActions
+                      label="Adjust stamps"
+                      group="membership-support"
+                    >
+                      <StampAdjustmentForm membershipId={row.id} />
+                    </AdminRecordActions>
+                  }
                 />
               )
             }}

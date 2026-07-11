@@ -16,6 +16,7 @@ import {
   formatAdminDate,
   maskAdminCustomer,
 } from "@/components/admin/support"
+import { AdminRecordActions } from "@/components/admin/record-actions"
 import { AdminRecordCard } from "@/components/admin/record-card"
 import { EmptyState, Icon, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
@@ -91,7 +92,12 @@ export function CustomerRewardsPanel({
                   ]}
                   action={
                     canCancel ? (
-                      <RewardCancelForm rewardId={reward.id} />
+                      <AdminRecordActions
+                        label="Cancel reward"
+                        group="reward-support"
+                      >
+                        <RewardCancelForm rewardId={reward.id} />
+                      </AdminRecordActions>
                     ) : (
                       <span className="text-sm text-muted-foreground">
                         No action available

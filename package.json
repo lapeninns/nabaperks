@@ -58,7 +58,8 @@
     "env:push-vercel": "node scripts/env-keys.mjs push-vercel",
     "env:write-local": "node scripts/env-keys.mjs write-local",
     "governance:new-spec": "node scripts/new-spec.mjs",
-    "governance:advance": "node scripts/advance-spec.mjs"
+    "governance:advance": "node scripts/advance-spec.mjs",
+    "doctor": "npx react-doctor@latest"
   },
   "engines": {
     "node": ">=22.0.0",
@@ -109,6 +110,9 @@
     "postgres": "^3.4.9",
     "prettier": "^3.8.4",
     "prettier-plugin-tailwindcss": "^0.8.0",
+    "react-doctor": "^0.7.4",
+    "react-grab": "^0.1.48",
+    "react-scan": "^0.5.7",
     "tailwindcss": "^4",
     "typescript": "^6",
     "typescript-eslint": "^8.61.0"

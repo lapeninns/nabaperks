@@ -54,7 +54,10 @@ export function ReceiptCard({
   )
 
   return (
-    <div className={cn(rotated && "-rotate-1", wrapperClassName)}>
+    // min-w-0: as a grid/flex child the wrapper must be allowed to shrink
+    // below its content's intrinsic width, or wide descendants (nowrap
+    // buttons, long values) push the card past a 320px viewport.
+    <div className={cn("min-w-0", rotated && "-rotate-1", wrapperClassName)}>
       {shaken ? <WetInkShake active>{surface}</WetInkShake> : surface}
     </div>
   )

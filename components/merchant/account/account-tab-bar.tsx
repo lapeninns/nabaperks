@@ -9,10 +9,12 @@ import { cn } from "@/lib/utils"
 export function AccountTabBar({ activeTab }: { activeTab: AccountTab }) {
   return (
     <nav aria-label="Account sections">
-      {/* Distributes across the row on phones (equal grid columns, truncating
-          labels guard ~320px) and collapses back to a compact inline island
-          from sm up — the old inline-flex island hugged left on mobile. */}
-      <ul className="grid w-full list-none grid-cols-3 rounded-lg border-2 border-ink bg-card p-1 shadow-sm sm:inline-flex sm:w-auto">
+      {/* Distributes across the row on phones (equal columns derived from the
+          tab count — a fixed column count leaves phantom empty tracks when
+          tabs change; truncating labels guard ~320px) and collapses back to a
+          compact inline island from sm up — the old inline-flex island hugged
+          left on mobile. */}
+      <ul className="grid w-full list-none auto-cols-fr grid-flow-col rounded-lg border-2 border-ink bg-card p-1 shadow-sm sm:inline-flex sm:w-auto">
         {ACCOUNT_TABS.map((tab) => {
           const isActive = tab.id === activeTab
 

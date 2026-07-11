@@ -62,11 +62,12 @@ function Field({
   const [text, setText] = useState(() => String(value))
 
   return (
-    <div className="grid gap-1.5">
-      <label htmlFor={id} className="mono-meta text-muted-foreground">
-        {label}
-      </label>
-      <div className="flex items-center gap-2 rounded-[var(--radius)] border-2 border-ink bg-card px-3 py-2 focus-within:ring-3 focus-within:ring-ring/35">
+    // One wrapping label: tapping the eyebrow or anywhere in the visual well
+    // (prefix/suffix included) focuses the input, so the touch target is the
+    // whole 44px box rather than the bare text field inside it.
+    <label className="grid gap-1.5">
+      <span className="mono-meta text-muted-foreground">{label}</span>
+      <span className="focus-ring-within flex min-h-11 items-center gap-2 rounded-[var(--radius)] border-2 border-ink bg-card px-3 py-2">
         {prefix ? (
           <span className="font-mono text-sm font-bold text-muted-foreground">
             {prefix}
@@ -102,15 +103,15 @@ function Field({
             onChange(committed)
             setText(String(committed))
           }}
-          className="w-full bg-transparent text-base font-extrabold tabular-nums outline-none"
+          className="w-full min-w-0 bg-transparent text-base font-extrabold tabular-nums outline-none"
         />
         {suffix ? (
           <span className="mono-meta shrink-0 text-muted-foreground">
             {suffix}
           </span>
         ) : null}
-      </div>
-    </div>
+      </span>
+    </label>
   )
 }
 

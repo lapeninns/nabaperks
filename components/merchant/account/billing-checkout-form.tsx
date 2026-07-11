@@ -65,13 +65,16 @@ export function BillingCheckoutForm({
           <input type="hidden" name="returnTo" value={returnTo} />
         ) : null}
 
+        {/* h-auto + whitespace-normal: the plan labels are long enough that
+            the Button base's nowrap otherwise sets a ~360px intrinsic floor
+            and drags the whole receipt past a 320px viewport. */}
         <Button
           type="submit"
           name="interval"
           value="month"
           disabled={pending}
           onClick={() => setPendingInterval("month")}
-          className="min-h-11 w-full"
+          className="h-auto min-h-11 w-full whitespace-normal"
         >
           <Icon icon={CreditCardIcon} size={16} />
           {monthlyLabel}
@@ -85,7 +88,7 @@ export function BillingCheckoutForm({
             variant="outline"
             disabled={pending}
             onClick={() => setPendingInterval("year")}
-            className="min-h-11 w-full"
+            className="h-auto min-h-11 w-full whitespace-normal"
           >
             {annualLabel}
           </Button>

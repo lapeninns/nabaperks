@@ -48,7 +48,9 @@ export function AdminIdChip({
       onClick={copy}
       title={value}
       className={cn(
-        "focus-ring inline-flex max-w-full items-center gap-1 rounded-sm font-mono text-xs text-muted-foreground underline decoration-dotted underline-offset-2 hover:text-foreground",
+        // Coarse pointers get the 44px tap floor (the Button xs/sm pattern);
+        // fine pointers keep the compact inline-chip line height.
+        "focus-ring inline-flex max-w-full items-center gap-1 rounded-sm font-mono text-xs text-muted-foreground underline decoration-dotted underline-offset-2 hover:text-foreground [@media(pointer:coarse)]:min-h-11",
         className
       )}
     >

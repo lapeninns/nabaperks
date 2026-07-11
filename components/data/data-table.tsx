@@ -1,6 +1,7 @@
 import type { KeyboardEventHandler, ReactNode } from "react"
 
 import { Eyebrow } from "@/components/brand"
+import { ShowMoreList } from "@/components/data/show-more-list"
 import { cn } from "@/lib/utils"
 import {
   Table,
@@ -63,6 +64,14 @@ export type DataTableProps<T> = {
   mobileCard?: (row: T, index: number) => ReactNode
   /** Class applied to the mobile-card list (only when `mobileCard` is set). */
   mobileClassName?: string
+  /**
+   * Opt-in progressive reveal for the mobile card stack: phones start with
+   * this many cards and a "Show more" control instead of the full stack (an
+   * unpaginated 100-row readback is a ~9,000px page at 375px). Desktop tables
+   * are unaffected. Ignored when `onRowClick`/`getRowProps` are used — those
+   * need per-row handlers the reveal wrapper does not thread through.
+   */
+  mobilePageSize?: number
   /**
    * Breakpoint at which the card stack switches to the semantic table (only
    * when `mobileCard` is set). `"sm"` (the default) keeps cards on phones and
@@ -195,6 +204,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     getRowProps,
     mobileCard,
     mobileClassName,
+    mobilePageSize,
     cardBreakpoint = "sm",
   } = props
 
@@ -218,6 +228,19 @@ export function DataTable<T>(props: DataTableProps<T>) {
       <div className={breakpoint.cards}>
         {isEmpty ? (
           (emptyState ?? null)
+        ) : mobilePageSize &&
+          rows.length > mobilePageSize &&
+          !onRowClick &&
+          !getRowProps ? (
+          <ShowMoreList
+            label={caption}
+            initialCount={mobilePageSize}
+            className={mobileClassName}
+            items={rows.map((row, index) => ({
+              key: getRowKey(row, index),
+              content: mobileCard(row, index),
+            }))}
+          />
         ) : (
           <ul
             aria-label={caption}

@@ -18,6 +18,7 @@ import {
   first,
   formatAdminDate,
 } from "@/components/admin/support"
+import { AdminRecordActions } from "@/components/admin/record-actions"
 import { AdminRecordCard } from "@/components/admin/record-card"
 import { EmptyState, Icon, PageTitle, SectionHeader } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
@@ -182,7 +183,9 @@ function MerchantAccountsPanel({
               const billing = formatAdminBillingStatus(
                 first(merchant.billing_customers)?.status
               )
-              return <StatusPill tone={billing.tone}>{billing.label}</StatusPill>
+              return (
+                <StatusPill tone={billing.tone}>{billing.label}</StatusPill>
+              )
             },
           },
           {
@@ -288,10 +291,12 @@ function QrRecord({ qrCode }: { readonly qrCode: AdminQrCode }) {
         },
       ]}
       action={
-        <div className="grid gap-3 lg:grid-cols-2">
-          <QrStateForm qrCodeId={qrCode.id} nextActive={!qrCode.is_active} />
-          <RegenerateQrForm qrCodeId={qrCode.id} />
-        </div>
+        <AdminRecordActions label="QR controls" group="qr-record">
+          <div className="grid gap-3 lg:grid-cols-2">
+            <QrStateForm qrCodeId={qrCode.id} nextActive={!qrCode.is_active} />
+            <RegenerateQrForm qrCodeId={qrCode.id} />
+          </div>
+        </AdminRecordActions>
       }
     />
   )

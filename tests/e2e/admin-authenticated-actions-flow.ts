@@ -1,5 +1,29 @@
 import { expect, type Page, test } from "@playwright/test"
 
+/**
+ * Admin record actions sit behind a collapsed `<details>` disclosure (one
+ * open per record group). Open the record's panel when the disclosure is the
+ * rendering in play — desktop tables render the same forms inline, where the
+ * summary is hidden and the form is already visible.
+ */
+async function revealRecordActions(
+  page: Page,
+  innerSelector: string
+): Promise<void> {
+  const details = page
+    .locator(`details:has(${innerSelector})`)
+    .filter({ visible: true })
+  if ((await details.count()) === 0) return
+
+  const record = details.first()
+  const alreadyOpen = await record.evaluate(
+    (element) => (element as HTMLDetailsElement).open
+  )
+  if (!alreadyOpen) {
+    await record.locator("summary").first().click()
+  }
+}
+
 import {
   type AdminBrowserFixture,
   type Sql,
@@ -32,6 +56,11 @@ async function resolveFraudFlagThroughUi(
   page: Page,
   fixture: AdminBrowserFixture
 ): Promise<void> {
+  await revealRecordActions(
+    page,
+    `input[name="fraudFlagId"][value="${fixture.flagId}"]`
+  )
+
   const dismissForm = page
     .locator(
       `form:has(input[name="fraudFlagId"][value="${fixture.flagId}"]):has(input[name="status"][value="dismissed"])`
@@ -86,6 +115,11 @@ async function recordPrivacyActionsThroughUi(
     page.getByRole("heading", { name: "Data request workflow" })
   ).toBeVisible()
 
+  await revealRecordActions(
+    page,
+    `input[name="customerId"][value="${fixture.membership.customer_id}"]`
+  )
+
   const optOutForm = page
     .locator(
       `form:has(input[name="customerId"][value="${fixture.membership.customer_id}"]):has(input[name="policyVersion"])`
@@ -114,6 +148,13 @@ async function recordPrivacyActionsThroughUi(
   await expect(
     page.getByRole("heading", { name: "Data request workflow" })
   ).toBeVisible()
+
+  // Same disclosure as the opt-out form — revealRecordActions no-ops when the
+  // record's panel is already open.
+  await revealRecordActions(
+    page,
+    `input[name="customerId"][value="${fixture.membership.customer_id}"]`
+  )
 
   const dataRequestForm = page
     .locator(

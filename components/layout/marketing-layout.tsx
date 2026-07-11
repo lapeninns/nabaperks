@@ -85,7 +85,11 @@ export function MarketingLayout({
       ) : (
         <footer className="border-t-2 border-dashed border-border bg-card">
           <div className="mx-auto flex w-full max-w-marketing-chrome flex-col gap-4 px-6 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
+            {/* max-sm:flex-wrap lets the credit drop below the logo at 320px
+                (the pair overshoots the 288px content column); from sm up the
+                row stays nowrap so the crowded footer row cannot squeeze the
+                credit onto a second line. */}
+            <div className="flex items-center gap-3 max-sm:flex-wrap max-sm:gap-y-1">
               <Logo href={logoHref} label="nabaperks" />
               <span className="mono-id tracking-[0.08em] whitespace-nowrap text-muted-foreground">
                 © {new Date().getFullYear()} · Marketing by choice

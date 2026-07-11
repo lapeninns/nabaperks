@@ -6,6 +6,7 @@ import {
   first,
   formatAdminDate,
 } from "@/components/admin/support"
+import { AdminRecordActions } from "@/components/admin/record-actions"
 import { AdminRecordCard } from "@/components/admin/record-card"
 import { PilotNoteFields } from "@/components/admin/pilot-note-fields"
 import { Store01Icon } from "@hugeicons/core-free-icons"
@@ -17,6 +18,7 @@ import {
   SectionHeader,
 } from "@/components/brand"
 import { DataTable } from "@/components/data/data-table"
+import { ShowMoreList } from "@/components/data/show-more-list"
 import { canRenderAdminPage } from "@/lib/admin/auth"
 import { getAdminPilotMerchants, getAdminPilotReport } from "@/lib/admin/data"
 
@@ -140,47 +142,57 @@ export default async function AdminPilotPage() {
         />
 
         {merchants.length ? (
-          <div className="grid gap-4">
-            {merchants.map((merchant) => {
+          <ShowMoreList
+            label="Pilot merchant notes"
+            initialCount={8}
+            listClassName="gap-4"
+            items={merchants.map((merchant) => {
               const billing = first(merchant.billing_customers)
-              return (
-                <AdminRecordCard
-                  key={merchant.id}
-                  title={merchant.business_name}
-                  fields={[
-                    {
-                      label: "Account",
-                      value: `${merchant.email} · ${merchant.status}`,
-                    },
-                    {
-                      label: "Billing",
-                      value: (
-                        <>
-                          {billing?.status ?? "no billing record"} ·{" "}
-                          <time dateTime={merchant.created_at}>
-                            {formatAdminDate(merchant.created_at)}
-                          </time>
-                        </>
-                      ),
-                    },
-                  ]}
-                  action={
-                    <AdminActionForm
-                      action={logPilotNoteAction}
-                      className="gap-3"
-                    >
-                      <input
-                        type="hidden"
-                        name="merchantId"
-                        value={merchant.id}
-                      />
-                      <PilotNoteFields />
-                    </AdminActionForm>
-                  }
-                />
-              )
+              return {
+                key: merchant.id,
+                content: (
+                  <AdminRecordCard
+                    title={merchant.business_name}
+                    fields={[
+                      {
+                        label: "Account",
+                        value: `${merchant.email} · ${merchant.status}`,
+                      },
+                      {
+                        label: "Billing",
+                        value: (
+                          <>
+                            {billing?.status ?? "no billing record"} ·{" "}
+                            <time dateTime={merchant.created_at}>
+                              {formatAdminDate(merchant.created_at)}
+                            </time>
+                          </>
+                        ),
+                      },
+                    ]}
+                    action={
+                      <AdminRecordActions
+                        label="Log a pilot note"
+                        group="pilot-merchant-note"
+                      >
+                        <AdminActionForm
+                          action={logPilotNoteAction}
+                          className="gap-3"
+                        >
+                          <input
+                            type="hidden"
+                            name="merchantId"
+                            value={merchant.id}
+                          />
+                          <PilotNoteFields />
+                        </AdminActionForm>
+                      </AdminRecordActions>
+                    }
+                  />
+                ),
+              }
             })}
-          </div>
+          />
         ) : (
           <EmptyState
             icon={Store01Icon}

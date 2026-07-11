@@ -6,6 +6,7 @@ import {
 
 import { resolveFraudFlagAction } from "@/app/admin/actions"
 import { AdminActionForm } from "@/components/admin/action-form"
+import { AdminRecordActions } from "@/components/admin/record-actions"
 import { AdminRecordCard } from "@/components/admin/record-card"
 import {
   AdminField,
@@ -43,11 +44,7 @@ function severityTone(severity: string) {
   return SEVERITY_TONE[severity.toLowerCase()] ?? "warning"
 }
 
-export function FraudFlagsPanel({
-  flags,
-}: {
-  readonly flags: FraudFlags
-}) {
+export function FraudFlagsPanel({ flags }: { readonly flags: FraudFlags }) {
   return (
     <AdminPanel>
       <SectionHeader
@@ -99,7 +96,9 @@ export function FraudFlagsPanel({
             key: "severity",
             header: "Severity",
             cell: (flag) => (
-              <StatusPill tone={severityTone(flag.severity)}>{flag.severity}</StatusPill>
+              <StatusPill tone={severityTone(flag.severity)}>
+                {flag.severity}
+              </StatusPill>
             ),
           },
           {
@@ -111,7 +110,10 @@ export function FraudFlagsPanel({
             key: "when",
             header: "When",
             cell: (flag) => (
-              <time className="text-muted-foreground" dateTime={flag.created_at}>
+              <time
+                className="text-muted-foreground"
+                dateTime={flag.created_at}
+              >
                 {formatAdminAuditDate(flag.created_at)}
               </time>
             ),
@@ -127,7 +129,9 @@ export function FraudFlagsPanel({
             title={flag.signal.replaceAll("_", " ")}
             status={
               <>
-                <StatusPill tone={severityTone(flag.severity)}>{flag.severity}</StatusPill>
+                <StatusPill tone={severityTone(flag.severity)}>
+                  {flag.severity}
+                </StatusPill>
                 <StatusPill>{flag.status}</StatusPill>
               </>
             }
@@ -144,7 +148,11 @@ export function FraudFlagsPanel({
                 ),
               },
             ]}
-            action={<FraudFlagActions flagId={flag.id} compact />}
+            action={
+              <AdminRecordActions label="Review actions" group="fraud-review">
+                <FraudFlagActions flagId={flag.id} compact />
+              </AdminRecordActions>
+            }
           />
         )}
       />

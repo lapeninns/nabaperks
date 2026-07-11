@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next"
+import Script from "next/script";
 import { Bricolage_Grotesque, Space_Mono } from "next/font/google"
 
 import "./globals.css"
@@ -89,6 +90,19 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       className={`${bricolageGrotesque.variable} ${spaceMono.variable} antialiased`}
     >
+      <head>
+        {process.env.NODE_ENV === "development" && (
+          <script src="https://unpkg.com/react-scan/dist/auto.global.js" crossOrigin="anonymous" />
+        )}
+
+        {process.env.NODE_ENV === "development" && (
+          <Script
+            src="//unpkg.com/react-grab/dist/index.global.js"
+            crossOrigin="anonymous"
+            strategy="beforeInteractive"
+          />
+        )}
+      </head>
       <body className="font-sans">
         <ThemeProvider>
           {children}

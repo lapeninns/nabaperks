@@ -422,10 +422,14 @@ body[data-grain="true"]::after {
    outline offset 2px. It never fights the hard offset shadows and reads on
    paper, card, and spot-ink fills alike. `.pressable` (every Button) carries
    it already; plain interactive elements outside the data-slot layer
-   (FilterPills-style buttons, links, summaries) add `.focus-ring`. It sits in
-   this unlayered block so `outline-none` utilities cannot defeat it. Do not
-   reintroduce per-component `focus-visible:ring-*` alphas. */
+   (FilterPills-style buttons, links, summaries) add `.focus-ring`. Composite
+   fields whose focus lives on an inner input (prefix/suffix wells like the
+   Regulars calculator) put `.focus-ring-within` on the visual box instead of
+   inventing a private ring. It sits in this unlayered block so `outline-none`
+   utilities cannot defeat it. Do not reintroduce per-component
+   `focus-visible:ring-*` alphas. */
 .focus-ring:focus-visible,
+.focus-ring-within:focus-within,
 .pressable:focus-visible {
   outline: 2px solid color-mix(in oklch, var(--ring) 85%, transparent);
   outline-offset: 2px;

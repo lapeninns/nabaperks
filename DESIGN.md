@@ -203,7 +203,9 @@ in `globals.css`: `shadow-md` is 4px 4px 0 ink (cards), `shadow-sm` 3px 3px 0
 transparent)`). The 85% mix is a floor, not a taste choice: composited over
   paper it must hold ≥ 3:1 non-text contrast (70% sat at 2.98:1 and failed).
   `.pressable` (every Button) and the themed inputs carry it from the
-  unlayered layer; plain interactive elements add `.focus-ring`.
+  unlayered layer; plain interactive elements add `.focus-ring`; composite
+  fields whose focus lives on an inner input (prefix/suffix wells) put
+  `.focus-ring-within` on the visual box.
   Never reintroduce per-component `focus-visible:ring-*` alphas.
 - _Dense tiles_ — a slotted `Card` takes `data-elevation="flat"` for the 2px
   offset (KpiTile, MetricTile beside StatStrip); shadow utilities on slotted

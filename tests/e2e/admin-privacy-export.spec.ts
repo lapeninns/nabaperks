@@ -45,12 +45,25 @@ test.describe("@MS-db-privacy-lifecycle @admin-live-db admin subject-access expo
       test.skip(!membership, "seed customer membership is not available")
       if (!membership) return
 
-      const cleanupAdminMfa = await installSeededAdminAal2Session(page.context())
+      const cleanupAdminMfa = await installSeededAdminAal2Session(
+        page.context()
+      )
       try {
         await page.goto("/admin/privacy", { waitUntil: "domcontentloaded" })
         await expect(
           page.getByRole("heading", { name: "Data request workflow" })
         ).toBeVisible({ timeout: 30_000 })
+
+        // The record's forms sit behind a collapsed disclosure — open it.
+        await page
+          .locator(
+            `details:has(input[name="customerId"][value="${membership.customer_id}"])`
+          )
+          .filter({ visible: true })
+          .first()
+          .locator("summary")
+          .first()
+          .click()
 
         const dataRequestForm = page
           .locator(
@@ -61,14 +74,22 @@ test.describe("@MS-db-privacy-lifecycle @admin-live-db admin subject-access expo
         await dataRequestForm.getByLabel("Request type").selectOption("export")
         await dataRequestForm.getByLabel("Channel").selectOption("email")
         await dataRequestForm.getByLabel("Notes").fill(notes)
-        await dataRequestForm.getByRole("button", { name: "Log request" }).click()
+        await dataRequestForm
+          .getByRole("button", { name: "Log request" })
+          .click()
 
         const download = page.getByRole("link", {
           name: "Download customer data export",
         })
         await expect(download).toBeVisible({ timeout: 30_000 })
-        await expect(download).toHaveAttribute("download", /customer-data-export-.*\.json/)
-        await expect(download).toHaveAttribute("href", /^data:application\/json/)
+        await expect(download).toHaveAttribute(
+          "download",
+          /customer-data-export-.*\.json/
+        )
+        await expect(download).toHaveAttribute(
+          "href",
+          /^data:application\/json/
+        )
       } finally {
         await cleanupAdminMfa()
       }

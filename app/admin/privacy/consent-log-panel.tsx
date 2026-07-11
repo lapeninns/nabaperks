@@ -44,6 +44,7 @@ export function ConsentLogPanel({
             rows={result.rows}
             getRowKey={(record) => record.id}
             mobileClassName="p-5"
+            mobilePageSize={10}
             emptyState={
               <EmptyState
                 icon={FileValidationIcon}
