@@ -44,18 +44,6 @@ function spell(value: number): string {
   return NUMBER_WORDS[value] ?? String(value)
 }
 
-/** Single-site venues repeat the name across both fields — show it once. */
-function buildVenueName(businessName: string, locationName: string): string {
-  const business = businessName.trim()
-  const location = locationName.trim()
-
-  if (!location || location === business) return business
-  if (business.includes(location)) return business
-  if (location.includes(business)) return location
-
-  return `${business} · ${location}`
-}
-
 /** Mystery stated once, mechanism once — the dots carry the count. */
 function buildPromise(stampsRequired: number): string {
   if (stampsRequired === 1) {
@@ -70,19 +58,15 @@ function buildPromise(stampsRequired: number): string {
 type NorthStarPosterProps = {
   readonly qrDataUrl: string
   readonly businessName: string
-  readonly locationName: string
   readonly stampsRequired: number
 }
 
 export function NorthStarPoster({
   qrDataUrl,
   businessName,
-  locationName,
   stampsRequired,
 }: NorthStarPosterProps) {
   const stamps = Math.max(1, stampsRequired)
-  const venueName = buildVenueName(businessName, locationName)
-  // The roundel and the stamps carry the brand identity.
   const stampVenue = businessName
 
   return (
@@ -91,7 +75,7 @@ export function NorthStarPoster({
       <div className={styles.frame}>
         <header className={styles.identity}>
           <VenueMark name={stampVenue} size={48} />
-          <p className={styles.venueName}>{venueName}</p>
+          <p className={styles.venueName}>{businessName}</p>
         </header>
 
         {/* h2, not h1 — the preview page's h1 is the chrome heading; the

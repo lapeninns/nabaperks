@@ -38,6 +38,9 @@ async function withMerchant(claims, run) {
           ${`protect-${short}`}, 'pub', ${`protect-${short}@example.test`},
           'trial', true
         )`
+      await tx`
+        insert into public.merchant_locations (id, merchant_id, name)
+        values (${randomUUID()}::uuid, ${merchantId}::uuid, ${`Protect ${short}`})`
 
       // Switch to the caller context under test.
       await tx`select set_config('request.jwt.claim.role', ${claims.role}, true)`
@@ -81,16 +84,43 @@ test("an owner cannot flip status to active directly", async (t) => {
   )
 })
 
-test("an owner can still edit non-protected columns", async (t) => {
+test("an owner venue rename keeps the location mirror synchronized", async (t) => {
   if (!(await isLiveDbReady())) return t.skip("no live DB")
 
-  const name = await withMerchant({ role: "authenticated" }, async (tx, { merchantId }) => {
+  const names = await withMerchant({ role: "authenticated" }, async (tx, { merchantId }) => {
     await tx`update public.merchants set business_name = 'Renamed Venue' where id = ${merchantId}::uuid`
-    const [row] = await tx`select business_name from public.merchants where id = ${merchantId}::uuid`
-    return row.business_name
+    const [row] = await tx`
+      select merchants.business_name, merchant_locations.name as location_name
+      from public.merchants
+      join public.merchant_locations on merchant_locations.merchant_id = merchants.id
+      where merchants.id = ${merchantId}::uuid`
+    return row
   })
 
-  assert.equal(name, "Renamed Venue")
+  assert.deepEqual(names, {
+    business_name: "Renamed Venue",
+    location_name: "Renamed Venue",
+  })
+})
+
+test("a direct location write cannot create a second venue name", async (t) => {
+  if (!(await isLiveDbReady())) return t.skip("no live DB")
+
+  const locationName = await withMerchant(
+    { role: "authenticated" },
+    async (tx, { merchantId }) => {
+      await tx`
+        update public.merchant_locations
+        set name = 'Forged branch name'
+        where merchant_id = ${merchantId}::uuid`
+      const [row] = await tx`
+        select name from public.merchant_locations
+        where merchant_id = ${merchantId}::uuid`
+      return row.name
+    }
+  )
+
+  assert.match(locationName, /^Protect /)
 })
 
 test("service_role may change the protected columns", async (t) => {

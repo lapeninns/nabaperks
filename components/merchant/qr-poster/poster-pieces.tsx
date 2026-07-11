@@ -67,8 +67,6 @@ export function QrBlock({
  * Wet Ink StampDot so posters match the live loyalty card.
  */
 export function QrProgress({ copy }: { readonly copy: PosterCopy }) {
-  const venueName = copy.locationName || copy.businessName
-
   return (
     <div className={styles.qrProgress}>
       <span
@@ -99,7 +97,7 @@ export function QrProgress({ copy }: { readonly copy: PosterCopy }) {
                 label={`Stamp ${slotNumber} ${earned ? "earned" : "empty"}`}
                 slotNumber={slotNumber}
                 showEmptySlotNumber={!earned}
-                venueName={venueName}
+                venueName={copy.businessName}
               />
             </span>
           )

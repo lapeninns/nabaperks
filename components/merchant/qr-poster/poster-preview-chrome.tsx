@@ -22,7 +22,6 @@ type PosterChromeProps = {
   readonly template: QrPosterTemplateId
   readonly templateName: string
   readonly merchantName: string
-  readonly locationName: string
   readonly qrCodeId?: string
   readonly backHref?: string
   readonly showSidebarTrigger?: boolean
@@ -48,12 +47,6 @@ const TEMPLATE_TAB_ACCENT: Record<QrPosterTemplateId, string> = {
     "data-[active=true]:border-l-sun data-[active=true]:bg-ink data-[active=true]:text-paper",
   thermal:
     "data-[active=true]:border-l-ink-soft data-[active=true]:bg-paper-deep",
-}
-
-function venueLabelOf(merchantName: string, locationName: string) {
-  return locationName.trim() === merchantName.trim()
-    ? merchantName
-    : `${merchantName} · ${locationName}`
 }
 
 function PrintButton({
@@ -158,14 +151,11 @@ export function PosterPreviewChrome({
   template,
   templateName,
   merchantName,
-  locationName,
   qrCodeId,
   backHref = "/app/qr",
   showSidebarTrigger = true,
   ref,
 }: PosterPreviewChromeProps) {
-  const venueLabel = venueLabelOf(merchantName, locationName)
-
   const [guidanceOpen, setGuidanceOpen] = useState(false)
   const navRef = useRef<HTMLElement>(null)
   const activePillRef = useRef<HTMLAnchorElement>(null)
@@ -211,7 +201,7 @@ export function PosterPreviewChrome({
             {templateName}
           </h1>
           <p className="truncate mono-id tracking-[0.08em] text-muted-foreground">
-            {venueLabel}
+            {merchantName}
           </p>
         </div>
 

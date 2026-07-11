@@ -67,7 +67,6 @@ export function mergeOnboardingDraft(
   return {
     businessName: value("businessName"),
     businessType: value("businessType"),
-    locationName: value("locationName"),
     phone: value("phone"),
     addressLine1: value("addressLine1"),
     addressLine2: value("addressLine2"),
@@ -106,9 +105,6 @@ export function OnboardingForm({
   const [businessName, setBusinessName] = useState(
     state.fields?.businessName ?? initialFields.businessName ?? ""
   )
-  const [locationName, setLocationName] = useState(
-    state.fields?.locationName ?? initialFields.locationName ?? ""
-  )
   const [address, setAddress] = useState<VenueAddressFormFields>({
     addressLine1: state.fields?.addressLine1 ?? "",
     addressLine2: state.fields?.addressLine2 ?? "",
@@ -146,35 +142,30 @@ export function OnboardingForm({
   }, [])
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      let draft: Partial<OnboardingDraft> = {}
+    let draft: Partial<OnboardingDraft> = {}
 
-      try {
-        const savedDraft = window.localStorage.getItem(draftStorageKey)
-        draft = savedDraft
-          ? (JSON.parse(savedDraft) as Partial<OnboardingDraft>)
-          : {}
-      } catch {
-        window.localStorage.removeItem(draftStorageKey)
-      }
+    try {
+      const savedDraft = window.localStorage.getItem(draftStorageKey)
+      draft = savedDraft
+        ? (JSON.parse(savedDraft) as Partial<OnboardingDraft>)
+        : {}
+    } catch {
+      window.localStorage.removeItem(draftStorageKey)
+    }
 
-      const form = formRef.current
-      if (!form) return
+    const form = formRef.current
+    if (!form) return
 
-      const merged = mergeOnboardingDraft(state.fields ?? initialFields, draft)
-      setBusinessName(merged.businessName ?? "")
-      setLocationName(merged.locationName ?? "")
-      restoreField(form, "businessType", merged.businessType)
-      restoreField(form, "phone", merged.phone)
-      setAddress({
-        addressLine1: merged.addressLine1 ?? "",
-        addressLine2: merged.addressLine2 ?? "",
-        addressCity: merged.addressCity ?? "",
-        addressPostcode: merged.addressPostcode ?? "",
-      })
-    }, 0)
-
-    return () => window.clearTimeout(timeoutId)
+    const merged = mergeOnboardingDraft(state.fields ?? initialFields, draft)
+    setBusinessName(merged.businessName ?? "")
+    restoreField(form, "businessType", merged.businessType)
+    restoreField(form, "phone", merged.phone)
+    setAddress({
+      addressLine1: merged.addressLine1 ?? "",
+      addressLine2: merged.addressLine2 ?? "",
+      addressCity: merged.addressCity ?? "",
+      addressPostcode: merged.addressPostcode ?? "",
+    })
   }, [draftStorageKey, initialFields, state.fields])
 
   function updateDraft(partial: Partial<OnboardingDraft>) {
@@ -208,10 +199,6 @@ export function OnboardingForm({
 
   function handlePlaceSelected(selection: VenuePlaceSelection) {
     setAddress(selection.fields)
-    if (selection.displayName) {
-      setLocationName(selection.displayName)
-      updateDraft({ locationName: selection.displayName })
-    }
     setProvenance({
       source: "provider_lookup",
       provider: "google_places",
@@ -223,10 +210,7 @@ export function OnboardingForm({
       latitude: String(selection.latitude),
       longitude: String(selection.longitude),
     })
-    updateDraft({
-      ...selection.fields,
-      locationName: selection.displayName || locationName,
-    })
+    updateDraft(selection.fields)
   }
 
   return (
@@ -240,11 +224,9 @@ export function OnboardingForm({
           (formData.get(key)?.toString() ?? "").trim()
         const nextErrors: ClientErrors = {}
         if (!readField("businessName"))
-          nextErrors.businessName = "Enter the business name."
+          nextErrors.businessName = "Enter the venue name."
         if (!readField("businessType"))
           nextErrors.businessType = "Choose a business type."
-        if (!readField("locationName"))
-          nextErrors.locationName = "Enter the venue name."
         if (!readField("addressLine1"))
           nextErrors.addressLine1 = "Enter the first line of the address."
         if (!readField("addressCity"))
@@ -259,7 +241,6 @@ export function OnboardingForm({
           const firstInvalid = [
             "businessName",
             "businessType",
-            "locationName",
             "addressLine1",
             "addressCity",
             "addressPostcode",
@@ -276,20 +257,15 @@ export function OnboardingForm({
           Check the highlighted fields. The first problem is focused below.
         </p>
       ) : null}
-      {/* Part 1 — the business profile: the operator's business behind the
-          loyalty card, not a single venue (more venues can be added later). The
-          page heading above already frames this whole card as "Merchant setup",
-          so the form opens straight into its first labelled group instead of
-          repeating that eyebrow. */}
       <div className="grid gap-1">
-        <Eyebrow>Your business</Eyebrow>
+        <Eyebrow>Your venue</Eyebrow>
         <p className="text-sm leading-6 text-muted-foreground">
-          The business behind the loyalty card.
+          The name customers see on the loyalty card.
         </p>
       </div>
       <OnboardingField
         id="businessName"
-        label="Business name"
+        label="Venue name"
         name="businessName"
         required
         value={businessName}
@@ -315,11 +291,9 @@ export function OnboardingForm({
         onChange={(event) => updateDraft({ phone: event.target.value })}
       />
 
-      {/* Part 2 — the first venue: its own name plus the customer-facing
-          address where scans happen. */}
       <hr className="w-rule" />
       <div className="grid gap-1">
-        <Eyebrow>Your first venue</Eyebrow>
+        <Eyebrow>Where customers visit</Eyebrow>
         <p className="text-sm leading-6 text-muted-foreground">
           Where customers scan to collect stamps. Search to autofill the
           address, then check the details below.
@@ -329,23 +303,6 @@ export function OnboardingForm({
       <VenuePlaceAutocomplete
         onPlaceSelected={handlePlaceSelected}
         apiKey={googleMapsApiKey}
-      />
-
-      {/* Venue name is an explicit, editable field (defaulting to the business
-          name) rather than a hidden input: the default is visible, and a venue
-          trading under a different name can be renamed here. */}
-      <OnboardingField
-        id="locationName"
-        label="Venue name"
-        name="locationName"
-        required
-        value={locationName || businessName}
-        onChange={(event) => {
-          setLocationName(event.target.value)
-          updateDraft({ locationName: event.target.value })
-        }}
-        error={errors.locationName}
-        hint="Defaults to your business name. Edit it if this venue trades under a different name."
       />
 
       <VenueAddressFields

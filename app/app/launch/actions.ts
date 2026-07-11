@@ -20,7 +20,6 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export type VenueLocationActionState = {
   fields?: VenueAddressFormFields & {
-    venueName?: string
     geofenceRadiusMeters?: string
     requireGeofence?: boolean
     softGeofenceTriggerStamp?: string
@@ -29,7 +28,6 @@ export type VenueLocationActionState = {
     geofencePinSource?: string
   }
   errors?: VenueAddressFieldErrors & {
-    venueName?: string
     geofenceRadiusMeters?: string
     softGeofenceTriggerStamp?: string
     form?: string
@@ -47,7 +45,9 @@ export async function saveVenueLocationAction(
     return { errors: { form: "Complete merchant onboarding first." } }
   }
 
-  const submission = parseVenueLocationSubmission(formData)
+  const submission = parseVenueLocationSubmission(formData, {
+    canonicalVenueName: merchant.business_name,
+  })
   const fields = submissionToFields(submission)
   const { errors, radius, softGeofenceTriggerStamp, manualPin } =
     validateVenueLocationSubmission(submission)
@@ -106,7 +106,6 @@ function submissionToFields(
   submission: ReturnType<typeof parseVenueLocationSubmission>
 ): NonNullable<VenueLocationActionState["fields"]> {
   return {
-    venueName: submission.venueName,
     ...submission.addressFields,
     geofenceRadiusMeters: submission.geofenceRadiusMeters,
     requireGeofence: submission.requireGeofence,

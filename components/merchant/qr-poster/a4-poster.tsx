@@ -21,7 +21,6 @@ type A4PosterProps = {
   readonly qrDataUrl: string
   readonly shareUrl: string
   readonly merchantName: string
-  readonly locationName: string
   readonly stampsRequired: number
   readonly qrCodeId?: string
   readonly backHref?: string
@@ -41,7 +40,6 @@ export function A4Poster({
   template,
   qrDataUrl,
   merchantName,
-  locationName,
   stampsRequired,
   qrCodeId,
   backHref,
@@ -109,7 +107,6 @@ export function A4Poster({
         template={template}
         templateName={templateMeta?.name ?? template}
         merchantName={merchantName}
-        locationName={locationName}
         qrCodeId={qrCodeId}
         backHref={backHref}
         showSidebarTrigger={showSidebarTrigger}
@@ -122,7 +119,6 @@ export function A4Poster({
                 template={template}
                 qrDataUrl={qrDataUrl}
                 merchantName={merchantName}
-                locationName={locationName}
                 stampsRequired={stampsRequired}
               />
             </div>
@@ -146,7 +142,6 @@ function PosterSheet({
   template,
   qrDataUrl,
   merchantName,
-  locationName,
   stampsRequired,
 }: Omit<A4PosterProps, "shareUrl">) {
   if (template === "northstar") {
@@ -154,7 +149,6 @@ function PosterSheet({
       <NorthStarPoster
         qrDataUrl={qrDataUrl}
         businessName={merchantName}
-        locationName={locationName}
         stampsRequired={stampsRequired}
       />
     )
@@ -165,14 +159,13 @@ function PosterSheet({
       <ThermalPoster
         qrDataUrl={qrDataUrl}
         businessName={merchantName}
-        locationName={locationName}
         stampsRequired={stampsRequired}
       />
     )
   }
 
   const copy = getPosterCopy(
-    { businessName: merchantName, locationName, stampsRequired },
+    { businessName: merchantName, stampsRequired },
     template
   )
   const posterByTemplate: Record<CopyPosterTemplateId, ReactNode> = {

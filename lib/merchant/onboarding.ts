@@ -7,7 +7,6 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 export type MerchantOnboardingFields = {
   businessName?: string
   businessType?: string
-  locationName?: string
   phone?: string
   addressLine1?: string
   addressLine2?: string
@@ -112,7 +111,6 @@ async function loadMerchantOnboardingStatus(
   const initialFields = {
     businessName: merchantForApp.business_name,
     businessType: merchantForApp.business_type ?? undefined,
-    locationName: location?.name ?? undefined,
     phone: merchantForApp.phone ?? undefined,
     addressLine1: location?.address_line_1 ?? location?.address ?? undefined,
     addressLine2: location?.address_line_2 ?? undefined,

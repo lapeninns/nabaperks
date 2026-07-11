@@ -27,7 +27,6 @@ import type {
 } from "@/lib/merchant/venue-address"
 
 type VenueLocationFormValues = VenueAddressFormFields & {
-  venueName: string
   geofenceRadiusMeters: string
   requireGeofence: boolean
   /** Optional so callers that never expose the knob (dev harness) keep the 3 default. */
@@ -66,7 +65,6 @@ export function VenueLocationForm({
     router.refresh()
   }, [router, state.saved])
 
-  const [venueName, setVenueName] = useState(initialValues.venueName)
   const [geofenceRadiusMeters, setGeofenceRadiusMeters] = useState(
     initialValues.geofenceRadiusMeters
   )
@@ -118,7 +116,6 @@ export function VenueLocationForm({
 
   function handlePlaceSelected(selection: VenuePlaceSelection) {
     setAddress(selection.fields)
-    if (selection.displayName) setVenueName(selection.displayName)
     setProvenance({
       source: "provider_lookup",
       provider: "google_places",
@@ -134,9 +131,9 @@ export function VenueLocationForm({
     <form action={action} className="surface-card grid gap-5 p-6">
       <PageTitle
         headingLevel={2}
-        eyebrow="Business & venue"
-        title="Review your venue"
-        description="These details came from sign-up — check the name and address customers see, and edit anything that's off. Your printed QR never changes; GPS is an optional soft check that only flags an odd stamp for review, never blocks one."
+        eyebrow="Venue location"
+        title="Review your address"
+        description="Check the address customers visit. Your printed QR never changes; GPS is an optional soft check that only flags an odd stamp for review, never blocks one."
         titleClassName="sm:text-3xl"
       />
 
@@ -155,24 +152,6 @@ export function VenueLocationForm({
         onPlaceSelected={handlePlaceSelected}
         apiKey={googleMapsApiKey}
       />
-
-      {/* Venue name is always visible and editable — never a hidden default the
-          merchant can't see. It seeds from onboarding / a Google place pick and
-          is the name customers read on their loyalty card. */}
-      <FormField
-        id="venueName"
-        label={<Eyebrow>Venue name</Eyebrow>}
-        description="The name customers see on their loyalty card."
-        error={state.errors?.venueName}
-      >
-        <Input
-          id="venueName"
-          name="venueName"
-          className="h-12 text-sm"
-          value={venueName}
-          onChange={(event) => setVenueName(event.target.value)}
-        />
-      </FormField>
 
       <VenueAddressFields
         values={address}

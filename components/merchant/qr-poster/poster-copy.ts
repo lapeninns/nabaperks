@@ -6,10 +6,7 @@
 export type CopyPosterTemplateId = "editorial" | "bold" | "ticket"
 
 export type PosterData = {
-  /** Merchant business name. */
   readonly businessName: string
-  /** Location / branch name. */
-  readonly locationName: string
   /** Stamps needed to unlock the mystery reward. */
   readonly stampsRequired: number
 }
@@ -87,20 +84,6 @@ function buildSupport(stampsRequired: number): string {
   return "Your first stamp's already waiting — collect the rest to unlock the mystery."
 }
 
-function buildEyebrow(businessName: string, locationName: string): string {
-  const business = businessName.trim()
-  const location = locationName.trim()
-
-  // Single-site venues often repeat the name across both fields. Show it once —
-  // keeping whichever string carries more detail — so the eyebrow never reads
-  // "Old Crown Girton · Old Crown Girton".
-  if (!location || location === business) return business
-  if (business.includes(location)) return business
-  if (location.includes(business)) return location
-
-  return `${business} · ${location}`
-}
-
 type CopyContext = {
   readonly stampsRequired: number
 }
@@ -176,7 +159,7 @@ export function getPosterCopy(
     ...data,
     template,
     stampsRequired,
-    eyebrow: buildEyebrow(data.businessName, data.locationName),
+    eyebrow: data.businessName.trim(),
     progress: buildProgress(stampsRequired),
     ...hook,
   }

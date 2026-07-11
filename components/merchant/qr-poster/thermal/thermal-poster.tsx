@@ -17,31 +17,10 @@ import styles from "./thermal-poster.module.css"
  * centred on a deeper-paper counter.
  *
  * Robustness: the stamp row sizes its slots to the count so it stays one line
- * (constant receipt height); the venue name is the big spoken line with the
- * location dropped to a mono address line below it.
+ * (constant receipt height); the venue name is the big spoken line.
  */
 
 const POSTER_STAMP_TILTS = ["-7deg", "-5deg", "-8deg", "-6deg"] as const
-
-/** Address line below the name — only when it adds detail the name doesn't. */
-function locationMetaOf(
-  businessName: string,
-  locationName: string
-): string | null {
-  const business = businessName.trim()
-  const location = locationName.trim()
-
-  if (
-    !location ||
-    location === business ||
-    business.includes(location) ||
-    location.includes(business)
-  ) {
-    return null
-  }
-
-  return location
-}
 
 /** Slot px that keeps the stamp row to a single line in the receipt strip. */
 function thermalSlotPx(stampsRequired: number): number {
@@ -54,19 +33,16 @@ function thermalSlotPx(stampsRequired: number): number {
 type ThermalPosterProps = {
   readonly qrDataUrl: string
   readonly businessName: string
-  readonly locationName: string
   readonly stampsRequired: number
 }
 
 export function ThermalPoster({
   qrDataUrl,
   businessName,
-  locationName,
   stampsRequired,
 }: ThermalPosterProps) {
   const stamps = Math.max(1, stampsRequired)
   const business = businessName.trim()
-  const address = locationMetaOf(businessName, locationName)
   const visitWord = stamps === 1 ? "Visit" : "Visits"
 
   return (
@@ -79,7 +55,6 @@ export function ThermalPoster({
             <div className={styles.head}>
               <VenueMark name={business} size={44} />
               <p className={styles.bizName}>{business}</p>
-              {address ? <p className={styles.metaLine}>{address}</p> : null}
               <p className={styles.metaLine}>Loyalty receipt</p>
             </div>
 

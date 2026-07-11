@@ -19,7 +19,6 @@ type PosterPreviewPageProps = {
 
 const PREVIEW_DEFAULTS = {
   merchantName: "Old Crown Girton",
-  locationName: "Old Crown Girton",
   stampsRequired: 3,
   sharePath: "old-crown-girton",
 } as const
@@ -42,7 +41,6 @@ export default async function PosterPreviewPage({
     qrDataUrl,
     shareUrl,
     merchantName: PREVIEW_DEFAULTS.merchantName,
-    locationName: PREVIEW_DEFAULTS.locationName,
     stampsRequired: PREVIEW_DEFAULTS.stampsRequired,
   }
 

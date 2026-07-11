@@ -26,11 +26,6 @@ const businessTypeOptions = [
   { value: "other", label: "Other local business" },
 ]
 
-/**
- * Business/account identity for the signed-in merchant. The business name is
- * the customer-facing merchant name used across cards, QR flows, and receipts.
- * Venue address/GPS details stay in Launch -> Business & venue.
- */
 export function MerchantProfileForm({
   businessName,
   businessType,
@@ -77,7 +72,7 @@ export function MerchantProfileForm({
   return (
     <form action={action} className="surface-card grid gap-4 p-6">
       <div className="grid gap-1">
-        <p className="eyebrow">Business profile</p>
+        <p className="eyebrow">Venue profile</p>
         <p className="text-sm leading-6 text-muted-foreground">
           These details appear on customer cards, terms, billing setup, and
           merchant emails. Your sign-in email is managed separately.
@@ -86,7 +81,7 @@ export function MerchantProfileForm({
       <Field
         id="businessName"
         name="businessName"
-        label="Customer-facing business name"
+        label="Venue name"
         defaultValue={fields?.businessName}
         error={state.errors?.businessName}
       />

@@ -11,11 +11,6 @@ import {
   venueAddressFieldsFromLocation,
 } from "@/lib/merchant/venue-address"
 
-/**
- * Profile tab of the Account hub. Leads with the customer-facing venue snapshot,
- * then the business/account edit form. Address and GPS editing stay in Launch,
- * but the business name is editable here because customer routes use it.
- */
 export async function ProfilePanel() {
   const profile = await getMerchantProfile()
 

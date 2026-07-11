@@ -139,7 +139,6 @@ export default async function LaunchHarnessPage({
         {activeTab === "card" ? (
           <LoyaltyCardForm
             merchantName={HARNESS_MERCHANT.business_name}
-            locationName={LOCATION_NAME}
             activeRewardCount={activeRewardPoolItemCount}
             initialValues={{
               cardId: "card_harness",
@@ -196,7 +195,6 @@ export default async function LaunchHarnessPage({
         ) : (
           <VenueLocationForm
             initialValues={{
-              venueName: LOCATION_NAME,
               addressLine1: "12 High Street",
               addressLine2: "",
               addressCity: "Girton, Cambridge",

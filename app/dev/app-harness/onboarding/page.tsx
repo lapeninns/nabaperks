@@ -31,8 +31,8 @@ export default function OnboardingHarnessPage() {
       <ReceiptCard className="grid gap-3">
         <PageTitle
           eyebrow="Merchant setup"
-          title="Set up your business and first venue"
-          description="Two parts here: your business profile, then your first venue — its name and the customer-facing address where scans happen."
+          title="Set up your venue"
+          description="Add the name customers see and the address where scans happen."
           titleClassName="sm:text-3xl"
         />
         <OnboardingJourneyOrientation variant="summary" />
@@ -41,7 +41,6 @@ export default function OnboardingHarnessPage() {
         initialFields={{
           businessName: "Old Crown Girton",
           businessType: "pub",
-          locationName: "Old Crown Girton",
           phone: "07700900421",
         }}
         draftUserId="usr_harness_onboarding"

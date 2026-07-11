@@ -30,7 +30,6 @@ export async function VenuePanel() {
 
 function initialVenueFormValues(location: CurrentVenueLocation) {
   return {
-    venueName: location?.name ?? "Main venue",
     ...venueAddressFieldsFromLocation({
       address: location?.address ?? null,
       address_line_1: location?.address_line_1,

@@ -216,7 +216,7 @@ function LaunchActivePanel({
         setup.qrCode?.is_active ? (
           <div className="grid min-w-0 items-start gap-3 xl:grid-cols-[minmax(20rem,0.7fr)_minmax(0,1.3fr)] xl:gap-5">
             <BillingActivationAssetPreview
-              venueName={setup.location.name}
+              venueName={setup.merchant?.business_name ?? "Your venue"}
               cardName={setup.activeCard.card_name}
               stampsRequired={setup.activeCard.stamps_required}
               qrCodeId={setup.qrCode.id}

@@ -957,7 +957,7 @@ function assertCompleteState(state, fixture, result) {
     {
       id: result.location_id,
       merchant_id: result.merchant_id,
-      name: fixture.locationName,
+      name: fixture.businessName,
       address: fixture.address,
       address_line_1: fixture.addressLine1,
       address_line_2: fixture.addressLine2,

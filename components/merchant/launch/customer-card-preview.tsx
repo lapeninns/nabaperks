@@ -12,7 +12,6 @@ import {
   clampStampsRequired,
 } from "@/lib/merchant/loyalty-card-copy"
 import { DEFAULT_STAMPS_REQUIRED } from "@/lib/merchant/customer-readback"
-import { formatMerchantVenueLabel } from "@/lib/merchant/venue-label"
 import { cn } from "@/lib/utils"
 import { SEALED_REWARD_NAME, SEALED_REWARD_NOTE } from "@/lib/copy/product-copy"
 
@@ -25,13 +24,11 @@ type CustomerCardPreviewDraft = {
 
 export function CustomerCardPreview({
   merchantName,
-  locationName,
   draft,
   activeRewardCount,
   className,
 }: {
   merchantName: string
-  locationName: string
   draft: CustomerCardPreviewDraft
   activeRewardCount: number
   className?: string
@@ -44,12 +41,11 @@ export function CustomerCardPreview({
     () => stampDisplayDatesEndingToday(earnedCount),
     [earnedCount]
   )
-  const venueLabel = formatMerchantVenueLabel(merchantName, locationName)
   const cardName = draft.cardName.trim() || "Mystery Visit Card"
 
   const previewBody = (
     <CustomerCardPreviewBody
-      venueLabel={venueLabel}
+      venueLabel={merchantName}
       cardName={cardName}
       stampsRequired={stampsRequired}
       earnedCount={earnedCount}

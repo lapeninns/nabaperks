@@ -76,7 +76,6 @@ export type RewardPoolItemValues = {
 type LoyaltyCardFormProps = {
   initialValues: LoyaltyCardFormValues
   merchantName: string
-  locationName: string
   /** Active pool count — shown in the customer preview sidebar. */
   activeRewardCount?: number
   cadencePresets?: readonly CardCadencePreset[]
@@ -89,7 +88,6 @@ const initialPresetBatchState: RewardPresetBatchActionState = {}
 export function LoyaltyCardForm({
   initialValues,
   merchantName,
-  locationName,
   activeRewardCount = 0,
   cadencePresets = [],
 }: LoyaltyCardFormProps) {
@@ -148,7 +146,7 @@ export function LoyaltyCardForm({
 
         <SectionHead
           title="Your card"
-          description={`One active card for ${locationName}. The reward reveals after the final qualifying visit.`}
+          description={`One active card for ${merchantName}. The reward reveals after the final qualifying visit.`}
           compactOnMobile
         />
 
@@ -251,7 +249,6 @@ export function LoyaltyCardForm({
       <CustomerCardPreview
         className="order-last lg:order-none"
         merchantName={merchantName}
-        locationName={locationName}
         draft={draft}
         activeRewardCount={activeRewardCount}
       />

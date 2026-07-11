@@ -88,30 +88,26 @@ test.describe("merchant launch setup @launch-setup", () => {
     await page.goto(`${HARNESS_ROUTES.launch}?tab=card`)
 
     const venueStep = page
-      .getByRole("link", { name: /Business & venue/ })
+      .getByRole("link", { name: /Your venue/ })
       .first()
     await expect(venueStep).toBeVisible()
     await expect(venueStep).toHaveAttribute("href", "/app/launch?tab=venue")
   })
 
-  // One route per test: two /dev/app-harness gotos in one test race on the
-  // shared shell's client effects. Both assert the venue name is a VISIBLE,
-  // editable input carrying the exact field name the server action reads (no
-  // hidden default the merchant can't see).
-  test("the launch venue step exposes an editable venueName input", async ({
+  test("the launch venue step does not ask for a second customer-facing name", async ({
     page,
   }) => {
     await page.goto(`${HARNESS_ROUTES.launch}?tab=venue`)
-    const venueName = page.locator('input[name="venueName"]')
-    await expect(venueName).toBeVisible()
-    await expect(venueName).toBeEditable()
+    await expect(page.locator('input[name="venueName"]')).toHaveCount(0)
   })
 
-  test("onboarding exposes an editable locationName input", async ({ page }) => {
+  test("onboarding asks for one customer-facing venue name", async ({ page }) => {
     await page.goto(HARNESS_ROUTES.onboarding)
-    const locationName = page.locator('input[name="locationName"]')
-    await expect(locationName).toBeVisible()
-    await expect(locationName).toBeEditable()
+    await expect(
+      page.getByRole("textbox", { name: /^Venue name/ })
+    ).toBeVisible()
+    await expect(page.locator('input[name="businessName"]')).toHaveCount(1)
+    await expect(page.locator('input[name="locationName"]')).toHaveCount(0)
   })
 
   test("no horizontal overflow on any launch tab at mobile width", async ({

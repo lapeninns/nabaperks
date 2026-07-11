@@ -27,7 +27,7 @@ export const LAUNCH_CHECKLIST_STEP_ORDER = [
 export const LAUNCH_SETUP_STEP_LABELS: Record<LaunchHubTab, string> = {
   card: "Your card",
   rewards: "Your rewards",
-  venue: "Business & venue",
+  venue: "Your venue",
   qr: "Venue QR",
   billing: "Billing",
 }
@@ -37,7 +37,7 @@ export const MERCHANT_SETUP_STEPS = [
     id: "venue",
     title: LAUNCH_SETUP_STEP_LABELS.venue,
     description:
-      "Add your business profile, first venue, and customer-facing address.",
+      "Add your venue name and customer-facing address.",
   },
   {
     id: "card",

@@ -67,7 +67,6 @@ export default async function QrPosterPage({
       qrDataUrl={qrDataUrl}
       shareUrl={shareUrl}
       merchantName={qrContext.merchant.business_name}
-      locationName={qrContext.location.name}
       stampsRequired={qrContext.activeCard.stamps_required}
       qrCodeId={qrCodeId}
       backHref={backHref}

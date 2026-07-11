@@ -50,7 +50,6 @@ export async function CardPanel({
       <CardStatus params={params} advanceHref={advanceHref} />
       <LoyaltyCardForm
         merchantName={merchant.business_name}
-        locationName={location.name}
         activeRewardCount={
           rewardPoolItems.filter((item) => item.is_active).length
         }

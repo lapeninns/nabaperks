@@ -32,7 +32,6 @@ export type OnboardingActionState = {
   fields?: {
     businessName?: string
     businessType?: string
-    locationName?: string
     phone?: string
     addressLine1?: string
     addressLine2?: string
@@ -42,7 +41,6 @@ export type OnboardingActionState = {
   errors?: {
     businessName?: string
     businessType?: string
-    locationName?: string
     addressLine1?: string
     addressLine2?: string
     addressCity?: string
@@ -71,21 +69,18 @@ export async function completeOnboardingAction(
   const businessType = value(formData, "businessType")
   const phone = value(formData, "phone")
   const venueSubmission = parseVenueLocationSubmission(formData, {
-    venueNameField: "locationName",
-    defaultVenueName: businessName,
+    canonicalVenueName: businessName,
   })
-  const locationName = venueSubmission.venueName
   const fields = {
     businessName,
     businessType,
-    locationName,
     phone,
     ...venueSubmission.addressFields,
   }
   const errors: NonNullable<OnboardingActionState["errors"]> = {}
 
   if (!businessName) {
-    errors.businessName = "Enter the business name."
+    errors.businessName = "Enter the venue name."
   } else if (businessName.length > 120) {
     errors.businessName = "Use 120 characters or fewer."
   }
@@ -206,7 +201,7 @@ function mapVenueErrors(
   if (errors.addressPostcode) mapped.addressPostcode = errors.addressPostcode
   if (errors.address) mapped.address = errors.address
   if (errors.form) mapped.form = errors.form
-  if (errors.venueName) mapped.locationName = errors.venueName
+  if (errors.venueName) mapped.businessName = errors.venueName
 
   return mapped
 }

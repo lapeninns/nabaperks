@@ -49,12 +49,6 @@ function value(formData: FormData, key: string) {
   return typeof raw === "string" ? raw.trim() : ""
 }
 
-/**
- * Saves the merchant's business/account identity. The venue (name + address) is
- * owned by Launch -> Your venue, so this action never touches
- * `merchant_locations` — that keeps a single source of truth and one validation
- * path for the venue.
- */
 export async function updateMerchantProfileAction(
   _state: MerchantProfileState,
   formData: FormData
@@ -73,7 +67,7 @@ export async function updateMerchantProfileAction(
 
   const errors: NonNullable<MerchantProfileState["errors"]> = {}
 
-  if (!businessName) errors.businessName = "Enter the business name."
+  if (!businessName) errors.businessName = "Enter the venue name."
   if (!allowedBusinessTypes.has(businessType)) {
     errors.businessType = "Choose a business type."
   }

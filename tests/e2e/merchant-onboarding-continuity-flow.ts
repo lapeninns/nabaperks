@@ -62,7 +62,6 @@ export function defineMerchantOnboardingContinuityTests() {
           key,
           JSON.stringify({
             businessName: "Stale Draft Name",
-            locationName: "Stale Draft Venue",
             addressLine1: "15 Market Street",
             addressLine2: "",
             addressCity: "Cambridge",
@@ -76,9 +75,6 @@ export function defineMerchantOnboardingContinuityTests() {
     await page.goto(HARNESS_ROUTES.onboarding)
 
     await expect(page.locator('input[name="businessName"]')).toHaveValue(
-      "Old Crown Girton"
-    )
-    await expect(page.locator('input[name="locationName"]')).toHaveValue(
       "Old Crown Girton"
     )
     await expect(page.locator('input[name="addressLine1"]')).toHaveValue(
@@ -97,7 +93,6 @@ export function defineMerchantOnboardingContinuityTests() {
   }) => {
     await page.goto(HARNESS_ROUTES.onboarding)
     await page.locator('input[name="businessName"]').clear()
-    await page.locator('input[name="locationName"]').clear()
 
     let actionPosts = 0
     page.on("request", (request) => {
@@ -110,14 +105,14 @@ export function defineMerchantOnboardingContinuityTests() {
     const businessName = page.locator('input[name="businessName"]')
     await expect(businessName).toBeFocused()
     await expect(
-      page.getByRole("alert").filter({ hasText: "Enter the business name." })
+      page.getByRole("alert").filter({ hasText: "Enter the venue name." })
     ).toBeVisible()
     expect(actionPosts).toBe(0)
 
     await submit.click()
     await expect(businessName).toBeFocused()
     await expect(
-      page.getByRole("alert").filter({ hasText: "Enter the business name." })
+      page.getByRole("alert").filter({ hasText: "Enter the venue name." })
     ).toBeVisible()
     expect(actionPosts).toBe(0)
   })
@@ -178,9 +173,6 @@ export function defineMerchantOnboardingContinuityTests() {
           .locator('input[name="phone"]')
           .fill(fixture.expected.phone ?? "")
         await page
-          .locator('input[name="locationName"]')
-          .fill(fixture.expected.locationName)
-        await page
           .locator('input[name="addressLine1"]')
           .fill(fixture.expected.addressLine1)
         await page
@@ -207,9 +199,6 @@ export function defineMerchantOnboardingContinuityTests() {
         )
         await expect(page.locator('input[name="businessName"]')).toHaveValue(
           fixture.expected.businessName
-        )
-        await expect(page.locator('input[name="locationName"]')).toHaveValue(
-          fixture.expected.locationName
         )
         await expect(page.locator('input[name="addressLine1"]')).toHaveValue(
           fixture.expected.addressLine1

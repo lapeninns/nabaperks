@@ -27,7 +27,7 @@ test("Given a merchant has only a partial location row When onboarding status is
     /\.limit\(1, \{ referencedTable: "merchant_locations" \}\)/
   )
   assert.match(onboarding, /\.maybeSingle\(\)/)
-  assert.match(onboarding, /locationName: location\?\.name \?\? undefined/)
+  assert.doesNotMatch(onboarding, /locationName:/)
   assert.match(
     onboarding,
     /addressLine1:\s*location\?\.address_line_1 \?\? location\?\.address \?\? undefined/
@@ -55,4 +55,23 @@ test("Given a merchant has only a partial location row When onboarding status is
     /select\("id", \{ count: "exact", head: true \}\)/
   )
   assert.doesNotMatch(onboarding, /locationCount/)
+})
+
+test("Given one customer-facing venue name When forms or profile edits persist Then location names cannot diverge", () => {
+  const onboardingAction = readProjectFile("app", "app", "onboarding", "actions.ts")
+  const launchAction = readProjectFile("app", "app", "launch", "actions.ts")
+  const migration = readProjectFile(
+    "supabase",
+    "migrations",
+    "20260713140000_single_customer_facing_venue_name.sql"
+  )
+
+  assert.match(onboardingAction, /canonicalVenueName: businessName/)
+  assert.match(launchAction, /canonicalVenueName: merchant\.business_name/)
+  assert.match(migration, /before insert or update of name, merchant_id/)
+  assert.match(migration, /after update of business_name/)
+  assert.match(
+    migration,
+    /set name = merchants\.business_name[\s\S]+where merchant_locations\.merchant_id = merchants\.id/
+  )
 })
