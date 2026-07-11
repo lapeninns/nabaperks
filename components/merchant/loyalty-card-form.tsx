@@ -1203,16 +1203,18 @@ export function ToggleRow({
   label,
   hint,
   checked,
+  disabled = false,
   onChange,
 }: {
   name: string
   label: string
   hint: string
   checked: boolean
+  disabled?: boolean
   onChange: (checked: boolean) => void
 }) {
   return (
-    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg bg-secondary px-3 py-3 sm:gap-4 sm:px-4">
+    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg bg-secondary px-3 py-3 has-disabled:cursor-wait has-disabled:opacity-70 sm:gap-4 sm:px-4">
       <span className="grid min-w-0 gap-0.5">
         <span className="text-sm font-bold text-foreground">{label}</span>
         <span className="text-xs leading-5 text-muted-foreground">{hint}</span>
@@ -1221,6 +1223,7 @@ export function ToggleRow({
         name={name}
         type="checkbox"
         checked={checked}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
         className="size-5 shrink-0 accent-[var(--w-leaf)]"
       />

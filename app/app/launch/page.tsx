@@ -123,7 +123,6 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
           setup={setup}
           readiness={readiness}
           continueHref={continueHref}
-          launchReady={readiness.launchReady}
           needsBillingActivation={needsBilling}
           billingHref={billingHref}
           billingOutcome={billingOutcome}
@@ -139,7 +138,6 @@ function LaunchActivePanel({
   setup,
   readiness,
   continueHref,
-  launchReady,
   needsBillingActivation,
   billingHref,
   billingOutcome,
@@ -149,7 +147,6 @@ function LaunchActivePanel({
   setup: QrSetup
   readiness: LaunchReadiness
   continueHref: string | null
-  launchReady: boolean
   needsBillingActivation: boolean
   billingHref: string | null
   billingOutcome: BillingPanelOutcome | undefined
@@ -206,7 +203,6 @@ function LaunchActivePanel({
           readiness={readiness}
           params={params}
           continueHref={continueHref}
-          launchReady={launchReady}
           billingHref={billingHref}
           returnHref={QR_LAUNCH_TAB_PATH}
         />

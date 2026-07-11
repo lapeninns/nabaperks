@@ -28,6 +28,8 @@ export type LaunchSearchParams = {
   session_id?: string
   billing_error?: string
   qr?: string
+  channel?: string
+  poster?: string
 }
 
 /** Keys that form the launch query protocol; everything else is ignored. */
@@ -44,6 +46,8 @@ const LAUNCH_PARAM_KEYS = [
   "session_id",
   "billing_error",
   "qr",
+  "channel",
+  "poster",
 ] as const satisfies ReadonlyArray<keyof LaunchSearchParams>
 
 function firstString(value: string | string[] | undefined): string | undefined {

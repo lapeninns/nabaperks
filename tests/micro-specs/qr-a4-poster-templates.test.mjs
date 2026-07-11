@@ -21,19 +21,21 @@ test("Given a live merchant QR When A4 poster templates are offered Then all cur
     "launch",
     "qr-panel-live.tsx"
   )
-  const posterTemplates = readProjectFile(
-    "lib",
-    "qr",
-    "poster-templates.ts"
+  const qrWorkspace = readProjectFile(
+    "components",
+    "merchant",
+    "launch",
+    "qr-redesign-concept.tsx"
   )
+  const posterTemplates = readProjectFile("lib", "qr", "poster-templates.ts")
   const templateIds = ["editorial", "bold", "ticket", "northstar", "thermal"]
 
   // When / Then
-  assert.match(qrPanelLive, /Print a counter poster/)
-  assert.match(qrPanelLive, /QR_POSTER_TEMPLATES\.map/)
+  assert.match(qrPanelLive, /QrWorkspace/)
+  assert.match(qrWorkspace, /QR_POSTER_TEMPLATES\.map/)
   assert.match(
     qrPanelLive,
-    /href=\{`\/app\/qr\/poster\/\$\{template\.id\}\?qr=\$\{qrCodeId\}&from=\$\{encodeURIComponent\(returnHref\)\}`\}/
+    /`\/app\/qr\/poster\/\$\{template\}\?qr=\$\{qrCodeId\}&from=\$\{encodeURIComponent\(returnHref\)\}`/
   )
   for (const templateId of templateIds) {
     assert.match(posterTemplates, new RegExp(`"${templateId}"`))

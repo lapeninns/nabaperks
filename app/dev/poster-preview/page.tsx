@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation"
+import { headers } from "next/headers"
 
 import { A4Poster } from "@/components/merchant/qr-poster/a4-poster"
 import { renderQrCodePng } from "@/lib/qr/assets"
@@ -33,7 +34,12 @@ export default async function PosterPreviewPage({
   const query = await searchParams
   const templateParam = firstSearchValue(query.template)
   const sharePath = firstSearchValue(query.qr) ?? PREVIEW_DEFAULTS.sharePath
-  const shareUrl = `https://nabaperks.com/q/${sharePath}`
+  const requestHeaders = await headers()
+  const host =
+    requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host")
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? "http"
+  const origin = host ? `${protocol}://${host}` : "http://127.0.0.1:3146"
+  const shareUrl = `${origin}/q/${sharePath}`
   const png = await renderQrCodePng(shareUrl, 900)
   const qrDataUrl = `data:image/png;base64,${png.toString("base64")}`
 
@@ -67,7 +73,7 @@ export default async function PosterPreviewPage({
           {/* Eyebrows use the customer-facing display name (Night card,
               Receipt, …), matching the poster picker — internal template ids
               stay out of rendered copy. */}
-          <p className="text-center font-mono text-xs font-bold tracking-[0.16em] uppercase text-[var(--w-ink-soft)]">
+          <p className="text-center font-mono text-xs font-bold tracking-[0.16em] text-[var(--w-ink-soft)] uppercase">
             {getQrPosterTemplate(template)?.name ?? template} template
           </p>
           <A4Poster

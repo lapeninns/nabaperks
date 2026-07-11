@@ -45,6 +45,17 @@ test("collapses array values to the first entry", () => {
   assert.equal(parsed.tab, "rewards")
 })
 
+test("keeps QR workspace channel and poster state", () => {
+  assert.deepEqual(
+    parseLaunchSearchParams({
+      tab: "qr",
+      channel: "digital",
+      poster: "northstar",
+    }),
+    { tab: "qr", channel: "digital", poster: "northstar" }
+  )
+})
+
 test("omits keys whose value is undefined", () => {
   const parsed = parseLaunchSearchParams({ tab: undefined, saved: "1" })
   assert.equal("tab" in parsed, false)

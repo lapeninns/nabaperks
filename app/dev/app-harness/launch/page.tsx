@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation"
+import { headers } from "next/headers"
 
 import {
   openCustomerPortalAction,
   startCheckoutAction,
 } from "@/app/app/billing/actions"
+import type { BirthdayRewardActionState } from "@/app/app/card/actions"
 import { PageTitle } from "@/components/brand"
 import { SetupBillingActivationCard } from "@/components/merchant/account/billing-activation-card"
 import { BillingPanelView } from "@/components/merchant/account/billing-panel-view"
@@ -17,6 +19,8 @@ import {
   type RewardPoolItemValues,
 } from "@/components/merchant/loyalty-card-form"
 import { QrPanel } from "@/components/merchant/launch/qr-panel"
+import type { DistributionChannel } from "@/components/merchant/launch/qr-redesign-concept"
+import { QrRedesignConcept } from "@/components/merchant/launch/qr-redesign-concept-harness"
 import { VenueLocationForm } from "@/components/merchant/launch/venue-location-form"
 import {
   buildLaunchReadiness,
@@ -29,6 +33,8 @@ import {
   CARD_CADENCE_PRESETS,
   rewardPresetsForBusinessType,
 } from "@/lib/merchant/reward-presets"
+import { QR_POSTER_TEMPLATE_IDS } from "@/lib/qr/poster-templates"
+import { renderQrCodePng } from "@/lib/qr/assets"
 
 import { HARNESS_MERCHANT } from "../fixtures"
 
@@ -59,6 +65,24 @@ const HARNESS_QR = {
   is_active: true,
 } as const
 
+async function saveHarnessBirthdayReward(
+  _state: BirthdayRewardActionState,
+  formData: FormData
+): Promise<BirthdayRewardActionState> {
+  "use server"
+  const enabled = formData.get("enabled") === "on"
+  return {
+    fields: {
+      loyaltyCardId: String(formData.get("loyaltyCardId") ?? ""),
+      enabled,
+      rewardName: String(formData.get("rewardName") ?? ""),
+      rewardTerms: String(formData.get("rewardTerms") ?? ""),
+    },
+    saved: true,
+    message: enabled ? "Birthday treat saved." : "Birthday treat switched off.",
+  }
+}
+
 /**
  * Launch (Setup) harness — variant "setup" (no sidebar/tab-bar; the setup shell
  * header instead). The real {@link LaunchReadinessPanel} renders above the
@@ -73,7 +97,14 @@ const HARNESS_QR = {
 export default async function LaunchHarnessPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ tab?: string; state?: string; pool?: string }>
+  searchParams?: Promise<{
+    tab?: string
+    state?: string
+    pool?: string
+    concept?: string
+    channel?: string
+    poster?: string
+  }>
 }) {
   if (process.env.NODE_ENV === "production") {
     notFound()
@@ -88,11 +119,16 @@ export default async function LaunchHarnessPage({
   const activeRewardPoolItemCount = rewardPoolItems.filter(
     (item) => item.isActive
   ).length
-  const qrCode = state === "lapsed" || state === "live" ? HARNESS_QR : null
+  const qrCode =
+    state === "paused"
+      ? { ...HARNESS_QR, is_active: false }
+      : state === "lapsed" || state === "live"
+        ? HARNESS_QR
+        : null
   const billing = {
     requiresBilling: true,
     status:
-      state === "qr" || state === "live"
+      state === "qr" || state === "live" || state === "paused"
         ? "active"
         : state === "lapsed"
           ? "past_due"
@@ -120,6 +156,13 @@ export default async function LaunchHarnessPage({
     activeRewardPoolItemCount,
     qrCode,
   }
+  const conceptShareUrl =
+    params.concept === "redesign" ? await resolveHarnessShareUrl() : null
+  const conceptQrDataUrl = conceptShareUrl
+    ? `data:image/png;base64,${(
+        await renderQrCodePng(conceptShareUrl, 720)
+      ).toString("base64")}`
+    : null
 
   // Heading / context / description / header-CTA come from the same pure helper
   // the real /app/launch uses, so the harness header stays faithful to it.
@@ -179,16 +222,30 @@ export default async function LaunchHarnessPage({
               rewardName={null}
               rewardTerms={null}
               template={birthdayRewardTemplateForBusinessType("pub")}
+              saveAction={saveHarnessBirthdayReward}
             />
           </div>
+        ) : activeTab === "qr" &&
+          params.concept === "redesign" &&
+          qrCode &&
+          conceptShareUrl &&
+          conceptQrDataUrl ? (
+          <QrRedesignConcept
+            activeCardName={HARNESS_ACTIVE_CARD.card_name}
+            venueName={LOCATION_NAME}
+            shareUrl={conceptShareUrl}
+            qrDataUrl={conceptQrDataUrl}
+            channel={resolveDistributionChannel(params.channel)}
+            template={resolvePosterTemplate(params.poster)}
+          />
         ) : activeTab === "qr" ? (
           <QrPanel
             setup={setup}
             readiness={readiness}
-            params={{}}
-            launchReady={readiness.launchReady}
+            params={{ channel: params.channel, poster: params.poster }}
             billingHref={billingHref}
             returnHref="/app/launch?tab=qr"
+            workspaceHref={`/dev/app-harness/launch?state=${state}&tab=qr`}
           />
         ) : activeTab === "billing" ? (
           billing.status === "active" ? (
@@ -248,12 +305,19 @@ function resolveTab(value: string | undefined): LaunchHubTab {
   return "card"
 }
 
-type LaunchHarnessState = "default" | "billing" | "lapsed" | "qr" | "live"
+type LaunchHarnessState =
+  | "default"
+  | "billing"
+  | "lapsed"
+  | "paused"
+  | "qr"
+  | "live"
 
 function resolveHarnessState(value: string | undefined): LaunchHarnessState {
   if (
     value === "billing" ||
     value === "lapsed" ||
+    value === "paused" ||
     value === "qr" ||
     value === "live"
   ) {
@@ -261,6 +325,27 @@ function resolveHarnessState(value: string | undefined): LaunchHarnessState {
   }
 
   return "default"
+}
+
+function resolveDistributionChannel(
+  value: string | undefined
+): DistributionChannel {
+  return value === "digital" ? "digital" : "print"
+}
+
+function resolvePosterTemplate(value: string | undefined) {
+  return (
+    QR_POSTER_TEMPLATE_IDS.find((template) => template === value) ?? "editorial"
+  )
+}
+
+async function resolveHarnessShareUrl() {
+  const requestHeaders = await headers()
+  const host =
+    requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host")
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? "http"
+  const origin = host ? `${protocol}://${host}` : "http://127.0.0.1:3146"
+  return `${origin}/q/old-crown-girton`
 }
 
 const READY_REWARD_POOL: readonly RewardPoolItemValues[] = [

@@ -96,7 +96,7 @@ test("Given a disabled join QR already exists When create-or-get runs Then SQL r
   assert.match(migration, /v_created boolean := false/)
 })
 
-test("Given merchant QR images are fetched by internal id When the owned context is loaded Then inactive and non-join QR rows are not renderable", () => {
+test("Given a merchant owns a paused QR When its asset context loads Then the QR stays renderable without exposing non-join rows", () => {
   const qrCode = readProjectFile("lib", "merchant", "qr-code.ts")
   const imageRoute = readProjectFile(
     "app",
@@ -113,7 +113,11 @@ test("Given merchant QR images are fetched by internal id When the owned context
   assert.ok(loader, "QR image loader source must be present")
   assert.match(
     loader,
-    /loadOwnedQrImageContext[\s\S]*\.eq\("id", qrCodeId\)[\s\S]*\.eq\("merchant_id", merchant\.id\)[\s\S]*\.eq\("destination_type", "join"\)[\s\S]*\.eq\("is_active", true\)[\s\S]*\.maybeSingle\(\)/
+    /loadOwnedQrImageContext[\s\S]*\.eq\("id", qrCodeId\)[\s\S]*\.eq\("merchant_id", merchant\.id\)[\s\S]*\.eq\("destination_type", "join"\)[\s\S]*\.maybeSingle\(\)/
+  )
+  assert.doesNotMatch(
+    loader.slice(0, loader.indexOf("const [locationResult")),
+    /\.eq\("is_active", true\)/
   )
   assert.match(
     loader,
@@ -291,32 +295,41 @@ test("Given billing lapses When a QR already exists Then scans pause without hid
     "launch",
     "qr-panel-live.tsx"
   )
+  const workspaceParts = readProjectFile(
+    "components",
+    "merchant",
+    "launch",
+    "qr-redesign-concept-parts.tsx"
+  )
 
   assert.match(qrPanel, /isLaunchReadinessBillingReady\(readiness\)/)
   assert.doesNotMatch(qrPanel, /billingReady=\{!billingHref\}/)
-  assert.match(livePanel, /Enabled · scans paused/)
+  assert.match(workspaceParts, /Enabled · scans paused/)
   assert.match(livePanel, /Scans paused — fix billing/)
   assert.match(livePanel, /href="\/app\/launch\?tab=billing"/)
   assert.match(livePanel, /EmailPosterButton/)
-  assert.match(livePanel, /Disable QR/)
+  assert.match(livePanel, /Pause customer scans/)
 })
 
-test("Given scans are available When the QR panel renders Then till and first-stamp guidance is explicit", () => {
+test("Given scans are available When the QR panel renders Then distribution actions are explicit", () => {
   const livePanel = readProjectFile(
     "components",
     "merchant",
     "launch",
     "qr-panel-live.tsx"
   )
-
-  assert.match(livePanel, /scansAvailable[\s\S]*Set up at the till/)
-  assert.match(livePanel, /poster at the till or bar/)
-  assert.match(livePanel, /Brief the team/)
-  assert.match(
-    livePanel,
-    /customer(?:'|&apos;)s phone joins and collects the stamp/
+  const workspace = readProjectFile(
+    "components",
+    "merchant",
+    "launch",
+    "qr-redesign-concept.tsx"
   )
-  assert.match(livePanel, /Do not use the merchant reward scanner for first stamps/)
+
+  assert.match(livePanel, /scansAvailable/)
+  assert.match(workspace, /Print for the till/)
+  assert.match(workspace, /Share digitally/)
+  assert.match(workspace, /Open customer link/)
+  assert.doesNotMatch(workspace, /Three quick checks/)
   assert.doesNotMatch(livePanel, /href="\/app\/scan"/)
 })
 

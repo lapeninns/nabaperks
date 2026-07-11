@@ -3,20 +3,24 @@ import { redirect } from "next/navigation"
 
 import { PageTitle } from "@/components/brand"
 import { LaunchPanelSkeleton } from "@/components/merchant/loading-skeletons"
-import { QrPanel, type QrPanelParams } from "@/components/merchant/launch/qr-panel"
+import { QrPanel } from "@/components/merchant/launch/qr-panel"
 import { getCurrentMerchant } from "@/lib/auth/session"
 import { loadLaunchSetup } from "@/lib/merchant/launch-page-model"
 import { resolveLaunchBillingHref } from "@/lib/merchant/launch-readiness-core"
 import { QR_POSTER_PATH } from "@/lib/merchant/qr-nav"
+import {
+  parseLaunchSearchParams,
+  type RawLaunchSearchParams,
+} from "@/lib/merchant/launch-search-params"
 
 export const dynamic = "force-dynamic"
 
 type QrPageProps = {
-  searchParams: Promise<QrPanelParams>
+  searchParams: Promise<RawLaunchSearchParams>
 }
 
 export default async function QrPage({ searchParams }: QrPageProps) {
-  const params = await searchParams
+  const params = parseLaunchSearchParams(await searchParams)
   const merchant = await getCurrentMerchant()
 
   if (!merchant) {
@@ -38,7 +42,6 @@ export default async function QrPage({ searchParams }: QrPageProps) {
           setup={setup}
           readiness={readiness}
           params={params}
-          launchReady={readiness.launchReady}
           billingHref={billingHref}
           returnHref={QR_POSTER_PATH}
         />

@@ -190,7 +190,6 @@ async function loadOwnedQrImageContext({
     .eq("id", qrCodeId)
     .eq("merchant_id", merchant.id)
     .eq("destination_type", "join")
-    .eq("is_active", true)
     .maybeSingle()
 
   if (error) {

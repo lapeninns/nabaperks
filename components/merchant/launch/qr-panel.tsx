@@ -19,6 +19,8 @@ export type QrPanelParams = {
   enabled?: string
   disabled?: string
   error?: string
+  channel?: string
+  poster?: string
 }
 
 export async function QrPanel({
@@ -26,15 +28,14 @@ export async function QrPanel({
   readiness,
   params,
   continueHref,
-  launchReady = false,
   billingHref,
   returnHref = QR_LAUNCH_TAB_PATH,
+  workspaceHref,
 }: {
   setup: QrSetup
   readiness: LaunchReadiness
   params: QrPanelParams
   continueHref?: string | null
-  launchReady?: boolean
   billingHref?: string | null
   /**
    * Shell the panel is rendered in — posted as a hidden `returnTo` so the QR
@@ -42,6 +43,7 @@ export async function QrPanel({
    * launch tab for the onboarding flow.
    */
   returnHref?: string
+  workspaceHref?: string
 }) {
   const { activeCard, qrCode, location } = setup
   const activeRewardPoolItemCount = setup.activeRewardPoolItemCount
@@ -142,9 +144,10 @@ export async function QrPanel({
 
   return (
     <div className="grid min-w-0 gap-3 sm:gap-5">
-      {statusMessage(params, launchReady, continueHref, billingHref)}
+      {statusMessage(params, continueHref, billingHref)}
       <QrPanelLive
         activeCardName={activeCard.card_name}
+        venueName={setup.merchant?.business_name ?? activeCard.card_name}
         qrCodeId={qrCode.id}
         isActive={qrCode.is_active}
         billingReady={billingReady}
@@ -153,6 +156,9 @@ export async function QrPanel({
         hasVenueAddress={Boolean(location?.address)}
         error={params.error}
         returnHref={returnHref}
+        workspaceHref={workspaceHref}
+        channel={params.channel}
+        poster={params.poster}
       />
     </div>
   )
@@ -160,7 +166,6 @@ export async function QrPanel({
 
 function statusMessage(
   params: QrPanelParams,
-  launchReady: boolean,
   continueHref?: string | null,
   billingHref?: string | null
 ) {
@@ -170,9 +175,7 @@ function statusMessage(
       ? "QR code enabled."
       : params.disabled
         ? "QR code disabled."
-        : launchReady
-          ? "Your venue QR is live."
-          : null
+        : null
 
   if (!message) return null
 

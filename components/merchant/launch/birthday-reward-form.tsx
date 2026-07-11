@@ -1,12 +1,18 @@
 "use client"
 
-import { useActionState, useState } from "react"
+import {
+  startTransition,
+  useActionState,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react"
 
 import {
   saveBirthdayRewardAction,
   type BirthdayRewardActionState,
 } from "@/app/app/card/actions"
-import { SubmitButton } from "@/components/forms"
 import {
   Field,
   TextareaField,
@@ -15,11 +21,16 @@ import {
 import type { BirthdayRewardTemplate } from "@/lib/merchant/birthday-reward-template"
 
 const initialState: BirthdayRewardActionState = {}
+type BirthdayRewardSaveAction = (
+  state: BirthdayRewardActionState,
+  formData: FormData
+) => Promise<BirthdayRewardActionState>
 
 export function BirthdayRewardForm({
   loyaltyCardId,
   initialValues,
   template,
+  saveAction = saveBirthdayRewardAction,
 }: {
   loyaltyCardId: string
   initialValues: {
@@ -28,8 +39,12 @@ export function BirthdayRewardForm({
     rewardTerms: string
   }
   template: BirthdayRewardTemplate
+  saveAction?: BirthdayRewardSaveAction
 }) {
-  const [state, action] = useActionState(saveBirthdayRewardAction, initialState)
+  const [state, action, pending] = useActionState(
+    saveAction,
+    initialState
+  )
   const [enabled, setEnabled] = useState(
     state.fields?.enabled ?? initialValues.enabled
   )
@@ -39,36 +54,94 @@ export function BirthdayRewardForm({
   const [rewardTerms, setRewardTerms] = useState(
     state.fields?.rewardTerms ?? initialValues.rewardTerms
   )
+  const [dirty, setDirty] = useState(false)
+  const savedValues = useRef(initialValues)
+
+  const save = useCallback(
+    (nextEnabled: boolean, nextName: string, nextTerms: string) => {
+      const formData = new FormData()
+      formData.set("loyaltyCardId", loyaltyCardId)
+      if (nextEnabled) formData.set("enabled", "on")
+      formData.set("rewardName", nextName)
+      formData.set("rewardTerms", nextTerms)
+      setDirty(false)
+      startTransition(() => action(formData))
+    },
+    [action, loyaltyCardId]
+  )
+
+  useEffect(() => {
+    if (!dirty || !enabled) return
+    const timeout = window.setTimeout(
+      () => save(enabled, rewardName, rewardTerms),
+      600
+    )
+    return () => window.clearTimeout(timeout)
+  }, [dirty, enabled, rewardName, rewardTerms, save])
+
+  useEffect(() => {
+    if (!state.saved || !state.fields) return
+    savedValues.current = {
+      enabled: state.fields.enabled ?? enabled,
+      rewardName: state.fields.rewardName ?? rewardName,
+      rewardTerms: state.fields.rewardTerms ?? rewardTerms,
+    }
+  }, [enabled, rewardName, rewardTerms, state.fields, state.saved])
+
+  useEffect(() => {
+    if (!state.errors?.form) return
+    setEnabled(savedValues.current.enabled)
+    setRewardName(savedValues.current.rewardName)
+    setRewardTerms(savedValues.current.rewardTerms)
+  }, [state.errors?.form])
 
   function handleToggle(next: boolean) {
+    const nextName = next
+      ? rewardName.trim()
+        ? rewardName
+        : template.rewardName
+      : savedValues.current.rewardName
+    const nextTerms = next
+      ? rewardTerms.trim()
+        ? rewardTerms
+        : template.rewardTerms
+      : savedValues.current.rewardTerms
+
     setEnabled(next)
-    if (next) {
-      // Prefill blank fields with the business-typed template when the treat is
-      // switched on.
-      setRewardName((current) =>
-        current.trim() ? current : template.rewardName
-      )
-      setRewardTerms((current) =>
-        current.trim() ? current : template.rewardTerms
-      )
-    } else {
-      // Switching off drops an un-saved template so a disabled save never
-      // persists copy the merchant did not commit; a saved reward is restored.
-      setRewardName(initialValues.rewardName)
-      setRewardTerms(initialValues.rewardTerms)
-    }
+    setRewardName(nextName)
+    setRewardTerms(nextTerms)
+    save(next, nextName, nextTerms)
   }
 
   return (
-    <form action={action} className="grid gap-4">
+    <form className="grid gap-4" onSubmit={(event) => event.preventDefault()}>
       <input type="hidden" name="loyaltyCardId" value={loyaltyCardId} />
       <ToggleRow
         name="enabled"
         label="Give a birthday treat"
         hint="Members with a saved birthday get this reward automatically during their birthday month."
         checked={enabled}
+        disabled={pending}
         onChange={handleToggle}
       />
+
+      <p
+        className="mono-meta text-muted-foreground"
+        role="status"
+        aria-live="polite"
+      >
+        {pending
+          ? "Saving birthday treat…"
+          : state.saved
+            ? state.message
+            : "Changes save automatically"}
+      </p>
+
+      {state.errors?.form ? (
+        <p className="text-sm text-destructive" role="alert">
+          {state.errors.form}
+        </p>
+      ) : null}
 
       {enabled ? (
         <div className="grid gap-4">
@@ -78,7 +151,11 @@ export function BirthdayRewardForm({
             label="Reward name"
             hint="What the member sees, e.g. “Birthday drink”."
             value={rewardName}
-            onChange={(event) => setRewardName(event.target.value)}
+            onChange={(event) => {
+              setRewardName(event.target.value)
+              setDirty(true)
+            }}
+            onBlur={() => save(enabled, rewardName, rewardTerms)}
             maxLength={100}
             error={state.errors?.rewardName}
           />
@@ -88,29 +165,21 @@ export function BirthdayRewardForm({
             label="Reward terms"
             hint="12–500 characters. Anything the member should know before they redeem."
             value={rewardTerms}
-            onChange={(event) => setRewardTerms(event.target.value)}
+            onChange={(event) => {
+              setRewardTerms(event.target.value)
+              setDirty(true)
+            }}
+            onBlur={() => save(enabled, rewardName, rewardTerms)}
             maxLength={500}
             error={state.errors?.rewardTerms}
           />
         </div>
       ) : (
-        // A disabled save carries the stored copy (empty for a new reward), never
-        // an un-saved template — handleToggle restores initialValues on switch-off.
         <>
           <input type="hidden" name="rewardName" value={rewardName} />
           <input type="hidden" name="rewardTerms" value={rewardTerms} />
         </>
       )}
-
-      {state.errors?.form ? (
-        <p className="text-sm text-destructive" role="alert">
-          {state.errors.form}
-        </p>
-      ) : null}
-
-      <SubmitButton className="w-fit" pendingLabel="Saving…">
-        Save birthday reward
-      </SubmitButton>
     </form>
   )
 }

@@ -461,6 +461,8 @@ export type BirthdayRewardActionState = {
     rewardTerms?: string
     form?: string
   }
+  saved?: boolean
+  message?: string
 }
 
 const BIRTHDAY_SAVE_ERROR =
@@ -534,7 +536,13 @@ export async function saveBirthdayRewardAction(
   })
 
   revalidateMerchantLaunchSurfaces(merchant.id)
-  redirect("/app/launch?tab=rewards&saved=birthday")
+  return {
+    fields,
+    saved: true,
+    message: enabled
+      ? "Birthday treat saved."
+      : "Birthday treat switched off.",
+  }
 }
 
 export async function toggleRewardPoolItemActiveAction(formData: FormData) {

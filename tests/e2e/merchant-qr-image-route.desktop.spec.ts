@@ -157,6 +157,24 @@ async function expectQrImageRejected(
   await expect(response.text()).resolves.toContain("QR code not found")
 }
 
+async function expectOwnedQrImage(
+  page: Page,
+  qrCodeId: string,
+  label: string
+): Promise<void> {
+  const response = await page.goto(`/app/qr/image/${qrCodeId}`)
+
+  expect(response, `${label} should return an HTTP response`).not.toBeNull()
+  if (!response) return
+
+  expect(response.status(), `${label} should render image bytes`).toBe(200)
+  expect(response.headers()["content-type"] ?? "").toContain("image/png")
+  expect(response.headers()["cache-control"] ?? "").toContain(
+    "private, max-age=86400, immutable"
+  )
+  expect((await response.body()).byteLength).toBeGreaterThan(100)
+}
+
 test.describe("Merchant QR image route", () => {
   test("dev QR harness page loads the fixture image in the frame", async ({
     page,
@@ -244,7 +262,7 @@ test.describe("Merchant QR image route", () => {
       }
     })
 
-    test("seeded merchant only receives image bytes for an owned active join QR", async ({
+    test("seeded merchant receives image bytes for owned active and paused join QRs", async ({
       page,
     }) => {
       const sql = connectLocalDb()
@@ -267,29 +285,13 @@ test.describe("Merchant QR image route", () => {
 
         await signInAsSeededMerchant(page, merchantEmail)
 
-        const validResponse = await page.goto(
-          `/app/qr/image/${fixture.validQrCodeId}`
-        )
-        expect(validResponse?.status()).toBe(200)
-        expect(validResponse?.headers()["content-type"] ?? "").toContain(
-          "image/png"
-        )
-        expect(validResponse?.headers()["cache-control"] ?? "").toContain(
-          "private, max-age=86400, immutable"
-        )
-        expect((await validResponse?.body())?.byteLength ?? 0).toBeGreaterThan(
-          100
-        )
+        await expectOwnedQrImage(page, fixture.validQrCodeId, "active QR")
+        await expectOwnedQrImage(page, fixture.inactiveQrCodeId, "paused QR")
 
         await expectQrImageRejected(
           page,
           fixture.wrongMerchantQrCodeId,
           "wrong merchant QR"
-        )
-        await expectQrImageRejected(
-          page,
-          fixture.inactiveQrCodeId,
-          "inactive QR"
         )
         await expectQrImageRejected(
           page,

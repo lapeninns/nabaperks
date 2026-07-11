@@ -175,7 +175,9 @@ export function defineMerchantLaunchFollowThroughTests() {
     await expect(
       page.getByRole("button", { name: "Email poster PDFs" })
     ).toBeVisible()
-    await expect(page.getByRole("button", { name: "Disable QR" })).toBeVisible()
+    await expect(
+      page.getByRole("button", { name: "Pause customer scans" })
+    ).toBeVisible()
     await expectVenueQrLoaded(page)
     await expectNoHorizontalOverflow(page)
   })
@@ -194,6 +196,22 @@ export function defineMerchantLaunchFollowThroughTests() {
     await expectNoHorizontalOverflow(page)
   })
 
+  test("manually paused QR keeps posters available and offers resume", async ({
+    page,
+  }) => {
+    await page.goto(`${HARNESS_ROUTES.launch}?state=paused&tab=qr`)
+
+    await expect(page.getByText("Paused · no new scans")).toBeVisible()
+    await expect(
+      page.getByRole("button", { name: "Resume customer scans" })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "Choose a poster style" })
+    ).toBeVisible()
+    await expectVenueQrLoaded(page)
+    await expectNoHorizontalOverflow(page)
+  })
+
   test("post-billing QR moment is truthful and phone-native @a11y", async ({
     page,
   }) => {
@@ -204,19 +222,112 @@ export function defineMerchantLaunchFollowThroughTests() {
     await expect(
       page.getByRole("button", { name: "Email poster PDFs" })
     ).toBeVisible()
-    await expect(page.getByText(/On a phone/i)).toBeVisible()
-    await expect(page.getByText(/all five poster PDFs/i)).toBeVisible()
-    await expect(page.getByText(/email yourself the poster link/i)).toHaveCount(
-      0
-    )
-    await expect(page.getByText(/on its way/i)).toHaveCount(0)
-    await expect(page.getByText("Step 01")).toBeVisible()
-    await expect(page.getByText("Step 02")).toBeVisible()
-    await expect(page.getByText("Set up at the till")).toBeVisible()
-    await expect(page.getByText("Brief the team")).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "Launch your counter QR" })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("link", { name: "Open customer link" })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("link", { name: "Print for the till" })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("link", { name: "Share digitally" })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "Choose a poster style" })
+    ).toBeVisible()
+    await expect(page.getByText("Step 01")).toHaveCount(0)
+    await expect(page.getByText("Step 02")).toHaveCount(0)
+    await expect(
+      page.getByRole("heading", { name: "Three quick checks" })
+    ).toHaveCount(0)
     await expectNoAxeViolations(page, "merchant poster follow-through")
     await expectNoHorizontalOverflow(page)
     await expectVenueQrLoaded(page)
+  })
+
+  test("production QR workspace preserves poster choice across channels", async ({
+    page,
+  }) => {
+    await page.goto(
+      `${HARNESS_ROUTES.launch}?state=live&tab=qr&channel=print&poster=northstar`
+    )
+
+    await expect(
+      page.getByRole("img", { name: "Night card poster preview" })
+    ).toBeVisible()
+    await page.getByRole("link", { name: "Share digitally" }).click()
+    await expect(page).toHaveURL(/channel=digital/)
+    await expect(page).toHaveURL(/poster=northstar/)
+    await expect(
+      page.getByRole("heading", { name: "Share your permanent venue link" })
+    ).toBeVisible()
+    await expectNoHorizontalOverflow(page)
+  })
+
+  test("QR redesign concept organises launch around distribution channels", async ({
+    page,
+  }) => {
+    await page.goto(
+      `${HARNESS_ROUTES.launch}?state=live&tab=qr&concept=redesign`
+    )
+
+    await expect(
+      page.getByRole("heading", { name: "Launch your counter QR" })
+    ).toBeVisible()
+    await expect(page.getByText("Live and accepting scans")).toBeVisible()
+    await expect(
+      page.getByRole("link", { name: "Print for the till" })
+    ).toHaveAttribute("aria-current", "page")
+    await expect(
+      page.getByRole("heading", { name: "Choose a poster style" })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "Test it like a customer" })
+    ).toHaveCount(0)
+    await expect(
+      page.getByRole("heading", { name: "Three quick checks" })
+    ).toHaveCount(0)
+    await expect(page.getByText("QR settings")).toHaveCount(0)
+    await expect(
+      page.getByRole("link", { name: "Open customer link" })
+    ).toBeVisible()
+
+    if ((page.viewportSize()?.width ?? 0) < 640) {
+      const firstTemplate = await page
+        .getByRole("link", { name: /Editorial/ })
+        .boundingBox()
+      const secondTemplate = await page
+        .getByRole("link", { name: /^Bold/ })
+        .boundingBox()
+      expect(
+        Math.abs((firstTemplate?.y ?? 0) - (secondTemplate?.y ?? 0))
+      ).toBeLessThanOrEqual(2)
+    }
+
+    await page.getByRole("link", { name: /Night card/ }).click()
+    await expect(
+      page.getByRole("img", { name: "Night card poster preview" })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("link", { name: /Night card/ })
+    ).toHaveAttribute("aria-current", "page")
+
+    await page.getByRole("link", { name: "Share digitally" }).click()
+    await expect(
+      page.getByRole("heading", { name: "Share your permanent venue link" })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "Choose a poster style" })
+    ).toHaveCount(0)
+
+    await expect(
+      page.getByRole("link", { name: "Print for the till" })
+    ).toHaveAttribute("href", /poster=northstar/)
+
+    await expectNoAxeViolations(page, "QR redesign concept")
+    await expectNoHorizontalOverflow(page)
   })
 
   test("post-billing QR visual baseline @visual", async ({ page }) => {
@@ -227,16 +338,17 @@ export function defineMerchantLaunchFollowThroughTests() {
     await expect(
       page.getByRole("button", { name: "Email poster PDFs" })
     ).toBeVisible()
-    await expect(page.getByText(/On a phone/i)).toBeVisible()
-    await expect(page.getByText(/all five poster PDFs/i)).toBeVisible()
-    await expect(page.getByText(/email yourself the poster link/i)).toHaveCount(
-      0
-    )
-    await expect(page.getByText(/on its way/i)).toHaveCount(0)
-    await expect(page.getByText("Step 01")).toBeVisible()
-    await expect(page.getByText("Step 02")).toBeVisible()
-    await expect(page.getByText("Set up at the till")).toBeVisible()
-    await expect(page.getByText("Brief the team")).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "Launch your counter QR" })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("link", { name: "Print for the till" })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "Choose a poster style" })
+    ).toBeVisible()
+    await expect(page.getByText("Step 01")).toHaveCount(0)
+    await expect(page.getByText("Step 02")).toHaveCount(0)
     await expectNoAxeViolations(page, "merchant poster follow-through")
     await expectNoHorizontalOverflow(page)
     await expectVenueQrLoaded(page)
@@ -251,7 +363,7 @@ export function defineMerchantLaunchFollowThroughTests() {
   }) => {
     await page.goto(`${HARNESS_ROUTES.launch}?state=live&tab=qr`)
 
-    await expect(page.getByText("Live · accepting scans")).toBeVisible()
+    await expect(page.getByText("Live and accepting scans")).toBeVisible()
     await expect(page.getByText("Scans paused — fix billing")).toHaveCount(0)
   })
 

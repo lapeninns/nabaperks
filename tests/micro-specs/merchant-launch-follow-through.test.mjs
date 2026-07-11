@@ -12,6 +12,7 @@ const dashboardActions = read(
 )
 const readinessPanel = read("components/merchant/launch-readiness-panel.tsx")
 const qrPanel = read("components/merchant/launch/qr-panel-live.tsx")
+const qrWorkspace = read("components/merchant/launch/qr-redesign-concept.tsx")
 const emailPosterButton = read(
   "components/merchant/launch/email-poster-button.tsx"
 )
@@ -56,17 +57,20 @@ test("poster follow-through consumes the live promo and names the attached PDFs 
   assert.doesNotMatch(posterActions, /Could not email the poster just now/)
 })
 
-test("the launch rail owns global progress while QR keeps its local task order", () => {
+test("the launch rail owns global progress while QR uses distribution choices", () => {
   assert.doesNotMatch(cardForm, /step="Step 2"/)
   assert.doesNotMatch(rewardsPanel, /Step 3 · Rewards/)
   assert.doesNotMatch(billingActivation, /Step 5 of 5/)
   assert.doesNotMatch(billingPanel, /Step 5 of 5/)
-  assert.match(qrPanel, /step="01"/)
-  assert.match(qrPanel, /step="02"/)
+  assert.match(qrPanel, /QrWorkspace/)
+  assert.match(qrWorkspace, /Print for the till/)
+  assert.match(qrWorkspace, /Share digitally/)
+  assert.doesNotMatch(qrWorkspace, /step="01"/)
+  assert.doesNotMatch(qrWorkspace, /step="02"/)
 })
 
-test("launch harness exposes billing-locked, lapsed, QR-ready, and live states", () => {
-  for (const state of ["billing", "lapsed", "qr", "live"]) {
+test("launch harness exposes billing-locked, lapsed, paused, QR-ready, and live states", () => {
+  for (const state of ["billing", "lapsed", "paused", "qr", "live"]) {
     assert.match(launchHarness, new RegExp(`value === ["']${state}["']`))
   }
   assert.match(launchHarness, /<QrPanel/)
