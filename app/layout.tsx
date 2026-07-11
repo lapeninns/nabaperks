@@ -91,13 +91,14 @@ export default function RootLayout({
       className={`${bricolageGrotesque.variable} ${spaceMono.variable} antialiased`}
     >
       <head>
-        {process.env.NODE_ENV === "development" && (
-          <Script
-            src="https://unpkg.com/react-scan/dist/auto.global.js"
-            crossOrigin="anonymous"
-            strategy="afterInteractive"
-          />
-        )}
+        {process.env.NODE_ENV === "development" &&
+          process.env.PLAYWRIGHT_HARNESS !== "1" && (
+            <Script
+              src="https://unpkg.com/react-scan/dist/auto.global.js"
+              crossOrigin="anonymous"
+              strategy="afterInteractive"
+            />
+          )}
 
         {process.env.NODE_ENV === "development" && (
           <Script

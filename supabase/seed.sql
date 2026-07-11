@@ -459,6 +459,38 @@ set qr_id = excluded.qr_id,
     destination_type = excluded.destination_type,
     is_active = true;
 
+insert into public.billing_customers (
+  id,
+  merchant_id,
+  stripe_customer_id,
+  stripe_subscription_id,
+  plan,
+  status,
+  current_period_end
+)
+values
+  (
+    '19000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000001',
+    'cus_seed_bean',
+    'sub_seed_bean',
+    'growth',
+    'active',
+    now() + interval '30 days'
+  ),
+  (
+    '19000000-0000-0000-0000-000000000002',
+    '10000000-0000-0000-0000-000000000002',
+    'cus_seed_bubble',
+    'sub_seed_bubble',
+    'growth',
+    'trialing',
+    now() + interval '30 days'
+  )
+on conflict (id) do update
+set status = excluded.status,
+    current_period_end = excluded.current_period_end;
+
 insert into public.customers (id, auth_user_id, email)
 values
   (
@@ -600,38 +632,6 @@ values
     '2026-06-foundation'
   )
 on conflict (id) do nothing;
-
-insert into public.billing_customers (
-  id,
-  merchant_id,
-  stripe_customer_id,
-  stripe_subscription_id,
-  plan,
-  status,
-  current_period_end
-)
-values
-  (
-    '19000000-0000-0000-0000-000000000001',
-    '10000000-0000-0000-0000-000000000001',
-    'cus_seed_bean',
-    'sub_seed_bean',
-    'growth',
-    'active',
-    now() + interval '30 days'
-  ),
-  (
-    '19000000-0000-0000-0000-000000000002',
-    '10000000-0000-0000-0000-000000000002',
-    'cus_seed_bubble',
-    'sub_seed_bubble',
-    'growth',
-    'trialing',
-    now() + interval '30 days'
-  )
-on conflict (id) do update
-set status = excluded.status,
-    current_period_end = excluded.current_period_end;
 
 insert into public.audit_logs (
   id,

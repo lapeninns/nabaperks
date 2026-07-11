@@ -1,6 +1,6 @@
 ---
 spec_id: MS-merchant-qr-billing-gate
-status: active
+status: verified
 risk_class: rls-rpc-ledger
 owner: codex
 last_reviewed: 2026-07-11
@@ -14,6 +14,7 @@ allowed_blast_radius:
   - lib/customer/availability.ts
   - app/app/qr/actions.ts
   - supabase/migrations/20260713150000_pause_loyalty_when_billing_lapses.sql
+  - supabase/seed.sql
   - components/merchant/account/billing-panel.tsx
   - components/merchant/account/billing-panel-view.tsx
   - components/merchant/launch/qr-panel.tsx
@@ -55,6 +56,7 @@ implementation_surfaces:
   - lib/customer/availability.ts
   - app/app/qr/actions.ts
   - supabase/migrations/20260713150000_pause_loyalty_when_billing_lapses.sql
+  - supabase/seed.sql
   - components/merchant/account/billing-panel.tsx
   - components/merchant/account/billing-panel-view.tsx
   - components/merchant/launch/qr-panel.tsx

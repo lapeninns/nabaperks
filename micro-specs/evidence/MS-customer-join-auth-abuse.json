@@ -115,40 +115,103 @@
       "all_passed": true
     },
     {
-      "timestamp": "2026-07-11T13:11:14.120Z",
-      "git_sha": "6f2e453cadf8aa1395e12411acd5d39e3109c8e8",
-      "git_branch": "codex/launch-billing-before-qr",
+      "timestamp": "2026-07-11T13:49:58.206Z",
+      "git_sha": "ca58066070ce7ddc219039cd620777e6fd5ccbcc",
+      "git_branch": "codex/launch-billing-before-qr-ready",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7227
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 4496
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 1,
+          "duration_ms": 1514
+        }
+      ],
+      "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-11T13:53:00.537Z",
+      "git_sha": "ca58066070ce7ddc219039cd620777e6fd5ccbcc",
+      "git_branch": "codex/launch-billing-before-qr-ready",
       "dirty": true,
       "gates": [
         {
           "command": "pnpm lint",
           "exit_code": 0,
-          "duration_ms": 6697
+          "duration_ms": 8342
         },
         {
           "command": "pnpm typecheck",
           "exit_code": 0,
-          "duration_ms": 1052
+          "duration_ms": 5565
         },
         {
           "command": "pnpm build",
           "exit_code": 0,
-          "duration_ms": 20478
+          "duration_ms": 13509
         },
         {
           "command": "pnpm test",
           "exit_code": 0,
-          "duration_ms": 9166
+          "duration_ms": 10121
         },
         {
           "command": "pnpm test:coverage",
           "exit_code": 0,
-          "duration_ms": 1375
+          "duration_ms": 1638
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-customer-join-auth-abuse\"",
+          "exit_code": 1,
+          "duration_ms": 120970
+        }
+      ],
+      "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-11T13:55:28.218Z",
+      "git_sha": "ca58066070ce7ddc219039cd620777e6fd5ccbcc",
+      "git_branch": "codex/launch-billing-before-qr-ready",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7573
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1198
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11673
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10366
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1607
         },
         {
           "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-customer-join-auth-abuse\"",
           "exit_code": 0,
-          "duration_ms": 6439
+          "duration_ms": 5894
         }
       ],
       "all_passed": true
