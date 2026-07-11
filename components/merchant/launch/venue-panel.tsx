@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 
 import { VenueLocationForm } from "@/components/merchant/launch/venue-location-form"
 import type { ProviderProvenance } from "@/components/merchant/venue-provider-provenance-fields"
+import { getGoogleMapsPublicKey } from "@/lib/env/google-maps-public-key"
 import { getCurrentVenueLocation } from "@/lib/merchant/location"
 import { venueAddressFieldsFromLocation } from "@/lib/merchant/venue-address"
 
@@ -23,6 +24,7 @@ export async function VenuePanel() {
         geocoded={geocodedCoordinates(location)}
         pinSource={venuePinSource(location)}
         initialProvenance={venueProviderProvenance(location)}
+        googleMapsApiKey={getGoogleMapsPublicKey()}
       />
     </div>
   )
