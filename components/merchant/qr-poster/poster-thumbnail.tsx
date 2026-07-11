@@ -13,7 +13,7 @@ export function PosterThumbnail({
 }: PosterSheetProps & { readonly previewLabel: string }) {
   const frameRef = useRef<HTMLDivElement>(null)
   const sheetRef = useRef<HTMLDivElement>(null)
-  const [scale, setScale] = useState(0)
+  const [scale, setScale] = useState(0.24)
 
   useLayoutEffect(() => {
     const frame = frameRef.current
@@ -21,7 +21,11 @@ export function PosterThumbnail({
     if (!frame || !sheet) return
 
     const fitSheet = () => {
-      setScale(frame.clientWidth / sheet.offsetWidth)
+      const frameWidth = frame.clientWidth
+      const sheetWidth = sheet.offsetWidth
+      if (frameWidth <= 0 || sheetWidth <= 0) return
+
+      setScale(frameWidth / sheetWidth)
     }
 
     fitSheet()
@@ -40,10 +44,9 @@ export function PosterThumbnail({
       <div
         ref={sheetRef}
         aria-hidden="true"
-        className="absolute top-0 left-0 h-[297mm] w-[210mm] origin-top-left"
+        className="absolute top-0 left-1/2 h-[297mm] w-[210mm] origin-top"
         style={{
-          transform: `scale(${scale})`,
-          visibility: scale > 0 ? "visible" : "hidden",
+          transform: `translateX(-50%) scale(${scale})`,
         }}
       >
         <PosterSheet {...props} />

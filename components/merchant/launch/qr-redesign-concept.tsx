@@ -8,6 +8,7 @@ import {
 
 import { Eyebrow, Icon } from "@/components/brand"
 import { CopyUrlButton } from "@/components/merchant/copy-url-button"
+import { SwipePosterPicker } from "@/components/merchant/launch/qr-redesign-swipe-picker"
 import {
   ChannelButton,
   PosterProof,
@@ -48,6 +49,7 @@ export function QrWorkspace({
   warnings,
   printNotice,
   printActions,
+  posterPickerVariant = "tabs",
 }: {
   readonly activeCardName: string
   readonly venueName: string
@@ -63,6 +65,7 @@ export function QrWorkspace({
   readonly warnings?: ReactNode
   readonly printNotice?: ReactNode
   readonly printActions?: ReactNode
+  readonly posterPickerVariant?: "tabs" | "swipe"
 }) {
   const selectedTemplate =
     QR_POSTER_TEMPLATES.find((item) => item.id === template) ??
@@ -170,37 +173,53 @@ export function QrWorkspace({
 
         {channel === "print" ? (
           <div className="grid gap-5 border-t-2 border-ink pt-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(16rem,0.9fr)]">
-            <div id="qr-poster-picker" className="grid scroll-mt-4 gap-3">
-              <div className="grid gap-1">
-                <h3 className="text-lg font-extrabold">
-                  Choose a poster style
-                </h3>
-                <p className="text-sm leading-6 text-muted-foreground">
-                  Pick for the room, not the brand deck. You can change style
-                  without changing the QR.
-                </p>
-              </div>
-              <div className="flex [scrollbar-width:none] gap-2 overflow-x-auto pb-2 [-ms-overflow-style:none] lg:grid lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">
-                {QR_POSTER_TEMPLATES.map((item) => (
-                  <TemplateButton
-                    key={item.id}
-                    active={template === item.id}
-                    template={item}
-                    useCase={POSTER_USE_CASE[item.id]}
-                    href={workspaceHref(navigationBaseHref, "print", item.id)}
-                  />
-                ))}
-              </div>
-            </div>
+            {posterPickerVariant === "swipe" ? (
+              <SwipePosterPicker
+                initialTemplate={template}
+                qrDataUrl={qrImageSrc}
+                venueName={venueName}
+                stampsRequired={stampsRequired}
+                posterHrefs={posterHrefs}
+              />
+            ) : (
+              <>
+                <div id="qr-poster-picker" className="grid scroll-mt-4 gap-3">
+                  <div className="grid gap-1">
+                    <h3 className="text-lg font-extrabold">
+                      Choose a poster style
+                    </h3>
+                    <p className="text-sm leading-6 text-muted-foreground">
+                      Pick for the room, not the brand deck. You can change
+                      style without changing the QR.
+                    </p>
+                  </div>
+                  <div className="flex [scrollbar-width:none] gap-2 overflow-x-auto pb-2 [-ms-overflow-style:none] lg:grid lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">
+                    {QR_POSTER_TEMPLATES.map((item) => (
+                      <TemplateButton
+                        key={item.id}
+                        active={template === item.id}
+                        template={item}
+                        useCase={POSTER_USE_CASE[item.id]}
+                        href={workspaceHref(
+                          navigationBaseHref,
+                          "print",
+                          item.id
+                        )}
+                      />
+                    ))}
+                  </div>
+                </div>
 
-            <PosterProof
-              template={template}
-              templateName={selectedTemplate.name}
-              qrDataUrl={qrImageSrc}
-              venueName={venueName}
-              stampsRequired={stampsRequired}
-              posterHref={posterHrefs[template]}
-            />
+                <PosterProof
+                  template={template}
+                  templateName={selectedTemplate.name}
+                  qrDataUrl={qrImageSrc}
+                  venueName={venueName}
+                  stampsRequired={stampsRequired}
+                  posterHref={posterHrefs[template]}
+                />
+              </>
+            )}
             {printNotice ? (
               <div className="lg:col-span-2">{printNotice}</div>
             ) : null}

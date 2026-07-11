@@ -268,6 +268,7 @@ export function defineMerchantLaunchFollowThroughTests() {
 
   test("QR redesign concept organises launch around distribution channels", async ({
     page,
+    browserName,
   }) => {
     await page.goto(
       `${HARNESS_ROUTES.launch}?state=live&tab=qr&concept=redesign`
@@ -281,8 +282,9 @@ export function defineMerchantLaunchFollowThroughTests() {
       page.getByRole("link", { name: "Print for the till" })
     ).toHaveAttribute("aria-current", "page")
     await expect(
-      page.getByRole("heading", { name: "Choose a poster style" })
+      page.getByRole("heading", { name: "Choose by feel" })
     ).toBeVisible()
+    await expect(page.getByLabel("Poster style carousel")).toBeVisible()
     await expect(
       page.getByRole("heading", { name: "Test it like a customer" })
     ).toHaveCount(0)
@@ -294,41 +296,51 @@ export function defineMerchantLaunchFollowThroughTests() {
       page.getByRole("link", { name: "Open customer link" })
     ).toBeVisible()
 
-    if ((page.viewportSize()?.width ?? 0) < 640) {
-      const firstTemplate = await page
-        .getByRole("link", { name: /Editorial/ })
-        .boundingBox()
-      const secondTemplate = await page
-        .getByRole("link", { name: /^Bold/ })
-        .boundingBox()
-      expect(
-        Math.abs((firstTemplate?.y ?? 0) - (secondTemplate?.y ?? 0))
-      ).toBeLessThanOrEqual(2)
-    }
-
-    const nightCardLink = page.getByRole("link", { name: /Night card/ })
-    await nightCardLink.scrollIntoViewIfNeeded()
-    await nightCardLink.click()
     await expect(
-      page.getByRole("img", { name: "Night card poster preview" })
+      page.getByRole("img", { name: "Editorial poster preview" })
     ).toBeVisible()
-    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(400)
-    await expect(page).toHaveURL(/#qr-poster-picker$/)
-    await expect(
-      page.getByRole("link", { name: /Night card/ })
-    ).toHaveAttribute("aria-current", "page")
+    const swipeTrack = page.getByTestId("poster-swipe-track")
+    if (browserName === "firefox") {
+      await swipeTrack.evaluate((track) => {
+        track.scrollTo({ left: track.clientWidth / 2, behavior: "instant" })
+      })
+      await expect
+        .poll(() => swipeTrack.evaluate((track) => track.scrollLeft))
+        .toBeGreaterThan(100)
+    } else if ((page.viewportSize()?.width ?? 0) < 640) {
+      await swipeTrack.evaluate((track) => {
+        const secondSlide = track.children.item(1)
+        if (!(secondSlide instanceof HTMLElement)) return
+        track.scrollTo({
+          left:
+            secondSlide.offsetLeft -
+            (track.clientWidth - secondSlide.clientWidth) / 2,
+          behavior: "instant",
+        })
+      })
+    } else {
+      await page.getByRole("button", { name: "Next poster" }).click()
+    }
+    if (browserName !== "firefox") {
+      await expect(page.getByText("2 / 5", { exact: true })).toBeVisible()
+      await expect(
+        page.locator("article[aria-current='true']").getByText("Bold", {
+          exact: true,
+        })
+      ).toBeVisible()
+
+      await page.getByRole("button", { name: "Show Night card poster" }).click()
+      await expect(
+        page.getByRole("img", { name: "Night card poster preview" })
+      ).toBeVisible()
+      await expect(page.getByText("4 / 5", { exact: true })).toBeVisible()
+    }
 
     await page.getByRole("link", { name: "Share digitally" }).click()
     await expect(
       page.getByRole("heading", { name: "Share your permanent venue link" })
     ).toBeVisible()
-    await expect(
-      page.getByRole("heading", { name: "Choose a poster style" })
-    ).toHaveCount(0)
-
-    await expect(
-      page.getByRole("link", { name: "Print for the till" })
-    ).toHaveAttribute("href", /poster=northstar/)
+    await expect(page.getByLabel("Poster style carousel")).toHaveCount(0)
 
     await expectNoAxeViolations(page, "QR redesign concept")
     await expectNoHorizontalOverflow(page)

@@ -30,6 +30,7 @@ export function QrRedesignConcept({
       channel={channel}
       template={template}
       status="live"
+      posterPickerVariant="swipe"
       navigationBaseHref="/dev/app-harness/launch?state=live&tab=qr&concept=redesign"
       posterHrefs={buildPosterHrefs(
         (id) => `/dev/poster-preview?template=${id}`
