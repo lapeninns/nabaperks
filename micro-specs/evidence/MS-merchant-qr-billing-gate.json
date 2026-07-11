@@ -187,9 +187,100 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-11T14:32:21.866Z",
+      "git_sha": "b06d00be4b82447575f2f6f0c06789f458f735a8",
+      "git_branch": "codex/launch-billing-before-qr-ready",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7832
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1290
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10606
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9813
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1496
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 5879
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-(merchant-ux-launch-follow-through|billing-checkout-recovery)\"",
+          "exit_code": 0,
+          "duration_ms": 54574
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 184808
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 58055
+        }
+      ],
+      "all_passed": true
     }
   ],
-  "manual_attestations": [],
+  "manual_attestations": [
+    {
+      "gate": "manual:design-review",
+      "by": "codex",
+      "note": "Inspected approved Darwin mobile and desktop locked, paused, live, billing, and QR captures; Wet Ink states are visually truthful.",
+      "at": "2026-07-11T14:32:21.866Z"
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T14:32:21.866Z",
+      "note": "Command output for the declared verification gates."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T14:32:21.866Z",
+      "note": "Unit and source-contract proof that QR provision and enable fail closed before active or trialing billing and disable remains available after billing lapses."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T14:32:21.866Z",
+      "note": "Mobile and desktop browser proof for locked never-launched, paused lapsed, confirmed-billing reveal, and live till-guidance states."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T14:32:21.866Z",
+      "note": "Database gate output proving past-due joins and earned stamps fail closed without deleting the venue QR."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T14:32:21.866Z",
+      "note": "Axe and approved Wet Ink visual-baseline output for changed billing and QR surfaces."
+    }
+  ],
   "transitions": [
     {
       "from": "draft",
@@ -204,6 +295,14 @@
       "to": "implemented",
       "at": "2026-07-11T14:20:55.609Z",
       "sha": "67a986238c4d35a8d99243fe867b82e2e94c4bdf",
+      "dirty": false,
+      "by": "codex"
+    },
+    {
+      "from": "implemented",
+      "to": "verified",
+      "at": "2026-07-11T14:32:21.866Z",
+      "sha": "b06d00be4b82447575f2f6f0c06789f458f735a8",
       "dirty": false,
       "by": "codex"
     }

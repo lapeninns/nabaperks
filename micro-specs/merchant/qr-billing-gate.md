@@ -1,6 +1,6 @@
 ---
 spec_id: MS-merchant-qr-billing-gate
-status: implemented
+status: verified
 risk_class: rls-rpc-ledger
 owner: codex
 last_reviewed: 2026-07-11
