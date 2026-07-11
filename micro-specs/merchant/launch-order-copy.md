@@ -14,11 +14,15 @@ allowed_blast_radius:
   - app/(auth)/signup/page.tsx
   - components/marketing/landing/final-cta.tsx
   - app/demo/page.tsx
+  - app/layout.tsx
   - components/merchant/onboarding-journey-orientation.tsx
+  - components/merchant/launch-readiness-panel.tsx
   - tests/unit/launch-readiness-core.test.mjs
   - tests/unit/launch-header-copy.test.mjs
   - tests/micro-specs/merchant-launch-follow-through.test.mjs
   - tests/micro-specs/merchant-ux-audit-closure.test.mjs
+  - tests/micro-specs/marketing-offer-v2.test.mjs
+  - tests/micro-specs/marketing-trust-continuity.test.mjs
   - tests/e2e/merchant-launch-setup.spec.ts
   - tests/e2e/merchant-launch-header.desktop.spec.ts
   - tests/e2e/merchant-launch-follow-through-flow.ts
@@ -36,11 +40,15 @@ implementation_surfaces:
   - app/(auth)/signup/page.tsx
   - components/marketing/landing/final-cta.tsx
   - app/demo/page.tsx
+  - app/layout.tsx
   - components/merchant/onboarding-journey-orientation.tsx
+  - components/merchant/launch-readiness-panel.tsx
   - tests/unit/launch-readiness-core.test.mjs
   - tests/unit/launch-header-copy.test.mjs
   - tests/micro-specs/merchant-launch-follow-through.test.mjs
   - tests/micro-specs/merchant-ux-audit-closure.test.mjs
+  - tests/micro-specs/marketing-offer-v2.test.mjs
+  - tests/micro-specs/marketing-trust-continuity.test.mjs
   - tests/e2e/merchant-launch-setup.spec.ts
   - tests/e2e/merchant-launch-header.desktop.spec.ts
   - tests/e2e/merchant-launch-follow-through-flow.ts
@@ -53,6 +61,8 @@ related_tests:
   - tests/unit/launch-header-copy.test.mjs
   - tests/micro-specs/merchant-launch-follow-through.test.mjs
   - tests/micro-specs/merchant-ux-audit-closure.test.mjs
+  - tests/micro-specs/marketing-offer-v2.test.mjs
+  - tests/micro-specs/marketing-trust-continuity.test.mjs
   - tests/e2e/merchant-launch-setup.spec.ts
   - tests/e2e/merchant-launch-header.desktop.spec.ts
   - tests/e2e/merchant-launch-follow-through.spec.ts
@@ -94,7 +104,9 @@ before payment activation.
 In scope: the shared checklist and launch-tab order, rewards continuation,
 merchant setup-step descriptions, launch-header state copy, shared marketing
 facts, signup/demo/final-CTA/onboarding orientation copy, focused source/unit
-and browser contracts, visual baselines, this spec, and its evidence ledger.
+and browser contracts, visual baselines, the pre-existing dev-only React Scan
+script lint blocker required by the declared gate, this spec, and its evidence
+ledger.
 
 Out of scope: QR provisioning or enablement, Stripe return behavior, billing
 navigation, database/schema/RPC changes, customer stamping, a new checklist

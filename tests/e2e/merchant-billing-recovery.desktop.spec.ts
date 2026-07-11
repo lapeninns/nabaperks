@@ -8,26 +8,17 @@ test.describe("merchant billing recovery desktop @MS-billing-checkout-recovery @
     await dismissPwaInstall(page)
   })
 
-  test("setup billing keeps the exact plan, reassurance, and built-asset contract usable @MS-merchant-ux-audit-closure @a11y", async ({
+  test("setup billing keeps the exact plan and reassurance usable before QR unlock @MS-merchant-ux-audit-closure @a11y", async ({
     page,
   }) => {
     await page.goto(`${HARNESS_ROUTES.launch}?tab=billing&state=billing`)
 
-    const builtAsset = page.getByRole("region", {
-      name: "Built card and QR preview",
-    })
-    await expect(builtAsset).toBeVisible()
-    await expect(builtAsset.getByText("Mystery Visit Card")).toBeVisible()
-    await expect(builtAsset.getByText("Built · billing needed")).toBeVisible()
-    const qrImage = builtAsset.getByRole("img", {
-      name: "QR code for Old Crown Girton",
-    })
-    await expect(qrImage).toBeVisible()
-    expect(
-      await qrImage.evaluate(
-        (image: HTMLImageElement) => image.complete && image.naturalWidth > 0
-      )
-    ).toBe(true)
+    await expect(
+      page.getByRole("region", { name: "Built card and QR preview" })
+    ).toHaveCount(0)
+    await expect(page.getByRole("img", { name: /^QR code for / })).toHaveCount(
+      0
+    )
     await expect(
       page.getByRole("heading", { name: "Activate your venue" })
     ).toBeVisible()
@@ -85,6 +76,9 @@ test.describe("merchant billing recovery desktop @MS-billing-checkout-recovery @
       page.getByRole("heading", { name: "Checkout confirmed" })
     ).toBeVisible()
     await expect(page.getByText("30-day free trial is active")).toBeVisible()
+    await expect(
+      page.getByRole("link", { name: "See your venue QR" })
+    ).toHaveAttribute("href", "/app/launch?tab=qr")
     await expect
       .poll(() => new URL(page.url()).searchParams.has("checkout"))
       .toBe(false)
@@ -97,6 +91,21 @@ test.describe("merchant billing recovery desktop @MS-billing-checkout-recovery @
     await expect
       .poll(() => new URL(page.url()).searchParams.has("checkout"))
       .toBe(false)
+  })
+
+  test("a confirmed lapsed portal return refreshes billing without claiming the QR unlocked", async ({
+    page,
+  }) => {
+    await page.goto(
+      `${HARNESS_ROUTES.account}?tab=billing&billing=cancelled&portal=returned`
+    )
+
+    await expect(
+      page.getByRole("heading", { name: "Billing details refreshed" })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("link", { name: "See your venue QR" })
+    ).toHaveCount(0)
   })
 
   test("missing and foreign Session ids never claim billing success", async ({

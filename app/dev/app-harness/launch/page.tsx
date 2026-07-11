@@ -5,17 +5,19 @@ import { PageTitle } from "@/components/brand"
 import { SetupBillingActivationCard } from "@/components/merchant/account/billing-activation-card"
 import { LaunchReadinessPanel } from "@/components/merchant/launch-readiness-panel"
 import { BirthdayRewardPanel } from "@/components/merchant/launch/birthday-panel"
-import { BillingActivationAssetPreview } from "@/components/merchant/launch/billing-activation-asset-preview"
 import { birthdayRewardTemplateForBusinessType } from "@/lib/merchant/birthday-reward-template"
 import {
   LoyaltyCardForm,
   RewardPoolForm,
   type RewardPoolItemValues,
 } from "@/components/merchant/loyalty-card-form"
-import { QrPanelLive } from "@/components/merchant/launch/qr-panel-live"
+import { QrPanel } from "@/components/merchant/launch/qr-panel"
 import { VenueLocationForm } from "@/components/merchant/launch/venue-location-form"
 import { Button } from "@/components/ui/button"
-import { buildLaunchReadiness } from "@/lib/merchant/launch-readiness"
+import {
+  buildLaunchReadiness,
+  resolveLaunchBillingHref,
+} from "@/lib/merchant/launch-readiness"
 import type { LaunchHubTab } from "@/lib/merchant/launch-readiness"
 import { resolveLaunchHeaderModel } from "@/lib/merchant/launch-header-copy"
 import {
@@ -29,6 +31,28 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 const LOCATION_NAME = "Old Crown Girton"
+const HARNESS_ACTIVE_CARD = {
+  id: "card_harness",
+  card_name: "Mystery Visit Card",
+  reward_name: "Mystery reward",
+  stamps_required: 3,
+} as const
+const HARNESS_LOCATION = {
+  id: "loc_harness",
+  name: LOCATION_NAME,
+  address: "12 High Street, Girton, Cambridge, CB3 0QH",
+  latitude: 52.2399,
+  longitude: 0.0826,
+  geofence_radius_meters: 150,
+  require_geofence: false,
+  geocoded_at: "2026-06-20T10:00:00.000Z",
+} as const
+const HARNESS_QR = {
+  id: "qr_harness",
+  qr_id: "old-crown-girton",
+  destination_type: "join",
+  is_active: true,
+} as const
 
 /**
  * Launch (Setup) harness — variant "setup" (no sidebar/tab-bar; the setup shell
@@ -52,47 +76,45 @@ export default async function LaunchHarnessPage({
 
   const params = searchParams ? await searchParams : {}
   const activeTab = resolveTab(params.tab)
-  // Header-state selector so the needsBilling + launchReady header copy and the
-  // jump-CTA suppression render DB-free:
-  //   default → QR not live, billing pending (nextStep = qr — the mixed rail the
-  //             launch specs pin);
-  //   billing → QR live, billing the only pending step (needsBilling);
-  //   live    → QR live + billing not required (launchReady).
-  const state =
-    params.state === "billing" || params.state === "live"
-      ? params.state
-      : "default"
-  const rewardPoolItems = resolveHarnessRewardPool(params.pool)
+  const state = resolveHarnessState(params.state)
+  const rewardPoolItems = resolveHarnessRewardPool(
+    params.pool ?? (state === "default" ? "two" : undefined)
+  )
   const activeRewardPoolItemCount = rewardPoolItems.filter(
     (item) => item.isActive
   ).length
+  const qrCode = state === "lapsed" || state === "live" ? HARNESS_QR : null
+  const billing = {
+    requiresBilling: true,
+    status:
+      state === "qr" || state === "live"
+        ? "active"
+        : state === "lapsed"
+          ? "past_due"
+          : null,
+  }
 
   const readiness = buildLaunchReadiness({
-    activeCard: {
-      id: "card_harness",
-      card_name: "Mystery Visit Card",
-      reward_name: "Mystery reward",
-      stamps_required: 3,
-    },
+    activeCard: HARNESS_ACTIVE_CARD,
     activeRewardPoolItemCount,
-    qrCode: {
-      id: "qr_harness",
-      qr_id: "old-crown-girton",
-      destination_type: "join",
-      is_active: state !== "default",
-    },
-    location: {
-      id: "loc_harness",
-      name: LOCATION_NAME,
-      address: "12 High Street, Girton, Cambridge, CB3 0QH",
-      latitude: 52.2399,
-      longitude: 0.0826,
-      geofence_radius_meters: 150,
-      require_geofence: false,
-      geocoded_at: "2026-06-20T10:00:00.000Z",
-    },
-    billing: { requiresBilling: state !== "live", status: null },
+    qrCode,
+    location: HARNESS_LOCATION,
+    billing,
   })
+  const billingHref = resolveLaunchBillingHref(readiness)
+  const setup = {
+    merchant: {
+      ...HARNESS_MERCHANT,
+      business_slug: "old-crown-girton",
+      business_type: "pub",
+      email: "owner@example.test",
+      requires_billing: true,
+    },
+    location: HARNESS_LOCATION,
+    activeCard: HARNESS_ACTIVE_CARD,
+    activeRewardPoolItemCount,
+    qrCode,
+  }
 
   // Heading / context / description / header-CTA come from the same pure helper
   // the real /app/launch uses, so the harness header stays faithful to it.
@@ -155,8 +177,8 @@ export default async function LaunchHarnessPage({
               loyaltyCardId="card_harness"
               cardName="Mystery Visit Card"
               rewardPoolItems={rewardPoolItems}
-              continueHref="/app/launch?tab=qr"
-              continueLabel="your venue QR"
+              continueHref="/app/launch?tab=billing"
+              continueLabel="billing"
               presets={rewardPresetsForBusinessType("pub")}
             />
             <BirthdayRewardPanel
@@ -168,30 +190,19 @@ export default async function LaunchHarnessPage({
             />
           </div>
         ) : activeTab === "qr" ? (
-          <QrPanelLive
-            activeCardName="Mystery Visit Card"
-            qrCodeId="qr_harness"
-            isActive={readiness.tabs.qr}
-            scansAvailable={readiness.launchReady}
-            shareUrl="https://nabaperks.com/q/old-crown-girton"
-            hasVenueAddress
+          <QrPanel
+            setup={setup}
+            readiness={readiness}
+            params={{}}
+            launchReady={readiness.launchReady}
+            billingHref={billingHref}
             returnHref="/app/launch?tab=qr"
           />
         ) : activeTab === "billing" ? (
-          <div className="grid min-w-0 items-start gap-3 xl:grid-cols-[minmax(20rem,0.7fr)_minmax(0,1.3fr)] xl:gap-5">
-            {state === "billing" ? (
-              <BillingActivationAssetPreview
-                venueName={LOCATION_NAME}
-                cardName="Mystery Visit Card"
-                stampsRequired={3}
-                qrCodeId="qr_harness"
-              />
-            ) : null}
-            <SetupBillingActivationCard
-              annualBillingAvailable
-              billingReturnTo="/app/launch?tab=billing"
-            />
-          </div>
+          <SetupBillingActivationCard
+            annualBillingAvailable
+            billingReturnTo="/app/launch?tab=billing"
+          />
         ) : (
           <VenueLocationForm
             initialValues={{
@@ -222,6 +233,21 @@ function resolveTab(value: string | undefined): LaunchHubTab {
     return value
   }
   return "card"
+}
+
+type LaunchHarnessState = "default" | "billing" | "lapsed" | "qr" | "live"
+
+function resolveHarnessState(value: string | undefined): LaunchHarnessState {
+  if (
+    value === "billing" ||
+    value === "lapsed" ||
+    value === "qr" ||
+    value === "live"
+  ) {
+    return value
+  }
+
+  return "default"
 }
 
 const READY_REWARD_POOL: readonly RewardPoolItemValues[] = [

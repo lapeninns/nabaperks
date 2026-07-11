@@ -1,16 +1,19 @@
 ---
 spec_id: MS-merchant-qr-billing-gate
 status: active
-risk_class: billing
+risk_class: rls-rpc-ledger
 owner: codex
 last_reviewed: 2026-07-11
 allowed_blast_radius:
   - micro-specs/merchant/**
   - micro-specs/evidence/MS-merchant-qr-billing-gate.json
   - lib/merchant/launch-readiness-core.ts
+  - lib/merchant/launch-readiness.ts
   - lib/merchant/ensure-join-qr.ts
   - lib/merchant/billing-checkout-return.ts
+  - lib/customer/availability.ts
   - app/app/qr/actions.ts
+  - supabase/migrations/20260713150000_pause_loyalty_when_billing_lapses.sql
   - components/merchant/account/billing-panel.tsx
   - components/merchant/account/billing-panel-view.tsx
   - components/merchant/launch/qr-panel.tsx
@@ -20,6 +23,9 @@ allowed_blast_radius:
   - app/dev/app-harness/dashboard/page.tsx
   - tests/unit/launch-readiness-core.test.mjs
   - tests/unit/billing-checkout-return.test.mjs
+  - tests/unit/customer-loyalty-availability.test.mjs
+  - tests/db/**
+  - tests/micro-specs/fresh-db-seed-parity.test.mjs
   - tests/micro-specs/launch-qr-readiness.test.mjs
   - tests/micro-specs/merchant-launch-follow-through.test.mjs
   - tests/micro-specs/merchant-ux-audit-closure.test.mjs
@@ -32,6 +38,7 @@ allowed_blast_radius:
   - tests/e2e/merchant-billing-recovery.visual.desktop.spec.ts
   - tests/e2e/merchant-launch-setup.spec.ts
   - tests/e2e/merchant-launch-header.desktop.spec.ts
+  - tests/e2e/public-qr-router-live-db.spec.ts
   - tests/e2e/visual.spec.ts
   - tests/e2e/visual.spec.ts-snapshots/**
   - tests/e2e/merchant-launch-follow-through.spec.ts-snapshots/**
@@ -42,9 +49,12 @@ implementation_surfaces:
   - micro-specs/merchant/qr-billing-gate.md
   - micro-specs/evidence/MS-merchant-qr-billing-gate.json
   - lib/merchant/launch-readiness-core.ts
+  - lib/merchant/launch-readiness.ts
   - lib/merchant/ensure-join-qr.ts
   - lib/merchant/billing-checkout-return.ts
+  - lib/customer/availability.ts
   - app/app/qr/actions.ts
+  - supabase/migrations/20260713150000_pause_loyalty_when_billing_lapses.sql
   - components/merchant/account/billing-panel.tsx
   - components/merchant/account/billing-panel-view.tsx
   - components/merchant/launch/qr-panel.tsx
@@ -54,6 +64,9 @@ implementation_surfaces:
   - app/dev/app-harness/dashboard/page.tsx
   - tests/unit/launch-readiness-core.test.mjs
   - tests/unit/billing-checkout-return.test.mjs
+  - tests/unit/customer-loyalty-availability.test.mjs
+  - tests/db/**
+  - tests/micro-specs/fresh-db-seed-parity.test.mjs
   - tests/micro-specs/launch-qr-readiness.test.mjs
   - tests/micro-specs/merchant-launch-follow-through.test.mjs
   - tests/micro-specs/merchant-ux-audit-closure.test.mjs
@@ -66,6 +79,7 @@ implementation_surfaces:
   - tests/e2e/merchant-billing-recovery.visual.desktop.spec.ts
   - tests/e2e/merchant-launch-setup.spec.ts
   - tests/e2e/merchant-launch-header.desktop.spec.ts
+  - tests/e2e/public-qr-router-live-db.spec.ts
   - tests/e2e/visual.spec.ts
   - tests/e2e/visual.spec.ts-snapshots/**
   - tests/e2e/merchant-launch-follow-through.spec.ts-snapshots/**
@@ -75,6 +89,9 @@ implementation_surfaces:
 related_tests:
   - tests/unit/launch-readiness-core.test.mjs
   - tests/unit/billing-checkout-return.test.mjs
+  - tests/unit/customer-loyalty-availability.test.mjs
+  - tests/db/architecture-moat.test.mjs
+  - tests/micro-specs/fresh-db-seed-parity.test.mjs
   - tests/micro-specs/launch-qr-readiness.test.mjs
   - tests/micro-specs/merchant-launch-follow-through.test.mjs
   - tests/micro-specs/merchant-ux-audit-closure.test.mjs
@@ -86,6 +103,7 @@ related_tests:
   - tests/e2e/merchant-billing-recovery.visual.desktop.spec.ts
   - tests/e2e/merchant-launch-setup.spec.ts
   - tests/e2e/merchant-launch-header.desktop.spec.ts
+  - tests/e2e/public-qr-router-live-db.spec.ts
   - tests/e2e/visual.spec.ts
 verification_gates:
   - pnpm lint
@@ -105,7 +123,7 @@ evidence_required:
   - Command output for the declared verification gates.
   - Unit and source-contract proof that QR provision and enable fail closed before active or trialing billing and disable remains available after billing lapses.
   - Mobile and desktop browser proof for locked never-launched, paused lapsed, confirmed-billing reveal, and live till-guidance states.
-  - Database gate output proving existing billing entitlement remains fail closed without schema or RPC changes.
+  - Database gate output proving past-due joins and earned stamps fail closed without deleting the venue QR.
   - Axe and approved Wet Ink visual-baseline output for changed billing and QR surfaces.
 approved_exceptions: []
 ---
@@ -126,14 +144,13 @@ till placement and staff first-stamp guidance.
 In scope: QR provision eligibility, fresh billing loading for automatic
 provision, merchant QR action guards, confirmed checkout/portal return
 provisioning, billing outcome CTA, locked/lapsed/live QR presentation, till and
-staff guidance, launch/dashboard/QR harness state fixtures, focused unit/source/
+staff guidance, customer join availability, a database-wide earned-stamp
+billing guard, launch/dashboard/QR harness state fixtures, focused unit/source/
 DB/browser contracts, visual baselines, this spec, and its evidence ledger.
 
-Out of scope: database-level billing checks inside QR admin/provision RPCs,
-customer stamp RPC changes, Stripe webhook-triggered provisioning, lazy QR
-provision on a plain launch GET, billing navigation redirects, a first-stamp
-checklist or analytics gate, POS integrations, migrations, and production data
-writes.
+Out of scope: Stripe webhook-triggered provisioning, lazy QR provision on a
+plain launch GET, billing navigation redirects, a first-stamp checklist or
+analytics gate, POS integrations, and production data writes.
 
 ## 3. Strict Constraints and Assumptions
 
@@ -147,8 +164,9 @@ writes.
   there. `billing-nav.ts` remains untouched.
 - Plain launch GET remains read-only except the existing explicit checkout/
   portal return write carve-out; there is no new lazy GET provisioning.
-- Join/stamp RPC billing enforcement remains the database money-layer proof;
-  this slice adds no migration or RPC change.
+- Customer join availability and the earned-stamp ledger both use the same
+  active/trialing allowlist, so a retained QR cannot accept scans after billing
+  lapses even if a caller bypasses the public resolver.
 - Production was empty on 2026-07-11; no legacy-row migration is required.
 - Wet Ink tokens/primitives, British voice, semantic headings, 44px actions,
   reduced motion, WCAG AA, and no-horizontal-overflow contracts remain intact.
@@ -161,15 +179,24 @@ writes.
   launch page because `getQrSetupFresh` alone does not include billing.
 - Generate QR and enable QR actions fail closed with a billing activation error;
   the disable path is intentionally ungated.
-- On `confirmed`, both checkout and portal return completion call automatic QR
-  provisioning before launch surfaces are revalidated.
-- Billing success exposes one primary `See your venue QR ->` action. There is no
-  automatic redirect to the QR tab.
+- On `confirmed`, checkout and portal return completion fresh-load setup and
+  billing. Active/trialing returns provision the venue QR before launch
+  surfaces are revalidated; non-ready returns refresh state without
+  provisioning.
+- Confirmed active/trialing billing exposes one primary `See your venue QR ->`
+  action. Non-ready returns do not expose it, and there is no automatic redirect
+  to the QR tab.
 - When billing is not ready and no QR exists, the QR tab renders a locked panel
   without a QR image and links to `/app/launch?tab=billing`.
 - When billing is not ready and a QR exists, the live panel remains visible with
   `scans paused`, a fix-billing action replacing Enable, and print/share/disable
   controls preserved.
+- Public QR resolution, customer join, and earned stamp insertion all fail
+  closed for every non-active/non-trialing billing status.
+- The user approved this entitlement expansion on 2026-07-11. This spec
+  supersedes the earlier denylist wording in `MS-billing`: customer loyalty
+  availability and earned stamps now require the explicit `active`/`trialing`
+  allowlist.
 - Till guidance is presentation only: place the poster at the till/bar, ask
   staff to direct customers to that QR, state that the customer's phone joins
   and stamps, and keep the self-scan-before-first-customer reminder. `/app/scan`
@@ -189,9 +216,10 @@ writes.
   before invoking the mutation RPC.
 - **QG-4:** WHEN a merchant disables an existing QR after billing lapses, THE
   disable action SHALL remain allowed.
-- **QG-5:** WHEN checkout or portal return resolves `confirmed`, THE return
-  workflow SHALL automatically provision the venue QR before revalidation and
-  SHALL expose a `See your venue QR ->` billing-panel action.
+- **QG-5:** WHEN checkout or portal return resolves `confirmed` with active or
+  trialing billing, THE return workflow SHALL automatically provision the venue
+  QR before revalidation and SHALL expose a `See your venue QR ->`
+  billing-panel action; otherwise it SHALL do neither.
 - **QG-6:** WHILE a checkout or portal return is `catching_up`, THE billing tab
   SHALL retain the outcome without redirecting or claiming the QR is ready.
 - **QG-7:** IF billing is not ready and no QR exists, THEN the QR tab SHALL show
@@ -210,6 +238,9 @@ writes.
   pass truthful `scansAvailable` inputs.
 - **QG-12:** THE changed billing and QR surfaces SHALL remain accessible,
   responsive, and visually consistent with Wet Ink at mobile and desktop widths.
+- **QG-13:** IF billing is not `active` or `trialing`, THEN public QR resolution,
+  membership join, and earned-stamp persistence SHALL fail closed while the
+  merchant's QR row remains intact.
 
 ## 6. Verification Criteria and Task Breakdown
 
@@ -222,9 +253,11 @@ writes.
 4. Red then green the locked, lapsed, and live QR-panel states plus the four
    launch harness fixtures and truthful dashboard/QR harness props.
 5. Add the till and staff first-stamp guidance only for scan-available state.
-6. Tag and run the focused Chromium/Mobile Safari story, axe, overflow, DB
+6. Prove `past_due` is unavailable through the public QR router and rejected by
+   the real stamp RPC without a ledger write.
+7. Tag and run the focused Chromium/Mobile Safari story, axe, overflow, DB
    entitlement, and Wet Ink visual evidence; update only legitimately changed
    baselines, with Darwin captures and CI-derived Linux twins.
-7. Record all declared gates with
+8. Record all declared gates with
    `governance:run-gates --spec MS-merchant-qr-billing-gate --record`, then
    advance the lifecycle with `governance:advance`.

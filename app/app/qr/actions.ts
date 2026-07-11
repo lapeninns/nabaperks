@@ -7,7 +7,9 @@ import { scheduleMerchantActivationEvent } from "@/lib/analytics/merchant-activa
 import { getCurrentUser } from "@/lib/auth/session"
 import { getServerEnv } from "@/lib/env/server"
 import { revalidateMerchantLaunchSurfaces } from "@/lib/merchant/revalidate-launch-surfaces"
+import { getLaunchBillingReadiness } from "@/lib/merchant/launch-readiness"
 import { LAUNCH_MIN_ACTIVE_REWARDS } from "@/lib/merchant/launch-readiness-contract"
+import { isLaunchBillingReady } from "@/lib/merchant/launch-readiness-core"
 import { getQrSetup } from "@/lib/merchant/qr-code"
 import { qrReturnHref, resolveQrReturnBase } from "@/lib/merchant/qr-nav"
 import { buildPosterEmailContent } from "@/lib/notifications/poster-email"
@@ -18,6 +20,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 const QR_REWARD_POOL_ERROR =
   "Add at least 3 active mystery rewards before launching the QR."
+const QR_BILLING_ERROR = "Activate billing to enable your venue QR."
 const QR_CREATE_ERROR = "Unable to create QR"
 const QR_UPDATE_ERROR = "Unable to update QR"
 const POSTER_EMAIL_LIMIT = 3
@@ -41,6 +44,16 @@ export async function generateQrCodeAction(formData: FormData) {
         returnBase,
         `error=${encodeURIComponent(QR_REWARD_POOL_ERROR)}`
       )
+    )
+  }
+
+  const billing = await getLaunchBillingReadiness(
+    merchant.id,
+    merchant.requires_billing !== false
+  )
+  if (!isLaunchBillingReady(billing)) {
+    redirect(
+      qrReturnHref(returnBase, `error=${encodeURIComponent(QR_BILLING_ERROR)}`)
     )
   }
 
@@ -87,6 +100,18 @@ export async function setQrActiveAction(formData: FormData) {
         returnBase,
         `error=${encodeURIComponent(QR_REWARD_POOL_ERROR)}`
       )
+    )
+  }
+
+  const billing = nextActive
+    ? await getLaunchBillingReadiness(
+        merchant.id,
+        merchant.requires_billing !== false
+      )
+    : undefined
+  if (nextActive && !isLaunchBillingReady(billing)) {
+    redirect(
+      qrReturnHref(returnBase, `error=${encodeURIComponent(QR_BILLING_ERROR)}`)
     )
   }
 

@@ -70,7 +70,7 @@ function launchStepStateLabel(step: LaunchReadinessAction, isNext: boolean) {
 /**
  * The launch readiness spine — setup steps drawn as a stamp row over a leaf
  * progress track. Venue leads (captured during onboarding), then card, rewards,
- * QR, and billing when required. Shared by the merchant dashboard and launch hub.
+ * billing when required, and QR. Shared by the merchant dashboard and launch hub.
  */
 export function LaunchReadinessPanel({
   readiness,
@@ -376,7 +376,7 @@ function LaunchMobileTabNav({
   progressValue: number
 }) {
   return (
-    <div className="sticky top-(--setup-header-h) z-20 w-full min-w-0 overflow-x-clip border-b-2 border-ink/10 bg-background/95 py-1.5 backdrop-blur-sm sm:hidden">
+    <div className="sticky top-(--setup-header-h) z-20 w-full min-w-0 overflow-x-clip border-b-2 border-ink/10 bg-background py-1.5 sm:hidden">
       {!readiness.launchReady ? (
         <div className="mb-1.5 flex min-w-0 items-center gap-2">
           <Progress

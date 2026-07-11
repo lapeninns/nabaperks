@@ -62,7 +62,7 @@ test.describe("@customer-flow public QR router live DB", () => {
       await expectUnavailableQr(page, fixture.activeQrId)
 
       await activateMerchant(sql, fixture)
-      await cancelBilling(sql, fixture)
+      await lapseBilling(sql, fixture)
       await expectUnavailableQr(page, fixture.activeQrId)
     } finally {
       await cleanupPublicQrRateLimitBuckets(sql, rateLimitBucketKeys)
@@ -216,12 +216,12 @@ async function activateMerchant(
     where id = ${fixture.merchantId}::uuid`
 }
 
-async function cancelBilling(
+async function lapseBilling(
   sql: Sql,
   fixture: PublicQrRouterFixture
 ): Promise<void> {
   await sql`
     update public.billing_customers
-    set status = 'cancelled'
+    set status = 'past_due'
     where merchant_id = ${fixture.merchantId}::uuid`
 }

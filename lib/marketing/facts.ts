@@ -160,17 +160,16 @@ export const OFFER = {
 
 /**
  * Setup copy grounded in the real launch checklist
- * (`lib/merchant/launch-readiness-core`): four configuration steps — venue,
- * card, rewards and QR — followed by billing activation. Billing is the gate
- * that makes the live QR joinable; preparing a poster alone is not activation.
+ * (`lib/merchant/launch-readiness-core`): venue, card and rewards come before
+ * billing activation; billing then unlocks venue QR setup.
  */
 export const SETUP = {
   line: "Build your card first. Activate it when billing is ready.",
   steps:
-    "Five guided steps — add your venue, build the card, confirm your pre-filled rewards, prepare your QR, and activate billing.",
+    "Five guided steps — add your venue, build the card, confirm your pre-filled rewards, activate billing, then set up your venue QR.",
   noFriction: "No app to build, no POS to connect, nothing to install.",
   earlyWin:
-    "Once billing is active, customers can scan your live venue QR to join and collect their first stamp.",
+    "Finish your venue, card and rewards first. Once billing is active, your venue QR unlocks for customers to scan and collect their first stamp.",
 } as const
 
 /**

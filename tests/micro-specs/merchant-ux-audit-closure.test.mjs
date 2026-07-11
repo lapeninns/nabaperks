@@ -15,14 +15,14 @@ function source(relativePath) {
 }
 
 const facts = source("lib/marketing/facts.ts")
+const signup = source("app/(auth)/signup/page.tsx")
+const demo = source("app/demo/page.tsx")
+const finalCta = source("components/marketing/landing/final-cta.tsx")
 const activationCard = source(
   "components/merchant/account/billing-activation-card.tsx"
 )
 const billingPanel = source(
   "components/merchant/account/billing-panel-view.tsx"
-)
-const billingPreview = source(
-  "components/merchant/launch/billing-activation-asset-preview.tsx"
 )
 const onboardingOrientation = source(
   "components/merchant/onboarding-journey-orientation.tsx"
@@ -39,16 +39,24 @@ test("the Growth Plan name is single-sourced across activation and account billi
   assert.match(billingPanel, /PRODUCT\.planName/)
 })
 
-test("launch billing carries the built card and protected QR without a client boundary", () => {
-  assert.notEqual(billingPreview, "", "billing asset preview component exists")
-  assert.doesNotMatch(billingPreview, /^["']use client["']/m)
-  assert.doesNotMatch(billingPreview, /StampGrid|@\/components\/motion/)
-  assert.match(billingPreview, /data-billing-static-cadence/)
-  assert.match(billingPreview, /QrFrame/)
-  assert.match(billingPreview, /\/app\/qr\/image\/\$\{qrCodeId\}/)
-  assert.match(billingPreview, /Built · billing needed/)
-  assert.match(launchPage, /BillingActivationAssetPreview/)
-  assert.match(launchHarness, /BillingActivationAssetPreview/)
+test("launch copy consistently places billing before venue QR", () => {
+  assert.match(facts, /activate billing, then set up your venue QR/)
+  assert.match(
+    signup,
+    /venue, card and rewards, then activate billing to unlock your QR/
+  )
+  assert.match(
+    finalCta,
+    /Build and preview your card and rewards, then activate billing to unlock\s*your venue QR/
+  )
+  assert.match(demo, /card, rewards, billing and QR/)
+  assert.doesNotMatch(finalCta, /preview the QR flow, then activate billing/)
+})
+
+test("launch billing no longer promises a built QR before activation", () => {
+  assert.match(launchPage, /completeBillingCheckoutReturn/)
+  assert.doesNotMatch(launchHarness, /BillingActivationAssetPreview/)
+  assert.match(launchHarness, /<QrPanel/)
 })
 
 test("production and harness onboarding share summary and roadmap components", () => {
@@ -59,7 +67,7 @@ test("production and harness onboarding share summary and roadmap components", (
   )
   assert.match(onboardingOrientation, /variant:\s*["']summary["']/)
   assert.match(onboardingOrientation, /variant:\s*["']roadmap["']/)
-  assert.match(onboardingOrientation, /card, rewards,\s*QR and billing/)
+  assert.match(onboardingOrientation, /card, rewards,\s*billing and QR/)
   assert.match(onboardingPage, /OnboardingJourneyOrientation/)
   assert.match(onboardingHarness, /OnboardingJourneyOrientation/)
 })

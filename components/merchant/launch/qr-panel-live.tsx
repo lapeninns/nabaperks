@@ -32,6 +32,7 @@ type QrPanelLiveProps = {
   readonly activeCardName: string
   readonly qrCodeId: string
   readonly isActive: boolean
+  readonly billingReady: boolean
   readonly scansAvailable: boolean
   readonly shareUrl: string
   readonly hasVenueAddress: boolean
@@ -70,6 +71,7 @@ export function QrPanelLive({
   activeCardName,
   qrCodeId,
   isActive,
+  billingReady,
   scansAvailable,
   shareUrl,
   hasVenueAddress,
@@ -119,9 +121,17 @@ export function QrPanelLive({
 
         <QrErrorBanner error={error} />
 
-        {isActive && !scansAvailable ? (
-          <StatusBanner tone="warning" title="Finish billing to accept scans.">
-            Customers cannot join or collect stamps until billing is active.
+        {!billingReady ? (
+          <StatusBanner tone="warning" title="Scans paused — fix billing">
+            The poster stays visible, but customers cannot join or collect
+            stamps until billing is active.{" "}
+            <Link
+              href="/app/launch?tab=billing"
+              className="font-bold underline underline-offset-4"
+            >
+              Fix billing
+            </Link>
+            .
           </StatusBanner>
         ) : null}
 
@@ -139,6 +149,34 @@ export function QrPanelLive({
             </Link>
             .
           </StatusBanner>
+        ) : null}
+
+        {scansAvailable ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <section className="grid gap-2 rounded-lg border-2 border-dashed border-ink/25 bg-paper-deep/40 p-4">
+              <p className="eyebrow">Set up at the till</p>
+              <h3 className="text-base font-extrabold">
+                Put the poster where people pay
+              </h3>
+              <p className="text-sm leading-6 text-muted-foreground">
+                Place a printed poster at the till or bar, where staff can point
+                to it. Use the print or email-poster actions below for the copy
+                that suits your counter.
+              </p>
+            </section>
+            <section className="grid gap-2 rounded-lg border-2 border-dashed border-ink/25 bg-paper-deep/40 p-4">
+              <p className="eyebrow">Brief the team</p>
+              <h3 className="text-base font-extrabold">
+                Point customers at this QR
+              </h3>
+              <p className="text-sm leading-6 text-muted-foreground">
+                The customer&apos;s phone joins and collects the stamp. Staff
+                only need to point them to the till QR and let the phone do the
+                rest. Do not use the merchant reward scanner for first stamps;
+                that is only for collecting rewards.
+              </p>
+            </section>
+          </div>
         ) : null}
 
         <section className="grid gap-4" aria-labelledby="qr-share-heading">
@@ -268,23 +306,27 @@ export function QrPanelLive({
             title="Pause new scans"
             description="Disable the QR if you need to stop new customers joining. Existing members keep their cards."
           />
-          <form action={setQrActiveAction} className="w-fit">
-            <input type="hidden" name="qrCodeId" value={qrCodeId} />
-            <input
-              type="hidden"
-              name="nextActive"
-              value={isActive ? "false" : "true"}
-            />
-            <input type="hidden" name="returnTo" value={returnHref} />
-            {/* Shared pending recipe: disables against double-taps and
-                gives feedback before the redirect lands. */}
-            <SubmitButton
-              variant={isActive ? "outline" : "reward"}
-              pendingLabel={isActive ? "Disabling…" : "Enabling…"}
-            >
-              {isActive ? "Disable QR" : "Enable QR"}
-            </SubmitButton>
-          </form>
+          {!billingReady && !isActive ? (
+            <Button asChild className="w-fit">
+              <Link href="/app/launch?tab=billing">Fix billing to enable</Link>
+            </Button>
+          ) : (
+            <form action={setQrActiveAction} className="w-fit">
+              <input type="hidden" name="qrCodeId" value={qrCodeId} />
+              <input
+                type="hidden"
+                name="nextActive"
+                value={isActive ? "false" : "true"}
+              />
+              <input type="hidden" name="returnTo" value={returnHref} />
+              <SubmitButton
+                variant={isActive ? "outline" : "reward"}
+                pendingLabel={isActive ? "Disabling…" : "Enabling…"}
+              >
+                {isActive ? "Disable QR" : "Enable QR"}
+              </SubmitButton>
+            </form>
+          )}
         </div>
       </div>
     </article>
@@ -336,7 +378,7 @@ function QrLiveStatus({
   if (isActive) {
     return (
       <MonoTag tone="sun" icon={STATUS_ICON.warning} className="w-fit">
-        Enabled · billing needed
+        Enabled · scans paused
       </MonoTag>
     )
   }

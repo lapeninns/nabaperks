@@ -4,7 +4,11 @@ import { cache } from "react"
 
 import { getQrSetup } from "@/lib/merchant/qr-code"
 import { getCurrentMerchant } from "@/lib/auth/session"
-import { getMerchantBilling } from "@/lib/merchant/billing"
+import {
+  getMerchantBilling,
+  getMerchantBillingFresh,
+  type MerchantBillingResult,
+} from "@/lib/merchant/billing"
 import { LAUNCH_SETUP_STEP_LABELS } from "@/lib/merchant/launch-readiness-contract"
 import type {
   LaunchHubTab,
@@ -33,11 +37,7 @@ export {
   resolveLaunchBillingHref,
 }
 export { LAUNCH_SETUP_STEP_LABELS }
-export type {
-  LaunchSetupStepId,
-  LaunchReadinessTab,
-  LaunchHubTab,
-}
+export type { LaunchSetupStepId, LaunchReadinessTab, LaunchHubTab }
 export type {
   BuildLaunchReadinessInput,
   LaunchBilling,
@@ -85,11 +85,34 @@ export async function getLaunchBillingReadiness(
   // runs. Omitted callers keep the original self-contained query.
   requiresBillingHint?: boolean
 ): Promise<{ requiresBilling: boolean; status: string | null }> {
+  return loadLaunchBillingReadiness(
+    merchantId,
+    requiresBillingHint,
+    getMerchantBilling
+  )
+}
+
+export async function getLaunchBillingReadinessFresh(
+  merchantId: string,
+  requiresBillingHint?: boolean
+): Promise<{ requiresBilling: boolean; status: string | null }> {
+  return loadLaunchBillingReadiness(
+    merchantId,
+    requiresBillingHint,
+    getMerchantBillingFresh
+  )
+}
+
+async function loadLaunchBillingReadiness(
+  merchantId: string,
+  requiresBillingHint: boolean | undefined,
+  loadBilling: (merchantId: string) => Promise<MerchantBillingResult>
+): Promise<{ requiresBilling: boolean; status: string | null }> {
   const [requiresBilling, billingResult] = await Promise.all([
     requiresBillingHint === undefined
       ? getMerchantRequiresBilling(merchantId)
       : Promise.resolve(requiresBillingHint),
-    getMerchantBilling(merchantId),
+    loadBilling(merchantId),
   ])
 
   return {

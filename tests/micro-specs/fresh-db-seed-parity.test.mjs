@@ -20,11 +20,9 @@ function dbTestFiles() {
     .map((file) => ({ file, source: readProjectFile("tests", "db", file) }))
 }
 
-// The product rule (loyalty_availability_reason) blocks billing only for
-// ('cancelled','suspended') or NULL-when-required. Test pickers must mirror
-// that blocked-set — enumerating accepted statuses is how the
-// 'trial'-vs-'trialing' vocabulary bug happened.
-const CANONICAL_CLAUSE = /bc\.status is not null and bc\.status not in \('cancelled', 'suspended'\)/
+// Given test fixtures need a live loyalty entitlement, when they select a
+// billing row, then they must mirror the active/trialing product allowlist.
+const CANONICAL_CLAUSE = /bc\.status in \('trialing', 'active'\)/
 
 test("Given a fresh database When db tests pick billing-eligible fixtures Then no picker uses the merchants-status vocabulary on billing_customers", () => {
   const offenders = dbTestFiles()
@@ -38,7 +36,7 @@ test("Given a fresh database When db tests pick billing-eligible fixtures Then n
   )
 })
 
-test("Given the product's billing rule When a db test gates on billing_customers Then it mirrors the blocked-set clause", () => {
+test("Given the product's billing rule When a db test gates on billing_customers Then it mirrors the active allowlist", () => {
   const missing = dbTestFiles()
     .filter(({ source }) => /billing_customers bc/.test(source))
     .filter(({ source }) => !CANONICAL_CLAUSE.test(source))
@@ -47,17 +45,17 @@ test("Given the product's billing rule When a db test gates on billing_customers
   assert.deepEqual(
     missing,
     [],
-    "every billing-eligibility picker must use: bc.status is not null and bc.status not in ('cancelled', 'suspended')"
+    "every billing-eligibility picker must use: bc.status in ('trialing', 'active')"
   )
 })
 
-test("Given the committed seed When billing rows are inserted Then they are billing-eligible under the product rule", () => {
+test("Given the committed seed When billing rows are inserted Then they use active or trialing billing", () => {
   const seed = readProjectFile("supabase", "seed.sql")
   assert.match(seed, /insert into public\.billing_customers/i)
   assert.doesNotMatch(
     seed,
-    /'(cancelled|suspended)'/,
-    "the committed seed must not park demo merchants in a billing-blocked status"
+    /'(past_due|cancelled|suspended)'/,
+    "the committed seed must not park demo merchants in a non-live billing status"
   )
 })
 

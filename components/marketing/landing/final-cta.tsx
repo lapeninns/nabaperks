@@ -20,13 +20,13 @@ export function FinalCta() {
         Build the card. Activate when ready.
       </h2>
       <p className="mx-auto mt-4 max-w-[44ch] text-base leading-relaxed text-muted-foreground">
-        Build your card and preview the QR flow, then activate billing to start
-        the 30-day pilot. After that it is £49/month for one venue.{" "}
-        {PRODUCT.cancelLine}
+        Build and preview your card and rewards, then activate billing to unlock
+        your venue QR and start the 30-day pilot. After that it is £49/month for
+        one venue. {PRODUCT.cancelLine}
       </p>
       <p className="mx-auto mt-3 max-w-[46ch] text-sm leading-relaxed text-muted-foreground">
-        No app for your customers, no POS for you — it works on any phone, tablet
-        or till.
+        No app for your customers, no POS for you — it works on any phone,
+        tablet or till.
       </p>
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
         <Button asChild size="lg">

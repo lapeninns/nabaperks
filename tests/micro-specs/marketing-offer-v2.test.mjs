@@ -31,7 +31,7 @@ test("OV2-1 Given the offer name When facts + pricing are inspected Then OFFER.n
   assert.doesNotMatch(hero, /The 30-Day First-Regular Launch/)
 })
 
-test("OV2-2 Given the activation path When SETUP renders Then billing is the fifth single-sourced step shown on pricing", () => {
+test("OV2-2 Given the activation path When SETUP renders Then billing precedes the QR in the single-sourced steps shown on pricing", () => {
   const facts = readProjectFile("lib", "marketing", "facts.ts")
   const pricing = readProjectFile("app", "pricing", "page.tsx")
 
@@ -39,7 +39,7 @@ test("OV2-2 Given the activation path When SETUP renders Then billing is the fif
   assert.match(facts, /line: "Build your card first\. Activate it when billing is ready\."/)
   assert.match(
     facts,
-    /Five guided steps — add your venue, build the card, confirm your pre-filled rewards, prepare your QR, and activate billing\./
+    /Five guided steps — add your venue, build the card, confirm your pre-filled rewards, activate billing, then set up your venue QR\./
   )
   assert.match(
     facts,
@@ -47,7 +47,7 @@ test("OV2-2 Given the activation path When SETUP renders Then billing is the fif
   )
   assert.match(
     facts,
-    /Once billing is active, customers can scan your live venue QR to join and collect their first stamp\./
+    /Finish your venue, card and rewards first\. Once billing is active, your venue QR unlocks for customers to scan and collect their first stamp\./
   )
   assert.match(pricing, /SETUP\./)
 })

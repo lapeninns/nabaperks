@@ -15,7 +15,7 @@ import { dismissPwaInstall, HARNESS_ROUTES } from "./helpers/harness"
  *
  * Mobile-safari project only (`.spec.ts`); needs no Supabase, auth, or Stripe.
  */
-const LAUNCH_TABS = ["venue", "card", "rewards", "qr", "billing"] as const
+const LAUNCH_TABS = ["venue", "card", "rewards", "billing", "qr"] as const
 
 /** Positive when the document scrolls horizontally past the viewport. */
 async function horizontalOverflow(page: Page): Promise<number> {
@@ -59,26 +59,21 @@ test.describe("merchant launch setup @launch-setup", () => {
     ).toBeVisible()
   })
 
-  test("the needsBilling state heads with the progress, not a repeated line", async ({
+  test("the needsBilling state explains that billing unlocks the QR", async ({
     page,
   }) => {
-    // ?state=billing = QR live, billing the only pending step. The header states
-    // the progress once ("One step from live") and the mobile context states
-    // what's LEFT — it must not repeat the heading.
     await page.goto(`${HARNESS_ROUTES.launch}?state=billing`)
 
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: "One step from live",
+        name: "Activate to unlock your QR",
       })
     ).toBeVisible()
-    // The mobile context line and the desktop PageTitle description carry the
-    // same "what's left" string (one is display:none per breakpoint), so match
-    // the first (mobile, sm:hidden) — the point is that it states what's LEFT
-    // rather than repeating the "One step from live" heading.
     await expect(
-      page.getByText("The last step before your venue goes live.").first()
+      page
+        .getByText("Start your free trial, then create your venue QR.")
+        .first()
     ).toBeVisible()
   })
 
@@ -87,9 +82,7 @@ test.describe("merchant launch setup @launch-setup", () => {
   }) => {
     await page.goto(`${HARNESS_ROUTES.launch}?tab=card`)
 
-    const venueStep = page
-      .getByRole("link", { name: /Your venue/ })
-      .first()
+    const venueStep = page.getByRole("link", { name: /Your venue/ }).first()
     await expect(venueStep).toBeVisible()
     await expect(venueStep).toHaveAttribute("href", "/app/launch?tab=venue")
   })
@@ -101,7 +94,9 @@ test.describe("merchant launch setup @launch-setup", () => {
     await expect(page.locator('input[name="venueName"]')).toHaveCount(0)
   })
 
-  test("onboarding asks for one customer-facing venue name", async ({ page }) => {
+  test("onboarding asks for one customer-facing venue name", async ({
+    page,
+  }) => {
     await page.goto(HARNESS_ROUTES.onboarding)
     await expect(
       page.getByRole("textbox", { name: /^Venue name/ })

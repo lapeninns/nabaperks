@@ -53,13 +53,23 @@ export function resolveLaunchHeaderModel(
 
   if (needsLaunchBillingActivation(readiness)) {
     return {
-      heading: "One step from live",
-      // State what's LEFT — never repeat the heading.
-      mobileContext: "The last step before your venue goes live.",
-      description: "The last step before your venue goes live.",
+      heading: "Activate to unlock your QR",
+      mobileContext: "Start your free trial, then create your venue QR.",
+      description:
+        "Start your free trial to unlock the venue QR customers scan.",
       // On the billing tab the activation card carries the real Stripe checkout,
       // so the header CTA must not compete with it — suppress it there.
       actionTab: activeTab === "billing" ? null : "billing",
+    }
+  }
+
+  if (readiness.nextStep?.id === "qr") {
+    return {
+      heading: "One step from live",
+      mobileContext: "Create your venue QR to start accepting scans.",
+      description:
+        "Billing is ready. Create your venue QR and place it at the till.",
+      actionTab: activeTab === "qr" ? null : "qr",
     }
   }
 
