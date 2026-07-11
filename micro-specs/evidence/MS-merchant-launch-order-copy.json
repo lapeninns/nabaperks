@@ -1,7 +1,52 @@
 {
   "schema": 1,
   "spec_id": "MS-merchant-launch-order-copy",
-  "runs": [],
+  "runs": [
+    {
+      "timestamp": "2026-07-11T13:57:01.495Z",
+      "git_sha": "9e0bf3851f5ad0af06dc2cb9061fdf54ef1068aa",
+      "git_branch": "codex/launch-billing-before-qr-ready",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7864
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1091
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10997
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9788
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1528
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 177
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-merchant-ux-launch-follow-through\"",
+          "exit_code": 1,
+          "duration_ms": 38611
+        }
+      ],
+      "all_passed": false
+    }
+  ],
   "manual_attestations": [],
   "transitions": [
     {
