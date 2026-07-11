@@ -153,6 +153,60 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-11T14:15:15.984Z",
+      "git_sha": "d7a4179451b5bf1ae7a4763ed1b6822585117af6",
+      "git_branch": "codex/launch-billing-before-qr-ready",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7796
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1221
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11868
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9861
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1449
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 166
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-merchant-ux-launch-follow-through\"",
+          "exit_code": 0,
+          "duration_ms": 35674
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 191474
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 58876
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
@@ -164,6 +218,14 @@
       "sha": "4a056b2530bb52b01f3160ddd35b09b474ba6981",
       "dirty": true,
       "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-11T14:15:15.984Z",
+      "sha": "d7a4179451b5bf1ae7a4763ed1b6822585117af6",
+      "dirty": false,
+      "by": "codex"
     }
   ]
 }
