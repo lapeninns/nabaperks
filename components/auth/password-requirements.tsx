@@ -40,15 +40,9 @@ export function PasswordRequirements({
     <section
       id={id}
       aria-label="Password requirements"
-      className={cn(
-        "grid gap-2 rounded-xl border border-dashed px-3 py-2.5 transition-[border-color,background-color] duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
-        allMet
-          ? "border-reward/40 bg-reward/8"
-          : "border-ink/20 bg-secondary/40",
-        className
-      )}
+      className={cn("grid gap-1", className)}
     >
-      <ul className="grid gap-1.5 sm:grid-cols-3">
+      <ul className="flex flex-wrap gap-x-3 gap-y-0.5">
         {REQUIREMENT_ITEMS.map(({ key, label }) => (
           <RequirementItem key={key} met={requirements[key]} label={label} />
         ))}
@@ -80,16 +74,17 @@ function RequirementItem({
   return (
     <li
       className={cn(
-        "flex min-h-9 items-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs leading-4 font-semibold",
-        met
-          ? "border-ink bg-stamp text-stamp-foreground"
-          : "border-dashed border-ink/30 bg-card text-muted-foreground"
+        "inline-flex items-center gap-1.5 text-xs leading-5 font-medium transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
+        met ? "text-reward" : "text-muted-foreground"
       )}
     >
       <span className="sr-only">{met ? "Met: " : "Not met: "}</span>
       <span
         aria-hidden="true"
-        className="grid size-4 shrink-0 place-items-center rounded-full border border-current"
+        className={cn(
+          "grid size-4 shrink-0 place-items-center rounded-full border",
+          met ? "border-reward bg-reward/10" : "border-current"
+        )}
       >
         {met ? (
           <Icon icon={Tick02Icon} size={10} strokeWidth={2.5} aria-hidden />
