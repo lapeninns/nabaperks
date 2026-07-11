@@ -207,9 +207,94 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-11T14:27:04.533Z",
+      "git_sha": "ab8967439a7677b1eab7fb4636529ad575c8b27f",
+      "git_branch": "codex/launch-billing-before-qr-ready",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7977
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1125
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10327
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9250
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1451
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 172
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-merchant-ux-launch-follow-through\"",
+          "exit_code": 0,
+          "duration_ms": 37319
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 162509
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 59576
+        }
+      ],
+      "all_passed": true
     }
   ],
-  "manual_attestations": [],
+  "manual_attestations": [
+    {
+      "gate": "manual:design-review",
+      "by": "codex",
+      "note": "Inspected approved Darwin mobile and desktop launch captures; Wet Ink order, hierarchy, responsiveness, and copy are truthful.",
+      "at": "2026-07-11T14:27:04.533Z"
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T14:27:04.533Z",
+      "note": "Command output for the declared verification gates."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T14:27:04.533Z",
+      "note": "Mobile and desktop browser proof that launch navigation and continue actions follow venue, card, rewards, billing, then venue QR."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T14:27:04.533Z",
+      "note": "Browser proof that signup, demo, onboarding, launch header, and final conversion copy consistently place billing before QR."
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-11T14:27:04.533Z",
+      "note": "Axe and approved Wet Ink visual-baseline output for changed launch surfaces."
+    }
+  ],
   "transitions": [
     {
       "from": "draft",
@@ -224,6 +309,14 @@
       "to": "implemented",
       "at": "2026-07-11T14:15:15.984Z",
       "sha": "d7a4179451b5bf1ae7a4763ed1b6822585117af6",
+      "dirty": false,
+      "by": "codex"
+    },
+    {
+      "from": "implemented",
+      "to": "verified",
+      "at": "2026-07-11T14:27:04.533Z",
+      "sha": "ab8967439a7677b1eab7fb4636529ad575c8b27f",
       "dirty": false,
       "by": "codex"
     }

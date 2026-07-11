@@ -1,6 +1,6 @@
 ---
 spec_id: MS-merchant-launch-order-copy
-status: implemented
+status: verified
 risk_class: ui-only
 owner: codex
 last_reviewed: 2026-07-11
