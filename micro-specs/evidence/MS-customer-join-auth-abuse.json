@@ -293,6 +293,45 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-11T18:14:09.085Z",
+      "git_sha": "c807e5202377799ffeb958330358b11bc41caab9",
+      "git_branch": "codex/launch-billing-before-qr",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7066
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1232
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10671
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9297
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1348
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-customer-join-auth-abuse\"",
+          "exit_code": 0,
+          "duration_ms": 5673
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
