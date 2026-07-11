@@ -15,6 +15,7 @@ allowed_blast_radius:
   - components/marketing/landing/final-cta.tsx
   - app/demo/page.tsx
   - app/layout.tsx
+  - playwright.config.ts
   - components/merchant/onboarding-journey-orientation.tsx
   - components/merchant/launch-readiness-panel.tsx
   - tests/unit/launch-readiness-core.test.mjs
@@ -41,6 +42,7 @@ implementation_surfaces:
   - components/marketing/landing/final-cta.tsx
   - app/demo/page.tsx
   - app/layout.tsx
+  - playwright.config.ts
   - components/merchant/onboarding-journey-orientation.tsx
   - components/merchant/launch-readiness-panel.tsx
   - tests/unit/launch-readiness-core.test.mjs

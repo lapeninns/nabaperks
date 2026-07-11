@@ -25,6 +25,7 @@ const devServerEnv = [
   `PORT=${devServerPort}`,
   `CUSTOMER_DEV_OTP_CODE=${devOtpCode}`,
   `PLAYWRIGHT_MARKETING_PROMO_NOW=${visualPromoNow}`,
+  "PLAYWRIGHT_HARNESS=1",
   `SUPABASE_SEND_EMAIL_HOOK_SECRET=${authHookSecret}`,
   `SUPABASE_SEND_SMS_HOOK_SECRET=${authHookSecret}`,
   "RESEND_API_KEY=re_playwright_harness",
