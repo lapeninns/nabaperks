@@ -3,6 +3,7 @@ import { test } from "node:test"
 
 import {
   customerOtpSendIdentityRateLimitKey,
+  customerOtpSendIpRateLimitKey,
   customerOtpSendPhoneRateLimitKey,
   customerOtpVerifyIdentityRateLimitKey,
   customerOtpVerifyPhoneRateLimitKey,
@@ -16,8 +17,22 @@ test("Given send requests for one phone from different identities When buckets a
     customerOtpSendPhoneRateLimitKey(phone)
   )
   assert.notEqual(
-    customerOtpSendIdentityRateLimitKey(phone, "first-browser"),
-    customerOtpSendIdentityRateLimitKey(phone, "second-browser")
+    customerOtpSendIdentityRateLimitKey("first-browser"),
+    customerOtpSendIdentityRateLimitKey("second-browser")
+  )
+})
+
+test("Given device cookies rotate behind one trusted IP When send buckets are built Then the network ceiling stays stable", () => {
+  assert.equal(
+    customerOtpSendIpRateLimitKey("203.0.113.7"),
+    customerOtpSendIpRateLimitKey("203.0.113.7")
+  )
+})
+
+test("Given one identity rotates phone numbers When send buckets are built Then every phone shares the identity ceiling", () => {
+  assert.equal(
+    customerOtpSendIdentityRateLimitKey("same-browser"),
+    customerOtpSendIdentityRateLimitKey("same-browser")
   )
 })
 
@@ -29,8 +44,8 @@ test("Given verification guesses for one phone from different identities When bu
     customerOtpVerifyPhoneRateLimitKey(phone)
   )
   assert.notEqual(
-    customerOtpVerifyIdentityRateLimitKey(phone, "first-browser"),
-    customerOtpVerifyIdentityRateLimitKey(phone, "second-browser")
+    customerOtpVerifyIdentityRateLimitKey("first-browser"),
+    customerOtpVerifyIdentityRateLimitKey("second-browser")
   )
 })
 

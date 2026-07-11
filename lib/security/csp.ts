@@ -40,7 +40,7 @@ function sharedContentSecurityDirectives(): readonly string[] {
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
     "connect-src 'self' https: wss:",
-    "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
+    "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://challenges.cloudflare.com",
     "worker-src 'self' blob:",
     "manifest-src 'self'",
     "object-src 'none'",
@@ -52,7 +52,9 @@ function sharedContentSecurityDirectives(): readonly string[] {
 
 export function isStaticMarketingPath(pathname: string): boolean {
   const normalizedPath =
-    pathname !== "/" && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname
+    pathname !== "/" && pathname.endsWith("/")
+      ? pathname.slice(0, -1)
+      : pathname
 
   return (
     STATIC_MARKETING_EXACT_PATHS.has(normalizedPath) ||
@@ -67,8 +69,8 @@ export function dynamicContentSecurityPolicy(nonce: string): string {
 
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' ${nextThemesScriptHashes} 'strict-dynamic' https://js.stripe.com${scriptDevEscape()}`,
-    `script-src-elem 'self' 'nonce-${nonce}' ${nextThemesScriptHashes} https://js.stripe.com`,
+    `script-src 'self' 'nonce-${nonce}' ${nextThemesScriptHashes} 'strict-dynamic' https://js.stripe.com https://challenges.cloudflare.com${scriptDevEscape()}`,
+    `script-src-elem 'self' 'nonce-${nonce}' ${nextThemesScriptHashes} https://js.stripe.com https://challenges.cloudflare.com`,
     ...sharedContentSecurityDirectives(),
   ].join("; ")
 }

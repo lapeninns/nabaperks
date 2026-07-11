@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test"
 
 import { connectLocalDb } from "./helpers/admin-live-db"
+import { expectNoAxeViolations } from "./helpers/axe"
 import {
   cleanupCustomerJoinRows,
   disposableUkMobile,
@@ -15,7 +16,7 @@ import {
   type PublicQrRouterFixture,
 } from "./helpers/public-qr-router-live-db"
 
-test.describe("@customer-flow direct customer join live DB", () => {
+test.describe("@customer-flow @a11y @visual @MS-customer-join-frictionless-ux direct customer join live DB", () => {
   const reason = customerReadbackLiveDbSkipReason()
   test.skip(Boolean(reason), reason)
 
@@ -25,7 +26,7 @@ test.describe("@customer-flow direct customer join live DB", () => {
 
   test("joins without issuing a first stamp when no QR proof is present", async ({
     page,
-  }) => {
+  }, testInfo) => {
     const sql = connectLocalDb()
     test.skip(!sql, "local Supabase DB is not configured")
     if (!sql) return
@@ -39,6 +40,16 @@ test.describe("@customer-flow direct customer join live DB", () => {
       if (!fixture) return
 
       await openDirectTermsStep(page, fixture.merchantSlug, phone)
+      await expectNoAxeViolations(page, "direct customer join terms step")
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth
+        )
+      ).toBe(true)
+      await testInfo.attach("direct-join-terms", {
+        body: await page.screenshot({ fullPage: true }),
+        contentType: "image/png",
+      })
       await page.getByLabel(/Loyalty terms/i).check()
       await Promise.all([
         page.waitForURL(
@@ -48,7 +59,7 @@ test.describe("@customer-flow direct customer join live DB", () => {
             !url.searchParams.has("stamp") &&
             !url.searchParams.has("firststamp")
         ),
-        page.getByRole("button", { name: "Get my first stamp" }).click(),
+        page.getByRole("button", { name: "Save my card" }).click(),
       ])
 
       const joined = await readJoinedMembership(sql, fixture, phone)

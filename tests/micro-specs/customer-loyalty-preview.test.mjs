@@ -16,8 +16,9 @@ function readProjectFile(...segments) {
 test("Given the public merchant preview has no QR context When CTA copy renders Then it promises joining rather than a same-day stamp", () => {
   const preview = readProjectFile("app", "m", "[merchantSlug]", "page.tsx")
 
-  assert.match(preview, /href=\{`\/m\/\$\{merchantSlug\}\/join`\}/)
-  assert.match(preview, />Join rewards<\/Link>/)
+  assert.match(preview, /buildCustomerJoinHref\(merchantSlug/)
+  assert.match(preview, /referralCode: ref/)
+  assert.match(preview, />\s*Join rewards\s*<\/Link>/)
   assert.match(preview, /<CustomerReceipt[\s\S]*\bcompact\b/)
   // The journey preview uses the same non-compact treatment as the q-valid
   // welcome step (production-polish VCU-P2-02/03): reward patch inline with
@@ -45,14 +46,13 @@ test("Given public merchant preview is a conversion route When PWA install copy 
   assert.match(pwa, /surface === "marketing"/)
 })
 
-test("Given returning QR auto-stamp fails unexpectedly When the customer is routed to retry Then an operator warning is emitted", () => {
+test("Given a returning QR customer verifies When navigation resolves Then the customer chooses the stamp explicitly", () => {
   const redirect = readProjectFile(
     "lib",
     "customer",
     "returning-qr-redirect.ts"
   )
 
-  assert.match(redirect, /import \{ logger \} from "@\/lib\/observability\/logger"/)
-  assert.match(redirect, /logger\.warn\("returning_qr_auto_stamp_failed"/)
-  assert.match(redirect, /return stampPath/)
+  assert.match(redirect, /\/card\/\$\{membership\.id\}\/stamp\?qr=/)
+  assert.doesNotMatch(redirect, /issueSelfServiceStamp|stamp_issued/)
 })

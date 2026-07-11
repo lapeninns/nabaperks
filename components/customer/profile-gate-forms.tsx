@@ -3,7 +3,6 @@
 import { useActionState } from "react"
 
 import {
-  clearProfileEmailAction,
   resendProfileEmailAction,
   saveProfileForRedeemAction,
   verifyProfileEmailAction,
@@ -52,8 +51,8 @@ function ProfileDetailsStep({
         title="A few details before this one's yours"
         tone="neutral"
       >
-        Add your name and date of birth before collection — you must be 18 or
-        over. Email is optional.
+        Add your name, date of birth, and email before collection. The email
+        code is an independent security check for your reward.
       </StatusBanner>
 
       <Field
@@ -73,17 +72,25 @@ function ProfileDetailsStep({
         error={state.errors?.dateOfBirth}
       />
       {gate.emailLocked && gate.email ? (
-        <StatusBanner title="Verified email" tone="neutral">
-          {gate.email} is verified and locked for account security.
-        </StatusBanner>
+        <>
+          <StatusBanner title="Verified email" tone="neutral">
+            {gate.email} is verified and locked for account security.
+          </StatusBanner>
+          {state.errors?.email ? (
+            <StatusBanner title="Code not sent" tone="warning">
+              {state.errors.email}
+            </StatusBanner>
+          ) : null}
+        </>
       ) : (
         <Field
-          label="Email (optional)"
+          label="Email address"
           name="email"
           type="email"
           inputMode="email"
           autoComplete="email"
-          hint="We'll send a code to confirm it."
+          hint="We'll send a code before showing your collection QR."
+          required
           defaultValue={state.fields?.email ?? gate.email ?? ""}
           error={state.errors?.email}
         />
@@ -95,8 +102,16 @@ function ProfileDetailsStep({
         </StatusBanner>
       ) : null}
 
-      <Button type="submit" size="lg" disabled={pending} className="w-full">
-        {pending ? "Saving…" : "Save my details"}
+      <Button
+        type="submit"
+        size="lg"
+        disabled={pending}
+        className="w-full"
+        onFocus={(event) =>
+          event.currentTarget.scrollIntoView({ block: "center" })
+        }
+      >
+        {pending ? "Sending…" : "Save and email my code"}
       </Button>
     </form>
   )
@@ -113,12 +128,16 @@ function ProfileEmailStep({
     verifyProfileEmailAction,
     initialState
   )
+  const [resendState, resendAction, resendPending] = useActionState(
+    resendProfileEmailAction,
+    initialState
+  )
 
   return (
     <div className="grid gap-4">
       <StatusBanner title="Confirm your email" tone="neutral">
-        Enter the code we sent{email ? ` to ${email}` : ""} to finish your
-        profile.
+        Email yourself a fresh code{email ? ` at ${email}` : ""}, then enter it
+        here to unlock this reward.
       </StatusBanner>
 
       <form action={action} className="grid gap-4">
@@ -137,6 +156,9 @@ function ProfileEmailStep({
             aria-invalid={Boolean(state.errors?.otp)}
             aria-describedby={
               state.errors?.otp ? "profile-otp-error" : undefined
+            }
+            onFocus={(event) =>
+              event.currentTarget.scrollIntoView({ block: "center" })
             }
           />
           {state.errors?.otp ? (
@@ -161,20 +183,26 @@ function ProfileEmailStep({
 
       {/* size="sm" keeps these on the tap contract at the queuing moment —
           declared 36px on fine pointers, 44px floor on touch (CUS-P2-10). */}
-      <div className="flex items-center justify-between gap-3">
-        <form action={resendProfileEmailAction}>
+      <div className="flex items-center gap-3">
+        <form action={resendAction}>
           <input type="hidden" name="rewardId" value={rewardId} />
-          <Button type="submit" variant="link" size="sm">
-            Email me a new code
-          </Button>
-        </form>
-        <form action={clearProfileEmailAction}>
-          <input type="hidden" name="rewardId" value={rewardId} />
-          <Button type="submit" variant="link" size="sm">
-            Continue without email
+          <Button
+            type="submit"
+            variant="secondary"
+            size="sm"
+            disabled={resendPending}
+          >
+            {resendPending ? "Sending…" : "Email me a code"}
           </Button>
         </form>
       </div>
+      {resendState.errors?.form ? (
+        <StatusBanner tone="warning" title="Code not sent">
+          {resendState.errors.form}
+        </StatusBanner>
+      ) : resendState.message ? (
+        <StatusBanner tone="success" title={resendState.message} />
+      ) : null}
     </div>
   )
 }
@@ -196,6 +224,7 @@ function Field({
   autoComplete?: string
   inputMode?: "email" | "numeric"
   max?: string
+  required?: boolean
 }) {
   const describedBy = error
     ? `${name}-error`
@@ -216,6 +245,9 @@ function Field({
         aria-invalid={Boolean(error)}
         aria-describedby={describedBy}
         {...rest}
+        onFocus={(event) =>
+          event.currentTarget.scrollIntoView({ block: "center" })
+        }
       />
       {error ? (
         <p id={`${name}-error`} className="text-sm text-destructive">

@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import {
+  customerRateLimitIdentityFromHeaders,
   rateLimitIdentityFromHeaders,
   trustedClientIp,
 } from "@/lib/security/rate-limit-core"
@@ -61,4 +62,27 @@ test("Given different trusted inputs When identity hashes are derived Then the b
   )
 
   assert.notEqual(first, second)
+})
+
+test("customer buckets separate devices behind one venue IP and ignore user-agent rotation", () => {
+  const base = {
+    "x-vercel-forwarded-for": "203.0.113.10",
+    "x-nabaperks-device-id": "11111111-1111-4111-8111-111111111111",
+  }
+  const first = customerRateLimitIdentityFromHeaders(
+    new Headers({ ...base, "user-agent": "Safari A" })
+  )
+  const rotatedAgent = customerRateLimitIdentityFromHeaders(
+    new Headers({ ...base, "user-agent": "Safari B" })
+  )
+  const secondDevice = customerRateLimitIdentityFromHeaders(
+    new Headers({
+      ...base,
+      "x-nabaperks-device-id": "22222222-2222-4222-8222-222222222222",
+      "user-agent": "Safari A",
+    })
+  )
+
+  assert.equal(first, rotatedAgent)
+  assert.notEqual(first, secondDevice)
 })

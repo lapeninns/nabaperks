@@ -12,6 +12,8 @@ const productionRequiredEnvNames = new Set([
   "RESEND_FROM",
   "SUPABASE_SEND_EMAIL_HOOK_SECRET",
   "STRIPE_GROWTH_ANNUAL_PRICE_ID",
+  "NEXT_PUBLIC_TURNSTILE_SITE_KEY",
+  "TURNSTILE_SECRET_KEY",
   "WEB_PUSH_VAPID_PRIVATE_KEY",
   "WEB_PUSH_VAPID_PUBLIC_KEY",
   "WEB_PUSH_VAPID_SUBJECT",
@@ -77,6 +79,12 @@ const customerOtpBypassMode = values.CUSTOMER_OTP_BYPASS_MODE?.trim()
 const customerOtpBypassModeAnyFourDigits = "any-4-digits"
 const customerOtpTwilioBypassed =
   customerOtpBypassMode === customerOtpBypassModeAnyFourDigits
+const customerDevOtpCode = values.CUSTOMER_DEV_OTP_CODE?.trim()
+const hostedVercelEnvironment = ["preview", "production"].includes(
+  values.VERCEL_ENV?.trim()
+)
+const hostedOrProductionProfile =
+  checkProfile === "production" || hostedVercelEnvironment
 const twilioVerifyEnvNames = new Set([
   "TWILIO_ACCOUNT_SID",
   "TWILIO_VERIFY_SERVICE_SID",
@@ -148,6 +156,14 @@ if (customerOtpBypassMode && !customerOtpTwilioBypassed) {
   invalid.push(
     `CUSTOMER_OTP_BYPASS_MODE must be ${customerOtpBypassModeAnyFourDigits} or blank`
   )
+}
+
+if (hostedOrProductionProfile && customerOtpTwilioBypassed) {
+  invalid.push("CUSTOMER_OTP_BYPASS_MODE must be blank outside local development")
+}
+
+if (hostedOrProductionProfile && customerDevOtpCode) {
+  invalid.push("CUSTOMER_DEV_OTP_CODE must be blank outside local development")
 }
 
 if (

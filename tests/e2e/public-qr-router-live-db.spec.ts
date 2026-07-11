@@ -1,9 +1,6 @@
-import {
-  expect,
-  test,
-  type BrowserContext,
-  type Page,
-} from "@playwright/test"
+import { expect, test, type BrowserContext, type Page } from "@playwright/test"
+
+import { verifyCustomerDeviceToken } from "@/lib/security/customer-device-token"
 
 import { connectLocalDb, type Sql } from "./helpers/admin-live-db"
 import { customerReadbackLiveDbSkipReason } from "./helpers/customer-readback-live-db"
@@ -48,14 +45,13 @@ test.describe("@customer-flow public QR router live DB", () => {
       test.skip(!fixture, "seed merchant owner is not available")
       if (!fixture) return
 
-      const identities = await usePublicQrRateLimitIdentity(
+      await context.setExtraHTTPHeaders(publicQrRateLimitHeaders(fixture))
+      await expectNewCustomerRedirect(page, fixture)
+      const identities = await publicQrRateLimitIdentityForContext(
         context,
-        page,
         fixture
       )
       rateLimitBucketKeys = publicQrRateLimitBucketKeys(fixture, identities)
-
-      await expectNewCustomerRedirect(page, fixture)
 
       await installCustomerSession(context, fixture)
       await expectExistingMemberRedirect(page, fixture)
@@ -91,14 +87,13 @@ test.describe("@customer-flow public QR router live DB", () => {
       test.skip(!fixture, "seed merchant owner is not available")
       if (!fixture) return
 
-      const identities = await usePublicQrRateLimitIdentity(
+      await context.setExtraHTTPHeaders(publicQrRateLimitHeaders(fixture))
+      await expectNewCustomerRedirect(page, fixture)
+      const identities = await publicQrRateLimitIdentityForContext(
         context,
-        page,
         fixture
       )
       rateLimitBucketKeys = publicQrRateLimitBucketKeys(fixture, identities)
-
-      await expectNewCustomerRedirect(page, fixture)
       await seedPublicQrRateLimitBuckets(sql, fixture, identities)
       await expectRateLimitedQr(page, fixture)
     } finally {
@@ -150,21 +145,27 @@ async function expectUnavailableQr(page: Page, qrId: string): Promise<void> {
     "href",
     "/scan"
   )
-  await expect(page.getByRole("link", { name: "Open my cards" })).toHaveAttribute(
-    "href",
-    "/home"
-  )
+  await expect(
+    page.getByRole("link", { name: "Open my cards" })
+  ).toHaveAttribute("href", "/home")
 }
 
-async function usePublicQrRateLimitIdentity(
+async function publicQrRateLimitIdentityForContext(
   context: BrowserContext,
-  page: Page,
   fixture: PublicQrRouterFixture
 ): Promise<ReturnType<typeof publicQrRateLimitIdentities>> {
-  await context.setExtraHTTPHeaders(publicQrRateLimitHeaders(fixture))
-  const userAgent = await page.evaluate(() => navigator.userAgent)
-
-  return publicQrRateLimitIdentities(fixture, userAgent)
+  const cookie = (await context.cookies()).find(
+    ({ name }) => name === "nabaperks_device"
+  )
+  const secret = process.env.CUSTOMER_SESSION_SECRET?.trim()
+  const deviceId =
+    cookie && secret
+      ? verifyCustomerDeviceToken(cookie.value, secret)
+      : cookie?.value
+  if (!deviceId) {
+    throw new Error("Public QR test did not receive a customer device token.")
+  }
+  return publicQrRateLimitIdentities(fixture, deviceId)
 }
 
 async function expectRateLimitedQr(

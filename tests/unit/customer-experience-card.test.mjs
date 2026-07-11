@@ -15,7 +15,7 @@ function cardContext(overrides = {}) {
     stampDates: ["30 Jun"],
     justStamped: false,
     justJoined: false,
-    firstStampPending: false,
+    firstStampRecovery: null,
     geoFlagged: false,
     justRedeemed: false,
     ...overrides,
@@ -188,6 +188,20 @@ test("a collecting card carries the referral bonus bank into the card UI model",
 
   assert.equal(experience.kind, "card_collecting")
   assert.deepEqual(experience.referralBonusBank, referralBonusBank)
+})
+
+test("Given durable first-stamp recovery When a card is derived Then the typed recovery survives unchanged", () => {
+  const firstStampRecovery = {
+    resolution: "retry",
+    retryUntil: "2026-07-10T22:00:00.000Z",
+  }
+  const experience = deriveCustomerExperience({
+    entry: "card",
+    context: cardContext({ firstStampRecovery }),
+  })
+
+  assert.equal(experience.kind, "card_collecting")
+  assert.deepEqual(experience.firstStampRecovery, firstStampRecovery)
 })
 
 test("full cards without an unlocked reward show recovery instead of inviting another stamp", () => {

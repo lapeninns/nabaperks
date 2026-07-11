@@ -72,7 +72,9 @@ export function JoinWizard({
 
   switch (experience.kind) {
     case "join_welcome":
-      return <WelcomeStep exp={experience} vm={vm} />
+      return (
+        <WelcomeStep exp={experience} vm={vm} referralCode={referralCode} />
+      )
     case "join_phone":
       return <PhoneStep exp={experience} vm={vm} referralCode={referralCode} />
     case "join_otp":
@@ -98,16 +100,17 @@ function PhoneStep({
   referralCode?: string
 }) {
   return (
-    <JoinShell vm={vm} progress={joinProgress("join_phone")} dense>
-      <UnlockingReminder
-        merchant={exp.merchant}
-        card={exp.card}
-        variant="phone"
-      />
+    <JoinShell
+      vm={vm}
+      progress={joinProgress("join_phone", Boolean(exp.qrId))}
+      dense
+    >
+      <UnlockingReminder merchant={exp.merchant} card={exp.card} />
       <CustomerIdentityForm
         merchantSlug={exp.merchant.slug}
         qrId={exp.qrId}
         referralCode={referralCode}
+        turnstileSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
       />
     </JoinShell>
   )
@@ -123,12 +126,15 @@ function OtpStep({
   referralCode?: string
 }) {
   return (
-    <JoinShell vm={vm} progress={joinProgress("join_otp")} dense>
+    <JoinShell
+      vm={vm}
+      progress={joinProgress("join_otp", Boolean(exp.qrId))}
+      dense
+    >
       <CustomerOtpForm
         merchantSlug={exp.merchant.slug}
         qrId={exp.qrId}
-        contact={exp.contact}
-        location={exp.location}
+        contactLast4={exp.contactLast4}
         referralCode={referralCode}
       />
     </JoinShell>
@@ -145,26 +151,27 @@ function TermsStep({
   referralCode?: string
 }) {
   return (
-    <JoinShell vm={vm} progress={joinProgress("join_terms")} dense>
-      <UnlockingReminder
-        merchant={exp.merchant}
-        card={exp.card}
-        variant="terms"
-      />
+    <JoinShell
+      vm={vm}
+      progress={joinProgress("join_terms", Boolean(exp.qrId))}
+      dense
+    >
+      {exp.qrId ? (
+        <TermsFirstStampPreview merchant={exp.merchant} card={exp.card} />
+      ) : (
+        <TermsSavedCardPreview merchant={exp.merchant} card={exp.card} />
+      )}
       <CustomerJoinForm
         merchantSlug={exp.merchant.slug}
         qrId={exp.qrId}
         merchantName={exp.merchant.name}
         card={exp.card}
         requireGeofence={exp.location.requireGeofence}
-        geofenceRadiusMeters={exp.location.geofenceRadiusMeters}
         referralCode={referralCode}
       />
     </JoinShell>
   )
 }
-
-type UnlockingReminderVariant = "phone" | "terms"
 
 /**
  * Step-specific motivation strip after the welcome card scrolls away. Phone keeps
@@ -174,17 +181,11 @@ type UnlockingReminderVariant = "phone" | "terms"
 export function UnlockingReminder({
   merchant,
   card,
-  variant,
 }: {
   merchant: JoinMerchant
   card: JoinCard
-  variant: UnlockingReminderVariant
 }) {
-  if (variant === "phone") {
-    return <PhoneUnlockingReminder merchant={merchant} card={card} />
-  }
-
-  return <TermsFirstStampPreview merchant={merchant} card={card} />
+  return <PhoneUnlockingReminder merchant={merchant} card={card} />
 }
 
 /** Compact reward hook — no journey animation (that lives on the welcome card). */
@@ -263,6 +264,41 @@ function TermsFirstStampPreview({
   )
 }
 
+function TermsSavedCardPreview({
+  merchant,
+  card,
+}: {
+  merchant: JoinMerchant
+  card: JoinCard
+}) {
+  return (
+    <div className="surface-card grid gap-3 p-3 text-left">
+      <div className="flex items-center gap-3">
+        <VenueMark size={40} name={merchant.name} />
+        <div className="grid min-w-0 gap-0.5">
+          <span className="eyebrow text-muted-foreground">Your saved card</span>
+          <span className="line-clamp-2 text-sm leading-tight font-extrabold break-words">
+            {merchant.name} · {card.name}
+          </span>
+        </div>
+      </div>
+      <StampGrid
+        current={0}
+        total={card.stampsRequired}
+        dates={[]}
+        rewardSlot="locked"
+        compact
+        venueName={merchant.name}
+      />
+      <RewardTicket
+        state="sealed"
+        name={MYSTERY_REWARD_SEALED_LABEL}
+        description="Scan the printed venue QR when you're there to collect your first stamp."
+      />
+    </div>
+  )
+}
+
 function ReturningStep({
   exp,
   vm,
@@ -278,9 +314,6 @@ function ReturningStep({
         current={exp.current}
       />
       <div className="grid gap-4">
-        <StatusBanner title="You're already joined" tone="success">
-          Your stamp card is ready. Continue from your current progress.
-        </StatusBanner>
         {/* One progress signal per screen (customer-flow-system rule): the
             hero card's grid + the support line already carry the count, so no
             extra "Current progress" note (CUS-P3-04). */}
@@ -362,16 +395,17 @@ function JoinShell({
  * code share this step) → 3 Consent (terms + first stamp).
  */
 function joinProgress(
-  kind: "join_welcome" | "join_phone" | "join_otp" | "join_terms"
+  kind: "join_welcome" | "join_phone" | "join_otp" | "join_terms",
+  hasQr = true
 ): FlowProgress {
   const step = {
     join_welcome: 1,
-    join_phone: 2,
+    join_phone: hasQr ? 2 : 1,
     join_otp: 2,
     join_terms: 3,
   }[kind]
 
-  return { step, total: ONBOARDING_STEPS, label: "Join the card" }
+  return { step, total: ONBOARDING_STEPS, label: "Keep your card" }
 }
 
 function UnavailableJoin() {

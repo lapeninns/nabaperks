@@ -12,7 +12,7 @@ import { customerInputClass } from "@/components/customer/input-class"
 import { SubmitButton } from "@/components/forms"
 import { StatusBanner } from "@/components/loyalty"
 import { otpFieldMaxLength } from "@/lib/customer/experience/otp-field"
-import type { LocationRequirement } from "@/lib/customer/experience/types"
+import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
 
 const identityInitialState: CustomerIdentityState = {}
 
@@ -20,16 +20,14 @@ export type CustomerOtpFormProps = {
   merchantSlug: string
   qrId?: string
   referralCode?: string
-  contact: string
-  location: LocationRequirement
+  contactLast4: string
 }
 
 export function CustomerOtpForm({
   merchantSlug,
   qrId,
   referralCode,
-  contact,
-  location,
+  contactLast4,
 }: CustomerOtpFormProps) {
   const [verifyState, verifyAction] = useActionState(
     verifyCustomerOtpAction,
@@ -50,11 +48,11 @@ export function CustomerOtpForm({
     : (requestState.errors?.form ?? requestState.errors?.contact)
   const resendMessage =
     requestPending || resendError ? undefined : requestState.message
-  const phoneStepHref = `/m/${merchantSlug}/join?${
-    qrId ? `qr=${encodeURIComponent(qrId)}&` : ""
-  }${referralCode ? `ref=${encodeURIComponent(referralCode)}&` : ""}step=phone`
-
-  void location
+  const phoneStepHref = buildCustomerJoinHref(merchantSlug, {
+    qrId,
+    referralCode,
+    step: "phone",
+  })
 
   return (
     <div className="grid gap-4">
@@ -104,7 +102,7 @@ export function CustomerOtpForm({
           <StatusBanner tone="error" title={state.errors.contact} />
         ) : null}
         <SubmitButton size="lg" className="w-full" pendingLabel="Checking…">
-          Save my card
+          Check code
         </SubmitButton>
       </form>
 
@@ -112,7 +110,6 @@ export function CustomerOtpForm({
         <input type="hidden" name="merchantSlug" value={merchantSlug} />
         <input type="hidden" name="qrId" value={qrId ?? ""} />
         <input type="hidden" name="ref" value={referralCode ?? ""} />
-        <input type="hidden" name="contact" value={contact} />
         {/* Marks this submission as a resend so the action answers in place
             (returned state) instead of redirecting the phone step forward. */}
         <input type="hidden" name="resend" value="1" />
@@ -131,7 +128,9 @@ export function CustomerOtpForm({
               Resend code
             </SubmitButton>
           </div>
-          <p className="text-sm font-bold tabular-nums">{contact}</p>
+          <p className="text-sm font-bold tabular-nums">
+            Phone ending {contactLast4}
+          </p>
           {resendError ? (
             <p className="text-sm leading-6 text-destructive">{resendError}</p>
           ) : null}

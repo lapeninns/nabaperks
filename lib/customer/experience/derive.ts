@@ -13,6 +13,7 @@ import {
   type RewardView,
 } from "./types"
 import type { ReferralBonusBank } from "@/lib/customer/referral-bonus-bank"
+import type { JoinFirstStampRecovery } from "@/lib/customer/join-first-stamp-recovery"
 
 /**
  * Pure derivation: loaded facts in, a single {@link CustomerExperience} out.
@@ -73,7 +74,7 @@ export type CardContext =
       stampDates: string[]
       justStamped: boolean
       justJoined: boolean
-      firstStampPending?: boolean
+      firstStampRecovery?: JoinFirstStampRecovery | null
       geoFlagged: boolean
       justRedeemed: boolean
       /** Shareable "Bring a Regular" join link (opaque referral_code), or absent. */
@@ -126,6 +127,8 @@ export type JoinContext =
   | { unavailable: true }
   | {
       unavailable?: false
+      merchantId: string
+      qrCodeId?: string
       merchant: JoinMerchant
       card: JoinCard
       qrId?: string
@@ -209,7 +212,7 @@ function deriveCard(context: CardContext): CustomerExperience {
     stampDates: context.stampDates,
     justStamped: context.justStamped,
     justJoined: context.justJoined,
-    firstStampPending: context.firstStampPending,
+    firstStampRecovery: context.firstStampRecovery,
     geoFlagged: context.geoFlagged,
     justRedeemed: context.justRedeemed,
     referralShareUrl: context.referralShareUrl,
@@ -474,7 +477,7 @@ function deriveJoin(context: JoinContext): CustomerExperience {
         merchant: context.merchant,
         card: context.card,
         qrId: context.qrId,
-        contact: context.pendingPhone ?? "",
+        contactLast4: context.pendingPhone?.slice(-4) ?? "",
         location: context.location,
       }
     case "join_welcome":

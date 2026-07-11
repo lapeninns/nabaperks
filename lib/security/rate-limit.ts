@@ -3,6 +3,7 @@ import "server-only"
 import { createHash } from "node:crypto"
 
 export {
+  customerRateLimitIdentityFromHeaders,
   rateLimitIdentityFromHeaders,
   trustedClientIp,
 } from "@/lib/security/rate-limit-core"

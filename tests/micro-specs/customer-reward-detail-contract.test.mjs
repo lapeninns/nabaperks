@@ -43,7 +43,7 @@ test("Given profile completion is only needed for collection When the reward is 
 
   assert.match(
     loader,
-    /const profileGate = redeemable \? await loadProfileGate\(\) : undefined/
+    /const profileGate = redeemable \? await loadProfileGate\(rewardId\) : undefined/
   )
   assert.match(loader, /profileGate,?/)
 })

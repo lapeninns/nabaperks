@@ -88,6 +88,8 @@ const MUST_BE_LOCKED = [
   "finalize_billing_checkout_session",
   "register_customer_session",
   "record_customer_marketing_consent",
+  "join_customer_membership_with_first_stamp",
+  "issue_self_service_stamp",
 ]
 
 after(closeDb)
@@ -191,6 +193,46 @@ test("set role authenticated cannot call a locked SECURITY DEFINER RPC", async (
     }),
     (error) => {
       assert.match(String(error.message), /permission denied|not authorized|service/i)
+      return true
+    }
+  )
+})
+
+test("authenticated cannot invoke customer join or QR stamp wrappers", async (t) => {
+  if (!(await isLiveDbReady())) return t.skip("no live DB")
+
+  await assert.rejects(
+    db().begin(async (tx) => {
+      await tx`set local role authenticated`
+      await tx`
+        select *
+        from public.join_customer_membership_with_first_stamp(
+          null::uuid,
+          'locked-test',
+          null,
+          false,
+          'locked-test'
+        )`
+    }),
+    (error) => {
+      assert.match(String(error.message), /permission denied/i)
+      return true
+    }
+  )
+
+  await assert.rejects(
+    db().begin(async (tx) => {
+      await tx`set local role authenticated`
+      await tx`
+        select *
+        from public.issue_self_service_stamp(
+          null::uuid,
+          null::uuid,
+          'locked-test'
+        )`
+    }),
+    (error) => {
+      assert.match(String(error.message), /permission denied/i)
       return true
     }
   )

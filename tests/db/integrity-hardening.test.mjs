@@ -3,6 +3,7 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
 import { closeDb, db, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
+import { grantRewardEmailAssurance } from "./helpers/reward-email-assurance.mjs"
 
 /**
  * MS-db-integrity-hardening — live-DB tier.
@@ -53,7 +54,12 @@ async function seedRewardEvent(tx) {
             1, 'stamp_cycle')
     returning id`
 
-  return { venue: v, customerId: customer.id, membershipId: joined.membership_id, rewardId: reward.id }
+  return {
+    venue: v,
+    customerId: customer.id,
+    membershipId: joined.membership_id,
+    rewardId: reward.id,
+  }
 }
 
 async function expectCheckViolation(tx, label, fn) {
@@ -61,79 +67,118 @@ async function expectCheckViolation(tx, label, fn) {
   try {
     await tx.savepoint(fn)
   } catch (error) {
-    refused = error?.code === "23514" || /check constraint/i.test(String(error.message))
+    refused =
+      error?.code === "23514" || /check constraint/i.test(String(error.message))
   }
   assert.ok(refused, label)
 }
 
-test("incoherent reward states are rejected; coherent ones pass", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const { rewardId } = await seedRewardEvent(tx)
+test(
+  "incoherent reward states are rejected; coherent ones pass",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const { rewardId, customerId } = await seedRewardEvent(tx)
+      await grantRewardEmailAssurance(tx, rewardId, customerId)
 
-    await expectCheckViolation(tx, "redeemed without redeemed_at is rejected", (sp) =>
-      sp`update public.reward_events set status = 'redeemed' where id = ${rewardId}`
-    )
-    await expectCheckViolation(tx, "expired without expired_at is rejected", (sp) =>
-      sp`update public.reward_events set status = 'expired' where id = ${rewardId}`
-    )
-    await expectCheckViolation(tx, "cancelled without a reason is rejected", (sp) =>
-      sp`update public.reward_events set status = 'cancelled' where id = ${rewardId}`
-    )
+      await expectCheckViolation(
+        tx,
+        "redeemed without redeemed_at is rejected",
+        (sp) =>
+          sp`update public.reward_events set status = 'redeemed' where id = ${rewardId}`
+      )
+      await expectCheckViolation(
+        tx,
+        "expired without expired_at is rejected",
+        (sp) =>
+          sp`update public.reward_events set status = 'expired' where id = ${rewardId}`
+      )
+      await expectCheckViolation(
+        tx,
+        "cancelled without a reason is rejected",
+        (sp) =>
+          sp`update public.reward_events set status = 'cancelled' where id = ${rewardId}`
+      )
 
-    // The shapes the RPCs actually write still pass.
-    await tx`update public.reward_events
+      // The shapes the RPCs actually write still pass.
+      await tx`update public.reward_events
              set status = 'redeemed', redeemed_at = now() where id = ${rewardId}`
-    const [row] = await tx`select status from public.reward_events where id = ${rewardId}`
-    assert.equal(row.status, "redeemed", "the coherent redeemed shape is accepted")
-  })
-})
+      const [row] =
+        await tx`select status from public.reward_events where id = ${rewardId}`
+      assert.equal(
+        row.status,
+        "redeemed",
+        "the coherent redeemed shape is accepted"
+      )
+    })
+  }
+)
 
-test("incoherent notification states are rejected; coherent ones pass", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const { customerId } = await seedRewardEvent(tx)
-    const [event] = await tx`
+test(
+  "incoherent notification states are rejected; coherent ones pass",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const { customerId } = await seedRewardEvent(tx)
+      const [event] = await tx`
       insert into public.notification_events
         (event_type, category, customer_id, dedupe_key, status)
       values ('reward_ready', 'transactional', ${customerId}::uuid,
               ${`integrity-${randomUUID()}`}, 'queued')
       returning id`
 
-    await expectCheckViolation(tx, "sent without sent_at is rejected", (sp) =>
-      sp`update public.notification_events set status = 'sent' where id = ${event.id}`
-    )
-    await expectCheckViolation(tx, "cancelled without cancelled_at is rejected", (sp) =>
-      sp`update public.notification_events set status = 'cancelled' where id = ${event.id}`
-    )
+      await expectCheckViolation(
+        tx,
+        "sent without sent_at is rejected",
+        (sp) =>
+          sp`update public.notification_events set status = 'sent' where id = ${event.id}`
+      )
+      await expectCheckViolation(
+        tx,
+        "cancelled without cancelled_at is rejected",
+        (sp) =>
+          sp`update public.notification_events set status = 'cancelled' where id = ${event.id}`
+      )
 
-    await tx`update public.notification_events
+      await tx`update public.notification_events
              set status = 'sent', sent_at = now() where id = ${event.id}`
-    const [row] = await tx`select status from public.notification_events where id = ${event.id}`
-    assert.equal(row.status, "sent", "the coherent sent shape is accepted")
-  })
-})
+      const [row] =
+        await tx`select status from public.notification_events where id = ${event.id}`
+      assert.equal(row.status, "sent", "the coherent sent shape is accepted")
+    })
+  }
+)
 
-test("the stale-bucket purge removes only long-expired windows", { skip }, async () => {
-  await inRolledBackTxn(async (tx) => {
-    const stale = `integrity-stale-${randomUUID()}`
-    const recent = `integrity-recent-${randomUUID()}`
-    const inflight = `integrity-inflight-${randomUUID()}`
-    await tx`insert into public.rate_limit_buckets (bucket_key, count, reset_at)
+test(
+  "the stale-bucket purge removes only long-expired windows",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const stale = `integrity-stale-${randomUUID()}`
+      const recent = `integrity-recent-${randomUUID()}`
+      const inflight = `integrity-inflight-${randomUUID()}`
+      await tx`insert into public.rate_limit_buckets (bucket_key, count, reset_at)
              values (${stale}, 3, now() - interval '3 days'),
                     (${recent}, 3, now() - interval '2 hours'),
                     (${inflight}, 3, now() + interval '1 hour')`
 
-    const [{ purged }] = await tx`select public.purge_stale_rate_limit_buckets() as purged`
-    assert.ok(purged >= 1, "the purge reports deleted rows")
+      const [{ purged }] =
+        await tx`select public.purge_stale_rate_limit_buckets() as purged`
+      assert.ok(purged >= 1, "the purge reports deleted rows")
 
-    const rows = await tx`
+      const rows = await tx`
       select bucket_key from public.rate_limit_buckets
       where bucket_key in (${stale}, ${recent}, ${inflight})`
-    const keys = rows.map((row) => row.bucket_key)
-    assert.ok(!keys.includes(stale), "the 3-day-old bucket is purged")
-    assert.ok(keys.includes(recent), "a window ended 2h ago is inside the grace period")
-    assert.ok(keys.includes(inflight), "an in-flight window is never touched")
-  })
-})
+      const keys = rows.map((row) => row.bucket_key)
+      assert.ok(!keys.includes(stale), "the 3-day-old bucket is purged")
+      assert.ok(
+        keys.includes(recent),
+        "a window ended 2h ago is inside the grace period"
+      )
+      assert.ok(keys.includes(inflight), "an in-flight window is never touched")
+    })
+  }
+)
 
 test("the nine FK support indexes exist", { skip }, async () => {
   const sql = db()
@@ -155,15 +200,19 @@ test("the nine FK support indexes exist", { skip }, async () => {
   assert.equal(rows.length, expected.length, "every FK support index exists")
 })
 
-test("no NOT VALID constraint remains in the public schema", { skip }, async () => {
-  const sql = db()
-  const rows = await sql.unsafe(
-    `select conname from pg_constraint
+test(
+  "no NOT VALID constraint remains in the public schema",
+  { skip },
+  async () => {
+    const sql = db()
+    const rows = await sql.unsafe(
+      `select conname from pg_constraint
      where connamespace = 'public'::regnamespace and not convalidated`
-  )
-  assert.deepEqual(
-    rows.map((row) => row.conname),
-    [],
-    "every constraint (including the push endpoint allowlist) is validated"
-  )
-})
+    )
+    assert.deepEqual(
+      rows.map((row) => row.conname),
+      [],
+      "every constraint (including the push endpoint allowlist) is validated"
+    )
+  }
+)

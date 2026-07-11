@@ -8,6 +8,7 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 const STALE_CUSTOMER_PII_RETENTION_DAYS = 365
+const ABANDONED_IDENTITY_RETENTION_DAYS = 7
 const DAY_MS = 24 * 60 * 60 * 1000
 
 export async function GET(request: NextRequest) {
@@ -22,6 +23,22 @@ export async function GET(request: NextRequest) {
     Date.now() - STALE_CUSTOMER_PII_RETENTION_DAYS * DAY_MS
   ).toISOString()
   const supabase = createSupabaseServiceRoleClient()
+  const abandonedCutoff = new Date(
+    Date.now() - ABANDONED_IDENTITY_RETENTION_DAYS * DAY_MS
+  ).toISOString()
+  const { data: abandonedData, error: abandonedError } = await supabase.rpc(
+    "admin_purge_abandoned_customer_identities",
+    { p_cutoff: abandonedCutoff }
+  )
+  if (abandonedError) {
+    logger.warn("privacy_abandoned_identity_purge_failed", {
+      reason: "database_rejected",
+    })
+    return NextResponse.json(
+      { error: "abandoned_identity_purge_failed" },
+      { status: 500, headers: { "cache-control": "no-store, max-age=0" } }
+    )
+  }
   const { data, error } = await supabase.rpc("admin_purge_stale_customer_pii", {
     p_cutoff: cutoff,
   })
@@ -61,6 +78,9 @@ export async function GET(request: NextRequest) {
       ok: true,
       result: {
         cutoff,
+        abandonedCutoff,
+        abandonedIdentityPurgedCount:
+          typeof abandonedData === "number" ? abandonedData : 0,
         purgedCount: typeof data === "number" ? data : 0,
         expiredInviteCount: typeof expiredInvites === "number" ? expiredInvites : 0,
         purgedRateLimitBuckets:

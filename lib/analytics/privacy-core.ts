@@ -8,6 +8,7 @@ const MAX_IDENTITY_LENGTH = 256
 const MAX_PROPERTY_STRING_LENGTH = 128
 
 const externalPropertyValues: Readonly<Record<string, ReadonlySet<string>>> = {
+  entry: new Set(["direct", "qr", "referral", "qr_referral"]),
   source: new Set([
     "homepage",
     "merchant_signup",

@@ -17,7 +17,7 @@ import {
   type PublicQrRouterFixture,
 } from "./helpers/public-qr-router-live-db"
 
-test.describe("@customer-flow customer join live DB", () => {
+test.describe("@customer-flow @MS-customer-loyalty-terms-evidence customer join live DB", () => {
   const reason = customerReadbackLiveDbSkipReason()
   test.skip(Boolean(reason), reason)
 
@@ -43,7 +43,7 @@ test.describe("@customer-flow customer join live DB", () => {
       await openOtpStep(page, fixture, phone)
 
       await page.locator("#otp").fill(DEV_OTP)
-      await page.getByRole("button", { name: "Save my card" }).click()
+      await page.getByRole("button", { name: "Check code" }).click()
       await expect(
         page.getByRole("heading", { name: "Collect your first stamp" })
       ).toBeVisible()
@@ -93,7 +93,7 @@ test.describe("@customer-flow customer join live DB", () => {
       await openOtpStep(page, fixture, phone)
 
       await page.locator("#otp").fill(WRONG_OTP)
-      await page.getByRole("button", { name: "Save my card" }).click()
+      await page.getByRole("button", { name: "Check code" }).click()
 
       await expect(
         page.getByText("That code was not accepted.", { exact: true })

@@ -22,6 +22,7 @@ import {
 import { getMerchantJoinContext } from "@/lib/customer/join"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 import { cn } from "@/lib/utils"
+import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
 
 export const metadata: Metadata = {
   ...PRIVATE_ROUTE_METADATA,
@@ -32,12 +33,17 @@ type MerchantRewardsPageProps = {
   params: Promise<{
     merchantSlug: string
   }>
+  searchParams: Promise<{
+    ref?: string
+  }>
 }
 
 export default async function MerchantRewardsPage({
   params,
+  searchParams,
 }: MerchantRewardsPageProps) {
   const { merchantSlug } = await params
+  const { ref } = await searchParams
   let context: Awaited<ReturnType<typeof getMerchantJoinContext>>
 
   try {
@@ -99,7 +105,13 @@ export default async function MerchantRewardsPage({
 
       <div className="grid gap-3">
         <Button asChild size="lg" className="w-full">
-          <Link href={`/m/${merchantSlug}/join`}>Join rewards</Link>
+          <Link
+            href={buildCustomerJoinHref(merchantSlug, {
+              referralCode: ref,
+            })}
+          >
+            Join rewards
+          </Link>
         </Button>
         <CustomerVenueTermsSheet
           venueTerms={{

@@ -8,6 +8,7 @@ import {
   type CustomerLoginOtpState,
 } from "@/app/home/actions"
 import { customerInputClass } from "@/components/customer/input-class"
+import { CustomerBotChallenge } from "@/components/customer/customer-bot-challenge"
 import { StatusBanner } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
@@ -18,13 +19,17 @@ const initialState: CustomerLoginOtpState = {}
 
 type CustomerLoginFormProps = {
   readonly next: string
+  readonly turnstileSiteKey?: string
 }
 
 function hasLoginActionResult(state: CustomerLoginOtpState) {
   return Boolean(state.fields || state.errors || state.message)
 }
 
-export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
+export function CustomerLoginForm({
+  next,
+  turnstileSiteKey,
+}: CustomerLoginFormProps) {
   const [requestState, requestAction, requestPending] = useActionState(
     requestCustomerLoginOtpAction,
     initialState
@@ -39,9 +44,7 @@ export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
   const otpSent = Boolean(state.fields?.otpSent)
   const formError = state.errors?.form
   const verifyError =
-    state.errors?.otp ??
-    verifyState.errors?.form ??
-    verifyState.errors?.contact
+    state.errors?.otp ?? verifyState.errors?.form ?? verifyState.errors?.contact
 
   return (
     <div className="grid gap-4">
@@ -68,7 +71,11 @@ export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
             // role="alert" so the inline error announces on arrival, matching
             // the OTP error below — described-by alone stays silent until the
             // field is re-focused.
-            <p id="contact-error" role="alert" className="text-sm text-destructive">
+            <p
+              id="contact-error"
+              role="alert"
+              className="text-sm text-destructive"
+            >
               {state.errors.contact}
             </p>
           ) : (
@@ -82,6 +89,9 @@ export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
             </p>
           )}
         </div>
+        {!otpSent ? (
+          <CustomerBotChallenge siteKey={turnstileSiteKey} resetKey={state} />
+        ) : null}
         {formError && formError !== verifyError ? (
           // Wet Ink error treatment (CUS-P2-07): the shared banner (2px ink,
           // role="alert" via Alert) instead of a hand-rolled 1px box.
@@ -100,21 +110,13 @@ export function CustomerLoginForm({ next }: CustomerLoginFormProps) {
           </div>
         ) : null}
         <Button type="submit" disabled={requestPending}>
-          {requestPending
-            ? "Sending…"
-            : otpSent
-              ? "Resend code"
-              : "Send code"}
+          {requestPending ? "Sending…" : otpSent ? "Resend code" : "Send code"}
         </Button>
       </form>
 
       {otpSent ? (
         <form action={verifyAction} className="grid gap-4">
-          <input
-            type="hidden"
-            name="contact"
-            value={contact}
-          />
+          <input type="hidden" name="contact" value={contact} />
           <input type="hidden" name="next" value={next} />
           <div className="grid gap-2">
             <label htmlFor="otp" className="eyebrow">

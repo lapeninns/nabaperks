@@ -28,6 +28,14 @@ export async function startCustomerEmailVerification(
 ): Promise<EmailVerificationStartResult> {
   const normalizedEmail = normalizeEmail(email)
   const customerSession = await getCustomerSession()
+  if (!customerSession) {
+    throw new Error("A customer session is required for email verification.")
+  }
+  await enforceRateLimit({
+    key: `customer-email-verification-send:customer:${customerSession.customerId}`,
+    limit: 6,
+    windowMs: 24 * 60 * 60_000,
+  })
   await enforceRateLimit({
     key: `customer-email-verification-send:${normalizedEmail}`,
     limit: 3,
@@ -38,7 +46,7 @@ export async function startCustomerEmailVerification(
   await setPendingEmailVerification({
     email: normalizedEmail,
     codeHmac: emailCodeHmac(normalizedEmail, code),
-    customerId: customerSession?.customerId ?? null,
+    customerId: customerSession.customerId,
   })
   await sendEmailOtp({ to: normalizedEmail, code })
 

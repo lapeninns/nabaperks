@@ -1,7 +1,13 @@
-import { createHmac, randomUUID } from "node:crypto"
+import { createHash, createHmac, randomUUID } from "node:crypto"
 
 import { expect, type BrowserContext, type Page } from "@playwright/test"
 import { parsePhoneNumberFromString } from "libphonenumber-js"
+
+import {
+  customerOtpSendIpRateLimitKey,
+  customerOtpSendPhoneRateLimitKey,
+  customerOtpVerifyPhoneRateLimitKey,
+} from "@/lib/customer/otp-rate-limit-core"
 
 import type { Sql } from "./admin-live-db"
 import type { BrowserCustomerSession } from "./customer-readback-live-db"
@@ -93,7 +99,7 @@ export async function openTermsStep(
 ): Promise<void> {
   await openOtpStep(page, fixture, phone)
   await page.locator("#otp").fill(DEV_OTP)
-  await page.getByRole("button", { name: "Save my card" }).click()
+  await page.getByRole("button", { name: "Check code" }).click()
   await expect(
     page.getByRole("heading", { name: "Collect your first stamp" })
   ).toBeVisible()
@@ -124,9 +130,9 @@ export async function openDirectTermsStep(
   ).toHaveAttribute("href", `/m/${merchantSlug}/join?step=phone`)
 
   await page.locator("#otp").fill(DEV_OTP)
-  await page.getByRole("button", { name: "Save my card" }).click()
+  await page.getByRole("button", { name: "Check code" }).click()
   await expect(
-    page.getByRole("heading", { name: "Collect your first stamp" })
+    page.getByRole("heading", { name: "Save your loyalty card" })
   ).toBeVisible()
 }
 
@@ -276,6 +282,19 @@ export async function cleanupCustomerJoinRows(
   fixture: PublicQrRouterFixture | undefined,
   phone?: DisposablePhone
 ): Promise<void> {
+  const rateLimitKeys = [customerOtpSendIpRateLimitKey("unknown")]
+  if (phone) {
+    rateLimitKeys.push(
+      customerOtpSendPhoneRateLimitKey(phone.e164),
+      customerOtpVerifyPhoneRateLimitKey(phone.e164)
+    )
+  }
+  for (const key of rateLimitKeys) {
+    await sql`
+      delete from public.rate_limit_buckets
+      where bucket_key = ${createHash("sha256").update(key).digest("hex")}`
+  }
+
   const merchantId = fixture?.merchantId ?? null
   const phoneHmac = phone?.phoneHmac ?? null
   const customerRows = await sql<readonly CustomerIdRow[]>`

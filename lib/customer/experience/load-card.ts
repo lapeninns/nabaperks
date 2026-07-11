@@ -1,7 +1,5 @@
 import "server-only"
 
-import { after } from "next/server"
-
 import {
   getCustomerCardState,
   getMembershipStampDisplayDates,
@@ -9,6 +7,7 @@ import {
   stampDisplayLabelsForCount,
 } from "@/lib/customer/card"
 import { captureJoinFunnelEvent } from "@/lib/customer/join-funnel"
+import { getJoinFirstStampRecovery } from "@/lib/customer/join-first-stamp-recovery"
 import { getReferralBonusBank } from "@/lib/customer/referral-bonus-bank"
 import {
   buildReferralJoinUrl,
@@ -29,7 +28,6 @@ type CardSearchParams = {
   reward?: string
   geo?: string
   welcome?: string
-  firststamp?: string
 }
 
 /**
@@ -55,21 +53,18 @@ export async function loadCardExperienceContext(
 
   const { membership, merchant, loyaltyCard, stampCycleReward, issuedReward } =
     cardState
-  scheduleCustomerCardViewed({
+  await captureJoinFunnelEvent({
     eventName: "customer_card_viewed",
     merchantId: merchant.id,
     membershipId: membership.id,
-    merchantSlug: merchant.business_slug,
-    metadata: {
-      source: "card_route",
-    },
+    step: "card",
+    surface: "customer_card",
   })
 
   const justStamped = searchParams.stamp === "issued"
   const justRedeemed = searchParams.reward === "redeemed"
   const geoFlagged = searchParams.geo === "flagged"
   const justJoined = searchParams.welcome === "1"
-  const firstStampPending = searchParams.firststamp === "pending"
 
   if (!loyaltyCard) {
     return baseUnavailable(
@@ -90,13 +85,14 @@ export async function loadCardExperienceContext(
   }
 
   const target = loyaltyCard.stamps_required
-  const [stampDates, referralBonusBank] = await Promise.all([
+  const [stampDates, referralBonusBank, firstStampRecovery] = await Promise.all([
     getMembershipStampDisplayDates(
       membership.id,
       target,
       membership.active_cycle_number
     ),
     getReferralBonusBank(membership.id),
+    getJoinFirstStampRecovery(membership.id),
   ])
   const current = reconcileCardStampCount({
     membershipCount: membership.current_stamp_count,
@@ -171,39 +167,12 @@ export async function loadCardExperienceContext(
     stampDates: dates,
     justStamped,
     justJoined,
-    firstStampPending,
+    firstStampRecovery,
     geoFlagged,
     justRedeemed,
     referralShareUrl,
     referralBonusBank,
   }
-}
-
-type CustomerCardViewedInput = Parameters<typeof captureJoinFunnelEvent>[0]
-
-function scheduleCustomerCardViewed(input: CustomerCardViewedInput) {
-  scheduleAfterResponse(() => {
-    void captureJoinFunnelEvent(input)
-  })
-}
-
-function scheduleAfterResponse(callback: () => void) {
-  try {
-    after(callback)
-  } catch (error) {
-    if (isAfterOutsideRequestScopeError(error)) {
-      callback()
-      return
-    }
-
-    throw error
-  }
-}
-
-function isAfterOutsideRequestScopeError(error: unknown) {
-  return (
-    error instanceof Error && error.message.includes("outside a request scope")
-  )
 }
 
 function baseUnavailable(

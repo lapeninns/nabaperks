@@ -10,6 +10,7 @@
 
 import type { RewardSource } from "@/lib/customer/issued-reward-display"
 import type { ReferralBonusBank } from "@/lib/customer/referral-bonus-bank"
+import type { JoinFirstStampRecovery } from "@/lib/customer/join-first-stamp-recovery"
 
 /** Which route the customer entered from. Same facts can mean different UI. */
 export type CustomerExperienceEntry =
@@ -124,7 +125,7 @@ export type CustomerExperience =
       merchant: JoinMerchant
       card: JoinCard
       qrId?: string
-      contact: string
+      contactLast4: string
       location: LocationRequirement
     }
   | {
@@ -200,9 +201,7 @@ export type CustomerExperience =
       stampDates: string[]
       justStamped: boolean
       justJoined: boolean
-      /** Joined via QR but the first stamp was blocked (e.g. pool/billing) — the
-       *  welcome card invites collecting it instead of implying it landed. */
-      firstStampPending?: boolean
+      firstStampRecovery?: JoinFirstStampRecovery | null
       geoFlagged: boolean
       justRedeemed: boolean
       /** Shareable "Bring a Regular" join link carrying this card's opaque

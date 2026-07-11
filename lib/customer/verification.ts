@@ -1,10 +1,30 @@
 import "server-only"
 
-type VerificationStartResult = { status: "sent" }
-type VerificationCheckResult = { status: "approved" | "rejected" }
+import { logger } from "@/lib/observability/logger"
+
+type VerificationStartResult = { readonly status: "sent" | "unavailable" }
+type VerificationCheckResult = {
+  readonly status: "approved" | "rejected" | "unavailable"
+}
+type VerifyOperation = "VerificationCheck" | "Verifications"
+type TwilioVerifyConfig = {
+  readonly username: string
+  readonly password: string
+  readonly serviceSid: string
+}
+type TwilioVerifyConfigResult =
+  | { readonly ok: true; readonly config: TwilioVerifyConfig }
+  | {
+      readonly ok: false
+      readonly reason: "missing_credentials" | "missing_service"
+    }
+type ProviderResult =
+  | { readonly ok: true; readonly status: string }
+  | { readonly ok: false }
 
 const verifyBaseUrl = "https://verify.twilio.com/v2/Services"
 const anyFourDigitBypassMode = "any-4-digits"
+const providerTimeoutMs = 8_000
 
 export async function startCustomerPhoneVerification(
   phone: string
@@ -13,12 +33,12 @@ export async function startCustomerPhoneVerification(
     return { status: "sent" }
   }
 
-  await postVerifyForm("Verifications", {
+  const result = await postVerifyForm("Verifications", {
     To: phone,
     Channel: "sms",
   })
 
-  return { status: "sent" }
+  return { status: result.ok ? "sent" : "unavailable" }
 }
 
 export async function checkCustomerPhoneVerification(
@@ -37,24 +57,34 @@ export async function checkCustomerPhoneVerification(
       : { status: "rejected" }
   }
 
-  const payload = await postVerifyForm("VerificationCheck", {
+  const result = await postVerifyForm("VerificationCheck", {
     To: phone,
     Code: code,
   })
 
-  return payload.status === "approved"
+  if (!result.ok) return { status: "unavailable" }
+  return result.status === "approved"
     ? { status: "approved" }
     : { status: "rejected" }
 }
 
 async function postVerifyForm(
-  path: "Verifications" | "VerificationCheck",
+  path: VerifyOperation,
   params: Record<string, string>
-): Promise<{ status: string | null }> {
-  const config = twilioVerifyConfig()
-  const response = await fetch(
-    `${verifyBaseUrl}/${config.serviceSid}/${path}`,
-    {
+): Promise<ProviderResult> {
+  const configured = twilioVerifyConfig()
+  if (!configured.ok) {
+    logger.error("customer_verification_provider_unavailable", {
+      operation: path,
+      category: configured.reason,
+    })
+    return { ok: false }
+  }
+
+  const { config } = configured
+  let response: Response
+  try {
+    response = await fetch(`${verifyBaseUrl}/${config.serviceSid}/${path}`, {
       method: "POST",
       headers: {
         Authorization: `Basic ${Buffer.from(
@@ -63,20 +93,58 @@ async function postVerifyForm(
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams(params).toString(),
-    }
-  )
-
-  if (!response.ok) {
-    throw new Error(
-      `Twilio Verify failed (${response.status}): ${await safeDetail(response)}`
-    )
+      signal: AbortSignal.timeout(providerTimeoutMs),
+    })
+  } catch (error) {
+    if (!(error instanceof Error)) throw error
+    logger.error("customer_verification_provider_unavailable", {
+      operation: path,
+      category: error.name === "TimeoutError" ? "timeout" : "network",
+    })
+    return { ok: false }
   }
 
-  const payload: unknown = await response.json()
-  return { status: readStatus(payload) }
+  if (!response.ok) {
+    if (path === "VerificationCheck" && [400, 404].includes(response.status)) {
+      return { ok: true, status: "rejected" }
+    }
+    logger.error("customer_verification_provider_unavailable", {
+      operation: path,
+      category:
+        response.status === 429
+          ? "rate_limited"
+          : response.status >= 500
+            ? "upstream"
+            : "provider_rejected_request",
+      providerStatus: response.status,
+    })
+    return { ok: false }
+  }
+
+  let payload: unknown
+  try {
+    payload = await response.json()
+  } catch (error) {
+    if (!(error instanceof Error)) throw error
+    logger.error("customer_verification_provider_unavailable", {
+      operation: path,
+      category: "malformed_response",
+    })
+    return { ok: false }
+  }
+
+  const status = readStatus(payload)
+  if (!status) {
+    logger.error("customer_verification_provider_unavailable", {
+      operation: path,
+      category: "malformed_response",
+    })
+    return { ok: false }
+  }
+  return { ok: true, status }
 }
 
-function twilioVerifyConfig() {
+function twilioVerifyConfig(): TwilioVerifyConfigResult {
   const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim()
   const authToken = process.env.TWILIO_AUTH_TOKEN?.trim()
   const apiKeySid = process.env.TWILIO_API_KEY_SID?.trim()
@@ -84,37 +152,30 @@ function twilioVerifyConfig() {
   const serviceSid = process.env.TWILIO_VERIFY_SERVICE_SID?.trim()
 
   if (!serviceSid) {
-    throw new Error(
-      "Twilio Verify is not configured (TWILIO_VERIFY_SERVICE_SID)."
-    )
+    return { ok: false, reason: "missing_service" }
   }
 
   if (accountSid && authToken) {
-    return { username: accountSid, password: authToken, serviceSid }
+    return {
+      ok: true,
+      config: { username: accountSid, password: authToken, serviceSid },
+    }
   }
 
   if (apiKeySid && apiKeySecret) {
-    return { username: apiKeySid, password: apiKeySecret, serviceSid }
+    return {
+      ok: true,
+      config: { username: apiKeySid, password: apiKeySecret, serviceSid },
+    }
   }
 
-  throw new Error(
-    "Twilio Verify is not configured (TWILIO_AUTH_TOKEN or TWILIO_API_KEY_SID / TWILIO_API_KEY_SECRET)."
-  )
+  return { ok: false, reason: "missing_credentials" }
 }
 
 function readStatus(payload: unknown): string | null {
   if (!isRecord(payload)) return null
 
   return typeof payload.status === "string" ? payload.status : null
-}
-
-async function safeDetail(response: Response): Promise<string> {
-  try {
-    const body = await response.text()
-    return body ? `<redacted body: ${body.length} bytes>` : "<empty body>"
-  } catch {
-    return "<unreadable body>"
-  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -134,15 +195,22 @@ function isApprovedDevOtp(code: string): boolean {
  */
 function isDevOtpConfigured(): boolean {
   return (
-    process.env.NODE_ENV !== "production" &&
-    Boolean(process.env.CUSTOMER_DEV_OTP_CODE?.trim())
+    isLocalDevelopment() && Boolean(process.env.CUSTOMER_DEV_OTP_CODE?.trim())
   )
 }
 
 function isAnyFourDigitOtpBypassEnabled(): boolean {
   return (
-    process.env.NODE_ENV !== "production" &&
+    isLocalDevelopment() &&
     process.env.CUSTOMER_OTP_BYPASS_MODE?.trim() === anyFourDigitBypassMode
+  )
+}
+
+function isLocalDevelopment(): boolean {
+  return (
+    process.env.NODE_ENV !== "production" &&
+    process.env.VERCEL_ENV !== "preview" &&
+    process.env.VERCEL_ENV !== "production"
   )
 }
 

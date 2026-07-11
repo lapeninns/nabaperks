@@ -3,6 +3,7 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
+import { grantRewardEmailAssurance } from "./helpers/reward-email-assurance.mjs"
 import { createRewardPoolFixture } from "./helpers/reward-pool-fixture.mjs"
 
 /**
@@ -50,6 +51,7 @@ async function insertReward(tx, fixture, opts = {}) {
 }
 
 async function collect(tx, rewardId, fixture) {
+  await grantRewardEmailAssurance(tx, rewardId, fixture.customerId)
   const [minted] = await tx`
     select scan_token from public.create_reward_scan_token(
       ${rewardId}::uuid, ${fixture.customerId}::uuid)`
@@ -89,7 +91,11 @@ test(
         from public.customer_memberships where id = ${fixture.membershipId}::uuid`
       assert.equal(m.current_stamp_count, 1, "stamp count is unchanged")
       assert.equal(m.active_cycle_number, 1, "cycle is not advanced")
-      assert.equal(m.total_rewards_redeemed, 1, "redemption count is incremented")
+      assert.equal(
+        m.total_rewards_redeemed,
+        1,
+        "redemption count is incremented"
+      )
     })
   }
 )
@@ -104,7 +110,9 @@ test(
         update public.customer_memberships
         set current_stamp_count = 1
         where id = ${fixture.membershipId}::uuid`
-      const rewardId = await insertReward(tx, fixture, { source: "stamp_cycle" })
+      const rewardId = await insertReward(tx, fixture, {
+        source: "stamp_cycle",
+      })
 
       let rejection = ""
       try {
@@ -141,9 +149,21 @@ test(
       const [m] = await tx`
         select current_stamp_count, active_cycle_number, total_rewards_redeemed
         from public.customer_memberships where id = ${fixture.membershipId}::uuid`
-      assert.equal(m.current_stamp_count, 0, "3 stamps consumed by the earned reward")
-      assert.equal(m.active_cycle_number, 2, "cycle advances on an earned redemption")
-      assert.equal(m.total_rewards_redeemed, 1, "redemption count is incremented")
+      assert.equal(
+        m.current_stamp_count,
+        0,
+        "3 stamps consumed by the earned reward"
+      )
+      assert.equal(
+        m.active_cycle_number,
+        2,
+        "cycle advances on an earned redemption"
+      )
+      assert.equal(
+        m.total_rewards_redeemed,
+        1,
+        "redemption count is incremented"
+      )
     })
   }
 )
@@ -169,7 +189,11 @@ test(
         select count(*)::int as n from public.notification_events
         where event_type = 'reward_collected_cycle_started'
           and reward_event_id = ${earnedId}::uuid`
-      assert.equal(earnedNotif.n, 1, "earned collect enqueues reward_collected_cycle_started")
+      assert.equal(
+        earnedNotif.n,
+        1,
+        "earned collect enqueues reward_collected_cycle_started"
+      )
 
       // Issued: birthday reward → collect → NO cycle-started notification.
       const birthdayId = await insertReward(tx, fixture, {
@@ -181,7 +205,11 @@ test(
         select count(*)::int as n from public.notification_events
         where event_type = 'reward_collected_cycle_started'
           and reward_event_id = ${birthdayId}::uuid`
-      assert.equal(issuedNotif.n, 0, "issued collect does not enqueue a new cycle")
+      assert.equal(
+        issuedNotif.n,
+        0,
+        "issued collect does not enqueue a new cycle"
+      )
     })
   }
 )

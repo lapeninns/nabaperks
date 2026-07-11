@@ -44,6 +44,13 @@ test.describe("@customer-flow customer join terms live DB", () => {
       await expect(
         page.getByText("Accept the loyalty terms to join.", { exact: true })
       ).toBeVisible()
+      const terms = page.getByLabel(/Loyalty terms/i)
+      await expect(terms).toBeFocused()
+      await expect(terms).toHaveAttribute("aria-invalid", "true")
+      await expect(terms).toHaveAttribute(
+        "aria-describedby",
+        "loyalty-terms-error"
+      )
       await expect(
         page.getByRole("heading", { name: "Collect your first stamp" })
       ).toBeVisible()

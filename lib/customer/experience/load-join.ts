@@ -1,12 +1,19 @@
 import "server-only"
 
+import { headers } from "next/headers"
+
 import { getCurrentCustomer } from "@/lib/customer/identity"
 import {
   getExistingMembershipForCurrentUser,
   getMerchantJoinContext,
 } from "@/lib/customer/join"
-import { captureJoinFunnelEvent } from "@/lib/customer/join-funnel"
 import { getPendingPhoneVerification } from "@/lib/customer/session"
+import { getMerchantStampLocationRequirement } from "@/lib/customer/stamp"
+import { logger } from "@/lib/observability/logger"
+import {
+  normalizeRequestId,
+  REQUEST_ID_HEADER,
+} from "@/lib/observability/request-id"
 
 import type { JoinContext } from "./derive"
 
@@ -30,22 +37,22 @@ export async function loadJoinExperienceContext(
 
   try {
     context = await getMerchantJoinContext(merchantSlug, searchParams.qr)
-  } catch {
+  } catch (error) {
+    if (!(error instanceof Error)) throw error
+    const requestHeaders = await headers()
+    logger.error("customer_join_context_failed", {
+      requestId:
+        normalizeRequestId(requestHeaders.get(REQUEST_ID_HEADER)) ??
+        "unavailable",
+      operation: "join_context_load",
+      reason: "database_unavailable",
+    })
     return { unavailable: true }
   }
 
   if (!context?.available) {
     return { unavailable: true }
   }
-
-  await captureJoinFunnelEvent({
-    eventName: "join_page_viewed",
-    merchantId: context.merchant.id,
-    qrCodeId: "qrCodeId" in context ? context.qrCodeId : null,
-    merchantSlug,
-    qrId: searchParams.qr,
-    step: searchParams.step ?? "welcome",
-  })
 
   const merchant = {
     name: context.merchant.business_name,
@@ -60,12 +67,15 @@ export async function loadJoinExperienceContext(
   // Geofence gate is only consumed by the final terms step (the only screen that
   // can issue the first stamp), so default it cheaply and resolve the real value
   // only on that branch.
+  const baseLocation = { requireGeofence: false, geofenceRadiusMeters: 150 }
   const base = {
+    merchantId: context.merchant.id,
+    qrCodeId: "qrCodeId" in context ? context.qrCodeId : undefined,
     merchant,
     card,
     qrId: searchParams.qr,
     step: searchParams.step,
-    location: { requireGeofence: false, geofenceRadiusMeters: 150 },
+    location: baseLocation,
   }
 
   const customer = await getCurrentCustomer()
@@ -88,6 +98,7 @@ export async function loadJoinExperienceContext(
   if (customer) {
     return {
       ...base,
+      location: await getMerchantStampLocationRequirement(context.merchant.id),
       hasSession: true,
       pendingOtp: false,
       membership: null,

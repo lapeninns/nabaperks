@@ -21,7 +21,7 @@ const REFERRAL_BANK_EXPERIENCE: CustomerExperience = {
   stampDates: ["30 Jun", "1 Jul", "Bonus", "Bonus"],
   justStamped: false,
   justJoined: false,
-  firstStampPending: false,
+  firstStampRecovery: null,
   geoFlagged: false,
   justRedeemed: false,
   referralShareUrl: "http://localhost:3000/join?ref=NPDEMO",

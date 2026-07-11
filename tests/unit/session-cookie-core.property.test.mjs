@@ -60,7 +60,7 @@ const customerSessionPayloadArbitrary = timestampArbitrary.chain((issuedAt) =>
     .map((payload) => ({ ...payload }))
 )
 
-test("Given arbitrary pending phone payloads When signed Then they read back before expiry", () => {
+test("Given arbitrary pending phone payloads When encrypted Then they read back before expiry", () => {
   fc.assert(
     fc.property(
       pendingPhonePayloadArbitrary,
@@ -80,7 +80,7 @@ test("Given arbitrary pending phone payloads When signed Then they read back bef
   )
 })
 
-test("Given arbitrary pending email payloads When signed Then they read back before expiry", () => {
+test("Given arbitrary pending email payloads When encrypted Then they read back before expiry", () => {
   fc.assert(
     fc.property(
       pendingEmailPayloadArbitrary,
@@ -120,14 +120,14 @@ test("Given arbitrary customer session payloads When signed Then they read back 
   )
 })
 
-test("Given signed pending phone cookies When the signature is changed Then verification fails", () => {
+test("Given encrypted pending phone cookies When ciphertext is changed Then verification fails", () => {
   fc.assert(
     fc.property(
       pendingPhonePayloadArbitrary,
       secretArbitrary,
       (payload, secret) => {
         const cookie = createPendingPhoneCookieValue(payload, secret)
-        const tampered = tamperSignature(cookie)
+        const tampered = tamperLastSegment(cookie)
 
         assert.deepEqual(
           readPendingPhoneCookieValue(tampered, secret, payload.expiresAt - 1),
@@ -142,12 +142,12 @@ test("Given signed pending phone cookies When the signature is changed Then veri
   )
 })
 
-function tamperSignature(cookie) {
-  const [body, signature] = cookie.split(".")
+function tamperLastSegment(cookie) {
+  const parts = cookie.split(".")
+  const current = parts.at(-1) ?? ""
   const replacement =
-    signature === "A".repeat(signature.length)
-      ? "B".repeat(signature.length)
-      : "A".repeat(signature.length)
-
-  return `${body}.${replacement}`
+    current === "A".repeat(current.length)
+      ? "B".repeat(current.length)
+      : "A".repeat(current.length)
+  return [...parts.slice(0, -1), replacement].join(".")
 }

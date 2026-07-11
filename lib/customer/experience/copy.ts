@@ -1,5 +1,6 @@
 import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 import { formatStampDisplayDateFromIso } from "@/lib/customer/uk-calendar"
+import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
 
 import { assertNever, type CustomerExperience } from "./types"
 
@@ -87,7 +88,10 @@ export function getCustomerExperienceViewModel(
         supportLine: `One text saves ${exp.merchant.name}'s card to your number. New here? Your first stamp lands when you accept the terms.`,
         primaryAction: {
           label: "Get today's stamp",
-          href: joinHref(exp.merchant.slug, exp.qrId, "phone"),
+          href: buildCustomerJoinHref(exp.merchant.slug, {
+            qrId: exp.qrId,
+            step: "phone",
+          }),
         },
       }
     case "join_phone":
@@ -103,21 +107,28 @@ export function getCustomerExperienceViewModel(
         supportLine: "We sent a one-time code to your phone.",
       }
     case "join_terms":
-      return {
-        eyebrow: "Last step",
-        headline: "Collect your first stamp",
-        supportLine:
-          "Accept the loyalty terms and we'll print stamp one onto your card.",
-      }
+      return exp.qrId
+        ? {
+            eyebrow: "Last step",
+            headline: "Collect your first stamp",
+            supportLine:
+              "Accept the loyalty terms and we'll print stamp one onto your card.",
+          }
+        : {
+            eyebrow: "Last step",
+            headline: "Save your loyalty card",
+            supportLine:
+              "Accept the loyalty terms to keep this card. Your first stamp is waiting at the venue.",
+          }
     case "join_returning":
       return {
-        eyebrow: "Welcome back",
-        headline: "You're already joined",
-        supportLine: `${exp.current} of ${exp.total} stamps collected.`,
+        eyebrow: "Card found",
+        headline: `${exp.current} of ${exp.total} stamps saved`,
+        supportLine: `Your ${exp.merchant.name} card is already on this number.`,
         primaryAction: {
-          label: "Open your stamp card",
+          label: exp.qrId ? "Continue to today's stamp" : "Open my card",
           href: exp.qrId
-            ? `/card/${exp.membershipId}/stamp?qr=${exp.qrId}`
+            ? `/card/${exp.membershipId}/stamp?qr=${encodeURIComponent(exp.qrId)}`
             : `/card/${exp.membershipId}`,
         },
       }
@@ -128,6 +139,18 @@ export function getCustomerExperienceViewModel(
         supportLine: exp.merchantName,
       }
     case "card_stamped_today":
+      if (exp.reward) {
+        return {
+          eyebrow: "Reward unlocked",
+          headline: "Your reward is ready tomorrow",
+          supportLine:
+            "Your completed card is safe. Open the reward for the collection date.",
+          primaryAction: {
+            label: "See your reward",
+            href: `/reward/${exp.reward.rewardId}`,
+          },
+        }
+      }
       return {
         eyebrow: "Today's stamp",
         headline: "You're stamped for today",
@@ -206,26 +229,4 @@ function unavailableViewModel(
       ? { label: OPEN_MY_CARDS_LABEL, href: exp.recovery.loginHref }
       : undefined,
   }
-}
-
-function joinHref(
-  slug: string,
-  qrId: string | undefined,
-  step: string
-): string {
-  const params = new URLSearchParams()
-  if (qrId) params.set("qr", qrId)
-  params.set("step", step)
-  return `/m/${slug}/join?${params.toString()}`
-}
-
-export function joinWelcomeHref(
-  slug: string,
-  qrId: string | undefined,
-  step?: string
-): string {
-  const params = new URLSearchParams()
-  if (qrId) params.set("qr", qrId)
-  if (step) params.set("step", step)
-  return `/m/${slug}/join?${params.toString()}`
 }

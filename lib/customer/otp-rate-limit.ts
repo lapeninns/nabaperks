@@ -2,6 +2,11 @@ import "server-only"
 
 import {
   customerOtpRateLimitWindowMs,
+  customerOtpIdentitySendRateLimit,
+  customerOtpIdentitySendWindowMs,
+  customerOtpIpSendRateLimit,
+  customerOtpSendIpRateLimitKey,
+  customerOtpIpSendWindowMs,
   customerOtpSendIdentityRateLimitKey,
   customerOtpSendPhoneRateLimitKey,
   customerOtpSendRateLimit,
@@ -16,17 +21,27 @@ type CustomerOtpRateLimitInput = {
   readonly requestIdentity: string
 }
 
+type CustomerOtpSendRateLimitInput = CustomerOtpRateLimitInput & {
+  readonly trustedIp: string
+}
+
 export async function enforceCustomerOtpSendRateLimit({
   phone,
   requestIdentity,
-}: CustomerOtpRateLimitInput): Promise<void> {
+  trustedIp,
+}: CustomerOtpSendRateLimitInput): Promise<void> {
   await enforceRateLimit({
-    key: customerOtpSendPhoneRateLimitKey(phone),
-    limit: customerOtpSendRateLimit,
-    windowMs: customerOtpRateLimitWindowMs,
+    key: customerOtpSendIpRateLimitKey(trustedIp),
+    limit: customerOtpIpSendRateLimit,
+    windowMs: customerOtpIpSendWindowMs,
   })
   await enforceRateLimit({
-    key: customerOtpSendIdentityRateLimitKey(phone, requestIdentity),
+    key: customerOtpSendIdentityRateLimitKey(requestIdentity),
+    limit: customerOtpIdentitySendRateLimit,
+    windowMs: customerOtpIdentitySendWindowMs,
+  })
+  await enforceRateLimit({
+    key: customerOtpSendPhoneRateLimitKey(phone),
     limit: customerOtpSendRateLimit,
     windowMs: customerOtpRateLimitWindowMs,
   })
@@ -42,7 +57,7 @@ export async function enforceCustomerOtpVerifyRateLimit({
     windowMs: customerOtpRateLimitWindowMs,
   })
   await enforceRateLimit({
-    key: customerOtpVerifyIdentityRateLimitKey(phone, requestIdentity),
+    key: customerOtpVerifyIdentityRateLimitKey(requestIdentity),
     limit: customerOtpVerifyRateLimit,
     windowMs: customerOtpRateLimitWindowMs,
   })

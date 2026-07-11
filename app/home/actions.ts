@@ -23,8 +23,10 @@ import {
 import { safeNextPath } from "@/lib/navigation/safe-next-path"
 import {
   RateLimitError,
-  rateLimitIdentityFromHeaders,
+  customerRateLimitIdentityFromHeaders,
+  trustedClientIp,
 } from "@/lib/security/rate-limit"
+import { verifyCustomerPhoneChallenge } from "@/lib/security/turnstile"
 
 export type CustomerLoginOtpState = {
   fields?: {
@@ -52,7 +54,8 @@ export async function requestCustomerLoginOtpAction(
   const rawContact = value(formData, "contact")
   const requestHeaders = await headers()
   const country = defaultCountryFromHeaders(requestHeaders)
-  const requestIdentity = rateLimitIdentityFromHeaders(requestHeaders)
+  const requestIdentity = customerRateLimitIdentityFromHeaders(requestHeaders)
+  const clientIp = trustedClientIp(requestHeaders)
   const normalized = normalizePhone(rawContact, country)
 
   if (!normalized.ok) {
@@ -64,10 +67,28 @@ export async function requestCustomerLoginOtpAction(
 
   const contact = normalized.phone.e164
 
+  const pendingVerification = await getPendingPhoneVerification()
+  const isTrustedResend =
+    pendingVerification?.purpose === "wallet" &&
+    pendingVerification.phone === contact
+  if (!isTrustedResend) {
+    const challenge = await verifyCustomerPhoneChallenge({
+      token: value(formData, "cf-turnstile-response"),
+      remoteIp: clientIp,
+    })
+    if (challenge.status === "rejected") {
+      return {
+        fields: { contact },
+        errors: { form: "Complete the quick security check and try again." },
+      }
+    }
+  }
+
   try {
     await enforceCustomerOtpSendRateLimit({
       phone: contact,
       requestIdentity,
+      trustedIp: clientIp,
     })
   } catch (error) {
     if (error instanceof RateLimitError) {
@@ -82,8 +103,17 @@ export async function requestCustomerLoginOtpAction(
 
   const customer = await findCustomerByVerifiedPhone(normalized.phone)
 
+  const verification = await startCustomerPhoneVerification(contact)
+  if (verification.status === "unavailable") {
+    return {
+      fields: { contact },
+      errors: {
+        form: "We couldn't send a code just now. Try again shortly.",
+      },
+    }
+  }
+
   try {
-    await startCustomerPhoneVerification(contact)
     await setPendingPhoneVerification({
       purpose: "wallet",
       phone: contact,
@@ -123,7 +153,7 @@ export async function verifyCustomerLoginOtpAction(
   const next = safeNextPath(value(formData, "next"))
   const pending = await getPendingPhoneVerification()
   const requestHeaders = await headers()
-  const requestIdentity = rateLimitIdentityFromHeaders(requestHeaders)
+  const requestIdentity = customerRateLimitIdentityFromHeaders(requestHeaders)
 
   if (!pending || pending.purpose !== "wallet") {
     return { errors: { contact: "Request a new phone code." } }
@@ -156,7 +186,16 @@ export async function verifyCustomerLoginOtpAction(
 
   const verification = await checkCustomerPhoneVerification(contact, otp)
 
-  if (verification.status !== "approved") {
+  if (verification.status === "unavailable") {
+    return {
+      fields: { contact, otpSent: true },
+      errors: {
+        form: "We couldn't check that code. Try again or request a new one.",
+      },
+    }
+  }
+
+  if (verification.status === "rejected") {
     return {
       fields: { contact, otpSent: true },
       errors: { form: "That code was not accepted." },
@@ -167,7 +206,8 @@ export async function verifyCustomerLoginOtpAction(
     await clearPendingPhoneVerification()
     return {
       fields: { contact },
-      message: "No cards found for that number yet. Scan a venue QR to join first.",
+      message:
+        "No cards found for that number yet. Scan a venue QR to join first.",
     }
   }
 

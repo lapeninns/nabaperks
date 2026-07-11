@@ -7,7 +7,7 @@ const QR_SCAN_LIMIT = 60
 
 type PublicQrRateLimitIdentity = {
   readonly ip: string
-  readonly userAgent: string
+  readonly deviceId: string
 }
 
 export function publicQrRateLimitHeaders(fixture: PublicQrRouterFixture) {
@@ -18,13 +18,13 @@ export function publicQrRateLimitHeaders(fixture: PublicQrRouterFixture) {
 
 export function publicQrRateLimitIdentities(
   fixture: PublicQrRouterFixture,
-  userAgent: string
+  deviceId: string
 ): readonly PublicQrRateLimitIdentity[] {
-  const normalizedUserAgent = userAgent.trim().slice(0, 160) || "unknown"
+  const normalizedDeviceId = deviceId.trim() || "unknown-device"
 
   return [
-    { ip: publicQrRateLimitIp(fixture), userAgent: normalizedUserAgent },
-    { ip: "unknown", userAgent: normalizedUserAgent },
+    { ip: publicQrRateLimitIp(fixture), deviceId: normalizedDeviceId },
+    { ip: "unknown", deviceId: normalizedDeviceId },
   ]
 }
 
@@ -36,7 +36,7 @@ export function publicQrRateLimitBucketKeys(
     return identities.map((identity) => {
       return qrScanRateLimitBucketKey(
         qrId,
-        rateLimitIdentity(identity.ip, identity.userAgent)
+        rateLimitIdentity(identity.ip, identity.deviceId)
       )
     })
   })
@@ -50,7 +50,7 @@ export async function seedPublicQrRateLimitBuckets(
   const bucketKeys = identities.map((identity) => {
     return qrScanRateLimitBucketKey(
       fixture.activeQrId,
-      rateLimitIdentity(identity.ip, identity.userAgent)
+      rateLimitIdentity(identity.ip, identity.deviceId)
     )
   })
 
@@ -83,9 +83,9 @@ function publicQrRateLimitIp(fixture: PublicQrRouterFixture): string {
   return `203.0.113.${(Number.parseInt(runId.slice(0, 2), 16) % 200) + 1}`
 }
 
-function rateLimitIdentity(ip: string, userAgent: string): string {
+function rateLimitIdentity(ip: string, deviceId: string): string {
   return createHash("sha256")
-    .update(`${ip}:${userAgent}`)
+    .update(`${ip}:${deviceId}`)
     .digest("hex")
     .slice(0, 32)
 }

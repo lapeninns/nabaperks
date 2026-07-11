@@ -179,13 +179,12 @@ test("Given the join identity action When a resend succeeds Then it returns stat
     /resend[\s\S]{0,240}return \{[\s\S]{0,240}message:/,
     "resend success must return a confirmation message state"
   )
-  // The phone step's advance-to-OTP redirect keeps its encoded `qr` segment; an
-  // optional `&ref=` may follow it (MS-referral-attribution threads the referral
-  // code through the same redirects).
+  // The phone step's advance-to-OTP redirect delegates query encoding and
+  // composition to the shared join-intent builder.
   assert.match(
     actions,
-    /`\/m\/\$\{merchantSlug\}\/join\$\{qrId \? `\?qr=\$\{encodeURIComponent\(qrId\)\}` : ""\}/,
-    "phone-step redirect must keep the encoded qr segment"
+    /buildCustomerJoinHref\(merchantSlug, \{[\s\S]{0,180}qrId:[\s\S]{0,180}step: "otp"/,
+    "phone-step redirect must preserve the QR and explicit OTP step"
   )
 })
 

@@ -12,6 +12,8 @@ export const productEventNames = [
   "join_phone_requested",
   "join_otp_verified",
   "join_terms_accepted",
+  "join_first_stamp_issued",
+  "join_first_stamp_pending",
   "customer_joined",
   "customer_card_viewed",
   "stamp_claim_started",
@@ -71,6 +73,7 @@ export const productEventNames = [
 export type ProductEventName = (typeof productEventNames)[number]
 
 export type ProductEventInput = {
+  awaitExternalMirror?: boolean
   eventId?: string | null
   eventName: ProductEventName
   merchantId?: string | null
@@ -116,7 +119,11 @@ export async function recordProductEvent(input: ProductEventInput) {
     throw new Error(`Unable to record product event: ${error.message}`)
   }
 
-  void capturePostHogEvent(input)
+  if (input.awaitExternalMirror) {
+    await capturePostHogEvent(input)
+  } else {
+    void capturePostHogEvent(input)
+  }
 }
 
 export async function capturePostHogEvent(input: ProductEventInput) {

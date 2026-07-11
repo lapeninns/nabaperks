@@ -131,6 +131,25 @@ export async function createRewardCollectionFixture(
         now()
       )`
 
+    await sql`
+      update public.customers
+      set email_hmac = coalesce(
+        email_hmac,
+        encode(extensions.digest(lower(email), 'sha256'), 'hex')
+      )
+      where id = ${fixture.customerId}::uuid`
+
+    await sql`
+      insert into public.customer_reward_email_assurances (
+        reward_event_id, customer_id, email_hmac
+      )
+      select
+        ${fixture.rewardEventId}::uuid,
+        customers.id,
+        customers.email_hmac
+      from public.customers
+      where customers.id = ${fixture.customerId}::uuid`
+
     const mintedRows = await sql<readonly { readonly scan_token: string }[]>`
       select scan_token::text
       from public.create_reward_scan_token(

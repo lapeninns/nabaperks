@@ -4,7 +4,8 @@ import { after, test } from "node:test"
 
 import postgres from "postgres"
 
-const DEFAULT_LOCAL_DB_URL = "postgres://postgres:postgres@127.0.0.1:54322/postgres"
+const DEFAULT_LOCAL_DB_URL =
+  "postgres://postgres:postgres@127.0.0.1:54322/postgres"
 const dbUrl = process.env.SUPABASE_DB_URL ?? DEFAULT_LOCAL_DB_URL
 
 const fixtures = new Set()
@@ -41,8 +42,7 @@ test("Given two QR stamp attempts When they race for one membership Then only on
 
     assertOneSuccessOneFailure(attempts, /Stamp already issued/)
 
-    const [{ stampCount, currentStampCount }] =
-      await setupSql`
+    const [{ stampCount, currentStampCount }] = await setupSql`
         select
           (
             select count(*)::integer
@@ -146,8 +146,7 @@ test("Given a merchant that requires billing When no billing row exists Then sta
 
     await assert.rejects(() => issueStamp(sql, fixture), /not active yet/)
 
-    const [{ stampCount, currentStampCount }] =
-      await sql`
+    const [{ stampCount, currentStampCount }] = await sql`
         select
           (
             select count(*)::integer
@@ -207,7 +206,10 @@ function assertOneSuccessOneFailure(results, expectedMessage) {
 
   assert.equal(successes.length, 1)
   assert.equal(failures.length, 1)
-  assert.match(String(failures[0].reason?.message ?? failures[0].reason), expectedMessage)
+  assert.match(
+    String(failures[0].reason?.message ?? failures[0].reason),
+    expectedMessage
+  )
 }
 
 async function createFixture(sql, options) {
@@ -457,6 +459,27 @@ async function createFixture(sql, options) {
         'unlocked',
         1
       )
+    `
+
+    await sql`
+      update public.customers
+      set email_hmac = coalesce(
+        email_hmac,
+        encode(extensions.digest(lower(email), 'sha256'), 'hex')
+      )
+      where id = ${fixture.customerId}::uuid
+    `
+
+    await sql`
+      insert into public.customer_reward_email_assurances (
+        reward_event_id, customer_id, email_hmac
+      )
+      select
+        ${fixture.rewardEventId}::uuid,
+        customers.id,
+        customers.email_hmac
+      from public.customers
+      where customers.id = ${fixture.customerId}::uuid
     `
 
     await sql`

@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "spec_id": "MS-customer-phone-identity-safety",
+  "runs": [
+    {
+      "timestamp": "2026-07-10T22:37:14.834Z",
+      "git_sha": "39218ba362495b9b88e7a2ce8b6d6ff635158ea8",
+      "git_branch": "main",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6716
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1055
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 9880
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 1,
+          "duration_ms": 8234
+        }
+      ],
+      "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-10T22:38:13.526Z",
+      "git_sha": "39218ba362495b9b88e7a2ce8b6d6ff635158ea8",
+      "git_branch": "main",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6702
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1031
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 9837
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9010
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1131
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-customer-phone-identity-safety\"",
+          "exit_code": 0,
+          "duration_ms": 17623
+        }
+      ],
+      "all_passed": true
+    }
+  ],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-10T21:24:15.037Z",
+      "sha": "39218ba362495b9b88e7a2ce8b6d6ff635158ea8",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-10T22:38:13.526Z",
+      "sha": "39218ba362495b9b88e7a2ce8b6d6ff635158ea8",
+      "dirty": true,
+      "by": "amankumarshrestha",
+      "note": "Atomic nine-spec end-to-end customer join programme; waiver recorded in spec."
+    }
+  ]
+}

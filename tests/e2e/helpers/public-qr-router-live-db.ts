@@ -82,6 +82,9 @@ export async function cleanupPublicQrRouterFixture(
     delete from public.billing_customers
     where merchant_id = ${fixture.merchantId}::uuid`
   await sql`
+    delete from public.reward_pool_items
+    where merchant_id = ${fixture.merchantId}::uuid`
+  await sql`
     delete from public.loyalty_cards
     where id = ${fixture.loyaltyCardId}::uuid`
   await sql`
@@ -182,6 +185,48 @@ async function insertMerchantRows(
       ${fixture.merchantId}::uuid, ${`cus_public_qr_${runId}`},
       ${`sub_public_qr_${runId}`}, 'trialing'
     )`
+  await sql`
+    insert into public.reward_pool_items (
+      merchant_id,
+      location_id,
+      loyalty_card_id,
+      reward_name,
+      reward_terms,
+      weight,
+      is_active,
+      display_order
+    )
+    values
+      (
+        ${fixture.merchantId}::uuid,
+        ${fixture.locationId}::uuid,
+        ${fixture.loyaltyCardId}::uuid,
+        'Free drink',
+        'Subject to availability.',
+        1,
+        true,
+        1
+      ),
+      (
+        ${fixture.merchantId}::uuid,
+        ${fixture.locationId}::uuid,
+        ${fixture.loyaltyCardId}::uuid,
+        'Bar snack',
+        'Subject to availability.',
+        1,
+        true,
+        2
+      ),
+      (
+        ${fixture.merchantId}::uuid,
+        ${fixture.locationId}::uuid,
+        ${fixture.loyaltyCardId}::uuid,
+        'Mystery treat',
+        'Subject to availability.',
+        1,
+        true,
+        3
+      )`
   await sql`
     insert into public.qr_codes (
       id, qr_id, merchant_id, location_id, loyalty_card_id, destination_type,

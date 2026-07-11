@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 import { createRewardPoolFixture } from "./helpers/reward-pool-fixture.mjs"
+import { grantRewardEmailAssurance } from "./helpers/reward-email-assurance.mjs"
 
 /**
  * MS-rewards-issued-source-rails — read-path (merchant scan) gate parity.
@@ -41,6 +42,7 @@ async function insertReward(tx, fixture, opts = {}) {
 /** Insert a scan token directly, bypassing the mint gates (the read path must
  *  still block a token whose customer became ineligible). */
 async function insertScanToken(tx, fixture, rewardId) {
+  await grantRewardEmailAssurance(tx, rewardId, fixture.customerId)
   const [row] = await tx`
     insert into public.reward_scan_tokens (
       reward_event_id, merchant_id, customer_id, membership_id)
@@ -65,13 +67,18 @@ test(
         source: "birthday_month",
         birthdayYear: 2026,
       })
+      await grantRewardEmailAssurance(tx, rewardId, fixture.customerId)
       const [minted] = await tx`
         select scan_token from public.create_reward_scan_token(
           ${rewardId}::uuid, ${fixture.customerId}::uuid)`
       const [ctx] = await tx`
         select scan_status, blocked_reason from public.get_reward_scan_context(
           ${minted.scan_token}::uuid, ${fixture.merchantId}::uuid)`
-      assert.equal(ctx.scan_status, "ready", "an issued reward reads back as ready")
+      assert.equal(
+        ctx.scan_status,
+        "ready",
+        "an issued reward reads back as ready"
+      )
     })
   }
 )
@@ -86,7 +93,9 @@ test(
         update public.customer_memberships
         set current_stamp_count = 0
         where id = ${fixture.membershipId}::uuid`
-      const rewardId = await insertReward(tx, fixture, { source: "stamp_cycle" })
+      const rewardId = await insertReward(tx, fixture, {
+        source: "stamp_cycle",
+      })
       const tokenId = await insertScanToken(tx, fixture, rewardId)
       const [ctx] = await tx`
         select scan_status, blocked_reason from public.get_reward_scan_context(
@@ -112,7 +121,9 @@ test(
         update public.customers
         set date_of_birth = (now() - interval '12 years')::date
         where id = ${fixture.customerId}::uuid`
-      const rewardId = await insertReward(tx, fixture, { source: "stamp_cycle" })
+      const rewardId = await insertReward(tx, fixture, {
+        source: "stamp_cycle",
+      })
       const tokenId = await insertScanToken(tx, fixture, rewardId)
       const [ctx] = await tx`
         select scan_status, blocked_reason from public.get_reward_scan_context(

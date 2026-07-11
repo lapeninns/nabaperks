@@ -12,7 +12,6 @@ import {
   JOIN_WELCOME_ALREADY_HAVE_CARD_LABEL,
   JOIN_WELCOME_HOW_IT_WORKS,
   JOIN_WELCOME_HOW_IT_WORKS_LABEL,
-  joinWelcomeHref,
   type CustomerExperienceViewModel,
 } from "@/lib/customer/experience/copy"
 import type {
@@ -20,22 +19,25 @@ import type {
   JoinCard,
   JoinMerchant,
 } from "@/lib/customer/experience/types"
+import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
 
 const ONBOARDING_STEPS = 3
 
 export function WelcomeStep({
   exp,
   vm,
+  referralCode,
 }: {
   exp: Extract<CustomerExperience, { kind: "join_welcome" }>
   vm: CustomerExperienceViewModel
+  referralCode?: string
 }) {
   return (
     <CustomerFlowShell
       eyebrow={vm.eyebrow}
       title={vm.headline}
       description={vm.supportLine}
-      progress={{ step: 1, total: ONBOARDING_STEPS, label: "Join the card" }}
+      progress={{ step: 1, total: ONBOARDING_STEPS, label: "Keep your card" }}
       dense
       className="content-center"
       screenLabel="Customer join"
@@ -54,10 +56,22 @@ export function WelcomeStep({
       {vm.primaryAction ? (
         <div className="grid gap-2">
           <Button asChild size="lg" className="w-full">
-            <Link href={vm.primaryAction.href}>{vm.primaryAction.label}</Link>
+            <Link
+              href={buildCustomerJoinHref(exp.merchant.slug, {
+                qrId: exp.qrId,
+                referralCode,
+                step: "phone",
+              })}
+            >
+              {vm.primaryAction.label}
+            </Link>
           </Button>
           <Link
-            href={joinWelcomeHref(exp.merchant.slug, exp.qrId, "phone")}
+            href={buildCustomerJoinHref(exp.merchant.slug, {
+              qrId: exp.qrId,
+              referralCode,
+              step: "phone",
+            })}
             className="text-center text-xs font-bold underline underline-offset-4"
           >
             {JOIN_WELCOME_ALREADY_HAVE_CARD_LABEL}

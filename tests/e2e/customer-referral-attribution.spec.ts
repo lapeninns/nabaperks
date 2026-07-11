@@ -4,12 +4,21 @@ import { expect, test } from "@playwright/test"
 
 import { connectLocalDb } from "./helpers/admin-live-db"
 import {
+  cleanupCustomerJoinRows,
   DEV_OTP,
   disposableUkMobile,
+  readJoinedMembership,
   readReferralEdge,
+  seedReferrerMembership,
 } from "./helpers/customer-join-live-db"
 import { customerReadbackLiveDbSkipReason } from "./helpers/customer-readback-live-db"
 import { dismissPwaInstall } from "./helpers/harness"
+import {
+  cleanupPublicQrRouterFixture,
+  createPublicQrRouterFixture,
+  publicQrPath,
+  type PublicQrRouterFixture,
+} from "./helpers/public-qr-router-live-db"
 
 // MS-referral-attribution — RA-2 + RA-3. Proves the real member-facing referral
 // link `/m/[slug]/join?ref=<code>` (no QR) renders the join, survives the
@@ -19,7 +28,7 @@ import { dismissPwaInstall } from "./helpers/harness"
 // two customers this test creates — never the shared seed merchant's own rows.
 const SEED_MERCHANT_SLUG = "old-crown-girton"
 
-test.describe("@customer-flow referral attribution live DB", () => {
+test.describe("@customer-flow @MS-customer-join-frictionless-ux referral attribution live DB", () => {
   const reason = customerReadbackLiveDbSkipReason()
   test.skip(Boolean(reason), reason)
 
@@ -73,14 +82,14 @@ test.describe("@customer-flow referral attribution live DB", () => {
         page.getByRole("heading", { name: "Enter your code" })
       ).toBeVisible()
       await page.locator("#otp").fill(DEV_OTP)
-      await page.getByRole("button", { name: "Save my card" }).click()
+      await page.getByRole("button", { name: "Check code" }).click()
       await expect(
-        page.getByRole("heading", { name: "Collect your first stamp" })
+        page.getByRole("heading", { name: "Save your loyalty card" })
       ).toBeVisible()
       await page.getByLabel(/Loyalty terms/i).check()
       await Promise.all([
         page.waitForURL((url) => url.pathname.startsWith("/card/")),
-        page.getByRole("button", { name: "Get my first stamp" }).click(),
+        page.getByRole("button", { name: "Save my card" }).click(),
       ])
 
       const [friend] = await sql<
@@ -117,6 +126,57 @@ test.describe("@customer-flow referral attribution live DB", () => {
         await sql`delete from public.customer_memberships where customer_id = ${customerId}::uuid`
         await sql`delete from public.customers where id = ${customerId}::uuid`
       }
+      await sql.end()
+    }
+  })
+
+  test("a composite QR and referral join keeps both the first stamp and attribution", async ({
+    page,
+  }) => {
+    const sql = connectLocalDb()
+    test.skip(!sql, "local Supabase DB is not configured")
+    if (!sql) return
+
+    let fixture: PublicQrRouterFixture | undefined
+    let referrerCustomerId: string | undefined
+    const friendPhone = disposableUkMobile()
+
+    try {
+      fixture = await createPublicQrRouterFixture(sql)
+      test.skip(!fixture, "seed merchant owner is not available")
+      if (!fixture) return
+
+      const referrer = await seedReferrerMembership(sql, fixture)
+      referrerCustomerId = referrer.customerId
+      await page.goto(
+        `${publicQrPath(fixture.activeQrId)}?ref=${encodeURIComponent(referrer.referralCode)}`
+      )
+      await page.getByRole("link", { name: "Get today's stamp" }).click()
+      expect(new URL(page.url()).searchParams.get("ref")).toBe(
+        referrer.referralCode
+      )
+      await page.locator("#contact").fill(friendPhone.national)
+      await page.getByRole("button", { name: "Text me the code" }).click()
+      await page.locator("#otp").fill(DEV_OTP)
+      await page.getByRole("button", { name: "Check code" }).click()
+      await page.getByLabel(/Loyalty terms/i).check()
+      await Promise.all([
+        page.waitForURL((url) => url.pathname.startsWith("/card/")),
+        page.getByRole("button", { name: "Get my first stamp" }).click(),
+      ])
+
+      const joined = await readJoinedMembership(sql, fixture, friendPhone)
+      expect(joined?.stamp_count).toBe(1)
+      if (!joined) throw new Error("Composite join did not create membership.")
+      const edge = await readReferralEdge(sql, joined.membership_id)
+      expect(edge?.referrerMembershipId).toBe(referrer.membershipId)
+      expect(edge?.referralCodeUsed).toBe(referrer.referralCode)
+    } finally {
+      await cleanupCustomerJoinRows(sql, fixture, friendPhone)
+      if (referrerCustomerId) {
+        await sql`delete from public.customers where id = ${referrerCustomerId}::uuid`
+      }
+      await cleanupPublicQrRouterFixture(sql, fixture)
       await sql.end()
     }
   })

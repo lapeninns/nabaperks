@@ -7,14 +7,17 @@ import {
 } from "libphonenumber-js"
 
 export type NormalizedPhone = {
-  e164: string
-  country: string
-  last4: string
+  readonly e164: string
+  readonly country: string
+  readonly last4: string
 }
 
 export type NormalizePhoneResult =
   | { ok: true; phone: NormalizedPhone }
-  | { ok: false; error: "Enter a valid phone number." }
+  | {
+      ok: false
+      error: "Enter a UK phone number." | "Enter a valid phone number."
+    }
 
 const fallbackCountry: CountryCode = "GB"
 const ipCountryHeaders = ["x-vercel-ip-country", "cf-ipcountry"] as const
@@ -44,11 +47,15 @@ export function normalizePhone(
     return { ok: false, error: "Enter a valid phone number." }
   }
 
+  if (parsed.country !== "GB") {
+    return { ok: false, error: "Enter a UK phone number." }
+  }
+
   return {
     ok: true,
     phone: {
       e164: parsed.number,
-      country: parsed.country ?? defaultCountry,
+      country: parsed.country,
       last4: phoneLast4(parsed.number),
     },
   }

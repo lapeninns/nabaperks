@@ -3,6 +3,7 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
+import { grantRewardEmailAssurance } from "./helpers/reward-email-assurance.mjs"
 
 /**
  * MS-customer-home / MS-customer-auth-wallet (profile) — live-DB tier.
@@ -56,9 +57,14 @@ test(
                    where id = ${customer.id}`
         })
       } catch (error) {
-        emailBlocked = /verified customer email cannot be changed/i.test(String(error.message))
+        emailBlocked = /verified customer email cannot be changed/i.test(
+          String(error.message)
+        )
       }
-      assert.ok(emailBlocked, "a verified email cannot be changed via a profile update")
+      assert.ok(
+        emailBlocked,
+        "a verified email cannot be changed via a profile update"
+      )
 
       // Changing verified phone fields is blocked.
       let phoneBlocked = false
@@ -67,16 +73,22 @@ test(
           await sp`update public.customers set phone_last4 = '0000' where id = ${customer.id}`
         })
       } catch (error) {
-        phoneBlocked = /verified customer phone cannot be changed/i.test(String(error.message))
+        phoneBlocked = /verified customer phone cannot be changed/i.test(
+          String(error.message)
+        )
       }
-      assert.ok(phoneBlocked, "verified phone fields cannot be changed via a profile update")
+      assert.ok(
+        phoneBlocked,
+        "verified phone fields cannot be changed via a profile update"
+      )
 
       // The erasure GUC is the single sanctioned bypass.
       await tx`select set_config('app.customer_erasure', 'true', true)`
       await tx`update public.customers set email = 'erased+test@privacy.invalid'
                where id = ${customer.id}`
       await tx`select set_config('app.customer_erasure', 'false', true)`
-      const [after] = await tx`select email from public.customers where id = ${customer.id}`
+      const [after] =
+        await tx`select email from public.customers where id = ${customer.id}`
       assert.equal(
         after.email,
         "erased+test@privacy.invalid",
@@ -126,10 +138,14 @@ test(
       await tx`update public.customers
                set full_name = 'Now Complete', date_of_birth = '1991-03-03'
                where id = ${m.customer_id}`
+      await grantRewardEmailAssurance(tx, reward.id, m.customer_id)
       const [minted] = await tx`
         select scan_token from public.create_reward_scan_token(
           ${reward.id}::uuid, ${m.customer_id}::uuid)`
-      assert.ok(minted?.scan_token, "a complete profile can mint a collection token")
+      assert.ok(
+        minted?.scan_token,
+        "a complete profile can mint a collection token"
+      )
     })
   }
 )

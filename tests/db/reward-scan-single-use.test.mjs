@@ -2,6 +2,7 @@ import { after, test } from "node:test"
 import assert from "node:assert/strict"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
+import { grantRewardEmailAssurance } from "./helpers/reward-email-assurance.mjs"
 
 /**
  * MS-customer-redeem + MS-merchant-scan-pos — live-DB invariant tier.
@@ -67,6 +68,7 @@ test(
           'unlocked', 'E2E test reward', 'E2E test terms', '{}'::jsonb, now(), now())
         returning id`
       assert.ok(reward?.id, "manufactured an unlocked reward event")
+      await grantRewardEmailAssurance(tx, reward.id, m.customer_id)
 
       // R-1: minting yields a live, unconsumed token.
       const [minted] = await tx`
@@ -77,7 +79,11 @@ test(
 
       const [fresh] = await tx`
         select consumed_at, expires_at from public.reward_scan_tokens where id = ${token}`
-      assert.equal(fresh.consumed_at, null, "freshly minted token is unconsumed")
+      assert.equal(
+        fresh.consumed_at,
+        null,
+        "freshly minted token is unconsumed"
+      )
       assert.ok(
         new Date(fresh.expires_at).getTime() > Date.now(),
         "token expires in the future"
@@ -89,10 +95,18 @@ test(
           ${token}::uuid, ${m.merchant_id}::uuid)`
       const [afterFirst] = await tx`
         select consumed_at from public.reward_scan_tokens where id = ${token}`
-      assert.notEqual(afterFirst.consumed_at, null, "token consumed after first collect")
+      assert.notEqual(
+        afterFirst.consumed_at,
+        null,
+        "token consumed after first collect"
+      )
       const [rewardAfter] = await tx`
         select status from public.reward_events where id = ${reward.id}`
-      assert.equal(rewardAfter.status, "redeemed", "reward is redeemed after collection")
+      assert.equal(
+        rewardAfter.status,
+        "redeemed",
+        "reward is redeemed after collection"
+      )
 
       // R-4 / MS-3: a second collection must not re-consume the token.
       let secondRejected = false
@@ -109,7 +123,8 @@ test(
         select consumed_at from public.reward_scan_tokens where id = ${token}`
       assert.ok(
         secondRejected ||
-          afterSecond.consumed_at?.getTime?.() === afterFirst.consumed_at?.getTime?.(),
+          afterSecond.consumed_at?.getTime?.() ===
+            afterFirst.consumed_at?.getTime?.(),
         "second collection does not re-consume the token (single-use)"
       )
     })

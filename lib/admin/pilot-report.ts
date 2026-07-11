@@ -24,7 +24,11 @@ export async function getAdminPilotReport() {
     launchSelfServiceProof,
     paidLaunchProofMerchants,
   ] = await Promise.all([
-    getProductEventCounts(pilotFunnelEventNames),
+    getProductEventCounts([
+      ...pilotFunnelEventNames,
+      "join_first_stamp_issued",
+      "join_first_stamp_pending",
+    ]),
     countMembershipsWithSecondStamp(),
     countRows("merchants"),
     countBillingStatuses(["trialing"]),
@@ -49,9 +53,15 @@ export async function getAdminPilotReport() {
   const qrScanned = eventCounts["qr_scanned"] ?? 0
   const customerJoined = eventCounts["customer_joined"] ?? 0
   const stampIssued = eventCounts["stamp_issued"] ?? 0
+  const joinFirstStampIssued = eventCounts["join_first_stamp_issued"] ?? 0
+  const joinFirstStampPending = eventCounts["join_first_stamp_pending"] ?? 0
   const rewardUnlocked = eventCounts["reward_unlocked"] ?? 0
   const rewardRedeemed = eventCounts["reward_redeemed"] ?? 0
   const scanToJoin = percentage(customerJoined, qrScanned)
+  const joinFirstStampRate = percentage(
+    joinFirstStampIssued,
+    joinFirstStampIssued + joinFirstStampPending
+  )
   const secondStampRate = percentage(secondStampCustomers, customerJoined)
   const paidConversion = percentage(
     activeBilling,
@@ -116,6 +126,18 @@ export async function getAdminPilotReport() {
       ),
       metric("Stamps issued", stampIssued, "product_events", "Readback only"),
       metric(
+        "Join first-stamp success",
+        `${joinFirstStampRate}%`,
+        "derived from durable join outcome events",
+        "95%+"
+      ),
+      metric(
+        "Join first stamps pending",
+        joinFirstStampPending,
+        "product_events",
+        "Investigate every case"
+      ),
+      metric(
         "Second-stamp customers",
         secondStampCustomers,
         "customer_memberships",
@@ -163,7 +185,12 @@ export async function getAdminPilotReport() {
         "billing_customers + product_events",
         "At least 1 test merchant"
       ),
-      metric("Support actions", supportActions, "audit_logs", "<2 per merchant/month"),
+      metric(
+        "Support actions",
+        supportActions,
+        "audit_logs",
+        "<2 per merchant/month"
+      ),
       metric(
         "Cancellation notes",
         cancellationNotes,

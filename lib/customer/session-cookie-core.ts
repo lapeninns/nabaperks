@@ -1,5 +1,10 @@
 import { createHmac, timingSafeEqual } from "node:crypto"
 
+import {
+  createEncryptedPendingCookieValue,
+  readEncryptedPendingCookieValue,
+} from "@/lib/customer/pending-cookie-crypto"
+
 export type PendingPhonePurpose = "join" | "wallet"
 
 export type PendingPhonePayload = {
@@ -41,7 +46,11 @@ export function createPendingPhoneCookieValue(
   payload: PendingPhonePayload,
   secret: string
 ): string {
-  return signPayload(payload, secret)
+  return createEncryptedPendingCookieValue({
+    payload,
+    secret,
+    context: "phone",
+  })
 }
 
 export function readPendingPhoneCookieValue(
@@ -49,14 +58,24 @@ export function readPendingPhoneCookieValue(
   secret: string,
   nowSeconds: number
 ): CookieReadResult<PendingPhonePayload> {
-  return readSignedPayload(value, secret, nowSeconds, parsePendingPhonePayload)
+  return readEncryptedPendingCookieValue({
+    value,
+    secret,
+    context: "phone",
+    nowSeconds,
+    parse: parsePendingPhonePayload,
+  })
 }
 
 export function createPendingEmailCookieValue(
   payload: PendingEmailPayload,
   secret: string
 ): string {
-  return signPayload(payload, secret)
+  return createEncryptedPendingCookieValue({
+    payload,
+    secret,
+    context: "email",
+  })
 }
 
 export function readPendingEmailCookieValue(
@@ -64,7 +83,13 @@ export function readPendingEmailCookieValue(
   secret: string,
   nowSeconds: number
 ): CookieReadResult<PendingEmailPayload> {
-  return readSignedPayload(value, secret, nowSeconds, parsePendingEmailPayload)
+  return readEncryptedPendingCookieValue({
+    value,
+    secret,
+    context: "email",
+    nowSeconds,
+    parse: parsePendingEmailPayload,
+  })
 }
 
 export function createCustomerSessionCookieValue(

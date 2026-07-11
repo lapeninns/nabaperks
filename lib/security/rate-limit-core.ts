@@ -1,11 +1,25 @@
 import { createHash } from "node:crypto"
 
+export const CUSTOMER_DEVICE_HEADER = "x-nabaperks-device-id"
+
 export function rateLimitIdentityFromHeaders(headers: Headers): string {
   const ip = trustedClientIp(headers)
   const userAgent = headers.get("user-agent")?.trim().slice(0, 160) || "unknown"
 
   return createHash("sha256")
     .update(`${ip}:${userAgent}`)
+    .digest("hex")
+    .slice(0, 32)
+}
+
+export function customerRateLimitIdentityFromHeaders(headers: Headers): string {
+  const ip = trustedClientIp(headers)
+  const device = headers.get(CUSTOMER_DEVICE_HEADER)?.trim()
+  const fallback =
+    headers.get("user-agent")?.trim().slice(0, 160) || "unknown-device"
+
+  return createHash("sha256")
+    .update(`${ip}:${device || fallback}`)
     .digest("hex")
     .slice(0, 32)
 }

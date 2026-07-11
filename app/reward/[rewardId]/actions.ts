@@ -14,6 +14,10 @@ import {
 } from "@/lib/customer/profile"
 import { validateProfileFields } from "@/lib/customer/profile-fields"
 import { clearPendingEmailVerification } from "@/lib/customer/session"
+import {
+  hasRewardEmailAssurance,
+  recordRewardEmailAssurance,
+} from "@/lib/customer/reward-email-assurance"
 
 export type ProfileGateActionState = {
   fields?: {
@@ -28,6 +32,7 @@ export type ProfileGateActionState = {
     otp?: string
     form?: string
   }
+  message?: string
 }
 
 /**
@@ -42,10 +47,17 @@ export async function saveProfileForRedeemAction(
   const rewardId = value(formData, "rewardId")
   const fullName = value(formData, "fullName")
   const dateOfBirth = value(formData, "dateOfBirth")
-  const email = value(formData, "email")
+  const submittedEmail = value(formData, "email")
+  const currentCustomer = submittedEmail ? null : await getCurrentCustomer()
+  const lockedVerifiedEmail =
+    currentCustomer?.email && currentCustomer.emailVerifiedAt
+      ? currentCustomer.email.trim()
+      : ""
+  const email = submittedEmail || lockedVerifiedEmail
   const fields = { fullName, dateOfBirth, email }
 
   const errors = validateProfileFields({ fullName, dateOfBirth, email })
+  if (!email) errors.email = "Enter an email address."
   if (Object.keys(errors).length > 0) return { fields, errors }
 
   let emailVerificationRequired = false
@@ -65,7 +77,10 @@ export async function saveProfileForRedeemAction(
     }
   }
 
-  if (emailVerificationRequired && savedEmail) {
+  const rewardAssured = rewardId
+    ? await hasRewardEmailAssurance(rewardId)
+    : false
+  if (savedEmail && (emailVerificationRequired || !rewardAssured)) {
     try {
       await startCustomerEmailVerification(savedEmail)
     } catch {
@@ -109,6 +124,8 @@ export async function verifyProfileEmailAction(
 
   try {
     await markCustomerEmailVerified(result.email)
+    if (!rewardId) throw new Error("Reward is required for confirmation.")
+    await recordRewardEmailAssurance(rewardId, result.email)
   } catch {
     return { errors: { form: "We couldn't confirm your email. Try again." } }
   }
@@ -119,16 +136,26 @@ export async function verifyProfileEmailAction(
 
 /** Re-sends the emailed code to the address already on the (unverified) profile. */
 export async function resendProfileEmailAction(
+  _state: ProfileGateActionState,
   formData: FormData
-): Promise<void> {
+): Promise<ProfileGateActionState> {
   const rewardId = value(formData, "rewardId")
   const customer = await getCurrentCustomer()
 
-  if (customer?.email && !customer.emailVerifiedAt) {
-    await startCustomerEmailVerification(customer.email)
+  if (customer?.email) {
+    try {
+      await startCustomerEmailVerification(customer.email)
+    } catch {
+      return {
+        errors: {
+          form: "We couldn't email a code just now. Try again shortly.",
+        },
+      }
+    }
   }
 
   if (rewardId) revalidatePath(`/reward/${rewardId}`)
+  return { message: "Code sent. Check your email." }
 }
 
 /** "Continue without email" — drops the entered email so the gate clears on Name + DOB. */

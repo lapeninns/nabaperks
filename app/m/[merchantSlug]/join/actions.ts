@@ -4,7 +4,6 @@ import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { after } from "next/server"
 
-import { capturePostHogEvent } from "@/lib/analytics/events"
 import { attachRewardInvitesForCustomer } from "@/lib/customer/reward-invites"
 import { triggerBirthdayIssuanceForCustomer } from "@/lib/rewards/issue-birthday"
 import {
@@ -12,6 +11,8 @@ import {
   getOrCreateCustomerByVerifiedPhone,
 } from "@/lib/customer/identity"
 import { captureJoinFunnelEvent } from "@/lib/customer/join-funnel"
+import { joinEntry } from "@/lib/customer/join-observability-contract"
+import { getMerchantJoinContext } from "@/lib/customer/join"
 import { destinationForReturningQrVisit } from "@/lib/customer/returning-qr-redirect"
 import { defaultCountryFromHeaders, normalizePhone } from "@/lib/customer/phone"
 import {
@@ -24,15 +25,24 @@ import {
   checkCustomerPhoneVerification,
   startCustomerPhoneVerification,
 } from "@/lib/customer/verification"
+import { classifyJoinRpcFailure } from "@/lib/customer/join-rpc-error"
 import {
   enforceCustomerOtpSendRateLimit,
   enforceCustomerOtpVerifyRateLimit,
 } from "@/lib/customer/otp-rate-limit"
 import {
   RateLimitError,
-  rateLimitIdentityFromHeaders,
+  customerRateLimitIdentityFromHeaders,
+  trustedClientIp,
 } from "@/lib/security/rate-limit"
+import { verifyCustomerPhoneChallenge } from "@/lib/security/turnstile"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
+import { logger } from "@/lib/observability/logger"
+import {
+  normalizeRequestId,
+  REQUEST_ID_HEADER,
+} from "@/lib/observability/request-id"
 
 export type CustomerIdentityState = {
   fields?: {
@@ -67,33 +77,84 @@ export async function requestCustomerIdentityAction(
   _state: CustomerIdentityState,
   formData: FormData
 ): Promise<CustomerIdentityState> {
-  const rawContact = value(formData, "contact")
+  const submittedContact = value(formData, "contact")
   const merchantSlug = value(formData, "merchantSlug")
   const qrId = value(formData, "qrId")
   const ref = value(formData, "ref")
   const requestHeaders = await headers()
   const country = defaultCountryFromHeaders(requestHeaders)
-  const requestIdentity = rateLimitIdentityFromHeaders(requestHeaders)
+  const requestIdentity = customerRateLimitIdentityFromHeaders(requestHeaders)
+  const clientIp = trustedClientIp(requestHeaders)
+  const pendingVerification = await getPendingPhoneVerification()
+  const isTrustedResend =
+    pendingVerification?.purpose === "join" && value(formData, "resend") === "1"
+  const rawContact = isTrustedResend
+    ? pendingVerification.phone
+    : submittedContact
   const normalized = normalizePhone(rawContact, country)
 
   if (!normalized.ok) {
     return {
-      fields: { contact: rawContact, merchantSlug, qrId },
+      fields: {
+        ...(!isTrustedResend ? { contact: rawContact } : {}),
+        merchantSlug,
+        qrId,
+      },
       errors: { contact: normalized.error },
     }
   }
 
   const contact = normalized.phone.e164
+  const requestFields = {
+    ...(!isTrustedResend ? { contact } : {}),
+    merchantSlug,
+    qrId,
+  }
+
+  if (!isTrustedResend) {
+    const challenge = await verifyCustomerPhoneChallenge({
+      token: value(formData, "cf-turnstile-response"),
+      remoteIp: clientIp,
+    })
+    if (challenge.status === "rejected") {
+      return {
+        fields: requestFields,
+        errors: { form: "Complete the quick security check and try again." },
+      }
+    }
+  }
+
+  let joinContext: Awaited<ReturnType<typeof getMerchantJoinContext>>
+  try {
+    joinContext = await getMerchantJoinContext(merchantSlug, qrId || undefined)
+  } catch {
+    logger.error("customer_join_otp_context_failed", {
+      operation: "validate_before_otp_send",
+      reason: "join_context_unavailable",
+    })
+    return {
+      fields: requestFields,
+      errors: { form: "This loyalty card is unavailable just now." },
+    }
+  }
+
+  if (!joinContext?.available) {
+    return {
+      fields: requestFields,
+      errors: { form: "This loyalty card is unavailable just now." },
+    }
+  }
 
   try {
     await enforceCustomerOtpSendRateLimit({
       phone: contact,
       requestIdentity,
+      trustedIp: clientIp,
     })
   } catch (error) {
     if (error instanceof RateLimitError) {
       return {
-        fields: { contact, merchantSlug, qrId },
+        fields: requestFields,
         errors: { form: "Too many verification requests. Try again later." },
       }
     }
@@ -101,15 +162,17 @@ export async function requestCustomerIdentityAction(
     throw error
   }
 
-  await captureJoinFunnelEvent({
-    eventName: "join_phone_requested",
-    merchantSlug,
-    qrId,
-    step: "phone",
-  })
+  const verification = await startCustomerPhoneVerification(contact)
+  if (verification.status === "unavailable") {
+    return {
+      fields: requestFields,
+      errors: {
+        form: "We couldn't send a code just now. Try again shortly.",
+      },
+    }
+  }
 
   try {
-    await startCustomerPhoneVerification(contact)
     await setPendingPhoneVerification({
       purpose: "join",
       phone: contact,
@@ -122,12 +185,19 @@ export async function requestCustomerIdentityAction(
     logVerificationSendFailure("join", error)
 
     return {
-      fields: { contact, merchantSlug, qrId },
+      fields: requestFields,
       errors: {
         form: "Verification code could not be sent. Try again shortly.",
       },
     }
   }
+
+  await captureJoinFunnelEvent({
+    eventName: "join_phone_requested",
+    merchantId: joinContext.merchant.id,
+    entry: joinEntry({ qrId, referralCode: ref }),
+    step: "phone",
+  })
 
   // A resend from the OTP step answers in place instead of redirecting, so
   // the form can announce the outcome inside its live-region card
@@ -135,15 +205,17 @@ export async function requestCustomerIdentityAction(
   // redirect that advances it to the OTP step — semantics unchanged.
   if (value(formData, "resend") === "1") {
     return {
-      fields: { contact, merchantSlug, qrId, phoneOtpSent: true },
+      fields: { merchantSlug, qrId, phoneOtpSent: true },
       message: "New code sent. It can take a moment to arrive.",
     }
   }
 
   redirect(
-    `/m/${merchantSlug}/join${qrId ? `?qr=${encodeURIComponent(qrId)}` : ""}${
-      ref ? `${qrId ? "&" : "?"}ref=${encodeURIComponent(ref)}` : ""
-    }`
+    buildCustomerJoinHref(merchantSlug, {
+      qrId: qrId || undefined,
+      referralCode: ref || undefined,
+      step: "otp",
+    })
   )
 }
 
@@ -164,7 +236,7 @@ export async function verifyCustomerOtpAction(
   const otp = value(formData, "otp")
   const pending = await getPendingPhoneVerification()
   const requestHeaders = await headers()
-  const requestIdentity = rateLimitIdentityFromHeaders(requestHeaders)
+  const requestIdentity = customerRateLimitIdentityFromHeaders(requestHeaders)
 
   if (!pending || pending.purpose !== "join") {
     return { errors: { contact: "Request a new phone code." } }
@@ -174,7 +246,7 @@ export async function verifyCustomerOtpAction(
 
   if (!/^\d{4,8}$/.test(otp)) {
     return {
-      fields: { contact, merchantSlug, qrId, phoneOtpSent: true },
+      fields: { merchantSlug, qrId, phoneOtpSent: true },
       errors: { otp: "Enter the verification code." },
     }
   }
@@ -187,7 +259,7 @@ export async function verifyCustomerOtpAction(
   } catch (error) {
     if (error instanceof RateLimitError) {
       return {
-        fields: { contact, merchantSlug, qrId, phoneOtpSent: true },
+        fields: { merchantSlug, qrId, phoneOtpSent: true },
         errors: { form: "Too many code attempts. Request a new code shortly." },
       }
     }
@@ -197,9 +269,18 @@ export async function verifyCustomerOtpAction(
 
   const verification = await checkCustomerPhoneVerification(contact, otp)
 
-  if (verification.status !== "approved") {
+  if (verification.status === "unavailable") {
     return {
-      fields: { contact, merchantSlug, qrId, phoneOtpSent: true },
+      fields: { merchantSlug, qrId, phoneOtpSent: true },
+      errors: {
+        form: "We couldn't check that code. Try again or request a new one.",
+      },
+    }
+  }
+
+  if (verification.status === "rejected") {
+    return {
+      fields: { merchantSlug, qrId, phoneOtpSent: true },
       errors: { form: "That code was not accepted." },
     }
   }
@@ -214,26 +295,22 @@ export async function verifyCustomerOtpAction(
   await captureJoinFunnelEvent({
     eventName: "join_otp_verified",
     customerId: customer.id,
-    merchantSlug,
-    qrId,
+    scopeKey: merchantSlug,
+    entry: joinEntry({ qrId, referralCode: ref }),
     step: "otp",
   })
 
   if (qrId) {
-    const destination = await destinationForReturningQrVisit(
-      merchantSlug,
-      qrId,
-      {
-        issueStamp: true,
-      }
-    )
+    const destination = await destinationForReturningQrVisit(merchantSlug, qrId)
     if (destination) redirect(destination)
   }
 
   redirect(
-    `/m/${merchantSlug}/join${qrId ? `?qr=${encodeURIComponent(qrId)}` : ""}${
-      ref ? `${qrId ? "&" : "?"}ref=${encodeURIComponent(ref)}` : ""
-    }`
+    buildCustomerJoinHref(merchantSlug, {
+      qrId: qrId || undefined,
+      referralCode: ref || undefined,
+      step: "terms",
+    })
   )
 }
 
@@ -256,17 +333,6 @@ export async function joinRewardsAction(
     return { errors: { loyaltyTerms: "Accept the loyalty terms to join." } }
   }
 
-  await captureJoinFunnelEvent({
-    eventName: "join_terms_accepted",
-    customerId: customer.id,
-    merchantSlug,
-    qrId,
-    step: "terms",
-    metadata: {
-      marketing_opt_in: marketingOptIn,
-    },
-  })
-
   const supabase = createSupabaseServiceRoleClient()
   // Omit p_ref unless a referral code is actually present, so the call still
   // resolves against the pre-referral 7-arg RPC. This decouples the deploy from
@@ -285,6 +351,14 @@ export async function joinRewardsAction(
   )
 
   if (error) {
+    const requestHeaders = await headers()
+    logger.error("customer_join_rpc_failed", {
+      requestId:
+        normalizeRequestId(requestHeaders.get(REQUEST_ID_HEADER)) ??
+        "unavailable",
+      operation: "join_membership",
+      reason: classifyJoinRpcFailure(error),
+    })
     return {
       errors: {
         form: "Rewards could not be joined. Try again or ask the venue team.",
@@ -294,35 +368,41 @@ export async function joinRewardsAction(
 
   const row = data?.[0]
   const membershipId = row?.membership_id
+  const merchantId = row?.merchant_id
   const firstStampIssued = row?.first_stamp_issued === true
   const geoFlagged = row?.geo_flagged === true
 
-  if (membershipId) {
-    await capturePostHogEvent({
-      eventName: "customer_joined",
-      membershipId,
-      actorType: "customer",
-      actorId: customer.id,
-      metadata: {
-        merchant_slug: merchantSlug,
-        marketing_opt_in: marketingOptIn,
-      },
-    })
+  await captureJoinFunnelEvent({
+    eventName: "join_terms_accepted",
+    merchantId: merchantId ?? null,
+    scopeKey: merchantSlug,
+    customerId: customer.id,
+    membershipId: membershipId ?? null,
+    entry: joinEntry({ qrId, referralCode: ref }),
+    step: "terms",
+  })
 
-    if (firstStampIssued) {
-      await capturePostHogEvent({
-        eventName: "stamp_issued",
-        membershipId,
-        actorType: "customer",
-        actorId: customer.id,
-        metadata: {
-          merchant_slug: merchantSlug,
-          source: "onboarding_first_stamp",
-          geo_flagged: geoFlagged,
-        },
+  if (qrId) {
+    await captureJoinFunnelEvent({
+      eventName: firstStampIssued
+        ? "join_first_stamp_issued"
+        : "join_first_stamp_pending",
+      merchantId: merchantId ?? null,
+      customerId: customer.id,
+      membershipId: membershipId ?? null,
+      entry: joinEntry({ qrId, referralCode: ref }),
+      step: "terms",
+    })
+    if (!firstStampIssued) {
+      logger.warn("customer_join_first_stamp_pending", {
+        membershipId: membershipId ?? "unavailable",
+        reason: row?.first_stamp_reason ?? "unknown",
+        resolution: row?.first_stamp_resolution ?? "unknown",
       })
     }
+  }
 
+  if (membershipId) {
     // A member who already set a birthday may be owed a treat here — issue it
     // best-effort. `after` callbacks registered before the redirect throw still
     // run, so this survives the redirect below.
@@ -332,14 +412,8 @@ export async function joinRewardsAction(
     // now that they have a membership, attach any match.
     after(() => attachRewardInvitesForCustomer(customer.id))
 
-    // Onboarding completes onto the card itself: a freshly issued first stamp
-    // celebrates with `welcome=1&stamp=issued`; a no-QR/direct join lands on a
-    // 0-stamp welcome card that invites scanning the venue QR. A QR join whose
-    // first stamp was blocked (pool/billing/rate-limit) carries `firststamp=
-    // pending` so the welcome copy says to collect it, not that it landed.
     const params = new URLSearchParams({ welcome: "1" })
     if (firstStampIssued) params.set("stamp", "issued")
-    else if (qrId) params.set("firststamp", "pending")
     if (geoFlagged) params.set("geo", "flagged")
     redirect(`/card/${membershipId}?${params.toString()}`)
   }

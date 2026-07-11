@@ -8,6 +8,7 @@ import {
 
 import { Icon } from "@/components/brand"
 import { CelebrationUrlCleanup } from "@/components/customer/celebration-url-cleanup"
+import { JoinFirstStampRecoveryPanel } from "@/components/customer/join-first-stamp-recovery-panel"
 import {
   CustomerActionNote,
   CustomerFlowShell,
@@ -164,10 +165,7 @@ function CardProgressPanel({
     <div className="grid gap-4">
       {/* Strip the one-shot celebration params after the first render so a
           refresh does not replay the welcome/stamp moment (CUS-P3-07). */}
-      {exp.justStamped ||
-      exp.justJoined ||
-      exp.justRedeemed ||
-      exp.firstStampPending ? (
+      {exp.justStamped || exp.justJoined || exp.justRedeemed ? (
         <CelebrationUrlCleanup />
       ) : null}
       <Link
@@ -208,7 +206,7 @@ function CardProgressPanel({
                     : "Your reward is yours from opening time on the next UK business day."
                 }
               />
-            ) : exp.justJoined ? (
+            ) : exp.justJoined && !exp.firstStampRecovery ? (
               <StampCelebration>
                 <StatusBanner
                   title={`Welcome to ${exp.merchantName}.`}
@@ -217,9 +215,7 @@ function CardProgressPanel({
                 >
                   {exp.justStamped
                     ? "You're in, your first stamp is on the card."
-                    : exp.firstStampPending
-                      ? "You're in. We couldn't add your first stamp just now, so scan the venue QR to collect your first stamp."
-                      : "You're in. Scan the venue QR in store to collect your first stamp."}
+                    : "You're in. Scan the venue QR in store to collect your first stamp."}
                 </StatusBanner>
               </StampCelebration>
             ) : exp.justStamped ? (
@@ -246,7 +242,12 @@ function CardProgressPanel({
           </>
         }
       >
-        {exp.reward === "ready" && exp.rewardId ? (
+        {exp.firstStampRecovery ? (
+          <JoinFirstStampRecoveryPanel
+            membershipId={exp.membershipId}
+            recovery={exp.firstStampRecovery}
+          />
+        ) : exp.reward === "ready" && exp.rewardId ? (
           <Button asChild size="lg" variant="reward" className="w-full">
             <Link href={`/reward/${exp.rewardId}`}>Open reward QR</Link>
           </Button>

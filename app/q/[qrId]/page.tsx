@@ -23,9 +23,10 @@ import {
 } from "@/lib/customer/join"
 import {
   RateLimitError,
-  rateLimitIdentityFromHeaders,
+  customerRateLimitIdentityFromHeaders,
 } from "@/lib/security/rate-limit"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
+import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
 
 export const metadata: Metadata = {
   ...PRIVATE_ROUTE_METADATA,
@@ -37,10 +38,15 @@ type PublicQrPageProps = {
   params: Promise<{
     qrId: string
   }>
+  searchParams: Promise<{ ref?: string }>
 }
 
-export default async function PublicQrPage({ params }: PublicQrPageProps) {
+export default async function PublicQrPage({
+  params,
+  searchParams,
+}: PublicQrPageProps) {
   const { qrId } = await params
+  const { ref } = await searchParams
 
   // Dev-only boundary probe: lets the DB-free e2e tier render this segment's
   // error boundary (tests/e2e/ux-polish-boundaries.spec.ts) without a
@@ -57,7 +63,9 @@ export default async function PublicQrPage({ params }: PublicQrPageProps) {
 
   try {
     qrContext = await resolveQrForJoin(qrId, {
-      scanRateLimitIdentity: rateLimitIdentityFromHeaders(await headers()),
+      scanRateLimitIdentity: customerRateLimitIdentityFromHeaders(
+        await headers()
+      ),
     })
 
     // The membership lookup stays inside the guard: a failed lookup on a
@@ -83,7 +91,11 @@ export default async function PublicQrPage({ params }: PublicQrPageProps) {
   }
 
   const encodedQrId = encodeURIComponent(qrContext.qrId ?? qrId)
-  const joinUrl = `/m/${qrContext.merchant.business_slug}/join?qr=${encodedQrId}`
+  const joinUrl = buildCustomerJoinHref(qrContext.merchant.business_slug, {
+    qrId: qrContext.qrId ?? qrId,
+    referralCode: ref,
+    step: "welcome",
+  })
 
   if (membership) {
     redirect(`/card/${membership.id}/stamp?qr=${encodedQrId}`)
@@ -105,7 +117,11 @@ function UnavailableQr() {
       className="content-center"
       screenLabel="Unavailable QR"
     >
-      <CustomerReceipt venueName="Nabaperks" eyebrow="QR unavailable" hideFooter>
+      <CustomerReceipt
+        venueName="Nabaperks"
+        eyebrow="QR unavailable"
+        hideFooter
+      >
         <EmptyState
           icon={AlertDiamondIcon}
           title={CARD_UNAVAILABLE_TITLE}

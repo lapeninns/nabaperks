@@ -48,7 +48,7 @@ export async function loadRewardExperienceContext(
     ) &&
     isRedeemableFrom(reward.redeemable_from)
   // The gate only governs a ready reward — skip the profile lookup otherwise.
-  const profileGate = redeemable ? await loadProfileGate() : undefined
+  const profileGate = redeemable ? await loadProfileGate(rewardId) : undefined
 
   return {
     reward: {

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 
 import { getCustomerRewardState } from "@/lib/customer/reward"
 import { createRewardScanToken } from "@/lib/customer/reward-scan-token"
+import { getCustomerProfileCompletion } from "@/lib/customer/profile"
+import { hasRewardEmailAssurance } from "@/lib/customer/reward-email-assurance"
 import { rewardStampThresholdMet } from "@/lib/customer/issued-reward-display"
 import { isRedeemableFrom } from "@/lib/customer/uk-date"
 import { getServerEnv } from "@/lib/env/server"
@@ -35,6 +37,11 @@ export async function GET(_request: Request, context: RewardQrRouteContext) {
     isRedeemableFrom(rewardState.reward.redeemable_from)
 
   if (!redeemable) {
+    return new NextResponse("Reward QR not ready", { status: 404 })
+  }
+
+  const profile = await getCustomerProfileCompletion()
+  if (!profile?.complete || !(await hasRewardEmailAssurance(rewardId))) {
     return new NextResponse("Reward QR not ready", { status: 404 })
   }
 

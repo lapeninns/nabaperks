@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useActionState } from "react"
+import { useActionState, useEffect, useRef } from "react"
 
 import {
   joinRewardsAction,
@@ -11,6 +11,7 @@ import {
 } from "@/app/m/[merchantSlug]/join/actions"
 import { Eyebrow, MonoTag } from "@/components/brand"
 import { customerInputClass } from "@/components/customer/input-class"
+import { CustomerBotChallenge } from "@/components/customer/customer-bot-challenge"
 import { CustomerLegalConsentLinks } from "@/components/customer/legal-sheet"
 import { StatusBanner } from "@/components/loyalty"
 import type { JoinCard } from "@/lib/customer/experience/types"
@@ -18,8 +19,11 @@ import { Button } from "@/components/ui/button"
 import {
   JOIN_PHONE_BACK_LABEL,
   JOIN_PHONE_CODE_HINT,
-  joinWelcomeHref,
 } from "@/lib/customer/experience/copy"
+import {
+  buildCustomerJoinHref,
+  buildCustomerMerchantHref,
+} from "@/lib/navigation/customer-join-intent"
 
 const identityInitialState: CustomerIdentityState = {}
 const joinInitialState: CustomerJoinState = {}
@@ -28,12 +32,14 @@ export type CustomerIdentityFormProps = {
   merchantSlug: string
   qrId?: string
   referralCode?: string
+  turnstileSiteKey?: string
 }
 
 export function CustomerIdentityForm({
   merchantSlug,
   qrId,
   referralCode,
+  turnstileSiteKey,
 }: CustomerIdentityFormProps) {
   const [state, requestAction, requestPending] = useActionState(
     requestCustomerIdentityAction,
@@ -64,6 +70,9 @@ export function CustomerIdentityForm({
             aria-describedby={
               state.errors?.contact ? "contact-error" : "contact-hint"
             }
+            onFocus={(event) =>
+              event.currentTarget.scrollIntoView({ block: "center" })
+            }
           />
           {state.errors?.contact ? (
             <p id="contact-error" className="text-sm text-destructive">
@@ -78,6 +87,7 @@ export function CustomerIdentityForm({
             </p>
           )}
         </div>
+        <CustomerBotChallenge siteKey={turnstileSiteKey} resetKey={state} />
         {state.errors?.form ? (
           // Wet Ink error treatment (CUS-P2-07): the shared banner instead of
           // a hand-rolled 1px box.
@@ -100,7 +110,15 @@ export function CustomerIdentityForm({
           the QR journey returns to the welcome step; a direct join links the
           venue landing, which carries the same preview. */}
       <Link
-        href={qrId ? joinWelcomeHref(merchantSlug, qrId) : `/m/${merchantSlug}`}
+        href={
+          qrId
+            ? buildCustomerJoinHref(merchantSlug, {
+                qrId,
+                referralCode,
+                step: "welcome",
+              })
+            : buildCustomerMerchantHref(merchantSlug, referralCode)
+        }
         className="text-center text-xs font-bold underline underline-offset-4"
       >
         {JOIN_PHONE_BACK_LABEL}
@@ -116,7 +134,6 @@ export type CustomerJoinFormProps = {
   merchantName: string
   card: JoinCard
   requireGeofence: boolean
-  geofenceRadiusMeters: number
 }
 
 export function CustomerJoinForm({
@@ -125,11 +142,19 @@ export function CustomerJoinForm({
   referralCode,
   merchantName,
   card,
+  requireGeofence,
 }: CustomerJoinFormProps) {
   const [state, action, pending] = useActionState(
     joinRewardsAction,
     joinInitialState
   )
+  const loyaltyTermsRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!state.errors?.loyaltyTerms) return
+    loyaltyTermsRef.current?.focus({ preventScroll: true })
+    loyaltyTermsRef.current?.scrollIntoView({ block: "center" })
+  }, [state.errors?.loyaltyTerms])
 
   return (
     <form action={action} className="grid gap-4">
@@ -140,8 +165,10 @@ export function CustomerJoinForm({
           single surface instead of two stacked bordered cards, so the primary
           CTA stays above the fold on small screens. */}
       <fieldset className="surface-card grid gap-3 p-4 text-sm">
+        <legend className="sr-only">Join choices</legend>
         <label className="flex items-start gap-3">
           <input
+            ref={loyaltyTermsRef}
             name="loyaltyTerms"
             type="checkbox"
             className="mt-0.5 size-5 shrink-0 accent-primary"
@@ -197,11 +224,20 @@ export function CustomerJoinForm({
         <StatusBanner tone="error" title={state.errors.form} />
       ) : null}
       <p className="text-center text-xs leading-5 text-muted-foreground">
-        Finish here and your first stamp lands straight away — no second scan
-        needed.
+        {qrId
+          ? requireGeofence
+            ? "This QR proves your first visit. Location checks begin on later qualifying visits."
+            : "Finish here and your first stamp lands straight away — no second scan needed."
+          : "Save your card now. Scan at the venue for your first stamp."}
       </p>
       <Button type="submit" size="lg" disabled={pending} className="w-full">
-        {pending ? "Stamping…" : "Get my first stamp"}
+        {pending
+          ? qrId
+            ? "Stamping…"
+            : "Saving…"
+          : qrId
+            ? "Get my first stamp"
+            : "Save my card"}
       </Button>
     </form>
   )

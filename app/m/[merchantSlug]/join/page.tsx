@@ -4,6 +4,11 @@ import { redirect } from "next/navigation"
 import { JoinWizard } from "@/components/customer/join-wizard"
 import { deriveCustomerExperience } from "@/lib/customer/experience/derive"
 import { loadJoinExperienceContext } from "@/lib/customer/experience/load-join"
+import { captureJoinFunnelEvent } from "@/lib/customer/join-funnel"
+import {
+  joinEntry,
+  joinStepForExperienceKind,
+} from "@/lib/customer/join-observability-contract"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 
 export const metadata: Metadata = {
@@ -46,6 +51,19 @@ export default async function MerchantJoinPage({
   }
 
   const experience = deriveCustomerExperience({ entry: "join", context })
+  const renderedStep = joinStepForExperienceKind(experience.kind)
+  if (renderedStep && !context.unavailable) {
+    await captureJoinFunnelEvent({
+      eventName: "join_page_viewed",
+      merchantId: context.merchantId,
+      qrCodeId: context.qrCodeId ?? null,
+      entry: joinEntry({
+        qrId: resolvedSearchParams.qr,
+        referralCode: resolvedSearchParams.ref,
+      }),
+      step: renderedStep,
+    })
+  }
 
   return (
     <JoinWizard experience={experience} referralCode={resolvedSearchParams.ref} />

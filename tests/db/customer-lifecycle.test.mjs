@@ -3,6 +3,7 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
+import { grantRewardEmailAssurance } from "./helpers/reward-email-assurance.mjs"
 
 /**
  * MS-customer-* — live-DB customer lifecycle JOURNEY tier.
@@ -53,9 +54,15 @@ test(
   async () => {
     await inRolledBackTxn(async (tx) => {
       const [v] = await tx.unsafe(PICK)
-      assert.ok(v, "the old-crown-girton journey venue is seeded and billing-active")
+      assert.ok(
+        v,
+        "the old-crown-girton journey venue is seeded and billing-active"
+      )
       assert.equal(v.stamps_required, 3, "card completes in 3 stamps")
-      assert.ok(v.latitude != null && v.longitude != null, "geofenced venue has coordinates")
+      assert.ok(
+        v.latitude != null && v.longitude != null,
+        "geofenced venue has coordinates"
+      )
 
       // A brand-new verified customer with a complete profile (so the reward is
       // redeemable later — full_name + date_of_birth + verified-if-present email).
@@ -102,14 +109,26 @@ test(
       const [joined] = await tx`
         select * from public.join_customer_membership_with_first_stamp(
           ${customer.id}::uuid, ${v.business_slug}, ${v.qr_id}, false, '2026-06-06')`
-      assert.equal(joined.created_membership, true, "STEP 1: membership created")
-      assert.equal(joined.first_stamp_issued, true, "STEP 1: first stamp issued on join")
+      assert.equal(
+        joined.created_membership,
+        true,
+        "STEP 1: membership created"
+      )
+      assert.equal(
+        joined.first_stamp_issued,
+        true,
+        "STEP 1: first stamp issued on join"
+      )
       const membershipId = joined.membership_id
 
       let m = await member(membershipId)
       assert.equal(m.current_stamp_count, 1, "STEP 1: card shows 1 stamp")
       assert.equal(m.active_cycle_number, 1, "STEP 1: on cycle 1")
-      assert.equal(await countEarned(membershipId, 1), 1, "STEP 1: one earned row in cycle 1")
+      assert.equal(
+        await countEarned(membershipId, 1),
+        1,
+        "STEP 1: one earned row in cycle 1"
+      )
 
       // ---- STEP 2: SECOND stamp the next business day (card 1 → 2).
       await ageStamps(membershipId)
@@ -123,10 +142,18 @@ test(
       // ---- STEP 3: THIRD stamp completes the card → reward UNLOCKED by stamping.
       await ageStamps(membershipId)
       const [s3] = await stamp(membershipId)
-      assert.equal(s3.reward_unlocked, true, "STEP 3: the third stamp unlocks a reward")
+      assert.equal(
+        s3.reward_unlocked,
+        true,
+        "STEP 3: the third stamp unlocks a reward"
+      )
       m = await member(membershipId)
       assert.equal(m.current_stamp_count, 3, "STEP 3: card is full at 3/3")
-      assert.equal(m.active_cycle_number, 1, "STEP 3: unlock does not advance the cycle")
+      assert.equal(
+        m.active_cycle_number,
+        1,
+        "STEP 3: unlock does not advance the cycle"
+      )
 
       // Exactly one reward, earned (not hand-inserted), scoped to cycle 1, and
       // NOT same-day redeemable (redeemable_from = next UK business day).
@@ -155,23 +182,34 @@ test(
       } catch (error) {
         sameDayRefused = /next UK business day/i.test(String(error.message))
       }
-      assert.ok(sameDayRefused, "STEP 3: same-day redemption blocked until next business day")
+      assert.ok(
+        sameDayRefused,
+        "STEP 3: same-day redemption blocked until next business day"
+      )
 
       // ---- STEP 4: the next business day arrives → REDEEM via scan token.
       await tx`
         update public.reward_events set redeemable_from = ${ukToday}
         where id = ${reward.id}`
+      await grantRewardEmailAssurance(tx, reward.id, customer.id)
       const [minted] = await tx`
         select * from public.create_reward_scan_token(
           ${reward.id}::uuid, ${customer.id}::uuid)`
-      assert.ok(minted?.scan_token, "STEP 4: a scan token is minted once redeemable")
+      assert.ok(
+        minted?.scan_token,
+        "STEP 4: a scan token is minted once redeemable"
+      )
 
       await tx`
         select * from public.collect_reward_scan_token(
           ${minted.scan_token}::uuid, ${v.merchant_id}::uuid)`
       const [tok] = await tx`
         select consumed_at from public.reward_scan_tokens where id = ${minted.scan_token}`
-      assert.notEqual(tok.consumed_at, null, "STEP 4: token consumed on collect")
+      assert.notEqual(
+        tok.consumed_at,
+        null,
+        "STEP 4: token consumed on collect"
+      )
       const [{ status: rewardStatus }] = await tx`
         select status from public.reward_events where id = ${reward.id}`
       assert.equal(rewardStatus, "redeemed", "STEP 4: reward is redeemed")
@@ -179,7 +217,11 @@ test(
       // ---- STEP 5: CYCLE RESETS. The real invariant is not "== 0" but the
       // rollover: greatest(count - required, 0) and cycle == redeemed + 1.
       m = await member(membershipId)
-      assert.equal(m.current_stamp_count, 0, "STEP 5: stamp count rolls over to 0")
+      assert.equal(
+        m.current_stamp_count,
+        0,
+        "STEP 5: stamp count rolls over to 0"
+      )
       assert.equal(m.active_cycle_number, 2, "STEP 5: advanced to cycle 2")
       assert.equal(m.total_rewards_redeemed, 1, "STEP 5: one reward redeemed")
       assert.equal(
@@ -191,13 +233,33 @@ test(
       // ---- STEP 6: the FIRST stamp of cycle 2 starts a clean card, not 4/3.
       await ageStamps(membershipId)
       const [s4] = await stamp(membershipId)
-      assert.equal(s4.reward_unlocked, false, "STEP 6: cycle 2 stamp #1 does not unlock")
+      assert.equal(
+        s4.reward_unlocked,
+        false,
+        "STEP 6: cycle 2 stamp #1 does not unlock"
+      )
       m = await member(membershipId)
-      assert.equal(m.current_stamp_count, 1, "STEP 6: cycle 2 starts at 1 stamp")
+      assert.equal(
+        m.current_stamp_count,
+        1,
+        "STEP 6: cycle 2 starts at 1 stamp"
+      )
       assert.equal(m.active_cycle_number, 2, "STEP 6: still cycle 2")
-      assert.equal(m.total_stamps_earned, 4, "STEP 6: lifetime stamps = 4 across both cycles")
-      assert.equal(await countEarned(membershipId, 2), 1, "STEP 6: one earned row in cycle 2")
-      assert.equal(await countEarned(membershipId, 1), 3, "STEP 6: cycle 1 history is preserved")
+      assert.equal(
+        m.total_stamps_earned,
+        4,
+        "STEP 6: lifetime stamps = 4 across both cycles"
+      )
+      assert.equal(
+        await countEarned(membershipId, 2),
+        1,
+        "STEP 6: one earned row in cycle 2"
+      )
+      assert.equal(
+        await countEarned(membershipId, 1),
+        3,
+        "STEP 6: cycle 1 history is preserved"
+      )
     })
   }
 )

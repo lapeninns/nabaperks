@@ -21,7 +21,7 @@ function between(source, start, end) {
   return source.slice(from, to)
 }
 
-test("Given join server actions redirect with QR form state When source is inspected Then every QR query value is encoded", () => {
+test("Given join server actions redirect with QR form state When source is inspected Then navigation uses the encoded join-intent contract", () => {
   const actions = readProjectFile(
     "app",
     "m",
@@ -45,20 +45,26 @@ test("Given join server actions redirect with QR form state When source is inspe
     undefined
   )
 
-  assert.match(requestIdentity, /redirect\([\s\S]*encodeURIComponent\(qrId\)/)
-  assert.match(verifyOtp, /redirect\([\s\S]*encodeURIComponent\(qrId\)/)
+  assert.match(requestIdentity, /redirect\([\s\S]*buildCustomerJoinHref/)
+  assert.match(requestIdentity, /referralCode: ref \|\| undefined/)
+  assert.match(requestIdentity, /step: "otp"/)
+  assert.match(verifyOtp, /redirect\([\s\S]*buildCustomerJoinHref/)
+  assert.match(verifyOtp, /referralCode: ref \|\| undefined/)
+  assert.match(verifyOtp, /step: "terms"/)
   assert.match(joinRewards, /encodeURIComponent\(qrId\)[\s\S]*membership=existing/)
   assert.doesNotMatch(actions, /\?qr=\$\{qrId\}/)
   assert.doesNotMatch(actions, /\?qr=\$\{qrId\}&/)
 })
 
-test("Given the OTP phone-step fallback link When source is inspected Then the QR query value is encoded", () => {
+test("Given the OTP phone-step fallback link When source is inspected Then it uses the encoded join-intent contract", () => {
   const otpForm = readProjectFile(
     "components",
     "customer",
     "join-otp-form.tsx"
   )
 
-  assert.match(otpForm, /encodeURIComponent\(qrId\)/)
+  assert.match(otpForm, /buildCustomerJoinHref/)
+  assert.match(otpForm, /referralCode/)
+  assert.match(otpForm, /step: "phone"/)
   assert.doesNotMatch(otpForm, /qr=\$\{qrId\}/)
 })

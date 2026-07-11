@@ -49,7 +49,10 @@ export default async function HomeLoginPage({
           </div>
         </div>
 
-        <CustomerLoginForm next={next} />
+        <CustomerLoginForm
+          next={next}
+          turnstileSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+        />
 
         <p className="border-t-2 border-ink/15 pt-4 text-center text-sm leading-6 text-muted-foreground">
           New here? Scan a venue&apos;s QR code to collect your first stamp —

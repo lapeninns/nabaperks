@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
 
 import {
   merchantActivitySummaryCacheTag,
@@ -8,6 +9,10 @@ import {
 } from "@/lib/cache/tags"
 import { blockReasonCopy } from "@/lib/customer/experience/block-reasons"
 import { getStampQrContextForMembership } from "@/lib/customer/join"
+import {
+  getJoinFirstStampRecovery,
+  retryJoinFirstStampRecovery,
+} from "@/lib/customer/join-first-stamp-recovery"
 import { drainReferralBonusBankWithOutcome } from "@/lib/customer/referral-bonus-bank"
 import {
   issueSelfServiceStamp,
@@ -99,6 +104,35 @@ export async function selfStampAction(
     geoFlagged: result.geoFlagged,
     bonusStampsApplied,
   }
+}
+
+export async function retryJoinFirstStampAction(
+  formData: FormData
+): Promise<void> {
+  const membershipId = value(formData, "membershipId")
+  if (!membershipId) redirect("/home")
+
+  const recovery = await getJoinFirstStampRecovery(membershipId)
+
+  let outcome: Awaited<ReturnType<typeof retryJoinFirstStampRecovery>>
+  try {
+    outcome = await retryJoinFirstStampRecovery(membershipId)
+  } catch (error) {
+    if (!(error instanceof Error)) throw error
+    logger.error("join_first_stamp_retry_failed", { membershipId, error })
+    revalidatePath(`/card/${membershipId}`)
+    redirect(`/card/${membershipId}`)
+  }
+
+  revalidatePath(`/card/${membershipId}`)
+  revalidatePath("/home")
+  if (recovery) {
+    revalidateCacheTag(merchantActivitySummaryCacheTag(recovery.merchantId))
+  }
+  if (outcome === "issued" || outcome === "already_issued") {
+    redirect(`/card/${membershipId}?stamp=issued`)
+  }
+  redirect(`/card/${membershipId}`)
 }
 
 function coordinates(formData: FormData): GeoCoordinates | undefined {
