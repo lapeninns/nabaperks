@@ -21,6 +21,7 @@ import {
   buildBillingPresentation,
   type BillingPresentationSource,
 } from "@/lib/merchant/billing-presentation"
+import { isLaunchBillingReady } from "@/lib/merchant/launch-readiness-core"
 
 export type BillingPanelOutcome =
   | { kind: "confirmed"; source: "checkout" | "portal"; status: string }
@@ -228,6 +229,18 @@ function BillingOutcomeBanner({
     <StatusBanner tone={model.tone} title={<h2>{model.title}</h2>}>
       <span className="grid gap-3">
         <span>{model.message}</span>
+        {outcome.kind === "confirmed" &&
+        isLaunchBillingReady({
+          requiresBilling: true,
+          status: outcome.status,
+        }) ? (
+          <Button asChild className="w-full sm:w-fit">
+            <Link href="/app/launch?tab=qr">
+              See your venue QR
+              <Icon icon={ArrowRight01Icon} size={16} />
+            </Link>
+          </Button>
+        ) : null}
       </span>
     </StatusBanner>
   )
