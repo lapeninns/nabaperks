@@ -1,6 +1,6 @@
 ---
 spec_id: MS-production-release-controls
-status: implemented
+status: verified
 risk_class: docs-tooling
 owner: codex
 last_reviewed: 2026-07-12
