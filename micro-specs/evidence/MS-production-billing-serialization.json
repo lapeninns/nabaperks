@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-production-billing-serialization",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-12T21:46:57.977Z",
+      "sha": "8e0ee8f341356487b21f6756780e0d225c8e82aa",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}
