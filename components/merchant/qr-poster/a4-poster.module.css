@@ -640,8 +640,8 @@
     visibility: hidden;
   }
 
-  .page,
-  .page * {
+  .page.page,
+  .page.page * {
     visibility: visible;
   }
 
