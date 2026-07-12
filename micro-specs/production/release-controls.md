@@ -6,19 +6,21 @@ owner: codex
 last_reviewed: 2026-07-12
 allowed_blast_radius:
   - micro-specs/production/**
+  - micro-specs/README.md
   - .github/workflows/ci.yml
   - vercel.json
   - package.json
   - scripts/check-env.mjs
   - tests/micro-specs/production-release-controls.test.mjs
 implementation_surfaces:
+  - micro-specs/README.md
   - .github/workflows/ci.yml
   - vercel.json
   - package.json
   - scripts/check-env.mjs
   - tests/micro-specs/production-release-controls.test.mjs
 related_tests:
-  - not-yet-created
+  - tests/micro-specs/production-release-controls.test.mjs
 verification_gates:
   - pnpm lint
   - pnpm typecheck
@@ -45,9 +47,10 @@ status checks.
 ## 2. Blast Radius
 
 In scope: the hosted environment-profile resolver, the Vercel build command,
-the main CI environment-contract gate, package-script wiring, focused source
-contracts, this spec, its evidence ledger, and the external GitHub `main`
-branch-protection settings proved by manual attestation.
+the main CI environment-contract gate, package-script wiring, governance-index
+command parity, focused source contracts, this spec, its evidence ledger, and
+the external GitHub `main` branch-protection settings proved by manual
+attestation.
 
 Out of scope: provider credential values, Supabase schema, application routes,
 UI behavior, Stripe live-mode configuration, preview/staging provider setup,

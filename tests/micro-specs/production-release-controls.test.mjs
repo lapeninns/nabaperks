@@ -1,0 +1,108 @@
+import assert from "node:assert/strict"
+import { spawnSync } from "node:child_process"
+import {
+  cpSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs"
+import { tmpdir } from "node:os"
+import { join, resolve } from "node:path"
+import test from "node:test"
+
+const projectDir = process.cwd()
+const checkEnvScript = resolve(projectDir, "scripts/check-env.mjs")
+const envContract = JSON.parse(
+  readFileSync(join(projectDir, "config/env-contract.json"), "utf8")
+)
+
+test("Given a hosted production build When no CLI profile is supplied Then production-only environment keys are required", () => {
+  const result = runEnvCheck({ vercelEnv: "production" })
+
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /Missing: .*CRON_SECRET/)
+  assert.match(result.stderr, /WEB_PUSH_VAPID_PRIVATE_KEY/)
+})
+
+test("Given an explicit default profile When Vercel reports production Then explicit CLI intent remains authoritative", () => {
+  const result = runEnvCheck({
+    args: ["--profile=default"],
+    vercelEnv: "production",
+  })
+
+  assert.equal(result.status, 0, result.stderr)
+  assert.match(result.stdout, /environment configuration is valid/)
+})
+
+for (const [name, value, message] of [
+  [
+    "CUSTOMER_OTP_BYPASS_MODE",
+    "any-4-digits",
+    "CUSTOMER_OTP_BYPASS_MODE must be blank outside local development",
+  ],
+  [
+    "CUSTOMER_DEV_OTP_CODE",
+    "424242",
+    "CUSTOMER_DEV_OTP_CODE must be blank outside local development",
+  ],
+]) {
+  test(`Given hosted preview When ${name} is configured Then the environment check fails closed`, () => {
+    const result = runEnvCheck({
+      environment: { [name]: value },
+      vercelEnv: "preview",
+    })
+
+    assert.equal(result.status, 1)
+    assert.match(result.stderr, new RegExp(message))
+  })
+}
+
+test("Given hosted release configuration When release controls are inspected Then environment validation precedes every build", () => {
+  const vercel = JSON.parse(readFileSync("vercel.json", "utf8"))
+  const ci = readFileSync(".github/workflows/ci.yml", "utf8")
+
+  assert.equal(vercel.buildCommand, "pnpm env:check && pnpm build")
+  assert.ok(
+    ci.indexOf("- run: pnpm env:check") < ci.indexOf("- run: pnpm lint"),
+    "CI must validate the environment before repository gates"
+  )
+})
+
+function runEnvCheck({ args = [], environment = {}, vercelEnv }) {
+  const fixtureDir = mkdtempSync(join(tmpdir(), "nabaperks-release-env-"))
+
+  try {
+    const configDir = join(fixtureDir, "config")
+    cpSync(join(projectDir, "config"), configDir, { recursive: true })
+    writeFileSync(join(fixtureDir, ".env"), baseEnvironmentFile())
+
+    return spawnSync(process.execPath, [checkEnvScript, ...args], {
+      cwd: fixtureDir,
+      encoding: "utf8",
+      env: {
+        HOME: process.env.HOME ?? "",
+        NODE_ENV: "test",
+        PATH: process.env.PATH ?? "",
+        VERCEL_ENV: vercelEnv,
+        ...environment,
+      },
+    })
+  } finally {
+    rmSync(fixtureDir, { force: true, recursive: true })
+  }
+}
+
+function baseEnvironmentFile() {
+  const values = envContract
+    .filter((entry) => !entry.optional)
+    .map((entry) => `${entry.name}=${testValue(entry)}`)
+
+  values.push("TWILIO_AUTH_TOKEN=test-auth-token")
+  return `${values.join("\n")}\n`
+}
+
+function testValue(entry) {
+  if (entry.kind === "url") return "https://example.test"
+  return `test-${entry.name.toLowerCase()}`
+}

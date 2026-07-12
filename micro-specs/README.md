@@ -252,6 +252,7 @@ active specs:
 The current CI-enforced baseline is:
 
 ```bash
+pnpm env:check:production
 pnpm lint
 pnpm typecheck
 pnpm governance:check

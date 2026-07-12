@@ -3,7 +3,10 @@ import { join } from "node:path"
 
 const projectDir = process.cwd()
 const nodeEnv = process.env.NODE_ENV || "development"
-const checkProfile = parseCheckProfile(process.argv.slice(2))
+const checkProfile = parseCheckProfile(
+  process.argv.slice(2),
+  process.env.VERCEL_ENV
+)
 const envContract = JSON.parse(
   readFileSync(join(projectDir, "config/env-contract.json"), "utf8")
 )
@@ -213,8 +216,9 @@ console.log(
     : "Nabaperks environment configuration is valid."
 )
 
-function parseCheckProfile(args) {
-  let profile = "default"
+function parseCheckProfile(args, vercelEnvironment) {
+  let profile =
+    vercelEnvironment?.trim() === "production" ? "production" : "default"
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index]
