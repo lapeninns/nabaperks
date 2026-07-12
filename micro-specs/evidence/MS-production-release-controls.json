@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-production-release-controls",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-12T18:28:19.664Z",
+      "sha": "2da316ef149e5fb548cab992ce0b639e58365f56",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}
