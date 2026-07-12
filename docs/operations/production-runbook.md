@@ -11,8 +11,10 @@ Escalation inbox: `info@lapeninns.com`
 
 Do not promote a release until all of these are true:
 
-1. The governed Micro-Specs changed by the release are at least `verified` and
-   their evidence ledgers are committed with them.
+1. Pre-deploy Micro-Specs are at least `implemented` with every automated gate
+   recorded. Specs whose remaining evidence is explicitly live-only advance to
+   `verified` immediately after the controlled promotion and before the release
+   is declared complete; a failed live gate triggers rollback.
 2. All required `main` checks pass, including build, DB moat, E2E,
    accessibility, visuals, ZAP and CodeQL.
 3. `pnpm env:check:production`, `pnpm security:audit`,
@@ -32,7 +34,9 @@ Do not promote a release until all of these are true:
 
    ```sh
    curl --fail --silent https://nabaperks.com/api/health | jq
-   curl --fail --silent https://nabaperks.com/api/readiness | jq
+   curl --fail --silent \
+     --header "Authorization: Bearer ${PRODUCTION_MONITOR_SECRET}" \
+     https://nabaperks.com/api/readiness | jq
    ```
 
    Liveness must report `status=ok` and readiness must report
@@ -53,7 +57,13 @@ is reproduced, auth/session safety is uncertain, or ledger/billing behavior is
 not trustworthy.
 
 1. Freeze further merges and announce the incident owner.
-2. In Vercel, promote the previously identified healthy production deployment.
+2. Roll back to the previously identified healthy production deployment, then
+   wait for Vercel to finish:
+
+   ```sh
+   vercel rollback "$HEALTHY_DEPLOYMENT_ID" --yes
+   vercel rollback status nabaperks
+   ```
 3. Re-run `/api/health` and `/api/readiness`; record the restored revision.
 4. If a forward-only migration caused the incident, do not edit or delete the
    applied migration. Add and verify a compensating migration on a disposable

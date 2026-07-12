@@ -7,6 +7,12 @@ last_reviewed: 2026-07-12
 allowed_blast_radius:
   - micro-specs/production/**
   - app/auth/confirm/route.ts
+  - app/api/readiness/route.ts
+  - lib/observability/readiness.ts
+  - proxy.ts
+  - .env.example
+  - config/env-contract.json
+  - scripts/check-env.mjs
   - scripts/provider-readiness/runtime.mjs
   - scripts/check-supabase-migrations.mjs
   - scripts/supabase-linked.mjs
@@ -25,6 +31,12 @@ allowed_blast_radius:
   - pnpm-lock.yaml
 implementation_surfaces:
   - app/auth/confirm/route.ts
+  - app/api/readiness/route.ts
+  - lib/observability/readiness.ts
+  - proxy.ts
+  - .env.example
+  - config/env-contract.json
+  - scripts/check-env.mjs
   - scripts/provider-readiness/runtime.mjs
   - scripts/check-supabase-migrations.mjs
   - scripts/supabase-linked.mjs
@@ -95,6 +107,8 @@ production deployment.
   variable. Local Playwright may keep a deterministic OTP.
 - Provider tooling may read developer-selected env files, but hosted URLs must
   be classified by parsed hostname rather than substring matching.
+- The privileged readiness request must accept only the exact hosted Supabase
+  project origin and must require its dedicated monitor bearer.
 - The PostCSS, `tmp`, `uuid`, and `qs` overrides must stay at patched versions
   and must survive the full build and developer-tool invocation paths.
 

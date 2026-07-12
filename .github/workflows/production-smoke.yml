@@ -17,12 +17,16 @@ jobs:
     name: Liveness and readiness
     runs-on: ubuntu-latest
     timeout-minutes: 3
+    env:
+      PRODUCTION_MONITOR_SECRET: ${{ secrets.PRODUCTION_MONITOR_SECRET }}
     steps:
       - name: Verify public liveness
         run: |
+          expected_revision="${GITHUB_SHA:0:12}"
           body="$(curl --fail --silent --show-error --max-time 10 https://nabaperks.com/api/health)"
-          jq -e '.status == "ok" and .scope == "liveness"' <<<"$body"
+          jq -e --arg revision "$expected_revision" '.status == "ok" and .scope == "liveness" and .revision == $revision and .environment == "production"' <<<"$body"
       - name: Verify dependency readiness
         run: |
-          body="$(curl --fail --silent --show-error --max-time 10 https://nabaperks.com/api/readiness)"
-          jq -e '.status == "ready" and .checks.database == "ok"' <<<"$body"
+          expected_revision="${GITHUB_SHA:0:12}"
+          body="$(curl --fail --silent --show-error --max-time 10 --header "Authorization: Bearer ${PRODUCTION_MONITOR_SECRET}" https://nabaperks.com/api/readiness)"
+          jq -e --arg revision "$expected_revision" '.status == "ready" and .checks.database == "ok" and .revision == $revision and .environment == "production"' <<<"$body"

@@ -12,6 +12,7 @@ const envContract = JSON.parse(
 )
 const productionRequiredEnvNames = new Set([
   "CRON_SECRET",
+  "PRODUCTION_MONITOR_SECRET",
   "RESEND_FROM",
   "SUPABASE_SEND_EMAIL_HOOK_SECRET",
   "STRIPE_GROWTH_ANNUAL_PRICE_ID",
@@ -24,6 +25,15 @@ const pseudonymousAnalyticsRequiredEnvNames = new Set([
   "POSTHOG_PROJECT_KEY",
   "POSTHOG_HOST",
   "ANALYTICS_PSEUDONYM_SECRET",
+])
+const highEntropySecretEnvNames = new Set([
+  "CRON_SECRET",
+  "PRODUCTION_MONITOR_SECRET",
+  "CUSTOMER_SESSION_SECRET",
+  "CUSTOMER_PHONE_HMAC_SECRET",
+  "CUSTOMER_PHONE_ENCRYPTION_KEY",
+  "CUSTOMER_EMAIL_HMAC_SECRET",
+  "MERCHANT_OTP_ALIAS_TOKEN_ENCRYPTION_KEY",
 ])
 
 const envFiles = [
@@ -153,6 +163,30 @@ if (pseudonymousAnalyticsEnabled) {
   }
 }
 
+if (hostedOrProductionProfile) {
+  const supabaseUrl = values.NEXT_PUBLIC_SUPABASE_URL?.trim()
+
+  if (supabaseUrl && !isSafeSupabaseProjectOrigin(supabaseUrl)) {
+    invalid.push(
+      "NEXT_PUBLIC_SUPABASE_URL must be an HTTPS Supabase project origin without credentials, path, query, or fragment"
+    )
+  }
+
+  for (const name of highEntropySecretEnvNames) {
+    const secret = values[name]?.trim()
+    if (!secret) continue
+
+    if (secret.length < 32) {
+      invalid.push(`${name} must be at least 32 characters`)
+      continue
+    }
+
+    if (/(?:change.?me|example|placeholder|replace.?me)/i.test(secret)) {
+      invalid.push(`${name} must not be a placeholder`)
+    }
+  }
+}
+
 if (customerOtpBypassMode && !customerOtpTwilioBypassed) {
   invalid.push(
     `CUSTOMER_OTP_BYPASS_MODE must be ${customerOtpBypassModeAnyFourDigits} or blank`
@@ -199,6 +233,30 @@ function isSafePostHogHost(value) {
       (url.hostname === "localhost" || url.hostname === "127.0.0.1")
     return (
       (url.protocol === "https:" || localHttp) &&
+      !url.username &&
+      !url.password &&
+      url.pathname === "/" &&
+      !url.search &&
+      !url.hash
+    )
+  } catch {
+    return false
+  }
+}
+
+function isSafeSupabaseProjectOrigin(value) {
+  try {
+    const url = new URL(value)
+    const labels = url.hostname.toLowerCase().split(".")
+    const hostedProject =
+      labels.length === 3 &&
+      labels[1] === "supabase" &&
+      labels[2] === "co" &&
+      /^[a-z0-9-]+$/.test(labels[0])
+
+    return (
+      url.protocol === "https:" &&
+      hostedProject &&
       !url.username &&
       !url.password &&
       url.pathname === "/" &&

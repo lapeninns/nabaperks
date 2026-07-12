@@ -12,12 +12,16 @@ function read(...parts) {
 test("production exposes separate versioned liveness and dependency readiness", () => {
   const health = read("app", "api", "health", "route.ts")
   const readiness = read("app", "api", "readiness", "route.ts")
+  const proxy = read("proxy.ts")
 
   assert.match(health, /scope: "liveness"/)
   assert.match(health, /VERCEL_GIT_COMMIT_SHA/)
   assert.match(readiness, /status: ready \? "ready" : "not_ready"/)
   assert.match(readiness, /status: ready \? 200 : 503/)
   assert.match(readiness, /SUPABASE_SERVICE_ROLE_KEY/)
+  assert.match(proxy, /isOperationalProbePath\(request\.nextUrl\.pathname\)/)
+  assert.match(proxy, /customerDevice\?\.isNew/)
+  assert.match(proxy, /operationalProbe\s*\?\s*createResponse\(\)/)
 })
 
 test("global request-error capture omits raw request and exception detail", () => {
@@ -36,9 +40,13 @@ test("scheduled production smoke validates both JSON probe contracts", () => {
   assert.match(workflow, /cron: "\*\/15 \* \* \* \*"/)
   assert.match(workflow, /https:\/\/nabaperks\.com\/api\/health/)
   assert.match(workflow, /https:\/\/nabaperks\.com\/api\/readiness/)
-  assert.match(workflow, /jq -e '.status == "ok" and .scope == "liveness"'/)
+  assert.match(workflow, /secrets\.PRODUCTION_MONITOR_SECRET/)
+  assert.match(workflow, /GITHUB_SHA/)
+  assert.match(workflow, /\.environment == "production"/)
+  assert.match(workflow, /\.revision == \$revision/)
+  assert.match(workflow, /\.status == "ok" and \.scope == "liveness"/)
   assert.match(
     workflow,
-    /jq -e '.status == "ready" and .checks.database == "ok"'/
+    /\.status == "ready" and \.checks\.database == "ok"/
   )
 })

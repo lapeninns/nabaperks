@@ -20,9 +20,12 @@ export async function checkDatabaseReadiness({
   }
 
   try {
+    const origin = trustedSupabaseProjectOrigin(supabaseUrl)
+    if (!origin) return { database: "error" }
+
     const url = new URL(
       "/rest/v1/rpc/production_readiness_probe",
-      supabaseUrl
+      origin
     )
 
     const response = await fetcher(url, {
@@ -40,5 +43,33 @@ export async function checkDatabaseReadiness({
     return { database: response.ok ? "ok" : "error" }
   } catch {
     return { database: "error" }
+  }
+}
+
+export function trustedSupabaseProjectOrigin(rawUrl: string): string | null {
+  try {
+    const url = new URL(rawUrl.trim())
+    const labels = url.hostname.toLowerCase().split(".")
+    const hostedProject =
+      labels.length === 3 &&
+      labels[1] === "supabase" &&
+      labels[2] === "co" &&
+      /^[a-z0-9-]+$/.test(labels[0])
+
+    if (
+      url.protocol !== "https:" ||
+      !hostedProject ||
+      url.username ||
+      url.password ||
+      url.pathname !== "/" ||
+      url.search ||
+      url.hash
+    ) {
+      return null
+    }
+
+    return url.origin
+  } catch {
+    return null
   }
 }

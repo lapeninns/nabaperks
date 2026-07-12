@@ -8,17 +8,23 @@ allowed_blast_radius:
   - micro-specs/production/**
   - micro-specs/README.md
   - .github/workflows/ci.yml
+  - .env.example
+  - config/env-contract.json
   - vercel.json
   - package.json
   - scripts/check-env.mjs
   - tests/micro-specs/production-release-controls.test.mjs
+  - tests/micro-specs/provider-readiness-smoke.test.mjs
 implementation_surfaces:
   - micro-specs/README.md
   - .github/workflows/ci.yml
+  - .env.example
+  - config/env-contract.json
   - vercel.json
   - package.json
   - scripts/check-env.mjs
   - tests/micro-specs/production-release-controls.test.mjs
+  - tests/micro-specs/provider-readiness-smoke.test.mjs
 related_tests:
   - tests/micro-specs/production-release-controls.test.mjs
 verification_gates:
@@ -59,6 +65,10 @@ and Vercel production promotion of this branch.
 ## 3. Strict Constraints and Assumptions
 
 - Secret values never enter source, logs, evidence ledgers, or test fixtures.
+- Hosted Supabase configuration must be the exact HTTPS project origin before
+  any service-role request can be constructed.
+- First-party bearer, signing, HMAC, and encryption secrets must contain at
+  least 32 characters and must not be placeholders.
 - `CUSTOMER_OTP_BYPASS_MODE` and `CUSTOMER_DEV_OTP_CODE` remain local-only;
   hosted preview and production fail closed if either has a value.
 - The existing environment contract remains the single source of required key

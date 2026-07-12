@@ -11,7 +11,7 @@ test("database readiness returns ok only for a successful bounded RLS read", asy
       request = { input: String(input), init }
       return new Response("[]", { status: 200 })
     },
-    supabaseUrl: "https://project.supabase.com",
+    supabaseUrl: "https://project.supabase.co",
   })
 
   assert.deepEqual(result, { database: "ok" })
@@ -28,7 +28,7 @@ test("database readiness collapses provider failures to a safe public state", as
     serviceRoleKey: "service-role-test-key",
     fetcher: async () =>
       new Response("private provider detail", { status: 503 }),
-    supabaseUrl: "https://project.supabase.com",
+    supabaseUrl: "https://project.supabase.co",
   })
 
   assert.deepEqual(result, { database: "error" })
@@ -53,13 +53,37 @@ test("database readiness fails closed before fetch when configuration is absent"
   assert.equal(calls, 0)
 })
 
+test("database readiness never sends the service role key to an untrusted origin", async () => {
+  let calls = 0
+
+  for (const supabaseUrl of [
+    "http://project.supabase.co",
+    "https://supabase.co.evil.example",
+    "https://evil.example/project.supabase.co",
+    "https://user:password@project.supabase.co",
+  ]) {
+    const result = await checkDatabaseReadiness({
+      serviceRoleKey: "service-role-test-key",
+      fetcher: async () => {
+        calls += 1
+        return new Response("[]")
+      },
+      supabaseUrl,
+    })
+
+    assert.deepEqual(result, { database: "error" })
+  }
+
+  assert.equal(calls, 0)
+})
+
 test("database readiness collapses timeouts and network errors", async () => {
   const result = await checkDatabaseReadiness({
     serviceRoleKey: "service-role-test-key",
     fetcher: async () => {
       throw new DOMException("timed out with sensitive URL", "TimeoutError")
     },
-    supabaseUrl: "https://project.supabase.com",
+    supabaseUrl: "https://project.supabase.co",
   })
 
   assert.deepEqual(result, { database: "error" })

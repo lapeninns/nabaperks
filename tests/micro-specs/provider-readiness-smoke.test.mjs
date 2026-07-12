@@ -346,6 +346,9 @@ test("remediation log points release verification at the provider smoke command"
 })
 
 function validTestEnvValue(entry) {
+  if (entry.name === "NEXT_PUBLIC_SUPABASE_URL") {
+    return "https://ci.supabase.co"
+  }
   if (entry.kind === "url") return "https://example.com"
   if (entry.kind === "postgres-url") {
     return "postgres://user:password@example.com/database"

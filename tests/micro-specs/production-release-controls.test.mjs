@@ -35,6 +35,38 @@ test("Given an explicit default profile When Vercel reports production Then expl
   assert.match(result.stdout, /environment configuration is valid/)
 })
 
+test("Given hosted configuration When the Supabase origin is untrusted Then privileged readiness cannot deploy", () => {
+  const result = runEnvCheck({
+    args: ["--profile=default"],
+    environment: {
+      NEXT_PUBLIC_SUPABASE_URL: "https://supabase.co.evil.example",
+    },
+    vercelEnv: "production",
+  })
+
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /NEXT_PUBLIC_SUPABASE_URL must be an HTTPS Supabase project origin/)
+})
+
+for (const name of [
+  "CRON_SECRET",
+  "PRODUCTION_MONITOR_SECRET",
+  "CUSTOMER_SESSION_SECRET",
+  "CUSTOMER_PHONE_HMAC_SECRET",
+  "CUSTOMER_PHONE_ENCRYPTION_KEY",
+]) {
+  test(`Given hosted configuration When ${name} is weak Then the environment fails closed`, () => {
+    const result = runEnvCheck({
+      args: ["--profile=default"],
+      environment: { [name]: "x" },
+      vercelEnv: "production",
+    })
+
+    assert.equal(result.status, 1)
+    assert.match(result.stderr, new RegExp(`${name} must be at least 32 characters`))
+  })
+}
+
 for (const [name, value, message] of [
   [
     "CUSTOMER_OTP_BYPASS_MODE",
@@ -61,11 +93,17 @@ for (const [name, value, message] of [
 test("Given hosted release configuration When release controls are inspected Then environment validation precedes every build", () => {
   const vercel = JSON.parse(readFileSync("vercel.json", "utf8"))
   const ci = readFileSync(".github/workflows/ci.yml", "utf8")
+  const envCheckIndex = ci.indexOf("- run: pnpm env:check:production")
+  const lintIndex = ci.indexOf("- run: pnpm lint")
 
   assert.equal(vercel.buildCommand, "pnpm env:check && pnpm build")
-  assert.ok(
-    ci.indexOf("- run: pnpm env:check") < ci.indexOf("- run: pnpm lint"),
-    "CI must validate the environment before repository gates"
+  assert.notEqual(envCheckIndex, -1)
+  assert.notEqual(lintIndex, -1)
+  assert.ok(envCheckIndex < lintIndex, "CI must validate the environment before repository gates")
+  assert.match(ci, /- run: pnpm security:audit/)
+  assert.match(
+    ci,
+    /--project=chromium --project=mobile-safari --project=desktop-firefox --project=desktop-safari --grep-invert @visual/
   )
 })
 
@@ -103,6 +141,9 @@ function baseEnvironmentFile() {
 }
 
 function testValue(entry) {
+  if (entry.name === "NEXT_PUBLIC_SUPABASE_URL") {
+    return "https://ci.supabase.co"
+  }
   if (entry.kind === "url") return "https://example.test"
-  return `test-${entry.name.toLowerCase()}`
+  return `fixture-${entry.name.toLowerCase()}-0123456789abcdef`
 }

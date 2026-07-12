@@ -8,6 +8,10 @@ allowed_blast_radius:
   - micro-specs/production/**
   - app/api/health/route.ts
   - app/api/readiness/route.ts
+  - proxy.ts
+  - .env.example
+  - config/env-contract.json
+  - scripts/check-env.mjs
   - instrumentation.ts
   - lib/observability/readiness.ts
   - lib/observability/logger.ts
@@ -22,6 +26,10 @@ allowed_blast_radius:
 implementation_surfaces:
   - app/api/health/route.ts
   - app/api/readiness/route.ts
+  - proxy.ts
+  - .env.example
+  - config/env-contract.json
+  - scripts/check-env.mjs
   - instrumentation.ts
   - lib/observability/readiness.ts
   - lib/observability/logger.ts
@@ -74,6 +82,8 @@ provider writes, staging infrastructure, product UI, and Stripe live mode.
 ## 3. Strict Constraints and Assumptions
 
 - Liveness stays dependency-free, cheap, dynamic, and non-cached.
+- Operational probes bypass customer identity issuance and Supabase Auth
+  refresh; readiness accepts only the dedicated monitor bearer.
 - Readiness may reveal only `ok`/`error` states, deployment metadata, and
   timing; it never returns provider errors, keys, hostnames, row data, or PII.
 - The readiness database probe uses the server-held service-role key only to
