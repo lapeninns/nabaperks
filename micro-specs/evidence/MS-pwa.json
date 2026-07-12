@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "spec_id": "MS-pwa",
+  "runs": [
+    {
+      "timestamp": "2026-07-12T20:06:59.974Z",
+      "git_sha": "97052f66c8b6d53366cab649a76a796670b09ad2",
+      "git_branch": "codex/production-readiness",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 10827
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1516
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 2333
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10386
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1641
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 199
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11629
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --grep \"PWA offline fallback\"",
+          "exit_code": 0,
+          "duration_ms": 10881
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 245110
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 115738
+        }
+      ],
+      "all_passed": true
+    }
+  ],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-12T20:06:59.974Z",
+      "sha": "97052f66c8b6d53366cab649a76a796670b09ad2",
+      "dirty": false,
+      "by": "amankumarshrestha"
+    }
+  ]
+}
