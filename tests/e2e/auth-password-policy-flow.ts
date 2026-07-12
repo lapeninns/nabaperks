@@ -20,6 +20,7 @@ export function defineAuthPasswordPolicyTests() {
     page,
   }) => {
     await page.goto("/signup")
+    await page.waitForLoadState("networkidle")
 
     const password = page.getByLabel("Password", { exact: true })
     const requirements = page.getByRole("region", {
