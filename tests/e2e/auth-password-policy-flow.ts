@@ -63,6 +63,7 @@ export function defineAuthPasswordPolicyTests() {
     await page.goto(
       "/reset-password?stage=verify&email=operator%40example.test"
     )
+    await page.waitForLoadState("networkidle")
 
     const password = page.getByLabel("New password", { exact: true })
     const requirements = page.getByRole("region", {
