@@ -50,6 +50,35 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-12T20:17:08.931Z",
+      "git_sha": "5e20b109fc44ec3fdfbc6d6710ab4ef5e5920432",
+      "git_branch": "codex/production-readiness",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 9727
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1847
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 14118
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 1,
+          "duration_ms": 10803
+        }
+      ],
+      "all_passed": false
     }
   ],
   "manual_attestations": [],
