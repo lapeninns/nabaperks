@@ -18,6 +18,10 @@ test("Supabase-host classification rejects suffix lookalikes", async () => {
   assert.equal(shouldRequireSsl("https://supabase.com/path"), true)
   assert.equal(shouldRequireSsl("https://evilsupabase.com/path"), false)
   assert.equal(shouldRequireSsl("https://supabase.com.evil.example/path"), false)
+  assert.equal(
+    shouldRequireSsl("https://evil.example/supabase.com?next=supabase.com"),
+    false
+  )
 })
 
 test("production dependency policy pins a patched PostCSS", () => {
@@ -25,6 +29,16 @@ test("production dependency policy pins a patched PostCSS", () => {
   const pinnedPostcss = packageJson.pnpm?.overrides?.postcss
 
   assert.match(pinnedPostcss ?? "", /^8\.(?:[6-9]|[1-9]\d)\.|^8\.5\.(?:1\d|[2-9]\d)$/)
+})
+
+test("build tooling transitive dependencies are pinned past active advisories", () => {
+  const packageJson = JSON.parse(read("package.json"))
+  const overrides = packageJson.pnpm?.overrides ?? {}
+
+  assert.equal(packageJson.scripts?.["security:audit"], "pnpm audit")
+  assert.equal(overrides.tmp, "0.2.7")
+  assert.equal(overrides.uuid, "11.1.1")
+  assert.equal(overrides.qs, "6.15.2")
 })
 
 test("auth callback success remains conditional on Supabase verification", () => {

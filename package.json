@@ -22,7 +22,7 @@
     "bundle:check": "node scripts/check-bundle-size.mjs",
     "lighthouse": "lhci autorun",
     "mutation:check": "stryker run",
-    "security:audit": "pnpm audit --prod",
+    "security:audit": "pnpm audit",
     "qa:e2e": "CUSTOMER_DEV_OTP_CODE=424242 node scripts/run-playwright.mjs",
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
@@ -69,7 +69,10 @@
   "packageManager": "pnpm@10.28.0",
   "pnpm": {
     "overrides": {
-      "postcss": "8.5.15"
+      "postcss": "8.5.15",
+      "qs": "6.15.2",
+      "tmp": "0.2.7",
+      "uuid": "11.1.1"
     }
   },
   "dependencies": {

@@ -95,12 +95,13 @@ production deployment.
   variable. Local Playwright may keep a deterministic OTP.
 - Provider tooling may read developer-selected env files, but hosted URLs must
   be classified by parsed hostname rather than substring matching.
-- The PostCSS override must be at least 8.5.10 and must survive the full build.
+- The PostCSS, `tmp`, `uuid`, and `qs` overrides must stay at patched versions
+  and must survive the full build and developer-tool invocation paths.
 
 ## 4. Decisions Already Made
 
-- Resolve the transitive PostCSS advisory with a pnpm override rather than an
-  unrelated Next.js upgrade.
+- Resolve transitive PostCSS, `tmp`, `uuid`, and `qs` advisories with pnpm
+  overrides rather than unrelated framework or tooling upgrades.
 - Keep the existing Supabase verification calls; the CodeQL auth findings are
   validated against their fail-closed control flow before disposition.
 - Remove detector-shaped fixture literals from scripts and workflows without
@@ -119,8 +120,8 @@ production deployment.
 - **SC-3:** WHEN provider tooling classifies a Supabase host, THE classifier
   SHALL accept `supabase.com` and its subdomains and SHALL reject lookalike
   suffixes.
-- **SC-4:** THE production dependency graph SHALL contain no package advisory
-  reported by `pnpm audit --prod`.
+- **SC-4:** THE full dependency graph SHALL contain no package advisory
+  reported by `pnpm audit`.
 - **SC-5:** THE repository SHALL contain no active GitHub code-scanning or
   secret-scanning alert after validated findings are fixed or documented as
   test/tooling false positives.
@@ -137,8 +138,9 @@ production deployment.
    setting.
 2. Add focused source contracts and browser proof for same-origin auth callback
    failure behavior and parsed hostname classification.
-3. Patch the transitive advisory, replace detector-shaped fixtures, and improve
-   the security-sensitive test assertions without changing product behavior.
+3. Patch the transitive advisories, replace detector-shaped fixtures, and
+   improve the security-sensitive test assertions without changing product
+   behavior.
 4. Remove the hosted production bypass and prove both Vercel hosted scopes are
    clean by environment-name readback.
 5. Re-run CodeQL, validate each finding's source/sink/control flow, and close
