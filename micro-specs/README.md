@@ -253,6 +253,7 @@ The current CI-enforced baseline is:
 
 ```bash
 pnpm env:check:production
+pnpm security:audit
 pnpm lint
 pnpm typecheck
 pnpm governance:check
@@ -264,7 +265,7 @@ pnpm test:coverage
 pnpm build
 pnpm bundle:check
 pnpm e2e:install
-pnpm test:e2e -- --project=chromium --project=mobile-safari --grep "@governance|@a11y|PWA offline fallback|architecture remediation harness gate"
+pnpm test:e2e -- --project=chromium --project=mobile-safari --project=desktop-firefox --project=desktop-safari --grep-invert @visual
 pnpm test:a11y -- --project=chromium --project=mobile-safari
 pnpm test:visual -- --project=chromium --project=mobile-safari
 pnpm lighthouse
@@ -279,9 +280,9 @@ pnpm jsonld:check
 gates, blast radius, docs drift, and command shape.
 
 `pnpm test:e2e`, `pnpm test:a11y`, and `pnpm test:visual` run through
-Playwright against `playwright.config.ts`. The CI DB-free browser tier runs the
-governance landing smoke, accessibility, PWA offline fallback, visual, and
-architecture harness checks on `chromium` and `mobile-safari`. Product-specific
+Playwright against `playwright.config.ts`. The required CI DB-free behavior tier
+runs across Chromium, mobile Safari, Firefox, and WebKit; accessibility and
+visual gates remain dedicated Chromium/mobile-Safari jobs. Product-specific
 Micro-Specs must add targeted tests for the changed journey.
 
 `pnpm test:coverage` enforces node coverage thresholds for `lib/**` in the unit
