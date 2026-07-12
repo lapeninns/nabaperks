@@ -205,6 +205,97 @@ test("Given billing is past due When a retained venue QR is stamped Then the RPC
   }
 })
 
+test("Given billing is past due When a merchant sends a direct reward Then no reward or ledger row is written", async () => {
+  const sql = createSqlClient()
+
+  try {
+    const fixture = await createFixture(sql, {
+      billingStatus: "active",
+      membershipStampCount: 0,
+      rewardToken: false,
+    })
+
+    await setServiceRole(sql)
+    await sql`
+      update public.billing_customers
+      set status = 'past_due'
+      where merchant_id = ${fixture.merchantId}::uuid`
+
+    await assert.rejects(
+      () => issueDirectReward(sql, fixture),
+      /billing|unavailable/i
+    )
+
+    const [{ rewardCount, eventCount }] = await sql`
+      select
+        (
+          select count(*)::integer
+          from public.reward_events
+          where merchant_id = ${fixture.merchantId}::uuid
+            and source = 'merchant_direct'
+        ) as reward_count,
+        (
+          select count(*)::integer
+          from public.product_events
+          where merchant_id = ${fixture.merchantId}::uuid
+            and event_name = 'reward_sent'
+        ) as event_count`
+
+    assert.equal(rewardCount, 0)
+    assert.equal(eventCount, 0)
+  } finally {
+    await sql.end({ timeout: 5 })
+  }
+})
+
+test("Given billing lapses after token mint When collection is attempted Then reward and token remain untouched", async () => {
+  const sql = createSqlClient()
+
+  try {
+    const fixture = await createFixture(sql, {
+      billingStatus: "active",
+      membershipStampCount: 3,
+      rewardToken: true,
+    })
+
+    await setServiceRole(sql)
+    await sql`
+      update public.billing_customers
+      set status = 'past_due'
+      where merchant_id = ${fixture.merchantId}::uuid`
+
+    await assert.rejects(
+      () => collectReward(sql, fixture),
+      /billing|unavailable/i
+    )
+
+    const [{ rewardStatus, consumedAt, currentStampCount, activeCycleNumber }] =
+      await sql`
+        select
+          (
+            select status
+            from public.reward_events
+            where id = ${fixture.rewardEventId}::uuid
+          ) as reward_status,
+          (
+            select consumed_at
+            from public.reward_scan_tokens
+            where id = ${fixture.scanTokenId}::uuid
+          ) as consumed_at,
+          current_stamp_count,
+          active_cycle_number
+        from public.customer_memberships
+        where id = ${fixture.membershipId}::uuid`
+
+    assert.equal(rewardStatus, "unlocked")
+    assert.equal(consumedAt, null)
+    assert.equal(currentStampCount, 3)
+    assert.equal(activeCycleNumber, 1)
+  } finally {
+    await sql.end({ timeout: 5 })
+  }
+})
+
 function createSqlClient() {
   const hostname = new URL(dbUrl).hostname.toLowerCase()
   const isSupabaseHost =
@@ -238,6 +329,20 @@ async function collectReward(sql, fixture) {
     from public.collect_reward_scan_token(
       ${fixture.scanTokenId}::uuid,
       ${fixture.merchantId}::uuid
+    )
+  `
+}
+
+async function issueDirectReward(sql, fixture) {
+  return sql`
+    select *
+    from public.issue_merchant_direct_reward(
+      ${fixture.merchantId}::uuid,
+      ${fixture.membershipId}::uuid,
+      'A direct reward',
+      'Subject to the usual house terms.',
+      30,
+      'Production entitlement proof'
     )
   `
 }

@@ -45,6 +45,13 @@ test("post-activation attention states route to Account billing for management",
   }
 })
 
+test("past-due copy says loyalty value is paused", () => {
+  const { description } = merchantBillingStateCopy("past_due")
+
+  assert.match(description, /stamps and rewards are paused/i)
+  assert.doesNotMatch(description, /still works for now/i)
+})
+
 test("an unknown status falls back to a safe Account billing review action", () => {
   const copy = merchantBillingStateCopy("garbled")
   assert.equal(copy.actionHref, "/app/account?tab=billing")
