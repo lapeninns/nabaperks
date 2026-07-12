@@ -22,6 +22,7 @@
     "bundle:check": "node scripts/check-bundle-size.mjs",
     "lighthouse": "lhci autorun",
     "mutation:check": "stryker run",
+    "security:audit": "pnpm audit --prod",
     "qa:e2e": "CUSTOMER_DEV_OTP_CODE=424242 node scripts/run-playwright.mjs",
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
@@ -66,6 +67,11 @@
     "pnpm": ">=10.0.0"
   },
   "packageManager": "pnpm@10.28.0",
+  "pnpm": {
+    "overrides": {
+      "postcss": "8.5.15"
+    }
+  },
   "dependencies": {
     "@hugeicons/core-free-icons": "^4.2.0",
     "@hugeicons/react": "^1.1.6",
@@ -110,7 +116,7 @@
     "postgres": "^3.4.9",
     "prettier": "^3.8.4",
     "prettier-plugin-tailwindcss": "^0.8.0",
-    "react-doctor": "^0.7.4",
+    "react-doctor": "0.7.4",
     "react-grab": "^0.1.48",
     "react-scan": "^0.5.7",
     "tailwindcss": "^4",

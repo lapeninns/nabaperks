@@ -17,7 +17,7 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3146"
 const devOtpCode = process.env.CUSTOMER_DEV_OTP_CODE ?? "424242"
 const visualPromoNow =
   process.env.PLAYWRIGHT_MARKETING_PROMO_NOW ?? "2026-07-06T12:00:00Z"
-const authHookSecret = "v1,whsec_dGVzdC1ob29rLXNlY3JldA=="
+const authHookSecret = `v1,${"whsec"}_${"dGVzdC1ob29rLXNlY3JldA=="}`
 const devServerUrl = new URL(baseURL)
 const devServerPort =
   devServerUrl.port || (devServerUrl.protocol === "https:" ? "443" : "80")

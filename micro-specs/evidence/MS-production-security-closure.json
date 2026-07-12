@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "spec_id": "MS-production-security-closure",
+  "runs": [
+    {
+      "timestamp": "2026-07-12T18:41:16.713Z",
+      "git_sha": "4722a5d83d500dd2dbc90cfe3a6a6a152bcee11d",
+      "git_branch": "codex/production-readiness",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 8234
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1707
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 12182
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9894
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1437
+        },
+        {
+          "command": "pnpm test:e2e -- --grep \"@MS-production-security-closure\"",
+          "exit_code": 0,
+          "duration_ms": 12049
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 2160
+        },
+        {
+          "command": "pnpm security:audit",
+          "exit_code": 0,
+          "duration_ms": 1182
+        }
+      ],
+      "all_passed": true
+    }
+  ],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-12T18:36:54.644Z",
+      "sha": "4722a5d83d500dd2dbc90cfe3a6a6a152bcee11d",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}

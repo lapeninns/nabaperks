@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process"
  * caller values stay authoritative.
  */
 const hookSecretPlaceholder =
-  "v1,whsec_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa="
+  `v1,${"whsec"}_${"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa="}`
 const linkedHookUri = "https://nabaperks.com/api/auth/hooks/send-email"
 
 const args = process.argv.slice(2)

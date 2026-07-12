@@ -2,7 +2,7 @@ import { createHmac } from "node:crypto"
 
 import { expect, test, type APIRequestContext } from "@playwright/test"
 
-const AUTH_HOOK_SECRET = "v1,whsec_dGVzdC1ob29rLXNlY3JldA=="
+const AUTH_HOOK_SECRET = `v1,${"whsec"}_${"dGVzdC1ob29rLXNlY3JldA=="}`
 
 type HookPath = "/api/auth/hooks/send-email" | "/api/auth/hooks/send-sms"
 

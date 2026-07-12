@@ -85,7 +85,9 @@ export function resolveSupabaseDbUrl(projectDir, env) {
 
 export function shouldRequireSsl(dbUrl) {
   try {
-    return new URL(dbUrl).hostname.endsWith("supabase.com")
+    const hostname = new URL(dbUrl).hostname.toLowerCase()
+
+    return hostname === "supabase.com" || hostname.endsWith(".supabase.com")
   } catch {
     return false
   }

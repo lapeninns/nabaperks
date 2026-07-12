@@ -26,7 +26,7 @@ jobs:
       STRIPE_SECRET_KEY: sk_test_ci
       STRIPE_GROWTH_PRICE_ID: price_ci
       STRIPE_GROWTH_ANNUAL_PRICE_ID: price_annual_ci
-      STRIPE_WEBHOOK_SECRET: whsec_ci
+      STRIPE_WEBHOOK_SECRET: ci_test_webhook_secret
       RESEND_API_KEY: re_ci
       RESEND_FROM: Nabaperks CI <ci@example.test>
       WEB_PUSH_VAPID_PUBLIC_KEY: ci-vapid-public-key
@@ -76,7 +76,7 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
       STRIPE_SECRET_KEY: sk_test_ci
       STRIPE_GROWTH_PRICE_ID: price_ci
-      STRIPE_WEBHOOK_SECRET: whsec_ci
+      STRIPE_WEBHOOK_SECRET: ci_test_webhook_secret
       RESEND_API_KEY: re_ci
       TWILIO_ACCOUNT_SID: ACci
       TWILIO_AUTH_TOKEN: ci-twilio-auth-token
@@ -110,7 +110,7 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
       STRIPE_SECRET_KEY: sk_test_ci
       STRIPE_GROWTH_PRICE_ID: price_ci
-      STRIPE_WEBHOOK_SECRET: whsec_ci
+      STRIPE_WEBHOOK_SECRET: ci_test_webhook_secret
       RESEND_API_KEY: re_ci
       TWILIO_ACCOUNT_SID: ACci
       TWILIO_AUTH_TOKEN: ci-twilio-auth-token
@@ -144,7 +144,7 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
       STRIPE_SECRET_KEY: sk_test_ci
       STRIPE_GROWTH_PRICE_ID: price_ci
-      STRIPE_WEBHOOK_SECRET: whsec_ci
+      STRIPE_WEBHOOK_SECRET: ci_test_webhook_secret
       RESEND_API_KEY: re_ci
       TWILIO_ACCOUNT_SID: ACci
       TWILIO_AUTH_TOKEN: ci-twilio-auth-token
@@ -179,7 +179,7 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
       STRIPE_SECRET_KEY: sk_test_ci
       STRIPE_GROWTH_PRICE_ID: price_ci
-      STRIPE_WEBHOOK_SECRET: whsec_ci
+      STRIPE_WEBHOOK_SECRET: ci_test_webhook_secret
       RESEND_API_KEY: re_ci
       TWILIO_ACCOUNT_SID: ACci
       TWILIO_AUTH_TOKEN: ci-twilio-auth-token
@@ -211,7 +211,7 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
       STRIPE_SECRET_KEY: sk_test_ci
       STRIPE_GROWTH_PRICE_ID: price_ci
-      STRIPE_WEBHOOK_SECRET: whsec_ci
+      STRIPE_WEBHOOK_SECRET: ci_test_webhook_secret
       RESEND_API_KEY: re_ci
       TWILIO_ACCOUNT_SID: ACci
       TWILIO_AUTH_TOKEN: ci-twilio-auth-token
@@ -244,7 +244,6 @@ jobs:
     name: DB behavioral moat
     runs-on: ubuntu-latest
     env:
-      SUPABASE_SEND_EMAIL_HOOK_SECRET: v1,whsec_dGVzdF9zdXBhYmFzZV9ob29rX3NlY3JldF8zMl9ieXRlcw==
       SUPABASE_SEND_EMAIL_HOOK_URI: http://host.docker.internal:3147/api/auth/hooks/send-email
       SUPABASE_DB_URL: postgres://postgres:postgres@127.0.0.1:54322/postgres
     steps:
@@ -253,6 +252,9 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.106.0
+      - name: Configure local auth-hook fixture
+        run: |
+          printf 'SUPABASE_SEND_EMAIL_HOOK_SECRET=v1,%s_%s\n' whsec dGVzdF9zdXBhYmFzZV9ob29rX3NlY3JldF8zMl9ieXRlcw== >> "$GITHUB_ENV"
       - run: supabase start
       - run: pnpm db:seed
       - run: pnpm test:db

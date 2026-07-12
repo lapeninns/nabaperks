@@ -29,7 +29,7 @@ function nextThemesScript() {
       createElement("span", null, "x")
     )
   )
-  const match = markup.match(/<script[^>]*>([\s\S]*?)<\/script>/)
+  const match = markup.match(/<script[^>]*>([\s\S]*?)<\/script>/i)
   assert.ok(
     match,
     "next-themes should render its inline theme bootstrap script"

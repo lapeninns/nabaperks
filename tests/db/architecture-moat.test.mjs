@@ -206,9 +206,13 @@ test("Given billing is past due When a retained venue QR is stamped Then the RPC
 })
 
 function createSqlClient() {
+  const hostname = new URL(dbUrl).hostname.toLowerCase()
+  const isSupabaseHost =
+    hostname === "supabase.com" || hostname.endsWith(".supabase.com")
+
   return postgres(dbUrl, {
     max: 1,
-    ssl: dbUrl.includes("supabase.com") ? "require" : undefined,
+    ssl: isSupabaseHost ? "require" : undefined,
     transform: postgres.camel,
   })
 }
