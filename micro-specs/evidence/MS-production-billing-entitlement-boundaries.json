@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-production-billing-entitlement-boundaries",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-12T20:32:28.262Z",
+      "sha": "17a8f9978bbfb08ab6b2a1a25f1acb1d70fa2090",
+      "dirty": false,
+      "by": "amankumarshrestha"
+    }
+  ]
+}
