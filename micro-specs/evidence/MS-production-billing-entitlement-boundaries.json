@@ -1,7 +1,52 @@
 {
   "schema": 1,
   "spec_id": "MS-production-billing-entitlement-boundaries",
-  "runs": [],
+  "runs": [
+    {
+      "timestamp": "2026-07-12T20:48:47.975Z",
+      "git_sha": "2d599b59e430bacf786ba02b8fb0381efa4cd397",
+      "git_branch": "codex/production-readiness",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 8264
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1372
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11227
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10450
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1521
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 6000
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 2439
+        }
+      ],
+      "all_passed": true
+    }
+  ],
   "manual_attestations": [],
   "transitions": [
     {
@@ -9,6 +54,14 @@
       "to": "active",
       "at": "2026-07-12T20:32:28.262Z",
       "sha": "17a8f9978bbfb08ab6b2a1a25f1acb1d70fa2090",
+      "dirty": false,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-12T20:48:47.975Z",
+      "sha": "2d599b59e430bacf786ba02b8fb0381efa4cd397",
       "dirty": false,
       "by": "amankumarshrestha"
     }
