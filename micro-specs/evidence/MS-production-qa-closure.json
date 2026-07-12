@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-production-qa-closure",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-12T19:04:56.914Z",
+      "sha": "7a6475318208a50d3f8a77d29f8210c69de9d1b7",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}

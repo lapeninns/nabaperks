@@ -93,20 +93,19 @@ export default function RootLayout({
       <head>
         {process.env.NODE_ENV === "development" &&
           process.env.PLAYWRIGHT_HARNESS !== "1" && (
-            <Script
-              src="https://unpkg.com/react-scan/dist/auto.global.js"
-              crossOrigin="anonymous"
-              strategy="afterInteractive"
-            />
+            <>
+              <Script
+                src="https://unpkg.com/react-scan/dist/auto.global.js"
+                crossOrigin="anonymous"
+                strategy="afterInteractive"
+              />
+              <Script
+                src="//unpkg.com/react-grab/dist/index.global.js"
+                crossOrigin="anonymous"
+                strategy="beforeInteractive"
+              />
+            </>
           )}
-
-        {process.env.NODE_ENV === "development" && (
-          <Script
-            src="//unpkg.com/react-grab/dist/index.global.js"
-            crossOrigin="anonymous"
-            strategy="beforeInteractive"
-          />
-        )}
       </head>
       <body className="font-sans">
         <ThemeProvider>

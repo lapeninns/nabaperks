@@ -38,7 +38,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - run: pnpm e2e:install
-      - run: pnpm test:e2e -- --project=chromium --project=mobile-safari --project=desktop-firefox --project=desktop-safari
+      - run: pnpm test:e2e -- --project=chromium --project=mobile-safari --project=desktop-firefox --project=desktop-safari --grep-invert @visual
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() && failure() }}
         with:

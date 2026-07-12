@@ -118,6 +118,10 @@ function localLoopbackIp(nonce: string): string {
 
 test.describe("merchant shell variant survives client-side navigation", () => {
   test.beforeEach(async ({ page }) => {
+    test.skip(
+      process.env.ADMIN_LIVE_DB_E2E !== "1" || !localDbUrl(),
+      "Set ADMIN_LIVE_DB_E2E=1 with disposable local Supabase to run merchant soft-navigation proof"
+    )
     await dismissPwaInstall(page)
   })
 

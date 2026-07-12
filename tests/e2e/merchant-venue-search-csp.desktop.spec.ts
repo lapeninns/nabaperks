@@ -5,6 +5,10 @@ const SEED_MERCHANT_PASSWORD = "NabaperksDemo1!"
 
 test.describe("merchant venue search CSP @MS-merchant-venue-search-csp", () => {
   test.use({ viewport: { width: 1280, height: 800 } })
+  test.skip(
+    process.env.ADMIN_LIVE_DB_E2E !== "1",
+    "Set ADMIN_LIVE_DB_E2E=1 with disposable local Supabase to run authenticated venue-search proof"
+  )
 
   test("the trusted Places loader reaches ready state without weakening fallback recovery", async ({
     page,

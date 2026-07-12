@@ -6,12 +6,9 @@ import { dismissPwaInstall, HARNESS_ROUTES } from "./helpers/harness"
  * Merchant launch-header interaction hierarchy (@launch-header) — DB-free
  * harness tier, DESKTOP projects only (`.desktop.spec.ts`).
  *
- * The launch header's jump-to-tab CTA lives in the `sm:` PageTitle, so it only
- * renders at desktop width. The rule under test: it is SUPPRESSED whenever it
- * would point at the tab already on screen, so it never competes with the active
- * panel's own primary action (the header CTA is a link; the billing activation
- * card's checkout is a button — the two must not both read as "Proceed to
- * billing"). The `?state=` selector drives the DB-free header state.
+ * The launch header is descriptive only. Setup actions live after the active
+ * panel in one sequential footer, so the header never competes with the active
+ * panel's primary action. The `?state=` selector drives the DB-free state.
  *
  * The pure decision behind this is unit-tested in
  * tests/unit/launch-header-copy; these assert it actually renders that way.
@@ -21,14 +18,17 @@ test.describe("merchant launch header @launch-header", () => {
     await dismissPwaInstall(page)
   })
 
-  test("needsBilling: the header CTA links to billing off the billing tab", async ({
+  test("needsBilling: the header stays descriptive while the footer advances to card", async ({
     page,
   }) => {
     await page.goto(`${HARNESS_ROUTES.launch}?state=billing&tab=venue`)
 
-    const headerCta = page.getByRole("link", { name: "Proceed to billing" })
-    await expect(headerCta).toBeVisible()
-    await expect(headerCta).toHaveAttribute("href", "/app/launch?tab=billing")
+    await expect(
+      page.getByRole("link", { name: "Proceed to billing" })
+    ).toHaveCount(0)
+    await expect(
+      page.getByRole("link", { name: "Card", exact: true })
+    ).toHaveAttribute("href", "/app/launch?tab=card")
   })
 
   test("needsBilling: the header CTA is suppressed on the billing tab", async ({
@@ -36,37 +36,42 @@ test.describe("merchant launch header @launch-header", () => {
   }) => {
     await page.goto(`${HARNESS_ROUTES.launch}?state=billing&tab=billing`)
 
-    // No header LINK (it would be a no-op pointing at this very tab)…
     await expect(
       page.getByRole("link", { name: "Proceed to billing" })
     ).toHaveCount(0)
-    // …but the activation card's real Stripe checkout BUTTON stays primary.
     await expect(
       page.getByRole("button", { name: /Proceed to billing/ })
     ).toBeVisible()
+    await expect(page.getByText("Next step", { exact: true })).toHaveCount(0)
   })
 
-  test("needsQr: the header CTA links to QR after billing", async ({
+  test("needsQr: the billing footer advances to the venue QR", async ({
     page,
   }) => {
-    await page.goto(`${HARNESS_ROUTES.launch}?state=qr&tab=venue`)
+    await page.goto(`${HARNESS_ROUTES.launch}?state=qr&tab=billing`)
 
-    const headerCta = page.getByRole("link", { name: "Open venue QR" })
-    await expect(headerCta).toBeVisible()
-    await expect(headerCta).toHaveAttribute("href", "/app/launch?tab=qr")
+    await expect(page.getByRole("link", { name: "Open venue QR" })).toHaveCount(
+      0
+    )
+    await expect(
+      page.getByRole("link", { name: "Venue QR", exact: true })
+    ).toHaveAttribute("href", "/app/launch?tab=qr")
   })
 
-  test("launchReady: the header CTA links to the QR off the qr tab", async ({
+  test("launchReady: an earlier tab still advances sequentially", async ({
     page,
   }) => {
     await page.goto(`${HARNESS_ROUTES.launch}?state=live&tab=venue`)
 
-    const headerCta = page.getByRole("link", { name: "Open venue QR" })
-    await expect(headerCta).toBeVisible()
-    await expect(headerCta).toHaveAttribute("href", "/app/launch?tab=qr")
+    await expect(page.getByRole("link", { name: "Open venue QR" })).toHaveCount(
+      0
+    )
+    await expect(
+      page.getByRole("link", { name: "Card", exact: true })
+    ).toHaveAttribute("href", "/app/launch?tab=card")
   })
 
-  test("launchReady: the header CTA is suppressed on the qr tab", async ({
+  test("launchReady: the QR footer advances to the dashboard", async ({
     page,
   }) => {
     await page.goto(`${HARNESS_ROUTES.launch}?state=live&tab=qr`)
@@ -74,5 +79,8 @@ test.describe("merchant launch header @launch-header", () => {
     await expect(page.getByRole("link", { name: "Open venue QR" })).toHaveCount(
       0
     )
+    await expect(
+      page.getByRole("main").getByRole("link", { name: "Dashboard" })
+    ).toHaveAttribute("href", "/app")
   })
 })
