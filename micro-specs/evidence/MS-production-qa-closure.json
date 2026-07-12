@@ -65,6 +65,124 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-12T21:14:22.946Z",
+      "git_sha": "5438c87729e21b8a6bea77fc28fe0eff9a204114",
+      "git_branch": "codex/production-readiness",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7572
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1136
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10974
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10962
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1703
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 2384
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 171
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --grep \"@MS-production-qa-closure\"",
+          "exit_code": 0,
+          "duration_ms": 10146
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --project=desktop-firefox --project=desktop-safari --grep-invert @visual",
+          "exit_code": 1,
+          "duration_ms": 1314693
+        }
+      ],
+      "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-12T21:41:35.821Z",
+      "git_sha": "50ba18815d39b199bb17f211449ba7133d5a06ce",
+      "git_branch": "codex/production-readiness",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 8827
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1241
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11878
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 11488
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1586
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 2515
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 182
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --grep \"@MS-production-qa-closure\"",
+          "exit_code": 0,
+          "duration_ms": 9960
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --project=desktop-firefox --project=desktop-safari --grep-invert @visual",
+          "exit_code": 0,
+          "duration_ms": 1195659
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 162491
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 58500
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
