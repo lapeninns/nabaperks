@@ -37,6 +37,7 @@ export async function checkDatabaseReadiness({
       },
       body: "{}",
       cache: "no-store",
+      redirect: "error",
       signal: AbortSignal.timeout(timeoutMs),
     })
 

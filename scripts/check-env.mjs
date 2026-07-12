@@ -184,6 +184,17 @@ if (hostedOrProductionProfile) {
     if (/(?:change.?me|example|placeholder|replace.?me)/i.test(secret)) {
       invalid.push(`${name} must not be a placeholder`)
     }
+
+    if (!looksRandomlyGenerated(secret)) {
+      invalid.push(`${name} must be randomly generated`)
+    }
+  }
+
+  const cronSecret = values.CRON_SECRET?.trim()
+  const monitorSecret = values.PRODUCTION_MONITOR_SECRET?.trim()
+
+  if (cronSecret && monitorSecret && cronSecret === monitorSecret) {
+    invalid.push("PRODUCTION_MONITOR_SECRET must differ from CRON_SECRET")
   }
 }
 
@@ -242,6 +253,25 @@ function isSafePostHogHost(value) {
   } catch {
     return false
   }
+}
+
+function looksRandomlyGenerated(secret) {
+  if (new Set(secret).size < 8) return false
+
+  for (
+    let period = 1;
+    period <= Math.min(16, Math.floor(secret.length / 2));
+    period += 1
+  ) {
+    if (
+      secret.length % period === 0 &&
+      secret === secret.slice(0, period).repeat(secret.length / period)
+    ) {
+      return false
+    }
+  }
+
+  return true
 }
 
 function isSafeSupabaseProjectOrigin(value) {

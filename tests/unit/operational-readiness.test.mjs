@@ -20,6 +20,7 @@ test("database readiness returns ok only for a successful bounded RLS read", asy
   assert.equal(request.init.body, "{}")
   assert.equal(request.init.headers.apikey, "service-role-test-key")
   assert.equal(request.init.cache, "no-store")
+  assert.equal(request.init.redirect, "error")
   assert.ok(request.init.signal instanceof AbortSignal)
 })
 

@@ -67,6 +67,35 @@ for (const name of [
   })
 }
 
+test("Given hosted configuration When a protected secret has low diversity Then the environment fails closed", () => {
+  const result = runEnvCheck({
+    args: ["--profile=default"],
+    environment: { CUSTOMER_SESSION_SECRET: "a".repeat(32) },
+    vercelEnv: "production",
+  })
+
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /CUSTOMER_SESSION_SECRET must be randomly generated/)
+})
+
+test("Given hosted configuration When monitor and cron credentials are reused Then the environment fails closed", () => {
+  const sharedSecret = "shared-monitor-cron-0123456789-ABCDEF"
+  const result = runEnvCheck({
+    args: ["--profile=default"],
+    environment: {
+      CRON_SECRET: sharedSecret,
+      PRODUCTION_MONITOR_SECRET: sharedSecret,
+    },
+    vercelEnv: "production",
+  })
+
+  assert.equal(result.status, 1)
+  assert.match(
+    result.stderr,
+    /PRODUCTION_MONITOR_SECRET must differ from CRON_SECRET/
+  )
+})
+
 for (const [name, value, message] of [
   [
     "CUSTOMER_OTP_BYPASS_MODE",
