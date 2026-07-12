@@ -1,0 +1,28 @@
+name: Production smoke
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-smoke
+  cancel-in-progress: true
+
+jobs:
+  probes:
+    name: Liveness and readiness
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Verify public liveness
+        run: |
+          body="$(curl --fail --silent --show-error --max-time 10 https://nabaperks.com/api/health)"
+          jq -e '.status == "ok" and .scope == "liveness"' <<<"$body"
+      - name: Verify dependency readiness
+        run: |
+          body="$(curl --fail --silent --show-error --max-time 10 https://nabaperks.com/api/readiness)"
+          jq -e '.status == "ready" and .checks.database == "ok"' <<<"$body"
