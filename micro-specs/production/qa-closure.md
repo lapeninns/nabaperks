@@ -1,6 +1,6 @@
 ---
 spec_id: MS-production-qa-closure
-status: active
+status: implemented
 risk_class: ui-only
 owner: codex
 last_reviewed: 2026-07-12
