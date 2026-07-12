@@ -256,6 +256,9 @@ test("production env validation executes with analytics off and fails closed for
       )
       .map((entry) => [entry.name, validTestEnvValue(entry)])
   )
+  baseValues.CRON_SECRET = "cron-test-value-at-least-32-characters-long"
+  baseValues.PRODUCTION_MONITOR_SECRET =
+    "monitor-test-value-at-least-32-characters-long"
 
   try {
     mkdirSync(join(projectDir, "config"), { recursive: true })

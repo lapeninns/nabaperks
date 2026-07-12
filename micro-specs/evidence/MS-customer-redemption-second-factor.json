@@ -3,50 +3,6 @@
   "spec_id": "MS-customer-redemption-second-factor",
   "runs": [
     {
-      "timestamp": "2026-07-10T22:55:33.124Z",
-      "git_sha": "39218ba362495b9b88e7a2ce8b6d6ff635158ea8",
-      "git_branch": "main",
-      "dirty": true,
-      "gates": [
-        {
-          "command": "pnpm lint",
-          "exit_code": 0,
-          "duration_ms": 6742
-        },
-        {
-          "command": "pnpm typecheck",
-          "exit_code": 0,
-          "duration_ms": 1054
-        },
-        {
-          "command": "pnpm build",
-          "exit_code": 0,
-          "duration_ms": 9990
-        },
-        {
-          "command": "pnpm test",
-          "exit_code": 0,
-          "duration_ms": 9047
-        },
-        {
-          "command": "pnpm test:coverage",
-          "exit_code": 0,
-          "duration_ms": 1143
-        },
-        {
-          "command": "pnpm test:db",
-          "exit_code": 0,
-          "duration_ms": 5336
-        },
-        {
-          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-customer-redemption-second-factor\"",
-          "exit_code": 0,
-          "duration_ms": 11100
-        }
-      ],
-      "all_passed": true
-    },
-    {
       "timestamp": "2026-07-11T01:36:22.175Z",
       "git_sha": "27e11ce5a9b6ea9607a74f7f3a17a26087cc43fa",
       "git_branch": "main",
@@ -354,6 +310,79 @@
           "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-customer-redemption-second-factor\"",
           "exit_code": 0,
           "duration_ms": 12575
+        }
+      ],
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-12T21:50:24.155Z",
+      "git_sha": "8457f3699ef197d0f70b1100c5fe45259c9bcbc1",
+      "git_branch": "codex/production-readiness",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7723
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1206
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 24523
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 1,
+          "duration_ms": 9483
+        }
+      ],
+      "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-12T21:52:05.771Z",
+      "git_sha": "8457f3699ef197d0f70b1100c5fe45259c9bcbc1",
+      "git_branch": "codex/production-readiness",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7838
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1229
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11334
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10375
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1570
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 6718
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-customer-redemption-second-factor\"",
+          "exit_code": 0,
+          "duration_ms": 12173
         }
       ],
       "all_passed": true
