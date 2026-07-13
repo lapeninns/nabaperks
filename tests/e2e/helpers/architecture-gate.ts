@@ -1,6 +1,6 @@
 import { expect, type APIRequestContext, type Page } from "@playwright/test"
 
-import { HARNESS_ROUTES, waitForHydratedPage } from "./harness"
+import { HARNESS_ROUTES } from "./harness"
 
 type HarnessSurfaceCheck = {
   readonly name: string
@@ -53,7 +53,12 @@ const SURFACE_CHECKS = [
 export async function warmArchitectureHarnessRoutes(
   request: APIRequestContext
 ): Promise<void> {
-  for (const path of new Set(SURFACE_CHECKS.map((surface) => surface.path))) {
+  const paths = new Set([
+    ...Object.values(HARNESS_ROUTES),
+    ...SURFACE_CHECKS.map((surface) => surface.path),
+  ])
+
+  for (const path of paths) {
     const response = await request.get(path, { failOnStatusCode: false })
 
     if (!response.ok()) {
@@ -131,7 +136,5 @@ async function gotoHarnessSurface(page: Page, path: string) {
 }
 
 async function navigateHarnessSurface(page: Page, path: string) {
-  const response = await page.goto(path, { waitUntil: "domcontentloaded" })
-  await waitForHydratedPage(page)
-  return response
+  return page.goto(path, { waitUntil: "domcontentloaded" })
 }

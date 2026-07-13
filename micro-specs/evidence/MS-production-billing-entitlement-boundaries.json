@@ -235,6 +235,50 @@
         }
       ],
       "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-13T07:49:20.147Z",
+      "git_sha": "3ff5ab1d8144404e91167d3f2c9c60db876ca1ea",
+      "git_branch": "codex/production-readiness",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7997
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1226
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11763
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 12065
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1691
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 6747
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 2191
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [
