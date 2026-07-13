@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { spawnSync } from "node:child_process"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { test } from "node:test"
@@ -7,6 +8,19 @@ const root = process.cwd()
 
 function read(...parts) {
   return readFileSync(join(root, ...parts), "utf8")
+}
+
+function smokeFilters(workflow) {
+  return [...workflow.matchAll(/jq -e --arg revision "\$expected_revision" '([^']+)' <<<"\$body"/g)].map(
+    ([, filter]) => filter
+  )
+}
+
+function runSmokeFilter(filter, body) {
+  return spawnSync("jq", ["-e", "--arg", "revision", "abcdef123456", filter], {
+    input: JSON.stringify(body),
+    encoding: "utf8",
+  })
 }
 
 test("production exposes separate versioned liveness and dependency readiness", () => {
@@ -50,5 +64,34 @@ test("scheduled production smoke validates both JSON probe contracts", () => {
   assert.match(
     workflow,
     /\.status == "ready" and \.scope == "readiness" and \.checks\.database == "ok"/
+  )
+
+  const filters = smokeFilters(workflow)
+  assert.equal(filters.length, 2)
+  const [healthFilter, readinessFilter] = filters
+
+  const common = {
+    service: "nabaperks",
+    revision: "abcdef123456",
+    environment: "production",
+    time: "2026-07-13T09:26:44.418Z",
+  }
+  const health = { ...common, status: "ok", scope: "liveness" }
+  const readiness = {
+    ...common,
+    status: "ready",
+    scope: "readiness",
+    checks: { database: "ok" },
+  }
+
+  assert.equal(runSmokeFilter(healthFilter, health).status, 0)
+  assert.equal(runSmokeFilter(readinessFilter, readiness).status, 0)
+  assert.notEqual(
+    runSmokeFilter(healthFilter, { ...health, time: "2026-99-99Tgarbage" }).status,
+    0
+  )
+  assert.notEqual(
+    runSmokeFilter(readinessFilter, { ...readiness, scope: "liveness" }).status,
+    0
   )
 })
