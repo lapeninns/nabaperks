@@ -530,7 +530,7 @@ export function RewardPoolForm({
                     disabled={existing || batchPending}
                     onClick={() => togglePreset(preset)}
                     onKeyDown={(event) => {
-                      if (event.key !== "Enter" && event.key !== " ") return
+                      if (event.key !== " ") return
                       event.preventDefault()
                       togglePreset(preset)
                     }}

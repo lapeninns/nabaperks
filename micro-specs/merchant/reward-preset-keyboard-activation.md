@@ -52,8 +52,8 @@ out of scope.
 ## 3. Strict Constraints and Assumptions
 
 - Preserve the native `button` element and its click behavior.
-- Space and Enter must each toggle exactly once and suppress page scrolling or
-  a second native synthetic click.
+- Space and Enter must each toggle exactly once. Space must suppress page
+  scrolling; Enter keeps the native button activation path.
 - Pointer activation and the explicit bulk Add persistence boundary remain
   unchanged.
 - Do not weaken CI flaky-test enforcement or skip WebKit keyboard proof.
@@ -64,8 +64,10 @@ out of scope.
   enabled button, but WebKit emitted no state-changing native click.
 - The retry and five fresh local repetitions passed, proving an intermittent
   native activation boundary rather than a deterministic state bug.
-- The product will handle Space and Enter explicitly on keydown and call
-  `preventDefault()` so browser-native activation cannot double-toggle.
+- The product will handle Space explicitly on keydown and call
+  `preventDefault()` so WebKit cannot lose activation or scroll the page.
+- Enter remains native because Firefox synthesizes its button click reliably;
+  handling it again in the keydown listener would double-toggle.
 
 ## 5. Behavioral Requirements (EARS)
 
