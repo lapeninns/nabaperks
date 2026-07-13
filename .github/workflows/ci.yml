@@ -174,7 +174,6 @@ jobs:
   lighthouse:
     name: Lighthouse CI
     runs-on: ubuntu-latest
-    continue-on-error: true
     env:
       NEXT_PUBLIC_APP_URL: https://example.test
       NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co

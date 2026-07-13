@@ -106,6 +106,10 @@ export async function proxy(request: NextRequest) {
     })
   }
 
+  if (isAdminPath(request.nextUrl.pathname)) {
+    response.headers.set("X-Robots-Tag", "noindex, nofollow")
+  }
+
   return response
 }
 
@@ -145,6 +149,10 @@ function forwardedRequestHeaders(
 
 function isOperationalProbePath(pathname: string): boolean {
   return pathname === "/api/health" || pathname === "/api/readiness"
+}
+
+function isAdminPath(pathname: string): boolean {
+  return pathname === "/admin" || pathname.startsWith("/admin/")
 }
 
 function resolveCustomerDevice(request: NextRequest): {

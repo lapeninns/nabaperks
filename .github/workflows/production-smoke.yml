@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "*/15 * * * *"
   workflow_dispatch:
+    inputs:
+      expected_revision:
+        description: Optional full or 12-character Git revision for promotion verification
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -19,14 +24,13 @@ jobs:
     timeout-minutes: 3
     env:
       PRODUCTION_MONITOR_SECRET: ${{ secrets.PRODUCTION_MONITOR_SECRET }}
+      EXPECTED_REVISION: ${{ inputs.expected_revision || '' }}
     steps:
       - name: Verify public liveness
         run: |
-          expected_revision="${GITHUB_SHA:0:12}"
           body="$(curl --fail --silent --show-error --max-time 10 https://nabaperks.com/api/health)"
-          jq -e --arg revision "$expected_revision" '.status == "ok" and .scope == "liveness" and .service == "nabaperks" and (try (.time | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601 | type == "number") catch false) and .revision == $revision and .environment == "production"' <<<"$body"
+          jq -e --arg revision "$EXPECTED_REVISION" '.status == "ok" and .scope == "liveness" and .service == "nabaperks" and (try (.time | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601 | type == "number") catch false) and (.revision | type == "string" and length == 12) and ($revision == "" or .revision == ($revision[0:12])) and .environment == "production"' <<<"$body"
       - name: Verify dependency readiness
         run: |
-          expected_revision="${GITHUB_SHA:0:12}"
           body="$(curl --fail --silent --show-error --max-time 10 --header "Authorization: Bearer ${PRODUCTION_MONITOR_SECRET}" https://nabaperks.com/api/readiness)"
-          jq -e --arg revision "$expected_revision" '.status == "ready" and .scope == "readiness" and .checks.database == "ok" and .service == "nabaperks" and (try (.time | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601 | type == "number") catch false) and .revision == $revision and .environment == "production"' <<<"$body"
+          jq -e --arg revision "$EXPECTED_REVISION" '.status == "ready" and .scope == "readiness" and .checks.database == "ok" and .service == "nabaperks" and (try (.time | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601 | type == "number") catch false) and (.revision | type == "string" and length == 12) and ($revision == "" or .revision == ($revision[0:12])) and .environment == "production"' <<<"$body"

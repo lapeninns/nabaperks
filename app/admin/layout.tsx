@@ -1,8 +1,12 @@
+import type { Metadata } from "next"
 import { connection } from "next/server"
 
 import { Eyebrow } from "@/components/brand"
 import { AdminShell } from "@/components/layout"
 import { getAdminAccess } from "@/lib/admin/auth"
+import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
+
+export const metadata: Metadata = PRIVATE_ROUTE_METADATA
 
 export default async function AdminLayout({
   children,

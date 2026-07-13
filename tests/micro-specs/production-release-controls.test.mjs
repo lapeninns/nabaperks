@@ -146,6 +146,25 @@ test("Given hosted configuration When a protected secret repeats a structured se
   )
 })
 
+for (const [encoding, secret] of [
+  [
+    "hex",
+    "b9cc0956add0fb3222e43218ec49113d65b8167f96446300486009602ba3a7f5",
+  ],
+  ["base64url", "YPiBzVAZkKxuPz-9CSqFcTZvdb6Rl9vtLf40-dGL1pw"],
+]) {
+  test(`Given hosted configuration When a protected secret uses secure ${encoding} encoding Then the environment accepts it`, () => {
+    const result = runEnvCheck({
+      args: ["--profile=default"],
+      environment: { CUSTOMER_SESSION_SECRET: secret },
+      vercelEnv: "production",
+    })
+
+    assert.equal(result.status, 0, result.stderr)
+    assert.match(result.stdout, /environment configuration is valid/)
+  })
+}
+
 test("Given hosted configuration When an auth-hook secret is not Standard Webhooks formatted Then the environment fails closed", () => {
   const result = runEnvCheck({
     args: ["--profile=default"],
@@ -222,6 +241,37 @@ test("Given hosted release configuration When release controls are inspected The
     ci,
     /--project=chromium --project=mobile-safari --project=desktop-firefox --project=desktop-safari --grep-invert @visual/
   )
+})
+
+test("Given scheduled production monitoring When a rollback is active Then probes do not require default-branch HEAD", () => {
+  const workflow = readFileSync(
+    ".github/workflows/production-smoke.yml",
+    "utf8"
+  )
+
+  assert.doesNotMatch(workflow, /GITHUB_SHA/)
+  assert.match(workflow, /expected_revision:/)
+  assert.match(workflow, /EXPECTED_REVISION:/)
+  assert.match(workflow, /\$revision == "" or \.revision == \(\$revision\[0:12\]\)/)
+})
+
+test("Given final provider acceptance When the production runbook is inspected Then Stripe and recovery proof are executable", () => {
+  const production = readFileSync(
+    "docs/operations/production-runbook.md",
+    "utf8"
+  )
+  const incident = readFileSync(
+    "docs/operations/incident-response.md",
+    "utf8"
+  )
+
+  assert.match(production, /live product and both active price IDs/i)
+  assert.match(production, /Customer Portal session/i)
+  assert.match(production, /signed webhook delivery/i)
+  assert.match(production, /stripe_webhook_events/)
+  assert.match(production, /entitlement/i)
+  assert.match(incident, /two consecutive scheduled Production smoke runs/i)
+  assert.doesNotMatch(incident, /error rate remains normal/i)
 })
 
 function runEnvCheck({ args = [], environment = {}, vercelEnv }) {

@@ -35,7 +35,7 @@ Recovery is not complete until:
 - the original failing journey succeeds through its real channel;
 - a server/database/provider readback proves the expected side effect;
 - queues and retries are draining without duplicate effects;
-- error rate remains normal for at least two scheduled smoke intervals; and
+- two consecutive scheduled Production smoke runs succeed after recovery; and
 - the communications owner has issued the recovery update.
 
 ## Evidence and communications

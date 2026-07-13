@@ -25,6 +25,28 @@ Do not promote a release until all of these are true:
 6. A rollback candidate (the last healthy Vercel production deployment) is
    identified before promotion.
 
+### Stripe live acceptance gate
+
+Stripe is accepted only when an operator records all of the following against
+the live account:
+
+1. The live product and both active price IDs match the published monthly and
+   annual GBP amounts, and obsolete prices are inactive.
+2. A Customer Portal session opens for a controlled merchant and returns to
+   `/app/account?tab=billing`; payment-method update, invoice history, and
+   cancellation-at-period-end match the product copy.
+3. A signed webhook delivery reaches
+   `https://nabaperks.com/api/stripe/webhook` on the pinned API version and
+   returns a success response.
+4. The event ID appears once in `stripe_webhook_events`, with a terminal
+   processing state and no duplicate side effects.
+5. The affected merchant subscription and entitlement readback match the
+   Stripe subscription after the webhook is processed.
+
+Record only masked customer/merchant identifiers, Stripe object IDs, UTC
+timestamps, response status, and the database readback; never record secrets or
+full webhook payloads.
+
 ## Promote and verify
 
 1. Merge the reviewed branch through protected `main`; do not bypass checks.
@@ -47,8 +69,9 @@ Do not promote a release until all of these are true:
 6. Complete one controlled merchant login, one customer login, one QR join,
    one stamp/redeem lifecycle, one email delivery and one OTP delivery in the
    target environment. Never use production customer data as a test fixture.
-7. Confirm the scheduled `Production smoke` workflow has a green run after
-   promotion.
+7. Manually dispatch `Production smoke` with the promoted Git SHA as
+   `expected_revision`, then confirm the next scheduled availability-only run
+   is also green.
 
 ## Rollback
 

@@ -276,11 +276,6 @@ function isSafePostHogHost(value) {
 function hasHighEntropySecretShape(secret) {
   if (/\s/.test(secret) || new Set(secret).size < 12) return false
 
-  const characterClassCount = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z\d]/].filter(
-    (pattern) => pattern.test(secret)
-  ).length
-  if (characterClassCount < 4) return false
-
   const compact = secret.toLowerCase().replace(/[^a-z0-9]/g, "")
   if (
     /(?:0123456789|123456789|9876543210|abcdef|fedcba|qwerty)/.test(compact)
