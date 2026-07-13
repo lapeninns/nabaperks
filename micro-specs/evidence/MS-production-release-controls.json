@@ -3,40 +3,6 @@
   "spec_id": "MS-production-release-controls",
   "runs": [
     {
-      "timestamp": "2026-07-12T20:48:12.746Z",
-      "git_sha": "939283cf9609cfd34cc34734d03c9df681559450",
-      "git_branch": "codex/production-readiness",
-      "dirty": true,
-      "gates": [
-        {
-          "command": "pnpm lint",
-          "exit_code": 0,
-          "duration_ms": 9159
-        },
-        {
-          "command": "pnpm typecheck",
-          "exit_code": 0,
-          "duration_ms": 1309
-        },
-        {
-          "command": "pnpm governance:check",
-          "exit_code": 0,
-          "duration_ms": 2339
-        },
-        {
-          "command": "pnpm test",
-          "exit_code": 0,
-          "duration_ms": 11054
-        },
-        {
-          "command": "pnpm test:coverage",
-          "exit_code": 0,
-          "duration_ms": 1535
-        }
-      ],
-      "all_passed": true
-    },
-    {
       "timestamp": "2026-07-12T21:50:24.155Z",
       "git_sha": "8457f3699ef197d0f70b1100c5fe45259c9bcbc1",
       "git_branch": "codex/production-readiness",
@@ -316,6 +282,40 @@
         }
       ],
       "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-13T13:36:26.587Z",
+      "git_sha": "7d46a8027f62c58c55f5d48ab21610daa374d3f7",
+      "git_branch": "codex/production-readiness",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7152
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1126
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 2098
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9867
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1515
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [

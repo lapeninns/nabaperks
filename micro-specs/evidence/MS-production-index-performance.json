@@ -25,6 +25,60 @@
         }
       ],
       "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-13T13:36:26.587Z",
+      "git_sha": "7d46a8027f62c58c55f5d48ab21610daa374d3f7",
+      "git_branch": "codex/production-readiness",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7152
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1126
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9867
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1515
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11907
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 180
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --grep \"@MS-production-index-performance\"",
+          "exit_code": 0,
+          "duration_ms": 8638
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 162575
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 59738
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
