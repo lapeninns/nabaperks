@@ -3,6 +3,7 @@ import { Bricolage_Grotesque, Space_Mono } from "next/font/google"
 import Script from "next/script"
 
 import "./globals.css"
+import { PlaywrightHydrationSignal } from "@/components/dev-tools/playwright-hydration-signal"
 import { AppPwa } from "@/components/pwa/app-pwa"
 import { JsonLd } from "@/components/seo/json-ld"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -83,6 +84,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const isPlaywrightHarness =
+    process.env.NODE_ENV === "development" &&
+    process.env.PLAYWRIGHT_HARNESS === "1"
+
   return (
     <html
       lang="en-GB"
@@ -107,11 +112,12 @@ export default function RootLayout({
             </>
           )}
       </head>
-      <body className="font-sans">
+      <body className="font-sans" inert={isPlaywrightHarness}>
         <ThemeProvider>
           {children}
           <AppPwa />
           <Toaster closeButton />
+          {isPlaywrightHarness && <PlaywrightHydrationSignal />}
         </ThemeProvider>
         <JsonLd
           id="ld-site"

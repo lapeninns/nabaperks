@@ -6,7 +6,7 @@ import {
   assertPublicLocalPasswordPolicy,
   authPasswordPolicyLiveDbSkipReason,
 } from "./helpers/auth-password-policy-live-db"
-import { dismissPwaInstall } from "./helpers/harness"
+import { dismissPwaInstall, gotoHydratedPage } from "./helpers/harness"
 
 export function defineAuthPasswordPolicyTests() {
   test.use({ serviceWorkers: "block" })
@@ -19,8 +19,7 @@ export function defineAuthPasswordPolicyTests() {
   test("signup rules are visible, associated, contextual, and keyboard clear", async ({
     page,
   }) => {
-    await page.goto("/signup")
-    await page.waitForLoadState("networkidle")
+    await gotoHydratedPage(page, "/signup")
 
     const password = page.getByLabel("Password", { exact: true })
     const requirements = page.getByRole("region", {
@@ -60,10 +59,10 @@ export function defineAuthPasswordPolicyTests() {
   test("reset rules and focused footer keep the same accessible contract", async ({
     page,
   }) => {
-    await page.goto(
+    await gotoHydratedPage(
+      page,
       "/reset-password?stage=verify&email=operator%40example.test"
     )
-    await page.waitForLoadState("networkidle")
 
     const password = page.getByLabel("New password", { exact: true })
     const requirements = page.getByRole("region", {

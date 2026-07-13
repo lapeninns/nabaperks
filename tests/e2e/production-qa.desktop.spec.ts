@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test"
 
+import { gotoHydratedPage } from "./helpers/harness"
+
 test("deterministic harness hydrates without browser errors @MS-production-qa-closure", async ({
   page,
 }) => {
@@ -11,7 +13,12 @@ test("deterministic harness hydrates without browser errors @MS-production-qa-cl
   })
   page.on("pageerror", (error) => pageErrors.push(error.message))
 
-  await page.goto("/dev/app-harness/qr")
+  await gotoHydratedPage(page, "/dev/app-harness/qr")
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-playwright-hydrated",
+    "true"
+  )
+  await expect(page.locator("body")).not.toHaveAttribute("inert", "")
   await expect(
     page.getByRole("heading", { name: "Launch your counter QR" })
   ).toBeVisible()

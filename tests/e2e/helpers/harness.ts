@@ -43,3 +43,13 @@ export async function dismissPwaInstall(page: Page): Promise<void> {
     }
   }, PWA_DISMISS_KEY)
 }
+
+export async function gotoHydratedPage(
+  page: Page,
+  path: string
+): Promise<void> {
+  await page.goto(path)
+  await page
+    .locator("html[data-playwright-hydrated='true']")
+    .waitFor({ state: "attached" })
+}
