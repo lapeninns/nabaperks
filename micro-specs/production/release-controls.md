@@ -90,8 +90,8 @@ and Vercel production promotion of this branch.
   and build, using safe fixture values that satisfy the same public/server
   visibility contract.
 - GitHub required checks cover typecheck/build, DB, DB-free E2E, accessibility,
-  visual regression, ZAP baseline, and CodeQL. Lighthouse remains informative
-  because its workflow is explicitly non-blocking.
+  visual regression, the isolated Lighthouse performance budget, ZAP baseline,
+  and CodeQL.
 - Protection applies to administrators so a direct privileged push cannot
   bypass the release gate.
 

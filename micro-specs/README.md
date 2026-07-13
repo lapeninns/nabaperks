@@ -291,9 +291,11 @@ Micro-Specs must add targeted tests for the changed journey.
 
 `pnpm test:coverage` enforces node coverage thresholds for `lib/**` in the unit
 tier. `pnpm bundle:check` enforces the checked-in Next.js bundle budget after
-`pnpm build`. `pnpm lighthouse` runs Lighthouse CI as a non-blocking performance
-and SEO signal in CI. ZAP baseline and nightly full scans run as workflow jobs,
-not package-script gates.
+`pnpm build`. `pnpm lighthouse` runs in the dedicated, merge-blocking
+`Lighthouse CI` job so its timing-sensitive performance and SEO budgets are
+measured on an isolated runner rather than repeated after the long governance
+bundle. ZAP baseline and nightly full scans run as workflow jobs, not
+package-script gates.
 
 `pnpm test:db` is a live database gate. It requires `SUPABASE_DB_URL` and fails
 clearly when no database URL is present. CI runs it only when that environment
