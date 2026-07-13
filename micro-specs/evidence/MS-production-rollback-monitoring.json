@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-production-rollback-monitoring",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-13T12:51:12.491Z",
+      "sha": "cbfda5fe43757e2f30477c34c75afacd56caa35a",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}
