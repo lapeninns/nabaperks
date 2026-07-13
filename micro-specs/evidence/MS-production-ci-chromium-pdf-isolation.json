@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-production-ci-chromium-pdf-isolation",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-13T15:33:24.074Z",
+      "sha": "985078b36a2a17cb0a4a3ebe3197394d5e37b95a",
+      "dirty": false,
+      "by": "amankumarshrestha"
+    }
+  ]
+}

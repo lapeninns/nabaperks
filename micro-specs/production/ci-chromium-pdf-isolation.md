@@ -1,6 +1,6 @@
 ---
 spec_id: MS-production-ci-chromium-pdf-isolation
-status: draft
+status: active
 risk_class: docs-tooling
 owner: amankumarshrestha
 last_reviewed: 2026-07-13
