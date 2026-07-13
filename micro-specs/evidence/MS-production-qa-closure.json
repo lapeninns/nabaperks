@@ -428,9 +428,98 @@
         }
       ],
       "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-13T06:42:13.654Z",
+      "git_sha": "79194b0ada14c940d678463d937009ed77954e89",
+      "git_branch": "codex/production-readiness",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 13652
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 2266
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 18554
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10147
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1486
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 171
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 2379
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --grep \"@MS-production-qa-closure\"",
+          "exit_code": 0,
+          "duration_ms": 31233
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --project=desktop-firefox --project=desktop-safari --grep-invert @visual",
+          "exit_code": 0,
+          "duration_ms": 1151965
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 292793
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 124285
+        }
+      ],
+      "all_passed": true
     }
   ],
-  "manual_attestations": [],
+  "manual_attestations": [
+    {
+      "gate": "evidence",
+      "by": "amankumarshrestha",
+      "at": "2026-07-13T06:42:13.654Z",
+      "note": "Command output for every declared verification gate."
+    },
+    {
+      "gate": "evidence",
+      "by": "amankumarshrestha",
+      "at": "2026-07-13T06:42:13.654Z",
+      "note": "Before-and-after browser output proving the development-only script no longer emits a hydration mismatch in the deterministic harness."
+    },
+    {
+      "gate": "evidence",
+      "by": "amankumarshrestha",
+      "at": "2026-07-13T06:42:13.654Z",
+      "note": "Visual review of the changed Chromium and mobile Safari QR baselines."
+    },
+    {
+      "gate": "evidence",
+      "by": "amankumarshrestha",
+      "at": "2026-07-13T06:42:13.654Z",
+      "note": "Full non-visual Chromium, mobile Safari, Firefox, and WebKit output."
+    }
+  ],
   "transitions": [
     {
       "from": "draft",
@@ -445,6 +534,14 @@
       "to": "implemented",
       "at": "2026-07-12T19:42:44.404Z",
       "sha": "50fee57dc16fabc4cd8de182afee7c3165b03fd8",
+      "dirty": false,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "implemented",
+      "to": "verified",
+      "at": "2026-07-13T06:42:13.654Z",
+      "sha": "79194b0ada14c940d678463d937009ed77954e89",
       "dirty": false,
       "by": "amankumarshrestha"
     }

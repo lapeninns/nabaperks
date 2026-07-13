@@ -1,9 +1,9 @@
 ---
 spec_id: MS-production-qa-closure
-status: implemented
+status: verified
 risk_class: ui-only
 owner: codex
-last_reviewed: 2026-07-12
+last_reviewed: 2026-07-13
 allowed_blast_radius:
   - micro-specs/production/**
   - app/layout.tsx
