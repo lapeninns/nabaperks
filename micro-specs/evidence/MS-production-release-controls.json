@@ -3,40 +3,6 @@
   "spec_id": "MS-production-release-controls",
   "runs": [
     {
-      "timestamp": "2026-07-12T18:30:55.101Z",
-      "git_sha": "a757f120c61a503a0a2440c229b337acdb03bc61",
-      "git_branch": "codex/production-readiness",
-      "dirty": true,
-      "gates": [
-        {
-          "command": "pnpm lint",
-          "exit_code": 0,
-          "duration_ms": 8259
-        },
-        {
-          "command": "pnpm typecheck",
-          "exit_code": 0,
-          "duration_ms": 1405
-        },
-        {
-          "command": "pnpm governance:check",
-          "exit_code": 0,
-          "duration_ms": 2067
-        },
-        {
-          "command": "pnpm test",
-          "exit_code": 0,
-          "duration_ms": 9853
-        },
-        {
-          "command": "pnpm test:coverage",
-          "exit_code": 0,
-          "duration_ms": 1474
-        }
-      ],
-      "all_passed": true
-    },
-    {
       "timestamp": "2026-07-12T18:31:11.574Z",
       "git_sha": "d4ad7c25f346e271c7cbadc220f63a42dd4b1e48",
       "git_branch": "codex/production-readiness",
@@ -326,6 +292,30 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-13T07:30:29.517Z",
+      "git_sha": "b115d1a43bee153fe2f454effe71e1192a91c45d",
+      "git_branch": "codex/production-readiness",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7678
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1219
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 1,
+          "duration_ms": 9426
+        }
+      ],
+      "all_passed": false
     }
   ],
   "manual_attestations": [
