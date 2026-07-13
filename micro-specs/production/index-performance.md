@@ -59,7 +59,9 @@ application business logic are out of scope.
 - Lighthouse thresholds must be errors, not warnings, and the CI job must be
   release-blocking.
 - Use Lighthouse `formFactor: mobile` and multiple runs to reduce single-sample
-  noise without weakening the existing minimum scores or timings.
+  noise. Make all budgets blocking and establish 4 seconds as the initial
+  mobile LCP ceiling; do not infer mobile performance from the old desktop
+  sample.
 
 ## 4. Decisions Already Made
 
@@ -80,4 +82,5 @@ application business logic are out of scope.
    the equivalent response header before returning redirects.
 3. Make Lighthouse blocking, mobile-profiled, and multi-run with explicit
    error budgets.
-4. Run and record every declared gate, then advance to implemented.
+4. Prove the blocking mobile budgets across two runs per public route.
+5. Run and record every declared gate, then advance to implemented.
