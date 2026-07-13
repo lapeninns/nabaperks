@@ -80,6 +80,80 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-13T20:19:31.501Z",
+      "git_sha": "e3a8b7f9539936f6b1bb205a75de00edb702361b",
+      "git_branch": "codex/production-readiness",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 8010
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1244
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 2652
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10287
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1497
+        },
+        {
+          "command": "pnpm test:e2e -- --grep \"@governance\"",
+          "exit_code": 0,
+          "duration_ms": 8312
+        },
+        {
+          "command": "pnpm test:a11y",
+          "exit_code": 0,
+          "duration_ms": 302102
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 59219
+        },
+        {
+          "command": "pnpm tokens:check",
+          "exit_code": 0,
+          "duration_ms": 196
+        },
+        {
+          "command": "pnpm claims:check",
+          "exit_code": 0,
+          "duration_ms": 215
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11047
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 191
+        },
+        {
+          "command": "pnpm jsonld:check",
+          "exit_code": 0,
+          "duration_ms": 2385
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
