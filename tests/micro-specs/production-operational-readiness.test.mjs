@@ -45,8 +45,10 @@ test("scheduled production smoke validates both JSON probe contracts", () => {
   assert.match(workflow, /\.environment == "production"/)
   assert.match(workflow, /\.revision == \$revision/)
   assert.match(workflow, /\.service == "nabaperks"/)
-  assert.match(workflow, /\.time \| type == "string"/)
-  assert.match(workflow, /test\(\"\^\\\\d\{4\}-\\\\d\{2\}-\\\\d\{2\}T\"\)/)
+  assert.match(workflow, /fromdateiso8601/)
   assert.match(workflow, /\.status == "ok" and \.scope == "liveness"/)
-  assert.match(workflow, /\.status == "ready" and \.checks\.database == "ok"/)
+  assert.match(
+    workflow,
+    /\.status == "ready" and \.scope == "readiness" and \.checks\.database == "ok"/
+  )
 })

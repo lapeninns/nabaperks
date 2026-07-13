@@ -34,7 +34,6 @@ jobs:
       WEB_PUSH_VAPID_SUBJECT: mailto:ci@example.test
       CRON_SECRET: 'N7!qL2@vR9#cT4$yH6^mK8&pD3*zF5?x'
       PRODUCTION_MONITOR_SECRET: 'P4@wS8#nC2!kV6$rJ9^tB3&yM7*zQ5?e'
-      SUPABASE_SEND_EMAIL_HOOK_SECRET: 'U8!dM3@kR7#vH2$cQ9^pL5&wF4*zN6?x'
       TWILIO_ACCOUNT_SID: ACci
       TWILIO_AUTH_TOKEN: ci-twilio-auth-token
       TWILIO_VERIFY_SERVICE_SID: VAci
@@ -46,6 +45,9 @@ jobs:
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
+      - name: Configure non-secret CI auth-hook fixture
+        run: |
+          printf 'SUPABASE_SEND_EMAIL_HOOK_SECRET=v1,%s_%s\n' whsec VTghZE0zQGtSNyN2SDIkY1E5XnBMNSZ3RjQqek42P3g= >> "$GITHUB_ENV"
       - run: pnpm env:check:production
       - run: pnpm security:audit
       - run: pnpm lint

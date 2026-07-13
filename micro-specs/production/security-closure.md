@@ -27,6 +27,7 @@ allowed_blast_radius:
   - tests/e2e/auth-confirm-safety.spec.ts
   - tests/e2e/auth-hook-routes.desktop.spec.ts
   - tests/micro-specs/production-security-closure.test.mjs
+  - tests/micro-specs/production-release-controls.test.mjs
   - package.json
   - pnpm-lock.yaml
 implementation_surfaces:
@@ -51,10 +52,12 @@ implementation_surfaces:
   - tests/e2e/auth-confirm-safety.spec.ts
   - tests/e2e/auth-hook-routes.desktop.spec.ts
   - tests/micro-specs/production-security-closure.test.mjs
+  - tests/micro-specs/production-release-controls.test.mjs
   - package.json
   - pnpm-lock.yaml
 related_tests:
   - tests/micro-specs/production-security-closure.test.mjs
+  - tests/micro-specs/production-release-controls.test.mjs
   - tests/e2e/auth-confirm-safety.spec.ts
 verification_gates:
   - pnpm lint

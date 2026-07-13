@@ -56,6 +56,7 @@ test("checked-in harness values are not shaped like provider credentials", () =>
     read("scripts", "supabase-local.mjs"),
     read("scripts", "supabase-linked.mjs"),
     read("scripts", "check-supabase-migrations.mjs"),
+    read("tests", "micro-specs", "production-release-controls.test.mjs"),
     read(".github", "workflows", "ci.yml"),
     read(".github", "workflows", "nightly.yml"),
   ].join("\n")

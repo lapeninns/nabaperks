@@ -216,15 +216,89 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-13T08:22:11.011Z",
+      "git_sha": "ee0596a3698752e4fe2f5123320759394d36caf7",
+      "git_branch": "codex/production-readiness",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 9133
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1422
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 2555
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10889
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1636
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 197
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11593
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --grep \"PWA offline fallback\"",
+          "exit_code": 0,
+          "duration_ms": 9636
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 202535
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 60265
+        }
+      ],
+      "all_passed": true
     }
   ],
-  "manual_attestations": [],
+  "manual_attestations": [
+    {
+      "gate": "evidence",
+      "by": "amankumarshrestha",
+      "at": "2026-07-13T08:22:11.011Z",
+      "note": "Command output for the declared verification gates and related tests."
+    }
+  ],
   "transitions": [
     {
       "from": "active",
       "to": "implemented",
       "at": "2026-07-12T20:06:59.974Z",
       "sha": "97052f66c8b6d53366cab649a76a796670b09ad2",
+      "dirty": false,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "implemented",
+      "to": "verified",
+      "at": "2026-07-13T08:22:11.011Z",
+      "sha": "ee0596a3698752e4fe2f5123320759394d36caf7",
       "dirty": false,
       "by": "amankumarshrestha"
     }

@@ -46,7 +46,7 @@ const ciLinuxSnapshotPathTemplate =
     ? "{testDir}/{testFilePath}-snapshots/{arg}-{projectName}-linux{ext}"
     : undefined
 const reuseExistingServer =
-  !process.env.CI && process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER !== "0"
+  !process.env.CI && process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === "1"
 
 export default defineConfig({
   testDir: "./tests/e2e",

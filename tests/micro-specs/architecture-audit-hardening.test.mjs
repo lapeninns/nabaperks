@@ -91,6 +91,10 @@ test("Given Playwright runs in CI When focused tests are present Then the config
   assert.match(config, /retries: process\.env\.CI \? 1 : 0/)
   assert.match(config, /localWorkerOverride = process\.env\.PLAYWRIGHT_WORKERS/)
   assert.match(config, /workers: process\.env\.CI \? 1 : localWorkers/)
+  assert.match(
+    config,
+    /process\.env\.PLAYWRIGHT_REUSE_EXISTING_SERVER === "1"/
+  )
 })
 
 test("Given trust moat regressions need runtime proof When CI is inspected Then DB behavioral tests exercise the core RPCs", () => {

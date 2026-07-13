@@ -27,6 +27,7 @@ const pseudonymousAnalyticsRequiredEnvNames = new Set([
   "ANALYTICS_PSEUDONYM_SECRET",
 ])
 const highEntropySecretEnvNames = new Set([
+  "ANALYTICS_PSEUDONYM_SECRET",
   "CRON_SECRET",
   "PRODUCTION_MONITOR_SECRET",
   "CUSTOMER_SESSION_SECRET",
@@ -34,6 +35,10 @@ const highEntropySecretEnvNames = new Set([
   "CUSTOMER_PHONE_ENCRYPTION_KEY",
   "CUSTOMER_EMAIL_HMAC_SECRET",
   "MERCHANT_OTP_ALIAS_TOKEN_ENCRYPTION_KEY",
+  "SUPABASE_SEND_EMAIL_HOOK_SECRET",
+  "SUPABASE_SEND_SMS_HOOK_SECRET",
+])
+const standardWebhookSecretEnvNames = new Set([
   "SUPABASE_SEND_EMAIL_HOOK_SECRET",
   "SUPABASE_SEND_SMS_HOOK_SECRET",
 ])
@@ -190,6 +195,15 @@ if (hostedOrProductionProfile) {
     if (!hasHighEntropySecretShape(secret)) {
       invalid.push(`${name} must use a generated high-entropy value`)
     }
+
+    if (
+      standardWebhookSecretEnvNames.has(name) &&
+      !hasStandardWebhookSecretShape(secret)
+    ) {
+      invalid.push(
+        `${name} must use Standard Webhooks v1,whsec_<base64> format`
+      )
+    }
   }
 
   const cronSecret = values.CRON_SECRET?.trim()
@@ -287,7 +301,42 @@ function hasHighEntropySecretShape(secret) {
     }
   }
 
+  const structuredChunks = secret.match(/[A-Z][a-z]\d[^A-Za-z\d]/g)
+  if (
+    structuredChunks &&
+    structuredChunks.length >= 4 &&
+    structuredChunks.join("") === secret &&
+    structuredChunks.every(
+      (chunk) => chunk[0].toLowerCase() === chunk[1].toLowerCase()
+    )
+  ) {
+    const letters = structuredChunks.map((chunk) => chunk.charCodeAt(0))
+    const digits = structuredChunks.map((chunk) => Number(chunk[2]))
+    const sequentialLetters = letters.every(
+      (letter, index) => index === 0 || letter === letters[index - 1] + 1
+    )
+    const sequentialDigits = digits.every(
+      (digit, index) => index === 0 || digit === digits[index - 1] + 1
+    )
+
+    if (sequentialLetters || sequentialDigits) return false
+  }
+
   return true
+}
+
+function hasStandardWebhookSecretShape(secret) {
+  const match = /^v1,whsec_([A-Za-z0-9+/_-]+={0,2})$/.exec(secret)
+  if (!match) return false
+
+  const payload = match[1].replace(/-/g, "+").replace(/_/g, "/")
+  if (payload.length % 4 === 1) return false
+
+  try {
+    return Buffer.from(payload, "base64").length >= 32
+  } catch {
+    return false
+  }
 }
 
 function isSafeSupabaseProjectOrigin(value) {

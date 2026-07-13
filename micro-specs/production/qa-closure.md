@@ -10,6 +10,7 @@ allowed_blast_radius:
   - components/dev-tools/**
   - playwright.config.ts
   - tests/e2e/**
+  - tests/micro-specs/architecture-audit-hardening.test.mjs
   - .github/workflows/nightly.yml
   - micro-specs/production/qa-closure.md
 implementation_surfaces:
@@ -17,9 +18,11 @@ implementation_surfaces:
   - components/dev-tools/**
   - playwright.config.ts
   - tests/e2e/**
+  - tests/micro-specs/architecture-audit-hardening.test.mjs
   - .github/workflows/nightly.yml
   - micro-specs/production/qa-closure.md
 related_tests:
+  - tests/micro-specs/architecture-audit-hardening.test.mjs
   - tests/e2e/analytics-funnel-privacy.desktop.spec.ts
   - tests/e2e/merchant-birthday-config.spec.ts
   - tests/e2e/merchant-launch-header.desktop.spec.ts

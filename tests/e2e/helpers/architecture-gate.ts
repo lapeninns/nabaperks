@@ -53,10 +53,7 @@ const SURFACE_CHECKS = [
 export async function warmArchitectureHarnessRoutes(
   request: APIRequestContext
 ): Promise<void> {
-  const paths = new Set([
-    ...Object.values(HARNESS_ROUTES),
-    ...SURFACE_CHECKS.map((surface) => surface.path),
-  ])
+  const paths = new Set(SURFACE_CHECKS.map((surface) => surface.path))
 
   for (const path of paths) {
     const response = await request.get(path, { failOnStatusCode: false })
@@ -74,7 +71,13 @@ export async function expectArchitectureHarnessSurfaces(
   page: Page
 ): Promise<void> {
   for (const surface of SURFACE_CHECKS) {
-    await testHarnessSurface(page, surface)
+    const surfacePage = await page.context().newPage()
+
+    try {
+      await testHarnessSurface(surfacePage, surface)
+    } finally {
+      await surfacePage.close()
+    }
   }
 }
 
@@ -82,7 +85,9 @@ async function testHarnessSurface(
   page: Page,
   surface: HarnessSurfaceCheck
 ): Promise<void> {
-  const response = await gotoHarnessSurface(page, surface.path)
+  const response = await page.goto(surface.path, {
+    waitUntil: "domcontentloaded",
+  })
 
   expect(response?.status(), `${surface.name} returned HTTP 200`).toBe(200)
   await expect(page.locator("body")).toContainText(surface.visibleText)
@@ -116,25 +121,4 @@ async function testHarnessSurface(
     hasHorizontalOverflow,
     `${surface.name} has no horizontal overflow`
   ).toBe(false)
-}
-
-async function gotoHarnessSurface(page: Page, path: string) {
-  try {
-    return await navigateHarnessSurface(page, path)
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      /NS_BINDING_ABORTED|NS_ERROR_FAILURE|frame was detached|interrupted by another navigation/i.test(
-        error.message
-      )
-    ) {
-      return navigateHarnessSurface(page, path)
-    }
-
-    throw error
-  }
-}
-
-async function navigateHarnessSurface(page: Page, path: string) {
-  return page.goto(path, { waitUntil: "domcontentloaded" })
 }

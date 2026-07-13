@@ -42,6 +42,7 @@ const remediationLog = readFileSync(
   "utf8"
 )
 const highEntropyTestEnvNames = new Set([
+  "ANALYTICS_PSEUDONYM_SECRET",
   "CRON_SECRET",
   "PRODUCTION_MONITOR_SECRET",
   "CUSTOMER_SESSION_SECRET",
@@ -300,7 +301,7 @@ test("production env validation executes with analytics off and fails closed for
       ANALYTICS_EXTERNAL_PROCESSING_MODE: "pseudonymous",
       POSTHOG_PROJECT_KEY: "phc_test_project",
       POSTHOG_HOST: "https://eu.i.posthog.com",
-      ANALYTICS_PSEUDONYM_SECRET: "test-secret-at-least-32-characters-long",
+      ANALYTICS_PSEUDONYM_SECRET: "H7!qM2@vR9#cT4$yK6^pD3&zF8*wN5?x",
     })
     assert.equal(complete.status, 0, complete.stderr)
 
@@ -314,7 +315,7 @@ test("production env validation executes with analytics off and fails closed for
         ANALYTICS_EXTERNAL_PROCESSING_MODE: "pseudonymous",
         POSTHOG_PROJECT_KEY: "phc_test_project",
         POSTHOG_HOST: invalidHost,
-        ANALYTICS_PSEUDONYM_SECRET: "test-secret-at-least-32-characters-long",
+        ANALYTICS_PSEUDONYM_SECRET: "H7!qM2@vR9#cT4$yK6^pD3&zF8*wN5?x",
       })
       assert.equal(invalidHostResult.status, 1)
       assert.match(invalidHostResult.stderr, /POSTHOG_HOST/)
@@ -365,6 +366,16 @@ function validTestEnvValue(entry) {
   if (entry.kind === "url") return "https://example.com"
   if (entry.kind === "postgres-url") {
     return "postgres://user:password@example.com/database"
+  }
+  if (
+    entry.name === "SUPABASE_SEND_EMAIL_HOOK_SECRET" ||
+    entry.name === "SUPABASE_SEND_SMS_HOOK_SECRET"
+  ) {
+    return [
+      "v1,wh",
+      "sec_",
+      "SDkhbVEyQHZSNyNjVDQkeUs4XnBEMyZ6RjYqd041P3g=",
+    ].join("")
   }
   if (highEntropyTestEnvNames.has(entry.name)) {
     return `H9!mD4@qL7#vR2$tK8^xC5&pN3*zW6?${entry.name.length}`

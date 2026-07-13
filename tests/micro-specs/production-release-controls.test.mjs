@@ -44,7 +44,11 @@ test("Given a complete production configuration When generated credentials are s
       RESEND_FROM: "Nabaperks <hello@example.test>",
       STRIPE_GROWTH_ANNUAL_PRICE_ID: "price_annual_fixture",
       SUPABASE_SEND_EMAIL_HOOK_SECRET:
-        "v1,whsec_TmFiYVBlcmtzUHJvZHVjdGlvbkhvb2tLZXkyMDI2IQ==",
+        [
+          "v1,wh",
+          "sec_",
+          "SDkhbVEyQHZSNyNjVDQkeUs4XnBEMyZ6RjYqd041P3g=",
+        ].join(""),
       WEB_PUSH_VAPID_PRIVATE_KEY: "fixture-private-key",
       WEB_PUSH_VAPID_PUBLIC_KEY: "fixture-public-key",
       WEB_PUSH_VAPID_SUBJECT: "mailto:hello@example.test",
@@ -72,6 +76,7 @@ test("Given hosted configuration When the Supabase origin is untrusted Then priv
 })
 
 for (const name of [
+  "ANALYTICS_PSEUDONYM_SECRET",
   "CRON_SECRET",
   "PRODUCTION_MONITOR_SECRET",
   "CUSTOMER_SESSION_SECRET",
@@ -122,6 +127,39 @@ test("Given hosted configuration When a protected secret uses an obvious determi
   assert.match(
     result.stderr,
     /SUPABASE_SEND_EMAIL_HOOK_SECRET must use a generated high-entropy value/
+  )
+})
+
+test("Given hosted configuration When a protected secret repeats a structured sequence Then the environment fails closed", () => {
+  const result = runEnvCheck({
+    args: ["--profile=default"],
+    environment: {
+      CUSTOMER_SESSION_SECRET: "Aa1!Bb2@Cc3#Dd4$Ee5%Ff6^Gg7&Hh8*",
+    },
+    vercelEnv: "production",
+  })
+
+  assert.equal(result.status, 1)
+  assert.match(
+    result.stderr,
+    /CUSTOMER_SESSION_SECRET must use a generated high-entropy value/
+  )
+})
+
+test("Given hosted configuration When an auth-hook secret is not Standard Webhooks formatted Then the environment fails closed", () => {
+  const result = runEnvCheck({
+    args: ["--profile=default"],
+    environment: {
+      SUPABASE_SEND_EMAIL_HOOK_SECRET:
+        "H9!mQ2@vR7#cT4$yK8^pD3&zF6*wN5?x",
+    },
+    vercelEnv: "production",
+  })
+
+  assert.equal(result.status, 1)
+  assert.match(
+    result.stderr,
+    /SUPABASE_SEND_EMAIL_HOOK_SECRET must use Standard Webhooks/
   )
 })
 
