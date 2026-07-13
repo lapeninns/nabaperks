@@ -3,40 +3,6 @@
   "spec_id": "MS-production-release-controls",
   "runs": [
     {
-      "timestamp": "2026-07-12T21:58:28.549Z",
-      "git_sha": "8881970a7bcc80d17184ce4d7c5e9c6fa358aeed",
-      "git_branch": "codex/production-readiness",
-      "dirty": false,
-      "gates": [
-        {
-          "command": "pnpm lint",
-          "exit_code": 0,
-          "duration_ms": 8098
-        },
-        {
-          "command": "pnpm typecheck",
-          "exit_code": 0,
-          "duration_ms": 1208
-        },
-        {
-          "command": "pnpm governance:check",
-          "exit_code": 0,
-          "duration_ms": 2520
-        },
-        {
-          "command": "pnpm test",
-          "exit_code": 0,
-          "duration_ms": 10807
-        },
-        {
-          "command": "pnpm test:coverage",
-          "exit_code": 0,
-          "duration_ms": 1573
-        }
-      ],
-      "all_passed": true
-    },
-    {
       "timestamp": "2026-07-13T07:30:29.517Z",
       "git_sha": "b115d1a43bee153fe2f454effe71e1192a91c45d",
       "git_branch": "codex/production-readiness",
@@ -318,6 +284,40 @@
           "command": "pnpm test:coverage",
           "exit_code": 0,
           "duration_ms": 2736
+        }
+      ],
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-13T15:17:08.611Z",
+      "git_sha": "bd322bf695cf86d58dbfb7f46705253d7d2da440",
+      "git_branch": "codex/production-readiness",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 8291
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1245
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 2721
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 11103
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1621
         }
       ],
       "all_passed": true
