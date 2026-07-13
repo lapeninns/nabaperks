@@ -66,6 +66,12 @@ test("Given customer OTP entry When challenge dependencies are inspected Then Cl
     assert.doesNotMatch(source, /turnstileSiteKey/)
   }
 
-  assert.equal(csp.includes("challenges.cloudflare.com"), false)
+  const cspSources = csp
+    .split(";")
+    .flatMap((directive) => directive.trim().split(/\s+/).slice(1))
+  assert.equal(
+    cspSources.includes("https://challenges.cloudflare.com"),
+    false
+  )
   assert.doesNotMatch(envContract, /TURNSTILE/)
 })

@@ -23,6 +23,26 @@ function runSmokeFilter(filter, body) {
   })
 }
 
+function workflowUrls(workflow) {
+  return [...workflow.matchAll(/https:\/\/[^\s"')]+/g)].map(
+    ([value]) => new URL(value)
+  )
+}
+
+function hasProductionProbeUrl(urls, pathname) {
+  return urls.some(
+    (url) =>
+      url.protocol === "https:" &&
+      url.hostname === "nabaperks.com" &&
+      url.port === "" &&
+      url.username === "" &&
+      url.password === "" &&
+      url.pathname === pathname &&
+      url.search === "" &&
+      url.hash === ""
+  )
+}
+
 test("production exposes separate versioned liveness and dependency readiness", () => {
   const health = read("app", "api", "health", "route.ts")
   const readiness = read("app", "api", "readiness", "route.ts")
@@ -52,8 +72,9 @@ test("scheduled production smoke validates both JSON probe contracts", () => {
   const workflow = read(".github", "workflows", "production-smoke.yml")
 
   assert.match(workflow, /cron: "\*\/15 \* \* \* \*"/)
-  assert.match(workflow, /https:\/\/nabaperks\.com\/api\/health/)
-  assert.match(workflow, /https:\/\/nabaperks\.com\/api\/readiness/)
+  const urls = workflowUrls(workflow)
+  assert.equal(hasProductionProbeUrl(urls, "/api/health"), true)
+  assert.equal(hasProductionProbeUrl(urls, "/api/readiness"), true)
   assert.match(workflow, /secrets\.PRODUCTION_MONITOR_SECRET/)
   assert.match(workflow, /GITHUB_SHA/)
   assert.match(workflow, /\.environment == "production"/)
