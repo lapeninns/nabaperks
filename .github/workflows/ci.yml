@@ -93,7 +93,8 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - run: pnpm e2e:install
-      - run: pnpm test:e2e -- --project=chromium --grep-invert @visual
+      - run: pnpm test:e2e -- --project=chromium --grep "poster printing"
+      - run: pnpm test:e2e -- --project=chromium --grep-invert "@visual|poster printing"
       - run: pnpm test:e2e -- --project=mobile-safari --grep-invert @visual
       - run: pnpm test:e2e -- --project=desktop-firefox --grep-invert @visual
       - run: pnpm test:e2e -- --project=desktop-safari --grep-invert @visual

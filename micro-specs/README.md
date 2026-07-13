@@ -265,7 +265,8 @@ pnpm test:coverage
 pnpm build
 pnpm bundle:check
 pnpm e2e:install
-pnpm test:e2e -- --project=chromium --grep-invert @visual
+pnpm test:e2e -- --project=chromium --grep "poster printing"
+pnpm test:e2e -- --project=chromium --grep-invert "@visual|poster printing"
 pnpm test:e2e -- --project=mobile-safari --grep-invert @visual
 pnpm test:e2e -- --project=desktop-firefox --grep-invert @visual
 pnpm test:e2e -- --project=desktop-safari --grep-invert @visual

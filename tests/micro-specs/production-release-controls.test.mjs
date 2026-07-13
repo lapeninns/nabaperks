@@ -237,12 +237,15 @@ test("Given hosted release configuration When release controls are inspected The
     "CI must validate the environment before repository gates"
   )
   assert.match(ci, /- run: pnpm security:audit/)
-  for (const project of [
-    "chromium",
-    "mobile-safari",
-    "desktop-firefox",
-    "desktop-safari",
-  ]) {
+  assert.match(
+    ci,
+    /pnpm test:e2e -- --project=chromium --grep "poster printing"/
+  )
+  assert.match(
+    ci,
+    /pnpm test:e2e -- --project=chromium --grep-invert "@visual\|poster printing"/
+  )
+  for (const project of ["mobile-safari", "desktop-firefox", "desktop-safari"]) {
     assert.match(
       ci,
       new RegExp(
