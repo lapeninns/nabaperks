@@ -24,8 +24,8 @@ verification_gates:
   - pnpm test:coverage
   - pnpm bundle:check
   - pnpm test:e2e -- --project=chromium --project=mobile-safari --grep "@MS-merchant-reward-preset-keyboard-activation"
-  - pnpm test:a11y -- --project=chromium --project=mobile-safari --grep "@a11y"
-  - pnpm test:visual -- --project=chromium --project=mobile-safari --grep "@visual"
+  - pnpm test:a11y -- --project=chromium --project=mobile-safari
+  - pnpm test:visual -- --project=chromium --project=mobile-safari
 required_playwright_projects:
   - chromium
   - mobile-safari
