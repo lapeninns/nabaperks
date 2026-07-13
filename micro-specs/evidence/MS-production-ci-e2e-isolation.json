@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-production-ci-e2e-isolation",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-13T15:03:27.867Z",
+      "sha": "6daa2c8683de0548fa13e41969fa5ade311d574c",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    }
+  ]
+}

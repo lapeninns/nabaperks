@@ -265,7 +265,10 @@ pnpm test:coverage
 pnpm build
 pnpm bundle:check
 pnpm e2e:install
-pnpm test:e2e -- --project=chromium --project=mobile-safari --project=desktop-firefox --project=desktop-safari --grep-invert @visual
+pnpm test:e2e -- --project=chromium --grep-invert @visual
+pnpm test:e2e -- --project=mobile-safari --grep-invert @visual
+pnpm test:e2e -- --project=desktop-firefox --grep-invert @visual
+pnpm test:e2e -- --project=desktop-safari --grep-invert @visual
 pnpm test:a11y -- --project=chromium --project=mobile-safari
 pnpm test:visual -- --project=chromium --project=mobile-safari
 pnpm lighthouse
