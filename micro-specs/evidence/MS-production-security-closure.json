@@ -3,55 +3,6 @@
   "spec_id": "MS-production-security-closure",
   "runs": [
     {
-      "timestamp": "2026-07-12T20:48:12.746Z",
-      "git_sha": "939283cf9609cfd34cc34734d03c9df681559450",
-      "git_branch": "codex/production-readiness",
-      "dirty": true,
-      "gates": [
-        {
-          "command": "pnpm lint",
-          "exit_code": 0,
-          "duration_ms": 9159
-        },
-        {
-          "command": "pnpm typecheck",
-          "exit_code": 0,
-          "duration_ms": 1309
-        },
-        {
-          "command": "pnpm governance:check",
-          "exit_code": 0,
-          "duration_ms": 2339
-        },
-        {
-          "command": "pnpm test",
-          "exit_code": 0,
-          "duration_ms": 11054
-        },
-        {
-          "command": "pnpm test:coverage",
-          "exit_code": 0,
-          "duration_ms": 1535
-        },
-        {
-          "command": "pnpm build",
-          "exit_code": 0,
-          "duration_ms": 11797
-        },
-        {
-          "command": "pnpm test:e2e -- --grep \"@MS-production-security-closure\"",
-          "exit_code": 0,
-          "duration_ms": 10361
-        },
-        {
-          "command": "pnpm security:audit",
-          "exit_code": 0,
-          "duration_ms": 1439
-        }
-      ],
-      "all_passed": true
-    },
-    {
       "timestamp": "2026-07-12T21:14:22.946Z",
       "git_sha": "5438c87729e21b8a6bea77fc28fe0eff9a204114",
       "git_branch": "codex/production-readiness",
@@ -441,6 +392,45 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-13T08:58:17.836Z",
+      "git_sha": "9b8942b89dd62f93bdb8c71c78fd6343d69b314e",
+      "git_branch": "codex/production-readiness",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7442
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1203
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10825
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10212
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1493
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 2349
+        }
+      ],
+      "all_passed": false
     }
   ],
   "manual_attestations": [],
