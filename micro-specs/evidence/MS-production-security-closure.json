@@ -402,6 +402,55 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-13T06:41:57.337Z",
+      "git_sha": "1f929bb5d75d6cf9d9357dbca8afdb1181477a42",
+      "git_branch": "codex/production-readiness",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 8853
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1263
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 16481
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 22889
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 3391
+        },
+        {
+          "command": "pnpm test:e2e -- --grep \"@MS-production-security-closure\"",
+          "exit_code": 0,
+          "duration_ms": 47598
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 5312
+        },
+        {
+          "command": "pnpm security:audit",
+          "exit_code": 0,
+          "duration_ms": 1179
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
