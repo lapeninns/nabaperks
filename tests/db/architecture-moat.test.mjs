@@ -302,49 +302,45 @@ test("Given billing lapses after token mint When collection is attempted Then re
   }
 })
 
-test("Given a billing lapse owns the merchant lock When a direct reward races Then the reward waits and fails closed", async () => {
-  const setupSql = createSqlClient()
-  const billingSql = createSqlClient()
-  const loyaltySql = createSqlClient()
-  let billingTransactionOpen = false
-  let rewardAttempt
+registerBillingLapseRace({
+  title:
+    "Given a billing lapse owns the merchant lock When a stamp races Then the stamp waits and fails closed",
+  fixtureOptions: {
+    billingStatus: "active",
+    membershipStampCount: 0,
+    rewardToken: false,
+  },
+  attempt: issueStamp,
+  assertUntouched: async (sql, fixture) => {
+    const [{ stampCount, currentStampCount }] = await sql`
+      select
+        (
+          select count(*)::integer
+          from public.stamp_events
+          where membership_id = ${fixture.membershipId}::uuid
+        ) as stamp_count,
+        (
+          select current_stamp_count
+          from public.customer_memberships
+          where id = ${fixture.membershipId}::uuid
+        ) as current_stamp_count`
 
-  try {
-    const fixture = await createFixture(setupSql, {
-      billingStatus: "active",
-      membershipStampCount: 0,
-      rewardToken: false,
-    })
+    assert.equal(stampCount, 0)
+    assert.equal(currentStampCount, 0)
+  },
+})
 
-    await setServiceRole(loyaltySql)
-    await billingSql`begin`
-    billingTransactionOpen = true
-    await lockBillingState(billingSql, fixture.merchantId)
-    await billingSql`
-      update public.billing_customers
-      set status = 'past_due'
-      where merchant_id = ${fixture.merchantId}::uuid`
-
-    rewardAttempt = settle(issueDirectReward(loyaltySql, fixture))
-    const beforeCommit = await Promise.race([
-      rewardAttempt,
-      waitForRaceObservation(),
-    ])
-
-    assert.equal(
-      beforeCommit.status,
-      "pending",
-      "loyalty value must wait behind the billing-state lock"
-    )
-
-    await billingSql`commit`
-    billingTransactionOpen = false
-
-    const outcome = await rewardAttempt
-    assert.equal(outcome.status, "rejected")
-    assert.match(String(outcome.error?.message ?? outcome.error), /billing|unavailable/i)
-
-    const [{ rewardCount, eventCount }] = await setupSql`
+registerBillingLapseRace({
+  title:
+    "Given a billing lapse owns the merchant lock When a direct reward races Then the reward waits and fails closed",
+  fixtureOptions: {
+    billingStatus: "active",
+    membershipStampCount: 0,
+    rewardToken: false,
+  },
+  attempt: issueDirectReward,
+  assertUntouched: async (sql, fixture) => {
+    const [{ rewardCount, eventCount }] = await sql`
       select
         (
           select count(*)::integer
@@ -361,15 +357,42 @@ test("Given a billing lapse owns the merchant lock When a direct reward races Th
 
     assert.equal(rewardCount, 0)
     assert.equal(eventCount, 0)
-  } finally {
-    if (billingTransactionOpen) await billingSql`rollback`
-    await rewardAttempt
-    await Promise.all([
-      setupSql.end({ timeout: 5 }),
-      billingSql.end({ timeout: 5 }),
-      loyaltySql.end({ timeout: 5 }),
-    ])
-  }
+  },
+})
+
+registerBillingLapseRace({
+  title:
+    "Given a billing lapse owns the merchant lock When redemption races Then redemption waits and fails closed",
+  fixtureOptions: {
+    billingStatus: "active",
+    membershipStampCount: 3,
+    rewardToken: true,
+  },
+  attempt: collectReward,
+  assertUntouched: async (sql, fixture) => {
+    const [{ rewardStatus, consumedAt, currentStampCount, activeCycleNumber }] =
+      await sql`
+        select
+          (
+            select status
+            from public.reward_events
+            where id = ${fixture.rewardEventId}::uuid
+          ) as reward_status,
+          (
+            select consumed_at
+            from public.reward_scan_tokens
+            where id = ${fixture.scanTokenId}::uuid
+          ) as consumed_at,
+          current_stamp_count,
+          active_cycle_number
+        from public.customer_memberships
+        where id = ${fixture.membershipId}::uuid`
+
+    assert.equal(rewardStatus, "unlocked")
+    assert.equal(consumedAt, null)
+    assert.equal(currentStampCount, 3)
+    assert.equal(activeCycleNumber, 1)
+  },
 })
 
 test("Given a direct reward owns the merchant lock When billing lapses Then billing waits and both commit in serial order", async () => {
@@ -391,6 +414,8 @@ test("Given a direct reward owns the merchant lock When billing lapses Then bill
     loyaltyTransactionOpen = true
     await issueDirectReward(loyaltySql, fixture)
 
+    const billingBackendPid = await getBackendPid(billingSql)
+
     billingAttempt = settle(
       billingSql.begin(async (transaction) => {
         await lockBillingState(transaction, fixture.merchantId)
@@ -401,14 +426,15 @@ test("Given a direct reward owns the merchant lock When billing lapses Then bill
       })
     )
 
-    const beforeCommit = await Promise.race([
-      billingAttempt,
-      waitForRaceObservation(),
-    ])
+    const lockObservation = waitForAdvisoryLockWait(
+      setupSql,
+      billingBackendPid
+    ).then(() => ({ status: "waiting" }))
+    const beforeCommit = await Promise.race([billingAttempt, lockObservation])
 
     assert.equal(
       beforeCommit.status,
-      "pending",
+      "waiting",
       "billing state must wait behind the loyalty transaction lock"
     )
 
@@ -566,10 +592,96 @@ function settle(promise) {
   )
 }
 
-function waitForRaceObservation() {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve({ status: "pending" }), 100)
+function registerBillingLapseRace({
+  title,
+  fixtureOptions,
+  attempt,
+  assertUntouched,
+}) {
+  test(title, async () => {
+    const setupSql = createSqlClient()
+    const billingSql = createSqlClient()
+    const loyaltySql = createSqlClient()
+    let billingTransactionOpen = false
+    let loyaltyAttempt
+
+    try {
+      const fixture = await createFixture(setupSql, fixtureOptions)
+
+      await setServiceRole(loyaltySql)
+      const loyaltyBackendPid = await getBackendPid(loyaltySql)
+      await billingSql`begin`
+      billingTransactionOpen = true
+      await lockBillingState(billingSql, fixture.merchantId)
+      await billingSql`
+        update public.billing_customers
+        set status = 'past_due'
+        where merchant_id = ${fixture.merchantId}::uuid`
+
+      loyaltyAttempt = settle(attempt(loyaltySql, fixture))
+      const lockObservation = waitForAdvisoryLockWait(
+        setupSql,
+        loyaltyBackendPid
+      ).then(() => ({ status: "waiting" }))
+      const beforeCommit = await Promise.race([loyaltyAttempt, lockObservation])
+
+      assert.equal(
+        beforeCommit.status,
+        "waiting",
+        "loyalty value must wait on the merchant advisory lock"
+      )
+
+      await billingSql`commit`
+      billingTransactionOpen = false
+
+      const outcome = await loyaltyAttempt
+      assert.equal(outcome.status, "rejected")
+      assert.match(
+        String(outcome.error?.message ?? outcome.error),
+        /billing|unavailable/i
+      )
+      await assertUntouched(setupSql, fixture)
+    } finally {
+      if (billingTransactionOpen) await billingSql`rollback`
+      await loyaltyAttempt
+      await Promise.all([
+        setupSql.end({ timeout: 5 }),
+        billingSql.end({ timeout: 5 }),
+        loyaltySql.end({ timeout: 5 }),
+      ])
+    }
   })
+}
+
+async function getBackendPid(sql) {
+  const [{ pid }] = await sql`select pg_backend_pid()::integer as pid`
+  return pid
+}
+
+async function waitForAdvisoryLockWait(observerSql, backendPid) {
+  const deadline = Date.now() + 5_000
+  let lastObservation = null
+
+  while (Date.now() < deadline) {
+    const [activity] = await observerSql`
+      select wait_event_type, wait_event
+      from pg_stat_activity
+      where pid = ${backendPid}::integer`
+
+    lastObservation = activity ?? null
+    if (
+      activity?.waitEventType === "Lock" &&
+      activity.waitEvent?.toLowerCase() === "advisory"
+    ) {
+      return
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 25))
+  }
+
+  throw new Error(
+    `Backend ${backendPid} did not enter an advisory-lock wait: ${JSON.stringify(lastObservation)}`
+  )
 }
 
 function assertOneSuccessOneFailure(results, expectedMessage) {

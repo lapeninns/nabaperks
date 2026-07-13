@@ -34,6 +34,8 @@ const highEntropySecretEnvNames = new Set([
   "CUSTOMER_PHONE_ENCRYPTION_KEY",
   "CUSTOMER_EMAIL_HMAC_SECRET",
   "MERCHANT_OTP_ALIAS_TOKEN_ENCRYPTION_KEY",
+  "SUPABASE_SEND_EMAIL_HOOK_SECRET",
+  "SUPABASE_SEND_SMS_HOOK_SECRET",
 ])
 
 const envFiles = [
@@ -185,8 +187,8 @@ if (hostedOrProductionProfile) {
       invalid.push(`${name} must not be a placeholder`)
     }
 
-    if (!looksRandomlyGenerated(secret)) {
-      invalid.push(`${name} must be randomly generated`)
+    if (!hasHighEntropySecretShape(secret)) {
+      invalid.push(`${name} must use a generated high-entropy value`)
     }
   }
 
@@ -205,7 +207,9 @@ if (customerOtpBypassMode && !customerOtpTwilioBypassed) {
 }
 
 if (hostedOrProductionProfile && customerOtpTwilioBypassed) {
-  invalid.push("CUSTOMER_OTP_BYPASS_MODE must be blank outside local development")
+  invalid.push(
+    "CUSTOMER_OTP_BYPASS_MODE must be blank outside local development"
+  )
 }
 
 if (hostedOrProductionProfile && customerDevOtpCode) {
@@ -255,8 +259,20 @@ function isSafePostHogHost(value) {
   }
 }
 
-function looksRandomlyGenerated(secret) {
-  if (new Set(secret).size < 8) return false
+function hasHighEntropySecretShape(secret) {
+  if (/\s/.test(secret) || new Set(secret).size < 12) return false
+
+  const characterClassCount = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z\d]/].filter(
+    (pattern) => pattern.test(secret)
+  ).length
+  if (characterClassCount < 4) return false
+
+  const compact = secret.toLowerCase().replace(/[^a-z0-9]/g, "")
+  if (
+    /(?:0123456789|123456789|9876543210|abcdef|fedcba|qwerty)/.test(compact)
+  ) {
+    return false
+  }
 
   for (
     let period = 1;

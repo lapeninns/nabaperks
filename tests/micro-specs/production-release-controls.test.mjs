@@ -35,6 +35,26 @@ test("Given an explicit default profile When Vercel reports production Then expl
   assert.match(result.stdout, /environment configuration is valid/)
 })
 
+test("Given a complete production configuration When generated credentials are supplied Then the environment succeeds", () => {
+  const result = runEnvCheck({
+    args: ["--profile=production"],
+    environment: {
+      CRON_SECRET: "N7!qL2@vR9#cT4$yH6^mK8&pD3*zF5?x",
+      PRODUCTION_MONITOR_SECRET: "P4@wS8#nC2!kV6$rJ9^tB3&yM7*zQ5?e",
+      RESEND_FROM: "Nabaperks <hello@example.test>",
+      STRIPE_GROWTH_ANNUAL_PRICE_ID: "price_annual_fixture",
+      SUPABASE_SEND_EMAIL_HOOK_SECRET:
+        "v1,whsec_TmFiYVBlcmtzUHJvZHVjdGlvbkhvb2tLZXkyMDI2IQ==",
+      WEB_PUSH_VAPID_PRIVATE_KEY: "fixture-private-key",
+      WEB_PUSH_VAPID_PUBLIC_KEY: "fixture-public-key",
+      WEB_PUSH_VAPID_SUBJECT: "mailto:hello@example.test",
+    },
+  })
+
+  assert.equal(result.status, 0, result.stderr)
+  assert.match(result.stdout, /production environment configuration is valid/)
+})
+
 test("Given hosted configuration When the Supabase origin is untrusted Then privileged readiness cannot deploy", () => {
   const result = runEnvCheck({
     args: ["--profile=default"],
@@ -45,7 +65,10 @@ test("Given hosted configuration When the Supabase origin is untrusted Then priv
   })
 
   assert.equal(result.status, 1)
-  assert.match(result.stderr, /NEXT_PUBLIC_SUPABASE_URL must be an HTTPS Supabase project origin/)
+  assert.match(
+    result.stderr,
+    /NEXT_PUBLIC_SUPABASE_URL must be an HTTPS Supabase project origin/
+  )
 })
 
 for (const name of [
@@ -54,6 +77,8 @@ for (const name of [
   "CUSTOMER_SESSION_SECRET",
   "CUSTOMER_PHONE_HMAC_SECRET",
   "CUSTOMER_PHONE_ENCRYPTION_KEY",
+  "SUPABASE_SEND_EMAIL_HOOK_SECRET",
+  "SUPABASE_SEND_SMS_HOOK_SECRET",
 ]) {
   test(`Given hosted configuration When ${name} is weak Then the environment fails closed`, () => {
     const result = runEnvCheck({
@@ -63,7 +88,10 @@ for (const name of [
     })
 
     assert.equal(result.status, 1)
-    assert.match(result.stderr, new RegExp(`${name} must be at least 32 characters`))
+    assert.match(
+      result.stderr,
+      new RegExp(`${name} must be at least 32 characters`)
+    )
   })
 }
 
@@ -75,7 +103,26 @@ test("Given hosted configuration When a protected secret has low diversity Then 
   })
 
   assert.equal(result.status, 1)
-  assert.match(result.stderr, /CUSTOMER_SESSION_SECRET must be randomly generated/)
+  assert.match(
+    result.stderr,
+    /CUSTOMER_SESSION_SECRET must use a generated high-entropy value/
+  )
+})
+
+test("Given hosted configuration When a protected secret uses an obvious deterministic sequence Then the environment fails closed", () => {
+  const result = runEnvCheck({
+    args: ["--profile=default"],
+    environment: {
+      SUPABASE_SEND_EMAIL_HOOK_SECRET: "Abcdef0123456789-Abcdef0123456789!",
+    },
+    vercelEnv: "production",
+  })
+
+  assert.equal(result.status, 1)
+  assert.match(
+    result.stderr,
+    /SUPABASE_SEND_EMAIL_HOOK_SECRET must use a generated high-entropy value/
+  )
 })
 
 test("Given hosted configuration When monitor and cron credentials are reused Then the environment fails closed", () => {
@@ -128,7 +175,10 @@ test("Given hosted release configuration When release controls are inspected The
   assert.equal(vercel.buildCommand, "pnpm env:check && pnpm build")
   assert.notEqual(envCheckIndex, -1)
   assert.notEqual(lintIndex, -1)
-  assert.ok(envCheckIndex < lintIndex, "CI must validate the environment before repository gates")
+  assert.ok(
+    envCheckIndex < lintIndex,
+    "CI must validate the environment before repository gates"
+  )
   assert.match(ci, /- run: pnpm security:audit/)
   assert.match(
     ci,
@@ -174,5 +224,18 @@ function testValue(entry) {
     return "https://ci.supabase.co"
   }
   if (entry.kind === "url") return "https://example.test"
+  if (
+    [
+      "CRON_SECRET",
+      "PRODUCTION_MONITOR_SECRET",
+      "CUSTOMER_SESSION_SECRET",
+      "CUSTOMER_PHONE_HMAC_SECRET",
+      "CUSTOMER_EMAIL_HMAC_SECRET",
+      "CUSTOMER_PHONE_ENCRYPTION_KEY",
+      "MERCHANT_OTP_ALIAS_TOKEN_ENCRYPTION_KEY",
+    ].includes(entry.name)
+  ) {
+    return `N7!qL2@vR9#cT4$yH6^mK8&pD3*zF5?${entry.name.length}`
+  }
   return `fixture-${entry.name.toLowerCase()}-0123456789abcdef`
 }

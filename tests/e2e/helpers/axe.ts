@@ -70,6 +70,7 @@ async function analyzeWithNavigationRetry(page: Page) {
   }
 
   await page.waitForLoadState("domcontentloaded")
+  await waitForHydratedPage(page)
   await page.waitForTimeout(500)
   return buildAxe(page).analyze()
 }

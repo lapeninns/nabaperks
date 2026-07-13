@@ -54,9 +54,6 @@ export async function gotoHydratedPage(
 }
 
 export async function waitForHydratedPage(page: Page): Promise<void> {
-  const harnessRoot = page.locator("html[data-playwright-harness='true']")
-  if ((await harnessRoot.count()) === 0) return
-
   await page
     .locator(
       "html[data-playwright-harness='true'][data-playwright-hydrated='true'] body:not([inert])"

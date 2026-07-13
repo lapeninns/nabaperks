@@ -36,7 +36,9 @@ test("deterministic harness hydrates without browser errors @MS-production-qa-cl
   expect(pageErrors).toEqual([])
   expect(consoleErrors).not.toEqual(
     expect.arrayContaining([
-      expect.stringMatching(/hydrated.*didn't match|hydration mismatch/i),
+      expect.stringMatching(
+        /hydration failed|server rendered text didn't match|hydrated.*didn't match|hydration mismatch/i
+      ),
     ])
   )
 })

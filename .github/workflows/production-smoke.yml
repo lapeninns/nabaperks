@@ -24,9 +24,9 @@ jobs:
         run: |
           expected_revision="${GITHUB_SHA:0:12}"
           body="$(curl --fail --silent --show-error --max-time 10 https://nabaperks.com/api/health)"
-          jq -e --arg revision "$expected_revision" '.status == "ok" and .scope == "liveness" and .revision == $revision and .environment == "production"' <<<"$body"
+          jq -e --arg revision "$expected_revision" '.status == "ok" and .scope == "liveness" and .service == "nabaperks" and (.time | type == "string" and test("^\\d{4}-\\d{2}-\\d{2}T")) and .revision == $revision and .environment == "production"' <<<"$body"
       - name: Verify dependency readiness
         run: |
           expected_revision="${GITHUB_SHA:0:12}"
           body="$(curl --fail --silent --show-error --max-time 10 --header "Authorization: Bearer ${PRODUCTION_MONITOR_SECRET}" https://nabaperks.com/api/readiness)"
-          jq -e --arg revision "$expected_revision" '.status == "ready" and .checks.database == "ok" and .revision == $revision and .environment == "production"' <<<"$body"
+          jq -e --arg revision "$expected_revision" '.status == "ready" and .checks.database == "ok" and .service == "nabaperks" and (.time | type == "string" and test("^\\d{4}-\\d{2}-\\d{2}T")) and .revision == $revision and .environment == "production"' <<<"$body"

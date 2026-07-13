@@ -32,15 +32,15 @@ jobs:
       WEB_PUSH_VAPID_PUBLIC_KEY: ci-vapid-public-key
       WEB_PUSH_VAPID_PRIVATE_KEY: ci-vapid-private-key
       WEB_PUSH_VAPID_SUBJECT: mailto:ci@example.test
-      CRON_SECRET: ci-cron-secret-0123456789abcdef0123456789abcdef
-      PRODUCTION_MONITOR_SECRET: ci-monitor-secret-0123456789abcdef0123456789abcdef
-      SUPABASE_SEND_EMAIL_HOOK_SECRET: ci-email-hook-secret
+      CRON_SECRET: 'N7!qL2@vR9#cT4$yH6^mK8&pD3*zF5?x'
+      PRODUCTION_MONITOR_SECRET: 'P4@wS8#nC2!kV6$rJ9^tB3&yM7*zQ5?e'
+      SUPABASE_SEND_EMAIL_HOOK_SECRET: 'v1,whsec_TmFiYVBlcmtzQ0lIb29rU2lnbmluZ0tleTIwMjYh'
       TWILIO_ACCOUNT_SID: ACci
       TWILIO_AUTH_TOKEN: ci-twilio-auth-token
       TWILIO_VERIFY_SERVICE_SID: VAci
-      CUSTOMER_SESSION_SECRET: ci-session-secret-0123456789abcdef0123456789abcdef
-      CUSTOMER_PHONE_HMAC_SECRET: ci-hmac-secret-0123456789abcdef0123456789abcdef
-      CUSTOMER_PHONE_ENCRYPTION_KEY: ci-encryption-key-0123456789abcdef0123456789abcdef
+      CUSTOMER_SESSION_SECRET: 'H9!mD4@qL7#vR2$tK8^xC5&pN3*zW6?g'
+      CUSTOMER_PHONE_HMAC_SECRET: 'Q6!rF3@wM8#kT2$yP9^cD4&vL7*zN5?h'
+      CUSTOMER_PHONE_ENCRYPTION_KEY: 'V2!pK7@mR4#xH9$cF3^nQ8&wT5*zD6?j'
     steps:
       - uses: actions/checkout@v7
         with:

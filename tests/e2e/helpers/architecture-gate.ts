@@ -1,6 +1,6 @@
-import { expect, type Page } from "@playwright/test"
+import { expect, type APIRequestContext, type Page } from "@playwright/test"
 
-import { HARNESS_ROUTES } from "./harness"
+import { HARNESS_ROUTES, waitForHydratedPage } from "./harness"
 
 type HarnessSurfaceCheck = {
   readonly name: string
@@ -50,6 +50,21 @@ const SURFACE_CHECKS = [
   },
 ] as const satisfies readonly HarnessSurfaceCheck[]
 
+export async function warmArchitectureHarnessRoutes(
+  request: APIRequestContext
+): Promise<void> {
+  for (const path of new Set(SURFACE_CHECKS.map((surface) => surface.path))) {
+    const response = await request.get(path, { failOnStatusCode: false })
+
+    if (!response.ok()) {
+      const body = (await response.text()).slice(0, 500)
+      throw new Error(
+        `Architecture harness warm-up failed for ${path}: HTTP ${response.status()}\n${body}`
+      )
+    }
+  }
+}
+
 export async function expectArchitectureHarnessSurfaces(
   page: Page
 ): Promise<void> {
@@ -92,19 +107,15 @@ async function testHarnessSurface(
     return document.documentElement.scrollWidth > window.innerWidth + 1
   })
 
-  expect(hasHorizontalOverflow, `${surface.name} has no horizontal overflow`).toBe(
-    false
-  )
+  expect(
+    hasHorizontalOverflow,
+    `${surface.name} has no horizontal overflow`
+  ).toBe(false)
 }
 
 async function gotoHarnessSurface(page: Page, path: string) {
   try {
-    const response = await navigateHarnessSurface(page, path)
-    if (response && response.status() >= 500) {
-      return navigateHarnessSurface(page, path)
-    }
-
-    return response
+    return await navigateHarnessSurface(page, path)
   } catch (error) {
     if (
       error instanceof Error &&
@@ -120,5 +131,7 @@ async function gotoHarnessSurface(page: Page, path: string) {
 }
 
 async function navigateHarnessSurface(page: Page, path: string) {
-  return page.goto(path, { waitUntil: "domcontentloaded" })
+  const response = await page.goto(path, { waitUntil: "domcontentloaded" })
+  await waitForHydratedPage(page)
+  return response
 }
