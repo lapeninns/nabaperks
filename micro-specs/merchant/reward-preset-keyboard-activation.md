@@ -68,6 +68,10 @@ out of scope.
   `preventDefault()` so WebKit cannot lose activation or scroll the page.
 - Enter remains native because Firefox synthesizes its button click reliably;
   handling it again in the keydown listener would double-toggle.
+- The keyboard proof must wait for the harness hydration signal. A later Linux
+  Firefox trace showed the server-rendered button becoming visible before the
+  root gained `data-playwright-hydrated`, so an immediate press could precede
+  React listener attachment even though the retry passed.
 
 ## 5. Behavioral Requirements (EARS)
 

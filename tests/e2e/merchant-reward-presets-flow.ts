@@ -1,6 +1,10 @@
 import { expect, test, type Page } from "@playwright/test"
 
-import { dismissPwaInstall, HARNESS_ROUTES } from "./helpers/harness"
+import {
+  dismissPwaInstall,
+  gotoHydratedPage,
+  HARNESS_ROUTES,
+} from "./helpers/harness"
 
 export function describeMerchantRewardPresets() {
   test.describe("merchant reward presets @reward-presets @MS-merchant-reward-preset-atomic-add", () => {
@@ -51,7 +55,10 @@ export function describeMerchantRewardPresets() {
       page,
     }) => {
       await dismissPwaInstall(page)
-      await page.goto(`${HARNESS_ROUTES.launch}?tab=rewards&pool=empty`)
+      await gotoHydratedPage(
+        page,
+        `${HARNESS_ROUTES.launch}?tab=rewards&pool=empty`
+      )
 
       const freeStarter = presetToggle(page, "Free starter")
       await expect(freeStarter).toBeVisible()
