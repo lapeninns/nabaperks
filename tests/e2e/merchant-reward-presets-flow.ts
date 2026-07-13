@@ -58,6 +58,19 @@ export function describeMerchantRewardPresets() {
       await freeStarter.press("Space")
       await expect(freeStarter).toHaveAttribute("aria-pressed", "true")
 
+      const repeatedSpaceWasCancelled = await freeStarter.evaluate((button) =>
+        button.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: " ",
+            repeat: true,
+            bubbles: true,
+            cancelable: true,
+          })
+        )
+      )
+      expect(repeatedSpaceWasCancelled).toBe(false)
+      await expect(freeStarter).toHaveAttribute("aria-pressed", "true")
+
       await freeStarter.press("Enter")
       await expect(freeStarter).toHaveAttribute("aria-pressed", "false")
       await expect(page.getByText("No rewards in the pool yet")).toBeVisible()

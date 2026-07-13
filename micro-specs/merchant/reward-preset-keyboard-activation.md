@@ -78,8 +78,9 @@ out of scope.
 
 ## 6. Verification Criteria and Task Breakdown
 
-1. Add a failing source-contract assertion requiring explicit Space/Enter
-   activation and default suppression on the preset toggle.
-2. Add the keyboard handler without changing click or persistence behavior.
+1. Add a failing source-contract assertion requiring explicit, repeat-safe
+   Space activation and default suppression on the preset toggle.
+2. Add the Space keyboard handler while preserving native Enter, click, and
+   persistence behavior.
 3. Stress-run the focused browser proof in Chromium and mobile Safari, then
    advance only after all declared gates pass.
