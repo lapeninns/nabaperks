@@ -3,70 +3,6 @@
   "spec_id": "MS-production-qa-closure",
   "runs": [
     {
-      "timestamp": "2026-07-13T09:26:44.418Z",
-      "git_sha": "9961e387598c7b89971c47336a06ea0929dc3086",
-      "git_branch": "codex/production-readiness",
-      "dirty": false,
-      "gates": [
-        {
-          "command": "pnpm lint",
-          "exit_code": 0,
-          "duration_ms": 7407
-        },
-        {
-          "command": "pnpm typecheck",
-          "exit_code": 0,
-          "duration_ms": 1120
-        },
-        {
-          "command": "pnpm build",
-          "exit_code": 0,
-          "duration_ms": 11316
-        },
-        {
-          "command": "pnpm test",
-          "exit_code": 0,
-          "duration_ms": 10047
-        },
-        {
-          "command": "pnpm test:coverage",
-          "exit_code": 0,
-          "duration_ms": 1520
-        },
-        {
-          "command": "pnpm bundle:check",
-          "exit_code": 0,
-          "duration_ms": 175
-        },
-        {
-          "command": "pnpm governance:check",
-          "exit_code": 0,
-          "duration_ms": 2372
-        },
-        {
-          "command": "pnpm test:e2e -- --project=chromium --grep \"@MS-production-qa-closure\"",
-          "exit_code": 0,
-          "duration_ms": 10143
-        },
-        {
-          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --project=desktop-firefox --project=desktop-safari --grep-invert @visual",
-          "exit_code": 0,
-          "duration_ms": 1250757
-        },
-        {
-          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
-          "exit_code": 0,
-          "duration_ms": 162899
-        },
-        {
-          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
-          "exit_code": 0,
-          "duration_ms": 59005
-        }
-      ],
-      "all_passed": true
-    },
-    {
       "timestamp": "2026-07-13T11:24:06.397Z",
       "git_sha": "1784465671075f4acceeebe69d103f9dbdc1a237",
       "git_branch": "codex/production-readiness",
@@ -558,6 +494,70 @@
           "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
           "exit_code": 0,
           "duration_ms": 79196
+        }
+      ],
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-13T18:14:55.529Z",
+      "git_sha": "16e8c9d74d802cb7153d75578dd2b501192a566f",
+      "git_branch": "codex/production-readiness",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 9397
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1597
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11750
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 11112
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1560
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 179
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 2780
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --grep \"@MS-production-qa-closure\"",
+          "exit_code": 0,
+          "duration_ms": 10988
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --project=desktop-firefox --project=desktop-safari --grep-invert @visual",
+          "exit_code": 0,
+          "duration_ms": 1386377
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 227770
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 78277
         }
       ],
       "all_passed": true
