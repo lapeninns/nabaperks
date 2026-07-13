@@ -92,6 +92,7 @@ export default function RootLayout({
     <html
       lang="en-GB"
       suppressHydrationWarning
+      data-playwright-harness={isPlaywrightHarness ? "true" : undefined}
       data-scroll-behavior="smooth"
       className={`${bricolageGrotesque.variable} ${spaceMono.variable} antialiased`}
     >

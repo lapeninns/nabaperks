@@ -18,6 +18,10 @@ test("deterministic harness hydrates without browser errors @MS-production-qa-cl
     "data-playwright-hydrated",
     "true"
   )
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-playwright-harness",
+    "true"
+  )
   await expect(page.locator("body")).not.toHaveAttribute("inert", "")
   await expect(
     page.getByRole("heading", { name: "Launch your counter QR" })

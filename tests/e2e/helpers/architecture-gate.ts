@@ -99,17 +99,26 @@ async function testHarnessSurface(
 
 async function gotoHarnessSurface(page: Page, path: string) {
   try {
-    return await page.goto(path, { waitUntil: "domcontentloaded" })
+    const response = await navigateHarnessSurface(page, path)
+    if (response && response.status() >= 500) {
+      return navigateHarnessSurface(page, path)
+    }
+
+    return response
   } catch (error) {
     if (
       error instanceof Error &&
-      /NS_BINDING_ABORTED|NS_ERROR_FAILURE|frame was detached/i.test(
+      /NS_BINDING_ABORTED|NS_ERROR_FAILURE|frame was detached|interrupted by another navigation/i.test(
         error.message
       )
     ) {
-      return page.goto(path, { waitUntil: "domcontentloaded" })
+      return navigateHarnessSurface(page, path)
     }
 
     throw error
   }
+}
+
+async function navigateHarnessSurface(page: Page, path: string) {
+  return page.goto(path, { waitUntil: "domcontentloaded" })
 }
