@@ -529,6 +529,11 @@ export function RewardPoolForm({
                     }
                     disabled={existing || batchPending}
                     onClick={() => togglePreset(preset)}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter" && event.key !== " ") return
+                      event.preventDefault()
+                      togglePreset(preset)
+                    }}
                     className="focus-ring grid min-h-16 min-w-0 content-start gap-1 px-3 py-2.5 text-left disabled:cursor-default disabled:opacity-100"
                   >
                     <span className="flex items-start justify-between gap-2">
