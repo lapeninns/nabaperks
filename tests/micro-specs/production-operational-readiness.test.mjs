@@ -11,13 +11,13 @@ function read(...parts) {
 }
 
 function smokeFilters(workflow) {
-  return [...workflow.matchAll(/jq -e --arg revision "\$expected_revision" '([^']+)' <<<"\$body"/g)].map(
+  return [...workflow.matchAll(/jq -e --arg revision "\$EXPECTED_REVISION" '([^']+)' <<<"\$body"/g)].map(
     ([, filter]) => filter
   )
 }
 
-function runSmokeFilter(filter, body) {
-  return spawnSync("jq", ["-e", "--arg", "revision", "abcdef123456", filter], {
+function runSmokeFilter(filter, body, revision = "abcdef123456") {
+  return spawnSync("jq", ["-e", "--arg", "revision", revision, filter], {
     input: JSON.stringify(body),
     encoding: "utf8",
   })
@@ -76,9 +76,11 @@ test("scheduled production smoke validates both JSON probe contracts", () => {
   assert.equal(hasProductionProbeUrl(urls, "/api/health"), true)
   assert.equal(hasProductionProbeUrl(urls, "/api/readiness"), true)
   assert.match(workflow, /secrets\.PRODUCTION_MONITOR_SECRET/)
-  assert.match(workflow, /GITHUB_SHA/)
+  assert.doesNotMatch(workflow, /GITHUB_SHA/)
+  assert.match(workflow, /expected_revision:/)
+  assert.match(workflow, /EXPECTED_REVISION:/)
   assert.match(workflow, /\.environment == "production"/)
-  assert.match(workflow, /\.revision == \$revision/)
+  assert.match(workflow, /\$revision == "" or \.revision == \(\$revision\[0:12\]\)/)
   assert.match(workflow, /\.service == "nabaperks"/)
   assert.match(workflow, /fromdateiso8601/)
   assert.match(workflow, /\.status == "ok" and \.scope == "liveness"/)
@@ -107,6 +109,15 @@ test("scheduled production smoke validates both JSON probe contracts", () => {
 
   assert.equal(runSmokeFilter(healthFilter, health).status, 0)
   assert.equal(runSmokeFilter(readinessFilter, readiness).status, 0)
+  assert.equal(
+    runSmokeFilter(healthFilter, { ...health, revision: "rollback1234" }, "")
+      .status,
+    0
+  )
+  assert.notEqual(
+    runSmokeFilter(healthFilter, health, "wrongrev0000").status,
+    0
+  )
   assert.notEqual(
     runSmokeFilter(healthFilter, { ...health, time: "2026-99-99Tgarbage" }).status,
     0

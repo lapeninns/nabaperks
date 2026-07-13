@@ -10,13 +10,16 @@ allowed_blast_radius:
   - docs/operations/production-runbook.md
   - docs/operations/incident-response.md
   - tests/micro-specs/production-release-controls.test.mjs
+  - tests/micro-specs/production-operational-readiness.test.mjs
 implementation_surfaces:
   - .github/workflows/production-smoke.yml
   - docs/operations/production-runbook.md
   - docs/operations/incident-response.md
   - tests/micro-specs/production-release-controls.test.mjs
+  - tests/micro-specs/production-operational-readiness.test.mjs
 related_tests:
   - tests/micro-specs/production-release-controls.test.mjs
+  - tests/micro-specs/production-operational-readiness.test.mjs
 verification_gates:
   - pnpm lint
   - pnpm typecheck
