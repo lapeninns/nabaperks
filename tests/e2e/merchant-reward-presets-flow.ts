@@ -47,7 +47,7 @@ export function describeMerchantRewardPresets() {
       await expect(page.getByLabel("Reward name")).toHaveCount(0)
     })
 
-    test("RA-1: Space and Enter toggle preset selection without invoking persistence", async ({
+    test("RA-1: Space and Enter toggle preset selection without invoking persistence @MS-merchant-reward-preset-keyboard-activation", async ({
       page,
     }) => {
       await dismissPwaInstall(page)
