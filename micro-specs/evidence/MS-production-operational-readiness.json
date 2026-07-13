@@ -3,50 +3,6 @@
   "spec_id": "MS-production-operational-readiness",
   "runs": [
     {
-      "timestamp": "2026-07-12T18:54:39.268Z",
-      "git_sha": "851a18ba7a42e36dc8b720662e308bda2c9b4968",
-      "git_branch": "codex/production-readiness",
-      "dirty": true,
-      "gates": [
-        {
-          "command": "pnpm lint",
-          "exit_code": 0,
-          "duration_ms": 7358
-        },
-        {
-          "command": "pnpm typecheck",
-          "exit_code": 0,
-          "duration_ms": 1157
-        },
-        {
-          "command": "pnpm build",
-          "exit_code": 0,
-          "duration_ms": 10403
-        },
-        {
-          "command": "pnpm test",
-          "exit_code": 0,
-          "duration_ms": 9903
-        },
-        {
-          "command": "pnpm test:coverage",
-          "exit_code": 0,
-          "duration_ms": 1425
-        },
-        {
-          "command": "pnpm test:db",
-          "exit_code": 0,
-          "duration_ms": 5858
-        },
-        {
-          "command": "pnpm governance:check",
-          "exit_code": 0,
-          "duration_ms": 2114
-        }
-      ],
-      "all_passed": true
-    },
-    {
       "timestamp": "2026-07-12T20:19:58.894Z",
       "git_sha": "6eae9f7dc0775087ba3619bdcfc9c8f7ff2106e8",
       "git_branch": "codex/production-readiness",
@@ -408,6 +364,50 @@
           "command": "pnpm governance:check",
           "exit_code": 0,
           "duration_ms": 2349
+        }
+      ],
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-13T09:33:15.796Z",
+      "git_sha": "eba4c207924b87d46dbed372203ffe22799db0e0",
+      "git_branch": "codex/production-readiness",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7398
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1142
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11226
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10386
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1556
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 6558
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 2419
         }
       ],
       "all_passed": true
