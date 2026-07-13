@@ -3,70 +3,6 @@
   "spec_id": "MS-production-qa-closure",
   "runs": [
     {
-      "timestamp": "2026-07-13T08:19:17.044Z",
-      "git_sha": "3e324604e74028bfeb4b9cf8884be41f9c633276",
-      "git_branch": "codex/production-readiness",
-      "dirty": false,
-      "gates": [
-        {
-          "command": "pnpm lint",
-          "exit_code": 0,
-          "duration_ms": 7395
-        },
-        {
-          "command": "pnpm typecheck",
-          "exit_code": 0,
-          "duration_ms": 1111
-        },
-        {
-          "command": "pnpm build",
-          "exit_code": 0,
-          "duration_ms": 10619
-        },
-        {
-          "command": "pnpm test",
-          "exit_code": 0,
-          "duration_ms": 9912
-        },
-        {
-          "command": "pnpm test:coverage",
-          "exit_code": 0,
-          "duration_ms": 1576
-        },
-        {
-          "command": "pnpm governance:check",
-          "exit_code": 0,
-          "duration_ms": 2153
-        },
-        {
-          "command": "pnpm bundle:check",
-          "exit_code": 0,
-          "duration_ms": 172
-        },
-        {
-          "command": "pnpm test:e2e -- --project=chromium --grep \"@MS-production-qa-closure\"",
-          "exit_code": 0,
-          "duration_ms": 9861
-        },
-        {
-          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --project=desktop-firefox --project=desktop-safari --grep-invert @visual",
-          "exit_code": 0,
-          "duration_ms": 942930
-        },
-        {
-          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
-          "exit_code": 0,
-          "duration_ms": 163172
-        },
-        {
-          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
-          "exit_code": 0,
-          "duration_ms": 58951
-        }
-      ],
-      "all_passed": true
-    },
-    {
       "timestamp": "2026-07-13T08:58:17.836Z",
       "git_sha": "9b8942b89dd62f93bdb8c71c78fd6343d69b314e",
       "git_branch": "codex/production-readiness",
@@ -548,6 +484,70 @@
           "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --project=desktop-firefox --project=desktop-safari --grep-invert @visual",
           "exit_code": 0,
           "duration_ms": 1206966
+        }
+      ],
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-13T17:03:30.847Z",
+      "git_sha": "9c3e7103a1ef6c0841c19486088cb361aba6acdc",
+      "git_branch": "codex/production-readiness",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 8054
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1624
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11356
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9908
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1449
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 167
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 2611
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --grep \"@MS-production-qa-closure\"",
+          "exit_code": 0,
+          "duration_ms": 9632
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --project=desktop-firefox --project=desktop-safari --grep-invert @visual",
+          "exit_code": 0,
+          "duration_ms": 1215975
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 194202
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 56616
         }
       ],
       "all_passed": true
