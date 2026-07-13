@@ -29,12 +29,15 @@ function nextThemesScript() {
       createElement("span", null, "x")
     )
   )
-  const match = markup.match(/<script[^>]*>([\s\S]*?)<\/script\s*>/i)
-  assert.ok(
-    match,
-    "next-themes should render its inline theme bootstrap script"
+  const scriptStart = markup.indexOf(">") + 1
+  const scriptEnd = markup.indexOf("</script>", scriptStart)
+  assert.equal(
+    markup.startsWith("<script>"),
+    true,
+    "next-themes should render its bootstrap script first"
   )
-  return match[1]
+  assert.ok(scriptEnd > scriptStart, "next-themes should close its script")
+  return markup.slice(scriptStart, scriptEnd)
 }
 
 test("Given next-themes renders its bootstrap script When CSP is built Then the pinned hash matches the script body", () => {
