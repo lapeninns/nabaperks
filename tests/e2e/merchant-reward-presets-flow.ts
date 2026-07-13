@@ -55,11 +55,10 @@ export function describeMerchantRewardPresets() {
 
       const freeStarter = presetToggle(page, "Free starter")
       await expect(freeStarter).toBeVisible()
-      await freeStarter.focus()
-      await page.keyboard.press("Space")
+      await freeStarter.press("Space")
       await expect(freeStarter).toHaveAttribute("aria-pressed", "true")
 
-      await page.keyboard.press("Enter")
+      await freeStarter.press("Enter")
       await expect(freeStarter).toHaveAttribute("aria-pressed", "false")
       await expect(page.getByText("No rewards in the pool yet")).toBeVisible()
     })
