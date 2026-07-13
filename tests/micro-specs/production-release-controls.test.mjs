@@ -237,10 +237,19 @@ test("Given hosted release configuration When release controls are inspected The
     "CI must validate the environment before repository gates"
   )
   assert.match(ci, /- run: pnpm security:audit/)
-  assert.match(
-    ci,
-    /--project=chromium --project=mobile-safari --project=desktop-firefox --project=desktop-safari --grep-invert @visual/
-  )
+  for (const project of [
+    "chromium",
+    "mobile-safari",
+    "desktop-firefox",
+    "desktop-safari",
+  ]) {
+    assert.match(
+      ci,
+      new RegExp(
+        `pnpm test:e2e -- --project=${project} --grep-invert @visual`
+      )
+    )
+  }
 })
 
 test("Given scheduled production monitoring When a rollback is active Then probes do not require default-branch HEAD", () => {

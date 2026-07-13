@@ -3,74 +3,6 @@
   "spec_id": "MS-production-release-controls",
   "runs": [
     {
-      "timestamp": "2026-07-12T21:52:05.771Z",
-      "git_sha": "8457f3699ef197d0f70b1100c5fe45259c9bcbc1",
-      "git_branch": "codex/production-readiness",
-      "dirty": true,
-      "gates": [
-        {
-          "command": "pnpm lint",
-          "exit_code": 0,
-          "duration_ms": 7838
-        },
-        {
-          "command": "pnpm typecheck",
-          "exit_code": 0,
-          "duration_ms": 1229
-        },
-        {
-          "command": "pnpm test",
-          "exit_code": 0,
-          "duration_ms": 10375
-        },
-        {
-          "command": "pnpm test:coverage",
-          "exit_code": 0,
-          "duration_ms": 1570
-        },
-        {
-          "command": "pnpm governance:check",
-          "exit_code": 0,
-          "duration_ms": 2303
-        }
-      ],
-      "all_passed": true
-    },
-    {
-      "timestamp": "2026-07-12T21:54:48.345Z",
-      "git_sha": "18768aaee4ad4f25e925a25bf6ba1713395899a6",
-      "git_branch": "codex/production-readiness",
-      "dirty": true,
-      "gates": [
-        {
-          "command": "pnpm lint",
-          "exit_code": 0,
-          "duration_ms": 7939
-        },
-        {
-          "command": "pnpm typecheck",
-          "exit_code": 0,
-          "duration_ms": 1297
-        },
-        {
-          "command": "pnpm test",
-          "exit_code": 0,
-          "duration_ms": 11130
-        },
-        {
-          "command": "pnpm test:coverage",
-          "exit_code": 0,
-          "duration_ms": 1737
-        },
-        {
-          "command": "pnpm governance:check",
-          "exit_code": 0,
-          "duration_ms": 2363
-        }
-      ],
-      "all_passed": true
-    },
-    {
       "timestamp": "2026-07-12T21:58:28.549Z",
       "git_sha": "8881970a7bcc80d17184ce4d7c5e9c6fa358aeed",
       "git_branch": "codex/production-readiness",
@@ -323,6 +255,69 @@
           "command": "pnpm test:coverage",
           "exit_code": 0,
           "duration_ms": 1354
+        }
+      ],
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-13T15:07:31.525Z",
+      "git_sha": "ca95efa790a6bdfcf7944463e9a6d0c6b118dded",
+      "git_branch": "codex/production-readiness",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 8198
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1236
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 2697
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 1,
+          "duration_ms": 9962
+        }
+      ],
+      "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-13T15:14:56.975Z",
+      "git_sha": "ca95efa790a6bdfcf7944463e9a6d0c6b118dded",
+      "git_branch": "codex/production-readiness",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 9736
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1787
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 4240
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 19729
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 2736
         }
       ],
       "all_passed": true

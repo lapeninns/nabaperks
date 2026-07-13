@@ -9,12 +9,15 @@ allowed_blast_radius:
   - micro-specs/README.md
   - .github/workflows/ci.yml
   - tests/micro-specs/pr97-ci-recovery.test.mjs
+  - tests/micro-specs/production-release-controls.test.mjs
 implementation_surfaces:
   - micro-specs/README.md
   - .github/workflows/ci.yml
   - tests/micro-specs/pr97-ci-recovery.test.mjs
+  - tests/micro-specs/production-release-controls.test.mjs
 related_tests:
   - tests/micro-specs/pr97-ci-recovery.test.mjs
+  - tests/micro-specs/production-release-controls.test.mjs
 verification_gates:
   - pnpm lint
   - pnpm typecheck
