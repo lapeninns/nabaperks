@@ -13,7 +13,7 @@ import {
   type PublicQrRouterFixture,
 } from "./helpers/public-qr-router-live-db"
 
-test.describe("@customer-flow @MS-customer-join-frictionless-ux existing member join live DB", () => {
+test.describe("@customer-flow existing member join live DB", () => {
   const reason = customerReadbackLiveDbSkipReason()
   test.skip(Boolean(reason), reason)
 

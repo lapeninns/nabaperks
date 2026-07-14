@@ -7,7 +7,7 @@ import {
 } from "./helpers/harness"
 
 export function describeMerchantRewardPresets() {
-  test.describe("merchant reward presets @reward-presets @MS-merchant-reward-preset-atomic-add", () => {
+  test.describe("merchant reward presets @reward-presets", () => {
     test("Given the card harness When a cadence preset is chosen Then the existing card draft is prefilled", async ({
       page,
     }) => {
@@ -51,7 +51,7 @@ export function describeMerchantRewardPresets() {
       await expect(page.getByLabel("Reward name")).toHaveCount(0)
     })
 
-    test("RA-1: Space and Enter toggle preset selection without invoking persistence @MS-merchant-reward-preset-keyboard-activation", async ({
+    test("RA-1: Space and Enter toggle preset selection without invoking persistence", async ({
       page,
     }) => {
       await dismissPwaInstall(page)

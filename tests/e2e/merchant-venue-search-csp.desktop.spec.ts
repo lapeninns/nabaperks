@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test"
 const SEED_MERCHANT_EMAIL = "mia@old-crown-girton.test"
 const SEED_MERCHANT_PASSWORD = "NabaperksDemo1!"
 
-test.describe("merchant venue search CSP @MS-merchant-venue-search-csp", () => {
+test.describe("merchant venue search CSP", () => {
   test.use({ viewport: { width: 1280, height: 800 } })
   test.skip(
     process.env.ADMIN_LIVE_DB_E2E !== "1",

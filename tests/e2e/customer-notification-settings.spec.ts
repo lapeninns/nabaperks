@@ -22,7 +22,7 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3146"
  * reminder/reward pushes the hardened worker delivers — renders and opens.
  */
 
-test.describe("@MS-db-notification-durability customer notification settings", () => {
+test.describe("customer notification settings", () => {
   const reason = customerReadbackLiveDbSkipReason()
   test.skip(Boolean(reason), reason)
 

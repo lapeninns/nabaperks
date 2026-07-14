@@ -31,7 +31,7 @@ pnpm build      # Build the app
 pnpm start      # Start a production build locally
 ```
 
-## Optional Checks
+## Verification Checks
 
 ```bash
 pnpm test:db               # Run live DB/RLS proof; requires SUPABASE_DB_URL
@@ -40,6 +40,9 @@ pnpm test:e2e:ui           # Open Playwright UI mode
 pnpm test:e2e:headed       # Run Playwright in headed mode
 pnpm test:a11y             # Run Playwright accessibility smoke tests
 pnpm test:visual           # Run Playwright visual smoke tests
+pnpm test:coverage         # Enforce unit coverage thresholds
+pnpm lighthouse            # Run performance and web-quality budgets
+pnpm mutation:check        # Exercise mutation resistance
 pnpm tokens:check          # Check design token constraints
 pnpm claims:check          # Check banned marketing claims
 pnpm jsonld:check          # Check structured data after build

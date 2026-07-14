@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test"
 import { readFileSync } from "node:fs"
 
-test("private admin routes prohibit indexing across redirects and layouts @MS-production-index-performance", async ({
+test("private admin routes prohibit indexing across redirects and layouts", async ({
   request,
 }) => {
   const response = await request.get("/admin", { maxRedirects: 0 })
@@ -13,7 +13,7 @@ test("private admin routes prohibit indexing across redirects and layouts @MS-pr
   expect(layout).toContain("export const metadata: Metadata = PRIVATE_ROUTE_METADATA")
 })
 
-test("Lighthouse is a blocking multi-run mobile release gate @MS-production-index-performance", () => {
+test("Lighthouse is a blocking multi-run mobile release gate", () => {
   const lighthouse = JSON.parse(readFileSync(".lighthouserc.json", "utf8"))
   const workflow = readFileSync(".github/workflows/ci.yml", "utf8")
   const lighthouseJob = workflow.slice(workflow.indexOf("  lighthouse:"))

@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test"
 
 import { expectNoAxeViolations } from "../helpers/axe"
 
-test("@MS-customer-redemption-second-factor hides collection value until email is verified", async ({
+test("hides collection value until email is verified", async ({
   page,
 }) => {
   await page.goto("/dev/home-harness/redemption-second-factor")

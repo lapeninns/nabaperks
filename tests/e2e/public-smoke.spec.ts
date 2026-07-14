@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test"
 
-test.describe("governance browser gate", () => {
-  test("Given the public app When a browser opens the landing page Then the core route renders @governance", async ({
+test.describe("public browser smoke", () => {
+  test("Given the public app When a browser opens the landing page Then the core route renders @smoke", async ({
     page,
   }) => {
     await page.goto("/")

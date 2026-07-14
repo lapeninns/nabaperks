@@ -41,11 +41,11 @@ const auditClosureRoutes = new Set([
 
 test.describe("visual regression @visual", () => {
   for (const route of routes) {
-    const microSpecTag = auditClosureRoutes.has(route.name)
-      ? " @MS-merchant-ux-audit-closure"
+    const auditTag = auditClosureRoutes.has(route.name)
+      ? " @merchant-ux-audit"
       : ""
 
-    test(`Given ${route.name} When it renders Then the viewport matches the approved Wet Ink baseline${microSpecTag}`, async ({
+    test(`Given ${route.name} When it renders Then the viewport matches the approved Wet Ink baseline${auditTag}`, async ({
       page,
     }, testInfo) => {
       const isAuthRoute = route.name.startsWith("auth-")

@@ -16,7 +16,7 @@ import {
 
 const pendingPhoneCookieName = "nabaperks_pending_phone"
 
-test.describe("@MS-customer-phone-identity-safety pending phone privacy", () => {
+test.describe("pending phone privacy", () => {
   const reason = customerReadbackLiveDbSkipReason()
   test.skip(Boolean(reason), reason)
 

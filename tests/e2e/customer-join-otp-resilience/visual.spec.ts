@@ -15,7 +15,7 @@ import {
   type PublicQrRouterFixture,
 } from "../helpers/public-qr-router-live-db"
 
-test.describe("@MS-customer-join-auth-abuse OTP resilience", () => {
+test.describe("OTP resilience", () => {
   const reason = customerReadbackLiveDbSkipReason()
   test.skip(Boolean(reason), reason)
 

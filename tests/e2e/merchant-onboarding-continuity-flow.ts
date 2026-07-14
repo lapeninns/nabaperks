@@ -26,7 +26,7 @@ export function defineMerchantOnboardingContinuityTests() {
     await dismissPwaInstall(page)
   })
 
-  test("mobile orientation precedes the first field while the full roadmap remains available @MS-merchant-ux-audit-closure @a11y", async ({
+  test("mobile orientation precedes the first field while the full roadmap remains available @a11y", async ({
     page,
   }, testInfo) => {
     await gotoHydratedPage(page, HARNESS_ROUTES.onboarding)

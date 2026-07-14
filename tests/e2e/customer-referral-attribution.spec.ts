@@ -28,7 +28,7 @@ import {
 // two customers this test creates — never the shared seed merchant's own rows.
 const SEED_MERCHANT_SLUG = "old-crown-girton"
 
-test.describe("@customer-flow @MS-customer-join-frictionless-ux referral attribution live DB", () => {
+test.describe("@customer-flow referral attribution live DB", () => {
   const reason = customerReadbackLiveDbSkipReason()
   test.skip(Boolean(reason), reason)
 

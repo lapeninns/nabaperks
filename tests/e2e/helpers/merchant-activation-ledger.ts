@@ -23,7 +23,7 @@ export function defineMerchantActivationLedgerTests() {
     await dismissPwaInstall(page)
   })
 
-  test("gated admin renders the authoritative 30-day activation cohort @MS-analytics-merchant-activation-ledger", async ({
+  test("gated admin renders the authoritative 30-day activation cohort", async ({
     context,
     page,
   }) => {

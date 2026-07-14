@@ -24,7 +24,7 @@ const requiredRlsTables = Object.freeze([
   "stamp_events",
 ])
 
-test("Given a live Supabase database When governance DB proof runs Then core tables enforce RLS", async () => {
+test("Given a live Supabase database When the RLS proof runs Then core tables enforce RLS", async () => {
   const dbUrl = resolveDbUrl()
 
   assert.notEqual(

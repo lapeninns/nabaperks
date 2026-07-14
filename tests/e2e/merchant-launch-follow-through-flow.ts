@@ -60,7 +60,7 @@ export function defineMerchantLaunchFollowThroughTests() {
     )
   })
 
-  test("zero-member dashboard replaces KPI zeros with an encouraging QR next action @MS-merchant-ux-audit-closure @a11y", async ({
+  test("zero-member dashboard replaces KPI zeros with an encouraging QR next action @a11y", async ({
     page,
   }) => {
     await page.goto(`${HARNESS_ROUTES.dashboard}?members=empty`)

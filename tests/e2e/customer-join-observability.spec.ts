@@ -24,7 +24,7 @@ type FunnelEventRow = {
   readonly metadata: Record<string, unknown>
 }
 
-test.describe("@MS-customer-join-observability durable join funnel", () => {
+test.describe("durable join funnel", () => {
   const reason = customerReadbackLiveDbSkipReason()
   test.skip(Boolean(reason), reason)
 

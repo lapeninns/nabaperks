@@ -10,7 +10,7 @@ import {
 } from "./helpers/customer-readback-live-db"
 import { dismissPwaInstall } from "./helpers/harness"
 
-test.describe("@MS-customer-abandoned-identity-retention session revocation", () => {
+test.describe("session revocation", () => {
   const reason = customerReadbackLiveDbSkipReason()
   test.skip(Boolean(reason), reason)
 

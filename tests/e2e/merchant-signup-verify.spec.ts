@@ -13,7 +13,7 @@ import { dismissPwaInstall } from "./helpers/harness"
  *
  * Mobile-safari project only (the `.spec.ts` suffix).
  */
-test.describe("merchant signup verify @signup-verify @MS-auth-otp-alias-finalization", () => {
+test.describe("merchant signup verify @signup-verify", () => {
   test.beforeEach(async ({ page }) => {
     await dismissPwaInstall(page)
   })

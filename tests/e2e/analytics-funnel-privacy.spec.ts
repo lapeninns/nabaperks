@@ -16,7 +16,7 @@ type FunnelRequest = {
   url: string
 }
 
-test.describe("privacy-safe merchant funnel @MS-analytics-funnel-identity-privacy", () => {
+test.describe("privacy-safe merchant funnel", () => {
   test.use({ serviceWorkers: "block" })
 
   test("homepage signup continuity stays same-origin and session-only", async ({
