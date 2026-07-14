@@ -23,7 +23,7 @@ const TAB_HEADING = {
   },
   billing: {
     title: "Billing",
-    description: "Your plan and payments, handled securely by Stripe.",
+    description: "Your venue access and payment status.",
   },
 } as const
 

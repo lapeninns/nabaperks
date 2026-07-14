@@ -47,6 +47,8 @@ type BillingPortalAction = (formData: FormData) => void | Promise<void>
 export function BillingPanelView({
   billing,
   outcome,
+  cleanupOutcomeQuery = Boolean(outcome),
+  requiresBilling = true,
   mode = "account",
   annualBillingAvailable,
   checkoutAction,
@@ -57,6 +59,8 @@ export function BillingPanelView({
 }: {
   billing: BillingPresentationSource | null
   outcome: BillingPanelOutcome
+  cleanupOutcomeQuery?: boolean
+  requiresBilling?: boolean
   mode?: "account" | "setup"
   annualBillingAvailable: boolean
   checkoutAction: BillingCheckoutAction
@@ -65,6 +69,20 @@ export function BillingPanelView({
   billingLoadFailed?: boolean
   refreshHref?: string
 }) {
+  if (!requiresBilling) {
+    return (
+      <ComplimentaryBillingAccess
+        billing={billing}
+        cleanupOutcomeQuery={cleanupOutcomeQuery}
+        mode={mode}
+        portalAction={portalAction}
+        billingReturnTo={billingReturnTo}
+        billingLoadFailed={billingLoadFailed}
+        refreshHref={refreshHref}
+      />
+    )
+  }
+
   const presentation = buildBillingPresentation(billing)
   const resolvedRefreshHref =
     refreshHref ??
@@ -100,7 +118,7 @@ export function BillingPanelView({
   return (
     <section className="grid min-w-0 gap-3 sm:gap-4">
       {outcome ? <BillingOutcomeBanner outcome={outcome} /> : null}
-      {outcome ? <BillingOutcomeQueryCleanup /> : null}
+      {cleanupOutcomeQuery ? <BillingOutcomeQueryCleanup /> : null}
 
       {billingLoadFailed ? (
         <StatusBanner
@@ -187,6 +205,88 @@ export function BillingPanelView({
           </div>
         </ReceiptCard>
       ) : null}
+    </section>
+  )
+}
+
+function ComplimentaryBillingAccess({
+  billing,
+  cleanupOutcomeQuery,
+  mode,
+  portalAction,
+  billingReturnTo,
+  billingLoadFailed,
+  refreshHref,
+}: {
+  billing: BillingPresentationSource | null
+  cleanupOutcomeQuery: boolean
+  mode: "account" | "setup"
+  portalAction?: BillingPortalAction
+  billingReturnTo?: string
+  billingLoadFailed: boolean
+  refreshHref?: string
+}) {
+  const hasStripeCustomer = Boolean(billing?.stripe_customer_id)
+
+  return (
+    <section className="grid min-w-0 gap-3 sm:gap-4">
+      {cleanupOutcomeQuery ? <BillingOutcomeQueryCleanup /> : null}
+
+      {billingLoadFailed ? (
+        <StatusBanner
+          tone="error"
+          title={<h2>Existing billing details could not be checked</h2>}
+        >
+          Your complimentary access is unaffected.{" "}
+          {refreshHref ? (
+            <Link
+              href={refreshHref}
+              className="font-bold underline underline-offset-4"
+            >
+              Try again
+            </Link>
+          ) : null}
+          {refreshHref ? "." : null}
+        </StatusBanner>
+      ) : null}
+
+      <ReceiptCard edge className="grid min-w-0 gap-5">
+        <SectionHeader
+          eyebrow={mode === "setup" ? "Billing" : "Your plan"}
+          title="Complimentary access"
+          description="This venue has complimentary access. No new card or Stripe subscription is required."
+        />
+
+        <dl className="grid gap-0 rounded-lg border border-border bg-secondary/40 px-3 py-1 text-sm">
+          <PlanRow label="Access" value="Active" />
+          <PlanRow label="Cost" value="£0" />
+          <PlanRow label="Billing" value="Not required" />
+        </dl>
+
+        <StatusBanner tone="success" title={<h2>Billing access is active</h2>}>
+          You can use every included merchant feature without starting a new
+          payment plan. Venue launch status is shown separately.
+        </StatusBanner>
+
+        {hasStripeCustomer && portalAction ? (
+          <div className="grid gap-2 border-t-2 border-dashed border-ink/20 pt-5">
+            <p className="text-sm leading-6 text-muted-foreground">
+              An existing Stripe customer is still linked to this venue. You can
+              manage its card, invoices, or subscription without starting a new
+              checkout.
+            </p>
+            <form action={portalAction}>
+              {billingReturnTo ? (
+                <input type="hidden" name="returnTo" value={billingReturnTo} />
+              ) : null}
+              <Button type="submit" className="min-h-11 w-full sm:w-fit">
+                Manage existing Stripe billing
+                <Icon icon={ArrowRight01Icon} size={16} />
+              </Button>
+            </form>
+          </div>
+        ) : null}
+      </ReceiptCard>
     </section>
   )
 }

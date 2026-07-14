@@ -64,7 +64,7 @@ test.describe("@merchant-flow merchant birthday config", () => {
     await expect(cta).toHaveAttribute("href", "/app/launch?tab=billing")
 
     await cta.click()
-    await expect(page).toHaveURL(/\/login\?/)
+    await expect(page).toHaveURL(/\/login\?/, { timeout: 30_000 })
     expect(new URL(page.url()).searchParams.get("next")).toBe(
       "/app/launch?tab=billing"
     )

@@ -22,6 +22,8 @@ import { getStripe } from "@/lib/stripe/server"
 
 const BILLING_ACTION_ERROR =
   "Billing was not confirmed. Please try again — it is safe to retry."
+const COMPLIMENTARY_ACCESS_MESSAGE =
+  "This venue has complimentary access. No Stripe checkout is needed."
 
 function submittedInterval(
   value: FormDataEntryValue | null
@@ -49,6 +51,10 @@ export async function startCheckoutAction(
 
   if (!interval) {
     return { status: "error", message: BILLING_ACTION_ERROR }
+  }
+
+  if (merchant.requires_billing === false) {
+    return { status: "error", message: COMPLIMENTARY_ACCESS_MESSAGE }
   }
 
   let checkoutUrl: string | null = null
@@ -110,7 +116,6 @@ export async function openCustomerPortalAction(formData: FormData) {
   let missingCustomer = false
 
   try {
-    const env = getServerEnv()
     const supabase = createSupabaseServiceRoleClient()
     const { data: billing, error } = await supabase
       .from("billing_customers")
@@ -122,6 +127,7 @@ export async function openCustomerPortalAction(formData: FormData) {
     missingCustomer = !billing?.stripe_customer_id
 
     if (billing?.stripe_customer_id) {
+      const env = getServerEnv()
       const origin = resolveBillingAppOrigin({
         environment:
           process.env.NODE_ENV === "production" ? "production" : "development",
@@ -148,6 +154,9 @@ export async function openCustomerPortalAction(formData: FormData) {
   }
 
   if (missingCustomer) {
+    if (merchant.requires_billing === false) {
+      redirect(returnBase)
+    }
     redirect(billingReturnHref(returnBase, { portal: "missing" }))
   }
 

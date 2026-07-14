@@ -145,6 +145,58 @@ test.describe("merchant billing recovery @MS-billing-checkout-recovery @MS-analy
     expect(overflow).toBeLessThanOrEqual(1)
   })
 
+  test("complimentary access stays launch-neutral and never offers Stripe checkout @a11y", async ({
+    page,
+  }) => {
+    await page.goto(
+      `${HARNESS_ROUTES.account}?tab=billing&access=complimentary&checkout=success&session_id=cs_harness_foreign`
+    )
+
+    await expect(
+      page.getByRole("heading", { name: "Complimentary access" })
+    ).toBeVisible()
+    await expect(
+      page.getByText("No new card or Stripe subscription is required")
+    ).toBeVisible()
+    await expect(page.getByText("£0", { exact: true })).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "Billing access is active" })
+    ).toBeVisible()
+    await expect(
+      page.getByText("Venue launch status is shown separately")
+    ).toBeVisible()
+    await expect(
+      page.getByRole("button", { name: /billing|stripe/i })
+    ).toHaveCount(0)
+    await expect(page.locator("[data-billing-checkout-form]")).toHaveCount(0)
+    await expect(
+      page.getByRole("button", { name: "Open Stripe portal" })
+    ).toHaveCount(0)
+    await expect
+      .poll(() => new URL(page.url()).searchParams.has("checkout"))
+      .toBe(false)
+    expect(new URL(page.url()).searchParams.has("session_id")).toBe(false)
+    await expectNoAxeViolations(page, "complimentary owner billing access")
+
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth
+    )
+    expect(overflow).toBeLessThanOrEqual(1)
+  })
+
+  test("complimentary access preserves management of existing Stripe billing", async ({
+    page,
+  }) => {
+    await page.goto(
+      `${HARNESS_ROUTES.account}?tab=billing&access=complimentary&billing=trialing`
+    )
+
+    await expect(page.locator("[data-billing-checkout-form]")).toHaveCount(0)
+    await expect(
+      page.getByRole("button", { name: "Manage existing Stripe billing" })
+    ).toBeVisible()
+  })
+
   test("cancelled billing restarts once and keeps provider failure inline", async ({
     page,
   }) => {

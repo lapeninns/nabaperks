@@ -35,7 +35,7 @@ const SURFACE_CHECKS = [
   {
     name: "account billing",
     path: `${HARNESS_ROUTES.account}?tab=billing`,
-    visibleText: "Your plan and payments",
+    visibleText: "Your venue access and payment status",
   },
   {
     name: "venue QR",

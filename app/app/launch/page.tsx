@@ -49,7 +49,7 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
   }
 
   const billingOutcome: BillingPanelOutcome | undefined =
-    params.checkout === "success"
+    merchant.requires_billing !== false && params.checkout === "success"
       ? await completeBillingCheckoutReturn(merchant.id, params.session_id)
       : undefined
 
