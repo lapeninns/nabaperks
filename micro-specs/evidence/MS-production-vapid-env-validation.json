@@ -1,7 +1,37 @@
 {
   "schema": 1,
   "spec_id": "MS-production-vapid-env-validation",
-  "runs": [],
+  "runs": [
+    {
+      "timestamp": "2026-07-14T07:04:22.093Z",
+      "git_sha": "b75ecb47c684cbfa26213acacd7048bf6fd4716a",
+      "git_branch": "codex/post-release-governance-closure",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 8047
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1162
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11093
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 1,
+          "duration_ms": 2661
+        }
+      ],
+      "all_passed": false
+    }
+  ],
   "manual_attestations": [],
   "transitions": [
     {
