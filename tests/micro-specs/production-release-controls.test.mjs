@@ -358,6 +358,64 @@ test("Given hosted release configuration When release controls are inspected The
   }
 })
 
+test("Given the CI build job When VAPID fixtures are configured Then a generator runs before production validation", () => {
+  const ci = readFileSync(".github/workflows/ci.yml", "utf8")
+  const generatorIndex = ci.indexOf(
+    'node scripts/generate-ci-vapid-env.mjs >> "$GITHUB_ENV"'
+  )
+  const envCheckIndex = ci.indexOf("- run: pnpm env:check:production")
+
+  assert.doesNotMatch(ci, /ci-vapid-(?:public|private)-key/)
+  assert.notEqual(generatorIndex, -1, "CI must generate an ephemeral VAPID pair")
+  assert.ok(
+    generatorIndex < envCheckIndex,
+    "CI must generate VAPID values before production validation"
+  )
+})
+
+test("Given the CI VAPID generator When its output is validated Then it emits one accepted matching trio", () => {
+  const generated = spawnSync(
+    process.execPath,
+    [resolve(projectDir, "scripts/generate-ci-vapid-env.mjs")],
+    { cwd: projectDir, encoding: "utf8" }
+  )
+
+  assert.equal(generated.status, 0, generated.stderr)
+  assert.equal(generated.stderr, "")
+
+  const environment = Object.fromEntries(
+    generated.stdout
+      .trim()
+      .split("\n")
+      .map((line) => line.split(/=(.*)/s).slice(0, 2))
+  )
+  assert.deepEqual(Object.keys(environment).sort(), [
+    "WEB_PUSH_VAPID_PRIVATE_KEY",
+    "WEB_PUSH_VAPID_PUBLIC_KEY",
+    "WEB_PUSH_VAPID_SUBJECT",
+  ])
+
+  const validated = runEnvCheck({
+    args: ["--profile=default"],
+    environment,
+    vercelEnv: "preview",
+  })
+
+  assert.equal(validated.status, 0, validated.stderr)
+})
+
+test("Given a 31-byte private scalar When CI fixture padding is applied Then its value is preserved at 32 bytes", async () => {
+  const { leftPadPrivateKey: padCiPrivateKey } = await import(
+    "../../scripts/generate-ci-vapid-env.mjs"
+  )
+  const scalar = Buffer.alloc(31, 7)
+  const padded = padCiPrivateKey(scalar)
+
+  assert.equal(padded.length, 32)
+  assert.equal(padded[0], 0)
+  assert.deepEqual(padded.subarray(1), scalar)
+})
+
 test("Given scheduled production monitoring When a rollback is active Then probes do not require default-branch HEAD", () => {
   const workflow = readFileSync(
     ".github/workflows/production-smoke.yml",

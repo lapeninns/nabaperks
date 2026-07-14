@@ -29,9 +29,6 @@ jobs:
       STRIPE_WEBHOOK_SECRET: ci_test_webhook_secret
       RESEND_API_KEY: re_ci
       RESEND_FROM: Nabaperks CI <ci@example.test>
-      WEB_PUSH_VAPID_PUBLIC_KEY: ci-vapid-public-key
-      WEB_PUSH_VAPID_PRIVATE_KEY: ci-vapid-private-key
-      WEB_PUSH_VAPID_SUBJECT: mailto:ci@example.test
       CRON_SECRET: 'N7!qL2@vR9#cT4$yH6^mK8&pD3*zF5?x'
       PRODUCTION_MONITOR_SECRET: 'P4@wS8#nC2!kV6$rJ9^tB3&yM7*zQ5?e'
       TWILIO_ACCOUNT_SID: ACci
@@ -45,6 +42,8 @@ jobs:
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
+      - name: Configure non-secret CI VAPID fixture
+        run: node scripts/generate-ci-vapid-env.mjs >> "$GITHUB_ENV"
       - name: Configure non-secret CI auth-hook fixture
         run: |
           printf 'SUPABASE_SEND_EMAIL_HOOK_SECRET=v1,%s_%s\n' whsec VTghZE0zQGtSNyN2SDIkY1E5XnBMNSZ3RjQqek42P3g= >> "$GITHUB_ENV"
