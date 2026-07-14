@@ -69,9 +69,55 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-14T07:37:37.122Z",
+      "git_sha": "5b6860da2b5fc8fa7e80b550c877f7b156f8403d",
+      "git_branch": "codex/post-release-governance-closure",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7438
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1154
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10957
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 2485
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10231
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1512
+        }
+      ],
+      "all_passed": true
     }
   ],
-  "manual_attestations": [],
+  "manual_attestations": [
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-14T07:37:37.122Z",
+      "note": "Command output for the declared verification gates."
+    }
+  ],
   "transitions": [
     {
       "from": "draft",
@@ -86,6 +132,14 @@
       "to": "implemented",
       "at": "2026-07-14T07:28:12.139Z",
       "sha": "d349a40f108aff159e93944ef13badd5ad7dba87",
+      "dirty": false,
+      "by": "codex"
+    },
+    {
+      "from": "implemented",
+      "to": "verified",
+      "at": "2026-07-14T07:37:37.122Z",
+      "sha": "5b6860da2b5fc8fa7e80b550c877f7b156f8403d",
       "dirty": false,
       "by": "codex"
     }
