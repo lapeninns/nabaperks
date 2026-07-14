@@ -7,6 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "clean": "rm -rf .next .next-e2e coverage test-results playwright-report reports/lighthouse reports/mutation",
     "typecheck": "tsc --noEmit",
     "test": "pnpm test:contracts && pnpm test:unit",
     "test:contracts": "node --test tests/contracts/*.test.mjs",
@@ -24,7 +25,7 @@
     "mutation:check": "stryker run",
     "security:audit": "pnpm audit",
     "qa:e2e": "CUSTOMER_DEV_OTP_CODE=424242 node scripts/run-playwright.mjs",
-    "lint": "eslint",
+    "lint": "eslint --max-warnings=0",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "db:migrate": "node scripts/run-supabase-sql.mjs --apply",
     "db:reset": "node scripts/run-supabase-sql.mjs --reset",
@@ -53,8 +54,7 @@
     "env:set-posthog": "node scripts/env-keys.mjs set-posthog",
     "env:set-resend": "node scripts/env-keys.mjs set-resend",
     "env:push-vercel": "node scripts/env-keys.mjs push-vercel",
-    "env:write-local": "node scripts/env-keys.mjs write-local",
-    "doctor": "npx react-doctor@latest"
+    "env:write-local": "node scripts/env-keys.mjs write-local"
   },
   "engines": {
     "node": ">=22.0.0",
@@ -113,9 +113,6 @@
     "postgres": "^3.4.9",
     "prettier": "^3.8.4",
     "prettier-plugin-tailwindcss": "^0.8.0",
-    "react-doctor": "0.7.4",
-    "react-grab": "^0.1.48",
-    "react-scan": "^0.5.7",
     "tailwindcss": "^4",
     "typescript": "^6",
     "typescript-eslint": "^8.61.0"

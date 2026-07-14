@@ -9,7 +9,7 @@ this audit describes the live prod schema (manual drift aside — see Follow-ups
 **Method.** Schema introspection (columns / constraints / indexes / FK delete rules / triggers /
 policies / function bodies) cross-referenced field-by-field against app code (`app/`, `lib/`,
 `scripts/`, `tests/`) by four parallel verification agents, with conflicting agent claims re-verified
-by hand. Prior-audit false positives (`reports/architecture-audit/`) were loaded first and are not
+by hand. Prior-audit false positives (`reports/architecture/`) were loaded first and are not
 re-flagged.
 
 ---

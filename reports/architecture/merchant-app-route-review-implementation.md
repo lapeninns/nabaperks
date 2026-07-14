@@ -1,6 +1,6 @@
 # Merchant `/app` Review — Implementation Report
 
-**Date:** 2026-06-28 · **Branch:** `review-fixes` (off `main` @ `d67fc266`) · **Commit:** `bb745dff` · **Source:** `reports/merchant-app-route-review.md`
+**Date:** 2026-06-28 · **Branch:** `review-fixes` (off `main` @ `d67fc266`) · **Commit:** `bb745dff` · **Source:** `reports/architecture/merchant-app-route-review.md`
 **Method:** OMO plan → 19 file-disjoint worktree workers → per-worker LazyCodex review gate → central integration + verification.
 
 ---

@@ -72,7 +72,7 @@ export default async function LaunchPage({ searchParams }: LaunchPageProps) {
   // Heading / context / description / header-CTA are one pure, unit-tested
   // decision (lib/merchant/launch-header-copy) shared with the launch harness so
   // the two never drift and the hierarchy rules live in one place.
-  const header = resolveLaunchHeaderModel(readiness, activeTab)
+  const header = resolveLaunchHeaderModel(readiness)
 
   return (
     <div className="grid min-w-0 gap-2 overflow-x-clip sm:gap-6">

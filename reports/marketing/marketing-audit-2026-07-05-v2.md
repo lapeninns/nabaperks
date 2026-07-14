@@ -1,7 +1,7 @@
 # Marketing & Landing Audit — 2026-07-05 (v2, deep pass)
 
 Second audit of the day, run against the **uncommitted working tree** (the morning
-fix pass is staged but not committed). `reports/marketing-audit-2026-07-05.md` is
+fix pass is staged but not committed). `reports/marketing/marketing-audit-2026-07-05.md` is
 the morning baseline this report regresses against — hence the `-v2` filename;
 the baseline was deliberately not overwritten.
 

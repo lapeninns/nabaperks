@@ -1,6 +1,6 @@
 # Merchant journey hierarchy audit — 2026-07-09
 
-Read-only audit of the Nabaperks merchant journey across **information**, **visual**, and **interaction** hierarchy. Baseline: current working tree (launch header de-dup, Step 2 card label, Activate your venue billing card, onboarding preamble removal, dashboard action order). Screenshots: `.scratchpad/hierarchy-audit-2026-07-09/` (not committed).
+Read-only audit of the Nabaperks merchant journey across **information**, **visual**, and **interaction** hierarchy. Baseline: current working tree (launch header de-dup, Step 2 card label, Activate your venue billing card, onboarding preamble removal, dashboard action order). The temporary screenshot pack used during the audit was removed after the findings were recorded here.
 
 **Method:** Full route/component code pass → Playwright render at 375px and 1280px (harness + selective live Supabase login) → cross-screen consistency pass.
 

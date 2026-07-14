@@ -343,7 +343,7 @@ harmless because referral links carry no `qr`, so they skip the welcome step).
 
 - **Static, non-expiring QR** as the sole presence proof, with an **opt-in, annotate-only** soft
   geofence (evaluated only on cycle stamp #3, never blocks) — explicitly accepted as a frictionless
-  trade-off in `reports/architecture-audit/findings.md:103-105`. Compensating controls that _do_ bind:
+  trade-off in `reports/architecture/architecture-findings.md:103-105`. Compensating controls that _do_ bind:
   one-stamp-per-UK-day-per-location unique constraint, 10/15min self-stamp limit, ≥20-stamps/15min
   velocity flag.
 - **OTP as the identity moat** (no app, no password, no email) — the fix direction is fallback channels

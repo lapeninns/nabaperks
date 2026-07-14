@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next"
 import { Bricolage_Grotesque, Space_Mono } from "next/font/google"
-import Script from "next/script"
 
 import "./globals.css"
 import { PlaywrightHydrationSignal } from "@/components/dev-tools/playwright-hydration-signal"
@@ -96,23 +95,6 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       className={`${bricolageGrotesque.variable} ${spaceMono.variable} antialiased`}
     >
-      <head>
-        {process.env.NODE_ENV === "development" &&
-          process.env.PLAYWRIGHT_HARNESS !== "1" && (
-            <>
-              <Script
-                src="https://unpkg.com/react-scan/dist/auto.global.js"
-                crossOrigin="anonymous"
-                strategy="afterInteractive"
-              />
-              <Script
-                src="//unpkg.com/react-grab/dist/index.global.js"
-                crossOrigin="anonymous"
-                strategy="beforeInteractive"
-              />
-            </>
-          )}
-      </head>
       <body className="font-sans" inert={isPlaywrightHarness}>
         <ThemeProvider>
           {children}

@@ -15,7 +15,6 @@
  */
 import {
   needsLaunchBillingActivation,
-  type LaunchHubTab,
   type LaunchReadiness,
 } from "@/lib/merchant/launch-readiness-core"
 
@@ -34,8 +33,7 @@ export type LaunchHeaderModel = {
 }
 
 export function resolveLaunchHeaderModel(
-  readiness: LaunchReadiness,
-  _activeTab: LaunchHubTab
+  readiness: LaunchReadiness
 ): LaunchHeaderModel {
   if (readiness.launchReady) {
     return {

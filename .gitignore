@@ -12,6 +12,8 @@
 /coverage
 /test-results
 /playwright-report
+/reports/lighthouse/
+/reports/mutation/
 .jscpd
 
 # next.js
@@ -26,6 +28,8 @@
 .DS_Store
 *.pem
 .tmp/
+/.scratchpad/
+/tmp/
 .claude/
 supabase/.temp/
 

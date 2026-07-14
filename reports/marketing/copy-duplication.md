@@ -155,8 +155,8 @@ strings into them, starting with P0 (legal terms) and the redeem/collect verb de
 
 ## Files
 
-- `reports/copy-inventory.md` — full verbatim catalogue, all 2,190 strings, grouped by route/component.
-- `reports/copy-slices/inv-{A-landing,B-merchant,C-admin,D-customer,E-shared}.md` — the five per-surface source inventories.
+- `reports/marketing/copy-inventory.md` — full verbatim catalogue, all 2,190 strings, grouped by route/component.
+- `reports/marketing/copy-slices/inv-{A-landing,B-merchant,C-admin,D-customer,E-shared}.md` — the five per-surface source inventories.
 
 ---
 
