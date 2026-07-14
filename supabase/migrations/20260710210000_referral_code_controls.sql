@@ -1,10 +1,10 @@
--- MS-referral-code-controls — rotatable + deactivatable referral codes.
+-- Rotatable + deactivatable referral codes.
 --
 -- Adds a per-membership active flag + rotated-at timestamp, makes attribution
 -- resolve only ACTIVE codes (one added predicate in the join wrapper), and provides
 -- owner-guarded rotate / set-active RPCs. A rotated or paused code never blocks a
 -- friend's enrolment — it simply records no edge, like an unknown code.
--- Contract: micro-specs/referral/code-controls.md.
+-- Behavioral coverage: tests/contracts/referral-review-hardening.test.mjs.
 --
 -- Idempotent (guarded DDL + create-or-replace). The referral_code column stays
 -- NOT NULL + UNIQUE; deactivation is a boolean flag, never a null/empty code.

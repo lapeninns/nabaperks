@@ -1,4 +1,4 @@
--- MS-referral-state-machine — Referral v2 explicit state machine + qualification.
+-- Referral v2 explicit state machine + qualification.
 --
 -- Replaces v1's two-timestamp inference with an explicit, auditable `status`
 -- lifecycle (attributed → qualified → settling → awarded | held, plus terminal
@@ -7,7 +7,7 @@
 -- change is decoupling qualification from attribution: a `?ref` enrolment records
 -- an `attributed` edge and nothing more; only the referred friend's FIRST genuine
 -- non-bonus venue `earned` stamp transitions it to `qualified`.
--- Contract: micro-specs/referral/state-machine.md.
+-- Behavioral coverage: tests/contracts/referral-review-hardening.test.mjs.
 --
 -- Additive and backward-compatible: enrolment, stamping, and the v1 referrer bonus
 -- behave exactly as before; the only behavioural change to the award primitive is

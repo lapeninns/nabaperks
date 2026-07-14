@@ -1,4 +1,4 @@
--- MS-referral-settlement — one settlement function, durable holds, scheduled drain.
+-- One settlement function, durable holds, scheduled drain.
 --
 -- Replaces v1's membership-keyed award primitive with a single, referral-keyed
 -- settlement function settle_referral_bonus(referral_id): lock the edge, refuse
@@ -9,7 +9,7 @@
 -- concurrency-safely (FOR UPDATE SKIP LOCKED) and is registered as a cron. The
 -- QR-gated stamp entrypoint settles a scanner's owed bonus before their visit
 -- stamp. The legacy award/drain entrypoints become thin shims over settlement.
--- Contract: micro-specs/referral/settlement.md.
+-- Behavioral coverage: tests/contracts/referral-review-hardening.test.mjs.
 --
 -- Idempotent by construction (safe to re-apply): all functions use
 -- create-or-replace; the reward-unlock tail is reproduced verbatim from the v1

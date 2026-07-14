@@ -1,9 +1,10 @@
--- MS-referral-attribution — "Bring a Regular" attribution rails.
+-- "Bring a Regular" attribution rails.
 --
 -- Every membership is minted a shareable opaque referral code; a friend who
 -- joins a venue via a referrer's code (?ref) is durably attributed to that
 -- referrer, in the same transaction as enrolment. No reward is issued here —
--- that is MS-referral-bonus-stamp. Contract: micro-specs/referral/attribution.md.
+-- referral bonuses are handled by the later settlement flow.
+-- Behavioral coverage: tests/contracts/referral-attribution.test.mjs.
 --
 -- Idempotent by construction (safe to re-apply): additive DDL is guarded with
 -- IF NOT EXISTS, the policy is dropped before create, and the wrapper's every

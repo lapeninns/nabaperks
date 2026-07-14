@@ -195,11 +195,11 @@ No-app QR loyalty for UK cafes, takeaways and pubs. Your customer scans the till
 | **Scarcity & urgency** | Make it real; never a phony countdown. | Rolling seasonal `PROMO`, real deadline, `isPromoStale` auto-expiry tripwire. |
 | **Naming (M-A-G-I-C)** | Wrap the offer so the avatar can ask for it. | "The 30-Day First-Regular Launch." |
 
-## Appendix B. Provenance & governance
+## Appendix B. Provenance & verification
 
 - **Single source of truth:** all copy lives in `lib/marketing/facts.ts` (`OFFER`, `SETUP`, `OFFER_STACK`, `GUARANTEE`, `PROMO`) — no marketing surface forks a literal.
-- **Spec:** `MS-marketing-offer-v2` (risk class `ui-only`), authored, activated and advanced to `implemented` under the repo's governance gates.
-- **Verified:** lint, typecheck, build, 356 tests + coverage, bundle, banned-claims, JSON-LD, design-tokens, plus scoped end-to-end, accessibility and visual-regression gates — all green on a clean tree.
+- **Contract:** `tests/contracts/marketing-offer-v2.test.mjs` protects the offer's durable product behaviour.
+- **Verified when shipped:** lint, typecheck, build, contract tests, bundle, banned-claims, JSON-LD and design-token checks.
 - **Renders on:** `/pricing`, `/signup`, the landing hero, `/how-it-works`, and `/terms` (promo terms).
 - **Delivery:** committed on branch `feat/marketing-offer-v2` — awaiting owner review.
 

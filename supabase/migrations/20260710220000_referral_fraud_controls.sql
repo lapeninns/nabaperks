@@ -1,11 +1,12 @@
--- MS-referral-fraud-controls — concentration pause, admin review, code disablement.
+-- Concentration pause, admin review, code disablement.
 --
 -- Pauses (never claws back) suspicious referral bonuses. A referrer who crosses a
 -- rolling-24h concentration threshold has their newest qualifying referral paused
 -- (status='rejected') + a deduped referral_concentration flag raised. Support can
 -- review any referral (clear/reject/cancel, admin-only, audited) and disable a code
 -- outright. Detection is a trigger on the → qualified transition; it never blocks
--- qualification and never reverses a stamp. Contract: micro-specs/referral/fraud-controls.md.
+-- qualification and never reverses a stamp.
+-- Behavioral coverage: tests/contracts/referral-review-hardening.test.mjs.
 --
 -- Note (deliberate scope): device/network/IP clustering and recycled-phone are not
 -- built — no device/IP columns exist and phone_hmac is uniquely indexed (self-referral

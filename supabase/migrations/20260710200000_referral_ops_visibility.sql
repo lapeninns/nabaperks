@@ -1,4 +1,4 @@
--- MS-referral-ops-visibility — support operational view + merchant aggregate.
+-- Support operational view + merchant aggregate.
 --
 -- Two read-only functions, two audiences:
 --   admin_referral_ops(...)        — internal-admin (support) detail, identified.
@@ -7,7 +7,7 @@
 -- check that raises insufficient_privilege, SECURITY DEFINER, granted to
 -- authenticated + service_role. The service-role branch lets the gated admin
 -- loader (createAdminServiceRoleClient → requireAdminRead) call the detail RPC.
--- Contract: micro-specs/referral/ops-visibility.md.
+-- Behavioral coverage: tests/contracts/referral-review-hardening.test.mjs.
 --
 -- Idempotent (create-or-replace only); no schema or policy change.
 

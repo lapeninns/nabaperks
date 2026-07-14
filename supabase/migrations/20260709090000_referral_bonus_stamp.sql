@@ -1,4 +1,4 @@
--- MS-referral-bonus-stamp — "Bring a Regular": the referrer bonus stamp.
+-- "Bring a Regular": the referrer bonus stamp.
 --
 -- Builds on the attribution rails (20260708090000). When a referred friend earns
 -- their FIRST in-venue stamp, the referrer receives exactly one bonus stamp on
@@ -6,7 +6,7 @@
 -- same transaction as the friend's stamp, behind a fail-safe wrapper so it can
 -- never block or roll back the friend's stamp. A full-card referrer is OWED, not
 -- dropped: the debt is drained once their card has room.
--- Contract: micro-specs/referral/bonus-stamp.md.
+-- Behavioral coverage: tests/contracts/referral-bonus-stamp.test.mjs.
 --
 -- Idempotent by construction (safe to re-apply): additive DDL is guarded with
 -- IF NOT EXISTS; constraints and functions are dropped/replaced before create.
