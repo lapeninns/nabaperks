@@ -28,11 +28,16 @@ describe("contract-merchant-reward-presets source contract", () => {
   })
 
   it("keeps card and reward persistence but no auto-seed", () => {
-    const form = readProjectFile("components/merchant/loyalty-card-form.tsx")
+    const cardForm = readProjectFile(
+      "components/merchant/loyalty-card-form.tsx"
+    )
+    const rewardForm = readProjectFile(
+      "components/merchant/reward-pool-form.tsx"
+    )
     const actions = readProjectFile("app/app/card/actions.ts")
 
-    assert.match(form, /saveLoyaltyCardAction/)
-    assert.match(form, /saveRewardPoolItemAction/)
+    assert.match(cardForm, /saveLoyaltyCardAction/)
+    assert.match(rewardForm, /saveRewardPoolItemAction/)
     assert.match(actions, /save_loyalty_card/)
     assert.match(actions, /upsert_reward_pool_item/)
     // The reward pool is no longer auto-seeded; the merchant adds rewards.
@@ -40,7 +45,7 @@ describe("contract-merchant-reward-presets source contract", () => {
   })
 
   it("keeps non-pub merchants away from pub-specific copy", () => {
-    const form = readProjectFile("components/merchant/loyalty-card-form.tsx")
+    const form = readProjectFile("components/merchant/reward-pool-form.tsx")
     const presets = readProjectFile("lib/merchant/reward-presets.ts")
 
     assert.match(form, /Reward ideas/)
