@@ -5,8 +5,8 @@ Post-ship audit of the marketing restructure (conversion spine + 4 persona spoke
 and code correctness. **All actionable findings were fixed in the same pass**;
 this report records what was found, what changed, and what was deliberately left.
 
-Verification at fix time: `pnpm typecheck` ✓ · `pnpm test` (276 micro-spec +
-232 unit) ✓ · `pnpm governance:check` ✓ · `pnpm build` ✓ ·
+Verification at fix time: `pnpm typecheck` ✓ · `pnpm test` (276 contract test +
+232 unit) ✓ · the retired methodology check ✓ · `pnpm build` ✓ ·
 `scripts/check-banned-claims.mjs` ✓ · `scripts/check-jsonld.mjs` ✓ · rendered
 HTML spot-checked against the live dev server.
 
@@ -21,7 +21,7 @@ HTML spot-checked against the live dev server.
   and `PRODUCT.cancelChip`. Every surface (hero reassurance, landing FAQ ×2,
   trust-pricing ×2, final CTA, about, pricing ×4, signup ×2) now renders the
   constant; no bare "cancel anytime" remains in rendered source.
-- Contract updated: `tests/micro-specs/marketing-auth-legal.test.mjs` now
+- Contract updated: `tests/contracts/marketing-auth-legal.test.mjs` now
   asserts the constant exists, each acquisition surface references it, and
   `doesNotMatch(/cancel anytime/i)` on raw source — the old incomplete claim
   can never come back silently.
@@ -40,7 +40,7 @@ HTML spot-checked against the live dev server.
    Pub 53 · Cafe 54 · Takeaway 57 · Bar 58 (incl. "| Nabaperks").
 3. **Dead components.** `mid-page-cta.tsx`, `operator-proof.tsx` deleted with
    their barrel exports. `jump-nav.tsx` **deliberately retained** — pinned by
-   `micro-specs/platform/landing-conversion-spine.md:101` (a marketing-polish-p3
+   `contract tests/platform/landing-conversion-spine.md:101` (a marketing-polish-p3
    styling contract reads the file).
 4. **"for many cafes" hedge on generic pages** → "for many venues"
    (trust-pricing, /pricing).

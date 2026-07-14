@@ -66,7 +66,7 @@ The problems cluster in two places:
   loyalty-for-pubs, checkout-alert, demo-card.
 - **Fix (one pass):** bump the mix to **85%** (→ 3.72:1 on paper; 100% → 4.51),
   replace all outlaw rings with `.focus-ring`, and widen the existing "banned
-  dialect" test (`tests/micro-specs/ux-production-polish.test.mjs:90`, currently
+  dialect" test (`tests/contracts/ux-production-polish.test.mjs:90`, currently
   button/input/textarea only) to `app/ components/` repo-wide.
 
 ### 2. Sheet exit animations never play (hard cut on close)
@@ -122,7 +122,7 @@ The problems cluster in two places:
 9. **Eyebrow hand-rolling (~45 hits / 25 files)** — hand-rolled
    `font-mono text-[…] uppercase` combos instead of `.mono-meta`/`.mono-id`/
    `.eyebrow`, all outside the marketing-only guard
-   (`tests/micro-specs/marketing-polish-p2.test.mjs:299`). Worst:
+   (`tests/contracts/marketing-polish-p2.test.mjs:299`). Worst:
    `customer-flow-system.tsx` (5), `poster-preview-chrome.tsx` (5),
    `customer-readback-table.tsx` (4), `qr-panel-live.tsx` (3). Consistency debt,
    not a rendering break — fix opportunistically, then extend the guard.
@@ -193,7 +193,7 @@ machine enforcement, in this order:
 4. **`rounded-full` allowlist scan** (P2-10) — mechanical check against the
    named exception list (after minting `IconRoundel`).
 
-Each is a small, spec-shaped change that fits the repo's Micro-Spec governance
+Each is a small, spec-shaped change that fits the repo's contract test governance
 culture.
 
 ## Strategic note (from the design-lens review, not the sweeps)

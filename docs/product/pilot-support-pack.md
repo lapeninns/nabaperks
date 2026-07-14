@@ -149,10 +149,9 @@ These are not code tasks:
 
 ## Repo Work Only If Requested
 
-If a public case-study page is requested later, create a small `ui-only`
-Micro-Spec before implementation. Required gates should include:
+If a public case-study page is requested later, create an implementation issue
+before making the change. Suggested checks include:
 
-- `pnpm governance:check`
 - `pnpm typecheck`
 - `pnpm build`
 - `pnpm claims:check`

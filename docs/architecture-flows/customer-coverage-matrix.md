@@ -14,9 +14,9 @@ Coverage is only meaningful per **tier**, because the tiers prove different thin
 | **live-DB** | `pnpm test:db` (node --test, real Postgres RPCs in rolled-back txns) | Runtime ledger/RLS behaviour — the trust mechanic. |
 | **unit** | `pnpm test` | Pure TS functions (math, sanitisers) execute correctly. |
 | **e2e** | `pnpm test:e2e` (Playwright over the DB-free `/dev/app-harness`) | Real markup renders; route gates redirect. |
-| **micro-spec** | `pnpm test` | **Source-grep** — the code/SQL is *shaped* a certain way. Wiring, not behaviour. |
+| **contract test** | `pnpm test` | **Source-grep** — the code/SQL is *shaped* a certain way. Wiring, not behaviour. |
 
-Key fact: `pnpm test` (the default gate) runs only **unit + micro-spec** — so a
+Key fact: `pnpm test` (the default gate) runs only **unit + contract test** — so a
 plain green run executes *no* customer-behaviour test. Behaviour lives in
 `pnpm test:db` and `pnpm test:e2e`, which are separate CI jobs.
 

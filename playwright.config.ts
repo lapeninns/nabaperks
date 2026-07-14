@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test"
 
 /**
- * Playwright e2e harness (MS-platform-e2e-harness).
+ * Playwright e2e harness.
  *
  * Restored from history (94f72d0b^) and reconciled to current `main`:
  * - `CUSTOMER_FLOW_DEV_HARNESS_ENABLED` is dropped — the `/dev` gate is now just
@@ -9,7 +9,7 @@ import { defineConfig, devices } from "@playwright/test"
  *   the DB-free harness routes.
  * - `CUSTOMER_DEV_OTP_CODE=424242` stays — still read by lib/customer/*verification.
  *
- * Unit + micro-spec tests stay on `node --test` (see package.json). Playwright
+ * Unit and contract tests stay on `node --test` (see package.json). Playwright
  * is the e2e runner ONLY; Vitest is intentionally not reintroduced.
  */
 

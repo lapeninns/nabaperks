@@ -38,7 +38,7 @@ intentional-by-spec today but worth a deliberate trim decision.
 | E-E-A-T & trust | 83 | "9 independent pubs" quotes lack operator-relationship disclosure on `/how-it-works` |
 | Design & UX | 88 | Spoke repeat fatigue on multi-spoke journeys; otherwise density discipline holds |
 | Accessibility | 92 | Nothing broken found; native `<details>`, skip link, `aria-pressed` chips all present |
-| Code & governance | 84 | `jsonld:check` misses hub `@id` + 2 of 3 guides; `governance:check` red on `reports/` |
+| Code quality | 84 | `jsonld:check` misses hub `@id` + 2 of 3 guides; the retired methodology check rejected `reports/` |
 
 ## Section matrix
 
@@ -316,7 +316,7 @@ persona titles ≤60 chars · `id="fit"` orphans gone · "See more →" tap targ
 |---|---|
 | `pnpm typecheck` | ✓ |
 | `pnpm claims:check` | ✓ 67 marketing/SEO files, 540 review-voice files |
-| `pnpm governance:check` | ✗ **pre-existing/expected** — only `reports/*.md` (the two morning audit reports, outside any active-spec blast radius; this file will trip it too) |
+| the retired methodology check | ✗ **pre-existing/expected** — only `reports/*.md` (the two morning audit reports, outside any active-spec blast radius; this file will trip it too) |
 | `pnpm test` (marketing-redesign, auth-legal, multipage, landing-conversion-spine, persona-spokes) | ✓ 259/259 |
 | `pnpm build` | ✓ (dev server on :3000 still healthy after) |
 | `pnpm jsonld:check` | ✓ — green **despite** P1-1, confirming the hub-`@id` guard gap |
@@ -329,7 +329,7 @@ persona titles ≤60 chars · `id="fit"` orphans gone · "See more →" tap targ
 
 Per the morning report + standing decisions, reviewed and left alone:
 `/signup` stays in the sitemap (e2e-pinned) · `jump-nav.tsx` file retained
-([spec pin](micro-specs/platform/landing-conversion-spine.md:101); barrel
+([spec pin](contract tests/platform/landing-conversion-spine.md:101); barrel
 export harmless) · home H1 "The loyalty card that just opens." (owner-approved;
 GEO's query-shaped-H2 suggestion listed as open question instead) · sitemap
 omits `lastModified` (honesty call) · Counter-Loyalty Index is real first-party

@@ -46,8 +46,8 @@ Status legend: `[ ]` open · `[~]` in progress · `[x]` done. Ticked boxes refle
 ### `[x]` H3 — Tests never run in CI (and ~90% are source-grep, not behavioral)
 
 - **Severity:** High · **Effort:** S (wire) + M (behavioral tests) · **Areas:** 46 / 60 / 6
-- **What's wrong:** `ci.yml` runs only `typecheck`, `tokens:check`, `claims:check`, `build`, `jsonld:check` — **no `pnpm test`**. The micro-spec suite is `readFileSync + assert.match` on source/SQL text; it never _executes_ `issue_self_service_stamp` / redemption / billing gates. Only the 3 `tests/unit/*` are behavioral (app-layer).
-- **Evidence:** `.github/workflows/ci.yml:36-43` · `package.json:11-13` · `tests/micro-specs/*.test.mjs`
+- **What's wrong:** `ci.yml` runs only `typecheck`, `tokens:check`, `claims:check`, `build`, `jsonld:check` — **no `pnpm test`**. The contract test suite is `readFileSync + assert.match` on source/SQL text; it never _executes_ `issue_self_service_stamp` / redemption / billing gates. Only the 3 `tests/unit/*` are behavioral (app-layer).
+- **Evidence:** `.github/workflows/ci.yml:36-43` · `package.json:11-13` · `tests/contracts/*.test.mjs`
 - **Fix:** Add `- run: pnpm test` (and `pnpm lint`) to `ci.yml`. Then add DB-backed / pgTAP behavioral tests that execute the moat.
 - **Acceptance criteria:**
   - CI runs `pnpm test` and fails the build on a red test.
