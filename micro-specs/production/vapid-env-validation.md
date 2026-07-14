@@ -1,6 +1,6 @@
 ---
 spec_id: MS-production-vapid-env-validation
-status: implemented
+status: verified
 risk_class: docs-tooling
 owner: amankumarshrestha
 last_reviewed: 2026-07-14
