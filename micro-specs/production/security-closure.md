@@ -1,9 +1,9 @@
 ---
 spec_id: MS-production-security-closure
-status: implemented
+status: verified
 risk_class: auth-session
 owner: codex
-last_reviewed: 2026-07-12
+last_reviewed: 2026-07-14
 allowed_blast_radius:
   - micro-specs/production/**
   - app/auth/confirm/route.ts

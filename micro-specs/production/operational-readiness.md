@@ -1,9 +1,9 @@
 ---
 spec_id: MS-production-operational-readiness
-status: implemented
+status: verified
 risk_class: migrations
 owner: codex
-last_reviewed: 2026-07-12
+last_reviewed: 2026-07-14
 allowed_blast_radius:
   - micro-specs/production/**
   - app/api/health/route.ts

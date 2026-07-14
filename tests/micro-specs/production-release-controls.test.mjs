@@ -1,5 +1,6 @@
 import assert from "node:assert/strict"
 import { spawnSync } from "node:child_process"
+import { createECDH } from "node:crypto"
 import {
   cpSync,
   mkdtempSync,
@@ -49,14 +50,116 @@ test("Given a complete production configuration When generated credentials are s
           "sec_",
           "SDkhbVEyQHZSNyNjVDQkeUs4XnBEMyZ6RjYqd041P3g=",
         ].join(""),
-      WEB_PUSH_VAPID_PRIVATE_KEY: "fixture-private-key",
-      WEB_PUSH_VAPID_PUBLIC_KEY: "fixture-public-key",
-      WEB_PUSH_VAPID_SUBJECT: "mailto:hello@example.test",
+      ...validVapidEnvironment(),
     },
   })
 
   assert.equal(result.status, 0, result.stderr)
   assert.match(result.stdout, /production environment configuration is valid/)
+})
+
+for (const [name, malformed, message] of [
+  [
+    "WEB_PUSH_VAPID_PRIVATE_KEY",
+    "fixture-private-key",
+    "WEB_PUSH_VAPID_PRIVATE_KEY must be an unpadded URL-safe Base64 value decoding to 32 bytes",
+  ],
+  [
+    "WEB_PUSH_VAPID_PUBLIC_KEY",
+    "fixture-public-key",
+    "WEB_PUSH_VAPID_PUBLIC_KEY must be an unpadded URL-safe Base64 value decoding to 65 bytes",
+  ],
+  [
+    "WEB_PUSH_VAPID_SUBJECT",
+    "http://push.example.test",
+    "WEB_PUSH_VAPID_SUBJECT must be an HTTPS URL or mailto URI",
+  ],
+]) {
+  test(`Given hosted configuration When ${name} is malformed Then deployment fails without echoing the value`, () => {
+    const result = runEnvCheck({
+      args: ["--profile=default"],
+      environment: {
+        ...validVapidEnvironment(),
+        [name]: malformed,
+      },
+      vercelEnv: "preview",
+    })
+
+    assert.equal(result.status, 1)
+    assert.match(result.stderr, new RegExp(message))
+    assert.doesNotMatch(result.stderr, new RegExp(malformed.replaceAll(".", "\\.")))
+  })
+}
+
+test("Given hosted configuration When only part of the VAPID trio is configured Then deployment fails", () => {
+  const { WEB_PUSH_VAPID_PUBLIC_KEY } = validVapidEnvironment()
+  const result = runEnvCheck({
+    args: ["--profile=default"],
+    environment: { WEB_PUSH_VAPID_PUBLIC_KEY },
+    vercelEnv: "preview",
+  })
+
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /Web Push VAPID values must be configured together/)
+})
+
+test("Given hosted configuration When the VAPID private key is an invalid exact-length scalar Then deployment fails", () => {
+  const invalidPrivateKey = Buffer.alloc(32).toString("base64url")
+  const result = runEnvCheck({
+    args: ["--profile=default"],
+    environment: {
+      ...validVapidEnvironment(),
+      WEB_PUSH_VAPID_PRIVATE_KEY: invalidPrivateKey,
+    },
+    vercelEnv: "preview",
+  })
+
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /WEB_PUSH_VAPID_PRIVATE_KEY must be a valid P-256 scalar/)
+  assert.doesNotMatch(result.stderr, new RegExp(escapeRegExp(invalidPrivateKey)))
+})
+
+test("Given hosted configuration When the VAPID public key is an invalid exact-length point Then deployment fails", () => {
+  const invalidPublicKeyBytes = Buffer.alloc(65)
+  invalidPublicKeyBytes[0] = 4
+  const invalidPublicKey = invalidPublicKeyBytes.toString("base64url")
+  const result = runEnvCheck({
+    args: ["--profile=default"],
+    environment: {
+      ...validVapidEnvironment(),
+      WEB_PUSH_VAPID_PUBLIC_KEY: invalidPublicKey,
+    },
+    vercelEnv: "preview",
+  })
+
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /WEB_PUSH_VAPID_PUBLIC_KEY must be a valid P-256 point/)
+  assert.doesNotMatch(result.stderr, new RegExp(escapeRegExp(invalidPublicKey)))
+})
+
+test("Given hosted configuration When valid VAPID keys belong to different pairs Then deployment fails", () => {
+  const privatePair = validVapidEnvironment()
+  const publicPair = validVapidEnvironment()
+  const result = runEnvCheck({
+    args: ["--profile=default"],
+    environment: {
+      ...privatePair,
+      WEB_PUSH_VAPID_PUBLIC_KEY: publicPair.WEB_PUSH_VAPID_PUBLIC_KEY,
+    },
+    vercelEnv: "preview",
+  })
+
+  assert.equal(result.status, 1)
+  assert.match(
+    result.stderr,
+    /WEB_PUSH_VAPID_PUBLIC_KEY must match WEB_PUSH_VAPID_PRIVATE_KEY/
+  )
+})
+
+test("Given local development When Web Push is not configured Then the optional provider remains valid", () => {
+  const result = runEnvCheck({ args: ["--profile=default"] })
+
+  assert.equal(result.status, 0, result.stderr)
 })
 
 test("Given hosted configuration When the Supabase origin is untrusted Then privileged readiness cannot deploy", () => {
@@ -255,6 +358,64 @@ test("Given hosted release configuration When release controls are inspected The
   }
 })
 
+test("Given the CI build job When VAPID fixtures are configured Then a generator runs before production validation", () => {
+  const ci = readFileSync(".github/workflows/ci.yml", "utf8")
+  const generatorIndex = ci.indexOf(
+    'node scripts/generate-ci-vapid-env.mjs >> "$GITHUB_ENV"'
+  )
+  const envCheckIndex = ci.indexOf("- run: pnpm env:check:production")
+
+  assert.doesNotMatch(ci, /ci-vapid-(?:public|private)-key/)
+  assert.notEqual(generatorIndex, -1, "CI must generate an ephemeral VAPID pair")
+  assert.ok(
+    generatorIndex < envCheckIndex,
+    "CI must generate VAPID values before production validation"
+  )
+})
+
+test("Given the CI VAPID generator When its output is validated Then it emits one accepted matching trio", () => {
+  const generated = spawnSync(
+    process.execPath,
+    [resolve(projectDir, "scripts/generate-ci-vapid-env.mjs")],
+    { cwd: projectDir, encoding: "utf8" }
+  )
+
+  assert.equal(generated.status, 0, generated.stderr)
+  assert.equal(generated.stderr, "")
+
+  const environment = Object.fromEntries(
+    generated.stdout
+      .trim()
+      .split("\n")
+      .map((line) => line.split(/=(.*)/s).slice(0, 2))
+  )
+  assert.deepEqual(Object.keys(environment).sort(), [
+    "WEB_PUSH_VAPID_PRIVATE_KEY",
+    "WEB_PUSH_VAPID_PUBLIC_KEY",
+    "WEB_PUSH_VAPID_SUBJECT",
+  ])
+
+  const validated = runEnvCheck({
+    args: ["--profile=default"],
+    environment,
+    vercelEnv: "preview",
+  })
+
+  assert.equal(validated.status, 0, validated.stderr)
+})
+
+test("Given a 31-byte private scalar When CI fixture padding is applied Then its value is preserved at 32 bytes", async () => {
+  const { leftPadPrivateKey: padCiPrivateKey } = await import(
+    "../../scripts/generate-ci-vapid-env.mjs"
+  )
+  const scalar = Buffer.alloc(31, 7)
+  const padded = padCiPrivateKey(scalar)
+
+  assert.equal(padded.length, 32)
+  assert.equal(padded[0], 0)
+  assert.deepEqual(padded.subarray(1), scalar)
+})
+
 test("Given scheduled production monitoring When a rollback is active Then probes do not require default-branch HEAD", () => {
   const workflow = readFileSync(
     ".github/workflows/production-smoke.yml",
@@ -338,4 +499,25 @@ function testValue(entry) {
     return `N7!qL2@vR9#cT4$yH6^mK8&pD3*zF5?${entry.name.length}`
   }
   return `fixture-${entry.name.toLowerCase()}-0123456789abcdef`
+}
+
+function validVapidEnvironment() {
+  const curve = createECDH("prime256v1")
+  curve.generateKeys()
+  const privateKey = leftPadPrivateKey(curve.getPrivateKey())
+
+  return {
+    WEB_PUSH_VAPID_PRIVATE_KEY: privateKey.toString("base64url"),
+    WEB_PUSH_VAPID_PUBLIC_KEY: curve.getPublicKey().toString("base64url"),
+    WEB_PUSH_VAPID_SUBJECT: "mailto:hello@example.test",
+  }
+}
+
+function leftPadPrivateKey(value) {
+  if (value.length >= 32) return value
+  return Buffer.concat([Buffer.alloc(32 - value.length), value])
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
