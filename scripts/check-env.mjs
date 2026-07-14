@@ -1,3 +1,4 @@
+import { createECDH, timingSafeEqual } from "node:crypto"
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 
@@ -192,15 +193,43 @@ if (hostedOrProductionProfile) {
     invalid.push("Web Push VAPID values must be configured together")
   }
 
-  if (vapidPrivateKey && !hasVapidKeyShape(vapidPrivateKey, 32)) {
+  const validVapidPrivateShape =
+    Boolean(vapidPrivateKey) && hasVapidKeyShape(vapidPrivateKey, 32)
+  const validVapidPublicShape =
+    Boolean(vapidPublicKey) && hasVapidKeyShape(vapidPublicKey, 65)
+
+  if (vapidPrivateKey && !validVapidPrivateShape) {
     invalid.push(
       "WEB_PUSH_VAPID_PRIVATE_KEY must be an unpadded URL-safe Base64 value decoding to 32 bytes"
     )
   }
 
-  if (vapidPublicKey && !hasVapidKeyShape(vapidPublicKey, 65)) {
+  if (vapidPublicKey && !validVapidPublicShape) {
     invalid.push(
       "WEB_PUSH_VAPID_PUBLIC_KEY must be an unpadded URL-safe Base64 value decoding to 65 bytes"
+    )
+  }
+
+  const validVapidPrivateScalar =
+    validVapidPrivateShape && isValidP256PrivateScalar(vapidPrivateKey)
+  const validVapidPublicPoint =
+    validVapidPublicShape && isValidP256PublicPoint(vapidPublicKey)
+
+  if (validVapidPrivateShape && !validVapidPrivateScalar) {
+    invalid.push("WEB_PUSH_VAPID_PRIVATE_KEY must be a valid P-256 scalar")
+  }
+
+  if (validVapidPublicShape && !validVapidPublicPoint) {
+    invalid.push("WEB_PUSH_VAPID_PUBLIC_KEY must be a valid P-256 point")
+  }
+
+  if (
+    validVapidPrivateScalar &&
+    validVapidPublicPoint &&
+    !isMatchingVapidKeyPair(vapidPrivateKey, vapidPublicKey)
+  ) {
+    invalid.push(
+      "WEB_PUSH_VAPID_PUBLIC_KEY must match WEB_PUSH_VAPID_PRIVATE_KEY"
     )
   }
 
@@ -381,6 +410,42 @@ function isValidVapidSubject(value) {
   try {
     const subject = new URL(value)
     return ["https:", "mailto:"].includes(subject.protocol)
+  } catch {
+    return false
+  }
+}
+
+function isValidP256PrivateScalar(value) {
+  try {
+    const curve = createECDH("prime256v1")
+    curve.setPrivateKey(Buffer.from(value, "base64url"))
+    return true
+  } catch {
+    return false
+  }
+}
+
+function isValidP256PublicPoint(value) {
+  try {
+    const curve = createECDH("prime256v1")
+    curve.setPublicKey(Buffer.from(value, "base64url"))
+    return true
+  } catch {
+    return false
+  }
+}
+
+function isMatchingVapidKeyPair(privateKey, publicKey) {
+  try {
+    const curve = createECDH("prime256v1")
+    curve.setPrivateKey(Buffer.from(privateKey, "base64url"))
+    const expectedPublicKey = curve.getPublicKey()
+    const suppliedPublicKey = Buffer.from(publicKey, "base64url")
+
+    return (
+      expectedPublicKey.length === suppliedPublicKey.length &&
+      timingSafeEqual(expectedPublicKey, suppliedPublicKey)
+    )
   } catch {
     return false
   }

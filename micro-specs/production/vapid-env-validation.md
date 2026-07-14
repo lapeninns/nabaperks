@@ -12,6 +12,8 @@ allowed_blast_radius:
 implementation_surfaces:
   - micro-specs/production/vapid-env-validation.md
   - scripts/check-env.mjs
+  - tests/micro-specs/provider-readiness-smoke.test.mjs
+  - tests/micro-specs/production-release-controls.test.mjs
 related_tests:
   - tests/micro-specs/provider-readiness-smoke.test.mjs
   - tests/micro-specs/production-release-controls.test.mjs

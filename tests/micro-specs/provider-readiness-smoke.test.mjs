@@ -392,12 +392,18 @@ function validTestEnvValue(entry) {
 function createValidVapidTestValues() {
   const curve = createECDH("prime256v1")
   curve.generateKeys()
+  const privateKey = leftPadPrivateKey(curve.getPrivateKey())
 
   return {
-    WEB_PUSH_VAPID_PRIVATE_KEY: curve.getPrivateKey().toString("base64url"),
+    WEB_PUSH_VAPID_PRIVATE_KEY: privateKey.toString("base64url"),
     WEB_PUSH_VAPID_PUBLIC_KEY: curve.getPublicKey().toString("base64url"),
     WEB_PUSH_VAPID_SUBJECT: "mailto:hello@example.test",
   }
+}
+
+function leftPadPrivateKey(value) {
+  if (value.length >= 32) return value
+  return Buffer.concat([Buffer.alloc(32 - value.length), value])
 }
 
 async function postHogConfigResult(projectKey) {

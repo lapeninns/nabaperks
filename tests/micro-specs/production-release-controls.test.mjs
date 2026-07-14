@@ -103,6 +103,59 @@ test("Given hosted configuration When only part of the VAPID trio is configured 
   assert.match(result.stderr, /Web Push VAPID values must be configured together/)
 })
 
+test("Given hosted configuration When the VAPID private key is an invalid exact-length scalar Then deployment fails", () => {
+  const invalidPrivateKey = Buffer.alloc(32).toString("base64url")
+  const result = runEnvCheck({
+    args: ["--profile=default"],
+    environment: {
+      ...validVapidEnvironment(),
+      WEB_PUSH_VAPID_PRIVATE_KEY: invalidPrivateKey,
+    },
+    vercelEnv: "preview",
+  })
+
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /WEB_PUSH_VAPID_PRIVATE_KEY must be a valid P-256 scalar/)
+  assert.doesNotMatch(result.stderr, new RegExp(escapeRegExp(invalidPrivateKey)))
+})
+
+test("Given hosted configuration When the VAPID public key is an invalid exact-length point Then deployment fails", () => {
+  const invalidPublicKeyBytes = Buffer.alloc(65)
+  invalidPublicKeyBytes[0] = 4
+  const invalidPublicKey = invalidPublicKeyBytes.toString("base64url")
+  const result = runEnvCheck({
+    args: ["--profile=default"],
+    environment: {
+      ...validVapidEnvironment(),
+      WEB_PUSH_VAPID_PUBLIC_KEY: invalidPublicKey,
+    },
+    vercelEnv: "preview",
+  })
+
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /WEB_PUSH_VAPID_PUBLIC_KEY must be a valid P-256 point/)
+  assert.doesNotMatch(result.stderr, new RegExp(escapeRegExp(invalidPublicKey)))
+})
+
+test("Given hosted configuration When valid VAPID keys belong to different pairs Then deployment fails", () => {
+  const privatePair = validVapidEnvironment()
+  const publicPair = validVapidEnvironment()
+  const result = runEnvCheck({
+    args: ["--profile=default"],
+    environment: {
+      ...privatePair,
+      WEB_PUSH_VAPID_PUBLIC_KEY: publicPair.WEB_PUSH_VAPID_PUBLIC_KEY,
+    },
+    vercelEnv: "preview",
+  })
+
+  assert.equal(result.status, 1)
+  assert.match(
+    result.stderr,
+    /WEB_PUSH_VAPID_PUBLIC_KEY must match WEB_PUSH_VAPID_PRIVATE_KEY/
+  )
+})
+
 test("Given local development When Web Push is not configured Then the optional provider remains valid", () => {
   const result = runEnvCheck({ args: ["--profile=default"] })
 
@@ -393,10 +446,20 @@ function testValue(entry) {
 function validVapidEnvironment() {
   const curve = createECDH("prime256v1")
   curve.generateKeys()
+  const privateKey = leftPadPrivateKey(curve.getPrivateKey())
 
   return {
-    WEB_PUSH_VAPID_PRIVATE_KEY: curve.getPrivateKey().toString("base64url"),
+    WEB_PUSH_VAPID_PRIVATE_KEY: privateKey.toString("base64url"),
     WEB_PUSH_VAPID_PUBLIC_KEY: curve.getPublicKey().toString("base64url"),
     WEB_PUSH_VAPID_SUBJECT: "mailto:hello@example.test",
   }
+}
+
+function leftPadPrivateKey(value) {
+  if (value.length >= 32) return value
+  return Buffer.concat([Buffer.alloc(32 - value.length), value])
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
