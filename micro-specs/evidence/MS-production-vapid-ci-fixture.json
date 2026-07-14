@@ -30,6 +30,45 @@
         }
       ],
       "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-14T07:28:12.139Z",
+      "git_sha": "d349a40f108aff159e93944ef13badd5ad7dba87",
+      "git_branch": "codex/post-release-governance-closure",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7476
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1158
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11110
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 2552
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10198
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1491
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
@@ -40,6 +79,14 @@
       "at": "2026-07-14T07:22:57.401Z",
       "sha": "784fca3cfc4f0f85b6129ba87c2cbc2fdc5f07fe",
       "dirty": true,
+      "by": "codex"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-14T07:28:12.139Z",
+      "sha": "d349a40f108aff159e93944ef13badd5ad7dba87",
+      "dirty": false,
       "by": "codex"
     }
   ]
