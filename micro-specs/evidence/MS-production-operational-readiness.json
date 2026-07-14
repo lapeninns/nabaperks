@@ -3,50 +3,6 @@
   "spec_id": "MS-production-operational-readiness",
   "runs": [
     {
-      "timestamp": "2026-07-12T21:54:48.345Z",
-      "git_sha": "18768aaee4ad4f25e925a25bf6ba1713395899a6",
-      "git_branch": "codex/production-readiness",
-      "dirty": true,
-      "gates": [
-        {
-          "command": "pnpm lint",
-          "exit_code": 0,
-          "duration_ms": 7939
-        },
-        {
-          "command": "pnpm typecheck",
-          "exit_code": 0,
-          "duration_ms": 1297
-        },
-        {
-          "command": "pnpm build",
-          "exit_code": 0,
-          "duration_ms": 11404
-        },
-        {
-          "command": "pnpm test",
-          "exit_code": 0,
-          "duration_ms": 11130
-        },
-        {
-          "command": "pnpm test:coverage",
-          "exit_code": 0,
-          "duration_ms": 1737
-        },
-        {
-          "command": "pnpm test:db",
-          "exit_code": 0,
-          "duration_ms": 6687
-        },
-        {
-          "command": "pnpm governance:check",
-          "exit_code": 0,
-          "duration_ms": 2363
-        }
-      ],
-      "all_passed": true
-    },
-    {
       "timestamp": "2026-07-13T07:30:29.517Z",
       "git_sha": "b115d1a43bee153fe2f454effe71e1192a91c45d",
       "git_branch": "codex/production-readiness",
@@ -411,9 +367,72 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-14T06:58:44.315Z",
+      "git_sha": "13e763d30facd23390a363d425fbf6bce8a6e15a",
+      "git_branch": "codex/post-release-governance-closure",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 8146
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1202
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11035
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10386
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1509
+        },
+        {
+          "command": "pnpm test:db",
+          "exit_code": 0,
+          "duration_ms": 6162
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 2410
+        }
+      ],
+      "all_passed": true
     }
   ],
-  "manual_attestations": [],
+  "manual_attestations": [
+    {
+      "gate": "manual:production-health-readiness",
+      "by": "codex",
+      "note": "Vercel deployment dpl_3yEqaqYCgqkXfatWp77uaMveYMsv reached Ready; production health and authenticated readiness passed for revision 13e763d30fac in GitHub run 29309958000 on 2026-07-14.",
+      "at": "2026-07-14T06:58:44.315Z"
+    },
+    {
+      "gate": "manual:supabase-backup-readback",
+      "by": "codex",
+      "note": "Supabase project skonlhwstejberyzobep latest daily physical backup 1104390341 completed at 2026-07-13T06:58:31.285Z; PITR readback is disabled.",
+      "at": "2026-07-14T06:58:44.315Z"
+    },
+    {
+      "gate": "evidence",
+      "by": "codex",
+      "at": "2026-07-14T06:58:44.315Z",
+      "note": "Command output for the declared verification gates."
+    }
+  ],
   "transitions": [
     {
       "from": "draft",
@@ -430,6 +449,14 @@
       "sha": "6eae9f7dc0775087ba3619bdcfc9c8f7ff2106e8",
       "dirty": false,
       "by": "amankumarshrestha"
+    },
+    {
+      "from": "implemented",
+      "to": "verified",
+      "at": "2026-07-14T06:58:44.315Z",
+      "sha": "13e763d30facd23390a363d425fbf6bce8a6e15a",
+      "dirty": false,
+      "by": "codex"
     }
   ]
 }
