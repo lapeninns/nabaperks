@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-production-vapid-key-pair-validation",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-14T07:14:05.345Z",
+      "sha": "00b8f31d22fb66ec5a9e200a46a7f39b865576e5",
+      "dirty": true,
+      "by": "codex"
+    }
+  ]
+}
