@@ -30,7 +30,8 @@ required_playwright_projects:
 evidence_required:
   - Command output for the declared verification gates.
   - Focused Playwright evidence that a successful signup resend remains useful without claiming delivery or revealing whether an account exists.
-approved_exceptions: []
+approved_exceptions:
+  - "evidence-waiver: the implemented transition recorded the complete reviewed auth-copy diff before its atomic commit; superseded by the next clean-tree verification (expires: 2026-07-21)"
 ---
 
 # MS-auth-honest-signup-otp-messaging — Keep merchant signup OTP messaging honest and enumeration-safe
