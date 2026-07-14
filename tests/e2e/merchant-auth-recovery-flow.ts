@@ -183,6 +183,50 @@ export function defineMerchantAuthRecoveryTests() {
     }
   })
 
+  test("enumeration-neutral resend presentation stays honest and keeps recovery paths", async ({
+    page,
+  }) => {
+    await page.goto(
+      "/signup/verify?email=operator%40example.test&name=Alex%20Morgan"
+    )
+    const otp = page.getByLabel("Email code")
+    const resendForm = page.getByRole("form", {
+      name: "Request another verification email",
+    })
+    await expect(
+      page.getByText(/a six-digit code may be on its way/i)
+    ).toBeVisible()
+    await expect(page.getByRole("main")).not.toContainText(/code we sent/i)
+    await otp.fill("123456")
+    await setFormIntent(resendForm, "resend", "refuse")
+    await mockInvalidNextActionState(
+      page,
+      "**/signup/verify?**",
+      (invalidState) => ({
+        outcome: "sent",
+        context: { ...invalidState.context, step: "verify" },
+        retryAt: new Date(Date.now() + 60_000).toISOString(),
+        message:
+          "If this email can receive a signup code, a fresh 6-digit code may be on its way. If it arrives, earlier codes no longer work. Used this email before? Log in or reset your password.",
+      })
+    )
+
+    await resendForm.getByRole("button", { name: "Resend code" }).click()
+
+    const status = page.locator("#signup-otp-sent")
+    await expect(status).toContainText(/may be on its way/i)
+    await expect(status).toContainText(
+      /used this email before\? log in or reset your password/i
+    )
+    await expect(status).not.toContainText(/we sent/i)
+    await expect(page.getByRole("link", { name: "Log in" })).toBeVisible()
+    await expect(
+      page.getByRole("link", { name: "reset your password" })
+    ).toBeVisible()
+    await expect(otp).toHaveValue("")
+    await expect(otp).toBeFocused()
+  })
+
   test.describe("local Supabase session proof", () => {
     const skipReason = merchantAuthRecoveryLiveDbSkipReason()
     let localEmailHookSink: MerchantAuthLocalEmailHookSink | undefined
@@ -939,7 +983,7 @@ export function defineMerchantAuthRecoveryTests() {
             context: { ...invalidState.context, step: "verify" },
             retryAt,
             message:
-              "We sent a fresh 6-digit code. Earlier codes no longer work.",
+              "If this email can receive a signup code, a fresh 6-digit code may be on its way. If it arrives, earlier codes no longer work. Used this email before? Log in or reset your password.",
           })
         )
 
@@ -947,6 +991,12 @@ export function defineMerchantAuthRecoveryTests() {
 
         await expect(page.locator("#signup-otp-sent")).toContainText(
           /earlier codes no longer work/i
+        )
+        await expect(page.locator("#signup-otp-sent")).toContainText(
+          /used this email before\? log in or reset your password/i
+        )
+        await expect(page.locator("#signup-otp-sent")).not.toContainText(
+          /we sent/i
         )
         await expect(page.locator("#signup-otp-sent")).toHaveAttribute(
           "role",

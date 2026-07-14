@@ -154,8 +154,8 @@ export async function signUpAction(
       requestIdentity: await merchantRequestIdentity(),
     })
   } catch (error) {
-    // The provider already accepted the signup and email send. A limiter
-    // readback failure must not turn that success into a false account error.
+    // The provider already accepted the signup request. Delivery may still be
+    // enumeration-neutral, so a limiter readback failure is not an account error.
     console.error("Merchant signup OTP cooldown record failed", {
       error: safeServerErrorMessage(error),
     })
@@ -488,7 +488,7 @@ async function sendMerchantOtp({
     retryAt,
     message:
       context.flow === "signup"
-        ? `We sent a fresh ${merchantEmailOtpAliasDigitLabel()} code. Earlier codes no longer work.`
+        ? `If this email can receive a signup code, a fresh ${merchantEmailOtpAliasDigitLabel()} code may be on its way. If it arrives, earlier codes no longer work. Used this email before? Log in or reset your password.`
         : `If that email has a venue account, we sent a fresh ${merchantEmailOtpAliasDigitLabel()} reset code. Earlier codes no longer work.`,
   }
 }
