@@ -44,13 +44,14 @@ function localLoopbackIp(nonce: string): string {
 }
 
 /**
- * MS-merchant-scan-pos — DB-free harness tier.
+ * merchant scan pos — DB-free harness tier.
  *
  * Proves the reward-collection surface renders its two states (ready vs
- * collected) and shows only a masked member label (MS-7), against the real
+ * collected) and shows only a masked member label (privacy invariant), against the real
  * ScanShell + RewardTicket + collection form mounted on the DB-free
  * /dev/app-harness/reward-scan lane. The live single-use consumption invariant
- * (MS-2/MS-3) is proven separately in tests/db/reward-scan-single-use.test.mjs.
+ * single-use collection invariant is proven separately in
+ * tests/db/reward-scan-single-use.test.mjs.
  */
 test.describe("merchant reward scan — collection surface", () => {
   test.beforeEach(async ({ page }) => {
@@ -68,7 +69,7 @@ test.describe("merchant reward scan — collection surface", () => {
     await expect(page.getByText("Free hot drink")).toBeVisible()
     await expect(page.getByText("Ready to collect")).toBeVisible()
 
-    // MS-7: only a masked member label is shown — never a raw phone number.
+    // Privacy invariant: show only a masked member label, never a raw phone number.
     await expect(page.getByText("Phone ending 421")).toBeVisible()
     await expect(page.getByText(/\+?\d{7,}/)).toHaveCount(0)
   })

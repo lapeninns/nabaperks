@@ -1,4 +1,4 @@
--- MS-merchant-reward-preset-atomic-add
+-- merchant reward preset atomic add
 --
 -- Reward-preset selection is a draft until the merchant presses Add. This RPC
 -- makes that explicit action one card-locked PostgreSQL transaction: every new

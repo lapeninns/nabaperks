@@ -7,7 +7,7 @@ import postgres from "postgres"
 import { closeDb, dbUrl, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-referral-settlement — live-DB invariant tier (primary proof).
+ * referral settlement — live-DB invariant tier (primary proof).
  *
  * Proves the single settlement function settle_referral_bonus(referral_id): it
  * awards one bonus for a qualified edge through the normal pipeline, is idempotent

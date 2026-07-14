@@ -1,4 +1,4 @@
--- Replay guard (MS-db-phone-plaintext-retirement): this view reads the
+-- Replay guard (db phone plaintext retirement): this view reads the
 -- plaintext phone column dropped at the end of the chain; view creation
 -- validates columns, so post-drop replays skip it (the retirement migration
 -- provides the current, last4-only view).

@@ -6,7 +6,7 @@ import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 import { grantRewardEmailAssurance } from "./helpers/reward-email-assurance.mjs"
 
 /**
- * MS-customer-redeem (edges) — live-DB tier.
+ * customer redeem (edges) — live-DB tier.
  *
  * The single-use happy path is covered elsewhere; these prove the redemption
  * guards that protect the cycle ledger and tenant boundary:

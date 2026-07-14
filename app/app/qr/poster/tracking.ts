@@ -1,7 +1,7 @@
 import type { ProductEventInput } from "@/lib/analytics/events"
 import type { QrPosterTemplateId } from "@/lib/qr/poster-templates"
 
-// MS-analytics-qr-downloaded-wire: the pure event builder behind the poster
+// analytics qr downloaded wire: the pure event builder behind the poster
 // "Print or save PDF" affordance. Kept side-effect free so the unit tier can
 // pin the event contract without a Supabase client.
 

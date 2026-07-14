@@ -1,7 +1,7 @@
 alter table public.merchant_locations
   add column if not exists soft_geofence_trigger_stamp_number integer not null default 3;
 
--- Replay guard (MS-merchant-soft-geofence-knob): once the chain's tail widens
+-- Replay guard (merchant soft geofence knob): once the chain's tail widens
 -- the bound to 1–99, re-adding the =3 constant here would fail validation on
 -- any database whose merchants already chose another trigger stamp.
 do $$

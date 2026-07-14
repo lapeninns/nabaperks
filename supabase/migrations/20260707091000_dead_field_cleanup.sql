@@ -1,4 +1,4 @@
--- MS-db-dead-field-cleanup: drop verified-dead fields, duplicate indexes, and
+-- db dead field cleanup: drop verified-dead fields, duplicate indexes, and
 -- the never-called record_qr_download RPC (2026-07-06 schema audit,
 -- reports/db-schema-audit-2026-07-06.md).
 --
@@ -14,7 +14,7 @@
 --   * Seven duplicate indexes fully covered by another index's leading
 --     columns — pure write amplification on the hottest tables.
 --   * record_qr_download(): zero call sites; qr_downloaded is recorded via
---     recordProductEvent (MS-analytics-qr-downloaded-wire).
+--     recordProductEvent (analytics qr downloaded wire).
 --
 -- Two functions reference doomed columns and are recreated FIRST:
 --   * get_reward_scan_context declared (but never assigned) min_spend_pence

@@ -7,7 +7,7 @@ import { after, test } from "node:test"
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-db-rls-hashed-select-policies — live-DB proof.
+ * db rls hashed select policies — live-DB proof.
  *
  * The seven ledger SELECT policies must resolve tenant ownership once per
  * query (uncorrelated subplan over the owned_*_ids() definer helpers), not

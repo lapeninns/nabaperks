@@ -9,7 +9,7 @@ import {
 } from "@/lib/customer/issued-reward-display"
 
 /**
- * MS-rewards-issued-source-rails R-9 — the pure wallet display helpers. Kept
+ * rewards issued source rails R-9 — the pure wallet display helpers. Kept
  * dependency-free so they unit-test without the app runtime.
  */
 

@@ -3,8 +3,8 @@ import { absoluteUrl } from "@/lib/seo/structured-data"
 /**
  * "Bring a Regular" share helpers. A member's shareable join link carries their
  * opaque per-card `referral_code` as `?ref=` on the existing join route — never
- * the raw membership UUID. Attribution (MS-referral-attribution) resolves the
- * code server-side at join; the referrer bonus (MS-referral-bonus-stamp) then
+ * the raw membership UUID. Attribution (referral attribution) resolves the
+ * code server-side at join; the referrer bonus (referral bonus stamp) then
  * lands when the invited friend collects their first in-venue stamp.
  */
 

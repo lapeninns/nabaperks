@@ -1,4 +1,4 @@
--- MS-db-deletion-semantics: deletion semantics for customer identity.
+-- db deletion semantics: deletion semantics for customer identity.
 --
 -- Why: customers.auth_user_id was ON DELETE CASCADE, so a single auth-user
 -- deletion (dashboard, Management API, script) cascaded through memberships

@@ -15,7 +15,7 @@ export type AdminAction = (
 
 /**
  * The one form wrapper for audited admin actions
- * (MS-platform-ux-production-polish): pairs a structured-state server action
+ * (platform ux production polish): pairs a structured-state server action
  * with `useActionState` so the outcome renders inline next to the submit
  * control instead of throwing into the segment error boundary. Pending state
  * comes from the shared `SubmitButton` placed in `children`.

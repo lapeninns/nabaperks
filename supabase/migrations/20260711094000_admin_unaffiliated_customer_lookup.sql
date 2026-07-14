@@ -1,4 +1,4 @@
--- MS-db-privacy-lifecycle — Wave-3 blocker 3: verified customers with no
+-- db privacy lifecycle — Wave-3 blocker 3: verified customers with no
 -- membership are undiscoverable.
 --
 -- Every admin customer lookup queries FROM public.customer_memberships, so a

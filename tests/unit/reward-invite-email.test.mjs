@@ -4,7 +4,7 @@ import { test } from "node:test"
 import { buildRewardInviteEmail } from "@/lib/notifications/reward-invite-email"
 
 /**
- * MS-rewards-merchant-sent (Phase 4) — the invite email builder. PECR posture:
+ * rewards merchant sent (Phase 4) — the invite email builder. PECR posture:
  * the reason line + unsubscribe link are always present, and merchant-supplied
  * copy is HTML-escaped.
  */

@@ -5,11 +5,11 @@ import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 import { grantRewardEmailAssurance } from "./helpers/reward-email-assurance.mjs"
 
 /**
- * MS-customer-redeem + MS-merchant-scan-pos — live-DB invariant tier.
+ * customer redeem + merchant scan pos — live-DB invariant tier.
  *
  * Proves the single-use scan-token invariant end to end: a ready reward mints a
- * token (R-1), the merchant collects it exactly once (MS-2), and a second
- * collection does not re-consume it (R-4 / MS-3). Manufactures the ready reward
+ * token (R-1), the merchant collects it exactly once, and a second collection
+ * does not re-consume it (R-4). Manufactures the ready reward
  * inside a rolled-back transaction so nothing persists.
  */
 
@@ -38,7 +38,7 @@ const PICK = /* sql */ `
   limit 1`
 
 test(
-  "R-1/R-4/MS-2/MS-3: a reward scan token can be collected exactly once",
+  "R-1/R-4: a reward scan token can be collected exactly once",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
@@ -89,7 +89,7 @@ test(
         "token expires in the future"
       )
 
-      // MS-2: the merchant collects the token once → consumed + reward redeemed.
+      // The merchant collects the token once, leaving it consumed and redeemed.
       await tx`
         select * from public.collect_reward_scan_token(
           ${token}::uuid, ${m.merchant_id}::uuid)`
@@ -108,7 +108,7 @@ test(
         "reward is redeemed after collection"
       )
 
-      // R-4 / MS-3: a second collection must not re-consume the token.
+      // R-4: a second collection must not re-consume the token.
       let secondRejected = false
       try {
         await tx.savepoint(async (sp) => {

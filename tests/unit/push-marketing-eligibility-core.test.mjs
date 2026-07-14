@@ -7,7 +7,7 @@ import {
 } from "@/lib/notifications/push-marketing-eligibility-core"
 
 /**
- * MS-notifications — push marketing consent policy (unit tier).
+ * notifications — push marketing consent policy (unit tier).
  *
  * Enqueue, announcement batching, and delivery all depend on the same latest
  * push-channel consent rule. The database queries stay server-only; the

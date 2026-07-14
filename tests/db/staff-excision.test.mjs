@@ -4,7 +4,7 @@ import assert from "node:assert/strict"
 import { closeDb, db, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-db-staff-excision — live-DB tier.
+ * db staff excision — live-DB tier.
  *
  * The staff subsystem was reachable from nothing (zero importers of the lib
  * module, no routes, no UI). This suite pins the excision AND the part that

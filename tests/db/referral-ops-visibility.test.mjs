@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto"
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-referral-ops-visibility — live-DB invariant tier (primary proof).
+ * referral ops visibility — live-DB invariant tier (primary proof).
  *
  * Proves the support operational view (admin_referral_ops, internal-admin-only) and
  * the merchant aggregate summary (merchant_referral_summary, owner-only, PII-free).

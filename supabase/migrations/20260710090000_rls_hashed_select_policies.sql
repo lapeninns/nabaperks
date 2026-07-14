@@ -1,4 +1,4 @@
--- MS-db-rls-hashed-select-policies: resolve tenant ownership once per query.
+-- db rls hashed select policies: resolve tenant ownership once per query.
 --
 -- The seven ledger SELECT policies below called is_customer_owner(row.col) /
 -- is_merchant_owner(row.col) inside correlated subselects, so Postgres

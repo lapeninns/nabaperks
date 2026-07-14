@@ -11,7 +11,7 @@ const {
 } = await import("@/lib/security/otp-alias-token-core")
 
 /**
- * MS-auth-otp-alias-token-encryption — the at-rest token codec (unit tier).
+ * auth otp alias token encryption — the at-rest token codec (unit tier).
  *
  * merchant_email_otp_aliases.supabase_token stored a usable Supabase login
  * token in plaintext for its ≤60-minute lifetime. These tests pin the codec:

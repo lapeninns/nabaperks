@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto"
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-merchant-soft-geofence-knob — live-DB tier.
+ * merchant soft geofence knob — live-DB tier.
  *
  * The soft-geofence trigger stamp was CHECK-pinned to 3; the stamping RPC
  * already read it through coalesce(value, 3). This suite pins the widened

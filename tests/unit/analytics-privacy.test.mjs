@@ -14,7 +14,7 @@ import {
 } from "@/lib/analytics/funnel-token"
 
 /**
- * MS-analytics-funnel-identity-privacy — pure privacy and funnel-identity
+ * analytics funnel identity privacy — pure privacy and funnel-identity
  * boundaries. All clocks and secrets are explicit so this proof is stable and
  * never depends on a developer's analytics environment.
  */

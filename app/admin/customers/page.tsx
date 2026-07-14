@@ -18,7 +18,7 @@ type AdminCustomersPageProps = {
 }
 
 /**
- * Member lookup surface (MS-admin-member-lookup): query params drive the
+ * Member lookup surface (admin member lookup): query params drive the
  * server-side search and pagination so any membership — not just the newest
  * 100 — is reachable and every result view is linkable. Read failures render
  * inline per panel (R4) instead of replacing the console with the segment

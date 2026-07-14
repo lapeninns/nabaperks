@@ -13,7 +13,7 @@ import { nextPage, previousPage } from "@/lib/admin/lookup-query"
 const numberFormat = new Intl.NumberFormat("en-GB")
 
 /**
- * Member lookup form (MS-admin-member-lookup): venue and contact fragments as
+ * Member lookup form (admin member lookup): venue and contact fragments as
  * GET query params, so every result view is linkable and the server does the
  * filtering. Submitting resets to page 1 by design; `next/form` keeps the
  * navigation client-side with full progressive enhancement.

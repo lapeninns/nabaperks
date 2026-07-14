@@ -9,7 +9,7 @@ import {
 } from "@/lib/notifications/london-time"
 
 /**
- * MS-notifications — quiet-hours + business-date time math (unit tier).
+ * notifications — quiet-hours + business-date time math (unit tier).
  *
  * Real execution of the pure Europe/London helpers extracted from the delivery
  * worker. Dates are expressed as UTC instants; London is UTC+1 in summer (BST)

@@ -8,7 +8,7 @@ import {
 } from "@/lib/merchant/send-reward-fields"
 
 /**
- * MS-rewards-merchant-sent R-5/R-6 — pure send-reward validation + the uniform
+ * rewards merchant sent R-5/R-6 — pure send-reward validation + the uniform
  * success copy that never reveals membership.
  */
 

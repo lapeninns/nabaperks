@@ -1,4 +1,4 @@
--- Durable, order-safe Stripe billing state for MS-billing-state-durability.
+-- Durable, order-safe Stripe billing state for billing state durability.
 -- This migration is intentionally replay-safe for disposable local proof.
 
 alter table public.billing_customers

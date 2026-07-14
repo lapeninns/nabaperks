@@ -1,7 +1,7 @@
 import { defineA11yRouteSweep } from "./helpers/a11y-sweep"
 
 /**
- * MS-platform-a11y — WCAG 2 A/AA sweep (@a11y).
+ * platform a11y — WCAG 2 A/AA sweep (@a11y).
  *
  * Scans the public marketing surfaces and the DB-free /dev/app-harness console
  * lanes (the real merchant shells, no login) for zero axe-core violations. The

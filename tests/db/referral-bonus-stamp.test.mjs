@@ -12,7 +12,7 @@ import {
 } from "./helpers/db.mjs"
 
 /**
- * MS-referral-bonus-stamp — live-DB invariant tier (primary proof).
+ * referral bonus stamp — live-DB invariant tier (primary proof).
  *
  * Proves the "Bring a Regular" referrer bonus through the real SECURITY DEFINER
  * ledger: a referred friend's FIRST earned stamp issues exactly one bonus stamp

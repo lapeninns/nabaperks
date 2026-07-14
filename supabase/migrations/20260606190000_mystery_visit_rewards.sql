@@ -69,7 +69,7 @@ set earned_business_date = public.uk_business_date(created_at)
 where event_type = 'earned'
   and earned_business_date is null;
 
--- Replay guard (MS-db-dead-field-cleanup, 2026-07-07): this one-time backfill
+-- Replay guard (db dead field cleanup, 2026-07-07): this one-time backfill
 -- completed in 2026-06. Once 20260707091000 drops the min_spend_pence
 -- columns, the min-spend branch can no longer parse on full-chain replays —
 -- so it only runs while the column still exists (fresh databases mid-chain).
@@ -1217,7 +1217,7 @@ alter table public.reward_pool_items force row level security;
 
 do $$
 begin
-  -- Replay guard (MS-db-staff-excision): once the chain's tail drops
+  -- Replay guard (db staff excision): once the chain's tail drops
   -- is_staff_for_merchant, this legacy policy can no longer be created on
   -- replays; the excision migration provides its owner/admin replacement.
   if not exists (

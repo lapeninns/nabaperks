@@ -10,7 +10,7 @@ import {
 } from "./helpers/reward-pool-fixture.mjs"
 
 /**
- * MS-rewards-merchant-sent (Phase 4) — pending invites moat. Hashed-at-rest
+ * rewards merchant sent (Phase 4) — pending invites moat. Hashed-at-rest
  * matching, sticky match, dedupe, expiry/scrub, cancel, RLS, and erasure. The
  * RPCs take opaque HMACs (the app computes them), so tests pass synthetic hex.
  */

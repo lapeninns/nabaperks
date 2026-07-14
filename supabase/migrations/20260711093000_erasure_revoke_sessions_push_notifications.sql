@@ -1,4 +1,4 @@
--- MS-db-privacy-lifecycle — Wave-3 blocker 2: erasure must de-activate the whole
+-- db privacy lifecycle — Wave-3 blocker 2: erasure must de-activate the whole
 -- customer, not just the profile row.
 --
 -- admin_erase_customer_pii (single admin-executed erasure) and

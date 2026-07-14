@@ -1,4 +1,4 @@
--- MS-db-phone-plaintext-retirement: plaintext customer phone numbers stop
+-- db phone plaintext retirement: plaintext customer phone numbers stop
 -- existing at rest (2026-07-06 audit; owner-sequenced last in the program).
 --
 -- customers.phone was legacy-only: new signups write NULL and the encrypted

@@ -157,7 +157,7 @@ export type HowToStepInput = { title: string; body: string }
  * that renders them, so the schema step labels stay byte-aligned with the
  * visible steps (the PDF's HowTo-parity rule). Pages that are not the hub pass
  * a route-distinct `id` so their HowTo never collides with another page's
- * `@graph` (MS-marketing-multipage).
+ * `@graph` (marketing multipage).
  */
 export function howToSchema(
   steps: readonly HowToStepInput[],

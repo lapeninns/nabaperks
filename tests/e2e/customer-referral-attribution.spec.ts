@@ -20,7 +20,7 @@ import {
   type PublicQrRouterFixture,
 } from "./helpers/public-qr-router-live-db"
 
-// MS-referral-attribution — RA-2 + RA-3. Proves the real member-facing referral
+// referral attribution — RA-2 + RA-3. Proves the real member-facing referral
 // link `/m/[slug]/join?ref=<code>` (no QR) renders the join, survives the
 // phone -> OTP -> terms wizard, and durably attributes the friend's new
 // membership to the referrer. Runs against the seed merchant (old-crown-girton),

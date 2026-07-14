@@ -1,4 +1,4 @@
--- MS-merchant-soft-geofence-knob: the soft-geofence trigger stamp becomes a
+-- merchant soft geofence knob: the soft-geofence trigger stamp becomes a
 -- real per-location merchant setting (owner decision 2026-07-06 — make the
 -- knob real rather than drop the constant column).
 --

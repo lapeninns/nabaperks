@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto"
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-notifications — live-DB tier.
+ * notifications — live-DB tier.
  *
  * The durable notification queue was previously covered only by source-grep.
  * This executes the real `claim_due_notification_events` RPC (the cron worker's

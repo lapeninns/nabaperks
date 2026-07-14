@@ -5,7 +5,7 @@ import { after, test } from "node:test"
 import { closeDb, db, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-db-emergency-containment — Blocker 3: the live schema drifted from source.
+ * db emergency containment — Blocker 3: the live schema drifted from source.
  *
  * `customers.email_hmac` was added by editing an already-applied migration, so
  * fresh replay has it but the live database never ran that edit — yet

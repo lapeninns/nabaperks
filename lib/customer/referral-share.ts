@@ -27,7 +27,7 @@ async function ownedMembershipId(membershipId: string): Promise<string | null> {
 }
 
 /**
- * Reset (rotate) a member's "Bring a Regular" link (MS-referral-code-controls,
+ * Reset (rotate) a member's "Bring a Regular" link (referral code controls,
  * CC-3/CC-8). The old code stops attributing; a fresh code takes over. Owner-only.
  */
 export async function rotateReferralCode(
@@ -49,7 +49,7 @@ export async function rotateReferralCode(
 }
 
 /**
- * Pause / resume a member's invite link (MS-referral-code-controls, CC-4/CC-8).
+ * Pause / resume a member's invite link (referral code controls, CC-4/CC-8).
  * A paused link enrols friends but records no referral. Owner-only.
  */
 export async function setReferralCodeActive(

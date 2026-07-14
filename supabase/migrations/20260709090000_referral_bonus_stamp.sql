@@ -424,7 +424,7 @@ begin
     p_capture_elapsed_ms
   ) stamp;
 
-  -- MS-referral-bonus-stamp: award the referrer's "Bring a Regular" bonus on the
+  -- referral bonus stamp: award the referrer's "Bring a Regular" bonus on the
   -- friend's first in-venue stamp, in this same transaction. Wrapped so any bonus
   -- failure degrades to no-bonus (a warning) and never blocks the friend's stamp.
   begin

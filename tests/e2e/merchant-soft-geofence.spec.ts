@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test"
 import { dismissPwaInstall } from "./helpers/harness"
 
 /**
- * MS-merchant-soft-geofence-knob — the per-location trigger-stamp control
+ * merchant soft geofence knob — the per-location trigger-stamp control
  * renders on the real venue form (DB-free harness tier, same pattern as the
  * birthday-config proof). Persistence and stamping behavior are proven in
  * tests/db/soft-geofence-knob.test.mjs.

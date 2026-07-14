@@ -1,6 +1,6 @@
 /**
  * Pure drain-budget decisions for the push delivery worker
- * (MS-notifications-drain-throughput). No server-only imports — the unit
+ * (notifications drain throughput). No server-only imports — the unit
  * tier exercises this module directly.
  *
  * The worker claims batches via claim_due_notification_events, which clamps

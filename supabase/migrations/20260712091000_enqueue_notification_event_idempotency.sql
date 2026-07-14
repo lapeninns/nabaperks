@@ -1,4 +1,4 @@
--- MS-db-notification-durability — Blocker 3: caller-proof, cycle-aware enqueue.
+-- db notification durability — Blocker 3: caller-proof, cycle-aware enqueue.
 --
 -- The scheduled worker's producers select up to 100 rows and enqueue each every
 -- run, passing an ad-hoc dedupe key. For the stamp producers that key was

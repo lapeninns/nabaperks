@@ -1,4 +1,4 @@
--- MS-db-emergency-containment — Blocker 1: contain SECURITY DEFINER RPC execution.
+-- db emergency containment — Blocker 1: contain SECURITY DEFINER RPC execution.
 --
 -- The initial schema granted table + function privileges to `authenticated`
 -- broadly, and PostgreSQL's built-in default grants EXECUTE on every new

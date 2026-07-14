@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test"
 import { dismissPwaInstall, HARNESS_ROUTES } from "./helpers/harness"
 
 /**
- * MS-platform-e2e-harness H-5 (smoke).
+ * platform e2e harness H-5 (smoke).
  *
  * Proves Playwright boots the real Next app and the DB-free `/dev/app-harness`
  * surface renders end-to-end — the real `MerchantAppShell` + dashboard body fed

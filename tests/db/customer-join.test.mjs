@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto"
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-customer-join — live-DB invariant tier.
+ * customer join — live-DB invariant tier.
  *
  * Proves the atomic enrol-plus-first-stamp (J-6) and idempotent re-join (J-7)
  * via the real `join_customer_membership_with_first_stamp` RPC, inside a

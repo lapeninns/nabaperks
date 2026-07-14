@@ -6,7 +6,7 @@ import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 import { createRewardPoolFixture } from "./helpers/reward-pool-fixture.mjs"
 
 /**
- * MS-rewards-customer-birthday — live-DB invariant tier for
+ * rewards customer birthday — live-DB invariant tier for
  * `issue_birthday_rewards`. R-1 happy path · R-2 idempotent · R-3 every gate ·
  * R-4 per-customer + sweep.
  */

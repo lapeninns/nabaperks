@@ -9,7 +9,7 @@ drop function if exists public.upsert_merchant_staff_pin(uuid, text, text);
 drop table if exists public.staff_pin_attempts;
 
 drop index if exists public.staff_users_pin_rotation_idx;
--- Replay guard (MS-db-staff-excision): staff_users is dropped at the end of
+-- Replay guard (db staff excision): staff_users is dropped at the end of
 -- the chain and its creator (the skipped initial migration) never re-adds it.
 do $$
 begin

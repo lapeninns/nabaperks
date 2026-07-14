@@ -8,7 +8,7 @@ import {
 } from "@/lib/rewards/birthday"
 
 /**
- * MS-rewards-customer-birthday R-9 — pure London birthday-window math. Uses
+ * rewards customer birthday R-9 — pure London birthday-window math. Uses
  * explicit `now` instants (no Date.now) so the assertions are month-agnostic.
  */
 

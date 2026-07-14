@@ -6,7 +6,7 @@ import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 import { grantRewardEmailAssurance } from "./helpers/reward-email-assurance.mjs"
 
 /**
- * MS-customer-home / MS-customer-auth-wallet (profile) — live-DB tier.
+ * customer home / customer auth wallet (profile) — live-DB tier.
  *
  * Profile invariants were previously grep-only. This executes two DB-enforced
  * rules the app depends on:

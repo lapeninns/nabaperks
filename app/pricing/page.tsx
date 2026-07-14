@@ -62,7 +62,7 @@ export const metadata: Metadata = {
 }
 
 // Single-source superset — TrustPricing teases the first four of the same
-// list (MS-marketing-audit-v2-fixes AV-4).
+// list (marketing audit v2 fixes AV-4).
 const planIncludes = PLAN_INCLUDES
 
 const faqs = [

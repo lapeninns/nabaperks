@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test"
 import { dismissPwaInstall } from "./helpers/harness"
 
 /**
- * MS-rewards-customer-birthday R-5 — the merchant birthday-reward config panel
+ * rewards customer birthday R-5 — the merchant birthday-reward config panel
  * renders inside the Rewards launch tab, DB-free.
  */
 const LAUNCH_REWARDS = "/dev/app-harness/launch?tab=rewards"

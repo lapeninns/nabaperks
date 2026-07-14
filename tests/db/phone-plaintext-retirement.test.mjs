@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto"
 import { closeDb, db, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-db-phone-plaintext-retirement — live-DB tier.
+ * db phone plaintext retirement — live-DB tier.
  *
  * Plaintext customer phone numbers no longer exist at rest. This suite pins:
  * the column and every DB reference to it are gone; the contact-present

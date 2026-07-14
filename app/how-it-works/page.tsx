@@ -130,7 +130,7 @@ export default function HowItWorksPage() {
           how it runs → how it compares → claim controls → proof →
           what you configure → the consent posture → every question → the ask.
           The full proof tabs moved here from the homepage spine
-          (MS-landing-conversion-spine): sitewide copy preservation. */}
+          (landing conversion spine): sitewide copy preservation. */}
       <CounterFlow />
       <ComparisonTable />
       <CounterVerifiedStamp />

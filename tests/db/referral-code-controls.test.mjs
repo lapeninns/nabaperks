@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto"
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-referral-code-controls — live-DB invariant tier (primary proof).
+ * referral code controls — live-DB invariant tier (primary proof).
  *
  * Proves referral code rotation + deactivation: rotation writes a fresh unique code
  * (old code stops attributing, new code attributes), deactivation stops attribution

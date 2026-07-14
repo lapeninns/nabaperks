@@ -1,4 +1,4 @@
--- Replay guard (MS-db-staff-excision): staff_users is dropped at the end of
+-- Replay guard (db staff excision): staff_users is dropped at the end of
 -- the chain and its creator (the skipped initial migration) never re-adds it.
 do $$
 begin

@@ -6,7 +6,7 @@ import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 import { createRewardPoolFixture } from "./helpers/reward-pool-fixture.mjs"
 
 /**
- * MS-db-notification-durability — Blocker 3: scheduled producers re-enqueue.
+ * db notification durability — Blocker 3: scheduled producers re-enqueue.
  *
  * The scheduled worker's producers select up to 100 rows and enqueue each every
  * run, passing an ad-hoc dedupe key. For the stamp producers that key was

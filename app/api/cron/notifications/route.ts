@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  // Drain budget (MS-notifications-drain-throughput): up to five 100-event
+  // Drain budget (notifications drain throughput): up to five 100-event
   // batches per tick, stopping after 240s so the run stays inside
   // maxDuration with headroom. Producers add up to ~200 events/tick, so a
   // 500-event budget retires backlog 2.5x faster than it grows.

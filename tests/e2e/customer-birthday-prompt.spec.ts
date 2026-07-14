@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test"
 import { dismissPwaInstall } from "./helpers/harness"
 
 /**
- * MS-rewards-customer-birthday R-6 — the DOB prompt, DB-free.
+ * rewards customer birthday R-6 — the DOB prompt, DB-free.
  */
 const HOME = "/dev/home-harness/home"
 

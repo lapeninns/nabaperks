@@ -11,7 +11,7 @@ import {
 } from "@/lib/notifications/frequency-cap-core"
 
 /**
- * MS-notifications — frequency-cap policy (unit tier).
+ * notifications — frequency-cap policy (unit tier).
  *
  * Real execution of the pure cap policy. The rolling-window count query is IO
  * and stays in frequency-cap.ts (live-DB territory); the classifier, the cap

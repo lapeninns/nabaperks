@@ -10,7 +10,7 @@ No-app QR loyalty for UK hospitality · £49/month · Operated by Lapen Inns
 | **Operator** | Lapen Inns — a hospitality operator running 9 pubs across England |
 | **Product** | A browser-based loyalty card customers open from your QR code |
 | **Framework** | Alex Hormozi, *$100M Offers* (Value Equation · Bonuses · Guarantees · Scarcity/Urgency · Naming) |
-| **Source of truth** | Single-sourced in `lib/marketing/facts.ts` · governed by spec `MS-marketing-offer-v2` |
+| **Source of truth** | Single-sourced in `lib/marketing/facts.ts` and verified by retained contract tests |
 
 > **A clear route to live.** Configure your venue, card, rewards and QR, then activate billing before customers join — with a launch kit included.
 

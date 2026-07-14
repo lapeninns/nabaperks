@@ -12,7 +12,7 @@ const {
 } = await import("@/lib/customer/phone-pii-core")
 
 /**
- * MS-customer-auth-wallet — AW-8 phone PII storage (unit tier).
+ * customer auth wallet — AW-8 phone PII storage (unit tier).
  *
  * Proves a phone number is never stored as searchable plaintext: the HMAC is a
  * deterministic, non-reversible lookup key; the ciphertext is versioned AES-GCM

@@ -1,4 +1,4 @@
--- MS-db-integrity-hardening: make impossible states unrepresentable, index
+-- db integrity hardening: make impossible states unrepresentable, index
 -- the erase/cascade FK paths, purge the one unbounded-growth table, and
 -- retire the last NOT VALID constraint (2026-07-06 schema audit).
 --

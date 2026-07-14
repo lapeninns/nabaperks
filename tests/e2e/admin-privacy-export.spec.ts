@@ -12,7 +12,7 @@ import { installSeededAdminAal2Session } from "./helpers/admin-mfa-session"
 import { dismissPwaInstall } from "./helpers/harness"
 
 /**
- * MS-db-privacy-lifecycle — the admin subject-access export journey.
+ * db privacy lifecycle — the admin subject-access export journey.
  *
  * A GDPR Article 15 export must actually hand the admin the customer's data.
  * A seeded AAL2 admin submits an `export` data request and the console renders

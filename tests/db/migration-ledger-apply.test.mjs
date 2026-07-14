@@ -13,7 +13,7 @@ import {
 import { closeDb, db, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-db-migration-ledger-apply — the live-ledger half.
+ * db migration ledger apply — the live-ledger half.
  *
  * The apply path is now ledger-aware: it reads applied versions from
  * supabase_migrations.schema_migrations, skips those files, and records the

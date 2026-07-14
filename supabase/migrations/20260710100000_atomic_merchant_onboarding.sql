@@ -1,4 +1,4 @@
--- MS-merchant-onboarding-continuity
+-- merchant onboarding continuity
 --
 -- Make the authoritative merchant, primary venue, and durable onboarding
 -- ledger writes one transaction. The migration is safe to replay: duplicate
