@@ -145,6 +145,38 @@ test.describe("merchant billing recovery @MS-billing-checkout-recovery @MS-analy
     expect(overflow).toBeLessThanOrEqual(1)
   })
 
+  test("complimentary owner access never offers Stripe checkout @a11y", async ({
+    page,
+  }) => {
+    await page.goto(
+      `${HARNESS_ROUTES.account}?tab=billing&access=complimentary`
+    )
+
+    await expect(
+      page.getByRole("heading", { name: "Complimentary access" })
+    ).toBeVisible()
+    await expect(
+      page.getByText("No card or Stripe subscription is required")
+    ).toBeVisible()
+    await expect(page.getByText("£0", { exact: true })).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "Your venue is live" })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("button", { name: /billing|stripe/i })
+    ).toHaveCount(0)
+    await expect(page.locator("[data-billing-checkout-form]")).toHaveCount(0)
+    await expect(
+      page.getByRole("button", { name: "Open Stripe portal" })
+    ).toHaveCount(0)
+    await expectNoAxeViolations(page, "complimentary owner billing access")
+
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth
+    )
+    expect(overflow).toBeLessThanOrEqual(1)
+  })
+
   test("cancelled billing restarts once and keeps provider failure inline", async ({
     page,
   }) => {

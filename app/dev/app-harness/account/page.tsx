@@ -27,7 +27,7 @@ const TAB_HEADING = {
   },
   billing: {
     title: "Billing",
-    description: "Your plan and payments, handled securely by Stripe.",
+    description: "Your venue access and payment status.",
   },
 } as const
 
@@ -63,6 +63,8 @@ export default async function AccountHarnessPage({
     firstAccountSearchParamValue(params.checkout_action) === "fail"
       ? "fail"
       : "safe"
+  const requiresBilling =
+    firstAccountSearchParamValue(params.access) !== "complimentary"
   const refreshHref =
     "/dev/app-harness/account?tab=billing&billing=" +
     encodeURIComponent(billingState)
@@ -78,6 +80,7 @@ export default async function AccountHarnessPage({
           outcome={outcome}
           checkoutActionMode={checkoutActionMode}
           refreshHref={refreshHref}
+          requiresBilling={requiresBilling}
         />
       ) : (
         <section className="grid min-w-0 gap-5">

@@ -22,6 +22,8 @@ import { getStripe } from "@/lib/stripe/server"
 
 const BILLING_ACTION_ERROR =
   "Billing was not confirmed. Please try again — it is safe to retry."
+const COMPLIMENTARY_ACCESS_MESSAGE =
+  "This venue has complimentary access. No Stripe checkout is needed."
 
 function submittedInterval(
   value: FormDataEntryValue | null
@@ -49,6 +51,10 @@ export async function startCheckoutAction(
 
   if (!interval) {
     return { status: "error", message: BILLING_ACTION_ERROR }
+  }
+
+  if (merchant.requires_billing === false) {
+    return { status: "error", message: COMPLIMENTARY_ACCESS_MESSAGE }
   }
 
   let checkoutUrl: string | null = null
@@ -101,6 +107,10 @@ export async function openCustomerPortalAction(formData: FormData) {
 
   if (!merchant) {
     redirect("/app/onboarding")
+  }
+
+  if (merchant.requires_billing === false) {
+    redirect(returnBase)
   }
 
   const failureHref = billingReturnHref(returnBase, {

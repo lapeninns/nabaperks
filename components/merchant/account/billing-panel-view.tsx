@@ -47,6 +47,7 @@ type BillingPortalAction = (formData: FormData) => void | Promise<void>
 export function BillingPanelView({
   billing,
   outcome,
+  requiresBilling = true,
   mode = "account",
   annualBillingAvailable,
   checkoutAction,
@@ -57,6 +58,7 @@ export function BillingPanelView({
 }: {
   billing: BillingPresentationSource | null
   outcome: BillingPanelOutcome
+  requiresBilling?: boolean
   mode?: "account" | "setup"
   annualBillingAvailable: boolean
   checkoutAction: BillingCheckoutAction
@@ -65,6 +67,10 @@ export function BillingPanelView({
   billingLoadFailed?: boolean
   refreshHref?: string
 }) {
+  if (!requiresBilling) {
+    return <ComplimentaryBillingAccess mode={mode} />
+  }
+
   const presentation = buildBillingPresentation(billing)
   const resolvedRefreshHref =
     refreshHref ??
@@ -187,6 +193,31 @@ export function BillingPanelView({
           </div>
         </ReceiptCard>
       ) : null}
+    </section>
+  )
+}
+
+function ComplimentaryBillingAccess({ mode }: { mode: "account" | "setup" }) {
+  return (
+    <section className="grid min-w-0 gap-3 sm:gap-4">
+      <ReceiptCard edge className="grid min-w-0 gap-5">
+        <SectionHeader
+          eyebrow={mode === "setup" ? "Billing" : "Your plan"}
+          title="Complimentary access"
+          description="This venue is covered by your Lapen Inns owner access. No card or Stripe subscription is required."
+        />
+
+        <dl className="grid gap-0 rounded-lg border border-border bg-secondary/40 px-3 py-1 text-sm">
+          <PlanRow label="Access" value="Active" />
+          <PlanRow label="Cost" value="£0" />
+          <PlanRow label="Billing" value="Not required" />
+        </dl>
+
+        <StatusBanner tone="success" title={<h2>Your venue is live</h2>}>
+          You can use every included merchant feature without setting up a
+          payment method.
+        </StatusBanner>
+      </ReceiptCard>
     </section>
   )
 }

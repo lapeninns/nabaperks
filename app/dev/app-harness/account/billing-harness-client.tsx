@@ -17,11 +17,13 @@ export function BillingHarnessClient({
   outcome,
   checkoutActionMode,
   refreshHref,
+  requiresBilling = true,
 }: {
   billing: BillingPresentationSource | null
   outcome: BillingPanelOutcome
   checkoutActionMode: "fail" | "safe"
   refreshHref: string
+  requiresBilling?: boolean
 }) {
   const [attemptCount, setAttemptCount] = useState(0)
 
@@ -62,6 +64,7 @@ export function BillingHarnessClient({
       <BillingPanelView
         billing={billing}
         outcome={outcome}
+        requiresBilling={requiresBilling}
         annualBillingAvailable
         checkoutAction={checkoutAction}
         portalAction={portalAction}
