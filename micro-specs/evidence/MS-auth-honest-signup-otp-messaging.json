@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "spec_id": "MS-auth-honest-signup-otp-messaging",
+  "runs": [
+    {
+      "timestamp": "2026-07-14T10:15:26.865Z",
+      "git_sha": "c16947152f4bee8c293d62ed59ffda683ba5ee22",
+      "git_branch": "codex/merchant-otp-honest-messaging",
+      "dirty": true,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 8228
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1843
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 17426
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 16670
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 2432
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --grep \"enumeration-neutral resend presentation\"",
+          "exit_code": 0,
+          "duration_ms": 14764
+        }
+      ],
+      "all_passed": true
+    }
+  ],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-14T10:12:55.791Z",
+      "sha": "c16947152f4bee8c293d62ed59ffda683ba5ee22",
+      "dirty": true,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-14T10:15:26.865Z",
+      "sha": "c16947152f4bee8c293d62ed59ffda683ba5ee22",
+      "dirty": true,
+      "by": "amankumarshrestha",
+      "note": "Authorized production auth messaging fix with failing-first regression and live merchant CRUD acceptance on 2026-07-14."
+    }
+  ]
+}
