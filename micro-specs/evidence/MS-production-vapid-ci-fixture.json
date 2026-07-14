@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-production-vapid-ci-fixture",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-14T07:22:57.401Z",
+      "sha": "784fca3cfc4f0f85b6129ba87c2cbc2fdc5f07fe",
+      "dirty": true,
+      "by": "codex"
+    }
+  ]
+}
