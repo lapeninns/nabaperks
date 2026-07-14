@@ -1,5 +1,6 @@
 import assert from "node:assert/strict"
 import { spawnSync } from "node:child_process"
+import { createECDH } from "node:crypto"
 import {
   mkdtempSync,
   mkdirSync,
@@ -53,6 +54,7 @@ const highEntropyTestEnvNames = new Set([
   "SUPABASE_SEND_EMAIL_HOOK_SECRET",
   "SUPABASE_SEND_SMS_HOOK_SECRET",
 ])
+const validVapidTestValues = createValidVapidTestValues()
 
 test("provider readiness smoke command is wired into package scripts", () => {
   assert.equal(
@@ -360,6 +362,9 @@ test("remediation log points release verification at the provider smoke command"
 })
 
 function validTestEnvValue(entry) {
+  if (entry.name in validVapidTestValues) {
+    return validVapidTestValues[entry.name]
+  }
   if (entry.name === "NEXT_PUBLIC_SUPABASE_URL") {
     return "https://ci.supabase.co"
   }
@@ -382,6 +387,17 @@ function validTestEnvValue(entry) {
   }
 
   return "test-value-at-least-32-characters-long"
+}
+
+function createValidVapidTestValues() {
+  const curve = createECDH("prime256v1")
+  curve.generateKeys()
+
+  return {
+    WEB_PUSH_VAPID_PRIVATE_KEY: curve.getPrivateKey().toString("base64url"),
+    WEB_PUSH_VAPID_PUBLIC_KEY: curve.getPublicKey().toString("base64url"),
+    WEB_PUSH_VAPID_SUBJECT: "mailto:hello@example.test",
+  }
 }
 
 async function postHogConfigResult(projectKey) {
