@@ -1508,14 +1508,28 @@ async function setFormIntent(
   currentIntent: string,
   safeInvalidIntent: string
 ): Promise<void> {
-  await form
-    .locator(`input[name="intent"][value="${currentIntent}"]`)
-    .evaluate((input, nextIntent) => {
-      if (!(input instanceof HTMLInputElement)) {
-        throw new Error("Expected a hidden intent input.")
+  await form.evaluate(
+    (element, intents) => {
+      if (!(element instanceof HTMLFormElement)) {
+        throw new Error("Expected a form element.")
       }
-      input.value = nextIntent
-    }, safeInvalidIntent)
+      const input = element.elements.namedItem("intent")
+      if (
+        !(input instanceof HTMLInputElement) ||
+        input.value !== intents.currentIntent
+      ) {
+        throw new Error("Expected the current hidden intent input.")
+      }
+      element.addEventListener(
+        "formdata",
+        (event) => {
+          event.formData.set("intent", intents.safeInvalidIntent)
+        },
+        { once: true }
+      )
+    },
+    { currentIntent, safeInvalidIntent }
+  )
 }
 
 function parseNextActionState(body: string): {
