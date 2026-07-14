@@ -1,6 +1,6 @@
 ---
 spec_id: MS-auth-honest-signup-otp-messaging
-status: verified
+status: closed
 risk_class: auth-session
 owner: codex
 last_reviewed: 2026-07-14
