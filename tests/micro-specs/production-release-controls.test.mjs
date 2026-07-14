@@ -1,5 +1,6 @@
 import assert from "node:assert/strict"
 import { spawnSync } from "node:child_process"
+import { createECDH } from "node:crypto"
 import {
   cpSync,
   mkdtempSync,
@@ -49,14 +50,63 @@ test("Given a complete production configuration When generated credentials are s
           "sec_",
           "SDkhbVEyQHZSNyNjVDQkeUs4XnBEMyZ6RjYqd041P3g=",
         ].join(""),
-      WEB_PUSH_VAPID_PRIVATE_KEY: "fixture-private-key",
-      WEB_PUSH_VAPID_PUBLIC_KEY: "fixture-public-key",
-      WEB_PUSH_VAPID_SUBJECT: "mailto:hello@example.test",
+      ...validVapidEnvironment(),
     },
   })
 
   assert.equal(result.status, 0, result.stderr)
   assert.match(result.stdout, /production environment configuration is valid/)
+})
+
+for (const [name, malformed, message] of [
+  [
+    "WEB_PUSH_VAPID_PRIVATE_KEY",
+    "fixture-private-key",
+    "WEB_PUSH_VAPID_PRIVATE_KEY must be an unpadded URL-safe Base64 value decoding to 32 bytes",
+  ],
+  [
+    "WEB_PUSH_VAPID_PUBLIC_KEY",
+    "fixture-public-key",
+    "WEB_PUSH_VAPID_PUBLIC_KEY must be an unpadded URL-safe Base64 value decoding to 65 bytes",
+  ],
+  [
+    "WEB_PUSH_VAPID_SUBJECT",
+    "http://push.example.test",
+    "WEB_PUSH_VAPID_SUBJECT must be an HTTPS URL or mailto URI",
+  ],
+]) {
+  test(`Given hosted configuration When ${name} is malformed Then deployment fails without echoing the value`, () => {
+    const result = runEnvCheck({
+      args: ["--profile=default"],
+      environment: {
+        ...validVapidEnvironment(),
+        [name]: malformed,
+      },
+      vercelEnv: "preview",
+    })
+
+    assert.equal(result.status, 1)
+    assert.match(result.stderr, new RegExp(message))
+    assert.doesNotMatch(result.stderr, new RegExp(malformed.replaceAll(".", "\\.")))
+  })
+}
+
+test("Given hosted configuration When only part of the VAPID trio is configured Then deployment fails", () => {
+  const { WEB_PUSH_VAPID_PUBLIC_KEY } = validVapidEnvironment()
+  const result = runEnvCheck({
+    args: ["--profile=default"],
+    environment: { WEB_PUSH_VAPID_PUBLIC_KEY },
+    vercelEnv: "preview",
+  })
+
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /Web Push VAPID values must be configured together/)
+})
+
+test("Given local development When Web Push is not configured Then the optional provider remains valid", () => {
+  const result = runEnvCheck({ args: ["--profile=default"] })
+
+  assert.equal(result.status, 0, result.stderr)
 })
 
 test("Given hosted configuration When the Supabase origin is untrusted Then privileged readiness cannot deploy", () => {
@@ -338,4 +388,15 @@ function testValue(entry) {
     return `N7!qL2@vR9#cT4$yH6^mK8&pD3*zF5?${entry.name.length}`
   }
   return `fixture-${entry.name.toLowerCase()}-0123456789abcdef`
+}
+
+function validVapidEnvironment() {
+  const curve = createECDH("prime256v1")
+  curve.generateKeys()
+
+  return {
+    WEB_PUSH_VAPID_PRIVATE_KEY: curve.getPrivateKey().toString("base64url"),
+    WEB_PUSH_VAPID_PUBLIC_KEY: curve.getPublicKey().toString("base64url"),
+    WEB_PUSH_VAPID_SUBJECT: "mailto:hello@example.test",
+  }
 }

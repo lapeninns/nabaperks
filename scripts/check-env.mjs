@@ -179,6 +179,35 @@ if (hostedOrProductionProfile) {
     )
   }
 
+  const vapidPrivateKey = values.WEB_PUSH_VAPID_PRIVATE_KEY?.trim()
+  const vapidPublicKey = values.WEB_PUSH_VAPID_PUBLIC_KEY?.trim()
+  const vapidSubject = values.WEB_PUSH_VAPID_SUBJECT?.trim()
+  const configuredVapidValues = [
+    vapidPrivateKey,
+    vapidPublicKey,
+    vapidSubject,
+  ].filter(Boolean).length
+
+  if (configuredVapidValues > 0 && configuredVapidValues < 3) {
+    invalid.push("Web Push VAPID values must be configured together")
+  }
+
+  if (vapidPrivateKey && !hasVapidKeyShape(vapidPrivateKey, 32)) {
+    invalid.push(
+      "WEB_PUSH_VAPID_PRIVATE_KEY must be an unpadded URL-safe Base64 value decoding to 32 bytes"
+    )
+  }
+
+  if (vapidPublicKey && !hasVapidKeyShape(vapidPublicKey, 65)) {
+    invalid.push(
+      "WEB_PUSH_VAPID_PUBLIC_KEY must be an unpadded URL-safe Base64 value decoding to 65 bytes"
+    )
+  }
+
+  if (vapidSubject && !isValidVapidSubject(vapidSubject)) {
+    invalid.push("WEB_PUSH_VAPID_SUBJECT must be an HTTPS URL or mailto URI")
+  }
+
   for (const name of highEntropySecretEnvNames) {
     const secret = values[name]?.trim()
     if (!secret) continue
@@ -329,6 +358,29 @@ function hasStandardWebhookSecretShape(secret) {
 
   try {
     return Buffer.from(payload, "base64").length >= 32
+  } catch {
+    return false
+  }
+}
+
+function hasVapidKeyShape(value, decodedBytes) {
+  if (!/^[A-Za-z0-9_-]+$/.test(value)) return false
+
+  try {
+    const decoded = Buffer.from(value, "base64url")
+    return (
+      decoded.length === decodedBytes &&
+      decoded.toString("base64url") === value
+    )
+  } catch {
+    return false
+  }
+}
+
+function isValidVapidSubject(value) {
+  try {
+    const subject = new URL(value)
+    return ["https:", "mailto:"].includes(subject.protocol)
   } catch {
     return false
   }
