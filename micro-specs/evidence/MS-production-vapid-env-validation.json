@@ -69,6 +69,45 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-14T07:16:52.107Z",
+      "git_sha": "d73aa1523cba78b8ccb7b971d3004c2be93326e5",
+      "git_branch": "codex/post-release-governance-closure",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 8791
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1509
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11736
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10303
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1546
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 2411
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [],
