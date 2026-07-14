@@ -27,6 +27,14 @@ test("signup resend success stays honest when provider delivery is enumeration-n
 })
 
 test("signup verification keeps code entry and account recovery paths", () => {
-  assert.match(verifyPage, /enter the \$\{otpCodeLabel\} code/)
+  assert.match(
+    verifyPage,
+    /a \$\{otpCodeLabel\} code may be on its way\. If it arrives, enter it/
+  )
+  assert.doesNotMatch(
+    verifyPage,
+    /code we sent/,
+    "initial signup verification must not claim that the provider delivered a code"
+  )
   assert.match(verifyPage, /log in or reset your password instead/)
 })

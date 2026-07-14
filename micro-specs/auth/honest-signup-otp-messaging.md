@@ -30,8 +30,7 @@ required_playwright_projects:
 evidence_required:
   - Command output for the declared verification gates.
   - Focused Playwright evidence that a successful signup resend remains useful without claiming delivery or revealing whether an account exists.
-approved_exceptions:
-  - "evidence-waiver: the implemented transition recorded the complete reviewed auth-copy diff before its atomic commit; superseded by the next clean-tree verification (expires: 2026-07-21)"
+approved_exceptions: []
 ---
 
 # MS-auth-honest-signup-otp-messaging — Keep merchant signup OTP messaging honest and enumeration-safe
@@ -84,6 +83,8 @@ schema, customer authentication, Stripe, and visual redesign.
 - WHEN a signup resend receives a provider success, THE merchant auth flow
   SHALL return conditional copy that explains a fresh code may be on its way
   and offers login or password recovery without claiming delivery.
+- WHEN an accepted signup opens the verification route, THE verification
+  guidance SHALL describe the code as conditional until it actually arrives.
 - IF the provider used an enumeration-neutral success for an existing account,
   THEN THE merchant auth flow SHALL NOT disclose that the account exists or
   state that a code was sent.
@@ -94,8 +95,9 @@ schema, customer authentication, Stripe, and visual redesign.
 
 Verification criteria:
 
-- A provider-success signup resend renders conditional delivery language and
-  never renders the former unconditional `We sent` claim.
+- Initial signup verification and provider-success resend feedback render
+  conditional delivery language and never render the former unconditional
+  `we sent` claim.
 - The same rendered state still clears the stale code, starts the server
   cooldown, focuses the empty code field, and exposes account recovery links.
 - The focused Playwright test fails against the former copy and passes with the

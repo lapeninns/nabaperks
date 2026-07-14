@@ -79,7 +79,7 @@ export default async function SignupVerifyPage({
           <PageTitle
             eyebrow="Email check"
             title="Check your email."
-            description={`If this email can start a venue account, enter the ${otpCodeLabel} code we sent, then continue to setup.`}
+            description={`If this email can start a venue account, a ${otpCodeLabel} code may be on its way. If it arrives, enter it to continue to setup.`}
             titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
             descriptionClassName="text-base leading-7 text-pretty"
             className="md:grid-cols-1"

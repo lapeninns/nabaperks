@@ -193,6 +193,10 @@ export function defineMerchantAuthRecoveryTests() {
     const resendForm = page.getByRole("form", {
       name: "Request another verification email",
     })
+    await expect(
+      page.getByText(/a six-digit code may be on its way/i)
+    ).toBeVisible()
+    await expect(page.getByRole("main")).not.toContainText(/code we sent/i)
     await otp.fill("123456")
     await setFormIntent(resendForm, "resend", "refuse")
     await mockInvalidNextActionState(
