@@ -7,11 +7,13 @@ last_reviewed: 2026-07-14
 allowed_blast_radius:
   - micro-specs/production/**
   - scripts/check-env.mjs
+  - tests/micro-specs/provider-readiness-smoke.test.mjs
   - tests/micro-specs/production-release-controls.test.mjs
 implementation_surfaces:
   - micro-specs/production/vapid-env-validation.md
   - scripts/check-env.mjs
 related_tests:
+  - tests/micro-specs/provider-readiness-smoke.test.mjs
   - tests/micro-specs/production-release-controls.test.mjs
 verification_gates:
   - pnpm lint
@@ -36,10 +38,11 @@ notifications cannot pass the production environment gate.
 
 ## 2. Blast Radius
 
-In scope: the production environment validator, its focused Micro-Spec
-contracts, and this lifecycle record. Out of scope: rotating provider keys,
-changing Web Push delivery or subscription behavior, UI changes, database
-changes, and accepting any detector-shaped credential fixture.
+In scope: the production environment validator, its focused release-control
+and provider-readiness contracts, and this lifecycle record. Out of scope:
+rotating provider keys, changing Web Push delivery or subscription behavior,
+UI changes, database changes, and accepting any detector-shaped credential
+fixture.
 
 ## 3. Strict Constraints and Assumptions
 
@@ -81,9 +84,10 @@ changes, and accepting any detector-shaped credential fixture.
 
 ## 6. Verification Criteria and Task Breakdown
 
-1. Replace the permissive short-key production fixture with ephemeral valid
-   VAPID material, and add red cases for bad private/public encodings, byte
-   lengths, subject schemes, and a partial hosted trio.
+1. Replace permissive short-key production and provider-readiness fixtures
+   with ephemeral valid VAPID material, and add red cases for bad
+   private/public encodings, byte lengths, subject schemes, and a partial
+   hosted trio.
 2. Add small side-effect-free VAPID shape and subject helpers to the existing
    hosted/production validation path, with variable-name-only errors.
 3. Prove valid hosted and explicit production profiles still pass, while local
