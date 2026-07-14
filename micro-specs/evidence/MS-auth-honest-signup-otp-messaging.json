@@ -108,6 +108,45 @@
         }
       ],
       "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-14T10:41:19.852Z",
+      "git_sha": "71f31ee5debd1cffbb9d42d5574d68544d7c6d01",
+      "git_branch": "codex/merchant-otp-honest-messaging",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7531
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1491
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10468
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9924
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1445
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --grep \"enumeration-neutral resend presentation\"",
+          "exit_code": 0,
+          "duration_ms": 10577
+        }
+      ],
+      "all_passed": true
     }
   ],
   "manual_attestations": [
