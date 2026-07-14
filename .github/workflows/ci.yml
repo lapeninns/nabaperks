@@ -59,7 +59,7 @@ jobs:
       - run: pnpm build
       - run: pnpm bundle:check
       - run: pnpm jsonld:check
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: coverage
@@ -95,7 +95,7 @@ jobs:
       - run: pnpm test:e2e -- --project=mobile-safari --grep-invert @visual
       - run: pnpm test:e2e -- --project=desktop-firefox --grep-invert @visual
       - run: pnpm test:e2e -- --project=desktop-safari --grep-invert @visual
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() && failure() }}
         with:
           name: playwright-report
@@ -129,7 +129,7 @@ jobs:
       - uses: ./.github/actions/setup
       - run: pnpm e2e:install
       - run: pnpm test:a11y -- --project=chromium --project=mobile-safari
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() && failure() }}
         with:
           name: a11y-playwright-report
@@ -163,7 +163,7 @@ jobs:
       - uses: ./.github/actions/setup
       - run: pnpm e2e:install
       - run: pnpm test:visual -- --project=chromium --project=mobile-safari
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() && failure() }}
         with:
           name: visual-playwright-report
@@ -197,7 +197,7 @@ jobs:
       - uses: ./.github/actions/setup
       - run: pnpm build
       - run: pnpm lighthouse
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: lighthouse-report
@@ -253,7 +253,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: 2.106.0
       - name: Configure local auth-hook fixture
