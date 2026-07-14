@@ -44,6 +44,7 @@ export async function BillingPanel({
   if (!merchant) redirect("/app/onboarding")
 
   const requiresBilling = merchant.requires_billing !== false
+  const cleanupOutcomeQuery = hasBillingOutcomeQuery(params)
 
   let outcome = initialOutcome ?? resolveStaticOutcome(params)
   let reconciled = initialOutcome !== undefined
@@ -64,17 +65,17 @@ export async function BillingPanel({
     }
   }
 
-  const result: MerchantBillingResult = requiresBilling
-    ? reconciled
+  const result: MerchantBillingResult =
+    requiresBilling && reconciled
       ? await getMerchantBillingFresh(merchant.id)
       : await getMerchantBilling(merchant.id)
-    : { ok: true, billing: null }
   const billingReturnTo = mode === "setup" ? BILLING_LAUNCH_TAB_PATH : undefined
 
   return (
     <BillingPanelView
       billing={result.ok ? result.billing : null}
       outcome={outcome}
+      cleanupOutcomeQuery={cleanupOutcomeQuery}
       requiresBilling={requiresBilling}
       mode={mode}
       annualBillingAvailable={Boolean(
@@ -88,6 +89,15 @@ export async function BillingPanel({
         mode === "setup" ? BILLING_LAUNCH_TAB_PATH : "/app/account?tab=billing"
       }
     />
+  )
+}
+
+function hasBillingOutcomeQuery(params: BillingPanelParams): boolean {
+  return Boolean(
+    params.checkout ||
+    params.portal ||
+    params.session_id ||
+    params.billing_error
   )
 }
 

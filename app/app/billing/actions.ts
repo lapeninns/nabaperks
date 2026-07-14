@@ -109,10 +109,6 @@ export async function openCustomerPortalAction(formData: FormData) {
     redirect("/app/onboarding")
   }
 
-  if (merchant.requires_billing === false) {
-    redirect(returnBase)
-  }
-
   const failureHref = billingReturnHref(returnBase, {
     billing_error: "action",
   })
@@ -120,7 +116,6 @@ export async function openCustomerPortalAction(formData: FormData) {
   let missingCustomer = false
 
   try {
-    const env = getServerEnv()
     const supabase = createSupabaseServiceRoleClient()
     const { data: billing, error } = await supabase
       .from("billing_customers")
@@ -132,6 +127,7 @@ export async function openCustomerPortalAction(formData: FormData) {
     missingCustomer = !billing?.stripe_customer_id
 
     if (billing?.stripe_customer_id) {
+      const env = getServerEnv()
       const origin = resolveBillingAppOrigin({
         environment:
           process.env.NODE_ENV === "production" ? "production" : "development",
@@ -158,6 +154,9 @@ export async function openCustomerPortalAction(formData: FormData) {
   }
 
   if (missingCustomer) {
+    if (merchant.requires_billing === false) {
+      redirect(returnBase)
+    }
     redirect(billingReturnHref(returnBase, { portal: "missing" }))
   }
 
