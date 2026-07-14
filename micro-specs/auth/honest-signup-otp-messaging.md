@@ -9,14 +9,17 @@ allowed_blast_radius:
   - app/(auth)/actions.ts
   - app/(auth)/signup/verify/page.tsx
   - tests/e2e/merchant-auth-recovery-flow.ts
+  - tests/e2e/visual.spec.ts-snapshots/auth-signup-verify-mobile-safari-linux.png
   - tests/micro-specs/auth-honest-signup-otp-messaging.test.mjs
 implementation_surfaces:
   - app/(auth)/actions.ts
   - app/(auth)/signup/verify/page.tsx
   - tests/e2e/merchant-auth-recovery-flow.ts
+  - tests/e2e/visual.spec.ts-snapshots/auth-signup-verify-mobile-safari-linux.png
   - tests/micro-specs/auth-honest-signup-otp-messaging.test.mjs
 related_tests:
   - tests/e2e/merchant-auth-recovery-flow.ts
+  - tests/e2e/visual.spec.ts
   - tests/micro-specs/auth-honest-signup-otp-messaging.test.mjs
 verification_gates:
   - pnpm lint
@@ -25,8 +28,10 @@ verification_gates:
   - pnpm test
   - pnpm test:coverage
   - pnpm test:e2e -- --project=chromium --grep "enumeration-neutral resend presentation"
+  - pnpm test:visual -- --project=mobile-safari --grep "Given auth-signup-verify"
 required_playwright_projects:
   - chromium
+  - mobile-safari
 evidence_required:
   - Command output for the declared verification gates.
   - Focused Playwright evidence that a successful signup resend remains useful without claiming delivery or revealing whether an account exists.
