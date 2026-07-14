@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "spec_id": "MS-production-vapid-env-validation",
+  "runs": [],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-14T07:02:07.946Z",
+      "sha": "984e34e251de4b034cef0dda7c79a14e2037b6d8",
+      "dirty": true,
+      "by": "codex"
+    }
+  ]
+}
