@@ -9,7 +9,7 @@ import {
 } from "@/lib/admin/data-export"
 
 /**
- * MS-db-privacy-lifecycle — pure helpers that turn the `admin_export_customer_data`
+ * db privacy lifecycle — pure helpers that turn the `admin_export_customer_data`
  * RPC payload into a downloadable file. No IO: the server action and the client
  * form consume these shapes.
  */

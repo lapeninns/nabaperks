@@ -10,7 +10,7 @@ import {
 } from "./helpers/reward-pool-fixture.mjs"
 
 /**
- * MS-rewards-issued-source-rails — schema/constraint tier.
+ * rewards issued source rails — schema/constraint tier.
  *
  * The 20260704090000 schema migration deliverable: source + birthday_year
  * columns and their coherence/uniqueness constraints (R-1/R-2), the loyalty_card

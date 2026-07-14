@@ -7,7 +7,7 @@ import { after, test } from "node:test"
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-db-merchant-analytics-rpcs — live-DB proof.
+ * db merchant analytics rpcs — live-DB proof.
  *
  * The merchant dashboard series and activity summary must come from SQL-side
  * aggregation whose results stay exact past PostgREST's 1,000-row response

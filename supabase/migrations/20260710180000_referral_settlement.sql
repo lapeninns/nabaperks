@@ -1,4 +1,4 @@
--- MS-referral-settlement — one settlement function, durable holds, scheduled drain.
+-- One settlement function, durable holds, scheduled drain.
 --
 -- Replaces v1's membership-keyed award primitive with a single, referral-keyed
 -- settlement function settle_referral_bonus(referral_id): lock the edge, refuse
@@ -9,7 +9,7 @@
 -- concurrency-safely (FOR UPDATE SKIP LOCKED) and is registered as a cron. The
 -- QR-gated stamp entrypoint settles a scanner's owed bonus before their visit
 -- stamp. The legacy award/drain entrypoints become thin shims over settlement.
--- Contract: micro-specs/referral/settlement.md.
+-- Behavioral coverage: tests/contracts/referral-review-hardening.test.mjs.
 --
 -- Idempotent by construction (safe to re-apply): all functions use
 -- create-or-replace; the reward-unlock tail is reproduced verbatim from the v1
@@ -552,7 +552,7 @@ begin
     raise insufficient_privilege using message = 'Valid venue QR scan proof required';
   end if;
 
-  -- MS-referral-settlement (SE-13): settle the scanner's OWN owed referral bonuses
+  -- referral settlement (SE-13): settle the scanner's OWN owed referral bonuses
   -- before their visit stamp, in this same transaction, so an older bonus is not
   -- outranked. Fail-safe: any settle failure degrades to a warning.
   begin
@@ -582,7 +582,7 @@ begin
     p_capture_elapsed_ms
   ) stamp;
 
-  -- MS-referral-bonus-stamp: award the referrer's "Bring a Regular" bonus on the
+  -- referral bonus stamp: award the referrer's "Bring a Regular" bonus on the
   -- friend's first in-venue stamp, in this same transaction. Wrapped so any bonus
   -- failure degrades to no-bonus (a warning) and never blocks the friend's stamp.
   begin

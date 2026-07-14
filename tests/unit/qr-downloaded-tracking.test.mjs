@@ -7,7 +7,7 @@ import {
 } from "@/app/app/qr/poster/tracking"
 
 /**
- * MS-analytics-qr-downloaded-wire — the qr_downloaded event contract.
+ * analytics qr downloaded wire — the qr_downloaded event contract.
  *
  * Four surfaces already read this event (dashboard period counts, activity
  * feed, pilot report, analytics registry) but nothing wrote it — the metric

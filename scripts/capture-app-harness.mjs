@@ -10,7 +10,7 @@
  * route per width, writing `<route>-<width>.png` into the output dir.
  *
  * This is local verification convenience ONLY. It is deliberately OFF every CI
- * path (CI is typecheck + build per repo governance) and is never wired into a
+ * path (CI owns the required automated checks) and is never wired into a
  * package.json script. Run it by hand against a dev server.
  *
  * Prereq: a Next dev server serving the harness (these routes are dev-only:

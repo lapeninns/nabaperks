@@ -1,4 +1,4 @@
--- MS-auth-otp-alias-finalization
+-- auth otp alias finalization
 --
 -- A merchant-facing six-digit alias must not be consumed before GoTrue has
 -- accepted the encrypted provider token behind it. This migration replaces

@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto"
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-admin-console / MS-customer-home (erasure) — live-DB tier.
+ * admin console / customer home (erasure) — live-DB tier.
  *
  * GDPR erasure was previously covered ONLY by grepping migration SQL text. This
  * EXECUTES `admin_erase_customer_pii` and proves the three things that matter:

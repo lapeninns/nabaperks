@@ -40,7 +40,7 @@ async function postHook({
   })
 }
 
-test.describe("Supabase auth hook routes @MS-auth-otp-alias-finalization", () => {
+test.describe("Supabase auth hook routes", () => {
   test("invalid email hook signatures are rejected before payload handling", async ({
     request,
   }) => {

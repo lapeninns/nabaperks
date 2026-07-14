@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Drop rate-limit buckets whose window ended over 24h ago — per-IP/email
-  // keys otherwise accumulate forever (MS-db-integrity-hardening).
+  // keys otherwise accumulate forever (db integrity hardening).
   const { data: purgedBuckets, error: bucketError } = await supabase.rpc(
     "purge_stale_rate_limit_buckets"
   )

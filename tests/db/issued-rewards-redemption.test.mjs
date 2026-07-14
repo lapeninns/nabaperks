@@ -7,7 +7,7 @@ import { grantRewardEmailAssurance } from "./helpers/reward-email-assurance.mjs"
 import { createRewardPoolFixture } from "./helpers/reward-pool-fixture.mjs"
 
 /**
- * MS-rewards-issued-source-rails — live-DB invariant tier (redemption side).
+ * rewards issued source rails — live-DB invariant tier (redemption side).
  *
  * Proves the source rails: an issued reward (birthday_month / merchant_direct)
  * shares the earned-reward redemption flow and every trust gate, but the

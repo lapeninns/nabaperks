@@ -1,7 +1,7 @@
 import type { Page, Response } from "@playwright/test"
 
 /**
- * Shared helpers for the DB-free e2e tier (MS-platform-e2e-harness).
+ * Shared helpers for the DB-free e2e tier (platform e2e harness).
  *
  * The `/dev/*` harness routes mount the REAL app shells + page bodies fed by
  * static fixtures and are gated by `NODE_ENV !== "production"` — so this tier is
@@ -31,7 +31,7 @@ export const HARNESS_ROUTES = {
 
 /**
  * Pre-dismiss the PWA install prompt so it never intercepts navigation or
- * clicks during an e2e run (MS-platform-e2e-harness H-8). Register before the
+ * clicks during an e2e run (platform e2e harness H-8). Register before the
  * first `page.goto`; the init script runs on every document in the context.
  */
 export async function dismissPwaInstall(page: Page): Promise<void> {

@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto"
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-admin-console / architecture audit — live-DB tier.
+ * admin console / architecture audit — live-DB tier.
  *
  * The audit fixes added admin fraud resolution and privacy request dispatch,
  * but local proof was still source-contract only. These tests execute the real

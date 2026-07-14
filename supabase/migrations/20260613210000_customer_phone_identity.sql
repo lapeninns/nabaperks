@@ -6,7 +6,7 @@ alter table public.customers
   add column if not exists phone_country text,
   add column if not exists phone_verified_at timestamptz;
 
--- Replay guard (MS-db-phone-plaintext-retirement): the backfill and this
+-- Replay guard (db phone plaintext retirement): the backfill and this
 -- CHECK read the plaintext phone column dropped at the end of the chain;
 -- post-drop replays skip both (the retirement migration owns the current
 -- CHECK: email | phone_hmac | phone_last4).

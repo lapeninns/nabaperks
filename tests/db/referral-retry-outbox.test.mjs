@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto"
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-referral-retry-outbox — live-DB invariant tier (primary proof).
+ * referral retry outbox — live-DB invariant tier (primary proof).
  *
  * Proves the transactional outbox (referral_attributed / qualified / bonus_held /
  * bonus_awarded / bonus_failed) + deduped member notifications, and the

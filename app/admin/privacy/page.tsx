@@ -26,7 +26,7 @@ type AdminPrivacyPageProps = {
 
 /**
  * Privacy support surface. Shares the member lookup capability with the
- * customers page (MS-admin-member-lookup R6) so a GDPR requester can be found
+ * customers page (admin member lookup R6) so a GDPR requester can be found
  * by venue or contact fragment regardless of how old their membership is.
  */
 export default async function AdminPrivacyPage({

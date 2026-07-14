@@ -1,4 +1,4 @@
--- MS-db-emergency-containment — Blocker 3a: reconcile customers.email_hmac.
+-- db emergency containment — Blocker 3a: reconcile customers.email_hmac.
 --
 -- `customers.email_hmac` and its partial index were introduced by EDITING an
 -- already-applied migration (20260704095000) rather than by adding a new one.

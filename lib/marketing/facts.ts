@@ -12,9 +12,9 @@
  * live venues in the proof methodology, or hard compliance/guarantee claims.
  * The exact banned strings are enforced by `scripts/check-banned-claims.mjs`.
  * The First-Regular Guarantee (`GUARANTEE`) is an owner-approved exception: a
- * commercial trial-extension promise (2026-07-05, MS-marketing-offer-v1) — a
+ * commercial trial-extension promise (2026-07-05, marketing offer v1) — a
  * business term, not a compliance claim; compliance-assurance wording stays
- * banned. Offer v2 (2026-07-05, MS-marketing-offer-v2) adds two more
+ * banned. Offer v2 (2026-07-05, marketing offer v2) adds two more
  * owner-approved commercial terms: the rolling monthly `PROMO` in
  * `lib/marketing/promo.ts` (a real, fulfilled, time-boxed perk with a monthly
  * print-run capacity) and the `OFFER_STACK` `anchor`s (justified
@@ -106,7 +106,7 @@ export const PRODUCT = {
   counterStampLong: "stamps linked to the venue QR",
   /**
    * The one cancellation term — a true cancel-anytime as of offer v1
-   * (MS-marketing-offer-v1). Cancellation is self-serve from the billing
+   * (marketing offer v1). Cancellation is self-serve from the billing
    * page and takes effect at the end of the current billing month; the
    * card-required qualifier stays in the sentence form (ASA
    * material-information). Sentence + chip forms; use these, never a bare
@@ -118,7 +118,7 @@ export const PRODUCT = {
 
 /**
  * The First-Regular Guarantee — the offer's risk reversal, owner-approved
- * 2026-07-05 (MS-marketing-offer-v1). A commercial trial-extension promise
+ * 2026-07-05 (marketing offer v1). A commercial trial-extension promise
  * honoured by support as a manual Stripe trial extension, so no billing code
  * depends on this copy. Compose surfaces from these parts; never fork the
  * promise as a page literal.
@@ -147,7 +147,7 @@ export const PLAN_INCLUDES = [
 /**
  * The offer's public NAME — the Hormozi MAGIC "wrapper" (Goal "first regular" +
  * Interval "30-day" + Container "Launch"). Rendered as the /pricing offer
- * heading (MS-marketing-offer-v2). This names the OFFER, not the product: the
+ * heading (marketing offer v2). This names the OFFER, not the product: the
  * hero product headline ("The loyalty card that just opens.") stays separate.
  * `riskFraming` is the guarantee's best-case/worst-case reversal, composed with
  * `GUARANTEE` and single-sourced so no surface forks it.
@@ -177,7 +177,7 @@ export const SETUP = {
  * shipped product, framed as included; no unbundled price theatre. Each item
  * names the `obstacle` it removes (Hormozi Bonus Bullet #8) and, where a figure
  * is genuinely substantiable, an `anchor`: a real external cost or time saving
- * (MS-marketing-offer-v2, owner-approved 2026-07-05). Anchors are NEVER an
+ * (marketing offer v2, owner-approved 2026-07-05). Anchors are NEVER an
  * invented reference or headline price, and the privacy item stays
  * mechanism-described with no price (`anchor: null`). Factual anchors: the five
  * A4 poster templates, the seeded default reward pool, optional birthday

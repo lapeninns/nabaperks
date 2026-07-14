@@ -4,7 +4,7 @@ import { parsePhoneNumberWithError } from "libphonenumber-js"
 import { dismissPwaInstall } from "./helpers/harness"
 
 /**
- * MS-customer-auth-wallet - anti-enumeration wallet login (e2e).
+ * customer auth wallet - anti-enumeration wallet login (e2e).
  *
  * This flow drives the real `/home/login` server actions against a customer-flow
  * dev server (.env.local + local Supabase, with CUSTOMER_DEV_OTP_CODE bypassing

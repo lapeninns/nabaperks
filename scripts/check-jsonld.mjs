@@ -338,7 +338,7 @@ if (pricingFaq) {
   )
   check(
     questions.some((q) => /bring back a regular/.test(q.name ?? "")),
-    "pricing: FAQ should carry the First-Regular Guarantee question (MS-marketing-offer-v1)"
+    "pricing: FAQ should carry the First-Regular Guarantee question (marketing offer v1)"
   )
 }
 

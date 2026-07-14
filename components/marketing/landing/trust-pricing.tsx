@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { PLAN_INCLUDES, PRODUCT } from "@/lib/marketing/facts"
 
 // The teaser is the first four items of the single-source list; /pricing
-// renders the full set (MS-marketing-audit-v2-fixes AV-4).
+// renders the full set (marketing audit v2 fixes AV-4).
 const planIncludes = PLAN_INCLUDES.slice(0, 4)
 
 /**

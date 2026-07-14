@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto"
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-referral-fraud-controls — live-DB invariant tier (primary proof).
+ * referral fraud controls — live-DB invariant tier (primary proof).
  *
  * Proves referral fraud controls: concentration past a rolling-24h threshold pauses
  * the newest qualifying referral (rejected) + raises a deduped referral_concentration

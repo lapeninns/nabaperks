@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto"
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-referral-attribution — live-DB invariant tier.
+ * referral attribution — live-DB invariant tier.
  *
  * Proves the referrals attribution edge and its guards through the real
  * SECURITY DEFINER `join_customer_membership_with_first_stamp` RPC (now with

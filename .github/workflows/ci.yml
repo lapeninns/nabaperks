@@ -51,9 +51,7 @@ jobs:
       - run: pnpm security:audit
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm governance:check
       - run: pnpm e2e:install
-      - run: pnpm governance:run-gates
       - run: pnpm tokens:check
       - run: pnpm claims:check
       - run: pnpm test

@@ -7,7 +7,7 @@ import { deterministicFunnelEventId } from "../../lib/analytics/funnel-token"
 const FUNNEL_ENDPOINT = "/api/analytics/funnel"
 const FUNNEL_TOKEN = "test-signed-desktop-funnel-token"
 
-test.describe("desktop privacy-safe merchant funnel @MS-analytics-funnel-identity-privacy", () => {
+test.describe("desktop privacy-safe merchant funnel", () => {
   test.use({ serviceWorkers: "block" })
 
   test("desktop homepage and signup reuse one session-only identity", async ({

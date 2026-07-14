@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto"
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-customer-card-stamp (edges) — live-DB tier.
+ * customer card stamp (edges) — live-DB tier.
  *
  * Beyond the one-per-UK-day moat, these prove the stamp RPC's other guards that
  * were previously untested at runtime:

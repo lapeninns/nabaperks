@@ -9,7 +9,7 @@ import {
 } from "./helpers/reward-pool-fixture.mjs"
 
 /**
- * MS-rewards-merchant-sent — live-DB invariant tier for
+ * rewards merchant sent — live-DB invariant tier for
  * `issue_merchant_direct_reward`. R-1 issue · R-2 tenancy/owner · R-3 billing ·
  * R-4 caps · R-5 bounds.
  */

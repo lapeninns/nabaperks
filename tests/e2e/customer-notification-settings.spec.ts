@@ -13,7 +13,7 @@ import { dismissPwaInstall } from "./helpers/harness"
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3146"
 
 /**
- * MS-db-notification-durability — secondary journey proof (rls-rpc-ledger floor).
+ * db notification durability — secondary journey proof (rls-rpc-ledger floor).
  *
  * The DB behavioural tier (tests/db/notification-*.test.mjs) is the primary
  * proof of the queue durability fixes. This browser proof confirms the
@@ -22,7 +22,7 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3146"
  * reminder/reward pushes the hardened worker delivers — renders and opens.
  */
 
-test.describe("@MS-db-notification-durability customer notification settings", () => {
+test.describe("customer notification settings", () => {
   const reason = customerReadbackLiveDbSkipReason()
   test.skip(Boolean(reason), reason)
 

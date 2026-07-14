@@ -116,7 +116,7 @@ export async function runPushNotificationDeliveryWorker({
   }
 
   // Drain: claim successive batches until the due queue is empty or the run
-  // budget (events / soft time) is spent (MS-notifications-drain-throughput).
+  // budget (events / soft time) is spent (notifications drain throughput).
   // Defaults keep the historical single-batch behavior; the cron route opts
   // into a larger budget explicitly.
   const options = resolveDrainOptions({ batchSize, maxEvents, timeBudgetMs })

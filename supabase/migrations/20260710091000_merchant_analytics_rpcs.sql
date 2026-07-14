@@ -1,4 +1,4 @@
--- MS-db-merchant-analytics-rpcs: SQL-side aggregation for merchant analytics.
+-- db merchant analytics rpcs: SQL-side aggregation for merchant analytics.
 --
 -- The 14-day dashboard series and the 7-day activity summary fetched raw
 -- rows and tallied them in JS, so PostgREST's 1,000-row response cap

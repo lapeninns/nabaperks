@@ -1,4 +1,4 @@
--- MS-db-emergency-containment — Blocker 2: merchant owners can bypass billing.
+-- db emergency containment — Blocker 2: merchant owners can bypass billing.
 --
 -- `authenticated` holds broad table mutation grants and the merchants UPDATE
 -- policy only checks ownership, so an owner can run

@@ -183,7 +183,7 @@ export function maskAdminContact(value?: string | null) {
 
 /**
  * Masked contact for an admin customer row. Plaintext phone no longer exists
- * at rest (MS-db-phone-plaintext-retirement); phone-identity customers are
+ * at rest (db phone plaintext retirement); phone-identity customers are
  * disambiguated by their stored last4.
  */
 export function maskAdminCustomer(customer?: {

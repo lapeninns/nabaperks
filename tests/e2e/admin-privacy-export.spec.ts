@@ -12,7 +12,7 @@ import { installSeededAdminAal2Session } from "./helpers/admin-mfa-session"
 import { dismissPwaInstall } from "./helpers/harness"
 
 /**
- * MS-db-privacy-lifecycle — the admin subject-access export journey.
+ * db privacy lifecycle — the admin subject-access export journey.
  *
  * A GDPR Article 15 export must actually hand the admin the customer's data.
  * A seeded AAL2 admin submits an `export` data request and the console renders
@@ -20,7 +20,7 @@ import { dismissPwaInstall } from "./helpers/harness"
  * ADMIN_LIVE_DB_E2E=1 with local Supabase, like the other @admin-live-db proofs.
  */
 
-test.describe("@MS-db-privacy-lifecycle @admin-live-db admin subject-access export", () => {
+test.describe("@admin-live-db admin subject-access export", () => {
   const reason = adminLiveDbSkipReason()
   test.skip(Boolean(reason), reason)
   test.use({ serviceWorkers: "block" })

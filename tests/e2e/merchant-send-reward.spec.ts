@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test"
 import { dismissPwaInstall } from "./helpers/harness"
 
 /**
- * MS-rewards-merchant-sent R-5/R-6 — the send-reward form renders (contact entry
+ * rewards merchant sent R-5/R-6 — the send-reward form renders (contact entry
  * and the membership-prefilled variant), DB-free.
  */
 const SEND = "/dev/app-harness/send-reward"

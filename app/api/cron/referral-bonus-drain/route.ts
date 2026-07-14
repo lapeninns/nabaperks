@@ -7,7 +7,7 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 /**
- * Referral bonus settlement sweep (MS-referral-settlement, SE-10/SE-12). Settles
+ * Referral bonus settlement sweep (referral settlement, SE-10/SE-12). Settles
  * every due referral bonus (qualified/held, next_retry_at ≤ now) through
  * settle_referral_bonus, in concurrency-safe FOR UPDATE SKIP LOCKED batches, once
  * the referrer's card has room and velocity allows. Kept a separate cron from the

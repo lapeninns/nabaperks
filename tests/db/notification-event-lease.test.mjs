@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto"
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-db-notification-durability — Blocker 2: claim without a lease strands rows.
+ * db notification durability — Blocker 2: claim without a lease strands rows.
  *
  * `claim_due_notification_events` flipped queued → 'delivering' with no lease or
  * expiry, so if the worker crashed (or was killed mid-drain) between the claim

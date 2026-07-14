@@ -7,7 +7,7 @@ import {
 } from "../../scripts/check-supabase-migrations.mjs"
 
 /**
- * MS-db-emergency-containment — Blocker 3, tooling half.
+ * db emergency containment — Blocker 3, tooling half.
  *
  * The parity checker only compared version-number SETS, so it could not see
  * two files sharing a version, nor an already-applied migration whose body was

@@ -134,7 +134,7 @@ function buildPageGraph() {
   return { "@context": "https://schema.org", "@graph": graph }
 }
 
-/** The conversion spine (MS-landing-conversion-spine): pitch → mechanism →
+/** The conversion spine (landing conversion spine): pitch → mechanism →
  * proof → persona routing → pricing teaser → objections → ask. The deep
  * chapters live on their own routes: mechanism + anti-fraud + comparison on
  * /how-it-works, persona fit on /loyalty-for-*, full pricing on /pricing. */

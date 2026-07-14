@@ -6,7 +6,7 @@ import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 import { grantRewardEmailAssurance } from "./helpers/reward-email-assurance.mjs"
 
 /**
- * MS-customer-* — live-DB customer lifecycle JOURNEY tier.
+ * customer * — live-DB customer lifecycle JOURNEY tier.
  *
  * Where the other live-DB tests prove one invariant each by manufacturing the
  * precondition (force-setting current_stamp_count, hand-inserting an unlocked

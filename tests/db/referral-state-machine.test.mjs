@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto"
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-referral-state-machine — live-DB invariant tier (primary proof).
+ * referral state machine — live-DB invariant tier (primary proof).
  *
  * Proves the referral v2 state machine and the decoupling of qualification from
  * attribution through the real SECURITY DEFINER surface: a `?ref` enrolment writes

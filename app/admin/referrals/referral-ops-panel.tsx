@@ -12,7 +12,7 @@ import { DataTable } from "@/components/data/data-table"
 import type { AdminReferralOpsRow } from "@/lib/admin/data"
 
 /**
- * Support operational referral view (MS-referral-ops-visibility). Internal-admin
+ * Support operational referral view (referral ops visibility). Internal-admin
  * detail: referrer → referred, lifecycle state + hold reason, the attribution /
  * qualification / award timeline, and retry/fraud-flag counts. Read-only.
  */

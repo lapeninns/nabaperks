@@ -1,6 +1,6 @@
 /**
  * Pure query-shape helpers for the admin member lookup
- * (MS-admin-member-lookup). No IO and no server-only imports so the unit
+ * (admin member lookup). No IO and no server-only imports so the unit
  * runner can execute them directly; `lib/admin/data.ts` owns the Supabase
  * calls that consume these shapes.
  *

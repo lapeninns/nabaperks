@@ -1,4 +1,4 @@
--- MS-analytics-merchant-activation-ledger
+-- analytics merchant activation ledger
 --
 -- Durable, privacy-bounded merchant activation milestones and one-row cohort
 -- reporting. This migration is replay-safe so it can be proved against a

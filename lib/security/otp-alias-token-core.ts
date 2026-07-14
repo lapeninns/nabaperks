@@ -6,7 +6,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:
  * directly (see tests/unit/merchant-email-otp-alias-encryption.test.mjs).
  * `otp-alias-token.ts` re-exports this behind the server-only guard.
  *
- * MS-auth-otp-alias-token-encryption: the stored value is a usable Supabase
+ * auth otp alias token encryption: the stored value is a usable Supabase
  * login token for its ≤60-minute lifetime, so it is never written as
  * plaintext. Format mirrors the customer phone codec:
  * `v1.<iv>.<tag>.<ciphertext>` (base64url, AES-256-GCM, fresh IV per row).

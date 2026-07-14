@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test"
 import { dismissPwaInstall } from "./helpers/harness"
 
 /**
- * MS-rewards-issued-source-rails R-9 — DB-free wallet render.
+ * rewards issued source rails R-9 — DB-free wallet render.
  *
  * Proves the /dev/home-harness rewards lane mounts the real CustomerAppShell +
  * shared reward cards and that ISSUED rewards surface their source badge and

@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto"
 import { closeDb, db, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-db-privacy-lifecycle — verified customers with no membership must be
+ * db privacy lifecycle — verified customers with no membership must be
  * discoverable by admins.
  *
  * The admin lookups query FROM `customer_memberships`, so a verified customer

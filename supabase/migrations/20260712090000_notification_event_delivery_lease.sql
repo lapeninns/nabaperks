@@ -1,4 +1,4 @@
--- MS-db-notification-durability — Blocker 2: lease + reclaim for the claim step.
+-- db notification durability — Blocker 2: lease + reclaim for the claim step.
 --
 -- claim_due_notification_events flipped queued -> 'delivering' with no lease, so
 -- a worker that died mid-drain left its claimed rows in 'delivering' forever —

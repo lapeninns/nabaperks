@@ -3,8 +3,8 @@ import type { Instrumentation } from "next"
 import { REQUEST_ID_HEADER } from "@/lib/observability/request-id"
 import { logger } from "@/lib/observability/logger"
 
-// Runs once per server instance. Provider-agnostic by design (AGENTS.md keeps
-// Sentry/OTel optional): it emits a structured startup record useful for deploy
+// Runs once per server instance. Provider-agnostic by design: it emits a
+// structured startup record useful for deploy
 // observability and is the seam where an OTel/PostHog server SDK would be
 // registered when `OTEL_*` / collector env is present.
 export function register() {

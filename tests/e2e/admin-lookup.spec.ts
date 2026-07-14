@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test"
 
 import { dismissPwaInstall } from "./helpers/harness"
 
-// MS-admin-member-lookup R5: an unauthenticated request to any admin lookup
+// admin member lookup R5: an unauthenticated request to any admin lookup
 // URL — including with search and pagination params — still redirects to the
 // admin login. DB-free: asserts the gate only, never a signed-in lookup.
 const LOOKUP_URLS = [

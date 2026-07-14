@@ -4,7 +4,7 @@ import assert from "node:assert/strict"
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-customer-card-stamp — live-DB invariant tier.
+ * customer card stamp — live-DB invariant tier.
  *
  * Proves the crown-jewel ledger invariant mocks cannot enforce: at most one
  * earned stamp per membership per UK business day (CS-1/CS-2/CS-3). Runs the

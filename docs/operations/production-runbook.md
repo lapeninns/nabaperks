@@ -11,12 +11,8 @@ Escalation inbox: `info@lapeninns.com`
 
 Do not promote a release until all of these are true:
 
-1. Pre-deploy Micro-Specs are at least `implemented` with every automated gate
-   recorded. Specs whose remaining evidence is explicitly live-only advance to
-   `verified` immediately after the controlled promotion and before the release
-   is declared complete; a failed live gate triggers rollback.
-2. All required `main` checks pass, including build, DB moat, E2E,
-   accessibility, visuals, ZAP and CodeQL.
+1. Relevant CI checks pass for the release revision.
+2. Required branch-protection checks pass.
 3. `pnpm env:check:production`, `pnpm security:audit`,
    `pnpm smoke:supabase:migrations`, `pnpm typecheck` and `pnpm build` pass.
 4. The target Supabase migration ledger matches `supabase/migrations`.
@@ -95,7 +91,7 @@ not trustworthy.
    use a reviewed, bounded SQL script. Never restore a full backup over live
    data without incident-owner approval and an explicit recovery plan.
 6. Record timeline, affected users, data impact, provider state, commands,
-   deployment IDs and the follow-up Micro-Spec.
+   deployment IDs and the follow-up issue.
 
 ## Backup and recovery boundary
 

@@ -7,7 +7,7 @@ import { createRewardPoolFixture } from "./helpers/reward-pool-fixture.mjs"
 import { grantRewardEmailAssurance } from "./helpers/reward-email-assurance.mjs"
 
 /**
- * MS-rewards-issued-source-rails — read-path (merchant scan) gate parity.
+ * rewards issued source rails — read-path (merchant scan) gate parity.
  *
  * The merchant's read path get_reward_scan_context must agree with the
  * mint/redeem gates: skip the stamp threshold for issued rewards (R-3), and

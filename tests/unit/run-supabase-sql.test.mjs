@@ -7,7 +7,7 @@ import {
 } from "../../scripts/run-supabase-sql.mjs"
 
 /**
- * MS-db-migration-ledger-apply — the pure half.
+ * db migration ledger apply — the pure half.
  *
  * `applyMigration()` used to replay nearly every migration file on every
  * invocation, consulting neither the migration ledger nor recording anything

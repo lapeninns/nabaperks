@@ -10,7 +10,7 @@ import {
 } from "./helpers/customer-readback-live-db"
 import { dismissPwaInstall } from "./helpers/harness"
 
-// MS-referral-bonus-stamp — RB-9 (share surface, secondary journey proof).
+// referral bonus stamp — RB-9 (share surface, secondary journey proof).
 // A member on their collecting card can discover and share their "Bring a
 // Regular" link, which carries their card's opaque referral_code as ?ref=<code>
 // (never the membership UUID). Seeds a membership + browser session directly and

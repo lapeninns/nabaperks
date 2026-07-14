@@ -8,7 +8,7 @@ import {
 } from "@/lib/notifications/drain-plan"
 
 /**
- * MS-notifications-drain-throughput — pure drain-decision tier.
+ * notifications drain throughput — pure drain-decision tier.
  *
  * resolveDrainOptions clamps the run budget to the claim RPC's 1..500
  * window; shouldContinueDraining decides whether the worker claims another

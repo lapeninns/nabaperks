@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto"
 import { closeDb, db, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-db-dead-field-cleanup — live-DB tier.
+ * db dead field cleanup — live-DB tier.
  *
  * The 2026-07-06 schema audit verified these fields dead (no app read/write,
  * no live DB-function dependency): min_spend_pence ×3 (the 20260624

@@ -6,7 +6,7 @@ import { closeDb, db, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 import { grantRewardEmailAssurance } from "./helpers/reward-email-assurance.mjs"
 
 /**
- * MS-db-integrity-hardening — live-DB tier.
+ * db integrity hardening — live-DB tier.
  *
  * Status⇒timestamp coherence on reward_events / notification_events was RPC
  * convention only; this suite pins the new CHECK enforcement (impossible

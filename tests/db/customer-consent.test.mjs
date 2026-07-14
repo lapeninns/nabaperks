@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto"
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-customer-home (consent) — live-DB tier.
+ * customer home (consent) — live-DB tier.
  *
  * Marketing consent was previously covered only by source-grep. This executes
  * the real `record_customer_marketing_consent` RPC and proves the GDPR-relevant

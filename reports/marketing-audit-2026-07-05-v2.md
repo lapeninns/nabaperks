@@ -38,7 +38,7 @@ intentional-by-spec today but worth a deliberate trim decision.
 | E-E-A-T & trust | 83 | "9 independent pubs" quotes lack operator-relationship disclosure on `/how-it-works` |
 | Design & UX | 88 | Spoke repeat fatigue on multi-spoke journeys; otherwise density discipline holds |
 | Accessibility | 92 | Nothing broken found; native `<details>`, skip link, `aria-pressed` chips all present |
-| Code & governance | 84 | `jsonld:check` misses hub `@id` + 2 of 3 guides; `governance:check` red on `reports/` |
+| Code quality | 84 | `jsonld:check` misses hub `@id` + 2 of 3 guides; the retired methodology check rejected `reports/` |
 
 ## Section matrix
 
@@ -143,7 +143,7 @@ correctly on all 12 routes.
    composition (PS-1 lists these components), and pain points/heroes ARE
    venue-true since the morning fix — the issue is only the shared tail on
    multi-spoke journeys and near-duplicate long-tail content signatures.
-   **Recommendation** (needs a PS-1 spec amendment — a test change is a spec
+   **Recommendation** (needs an owner decision and matching contract-test
    change): replace **ComparisonTable** on the three spokes with a 2–3 sentence
    wedge + link to [/how-it-works#no-app](app/how-it-works/page.tsx) folded
    into the existing mechanism cross-link section (one band instead of two).
@@ -275,7 +275,7 @@ correctly on all 12 routes.
 8. Operator line on the hiw quotes tab (P2-5) + `reviewedByOperator` on
    `/about` (P2-8).
 
-**Phase B — owner decision + MS-marketing-persona-spokes amendment:**
+**Phase B — owner decision + marketing persona spokes amendment:**
 9. ComparisonTable → comparison wedge + `/how-it-works#no-app` link on the
    three spokes, merged with the mechanism cross-link into one band. Spokes go
    9.0 → ~7.7 screens; cross-spoke shared sentences drop ~40%. Contract test
@@ -316,7 +316,7 @@ persona titles ≤60 chars · `id="fit"` orphans gone · "See more →" tap targ
 |---|---|
 | `pnpm typecheck` | ✓ |
 | `pnpm claims:check` | ✓ 67 marketing/SEO files, 540 review-voice files |
-| `pnpm governance:check` | ✗ **pre-existing/expected** — only `reports/*.md` (the two morning audit reports, outside any active-spec blast radius; this file will trip it too) |
+| the retired methodology check | ✗ **pre-existing/expected** — only `reports/*.md` (the two morning audit reports, outside any active-spec blast radius; this file will trip it too) |
 | `pnpm test` (marketing-redesign, auth-legal, multipage, landing-conversion-spine, persona-spokes) | ✓ 259/259 |
 | `pnpm build` | ✓ (dev server on :3000 still healthy after) |
 | `pnpm jsonld:check` | ✓ — green **despite** P1-1, confirming the hub-`@id` guard gap |
@@ -329,7 +329,7 @@ persona titles ≤60 chars · `id="fit"` orphans gone · "See more →" tap targ
 
 Per the morning report + standing decisions, reviewed and left alone:
 `/signup` stays in the sitemap (e2e-pinned) · `jump-nav.tsx` file retained
-([spec pin](micro-specs/platform/landing-conversion-spine.md:101); barrel
+([spec pin](contract tests/platform/landing-conversion-spine.md:101); barrel
 export harmless) · home H1 "The loyalty card that just opens." (owner-approved;
 GEO's query-shaped-H2 suggestion listed as open question instead) · sitemap
 omits `lastModified` (honesty call) · Counter-Loyalty Index is real first-party

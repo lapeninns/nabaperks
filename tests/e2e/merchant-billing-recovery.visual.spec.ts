@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test"
 
 import { dismissPwaInstall, HARNESS_ROUTES } from "./helpers/harness"
 
-test("annual billing receipt @MS-billing-checkout-recovery @visual", async ({
+test("annual billing receipt @visual", async ({
   page,
 }) => {
   await dismissPwaInstall(page)

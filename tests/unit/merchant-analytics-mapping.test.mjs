@@ -4,7 +4,7 @@ import { test } from "node:test"
 import * as buckets from "@/lib/merchant/dashboard-buckets"
 
 /**
- * MS-db-merchant-analytics-rpcs — pure mapping tier.
+ * db merchant analytics rpcs — pure mapping tier.
  *
  * mapSeriesRowsToBuckets turns the aggregation RPC's sparse per-day rows
  * into the dense, bucket-ordered series arrays the dashboard renders. Days

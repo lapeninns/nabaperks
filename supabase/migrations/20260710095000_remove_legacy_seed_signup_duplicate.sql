@@ -1,4 +1,4 @@
--- MS-db-emergency-containment — Blocker 3b: restore the lost seed-repair migration.
+-- db emergency containment — Blocker 3b: restore the lost seed-repair migration.
 --
 -- Version 20260710095000 was authored on an unmerged branch and applied to the
 -- live database out-of-band, but never landed on main. The live ledger therefore

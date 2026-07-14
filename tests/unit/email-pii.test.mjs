@@ -9,7 +9,7 @@ import {
 } from "@/lib/customer/email-pii-core"
 
 /**
- * MS-rewards-merchant-sent (Phase 4) — the pure email PII codec used for invite
+ * rewards merchant sent (Phase 4) — the pure email PII codec used for invite
  * matching. The HMAC is read lazily, so it only needs the secret when called.
  */
 

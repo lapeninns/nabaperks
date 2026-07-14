@@ -1,4 +1,4 @@
--- MS-referral-retry-outbox — transactional outbox + event-driven retry.
+-- Transactional outbox + event-driven retry.
 --
 -- Completes the referral outbox: every lifecycle transition writes a product event
 -- (referral_attributed / qualified / bonus_held / bonus_awarded / bonus_failed) and,
@@ -7,7 +7,8 @@
 -- a merchant activates or replenishes reward-pool items, held reward_unavailable
 -- bonuses for that venue are settled immediately (recursion-guarded, fail-safe).
 -- The referrer-visit retry is the settlement stamp-ordering hook; the freed-card /
--- daily-reset retries are the scheduled drain. Contract: micro-specs/referral/retry-outbox.md.
+-- daily-reset retries are the scheduled drain.
+-- Behavioral coverage: tests/contracts/referral-review-hardening.test.mjs.
 --
 -- Idempotent by construction (safe to re-apply): create-or-replace throughout;
 -- notifications are deduped by referral id + event type via enqueue_notification_event.

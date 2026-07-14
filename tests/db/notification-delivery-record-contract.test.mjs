@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url"
 import { closeDb, db, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-db-notification-durability — Blocker 1: the delivery worker calls
+ * db notification durability — Blocker 1: the delivery worker calls
  * `record_notification_delivery` with a named argument the SQL function does
  * not declare, so PostgREST resolves no overload and returns PGRST202 (404).
  * Every delivery-record attempt then throws "Unable to record notification

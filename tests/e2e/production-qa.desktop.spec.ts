@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test"
 
 import { gotoHydratedPage } from "./helpers/harness"
 
-test("deterministic harness hydrates without browser errors @MS-production-qa-closure", async ({
+test("deterministic harness hydrates without browser errors", async ({
   page,
 }) => {
   const consoleErrors: string[] = []

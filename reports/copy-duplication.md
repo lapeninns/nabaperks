@@ -162,7 +162,7 @@ strings into them, starting with P0 (legal terms) and the redeem/collect verb de
 
 ## Resolution — applied 2026-07-04
 
-Landed on the `main` working tree. **typecheck ✓ · lint 0 errors · micro-specs 259/1\* · unit 232/0**
+Landed on the `main` working tree. **typecheck ✓ · lint 0 errors · contract tests 259/1\* · unit 232/0**
 (\*the single micro failure is a pre-existing, unrelated primary-reward contract already in flight).
 New module `lib/copy/product-copy.ts` — a dependency-free leaf home for copy shown in 2+ places.
 

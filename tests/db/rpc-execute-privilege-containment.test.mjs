@@ -4,7 +4,7 @@ import { after, test } from "node:test"
 import { closeDb, db, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-db-emergency-containment — Blocker 1: privileged RPCs are callable by
+ * db emergency containment — Blocker 1: privileged RPCs are callable by
  * ordinary users.
  *
  * The initial schema granted `execute` on functions broadly (and Supabase's

@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto"
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-db-privacy-lifecycle — erasure must de-activate the whole customer, not
+ * db privacy lifecycle — erasure must de-activate the whole customer, not
  * just the profile row.
  *
  * `admin_erase_customer_pii` (single admin-executed erasure) and

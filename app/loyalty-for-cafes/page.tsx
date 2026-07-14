@@ -194,7 +194,7 @@ export default function LoyaltyForCafesPage() {
       <NabaperksProof />
 
       {/* Comparison wedge + mechanism cross-link — one band; the full table
-          lives on /how-it-works (MS-marketing-audit-v2-fixes AV-3) */}
+          lives on /how-it-works (marketing audit v2 fixes AV-3) */}
       <Section width="narrow" className="text-center">
         <MonoTag tone="plain">The mechanism</MonoTag>
         <h2 className="mx-auto mt-4 max-w-[24ch] text-[clamp(1.75rem,3.6vw,2.5rem)] leading-[1.04] font-extrabold tracking-[-0.02em] text-balance">

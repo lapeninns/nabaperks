@@ -26,22 +26,23 @@ Visit `http://localhost:3000`.
 pnpm dev        # Start the local Next.js dev server
 pnpm typecheck  # Run TypeScript checks
 pnpm lint       # Run ESLint
-pnpm test       # Run node Micro-Spec tests
+pnpm test       # Run contract and unit tests
 pnpm build      # Build the app
 pnpm start      # Start a production build locally
 ```
 
-## Verification Gates
+## Verification Checks
 
 ```bash
-pnpm governance:check      # Validate Micro-Spec metadata, risk gates, drift, and blast radius
-pnpm governance:run-gates  # Run active Micro-Spec verification gates
 pnpm test:db               # Run live DB/RLS proof; requires SUPABASE_DB_URL
 pnpm test:e2e              # Run Playwright e2e projects
 pnpm test:e2e:ui           # Open Playwright UI mode
 pnpm test:e2e:headed       # Run Playwright in headed mode
 pnpm test:a11y             # Run Playwright accessibility smoke tests
 pnpm test:visual           # Run Playwright visual smoke tests
+pnpm test:coverage         # Enforce unit coverage thresholds
+pnpm lighthouse            # Run performance and web-quality budgets
+pnpm mutation:check        # Exercise mutation resistance
 pnpm tokens:check          # Check design token constraints
 pnpm claims:check          # Check banned marketing claims
 pnpm jsonld:check          # Check structured data after build
@@ -78,17 +79,3 @@ hosts.
 live in `app/globals.css`, `components/brand`, `components/ui`,
 `components/motion`, and `components/loyalty`. The `/dev/design-system` route is
 the live catalogue when dev harness routes are enabled.
-
-## AI Governance
-
-The repo keeps a CI-enforced governance spine for AI-agent work:
-
-- `Instructions_MircroSpecsCreation.md`
-- `Instructions_tdd.md`
-- `micro-specs/README.md`
-- `micro-specs/GLOBAL_CONTEXT.md`
-
-These files define how to author and implement future Micro-Specs. Active
-implementation work needs an explicit current Micro-Spec. The checker enforces
-metadata shape, active-spec lifecycle rules, risk-class gate floors, blast
-radius, docs/CI drift, and Playwright/DB gate declarations.

@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto"
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-customer-auth-wallet (session) — live-DB tier.
+ * customer auth wallet (session) — live-DB tier.
  *
  * The customer wallet session is a signed cookie BACKED by a revocable
  * `customer_sessions` row. Session integrity was previously grep-only. This

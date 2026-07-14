@@ -15,7 +15,7 @@ import {
   type PublicQrRouterFixture,
 } from "../helpers/public-qr-router-live-db"
 
-test.describe("@MS-customer-join-ledger-recovery first-stamp recovery", () => {
+test.describe("first-stamp recovery", () => {
   const reason = customerReadbackLiveDbSkipReason()
   test.skip(Boolean(reason), reason)
 

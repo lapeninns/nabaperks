@@ -8,7 +8,7 @@ import {
   nabaperksProofReady,
 } from "@/components/marketing/landing/nabaperks-proof-data"
 
-test("@MS-marketing-trust-continuity promo exposes no invented availability", () => {
+test("promo exposes no invented availability", () => {
   const promo = getActivePromo(new Date("2026-07-15T12:00:00Z"))
 
   assert.ok(promo)
@@ -31,7 +31,7 @@ test("@MS-marketing-trust-continuity promo exposes no invented availability", ()
   )
 })
 
-test("@MS-marketing-trust-continuity setup makes billing the activation gate", () => {
+test("setup makes billing the activation gate", () => {
   const setupCopy = Object.values(SETUP).join(" ")
 
   assert.match(SETUP.steps, /Five guided steps/i)
@@ -41,7 +41,7 @@ test("@MS-marketing-trust-continuity setup makes billing the activation gate", (
   assert.doesNotMatch(setupCopy, /same afternoon|about five minutes/i)
 })
 
-test("@MS-marketing-trust-continuity unverified aggregate proof remains unpublished", () => {
+test("unverified aggregate proof remains unpublished", () => {
   assert.equal(SHOW_NABAPERKS_PROOF, false)
   assert.equal(nabaperksProofReady(), false)
 })

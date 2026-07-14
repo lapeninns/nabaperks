@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
 
-test.describe("auth callback safety @MS-production-security-closure", () => {
+test.describe("auth callback safety", () => {
   function expectedBaseUrl(baseURL: string | undefined) {
     if (!baseURL) {
       throw new Error("Playwright baseURL is required for auth safety tests")

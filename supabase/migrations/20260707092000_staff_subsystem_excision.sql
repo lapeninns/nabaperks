@@ -1,4 +1,4 @@
--- MS-db-staff-excision: remove the unreachable staff subsystem (2026-07-06
+-- db staff excision: remove the unreachable staff subsystem (2026-07-06
 -- audit + owner decision). staff_users (incl. pin_hash), add_staff_member,
 -- set_staff_member_active, and is_staff_for_merchant are reachable from
 -- nothing: lib/merchant/staff-members.ts has zero importers, and no route or

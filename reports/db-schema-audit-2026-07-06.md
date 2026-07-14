@@ -251,10 +251,8 @@ Vercel env, which per project history was still owed by the owner. Worth a one-m
 13. Retention policy doc for append-only tables; `VALIDATE CONSTRAINT` on the push-endpoint check.
 14. Surface `last_visit_at` (lapsed-regulars / weekly digest).
 
-**Governance:** every schema change above needs a Micro-Spec (`/write-micro-spec`) before
-implementation — there are currently no active specs, and P1 is naturally one spec ("schema
-cleanup: dead fields + indexes"), with P0's FK-rule change as its own small spec since it alters
-deletion behavior.
+These historical recommendations should be assessed individually before
+implementation. Group or separate them according to current risk and scope.
 
 **Follow-up verification:** this audit trusts migrations == prod. A `supabase db diff --linked`
 would catch any manual prod drift (the staging env previously grew one drift column).

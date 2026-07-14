@@ -819,7 +819,7 @@ export function defineMerchantAuthRecoveryTests() {
       }
     })
 
-    test("@MS-auth-cooldown-hydration persisted cooldown hydrates without replacing the auth subtree", async ({
+    test("persisted cooldown hydrates without replacing the auth subtree", async ({
       page,
     }) => {
       const sql = connectMerchantAuthRecoveryDb()

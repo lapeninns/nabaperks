@@ -15,7 +15,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 /**
  * Admin console actions return structured `AdminActionState` instead of
- * throwing on validation or RPC failure (MS-platform-ux-production-polish):
+ * throwing on validation or RPC failure (platform ux production polish):
  * `AdminActionForm` renders the outcome inline next to the submit button, and
  * the segment error boundary stays reserved for render/read failures.
  * Auth failures still hard-fail via `requireAdminAction` — that gate is
@@ -298,7 +298,7 @@ export async function logDataRequestAction(
 
   // An `export` request returns the customer's data export payload; deliver it
   // to the admin as a download instead of discarding it, so a GDPR subject-
-  // access request actually produces the data (MS-db-privacy-lifecycle).
+  // access request actually produces the data (db privacy lifecycle).
   const download = requestType === "export" ? buildExportDownload(data) : null
   if (download) {
     return adminActionSuccess(

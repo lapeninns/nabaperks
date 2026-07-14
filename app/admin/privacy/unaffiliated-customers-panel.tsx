@@ -21,7 +21,7 @@ type UnaffiliatedResult = Awaited<
 type UnaffiliatedRow = UnaffiliatedResult["rows"][number]
 
 /**
- * Verified customers who never joined a venue (MS-db-privacy-lifecycle). The
+ * Verified customers who never joined a venue (db privacy lifecycle). The
  * membership-based lookups above cannot surface them, so admins had no way to
  * discover or service a verified account with no membership. Reuses the page's
  * contact search; read-only, service-role readback.

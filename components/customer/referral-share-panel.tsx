@@ -20,7 +20,7 @@ import {
  * "Bring a Regular" share panel on the collecting card. The link carries this
  * card's opaque referral_code (`?ref=…`) — never the membership UUID. When an
  * invited friend joins and collects their first in-venue stamp, the friend's
- * normal stamp lands and this card gets one bonus stamp (MS-referral-bonus-stamp).
+ * normal stamp lands and this card gets one bonus stamp (referral bonus stamp).
  * Uses the Web Share sheet where available, with a copy-to-clipboard fallback.
  */
 export function ReferralSharePanel({

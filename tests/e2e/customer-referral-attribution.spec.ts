@@ -20,7 +20,7 @@ import {
   type PublicQrRouterFixture,
 } from "./helpers/public-qr-router-live-db"
 
-// MS-referral-attribution — RA-2 + RA-3. Proves the real member-facing referral
+// referral attribution — RA-2 + RA-3. Proves the real member-facing referral
 // link `/m/[slug]/join?ref=<code>` (no QR) renders the join, survives the
 // phone -> OTP -> terms wizard, and durably attributes the friend's new
 // membership to the referrer. Runs against the seed merchant (old-crown-girton),
@@ -28,7 +28,7 @@ import {
 // two customers this test creates — never the shared seed merchant's own rows.
 const SEED_MERCHANT_SLUG = "old-crown-girton"
 
-test.describe("@customer-flow @MS-customer-join-frictionless-ux referral attribution live DB", () => {
+test.describe("@customer-flow referral attribution live DB", () => {
   const reason = customerReadbackLiveDbSkipReason()
   test.skip(Boolean(reason), reason)
 

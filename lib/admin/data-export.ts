@@ -1,6 +1,6 @@
 /**
  * Pure helpers that turn the `admin_export_customer_data` RPC payload into a
- * downloadable file (MS-db-privacy-lifecycle). No IO and no server-only
+ * downloadable file (db privacy lifecycle). No IO and no server-only
  * imports: shared by the `logDataRequestAction` server action and the client
  * `AdminActionForm`, so a GDPR subject-access export the RPC returns actually
  * reaches the admin instead of being discarded.

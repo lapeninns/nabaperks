@@ -3,12 +3,12 @@ import { expect, test } from "@playwright/test"
 import { expectNoAxeViolations } from "./helpers/axe"
 import { dismissPwaInstall, HARNESS_ROUTES } from "./helpers/harness"
 
-test.describe("merchant billing recovery desktop @MS-billing-checkout-recovery @MS-analytics-merchant-billing-telemetry", () => {
+test.describe("merchant billing recovery desktop", () => {
   test.beforeEach(async ({ page }) => {
     await dismissPwaInstall(page)
   })
 
-  test("setup billing keeps the exact plan and reassurance usable before QR unlock @MS-merchant-ux-audit-closure @a11y", async ({
+  test("setup billing keeps the exact plan and reassurance usable before QR unlock @a11y", async ({
     page,
   }) => {
     await page.goto(`${HARNESS_ROUTES.launch}?tab=billing&state=billing`)

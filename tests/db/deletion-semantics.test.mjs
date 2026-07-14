@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto"
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 
 /**
- * MS-db-deletion-semantics — live-DB tier.
+ * db deletion semantics — live-DB tier.
  *
  * The 2026-07-04 prod incident deleted auth users and the CASCADE chain took
  * the whole loyalty ledger with them. This suite pins the corrected deletion

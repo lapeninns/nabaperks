@@ -7,7 +7,7 @@ import { getQrPosterTemplate } from "@/lib/qr/poster-templates"
 import { buildQrPosterDownloadEvent } from "./tracking"
 
 /**
- * MS-analytics-qr-downloaded-wire: record one qr_downloaded product event per
+ * analytics qr downloaded wire: record one qr_downloaded product event per
  * explicit poster print/save action. Fire-and-forget by contract — the client
  * never awaits this, and every failure is swallowed so printing can never be
  * delayed or broken by analytics. Merchant and QR attribution are resolved

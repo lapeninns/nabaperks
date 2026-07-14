@@ -17,7 +17,7 @@ export {
 export { getAdminPilotMerchants, getAdminPilotReport } from "./pilot-report"
 
 /**
- * Server-side member lookup query (MS-admin-member-lookup): venue and
+ * Server-side member lookup query (admin member lookup): venue and
  * masked-contact fragments plus a 1-based page. Terms arrive already
  * normalised by `parseAdminLookupParams`; they are LIKE-escaped and
  * PostgREST-quoted here before interpolation.
@@ -159,7 +159,7 @@ export type AdminUnaffiliatedCustomerRow = {
 }
 
 /**
- * Verified customers with no membership (MS-db-privacy-lifecycle). Every other
+ * Verified customers with no membership (db privacy lifecycle). Every other
  * admin lookup queries FROM `customer_memberships`, so a verified customer who
  * never joined a venue is invisible to support. Reads the service-role-only
  * `customers_unaffiliated` view (verified only, newest first) so they can be
@@ -285,7 +285,7 @@ export type AdminReferralOpsRow = {
 }
 
 /**
- * Support operational referral view (MS-referral-ops-visibility): the
+ * Support operational referral view (referral ops visibility): the
  * internal-admin detail behind /admin/referrals. Reads the admin_referral_ops RPC
  * through the gated admin service-role client (its is_service_role_request branch
  * accepts the loader; requireAdminRead has already gated the page).
