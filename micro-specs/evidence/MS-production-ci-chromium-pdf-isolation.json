@@ -1,0 +1,93 @@
+{
+  "schema": 1,
+  "spec_id": "MS-production-ci-chromium-pdf-isolation",
+  "runs": [
+    {
+      "timestamp": "2026-07-13T15:44:22.750Z",
+      "git_sha": "fbf6b447b8773bcfd947e575b684ed5b3d9fec58",
+      "git_branch": "codex/production-readiness",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7663
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1133
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 2574
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 10091
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1498
+        }
+      ],
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-13T20:23:54.310Z",
+      "git_sha": "bab4e64569ee4bbb6ee518f1c398f315d8529993",
+      "git_branch": "codex/production-readiness",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 6731
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1057
+        },
+        {
+          "command": "pnpm governance:check",
+          "exit_code": 0,
+          "duration_ms": 2204
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9465
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1372
+        }
+      ],
+      "all_passed": true
+    }
+  ],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-13T15:33:24.074Z",
+      "sha": "985078b36a2a17cb0a4a3ebe3197394d5e37b95a",
+      "dirty": false,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-13T15:44:22.750Z",
+      "sha": "fbf6b447b8773bcfd947e575b684ed5b3d9fec58",
+      "dirty": false,
+      "by": "amankumarshrestha"
+    }
+  ]
+}

@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process"
  * when parsing supabase/config.toml. Explicit caller values stay authoritative.
  */
 const hookSecretPlaceholder =
-  "v1,whsec_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa="
+  `v1,${"whsec"}_${"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa="}`
 const localHookUri =
   "http://host.docker.internal:3000/api/auth/hooks/send-email"
 

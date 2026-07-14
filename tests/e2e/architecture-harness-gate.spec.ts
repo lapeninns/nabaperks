@@ -1,9 +1,16 @@
 import { test } from "@playwright/test"
 
-import { expectArchitectureHarnessSurfaces } from "./helpers/architecture-gate"
+import {
+  expectArchitectureHarnessSurfaces,
+  warmArchitectureHarnessRoutes,
+} from "./helpers/architecture-gate"
 import { dismissPwaInstall } from "./helpers/harness"
 
 test.describe("architecture remediation harness gate — mobile", () => {
+  test.beforeAll(async ({ request }) => {
+    await warmArchitectureHarnessRoutes(request)
+  })
+
   test.beforeEach(async ({ page }) => {
     await dismissPwaInstall(page)
   })

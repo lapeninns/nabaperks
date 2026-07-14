@@ -1,0 +1,241 @@
+{
+  "schema": 1,
+  "spec_id": "MS-merchant-reward-preset-keyboard-activation",
+  "runs": [
+    {
+      "timestamp": "2026-07-13T17:03:52.715Z",
+      "git_sha": "e614a35710a0a0dfe772fe79ff92e518f2eae0ba",
+      "git_branch": "codex/production-readiness",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7991
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1189
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10363
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9884
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1390
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 166
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-merchant-reward-preset-keyboard-activation\"",
+          "exit_code": 0,
+          "duration_ms": 11423
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari --grep \"@a11y\"",
+          "exit_code": 0,
+          "duration_ms": 195389
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari --grep \"@visual\"",
+          "exit_code": 0,
+          "duration_ms": 57289
+        }
+      ],
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-13T17:43:59.805Z",
+      "git_sha": "1a8c44f47f4d37eb39051b22347f3f19b83a1ae6",
+      "git_branch": "codex/production-readiness",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 7148
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1385
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10116
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9550
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1419
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 169
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-merchant-reward-preset-keyboard-activation\"",
+          "exit_code": 0,
+          "duration_ms": 19202
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari --grep \"@a11y\"",
+          "exit_code": 0,
+          "duration_ms": 243958
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari --grep \"@visual\"",
+          "exit_code": 1,
+          "duration_ms": 66939
+        }
+      ],
+      "all_passed": false
+    },
+    {
+      "timestamp": "2026-07-13T18:14:55.529Z",
+      "git_sha": "16e8c9d74d802cb7153d75578dd2b501192a566f",
+      "git_branch": "codex/production-readiness",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 9397
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1597
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 11750
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 11112
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1560
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 179
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 227770
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 78277
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-merchant-reward-preset-keyboard-activation\"",
+          "exit_code": 0,
+          "duration_ms": 17922
+        }
+      ],
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-07-13T19:20:23.360Z",
+      "git_sha": "222ee1e9a8c04a71cfdfa3b5c5dde43c87462750",
+      "git_branch": "codex/production-readiness",
+      "dirty": false,
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "duration_ms": 8215
+        },
+        {
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "duration_ms": 1309
+        },
+        {
+          "command": "pnpm build",
+          "exit_code": 0,
+          "duration_ms": 10683
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 0,
+          "duration_ms": 9975
+        },
+        {
+          "command": "pnpm test:coverage",
+          "exit_code": 0,
+          "duration_ms": 1471
+        },
+        {
+          "command": "pnpm bundle:check",
+          "exit_code": 0,
+          "duration_ms": 191
+        },
+        {
+          "command": "pnpm test:a11y -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 192134
+        },
+        {
+          "command": "pnpm test:visual -- --project=chromium --project=mobile-safari",
+          "exit_code": 0,
+          "duration_ms": 58717
+        },
+        {
+          "command": "pnpm test:e2e -- --project=chromium --project=mobile-safari --grep \"@MS-merchant-reward-preset-keyboard-activation\"",
+          "exit_code": 0,
+          "duration_ms": 11128
+        }
+      ],
+      "all_passed": true
+    }
+  ],
+  "manual_attestations": [],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "active",
+      "at": "2026-07-13T16:19:30.361Z",
+      "sha": "264eb1eac47a9878141d8d4c0b4b5d3509b8d1bd",
+      "dirty": false,
+      "by": "amankumarshrestha"
+    },
+    {
+      "from": "active",
+      "to": "implemented",
+      "at": "2026-07-13T17:03:52.715Z",
+      "sha": "e614a35710a0a0dfe772fe79ff92e518f2eae0ba",
+      "dirty": false,
+      "by": "amankumarshrestha"
+    }
+  ]
+}

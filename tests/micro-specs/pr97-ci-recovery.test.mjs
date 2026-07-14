@@ -124,3 +124,23 @@ test("Playwright isolates Next output and keeps Linux snapshots OS-specific", ()
   assert.ok(tsconfig.include.includes(".next-e2e/types/**/*.ts"))
   assert.ok(tsconfig.include.includes(".next-e2e/dev/types/**/*.ts"))
 })
+
+test("CI isolates native PDF generation and every required browser project", () => {
+  const workflow = readProjectFile(".github", "workflows", "ci.yml")
+  const e2eJob = workflow
+    .slice(workflow.indexOf("  e2e:"), workflow.indexOf("  a11y:"))
+  const projectCommands = e2eJob
+    .split("\n")
+    .filter((line) => line.includes("pnpm test:e2e -- --project="))
+
+  assert.deepEqual(projectCommands.map((line) => line.trim()), [
+    '- run: pnpm test:e2e -- --project=chromium --grep "poster printing"',
+    '- run: pnpm test:e2e -- --project=chromium --grep-invert "@visual|poster printing"',
+    "- run: pnpm test:e2e -- --project=mobile-safari --grep-invert @visual",
+    "- run: pnpm test:e2e -- --project=desktop-firefox --grep-invert @visual",
+    "- run: pnpm test:e2e -- --project=desktop-safari --grep-invert @visual",
+  ])
+  for (const command of projectCommands) {
+    assert.equal((command.match(/--project=/g) ?? []).length, 1)
+  }
+})

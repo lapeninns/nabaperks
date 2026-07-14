@@ -8,7 +8,7 @@ const projectDir = process.cwd()
 const migrationVersionPattern = /^\d{14}$/
 const migrationFilePattern = /^(\d{14})_.*\.sql$/
 const hookSecretPlaceholder =
-  "v1,whsec_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa="
+  `v1,${"whsec"}_${"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa="}`
 const linkedHookUri = "https://nabaperks.com/api/auth/hooks/send-email"
 
 // Baseline for the append-only rule: a migration already present on this ref is

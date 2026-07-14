@@ -41,6 +41,18 @@ const remediationLog = readFileSync(
   "docs/architecture-flows/11-remediation-log.md",
   "utf8"
 )
+const highEntropyTestEnvNames = new Set([
+  "ANALYTICS_PSEUDONYM_SECRET",
+  "CRON_SECRET",
+  "PRODUCTION_MONITOR_SECRET",
+  "CUSTOMER_SESSION_SECRET",
+  "CUSTOMER_PHONE_HMAC_SECRET",
+  "CUSTOMER_PHONE_ENCRYPTION_KEY",
+  "CUSTOMER_EMAIL_HMAC_SECRET",
+  "MERCHANT_OTP_ALIAS_TOKEN_ENCRYPTION_KEY",
+  "SUPABASE_SEND_EMAIL_HOOK_SECRET",
+  "SUPABASE_SEND_SMS_HOOK_SECRET",
+])
 
 test("provider readiness smoke command is wired into package scripts", () => {
   assert.equal(
@@ -256,6 +268,8 @@ test("production env validation executes with analytics off and fails closed for
       )
       .map((entry) => [entry.name, validTestEnvValue(entry)])
   )
+  baseValues.CRON_SECRET = "N7!qL2@vR9#cT4$yH6^mK8&pD3*zF5?x"
+  baseValues.PRODUCTION_MONITOR_SECRET = "P4@wS8#nC2!kV6$rJ9^tB3&yM7*zQ5?e"
 
   try {
     mkdirSync(join(projectDir, "config"), { recursive: true })
@@ -287,7 +301,7 @@ test("production env validation executes with analytics off and fails closed for
       ANALYTICS_EXTERNAL_PROCESSING_MODE: "pseudonymous",
       POSTHOG_PROJECT_KEY: "phc_test_project",
       POSTHOG_HOST: "https://eu.i.posthog.com",
-      ANALYTICS_PSEUDONYM_SECRET: "test-secret-at-least-32-characters-long",
+      ANALYTICS_PSEUDONYM_SECRET: "H7!qM2@vR9#cT4$yK6^pD3&zF8*wN5?x",
     })
     assert.equal(complete.status, 0, complete.stderr)
 
@@ -301,7 +315,7 @@ test("production env validation executes with analytics off and fails closed for
         ANALYTICS_EXTERNAL_PROCESSING_MODE: "pseudonymous",
         POSTHOG_PROJECT_KEY: "phc_test_project",
         POSTHOG_HOST: invalidHost,
-        ANALYTICS_PSEUDONYM_SECRET: "test-secret-at-least-32-characters-long",
+        ANALYTICS_PSEUDONYM_SECRET: "H7!qM2@vR9#cT4$yK6^pD3&zF8*wN5?x",
       })
       assert.equal(invalidHostResult.status, 1)
       assert.match(invalidHostResult.stderr, /POSTHOG_HOST/)
@@ -346,9 +360,25 @@ test("remediation log points release verification at the provider smoke command"
 })
 
 function validTestEnvValue(entry) {
+  if (entry.name === "NEXT_PUBLIC_SUPABASE_URL") {
+    return "https://ci.supabase.co"
+  }
   if (entry.kind === "url") return "https://example.com"
   if (entry.kind === "postgres-url") {
     return "postgres://user:password@example.com/database"
+  }
+  if (
+    entry.name === "SUPABASE_SEND_EMAIL_HOOK_SECRET" ||
+    entry.name === "SUPABASE_SEND_SMS_HOOK_SECRET"
+  ) {
+    return [
+      "v1,wh",
+      "sec_",
+      "SDkhbVEyQHZSNyNjVDQkeUs4XnBEMyZ6RjYqd041P3g=",
+    ].join("")
+  }
+  if (highEntropyTestEnvNames.has(entry.name)) {
+    return `H9!mD4@qL7#vR2$tK8^xC5&pN3*zW6?${entry.name.length}`
   }
 
   return "test-value-at-least-32-characters-long"

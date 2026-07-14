@@ -1,6 +1,10 @@
 import { expect, test, type Page } from "@playwright/test"
 
-import { dismissPwaInstall, HARNESS_ROUTES } from "./helpers/harness"
+import {
+  dismissPwaInstall,
+  gotoHydratedPage,
+  HARNESS_ROUTES,
+} from "./helpers/harness"
 
 export function describeMerchantRewardPresets() {
   test.describe("merchant reward presets @reward-presets @MS-merchant-reward-preset-atomic-add", () => {
@@ -47,19 +51,34 @@ export function describeMerchantRewardPresets() {
       await expect(page.getByLabel("Reward name")).toHaveCount(0)
     })
 
-    test("RA-1: Space and Enter toggle preset selection without invoking persistence", async ({
+    test("RA-1: Space and Enter toggle preset selection without invoking persistence @MS-merchant-reward-preset-keyboard-activation", async ({
       page,
     }) => {
       await dismissPwaInstall(page)
-      await page.goto(`${HARNESS_ROUTES.launch}?tab=rewards&pool=empty`)
+      await gotoHydratedPage(
+        page,
+        `${HARNESS_ROUTES.launch}?tab=rewards&pool=empty`
+      )
 
       const freeStarter = presetToggle(page, "Free starter")
       await expect(freeStarter).toBeVisible()
-      await freeStarter.focus()
-      await page.keyboard.press("Space")
+      await freeStarter.press("Space")
       await expect(freeStarter).toHaveAttribute("aria-pressed", "true")
 
-      await page.keyboard.press("Enter")
+      const repeatedSpaceWasCancelled = await freeStarter.evaluate((button) =>
+        button.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: " ",
+            repeat: true,
+            bubbles: true,
+            cancelable: true,
+          })
+        )
+      )
+      expect(repeatedSpaceWasCancelled).toBe(false)
+      await expect(freeStarter).toHaveAttribute("aria-pressed", "true")
+
+      await freeStarter.press("Enter")
       await expect(freeStarter).toHaveAttribute("aria-pressed", "false")
       await expect(page.getByText("No rewards in the pool yet")).toBeVisible()
     })

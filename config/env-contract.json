@@ -145,6 +145,13 @@
     "optional": true
   },
   {
+    "name": "PRODUCTION_MONITOR_SECRET",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Dedicated high-entropy bearer token for the production dependency-readiness monitor.",
+    "optional": true
+  },
+  {
     "name": "TWILIO_ACCOUNT_SID",
     "visibility": "server",
     "kind": "string",

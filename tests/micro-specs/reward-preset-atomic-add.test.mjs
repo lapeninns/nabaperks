@@ -108,6 +108,10 @@ test("RA-1/RA-2/RA-11: reward ideas expose draft multi-selection, separate custo
   assert.match(form, /selectedPresetIds/)
   assert.match(form, /reconcileSelectedPresetIdsAfterRewardSave/)
   assert.match(form, /aria-pressed=\{[^}]*selected[^}]*\}/)
+  assert.match(
+    form,
+    /onKeyDown=\{\(event\) => \{[\s\S]*?event\.key !== " "[\s\S]*?event\.preventDefault\(\)[\s\S]*?event\.repeat[\s\S]*?togglePreset\(preset\)/
+  )
   assert.match(form, /Customise \$?\{?preset\.rewardName\}?/)
   assert.match(form, /Edit \$?\{?[^}]*rewardName[^}]*\}?/)
   assert.match(form, /Add \$?\{?[^\n]*selected[^\n]*\}? reward/)

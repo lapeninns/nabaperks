@@ -1,9 +1,9 @@
 ---
 spec_id: MS-pwa
-status: active
+status: verified
 risk_class: ui-only
 owner: claude-code agent (amanshresthaa)
-last_reviewed: 2026-07-01
+last_reviewed: 2026-07-13
 allowed_blast_radius:
   - components/pwa/**
   - app/offline/**

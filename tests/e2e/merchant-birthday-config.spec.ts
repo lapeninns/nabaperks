@@ -61,8 +61,12 @@ test.describe("@merchant-flow merchant birthday config", () => {
     expect(box).not.toBeNull()
     expect(box?.x).toBeGreaterThanOrEqual(0)
     expect((box?.x ?? 0) + (box?.width ?? 0) + 4).toBeLessThanOrEqual(375)
+    await expect(cta).toHaveAttribute("href", "/app/launch?tab=billing")
 
     await cta.click()
-    await expect(page).toHaveURL(/tab=billing/)
+    await expect(page).toHaveURL(/\/login\?/)
+    expect(new URL(page.url()).searchParams.get("next")).toBe(
+      "/app/launch?tab=billing"
+    )
   })
 })

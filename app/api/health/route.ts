@@ -2,15 +2,12 @@ import {
   REQUEST_ID_HEADER,
   resolveRequestId,
 } from "@/lib/observability/request-id"
+import packageJson from "@/package.json"
 
-// Liveness probe for uptime monitors, load balancers, and deploy smoke checks.
-// Intentionally dependency-free and never cached so a 200 here means the Next
-// server is up and serving. Deeper dependency checks (DB, Stripe) belong in a
-// separate, authenticated readiness probe so this stays cheap and public.
 export const dynamic = "force-dynamic"
 
 const SERVICE = "nabaperks"
-const VERSION = process.env.npm_package_version ?? "0.0.0"
+const VERSION = packageJson.version
 
 export async function GET(request: Request): Promise<Response> {
   const requestId = resolveRequestId(request.headers)
@@ -21,6 +18,8 @@ export async function GET(request: Request): Promise<Response> {
       scope: "liveness",
       service: SERVICE,
       version: VERSION,
+      revision: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) ?? VERSION,
+      environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "unknown",
       uptime: Math.round(process.uptime()),
       time: new Date().toISOString(),
     },

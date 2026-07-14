@@ -1,6 +1,8 @@
 import AxeBuilder from "@axe-core/playwright"
 import { expect, type Page } from "@playwright/test"
 
+import { waitForHydratedPage } from "./harness"
+
 /**
  * Shared accessibility helper for the e2e suite. Runs an axe-core scan with the
  * WCAG 2 A/AA tag set against the current page, after hiding the Next.js
@@ -25,6 +27,7 @@ export async function expectNoAxeViolations(
   label: string
 ): Promise<void> {
   await page.waitForLoadState("domcontentloaded")
+  await waitForHydratedPage(page)
   await hideDevelopmentOverlay(page)
   await page.waitForTimeout(500)
 
@@ -67,6 +70,7 @@ async function analyzeWithNavigationRetry(page: Page) {
   }
 
   await page.waitForLoadState("domcontentloaded")
+  await waitForHydratedPage(page)
   await page.waitForTimeout(500)
   return buildAxe(page).analyze()
 }

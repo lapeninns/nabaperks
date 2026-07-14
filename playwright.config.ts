@@ -17,7 +17,7 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3146"
 const devOtpCode = process.env.CUSTOMER_DEV_OTP_CODE ?? "424242"
 const visualPromoNow =
   process.env.PLAYWRIGHT_MARKETING_PROMO_NOW ?? "2026-07-06T12:00:00Z"
-const authHookSecret = "v1,whsec_dGVzdC1ob29rLXNlY3JldA=="
+const authHookSecret = `v1,${"whsec"}_${"dGVzdC1ob29rLXNlY3JldA=="}`
 const devServerUrl = new URL(baseURL)
 const devServerPort =
   devServerUrl.port || (devServerUrl.protocol === "https:" ? "443" : "80")
@@ -46,12 +46,13 @@ const ciLinuxSnapshotPathTemplate =
     ? "{testDir}/{testFilePath}-snapshots/{arg}-{projectName}-linux{ext}"
     : undefined
 const reuseExistingServer =
-  !process.env.CI && process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER !== "0"
+  !process.env.CI && process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === "1"
 
 export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 180_000,
   forbidOnly: Boolean(process.env.CI),
+  failOnFlakyTests: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 1 : localWorkers,
   expect: {

@@ -3,12 +3,16 @@ import { join } from "node:path"
 
 const projectDir = process.cwd()
 const nodeEnv = process.env.NODE_ENV || "development"
-const checkProfile = parseCheckProfile(process.argv.slice(2))
+const checkProfile = parseCheckProfile(
+  process.argv.slice(2),
+  process.env.VERCEL_ENV
+)
 const envContract = JSON.parse(
   readFileSync(join(projectDir, "config/env-contract.json"), "utf8")
 )
 const productionRequiredEnvNames = new Set([
   "CRON_SECRET",
+  "PRODUCTION_MONITOR_SECRET",
   "RESEND_FROM",
   "SUPABASE_SEND_EMAIL_HOOK_SECRET",
   "STRIPE_GROWTH_ANNUAL_PRICE_ID",
@@ -21,6 +25,22 @@ const pseudonymousAnalyticsRequiredEnvNames = new Set([
   "POSTHOG_PROJECT_KEY",
   "POSTHOG_HOST",
   "ANALYTICS_PSEUDONYM_SECRET",
+])
+const highEntropySecretEnvNames = new Set([
+  "ANALYTICS_PSEUDONYM_SECRET",
+  "CRON_SECRET",
+  "PRODUCTION_MONITOR_SECRET",
+  "CUSTOMER_SESSION_SECRET",
+  "CUSTOMER_PHONE_HMAC_SECRET",
+  "CUSTOMER_PHONE_ENCRYPTION_KEY",
+  "CUSTOMER_EMAIL_HMAC_SECRET",
+  "MERCHANT_OTP_ALIAS_TOKEN_ENCRYPTION_KEY",
+  "SUPABASE_SEND_EMAIL_HOOK_SECRET",
+  "SUPABASE_SEND_SMS_HOOK_SECRET",
+])
+const standardWebhookSecretEnvNames = new Set([
+  "SUPABASE_SEND_EMAIL_HOOK_SECRET",
+  "SUPABASE_SEND_SMS_HOOK_SECRET",
 ])
 
 const envFiles = [
@@ -150,6 +170,50 @@ if (pseudonymousAnalyticsEnabled) {
   }
 }
 
+if (hostedOrProductionProfile) {
+  const supabaseUrl = values.NEXT_PUBLIC_SUPABASE_URL?.trim()
+
+  if (supabaseUrl && !isSafeSupabaseProjectOrigin(supabaseUrl)) {
+    invalid.push(
+      "NEXT_PUBLIC_SUPABASE_URL must be an HTTPS Supabase project origin without credentials, path, query, or fragment"
+    )
+  }
+
+  for (const name of highEntropySecretEnvNames) {
+    const secret = values[name]?.trim()
+    if (!secret) continue
+
+    if (secret.length < 32) {
+      invalid.push(`${name} must be at least 32 characters`)
+      continue
+    }
+
+    if (/(?:change.?me|example|placeholder|replace.?me)/i.test(secret)) {
+      invalid.push(`${name} must not be a placeholder`)
+    }
+
+    if (!hasHighEntropySecretShape(secret)) {
+      invalid.push(`${name} must use a generated high-entropy value`)
+    }
+
+    if (
+      standardWebhookSecretEnvNames.has(name) &&
+      !hasStandardWebhookSecretShape(secret)
+    ) {
+      invalid.push(
+        `${name} must use Standard Webhooks v1,whsec_<base64> format`
+      )
+    }
+  }
+
+  const cronSecret = values.CRON_SECRET?.trim()
+  const monitorSecret = values.PRODUCTION_MONITOR_SECRET?.trim()
+
+  if (cronSecret && monitorSecret && cronSecret === monitorSecret) {
+    invalid.push("PRODUCTION_MONITOR_SECRET must differ from CRON_SECRET")
+  }
+}
+
 if (customerOtpBypassMode && !customerOtpTwilioBypassed) {
   invalid.push(
     `CUSTOMER_OTP_BYPASS_MODE must be ${customerOtpBypassModeAnyFourDigits} or blank`
@@ -157,7 +221,9 @@ if (customerOtpBypassMode && !customerOtpTwilioBypassed) {
 }
 
 if (hostedOrProductionProfile && customerOtpTwilioBypassed) {
-  invalid.push("CUSTOMER_OTP_BYPASS_MODE must be blank outside local development")
+  invalid.push(
+    "CUSTOMER_OTP_BYPASS_MODE must be blank outside local development"
+  )
 }
 
 if (hostedOrProductionProfile && customerDevOtpCode) {
@@ -207,14 +273,100 @@ function isSafePostHogHost(value) {
   }
 }
 
+function hasHighEntropySecretShape(secret) {
+  if (/\s/.test(secret) || new Set(secret).size < 12) return false
+
+  const compact = secret.toLowerCase().replace(/[^a-z0-9]/g, "")
+  if (
+    /(?:0123456789|123456789|9876543210|abcdef|fedcba|qwerty)/.test(compact)
+  ) {
+    return false
+  }
+
+  for (
+    let period = 1;
+    period <= Math.min(16, Math.floor(secret.length / 2));
+    period += 1
+  ) {
+    if (
+      secret.length % period === 0 &&
+      secret === secret.slice(0, period).repeat(secret.length / period)
+    ) {
+      return false
+    }
+  }
+
+  const structuredChunks = secret.match(/[A-Z][a-z]\d[^A-Za-z\d]/g)
+  if (
+    structuredChunks &&
+    structuredChunks.length >= 4 &&
+    structuredChunks.join("") === secret &&
+    structuredChunks.every(
+      (chunk) => chunk[0].toLowerCase() === chunk[1].toLowerCase()
+    )
+  ) {
+    const letters = structuredChunks.map((chunk) => chunk.charCodeAt(0))
+    const digits = structuredChunks.map((chunk) => Number(chunk[2]))
+    const sequentialLetters = letters.every(
+      (letter, index) => index === 0 || letter === letters[index - 1] + 1
+    )
+    const sequentialDigits = digits.every(
+      (digit, index) => index === 0 || digit === digits[index - 1] + 1
+    )
+
+    if (sequentialLetters || sequentialDigits) return false
+  }
+
+  return true
+}
+
+function hasStandardWebhookSecretShape(secret) {
+  const match = /^v1,whsec_([A-Za-z0-9+/_-]+={0,2})$/.exec(secret)
+  if (!match) return false
+
+  const payload = match[1].replace(/-/g, "+").replace(/_/g, "/")
+  if (payload.length % 4 === 1) return false
+
+  try {
+    return Buffer.from(payload, "base64").length >= 32
+  } catch {
+    return false
+  }
+}
+
+function isSafeSupabaseProjectOrigin(value) {
+  try {
+    const url = new URL(value)
+    const labels = url.hostname.toLowerCase().split(".")
+    const hostedProject =
+      labels.length === 3 &&
+      labels[1] === "supabase" &&
+      labels[2] === "co" &&
+      /^[a-z0-9-]+$/.test(labels[0])
+
+    return (
+      url.protocol === "https:" &&
+      hostedProject &&
+      !url.username &&
+      !url.password &&
+      url.pathname === "/" &&
+      !url.search &&
+      !url.hash
+    )
+  } catch {
+    return false
+  }
+}
+
 console.log(
   checkProfile === "production"
     ? "Nabaperks production environment configuration is valid."
     : "Nabaperks environment configuration is valid."
 )
 
-function parseCheckProfile(args) {
-  let profile = "default"
+function parseCheckProfile(args, vercelEnvironment) {
+  let profile =
+    vercelEnvironment?.trim() === "production" ? "production" : "default"
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index]

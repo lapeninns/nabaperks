@@ -3,6 +3,7 @@ import { Bricolage_Grotesque, Space_Mono } from "next/font/google"
 import Script from "next/script"
 
 import "./globals.css"
+import { PlaywrightHydrationSignal } from "@/components/dev-tools/playwright-hydration-signal"
 import { AppPwa } from "@/components/pwa/app-pwa"
 import { JsonLd } from "@/components/seo/json-ld"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -83,36 +84,41 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const isPlaywrightHarness =
+    process.env.NODE_ENV === "development" &&
+    process.env.PLAYWRIGHT_HARNESS === "1"
+
   return (
     <html
       lang="en-GB"
       suppressHydrationWarning
+      data-playwright-harness={isPlaywrightHarness ? "true" : undefined}
       data-scroll-behavior="smooth"
       className={`${bricolageGrotesque.variable} ${spaceMono.variable} antialiased`}
     >
       <head>
         {process.env.NODE_ENV === "development" &&
           process.env.PLAYWRIGHT_HARNESS !== "1" && (
-            <Script
-              src="https://unpkg.com/react-scan/dist/auto.global.js"
-              crossOrigin="anonymous"
-              strategy="afterInteractive"
-            />
+            <>
+              <Script
+                src="https://unpkg.com/react-scan/dist/auto.global.js"
+                crossOrigin="anonymous"
+                strategy="afterInteractive"
+              />
+              <Script
+                src="//unpkg.com/react-grab/dist/index.global.js"
+                crossOrigin="anonymous"
+                strategy="beforeInteractive"
+              />
+            </>
           )}
-
-        {process.env.NODE_ENV === "development" && (
-          <Script
-            src="//unpkg.com/react-grab/dist/index.global.js"
-            crossOrigin="anonymous"
-            strategy="beforeInteractive"
-          />
-        )}
       </head>
-      <body className="font-sans">
+      <body className="font-sans" inert={isPlaywrightHarness}>
         <ThemeProvider>
           {children}
           <AppPwa />
           <Toaster closeButton />
+          {isPlaywrightHarness && <PlaywrightHydrationSignal />}
         </ThemeProvider>
         <JsonLd
           id="ld-site"

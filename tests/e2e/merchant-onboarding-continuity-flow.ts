@@ -1,7 +1,11 @@
 import { expect, test, type Page } from "@playwright/test"
 
 import { expectNoAxeViolations } from "./helpers/axe"
-import { dismissPwaInstall, HARNESS_ROUTES } from "./helpers/harness"
+import {
+  dismissPwaInstall,
+  gotoHydratedPage,
+  HARNESS_ROUTES,
+} from "./helpers/harness"
 import {
   assertMerchantOnboardingBrowserSession,
   assertMerchantOnboardingDbState,
@@ -25,7 +29,7 @@ export function defineMerchantOnboardingContinuityTests() {
   test("mobile orientation precedes the first field while the full roadmap remains available @MS-merchant-ux-audit-closure @a11y", async ({
     page,
   }, testInfo) => {
-    await page.goto(HARNESS_ROUTES.onboarding)
+    await gotoHydratedPage(page, HARNESS_ROUTES.onboarding)
 
     const summary = page.locator('[data-onboarding-orientation="summary"]')
     const firstField = page.locator('input[name="businessName"]')
@@ -72,7 +76,7 @@ export function defineMerchantOnboardingContinuityTests() {
       { key: DRAFT_KEY }
     )
 
-    await page.goto(HARNESS_ROUTES.onboarding)
+    await gotoHydratedPage(page, HARNESS_ROUTES.onboarding)
 
     await expect(page.locator('input[name="businessName"]')).toHaveValue(
       "Old Crown Girton"
@@ -91,7 +95,7 @@ export function defineMerchantOnboardingContinuityTests() {
   test("required-field failures stay client-side, announce, and refocus on every attempt", async ({
     page,
   }) => {
-    await page.goto(HARNESS_ROUTES.onboarding)
+    await gotoHydratedPage(page, HARNESS_ROUTES.onboarding)
     await page.locator('input[name="businessName"]').clear()
 
     let actionPosts = 0
@@ -120,7 +124,7 @@ export function defineMerchantOnboardingContinuityTests() {
   test("a server failure retains safe fields, announces the recovery message, and focuses it", async ({
     page,
   }) => {
-    await page.goto(HARNESS_ROUTES.onboarding)
+    await gotoHydratedPage(page, HARNESS_ROUTES.onboarding)
     await page.locator('input[name="addressLine1"]').fill("15 Market Street")
     await page.locator('input[name="addressCity"]').fill("Cambridge")
     await page.locator('input[name="addressPostcode"]').fill("CB2 3PA")
@@ -161,7 +165,7 @@ export function defineMerchantOnboardingContinuityTests() {
       try {
         fixture = await createMerchantOnboardingLiveDbFixture(sql, context)
         await installMerchantOnboardingAuditFailure(sql, fixture)
-        await page.goto("/app/onboarding")
+        await gotoHydratedPage(page, "/app/onboarding")
 
         await page
           .locator('input[name="businessName"]')

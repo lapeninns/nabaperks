@@ -124,7 +124,9 @@ function shouldRequireSsl(dbUrl) {
   try {
     const url = new URL(dbUrl)
 
-    return url.hostname.endsWith("supabase.com")
+    const hostname = url.hostname.toLowerCase()
+
+    return hostname === "supabase.com" || hostname.endsWith(".supabase.com")
   } catch {
     return false
   }

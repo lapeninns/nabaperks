@@ -1,4 +1,5 @@
 {
+  "buildCommand": "pnpm env:check && pnpm build",
   "regions": ["lhr1"],
   "crons": [
     {

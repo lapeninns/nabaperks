@@ -148,7 +148,6 @@ verification_gates:
   - pnpm claims:check
   - pnpm build
   - pnpm bundle:check
-  - pnpm lighthouse
   - pnpm jsonld:check
 required_playwright_projects:
   - chromium
@@ -156,7 +155,8 @@ required_playwright_projects:
   - desktop-firefox
   - desktop-safari
 evidence_required:
-  - CI output for lint, typecheck, governance, node tests, coverage, Playwright governance e2e smoke, Playwright a11y smoke, Playwright visual smoke, token checks, claims checks, build, bundle budget, Lighthouse, and JSON-LD checks.
+  - CI output for lint, typecheck, governance, node tests, coverage, Playwright governance e2e smoke, Playwright a11y smoke, Playwright visual smoke, token checks, claims checks, build, bundle budget, and JSON-LD checks.
+  - The dedicated isolated `Lighthouse CI` job output and uploaded report for the unchanged route, category, paint, and total-blocking-time budgets. Lighthouse is intentionally not repeated at the end of this long governance bundle because shared-runner timing variance produced a false red while the isolated performance job passed the same revision and thresholds.
   - Governance checker output proving metadata, risk gates, docs drift, blast-radius rules, and safe gate-command parsing.
   - Live DB proof from pnpm test:db when SUPABASE_DB_URL is available; DB-free browser harnesses do not count as RLS, billing, webhook, or ledger proof.
   - Nightly workflow output for full cross-browser Playwright, Stryker mutation, k6 load checks, and ZAP full scan.
@@ -254,7 +254,7 @@ Required gates:
 - `pnpm claims:check`
 - `pnpm build`
 - `pnpm bundle:check`
-- `pnpm lighthouse`
+- Dedicated isolated `Lighthouse CI` workflow job (`pnpm lighthouse`)
 - `pnpm jsonld:check`
 
 Status transition notes stay in this Micro-Spec. No tracked screenshot evidence

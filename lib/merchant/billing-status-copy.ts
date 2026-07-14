@@ -80,7 +80,7 @@ export function merchantBillingStateCopy(status: string): MerchantBillingCopy {
     past_due: {
       title: `Billing ${formatMerchantBillingStatus(state)}`,
       description:
-        "A payment needs attention. Your card still works for now, but please sort billing soon.",
+        "A payment needs attention. New stamps and rewards are paused until billing is restored.",
       className: warningClassName,
       noteClassName: warningNoteClassName,
       titleClassName: "text-destructive",

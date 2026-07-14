@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test"
+import type { Page, Response } from "@playwright/test"
 
 /**
  * Shared helpers for the DB-free e2e tier (MS-platform-e2e-harness).
@@ -42,4 +42,21 @@ export async function dismissPwaInstall(page: Page): Promise<void> {
       // Storage can be unavailable in some contexts; harness nav still works.
     }
   }, PWA_DISMISS_KEY)
+}
+
+export async function gotoHydratedPage(
+  page: Page,
+  path: string
+): Promise<Response | null> {
+  const response = await page.goto(path)
+  await waitForHydratedPage(page)
+  return response
+}
+
+export async function waitForHydratedPage(page: Page): Promise<void> {
+  await page
+    .locator(
+      "html[data-playwright-harness='true'][data-playwright-hydrated='true'] body:not([inert])"
+    )
+    .waitFor({ state: "attached", timeout: 15_000 })
 }

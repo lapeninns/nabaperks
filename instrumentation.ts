@@ -20,21 +20,22 @@ function headerValue(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value
 }
 
-// Captures server-side errors with full request/router context so they reach the
-// log drain as structured, correlatable records instead of opaque stack traces.
 export const onRequestError: Instrumentation.onRequestError = async (
   err,
   request,
   context
 ) => {
-  const error = err as Error & { digest?: string }
+  const errorName = err instanceof Error ? err.name : typeof err
+  const digest =
+    typeof err === "object" && err !== null && "digest" in err
+      ? String(err.digest)
+      : null
 
   logger.error("request.error", {
-    error,
-    digest: error.digest ?? null,
+    errorName,
+    digest,
     requestId: headerValue(request.headers?.[REQUEST_ID_HEADER]) ?? null,
     method: request.method,
-    path: request.path,
     routerKind: context.routerKind,
     routePath: context.routePath,
     routeType: context.routeType,

@@ -46,6 +46,7 @@ const SECURITY_HEADERS = {
 // server components and route handlers via the forwarded request headers, and
 // echoes it on the response so clients and logs can be correlated end to end.
 export async function proxy(request: NextRequest) {
+  const operationalProbe = isOperationalProbePath(request.nextUrl.pathname)
   const requestId = resolveRequestId(request.headers)
   const requestPath = `${request.nextUrl.pathname}${request.nextUrl.search}`
   const nonce = isStaticMarketingPath(request.nextUrl.pathname)
@@ -55,10 +56,12 @@ export async function proxy(request: NextRequest) {
     nonce === undefined
       ? staticMarketingContentSecurityPolicy()
       : dynamicContentSecurityPolicy(nonce)
-  const joinJourney = resolveJoinJourney(request)
-  const customerDevice = resolveCustomerDevice(request)
+  const joinJourney = operationalProbe ? null : resolveJoinJourney(request)
+  const customerDevice = operationalProbe
+    ? null
+    : resolveCustomerDevice(request)
 
-  const response = await refreshSupabaseSession(request, () => {
+  const createResponse = () => {
     const requestHeaders = forwardedRequestHeaders(
       request,
       requestId,
@@ -66,7 +69,7 @@ export async function proxy(request: NextRequest) {
       csp,
       nonce,
       joinJourney?.token,
-      customerDevice.id
+      customerDevice?.id
     )
     const nextResponse = NextResponse.next({
       request: { headers: requestHeaders },
@@ -77,7 +80,11 @@ export async function proxy(request: NextRequest) {
       nextResponse.headers.set(header, value)
     }
     return nextResponse
-  })
+  }
+
+  const response = operationalProbe
+    ? createResponse()
+    : await refreshSupabaseSession(request, createResponse)
 
   if (joinJourney?.isNew) {
     response.cookies.set(JOIN_JOURNEY_COOKIE, joinJourney.token, {
@@ -89,7 +96,7 @@ export async function proxy(request: NextRequest) {
     })
   }
 
-  if (customerDevice.isNew) {
+  if (customerDevice?.isNew) {
     response.cookies.set(CUSTOMER_DEVICE_COOKIE, customerDevice.token, {
       httpOnly: true,
       sameSite: "lax",
@@ -97,6 +104,10 @@ export async function proxy(request: NextRequest) {
       path: "/",
       maxAge: CUSTOMER_DEVICE_TTL_SECONDS,
     })
+  }
+
+  if (isAdminPath(request.nextUrl.pathname)) {
+    response.headers.set("X-Robots-Tag", "noindex, nofollow")
   }
 
   return response
@@ -109,12 +120,14 @@ function forwardedRequestHeaders(
   csp: string,
   nonce: string | undefined,
   joinJourneyToken: string | undefined,
-  customerDeviceId: string
+  customerDeviceId: string | undefined
 ) {
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set(REQUEST_ID_HEADER, requestId)
   requestHeaders.set(REQUEST_PATH_HEADER, requestPath)
-  requestHeaders.set(CUSTOMER_DEVICE_HEADER, customerDeviceId)
+  if (customerDeviceId) {
+    requestHeaders.set(CUSTOMER_DEVICE_HEADER, customerDeviceId)
+  }
   if (joinJourneyToken) {
     requestHeaders.set(JOIN_JOURNEY_HEADER, joinJourneyToken)
   }
@@ -132,6 +145,14 @@ function forwardedRequestHeaders(
   }
 
   return requestHeaders
+}
+
+function isOperationalProbePath(pathname: string): boolean {
+  return pathname === "/api/health" || pathname === "/api/readiness"
+}
+
+function isAdminPath(pathname: string): boolean {
+  return pathname === "/admin" || pathname.startsWith("/admin/")
 }
 
 function resolveCustomerDevice(request: NextRequest): {

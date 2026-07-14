@@ -1,7 +1,11 @@
 import { expect, test } from "@playwright/test"
 
 import { expectNoAxeViolations } from "./helpers/axe"
-import { dismissPwaInstall, HARNESS_ROUTES } from "./helpers/harness"
+import {
+  dismissPwaInstall,
+  gotoHydratedPage,
+  HARNESS_ROUTES,
+} from "./helpers/harness"
 
 const PROMO_PERK =
   "Go live by 31 July 2026 and we print and post your first counter-poster run — free."
@@ -112,7 +116,10 @@ export function defineMerchantLaunchFollowThroughTests() {
   test("readiness rail is obvious, focusable, and keeps ready QR in the hub", async ({
     page,
   }) => {
-    await page.goto(`${HARNESS_ROUTES.launch}?state=billing&tab=qr`)
+    await gotoHydratedPage(
+      page,
+      `${HARNESS_ROUTES.launch}?state=billing&tab=qr`
+    )
 
     const rail = page.getByRole("navigation", {
       name: "Merchant setup steps",
