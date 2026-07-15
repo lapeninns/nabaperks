@@ -37,6 +37,7 @@ import {
 } from "@/lib/security/rate-limit"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { buildCustomerJoinHref } from "@/lib/navigation/customer-join-intent"
+import { normalizeOtpInput } from "@/lib/customer/experience/otp-field"
 import { logger } from "@/lib/observability/logger"
 import {
   normalizeRequestId,
@@ -219,13 +220,15 @@ export async function verifyCustomerOtpAction(
   const merchantSlug = value(formData, "merchantSlug")
   const qrId = value(formData, "qrId")
   const ref = value(formData, "ref")
-  const otp = value(formData, "otp")
+  const otp = normalizeOtpInput(value(formData, "otp"))
   const pending = await getPendingPhoneVerification()
   const requestHeaders = await headers()
   const requestIdentity = customerRateLimitIdentityFromHeaders(requestHeaders)
 
   if (!pending || pending.purpose !== "join") {
-    return { errors: { contact: "Request a new phone code." } }
+    return {
+      errors: { contact: "That code has expired. Request a new one." },
+    }
   }
 
   const contact = pending.phone
@@ -267,7 +270,7 @@ export async function verifyCustomerOtpAction(
   if (verification.status === "rejected") {
     return {
       fields: { merchantSlug, qrId, phoneOtpSent: true },
-      errors: { form: "That code was not accepted." },
+      errors: { otp: "That code was not accepted." },
     }
   }
 

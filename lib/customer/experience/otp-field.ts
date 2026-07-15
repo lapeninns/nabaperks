@@ -11,6 +11,10 @@ export const OTP_MIN_DIGITS = 4
 /** Upper bound of the server-accepted code length (the 8 in `/^\d{4,8}$/`). */
 export const OTP_MAX_DIGITS = 8
 
+export function normalizeOtpInput(value: string): string {
+  return value.replace(/\D/g, "")
+}
+
 /**
  * The effective `maxLength` for an OTP input. With no configured length the cap
  * is the largest code the server will accept, so a longer Twilio code still

@@ -16,8 +16,9 @@ import { StatusBanner } from "@/components/loyalty"
 import type { JoinCard } from "@/lib/customer/experience/types"
 import { Button } from "@/components/ui/button"
 import {
+  joinCompletionHint,
   JOIN_PHONE_BACK_LABEL,
-  JOIN_PHONE_CODE_HINT,
+  JOIN_PHONE_RETENTION_HINT,
 } from "@/lib/customer/experience/copy"
 import {
   buildCustomerJoinHref,
@@ -51,7 +52,7 @@ export function CustomerIdentityForm({
         <input type="hidden" name="ref" value={referralCode ?? ""} />
         <div className="grid gap-2">
           <label htmlFor="contact" className="eyebrow">
-            Phone number
+            UK phone number
           </label>
           <input
             id="contact"
@@ -80,7 +81,7 @@ export function CustomerIdentityForm({
               id="contact-hint"
               className="text-xs leading-5 text-muted-foreground"
             >
-              {JOIN_PHONE_CODE_HINT}
+              {JOIN_PHONE_RETENTION_HINT}
             </p>
           )}
         </div>
@@ -220,11 +221,10 @@ export function CustomerJoinForm({
         <StatusBanner tone="error" title={state.errors.form} />
       ) : null}
       <p className="text-center text-xs leading-5 text-muted-foreground">
-        {qrId
-          ? requireGeofence
-            ? "This QR proves your first visit. Location checks begin on later qualifying visits."
-            : "Finish here and your first stamp lands straight away — no second scan needed."
-          : "Save your card now. Scan at the venue for your first stamp."}
+        {joinCompletionHint({
+          hasQr: Boolean(qrId),
+          requireGeofence,
+        })}
       </p>
       <Button type="submit" size="lg" disabled={pending} className="w-full">
         {pending

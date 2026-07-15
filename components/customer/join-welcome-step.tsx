@@ -9,9 +9,9 @@ import { RewardTicket, StampJourneyPreview } from "@/components/loyalty"
 import { Button } from "@/components/ui/button"
 import { MYSTERY_REWARD_SEALED_LABEL } from "@/lib/copy/product-copy"
 import {
-  JOIN_WELCOME_ALREADY_HAVE_CARD_LABEL,
   JOIN_WELCOME_HOW_IT_WORKS,
   JOIN_WELCOME_HOW_IT_WORKS_LABEL,
+  JOIN_WELCOME_PHONE_REASSURANCE,
   type CustomerExperienceViewModel,
 } from "@/lib/customer/experience/copy"
 import type {
@@ -39,20 +39,10 @@ export function WelcomeStep({
       description={vm.supportLine}
       progress={{ step: 1, total: ONBOARDING_STEPS, label: "Keep your card" }}
       dense
-      className="content-center"
+      className="content-center gap-3"
       screenLabel="Customer join"
     >
       <JoinWelcomeCard merchant={exp.merchant} card={exp.card} />
-      <HowItWorksList />
-      <CustomerVenueTermsSheet
-        venueTerms={{
-          merchantName: exp.merchant.name,
-          stampsRequired: exp.card.stampsRequired,
-          rewardTerms: exp.card.rewardTerms,
-        }}
-        triggerLabel="View full venue terms"
-        triggerClassName="inline-flex w-fit text-xs font-bold underline underline-offset-4"
-      />
       {vm.primaryAction ? (
         <div className="grid gap-2">
           <Button asChild size="lg" className="w-full">
@@ -66,18 +56,21 @@ export function WelcomeStep({
               {vm.primaryAction.label}
             </Link>
           </Button>
-          <Link
-            href={buildCustomerJoinHref(exp.merchant.slug, {
-              qrId: exp.qrId,
-              referralCode,
-              step: "phone",
-            })}
-            className="text-center text-xs font-bold underline underline-offset-4"
-          >
-            {JOIN_WELCOME_ALREADY_HAVE_CARD_LABEL}
-          </Link>
+          <p className="text-center text-xs leading-5 font-semibold text-muted-foreground">
+            {JOIN_WELCOME_PHONE_REASSURANCE}
+          </p>
         </div>
       ) : null}
+      <HowItWorksList />
+      <CustomerVenueTermsSheet
+        venueTerms={{
+          merchantName: exp.merchant.name,
+          stampsRequired: exp.card.stampsRequired,
+          rewardTerms: exp.card.rewardTerms,
+        }}
+        triggerLabel="View full venue terms"
+        triggerClassName="inline-flex w-fit text-xs font-bold underline underline-offset-4"
+      />
     </CustomerFlowShell>
   )
 }

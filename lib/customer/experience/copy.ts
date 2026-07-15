@@ -38,18 +38,22 @@ type UnavailableExperience = Extract<
 /** QR-scan welcome — mirrors join-with-first-stamp: scan → verify → terms → stamp. */
 export const JOIN_WELCOME_HOW_IT_WORKS = [
   "You scanned the venue QR",
-  "Save the card to your number with one text, no app",
+  "Verify your number with one text, no app",
   "Accept the terms and your first stamp prints onto the card",
 ] as const
 
 export const JOIN_WELCOME_HOW_IT_WORKS_LABEL = "How it works" as const
 
-export const JOIN_WELCOME_ALREADY_HAVE_CARD_LABEL =
-  "Already have a card? Use your number and we'll find it." as const
+export const JOIN_WELCOME_PHONE_REASSURANCE =
+  "Already have a card? Use the same number and we'll find it." as const
 
 /** Shown under the phone field on step 2 — sets expectation before the SMS arrives. */
 export const JOIN_PHONE_CODE_HINT =
   "We'll send a one-time code by text." as const
+
+/** Join-only number guidance: honest GB scope plus the retention promise. */
+export const JOIN_PHONE_RETENTION_HINT =
+  "Use a UK number that can receive texts. Your card and progress stay linked to this number." as const
 
 /** Returns to the QR welcome card when the customer wants the full preview again. */
 export const JOIN_PHONE_BACK_LABEL = "See how stamps and rewards work" as const
@@ -60,6 +64,25 @@ export function joinUnlockingRewardHook(stampsRequired: number): string {
   return stamps === 1
     ? "1 stamp unlocks a mystery reward"
     : `${stamps} stamps unlock a mystery reward`
+}
+
+export function joinCompletionHint({
+  hasQr,
+  requireGeofence,
+}: {
+  hasQr: boolean
+  requireGeofence: boolean
+}): string {
+  if (!hasQr) {
+    return "Save your card now. Your progress stays linked to this number, ready for your first venue scan."
+  }
+
+  const retention =
+    "Finish here to collect today's stamp. Your card and progress stay linked to this number for next time."
+
+  return requireGeofence
+    ? `${retention} Location checks begin on later qualifying visits.`
+    : retention
 }
 
 /**
@@ -85,7 +108,8 @@ export function getCustomerExperienceViewModel(
       return {
         eyebrow: "Venue QR scanned",
         headline: "Keep your card on your phone",
-        supportLine: `One text saves ${exp.merchant.name}'s card to your number. New here? Your first stamp lands when you accept the terms.`,
+        supportLine:
+          "New here? Your first stamp is waiting. Keep your card and progress linked to your number, no app or password.",
         primaryAction: {
           label: "Get today's stamp",
           href: buildCustomerJoinHref(exp.merchant.slug, {
@@ -98,7 +122,7 @@ export function getCustomerExperienceViewModel(
       return {
         eyebrow: "One text, no password",
         headline: "Save your card to your number",
-        supportLine: `Save ${exp.merchant.name}'s card to your number, ${joinUnlockingRewardHook(exp.card.stampsRequired)}.`,
+        supportLine: `Keep ${exp.merchant.name}'s card and progress linked to your number. ${joinUnlockingRewardHook(exp.card.stampsRequired)}.`,
       }
     case "join_otp":
       return {
