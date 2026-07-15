@@ -61,7 +61,6 @@ jobs:
       - run: pnpm flags:check
       - run: pnpm docs:check
       - run: pnpm agents:check
-      - run: pnpm e2e:install
       - run: pnpm tokens:check
       - run: pnpm claims:check
       - run: pnpm test:coverage
@@ -83,8 +82,9 @@ jobs:
       fail-fast: false
       matrix:
         project: [chromium, mobile-safari, desktop-firefox, desktop-safari]
-        shard: [1/4, 2/4, 3/4, 4/4]
+        shard: [1/2, 2/2]
     env:
+      PLAYWRIGHT_WORKERS: "2"
       NEXT_PUBLIC_APP_URL: https://example.test
       NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
@@ -116,7 +116,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() && failure() }}
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.project }}-${{ strategy.job-index }}
           path: |
             playwright-report/
             test-results/
@@ -135,9 +135,15 @@ jobs:
         run: test "$E2E_RESULT" = "success"
 
   a11y:
-    name: Accessibility sweep
+    name: Accessibility (${{ matrix.project }})
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium, mobile-safari]
     env:
+      PLAYWRIGHT_WORKERS: "2"
       NEXT_PUBLIC_APP_URL: https://example.test
       NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
@@ -157,21 +163,45 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
-      - run: pnpm e2e:install
-      - run: pnpm test:a11y -- --project=chromium --project=mobile-safari
+      - name: Install project browser
+        run: |
+          case "${{ matrix.project }}" in
+            chromium) browser=chromium ;;
+            mobile-safari) browser=webkit ;;
+          esac
+          pnpm exec playwright install --with-deps "$browser"
+      - run: pnpm test:a11y -- --project="${{ matrix.project }}"
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() && failure() }}
         with:
-          name: a11y-playwright-report
+          name: a11y-playwright-report-${{ matrix.project }}
           path: |
             playwright-report/
             test-results/
           retention-days: 7
+
+  a11y-gate:
+    name: Accessibility sweep
+    needs: a11y
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Require every accessibility project
+        env:
+          A11Y_RESULT: ${{ needs.a11y.result }}
+        run: test "$A11Y_RESULT" = "success"
 
   visual:
-    name: Visual regression
+    name: Visual regression (${{ matrix.project }})
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium, mobile-safari]
     env:
+      PLAYWRIGHT_WORKERS: "2"
       NEXT_PUBLIC_APP_URL: https://example.test
       NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
@@ -191,20 +221,51 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
-      - run: pnpm e2e:install
-      - run: pnpm test:visual -- --project=chromium --project=mobile-safari
+      - name: Install project browser
+        run: |
+          case "${{ matrix.project }}" in
+            chromium) browser=chromium ;;
+            mobile-safari) browser=webkit ;;
+          esac
+          pnpm exec playwright install --with-deps "$browser"
+      - run: pnpm test:visual -- --project="${{ matrix.project }}"
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() && failure() }}
         with:
-          name: visual-playwright-report
+          name: visual-playwright-report-${{ matrix.project }}
           path: |
             playwright-report/
             test-results/
           retention-days: 7
 
-  lighthouse:
-    name: Lighthouse CI
+  visual-gate:
+    name: Visual regression
+    needs: visual
+    if: ${{ always() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Require every visual project
+        env:
+          VISUAL_RESULT: ${{ needs.visual.result }}
+        run: test "$VISUAL_RESULT" = "success"
+
+  lighthouse:
+    name: Lighthouse (${{ matrix.route }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - route: home
+            url: http://127.0.0.1:3130/
+          - route: pricing
+            url: http://127.0.0.1:3130/pricing
+          - route: loyalty-for-pubs
+            url: http://127.0.0.1:3130/loyalty-for-pubs
+          - route: signup
+            url: http://127.0.0.1:3130/signup
     env:
       NEXT_PUBLIC_APP_URL: https://example.test
       NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co
@@ -226,13 +287,25 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - run: pnpm build
-      - run: pnpm lighthouse
+      - run: pnpm lighthouse -- --collect.url="${{ matrix.url }}"
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: lighthouse-report
+          name: lighthouse-report-${{ matrix.route }}
           path: reports/lighthouse/
           retention-days: 7
+
+  lighthouse-gate:
+    name: Lighthouse CI
+    needs: lighthouse
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Require every Lighthouse route
+        env:
+          LIGHTHOUSE_RESULT: ${{ needs.lighthouse.result }}
+        run: test "$LIGHTHOUSE_RESULT" = "success"
 
   zap-baseline:
     name: ZAP baseline
