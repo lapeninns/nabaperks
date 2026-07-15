@@ -31,7 +31,11 @@ test("CUS-P2-01: the receipt footer never invents a card number", () => {
   )
 
   assert.doesNotMatch(flowSystem, /NP-0001/, "fake card number must be gone")
-  assert.match(flowSystem, /\{footerLeft\}/, "footerLeft renders only when real")
+  assert.match(
+    flowSystem,
+    /\{footerLeft\}/,
+    "footerLeft renders only when real"
+  )
 })
 
 test("CUS-P2-02: the /q error states carry one headline and one description", () => {
@@ -92,15 +96,13 @@ test("CUS-P2-04: unavailable venue states offer the shared recovery actions", ()
 })
 
 test("CUS-P2-06: customer inputs sit on the contract ink-well (10px radius, card bg, hard focus ring)", () => {
-  const inputClass = readProjectFile(
-    "components",
-    "customer",
-    "input-class.ts"
-  )
+  const inputClass = readProjectFile("components", "customer", "input-class.ts")
 
   assert.match(inputClass, /rounded-lg/)
   assert.match(inputClass, /bg-card/)
   assert.match(inputClass, /focus-ring/)
+  assert.match(inputClass, /text-base/)
+  assert.match(inputClass, /md:text-sm/)
   assert.doesNotMatch(inputClass, /rounded-xl/)
   assert.doesNotMatch(inputClass, /bg-secondary\/60/)
   assert.doesNotMatch(
@@ -158,6 +160,20 @@ test("CUS-P2-10: redemption-gate resend links meet the tap-size contract", () =>
       `${file} gate links must be at least size="sm"`
     )
   }
+})
+
+test("CUS-P2-10A: profile email verification does not auto-zoom the mobile viewport", () => {
+  const source = readProjectFile(
+    "components",
+    "customer",
+    "profile-about-you.tsx"
+  )
+
+  assert.doesNotMatch(
+    source,
+    /id="home-profile-otp"[\s\S]{0,220}autoFocus/,
+    "the profile OTP must wait for user focus so iOS does not magnify the viewport"
+  )
 })
 
 test("CUS-P2-11: the scanner intro speaks barista, not system", () => {
