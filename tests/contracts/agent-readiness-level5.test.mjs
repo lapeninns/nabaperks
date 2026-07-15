@@ -111,11 +111,42 @@ test("Given a production error When observability is configured Then it carries 
 
 test("Given routine pull requests When CI runs Then deep browser proof is sharded for sub-ten-minute feedback", () => {
   const ci = read(".github/workflows/ci.yml")
+  const playwright = read("playwright.config.ts")
   const release = read(".github/workflows/release-notes.yml")
+  const buildJob = ci.slice(ci.indexOf("  build:"), ci.indexOf("\n  e2e:"))
 
   assert.match(ci, /quality:check/)
-  assert.match(ci, /shard:/)
+  assert.match(ci, /shard: \[1\/4, 2\/4, 3\/4, 4\/4\]/)
   assert.match(ci, /--shard/)
+  assert.match(ci, /PLAYWRIGHT_WORKERS: "1"/)
+  assert.match(playwright, /fullyParallel: true/)
+  assert.match(playwright, /workers: localWorkers/)
+  assert.doesNotMatch(buildJob, /e2e:install/)
+
+  for (const [job, protectedName, dependency] of [
+    ["e2e-gate", "E2E \\(DB-free harness tier\\)", "e2e"],
+    ["a11y-gate", "Accessibility sweep", "a11y"],
+    ["visual-gate", "Visual regression", "visual"],
+    ["lighthouse-gate", "Lighthouse CI", "lighthouse"],
+  ]) {
+    assert.match(
+      ci,
+      new RegExp(
+        `  ${job}:[\\s\\S]*?name: ${protectedName}[\\s\\S]*?needs: ${dependency}`
+      )
+    )
+  }
+
+  for (const job of ["a11y", "visual", "lighthouse", "zap-baseline", "db"]) {
+    assert.match(
+      ci,
+      new RegExp(
+        `\\n  ${job}:\\n(?:(?!\\n  [a-z][a-z0-9-]*:\\n)[\\s\\S])*?\\n    needs: build\\n`
+      )
+    )
+  }
+
+  assert.match(ci, /--collect\.url=/)
   assert.match(release, /release-drafter/)
 })
 

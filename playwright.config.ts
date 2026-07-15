@@ -51,10 +51,11 @@ const reuseExistingServer =
 export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 180_000,
+  fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   failOnFlakyTests: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 1 : localWorkers,
+  workers: localWorkers,
   expect: {
     timeout: 15_000,
   },
