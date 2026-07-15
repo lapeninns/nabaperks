@@ -287,7 +287,6 @@ async function seedStressData(sql, count, config) {
 
   for (let offset = 1; offset <= count; offset += config.batch) {
     const batchEnd = Math.min(offset + config.batch - 1, count)
-    const batchSize = batchEnd - offset + 1
 
     const customers = []
     const memberships = []

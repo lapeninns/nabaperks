@@ -166,7 +166,7 @@ export default async function LaunchHarnessPage({
 
   // Heading / context / description / header-CTA come from the same pure helper
   // the real /app/launch uses, so the harness header stays faithful to it.
-  const header = resolveLaunchHeaderModel(readiness, activeTab)
+  const header = resolveLaunchHeaderModel(readiness)
 
   return (
     <div className="grid min-w-0 gap-2 overflow-x-clip sm:gap-6">

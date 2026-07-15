@@ -10,11 +10,6 @@ import {
   type MerchantBillingResult,
 } from "@/lib/merchant/billing"
 import { LAUNCH_SETUP_STEP_LABELS } from "@/lib/merchant/launch-readiness-contract"
-import type {
-  LaunchHubTab,
-  LaunchReadinessTab,
-  LaunchSetupStepId,
-} from "@/lib/merchant/launch-readiness-contract"
 import {
   buildLaunchReadiness,
   isLaunchBillingReady,

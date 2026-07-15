@@ -1,0 +1,4 @@
+pnpm exec lint-staged
+pnpm debt:check
+pnpm flags:check
+pnpm agents:check

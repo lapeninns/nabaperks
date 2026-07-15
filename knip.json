@@ -1,0 +1,34 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "components/ui/**/*.{ts,tsx}",
+    "components/merchant/launch/launch-billing-cta.tsx",
+    "scripts/**/*.mjs",
+    "tests/**/*.{mjs,ts,tsx}",
+    "app/**/{page,layout,route,error,loading,not-found,template,default}.{ts,tsx}"
+  ],
+  "project": [
+    "app/**/*.{ts,tsx}",
+    "components/**/*.{ts,tsx}",
+    "hooks/**/*.{ts,tsx}",
+    "lib/**/*.{ts,tsx}",
+    "scripts/**/*.mjs",
+    "tests/**/*.{mjs,ts,tsx}",
+    "*.{ts,mts,mjs}"
+  ],
+  "ignoreDependencies": ["shadcn", "tailwindcss", "tw-animate-css"],
+  "rules": {
+    "files": "warn",
+    "exports": "warn",
+    "types": "warn",
+    "nsExports": "warn",
+    "nsTypes": "warn",
+    "enumMembers": "warn",
+    "duplicates": "warn",
+    "dependencies": "warn",
+    "devDependencies": "warn",
+    "unlisted": "error",
+    "unresolved": "error",
+    "binaries": "error"
+  }
+}

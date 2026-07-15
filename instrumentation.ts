@@ -1,5 +1,7 @@
 import type { Instrumentation } from "next"
+import * as Sentry from "@sentry/nextjs"
 
+import { isFeatureEnabled } from "@/lib/feature-flags"
 import { REQUEST_ID_HEADER } from "@/lib/observability/request-id"
 import { logger } from "@/lib/observability/logger"
 
@@ -7,7 +9,16 @@ import { logger } from "@/lib/observability/logger"
 // structured startup record useful for deploy
 // observability and is the seam where an OTel/PostHog server SDK would be
 // registered when `OTEL_*` / collector env is present.
-export function register() {
+export async function register() {
+  if (isFeatureEnabled("platform_error_reporting")) {
+    if (process.env.NEXT_RUNTIME === "nodejs") {
+      await import("./sentry.server.config")
+    }
+    if (process.env.NEXT_RUNTIME === "edge") {
+      await import("./sentry.edge.config")
+    }
+  }
+
   logger.info("server.start", {
     runtime: process.env.NEXT_RUNTIME ?? "nodejs",
     nodeEnv: process.env.NODE_ENV ?? "development",
@@ -30,6 +41,19 @@ export const onRequestError: Instrumentation.onRequestError = async (
     typeof err === "object" && err !== null && "digest" in err
       ? String(err.digest)
       : null
+
+  if (isFeatureEnabled("platform_error_reporting")) {
+    Sentry.withScope((scope) => {
+      scope.setTag(
+        "request.id",
+        headerValue(request.headers?.[REQUEST_ID_HEADER]) ?? "missing"
+      )
+      scope.setTag("next.router_kind", context.routerKind)
+      scope.setTag("next.route_path", context.routePath)
+      scope.setTag("next.route_type", context.routeType)
+      Sentry.captureRequestError(err, request, context)
+    })
+  }
 
   logger.error("request.error", {
     errorName,

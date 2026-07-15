@@ -1,0 +1,26 @@
+name: Feature request
+description: Propose a measurable merchant, customer, or platform outcome.
+title: "[Feature] "
+labels: ["type: feature", "needs triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and user
+      description: Who is blocked, and what outcome cannot be achieved today?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: Describe observable success without prescribing implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance evidence
+      description: List the route, API, DB, analytics, or provider proof that would demonstrate completion.
+    validations:
+      required: true

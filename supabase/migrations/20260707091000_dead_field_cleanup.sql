@@ -1,6 +1,6 @@
 -- db dead field cleanup: drop verified-dead fields, duplicate indexes, and
 -- the never-called record_qr_download RPC (2026-07-06 schema audit,
--- reports/db-schema-audit-2026-07-06.md).
+-- reports/data/db-schema-audit-2026-07-06.md).
 --
 --   * min_spend_pence on loyalty_cards / reward_pool_items / reward_events:
 --     the 20260624 remove_minimum_spend migration dropped the RPC parameters

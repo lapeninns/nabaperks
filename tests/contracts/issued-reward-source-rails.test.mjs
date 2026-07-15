@@ -35,7 +35,11 @@ test("R-9: the display helpers expose the source badge and expiry note", () => {
 })
 
 test("R-9: the wallet cards render the badge and expiry and the page mounts them", () => {
-  const cards = readProjectFile("components", "customer", "reward-list-cards.tsx")
+  const cards = readProjectFile(
+    "components",
+    "customer",
+    "reward-list-cards.tsx"
+  )
   assert.match(cards, /export function RedeemableReward/)
   assert.match(cards, /export function QuietReward/)
   assert.match(cards, /rewardSourceBadge/)
@@ -47,7 +51,11 @@ test("R-9: the wallet cards render the badge and expiry and the page mounts them
 })
 
 test("R-8: the reward-ready push producer only enqueues stamp_cycle rewards", () => {
-  const worker = readProjectFile("lib", "notifications", "delivery-worker.ts")
+  const worker = readProjectFile(
+    "lib",
+    "notifications",
+    "notification-producers.ts"
+  )
   const start = worker.indexOf("async function enqueueRewardReady")
   assert.ok(start >= 0, "enqueueRewardReady exists")
   const after = worker.indexOf("async function", start + 1)
@@ -63,7 +71,7 @@ test("R-10: the issued-reward product events are registered in analytics", () =>
 })
 
 test("R-10: the merchant activity feed knows the issued-reward events", () => {
-  const activity = readProjectFile("lib", "merchant", "activity.ts")
+  const activity = readProjectFile("lib", "merchant", "activity-display.ts")
   // Registered in the queryable event set and the reward category.
   assert.match(activity, /"reward_issued"/)
   assert.match(activity, /"reward_sent"/)

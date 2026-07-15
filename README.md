@@ -20,6 +20,17 @@ pnpm dev
 
 Visit `http://localhost:3000`.
 
+## Repository Map
+
+- `app/` — Next.js routes, layouts, route handlers, and server actions.
+- `components/` — reusable UI grouped by product surface.
+- `lib/` — server and domain modules grouped by capability.
+- `supabase/` — database configuration, migrations, seeds, and local helpers.
+- `tests/` — contract, unit, database, load, and Playwright suites.
+- `docs/` — durable architecture, operations, product, and design documentation.
+- `reports/` — dated audit records; see `reports/README.md` before relying on one.
+- `scripts/` — repository verification and operator tooling.
+
 ## Build Scripts
 
 ```bash
@@ -29,7 +40,12 @@ pnpm lint       # Run ESLint
 pnpm test       # Run contract and unit tests
 pnpm build      # Build the app
 pnpm start      # Start a production build locally
+pnpm clean      # Remove generated local build and test output
 ```
+
+Generated output, local environment files, agent state, and scratch evidence
+must remain ignored. Durable product evidence belongs in `tests/`, `docs/`, or
+an indexed report category rather than `tmp/` or `.scratchpad/`.
 
 ## Verification Checks
 

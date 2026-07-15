@@ -21,9 +21,7 @@ function sqlFunctionSection(source, functionName) {
   const marker = `create or replace function public.${functionName}`
   const start = source.indexOf(marker)
   assert.notEqual(start, -1, `${functionName} must be created by the migration`)
-  const delimiter = source
-    .slice(start)
-    .match(/\nas (\$[a-z0-9_]*\$)\n/i)?.[1]
+  const delimiter = source.slice(start).match(/\nas (\$[a-z0-9_]*\$)\n/i)?.[1]
   assert.ok(delimiter, `${functionName} must declare a SQL body delimiter`)
   const end = source.indexOf(`\n${delimiter};`, start)
   assert.notEqual(end, -1, `${functionName} must have a complete SQL body`)
@@ -73,10 +71,7 @@ test("RA-10/RA-12: action outcomes use house-authored no-change copy and post-co
     /We couldn't confirm whether those rewards were added\. Your choices are still selected — try again\. Already-added rewards won't duplicate\./
   )
   assert.match(actions, /session (?:has )?expired/i)
-  assert.match(
-    action,
-    /isDefiniteRewardPresetRollbackCode\(error\.code\)/
-  )
+  assert.match(action, /isDefiniteRewardPresetRollbackCode\(error\.code\)/)
   assert.match(
     action,
     /presetIds:\s*presets\.map\(\(preset\) => preset\.id\)/,
@@ -97,11 +92,7 @@ test("RA-10/RA-12: action outcomes use house-authored no-change copy and post-co
 })
 
 test("RA-1/RA-2/RA-11: reward ideas expose draft multi-selection, separate customisation, and one mobile-persistent Add action", () => {
-  const form = readProjectFile(
-    "components",
-    "merchant",
-    "loyalty-card-form.tsx"
-  )
+  const form = readProjectFile("components", "merchant", "reward-pool-form.tsx")
 
   assert.match(form, /LAUNCH_MIN_ACTIVE_REWARDS/)
   assert.doesNotMatch(form, /const REQUIRED_ACTIVE_REWARDS\s*=\s*3/)

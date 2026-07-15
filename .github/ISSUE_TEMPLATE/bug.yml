@@ -1,0 +1,32 @@
+name: Bug report
+description: Report a reproducible defect in existing behaviour.
+title: "[Bug] "
+labels: ["type: bug", "needs triage"]
+body:
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behaviour
+      description: What happened, on which route or boundary?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction and evidence
+      description: Include the smallest repeatable steps, environment, logs, and request ID where available.
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Suggested priority
+      options: ["P0 critical", "P1 high", "P2 normal", "P3 low"]
+    validations:
+      required: true

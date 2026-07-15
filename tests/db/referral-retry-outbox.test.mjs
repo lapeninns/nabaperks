@@ -51,12 +51,6 @@ async function joinNoStamp(tx, customerId, slug, ref = null) {
       ${customerId}::uuid, ${slug}, null, false, '2026-06-06', null, null, ${ref})`
   return row
 }
-async function joinWithStamp(tx, customerId, slug, qrId) {
-  const [row] = await tx`
-    select * from public.join_customer_membership_with_first_stamp(
-      ${customerId}::uuid, ${slug}, ${qrId}, false, '2026-06-06', null, null, null)`
-  return row
-}
 async function codeFor(tx, membershipId) {
   const [{ referral_code }] = await tx`select referral_code from public.customer_memberships where id = ${membershipId}`
   return referral_code

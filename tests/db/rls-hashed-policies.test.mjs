@@ -9,6 +9,9 @@ import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 /**
  * db rls hashed select policies — live-DB proof.
  *
+ * This is the repository's N+1 query detection gate: EXPLAIN ANALYZE proves
+ * tenant-owner subplans execute once per query rather than once per row.
+ *
  * The seven ledger SELECT policies must resolve tenant ownership once per
  * query (uncorrelated subplan over the owned_*_ids() definer helpers), not
  * once per row, while keeping row visibility byte-identical for customer,
@@ -27,7 +30,10 @@ const REWRITTEN_POLICIES = [
   ["reward_events", "reward_events_select_scoped"],
   ["consent_records", "consent_records_select_scoped"],
   ["audit_logs", "audit_logs_select_scoped"],
-  ["notification_preferences", "notification_preferences_select_customer_or_admin"],
+  [
+    "notification_preferences",
+    "notification_preferences_select_customer_or_admin",
+  ],
 ]
 
 const ready = await isLiveDbReady()
@@ -62,7 +68,11 @@ test(
         "owned_customer_ids() and owned_merchant_ids() must exist (RED until the migration lands)"
       )
       for (const row of rows) {
-        assert.equal(row.prosecdef, true, `${row.proname} must be SECURITY DEFINER`)
+        assert.equal(
+          row.prosecdef,
+          true,
+          `${row.proname} must be SECURITY DEFINER`
+        )
         assert.equal(row.provolatile, "s", `${row.proname} must be STABLE`)
         assert.equal(row.proretset, true, `${row.proname} must return a set`)
         assert.equal(
@@ -102,7 +112,9 @@ test(
 
       const perRow = subplans.filter((node) => (node["Actual Loops"] ?? 0) > 1)
       assert.deepEqual(
-        perRow.map((node) => `${node["Subplan Name"]} loops=${node["Actual Loops"]}`),
+        perRow.map(
+          (node) => `${node["Subplan Name"]} loops=${node["Actual Loops"]}`
+        ),
         [],
         "every owner subplan must execute at most once per query (RED while policies are row-correlated)"
       )
@@ -225,7 +237,11 @@ test(
         where pronamespace = 'public'::regnamespace
           and proname in ('owned_customer_ids', 'owned_merchant_ids')
       `
-      assert.equal(helpers.n, 2, "both owner-id helpers must exist after replay")
+      assert.equal(
+        helpers.n,
+        2,
+        "both owner-id helpers must exist after replay"
+      )
 
       // The rewritten quals must not re-introduce the row-correlated helpers.
       const quals = await tx`
