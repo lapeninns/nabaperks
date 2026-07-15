@@ -64,6 +64,10 @@ test(
         evidence.terms_snapshot.sections[1].body,
         new RegExp(String(fixture.stamps_required))
       )
+      assert.equal(
+        evidence.terms_snapshot.sections.at(-1).body,
+        "Ask the venue team"
+      )
 
       const [{ marketing_consents: marketingConsents }] = await tx`
         select count(*)::int as marketing_consents

@@ -20,6 +20,13 @@ test("Given the public legal pack When routes are inspected Then each document h
     ["data-processing", "/data-processing"],
   ]
   const footer = readProjectFile("components", "layout", "marketing-layout.tsx")
+  const merchantMarketing = readProjectFile(
+    "components",
+    "marketing",
+    "landing",
+    "separate-marketing.tsx"
+  )
+  const csp = readProjectFile("lib", "security", "csp.ts")
   const facts = readProjectFile("lib", "marketing", "facts.ts")
   const llms = readProjectFile("public", "llms.txt")
 
@@ -30,11 +37,13 @@ test("Given the public legal pack When routes are inspected Then each document h
       page,
       new RegExp(`alternates: \\{ canonical: "${canonical}" \\}`)
     )
+    assert.ok(csp.includes(`"${canonical}"`))
     assert.ok(facts.includes(`path: "${canonical}"`))
     assert.ok(llms.includes(`https://nabaperks.com${canonical}`))
   }
 
   assert.ok(footer.includes('href="/cookies"'))
+  assert.ok(merchantMarketing.includes('href="/merchant-terms"'))
 })
 
 test("Given legal copy follows product behaviour When the shared content is inspected Then key code-backed rules remain explicit", () => {
@@ -74,6 +83,11 @@ test("Given the venue terms version changes When a customer joins Then the recor
     "migrations",
     "20260715120000_align_customer_legal_terms_snapshot.sql"
   )
+  const contactAlignmentMigration = readProjectFile(
+    "supabase",
+    "migrations",
+    "20260715130000_align_accepted_venue_contact.sql"
+  )
 
   assert.match(action, /const policyVersion = CUSTOMER_LEGAL_VERSION/)
   assert.match(consent, /MARKETING_POLICY_VERSION = CUSTOMER_LEGAL_VERSION/)
@@ -85,6 +99,10 @@ test("Given the venue terms version changes When a customer joins Then the recor
   assert.match(
     migration,
     /extensions\.digest\(new\.terms_snapshot::text, 'sha256'\)/
+  )
+  assert.match(
+    contactAlignmentMigration,
+    /'id', 'merchant-contact',\s+'body', 'Ask the venue team'/
   )
 
   for (const section of [

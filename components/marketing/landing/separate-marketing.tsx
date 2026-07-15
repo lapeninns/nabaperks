@@ -26,9 +26,9 @@ export function SeparateMarketing() {
           Customers earn stamps without joining a marketing list.
         </h2>
         <p className="mt-3 max-w-[42ch] text-base leading-relaxed text-pretty text-muted-foreground">
-          Loyalty and marketing stay separate, so collecting stamps
-          never signs anyone up for promotions — and you won&apos;t spam your
-          regulars to keep them.
+          Loyalty and marketing stay separate, so collecting stamps never signs
+          anyone up for promotions — and you won&apos;t spam your regulars to
+          keep them.
         </p>
       </div>
 
@@ -44,8 +44,8 @@ export function SeparateMarketing() {
           expects — not bundled into the act of joining your card.
         </BenefitPoint>
         <BenefitPoint title="Scoped to your venue">
-          A card collects only at your counter, and the data stays yours —
-          kept secure, never sold on.
+          A card collects only at your counter, and the data stays yours — kept
+          secure, never sold on.
         </BenefitPoint>
         <BenefitPoint title="Plain-English terms">
           No dark patterns. Read exactly what’s collected in our{" "}
@@ -53,7 +53,7 @@ export function SeparateMarketing() {
             Privacy
           </Link>{" "}
           and{" "}
-          <Link href="/terms" className={legalLinkClass}>
+          <Link href="/merchant-terms" className={legalLinkClass}>
             Terms
           </Link>
           .
