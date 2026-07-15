@@ -136,6 +136,7 @@ jobs:
 
   a11y:
     name: Accessibility (${{ matrix.project }})
+    needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
@@ -194,6 +195,7 @@ jobs:
 
   visual:
     name: Visual regression (${{ matrix.project }})
+    needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
@@ -252,6 +254,7 @@ jobs:
 
   lighthouse:
     name: Lighthouse (${{ matrix.route }})
+    needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
@@ -309,6 +312,7 @@ jobs:
 
   zap-baseline:
     name: ZAP baseline
+    needs: build
     runs-on: ubuntu-latest
     env:
       NEXT_PUBLIC_APP_URL: https://example.test
@@ -349,6 +353,7 @@ jobs:
 
   db:
     name: DB behavioral moat
+    needs: build
     runs-on: ubuntu-latest
     env:
       SUPABASE_SEND_EMAIL_HOOK_URI: http://host.docker.internal:3147/api/auth/hooks/send-email

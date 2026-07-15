@@ -137,6 +137,15 @@ test("Given routine pull requests When CI runs Then deep browser proof is sharde
     )
   }
 
+  for (const job of ["a11y", "visual", "lighthouse", "zap-baseline", "db"]) {
+    assert.match(
+      ci,
+      new RegExp(
+        `\\n  ${job}:\\n(?:(?!\\n  [a-z][a-z0-9-]*:\\n)[\\s\\S])*?\\n    needs: build\\n`
+      )
+    )
+  }
+
   assert.match(ci, /--collect\.url=/)
   assert.match(release, /release-drafter/)
 })
