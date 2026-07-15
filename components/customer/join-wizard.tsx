@@ -404,7 +404,14 @@ function joinProgress(
     join_terms: 3,
   }[kind]
 
-  return { step, total: ONBOARDING_STEPS, label: "Keep your card" }
+  const label = {
+    join_welcome: "Keep your card",
+    join_phone: "Verify number · Phone",
+    join_otp: "Verify number · Code",
+    join_terms: hasQr ? "Collect your stamp" : "Keep your card",
+  }[kind]
+
+  return { step, total: ONBOARDING_STEPS, label }
 }
 
 function UnavailableJoin() {

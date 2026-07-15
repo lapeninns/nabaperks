@@ -1,5 +1,7 @@
 "use client"
 
+"use client"
+
 import type { MouseEvent, ReactNode } from "react"
 
 import { ReceiptCard } from "@/components/brand"
@@ -181,8 +183,7 @@ export function CustomerLegalConsentLinks({
 }) {
   return (
     <>
-      <CustomerVenueTermsSheet venueTerms={venueTerms} triggerLabel="venue" />
-      ,{" "}
+      <CustomerVenueTermsSheet venueTerms={venueTerms} triggerLabel="venue" />,{" "}
       <CustomerPlatformTermsSheet />
       {" and "}
       <CustomerPrivacySheet />
