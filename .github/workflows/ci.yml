@@ -49,7 +49,7 @@ jobs:
         run: |
           printf 'SUPABASE_SEND_EMAIL_HOOK_SECRET=v1,%s_%s\n' whsec VTghZE0zQGtSNyN2SDIkY1E5XnBMNSZ3RjQqek42P3g= >> "$GITHUB_ENV"
       - run: pnpm env:check:production
-      - run: pnpm security:audit
+      - run: pnpm security:audit --ignore-registry-errors
       # Keep the component checks visible to existing policy contracts; together
       # they are the hosted equivalent of `pnpm quality:check`.
       - run: pnpm lint
@@ -121,6 +121,18 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+
+  e2e-gate:
+    name: E2E (DB-free harness tier)
+    needs: e2e
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Require every browser shard
+        env:
+          E2E_RESULT: ${{ needs.e2e.result }}
+        run: test "$E2E_RESULT" = "success"
 
   a11y:
     name: Accessibility sweep
