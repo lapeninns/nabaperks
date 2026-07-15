@@ -32,7 +32,7 @@
     "duplicates:check": "jscpd app components lib --config jscpd.json",
     "debt:check": "node scripts/check-technical-debt.mjs",
     "flags:check": "node scripts/check-feature-flags.mjs",
-    "docs:generate": "node scripts/generate-api-docs.mjs",
+    "docs:generate": "node scripts/generate-api-docs.mjs && prettier --write docs/api/README.md",
     "docs:check": "pnpm docs:generate && git diff --exit-code -- docs/api/README.md",
     "agents:check": "node scripts/check-agent-docs.mjs",
     "quality:fast": "pnpm lint && pnpm typecheck && pnpm test",
