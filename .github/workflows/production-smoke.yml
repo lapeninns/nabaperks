@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 concurrency:
   group: production-smoke
@@ -34,3 +35,75 @@ jobs:
         run: |
           body="$(curl --fail --silent --show-error --max-time 10 --header "Authorization: Bearer ${PRODUCTION_MONITOR_SECRET}" https://nabaperks.com/api/readiness)"
           jq -e --arg revision "$EXPECTED_REVISION" '.status == "ready" and .scope == "readiness" and .checks.database == "ok" and .service == "nabaperks" and (try (.time | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601 | type == "number") catch false) and (.revision | type == "string" and length == 12) and ($revision == "" or .revision == ($revision[0:12])) and .environment == "production"' <<<"$body"
+
+  incident:
+    name: Error to insight
+    needs: probes
+    if: ${{ always() && needs.probes.result == 'failure' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create or update incident issue
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const title = "[Production alert] Nabaperks readiness failure";
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "area: platform,priority: p0-critical",
+              per_page: 100,
+            });
+            const existing = issues.find((issue) => !issue.pull_request && issue.title === title);
+            const body = `The scheduled production liveness or dependency-readiness probe failed.\n\nRun: ${runUrl}\nRevision expectation: ${process.env.EXPECTED_REVISION || "current production"}\n\nFollow docs/operations/incident-response.md. Do not paste secrets, raw customer data, or provider payloads into this issue.`;
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ["bug", "area: platform", "priority: p0-critical"],
+              });
+            }
+
+  resolve-incident:
+    name: Resolve recovered production alert
+    needs: probes
+    if: ${{ always() && needs.probes.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close recovered incident issue
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const title = "[Production alert] Nabaperks readiness failure";
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "area: platform,priority: p0-critical",
+              per_page: 100,
+            });
+            const existing = issues.find((issue) => !issue.pull_request && issue.title === title);
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body: `Production probes recovered in ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}.`,
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                state: "closed",
+              });
+            }

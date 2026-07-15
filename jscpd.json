@@ -1,0 +1,18 @@
+{
+  "threshold": 4,
+  "minLines": 12,
+  "minTokens": 70,
+  "maxLines": 1000,
+  "maxSize": "200kb",
+  "reporters": ["console", "json"],
+  "output": "reports/jscpd",
+  "path": ["app", "components", "lib"],
+  "pattern": "**/*.{ts,tsx}",
+  "ignore": [
+    "**/*.d.ts",
+    "app/dev/**",
+    "components/ui/**",
+    "**/.next/**",
+    "**/node_modules/**"
+  ]
+}

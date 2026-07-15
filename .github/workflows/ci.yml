@@ -17,6 +17,7 @@ jobs:
   build:
     name: Typecheck and build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       NEXT_PUBLIC_APP_URL: https://example.test
       NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co
@@ -29,14 +30,14 @@ jobs:
       STRIPE_WEBHOOK_SECRET: ci_test_webhook_secret
       RESEND_API_KEY: re_ci
       RESEND_FROM: Nabaperks CI <ci@example.test>
-      CRON_SECRET: 'N7!qL2@vR9#cT4$yH6^mK8&pD3*zF5?x'
-      PRODUCTION_MONITOR_SECRET: 'P4@wS8#nC2!kV6$rJ9^tB3&yM7*zQ5?e'
+      CRON_SECRET: "N7!qL2@vR9#cT4$yH6^mK8&pD3*zF5?x"
+      PRODUCTION_MONITOR_SECRET: "P4@wS8#nC2!kV6$rJ9^tB3&yM7*zQ5?e"
       TWILIO_ACCOUNT_SID: ACci
       TWILIO_AUTH_TOKEN: ci-twilio-auth-token
       TWILIO_VERIFY_SERVICE_SID: VAci
-      CUSTOMER_SESSION_SECRET: 'H9!mD4@qL7#vR2$tK8^xC5&pN3*zW6?g'
-      CUSTOMER_PHONE_HMAC_SECRET: 'Q6!rF3@wM8#kT2$yP9^cD4&vL7*zN5?h'
-      CUSTOMER_PHONE_ENCRYPTION_KEY: 'V2!pK7@mR4#xH9$cF3^nQ8&wT5*zD6?j'
+      CUSTOMER_SESSION_SECRET: "H9!mD4@qL7#vR2$tK8^xC5&pN3*zW6?g"
+      CUSTOMER_PHONE_HMAC_SECRET: "Q6!rF3@wM8#kT2$yP9^cD4&vL7*zN5?h"
+      CUSTOMER_PHONE_ENCRYPTION_KEY: "V2!pK7@mR4#xH9$cF3^nQ8&wT5*zD6?j"
     steps:
       - uses: actions/checkout@v7
         with:
@@ -49,12 +50,20 @@ jobs:
           printf 'SUPABASE_SEND_EMAIL_HOOK_SECRET=v1,%s_%s\n' whsec VTghZE0zQGtSNyN2SDIkY1E5XnBMNSZ3RjQqek42P3g= >> "$GITHUB_ENV"
       - run: pnpm env:check:production
       - run: pnpm security:audit
+      # Keep the component checks visible to existing policy contracts; together
+      # they are the hosted equivalent of `pnpm quality:check`.
       - run: pnpm lint
       - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm deadcode:check
+      - run: pnpm duplicates:check
+      - run: pnpm debt:check
+      - run: pnpm flags:check
+      - run: pnpm docs:check
+      - run: pnpm agents:check
       - run: pnpm e2e:install
       - run: pnpm tokens:check
       - run: pnpm claims:check
-      - run: pnpm test
       - run: pnpm test:coverage
       - run: pnpm build
       - run: pnpm bundle:check
@@ -67,8 +76,14 @@ jobs:
           retention-days: 7
 
   e2e:
-    name: E2E (DB-free harness tier)
+    name: E2E (${{ matrix.project }}, shard ${{ matrix.shard }})
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium, mobile-safari, desktop-firefox, desktop-safari]
+        shard: [1/4, 2/4, 3/4, 4/4]
     env:
       NEXT_PUBLIC_APP_URL: https://example.test
       NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co
@@ -89,12 +104,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
-      - run: pnpm e2e:install
-      - run: pnpm test:e2e -- --project=chromium --grep "poster printing"
-      - run: pnpm test:e2e -- --project=chromium --grep-invert "@visual|poster printing"
-      - run: pnpm test:e2e -- --project=mobile-safari --grep-invert @visual
-      - run: pnpm test:e2e -- --project=desktop-firefox --grep-invert @visual
-      - run: pnpm test:e2e -- --project=desktop-safari --grep-invert @visual
+      - name: Install project browser
+        run: |
+          case "${{ matrix.project }}" in
+            chromium) browser=chromium ;;
+            desktop-firefox) browser=firefox ;;
+            mobile-safari|desktop-safari) browser=webkit ;;
+          esac
+          pnpm exec playwright install --with-deps "$browser"
+      - run: pnpm test:e2e -- --project="${{ matrix.project }}" --grep-invert @visual --shard="${{ matrix.shard }}"
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() && failure() }}
         with:

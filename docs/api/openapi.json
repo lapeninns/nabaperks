@@ -1,0 +1,180 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Nabaperks operational API",
+    "version": "1.0.0",
+    "description": "Externally consumed liveness and protected readiness contracts. Product-internal Server Actions are not HTTP APIs and are intentionally out of scope."
+  },
+  "servers": [
+    {
+      "url": "https://nabaperks.com"
+    }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "summary": "Read public service liveness",
+        "operationId": "getLiveness",
+        "x-source": "app/api/health/route.ts",
+        "responses": {
+          "200": {
+            "description": "The deployed service process is live.",
+            "headers": {
+              "x-request-id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LivenessResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/readiness": {
+      "get": {
+        "summary": "Read protected dependency readiness",
+        "operationId": "getReadiness",
+        "x-source": "app/api/readiness/route.ts",
+        "security": [
+          {
+            "monitorBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All required dependencies are ready.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The production monitor bearer token is missing or invalid."
+          },
+          "503": {
+            "description": "At least one required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "monitorBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "LivenessResponse": {
+        "type": "object",
+        "required": [
+          "status",
+          "scope",
+          "service",
+          "version",
+          "revision",
+          "environment",
+          "uptime",
+          "time"
+        ],
+        "properties": {
+          "status": {
+            "const": "ok"
+          },
+          "scope": {
+            "const": "liveness"
+          },
+          "service": {
+            "const": "nabaperks"
+          },
+          "version": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          },
+          "uptime": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ReadinessResponse": {
+        "type": "object",
+        "required": [
+          "status",
+          "scope",
+          "service",
+          "version",
+          "revision",
+          "environment",
+          "checks",
+          "durationMs",
+          "time"
+        ],
+        "properties": {
+          "status": {
+            "enum": ["ready", "not_ready"]
+          },
+          "scope": {
+            "const": "readiness"
+          },
+          "service": {
+            "const": "nabaperks"
+          },
+          "version": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          },
+          "checks": {
+            "type": "object",
+            "required": ["database"],
+            "properties": {
+              "database": {
+                "enum": ["ok", "error"]
+              }
+            }
+          },
+          "durationMs": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}

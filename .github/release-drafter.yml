@@ -1,0 +1,26 @@
+name-template: "v$RESOLVED_VERSION"
+tag-template: "v$RESOLVED_VERSION"
+categories:
+  - title: Breaking changes
+    labels: ["type: breaking"]
+  - title: Product changes
+    labels: ["type: feature", "enhancement"]
+  - title: Fixes
+    labels: ["type: bug", "bug"]
+  - title: Maintenance
+    labels: ["type: chore", "dependencies", "documentation"]
+exclude-labels: ["skip-changelog"]
+change-template: "- $TITLE (#$NUMBER) @$AUTHOR"
+template: |
+  ## Changes
+
+  $CHANGES
+
+version-resolver:
+  major:
+    labels: ["type: breaking"]
+  minor:
+    labels: ["type: feature", "enhancement"]
+  patch:
+    labels: ["type: bug", "bug", "type: chore", "dependencies", "documentation"]
+  default: patch

@@ -4,6 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "prepare": "husky",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -27,6 +28,16 @@
     "qa:e2e": "CUSTOMER_DEV_OTP_CODE=424242 node scripts/run-playwright.mjs",
     "lint": "eslint --max-warnings=0",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
+    "deadcode:check": "knip --include files,dependencies,unresolved",
+    "duplicates:check": "jscpd app components lib --config jscpd.json",
+    "debt:check": "node scripts/check-technical-debt.mjs",
+    "flags:check": "node scripts/check-feature-flags.mjs",
+    "docs:generate": "node scripts/generate-api-docs.mjs",
+    "docs:check": "pnpm docs:generate && git diff --exit-code -- docs/api/README.md",
+    "agents:check": "node scripts/check-agent-docs.mjs",
+    "quality:fast": "pnpm lint && pnpm typecheck && pnpm test",
+    "quality:check": "pnpm quality:fast && pnpm deadcode:check && pnpm duplicates:check && pnpm debt:check && pnpm flags:check && pnpm docs:check && pnpm agents:check",
+    "profile:server": "mkdir -p reports/profiles && node --cpu-prof --cpu-prof-dir=reports/profiles node_modules/next/dist/bin/next start",
     "db:migrate": "node scripts/run-supabase-sql.mjs --apply",
     "db:reset": "node scripts/run-supabase-sql.mjs --reset",
     "db:clean:customers": "node scripts/run-supabase-sql.mjs --reset-customers",
@@ -74,6 +85,7 @@
     "@hugeicons/react": "^1.1.6",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.108.0",
+    "@sentry/nextjs": "^10.65.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "html5-qrcode": "^2.3.8",
@@ -110,11 +122,21 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "fast-check": "^4.8.0",
+    "husky": "^9.1.7",
+    "jscpd": "^5.0.12",
+    "knip": "^6.26.0",
+    "lint-staged": "^17.0.8",
     "postgres": "^3.4.9",
     "prettier": "^3.8.4",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "tailwindcss": "^4",
-    "typescript": "^6",
-    "typescript-eslint": "^8.61.0"
+    "typescript": "^6"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --max-warnings=0 --fix",
+      "prettier --write"
+    ],
+    "*.{mjs,json,md,yaml,yml}": "prettier --write"
   }
 }

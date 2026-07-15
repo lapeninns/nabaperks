@@ -1,0 +1,32 @@
+name: Production incident
+description: Capture a live or recently resolved operational failure.
+title: "[Incident] "
+labels: ["bug", "area: platform", "priority: p0-critical"]
+body:
+  - type: input
+    id: started
+    attributes:
+      label: Started at
+      description: ISO-8601 time in UTC.
+      placeholder: "2026-07-15T12:00:00Z"
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: User impact and scope
+    validations:
+      required: true
+  - type: textarea
+    id: signals
+    attributes:
+      label: Signals
+      description: Add health/readiness result, Sentry issue, deployment revision, and request IDs without secrets or PII.
+    validations:
+      required: true
+  - type: textarea
+    id: actions
+    attributes:
+      label: Containment and next action
+    validations:
+      required: true

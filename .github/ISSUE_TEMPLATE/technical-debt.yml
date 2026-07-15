@@ -1,0 +1,26 @@
+name: Technical debt
+description: Track a bounded maintainability or reliability liability.
+title: "[Debt] "
+labels: ["type: chore", "area: tooling", "needs triage"]
+body:
+  - type: textarea
+    id: liability
+    attributes:
+      label: Current liability
+      description: Name the file, control, or boundary and the cost it creates.
+    validations:
+      required: true
+  - type: textarea
+    id: trigger
+    attributes:
+      label: Evidence and trigger
+      description: Include metrics, failing checks, TODO/FIXME references, or an incident link.
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Exit criteria
+      description: What automated evidence proves the debt is removed?
+    validations:
+      required: true
