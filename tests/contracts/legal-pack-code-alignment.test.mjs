@@ -13,7 +13,7 @@ function readProjectFile(...segments) {
   return readFileSync(path.join(projectRoot, ...segments), "utf8")
 }
 
-test("Given the public legal pack When routes are inspected Then each document has canonical metadata and footer access", () => {
+test("Given the public legal pack When routes are inspected Then each document has canonical metadata and public discovery", () => {
   const routes = [
     ["cookies", "/cookies"],
     ["merchant-terms", "/merchant-terms"],
@@ -30,10 +30,11 @@ test("Given the public legal pack When routes are inspected Then each document h
       page,
       new RegExp(`alternates: \\{ canonical: "${canonical}" \\}`)
     )
-    assert.ok(footer.includes(`href="${canonical}"`))
     assert.ok(facts.includes(`path: "${canonical}"`))
     assert.ok(llms.includes(`https://nabaperks.com${canonical}`))
   }
+
+  assert.ok(footer.includes('href="/cookies"'))
 })
 
 test("Given legal copy follows product behaviour When the shared content is inspected Then key code-backed rules remain explicit", () => {

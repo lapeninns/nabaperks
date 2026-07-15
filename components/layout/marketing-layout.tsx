@@ -82,9 +82,6 @@ export function MarketingLayout({
               <Link className={legalLinkClass} href="/cookies">
                 Cookies
               </Link>
-              <Link className={legalLinkClass} href="/merchant-terms">
-                Merchant terms
-              </Link>
             </nav>
           </div>
         </footer>
@@ -150,12 +147,6 @@ export function MarketingLayout({
               </Link>
               <Link className={legalLinkClass} href="/cookies">
                 Cookies
-              </Link>
-              <Link className={legalLinkClass} href="/merchant-terms">
-                Merchant terms
-              </Link>
-              <Link className={legalLinkClass} href="/data-processing">
-                Data processing
               </Link>
             </nav>
           </div>
