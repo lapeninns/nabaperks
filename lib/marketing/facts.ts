@@ -312,6 +312,9 @@ export const PUBLIC_SITE_ROUTES = [
   { path: ROUTES.signup, priority: 0.7, changeFrequency: "monthly" },
   { path: "/privacy", priority: 0.3, changeFrequency: "yearly" },
   { path: "/terms", priority: 0.3, changeFrequency: "yearly" },
+  { path: "/cookies", priority: 0.2, changeFrequency: "yearly" },
+  { path: "/merchant-terms", priority: 0.2, changeFrequency: "yearly" },
+  { path: "/data-processing", priority: 0.2, changeFrequency: "yearly" },
 ] as const satisfies readonly PublicSiteRoute[]
 
 export const CTA = {

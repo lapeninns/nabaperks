@@ -1,7 +1,5 @@
 "use client"
 
-"use client"
-
 import type { MouseEvent, ReactNode } from "react"
 
 import { ReceiptCard } from "@/components/brand"
@@ -135,7 +133,7 @@ export function CustomerVenueTermsSheet({
 }
 
 export function CustomerPlatformTermsSheet({
-  triggerLabel = "platform",
+  triggerLabel = "Nabaperks customer terms",
   triggerClassName,
 }: {
   triggerLabel?: ReactNode
@@ -156,7 +154,7 @@ export function CustomerPlatformTermsSheet({
 }
 
 export function CustomerPrivacySheet({
-  triggerLabel = "privacy",
+  triggerLabel = "privacy notice",
   triggerClassName,
 }: {
   triggerLabel?: ReactNode
@@ -183,10 +181,13 @@ export function CustomerLegalConsentLinks({
 }) {
   return (
     <>
-      <CustomerVenueTermsSheet venueTerms={venueTerms} triggerLabel="venue" />,{" "}
-      <CustomerPlatformTermsSheet />
-      {" and "}
-      <CustomerPrivacySheet />
+      I agree to the{" "}
+      <CustomerVenueTermsSheet
+        venueTerms={venueTerms}
+        triggerLabel="venue terms"
+      />{" "}
+      and <CustomerPlatformTermsSheet />
+      . I have read the <CustomerPrivacySheet />.
     </>
   )
 }

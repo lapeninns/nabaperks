@@ -105,8 +105,12 @@ async function expectFocusedHomeContract(page: Page) {
   await expect(
     page.getByRole("link", { name: "Nabaperks home", exact: true })
   ).toHaveCount(1)
-  await expect(page.getByRole("link", { name: "Terms" })).toBeVisible()
-  await expect(page.getByRole("link", { name: "Privacy" })).toBeVisible()
+  await expect(
+    page.getByRole("link", { name: "Terms", exact: true })
+  ).toBeVisible()
+  await expect(
+    page.getByRole("link", { name: "Privacy", exact: true })
+  ).toBeVisible()
 }
 
 async function expectNoHorizontalOverflow(page: Page) {

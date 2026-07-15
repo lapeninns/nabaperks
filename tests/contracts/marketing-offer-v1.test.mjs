@@ -44,7 +44,10 @@ test("OF-2 Given the First-Regular Guarantee When the facts module is pinned The
     facts,
     /line: "If your live card hasn't brought back a first regular by the end of your 30-day pilot, the pilot stays free until it does\."/
   )
-  assert.match(facts, /applies: "Applies from the day your venue QR goes live\."/)
+  assert.match(
+    facts,
+    /applies: "Applies from the day your venue QR goes live\."/
+  )
   assert.match(
     facts,
     /claim: `Email \$\{OPERATOR\.supportEmail\} and the team applies the extension\.`/
@@ -63,12 +66,16 @@ test("OF-3 Given the guarantee is single-source When decision surfaces render it
   assert.match(pricing, /GUARANTEE\.claim/)
   assert.match(signup, /GUARANTEE\.line/)
 
-  // Terms keep the durable plain-English record with the definition and remedy.
-  assert.match(legal, /id: "first-regular-guarantee"/)
+  // Merchant terms keep the durable record with the definition and remedy.
+  assert.match(legal, /id: "guarantee"/)
   assert.match(legal, /title: "First-Regular Guarantee"/)
-  assert.match(legal, /stamps again on a later UK date/)
-  assert.match(legal, /extends the free pilot at no charge/)
-  assert.match(legal, /applies from the day the venue QR goes live/)
+  assert.match(legal, /GUARANTEE\.line/)
+  assert.match(
+    legal,
+    /another normal visit stamp on a later Europe\/London date/
+  )
+  assert.match(legal, /GUARANTEE\.applies/)
+  assert.match(legal, /GUARANTEE\.claim/)
 
   // The promise never forks off-constant on marketing surfaces.
   assert.doesNotMatch(
@@ -103,5 +110,8 @@ test("OF-4 Given the bonus stack When /pricing presents it Then the five inclusi
 
   // The TrustPricing teaser contract (AV-4) stays intact: PLAN_INCLUDES is
   // unchanged and the stack is additive.
-  assert.match(facts, /export const PLAN_INCLUDES = \[\n  "Unlimited stamps and members",\n  "Simple reward setup",\n  "Permanent venue QR",/)
+  assert.match(
+    facts,
+    /export const PLAN_INCLUDES = \[\n  "Unlimited stamps and members",\n  "Simple reward setup",\n  "Permanent venue QR",/
+  )
 })

@@ -20,6 +20,9 @@ const STATIC_MARKETING_EXACT_PATHS: ReadonlySet<string> = new Set([
   "/loyalty-for-takeaways",
   "/loyalty-for-bars",
   "/pricing",
+  "/cookies",
+  "/data-processing",
+  "/merchant-terms",
   "/privacy",
   "/terms",
 ])

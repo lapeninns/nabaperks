@@ -1,6 +1,7 @@
 import "server-only"
 
 import { getCurrentCustomer } from "@/lib/customer/identity"
+import { CUSTOMER_LEGAL_VERSION } from "@/lib/legal/content"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export type MarketingChannel = "email" | "sms" | "whatsapp" | "push"
@@ -13,10 +14,10 @@ const MARKETING_CHANNELS: readonly MarketingChannel[] = [
 ]
 
 /**
- * Consent policy version captured with each marketing-consent record. Mirrors the
- * value used at join time in `app/m/[merchantSlug]/join/actions.ts`.
+ * The current join RPC records one policy version for the accepted venue terms
+ * and the optional marketing row, so profile changes keep that version aligned.
  */
-export const MARKETING_POLICY_VERSION = "2026-06-06"
+export const MARKETING_POLICY_VERSION = CUSTOMER_LEGAL_VERSION
 
 export function isMarketingChannel(value: string): value is MarketingChannel {
   return (MARKETING_CHANNELS as readonly string[]).includes(value)
