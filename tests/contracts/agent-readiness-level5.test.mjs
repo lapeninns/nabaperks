@@ -116,9 +116,9 @@ test("Given routine pull requests When CI runs Then deep browser proof is sharde
   const buildJob = ci.slice(ci.indexOf("  build:"), ci.indexOf("\n  e2e:"))
 
   assert.match(ci, /quality:check/)
-  assert.match(ci, /shard: \[1\/2, 2\/2\]/)
+  assert.match(ci, /shard: \[1\/4, 2\/4, 3\/4, 4\/4\]/)
   assert.match(ci, /--shard/)
-  assert.match(ci, /PLAYWRIGHT_WORKERS: "2"/)
+  assert.match(ci, /PLAYWRIGHT_WORKERS: "1"/)
   assert.match(playwright, /fullyParallel: true/)
   assert.match(playwright, /workers: localWorkers/)
   assert.doesNotMatch(buildJob, /e2e:install/)
