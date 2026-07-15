@@ -239,7 +239,6 @@ function AboutYouEmailVerify({ email }: { email: string | null }) {
             name="otp"
             inputMode="numeric"
             autoComplete="one-time-code"
-            autoFocus
             className={`${profileInputClass} font-mono`}
             aria-invalid={Boolean(state.errors?.otp)}
             aria-describedby={
@@ -249,10 +248,7 @@ function AboutYouEmailVerify({ email }: { email: string | null }) {
           {state.errors?.otp ? (
             // Linked from the input via aria-describedby (CUS-P3-09
             // same-class).
-            <p
-              id="home-profile-otp-error"
-              className="text-sm text-destructive"
-            >
+            <p id="home-profile-otp-error" className="text-sm text-destructive">
               {state.errors.otp}
             </p>
           ) : null}
