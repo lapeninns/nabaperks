@@ -84,9 +84,14 @@ export default function TermsPage() {
             ))}
           </ReceiptCard>
 
-          <Button asChild variant="secondary" className="w-fit">
-            <Link href="/privacy">Privacy notice</Link>
-          </Button>
+          <div className="flex flex-wrap gap-3">
+            <Button asChild variant="secondary">
+              <Link href="/privacy">Privacy notice</Link>
+            </Button>
+            <Button asChild variant="secondary">
+              <Link href="/cookies">Cookie notice</Link>
+            </Button>
+          </div>
         </article>
       </Section>
     </MarketingLayout>
@@ -108,9 +113,7 @@ function TermsBlock({
       tabIndex={-1}
       className="w-rule focus-ring grid scroll-mt-28 gap-2 pt-4"
     >
-      <h2 className="mono-meta tracking-[0.08em] text-foreground">
-        {title}
-      </h2>
+      <h2 className="mono-meta tracking-[0.08em] text-foreground">{title}</h2>
       <p className="text-sm leading-6 text-muted-foreground">{body}</p>
     </section>
   )

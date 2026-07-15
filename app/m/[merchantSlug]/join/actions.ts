@@ -43,6 +43,7 @@ import {
   normalizeRequestId,
   REQUEST_ID_HEADER,
 } from "@/lib/observability/request-id"
+import { CUSTOMER_LEGAL_VERSION } from "@/lib/legal/content"
 
 export type CustomerIdentityState = {
   fields?: {
@@ -66,7 +67,7 @@ export type CustomerJoinState = {
   }
 }
 
-const policyVersion = "2026-06-06"
+const policyVersion = CUSTOMER_LEGAL_VERSION
 
 function value(formData: FormData, key: string) {
   const raw = formData.get(key)

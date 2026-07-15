@@ -69,13 +69,11 @@ export default function PrivacyPage() {
           <div className="surface-card grid gap-2 p-5">
             <Eyebrow>If you&apos;re a customer</Eyebrow>
             <p className="text-sm leading-6 text-muted-foreground">
-              This summary is written for the venues that run Nabaperks, but it
-              covers your data too. Joining a venue&apos;s loyalty card stores
-              your verified phone number, stamps, rewards, and consent choices,
-              scoped to that venue and Nabaperks support. Marketing is optional
-              and separate from collecting stamps, and you can ask for access,
-              deletion, or export at any time using the contact details further
-              down this page.
+              Joining a venue&apos;s loyalty card stores your verified phone
+              identity, membership, stamps, rewards, accepted venue terms, and
+              consent choices. Marketing is optional and separate from
+              collecting stamps. You can ask for privacy, access, export,
+              deletion, or consent support using the contact details below.
             </p>
           </div>
 
@@ -97,13 +95,13 @@ export default function PrivacyPage() {
           </ReceiptCard>
 
           <div className="surface-card grid gap-2 p-5">
-            <Eyebrow>Data controller &amp; official guidance</Eyebrow>
+            <Eyebrow>Operator and contact</Eyebrow>
             <p className="text-sm leading-6 text-muted-foreground">
-              The data controller for Nabaperks loyalty data is{" "}
+              Nabaperks is operated by{" "}
               <strong className="font-bold text-foreground">
                 {OPERATOR.name}
               </strong>
-              . For privacy, access, deletion, export or consent requests,
+              . For privacy, access, export, deletion, or consent requests,
               contact{" "}
               <a
                 href={`mailto:${OPERATOR.privacyEmail}`}
@@ -111,29 +109,18 @@ export default function PrivacyPage() {
               >
                 {OPERATOR.privacyEmail}
               </a>
-              . Our approach is privacy-conscious and consent-led, and follows
-              ICO guidance.
+              .
             </p>
             <p className="text-sm leading-6 text-muted-foreground">
-              Official guidance:{" "}
-              <a
-                href="https://ico.org.uk/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={externalLinkClass}
-              >
-                ICO (UK data protection)
-              </a>{" "}
-              ·{" "}
-              <a
-                href="https://www.asa.org.uk/codes-and-rulings/advertising-codes.html"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={externalLinkClass}
-              >
-                CAP / ASA advertising codes
-              </a>
-              .
+              See the{" "}
+              <Link href="/cookies" className={externalLinkClass}>
+                cookie and browser-storage notice
+              </Link>{" "}
+              for the current browser data used by the service, or the{" "}
+              <Link href="/data-processing" className={externalLinkClass}>
+                merchant data-processing schedule
+              </Link>{" "}
+              for the technical processing map.
             </p>
           </div>
 
@@ -161,9 +148,7 @@ function PolicyBlock({
       tabIndex={-1}
       className="w-rule focus-ring grid scroll-mt-28 gap-2 pt-4"
     >
-      <h2 className="mono-meta tracking-[0.08em] text-foreground">
-        {title}
-      </h2>
+      <h2 className="mono-meta tracking-[0.08em] text-foreground">{title}</h2>
       <p className="text-sm leading-6 text-muted-foreground">{body}</p>
     </section>
   )

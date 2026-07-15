@@ -12,7 +12,7 @@ import { buildVenueTermsSections } from "@/lib/legal/content"
 export const metadata: Metadata = {
   title: "Venue loyalty terms | Nabaperks",
   description:
-    "Venue-specific loyalty terms for Nabaperks rewards — earning rules, redemption, exclusions, and venue contact details.",
+    "Venue-specific loyalty terms for Nabaperks rewards, including earning, selection, redemption, referrals, availability, and venue contact details.",
   robots: {
     index: false,
     follow: false,
@@ -73,6 +73,9 @@ export default async function MerchantTermsPage({
         </Button>
         <Button asChild size="lg" variant="secondary" className="w-full">
           <Link href="/privacy">Privacy notice</Link>
+        </Button>
+        <Button asChild size="lg" variant="secondary" className="w-full">
+          <Link href="/terms">Nabaperks customer terms</Link>
         </Button>
       </div>
     </CustomerShell>

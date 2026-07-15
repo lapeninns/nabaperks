@@ -34,7 +34,7 @@ test(
       const [joined] = await tx`
         select * from public.join_customer_membership(
           ${customer.id}::uuid, ${fixture.business_slug}, ${fixture.qr_id},
-          false, '2026-07-10'
+          false, '2026-07-15'
         )`
       assert.equal(joined.created_membership, true)
 
@@ -42,19 +42,21 @@ test(
         select policy_version, terms_snapshot, length(terms_sha256)::int as hash_length
         from public.customer_loyalty_terms_acceptances
         where membership_id = ${joined.membership_id}`
-      assert.equal(evidence.policy_version, "2026-07-10")
+      assert.equal(evidence.policy_version, "2026-07-15")
       assert.equal(evidence.hash_length, 64)
       assert.equal(evidence.terms_snapshot.merchant_name, fixture.business_name)
       assert.equal(evidence.terms_snapshot.card_name, fixture.card_name)
       assert.deepEqual(
         evidence.terms_snapshot.sections.map((section) => section.id),
         [
-          "reward",
+          "joining",
           "earning-rule",
-          "stamps-needed",
+          "reward",
           "redemption",
           "exclusions",
+          "referrals-and-additional-rewards",
           "fraud-and-abuse",
+          "availability",
           "merchant-contact",
         ]
       )
@@ -73,7 +75,7 @@ test(
       await tx`
         select * from public.join_customer_membership(
           ${customer.id}::uuid, ${fixture.business_slug}, ${fixture.qr_id},
-          false, '2026-07-10'
+          false, '2026-07-15'
         )`
       await tx`
         select * from public.join_customer_membership(

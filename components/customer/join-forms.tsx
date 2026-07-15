@@ -180,16 +180,13 @@ export function CustomerJoinForm({
               <MonoTag tone="accent">Required</MonoTag>
             </span>
             <span className="leading-6 text-muted-foreground">
-              I agree to keep this loyalty card and that stamps and rewards
-              follow the{" "}
               <CustomerLegalConsentLinks
                 venueTerms={{
                   merchantName,
                   stampsRequired: card.stampsRequired,
                   rewardTerms: card.rewardTerms,
                 }}
-              />{" "}
-              terms.
+              />
             </span>
           </span>
         </label>

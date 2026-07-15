@@ -1,104 +1,333 @@
+import { GUARANTEE, OPERATOR, PRODUCT } from "@/lib/marketing/facts"
+
 export type LegalSection = {
   id: string
   title: string
   body: string
 }
 
-/**
- * Fallback shown for a venue's reward exclusions when the merchant has set none.
- * Exported so the few places that special-case it (e.g. hiding it as a reward
- * description in reward-list-cards) compare against one source of truth rather
- * than a copy-pasted string literal that can silently drift.
- */
+export const CUSTOMER_LEGAL_VERSION = "2026-07-15"
+
 export const NO_ADDITIONAL_EXCLUSIONS = "No additional exclusions configured."
 
 export const PLATFORM_TERMS_SECTIONS: LegalSection[] = [
   {
-    id: "participation",
-    title: "Participation",
-    body: "Customers may join a merchant loyalty card after verifying their phone number and accepting the loyalty terms. The card is browser-based and does not require a downloaded app or physical plastic card.",
+    id: "using-nabaperks",
+    title: "Using Nabaperks",
+    body: "Nabaperks provides browser-based loyalty cards for participating venues. Each venue runs its own card and controls its stamp target, rewards, exclusions, and venue-specific terms. Joining one venue does not automatically join another, and no downloaded app or physical card is required.",
   },
   {
-    id: "merchant-reward-terms",
-    title: "Merchant-controlled reward terms",
-    body: "Each merchant controls its reward description, earning rules, exclusions, and venue-specific participation terms. Merchant reward terms are shown before joining and on the merchant terms page.",
+    id: "joining",
+    title: "Joining a venue",
+    body: "You join with a mobile phone number and a one-time code sent by text. You must select the required loyalty-terms control before a membership is created. The join screen provides the current venue terms, these platform terms, and the privacy notice. Nabaperks records the venue terms version and an immutable copy of the venue terms accepted for that membership.",
   },
   {
     id: "marketing",
-    title: "Optional marketing opt-in",
-    body: "Marketing opt-in is optional and separate from loyalty participation. Declining marketing does not stop a customer collecting stamps, seeing progress, or redeeming earned rewards.",
+    title: "Marketing choices",
+    body: "Marketing is optional and separate from loyalty participation. Refusing or withdrawing a marketing choice does not stop you collecting stamps, checking progress, or redeeming an eligible reward. Identity codes, reward messages, and other service messages may still be sent when needed to complete a request or operate the loyalty card.",
   },
   {
-    id: "abuse",
-    title: "Abuse and fraud prevention",
-    body: "Nabaperks and merchants may investigate suspicious activity, duplicate claims, QR misuse, manual adjustments, soft geofence anomalies, or fraud signals. Soft location checks use minimized location evidence for fraud prevention; stamps still save if location is denied, unavailable, timed out, or inaccurate. One stamp can be issued per customer per UK business day, and audited support actions preserve event history rather than deleting earned history silently.",
+    id: "stamps",
+    title: "Collecting stamps",
+    body: "A normal visit stamp requires a valid venue QR and an active membership, loyalty card, venue, and merchant subscription. Only one normal visit stamp can be earned for the same venue location on each Europe/London calendar date. Referral bonuses and audited support adjustments are recorded separately from normal visit stamps.",
+  },
+  {
+    id: "reward-selection",
+    title: "Reward selection",
+    body: "When the final stamp completes your first loyalty cycle, Nabaperks assigns the venue's first active configured reward, ordered by the venue's display order and then by when the reward was created. Later completed cycles use the venue's configured reward weightings. A live venue card is kept with at least three active reward-pool items, but the reward you receive is fixed when it is issued.",
+  },
+  {
+    id: "redemption",
+    title: "Reward redemption",
+    body: "A cycle reward becomes redeemable on the next Europe/London weekday after it is issued, skipping Saturday and Sunday. To generate and use the reward QR, you must provide your full name and date of birth, be at least 18, have a verified email address, and complete a fresh email check for that reward. The fresh email assurance lasts for 30 minutes. The venue completes redemption by scanning the reward QR.",
+  },
+  {
+    id: "additional-rewards",
+    title: "Referrals and additional rewards",
+    body: "Where available, a referral qualifies only after a genuinely new member receives a normal venue visit stamp. A qualifying referral can add one bonus stamp to the referrer's card, subject to a limit of two referral bonus stamps on one Europe/London date and fraud, availability, and card-capacity checks. Venues may also issue birthday or direct rewards with their own displayed terms and expiry.",
+  },
+  {
+    id: "location-and-fraud",
+    title: "Location checks and suspected misuse",
+    body: "A venue may enable a soft location check for a configured stamp. The current browser flow asks for location on the third stamp when the check is enabled. Refusing location, receiving an inaccurate result, or encountering a timeout does not by itself stop the stamp. Nabaperks and the venue may review QR misuse, duplicate claims, unusual stamp speed, out-of-range location evidence, manual adjustments, or concentrated referral activity.",
   },
   {
     id: "availability",
-    title: "Availability restrictions",
-    body: "The service may restrict new joins, stamps, QR scans, or redemptions when a merchant loyalty card is inactive, QR access is disabled, a reward is not yet redeemable, or billing is suspended.",
+    title: "Availability",
+    body: "Joining, stamping, issuing rewards, or redeeming may be paused when a venue, loyalty card, or QR is inactive, a reward is not yet redeemable, or the merchant's billing state is not active or trialling. When billing is no longer active or trialling, existing rewards cannot be redeemed through the current product flow.",
   },
   {
-    id: "first-regular-guarantee",
-    title: "First-Regular Guarantee",
-    body: "Venue pilots carry the First-Regular Guarantee: if a venue's live loyalty card has not recorded its first returning member — a customer who stamps again on a later UK date — by the end of the 30-day free pilot, Nabaperks extends the free pilot at no charge until it does. The guarantee applies from the day the venue QR goes live and is claimed through support.",
-  },
-  {
-    id: "monthly-first-regular-promo",
-    title: "Monthly launch promotion",
-    body: "From time to time Nabaperks runs a limited-time monthly promotion for new venues. Under the current First-Regular promo, a venue whose loyalty card goes live by the promotional deadline shown on the pricing and signup pages receives its first run of counter posters professionally printed and posted at no charge. The promotion is time-limited, refreshes each calendar month, may be withdrawn at any time, applies to the first counter-poster run per venue, and is arranged through support once the venue is live. It does not change the £49 monthly price, the free pilot, or the First-Regular Guarantee.",
+    id: "records-and-support",
+    title: "Records and support",
+    body: `Stamp, reward, consent, fraud, billing, and support actions are kept as event and audit records so later corrections do not silently rewrite the original history. For loyalty, privacy, access, export, deletion, or consent support, contact ${OPERATOR.supportEmail}.`,
   },
 ]
 
 export const PLATFORM_TERMS_META = {
-  eyebrow: "For venue operators · plain English summary",
-  title: "The small print, kept legible.",
+  eyebrow: "For customers · effective 15 July 2026",
+  title: "Nabaperks customer terms.",
   description:
-    "How customer participation, rewards, marketing consent, and fraud prevention work on Nabaperks. The full text travels with your merchant agreement.",
-  cardTitle: "Terms, condensed",
-  docNumber: "T-2026",
+    "The terms for keeping venue loyalty cards, collecting stamps, and redeeming rewards through Nabaperks.",
+  cardTitle: "Customer terms",
+  docNumber: "CT-2026-07",
 }
 
 export const PRIVACY_SECTIONS: LegalSection[] = [
   {
     id: "data-collected",
-    title: "Data collected",
-    body: "Nabaperks stores the verified phone identity used by a customer, merchant loyalty membership records, stamp events, reward events, consent records, QR and billing status signals, and support audit logs. Customer phone numbers are stored for lookup and display using protected server-side helpers.",
+    title: "Information held",
+    body: "For customers, Nabaperks may hold a verified phone identity, phone country and last four digits, full name, date of birth, email and verification state. It also records venue memberships, accepted venue terms, stamps, rewards, referrals, consent choices, notifications, push subscriptions, fraud signals, sessions, product events, and support activity. For merchants, it may hold account, venue, address, loyalty-card, reward, QR, subscription, billing-reference, operational, and support records.",
   },
   {
-    id: "purposes",
-    title: "Purposes",
-    body: "Data is used to provide the loyalty card, show progress, unlock and redeem rewards, prevent misuse, support merchants and customers, keep audit evidence, and measure service performance. Where a venue uses soft GPS checks, Nabaperks stores minimized location evidence for fraud prevention; raw coordinates are not stored by default.",
+    id: "identity-protection",
+    title: "Identity protection",
+    body: "Verified customer phone numbers are encrypted at rest. Nabaperks also stores keyed digests for matching and limited phone details for masked display. Customer sessions use signed cookies backed by revocable server-side session records. Pending reward-invite records use keyed digests and masked contact details rather than storing the invitation contact in plain text.",
   },
   {
-    id: "marketing-consent",
-    title: "Marketing consent separation",
-    body: "Loyalty participation is separate from marketing. Customers can collect stamps without opting in to marketing, and marketing opt-in or opt-out evidence is kept in consent records.",
+    id: "uses",
+    title: "How information is used",
+    body: "Information is used to verify identity, provide venue loyalty cards, record accepted venue terms, issue stamps and rewards, complete redemptions, operate referrals, send requested or operational messages, manage merchant subscriptions, prevent misuse, answer support requests, run retention and privacy workflows, and maintain product and audit records.",
   },
   {
-    id: "sharing-and-scoping",
-    title: "Sharing, scoping, and support access",
-    body: "Customer loyalty data is scoped to the relevant merchant and Nabaperks support administrators. Admin access is used for support, fraud review, privacy requests, and audited operational tasks. First-party session measurement stays within Nabaperks. Optional pseudonymous PostHog processing is disabled unless it is specifically configured. Contact, form, provider, URL, and precise-location values are excluded and are not sent to PostHog.",
+    id: "location",
+    title: "Location information",
+    body: "Where a venue enables a soft location check, the browser may ask for your current position. The coordinates are used during the stamp request to calculate distance from the venue. The current stamp record stores the resulting status and broad distance, accuracy, confidence, and timing buckets rather than the submitted raw coordinates. Refusing location, receiving an inaccurate reading, or encountering a timeout does not by itself block the stamp.",
   },
   {
-    id: "data-requests",
-    title: "Data requests",
-    body: "Customers can ask for privacy, access, deletion, export, or consent support. Internal admins use audited lookup tools to identify the relevant customer and merchant records and record the request channel.",
+    id: "access",
+    title: "Venue and support access",
+    body: "Customer loyalty records are linked to the relevant venue. Authenticated venue users can use venue-scoped tools to operate memberships, stamps, rewards, communications, and reporting. Authorised Nabaperks support tools can access records for privacy requests, fraud review, billing support, retention work, and audited corrections. Administrative actions are recorded.",
   },
   {
-    id: "audit-records",
-    title: "Audit and support records",
-    body: "Support notes, consent records, fraud signals, manual adjustments, and admin actions may be retained as audit evidence so reward history and support decisions remain accountable.",
+    id: "services",
+    title: "Services used",
+    body: "The current application uses Supabase and PostgreSQL for application data and authentication, Stripe for merchant subscriptions, Twilio Verify for customer phone codes, Resend for email, browser Web Push services for optional notifications, and Vercel for deployment and scheduled jobs. Optional integrations include PostHog for pseudonymous server-side analytics, Sentry for technical error reporting, Google Places for merchant venue suggestions, and OpenStreetMap Nominatim for venue-address geocoding.",
+  },
+  {
+    id: "communications",
+    title: "Marketing and service messages",
+    body: "Marketing choices are optional and recorded separately from loyalty participation. Identity codes, reward messages, invitation messages, and other service communications may still be sent where needed to complete a request or operate the service. A venue may create a one-time reward invitation for a contact it supplies; the stored invite is deduplicated, expires after 90 days, and is matched only after the contact is verified.",
+  },
+  {
+    id: "analytics",
+    title: "Analytics and error reporting",
+    body: "First-party session measurement and product events are stored in Nabaperks. Optional pseudonymous PostHog processing is disabled unless it is configured. Contact, form, provider, URL, and precise-location values are excluded and are not sent to PostHog; IP addresses, tokens, secrets, and provider identifiers are also rejected from its payload. Optional Sentry error reporting is configured without default personal-information collection, but technical diagnostics and navigation information may be processed when Sentry is enabled.",
+  },
+  {
+    id: "retention",
+    title: "Retention and anonymisation",
+    body: "Pending phone and email verification cookies last 10 minutes, join-journey cookies last two hours, customer sessions normally last 30 days, and the device cookie lasts one year. Verified customer identities with no protected loyalty, consent, referral, session, request, or invitation history are eligible for anonymisation after seven days. Other stale customer identifiers are eligible for anonymisation after 365 days without recent customer, membership, stamp, or reward activity. Pending reward invitations expire after 90 days, their matching details are scrubbed, and terminal invite records are eligible for deletion after 365 days. Loyalty, consent, fraud, billing, product-event, and audit records do not have a general automatic deletion period encoded in the current application and may remain in anonymised form.",
+  },
+  {
+    id: "requests",
+    title: "Access, export, deletion, and consent requests",
+    body: "Customers can ask for privacy, access, export, deletion, or consent support. The current workflow uses audited administrative tools. Customer exports can include profile details, memberships, stamps, rewards, consent records, notifications, and first-party product events. Deletion revokes customer sessions, disables push subscriptions, cancels queued notifications, scrubs linked pending invitations, and anonymises direct identifiers where ledger records must remain.",
+  },
+  {
+    id: "browser-storage",
+    title: "Cookies and browser storage",
+    body: "Nabaperks uses essential authentication, verification, device, journey, and interface-state cookies, plus limited local storage, session storage, service-worker caches, and optional push-subscription data. The cookie and browser-storage notice lists the current items and durations.",
+  },
+  {
+    id: "contact",
+    title: "Contact",
+    body: `For privacy, access, export, deletion, or consent requests, contact ${OPERATOR.privacyEmail}. Include enough information to identify the relevant customer or merchant record, but do not send passwords or one-time codes.`,
   },
 ]
 
 export const PRIVACY_META = {
-  eyebrow: "For venue operators · plain English summary",
-  title: "What happens to your customers' data.",
+  eyebrow: "For customers and merchants · effective 15 July 2026",
+  title: "Nabaperks privacy notice.",
   description:
-    "How Nabaperks handles loyalty records, consent separation, support access, and audit evidence for your venue. The full notice travels with your merchant agreement.",
-  cardTitle: "Privacy, condensed",
-  docNumber: "P-2026",
+    "How Nabaperks collects, uses, shares, retains, and removes information about customers and merchants.",
+  cardTitle: "Privacy notice",
+  docNumber: "PN-2026-07",
+}
+
+export const COOKIE_SECTIONS: LegalSection[] = [
+  {
+    id: "customer-cookies",
+    title: "Customer verification and session cookies",
+    body: "The HttpOnly nabaperks_pending_phone and nabaperks_pending_email cookies each last up to 10 minutes while a phone number or email is checked. After phone verification, the signed HttpOnly nabaperks_customer_session cookie normally lasts 30 days and identifies a revocable server-side customer session.",
+  },
+  {
+    id: "device-cookie",
+    title: "Device and rate-limit cookie",
+    body: "The HttpOnly nabaperks_device cookie is created on application routes and lasts up to one year. It supplies a signed device identifier used by security and rate-limit controls. It is not an authoritative customer, loyalty, reward, or consent record.",
+  },
+  {
+    id: "journey-cookie",
+    title: "Join-journey cookie",
+    body: "The HttpOnly nabaperks_join_journey cookie lasts up to two hours on QR and customer-join journeys. It links steps in the same join flow for first-party observability without placing contact details in the token.",
+  },
+  {
+    id: "merchant-auth",
+    title: "Merchant and administrator authentication",
+    body: "Merchant and administrator sign-in uses Supabase authentication cookies. These cookies support authenticated sessions and are refreshed or removed through the authentication flow. Their exact names and duration are controlled by the current Supabase session configuration.",
+  },
+  {
+    id: "interface-cookie",
+    title: "Interface preference cookie",
+    body: "The merchant interface may store a sidebar_state cookie for up to one year so it can remember whether the sidebar was expanded or collapsed.",
+  },
+  {
+    id: "session-storage",
+    title: "Session storage",
+    body: "Nabaperks uses sessionStorage for short-lived information in the current browser tab or session. This includes first-party marketing-funnel continuity and rotating venue-proof selections. The funnel uses a session-only token rather than a persistent browser analytics identity.",
+  },
+  {
+    id: "local-storage",
+    title: "Local storage",
+    body: "Local storage may hold an in-progress merchant onboarding draft, a remembered refusal of the soft location prompt, dismissal of the app-install prompt, and dismissal of the birthday-profile prompt. The birthday dismissal is reconsidered after 30 days. Other entries remain until replaced, removed by the application, or cleared in the browser. None is authoritative server-side loyalty, billing, reward, or consent state.",
+  },
+  {
+    id: "offline-cache",
+    title: "Offline cache",
+    body: "The Nabaperks service worker caches the offline page, selected icons, and static application assets. Authenticated application routes, customer state, and API requests are treated as network-only and are not used as an offline source of truth.",
+  },
+  {
+    id: "push-and-analytics",
+    title: "Push notifications and analytics",
+    body: "If you enable browser push notifications, Nabaperks stores the browser push endpoint and encryption keys needed to deliver messages. Erasure disables stored subscriptions and cancels queued notifications. Optional PostHog analytics is sent from the server only when pseudonymous processing is configured; the current implementation does not create a PostHog browser cookie or persistent PostHog browser identity.",
+  },
+  {
+    id: "controls",
+    title: "Your browser controls",
+    body: "You can remove cookies, local storage, session storage, cached assets, and notification permissions through your browser settings. Blocking authentication or verification cookies prevents the related signed-in or identity-checking features from working. Clearing convenience storage can reset drafts, dismissals, or interface preferences without deleting server-side loyalty records.",
+  },
+]
+
+export const COOKIE_META = {
+  eyebrow: "Browser data · effective 15 July 2026",
+  title: "Cookie and browser-storage notice.",
+  description:
+    "The cookies, local browser storage, offline cache, and push information used by Nabaperks.",
+  cardTitle: "Browser storage",
+  docNumber: "CS-2026-07",
+}
+
+export const MERCHANT_TERMS_SECTIONS: LegalSection[] = [
+  {
+    id: "service",
+    title: "The service",
+    body: "The Nabaperks Growth Plan is provided per venue location. It includes browser-based loyalty cards, joining and stamping QR flows, reward configuration, venue-scoped customer and activity records, referrals where available, reporting, notifications, and supported operational tools.",
+  },
+  {
+    id: "account",
+    title: "Merchant account",
+    body: "A merchant account is created with a name, email address, password, and emailed verification code. The merchant is responsible for keeping its sign-in and billing access secure and for ensuring that people using the account are authorised to act for the venue.",
+  },
+  {
+    id: "price-and-trial",
+    title: "Price and free trial",
+    body: `The monthly Growth Plan is ${PRODUCT.price} per venue. Where the annual checkout option is configured and shown, it is ${PRODUCT.priceAnnual} paid yearly. A new Stripe subscription starts with a 30-day free trial and requires a payment card at checkout. The selected recurring charge begins after the trial unless the subscription is cancelled or the trial is extended through the First-Regular Guarantee support process.`,
+  },
+  {
+    id: "activation",
+    title: "Activation and billing state",
+    body: "A venue can prepare its profile, loyalty card, and rewards before billing activation. Normal customer joins, stamps, reward issue, and redemption require the stored merchant billing state to be active or trialling. Missing, cancelled, suspended, past-due, unpaid, paused, or otherwise blocked billing states pause the affected loyalty operations.",
+  },
+  {
+    id: "merchant-responsibilities",
+    title: "Merchant responsibilities",
+    body: "The merchant is responsible for accurate venue details, its stamp target, at least three active rewards while a live join QR is enabled, clear reward terms and exclusions, and honouring valid rewards presented through the venue scan flow. The merchant must not publish or reuse passwords, one-time codes, secret keys, signed claim links, or reward scan tokens outside their intended flow.",
+  },
+  {
+    id: "customer-use",
+    title: "Customer records and communications",
+    body: "The merchant must use customer records through the venue-scoped Nabaperks tools and for the venue loyalty purposes represented by those tools. Marketing choices remain separate from loyalty participation. Merchant-created announcements are subject to stored consent and delivery controls. Reward invitations are subject to eligibility, deduplication, suppression, expiry, and delivery controls.",
+  },
+  {
+    id: "cancellation",
+    title: "Cancellation",
+    body: "The merchant manages cancellation through the Stripe billing portal. A scheduled cancellation takes effect at the end of the current subscription period recorded by Stripe, whether the selected plan is monthly or annual. Cancelling future renewal does not erase loyalty, reward, consent, billing, product-event, or audit records. Customer joins, stamps, reward issue, and redemption are paused when the stored subscription is no longer active or trialling.",
+  },
+  {
+    id: "guarantee",
+    title: "First-Regular Guarantee",
+    body: `${GUARANTEE.line} A returning member is a customer who receives another normal visit stamp on a later Europe/London date. ${GUARANTEE.applies} ${GUARANTEE.claim} The extension is applied manually through support; it is not an automatic refund or cash payment.`,
+  },
+  {
+    id: "monthly-first-regular-promo",
+    title: "Time-limited promotions",
+    body: `When a First-Regular poster promotion is shown, a venue that goes live by the displayed London calendar deadline can email ${OPERATOR.supportEmail} to arrange its first counter-poster print run. The promotion applies only while it is enabled and shown, covers the first run for that venue, and does not change the Growth Plan price, 30-day trial, or First-Regular Guarantee.`,
+  },
+  {
+    id: "support-and-records",
+    title: "Support and records",
+    body: "Nabaperks support may use audited tools to investigate billing problems, fraud signals, privacy requests, reward-invite suppression, and ledger corrections. Existing events are preserved or corrected with an additional audit trail rather than silently rewritten.",
+  },
+]
+
+export const MERCHANT_TERMS_META = {
+  eyebrow: "For venue operators · effective 15 July 2026",
+  title: "Merchant subscription terms.",
+  description:
+    "The commercial and operational terms for a venue using the Nabaperks Growth Plan.",
+  cardTitle: "Merchant terms",
+  docNumber: "MT-2026-07",
+}
+
+export const DATA_PROCESSING_SECTIONS: LegalSection[] = [
+  {
+    id: "scope",
+    title: "Processing scope",
+    body: "This technical schedule describes the information handled while Nabaperks provides a venue subscription. It does not assign controller, processor, or joint-controller roles that are not established by the repository. Processing supports merchant and customer authentication, venue memberships, accepted loyalty terms, stamps, rewards, scans, referrals, communications, subscriptions, fraud controls, support, analytics, retention, and audit records.",
+  },
+  {
+    id: "people-and-data",
+    title: "People and data categories",
+    body: "Affected people may include customers, prospective reward recipients, merchant owners and users, administrators, and support users. Customer data may include phone identity, phone country and last four digits, name, date of birth, email, verification state, memberships, accepted terms, stamps, rewards, referrals, consent, notifications, push subscriptions, fraud evidence, sessions, and support history. Merchant data may include authentication, venue and address details, coordinates, card and reward settings, QR records, billing references, product events, and audit records.",
+  },
+  {
+    id: "operations",
+    title: "Processing operations",
+    body: "The application collects, validates, encrypts, hashes, stores, queries, displays, transmits, updates, exports, suppresses, revokes, anonymises, and deletes information according to the relevant product flow. Server state is authoritative; browser storage is used only for authentication, journey continuity, security, convenience, offline assets, and optional notifications.",
+  },
+  {
+    id: "access-and-scoping",
+    title: "Access and venue scoping",
+    body: "Customer loyalty information is linked to the relevant merchant and membership. Authenticated merchant tools use venue-scoped database operations. Trusted server jobs use privileged credentials only in server-side code. Nabaperks administrative access supports privacy requests, fraud review, billing support, retention jobs, and auditable corrections.",
+  },
+  {
+    id: "security",
+    title: "Implemented security measures",
+    body: "Implemented controls include encrypted customer phone values, keyed digests for identity and invitation matching, signed and revocable customer sessions, HttpOnly verification and session cookies, Supabase authentication, database row-level controls, service-role-only administrative functions, signed Stripe webhook verification, time-limited one-time checks, single-use merchant-scoped reward scan tokens, rate limits, security headers, and audit records for privileged actions.",
+  },
+  {
+    id: "external-services",
+    title: "External services",
+    body: "The current application can send relevant data to Supabase and PostgreSQL for data and authentication, Stripe for subscriptions and billing, Twilio Verify for phone codes, Resend for email, browser Web Push services for push delivery, Vercel for deployment and scheduled jobs, Google Places for optional venue suggestions, OpenStreetMap Nominatim for venue-address geocoding, PostHog for optional pseudonymous server-side analytics, and Sentry for optional technical error reporting.",
+  },
+  {
+    id: "marketing-and-analytics",
+    title: "Marketing and analytics controls",
+    body: "Customer marketing choices are stored separately from loyalty participation. First-party product events are stored in Supabase. Optional PostHog processing uses server-generated pseudonyms and an allowlist of properties; contact details, IP addresses, URLs, precise coordinates, provider identifiers, tokens, and secrets are rejected from the external analytics payload. Optional Sentry is configured with default personal-information collection disabled.",
+  },
+  {
+    id: "requests",
+    title: "Privacy requests and exports",
+    body: "Privacy, access, export, deletion, and consent requests are executed through audited administrative workflows. Current customer exports include profile information, memberships, stamps, rewards, consent records, notifications, and first-party product events. A deletion request revokes sessions, disables push subscriptions, cancels queued notifications, scrubs linked pending invitations, and anonymises direct customer identifiers where the ledger must remain.",
+  },
+  {
+    id: "retention",
+    title: "Retention and deletion",
+    body: "Abandoned verified customer identities without protected activity are eligible for anonymisation after seven days. Other stale customer identifiers are eligible for anonymisation after 365 days without recent customer, membership, stamp, or reward activity. Pending reward invitations expire after 90 days, matching details are scrubbed, and terminal invitation rows are eligible for deletion after 365 days. Loyalty, consent, fraud, billing, product-event, and audit records may remain in anonymised form because the current application does not encode a general deletion period for those ledgers.",
+  },
+  {
+    id: "end-of-service",
+    title: "End of merchant service",
+    body: "When a merchant subscription is cancelled, Stripe and Nabaperks retain the recorded subscription state and cancellation timing. Loyalty operations are paused when billing is no longer active or trialling. Cancellation does not automatically delete customer loyalty, reward, consent, billing, product-event, fraud, or audit records, and privacy requests continue through the audited request workflow.",
+  },
+]
+
+export const DATA_PROCESSING_META = {
+  eyebrow: "Technical schedule · effective 15 July 2026",
+  title: "Merchant data-processing schedule.",
+  description:
+    "The customer and merchant information handled while Nabaperks provides a venue subscription.",
+  cardTitle: "Data handling",
+  docNumber: "DP-2026-07",
 }
 
 export type VenueTermsInput = {
@@ -115,24 +344,24 @@ export function buildVenueTermsSections({
 }: VenueTermsInput): LegalSection[] {
   return [
     {
-      id: "reward",
-      title: "Reward",
-      body: "A mystery reward is assigned from the venue reward pool when the customer earns the final visit stamp.",
+      id: "joining",
+      title: "Joining the card",
+      body: "Join by verifying your mobile phone number and accepting these venue terms and the Nabaperks customer terms after being shown the privacy notice. Marketing is optional and is not required to keep the card, collect stamps, or redeem an eligible reward.",
     },
     {
       id: "earning-rule",
       title: "Earning rule",
-      body: `Collect ${stampsRequired} visit stamps from the venue QR. One stamp may be issued per UK date.`,
+      body: `Collect ${stampsRequired} normal visit stamps using a valid venue QR. Only one normal visit stamp can be earned for this venue location on each Europe/London calendar date. A valid QR join normally attempts to add the first eligible stamp.`,
     },
     {
-      id: "stamps-needed",
-      title: "Stamps needed",
-      body: `${stampsRequired} stamps`,
+      id: "reward",
+      title: "Reward selection",
+      body: "When you earn the final stamp, your first completed cycle receives the venue's first active configured reward. Later completed cycles use the venue's configured reward weightings. The assigned reward and its terms are fixed when it is issued.",
     },
     {
       id: "redemption",
       title: "Redemption",
-      body: "The assigned reward can be redeemed from the next UK business day after it is revealed. Show your reward QR at the counter and the venue team scans it.",
+      body: "A cycle reward is redeemable from the next Europe/London weekday after it is issued, skipping Saturday and Sunday. Before generating its reward QR, you must provide your full name and date of birth, be at least 18, have a verified email address, and complete a fresh email check for that reward. Show the reward QR at the counter for the venue team to scan.",
     },
     {
       id: "exclusions",
@@ -140,9 +369,19 @@ export function buildVenueTermsSections({
       body: rewardTerms || NO_ADDITIONAL_EXCLUSIONS,
     },
     {
+      id: "referrals-and-additional-rewards",
+      title: "Referrals and additional rewards",
+      body: "Where referrals are available, a referral qualifies only after a genuinely new member receives a normal venue visit stamp. A qualifying referral can add one bonus stamp to the referrer's card, subject to a limit of two referral bonus stamps on one Europe/London date and availability, capacity, and fraud checks. The venue may also issue birthday or direct rewards with their own displayed terms and expiry.",
+    },
+    {
       id: "fraud-and-abuse",
-      title: "Fraud and abuse",
-      body: "The merchant may refuse, cancel, or adjust stamps and rewards where abuse, duplicate claims, QR misuse, or location anomalies are suspected. Location checks are non-blocking: stamps still save if location is denied, unavailable, timed out, or inaccurate.",
+      title: "Location, fraud, and corrections",
+      body: "The venue may enable a soft location check. Refusing location, receiving an inaccurate result, or encountering a timeout does not by itself stop the stamp. Nabaperks and the venue may review QR misuse, duplicate claims, unusual stamp speed, out-of-range location evidence, manual adjustments, or concentrated referral activity. Audited support actions may correct the ledger.",
+    },
+    {
+      id: "availability",
+      title: "Availability",
+      body: "New joins, stamps, reward issue, and redemption may be paused if the venue, card, or QR is inactive, the reward is not yet redeemable, or the venue's Nabaperks subscription is not active or trialling.",
     },
     {
       id: "merchant-contact",
@@ -156,7 +395,7 @@ export function venueTermsMeta(merchantName: string) {
   return {
     title: `${merchantName} loyalty terms`,
     description:
-      "These loyalty terms are shown before you join and stay available from your loyalty card.",
+      "These venue terms are shown before you join and stay available from your loyalty card.",
     cardTitle: "Reward terms",
   }
 }

@@ -39,6 +39,9 @@
 - Start a merchant trial: https://nabaperks.com/signup
 - Privacy: https://nabaperks.com/privacy
 - Terms: https://nabaperks.com/terms
+- Cookie and browser-storage notice: https://nabaperks.com/cookies
+- Merchant subscription terms: https://nabaperks.com/merchant-terms
+- Merchant data-processing schedule: https://nabaperks.com/data-processing
 
 ## Notes for citation
 - Brand name: Nabaperks. Operator: Lapen Inns. Market: United Kingdom. Category: browser-based loyalty / digital stamp-card software for food & drink venues.
