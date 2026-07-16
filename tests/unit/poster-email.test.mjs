@@ -2,18 +2,20 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import { buildPosterEmailContent } from "@/lib/notifications/poster-email"
+import { QR_POSTER_TEMPLATES } from "@/lib/qr/poster-templates"
 
 const INPUT = {
   venueName: "Old Crown Girton",
 }
 
-test("buildPosterEmailContent describes five attached PDFs without a poster link", () => {
+test("buildPosterEmailContent describes attached PDFs without a poster link", () => {
   const { subject, text, html } = buildPosterEmailContent(INPUT)
+  const count = String(QR_POSTER_TEMPLATES.length)
 
   assert.match(subject, /poster/i)
   for (const part of [text, html]) {
     assert.ok(part.includes("Old Crown Girton"), "venue name present")
-    assert.match(part, /five/i)
+    assert.match(part, new RegExp(count))
     assert.match(part, /attach/i)
     assert.doesNotMatch(part, /https?:\/\//)
   }

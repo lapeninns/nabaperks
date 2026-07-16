@@ -4,6 +4,7 @@ export const QR_POSTER_TEMPLATE_IDS = [
   "ticket",
   "northstar",
   "thermal",
+  "table-tent",
 ] as const
 
 export type QrPosterTemplateId = (typeof QR_POSTER_TEMPLATE_IDS)[number]
@@ -39,6 +40,12 @@ export const QR_POSTER_TEMPLATES: readonly QrPosterTemplate[] = [
     id: "thermal",
     name: "Receipt",
     description: "Thermal till receipt — first stamp free, reward locked.",
+  },
+  {
+    id: "table-tent",
+    name: "Table tent",
+    description:
+      "B5 portrait — fold to peak; Visit · Stamp · Unlock.",
   },
 ] as const
 

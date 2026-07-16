@@ -528,6 +528,12 @@
   min-width: 0;
 }
 
+/* Table tent prints on ISO B5 — swap the scaler/print intrinsic size. */
+.pageB5 {
+  --poster-a4-width: 176mm;
+  --poster-a4-height: 250mm;
+}
+
 .workspace {
   display: grid;
   grid-template-rows: minmax(0, 1fr);
@@ -630,10 +636,16 @@
   :global(body):has(.page) {
     margin: 0;
     padding: 0;
-    width: 210mm;
-    height: 297mm;
+    width: var(--poster-a4-width, 210mm);
+    height: var(--poster-a4-height, 297mm);
     overflow: hidden;
     background: #ffffff;
+  }
+
+  :global(html):has(.pageB5),
+  :global(body):has(.pageB5) {
+    width: 176mm;
+    height: 250mm;
   }
 
   :global(body):has(.page) * {

@@ -401,6 +401,7 @@ function StampScreenPanel({
         stampDates={exp.stampDates}
         todayLabel={exp.todayLabel}
         rewardName={SEALED_REWARD_NAME}
+        rewardUnlocked={Boolean(unlockedReward)}
         location={exp.location}
       />
       {unlockedReward ? (

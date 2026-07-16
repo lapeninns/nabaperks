@@ -41,13 +41,16 @@ test("poster email builds one valid A4 PDF attachment for every registered templ
       `${attachment.filename} has one page`
     )
     assert.ok(page, `${attachment.filename} includes its A4 page`)
+    const isTableTent = attachment.filename.includes("table-tent")
+    const expectedWidth = isTableTent ? 498.9 : 595.28
+    const expectedHeight = isTableTent ? 708.66 : 841.89
     assert.ok(
-      Math.abs(page.getWidth() - 595.28) < 0.1,
-      `${attachment.filename} is A4 width`
+      Math.abs(page.getWidth() - expectedWidth) < 0.2,
+      `${attachment.filename} has expected ${isTableTent ? "B5" : "A4"} width`
     )
     assert.ok(
-      Math.abs(page.getHeight() - 841.89) < 0.1,
-      `${attachment.filename} is A4 height`
+      Math.abs(page.getHeight() - expectedHeight) < 0.2,
+      `${attachment.filename} has expected ${isTableTent ? "B5" : "A4"} height`
     )
   }
 })
@@ -91,6 +94,11 @@ test("poster copy and compact thresholds stay grammatical at valid card edges", 
   assert.match(posterStyle("northstar", 1).support, /claim it now/i)
   assert.match(posterStyle("northstar", 2).support, /1 more visit unlocks/i)
   assert.match(posterStyle("thermal", 1).support, /VISIT TO UNLOCK: 1/)
+  assert.equal(
+    posterStyle("table-tent", 1).headline,
+    "Visit. Stamp. Unlock."
+  )
+  assert.match(posterStyle("table-tent", 3).support, /3 visits/)
   assert.equal(stampRowLabel(12), null)
   assert.equal(stampRowLabel(99), "99 VISITS TO UNLOCK")
 })

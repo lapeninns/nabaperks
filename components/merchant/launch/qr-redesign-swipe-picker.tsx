@@ -23,6 +23,7 @@ const POSTER_USE_CASE: Record<QrPosterTemplateId, string> = {
   ticket: "Promotional launch",
   northstar: "Dark pub or evening venue",
   thermal: "Compact till display",
+  "table-tent": "Dining tables / outdoor seating",
 }
 
 export function SwipePosterPicker({

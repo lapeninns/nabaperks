@@ -6,6 +6,10 @@ import type { QrPosterTemplateId } from "@/lib/qr/poster-templates"
 export const A4_WIDTH = 595.28
 export const A4_HEIGHT = 841.89
 
+/** ISO B5 portrait — table tent print sheet (176 × 250 mm). */
+export const B5_WIDTH = 498.9
+export const B5_HEIGHT = 708.66
+
 export type PosterStyle = {
   readonly background: RGB
   readonly foreground: RGB
@@ -103,6 +107,20 @@ export function posterStyle(
       friction: "TOTAL TO JOIN: GBP 0.00",
       qrCaption: "Scan to claim your free stamp",
     },
+    "table-tent": {
+      background: POSTER_PDF_COLOR.paper,
+      foreground: POSTER_PDF_COLOR.ink,
+      accent: RED,
+      band: RED,
+      panel: POSTER_PDF_COLOR.white,
+      headline: "Visit. Stamp. Unlock.",
+      support:
+        stamps === 1
+          ? "One visit unlocks your mystery reward."
+          : `${stamps} visits unlock a mystery reward.`,
+      friction: "NO APP  |  OPENS IN YOUR BROWSER",
+      qrCaption: "Point your camera. Get stamped.",
+    },
   }
   return styles[template]
 }
@@ -140,21 +158,24 @@ export function drawStampRow(
   count: number,
   y: number,
   style: PosterStyle,
-  font: PDFFont
+  font: PDFFont,
+  centerX: number = A4_WIDTH / 2
 ): void {
   const label = stampRowLabel(count)
   if (label) {
-    drawCenteredText(page, label, {
+    const width = font.widthOfTextAtSize(label, 11)
+    page.drawText(label, {
+      x: centerX - width / 2,
       y: y - 4,
-      font,
       size: 11,
+      font,
       color: style.foreground,
     })
     return
   }
 
   const gap = Math.min(38, 360 / count)
-  const startX = A4_WIDTH / 2 - (gap * (count - 1)) / 2
+  const startX = centerX - (gap * (count - 1)) / 2
   for (let index = 0; index < count; index += 1) {
     page.drawCircle({
       x: startX + index * gap,
@@ -207,10 +228,18 @@ export function drawCenteredText(
     readonly font: PDFFont
     readonly size: number
     readonly color: RGB
+    readonly pageWidth?: number
   }
 ): void {
+  const pageWidth = options.pageWidth ?? A4_WIDTH
   const width = options.font.widthOfTextAtSize(text, options.size)
-  page.drawText(text, { x: (A4_WIDTH - width) / 2, ...options })
+  page.drawText(text, {
+    x: (pageWidth - width) / 2,
+    y: options.y,
+    size: options.size,
+    font: options.font,
+    color: options.color,
+  })
 }
 
 export function drawWrappedText(

@@ -166,7 +166,7 @@ export function getCustomerExperienceViewModel(
       if (exp.reward) {
         return {
           eyebrow: "Reward unlocked",
-          headline: "Your reward is ready tomorrow",
+          headline: "Your reward is unlocked",
           supportLine:
             "Your completed card is safe. Open the reward for the collection date.",
           primaryAction: {
@@ -178,7 +178,8 @@ export function getCustomerExperienceViewModel(
       return {
         eyebrow: "Today's stamp",
         headline: "You're stamped for today",
-        supportLine: "Come back tomorrow to keep building your card.",
+        supportLine:
+          "Come back on the next UK business day to keep building your card.",
         primaryAction: {
           label: "View card",
           href: `/card/${exp.membershipId}`,

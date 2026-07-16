@@ -5,6 +5,7 @@ import {
   RewardSeal,
   RewardTicket,
   StampGrid,
+  type RewardSlotState,
   type RewardTicketState,
 } from "@/components/loyalty"
 import { cn } from "@/lib/utils"
@@ -249,6 +250,8 @@ export function CustomerStampCard({
   compact = false,
   afterGrid,
   children,
+  rewardSlot,
+  onSlamComplete,
 }: {
   venueName: string
   cardName: ReactNode
@@ -260,6 +263,7 @@ export function CustomerStampCard({
     name: ReactNode
     description?: ReactNode
     readyDate?: string | null
+    sealSlammed?: boolean
   }
   slamIndex?: number
   stampDates?: string[]
@@ -280,6 +284,8 @@ export function CustomerStampCard({
    * celebrations so the grid stays the receipt's first focal point. */
   afterGrid?: ReactNode
   children?: ReactNode
+  rewardSlot?: RewardSlotState
+  onSlamComplete?: () => void
 }) {
   // The StampGrid already shows current/total progress, so a separate
   // ProgressTrack underneath was a duplicate readout — one progress signal only.
@@ -304,12 +310,15 @@ export function CustomerStampCard({
         dates={stampDates}
         slamIndex={slamIndex}
         showEmptySlotNumbers
-        rewardSlot={reward.state === "sealed" ? "locked" : undefined}
+        rewardSlot={
+          rewardSlot ?? (reward.state === "sealed" ? "locked" : undefined)
+        }
         venueName={venueName}
         layout={wrapStamps ? "wrap" : "row"}
         wrapColumns={wrapColumnCount}
         compact={compact}
         className="py-1"
+        onSlamComplete={onSlamComplete}
       />
       {afterGrid}
       <RewardTicket
@@ -317,6 +326,7 @@ export function CustomerStampCard({
         name={reward.name}
         description={reward.description}
         readyDate={reward.readyDate}
+        sealSlammed={reward.sealSlammed}
       />
       {children}
     </CustomerReceipt>

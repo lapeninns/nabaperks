@@ -16,6 +16,7 @@ type StampDotProps = {
   readonly venueName?: string
   readonly venueInitials?: string
   readonly className?: string
+  readonly onSlamComplete?: () => void
 }
 
 type EarnedStampContentProps = {
@@ -35,6 +36,7 @@ export function StampDot({
   venueName,
   venueInitials,
   className,
+  onSlamComplete,
 }: StampDotProps) {
   const emptyLabel = emptySlotLabel(showEmptySlotNumber, slotNumber)
   const earnedInitials = stampInitials(venueInitials, venueName)
@@ -42,7 +44,11 @@ export function StampDot({
 
   return (
     <span className="grid justify-items-center gap-1">
-      <WetInkSlam active={earned && slammed} className="block w-full">
+      <WetInkSlam
+        active={earned && slammed}
+        className="block w-full"
+        onComplete={onSlamComplete}
+      >
         <span
           role="img"
           aria-label={stampAriaLabel(earned, label, date)}

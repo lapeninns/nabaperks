@@ -28,7 +28,14 @@ test("Given a live merchant QR When A4 poster templates are offered Then all cur
     "qr-redesign-concept.tsx"
   )
   const posterTemplates = readProjectFile("lib", "qr", "poster-templates.ts")
-  const templateIds = ["editorial", "bold", "ticket", "northstar", "thermal"]
+  const templateIds = [
+    "editorial",
+    "bold",
+    "ticket",
+    "northstar",
+    "thermal",
+    "table-tent",
+  ]
 
   // When / Then
   assert.match(qrPanelLive, /QrWorkspace/)
@@ -110,6 +117,20 @@ test("Given the A4 poster route When implementation is inspected Then it uses pr
     "thermal",
     "thermal-poster.module.css"
   )
+  const tableTentPoster = readProjectFile(
+    "components",
+    "merchant",
+    "qr-poster",
+    "table-tent",
+    "table-tent-poster.tsx"
+  )
+  const tableTentStyles = readProjectFile(
+    "components",
+    "merchant",
+    "qr-poster",
+    "table-tent",
+    "table-tent-poster.module.css"
+  )
   const posterTemplates = readProjectFile("lib", "qr", "poster-templates.ts")
   const posterSurface = [
     posterComponent,
@@ -121,6 +142,8 @@ test("Given the A4 poster route When implementation is inspected Then it uses pr
     northstarStyles,
     thermalPoster,
     thermalStyles,
+    tableTentPoster,
+    tableTentStyles,
   ].join("\n")
 
   // When / Then
@@ -131,8 +154,10 @@ test("Given the A4 poster route When implementation is inspected Then it uses pr
   assert.match(posterTemplates, /ticket/)
   assert.match(posterTemplates, /northstar/)
   assert.match(posterTemplates, /thermal/)
+  assert.match(posterTemplates, /table-tent/)
   assert.match(posterComponent, /if \(template === "northstar"\)/)
   assert.match(posterComponent, /if \(template === "thermal"\)/)
+  assert.match(posterComponent, /if \(template === "table-tent"\)/)
   assert.match(posterSurface, /210mm/)
   assert.match(posterSurface, /297mm/)
   assert.match(posterSurface, /No app · No download · No spam/)
@@ -152,6 +177,20 @@ test("Given the A4 poster route When implementation is inspected Then it uses pr
   assert.match(posterSurface, /82mm/)
   assert.match(posterSurface, /66mm/)
   assert.match(posterSurface, /@media print/)
+  assert.match(tableTentStyles, /size: B5 portrait/)
+  assert.match(tableTentStyles, /rotate\(180deg\)/)
+  assert.match(tableTentStyles, /--face-h: 125mm/)
+  assert.match(tableTentStyles, /176mm/)
+  assert.match(tableTentStyles, /250mm/)
+  assert.match(tableTentStyles, /\.scan/)
+  assert.match(tableTentStyles, /var\(--w-accent\)/)
+  assert.match(tableTentPoster, /Fold to peak/)
+  assert.match(tableTentPoster, /Visit\./)
+  assert.match(tableTentPoster, /Unlock\./)
+  assert.match(tableTentPoster, /faceTop/)
+  assert.match(tableTentPoster, /Point your camera/)
+  assert.match(posterStyles, /\.pageB5/)
+  assert.doesNotMatch(posterStyles, /\.pageLandscape/)
   assert.doesNotMatch(
     [posterPage, posterSurface].join("\n"),
     /pdf-lib|sharp|qr_assets|asset-store/

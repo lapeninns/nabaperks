@@ -56,3 +56,10 @@ test("Given an unknown RPC message When it is mapped Then generic recovery copy 
     "That didn't go through. Try again or ask the venue team."
   )
 })
+
+test("Given a same-day stamp block When copy is rendered Then the next UK business day is named exactly", () => {
+  assert.equal(
+    blockReasonCopy("already_stamped_today"),
+    "You're already stamped today. Come back on the next UK business day."
+  )
+})

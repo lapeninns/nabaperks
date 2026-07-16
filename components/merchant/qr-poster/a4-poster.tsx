@@ -14,6 +14,7 @@ import {
   PosterPreviewChrome,
 } from "./poster-preview-chrome"
 import { BoldPoster, EditorialPoster, TicketPoster } from "./poster-variants"
+import { TableTentPoster } from "./table-tent/table-tent-poster"
 import { ThermalPoster } from "./thermal/thermal-poster"
 
 type A4PosterProps = {
@@ -101,7 +102,11 @@ export function A4Poster({
   }, [])
 
   return (
-    <main ref={pageRef} className={`${styles.page} qr-poster-print-root`}>
+    <main
+      ref={pageRef}
+      className={`${styles.page} ${template === "table-tent" ? styles.pageB5 : ""} qr-poster-print-root`}
+      data-sheet={template === "table-tent" ? "b5" : "a4"}
+    >
       <PosterPreviewChrome
         ref={chromeRef}
         template={template}
@@ -132,11 +137,12 @@ export function A4Poster({
 }
 
 /**
- * Concept posters (e.g. "northstar") are self-contained — they render their own
- * A4 `.sheet` and print handling — so they branch out before the shared sheet
- * shell. The copy-driven templates resolve through getPosterCopy and share one
- * `.sheet` article. Each new concept poster must be handled here before the copy
- * path, which keeps the template narrowing exhaustive at compile time.
+ * Concept posters (northstar, thermal, table-tent) are self-contained — they
+ * render their own `.sheet` and print handling — so they branch out before the
+ * shared sheet shell. The copy-driven templates resolve through getPosterCopy
+ * and share one `.sheet` article. Each new concept poster must be handled here
+ * before the copy path, which keeps the template narrowing exhaustive at
+ * compile time.
  */
 export type PosterSheetProps = Pick<
   A4PosterProps,
@@ -162,6 +168,16 @@ export function PosterSheet({
   if (template === "thermal") {
     return (
       <ThermalPoster
+        qrDataUrl={qrDataUrl}
+        businessName={merchantName}
+        stampsRequired={stampsRequired}
+      />
+    )
+  }
+
+  if (template === "table-tent") {
+    return (
+      <TableTentPoster
         qrDataUrl={qrDataUrl}
         businessName={merchantName}
         stampsRequired={stampsRequired}

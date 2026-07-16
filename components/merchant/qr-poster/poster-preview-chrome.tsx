@@ -47,6 +47,8 @@ const TEMPLATE_TAB_ACCENT: Record<QrPosterTemplateId, string> = {
     "data-[active=true]:border-l-sun data-[active=true]:bg-ink data-[active=true]:text-paper",
   thermal:
     "data-[active=true]:border-l-ink-soft data-[active=true]:bg-paper-deep",
+  "table-tent":
+    "data-[active=true]:border-l-cobalt data-[active=true]:bg-paper-deep",
 }
 
 function PrintButton({
@@ -73,7 +75,24 @@ function PrintButton({
   )
 }
 
-function PosterGuidanceText() {
+function PosterGuidanceText({
+  tableTent = false,
+}: {
+  readonly tableTent?: boolean
+}) {
+  if (tableTent) {
+    return (
+      <p className="rounded-lg border-2 border-dashed border-ink/25 bg-paper-deep/50 px-3 py-2 text-sm leading-6 text-muted-foreground">
+        Preview matches print. Use{" "}
+        <strong className="font-extrabold text-foreground">B5 portrait</strong>{" "}
+        at{" "}
+        <strong className="font-extrabold text-foreground">100% scale</strong> —
+        no fit-to-page. Fold the top half down at “Fold to peak” — Visit · Stamp ·
+        Unlock on the left, vermillion scan on the right.
+      </p>
+    )
+  }
+
   return (
     <p className="rounded-lg border-2 border-dashed border-ink/25 bg-paper-deep/50 px-3 py-2 text-sm leading-6 text-muted-foreground">
       Preview matches print. Use{" "}
@@ -82,6 +101,12 @@ function PosterGuidanceText() {
       fit-to-page. Safe margins are built in for framing.
     </p>
   )
+}
+
+function printSizeMeta(tableTent: boolean): string {
+  return tableTent
+    ? "B5 portrait · 176×250 mm · fold top down at peak · print at 100%"
+    : "A4 portrait · 210×297 mm · print at 100%"
 }
 
 function PosterTemplateLinks({
@@ -159,6 +184,7 @@ export function PosterPreviewChrome({
   const [guidanceOpen, setGuidanceOpen] = useState(false)
   const navRef = useRef<HTMLElement>(null)
   const activePillRef = useRef<HTMLAnchorElement>(null)
+  const isTableTent = template === "table-tent"
 
   // Keep the active template pill in view as the strip scrolls (the active one
   // can be the 4th/5th pill, off-screen on phones). Scroll the nav element
@@ -238,7 +264,7 @@ export function PosterPreviewChrome({
           id="poster-guidance-mobile"
           className="mx-auto w-full max-w-[var(--poster-frame-max)] px-4 pb-3 sm:px-6 lg:hidden"
         >
-          <PosterGuidanceText />
+          <PosterGuidanceText tableTent={isTableTent} />
         </div>
       ) : null}
     </header>
@@ -256,6 +282,8 @@ export function PosterDesktopSidecar({
   backHref,
 }: Pick<PosterChromeProps, "template" | "qrCodeId" | "backHref">) {
   if (!qrCodeId) return null
+
+  const isTableTent = template === "table-tent"
 
   return (
     <aside className="qr-poster-sidecar hidden min-h-0 min-w-0 flex-col gap-4 border-l-2 border-ink bg-paper/95 p-4 lg:flex lg:overflow-y-auto">
@@ -275,9 +303,9 @@ export function PosterDesktopSidecar({
         <p className="mono-id tracking-[0.12em] text-muted-foreground">
           Print setup
         </p>
-        <PosterGuidanceText />
+        <PosterGuidanceText tableTent={isTableTent} />
         <p className="mono-id tracking-[0.1em] text-muted-foreground">
-          A4 portrait · 210×297 mm · print at 100%
+          {printSizeMeta(isTableTent)}
         </p>
       </div>
     </aside>
@@ -295,6 +323,8 @@ type PosterActionBarProps = {
  * At lg+ the header and sidecar own print actions, so this bar is hidden.
  */
 export function PosterActionBar({ ref, template }: PosterActionBarProps) {
+  const isTableTent = template === "table-tent"
+
   return (
     <footer
       ref={ref}
@@ -302,7 +332,7 @@ export function PosterActionBar({ ref, template }: PosterActionBarProps) {
     >
       <div className="mx-auto grid w-full max-w-[var(--poster-frame-max)] gap-2 px-4 py-2.5 sm:grid-cols-[1fr_auto] sm:items-center sm:gap-4 sm:px-6 sm:py-3">
         <p className="mono-id tracking-[0.1em] text-muted-foreground">
-          A4 portrait · 210×297 mm · print at 100%
+          {printSizeMeta(isTableTent)}
         </p>
         <PrintButton className="w-full sm:w-fit" template={template} />
       </div>

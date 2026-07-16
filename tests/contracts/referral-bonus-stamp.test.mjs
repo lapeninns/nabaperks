@@ -28,7 +28,9 @@ const referralBonusBank = read("lib/customer/referral-bonus-bank.ts")
 const homeTile = read("components/customer/home-card-tile.tsx")
 const bankPanels = read("components/customer/referral-bonus-bank-panels.tsx")
 const bankCopy = read("lib/customer/referral-bonus-bank-copy.ts")
-const stampCollector = read("components/customer/stamp-collector.tsx")
+const stampChoreography = read(
+  "lib/customer/experience/stamp-choreography.ts"
+)
 const referral = read("lib/customer/referral.ts")
 const liveDbTest = read("tests/db/referral-bonus-stamp.test.mjs")
 
@@ -111,7 +113,7 @@ test("the next venue stamp drains banked referral bonuses for that member", () =
     "the drain helper detects whether the drain created a new unlocked reward"
   )
   assert.match(
-    stampCollector,
+    stampChoreography,
     /import \{ REFERRAL_BONUS_STAMP_LABEL \} from "@\/lib\/customer\/card-stamp-labels"/,
     "drained bonus stamps use the shared label contract"
   )

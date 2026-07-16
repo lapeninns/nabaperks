@@ -59,26 +59,19 @@ export const wetInkTransition = {
     ease: [0.16, 1.2, 0.3, 1], // --w-ease-slam (overshoot)
   },
 
-  /**
-   * Reward wiggle: infinite rotate ±3°, 2.6s.
-   * Used by WetInkWiggle on sealed mysteries (no tap-to-earn yet).
-   */
   wiggle: {
     duration: 2.6,
     ease: "easeInOut",
-    repeat: Infinity,
   },
 
   /**
-   * Reward breathe: infinite scale pulse 1 → 1.04 → 1, 3.2s. Calmer and slower
-   * than the 2.6s wiggle tease — a breath, not a fidget. Used by WetInkBreathe
-   * on the unlocked reward seal while it rests (waiting) and while it awaits the
-   * counter scan (ready). Scale only, so the seal never blanks.
+   * One-shot reward breathe: scale 1 → 1.04 → 1, 3.2s, then rest. Used on
+   * waiting and ready reward seals without creating an infinite customer-
+   * transaction loop.
    */
   breathe: {
     duration: 3.2,
     ease: "easeInOut",
-    repeat: Infinity,
   },
 
   /**

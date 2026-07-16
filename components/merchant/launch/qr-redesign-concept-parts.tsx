@@ -179,11 +179,7 @@ export function resolveQrPosterTemplate(
 export function buildPosterHrefs(
   resolveHref: (id: QrPosterTemplateId) => string
 ): Readonly<Record<QrPosterTemplateId, string>> {
-  return {
-    editorial: resolveHref("editorial"),
-    bold: resolveHref("bold"),
-    ticket: resolveHref("ticket"),
-    northstar: resolveHref("northstar"),
-    thermal: resolveHref("thermal"),
-  }
+  return Object.fromEntries(
+    QR_POSTER_TEMPLATES.map((item) => [item.id, resolveHref(item.id)])
+  ) as Readonly<Record<QrPosterTemplateId, string>>
 }

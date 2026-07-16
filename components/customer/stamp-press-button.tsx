@@ -7,7 +7,6 @@ import { CheckmarkBadge04Icon } from "@hugeicons/core-free-icons"
 
 import { Icon } from "@/components/brand/icon"
 import { deriveVenueInitials } from "@/components/brand/venue-mark"
-import { WetInkBreathe } from "@/components/motion"
 import { useReducedMotionHook } from "@/lib/motion/use-reduced-motion"
 import { cn } from "@/lib/utils"
 
@@ -42,17 +41,23 @@ function StampDiscFace({
         "grid size-[5.5rem] place-items-center rounded-full border-2 border-ink shadow-md transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none",
         confirmed
           ? "bg-reward text-reward-foreground"
-          : "bg-stamp text-stamp-foreground",
-        // A press is not yet a success: the optimistic mark sits in a muted
-        // stamp tint until the server confirms (then it flips to green) or
-        // declines (then it returns to the full stamp colour).
+          : pending
+            ? "bg-stamp/10 text-stamp"
+            : "bg-stamp text-stamp-foreground",
         pending && !confirmed
-          ? "bg-stamp/85 motion-safe:animate-pulse"
+          ? "border-dashed border-stamp shadow-none"
           : undefined
       )}
     >
       {confirmed ? (
         <Icon icon={CheckmarkBadge04Icon} size={34} />
+      ) : pending ? (
+        <span className="grid justify-items-center gap-1">
+          <span className="font-mono text-lg font-bold tracking-[0.04em] uppercase">
+            {initials}
+          </span>
+          <span className="mono-id">Checking</span>
+        </span>
       ) : initials ? (
         <span className="font-mono text-xl font-bold tracking-[0.04em] uppercase">
           {initials}
@@ -106,10 +111,13 @@ export function StampPressButton({
   const hintId = useId()
   const ringRef = useRef<SVGCircleElement | null>(null)
   const rafRef = useRef<number | null>(null)
+  const holdTimeoutRef = useRef<number | null>(null)
   const startRef = useRef(0)
   const holdingRef = useRef(false)
   const completedRef = useRef(false)
   const ringShownRef = useRef(false)
+  const activePointerIdRef = useRef<number | null>(null)
+  const previousConfirmedRef = useRef(confirmed)
   const [pressing, setPressing] = useState(false)
   const [ringVisible, setRingVisible] = useState(false)
 
@@ -127,27 +135,58 @@ export function StampPressButton({
     }
   }, [])
 
+  const stopHoldTimeout = useCallback(() => {
+    if (holdTimeoutRef.current !== null) {
+      window.clearTimeout(holdTimeoutRef.current)
+      holdTimeoutRef.current = null
+    }
+  }, [])
+
   const resetRing = useCallback(() => {
     stopRaf()
+    stopHoldTimeout()
     holdingRef.current = false
     ringShownRef.current = false
     setRingVisible(false)
     setRingOffset(0)
-  }, [setRingOffset, stopRaf])
+  }, [setRingOffset, stopHoldTimeout, stopRaf])
 
   const commit = useCallback(() => {
     if (inactive) return
-    vibrate(24)
+    vibrate(8)
     onStamp()
   }, [inactive, onStamp])
 
-  useEffect(() => stopRaf, [stopRaf])
+  useEffect(
+    () => () => {
+      stopRaf()
+      stopHoldTimeout()
+    },
+    [stopHoldTimeout, stopRaf]
+  )
+  useEffect(() => {
+    if (!inactive) completedRef.current = false
+  }, [inactive])
+  useEffect(() => {
+    if (!previousConfirmedRef.current && confirmed) vibrate(24)
+    previousConfirmedRef.current = confirmed
+  }, [confirmed])
 
   function startHold() {
     if (inactive) return
     holdingRef.current = true
     completedRef.current = false
     startRef.current = performance.now()
+
+    if (reduce) {
+      holdTimeoutRef.current = window.setTimeout(() => {
+        if (!holdingRef.current) return
+        completedRef.current = true
+        commit()
+        resetRing()
+      }, holdMs)
+      return
+    }
 
     const tick = (now: number) => {
       if (!holdingRef.current) return
@@ -179,7 +218,15 @@ export function StampPressButton({
   }
 
   function handlePointerDown(event: ReactPointerEvent<HTMLButtonElement>) {
-    if (inactive) return
+    if (
+      inactive ||
+      !event.isPrimary ||
+      event.button !== 0 ||
+      activePointerIdRef.current !== null
+    ) {
+      return
+    }
+    activePointerIdRef.current = event.pointerId
     setPressing(true)
     try {
       event.currentTarget.setPointerCapture(event.pointerId)
@@ -189,7 +236,9 @@ export function StampPressButton({
     startHold()
   }
 
-  function handlePointerUp() {
+  function finishPointer(pointerId: number) {
+    if (activePointerIdRef.current !== pointerId) return
+    activePointerIdRef.current = null
     setPressing(false)
     cancelHold()
   }
@@ -207,23 +256,22 @@ export function StampPressButton({
   const initials = venueName ? deriveVenueInitials(venueName) : ""
 
   return (
-    // Idle invite: the actionable disc breathes to advertise the tap/hold
-    // gesture (the screen's single action). Gated on the stable `inactive` flag
-    // so it pauses once a stamp is in flight or landed — and never remounts the
-    // button mid-press. The primitive holds it static under reduced motion.
-    <WetInkBreathe active={!inactive} className="inline-grid">
+    <span className="inline-grid">
       <button
         type="button"
-        aria-label={secured ? "Stamp added" : label}
+        aria-label={label}
         aria-describedby={inactive ? undefined : hintId}
+        aria-busy={pending || undefined}
+        aria-disabled={inactive}
         disabled={disabled}
         onPointerDown={handlePointerDown}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
+        onPointerUp={(event) => finishPointer(event.pointerId)}
+        onPointerCancel={(event) => finishPointer(event.pointerId)}
+        onLostPointerCapture={(event) => finishPointer(event.pointerId)}
         onClick={handleClick}
+        data-stamp-press-button
         className={cn(
-          "relative grid size-28 touch-none place-items-center transition-transform duration-[var(--w-dur-fast)] ease-[var(--w-ease)] select-none motion-reduce:transition-none",
-          pressing && !reduce ? "scale-95" : "scale-100",
+          "focus-ring relative grid size-28 touch-none place-items-center select-none",
           inactive ? "cursor-default" : "cursor-pointer"
         )}
       >
@@ -246,17 +294,24 @@ export function StampPressButton({
             strokeDashoffset={RING_CIRCUMFERENCE}
           />
         </svg>
-        <StampDiscFace
-          confirmed={confirmed}
-          pending={pending}
-          initials={initials}
-        />
+        <span
+          className={cn(
+            "grid transition-transform duration-[var(--w-dur-press)] ease-out motion-reduce:transition-none",
+            pressing && !reduce ? "scale-95" : "scale-100"
+          )}
+        >
+          <StampDiscFace
+            confirmed={confirmed}
+            pending={pending}
+            initials={initials}
+          />
+        </span>
         {/* Names the gesture for assistive tech without altering the button's
             accessible name (kept as the label for e2e role-name locators). */}
         <span id={hintId} className="sr-only">
           Tap, or press and hold, to add today&apos;s stamp.
         </span>
       </button>
-    </WetInkBreathe>
+    </span>
   )
 }

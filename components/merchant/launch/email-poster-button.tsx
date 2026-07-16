@@ -10,9 +10,9 @@ import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 
 /**
- * Phone-native alternative to browser printing: email all five A4 poster PDFs
- * to the signed-in merchant. Calls the server action directly (no form) and
- * shows inline feedback, so the QR panel updates without a reload.
+ * Phone-native alternative to browser printing: email all registered A4 poster
+ * PDFs to the signed-in merchant. Calls the server action directly (no form)
+ * and shows inline feedback, so the QR panel updates without a reload.
  */
 export function EmailPosterButton() {
   const [pending, startTransition] = useTransition()
