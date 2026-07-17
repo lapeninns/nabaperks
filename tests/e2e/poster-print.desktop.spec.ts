@@ -148,43 +148,46 @@ test.describe("poster printing", () => {
       for (const qrImage of await qrImages.all()) {
         await expect(qrImage).toHaveJSProperty("naturalWidth", 900)
       }
-      // Decode from the QR <img> bitmaps directly. Full-sheet screenshots can
-      // undersample module edges on dense Wet Ink layouts even when the print
-      // assets themselves remain scannable.
-      const decodedTargets = await page.evaluate(async () => {
-        type BarcodeDetectorConstructor = new (options: {
-          readonly formats: readonly string[]
-        }) => {
-          detect(image: ImageBitmap): Promise<readonly { rawValue: string }[]>
-        }
-        const Detector = (
-          globalThis as typeof globalThis & {
-            readonly BarcodeDetector?: BarcodeDetectorConstructor
+      if (browserName === "chromium") {
+        // Decode from the QR <img> bitmaps directly. Full-sheet screenshots can
+        // undersample module edges on dense Wet Ink layouts even when the print
+        // assets themselves remain scannable. BarcodeDetector is Chromium-only
+        // in Playwright's browser matrix.
+        const decodedTargets = await page.evaluate(async () => {
+          type BarcodeDetectorConstructor = new (options: {
+            readonly formats: readonly string[]
+          }) => {
+            detect(image: ImageBitmap): Promise<readonly { rawValue: string }[]>
           }
-        ).BarcodeDetector
-        if (!Detector) return []
-        const detector = new Detector({ formats: ["qr_code"] })
-        const images = Array.from(
-          document.querySelectorAll<HTMLImageElement>(
-            ".qr-poster-print-root article img"
+          const Detector = (
+            globalThis as typeof globalThis & {
+              readonly BarcodeDetector?: BarcodeDetectorConstructor
+            }
+          ).BarcodeDetector
+          if (!Detector) return []
+          const detector = new Detector({ formats: ["qr_code"] })
+          const images = Array.from(
+            document.querySelectorAll<HTMLImageElement>(
+              ".qr-poster-print-root article img"
+            )
           )
-        )
-        const values: string[] = []
-        for (const image of images) {
-          const bitmap = await createImageBitmap(image)
-          const detections = await detector.detect(bitmap)
-          bitmap.close()
-          for (const detection of detections) {
-            values.push(detection.rawValue)
+          const values: string[] = []
+          for (const image of images) {
+            const bitmap = await createImageBitmap(image)
+            const detections = await detector.detect(bitmap)
+            bitmap.close()
+            for (const detection of detections) {
+              values.push(detection.rawValue)
+            }
           }
-        }
-        return values
-      })
-      expect(decodedTargets).toHaveLength(expectedQrCount)
-      expect(decodedTargets.every((target) => typeof target === "string")).toBe(
-        true
-      )
-      expect(new Set(decodedTargets).size).toBe(1)
+          return values
+        })
+        expect(decodedTargets).toHaveLength(expectedQrCount)
+        expect(
+          decodedTargets.every((target) => typeof target === "string")
+        ).toBe(true)
+        expect(new Set(decodedTargets).size).toBe(1)
+      }
       await saveEvidence(printPosterSheet, `${template}-print.png`)
       await expect(page.locator(".qr-poster-chrome")).toBeHidden()
       await expect(page.locator(".qr-poster-action-bar")).toBeHidden()
