@@ -184,7 +184,7 @@ test("poster email telemetry is scheduled only after provider success", () => {
   )
   const providerSuccess = emailAction.indexOf("await sendTransactionalEmail")
   const milestone = emailAction.indexOf("scheduleMerchantActivationEvent")
-  const successResponse = emailAction.indexOf("return { ok: true")
+  const successResponse = emailAction.search(/return\s*\{\s*ok:\s*true/)
 
   assert.ok(providerSuccess >= 0, "poster delivery remains authoritative")
   assert.ok(
