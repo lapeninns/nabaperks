@@ -149,10 +149,13 @@
 }
 
 .wordmarkAccent,
-.unlock,
 .nightAccent,
 .studioAccent {
   color: var(--w-sun);
+}
+
+.unlock {
+  color: var(--w-accent);
 }
 
 .wordmarkMark,

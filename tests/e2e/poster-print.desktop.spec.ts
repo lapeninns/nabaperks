@@ -148,9 +148,10 @@ test.describe("poster printing", () => {
       for (const qrImage of await qrImages.all()) {
         await expect(qrImage).toHaveJSProperty("naturalWidth", 900)
       }
-      const renderedPng = await printPosterSheet.screenshot({ type: "png" })
-      const renderedBase64 = renderedPng.toString("base64")
-      const decodedTargets = await page.evaluate(async (base64) => {
+      // Decode from the QR <img> bitmaps directly. Full-sheet screenshots can
+      // undersample module edges on dense Wet Ink layouts even when the print
+      // assets themselves remain scannable.
+      const decodedTargets = await page.evaluate(async () => {
         type BarcodeDetectorConstructor = new (options: {
           readonly formats: readonly string[]
         }) => {
@@ -163,17 +164,22 @@ test.describe("poster printing", () => {
         ).BarcodeDetector
         if (!Detector) return []
         const detector = new Detector({ formats: ["qr_code"] })
-        const binary = atob(base64)
-        const bytes = Uint8Array.from(binary, (character) =>
-          character.charCodeAt(0)
+        const images = Array.from(
+          document.querySelectorAll<HTMLImageElement>(
+            ".qr-poster-print-root article img"
+          )
         )
-        const bitmap = await createImageBitmap(
-          new Blob([bytes], { type: "image/png" })
-        )
-        const detections = await detector.detect(bitmap)
-        bitmap.close()
-        return detections.map(({ rawValue }) => rawValue)
-      }, renderedBase64)
+        const values: string[] = []
+        for (const image of images) {
+          const bitmap = await createImageBitmap(image)
+          const detections = await detector.detect(bitmap)
+          bitmap.close()
+          for (const detection of detections) {
+            values.push(detection.rawValue)
+          }
+        }
+        return values
+      })
       expect(decodedTargets).toHaveLength(expectedQrCount)
       expect(decodedTargets.every((target) => typeof target === "string")).toBe(
         true
