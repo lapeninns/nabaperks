@@ -17,6 +17,11 @@ const chrome = readFileSync(
   "components/merchant/qr-poster/poster-preview-chrome.tsx",
   "utf8"
 )
+const controls = readFileSync(
+  "components/merchant/qr-poster/poster-preview-controls.tsx",
+  "utf8"
+)
+const posterPreview = `${chrome}\n${controls}`
 const action = readFileSync("app/app/qr/poster/actions.ts", "utf8")
 const panelLive = readFileSync(
   "components/merchant/launch/qr-panel-live.tsx",
@@ -29,11 +34,15 @@ const dashboardCard = readFileSync(
 
 test("the print button fires tracking without awaiting, then prints", () => {
   assert.match(
-    chrome,
+    posterPreview,
     /void recordPosterPrintAction\(/,
     "tracking must be fired-and-forgotten with void, never awaited"
   )
-  assert.match(chrome, /window\.print\(\)/, "the print affordance stays intact")
+  assert.match(
+    posterPreview,
+    /window\.print\(\)/,
+    "the print affordance stays intact"
+  )
 })
 
 test("the tracking action validates the template and never throws", () => {

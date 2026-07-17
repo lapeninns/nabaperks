@@ -2,7 +2,7 @@ import { notFound } from "next/navigation"
 import { headers } from "next/headers"
 
 import { A4Poster } from "@/components/merchant/qr-poster/a4-poster"
-import { renderQrCodePng } from "@/lib/qr/assets"
+import { renderPosterQrCodePng } from "@/lib/qr/assets"
 import {
   getQrPosterTemplate,
   QR_POSTER_TEMPLATE_IDS,
@@ -15,6 +15,8 @@ type PosterPreviewPageProps = {
   readonly searchParams: Promise<{
     readonly template?: string | readonly string[]
     readonly qr?: string | readonly string[]
+    readonly venue?: string | readonly string[]
+    readonly stamps?: string | readonly string[]
   }>
 }
 
@@ -22,7 +24,7 @@ const PREVIEW_DEFAULTS = {
   merchantName: "Old Crown Girton",
   stampsRequired: 3,
   sharePath: "old-crown-girton",
-} as const
+}
 
 export default async function PosterPreviewPage({
   searchParams,
@@ -34,20 +36,24 @@ export default async function PosterPreviewPage({
   const query = await searchParams
   const templateParam = firstSearchValue(query.template)
   const sharePath = firstSearchValue(query.qr) ?? PREVIEW_DEFAULTS.sharePath
+  const merchantName =
+    firstSearchValue(query.venue)?.trim().slice(0, 120) ||
+    PREVIEW_DEFAULTS.merchantName
+  const stampsRequired = previewStamps(firstSearchValue(query.stamps))
   const requestHeaders = await headers()
   const host =
     requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host")
   const protocol = requestHeaders.get("x-forwarded-proto") ?? "http"
   const origin = host ? `${protocol}://${host}` : "http://127.0.0.1:3146"
   const shareUrl = `${origin}/q/${sharePath}`
-  const png = await renderQrCodePng(shareUrl, 900)
+  const png = await renderPosterQrCodePng(shareUrl, 900)
   const qrDataUrl = `data:image/png;base64,${png.toString("base64")}`
 
   const posterProps = {
     qrDataUrl,
     shareUrl,
-    merchantName: PREVIEW_DEFAULTS.merchantName,
-    stampsRequired: PREVIEW_DEFAULTS.stampsRequired,
+    merchantName,
+    stampsRequired,
   }
 
   if (templateParam) {
@@ -93,4 +99,12 @@ function firstSearchValue(value: string | readonly string[] | undefined) {
   }
 
   return value ?? null
+}
+
+function previewStamps(value: string | null): number {
+  if (!value) return PREVIEW_DEFAULTS.stampsRequired
+  const stamps = Number(value)
+  return Number.isInteger(stamps) && stamps >= 1 && stamps <= 6
+    ? stamps
+    : PREVIEW_DEFAULTS.stampsRequired
 }

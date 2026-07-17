@@ -12,6 +12,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  outputFileTracingIncludes: {
+    "/*": ["./assets/fonts/*.ttf"],
+  },
   experimental: {
     // Convert barrel imports of these packages into direct deep imports at
     // build time. The @hugeicons ESM barrel alone is ~604 KB / ~11k files and

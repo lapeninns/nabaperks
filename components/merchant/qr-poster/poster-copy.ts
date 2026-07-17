@@ -1,7 +1,11 @@
+import type { CSSProperties } from "react"
+
+import { resolveCopyDrivenContent } from "@/lib/qr/poster-content"
+
 /**
- * Copy-driven templates resolved through getPosterCopy. Concept posters (e.g.
- * "northstar") ship their own copy and are intentionally excluded here, so
- * adding one to the registry never forces a TEMPLATE_HOOKS entry.
+ * Copy-driven templates resolved through getPosterCopy. Hooks live in
+ * config/poster-designs.json via lib/qr/poster-designs.ts. Concept posters
+ * (northstar, thermal, table-tent faces) keep their own strings there too.
  */
 export type CopyPosterTemplateId = "editorial" | "bold" | "ticket"
 
@@ -17,10 +21,6 @@ export type PosterHeadline = {
   readonly afterAccent: string
 }
 
-/** Stamp rule + mystery framing — shared footer on every A4 template. */
-export const POSTER_REASSURANCE =
-  "One stamp per day · Mystery until unlock" as const
-
 export type PosterCopy = PosterData & {
   readonly template: CopyPosterTemplateId
   /** Giant headline with one accent word. */
@@ -30,7 +30,17 @@ export type PosterCopy = PosterData & {
   /** Supporting line under the hook. */
   readonly support: string
   /** Forbidden-fruit teaser — intrigue on the mystery reward. */
-  readonly forbidden: string
+  readonly rewardDetail: string
+  readonly qrOuterMm: number
+  readonly geometry: {
+    readonly sheetWidthMm: number
+    readonly sheetHeightMm: number
+  }
+  readonly typeTiers: {
+    readonly hookPt: number
+    readonly substantivePt: number
+    readonly factsPt: number
+  }
   /** The friction-killer strip. */
   readonly frictionLine: string
   /** The QR imperative. */
@@ -41,126 +51,42 @@ export type PosterCopy = PosterData & {
   readonly reassurance: string
 }
 
-const NUMBER_WORDS = [
-  "zero",
-  "one",
-  "two",
-  "three",
-  "four",
-  "five",
-  "six",
-  "seven",
-  "eight",
-  "nine",
-  "ten",
-  "eleven",
-  "twelve",
-]
-
-function spell(value: number): string {
-  return NUMBER_WORDS[value] ?? String(value)
-}
-
-function capitalise(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1)
-}
-
-function buildProgress(stampsRequired: number): string {
-  const remaining = stampsRequired - 1
-
-  if (stampsRequired === 1) {
-    return "Don't leave your first stamp behind — scan now to unlock it."
-  }
-
-  const visitVerb = remaining === 1 ? "visit unlocks" : "visits unlock"
-  return `You're already 1 stamp in — don't leave it behind. ${capitalise(spell(remaining))} more ${visitVerb} your mystery reward.`
-}
-
-function buildSupport(stampsRequired: number): string {
-  if (stampsRequired === 1) {
-    return "Your first stamp's on us — claim it now."
-  }
-
-  return "Your first stamp's already waiting — collect the rest to unlock the mystery."
-}
-
-type CopyContext = {
-  readonly stampsRequired: number
-}
-
-const TEMPLATE_HOOKS: Record<
-  CopyPosterTemplateId,
-  (ctx: CopyContext) => Pick<
-    PosterCopy,
-    | "headline"
-    | "support"
-    | "forbidden"
-    | "frictionLine"
-    | "qrCaption"
-    | "reassurance"
-  >
-> = {
-  bold: ({ stampsRequired }) => ({
-    headline: {
-      beforeAccent: "Everyone ",
-      accent: "wins",
-      afterAccent: " something.",
-    },
-    support: buildSupport(stampsRequired),
-    forbidden: "We're not allowed to tell you what it is.",
-    frictionLine: "No app · No download · No spam",
-    qrCaption: "Scan to claim your free stamp",
-    reassurance: POSTER_REASSURANCE,
-  }),
-  editorial: ({ stampsRequired }) => ({
-    headline:
-      stampsRequired === 1
-        ? {
-            beforeAccent: "One visit. One ",
-            accent: "surprise",
-            afterAccent: ".",
-          }
-        : {
-            beforeAccent: `${capitalise(spell(stampsRequired))} visits. One `,
-            accent: "surprise",
-            afterAccent: ".",
-          },
-    support: buildSupport(stampsRequired),
-    forbidden: "We can't tell you what it is. That's the point.",
-    frictionLine: "No app · Opens in your browser",
-    qrCaption: "Scan to unlock your mystery reward",
-    reassurance: POSTER_REASSURANCE,
-  }),
-  ticket: ({ stampsRequired }) => ({
-    headline: {
-      beforeAccent: "First stamp's ",
-      accent: "free",
-      afterAccent: ".",
-    },
-    support:
-      stampsRequired === 1
-        ? "Claim it now — your mystery reward unlocks straight after."
-        : "Claim stamp one today — the rest unlock the mystery.",
-    forbidden: "Staff won't spoil it. We won't either.",
-    frictionLine: "No account needed · Scan with your camera",
-    qrCaption: "Scan here to claim your free stamp",
-    reassurance: POSTER_REASSURANCE,
-  }),
-}
-
 export function getPosterCopy(
   data: PosterData,
   template: CopyPosterTemplateId
 ): PosterCopy {
-  const stampsRequired = Math.max(1, data.stampsRequired)
-  const hook = TEMPLATE_HOOKS[template]({ stampsRequired })
+  const content = resolveCopyDrivenContent(template, data.stampsRequired)
 
   return {
     ...data,
     template,
-    stampsRequired,
+    stampsRequired: data.stampsRequired,
     eyebrow: data.businessName.trim(),
-    progress: buildProgress(stampsRequired),
-    ...hook,
+    headline: content.headline,
+    support: content.support,
+    rewardDetail: content.rewardDetail,
+    qrOuterMm: content.qr.outerMm,
+    geometry: content.geometry,
+    typeTiers: content.typeTiers,
+    frictionLine: content.frictionLine,
+    qrCaption: content.qrCaption,
+    progress: content.progress,
+    reassurance: content.reassurance,
+  }
+}
+
+type A4PosterCssProperties = CSSProperties & {
+  readonly "--poster-a4-hook-size": string
+  readonly "--poster-a4-substantive-size": string
+  readonly "--poster-a4-facts-size": string
+}
+
+export function a4PosterStyle(content: {
+  readonly typeTiers: PosterCopy["typeTiers"]
+}): A4PosterCssProperties {
+  return {
+    "--poster-a4-hook-size": `${content.typeTiers.hookPt}pt`,
+    "--poster-a4-substantive-size": `${content.typeTiers.substantivePt}pt`,
+    "--poster-a4-facts-size": `${content.typeTiers.factsPt}pt`,
   }
 }

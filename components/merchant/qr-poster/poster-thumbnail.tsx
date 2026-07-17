@@ -6,6 +6,7 @@ import {
   PosterSheet,
   type PosterSheetProps,
 } from "@/components/merchant/qr-poster/a4-poster"
+import { isQrPosterTableTent } from "@/lib/qr/poster-templates"
 import { cn } from "@/lib/utils"
 
 export function PosterThumbnail({
@@ -15,7 +16,7 @@ export function PosterThumbnail({
   const frameRef = useRef<HTMLDivElement>(null)
   const sheetRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(0.24)
-  const isTableTent = props.template === "table-tent"
+  const isTableTent = isQrPosterTableTent(props.template)
 
   useLayoutEffect(() => {
     const frame = frameRef.current

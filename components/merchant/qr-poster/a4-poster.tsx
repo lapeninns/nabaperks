@@ -3,18 +3,27 @@
 import { type ReactNode, useEffect, useRef } from "react"
 
 import type { QrPosterTemplateId } from "@/lib/qr/poster-templates"
-import { getQrPosterTemplate } from "@/lib/qr/poster-templates"
+import {
+  getQrPosterTemplate,
+  isQrPosterTableTent,
+} from "@/lib/qr/poster-templates"
 
 import styles from "./a4-poster.module.css"
 import { NorthStarPoster } from "./northstar/northstar-poster"
-import { type CopyPosterTemplateId, getPosterCopy } from "./poster-copy"
+import {
+  a4PosterStyle,
+  type CopyPosterTemplateId,
+  getPosterCopy,
+} from "./poster-copy"
 import {
   PosterActionBar,
   PosterDesktopSidecar,
   PosterPreviewChrome,
 } from "./poster-preview-chrome"
 import { BoldPoster, EditorialPoster, TicketPoster } from "./poster-variants"
+import { TableTentNightPoster } from "./table-tent/table-tent-night-poster"
 import { TableTentPoster } from "./table-tent/table-tent-poster"
+import { TableTentStudioPoster } from "./table-tent/table-tent-studio-poster"
 import { ThermalPoster } from "./thermal/thermal-poster"
 
 type A4PosterProps = {
@@ -80,8 +89,7 @@ export function A4Poster({
       )
       // Scale against the stage column on desktop (poster + sidecar), otherwise
       // the full page width inside the merchant shell.
-      const widthSource =
-        desktopQuery.matches && stage ? stage : page
+      const widthSource = desktopQuery.matches && stage ? stage : page
       page.style.setProperty(
         "--poster-avail-width",
         `${Math.round(widthSource.clientWidth)}px`
@@ -104,8 +112,8 @@ export function A4Poster({
   return (
     <main
       ref={pageRef}
-      className={`${styles.page} ${template === "table-tent" ? styles.pageB5 : ""} qr-poster-print-root`}
-      data-sheet={template === "table-tent" ? "b5" : "a4"}
+      className={`${styles.page} ${isQrPosterTableTent(template) ? styles.pageB5 : ""} qr-poster-print-root`}
+      data-sheet={isQrPosterTableTent(template) ? "b5" : "a4"}
     >
       <PosterPreviewChrome
         ref={chromeRef}
@@ -129,7 +137,11 @@ export function A4Poster({
             </div>
           </div>
         </div>
-        <PosterDesktopSidecar template={template} qrCodeId={qrCodeId} backHref={backHref} />
+        <PosterDesktopSidecar
+          template={template}
+          qrCodeId={qrCodeId}
+          backHref={backHref}
+        />
       </div>
       <PosterActionBar ref={actionBarRef} template={template} />
     </main>
@@ -137,7 +149,7 @@ export function A4Poster({
 }
 
 /**
- * Concept posters (northstar, thermal, table-tent) are self-contained — they
+ * Concept posters (northstar, thermal, table tents) are self-contained — they
  * render their own `.sheet` and print handling — so they branch out before the
  * shared sheet shell. The copy-driven templates resolve through getPosterCopy
  * and share one `.sheet` article. Each new concept poster must be handled here
@@ -185,6 +197,26 @@ export function PosterSheet({
     )
   }
 
+  if (template === "table-tent-night") {
+    return (
+      <TableTentNightPoster
+        qrDataUrl={qrDataUrl}
+        businessName={merchantName}
+        stampsRequired={stampsRequired}
+      />
+    )
+  }
+
+  if (template === "table-tent-studio") {
+    return (
+      <TableTentStudioPoster
+        qrDataUrl={qrDataUrl}
+        businessName={merchantName}
+        stampsRequired={stampsRequired}
+      />
+    )
+  }
+
   const copy = getPosterCopy(
     { businessName: merchantName, stampsRequired },
     template
@@ -196,7 +228,16 @@ export function PosterSheet({
   }
 
   return (
-    <article className={`${styles.sheet} ${TEMPLATE_CLASS_NAMES[template]}`}>
+    <article
+      className={`${styles.sheet} ${TEMPLATE_CLASS_NAMES[template]}`}
+      style={{
+        ...a4PosterStyle(copy),
+        width: `${copy.geometry.sheetWidthMm}mm`,
+        height: `${copy.geometry.sheetHeightMm}mm`,
+        minHeight: `${copy.geometry.sheetHeightMm}mm`,
+        maxHeight: `${copy.geometry.sheetHeightMm}mm`,
+      }}
+    >
       {posterByTemplate[template]}
     </article>
   )

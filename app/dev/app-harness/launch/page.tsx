@@ -34,7 +34,7 @@ import {
   rewardPresetsForBusinessType,
 } from "@/lib/merchant/reward-presets"
 import { QR_POSTER_TEMPLATE_IDS } from "@/lib/qr/poster-templates"
-import { renderQrCodePng } from "@/lib/qr/assets"
+import { renderPosterQrCodePng } from "@/lib/qr/assets"
 
 import { HARNESS_MERCHANT } from "../fixtures"
 
@@ -160,7 +160,7 @@ export default async function LaunchHarnessPage({
     params.concept === "redesign" ? await resolveHarnessShareUrl() : null
   const conceptQrDataUrl = conceptShareUrl
     ? `data:image/png;base64,${(
-        await renderQrCodePng(conceptShareUrl, 720)
+        await renderPosterQrCodePng(conceptShareUrl, 720)
       ).toString("base64")}`
     : null
 

@@ -461,6 +461,167 @@
         text-align: right;
       }
 
+      /* ---- Face B: Ticket claim ---- */
+      .ticket-face {
+        grid-template-rows: 30% auto minmax(0, 1fr) 8%;
+      }
+
+      .ticket-strap {
+        min-height: 0;
+        padding: 2.4cqw 3.4cqw 2cqw;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 0.9cqw;
+        background: var(--w-accent);
+        color: #ffffff;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .ticket-venue {
+        margin: 0;
+        font-family: var(--font-space-mono);
+        font-size: 1.2cqw;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        opacity: 0.92;
+      }
+
+      .ticket-hook {
+        margin: 0;
+        font-size: 6.2cqw;
+        font-weight: 800;
+        letter-spacing: -0.045em;
+        line-height: 0.92;
+        text-transform: uppercase;
+      }
+
+      .ticket-accent {
+        color: var(--w-sun);
+      }
+
+      .ticket-support {
+        margin: 0;
+        max-width: 92%;
+        font-size: 1.55cqw;
+        font-weight: 700;
+        line-height: 1.25;
+        opacity: 0.95;
+      }
+
+      .ticket-tear {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 1.2cqw;
+        padding: 0 2.4cqw;
+        background: var(--w-paper);
+      }
+
+      .ticket-tear span {
+        height: 0;
+        border-top: 0.22cqw dashed color-mix(in oklch, var(--w-ink) 55%, transparent);
+      }
+
+      .ticket-tear i {
+        width: 2.2cqw;
+        height: 2.2cqw;
+        border-radius: 50%;
+        border: 0.18cqw solid var(--w-ink);
+        background: var(--w-paper);
+        box-shadow: inset 0 0 0 0.35cqw var(--w-accent);
+      }
+
+      .ticket-body {
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 1fr 0.95fr;
+        gap: 2cqw;
+        padding: 2cqw 3cqw 1.6cqw;
+        background: var(--w-paper);
+      }
+
+      .ticket-promise {
+        min-width: 0;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 1.4cqw;
+      }
+
+      .ticket-forbidden {
+        margin: 0;
+        font-size: 2.4cqw;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.15;
+        color: var(--w-ink);
+      }
+
+      .ticket-friction {
+        margin: 0;
+        font-family: var(--font-space-mono);
+        font-size: 1.05cqw;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--w-ink-soft);
+      }
+
+      .ticket-claim {
+        min-width: 0;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.2cqw;
+      }
+
+      .ticket-qr-caption {
+        margin: 0;
+        text-align: center;
+        font-family: var(--font-space-mono);
+        font-size: 1.05cqw;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--w-ink);
+      }
+
+      .ticket-qr-wrap {
+        width: min(28cqw, 78%);
+        aspect-ratio: 1;
+        padding: 1.2cqw;
+        box-sizing: border-box;
+        background: #ffffff;
+        border: 0.22cqw solid var(--w-ink);
+        box-shadow: 0.65cqw 0.65cqw 0 var(--w-ink);
+      }
+
+      .ticket-qr-wrap svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .ticket-footer {
+        min-height: 0;
+        display: grid;
+        place-items: center;
+        border-top: 0.16cqw solid color-mix(in oklch, var(--w-ink) 30%, transparent);
+        background: var(--w-paper);
+        font-family: var(--font-space-mono);
+        font-size: 1.05cqw;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--w-ink-soft);
+      }
+
       /* ---- Fold score ---- */
       .fold-guide {
         position: absolute;
@@ -547,8 +708,12 @@
             <code>rotate(180deg)</code> · centre = mountain-fold peak
           </li>
           <li>
-            Face: ink brand bar → Visit / Stamp / Unlock promise → vermillion
-            scan panel → whisper footer
+            Face A (bottom): ink brand bar → Scan / Stamp / Don't ask →
+            vermillion scan panel
+          </li>
+          <li>
+            Face B (top, rotated): ticket claim strap → tear → First stamp's
+            free + claim QR
           </li>
           <li>
             Sample venue: <strong>Old Crown Girton</strong> ·
@@ -571,56 +736,51 @@
 
         <article class="sheet" aria-label="Table tent print sheet">
           <div class="face-top">
-            <!-- Face markup duplicated below for the bottom half -->
-            <section class="face">
-              <header class="brand-bar">
-                <div class="wordmark">
-                  <span class="wordmark-mark" aria-hidden="true">✱</span>
-                  <span>NABA<span class="wordmark-accent">/PERKS</span></span>
-                </div>
-                <div class="edition">
-                  <span>Table rewards</span>
-                  <b>No. 03</b>
-                </div>
+            <!-- Face B — Ticket claim (rotated for fold) -->
+            <section class="face ticket-face">
+              <header class="ticket-strap">
+                <p class="ticket-venue">Old Crown Girton</p>
+                <h2 class="ticket-hook">
+                  First stamp's <span class="ticket-accent">free</span>.
+                </h2>
+                <p class="ticket-support">
+                  Claim stamp one today — the rest unlock the mystery.
+                </p>
               </header>
 
-              <div class="main">
-                <div class="promise">
-                  <p class="venue-line">
-                    <span>Old Crown</span>
-                    / Girton
+              <div class="ticket-tear" aria-hidden="true">
+                <span></span>
+                <i></i>
+                <span></span>
+              </div>
+
+              <div class="ticket-body">
+                <div class="ticket-promise">
+                  <p class="ticket-forbidden">
+                    Staff won't spoil it. We won't either.
                   </p>
-
-                  <h2 class="stack">
-                    <span>Visit.</span>
-                    <span>Stamp.</span>
-                    <span class="unlock">Unlock.</span>
-                  </h2>
-
-                  <div class="reward-row">
-                    <div class="stamp-track" aria-hidden="true">
-                      <span class="track-line"></span>
-                      <span class="stamp-slot is-earned">
-                        <span class="stamp-dot is-earned">OC</span>
-                      </span>
-                      <span class="stamp-slot">
-                        <span class="stamp-dot is-empty">02</span>
-                      </span>
-                      <span class="stamp-slot">
-                        <span class="stamp-dot is-empty">03</span>
-                      </span>
-                    </div>
-                    <p class="reward-copy">3 visits unlock a mystery reward.</p>
+                  <p class="ticket-friction">
+                    No account needed · Scan with your camera
+                  </p>
+                  <div class="stamp-track" aria-hidden="true">
+                    <span class="track-line"></span>
+                    <span class="stamp-slot is-earned">
+                      <span class="stamp-dot is-earned">OC</span>
+                    </span>
+                    <span class="stamp-slot">
+                      <span class="stamp-dot is-empty">02</span>
+                    </span>
+                    <span class="stamp-slot">
+                      <span class="stamp-dot is-empty">03</span>
+                    </span>
                   </div>
                 </div>
 
-                <aside class="scan">
-                  <div class="scan-heading">
-                    <span>01 / Start here</span>
-                    <span class="scan-arrow" aria-hidden="true">→</span>
-                  </div>
-
-                  <div class="qr-wrap" aria-label="QR code placeholder">
+                <aside class="ticket-claim">
+                  <p class="ticket-qr-caption">
+                    Scan here to claim your free stamp
+                  </p>
+                  <div class="ticket-qr-wrap" aria-label="QR code placeholder">
                     <svg viewBox="0 0 120 120" role="img" aria-label="QR placeholder">
                       <rect width="120" height="120" fill="#ffffff" />
                       <rect x="8" y="8" width="34" height="34" fill="#211c16" />
@@ -632,47 +792,16 @@
                       <rect x="8" y="78" width="34" height="34" fill="#211c16" />
                       <rect x="14" y="84" width="22" height="22" fill="#ffffff" />
                       <rect x="18" y="88" width="14" height="14" fill="#211c16" />
-                      <rect x="50" y="14" width="8" height="8" fill="#211c16" />
-                      <rect x="62" y="14" width="8" height="8" fill="#211c16" />
-                      <rect x="50" y="26" width="8" height="8" fill="#211c16" />
-                      <rect x="14" y="50" width="8" height="8" fill="#211c16" />
-                      <rect x="26" y="50" width="8" height="8" fill="#211c16" />
-                      <rect x="14" y="62" width="8" height="8" fill="#211c16" />
                       <rect x="50" y="50" width="20" height="20" fill="#211c16" />
-                      <rect x="78" y="50" width="8" height="8" fill="#211c16" />
-                      <rect x="90" y="50" width="8" height="8" fill="#211c16" />
-                      <rect x="102" y="50" width="8" height="8" fill="#211c16" />
-                      <rect x="78" y="62" width="8" height="8" fill="#211c16" />
-                      <rect x="102" y="62" width="8" height="8" fill="#211c16" />
-                      <rect x="50" y="78" width="8" height="8" fill="#211c16" />
-                      <rect x="62" y="78" width="8" height="8" fill="#211c16" />
-                      <rect x="50" y="90" width="8" height="8" fill="#211c16" />
                       <rect x="78" y="78" width="14" height="14" fill="#211c16" />
-                      <rect x="98" y="78" width="8" height="8" fill="#211c16" />
-                      <rect x="78" y="98" width="8" height="8" fill="#211c16" />
-                      <rect x="90" y="98" width="8" height="8" fill="#211c16" />
-                      <rect x="102" y="90" width="8" height="8" fill="#211c16" />
                       <rect x="102" y="102" width="8" height="8" fill="#211c16" />
                     </svg>
-                  </div>
-
-                  <div class="scan-bottom">
-                    <p>
-                      Point your camera.<br />
-                      Get stamped.
-                    </p>
-                    <span class="no-app">No app · Opens in your browser</span>
                   </div>
                 </aside>
               </div>
 
-              <footer class="footer">
-                <span>One stamp per day</span>
-                <span class="footer-centre">
-                  <span class="footer-mark" aria-hidden="true">✱</span>
-                  Rewards for regulars
-                </span>
-                <span class="footer-end">One stamp per day · Mystery until unlock</span>
+              <footer class="ticket-footer">
+                One stamp per day · Mystery until unlock
               </footer>
             </section>
           </div>
@@ -686,7 +815,7 @@
               <header class="brand-bar">
                 <div class="wordmark">
                   <span class="wordmark-mark" aria-hidden="true">✱</span>
-                  <span>NABA<span class="wordmark-accent">/PERKS</span></span>
+                  <span>Nab <span class="wordmark-accent">a</span> Perks</span>
                 </div>
                 <div class="edition">
                   <span>Table rewards</span>
@@ -702,9 +831,9 @@
                   </p>
 
                   <h2 class="stack">
-                    <span>Visit.</span>
+                    <span>Scan.</span>
                     <span>Stamp.</span>
-                    <span class="unlock">Unlock.</span>
+                    <span class="unlock">Don't ask.</span>
                   </h2>
 
                   <div class="reward-row">
@@ -720,13 +849,13 @@
                         <span class="stamp-dot is-empty">03</span>
                       </span>
                     </div>
-                    <p class="reward-copy">3 visits unlock a mystery reward.</p>
+                    <p class="reward-copy">We can't tell you what it is.</p>
                   </div>
                 </div>
 
                 <aside class="scan">
                   <div class="scan-heading">
-                    <span>01 / Start here</span>
+                    <span>01 / Claim yours</span>
                     <span class="scan-arrow" aria-hidden="true">→</span>
                   </div>
 
@@ -769,7 +898,7 @@
                   <div class="scan-bottom">
                     <p>
                       Point your camera.<br />
-                      Get stamped.
+                      Your first stamp's waiting.
                     </p>
                     <span class="no-app">No app · Opens in your browser</span>
                   </div>
@@ -780,9 +909,9 @@
                 <span>One stamp per day</span>
                 <span class="footer-centre">
                   <span class="footer-mark" aria-hidden="true">✱</span>
-                  Rewards for regulars
+                  Mystery until unlock
                 </span>
-                <span class="footer-end">One stamp per day · Mystery until unlock</span>
+                <span class="footer-end">Rewards for regulars</span>
               </footer>
             </section>
           </div>

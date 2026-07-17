@@ -1,31 +1,9 @@
-/* ============================================================
-   QR till-poster — THERMAL RECEIPT concept (Wet Ink).
-
-   The poster IS a till receipt, torn from the roll and pinned to
-   the counter. Space Mono throughout (the product's "printed"
-   register); the offer is itemised like a transaction — first
-   stamp FREE, reward LOCKED, total to join £0.00 — with the QR as
-   the receipt's scan code. Mystery is never named; the reward
-   reads "LOCKED".
-
-   One narrow receipt strip, centred on a deeper-paper counter,
-   serrated (torn) top and bottom, cut sides. Colour, shadow and
-   type come from the canonical --w-* tokens.
-   ============================================================ */
-
 .sheet {
-  --poster-frame-margin: 15mm;
-  --receipt-width: 132mm;
-  --tooth: 16px;
-
   width: 210mm;
   height: 297mm;
   min-height: 297mm;
   max-height: 297mm;
-  box-sizing: border-box;
-  position: relative;
   overflow: hidden;
-  /* The counter — deeper warm paper so the lighter receipt lifts off it. */
   background: var(--w-paper-2);
   color: var(--w-ink);
   box-shadow: var(--shadow-2xl);
@@ -34,157 +12,135 @@
 }
 
 .counter {
-  position: absolute;
-  inset: 0;
-  box-sizing: border-box;
-  padding: var(--poster-frame-margin);
   display: grid;
-  justify-items: center;
-  align-content: center;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 15mm;
 }
 
-/* ---- The receipt strip ---- */
 .receipt {
   position: relative;
-  width: var(--receipt-width);
-  max-width: 100%;
-  background: var(--w-card);
-  /* Cut sides (the roll width); top/bottom are torn (serrated). */
-  border-left: 2px solid var(--w-ink);
-  border-right: 2px solid var(--w-ink);
-  box-shadow: var(--shadow-2xl);
-  print-color-adjust: exact;
-  -webkit-print-color-adjust: exact;
+  width: 130mm;
+  height: 267mm;
+  background: var(--w-paper);
+  border-right: 1.5pt solid var(--w-ink);
+  border-left: 1.5pt solid var(--w-ink);
+  box-shadow: 7px 7px 0 var(--w-ink);
 }
 
-/* Serrated tear edges — ink-outlined teeth, counter showing through the notches. */
 .tornTop,
 .tornBottom {
-  height: 11px;
-  background:
-    linear-gradient(
-        -45deg,
-        transparent 7.5px,
-        var(--w-ink) 7.5px,
-        var(--w-ink) 9.5px,
-        var(--w-card) 9.5px
-      )
-      0 0 / var(--tooth) 100%,
-    linear-gradient(
-        45deg,
-        transparent 7.5px,
-        var(--w-ink) 7.5px,
-        var(--w-ink) 9.5px,
-        var(--w-card) 9.5px
-      )
-      0 0 / var(--tooth) 100%;
-  print-color-adjust: exact;
-  -webkit-print-color-adjust: exact;
+  position: absolute;
+  z-index: 2;
+  right: -1.5pt;
+  left: -1.5pt;
+  height: 4mm;
+  background: linear-gradient(135deg, transparent 2mm, var(--w-paper) 0) 0 0 /
+    4mm 4mm repeat-x;
 }
 
 .tornTop {
-  transform: scaleY(-1);
+  top: -3mm;
+}
+
+.tornBottom {
+  bottom: -3mm;
+  transform: rotate(180deg);
 }
 
 .receiptInner {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 3.5mm;
-  padding: 5mm 9mm 6mm;
-  text-align: center;
+  display: grid;
+  grid-template-rows: auto auto auto auto auto minmax(0, 1fr) auto auto;
+  align-content: start;
+  gap: 3mm;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 8mm;
   font-family: var(--font-space-mono), monospace;
-  color: var(--w-ink);
 }
 
-/* ---- Header: the brand "logo" block ---- */
 .head {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 9px;
+  display: grid;
+  justify-items: center;
+  gap: 2mm;
+  text-align: center;
+}
+
+.bizName,
+.metaLine,
+.caption,
+.scanLine {
+  margin: 0;
 }
 
 .bizName {
-  margin: 0;
-  /* The one spoken line on a printed receipt — the venue's name. */
+  max-width: 105mm;
   font-family: var(--font-bricolage-grotesque), system-ui, sans-serif;
-  font-size: 27px;
-  font-weight: 800;
-  line-height: 1.02;
-  letter-spacing: -0.02em;
+  font-size: 24pt;
+  font-weight: 850;
+  line-height: 1;
   text-wrap: balance;
-  max-width: 20ch;
 }
 
-.metaLine {
-  margin: 0;
-  font-size: 11px;
+.bizName[data-venue-fit="compact"] {
+  font-size: 18pt;
+}
+
+.metaLine,
+.caption {
+  font-size: var(--poster-a4-facts-size);
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+  text-align: center;
   text-transform: uppercase;
-  color: var(--w-ink-soft);
 }
 
-/* ---- Receipt rules ---- */
+.ruleSolid,
 .ruleDashed {
-  border: none;
-  border-top: 2px dashed var(--w-line);
+  width: 100%;
   margin: 0;
+  border: 0;
+  border-top: 1.5pt solid var(--w-ink);
 }
 
-.ruleSolid {
-  border: none;
-  border-top: 2px solid var(--w-ink);
-  margin: 0;
+.ruleDashed {
+  border-top-style: dashed;
+  border-color: var(--w-line-strong);
 }
 
-/* ---- The hook, set as a bold receipt headline ---- */
 .hook {
   margin: 0;
-  font-size: 26px;
-  font-weight: 700;
-  line-height: 1.05;
-  letter-spacing: 0.01em;
+  font-family: var(--font-bricolage-grotesque), system-ui, sans-serif;
+  font-size: var(--poster-a4-hook-size);
+  font-weight: 850;
+  letter-spacing: -0.04em;
+  line-height: 0.92;
+  text-align: center;
   text-transform: uppercase;
-  text-wrap: balance;
 }
 
-.hookAccent {
-  color: var(--w-accent);
-}
-
-/* ---- The "order": the offer, itemised with dot leaders ---- */
 .items {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  gap: 3mm;
+  padding: 2mm 0;
 }
 
 .item {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  font-size: 14.5px;
+  display: grid;
+  grid-template-columns: auto minmax(8mm, 1fr) auto;
+  align-items: end;
+  gap: 2mm;
+  font-size: var(--poster-a4-substantive-size);
   font-weight: 700;
-  letter-spacing: 0.04em;
+  line-height: 1.2;
   text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.itemLabel {
-  color: var(--w-ink);
 }
 
 .leader {
-  flex: 1;
-  align-self: stretch;
-  border-bottom: 2px dotted var(--w-line);
-  transform: translateY(-3px);
-}
-
-.itemValue {
-  color: var(--w-ink);
+  border-bottom: 1pt dotted var(--w-line-strong);
 }
 
 .itemValueAccent {
@@ -195,180 +151,117 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  gap: 4mm;
+  padding: 2mm 0;
+  font-size: 15pt;
+  font-weight: 850;
   text-transform: uppercase;
 }
 
-/* ---- Endowed-progress stamps, framed as a receipt line ---- */
 .stamps {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 9px;
+  display: grid;
+  align-content: start;
+  gap: 2mm;
 }
 
-/* Slots size to the count (--thermal-slot, set per card) so the row stays a
-   single line — the receipt keeps a constant height whatever the stamp count. */
 .stampRow {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   justify-content: center;
-  align-items: center;
-  gap: 10px;
+  gap: 2mm;
 }
 
 .stampSlot {
-  width: var(--thermal-slot, 42px);
   flex: none;
+  max-width: 10mm;
 }
 
-.caption {
-  margin: 0;
-  font-size: 11px;
+.stampCount {
+  align-self: center;
+  font-size: 10pt;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--w-ink-soft);
 }
 
-/* ---- QR: the receipt's scan code ---- */
+.offeredStamp {
+  border-style: solid !important;
+  border-color: var(--w-accent) !important;
+  box-shadow: inset 0 0 0 1.5pt var(--w-paper);
+}
+
 .qrZone {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 2mm 0 0;
+  display: grid;
+  justify-items: center;
+  align-content: end;
+  gap: 3mm;
+  min-height: 0;
 }
 
 .qrField {
-  position: relative;
-  width: min(66mm, 100%);
-  aspect-ratio: 1;
-  padding: 4mm;
-  box-sizing: border-box;
-  background: var(--qr-foreground);
-  border: 2px solid var(--w-ink);
-  border-radius: var(--radius);
-  print-color-adjust: exact;
-  -webkit-print-color-adjust: exact;
+  width: 52mm;
+  height: 52mm;
+  overflow: hidden;
+  background: #ffffff;
+  border: 0;
+  outline: 1.5pt solid var(--w-ink);
+  box-shadow: 4px 4px 0 var(--w-ink);
 }
 
 .qrField img {
+  display: block;
   width: 100%;
   height: 100%;
-  display: block;
   object-fit: contain;
 }
 
 .scanLine {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--w-accent);
-  print-color-adjust: exact;
-  -webkit-print-color-adjust: exact;
+  font-family: var(--font-bricolage-grotesque), system-ui, sans-serif;
+  font-size: 14pt;
+  font-weight: 850;
+  line-height: 1.05;
+  text-align: center;
 }
 
-/* ---- Footer: faux barcode + wordmark + thank-you ---- */
 .foot {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-/* Functional barcode stripes — decorative, reads as a receipt tail. */
-.barcode {
-  width: 70%;
-  height: 34px;
-  background:
-    repeating-linear-gradient(
-      90deg,
-      var(--w-ink) 0 2px,
-      transparent 2px 5px,
-      var(--w-ink) 5px 6px,
-      transparent 6px 8px,
-      var(--w-ink) 8px 11px,
-      transparent 11px 13px
-    );
-  print-color-adjust: exact;
-  -webkit-print-color-adjust: exact;
+  display: grid;
+  justify-items: center;
+  gap: 2mm;
+  padding-top: 2mm;
 }
 
 .footBrand {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  font-size: 11px;
+  gap: 2mm;
+  font-size: 9pt;
   font-weight: 700;
-  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--w-ink);
 }
 
 .footMark {
-  width: 16px;
-  height: 16px;
-  flex: none;
   display: inline-grid;
   place-items: center;
-  border-radius: 50%;
-  border: 1.5px solid var(--w-ink);
+  width: 5mm;
+  height: 5mm;
   background: var(--w-accent);
   color: var(--w-accent-ink);
-  font-size: 9px;
-  transform: rotate(-6deg);
-  print-color-adjust: exact;
-  -webkit-print-color-adjust: exact;
+  border: 1pt solid var(--w-ink);
+  border-radius: 50%;
 }
 
-.thanks {
-  margin: 0;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--w-ink-soft);
-}
-
-/* =======================================================
-   Print
-
-   NB: screen scaling and the .page/.stage/.sheetScaler stage are owned by the
-   shared a4-poster.module.css — A4Poster wraps every template (this concept
-   sheet included) in that stage, so this module only carries the .sheet itself
-   plus the concept-specific print colour-adjust rules.
-   ======================================================= */
 @media print {
-  @page {
-    size: A4 portrait;
-    margin: 0;
-  }
-
-  .sheet {
-    box-shadow: none;
-    margin: 0;
-    break-after: avoid-page;
-  }
-
   .sheet,
   .receipt,
   .tornTop,
   .tornBottom,
   .qrField,
-  .barcode,
   .footMark {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
 
-  .sheet :global([data-stamp-earned="true"]) {
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
+  .sheet {
+    box-shadow: none;
   }
 }

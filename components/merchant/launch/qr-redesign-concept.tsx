@@ -20,20 +20,12 @@ import {
 } from "@/components/merchant/launch/qr-redesign-concept-parts"
 import { Button } from "@/components/ui/button"
 import {
+  getQrPosterUseCase,
   QR_POSTER_TEMPLATES,
   type QrPosterTemplateId,
 } from "@/lib/qr/poster-templates"
 
 export type { DistributionChannel } from "@/components/merchant/launch/qr-redesign-concept-parts"
-
-const POSTER_USE_CASE: Record<QrPosterTemplateId, string> = {
-  editorial: "Calm café or dining room",
-  bold: "Busy bar or high-traffic counter",
-  ticket: "Promotional launch",
-  northstar: "Dark pub or evening venue",
-  thermal: "Compact till display",
-  "table-tent": "Dining tables / outdoor seating",
-}
 
 export function QrWorkspace({
   activeCardName,
@@ -200,7 +192,7 @@ export function QrWorkspace({
                         key={item.id}
                         active={template === item.id}
                         template={item}
-                        useCase={POSTER_USE_CASE[item.id]}
+                        useCase={getQrPosterUseCase(item.id)}
                         href={workspaceHref(
                           navigationBaseHref,
                           "print",

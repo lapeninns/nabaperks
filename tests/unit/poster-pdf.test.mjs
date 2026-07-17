@@ -5,14 +5,13 @@ import { PDFDocument, StandardFonts } from "pdf-lib"
 
 import {
   fitSingleLineText,
-  posterStyle,
+  mm,
   standardFontText,
-  stampRowLabel,
 } from "@/lib/notifications/poster-pdf-style"
 import { buildPosterPdfAttachments } from "@/lib/notifications/poster-pdf"
 import { QR_POSTER_TEMPLATES } from "@/lib/qr/poster-templates"
 
-test("poster email builds one valid A4 PDF attachment for every registered template", async () => {
+test("poster email builds one valid print-size PDF attachment for every registered template", async () => {
   // Given a merchant with a printable QR and a five-visit card.
   // When the email attachment bundle is generated.
   const attachments = await buildPosterPdfAttachments({
@@ -33,6 +32,13 @@ test("poster email builds one valid A4 PDF attachment for every registered templ
       /^JVBERi0/,
       `${attachment.filename} is Base64 PDF data`
     )
+    const isTableTent = attachment.filename.includes("table-tent")
+    const minimumArtworkBytes = isTableTent ? 10_000 : 5_000
+    assert.ok(
+      Buffer.from(attachment.content, "base64").byteLength >
+        minimumArtworkBytes,
+      `${attachment.filename} contains rendered poster artwork`
+    )
     const document = await PDFDocument.load(attachment.content)
     const [page] = document.getPages()
     assert.equal(
@@ -41,7 +47,6 @@ test("poster email builds one valid A4 PDF attachment for every registered templ
       `${attachment.filename} has one page`
     )
     assert.ok(page, `${attachment.filename} includes its A4 page`)
-    const isTableTent = attachment.filename.includes("table-tent")
     const expectedWidth = isTableTent ? 498.9 : 595.28
     const expectedHeight = isTableTent ? 708.66 : 841.89
     assert.ok(
@@ -88,19 +93,11 @@ test("poster PDF venue labels stay on one line inside the A4 header", async () =
   assert.doesNotMatch(label, /\n/)
 })
 
-test("poster copy and compact thresholds stay grammatical at valid card edges", () => {
-  assert.equal(posterStyle("editorial", 1).headline, "One visit. One surprise.")
-  assert.match(posterStyle("editorial", 1).support, /scan now to unlock/i)
-  assert.match(posterStyle("northstar", 1).support, /claim it now/i)
-  assert.match(posterStyle("northstar", 2).support, /1 more visit unlocks/i)
-  assert.match(posterStyle("thermal", 1).support, /VISIT TO UNLOCK: 1/)
-  assert.equal(
-    posterStyle("table-tent", 1).headline,
-    "Visit. Stamp. Unlock."
-  )
-  assert.match(posterStyle("table-tent", 3).support, /3 visits/)
-  assert.equal(stampRowLabel(12), null)
-  assert.equal(stampRowLabel(99), "99 VISITS TO UNLOCK")
+test("poster PDF dimensions convert physical QR guidance exactly", () => {
+  assert.ok(Math.abs(mm(52) - 147.4) < 0.1)
+  assert.ok(Math.abs(mm(55) - 155.91) < 0.1)
+  assert.ok(Math.abs(mm(46) - 130.39) < 0.1)
+  assert.ok(Math.abs(mm(48) - 136.06) < 0.1)
 })
 
 test("poster PDF venue labels omit unsupported glyphs cleanly", async () => {

@@ -4,9 +4,9 @@ import {
   FrictionBand,
   Headline,
   PosterFooter,
+  PosterIdentity,
   QrBlock,
   QrProgress,
-  TearLine,
 } from "./poster-pieces"
 
 type PosterVariantProps = {
@@ -14,88 +14,82 @@ type PosterVariantProps = {
   readonly qrDataUrl: string
 }
 
-/** Editorial — light counter card, single-message conversion flow. */
 export function EditorialPoster({ copy, qrDataUrl }: PosterVariantProps) {
   return (
-    <div className={`${styles.card} surface-card`}>
-      <div className={styles.convTop}>
-        <p className={styles.venueEyebrow}>{copy.eyebrow}</p>
-        <Headline className={styles.hook} copy={copy} />
-        <p className={styles.nowValue}>{copy.support}</p>
-        <p className={styles.forbidden}>{copy.forbidden}</p>
-      </div>
-
-      <FrictionBand text={copy.frictionLine} />
-
-      <div className={styles.convMain}>
+    <div className={styles.editorialLayout}>
+      <PosterIdentity venue={copy.eyebrow} />
+      <section className={styles.editorialHero}>
+        <Headline className={styles.editorialHook} copy={copy} />
+        <div className={styles.editorialWant}>
+          <p>{copy.support}</p>
+          <p>{copy.rewardDetail}</p>
+        </div>
+      </section>
+      <section className={styles.editorialAction}>
+        <div className={styles.editorialBelieve}>
+          <FrictionBand text={copy.frictionLine} />
+          <QrProgress copy={copy} />
+        </div>
         <QrBlock
           qrDataUrl={qrDataUrl}
           title={copy.qrCaption}
-          holderClassName={styles.convQrHolder}
-          footer={<QrProgress copy={copy} />}
+          holderClassName={styles.editorialQrHolder}
+          outerMm={copy.qrOuterMm}
         />
-      </div>
-
+      </section>
       <PosterFooter copy={copy} />
     </div>
   )
 }
 
-/** Bold — the primary conversion poster: one giant promise, one giant QR. */
 export function BoldPoster({ copy, qrDataUrl }: PosterVariantProps) {
   return (
-    <div className={styles.boldInner}>
-      <div className={styles.convTop}>
-        <p className={styles.venueEyebrow}>{copy.eyebrow}</p>
-        <Headline className={styles.hook} copy={copy} />
-        <p className={styles.nowValue}>{copy.support}</p>
-        <p className={styles.forbidden}>{copy.forbidden}</p>
-      </div>
-
-      <FrictionBand text={copy.frictionLine} />
-
-      <div className={styles.convMain}>
+    <div className={styles.boldLayout}>
+      <PosterIdentity venue={copy.eyebrow} />
+      <section className={styles.boldHero}>
+        <Headline className={styles.boldHook} copy={copy} />
+        <p className={styles.boldQualification}>{copy.rewardDetail}</p>
+      </section>
+      <section className={styles.boldAction}>
+        <div className={styles.boldBelieve}>
+          <p>{copy.support}</p>
+          <FrictionBand text={copy.frictionLine} />
+          <QrProgress copy={copy} />
+        </div>
         <QrBlock
           qrDataUrl={qrDataUrl}
           title={copy.qrCaption}
-          holderClassName={styles.boldQrHolder}
-          footer={<QrProgress copy={copy} />}
+          holderClassName={styles.boldActionQr}
+          outerMm={copy.qrOuterMm}
         />
-      </div>
-
+      </section>
       <PosterFooter copy={copy} />
     </div>
   )
 }
 
-/** Ticket — claim-your-first-stamp urgency: the promise rides the strap. */
 export function TicketPoster({ copy, qrDataUrl }: PosterVariantProps) {
   return (
-    <div className={`${styles.card} surface-card`}>
-      <section className={styles.ticketStrap}>
-        <p className={`${styles.venueEyebrow} ${styles.onAccent}`}>
-          {copy.eyebrow}
-        </p>
-        <Headline className={`${styles.hook} ${styles.ticketHook}`} copy={copy} />
-        <p className={`${styles.nowValue} ${styles.onAccent}`}>{copy.support}</p>
-        <p className={`${styles.forbidden} ${styles.onAccent}`}>{copy.forbidden}</p>
-      </section>
-
-      <TearLine />
-
-      <section className={styles.ticketBody}>
-        <span aria-hidden="true" className={styles.coffeeRing} />
-        <FrictionBand text={copy.frictionLine} />
-        <div className={styles.ticketClaim}>
+    <div className={styles.ticketLayout}>
+      <PosterIdentity venue={copy.eyebrow} />
+      <section className={styles.ticketObject}>
+        <div className={styles.ticketMainField}>
+          <Headline className={styles.ticketObjectHook} copy={copy} />
+          <p className={styles.ticketSupport}>{copy.support}</p>
+          <p className={styles.ticketSealed}>{copy.rewardDetail}</p>
+          <FrictionBand text={copy.frictionLine} />
+          <QrProgress copy={copy} />
+        </div>
+        <div aria-hidden="true" className={styles.ticketPerforation} />
+        <aside className={styles.ticketAudit}>
           <QrBlock
             qrDataUrl={qrDataUrl}
             title={copy.qrCaption}
-            holderClassName={styles.ticketQrHolder}
-            footer={<QrProgress copy={copy} />}
+            holderClassName={styles.ticketAuditQr}
+            outerMm={copy.qrOuterMm}
           />
-        </div>
+        </aside>
       </section>
-
       <PosterFooter copy={copy} />
     </div>
   )

@@ -1,13 +1,36 @@
-export const QR_POSTER_TEMPLATE_IDS = [
-  "editorial",
-  "bold",
-  "ticket",
-  "northstar",
-  "thermal",
-  "table-tent",
-] as const
+import {
+  posterDesignIds,
+  posterTableTentIds,
+  templateMetadata,
+} from "@/lib/qr/poster-designs"
+import type { PosterDesignId } from "@/lib/qr/poster-designs"
+import type { PosterTableTentId } from "@/lib/qr/poster-content-types"
 
-export type QrPosterTemplateId = (typeof QR_POSTER_TEMPLATE_IDS)[number]
+export const QR_POSTER_TEMPLATE_IDS = posterDesignIds()
+
+export type QrPosterTemplateId = PosterDesignId
+
+export const QR_POSTER_TABLE_TENT_IDS = posterTableTentIds()
+
+export type QrPosterTableTentId = PosterTableTentId
+
+export function isQrPosterTableTent(
+  templateId: string
+): templateId is QrPosterTableTentId {
+  for (const id of QR_POSTER_TABLE_TENT_IDS) {
+    if (id === templateId) return true
+  }
+  return false
+}
+
+export function isQrPosterTemplateId(
+  templateId: string
+): templateId is QrPosterTemplateId {
+  for (const id of QR_POSTER_TEMPLATE_IDS) {
+    if (id === templateId) return true
+  }
+  return false
+}
 
 export type QrPosterTemplate = {
   readonly id: QrPosterTemplateId
@@ -15,44 +38,28 @@ export type QrPosterTemplate = {
   readonly description: string
 }
 
-export const QR_POSTER_TEMPLATES: readonly QrPosterTemplate[] = [
-  {
-    id: "editorial",
-    name: "Editorial",
-    description: "Calm counter card — “Three visits. One surprise.”",
-  },
-  {
-    id: "bold",
-    name: "Bold",
-    description: "Dark hero poster — “Everyone wins something.”",
-  },
-  {
-    id: "ticket",
-    name: "Ticket",
-    description: "Tear-off urgency — “First stamp's on us.”",
-  },
-  {
-    id: "northstar",
-    name: "Night card",
-    description: "Dark receipt hero — the poster is your loyalty card.",
-  },
-  {
-    id: "thermal",
-    name: "Receipt",
-    description: "Thermal till receipt — first stamp free, reward locked.",
-  },
-  {
-    id: "table-tent",
-    name: "Table tent",
-    description:
-      "B5 portrait — fold to peak; Visit · Stamp · Unlock.",
-  },
-] as const
+export const QR_POSTER_TEMPLATES: readonly QrPosterTemplate[] =
+  QR_POSTER_TEMPLATE_IDS.map((id) => {
+    const design = templateMetadata(id)
+    return {
+      id,
+      name: design.name,
+      description: design.description,
+    }
+  })
 
 export function getQrPosterTemplate(
   templateId: string
 ): QrPosterTemplate | null {
-  return (
-    QR_POSTER_TEMPLATES.find((template) => template.id === templateId) ?? null
-  )
+  if (!isQrPosterTemplateId(templateId)) return null
+  const design = templateMetadata(templateId)
+  return {
+    id: templateId,
+    name: design.name,
+    description: design.description,
+  }
+}
+
+export function getQrPosterUseCase(templateId: QrPosterTemplateId): string {
+  return templateMetadata(templateId).useCase
 }

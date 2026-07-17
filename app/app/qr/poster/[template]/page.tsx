@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { getServerEnv } from "@/lib/env/server"
 import { getOwnedQrImageContext } from "@/lib/merchant/qr-code"
 import { resolveQrReturnBase } from "@/lib/merchant/qr-nav"
-import { renderQrCodePng } from "@/lib/qr/assets"
+import { renderPosterQrCodePng } from "@/lib/qr/assets"
 import { getQrPosterTemplate } from "@/lib/qr/poster-templates"
 
 export const runtime = "nodejs"
@@ -55,7 +55,7 @@ export default async function QrPosterPage({
 
   let qrDataUrl: string
   try {
-    const png = await renderQrCodePng(shareUrl, 900)
+    const png = await renderPosterQrCodePng(shareUrl, 900)
     qrDataUrl = `data:image/png;base64,${png.toString("base64")}`
   } catch {
     return <PosterRenderError backHref={backHref} />

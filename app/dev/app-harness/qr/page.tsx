@@ -25,7 +25,7 @@ export default function QrHarnessPage() {
       <PageTitle
         eyebrow="Counter poster"
         title="Venue QR"
-        description="Your permanent scan code and printable A4 posters. Share the link anywhere or print a layout for the till."
+        description="Your permanent scan code and printable posters — A4 for the till, B5 table tent for dining tables. Share the link anywhere or print a layout."
       />
       <QrPanelLive
         activeCardName="Mystery Visit Card"

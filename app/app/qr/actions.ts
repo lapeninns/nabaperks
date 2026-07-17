@@ -15,6 +15,7 @@ import { qrReturnHref, resolveQrReturnBase } from "@/lib/merchant/qr-nav"
 import { buildPosterEmailContent } from "@/lib/notifications/poster-email"
 import { buildPosterPdfAttachments } from "@/lib/notifications/poster-pdf"
 import { sendTransactionalEmail } from "@/lib/notifications/resend"
+import { QR_POSTER_TEMPLATES } from "@/lib/qr/poster-templates"
 import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
@@ -199,7 +200,10 @@ export async function emailPosterAction(): Promise<EmailPosterState> {
       source: "merchant_qr_action",
     })
 
-    return { ok: true, message: `Five poster PDFs sent to ${to}.` }
+    return {
+      ok: true,
+      message: `${QR_POSTER_TEMPLATES.length} poster PDFs sent to ${to}.`,
+    }
   } catch (error) {
     if (error instanceof RateLimitError) {
       return {
