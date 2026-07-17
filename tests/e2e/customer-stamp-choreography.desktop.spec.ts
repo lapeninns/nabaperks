@@ -146,7 +146,9 @@ test.describe("customer stamp choreography — normal motion", () => {
     ).toBeVisible()
     await expect(root.getByText("That's the full card.")).toBeVisible()
     await expect(root.locator('[data-ticket-state="waiting"]')).toBeVisible()
-    await expect(page.getByRole("link", { name: "See your reward" })).toBeVisible()
+    await expect(
+      page.getByRole("link", { name: "See your reward" })
+    ).toBeVisible()
     await expect(root.locator('[role="status"]')).toHaveCount(1)
     await expect(page.locator("[data-refresh-count]")).toHaveText("1")
   })
@@ -164,7 +166,9 @@ test.describe("customer stamp choreography — normal motion", () => {
     await expect(page.locator("[data-submit-count]")).toHaveText("2")
   })
 
-  test("holds once without remounting or double-submitting", async ({ page }) => {
+  test("holds once without remounting or double-submitting", async ({
+    page,
+  }) => {
     await page.goto(`${HARNESS}?mode=success&delay=500`)
     const button = page.locator("[data-stamp-press-button]")
     await button.scrollIntoViewIfNeeded()
@@ -225,10 +229,12 @@ test.describe("customer stamp choreography — normal motion", () => {
     const root = page.locator("[data-stamp-phase]")
 
     await root.getByRole("button", { name: "Add today's stamp" }).click()
-    await expect(root).toHaveAttribute("data-stamp-phase", "unknown")
-    await expect(root).toContainText("We couldn't confirm the result.")
-    await expect(root).not.toContainText("Stamp not added.")
     await expect(page.locator("[data-refresh-count]")).toHaveText("1")
+    await expect(root).toHaveAttribute("data-stamp-phase", "blocked")
+    await expect(root).toContainText("We couldn't confirm the stamp.")
+    await expect(
+      root.getByRole("button", { name: "Try today's stamp again" })
+    ).toBeVisible()
   })
 
   test("prints the recovered venue stamp after an issued readback", async ({
@@ -273,6 +279,8 @@ test.describe("customer stamp choreography — normal motion", () => {
     ).toBeVisible()
     await expect(root.locator('[data-ticket-state="waiting"]')).toBeVisible()
     await expect(root.getByText("Your reward is ready to open.")).toBeVisible()
-    await expect(page.getByRole("link", { name: "See your reward" })).toBeVisible()
+    await expect(
+      page.getByRole("link", { name: "See your reward" })
+    ).toBeVisible()
   })
 })

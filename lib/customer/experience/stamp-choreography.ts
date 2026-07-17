@@ -46,7 +46,7 @@ export function reduceStampChoreography(
         ? { phase: "printing", result: event.result }
         : state
     case "request_blocked":
-      return state.phase === "checking"
+      return state.phase === "checking" || state.phase === "unknown"
         ? { phase: "blocked", message: event.message }
         : state
     case "request_unknown":
@@ -90,9 +90,7 @@ export type StampChoreographyView = {
   rewardSlammed: boolean
 }
 
-function issuedResult(
-  state: StampChoreographyState
-): IssuedStamp | undefined {
+function issuedResult(state: StampChoreographyState): IssuedStamp | undefined {
   return state.phase === "printing" || state.phase === "confirmed"
     ? state.result
     : undefined
@@ -105,10 +103,7 @@ function displayDates(
   if (!result) return input.stampDates.slice(0, input.current)
 
   const missing = Math.max(result.newStampCount - input.stampDates.length, 0)
-  const bonusCount = Math.min(
-    Math.max(result.bonusStampsApplied, 0),
-    missing
-  )
+  const bonusCount = Math.min(Math.max(result.bonusStampsApplied, 0), missing)
   const venueCount = missing - bonusCount
 
   return [
@@ -134,10 +129,7 @@ function venueStampIndex(result: IssuedStamp, total: number): number {
 function issuedCopy(
   result: IssuedStamp,
   total: number
-): Pick<
-  StampChoreographyView,
-  "announcement" | "statusTitle" | "statusBody"
-> {
+): Pick<StampChoreographyView, "announcement" | "statusTitle" | "statusBody"> {
   const complete = total > 0 && result.newStampCount >= total
   const extra = bonusCopy(result.bonusStampsApplied)
   if (complete) {

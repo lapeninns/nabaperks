@@ -137,10 +137,22 @@ export function StampCollector({
   useEffect(() => {
     if (state.phase !== "unknown") return
     if (current <= initialCurrentRef.current) {
-      if (!canStamp) dispatch({ type: "readback_closed" })
+      requestInFlightRef.current = false
+      if (!canStamp) {
+        dispatch({ type: "readback_closed" })
+        return
+      }
+      // Readback confirmed nothing was added and today is still open — unlock
+      // a retry instead of leaving the card secured forever.
+      dispatch({
+        type: "request_blocked",
+        message:
+          "We couldn't confirm the stamp. Check your card, then try again.",
+      })
       return
     }
 
+    requestInFlightRef.current = false
     dispatch({
       type: "readback_issued",
       result: {

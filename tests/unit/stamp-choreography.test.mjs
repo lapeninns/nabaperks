@@ -121,7 +121,10 @@ test("a domain block keeps progress unchanged and permits a fresh attempt", () =
   assert.equal(view.displayCurrent, 2)
   assert.equal(view.slamIndex, -1)
   assert.equal(view.secured, false)
-  assert.equal(view.announcement, "Stamp not added. You're already stamped today.")
+  assert.equal(
+    view.announcement,
+    "Stamp not added. You're already stamped today."
+  )
   assert.equal(
     reduceStampChoreography(blocked, { type: "request_started" }).phase,
     "checking"
@@ -192,6 +195,28 @@ test("bonus readback keeps the venue slam on the first newly earned slot", () =>
 
   assert.equal(bonusStampsApplied, 2)
   assert.equal(view.slamIndex, 2)
+})
+
+test("an unchanged open readback unlocks a retry instead of staying secured", () => {
+  const checking = reduceStampChoreography(initialStampChoreographyState, {
+    type: "request_started",
+  })
+  const unknown = reduceStampChoreography(checking, {
+    type: "request_unknown",
+  })
+  const retryable = reduceStampChoreography(unknown, {
+    type: "request_blocked",
+    message: "We couldn't confirm the stamp. Check your card, then try again.",
+  })
+  const view = stampChoreographyView(retryable, baseView)
+
+  assert.equal(retryable.phase, "blocked")
+  assert.equal(view.secured, false)
+  assert.equal(view.buttonLabel, "Try today's stamp again")
+  assert.equal(
+    reduceStampChoreography(retryable, { type: "request_started" }).phase,
+    "checking"
+  )
 })
 
 test("an unchanged closed readback never invents an issued stamp", () => {
