@@ -1,11 +1,10 @@
-import type { CSSProperties, ReactNode } from "react"
+import type { ReactNode } from "react"
 
 import { StampDot } from "@/components/loyalty/stamp-dot"
 
 import styles from "./a4-poster.module.css"
 import type { PosterCopy } from "./poster-copy"
-
-const POSTER_STAMP_TILTS = ["-7deg", "-5deg", "-8deg", "-6deg"] as const
+import { PosterWordmark } from "./poster-wordmark"
 
 /** The giant promise, with the emotional anchor word in accent red. */
 export function Headline({
@@ -34,25 +33,40 @@ export function FrictionBand({ text }: { readonly text: string }) {
   return <p className={styles.frictionBand}>{text}</p>
 }
 
+export function PosterIdentity({ venue }: { readonly venue: string }) {
+  return (
+    <header className={styles.identityRail}>
+      <span
+        data-poster-venue
+        data-venue-fit={venue.trim().length > 44 ? "compact" : undefined}
+      >
+        {venue}
+      </span>
+      <PosterWordmark className={styles.identityBrand} />
+    </header>
+  )
+}
+
 export function QrBlock({
   qrDataUrl,
   title,
   holderClassName,
+  outerMm,
   footer,
 }: {
   readonly qrDataUrl: string
   readonly title?: ReactNode
   readonly holderClassName: string
+  readonly outerMm: number
   readonly footer?: ReactNode
 }) {
   return (
     <figure className={styles.qrBlock}>
       {title ? <figcaption>{title}</figcaption> : null}
-      <div className={holderClassName}>
-        {/* Notification badge — the dopamine of one thing waiting. */}
-        <span aria-hidden="true" className={styles.qrBadge}>
-          1
-        </span>
+      <div
+        className={holderClassName}
+        style={{ width: `${outerMm}mm`, height: `${outerMm}mm` }}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element -- data URL QR is generated server-side for print */}
         <img src={qrDataUrl} alt="Nabaperks QR code" width={900} height={900} />
       </div>
@@ -76,28 +90,23 @@ export function QrProgress({ copy }: { readonly copy: PosterCopy }) {
       />
       <span aria-hidden="true" className={styles.progressStamps}>
         {Array.from({ length: copy.stampsRequired }, (_, index) => {
-          const earned = index === 0
+          const offered = index === 0
           const slotNumber = index + 1
 
           return (
-            <span
-              key={slotNumber}
-              className={styles.progressStampSlot}
-              style={
-                earned
-                  ? ({
-                      "--stamp-rot":
-                        POSTER_STAMP_TILTS[index % POSTER_STAMP_TILTS.length],
-                    } as CSSProperties)
-                  : undefined
-              }
-            >
+            <span key={slotNumber} className={styles.progressStampSlot}>
               <StampDot
-                earned={earned}
-                label={`Stamp ${slotNumber} ${earned ? "earned" : "empty"}`}
+                earned={false}
+                compact
+                label={
+                  offered
+                    ? "Stamp one starts after joining"
+                    : `Stamp ${slotNumber} empty`
+                }
                 slotNumber={slotNumber}
-                showEmptySlotNumber={!earned}
+                showEmptySlotNumber
                 venueName={copy.businessName}
+                className={offered ? styles.offeredStamp : undefined}
               />
             </span>
           )
@@ -122,12 +131,6 @@ export function TearLine() {
 export function PosterFooter({ copy }: { readonly copy: PosterCopy }) {
   return (
     <footer className={styles.posterFooter}>
-      <span className={styles.footerBrand}>
-        <span aria-hidden="true" className={styles.footerMark}>
-          ✱
-        </span>
-        Powered by nabaperks
-      </span>
       <span>{copy.reassurance}</span>
     </footer>
   )

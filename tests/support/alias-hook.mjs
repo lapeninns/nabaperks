@@ -13,11 +13,15 @@ import path from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
-const EXTENSIONS = [".ts", ".tsx", ".mts", ".js", ".mjs"]
+const EXTENSIONS = [".ts", ".tsx", ".mts", ".js", ".mjs", ".json"]
 const SERVER_ONLY_STUB = path.join(root, "tests/support/server-only-stub.mjs")
 
 function resolveAliasTarget(specifier) {
   const base = path.join(root, specifier.slice(2))
+  if (existsSync(base)) {
+    return base
+  }
+
   const fileHit = EXTENSIONS.map((ext) => base + ext).find(existsSync)
   if (fileHit) {
     return fileHit

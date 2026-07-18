@@ -1,0 +1,706 @@
+.sheet {
+  --face-h: 125mm;
+  --face-inset: 5mm;
+  position: relative;
+  display: grid;
+  grid-template-rows: var(--face-h) var(--face-h);
+  width: 176mm;
+  height: 250mm;
+  min-height: 250mm;
+  max-height: 250mm;
+  overflow: hidden;
+  background: #ffffff;
+  color: var(--w-ink);
+  font-family: var(--font-bricolage-grotesque), system-ui, sans-serif;
+  box-shadow: var(--shadow-2xl);
+  page: table-tent;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.faceTop,
+.faceBottom {
+  display: flex;
+  box-sizing: border-box;
+  width: 176mm;
+  height: var(--face-h);
+  min-height: var(--face-h);
+  max-height: var(--face-h);
+  padding: 0 var(--face-inset);
+  background: #ffffff;
+}
+
+.faceTop {
+  grid-row: 1;
+  transform: rotate(180deg);
+}
+
+.faceBottom {
+  grid-row: 2;
+}
+
+.foldGuide {
+  position: absolute;
+  top: calc(125mm - 0.5pt);
+  right: 0;
+  left: 0;
+  z-index: 4;
+  height: 0;
+  border-top: 1pt dashed rgba(33, 28, 22, 0.45);
+  pointer-events: none;
+}
+
+.foldGuide span {
+  position: absolute;
+  right: 3mm;
+  top: -4mm;
+  padding: 0.5mm 1mm;
+  background: #ffffff;
+  color: #4f473d;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 8pt;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.face {
+  position: relative;
+  display: grid;
+  grid-template-rows: 25mm 80mm 20mm;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--w-paper);
+  color: var(--w-ink);
+  border: 1.5pt solid var(--w-ink);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.brandBar,
+.nightIdentity,
+.receiptHead,
+.ticketStrap,
+.studioIdentity {
+  grid-row: 1;
+  grid-column: 1;
+  align-self: start;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4mm;
+  min-width: 0;
+  padding: 0 4mm;
+  height: 10mm;
+  margin-top: 5mm;
+  border-bottom: 1.5pt solid var(--w-line);
+  font-family: var(--font-space-mono), monospace;
+  font-size: var(--poster-b5-facts-size);
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.brandBar {
+  background: var(--w-ink);
+  color: var(--w-paper);
+}
+
+.identityVenue {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.identityVenue[data-venue-fit="compact"] {
+  font-size: 8pt;
+  letter-spacing: 0.025em;
+  line-height: 1.05;
+}
+
+.identityBrand {
+  flex: none;
+  font-family: var(--font-bricolage-grotesque), system-ui, sans-serif;
+  font-size: 13pt;
+  font-weight: 850;
+  letter-spacing: -0.04em;
+}
+
+.identityBrand span {
+  color: var(--w-accent);
+}
+
+.wordmark,
+.footerCentre,
+.footBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 2mm;
+}
+
+.wordmark {
+  font-family: var(--font-bricolage-grotesque), system-ui, sans-serif;
+  font-size: 14pt;
+  font-weight: 850;
+  letter-spacing: -0.04em;
+}
+
+.wordmarkAccent,
+.nightAccent,
+.studioAccent {
+  color: var(--w-sun);
+}
+
+.unlock {
+  color: var(--w-accent);
+}
+
+.wordmarkMark,
+.footerMark {
+  display: inline-grid;
+  place-items: center;
+  width: 5mm;
+  height: 5mm;
+  flex: none;
+  background: var(--w-accent);
+  color: #ffffff;
+  border: 1pt solid currentColor;
+  border-radius: 50%;
+}
+
+.edition {
+  display: flex;
+  align-items: center;
+  gap: 3mm;
+  white-space: nowrap;
+}
+
+.footer,
+.ticketFooter,
+.nightFooter,
+.receiptFooter,
+.studioFooter {
+  grid-row: 1;
+  grid-column: 1;
+  align-self: end;
+  height: 10mm;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5mm 4mm;
+  min-width: 0;
+  padding: 0.5mm 4mm;
+  overflow: hidden;
+  border-bottom: 1pt solid var(--w-line);
+  color: var(--w-ink-soft);
+  font-family: var(--font-space-mono), monospace;
+  font-size: var(--poster-b5-facts-size);
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.footerCentre {
+  color: var(--w-ink);
+}
+
+.footerEnd {
+  margin-left: auto;
+}
+
+.main,
+.ticketBody,
+.nightMain,
+.receiptMain,
+.studioMain {
+  grid-row: 2;
+  grid-column: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.main {
+  display: grid;
+  grid-template-columns: minmax(0, 58fr) minmax(0, 42fr);
+}
+
+.promise {
+  display: grid;
+  align-content: center;
+  gap: 3mm;
+  min-width: 0;
+  padding: 4mm;
+}
+
+.venueLine,
+.nightVenue,
+.receiptBiz,
+.studioVenue,
+.ticketVenue {
+  margin: 0;
+  font-family: var(--font-space-mono), monospace;
+  font-size: var(--poster-b5-facts-size);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.15;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.venueLine[data-venue-fit="compact"],
+.nightVenue[data-venue-fit="compact"],
+.receiptBiz[data-venue-fit="compact"],
+.studioVenue[data-venue-fit="compact"],
+.ticketVenue[data-venue-fit="compact"] {
+  font-size: 8pt;
+  letter-spacing: 0.025em;
+  line-height: 1.05;
+}
+
+.stack,
+.nightHook,
+.receiptHook,
+.studioHook,
+.ticketHook {
+  margin: 0;
+  font-size: var(--poster-b5-hook-size);
+  font-weight: 850;
+  letter-spacing: -0.045em;
+  line-height: 0.9;
+  text-wrap: balance;
+}
+
+.stack {
+  display: grid;
+}
+
+.rewardRow {
+  display: grid;
+  gap: 2mm;
+}
+
+.rewardCopy,
+.nightWhisper,
+.studioSupport,
+.ticketSupport {
+  margin: 0;
+  font-size: var(--poster-b5-substantive-size);
+  font-weight: 700;
+  line-height: 1.12;
+}
+
+.noApp,
+.nightEase,
+.receiptFriction,
+.studioFriction,
+.ticketFriction {
+  margin: 0;
+  font-size: var(--poster-b5-facts-size);
+  font-weight: 700;
+  line-height: 1.18;
+}
+
+.noApp,
+.nightEase,
+.receiptFriction,
+.studioFriction,
+.ticketFriction {
+  color: var(--w-ink-soft);
+  font-family: var(--font-space-mono), monospace;
+  font-size: var(--poster-b5-facts-size);
+}
+
+.scan {
+  display: grid;
+  grid-template-rows: auto 46mm auto;
+  align-content: center;
+  justify-items: center;
+  gap: 2mm;
+  min-width: 0;
+  padding: 2mm 4mm;
+  background: var(--w-accent);
+  color: var(--w-accent-ink);
+}
+
+.scanHeading,
+.scanBottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2mm;
+  width: 100%;
+  font-family: var(--font-space-mono), monospace;
+  font-size: var(--poster-b5-facts-size);
+  font-weight: 700;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.scanBottom p {
+  margin: 0;
+  font-family: var(--font-bricolage-grotesque), system-ui, sans-serif;
+  font-size: var(--poster-b5-substantive-size);
+  font-weight: 850;
+  line-height: 1;
+  text-transform: none;
+}
+
+.scan .noApp {
+  color: var(--w-accent-ink);
+}
+
+.scanArrow {
+  font-size: 16pt;
+}
+
+.qrWrap,
+.ticketQrWrap,
+.nightQrWrap,
+.receiptQrWrap,
+.studioQrWrap {
+  display: grid;
+  place-items: center;
+  width: 46mm;
+  height: 46mm;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: #ffffff;
+  border: 0;
+  outline: 1.5pt solid #211c16;
+  box-shadow: 3px 3px 0 #211c16;
+}
+
+.ticketQrWrap {
+  width: 48mm;
+  height: 48mm;
+}
+
+.qrWrap img,
+.ticketQrWrap img,
+.nightQrWrap img,
+.receiptQrWrap img,
+.studioQrWrap img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.stampTrack {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.5mm;
+  max-width: 100%;
+}
+
+.trackLine {
+  display: none;
+}
+
+.stampSlot {
+  width: 8.5mm;
+  flex: none;
+}
+
+.trackCount {
+  position: relative;
+  padding: 0 1mm;
+  background: inherit;
+  font-family: var(--font-space-mono), monospace;
+  font-size: var(--poster-b5-facts-size);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.offeredStamp {
+  border-style: solid !important;
+  border-color: var(--w-accent) !important;
+  box-shadow: inset 0 0 0 1.2pt var(--w-paper);
+}
+
+.ticketFace {
+  background: var(--w-paper-2);
+}
+
+.ticketStrap {
+  background: var(--w-accent);
+  color: var(--w-accent-ink);
+}
+
+.ticketStrap .identityBrand span {
+  color: #211c16;
+}
+
+.ticketHook {
+  font-size: var(--poster-b5-hook-size);
+  text-transform: uppercase;
+}
+
+.ticketTear {
+  position: absolute;
+  z-index: 2;
+  top: 25mm;
+  bottom: 20mm;
+  left: 64%;
+  width: 0;
+  pointer-events: none;
+}
+
+.ticketTear span {
+  display: none;
+}
+
+.ticketTear i {
+  display: block;
+  height: 100%;
+  border-left: 1.5pt dashed var(--w-line-strong);
+}
+
+.ticketBody {
+  display: grid;
+  grid-template-columns: minmax(0, 60fr) minmax(0, 40fr);
+}
+
+.ticketPromise {
+  display: grid;
+  align-content: center;
+  gap: 3mm;
+  padding: 4mm;
+}
+
+.ticketClaim,
+.nightCard,
+.receiptClaim,
+.studioClaim {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 2mm;
+  min-width: 0;
+  padding: 2mm;
+}
+
+.ticketQrCaption,
+.nightCaption,
+.receiptScan,
+.studioCaption {
+  max-width: 50mm;
+  margin: 0;
+  font-size: var(--poster-b5-substantive-size);
+  font-weight: 850;
+  line-height: 1.05;
+  text-align: center;
+}
+
+.nightFace,
+.boldFace {
+  background: var(--w-ink);
+  color: var(--w-paper);
+}
+
+.nightIdentity {
+  color: var(--w-paper);
+  border-color: rgba(246, 241, 230, 0.35);
+}
+
+.nightChip {
+  position: absolute;
+  top: 2mm;
+  left: 3mm;
+  z-index: 1;
+  padding: 1.5mm 2mm;
+  background: var(--w-sun);
+  color: var(--w-ink);
+  border: 1pt solid var(--w-ink);
+  box-shadow: 2px 2px 0 #0d0a07;
+  font-family: var(--font-space-mono), monospace;
+  font-size: var(--poster-b5-facts-size);
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.nightMain {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 62fr) minmax(0, 38fr);
+  margin: 2mm;
+  background: var(--w-paper);
+  color: var(--w-ink);
+  border: 1.5pt solid var(--w-ink);
+  border-radius: 3mm;
+  box-shadow: 3px 3px 0 #0d0a07;
+}
+
+.nightPromise {
+  display: grid;
+  align-content: center;
+  gap: 2.5mm;
+  min-width: 0;
+  padding: 10mm 3mm 2mm;
+}
+
+.nightHook {
+  font-size: var(--poster-b5-hook-size);
+}
+
+.nightAccent {
+  color: var(--w-accent);
+}
+
+.nightEase {
+  color: var(--w-ink-soft);
+}
+
+.nightFooter,
+.boldFace .studioFooter {
+  color: #ece5d4;
+  border-color: rgba(246, 241, 230, 0.35);
+}
+
+.receiptFace {
+  background: var(--w-paper-2);
+  color: var(--w-ink);
+}
+
+.receiptHead {
+  color: var(--w-ink);
+  border-color: rgba(33, 28, 22, 0.25);
+}
+
+.receiptMeta {
+  margin: 0;
+}
+
+.receiptBrandAccent {
+  color: var(--w-accent);
+}
+
+.receiptMain {
+  display: grid;
+  grid-template-columns: minmax(0, 62fr) minmax(0, 38fr);
+  background: var(--w-paper);
+  color: var(--w-ink);
+}
+
+.receiptLedger {
+  display: grid;
+  align-content: center;
+  gap: 2mm;
+  padding: 3mm 4mm;
+  font-family: var(--font-space-mono), monospace;
+}
+
+.receiptHook {
+  font-family: var(--font-bricolage-grotesque), system-ui, sans-serif;
+  font-size: var(--poster-b5-hook-size);
+  text-transform: uppercase;
+}
+
+.receiptItems {
+  display: grid;
+  gap: 1mm;
+}
+
+.receiptItems > div,
+.receiptTotal {
+  display: flex;
+  justify-content: space-between;
+  gap: 3mm;
+  font-size: var(--poster-b5-facts-size);
+  font-weight: 700;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.receiptTotal {
+  padding-top: 1.5mm;
+  border-top: 1.5pt solid var(--w-ink);
+  font-size: var(--poster-b5-facts-size);
+}
+
+.receiptFriction {
+  color: var(--w-ink-soft);
+}
+
+.receiptFooter {
+  color: var(--w-ink-soft);
+  border-color: rgba(33, 28, 22, 0.25);
+}
+
+.studioMain {
+  display: grid;
+  grid-template-columns: minmax(0, 62fr) minmax(0, 38fr);
+}
+
+.studioPromise {
+  display: grid;
+  align-content: center;
+  gap: 2.5mm;
+  min-width: 0;
+  padding: 3mm 4mm;
+}
+
+.studioHook {
+  font-size: var(--poster-b5-hook-size);
+}
+
+.boldFace .studioHook {
+  font-size: var(--poster-b5-hook-size);
+  text-transform: uppercase;
+}
+
+.studioSupport {
+  font-size: var(--poster-b5-substantive-size);
+}
+
+.boldFace .studioIdentity {
+  color: #f6f1e6;
+  border-color: rgba(246, 241, 230, 0.35);
+}
+
+.boldFace .studioSupport,
+.boldFace .studioFriction {
+  color: #ece5d4;
+}
+
+.boldQrWrap {
+  background: #ffffff;
+}
+
+@media print {
+  @page table-tent {
+    size: B5 portrait;
+    margin: 0;
+  }
+
+  .sheet,
+  .face,
+  .brandBar,
+  .ticketStrap,
+  .scan,
+  .nightMain,
+  .receiptMain,
+  .qrWrap,
+  .ticketQrWrap,
+  .nightQrWrap,
+  .receiptQrWrap,
+  .studioQrWrap {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .sheet {
+    box-shadow: none;
+  }
+}

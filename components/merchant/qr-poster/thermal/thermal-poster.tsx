@@ -1,28 +1,11 @@
-import type { CSSProperties } from "react"
-
 import { VenueMark } from "@/components/brand/venue-mark"
 import { StampDot } from "@/components/loyalty/stamp-dot"
+import { resolveThermalContent } from "@/lib/qr/poster-content"
 
-import { POSTER_REASSURANCE } from "../poster-copy"
-
+import { PosterWordmark } from "../poster-wordmark"
 import styles from "./thermal-poster.module.css"
+import { a4PosterStyle } from "../poster-copy"
 
-/**
- * Thermal-receipt concept — the poster IS a till receipt torn from the roll.
- *
- * Space Mono throughout (the product's "printed" register), with the offer
- * itemised like a transaction: first stamp FREE, reward LOCKED, total to join
- * £0.00, and the QR as the receipt's scan code. Mystery is never named — the
- * reward reads "LOCKED". One narrow receipt strip, serrated top and bottom,
- * centred on a deeper-paper counter.
- *
- * Robustness: the stamp row sizes its slots to the count so it stays one line
- * (constant receipt height); the venue name is the big spoken line.
- */
-
-const POSTER_STAMP_TILTS = ["-7deg", "-5deg", "-8deg", "-6deg"] as const
-
-/** Slot px that keeps the stamp row to a single line in the receipt strip. */
 function thermalSlotPx(stampsRequired: number): number {
   return Math.max(
     24,
@@ -41,12 +24,21 @@ export function ThermalPoster({
   businessName,
   stampsRequired,
 }: ThermalPosterProps) {
-  const stamps = Math.max(1, stampsRequired)
+  const copy = resolveThermalContent(stampsRequired)
+  const stamps = stampsRequired
   const business = businessName.trim()
-  const visitWord = stamps === 1 ? "Visit" : "Visits"
 
   return (
-    <article className={styles.sheet}>
+    <article
+      className={styles.sheet}
+      style={{
+        ...a4PosterStyle(copy),
+        width: `${copy.geometry.sheetWidthMm}mm`,
+        height: `${copy.geometry.sheetHeightMm}mm`,
+        minHeight: `${copy.geometry.sheetHeightMm}mm`,
+        maxHeight: `${copy.geometry.sheetHeightMm}mm`,
+      }}
+    >
       <div className={styles.counter}>
         <div className={styles.receipt}>
           <div aria-hidden="true" className={styles.tornTop} />
@@ -54,71 +46,82 @@ export function ThermalPoster({
           <div className={styles.receiptInner}>
             <div className={styles.head}>
               <VenueMark name={business} size={44} />
-              <p className={styles.bizName}>{business}</p>
-              <p className={styles.metaLine}>Loyalty receipt</p>
+              <p
+                className={styles.bizName}
+                data-poster-venue
+                data-venue-fit={business.length > 44 ? "compact" : undefined}
+              >
+                {business}
+              </p>
+              <p className={styles.metaLine}>
+                {copy.meta} / <PosterWordmark />
+              </p>
             </div>
 
             <hr className={styles.ruleSolid} />
-            <p className={styles.metaLine}>No cash · No app · Opens in your browser</p>
+            <p className={styles.metaLine}>{copy.friction}</p>
             <hr className={styles.ruleDashed} />
 
-            <p className={styles.hook}>
-              Everyone <span className={styles.hookAccent}>wins</span> something
-            </p>
+            <p className={styles.hook}>{copy.headline}</p>
 
             <div className={styles.items}>
-              <ReceiptItem label="Today's first stamp" value="Free" accent />
-              <ReceiptItem label="Mystery reward" value="Locked" />
-              <ReceiptItem label={`${visitWord} to unlock`} value={String(stamps)} />
+              {copy.items.map((item) => (
+                <ReceiptItem
+                  key={item.label}
+                  label={item.label}
+                  value={item.value}
+                  accent={item.accent}
+                />
+              ))}
             </div>
 
             <hr className={styles.ruleDashed} />
             <div className={styles.total}>
-              <span>To join</span>
-              <span>£0.00</span>
+              <span>{copy.totalLabel}</span>
+              <span>{copy.totalValue}</span>
             </div>
             <hr className={styles.ruleDashed} />
 
             <div className={styles.stamps}>
-              <div
-                className={styles.stampRow}
-                style={{ "--thermal-slot": `${thermalSlotPx(stamps)}px` } as CSSProperties}
-              >
+              <div className={styles.stampRow}>
                 {Array.from({ length: stamps }, (_, index) => {
-                  const earned = index === 0
+                  const offered = index === 0
                   const slotNumber = index + 1
 
                   return (
                     <span
                       key={slotNumber}
                       className={styles.stampSlot}
-                      style={
-                        earned
-                          ? ({
-                              "--stamp-rot":
-                                POSTER_STAMP_TILTS[index % POSTER_STAMP_TILTS.length],
-                            } as CSSProperties)
-                          : undefined
-                      }
+                      style={{ width: `${thermalSlotPx(stamps)}px` }}
                     >
                       <StampDot
-                        earned={earned}
-                        label={`Stamp ${slotNumber} ${earned ? "earned" : "empty"}`}
+                        earned={false}
+                        label={
+                          offered
+                            ? "Stamp one starts after joining"
+                            : `Stamp ${slotNumber} empty`
+                        }
                         slotNumber={slotNumber}
-                        showEmptySlotNumber={!earned}
+                        showEmptySlotNumber
                         venueName={business}
+                        className={offered ? styles.offeredStamp : undefined}
                       />
                     </span>
                   )
                 })}
               </div>
-              <p className={styles.caption}>Stamps on your card</p>
             </div>
 
             <hr className={styles.ruleSolid} />
 
             <div className={styles.qrZone}>
-              <div className={styles.qrField}>
+              <div
+                className={styles.qrField}
+                style={{
+                  width: `${copy.qr.outerMm}mm`,
+                  height: `${copy.qr.outerMm}mm`,
+                }}
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element -- data URL QR is generated server-side for print */}
                 <img
                   src={qrDataUrl}
@@ -127,21 +130,13 @@ export function ThermalPoster({
                   height={900}
                 />
               </div>
-              <p className={styles.scanLine}>Scan to claim your free stamp</p>
+              <p className={styles.scanLine}>{copy.qrCaption}</p>
             </div>
 
             <hr className={styles.ruleSolid} />
 
             <div className={styles.foot}>
-              <span aria-hidden="true" className={styles.barcode} />
-              <span className={styles.footBrand}>
-                <span aria-hidden="true" className={styles.footMark}>
-                  ✱
-                </span>
-                Powered by nabaperks
-              </span>
-              <p className={styles.metaLine}>{POSTER_REASSURANCE}</p>
-              <p className={styles.thanks}>*** Thank you ***</p>
+              <p className={styles.metaLine}>{copy.reassurance}</p>
             </div>
           </div>
 

@@ -1,59 +1,10 @@
-import type { CSSProperties } from "react"
-
 import { VenueMark } from "@/components/brand/venue-mark"
 import { StampDot } from "@/components/loyalty/stamp-dot"
+import { resolveNorthstarContent } from "@/lib/qr/poster-content"
 
-import { POSTER_REASSURANCE } from "../poster-copy"
-
+import { PosterWordmark } from "../poster-wordmark"
 import styles from "./northstar-poster.module.css"
-
-/**
- * North Star concept — the night-receipt "Everyone wins" poster.
- *
- * Principle: two heroes, one whisper. A promise read at ~2 m (the headline)
- * and a QR scanned at arm's reach (the card), with everything else reduced to
- * quiet connective tissue. The poster IS the loyalty card the customer is about
- * to own — a pure-white card island, first stamp already inked. The endowed
- * stamp is the "one waiting" cue, so there is no separate notification badge.
- *
- * Layout is one deterministic grid (see the module CSS); the card row absorbs
- * all slack, so rhythm holds whatever the stamp count or copy length. "Night"
- * is the `dark` token scope on the sheet — paper/strap surfaces would skin the
- * same markup.
- */
-
-const POSTER_STAMP_TILTS = ["-7deg", "-5deg", "-8deg", "-6deg"] as const
-
-const NUMBER_WORDS = [
-  "zero",
-  "one",
-  "two",
-  "three",
-  "four",
-  "five",
-  "six",
-  "seven",
-  "eight",
-  "nine",
-  "ten",
-  "eleven",
-  "twelve",
-] as const
-
-function spell(value: number): string {
-  return NUMBER_WORDS[value] ?? String(value)
-}
-
-/** Mystery stated once, mechanism once — the dots carry the count. */
-function buildPromise(stampsRequired: number): string {
-  if (stampsRequired === 1) {
-    return "Your first stamp's already inked — scan to claim it now."
-  }
-
-  const remaining = stampsRequired - 1
-  const visitVerb = remaining === 1 ? "visit unlocks" : "visits unlock"
-  return `You're one stamp in — ${spell(remaining)} more ${visitVerb} the mystery.`
-}
+import { a4PosterStyle } from "../poster-copy"
 
 type NorthStarPosterProps = {
   readonly qrDataUrl: string
@@ -66,82 +17,98 @@ export function NorthStarPoster({
   businessName,
   stampsRequired,
 }: NorthStarPosterProps) {
-  const stamps = Math.max(1, stampsRequired)
+  const copy = resolveNorthstarContent(stampsRequired)
+  const stamps = stampsRequired
   const stampVenue = businessName
+  const accentStart = copy.headline.indexOf(copy.headlineAccent)
 
   return (
-    // `night` surface = the `dark` token scope on the sheet only.
-    <article className={`${styles.sheet} dark`}>
+    <article
+      className={`${styles.sheet} dark`}
+      style={{
+        ...a4PosterStyle(copy),
+        width: `${copy.geometry.sheetWidthMm}mm`,
+        height: `${copy.geometry.sheetHeightMm}mm`,
+        minHeight: `${copy.geometry.sheetHeightMm}mm`,
+        maxHeight: `${copy.geometry.sheetHeightMm}mm`,
+      }}
+    >
       <div className={styles.frame}>
         <header className={styles.identity}>
           <VenueMark name={stampVenue} size={48} />
-          <p className={styles.venueName}>{businessName}</p>
+          <p
+            className={styles.venueName}
+            data-poster-venue
+            data-venue-fit={
+              businessName.trim().length > 44 ? "compact" : undefined
+            }
+          >
+            {businessName}
+          </p>
+          <PosterWordmark className={styles.systemName} />
         </header>
-
-        {/* h2, not h1 — the preview page's h1 is the chrome heading; the
-            poster sheet is content (same fix as poster-pieces Headline). */}
-        <h2 className={styles.hook}>
-          Everyone <span className={styles.hookAccent}>wins</span> something.
-        </h2>
-
-        <p className={styles.ease}>No app · No download · No spam</p>
 
         <section className={styles.cardHero}>
           <span aria-hidden="true" className={styles.cardChip}>
-            First stamp free
+            {copy.chip}
           </span>
-          <p className={styles.caption}>Scan to claim your free stamp</p>
-          <div className={styles.qrField}>
-            {/* eslint-disable-next-line @next/next/no-img-element -- data URL QR is generated server-side for print */}
-            <img
-              src={qrDataUrl}
-              alt="Nabaperks QR code"
-              width={900}
-              height={900}
-            />
-          </div>
+          <h2 className={styles.hook}>
+            {copy.headline.slice(0, accentStart)}
+            <span className={styles.hookAccent}>{copy.headlineAccent}</span>
+            {copy.headline.slice(accentStart + copy.headlineAccent.length)}
+          </h2>
           <hr className={styles.cardRule} />
           <div className={styles.stampRow}>
             {Array.from({ length: stamps }, (_, index) => {
-              const earned = index === 0
+              const offered = index === 0
               const slotNumber = index + 1
 
               return (
-                <span
-                  key={slotNumber}
-                  className={styles.stampSlot}
-                  style={
-                    earned
-                      ? ({
-                          "--stamp-rot":
-                            POSTER_STAMP_TILTS[index % POSTER_STAMP_TILTS.length],
-                        } as CSSProperties)
-                      : undefined
-                  }
-                >
+                <span key={slotNumber} className={styles.stampSlot}>
                   <StampDot
-                    earned={earned}
-                    label={`Stamp ${slotNumber} ${earned ? "earned" : "empty"}`}
+                    earned={false}
+                    label={
+                      offered
+                        ? "Stamp one starts after joining"
+                        : `Stamp ${slotNumber} empty`
+                    }
                     slotNumber={slotNumber}
-                    showEmptySlotNumber={!earned}
+                    showEmptySlotNumber
                     venueName={stampVenue}
+                    className={offered ? styles.offeredStamp : undefined}
                   />
                 </span>
               )
             })}
           </div>
+          <div className={styles.cardBottom}>
+            <div className={styles.belief}>
+              <p className={styles.promise}>{copy.promise}</p>
+              <p className={styles.ease}>{copy.ease}</p>
+            </div>
+            <div className={styles.actionLane}>
+              <p className={styles.caption}>{copy.qrCaption}</p>
+              <div
+                className={styles.qrField}
+                style={{
+                  width: `${copy.qr.outerMm}mm`,
+                  height: `${copy.qr.outerMm}mm`,
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- data URL QR is generated server-side for print */}
+                <img
+                  src={qrDataUrl}
+                  alt="Nabaperks QR code"
+                  width={900}
+                  height={900}
+                />
+              </div>
+            </div>
+          </div>
         </section>
 
-        <p className={styles.promise}>{buildPromise(stamps)}</p>
-
         <footer className={styles.footer}>
-          <span className={styles.footerBrand}>
-            <span aria-hidden="true" className={styles.footerMark}>
-              ✱
-            </span>
-            Powered by nabaperks
-          </span>
-          <span>{POSTER_REASSURANCE}</span>
+          <span>{copy.reassurance}</span>
         </footer>
       </div>
     </article>

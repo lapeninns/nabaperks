@@ -62,7 +62,7 @@ export function toStampBlockReason(message: string): CustomerBlockReason {
 export function blockReasonCopy(reason: CustomerBlockReason): string {
   switch (reason) {
     case "already_stamped_today":
-      return "You're already stamped today. Come back tomorrow."
+      return "You're already stamped today. Come back on the next UK business day."
     case "reward_ready_first":
       return "Your reward is ready — redeem it before collecting more stamps."
     case "billing_required":

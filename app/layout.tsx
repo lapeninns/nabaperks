@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next"
-import { Bricolage_Grotesque, Space_Mono } from "next/font/google"
+import localFont from "next/font/local"
 
 import "./globals.css"
 import { PlaywrightHydrationSignal } from "@/components/dev-tools/playwright-hydration-signal"
@@ -14,20 +14,37 @@ import {
   websiteSchema,
 } from "@/lib/seo/structured-data"
 
-// Loaded as the variable font it is (one file instead of five static
-// instances) with the optical-size axis on, so display sizes render with
-// their drawn-for-size letterforms. Space Mono below is static-only.
-const bricolageGrotesque = Bricolage_Grotesque({
+const bricolageGrotesque = localFont({
+  src: [
+    {
+      path: "../assets/fonts/BricolageGrotesque-Regular.ttf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../assets/fonts/BricolageGrotesque-Bold.ttf",
+      weight: "700",
+      style: "normal",
+    },
+  ],
   variable: "--font-bricolage-grotesque",
-  subsets: ["latin"],
-  axes: ["opsz"],
   display: "swap",
 })
 
-const spaceMono = Space_Mono({
+const spaceMono = localFont({
+  src: [
+    {
+      path: "../assets/fonts/SpaceMono-Regular.ttf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../assets/fonts/SpaceMono-Bold.ttf",
+      weight: "700",
+      style: "normal",
+    },
+  ],
   variable: "--font-space-mono",
-  subsets: ["latin"],
-  weight: ["400", "700"],
   display: "swap",
 })
 

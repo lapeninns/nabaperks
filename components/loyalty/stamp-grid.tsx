@@ -101,6 +101,7 @@ export function StampGrid({
   venueName,
   venueInitials,
   className,
+  onSlamComplete,
 }: {
   current: number
   total: number
@@ -133,6 +134,7 @@ export function StampGrid({
   venueName?: string
   venueInitials?: string
   className?: string
+  onSlamComplete?: () => void
 }) {
   const safeTotal = Math.max(total, 0)
   const safeCurrent = previewJourney
@@ -176,6 +178,9 @@ export function StampGrid({
           compact={compact}
           venueName={venueName}
           venueInitials={venueInitials}
+          onSlamComplete={
+            slot.index === slamIndex ? onSlamComplete : undefined
+          }
         />
       </span>
     )

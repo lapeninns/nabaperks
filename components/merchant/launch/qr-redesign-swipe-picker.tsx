@@ -12,18 +12,11 @@ import { Eyebrow, Icon } from "@/components/brand"
 import { PosterThumbnail } from "@/components/merchant/qr-poster/poster-thumbnail"
 import { Button } from "@/components/ui/button"
 import {
+  getQrPosterUseCase,
   QR_POSTER_TEMPLATES,
   type QrPosterTemplateId,
 } from "@/lib/qr/poster-templates"
 import { cn } from "@/lib/utils"
-
-const POSTER_USE_CASE: Record<QrPosterTemplateId, string> = {
-  editorial: "Calm café or dining room",
-  bold: "Busy bar or high-traffic counter",
-  ticket: "Promotional launch",
-  northstar: "Dark pub or evening venue",
-  thermal: "Compact till display",
-}
 
 export function SwipePosterPicker({
   initialTemplate,
@@ -143,7 +136,7 @@ export function SwipePosterPicker({
               <div>
                 <p className="font-extrabold">{item.name}</p>
                 <p className="text-xs leading-5 text-muted-foreground">
-                  {POSTER_USE_CASE[item.id]}
+                  {getQrPosterUseCase(item.id)}
                 </p>
               </div>
               <span className="mono-id text-muted-foreground">

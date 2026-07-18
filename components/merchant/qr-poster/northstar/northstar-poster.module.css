@@ -1,316 +1,255 @@
-/* ============================================================
-   QR till-poster — NORTH STAR concept (Wet Ink).
-
-   Principle: two heroes, one whisper. A promise read at ~2 m
-   (the headline) and a QR scanned at arm's reach (the card),
-   with everything else reduced to quiet connective tissue.
-
-   Concept: the poster IS the loyalty card the customer is about
-   to own — a pure-white card island, lifted off the sheet, with
-   the first stamp already inked. The endowed first stamp is the
-   "one thing waiting" cue, so there is no separate badge.
-
-   Structure: ONE deterministic grid (no centred-flex voids).
-   The middle row absorbs all slack, so rhythm holds whatever the
-   stamp count or copy length. Surfaces (night / paper / strap)
-   are a token-skin over this one layout. Colour, shadow, radius
-   and type come from the canonical --w-* tokens.
-
-   Sheet is exactly A4 (210 × 297 mm); --poster-frame-margin keeps
-   everything load-bearing inside a 15 mm frame-safe inset.
-   ============================================================ */
-
 .sheet {
-  --poster-frame-margin: 15mm;
-
-  /* Poster type scale — anchored to DESIGN.md, scaled up for the
-     two reading distances (headline at ~2 m, caption at ~0.4 m). */
-  --poster-hook: 64px;
-  --poster-caption: 22px;
-  --poster-say: 17px;
-  --poster-meta: 11px;
-  --poster-fine: 10px;
-
+  --northstar-card-paper: #f6f1e6;
+  --northstar-night: #211c16;
   width: 210mm;
   height: 297mm;
   min-height: 297mm;
   max-height: 297mm;
-  box-sizing: border-box;
-  position: relative;
   overflow: hidden;
-  background: var(--w-paper);
+  background: var(--northstar-night);
   color: var(--w-ink);
   box-shadow: var(--shadow-2xl);
   print-color-adjust: exact;
   -webkit-print-color-adjust: exact;
 }
 
-/* Brand accent rule — sits inside the frame-safe inset, never on the cut edge. */
-.sheet::before {
-  content: "";
-  position: absolute;
-  top: var(--poster-frame-margin);
-  left: var(--poster-frame-margin);
-  right: var(--poster-frame-margin);
-  height: 3px;
-  background: var(--w-accent);
-  z-index: 5;
-  print-color-adjust: exact;
-  -webkit-print-color-adjust: exact;
-}
-
-/* The deterministic spine. Rows:
-   identity · hook · ease · CARD (absorbs slack) · promise · footer */
 .frame {
-  position: absolute;
-  inset: 0;
-  box-sizing: border-box;
-  padding: var(--poster-frame-margin);
-  padding-top: calc(var(--poster-frame-margin) + 7mm);
   display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr) auto auto;
-  align-items: center;
-  justify-items: center;
-  text-align: center;
-}
-
-/* ---- Row 1: venue identity — the rubber-stamp roundel + name ---- */
-.identity {
-  align-self: start;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 9px;
-}
-
-/* The roundel is the shared brand primitive — VenueMark renders the rotated
-   rubber-stamp disc (accent fill, ink ring, postage perforation) itself. */
-
-.venueName {
-  margin: 0;
-  max-width: 52ch;
-  font-family: var(--font-space-mono), monospace;
-  font-size: var(--poster-meta);
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  text-wrap: balance;
-  color: var(--w-ink-soft);
-}
-
-/* ---- Row 2: the hook — hero #1, the 2 m pull ---- */
-.hook {
-  margin: 9mm 0 0;
-  max-width: 13ch;
-  font-size: var(--poster-hook);
-  font-weight: 800;
-  line-height: 0.9;
-  letter-spacing: -0.035em;
-  text-wrap: balance;
-}
-
-/* One red word in a monochrome headline — always a value word. */
-.hookAccent {
-  color: var(--w-accent);
-}
-
-/* ---- Row 3: the ease line — the one objection-killer ---- */
-.ease {
-  margin: 7mm 0 0;
-  padding: 8px 0;
-  width: 100%;
-  max-width: 124mm;
-  border-top: 1px solid var(--w-line);
-  border-bottom: 1px solid var(--w-line);
-  font-family: var(--font-space-mono), monospace;
-  font-size: var(--poster-meta);
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--w-ink-soft);
-}
-
-/* ---- Row 4: the card — hero #2. A light loyalty-card island. ---- */
-.cardHero {
-  /* Force the light Wet Ink palette so the card reads as the in-app
-     loyalty card, even on the night sheet, and so the QR keeps the
-     pure-white field + AA-dark text it needs in both surfaces. */
-  --w-ink: #211c16;
-  --w-ink-soft: #4f473d;
-  --w-line: rgba(33, 28, 22, 0.18);
-  --w-accent: #cf330a;
-  --w-accent-ink: #ffffff;
-
-  position: relative;
-  width: 100%;
-  max-width: 120mm;
-  display: grid;
-  justify-items: center;
-  gap: 6mm;
-  padding: 9mm 9mm 8mm;
-  /* Pure white — the card IS the QR's ink-bordered frame. */
-  background: var(--qr-foreground);
-  color: var(--w-ink);
-  border: 2px solid var(--w-ink);
-  border-radius: var(--radius-sheet);
-  box-shadow: var(--shadow-2xl);
-  print-color-adjust: exact;
-  -webkit-print-color-adjust: exact;
-}
-
-/* Ink-stamp chip slapped on the card's top-right corner. Reinforces the
-   genuinely-free first stamp — a true claim, not invented scarcity. Absolutely
-   positioned so it never disturbs the card's deterministic grid; pulled above
-   the card edge so it clears the centred caption. */
-.cardChip {
-  position: absolute;
-  top: -5mm;
-  right: -3mm;
-  z-index: 4;
-  padding: 5px 11px;
-  transform: rotate(-7deg);
-  font-family: var(--font-space-mono), monospace;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--w-accent-ink);
-  background: var(--w-accent);
-  border: 2px solid color-mix(in oklch, var(--w-accent) 70%, #000);
-  border-radius: 4px;
-  box-shadow: var(--shadow-md);
-  print-color-adjust: exact;
-  -webkit-print-color-adjust: exact;
-}
-
-.caption {
-  margin: 0;
-  font-size: var(--poster-caption);
-  font-weight: 800;
-  line-height: 1.05;
-  color: var(--w-ink);
-}
-
-/* QR sits on the card's white with its native 4-module quiet zone. */
-.qrField {
-  position: relative;
-  width: min(82mm, 100%);
-  aspect-ratio: 1;
-}
-
-.qrField img {
+  grid-template-rows: 20mm minmax(0, 1fr) 25mm;
   width: 100%;
   height: 100%;
-  display: block;
-  object-fit: contain;
+  box-sizing: border-box;
+  padding: 15mm;
 }
 
-/* Dashed receipt rule — the seam of the card. */
+.identity {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4mm;
+  border-bottom: 1.5pt solid var(--w-line);
+}
+
+.venueName,
+.systemName {
+  margin: 0;
+  font-family: var(--font-space-mono), monospace;
+  font-size: var(--poster-a4-facts-size);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.venueName {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.venueName[data-venue-fit="compact"] {
+  font-size: 8pt;
+  letter-spacing: 0.04em;
+  line-height: 1.05;
+}
+
+.systemName {
+  color: var(--northstar-card-paper);
+}
+
+.systemName span {
+  color: var(--w-sun);
+}
+
+.cardHero {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(52mm, 1fr);
+  align-content: start;
+  gap: 3mm;
+  min-height: 0;
+  margin: 10mm 0;
+  padding: 12mm 10mm 10mm;
+  overflow: hidden;
+  background: var(--northstar-card-paper);
+  color: #211c16;
+  border: 2pt solid #211c16;
+  border-radius: 4mm;
+  box-shadow: 7px 7px 0 #0d0a07;
+}
+
+.cardChip {
+  position: absolute;
+  top: 6mm;
+  right: 6mm;
+  max-width: 54mm;
+  padding: 2.5mm 3mm;
+  background: var(--w-sun);
+  color: #211c16;
+  border: 1.5pt solid #211c16;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 9pt;
+  font-weight: 700;
+  line-height: 1.2;
+  text-transform: uppercase;
+  transform: rotate(2deg);
+  box-shadow: 3px 3px 0 #211c16;
+}
+
+.hook {
+  max-width: 130mm;
+  margin: 0;
+  padding-top: 12mm;
+  font-size: var(--poster-a4-hook-size);
+  font-weight: 850;
+  letter-spacing: -0.055em;
+  line-height: 0.88;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.hookAccent {
+  color: #cf330a;
+}
+
 .cardRule {
   width: 100%;
-  margin: 1mm 0 0;
-  border: none;
-  border-top: 2px dashed var(--w-line);
+  margin: 0;
+  border: 0;
+  border-top: 1.5pt solid rgba(33, 28, 22, 0.35);
 }
 
-/* The endowed-progress row — first stamp inked (the "one waiting" cue). */
 .stampRow {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  gap: 2.5mm;
   align-items: center;
-  gap: 12px;
 }
 
 .stampSlot {
-  width: 46px;
+  width: 10mm;
   flex: none;
 }
 
-/* ---- Row 5: the promise — mystery stated once, mechanism once ---- */
-.promise {
-  margin: 0;
-  max-width: 30ch;
-  font-size: var(--poster-say);
-  font-weight: 600;
-  line-height: 1.35;
-  text-wrap: balance;
-  color: var(--w-ink-soft);
+.stampCount {
+  align-self: center;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 10pt;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
-/* ---- Row 6: footer — wordmark + one reassurance ---- */
-.footer {
-  align-self: end;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-top: 8px;
-  border-top: 2px dashed var(--w-line);
+.offeredStamp {
+  border-style: solid !important;
+  border-color: #cf330a !important;
+  box-shadow: inset 0 0 0 1.5pt var(--northstar-card-paper);
+}
+
+.cardBottom {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 52mm;
+  align-items: end;
+  gap: 8mm;
+  min-width: 0;
+  min-height: 52mm;
+}
+
+.belief {
+  display: grid;
+  align-self: start;
+  gap: 3mm;
+  min-width: 0;
+}
+
+.promise,
+.ease,
+.caption {
+  margin: 0;
+  font-size: var(--poster-a4-substantive-size);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.ease {
+  color: #4f473d;
   font-family: var(--font-space-mono), monospace;
-  font-size: var(--poster-fine);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 9.5pt;
+}
+
+.actionLane {
+  display: grid;
+  grid-template-rows: auto 52mm;
+  align-content: end;
+  gap: 2mm;
+  min-height: 0;
+}
+
+.caption {
+  align-self: end;
+  font-size: 16pt;
+  text-align: left;
+}
+
+.qrField {
+  width: 52mm;
+  height: 52mm;
+  overflow: hidden;
+  background: #ffffff;
+  border: 0;
+  outline: 1.5pt solid #211c16;
+  box-shadow: 4px 4px 0 #211c16;
+}
+
+.qrField img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.footer {
+  display: grid;
+  align-items: center;
+  padding-top: 3mm;
+  border-top: 1.5pt solid var(--w-line);
   color: var(--w-ink-soft);
+  font-family: var(--font-space-mono), monospace;
+  font-size: var(--poster-a4-facts-size);
+  line-height: 1.35;
+  text-align: right;
 }
 
 .footerBrand {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 2mm;
   color: var(--w-ink);
   font-weight: 700;
+  text-transform: uppercase;
 }
 
 .footerMark {
-  width: 17px;
-  height: 17px;
-  flex: none;
   display: inline-grid;
   place-items: center;
+  width: 5mm;
+  height: 5mm;
+  background: var(--w-sun);
+  color: #211c16;
+  border: 1pt solid #211c16;
   border-radius: 50%;
-  border: 1.5px solid var(--w-ink);
-  background: var(--w-accent);
-  color: var(--w-accent-ink);
-  font-size: 9px;
-  transform: rotate(-6deg);
-  print-color-adjust: exact;
-  -webkit-print-color-adjust: exact;
 }
 
-/* =======================================================
-   Print
-
-   NB: screen scaling and the .page/.stage/.sheetScaler stage are owned by the
-   shared a4-poster.module.css — A4Poster wraps every template (this concept
-   sheet included) in that stage, so this module only carries the .sheet itself
-   plus the concept-specific print colour-adjust rules.
-   ======================================================= */
 @media print {
-  @page {
-    size: A4 portrait;
-    margin: 0;
-  }
-
-  .sheet {
-    box-shadow: none;
-    transform: none;
-    margin: 0;
-    break-after: avoid-page;
-  }
-
   .sheet,
   .cardHero,
+  .cardChip,
+  .qrField,
   .footerMark {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
 
-  /* Force the rubber-stamp + roundel fills (and the white card on the dark
-     sheet) regardless of the browser's "Background graphics" setting. */
-  .sheet :global([data-stamp-earned="true"]) {
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
+  .sheet {
+    box-shadow: none;
   }
 }

@@ -1,110 +1,37 @@
 import { type BitMatrix } from "qrcode"
 import { rgb, type PDFFont, type PDFPage, type RGB } from "pdf-lib"
+import { posterPalette, posterQrDefaults } from "@/lib/qr/poster-token-readers"
 
-import type { QrPosterTemplateId } from "@/lib/qr/poster-templates"
+const POSTER_QR = posterQrDefaults()
+const POSTER_PALETTE = posterPalette()
 
-export const A4_WIDTH = 595.28
-export const A4_HEIGHT = 841.89
-
-export type PosterStyle = {
-  readonly background: RGB
-  readonly foreground: RGB
-  readonly accent: RGB
-  readonly band: RGB
-  readonly panel: RGB
-  readonly headline: string
-  readonly support: string
-  readonly friction: string
-  readonly qrCaption: string
+function rgbHex(value: string): RGB {
+  if (!/^#[0-9a-f]{6}$/i.test(value)) {
+    throw new Error(`Invalid poster colour ${value}`)
+  }
+  return rgb(
+    Number.parseInt(value.slice(1, 3), 16) / 255,
+    Number.parseInt(value.slice(3, 5), 16) / 255,
+    Number.parseInt(value.slice(5, 7), 16) / 255
+  )
 }
 
 export const POSTER_PDF_COLOR = {
-  ink: rgb(33 / 255, 28 / 255, 22 / 255),
-  inkSoft: rgb(79 / 255, 71 / 255, 61 / 255),
-  paper: rgb(246 / 255, 241 / 255, 230 / 255),
-  white: rgb(1, 1, 1),
-} as const
+  ink: rgbHex(POSTER_PALETTE.ink),
+  inkSoft: rgbHex(POSTER_PALETTE.inkSoft),
+  paper: rgbHex(POSTER_PALETTE.paper),
+  paperDeep: rgbHex(POSTER_PALETTE.paperDeep),
+  card: rgbHex(POSTER_PALETTE.paper),
+  accent: rgbHex(POSTER_PALETTE.accent),
+  sun: rgbHex(POSTER_PALETTE.sun),
+  leaf: rgbHex(POSTER_PALETTE.leaf),
+  cobalt: rgbHex(POSTER_PALETTE.cobalt),
+  qr: rgbHex(POSTER_QR.ink),
+  white: rgbHex(POSTER_PALETTE.white),
+}
 
-const RED = rgb(207 / 255, 51 / 255, 10 / 255)
-const BLUE = rgb(43 / 255, 67 / 255, 200 / 255)
-const SUN = rgb(245 / 255, 166 / 255, 35 / 255)
-
-export function posterStyle(
-  template: QrPosterTemplateId,
-  stamps: number
-): PosterStyle {
-  const firstStamp =
-    stamps === 1
-      ? "Your reward unlocks straight after."
-      : "The rest unlock the mystery."
-  const styles: Record<QrPosterTemplateId, PosterStyle> = {
-    editorial: {
-      background: POSTER_PDF_COLOR.paper,
-      foreground: POSTER_PDF_COLOR.ink,
-      accent: BLUE,
-      band: BLUE,
-      panel: POSTER_PDF_COLOR.white,
-      headline:
-        stamps === 1
-          ? "One visit. One surprise."
-          : `${stamps} visits. One surprise.`,
-      support:
-        stamps === 1
-          ? "Your first stamp is already waiting. Scan now to unlock your mystery reward."
-          : "Your first stamp is already waiting. Collect the rest to unlock the mystery.",
-      friction: "NO APP  |  OPENS IN YOUR BROWSER",
-      qrCaption: "Scan to unlock your mystery reward",
-    },
-    bold: {
-      background: POSTER_PDF_COLOR.ink,
-      foreground: POSTER_PDF_COLOR.paper,
-      accent: RED,
-      band: RED,
-      panel: POSTER_PDF_COLOR.white,
-      headline: "Everyone wins something.",
-      support:
-        "Your first stamp is already waiting. We are not allowed to tell you the reward.",
-      friction: "NO APP  |  NO DOWNLOAD  |  NO SPAM",
-      qrCaption: "Scan to claim your free stamp",
-    },
-    ticket: {
-      background: POSTER_PDF_COLOR.paper,
-      foreground: POSTER_PDF_COLOR.ink,
-      accent: RED,
-      band: RED,
-      panel: POSTER_PDF_COLOR.white,
-      headline: "First stamp's free.",
-      support: `Claim stamp one today. ${firstStamp}`,
-      friction: "NO ACCOUNT NEEDED  |  SCAN WITH YOUR CAMERA",
-      qrCaption: "Scan here to claim your free stamp",
-    },
-    northstar: {
-      background: POSTER_PDF_COLOR.ink,
-      foreground: POSTER_PDF_COLOR.paper,
-      accent: SUN,
-      band: POSTER_PDF_COLOR.inkSoft,
-      panel: POSTER_PDF_COLOR.white,
-      headline: "Everyone wins something.",
-      support:
-        stamps === 1
-          ? "Your first stamp is already inked. Scan to claim it now."
-          : `You are one stamp in. ${stamps - 1} more ${stamps === 2 ? "visit unlocks" : "visits unlock"} the mystery.`,
-      friction: "NO APP  |  NO DOWNLOAD  |  NO SPAM",
-      qrCaption: "Scan to claim your free stamp",
-    },
-    thermal: {
-      background: POSTER_PDF_COLOR.paper,
-      foreground: POSTER_PDF_COLOR.ink,
-      accent: RED,
-      band: RED,
-      panel: POSTER_PDF_COLOR.white,
-      headline: "Loyalty receipt",
-      support: `TODAY'S FIRST STAMP: FREE     ${stamps === 1 ? "VISIT" : "VISITS"} TO UNLOCK: ${stamps}`,
-      friction: "TOTAL TO JOIN: GBP 0.00",
-      qrCaption: "Scan to claim your free stamp",
-    },
-  }
-  return styles[template]
+export function mm(value: number): number {
+  return (value * 72) / 25.4
 }
 
 export function drawQrCode(
@@ -112,58 +39,28 @@ export function drawQrCode(
   modules: BitMatrix,
   x: number,
   y: number,
-  size: number
+  outerSize: number
 ): void {
-  const quietZone = 4
-  const moduleSize = size / (modules.size + quietZone * 2)
+  page.drawRectangle({
+    x,
+    y,
+    width: outerSize,
+    height: outerSize,
+    color: POSTER_PDF_COLOR.white,
+  })
+  const quietZone = POSTER_QR.quietZoneModules
+  const moduleSize = outerSize / (modules.size + quietZone * 2)
   for (let row = 0; row < modules.size; row += 1) {
     for (let column = 0; column < modules.size; column += 1) {
-      if (modules.get(row, column)) {
-        page.drawRectangle({
-          x: x + (column + quietZone) * moduleSize,
-          y: y + (modules.size - row - 1 + quietZone) * moduleSize,
-          width: moduleSize,
-          height: moduleSize,
-          color: POSTER_PDF_COLOR.ink,
-        })
-      }
+      if (!modules.get(row, column)) continue
+      page.drawRectangle({
+        x: x + (column + quietZone) * moduleSize,
+        y: y + (modules.size - row - 1 + quietZone) * moduleSize,
+        width: moduleSize,
+        height: moduleSize,
+        color: POSTER_PDF_COLOR.qr,
+      })
     }
-  }
-}
-
-export function stampRowLabel(count: number): string | null {
-  return count > 12 ? `${count} VISITS TO UNLOCK` : null
-}
-
-export function drawStampRow(
-  page: PDFPage,
-  count: number,
-  y: number,
-  style: PosterStyle,
-  font: PDFFont
-): void {
-  const label = stampRowLabel(count)
-  if (label) {
-    drawCenteredText(page, label, {
-      y: y - 4,
-      font,
-      size: 11,
-      color: style.foreground,
-    })
-    return
-  }
-
-  const gap = Math.min(38, 360 / count)
-  const startX = A4_WIDTH / 2 - (gap * (count - 1)) / 2
-  for (let index = 0; index < count; index += 1) {
-    page.drawCircle({
-      x: startX + index * gap,
-      y,
-      size: 12,
-      color: index === 0 ? style.accent : undefined,
-      borderColor: style.foreground,
-      borderWidth: 1.5,
-    })
   }
 }
 
@@ -174,15 +71,13 @@ export function fitSingleLineText(
   maxWidth: number
 ): string {
   if (font.widthOfTextAtSize(value, size) <= maxWidth) return value
-
-  const suffix = "..."
   const characters = Array.from(value)
   while (characters.length > 0) {
     characters.pop()
-    const candidate = `${characters.join("").trimEnd()}${suffix}`
+    const candidate = `${characters.join("").trimEnd()}...`
     if (font.widthOfTextAtSize(candidate, size) <= maxWidth) return candidate
   }
-  return suffix
+  return "..."
 }
 
 export function standardFontText(
@@ -199,20 +94,6 @@ export function standardFontText(
   return printable || fallback
 }
 
-export function drawCenteredText(
-  page: PDFPage,
-  text: string,
-  options: {
-    readonly y: number
-    readonly font: PDFFont
-    readonly size: number
-    readonly color: RGB
-  }
-): void {
-  const width = options.font.widthOfTextAtSize(text, options.size)
-  page.drawText(text, { x: (A4_WIDTH - width) / 2, ...options })
-}
-
 export function drawWrappedText(
   page: PDFPage,
   text: string,
@@ -224,19 +105,31 @@ export function drawWrappedText(
     readonly size: number
     readonly lineHeight: number
     readonly color: RGB
+    readonly maxLines?: number
   }
 ): number {
+  const words = standardFontText(text, options.font).split(/\s+/)
   const lines: string[] = []
-  for (const word of text.split(/\s+/)) {
-    const current = lines.at(-1)
+  for (const word of words) {
+    const currentIndex = lines.length - 1
+    const current = lines[currentIndex]
     const candidate = current ? `${current} ${word}` : word
     if (
-      !current ||
-      options.font.widthOfTextAtSize(candidate, options.size) > options.maxWidth
+      current &&
+      options.font.widthOfTextAtSize(candidate, options.size) <=
+        options.maxWidth
     ) {
+      lines[currentIndex] = candidate
+    } else if (!options.maxLines || lines.length < options.maxLines) {
       lines.push(word)
     } else {
-      lines[lines.length - 1] = candidate
+      const last = lines.length - 1
+      lines[last] = fitSingleLineText(
+        `${lines[last]} ${word}`,
+        options.font,
+        options.size,
+        options.maxWidth
+      )
     }
   }
   lines.forEach((line, index) => {
@@ -249,4 +142,97 @@ export function drawWrappedText(
     })
   })
   return options.y - lines.length * options.lineHeight
+}
+
+export function drawHardBox(
+  page: PDFPage,
+  options: {
+    readonly x: number
+    readonly y: number
+    readonly width: number
+    readonly height: number
+    readonly fill: RGB
+    readonly border: RGB
+    readonly shadow?: RGB
+    readonly shadowOffset?: number
+  }
+): void {
+  const shadowOffset = options.shadowOffset ?? 4
+  if (options.shadow) {
+    page.drawRectangle({
+      x: options.x + shadowOffset,
+      y: options.y - shadowOffset,
+      width: options.width,
+      height: options.height,
+      color: options.shadow,
+    })
+  }
+  page.drawRectangle({
+    x: options.x,
+    y: options.y,
+    width: options.width,
+    height: options.height,
+    color: options.fill,
+    borderColor: options.border,
+    borderWidth: 1.5,
+  })
+}
+
+export function drawOfferedStampRow(
+  page: PDFPage,
+  count: number,
+  options: {
+    readonly x: number
+    readonly y: number
+    readonly width: number
+    readonly foreground: RGB
+    readonly accent: RGB
+    readonly font: PDFFont
+  }
+): void {
+  const gap = Math.min(30, options.width / Math.max(1, count))
+  const start = options.x + (options.width - gap * (count - 1)) / 2
+  for (let index = 0; index < count; index += 1) {
+    page.drawCircle({
+      x: start + index * gap,
+      y: options.y,
+      size: 9,
+      borderColor: index === 0 ? options.accent : options.foreground,
+      borderWidth: index === 0 ? 2.5 : 1.2,
+    })
+    page.drawText(String(index + 1), {
+      x: start + index * gap - 2.5,
+      y: options.y - 3,
+      size: 7,
+      font: options.font,
+      color: options.foreground,
+    })
+  }
+}
+
+export function drawDashedLine(
+  page: PDFPage,
+  options: {
+    readonly x1: number
+    readonly y1: number
+    readonly x2: number
+    readonly y2: number
+    readonly color: RGB
+  }
+): void {
+  const vertical = options.x1 === options.x2
+  const length = vertical
+    ? Math.abs(options.y2 - options.y1)
+    : Math.abs(options.x2 - options.x1)
+  for (let offset = 0; offset < length; offset += 10) {
+    const segment = Math.min(6, length - offset)
+    page.drawRectangle({
+      x: vertical ? options.x1 : Math.min(options.x1, options.x2) + offset,
+      y: vertical ? Math.min(options.y1, options.y2) + offset : options.y1,
+      width: vertical ? 1 : segment,
+      height: vertical ? segment : 1,
+      color: options.color,
+      opacity: 0.55,
+    })
+  }
 }

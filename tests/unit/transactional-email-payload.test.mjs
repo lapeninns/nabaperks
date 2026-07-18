@@ -4,8 +4,9 @@ import { test } from "node:test"
 import { buildPosterEmailContent } from "@/lib/notifications/poster-email"
 import { buildPosterPdfAttachments } from "@/lib/notifications/poster-pdf"
 import { buildTransactionalEmailPayload } from "@/lib/notifications/transactional-email-payload"
+import { QR_POSTER_TEMPLATES } from "@/lib/qr/poster-templates"
 
-test("transactional email payload forwards all five real poster PDFs to Resend", async () => {
+test("transactional email payload forwards all registered poster PDFs to Resend", async () => {
   // Given the complete attachment bundle produced for a merchant QR.
   const attachments = await buildPosterPdfAttachments({
     merchantName: "Old Crown Girton",
@@ -27,7 +28,7 @@ test("transactional email payload forwards all five real poster PDFs to Resend",
   // Then the provider receives the complete attachment array without mutation.
   assert.deepEqual(payload.attachments, attachments)
   assert.deepEqual(payload.to, ["merchant@example.com"])
-  assert.equal(payload.attachments.length, 5)
+  assert.equal(payload.attachments.length, QR_POSTER_TEMPLATES.length)
   assert.ok(
     payload.attachments.every(({ content }) => content.startsWith("JVBERi0"))
   )

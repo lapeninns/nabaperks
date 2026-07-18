@@ -7,7 +7,6 @@ import {
   merchantActivitySummaryCacheTag,
   revalidateCacheTag,
 } from "@/lib/cache/tags"
-import { blockReasonCopy } from "@/lib/customer/experience/block-reasons"
 import { getStampQrContextForMembership } from "@/lib/customer/join"
 import {
   getJoinFirstStampRecovery,
@@ -24,6 +23,10 @@ import { logger } from "@/lib/observability/logger"
 
 function fail(message: string): SelfStampActionState {
   return { status: "error", message }
+}
+
+function unknownStamp(): SelfStampActionState {
+  return { status: "unknown" }
 }
 
 export async function selfStampAction(
@@ -54,7 +57,7 @@ export async function selfStampAction(
       membershipId,
       error,
     })
-    return fail(blockReasonCopy("unknown"))
+    return unknownStamp()
   }
 
   if (result.status === "blocked") {

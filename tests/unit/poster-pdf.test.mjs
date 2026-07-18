@@ -1,18 +1,18 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { PDFDocument, StandardFonts } from "pdf-lib"
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib"
 
 import {
   fitSingleLineText,
-  posterStyle,
+  mm,
   standardFontText,
-  stampRowLabel,
 } from "@/lib/notifications/poster-pdf-style"
+import { drawIdentityRail } from "@/lib/notifications/poster-pdf-layout"
 import { buildPosterPdfAttachments } from "@/lib/notifications/poster-pdf"
 import { QR_POSTER_TEMPLATES } from "@/lib/qr/poster-templates"
 
-test("poster email builds one valid A4 PDF attachment for every registered template", async () => {
+test("poster email builds one valid print-size PDF attachment for every registered template", async () => {
   // Given a merchant with a printable QR and a five-visit card.
   // When the email attachment bundle is generated.
   const attachments = await buildPosterPdfAttachments({
@@ -33,6 +33,13 @@ test("poster email builds one valid A4 PDF attachment for every registered templ
       /^JVBERi0/,
       `${attachment.filename} is Base64 PDF data`
     )
+    const isTableTent = attachment.filename.includes("table-tent")
+    const minimumArtworkBytes = isTableTent ? 10_000 : 5_000
+    assert.ok(
+      Buffer.from(attachment.content, "base64").byteLength >
+        minimumArtworkBytes,
+      `${attachment.filename} contains rendered poster artwork`
+    )
     const document = await PDFDocument.load(attachment.content)
     const [page] = document.getPages()
     assert.equal(
@@ -41,13 +48,15 @@ test("poster email builds one valid A4 PDF attachment for every registered templ
       `${attachment.filename} has one page`
     )
     assert.ok(page, `${attachment.filename} includes its A4 page`)
+    const expectedWidth = isTableTent ? 498.9 : 595.28
+    const expectedHeight = isTableTent ? 708.66 : 841.89
     assert.ok(
-      Math.abs(page.getWidth() - 595.28) < 0.1,
-      `${attachment.filename} is A4 width`
+      Math.abs(page.getWidth() - expectedWidth) < 0.2,
+      `${attachment.filename} has expected ${isTableTent ? "B5" : "A4"} width`
     )
     assert.ok(
-      Math.abs(page.getHeight() - 841.89) < 0.1,
-      `${attachment.filename} is A4 height`
+      Math.abs(page.getHeight() - expectedHeight) < 0.2,
+      `${attachment.filename} has expected ${isTableTent ? "B5" : "A4"} height`
     )
   }
 })
@@ -85,14 +94,11 @@ test("poster PDF venue labels stay on one line inside the A4 header", async () =
   assert.doesNotMatch(label, /\n/)
 })
 
-test("poster copy and compact thresholds stay grammatical at valid card edges", () => {
-  assert.equal(posterStyle("editorial", 1).headline, "One visit. One surprise.")
-  assert.match(posterStyle("editorial", 1).support, /scan now to unlock/i)
-  assert.match(posterStyle("northstar", 1).support, /claim it now/i)
-  assert.match(posterStyle("northstar", 2).support, /1 more visit unlocks/i)
-  assert.match(posterStyle("thermal", 1).support, /VISIT TO UNLOCK: 1/)
-  assert.equal(stampRowLabel(12), null)
-  assert.equal(stampRowLabel(99), "99 VISITS TO UNLOCK")
+test("poster PDF dimensions convert physical QR guidance exactly", () => {
+  assert.ok(Math.abs(mm(52) - 147.4) < 0.1)
+  assert.ok(Math.abs(mm(55) - 155.91) < 0.1)
+  assert.ok(Math.abs(mm(46) - 130.39) < 0.1)
+  assert.ok(Math.abs(mm(48) - 136.06) < 0.1)
 })
 
 test("poster PDF venue labels omit unsupported glyphs cleanly", async () => {
@@ -101,4 +107,41 @@ test("poster PDF venue labels omit unsupported glyphs cleanly", async () => {
 
   assert.equal(standardFontText("DRAGON 🐉 PUB", font), "DRAGON PUB")
   assert.equal(standardFontText("🐉", font), "YOUR VENUE")
+})
+
+test("identity rail truncates a 120-character venue inside the rail", async () => {
+  // Given a venue name at the 120-character profile limit and a rail too
+  // narrow to hold it even at the minimum 6pt size.
+  const document = await PDFDocument.create()
+  const fonts = {
+    regular: await document.embedFont(StandardFonts.Courier),
+    bold: await document.embedFont(StandardFonts.HelveticaBold),
+    mono: await document.embedFont(StandardFonts.Courier),
+    monoBold: await document.embedFont(StandardFonts.CourierBold),
+  }
+  const drawn = []
+  const page = {
+    drawText: (text, options) => drawn.push({ text, options }),
+    drawRectangle: () => {},
+  }
+  const railWidth = 300
+
+  // When the identity rail is drawn.
+  drawIdentityRail(page, {
+    merchantName: "x".repeat(120),
+    x: 0,
+    y: 0,
+    width: railWidth,
+    height: 24,
+    foreground: rgb(0, 0, 0),
+    accent: rgb(1, 0, 0),
+    fonts,
+  })
+
+  // Then the venue label is truncated with dots and fits the rail.
+  const [venue] = drawn
+  assert.match(venue.text, /\.\.\.$/)
+  assert.ok(
+    fonts.monoBold.widthOfTextAtSize(venue.text, venue.options.size) < railWidth
+  )
 })

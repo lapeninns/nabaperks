@@ -1,173 +1,90 @@
 "use client"
 
-import { useEffect, useRef, useState, useTransition } from "react"
+import { useEffect, useReducer, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 
 import { selfStampAction } from "@/app/card/[membershipId]/actions"
 import { CustomerStampCard } from "@/components/customer/customer-flow-system"
-import { StampPressButton } from "@/components/customer/stamp-press-button"
-import { RewardCelebration, StatusBanner } from "@/components/loyalty"
-import { StampCelebration, StampSlamSequence } from "@/components/motion"
 import {
   addLocationCapture,
   resolveStampLocation,
   shouldAttemptStampLocation,
   type StampLocationCapture,
 } from "@/components/customer/self-service-forms"
+import { StampPressButton } from "@/components/customer/stamp-press-button"
+import {
+  initialStampChoreographyState,
+  readbackBonusStampsApplied,
+  reduceStampChoreography,
+  stampChoreographyView,
+  type StampChoreographyView,
+} from "@/lib/customer/experience/stamp-choreography"
 import {
   initialSelfStampState,
   type SelfStampActionState,
 } from "@/lib/customer/self-stamp-action-state"
-import { REFERRAL_BONUS_STAMP_LABEL } from "@/lib/customer/card-stamp-labels"
-import { stampAnnouncement } from "@/lib/customer/experience/stamp-announcement"
-import { stampDiscState } from "@/lib/customer/experience/stamp-disc-state"
 import { SEALED_REWARD_NOTE } from "@/lib/copy/product-copy"
+import { wetInkTransition } from "@/lib/motion/tokens"
+import { useReducedMotionHook } from "@/lib/motion/use-reduced-motion"
+import { cn } from "@/lib/utils"
+
+type StampSubmitter = (
+  state: SelfStampActionState,
+  formData: FormData
+) => Promise<SelfStampActionState>
 
 export type StampCollectorProps = {
   membershipId: string
   qrId: string
-  /** True while today's stamp is still available — false once it has landed. */
   canStamp: boolean
   venueName: string
   cardName: string
-  /** Stamps already on the card, before today's. */
   current: number
   total: number
   stampDates: string[]
-  /** Pre-formatted UK date for the stamp landing now (server computes it). */
   todayLabel: string
   rewardName: string
+  rewardUnlocked?: boolean
   location: { requireGeofence: boolean; geofenceRadiusMeters: number }
+  submitStamp?: StampSubmitter
+  refreshCard?: () => void
 }
 
-/** The instruction line under the disc for each state. */
-function stampHint(
-  committed: boolean,
-  inFlight: boolean,
-  canStamp: boolean,
-  cardComplete: boolean
-) {
-  if (committed) {
-    // A full card has no next scan window until the reward is collected and a
-    // new cycle starts, so don't promise one.
-    return cardComplete
-      ? "That's every stamp on this card."
-      : "Stamp secured. Your next scan window opens on the next UK business day."
-  }
-  if (inFlight) return "Adding your stamp, keep this screen open a moment."
-  if (canStamp)
-    return "Press and hold the stamp, or tap it, to add today's mark."
-  return "You're stamped for today. Come back tomorrow."
+function markStampPhase(phase: string) {
+  if (typeof performance === "undefined") return
+  performance.mark(`nabaperks:stamp:${phase}`)
 }
 
-/** Pure view derivation: turn the action state + props into display values. */
-function stampView(args: {
-  issued: {
-    newStampCount: number
-    geoFlagged: boolean
-    bonusStampsApplied: number
-  } | null
-  armed: boolean
-  canStamp: boolean
-  current: number
-  total: number
-  stampDates: string[]
-  todayLabel: string
-}) {
-  const { issued, armed, canStamp, current, total, stampDates, todayLabel } =
-    args
-  const committed = issued !== null
-  const showStamp = armed || committed
-  const displayCurrent = issued
-    ? issued.newStampCount
-    : showStamp
-      ? current + 1
-      : current
-  const missingDateCount = Math.max(displayCurrent - stampDates.length, 0)
-  const bonusDateCount = issued
-    ? Math.min(Math.max(issued.bonusStampsApplied, 0), missingDateCount)
-    : 0
-  const venueStampDateCount = missingDateCount - bonusDateCount
-  const dates =
-    showStamp && missingDateCount > 0
-      ? [
-          ...stampDates,
-          ...Array.from({ length: venueStampDateCount }, () => todayLabel),
-          ...Array.from(
-            { length: bonusDateCount },
-            () => REFERRAL_BONUS_STAMP_LABEL
-          ),
-        ]
-      : stampDates.slice(0, displayCurrent)
-  // In-flight = optimistic stamp shown, RPC not confirmed yet (armed is cleared
-  // on error, so this is false once a stamp is declined).
-  const inFlight = armed && !committed
-  const cardComplete = total > 0 && displayCurrent >= total
-
-  return {
-    hint: stampHint(committed, inFlight, canStamp, cardComplete),
-    displayCurrent,
-    slamIndex: showStamp ? displayCurrent - 1 : -1,
-    dates,
-    cardComplete,
-    // Deliberately NOT surfaced: a geo-flagged stamp still lands and the
-    // review happens merchant-side — the customer is never shamed for a soft
-    // location miss (CUS-P3-08). The flag stays server/merchant vocabulary.
-    secured: committed || armed || !canStamp,
-  }
-}
-
-/** The celebration shown below the grid once a stamp is confirmed. */
-function StampAftermath({
-  committed,
-  cardComplete,
-  bonusStampsApplied,
+function StampStatusBand({
+  view,
+  phase,
 }: {
-  committed: boolean
-  cardComplete: boolean
-  bonusStampsApplied: number
+  view: StampChoreographyView
+  phase: string
 }) {
-  if (!committed) return null
-  const bonusMessage = referralBonusAppliedMessage(bonusStampsApplied)
-  if (cardComplete) {
-    // Stay reward-state-agnostic here: the reward may not be redeemable until the
-    // next UK business day, so don't promise an at-the-counter claim. The
-    // "See your reward" tap-through carries the timing detail.
-    return (
-      <RewardCelebration
-        title="That's the full card."
-        message={
-          bonusMessage
-            ? `${bonusMessage} Your mystery reward is unlocked.`
-            : "Your mystery reward is unlocked."
-        }
-      />
-    )
-  }
   return (
-    <StampCelebration>
-      <StatusBanner title="Stamp added." tone="success" className="text-center">
-        {bonusMessage
-          ? `That's one. ${bonusMessage}`
-          : "That's one. Your progress is saved."}
-      </StatusBanner>
-    </StampCelebration>
+    <section
+      data-stamp-status-band
+      data-phase={phase}
+      className={cn(
+        "grid h-28 grid-rows-[1.5rem_1fr] content-start gap-1 overflow-y-auto rounded-lg border-2 px-4 py-3 text-center",
+        view.confirmed
+          ? "border-reward bg-reward/10"
+          : phase === "blocked"
+            ? "border-destructive bg-destructive/10"
+            : phase === "checking" || phase === "unknown"
+              ? "border-stamp bg-stamp/8"
+              : "border-line bg-secondary/45"
+      )}
+    >
+      <p className="font-extrabold text-balance">{view.statusTitle}</p>
+      <p className="text-sm leading-5 font-medium text-ink-soft">
+        {view.statusBody}
+      </p>
+    </section>
   )
 }
 
-function referralBonusAppliedMessage(count: number): string | null {
-  if (count <= 0) return null
-  return count === 1
-    ? "1 banked bonus stamp was added too."
-    : `${count} banked bonus stamps were added too.`
-}
-
-/**
- * The interactive, in-place stamp surface. The customer presses (or holds) the
- * stamp disc; the stamp lands on the visible grid *optimistically* — the slam
- * fires as a direct response to the gesture — while the RPC confirms in the
- * background. On success the disc seals and a celebration shows; on a declined
- * stamp the optimistic mark rolls back with calm copy. No page navigation.
- */
 export function StampCollector({
   membershipId,
   qrId,
@@ -179,90 +96,133 @@ export function StampCollector({
   stampDates,
   todayLabel,
   rewardName,
+  rewardUnlocked: authoritativeRewardUnlocked = false,
   location,
+  submitStamp = selfStampAction,
+  refreshCard,
 }: StampCollectorProps) {
-  const [result, setResult] = useState<SelfStampActionState>(
-    initialSelfStampState
+  const router = useRouter()
+  const reduceMotion = useReducedMotionHook()
+  const [state, dispatch] = useReducer(
+    reduceStampChoreography,
+    initialStampChoreographyState
   )
-  const [, startTransition] = useTransition()
-  const [armed, setArmed] = useState(false)
-  const [shake, setShake] = useState(false)
-  const nextCycleStampNumber = current + 1
-  const shouldAttemptLocation =
-    canStamp &&
-    shouldAttemptStampLocation(location.requireGeofence, nextCycleStampNumber)
+  const initialCurrentRef = useRef(current)
+  const [locationNotice] = useState(
+    () =>
+      canStamp &&
+      shouldAttemptStampLocation(location.requireGeofence, current + 1)
+  )
   const locationPromiseRef =
     useRef<Promise<StampLocationCapture | null> | null>(null)
-
-  useEffect(() => {
-    if (!shouldAttemptLocation) {
-      locationPromiseRef.current = Promise.resolve(null)
-      return
-    }
-
-    const promise = resolveStampLocation(true)
-    locationPromiseRef.current = promise
-  }, [shouldAttemptLocation, membershipId, qrId])
-
-  const issued = result.status === "issued" ? result : null
-  const errorMessage = result.status === "error" ? result.message : null
-  const committed = issued !== null
-  const view = stampView({
-    issued,
-    armed,
+  const requestInFlightRef = useRef(false)
+  const refresh = refreshCard ?? router.refresh
+  const view = stampChoreographyView(state, {
     canStamp,
     current,
     total,
     stampDates,
     todayLabel,
-  })
-  // The slam, charging ring and shake are the *sighted* confirmation; this is the
-  // spoken one. A polite live region keeps screen-reader and reduced-motion
-  // customers in step with the in-flight progress and the new count.
-  const announcement = stampAnnouncement({
-    inFlight: armed && !committed,
-    committed,
-    displayCurrent: view.displayCurrent,
-    total,
-    cardComplete: view.cardComplete,
-  })
-  // The disc colour is server-led: it only turns the success green once the RPC
-  // confirms (or for an already-stamped card). An optimistic press stays the
-  // neutral stamp colour (pending) so a decline never un-happens a green disc.
-  const discState = stampDiscState({
-    committed,
-    inFlight: armed && !committed,
-    canStamp,
-    hasError: errorMessage !== null,
+    rewardUnlocked: authoritativeRewardUnlocked,
   })
 
-  function commit() {
-    if (armed || committed || !canStamp) return
-    // Land the stamp immediately — location is optional and never blocks it.
-    setArmed(true)
-    setShake(true)
-    void (async () => {
+  useEffect(() => {
+    if (!locationNotice) {
+      locationPromiseRef.current = Promise.resolve(null)
+      return
+    }
+    locationPromiseRef.current = resolveStampLocation(true)
+  }, [locationNotice, membershipId, qrId])
+
+  useEffect(() => {
+    if (state.phase !== "unknown") return
+    if (current <= initialCurrentRef.current) {
+      requestInFlightRef.current = false
+      if (!canStamp) {
+        dispatch({ type: "readback_closed" })
+        return
+      }
+      // Readback confirmed nothing was added and today is still open — unlock
+      // a retry instead of leaving the card secured forever.
+      dispatch({
+        type: "request_blocked",
+        message:
+          "We couldn't confirm the stamp. Check your card, then try again.",
+      })
+      return
+    }
+
+    requestInFlightRef.current = false
+    dispatch({
+      type: "readback_issued",
+      result: {
+        status: "issued",
+        newStampCount: current,
+        rewardUnlocked: total > 0 && current >= total,
+        geoFlagged: false,
+        bonusStampsApplied: readbackBonusStampsApplied(
+          initialCurrentRef.current,
+          current
+        ),
+      },
+    })
+  }, [canStamp, current, state.phase, total])
+
+  useEffect(() => {
+    if (state.phase !== "printing") return
+    const delayMs = reduceMotion ? 0 : wetInkTransition.slam.duration * 1000
+    const timeoutId = window.setTimeout(() => {
+      dispatch({ type: "print_settled" })
+      markStampPhase("settled")
+    }, delayMs)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [reduceMotion, state.phase])
+
+  async function issueStamp() {
+    if (requestInFlightRef.current || view.secured || !canStamp) return
+    requestInFlightRef.current = true
+    dispatch({ type: "request_started" })
+    markStampPhase("checking")
+
+    try {
       const locationCapture =
         (await locationPromiseRef.current) ??
-        (shouldAttemptLocation ? await resolveStampLocation(true) : null)
+        (locationNotice ? await resolveStampLocation(true) : null)
       const formData = new FormData()
       formData.set("membershipId", membershipId)
       formData.set("qrId", qrId)
       addLocationCapture(formData, locationCapture)
-      startTransition(async () => {
-        const next = await selfStampAction(initialSelfStampState, formData)
-        setResult(next)
-        // Roll the optimistic stamp back if the server declined it.
-        if (next.status === "error") setArmed(false)
-      })
-    })()
+      markStampPhase("request")
+
+      const next = await submitStamp(initialSelfStampState, formData)
+      if (next.status === "error") {
+        requestInFlightRef.current = false
+        dispatch({ type: "request_blocked", message: next.message })
+        markStampPhase("blocked")
+        return
+      }
+      if (next.status !== "issued") {
+        dispatch({ type: "request_unknown" })
+        markStampPhase("unknown")
+        refresh()
+        return
+      }
+
+      dispatch({ type: "request_issued", result: next })
+      markStampPhase("issued")
+      if (next.rewardUnlocked) refresh()
+    } catch {
+      dispatch({ type: "request_unknown" })
+      markStampPhase("unknown")
+      refresh()
+    }
   }
 
+  const rewardUnlocked = view.rewardUnlocked
+
   return (
-    // The flagship stamp beat uses the flagship primitive (CUS-P3-06): the
-    // composed slam-plus-paper-shake, with the per-dot slam still driven by
-    // `slamIndex` inside the grid.
-    <StampSlamSequence active={shake} onComplete={() => setShake(false)}>
+    <div aria-busy={view.ariaBusy || undefined} data-stamp-phase={state.phase}>
       <CustomerStampCard
         venueName={venueName}
         cardName={cardName}
@@ -271,54 +231,39 @@ export function StampCollector({
         slamIndex={view.slamIndex}
         stampDates={view.dates}
         reward={{
-          state: "sealed",
+          state: rewardUnlocked ? "waiting" : "sealed",
           name: rewardName,
-          description: SEALED_REWARD_NOTE,
+          description: rewardUnlocked
+            ? "Open your reward to see what landed."
+            : SEALED_REWARD_NOTE,
+          sealSlammed: view.rewardSlammed,
         }}
+        rewardSlot={rewardUnlocked ? "revealed" : "locked"}
         hideFooter
         hideHeaderText
-        afterGrid={
-          <StampAftermath
-            committed={committed}
-            cardComplete={view.cardComplete}
-            bonusStampsApplied={issued?.bonusStampsApplied ?? 0}
-          />
-        }
+        afterGrid={<StampStatusBand view={view} phase={state.phase} />}
       >
         <div className="grid justify-items-center gap-3 pt-2">
           <StampPressButton
-            onStamp={commit}
+            onStamp={() => {
+              void issueStamp()
+            }}
             venueName={venueName}
             secured={view.secured}
-            confirmed={discState === "confirmed"}
-            pending={discState === "pending"}
+            confirmed={view.confirmed}
+            pending={view.pending}
+            label={view.buttonLabel}
           />
-          <p className="max-w-[18rem] text-center text-sm font-medium text-ink-soft">
-            {view.hint}
+          <p
+            className="sr-only"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            {view.announcement}
           </p>
-          <p className="sr-only" role="status" aria-live="polite">
-            {announcement}
-          </p>
-          {errorMessage ? (
-            <StatusBanner
-              tone="warning"
-              title="Stamp not added"
-              className="text-left"
-            >
-              <span className="grid gap-2">
-                <span>{errorMessage}</span>
-                <span>
-                  If this keeps failing, ask the venue team to check
-                  today&apos;s stamp from their console.
-                </span>
-              </span>
-            </StatusBanner>
-          ) : null}
-          {shouldAttemptStampLocation(
-            location.requireGeofence,
-            nextCycleStampNumber
-          ) && !view.secured ? (
-            <p className="rounded-xl bg-secondary px-3 py-2 text-center text-xs leading-5 text-muted-foreground">
+          {locationNotice ? (
+            <p className="rounded-lg bg-secondary px-3 py-2 text-center text-xs leading-5 text-muted-foreground">
               This venue may try a soft location check within{" "}
               {location.geofenceRadiusMeters}m. Your stamp still saves if your
               phone cannot share location.
@@ -326,6 +271,6 @@ export function StampCollector({
           ) : null}
         </div>
       </CustomerStampCard>
-    </StampSlamSequence>
+    </div>
   )
 }

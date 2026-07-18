@@ -1,0 +1,1086 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nabaperks — CR80 NFC card (Wet Ink audit)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Space+Mono:wght@700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ============================================================
+         CR80 NFC CARD — WET INK AUDIT (v3.2 — print-legible type)
+         85.5 × 54 mm · Generic Nab a Perks · NFC URL differs
+         Type floor: 6.5pt on the die
+         ============================================================ */
+
+      :root {
+        --w-paper: #f6f1e6;
+        --w-paper-2: #ece5d4;
+        --w-card: #fbf8f1;
+        --w-ink: #211c16;
+        --w-ink-soft: #4f473d;
+        --w-accent: #cf330a;
+        --w-sun: #f5a623;
+        --w-cobalt: #2b43c8;
+        --font-bricolage: "Bricolage Grotesque", system-ui, sans-serif;
+        --font-space-mono: "Space Mono", ui-monospace, monospace;
+        --card-w: 85.5mm;
+        --card-h: 54mm;
+        /* CR80 print floor — nothing on the die below 6.5pt */
+        --type-floor: 6.5pt;
+        --type-meta: 7pt;
+        --type-body: 8pt;
+        --type-title: 11.5pt;
+        --type-display: 13pt;
+        --type-seal: 12pt;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        background: #ddd6c8;
+        color: var(--w-ink);
+        font-family: var(--font-bricolage);
+      }
+
+      .audit {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 24px 20px 56px;
+      }
+
+      .audit-notes {
+        margin-bottom: 28px;
+        padding: 18px 20px;
+        background: var(--w-card);
+        border: 2px solid var(--w-ink);
+        box-shadow: 4px 4px 0 var(--w-ink);
+      }
+
+      .audit-notes h1 {
+        margin: 0 0 8px;
+        font-size: 1.35rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+
+      .audit-notes p,
+      .audit-notes li {
+        margin: 0;
+        font-size: 0.92rem;
+        line-height: 1.45;
+        color: var(--w-ink-soft);
+        font-weight: 500;
+      }
+
+      .audit-notes ul {
+        margin: 10px 0 0;
+        padding-left: 1.2rem;
+      }
+
+      .audit-notes li + li {
+        margin-top: 4px;
+      }
+
+      .audit-notes code {
+        font-family: var(--font-space-mono);
+        font-size: 0.82em;
+        font-weight: 700;
+      }
+
+      .stage {
+        display: grid;
+        gap: 28px;
+        justify-items: center;
+      }
+
+      .pair {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 28px;
+        justify-content: center;
+        align-items: flex-start;
+      }
+
+      .face-stage {
+        display: grid;
+        gap: 10px;
+        justify-items: center;
+      }
+
+      .scale-note {
+        margin: 0;
+        font-family: var(--font-space-mono);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--w-ink-soft);
+      }
+
+      .card {
+        position: relative;
+        width: var(--card-w);
+        height: var(--card-h);
+        overflow: hidden;
+        border-radius: 2.8mm;
+        border: 0.5mm solid var(--w-ink);
+        background: var(--w-paper);
+        color: var(--w-ink);
+        font-family: var(--font-bricolage);
+        box-shadow: 5px 5px 0 rgba(33, 28, 22, 0.28);
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .card-inner {
+        position: relative;
+        z-index: 1;
+        height: 100%;
+        display: grid;
+        min-height: 0;
+      }
+
+      /* ========== FRONT ========== */
+      .front .card-inner {
+        grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+      }
+
+      .front-left {
+        position: relative;
+        min-width: 0;
+        min-height: 0;
+        padding: 2.2mm 5.2mm 2mm 2.4mm;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        gap: 1mm;
+        overflow: hidden;
+        background:
+          repeating-linear-gradient(
+            -12deg,
+            transparent,
+            transparent 3.2mm,
+            color-mix(in oklch, var(--w-ink) 4%, transparent) 3.2mm,
+            color-mix(in oklch, var(--w-ink) 4%, transparent) 3.35mm
+          ),
+          var(--w-paper);
+      }
+
+      .front-left::after {
+        content: "";
+        position: absolute;
+        top: 1.6mm;
+        right: 0;
+        bottom: 1.6mm;
+        border-right: 0.35mm dashed color-mix(in oklch, var(--w-ink) 50%, transparent);
+        z-index: 2;
+        pointer-events: none;
+      }
+
+      .brand-eyebrow {
+        margin: 0;
+        font-family: var(--font-space-mono);
+        font-size: var(--type-floor);
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--w-ink-soft);
+      }
+
+      .brand-name {
+        margin: 0.4mm 0 0;
+        display: flex;
+        align-items: center;
+        gap: 0.18em;
+        font-size: var(--type-title);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1;
+      }
+
+      .brand-name i {
+        width: 4.2mm;
+        height: 4.2mm;
+        flex: none;
+        display: inline-grid;
+        place-items: center;
+        border-radius: 50%;
+        border: 0.28mm solid var(--w-ink);
+        background: var(--w-accent);
+        color: #ffffff;
+        font-style: normal;
+        font-size: 6.5pt;
+        font-weight: 800;
+        transform: rotate(-8deg);
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .brand-name em {
+        font-style: normal;
+        color: var(--w-accent);
+      }
+
+      .tap-seal-wrap {
+        position: relative;
+        display: grid;
+        place-items: center;
+        align-self: center;
+        min-height: 0;
+        padding: 0.4mm 0.8mm;
+      }
+
+      .tap-seal-ghost {
+        position: absolute;
+        width: 18mm;
+        height: 18mm;
+        border-radius: 50%;
+        border: 0.35mm solid color-mix(in oklch, var(--w-ink) 16%, transparent);
+        transform: rotate(11deg) translate(1.4mm, -0.6mm);
+        pointer-events: none;
+      }
+
+      .tap-seal {
+        position: relative;
+        z-index: 1;
+        width: 21.5mm;
+        height: 21.5mm;
+        display: grid;
+        place-items: center;
+        align-content: center;
+        gap: 0.15mm;
+        border-radius: 50%;
+        border: 0.65mm solid var(--w-ink);
+        background: var(--w-accent);
+        color: #ffffff;
+        box-shadow: 0.5mm 0.5mm 0 var(--w-ink);
+        transform: rotate(-7deg);
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .tap-seal::before {
+        content: "";
+        position: absolute;
+        inset: 1.2mm;
+        border-radius: 50%;
+        border: 0.28mm dashed color-mix(in oklch, #ffffff 55%, transparent);
+      }
+
+      .tap-seal-word {
+        position: relative;
+        z-index: 1;
+        margin: 0;
+        font-size: var(--type-seal);
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        line-height: 0.9;
+        text-transform: uppercase;
+      }
+
+      .tap-seal-sub {
+        position: relative;
+        z-index: 1;
+        margin: 0;
+        font-family: var(--font-space-mono);
+        font-size: var(--type-floor);
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        opacity: 0.95;
+      }
+
+      /* Mid perforation — clear of brand header and stamp track */
+      .yours-seal {
+        position: absolute;
+        right: -1.4mm;
+        top: 50%;
+        z-index: 3;
+        width: 12.5mm;
+        height: 12.5mm;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        border: 0.35mm solid var(--w-ink);
+        background: var(--w-sun);
+        color: var(--w-ink);
+        box-shadow: 0.4mm 0.4mm 0 var(--w-ink);
+        transform: translateY(-50%) rotate(9deg);
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .yours-seal span {
+        font-family: var(--font-space-mono);
+        font-size: var(--type-floor);
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        text-align: center;
+        line-height: 1.05;
+      }
+
+      .front-left-foot {
+        display: grid;
+        gap: 0.55mm;
+        min-width: 0;
+      }
+
+      .stamp-track {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 1mm;
+        min-width: 0;
+      }
+
+      .stamp-track::before {
+        content: none;
+      }
+
+      .stamp-dot {
+        position: relative;
+        z-index: 1;
+        width: 5.2mm;
+        height: 5.2mm;
+        flex: none;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        border: 0.28mm solid var(--w-ink);
+        font-family: var(--font-space-mono);
+        font-size: var(--type-floor);
+        font-weight: 700;
+        line-height: 1;
+        text-transform: uppercase;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .stamp-dot.is-waiting {
+        background: var(--w-accent);
+        color: #ffffff;
+        transform: rotate(-7deg);
+      }
+
+      .stamp-dot.is-empty {
+        background: var(--w-paper);
+        border-style: dashed;
+        color: var(--w-ink-soft);
+      }
+
+      .stamp-rail {
+        flex: 1 1 auto;
+        min-width: 2.5mm;
+        max-width: 6mm;
+        height: 0;
+        border-top: 0.3mm dashed color-mix(in oklch, var(--w-ink) 45%, transparent);
+      }
+
+      .stamp-n {
+        flex: none;
+        display: inline-grid;
+        place-items: center;
+        min-width: 5.2mm;
+        height: 5.2mm;
+        padding: 0 0.5mm;
+        border: 0.28mm solid var(--w-ink);
+        border-radius: 1mm;
+        background: var(--w-card);
+        font-family: var(--font-space-mono);
+        font-size: var(--type-meta);
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: var(--w-ink);
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .stamp-eq {
+        flex: none;
+        font-family: var(--font-space-mono);
+        font-size: var(--type-meta);
+        font-weight: 700;
+        line-height: 1;
+        color: var(--w-ink-soft);
+      }
+
+      .stamp-reward {
+        flex: none;
+        display: inline-grid;
+        place-items: center;
+        height: 5.2mm;
+        padding: 0 1mm;
+        border: 0.28mm solid var(--w-ink);
+        border-radius: 999px;
+        background: var(--w-sun);
+        color: var(--w-ink);
+        font-family: var(--font-space-mono);
+        font-size: var(--type-floor);
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        line-height: 1;
+        white-space: nowrap;
+        transform: rotate(-4deg);
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .front-left-meta {
+        margin: 0;
+        font-family: var(--font-space-mono);
+        font-size: var(--type-floor);
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--w-ink-soft);
+      }
+
+      .front-right {
+        min-width: 0;
+        min-height: 0;
+        padding: 2.2mm 2.1mm 2mm 5.2mm;
+        display: grid;
+        grid-template-rows: auto auto minmax(0, 1fr) auto;
+        gap: 1mm;
+        overflow: hidden;
+        background: var(--w-accent);
+        color: #ffffff;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .claim-mark {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1mm;
+        min-width: 0;
+        font-family: var(--font-space-mono);
+        font-size: var(--type-floor);
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .claim-mark span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .claim-mark b {
+        flex: none;
+        padding: 0.4mm 0.85mm;
+        background: var(--w-ink);
+        color: var(--w-sun);
+        white-space: nowrap;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .claim-stack {
+        margin: 0;
+        display: grid;
+        gap: 0.15mm;
+        font-size: var(--type-display);
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        line-height: 0.92;
+        text-transform: uppercase;
+      }
+
+      .claim-stack span {
+        display: block;
+      }
+
+      .claim-stack .unlock {
+        color: var(--w-sun);
+      }
+
+      .claim-support {
+        margin: 0;
+        align-self: end;
+        font-size: var(--type-meta);
+        font-weight: 700;
+        line-height: 1.2;
+        opacity: 0.95;
+      }
+
+      .claim-bottom {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 1.3mm;
+        align-items: end;
+        min-width: 0;
+      }
+
+      .claim-friction {
+        margin: 0;
+        min-width: 0;
+        font-family: var(--font-space-mono);
+        font-size: var(--type-floor);
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        line-height: 1.25;
+        opacity: 0.95;
+      }
+
+      .qr-fallback {
+        width: 12.5mm;
+        height: 12.5mm;
+        padding: 0.65mm;
+        background: #ffffff;
+        border: 0.28mm solid var(--w-ink);
+        box-shadow: 0.4mm 0.4mm 0 var(--w-ink);
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .qr-fallback svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .nfc-keepout {
+        position: absolute;
+        z-index: 5;
+        left: 8mm;
+        top: 50%;
+        width: 22.5mm;
+        height: 22.5mm;
+        transform: translateY(-54%);
+        border: 0.28mm dashed color-mix(in oklch, var(--w-cobalt) 55%, transparent);
+        border-radius: 50%;
+        pointer-events: none;
+      }
+
+      .nfc-keepout span {
+        position: absolute;
+        left: 0;
+        top: -3.2mm;
+        padding: 0.25mm 0.8mm;
+        border: 0.22mm solid var(--w-cobalt);
+        background: #ffffff;
+        color: var(--w-cobalt);
+        font-family: var(--font-space-mono);
+        font-size: 7px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      /* ========== BACK ========== */
+      .back .card-inner {
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        min-height: 0;
+      }
+
+      .back-strap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1.5mm;
+        min-width: 0;
+        padding: 1.6mm 2.4mm;
+        background: var(--w-ink);
+        color: var(--w-paper);
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .back-strap p {
+        margin: 0;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-family: var(--font-space-mono);
+        font-size: var(--type-meta);
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .back-strap b {
+        flex: none;
+        padding: 0.5mm 1.1mm;
+        background: var(--w-sun);
+        color: var(--w-ink);
+        font-family: var(--font-space-mono);
+        font-size: var(--type-floor);
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .back-body {
+        min-height: 0;
+        padding: 1.7mm 2.4mm 1.5mm;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        gap: 1.2mm;
+        overflow: hidden;
+      }
+
+      .back-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 1.8mm;
+        align-items: center;
+        min-width: 0;
+      }
+
+      .back-tease {
+        margin: 0;
+        min-width: 0;
+        font-size: var(--type-title);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1;
+        text-transform: uppercase;
+      }
+
+      .back-tease em {
+        font-style: normal;
+        color: var(--w-accent);
+      }
+
+      .mystery-seal {
+        width: 13.5mm;
+        height: 13.5mm;
+        flex: none;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        border: 0.4mm solid var(--w-ink);
+        background: var(--w-sun);
+        color: var(--w-ink);
+        box-shadow: 0.4mm 0.4mm 0 var(--w-ink);
+        transform: rotate(-7deg);
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .mystery-seal span {
+        font-family: var(--font-space-mono);
+        font-size: var(--type-floor);
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        text-align: center;
+        line-height: 1.05;
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1.1mm;
+        align-self: center;
+        min-height: 0;
+      }
+
+      .step {
+        min-width: 0;
+        padding: 1.2mm 1.3mm;
+        display: grid;
+        gap: 0.45mm;
+        border: 0.3mm solid var(--w-ink);
+        background: var(--w-card);
+        overflow: hidden;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .step-n {
+        display: inline-grid;
+        place-items: center;
+        width: 5mm;
+        height: 5mm;
+        border-radius: 50%;
+        border: 0.28mm solid var(--w-ink);
+        background: var(--w-accent);
+        color: #ffffff;
+        font-family: var(--font-space-mono);
+        font-size: var(--type-floor);
+        font-weight: 700;
+        line-height: 1;
+        transform: rotate(-6deg);
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .step h3 {
+        margin: 0;
+        font-size: var(--type-body);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1;
+        text-transform: uppercase;
+      }
+
+      .step p {
+        margin: 0;
+        font-size: var(--type-floor);
+        font-weight: 600;
+        line-height: 1.15;
+        color: var(--w-ink-soft);
+      }
+
+      .friction {
+        margin: 0;
+        padding: 1.2mm 1.4mm;
+        border: 0.3mm solid var(--w-ink);
+        background: var(--w-ink);
+        color: var(--w-paper);
+        font-family: var(--font-space-mono);
+        font-size: var(--type-meta);
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .back-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 2mm;
+        min-width: 0;
+        padding: 1.5mm 2.4mm;
+        border-top: 0.3mm dashed color-mix(in oklch, var(--w-ink) 45%, transparent);
+        background: var(--w-paper-2);
+        font-family: var(--font-space-mono);
+        font-size: var(--type-floor);
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--w-ink-soft);
+      }
+
+      .back-foot strong {
+        color: var(--w-ink);
+      }
+
+      @media print {
+        @page {
+          size: 85.5mm 54mm;
+          margin: 0;
+        }
+
+        body {
+          background: #ffffff;
+        }
+
+        .audit {
+          max-width: none;
+          margin: 0;
+          padding: 0;
+        }
+
+        .audit-notes,
+        .scale-note,
+        .nfc-keepout {
+          display: none !important;
+        }
+
+        .pair {
+          display: block;
+        }
+
+        .face-stage {
+          break-after: page;
+        }
+
+        .card {
+          box-shadow: none;
+          border-radius: 0;
+          margin: 0;
+        }
+
+        .card,
+        .brand-name i,
+        .tap-seal,
+        .yours-seal,
+        .stamp-dot.is-waiting,
+        .stamp-n,
+        .stamp-reward,
+        .front-right,
+        .claim-mark b,
+        .qr-fallback,
+        .back-strap,
+        .back-strap b,
+        .mystery-seal,
+        .step,
+        .step-n,
+        .friction,
+        .back-foot {
+          print-color-adjust: exact;
+          -webkit-print-color-adjust: exact;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="audit">
+      <aside class="audit-notes">
+        <h1>CR80 NFC card — Wet Ink audit</h1>
+        <p>
+          Generic <strong>Nab a Perks</strong> NFC launcher. One print for every
+          venue — only the programmed chip URL changes. v3.1 keeps the claim-
+          ticket energy while clearing clipping and overlaps. v3.2 sets a
+          <strong>6.5pt floor</strong> on the die so type stays readable at
+          true CR80 size.
+        </p>
+        <ul>
+          <li>
+            Physics: CR80 · <code>85.5 × 54 mm</code> · NFC keep-out on TAP
+            seal (screen only)
+          </li>
+          <li>
+            Front: brand · TAP seal · mid-perforation <strong>yours</strong>
+            seal · <strong>01 02 03 — N = reward</strong> · vermillion
+            <strong>Tap. Stamp. Don't ask.</strong>
+          </li>
+          <li>Back: tease + mystery seal · boxed steps · ink friction bar</li>
+        </ul>
+      </aside>
+
+      <div class="stage">
+        <p class="scale-note">
+          Preview at 100% · Print CR80 85.5×54&nbsp;mm · 0 margins · both faces
+        </p>
+
+        <div class="pair">
+          <div class="face-stage">
+            <p class="scale-note">Front · 85.5 × 54 mm</p>
+            <article class="card front" aria-label="Nab a Perks NFC card front">
+              <div class="nfc-keepout" aria-hidden="true">
+                <span>NFC keep-out</span>
+              </div>
+              <div class="card-inner">
+                <div class="front-left">
+                  <div class="yours-seal" aria-hidden="true">
+                    <span>Yours</span>
+                  </div>
+
+                  <header>
+                    <p class="brand-eyebrow">Loyalty · No app</p>
+                    <h2 class="brand-name">
+                      <i aria-hidden="true">✱</i>
+                      Nab <em>a</em> Perks
+                    </h2>
+                  </header>
+
+                  <div class="tap-seal-wrap">
+                    <span class="tap-seal-ghost" aria-hidden="true"></span>
+                    <div class="tap-seal" aria-hidden="true">
+                      <p class="tap-seal-word">Tap</p>
+                      <p class="tap-seal-sub">Phone here</p>
+                    </div>
+                  </div>
+
+                  <div class="front-left-foot">
+                    <div class="stamp-track" aria-hidden="true">
+                      <span class="stamp-dot is-waiting">01</span>
+                      <span class="stamp-dot is-empty">02</span>
+                      <span class="stamp-dot is-empty">03</span>
+                      <span class="stamp-rail"></span>
+                      <span class="stamp-n">N</span>
+                      <span class="stamp-eq">=</span>
+                      <span class="stamp-reward">Reward</span>
+                    </div>
+                    <p class="front-left-meta">1, 2, 3… N = reward</p>
+                  </div>
+                </div>
+
+                <aside class="front-right">
+                  <div class="claim-mark">
+                    <span>Loyalty</span>
+                    <b>Free</b>
+                  </div>
+
+                  <h3 class="claim-stack">
+                    <span>Tap.</span>
+                    <span>Stamp.</span>
+                    <span class="unlock">Don't ask.</span>
+                  </h3>
+
+                  <p class="claim-support">First stamp's free.</p>
+
+                  <div class="claim-bottom">
+                    <p class="claim-friction">
+                      No app · One text
+                    </p>
+                    <div
+                      class="qr-fallback"
+                      aria-label="QR fallback placeholder"
+                    >
+                      <svg
+                        viewBox="0 0 120 120"
+                        role="img"
+                        aria-label="QR placeholder"
+                      >
+                        <rect width="120" height="120" fill="#ffffff" />
+                        <rect x="8" y="8" width="34" height="34" fill="#211c16" />
+                        <rect
+                          x="14"
+                          y="14"
+                          width="22"
+                          height="22"
+                          fill="#ffffff"
+                        />
+                        <rect
+                          x="18"
+                          y="18"
+                          width="14"
+                          height="14"
+                          fill="#211c16"
+                        />
+                        <rect
+                          x="78"
+                          y="8"
+                          width="34"
+                          height="34"
+                          fill="#211c16"
+                        />
+                        <rect
+                          x="84"
+                          y="14"
+                          width="22"
+                          height="22"
+                          fill="#ffffff"
+                        />
+                        <rect
+                          x="88"
+                          y="18"
+                          width="14"
+                          height="14"
+                          fill="#211c16"
+                        />
+                        <rect
+                          x="8"
+                          y="78"
+                          width="34"
+                          height="34"
+                          fill="#211c16"
+                        />
+                        <rect
+                          x="14"
+                          y="84"
+                          width="22"
+                          height="22"
+                          fill="#ffffff"
+                        />
+                        <rect
+                          x="18"
+                          y="88"
+                          width="14"
+                          height="14"
+                          fill="#211c16"
+                        />
+                        <rect
+                          x="50"
+                          y="50"
+                          width="20"
+                          height="20"
+                          fill="#211c16"
+                        />
+                        <rect
+                          x="78"
+                          y="78"
+                          width="14"
+                          height="14"
+                          fill="#211c16"
+                        />
+                        <rect
+                          x="102"
+                          y="102"
+                          width="8"
+                          height="8"
+                          fill="#211c16"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </aside>
+              </div>
+            </article>
+          </div>
+
+          <div class="face-stage">
+            <p class="scale-note">Back · 85.5 × 54 mm</p>
+            <article class="card back" aria-label="Nab a Perks NFC card back">
+              <div class="card-inner">
+                <header class="back-strap">
+                  <p>How the tap works</p>
+                  <b>Mystery card</b>
+                </header>
+
+                <div class="back-body">
+                  <div class="back-hero">
+                    <p class="back-tease">
+                      Your first stamp<br />
+                      is <em>waiting.</em>
+                    </p>
+                    <div class="mystery-seal" aria-hidden="true">
+                      <span>N = ★</span>
+                    </div>
+                  </div>
+
+                  <div class="steps">
+                    <div class="step">
+                      <span class="step-n" aria-hidden="true">1</span>
+                      <h3>Tap</h3>
+                      <p>Phone here</p>
+                    </div>
+                    <div class="step">
+                      <span class="step-n" aria-hidden="true">2</span>
+                      <h3>Stamp</h3>
+                      <p>At the counter</p>
+                    </div>
+                    <div class="step">
+                      <span class="step-n" aria-hidden="true">3</span>
+                      <h3>Reward</h3>
+                      <p>When you hit N</p>
+                    </div>
+                  </div>
+
+                  <p class="friction">No app · No password · One text</p>
+                </div>
+
+                <footer class="back-foot">
+                  <strong>Nab a Perks</strong>
+                  <span>nabaperks.com</span>
+                </footer>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

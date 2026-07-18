@@ -6,6 +6,8 @@ import {
   PosterSheet,
   type PosterSheetProps,
 } from "@/components/merchant/qr-poster/a4-poster"
+import { isQrPosterTableTent } from "@/lib/qr/poster-templates"
+import { cn } from "@/lib/utils"
 
 export function PosterThumbnail({
   previewLabel,
@@ -14,6 +16,7 @@ export function PosterThumbnail({
   const frameRef = useRef<HTMLDivElement>(null)
   const sheetRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(0.24)
+  const isTableTent = isQrPosterTableTent(props.template)
 
   useLayoutEffect(() => {
     const frame = frameRef.current
@@ -32,19 +35,25 @@ export function PosterThumbnail({
     const observer = new ResizeObserver(fitSheet)
     observer.observe(frame)
     return () => observer.disconnect()
-  }, [])
+  }, [isTableTent])
 
   return (
     <div
       ref={frameRef}
       role="img"
       aria-label={previewLabel}
-      className="relative aspect-[210/297] w-full overflow-hidden bg-paper shadow-sm"
+      className={cn(
+        "relative w-full overflow-hidden bg-paper shadow-sm",
+        isTableTent ? "aspect-[176/250]" : "aspect-[210/297]"
+      )}
     >
       <div
         ref={sheetRef}
         aria-hidden="true"
-        className="absolute top-0 left-1/2 h-[297mm] w-[210mm] origin-top"
+        className={cn(
+          "absolute top-0 left-1/2 origin-top",
+          isTableTent ? "h-[250mm] w-[176mm]" : "h-[297mm] w-[210mm]"
+        )}
         style={{
           transform: `translateX(-50%) scale(${scale})`,
         }}

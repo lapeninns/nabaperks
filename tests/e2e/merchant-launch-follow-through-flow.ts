@@ -315,21 +315,28 @@ export function defineMerchantLaunchFollowThroughTests() {
         .poll(() => swipeTrack.evaluate((track) => track.scrollLeft))
         .toBeGreaterThan(100)
     } else if ((page.viewportSize()?.width ?? 0) < 640) {
-      await swipeTrack.evaluate((track) => {
-        const secondSlide = track.children.item(1)
-        if (!(secondSlide instanceof HTMLElement)) return
-        track.scrollTo({
-          left:
-            secondSlide.offsetLeft -
-            (track.clientWidth - secondSlide.clientWidth) / 2,
-          behavior: "instant",
-        })
-      })
+      // WebKit can drop an instant scrollTo issued while the carousel is
+      // still laying out, so re-issue it until the track reports movement.
+      await expect
+        .poll(() =>
+          swipeTrack.evaluate((track) => {
+            const secondSlide = track.children.item(1)
+            if (!(secondSlide instanceof HTMLElement)) return 0
+            track.scrollTo({
+              left:
+                secondSlide.offsetLeft -
+                (track.clientWidth - secondSlide.clientWidth) / 2,
+              behavior: "instant",
+            })
+            return track.scrollLeft
+          })
+        )
+        .toBeGreaterThan(100)
     } else {
       await page.getByRole("button", { name: "Next poster" }).click()
     }
     if (browserName !== "firefox") {
-      await expect(page.getByText("2 / 5", { exact: true })).toBeVisible()
+      await expect(page.getByText("2 / 8", { exact: true })).toBeVisible()
       await expect(
         page.locator("article[aria-current='true']").getByText("Bold", {
           exact: true,
@@ -340,7 +347,7 @@ export function defineMerchantLaunchFollowThroughTests() {
       await expect(
         page.getByRole("img", { name: "Night card poster preview" })
       ).toBeVisible()
-      await expect(page.getByText("4 / 5", { exact: true })).toBeVisible()
+      await expect(page.getByText("4 / 8", { exact: true })).toBeVisible()
     }
 
     await page.getByRole("link", { name: "Share digitally" }).click()

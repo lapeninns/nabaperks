@@ -87,7 +87,6 @@ export async function getEnrichedMerchantActivity(
 
   const fetched = (data ?? []) as RawActivityRow[]
   const hasMore = fetched.length > limit
-  const staffIds = new Set<string>()
   const rewardPoolItemIds = new Set<string>()
   const customerIds = new Set<string>()
 
@@ -96,18 +95,16 @@ export async function getEnrichedMerchantActivity(
       customerIds.add(row.customer_id)
     }
 
-    if (row.actor_type === "staff" && row.actor_id) {
-      staffIds.add(row.actor_id)
-    }
-
     const rewardPoolItemId = row.metadata?.reward_pool_item_id
     if (rewardPoolItemId) {
       rewardPoolItemIds.add(String(rewardPoolItemId))
     }
   }
 
-  const [staffById, rewardById, customerById] = await Promise.all([
-    loadStaffUsers([...staffIds]),
+  // Staff subsystem was excised (no `staff_users` table). Historical
+  // actor_type=staff rows still render; they just lack a staff display name.
+  const staffById = new Map<string, { display_name: string; role: string }>()
+  const [rewardById, customerById] = await Promise.all([
     loadRewardPoolItems([...rewardPoolItemIds]),
     loadMaskedCustomers([...customerIds]),
   ])
@@ -141,7 +138,6 @@ export async function getEnrichedMerchantActivity(
     hasMore,
   }
 }
-
 
 const ACTIVITY_SUMMARY_WINDOW_DAYS = 7
 
@@ -196,10 +192,13 @@ async function loadMerchantActivitySummary(
 
   if (!error) {
     for (const row of Array.isArray(data) ? data : []) {
-      const name =
-        typeof row?.event_name === "string" ? row.event_name : null
+      const name = typeof row?.event_name === "string" ? row.event_name : null
       if (!name) continue
-      applyActivityEventCount(summary, name, parseActivityEventCount(row.event_count))
+      applyActivityEventCount(
+        summary,
+        name,
+        parseActivityEventCount(row.event_count)
+      )
     }
     return summary
   }
@@ -286,31 +285,6 @@ async function requireCurrentMerchantId(merchantId: string) {
   }
 
   return merchant.id
-}
-
-
-async function loadStaffUsers(ids: string[]) {
-  const staffById = new Map<string, { display_name: string; role: string }>()
-  if (!ids.length) return staffById
-
-  const supabase = createSupabaseServiceRoleClient()
-  const { data, error } = await supabase
-    .from("staff_users")
-    .select("id, display_name, role")
-    .in("id", ids)
-
-  if (error) {
-    throw new Error(`Unable to load staff activity context: ${error.message}`)
-  }
-
-  for (const staff of data ?? []) {
-    staffById.set(staff.id, {
-      display_name: staff.display_name,
-      role: staff.role,
-    })
-  }
-
-  return staffById
 }
 
 async function loadRewardPoolItems(ids: string[]) {

@@ -237,14 +237,40 @@ One slam easing (overshoot, `cubic-bezier(0.16, 1.2, 0.3, 1)`) for stamps; one
 standard easing (`--w-ease`) for everything else. Press feedback lands
 **instantly on the way down** and releases over 90ms (slow where the user
 decides, instant where the system responds); sheets/moves 320ms; stamp slam
-380ms plus a 300ms paper shake (`--w-dur-shake`).
+380ms. Paper shake remains a catalogue/marketing accent, not part of the live
+customer transaction: an actionable control and its ancestors never move from
+pointer-down through pointer-up or while the stamp request resolves.
+
+**The customer stamp choreography is server-led.** It has five named phases:
+
+1. **Contact (0–90ms):** only the non-hit-test rubber-stamp face compresses.
+   The button node, focus, pointer capture, and bounding rectangle stay fixed.
+2. **Checking (request duration):** the card keeps its authoritative count,
+   dates, earned attributes, and reward state. A bounded neutral process cue
+   and “Checking today’s stamp…” acknowledge the request; no looping motion,
+   success colour, checkmark, earned mark, or reward reveal appears.
+3. **Print (≤380ms after `issued`):** the returned count lands into its exact
+   slot(s) with one local `WetInkSlam`. The earned vermillion mark, date, and
+   resting tilt appear only now. One attempt produces one slam.
+4. **Readback (concurrent):** a permanently reserved status band states the
+   exact result — “Stamp 4 of 8 added · 4 to go” — and the next UK
+   business-day cue. It replaces its own copy in place, never inserts a panel
+   that moves the card or nearby controls.
+5. **Threshold (full card only):** the reward ticket changes from sealed to
+   unlocked in place with one restrained seal beat. The final-stamp slam stays
+   the cause; the reward state is the consequence. The sequence never blocks
+   the server-derived “See your reward” action.
+
+Unknown transport outcomes never claim failure: the surface says it could not
+confirm the result, performs authoritative readback, and prevents a duplicate
+attempt until the card state is known.
 
 **Motion is split by job.** Choreography lives in Framer Motion/Wet Ink:
 entrances, stamps, reward reveals, celebrations, marquees, and sheets. CSS is
 allowed only for micro-states and pre-hydration loading: `animate-spin` in
 `Spinner` and the sonner loading icon; the guarded loading pulse family
 (`Skeleton`, `customer-qr-scanner-loader`, the reward-collection QR shimmer,
-and the stamp-press pending disc); `.pressable` press tilt; sidebar width
+and static stamp-request busy treatment); `.pressable` press tilt; sidebar width
 transition; Radix data-state sheet overlay/content **keyframes**
 (tw-animate-css `animate-in`/`animate-out` — Radix Presence only awaits
 `animationend` on close, so sheet/dialog exits must be keyframe animations,
@@ -261,7 +287,7 @@ which reads its timing from [`lib/motion/tokens.ts`](lib/motion/tokens.ts)
 drift-guarded by `tests/unit/motion-tokens.test.mjs`):
 `WetInkRise`, `WetInkSlam`, `WetInkSoftStamp`, `WetInkShake`, `WetInkPop`,
 `WetInkWiggle`, `WetInkBreathe`, `WetInkRipple`, `WetInkMarquee` (pauses on
-hover/press — WCAG 2.2.2's stop mechanism), `WetInkSheet`,
+an explicit operable control where it runs beyond five seconds), `WetInkSheet`,
 plus the composed `StampSlamSequence` (slam + paper shake). This list is the
 complete export surface of the primitive library — an exported primitive that
 is not documented here (or a documented one that no longer ships) is drift.
@@ -272,6 +298,16 @@ opacity blanking. **Production code never uses raw `animation: w-*` or
 primitive instead. The resting stamp tilt is seeded per slot via `--stamp-rot`.
 Every primitive renders static children under `prefers-reduced-motion` (no
 opacity blanking), and a global reduce rule neutralises any residual animation.
+The primitive host element is invariant across hydration, active/inactive, and
+reduced-motion states: animation props may change, the React/DOM node type may
+not. Triggered completion callbacks also settle in reduced motion so business
+state never depends on a spatial animation finishing.
+
+Critical stamp/reward transforms use a full `transform` value rather than
+Motion’s individual `x`/`y`/`scale` properties; this keeps the compositor path
+available in current Motion. Transaction surfaces contain no infinite
+decorative loop. `WetInkWiggle` and `WetInkBreathe` are bounded one-shot
+invites; a state remains fully legible after they stop.
 
 ## Iconography
 
@@ -399,8 +435,18 @@ example is the **Console data** section of the
 Earned stamps are solid vermillion circles with white marks; empty slots are
 dashed ink-line circles. Stamp-family marks rotate -6°. The stamp slam uses
 `WetInkSlam` (overshoot easing, scale/opacity only — the disc keeps its
-`--stamp-rot` resting tilt), wrapped by `StampSlamSequence` so the receipt
-shudders via `WetInkShake`.
+`--stamp-rot` resting tilt). The live customer route slams only the newly
+server-issued slot; it never wraps the receipt in `StampSlamSequence`.
+`StampSlamSequence` remains available for non-interactive catalogue and
+marketing compositions where no active control can be displaced.
+
+Pending is not an earned stamp. While a request is in flight, the grid keeps
+the server-known count and exposes no new `data-stamp-earned`, date, initials,
+solid vermillion fill, checkmark, reward state, or “earned/added/saved” copy.
+If a pending slot marker is used, it is a separate dashed paper/ink-soft
+overlay labelled “Stamp request pending”, never the underlying earned dot.
+The issuing response may add multiple stamps through a referral bonus, so the
+rendered result always comes from `newStampCount`, never an optimistic `+1`.
 
 **Width pressure.** `StampGrid`'s row layout wraps via auto-fit tracks with a
 hard minimum (44px, 36px compact): discs keep their circle and wrap to a new
