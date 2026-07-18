@@ -12,6 +12,10 @@ import {
   QR_POSTER_PRODUCTION_TEMPLATES,
   type QrPosterTemplateId,
 } from "@/lib/qr/poster-templates"
+import {
+  TENT_PRODUCTION_DESIGNS,
+  type TableTentDesignId,
+} from "@/lib/qr/tent-templates"
 import { cn } from "@/lib/utils"
 
 export type DistributionChannel = "print" | "digital"
@@ -133,6 +137,63 @@ export function PosterProof({
         </Link>
       </Button>
     </aside>
+  )
+}
+
+export function buildTentHrefs(
+  resolveHref: (id: TableTentDesignId) => string
+): Readonly<Record<TableTentDesignId, string>> {
+  return Object.fromEntries(
+    TENT_PRODUCTION_DESIGNS.map((item) => [item.id, resolveHref(item.id)])
+  ) as Readonly<Record<TableTentDesignId, string>>
+}
+
+/**
+ * The table-tent lane beneath the poster picker: each production tent links to
+ * its print-ready page. Tents fold from one A4 sheet, so they get a compact
+ * list rather than a full poster-style preview.
+ */
+export function TableTentLinks({
+  tentHrefs,
+}: {
+  readonly tentHrefs: Readonly<Record<TableTentDesignId, string>>
+}) {
+  return (
+    <section
+      id="qr-tent-picker"
+      className="grid scroll-mt-4 gap-3 border-t-2 border-ink pt-5 lg:col-span-2"
+    >
+      <div className="grid gap-1">
+        <h3 className="text-lg font-extrabold">Add table tents</h3>
+        <p className="text-sm leading-6 text-muted-foreground">
+          Fold-to-peak tents for tables and bar tops. One A4 sheet folds so both
+          faces stand upright — same venue QR on each.
+        </p>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {TENT_PRODUCTION_DESIGNS.map((tent) => (
+          <Link
+            key={tent.id}
+            href={tentHrefs[tent.id]}
+            target="_blank"
+            rel="noreferrer"
+            className="focus-ring grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-lg border-2 border-ink/25 bg-card px-3 py-2.5 transition-[transform,box-shadow,border-color] hover:-translate-y-px hover:border-ink hover:shadow-sm motion-reduce:transition-none"
+          >
+            <span className="grid min-w-0 gap-0.5">
+              <span className="font-extrabold">{tent.name}</span>
+              <span className="text-xs leading-5 text-muted-foreground">
+                {tent.useCase}
+              </span>
+            </span>
+            <Icon
+              icon={ArrowUpRight01Icon}
+              size={16}
+              className="text-muted-foreground"
+            />
+          </Link>
+        ))}
+      </div>
+    </section>
   )
 }
 

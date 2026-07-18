@@ -1,0 +1,235 @@
+{
+  "schema": "nabaperks.table-tent-designs.v1",
+  "purpose": "Single source of truth for the Nabaperks A4 fold-to-peak table-tent registry, copy, and geometry. A tent is one A4 sheet split into two equal faces; the top face prints rotated 180 degrees so a single mid-sheet fold stands both faces upright, one toward each side of the table. Copy is honest by contract: no fabricated stats, no invented testimonials, no free-stamp claims.",
+  "product": {
+    "brand": "Nab a Perks",
+    "operator": "Lapen Inns",
+    "market": "UK hospitality",
+    "visualSystem": "Wet Ink",
+    "kitSummary": "Five print-ready A4 fold-to-peak table tents."
+  },
+  "collection": {
+    "id": "table-tent",
+    "name": "A4 table tents",
+    "description": "Fold-to-peak table tents for tables, counters and bar tops.",
+    "format": "a4-tent",
+    "sheet": "a4",
+    "revision": 1
+  },
+  "shared": {
+    "reassurance": "18+ to redeem · One visit stamp here per UK date · Rewards redeem from the next weekday · Terms apply",
+    "kicker": "Table rewards",
+    "foldLabel": "Fold to peak",
+    "numberWords": ["zero", "one", "two", "three", "four", "five", "six"],
+    "footer": {
+      "left": "One stamp per UK date — today's expires at closing",
+      "right": "No app · Opens in your browser"
+    },
+    "friction": "10 seconds · No app · No password",
+    "tokens": {
+      "paper": "#f6f1e6",
+      "paperDeep": "#ece5d4",
+      "card": "#fbf8f1",
+      "ink": "#211c16",
+      "inkSoft": "#4f473d",
+      "accent": "#cf330a",
+      "sun": "#f5a623",
+      "leaf": "#16733c",
+      "cobalt": "#2b43c8",
+      "white": "#ffffff",
+      "qr": "#111111",
+      "qrBg": "#ffffff",
+      "fonts": {
+        "display": {
+          "family": "Bricolage Grotesque",
+          "regularFile": "BricolageGrotesque-Regular.ttf",
+          "boldFile": "BricolageGrotesque-Bold.ttf"
+        },
+        "mono": {
+          "family": "Space Mono",
+          "regularFile": "SpaceMono-Regular.ttf",
+          "boldFile": "SpaceMono-Bold.ttf"
+        }
+      }
+    },
+    "placeholders": {
+      "stamps": "Validated venue stampsRequired as a base-10 integer string.",
+      "StampsWord": "The same 1-6 stampsRequired value via shared.numberWords, first letter capitalised."
+    },
+    "placeholderPolicy": "Resolve every customer-copy string before render; reject unknown or unresolved brace tokens.",
+    "rolloutPolicy": "Every registered tent renders on direct request and in the dev preview. Merchant surfaces expose production tents only.",
+    "geometry": {
+      "a4": {
+        "sheetWidthMm": 210,
+        "sheetHeightMm": 297,
+        "faceWidthMm": 210,
+        "faceHeightMm": 148.5,
+        "foldAtMm": 148.5,
+        "faceInsetMm": 5
+      }
+    },
+    "qr": {
+      "unit": "mm",
+      "measurement": "complete light box including quiet zone",
+      "quietZoneModules": 4,
+      "errorCorrectionLevel": "H",
+      "outerMm": 40,
+      "productionRule": "Both faces encode the same venue share URL; record actual QR version and ECC; preserve square modules; test the fold and both QRs on representative phones."
+    },
+    "typeTiersCqw": {
+      "hook": 7.4,
+      "hookMax": 8,
+      "body": 1.7,
+      "meta": 1.1
+    }
+  },
+  "designs": [
+    {
+      "id": "regulars",
+      "name": "Regulars",
+      "description": "Loss-aversion front, join-the-regulars back — the recommended all-rounder.",
+      "rollout": "production",
+      "useCase": "Busy tables and bar tops",
+      "tone": "endowed-progress-loss-aversion",
+      "faceA": {
+        "variant": "loss",
+        "tone": "paper",
+        "headline": ["This table", "starts your", "card."],
+        "accent": "card.",
+        "body": "Stamp one lands the second you scan. One per UK date — leave without scanning and today's is gone.",
+        "showStamps": true,
+        "cta": "Claim before you leave"
+      },
+      "faceB": {
+        "variant": "social",
+        "tone": "paper",
+        "headline": ["Regulars keep", "a card", "here."],
+        "accent": "here.",
+        "body": "Your card opens from this code and remembers every visit. Fill it and the sealed reward opens.",
+        "showStamps": true,
+        "cta": "Scan · Become a regular"
+      }
+    },
+    {
+      "id": "welcome",
+      "name": "Welcome",
+      "description": "Join-the-regulars front, loss-aversion back — the Regulars faces in the reverse order.",
+      "rollout": "production",
+      "useCase": "Front-of-house and welcome tables",
+      "tone": "belonging-first",
+      "faceA": {
+        "variant": "social",
+        "tone": "paper",
+        "headline": ["Regulars keep", "a card", "here."],
+        "accent": "here.",
+        "body": "Your card opens from this code and remembers every visit. Fill it and the sealed reward opens.",
+        "showStamps": true,
+        "cta": "Scan · Become a regular"
+      },
+      "faceB": {
+        "variant": "loss",
+        "tone": "paper",
+        "headline": ["This table", "starts your", "card."],
+        "accent": "card.",
+        "body": "Stamp one lands the second you scan. One per UK date — leave without scanning and today's is gone.",
+        "showStamps": true,
+        "cta": "Claim before you leave"
+      }
+    },
+    {
+      "id": "sealed",
+      "name": "Sealed envelope",
+      "description": "Curiosity front, break-the-seal plan back — leans on the mystery reward.",
+      "rollout": "production",
+      "useCase": "Curiosity-led tables",
+      "tone": "sealed-mystery",
+      "faceA": {
+        "variant": "sealed",
+        "tone": "sealed",
+        "badge": "Sealed",
+        "headline": [
+          "We know",
+          "what it is.",
+          "Staff know.",
+          "You don't.",
+          "Yet."
+        ],
+        "accent": "Yet.",
+        "body": "Fill your card and the amber seal opens. Stamp one starts the moment you scan — staff won't spoil what's under it.",
+        "showStamps": false,
+        "cta": "Scan · Break the seal"
+      },
+      "faceB": {
+        "variant": "plan",
+        "tone": "paper",
+        "headline": ["How to", "break the", "seal."],
+        "accent": "seal.",
+        "body": "Stamp one starts the count the moment you scan. One more each visit — {StampsWord} stamps and the amber seal opens.",
+        "showStamps": true,
+        "cta": "Scan · Start the count"
+      }
+    },
+    {
+      "id": "today",
+      "name": "Today only",
+      "description": "Honest daily urgency front, curiosity back.",
+      "rollout": "production",
+      "useCase": "Evening and late tables",
+      "tone": "honest-daily-urgency",
+      "faceA": {
+        "variant": "urgency",
+        "tone": "ink",
+        "badge": "Valid today",
+        "headline": ["Today's", "stamp expires", "at closing."],
+        "accent": "at closing.",
+        "body": "One stamp per UK date, and today's is waiting in that code. Come back tomorrow and this one's gone.",
+        "showStamps": false,
+        "cta": "Scan in 10 seconds"
+      },
+      "faceB": {
+        "variant": "sealed",
+        "tone": "sealed",
+        "badge": "Sealed",
+        "headline": ["Still wondering", "what's under", "the seal?"],
+        "accent": "the seal?",
+        "body": "Fill your card and the amber seal opens. Today's stamp is already waiting in the code — staff won't spoil the rest.",
+        "showStamps": false,
+        "cta": "Scan · Break the seal"
+      }
+    },
+    {
+      "id": "classic",
+      "name": "Classic",
+      "description": "Plain-spoken scan-stamp front, stamp-one-starts-here back.",
+      "rollout": "production",
+      "useCase": "Any table that wants the simplest read",
+      "tone": "plain-spoken",
+      "faceA": {
+        "variant": "scan",
+        "tone": "paper",
+        "headline": ["Scan.", "Stamp.", "Don't ask."],
+        "accent": "Don't ask.",
+        "body": "We can't tell you what the reward is — that's the point. Stamp one starts the moment you scan.",
+        "showStamps": true,
+        "cta": "Point your camera"
+      },
+      "faceB": {
+        "variant": "claim",
+        "tone": "paper",
+        "headline": ["Stamp one", "starts", "here."],
+        "accent": "here.",
+        "body": "The rest of the card unlocks the mystery. Staff won't spoil it. We won't either.",
+        "showStamps": true,
+        "cta": "Scan to start your card"
+      }
+    }
+  ],
+  "runtime": {
+    "registryModule": "lib/qr/tent-templates.ts",
+    "reader": "lib/qr/tent-design-reader.ts",
+    "hostSheet": "components/merchant/qr-poster/table-tent/a4-tent.tsx",
+    "devPreview": "/dev/tent-preview?design={id}",
+    "merchantPrint": "/app/qr/tent/{id}",
+    "pdf": "lib/notifications/tent-pdf.ts"
+  }
+}
