@@ -3,6 +3,7 @@
 Repo-specific gotchas for future syncs. Append as you learn more.
 
 ## What this repo is
+
 - **Next.js 16 product app** (`nabaperks`, `private: true`) — NOT a packaged DS.
   No `dist/`, no `main`/`module`/`exports` package entry. Synth-bundle via a
   hand-written scoped entry barrel (`.design-sync/ds-entry.ts`) + `--entry`.
@@ -10,9 +11,17 @@ Repo-specific gotchas for future syncs. Append as you learn more.
   inks, hard offset shadows, riso/rubber-stamp tactility. Tailwind v4 +
   shadcn (`style: radix-rhea`), CSS-variable tokens in `app/globals.css`.
 
-## Scope (agreed with user, 2026-06-27)
-- Synced surface = **core primitives only**: `components/ui` (20) + `brand` (10)
-  + `loyalty` (11) + `data` (3) + `forms` (3) = **47 primary components**.
+## Scope (agreed with user, 2026-06-27; rule = the five dirs, not a frozen list)
+
+- Synced surface = **core primitives only**: everything reusable in
+  `components/ui` + `brand` + `loyalty` + `data` + `forms`.
+- 2026-07-18 re-sync: repo deleted `ui/input-group` `ui/input-otp` `ui/tabs`
+  `forms/otp-input` (→ InputGroup, InputOTP, Tabs, OtpInput REMOVED from sync)
+  and added 11 primitives (CategoryBadge, FilterPills, IconRoundel, KpiTile,
+  MemberMark, ShowMoreList, Sparkline, StatStrip, TrendChart, SelectField,
+  SubmitButton) → **54 primary components**. ds-entry.ts is hand-maintained:
+  new/deleted DS files must be reflected there (ui/ = explicit lines; the
+  domain dirs ride on barrel `export *`) AND in componentSrcMap/dtsPropsFor.
 - Deliberately EXCLUDED: `customer/` `merchant/` `admin/` `auth/` `layout/`
   (shells/navs) `marketing/` `motion/` `seo/` `pwa/`. These are app/feature
   code — 57 files are `'use client'`, 14 use `next/navigation`, plus QR scanner
@@ -22,6 +31,7 @@ Repo-specific gotchas for future syncs. Append as you learn more.
   design agent can compose them from `window.WetInk.*`.
 
 ## Build invariants (do not regress)
+
 - `cfg.srcDir = "components"` is REQUIRED. Default probe order is
   `src | lib | components`; this repo's `lib/` is app utilities (Supabase
   clients etc.) and would be picked first → wrong source root.
@@ -34,6 +44,7 @@ Repo-specific gotchas for future syncs. Append as you learn more.
   Node 24 (`.nvmrc`), pnpm 10.28.0.
 
 ## CSS — Tailwind v4 (the load-bearing risk)
+
 - `cfg.cssEntry = ".ds-sync/wetink.css"` is a **generated** file (NOT committed,
   NOT a repo source). Regenerate before every build by compiling Tailwind v4
   against the repo (auto content-detection) so it carries the used utilities +
@@ -44,6 +55,7 @@ Repo-specific gotchas for future syncs. Append as you learn more.
   CSS). `@tailwindcss/cli` is not installed; `@tailwindcss/postcss@4.3.0` is.
 
 ## Fonts (expect [FONT_MISSING] on first validate)
+
 - Families: **Bricolage Grotesque** (sans/heading) + **Space Mono** (mono),
   both Google Fonts. The app loads them via `next/font` → CSS vars
   `--font-bricolage-grotesque` / `--font-space-mono`, so there is NO shipped
@@ -51,12 +63,14 @@ Repo-specific gotchas for future syncs. Append as you learn more.
   `cfg.extraFonts` (woff2 + @font-face + var defs) when [FONT_MISSING] fires.
 
 ## Next-coupled imports in scope (handle in self-heal if they break)
+
 - `components/brand/logo.tsx` imports `next/link` — may error at preview render
   outside a Next app. Shim to a plain `<a>` (custom tsconfig path) if needed.
 - `components/ui/sonner.tsx` imports `next-themes` `useTheme` — safe without a
   provider (returns defaults), should not need `cfg.provider`.
 
 ## RESOLVED build issues (keep these fixes)
+
 - **next/link poisons the whole IIFE.** `components/brand/logo.tsx` imports
   `next/link`, which drags Next's client runtime (`process.env.__NEXT_*`) into
   the bundle → `ReferenceError: process is not defined` at eval time → the
@@ -70,17 +84,27 @@ Repo-specific gotchas for future syncs. Append as you learn more.
 - **Fonts: file-based only, never data-URI.** The converter's parseFontFaces
   regex requires url() to END in `.woff2`, so data-URI @font-face are silently
   dropped → [FONT_MISSING]. Fix: `.design-sync/gen-fonts.mjs` stages real woff2
-  + `wetink-fonts.css` (file url, → cfg.extraFonts) + `wetink-font-vars.css`
-  (:root vars, appended to cssEntry by gen-css). 3 faces ship to fonts/.
+  - `wetink-fonts.css` (file url, → cfg.extraFonts) + `wetink-font-vars.css`
+    (:root vars, appended to cssEntry by gen-css). 3 faces ship to fonts/.
 
 ## Build/regen sequence (RUN IN ORDER each session)
+
 1. `node .design-sync/gen-css.mjs` — Tailwind compile + append font vars → `.ds-sync/wetink.css` (cssEntry).
 2. `node .ds-sync/package-build.mjs --config .design-sync/config.json --node-modules ./node_modules --out ./ds-bundle`
 3. `DS_CHROMIUM_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" node .ds-sync/package-validate.mjs ./ds-bundle`
    (system Chrome avoids the 200MB playwright chromium download; `playwright` JS pkg installed in .ds-sync with PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1).
+
 - gen-fonts.mjs only re-run if fonts change (needs `.next/static/media` from a next build).
 
-## Preview authoring outcomes (47/47 authored + graded good, render check clean)
+## Preview authoring outcomes (54/54 authored + graded good, render check clean)
+
+- 2026-07-18: 11 new previews authored (solo, no fan-out needed); all graded
+  good. conventions.md TRIMMED to the authored header only — it had a stale
+  copy of the generated README embedded (duplicated + contradicted the fresh
+  body; listed removed components). Never re-embed generated sections there.
+- **gen-css.mjs compiles via a wrapper input with `@source "../.design-sync/previews"`**
+  (Tailwind v4 auto-detection skips dot-dirs, so preview-only utility classes
+  silently no-oped before — e.g. max-w-40). Don't regress to `-i app/globals.css`.
 - `dtsPropsFor` is set for ALL 47 (synth mode emits stub `.d.ts` otherwise — see
   Re-sync risks). Bodies live in config.json; they were transcribed from source
   by the fan-out subagents (their learnings folded here, files deleted).
@@ -89,6 +113,7 @@ Repo-specific gotchas for future syncs. Append as you learn more.
   full-height). Without these they trip [GRID_OVERFLOW].
 
 ## Known render edge-cases (triaged — not regressions)
+
 - **Toaster**: imperative — `toast()` lives in the `sonner` pkg, NOT the bundle
   (only the `Toaster` region exports). Its preview is an honest styled explainer
   of the toast region; graded good as the best static representation.
@@ -104,7 +129,10 @@ Repo-specific gotchas for future syncs. Append as you learn more.
   to render. (2026-06-30: renamed NavOnly → WithContent and added SidebarInset so
   neither cell is blank.)
 - **Tabs** needs `defaultValue`, **Sheet** needs `defaultOpen`, to show state statically.
-- **Badge has NO `reward` variant** (only default/secondary/destructive/outline/ghost/link).
+- **Badge GAINED a `reward` variant** (2026-07: default/secondary/reward/
+  destructive/outline/ghost/link). Sidebar gained `collapsible="icon"`;
+  MonoTag/StatStrip gained `cobalt`; StampGrid gained layout/flow/wrapColumns/
+  showCount/countPlacement; RewardCelebration LOST `className`.
 - **Hugeicons**: use `GiftIcon` (NOT `Gift01Icon`). Confirmed glyphs used:
   Coffee01Icon, Store01Icon, Stamp01Icon, QrCode01Icon, InboxIcon, GiftIcon.
   Brand `<Icon>` + `icon` props take the BARE glyph reference (`icon={Coffee01Icon}`), not JSX.
@@ -112,11 +140,13 @@ Repo-specific gotchas for future syncs. Append as you learn more.
   size (set `h-*`/`w-*`/`size-*` via className).
 
 ## Preview import contract
+
 - Authored previews import from the package name: `import { X } from "nabaperks"`
   (story-imports shim → window.WetInk; ALL exports incl. sub-parts available).
 - Icons import directly: `import { Coffee01Icon } from "@hugeicons/core-free-icons"`.
 
 ## Re-sync risks
+
 - **cssEntry is generated** — a re-sync that skips the Tailwind compile uploads
   unstyled CSS. Always regenerate `.ds-sync/wetink.css` first.
 - **Synth-entry, no .d.ts** — prop contracts come from ts-morph reading source
@@ -124,9 +154,20 @@ Repo-specific gotchas for future syncs. Append as you learn more.
 - **Grouping**: `ui/` primitives land in group "general" (the `ui` dir name is
   in the converter's GENERIC_DIR list); brand/loyalty/data/forms get real
   groups. Cosmetic for the DS pane; refine via doc `category` stubs if desired.
-- Auth: this environment cannot run `/design-login`; the build is local-only and
-  the upload is deferred until design access is authorized from a terminal.
-- **`[TOKENS_MISSING]` for `--sidebar-width`, `--poster-frame-max`, `--tw`,
-  `--sidebar-width-icon`**: these vars are set at runtime (inline styles / JS),
-  not in the static CSS bundle. Non-blocking; confirmed previews render correctly.
-  Do not chase on re-sync.
+- ~~Auth blocked~~ RESOLVED: the claude.ai/code DesignSync tool uploads fine
+  (first full upload landed ~2026-06-30; chunk manifests in `.cache/`). The
+  project also holds USER CONTENT the sync must never delete (`admin-console/`,
+  `screenshots/` — designs built in claude.ai/design). Anchored re-sync deletes
+  come verbatim from `.sync-diff.json upload.deletePaths` only.
+- **Inline-SVG colors in previews: use `var(--w-*)` raw vars** (e.g.
+  `--w-cobalt`), NOT `var(--cobalt)`/`var(--color-cobalt)` — Tailwind v4
+  inlines theme lookups (`.text-cobalt { color: var(--w-cobalt) }`) and the
+  `--color-*` names aren't emitted; an undefined var = invisible stroke.
+  Bare `--primary`/`--reward`/`--destructive` DO exist (shadcn-style vars).
+- **`[TOKENS_MISSING]` known list (2026-07-18): `--sidebar-width`, `--tw`,
+  `--sidebar-width-icon`, `--ink`**: the sidebar/tw vars are set at runtime
+  (inline styles / JS), not in the static CSS bundle. `--ink` is a stale class
+  string in `reports/ux/wet-ink-design-audit-2026-07-10.md` that Tailwind's
+  auto content scan sweeps into one hover-only rule (safe `--primary` fallback;
+  no synced component uses it). Non-blocking; do not chase on re-sync.
+  (`--poster-frame-max` dropped off the list when poster code moved.)

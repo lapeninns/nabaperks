@@ -7,22 +7,42 @@
 //      Bricolage Grotesque / Space Mono instead of a fallback.
 // Output is gitignored scratch; the durable inputs are app/globals.css and
 // .design-sync/fonts/wetink-fonts.css.
-import { execFileSync } from 'node:child_process'
-import { readFileSync, appendFileSync, existsSync, statSync } from 'node:fs'
+import { execFileSync } from "node:child_process"
+import {
+  readFileSync,
+  writeFileSync,
+  appendFileSync,
+  existsSync,
+  statSync,
+} from "node:fs"
 
-const CLI = '.ds-sync/node_modules/@tailwindcss/cli/dist/index.mjs'
-const OUT = '.ds-sync/wetink.css'
-const FONTS = '.design-sync/fonts/wetink-font-vars.css'
+const CLI = ".ds-sync/node_modules/@tailwindcss/cli/dist/index.mjs"
+const INPUT = ".ds-sync/wetink-input.css"
+const OUT = ".ds-sync/wetink.css"
+const FONTS = ".design-sync/fonts/wetink-font-vars.css"
 
 if (!existsSync(CLI)) {
-  console.error(`✗ ${CLI} missing — run \`(cd .ds-sync && npm i @tailwindcss/cli@4.3.0)\` first.`)
+  console.error(
+    `✗ ${CLI} missing — run \`(cd .ds-sync && npm i @tailwindcss/cli@4.3.0)\` first.`
+  )
   process.exit(1)
 }
-execFileSync(process.execPath, [CLI, '-i', 'app/globals.css', '-o', OUT], { stdio: 'inherit' })
+// Wrapper input: Tailwind v4 auto content-detection skips dot-directories, so
+// utilities used ONLY in .design-sync/previews/*.tsx would silently no-op.
+// @source adds the previews dir to the scan (paths resolve relative to this file).
+writeFileSync(
+  INPUT,
+  '@import "../app/globals.css";\n@source "../.design-sync/previews";\n'
+)
+execFileSync(process.execPath, [CLI, "-i", INPUT, "-o", OUT], {
+  stdio: "inherit",
+})
 if (existsSync(FONTS)) {
-  appendFileSync(OUT, '\n' + readFileSync(FONTS, 'utf8'))
+  appendFileSync(OUT, "\n" + readFileSync(FONTS, "utf8"))
   console.error(`✓ appended ${FONTS}`)
 } else {
-  console.error(`! ${FONTS} not found — bundle will render in fallback fonts. Run gen-fonts.mjs.`)
+  console.error(
+    `! ${FONTS} not found — bundle will render in fallback fonts. Run gen-fonts.mjs.`
+  )
 }
 console.error(`✓ ${OUT} (${(statSync(OUT).size / 1024).toFixed(0)} KB)`)

@@ -1,30 +1,17 @@
 "use client"
 
-import { type ReactNode, useEffect, useRef } from "react"
+import { useEffect, useRef } from "react"
 
 import type { QrPosterTemplateId } from "@/lib/qr/poster-templates"
-import {
-  getQrPosterTemplate,
-  isQrPosterTableTent,
-} from "@/lib/qr/poster-templates"
+import { getQrPosterTemplate } from "@/lib/qr/poster-templates"
 
 import styles from "./a4-poster.module.css"
-import { NorthStarPoster } from "./northstar/northstar-poster"
-import {
-  a4PosterStyle,
-  type CopyPosterTemplateId,
-  getPosterCopy,
-} from "./poster-copy"
 import {
   PosterActionBar,
   PosterDesktopSidecar,
   PosterPreviewChrome,
 } from "./poster-preview-chrome"
-import { BoldPoster, EditorialPoster, TicketPoster } from "./poster-variants"
-import { TableTentNightPoster } from "./table-tent/table-tent-night-poster"
-import { TableTentPoster } from "./table-tent/table-tent-poster"
-import { TableTentStudioPoster } from "./table-tent/table-tent-studio-poster"
-import { ThermalPoster } from "./thermal/thermal-poster"
+import { PosterDesignSheet } from "./poster-renderer-registry"
 
 type A4PosterProps = {
   readonly template: QrPosterTemplateId
@@ -35,15 +22,6 @@ type A4PosterProps = {
   readonly qrCodeId?: string
   readonly backHref?: string
   readonly showSidebarTrigger?: boolean
-}
-
-const TEMPLATE_CLASS_NAMES: Record<CopyPosterTemplateId, string> = {
-  editorial: styles.editorial,
-  // `dark` (the global token scope) is bound to the bold sheet only — never the
-  // page or toolbar — so the night-receipt accent/ink/shadow flip correctly and
-  // stay themeable.
-  bold: `${styles.bold} dark`,
-  ticket: styles.ticket,
 }
 
 export function A4Poster({
@@ -112,8 +90,8 @@ export function A4Poster({
   return (
     <main
       ref={pageRef}
-      className={`${styles.page} ${isQrPosterTableTent(template) ? styles.pageB5 : ""} qr-poster-print-root`}
-      data-sheet={isQrPosterTableTent(template) ? "b5" : "a4"}
+      className={`${styles.page} qr-poster-print-root`}
+      data-sheet="a4"
     >
       <PosterPreviewChrome
         ref={chromeRef}
@@ -148,14 +126,6 @@ export function A4Poster({
   )
 }
 
-/**
- * Concept posters (northstar, thermal, table tents) are self-contained — they
- * render their own `.sheet` and print handling — so they branch out before the
- * shared sheet shell. The copy-driven templates resolve through getPosterCopy
- * and share one `.sheet` article. Each new concept poster must be handled here
- * before the copy path, which keeps the template narrowing exhaustive at
- * compile time.
- */
 export type PosterSheetProps = Pick<
   A4PosterProps,
   "template" | "qrDataUrl" | "merchantName" | "stampsRequired"
@@ -167,78 +137,12 @@ export function PosterSheet({
   merchantName,
   stampsRequired,
 }: PosterSheetProps) {
-  if (template === "northstar") {
-    return (
-      <NorthStarPoster
-        qrDataUrl={qrDataUrl}
-        businessName={merchantName}
-        stampsRequired={stampsRequired}
-      />
-    )
-  }
-
-  if (template === "thermal") {
-    return (
-      <ThermalPoster
-        qrDataUrl={qrDataUrl}
-        businessName={merchantName}
-        stampsRequired={stampsRequired}
-      />
-    )
-  }
-
-  if (template === "table-tent") {
-    return (
-      <TableTentPoster
-        qrDataUrl={qrDataUrl}
-        businessName={merchantName}
-        stampsRequired={stampsRequired}
-      />
-    )
-  }
-
-  if (template === "table-tent-night") {
-    return (
-      <TableTentNightPoster
-        qrDataUrl={qrDataUrl}
-        businessName={merchantName}
-        stampsRequired={stampsRequired}
-      />
-    )
-  }
-
-  if (template === "table-tent-studio") {
-    return (
-      <TableTentStudioPoster
-        qrDataUrl={qrDataUrl}
-        businessName={merchantName}
-        stampsRequired={stampsRequired}
-      />
-    )
-  }
-
-  const copy = getPosterCopy(
-    { businessName: merchantName, stampsRequired },
-    template
-  )
-  const posterByTemplate: Record<CopyPosterTemplateId, ReactNode> = {
-    editorial: <EditorialPoster copy={copy} qrDataUrl={qrDataUrl} />,
-    bold: <BoldPoster copy={copy} qrDataUrl={qrDataUrl} />,
-    ticket: <TicketPoster copy={copy} qrDataUrl={qrDataUrl} />,
-  }
-
   return (
-    <article
-      className={`${styles.sheet} ${TEMPLATE_CLASS_NAMES[template]}`}
-      style={{
-        ...a4PosterStyle(copy),
-        width: `${copy.geometry.sheetWidthMm}mm`,
-        height: `${copy.geometry.sheetHeightMm}mm`,
-        minHeight: `${copy.geometry.sheetHeightMm}mm`,
-        maxHeight: `${copy.geometry.sheetHeightMm}mm`,
-      }}
-    >
-      {posterByTemplate[template]}
-    </article>
+    <PosterDesignSheet
+      template={template}
+      qrDataUrl={qrDataUrl}
+      merchantName={merchantName}
+      stampsRequired={stampsRequired}
+    />
   )
 }

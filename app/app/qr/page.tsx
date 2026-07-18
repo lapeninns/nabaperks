@@ -35,7 +35,7 @@ export default async function QrPage({ searchParams }: QrPageProps) {
       <PageTitle
         eyebrow="Counter poster"
         title="Venue QR"
-        description="Your permanent scan code and printable posters — A4 for the till, B5 table tent for dining tables. Share the link anywhere or print a layout."
+        description="Your permanent scan code and five printable A4 counter posters. Share the link anywhere or print a layout."
       />
       <Suspense fallback={<LaunchPanelSkeleton tab="qr" />}>
         <QrPanel

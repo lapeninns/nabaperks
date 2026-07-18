@@ -4,15 +4,30 @@ export type PosterDesignId =
   | "ticket"
   | "northstar"
   | "thermal"
-  | "table-tent"
-  | "table-tent-night"
-  | "table-tent-studio"
 
 export type CopyDrivenPosterId = "editorial" | "bold" | "ticket"
-export type PosterTableTentId =
-  | "table-tent"
-  | "table-tent-night"
-  | "table-tent-studio"
+export type PosterCollectionId = "counter"
+export type PosterFormatId = "a4-counter"
+
+export type PosterCollection = {
+  readonly id: PosterCollectionId
+  readonly name: string
+  readonly description: string
+  readonly format: PosterFormatId
+  readonly sheet: "a4"
+  readonly revision: number
+}
+
+export type PosterTemplateMetadata = {
+  readonly id: PosterDesignId
+  readonly name: string
+  readonly description: string
+  readonly useCase: string
+  readonly collection: PosterCollectionId
+  readonly format: PosterFormatId
+  readonly sheet: "a4"
+  readonly revision: number
+}
 
 export type AccentHeadline = {
   readonly beforeAccent: string
@@ -53,12 +68,6 @@ export type PosterPaletteModel = {
   readonly white: "#ffffff"
 }
 
-export type B5TypeTierModel = {
-  readonly hookPt: number
-  readonly substantivePt: number
-  readonly factsPt: number
-}
-
 export type A4TypeTierModel = {
   readonly hookPt: number
   readonly substantivePt: number
@@ -71,18 +80,6 @@ export type A4Geometry = {
   readonly safeMarginMm: 15
 }
 
-export type B5Geometry = {
-  readonly sheetWidthMm: 176
-  readonly sheetHeightMm: 250
-  readonly faceHeightMm: 125
-  readonly liveInsetMm: 5
-  readonly foldCorridorMm: 10
-  readonly identityRowMm: 25
-  readonly mainRowMm: 80
-  readonly lowerOcclusionRowMm: 20
-  readonly topRotationDeg: 180
-}
-
 export type A4ContentBase = {
   readonly sheet: "a4"
   readonly reassurance: string
@@ -91,15 +88,6 @@ export type A4ContentBase = {
   readonly palette: PosterPaletteModel
   readonly typeTiers: A4TypeTierModel
   readonly qr: PosterQrModel
-}
-
-export type B5ContentBase = {
-  readonly sheet: "b5"
-  readonly reassurance: string
-  readonly geometry: B5Geometry
-  readonly fonts: PosterFontModel
-  readonly palette: PosterPaletteModel
-  readonly typeTiers: B5TypeTierModel
 }
 
 export type CopyDrivenPosterContent = A4ContentBase & {
@@ -140,91 +128,7 @@ export type ThermalPosterContent = A4ContentBase & {
   readonly qrCaption: string
 }
 
-export type MysteryFaceContent = {
-  readonly qr: PosterQrModel
-  readonly editionLabel: string
-  readonly stack: readonly [string, string, string]
-  readonly rewardLine: string
-  readonly scanLabel: string
-  readonly scanCta: readonly [string, string]
-  readonly frictionLine: string
-  readonly footerLeft: string
-  readonly footerCentre: string
-  readonly footerRight: string
-}
-
-export type TicketFaceContent = {
-  readonly qr: PosterQrModel
-  readonly headline: string
-  readonly support: string
-  readonly frictionLine: string
-  readonly qrCaption: string
-  readonly reassurance: string
-}
-
-export type NightFaceContent = {
-  readonly qr: PosterQrModel
-  readonly chip: string
-  readonly headline: string
-  readonly headlineAccent: string
-  readonly ease: string
-  readonly promise: string
-  readonly qrCaption: string
-  readonly reassurance: string
-}
-
-export type ReceiptFaceContent = {
-  readonly qr: PosterQrModel
-  readonly meta: string
-  readonly headline: string
-  readonly headlineAccent: string
-  readonly items: readonly ReceiptItem[]
-  readonly totalLabel: string
-  readonly totalValue: string
-  readonly friction: string
-  readonly qrCaption: string
-  readonly reassurance: string
-}
-
-export type EditorialFaceContent = {
-  readonly qr: PosterQrModel
-  readonly headline: string
-  readonly support: string
-  readonly frictionLine: string
-  readonly qrCaption: string
-  readonly reassurance: string
-}
-
-export type BoldFaceContent = EditorialFaceContent
-
-export type BaseTentContent = B5ContentBase & {
-  readonly id: "table-tent"
-  readonly faces: {
-    readonly bottom: MysteryFaceContent
-    readonly top: TicketFaceContent
-  }
-}
-
-export type NightTentContent = B5ContentBase & {
-  readonly id: "table-tent-night"
-  readonly faces: {
-    readonly bottom: NightFaceContent
-    readonly top: ReceiptFaceContent
-  }
-}
-
-export type StudioTentContent = B5ContentBase & {
-  readonly id: "table-tent-studio"
-  readonly faces: {
-    readonly bottom: EditorialFaceContent
-    readonly top: BoldFaceContent
-  }
-}
-
 export type PosterContent =
   | CopyDrivenPosterContent
   | NorthstarPosterContent
   | ThermalPosterContent
-  | BaseTentContent
-  | NightTentContent
-  | StudioTentContent

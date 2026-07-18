@@ -5,7 +5,7 @@ import { resolveCopyDrivenContent } from "@/lib/qr/poster-content"
 /**
  * Copy-driven templates resolved through getPosterCopy. Hooks live in
  * config/poster-designs.json via lib/qr/poster-designs.ts. Concept posters
- * (northstar, thermal, table-tent faces) keep their own strings there too.
+ * (northstar and thermal) keep their own strings there too.
  */
 export type CopyPosterTemplateId = "editorial" | "bold" | "ticket"
 

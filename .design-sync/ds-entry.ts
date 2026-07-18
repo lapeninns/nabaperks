@@ -15,8 +15,6 @@ export * from "../components/ui/card"
 export * from "../components/ui/empty"
 export * from "../components/ui/field"
 export * from "../components/ui/input"
-export * from "../components/ui/input-group"
-export * from "../components/ui/input-otp"
 export * from "../components/ui/label"
 export * from "../components/ui/progress"
 export * from "../components/ui/separator"
@@ -26,7 +24,6 @@ export * from "../components/ui/skeleton"
 export * from "../components/ui/sonner"
 export * from "../components/ui/spinner"
 export * from "../components/ui/table"
-export * from "../components/ui/tabs"
 export * from "../components/ui/textarea"
 
 // ── domain primitives (barrel re-exports) ────────────────────────────
@@ -34,3 +31,7 @@ export * from "../components/brand"
 export * from "../components/loyalty"
 export * from "../components/data"
 export * from "../components/forms"
+
+// Not in the repo's data/ barrel (app code imports it by file path), but it's
+// a real reusable primitive in the agreed scope — export it explicitly.
+export { ShowMoreList } from "../components/data/show-more-list"

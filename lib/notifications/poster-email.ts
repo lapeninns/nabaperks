@@ -1,7 +1,4 @@
-import {
-  QR_POSTER_TABLE_TENT_IDS,
-  QR_POSTER_TEMPLATES,
-} from "@/lib/qr/poster-templates"
+import { QR_POSTER_TEMPLATES } from "@/lib/qr/poster-templates"
 
 export type PosterEmailInput = {
   readonly venueName: string
@@ -23,8 +20,6 @@ function escapeHtml(value: string): string {
 }
 
 const POSTER_COUNT = QR_POSTER_TEMPLATES.length
-const B5_POSTER_COUNT = QR_POSTER_TABLE_TENT_IDS.length
-const A4_POSTER_COUNT = POSTER_COUNT - B5_POSTER_COUNT
 
 /**
  * Pure builder for the "email me the poster" transactional email — no I/O, so
@@ -38,10 +33,9 @@ export function buildPosterEmailContent({
   const subject = "Your Nabaperks counter poster PDFs"
 
   const text = [
-    `Your ${POSTER_COUNT} Nabaperks poster PDFs for ${venueName} are attached: ${A4_POSTER_COUNT} A4 counter posters and ${B5_POSTER_COUNT} B5 table-tent sheets.`,
+    `Your ${POSTER_COUNT} A4 Nabaperks counter poster PDFs for ${venueName} are attached.`,
     "",
-    "Print at 100% — no fit-to-page. A4 counter posters are 210 × 297 mm. Each B5 table-tent sheet is 176 × 250 mm, with two 176 × 125 mm faces.",
-    "For a B5 tent, crease at the 125 mm centre line and fold the top half down. The top face is already rotated 180° on the flat sheet so both faces stand upright.",
+    "Print at 100% — no fit-to-page. A4 counter posters are 210 × 297 mm.",
     "Proof one physical print at actual size and test its QR with representative phones before placing the posters.",
     "",
     "Customers scan the QR on the poster to join in their browser — no app to download.",
@@ -63,8 +57,8 @@ function posterEmailHtml({ venueName }: PosterEmailInput): string {
         <div style="display:inline-block;margin:0 0 16px;background:#cf330a;color:#fff;border:2px solid #211c16;border-radius:999px;padding:8px 11px;font-size:18px;font-weight:800;line-height:1;box-shadow:3px 3px 0 #211c16">*</div>
         <p style="margin:0 0 8px;font:700 11px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;text-transform:uppercase;color:#4f473d">Nabaperks counter poster</p>
         <h1 style="margin:0 0 12px;font-size:24px;line-height:1.15;font-weight:800">Your ${POSTER_COUNT} poster PDFs for ${venueName}</h1>
-        <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#4f473d">All ${POSTER_COUNT} layouts are attached: ${A4_POSTER_COUNT} A4 counter posters and ${B5_POSTER_COUNT} B5 table-tent sheets.</p>
-        <p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#4f473d">Print at 100% — no fit-to-page. A4 is 210 × 297 mm. Each B5 sheet is 176 × 250 mm, with two 176 × 125 mm faces. Crease at the 125 mm centre line and fold the top half down; the top face is already rotated 180° so both faces stand upright.</p>
+        <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#4f473d">All ${POSTER_COUNT} A4 counter layouts are attached.</p>
+        <p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#4f473d">Print at 100% — no fit-to-page. A4 is 210 × 297 mm.</p>
         <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#4f473d">Proof one physical print at actual size and test its QR with representative phones before placing the posters.</p>
         <p style="margin:0;font-size:13px;line-height:1.6;color:#4f473d">Customers scan the QR on the poster to join in their browser. No app download needed.</p>
       </td></tr>

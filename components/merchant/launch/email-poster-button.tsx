@@ -11,7 +11,7 @@ import { Spinner } from "@/components/ui/spinner"
 
 /**
  * Phone-native alternative to browser printing: email all registered poster
- * PDFs (A4 counters + B5 table tent) to the signed-in merchant. Calls the
+ * A4 counter PDFs to the signed-in merchant. Calls the
  * server action directly (no form) and shows inline feedback, so the QR panel
  * updates without a reload.
  */

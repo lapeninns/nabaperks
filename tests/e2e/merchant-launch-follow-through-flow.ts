@@ -336,7 +336,7 @@ export function defineMerchantLaunchFollowThroughTests() {
       await page.getByRole("button", { name: "Next poster" }).click()
     }
     if (browserName !== "firefox") {
-      await expect(page.getByText("2 / 8", { exact: true })).toBeVisible()
+      await expect(page.getByText("2 / 5", { exact: true })).toBeVisible()
       await expect(
         page.locator("article[aria-current='true']").getByText("Bold", {
           exact: true,
@@ -347,7 +347,7 @@ export function defineMerchantLaunchFollowThroughTests() {
       await expect(
         page.getByRole("img", { name: "Night card poster preview" })
       ).toBeVisible()
-      await expect(page.getByText("4 / 8", { exact: true })).toBeVisible()
+      await expect(page.getByText("4 / 5", { exact: true })).toBeVisible()
     }
 
     await page.getByRole("link", { name: "Share digitally" }).click()

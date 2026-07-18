@@ -180,7 +180,7 @@ export const SETUP = {
  * (marketing offer v2, owner-approved 2026-07-05). Anchors are NEVER an
  * invented reference or headline price, and the privacy item stays
  * mechanism-described with no price (`anchor: null`). Factual anchors: the six
- * poster templates (five A4 counters plus three B5 table tents), the seeded default
+ * poster templates (five A4 counter posters), the seeded default
  * reward pool, optional birthday automation + the weekly digest, the
  * consent/age-gate/retention mechanics, and the three public guides.
  */
@@ -189,7 +189,7 @@ export const OFFER_STACK = [
     name: "Launch-ready till poster kit",
     obstacle: "No time to design counter posters.",
     detail:
-      "Eight print-ready posters — five A4 counter layouts plus three B5 foldable table tents — with your venue QR and counter copy already laid out.",
+      "Five print-ready A4 counter posters with your venue QR and counter copy already laid out.",
     anchor:
       "The kind of counter posters you'd pay a freelance designer £150+ to make.",
   },

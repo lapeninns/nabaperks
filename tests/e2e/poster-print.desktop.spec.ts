@@ -5,10 +5,7 @@ import path from "node:path"
 import { PNG } from "pngjs"
 
 import { resolvePosterContent } from "@/lib/qr/poster-content"
-import {
-  isQrPosterTableTent,
-  QR_POSTER_TEMPLATE_IDS,
-} from "@/lib/qr/poster-templates"
+import { QR_POSTER_TEMPLATE_IDS } from "@/lib/qr/poster-templates"
 import {
   normalisePosterText,
   posterVisibleCopy,
@@ -54,28 +51,6 @@ test.describe("poster printing", () => {
         qrOuterPixels: Array.from(element.querySelectorAll("img")).map(
           (image) => image.parentElement?.clientWidth ?? 0
         ),
-        faceRows: Array.from(element.children)
-          .filter((child) => child.querySelector("section"))
-          .map((child) => {
-            const face = child.querySelector("section")
-            const main = face
-              ? Array.from(face.children).find(
-                  (element) => getComputedStyle(element).gridRowStart === "2"
-                )
-              : undefined
-            return {
-              height: child.clientHeight,
-              rows: face
-                ? getComputedStyle(face)
-                    .gridTemplateRows.split(/\s+/)
-                    .map(Number.parseFloat)
-                : [],
-              mainClientHeight: main?.clientHeight ?? 0,
-              mainScrollHeight: main?.scrollHeight ?? 0,
-              mainClientWidth: main?.clientWidth ?? 0,
-              mainScrollWidth: main?.scrollWidth ?? 0,
-            }
-          }),
       }))
       const renderedText = normalisePosterText(await posterSheet.innerText())
       for (const expected of posterVisibleCopy(content)) {
@@ -95,36 +70,10 @@ test.describe("poster printing", () => {
         content.geometry.sheetHeightMm * pixelsPerMm,
         0
       )
-      const expectedQrMm =
-        content.sheet === "a4"
-          ? [content.qr.outerMm]
-          : [content.faces.top.qr.outerMm, content.faces.bottom.qr.outerMm]
+      const expectedQrMm = [content.qr.outerMm]
       physical.qrOuterPixels.forEach((size, index) => {
         expect(size).toBeCloseTo(expectedQrMm[index] * pixelsPerMm, 0)
       })
-      if (content.sheet === "b5") {
-        expect(physical.faceRows).toHaveLength(2)
-        for (const face of physical.faceRows) {
-          expect(face.height).toBeCloseTo(
-            content.geometry.faceHeightMm * pixelsPerMm,
-            0
-          )
-          expect(face.rows).toEqual([
-            expect.closeTo(content.geometry.identityRowMm * pixelsPerMm, 0),
-            expect.closeTo(content.geometry.mainRowMm * pixelsPerMm, 0),
-            expect.closeTo(
-              content.geometry.lowerOcclusionRowMm * pixelsPerMm,
-              0
-            ),
-          ])
-          expect(face.mainScrollHeight).toBeLessThanOrEqual(
-            face.mainClientHeight + 1
-          )
-          expect(face.mainScrollWidth).toBeLessThanOrEqual(
-            face.mainClientWidth + 1
-          )
-        }
-      }
       if (browserName === "chromium") {
         await page.evaluate(() => {
           window.print = () => {
@@ -145,7 +94,7 @@ test.describe("poster printing", () => {
       await expect(printRoot).toHaveCSS("visibility", "visible")
       await expect(printPosterSheet).toHaveCSS("visibility", "visible")
       const qrImages = printPosterSheet.locator("img")
-      const expectedQrCount = isQrPosterTableTent(template) ? 2 : 1
+      const expectedQrCount = 1
       await expect(qrImages).toHaveCount(expectedQrCount)
       for (const qrImage of await qrImages.all()) {
         await expect(qrImage).toHaveJSProperty("naturalWidth", 900)
@@ -203,9 +152,7 @@ test.describe("poster printing", () => {
       await expect(poster).toContainText(venue)
       await expect(poster).toContainText(/six visits|6/i)
       const venueLabels = poster.locator("[data-poster-venue]")
-      await expect(venueLabels).toHaveCount(
-        isQrPosterTableTent(template) ? 2 : 1
-      )
+      await expect(venueLabels).toHaveCount(1)
       const venueEvidence = await venueLabels.evaluateAll((elements) =>
         elements.map((element) => {
           const bounds = element.getBoundingClientRect()

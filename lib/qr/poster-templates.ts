@@ -1,65 +1,59 @@
 import {
+  posterCollections,
   posterDesignIds,
-  posterTableTentIds,
   templateMetadata,
 } from "@/lib/qr/poster-designs"
-import type { PosterDesignId } from "@/lib/qr/poster-designs"
-import type { PosterTableTentId } from "@/lib/qr/poster-content-types"
+import type {
+  PosterCollection,
+  PosterDesignId,
+  PosterTemplateMetadata,
+} from "@/lib/qr/poster-designs"
 
 export const QR_POSTER_TEMPLATE_IDS = posterDesignIds()
 
 export type QrPosterTemplateId = PosterDesignId
 
-export const QR_POSTER_TABLE_TENT_IDS = posterTableTentIds()
-
-export type QrPosterTableTentId = PosterTableTentId
-
-export function isQrPosterTableTent(
-  templateId: string
-): templateId is QrPosterTableTentId {
-  for (const id of QR_POSTER_TABLE_TENT_IDS) {
-    if (id === templateId) return true
-  }
-  return false
-}
+const POSTER_TEMPLATE_ID_SET = new Set<string>(QR_POSTER_TEMPLATE_IDS)
 
 export function isQrPosterTemplateId(
   templateId: string
 ): templateId is QrPosterTemplateId {
-  for (const id of QR_POSTER_TEMPLATE_IDS) {
-    if (id === templateId) return true
-  }
-  return false
+  return POSTER_TEMPLATE_ID_SET.has(templateId)
 }
 
-export type QrPosterTemplate = {
-  readonly id: QrPosterTemplateId
-  readonly name: string
-  readonly description: string
-}
+export type QrPosterTemplate = PosterTemplateMetadata
 
 export const QR_POSTER_TEMPLATES: readonly QrPosterTemplate[] =
-  QR_POSTER_TEMPLATE_IDS.map((id) => {
-    const design = templateMetadata(id)
-    return {
-      id,
-      name: design.name,
-      description: design.description,
-    }
-  })
+  QR_POSTER_TEMPLATE_IDS.map((id) => templateMetadata(id))
+
+export type QrPosterCollection = PosterCollection & {
+  readonly templates: readonly QrPosterTemplate[]
+}
+
+export const QR_POSTER_COLLECTIONS: readonly QrPosterCollection[] =
+  posterCollections().map((collection) => ({
+    ...collection,
+    templates: QR_POSTER_TEMPLATES.filter(
+      ({ collection: collectionId }) => collectionId === collection.id
+    ),
+  }))
 
 export function getQrPosterTemplate(
   templateId: string
 ): QrPosterTemplate | null {
   if (!isQrPosterTemplateId(templateId)) return null
-  const design = templateMetadata(templateId)
-  return {
-    id: templateId,
-    name: design.name,
-    description: design.description,
-  }
+  return templateMetadata(templateId)
 }
 
 export function getQrPosterUseCase(templateId: QrPosterTemplateId): string {
   return templateMetadata(templateId).useCase
+}
+
+export function getQrPosterCollection(
+  templateId: QrPosterTemplateId
+): QrPosterCollection {
+  const collectionId = templateMetadata(templateId).collection
+  const collection = QR_POSTER_COLLECTIONS.find(({ id }) => id === collectionId)
+  if (!collection) throw new Error(`Missing poster collection ${collectionId}`)
+  return collection
 }

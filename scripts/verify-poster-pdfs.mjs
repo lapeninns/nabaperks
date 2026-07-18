@@ -88,7 +88,6 @@ print(json.dumps(boxes))
 const FITZ_LAYOUT_GEOMETRY = `
 import fitz, json, sys
 page = fitz.open(sys.argv[1])[0]
-mode = sys.argv[2]
 mm = 72 / 25.4
 drawings = page.get_drawings()
 
@@ -125,55 +124,6 @@ result = {
     "textClearanceMm": clearances([line["bbox"] for line in lines]),
     "qrClearanceMm": clearances(qr_boxes),
 }
-
-if mode == "b5":
-    expected = {
-        "faces": (166, 125),
-        "identityRows": (166, 25),
-        "mainRows": (166, 80),
-        "blankRows": (166, 20),
-        "foldHalves": (166, 5),
-    }
-    markers = {}
-    for name, (width_mm, height_mm) in expected.items():
-        matches = []
-        for drawing in drawings:
-            rect = drawing["rect"]
-            if abs(rect.width / mm - width_mm) > 0.12:
-                continue
-            if abs(rect.height / mm - height_mm) > 0.12:
-                continue
-            matches.append({
-                "xMm": rect.x0 / mm,
-                "yMm": rect.y0 / mm,
-                "widthMm": rect.width / mm,
-                "heightMm": rect.height / mm,
-            })
-        markers[name] = matches
-
-    def zone_clear(y0_mm, y1_mm):
-        y0 = y0_mm * mm
-        y1 = y1_mm * mm
-        tolerance = 0.5
-        occupied = [line["bbox"] for line in lines] + [tuple(rect) for rect in qr_boxes]
-        return all(not (rect[1] < y1 - tolerance and rect[3] > y0 + tolerance) for rect in occupied)
-
-    top_lines = [line for line in lines if (line["bbox"][1] + line["bbox"][3]) / 2 < 125 * mm]
-    bottom_lines = [line for line in lines if (line["bbox"][1] + line["bbox"][3]) / 2 > 125 * mm]
-    result["b5"] = {
-        "markers": markers,
-        "rotation": {
-            "topLineCount": len(top_lines),
-            "bottomLineCount": len(bottom_lines),
-            "topFace180": bool(top_lines) and all(line["dir"][0] < -0.99 for line in top_lines),
-            "bottomFace0": bool(bottom_lines) and all(line["dir"][0] > 0.99 for line in bottom_lines),
-        },
-        "clearZones": {
-            "topBlank20Mm": zone_clear(0, 20),
-            "foldCorridor10Mm": zone_clear(120, 130),
-            "bottomBlank20Mm": zone_clear(230, 250),
-        },
-    }
 
 print(json.dumps(result))
 `
@@ -215,142 +165,31 @@ export function parsePdfFonts(output) {
 }
 
 export function assertPosterLayoutGeometry(layout, content, filename) {
-  if (content.sheet === "a4") {
-    const minimumClearance = content.geometry.safeMarginMm - 1
-    for (const [kind, clearances] of [
-      ["text", layout.textClearanceMm],
-      ["QR", layout.qrClearanceMm],
-    ]) {
-      for (const [edge, clearance] of Object.entries(clearances)) {
-        assert.ok(
-          clearance >= minimumClearance,
-          `${filename} ${kind} ${edge} clearance preserves the ${content.geometry.safeMarginMm} mm safe frame`
-        )
-      }
-    }
-    assertNear(
-      layout.maxTextPt,
-      content.typeTiers.hookPt,
-      0.2,
-      `${filename} catalogue A4 hook tier`
-    )
-    return {
-      safeMarginMm: content.geometry.safeMarginMm,
-      textClearanceMm: layout.textClearanceMm,
-      qrClearanceMm: layout.qrClearanceMm,
-      measuredHookPt: layout.maxTextPt,
-    }
-  }
-
-  const expectedMarkers = {
-    faces: [
-      content.geometry.sheetWidthMm - content.geometry.liveInsetMm * 2,
-      content.geometry.faceHeightMm,
-      [0, content.geometry.faceHeightMm],
-    ],
-    identityRows: [
-      content.geometry.sheetWidthMm - content.geometry.liveInsetMm * 2,
-      content.geometry.identityRowMm,
-      [
-        content.geometry.faceHeightMm - content.geometry.identityRowMm,
-        content.geometry.faceHeightMm,
-      ],
-    ],
-    mainRows: [
-      content.geometry.sheetWidthMm - content.geometry.liveInsetMm * 2,
-      content.geometry.mainRowMm,
-      [
-        content.geometry.lowerOcclusionRowMm,
-        content.geometry.faceHeightMm + content.geometry.identityRowMm,
-      ],
-    ],
-    blankRows: [
-      content.geometry.sheetWidthMm - content.geometry.liveInsetMm * 2,
-      content.geometry.lowerOcclusionRowMm,
-      [
-        0,
-        content.geometry.faceHeightMm * 2 -
-          content.geometry.lowerOcclusionRowMm,
-      ],
-    ],
-    foldHalves: [
-      content.geometry.sheetWidthMm - content.geometry.liveInsetMm * 2,
-      content.geometry.foldCorridorMm / 2,
-      [
-        content.geometry.faceHeightMm - content.geometry.foldCorridorMm / 2,
-        content.geometry.faceHeightMm,
-      ],
-    ],
-  }
-  for (const [name, [widthMm, heightMm, expectedYPositions]] of Object.entries(
-    expectedMarkers
-  )) {
-    const markers = layout.b5.markers[name]
-    for (const expectedY of expectedYPositions) {
-      const marker = markers.find(
-        (candidate) => Math.abs(candidate.yMm - expectedY) <= 0.12
-      )
-      assert.ok(
-        marker,
-        `${filename} measures ${name} at ${expectedY} mm on both faces`
-      )
-      assertNear(
-        marker.xMm,
-        content.geometry.liveInsetMm,
-        0.12,
-        `${filename} ${name} live inset`
-      )
-      assertNear(marker.widthMm, widthMm, 0.12, `${filename} ${name} width`)
-      assertNear(marker.heightMm, heightMm, 0.12, `${filename} ${name} height`)
-    }
-  }
-  assert.equal(
-    layout.b5.rotation.topFace180,
-    true,
-    `${filename} top face is rotated 180 degrees`
-  )
-  assert.equal(
-    layout.b5.rotation.bottomFace0,
-    true,
-    `${filename} bottom face remains upright`
-  )
-  assert.ok(layout.b5.rotation.topLineCount > 0)
-  assert.ok(layout.b5.rotation.bottomLineCount > 0)
-  assert.deepEqual(layout.b5.clearZones, {
-    topBlank20Mm: true,
-    foldCorridor10Mm: true,
-    bottomBlank20Mm: true,
-  })
+  const minimumClearance = content.geometry.safeMarginMm - 1
   for (const [kind, clearances] of [
     ["text", layout.textClearanceMm],
     ["QR", layout.qrClearanceMm],
   ]) {
-    assert.ok(
-      clearances.left >= content.geometry.liveInsetMm - 1,
-      `${filename} ${kind} stays inside the left live inset`
-    )
-    assert.ok(
-      clearances.right >= content.geometry.liveInsetMm - 1,
-      `${filename} ${kind} stays inside the right live inset`
-    )
+    for (const [edge, clearance] of Object.entries(clearances)) {
+      assert.ok(
+        clearance >= minimumClearance,
+        `${filename} ${kind} ${edge} clearance preserves the ${content.geometry.safeMarginMm} mm safe frame`
+      )
+    }
   }
+  assertNear(
+    layout.maxTextPt,
+    content.typeTiers.hookPt,
+    0.2,
+    `${filename} catalogue A4 hook tier`
+  )
   return {
-    faceMm: [content.geometry.sheetWidthMm, content.geometry.faceHeightMm],
-    liveInsetMm: content.geometry.liveInsetMm,
-    rowsMm: [
-      content.geometry.identityRowMm,
-      content.geometry.mainRowMm,
-      content.geometry.lowerOcclusionRowMm,
-    ],
-    foldCorridorMm: content.geometry.foldCorridorMm,
-    topRotationDeg: content.geometry.topRotationDeg,
-    markers: layout.b5.markers,
-    clearZones: layout.b5.clearZones,
+    safeMarginMm: content.geometry.safeMarginMm,
     textClearanceMm: layout.textClearanceMm,
     qrClearanceMm: layout.qrClearanceMm,
+    measuredHookPt: layout.maxTextPt,
   }
 }
-
 function requiredTools() {
   const tools = new Map()
   for (const name of REQUIRED_TOOLS) {
@@ -378,20 +217,22 @@ export async function verifyPosterPdfs(outputDirectory) {
     shareUrl: QR_TARGET,
     stampsRequired: 6,
   })
-  assert.equal(attachments.length, 8)
+  assert.equal(attachments.length, 5)
 
   const sheets = []
   for (const attachment of attachments) {
     const pdfPath = path.join(outputDirectory, attachment.filename)
     await writeFile(pdfPath, Buffer.from(attachment.content, "base64"))
-    const tableTent = attachment.filename.includes("table-tent")
     const templateId = attachment.filename
       .replace(/^nabaperks-poster-/, "")
       .replace(/\.pdf$/, "")
     const content = resolvePosterContent(templateId, 6)
-    const expected = tableTent
-      ? { widthPt: 498.9, heightPt: 708.66, widthPx: 2079, heightPx: 2953 }
-      : { widthPt: 595.28, heightPt: 841.89, widthPx: 2480, heightPx: 3508 }
+    const expected = {
+      widthPt: 595.28,
+      heightPt: 841.89,
+      widthPx: 2480,
+      heightPx: 3508,
+    }
 
     const info = parsePdfInfo(run(tools.get("pdfinfo"), [pdfPath]))
     assert.equal(info.pages, 1)
@@ -472,17 +313,13 @@ export async function verifyPosterPdfs(outputDirectory) {
     const decodedQrs = JSON.parse(
       run(tools.get("python3"), ["-c", OPENCV_DECODE, rasterPath])
     )
-    assert.equal(decodedQrs.length, tableTent ? 2 : 1)
+    assert.equal(decodedQrs.length, 1)
     assert.ok(decodedQrs.every((target) => target === QR_TARGET))
 
     const qrGeometry = JSON.parse(
       run(tools.get("python3"), ["-c", FITZ_QR_GEOMETRY, pdfPath])
     )
-    const expectedQrMm = (
-      content.sheet === "a4"
-        ? [content.qr.outerMm]
-        : [content.faces.bottom.qr.outerMm, content.faces.top.qr.outerMm]
-    ).sort((left, right) => left - right)
+    const expectedQrMm = [content.qr.outerMm]
     const measuredQrMm = qrGeometry
       .map(({ outerMm }) => outerMm)
       .sort((left, right) => left - right)
@@ -510,12 +347,7 @@ export async function verifyPosterPdfs(outputDirectory) {
     }
 
     const measuredLayout = JSON.parse(
-      run(tools.get("python3"), [
-        "-c",
-        FITZ_LAYOUT_GEOMETRY,
-        pdfPath,
-        tableTent ? "b5" : "a4",
-      ])
+      run(tools.get("python3"), ["-c", FITZ_LAYOUT_GEOMETRY, pdfPath])
     )
     const physicalLayout = assertPosterLayoutGeometry(
       measuredLayout,
@@ -525,7 +357,7 @@ export async function verifyPosterPdfs(outputDirectory) {
 
     sheets.push({
       filename: attachment.filename,
-      format: tableTent ? "B5" : "A4",
+      format: "A4",
       page: info,
       rasterPx: dimensions,
       fonts,
@@ -546,7 +378,7 @@ export async function verifyPosterPdfs(outputDirectory) {
     ),
     sheets,
   }
-  assert.equal(report.faceCount, 11)
+  assert.equal(report.faceCount, 5)
   await writeFile(
     path.join(outputDirectory, "poster-pdf-verification.json"),
     `${JSON.stringify(report, null, 2)}\n`

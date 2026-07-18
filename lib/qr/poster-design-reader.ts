@@ -1,5 +1,11 @@
 import posterDesignsJson from "@/config/poster-designs.json" with { type: "json" }
-import type { PosterDesignId, PosterTableTentId } from "./poster-content-types"
+import type {
+  PosterCollection,
+  PosterCollectionId,
+  PosterDesignId,
+  PosterFormatId,
+  PosterTemplateMetadata,
+} from "./poster-content-types"
 type JsonRecord = Record<string, unknown>
 
 function isRecord(value: unknown): value is JsonRecord {
@@ -54,15 +60,34 @@ export function requireRecordField(
   return requireRecord(record[key], `${path}.${key}`)
 }
 
+let parsedCatalogue: JsonRecord | undefined
+
 function catalogueRoot(): JsonRecord {
+  if (parsedCatalogue) return parsedCatalogue
   const root = requireRecord(posterDesignsJson, "posterDesigns")
   if (
     requireString(root, "schema", "posterDesigns") !==
-    "nabaperks.poster-designs.v2"
+    "nabaperks.poster-designs.v3"
   ) {
     throw new Error("Unsupported poster catalogue schema")
   }
+  parsedCatalogue = root
   return root
+}
+
+function parseCollectionId(value: string): PosterCollectionId {
+  if (value === "counter") return value
+  throw new Error(`Unknown poster collection ${value}`)
+}
+
+function parseFormatId(value: string): PosterFormatId {
+  if (value === "a4-counter") return value
+  throw new Error(`Unknown poster format ${value}`)
+}
+
+function parseSheet(value: string): "a4" {
+  if (value === "a4") return value
+  throw new Error(`Unknown poster sheet ${value}`)
 }
 
 function parsePosterDesignId(value: string): PosterDesignId {
@@ -72,9 +97,6 @@ function parsePosterDesignId(value: string): PosterDesignId {
     case "ticket":
     case "northstar":
     case "thermal":
-    case "table-tent":
-    case "table-tent-night":
-    case "table-tent-studio":
       return value
     default:
       throw new Error(`Unknown poster template ${value}`)
@@ -103,31 +125,33 @@ export function posterDesignIds(): readonly PosterDesignId[] {
       requireString(template, "id", "posterDesigns.templates[]")
     )
   })
-  if (ids.length !== 8 || new Set(ids).size !== ids.length) {
-    throw new Error("Poster catalogue must contain eight unique templates")
+  if (ids.length !== 5 || new Set(ids).size !== ids.length) {
+    throw new Error("Poster catalogue must contain five unique templates")
   }
   return ids
 }
 
-export function posterTableTentIds(): readonly PosterTableTentId[] {
-  const ids: PosterTableTentId[] = []
-  for (const id of posterDesignIds()) {
-    const template = templateRecord(id)
-    if (
-      requireString(template, "sheet", `posterDesigns.templates.${id}`) !== "b5"
-    ) {
-      continue
+export function posterCollections(): readonly PosterCollection[] {
+  const records = requireArray(catalogueRoot(), "collections", "posterDesigns")
+  const collections = records.map((candidate) => {
+    const record = requireRecord(candidate, "posterDesigns.collections[]")
+    const path = "posterDesigns.collections[]"
+    return {
+      id: parseCollectionId(requireString(record, "id", path)),
+      name: requireString(record, "name", path),
+      description: requireString(record, "description", path),
+      format: parseFormatId(requireString(record, "format", path)),
+      sheet: parseSheet(requireString(record, "sheet", path)),
+      revision: requireNumber(record, "revision", path),
     }
-    if (
-      id !== "table-tent" &&
-      id !== "table-tent-night" &&
-      id !== "table-tent-studio"
-    ) {
-      throw new Error(`Unexpected B5 poster template ${id}`)
-    }
-    ids.push(id)
+  })
+  if (
+    collections.length !== 1 ||
+    new Set(collections.map(({ id }) => id)).size !== 1
+  ) {
+    throw new Error("Poster catalogue must contain one counter collection")
   }
-  return ids
+  return collections
 }
 
 export function rawTemplateCopy(templateId: PosterDesignId): JsonRecord {
@@ -135,28 +159,6 @@ export function rawTemplateCopy(templateId: PosterDesignId): JsonRecord {
     templateRecord(templateId),
     "copy",
     `posterDesigns.templates.${templateId}`
-  )
-}
-
-export function rawFaceCopy(
-  templateId: PosterTableTentId,
-  face: "top" | "bottom"
-): JsonRecord {
-  const template = templateRecord(templateId)
-  const faces = requireRecordField(
-    template,
-    "faces",
-    `posterDesigns.templates.${templateId}`
-  )
-  const faceRecord = requireRecordField(
-    faces,
-    face,
-    `posterDesigns.templates.${templateId}.faces`
-  )
-  return requireRecordField(
-    faceRecord,
-    "copy",
-    `posterDesigns.templates.${templateId}.faces.${face}`
   )
 }
 
@@ -182,28 +184,6 @@ export function templateRecordField(
   )
 }
 
-export function faceNumber(
-  templateId: PosterTableTentId,
-  face: "top" | "bottom",
-  key: string
-): number {
-  const faces = requireRecordField(
-    templateRecord(templateId),
-    "faces",
-    `posterDesigns.templates.${templateId}`
-  )
-  const faceRecord = requireRecordField(
-    faces,
-    face,
-    `posterDesigns.templates.${templateId}.faces`
-  )
-  return requireNumber(
-    faceRecord,
-    key,
-    `posterDesigns.templates.${templateId}.faces.${face}`
-  )
-}
-
 export function sharedRecord(key: string): JsonRecord {
   const root = catalogueRoot()
   const shared = requireRecordField(root, "shared", "posterDesigns")
@@ -221,29 +201,38 @@ export function sharedString(key: string): string {
   return requireString(shared, key, "posterDesigns.shared")
 }
 
-export function templateMetadata(templateId: PosterDesignId): {
-  readonly id: PosterDesignId
-  readonly name: string
-  readonly description: string
-  readonly useCase: string
-} {
+export function templateMetadata(
+  templateId: PosterDesignId
+): PosterTemplateMetadata {
   const template = templateRecord(templateId)
+  const path = `posterDesigns.templates.${templateId}`
+  const collection = parseCollectionId(
+    requireString(template, "collection", path)
+  )
+  const format = parseFormatId(requireString(template, "format", path))
+  const sheet = parseSheet(requireString(template, "sheet", path))
+  const revision = requireNumber(template, "revision", path)
+  const collectionMetadata = posterCollections().find(
+    ({ id }) => id === collection
+  )
+  if (
+    !collectionMetadata ||
+    collectionMetadata.format !== format ||
+    collectionMetadata.sheet !== sheet ||
+    collectionMetadata.revision !== revision
+  ) {
+    throw new Error(
+      `Poster template ${templateId} does not match its collection`
+    )
+  }
   return {
     id: templateId,
-    name: requireString(
-      template,
-      "name",
-      `posterDesigns.templates.${templateId}`
-    ),
-    description: requireString(
-      template,
-      "description",
-      `posterDesigns.templates.${templateId}`
-    ),
-    useCase: requireString(
-      template,
-      "useCase",
-      `posterDesigns.templates.${templateId}`
-    ),
+    name: requireString(template, "name", path),
+    description: requireString(template, "description", path),
+    useCase: requireString(template, "useCase", path),
+    collection,
+    format,
+    sheet,
+    revision,
   }
 }

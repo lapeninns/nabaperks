@@ -33,8 +33,7 @@ test("poster email builds one valid print-size PDF attachment for every register
       /^JVBERi0/,
       `${attachment.filename} is Base64 PDF data`
     )
-    const isTableTent = attachment.filename.includes("table-tent")
-    const minimumArtworkBytes = isTableTent ? 10_000 : 5_000
+    const minimumArtworkBytes = 5_000
     assert.ok(
       Buffer.from(attachment.content, "base64").byteLength >
         minimumArtworkBytes,
@@ -48,15 +47,15 @@ test("poster email builds one valid print-size PDF attachment for every register
       `${attachment.filename} has one page`
     )
     assert.ok(page, `${attachment.filename} includes its A4 page`)
-    const expectedWidth = isTableTent ? 498.9 : 595.28
-    const expectedHeight = isTableTent ? 708.66 : 841.89
+    const expectedWidth = 595.28
+    const expectedHeight = 841.89
     assert.ok(
       Math.abs(page.getWidth() - expectedWidth) < 0.2,
-      `${attachment.filename} has expected ${isTableTent ? "B5" : "A4"} width`
+      `${attachment.filename} has expected A4 width`
     )
     assert.ok(
       Math.abs(page.getHeight() - expectedHeight) < 0.2,
-      `${attachment.filename} has expected ${isTableTent ? "B5" : "A4"} height`
+      `${attachment.filename} has expected A4 height`
     )
   }
 })
@@ -97,8 +96,6 @@ test("poster PDF venue labels stay on one line inside the A4 header", async () =
 test("poster PDF dimensions convert physical QR guidance exactly", () => {
   assert.ok(Math.abs(mm(52) - 147.4) < 0.1)
   assert.ok(Math.abs(mm(55) - 155.91) < 0.1)
-  assert.ok(Math.abs(mm(46) - 130.39) < 0.1)
-  assert.ok(Math.abs(mm(48) - 136.06) < 0.1)
 })
 
 test("poster PDF venue labels omit unsupported glyphs cleanly", async () => {

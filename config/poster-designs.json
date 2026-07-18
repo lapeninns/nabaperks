@@ -1,13 +1,23 @@
 {
-  "schema": "nabaperks.poster-designs.v2",
-  "purpose": "Single source of truth for Nabaperks print poster registry, copy, face pairings, and layout anatomy. Intended for app runtime and for external AI analysis of the full poster system.",
+  "schema": "nabaperks.poster-designs.v3",
+  "purpose": "Single source of truth for the Nabaperks print poster registry, copy, format metadata, and layout anatomy. Intended for app runtime and external analysis of the full poster system.",
   "product": {
     "brand": "Nab a Perks",
     "operator": "Lapen Inns",
     "market": "UK hospitality",
     "visualSystem": "Wet Ink",
-    "kitSummary": "Eight print-ready posters — five A4 counter layouts plus three B5 foldable table tents."
+    "kitSummary": "Five print-ready A4 counter posters."
   },
+  "collections": [
+    {
+      "id": "counter",
+      "name": "A4 counter posters",
+      "description": "Five portrait designs for tills, counters, windows and wall frames.",
+      "format": "a4-counter",
+      "sheet": "a4",
+      "revision": 1
+    }
+  ],
   "shared": {
     "reassurance": "18+ to redeem · One visit stamp here per UK date · Rewards redeem from the next weekday · Terms apply",
     "numberWords": ["zero", "one", "two", "three", "four", "five", "six"],
@@ -59,17 +69,6 @@
         "sheetWidthMm": 210,
         "sheetHeightMm": 297,
         "safeMarginMm": 15
-      },
-      "b5": {
-        "sheetWidthMm": 176,
-        "sheetHeightMm": 250,
-        "faceHeightMm": 125,
-        "liveInsetMm": 5,
-        "foldCorridorMm": 10,
-        "identityRowMm": 25,
-        "mainRowMm": 80,
-        "lowerOcclusionRowMm": 20,
-        "topRotationDeg": 180
       }
     },
     "typeTiersPt": {
@@ -78,16 +77,7 @@
       "a4SubstantiveMin": 11,
       "a4SubstantiveMax": 18,
       "a4FactsMin": 8,
-      "a4FactsMax": 12,
-      "b5HookMin": 28,
-      "b5HookMax": 34,
-      "b5Hook": 30,
-      "b5SubstantiveMin": 14,
-      "b5SubstantiveMax": 16,
-      "b5Substantive": 14,
-      "b5FactsMin": 12,
-      "b5FactsMax": 14,
-      "b5Facts": 12
+      "a4FactsMax": 12
     },
     "qr": {
       "unit": "mm",
@@ -98,16 +88,15 @@
         "minOuterMm": 52,
         "maxOuterMm": 55
       },
-      "b5": {
-        "minOuterMm": 44,
-        "maxOuterMm": 48
-      },
       "productionRule": "Record actual QR version and ECC; preserve square modules; test the final print on representative phones."
     }
   },
   "templates": [
     {
       "id": "editorial",
+      "collection": "counter",
+      "format": "a4-counter",
+      "revision": 1,
       "name": "Editorial",
       "description": "Quiet editorial intrigue — a full card reveals one venue reward.",
       "sheet": "a4",
@@ -152,6 +141,9 @@
     },
     {
       "id": "bold",
+      "collection": "counter",
+      "format": "a4-counter",
+      "revision": 1,
       "name": "Bold",
       "description": "Dark distance shout — every full card reveals a venue reward.",
       "sheet": "a4",
@@ -191,6 +183,9 @@
     },
     {
       "id": "ticket",
+      "collection": "counter",
+      "format": "a4-counter",
+      "revision": 1,
       "name": "Ticket",
       "description": "Admission-ticket start — stamp one follows a new member joining through this venue QR.",
       "sheet": "a4",
@@ -231,6 +226,9 @@
     },
     {
       "id": "northstar",
+      "collection": "counter",
+      "format": "a4-counter",
+      "revision": 1,
       "name": "Night card",
       "description": "Night card object — the poster itself becomes the loyalty card.",
       "sheet": "a4",
@@ -269,6 +267,9 @@
     },
     {
       "id": "thermal",
+      "collection": "counter",
+      "format": "a4-counter",
+      "revision": 1,
       "name": "Receipt",
       "description": "Giant till receipt — simple itemised progress with the reward still sealed.",
       "sheet": "a4",
@@ -318,248 +319,6 @@
         "totalValue": "One text",
         "qrCaption": "Scan for today's stamp",
         "reassurance": "18+ to redeem · One visit stamp here per UK date · Rewards redeem from the next weekday · Terms apply"
-      }
-    },
-    {
-      "id": "table-tent",
-      "name": "Table tent",
-      "description": "B5 dual-face tent — mystery ritual opposite a prospective stamp-one start.",
-      "sheet": "b5",
-      "sheetSize": "176×250 mm (two faces 176×125 mm)",
-      "useCase": "Dining tables / outdoor seating",
-      "tone": "ritual-versus-start",
-      "copyMode": "dualFace",
-      "fold": {
-        "physics": "ISO B5 portrait; centre mountain-fold peak; fold top half down",
-        "faceTop": "rotated 180° on flat sheet so both faces read upright when standing"
-      },
-      "source": {
-        "entry": "components/merchant/qr-poster/table-tent/table-tent-poster.tsx",
-        "styles": "components/merchant/qr-poster/table-tent/table-tent-poster.module.css",
-        "faces": {
-          "bottom": "components/merchant/qr-poster/table-tent/faces/mystery-face.tsx",
-          "top": "components/merchant/qr-poster/table-tent/faces/ticket-face.tsx"
-        },
-        "shared": "components/merchant/qr-poster/table-tent/faces/shared.tsx"
-      },
-      "anatomy": [
-        "Two horizontal faces with different emotional jobs",
-        "Mystery face: ritual stack + bounded reward promise + QR",
-        "Ticket face: prospective stamp-one start + join truth + QR",
-        "Same venue, QR and stamp count on both faces",
-        "Two-line top facts rail on both faces",
-        "Blank lower 20 mm occlusion-risk band"
-      ],
-      "copy": {
-        "pairing": "mystery + ticket"
-      },
-      "faces": {
-        "bottom": {
-          "id": "mystery",
-          "role": "ritual / intrigue",
-          "qrOuterMm": 46,
-          "anatomy": [
-            "Venue + Nabaperks identity row",
-            "Two-line eligibility/date/redemption/terms rail",
-            "Your-visits ritual hook + bounded reward promise",
-            "Single QR action lane",
-            "Blank lower occlusion band"
-          ],
-          "copy": {
-            "editionLabel": "Table rewards",
-            "stack": ["Your visits", "leave a", "mark."],
-            "rewardLine": "Fill the card. Reveal a venue reward on the final stamp.",
-            "scanLabel": "01 / Today's visit",
-            "scanCta": ["Scan for today's", "stamp"],
-            "frictionLine": "No app — opens in your browser",
-            "footerLeft": "18+ to redeem",
-            "footerCentre": "One visit stamp here per UK date",
-            "footerRight": "Rewards redeem from the next weekday · Terms apply"
-          }
-        },
-        "top": {
-          "id": "ticket",
-          "role": "prospective stamp-one start",
-          "qrOuterMm": 48,
-          "anatomy": [
-            "Venue destination + Nabaperks issuer row",
-            "Two-line eligibility/date/redemption/terms rail",
-            "Prospective stamp-one ticket field",
-            "Decorative perforation seam outside QR quiet zone",
-            "Single QR action stub",
-            "Blank lower occlusion band"
-          ],
-          "notes": "Perforation is visual only; stamp one is prospective until join and issuance succeed.",
-          "copy": {
-            "headline": "Stamp one starts here.",
-            "support": "New members collect stamp one after joining through this venue QR.",
-            "frictionLine": "One text. No password.",
-            "qrCaption": "Scan to start your card",
-            "reassurance": "18+ to redeem · One visit stamp here per UK date · Rewards redeem from the next weekday · Terms apply"
-          }
-        }
-      }
-    },
-    {
-      "id": "table-tent-night",
-      "name": "Table tent — Night",
-      "description": "B5 dual-face tent — dark card romance opposite practical receipt maths.",
-      "sheet": "b5",
-      "sheetSize": "176×250 mm (two faces 176×125 mm)",
-      "useCase": "Evening tables / dark dining rooms",
-      "tone": "night-card-versus-receipt",
-      "copyMode": "dualFace",
-      "fold": {
-        "physics": "ISO B5 portrait; centre mountain-fold peak; fold top half down",
-        "faceTop": "rotated 180° on flat sheet so both faces read upright when standing"
-      },
-      "source": {
-        "entry": "components/merchant/qr-poster/table-tent/table-tent-night-poster.tsx",
-        "styles": "components/merchant/qr-poster/table-tent/table-tent-poster.module.css",
-        "faces": {
-          "bottom": "components/merchant/qr-poster/table-tent/faces/night-face.tsx",
-          "top": "components/merchant/qr-poster/table-tent/faces/receipt-face.tsx"
-        }
-      },
-      "anatomy": [
-        "Two horizontal faces with opposite material metaphors",
-        "Night face: light card object on dark field",
-        "Receipt face: three-row ledger + right-hand QR action lane",
-        "Same venue, QR and stamp count on both faces",
-        "Two-line top facts rail on both faces",
-        "Blank lower 20 mm occlusion-risk band"
-      ],
-      "copy": {
-        "pairing": "night card + receipt"
-      },
-      "faces": {
-        "bottom": {
-          "id": "night",
-          "role": "night-card landscape",
-          "qrOuterMm": 46,
-          "inspiredBy": "northstar",
-          "anatomy": [
-            "Venue + Nabaperks identity row",
-            "Two-line eligibility/date/redemption/terms rail",
-            "Single light loyalty-card object on dark field",
-            "Outlined prospective stamp-one state",
-            "QR embedded inside card action lane",
-            "Blank lower occlusion band"
-          ],
-          "copy": {
-            "chip": "Stamp one starts here.",
-            "headline": "Keep the card. Reveal a venue reward.",
-            "headlineAccent": "reward",
-            "ease": "No app — opens in your browser",
-            "promiseOne": "Stamp one starts after joining through this venue QR.",
-            "promiseMany": "Stamp one starts after joining through this venue QR.",
-            "qrCaption": "Scan to open your card",
-            "reassurance": "18+ to redeem · One visit stamp here per UK date · Rewards redeem from the next weekday · Terms apply"
-          }
-        },
-        "top": {
-          "id": "receipt",
-          "role": "thermal-lite landscape",
-          "qrOuterMm": 46,
-          "inspiredBy": "thermal",
-          "anatomy": [
-            "Venue receipt cap + Nabaperks endorsement",
-            "Two-line eligibility/date/redemption/terms rail",
-            "Three-row loyalty ledger with dark ink on light paper",
-            "Clean black-on-white QR action lane",
-            "Blank lower occlusion band"
-          ],
-          "copy": {
-            "meta": "Loyalty receipt",
-            "headline": "Collect. Fill. Reveal.",
-            "headlineAccent": "Reveal",
-            "items": [
-              { "label": "Stamp one", "value": "After joining" },
-              { "label": "Venue reward", "value": "Sealed" },
-              { "label": "Visits to fill card", "value": "{stamps}" }
-            ],
-            "totalLabel": "To start",
-            "totalValue": "One text",
-            "friction": "Marketing optional",
-            "qrCaption": "Scan for today's stamp",
-            "reassurance": "18+ to redeem · One visit stamp here per UK date · Rewards redeem from the next weekday · Terms apply"
-          }
-        }
-      }
-    },
-    {
-      "id": "table-tent-studio",
-      "name": "Table tent — Studio",
-      "description": "B5 dual-face tent — quiet light intrigue opposite a qualified dark reward shout.",
-      "sheet": "b5",
-      "sheetSize": "176×250 mm (two faces 176×125 mm)",
-      "useCase": "Daytime tables / bright dining rooms",
-      "tone": "calm-versus-shout",
-      "copyMode": "dualFace",
-      "fold": {
-        "physics": "ISO B5 portrait; centre mountain-fold peak; fold top half down",
-        "faceTop": "rotated 180° on flat sheet so both faces read upright when standing"
-      },
-      "source": {
-        "entry": "components/merchant/qr-poster/table-tent/table-tent-studio-poster.tsx",
-        "styles": "components/merchant/qr-poster/table-tent/table-tent-poster.module.css",
-        "faces": {
-          "bottom": "components/merchant/qr-poster/table-tent/faces/editorial-face.tsx",
-          "top": "components/merchant/qr-poster/table-tent/faces/bold-face.tsx"
-        }
-      },
-      "anatomy": [
-        "Two horizontal faces with opposite contrast and tempo",
-        "Editorial face: negative space + bounded mystery + QR",
-        "Bold face: full-card reward promise + sole white QR island",
-        "Same venue, QR and stamp count on both faces",
-        "Two-line top facts rail on both faces",
-        "Blank lower 20 mm occlusion-risk band"
-      ],
-      "copy": {
-        "pairing": "editorial + bold"
-      },
-      "faces": {
-        "bottom": {
-          "id": "editorial",
-          "role": "editorial landscape",
-          "qrOuterMm": 46,
-          "inspiredBy": "editorial",
-          "anatomy": [
-            "Venue + Nabaperks editorial masthead",
-            "Two-line eligibility/date/redemption/terms rail",
-            "Quiet visit-count and bounded reward copy field",
-            "Single QR action lane",
-            "Blank lower occlusion band"
-          ],
-          "copy": {
-            "headline": "{StampsWord} visits. One venue reward.",
-            "support": "Which reward? That stays sealed until your final stamp.",
-            "frictionLine": "No app — opens in your browser",
-            "qrCaption": "Scan for today's stamp",
-            "reassurance": "18+ to redeem · One visit stamp here per UK date · Rewards redeem from the next weekday · Terms apply"
-          }
-        },
-        "top": {
-          "id": "bold",
-          "role": "bold landscape",
-          "qrOuterMm": 46,
-          "inspiredBy": "bold",
-          "anatomy": [
-            "Dark venue + Nabaperks identity rail",
-            "Two-line eligibility/date/redemption/terms rail",
-            "Qualified full-card reward shout",
-            "Sole white QR action island",
-            "Blank lower occlusion band"
-          ],
-          "copy": {
-            "headline": "Every full card reveals a venue reward.",
-            "support": "Which one stays sealed until the card is full.",
-            "frictionLine": "One text. No password.",
-            "qrCaption": "Scan to open your card",
-            "reassurance": "18+ to redeem · One visit stamp here per UK date · Rewards redeem from the next weekday · Terms apply"
-          }
-        }
       }
     }
   ],
