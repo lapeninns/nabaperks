@@ -14,8 +14,8 @@ import { getQrSetup } from "@/lib/merchant/qr-code"
 import { qrReturnHref, resolveQrReturnBase } from "@/lib/merchant/qr-nav"
 import { buildPosterEmailContent } from "@/lib/notifications/poster-email"
 import { buildPosterPdfAttachments } from "@/lib/notifications/poster-pdf"
+import { buildTentPdfAttachments } from "@/lib/notifications/tent-pdf"
 import { sendTransactionalEmail } from "@/lib/notifications/resend"
-import { QR_POSTER_TEMPLATES } from "@/lib/qr/poster-templates"
 import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
@@ -185,11 +185,19 @@ export async function emailPosterAction(): Promise<EmailPosterState> {
     const env = getServerEnv()
     const shareUrl = `${env.NEXT_PUBLIC_APP_URL}/q/${qrCode.qr_id}`
     const venueName = merchant.business_name.trim().slice(0, 120)
-    const attachments = await buildPosterPdfAttachments({
-      merchantName: venueName,
-      shareUrl,
-      stampsRequired: activeCard.stamps_required,
-    })
+    const [posterAttachments, tentAttachments] = await Promise.all([
+      buildPosterPdfAttachments({
+        merchantName: venueName,
+        shareUrl,
+        stampsRequired: activeCard.stamps_required,
+      }),
+      buildTentPdfAttachments({
+        merchantName: venueName,
+        shareUrl,
+        stampsRequired: activeCard.stamps_required,
+      }),
+    ])
+    const attachments = [...posterAttachments, ...tentAttachments]
     const content = buildPosterEmailContent({ venueName })
     await sendTransactionalEmail({ to, ...content, attachments })
 
@@ -202,7 +210,7 @@ export async function emailPosterAction(): Promise<EmailPosterState> {
 
     return {
       ok: true,
-      message: `${QR_POSTER_TEMPLATES.length} poster PDFs sent to ${to}.`,
+      message: `${attachments.length} print-kit PDFs sent to ${to}.`,
     }
   } catch (error) {
     if (error instanceof RateLimitError) {

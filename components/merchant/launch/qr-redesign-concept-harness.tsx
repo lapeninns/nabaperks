@@ -2,7 +2,10 @@ import {
   QrWorkspace,
   type DistributionChannel,
 } from "@/components/merchant/launch/qr-redesign-concept"
-import { buildPosterHrefs } from "@/components/merchant/launch/qr-redesign-concept-parts"
+import {
+  buildPosterHrefs,
+  buildTentHrefs,
+} from "@/components/merchant/launch/qr-redesign-concept-parts"
 import type { QrPosterTemplateId } from "@/lib/qr/poster-templates"
 
 export function QrRedesignConcept({
@@ -35,6 +38,7 @@ export function QrRedesignConcept({
       posterHrefs={buildPosterHrefs(
         (id) => `/dev/poster-preview?template=${id}`
       )}
+      tentHrefs={buildTentHrefs((id) => `/dev/tent-preview?design=${id}`)}
     />
   )
 }

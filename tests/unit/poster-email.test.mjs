@@ -3,23 +3,27 @@ import { test } from "node:test"
 
 import { buildPosterEmailContent } from "@/lib/notifications/poster-email"
 import { QR_POSTER_PRODUCTION_TEMPLATES } from "@/lib/qr/poster-templates"
+import { TENT_PRODUCTION_DESIGNS } from "@/lib/qr/tent-templates"
 
 const INPUT = {
   venueName: "Old Crown Girton",
 }
 
-test("buildPosterEmailContent describes attached PDFs without a poster link", () => {
+test("buildPosterEmailContent describes the print kit without a link", () => {
   const { subject, text, html } = buildPosterEmailContent(INPUT)
-  const count = String(QR_POSTER_PRODUCTION_TEMPLATES.length)
+  const posterCount = String(QR_POSTER_PRODUCTION_TEMPLATES.length)
+  const tentCount = String(TENT_PRODUCTION_DESIGNS.length)
 
-  assert.match(subject, /poster/i)
+  assert.match(subject, /print kit/i)
   for (const part of [text, html]) {
     assert.ok(part.includes("Old Crown Girton"), "venue name present")
-    assert.match(part, new RegExp(count))
     assert.match(part, /attach/i)
     assert.doesNotMatch(part, /https?:\/\//)
-    assert.match(part, new RegExp(`${count} A4.*counter`, "i"))
-    assert.doesNotMatch(part, /B5|table-tent/i)
+    // The kit names both counts: posters and table tents.
+    assert.match(part, new RegExp(`${posterCount} A4.*counter posters`, "i"))
+    assert.match(part, new RegExp(`${tentCount} A4.*table tents`, "i"))
+    // The stale B5 format must never appear; A4 table tents may.
+    assert.doesNotMatch(part, /b5/i)
     assert.match(part, /210 × 297 mm/)
     assert.match(part, /physical print at actual size/i)
     assert.match(part, /representative phones/i)

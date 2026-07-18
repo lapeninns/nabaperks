@@ -12,6 +12,7 @@ import { SwipePosterPicker } from "@/components/merchant/launch/qr-redesign-swip
 import {
   ChannelButton,
   PosterProof,
+  TableTentLinks,
   TemplateButton,
   WorkspaceStatus,
   workspaceHref,
@@ -24,6 +25,7 @@ import {
   QR_POSTER_PRODUCTION_TEMPLATES,
   type QrPosterTemplateId,
 } from "@/lib/qr/poster-templates"
+import type { TableTentDesignId } from "@/lib/qr/tent-templates"
 
 export type { DistributionChannel } from "@/components/merchant/launch/qr-redesign-concept-parts"
 
@@ -38,6 +40,7 @@ export function QrWorkspace({
   status,
   navigationBaseHref,
   posterHrefs,
+  tentHrefs,
   statusAction,
   warnings,
   printNotice,
@@ -54,6 +57,7 @@ export function QrWorkspace({
   readonly status: QrWorkspaceStatus
   readonly navigationBaseHref: string
   readonly posterHrefs: Readonly<Record<QrPosterTemplateId, string>>
+  readonly tentHrefs: Readonly<Record<TableTentDesignId, string>>
   readonly statusAction?: ReactNode
   readonly warnings?: ReactNode
   readonly printNotice?: ReactNode
@@ -213,6 +217,7 @@ export function QrWorkspace({
                 />
               </>
             )}
+            <TableTentLinks tentHrefs={tentHrefs} />
             {printNotice ? (
               <div className="lg:col-span-2">{printNotice}</div>
             ) : null}

@@ -40,6 +40,7 @@ const HARNESS_LANES = [
   HARNESS_ROUTES.states,
   HARNESS_ROUTES.designSystem,
   HARNESS_ROUTES.posterPreview,
+  HARNESS_ROUTES.tentPreview,
 ] as const
 
 const A11Y_ROUTES = [...PUBLIC_ROUTES, ...HARNESS_LANES] as const

@@ -8,12 +8,14 @@ import { QrErrorBanner } from "@/components/merchant/launch/qr-error-banner"
 import { QrWorkspace } from "@/components/merchant/launch/qr-redesign-concept"
 import {
   buildPosterHrefs,
+  buildTentHrefs,
   resolveDistributionChannel,
   resolveQrPosterTemplate,
 } from "@/components/merchant/launch/qr-redesign-concept-parts"
 import { Button } from "@/components/ui/button"
 import { getActivePromo } from "@/lib/marketing/promo"
 import type { QrPosterTemplateId } from "@/lib/qr/poster-templates"
+import type { TableTentDesignId } from "@/lib/qr/tent-templates"
 
 type QrPanelLiveProps = {
   readonly activeCardName: string
@@ -54,6 +56,9 @@ export function QrPanelLive({
   const posterHrefs = buildPosterHrefs((template) =>
     productionPosterHref(template, qrCodeId, returnHref)
   )
+  const tentHrefs = buildTentHrefs((design) =>
+    productionTentHref(design, qrCodeId, returnHref)
+  )
 
   return (
     <QrWorkspace
@@ -67,6 +72,7 @@ export function QrPanelLive({
       status={scansAvailable ? "live" : isActive ? "paused" : "disabled"}
       navigationBaseHref={workspaceHref ?? returnHref}
       posterHrefs={posterHrefs}
+      tentHrefs={tentHrefs}
       statusAction={
         <QrStatusAction
           qrCodeId={qrCodeId}
@@ -78,9 +84,7 @@ export function QrPanelLive({
       warnings={
         <QrWorkspaceWarnings
           billingReady={billingReady}
-          showAddressWarning={
-            selectedChannel === "print" && !hasVenueAddress
-          }
+          showAddressWarning={selectedChannel === "print" && !hasVenueAddress}
           error={error}
         />
       }
@@ -161,9 +165,7 @@ function QrStatusAction({
   if (!billingReady && !isActive) {
     return (
       <Button asChild size="sm" variant="outline">
-        <Link href="/app/launch?tab=billing">
-          Fix billing before resuming
-        </Link>
+        <Link href="/app/launch?tab=billing">Fix billing before resuming</Link>
       </Button>
     )
   }
@@ -194,4 +196,12 @@ function productionPosterHref(
   returnHref: string
 ) {
   return `/app/qr/poster/${template}?qr=${qrCodeId}&from=${encodeURIComponent(returnHref)}`
+}
+
+function productionTentHref(
+  design: TableTentDesignId,
+  qrCodeId: string,
+  returnHref: string
+) {
+  return `/app/qr/tent/${design}?qr=${qrCodeId}&from=${encodeURIComponent(returnHref)}`
 }

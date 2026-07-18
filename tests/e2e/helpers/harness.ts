@@ -27,6 +27,7 @@ export const HARNESS_ROUTES = {
   states: "/dev/app-harness/states",
   designSystem: "/dev/design-system",
   posterPreview: "/dev/poster-preview",
+  tentPreview: "/dev/tent-preview",
 } as const
 
 /**
