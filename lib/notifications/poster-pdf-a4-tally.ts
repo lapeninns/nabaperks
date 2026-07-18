@@ -14,9 +14,9 @@ import {
   drawKitMasthead,
   drawKitQrPanel,
 } from "./poster-pdf-kit-pieces"
+import { drawTallyCircleRow } from "./poster-pdf-a4-tally-circles"
 import {
   drawKitCapsule,
-  drawKitCenteredText,
   drawKitVenueLine,
   popKitRotation,
   pushKitRotation,
@@ -122,64 +122,7 @@ export function drawTallyA4(
     font: fonts.monoBold,
     color: POSTER_PDF_COLOR.inkSoft,
   })
-  const radius = mm(10.5)
-  const circleY = mm(180)
-  const stamps = context.stampsRequired
-  for (let index = 0; index < stamps; index += 1) {
-    const centerX =
-      stamps === 1
-        ? inset + radius
-        : inset + radius + (index * (innerWidth - radius * 2)) / (stamps - 1)
-    const sealed = index === stamps - 1
-    const today = index === 0
-    if (sealed) {
-      page.drawCircle({
-        x: centerX,
-        y: circleY,
-        size: radius,
-        color: POSTER_PDF_COLOR.sun,
-        borderColor: POSTER_PDF_COLOR.ink,
-        borderWidth: 1.7,
-      })
-      drawKitCenteredText(
-        page,
-        today ? content.todayLabel.toUpperCase() : "*",
-        {
-          centerX,
-          y: circleY - 3,
-          font: today ? fonts.monoBold : fonts.bold,
-          size: today ? 8.5 : 14,
-          color: POSTER_PDF_COLOR.ink,
-        }
-      )
-    } else if (today) {
-      page.drawCircle({
-        x: centerX,
-        y: circleY,
-        size: radius,
-        borderColor: POSTER_PDF_COLOR.accent,
-        borderWidth: 2,
-        borderDashArray: [4, 3],
-      })
-      drawKitCenteredText(page, content.todayLabel.toUpperCase(), {
-        centerX,
-        y: circleY - 3,
-        font: fonts.monoBold,
-        size: 8.5,
-        color: POSTER_PDF_COLOR.accent,
-      })
-    } else {
-      page.drawCircle({
-        x: centerX,
-        y: circleY,
-        size: radius,
-        borderColor: POSTER_PDF_COLOR.ink,
-        borderWidth: 1.7,
-        borderOpacity: 0.4,
-        borderDashArray: [4, 3],
-      })
-    }
-  }
+  drawTallyCircleRow(context, content, { inset, innerWidth })
   drawWrappedText(page, content.explainer, {
     x: inset,
     y: mm(160),
