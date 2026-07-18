@@ -6,7 +6,7 @@
     "operator": "Lapen Inns",
     "market": "UK hospitality",
     "visualSystem": "Wet Ink",
-    "kitSummary": "Eight print-ready A4 counter posters; four in the production rotation."
+    "kitSummary": "Eight print-ready A4 counter posters."
   },
   "collections": [
     {
@@ -91,7 +91,7 @@
       "collection": "counter",
       "format": "a4-counter",
       "revision": 2,
-      "rollout": "review",
+      "rollout": "production",
       "name": "Primer",
       "description": "Ledger statement — the fair deal set out in writing.",
       "sheet": "a4",
@@ -178,7 +178,7 @@
       "collection": "counter",
       "format": "a4-counter",
       "revision": 2,
-      "rollout": "review",
+      "rollout": "production",
       "name": "Window",
       "description": "Vermillion duotone that reads from the street.",
       "sheet": "a4",
@@ -259,7 +259,7 @@
       "collection": "counter",
       "format": "a4-counter",
       "revision": 2,
-      "rollout": "review",
+      "rollout": "production",
       "name": "Seal",
       "description": "Redacted reward manifest — contents undisclosed.",
       "sheet": "a4",
@@ -308,7 +308,7 @@
       "collection": "counter",
       "format": "a4-counter",
       "revision": 2,
-      "rollout": "experimental",
+      "rollout": "production",
       "name": "Tally",
       "description": "Oversized loyalty card with today's circle open.",
       "sheet": "a4",

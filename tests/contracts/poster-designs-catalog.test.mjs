@@ -56,20 +56,17 @@ test("poster catalogue carries an explicit rollout state for every design", () =
   )
 
   assert.deepEqual(rollouts, {
-    primer: "review",
+    primer: "production",
     garden: "production",
-    window: "review",
+    window: "production",
     pinned: "production",
-    seal: "review",
-    tally: "experimental",
+    seal: "production",
+    tally: "production",
     round: "production",
     lastcall: "production",
   })
-  // Garden leads the production rotation and is the picker default.
-  assert.equal(
-    catalog.templates.find(({ rollout }) => rollout === "production").id,
-    "garden"
-  )
+  // The whole eight-design kit is in the production rotation.
+  assert.ok(catalog.templates.every(({ rollout }) => rollout === "production"))
   assert.match(catalog.shared.rolloutPolicy, /production templates only/)
 })
 
