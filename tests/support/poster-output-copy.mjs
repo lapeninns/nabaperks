@@ -1,11 +1,3 @@
-function accentHeadline(headline) {
-  return `${headline.beforeAccent}${headline.accent}${headline.afterAccent}`
-}
-
-function values(items) {
-  return items.flatMap((item) => [item.label, item.value])
-}
-
 function unique(strings) {
   return [
     ...new Set(
@@ -15,7 +7,12 @@ function unique(strings) {
 }
 
 export function normalisePosterText(value) {
-  return value.replace(/\s+/g, " ").trim().toLocaleLowerCase("en-GB")
+  // "Nº" and PDF-extracted "No" are the same numero sign to this contract.
+  return value
+    .replace(/º/g, "o")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLocaleLowerCase("en-GB")
 }
 
 function posterTextTokens(value) {
@@ -39,49 +36,135 @@ export function containsPosterCopy(rendered, expected) {
 
 export function posterVisibleCopyByFace(content) {
   switch (content.id) {
-    case "editorial":
-    case "bold":
-    case "ticket":
+    case "primer":
       return [
         {
           face: "sheet",
           strings: unique([
-            accentHeadline(content.headline),
-            content.support,
-            content.rewardDetail,
+            content.ledgerLabel,
+            content.edition,
+            content.headline,
+            ...content.clauses.flatMap((clause) => [
+              clause.title,
+              clause.detail,
+            ]),
+            content.qrCaption,
+            content.issuerLabel,
+            content.memberTag,
+            content.signature,
+            content.reassurance,
+          ]),
+        },
+      ]
+    case "garden":
+    case "window":
+      return [
+        {
+          face: "sheet",
+          strings: unique([
+            content.eyebrow,
+            content.edition,
+            content.headline,
+            content.lede,
+            ...content.friction,
+            content.sealedLine,
+            content.qrCaption,
+            content.memberTag,
+            content.reassurance,
+          ]),
+        },
+      ]
+    case "pinned":
+      return [
+        {
+          face: "sheet",
+          strings: unique([
+            content.eyebrow,
+            content.edition,
+            content.headline,
+            content.lede,
+            ...content.friction,
+            content.qrCaption,
+            content.memberTag,
+            content.stubTop,
+            content.stubBottom,
+            content.reassurance,
+          ]),
+        },
+      ]
+    case "seal":
+      return [
+        {
+          face: "sheet",
+          strings: unique([
+            content.manifestLabel,
+            content.edition,
+            content.headline,
+            content.sealedTag,
+            ...content.rows.flatMap((row) => [row.label, row.value]),
             content.frictionLine,
             content.qrCaption,
-            content.progress,
+            content.issuerLabel,
+            content.memberTag,
+            content.signature,
             content.reassurance,
           ]),
         },
       ]
-    case "northstar":
+    case "tally":
       return [
         {
           face: "sheet",
           strings: unique([
+            content.eyebrow,
+            content.edition,
             content.headline,
-            content.ease,
-            content.chip,
+            content.cardLabel,
+            content.cardCount,
+            content.todayLabel,
+            content.explainer,
+            ...content.friction,
+            content.dateRule,
             content.qrCaption,
-            content.promise,
+            content.memberTag,
             content.reassurance,
           ]),
         },
       ]
-    case "thermal":
+    case "round":
       return [
         {
           face: "sheet",
           strings: unique([
-            content.meta,
-            content.friction,
-            content.headline,
-            ...values(content.items),
-            content.totalLabel,
-            content.totalValue,
+            content.eyebrow,
+            content.edition,
+            content.headline.lead,
+            content.headline.accent,
+            content.lede,
+            content.sealedLine,
+            ...content.friction,
+            ...content.matLines,
             content.qrCaption,
+            content.memberTag,
+            content.reassurance,
+          ]),
+        },
+      ]
+    case "lastcall":
+      return [
+        {
+          face: "sheet",
+          strings: unique([
+            content.eyebrow,
+            content.edition,
+            content.headline.lead,
+            content.headline.accent,
+            content.badge,
+            content.lede,
+            ...content.friction,
+            content.sealedLine,
+            content.qrCaption,
+            content.memberTag,
             content.reassurance,
           ]),
         },

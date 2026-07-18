@@ -1,0 +1,103 @@
+/* Nº 06 · Primer — formal ledger statement on deep paper. */
+
+.primer {
+  --kit-ground: #ece5d4;
+  --kit-ink: #211c16;
+  --kit-soft: #4f473d;
+  --kit-rule: rgba(33, 28, 22, 0.5);
+  --kit-venue-size: 19pt;
+
+  display: flex;
+  flex-direction: column;
+  gap: 6mm;
+  width: 100%;
+  height: 100%;
+  padding: 15mm;
+  box-sizing: border-box;
+}
+
+.masthead {
+  display: flex;
+  justify-content: space-between;
+  gap: 6mm;
+  font-size: 10pt;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-bottom: 0.8mm solid var(--kit-ink);
+  padding-bottom: 3mm;
+}
+
+.headline {
+  margin: 2mm 0 0;
+  font-family: var(--font-bricolage-grotesque), sans-serif;
+  font-size: var(--poster-a4-hook-size);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: 1;
+  text-wrap: balance;
+}
+
+.clauses {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-evenly;
+  min-height: 0;
+}
+
+.clause {
+  display: flex;
+  gap: 8mm;
+  align-items: baseline;
+  padding: 4.5mm 0;
+  border-bottom: 0.4mm dashed var(--kit-rule);
+}
+
+.clause:last-child {
+  border-bottom: 0.8mm solid var(--kit-ink);
+}
+
+.clauseNumber {
+  flex: none;
+  font-size: var(--poster-a4-substantive-size);
+  font-weight: 700;
+}
+
+.clauseBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.clauseTitle {
+  font-size: var(--poster-a4-substantive-size);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.clause[data-sealed="true"] .clauseNumber,
+.clause[data-sealed="true"] .clauseTitle {
+  color: #16733c;
+}
+
+.clauseDetail {
+  margin: 0;
+  font-family: var(--font-bricolage-grotesque), sans-serif;
+  font-size: 11.5pt;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--kit-soft);
+}
+
+.action {
+  display: flex;
+  gap: 9mm;
+  align-items: center;
+}
+
+.legal {
+  border-top: 0.8mm solid var(--kit-ink);
+  padding-top: 3mm;
+}

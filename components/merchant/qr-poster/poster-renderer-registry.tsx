@@ -1,16 +1,14 @@
-import type { ComponentType, ReactNode } from "react"
+import type { ComponentType } from "react"
 
 import type { QrPosterTemplateId } from "@/lib/qr/poster-templates"
 
-import styles from "./a4-poster.module.css"
-import { NorthStarPoster } from "./northstar/northstar-poster"
-import {
-  a4PosterStyle,
-  type CopyPosterTemplateId,
-  getPosterCopy,
-} from "./poster-copy"
-import { BoldPoster, EditorialPoster, TicketPoster } from "./poster-variants"
-import { ThermalPoster } from "./thermal/thermal-poster"
+import { DuotonePoster } from "./counter-kit/duotone-poster"
+import { LastcallPoster } from "./counter-kit/lastcall-poster"
+import { PinnedPoster } from "./counter-kit/pinned-poster"
+import { PrimerPoster } from "./counter-kit/primer-poster"
+import { RoundPoster } from "./counter-kit/round-poster"
+import { SealPoster } from "./counter-kit/seal-poster"
+import { TallyPoster } from "./counter-kit/tally-poster"
 
 export type PosterRendererProps = {
   readonly qrDataUrl: string
@@ -18,74 +16,51 @@ export type PosterRendererProps = {
   readonly stampsRequired: number
 }
 
-type CopyDrivenSheetProps = PosterRendererProps & {
-  readonly template: CopyPosterTemplateId
+function PrimerSheet({ merchantName, ...props }: PosterRendererProps) {
+  return <PrimerPoster {...props} businessName={merchantName} />
 }
 
-const TEMPLATE_CLASS_NAMES: Record<CopyPosterTemplateId, string> = {
-  editorial: styles.editorial,
-  bold: `${styles.bold} dark`,
-  ticket: styles.ticket,
-}
-
-function CopyDrivenSheet({
-  template,
-  qrDataUrl,
-  merchantName,
-  stampsRequired,
-}: CopyDrivenSheetProps) {
-  const copy = getPosterCopy(
-    { businessName: merchantName, stampsRequired },
-    template
-  )
-  const posterByTemplate = {
-    editorial: <EditorialPoster copy={copy} qrDataUrl={qrDataUrl} />,
-    bold: <BoldPoster copy={copy} qrDataUrl={qrDataUrl} />,
-    ticket: <TicketPoster copy={copy} qrDataUrl={qrDataUrl} />,
-  } satisfies Record<CopyPosterTemplateId, ReactNode>
-
+function GardenSheet({ merchantName, ...props }: PosterRendererProps) {
   return (
-    <article
-      className={`${styles.sheet} ${TEMPLATE_CLASS_NAMES[template]}`}
-      style={{
-        ...a4PosterStyle(copy),
-        width: `${copy.geometry.sheetWidthMm}mm`,
-        height: `${copy.geometry.sheetHeightMm}mm`,
-        minHeight: `${copy.geometry.sheetHeightMm}mm`,
-        maxHeight: `${copy.geometry.sheetHeightMm}mm`,
-      }}
-    >
-      {posterByTemplate[template]}
-    </article>
+    <DuotonePoster template="garden" {...props} businessName={merchantName} />
   )
 }
 
-function EditorialSheet(props: PosterRendererProps) {
-  return <CopyDrivenSheet {...props} template="editorial" />
+function WindowSheet({ merchantName, ...props }: PosterRendererProps) {
+  return (
+    <DuotonePoster template="window" {...props} businessName={merchantName} />
+  )
 }
 
-function BoldSheet(props: PosterRendererProps) {
-  return <CopyDrivenSheet {...props} template="bold" />
+function PinnedSheet({ merchantName, ...props }: PosterRendererProps) {
+  return <PinnedPoster {...props} businessName={merchantName} />
 }
 
-function TicketSheet(props: PosterRendererProps) {
-  return <CopyDrivenSheet {...props} template="ticket" />
+function SealSheet({ merchantName, ...props }: PosterRendererProps) {
+  return <SealPoster {...props} businessName={merchantName} />
 }
 
-function NightCardSheet({ merchantName, ...props }: PosterRendererProps) {
-  return <NorthStarPoster {...props} businessName={merchantName} />
+function TallySheet({ merchantName, ...props }: PosterRendererProps) {
+  return <TallyPoster {...props} businessName={merchantName} />
 }
 
-function ReceiptSheet({ merchantName, ...props }: PosterRendererProps) {
-  return <ThermalPoster {...props} businessName={merchantName} />
+function RoundSheet({ merchantName, ...props }: PosterRendererProps) {
+  return <RoundPoster {...props} businessName={merchantName} />
+}
+
+function LastcallSheet({ merchantName, ...props }: PosterRendererProps) {
+  return <LastcallPoster {...props} businessName={merchantName} />
 }
 
 const POSTER_BROWSER_RENDERERS = {
-  editorial: EditorialSheet,
-  bold: BoldSheet,
-  ticket: TicketSheet,
-  northstar: NightCardSheet,
-  thermal: ReceiptSheet,
+  primer: PrimerSheet,
+  garden: GardenSheet,
+  window: WindowSheet,
+  pinned: PinnedSheet,
+  seal: SealSheet,
+  tally: TallySheet,
+  round: RoundSheet,
+  lastcall: LastcallSheet,
 } satisfies Record<QrPosterTemplateId, ComponentType<PosterRendererProps>>
 
 export function PosterDesignSheet({

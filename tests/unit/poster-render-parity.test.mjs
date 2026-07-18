@@ -8,7 +8,7 @@ import {
   posterVisibleCopyByFace,
 } from "../support/poster-output-copy.mjs"
 
-test("the rendered-output copy contract covers all five A4 sheets", () => {
+test("the rendered-output copy contract covers all eight A4 sheets", () => {
   const faces = posterDesignIds().flatMap((id) =>
     posterVisibleCopyByFace(resolvePosterContent(id, 6)).map((face) => ({
       id,
@@ -16,15 +16,18 @@ test("the rendered-output copy contract covers all five A4 sheets", () => {
     }))
   )
 
-  assert.equal(faces.length, 5)
+  assert.equal(faces.length, 8)
   assert.deepEqual(
     faces.map(({ id, face }) => `${id}:${face}`),
     [
-      "editorial:sheet",
-      "bold:sheet",
-      "ticket:sheet",
-      "northstar:sheet",
-      "thermal:sheet",
+      "primer:sheet",
+      "garden:sheet",
+      "window:sheet",
+      "pinned:sheet",
+      "seal:sheet",
+      "tally:sheet",
+      "round:sheet",
+      "lastcall:sheet",
     ]
   )
   assert.ok(faces.every(({ strings }) => strings.length >= 5))

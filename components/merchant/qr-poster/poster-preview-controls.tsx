@@ -14,15 +14,18 @@ import {
 import { cn } from "@/lib/utils"
 
 const TEMPLATE_TAB_ACCENT: Record<QrPosterTemplateId, string> = {
-  editorial:
-    "data-[active=true]:border-l-cobalt data-[active=true]:bg-paper-deep",
-  bold: "data-[active=true]:border-l-ink data-[active=true]:bg-ink data-[active=true]:text-paper",
-  ticket:
-    "data-[active=true]:border-l-primary data-[active=true]:bg-paper-deep",
-  northstar:
-    "data-[active=true]:border-l-sun data-[active=true]:bg-ink data-[active=true]:text-paper",
-  thermal:
+  primer:
     "data-[active=true]:border-l-ink-soft data-[active=true]:bg-paper-deep",
+  garden: "data-[active=true]:border-l-leaf data-[active=true]:bg-paper-deep",
+  window:
+    "data-[active=true]:border-l-primary data-[active=true]:bg-paper-deep",
+  pinned: "data-[active=true]:border-l-cobalt data-[active=true]:bg-paper-deep",
+  seal: "data-[active=true]:border-l-sun data-[active=true]:bg-paper-deep",
+  tally: "data-[active=true]:border-l-cobalt data-[active=true]:bg-paper-deep",
+  round:
+    "data-[active=true]:border-l-leaf data-[active=true]:bg-ink data-[active=true]:text-paper",
+  lastcall:
+    "data-[active=true]:border-l-sun data-[active=true]:bg-ink data-[active=true]:text-paper",
 }
 
 export function PrintButton({
@@ -103,35 +106,44 @@ export function PosterTemplateLinks({
           >
             {collection.name}
           </span>
-          {collection.templates.map((item) => {
-            const isActive = item.id === template
-            const from = backHref ? `&from=${encodeURIComponent(backHref)}` : ""
-            return (
-              <Link
-                key={item.id}
-                ref={isActive ? activePillRef : undefined}
-                href={`/app/qr/poster/${item.id}?qr=${qrCodeId}${from}`}
-                title={item.description}
-                data-active={isActive ? "true" : "false"}
-                aria-current={isActive ? "page" : undefined}
-                className={cn(
-                  "focus-ring border-2 border-l-[3px] border-ink bg-card font-extrabold shadow-sm transition-[transform,box-shadow] hover:-translate-y-px hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0",
-                  isStrip
-                    ? "flex min-h-11 shrink-0 items-center rounded-lg px-3.5 text-sm leading-none whitespace-nowrap"
-                    : "flex min-h-10 w-full items-center rounded-lg px-3 py-2.5 text-sm leading-snug",
-                  TEMPLATE_TAB_ACCENT[item.id],
-                  isActive && "shadow-md"
-                )}
-              >
-                <span className="block">{item.name}</span>
-                {!isStrip ? (
-                  <span className="mt-0.5 block text-xs leading-snug font-medium text-muted-foreground normal-case">
-                    {item.description}
-                  </span>
-                ) : null}
-              </Link>
+          {/* Merchants pick from the production rotation; a review or
+              experimental template opened by direct URL still shows its own
+              active pill rather than falling back to another design. */}
+          {collection.templates
+            .filter(
+              (item) => item.rollout === "production" || item.id === template
             )
-          })}
+            .map((item) => {
+              const isActive = item.id === template
+              const from = backHref
+                ? `&from=${encodeURIComponent(backHref)}`
+                : ""
+              return (
+                <Link
+                  key={item.id}
+                  ref={isActive ? activePillRef : undefined}
+                  href={`/app/qr/poster/${item.id}?qr=${qrCodeId}${from}`}
+                  title={item.description}
+                  data-active={isActive ? "true" : "false"}
+                  aria-current={isActive ? "page" : undefined}
+                  className={cn(
+                    "focus-ring border-2 border-l-[3px] border-ink bg-card font-extrabold shadow-sm transition-[transform,box-shadow] hover:-translate-y-px hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0",
+                    isStrip
+                      ? "flex min-h-11 shrink-0 items-center rounded-lg px-3.5 text-sm leading-none whitespace-nowrap"
+                      : "flex min-h-10 w-full items-center rounded-lg px-3 py-2.5 text-sm leading-snug",
+                    TEMPLATE_TAB_ACCENT[item.id],
+                    isActive && "shadow-md"
+                  )}
+                >
+                  <span className="block">{item.name}</span>
+                  {!isStrip ? (
+                    <span className="mt-0.5 block text-xs leading-snug font-medium text-muted-foreground normal-case">
+                      {item.description}
+                    </span>
+                  ) : null}
+                </Link>
+              )
+            })}
         </Fragment>
       ))}
     </nav>

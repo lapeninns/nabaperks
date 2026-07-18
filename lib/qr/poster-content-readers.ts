@@ -1,11 +1,10 @@
 import {
-  requireArray,
-  requireRecord,
-  requireRecordField,
   requireString,
   sharedArray,
+  sharedRecord,
+  sharedString,
 } from "./poster-design-reader"
-import type { AccentHeadline, ReceiptItem } from "./poster-content-types"
+import type { FrictionTriple } from "./poster-kit-content-types"
 
 const PLACEHOLDER_PATTERN = /\{([A-Za-z][A-Za-z0-9]*)\}/g
 
@@ -50,98 +49,29 @@ export function copyString(
   return resolvePosterText(requireString(record, key, path), stampsRequired)
 }
 
-export function accentHeadline(
+/** Resolve a grammar-safe one/many copy pair, keyed off stampsRequired. */
+export function copyChoice(
   record: Record<string, unknown>,
-  key: string,
+  baseKey: string,
   stampsRequired: number,
   path: string
-): AccentHeadline {
-  const headline = requireRecordField(record, key, path)
-  const headlinePath = `${path}.${key}`
-  return {
-    beforeAccent: copyString(
-      headline,
-      "beforeAccent",
-      stampsRequired,
-      headlinePath
-    ),
-    accent: copyString(headline, "accent", stampsRequired, headlinePath),
-    afterAccent: copyString(
-      headline,
-      "afterAccent",
-      stampsRequired,
-      headlinePath
-    ),
-  }
+): string {
+  const key = stampsRequired === 1 ? `${baseKey}One` : `${baseKey}Many`
+  return copyString(record, key, stampsRequired, path)
 }
 
-export function receiptItems(
-  record: Record<string, unknown>,
-  stampsRequired: number,
-  path: string
-): readonly ReceiptItem[] {
-  return requireArray(record, "items", path).map((value, index) => {
-    const item = requireRecord(value, `${path}.items[${index}]`)
-    return {
-      label: copyString(
-        item,
-        "label",
-        stampsRequired,
-        `${path}.items[${index}]`
-      ),
-      value: copyString(
-        item,
-        "value",
-        stampsRequired,
-        `${path}.items[${index}]`
-      ),
-      accent: item.accent === true,
-    }
-  })
-}
-
-export function stringTuple2(
-  record: Record<string, unknown>,
-  key: string,
-  stampsRequired: number,
-  path: string
-): readonly [string, string] {
-  const values = requireArray(record, key, path)
-  if (values.length !== 2) {
-    throw new Error(`Expected two poster strings at ${path}.${key}`)
-  }
-  const first = values[0]
-  const second = values[1]
-  if (typeof first !== "string" || typeof second !== "string") {
-    throw new Error(`Expected two poster strings at ${path}.${key}`)
-  }
+/** The shared friction-reduction triple: browser, join, marketing. */
+export function sharedFrictionTriple(stampsRequired: number): FrictionTriple {
+  const friction = sharedRecord("friction")
+  const path = "posterDesigns.shared.friction"
   return [
-    resolvePosterText(first, stampsRequired),
-    resolvePosterText(second, stampsRequired),
+    copyString(friction, "browser", stampsRequired, path),
+    copyString(friction, "join", stampsRequired, path),
+    copyString(friction, "marketing", stampsRequired, path),
   ]
 }
 
-export function stringTuple3(
-  record: Record<string, unknown>,
-  key: string,
-  stampsRequired: number,
-  path: string
-): readonly [string, string, string] {
-  const values = requireArray(record, key, path)
-  if (values.length !== 3) {
-    throw new Error(`Expected three poster strings at ${path}.${key}`)
-  }
-  const [first, second, third] = values
-  if (
-    typeof first !== "string" ||
-    typeof second !== "string" ||
-    typeof third !== "string"
-  ) {
-    throw new Error(`Expected three poster strings at ${path}.${key}`)
-  }
-  return [
-    resolvePosterText(first, stampsRequired),
-    resolvePosterText(second, stampsRequired),
-    resolvePosterText(third, stampsRequired),
-  ]
+/** The shared Nabaperks member-venue endorsement tag. */
+export function sharedMemberTag(): string {
+  return sharedString("memberTag")
 }
