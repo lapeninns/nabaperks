@@ -59,7 +59,8 @@ test("critical page and QR values enter adapters through resolved content", () =
       "components",
       "merchant",
       "qr-poster",
-      "poster-renderer-registry.tsx"
+      "counter-kit",
+      "kit-pieces.tsx"
     ),
     "utf8"
   )
@@ -68,6 +69,6 @@ test("critical page and QR values enter adapters through resolved content", () =
     "utf8"
   )
 
-  assert.match(browser, /copy\.geometry\.sheetWidthMm/)
+  assert.match(browser, /content\.geometry\.sheetWidthMm/)
   assert.match(pdf, /content\.geometry\.sheetWidthMm/)
 })

@@ -9,7 +9,7 @@ import { Icon, IconRoundel, MonoTag } from "@/components/brand"
 import { PosterThumbnail } from "@/components/merchant/qr-poster/poster-thumbnail"
 import { Button } from "@/components/ui/button"
 import {
-  QR_POSTER_TEMPLATES,
+  QR_POSTER_PRODUCTION_TEMPLATES,
   type QrPosterTemplateId,
 } from "@/lib/qr/poster-templates"
 import { cn } from "@/lib/utils"
@@ -172,7 +172,8 @@ export function resolveQrPosterTemplate(
   value: string | undefined
 ): QrPosterTemplateId {
   return (
-    QR_POSTER_TEMPLATES.find((item) => item.id === value)?.id ?? "editorial"
+    QR_POSTER_PRODUCTION_TEMPLATES.find((item) => item.id === value)?.id ??
+    "garden"
   )
 }
 
@@ -180,6 +181,9 @@ export function buildPosterHrefs(
   resolveHref: (id: QrPosterTemplateId) => string
 ): Readonly<Record<QrPosterTemplateId, string>> {
   return Object.fromEntries(
-    QR_POSTER_TEMPLATES.map((item) => [item.id, resolveHref(item.id)])
+    QR_POSTER_PRODUCTION_TEMPLATES.map((item) => [
+      item.id,
+      resolveHref(item.id),
+    ])
   ) as Readonly<Record<QrPosterTemplateId, string>>
 }

@@ -21,7 +21,7 @@ import {
 import { Button } from "@/components/ui/button"
 import {
   getQrPosterUseCase,
-  QR_POSTER_TEMPLATES,
+  QR_POSTER_PRODUCTION_TEMPLATES,
   type QrPosterTemplateId,
 } from "@/lib/qr/poster-templates"
 
@@ -61,8 +61,8 @@ export function QrWorkspace({
   readonly posterPickerVariant?: "tabs" | "swipe"
 }) {
   const selectedTemplate =
-    QR_POSTER_TEMPLATES.find((item) => item.id === template) ??
-    QR_POSTER_TEMPLATES[0]
+    QR_POSTER_PRODUCTION_TEMPLATES.find((item) => item.id === template) ??
+    QR_POSTER_PRODUCTION_TEMPLATES[0]
 
   return (
     <article className="grid min-w-0 gap-4 sm:gap-5">
@@ -187,7 +187,7 @@ export function QrWorkspace({
                     </p>
                   </div>
                   <div className="flex [scrollbar-width:none] gap-2 overflow-x-auto pb-2 [-ms-overflow-style:none] lg:grid lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">
-                    {QR_POSTER_TEMPLATES.map((item) => (
+                    {QR_POSTER_PRODUCTION_TEMPLATES.map((item) => (
                       <TemplateButton
                         key={item.id}
                         active={template === item.id}

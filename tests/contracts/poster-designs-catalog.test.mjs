@@ -7,9 +7,18 @@ const projectRoot = process.cwd()
 const readProjectFile = (...segments) =>
   readFileSync(path.join(projectRoot, ...segments), "utf8")
 
-test("poster catalogue is a closed, organised five-design A4 system", () => {
+test("poster catalogue is a closed, organised eight-design A4 system", () => {
   const catalog = JSON.parse(readProjectFile("config", "poster-designs.json"))
-  const expectedIds = ["editorial", "bold", "ticket", "northstar", "thermal"]
+  const expectedIds = [
+    "primer",
+    "garden",
+    "window",
+    "pinned",
+    "seal",
+    "tally",
+    "round",
+    "lastcall",
+  ]
 
   assert.equal(catalog.schema, "nabaperks.poster-designs.v3")
   assert.deepEqual(catalog.collections, [
@@ -17,10 +26,10 @@ test("poster catalogue is a closed, organised five-design A4 system", () => {
       id: "counter",
       name: "A4 counter posters",
       description:
-        "Five portrait designs for tills, counters, windows and wall frames.",
+        "Portrait designs for tills, counters, windows and wall frames.",
       format: "a4-counter",
       sheet: "a4",
-      revision: 1,
+      revision: 2,
     },
   ])
   assert.deepEqual(
@@ -33,11 +42,35 @@ test("poster catalogue is a closed, organised five-design A4 system", () => {
         collection === "counter" &&
         format === "a4-counter" &&
         sheet === "a4" &&
-        revision === 1
+        revision === 2
     )
   )
-  assert.match(catalog.product.kitSummary, /Five print-ready A4/)
+  assert.match(catalog.product.kitSummary, /Eight print-ready A4/)
   assert.doesNotMatch(JSON.stringify(catalog), /table-tent|"b5"/i)
+})
+
+test("poster catalogue carries an explicit rollout state for every design", () => {
+  const catalog = JSON.parse(readProjectFile("config", "poster-designs.json"))
+  const rollouts = Object.fromEntries(
+    catalog.templates.map(({ id, rollout }) => [id, rollout])
+  )
+
+  assert.deepEqual(rollouts, {
+    primer: "review",
+    garden: "production",
+    window: "review",
+    pinned: "production",
+    seal: "review",
+    tally: "experimental",
+    round: "production",
+    lastcall: "production",
+  })
+  // Garden leads the production rotation and is the picker default.
+  assert.equal(
+    catalog.templates.find(({ rollout }) => rollout === "production").id,
+    "garden"
+  )
+  assert.match(catalog.shared.rolloutPolicy, /production templates only/)
 })
 
 test("poster catalogue owns the complete customer-copy and print contract", () => {
@@ -57,7 +90,7 @@ test("poster catalogue owns the complete customer-copy and print contract", () =
   assert.deepEqual(catalog.shared.qr.a4, { minOuterMm: 52, maxOuterMm: 55 })
   assert.deepEqual(
     catalog.templates.map(({ qrOuterMm }) => qrOuterMm),
-    [52, 55, 52, 52, 52]
+    [54, 54, 54, 54, 54, 54, 54, 54]
   )
   for (const template of catalog.templates) {
     assert.ok(template.typeTiersPt.hook >= 60)

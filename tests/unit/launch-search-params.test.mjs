@@ -50,9 +50,9 @@ test("keeps QR workspace channel and poster state", () => {
     parseLaunchSearchParams({
       tab: "qr",
       channel: "digital",
-      poster: "northstar",
+      poster: "round",
     }),
-    { tab: "qr", channel: "digital", poster: "northstar" }
+    { tab: "qr", channel: "digital", poster: "round" }
   )
 })
 
@@ -63,7 +63,14 @@ test("omits keys whose value is undefined", () => {
 })
 
 test("hasTransientLaunchParam is true only for action-result flags", () => {
-  for (const key of ["saved", "seeded", "created", "enabled", "disabled", "qr"]) {
+  for (const key of [
+    "saved",
+    "seeded",
+    "created",
+    "enabled",
+    "disabled",
+    "qr",
+  ]) {
     assert.equal(
       hasTransientLaunchParam({ [key]: "1" }),
       true,

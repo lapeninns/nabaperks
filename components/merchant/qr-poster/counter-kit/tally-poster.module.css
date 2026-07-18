@@ -1,0 +1,193 @@
+/* Nº 11 · Tally — an oversized loyalty-card object, overprinted. */
+
+.tally {
+  --kit-ground: #f6f1e6;
+  --kit-ink: #211c16;
+  --kit-soft: #4f473d;
+  --kit-rule: rgba(33, 28, 22, 0.5);
+  --kit-venue-size: 14pt;
+  --kit-qr-shadow: 1.2mm 1.2mm 0 #cf330a;
+  --kit-mark-a: #2b43c8;
+  --kit-mark-b: #cf330a;
+  --kit-pill-ground: #ece5d4;
+
+  display: flex;
+  flex-direction: column;
+  gap: 8mm;
+  width: 100%;
+  height: 100%;
+  padding: 15mm;
+  box-sizing: border-box;
+}
+
+.masthead {
+  display: flex;
+  justify-content: space-between;
+  gap: 6mm;
+  align-items: baseline;
+  border-bottom: 0.6mm dashed var(--kit-rule);
+  padding-bottom: 2.5mm;
+  font-family: var(--font-space-mono), monospace;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mastheadLead {
+  font-size: 10pt;
+  color: #2b43c8;
+}
+
+.mastheadEdition {
+  font-size: 8.5pt;
+  color: var(--kit-soft);
+}
+
+.headlineWrap {
+  position: relative;
+  font-size: var(--poster-a4-hook-size);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: 0.98;
+}
+
+.headlineEcho {
+  position: absolute;
+  left: 1.2mm;
+  top: 1.4mm;
+  display: block;
+  width: 100%;
+  color: #2b43c8;
+  opacity: 0.85;
+  text-wrap: balance;
+}
+
+.headline {
+  position: relative;
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  color: #cf330a;
+  mix-blend-mode: multiply;
+  text-wrap: balance;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 5mm;
+  background: #fbf8f1;
+  border: 0.6mm solid var(--kit-ink);
+  border-radius: 10px;
+  box-shadow: 1.4mm 1.4mm 0 #2b43c8;
+  transform: rotate(0.8deg);
+  padding: 8mm;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.cardMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 6mm;
+  align-items: baseline;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 9pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--kit-soft);
+}
+
+.circles {
+  display: flex;
+  gap: 5mm;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.circle {
+  flex: none;
+  box-sizing: border-box;
+  width: 21mm;
+  height: 21mm;
+  border: 0.6mm dashed rgba(33, 28, 22, 0.4);
+  border-radius: 50%;
+}
+
+.circleToday {
+  display: grid;
+  place-items: center;
+  border: 0.7mm dashed #cf330a;
+  color: #cf330a;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 8.5pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: rotate(-6deg);
+}
+
+.circleSeal {
+  display: grid;
+  place-items: center;
+  background: #f5a623;
+  border: 0.6mm solid var(--kit-ink);
+  color: var(--kit-ink);
+  font-size: 14pt;
+  transform: rotate(-6deg);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.circleSeal[data-today="true"] {
+  font-family: var(--font-space-mono), monospace;
+  font-size: 8.5pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.explainer {
+  margin: 0;
+  font-size: 11.5pt;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--kit-soft);
+  text-wrap: pretty;
+}
+
+.action {
+  display: flex;
+  flex: 1;
+  gap: 9mm;
+  align-items: center;
+  min-height: 0;
+}
+
+.actionCopy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3.5mm;
+  min-width: 0;
+}
+
+.dateRule {
+  font-family: var(--font-space-mono), monospace;
+  font-size: 9.5pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--kit-soft);
+}
+
+.venueBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 2mm;
+  border-top: 0.5mm dashed var(--kit-rule);
+  padding-top: 3.5mm;
+}

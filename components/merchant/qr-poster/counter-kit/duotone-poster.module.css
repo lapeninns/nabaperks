@@ -1,0 +1,143 @@
+/* Nº 07 · Garden (leaf) and Nº 08 · Window (vermillion) — duotone
+   print runs: one paper, one spot ink, a perforated dot strip, and a
+   full-width panel carrying the QR action. The data-spot attribute is
+   the only switch between the two runs; type and copy stay their own. */
+
+.duotone {
+  --kit-ground: #f6f1e6;
+  --kit-ink: var(--duo-spot);
+  --kit-soft: #f6f1e6;
+  --kit-qr-border: var(--duo-spot);
+  --kit-friction-size: 13.5pt;
+  --kit-friction-weight: 700;
+  --kit-footer-ink: #f6f1e6;
+
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.duotone[data-spot="leaf"] {
+  --duo-spot: #16733c;
+}
+
+.duotone[data-spot="vermillion"] {
+  --duo-spot: #cf330a;
+}
+
+.top {
+  display: flex;
+  flex-direction: column;
+  gap: 7mm;
+  padding: 15mm 15mm 8mm;
+}
+
+.duotone[data-spot="vermillion"] .top {
+  gap: 6mm;
+  padding-bottom: 6mm;
+}
+
+.masthead {
+  display: flex;
+  justify-content: space-between;
+  gap: 6mm;
+  align-items: baseline;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 9.5pt;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.headline {
+  margin: 0;
+  font-size: var(--poster-a4-hook-size);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 0.92;
+  text-wrap: balance;
+}
+
+.duotone[data-spot="vermillion"] .headline {
+  line-height: 0.9;
+}
+
+.lede {
+  margin: 0;
+  max-width: 165mm;
+  font-size: var(--poster-a4-substantive-size);
+  font-weight: 700;
+  line-height: 1.35;
+  text-wrap: pretty;
+}
+
+.duotone[data-spot="vermillion"] .lede {
+  max-width: 168mm;
+  line-height: 1.3;
+}
+
+/* Perforated dot strip between the paper half and the ink panel. */
+.dots {
+  height: 12mm;
+  margin: 0 15mm;
+  background-image: radial-gradient(var(--duo-spot) 0.8mm, transparent 0.9mm);
+  background-size: 4mm 4mm;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 7mm;
+  min-height: 0;
+  margin-top: 8mm;
+  padding: 12mm 15mm 15mm;
+  background: var(--duo-spot);
+  color: #f6f1e6;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.duotone[data-spot="vermillion"] .panel {
+  margin-top: 6mm;
+}
+
+.panelMain {
+  display: flex;
+  flex: 1;
+  gap: 10mm;
+  align-items: center;
+  min-height: 0;
+}
+
+.panelCopy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4.5mm;
+  min-width: 0;
+}
+
+.sealedLine {
+  margin: 0;
+  font-size: 12pt;
+  font-weight: 500;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.venueStrip {
+  display: flex;
+  gap: 4mm;
+  align-items: center;
+  border-top: 0.5mm dashed rgba(246, 241, 230, 0.6);
+  padding-top: 4.5mm;
+}
+
+.venueStrip > :nth-child(2) {
+  flex: 1;
+}

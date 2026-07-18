@@ -1,4 +1,4 @@
-import { QR_POSTER_TEMPLATES } from "@/lib/qr/poster-templates"
+import { QR_POSTER_PRODUCTION_TEMPLATES } from "@/lib/qr/poster-templates"
 
 export type PosterEmailInput = {
   readonly venueName: string
@@ -19,7 +19,7 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;")
 }
 
-const POSTER_COUNT = QR_POSTER_TEMPLATES.length
+const POSTER_COUNT = QR_POSTER_PRODUCTION_TEMPLATES.length
 
 /**
  * Pure builder for the "email me the poster" transactional email — no I/O, so

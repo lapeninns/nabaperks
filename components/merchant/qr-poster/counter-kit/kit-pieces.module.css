@@ -1,0 +1,220 @@
+/* ============================================================
+   Counter-kit shared pieces (posters Nº 06–13). Hosts set the
+   colourway through --kit-* custom properties on their sheet
+   root; these classes only encode the shared print anatomy.
+   ============================================================ */
+
+.sheet {
+  box-sizing: border-box;
+  width: 210mm;
+  height: 297mm;
+  min-height: 297mm;
+  max-height: 297mm;
+  position: relative;
+  overflow: hidden;
+  background: var(--kit-ground);
+  color: var(--kit-ink);
+  font-family: var(--font-bricolage-grotesque), sans-serif;
+  box-shadow: var(--shadow-2xl);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.sheet[data-body="mono"] {
+  font-family: var(--font-space-mono), monospace;
+}
+
+/* ---- QR action panel: white light box + mono caption ---- */
+.qrPanel {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 2.5mm;
+  margin: 0;
+}
+
+.qrBox {
+  box-sizing: border-box;
+  overflow: hidden;
+  background: #ffffff;
+  /* Outline, not border: the light box must stay the full measured size so
+     the QR keeps its complete four-module quiet zone. */
+  border: 0;
+  outline: 0.6mm solid var(--kit-qr-border, var(--kit-ink));
+  box-shadow: var(--kit-qr-shadow, none);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.qrBox img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.qrCaption {
+  margin: 0;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 9pt;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1.35;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* ---- Friction-reduction list ---- */
+.friction {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5mm;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--kit-friction-size, 12pt);
+  font-weight: var(--kit-friction-weight, 600);
+  line-height: 1.35;
+}
+
+.frictionRow {
+  display: flex;
+  gap: 2.5mm;
+}
+
+.frictionMark {
+  flex: none;
+  color: var(--kit-mark-a, var(--kit-ink));
+}
+
+.frictionRow:nth-child(even) .frictionMark {
+  color: var(--kit-mark-b, var(--kit-mark-a, var(--kit-ink)));
+}
+
+/* ---- Venue identity ---- */
+.venueName {
+  display: block;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--font-bricolage-grotesque), sans-serif;
+  font-size: var(--kit-venue-size, 15pt);
+  font-weight: 800;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.venueName[data-venue-fit="mid"] {
+  font-size: 11pt;
+}
+
+.venueName[data-venue-fit="compact"] {
+  font-size: 9pt;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.memberTag {
+  flex: none;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 8.5pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.memberTag[data-variant="pill"] {
+  align-self: flex-start;
+  background: var(--kit-pill-ground, #ece5d4);
+  color: var(--kit-soft, currentColor);
+  border-radius: 999px;
+  padding: 1.2mm 3.5mm;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.memberTag[data-variant="outline"] {
+  border: 0.4mm solid var(--kit-pill-line, currentColor);
+  border-radius: 999px;
+  padding: 1.2mm 3.5mm;
+  color: var(--kit-pill-ink, currentColor);
+}
+
+/* The rotated vermillion brand disc — the ✱ stamp family signature. */
+.brandRoundel {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 8mm;
+  height: 8mm;
+  background: #cf330a;
+  color: #ffffff;
+  border-radius: 50%;
+  font-size: 12.5pt;
+  transform: rotate(-7deg);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+/* The bare ✱ glyph mark used on duotone venue strips. */
+.brandMark {
+  flex: none;
+  font-size: 15pt;
+}
+
+/* ---- Ledger venue block (primer + seal) ---- */
+.ledgerVenue {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3mm;
+  min-width: 0;
+}
+
+.ledgerVenueRail {
+  display: flex;
+  justify-content: space-between;
+  gap: 4mm;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 9pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--kit-soft, currentColor);
+  border-bottom: 0.4mm dashed var(--kit-rule, currentColor);
+  padding-bottom: 2mm;
+}
+
+.ledgerSignature {
+  font-family: var(--font-space-mono), monospace;
+  font-size: 9pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--kit-soft, currentColor);
+}
+
+/* ---- Eligibility footer ---- */
+.footer {
+  margin: 0;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 8.5pt;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--kit-footer-ink, var(--kit-soft, currentColor));
+}
+
+@media print {
+  .sheet {
+    box-shadow: none;
+  }
+
+  .sheet,
+  .qrBox,
+  .memberTag,
+  .brandRoundel {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

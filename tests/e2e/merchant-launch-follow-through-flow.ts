@@ -258,15 +258,15 @@ export function defineMerchantLaunchFollowThroughTests() {
     page,
   }) => {
     await page.goto(
-      `${HARNESS_ROUTES.launch}?state=live&tab=qr&channel=print&poster=northstar`
+      `${HARNESS_ROUTES.launch}?state=live&tab=qr&channel=print&poster=round`
     )
 
     await expect(
-      page.getByRole("img", { name: "Night card poster preview" })
+      page.getByRole("img", { name: "Round poster preview" })
     ).toBeVisible()
     await page.getByRole("link", { name: "Share digitally" }).click()
     await expect(page).toHaveURL(/channel=digital/)
-    await expect(page).toHaveURL(/poster=northstar/)
+    await expect(page).toHaveURL(/poster=round/)
     await expect(
       page.getByRole("heading", { name: "Share your permanent venue link" })
     ).toBeVisible()
@@ -304,7 +304,7 @@ export function defineMerchantLaunchFollowThroughTests() {
     ).toBeVisible()
 
     await expect(
-      page.getByRole("img", { name: "Editorial poster preview" })
+      page.getByRole("img", { name: "Garden poster preview" })
     ).toBeVisible()
     const swipeTrack = page.getByTestId("poster-swipe-track")
     if (browserName === "firefox") {
@@ -336,18 +336,18 @@ export function defineMerchantLaunchFollowThroughTests() {
       await page.getByRole("button", { name: "Next poster" }).click()
     }
     if (browserName !== "firefox") {
-      await expect(page.getByText("2 / 5", { exact: true })).toBeVisible()
+      await expect(page.getByText("2 / 4", { exact: true })).toBeVisible()
       await expect(
-        page.locator("article[aria-current='true']").getByText("Bold", {
+        page.locator("article[aria-current='true']").getByText("Pinned", {
           exact: true,
         })
       ).toBeVisible()
 
-      await page.getByRole("button", { name: "Show Night card poster" }).click()
+      await page.getByRole("button", { name: "Show Round poster" }).click()
       await expect(
-        page.getByRole("img", { name: "Night card poster preview" })
+        page.getByRole("img", { name: "Round poster preview" })
       ).toBeVisible()
-      await expect(page.getByText("4 / 5", { exact: true })).toBeVisible()
+      await expect(page.getByText("3 / 4", { exact: true })).toBeVisible()
     }
 
     await page.getByRole("link", { name: "Share digitally" }).click()

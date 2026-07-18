@@ -8,11 +8,11 @@ import {
 import { posterDesignIds } from "@/lib/qr/poster-designs"
 
 test("poster content resolves the closed stamp placeholder grammar", () => {
-  const editorial = resolvePosterContent("editorial", 4)
-  const thermal = resolvePosterContent("thermal", 4)
+  const tally = resolvePosterContent("tally", 4)
+  const primer = resolvePosterContent("primer", 4)
 
-  assert.equal(editorial.headline.beforeAccent, "Four visits. One ")
-  assert.equal(thermal.items.at(-1)?.value, "4")
+  assert.equal(tally.headline, "Four circles. One secret.")
+  assert.equal(primer.clauses.at(-1)?.title, "Reward: sealed until stamp 4")
   assert.equal(resolvePosterText("{stamps} / {StampsWord}", 6), "6 / Six")
   assert.throws(
     () => resolvePosterText("{remaining}", 4),
@@ -27,14 +27,14 @@ test("poster content resolves the closed stamp placeholder grammar", () => {
 test("poster content rejects invalid venue stamp counts", () => {
   for (const invalidValue of [0, -1, 1.5, 7, 100, Number.NaN]) {
     assert.throws(
-      () => resolvePosterContent("editorial", invalidValue),
+      () => resolvePosterContent("garden", invalidValue),
       /integer from 1 to 6/
     )
   }
 })
 
-test("all five designs share the A4 geometry and QR contract", () => {
-  assert.equal(posterDesignIds().length, 5)
+test("all eight designs share the A4 geometry and QR contract", () => {
+  assert.equal(posterDesignIds().length, 8)
   for (const id of posterDesignIds()) {
     const content = resolvePosterContent(id, 6)
     assert.equal(content.sheet, "a4")
@@ -46,5 +46,14 @@ test("all five designs share the A4 geometry and QR contract", () => {
     assert.equal(content.qr.quietZoneModules, 4)
     assert.equal(content.qr.errorCorrectionLevel, "H")
     assert.match(content.reassurance, /^18\+ to redeem/)
+  }
+})
+
+test("every design resolves copy for each supported stamp count", () => {
+  for (const id of posterDesignIds()) {
+    for (const stamps of [1, 2, 3, 4, 5, 6]) {
+      const content = resolvePosterContent(id, stamps)
+      assert.equal(content.id, id)
+    }
   }
 })

@@ -4,8 +4,9 @@ import path from "node:path"
 import { pathToFileURL } from "node:url"
 import { spawnSync } from "node:child_process"
 
-import { buildPosterPdfAttachments } from "@/lib/notifications/poster-pdf"
+import { buildAllPosterPdfAttachments } from "@/lib/notifications/poster-pdf"
 import { resolvePosterContent } from "@/lib/qr/poster-content"
+import { posterDesignIds } from "@/lib/qr/poster-designs"
 import {
   containsPosterCopy,
   posterVisibleCopy,
@@ -212,12 +213,14 @@ function assertNear(actual, expected, tolerance, label) {
 export async function verifyPosterPdfs(outputDirectory) {
   const tools = requiredTools()
   await mkdir(outputDirectory, { recursive: true })
-  const attachments = await buildPosterPdfAttachments({
+  // Verify every registered design, not just the production email bundle —
+  // review and experimental templates still print on direct request.
+  const attachments = await buildAllPosterPdfAttachments({
     merchantName: VERIFICATION_VENUE,
     shareUrl: QR_TARGET,
     stampsRequired: 6,
   })
-  assert.equal(attachments.length, 5)
+  assert.equal(attachments.length, posterDesignIds().length)
 
   const sheets = []
   for (const attachment of attachments) {
@@ -378,7 +381,7 @@ export async function verifyPosterPdfs(outputDirectory) {
     ),
     sheets,
   }
-  assert.equal(report.faceCount, 5)
+  assert.equal(report.faceCount, posterDesignIds().length)
   await writeFile(
     path.join(outputDirectory, "poster-pdf-verification.json"),
     `${JSON.stringify(report, null, 2)}\n`

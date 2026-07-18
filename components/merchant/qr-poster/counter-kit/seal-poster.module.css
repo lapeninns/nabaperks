@@ -1,0 +1,123 @@
+/* Nº 10 · Seal — redacted reward manifest on paper. */
+
+.seal {
+  --kit-ground: #f6f1e6;
+  --kit-ink: #211c16;
+  --kit-soft: #4f473d;
+  --kit-rule: rgba(33, 28, 22, 0.5);
+  --kit-venue-size: 19pt;
+  --kit-qr-shadow: 1.2mm 1.2mm 0 #f5a623;
+
+  display: flex;
+  flex-direction: column;
+  gap: 6mm;
+  width: 100%;
+  height: 100%;
+  padding: 15mm;
+  box-sizing: border-box;
+}
+
+.masthead {
+  display: flex;
+  justify-content: space-between;
+  gap: 6mm;
+  font-size: 10pt;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-bottom: 0.8mm solid var(--kit-ink);
+  padding-bottom: 3mm;
+}
+
+.headline {
+  margin: 2mm 0 0;
+  font-family: var(--font-bricolage-grotesque), sans-serif;
+  font-size: var(--poster-a4-hook-size);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: 1;
+  text-wrap: balance;
+}
+
+.manifest {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-evenly;
+  min-height: 0;
+}
+
+.row {
+  display: flex;
+  gap: 6mm;
+  align-items: center;
+  padding: 4.5mm 0;
+  border-bottom: 0.4mm dashed var(--kit-rule);
+  font-size: var(--poster-a4-substantive-size);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.row:last-of-type {
+  border-bottom: 0.8mm solid var(--kit-ink);
+}
+
+.rowLabel {
+  flex: none;
+  width: 42mm;
+  color: var(--kit-soft);
+}
+
+.rowValue {
+  flex: 1;
+  min-width: 0;
+}
+
+.row[data-accent="true"] .rowValue {
+  color: #cf330a;
+}
+
+.redaction {
+  flex: 1;
+  height: 5.5mm;
+  background: var(--kit-ink);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.sealedPill {
+  flex: none;
+  background: #f5a623;
+  color: var(--kit-ink);
+  border: 0.5mm solid var(--kit-ink);
+  border-radius: 999px;
+  padding: 1mm 3.5mm;
+  font-size: 8.5pt;
+  letter-spacing: 0.1em;
+  transform: rotate(-5deg);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.frictionLine {
+  margin: 4mm 0 0;
+  max-width: 165mm;
+  font-family: var(--font-bricolage-grotesque), sans-serif;
+  font-size: 12.5pt;
+  font-weight: 500;
+  line-height: 1.55;
+  color: var(--kit-soft);
+  text-wrap: pretty;
+}
+
+.action {
+  display: flex;
+  gap: 9mm;
+  align-items: center;
+}
+
+.legal {
+  border-top: 0.8mm solid var(--kit-ink);
+  padding-top: 3mm;
+}

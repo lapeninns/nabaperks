@@ -291,7 +291,7 @@ export const HARNESS_ACTIVITY_ROWS: ActivityDisplayRow[] = [
     dateGroupLabel: "Yesterday",
     details: [],
     primaryAction: { label: "Open QR", href: "/app/qr" },
-    searchText: "qr downloaded editorial asset",
+    searchText: "qr downloaded garden asset",
   },
   {
     id: "evt_account_1",

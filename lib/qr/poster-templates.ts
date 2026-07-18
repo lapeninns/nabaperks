@@ -26,6 +26,14 @@ export type QrPosterTemplate = PosterTemplateMetadata
 export const QR_POSTER_TEMPLATES: readonly QrPosterTemplate[] =
   QR_POSTER_TEMPLATE_IDS.map((id) => templateMetadata(id))
 
+/**
+ * Templates exposed to merchants — the pickers and the poster email bundle.
+ * Review and experimental templates stay registered and render on direct
+ * request, but never join this rotation.
+ */
+export const QR_POSTER_PRODUCTION_TEMPLATES: readonly QrPosterTemplate[] =
+  QR_POSTER_TEMPLATES.filter(({ rollout }) => rollout === "production")
+
 export type QrPosterCollection = PosterCollection & {
   readonly templates: readonly QrPosterTemplate[]
 }

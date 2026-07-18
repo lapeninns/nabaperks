@@ -22,10 +22,10 @@ test("merchant QR surfaces link every registered A4 poster", () => {
     "qr-redesign-concept.tsx"
   )
 
-  assert.equal(catalog.templates.length, 5)
+  assert.equal(catalog.templates.length, 8)
   assert.ok(catalog.templates.every(({ sheet }) => sheet === "a4"))
   assert.match(qrPanelLive, /QrWorkspace/)
-  assert.match(qrWorkspace, /QR_POSTER_TEMPLATES\.map/)
+  assert.match(qrWorkspace, /QR_POSTER_PRODUCTION_TEMPLATES\.map/)
   assert.match(
     qrPanelLive,
     /`\/app\/qr\/poster\/\$\{template\}\?qr=\$\{qrCodeId\}&from=\$\{encodeURIComponent\(returnHref\)\}`/

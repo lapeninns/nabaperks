@@ -13,7 +13,7 @@ import { PosterThumbnail } from "@/components/merchant/qr-poster/poster-thumbnai
 import { Button } from "@/components/ui/button"
 import {
   getQrPosterUseCase,
-  QR_POSTER_TEMPLATES,
+  QR_POSTER_PRODUCTION_TEMPLATES,
   type QrPosterTemplateId,
 } from "@/lib/qr/poster-templates"
 import { cn } from "@/lib/utils"
@@ -33,7 +33,9 @@ export function SwipePosterPicker({
 }) {
   const initialIndex = Math.max(
     0,
-    QR_POSTER_TEMPLATES.findIndex((item) => item.id === initialTemplate)
+    QR_POSTER_PRODUCTION_TEMPLATES.findIndex(
+      (item) => item.id === initialTemplate
+    )
   )
   const [activeIndex, setActiveIndex] = useState(initialIndex)
   const trackRef = useRef<HTMLDivElement>(null)
@@ -88,7 +90,7 @@ export function SwipePosterPicker({
   function goTo(index: number) {
     const boundedIndex = Math.max(
       0,
-      Math.min(QR_POSTER_TEMPLATES.length - 1, index)
+      Math.min(QR_POSTER_PRODUCTION_TEMPLATES.length - 1, index)
     )
     setActiveIndex(boundedIndex)
     centreSlide(boundedIndex, "auto")
@@ -108,7 +110,7 @@ export function SwipePosterPicker({
           </p>
         </div>
         <p className="mono-id shrink-0 text-muted-foreground">
-          {activeIndex + 1} / {QR_POSTER_TEMPLATES.length}
+          {activeIndex + 1} / {QR_POSTER_PRODUCTION_TEMPLATES.length}
         </p>
       </div>
 
@@ -118,7 +120,7 @@ export function SwipePosterPicker({
         onScroll={settleOnClosestSlide}
         className="flex snap-x snap-mandatory [scrollbar-width:none] gap-4 overflow-x-auto overscroll-x-contain px-[9%] py-2 [-ms-overflow-style:none] sm:px-[18%] lg:px-[calc((100%-28rem)/2)] [&::-webkit-scrollbar]:hidden"
       >
-        {QR_POSTER_TEMPLATES.map((item, index) => (
+        {QR_POSTER_PRODUCTION_TEMPLATES.map((item, index) => (
           <article
             key={item.id}
             ref={(node) => {
@@ -181,7 +183,7 @@ export function SwipePosterPicker({
           className="flex flex-1 justify-center gap-1.5"
           aria-label="Poster position"
         >
-          {QR_POSTER_TEMPLATES.map((item, index) => (
+          {QR_POSTER_PRODUCTION_TEMPLATES.map((item, index) => (
             <button
               key={item.id}
               type="button"
@@ -200,7 +202,7 @@ export function SwipePosterPicker({
           variant="outline"
           size="icon"
           aria-label="Next poster"
-          disabled={activeIndex === QR_POSTER_TEMPLATES.length - 1}
+          disabled={activeIndex === QR_POSTER_PRODUCTION_TEMPLATES.length - 1}
           onClick={() => goTo(activeIndex + 1)}
         >
           <Icon icon={ArrowRight01Icon} size={18} />

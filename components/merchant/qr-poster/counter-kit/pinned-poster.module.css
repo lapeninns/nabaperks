@@ -1,0 +1,164 @@
+/* Nº 09 · Pinned — an overprinted note card pinned to deep paper. */
+
+.pinned {
+  --kit-ground: #ece5d4;
+  --kit-ink: #211c16;
+  --kit-soft: #4f473d;
+  --kit-rule: rgba(33, 28, 22, 0.5);
+  --kit-venue-size: 14pt;
+  --kit-qr-shadow: 1mm 1mm 0 #cf330a;
+  --kit-mark-a: #cf330a;
+  --kit-mark-b: #2b43c8;
+  --kit-pill-ground: #ece5d4;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5mm;
+  width: 100%;
+  height: 100%;
+  padding: 15mm;
+  box-sizing: border-box;
+}
+
+.note {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6mm;
+  background: #fbf8f1;
+  border: 0.6mm solid var(--kit-ink);
+  box-shadow: 1.4mm 1.4mm 0 #2b43c8;
+  transform: rotate(-1.2deg);
+  padding: 13mm 12mm 0;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.pin {
+  position: absolute;
+  top: -5mm;
+  left: 50%;
+  width: 10mm;
+  height: 10mm;
+  margin-left: -5mm;
+  background: #2b43c8;
+  border: 0.6mm solid var(--kit-ink);
+  border-radius: 50%;
+  box-shadow: 0.8mm 0.8mm 0 var(--kit-ink);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.masthead {
+  display: flex;
+  justify-content: space-between;
+  gap: 6mm;
+  align-items: baseline;
+  font-family: var(--font-space-mono), monospace;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mastheadLead {
+  font-size: 10pt;
+  color: #2b43c8;
+}
+
+.mastheadEdition {
+  font-size: 8.5pt;
+  color: var(--kit-soft);
+}
+
+.headlineWrap {
+  position: relative;
+  font-size: var(--poster-a4-hook-size);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: 1;
+}
+
+.headlineEcho {
+  position: absolute;
+  left: 1.2mm;
+  top: 1.4mm;
+  display: block;
+  width: 100%;
+  color: #2b43c8;
+  opacity: 0.85;
+}
+
+.headline {
+  position: relative;
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  color: #cf330a;
+  mix-blend-mode: multiply;
+}
+
+.lede {
+  margin: 0;
+  max-width: 158mm;
+  font-size: var(--poster-a4-substantive-size);
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--kit-ink);
+  text-wrap: pretty;
+}
+
+.action {
+  display: flex;
+  gap: 9mm;
+  align-items: center;
+}
+
+.actionCopy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3.5mm;
+  min-width: 0;
+}
+
+.venueBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 2mm;
+  border-top: 0.5mm dashed var(--kit-rule);
+  padding-top: 3.5mm;
+}
+
+.stubs {
+  display: flex;
+  margin: 0 -12mm;
+  border-top: 0.5mm dashed var(--kit-rule);
+}
+
+.stub {
+  flex: 1;
+  border-right: 0.5mm dashed var(--kit-rule);
+  padding: 3mm 2mm;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 8pt;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.stub:last-child {
+  border-right: 0;
+}
+
+.stub:nth-child(odd) {
+  color: #cf330a;
+}
+
+.stub:nth-child(even) {
+  color: #2b43c8;
+}

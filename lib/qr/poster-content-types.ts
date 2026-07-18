@@ -1,13 +1,23 @@
-export type PosterDesignId =
-  | "editorial"
-  | "bold"
-  | "ticket"
-  | "northstar"
-  | "thermal"
+import type { CounterKitPosterContent } from "./poster-kit-content-types"
 
-export type CopyDrivenPosterId = "editorial" | "bold" | "ticket"
+export type PosterDesignId =
+  | "primer"
+  | "garden"
+  | "window"
+  | "pinned"
+  | "seal"
+  | "tally"
+  | "round"
+  | "lastcall"
+
 export type PosterCollectionId = "counter"
 export type PosterFormatId = "a4-counter"
+
+/**
+ * Registered exposure state. Every rollout state renders on direct request;
+ * merchant pickers and the poster email bundle expose "production" only.
+ */
+export type PosterRollout = "production" | "review" | "experimental"
 
 export type PosterCollection = {
   readonly id: PosterCollectionId
@@ -27,8 +37,10 @@ export type PosterTemplateMetadata = {
   readonly format: PosterFormatId
   readonly sheet: "a4"
   readonly revision: number
+  readonly rollout: PosterRollout
 }
 
+/** A headline with one spot-ink phrase, drawn by the PDF accent renderer. */
 export type AccentHeadline = {
   readonly beforeAccent: string
   readonly accent: string
@@ -90,45 +102,4 @@ export type A4ContentBase = {
   readonly qr: PosterQrModel
 }
 
-export type CopyDrivenPosterContent = A4ContentBase & {
-  readonly id: CopyDrivenPosterId
-  readonly headline: AccentHeadline
-  readonly support: string
-  readonly rewardDetail: string
-  readonly frictionLine: string
-  readonly qrCaption: string
-  readonly progress: string
-}
-
-export type NorthstarPosterContent = A4ContentBase & {
-  readonly id: "northstar"
-  readonly headline: string
-  readonly headlineAccent: string
-  readonly ease: string
-  readonly chip: string
-  readonly qrCaption: string
-  readonly promise: string
-}
-
-export type ReceiptItem = {
-  readonly label: string
-  readonly value: string
-  readonly accent: boolean
-}
-
-export type ThermalPosterContent = A4ContentBase & {
-  readonly id: "thermal"
-  readonly meta: string
-  readonly friction: string
-  readonly headline: string
-  readonly headlineAccent: string
-  readonly items: readonly ReceiptItem[]
-  readonly totalLabel: string
-  readonly totalValue: string
-  readonly qrCaption: string
-}
-
-export type PosterContent =
-  | CopyDrivenPosterContent
-  | NorthstarPosterContent
-  | ThermalPosterContent
+export type PosterContent = CounterKitPosterContent

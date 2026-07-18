@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import { buildPosterEmailContent } from "@/lib/notifications/poster-email"
-import { QR_POSTER_TEMPLATES } from "@/lib/qr/poster-templates"
+import { QR_POSTER_PRODUCTION_TEMPLATES } from "@/lib/qr/poster-templates"
 
 const INPUT = {
   venueName: "Old Crown Girton",
@@ -10,7 +10,7 @@ const INPUT = {
 
 test("buildPosterEmailContent describes attached PDFs without a poster link", () => {
   const { subject, text, html } = buildPosterEmailContent(INPUT)
-  const count = String(QR_POSTER_TEMPLATES.length)
+  const count = String(QR_POSTER_PRODUCTION_TEMPLATES.length)
 
   assert.match(subject, /poster/i)
   for (const part of [text, html]) {
@@ -18,7 +18,7 @@ test("buildPosterEmailContent describes attached PDFs without a poster link", ()
     assert.match(part, new RegExp(count))
     assert.match(part, /attach/i)
     assert.doesNotMatch(part, /https?:\/\//)
-    assert.match(part, /5 A4.*counter/i)
+    assert.match(part, new RegExp(`${count} A4.*counter`, "i"))
     assert.doesNotMatch(part, /B5|table-tent/i)
     assert.match(part, /210 × 297 mm/)
     assert.match(part, /physical print at actual size/i)

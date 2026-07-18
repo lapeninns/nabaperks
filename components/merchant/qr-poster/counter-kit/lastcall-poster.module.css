@@ -1,0 +1,142 @@
+/* Nº 13 · Last call — night print with an honest daily deadline. */
+
+.lastcall {
+  --kit-ground: #211c16;
+  --kit-ink: #f6f1e6;
+  --kit-soft: rgba(246, 241, 230, 0.75);
+  --kit-rule: rgba(246, 241, 230, 0.4);
+  --kit-venue-size: 15pt;
+  --kit-qr-border: #f6f1e6;
+  --kit-mark-a: #f5a623;
+  --kit-friction-size: 12.5pt;
+  --kit-pill-line: rgba(246, 241, 230, 0.5);
+  --kit-pill-ink: rgba(246, 241, 230, 0.8);
+  --kit-footer-ink: rgba(246, 241, 230, 0.7);
+
+  display: flex;
+  flex-direction: column;
+  gap: 7mm;
+  width: 100%;
+  height: 100%;
+  padding: 15mm;
+  box-sizing: border-box;
+}
+
+.masthead {
+  display: flex;
+  justify-content: space-between;
+  gap: 6mm;
+  align-items: baseline;
+  border-bottom: 0.6mm dashed var(--kit-rule);
+  padding-bottom: 2.5mm;
+  font-family: var(--font-space-mono), monospace;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mastheadLead {
+  font-size: 10pt;
+  color: #f5a623;
+}
+
+.mastheadEdition {
+  font-size: 8.5pt;
+  color: rgba(246, 241, 230, 0.7);
+}
+
+.headlineWrap {
+  position: relative;
+}
+
+.headline {
+  margin: 0;
+  max-width: 165mm;
+  font-size: var(--poster-a4-hook-size);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: 1;
+  text-wrap: balance;
+}
+
+.headlineAccent {
+  color: #f5a623;
+}
+
+.badge {
+  position: absolute;
+  top: -4mm;
+  right: 0;
+  background: #cf330a;
+  color: #ffffff;
+  border: 0.6mm solid #f6f1e6;
+  border-radius: 999px;
+  padding: 2mm 5mm;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 9.5pt;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transform: rotate(7deg);
+  box-shadow: 1mm 1mm 0 #f5a623;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.lede {
+  margin: 0;
+  max-width: 165mm;
+  font-size: var(--poster-a4-substantive-size);
+  font-weight: 600;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.mid {
+  display: flex;
+  flex: 1;
+  gap: 9mm;
+  align-items: center;
+  min-height: 0;
+}
+
+/* The framed QR card — the QR panel travels inside a bordered night card. */
+.qrCard {
+  flex: none;
+  background: #211c16;
+  border: 0.6mm solid #f6f1e6;
+  border-radius: 10px;
+  box-shadow: 1.4mm 1.4mm 0 #f5a623;
+  padding: 5mm;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.midCopy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4.5mm;
+  min-width: 0;
+}
+
+.sealedLine {
+  margin: 0;
+  font-size: 11.5pt;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--kit-soft);
+  text-wrap: pretty;
+}
+
+.venueStrip {
+  display: flex;
+  gap: 4mm;
+  align-items: center;
+  border-top: 0.6mm dashed var(--kit-rule);
+  padding-top: 4.5mm;
+}
+
+.venueStrip > :nth-child(2) {
+  flex: 1;
+}

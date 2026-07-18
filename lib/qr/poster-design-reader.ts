@@ -1,64 +1,40 @@
 import posterDesignsJson from "@/config/poster-designs.json" with { type: "json" }
+import {
+  requireArray,
+  requireNumber,
+  requireRecord,
+  requireRecordField,
+  requireString,
+} from "./poster-json-readers"
 import type {
   PosterCollection,
   PosterCollectionId,
   PosterDesignId,
   PosterFormatId,
+  PosterRollout,
   PosterTemplateMetadata,
 } from "./poster-content-types"
+
+export {
+  requireArray,
+  requireNumber,
+  requireRecord,
+  requireRecordField,
+  requireString,
+} from "./poster-json-readers"
+
 type JsonRecord = Record<string, unknown>
 
-function isRecord(value: unknown): value is JsonRecord {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-}
-
-export function requireRecord(value: unknown, path: string): JsonRecord {
-  if (!isRecord(value)) {
-    throw new Error(`Expected poster object at ${path}`)
-  }
-  return value
-}
-export function requireString(
-  record: JsonRecord,
-  key: string,
-  path: string
-): string {
-  const value = record[key]
-  if (typeof value !== "string") {
-    throw new Error(`Expected poster string at ${path}.${key}`)
-  }
-  return value
-}
-export function requireNumber(
-  record: JsonRecord,
-  key: string,
-  path: string
-): number {
-  const value = record[key]
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new Error(`Expected poster number at ${path}.${key}`)
-  }
-  return value
-}
-export function requireArray(
-  record: JsonRecord,
-  key: string,
-  path: string
-): readonly unknown[] {
-  const value = record[key]
-  if (!Array.isArray(value)) {
-    throw new Error(`Expected poster array at ${path}.${key}`)
-  }
-  return value
-}
-
-export function requireRecordField(
-  record: JsonRecord,
-  key: string,
-  path: string
-): JsonRecord {
-  return requireRecord(record[key], `${path}.${key}`)
-}
+const POSTER_DESIGN_ID_VALUES: readonly PosterDesignId[] = [
+  "primer",
+  "garden",
+  "window",
+  "pinned",
+  "seal",
+  "tally",
+  "round",
+  "lastcall",
+]
 
 let parsedCatalogue: JsonRecord | undefined
 
@@ -91,16 +67,21 @@ function parseSheet(value: string): "a4" {
 }
 
 function parsePosterDesignId(value: string): PosterDesignId {
-  switch (value) {
-    case "editorial":
-    case "bold":
-    case "ticket":
-    case "northstar":
-    case "thermal":
-      return value
-    default:
-      throw new Error(`Unknown poster template ${value}`)
+  for (const id of POSTER_DESIGN_ID_VALUES) {
+    if (id === value) return id
   }
+  throw new Error(`Unknown poster template ${value}`)
+}
+
+function parseRollout(value: string): PosterRollout {
+  if (
+    value === "production" ||
+    value === "review" ||
+    value === "experimental"
+  ) {
+    return value
+  }
+  throw new Error(`Unknown poster rollout ${value}`)
 }
 
 function templateRecord(templateId: PosterDesignId): JsonRecord {
@@ -125,8 +106,11 @@ export function posterDesignIds(): readonly PosterDesignId[] {
       requireString(template, "id", "posterDesigns.templates[]")
     )
   })
-  if (ids.length !== 5 || new Set(ids).size !== ids.length) {
-    throw new Error("Poster catalogue must contain five unique templates")
+  if (
+    ids.length !== POSTER_DESIGN_ID_VALUES.length ||
+    new Set(ids).size !== ids.length
+  ) {
+    throw new Error("Poster catalogue must contain eight unique templates")
   }
   return ids
 }
@@ -234,5 +218,6 @@ export function templateMetadata(
     format,
     sheet,
     revision,
+    rollout: parseRollout(requireString(template, "rollout", path)),
   }
 }

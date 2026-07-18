@@ -335,7 +335,7 @@ function resolveDistributionChannel(
 
 function resolvePosterTemplate(value: string | undefined) {
   return (
-    QR_POSTER_TEMPLATE_IDS.find((template) => template === value) ?? "editorial"
+    QR_POSTER_TEMPLATE_IDS.find((template) => template === value) ?? "garden"
   )
 }
 
