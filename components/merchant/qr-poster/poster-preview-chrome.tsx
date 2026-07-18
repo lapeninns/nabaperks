@@ -10,10 +10,7 @@ import {
 import { Icon } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import { SidebarTrigger } from "@/components/ui/sidebar"
-import {
-  isQrPosterTableTent,
-  type QrPosterTemplateId,
-} from "@/lib/qr/poster-templates"
+import type { QrPosterTemplateId } from "@/lib/qr/poster-templates"
 import { cn } from "@/lib/utils"
 import {
   PosterGuidanceText,
@@ -48,7 +45,6 @@ export function PosterPreviewChrome({
   const [guidanceOpen, setGuidanceOpen] = useState(false)
   const navRef = useRef<HTMLElement>(null)
   const activePillRef = useRef<HTMLAnchorElement>(null)
-  const isTableTent = isQrPosterTableTent(template)
 
   // Keep the active template pill in view as the strip scrolls (the active one
   // can be the 4th/5th pill, off-screen on phones). Scroll the nav element
@@ -131,7 +127,7 @@ export function PosterPreviewChrome({
           id="poster-guidance-mobile"
           className="mx-auto w-full max-w-[var(--poster-frame-max)] px-4 pb-3 sm:px-6 lg:hidden"
         >
-          <PosterGuidanceText tableTent={isTableTent} />
+          <PosterGuidanceText />
         </div>
       ) : null}
     </header>
@@ -150,13 +146,11 @@ export function PosterDesktopSidecar({
 }: Pick<PosterChromeProps, "template" | "qrCodeId" | "backHref">) {
   if (!qrCodeId) return null
 
-  const isTableTent = isQrPosterTableTent(template)
-
   return (
     <aside className="qr-poster-sidecar hidden min-h-0 min-w-0 flex-col gap-4 border-l-2 border-ink bg-paper/95 p-4 lg:flex lg:overflow-y-auto">
       <div className="grid gap-2">
         <p className="mono-id tracking-[0.12em] text-muted-foreground">
-          Templates
+          Poster collection
         </p>
         <PosterTemplateLinks
           template={template}
@@ -170,9 +164,9 @@ export function PosterDesktopSidecar({
         <p className="mono-id tracking-[0.12em] text-muted-foreground">
           Print setup
         </p>
-        <PosterGuidanceText tableTent={isTableTent} />
+        <PosterGuidanceText />
         <p className="mono-id tracking-[0.1em] text-muted-foreground">
-          {printSizeMeta(isTableTent)}
+          {printSizeMeta()}
         </p>
       </div>
     </aside>
@@ -190,8 +184,6 @@ type PosterActionBarProps = {
  * At lg+ the header and sidecar own print actions, so this bar is hidden.
  */
 export function PosterActionBar({ ref, template }: PosterActionBarProps) {
-  const isTableTent = isQrPosterTableTent(template)
-
   return (
     <footer
       ref={ref}
@@ -199,7 +191,7 @@ export function PosterActionBar({ ref, template }: PosterActionBarProps) {
     >
       <div className="mx-auto grid w-full max-w-[var(--poster-frame-max)] gap-2 px-4 py-2.5 sm:grid-cols-[1fr_auto] sm:items-center sm:gap-4 sm:px-6 sm:py-3">
         <p className="mono-id tracking-[0.1em] text-muted-foreground">
-          {printSizeMeta(isTableTent)}
+          {printSizeMeta()}
         </p>
         <PrintButton className="w-full sm:w-fit" template={template} />
       </div>

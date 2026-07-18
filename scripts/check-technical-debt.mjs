@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process"
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 
 const result = spawnSync(
   "git",
@@ -29,6 +29,7 @@ if (result.status !== 0) {
 const files = result.stdout
   .split("\0")
   .filter(Boolean)
+  .filter(existsSync)
   .filter((path) => path !== "scripts/check-technical-debt.mjs")
 const untracked = []
 const marker =

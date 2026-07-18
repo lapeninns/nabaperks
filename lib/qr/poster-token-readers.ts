@@ -7,7 +7,6 @@ import {
 } from "./poster-design-reader"
 import type {
   A4TypeTierModel,
-  B5TypeTierModel,
   PosterDesignId,
   PosterFontModel,
   PosterPaletteModel,
@@ -112,38 +111,6 @@ export function posterPalette(): PosterPaletteModel {
     leaf: exactString(tokens, "leaf", path, "#16733c"),
     cobalt: exactString(tokens, "cobalt", path, "#2b43c8"),
     white: exactString(tokens, "white", path, "#ffffff"),
-  }
-}
-
-function boundedTier(
-  record: Record<string, unknown>,
-  name: string,
-  minimumName: string,
-  maximumName: string
-): number {
-  const path = "posterDesigns.shared.typeTiersPt"
-  const value = requireNumber(record, name, path)
-  const minimum = requireNumber(record, minimumName, path)
-  const maximum = requireNumber(record, maximumName, path)
-  if (value < minimum || value > maximum) {
-    throw new Error(
-      `Expected ${path}.${name} between ${minimum} and ${maximum}`
-    )
-  }
-  return value
-}
-
-export function posterB5TypeTiers(): B5TypeTierModel {
-  const tiers = sharedRecord("typeTiersPt")
-  return {
-    hookPt: boundedTier(tiers, "b5Hook", "b5HookMin", "b5HookMax"),
-    substantivePt: boundedTier(
-      tiers,
-      "b5Substantive",
-      "b5SubstantiveMin",
-      "b5SubstantiveMax"
-    ),
-    factsPt: boundedTier(tiers, "b5Facts", "b5FactsMin", "b5FactsMax"),
   }
 }
 

@@ -28,7 +28,7 @@ export function drawThermalA4(
     height: pageHeight,
     color: POSTER_PDF_COLOR.paperDeep,
   })
-  const receiptW = mm(130)
+  const receiptW = mm(160)
   const receiptX = (pageWidth - receiptW) / 2
   const receiptY = mm(content.geometry.safeMarginMm)
   const receiptH = pageHeight - receiptY * 2

@@ -1,8 +1,15 @@
 export {
+  posterCollections,
   posterDesignIds,
-  posterTableTentIds,
   templateMetadata,
 } from "./poster-design-reader"
 export { resolvePosterContent, resolvePosterText } from "./poster-content"
 export { sharedString } from "./poster-design-reader"
-export type { PosterContent, PosterDesignId } from "./poster-content-types"
+export type {
+  PosterCollection,
+  PosterCollectionId,
+  PosterContent,
+  PosterDesignId,
+  PosterFormatId,
+  PosterTemplateMetadata,
+} from "./poster-content-types"

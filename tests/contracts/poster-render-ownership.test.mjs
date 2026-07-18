@@ -52,26 +52,14 @@ test("renderers consume the model instead of owning approved customer copy", () 
   }
 })
 
-test("critical page, fold, and QR values enter adapters through resolved content", () => {
+test("critical page and QR values enter adapters through resolved content", () => {
   const browser = readFileSync(
     path.join(
       projectRoot,
       "components",
       "merchant",
       "qr-poster",
-      "a4-poster.tsx"
-    ),
-    "utf8"
-  )
-  const tent = readFileSync(
-    path.join(
-      projectRoot,
-      "components",
-      "merchant",
-      "qr-poster",
-      "table-tent",
-      "faces",
-      "shared.tsx"
+      "poster-renderer-registry.tsx"
     ),
     "utf8"
   )
@@ -81,7 +69,5 @@ test("critical page, fold, and QR values enter adapters through resolved content
   )
 
   assert.match(browser, /copy\.geometry\.sheetWidthMm/)
-  assert.match(tent, /geometry\.foldCorridorMm|geometry\.faceHeightMm/)
-  assert.match(tent, /geometry\.identityRowMm/)
   assert.match(pdf, /content\.geometry\.sheetWidthMm/)
 })
