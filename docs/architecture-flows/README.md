@@ -2,29 +2,26 @@
 
 Snapshot: 2026-06-30 current working tree.
 
-This folder contains the architecture analysis backlog for the 64 currently
-identified Nabaperks flows. The analysis was grounded in the current App Router
-tree, server actions, route handlers, CodeGraph source exploration, and a
-LazyCodex worker pass across the nine major flow axes.
+This folder contains the maintained architecture analysis for the current
+Nabaperks route families. Obsolete raw worker output and the pre-removal
+flow-by-flow snapshot were retired with the public acquisition site.
 
 ## How To Read This Folder
 
-| File | Covers | Flow IDs |
-| --- | --- | --- |
-| `00-executive-summary.md` | Cross-cutting architecture, highest risks, recommended sequence | all |
-| `10-flow-by-flow-detailed-analysis.md` | Requested narrative format with Architecture Type, Main Flow, What Is Good, Pitfalls, Room To Improve for each flow | 1-64 |
-| `01-public-marketing.md` | Public marketing, guide, legal, and meta surfaces | 1-8 |
-| `02-merchant-auth-entry.md` | Merchant signup, login, reset, confirmation, onboarding, start routing | 9-15 |
-| `03-merchant-setup-launch.md` | Launch checklist, venue, card, rewards, billing, QR, dashboard, account | 16-25 |
-| `04-merchant-operations.md` | Members, activity, scanner, reward collection | 26-29 |
-| `05-customer-loyalty.md` | Public QR, join, customer card, stamp, reward, reward QR/status | 30-39 |
-| `06-customer-home.md` | Customer wallet login, dashboard, profile, rewards, activity | 40-44 |
-| `07-api-background.md` | Auth hooks, push, notifications, cron, Stripe, health | 45-51 |
-| `08-admin-support.md` | Admin gate, overview, merchants, customers, privacy, fraud, audit, billing, pilot | 52-60 |
-| `09-dev-qa.md` | Dev design system, app harnesses, poster preview, viewport wrapper | 61-64 |
-| `11-remediation-log.md` | 2026-06-30 remediation ledger, source/test evidence, remaining release gates | prioritized findings |
-| `worker-axes.csv` | LazyCodex worker manifest | all |
-| `worker-findings.csv` | Raw LazyCodex worker outputs | all |
+| File                          | Covers                                                                            | Flow IDs             |
+| ----------------------------- | --------------------------------------------------------------------------------- | -------------------- |
+| `00-executive-summary.md`     | Cross-cutting architecture, highest risks, recommended sequence                   | all                  |
+| `01-public-marketing.md`      | Public merchant entry, legal, offline, and meta surfaces                          | 1-8                  |
+| `02-merchant-auth-entry.md`   | Merchant signup, login, reset, confirmation, onboarding, start routing            | 9-15                 |
+| `03-merchant-setup-launch.md` | Launch checklist, venue, card, rewards, billing, QR, dashboard, account           | 16-25                |
+| `04-merchant-operations.md`   | Members, activity, scanner, reward collection                                     | 26-29                |
+| `05-customer-loyalty.md`      | Public QR, join, customer card, stamp, reward, reward QR/status                   | 30-39                |
+| `06-customer-home.md`         | Customer wallet login, dashboard, profile, rewards, activity                      | 40-44                |
+| `07-api-background.md`        | Auth hooks, push, notifications, cron, Stripe, health                             | 45-51                |
+| `08-admin-support.md`         | Admin gate, overview, merchants, customers, privacy, fraud, audit, billing, pilot | 52-60                |
+| `09-dev-qa.md`                | Dev design system, app harnesses, poster preview, viewport wrapper                | 61-64                |
+| `11-remediation-log.md`       | Current repository and service-backed release gates                               | prioritized findings |
+| `worker-axes.csv`             | LazyCodex worker manifest                                                         | all                  |
 
 ## Method
 
@@ -43,12 +40,12 @@ Each flow is analyzed through the same lens:
 
 ## Priority Codes
 
-| Code | Meaning |
-| --- | --- |
-| P0 | Fix before trusting the flow in a pilot; likely user-impacting or trust-boundary risk. |
-| P1 | Fix before broader pilot/production release. |
-| P2 | Important hardening or maintainability work. |
-| P3 | Nice-to-have cleanup or polish. |
+| Code | Meaning                                                                                |
+| ---- | -------------------------------------------------------------------------------------- |
+| P0   | Fix before trusting the flow in a pilot; likely user-impacting or trust-boundary risk. |
+| P1   | Fix before broader pilot/production release.                                           |
+| P2   | Important hardening or maintainability work.                                           |
+| P3   | Nice-to-have cleanup or polish.                                                        |
 
 ## Remediated Highest-Risk Items
 

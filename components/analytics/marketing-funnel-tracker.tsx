@@ -26,19 +26,6 @@ export function MarketingFunnelTracker() {
     if (event) void captureMarketingFunnelEvent(event)
   }, [pathname])
 
-  useEffect(() => {
-    const captureSignupClick = (event: MouseEvent) => {
-      if (pathname !== "/" || !isSameOriginSignupLink(event.target)) return
-      void captureMarketingFunnelEvent("merchant_signup_clicked")
-    }
-
-    document.addEventListener("click", captureSignupClick, { capture: true })
-    return () =>
-      document.removeEventListener("click", captureSignupClick, {
-        capture: true,
-      })
-  }, [pathname])
-
   return null
 }
 
@@ -74,29 +61,11 @@ async function postFunnelCapture(
 }
 
 function pageViewEvent(pathname: string): PublicFunnelEvent | null {
-  if (pathname === "/") return "merchant_marketing_viewed"
   if (pathname === "/signup") return "merchant_signup_started"
   if (pathname === "/signup/verify") {
     return "merchant_otp_verification_viewed"
   }
   return null
-}
-
-function isSameOriginSignupLink(target: EventTarget | null): boolean {
-  if (!(target instanceof Element)) return false
-
-  const link = target.closest<HTMLAnchorElement>("a[href]")
-  if (!link || link.hasAttribute("download")) return false
-
-  try {
-    const destination = new URL(link.href, window.location.href)
-    return (
-      destination.origin === window.location.origin &&
-      destination.pathname === "/signup"
-    )
-  } catch {
-    return false
-  }
 }
 
 function readFunnelToken(): string | null {

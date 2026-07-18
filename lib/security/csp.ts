@@ -12,14 +12,6 @@ const NEXT_THEMES_SCRIPT_HASHES: readonly string[] = [
 ]
 
 const STATIC_MARKETING_EXACT_PATHS: ReadonlySet<string> = new Set([
-  "/",
-  "/about",
-  "/how-it-works",
-  "/loyalty-for-pubs",
-  "/loyalty-for-cafes",
-  "/loyalty-for-takeaways",
-  "/loyalty-for-bars",
-  "/pricing",
   "/cookies",
   "/data-processing",
   "/merchant-terms",
@@ -59,10 +51,7 @@ export function isStaticMarketingPath(pathname: string): boolean {
       ? pathname.slice(0, -1)
       : pathname
 
-  return (
-    STATIC_MARKETING_EXACT_PATHS.has(normalizedPath) ||
-    normalizedPath.startsWith("/guides/")
-  )
+  return STATIC_MARKETING_EXACT_PATHS.has(normalizedPath)
 }
 
 export function dynamicContentSecurityPolicy(nonce: string): string {

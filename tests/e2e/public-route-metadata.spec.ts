@@ -1,42 +1,20 @@
 import { expect, test } from "@playwright/test"
 
 const PUBLIC_SITE_URLS = [
-  "https://nabaperks.com/",
-  "https://nabaperks.com/how-it-works",
-  "https://nabaperks.com/loyalty-for-pubs",
-  "https://nabaperks.com/loyalty-for-cafes",
-  "https://nabaperks.com/loyalty-for-takeaways",
-  "https://nabaperks.com/loyalty-for-bars",
-  "https://nabaperks.com/pricing",
-  "https://nabaperks.com/about",
-  "https://nabaperks.com/guides/best-loyalty-ideas-for-pubs",
-  "https://nabaperks.com/guides/reward-regulars-without-an-app",
-  "https://nabaperks.com/guides/paper-vs-qr-loyalty-for-pubs",
   "https://nabaperks.com/signup",
   "https://nabaperks.com/privacy",
   "https://nabaperks.com/terms",
+  "https://nabaperks.com/cookies",
+  "https://nabaperks.com/merchant-terms",
+  "https://nabaperks.com/data-processing",
 ] as const
 
-/** Indexable marketing routes (legal pages excluded) — AV-5 budget scope. */
-const MARKETING_ROUTES = [
-  "/",
-  "/how-it-works",
-  "/loyalty-for-pubs",
-  "/loyalty-for-cafes",
-  "/loyalty-for-takeaways",
-  "/loyalty-for-bars",
-  "/pricing",
-  "/about",
-  "/guides/best-loyalty-ideas-for-pubs",
-  "/guides/reward-regulars-without-an-app",
-  "/guides/paper-vs-qr-loyalty-for-pubs",
-  "/signup",
-] as const
+const ACQUISITION_ROUTES = ["/signup"] as const
 
 test.describe("@public-route-metadata", () => {
   // One test per route (a11y-sweep pattern): a fresh page per navigation keeps
   // the one-time service-worker claim reload from interrupting a second goto.
-  for (const route of MARKETING_ROUTES) {
+  for (const route of ACQUISITION_ROUTES) {
     test(`description budget and self-canonical: ${route}`, async ({
       page,
     }) => {
@@ -61,7 +39,7 @@ test.describe("@public-route-metadata", () => {
         .locator('link[rel="canonical"]')
         .getAttribute("href")
       expect(canonical, `${route} carries a self-canonical`).toBe(
-        `https://nabaperks.com${route === "/" ? "" : route}`
+        `https://nabaperks.com${route}`
       )
     })
   }

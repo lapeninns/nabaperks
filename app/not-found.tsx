@@ -14,7 +14,7 @@ export default async function NotFound() {
   return (
     <main className="grid min-h-svh place-items-center px-6 py-10">
       <section className="grid w-full max-w-sm justify-items-center gap-6">
-        <Logo compact href="/" />
+        <Logo compact href="/signup" />
         <EmptyState
           headingLevel={1}
           icon={AlertDiamondIcon}
@@ -23,7 +23,7 @@ export default async function NotFound() {
           actions={
             <div className="grid w-full gap-2">
               <Button asChild>
-                <Link href="/">Nabaperks home</Link>
+                <Link href="/signup">Start a free pilot</Link>
               </Button>
               <Button asChild variant="secondary">
                 <Link href="/home">{OPEN_MY_CARDS_LABEL}</Link>

@@ -408,7 +408,8 @@ Prose documents are deliberately outside the evidence hierarchy for this dossier
 
 The main route families are intentionally separated:
 
-- Public marketing/legal: `/`, `/pricing`, `/about`, vertical pages, guides, legal pages.
+- Public merchant entry and legal: `/signup` plus the privacy, platform terms,
+  cookie, merchant terms, and data-processing pages. The site root is a 404.
 - Merchant auth: `/signup`, `/login`, `/reset-password`, `/auth/confirm`.
 - Merchant console: `/app/*`.
 - Public merchant/QR: `/m/*`, `/merchant/*/terms`, `/q/*`.

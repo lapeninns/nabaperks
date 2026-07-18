@@ -2,7 +2,14 @@ import { check, sleep } from "k6"
 import http from "k6/http"
 
 const BASE_URL = __ENV.BASE_URL || "http://127.0.0.1:3000"
-const ROUTES = ["/", "/pricing", "/loyalty-for-pubs"]
+const ROUTES = [
+  "/signup",
+  "/privacy",
+  "/terms",
+  "/cookies",
+  "/merchant-terms",
+  "/data-processing",
+]
 
 export const options = {
   scenarios: {

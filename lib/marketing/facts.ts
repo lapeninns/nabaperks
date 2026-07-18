@@ -63,23 +63,6 @@ export const OPERATOR_ESTATE: readonly EstatePub[] = [
   { name: "White Horse", postcode: "CB25 9HP" },
 ] as const
 
-// --- Vertical language (approved public wording only) ----------------------
-
-export const VERTICALS = {
-  /** Pub-first language for the pub hub and spokes. */
-  pubLed: [
-    "pubs",
-    "bars",
-    "gastropubs",
-    "food-led pubs",
-    "ale and cask-led locals",
-    "wine bars",
-    "pub restaurants",
-  ],
-  /** Anonymous broad venue types allowed in general copy. */
-  broad: ["pubs", "cafes", "takeaways"],
-} as const
-
 // --- Product terminology ---------------------------------------------------
 
 export const PRODUCT = {
@@ -131,10 +114,8 @@ export const GUARANTEE = {
 } as const
 
 /**
- * What the £49 plan includes — the single source for the /pricing superset
- * and the TrustPricing teaser (`PLAN_INCLUDES.slice(0, 4)`), so the two
- * surfaces can never drift. Location checks sit last so the teaser is a
- * plain prefix of the full list.
+ * What the £49 plan includes. Retained as an approved commercial fact set for
+ * merchant billing and future product copy.
  */
 export const PLAN_INCLUDES = [
   "Unlimited stamps and members",
@@ -146,9 +127,8 @@ export const PLAN_INCLUDES = [
 
 /**
  * The offer's public NAME — the Hormozi MAGIC "wrapper" (Goal "first regular" +
- * Interval "30-day" + Container "Launch"). Rendered as the /pricing offer
- * heading (marketing offer v2). This names the OFFER, not the product: the
- * hero product headline ("The loyalty card that just opens.") stays separate.
+ * Interval "30-day" + Container "Launch"). This names the OFFER, not the
+ * product.
  * `riskFraming` is the guarantee's best-case/worst-case reversal, composed with
  * `GUARANTEE` and single-sourced so no surface forks it.
  */
@@ -173,8 +153,7 @@ export const SETUP = {
 } as const
 
 /**
- * The named bonus stack /pricing presents under the one price — already
- * shipped product, framed as included; no unbundled price theatre. Each item
+ * The named bonus stack retained with the shared offer facts. Each item
  * names the `obstacle` it removes (Hormozi Bonus Bullet #8) and, where a figure
  * is genuinely substantiable, an `anchor`: a real external cost or time saving
  * (marketing offer v2, owner-approved 2026-07-05). Anchors are NEVER an
@@ -182,7 +161,7 @@ export const SETUP = {
  * mechanism-described with no price (`anchor: null`). Factual anchors: the
  * poster kit (eight production A4 counter posters), the seeded default
  * reward pool, optional birthday automation + the weekly digest, the
- * consent/age-gate/retention mechanics, and the three public guides.
+ * consent/age-gate/retention mechanics.
  */
 export const OFFER_STACK = [
   {
@@ -215,62 +194,13 @@ export const OFFER_STACK = [
       "Consent-led marketing kept separate from loyalty, an 18+ age gate at redemption, and automatic data-retention tidy-ups.",
     anchor: null,
   },
-  {
-    name: "The operator's loyalty guides",
-    obstacle: "Unsure what actually works in a pub.",
-    detail:
-      "Three practical guides from the counter: reward ideas that suit a pub, paper vs QR, and rewarding regulars without an app.",
-    anchor: null,
-  },
 ] as const
 
-// --- First-party proof (the citable data asset) ----------------------------
-
-/** Approved benchmark / named IP for the first-party proof. */
-export const PROOF = {
-  indexName: "Nabaperks Counter-Loyalty Index",
-  asOf: "June 2026",
-  methodology:
-    "Nabaperks first-party loyalty data from UK food-and-drink venues, March 2024 to June 2026. Snapshot as of June 2026.",
-  calculatedFrom: "Calculated from first-party loyalty records.",
-  measuredAcross: "Measured across Nabaperks-powered venues.",
-  /** The approved fixed June 2026 snapshot — canonical numbers. */
-  stats: {
-    members: 1842,
-    returnedMembers: 812,
-    rewardsRedeemed: 1180,
-    rewardsEarned: 2934,
-    repeatRatePct: 46.8,
-  },
-} as const
-
-/** Pre-formatted display strings for the snapshot (en-GB thousands). */
-export const PROOF_DISPLAY = {
-  members: "1,842",
-  returnedMembers: "812",
-  rewardsRedeemed: "1,180",
-  rewardsEarned: "2,934",
-  repeatRate: "46.8%",
-} as const
-
-// --- Routes + persona CTAs -------------------------------------------------
+// --- Surviving public routes ----------------------------------------------
 
 export const ROUTES = {
-  home: "/",
-  howItWorks: "/how-it-works",
-  pubHub: "/loyalty-for-pubs",
-  cafeHub: "/loyalty-for-cafes",
-  takeawayHub: "/loyalty-for-takeaways",
-  barHub: "/loyalty-for-bars",
-  about: "/about",
-  pricing: "/pricing",
   signup: "/signup",
   signupVerify: "/signup/verify",
-  guides: {
-    bestIdeas: "/guides/best-loyalty-ideas-for-pubs",
-    rewardRegulars: "/guides/reward-regulars-without-an-app",
-    paperVsQr: "/guides/paper-vs-qr-loyalty-for-pubs",
-  },
 } as const
 
 export type PublicRouteChangeFrequency = "weekly" | "monthly" | "yearly"
@@ -282,33 +212,6 @@ export type PublicSiteRoute = {
 }
 
 export const PUBLIC_SITE_ROUTES = [
-  { path: ROUTES.home, priority: 1, changeFrequency: "weekly" },
-  {
-    path: ROUTES.howItWorks,
-    priority: 0.9,
-    changeFrequency: "monthly",
-  },
-  { path: ROUTES.pubHub, priority: 0.9, changeFrequency: "monthly" },
-  { path: ROUTES.cafeHub, priority: 0.9, changeFrequency: "monthly" },
-  { path: ROUTES.takeawayHub, priority: 0.9, changeFrequency: "monthly" },
-  { path: ROUTES.barHub, priority: 0.9, changeFrequency: "monthly" },
-  { path: ROUTES.pricing, priority: 0.9, changeFrequency: "monthly" },
-  { path: ROUTES.about, priority: 0.6, changeFrequency: "monthly" },
-  {
-    path: ROUTES.guides.bestIdeas,
-    priority: 0.6,
-    changeFrequency: "monthly",
-  },
-  {
-    path: ROUTES.guides.rewardRegulars,
-    priority: 0.6,
-    changeFrequency: "monthly",
-  },
-  {
-    path: ROUTES.guides.paperVsQr,
-    priority: 0.6,
-    changeFrequency: "monthly",
-  },
   { path: ROUTES.signup, priority: 0.7, changeFrequency: "monthly" },
   { path: "/privacy", priority: 0.3, changeFrequency: "yearly" },
   { path: "/terms", priority: 0.3, changeFrequency: "yearly" },
@@ -316,15 +219,3 @@ export const PUBLIC_SITE_ROUTES = [
   { path: "/merchant-terms", priority: 0.2, changeFrequency: "yearly" },
   { path: "/data-processing", priority: 0.2, changeFrequency: "yearly" },
 ] as const satisfies readonly PublicSiteRoute[]
-
-export const CTA = {
-  /** Persona + hero persona CTA for the pub hub. */
-  pub: "Loyalty for pubs",
-  /** Persona CTAs for the cafe/takeaway/bar spokes. */
-  cafe: "Loyalty for cafes",
-  takeaway: "Loyalty for takeaways",
-  bar: "Loyalty for bars",
-  /** Standard label whenever a guide links back to the hub. */
-  guideLink: "See the pub loyalty guide",
-  startPilot: "Start free pilot",
-} as const

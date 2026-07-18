@@ -60,8 +60,9 @@ full webhook payloads.
    Liveness must report `status=ok` and readiness must report
    `status=ready`, `checks.database=ok`. Both must show the promoted revision.
 
-5. Run anonymous smoke checks for `/`, `/pricing`, `/privacy`, `/terms`,
-   `/login`, `/home/login` and confirm every `/dev/*` route remains 404.
+5. Confirm `/` returns 404. Run anonymous smoke checks for `/signup`,
+   `/privacy`, `/terms`, `/cookies`, `/merchant-terms`, `/data-processing`,
+   `/login`, `/home/login`, and confirm every `/dev/*` route remains 404.
 6. Complete one controlled merchant login, one customer login, one QR join,
    one stamp/redeem lifecycle, one email delivery and one OTP delivery in the
    target environment. Never use production customer data as a test fixture.
@@ -83,6 +84,7 @@ not trustworthy.
    vercel rollback "$HEALTHY_DEPLOYMENT_ID" --yes
    vercel rollback status nabaperks
    ```
+
 3. Re-run `/api/health` and `/api/readiness`; record the restored revision.
 4. If a forward-only migration caused the incident, do not edit or delete the
    applied migration. Add and verify a compensating migration on a disposable

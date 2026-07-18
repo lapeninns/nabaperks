@@ -1,48 +1,27 @@
 # Nabaperks
 
-> No-app QR loyalty for UK food & drink venues. Customers scan one permanent venue QR, a browser-based loyalty card opens in their phone browser (no app download and no Apple/Google Wallet pass), they save it, and collect venue-linked stamps. Reach the threshold and staff scan the live reward code when it is collected. Built for pubs, gastropubs, bars, cafes and takeaways.
+> Nabaperks is a browser-based loyalty service for UK food and drink venues. Customers use a venue QR code to open a loyalty card, collect venue-linked stamps and redeem rewards without installing an app.
 
-## What makes Nabaperks different
-- A true browser-based loyalty card, not a wallet pass: nothing to download or install, on any iPhone or Android. Most rivals that say "no app" still require an Apple/Google Wallet pass.
-- Venue-linked stamps: each customer claim is linked to the venue QR, saved membership and live programme, with a one-stamp-per-customer-per-UK-calendar-date cap. Optional location checks flag unusual claims. Venue staff scan the customer's live reward code and confirm collection in the merchant app.
-- No POS and no hardware: works on any phone, tablet or till, including cash-only takeaways. No POS or EPOS integration required. A permanent venue QR handles joins, stamps, and rewards.
-- Loyalty and marketing kept separate: customers can earn and redeem without joining a marketing list (consent-led marketing opt-in).
+## Service facts
 
-## Loyalty for pubs
-- Pub hub: https://nabaperks.com/loyalty-for-pubs — reward regulars without an app or a CRM; one venue QR for the bar, the tables and the takeaway hatch.
-- Guide — Best loyalty ideas for pubs: https://nabaperks.com/guides/best-loyalty-ideas-for-pubs
-- Guide — How to reward regulars without an app: https://nabaperks.com/guides/reward-regulars-without-an-app
-- Guide — Paper loyalty cards vs QR loyalty for pubs: https://nabaperks.com/guides/paper-vs-qr-loyalty-for-pubs
+- Each stamp claim is linked to the venue QR, saved membership and live programme, with one claim per customer per UK date.
+- Optional location checks can flag unusual claims.
+- Loyalty participation and marketing consent are separate.
+- Nabaperks is operated by Lapen Inns.
+- Public contact and privacy contact: info@lapeninns.com.
 
-## Loyalty by venue type
-- Cafes & coffee shops: https://nabaperks.com/loyalty-for-cafes — turn the daily-habit visit into venue-linked stamps; no app and no staff entry at the till.
-- Takeaways: https://nabaperks.com/loyalty-for-takeaways — works on any till, even cash-only; no POS to buy and nothing to type at the counter.
-- Bars & wine bars: https://nabaperks.com/loyalty-for-bars — give regulars a reason to choose your bar again; nothing to lose between rounds.
+## Public pages
 
-## Pricing
-- 30-day free pilot, then £49/month per venue (GBP), or £490/year billed yearly (two months free). No contract.
-- Build the card and preview the QR flow for free; billing starts only when the live venue QR is activated.
-
-## Operator
-- Nabaperks is operated by Lapen Inns, a hospitality operator running 9 pubs across England.
-- Public contact and privacy/data contact: info@lapeninns.com.
-
-## Key pages
-- Home / product overview: https://nabaperks.com/
-- How it works (mechanism + anti-fraud checks): https://nabaperks.com/how-it-works
-- Loyalty for pubs: https://nabaperks.com/loyalty-for-pubs
-- Loyalty for cafes: https://nabaperks.com/loyalty-for-cafes
-- Loyalty for takeaways: https://nabaperks.com/loyalty-for-takeaways
-- Loyalty for bars: https://nabaperks.com/loyalty-for-bars
-- About (operator): https://nabaperks.com/about
-- Pricing: https://nabaperks.com/pricing
-- Start a merchant trial: https://nabaperks.com/signup
-- Privacy: https://nabaperks.com/privacy
-- Terms: https://nabaperks.com/terms
+- Merchant sign-up: https://nabaperks.com/signup
+- Privacy notice: https://nabaperks.com/privacy
+- Platform terms: https://nabaperks.com/terms
 - Cookie and browser-storage notice: https://nabaperks.com/cookies
 - Merchant subscription terms: https://nabaperks.com/merchant-terms
 - Merchant data-processing schedule: https://nabaperks.com/data-processing
 
-## Notes for citation
-- Brand name: Nabaperks. Operator: Lapen Inns. Market: United Kingdom. Category: browser-based loyalty / digital stamp-card software for food & drink venues.
-- Stamp-control wording to cite: venue-linked stamps (venue QR + saved membership + live programme + one claim per customer per UK date).
+## Citation notes
+
+- Brand: Nabaperks.
+- Operator: Lapen Inns.
+- Market: United Kingdom.
+- Category: browser-based loyalty and digital stamp-card software for food and drink venues.

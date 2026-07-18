@@ -3,13 +3,6 @@ import { expect, test } from "@playwright/test"
 import { dismissPwaInstall } from "./helpers/harness"
 
 const routes = [
-  { name: "home", path: "/" },
-  { name: "how-it-works", path: "/how-it-works" },
-  { name: "pricing", path: "/pricing" },
-  { name: "loyalty-for-pubs", path: "/loyalty-for-pubs" },
-  { name: "loyalty-for-cafes", path: "/loyalty-for-cafes" },
-  { name: "loyalty-for-takeaways", path: "/loyalty-for-takeaways" },
-  { name: "loyalty-for-bars", path: "/loyalty-for-bars" },
   { name: "auth-signup", path: "/signup" },
   {
     name: "auth-signup-verify",
@@ -107,10 +100,8 @@ test.describe("visual regression @visual", () => {
       const strictComparison =
         route.name === "harness-dashboard" ||
         route.name === "harness-dashboard-empty" ||
-        route.name === "loyalty-for-pubs" ||
         (testInfo.project.name === "mobile-safari" &&
-          (route.name === "harness-qr" ||
-            route.name === "loyalty-for-takeaways"))
+          route.name === "harness-qr")
       await expect(page).toHaveScreenshot(`${route.name}.png`, {
         fullPage: true,
         maxDiffPixelRatio: strictComparison ? 0.001 : 0.04,

@@ -1,42 +1,41 @@
 import { expect, test } from "@playwright/test"
 
 test.describe("public browser smoke", () => {
-  test("Given the public app When a browser opens the landing page Then the core route renders @smoke", async ({
+  test("Given the public site root When a browser opens it Then the root not-found boundary responds @smoke", async ({
     page,
   }) => {
-    await page.goto("/")
+    const response = await page.goto("/")
 
-    await expect(page).toHaveTitle(/Nabaperks/)
+    expect(response?.status()).toBe(404)
+    await expect(page).toHaveTitle(/Page not found/)
     await expect(
-      page.getByRole("link", { name: /Pricing|View pricing/i }).first()
+      page.getByRole("heading", { name: "Page not found" })
     ).toBeVisible()
-    await expect(page.locator("body")).toContainText("No-app QR loyalty")
   })
 
-  test("Given the public landing page When accessibility smoke runs Then primary landmarks are discoverable @a11y", async ({
+  test("Given merchant sign-up When accessibility smoke runs Then primary landmarks and fields are discoverable @a11y", async ({
     page,
   }) => {
-    await page.goto("/")
+    const response = await page.goto("/signup")
 
+    expect(response?.ok()).toBe(true)
     await expect(page.getByRole("banner")).toBeVisible()
     await expect(page.getByRole("main")).toBeVisible()
+    await expect(page.getByLabel("Your name")).toBeVisible()
     await expect(
-      page
-        .getByRole("heading", { name: /The loyalty card that just opens/i })
-        .first()
+      page.getByRole("button", { name: "Create account" })
     ).toBeVisible()
   })
 
-  test("Given the public landing page When visual smoke runs Then the hero occupies a non-empty viewport surface", async ({
+  test("Given a retained legal page When visual smoke runs Then it occupies a non-empty viewport surface", async ({
     page,
   }) => {
-    await page.goto("/")
+    const response = await page.goto("/privacy")
+    expect(response?.ok()).toBe(true)
 
-    const hero = page.locator("main").first()
-
-    await expect(hero).toBeVisible()
-    const screenshot = await hero.screenshot()
-
+    const main = page.locator("main").first()
+    await expect(main).toBeVisible()
+    const screenshot = await main.screenshot()
     expect(screenshot.byteLength).toBeGreaterThan(10_000)
   })
 })

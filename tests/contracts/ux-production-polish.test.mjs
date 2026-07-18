@@ -259,7 +259,6 @@ test("Given the fix-phase leftovers When closed Then card-title, circle exceptio
   assert.match(designMd, /EmptyState[\s\S]{0,40}roundel/)
   assert.match(designMd, /customer tab-bar chips/)
   assert.match(designMd, /join stepper discs/)
-  assert.match(designMd, /marketing jump-nav chips/)
   assert.match(designMd, /legal-link halo family/)
 
   // MER-P3-04 / DS-P2-07 — passcodes use the single native input contract;

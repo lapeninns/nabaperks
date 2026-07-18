@@ -19,6 +19,7 @@ const visualPromoNow =
   process.env.PLAYWRIGHT_MARKETING_PROMO_NOW ?? "2026-07-06T12:00:00Z"
 const authHookSecret = `v1,${"whsec"}_${"dGVzdC1ob29rLXNlY3JldA=="}`
 const devServerUrl = new URL(baseURL)
+const devServerReadyUrl = new URL("/signup", devServerUrl).toString()
 const devServerPort =
   devServerUrl.port || (devServerUrl.protocol === "https:" ? "443" : "80")
 const devServerEnv = [
@@ -106,7 +107,7 @@ export default defineConfig({
   ],
   webServer: {
     command: `${devServerEnv} pnpm exec next dev --webpack`,
-    url: baseURL,
+    url: devServerReadyUrl,
     reuseExistingServer,
     timeout: process.env.CI ? 180_000 : 120_000,
   },
