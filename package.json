@@ -124,7 +124,7 @@
     "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
-    "fast-check": "^4.8.0",
+    "fast-check": "^4.9.0",
     "husky": "^9.1.7",
     "jscpd": "^5.0.12",
     "jsqr": "^1.4.0",
@@ -132,7 +132,7 @@
     "lint-staged": "^17.0.8",
     "pngjs": "^7.0.0",
     "postgres": "^3.4.9",
-    "prettier": "^3.8.4",
+    "prettier": "^3.9.5",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "tailwindcss": "^4",
     "typescript": "^6"
