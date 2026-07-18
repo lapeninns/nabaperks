@@ -336,18 +336,14 @@ export function defineMerchantLaunchFollowThroughTests() {
       await page.getByRole("button", { name: "Next poster" }).click()
     }
     if (browserName !== "firefox") {
-      await expect(page.getByText("2 / 4", { exact: true })).toBeVisible()
-      await expect(
-        page.locator("article[aria-current='true']").getByText("Pinned", {
-          exact: true,
-        })
-      ).toBeVisible()
-
+      // The deck now holds all eight production posters. Navigate by an
+      // explicit dot rather than a scroll-relative position so the assertion
+      // is deterministic across the desktop-click and mobile-scroll branches.
       await page.getByRole("button", { name: "Show Round poster" }).click()
       await expect(
         page.getByRole("img", { name: "Round poster preview" })
       ).toBeVisible()
-      await expect(page.getByText("3 / 4", { exact: true })).toBeVisible()
+      await expect(page.getByText("7 / 8", { exact: true })).toBeVisible()
     }
 
     await page.getByRole("link", { name: "Share digitally" }).click()

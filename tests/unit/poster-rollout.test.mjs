@@ -23,25 +23,30 @@ test("all eight registered templates validate and resolve metadata", () => {
   assert.equal(getQrPosterTemplate("unknown-poster"), null)
 })
 
-test("the production rotation exposes exactly the launch-ready designs", () => {
+test("the production rotation exposes every registered design in catalogue order", () => {
   assert.deepEqual(
     QR_POSTER_PRODUCTION_TEMPLATES.map(({ id }) => id),
-    ["garden", "pinned", "round", "lastcall"]
+    [
+      "primer",
+      "garden",
+      "window",
+      "pinned",
+      "seal",
+      "tally",
+      "round",
+      "lastcall",
+    ]
   )
-  // Garden leads the production rotation and is the picker default.
-  assert.equal(QR_POSTER_TEMPLATES[0].id, "primer")
-  assert.equal(QR_POSTER_PRODUCTION_TEMPLATES[0].id, "garden")
+  // The whole registry is now launch-ready; the rotation mirrors the catalogue.
+  assert.equal(
+    QR_POSTER_PRODUCTION_TEMPLATES.length,
+    QR_POSTER_TEMPLATES.length
+  )
 })
 
-test("review and experimental templates stay registered but out of rotation", () => {
+test("no registered template is held out of the production rotation", () => {
   const held = QR_POSTER_TEMPLATES.filter(
     ({ rollout }) => rollout !== "production"
   )
-  assert.deepEqual(
-    held.map(({ id, rollout }) => `${id}:${rollout}`),
-    ["primer:review", "window:review", "seal:review", "tally:experimental"]
-  )
-  for (const template of held) {
-    assert.ok(isQrPosterTemplateId(template.id), `${template.id} still renders`)
-  }
+  assert.deepEqual(held, [])
 })
