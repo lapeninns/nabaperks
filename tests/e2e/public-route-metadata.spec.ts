@@ -1,6 +1,17 @@
 import { expect, test } from "@playwright/test"
 
 const PUBLIC_SITE_URLS = [
+  "https://nabaperks.com/",
+  "https://nabaperks.com/pricing",
+  "https://nabaperks.com/how-it-works",
+  "https://nabaperks.com/loyalty-for-pubs",
+  "https://nabaperks.com/loyalty-for-cafes",
+  "https://nabaperks.com/loyalty-for-bars",
+  "https://nabaperks.com/loyalty-for-takeaways",
+  "https://nabaperks.com/guides/reward-regulars-without-an-app",
+  "https://nabaperks.com/guides/best-loyalty-ideas-for-pubs",
+  "https://nabaperks.com/guides/paper-vs-qr-loyalty-for-pubs",
+  "https://nabaperks.com/about",
   "https://nabaperks.com/signup",
   "https://nabaperks.com/privacy",
   "https://nabaperks.com/terms",
@@ -9,7 +20,7 @@ const PUBLIC_SITE_URLS = [
   "https://nabaperks.com/data-processing",
 ] as const
 
-const ACQUISITION_ROUTES = ["/signup"] as const
+const ACQUISITION_ROUTES = ["/", "/pricing", "/signup"] as const
 
 test.describe("@public-route-metadata", () => {
   // One test per route (a11y-sweep pattern): a fresh page per navigation keeps
@@ -38,8 +49,12 @@ test.describe("@public-route-metadata", () => {
       const canonical = await page
         .locator('link[rel="canonical"]')
         .getAttribute("href")
+      // Next.js resolves the root canonical to the bare origin (no trailing
+      // slash); every other route resolves to origin + path.
       expect(canonical, `${route} carries a self-canonical`).toBe(
-        `https://nabaperks.com${route}`
+        route === "/"
+          ? "https://nabaperks.com"
+          : `https://nabaperks.com${route}`
       )
     })
   }

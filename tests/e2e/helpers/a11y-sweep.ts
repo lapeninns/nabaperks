@@ -4,6 +4,18 @@ import { expectNoAxeViolations } from "./axe"
 import { dismissPwaInstall, HARNESS_ROUTES } from "./harness"
 
 const PUBLIC_ROUTES = [
+  "/",
+  "/how-it-works",
+  "/pricing",
+  "/loyalty-for-pubs",
+  "/loyalty-for-cafes",
+  "/loyalty-for-bars",
+  "/loyalty-for-takeaways",
+  "/guides/reward-regulars-without-an-app",
+  "/guides/best-loyalty-ideas-for-pubs",
+  "/guides/paper-vs-qr-loyalty-for-pubs",
+  "/about",
+  "/demo",
   "/privacy",
   "/terms",
   "/cookies",
