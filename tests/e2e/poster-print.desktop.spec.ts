@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test"
+import jsQR from "jsqr"
 import { mkdir } from "node:fs/promises"
 import path from "node:path"
+import { PNG } from "pngjs"
 
 import { resolvePosterContent } from "@/lib/qr/poster-content"
 import {
@@ -149,38 +151,18 @@ test.describe("poster printing", () => {
         await expect(qrImage).toHaveJSProperty("naturalWidth", 900)
       }
       if (browserName === "chromium") {
-        // Decode from the QR <img> bitmaps directly. Full-sheet screenshots can
-        // undersample module edges on dense Wet Ink layouts even when the print
-        // assets themselves remain scannable. BarcodeDetector is Chromium-only
-        // in Playwright's browser matrix.
-        const decodedTargets = await page.evaluate(async () => {
-          type BarcodeDetectorConstructor = new (options: {
-            readonly formats: readonly string[]
-          }) => {
-            detect(image: ImageBitmap): Promise<readonly { rawValue: string }[]>
-          }
-          const Detector = (
-            globalThis as typeof globalThis & {
-              readonly BarcodeDetector?: BarcodeDetectorConstructor
-            }
-          ).BarcodeDetector
-          if (!Detector) return []
-          const detector = new Detector({ formats: ["qr_code"] })
-          const images = Array.from(
-            document.querySelectorAll<HTMLImageElement>(
-              ".qr-poster-print-root article img"
-            )
-          )
-          const values: string[] = []
-          for (const image of images) {
-            const bitmap = await createImageBitmap(image)
-            const detections = await detector.detect(bitmap)
-            bitmap.close()
-            for (const detection of detections) {
-              values.push(detection.rawValue)
-            }
-          }
-          return values
+        // Decode the server-rendered QR data URLs in Node with jsQR: the PNG
+        // bytes are identical in every browser, and CI's Linux Chromium ships
+        // BarcodeDetector without a working backend. Chromium-only so the
+        // proof runs once per template rather than once per browser.
+        const qrSources = await qrImages.evaluateAll((images) =>
+          images.map((image) => image.getAttribute("src") ?? "")
+        )
+        const decodedTargets = qrSources.map((source) => {
+          const base64 = source.split(",")[1] ?? ""
+          const png = PNG.sync.read(Buffer.from(base64, "base64"))
+          return jsQR(new Uint8ClampedArray(png.data), png.width, png.height)
+            ?.data
         })
         expect(decodedTargets).toHaveLength(expectedQrCount)
         expect(
@@ -250,8 +232,10 @@ test.describe("poster printing", () => {
         expect(evidence.scrollWidth).toBeLessThanOrEqual(
           evidence.clientWidth + 1
         )
+        // +4 absorbs Linux Firefox reporting glyph descent in scrollHeight
+        // (a constant +3 there); a wrapped line would add a full line-height.
         expect(evidence.scrollHeight).toBeLessThanOrEqual(
-          evidence.clientHeight + 2
+          evidence.clientHeight + 4
         )
         expect(evidence.insideParent).toBe(true)
       }
