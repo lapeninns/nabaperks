@@ -19,7 +19,7 @@ type FunnelRequest = {
 test.describe("privacy-safe merchant funnel", () => {
   test.use({ serviceWorkers: "block" })
 
-  test("homepage signup continuity stays same-origin and session-only", async ({
+  test("signup continuity stays same-origin and session-only", async ({
     context,
     page,
   }) => {
@@ -46,34 +46,22 @@ test.describe("privacy-safe merchant funnel", () => {
       })
     })
 
-    const response = await page.goto("/")
+    const response = await page.goto("/signup")
     expect(response?.status()).toBeLessThan(400)
 
     await expect
       .poll(() => eventsFrom(funnelRequests), {
-        message: "homepage hydration records the marketing-view milestone",
+        message: "sign-up hydration records the start milestone",
       })
-      .toContain("merchant_marketing_viewed")
+      .toContain("merchant_signup_started")
 
-    const homeStorage = await analyticsStorage(page)
-    expect(homeStorage.session).toEqual([
+    const signupStorage = await analyticsStorage(page)
+    expect(signupStorage.session).toEqual([
       expect.objectContaining({ value: FUNNEL_TOKEN }),
     ])
-    expect(homeStorage.local).toEqual([])
+    expect(signupStorage.local).toEqual([])
     expect(await analyticsCookies(context, FUNNEL_TOKEN)).toEqual([])
-
-    await page
-      .getByRole("link", { name: "Start free pilot", exact: true })
-      .first()
-      .click()
-
-    await expect(page).toHaveURL(/\/signup(?:\?|$)/)
     await expect(page.getByLabel(/email/i)).toBeVisible()
-    await expect
-      .poll(() => eventsFrom(funnelRequests), {
-        message: "the signup CTA records its distinct click milestone",
-      })
-      .toContain("merchant_signup_clicked")
 
     const appOrigin = new URL(page.url()).origin
     for (const request of funnelRequests) {
@@ -83,19 +71,15 @@ test.describe("privacy-safe merchant funnel", () => {
       expect(request.method).toBe("POST")
     }
 
-    const signupClick = funnelRequests.find(
-      ({ body }) => body.event === "merchant_signup_clicked"
+    const signupStart = funnelRequests.find(
+      ({ body }) => body.event === "merchant_signup_started"
     )
-    expect(signupClick?.body.token).toBe(FUNNEL_TOKEN)
-
-    const signupStorage = await analyticsStorage(page)
-    expect(signupStorage.session).toEqual(homeStorage.session)
-    expect(signupStorage.local).toEqual([])
+    expect(signupStart?.body.token).toBeUndefined()
     expect(await analyticsCookies(context, FUNNEL_TOKEN)).toEqual([])
     expect(externalAnalyticsRequests).toEqual([])
   })
 
-  test("an aborted analytics route never blocks signup navigation", async ({
+  test("an aborted analytics route never blocks signup rendering", async ({
     context,
     page,
   }) => {
@@ -106,26 +90,14 @@ test.describe("privacy-safe merchant funnel", () => {
       await route.abort("failed")
     })
 
-    const response = await page.goto("/")
+    const response = await page.goto("/signup")
     expect(response?.status()).toBeLessThan(400)
     await expect
       .poll(() => eventsFrom(abortedRequests), {
         message: "the browser attempts first-party measurement before failure",
       })
-      .toContain("merchant_marketing_viewed")
-
-    await page
-      .getByRole("link", { name: "Start free pilot", exact: true })
-      .first()
-      .click()
-
-    await expect(page).toHaveURL(/\/signup(?:\?|$)/)
+      .toContain("merchant_signup_started")
     await expect(page.getByLabel(/email/i)).toBeVisible()
-    await expect
-      .poll(() => eventsFrom(abortedRequests), {
-        message: "the failed click capture remains best effort",
-      })
-      .toContain("merchant_signup_clicked")
 
     const storage = await analyticsStorage(page)
     expect(storage.session).toEqual([])

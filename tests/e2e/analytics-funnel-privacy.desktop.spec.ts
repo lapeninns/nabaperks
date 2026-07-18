@@ -10,7 +10,7 @@ const FUNNEL_TOKEN = "test-signed-desktop-funnel-token"
 test.describe("desktop privacy-safe merchant funnel", () => {
   test.use({ serviceWorkers: "block" })
 
-  test("desktop homepage and signup reuse one session-only identity", async ({
+  test("desktop signup uses one session-only identity", async ({
     context,
     page,
   }) => {
@@ -26,26 +26,11 @@ test.describe("desktop privacy-safe merchant funnel", () => {
       })
     })
 
-    await page.goto("/")
+    await page.goto("/signup")
     await expect
       .poll(() => requests.map(({ event }) => event))
-      .toContain("merchant_marketing_viewed")
-
-    await page
-      .getByRole("link", { name: "Start free pilot", exact: true })
-      .first()
-      .click()
-
-    await expect(page).toHaveURL(/\/signup(?:\?|$)/)
+      .toContain("merchant_signup_started")
     await expect(page.getByLabel(/email/i)).toBeVisible()
-    await expect
-      .poll(() => requests.map(({ event }) => event))
-      .toContain("merchant_signup_clicked")
-
-    const click = requests.find(
-      ({ event }) => event === "merchant_signup_clicked"
-    )
-    expect(click?.token).toBe(FUNNEL_TOKEN)
 
     const storage = await page.evaluate(
       (token) => ({
@@ -111,7 +96,7 @@ test.describe("desktop privacy-safe merchant funnel", () => {
         }
         await route.continue()
       })
-      await page.goto("/")
+      await page.goto("/signup")
       await expect
         .poll(() => lostToken, {
           message:
@@ -120,7 +105,7 @@ test.describe("desktop privacy-safe merchant funnel", () => {
         .not.toBe("")
       lostResponseEventId = deterministicFunnelEventId(
         lostToken,
-        "merchant_marketing_viewed"
+        "merchant_signup_started"
       )
       const { count: orphanCount, error: orphanError } = await supabase
         .from("product_events")
@@ -151,7 +136,7 @@ test.describe("desktop privacy-safe merchant funnel", () => {
       )
 
       expect(token).toBeTruthy()
-      eventId = deterministicFunnelEventId(token!, "merchant_marketing_viewed")
+      eventId = deterministicFunnelEventId(token!, "merchant_signup_started")
 
       await expect
         .poll(async () => {
@@ -176,7 +161,7 @@ test.describe("desktop privacy-safe merchant funnel", () => {
         })
         .toEqual([
           expect.objectContaining({
-            event_name: "merchant_marketing_viewed",
+            event_name: "merchant_signup_started",
             metadata: expect.objectContaining({
               funnel_key: expect.any(String),
             }),
@@ -186,7 +171,7 @@ test.describe("desktop privacy-safe merchant funnel", () => {
       const tampered = `${token!.slice(0, -1)}${token!.endsWith("a") ? "b" : "a"}`
       rejectedEventId = deterministicFunnelEventId(
         tampered,
-        "merchant_signup_clicked"
+        "merchant_otp_verification_viewed"
       )
       const {
         count: signupClickCountBefore,
@@ -194,7 +179,7 @@ test.describe("desktop privacy-safe merchant funnel", () => {
       } = await supabase
         .from("product_events")
         .select("id", { count: "exact", head: true })
-        .eq("event_name", "merchant_signup_clicked")
+        .eq("event_name", "merchant_otp_verification_viewed")
       if (signupClickCountBeforeError) throw signupClickCountBeforeError
 
       const rejectedResponse = await page.evaluate(
@@ -203,7 +188,7 @@ test.describe("desktop privacy-safe merchant funnel", () => {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({
-              event: "merchant_signup_clicked",
+              event: "merchant_otp_verification_viewed",
               token: suppliedToken,
             }),
           })
@@ -216,7 +201,7 @@ test.describe("desktop privacy-safe merchant funnel", () => {
       expect(freshToken).toBeTruthy()
       rejectedFreshEventId = deterministicFunnelEventId(
         freshToken!,
-        "merchant_signup_clicked"
+        "merchant_otp_verification_viewed"
       )
 
       const { count: rejectedCount, error: rejectedError } = await supabase
@@ -232,7 +217,7 @@ test.describe("desktop privacy-safe merchant funnel", () => {
       } = await supabase
         .from("product_events")
         .select("id", { count: "exact", head: true })
-        .eq("event_name", "merchant_signup_clicked")
+        .eq("event_name", "merchant_otp_verification_viewed")
       if (signupClickCountAfterError) throw signupClickCountAfterError
       expect(signupClickCountAfter).toBe(signupClickCountBefore)
     } finally {

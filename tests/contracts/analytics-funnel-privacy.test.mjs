@@ -134,11 +134,6 @@ test("Given acquisition continuity When the browser tracker is inspected Then it
   )
   assert.doesNotMatch(captureQueue, /previousToken/)
   assert.doesNotMatch(tracker, /Promise<string\s*\|\s*null>/)
-  assert.match(
-    tracker,
-    /pathname\s*!==\s*["']\/["'][\s\S]{0,120}merchant_signup_clicked/,
-    "landing CTR excludes signup links on pricing, legal, and auth pages"
-  )
   assert.doesNotMatch(tracker, /document\.cookie|cookieStore/)
   assert.doesNotMatch(tracker, /[?&](?:funnel|funnel_token|token)=/i)
   assert.doesNotMatch(

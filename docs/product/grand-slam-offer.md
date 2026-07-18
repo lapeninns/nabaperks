@@ -201,17 +201,16 @@ No-app QR loyalty for UK cafes, takeaways and pubs. Your customer scans the till
 ## Appendix B. Provenance & verification
 
 - **Single source of truth:** all copy lives in `lib/marketing/facts.ts` (`OFFER`, `SETUP`, `OFFER_STACK`, `GUARANTEE`, `PROMO`) — no marketing surface forks a literal.
-- **Contract:** `tests/contracts/marketing-offer-v2.test.mjs` protects the offer's durable product behaviour.
+- **Contracts:** retained billing, merchant launch, legal, and promo tests protect the offer's durable product behaviour.
 - **Verified when shipped:** lint, typecheck, build, contract tests, bundle, banned-claims, JSON-LD and design-token checks.
-- **Renders on:** `/pricing`, `/signup`, the landing hero, `/how-it-works`, and `/terms` (promo terms).
-- **Delivery:** committed on branch `feat/marketing-offer-v2` — awaiting owner review.
+- **Renders on:** `/signup`, merchant billing/launch surfaces, and `/terms` where applicable.
+- **Delivery:** retained as shared product and commercial facts after the public acquisition pages were removed.
 
 ## Appendix C. Owner action items
 
 Before this reaches production:
 
 - **Operate the promo.** Keep the free first counter-poster print-and-post commitment staffed, or switch the promo off with `PROMO_CONFIG.enabled = false`. Do not publish availability counts without a durable reservation ledger.
-- **Merge.** Push `feat/marketing-offer-v2` and open a pull request for review.
 - **Refresh cadence.** Roll the promo each season (new perk/date) rather than letting one lapse — the build will remind you (`isPromoStale`) if a deadline passes.
 
 ---

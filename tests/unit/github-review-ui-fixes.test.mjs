@@ -68,33 +68,6 @@ test("pilot note fields reset the controlled note type when the parent action fo
   assert.match(source, /value=\{noteType\}/)
 })
 
-test("regulars calculator estimate email opens an unaddressed draft", () => {
-  const source = readProjectFile(
-    "components",
-    "marketing",
-    "landing",
-    "regulars-calculator.tsx"
-  )
-
-  assert.match(source, /const mailto = `mailto:\?subject=/)
-  assert.match(source, />Email this estimate</)
-  assert.doesNotMatch(source, /OPERATOR\.supportEmail/)
-  assert.doesNotMatch(source, /Email me this estimate/)
-})
-
-test("anti-fraud copy does not claim screenshots or shared QR links are blocked", () => {
-  const source = readProjectFile(
-    "components",
-    "marketing",
-    "landing",
-    "counter-verified-stamp.tsx"
-  )
-
-  assert.match(source, /traceable source/)
-  assert.doesNotMatch(source, /not a screenshot/)
-  assert.doesNotMatch(source, /shared link/)
-})
-
 test("design-sync DataTable reward badges are supported by the shared Badge API", () => {
   const preview = readProjectFile(".design-sync", "previews", "DataTable.tsx")
   const badge = readProjectFile("components", "ui", "badge.tsx")

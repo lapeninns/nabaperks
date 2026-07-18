@@ -2,7 +2,7 @@
 /**
  * check-banned-claims — static guardrail for the PDF-grounded SEO/GEO pass.
  *
- * Scans the PUBLIC MARKETING + SEO surfaces only for banned public claims and
+ * Scans surviving public and SEO surfaces for banned public claims and
  * non-approved entity/compliance language. Merchant/admin product surfaces are
  * intentionally NOT scanned: the merchant onboarding/profile venue-category
  * taxonomy (e.g. "Bubble tea") is functional self-identification, not public
@@ -15,24 +15,18 @@ import { join, relative } from "node:path"
 
 const ROOT = process.cwd()
 
-/** Curated public marketing/SEO roots (files or dirs). */
+/** Curated public/SEO roots (files or dirs). */
 const SCAN = [
-  "app/page.tsx",
   "app/layout.tsx",
   "app/sitemap.ts",
   "app/robots.ts",
-  "app/about",
-  "app/how-it-works",
-  "app/loyalty-for-pubs",
-  "app/loyalty-for-cafes",
-  "app/loyalty-for-takeaways",
-  "app/loyalty-for-bars",
-  "app/guides",
-  "app/pricing",
+  "app/(auth)/signup",
   "app/privacy",
   "app/terms",
+  "app/cookies",
+  "app/merchant-terms",
+  "app/data-processing",
   "app/opengraph-image.tsx",
-  "components/marketing",
   "components/seo",
   "lib/marketing",
   "lib/seo",
@@ -63,22 +57,49 @@ const REVIEW_VOICE_FILES = /\.(ts|tsx|js|jsx|mjs|cjs|json|md|mdx|txt)$/i
 
 const REVIEW_VOICE = [
   { label: "review-voice: 'review required'", re: /review required/i },
-  { label: "review-voice: 'not final legal wording'", re: /not final legal wording/i },
+  {
+    label: "review-voice: 'not final legal wording'",
+    re: /not final legal wording/i,
+  },
   { label: "review-voice: 'human review'", re: /human review/i },
-  { label: "review-voice: 'pilot operation only'", re: /pilot operation only/i },
-  { label: "review-voice: 'review(ed) before launch'", re: /review(ed)?\s+before\s+(public\s+)?launch/i },
+  {
+    label: "review-voice: 'pilot operation only'",
+    re: /pilot operation only/i,
+  },
+  {
+    label: "review-voice: 'review(ed) before launch'",
+    re: /review(ed)?\s+before\s+(public\s+)?launch/i,
+  },
 ]
 
 const BANNED = [
-  { label: "deprecated counter-verification claim", re: /counter-verified\s+stamps?/i },
-  { label: "impossible-fraud claim", re: /can(?:not|'t) be faked|fraud is designed out/i },
+  {
+    label: "deprecated counter-verification claim",
+    re: /counter-verified\s+stamps?/i,
+  },
+  {
+    label: "impossible-fraud claim",
+    re: /can(?:not|'t) be faked|fraud is designed out/i,
+  },
   { label: "self-stamping prevention claim", re: /stops self-stamping/i },
   { label: "invented 'spots left' availability", re: /\bspots?\s+left\b/i },
-  { label: "invented numeric onboarding capacity", re: /onboard\s+\d+\s+new venues/i },
-  { label: "unsupported five-minute setup", re: /about five minutes|set up in minutes/i },
+  {
+    label: "invented numeric onboarding capacity",
+    re: /onboard\s+\d+\s+new venues/i,
+  },
+  {
+    label: "unsupported five-minute setup",
+    re: /about five minutes|set up in minutes/i,
+  },
   { label: "unsupported same-afternoon setup", re: /same afternoon/i },
-  { label: "unsupported afternoon setup", re: /set up your venue this afternoon/i },
-  { label: "unsupported first-week outcome", re: /first repeat visit inside the first week/i },
+  {
+    label: "unsupported afternoon setup",
+    re: /set up your venue this afternoon/i,
+  },
+  {
+    label: "unsupported first-week outcome",
+    re: /first repeat visit inside the first week/i,
+  },
   { label: "chippy targeting", re: /\bchipp(y|ies)\b/i },
   { label: "bubble tea targeting", re: /bubble\s*tea/i },
   { label: "Companies House", re: /companies house/i },
@@ -87,14 +108,23 @@ const BANNED = [
   { label: "founding date", re: /founding date|\bfounded in\b/i },
   { label: "named founder/person", re: /\bfounder\b|\bSubodh\b/i },
   { label: "personal LinkedIn", substr: "linkedin.com/in/" },
-  { label: "hard UK-GDPR/ICO compliance claim", re: /uk[\s-]*gdpr[\s/-]*ico[\s-]*compliant|ico[\s-]*compliant/i },
+  {
+    label: "hard UK-GDPR/ICO compliance claim",
+    re: /uk[\s-]*gdpr[\s/-]*ico[\s-]*compliant|ico[\s-]*compliant/i,
+  },
   { label: "fully compliant", re: /fully compliant/i },
   { label: "GDPR guaranteed", re: /gdpr guaranteed/i },
   { label: "legally approved", re: /legally approved/i },
   { label: "certified claim", re: /\bcertified\b/i },
-  { label: "production-records claim", re: /reproducible from production records|figures reproducible from production/i },
+  {
+    label: "production-records claim",
+    re: /reproducible from production records|figures reproducible from production/i,
+  },
   { label: "embed-calculator surface", re: /embed this calculator/i },
-  { label: "deprecated product term 'Browser Card'", re: /Browser Card|Open-Browser Loyalty Card/ },
+  {
+    label: "deprecated product term 'Browser Card'",
+    re: /Browser Card|Open-Browser Loyalty Card/,
+  },
 ]
 
 async function collectFiles(entry) {
@@ -123,7 +153,12 @@ async function scanFiles(files, patterns) {
       for (const { label, re, substr } of patterns) {
         const hit = re ? re.test(line) : line.toLowerCase().includes(substr)
         if (hit) {
-          findings.push({ file: relative(ROOT, file), line: i + 1, label, text: line.trim() })
+          findings.push({
+            file: relative(ROOT, file),
+            line: i + 1,
+            label,
+            text: line.trim(),
+          })
         }
       }
     })
@@ -135,11 +170,15 @@ await scanFiles(files, BANNED)
 
 const reviewVoiceFiles = (
   await Promise.all(REVIEW_VOICE_SCAN.map(collectFiles))
-).flat().filter((file) => REVIEW_VOICE_FILES.test(file))
+)
+  .flat()
+  .filter((file) => REVIEW_VOICE_FILES.test(file))
 await scanFiles(reviewVoiceFiles, REVIEW_VOICE)
 
 if (findings.length) {
-  console.error(`✗ ${findings.length} banned-claim match(es) in public marketing surfaces:\n`)
+  console.error(
+    `✗ ${findings.length} banned-claim match(es) in public marketing surfaces:\n`
+  )
   for (const f of findings) {
     console.error(`  ${f.file}:${f.line}  [${f.label}]\n    ${f.text}`)
   }

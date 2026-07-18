@@ -261,14 +261,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - route: home
-            url: http://127.0.0.1:3130/
-          - route: pricing
-            url: http://127.0.0.1:3130/pricing
-          - route: loyalty-for-pubs
-            url: http://127.0.0.1:3130/loyalty-for-pubs
           - route: signup
             url: http://127.0.0.1:3130/signup
+          - route: privacy
+            url: http://127.0.0.1:3130/privacy
     env:
       NEXT_PUBLIC_APP_URL: https://example.test
       NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co

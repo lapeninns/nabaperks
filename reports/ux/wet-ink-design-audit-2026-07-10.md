@@ -34,25 +34,26 @@ The problems cluster in two places:
 
 ## Scorecard
 
-| Dimension | Health | Notes |
-|---|---|---|
-| Color/contrast (core text) | ✅ Excellent | Every text pair 4.5+, most 5–16:1, both modes |
-| Color/contrast (edges) | ⚠️ 4 issues | Focus ring 2.98, outlaw rings 1.69, hover /80 3.47, dark seal 1.72 |
-| Reduced motion | ✅ Exemplary | Global neutraliser + per-primitive static fallbacks, sync first-frame init |
-| Touch targets | ✅ Pass | 44px coarse-pointer growth verified everywhere checked |
-| Screen readers | ✅ Good | StampGrid/DataTable/OTP/toasts wired; 2 small gaps |
-| Color-only meaning | ✅ Pass | Trend labels always signed; badges glyph+text |
-| Forced colors (WHCM) | ⚠️ Gap | No handling anywhere; FilterPills selection vanishes |
-| Motion quality | ✅ Strong | 1 real defect (sheet exits), 2 polish items |
-| Bundle/perf | ✅ Strong | LazyMotion strict, no scroll listeners, no transition:all |
-| Contract ↔ code parity | ⚠️ Drifted | ~75 violations across 2 contracts, all outside guard scope |
-| Enforcement coverage | ⚠️ The root cause | Prose-only contracts drift; machine contracts hold |
+| Dimension                  | Health            | Notes                                                                      |
+| -------------------------- | ----------------- | -------------------------------------------------------------------------- |
+| Color/contrast (core text) | ✅ Excellent      | Every text pair 4.5+, most 5–16:1, both modes                              |
+| Color/contrast (edges)     | ⚠️ 4 issues       | Focus ring 2.98, outlaw rings 1.69, hover /80 3.47, dark seal 1.72         |
+| Reduced motion             | ✅ Exemplary      | Global neutraliser + per-primitive static fallbacks, sync first-frame init |
+| Touch targets              | ✅ Pass           | 44px coarse-pointer growth verified everywhere checked                     |
+| Screen readers             | ✅ Good           | StampGrid/DataTable/OTP/toasts wired; 2 small gaps                         |
+| Color-only meaning         | ✅ Pass           | Trend labels always signed; badges glyph+text                              |
+| Forced colors (WHCM)       | ⚠️ Gap            | No handling anywhere; FilterPills selection vanishes                       |
+| Motion quality             | ✅ Strong         | 1 real defect (sheet exits), 2 polish items                                |
+| Bundle/perf                | ✅ Strong         | LazyMotion strict, no scroll listeners, no transition:all                  |
+| Contract ↔ code parity     | ⚠️ Drifted        | ~75 violations across 2 contracts, all outside guard scope                 |
+| Enforcement coverage       | ⚠️ The root cause | Prose-only contracts drift; machine contracts hold                         |
 
 ---
 
 ## P0 — Fix first (user-visible / compliance)
 
 ### 1. Focus-indicator system: sanctioned ring under AA, outlaw rings far under
+
 - The one system recipe `color-mix(in oklch, var(--ring) 70%, transparent)`
   composites to **2.98:1 on paper** (needs 3:1) — `app/globals.css:414`, also
   inputs at `:473`. On card it passes (3.10).
@@ -62,14 +63,14 @@ The problems cluster in two places:
   Heaviest file: `components/merchant/loyalty-card-form.tsx` (8 occurrences).
   Full list in the drift sweep (agents' item 4): poster-preview-chrome, qr-panel-live,
   disclosure, account-tab-bar, auth forms, customer-card-experience,
-  home-card-tile, home-redeem-banner, marketing hero/faq/guides, privacy, terms,
-  loyalty-for-pubs, checkout-alert, demo-card.
+  home-card-tile, home-redeem-banner, privacy, terms, and auth forms.
 - **Fix (one pass):** bump the mix to **85%** (→ 3.72:1 on paper; 100% → 4.51),
   replace all outlaw rings with `.focus-ring`, and widen the existing "banned
   dialect" test (`tests/contracts/ux-production-polish.test.mjs:90`, currently
   button/input/textarea only) to `app/ components/` repo-wide.
 
 ### 2. Sheet exit animations never play (hard cut on close)
+
 - `components/ui/sheet.tsx:14-15` animates with CSS **transitions**
   (`transition-[opacity,transform]` + `data-open/data-closed`), but Radix
   Presence delays unmount only for CSS **animations** (`animationend`). On
@@ -81,7 +82,7 @@ The problems cluster in two places:
   same path) — and DESIGN.md sanctions this exact pattern, so the contract
   carries the defect.
 - **Fix:** swap to Presence-aware keyframes — `data-[state=open]:animate-in
-  data-[state=closed]:animate-out slide-out-to-bottom fade-out` etc.
+data-[state=closed]:animate-out slide-out-to-bottom fade-out` etc.
   `tw-animate-css` is already imported (`app/globals.css:2`); this is the stock
   shadcn pattern, which exists precisely because of this Radix behaviour. Update
   the DESIGN.md motion clause to match.
@@ -92,7 +93,7 @@ The problems cluster in two places:
 
 3. **Admin link hover fails AA** — `hover:text-primary/80` = **3.47:1**
    (`app/admin/merchants/page.tsx:88`, `app/admin/billing/page.tsx:26`).
-   Fading toward paper is also off-brand: in a print system hover should *add*
+   Fading toward paper is also off-brand: in a print system hover should _add_
    ink. `hover:text-[color-mix(in_srgb,var(--primary)_80%,var(--ink))]`
    (≈ #ac2e0c) → **5.91:1**.
 4. **RewardTicket ready-date at the 10px floor** — the date a customer must
@@ -137,7 +138,7 @@ The problems cluster in two places:
     visually the same red; meaning rests on copy alone. Concrete echo:
     KpiTile's no-trend sparkline strokes `var(--primary)` while down-trends
     stroke `var(--destructive)` (`components/brand/kpi-tile.tsx:26-47`) —
-    "neutral" and "falling" look identical (mitigated: trend *labels* are
+    "neutral" and "falling" look identical (mitigated: trend _labels_ are
     signed). **Decision, not defect.** Options: outline-danger button treatment
     (card ground, 2px destructive border+text, 5.38:1 ✓) so primary stays the
     only filled red; and default the no-trend sparkline to `var(--w-ink-soft)`.

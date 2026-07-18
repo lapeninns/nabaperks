@@ -16,8 +16,6 @@ function source(relativePath) {
 
 const facts = source("lib/marketing/facts.ts")
 const signup = source("app/(auth)/signup/page.tsx")
-const demo = source("app/demo/page.tsx")
-const finalCta = source("components/marketing/landing/final-cta.tsx")
 const activationCard = source(
   "components/merchant/account/billing-activation-card.tsx"
 )
@@ -39,18 +37,12 @@ test("the Growth Plan name is single-sourced across activation and account billi
   assert.match(billingPanel, /PRODUCT\.planName/)
 })
 
-test("launch copy consistently places billing before venue QR", () => {
+test("kept merchant flows consistently place billing before venue QR", () => {
   assert.match(facts, /activate billing, then set up your venue QR/)
   assert.match(
     signup,
     /venue, card and rewards, then activate billing to unlock your QR/
   )
-  assert.match(
-    finalCta,
-    /Build and preview your card and rewards, then activate billing to unlock\s*your venue QR/
-  )
-  assert.match(demo, /card, rewards, billing and QR/)
-  assert.doesNotMatch(finalCta, /preview the QR flow, then activate billing/)
 })
 
 test("launch billing no longer promises a built QR before activation", () => {

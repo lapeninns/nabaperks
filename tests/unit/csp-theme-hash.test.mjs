@@ -82,16 +82,11 @@ test("Given static brochure pages are prerendered When CSP is built Then inline 
 
 test("Given route groups are classified When proxy selects CSP Then only brochure routes use the static policy", () => {
   for (const pathname of [
-    "/",
-    "/about",
-    "/loyalty-for-pubs",
-    "/pricing",
     "/cookies",
     "/data-processing",
     "/merchant-terms",
     "/privacy",
     "/terms",
-    "/guides/best-loyalty-ideas-for-pubs",
   ]) {
     assert.equal(isStaticMarketingPath(pathname), true, pathname)
   }

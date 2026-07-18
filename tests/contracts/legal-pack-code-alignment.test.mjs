@@ -20,12 +20,6 @@ test("Given the public legal pack When routes are inspected Then each document h
     ["data-processing", "/data-processing"],
   ]
   const footer = readProjectFile("components", "layout", "marketing-layout.tsx")
-  const merchantMarketing = readProjectFile(
-    "components",
-    "marketing",
-    "landing",
-    "separate-marketing.tsx"
-  )
   const csp = readProjectFile("lib", "security", "csp.ts")
   const facts = readProjectFile("lib", "marketing", "facts.ts")
   const llms = readProjectFile("public", "llms.txt")
@@ -43,7 +37,8 @@ test("Given the public legal pack When routes are inspected Then each document h
   }
 
   assert.ok(footer.includes('href="/cookies"'))
-  assert.ok(merchantMarketing.includes('href="/merchant-terms"'))
+  assert.ok(footer.includes('href="/merchant-terms"'))
+  assert.ok(footer.includes('href="/data-processing"'))
 })
 
 test("Given legal copy follows product behaviour When the shared content is inspected Then key code-backed rules remain explicit", () => {

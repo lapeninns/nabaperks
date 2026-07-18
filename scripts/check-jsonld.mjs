@@ -1,33 +1,15 @@
 #!/usr/bin/env node
 /**
- * check-jsonld — parse every <script type="application/ld+json"> from built
- * marketing HTML and assert the connected entity graph: stable @id
- * cross-references, Organization-only authorship (no Person), the operator
- * link, HowTo/DefinedTermSet nodes, no unpublished Dataset, and no banned sameAs (Companies
- * House / personal profiles). Static builds are read from .next/server/app; if
- * strict CSP nonces make routes dynamic, the script starts `next start` and
- * fetches the rendered HTML. Run after `pnpm build`. Exit 1 on any failure.
+ * Validate the shared organisation JSON-LD graph on a surviving public route.
+ * Run after `pnpm build`; the checker starts the production server, fetches the
+ * merchant sign-up page and exits non-zero when the graph drifts.
  */
 import { spawn } from "node:child_process"
 import { once } from "node:events"
-import { access, readFile } from "node:fs/promises"
 import { createServer } from "node:net"
-import { join } from "node:path"
 import { setTimeout as delay } from "node:timers/promises"
 
-const APP = join(process.cwd(), ".next/server/app")
 let nextStart
-let nextStartBaseUrl
-
-async function exists(file) {
-  try {
-    await access(file)
-    return true
-  } catch (error) {
-    if (error && error.code === "ENOENT") return false
-    throw error
-  }
-}
 
 async function getFreePort() {
   return new Promise((resolve, reject) => {
@@ -50,9 +32,7 @@ async function stopNextStart() {
   await Promise.race([
     once(nextStart, "exit"),
     delay(1500).then(() => {
-      if (nextStart && nextStart.exitCode === null) {
-        nextStart.kill("SIGKILL")
-      }
+      if (nextStart && nextStart.exitCode === null) nextStart.kill("SIGKILL")
     }),
   ])
 }
@@ -61,9 +41,7 @@ process.once("exit", () => {
   if (nextStart && nextStart.exitCode === null) nextStart.kill("SIGTERM")
 })
 
-async function ensureNextStart() {
-  if (nextStartBaseUrl) return nextStartBaseUrl
-
+async function startProductionServer() {
   const port = await getFreePort()
   const logs = []
   nextStart = spawn(
@@ -75,7 +53,6 @@ async function ensureNextStart() {
       stdio: ["ignore", "pipe", "pipe"],
     }
   )
-
   nextStart.stdout.setEncoding("utf8")
   nextStart.stderr.setEncoding("utf8")
   nextStart.stdout.on("data", (chunk) => logs.push(chunk))
@@ -86,17 +63,12 @@ async function ensureNextStart() {
     if (nextStart.exitCode !== null) {
       throw new Error(`next start exited early:\n${logs.join("")}`)
     }
-
     try {
-      const response = await fetch(baseUrl, { redirect: "manual" })
-      if (response.status < 500) {
-        nextStartBaseUrl = baseUrl
-        return baseUrl
-      }
+      const response = await fetch(new URL("/signup", baseUrl))
+      if (response.ok) return { baseUrl, html: await response.text() }
     } catch {
-      // Retry until next start is listening.
+      // Retry until the production server is listening.
     }
-
     await delay(100)
   }
 
@@ -106,16 +78,11 @@ async function ensureNextStart() {
 
 function extractNodes(html) {
   const nodes = []
-  const re =
+  const scriptPattern =
     /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g
-  let m
-  while ((m = re.exec(html))) {
-    let parsed
-    try {
-      parsed = JSON.parse(m[1])
-    } catch (err) {
-      throw new Error(`JSON-LD parse error: ${err.message}`)
-    }
+  let match
+  while ((match = scriptPattern.exec(html))) {
+    const parsed = JSON.parse(match[1])
     const items = Array.isArray(parsed) ? parsed : [parsed]
     for (const item of items) {
       if (item["@graph"]) nodes.push(...item["@graph"])
@@ -125,275 +92,51 @@ function extractNodes(html) {
   return nodes
 }
 
-async function load(file, route) {
-  const builtHtml = join(APP, file)
-  const html = (await exists(builtHtml))
-    ? await readFile(builtHtml, "utf8")
-    : await fetchRenderedHtml(route)
-  return extractNodes(html)
-}
-
-async function fetchRenderedHtml(route) {
-  const baseUrl = await ensureNextStart()
-  const response = await fetch(new URL(route, baseUrl))
-  if (!response.ok) {
-    throw new Error(`GET ${route} returned ${response.status}`)
-  }
-  return response.text()
-}
-
 const failures = []
-function check(cond, msg) {
-  if (!cond) failures.push(msg)
+function check(condition, message) {
+  if (!condition) failures.push(message)
 }
 
-function types(nodes) {
-  return new Set(nodes.map((n) => n["@type"]).filter(Boolean))
-}
-function deepHasPerson(nodes) {
-  return JSON.stringify(nodes).includes('"@type":"Person"')
-}
+try {
+  const { html } = await startProductionServer()
+  const nodes = extractNodes(html)
+  const types = new Set(nodes.map((node) => node["@type"]).filter(Boolean))
+  const organisations = nodes.filter((node) => node["@type"] === "Organization")
+  const nabaperks = organisations.find((node) => node.name === "Nabaperks")
+  const operator = organisations.find((node) => node.name === "Lapen Inns")
 
-// --- Home -----------------------------------------------------------------
-const home = await load("index.html", "/")
-const homeTypes = types(home)
-for (const t of [
-  "Organization",
-  "WebSite",
-  "WebPage",
-  "SoftwareApplication",
-  "FAQPage",
-  "HowTo",
-  "DefinedTermSet",
-  "BreadcrumbList",
-]) {
-  check(homeTypes.has(t), `home: missing ${t} node`)
-}
-check(
-  !deepHasPerson(home),
-  "home: a Person node is present (must be Organization-only)"
-)
+  check(types.has("Organization"), "sign-up: Organization node missing")
+  check(types.has("WebSite"), "sign-up: WebSite node missing")
+  check(
+    !JSON.stringify(nodes).includes('"@type":"Person"'),
+    "sign-up: Person node present"
+  )
+  check(Boolean(nabaperks), "sign-up: Nabaperks Organization missing")
+  check(Boolean(operator), "sign-up: Lapen Inns Organization missing")
+  check(
+    nabaperks?.parentOrganization?.["@id"] === operator?.["@id"],
+    "sign-up: parentOrganization does not reference Lapen Inns"
+  )
+  check(
+    Array.isArray(operator?.location) && operator.location.length === 9,
+    "sign-up: operator should expose nine estate locations"
+  )
+  check(
+    !/companieshouse|company-information|linkedin\.com\/in/i.test(
+      JSON.stringify(operator?.sameAs ?? [])
+    ),
+    "sign-up: operator sameAs contains a banned URL"
+  )
 
-const orgs = home.filter((n) => n["@type"] === "Organization")
-const naba = orgs.find((o) => o.name === "Nabaperks")
-const operator = orgs.find((o) => o.name === "Lapen Inns")
-check(!!naba, "home: Nabaperks Organization missing")
-check(!!operator, "home: Lapen Inns operator Organization missing")
-if (naba && operator) {
-  check(
-    naba.parentOrganization &&
-      naba.parentOrganization["@id"] === operator["@id"],
-    "home: Nabaperks.parentOrganization does not reference the operator @id"
-  )
-}
-if (operator) {
-  const sameAs = JSON.stringify(operator.sameAs || [])
-  check(
-    !/companieshouse|company-information|linkedin\.com\/in/i.test(sameAs),
-    "home: operator sameAs contains a banned URL (Companies House / personal)"
-  )
-  const locs = Array.isArray(operator.location) ? operator.location : []
-  check(
-    locs.length === 9,
-    `home: operator should expose 9 estate places, got ${locs.length}`
-  )
-}
-
-const howTo = home.find((n) => n["@type"] === "HowTo")
-if (howTo) {
-  const stepNames = (howTo.step || []).map((s) => s.name)
-  check(
-    JSON.stringify(stepNames) ===
-      JSON.stringify(["Scan", "Save", "Stamp", "Reward"]),
-    `home: HowTo steps != Scan/Save/Stamp/Reward (got ${stepNames.join("/")})`
-  )
-}
-check(
-  !homeTypes.has("Dataset"),
-  "home: unverified quantitative Dataset must remain unpublished"
-)
-const webpage = home.find((n) => n["@type"] === "WebPage")
-if (webpage) {
-  check(
-    webpage.reviewedBy &&
-      operator &&
-      webpage.reviewedBy["@id"] === operator["@id"],
-    "home: WebPage.reviewedBy should reference the operator Organization @id"
-  )
-}
-
-// --- How it works (the standalone mechanism page) ---------------------------
-// Renders the same single-source sections as `/`, so it emits its own HowTo +
-// FAQPage — with route-distinct @ids so they never collide with home's graph.
-const mechanism = await load("how-it-works.html", "/how-it-works")
-const mechanismTypes = types(mechanism)
-for (const t of ["WebPage", "BreadcrumbList", "HowTo", "FAQPage"]) {
-  check(mechanismTypes.has(t), `how-it-works: missing ${t} node`)
-}
-check(!deepHasPerson(mechanism), "how-it-works: a Person node is present")
-check(
-  !mechanismTypes.has("Dataset"),
-  "how-it-works: unverified quantitative Dataset must remain unpublished"
-)
-
-const mechanismHowTo = mechanism.find((n) => n["@type"] === "HowTo")
-if (mechanismHowTo) {
-  const stepNames = (mechanismHowTo.step || []).map((s) => s.name)
-  check(
-    JSON.stringify(stepNames) ===
-      JSON.stringify(["Scan", "Save", "Stamp", "Reward"]),
-    `how-it-works: HowTo steps != Scan/Save/Stamp/Reward (got ${stepNames.join("/")})`
-  )
-  check(
-    mechanismHowTo["@id"] === "https://nabaperks.com/how-it-works#howto",
-    "how-it-works: HowTo @id must be route-distinct (/how-it-works#howto)"
-  )
-}
-const mechanismFaq = mechanism.find((n) => n["@type"] === "FAQPage")
-if (mechanismFaq) {
-  const questions = Array.isArray(mechanismFaq.mainEntity)
-    ? mechanismFaq.mainEntity
-    : []
-  check(
-    questions.length === 8,
-    `how-it-works: FAQ should expose 8 questions, got ${questions.length}`
-  )
-}
-
-// --- Hub ------------------------------------------------------------------
-const hub = await load("loyalty-for-pubs.html", "/loyalty-for-pubs")
-const hubTypes = types(hub)
-for (const t of ["WebPage", "BreadcrumbList", "HowTo"]) {
-  check(hubTypes.has(t), `hub: missing ${t} node`)
-}
-check(
-  !hubTypes.has("Dataset"),
-  "hub: unverified quantitative Dataset must remain unpublished"
-)
-check(!deepHasPerson(hub), "hub: a Person node is present")
-// The hub's steps differ from home's, so a shared @id would assert two
-// payloads at one entity URI (2026-07-05 v2 audit P1-1) — pin the
-// route-distinct id exactly as the persona-spoke blocks below do.
-const hubHowTo = hub.find((n) => n["@type"] === "HowTo")
-if (hubHowTo) {
-  check(
-    hubHowTo["@id"] === "https://nabaperks.com/loyalty-for-pubs#howto",
-    "hub: HowTo @id must be route-distinct (/loyalty-for-pubs#howto)"
-  )
-}
-
-// --- Persona spokes (cafes / takeaways / bars) ------------------------------
-// Each mounts the generic Scan/Save/Stamp/Reward flow with a route-distinct
-// HowTo @id so nothing collides with home's graph.
-for (const slug of [
-  "loyalty-for-cafes",
-  "loyalty-for-takeaways",
-  "loyalty-for-bars",
-]) {
-  const spoke = await load(`${slug}.html`, `/${slug}`)
-  const spokeTypes = types(spoke)
-  for (const t of ["WebPage", "BreadcrumbList", "HowTo"]) {
-    check(spokeTypes.has(t), `${slug}: missing ${t} node`)
-  }
-  check(
-    !spokeTypes.has("Dataset"),
-    `${slug}: unverified quantitative Dataset must remain unpublished`
-  )
-  check(!deepHasPerson(spoke), `${slug}: a Person node is present`)
-  const spokeHowTo = spoke.find((n) => n["@type"] === "HowTo")
-  if (spokeHowTo) {
-    check(
-      spokeHowTo["@id"] === `https://nabaperks.com/${slug}#howto`,
-      `${slug}: HowTo @id must be route-distinct (/${slug}#howto)`
+  if (failures.length) {
+    console.error(`✗ ${failures.length} JSON-LD check(s) failed:\n`)
+    for (const failure of failures) console.error(`  - ${failure}`)
+    process.exitCode = 1
+  } else {
+    console.log(
+      "✓ shared JSON-LD graph valid on sign-up: connected organisations, WebSite, no Person or banned sameAs"
     )
   }
-}
-
-const pricing = await load("pricing.html", "/pricing")
-const pricingTypes = types(pricing)
-for (const t of ["WebPage", "BreadcrumbList", "Offer", "FAQPage"]) {
-  check(pricingTypes.has(t), `pricing: missing ${t} node`)
-}
-check(!deepHasPerson(pricing), "pricing: a Person node is present")
-const pricingOffer = pricing.find((n) => n["@type"] === "Offer")
-if (pricingOffer) {
-  check(pricingOffer.price === "49.00", "pricing: Offer price should be 49.00")
-  check(
-    pricingOffer.priceCurrency === "GBP",
-    "pricing: Offer currency should be GBP"
-  )
-  check(
-    pricingOffer.url === "https://nabaperks.com/pricing",
-    "pricing: Offer URL should point at /pricing"
-  )
-}
-const pricingFaq = pricing.find((n) => n["@type"] === "FAQPage")
-if (pricingFaq) {
-  const questions = Array.isArray(pricingFaq.mainEntity)
-    ? pricingFaq.mainEntity
-    : []
-  check(
-    questions.length === 6,
-    `pricing: FAQ should expose 6 questions, got ${questions.length}`
-  )
-  check(
-    questions.some((q) => /bring back a regular/.test(q.name ?? "")),
-    "pricing: FAQ should carry the First-Regular Guarantee question (marketing offer v1)"
-  )
-}
-
-// --- About ----------------------------------------------------------------
-const about = await load("about.html", "/about")
-const aboutTypes = types(about)
-for (const t of ["WebPage", "BreadcrumbList", "Organization"]) {
-  check(aboutTypes.has(t), `about: missing ${t} node`)
-}
-check(!deepHasPerson(about), "about: a Person node is present")
-
-// --- Guides (Article author = Organization, real ISO dates) ----------------
-// All three guides are validated — the single-guide block was the guard gap
-// the 2026-07-05 v2 audit flagged, and the dates exist now (GuideMeta).
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
-for (const slug of [
-  "best-loyalty-ideas-for-pubs",
-  "reward-regulars-without-an-app",
-  "paper-vs-qr-loyalty-for-pubs",
-]) {
-  const guide = await load(`guides/${slug}.html`, `/guides/${slug}`)
-  const guideTypes = types(guide)
-  check(guideTypes.has("Article"), `guide ${slug}: missing Article node`)
-  check(
-    guideTypes.has("BreadcrumbList"),
-    `guide ${slug}: missing BreadcrumbList node`
-  )
-  check(
-    !deepHasPerson(guide),
-    `guide ${slug}: a Person node is present (author must be Organization)`
-  )
-  const article = guide.find((n) => n["@type"] === "Article")
-  if (article) {
-    check(
-      article.author && typeof article.author["@id"] === "string",
-      `guide ${slug}: Article.author is not an @id reference to an Organization`
-    )
-    check(
-      ISO_DATE.test(article.datePublished ?? ""),
-      `guide ${slug}: Article.datePublished missing or not ISO (got ${article.datePublished})`
-    )
-    check(
-      ISO_DATE.test(article.dateModified ?? ""),
-      `guide ${slug}: Article.dateModified missing or not ISO (got ${article.dateModified})`
-    )
-  }
-}
-
-if (failures.length) {
+} finally {
   await stopNextStart()
-  console.error(`✗ ${failures.length} JSON-LD check(s) failed:\n`)
-  for (const f of failures) console.error(`  - ${f}`)
-  process.exit(1)
 }
-await stopNextStart()
-console.log(
-  "✓ JSON-LD graph valid: connected @id, Organization-only, HowTo/DefinedTermSet present, unverified Dataset absent, no banned sameAs"
-)

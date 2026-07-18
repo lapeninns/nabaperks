@@ -5,12 +5,7 @@
       "startServerReadyPattern": "Ready",
       "startServerReadyTimeout": 120000,
       "numberOfRuns": 2,
-      "url": [
-        "http://127.0.0.1:3130/",
-        "http://127.0.0.1:3130/pricing",
-        "http://127.0.0.1:3130/loyalty-for-pubs",
-        "http://127.0.0.1:3130/signup"
-      ],
+      "url": ["http://127.0.0.1:3130/signup", "http://127.0.0.1:3130/privacy"],
       "settings": {
         "chromeFlags": "--no-sandbox --disable-dev-shm-usage",
         "formFactor": "mobile"

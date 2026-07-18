@@ -178,13 +178,11 @@ Named circle exceptions are narrow and intentional: the `IconRoundel` brand
 component (`components/brand/icon-roundel.tsx` — the one static, unrotated,
 ink-bordered circle for framing a glyph or step number; the `EmptyState` icon
 roundel in `components/brand/typography.tsx` is its progenitor), the
-customer tab-bar chips, join stepper discs, marketing jump-nav chips, the
-landing proof-tab chips (`components/marketing/landing/proof-tabs.tsx`, same
-chip recipe as jump-nav), the poster-chrome guidance chip, and the
+customer tab-bar chips, join stepper discs, the poster-chrome guidance chip, and the
 legal-link halo family. These are navigation or framing controls, not reward marks; new
 framing circles reach for `IconRoundel` rather than hand-rolling
 `rounded-full`, and the list does not grow without updating this contract. Borders are **2px solid ink** everywhere; **2px dashed**
-(`.w-rule`) for empty slots, receipt rules, demo chrome, and pick-one
+(`.w-rule`) for empty slots, receipt rules, and pick-one
 suggestion tiles such as reward presets and add-reward affordances. The mono
 pill `.w-tag` is the only generic pill shape outside the stamp family.
 
