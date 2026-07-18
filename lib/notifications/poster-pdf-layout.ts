@@ -6,6 +6,7 @@ import { POSTER_BRAND_WORDMARK_PDF } from "@/lib/qr/poster-brand"
 import {
   drawQrCode,
   drawWrappedText,
+  fitSingleLineText,
   POSTER_PDF_COLOR,
   standardFontText,
 } from "./poster-pdf-style"
@@ -63,7 +64,15 @@ export function drawIdentityRail(
     6,
     venueMaxWidth
   )
-  page.drawText(venue, {
+  // Venues near the 120-character profile limit can outgrow the rail even
+  // at the minimum size; truncate so they never run under the wordmark.
+  const identityText = fitSingleLineText(
+    venue,
+    options.fonts.monoBold,
+    identitySize,
+    venueMaxWidth
+  )
+  page.drawText(identityText, {
     x: options.x + 10,
     y: options.y + options.height / 2 - 3,
     size: identitySize,

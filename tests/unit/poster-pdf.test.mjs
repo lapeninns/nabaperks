@@ -1,13 +1,14 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { PDFDocument, StandardFonts } from "pdf-lib"
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib"
 
 import {
   fitSingleLineText,
   mm,
   standardFontText,
 } from "@/lib/notifications/poster-pdf-style"
+import { drawIdentityRail } from "@/lib/notifications/poster-pdf-layout"
 import { buildPosterPdfAttachments } from "@/lib/notifications/poster-pdf"
 import { QR_POSTER_TEMPLATES } from "@/lib/qr/poster-templates"
 
@@ -106,4 +107,41 @@ test("poster PDF venue labels omit unsupported glyphs cleanly", async () => {
 
   assert.equal(standardFontText("DRAGON 🐉 PUB", font), "DRAGON PUB")
   assert.equal(standardFontText("🐉", font), "YOUR VENUE")
+})
+
+test("identity rail truncates a 120-character venue inside the rail", async () => {
+  // Given a venue name at the 120-character profile limit and a rail too
+  // narrow to hold it even at the minimum 6pt size.
+  const document = await PDFDocument.create()
+  const fonts = {
+    regular: await document.embedFont(StandardFonts.Courier),
+    bold: await document.embedFont(StandardFonts.HelveticaBold),
+    mono: await document.embedFont(StandardFonts.Courier),
+    monoBold: await document.embedFont(StandardFonts.CourierBold),
+  }
+  const drawn = []
+  const page = {
+    drawText: (text, options) => drawn.push({ text, options }),
+    drawRectangle: () => {},
+  }
+  const railWidth = 300
+
+  // When the identity rail is drawn.
+  drawIdentityRail(page, {
+    merchantName: "x".repeat(120),
+    x: 0,
+    y: 0,
+    width: railWidth,
+    height: 24,
+    foreground: rgb(0, 0, 0),
+    accent: rgb(1, 0, 0),
+    fonts,
+  })
+
+  // Then the venue label is truncated with dots and fits the rail.
+  const [venue] = drawn
+  assert.match(venue.text, /\.\.\.$/)
+  assert.ok(
+    fonts.monoBold.widthOfTextAtSize(venue.text, venue.options.size) < railWidth
+  )
 })
