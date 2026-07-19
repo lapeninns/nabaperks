@@ -2,13 +2,15 @@ import { expect, test } from "@playwright/test"
 
 import { expectNoAxeViolations } from "../helpers/axe"
 
-test("hides collection value until email is verified", async ({
+test("hides collection value until the profile email is verified", async ({
   page,
 }) => {
   await page.goto("/dev/home-harness/redemption-second-factor")
 
   await expect(page.getByLabel("Email address")).toBeVisible()
-  await expect(page.getByText(/independent security check/i)).toBeVisible()
+  await expect(
+    page.getByText(/one-time code to verify a new email/i)
+  ).toBeVisible()
   await expect(page.getByAltText(/collection QR/i)).toHaveCount(0)
   await expect(
     page.getByRole("button", { name: "Save and email my code" })

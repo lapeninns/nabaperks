@@ -3,6 +3,7 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
+import { ensureVerifiedCustomerEmail } from "./helpers/verified-customer-email.mjs"
 
 /**
  * customer home / customer auth wallet (profile) — live-DB tier.
@@ -113,6 +114,7 @@ test(
       await tx`update public.customers
                set full_name = null, date_of_birth = null, email_verified_at = now()
                where id = ${m.customer_id}`
+      await ensureVerifiedCustomerEmail(tx, m.customer_id)
       const [reward] = await tx`
         insert into public.reward_events
           (merchant_id, customer_id, membership_id, loyalty_card_id, status,
