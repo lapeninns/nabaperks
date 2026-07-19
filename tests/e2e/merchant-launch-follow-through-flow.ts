@@ -7,9 +7,9 @@ import {
   HARNESS_ROUTES,
 } from "./helpers/harness"
 
-const PROMO_PERK =
+const DISABLED_PROMO_PERK =
   "Go live by 31 July 2026 and we print and post your first counter-poster run — free."
-const PROMO_CLAIM =
+const DISABLED_PROMO_CLAIM =
   "Go live before the date, then email info@lapeninns.com and we sort your print run."
 
 export function defineMerchantLaunchFollowThroughTests() {
@@ -224,8 +224,8 @@ export function defineMerchantLaunchFollowThroughTests() {
   }) => {
     await page.goto(`${HARNESS_ROUTES.launch}?state=live&tab=qr`)
 
-    await expect(page.getByText(PROMO_PERK)).toBeVisible()
-    await expect(page.getByText(PROMO_CLAIM)).toBeVisible()
+    await expect(page.getByText(DISABLED_PROMO_PERK)).toHaveCount(0)
+    await expect(page.getByText(DISABLED_PROMO_CLAIM)).toHaveCount(0)
     await expect(
       page.getByRole("button", { name: "Email poster PDFs" })
     ).toBeVisible()
@@ -359,8 +359,8 @@ export function defineMerchantLaunchFollowThroughTests() {
   test("post-billing QR visual baseline @visual", async ({ page }) => {
     await page.goto(`${HARNESS_ROUTES.launch}?state=live&tab=qr`)
 
-    await expect(page.getByText(PROMO_PERK)).toBeVisible()
-    await expect(page.getByText(PROMO_CLAIM)).toBeVisible()
+    await expect(page.getByText(DISABLED_PROMO_PERK)).toHaveCount(0)
+    await expect(page.getByText(DISABLED_PROMO_CLAIM)).toHaveCount(0)
     await expect(
       page.getByRole("button", { name: "Email poster PDFs" })
     ).toBeVisible()
