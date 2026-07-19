@@ -155,7 +155,7 @@ export const OFFER = {
   name: "The 30-Day Gastropub Mid-Week Revenue Accelerator",
   nameSafe: "The 30-Day First-Regular Launch",
   nameNote:
-    "“Revenue Accelerator” is the name of the launch, not a promise of takings — the two guarantees below are the promises.",
+    "Named for what it’s built to do — bring your regulars back midweek.",
   audience:
     "For single-site UK food-led pubs that are busy at weekends and quiet midweek.",
   riskFraming:
@@ -178,7 +178,7 @@ export const VALUE_EQUATION = [
   },
   {
     lever: "The proof",
-    heading: "You see it working — no taking our word",
+    heading: "See every return visit in your dashboard",
     detail:
       "We set everything up, pick margin-safe mystery rewards and post you printed posters so the QR is actually seen. Verified return visits land in your dashboard.",
   },
@@ -209,7 +209,7 @@ export const VALUE_MATH = {
   ninetyDayLine:
     "15 verified return visits cover your first three months of £49 subscriptions.",
   illustrativeNote:
-    "A worked example with a £12 stand-in, not a promise — your margins will differ. Judge it from your own dashboard.",
+    "That £12 is only an example — your margins will differ. You’ll see the real numbers in your own dashboard.",
 } as const
 
 // --- Pricing structure (offer pack docs 2 + 8; £99 is copy-only) -------------
@@ -415,7 +415,7 @@ export const SCARCITY = {
   fullWeek:
     "Five is the number a human team can genuinely launch well in a week — if this week is full, your launch is booked into the next one.",
   honesty:
-    "You'll never see a countdown clock or an invented number here. When a week fills, we tell you and book the next one.",
+    "When a week’s full, we’ll tell you and hold the next opening for you.",
 } as const
 
 /**

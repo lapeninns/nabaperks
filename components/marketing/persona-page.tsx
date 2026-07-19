@@ -127,12 +127,12 @@ export function PersonaSpokePage({
         <Section size="compact">
           <SectionHeader
             eyebrow="Who it's built for"
-            title="We'd rather say no than launch you badly"
+            title="Is this right for your pub?"
           />
           <div className="grid gap-5 pt-5 lg:grid-cols-2">
             <div className="grid content-start gap-2">
               <MonoTag tone="leaf" className="justify-self-start">
-                A good fit
+                Right for you
               </MonoTag>
               <ul className="grid gap-2">
                 {MARKET.qualify.map((rule) => (
@@ -147,7 +147,7 @@ export function PersonaSpokePage({
             </div>
             <div className="grid content-start gap-2">
               <MonoTag tone="ink" className="justify-self-start">
-                Not a fit
+                Not right yet
               </MonoTag>
               <ul className="grid gap-2">
                 {MARKET.disqualify.map((rule) => (
@@ -166,7 +166,7 @@ export function PersonaSpokePage({
       <Section size="compact">
         <ReceiptCard edge padding="md" className="gap-3">
           <p className="mono-meta text-muted-foreground">
-            The guarantees — and what they don’t cover
+            Your guarantees, and the catch
           </p>
           <p className="text-sm leading-6 text-foreground">
             <span className="font-bold">{GUARANTEE.name}:</span>{" "}

@@ -64,8 +64,8 @@ export default function PricingPage() {
       <Section>
         <PageTitle
           eyebrow="Pricing"
-          title="One setup fee. One subscription. No surprises."
-          description="Every number is below — the same numbers we'd give you on the phone."
+          title="Simple pricing for a done-for-you launch"
+          description="Setup, subscription and both guarantees — laid out in full."
         />
         <div className="grid gap-3.5 pt-6 lg:grid-cols-3">
           <Card size="sm">
@@ -185,7 +185,7 @@ export default function PricingPage() {
           <PageTitle
             headingLevel={2}
             eyebrow="Pricing questions"
-            title="Asked before buying, answered straight"
+            title="Before you sign up"
           />
           <FaqList items={pricingFaq} />
         </div>

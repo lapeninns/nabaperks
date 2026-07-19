@@ -47,7 +47,7 @@ export function LandingFaq({
   return (
     <Section id="faq">
       <SectionHeader
-        eyebrow="Questions, answered straight"
+        eyebrow="Good questions"
         title="Frequently asked questions"
       />
       <div className="pt-6">

@@ -32,7 +32,7 @@ export function GuaranteeStack() {
     <Section id="guarantees">
       <SectionHeader
         eyebrow="Our guarantees"
-        title="Two guarantees, in plain English"
+        title="Two guarantees behind your pilot"
         description={OFFER.riskFraming}
       />
       <div className="grid gap-5 pt-6 lg:grid-cols-2">
@@ -59,9 +59,7 @@ export function GuaranteeStack() {
         ))}
       </div>
       <div className="mt-6 grid gap-2 border-2 border-dashed border-line-strong bg-card p-5">
-        <p className="mono-meta text-foreground">
-          What we don’t promise — read it before you buy
-        </p>
+        <p className="mono-meta text-foreground">The catch</p>
         <p className="text-sm leading-6 font-bold text-foreground">
           {CLAIMS_BOUNDARY.never}
         </p>

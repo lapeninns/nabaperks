@@ -65,7 +65,7 @@ export default function HowItWorksPage() {
       </Section>
       <ContrastBand>
         <div className="grid gap-3">
-          <p className="mono-meta text-paper/70">The deal, plainly</p>
+          <p className="mono-meta text-paper/70">What you get, and the catch</p>
           <p className="max-w-2xl text-lg leading-snug font-extrabold">
             {CLAIMS_BOUNDARY.guarantee}
           </p>
@@ -76,8 +76,8 @@ export default function HowItWorksPage() {
       </ContrastBand>
       <Section>
         <SectionHeader
-          eyebrow="Rather drive it yourself?"
-          title="The same five steps are in the product, self-serve"
+          eyebrow="Rather set it up yourself?"
+          title="The same five steps, whenever you're ready"
           description={`${SETUP.steps} ${SETUP.noFriction} On a done-for-you launch, Lapen Inns does those steps for you.`}
         />
         <div className="grid gap-3 pt-6 sm:flex sm:flex-wrap sm:items-center">

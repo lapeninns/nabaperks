@@ -15,7 +15,7 @@ export function VenuePersonas() {
     <Section id="personas">
       <SectionHeader
         eyebrow="Who it's for"
-        title="Built for pubs first. Honest about the rest."
+        title="Built for pubs first"
         description="Pubs are who this was built for. The same card works honestly for a few close cousins."
       />
       <div className="grid gap-3.5 pt-6 sm:grid-cols-2 lg:grid-cols-4">

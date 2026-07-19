@@ -66,7 +66,10 @@ test("Given the finalised offer pack When facts.ts is inspected Then the locked 
     /name: "The 30-Day Gastropub Mid-Week Revenue Accelerator"/
   )
   assert.match(facts, /nameSafe: "The 30-Day First-Regular Launch"/)
-  assert.match(facts, /name of the launch, not a promise of takings/)
+  // The name is contextualised with a plain benefit line, and must never
+  // render the revenue-promise disclaimer voice or the word "guarantee".
+  assert.match(facts, /nameNote:\s*\n?\s*"Named for what it’s built to do/)
+  assert.doesNotMatch(facts, /nameNote:[^\n]*guarantee/i)
 
   // Setup fee — copy-only. The £99 standard is waived to £0 while the rolling
   // launch window is open; the waiver must stay tied to the promo's real
