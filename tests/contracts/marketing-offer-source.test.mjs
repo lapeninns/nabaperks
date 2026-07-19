@@ -131,6 +131,60 @@ test("Given the finalised offer pack When facts.ts is inspected Then the locked 
   assert.match(facts, /export const CORE_OFFER = \[/)
   assert.match(facts, /export const BONUS_STACK = \[/)
   assert.match(facts, /Bring a Regular/)
+
+  // Hybrid SaaS-blueprint sections are sourced from the pack: the pain
+  // objections (doc 3 Step 2), the feature set, and the before/after outcome.
+  assert.match(facts, /export const PROBLEM = \{/)
+  assert.match(facts, /export const FEATURES: readonly MarketingFeature\[\]/)
+  assert.match(facts, /export const TRANSFORMATION = \{/)
+  const featureTabs = facts.match(
+    /key: "(no-app-qr|mystery-rewards|dashboard|birthdays|referrals|posters)"/g
+  )
+  assert.equal(
+    featureTabs?.length,
+    6,
+    "FEATURES must carry the six product-feature tabs"
+  )
+})
+
+test("Given the hybrid SaaS blueprint When the landing composes sections Then they render in the conversion order", () => {
+  const landing = readProjectFile("app", "page.tsx")
+
+  // The absorbed components are gone from the landing (their content migrated
+  // into Problem/Features/Outcome/Pricing).
+  for (const gone of ["OfferStack", "ValueEquation", "BonusStack"]) {
+    assert.doesNotMatch(
+      landing,
+      new RegExp(`<${gone}\\b`),
+      `${gone} was absorbed and must not render on the landing`
+    )
+  }
+
+  // The blueprint order: proof -> problem -> features -> outcome -> guarantees
+  // -> pricing -> scarcity -> personas -> faq -> final CTA.
+  const order = [
+    "LandingHero",
+    "ProofStrip",
+    "ProblemPains",
+    "FeaturesListicle",
+    "OutcomeTransformation",
+    "GuaranteeStack",
+    "LandingPricing",
+    "ScarcityBand",
+    "VenuePersonas",
+    "LandingFaq",
+    "FinalCta",
+  ]
+  let cursor = -1
+  for (const section of order) {
+    const at = landing.indexOf(`<${section}`)
+    assert.ok(at > -1, `landing must render <${section}`)
+    assert.ok(
+      at > cursor,
+      `${section} must appear after the previous blueprint section`
+    )
+    cursor = at
+  }
 })
 
 test("Given marketing surfaces When scanned for prices Then every £-figure renders via facts, never a literal", () => {

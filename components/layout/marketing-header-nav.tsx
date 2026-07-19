@@ -10,14 +10,14 @@ import { cn } from "@/lib/utils"
 const NAV_ITEMS = [
   { href: ROUTES.howItWorks, label: "How it works" },
   { href: ROUTES.pricing, label: "Pricing" },
-  { href: ROUTES.pubs, label: "For pubs" },
-  { href: ROUTES.about, label: "About" },
+  { href: `${ROUTES.home}#faq`, label: "FAQ" },
 ] as const
 
 /**
- * Public marketing nav. Text links surface from `md:` up; below that the CTA
- * stands alone and the footer carries the full link set — no hamburger, so the
- * header never traps focus behind a disclosure on the acquisition path.
+ * Public marketing nav — the SaaS-blueprint set: Features (How it works),
+ * Pricing, FAQ, Log in, and the primary CTA. Text links surface from `md:` up;
+ * below that the Log in + CTA stand alone and the footer carries the full link
+ * set — no hamburger, so the header never traps focus on the acquisition path.
  */
 export function MarketingHeaderNav() {
   const pathname = usePathname()
@@ -46,6 +46,9 @@ export function MarketingHeaderNav() {
           )
         })}
       </ul>
+      <Button asChild variant="ghost" size="sm" className="max-sm:hidden">
+        <Link href="/login">Log in</Link>
+      </Button>
       <Button asChild size="sm">
         <Link href={ROUTES.signup}>Start free pilot</Link>
       </Button>

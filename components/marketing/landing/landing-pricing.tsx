@@ -1,0 +1,91 @@
+import Link from "next/link"
+import { CheckmarkCircle02Icon } from "@hugeicons/core-free-icons"
+
+import { Icon, MonoTag, SectionHeader } from "@/components/brand"
+import { Section } from "@/components/layout"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import {
+  PLAN_INCLUDES,
+  PRODUCT,
+  ROUTES,
+  SETUP_FEE,
+} from "@/lib/marketing/facts"
+import type { ActivePromo } from "@/lib/marketing/promo"
+
+/**
+ * On-page pricing — the SaaS-blueprint pricing block, sitting after the proof
+ * and features. Shows the setup-fee waiver (with its real dated window and
+ * standard-fee fallback), the monthly/annual plan, what's included, and links
+ * to the full pricing page. All figures read from the shared facts.
+ */
+export function LandingPricing({ promo }: { promo: ActivePromo | null }) {
+  return (
+    <Section id="pricing">
+      <SectionHeader
+        eyebrow="Pricing"
+        title="One plan, set up for you"
+        description="No setup fee while the launch window is open, then a flat monthly price you can cancel anytime."
+      />
+      <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+        <Card className="border-primary">
+          <CardContent className="grid content-start gap-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <MonoTag tone="accent">{PRODUCT.planName}</MonoTag>
+              {promo ? <MonoTag tone="sun">{SETUP_FEE.label}</MonoTag> : null}
+            </div>
+            <div className="grid gap-1">
+              <p className="flex items-baseline gap-2">
+                <span className="text-4xl leading-none font-extrabold text-foreground">
+                  {PRODUCT.price}
+                </span>
+                <span className="text-sm font-bold text-muted-foreground">
+                  or {PRODUCT.priceAnnual} · {PRODUCT.annualSaving}
+                </span>
+              </p>
+              <p className="text-sm leading-6 font-bold text-foreground">
+                {promo
+                  ? `${SETUP_FEE.label} until ${promo.deadlineLabel} (standard ${SETUP_FEE.standard})`
+                  : SETUP_FEE.standardLabel}
+                {" · "}
+                after a {PRODUCT.pilotCardNote}.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button asChild size="lg">
+                <Link href={ROUTES.signup}>Start your free pilot</Link>
+              </Button>
+              <Button asChild size="lg" variant="secondary">
+                <Link href={ROUTES.pricing}>See full pricing</Link>
+              </Button>
+            </div>
+            <p className="mono-id text-muted-foreground uppercase">
+              {PRODUCT.cancelLine}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="grid content-start gap-3">
+            <p className="mono-meta text-muted-foreground">
+              Every plan includes
+            </p>
+            <ul className="grid gap-2.5">
+              {PLAN_INCLUDES.map((item) => (
+                <li key={item} className="flex items-start gap-3">
+                  <Icon
+                    icon={CheckmarkCircle02Icon}
+                    size={18}
+                    className="mt-0.5 shrink-0 text-reward"
+                  />
+                  <span className="text-sm leading-6 text-foreground">
+                    {item}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+    </Section>
+  )
+}

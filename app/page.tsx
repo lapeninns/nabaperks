@@ -3,16 +3,17 @@ import type { Metadata } from "next"
 import { MarketingLayout } from "@/components/layout"
 import { Marquee } from "@/components/marketing"
 import {
-  BonusStack,
   buildQrMatrix,
+  FeaturesListicle,
   FinalCta,
   GuaranteeStack,
   LandingFaq,
   LandingHero,
-  OfferStack,
+  LandingPricing,
+  OutcomeTransformation,
+  ProblemPains,
   ProofStrip,
   ScarcityBand,
-  ValueEquation,
   VenuePersonas,
 } from "@/components/marketing/landing"
 import { JsonLd } from "@/components/seo/json-ld"
@@ -60,11 +61,12 @@ export default function LandingPage() {
     <MarketingLayout>
       <LandingHero promo={promo} demoQr={demoQr} />
       <Marquee />
-      <OfferStack />
-      <ValueEquation />
       <ProofStrip />
-      <BonusStack />
+      <ProblemPains />
+      <FeaturesListicle />
+      <OutcomeTransformation />
       <GuaranteeStack />
+      <LandingPricing promo={promo} />
       <ScarcityBand promo={promo} />
       <VenuePersonas />
       <LandingFaq />

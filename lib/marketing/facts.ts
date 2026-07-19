@@ -355,6 +355,152 @@ export const BONUS_STACK = [
 export const BONUS_STACK_NOTE =
   "Every Growth Plan already includes the weekly digest, consent handling and the seeded mystery-reward presets — so we don't count those as bonuses."
 
+// --- The problem (offer pack doc 1 + doc 3 Step 2) ---------------------------
+
+/**
+ * The midweek problem and the objections pub owners actually raise (doc 3
+ * Step 2, kept in the owner's own voice as the pack frames them). Rendered as
+ * the pain section that justifies the price before it's shown. Each pain is a
+ * real objection the launch answers later in the feature section.
+ */
+export const PROBLEM = {
+  headline: "The weekend rush you can't clone into Tuesday",
+  intro:
+    "Strong Friday and Saturday. Then Tuesday to Thursday the rent, the staff and the kitchen are all still on — just quieter. Most loyalty fixes ask for exactly what a busy pub hasn't got.",
+  pains: [
+    "I've no time to set up another piece of software.",
+    "I don't know what to give away without wrecking my margins.",
+    "My customers won't download another app.",
+    "I don't want a POS or EPOS integration project.",
+    "My staff will forget anything fiddly at the till.",
+    "I've no designer for posters.",
+    "I'd never know if anyone actually came back.",
+    "If it does nothing in month one, I don't want to keep paying.",
+  ],
+  turn: "Every one of those is answered below — and priced so a handful of return visits covers it.",
+} as const
+
+// --- The features (product view of the offer; docs 3 + 4) --------------------
+
+export type MarketingFeatureKey =
+  | "no-app-qr"
+  | "mystery-rewards"
+  | "dashboard"
+  | "birthdays"
+  | "referrals"
+  | "posters"
+
+export type MarketingFeature = {
+  readonly key: MarketingFeatureKey
+  /** Short tab label. */
+  readonly tab: string
+  /** Section title when the tab is open. */
+  readonly title: string
+  /** What the feature includes — a short checklist. */
+  readonly includes: readonly string[]
+  /** The obstacle it removes (the honest analogue of "time saved"). */
+  readonly removes: string
+}
+
+/**
+ * The launch as a product feature set, for the tabbed feature section. Sourced
+ * from `CORE_OFFER` + `BONUS_STACK` + `PRODUCT`; each feature names the pain it
+ * removes rather than an invented time saving.
+ */
+export const FEATURES: readonly MarketingFeature[] = [
+  {
+    key: "no-app-qr",
+    tab: "No-app card",
+    title: "A loyalty card that opens from one venue QR",
+    includes: [
+      "Customers scan and collect — no app, no wallet pass",
+      "One permanent venue QR, join and stamp journeys tested",
+      "No POS or EPOS integration, no extra till hardware",
+      "Staff keep a simple scan and one short line",
+    ],
+    removes: "Removes the “download our app” objection at the counter.",
+  },
+  {
+    key: "mystery-rewards",
+    tab: "Rewards",
+    title: "A food-led mystery reward pool, set with you",
+    includes: [
+      "Weighted mystery rewards seeded with your card",
+      "Free-starter, coffee-after-lunch, Sunday-roast-upgrade territory",
+      "Tuned to stay margin-safe",
+      "Edit it or launch with it as-is",
+    ],
+    removes: "Removes the “what do we give away” guesswork.",
+  },
+  {
+    key: "dashboard",
+    tab: "Dashboard",
+    title: "Visits, regulars and redemptions you can actually see",
+    includes: [
+      "Dashboard for visits, members, stamps and returning customers",
+      "Weekly digest of visits, regulars and redemptions by email",
+      "Verified return visits, not guesswork",
+      "Optional location checks at your venue",
+    ],
+    removes: "Removes the “I'd never know if it worked” doubt.",
+  },
+  {
+    key: "birthdays",
+    tab: "Birthdays",
+    title: "Birthday treats that send themselves",
+    includes: [
+      "Birthday reward name and terms configured on your card",
+      "The platform issues birthday rewards during a guest's birthday month",
+      "No manual list, no monthly chasing",
+    ],
+    removes: "Removes the weekly job of messaging guests by hand.",
+  },
+  {
+    key: "referrals",
+    tab: "Referrals",
+    title: "“Bring a Regular” invites, wired up",
+    includes: [
+      "Existing members invite new diners with a share link",
+      "Attribution handled automatically",
+      "The referrer's bonus stamps settle after a genuine first visit",
+    ],
+    removes: "Removes the need to buy ads to find new diners.",
+  },
+  {
+    key: "posters",
+    tab: "Posters",
+    title: "Counter posters, printed and posted to you",
+    includes: [
+      "Eight print-ready A4 counter posters with your venue QR",
+      "Counter copy already laid out",
+      "First run physically printed and posted to the pub",
+    ],
+    removes: "Removes the hunt for a designer and a print shop.",
+  },
+] as const
+
+// --- The outcome (offer pack doc 3 Step 1 — the transformation) --------------
+
+/**
+ * Before/after from the offer pack's dream-outcome step. Concrete buckets, no
+ * invented precision — each "after" item is a real thing the launch delivers.
+ */
+export const TRANSFORMATION = {
+  heading: "From quiet-midweek guesswork to a system you can watch",
+  before: [
+    "Busy weekends, quiet Tuesday to Thursday",
+    "No simple way to bring customers back",
+    "A stamp card nobody can measure — or none at all",
+    "No idea which offers actually pull people in",
+  ],
+  after: [
+    "A live browser card customers open from your QR",
+    "Printed posters on the counter, working for you",
+    "Birthday treats and referrals running on their own",
+    "A dashboard showing who came back, and when",
+  ],
+} as const
+
 // --- The guarantee stack (offer pack doc 5) ----------------------------------
 
 /**

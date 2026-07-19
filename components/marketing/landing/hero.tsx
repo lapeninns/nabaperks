@@ -8,6 +8,7 @@ import {
   DFY_LAUNCH,
   GUARANTEE,
   OFFER,
+  OPERATOR,
   PRODUCT,
   ROUTES,
   SETUP_FEE,
@@ -55,6 +56,16 @@ export function LandingHero({
           <Button asChild size="lg" variant="secondary">
             <Link href={ROUTES.howItWorks}>See how the launch works</Link>
           </Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <span className="text-sm leading-6 font-bold text-foreground">
+            Built by {OPERATOR.name} · {OPERATOR.estateShort}
+          </span>
+          <span className="flex flex-wrap gap-1.5">
+            <MonoTag>No app</MonoTag>
+            <MonoTag>No POS</MonoTag>
+            <MonoTag>{PRODUCT.pilot}</MonoTag>
+          </span>
         </div>
         <div className="grid max-w-xl gap-2 border-l-2 border-ink pl-4">
           <p className="text-sm leading-6 font-bold text-foreground">
