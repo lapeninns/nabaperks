@@ -135,6 +135,6 @@ test("Given public routes feed SEO and AI discovery When the registry is inspect
   }
 
   assert.doesNotMatch(marketingFacts, /path: ROUTES\.signup/)
-  assert.doesNotMatch(llms, /https:\/\/nabaperks\.com\/signup/)
+  assert.equal(llms.includes("https://nabaperks.com/signup"), false)
   assert.match(signup, /robots: \{ index: false, follow: true \}/)
 })
