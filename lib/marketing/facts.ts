@@ -19,8 +19,10 @@
  * - The offer wrapper `OFFER.name` ("…Revenue Accelerator") leads public pages
  *   per the owner's rebuild brief; `OFFER.nameNote` states on-page that it
  *   names the offer, not a revenue promise (naming doc's claims rule).
- * - `SETUP_FEE` (£99) is COPY ONLY: invoiced at done-for-you onboarding, never
- *   charged through online checkout. No billing code may read it.
+ * - There is NO setup fee (owner decision 2026-07-19 — the upfront fee and its
+ *   waiver were both removed). The offer is a pure subscription after the free
+ *   pilot; `PLAN_LINE` is the single-sourced investment line and the
+ *   done-for-you launch is included in the plan.
  * - `GUARANTEE` (First-Regular, offer v1) + `GUARANTEE_ROI` (90-Day ROI
  *   Extension, offer v3) are conditional service promises honoured manually by
  *   support through Stripe trial extensions/discounts — business terms, not
@@ -212,42 +214,25 @@ export const VALUE_MATH = {
     "That £12 is only an example — your margins will differ. You’ll see the real numbers in your own dashboard.",
 } as const
 
-// --- Pricing structure (offer pack docs 2 + 8; £99 is copy-only) -------------
-
 /**
- * The setup fee — COPY/FACTS ONLY, never wired into Stripe or any checkout
- * path; no billing code may import this constant (enforced by
- * `tests/contracts/marketing-offer-source.test.mjs`).
- *
- * Owner decision 2026-07-19: the standard £99 fee is WAIVED to £0 while the
- * rolling monthly launch window is open. The waiver is honest scarcity: it
- * always renders with the window's real end date (from `getActivePromo`), and
- * every surface falls back to the standard-fee copy automatically when the
- * promo is switched off — no undated "limited time" claims.
+ * The one investment line — the whole price, no setup fee. Owner decision
+ * 2026-07-19: the setup fee is removed entirely. The offer is a pure
+ * subscription after the free pilot. Composed from `PRODUCT` and single-sourced
+ * so every acquisition surface states it identically.
  */
-export const SETUP_FEE = {
-  /** The documented standard setup fee — the waiver's reference price. */
-  standard: "£99",
-  standardLabel: "£99 one-off setup",
-  /** What venues pay while the launch-window waiver is open. */
-  amount: "£0",
-  label: "£0 setup",
-  covers:
-    "Setup covers the human implementation work: venue and card configuration, a margin-safe mystery reward pool, and your first A4 counter-poster run — generated, printed and posted to your pub.",
-  afterWaiver:
-    "If the waiver ends, the standard £99 setup fee is invoiced when your onboarding is booked — never charged through the online checkout.",
-  exposure:
-    "When the standard fee applies, it pays for completed implementation work and the physical print run, so it isn't refunded because trading was quiet — the guarantees below carry the subscription risk instead.",
-} as const
+export const PLAN_LINE = `${PRODUCT.price}, or ${PRODUCT.priceAnnual} — ${PRODUCT.annualSaving}, after a ${PRODUCT.pilot}.`
 
 // --- The done-for-you launch (offer pack docs 3 + 8) -------------------------
 
 /**
  * The assembled delivery pitch: Lapen Inns does the launch. The five steps are
  * the master doc's own sequence and drive the how-it-works page's HowTo schema.
+ * `covers` is the plain description of the launch work (no fee framing).
  */
 export const DFY_LAUNCH = {
   intro: "Instead of handing you empty software, Lapen Inns does the launch.",
+  covers:
+    "We handle the whole launch: venue and card configuration, a margin-safe mystery reward pool, and your first A4 counter-poster run — generated, printed and posted to your pub.",
   steps: [
     {
       title: "We set up your venue",
@@ -721,11 +706,11 @@ export const FAQ_ITEMS: readonly MarketingFaq[] = [
   },
   {
     question: "What does it cost?",
-    answer: `Setup is ${SETUP_FEE.amount} right now — the standard ${SETUP_FEE.standard} setup fee is waived while the current month's launch window is open (the exact end date is shown next to the price). The software is ${PRODUCT.price} (or ${PRODUCT.priceAnnual} — ${PRODUCT.annualSaving}) after a ${PRODUCT.pilot}. ${PRODUCT.cancelLine}`,
+    answer: `${PRODUCT.price}, or ${PRODUCT.priceAnnual} — ${PRODUCT.annualSaving} — after a ${PRODUCT.pilot}. There's no setup fee: the launch is included. ${PRODUCT.cancelLine}`,
   },
   {
-    question: "Is setup really £0?",
-    answer: `Yes — for launches booked while the current window is open. ${SETUP_FEE.covers} We do all of that either way. ${SETUP_FEE.afterWaiver}`,
+    question: "Is there a setup fee?",
+    answer: `No. ${DFY_LAUNCH.covers} That's all included in the ${PRODUCT.price} plan — nothing extra to pay up front.`,
   },
   {
     question: "What if nobody comes back?",
@@ -750,7 +735,7 @@ export const PRICING_FAQ_ITEMS: readonly MarketingFaq[] = FAQ_ITEMS.filter(
   (faq) =>
     [
       "What does it cost?",
-      "Is setup really £0?",
+      "Is there a setup fee?",
       "What if nobody comes back?",
       "What do you not guarantee?",
       "Why do you only take 5 launches a week?",

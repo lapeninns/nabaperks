@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { readdirSync, readFileSync, statSync } from "node:fs"
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs"
 import path from "node:path"
 import { test } from "node:test"
 import { fileURLToPath } from "node:url"
@@ -7,9 +7,9 @@ import { fileURLToPath } from "node:url"
 /**
  * Marketing rebuild contracts (offer v3, sourced from the finalised offer
  * pack): the locked commercial model lives in `lib/marketing/facts.ts`, every
- * marketing surface renders prices through those facts, the £99 setup fee
- * stays copy-only (never wired into checkout), and the public route registry
- * cannot drift from llms.txt.
+ * marketing surface renders prices through those facts, there is no setup fee
+ * (removed 2026-07-19), and the public route registry cannot drift from
+ * llms.txt.
  */
 
 const projectRoot = path.resolve(
@@ -71,33 +71,16 @@ test("Given the finalised offer pack When facts.ts is inspected Then the locked 
   assert.match(facts, /nameNote:\s*\n?\s*"Named for what it’s built to do/)
   assert.doesNotMatch(facts, /nameNote:[^\n]*guarantee/i)
 
-  // Setup fee — copy-only. The £99 standard is waived to £0 while the rolling
-  // launch window is open; the waiver must stay tied to the promo's real
-  // dated window, with an automatic standard-fee fallback when the promo is
-  // off (no undated "limited time" claims).
-  assert.match(facts, /export const SETUP_FEE = \{/)
-  assert.match(facts, /standard: "£99"/)
-  assert.match(facts, /amount: "£0"/)
-  assert.match(facts, /invoiced when your onboarding is booked/i)
-  assert.match(facts, /charged through the online checkout/)
-
-  const promoSource = readProjectFile("lib", "marketing", "promo.ts")
-  const setupPriceLine = readProjectFile(
-    "components",
-    "marketing",
-    "setup-price-line.tsx"
+  // No setup fee (owner decision 2026-07-19 — removed entirely). The offer is
+  // a pure subscription: PLAN_LINE is the single-sourced investment line, and
+  // the SETUP_FEE constant and its price line no longer exist.
+  assert.doesNotMatch(
+    facts,
+    /export const SETUP_FEE\b/,
+    "the SETUP_FEE constant must be gone — there is no setup fee"
   )
-  assert.match(
-    promoSource,
-    /SETUP_FEE\.standard/,
-    "the waiver line must quote the standard fee from facts, never a literal"
-  )
-  assert.match(promoSource, /setupLine/)
-  assert.match(
-    setupPriceLine,
-    /promo\s*\?[\s\S]*SETUP_FEE\.label[\s\S]*:\s*SETUP_FEE\.standardLabel/,
-    "the shared price line must fall back to the standard fee when no promo window is open"
-  )
+  assert.match(facts, /export const PLAN_LINE = /)
+  assert.match(facts, /There is NO setup fee/i)
 
   // Subscription facts stay the surviving £49/£490 model.
   assert.match(facts, /price: "£49\/month"/)
@@ -198,32 +181,29 @@ test("Given marketing surfaces When scanned for prices Then every £-figure rend
   }
 })
 
-test("Given the £99 setup fee is copy-only When billing code is scanned Then nothing in the checkout path references it", () => {
-  const marketingSurfaceSet = new Set(marketingSourceFiles())
+test("Given the setup fee was removed When all source is scanned Then no setup-fee constant, £99, or £0-setup copy survives", () => {
   const allSource = [...walk("app"), ...walk("components"), ...walk("lib")]
 
   for (const file of allSource) {
     const source = readFileSync(path.join(projectRoot, file), "utf8")
 
-    // The literal figure lives in exactly one source file: the facts module.
-    if (file !== path.join("lib", "marketing", "facts.ts")) {
-      assert.ok(
-        !source.includes("£99"),
-        `${file} must not hardcode the setup fee — it renders via SETUP_FEE in lib/marketing/facts.ts`
-      )
-    }
-
-    // SETUP_FEE is a marketing-copy constant: marketing surfaces + the facts
-    // module may read it; billing/checkout/API code must never touch it.
-    const allowedSetupFeeReader =
-      marketingSurfaceSet.has(file) || file.startsWith("lib/marketing/")
-    if (!allowedSetupFeeReader) {
-      assert.ok(
-        !source.includes("SETUP_FEE"),
-        `${file} must not reference SETUP_FEE — the £99 setup is invoiced at onboarding, never charged in checkout`
-      )
-    }
+    assert.ok(
+      !source.includes("SETUP_FEE"),
+      `${file} must not reference SETUP_FEE — the setup fee was removed entirely`
+    )
+    assert.ok(
+      !/£99|£0 setup/i.test(source),
+      `${file} must not mention the old £99 / £0-setup fee`
+    )
   }
+
+  // No stray SetupPriceLine component or import survives.
+  assert.ok(
+    !existsSync(
+      path.join(projectRoot, "components/marketing/setup-price-line.tsx")
+    ),
+    "setup-price-line.tsx must be deleted"
+  )
 
   // The surviving £49/£490 checkout binds to PRODUCT facts only.
   const checkoutForm = readProjectFile(

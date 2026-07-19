@@ -5,9 +5,7 @@ import { PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
 import { JsonLd } from "@/components/seo/json-ld"
 import { Button } from "@/components/ui/button"
-import { SetupPriceLine } from "@/components/marketing/setup-price-line"
-import { GUARANTEE, PRODUCT, ROUTES } from "@/lib/marketing/facts"
-import { getActivePromo } from "@/lib/marketing/promo"
+import { GUARANTEE, PLAN_LINE, PRODUCT, ROUTES } from "@/lib/marketing/facts"
 import {
   articleSchema,
   breadcrumbSchema,
@@ -47,8 +45,6 @@ export function guidePageMetadata(guide: Guide): Metadata {
  * comparison table where the guide calls for it, and one clearly-priced CTA.
  */
 export function GuidePage({ guide }: { guide: Guide }) {
-  const promo = getActivePromo()
-
   return (
     <MarketingLayout>
       <Section width="narrow">
@@ -91,8 +87,7 @@ export function GuidePage({ guide }: { guide: Guide }) {
             If you’d rather not do any of this yourself
           </p>
           <p className="text-sm leading-6 text-foreground">
-            <SetupPriceLine promo={promo} />{" "}
-            <span className="font-bold">{GUARANTEE.name}:</span>{" "}
+            {PLAN_LINE} <span className="font-bold">{GUARANTEE.name}:</span>{" "}
             {GUARANTEE.line}
           </p>
           <div className="flex flex-wrap gap-3">

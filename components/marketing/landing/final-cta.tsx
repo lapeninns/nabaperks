@@ -2,13 +2,11 @@ import Link from "next/link"
 
 import { Eyebrow, ReceiptCard } from "@/components/brand"
 import { Section } from "@/components/layout"
-import { SetupPriceLine } from "@/components/marketing/setup-price-line"
 import { Button } from "@/components/ui/button"
-import { OFFER, PRODUCT, ROUTES } from "@/lib/marketing/facts"
-import type { ActivePromo } from "@/lib/marketing/promo"
+import { OFFER, PLAN_LINE, PRODUCT, ROUTES } from "@/lib/marketing/facts"
 
 /** Closing pitch: the investment summary and the risk reversal, then the CTA. */
-export function FinalCta({ promo }: { promo: ActivePromo | null }) {
+export function FinalCta() {
   return (
     <Section id="start">
       <ReceiptCard edge padding="lg" className="items-center gap-4 text-center">
@@ -17,7 +15,7 @@ export function FinalCta({ promo }: { promo: ActivePromo | null }) {
           Give your weekend customers a reason to come back midweek
         </h2>
         <p className="max-w-xl justify-self-center text-sm leading-6 text-muted-foreground">
-          <SetupPriceLine promo={promo} /> {OFFER.riskFraming}
+          {PLAN_LINE} {OFFER.riskFraming}
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Button asChild size="lg">

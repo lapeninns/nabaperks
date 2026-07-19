@@ -66,11 +66,11 @@ export default function LandingPage() {
       <FeaturesListicle />
       <OutcomeTransformation />
       <GuaranteeStack />
-      <LandingPricing promo={promo} />
+      <LandingPricing />
       <ScarcityBand promo={promo} />
       <VenuePersonas />
       <LandingFaq />
-      <FinalCta promo={promo} />
+      <FinalCta />
       <JsonLd
         id="ld-home"
         data={{

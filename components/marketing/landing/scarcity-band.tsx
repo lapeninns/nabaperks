@@ -31,11 +31,6 @@ export function ScarcityBand({ promo }: { promo: ActivePromo | null }) {
         <div className="grid content-start gap-4">
           <div className="grid gap-2 border-2 border-dashed border-paper/40 p-4">
             <p className="mono-meta text-paper/70">Why this week matters</p>
-            {promo ? (
-              <p className="text-sm leading-6 font-bold text-paper">
-                {promo.setupLine}
-              </p>
-            ) : null}
             <p className="text-sm leading-6 text-paper">{URGENCY.printBatch}</p>
             {promo ? (
               <p className="border-t-2 border-dashed border-paper/40 pt-2 text-sm leading-6 text-paper/80">

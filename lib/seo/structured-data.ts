@@ -179,10 +179,8 @@ export function howToSchema({
 }
 
 /**
- * The Growth Plan as a Product with its two real subscription offers. The
- * one-off setup fee is deliberately absent here: it is invoiced at onboarding,
- * not an online-purchasable offer, so modelling it as a buyable Offer would
- * overstate the checkout.
+ * The Growth Plan as a Product with its two real subscription offers. There is
+ * no setup fee — the done-for-you launch is included in the subscription.
  */
 export function growthPlanSchema(): Record<string, unknown> {
   return {

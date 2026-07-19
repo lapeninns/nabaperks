@@ -6,7 +6,6 @@ import {
   MARKET,
   PRODUCT,
   ROUTES,
-  SETUP_FEE,
   VALUE_MATH,
 } from "@/lib/marketing/facts"
 
@@ -109,7 +108,7 @@ export const GUIDES: readonly Guide[] = [
       {
         heading: "Skip the setup job entirely",
         paragraphs: [
-          `${DFY_LAUNCH.intro} ${SETUP_FEE.covers}`,
+          `${DFY_LAUNCH.intro} ${DFY_LAUNCH.covers}`,
           `${GUARANTEE.name}: ${GUARANTEE.line}`,
         ],
       },
@@ -185,7 +184,7 @@ export const GUIDES: readonly Guide[] = [
       {
         heading: "The switch without the setup job",
         paragraphs: [
-          `${DFY_LAUNCH.intro} ${SETUP_FEE.covers}`,
+          `${DFY_LAUNCH.intro} ${DFY_LAUNCH.covers}`,
           `${GUARANTEE.name}: ${GUARANTEE.line}`,
         ],
       },
