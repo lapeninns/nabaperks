@@ -2,7 +2,14 @@ import type { RGB } from "pdf-lib"
 
 import type { DuotonePosterContent } from "@/lib/qr/poster-kit-content-types"
 
-import { drawWrappedText, mm, POSTER_PDF_COLOR } from "./poster-pdf-style"
+import {
+  bodyLeading,
+  displayLeading,
+  drawWrappedText,
+  mm,
+  POSTER_PDF_COLOR,
+  POSTER_PDF_TYPE,
+} from "./poster-pdf-style"
 import {
   drawKitFriction,
   drawKitMasthead,
@@ -53,7 +60,7 @@ export function drawDuotoneA4(
     maxWidth: width,
     font: fonts.bold,
     size: content.typeTiers.hookPt,
-    lineHeight: content.typeTiers.hookPt * 0.94,
+    lineHeight: displayLeading(content.typeTiers.hookPt),
     color: spot,
     maxLines: 2,
   })
@@ -63,7 +70,7 @@ export function drawDuotoneA4(
     maxWidth: mm(165),
     font: fonts.bold,
     size: content.typeTiers.substantivePt,
-    lineHeight: content.typeTiers.substantivePt + 6,
+    lineHeight: bodyLeading(content.typeTiers.substantivePt),
     color: spot,
     maxLines: 3,
   })
@@ -102,7 +109,7 @@ export function drawDuotoneA4(
     x: copyX,
     y: mm(112),
     maxWidth: width - qrSize - mm(10),
-    size: 13.5,
+    size: POSTER_PDF_TYPE.frictionPt,
     font: fonts.bold,
     color: paper,
   })
@@ -111,8 +118,8 @@ export function drawDuotoneA4(
     y: mm(88),
     maxWidth: width - qrSize - mm(10),
     font: fonts.regular,
-    size: 12,
-    lineHeight: 17,
+    size: POSTER_PDF_TYPE.bodyPt,
+    lineHeight: bodyLeading(POSTER_PDF_TYPE.bodyPt),
     color: paper,
     maxLines: 4,
   })
@@ -127,7 +134,7 @@ export function drawDuotoneA4(
     x: left + mm(8),
     y: mm(42),
     maxWidth: width - mm(64),
-    preferredSize: 15,
+    preferredSize: POSTER_PDF_TYPE.laneVenuePt,
     font: fonts.bold,
     color: paper,
   })
@@ -144,7 +151,7 @@ export function drawDuotoneA4(
     maxWidth: width,
     font: fonts.monoBold,
     size: content.typeTiers.factsPt,
-    lineHeight: content.typeTiers.factsPt + 3,
+    lineHeight: bodyLeading(content.typeTiers.factsPt),
     color: paper,
     maxLines: 2,
   })

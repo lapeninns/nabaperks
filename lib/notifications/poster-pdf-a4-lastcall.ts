@@ -1,10 +1,13 @@
 import type { LastcallPosterContent } from "@/lib/qr/poster-kit-content-types"
 
 import {
+  bodyLeading,
+  displayLeading,
   drawDashedLine,
   drawWrappedText,
   mm,
   POSTER_PDF_COLOR,
+  POSTER_PDF_TYPE,
 } from "./poster-pdf-style"
 import { drawAccentHeadline } from "./poster-pdf-accent"
 import {
@@ -35,7 +38,7 @@ export function drawLastcallA4(
     height: mm(content.geometry.sheetHeightMm),
     color: POSTER_PDF_COLOR.ink,
   })
-  drawKitMasthead(page, {
+  const ruleY = drawKitMasthead(page, {
     x: left,
     y: mm(278),
     width,
@@ -47,6 +50,8 @@ export function drawLastcallA4(
     rule: "dashed",
     ruleColor: paper,
   })
+  // First baseline hangs one display ascent plus a 3 mm gutter below the
+  // masthead rule so the caps never strike it.
   const headlineBottom = drawAccentHeadline(
     page,
     {
@@ -56,34 +61,36 @@ export function drawLastcallA4(
     },
     {
       x: left,
-      y: mm(281) - content.typeTiers.hookPt * 0.96,
+      y: ruleY - mm(3) - content.typeTiers.hookPt * 0.96,
       maxWidth: mm(165),
       font: fonts.bold,
       size: content.typeTiers.hookPt,
-      lineHeight: content.typeTiers.hookPt,
+      lineHeight: displayLeading(content.typeTiers.hookPt),
       foreground: paper,
       accent: POSTER_PDF_COLOR.sun,
       maxLines: 3,
     }
   )
-  drawKitCapsule(page, content.badge, {
-    x: mm(154),
-    y: mm(252),
-    font: fonts.monoBold,
-    size: 9.5,
-    textColor: POSTER_PDF_COLOR.white,
-    fill: POSTER_PDF_COLOR.accent,
-    borderColor: paper,
-  })
-  drawWrappedText(page, content.lede, {
+  const ledeBottom = drawWrappedText(page, content.lede, {
     x: left,
     y: headlineBottom - mm(6),
     maxWidth: mm(165),
     font: fonts.bold,
     size: content.typeTiers.substantivePt,
-    lineHeight: content.typeTiers.substantivePt + 6,
+    lineHeight: bodyLeading(content.typeTiers.substantivePt),
     color: paper,
     maxLines: 3,
+  })
+  // The valid-today stamp sits in the clear lane right of the lede's last
+  // line — at 68 pt the two display lines run the full copy width above it.
+  drawKitCapsule(page, content.badge, {
+    x: mm(154),
+    y: ledeBottom + mm(0.5),
+    font: fonts.monoBold,
+    size: 9.5,
+    textColor: POSTER_PDF_COLOR.white,
+    fill: POSTER_PDF_COLOR.accent,
+    borderColor: paper,
   })
 
   // Framed night card carrying the QR action.
@@ -121,7 +128,7 @@ export function drawLastcallA4(
     x: copyX,
     y: mm(140),
     maxWidth: width - cardWidth - mm(9),
-    size: 12.5,
+    size: POSTER_PDF_TYPE.frictionPt,
     font: fonts.bold,
     color: paper,
     markColors: [POSTER_PDF_COLOR.sun, POSTER_PDF_COLOR.sun],
@@ -131,8 +138,8 @@ export function drawLastcallA4(
     y: mm(112),
     maxWidth: width - cardWidth - mm(9),
     font: fonts.regular,
-    size: 11.5,
-    lineHeight: 16,
+    size: POSTER_PDF_TYPE.bodyPt,
+    lineHeight: bodyLeading(POSTER_PDF_TYPE.bodyPt),
     color: paper,
     maxLines: 4,
   })
@@ -163,7 +170,7 @@ export function drawLastcallA4(
     x: left + mm(11),
     y: mm(49),
     maxWidth: width - mm(15) - capsuleWidth,
-    preferredSize: 15,
+    preferredSize: POSTER_PDF_TYPE.laneVenuePt,
     font: fonts.bold,
     color: paper,
   })
@@ -182,7 +189,7 @@ export function drawLastcallA4(
     maxWidth: width,
     font: fonts.monoBold,
     size: content.typeTiers.factsPt,
-    lineHeight: content.typeTiers.factsPt + 3,
+    lineHeight: bodyLeading(content.typeTiers.factsPt),
     color: paper,
     maxLines: 2,
   })

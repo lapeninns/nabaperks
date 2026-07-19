@@ -68,11 +68,12 @@
     "typeTiersPt": {
       "a4HookMin": 60,
       "a4HookMax": 84,
-      "a4SubstantiveMin": 11,
-      "a4SubstantiveMax": 18,
+      "a4SubstantiveMin": 12,
+      "a4SubstantiveMax": 16,
       "a4FactsMin": 8,
       "a4FactsMax": 12
     },
+    "typeTierPolicy": "Substantive snaps to one of three family steps: 12 (mono structural rows), 14 (ledger body), 16 (panel ledes). Hook stays a per-design display scale inside the shared band; facts is 9 across the kit.",
     "qr": {
       "unit": "mm",
       "measurement": "complete light box including quiet zone",
@@ -186,7 +187,7 @@
       "qrOuterMm": 54,
       "typeTiersPt": {
         "hook": 84,
-        "substantive": 17,
+        "substantive": 16,
         "facts": 9
       },
       "useCase": "Street-facing window",
@@ -226,7 +227,7 @@
       "qrOuterMm": 54,
       "typeTiersPt": {
         "hook": 62,
-        "substantive": 13,
+        "substantive": 14,
         "facts": 9
       },
       "useCase": "Community notice board",
@@ -360,7 +361,7 @@
       "qrOuterMm": 54,
       "typeTiersPt": {
         "hook": 84,
-        "substantive": 15,
+        "substantive": 16,
         "facts": 9
       },
       "useCase": "Evening pub counter",
@@ -404,8 +405,8 @@
       "sheetSize": "210×297 mm",
       "qrOuterMm": 54,
       "typeTiersPt": {
-        "hook": 70,
-        "substantive": 15,
+        "hook": 68,
+        "substantive": 16,
         "facts": 9
       },
       "useCase": "Late-evening bar",

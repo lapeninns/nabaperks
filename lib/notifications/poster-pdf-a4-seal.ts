@@ -1,10 +1,12 @@
 import type { SealPosterContent } from "@/lib/qr/poster-kit-content-types"
 
 import {
+  bodyLeading,
   drawDashedLine,
   drawWrappedText,
   mm,
   POSTER_PDF_COLOR,
+  POSTER_PDF_TYPE,
   standardFontText,
 } from "./poster-pdf-style"
 import { drawLedgerFoot, drawLedgerTop } from "./poster-pdf-a4-ledger"
@@ -59,7 +61,7 @@ export function drawSealA4(
         maxWidth: frame.width - mm(48),
         font: fonts.monoBold,
         size: content.typeTiers.substantivePt,
-        lineHeight: content.typeTiers.substantivePt + 4,
+        lineHeight: bodyLeading(content.typeTiers.substantivePt),
         color: row.accent ? POSTER_PDF_COLOR.accent : POSTER_PDF_COLOR.ink,
         maxLines: 2,
       })
@@ -88,8 +90,8 @@ export function drawSealA4(
     y: mm(108),
     maxWidth: mm(165),
     font: fonts.regular,
-    size: 12.5,
-    lineHeight: 18,
+    size: POSTER_PDF_TYPE.bodyPt,
+    lineHeight: bodyLeading(POSTER_PDF_TYPE.bodyPt),
     color: POSTER_PDF_COLOR.inkSoft,
     maxLines: 3,
   })

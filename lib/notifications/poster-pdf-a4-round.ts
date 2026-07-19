@@ -1,6 +1,13 @@
 import type { RoundPosterContent } from "@/lib/qr/poster-kit-content-types"
 
-import { drawWrappedText, mm, POSTER_PDF_COLOR } from "./poster-pdf-style"
+import {
+  bodyLeading,
+  displayLeading,
+  drawWrappedText,
+  mm,
+  POSTER_PDF_COLOR,
+  POSTER_PDF_TYPE,
+} from "./poster-pdf-style"
 import {
   drawKitFriction,
   drawKitMasthead,
@@ -54,7 +61,7 @@ export function drawRoundA4(
   })
   page.drawText(content.headline.accent, {
     x: left,
-    y: mm(248) - hook,
+    y: mm(248) - displayLeading(hook),
     size: hook,
     font: fonts.bold,
     color: KIT_NIGHT_LEAF,
@@ -67,7 +74,7 @@ export function drawRoundA4(
     maxWidth: copyWidth,
     font: fonts.bold,
     size: content.typeTiers.substantivePt,
-    lineHeight: content.typeTiers.substantivePt + 6,
+    lineHeight: bodyLeading(content.typeTiers.substantivePt),
     color: paper,
     maxLines: 5,
   })
@@ -76,8 +83,8 @@ export function drawRoundA4(
     y: mm(163),
     maxWidth: copyWidth,
     font: fonts.regular,
-    size: 12,
-    lineHeight: 17,
+    size: POSTER_PDF_TYPE.bodyPt,
+    lineHeight: bodyLeading(POSTER_PDF_TYPE.bodyPt),
     color: paper,
     maxLines: 4,
   })
@@ -85,7 +92,7 @@ export function drawRoundA4(
     x: left,
     y: mm(133),
     maxWidth: copyWidth,
-    size: 12,
+    size: POSTER_PDF_TYPE.frictionPt,
     font: fonts.bold,
     color: paper,
     markColors: [KIT_NIGHT_LEAF, KIT_NIGHT_LEAF],
@@ -170,7 +177,7 @@ export function drawRoundA4(
     x: brandX,
     y: mm(64),
     maxWidth: width - qrSize - mm(9),
-    preferredSize: 17,
+    preferredSize: POSTER_PDF_TYPE.laneVenuePt,
     font: fonts.bold,
     color: paper,
   })
@@ -189,7 +196,7 @@ export function drawRoundA4(
     maxWidth: width,
     font: fonts.monoBold,
     size: content.typeTiers.factsPt,
-    lineHeight: content.typeTiers.factsPt + 3,
+    lineHeight: bodyLeading(content.typeTiers.factsPt),
     color: paper,
     maxLines: 2,
   })

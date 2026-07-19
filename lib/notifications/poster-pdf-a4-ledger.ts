@@ -5,7 +5,13 @@ import type {
   SealPosterContent,
 } from "@/lib/qr/poster-kit-content-types"
 
-import { drawWrappedText, mm, POSTER_PDF_COLOR } from "./poster-pdf-style"
+import {
+  bodyLeading,
+  displayLeading,
+  drawWrappedText,
+  mm,
+  POSTER_PDF_COLOR,
+} from "./poster-pdf-style"
 import { drawKitMasthead, drawKitQrPanel } from "./poster-pdf-kit-pieces"
 import { drawKitLedgerVenue } from "./poster-pdf-kit-venue"
 import type { PosterPdfBaseContext } from "./poster-pdf-types"
@@ -37,7 +43,7 @@ export function drawLedgerTop(
     height: mm(content.geometry.sheetHeightMm),
     color: ground,
   })
-  drawKitMasthead(page, {
+  const ruleY = drawKitMasthead(page, {
     x: left,
     y: mm(278),
     width,
@@ -49,15 +55,15 @@ export function drawLedgerTop(
     rule: "solid",
     ruleColor: POSTER_PDF_COLOR.ink,
   })
-  // First baseline sits an ascent below the safe frame so the display
-  // type's bounding box never crosses the 15 mm margin.
+  // First baseline hangs one display ascent plus a 3 mm gutter below the
+  // masthead rule so the caps never strike it or the 15 mm safe frame.
   const headlineBottom = drawWrappedText(page, content.headline, {
     x: left,
-    y: mm(281) - content.typeTiers.hookPt * 0.96,
+    y: ruleY - mm(3) - content.typeTiers.hookPt * 0.96,
     maxWidth: width,
     font: fonts.bold,
     size: content.typeTiers.hookPt,
-    lineHeight: content.typeTiers.hookPt,
+    lineHeight: displayLeading(content.typeTiers.hookPt),
     color: POSTER_PDF_COLOR.ink,
     maxLines: 2,
   })
@@ -108,7 +114,7 @@ export function drawLedgerFoot(
     maxWidth: width,
     font: fonts.monoBold,
     size: content.typeTiers.factsPt,
-    lineHeight: content.typeTiers.factsPt + 3,
+    lineHeight: bodyLeading(content.typeTiers.factsPt),
     color: POSTER_PDF_COLOR.inkSoft,
     maxLines: 2,
   })

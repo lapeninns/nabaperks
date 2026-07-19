@@ -3,10 +3,13 @@ import { rgb } from "pdf-lib"
 import type { PinnedPosterContent } from "@/lib/qr/poster-kit-content-types"
 
 import {
+  bodyLeading,
+  displayLeading,
   drawDashedLine,
   drawWrappedText,
   mm,
   POSTER_PDF_COLOR,
+  POSTER_PDF_TYPE,
 } from "./poster-pdf-style"
 import {
   drawKitFriction,
@@ -100,7 +103,7 @@ export function drawPinnedA4(
     maxWidth: innerWidth,
     font: fonts.bold,
     size: content.typeTiers.hookPt,
-    lineHeight: content.typeTiers.hookPt,
+    lineHeight: displayLeading(content.typeTiers.hookPt),
     color: POSTER_PDF_COLOR.cobalt,
     maxLines: 2,
   })
@@ -110,7 +113,7 @@ export function drawPinnedA4(
     maxWidth: innerWidth,
     font: fonts.bold,
     size: content.typeTiers.hookPt,
-    lineHeight: content.typeTiers.hookPt,
+    lineHeight: displayLeading(content.typeTiers.hookPt),
     color: POSTER_PDF_COLOR.accent,
     maxLines: 2,
   })
@@ -120,7 +123,7 @@ export function drawPinnedA4(
     maxWidth: mm(158),
     font: fonts.regular,
     size: content.typeTiers.substantivePt,
-    lineHeight: content.typeTiers.substantivePt + 6,
+    lineHeight: bodyLeading(content.typeTiers.substantivePt),
     color: POSTER_PDF_COLOR.ink,
     maxLines: 3,
   })
@@ -140,7 +143,7 @@ export function drawPinnedA4(
     x: copyX,
     y: mm(142),
     maxWidth: innerWidth - qrSize - mm(9),
-    size: 12,
+    size: POSTER_PDF_TYPE.frictionPt,
     font: fonts.bold,
     color: POSTER_PDF_COLOR.ink,
     markColors: [POSTER_PDF_COLOR.accent, POSTER_PDF_COLOR.cobalt],
@@ -156,7 +159,7 @@ export function drawPinnedA4(
     x: copyX,
     y: mm(104),
     maxWidth: innerWidth - qrSize - mm(9),
-    preferredSize: 14,
+    preferredSize: POSTER_PDF_TYPE.laneVenuePt,
     font: fonts.bold,
     color: POSTER_PDF_COLOR.ink,
   })
@@ -214,7 +217,7 @@ export function drawPinnedA4(
     maxWidth: width,
     font: fonts.monoBold,
     size: content.typeTiers.factsPt,
-    lineHeight: content.typeTiers.factsPt + 3,
+    lineHeight: bodyLeading(content.typeTiers.factsPt),
     color: POSTER_PDF_COLOR.inkSoft,
     maxLines: 2,
   })
