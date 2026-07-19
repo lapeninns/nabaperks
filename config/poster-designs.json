@@ -422,22 +422,25 @@
         "styles": "components/merchant/qr-poster/counter-kit/chalk-poster.module.css"
       },
       "anatomy": [
-        "Dashed chalk frame on the ink board",
-        "Large chalk headline with a leaf underline stroke",
-        "Chalk stamp row: vermillion today circle, open circles, separate sun-sealed mystery",
-        "Short sealed-reward line in chalk",
-        "QR in a chalk box beside the venue strip and eligibility footer"
+        "Dashed chalk frame with a hand-chalked masthead and smiley doodle",
+        "Two-line chalk headline with the closing word in sun chalk, underlined in vermillion",
+        "Joining lede and chalked-mystery sealed line",
+        "QR in a chalk box with an arrow to its caption, beside the starred friction list, pint doodle and venue",
+        "Scissor cut line with numbered stamp-one tear-off stubs",
+        "Eligibility footer between the 18+ roundel and padlock doodles"
       ],
       "copy": {
         "eyebrow": "Today's board",
         "edition": "Nab a Perks · Nº 15",
-        "headline": "On the board today.",
-        "todayLabel": "Today",
-        "rowNoteOne": "One open circle — join at the QR and today's visit counts as stamp one. One stamp fills the card.",
-        "rowNoteMany": "Open circles — join at the QR and today's visit counts as stamp one. {stamps} stamps fills the card.",
-        "sealedOne": "The sealed one? This venue won't chalk up what it is until your card's full — one stamp and you find out.",
-        "sealedMany": "The sealed one? This venue won't chalk up what it is until your card's full — {stamps} stamps and you find out.",
-        "qrCaption": "Scan — today counts as stamp one"
+        "headlineLead": "On the board",
+        "headlineAccent": "today.",
+        "ledeOne": "Join at the QR and today's visit counts as stamp one — one stamp fills the card.",
+        "ledeMany": "Join at the QR and today's visit counts as stamp one — {stamps} stamps fills the card.",
+        "sealedOne": "The reward? Chalked up as a mystery — this venue won't say what it is until your card's full. One stamp and you find out.",
+        "sealedMany": "The reward? Chalked up as a mystery — this venue won't say what it is until your card's full. {stamps} stamps and you find out.",
+        "qrCaption": "Scan — today counts as stamp one",
+        "stubTop": "Stamp one",
+        "stubBottom": "today"
       }
     }
   ],

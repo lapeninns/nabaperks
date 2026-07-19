@@ -142,11 +142,13 @@ export type ChalkPosterContent = A4ContentBase & {
   readonly id: "chalk"
   readonly eyebrow: string
   readonly edition: string
-  readonly headline: string
-  readonly todayLabel: string
-  readonly rowNote: string
+  readonly headline: NightHeadline
+  readonly lede: string
   readonly sealedLine: string
+  readonly friction: FrictionTriple
   readonly qrCaption: string
+  readonly stubTop: string
+  readonly stubBottom: string
   readonly memberTag: string
 }
 

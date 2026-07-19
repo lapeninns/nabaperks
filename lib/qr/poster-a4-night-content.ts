@@ -23,11 +23,16 @@ export function resolveChalkContent(
     id: "chalk",
     eyebrow: copyString(copy, "eyebrow", stamps, path),
     edition: copyString(copy, "edition", stamps, path),
-    headline: copyString(copy, "headline", stamps, path),
-    todayLabel: copyString(copy, "todayLabel", stamps, path),
-    rowNote: copyChoice(copy, "rowNote", stamps, path),
+    headline: {
+      lead: copyString(copy, "headlineLead", stamps, path),
+      accent: copyString(copy, "headlineAccent", stamps, path),
+    },
+    lede: copyChoice(copy, "lede", stamps, path),
     sealedLine: copyChoice(copy, "sealed", stamps, path),
+    friction: sharedFrictionTriple(stamps),
     qrCaption: copyString(copy, "qrCaption", stamps, path),
+    stubTop: copyString(copy, "stubTop", stamps, path),
+    stubBottom: copyString(copy, "stubBottom", stamps, path),
     memberTag: sharedMemberTag(),
   }
 }
