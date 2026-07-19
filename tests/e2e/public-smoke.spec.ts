@@ -1,16 +1,21 @@
 import { expect, test } from "@playwright/test"
 
 test.describe("public browser smoke", () => {
-  test("Given the public site root When a browser opens it Then the root not-found boundary responds @smoke", async ({
+  test("Given the public site root When a browser opens it Then the offer landing page renders @smoke", async ({
     page,
   }) => {
     const response = await page.goto("/")
 
-    expect(response?.status()).toBe(404)
-    await expect(page).toHaveTitle(/Page not found/)
+    expect(response?.status()).toBe(200)
+    await expect(page).toHaveTitle(/Mid-Week Revenue Accelerator/)
     await expect(
-      page.getByRole("heading", { name: "Page not found" })
+      page.getByRole("heading", {
+        level: 1,
+        name: "The 30-Day Gastropub Mid-Week Revenue Accelerator",
+      })
     ).toBeVisible()
+    await expect(page.getByRole("banner")).toBeVisible()
+    await expect(page.getByRole("main")).toBeVisible()
   })
 
   test("Given merchant sign-up When accessibility smoke runs Then primary landmarks and fields are discoverable @a11y", async ({

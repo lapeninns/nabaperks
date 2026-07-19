@@ -16,10 +16,12 @@ import { cn } from "@/lib/utils"
  * defaults on and animates only the inner container, keeping the ink band fixed.
  * Server component.
  */
-type BandSize = "default" | "compact"
+type BandSize = "default" | "dense" | "compact"
 
 const innerPad: Record<BandSize, string> = {
   default: "py-9 sm:py-12",
+  /** Mobile-dense: compact phone rhythm, default desktop rhythm. */
+  dense: "py-6 sm:py-12",
   compact: "py-7 sm:py-9",
 }
 

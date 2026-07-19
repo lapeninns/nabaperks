@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
- * Validate the shared organisation JSON-LD graph on a surviving public route.
- * Run after `pnpm build`; the checker starts the production server, fetches the
- * merchant sign-up page and exits non-zero when the graph drifts.
+ * Validate the JSON-LD graphs on the public routes. Run after `pnpm build`;
+ * the checker starts the production server, fetches the merchant sign-up page
+ * (shared organisation graph) and the marketing landing page (WebPage +
+ * Product + FAQPage graph) and exits non-zero when either graph drifts.
  */
 import { spawn } from "node:child_process"
 import { once } from "node:events"
@@ -97,8 +98,16 @@ function check(condition, message) {
   if (!condition) failures.push(message)
 }
 
+async function fetchNodes(baseUrl, path) {
+  const response = await fetch(new URL(path, baseUrl))
+  if (!response.ok) {
+    throw new Error(`${path} responded ${response.status}`)
+  }
+  return extractNodes(await response.text())
+}
+
 try {
-  const { html } = await startProductionServer()
+  const { baseUrl, html } = await startProductionServer()
   const nodes = extractNodes(html)
   const types = new Set(nodes.map((node) => node["@type"]).filter(Boolean))
   const organisations = nodes.filter((node) => node["@type"] === "Organization")
@@ -128,13 +137,37 @@ try {
     "sign-up: operator sameAs contains a banned URL"
   )
 
+  const homeNodes = await fetchNodes(baseUrl, "/")
+  const homeTypes = new Set(
+    homeNodes.map((node) => node["@type"]).filter(Boolean)
+  )
+  const product = homeNodes.find((node) => node["@type"] === "Product")
+  const faq = homeNodes.find((node) => node["@type"] === "FAQPage")
+  const productOffers = Array.isArray(product?.offers) ? product.offers : []
+
+  check(homeTypes.has("WebPage"), "home: WebPage node missing")
+  check(homeTypes.has("Organization"), "home: Organization node missing")
+  check(Boolean(product), "home: Growth Plan Product node missing")
+  check(
+    productOffers.map((offer) => offer.price).join(",") === "49,490",
+    "home: Product offers must be exactly the £49 monthly and £490 annual prices"
+  )
+  check(
+    Boolean(faq) && Array.isArray(faq.mainEntity) && faq.mainEntity.length >= 5,
+    "home: FAQPage with the shared FAQ facts missing"
+  )
+  check(
+    !JSON.stringify(homeNodes).includes('"@type":"Person"'),
+    "home: Person node present"
+  )
+
   if (failures.length) {
     console.error(`✗ ${failures.length} JSON-LD check(s) failed:\n`)
     for (const failure of failures) console.error(`  - ${failure}`)
     process.exitCode = 1
   } else {
     console.log(
-      "✓ shared JSON-LD graph valid on sign-up: connected organisations, WebSite, no Person or banned sameAs"
+      "✓ JSON-LD valid: sign-up organisation graph (connected organisations, WebSite, no Person or banned sameAs) and home marketing graph (WebPage, Product 49/490, FAQPage)"
     )
   }
 } finally {

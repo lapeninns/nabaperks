@@ -3,6 +3,16 @@ import { expect, test } from "@playwright/test"
 import { dismissPwaInstall } from "./helpers/harness"
 
 const routes = [
+  { name: "marketing-landing", path: "/" },
+  { name: "marketing-how-it-works", path: "/how-it-works" },
+  { name: "marketing-pricing", path: "/pricing" },
+  { name: "marketing-loyalty-for-pubs", path: "/loyalty-for-pubs" },
+  {
+    name: "marketing-guide-paper-vs-qr",
+    path: "/guides/paper-vs-qr-loyalty-for-pubs",
+  },
+  { name: "marketing-demo", path: "/demo" },
+  { name: "marketing-about", path: "/about" },
   { name: "auth-signup", path: "/signup" },
   {
     name: "auth-signup-verify",

@@ -1,0 +1,82 @@
+import Link from "next/link"
+import { CheckmarkCircle02Icon } from "@hugeicons/core-free-icons"
+
+import { Icon, MonoTag, SectionHeader } from "@/components/brand"
+import { Section } from "@/components/layout"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { PLAN_INCLUDES, PRODUCT, ROUTES } from "@/lib/marketing/facts"
+
+/**
+ * On-page pricing — the SaaS-blueprint pricing block, sitting after the proof
+ * and features. One subscription, no setup fee (the done-for-you launch is
+ * included), what's included, and a link to the full pricing page. All figures
+ * read from the shared facts.
+ */
+export function LandingPricing() {
+  return (
+    <Section id="pricing" size="dense">
+      <SectionHeader
+        eyebrow="Pricing"
+        title="One plan, launch included"
+        description="No setup fee — we do the whole launch for you. Then a flat monthly price you can cancel anytime."
+      />
+      <div className="mt-5 grid gap-3 sm:mt-6 sm:gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+        <Card className="border-primary">
+          <CardContent className="grid content-start gap-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <MonoTag tone="accent">{PRODUCT.planName}</MonoTag>
+              <MonoTag tone="sun">No setup fee</MonoTag>
+            </div>
+            <div className="grid gap-1">
+              <p className="flex items-baseline gap-2">
+                <span className="text-4xl leading-none font-extrabold text-foreground">
+                  {PRODUCT.price}
+                </span>
+                <span className="text-sm font-bold text-muted-foreground">
+                  or {PRODUCT.priceAnnual} · {PRODUCT.annualSaving}
+                </span>
+              </p>
+              <p className="text-sm leading-6 font-bold text-foreground">
+                The done-for-you launch is included · after a{" "}
+                {PRODUCT.pilotCardNote}.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button asChild size="lg">
+                <Link href={ROUTES.signup}>Start your free pilot</Link>
+              </Button>
+              <Button asChild size="lg" variant="secondary">
+                <Link href={ROUTES.pricing}>See full pricing</Link>
+              </Button>
+            </div>
+            <p className="mono-id text-muted-foreground uppercase">
+              {PRODUCT.cancelLine}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="grid content-start gap-3">
+            <p className="mono-meta text-muted-foreground">
+              Every plan includes
+            </p>
+            <ul className="grid gap-2.5">
+              {PLAN_INCLUDES.map((item) => (
+                <li key={item} className="flex items-start gap-3">
+                  <Icon
+                    icon={CheckmarkCircle02Icon}
+                    size={18}
+                    className="mt-0.5 shrink-0 text-reward"
+                  />
+                  <span className="text-sm leading-6 text-foreground">
+                    {item}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+    </Section>
+  )
+}
