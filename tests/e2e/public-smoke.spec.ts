@@ -7,7 +7,7 @@ test.describe("public browser smoke", () => {
     const response = await page.goto("/")
 
     expect(response?.status()).toBe(200)
-    await expect(page).toHaveTitle(/Pub Loyalty Cards Without an App/)
+    await expect(page).toHaveTitle(/First-Regular Pub Loyalty Launch/)
     await expect(
       page.getByRole("heading", {
         level: 1,

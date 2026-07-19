@@ -13,9 +13,9 @@ import { OG_IMAGE } from "@/lib/seo/structured-data"
 import { cn } from "@/lib/utils"
 
 const title = "Start Your Free Pilot — No-App QR Loyalty"
-// 158 code points (budget 145–159); the cancellation term renders only via
+// 148 code points (budget 145–159); the cancellation term renders only via
 // the single-source constant (marketing-auth-legal contract).
-const description = `Create your operator account for the done-for-you pub loyalty launch — ${PRODUCT.pilot}, then ${PRODUCT.price}. No setup fee. ${PRODUCT.cancelLine}`
+const description = `Start your done-for-you pub loyalty launch — ${PRODUCT.pilot}, then ${PRODUCT.price}. No setup fee. ${PRODUCT.cancelLine}`
 
 /** Conversion utility route: follow its links, but keep the thin auth form out
  * of search results in favour of the substantive landing and pricing pages. */
