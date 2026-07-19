@@ -6,7 +6,7 @@ export type LegalSection = {
   body: string
 }
 
-export const CUSTOMER_LEGAL_VERSION = "2026-07-15"
+export const CUSTOMER_LEGAL_VERSION = "2026-07-19"
 
 export const NO_ADDITIONAL_EXCLUSIONS = "No additional exclusions configured."
 
@@ -39,7 +39,7 @@ export const PLATFORM_TERMS_SECTIONS: LegalSection[] = [
   {
     id: "redemption",
     title: "Reward redemption",
-    body: "A cycle reward becomes redeemable on the next Europe/London weekday after it is issued, skipping Saturday and Sunday. To generate and use the reward QR, you must provide your full name and date of birth, be at least 18, have a verified email address, and complete a fresh email check for that reward. The fresh email assurance lasts for 30 minutes. The venue completes redemption by scanning the reward QR.",
+    body: "A cycle reward becomes redeemable on the next Europe/London weekday after it is issued, skipping Saturday and Sunday. To generate and use the reward QR, you must provide your full name and date of birth, be at least 18, and have a verified email address. The venue completes redemption by scanning the reward QR.",
   },
   {
     id: "additional-rewards",
@@ -64,7 +64,7 @@ export const PLATFORM_TERMS_SECTIONS: LegalSection[] = [
 ]
 
 export const PLATFORM_TERMS_META = {
-  eyebrow: "For customers · effective 15 July 2026",
+  eyebrow: "For customers · effective 19 July 2026",
   title: "Nabaperks customer terms.",
   description:
     "The terms for keeping venue loyalty cards, collecting stamps, and redeeming rewards through Nabaperks.",
@@ -361,7 +361,7 @@ export function buildVenueTermsSections({
     {
       id: "redemption",
       title: "Redemption",
-      body: "A cycle reward is redeemable from the next Europe/London weekday after it is issued, skipping Saturday and Sunday. Before generating its reward QR, you must provide your full name and date of birth, be at least 18, have a verified email address, and complete a fresh email check for that reward. Show the reward QR at the counter for the venue team to scan.",
+      body: "A cycle reward is redeemable from the next Europe/London weekday after it is issued, skipping Saturday and Sunday. Before generating its reward QR, you must provide your full name and date of birth, be at least 18, and have a verified email address. Show the reward QR at the counter for the venue team to scan.",
     },
     {
       id: "exclusions",
