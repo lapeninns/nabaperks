@@ -45,12 +45,12 @@ export function LandingFaq({
   items?: readonly MarketingFaq[]
 }) {
   return (
-    <Section id="faq">
+    <Section id="faq" size="dense">
       <SectionHeader
         eyebrow="Good questions"
         title="Frequently asked questions"
       />
-      <div className="pt-6">
+      <div className="pt-5 sm:pt-6">
         <FaqList items={items} />
       </div>
     </Section>

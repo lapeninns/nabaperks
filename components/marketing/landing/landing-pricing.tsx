@@ -15,13 +15,13 @@ import { PLAN_INCLUDES, PRODUCT, ROUTES } from "@/lib/marketing/facts"
  */
 export function LandingPricing() {
   return (
-    <Section id="pricing">
+    <Section id="pricing" size="dense">
       <SectionHeader
         eyebrow="Pricing"
         title="One plan, launch included"
         description="No setup fee — we do the whole launch for you. Then a flat monthly price you can cancel anytime."
       />
-      <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+      <div className="mt-5 grid gap-3 sm:mt-6 sm:gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <Card className="border-primary">
           <CardContent className="grid content-start gap-4">
             <div className="flex flex-wrap items-center gap-2">

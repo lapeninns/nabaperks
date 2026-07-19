@@ -12,8 +12,8 @@ import type { ActivePromo } from "@/lib/marketing/promo"
  */
 export function ScarcityBand({ promo }: { promo: ActivePromo | null }) {
   return (
-    <ContrastBand id="capacity">
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-12">
+    <ContrastBand id="capacity" size="dense">
+      <div className="grid gap-5 sm:gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-12">
         <div className="grid content-start gap-3">
           <p className="mono-meta text-paper/70">
             Why there’s sometimes a wait

@@ -15,11 +15,13 @@ import { cn } from "@/lib/utils"
  * rise independently as they enter the viewport; opt out for sticky chrome.
  * Server component.
  */
-type SectionSize = "default" | "compact" | "tight" | "flush"
+type SectionSize = "default" | "dense" | "compact" | "tight" | "flush"
 type SectionWidth = "marketing" | "narrow"
 
 const sizePad: Record<SectionSize, string> = {
   default: "py-7 sm:py-10",
+  /** Mobile-dense: compact phone rhythm, default desktop rhythm. */
+  dense: "py-4 sm:py-10",
   compact: "py-4 sm:py-5",
   tight: "py-3 sm:py-4",
   flush: "py-0",

@@ -2,30 +2,37 @@ import Link from "next/link"
 
 import { MonoTag, SectionHeader } from "@/components/brand"
 import { Section } from "@/components/layout"
-import { Card, CardContent } from "@/components/ui/card"
 import { PERSONAS } from "@/lib/marketing/facts"
 import { cn } from "@/lib/utils"
 
+import { SnapRail, SnapRailItem } from "./snap-rail"
+
 /**
  * Persona spokes on the same offer engine. Pubs lead — the offer was built for
- * them; the other verticals link to honestly-framed variants.
+ * them; the other verticals link to honestly-framed variants. On phones the
+ * four cards ride a horizontal snap rail; from `sm` up they grid.
  */
 export function VenuePersonas() {
   return (
-    <Section id="personas">
+    <Section id="personas" size="dense">
       <SectionHeader
         eyebrow="Who it's for"
         title="Built for pubs first"
         description="Pubs are who this was built for. The same card works honestly for a few close cousins."
       />
-      <div className="grid gap-3.5 pt-6 sm:grid-cols-2 lg:grid-cols-4">
-        {PERSONAS.map((persona) => (
-          <Card
-            key={persona.slug}
-            size="sm"
-            className={cn(persona.primary && "border-primary")}
-          >
-            <CardContent className="grid h-full content-start gap-2.5">
+      <div className="pt-5 sm:pt-6">
+        <SnapRail
+          label="Venue types the card works for"
+          className="sm:grid-cols-2 lg:grid-cols-4"
+        >
+          {PERSONAS.map((persona) => (
+            <SnapRailItem
+              key={persona.slug}
+              className={cn(
+                "surface-card grid content-start gap-2.5 p-4",
+                persona.primary && "border-primary"
+              )}
+            >
               <MonoTag
                 tone={persona.primary ? "accent" : "plain"}
                 className="justify-self-start"
@@ -41,9 +48,9 @@ export function VenuePersonas() {
               >
                 {persona.title} →
               </Link>
-            </CardContent>
-          </Card>
-        ))}
+            </SnapRailItem>
+          ))}
+        </SnapRail>
       </div>
     </Section>
   )

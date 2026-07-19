@@ -40,7 +40,7 @@ export function FeaturesListicle() {
     FEATURES.find((feature) => feature.key === selected) ?? FEATURES[0]
 
   return (
-    <Section id="features">
+    <Section id="features" size="dense">
       <SectionHeader
         eyebrow="What's included"
         title="Everything set up before you go live"
@@ -49,7 +49,7 @@ export function FeaturesListicle() {
       <div
         role="tablist"
         aria-label="Features"
-        className="mt-6 grid grid-cols-3 gap-2 sm:flex sm:flex-wrap"
+        className="mt-5 grid grid-cols-3 gap-2 sm:mt-6 sm:flex sm:flex-wrap"
       >
         {FEATURES.map((feature) => {
           const isActive = feature.key === selected
@@ -64,7 +64,7 @@ export function FeaturesListicle() {
               aria-controls={`feature-panel-${feature.key}`}
               onClick={() => setSelected(feature.key)}
               className={cn(
-                "focus-ring group flex flex-col items-center gap-2 rounded-lg border-2 px-2 py-3 text-center transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none sm:flex-1",
+                "focus-ring group flex flex-col items-center gap-1.5 rounded-lg border-2 px-2 py-2.5 text-center transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none sm:flex-1 sm:gap-2 sm:py-3",
                 isActive
                   ? "border-ink bg-card shadow-sm"
                   : "border-dashed border-border bg-transparent hover:bg-card"
@@ -91,7 +91,7 @@ export function FeaturesListicle() {
         role="tabpanel"
         id={`feature-panel-${active.key}`}
         aria-labelledby={`feature-tab-${active.key}`}
-        className="mt-4 grid gap-4 rounded-lg border-2 border-ink bg-card p-6 shadow-sm sm:p-8"
+        className="mt-3 grid gap-3 rounded-lg border-2 border-ink bg-card p-5 shadow-sm sm:mt-4 sm:gap-4 sm:p-8"
       >
         <h3 className="text-xl leading-snug font-extrabold text-foreground">
           {active.title}

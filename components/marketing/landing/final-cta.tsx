@@ -8,8 +8,12 @@ import { OFFER, PLAN_LINE, PRODUCT, ROUTES } from "@/lib/marketing/facts"
 /** Closing pitch: the investment summary and the risk reversal, then the CTA. */
 export function FinalCta() {
   return (
-    <Section id="start">
-      <ReceiptCard edge padding="lg" className="items-center gap-4 text-center">
+    <Section id="start" size="dense">
+      <ReceiptCard
+        edge
+        padding="md"
+        className="items-center gap-3 text-center sm:gap-4 sm:[--card-spacing:--spacing(8)]"
+      >
         <Eyebrow className="justify-self-center">Ready when you are</Eyebrow>
         <h2 className="max-w-2xl justify-self-center text-2xl leading-tight font-extrabold text-balance text-foreground sm:text-3xl">
           Give your weekend customers a reason to come back midweek

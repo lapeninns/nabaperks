@@ -33,11 +33,11 @@ export function LandingHero({
   return (
     <Section
       size="default"
-      className="grid items-start gap-8 pt-8 sm:pt-10 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-12"
+      className="grid items-start gap-6 pt-6 sm:gap-8 sm:pt-10 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-12"
     >
-      <div className="grid gap-5">
+      <div className="grid gap-4 sm:gap-5">
         <Eyebrow>Nabaperks · done-for-you pub loyalty</Eyebrow>
-        <h1 className="max-w-2xl text-4xl leading-[1.05] font-extrabold tracking-tight text-balance text-foreground sm:text-5xl">
+        <h1 className="max-w-2xl text-3xl leading-[1.05] font-extrabold tracking-tight text-balance text-foreground sm:text-5xl">
           {OFFER.name}
         </h1>
         <p className="max-w-xl text-base leading-7 font-medium text-foreground">
@@ -77,7 +77,9 @@ export function LandingHero({
           </p>
         </div>
         {promo ? (
-          <p className="max-w-xl border-2 border-dashed border-border bg-card px-4 py-3 text-sm leading-6 text-muted-foreground">
+          // The rolling promo repeats with its full date in the capacity band,
+          // so on phones the hero skips it to keep the first screens short.
+          <p className="hidden max-w-xl border-2 border-dashed border-border bg-card px-4 py-3 text-sm leading-6 text-muted-foreground lg:block">
             <span className="mono-meta block pb-1 text-foreground">
               {promo.name}
             </span>
@@ -85,9 +87,11 @@ export function LandingHero({
           </p>
         ) : null}
       </div>
-      <div className="mx-auto grid w-full max-w-sm gap-5 lg:mx-0 lg:justify-self-end">
+      <div className="mx-auto grid w-full max-w-sm gap-4 lg:mx-0 lg:gap-5 lg:justify-self-end">
         <SampleLoyaltyCard />
-        <div className="flex items-center gap-4">
+        {/* You can't scan a QR shown on the phone you're holding — below lg
+            the QR block gives way to a plain demo link. */}
+        <div className="hidden items-center gap-4 lg:flex">
           <VenueQr
             matrix={demoQr}
             label="QR code that opens the live demo card"
@@ -104,6 +108,15 @@ export function LandingHero({
             . No app either way.
           </p>
         </div>
+        <p className="text-center text-sm leading-6 text-muted-foreground lg:hidden">
+          <Link
+            className="focus-ring rounded-sm font-bold text-foreground underline underline-offset-4"
+            href={ROUTES.demo}
+          >
+            Try the live demo
+          </Link>{" "}
+          — no app, straight in your browser.
+        </p>
       </div>
     </Section>
   )

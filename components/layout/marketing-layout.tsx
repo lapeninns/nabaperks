@@ -90,10 +90,10 @@ export function MarketingLayout({
             <FooterLegalNav />
           </div>
         ) : (
-          <div className="mx-auto w-full max-w-marketing-chrome px-6 py-8 text-sm text-muted-foreground">
+          <div className="mx-auto w-full max-w-marketing-chrome px-6 py-6 text-sm text-muted-foreground sm:py-8">
             <nav
               aria-label="Site links"
-              className="grid gap-6 pb-6 sm:grid-cols-2 lg:grid-cols-4"
+              className="grid grid-cols-2 gap-x-3 gap-y-5 pb-6 sm:gap-6 lg:grid-cols-4"
             >
               {FOOTER_COLUMNS.map((column) => (
                 <div key={column.heading} className="grid content-start gap-1">
