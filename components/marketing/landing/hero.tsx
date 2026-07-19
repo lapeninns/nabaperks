@@ -14,9 +14,8 @@ import {
 } from "@/lib/marketing/facts"
 import type { ActivePromo } from "@/lib/marketing/promo"
 
+import { HeroSampleCard } from "./hero-sample-card"
 import type { QrMatrix } from "./qr-matrix"
-import { SampleLoyaltyCard } from "./sample-loyalty-card"
-import { VenueQr } from "./venue-qr"
 
 /**
  * The assembled hero pitch from the offer master doc: offer name, audience,
@@ -87,35 +86,16 @@ export function LandingHero({
           </p>
         ) : null}
       </div>
-      <div className="mx-auto grid w-full max-w-sm gap-4 lg:mx-0 lg:gap-5 lg:justify-self-end">
-        <SampleLoyaltyCard />
-        {/* You can't scan a QR shown on the phone you're holding — below lg
-            the QR block gives way to a plain demo link. */}
-        <div className="hidden items-center gap-4 lg:flex">
-          <VenueQr
-            matrix={demoQr}
-            label="QR code that opens the live demo card"
-            className="w-24 shrink-0 sm:w-28"
-          />
-          <p className="text-sm leading-6 text-muted-foreground">
-            Scan with your phone to open the demo card in a browser — or{" "}
-            <Link
-              className="focus-ring rounded-sm font-bold text-foreground underline underline-offset-4"
-              href={ROUTES.demo}
-            >
-              try the live demo
-            </Link>
-            . No app either way.
-          </p>
-        </div>
-        <p className="text-center text-sm leading-6 text-muted-foreground lg:hidden">
+      <div className="mx-auto grid w-full max-w-[min(100%,21rem)] gap-2.5 sm:gap-3 lg:mx-0 lg:justify-self-end">
+        <HeroSampleCard qrMatrix={demoQr} />
+        <p className="px-1 text-center text-sm leading-6 text-muted-foreground">
           <Link
             className="focus-ring rounded-sm font-bold text-foreground underline underline-offset-4"
             href={ROUTES.demo}
           >
-            Try the live demo
+            Try this card yourself
           </Link>{" "}
-          — no app, straight in your browser.
+          — no app, opens in the browser.
         </p>
       </div>
     </Section>

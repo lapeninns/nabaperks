@@ -1,4 +1,5 @@
 export { LandingHero } from "./hero"
+export { HeroSampleCard } from "./hero-sample-card"
 export { SampleLoyaltyCard } from "./sample-loyalty-card"
 export { LaunchSteps } from "./launch-steps"
 export { ProblemPains } from "./problem-pains"
