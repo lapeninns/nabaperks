@@ -1,0 +1,230 @@
+/* Nº 14 · Receipt — a till docket blown up to A4: white thermal strip
+   centred on the deep-paper counter, mono line items, sealed reward row,
+   vermillion total and the QR printing where the barcode would. */
+
+.receipt {
+  --kit-ground: #ece5d4;
+  --kit-ink: #211c16;
+  --kit-soft: #4f473d;
+  --kit-rule: rgba(33, 28, 22, 0.5);
+  --kit-venue-size: 15pt;
+  --kit-qr-border: #211c16;
+  --kit-pill-ground: #ece5d4;
+
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 6mm 0;
+  box-sizing: border-box;
+}
+
+.strip {
+  display: flex;
+  flex-direction: column;
+  gap: 3mm;
+  width: 140mm;
+  height: 100%;
+  background: #ffffff;
+  box-shadow: 1.6mm 1.6mm 0 rgba(33, 28, 22, 0.16);
+  padding: 6mm 8mm;
+  box-sizing: border-box;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+/* Punched perforation dots at the docket head and foot. */
+.perforation {
+  flex: none;
+  height: 1.6mm;
+  background-image: radial-gradient(#ece5d4 0.7mm, transparent 0.8mm);
+  background-size: 3.2mm 1.6mm;
+  background-position: center;
+  background-repeat: repeat-x;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.masthead {
+  display: flex;
+  justify-content: space-between;
+  gap: 6mm;
+  align-items: baseline;
+  border-bottom: 0.5mm dashed var(--kit-rule);
+  padding-bottom: 2.5mm;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mastheadLead {
+  font-size: 10pt;
+}
+
+.mastheadEdition {
+  font-size: 8.5pt;
+  color: var(--kit-soft);
+}
+
+.hook {
+  margin: 0;
+  font-family: var(--font-bricolage-grotesque), sans-serif;
+  font-size: var(--poster-a4-hook-size);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+
+.merchant {
+  display: flex;
+  flex-direction: column;
+  gap: 2mm;
+  align-items: flex-start;
+}
+
+.merchantLabel {
+  font-size: 9pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--kit-soft);
+}
+
+.cardLine {
+  border-top: 0.5mm dashed var(--kit-rule);
+  padding-top: 2.5mm;
+  font-size: 9.5pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--kit-soft);
+}
+
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: 3mm;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--poster-a4-substantive-size);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.itemRow {
+  display: flex;
+  gap: 3mm;
+  align-items: baseline;
+}
+
+/* Dotted leader running between an item and its right-aligned value. */
+.leader {
+  flex: 1;
+  border-bottom: 0.5mm dotted rgba(79, 71, 61, 0.6);
+  transform: translateY(-1mm);
+}
+
+/* Open visit slots print as blank leaders — still to be rung through. */
+.slotRow {
+  height: 3.4mm;
+  border-bottom: 0.5mm dashed rgba(79, 71, 61, 0.45);
+}
+
+.rewardValue {
+  display: inline-flex;
+  gap: 2mm;
+  align-items: center;
+}
+
+.rewardSeal {
+  display: grid;
+  place-items: center;
+  width: 6mm;
+  height: 6mm;
+  background: #f5a623;
+  border: 0.4mm solid var(--kit-ink);
+  border-radius: 50%;
+  font-family: var(--font-bricolage-grotesque), sans-serif;
+  font-size: 8.5pt;
+  font-weight: 800;
+  text-transform: none;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.rewardNote {
+  margin: 0;
+  font-size: 9pt;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--kit-soft);
+  text-wrap: pretty;
+}
+
+.total {
+  display: flex;
+  justify-content: space-between;
+  gap: 4mm;
+  align-items: baseline;
+  border-top: 0.5mm dashed #cf330a;
+  padding-top: 2.5mm;
+  font-size: 12pt;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #cf330a;
+}
+
+.totalLabel {
+  display: inline-flex;
+  gap: 2mm;
+  align-items: baseline;
+}
+
+.totalMark {
+  font-family: var(--font-bricolage-grotesque), sans-serif;
+}
+
+.footnotes {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5mm;
+  margin: 0;
+  padding: 0 0 0 5mm;
+  font-size: 8.5pt;
+  font-weight: 400;
+  line-height: 1.35;
+  color: var(--kit-soft);
+  /* Tailwind preflight strips list markers — the docket numbers its notes. */
+  list-style: decimal;
+}
+
+.qrBlock {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  min-height: 0;
+}
+
+.footLine {
+  font-size: 8pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--kit-soft);
+}
+
+.reassurance {
+  margin: 0;
+  font-size: var(--poster-a4-facts-size);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--kit-soft);
+}

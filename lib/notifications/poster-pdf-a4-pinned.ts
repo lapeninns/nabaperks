@@ -17,12 +17,12 @@ import {
   drawKitQrPanel,
 } from "./poster-pdf-kit-pieces"
 import {
-  drawKitCapsule,
   drawKitCenteredText,
   drawKitVenueLine,
   popKitRotation,
   pushKitRotation,
 } from "./poster-pdf-kit-venue"
+import { drawKitCapsule } from "./poster-pdf-kit-capsule"
 import type { PosterPdfBaseContext } from "./poster-pdf-types"
 
 const NOTE_CARD = rgb(251 / 255, 248 / 255, 241 / 255)

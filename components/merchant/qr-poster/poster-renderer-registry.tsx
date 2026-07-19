@@ -2,11 +2,12 @@ import type { ComponentType } from "react"
 
 import type { QrPosterTemplateId } from "@/lib/qr/poster-templates"
 
+import { ChalkPoster } from "./counter-kit/chalk-poster"
 import { DuotonePoster } from "./counter-kit/duotone-poster"
 import { LastcallPoster } from "./counter-kit/lastcall-poster"
 import { PinnedPoster } from "./counter-kit/pinned-poster"
 import { PrimerPoster } from "./counter-kit/primer-poster"
-import { RoundPoster } from "./counter-kit/round-poster"
+import { ReceiptPoster } from "./counter-kit/receipt-poster"
 import { SealPoster } from "./counter-kit/seal-poster"
 import { TallyPoster } from "./counter-kit/tally-poster"
 
@@ -18,12 +19,6 @@ export type PosterRendererProps = {
 
 function PrimerSheet({ merchantName, ...props }: PosterRendererProps) {
   return <PrimerPoster {...props} businessName={merchantName} />
-}
-
-function GardenSheet({ merchantName, ...props }: PosterRendererProps) {
-  return (
-    <DuotonePoster template="garden" {...props} businessName={merchantName} />
-  )
 }
 
 function WindowSheet({ merchantName, ...props }: PosterRendererProps) {
@@ -44,23 +39,27 @@ function TallySheet({ merchantName, ...props }: PosterRendererProps) {
   return <TallyPoster {...props} businessName={merchantName} />
 }
 
-function RoundSheet({ merchantName, ...props }: PosterRendererProps) {
-  return <RoundPoster {...props} businessName={merchantName} />
-}
-
 function LastcallSheet({ merchantName, ...props }: PosterRendererProps) {
   return <LastcallPoster {...props} businessName={merchantName} />
 }
 
+function ReceiptSheet({ merchantName, ...props }: PosterRendererProps) {
+  return <ReceiptPoster {...props} businessName={merchantName} />
+}
+
+function ChalkSheet({ merchantName, ...props }: PosterRendererProps) {
+  return <ChalkPoster {...props} businessName={merchantName} />
+}
+
 const POSTER_BROWSER_RENDERERS = {
   primer: PrimerSheet,
-  garden: GardenSheet,
   window: WindowSheet,
   pinned: PinnedSheet,
   seal: SealSheet,
   tally: TallySheet,
-  round: RoundSheet,
   lastcall: LastcallSheet,
+  receipt: ReceiptSheet,
+  chalk: ChalkSheet,
 } satisfies Record<QrPosterTemplateId, ComponentType<PosterRendererProps>>
 
 export function PosterDesignSheet({

@@ -87,6 +87,7 @@ test("tent faces obey the locked type scale on every design", async () => {
         drawText: (text, options) => drawn.push({ text, ...options }),
         drawRectangle: () => {},
         drawCircle: () => {},
+        pushOperators: () => {},
       }
       drawTentFace(page, content, face, {
         originX: mm(5),
@@ -112,26 +113,41 @@ test("tent faces obey the locked type scale on every design", async () => {
       assert.ok(headline.every(({ size }) => size === first.size))
       assert.ok(first.size >= TENT_TYPE.hookMinPt)
       assert.ok(first.size <= TENT_TYPE.hookMaxPt)
-      // Positive leading: baselines step at >= 1.05x the size (the old face
-      // stacked 26 pt type on a 24 pt step).
+      // Display leading mirrors product TentFace (tight 0.92× step).
       for (let index = 1; index < headline.length; index += 1) {
         const step = headline[index - 1].y - headline[index].y
         assert.ok(
-          step >= first.size * 1.05,
+          step >= first.size * TENT_TYPE.displayLeading - 0.01,
           `${design} ${face.variant} display leading`
+        )
+        assert.ok(
+          step <= first.size * TENT_TYPE.displayLeading + 0.01,
+          `${design} ${face.variant} display leading match`
         )
       }
 
-      // And the body sets in the regular weight at the body tier, not bold.
-      const body = drawn.filter((item) => item.font === fonts.regular)
-      assert.ok(body.length > 0, `${design} ${face.variant} regular body`)
-      assert.ok(body.every(({ size }) => size === TENT_TYPE.bodyPt))
+      // Product body is bold at the locked body tier.
+      const body = drawn.filter(
+        (item) =>
+          item.font === fonts.bold &&
+          item.size === TENT_TYPE.bodyPt &&
+          !face.headline.some((line) => item.text === line.toUpperCase())
+      )
+      assert.ok(body.length > 0, `${design} ${face.variant} bold body`)
 
-      // And the brand and kicker share the mid-rail baseline.
-      const brand = drawn.find((item) => item.text === "* Nab a Perks")
-      assert.ok(brand, `${design} ${face.variant} brand`)
+      // Brand pieces share the rail baseline with the kicker label.
+      const brandA = drawn.find(
+        (item) =>
+          item.text === "a" &&
+          item.size === TENT_TYPE.brandPt &&
+          item.font === fonts.bold
+      )
+      assert.ok(brandA, `${design} ${face.variant} brand accent`)
       const kicker = drawn.find(
-        (item) => item.size === TENT_TYPE.kickerPt && item.y === brand.y
+        (item) =>
+          item.size === TENT_TYPE.kickerPt &&
+          item.y === brandA.y &&
+          item.font === fonts.monoBold
       )
       assert.ok(kicker, `${design} ${face.variant} shared rail baseline`)
     }

@@ -35,7 +35,7 @@ function Headline({ face }: { readonly face: TentFaceContent }) {
   )
 }
 
-/** The endowed-progress strip: venue stamp, dashed empties, the sealed slot. */
+/** Endowed-progress strip: N visit stamps, then a separate sealed reward. */
 function StampStrip({
   venue,
   stampsRequired,
@@ -47,15 +47,16 @@ function StampStrip({
   return (
     <div aria-hidden="true" className={styles.stamps}>
       {Array.from({ length: stampsRequired }, (_, index) => {
-        const isVenue = index === 0
-        const isSeal = index === stampsRequired - 1
-        const kind = isSeal ? "seal" : isVenue ? "venue" : "empty"
+        const kind = index === 0 ? "venue" : "empty"
         return (
           <span key={index} className={styles.stamp} data-kind={kind}>
-            {isSeal ? "?" : isVenue ? initials : String(index + 1)}
+            {index === 0 ? initials : String(index + 1)}
           </span>
         )
       })}
+      <span className={styles.stamp} data-kind="seal">
+        ?
+      </span>
     </div>
   )
 }

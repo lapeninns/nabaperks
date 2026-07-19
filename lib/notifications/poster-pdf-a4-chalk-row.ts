@@ -1,4 +1,4 @@
-import type { TallyPosterContent } from "@/lib/qr/poster-kit-content-types"
+import type { ChalkPosterContent } from "@/lib/qr/poster-kit-content-types"
 
 import { mm, POSTER_PDF_COLOR } from "./poster-pdf-style"
 import {
@@ -9,63 +9,63 @@ import {
 import type { PosterPdfBaseContext } from "./poster-pdf-types"
 
 /**
- * Tally stamp row matching the customer card: N visit circles, then a
- * separate sealed mystery reward. Today labels the first visit circle;
- * empties fill the rest; the sun "?" sits after the row.
+ * The chalk stamp row matching the customer card: N dashed visit circles
+ * with today's chalked in vermillion, then the separate sun-sealed mystery
+ * reward — never the last circle itself.
  */
-export function drawTallyCircleRow(
+export function drawChalkCircleRow(
   context: PosterPdfBaseContext,
-  content: TallyPosterContent,
+  content: ChalkPosterContent,
   options: {
-    readonly inset: number
-    readonly innerWidth: number
+    readonly left: number
+    readonly width: number
+    readonly centerY: number
   }
 ): void {
   const { page, fonts } = context
+  const chalk = POSTER_PDF_COLOR.paper
   const radius = mm(10.5)
-  const circleY = mm(180)
   const stamps = context.stampsRequired
   const slotCount = stamps + 1
-
   const centerAt = (index: number): number => {
-    if (slotCount === 1) return options.inset + radius
+    if (slotCount === 1) return options.left + radius
     return (
-      options.inset +
+      options.left +
       radius +
-      (index * (options.innerWidth - radius * 2)) / (slotCount - 1)
+      (index * (options.width - radius * 2)) / (slotCount - 1)
     )
   }
 
   for (let index = 0; index < stamps; index += 1) {
     const centerX = centerAt(index)
-    const today = index === 0
-    if (today) {
+    if (index === 0) {
+      // The vermillion "today" circle, labelled in chalk.
       page.drawCircle({
         x: centerX,
-        y: circleY,
+        y: options.centerY,
         size: radius,
         borderColor: POSTER_PDF_COLOR.accent,
-        borderWidth: 2,
-        borderDashArray: [4, 3],
+        borderWidth: 2.2,
+        borderDashArray: [5, 4],
       })
-      pushKitRotation(page, -6, centerX, circleY)
+      pushKitRotation(page, -6, centerX, options.centerY)
       drawKitCenteredText(page, content.todayLabel.toUpperCase(), {
         centerX,
-        y: circleY - 3,
+        y: options.centerY - 3,
         font: fonts.monoBold,
         size: 8.5,
-        color: POSTER_PDF_COLOR.accent,
+        color: chalk,
       })
       popKitRotation(page)
     } else {
       page.drawCircle({
         x: centerX,
-        y: circleY,
+        y: options.centerY,
         size: radius,
-        borderColor: POSTER_PDF_COLOR.ink,
-        borderWidth: 1.7,
-        borderOpacity: 0.4,
-        borderDashArray: [4, 3],
+        borderColor: chalk,
+        borderWidth: 1.6,
+        borderOpacity: 0.75,
+        borderDashArray: [5, 4],
       })
     }
   }
@@ -73,16 +73,16 @@ export function drawTallyCircleRow(
   const sealX = centerAt(stamps)
   page.drawCircle({
     x: sealX,
-    y: circleY,
+    y: options.centerY,
     size: radius,
     color: POSTER_PDF_COLOR.sun,
-    borderColor: POSTER_PDF_COLOR.ink,
-    borderWidth: 1.7,
+    borderColor: chalk,
+    borderWidth: 1.6,
   })
-  pushKitRotation(page, -6, sealX, circleY)
+  pushKitRotation(page, -6, sealX, options.centerY)
   drawKitCenteredText(page, "?", {
     centerX: sealX,
-    y: circleY - 3,
+    y: options.centerY - 3,
     font: fonts.bold,
     size: 14,
     color: POSTER_PDF_COLOR.ink,

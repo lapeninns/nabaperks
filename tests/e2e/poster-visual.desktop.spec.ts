@@ -4,9 +4,9 @@ import { QR_POSTER_TEMPLATE_IDS } from "@/lib/qr/poster-templates"
 
 /**
  * Wet Ink baselines for every registered A4 poster sheet — the eight
- * counter-kit concepts plus regression cover for the original five. The
- * sheet element is snapshotted (not the preview chrome) at the default
- * three-stamp card so the artwork, not the harness, is under test.
+ * counter-kit concepts (Nº 06–15). The sheet element is snapshotted (not
+ * the preview chrome) at the default three-stamp card so the artwork, not
+ * the harness, is under test.
  */
 test.describe("poster sheet visual regression @visual", () => {
   for (const template of QR_POSTER_TEMPLATE_IDS) {

@@ -135,46 +135,6 @@
       }
     },
     {
-      "id": "garden",
-      "collection": "counter",
-      "format": "a4-counter",
-      "revision": 2,
-      "rollout": "production",
-      "name": "Garden",
-      "description": "Leaf duotone — make today count, with the reward sealed until the card is full.",
-      "sheet": "a4",
-      "sheetSize": "210×297 mm",
-      "qrOuterMm": 54,
-      "typeTiersPt": {
-        "hook": 84,
-        "substantive": 16,
-        "facts": 9
-      },
-      "useCase": "Bright daytime venue",
-      "tone": "fresh-daylight-invite",
-      "copyMode": "concept",
-      "source": {
-        "component": "components/merchant/qr-poster/counter-kit/duotone-poster.tsx",
-        "styles": "components/merchant/qr-poster/counter-kit/duotone-poster.module.css"
-      },
-      "anatomy": [
-        "Leaf-ink notice masthead with edition number",
-        "Oversized daylight headline and joining lede",
-        "Perforated leaf dot strip",
-        "Full-width leaf panel with QR action and friction list",
-        "Venue strip and eligibility footer inside the panel"
-      ],
-      "copy": {
-        "eyebrow": "Good-weather notice",
-        "edition": "Nº 07",
-        "headline": "Make today count.",
-        "lede": "Join at this QR and today's visit counts as stamp one. Stamps go one per UK date — so today only counts today.",
-        "sealedOne": "The reward? Sealed. This venue keeps it that way until your card's full — one stamp and you find out.",
-        "sealedMany": "The reward? Sealed. This venue keeps it that way until your card's full — {stamps} stamps and you find out.",
-        "qrCaption": "Scan now — today counts as stamp one"
-      }
-    },
-    {
       "id": "window",
       "collection": "counter",
       "format": "a4-counter",
@@ -349,51 +309,6 @@
       }
     },
     {
-      "id": "round",
-      "collection": "counter",
-      "format": "a4-counter",
-      "revision": 2,
-      "rollout": "production",
-      "name": "Round",
-      "description": "Night print banter for the same-again crowd.",
-      "sheet": "a4",
-      "sheetSize": "210×297 mm",
-      "qrOuterMm": 54,
-      "typeTiersPt": {
-        "hook": 84,
-        "substantive": 16,
-        "facts": 9
-      },
-      "useCase": "Evening pub counter",
-      "tone": "regulars-banter-night",
-      "copyMode": "concept",
-      "source": {
-        "component": "components/merchant/qr-poster/counter-kit/round-poster.tsx",
-        "styles": "components/merchant/qr-poster/counter-kit/round-poster.module.css"
-      },
-      "anatomy": [
-        "Night masthead with leaf eyebrow and edition number",
-        "Same-again headline with leaf accent word",
-        "Banter lede, sealed-reward line and starred friction list",
-        "Rotated beermat circle carrying the one-stamp-per-date rule",
-        "QR action beside the brand roundel, venue name and footer"
-      ],
-      "copy": {
-        "eyebrow": "For the regulars",
-        "edition": "Nab a Perks · Nº 12",
-        "headlineLead": "Same",
-        "headlineAccent": "again?",
-        "ledeOne": "Thought so. Join at the QR below and today's visit counts as stamp one — and one stamp is all this card takes.",
-        "ledeMany": "Thought so. Join at the QR below and today's visit counts as stamp one — same again tomorrow counts as stamp two.",
-        "sealedOne": "This venue keeps the reward sealed until your card's full — one stamp and you find out what it's been hiding.",
-        "sealedMany": "This venue keeps the reward sealed until your card's full — {stamps} stamps and you find out what it's been hiding.",
-        "matLineOne": "One visit",
-        "matLineTwo": "one stamp",
-        "matLineThree": "per UK date",
-        "qrCaption": "Scan — today counts as stamp one"
-      }
-    },
-    {
       "id": "lastcall",
       "collection": "counter",
       "format": "a4-counter",
@@ -433,6 +348,96 @@
         "sealedOne": "The reward stays sealed — this venue keeps it that way until your card's full. No rush on that part; the only clock is on today.",
         "sealedMany": "The reward stays sealed — this venue keeps it that way until your card's full at {stamps} stamps. No rush on that part; the only clock is on today.",
         "qrCaption": "Scan tonight — today counts as stamp one"
+      }
+    },
+    {
+      "id": "receipt",
+      "collection": "counter",
+      "format": "a4-counter",
+      "revision": 2,
+      "rollout": "production",
+      "name": "Receipt",
+      "description": "Till docket — today's visit rung through as stamp one.",
+      "sheet": "a4",
+      "sheetSize": "210×297 mm",
+      "qrOuterMm": 54,
+      "typeTiersPt": {
+        "hook": 62,
+        "substantive": 12,
+        "facts": 9
+      },
+      "useCase": "Till, pass and checkout",
+      "tone": "till-docket-transactional",
+      "copyMode": "concept",
+      "source": {
+        "component": "components/merchant/qr-poster/counter-kit/receipt-poster.tsx",
+        "styles": "components/merchant/qr-poster/counter-kit/receipt-poster.module.css"
+      },
+      "anatomy": [
+        "Perforated docket strip centred on the deep-paper counter",
+        "Order-number masthead, short display hook and merchant block",
+        "Mono line items: today's visit, open visit slots, sealed mystery reward",
+        "Vermillion total row keeping today at one visit, one stamp",
+        "Foot-note friction, QR barcode block and eligibility foot above the tear"
+      ],
+      "copy": {
+        "orderLabel": "Order Nº ——",
+        "edition": "Nab a Perks · Nº 14",
+        "hook": "Proof you were here.",
+        "merchantLabel": "Merchant",
+        "cardLine": "Loyalty card · 0 of {stamps}",
+        "todayItem": "Today's visit",
+        "todayValue": "Stamp 1",
+        "rewardItem": "Mystery reward",
+        "rewardValue": "Sealed",
+        "rewardNoteOne": "Kept sealed by this venue — one stamp fills the card, then you find out.",
+        "rewardNoteMany": "Kept sealed by this venue until stamp {stamps} — full card, then you find out.",
+        "totalLabel": "Total today",
+        "totalValue": "One visit · stamp one",
+        "qrCaption": "Scan — today counts as stamp one",
+        "footLine": "Reprinted daily · Nab a Perks"
+      }
+    },
+    {
+      "id": "chalk",
+      "collection": "counter",
+      "format": "a4-counter",
+      "revision": 2,
+      "rollout": "production",
+      "name": "Chalk",
+      "description": "Specials board with today's circle chalked open.",
+      "sheet": "a4",
+      "sheetSize": "210×297 mm",
+      "qrOuterMm": 54,
+      "typeTiersPt": {
+        "hook": 76,
+        "substantive": 14,
+        "facts": 9
+      },
+      "useCase": "Specials board or bar back",
+      "tone": "chalk-board-native",
+      "copyMode": "concept",
+      "source": {
+        "component": "components/merchant/qr-poster/counter-kit/chalk-poster.tsx",
+        "styles": "components/merchant/qr-poster/counter-kit/chalk-poster.module.css"
+      },
+      "anatomy": [
+        "Dashed chalk frame on the ink board",
+        "Large chalk headline with a leaf underline stroke",
+        "Chalk stamp row: vermillion today circle, open circles, separate sun-sealed mystery",
+        "Short sealed-reward line in chalk",
+        "QR in a chalk box beside the venue strip and eligibility footer"
+      ],
+      "copy": {
+        "eyebrow": "Today's board",
+        "edition": "Nab a Perks · Nº 15",
+        "headline": "On the board today.",
+        "todayLabel": "Today",
+        "rowNoteOne": "One open circle — join at the QR and today's visit counts as stamp one. One stamp fills the card.",
+        "rowNoteMany": "Open circles — join at the QR and today's visit counts as stamp one. {stamps} stamps fills the card.",
+        "sealedOne": "The sealed one? This venue won't chalk up what it is until your card's full — one stamp and you find out.",
+        "sealedMany": "The sealed one? This venue won't chalk up what it is until your card's full — {stamps} stamps and you find out.",
+        "qrCaption": "Scan — today counts as stamp one"
       }
     }
   ],

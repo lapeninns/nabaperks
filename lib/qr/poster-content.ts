@@ -9,12 +9,12 @@ export {
   resolveSealContent,
 } from "./poster-a4-ledger-content"
 import {
+  resolveChalkContent,
   resolveLastcallContent,
-  resolveRoundContent,
 } from "./poster-a4-night-content"
 export {
+  resolveChalkContent,
   resolveLastcallContent,
-  resolveRoundContent,
 } from "./poster-a4-night-content"
 import {
   resolvePinnedContent,
@@ -24,6 +24,8 @@ export {
   resolvePinnedContent,
   resolveTallyContent,
 } from "./poster-a4-overprint-content"
+import { resolveReceiptContent } from "./poster-a4-receipt-content"
+export { resolveReceiptContent } from "./poster-a4-receipt-content"
 export { resolvePosterText } from "./poster-content-readers"
 import type { PosterContent, PosterDesignId } from "./poster-content-types"
 
@@ -34,7 +36,6 @@ export function resolvePosterContent(
   switch (templateId) {
     case "primer":
       return resolvePrimerContent(stampsRequired)
-    case "garden":
     case "window":
       return resolveDuotoneContent(templateId, stampsRequired)
     case "pinned":
@@ -43,10 +44,12 @@ export function resolvePosterContent(
       return resolveSealContent(stampsRequired)
     case "tally":
       return resolveTallyContent(stampsRequired)
-    case "round":
-      return resolveRoundContent(stampsRequired)
     case "lastcall":
       return resolveLastcallContent(stampsRequired)
+    case "receipt":
+      return resolveReceiptContent(stampsRequired)
+    case "chalk":
+      return resolveChalkContent(stampsRequired)
   }
 }
 
@@ -60,12 +63,13 @@ export type {
   PosterQrModel,
 } from "./poster-content-types"
 export type {
+  ChalkPosterContent,
   CounterKitPosterContent,
   DuotonePosterContent,
   LastcallPosterContent,
   PinnedPosterContent,
   PrimerPosterContent,
-  RoundPosterContent,
+  ReceiptPosterContent,
   SealPosterContent,
   TallyPosterContent,
 } from "./poster-kit-content-types"

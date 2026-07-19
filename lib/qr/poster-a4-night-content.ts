@@ -8,33 +8,25 @@ import {
 } from "./poster-content-readers"
 import { a4ContentBase } from "./poster-model-readers"
 import type {
+  ChalkPosterContent,
   LastcallPosterContent,
-  RoundPosterContent,
 } from "./poster-kit-content-types"
 
-export function resolveRoundContent(
+export function resolveChalkContent(
   stampsRequired: number
-): RoundPosterContent {
+): ChalkPosterContent {
   const stamps = validateStampsRequired(stampsRequired)
-  const copy = rawTemplateCopy("round")
-  const path = "posterDesigns.templates.round.copy"
+  const copy = rawTemplateCopy("chalk")
+  const path = "posterDesigns.templates.chalk.copy"
   return {
-    ...a4ContentBase("round"),
-    id: "round",
+    ...a4ContentBase("chalk"),
+    id: "chalk",
     eyebrow: copyString(copy, "eyebrow", stamps, path),
     edition: copyString(copy, "edition", stamps, path),
-    headline: {
-      lead: copyString(copy, "headlineLead", stamps, path),
-      accent: copyString(copy, "headlineAccent", stamps, path),
-    },
-    lede: copyChoice(copy, "lede", stamps, path),
+    headline: copyString(copy, "headline", stamps, path),
+    todayLabel: copyString(copy, "todayLabel", stamps, path),
+    rowNote: copyChoice(copy, "rowNote", stamps, path),
     sealedLine: copyChoice(copy, "sealed", stamps, path),
-    friction: sharedFrictionTriple(stamps),
-    matLines: [
-      copyString(copy, "matLineOne", stamps, path),
-      copyString(copy, "matLineTwo", stamps, path),
-      copyString(copy, "matLineThree", stamps, path),
-    ],
     qrCaption: copyString(copy, "qrCaption", stamps, path),
     memberTag: sharedMemberTag(),
   }

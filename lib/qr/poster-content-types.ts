@@ -2,13 +2,13 @@ import type { CounterKitPosterContent } from "./poster-kit-content-types"
 
 export type PosterDesignId =
   | "primer"
-  | "garden"
   | "window"
   | "pinned"
   | "seal"
   | "tally"
-  | "round"
   | "lastcall"
+  | "receipt"
+  | "chalk"
 
 export type PosterCollectionId = "counter"
 export type PosterFormatId = "a4-counter"

@@ -1,5 +1,3 @@
-import type { RGB } from "pdf-lib"
-
 import type { DuotonePosterContent } from "@/lib/qr/poster-kit-content-types"
 
 import {
@@ -15,21 +13,16 @@ import {
   drawKitMasthead,
   drawKitQrPanel,
 } from "./poster-pdf-kit-pieces"
-import { drawKitVenueLine } from "./poster-pdf-kit-venue"
+import { drawKitVenueStrip } from "./poster-pdf-kit-brand"
 import type { PosterPdfBaseContext } from "./poster-pdf-types"
-
-function duotoneSpot(content: DuotonePosterContent): RGB {
-  return content.spot === "leaf"
-    ? POSTER_PDF_COLOR.leaf
-    : POSTER_PDF_COLOR.accent
-}
 
 export function drawDuotoneA4(
   context: PosterPdfBaseContext,
   content: DuotonePosterContent
 ): void {
   const { page, fonts } = context
-  const spot = duotoneSpot(content)
+  // Window is the kit's sole duotone — the vermillion street run.
+  const spot = POSTER_PDF_COLOR.accent
   const paper = POSTER_PDF_COLOR.paper
   const left = mm(content.geometry.safeMarginMm)
   const pageWidth = mm(content.geometry.sheetWidthMm)
@@ -123,27 +116,18 @@ export function drawDuotoneA4(
     color: paper,
     maxLines: 4,
   })
-  page.drawText("*", {
+  drawKitVenueStrip(page, {
     x: left,
     y: mm(42),
-    size: 15,
-    font: fonts.bold,
-    color: paper,
-  })
-  drawKitVenueLine(page, context.merchantName, {
-    x: left + mm(8),
-    y: mm(42),
-    maxWidth: width - mm(64),
-    preferredSize: POSTER_PDF_TYPE.laneVenuePt,
-    font: fonts.bold,
-    color: paper,
-  })
-  page.drawText(content.memberTag.toUpperCase(), {
-    x: left + width - mm(48),
-    y: mm(43),
-    size: 8.5,
-    font: fonts.monoBold,
-    color: paper,
+    width,
+    venue: context.merchantName,
+    memberTag: content.memberTag,
+    fonts,
+    ink: paper,
+    brand: "glyph",
+    tag: "plain",
+    dashedRule: true,
+    ruleColor: paper,
   })
   drawWrappedText(page, content.reassurance, {
     x: left,

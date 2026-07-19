@@ -50,9 +50,9 @@ test("keeps QR workspace channel and poster state", () => {
     parseLaunchSearchParams({
       tab: "qr",
       channel: "digital",
-      poster: "round",
+      poster: "chalk",
     }),
-    { tab: "qr", channel: "digital", poster: "round" }
+    { tab: "qr", channel: "digital", poster: "chalk" }
   )
 })
 

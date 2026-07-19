@@ -4,42 +4,53 @@ import { mm } from "./poster-pdf-style"
 import { fitSingleLineSize } from "./poster-pdf-text"
 
 /**
- * Locked type scale and vertical rhythm for the fold-to-peak tent face
- * (print PDF). Sizes are pt, rhythm is mm. The display stack fits the copy
- * column inside the hook band and breathes at ~1.08x its size; body copy
- * sets in the regular weight at ~1.43x so hierarchy comes from the display
- * tier, not from bold paragraphs. Brand and kicker share one mid-rail
- * baseline.
+ * Type scale mirrored from the in-app TentFace (`tent-face.module.css`).
+ * Layout is a header / two-column main (copy + QR action) / footer — same
+ * structure as the product preview — so print PDFs stay visually richer and
+ * in step with what merchants see.
+ *
+ * At a ~200mm face width, cqw → approx pt: brand 2.4cqw≈14, headline ≤7.4cqw≈42,
+ * body 1.75cqw≈10, meta ~1.1cqw≈6.5. We clamp the display fit so multi-line
+ * hooks still clear the copy column.
  */
 export const TENT_TYPE = {
-  brandPt: 11,
-  kickerPt: 7.5,
-  badgePt: 9,
-  hookMaxPt: 30,
-  hookMinPt: 20,
-  displayLeading: 1.08,
-  bodyPt: 10.5,
-  bodyLeadingPt: 15,
-  ctaPt: 7.5,
-  footerPt: 7,
-  railHeightMm: 11,
-  railInsetMm: 6,
+  brandPt: 13,
+  brandMarkMm: 5,
+  kickerPt: 6.5,
+  badgePt: 7,
+  hookMaxPt: 38,
+  hookMinPt: 22,
+  /** Product headline line-height is 0.86 — keep display stack tight. */
+  displayLeading: 0.92,
+  /** Product body is bold; keep weight + size faithful to TentFace. */
+  bodyPt: 11,
+  bodyLeadingPt: 14,
+  ctaPt: 7,
+  footerPt: 6.5,
+  railHeightMm: 12,
+  railInsetMm: 6.5,
   railBaselineDropPt: 4,
-  copyTopGapMm: 9,
-  displayClearMm: 4,
-  badgeClearMm: 3,
+  /** Matches `.main { grid-template-columns: 1fr 32% }` — copy gets the rest. */
+  actionColumnRatio: 0.32,
+  mainGapMm: 6,
+  mainPadMm: 6,
   displayCapHeight: 0.72,
-  bodyGapMm: 3,
-  stampsGapMm: 10,
-  footerBaselineMm: 4,
-  headlineBandMaxMm: 58,
+  badgePadXMm: 2.5,
+  badgePadYMm: 1.2,
+  copyStackGapMm: 3.5,
+  stampsGapMm: 4,
+  qrShadowOffsetMm: 1.4,
+  ctaPadXMm: 2.2,
+  ctaHeightMm: 5.5,
+  ctaGapMm: 2.5,
+  footerPadMm: 3.5,
+  footerRuleMm: 0.35,
+  headlineBandMaxMm: 72,
 }
 
 /**
- * One display size per face: the largest hook-band size at which every
- * headline line fits the copy column and the whole stack stays inside the
- * headline band. The catalogue's longest line decides, so a face's lines
- * always share a single size.
+ * One display size per face: the largest size that fits every headline line
+ * in the copy column and stays inside the headline band.
  */
 export function fitTentHeadlineSize(
   lines: readonly string[],

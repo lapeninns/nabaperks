@@ -16,16 +16,17 @@ import { cn } from "@/lib/utils"
 const TEMPLATE_TAB_ACCENT: Record<QrPosterTemplateId, string> = {
   primer:
     "data-[active=true]:border-l-ink-soft data-[active=true]:bg-paper-deep",
-  garden: "data-[active=true]:border-l-leaf data-[active=true]:bg-paper-deep",
   window:
     "data-[active=true]:border-l-primary data-[active=true]:bg-paper-deep",
   pinned: "data-[active=true]:border-l-cobalt data-[active=true]:bg-paper-deep",
   seal: "data-[active=true]:border-l-sun data-[active=true]:bg-paper-deep",
   tally: "data-[active=true]:border-l-cobalt data-[active=true]:bg-paper-deep",
-  round:
-    "data-[active=true]:border-l-leaf data-[active=true]:bg-ink data-[active=true]:text-paper",
   lastcall:
     "data-[active=true]:border-l-sun data-[active=true]:bg-ink data-[active=true]:text-paper",
+  receipt:
+    "data-[active=true]:border-l-primary data-[active=true]:bg-paper-deep",
+  chalk:
+    "data-[active=true]:border-l-leaf data-[active=true]:bg-ink data-[active=true]:text-paper",
 }
 
 export function PrintButton({

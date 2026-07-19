@@ -3,7 +3,6 @@ import type { LastcallPosterContent } from "@/lib/qr/poster-kit-content-types"
 import {
   bodyLeading,
   displayLeading,
-  drawDashedLine,
   drawWrappedText,
   mm,
   POSTER_PDF_COLOR,
@@ -15,11 +14,8 @@ import {
   drawKitMasthead,
   drawKitQrPanel,
 } from "./poster-pdf-kit-pieces"
-import {
-  drawKitCapsule,
-  drawKitCenteredText,
-  drawKitVenueLine,
-} from "./poster-pdf-kit-venue"
+import { drawKitCapsule } from "./poster-pdf-kit-capsule"
+import { drawKitVenueStrip } from "./poster-pdf-kit-brand"
 import type { PosterPdfBaseContext } from "./poster-pdf-types"
 
 export function drawLastcallA4(
@@ -81,8 +77,7 @@ export function drawLastcallA4(
     color: paper,
     maxLines: 3,
   })
-  // The valid-today stamp sits in the clear lane right of the lede's last
-  // line — at 68 pt the two display lines run the full copy width above it.
+  // Valid-today badge with sun hard shadow (7° in CSS ⇒ -7 in PDF space).
   drawKitCapsule(page, content.badge, {
     x: mm(154),
     y: ledeBottom + mm(0.5),
@@ -91,6 +86,9 @@ export function drawLastcallA4(
     textColor: POSTER_PDF_COLOR.white,
     fill: POSTER_PDF_COLOR.accent,
     borderColor: paper,
+    rotateDeg: -7,
+    shadow: POSTER_PDF_COLOR.sun,
+    shadowOffsetMm: 1,
   })
 
   // Framed night card carrying the QR action.
@@ -144,44 +142,18 @@ export function drawLastcallA4(
     maxLines: 4,
   })
 
-  drawDashedLine(page, {
-    x1: left,
-    y1: mm(64),
-    x2: left + width,
-    y2: mm(64),
-    color: paper,
-  })
-  page.drawCircle({
-    x: left + mm(4),
-    y: mm(52),
-    size: mm(4),
-    color: POSTER_PDF_COLOR.accent,
-  })
-  drawKitCenteredText(page, "*", {
-    centerX: left + mm(4),
-    y: mm(49.5),
-    font: fonts.bold,
-    size: 12.5,
-    color: POSTER_PDF_COLOR.white,
-  })
-  const capsuleWidth =
-    fonts.monoBold.widthOfTextAtSize(content.memberTag.toUpperCase(), 8.5) + 16
-  drawKitVenueLine(page, context.merchantName, {
-    x: left + mm(11),
-    y: mm(49),
-    maxWidth: width - mm(15) - capsuleWidth,
-    preferredSize: POSTER_PDF_TYPE.laneVenuePt,
-    font: fonts.bold,
-    color: paper,
-  })
-  drawKitCapsule(page, content.memberTag, {
-    x: left + width - capsuleWidth,
+  drawKitVenueStrip(page, {
+    x: left,
     y: mm(47),
-    font: fonts.monoBold,
-    size: 8.5,
-    textColor: paper,
-    borderColor: paper,
-    borderOpacity: 0.5,
+    width,
+    venue: context.merchantName,
+    memberTag: content.memberTag,
+    fonts,
+    ink: paper,
+    brand: "roundel",
+    tag: "outline",
+    dashedRule: true,
+    ruleColor: paper,
   })
   drawWrappedText(page, content.reassurance, {
     x: left,

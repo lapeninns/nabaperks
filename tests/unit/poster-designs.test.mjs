@@ -27,7 +27,7 @@ test("poster content resolves the closed stamp placeholder grammar", () => {
 test("poster content rejects invalid venue stamp counts", () => {
   for (const invalidValue of [0, -1, 1.5, 7, 100, Number.NaN]) {
     assert.throws(
-      () => resolvePosterContent("garden", invalidValue),
+      () => resolvePosterContent("window", invalidValue),
       /integer from 1 to 6/
     )
   }

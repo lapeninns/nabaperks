@@ -21,13 +21,13 @@ test("the rendered-output copy contract covers all eight A4 sheets", () => {
     faces.map(({ id, face }) => `${id}:${face}`),
     [
       "primer:sheet",
-      "garden:sheet",
       "window:sheet",
       "pinned:sheet",
       "seal:sheet",
       "tally:sheet",
-      "round:sheet",
       "lastcall:sheet",
+      "receipt:sheet",
+      "chalk:sheet",
     ]
   )
   assert.ok(faces.every(({ strings }) => strings.length >= 5))

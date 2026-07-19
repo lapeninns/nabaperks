@@ -19,11 +19,11 @@ import {
 } from "./poster-pdf-kit-pieces"
 import { drawTallyCircleRow } from "./poster-pdf-a4-tally-circles"
 import {
-  drawKitCapsule,
   drawKitVenueLine,
   popKitRotation,
   pushKitRotation,
 } from "./poster-pdf-kit-venue"
+import { drawKitCapsule } from "./poster-pdf-kit-capsule"
 import type { PosterPdfBaseContext } from "./poster-pdf-types"
 
 const CARD_GROUND = rgb(251 / 255, 248 / 255, 241 / 255)

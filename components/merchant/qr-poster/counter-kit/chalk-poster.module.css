@@ -1,0 +1,189 @@
+/* Nº 15 · Chalk — the specials board: ink ground, cream chalk type in a
+   dashed chalk frame, today's circle chalked open in vermillion and the
+   mystery reward sun-sealed at the end of the row. The leaf underline
+   uses the night-printing tone (#3fae6e) so it stays readable on ink. */
+
+.chalk {
+  --night-leaf: #3fae6e;
+  --chalk-cream: #f6f1e6;
+  --kit-ground: #211c16;
+  --kit-ink: #f6f1e6;
+  --kit-soft: rgba(246, 241, 230, 0.75);
+  --kit-rule: rgba(246, 241, 230, 0.4);
+  --kit-venue-size: 15pt;
+  --kit-qr-border: #f6f1e6;
+  --kit-pill-line: rgba(246, 241, 230, 0.5);
+  --kit-pill-ink: rgba(246, 241, 230, 0.8);
+  --kit-footer-ink: rgba(246, 241, 230, 0.7);
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6mm;
+  width: 100%;
+  height: 100%;
+  padding: 15mm;
+  box-sizing: border-box;
+}
+
+/* The dashed chalk frame around the board. */
+.frame {
+  position: absolute;
+  inset: 8mm;
+  border: 0.5mm dashed rgba(246, 241, 230, 0.65);
+  border-radius: 2.5mm;
+  pointer-events: none;
+}
+
+.masthead {
+  display: flex;
+  justify-content: space-between;
+  gap: 6mm;
+  align-items: baseline;
+  border-bottom: 0.6mm dashed var(--kit-rule);
+  padding-bottom: 2.5mm;
+  font-family: var(--font-space-mono), monospace;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mastheadLead {
+  font-size: 10pt;
+}
+
+.mastheadEdition {
+  font-size: 8.5pt;
+  color: rgba(246, 241, 230, 0.7);
+}
+
+.headlineWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2mm;
+  align-items: flex-start;
+}
+
+.headline {
+  margin: 0;
+  font-size: var(--poster-a4-hook-size);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+
+/* Leaf chalk underline — a hand-set double stroke. */
+.underline {
+  position: relative;
+  width: 58mm;
+  height: 1.6mm;
+  background: var(--night-leaf);
+  transform: rotate(-0.6deg);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.underline::after {
+  content: "";
+  position: absolute;
+  left: 3mm;
+  top: 2.2mm;
+  width: 38mm;
+  height: 1.1mm;
+  background: var(--night-leaf);
+  opacity: 0.7;
+}
+
+.rowNote {
+  margin: 0;
+  max-width: 175mm;
+  font-size: var(--poster-a4-substantive-size);
+  font-weight: 600;
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+
+.circles {
+  display: flex;
+  gap: 5mm;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.circle {
+  flex: none;
+  box-sizing: border-box;
+  width: 21mm;
+  height: 21mm;
+  border: 0.55mm dashed rgba(246, 241, 230, 0.75);
+  border-radius: 50%;
+}
+
+.circleToday {
+  display: grid;
+  place-items: center;
+  border: 0.75mm dashed #cf330a;
+  color: var(--chalk-cream);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 8.5pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: rotate(-6deg);
+}
+
+.circleSeal {
+  display: grid;
+  place-items: center;
+  background: #f5a623;
+  border: 0.55mm solid var(--chalk-cream);
+  color: #211c16;
+  font-size: 14pt;
+  font-weight: 800;
+  transform: rotate(-6deg);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.sealedLine {
+  margin: 0;
+  max-width: 175mm;
+  font-size: 12pt;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--kit-soft);
+  text-wrap: pretty;
+}
+
+.action {
+  display: flex;
+  flex: 1;
+  gap: 9mm;
+  align-items: center;
+  min-height: 0;
+}
+
+/* The chalk box the QR sits in. */
+.qrBox {
+  flex: none;
+  border: 0.5mm dashed rgba(246, 241, 230, 0.75);
+  border-radius: 2.5mm;
+  padding: 5mm;
+}
+
+.brandCol {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2.5mm;
+  min-width: 0;
+}
+
+.brandRow {
+  display: flex;
+  gap: 2.5mm;
+  align-items: center;
+  font-size: 12pt;
+  font-weight: 800;
+}

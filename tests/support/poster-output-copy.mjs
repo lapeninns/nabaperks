@@ -24,6 +24,17 @@ export function containsPosterCopy(rendered, expected) {
   const normalisedExpected = normalisePosterText(expected)
   if (normalisedRendered.includes(normalisedExpected)) return true
 
+  // pdftotext re-segments rotated runs mid-word (a tilted badge extracts
+  // as "VALID T / ODAY ON / LY"), so also match with whitespace stripped —
+  // character order stays exact.
+  const strippedExpected = normalisedExpected.replace(/\s+/g, "")
+  if (
+    strippedExpected &&
+    normalisedRendered.replace(/\s+/g, "").includes(strippedExpected)
+  ) {
+    return true
+  }
+
   const renderedTokens = posterTextTokens(rendered)
   const expectedTokens = posterTextTokens(expected)
   let cursor = 0
@@ -56,7 +67,6 @@ export function posterVisibleCopyByFace(content) {
           ]),
         },
       ]
-    case "garden":
     case "window":
       return [
         {
@@ -131,25 +141,6 @@ export function posterVisibleCopyByFace(content) {
           ]),
         },
       ]
-    case "round":
-      return [
-        {
-          face: "sheet",
-          strings: unique([
-            content.eyebrow,
-            content.edition,
-            content.headline.lead,
-            content.headline.accent,
-            content.lede,
-            content.sealedLine,
-            ...content.friction,
-            ...content.matLines,
-            content.qrCaption,
-            content.memberTag,
-            content.reassurance,
-          ]),
-        },
-      ]
     case "lastcall":
       return [
         {
@@ -162,6 +153,48 @@ export function posterVisibleCopyByFace(content) {
             content.badge,
             content.lede,
             ...content.friction,
+            content.sealedLine,
+            content.qrCaption,
+            content.memberTag,
+            content.reassurance,
+          ]),
+        },
+      ]
+    case "receipt":
+      return [
+        {
+          face: "sheet",
+          strings: unique([
+            content.orderLabel,
+            content.edition,
+            content.hook,
+            content.merchantLabel,
+            content.cardLine,
+            content.todayItem,
+            content.todayValue,
+            content.rewardItem,
+            content.rewardValue,
+            content.rewardNote,
+            content.totalLabel,
+            content.totalValue,
+            ...content.footnotes,
+            content.qrCaption,
+            content.footLine,
+            content.memberTag,
+            content.reassurance,
+          ]),
+        },
+      ]
+    case "chalk":
+      return [
+        {
+          face: "sheet",
+          strings: unique([
+            content.eyebrow,
+            content.edition,
+            content.headline,
+            content.todayLabel,
+            content.rowNote,
             content.sealedLine,
             content.qrCaption,
             content.memberTag,

@@ -23,7 +23,7 @@ test("poster print builds exactly the registered qr_downloaded event", () => {
   const event = buildQrPosterDownloadEvent({
     merchantId: MERCHANT_ID,
     qrCodeId: QR_CODE_ID,
-    templateId: "garden",
+    templateId: "window",
   })
 
   assert.equal(
@@ -69,7 +69,7 @@ test("a poster without a resolvable QR still records with null qr_code_id", () =
   const event = buildQrPosterDownloadEvent({
     merchantId: MERCHANT_ID,
     qrCodeId: null,
-    templateId: "round",
+    templateId: "receipt",
   })
 
   assert.equal(

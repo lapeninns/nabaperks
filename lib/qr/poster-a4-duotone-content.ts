@@ -14,7 +14,6 @@ import type {
 } from "./poster-kit-content-types"
 
 const DUOTONE_SPOTS: Record<DuotonePosterId, DuotoneSpot> = {
-  garden: "leaf",
   window: "vermillion",
 }
 

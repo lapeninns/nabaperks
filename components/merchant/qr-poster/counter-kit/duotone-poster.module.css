@@ -1,7 +1,6 @@
-/* Nº 07 · Garden (leaf) and Nº 08 · Window (vermillion) — duotone
-   print runs: one paper, one spot ink, a perforated dot strip, and a
-   full-width panel carrying the QR action. The data-spot attribute is
-   the only switch between the two runs; type and copy stay their own. */
+/* Nº 08 · Window — the kit's sole duotone print run: one paper, one
+   vermillion spot ink, a perforated dot strip, and a full-width panel
+   carrying the QR action. The data-spot attribute names the run. */
 
 .duotone {
   --kit-ground: #f6f1e6;
@@ -17,10 +16,6 @@
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-}
-
-.duotone[data-spot="leaf"] {
-  --duo-spot: #16733c;
 }
 
 .duotone[data-spot="vermillion"] {

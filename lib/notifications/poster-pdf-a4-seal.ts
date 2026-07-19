@@ -10,7 +10,7 @@ import {
   standardFontText,
 } from "./poster-pdf-style"
 import { drawLedgerFoot, drawLedgerTop } from "./poster-pdf-a4-ledger"
-import { drawKitCapsule } from "./poster-pdf-kit-venue"
+import { drawKitCapsule } from "./poster-pdf-kit-capsule"
 import type { PosterPdfBaseContext } from "./poster-pdf-types"
 
 export function drawSealA4(
@@ -53,6 +53,7 @@ export function drawSealA4(
         textColor: POSTER_PDF_COLOR.ink,
         fill: POSTER_PDF_COLOR.sun,
         borderColor: POSTER_PDF_COLOR.ink,
+        rotateDeg: -5,
       })
     } else {
       drawWrappedText(page, row.value.toUpperCase(), {

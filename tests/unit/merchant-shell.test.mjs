@@ -28,6 +28,6 @@ test("setup reminder shows on merchant console routes except launch and onboardi
     shouldShowMerchantSetupReminder("/app/launch?tab=billing"),
     false
   )
-  assert.equal(shouldShowMerchantSetupReminder("/app/qr/poster/garden"), false)
+  assert.equal(shouldShowMerchantSetupReminder("/app/qr/poster/window"), false)
   assert.equal(shouldShowMerchantSetupReminder("/home"), false)
 })

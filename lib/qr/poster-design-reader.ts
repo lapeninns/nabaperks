@@ -27,13 +27,13 @@ type JsonRecord = Record<string, unknown>
 
 const POSTER_DESIGN_ID_VALUES: readonly PosterDesignId[] = [
   "primer",
-  "garden",
   "window",
   "pinned",
   "seal",
   "tally",
-  "round",
   "lastcall",
+  "receipt",
+  "chalk",
 ]
 
 let parsedCatalogue: JsonRecord | undefined
