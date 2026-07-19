@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
 import { db, isLiveDbReady } from "./db.mjs"
+import { ensureVerifiedCustomerEmail } from "./verified-customer-email.mjs"
 
 export async function isRewardPoolDbReady() {
   if (!(await isLiveDbReady())) return false
@@ -235,6 +236,8 @@ export async function createRewardPoolFixture(tx) {
       date '1990-01-01',
       now()
     )`
+
+  await ensureVerifiedCustomerEmail(tx, fixture.customerId)
 
   await tx`
     insert into public.customer_memberships (

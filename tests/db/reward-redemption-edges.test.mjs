@@ -3,6 +3,7 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
+import { ensureVerifiedCustomerEmail } from "./helpers/verified-customer-email.mjs"
 
 /**
  * customer redeem (edges) — live-DB tier.
@@ -42,8 +43,9 @@ async function readyReward(tx, m) {
   await tx`update public.customer_memberships
            set current_stamp_count = ${m.stamps_required} where id = ${m.membership_id}`
   await tx`update public.customers
-           set full_name = 'Redeem Tester', date_of_birth = '1990-01-01', email_verified_at = now()
+           set full_name = 'Redeem Tester', date_of_birth = '1990-01-01'
            where id = ${m.customer_id}`
+  await ensureVerifiedCustomerEmail(tx, m.customer_id)
   const [reward] = await tx`
     insert into public.reward_events
       (merchant_id, customer_id, membership_id, loyalty_card_id, status,
