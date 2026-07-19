@@ -14,19 +14,32 @@ function readProjectFile(...segments) {
 }
 
 test("Given a reward detail route is loaded When source is inspected Then reward ownership and unavailable state come from the server loader", () => {
-  const loader = readProjectFile("lib", "customer", "experience", "load-reward.ts")
+  const loader = readProjectFile(
+    "lib",
+    "customer",
+    "experience",
+    "load-reward.ts"
+  )
 
   assert.match(loader, /getCustomerRewardState\(rewardId\)/)
   assert.match(loader, /if \(rewardState\.status !== "ready"\)/)
   assert.match(loader, /customerLoginHref\(`\/reward\/\$\{rewardId\}`\)/)
-  assert.match(loader, /const location = await getLocationRequirement\(loyaltyCard\.location_id\)/)
+  assert.match(
+    loader,
+    /const location = await getLocationRequirement\(loyaltyCard\.location_id\)/
+  )
   assert.match(loader, /redeemedAt: reward\.redeemed_at/)
   assert.match(loader, /unavailableReason: rewardState\.unavailableReason/)
   assert.doesNotMatch(loader, /searchParams|request|customerId:\s*string/)
 })
 
 test("Given a reward might be waiting, blocked, or ready When the loader computes redeemability Then every gate is server-derived", () => {
-  const loader = readProjectFile("lib", "customer", "experience", "load-reward.ts")
+  const loader = readProjectFile(
+    "lib",
+    "customer",
+    "experience",
+    "load-reward.ts"
+  )
   const redeemableBlock = loader.slice(
     loader.indexOf("const redeemable ="),
     loader.indexOf("const profileGate =")
@@ -39,11 +52,16 @@ test("Given a reward might be waiting, blocked, or ready When the loader compute
 })
 
 test("Given profile completion is only needed for collection When the reward is not redeemable Then the profile gate is skipped", () => {
-  const loader = readProjectFile("lib", "customer", "experience", "load-reward.ts")
+  const loader = readProjectFile(
+    "lib",
+    "customer",
+    "experience",
+    "load-reward.ts"
+  )
 
   assert.match(
     loader,
-    /const profileGate = redeemable \? await loadProfileGate\(rewardId\) : undefined/
+    /const profileGate = redeemable \? await loadProfileGate\(\) : undefined/
   )
   assert.match(loader, /profileGate,?/)
 })

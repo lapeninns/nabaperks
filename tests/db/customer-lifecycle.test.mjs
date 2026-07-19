@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
-import { grantRewardEmailAssurance } from "./helpers/reward-email-assurance.mjs"
+import { ensureVerifiedCustomerEmail } from "./helpers/verified-customer-email.mjs"
 
 /**
  * customer * — live-DB customer lifecycle JOURNEY tier.
@@ -73,6 +73,7 @@ test(
                 '1990-01-01', now(), now())
         returning id`
       assert.ok(customer?.id, "created a fresh verified customer")
+      await ensureVerifiedCustomerEmail(tx, customer.id)
 
       // Age every prior earned stamp for this membership a week back so "today"
       // is always free of the one-per-UK-business-day guard.
@@ -191,7 +192,6 @@ test(
       await tx`
         update public.reward_events set redeemable_from = ${ukToday}
         where id = ${reward.id}`
-      await grantRewardEmailAssurance(tx, reward.id, customer.id)
       const [minted] = await tx`
         select * from public.create_reward_scan_token(
           ${reward.id}::uuid, ${customer.id}::uuid)`

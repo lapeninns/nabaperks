@@ -3,7 +3,6 @@ import { after, test } from "node:test"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
 import { createRewardPoolFixture } from "./helpers/reward-pool-fixture.mjs"
-import { grantRewardEmailAssurance } from "./helpers/reward-email-assurance.mjs"
 
 const ready = await isLiveDbReady()
 const skip = ready ? false : "live Supabase DB not reachable/current"
@@ -11,7 +10,7 @@ const skip = ready ? false : "live Supabase DB not reachable/current"
 after(async () => closeDb())
 
 test(
-  "unverified email blocks reward token value transfer at the database boundary",
+  "unverified email blocks reward transfer while legacy verified email remains eligible",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
@@ -27,7 +26,7 @@ test(
         ) values (
           ${fixture.reward_id}::uuid, ${created.merchantId}::uuid,
           ${fixture.customer_id}::uuid, ${created.membershipId}::uuid,
-          ${created.cardId}::uuid, 'unlocked', 'Second factor reward',
+          ${created.cardId}::uuid, 'unlocked', 'Verified email reward',
           'Subject to availability.', public.uk_business_date(now())
         )`
 
@@ -48,18 +47,15 @@ test(
             from public.reward_events
             where id = ${fixture.reward_id}::uuid`
         }),
-        /fresh email verification required/i
+        /verified email required/i
       )
 
       await tx`
         update public.customers
-        set email_verified_at = now()
+        set
+          email_verified_at = now(),
+          email_hmac = null
         where id = ${fixture.customer_id}::uuid`
-      await grantRewardEmailAssurance(
-        tx,
-        fixture.reward_id,
-        fixture.customer_id
-      )
       const [token] = await tx`
         insert into public.reward_scan_tokens (
           reward_event_id, merchant_id, customer_id, membership_id
@@ -69,6 +65,13 @@ test(
         where id = ${fixture.reward_id}::uuid
         returning id`
       assert.ok(token?.id)
+
+      const [redeemed] = await tx`
+        update public.reward_events
+        set status = 'redeemed', redeemed_at = now()
+        where id = ${fixture.reward_id}::uuid
+        returning id`
+      assert.equal(redeemed?.id, fixture.reward_id)
     })
   }
 )

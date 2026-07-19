@@ -955,18 +955,6 @@ async function createFixture(sql, options) {
     `
 
     await sql`
-      insert into public.customer_reward_email_assurances (
-        reward_event_id, customer_id, email_hmac
-      )
-      select
-        ${fixture.rewardEventId}::uuid,
-        customers.id,
-        customers.email_hmac
-      from public.customers
-      where customers.id = ${fixture.customerId}::uuid
-    `
-
-    await sql`
       insert into public.reward_scan_tokens (
         id,
         reward_event_id,

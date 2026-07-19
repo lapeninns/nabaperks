@@ -14,10 +14,6 @@ import {
 } from "@/lib/customer/profile"
 import { validateProfileFields } from "@/lib/customer/profile-fields"
 import { clearPendingEmailVerification } from "@/lib/customer/session"
-import {
-  hasRewardEmailAssurance,
-  recordRewardEmailAssurance,
-} from "@/lib/customer/reward-email-assurance"
 
 export type ProfileGateActionState = {
   fields?: {
@@ -36,9 +32,9 @@ export type ProfileGateActionState = {
 }
 
 /**
- * Step one of the redeem-time profile gate: capture Name + DOB (and an optional
- * email). When an email is entered, kick off email verification and let the
- * re-rendered reward panel show the "enter your code" step.
+ * Step one of the redeem-time profile gate: capture Name + DOB (and an email).
+ * When a new/unverified email is entered, kick off email verification and let
+ * the re-rendered reward panel show the "enter your code" step.
  */
 export async function saveProfileForRedeemAction(
   _state: ProfileGateActionState,
@@ -77,10 +73,7 @@ export async function saveProfileForRedeemAction(
     }
   }
 
-  const rewardAssured = rewardId
-    ? await hasRewardEmailAssurance(rewardId)
-    : false
-  if (savedEmail && (emailVerificationRequired || !rewardAssured)) {
+  if (savedEmail && emailVerificationRequired) {
     try {
       await startCustomerEmailVerification(savedEmail)
     } catch {
@@ -97,7 +90,7 @@ export async function saveProfileForRedeemAction(
   return { fields }
 }
 
-/** Step two: confirm the emailed code, marking the email verified so the gate clears. */
+/** Step two: confirm the emailed code for a new/unverified profile email. */
 export async function verifyProfileEmailAction(
   _state: ProfileGateActionState,
   formData: FormData
@@ -124,8 +117,6 @@ export async function verifyProfileEmailAction(
 
   try {
     await markCustomerEmailVerified(result.email)
-    if (!rewardId) throw new Error("Reward is required for confirmation.")
-    await recordRewardEmailAssurance(rewardId, result.email)
   } catch {
     return { errors: { form: "We couldn't confirm your email. Try again." } }
   }

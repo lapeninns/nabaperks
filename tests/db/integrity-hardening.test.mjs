@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
 import { closeDb, db, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
-import { grantRewardEmailAssurance } from "./helpers/reward-email-assurance.mjs"
+import { ensureVerifiedCustomerEmail } from "./helpers/verified-customer-email.mjs"
 
 /**
  * db integrity hardening — live-DB tier.
@@ -40,6 +40,7 @@ async function seedRewardEvent(tx) {
     insert into public.customers (email, email_verified_at, full_name, created_at, updated_at)
     values (${`integrity-${randomUUID()}@test.local`}, now(), 'Integrity Check', now(), now())
     returning id`
+  await ensureVerifiedCustomerEmail(tx, customer.id)
   const [joined] = await tx`
     select * from public.join_customer_membership_with_first_stamp(
       ${customer.id}::uuid, ${v.business_slug}, ${v.qr_id}, false, '2026-06-06')`
@@ -78,8 +79,7 @@ test(
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
-      const { rewardId, customerId } = await seedRewardEvent(tx)
-      await grantRewardEmailAssurance(tx, rewardId, customerId)
+      const { rewardId } = await seedRewardEvent(tx)
 
       await expectCheckViolation(
         tx,

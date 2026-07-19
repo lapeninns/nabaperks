@@ -51,8 +51,10 @@ function ProfileDetailsStep({
         title="A few details before this one's yours"
         tone="neutral"
       >
-        Add your name, date of birth, and email before collection. The email
-        code is an independent security check for your reward.
+        Add your name, date of birth, and email before collection.
+        {gate.emailLocked
+          ? null
+          : " We'll send a one-time code to verify a new email."}
       </StatusBanner>
 
       <Field
@@ -89,7 +91,7 @@ function ProfileDetailsStep({
           type="email"
           inputMode="email"
           autoComplete="email"
-          hint="We'll send a code before showing your collection QR."
+          hint="We'll send a one-time code to verify this email."
           required
           defaultValue={state.fields?.email ?? gate.email ?? ""}
           error={state.errors?.email}
@@ -111,7 +113,13 @@ function ProfileDetailsStep({
           event.currentTarget.scrollIntoView({ block: "center" })
         }
       >
-        {pending ? "Sending…" : "Save and email my code"}
+        {pending
+          ? gate.emailLocked
+            ? "Saving…"
+            : "Sending…"
+          : gate.emailLocked
+            ? "Save and continue"
+            : "Save and email my code"}
       </Button>
     </form>
   )
@@ -136,8 +144,8 @@ function ProfileEmailStep({
   return (
     <div className="grid gap-4">
       <StatusBanner title="Confirm your email" tone="neutral">
-        Email yourself a fresh code{email ? ` at ${email}` : ""}, then enter it
-        here to unlock this reward.
+        Enter the code we sent{email ? ` to ${email}` : ""} to verify your email
+        before collection.
       </StatusBanner>
 
       <form action={action} className="grid gap-4">

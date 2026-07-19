@@ -3,7 +3,6 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
-import { grantRewardEmailAssurance } from "./helpers/reward-email-assurance.mjs"
 import { createRewardPoolFixture } from "./helpers/reward-pool-fixture.mjs"
 
 /**
@@ -51,7 +50,6 @@ async function insertReward(tx, fixture, opts = {}) {
 }
 
 async function collect(tx, rewardId, fixture) {
-  await grantRewardEmailAssurance(tx, rewardId, fixture.customerId)
   const [minted] = await tx`
     select scan_token from public.create_reward_scan_token(
       ${rewardId}::uuid, ${fixture.customerId}::uuid)`

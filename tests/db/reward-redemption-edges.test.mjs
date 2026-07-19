@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
-import { grantRewardEmailAssurance } from "./helpers/reward-email-assurance.mjs"
+import { ensureVerifiedCustomerEmail } from "./helpers/verified-customer-email.mjs"
 
 /**
  * customer redeem (edges) — live-DB tier.
@@ -43,8 +43,9 @@ async function readyReward(tx, m) {
   await tx`update public.customer_memberships
            set current_stamp_count = ${m.stamps_required} where id = ${m.membership_id}`
   await tx`update public.customers
-           set full_name = 'Redeem Tester', date_of_birth = '1990-01-01', email_verified_at = now()
+           set full_name = 'Redeem Tester', date_of_birth = '1990-01-01'
            where id = ${m.customer_id}`
+  await ensureVerifiedCustomerEmail(tx, m.customer_id)
   const [reward] = await tx`
     insert into public.reward_events
       (merchant_id, customer_id, membership_id, loyalty_card_id, status,
@@ -81,7 +82,6 @@ test(
       const [m] = await tx.unsafe(PICK)
       assert.ok(m, "a billing-eligible seeded membership exists")
       const rewardId = await readyReward(tx, m)
-      await grantRewardEmailAssurance(tx, rewardId, m.customer_id)
       // Capture the baseline — a seeded membership may carry prior redemptions, so
       // idempotency is asserted on DELTAS, not absolute values.
       const before = (
@@ -135,7 +135,6 @@ test("an expired scan token is refused at collect", { skip }, async () => {
   await inRolledBackTxn(async (tx) => {
     const [m] = await tx.unsafe(PICK)
     const rewardId = await readyReward(tx, m)
-    await grantRewardEmailAssurance(tx, rewardId, m.customer_id)
     const [minted] = await tx`
       select scan_token from public.create_reward_scan_token(${rewardId}::uuid, ${m.customer_id}::uuid)`
     // Force the token into the past.
@@ -187,7 +186,6 @@ test(
       assert.ok(m, "a billing-eligible seeded membership exists")
 
       const redeemedRewardId = await readyReward(tx, m)
-      await grantRewardEmailAssurance(tx, redeemedRewardId, m.customer_id)
       await tx`
       update public.reward_events
       set status = 'redeemed', redeemed_at = now()
@@ -356,7 +354,6 @@ test(
     await inRolledBackTxn(async (tx) => {
       const [m] = await tx.unsafe(PICK)
       const rewardId = await readyReward(tx, m)
-      await grantRewardEmailAssurance(tx, rewardId, m.customer_id)
       const [minted] = await tx`
       select scan_token from public.create_reward_scan_token(${rewardId}::uuid, ${m.customer_id}::uuid)`
       const [other] = await tx`

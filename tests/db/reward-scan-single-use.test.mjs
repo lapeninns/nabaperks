@@ -2,7 +2,7 @@ import { after, test } from "node:test"
 import assert from "node:assert/strict"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
-import { grantRewardEmailAssurance } from "./helpers/reward-email-assurance.mjs"
+import { ensureVerifiedCustomerEmail } from "./helpers/verified-customer-email.mjs"
 
 /**
  * customer redeem + merchant scan pos — live-DB invariant tier.
@@ -55,9 +55,9 @@ test(
       // email verified so the "email present but unverified" clause is false.
       await tx`
         update public.customers
-        set full_name = 'E2E Tester', date_of_birth = '1990-01-01',
-            email_verified_at = now()
+        set full_name = 'E2E Tester', date_of_birth = '1990-01-01'
         where id = ${m.customer_id}`
+      await ensureVerifiedCustomerEmail(tx, m.customer_id)
 
       const [reward] = await tx`
         insert into public.reward_events (
@@ -68,7 +68,6 @@ test(
           'unlocked', 'E2E test reward', 'E2E test terms', '{}'::jsonb, now(), now())
         returning id`
       assert.ok(reward?.id, "manufactured an unlocked reward event")
-      await grantRewardEmailAssurance(tx, reward.id, m.customer_id)
 
       // R-1: minting yields a live, unconsumed token.
       const [minted] = await tx`
