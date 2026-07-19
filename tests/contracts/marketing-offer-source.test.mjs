@@ -66,7 +66,7 @@ test("Given the finalised offer pack When facts.ts is inspected Then the locked 
     /name: "The 30-Day Gastropub Mid-Week Revenue Accelerator"/
   )
   assert.match(facts, /nameSafe: "The 30-Day First-Regular Launch"/)
-  assert.match(facts, /names the offer, not a revenue promise/)
+  assert.match(facts, /name of the launch, not a promise of takings/)
 
   // £99 setup — copy-only, invoiced at onboarding.
   assert.match(facts, /export const SETUP_FEE = \{/)

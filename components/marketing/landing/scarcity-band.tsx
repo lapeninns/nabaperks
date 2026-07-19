@@ -15,7 +15,9 @@ export function ScarcityBand({ promo }: { promo: ActivePromo | null }) {
     <ContrastBand id="capacity">
       <div className="grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-12">
         <div className="grid content-start gap-3">
-          <p className="mono-meta text-paper/70">Real capacity, said plainly</p>
+          <p className="mono-meta text-paper/70">
+            Why there’s sometimes a wait
+          </p>
           <h2 className="text-2xl leading-tight font-extrabold text-balance sm:text-3xl">
             {SCARCITY.capLine} — {SCARCITY.capReason}
           </h2>

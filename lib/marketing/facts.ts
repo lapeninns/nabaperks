@@ -155,7 +155,7 @@ export const OFFER = {
   name: "The 30-Day Gastropub Mid-Week Revenue Accelerator",
   nameSafe: "The 30-Day First-Regular Launch",
   nameNote:
-    "“Revenue Accelerator” names the offer, not a revenue promise — the guarantee stack below is exactly what we stand behind.",
+    "“Revenue Accelerator” is the name of the launch, not a promise of takings — the two guarantees below are the promises.",
   audience:
     "For single-site UK food-led pubs that are busy at weekends and quiet midweek.",
   riskFraming:
@@ -165,33 +165,34 @@ export const OFFER = {
 // --- Value equation (offer pack doc 2) --------------------------------------
 
 /**
- * The four value levers, stated the way the offer pack frames them. Rendered as
- * copy, never as an outcome claim.
+ * The four reasons pubs say yes — the offer pack's value case rewritten in
+ * customer voice (the framework built the offer; it never renders on-page).
+ * Stated as delivery facts, never as an outcome claim.
  */
 export const VALUE_EQUATION = [
   {
-    lever: "Dream outcome",
-    heading: "Make quiet midweek capacity productive",
+    lever: "The point",
+    heading: "Make the quiet nights earn their keep",
     detail:
-      "Not loyalty software for its own sake — an easy, visible reason for your existing weekend customers to come back on the nights you need them.",
+      "Not loyalty software for its own sake — an easy, visible reason for your weekend crowd to come back on a Tuesday or a Wednesday.",
   },
   {
-    lever: "Likelihood it works",
-    heading: "We do the setup, your dashboard shows the proof",
+    lever: "The proof",
+    heading: "You see it working — no taking our word",
     detail:
-      "Lapen Inns configures the system, selects margin-safe mystery rewards and delivers printed posters so the QR is actually seen — and verified return visits land in your dashboard, so you're never guessing.",
+      "We set everything up, pick margin-safe mystery rewards and post you printed posters so the QR is actually seen. Verified return visits land in your dashboard.",
   },
   {
-    lever: "Time to value",
-    heading: "A launch package, not a DIY queue",
+    lever: "The speed",
+    heading: "Live without the software project",
     detail:
-      "The done-for-you launch removes the set-it-up-yourself backlog: a branded, live, displayable programme without spending weeks learning software.",
+      "No set-it-up-yourself backlog and no weeks of learning a new tool — you get a branded, working programme ready to stand on the counter.",
   },
   {
-    lever: "Effort and sacrifice",
-    heading: "No app. No POS project. No till complexity.",
+    lever: "The effort",
+    heading: "No app. No POS work. No till drama.",
     detail:
-      "Customers download nothing, there's no POS/EPOS integration, and staff keep a simple scan and a short script. Even the first poster run arrives printed.",
+      "Customers download nothing, there's no POS or EPOS integration, and staff just scan and say one line. Even the first poster run arrives printed.",
   },
 ] as const
 
@@ -202,13 +203,13 @@ export const VALUE_EQUATION = [
  */
 export const VALUE_MATH = {
   assumptionLine:
-    "If an average return visit is worth about £12 in gross contribution, the maths is short.",
+    "Say an average return visit is worth about £12 to you once costs are out.",
   coverLine:
     "~5 return visits a month cover the £49 subscription — roughly one extra return visit a week.",
   ninetyDayLine:
     "15 verified return visits cover your first three months of £49 subscriptions.",
   illustrativeNote:
-    "Illustrative maths using an example £12 contribution — judge the real thing from your own dashboard numbers.",
+    "A worked example with a £12 stand-in, not a promise — your margins will differ. Judge it from your own dashboard.",
 } as const
 
 // --- Pricing structure (offer pack docs 2 + 8; £99 is copy-only) -------------
@@ -286,19 +287,19 @@ export const CORE_OFFER = [
     why: "No blank-account problem — you start from a working setup, not a DIY project.",
   },
   {
-    name: "Food-led mystery reward engine",
+    name: "Food-led mystery rewards, chosen with you",
     detail:
       "A custom weighted mystery reward pool — think free starter, coffee after lunch, Sunday roast upgrade — configured to stay margin-safe.",
     why: "Solves “what should we give away” without blanket discounting.",
   },
   {
-    name: "No-app QR capture system",
+    name: "One venue QR, no app for your customers",
     detail:
       "A permanent venue QR with the customer join and stamp journeys tested. No customer app, no wallet pass, no POS integration.",
     why: "Fits busy counter service and removes the biggest guest objection: app fatigue.",
   },
   {
-    name: "Merchant visibility loop",
+    name: "Your numbers, every week",
     detail:
       "Dashboard access for visits, members, stamps and returning customers, plus a weekly digest of visits, regulars and redemptions.",
     why: "Judge the return from your own concrete numbers — no guessing.",
@@ -330,7 +331,7 @@ export const BONUS_STACK = [
       "The weekly hours you'd otherwise spend chasing birthday messages by hand.",
   },
   {
-    name: "“Bring a Regular” referral engine, configured",
+    name: "“Bring a Regular” referrals, configured",
     obstacle: "You want new diners without paid ads.",
     detail:
       "We configure referral sharing so existing members can invite new diners — attribution and the referrer's bonus stamps settle automatically after the new diner's first genuine visit.",
@@ -341,10 +342,10 @@ export const BONUS_STACK = [
 
 /**
  * Integrity note from the bonus doc: features every Growth Plan already ships
- * with are included context, never double-counted as extra priced bonuses.
+ * with are never double-counted as extra priced bonuses.
  */
 export const BONUS_STACK_NOTE =
-  "The weekly digest, consent mechanics and seeded mystery-reward presets ship with every Growth Plan — included context, not extra priced bonuses."
+  "Every Growth Plan already includes the weekly digest, consent handling and the seeded mystery-reward presets — so we don't count those as bonuses."
 
 // --- The guarantee stack (offer pack doc 5) ----------------------------------
 
@@ -387,7 +388,7 @@ export const GUARANTEE_ROI = {
  */
 export const CLAIMS_BOUNDARY = {
   guarantee:
-    "We guarantee a completed launch setup and a conditional free pilot until the card brings back a first regular — a conditional service promise based on a measurable return signal.",
+    "What we do promise: a completed launch, and a pilot that stays free until the card brings back your first regular — a promise tied to a number you can check on your own dashboard.",
   never: "We do not guarantee midweek revenue or filled tables.",
   yourPart: DFY_LAUNCH.yourPart,
 } as const
@@ -404,9 +405,9 @@ export const SCARCITY = {
   capReason:
     "so we can fully manage each launch and physically print the materials.",
   fullWeek:
-    "If this week is full, your launch is booked into the next available week — the cap is real human capacity, not a marketing device.",
+    "Five is the number a human team can genuinely launch well in a week — if this week is full, your launch is booked into the next one.",
   honesty:
-    "No countdown timers and no invented availability. When a week is full, we say so and book the next one.",
+    "You'll never see a countdown clock or an invented number here. When a week fills, we tell you and book the next one.",
 } as const
 
 /**
@@ -501,7 +502,7 @@ export const PERSONAS: readonly MarketingPersona[] = [
       "Counter-service cafés with a real base of regulars and a quiet stretch in the week.",
     quietQuestion: "Busy at the morning rush, quiet after it?",
     fitNote:
-      "The launch was designed for food-led pubs first. The engine is the same — if you run a counter with existing regulars, the no-app card, the done-for-you launch and the guarantees work the same way.",
+      "The launch was designed for food-led pubs first. The card is the same — if you run a counter with existing regulars, the no-app card, the done-for-you launch and the guarantees work the same way.",
   },
   {
     slug: "bars",
@@ -515,7 +516,7 @@ export const PERSONAS: readonly MarketingPersona[] = [
       "Independent bars with strong weekend nights and a meaningful base of returning faces.",
     quietQuestion: "Packed on Friday and Saturday, flat early in the week?",
     fitNote:
-      "The launch was designed for food-led pubs first. The engine is the same — if your bar has real regulars, the no-app card, the done-for-you launch and the guarantees work the same way.",
+      "The launch was designed for food-led pubs first. The card is the same — if your bar has real regulars, the no-app card, the done-for-you launch and the guarantees work the same way.",
   },
   {
     slug: "takeaways",
@@ -529,7 +530,7 @@ export const PERSONAS: readonly MarketingPersona[] = [
       "Counter takeaways with regular customers and order peaks that leave the rest of the week quiet.",
     quietQuestion: "Queues at peak, quiet between them?",
     fitNote:
-      "The launch was designed for food-led pubs first. The engine is the same — if your counter serves the same faces every week, the no-app card, the done-for-you launch and the guarantees work the same way.",
+      "The launch was designed for food-led pubs first. The card is the same — if your counter serves the same faces every week, the no-app card, the done-for-you launch and the guarantees work the same way.",
   },
 ] as const
 

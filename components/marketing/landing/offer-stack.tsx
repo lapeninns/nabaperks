@@ -11,8 +11,8 @@ export function OfferStack() {
   return (
     <Section id="offer">
       <SectionHeader
-        eyebrow="The core offer"
-        title="What the launch actually includes"
+        eyebrow="What's included"
+        title="Everything the launch sets up for you"
         description={DFY_LAUNCH.intro}
       />
       <div className="grid gap-3.5 pt-6 sm:grid-cols-2">

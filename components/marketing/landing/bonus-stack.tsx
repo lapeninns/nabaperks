@@ -11,8 +11,8 @@ export function BonusStack() {
   return (
     <Section id="bonuses">
       <SectionHeader
-        eyebrow="The bonus stack"
-        title="Three bonuses that remove the usual blockers"
+        eyebrow="Included free"
+        title="Three bonuses that clear the usual headaches"
         description="Each one exists because pub owners kept naming the same obstacle."
       />
       <div className="grid gap-3.5 pt-6 lg:grid-cols-3">

@@ -11,7 +11,7 @@ export function ProofStrip() {
   return (
     <Section id="proof" size="compact">
       <SectionHeader
-        eyebrow="Operator proof"
+        eyebrow="Who's behind it"
         title="Built by a pub operator, not a software vendor"
         description={`Nabaperks is built and run by ${OPERATOR.name}, ${OPERATOR.estateLine}.`}
       />

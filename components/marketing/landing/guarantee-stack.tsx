@@ -8,8 +8,9 @@ import {
 } from "@/lib/marketing/facts"
 
 /**
- * The guarantee stack plus the claims boundary. The boundary is rendered as
- * prominently as the guarantees — the offer's honesty is part of the offer.
+ * The two guarantees plus what they deliberately don't cover — rendered as
+ * prominently as the guarantees themselves, because the honesty is part of
+ * the offer.
  */
 export function GuaranteeStack() {
   const guarantees = [
@@ -30,8 +31,8 @@ export function GuaranteeStack() {
   return (
     <Section id="guarantees">
       <SectionHeader
-        eyebrow="The guarantee stack"
-        title="Two guarantees, one honest boundary"
+        eyebrow="Our guarantees"
+        title="Two guarantees, in plain English"
         description={OFFER.riskFraming}
       />
       <div className="grid gap-5 pt-6 lg:grid-cols-2">
@@ -59,7 +60,7 @@ export function GuaranteeStack() {
       </div>
       <div className="mt-6 grid gap-2 border-2 border-dashed border-line-strong bg-card p-5">
         <p className="mono-meta text-foreground">
-          The claims boundary — read it before you buy
+          What we don’t promise — read it before you buy
         </p>
         <p className="text-sm leading-6 font-bold text-foreground">
           {CLAIMS_BOUNDARY.never}

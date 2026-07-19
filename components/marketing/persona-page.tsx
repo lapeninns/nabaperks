@@ -101,8 +101,8 @@ export function PersonaSpokePage({
       </Section>
       <Section size="compact">
         <SectionHeader
-          eyebrow="Same engine, four components"
-          title="What the launch includes"
+          eyebrow="What's included"
+          title="What the launch sets up for you"
         />
         <ul className="grid gap-2.5 pt-5">
           {CORE_OFFER.map((component) => (
@@ -124,12 +124,12 @@ export function PersonaSpokePage({
         <Section size="compact">
           <SectionHeader
             eyebrow="Who it's built for"
-            title="We qualify hard — that's what keeps the launch good"
+            title="We'd rather say no than launch you badly"
           />
           <div className="grid gap-5 pt-5 lg:grid-cols-2">
             <div className="grid content-start gap-2">
               <MonoTag tone="leaf" className="justify-self-start">
-                We prioritise
+                A good fit
               </MonoTag>
               <ul className="grid gap-2">
                 {MARKET.qualify.map((rule) => (
@@ -144,7 +144,7 @@ export function PersonaSpokePage({
             </div>
             <div className="grid content-start gap-2">
               <MonoTag tone="ink" className="justify-self-start">
-                We honestly turn away
+                Not a fit
               </MonoTag>
               <ul className="grid gap-2">
                 {MARKET.disqualify.map((rule) => (
@@ -163,7 +163,7 @@ export function PersonaSpokePage({
       <Section size="compact">
         <ReceiptCard edge padding="md" className="gap-3">
           <p className="mono-meta text-muted-foreground">
-            The guarantees — and the boundary
+            The guarantees — and what they don’t cover
           </p>
           <p className="text-sm leading-6 text-foreground">
             <span className="font-bold">{GUARANTEE.name}:</span>{" "}

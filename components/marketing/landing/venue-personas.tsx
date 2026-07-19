@@ -16,7 +16,7 @@ export function VenuePersonas() {
       <SectionHeader
         eyebrow="Who it's for"
         title="Built for pubs first. Honest about the rest."
-        description="One engine, four counters. The pub offer leads because that's the niche the launch was designed around."
+        description="Pubs are who this was built for. The same card works honestly for a few close cousins."
       />
       <div className="grid gap-3.5 pt-6 sm:grid-cols-2 lg:grid-cols-4">
         {PERSONAS.map((persona) => (
@@ -30,7 +30,7 @@ export function VenuePersonas() {
                 tone={persona.primary ? "accent" : "plain"}
                 className="justify-self-start"
               >
-                {persona.primary ? "The primary offer" : persona.navLabel}
+                {persona.primary ? "Built for pubs" : persona.navLabel}
               </MonoTag>
               <h3 className="text-base leading-snug font-extrabold text-foreground">
                 {persona.quietQuestion}

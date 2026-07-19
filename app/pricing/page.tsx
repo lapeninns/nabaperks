@@ -63,8 +63,8 @@ export default function PricingPage() {
       <Section>
         <PageTitle
           eyebrow="Pricing"
-          title="One setup fee. One subscription. Nothing hidden for a sales call."
-          description="The full commercial model is below — the same one we quote in person."
+          title="One setup fee. One subscription. No surprises."
+          description="Every number is below — the same numbers we'd give you on the phone."
         />
         <div className="grid gap-3.5 pt-6 lg:grid-cols-3">
           <Card size="sm">

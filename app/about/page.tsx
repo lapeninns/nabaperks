@@ -67,7 +67,7 @@ export default function AboutPage() {
             display the posters, honour the rewards, brief the staff.
           </p>
           <p className="text-sm leading-7 text-muted-foreground">
-            The selling rules are part of the product. {CLAIMS_BOUNDARY.never}{" "}
+            We sell it the way we run it — plainly. {CLAIMS_BOUNDARY.never}{" "}
             {CLAIMS_BOUNDARY.guarantee} And because a human team does every
             launch, {SCARCITY.capLine.toLowerCase()} {SCARCITY.capReason}
           </p>

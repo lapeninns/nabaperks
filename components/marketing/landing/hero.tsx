@@ -42,9 +42,6 @@ export function LandingHero({
         <p className="max-w-xl text-base leading-7 font-medium text-foreground">
           {OFFER.audience} {DFY_LAUNCH.intro}
         </p>
-        <p className="max-w-xl text-sm leading-6 text-muted-foreground">
-          {OFFER.nameNote}
-        </p>
         <div className="flex flex-wrap items-center gap-3">
           <Button asChild size="lg">
             <Link href={ROUTES.signup}>Start your free pilot</Link>
@@ -61,6 +58,9 @@ export function LandingHero({
           <p className="text-sm leading-6 text-muted-foreground">
             <span className="font-bold text-foreground">{GUARANTEE.name}:</span>{" "}
             {GUARANTEE.line}
+          </p>
+          <p className="text-xs leading-5 text-muted-foreground">
+            {OFFER.nameNote}
           </p>
           <p className="mono-id text-muted-foreground uppercase">
             {PRODUCT.cancelLine}

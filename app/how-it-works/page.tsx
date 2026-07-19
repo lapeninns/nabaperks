@@ -77,9 +77,9 @@ export default function HowItWorksPage() {
       </ContrastBand>
       <Section>
         <SectionHeader
-          eyebrow="Under the hood"
-          title="The same five steps the software walks every venue through"
-          description={`${SETUP.steps} ${SETUP.noFriction} On a done-for-you launch, Lapen Inns drives those steps for you — that's what the ${SETUP_FEE.label.toLowerCase()} covers.`}
+          eyebrow="Rather drive it yourself?"
+          title="The same five steps are in the product, self-serve"
+          description={`${SETUP.steps} ${SETUP.noFriction} On a done-for-you launch, Lapen Inns does those steps for you — that's what the ${SETUP_FEE.label.toLowerCase()} covers.`}
         />
         <div className="grid gap-3 pt-6 sm:flex sm:flex-wrap sm:items-center">
           <Button asChild size="lg">

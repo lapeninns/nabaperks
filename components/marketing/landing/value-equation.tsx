@@ -4,16 +4,16 @@ import { Card, CardContent } from "@/components/ui/card"
 import { VALUE_EQUATION, VALUE_MATH } from "@/lib/marketing/facts"
 
 /**
- * The value equation section: the four levers from the offer pack, plus the
- * price-to-value maths — always rendered with its illustrative label.
+ * Why pubs say yes: the offer pack's value case in customer voice, plus the
+ * price-to-value maths — always rendered with its worked-example label.
  */
 export function ValueEquation() {
   return (
     <Section id="value">
       <SectionHeader
-        eyebrow="The value equation"
+        eyebrow="Why pubs say yes"
         title="Priced like software. Delivered like a service."
-        description="Four levers decide what an offer is worth. Here is how this one pulls each of them."
+        description="Software price, service delivery — here's what that means at your counter."
       />
       <div className="grid gap-3.5 pt-6 sm:grid-cols-2">
         {VALUE_EQUATION.map((item) => (
@@ -31,7 +31,7 @@ export function ValueEquation() {
         ))}
       </div>
       <ReceiptCard edge padding="md" wrapperClassName="pt-6" className="gap-2">
-        <p className="mono-meta text-muted-foreground">The short maths</p>
+        <p className="mono-meta text-muted-foreground">Quick maths</p>
         <p className="text-sm leading-6 text-muted-foreground">
           {VALUE_MATH.assumptionLine}
         </p>
