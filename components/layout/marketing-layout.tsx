@@ -72,8 +72,9 @@ export function MarketingLayout({
       </a>
       <header className="sticky top-0 z-40 border-b-2 border-ink bg-card">
         <div className="mx-auto flex w-full max-w-marketing-chrome items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          {/* Linked on every surface (default) so auth funnel pages keep the
+              "Nabaperks home" escape hatch the a11y contract requires. */}
           <Logo
-            linked={!focused}
             href={ROUTES.home}
             className="max-[420px]:[&>span:last-child]:sr-only"
           />
