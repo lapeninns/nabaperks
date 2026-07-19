@@ -10,7 +10,7 @@ const skip = ready ? false : "live Supabase DB not reachable/current"
 after(async () => closeDb())
 
 test(
-  "unverified email blocks reward token value transfer at the database boundary",
+  "unverified email blocks reward transfer while legacy verified email remains eligible",
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
@@ -54,10 +54,7 @@ test(
         update public.customers
         set
           email_verified_at = now(),
-          email_hmac = coalesce(
-            email_hmac,
-            encode(extensions.digest(lower(email), 'sha256'), 'hex')
-          )
+          email_hmac = null
         where id = ${fixture.customer_id}::uuid`
       const [token] = await tx`
         insert into public.reward_scan_tokens (
@@ -68,6 +65,13 @@ test(
         where id = ${fixture.reward_id}::uuid
         returning id`
       assert.ok(token?.id)
+
+      const [redeemed] = await tx`
+        update public.reward_events
+        set status = 'redeemed', redeemed_at = now()
+        where id = ${fixture.reward_id}::uuid
+        returning id`
+      assert.equal(redeemed?.id, fixture.reward_id)
     })
   }
 )

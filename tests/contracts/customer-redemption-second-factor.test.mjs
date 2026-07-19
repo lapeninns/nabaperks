@@ -21,6 +21,11 @@ test("reward collection requires a verified profile email without per-reward ass
     "migrations",
     "20260719150000_remove_reward_email_assurance.sql"
   )
+  const legacyCompatibility = read(
+    "supabase",
+    "migrations",
+    "20260719180000_allow_legacy_verified_email_rewards.sql"
+  )
 
   assert.match(completion, /Boolean\(fullName\)[\s\S]*emailVerified/)
   assert.match(form, /Email address/)
@@ -42,4 +47,10 @@ test("reward collection requires a verified profile email without per-reward ass
   assert.match(removal, /require_reward_verified_email_for_redeem/)
   assert.match(removal, /Verified email required for reward collection/)
   assert.doesNotMatch(removal, /Fresh email verification required/)
+  assert.match(legacyCompatibility, /customers\.email_verified_at is not null/)
+  assert.match(legacyCompatibility, /nullif\(btrim\(customers\.email\), ''\)/)
+  assert.doesNotMatch(
+    legacyCompatibility,
+    /(?:customers|reward_record)\.email_hmac\s+is/
+  )
 })
