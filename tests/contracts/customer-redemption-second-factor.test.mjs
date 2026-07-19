@@ -10,23 +10,36 @@ function read(...segments) {
   return readFileSync(path.join(root, ...segments), "utf8")
 }
 
-test("reward collection requires a verified independent email at app and database boundaries", () => {
+test("reward collection requires a verified profile email without per-reward assurance", () => {
   const completion = read("lib", "customer", "profile-completion.ts")
   const form = read("components", "customer", "profile-gate-forms.tsx")
   const actions = read("app", "reward", "[rewardId]", "actions.ts")
-  const migration = read(
+  const gate = read("lib", "customer", "experience", "load-profile-gate.ts")
+  const qrRoute = read("app", "reward", "[rewardId]", "qr.png", "route.ts")
+  const removal = read(
     "supabase",
     "migrations",
-    "20260713130000_reward_redemption_verified_email.sql"
+    "20260719150000_remove_reward_email_assurance.sql"
   )
 
   assert.match(completion, /Boolean\(fullName\)[\s\S]*emailVerified/)
   assert.match(form, /Email address/)
   assert.doesNotMatch(form, /Continue without email/)
+  assert.doesNotMatch(form, /independent security check for your reward/)
   assert.match(actions, /currentCustomer\.emailVerifiedAt/)
   assert.match(actions, /submittedEmail \|\| lockedVerifiedEmail/)
-  assert.match(migration, /reward_scan_tokens_require_verified_email/)
-  assert.match(migration, /reward_events_redeem_require_verified_email/)
-  assert.match(migration, /customer_reward_email_assurances/)
-  assert.match(migration, /expires_at > now\(\)/)
+  assert.doesNotMatch(
+    actions,
+    /hasRewardEmailAssurance|recordRewardEmailAssurance/
+  )
+  assert.doesNotMatch(gate, /hasRewardEmailAssurance/)
+  assert.doesNotMatch(qrRoute, /hasRewardEmailAssurance/)
+  assert.match(
+    removal,
+    /drop table if exists public\.customer_reward_email_assurances/
+  )
+  assert.match(removal, /require_reward_verified_email_for_scan_token/)
+  assert.match(removal, /require_reward_verified_email_for_redeem/)
+  assert.match(removal, /Verified email required for reward collection/)
+  assert.doesNotMatch(removal, /Fresh email verification required/)
 })

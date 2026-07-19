@@ -3,7 +3,6 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
 import { closeDb, db, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
-import { grantRewardEmailAssurance } from "./helpers/reward-email-assurance.mjs"
 
 /**
  * db integrity hardening — live-DB tier.
@@ -78,8 +77,7 @@ test(
   { skip },
   async () => {
     await inRolledBackTxn(async (tx) => {
-      const { rewardId, customerId } = await seedRewardEvent(tx)
-      await grantRewardEmailAssurance(tx, rewardId, customerId)
+      const { rewardId } = await seedRewardEvent(tx)
 
       await expectCheckViolation(
         tx,

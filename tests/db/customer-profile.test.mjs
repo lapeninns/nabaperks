@@ -3,7 +3,6 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
-import { grantRewardEmailAssurance } from "./helpers/reward-email-assurance.mjs"
 
 /**
  * customer home / customer auth wallet (profile) — live-DB tier.
@@ -138,7 +137,6 @@ test(
       await tx`update public.customers
                set full_name = 'Now Complete', date_of_birth = '1991-03-03'
                where id = ${m.customer_id}`
-      await grantRewardEmailAssurance(tx, reward.id, m.customer_id)
       const [minted] = await tx`
         select scan_token from public.create_reward_scan_token(
           ${reward.id}::uuid, ${m.customer_id}::uuid)`

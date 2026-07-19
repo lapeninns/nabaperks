@@ -3,7 +3,6 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
 import { closeDb, inRolledBackTxn, isLiveDbReady } from "./helpers/db.mjs"
-import { grantRewardEmailAssurance } from "./helpers/reward-email-assurance.mjs"
 
 /**
  * customer redeem (edges) — live-DB tier.
@@ -81,7 +80,6 @@ test(
       const [m] = await tx.unsafe(PICK)
       assert.ok(m, "a billing-eligible seeded membership exists")
       const rewardId = await readyReward(tx, m)
-      await grantRewardEmailAssurance(tx, rewardId, m.customer_id)
       // Capture the baseline — a seeded membership may carry prior redemptions, so
       // idempotency is asserted on DELTAS, not absolute values.
       const before = (
@@ -135,7 +133,6 @@ test("an expired scan token is refused at collect", { skip }, async () => {
   await inRolledBackTxn(async (tx) => {
     const [m] = await tx.unsafe(PICK)
     const rewardId = await readyReward(tx, m)
-    await grantRewardEmailAssurance(tx, rewardId, m.customer_id)
     const [minted] = await tx`
       select scan_token from public.create_reward_scan_token(${rewardId}::uuid, ${m.customer_id}::uuid)`
     // Force the token into the past.
@@ -187,7 +184,6 @@ test(
       assert.ok(m, "a billing-eligible seeded membership exists")
 
       const redeemedRewardId = await readyReward(tx, m)
-      await grantRewardEmailAssurance(tx, redeemedRewardId, m.customer_id)
       await tx`
       update public.reward_events
       set status = 'redeemed', redeemed_at = now()
@@ -356,7 +352,6 @@ test(
     await inRolledBackTxn(async (tx) => {
       const [m] = await tx.unsafe(PICK)
       const rewardId = await readyReward(tx, m)
-      await grantRewardEmailAssurance(tx, rewardId, m.customer_id)
       const [minted] = await tx`
       select scan_token from public.create_reward_scan_token(${rewardId}::uuid, ${m.customer_id}::uuid)`
       const [other] = await tx`

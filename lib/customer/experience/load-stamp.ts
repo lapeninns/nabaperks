@@ -99,7 +99,7 @@ export async function loadStampExperienceContext(
       qrValid: false,
       qrMissing: !qr,
       location: DEFAULT_LOCATION,
-      profileGate: await loadProfileGate(unlocked.id),
+      profileGate: await loadProfileGate(),
     }
   }
 
