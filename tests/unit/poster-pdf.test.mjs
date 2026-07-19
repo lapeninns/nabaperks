@@ -4,8 +4,11 @@ import { test } from "node:test"
 import { PDFDocument, StandardFonts } from "pdf-lib"
 
 import {
+  bodyLeading,
+  displayLeading,
   fitSingleLineText,
   mm,
+  POSTER_PDF_TYPE,
   standardFontText,
 } from "@/lib/notifications/poster-pdf-style"
 import { drawKitVenueLine } from "@/lib/notifications/poster-pdf-kit-venue"
@@ -123,6 +126,16 @@ test("poster PDF venue labels stay on one line inside the A4 header", async () =
 test("poster PDF dimensions convert physical QR guidance exactly", () => {
   assert.ok(Math.abs(mm(52) - 147.4) < 0.1)
   assert.ok(Math.abs(mm(55) - 155.91) < 0.1)
+})
+
+test("locked poster print rhythm keeps display and body air", () => {
+  // Multi-line display stacks breathe; body copy sets at book leading.
+  assert.ok(POSTER_PDF_TYPE.displayLeading >= 1.05)
+  assert.ok(POSTER_PDF_TYPE.displayLeading <= 1.15)
+  assert.ok(POSTER_PDF_TYPE.bodyLeading >= 1.3)
+  assert.ok(POSTER_PDF_TYPE.bodyLeading <= 1.45)
+  assert.ok(Math.abs(displayLeading(84) - 84 * 1.06) < 1e-9)
+  assert.ok(Math.abs(bodyLeading(12) - 12 * 1.4) < 1e-9)
 })
 
 test("poster PDF venue labels omit unsupported glyphs cleanly", async () => {

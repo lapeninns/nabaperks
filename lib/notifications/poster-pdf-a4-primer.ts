@@ -1,10 +1,12 @@
 import type { PrimerPosterContent } from "@/lib/qr/poster-kit-content-types"
 
 import {
+  bodyLeading,
   drawDashedLine,
   drawWrappedText,
   mm,
   POSTER_PDF_COLOR,
+  POSTER_PDF_TYPE,
   standardFontText,
 } from "./poster-pdf-style"
 import { drawLedgerFoot, drawLedgerTop } from "./poster-pdf-a4-ledger"
@@ -24,12 +26,14 @@ export function drawPrimerA4(
   )
   const rowTop = frame.headlineBottom - mm(6)
   const rowHeight = (rowTop - mm(95)) / content.clauses.length
+  const titleDrop = content.typeTiers.substantivePt
+  const detailDrop = titleDrop + bodyLeading(POSTER_PDF_TYPE.bodyPt)
   content.clauses.forEach((clause, index) => {
     const y = rowTop - index * rowHeight
     const color = clause.sealed ? POSTER_PDF_COLOR.leaf : POSTER_PDF_COLOR.ink
     page.drawText(clause.number, {
       x: frame.left,
-      y: y - 14,
+      y: y - titleDrop,
       size: content.typeTiers.substantivePt,
       font: fonts.monoBold,
       color,
@@ -38,7 +42,7 @@ export function drawPrimerA4(
       standardFontText(clause.title.toUpperCase(), fonts.monoBold),
       {
         x: frame.left + mm(14),
-        y: y - 14,
+        y: y - titleDrop,
         size: content.typeTiers.substantivePt,
         font: fonts.monoBold,
         color,
@@ -46,11 +50,11 @@ export function drawPrimerA4(
     )
     drawWrappedText(page, clause.detail, {
       x: frame.left + mm(14),
-      y: y - 32,
+      y: y - detailDrop,
       maxWidth: frame.width - mm(14),
       font: fonts.regular,
-      size: 11.5,
-      lineHeight: 16,
+      size: POSTER_PDF_TYPE.bodyPt,
+      lineHeight: bodyLeading(POSTER_PDF_TYPE.bodyPt),
       color: POSTER_PDF_COLOR.inkSoft,
       maxLines: 2,
     })

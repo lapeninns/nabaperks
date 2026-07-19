@@ -3,10 +3,13 @@ import { rgb } from "pdf-lib"
 import type { TallyPosterContent } from "@/lib/qr/poster-kit-content-types"
 
 import {
+  bodyLeading,
+  displayLeading,
   drawDashedLine,
   drawWrappedText,
   mm,
   POSTER_PDF_COLOR,
+  POSTER_PDF_TYPE,
   standardFontText,
 } from "./poster-pdf-style"
 import {
@@ -40,7 +43,7 @@ export function drawTallyA4(
     height: mm(content.geometry.sheetHeightMm),
     color: POSTER_PDF_COLOR.paper,
   })
-  drawKitMasthead(page, {
+  const ruleY = drawKitMasthead(page, {
     x: left,
     y: mm(278),
     width,
@@ -53,15 +56,16 @@ export function drawTallyA4(
     ruleColor: POSTER_PDF_COLOR.inkSoft,
   })
   // Misregistered overprint headline: cobalt echo, vermillion front. The
-  // baseline sits an ascent below the safe frame for the display box.
-  const headlineY = mm(281) - content.typeTiers.hookPt * 0.96
+  // first baseline hangs one display ascent plus a 3 mm gutter below the
+  // masthead rule so the caps never strike it.
+  const headlineY = ruleY - mm(3) - content.typeTiers.hookPt * 0.96
   drawWrappedText(page, content.headline, {
     x: left + 3.4,
     y: headlineY - 4,
     maxWidth: width,
     font: fonts.bold,
     size: content.typeTiers.hookPt,
-    lineHeight: content.typeTiers.hookPt,
+    lineHeight: displayLeading(content.typeTiers.hookPt),
     color: POSTER_PDF_COLOR.cobalt,
     maxLines: 2,
   })
@@ -71,7 +75,7 @@ export function drawTallyA4(
     maxWidth: width,
     font: fonts.bold,
     size: content.typeTiers.hookPt,
-    lineHeight: content.typeTiers.hookPt,
+    lineHeight: displayLeading(content.typeTiers.hookPt),
     color: POSTER_PDF_COLOR.accent,
     maxLines: 2,
   })
@@ -128,8 +132,8 @@ export function drawTallyA4(
     y: mm(160),
     maxWidth: innerWidth,
     font: fonts.regular,
-    size: 11.5,
-    lineHeight: 16,
+    size: POSTER_PDF_TYPE.bodyPt,
+    lineHeight: bodyLeading(POSTER_PDF_TYPE.bodyPt),
     color: POSTER_PDF_COLOR.inkSoft,
     maxLines: 4,
   })
@@ -149,7 +153,7 @@ export function drawTallyA4(
     x: copyX,
     y: mm(86),
     maxWidth: width - qrSize - mm(9),
-    size: 12,
+    size: POSTER_PDF_TYPE.frictionPt,
     font: fonts.bold,
     color: POSTER_PDF_COLOR.ink,
     markColors: [POSTER_PDF_COLOR.cobalt, POSTER_PDF_COLOR.accent],
@@ -159,7 +163,7 @@ export function drawTallyA4(
     {
       x: copyX,
       y: frictionBottom - 4,
-      size: 9.5,
+      size: POSTER_PDF_TYPE.metaPt,
       font: fonts.monoBold,
       color: POSTER_PDF_COLOR.inkSoft,
     }
@@ -175,7 +179,7 @@ export function drawTallyA4(
     x: copyX,
     y: mm(47),
     maxWidth: width - qrSize - mm(9),
-    preferredSize: 14,
+    preferredSize: POSTER_PDF_TYPE.laneVenuePt,
     font: fonts.bold,
     color: POSTER_PDF_COLOR.ink,
   })
@@ -193,7 +197,7 @@ export function drawTallyA4(
     maxWidth: width,
     font: fonts.monoBold,
     size: content.typeTiers.factsPt,
-    lineHeight: content.typeTiers.factsPt + 3,
+    lineHeight: bodyLeading(content.typeTiers.factsPt),
     color: POSTER_PDF_COLOR.inkSoft,
     maxLines: 2,
   })
