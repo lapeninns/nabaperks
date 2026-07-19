@@ -78,7 +78,9 @@ test.describe("customer entry error boundaries", { tag: "@polish" }, () => {
     await page.goto("/q/dev-boundary-probe")
 
     // app/q/[qrId]/error.tsx → CustomerErrorState: branded, calm, recoverable.
-    await expect(page.getByText("QR unavailable", { exact: true })).toBeVisible()
+    await expect(
+      page.getByText("QR unavailable", { exact: true })
+    ).toBeVisible()
     await expect(
       page.getByText(
         "This QR could not be opened safely. Try again, or ask a team member for the current loyalty QR."
@@ -94,10 +96,10 @@ test.describe("customer entry error boundaries", { tag: "@polish" }, () => {
     // reset() re-renders the segment; the probe throws again, so the branded
     // boundary must come back rather than the framework default error text.
     await retry.click()
-    await expect(page.getByText("QR unavailable", { exact: true })).toBeVisible()
     await expect(
-      page.getByRole("button", { name: "Try again" })
+      page.getByText("QR unavailable", { exact: true })
     ).toBeVisible()
+    await expect(page.getByRole("button", { name: "Try again" })).toBeVisible()
   })
 })
 
@@ -130,8 +132,11 @@ test.describe("root not-found boundary", { tag: "@polish" }, () => {
       page.getByRole("heading", { name: "Page not found" })
     ).toBeVisible()
     await expect(
-      page.locator('a[data-slot="button"]', { hasText: "Nabaperks home" })
-    ).toHaveAttribute("href", "/")
+      page.getByRole("link", { name: "Start a free pilot" })
+    ).toHaveAttribute("href", "/signup")
+    await expect(
+      page.getByRole("link", { name: "Open my cards" })
+    ).toHaveAttribute("href", "/home")
     expect(cspViolations).toEqual([])
     expect(pageErrors).toEqual([])
   })

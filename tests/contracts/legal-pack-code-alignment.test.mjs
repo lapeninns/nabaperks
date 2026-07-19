@@ -45,12 +45,12 @@ test("Given legal copy follows product behaviour When the shared content is insp
   const content = readProjectFile("lib", "legal", "content.ts")
 
   for (const expected of [
-    'CUSTOMER_LEGAL_VERSION = "2026-07-15"',
+    'CUSTOMER_LEGAL_VERSION = "2026-07-19"',
     "Europe/London calendar date",
     "first active configured reward",
     "configured reward weightings",
     "be at least 18",
-    "fresh email check",
+    "verified email address",
     "active or trialling",
     "eligible for anonymisation after seven days",
     "eligible for anonymisation after 365 days",
@@ -59,6 +59,7 @@ test("Given legal copy follows product behaviour When the shared content is insp
     assert.ok(content.includes(expected), `legal content includes ${expected}`)
   }
 
+  assert.doesNotMatch(content, /fresh email (?:assurance|check)/i)
   assert.doesNotMatch(content, /follows ICO guidance/i)
   assert.doesNotMatch(content, /data controller for Nabaperks loyalty data/i)
   assert.doesNotMatch(content, /UK business day/i)
@@ -76,17 +77,12 @@ test("Given the venue terms version changes When a customer joins Then the recor
   const migration = readProjectFile(
     "supabase",
     "migrations",
-    "20260715120000_align_customer_legal_terms_snapshot.sql"
-  )
-  const contactAlignmentMigration = readProjectFile(
-    "supabase",
-    "migrations",
-    "20260715130000_align_accepted_venue_contact.sql"
+    "20260719170000_align_verified_email_legal_terms.sql"
   )
 
   assert.match(action, /const policyVersion = CUSTOMER_LEGAL_VERSION/)
   assert.match(consent, /MARKETING_POLICY_VERSION = CUSTOMER_LEGAL_VERSION/)
-  assert.match(migration, /new\.policy_version <> '2026-07-15'/)
+  assert.match(migration, /new\.policy_version <> '2026-07-19'/)
   assert.match(
     migration,
     /before insert on public\.customer_loyalty_terms_acceptances/
@@ -96,9 +92,10 @@ test("Given the venue terms version changes When a customer joins Then the recor
     /extensions\.digest\(new\.terms_snapshot::text, 'sha256'\)/
   )
   assert.match(
-    contactAlignmentMigration,
+    migration,
     /'id', 'merchant-contact',\s+'body', 'Ask the venue team'/
   )
+  assert.doesNotMatch(migration, /fresh email (?:assurance|check)/i)
 
   for (const section of [
     "joining",

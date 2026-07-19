@@ -133,7 +133,7 @@ flowchart LR
   K --> L{"Stamp target reached?"}
   L -- No --> G
   L -- Yes --> M["Reward assigned and sealed until eligible"]
-  M --> N["Profile, age, verified email, fresh email assurance"]
+  M --> N["Profile, age, verified email"]
   N --> O["Short-lived reward QR token"]
   O --> P["Authenticated merchant scans and collects"]
   P --> Q["Redemption ledger + next cycle"]
@@ -300,7 +300,6 @@ For a stamp-cycle reward, the current terms require:
 - The customer's full name and date of birth are present.
 - The customer is at least 18.
 - The customer has a verified email address.
-- A fresh email assurance/check has been completed for that reward.
 
 Birthday or merchant-direct rewards can bypass the completed-stamp threshold because they were issued independently, but they retain ownership, profile, age, email, availability, expiry, token, and single-use collection controls.
 
@@ -492,7 +491,7 @@ Loyalty participation and marketing consent are separate. Marketing is optional 
 The application may handle:
 
 - Encrypted phone identity, country code, and last four digits.
-- Full name, date of birth, email, and verification/assurance state.
+- Full name, date of birth, email, and verification state.
 - Venue memberships, accepted terms, stamps, rewards, referrals, and activity.
 - Marketing consent, notification preferences, push endpoints/keys, and delivery history.
 - Coarse location evidence and fraud signals.
@@ -624,7 +623,7 @@ The normal repository gates are `pnpm quality:fast`, `pnpm quality:check`, and `
 - Normal stamps are limited to one per venue location per Europe/London date; businesses needing spend-based or multiple-daily-visit accrual would need a different mechanic.
 - Location enforcement is soft and evidentiary, not a hard anti-fraud boundary.
 - Redemption relies on the merchant having an authenticated scanning device and network access.
-- Customer identity is phone-first but reward collection also requires verified email and fresh reward assurance, which adds security at the cost of friction.
+- Customer identity is phone-first, while reward collection also requires a verified email address and an adult profile.
 - The product currently requires adults (18+) for redemption, regardless of whether an individual reward is non-alcoholic.
 - A lapsed subscription pauses joins, stamps, reward issue, and redemption. The customer impact of billing failure should be reviewed commercially and legally.
 
@@ -682,7 +681,7 @@ An auditing LM should evaluate Nabaperks in the following passes.
 
 - Trace merchant signup → onboarding → venue/card/rewards → billing → QR → dashboard.
 - Trace new customer QR → OTP → terms → membership/first stamp → card.
-- Trace returning QR → stamp → full card → next-day reward → profile/email assurance → reward QR → merchant collection → next cycle.
+- Trace returning QR → stamp → full card → next-day reward → profile/email verification → reward QR → merchant collection → next cycle.
 - Trace birthday, direct reward/invite, referral, announcement, and privacy-request variants.
 
 ### Pass 3: Authority and tenancy
@@ -718,7 +717,7 @@ An auditing LM should evaluate Nabaperks in the following passes.
 ### Pass 7: Commercial and UX coherence
 
 - Assess whether the five-step launch is understandable and whether billing-before-QR matches public expectations.
-- Assess customer friction from phone OTP plus later email/age assurance.
+- Assess customer friction from phone OTP plus later email and age verification.
 - Review consequences of subscription lapse for customers holding earned rewards.
 - Test accessibility, slow networks, camera denial, location refusal, expired tokens, and ambiguous network outcomes.
 - Verify every reward and guarantee claim is fulfilable by the venue/operator.
@@ -773,7 +772,7 @@ An auditing LM should evaluate Nabaperks in the following passes.
 | Mystery reward pool            | Weighted active catalogue from which completed-cycle rewards are assigned               |
 | Issued reward                  | Common reward-event model covering stamp-cycle, birthday, and merchant-direct sources   |
 | Reward scan token              | Short-lived, single-use bearer token displayed as a QR for merchant collection          |
-| Fresh email assurance          | Reward-specific recent email verification required before redemption QR generation      |
+| Verified email                 | Account-level verified email required before redemption QR generation                   |
 | Soft geofence                  | Location evidence that can flag suspicion but does not independently block stamping     |
 | Returning member/first regular | A customer receiving another normal stamp on a later London date                        |
 | Billing entitlement            | Stored webhook-derived state that must be active/trialling for normal loyalty operation |
