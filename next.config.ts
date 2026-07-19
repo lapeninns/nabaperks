@@ -2,6 +2,11 @@ import type { NextConfig } from "next"
 import withBundleAnalyzer from "@next/bundle-analyzer"
 import { withSentryConfig } from "@sentry/nextjs"
 
+import {
+  COMMON_SECURITY_HEADERS,
+  staticMarketingContentSecurityPolicy,
+} from "./lib/security/csp"
+
 const playwrightDistDir = process.env.PLAYWRIGHT_NEXT_DIST_DIR?.trim()
 
 const nextConfig: NextConfig = {
@@ -35,6 +40,16 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        source: "/:path*",
+        headers: [
+          ...COMMON_SECURITY_HEADERS,
+          {
+            key: "Content-Security-Policy",
+            value: staticMarketingContentSecurityPolicy(),
+          },
+        ],
+      },
+      {
         source: "/sw.js",
         headers: [
           {
@@ -64,6 +79,12 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.nabaperks.com" }],
+        destination: "https://nabaperks.com/:path*",
+        permanent: true,
+      },
       {
         source: "/app/card",
         destination: "/app/launch?tab=card",

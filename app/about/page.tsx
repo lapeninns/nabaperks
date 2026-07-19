@@ -22,7 +22,7 @@ import {
 } from "@/lib/seo/structured-data"
 
 const title = "About Lapen Inns, the Operator Behind Nabaperks"
-const description = `Nabaperks is built and run by ${OPERATOR.name}, ${OPERATOR.estateLine} — a loyalty card made by a pub operator for the quiet-midweek problem.`
+const description = `Nabaperks is built and run by ${OPERATOR.name}, the hospitality operator behind the product — a loyalty card for the quiet-midweek problem.`
 
 export const metadata: Metadata = {
   title,
@@ -52,7 +52,7 @@ export default function AboutPage() {
         <PageTitle
           eyebrow="About"
           title="A pub operator's answer to quiet Tuesdays"
-          description={`Nabaperks is built and run by ${OPERATOR.name}, ${OPERATOR.estateLine}.`}
+          description={`Nabaperks is built and run by ${OPERATOR.name}, the hospitality operator behind the product.`}
         />
         <div className="grid gap-4 pt-6">
           <p className="text-sm leading-7 text-muted-foreground">

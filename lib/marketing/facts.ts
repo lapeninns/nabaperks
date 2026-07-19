@@ -16,9 +16,9 @@
  * owner's finalised offer pack in `Offers- Nabaperks-Finalized/` (8 docs:
  * market, value equation, offer creation, bonus stack, guarantee stack,
  * scarcity & urgency, naming, master). Owner-approved commercial terms:
- * - The offer wrapper `OFFER.name` ("…Revenue Accelerator") leads public pages
- *   per the owner's rebuild brief; `OFFER.nameNote` states on-page that it
- *   names the offer, not a revenue promise (naming doc's claims rule).
+ * - Public pages lead with the offer pack's safer `First-Regular Launch`
+ *   wrapper. The original `Revenue Accelerator` wording is retained only as a
+ *   campaign wrapper that requires separate approval before public use.
  * - There is NO setup fee (owner decision 2026-07-19 — the upfront fee and its
  *   waiver were both removed). The offer is a pure subscription after the free
  *   pilot; `PLAN_LINE` is the single-sourced investment line and the
@@ -30,9 +30,9 @@
  * - `SCARCITY` reflects real human onboarding capacity (5/week). Never render
  *   an invented live availability counter; counter-style availability
  *   phrasing is banned by `scripts/check-banned-claims.mjs`.
- * - The rolling monthly `PROMO` in `lib/marketing/promo.ts` stays the one
- *   time-boxed perk. `BONUS_STACK` anchors are justified external cost/time
- *   comparisons — never an invented reference or headline price.
+ * - `BONUS_STACK` anchors are justified external cost/time comparisons — never
+ *   an invented reference or headline price. Promotional printing stays off:
+ *   the first poster run is already part of the core launch.
  */
 
 // --- Public operator entity (the E-E-A-T Organization fact sheet) ----------
@@ -44,8 +44,6 @@ export const OPERATOR = {
   roleAlt: "pub operator",
   /** One-line operator descriptor used in trust copy and schema. */
   descriptor: "Lapen Inns, hospitality operator",
-  estateLine: "a hospitality operator running 9 pubs across England",
-  estateShort: "9 pubs across England",
   region: "England",
   country: "United Kingdom",
   /** Public operator website — the first allowed sameAs URL. */
@@ -55,25 +53,6 @@ export const OPERATOR = {
   /** Privacy / data-controller contact email. */
   privacyEmail: "info@lapeninns.com",
 } as const
-
-export type EstatePub = { name: string; postcode: string }
-
-/**
- * The 9-pub operating estate — name + postcode trust proof, all in England.
- * Postcodes are the addressable estate proof actually supplied; street lines are
- * intentionally not invented.
- */
-export const OPERATOR_ESTATE: readonly EstatePub[] = [
-  { name: "The Prince of Wales", postcode: "MK43 8PE" },
-  { name: "Old School House", postcode: "MK11 1JA" },
-  { name: "Barley Mow", postcode: "PE29 1XU" },
-  { name: "The Queen Elizabeth", postcode: "PE30 4EL" },
-  { name: "The Railway", postcode: "PE7 1UF" },
-  { name: "The Bell", postcode: "PE28 5UY" },
-  { name: "Old Crown", postcode: "CB3 0QD" },
-  { name: "The Corner House", postcode: "CB5 8JE" },
-  { name: "White Horse", postcode: "CB25 9HP" },
-] as const
 
 // --- Product terminology ---------------------------------------------------
 
@@ -154,10 +133,11 @@ export const MARKET = {
  * composed with `GUARANTEE` and single-sourced so no surface forks it.
  */
 export const OFFER = {
-  name: "The 30-Day Gastropub Mid-Week Revenue Accelerator",
+  name: "The 30-Day First-Regular Launch",
+  campaignName: "The 30-Day Gastropub Mid-Week Revenue Accelerator",
   nameSafe: "The 30-Day First-Regular Launch",
   nameNote:
-    "Named for what it’s built to do — bring your regulars back midweek.",
+    "Built to encourage measurable return visits — never a promise of revenue or filled tables.",
   audience:
     "For single-site UK food-led pubs that are busy at weekends and quiet midweek.",
   riskFraming:
@@ -388,7 +368,7 @@ export type MarketingFeature = {
 }
 
 /**
- * The launch as a product feature set, for the tabbed feature section. Sourced
+ * The launch as a product feature set for the landing-page listicle. Sourced
  * from `CORE_OFFER` + `BONUS_STACK` + `PRODUCT`; each feature names the pain it
  * removes rather than an invented time saving.
  */
@@ -456,7 +436,7 @@ export const FEATURES: readonly MarketingFeature[] = [
     tab: "Posters",
     title: "Counter posters, printed and posted to you",
     includes: [
-      "Eight print-ready A4 counter posters with your venue QR",
+      "A first run of print-ready A4 counter posters with your venue QR",
       "Counter copy already laid out",
       "First run physically printed and posted to the pub",
     ],
@@ -513,7 +493,7 @@ export const GUARANTEE = {
  */
 export const GUARANTEE_ROI = {
   name: "90-Day ROI Extension",
-  line: "If your loyalty card doesn't generate enough return visits to cover your software investment in your first 90 days, your next 3 months are completely free.",
+  line: "If your loyalty card doesn't record enough return visits to cover your first three subscriptions within 90 days, your next 3 months are completely free.",
   mechanic: `${VALUE_MATH.ninetyDayLine} If your dashboard hasn't recorded them by day 90, Lapen Inns applies a 100% discount to your next three months.`,
   conditions:
     "Conditions: the QR stays actively displayed at the counter for the full 90 days, rewards are honoured, and no test or staff gaming of the card.",
@@ -551,8 +531,7 @@ export const SCARCITY = {
 
 /**
  * Rolling launch urgency: a real operational cutoff (the physical print batch),
- * never a fake deadline. The rolling monthly promo in `lib/marketing/promo.ts`
- * is the one time-boxed perk and carries its own real end date.
+ * never a fake deadline or a repackaging of something already included.
  */
 export const URGENCY = {
   printBatch:
@@ -569,12 +548,12 @@ export const URGENCY = {
  * these same steps for the venue.
  */
 export const SETUP = {
-  line: "Build your card first. Activate it when billing is ready.",
+  line: "Review your card first. Activate it when billing is ready.",
   steps:
-    "Five guided steps — add your venue, build the card, confirm your pre-filled rewards, activate billing, then set up your venue QR.",
+    "Five guided steps — share your venue, review the card, confirm your pre-filled rewards, activate billing, then approve your venue QR.",
   noFriction: "No app to build, no POS to connect, nothing to install.",
   earlyWin:
-    "Finish your venue, card and rewards first. Once billing is active, your venue QR unlocks for customers to scan and collect their first stamp.",
+    "Approve your venue, card and rewards first. Once billing is active, your venue QR unlocks for customers to scan and collect their first stamp.",
 } as const
 
 /**
@@ -622,7 +601,7 @@ export const PERSONAS: readonly MarketingPersona[] = [
     noun: "pub",
     title: "Loyalty for pubs",
     navLabel: "Pubs",
-    offerName: "The 30-Day Gastropub Mid-Week Revenue Accelerator",
+    offerName: OFFER.name,
     primary: true,
     audience: MARKET.niche,
     quietQuestion: "Full on Saturday, quiet on Tuesday?",
@@ -779,10 +758,6 @@ export const PUBLIC_SITE_ROUTES = [
   { path: ROUTES.pricing, priority: 0.9, changeFrequency: "monthly" },
   { path: ROUTES.howItWorks, priority: 0.8, changeFrequency: "monthly" },
   { path: ROUTES.pubs, priority: 0.8, changeFrequency: "monthly" },
-  { path: ROUTES.signup, priority: 0.7, changeFrequency: "monthly" },
-  { path: ROUTES.cafes, priority: 0.6, changeFrequency: "monthly" },
-  { path: ROUTES.bars, priority: 0.6, changeFrequency: "monthly" },
-  { path: ROUTES.takeaways, priority: 0.6, changeFrequency: "monthly" },
   { path: ROUTES.guideNoApp, priority: 0.5, changeFrequency: "monthly" },
   { path: ROUTES.guideIdeas, priority: 0.5, changeFrequency: "monthly" },
   { path: ROUTES.guidePaperVsQr, priority: 0.5, changeFrequency: "monthly" },

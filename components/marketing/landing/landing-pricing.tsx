@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { CheckmarkCircle02Icon } from "@hugeicons/core-free-icons"
 
+import { MarketingSignupLink } from "@/components/analytics/marketing-signup-link"
 import { Icon, MonoTag, SectionHeader } from "@/components/brand"
 import { Section } from "@/components/layout"
 import { Button } from "@/components/ui/button"
@@ -44,7 +45,7 @@ export function LandingPricing() {
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <Button asChild size="lg">
-                <Link href={ROUTES.signup}>Start your free pilot</Link>
+                <MarketingSignupLink>Start your free pilot</MarketingSignupLink>
               </Button>
               <Button asChild size="lg" variant="secondary">
                 <Link href={ROUTES.pricing}>See full pricing</Link>

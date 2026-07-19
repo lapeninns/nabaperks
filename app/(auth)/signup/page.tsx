@@ -8,7 +8,6 @@ import { Eyebrow, Icon, PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout } from "@/components/layout"
 import { merchantEmailOtpAliasDigitLabel } from "@/lib/auth/merchant-email-otp-alias"
 import { GUARANTEE, PRODUCT, ROUTES } from "@/lib/marketing/facts"
-import { getActivePromo } from "@/lib/marketing/promo"
 import { safeMerchantNextPath } from "@/lib/navigation/safe-next-path"
 import { OG_IMAGE } from "@/lib/seo/structured-data"
 import { cn } from "@/lib/utils"
@@ -16,14 +15,15 @@ import { cn } from "@/lib/utils"
 const title = "Start Your Free Pilot — No-App QR Loyalty"
 // 158 code points (budget 145–159); the cancellation term renders only via
 // the single-source constant (marketing-auth-legal contract).
-const description = `Create your account, build your card and go live from one venue QR — ${PRODUCT.pilot}, then ${PRODUCT.price}. ${PRODUCT.cancelLine}`
+const description = `Create your operator account for the done-for-you pub loyalty launch — ${PRODUCT.pilot}, then ${PRODUCT.price}. No setup fee. ${PRODUCT.cancelLine}`
 
-/** /signup is an indexable acquisition route (sitemap 0.7) that accepts an
- * ?email= param — the self-canonical collapses those variants (AV-2). */
+/** Conversion utility route: follow its links, but keep the thin auth form out
+ * of search results in favour of the substantive landing and pricing pages. */
 export const metadata: Metadata = {
   title,
   description,
   alternates: { canonical: ROUTES.signup },
+  robots: { index: false, follow: true },
   openGraph: {
     title: `${title} | Nabaperks`,
     description,
@@ -59,15 +59,12 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
     firstParam(params.next) ?? "/app/onboarding",
     "/app/onboarding"
   )
-  const promo = getActivePromo()
-  // Body-only trust points — the promo perk and support claim join when the
-  // monthly promo is live (never enter the pinned meta-description budget).
   const trustPoints = [
+    "No setup fee — the done-for-you launch is included",
     "No app for your customers to download",
     "Customers stamp themselves from your venue QR",
     PRODUCT.cancelLine,
     GUARANTEE.line,
-    ...(promo ? [promo.perk, promo.claim] : []),
   ]
 
   return (
@@ -82,7 +79,7 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
           <PageTitle
             eyebrow="Start free pilot"
             title="Your loyalty card starts here."
-            description={`Create your account and verify your email with a ${otpCodeLabel} code. Then add your venue, card and rewards, then activate billing to unlock your QR.`}
+            description={`Create your account and verify your email with a ${otpCodeLabel} code. Then share your venue details and approve the pre-filled card and rewards before billing unlocks your QR.`}
             titleClassName="text-[clamp(2.1rem,4.5vw,3.2rem)]"
             descriptionClassName="text-base leading-7 text-pretty"
             className="md:grid-cols-1"
@@ -112,8 +109,8 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
               Create your account
             </h2>
             <p className="text-sm leading-6 text-pretty text-muted-foreground">
-              This is your operator account. Add your details first — business
-              and venue setup come after you verify your email.
+              This is your operator account. Add your details first — we ask for
+              your pub details after you verify your email.
             </p>
           </div>
           <SignupDetailsForm

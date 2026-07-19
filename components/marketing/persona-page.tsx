@@ -58,6 +58,15 @@ export function personaPageMetadata({
       description,
       images: [OG_IMAGE],
     },
+    robots: persona.primary
+      ? undefined
+      : {
+          index: false,
+          // Keep discovery flowing to the supported pub-first offer while
+          // these unsupported vertical spokes await traffic/backlink evidence
+          // for a safe 301, consolidation, or retention decision.
+          follow: true,
+        },
   }
 }
 

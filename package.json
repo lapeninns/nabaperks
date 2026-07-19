@@ -59,6 +59,8 @@
     "tokens:check": "node scripts/check-design-tokens.mjs",
     "claims:check": "node scripts/check-banned-claims.mjs",
     "jsonld:check": "node scripts/check-jsonld.mjs",
+    "seo:content-audit": "node scripts/audit-seo-content.mjs",
+    "seo:crawl-audit": "node scripts/analyze-crawl-logs.mjs",
     "smoke:providers": "node scripts/check-provider-readiness.mjs",
     "smoke:supabase:migrations": "node scripts/check-supabase-migrations.mjs",
     "env:keys": "node scripts/env-keys.mjs status",

@@ -8,7 +8,6 @@ import { ThemeProvider } from "next-themes"
 
 import {
   dynamicContentSecurityPolicy,
-  isStaticMarketingPath,
   NEXT_THEMES_APP_RENDER_SCRIPT_SHA256,
   NEXT_THEMES_SERVER_RENDER_SCRIPT_SHA256,
   NEXT_THEMES_SCRIPT_SHA256,
@@ -80,36 +79,12 @@ test("Given static brochure pages are prerendered When CSP is built Then inline 
   assert.doesNotMatch(csp, /'strict-dynamic'/)
 })
 
-test("Given route groups are classified When proxy selects CSP Then only brochure routes use the static policy", () => {
-  for (const pathname of [
-    "/cookies",
-    "/data-processing",
-    "/merchant-terms",
-    "/privacy",
-    "/terms",
-  ]) {
-    assert.equal(isStaticMarketingPath(pathname), true, pathname)
-  }
-
-  for (const pathname of [
-    "/app",
-    "/admin",
-    "/card/test-membership",
-    "/home",
-    "/q/test-qr",
-    "/reward/test-reward",
-    "/start",
-  ]) {
-    assert.equal(isStaticMarketingPath(pathname), false, pathname)
-  }
-})
-
-test("Given nonce CSP protects dynamic pages When the root not-found boundary renders Then it opts into request-time rendering", () => {
+test("Given brochure pages need shared caching When the root not-found boundary renders Then it stays prerenderable", () => {
   const notFound = readFileSync(
     new URL("../../app/not-found.tsx", import.meta.url),
     "utf8"
   )
 
-  assert.match(notFound, /from "next\/server"/)
-  assert.match(notFound, /connection\(\)/)
+  assert.doesNotMatch(notFound, /from "next\/server"/)
+  assert.doesNotMatch(notFound, /connection\(\)/)
 })

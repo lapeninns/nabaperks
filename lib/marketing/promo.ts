@@ -1,13 +1,13 @@
 import { OPERATOR } from "@/lib/marketing/facts"
 
 /**
- * Rolling monthly promo. The end-of-month deadline is real and the first poster
- * run is included; availability is deliberately not quantified until fulfilment
- * has a durable reservation ledger. `getActivePromo` is the single runtime
- * source for every acquisition surface.
+ * Promotional infrastructure is retained but disabled. The first poster run is
+ * part of the standard done-for-you launch, so presenting it as a monthly perk
+ * would double-count included value. Re-enable only with a genuine incremental
+ * benefit and a documented operational deadline.
  */
 export const PROMO_CONFIG = {
-  enabled: true,
+  enabled: false,
 } as const
 
 export type ActivePromo = {

@@ -10,7 +10,7 @@ const FUNNEL_TOKEN = "test-signed-desktop-funnel-token"
 test.describe("desktop privacy-safe merchant funnel", () => {
   test.use({ serviceWorkers: "block" })
 
-  test("desktop signup uses one session-only identity", async ({
+  test("desktop acquisition uses one session-only identity", async ({
     context,
     page,
   }) => {
@@ -26,10 +26,14 @@ test.describe("desktop privacy-safe merchant funnel", () => {
       })
     })
 
-    await page.goto("/signup")
+    await page.goto("/")
     await expect
       .poll(() => requests.map(({ event }) => event))
-      .toContain("merchant_signup_started")
+      .toContain("merchant_marketing_viewed")
+    await page.getByRole("link", { name: "Start free pilot" }).first().click()
+    await expect
+      .poll(() => requests.map(({ event }) => event))
+      .toContain("merchant_signup_clicked")
     await expect(page.getByLabel(/email/i)).toBeVisible()
 
     const storage = await page.evaluate(
@@ -96,7 +100,7 @@ test.describe("desktop privacy-safe merchant funnel", () => {
         }
         await route.continue()
       })
-      await page.goto("/signup")
+      await page.goto("/")
       await expect
         .poll(() => lostToken, {
           message:
@@ -105,7 +109,7 @@ test.describe("desktop privacy-safe merchant funnel", () => {
         .not.toBe("")
       lostResponseEventId = deterministicFunnelEventId(
         lostToken,
-        "merchant_signup_started"
+        "merchant_marketing_viewed"
       )
       const { count: orphanCount, error: orphanError } = await supabase
         .from("product_events")
@@ -136,7 +140,7 @@ test.describe("desktop privacy-safe merchant funnel", () => {
       )
 
       expect(token).toBeTruthy()
-      eventId = deterministicFunnelEventId(token!, "merchant_signup_started")
+      eventId = deterministicFunnelEventId(token!, "merchant_marketing_viewed")
 
       await expect
         .poll(async () => {
@@ -161,7 +165,7 @@ test.describe("desktop privacy-safe merchant funnel", () => {
         })
         .toEqual([
           expect.objectContaining({
-            event_name: "merchant_signup_started",
+            event_name: "merchant_marketing_viewed",
             metadata: expect.objectContaining({
               funnel_key: expect.any(String),
             }),

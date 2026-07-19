@@ -46,17 +46,20 @@ const spaceMono = localFont({
   ],
   variable: "--font-space-mono",
   display: "swap",
+  // This supporting display face should not compete with the primary body and
+  // heading face on the critical render path.
+  preload: false,
 })
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   applicationName: "Nabaperks",
   title: {
-    default: "Nabaperks — No-app QR loyalty for UK food & drink venues",
+    default: "Nabaperks — No-app loyalty cards for UK food-led pubs",
     template: "%s | Nabaperks",
   },
   description:
-    "No-app QR loyalty for UK pubs, cafes and takeaways. One venue QR opens a browser card with venue-linked stamps. £49/month after a 30-day free pilot.",
+    "Done-for-you, no-app QR loyalty for single-site UK food-led pubs. One venue QR opens a browser card with measurable return visits. No setup fee.",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [

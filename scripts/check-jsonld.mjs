@@ -3,7 +3,7 @@
  * Validate the JSON-LD graphs on the public routes. Run after `pnpm build`;
  * the checker starts the production server, fetches the merchant sign-up page
  * (shared organisation graph) and the marketing landing page (WebPage +
- * Product + FAQPage graph) and exits non-zero when either graph drifts.
+ * Product + HowTo + FAQPage graph) and exits non-zero when either graph drifts.
  */
 import { spawn } from "node:child_process"
 import { once } from "node:events"
@@ -127,8 +127,8 @@ try {
     "sign-up: parentOrganization does not reference Lapen Inns"
   )
   check(
-    Array.isArray(operator?.location) && operator.location.length === 9,
-    "sign-up: operator should expose nine estate locations"
+    operator?.location === undefined,
+    "sign-up: operator must not expose unsupported estate locations"
   )
   check(
     !/companieshouse|company-information|linkedin\.com\/in/i.test(
@@ -143,6 +143,7 @@ try {
   )
   const product = homeNodes.find((node) => node["@type"] === "Product")
   const faq = homeNodes.find((node) => node["@type"] === "FAQPage")
+  const howTo = homeNodes.find((node) => node["@type"] === "HowTo")
   const productOffers = Array.isArray(product?.offers) ? product.offers : []
 
   check(homeTypes.has("WebPage"), "home: WebPage node missing")
@@ -157,6 +158,10 @@ try {
     "home: FAQPage with the shared FAQ facts missing"
   )
   check(
+    Boolean(howTo) && Array.isArray(howTo.step) && howTo.step.length === 5,
+    "home: five-step done-for-you HowTo missing"
+  )
+  check(
     !JSON.stringify(homeNodes).includes('"@type":"Person"'),
     "home: Person node present"
   )
@@ -167,7 +172,7 @@ try {
     process.exitCode = 1
   } else {
     console.log(
-      "✓ JSON-LD valid: sign-up organisation graph (connected organisations, WebSite, no Person or banned sameAs) and home marketing graph (WebPage, Product 49/490, FAQPage)"
+      "✓ JSON-LD valid: sign-up organisation graph (connected organisations, WebSite, no unsupported locations/Person) and home marketing graph (WebPage, Product 49/490, five-step HowTo, FAQPage)"
     )
   }
 } finally {

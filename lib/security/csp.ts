@@ -11,13 +11,20 @@ const NEXT_THEMES_SCRIPT_HASHES: readonly string[] = [
   NEXT_THEMES_APP_RENDER_SCRIPT_SHA256,
 ]
 
-const STATIC_MARKETING_EXACT_PATHS: ReadonlySet<string> = new Set([
-  "/cookies",
-  "/data-processing",
-  "/merchant-terms",
-  "/privacy",
-  "/terms",
-])
+export const COMMON_SECURITY_HEADERS = [
+  {
+    key: "Strict-Transport-Security",
+    value: "max-age=63072000; includeSubDomains; preload",
+  },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  {
+    key: "Permissions-Policy",
+    value:
+      "camera=(self), microphone=(), payment=(), usb=(), interest-cohort=(), geolocation=(self)",
+  },
+] as const
 
 function scriptDevEscape(): string {
   return process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""
@@ -43,15 +50,6 @@ function sharedContentSecurityDirectives(): readonly string[] {
     "form-action 'self'",
     `frame-ancestors 'none'${upgradeInsecureRequestsDirective()}`,
   ]
-}
-
-export function isStaticMarketingPath(pathname: string): boolean {
-  const normalizedPath =
-    pathname !== "/" && pathname.endsWith("/")
-      ? pathname.slice(0, -1)
-      : pathname
-
-  return STATIC_MARKETING_EXACT_PATHS.has(normalizedPath)
 }
 
 export function dynamicContentSecurityPolicy(nonce: string): string {

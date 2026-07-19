@@ -115,9 +115,9 @@ test("Given public routes feed SEO and AI discovery When the registry is inspect
   const marketingFacts = readProjectFile("lib", "marketing", "facts.ts")
   const sitemap = readProjectFile("app", "sitemap.ts")
   const llms = readProjectFile("public", "llms.txt")
+  const signup = readProjectFile("app", "(auth)", "signup", "page.tsx")
 
   const expectedRoutes = [
-    { path: "/signup", registry: "ROUTES.signup" },
     { path: "/privacy", registry: '"/privacy"' },
     { path: "/terms", registry: '"/terms"' },
     { path: "/cookies", registry: '"/cookies"' },
@@ -133,4 +133,8 @@ test("Given public routes feed SEO and AI discovery When the registry is inspect
     assert.match(marketingFacts, new RegExp(`path: ${route.registry}`))
     assert.match(llms, new RegExp(`https://nabaperks\\.com${route.path}`))
   }
+
+  assert.doesNotMatch(marketingFacts, /path: ROUTES\.signup/)
+  assert.doesNotMatch(llms, /https:\/\/nabaperks\.com\/signup/)
+  assert.match(signup, /robots: \{ index: false, follow: true \}/)
 })

@@ -83,14 +83,15 @@ test("Given optional external analytics When PostHog capture is inspected Then i
 test("Given a public funnel capture request When the route contract is inspected Then origin, size, vocabulary, throttling, and cache guards are server-enforced", () => {
   const route = readProjectFile("app", "api", "analytics", "funnel", "route.ts")
   const contract = readProjectFile("lib", "analytics", "funnel-contract.ts")
-  const guardedSource = `${route}\n${contract}`
+  const requestGuard = readProjectFile("lib", "http", "bounded-json-request.ts")
+  const guardedSource = `${route}\n${contract}\n${requestGuard}`
 
   assert.match(guardedSource, /headers\.get\(["']origin["']\)/i)
   assert.match(guardedSource, /new URL\(request\.url\)/)
-  assert.match(route, /requestUrl\.origin/)
-  assert.match(route, /headers\s*\.get\(["']x-forwarded-host["']\)/)
-  assert.match(route, /headers\.get\(["']host["']\)/)
-  assert.match(route, /allowedOrigins\.has\(requestOrigin\)/)
+  assert.match(requestGuard, /requestUrl\.origin/)
+  assert.match(requestGuard, /headers\s*\.get\(["']x-forwarded-host["']\)/)
+  assert.match(requestGuard, /headers\.get\(["']host["']\)/)
+  assert.match(requestGuard, /allowedOrigins\.has\(requestOrigin\)/)
   assert.match(guardedSource, /MAX_[A-Z_]*BODY[A-Z_]*BYTES/)
   assert.match(guardedSource, /content-length|body\.length|text\.length/i)
   assert.match(route, /enforceRateLimit/)
@@ -140,6 +141,35 @@ test("Given acquisition continuity When the browser tracker is inspected Then it
     tracker,
     /(?:searchParams|URLSearchParams)[\s\S]{0,160}(?:funnel|token)/i
   )
+})
+
+test("Given a visitor enters and advances through marketing When tracking is inspected Then views, clicks and valid submits have distinct milestones", () => {
+  const tracker = readProjectFile(
+    "components",
+    "analytics",
+    "marketing-funnel-tracker.tsx"
+  )
+  const signupLink = readProjectFile(
+    "components",
+    "analytics",
+    "marketing-signup-link.tsx"
+  )
+  const signupForm = readProjectFile(
+    "components",
+    "auth",
+    "signup-details-form.tsx"
+  )
+
+  assert.match(
+    tracker,
+    /isMarketingPage\(pathname\).*merchant_marketing_viewed/
+  )
+  assert.doesNotMatch(
+    tracker,
+    /pathname === ["']\/signup["'].*merchant_signup_started/
+  )
+  assert.match(signupLink, /merchant_signup_clicked/)
+  assert.match(signupForm, /merchant_signup_started/)
 })
 
 test("Given a supplied funnel token is invalid When identity recording is inspected Then it rotates without persisting the rejected milestone", () => {

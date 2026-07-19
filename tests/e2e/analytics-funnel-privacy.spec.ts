@@ -46,14 +46,20 @@ test.describe("privacy-safe merchant funnel", () => {
       })
     })
 
-    const response = await page.goto("/signup")
+    const response = await page.goto("/")
     expect(response?.status()).toBeLessThan(400)
 
     await expect
       .poll(() => eventsFrom(funnelRequests), {
-        message: "sign-up hydration records the start milestone",
+        message: "landing hydration records the marketing-view milestone",
       })
-      .toContain("merchant_signup_started")
+      .toContain("merchant_marketing_viewed")
+
+    await page.getByRole("link", { name: "Start free pilot" }).first().click()
+    await expect(page).toHaveURL(/\/signup$/)
+    await expect
+      .poll(() => eventsFrom(funnelRequests))
+      .toContain("merchant_signup_clicked")
 
     const signupStorage = await analyticsStorage(page)
     expect(signupStorage.session).toEqual([
@@ -71,10 +77,10 @@ test.describe("privacy-safe merchant funnel", () => {
       expect(request.method).toBe("POST")
     }
 
-    const signupStart = funnelRequests.find(
-      ({ body }) => body.event === "merchant_signup_started"
+    const marketingView = funnelRequests.find(
+      ({ body }) => body.event === "merchant_marketing_viewed"
     )
-    expect(signupStart?.body.token).toBeUndefined()
+    expect(marketingView?.body.token).toBeUndefined()
     expect(await analyticsCookies(context, FUNNEL_TOKEN)).toEqual([])
     expect(externalAnalyticsRequests).toEqual([])
   })
@@ -90,13 +96,14 @@ test.describe("privacy-safe merchant funnel", () => {
       await route.abort("failed")
     })
 
-    const response = await page.goto("/signup")
+    const response = await page.goto("/")
     expect(response?.status()).toBeLessThan(400)
     await expect
       .poll(() => eventsFrom(abortedRequests), {
         message: "the browser attempts first-party measurement before failure",
       })
-      .toContain("merchant_signup_started")
+      .toContain("merchant_marketing_viewed")
+    await page.getByRole("link", { name: "Start free pilot" }).first().click()
     await expect(page.getByLabel(/email/i)).toBeVisible()
 
     const storage = await analyticsStorage(page)
@@ -146,14 +153,19 @@ test.describe("privacy-safe merchant funnel", () => {
       })
     })
 
-    await page.goto("/signup")
-    await expect.poll(() => abortedEvents).toContain("merchant_signup_started")
+    await page.goto("/")
+    await expect
+      .poll(() => abortedEvents)
+      .toContain("merchant_marketing_viewed")
+    await page.getByRole("link", { name: "Start free pilot" }).first().click()
     await page.getByLabel("Your name").fill("Privacy Proof")
     await page.getByLabel("Email", { exact: true }).fill("proof@example.test")
     await page.getByLabel("Password", { exact: true }).fill("Privacy123")
     await page.getByLabel("Confirm password").fill("Privacy123")
     await expect(page.locator('input[name="funnelToken"]')).toHaveValue("")
     await page.getByRole("button", { name: "Create account" }).click()
+
+    await expect.poll(() => abortedEvents).toContain("merchant_signup_started")
 
     await expect
       .poll(() => signupSubmitted, {

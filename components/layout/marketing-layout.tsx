@@ -1,10 +1,11 @@
 import type { ReactNode } from "react"
 
 import { MarketingFunnelTracker } from "@/components/analytics/marketing-funnel-tracker"
+import { WebVitalsReporter } from "@/components/analytics/web-vitals-reporter"
 import Link from "next/link"
 
 import { Logo } from "@/components/brand"
-import { OPERATOR, PERSONAS, ROUTES } from "@/lib/marketing/facts"
+import { OPERATOR, ROUTES } from "@/lib/marketing/facts"
 
 import { MarketingHeaderNav } from "./marketing-header-nav"
 
@@ -27,11 +28,12 @@ const FOOTER_COLUMNS: readonly FooterColumn[] = [
     ],
   },
   {
-    heading: "Who it's for",
-    links: PERSONAS.map((persona) => ({
-      href: persona.path,
-      label: persona.title,
-    })),
+    heading: "For food-led pubs",
+    links: [
+      { href: ROUTES.pubs, label: "Is Nabaperks right for your pub?" },
+      { href: `${ROUTES.home}#fit`, label: "Check your pub's fit" },
+      { href: `${ROUTES.home}#guarantees`, label: "Guarantees and conditions" },
+    ],
   },
   {
     heading: "Guides",
@@ -64,6 +66,7 @@ export function MarketingLayout({
   return (
     <div className="min-h-[100dvh] overflow-x-clip bg-background">
       <MarketingFunnelTracker />
+      <WebVitalsReporter />
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:border-2 focus:border-ink focus:bg-card focus:px-4 focus:py-2 focus:text-sm focus:font-bold"

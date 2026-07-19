@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic"
 
 const STALE_CUSTOMER_PII_RETENTION_DAYS = 365
 const ABANDONED_IDENTITY_RETENTION_DAYS = 7
+const WEB_VITAL_RETENTION_DAYS = 90
 const DAY_MS = 24 * 60 * 60 * 1000
 
 export async function GET(request: NextRequest) {
@@ -73,6 +74,19 @@ export async function GET(request: NextRequest) {
     })
   }
 
+  const webVitalCutoff = new Date(
+    Date.now() - WEB_VITAL_RETENTION_DAYS * DAY_MS
+  ).toISOString()
+  const { data: purgedWebVitals, error: webVitalError } = await supabase.rpc(
+    "purge_web_vital_samples",
+    { p_cutoff: webVitalCutoff }
+  )
+  if (webVitalError) {
+    logger.warn("privacy_retention_web_vital_purge_failed", {
+      reason: webVitalError.message,
+    })
+  }
+
   return NextResponse.json(
     {
       ok: true,
@@ -82,9 +96,13 @@ export async function GET(request: NextRequest) {
         abandonedIdentityPurgedCount:
           typeof abandonedData === "number" ? abandonedData : 0,
         purgedCount: typeof data === "number" ? data : 0,
-        expiredInviteCount: typeof expiredInvites === "number" ? expiredInvites : 0,
+        expiredInviteCount:
+          typeof expiredInvites === "number" ? expiredInvites : 0,
         purgedRateLimitBuckets:
           typeof purgedBuckets === "number" ? purgedBuckets : 0,
+        webVitalCutoff,
+        purgedWebVitalSamples:
+          typeof purgedWebVitals === "number" ? purgedWebVitals : 0,
       },
     },
     { headers: { "cache-control": "no-store, max-age=0" } }

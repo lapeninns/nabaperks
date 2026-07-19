@@ -7,11 +7,11 @@ test.describe("public browser smoke", () => {
     const response = await page.goto("/")
 
     expect(response?.status()).toBe(200)
-    await expect(page).toHaveTitle(/Mid-Week Revenue Accelerator/)
+    await expect(page).toHaveTitle(/Pub Loyalty Cards Without an App/)
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: "The 30-Day Gastropub Mid-Week Revenue Accelerator",
+        name: "The 30-Day First-Regular Launch",
       })
     ).toBeVisible()
     await expect(page.getByRole("banner")).toBeVisible()
