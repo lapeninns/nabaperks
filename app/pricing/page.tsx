@@ -28,10 +28,11 @@ import {
   webPageSchema,
 } from "@/lib/seo/structured-data"
 
-const title = `Pricing — ${SETUP_FEE.amount} Setup, ${PRODUCT.price}, 30 Days Free`
-// 152 code points (budget 145–159); every price renders via the single-source
-// facts so this description can never drift from the offer.
-const description = `${SETUP_FEE.amount} one-off setup invoiced at onboarding, then ${PRODUCT.price} or ${PRODUCT.priceAnnual} (${PRODUCT.annualSaving}) after a ${PRODUCT.pilot}. Two guarantees, honest weekly capacity.`
+const title = `Pricing — ${SETUP_FEE.amount} Setup for a Limited Time, ${PRODUCT.price}`
+// 159 code points (budget 145–159); every price renders via the single-source
+// facts, and the waiver is stated with its window condition so the description
+// stays honest whichever way the promo toggle sits.
+const description = `${SETUP_FEE.amount} setup while the monthly launch window is open (standard ${SETUP_FEE.standard}), then ${PRODUCT.price} or ${PRODUCT.priceAnnual} (${PRODUCT.annualSaving}) after a ${PRODUCT.pilot}. Honest weekly capacity.`
 
 export const metadata: Metadata = {
   title,
@@ -69,18 +70,36 @@ export default function PricingPage() {
         <div className="grid gap-3.5 pt-6 lg:grid-cols-3">
           <Card size="sm">
             <CardContent className="grid h-full content-start gap-3">
-              <MonoTag className="justify-self-start">One-off</MonoTag>
+              <MonoTag
+                tone={promo ? "sun" : "plain"}
+                className="justify-self-start"
+              >
+                {promo ? "Limited time" : "One-off"}
+              </MonoTag>
               <p className="text-3xl leading-none font-extrabold text-foreground">
-                {SETUP_FEE.amount}
+                {promo ? SETUP_FEE.amount : SETUP_FEE.standard}
                 <span className="pl-2 text-base font-bold text-muted-foreground">
                   setup
                 </span>
               </p>
+              {promo ? (
+                <p className="text-sm leading-6 font-bold text-foreground">
+                  Standard price{" "}
+                  <span className="text-muted-foreground line-through">
+                    {SETUP_FEE.standard}
+                  </span>{" "}
+                  — waived for launches booked by {promo.deadlineLabel}.
+                </p>
+              ) : (
+                <p className="text-sm leading-6 font-bold text-foreground">
+                  {SETUP_FEE.standardLabel}.
+                </p>
+              )}
               <p className="text-sm leading-6 text-muted-foreground">
                 {SETUP_FEE.covers}
               </p>
-              <p className="border-t-2 border-dashed border-border pt-2 text-sm leading-6 font-bold text-foreground">
-                {SETUP_FEE.invoiced}
+              <p className="border-t-2 border-dashed border-border pt-2 text-sm leading-6 text-muted-foreground">
+                {SETUP_FEE.afterWaiver}
               </p>
               <p className="mt-auto text-xs leading-5 text-muted-foreground">
                 {SETUP_FEE.exposure}

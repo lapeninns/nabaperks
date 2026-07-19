@@ -15,7 +15,6 @@ import {
   ROUTES,
   SCARCITY,
   SETUP,
-  SETUP_FEE,
 } from "@/lib/marketing/facts"
 import {
   breadcrumbSchema,
@@ -79,7 +78,7 @@ export default function HowItWorksPage() {
         <SectionHeader
           eyebrow="Rather drive it yourself?"
           title="The same five steps are in the product, self-serve"
-          description={`${SETUP.steps} ${SETUP.noFriction} On a done-for-you launch, Lapen Inns does those steps for you — that's what the ${SETUP_FEE.label.toLowerCase()} covers.`}
+          description={`${SETUP.steps} ${SETUP.noFriction} On a done-for-you launch, Lapen Inns does those steps for you.`}
         />
         <div className="grid gap-3 pt-6 sm:flex sm:flex-wrap sm:items-center">
           <Button asChild size="lg">

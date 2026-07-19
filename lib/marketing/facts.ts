@@ -215,21 +215,29 @@ export const VALUE_MATH = {
 // --- Pricing structure (offer pack docs 2 + 8; £99 is copy-only) -------------
 
 /**
- * The £99 one-off setup fee — COPY/FACTS ONLY. It is invoiced when the
- * done-for-you onboarding is booked and is deliberately NOT wired into Stripe
- * or any checkout path; no billing code may import this constant. The
- * contract test `tests/contracts/marketing-offer-source.test.mjs` enforces
- * that boundary.
+ * The setup fee — COPY/FACTS ONLY, never wired into Stripe or any checkout
+ * path; no billing code may import this constant (enforced by
+ * `tests/contracts/marketing-offer-source.test.mjs`).
+ *
+ * Owner decision 2026-07-19: the standard £99 fee is WAIVED to £0 while the
+ * rolling monthly launch window is open. The waiver is honest scarcity: it
+ * always renders with the window's real end date (from `getActivePromo`), and
+ * every surface falls back to the standard-fee copy automatically when the
+ * promo is switched off — no undated "limited time" claims.
  */
 export const SETUP_FEE = {
-  amount: "£99",
-  label: "£99 one-off setup",
+  /** The documented standard setup fee — the waiver's reference price. */
+  standard: "£99",
+  standardLabel: "£99 one-off setup",
+  /** What venues pay while the launch-window waiver is open. */
+  amount: "£0",
+  label: "£0 setup",
   covers:
-    "Covers the human implementation work: venue and card configuration, a margin-safe mystery reward pool, and your first A4 counter-poster run — generated, printed and posted to your pub.",
-  invoiced:
-    "Invoiced when your done-for-you onboarding is booked. It is not charged through the online checkout.",
+    "Setup covers the human implementation work: venue and card configuration, a margin-safe mystery reward pool, and your first A4 counter-poster run — generated, printed and posted to your pub.",
+  afterWaiver:
+    "If the waiver ends, the standard £99 setup fee is invoiced when your onboarding is booked — never charged through the online checkout.",
   exposure:
-    "The setup fee pays for completed implementation work and the physical print run, so it isn't refunded because trading was quiet — the guarantees below carry the subscription risk instead.",
+    "When the standard fee applies, it pays for completed implementation work and the physical print run, so it isn't refunded because trading was quiet — the guarantees below carry the subscription risk instead.",
 } as const
 
 // --- The done-for-you launch (offer pack docs 3 + 8) -------------------------
@@ -567,11 +575,11 @@ export const FAQ_ITEMS: readonly MarketingFaq[] = [
   },
   {
     question: "What does it cost?",
-    answer: `${SETUP_FEE.label} — ${SETUP_FEE.invoiced} The software is ${PRODUCT.price} (or ${PRODUCT.priceAnnual} — ${PRODUCT.annualSaving}) after a ${PRODUCT.pilot}. ${PRODUCT.cancelLine}`,
+    answer: `Setup is ${SETUP_FEE.amount} right now — the standard ${SETUP_FEE.standard} setup fee is waived while the current month's launch window is open (the exact end date is shown next to the price). The software is ${PRODUCT.price} (or ${PRODUCT.priceAnnual} — ${PRODUCT.annualSaving}) after a ${PRODUCT.pilot}. ${PRODUCT.cancelLine}`,
   },
   {
-    question: "Why is there a £99 setup fee?",
-    answer: `${SETUP_FEE.covers} ${SETUP_FEE.exposure}`,
+    question: "Is setup really £0?",
+    answer: `Yes — for launches booked while the current window is open. ${SETUP_FEE.covers} We do all of that either way. ${SETUP_FEE.afterWaiver}`,
   },
   {
     question: "What if nobody comes back?",
@@ -596,7 +604,7 @@ export const PRICING_FAQ_ITEMS: readonly MarketingFaq[] = FAQ_ITEMS.filter(
   (faq) =>
     [
       "What does it cost?",
-      "Why is there a £99 setup fee?",
+      "Is setup really £0?",
       "What if nobody comes back?",
       "What do you not guarantee?",
       "Why do you only take 5 launches a week?",

@@ -1,10 +1,13 @@
-import { OPERATOR } from "@/lib/marketing/facts"
+import { OPERATOR, SETUP_FEE } from "@/lib/marketing/facts"
 
 /**
  * Rolling monthly promo. The end-of-month deadline is real and the first poster
  * run is included; availability is deliberately not quantified until fulfilment
  * has a durable reservation ledger. `getActivePromo` is the single runtime
- * source for every acquisition surface.
+ * source for every acquisition surface. The promo window also carries the
+ * setup-fee waiver (`setupLine`): "£0 setup" claims must always render with
+ * this real dated window, and every surface falls back to the standard-fee
+ * copy when the promo is off.
  */
 export const PROMO_CONFIG = {
   enabled: true,
@@ -16,6 +19,7 @@ export type ActivePromo = {
   readonly endDateISO: string
   readonly monthLabel: string
   readonly perk: string
+  readonly setupLine: string
   readonly claim: string
 }
 
@@ -80,6 +84,7 @@ export function getActivePromo(
   const ctx = getLondonMonthContext(now)
   const name = `${ctx.monthLabel} First-Regular promo`
   const perk = `Go live by ${ctx.deadlineLabel} and we print and post your first counter-poster run — free.`
+  const setupLine = `Book your launch by ${ctx.deadlineLabel} and the ${SETUP_FEE.standard} setup fee is ${SETUP_FEE.amount}.`
   const claim = `Go live before the date, then email ${OPERATOR.supportEmail} and we sort your print run.`
 
   return {
@@ -88,6 +93,7 @@ export function getActivePromo(
     endDateISO: ctx.endDateISO,
     monthLabel: ctx.monthLabel,
     perk,
+    setupLine,
     claim,
   }
 }

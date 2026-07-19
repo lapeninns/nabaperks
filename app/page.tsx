@@ -60,15 +60,15 @@ export default function LandingPage() {
     <MarketingLayout>
       <LandingHero promo={promo} demoQr={demoQr} />
       <Marquee />
-      <ValueEquation />
       <OfferStack />
+      <ValueEquation />
+      <ProofStrip />
       <BonusStack />
       <GuaranteeStack />
       <ScarcityBand promo={promo} />
-      <ProofStrip />
       <VenuePersonas />
       <LandingFaq />
-      <FinalCta />
+      <FinalCta promo={promo} />
       <JsonLd
         id="ld-home"
         data={{

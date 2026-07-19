@@ -9,6 +9,7 @@ import {
 import { MarketingLayout, Section } from "@/components/layout"
 import { JsonLd } from "@/components/seo/json-ld"
 import { Button } from "@/components/ui/button"
+import { SetupPriceLine } from "@/components/marketing/setup-price-line"
 import {
   CLAIMS_BOUNDARY,
   CORE_OFFER,
@@ -19,9 +20,9 @@ import {
   PRODUCT,
   ROUTES,
   SCARCITY,
-  SETUP_FEE,
   type MarketingPersona,
 } from "@/lib/marketing/facts"
+import { getActivePromo } from "@/lib/marketing/promo"
 import {
   breadcrumbSchema,
   OG_IMAGE,
@@ -76,6 +77,8 @@ export function PersonaSpokePage({
   title: string
   description: string
 }) {
+  const promo = getActivePromo()
+
   return (
     <MarketingLayout>
       <Section>
@@ -181,8 +184,7 @@ export function PersonaSpokePage({
       <Section size="compact" className="pb-10">
         <div className="grid gap-4">
           <p className="text-sm leading-6 font-bold text-foreground">
-            {SETUP_FEE.label} · then {PRODUCT.price} (or {PRODUCT.priceAnnual} —{" "}
-            {PRODUCT.annualSaving}) after a {PRODUCT.pilot}.
+            <SetupPriceLine promo={promo} />
           </p>
           <p className="text-sm leading-6 text-muted-foreground">
             {SCARCITY.capLine} {SCARCITY.capReason}

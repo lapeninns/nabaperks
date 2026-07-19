@@ -68,11 +68,33 @@ test("Given the finalised offer pack When facts.ts is inspected Then the locked 
   assert.match(facts, /nameSafe: "The 30-Day First-Regular Launch"/)
   assert.match(facts, /name of the launch, not a promise of takings/)
 
-  // £99 setup — copy-only, invoiced at onboarding.
+  // Setup fee — copy-only. The £99 standard is waived to £0 while the rolling
+  // launch window is open; the waiver must stay tied to the promo's real
+  // dated window, with an automatic standard-fee fallback when the promo is
+  // off (no undated "limited time" claims).
   assert.match(facts, /export const SETUP_FEE = \{/)
-  assert.match(facts, /amount: "£99"/)
-  assert.match(facts, /Invoiced when your done-for-you onboarding is booked/)
-  assert.match(facts, /not charged through the online checkout/)
+  assert.match(facts, /standard: "£99"/)
+  assert.match(facts, /amount: "£0"/)
+  assert.match(facts, /invoiced when your onboarding is booked/i)
+  assert.match(facts, /charged through the online checkout/)
+
+  const promoSource = readProjectFile("lib", "marketing", "promo.ts")
+  const setupPriceLine = readProjectFile(
+    "components",
+    "marketing",
+    "setup-price-line.tsx"
+  )
+  assert.match(
+    promoSource,
+    /SETUP_FEE\.standard/,
+    "the waiver line must quote the standard fee from facts, never a literal"
+  )
+  assert.match(promoSource, /setupLine/)
+  assert.match(
+    setupPriceLine,
+    /promo\s*\?[\s\S]*SETUP_FEE\.label[\s\S]*:\s*SETUP_FEE\.standardLabel/,
+    "the shared price line must fall back to the standard fee when no promo window is open"
+  )
 
   // Subscription facts stay the surviving £49/£490 model.
   assert.match(facts, /price: "£49\/month"/)

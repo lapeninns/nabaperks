@@ -5,7 +5,9 @@ import { PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
 import { JsonLd } from "@/components/seo/json-ld"
 import { Button } from "@/components/ui/button"
-import { GUARANTEE, PRODUCT, ROUTES, SETUP_FEE } from "@/lib/marketing/facts"
+import { SetupPriceLine } from "@/components/marketing/setup-price-line"
+import { GUARANTEE, PRODUCT, ROUTES } from "@/lib/marketing/facts"
+import { getActivePromo } from "@/lib/marketing/promo"
 import {
   articleSchema,
   breadcrumbSchema,
@@ -45,6 +47,8 @@ export function guidePageMetadata(guide: Guide): Metadata {
  * comparison table where the guide calls for it, and one clearly-priced CTA.
  */
 export function GuidePage({ guide }: { guide: Guide }) {
+  const promo = getActivePromo()
+
   return (
     <MarketingLayout>
       <Section width="narrow">
@@ -87,7 +91,7 @@ export function GuidePage({ guide }: { guide: Guide }) {
             If you’d rather not do any of this yourself
           </p>
           <p className="text-sm leading-6 text-foreground">
-            {SETUP_FEE.label}, then {PRODUCT.price} after a {PRODUCT.pilot}.{" "}
+            <SetupPriceLine promo={promo} />{" "}
             <span className="font-bold">{GUARANTEE.name}:</span>{" "}
             {GUARANTEE.line}
           </p>

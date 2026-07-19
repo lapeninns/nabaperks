@@ -1,7 +1,8 @@
 import Link from "next/link"
 
-import { Eyebrow } from "@/components/brand"
+import { Eyebrow, MonoTag } from "@/components/brand"
 import { Section } from "@/components/layout"
+import { SetupPriceLine } from "@/components/marketing/setup-price-line"
 import { Button } from "@/components/ui/button"
 import {
   DFY_LAUNCH,
@@ -42,6 +43,11 @@ export function LandingHero({
         <p className="max-w-xl text-base leading-7 font-medium text-foreground">
           {OFFER.audience} {DFY_LAUNCH.intro}
         </p>
+        {promo ? (
+          <MonoTag tone="sun" className="justify-self-start">
+            {SETUP_FEE.label} until {promo.deadlineLabel}
+          </MonoTag>
+        ) : null}
         <div className="flex flex-wrap items-center gap-3">
           <Button asChild size="lg">
             <Link href={ROUTES.signup}>Start your free pilot</Link>
@@ -52,8 +58,7 @@ export function LandingHero({
         </div>
         <div className="grid max-w-xl gap-2 border-l-2 border-ink pl-4">
           <p className="text-sm leading-6 font-bold text-foreground">
-            {SETUP_FEE.label} · then {PRODUCT.price} (or {PRODUCT.priceAnnual} —{" "}
-            {PRODUCT.annualSaving}) after a {PRODUCT.pilot}.
+            <SetupPriceLine promo={promo} />
           </p>
           <p className="text-sm leading-6 text-muted-foreground">
             <span className="font-bold text-foreground">{GUARANTEE.name}:</span>{" "}
