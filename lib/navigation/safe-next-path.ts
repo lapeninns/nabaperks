@@ -10,14 +10,6 @@ export function safeMerchantNextPath(path: string, fallback = "/app"): string {
   return safePath(path, fallback, isMerchantAuthPath)
 }
 
-/** Admin console destinations — keeps MFA and auth loops out of `next`. */
-export function safeAdminNextPath(path: string, fallback = "/admin"): string {
-  if (!path.startsWith("/admin") || path.startsWith("/admin-mfa")) {
-    return fallback
-  }
-  return safeMerchantNextPath(path, fallback)
-}
-
 export function merchantLoginHref(path: string): string {
   return `/login?next=${encodeURIComponent(safeMerchantNextPath(path))}`
 }

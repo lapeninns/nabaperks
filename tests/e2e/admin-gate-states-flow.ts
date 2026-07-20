@@ -195,15 +195,16 @@ export function describeAdminGateStates(): void {
       }
     })
 
-    test("routes a seeded admin without aal2 to MFA verification", async ({
+    test("allows a seeded admin into the admin shell with email and password", async ({
       page,
     }) => {
       const adminResponseErrors = collectAdminResponseErrors(page)
       await signInToAdmin(page, ACTIVE_ADMIN)
-      await expect(page).toHaveURL(/\/admin-mfa/)
       await expect(
-        page.getByRole("heading", { name: "Verify with authenticator" })
+        page.getByRole("navigation", { name: "Admin navigation" })
       ).toBeVisible()
+      await expect(page.getByText("Operator:")).toBeVisible()
+      expect(new URL(page.url()).pathname).toBe("/admin")
       expect(adminResponseErrors).toEqual([])
     })
   })

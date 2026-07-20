@@ -1,10 +1,9 @@
 import type { Metadata } from "next"
 import { connection } from "next/server"
-import { redirect } from "next/navigation"
 
 import { Eyebrow } from "@/components/brand"
 import { AdminShell } from "@/components/layout"
-import { getAdminGate } from "@/lib/admin/auth"
+import { getAdminAccess } from "@/lib/admin/auth"
 import { PRIVATE_ROUTE_METADATA } from "@/lib/seo/metadata"
 
 export const metadata: Metadata = PRIVATE_ROUTE_METADATA
@@ -15,17 +14,9 @@ export default async function AdminLayout({
   children: React.ReactNode
 }) {
   await connection()
-  const gate = await getAdminGate()
+  const access = await getAdminAccess()
 
-  if (gate.status === "anonymous") {
-    redirect("/login?next=/admin")
-  }
-
-  if (gate.status === "mfa_required") {
-    redirect("/admin-mfa?next=/admin")
-  }
-
-  if (gate.status === "denied") {
+  if (access.status !== "allowed") {
     return (
       <main className="flex min-h-svh items-center justify-center px-6 py-10">
         <section className="surface-card w-full max-w-sm p-6 text-center">
@@ -34,7 +25,7 @@ export default async function AdminLayout({
             Access denied
           </h1>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            {gate.reason}
+            {access.reason}
           </p>
         </section>
       </main>
@@ -42,7 +33,7 @@ export default async function AdminLayout({
   }
 
   return (
-    <AdminShell operatorEmail={gate.email} mfaRequired={gate.mfaRequired}>
+    <AdminShell operatorEmail={access.email} mfaRequired={access.mfaRequired}>
       {children}
     </AdminShell>
   )
