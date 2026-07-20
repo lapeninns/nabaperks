@@ -230,7 +230,14 @@ test("Given auth confirmation accepts a next path When redirects are built Then 
   assert.doesNotMatch(confirmRoute, /return `\\$\\{url\\.pathname\\}/)
 })
 
-test("Given Supabase auth SMS hooks receive external payloads When payloads are parsed Then malformed objects fail closed before Twilio", () => {
+test("Given Supabase auth hooks receive external payloads When the shared envelope opens them Then unsigned or malformed requests fail closed before any provider", () => {
+  const envelope = readProjectFile(
+    "app",
+    "api",
+    "auth",
+    "hooks",
+    "signed-hook-envelope.ts"
+  )
   const smsHook = readProjectFile(
     "app",
     "api",
@@ -239,15 +246,40 @@ test("Given Supabase auth SMS hooks receive external payloads When payloads are 
     "send-sms",
     "route.ts"
   )
+  const emailHook = readProjectFile(
+    "app",
+    "api",
+    "auth",
+    "hooks",
+    "send-email",
+    "route.ts"
+  )
 
-  assert.match(smsHook, /let parsedBody: unknown/)
-  assert.match(smsHook, /parseSendSmsHookPayload\(parsedBody\)/)
+  // The signature check runs over the raw body before JSON parsing, and a
+  // JSON syntax failure returns the Supabase hook error shape.
+  assert.match(envelope, /verifyStandardWebhook\(\{/)
+  assert.match(envelope, /request\.headers\.get\("webhook-signature"\)/)
+  assert.match(envelope, /verifyStandardWebhook[\s\S]*let parsedBody: unknown/)
+  assert.match(envelope, /hookError\(401, "Invalid signature\."\)/)
+  assert.match(envelope, /error instanceof SyntaxError/)
+  assert.match(envelope, /hookError\(400, "Malformed payload\."\)/)
+
+  // Both hooks read the payload only through the shared envelope, then parse
+  // the provider-specific shape defensively.
+  for (const hook of [smsHook, emailHook]) {
+    assert.match(hook, /openSignedHookEnvelope\(request, secret\)/)
+    assert.match(hook, /if \(!envelope\.ok\)[\s\S]*envelope\.response/)
+    assert.doesNotMatch(hook, /JSON\.parse\(/)
+    assert.doesNotMatch(hook, /request\.text\(\)/)
+  }
+
+  assert.match(smsHook, /parseSendSmsHookPayload\(envelope\.payload\)/)
   assert.match(smsHook, /function parseSendSmsHookPayload\(value: unknown\)/)
   assert.match(smsHook, /if \(!isRecord\(value\)\) return null/)
   assert.match(smsHook, /!Array\.isArray\(value\)/)
   assert.match(smsHook, /stringValue\(value\.user\.phone\)/)
   assert.match(smsHook, /stringValue\(value\.sms\.otp\)/)
-  assert.doesNotMatch(smsHook, /JSON\.parse\(body\) as SendSmsHookPayload/)
+  assert.match(emailHook, /parseSendEmailHookPayload\(envelope\.payload\)/)
 })
 
 test("Given Supabase email hooks need Resend When provider config is missing Then aliases are not retained for undelivered codes", () => {

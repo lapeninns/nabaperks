@@ -1,7 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server"
 
+import {
+  hookError,
+  openSignedHookEnvelope,
+} from "@/app/api/auth/hooks/signed-hook-envelope"
 import { sendSmsOtp } from "@/lib/notifications/twilio"
-import { verifyStandardWebhook } from "@/lib/notifications/standard-webhook"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -9,13 +12,6 @@ export const dynamic = "force-dynamic"
 type SendSmsHookPayload = {
   readonly user?: { readonly phone?: string }
   readonly sms?: { readonly otp?: string }
-}
-
-function hookError(httpCode: number, message: string) {
-  return NextResponse.json(
-    { error: { http_code: httpCode, message } },
-    { status: httpCode }
-  )
 }
 
 /**
@@ -29,30 +25,12 @@ export async function POST(request: NextRequest) {
     return hookError(500, "SMS hook is not configured.")
   }
 
-  const body = await request.text()
-  const verified = verifyStandardWebhook({
-    secret,
-    id: request.headers.get("webhook-id") ?? "",
-    timestamp: request.headers.get("webhook-timestamp") ?? "",
-    signatureHeader: request.headers.get("webhook-signature") ?? "",
-    body,
-  })
-  if (!verified) {
-    return hookError(401, "Invalid signature.")
+  const envelope = await openSignedHookEnvelope(request, secret)
+  if (!envelope.ok) {
+    return envelope.response
   }
 
-  let parsedBody: unknown
-  try {
-    parsedBody = JSON.parse(body)
-  } catch (error) {
-    if (!(error instanceof SyntaxError)) {
-      throw error
-    }
-
-    return hookError(400, "Malformed payload.")
-  }
-
-  const payload = parseSendSmsHookPayload(parsedBody)
+  const payload = parseSendSmsHookPayload(envelope.payload)
   if (!payload) {
     return hookError(400, "Malformed payload.")
   }
