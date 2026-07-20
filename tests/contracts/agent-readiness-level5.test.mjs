@@ -117,11 +117,18 @@ test("Given routine pull requests When CI runs Then deep browser proof is sharde
 
   assert.match(ci, /quality:check/)
   assert.match(ci, /shard: \[1\/4, 2\/4, 3\/4, 4\/4\]/)
+  assert.match(ci, /shard: \[1\/2, 2\/2\]/)
   assert.match(ci, /--shard/)
+  // Every dev-server browser job stays single-worker: the webpack dev
+  // server intermittently 500s under parallel in-job load, and
+  // failOnFlakyTests turns any recovery into a red run. Wall-clock
+  // parallelism comes from sharding across jobs instead.
   assert.match(ci, /PLAYWRIGHT_WORKERS: "1"/)
+  assert.doesNotMatch(ci, /PLAYWRIGHT_WORKERS: "(?!1")/)
   assert.match(playwright, /fullyParallel: true/)
   assert.match(playwright, /workers: localWorkers/)
   assert.doesNotMatch(buildJob, /e2e:install/)
+  assert.match(ci, /\.\/\.github\/actions\/playwright/)
 
   for (const [job, protectedName, dependency] of [
     ["e2e-gate", "E2E \\(DB-free harness tier\\)", "e2e"],
@@ -137,13 +144,39 @@ test("Given routine pull requests When CI runs Then deep browser proof is sharde
     )
   }
 
-  for (const job of ["a11y", "visual", "lighthouse", "zap-baseline", "db"]) {
+  // The dev-server tiers fan out from the fast lane; the production-bundle
+  // consumers fan out from the single production build.
+  for (const [job, dependency] of [
+    ["a11y", "fast"],
+    ["visual", "fast"],
+    ["db", "fast"],
+    ["lighthouse", "build"],
+    ["zap-baseline", "build"],
+  ]) {
     assert.match(
       ci,
       new RegExp(
-        `\\n  ${job}:\\n(?:(?!\\n  [a-z][a-z0-9-]*:\\n)[\\s\\S])*?\\n    needs: build\\n`
+        `\\n  ${job}:\\n(?:(?!\\n  [a-z][a-z0-9-]*:\\n)[\\s\\S])*?\\n    needs: ${dependency}\\n`
       )
     )
+  }
+
+  // The long-standing required check folds every lane; the production
+  // bundle is built once and reused instead of rebuilt per consumer.
+  assert.match(ci, /name: Typecheck and build/)
+  assert.match(ci, /needs: \[fast, quality, build\]/)
+  const lighthouseJob = ci.slice(
+    ci.indexOf("\n  lighthouse:"),
+    ci.indexOf("\n  lighthouse-gate:")
+  )
+  const zapJob = ci.slice(
+    ci.indexOf("\n  zap-baseline:"),
+    ci.indexOf("\n  db:")
+  )
+  for (const consumer of [lighthouseJob, zapJob]) {
+    assert.doesNotMatch(consumer, /run: pnpm build/)
+    assert.match(consumer, /download-artifact/)
+    assert.match(consumer, /name: next-build/)
   }
 
   assert.match(ci, /--collect\.url=/)
