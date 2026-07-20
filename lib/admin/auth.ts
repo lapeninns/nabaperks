@@ -7,21 +7,26 @@ import { redirect } from "next/navigation"
 import { getCurrentUser } from "@/lib/auth/session"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
+export type AdminGate =
+  | { readonly status: "anonymous" }
+  | { readonly status: "denied"; readonly reason: string }
+  | { readonly status: "mfa_required"; readonly email: string }
+  | {
+      readonly status: "allowed"
+      readonly email: string
+      readonly mfaRequired: boolean
+    }
+
 export type AdminAccess =
   | { status: "allowed"; email: string; mfaRequired: boolean }
   | { status: "denied"; reason: string }
 
 type AllowedAdminAccess = Extract<AdminAccess, { status: "allowed" }>
 
-// Memoized per request: the admin layout, page guard, and every
-// service-role read (`requireAdminRead`) resolve admin access independently,
-// which otherwise repeats the `internal_admins` SELECT and the MFA AAL check
-// ~7x per admin page. `cache()` collapses those to one round-trip each.
-export const getAdminAccess = cache(async (): Promise<AdminAccess> => {
+export const getAdminGate = cache(async (): Promise<AdminGate> => {
   const user = await getCurrentUser()
-
   if (!user) {
-    redirect("/login?next=/admin")
+    return { status: "anonymous" }
   }
 
   const supabase = await createSupabaseServerClient()
@@ -40,7 +45,6 @@ export const getAdminAccess = cache(async (): Promise<AdminAccess> => {
   }
 
   const mfaRequired = isAdminMfaRequired()
-
   if (mfaRequired) {
     const { data: mfa, error: mfaError } =
       await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
@@ -50,10 +54,7 @@ export const getAdminAccess = cache(async (): Promise<AdminAccess> => {
     }
 
     if (mfa.currentLevel !== "aal2") {
-      return {
-        status: "denied",
-        reason: "Admin MFA verification is required.",
-      }
+      return { status: "mfa_required", email: data.email }
     }
   }
 
@@ -61,6 +62,31 @@ export const getAdminAccess = cache(async (): Promise<AdminAccess> => {
     status: "allowed",
     email: data.email,
     mfaRequired,
+  }
+})
+
+export const getAdminAccess = cache(async (): Promise<AdminAccess> => {
+  const gate = await getAdminGate()
+
+  if (gate.status === "anonymous") {
+    redirect("/login?next=/admin")
+  }
+
+  if (gate.status === "denied") {
+    return { status: "denied", reason: gate.reason }
+  }
+
+  if (gate.status === "mfa_required") {
+    return {
+      status: "denied",
+      reason: "Admin MFA verification is required.",
+    }
+  }
+
+  return {
+    status: "allowed",
+    email: gate.email,
+    mfaRequired: gate.mfaRequired,
   }
 })
 
