@@ -116,12 +116,15 @@ test("Given routine pull requests When CI runs Then deep browser proof is sharde
   const buildJob = ci.slice(ci.indexOf("  build:"), ci.indexOf("\n  e2e:"))
 
   assert.match(ci, /quality:check/)
-  assert.match(ci, /shard: \[1\/3, 2\/3, 3\/3\]/)
+  assert.match(ci, /shard: \[1\/4, 2\/4, 3\/4, 4\/4\]/)
+  assert.match(ci, /shard: \[1\/2, 2\/2\]/)
   assert.match(ci, /--shard/)
-  // Dev-server browser tiers use both runner cores; pixel snapshots stay
-  // single-worker so blessed baselines keep deterministic paint timing.
-  assert.match(ci, /PLAYWRIGHT_WORKERS: "2"/)
+  // Every dev-server browser job stays single-worker: the webpack dev
+  // server intermittently 500s under parallel in-job load, and
+  // failOnFlakyTests turns any recovery into a red run. Wall-clock
+  // parallelism comes from sharding across jobs instead.
   assert.match(ci, /PLAYWRIGHT_WORKERS: "1"/)
+  assert.doesNotMatch(ci, /PLAYWRIGHT_WORKERS: "(?!1")/)
   assert.match(playwright, /fullyParallel: true/)
   assert.match(playwright, /workers: localWorkers/)
   assert.doesNotMatch(buildJob, /e2e:install/)

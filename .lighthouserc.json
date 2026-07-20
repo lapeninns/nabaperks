@@ -4,7 +4,7 @@
       "startServerCommand": "PORT=3130 pnpm start",
       "startServerReadyPattern": "Ready",
       "startServerReadyTimeout": 120000,
-      "numberOfRuns": 2,
+      "numberOfRuns": 3,
       "url": [
         "http://127.0.0.1:3130/",
         "http://127.0.0.1:3130/pricing",
