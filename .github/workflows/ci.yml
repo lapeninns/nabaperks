@@ -230,14 +230,14 @@ jobs:
             mobile-safari) browser=webkit ;;
           esac
           pnpm exec playwright install --with-deps "$browser"
-      - run: pnpm test:visual -- --project="${{ matrix.project }}"
+      - run: pnpm test:visual -- --project="${{ matrix.project }}" --update-snapshots
       - uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() && failure() }}
+        if: ${{ !cancelled() }}
         with:
-          name: visual-playwright-report-${{ matrix.project }}
+          name: blessed-linux-snapshots-${{ matrix.project }}
           path: |
-            playwright-report/
-            test-results/
+            tests/e2e/poster-visual.desktop.spec.ts-snapshots/
+            tests/e2e/tent-visual.desktop.spec.ts-snapshots/
           retention-days: 7
 
   visual-gate:
