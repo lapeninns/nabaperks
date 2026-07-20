@@ -74,7 +74,10 @@ test("Given a merchant sends a venue announcement When source is inspected Then 
   assert.match(route, /businessDate: londonBusinessDate\(new Date\(\)\)/)
   assert.match(route, /limit: VENUE_ANNOUNCEMENT_DAILY_LIMIT/)
   assert.match(route, /windowMs: VENUE_ANNOUNCEMENT_DAILY_WINDOW_MS/)
-  assert.match(route, /headers: \{ "cache-control": "no-store, max-age=0" \}/)
+  assert.match(
+    route,
+    /noStoreJson as json.*from "@\/lib\/http\/no-store-json"/s
+  )
   assert.match(route, /validateVenueAnnouncementText/)
   assert.match(core, /moderation_rejected/)
   assert.match(core, /isModerationSafeAnnouncementText/)

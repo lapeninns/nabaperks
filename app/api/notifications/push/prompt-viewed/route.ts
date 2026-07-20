@@ -1,6 +1,5 @@
-import { NextResponse } from "next/server"
-
 import { getCurrentCustomer } from "@/lib/customer/identity"
+import { noStoreJson as json } from "@/lib/http/no-store-json"
 import { recordPushPermissionPromptViewed } from "@/lib/notifications/push-subscriptions"
 import { RateLimitError, enforceRateLimit } from "@/lib/security/rate-limit"
 
@@ -26,11 +25,4 @@ export async function POST() {
 
   await recordPushPermissionPromptViewed(customer.id)
   return json({ ok: true }, 200)
-}
-
-function json(body: unknown, status: number) {
-  return NextResponse.json(body, {
-    status,
-    headers: { "cache-control": "no-store, max-age=0" },
-  })
 }

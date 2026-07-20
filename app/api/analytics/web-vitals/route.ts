@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server"
+import { type NextRequest } from "next/server"
 
 import {
   MAX_WEB_VITAL_BODY_BYTES,
@@ -12,6 +12,10 @@ import {
   readBoundedRequestBody,
 } from "@/lib/http/bounded-json-request"
 import {
+  beaconErrorResponse as errorResponse,
+  noStoreEmpty,
+} from "@/lib/http/no-store-json"
+import {
   RateLimitError,
   enforceRateLimit,
   trustedClientIp,
@@ -22,7 +26,6 @@ export const dynamic = "force-dynamic"
 
 const RATE_LIMIT = 120
 const RATE_WINDOW_MS = 60_000
-const NO_STORE_HEADERS = { "cache-control": "no-store, max-age=0" } as const
 
 export async function POST(request: NextRequest) {
   if (!isSameOriginRequest(request)) return errorResponse(403)
@@ -57,19 +60,8 @@ export async function POST(request: NextRequest) {
 
   try {
     await recordWebVitalSample(sample)
-    return new NextResponse(null, { status: 202, headers: NO_STORE_HEADERS })
+    return noStoreEmpty(202)
   } catch {
     return errorResponse(503)
   }
-}
-
-function errorResponse(status: 400 | 403 | 413 | 415 | 429 | 503) {
-  const error =
-    status === 429
-      ? "rate_limited"
-      : status === 503
-        ? "temporarily_unavailable"
-        : "invalid_request"
-
-  return NextResponse.json({ error }, { status, headers: NO_STORE_HEADERS })
 }

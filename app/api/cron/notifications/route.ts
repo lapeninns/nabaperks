@@ -1,5 +1,6 @@
-import { NextResponse, type NextRequest } from "next/server"
+import { type NextRequest } from "next/server"
 
+import { noStoreJson } from "@/lib/http/no-store-json"
 import { runPushNotificationDeliveryWorker } from "@/lib/notifications/delivery-worker"
 import { isAuthorizedCronRequest } from "@/lib/security/cron-auth"
 
@@ -9,10 +10,7 @@ export const maxDuration = 300
 
 export async function GET(request: NextRequest) {
   if (!isAuthorizedCronRequest(request)) {
-    return NextResponse.json(
-      { error: "unauthorized" },
-      { status: 401, headers: { "cache-control": "no-store, max-age=0" } }
-    )
+    return noStoreJson({ error: "unauthorized" }, 401)
   }
 
   // Drain budget (notifications drain throughput): up to five 100-event
@@ -25,8 +23,5 @@ export async function GET(request: NextRequest) {
     timeBudgetMs: 240_000,
   })
 
-  return NextResponse.json(
-    { ok: true, result },
-    { headers: { "cache-control": "no-store, max-age=0" } }
-  )
+  return noStoreJson({ ok: true, result })
 }

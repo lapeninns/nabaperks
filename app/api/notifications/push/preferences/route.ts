@@ -1,6 +1,7 @@
-import { NextResponse, type NextRequest } from "next/server"
+import { type NextRequest } from "next/server"
 
 import { getCurrentCustomer } from "@/lib/customer/identity"
+import { noStoreJson as json } from "@/lib/http/no-store-json"
 import {
   getCustomerNotificationPreferences,
   updateCustomerNotificationPreferences,
@@ -45,7 +46,10 @@ export async function POST(request: NextRequest) {
       body.transactionalEnabled,
       current.transactionalEnabled
     ),
-    reminderEnabled: booleanValue(body.reminderEnabled, current.reminderEnabled),
+    reminderEnabled: booleanValue(
+      body.reminderEnabled,
+      current.reminderEnabled
+    ),
     marketingEnabled: booleanValue(
       body.marketingEnabled,
       current.marketingEnabled
@@ -53,13 +57,6 @@ export async function POST(request: NextRequest) {
   })
 
   return json({ ok: true, preferences }, 200)
-}
-
-function json(body: unknown, status: number) {
-  return NextResponse.json(body, {
-    status,
-    headers: { "cache-control": "no-store, max-age=0" },
-  })
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -23,12 +23,21 @@ test("Given the customer reward status route is polled When source is inspected 
   )
 
   assert.match(route, /export const dynamic = "force-dynamic"/)
-  assert.match(route, /const NO_STORE = "no-store, max-age=0"/)
-  assert.match(route, /headers: \{ "cache-control": NO_STORE \}/)
+  assert.match(
+    route,
+    /noStoreJson as json.*from "@\/lib\/http\/no-store-json"/s
+  )
+  assert.match(
+    readProjectFile("lib", "http", "no-store-json.ts"),
+    /"cache-control": "no-store, max-age=0"/
+  )
   assert.match(route, /const \{ rewardId \} = await context\.params/)
   assert.match(route, /getCustomerRewardStatus\(rewardId\)/)
   assert.match(route, /json\(\{ error: "unauthenticated" \}, 401\)/)
-  assert.match(route, /rewardState\.status !== "ready"[\s\S]*json\(\{ error: "not_found" \}, 404\)/)
+  assert.match(
+    route,
+    /rewardState\.status !== "ready"[\s\S]*json\(\{ error: "not_found" \}, 404\)/
+  )
   assert.match(route, /redeemed: reward\.status === "redeemed"/)
   assert.doesNotMatch(route, /searchParams|nextUrl|request\.url|customerId/)
 })
@@ -67,7 +76,10 @@ test("Given the reward page waits for merchant collection When the client polls 
   assert.match(live, /if \(!active \|\| polling\) return/)
   assert.match(live, /document\.visibilityState === "hidden"[\s\S]*return/)
   assert.match(live, /document\.visibilityState === "visible"[\s\S]*check\(\)/)
-  assert.match(live, /fetch\(`\/reward\/\$\{rewardId\}\/status`, \{[\s\S]*cache: "no-store"/)
+  assert.match(
+    live,
+    /fetch\(`\/reward\/\$\{rewardId\}\/status`, \{[\s\S]*cache: "no-store"/
+  )
   assert.match(live, /controller = new AbortController\(\)/)
   assert.match(live, /controller\?\.abort\(\)/)
   assert.match(live, /window\.addEventListener\("focus", resume\)/)

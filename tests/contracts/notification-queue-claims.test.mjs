@@ -181,6 +181,9 @@ test("Given push subscription routes mutate service-role state When source is in
     "route.ts"
   )
 
+  const noStoreHelper = readProjectFile("lib", "http", "no-store-json.ts")
+  assert.match(noStoreHelper, /"cache-control": "no-store, max-age=0"/)
+
   for (const route of [
     subscribe,
     refresh,
@@ -194,7 +197,10 @@ test("Given push subscription routes mutate service-role state When source is in
       route,
       /if \(!customer\) return json\(\{ error: "unauthenticated" \}, 401\)/
     )
-    assert.match(route, /headers: \{ "cache-control": "no-store, max-age=0" \}/)
+    assert.match(
+      route,
+      /noStoreJson as json.*from "@\/lib\/http\/no-store-json"/s
+    )
     assert.doesNotMatch(route, /customerId:\s*(body|request)/)
   }
 

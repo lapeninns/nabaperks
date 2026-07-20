@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server"
+import { type NextRequest } from "next/server"
 
 import {
   MAX_FUNNEL_BODY_BYTES,
@@ -12,6 +12,10 @@ import {
   readBoundedRequestBody,
 } from "@/lib/http/bounded-json-request"
 import {
+  beaconErrorResponse as errorResponse,
+  noStoreJson,
+} from "@/lib/http/no-store-json"
+import {
   RateLimitError,
   enforceRateLimit,
   trustedClientIp,
@@ -22,7 +26,6 @@ export const dynamic = "force-dynamic"
 
 const FUNNEL_RATE_LIMIT = 30
 const FUNNEL_RATE_WINDOW_MS = 60_000
-const NO_STORE_HEADERS = { "cache-control": "no-store, max-age=0" } as const
 
 export async function POST(request: NextRequest) {
   if (!isSameOriginRequest(request)) return errorResponse(403)
@@ -61,22 +64,8 @@ export async function POST(request: NextRequest) {
       funnelToken: body.token,
     })
 
-    return NextResponse.json(
-      { token: result.token },
-      { status: 202, headers: NO_STORE_HEADERS }
-    )
+    return noStoreJson({ token: result.token }, 202)
   } catch {
     return errorResponse(503)
   }
-}
-
-function errorResponse(status: 400 | 403 | 413 | 415 | 429 | 503) {
-  const error =
-    status === 429
-      ? "rate_limited"
-      : status === 503
-        ? "temporarily_unavailable"
-        : "invalid_request"
-
-  return NextResponse.json({ error }, { status, headers: NO_STORE_HEADERS })
 }

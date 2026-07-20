@@ -34,6 +34,7 @@ describe("contract-platform-merchant-digest-email source contract", () => {
       "route.ts"
     )
     const guard = readProjectFile("lib", "security", "cron-auth.ts")
+    const noStoreHelper = readProjectFile("lib", "http", "no-store-json.ts")
 
     // When / Then
     assert.match(route, /export const runtime = "nodejs"/)
@@ -42,8 +43,8 @@ describe("contract-platform-merchant-digest-email source contract", () => {
     assert.match(route, /runMerchantWeeklyDigest/)
     assert.match(route, /from "@\/lib\/security\/cron-auth"/)
     assert.match(route, /isAuthorizedCronRequest\(request\)/)
-    assert.match(route, /status: 401/)
-    assert.match(route, /cache-control": "no-store, max-age=0"/)
+    assert.match(route, /noStoreJson\(\{ error: "unauthorized" \}, 401\)/)
+    assert.match(noStoreHelper, /"cache-control": "no-store, max-age=0"/)
     assert.match(guard, /process\.env\.CRON_SECRET/)
     assert.match(guard, /timingSafeEqual/)
   })
