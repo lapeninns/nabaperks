@@ -4,6 +4,7 @@ import { test } from "node:test"
 import {
   isAllowedWebPushEndpoint,
   normalizePermissionState,
+  pushEndpointFromBody,
   validatePushEndpoint,
   validatePushSubscriptionInput,
 } from "@/lib/notifications/push-subscription-input"
@@ -66,6 +67,26 @@ test("validatePushEndpoint accepts only allowed push provider hosts", () => {
     null
   )
   assert.equal(validatePushEndpoint("https://example.com/push"), null)
+})
+
+test("pushEndpointFromBody reads bare endpoints and nested subscription payloads", () => {
+  // Characterises the disable/unsubscribe request body contract: a string
+  // `endpoint` wins, otherwise the nested subscription endpoint is used.
+  assert.equal(pushEndpointFromBody({ endpoint }), endpoint)
+  assert.equal(pushEndpointFromBody({ subscription: { endpoint } }), endpoint)
+  assert.equal(
+    pushEndpointFromBody({ endpoint, subscription: { endpoint: "other" } }),
+    endpoint
+  )
+  assert.equal(pushEndpointFromBody({ endpoint: 42 }), null)
+  assert.equal(pushEndpointFromBody({ subscription: "not-a-record" }), null)
+  assert.equal(pushEndpointFromBody(null), null)
+  assert.equal(pushEndpointFromBody([]), null)
+  assert.equal(pushEndpointFromBody("endpoint"), null)
+  // A nested non-string endpoint passes through and must be rejected by
+  // validatePushEndpoint downstream.
+  assert.equal(pushEndpointFromBody({ subscription: {} }), undefined)
+  assert.equal(validatePushEndpoint(undefined), null)
 })
 
 test("normalizePermissionState accepts known browser states and collapses unknown values", () => {
