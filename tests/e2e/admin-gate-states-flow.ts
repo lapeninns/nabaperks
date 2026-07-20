@@ -27,7 +27,6 @@ type AdminResponseError = {
 
 const PASSWORD = "NabaperksDemo1!"
 const INTERNAL_ADMIN_REASON = "Internal admin access is required."
-const MFA_REASON = "Admin MFA verification is required."
 const ADMIN_REDIRECT_TIMEOUT_MS = 30_000
 
 const ACTIVE_ADMIN = {
@@ -196,12 +195,17 @@ export function describeAdminGateStates(): void {
       }
     })
 
-    test("denies a seeded admin without aal2 when MFA is required", async ({
+    test("allows a seeded admin into the admin shell with email and password", async ({
       page,
     }) => {
       const adminResponseErrors = collectAdminResponseErrors(page)
       await signInToAdmin(page, ACTIVE_ADMIN)
-      await expectAccessDenied(page, MFA_REASON, adminResponseErrors)
+      await expect(
+        page.getByRole("navigation", { name: "Admin navigation" })
+      ).toBeVisible()
+      await expect(page.getByText("Operator:")).toBeVisible()
+      expect(new URL(page.url()).pathname).toBe("/admin")
+      expect(adminResponseErrors).toEqual([])
     })
   })
 }

@@ -15,8 +15,7 @@ type AllowedAdminAccess = Extract<AdminAccess, { status: "allowed" }>
 
 // Memoized per request: the admin layout, page guard, and every
 // service-role read (`requireAdminRead`) resolve admin access independently,
-// which otherwise repeats the `internal_admins` SELECT and the MFA AAL check
-// ~7x per admin page. `cache()` collapses those to one round-trip each.
+// which otherwise repeats the `internal_admins` SELECT ~7x per admin page.
 export const getAdminAccess = cache(async (): Promise<AdminAccess> => {
   const user = await getCurrentUser()
 
@@ -39,33 +38,17 @@ export const getAdminAccess = cache(async (): Promise<AdminAccess> => {
     return { status: "denied", reason: "Internal admin access is required." }
   }
 
-  const mfaRequired = isAdminMfaRequired()
-
-  if (mfaRequired) {
-    const { data: mfa, error: mfaError } =
-      await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
-
-    if (mfaError) {
-      throw new Error(`Unable to verify admin MFA: ${mfaError.message}`)
-    }
-
-    if (mfa.currentLevel !== "aal2") {
-      return {
-        status: "denied",
-        reason: "Admin MFA verification is required.",
-      }
-    }
-  }
-
   return {
     status: "allowed",
     email: data.email,
-    mfaRequired,
+    // Authenticator MFA is not required — admin signs in with email + password
+    // (and email OTP for signup/reset). Kept on the type for shell display.
+    mfaRequired: false,
   }
 })
 
 export function isAdminMfaRequired() {
-  return true
+  return false
 }
 
 export async function requireAdminRead() {

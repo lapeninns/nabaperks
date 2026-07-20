@@ -22,11 +22,11 @@ function assertBefore(source, earlier, later) {
   assert.ok(earlierIndex < laterIndex, `${earlier} appears before ${later}`)
 }
 
-test("Given admin RPCs and RLS policies share the internal-admin helper When SQL is inspected Then admin access requires an AAL2 session", () => {
+test("Given admin RPCs and RLS policies share the internal-admin helper When SQL is inspected Then admin access is active-row only without AAL2", () => {
   const migration = readProjectFile(
     "supabase",
     "migrations",
-    "20260702180000_admin_mfa_hardening.sql"
+    "20260720100000_remove_admin_aal2_requirement.sql"
   )
   const adminAuth = readProjectFile("lib", "admin", "auth.ts")
 
@@ -34,11 +34,12 @@ test("Given admin RPCs and RLS policies share the internal-admin helper When SQL
     migration,
     /create or replace function public\.is_internal_admin\(\)/
   )
-  assert.match(migration, /auth\.jwt\(\)\s*->>\s*'aal'/)
-  assert.match(migration, /request\.jwt\.claim\.aal/)
-  assert.match(migration, /=\s*'aal2'/)
+  assert.doesNotMatch(migration, /=\s*'aal2'/)
   assert.match(migration, /notify pgrst, 'reload schema'/)
-  assert.match(adminAuth, /export function isAdminMfaRequired[\s\S]*return true/)
+  assert.match(
+    adminAuth,
+    /export function isAdminMfaRequired[\s\S]*return false/
+  )
 })
 
 test("Given customer OTP send flows When actions are inspected Then send limits include a phone-only bucket before provider dispatch", () => {
@@ -54,7 +55,10 @@ test("Given customer OTP send flows When actions are inspected Then send limits 
       "await enforceCustomerOtpSendRateLimit",
       "await startCustomerPhoneVerification(contact)"
     )
-    assert.doesNotMatch(actions, /customer-(?:identity|login):\$\{contact\.toLowerCase\(\)\}:\$\{requestIdentity\}/)
+    assert.doesNotMatch(
+      actions,
+      /customer-(?:identity|login):\$\{contact\.toLowerCase\(\)\}:\$\{requestIdentity\}/
+    )
   }
 })
 
