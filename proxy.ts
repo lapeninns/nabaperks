@@ -17,9 +17,8 @@ import {
 } from "@/lib/analytics/funnel-token"
 import { REQUEST_PATH_HEADER } from "@/lib/navigation/request-path"
 import {
+  COMMON_SECURITY_HEADERS,
   dynamicContentSecurityPolicy,
-  isStaticMarketingPath,
-  staticMarketingContentSecurityPolicy,
 } from "@/lib/security/csp"
 import { CUSTOMER_DEVICE_HEADER } from "@/lib/security/rate-limit-core"
 import {
@@ -31,17 +30,10 @@ import { refreshSupabaseSession } from "@/lib/supabase/update-session"
 const CUSTOMER_DEVICE_COOKIE = "nabaperks_device"
 const CUSTOMER_DEVICE_TTL_SECONDS = 365 * 24 * 60 * 60
 
-const SECURITY_HEADERS = {
-  "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
-  "X-Frame-Options": "DENY",
-  "X-Content-Type-Options": "nosniff",
-  "Referrer-Policy": "strict-origin-when-cross-origin",
-  "Permissions-Policy":
-    "camera=(), microphone=(), payment=(), usb=(), interest-cohort=(), geolocation=(self)",
-} as const
-
 // Next.js 16 Proxy (formerly middleware). Refreshes Supabase auth cookies on
-// every request, then attaches observability and security headers. It reuses an
+// stateful application requests, then attaches observability and security
+// headers. Cacheable brochure routes are deliberately outside the matcher and
+// receive equivalent fixed headers from next.config.ts. It reuses an
 // inbound `x-request-id` (e.g. from a load balancer) or mints one, exposes it to
 // server components and route handlers via the forwarded request headers, and
 // echoes it on the response so clients and logs can be correlated end to end.
@@ -49,13 +41,8 @@ export async function proxy(request: NextRequest) {
   const operationalProbe = isOperationalProbePath(request.nextUrl.pathname)
   const requestId = resolveRequestId(request.headers)
   const requestPath = `${request.nextUrl.pathname}${request.nextUrl.search}`
-  const nonce = isStaticMarketingPath(request.nextUrl.pathname)
-    ? undefined
-    : btoa(crypto.randomUUID())
-  const csp =
-    nonce === undefined
-      ? staticMarketingContentSecurityPolicy()
-      : dynamicContentSecurityPolicy(nonce)
+  const nonce = btoa(crypto.randomUUID())
+  const csp = dynamicContentSecurityPolicy(nonce)
   const joinJourney = operationalProbe ? null : resolveJoinJourney(request)
   const customerDevice = operationalProbe
     ? null
@@ -76,8 +63,8 @@ export async function proxy(request: NextRequest) {
     })
     nextResponse.headers.set(REQUEST_ID_HEADER, requestId)
     nextResponse.headers.set("Content-Security-Policy", csp)
-    for (const [header, value] of Object.entries(SECURITY_HEADERS)) {
-      nextResponse.headers.set(header, value)
+    for (const { key, value } of COMMON_SECURITY_HEADERS) {
+      nextResponse.headers.set(key, value)
     }
     return nextResponse
   }
@@ -118,7 +105,7 @@ function forwardedRequestHeaders(
   requestId: string,
   requestPath: string,
   csp: string,
-  nonce: string | undefined,
+  nonce: string,
   joinJourneyToken: string | undefined,
   customerDeviceId: string | undefined
 ) {
@@ -131,9 +118,7 @@ function forwardedRequestHeaders(
   if (joinJourneyToken) {
     requestHeaders.set(JOIN_JOURNEY_HEADER, joinJourneyToken)
   }
-  if (nonce !== undefined) {
-    requestHeaders.set("x-nonce", nonce)
-  }
+  requestHeaders.set("x-nonce", nonce)
   requestHeaders.set("Content-Security-Policy", csp)
 
   const cookies = request.cookies.getAll()
@@ -196,8 +181,29 @@ function resolveJoinJourney(
 }
 
 export const config = {
-  // Run on application routes; skip Next internals and static assets.
+  // Run only on stateful surfaces. Public brochure pages stay outside Proxy so
+  // they can be served from the framework/CDN cache without an auth refresh,
+  // request nonce, or device cookie making the response private.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icons/|manifest.webmanifest|sw.js|robots.txt|sitemap.xml).*)",
+    "/api/:path*",
+    "/app/:path*",
+    "/admin/:path*",
+    "/auth/:path*",
+    "/card/:path*",
+    "/claim/:path*",
+    "/demo/:path*",
+    "/dev/:path*",
+    "/home/:path*",
+    "/login",
+    "/m/:path*",
+    "/merchant/:path*",
+    "/offline",
+    "/q/:path*",
+    "/r/:path*",
+    "/reset-password",
+    "/reward/:path*",
+    "/scan/:path*",
+    "/signup/:path*",
+    "/start/:path*",
   ],
 }

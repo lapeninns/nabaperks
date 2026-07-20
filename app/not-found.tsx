@@ -1,5 +1,4 @@
 import Link from "next/link"
-import { connection } from "next/server"
 import { AlertDiamondIcon } from "@hugeicons/core-free-icons"
 
 import { EmptyState, Logo } from "@/components/brand"
@@ -8,9 +7,7 @@ import { OPEN_MY_CARDS_LABEL } from "@/lib/copy/product-copy"
 
 export const metadata = { title: "Page not found" }
 
-export default async function NotFound() {
-  await connection()
-
+export default function NotFound() {
   return (
     <main className="grid min-h-svh place-items-center px-6 py-10">
       <section className="grid w-full max-w-sm justify-items-center gap-6">

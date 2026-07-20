@@ -1,23 +1,26 @@
 import { expect, test } from "@playwright/test"
 
-const PUBLIC_SITE_URLS = [
+const INDEXABLE_SITE_URLS = [
   "https://nabaperks.com/",
   "https://nabaperks.com/pricing",
   "https://nabaperks.com/how-it-works",
   "https://nabaperks.com/loyalty-for-pubs",
-  "https://nabaperks.com/loyalty-for-cafes",
-  "https://nabaperks.com/loyalty-for-bars",
-  "https://nabaperks.com/loyalty-for-takeaways",
   "https://nabaperks.com/guides/reward-regulars-without-an-app",
   "https://nabaperks.com/guides/best-loyalty-ideas-for-pubs",
   "https://nabaperks.com/guides/paper-vs-qr-loyalty-for-pubs",
   "https://nabaperks.com/about",
-  "https://nabaperks.com/signup",
   "https://nabaperks.com/privacy",
   "https://nabaperks.com/terms",
   "https://nabaperks.com/cookies",
   "https://nabaperks.com/merchant-terms",
   "https://nabaperks.com/data-processing",
+] as const
+
+const NON_INDEXABLE_MARKETING_ROUTES = [
+  "/signup",
+  "/loyalty-for-cafes",
+  "/loyalty-for-bars",
+  "/loyalty-for-takeaways",
 ] as const
 
 const ACQUISITION_ROUTES = ["/", "/pricing", "/signup"] as const
@@ -100,9 +103,28 @@ test.describe("@public-route-metadata", () => {
     const sitemap = await sitemapResponse.text()
     const llms = await llmsResponse.text()
 
-    for (const url of PUBLIC_SITE_URLS) {
+    for (const url of INDEXABLE_SITE_URLS) {
       expect(sitemap).toContain(`<loc>${url}</loc>`)
       expect(llms).toContain(url)
     }
+
+    for (const route of NON_INDEXABLE_MARKETING_ROUTES) {
+      expect(sitemap).not.toContain(`<loc>https://nabaperks.com${route}</loc>`)
+      expect(llms).not.toContain(`https://nabaperks.com${route}`)
+    }
   })
+
+  for (const route of NON_INDEXABLE_MARKETING_ROUTES) {
+    test(`${route} is noindex but allows link discovery`, async ({ page }) => {
+      await page.goto(route)
+      await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+        "content",
+        /noindex/
+      )
+      await expect(page.locator('meta[name="robots"]')).not.toHaveAttribute(
+        "content",
+        /nofollow/
+      )
+    })
+  }
 })

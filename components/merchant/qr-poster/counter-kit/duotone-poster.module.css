@@ -1,7 +1,7 @@
-/* Nº 07 · Garden (leaf) and Nº 08 · Window (vermillion) — duotone
-   print runs: one paper, one spot ink, a perforated dot strip, and a
-   full-width panel carrying the QR action. The data-spot attribute is
-   the only switch between the two runs; type and copy stay their own. */
+/* Nº 08 · Window — the kit's sole duotone as a print-shop proof sheet:
+   one paper, one vermillion spot ink, crop marks, registration targets
+   and the tint bar still on the sheet. The data-spot attribute names
+   the run. */
 
 .duotone {
   --kit-ground: #f6f1e6;
@@ -12,6 +12,7 @@
   --kit-friction-weight: 700;
   --kit-footer-ink: #f6f1e6;
 
+  position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -19,8 +20,98 @@
   box-sizing: border-box;
 }
 
-.duotone[data-spot="leaf"] {
-  --duo-spot: #16733c;
+/* ---- Proof-sheet furniture ---- */
+.crop {
+  position: absolute;
+  width: 5mm;
+  height: 5mm;
+  border-top: 0.35mm solid rgba(33, 28, 22, 0.55);
+  border-left: 0.35mm solid rgba(33, 28, 22, 0.55);
+  pointer-events: none;
+}
+
+.crop[data-corner="tl"] {
+  left: 3mm;
+  top: 5.5mm;
+}
+
+.crop[data-corner="tr"] {
+  right: 3mm;
+  top: 5.5mm;
+  transform: rotate(90deg);
+}
+
+.crop[data-corner="br"] {
+  right: 3mm;
+  bottom: 5.5mm;
+  transform: rotate(180deg);
+}
+
+.crop[data-corner="bl"] {
+  left: 3mm;
+  bottom: 5.5mm;
+  transform: rotate(270deg);
+}
+
+.registration {
+  position: absolute;
+  top: 95.2mm;
+  width: 3.6mm;
+  height: 3.6mm;
+  border: 0.35mm solid rgba(33, 28, 22, 0.55);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.registration[data-side="left"] {
+  left: 4.2mm;
+}
+
+.registration[data-side="right"] {
+  right: 4.2mm;
+}
+
+.registration::before,
+.registration::after {
+  content: "";
+  position: absolute;
+  background: rgba(33, 28, 22, 0.55);
+}
+
+.registration::before {
+  left: -1.6mm;
+  top: 50%;
+  width: 6.2mm;
+  height: 0.3mm;
+  margin-top: -0.15mm;
+}
+
+.registration::after {
+  top: -1.6mm;
+  left: 50%;
+  width: 0.3mm;
+  height: 6.2mm;
+  margin-left: -0.15mm;
+}
+
+/* The spot-ink tint bar: 100/70/40/15% vermillion, then key ink. */
+.colourBar {
+  position: absolute;
+  right: 6mm;
+  top: 98mm;
+  width: 5mm;
+  height: 25mm;
+  background: linear-gradient(
+    to bottom,
+    #cf330a 0 20%,
+    rgba(207, 51, 10, 0.7) 20% 40%,
+    rgba(207, 51, 10, 0.4) 40% 60%,
+    rgba(207, 51, 10, 0.15) 60% 80%,
+    #211c16 80% 100%
+  );
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+  pointer-events: none;
 }
 
 .duotone[data-spot="vermillion"] {

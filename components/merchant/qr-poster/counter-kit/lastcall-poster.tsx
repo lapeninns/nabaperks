@@ -57,6 +57,13 @@ export function LastcallPoster({
           <p className={styles.sealedLine}>{copy.sealedLine}</p>
         </div>
       </div>
+      <span aria-hidden="true" className={styles.nightSky}>
+        <span className={styles.moon} />
+        <span className={styles.clock} />
+        <span className={styles.spark} data-spot="a" />
+        <span className={styles.spark} data-spot="b" />
+        <span className={styles.spark} data-spot="c" />
+      </span>
       <div className={styles.venueStrip}>
         <KitBrandMark shape="roundel" />
         <KitVenueName venue={businessName} />

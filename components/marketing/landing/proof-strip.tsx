@@ -1,32 +1,53 @@
-import { SectionHeader } from "@/components/brand"
+import { MonoTag, SectionHeader } from "@/components/brand"
 import { Section } from "@/components/layout"
-import { OPERATOR, OPERATOR_ESTATE } from "@/lib/marketing/facts"
+import {
+  CLAIMS_BOUNDARY,
+  OPERATOR,
+  PRODUCT,
+  SCARCITY,
+} from "@/lib/marketing/facts"
 
 /**
- * First-party proof: the operator's real 9-pub estate. Deliberately the only
- * "proof" on the page — no invented stats, no invented testimonials. On phones
- * the estate packs into two name-only columns (postcodes surface from `sm` up)
- * so the trust signal doesn't cost half a screen of scrolling.
+ * Evidence the supplied offer pack can support without testimonials, revenue
+ * figures or venue-count claims. Each item is a delivery fact or a transparent
+ * boundary that the rest of the page expands below.
  */
 export function ProofStrip() {
+  const proof = [
+    {
+      label: "Operator",
+      value: `Built and run by ${OPERATOR.name}`,
+    },
+    {
+      label: "Customer journey",
+      value: `${PRODUCT.term} — no app or wallet pass`,
+    },
+    {
+      label: "Measurement",
+      value: "Return visits shown in your dashboard",
+    },
+    {
+      label: "Honest limit",
+      value: `${SCARCITY.capLine}; ${CLAIMS_BOUNDARY.never.toLowerCase()}`,
+    },
+  ] as const
+
   return (
     <Section id="proof" size="compact">
       <SectionHeader
-        eyebrow="Who's behind it"
-        title="Built by a pub operator, not a software vendor"
-        description={`Nabaperks is built and run by ${OPERATOR.name}, ${OPERATOR.estateLine}.`}
+        eyebrow="What you can check"
+        title="A visible launch, measurable returns and clear limits"
+        description="No anonymous testimonials or invented revenue figures — just the delivery, measurement and conditions behind the offer."
       />
-      <ul className="grid grid-cols-2 gap-x-4 gap-y-1.5 pt-5 sm:gap-x-6 sm:gap-y-2 lg:grid-cols-3">
-        {OPERATOR_ESTATE.map((pub) => (
+      <ul className="grid gap-3 pt-5 sm:grid-cols-2 lg:grid-cols-4">
+        {proof.map((item) => (
           <li
-            key={pub.postcode}
-            className="flex items-baseline justify-between gap-3 border-b-2 border-dashed border-border pb-1.5 sm:pb-2"
+            key={item.label}
+            className="grid content-start gap-2 border-t-2 border-ink pt-3"
           >
-            <span className="text-xs font-bold text-foreground sm:text-sm">
-              {pub.name}
-            </span>
-            <span className="mono-id hidden text-muted-foreground sm:inline">
-              {pub.postcode}
+            <MonoTag className="justify-self-start">{item.label}</MonoTag>
+            <span className="text-sm leading-6 font-bold text-foreground">
+              {item.value}
             </span>
           </li>
         ))}

@@ -19,7 +19,6 @@ import {
   ROUTES,
   VALUE_MATH,
 } from "@/lib/marketing/facts"
-import { getActivePromo } from "@/lib/marketing/promo"
 import {
   breadcrumbSchema,
   faqPageSchema,
@@ -55,7 +54,6 @@ export const metadata: Metadata = {
 }
 
 export default function PricingPage() {
-  const promo = getActivePromo()
   const pricingFaq = PRICING_FAQ_ITEMS
 
   return (
@@ -146,7 +144,7 @@ export default function PricingPage() {
         </ReceiptCard>
       </Section>
       <GuaranteeStack />
-      <ScarcityBand promo={promo} />
+      <ScarcityBand />
       <Section id="pricing-faq">
         <div className="grid gap-6">
           <PageTitle

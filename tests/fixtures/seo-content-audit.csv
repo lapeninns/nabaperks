@@ -1,0 +1,5 @@
+url,pageviews,conversions,backlinks,internal_links,target_intent,preferred_url
+/dead,0,0,0,0,dead intent,
+/winner,10,1,2,5,shared intent,/winner
+/cannibal,20,0,1,2,shared intent,/winner
+/linked,0,0,3,0,linked intent,/winner

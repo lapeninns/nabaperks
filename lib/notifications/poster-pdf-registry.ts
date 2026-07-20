@@ -20,13 +20,13 @@ function renderCounterKit(
 
 const POSTER_PDF_RENDERERS = {
   primer: renderCounterKit,
-  garden: renderCounterKit,
   window: renderCounterKit,
   pinned: renderCounterKit,
   seal: renderCounterKit,
   tally: renderCounterKit,
-  round: renderCounterKit,
   lastcall: renderCounterKit,
+  receipt: renderCounterKit,
+  chalk: renderCounterKit,
 } satisfies Record<PosterDesignId, PosterPdfRenderer>
 
 export function drawPosterPdf(

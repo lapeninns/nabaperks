@@ -61,11 +61,22 @@ async function postFunnelCapture(
 }
 
 function pageViewEvent(pathname: string): PublicFunnelEvent | null {
-  if (pathname === "/signup") return "merchant_signup_started"
   if (pathname === "/signup/verify") {
     return "merchant_otp_verification_viewed"
   }
+  if (isMarketingPage(pathname)) return "merchant_marketing_viewed"
   return null
+}
+
+function isMarketingPage(pathname: string): boolean {
+  return (
+    pathname === "/" ||
+    pathname === "/pricing" ||
+    pathname === "/how-it-works" ||
+    pathname === "/about" ||
+    pathname === "/loyalty-for-pubs" ||
+    pathname.startsWith("/guides/")
+  )
 }
 
 function readFunnelToken(): string | null {

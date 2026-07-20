@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
+import { captureMarketingFunnelEvent } from "@/components/analytics/marketing-funnel-tracker"
 import { ROUTES } from "@/lib/marketing/facts"
 import { cn } from "@/lib/utils"
 
@@ -50,7 +51,14 @@ export function MarketingHeaderNav() {
         <Link href="/login">Log in</Link>
       </Button>
       <Button asChild size="sm">
-        <Link href={ROUTES.signup}>Start free pilot</Link>
+        <Link
+          href={ROUTES.signup}
+          onClick={() => {
+            void captureMarketingFunnelEvent("merchant_signup_clicked")
+          }}
+        >
+          Start free pilot
+        </Link>
       </Button>
     </nav>
   )

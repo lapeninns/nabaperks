@@ -1,4 +1,5 @@
-/* Nº 09 · Pinned — an overprinted note card pinned to deep paper. */
+/* Nº 09 · Pinned — an overprinted note card properly on the board: pinned,
+   taped at the corners, over an earlier notice peeking out underneath. */
 
 .pinned {
   --kit-ground: #ece5d4;
@@ -11,6 +12,7 @@
   --kit-mark-b: #2b43c8;
   --kit-pill-ground: #ece5d4;
 
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -21,8 +23,44 @@
   box-sizing: border-box;
 }
 
+/* The note and the earlier notice peeking out from underneath it. */
+.noteStack {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.behindNote {
+  position: absolute;
+  right: -5.5mm;
+  bottom: 34%;
+  width: 26mm;
+  height: 26mm;
+  background: #fbf8f1;
+  border: 0.45mm solid var(--kit-ink);
+  transform: rotate(4deg);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.behindNote::after {
+  content: "";
+  position: absolute;
+  right: 0.8mm;
+  top: 50%;
+  width: 5.2mm;
+  height: 5.2mm;
+  margin-top: -2.6mm;
+  background: #f5a623;
+  border: 0.45mm solid var(--kit-ink);
+  border-radius: 50%;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
 .note {
   position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: 6mm;
@@ -33,6 +71,29 @@
   padding: 13mm 12mm 0;
   print-color-adjust: exact;
   -webkit-print-color-adjust: exact;
+}
+
+/* Masking tape stuck across the note's top corners. */
+.note::before,
+.note::after {
+  content: "";
+  position: absolute;
+  top: -3.4mm;
+  width: 24mm;
+  height: 7mm;
+  background: rgba(245, 166, 35, 0.4);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.note::before {
+  left: -6mm;
+  transform: rotate(42deg);
+}
+
+.note::after {
+  right: -6mm;
+  transform: rotate(-42deg);
 }
 
 .pin {

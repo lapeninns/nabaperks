@@ -5,7 +5,13 @@ import { PageTitle, ReceiptCard } from "@/components/brand"
 import { MarketingLayout, Section } from "@/components/layout"
 import { JsonLd } from "@/components/seo/json-ld"
 import { Button } from "@/components/ui/button"
-import { GUARANTEE, PLAN_LINE, PRODUCT, ROUTES } from "@/lib/marketing/facts"
+import {
+  GUARANTEE,
+  OPERATOR,
+  PLAN_LINE,
+  PRODUCT,
+  ROUTES,
+} from "@/lib/marketing/facts"
 import {
   articleSchema,
   breadcrumbSchema,
@@ -14,7 +20,7 @@ import {
 } from "@/lib/seo/structured-data"
 
 import { ComparisonTable } from "./comparison-table"
-import { PAPER_VS_QR_ROWS, type Guide } from "./guides-data"
+import { GUIDES, PAPER_VS_QR_ROWS, type Guide } from "./guides-data"
 
 /** Shared metadata recipe for the guide routes. */
 export function guidePageMetadata(guide: Guide): Metadata {
@@ -53,6 +59,10 @@ export function GuidePage({ guide }: { guide: Guide }) {
           title={guide.title}
           description={guide.intro}
         />
+        <p className="mono-id mt-4 text-muted-foreground uppercase">
+          Published by Nabaperks · operated by {OPERATOR.name} · updated{" "}
+          <time dateTime={guide.updatedOn}>19 July 2026</time>
+        </p>
       </Section>
       <Section width="narrow" size="compact" as="div">
         <article className="grid gap-8">
@@ -80,6 +90,28 @@ export function GuidePage({ guide }: { guide: Guide }) {
             </section>
           ))}
         </article>
+      </Section>
+      <Section width="narrow" size="compact">
+        <h2 className="text-xl leading-snug font-extrabold text-foreground">
+          More practical pub loyalty guides
+        </h2>
+        <ul className="mt-3 grid gap-2">
+          {GUIDES.filter((candidate) => candidate.slug !== guide.slug).map(
+            (candidate) => (
+              <li
+                key={candidate.slug}
+                className="border-b-2 border-dashed border-border pb-2"
+              >
+                <Link
+                  href={candidate.path}
+                  className="focus-ring rounded-sm text-sm font-bold text-primary underline underline-offset-4"
+                >
+                  {candidate.title}
+                </Link>
+              </li>
+            )
+          )}
+        </ul>
       </Section>
       <Section width="narrow" size="compact" className="pb-10">
         <ReceiptCard edge padding="md" className="gap-3">
@@ -117,6 +149,8 @@ export function GuidePage({ guide }: { guide: Guide }) {
               path: guide.path,
               headline: guide.title,
               description: guide.description,
+              datePublished: guide.publishedOn,
+              dateModified: guide.updatedOn,
             }),
             breadcrumbSchema([
               { name: "Home", path: ROUTES.home },

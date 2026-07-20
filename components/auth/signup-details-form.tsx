@@ -110,7 +110,7 @@ export function SignupDetailsForm({
         <AuthField
           id="name"
           label="Your name"
-          description="The owner or operator running the venue. You add the venue name next."
+          description="The owner or operator approving the launch. We ask for the pub details next."
           name="name"
           autoComplete="name"
           defaultValue={state.fields?.name ?? initialName}

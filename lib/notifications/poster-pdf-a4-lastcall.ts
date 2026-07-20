@@ -1,10 +1,12 @@
 import type { LastcallPosterContent } from "@/lib/qr/poster-kit-content-types"
 
 import {
-  drawDashedLine,
+  bodyLeading,
+  displayLeading,
   drawWrappedText,
   mm,
   POSTER_PDF_COLOR,
+  POSTER_PDF_TYPE,
 } from "./poster-pdf-style"
 import { drawAccentHeadline } from "./poster-pdf-accent"
 import {
@@ -12,12 +14,77 @@ import {
   drawKitMasthead,
   drawKitQrPanel,
 } from "./poster-pdf-kit-pieces"
-import {
-  drawKitCapsule,
-  drawKitCenteredText,
-  drawKitVenueLine,
-} from "./poster-pdf-kit-venue"
+import { drawKitCapsule } from "./poster-pdf-kit-capsule"
+import { drawKitVenueStrip } from "./poster-pdf-kit-brand"
+import { popKitRotation, pushKitRotation } from "./poster-pdf-kit-venue"
 import type { PosterPdfBaseContext } from "./poster-pdf-types"
+
+/** Last-orders sky: crescent moon, sparkles, and the clock a couple of
+ * minutes shy of midnight. */
+function drawLastOrdersSky(context: PosterPdfBaseContext): void {
+  const { page } = context
+  const paper = POSTER_PDF_COLOR.paper
+  page.drawCircle({ x: mm(140), y: mm(76), size: mm(5), color: paper })
+  page.drawCircle({
+    x: mm(142.5),
+    y: mm(77.5),
+    size: mm(4.6),
+    color: POSTER_PDF_COLOR.ink,
+  })
+  for (const [sparkX, sparkY] of [
+    [152, 63],
+    [185, 58],
+    [163, 86],
+  ]) {
+    page.drawRectangle({
+      x: mm(sparkX - 1.4),
+      y: mm(sparkY) - 0.9,
+      width: mm(2.8),
+      height: 1.8,
+      color: paper,
+      opacity: 0.85,
+    })
+    page.drawRectangle({
+      x: mm(sparkX) - 0.9,
+      y: mm(sparkY - 1.4),
+      width: 1.8,
+      height: mm(2.8),
+      color: paper,
+      opacity: 0.85,
+    })
+  }
+  const clockX = mm(174)
+  const clockY = mm(72)
+  page.drawCircle({
+    x: clockX,
+    y: clockY,
+    size: mm(10),
+    borderColor: paper,
+    borderWidth: 1.8,
+  })
+  page.drawRectangle({
+    x: clockX - 0.9,
+    y: clockY,
+    width: 1.8,
+    height: mm(5.5),
+    color: paper,
+  })
+  pushKitRotation(page, 12, clockX, clockY)
+  page.drawRectangle({
+    x: clockX - 0.9,
+    y: clockY,
+    width: 1.8,
+    height: mm(7.5),
+    color: POSTER_PDF_COLOR.sun,
+  })
+  popKitRotation(page)
+  page.drawCircle({
+    x: clockX,
+    y: clockY,
+    size: mm(1),
+    color: POSTER_PDF_COLOR.sun,
+  })
+}
 
 export function drawLastcallA4(
   context: PosterPdfBaseContext,
@@ -35,7 +102,7 @@ export function drawLastcallA4(
     height: mm(content.geometry.sheetHeightMm),
     color: POSTER_PDF_COLOR.ink,
   })
-  drawKitMasthead(page, {
+  const ruleY = drawKitMasthead(page, {
     x: left,
     y: mm(278),
     width,
@@ -47,6 +114,8 @@ export function drawLastcallA4(
     rule: "dashed",
     ruleColor: paper,
   })
+  // First baseline hangs one display ascent plus a 3 mm gutter below the
+  // masthead rule so the caps never strike it.
   const headlineBottom = drawAccentHeadline(
     page,
     {
@@ -56,34 +125,38 @@ export function drawLastcallA4(
     },
     {
       x: left,
-      y: mm(281) - content.typeTiers.hookPt * 0.96,
+      y: ruleY - mm(3) - content.typeTiers.hookPt * 0.96,
       maxWidth: mm(165),
       font: fonts.bold,
       size: content.typeTiers.hookPt,
-      lineHeight: content.typeTiers.hookPt,
+      lineHeight: displayLeading(content.typeTiers.hookPt),
       foreground: paper,
       accent: POSTER_PDF_COLOR.sun,
       maxLines: 3,
     }
   )
-  drawKitCapsule(page, content.badge, {
-    x: mm(154),
-    y: mm(252),
-    font: fonts.monoBold,
-    size: 9.5,
-    textColor: POSTER_PDF_COLOR.white,
-    fill: POSTER_PDF_COLOR.accent,
-    borderColor: paper,
-  })
-  drawWrappedText(page, content.lede, {
+  const ledeBottom = drawWrappedText(page, content.lede, {
     x: left,
     y: headlineBottom - mm(6),
     maxWidth: mm(165),
     font: fonts.bold,
     size: content.typeTiers.substantivePt,
-    lineHeight: content.typeTiers.substantivePt + 6,
+    lineHeight: bodyLeading(content.typeTiers.substantivePt),
     color: paper,
     maxLines: 3,
+  })
+  // Valid-today badge with sun hard shadow (7° in CSS ⇒ -7 in PDF space).
+  drawKitCapsule(page, content.badge, {
+    x: mm(154),
+    y: ledeBottom + mm(0.5),
+    font: fonts.monoBold,
+    size: 9.5,
+    textColor: POSTER_PDF_COLOR.white,
+    fill: POSTER_PDF_COLOR.accent,
+    borderColor: paper,
+    rotateDeg: -7,
+    shadow: POSTER_PDF_COLOR.sun,
+    shadowOffsetMm: 1,
   })
 
   // Framed night card carrying the QR action.
@@ -121,7 +194,7 @@ export function drawLastcallA4(
     x: copyX,
     y: mm(140),
     maxWidth: width - cardWidth - mm(9),
-    size: 12.5,
+    size: POSTER_PDF_TYPE.frictionPt,
     font: fonts.bold,
     color: paper,
     markColors: [POSTER_PDF_COLOR.sun, POSTER_PDF_COLOR.sun],
@@ -131,50 +204,25 @@ export function drawLastcallA4(
     y: mm(112),
     maxWidth: width - cardWidth - mm(9),
     font: fonts.regular,
-    size: 11.5,
-    lineHeight: 16,
+    size: POSTER_PDF_TYPE.bodyPt,
+    lineHeight: bodyLeading(POSTER_PDF_TYPE.bodyPt),
     color: paper,
     maxLines: 4,
   })
 
-  drawDashedLine(page, {
-    x1: left,
-    y1: mm(64),
-    x2: left + width,
-    y2: mm(64),
-    color: paper,
-  })
-  page.drawCircle({
-    x: left + mm(4),
-    y: mm(52),
-    size: mm(4),
-    color: POSTER_PDF_COLOR.accent,
-  })
-  drawKitCenteredText(page, "*", {
-    centerX: left + mm(4),
-    y: mm(49.5),
-    font: fonts.bold,
-    size: 12.5,
-    color: POSTER_PDF_COLOR.white,
-  })
-  const capsuleWidth =
-    fonts.monoBold.widthOfTextAtSize(content.memberTag.toUpperCase(), 8.5) + 16
-  drawKitVenueLine(page, context.merchantName, {
-    x: left + mm(11),
-    y: mm(49),
-    maxWidth: width - mm(15) - capsuleWidth,
-    preferredSize: 15,
-    font: fonts.bold,
-    color: paper,
-  })
-  drawKitCapsule(page, content.memberTag, {
-    x: left + width - capsuleWidth,
+  drawLastOrdersSky(context)
+  drawKitVenueStrip(page, {
+    x: left,
     y: mm(47),
-    font: fonts.monoBold,
-    size: 8.5,
-    textColor: paper,
-    borderColor: paper,
-    borderOpacity: 0.5,
+    width,
+    venue: context.merchantName,
+    memberTag: content.memberTag,
+    fonts,
+    ink: paper,
+    brand: "roundel",
+    tag: "outline",
+    dashedRule: true,
+    ruleColor: paper,
   })
   drawWrappedText(page, content.reassurance, {
     x: left,
@@ -182,7 +230,7 @@ export function drawLastcallA4(
     maxWidth: width,
     font: fonts.monoBold,
     size: content.typeTiers.factsPt,
-    lineHeight: content.typeTiers.factsPt + 3,
+    lineHeight: bodyLeading(content.typeTiers.factsPt),
     color: paper,
     maxLines: 2,
   })

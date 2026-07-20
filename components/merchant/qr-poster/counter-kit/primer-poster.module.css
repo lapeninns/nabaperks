@@ -1,4 +1,5 @@
-/* Nº 06 · Primer — formal ledger statement on deep paper. */
+/* Nº 06 · Primer — a filed agreement on ruled ledger paper: cobalt
+   feints, red margin rule, punch holes and a rubber-stamped signature. */
 
 .primer {
   --kit-ground: #ece5d4;
@@ -7,6 +8,7 @@
   --kit-rule: rgba(33, 28, 22, 0.5);
   --kit-venue-size: 19pt;
 
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 6mm;
@@ -14,6 +16,58 @@
   height: 100%;
   padding: 15mm;
   box-sizing: border-box;
+  /* The ruled page: cobalt feints every 8 mm with a vermillion margin
+     rule between the clause numbers and their titles. */
+  background-image: linear-gradient(
+      to right,
+      transparent 0,
+      transparent 26.5mm,
+      rgba(207, 51, 10, 0.35) 26.5mm,
+      rgba(207, 51, 10, 0.35) calc(26.5mm + 0.25mm),
+      transparent calc(26.5mm + 0.25mm)
+    ),
+    repeating-linear-gradient(
+      to top,
+      rgba(43, 67, 200, 0.14) 0,
+      rgba(43, 67, 200, 0.14) 0.2mm,
+      transparent 0.2mm,
+      transparent 8mm
+    );
+  background-position:
+    0 88mm,
+    0 88mm;
+  background-size:
+    100% calc(100% - 112mm),
+    100% calc(100% - 112mm);
+  background-repeat: no-repeat;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+/* Filed: two punch holes debossed into the left edge. */
+.primer::before {
+  content: "";
+  position: absolute;
+  left: 4.2mm;
+  top: 0;
+  width: 5.6mm;
+  height: 100%;
+  background-image:
+    radial-gradient(
+      circle at 50% 33.3%,
+      rgba(33, 28, 22, 0.08) 2.5mm,
+      rgba(79, 71, 61, 0.3) 2.5mm,
+      rgba(79, 71, 61, 0.3) 2.8mm,
+      transparent 2.9mm
+    ),
+    radial-gradient(
+      circle at 50% 66.6%,
+      rgba(33, 28, 22, 0.08) 2.5mm,
+      rgba(79, 71, 61, 0.3) 2.5mm,
+      rgba(79, 71, 61, 0.3) 2.8mm,
+      transparent 2.9mm
+    );
+  pointer-events: none;
 }
 
 .masthead {
@@ -95,6 +149,27 @@
   display: flex;
   gap: 9mm;
   align-items: center;
+}
+
+/* The issued-by block, with a rubber-stamp frame over the signature. */
+.signatureZone {
+  position: relative;
+  flex: 1;
+  display: flex;
+  min-width: 0;
+}
+
+.signatureZone::after {
+  content: "";
+  position: absolute;
+  left: -2mm;
+  bottom: -2.5mm;
+  width: 64mm;
+  height: 11mm;
+  border: 0.55mm solid rgba(207, 51, 10, 0.85);
+  border-radius: 1mm;
+  transform: rotate(-2.5deg);
+  pointer-events: none;
 }
 
 .legal {

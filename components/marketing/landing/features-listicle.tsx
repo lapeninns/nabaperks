@@ -1,6 +1,3 @@
-"use client"
-
-import { useState } from "react"
 import {
   Analytics01Icon,
   CakeIcon,
@@ -15,9 +12,7 @@ import { Icon, IconRoundel, SectionHeader } from "@/components/brand"
 import type { IconGlyph } from "@/components/brand/icon"
 import { Section } from "@/components/layout"
 import { FEATURES, type MarketingFeatureKey } from "@/lib/marketing/facts"
-import { cn } from "@/lib/utils"
 
-/** Each feature key maps to one Hugeicons glyph (rendered via the brand Icon). */
 const FEATURE_GLYPH: Record<MarketingFeatureKey, IconGlyph> = {
   "no-app-qr": QrCode01Icon,
   "mystery-rewards": GiftIcon,
@@ -28,92 +23,60 @@ const FEATURE_GLYPH: Record<MarketingFeatureKey, IconGlyph> = {
 }
 
 /**
- * Tabbed feature listicle (the ShipFast listicle pattern, rebuilt in Wet Ink):
- * icon tabs select a feature; the open feature shows its checklist and the
- * pain it removes. Client component for the tab state; content is read from
- * the shared marketing facts. Keyboard-operable via native buttons + roving
- * `aria-selected` tabs.
+ * The complete feature set is rendered as semantic server HTML. Visitors can
+ * scan every heading without operating a tab, and search/answer engines receive
+ * the same substantive copy a person sees.
  */
 export function FeaturesListicle() {
-  const [selected, setSelected] = useState<MarketingFeatureKey>(FEATURES[0].key)
-  const active =
-    FEATURES.find((feature) => feature.key === selected) ?? FEATURES[0]
-
   return (
     <Section id="features" size="dense">
       <SectionHeader
         eyebrow="What's included"
         title="Everything set up before you go live"
-        description="Six things the launch stands up for you. Tap through to see what each one includes."
+        description="Six parts of the launch, each tied to a practical objection it removes."
       />
-      <div
-        role="tablist"
-        aria-label="Features"
-        className="mt-5 grid grid-cols-3 gap-2 sm:mt-6 sm:flex sm:flex-wrap"
-      >
-        {FEATURES.map((feature) => {
-          const isActive = feature.key === selected
-
-          return (
-            <button
-              key={feature.key}
-              type="button"
-              role="tab"
-              id={`feature-tab-${feature.key}`}
-              aria-selected={isActive}
-              aria-controls={`feature-panel-${feature.key}`}
-              onClick={() => setSelected(feature.key)}
-              className={cn(
-                "focus-ring group flex flex-col items-center gap-1.5 rounded-lg border-2 px-2 py-2.5 text-center transition-colors duration-[var(--w-dur-fast)] ease-[var(--w-ease)] motion-reduce:transition-none sm:flex-1 sm:gap-2 sm:py-3",
-                isActive
-                  ? "border-ink bg-card shadow-sm"
-                  : "border-dashed border-border bg-transparent hover:bg-card"
-              )}
-            >
-              <IconRoundel
-                size="md"
-                tone={isActive ? "primary" : "secondary"}
-                icon={FEATURE_GLYPH[feature.key]}
-              />
-              <span
-                className={cn(
-                  "mono-meta leading-tight",
-                  isActive ? "text-foreground" : "text-muted-foreground"
-                )}
-              >
-                {feature.tab}
-              </span>
-            </button>
-          )
-        })}
-      </div>
-      <div
-        role="tabpanel"
-        id={`feature-panel-${active.key}`}
-        aria-labelledby={`feature-tab-${active.key}`}
-        className="mt-3 grid gap-3 rounded-lg border-2 border-ink bg-card p-5 shadow-sm sm:mt-4 sm:gap-4 sm:p-8"
-      >
-        <h3 className="text-xl leading-snug font-extrabold text-foreground">
-          {active.title}
-        </h3>
-        <ul className="grid gap-2.5">
-          {active.includes.map((item) => (
-            <li key={item} className="flex items-start gap-3">
-              <Icon
-                icon={CheckmarkCircle02Icon}
-                size={18}
-                className="mt-0.5 shrink-0 text-reward"
-              />
-              <span className="text-sm leading-6 text-muted-foreground">
-                {item}
-              </span>
-            </li>
-          ))}
-        </ul>
-        <p className="mono-id border-t-2 border-dashed border-border pt-3 text-primary uppercase">
-          {active.removes}
-        </p>
-      </div>
+      <ol className="mt-5 divide-y-2 divide-dashed divide-border border-y-2 border-ink sm:mt-6">
+        {FEATURES.map((feature, index) => (
+          <li
+            key={feature.key}
+            id={`feature-${feature.key}`}
+            className="grid gap-4 py-5 sm:grid-cols-[minmax(13rem,0.8fr)_minmax(0,1.2fr)] sm:gap-8 sm:py-7"
+          >
+            <div className="grid content-start gap-3">
+              <div className="flex items-center gap-3">
+                <IconRoundel
+                  size="md"
+                  tone={index === 0 ? "primary" : "secondary"}
+                  icon={FEATURE_GLYPH[feature.key]}
+                />
+                <span className="mono-meta text-muted-foreground">
+                  {String(index + 1).padStart(2, "0")} · {feature.tab}
+                </span>
+              </div>
+              <h3 className="text-xl leading-snug font-extrabold text-foreground">
+                {feature.title}
+              </h3>
+              <p className="mono-id text-primary uppercase">
+                {feature.removes}
+              </p>
+            </div>
+            <ul className="grid content-start gap-2.5">
+              {feature.includes.map((item) => (
+                <li key={item} className="flex items-start gap-3">
+                  <Icon
+                    icon={CheckmarkCircle02Icon}
+                    size={18}
+                    className="mt-0.5 shrink-0 text-reward"
+                  />
+                  <span className="text-sm leading-6 text-muted-foreground">
+                    {item}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ol>
     </Section>
   )
 }

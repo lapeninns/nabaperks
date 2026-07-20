@@ -27,6 +27,8 @@ export type Guide = {
   readonly metaTitle: string
   readonly description: string
   readonly intro: string
+  readonly publishedOn: string
+  readonly updatedOn: string
   readonly sections: readonly GuideSection[]
   /** When set, the comparison table renders after this section heading. */
   readonly comparisonAfterHeading?: string
@@ -79,6 +81,8 @@ export const GUIDES: readonly Guide[] = [
     description: `A practical way to run pub loyalty when customers won't download another app: a browser card from your venue QR — ${PRODUCT.pilot}, then ${PRODUCT.price}.`,
     intro:
       "“My customers will not download another app.” It's one of the most common objections owners raise about loyalty schemes — and it's fair. Here's how to reward regulars with nothing to install.",
+    publishedOn: "2026-07-19",
+    updatedOn: "2026-07-19",
     sections: [
       {
         heading: "Why app-based loyalty stalls at the counter",
@@ -122,6 +126,8 @@ export const GUIDES: readonly Guide[] = [
     description:
       "Food-led, margin-safe loyalty ideas for pubs: a short stamp cycle, weighted mystery rewards, birthday months and a referral loop — aimed at quiet midweek trade.",
     intro: `${MARKET.profileLine} The best pub loyalty ideas aren't discounts for their own sake — they give your existing weekend customers a concrete reason to come back on the nights you need them.`,
+    publishedOn: "2026-07-19",
+    updatedOn: "2026-07-19",
     sections: [
       {
         heading: "Start from a short, food-led stamp cycle",
@@ -160,6 +166,8 @@ export const GUIDES: readonly Guide[] = [
       "Paper stamp cards against a QR browser card, compared honestly: friction, verification, measurement and cost — and where paper still wins.",
     intro:
       "Paper stamp cards built pub loyalty: cheap, familiar, zero technology. The honest question isn't whether paper works — it's what you give up by not being able to see or verify any of it.",
+    publishedOn: "2026-07-19",
+    updatedOn: "2026-07-19",
     comparisonAfterHeading: "What changes with a QR browser card",
     sections: [
       {

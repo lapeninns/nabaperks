@@ -38,10 +38,10 @@ test("the Growth Plan name is single-sourced across activation and account billi
 })
 
 test("kept merchant flows consistently place billing before venue QR", () => {
-  assert.match(facts, /activate billing, then set up your venue QR/)
+  assert.match(facts, /activate billing, then approve your venue QR/)
   assert.match(
     signup,
-    /venue, card and rewards, then activate billing to unlock your QR/
+    /venue details and approve the pre-filled card and rewards before billing unlocks your QR/
   )
 })
 
@@ -59,7 +59,10 @@ test("production and harness onboarding share summary and roadmap components", (
   )
   assert.match(onboardingOrientation, /variant:\s*["']summary["']/)
   assert.match(onboardingOrientation, /variant:\s*["']roadmap["']/)
-  assert.match(onboardingOrientation, /card, rewards,\s*billing and QR/)
+  assert.match(
+    onboardingOrientation,
+    /pre-filled card and rewards before\s*billing unlocks your QR/
+  )
   assert.match(onboardingPage, /OnboardingJourneyOrientation/)
   assert.match(onboardingHarness, /OnboardingJourneyOrientation/)
 })

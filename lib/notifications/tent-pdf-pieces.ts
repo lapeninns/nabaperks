@@ -3,6 +3,7 @@ import type { PDFFont, PDFPage, RGB } from "pdf-lib"
 import type { TentFaceContent } from "@/lib/qr/tent-content"
 
 import { mm, POSTER_PDF_COLOR } from "./poster-pdf-style"
+import { popKitRotation, pushKitRotation } from "./poster-pdf-kit-venue"
 
 export type TentFacePalette = {
   readonly ground: RGB
@@ -41,6 +42,10 @@ function drawVenueInitials(venue: string): string {
   return initials.length > 0 ? initials : "*"
 }
 
+/**
+ * Stamp strip matching the customer card: N visit stamps, then a separate
+ * sealed mystery reward (not the last visit circle).
+ */
 export function drawStampStrip(
   page: PDFPage,
   options: {
@@ -55,28 +60,13 @@ export function drawStampStrip(
 ): void {
   const radius = mm(5)
   const gap = mm(3)
+  const step = radius * 2 + gap
   const initials = drawVenueInitials(options.venue)
+
   for (let index = 0; index < options.count; index += 1) {
-    const centerX = options.x + radius + index * (radius * 2 + gap)
-    const isVenue = index === 0
-    const isSeal = index === options.count - 1
-    if (isSeal) {
-      page.drawCircle({
-        x: centerX,
-        y: options.y,
-        size: radius,
-        color: POSTER_PDF_COLOR.sun,
-        borderColor: POSTER_PDF_COLOR.ink,
-        borderWidth: 1,
-      })
-      page.drawText("?", {
-        x: centerX - 2.5,
-        y: options.y - 4,
-        size: 11,
-        font: options.font,
-        color: POSTER_PDF_COLOR.ink,
-      })
-    } else if (isVenue) {
+    const centerX = options.x + radius + index * step
+    if (index === 0) {
+      pushKitRotation(page, -7, centerX, options.y)
       page.drawCircle({
         x: centerX,
         y: options.y,
@@ -92,6 +82,7 @@ export function drawStampStrip(
         font: options.font,
         color: POSTER_PDF_COLOR.white,
       })
+      popKitRotation(page)
     } else {
       page.drawCircle({
         x: centerX,
@@ -110,4 +101,23 @@ export function drawStampStrip(
       })
     }
   }
+
+  const sealX = options.x + radius + options.count * step
+  pushKitRotation(page, 7, sealX, options.y)
+  page.drawCircle({
+    x: sealX,
+    y: options.y,
+    size: radius,
+    color: POSTER_PDF_COLOR.sun,
+    borderColor: POSTER_PDF_COLOR.ink,
+    borderWidth: 1,
+  })
+  page.drawText("?", {
+    x: sealX - 2.5,
+    y: options.y - 4,
+    size: 11,
+    font: options.font,
+    color: POSTER_PDF_COLOR.ink,
+  })
+  popKitRotation(page)
 }

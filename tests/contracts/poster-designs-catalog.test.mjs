@@ -11,13 +11,13 @@ test("poster catalogue is a closed, organised eight-design A4 system", () => {
   const catalog = JSON.parse(readProjectFile("config", "poster-designs.json"))
   const expectedIds = [
     "primer",
-    "garden",
     "window",
     "pinned",
     "seal",
     "tally",
-    "round",
     "lastcall",
+    "receipt",
+    "chalk",
   ]
 
   assert.equal(catalog.schema, "nabaperks.poster-designs.v3")
@@ -57,13 +57,13 @@ test("poster catalogue carries an explicit rollout state for every design", () =
 
   assert.deepEqual(rollouts, {
     primer: "production",
-    garden: "production",
     window: "production",
     pinned: "production",
     seal: "production",
     tally: "production",
-    round: "production",
     lastcall: "production",
+    receipt: "production",
+    chalk: "production",
   })
   // The whole eight-design kit is in the production rotation.
   assert.ok(catalog.templates.every(({ rollout }) => rollout === "production"))

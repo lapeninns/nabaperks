@@ -68,11 +68,12 @@
     "typeTiersPt": {
       "a4HookMin": 60,
       "a4HookMax": 84,
-      "a4SubstantiveMin": 11,
-      "a4SubstantiveMax": 18,
+      "a4SubstantiveMin": 12,
+      "a4SubstantiveMax": 16,
       "a4FactsMin": 8,
       "a4FactsMax": 12
     },
+    "typeTierPolicy": "Substantive snaps to one of three family steps: 12 (mono structural rows), 14 (ledger body), 16 (panel ledes). Hook stays a per-design display scale inside the shared band; facts is 9 across the kit.",
     "qr": {
       "unit": "mm",
       "measurement": "complete light box including quiet zone",
@@ -112,8 +113,8 @@
       "anatomy": [
         "Solid-rule statement masthead with edition number",
         "Plain-spoken headline in display type",
-        "Four numbered terms clauses on dashed ledger rules",
-        "QR action panel beside the issued-by venue block",
+        "Four numbered terms clauses on a ruled ledger page — cobalt feints, red margin rule, punch holes",
+        "QR action panel beside the issued-by venue block with a rubber-stamped signature",
         "Solid-rule eligibility and timing footer"
       ],
       "copy": {
@@ -134,46 +135,6 @@
       }
     },
     {
-      "id": "garden",
-      "collection": "counter",
-      "format": "a4-counter",
-      "revision": 2,
-      "rollout": "production",
-      "name": "Garden",
-      "description": "Leaf duotone — make today count, with the reward sealed until the card is full.",
-      "sheet": "a4",
-      "sheetSize": "210×297 mm",
-      "qrOuterMm": 54,
-      "typeTiersPt": {
-        "hook": 84,
-        "substantive": 16,
-        "facts": 9
-      },
-      "useCase": "Bright daytime venue",
-      "tone": "fresh-daylight-invite",
-      "copyMode": "concept",
-      "source": {
-        "component": "components/merchant/qr-poster/counter-kit/duotone-poster.tsx",
-        "styles": "components/merchant/qr-poster/counter-kit/duotone-poster.module.css"
-      },
-      "anatomy": [
-        "Leaf-ink notice masthead with edition number",
-        "Oversized daylight headline and joining lede",
-        "Perforated leaf dot strip",
-        "Full-width leaf panel with QR action and friction list",
-        "Venue strip and eligibility footer inside the panel"
-      ],
-      "copy": {
-        "eyebrow": "Good-weather notice",
-        "edition": "Nº 07",
-        "headline": "Make today count.",
-        "lede": "Join at this QR and today's visit counts as stamp one. Stamps go one per UK date — so today only counts today.",
-        "sealedOne": "The reward? Sealed. This venue keeps it that way until your card's full — one stamp and you find out.",
-        "sealedMany": "The reward? Sealed. This venue keeps it that way until your card's full — {stamps} stamps and you find out.",
-        "qrCaption": "Scan now — today counts as stamp one"
-      }
-    },
-    {
       "id": "window",
       "collection": "counter",
       "format": "a4-counter",
@@ -186,7 +147,7 @@
       "qrOuterMm": 54,
       "typeTiersPt": {
         "hook": 84,
-        "substantive": 17,
+        "substantive": 16,
         "facts": 9
       },
       "useCase": "Street-facing window",
@@ -197,6 +158,7 @@
         "styles": "components/merchant/qr-poster/counter-kit/duotone-poster.module.css"
       },
       "anatomy": [
+        "Proof-sheet crop marks, registration targets and vermillion tint bar",
         "Vermillion street masthead with edition number",
         "Tight oversized invitation headline",
         "Perforated vermillion dot strip",
@@ -226,7 +188,7 @@
       "qrOuterMm": 54,
       "typeTiersPt": {
         "hook": 62,
-        "substantive": 13,
+        "substantive": 14,
         "facts": 9
       },
       "useCase": "Community notice board",
@@ -237,7 +199,7 @@
         "styles": "components/merchant/qr-poster/counter-kit/pinned-poster.module.css"
       },
       "anatomy": [
-        "Pinned note card with cobalt pin and offset shadow",
+        "Pinned note card with cobalt pin, taped corners and an earlier notice peeking out behind",
         "Misregistered overprint headline in cobalt and vermillion",
         "Joining lede with the sealed reward kept honest",
         "QR action beside the starred friction list and venue block",
@@ -278,9 +240,9 @@
         "styles": "components/merchant/qr-poster/counter-kit/seal-poster.module.css"
       },
       "anatomy": [
-        "Manifest masthead with edition number",
+        "Manila folder tab and paperclip over the manifest masthead",
         "Withheld-reward headline in display type",
-        "Manifest rows with an inked redaction bar and wax seal tag",
+        "Manifest rows with an inked redaction bar and the reward pressed under vermillion wax",
         "Friction paragraph under the manifest",
         "QR action beside the sealed-by venue block and footer"
       ],
@@ -329,7 +291,7 @@
       "anatomy": [
         "Dashed masthead with edition number",
         "Misregistered overprint circles headline",
-        "Oversized rotated card object with dashed stamp circles and wax seal",
+        "Oversized rotated card object on the deep-paper tabletop, coffee-ring stain behind",
         "Honest explainer of today's circle and the sealed final circle",
         "QR action beside the starred friction list and venue block"
       ],
@@ -348,51 +310,6 @@
       }
     },
     {
-      "id": "round",
-      "collection": "counter",
-      "format": "a4-counter",
-      "revision": 2,
-      "rollout": "production",
-      "name": "Round",
-      "description": "Night print banter for the same-again crowd.",
-      "sheet": "a4",
-      "sheetSize": "210×297 mm",
-      "qrOuterMm": 54,
-      "typeTiersPt": {
-        "hook": 84,
-        "substantive": 15,
-        "facts": 9
-      },
-      "useCase": "Evening pub counter",
-      "tone": "regulars-banter-night",
-      "copyMode": "concept",
-      "source": {
-        "component": "components/merchant/qr-poster/counter-kit/round-poster.tsx",
-        "styles": "components/merchant/qr-poster/counter-kit/round-poster.module.css"
-      },
-      "anatomy": [
-        "Night masthead with leaf eyebrow and edition number",
-        "Same-again headline with leaf accent word",
-        "Banter lede, sealed-reward line and starred friction list",
-        "Rotated beermat circle carrying the one-stamp-per-date rule",
-        "QR action beside the brand roundel, venue name and footer"
-      ],
-      "copy": {
-        "eyebrow": "For the regulars",
-        "edition": "Nab a Perks · Nº 12",
-        "headlineLead": "Same",
-        "headlineAccent": "again?",
-        "ledeOne": "Thought so. Join at the QR below and today's visit counts as stamp one — and one stamp is all this card takes.",
-        "ledeMany": "Thought so. Join at the QR below and today's visit counts as stamp one — same again tomorrow counts as stamp two.",
-        "sealedOne": "This venue keeps the reward sealed until your card's full — one stamp and you find out what it's been hiding.",
-        "sealedMany": "This venue keeps the reward sealed until your card's full — {stamps} stamps and you find out what it's been hiding.",
-        "matLineOne": "One visit",
-        "matLineTwo": "one stamp",
-        "matLineThree": "per UK date",
-        "qrCaption": "Scan — today counts as stamp one"
-      }
-    },
-    {
       "id": "lastcall",
       "collection": "counter",
       "format": "a4-counter",
@@ -404,8 +321,8 @@
       "sheetSize": "210×297 mm",
       "qrOuterMm": 54,
       "typeTiersPt": {
-        "hook": 70,
-        "substantive": 15,
+        "hook": 68,
+        "substantive": 16,
         "facts": 9
       },
       "useCase": "Late-evening bar",
@@ -420,6 +337,7 @@
         "Midnight-deadline headline with rotated valid-today pill",
         "Honest lede on the one-stamp-per-date rule",
         "Framed QR card beside the starred friction list and sealed line",
+        "Last-orders sky: crescent moon, sparkles and a clock shy of midnight",
         "Brand roundel venue strip and eligibility footer"
       ],
       "copy": {
@@ -432,6 +350,99 @@
         "sealedOne": "The reward stays sealed — this venue keeps it that way until your card's full. No rush on that part; the only clock is on today.",
         "sealedMany": "The reward stays sealed — this venue keeps it that way until your card's full at {stamps} stamps. No rush on that part; the only clock is on today.",
         "qrCaption": "Scan tonight — today counts as stamp one"
+      }
+    },
+    {
+      "id": "receipt",
+      "collection": "counter",
+      "format": "a4-counter",
+      "revision": 2,
+      "rollout": "production",
+      "name": "Receipt",
+      "description": "Till docket — today's visit rung through as stamp one.",
+      "sheet": "a4",
+      "sheetSize": "210×297 mm",
+      "qrOuterMm": 54,
+      "typeTiersPt": {
+        "hook": 62,
+        "substantive": 12,
+        "facts": 9
+      },
+      "useCase": "Till, pass and checkout",
+      "tone": "till-docket-transactional",
+      "copyMode": "concept",
+      "source": {
+        "component": "components/merchant/qr-poster/counter-kit/receipt-poster.tsx",
+        "styles": "components/merchant/qr-poster/counter-kit/receipt-poster.module.css"
+      },
+      "anatomy": [
+        "Perforated docket strip centred on the deep-paper counter",
+        "Order-number masthead, short display hook and merchant block",
+        "Mono line items: today's visit, open visit slots, sealed mystery reward",
+        "Vermillion total row keeping today at one visit, one stamp",
+        "Foot-note friction, QR barcode block and eligibility foot above the tear"
+      ],
+      "copy": {
+        "orderLabel": "Order Nº ——",
+        "edition": "Nab a Perks · Nº 14",
+        "hook": "Proof you were here.",
+        "merchantLabel": "Merchant",
+        "cardLine": "Loyalty card · 0 of {stamps}",
+        "todayItem": "Today's visit",
+        "todayValue": "Stamp 1",
+        "rewardItem": "Mystery reward",
+        "rewardValue": "Sealed",
+        "rewardNoteOne": "Kept sealed by this venue — one stamp fills the card, then you find out.",
+        "rewardNoteMany": "Kept sealed by this venue until stamp {stamps} — full card, then you find out.",
+        "totalLabel": "Total today",
+        "totalValue": "One visit · stamp one",
+        "qrCaption": "Scan — today counts as stamp one",
+        "footLine": "Reprinted daily · Nab a Perks"
+      }
+    },
+    {
+      "id": "chalk",
+      "collection": "counter",
+      "format": "a4-counter",
+      "revision": 2,
+      "rollout": "production",
+      "name": "Chalk",
+      "description": "Specials board with today's circle chalked open.",
+      "sheet": "a4",
+      "sheetSize": "210×297 mm",
+      "qrOuterMm": 54,
+      "typeTiersPt": {
+        "hook": 76,
+        "substantive": 14,
+        "facts": 9
+      },
+      "useCase": "Specials board or bar back",
+      "tone": "chalk-board-native",
+      "copyMode": "concept",
+      "source": {
+        "component": "components/merchant/qr-poster/counter-kit/chalk-poster.tsx",
+        "styles": "components/merchant/qr-poster/counter-kit/chalk-poster.module.css"
+      },
+      "anatomy": [
+        "Dashed chalk frame with a hand-chalked masthead and smiley doodle",
+        "Two-line chalk headline with the closing word in sun chalk, underlined in vermillion",
+        "Joining lede and chalked-mystery sealed line",
+        "QR in a chalk box with an arrow to its caption, beside the starred friction list, pint doodle and venue",
+        "Scissor cut line with numbered stamp-one tear-off stubs",
+        "Eligibility footer between the 18+ roundel and padlock doodles"
+      ],
+      "copy": {
+        "eyebrow": "Today's board",
+        "edition": "Nab a Perks · Nº 15",
+        "headlineLead": "On the board",
+        "headlineAccent": "today.",
+        "ledeOne": "Join at the QR and today's visit counts as stamp one — one stamp fills the card.",
+        "ledeMany": "Join at the QR and today's visit counts as stamp one — {stamps} stamps fills the card.",
+        "sealedOne": "The reward? Chalked up as a mystery — this venue won't say what it is until your card's full. One stamp and you find out.",
+        "sealedMany": "The reward? Chalked up as a mystery — this venue won't say what it is until your card's full. {stamps} stamps and you find out.",
+        "qrCaption": "Scan — today counts as stamp one",
+        "stubTop": "Stamp one",
+        "stubBottom": "today"
       }
     }
   ],

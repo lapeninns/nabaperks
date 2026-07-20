@@ -40,6 +40,7 @@ supabase/.temp/
 Goal/
 artifacts/
 *.evidence.md
+/output/posters/
 
 # design-sync (claude.ai/design) — staged scripts + build output + machine state.
 # Durable inputs under .design-sync/ (config.json, NOTES.md, conventions.md,

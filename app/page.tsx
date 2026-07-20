@@ -8,29 +8,30 @@ import {
   FinalCta,
   GuaranteeStack,
   LandingFaq,
+  LandingGuides,
   LandingHero,
+  LandingNav,
   LandingPricing,
+  LaunchProcess,
   OutcomeTransformation,
   ProblemPains,
   ProofStrip,
   ScarcityBand,
-  VenuePersonas,
+  VenueFit,
 } from "@/components/marketing/landing"
 import { JsonLd } from "@/components/seo/json-ld"
-import { FAQ_ITEMS, OFFER, PRODUCT, ROUTES } from "@/lib/marketing/facts"
-import { getActivePromo } from "@/lib/marketing/promo"
+import { DFY_LAUNCH, FAQ_ITEMS, PRODUCT, ROUTES } from "@/lib/marketing/facts"
 import {
   absoluteUrl,
   faqPageSchema,
   growthPlanSchema,
+  howToSchema,
   OG_IMAGE,
   webPageSchema,
 } from "@/lib/seo/structured-data"
 
-const title = OFFER.name
-// 151 code points (budget 145–159); prices render only via the single-source
-// facts so the description can never drift from the offer.
-const description = `Lapen Inns sets up and launches a no-app loyalty card for your pub — rewards configured, posters printed and posted. ${PRODUCT.pilot}, then ${PRODUCT.price}.`
+const title = "The 30-Day First-Regular Pub Loyalty Launch"
+const description = `A done-for-you browser loyalty card for single-site UK food-led pubs. No setup fee: rewards configured and posters posted. ${PRODUCT.pilot}, then ${PRODUCT.price}.`
 
 export const metadata: Metadata = {
   title,
@@ -54,21 +55,23 @@ export const metadata: Metadata = {
 }
 
 export default function LandingPage() {
-  const promo = getActivePromo()
   const demoQr = buildQrMatrix(absoluteUrl(ROUTES.demo))
 
   return (
     <MarketingLayout>
-      <LandingHero promo={promo} demoQr={demoQr} />
+      <LandingHero demoQr={demoQr} />
       <Marquee />
+      <LandingNav />
       <ProofStrip />
       <ProblemPains />
+      <LaunchProcess />
       <FeaturesListicle />
+      <VenueFit />
       <OutcomeTransformation />
       <GuaranteeStack />
       <LandingPricing />
-      <ScarcityBand promo={promo} />
-      <VenuePersonas />
+      <ScarcityBand />
+      <LandingGuides />
       <LandingFaq />
       <FinalCta />
       <JsonLd
@@ -78,6 +81,13 @@ export default function LandingPage() {
           "@graph": [
             webPageSchema({ path: ROUTES.home, title, description }),
             growthPlanSchema(),
+            howToSchema({
+              path: ROUTES.home,
+              name: "How the Nabaperks done-for-you pub loyalty launch works",
+              description:
+                "Five steps from venue setup to a live no-app loyalty card and printed counter posters.",
+              steps: DFY_LAUNCH.steps,
+            }),
             faqPageSchema(ROUTES.home, FAQ_ITEMS),
           ],
         }}

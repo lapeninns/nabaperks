@@ -16,8 +16,8 @@ export function OnboardingJourneyOrientation(
         className="rounded-lg border-2 border-dashed border-ink/20 bg-paper-deep/45 px-3 py-2.5 lg:hidden"
       >
         <p className="text-sm leading-6 font-bold text-pretty">
-          Save this venue, then we&apos;ll guide you through your card, rewards,
-          billing and QR — one step at a time.
+          Share this venue, then approve the pre-filled card and rewards before
+          billing unlocks your QR.
         </p>
       </div>
     )
@@ -32,8 +32,8 @@ export function OnboardingJourneyOrientation(
             From sign-up to your first stamp
           </h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Save this form and we will walk you through the rest, one step at a
-            time.
+            Share the venue details we need, then use the launch workspace to
+            approve each part before your QR goes live.
           </p>
         </div>
         <ol className="grid gap-3">

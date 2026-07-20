@@ -20,7 +20,7 @@ test("Given the public legal pack When routes are inspected Then each document h
     ["data-processing", "/data-processing"],
   ]
   const footer = readProjectFile("components", "layout", "marketing-layout.tsx")
-  const csp = readProjectFile("lib", "security", "csp.ts")
+  const nextConfig = readProjectFile("next.config.ts")
   const facts = readProjectFile("lib", "marketing", "facts.ts")
   const llms = readProjectFile("public", "llms.txt")
 
@@ -31,10 +31,12 @@ test("Given the public legal pack When routes are inspected Then each document h
       page,
       new RegExp(`alternates: \\{ canonical: "${canonical}" \\}`)
     )
-    assert.ok(csp.includes(`"${canonical}"`))
     assert.ok(facts.includes(`path: "${canonical}"`))
     assert.ok(llms.includes(`https://nabaperks.com${canonical}`))
   }
+
+  assert.match(nextConfig, /source: "\/:path\*"/)
+  assert.match(nextConfig, /staticMarketingContentSecurityPolicy\(\)/)
 
   assert.ok(footer.includes('href="/cookies"'))
   assert.ok(footer.includes('href="/merchant-terms"'))

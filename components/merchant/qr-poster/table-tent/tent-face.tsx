@@ -35,7 +35,33 @@ function Headline({ face }: { readonly face: TentFaceContent }) {
   )
 }
 
-/** The endowed-progress strip: venue stamp, dashed empties, the sealed slot. */
+/** Face-level material identity furniture — shapes only, per design. */
+function TentIdentity({ id }: { readonly id: TentContent["id"] }) {
+  if (id === "regulars") {
+    return <span aria-hidden="true" className={styles.beermat} />
+  }
+  if (id === "welcome") {
+    return (
+      <span aria-hidden="true" className={styles.bunting}>
+        {Array.from({ length: 5 }, (_, index) => (
+          <i key={index} className={styles.pennant} />
+        ))}
+      </span>
+    )
+  }
+  if (id === "today") {
+    return (
+      <span aria-hidden="true" className={styles.calendarPad}>
+        <i className={styles.padHole} />
+        <i className={styles.padHole} />
+        <i className={styles.dogEar} />
+      </span>
+    )
+  }
+  return null
+}
+
+/** Endowed-progress strip: N visit stamps, then a separate sealed reward. */
 function StampStrip({
   venue,
   stampsRequired,
@@ -47,15 +73,16 @@ function StampStrip({
   return (
     <div aria-hidden="true" className={styles.stamps}>
       {Array.from({ length: stampsRequired }, (_, index) => {
-        const isVenue = index === 0
-        const isSeal = index === stampsRequired - 1
-        const kind = isSeal ? "seal" : isVenue ? "venue" : "empty"
+        const kind = index === 0 ? "venue" : "empty"
         return (
           <span key={index} className={styles.stamp} data-kind={kind}>
-            {isSeal ? "?" : isVenue ? initials : String(index + 1)}
+            {index === 0 ? initials : String(index + 1)}
           </span>
         )
       })}
+      <span className={styles.stamp} data-kind="seal">
+        ?
+      </span>
     </div>
   )
 }
@@ -66,7 +93,9 @@ export function TentFace({ content, face, venue, qrDataUrl }: TentFaceProps) {
       className={styles.face}
       data-tone={face.tone}
       data-variant={face.variant}
+      data-design={content.id}
     >
+      <TentIdentity id={content.id} />
       <header className={styles.header}>
         <span className={styles.brand}>
           <span aria-hidden="true" className={styles.brandMark}>
@@ -94,21 +123,33 @@ export function TentFace({ content, face, venue, qrDataUrl }: TentFaceProps) {
           ) : null}
         </div>
         <div className={styles.action}>
-          <div
-            className={styles.qrBox}
-            style={{
-              width: `${content.qr.outerMm}mm`,
-              height: `${content.qr.outerMm}mm`,
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element -- data URL QR is generated server-side for print */}
-            <img
-              src={qrDataUrl}
-              alt="Nabaperks QR code"
-              width={900}
-              height={900}
-            />
-          </div>
+          <span className={styles.qrWrap}>
+            {content.id === "classic" ? (
+              <span aria-hidden="true" className={styles.coaster} />
+            ) : null}
+            {content.id === "sealed" ? (
+              <span aria-hidden="true" className={styles.envelope}>
+                <i className={styles.flapLine} data-side="left" />
+                <i className={styles.flapLine} data-side="right" />
+                <i className={styles.wax} />
+              </span>
+            ) : null}
+            <div
+              className={styles.qrBox}
+              style={{
+                width: `${content.qr.outerMm}mm`,
+                height: `${content.qr.outerMm}mm`,
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- data URL QR is generated server-side for print */}
+              <img
+                src={qrDataUrl}
+                alt="Nabaperks QR code"
+                width={900}
+                height={900}
+              />
+            </div>
+          </span>
           <span className={styles.cta}>{face.cta}</span>
         </div>
       </div>

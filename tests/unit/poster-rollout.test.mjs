@@ -28,13 +28,13 @@ test("the production rotation exposes every registered design in catalogue order
     QR_POSTER_PRODUCTION_TEMPLATES.map(({ id }) => id),
     [
       "primer",
-      "garden",
       "window",
       "pinned",
       "seal",
       "tally",
-      "round",
       "lastcall",
+      "receipt",
+      "chalk",
     ]
   )
   // The whole registry is now launch-ready; the rotation mirrors the catalogue.

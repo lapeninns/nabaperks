@@ -6,7 +6,7 @@ import type { FrictionTriple } from "@/lib/qr/poster-kit-content-types"
 import styles from "./kit-pieces.module.css"
 
 /**
- * Shared pieces for the counter-kit posters (Nº 06–13). Hosts pick the
+ * Shared pieces for the counter-kit posters (Nº 06–15). Hosts pick the
  * colourway with --kit-* custom properties; copy always arrives resolved.
  */
 

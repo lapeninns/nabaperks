@@ -4,20 +4,26 @@ import type { TentContent, TentFaceContent } from "@/lib/qr/tent-content"
 import type { BitMatrix } from "qrcode"
 
 import {
-  drawQrCode,
   drawWrappedText,
-  fitSingleLineText,
   mm,
   POSTER_PDF_COLOR,
   standardFontText,
 } from "./poster-pdf-style"
 import type { PdfFonts } from "./poster-pdf-types"
 import { drawStampStrip, tentFacePalette } from "./tent-pdf-pieces"
+import { drawTentActionColumn, drawTentFooter } from "./tent-pdf-face-action"
+import { drawTentHeaderRail } from "./tent-pdf-face-rail"
+import { drawTentIdentity } from "./tent-pdf-identity"
+import {
+  fitTentHeadlineSize,
+  TENT_TYPE,
+  tentDisplayLeading,
+} from "./tent-pdf-typography"
 
 /**
- * Draw one tent face within the box at (originX, originY) sized w x h (points),
- * laid out top-down: header rail, badge, headline, body, stamps, QR + CTA, and
- * the footer rail. The caller places and (for the top face) rotates the box.
+ * Draw one tent face to match the product TentFace layout:
+ * header rail → two-column main (copy + QR action) → footer with rule.
+ * Print stays in step with `components/merchant/qr-poster/table-tent/`.
  */
 export function drawTentFace(
   page: PDFPage,
@@ -44,79 +50,94 @@ export function drawTentFace(
     color: p.ground,
   })
 
-  const railH = mm(11)
-  page.drawRectangle({
-    x: originX,
-    y: top - railH,
+  const inset = mm(TENT_TYPE.railInsetMm)
+  const railH = mm(TENT_TYPE.railHeightMm)
+  const footerH = mm(TENT_TYPE.footerPadMm * 2 + 3)
+  const mainBottom = originY + footerH
+  const mainTop = top - railH
+  const mainPad = mm(TENT_TYPE.mainPadMm)
+  const mainGap = mm(TENT_TYPE.mainGapMm)
+  const actionWidth = width * TENT_TYPE.actionColumnRatio
+  const copyWidth = width - inset * 2 - mainGap - actionWidth
+  const copyLeft = originX + inset
+  const actionLeft = copyLeft + copyWidth + mainGap
+
+  drawTentHeaderRail(page, {
+    originX,
+    top,
     width,
-    height: railH,
-    color: p.ink,
-  })
-  page.drawText("* Nab a Perks", {
-    x: originX + mm(6),
-    y: top - railH / 2 - 3,
-    size: 11,
-    font: fonts.bold,
-    color: p.ground,
-  })
-  // Truncate the kicker so a long venue can never run under the brand or off
-  // the rail; the full name still prints inside the copy column.
-  const kicker = fitSingleLineText(
-    standardFontText(
-      `${content.kicker} · ${options.venue}`.toUpperCase(),
-      fonts.monoBold
-    ),
-    fonts.monoBold,
-    7,
-    width - mm(12) - fonts.bold.widthOfTextAtSize("* Nab a Perks", 11)
-  )
-  const kickerWidth = fonts.monoBold.widthOfTextAtSize(kicker, 7)
-  page.drawText(kicker, {
-    x: originX + width - mm(6) - kickerWidth,
-    y: top - railH / 2 - 3,
-    size: 7,
-    font: fonts.monoBold,
-    color: p.ground,
+    railH,
+    inset,
+    venue: options.venue,
+    kicker: content.kicker,
+    fonts,
+    ground: p.ground,
   })
 
-  const left = originX + mm(6)
-  const copyWidth = width * 0.6
-  let cursor = top - railH - mm(9)
+  // Per-design material identity, behind the copy and QR content.
+  drawTentIdentity(page, content, {
+    originX,
+    originY,
+    width,
+    height,
+    palette: p,
+  })
+
+  const headlineLines = face.headline.map((line) =>
+    standardFontText(line.toUpperCase(), fonts.bold)
+  )
+  const headlineSize = fitTentHeadlineSize(headlineLines, fonts.bold, copyWidth)
+  const headlineLeading = tentDisplayLeading(headlineSize)
+  const capHeight = headlineSize * TENT_TYPE.displayCapHeight
+
+  let cursor = mainTop - mainPad
   if (face.badge) {
-    page.drawText(standardFontText(face.badge.toUpperCase(), fonts.monoBold), {
-      x: left,
+    cursor = drawBadgePill(page, {
+      x: copyLeft,
       y: cursor,
-      size: 9,
+      label: face.badge,
       font: fonts.monoBold,
-      color: p.accent,
+      fill:
+        face.tone === "ink" ? POSTER_PDF_COLOR.sun : POSTER_PDF_COLOR.accent,
     })
-    cursor -= mm(7)
+    cursor -= mm(TENT_TYPE.copyStackGapMm) + capHeight
+  } else {
+    cursor -= capHeight
   }
-  face.headline.forEach((line) => {
-    page.drawText(standardFontText(line.toUpperCase(), fonts.bold), {
-      x: left,
+
+  face.headline.forEach((line, index) => {
+    page.drawText(headlineLines[index], {
+      x: copyLeft,
       y: cursor,
-      size: 26,
+      size: headlineSize,
       font: fonts.bold,
       color: line === face.accent ? p.accent : p.ink,
     })
-    cursor -= 24
+    cursor -= headlineLeading
   })
-  cursor -= mm(3)
+  cursor -= mm(TENT_TYPE.copyStackGapMm)
+
   const bodyBottom = drawWrappedText(page, face.body, {
-    x: left,
+    x: copyLeft,
     y: cursor,
-    maxWidth: copyWidth - mm(6),
+    maxWidth: copyWidth,
     font: fonts.bold,
-    size: 10,
-    lineHeight: 13,
+    size: TENT_TYPE.bodyPt,
+    lineHeight: TENT_TYPE.bodyLeadingPt,
     color: p.ink,
     maxLines: 4,
   })
+
   if (face.showStamps) {
+    // Pin the stamp strip near the bottom of the main band (product
+    // `.copy { justify-content: space-between }`), not under long body only.
+    const stampY = Math.min(
+      bodyBottom - mm(TENT_TYPE.stampsGapMm),
+      mainBottom + mainPad + mm(5)
+    )
     drawStampStrip(page, {
-      x: left,
-      y: bodyBottom - mm(10),
+      x: copyLeft,
+      y: Math.max(stampY, mainBottom + mainPad + mm(4)),
       count: content.stampsRequired,
       venue: options.venue,
       font: fonts.monoBold,
@@ -125,59 +146,65 @@ export function drawTentFace(
     })
   }
 
-  const qrSize = mm(content.qr.outerMm)
-  const qrX = originX + width - qrSize - mm(10)
-  const qrY = originY + height / 2 - qrSize / 2 + mm(4)
-  page.drawRectangle({
-    x: qrX + 3,
-    y: qrY - 3,
-    width: qrSize,
-    height: qrSize,
-    color: p.qrBorder,
+  drawTentActionColumn(page, {
+    actionLeft,
+    actionWidth,
+    mainBottom,
+    mainTop,
+    qrModules: options.qrModules,
+    qrOuterMm: content.qr.outerMm,
+    cta: face.cta,
+    fonts,
+    qrBorder: p.qrBorder,
   })
-  drawQrCode(page, options.qrModules, qrX, qrY, qrSize)
-  page.drawRectangle({
-    x: qrX,
-    y: qrY,
-    width: qrSize,
-    height: qrSize,
-    borderColor: p.qrBorder,
-    borderWidth: 1.4,
+
+  drawTentFooter(page, {
+    originX,
+    originY,
+    width,
+    inset,
+    footerH,
+    left: content.footer.left,
+    right: content.footer.right,
+    fonts,
+    ink: p.ink,
+    soft: p.soft,
+    rule: p.soft,
   })
-  const cta = standardFontText(face.cta.toUpperCase(), fonts.monoBold)
-  const ctaWidth = fonts.monoBold.widthOfTextAtSize(cta, 7.5) + 12
+}
+
+function drawBadgePill(
+  page: PDFPage,
+  options: {
+    readonly x: number
+    readonly y: number
+    readonly label: string
+    readonly font: PdfFonts["monoBold"]
+    readonly fill: ReturnType<typeof tentFacePalette>["accent"]
+  }
+): number {
+  const text = standardFontText(options.label.toUpperCase(), options.font)
+  const padX = mm(TENT_TYPE.badgePadXMm)
+  const padY = mm(TENT_TYPE.badgePadYMm)
+  const textW = options.font.widthOfTextAtSize(text, TENT_TYPE.badgePt)
+  const boxW = textW + padX * 2
+  const boxH = TENT_TYPE.badgePt + padY * 2
+  const boxY = options.y - boxH
   page.drawRectangle({
-    x: qrX + qrSize / 2 - ctaWidth / 2,
-    y: qrY - mm(9),
-    width: ctaWidth,
-    height: mm(6),
-    color: POSTER_PDF_COLOR.accent,
+    x: options.x,
+    y: boxY,
+    width: boxW,
+    height: boxH,
+    color: options.fill,
     borderColor: POSTER_PDF_COLOR.ink,
     borderWidth: 1,
   })
-  page.drawText(cta, {
-    x: qrX + qrSize / 2 - ctaWidth / 2 + 6,
-    y: qrY - mm(7),
-    size: 7.5,
-    font: fonts.monoBold,
-    color: POSTER_PDF_COLOR.white,
+  page.drawText(text, {
+    x: options.x + padX,
+    y: boxY + padY,
+    size: TENT_TYPE.badgePt,
+    font: options.font,
+    color: POSTER_PDF_COLOR.ink,
   })
-
-  const footerY = originY + mm(4)
-  page.drawText(
-    standardFontText(content.footer.left.toUpperCase(), fonts.monoBold),
-    { x: left, y: footerY, size: 7, font: fonts.monoBold, color: p.soft }
-  )
-  const right = standardFontText(
-    content.footer.right.toUpperCase(),
-    fonts.monoBold
-  )
-  const rightWidth = fonts.monoBold.widthOfTextAtSize(right, 7)
-  page.drawText(right, {
-    x: originX + width - mm(6) - rightWidth,
-    y: footerY,
-    size: 7,
-    font: fonts.monoBold,
-    color: p.ink,
-  })
+  return boxY
 }

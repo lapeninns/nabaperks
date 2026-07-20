@@ -20,27 +20,12 @@ type TallyPosterProps = {
 
 function TallyCircle({
   index,
-  count,
   todayLabel,
 }: {
   readonly index: number
-  readonly count: number
   readonly todayLabel: string
 }) {
-  const sealed = index === count - 1
-  const today = index === 0
-
-  if (sealed) {
-    return (
-      <span
-        className={`${styles.circle} ${styles.circleSeal}`}
-        data-today={today ? "true" : undefined}
-      >
-        {today ? todayLabel : "✱"}
-      </span>
-    )
-  }
-  if (today) {
+  if (index === 0) {
     return (
       <span className={`${styles.circle} ${styles.circleToday}`}>
         {todayLabel}
@@ -48,6 +33,10 @@ function TallyCircle({
     )
   }
   return <span className={styles.circle} />
+}
+
+function TallySeal() {
+  return <span className={`${styles.circle} ${styles.circleSeal}`}>?</span>
 }
 
 export function TallyPoster({
@@ -83,10 +72,10 @@ export function TallyPoster({
             <TallyCircle
               key={index}
               index={index}
-              count={stampsRequired}
               todayLabel={copy.todayLabel}
             />
           ))}
+          <TallySeal />
         </div>
         <p className={styles.explainer}>{copy.explainer}</p>
       </div>

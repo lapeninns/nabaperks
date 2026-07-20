@@ -34,6 +34,30 @@ export function mm(value: number): number {
   return (value * 72) / 25.4
 }
 
+/**
+ * Locked print type rhythm shared by every A4 sheet: multi-line display
+ * stacks breathe at ~1.06x their size, body copy sets at ~1.4x, long-form
+ * body prints in the regular weight at one shared size, and the supporting
+ * tiers (friction rows, side-lane venue lines, mono meta) each use a single
+ * size so the eight designs read as one family.
+ */
+export const POSTER_PDF_TYPE = {
+  displayLeading: 1.06,
+  bodyLeading: 1.4,
+  bodyPt: 12,
+  frictionPt: 12.5,
+  laneVenuePt: 15,
+  metaPt: 9,
+}
+
+export function displayLeading(sizePt: number): number {
+  return sizePt * POSTER_PDF_TYPE.displayLeading
+}
+
+export function bodyLeading(sizePt: number): number {
+  return sizePt * POSTER_PDF_TYPE.bodyLeading
+}
+
 export function drawQrCode(
   page: PDFPage,
   modules: BitMatrix,

@@ -1,20 +1,93 @@
-import type { RGB } from "pdf-lib"
-
 import type { DuotonePosterContent } from "@/lib/qr/poster-kit-content-types"
 
-import { drawWrappedText, mm, POSTER_PDF_COLOR } from "./poster-pdf-style"
+import {
+  bodyLeading,
+  displayLeading,
+  drawWrappedText,
+  mm,
+  POSTER_PDF_COLOR,
+  POSTER_PDF_TYPE,
+} from "./poster-pdf-style"
 import {
   drawKitFriction,
   drawKitMasthead,
   drawKitQrPanel,
 } from "./poster-pdf-kit-pieces"
-import { drawKitVenueLine } from "./poster-pdf-kit-venue"
+import { drawKitVenueStrip } from "./poster-pdf-kit-brand"
 import type { PosterPdfBaseContext } from "./poster-pdf-types"
 
-function duotoneSpot(content: DuotonePosterContent): RGB {
-  return content.spot === "leaf"
-    ? POSTER_PDF_COLOR.leaf
-    : POSTER_PDF_COLOR.accent
+/** Print-shop proof furniture: crop marks, registration targets and the
+ * vermillion tint bar down the right margin. */
+function drawProofMarks(context: PosterPdfBaseContext): void {
+  const { page } = context
+  const ink = POSTER_PDF_COLOR.ink
+  for (const [x, y, flipX, flipY] of [
+    [3, 291, 1, 1],
+    [207, 291, -1, 1],
+    [3, 6, 1, -1],
+    [207, 6, -1, -1],
+  ]) {
+    page.drawRectangle({
+      x: flipX > 0 ? mm(x) : mm(x) - mm(5),
+      y: mm(y) - 0.5,
+      width: mm(5),
+      height: 1,
+      color: ink,
+      opacity: 0.55,
+    })
+    page.drawRectangle({
+      x: mm(x) - 0.5,
+      y: flipY > 0 ? mm(y) - mm(5) : mm(y),
+      width: 1,
+      height: mm(5),
+      color: ink,
+      opacity: 0.55,
+    })
+  }
+  for (const targetX of [6, 204]) {
+    page.drawCircle({
+      x: mm(targetX),
+      y: mm(200),
+      size: mm(1.8),
+      borderColor: ink,
+      borderWidth: 0.9,
+      borderOpacity: 0.55,
+    })
+    page.drawRectangle({
+      x: mm(targetX - 3),
+      y: mm(200) - 0.4,
+      width: mm(6),
+      height: 0.8,
+      color: ink,
+      opacity: 0.55,
+    })
+    page.drawRectangle({
+      x: mm(targetX) - 0.4,
+      y: mm(197),
+      width: 0.8,
+      height: mm(6),
+      color: ink,
+      opacity: 0.55,
+    })
+  }
+  const tints = [1, 0.7, 0.4, 0.15]
+  tints.forEach((tint, index) => {
+    page.drawRectangle({
+      x: mm(199),
+      y: mm(178 - index * 5),
+      width: mm(5),
+      height: mm(5),
+      color: POSTER_PDF_COLOR.accent,
+      opacity: tint,
+    })
+  })
+  page.drawRectangle({
+    x: mm(199),
+    y: mm(158),
+    width: mm(5),
+    height: mm(5),
+    color: ink,
+  })
 }
 
 export function drawDuotoneA4(
@@ -22,7 +95,8 @@ export function drawDuotoneA4(
   content: DuotonePosterContent
 ): void {
   const { page, fonts } = context
-  const spot = duotoneSpot(content)
+  // Window is the kit's sole duotone — the vermillion street run.
+  const spot = POSTER_PDF_COLOR.accent
   const paper = POSTER_PDF_COLOR.paper
   const left = mm(content.geometry.safeMarginMm)
   const pageWidth = mm(content.geometry.sheetWidthMm)
@@ -53,7 +127,7 @@ export function drawDuotoneA4(
     maxWidth: width,
     font: fonts.bold,
     size: content.typeTiers.hookPt,
-    lineHeight: content.typeTiers.hookPt * 0.94,
+    lineHeight: displayLeading(content.typeTiers.hookPt),
     color: spot,
     maxLines: 2,
   })
@@ -63,7 +137,7 @@ export function drawDuotoneA4(
     maxWidth: mm(165),
     font: fonts.bold,
     size: content.typeTiers.substantivePt,
-    lineHeight: content.typeTiers.substantivePt + 6,
+    lineHeight: bodyLeading(content.typeTiers.substantivePt),
     color: spot,
     maxLines: 3,
   })
@@ -102,7 +176,7 @@ export function drawDuotoneA4(
     x: copyX,
     y: mm(112),
     maxWidth: width - qrSize - mm(10),
-    size: 13.5,
+    size: POSTER_PDF_TYPE.frictionPt,
     font: fonts.bold,
     color: paper,
   })
@@ -111,32 +185,23 @@ export function drawDuotoneA4(
     y: mm(88),
     maxWidth: width - qrSize - mm(10),
     font: fonts.regular,
-    size: 12,
-    lineHeight: 17,
+    size: POSTER_PDF_TYPE.bodyPt,
+    lineHeight: bodyLeading(POSTER_PDF_TYPE.bodyPt),
     color: paper,
     maxLines: 4,
   })
-  page.drawText("*", {
+  drawKitVenueStrip(page, {
     x: left,
     y: mm(42),
-    size: 15,
-    font: fonts.bold,
-    color: paper,
-  })
-  drawKitVenueLine(page, context.merchantName, {
-    x: left + mm(8),
-    y: mm(42),
-    maxWidth: width - mm(64),
-    preferredSize: 15,
-    font: fonts.bold,
-    color: paper,
-  })
-  page.drawText(content.memberTag.toUpperCase(), {
-    x: left + width - mm(48),
-    y: mm(43),
-    size: 8.5,
-    font: fonts.monoBold,
-    color: paper,
+    width,
+    venue: context.merchantName,
+    memberTag: content.memberTag,
+    fonts,
+    ink: paper,
+    brand: "glyph",
+    tag: "plain",
+    dashedRule: true,
+    ruleColor: paper,
   })
   drawWrappedText(page, content.reassurance, {
     x: left,
@@ -144,8 +209,9 @@ export function drawDuotoneA4(
     maxWidth: width,
     font: fonts.monoBold,
     size: content.typeTiers.factsPt,
-    lineHeight: content.typeTiers.factsPt + 3,
+    lineHeight: bodyLeading(content.typeTiers.factsPt),
     color: paper,
     maxLines: 2,
   })
+  drawProofMarks(context)
 }

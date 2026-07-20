@@ -56,12 +56,14 @@ export function PrimerPoster({
           caption={copy.qrCaption}
           outerMm={copy.qr.outerMm}
         />
-        <KitLedgerVenueBlock
-          issuerLabel={copy.issuerLabel}
-          memberTag={copy.memberTag}
-          venue={businessName}
-          signature={copy.signature}
-        />
+        <div className={styles.signatureZone}>
+          <KitLedgerVenueBlock
+            issuerLabel={copy.issuerLabel}
+            memberTag={copy.memberTag}
+            venue={businessName}
+            signature={copy.signature}
+          />
+        </div>
       </div>
       <KitFooter reassurance={copy.reassurance} className={styles.legal} />
     </article>

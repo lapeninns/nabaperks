@@ -1,6 +1,6 @@
 # Nabaperks
 
-> Nabaperks is a browser-based loyalty service for UK food and drink venues. Customers use a venue QR code to open a loyalty card, collect venue-linked stamps and redeem rewards without installing an app. Nabaperks is operated by Lapen Inns, a hospitality operator running 9 pubs across England, and is sold as a done-for-you launch plus a Growth Plan subscription.
+> Nabaperks is a browser-based loyalty service for single-site, owner-operated UK food-led pubs. Customers use a venue QR code to open a loyalty card, collect venue-linked stamps and redeem rewards without installing an app. Nabaperks is operated by Lapen Inns and is sold as a done-for-you launch plus a Growth Plan subscription.
 
 ## Service facts
 
@@ -13,7 +13,7 @@
 ## Offer facts
 
 - Primary market: single-site, owner-operated UK food-led pubs with busy weekends and quiet Tuesday–Thursday trade.
-- Offer name: "The 30-Day Gastropub Mid-Week Revenue Accelerator" — the offer's name, not a revenue promise.
+- Public offer name: "The 30-Day First-Regular Launch". The campaign wrapper "The 30-Day Gastropub Mid-Week Revenue Accelerator" is not used publicly without separate approval.
 - Delivery: done-for-you launch by Lapen Inns (venue and card configured, 5-stamp food-led cycle, margin-safe mystery reward pool, birthday automation, Bring-a-Regular referral loop, first A4 counter-poster run printed and posted).
 - Pricing: no setup fee — the done-for-you launch is included. £49/month or £490/year (2 months free) after a 30-day free pilot (card required). Cancel anytime from the billing page.
 - Guarantees: First-Regular Guarantee (the pilot stays free until a first regular returns) and the 90-Day ROI Extension (if verified return visits have not covered the software cost by day 90, the next 3 months are free). Nabaperks does not guarantee midweek revenue or filled tables.
@@ -25,14 +25,10 @@
 - How the done-for-you launch works: https://nabaperks.com/how-it-works
 - Pricing: https://nabaperks.com/pricing
 - Loyalty for pubs: https://nabaperks.com/loyalty-for-pubs
-- Loyalty for cafés: https://nabaperks.com/loyalty-for-cafes
-- Loyalty for bars: https://nabaperks.com/loyalty-for-bars
-- Loyalty for takeaways: https://nabaperks.com/loyalty-for-takeaways
 - Guide — reward regulars without an app: https://nabaperks.com/guides/reward-regulars-without-an-app
 - Guide — best loyalty ideas for pubs: https://nabaperks.com/guides/best-loyalty-ideas-for-pubs
 - Guide — paper vs QR loyalty for pubs: https://nabaperks.com/guides/paper-vs-qr-loyalty-for-pubs
 - About Lapen Inns: https://nabaperks.com/about
-- Merchant sign-up: https://nabaperks.com/signup
 - Privacy notice: https://nabaperks.com/privacy
 - Platform terms: https://nabaperks.com/terms
 - Cookie and browser-storage notice: https://nabaperks.com/cookies
@@ -44,4 +40,4 @@
 - Brand: Nabaperks.
 - Operator: Lapen Inns.
 - Market: United Kingdom.
-- Category: browser-based loyalty and digital stamp-card software for food and drink venues.
+- Category: done-for-you browser-based loyalty and digital stamp-card software for food-led pubs.

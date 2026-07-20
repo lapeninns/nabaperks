@@ -1,16 +1,14 @@
-import Link from "next/link"
-
+import { MarketingSignupLink } from "@/components/analytics/marketing-signup-link"
 import { ContrastBand } from "@/components/layout"
 import { Button } from "@/components/ui/button"
-import { ROUTES, SCARCITY, URGENCY } from "@/lib/marketing/facts"
-import type { ActivePromo } from "@/lib/marketing/promo"
+import { SCARCITY, URGENCY } from "@/lib/marketing/facts"
 
 /**
  * Honest scarcity and urgency: the real 5-a-week onboarding cap, the physical
- * print-batch cutoff, and the rolling monthly promo when one is live.
+ * print-batch cutoff.
  * Capacity is stated as policy, never rendered as an invented live counter.
  */
-export function ScarcityBand({ promo }: { promo: ActivePromo | null }) {
+export function ScarcityBand() {
   return (
     <ContrastBand id="capacity" size="dense">
       <div className="grid gap-5 sm:gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-12">
@@ -32,17 +30,9 @@ export function ScarcityBand({ promo }: { promo: ActivePromo | null }) {
           <div className="grid gap-2 border-2 border-dashed border-paper/40 p-4">
             <p className="mono-meta text-paper/70">Why this week matters</p>
             <p className="text-sm leading-6 text-paper">{URGENCY.printBatch}</p>
-            {promo ? (
-              <p className="border-t-2 border-dashed border-paper/40 pt-2 text-sm leading-6 text-paper/80">
-                <span className="mono-id block pb-1 text-paper uppercase">
-                  {promo.name} · ends {promo.deadlineLabel}
-                </span>
-                {promo.perk}
-              </p>
-            ) : null}
           </div>
           <Button asChild size="lg" className="justify-self-start">
-            <Link href={ROUTES.signup}>Start your free pilot</Link>
+            <MarketingSignupLink>Start your free pilot</MarketingSignupLink>
           </Button>
         </div>
       </div>

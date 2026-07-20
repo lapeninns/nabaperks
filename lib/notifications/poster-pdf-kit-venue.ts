@@ -15,10 +15,8 @@ import { fitSingleLineSize } from "./poster-pdf-text"
 import type { PdfFonts } from "./poster-pdf-types"
 
 /**
- * Full venue name on one line, stepping the size down instead of truncating.
- * Names near the 120-character profile limit can outgrow a lane even at the
- * floor size; only then does the label truncate so it never crosses the
- * print-safe frame.
+ * Full venue name on one line, stepping size down instead of truncating.
+ * Only truncates when a 120-character venue still overflows the lane floor.
  */
 export function drawKitVenueLine(
   page: PDFPage,
@@ -54,54 +52,6 @@ export function drawKitVenueLine(
     color: options.color,
   })
   return size
-}
-
-/** Mono capsule tag — pill silhouette from a bar plus two end discs. */
-export function drawKitCapsule(
-  page: PDFPage,
-  text: string,
-  options: {
-    readonly x: number
-    readonly y: number
-    readonly font: PDFFont
-    readonly size: number
-    readonly textColor: RGB
-    readonly fill?: RGB
-    readonly borderColor?: RGB
-    readonly borderOpacity?: number
-  }
-): number {
-  const label = standardFontText(text.toUpperCase(), options.font)
-  const textWidth = options.font.widthOfTextAtSize(label, options.size)
-  const height = options.size + 9
-  const radius = height / 2
-  const width = textWidth + 16
-  for (const centerX of [options.x + radius, options.x + width - radius]) {
-    page.drawCircle({
-      x: centerX,
-      y: options.y + radius,
-      size: radius,
-      color: options.fill,
-      borderColor: options.borderColor,
-      borderWidth: options.borderColor ? 1.2 : 0,
-      borderOpacity: options.borderOpacity,
-    })
-  }
-  page.drawRectangle({
-    x: options.x + radius,
-    y: options.y,
-    width: width - height,
-    height,
-    color: options.fill,
-  })
-  page.drawText(label, {
-    x: options.x + 8,
-    y: options.y + (height - options.size) / 2 + 1,
-    size: options.size,
-    font: options.font,
-    color: options.textColor,
-  })
-  return width
 }
 
 /** Primer/seal issued-by block: label rail, venue name, ink signature. */
@@ -196,7 +146,7 @@ export function drawKitCenteredText(
   })
 }
 
-/** Rotate all subsequent drawing about a point; pair with popKitRotation. */
+/** Rotate drawing about a point; pair with popKitRotation. */
 export function pushKitRotation(
   page: PDFPage,
   angleDegrees: number,

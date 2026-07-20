@@ -234,7 +234,7 @@ export function resolveQrPosterTemplate(
 ): QrPosterTemplateId {
   return (
     QR_POSTER_PRODUCTION_TEMPLATES.find((item) => item.id === value)?.id ??
-    "garden"
+    "window"
   )
 }
 

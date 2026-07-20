@@ -60,15 +60,20 @@ function marketingSourceFiles() {
 test("Given the finalised offer pack When facts.ts is inspected Then the locked commercial model is encoded", () => {
   const facts = readProjectFile("lib", "marketing", "facts.ts")
 
-  // The offer wrapper and its ASA-safer alternate.
+  // The safer wrapper leads public pages; the campaign wrapper is retained
+  // only for a separately approved campaign.
+  assert.match(facts, /name: "The 30-Day First-Regular Launch"/)
   assert.match(
     facts,
-    /name: "The 30-Day Gastropub Mid-Week Revenue Accelerator"/
+    /campaignName: "The 30-Day Gastropub Mid-Week Revenue Accelerator"/
   )
   assert.match(facts, /nameSafe: "The 30-Day First-Regular Launch"/)
   // The name is contextualised with a plain benefit line, and must never
   // render the revenue-promise disclaimer voice or the word "guarantee".
-  assert.match(facts, /nameNote:\s*\n?\s*"Named for what it’s built to do/)
+  assert.match(
+    facts,
+    /nameNote:\s*\n?\s*"Built to encourage measurable return visits/
+  )
   assert.doesNotMatch(facts, /nameNote:[^\n]*guarantee/i)
 
   // No setup fee (owner decision 2026-07-19 — removed entirely). The offer is
@@ -143,18 +148,22 @@ test("Given the hybrid SaaS blueprint When the landing composes sections Then th
     )
   }
 
-  // The blueprint order: proof -> problem -> features -> outcome -> guarantees
-  // -> pricing -> scarcity -> personas -> faq -> final CTA.
+  // The intent-led order: orient -> evidence -> problem -> process -> complete
+  // offer -> qualification -> outcome -> guarantees -> pricing -> capacity ->
+  // research guides -> FAQ -> final CTA.
   const order = [
     "LandingHero",
+    "LandingNav",
     "ProofStrip",
     "ProblemPains",
+    "LaunchProcess",
     "FeaturesListicle",
+    "VenueFit",
     "OutcomeTransformation",
     "GuaranteeStack",
     "LandingPricing",
     "ScarcityBand",
-    "VenuePersonas",
+    "LandingGuides",
     "LandingFaq",
     "FinalCta",
   ]
@@ -230,9 +239,6 @@ test("Given the public route registry When llms.txt is compared Then no rebuilt 
     "/pricing",
     "/how-it-works",
     "/loyalty-for-pubs",
-    "/loyalty-for-cafes",
-    "/loyalty-for-bars",
-    "/loyalty-for-takeaways",
     "/guides/reward-regulars-without-an-app",
     "/guides/best-loyalty-ideas-for-pubs",
     "/guides/paper-vs-qr-loyalty-for-pubs",
@@ -252,9 +258,6 @@ test("Given the public route registry When llms.txt is compared Then no rebuilt 
     ["app", "pricing", "page.tsx"],
     ["app", "how-it-works", "page.tsx"],
     ["app", "loyalty-for-pubs", "page.tsx"],
-    ["app", "loyalty-for-cafes", "page.tsx"],
-    ["app", "loyalty-for-bars", "page.tsx"],
-    ["app", "loyalty-for-takeaways", "page.tsx"],
     ["app", "guides", "reward-regulars-without-an-app", "page.tsx"],
     ["app", "guides", "best-loyalty-ideas-for-pubs", "page.tsx"],
     ["app", "guides", "paper-vs-qr-loyalty-for-pubs", "page.tsx"],
@@ -301,19 +304,14 @@ test("Given honest scarcity When marketing surfaces are scanned Then no availabi
   }
 })
 
-test("Given the persona spokes When the registry is inspected Then only pubs carry the gastropub wrapper", () => {
+test("Given the pub-first SEO strategy When persona surfaces are inspected Then only the pub spoke is indexable and no public spoke leads with revenue wording", () => {
   const facts = readProjectFile("lib", "marketing", "facts.ts")
   const personasBlock = facts.match(
     /export const PERSONAS[\s\S]*?\] as const/
   )?.[0]
 
   assert.ok(personasBlock, "PERSONAS registry missing")
-  const accelerator = personasBlock.match(/Revenue Accelerator/g)
-  assert.equal(
-    accelerator?.length,
-    1,
-    "exactly one persona (pubs) may lead with the Revenue Accelerator wrapper"
-  )
+  assert.doesNotMatch(personasBlock, /Revenue Accelerator/)
   assert.equal(
     personasBlock.match(/primary: true/g)?.length,
     1,
@@ -324,6 +322,35 @@ test("Given the persona spokes When the registry is inspected Then only pubs car
     /designed for food-led pubs first/,
     "non-pub spokes must carry the pub-first fit note"
   )
+
+  const personaPage = readProjectFile(
+    "components",
+    "marketing",
+    "persona-page.tsx"
+  )
+  assert.match(personaPage, /robots: persona\.primary/)
+  assert.match(personaPage, /index: false/)
+
+  const llms = readProjectFile("public", "llms.txt")
+  for (const path of [
+    "/loyalty-for-cafes",
+    "/loyalty-for-bars",
+    "/loyalty-for-takeaways",
+  ]) {
+    assert.ok(
+      !llms.includes(`https://nabaperks.com${path}`),
+      `${path} is demoted`
+    )
+  }
+})
+
+test("Given the owner removed the setup fee When the finalised pack is scanned Then no stale £99 commercial term remains", () => {
+  const offerDir = path.join(projectRoot, "Offers- Nabaperks-Finalized")
+  for (const file of readdirSync(offerDir)) {
+    if (!file.endsWith(".md")) continue
+    const source = readFileSync(path.join(offerDir, file), "utf8")
+    assert.doesNotMatch(source, /£99/, `${file} contains the retired setup fee`)
+  }
 })
 
 test("Given the demo is an app-like surface When its metadata is inspected Then it stays unindexed", () => {

@@ -35,6 +35,21 @@ export function DuotonePoster({
       data-spot={copy.spot}
       style={kitSheetStyle(copy)}
     >
+      <span aria-hidden="true" className={styles.crop} data-corner="tl" />
+      <span aria-hidden="true" className={styles.crop} data-corner="tr" />
+      <span aria-hidden="true" className={styles.crop} data-corner="br" />
+      <span aria-hidden="true" className={styles.crop} data-corner="bl" />
+      <span
+        aria-hidden="true"
+        className={styles.registration}
+        data-side="left"
+      />
+      <span
+        aria-hidden="true"
+        className={styles.registration}
+        data-side="right"
+      />
+      <span aria-hidden="true" className={styles.colourBar} />
       <div className={styles.top}>
         <KitMasthead
           className={styles.masthead}

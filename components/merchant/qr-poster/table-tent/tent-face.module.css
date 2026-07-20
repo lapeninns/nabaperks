@@ -7,6 +7,7 @@
 
 .face {
   container-type: inline-size;
+  position: relative;
   box-sizing: border-box;
   width: 100%;
   height: 100%;
@@ -47,17 +48,235 @@
   --tent-seal: #f5a623;
 }
 
+/* ============================================================
+   Per-design material identity — shapes only, behind content.
+   regulars = ghosted beermat · welcome = bunting · sealed =
+   envelope flap + wax on the QR · today = tear-off calendar pad
+   · classic = the QR on a coaster.
+   ============================================================ */
+
+.beermat {
+  position: absolute;
+  left: 11.4cqw;
+  top: 19.3cqw;
+  width: 36.2cqw;
+  height: 36.2cqw;
+  border: 1cqw solid rgba(33, 28, 22, 0.07);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.beermat::after {
+  content: "";
+  position: absolute;
+  inset: 2.6cqw;
+  border: 0.28cqw dashed rgba(33, 28, 22, 0.06);
+  border-radius: 50%;
+}
+
+.bunting {
+  position: absolute;
+  right: 3.2cqw;
+  top: 8.6cqw;
+  display: flex;
+  justify-content: space-around;
+  width: 33cqw;
+  pointer-events: none;
+}
+
+.bunting::before,
+.bunting::after {
+  content: "";
+  position: absolute;
+  top: 0.7cqw;
+  width: 52%;
+  height: 0.16cqw;
+  background: rgba(79, 71, 61, 0.55);
+}
+
+.bunting::before {
+  left: 0;
+  transform: rotate(2.4deg);
+}
+
+.bunting::after {
+  right: 0;
+  transform: rotate(-2.4deg);
+}
+
+.pennant {
+  width: 2.2cqw;
+  height: 2.2cqw;
+  transform: rotate(45deg);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.pennant:nth-child(1),
+.pennant:nth-child(4) {
+  margin-top: 1.1cqw;
+  background: #cf330a;
+}
+
+.pennant:nth-child(2),
+.pennant:nth-child(5) {
+  margin-top: 1.7cqw;
+  background: #f5a623;
+}
+
+.pennant:nth-child(3) {
+  margin-top: 2cqw;
+  background: #16733c;
+}
+
+.pennant:nth-child(5) {
+  margin-top: 1.1cqw;
+}
+
+.calendarPad {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Punched pad holes riding the rail's bottom edge. */
+.padHole {
+  position: absolute;
+  top: 5.7cqw;
+  width: 1.9cqw;
+  height: 1.9cqw;
+  border-radius: 50%;
+  background: var(--tent-ground);
+  border: 0.24cqw solid var(--tent-ink);
+  transform: translateY(-50%);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.padHole:nth-child(1) {
+  left: 32.4cqw;
+}
+
+.padHole:nth-child(2) {
+  left: 65.7cqw;
+}
+
+/* Dog-eared tear-off corner. */
+.dogEar {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 0;
+  height: 0;
+  border-left: 4cqw solid transparent;
+  border-bottom: 4cqw solid #ece5d4;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.face[data-tone="ink"] .dogEar {
+  border-bottom-color: rgba(246, 241, 230, 0.16);
+}
+
+.qrWrap {
+  position: relative;
+  display: inline-block;
+}
+
+/* Classic: the QR sits on a deep-paper coaster. */
+.coaster {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 54mm;
+  height: 54mm;
+  margin: -27mm 0 0 -27mm;
+  background: #ece5d4;
+  border: 0.45mm solid rgba(79, 71, 61, 0.5);
+  border-radius: 50%;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.coaster::after {
+  content: "";
+  position: absolute;
+  inset: 3.6mm;
+  border: 0.3mm dashed rgba(79, 71, 61, 0.45);
+  border-radius: 50%;
+}
+
+/* Sealed: envelope flap rising off the QR, wax at the apex. */
+.envelope {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.flapLine {
+  position: absolute;
+  bottom: 100%;
+  width: 24.1mm;
+  height: 0.5mm;
+  background: rgba(33, 28, 22, 0.55);
+}
+
+.flapLine[data-side="left"] {
+  left: 0;
+  transform-origin: 0 50%;
+  transform: rotate(-34deg);
+}
+
+.flapLine[data-side="right"] {
+  right: 0;
+  transform-origin: 100% 50%;
+  transform: rotate(34deg);
+}
+
+.wax {
+  position: absolute;
+  bottom: calc(100% + 10.2mm);
+  left: 50%;
+  width: 6.8mm;
+  height: 6.8mm;
+  margin-left: -3.4mm;
+  background: #cf330a;
+  border: 0.35mm solid var(--tent-ink);
+  border-radius: 50%;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.wax::before {
+  content: "";
+  position: absolute;
+  inset: 1.1mm;
+  border: 0.3mm solid rgba(33, 28, 22, 0.35);
+  border-radius: 50%;
+}
+
+.wax::after {
+  content: "";
+  position: absolute;
+  left: 5.4mm;
+  top: 7.2mm;
+  width: 2mm;
+  height: 2mm;
+  background: #cf330a;
+  border-radius: 50%;
+}
+
 /* ---- header rail ---- */
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 2cqw;
-  padding: 2cqw 3.4cqw;
+  gap: 1.6cqw;
+  padding: 2.2cqw 3cqw;
   background: var(--tent-ink);
   color: var(--tent-ground);
   font-family: var(--font-space-mono), monospace;
-  font-size: 1.15cqw;
+  font-size: 1.2cqw;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -70,7 +289,7 @@
   align-items: center;
   gap: 1cqw;
   font-family: var(--font-bricolage-grotesque), sans-serif;
-  font-size: 2.4cqw;
+  font-size: 2.55cqw;
   font-weight: 800;
   letter-spacing: -0.04em;
   text-transform: none;
@@ -113,10 +332,10 @@
 /* ---- body: copy column + QR column ---- */
 .main {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 30%;
-  gap: 3cqw;
+  grid-template-columns: minmax(0, 1fr) 32%;
+  gap: 2.4cqw;
   align-items: stretch;
-  padding: 3cqw 3.4cqw;
+  padding: 2.6cqw 3cqw;
   min-height: 0;
 }
 
@@ -124,7 +343,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 2cqw;
+  gap: 1.6cqw;
   min-width: 0;
 }
 
@@ -147,10 +366,10 @@
 
 .headline {
   margin: 0;
-  font-size: 7.4cqw;
+  font-size: 7.8cqw;
   font-weight: 800;
-  letter-spacing: -0.05em;
-  line-height: 0.86;
+  letter-spacing: -0.055em;
+  line-height: 0.84;
   text-transform: uppercase;
 }
 
@@ -160,10 +379,10 @@
 
 .body {
   margin: 0;
-  max-width: 44cqw;
-  font-size: 1.75cqw;
+  max-width: 48cqw;
+  font-size: 1.9cqw;
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 /* ---- endowed-progress stamp strip ---- */
@@ -176,15 +395,15 @@
 .stamp {
   display: grid;
   place-items: center;
-  width: 5cqw;
-  height: 5cqw;
+  width: 5.4cqw;
+  height: 5.4cqw;
   flex: none;
   border-radius: 50%;
   border: 0.22cqw dashed var(--tent-rule);
   background: transparent;
   color: var(--tent-soft);
   font-family: var(--font-space-mono), monospace;
-  font-size: 1.3cqw;
+  font-size: 1.35cqw;
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -224,6 +443,8 @@
    Outline, not border, keeps the box exactly its measured outer size. */
 .qrBox {
   box-sizing: border-box;
+  /* Positioned so identity furniture (coaster, flap) paints behind it. */
+  position: relative;
   overflow: hidden;
   background: #ffffff;
   border: 0;
@@ -241,6 +462,7 @@
 }
 
 .cta {
+  position: relative;
   padding: 0.7cqw 1.1cqw;
   background: #cf330a;
   color: #ffffff;

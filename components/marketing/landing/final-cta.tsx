@@ -1,5 +1,6 @@
 import Link from "next/link"
 
+import { MarketingSignupLink } from "@/components/analytics/marketing-signup-link"
 import { Eyebrow, ReceiptCard } from "@/components/brand"
 import { Section } from "@/components/layout"
 import { Button } from "@/components/ui/button"
@@ -23,7 +24,7 @@ export function FinalCta() {
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Button asChild size="lg">
-            <Link href={ROUTES.signup}>Start your free pilot</Link>
+            <MarketingSignupLink>Start your free pilot</MarketingSignupLink>
           </Button>
           <Button asChild size="lg" variant="secondary">
             <Link href={ROUTES.pricing}>See full pricing</Link>

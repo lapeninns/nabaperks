@@ -1,0 +1,7 @@
+timestamp,path,status,user_agent,host,duration_ms
+2026-07-19T10:00:00Z,/?sort_by=recent,200,Googlebot,nabaperks.com,120
+2026-07-19T10:00:01Z,/?sort_by=oldest,200,Googlebot,nabaperks.com,110
+2026-07-19T10:00:02Z,/admin/missing,404,Googlebot,nabaperks.com,90
+2026-07-19T10:00:03Z,/pricing,500,Bingbot,nabaperks.com,400
+2026-07-19T10:00:04Z,/search?q=pub,200,OAI-SearchBot,nabaperks.com,80
+2026-07-19T10:00:05Z,/human,200,Mozilla/5.0,nabaperks.com,50
