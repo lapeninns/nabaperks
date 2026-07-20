@@ -67,7 +67,7 @@ jobs:
       - run: pnpm build
       - run: pnpm bundle:check
       - run: pnpm jsonld:check
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: coverage
@@ -113,7 +113,7 @@ jobs:
           esac
           pnpm exec playwright install --with-deps "$browser"
       - run: pnpm test:e2e -- --project="${{ matrix.project }}" --grep-invert @visual --shard="${{ matrix.shard }}"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() && failure() }}
         with:
           name: playwright-report-${{ matrix.project }}-${{ strategy.job-index }}
@@ -172,7 +172,7 @@ jobs:
           esac
           pnpm exec playwright install --with-deps "$browser"
       - run: pnpm test:a11y -- --project="${{ matrix.project }}"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() && failure() }}
         with:
           name: a11y-playwright-report-${{ matrix.project }}
@@ -231,7 +231,7 @@ jobs:
           esac
           pnpm exec playwright install --with-deps "$browser"
       - run: pnpm test:visual -- --project="${{ matrix.project }}"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() && failure() }}
         with:
           name: visual-playwright-report-${{ matrix.project }}
@@ -291,7 +291,7 @@ jobs:
       - uses: ./.github/actions/setup
       - run: pnpm build
       - run: pnpm lighthouse -- --collect.url="${{ matrix.url }}"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: lighthouse-report-${{ matrix.route }}
@@ -361,7 +361,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: 2.106.0
       - name: Configure local auth-hook fixture
