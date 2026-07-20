@@ -136,8 +136,8 @@ async function asAuthenticatedUser(tx, userId, fn) {
     await sp`set local role authenticated`
     await sp`select set_config('request.jwt.claim.role', 'authenticated', true)`
     await sp`select set_config('request.jwt.claim.sub', ${userId}, true)`
-    // is_internal_admin() additionally requires MFA (aal2) since the
-    // 2026-07-02 admin hardening; harmless for non-admin subjects.
+    // is_internal_admin() no longer requires MFA (aal2) as of migration
+    // 20260720100000; aal2 remains a valid level and is harmless here.
     await sp`select set_config('request.jwt.claim.aal', 'aal2', true)`
     try {
       return await fn(sp)

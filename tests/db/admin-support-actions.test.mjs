@@ -84,19 +84,10 @@ test(
       }
       assert.ok(refusedNonAdmin, "a non-admin caller cannot resolve fraud flags")
 
-      let refusedAal1Admin = false
-      try {
-        await tx.savepoint(async (sp) => {
-          await actAsAuthenticated(sp, ADMIN_UID, "aal1")
-          await sp`select public.admin_resolve_fraud_flag(
-            ${flagId}::uuid, 'reviewed', ${reason})`
-        })
-      } catch (error) {
-        refusedAal1Admin = isAdminRejection(error)
-      }
-      assert.ok(refusedAal1Admin, "an admin without AAL2 cannot resolve fraud flags")
-
-      await actAsAuthenticated(tx, ADMIN_UID)
+      // Admin access no longer requires AAL2 step-up (migration
+      // 20260720100000): an active internal_admins row is sufficient, so an
+      // admin at aal1 resolves fraud flags successfully.
+      await actAsAuthenticated(tx, ADMIN_UID, "aal1")
       await tx`select public.admin_resolve_fraud_flag(
         ${flagId}::uuid, 'dismissed', ${reason})`
 
@@ -150,27 +141,9 @@ test(
       }
       assert.ok(refusedNonAdmin, "a non-admin caller cannot log privacy requests")
 
-      let refusedAal1Admin = false
-      try {
-        await tx.savepoint(async (sp) => {
-          await actAsAuthenticated(sp, ADMIN_UID, "aal1")
-          await sp`select public.admin_log_data_request(
-            ${membership.customer_id}::uuid,
-            ${membership.merchant_id}::uuid,
-            'access',
-            'email',
-            ${accessNotes}
-          )`
-        })
-      } catch (error) {
-        refusedAal1Admin = isAdminRejection(error)
-      }
-      assert.ok(
-        refusedAal1Admin,
-        "an admin without AAL2 cannot log privacy requests"
-      )
-
-      await actAsAuthenticated(tx, ADMIN_UID)
+      // Admin access no longer requires AAL2 step-up (migration
+      // 20260720100000): an admin at aal1 logs privacy requests successfully.
+      await actAsAuthenticated(tx, ADMIN_UID, "aal1")
 
       const [{ result: accessResult }] = await tx`
         select public.admin_log_data_request(
