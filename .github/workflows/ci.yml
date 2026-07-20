@@ -13,28 +13,43 @@ concurrency:
 permissions:
   contents: read
 
+# Shared non-secret CI fixture. Every job inherits this baseline; jobs layer
+# their own extras on top (the fast lane adds the strict production-profile
+# values, browser tiers add the dev OTP code, the DB tier adds local Supabase
+# wiring). Values are deliberate placeholders, never real credentials.
+env:
+  NEXT_PUBLIC_APP_URL: https://example.test
+  NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
+  SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
+  STRIPE_SECRET_KEY: sk_test_ci
+  STRIPE_GROWTH_PRICE_ID: price_ci
+  STRIPE_WEBHOOK_SECRET: ci_test_webhook_secret
+  RESEND_API_KEY: re_ci
+  TWILIO_ACCOUNT_SID: ACci
+  TWILIO_AUTH_TOKEN: ci-twilio-auth-token
+  TWILIO_VERIFY_SERVICE_SID: VAci
+  CUSTOMER_SESSION_SECRET: ci-session-secret-placeholder
+  CUSTOMER_PHONE_HMAC_SECRET: ci-hmac-secret-placeholder
+  CUSTOMER_PHONE_ENCRYPTION_KEY: ci-encryption-key-placeholder-32b
+
+# The three lanes below are the hosted equivalent of `pnpm quality:check`,
+# split so feedback fails fast: the fast lane gates every dev-server browser
+# tier, the quality lane carries the hygiene sweeps, and the production
+# bundle is built exactly once and shared with Lighthouse + ZAP as an
+# artifact. The gate job folds all three lanes into the long-standing
+# required check name "Typecheck and build".
 jobs:
-  build:
-    name: Typecheck and build
+  fast:
+    name: Fast lane (lint, typecheck, unit)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      NEXT_PUBLIC_APP_URL: https://example.test
-      NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
-      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
-      SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
-      STRIPE_SECRET_KEY: sk_test_ci
-      STRIPE_GROWTH_PRICE_ID: price_ci
       STRIPE_GROWTH_ANNUAL_PRICE_ID: price_annual_ci
-      STRIPE_WEBHOOK_SECRET: ci_test_webhook_secret
-      RESEND_API_KEY: re_ci
       RESEND_FROM: Nabaperks CI <ci@example.test>
       CRON_SECRET: "N7!qL2@vR9#cT4$yH6^mK8&pD3*zF5?x"
       PRODUCTION_MONITOR_SECRET: "P4@wS8#nC2!kV6$rJ9^tB3&yM7*zQ5?e"
-      TWILIO_ACCOUNT_SID: ACci
-      TWILIO_AUTH_TOKEN: ci-twilio-auth-token
-      TWILIO_VERIFY_SERVICE_SID: VAci
       CUSTOMER_SESSION_SECRET: "H9!mD4@qL7#vR2$tK8^xC5&pN3*zW6?g"
       CUSTOMER_PHONE_HMAC_SECRET: "Q6!rF3@wM8#kT2$yP9^cD4&vL7*zN5?h"
       CUSTOMER_PHONE_ENCRYPTION_KEY: "V2!pK7@mR4#xH9$cF3^nQ8&wT5*zD6?j"
@@ -50,11 +65,28 @@ jobs:
           printf 'SUPABASE_SEND_EMAIL_HOOK_SECRET=v1,%s_%s\n' whsec VTghZE0zQGtSNyN2SDIkY1E5XnBMNSZ3RjQqek42P3g= >> "$GITHUB_ENV"
       - run: pnpm env:check:production
       - run: pnpm security:audit --ignore-registry-errors
-      # Keep the component checks visible to existing policy contracts; together
-      # they are the hosted equivalent of `pnpm quality:check`.
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm test
+      - run: pnpm test:contracts
+      # The unit suite runs exactly once, with coverage thresholds enforced.
+      - run: pnpm test:coverage
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+
+  quality:
+    name: Quality lane (hygiene sweeps)
+    needs: fast
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
       - run: pnpm deadcode:check
       - run: pnpm duplicates:check
       - run: pnpm debt:check
@@ -63,16 +95,43 @@ jobs:
       - run: pnpm agents:check
       - run: pnpm tokens:check
       - run: pnpm claims:check
-      - run: pnpm test:coverage
+
+  build:
+    name: Production build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
       - run: pnpm build
       - run: pnpm bundle:check
       - run: pnpm jsonld:check
-      - uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() }}
+      - name: Share production bundle with Lighthouse and ZAP
+        uses: actions/upload-artifact@v7
         with:
-          name: coverage
-          path: coverage/
-          retention-days: 7
+          name: next-build
+          include-hidden-files: true
+          path: |
+            .next
+            !.next/cache
+          retention-days: 1
+
+  build-gate:
+    name: Typecheck and build
+    needs: [fast, quality, build]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Require every lane
+        env:
+          FAST_RESULT: ${{ needs.fast.result }}
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+        run: |
+          test "$FAST_RESULT" = "success"
+          test "$QUALITY_RESULT" = "success"
+          test "$BUILD_RESULT" = "success"
 
   e2e:
     name: E2E (${{ matrix.project }}, shard ${{ matrix.shard }})
@@ -82,38 +141,19 @@ jobs:
       fail-fast: false
       matrix:
         project: [chromium, mobile-safari, desktop-firefox, desktop-safari]
-        shard: [1/4, 2/4, 3/4, 4/4]
+        shard: [1/3, 2/3, 3/3]
     env:
-      PLAYWRIGHT_WORKERS: "1"
-      NEXT_PUBLIC_APP_URL: https://example.test
-      NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
-      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
-      SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
-      STRIPE_SECRET_KEY: sk_test_ci
-      STRIPE_GROWTH_PRICE_ID: price_ci
-      STRIPE_WEBHOOK_SECRET: ci_test_webhook_secret
-      RESEND_API_KEY: re_ci
-      TWILIO_ACCOUNT_SID: ACci
-      TWILIO_AUTH_TOKEN: ci-twilio-auth-token
-      TWILIO_VERIFY_SERVICE_SID: VAci
-      CUSTOMER_SESSION_SECRET: ci-session-secret-placeholder
-      CUSTOMER_PHONE_HMAC_SECRET: ci-hmac-secret-placeholder
-      CUSTOMER_PHONE_ENCRYPTION_KEY: ci-encryption-key-placeholder-32b
+      PLAYWRIGHT_WORKERS: "2"
       CUSTOMER_DEV_OTP_CODE: "424242"
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - name: Install project browser
-        run: |
-          case "${{ matrix.project }}" in
-            chromium) browser=chromium ;;
-            desktop-firefox) browser=firefox ;;
-            mobile-safari|desktop-safari) browser=webkit ;;
-          esac
-          pnpm exec playwright install --with-deps "$browser"
+        uses: ./.github/actions/playwright
+        with:
+          project: ${{ matrix.project }}
       - run: pnpm test:e2e -- --project="${{ matrix.project }}" --grep-invert @visual --shard="${{ matrix.shard }}"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() && failure() }}
         with:
           name: playwright-report-${{ matrix.project }}-${{ strategy.job-index }}
@@ -136,7 +176,7 @@ jobs:
 
   a11y:
     name: Accessibility (${{ matrix.project }})
-    needs: build
+    needs: fast
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
@@ -144,35 +184,17 @@ jobs:
       matrix:
         project: [chromium, mobile-safari]
     env:
-      PLAYWRIGHT_WORKERS: "1"
-      NEXT_PUBLIC_APP_URL: https://example.test
-      NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
-      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
-      SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
-      STRIPE_SECRET_KEY: sk_test_ci
-      STRIPE_GROWTH_PRICE_ID: price_ci
-      STRIPE_WEBHOOK_SECRET: ci_test_webhook_secret
-      RESEND_API_KEY: re_ci
-      TWILIO_ACCOUNT_SID: ACci
-      TWILIO_AUTH_TOKEN: ci-twilio-auth-token
-      TWILIO_VERIFY_SERVICE_SID: VAci
-      CUSTOMER_SESSION_SECRET: ci-session-secret-placeholder
-      CUSTOMER_PHONE_HMAC_SECRET: ci-hmac-secret-placeholder
-      CUSTOMER_PHONE_ENCRYPTION_KEY: ci-encryption-key-placeholder-32b
+      PLAYWRIGHT_WORKERS: "2"
       CUSTOMER_DEV_OTP_CODE: "424242"
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - name: Install project browser
-        run: |
-          case "${{ matrix.project }}" in
-            chromium) browser=chromium ;;
-            mobile-safari) browser=webkit ;;
-          esac
-          pnpm exec playwright install --with-deps "$browser"
+        uses: ./.github/actions/playwright
+        with:
+          project: ${{ matrix.project }}
       - run: pnpm test:a11y -- --project="${{ matrix.project }}"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() && failure() }}
         with:
           name: a11y-playwright-report-${{ matrix.project }}
@@ -195,7 +217,7 @@ jobs:
 
   visual:
     name: Visual regression (${{ matrix.project }})
-    needs: build
+    needs: fast
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
@@ -203,35 +225,19 @@ jobs:
       matrix:
         project: [chromium, mobile-safari]
     env:
+      # Pixel snapshots stay single-worker on purpose: parallel load shifts
+      # paint timing and would destabilise the blessed baselines.
       PLAYWRIGHT_WORKERS: "1"
-      NEXT_PUBLIC_APP_URL: https://example.test
-      NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
-      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
-      SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
-      STRIPE_SECRET_KEY: sk_test_ci
-      STRIPE_GROWTH_PRICE_ID: price_ci
-      STRIPE_WEBHOOK_SECRET: ci_test_webhook_secret
-      RESEND_API_KEY: re_ci
-      TWILIO_ACCOUNT_SID: ACci
-      TWILIO_AUTH_TOKEN: ci-twilio-auth-token
-      TWILIO_VERIFY_SERVICE_SID: VAci
-      CUSTOMER_SESSION_SECRET: ci-session-secret-placeholder
-      CUSTOMER_PHONE_HMAC_SECRET: ci-hmac-secret-placeholder
-      CUSTOMER_PHONE_ENCRYPTION_KEY: ci-encryption-key-placeholder-32b
       CUSTOMER_DEV_OTP_CODE: "424242"
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - name: Install project browser
-        run: |
-          case "${{ matrix.project }}" in
-            chromium) browser=chromium ;;
-            mobile-safari) browser=webkit ;;
-          esac
-          pnpm exec playwright install --with-deps "$browser"
+        uses: ./.github/actions/playwright
+        with:
+          project: ${{ matrix.project }}
       - run: pnpm test:visual -- --project="${{ matrix.project }}"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() && failure() }}
         with:
           name: visual-playwright-report-${{ matrix.project }}
@@ -270,28 +276,17 @@ jobs:
           - route: signup
             url: http://127.0.0.1:3130/signup
     env:
-      NEXT_PUBLIC_APP_URL: https://example.test
-      NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
-      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
-      SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
-      STRIPE_SECRET_KEY: sk_test_ci
-      STRIPE_GROWTH_PRICE_ID: price_ci
-      STRIPE_WEBHOOK_SECRET: ci_test_webhook_secret
-      RESEND_API_KEY: re_ci
-      TWILIO_ACCOUNT_SID: ACci
-      TWILIO_AUTH_TOKEN: ci-twilio-auth-token
-      TWILIO_VERIFY_SERVICE_SID: VAci
-      CUSTOMER_SESSION_SECRET: ci-session-secret-placeholder
-      CUSTOMER_PHONE_HMAC_SECRET: ci-hmac-secret-placeholder
-      CUSTOMER_PHONE_ENCRYPTION_KEY: ci-encryption-key-placeholder-32b
       CUSTOMER_DEV_OTP_CODE: "424242"
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
-      - run: pnpm build
+      - name: Reuse the production bundle
+        uses: actions/download-artifact@v8
+        with:
+          name: next-build
+          path: .next
       - run: pnpm lighthouse -- --collect.url="${{ matrix.url }}"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: lighthouse-report-${{ matrix.route }}
@@ -314,26 +309,15 @@ jobs:
     name: ZAP baseline
     needs: build
     runs-on: ubuntu-latest
-    env:
-      NEXT_PUBLIC_APP_URL: https://example.test
-      NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
-      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
-      SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
-      STRIPE_SECRET_KEY: sk_test_ci
-      STRIPE_GROWTH_PRICE_ID: price_ci
-      STRIPE_WEBHOOK_SECRET: ci_test_webhook_secret
-      RESEND_API_KEY: re_ci
-      TWILIO_ACCOUNT_SID: ACci
-      TWILIO_AUTH_TOKEN: ci-twilio-auth-token
-      TWILIO_VERIFY_SERVICE_SID: VAci
-      CUSTOMER_SESSION_SECRET: ci-session-secret-placeholder
-      CUSTOMER_PHONE_HMAC_SECRET: ci-hmac-secret-placeholder
-      CUSTOMER_PHONE_ENCRYPTION_KEY: ci-encryption-key-placeholder-32b
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
-      - run: pnpm build
+      - name: Reuse the production bundle
+        uses: actions/download-artifact@v8
+        with:
+          name: next-build
+          path: .next
       - run: |
           pnpm start > /tmp/nabaperks-zap.log 2>&1 &
       - run: |
@@ -353,15 +337,16 @@ jobs:
 
   db:
     name: DB behavioral moat
-    needs: build
+    needs: fast
     runs-on: ubuntu-latest
+    timeout-minutes: 12
     env:
       SUPABASE_SEND_EMAIL_HOOK_URI: http://host.docker.internal:3147/api/auth/hooks/send-email
       SUPABASE_DB_URL: postgres://postgres:postgres@127.0.0.1:54322/postgres
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: 2.106.0
       - name: Configure local auth-hook fixture
