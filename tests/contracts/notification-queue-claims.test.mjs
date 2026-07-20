@@ -181,16 +181,22 @@ test("Given push subscription routes mutate service-role state When source is in
     "route.ts"
   )
 
+  const disableHandler = readProjectFile(
+    "app",
+    "api",
+    "notifications",
+    "push",
+    "disable-subscription-handler.ts"
+  )
   const noStoreHelper = readProjectFile("lib", "http", "no-store-json.ts")
   assert.match(noStoreHelper, /"cache-control": "no-store, max-age=0"/)
 
   for (const route of [
     subscribe,
     refresh,
-    unsubscribe,
-    disable,
     promptViewed,
     preferences,
+    disableHandler,
   ]) {
     assert.match(route, /const customer = await getCurrentCustomer\(\)/)
     assert.match(
@@ -219,11 +225,27 @@ test("Given push subscription routes mutate service-role state When source is in
     /validatePushSubscriptionInput\(newSubscriptionBody\(body\)\)/
   )
 
-  assert.match(unsubscribe, /key: `push-unsubscribe:\$\{customer\.id\}`/)
-  assert.match(unsubscribe, /reason: "customer_disabled"/)
+  // The disable and unsubscribe routes share one handler; the fixed lifecycle
+  // reasons and per-customer rate-limit keys stay pinned in each route file.
+  assert.match(
+    disableHandler,
+    /key: `\$\{rateLimitKeyPrefix\}:\$\{customer\.id\}`/
+  )
+  assert.match(disableHandler, /customerId: customer\.id/)
+  assert.match(
+    disableHandler,
+    /validatePushEndpoint\(pushEndpointFromBody\(body\)\)/
+  )
 
-  assert.match(disable, /key: `push-disable:\$\{customer\.id\}`/)
+  assert.match(unsubscribe, /createDisablePushSubscriptionHandler\(/)
+  assert.match(unsubscribe, /rateLimitKeyPrefix: "push-unsubscribe"/)
+  assert.match(unsubscribe, /reason: "customer_disabled"/)
+  assert.doesNotMatch(unsubscribe, /customerId:/)
+
+  assert.match(disable, /createDisablePushSubscriptionHandler\(/)
+  assert.match(disable, /rateLimitKeyPrefix: "push-disable"/)
   assert.match(disable, /reason: "service_worker_disabled"/)
+  assert.doesNotMatch(disable, /customerId:/)
 
   assert.match(promptViewed, /key: `push-prompt-viewed:\$\{customer\.id\}`/)
   assert.match(promptViewed, /recordPushPermissionPromptViewed\(customer\.id\)/)
