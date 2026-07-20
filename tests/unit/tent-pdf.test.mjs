@@ -87,6 +87,7 @@ test("tent faces obey the locked type scale on every design", async () => {
         drawText: (text, options) => drawn.push({ text, ...options }),
         drawRectangle: () => {},
         drawCircle: () => {},
+        drawLine: () => {},
         pushOperators: () => {},
       }
       drawTentFace(page, content, face, {
