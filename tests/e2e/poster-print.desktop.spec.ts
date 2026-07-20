@@ -48,8 +48,11 @@ test.describe("poster printing", () => {
       const physical = await posterSheet.evaluate((element) => ({
         width: element.clientWidth,
         height: element.clientHeight,
+        // Measure the QR image itself, not its parent: every template sizes
+        // the light-box image to qr.outerMm, but chalk wraps it in a padded
+        // chalk-box frame, so the parent is larger than the QR.
         qrOuterPixels: Array.from(element.querySelectorAll("img")).map(
-          (image) => image.parentElement?.clientWidth ?? 0
+          (image) => image.clientWidth
         ),
       }))
       const renderedText = normalisePosterText(await posterSheet.innerText())

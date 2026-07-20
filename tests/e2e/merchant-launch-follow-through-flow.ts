@@ -258,15 +258,15 @@ export function defineMerchantLaunchFollowThroughTests() {
     page,
   }) => {
     await page.goto(
-      `${HARNESS_ROUTES.launch}?state=live&tab=qr&channel=print&poster=round`
+      `${HARNESS_ROUTES.launch}?state=live&tab=qr&channel=print&poster=chalk`
     )
 
     await expect(
-      page.getByRole("img", { name: "Round poster preview" })
+      page.getByRole("img", { name: "Chalk poster preview" })
     ).toBeVisible()
     await page.getByRole("link", { name: "Share digitally" }).click()
     await expect(page).toHaveURL(/channel=digital/)
-    await expect(page).toHaveURL(/poster=round/)
+    await expect(page).toHaveURL(/poster=chalk/)
     await expect(
       page.getByRole("heading", { name: "Share your permanent venue link" })
     ).toBeVisible()
@@ -304,7 +304,7 @@ export function defineMerchantLaunchFollowThroughTests() {
     ).toBeVisible()
 
     await expect(
-      page.getByRole("img", { name: "Garden poster preview" })
+      page.getByRole("img", { name: "Window poster preview" })
     ).toBeVisible()
     const swipeTrack = page.getByTestId("poster-swipe-track")
     if (browserName === "firefox") {
@@ -339,9 +339,9 @@ export function defineMerchantLaunchFollowThroughTests() {
       // The deck now holds all eight production posters. Navigate by an
       // explicit dot rather than a scroll-relative position so the assertion
       // is deterministic across the desktop-click and mobile-scroll branches.
-      await page.getByRole("button", { name: "Show Round poster" }).click()
+      await page.getByRole("button", { name: "Show Receipt poster" }).click()
       await expect(
-        page.getByRole("img", { name: "Round poster preview" })
+        page.getByRole("img", { name: "Receipt poster preview" })
       ).toBeVisible()
       await expect(page.getByText("7 / 8", { exact: true })).toBeVisible()
     }
