@@ -16,7 +16,75 @@ import {
 } from "./poster-pdf-kit-pieces"
 import { drawKitCapsule } from "./poster-pdf-kit-capsule"
 import { drawKitVenueStrip } from "./poster-pdf-kit-brand"
+import { popKitRotation, pushKitRotation } from "./poster-pdf-kit-venue"
 import type { PosterPdfBaseContext } from "./poster-pdf-types"
+
+/** Last-orders sky: crescent moon, sparkles, and the clock a couple of
+ * minutes shy of midnight. */
+function drawLastOrdersSky(context: PosterPdfBaseContext): void {
+  const { page } = context
+  const paper = POSTER_PDF_COLOR.paper
+  page.drawCircle({ x: mm(140), y: mm(76), size: mm(5), color: paper })
+  page.drawCircle({
+    x: mm(142.5),
+    y: mm(77.5),
+    size: mm(4.6),
+    color: POSTER_PDF_COLOR.ink,
+  })
+  for (const [sparkX, sparkY] of [
+    [152, 63],
+    [185, 58],
+    [163, 86],
+  ]) {
+    page.drawRectangle({
+      x: mm(sparkX - 1.4),
+      y: mm(sparkY) - 0.9,
+      width: mm(2.8),
+      height: 1.8,
+      color: paper,
+      opacity: 0.85,
+    })
+    page.drawRectangle({
+      x: mm(sparkX) - 0.9,
+      y: mm(sparkY - 1.4),
+      width: 1.8,
+      height: mm(2.8),
+      color: paper,
+      opacity: 0.85,
+    })
+  }
+  const clockX = mm(174)
+  const clockY = mm(72)
+  page.drawCircle({
+    x: clockX,
+    y: clockY,
+    size: mm(10),
+    borderColor: paper,
+    borderWidth: 1.8,
+  })
+  page.drawRectangle({
+    x: clockX - 0.9,
+    y: clockY,
+    width: 1.8,
+    height: mm(5.5),
+    color: paper,
+  })
+  pushKitRotation(page, 12, clockX, clockY)
+  page.drawRectangle({
+    x: clockX - 0.9,
+    y: clockY,
+    width: 1.8,
+    height: mm(7.5),
+    color: POSTER_PDF_COLOR.sun,
+  })
+  popKitRotation(page)
+  page.drawCircle({
+    x: clockX,
+    y: clockY,
+    size: mm(1),
+    color: POSTER_PDF_COLOR.sun,
+  })
+}
 
 export function drawLastcallA4(
   context: PosterPdfBaseContext,
@@ -142,6 +210,7 @@ export function drawLastcallA4(
     maxLines: 4,
   })
 
+  drawLastOrdersSky(context)
   drawKitVenueStrip(page, {
     x: left,
     y: mm(47),

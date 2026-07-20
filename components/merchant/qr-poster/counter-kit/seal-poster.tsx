@@ -29,6 +29,7 @@ export function SealPoster({
       data-body="mono"
       style={kitSheetStyle(copy)}
     >
+      <span aria-hidden="true" className={styles.paperclip} />
       <KitMasthead
         className={styles.masthead}
         lead={<span>{copy.manifestLabel}</span>}
@@ -46,6 +47,7 @@ export function SealPoster({
             {row.redacted ? (
               <>
                 <span aria-hidden="true" className={styles.redaction} />
+                <span aria-hidden="true" className={styles.wax} />
                 <span className={styles.sealedPill}>{copy.sealedTag}</span>
               </>
             ) : (

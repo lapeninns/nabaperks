@@ -1,4 +1,5 @@
-/* Nº 13 · Last call — night print with an honest daily deadline. */
+/* Nº 13 · Last call — last orders under the night sky: crescent moon,
+   sparkles, and the clock stopped a couple of minutes shy of midnight. */
 
 .lastcall {
   --kit-ground: #211c16;
@@ -13,6 +14,7 @@
   --kit-pill-ink: rgba(246, 241, 230, 0.8);
   --kit-footer-ink: rgba(246, 241, 230, 0.7);
 
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 7mm;
@@ -20,6 +22,101 @@
   height: 100%;
   padding: 15mm;
   box-sizing: border-box;
+}
+
+/* ---- The last-orders sky ---- */
+.nightSky {
+  position: absolute;
+  right: 15mm;
+  bottom: 55mm;
+  width: 66mm;
+  height: 31mm;
+  pointer-events: none;
+}
+
+/* Crescent moon: a paper disc with the ink shadow disc biting into it. */
+.moon {
+  position: absolute;
+  left: 0;
+  bottom: 12mm;
+  width: 10mm;
+  height: 10mm;
+  background:
+    radial-gradient(circle at 66% 34%, #211c16 4.4mm, transparent 4.5mm),
+    radial-gradient(circle at 50% 50%, #f6f1e6 4.9mm, transparent 5mm);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.clock {
+  position: absolute;
+  right: 1mm;
+  top: 0.5mm;
+  width: 20mm;
+  height: 20mm;
+  border: 0.65mm solid #f6f1e6;
+  border-radius: 50%;
+}
+
+.clock::before,
+.clock::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 50%;
+  transform-origin: 50% 100%;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.clock::before {
+  width: 0.65mm;
+  height: 5.5mm;
+  margin-left: -0.325mm;
+  background: #f6f1e6;
+}
+
+.clock::after {
+  width: 0.65mm;
+  height: 7.5mm;
+  margin-left: -0.325mm;
+  background: #f5a623;
+  transform: rotate(-12deg);
+}
+
+.spark {
+  position: absolute;
+  width: 2.8mm;
+  height: 0.65mm;
+  background: rgba(246, 241, 230, 0.85);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.spark::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0.65mm;
+  height: 2.8mm;
+  margin: -1.4mm 0 0 -0.325mm;
+  background: inherit;
+}
+
+.spark[data-spot="a"] {
+  left: 11mm;
+  bottom: 7mm;
+}
+
+.spark[data-spot="b"] {
+  right: 20mm;
+  top: 2mm;
+}
+
+.spark[data-spot="c"] {
+  left: 23mm;
+  bottom: 0;
 }
 
 .masthead {

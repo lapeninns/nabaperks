@@ -36,12 +36,30 @@ export function drawTallyA4(
   const left = mm(content.geometry.safeMarginMm)
   const pageWidth = mm(content.geometry.sheetWidthMm)
   const width = pageWidth - left * 2
+  // The pub tabletop: deep paper with a coffee-ring stain half-hidden
+  // behind the card object.
   page.drawRectangle({
     x: 0,
     y: 0,
     width: pageWidth,
     height: mm(content.geometry.sheetHeightMm),
-    color: POSTER_PDF_COLOR.paper,
+    color: POSTER_PDF_COLOR.paperDeep,
+  })
+  page.drawCircle({
+    x: mm(180),
+    y: mm(214),
+    size: mm(13),
+    borderColor: POSTER_PDF_COLOR.inkSoft,
+    borderWidth: 2.4,
+    borderOpacity: 0.14,
+  })
+  page.drawCircle({
+    x: mm(180),
+    y: mm(214),
+    size: mm(11.6),
+    borderColor: POSTER_PDF_COLOR.inkSoft,
+    borderWidth: 1.2,
+    borderOpacity: 0.1,
   })
   const ruleY = drawKitMasthead(page, {
     x: left,

@@ -10,7 +10,46 @@ import {
   standardFontText,
 } from "./poster-pdf-style"
 import { drawLedgerFoot, drawLedgerTop } from "./poster-pdf-a4-ledger"
+import { popKitRotation, pushKitRotation } from "./poster-pdf-kit-venue"
 import type { PosterPdfBaseContext } from "./poster-pdf-types"
+
+/** Exercise-book furniture: cobalt feints, red margin rule, punch holes. */
+function drawPrimerRuledPage(
+  context: PosterPdfBaseContext,
+  topMm: number
+): void {
+  const { page } = context
+  for (let y = topMm; y >= 30; y -= 8) {
+    page.drawRectangle({
+      x: mm(11),
+      y: mm(y),
+      width: mm(188),
+      height: 0.5,
+      color: POSTER_PDF_COLOR.cobalt,
+      opacity: 0.14,
+    })
+  }
+  page.drawRectangle({
+    x: mm(26.5),
+    y: mm(30),
+    width: 0.7,
+    height: mm(topMm - 28),
+    color: POSTER_PDF_COLOR.accent,
+    opacity: 0.35,
+  })
+  for (const holeY of [99, 198]) {
+    page.drawCircle({
+      x: mm(7),
+      y: mm(holeY),
+      size: mm(2.8),
+      color: POSTER_PDF_COLOR.ink,
+      opacity: 0.06,
+      borderColor: POSTER_PDF_COLOR.inkSoft,
+      borderWidth: 1,
+      borderOpacity: 0.3,
+    })
+  }
+}
 
 export function drawPrimerA4(
   context: PosterPdfBaseContext,
@@ -24,6 +63,7 @@ export function drawPrimerA4(
     content.edition,
     POSTER_PDF_COLOR.paperDeep
   )
+  drawPrimerRuledPage(context, (frame.headlineBottom * 25.4) / 72 - 2)
   const rowTop = frame.headlineBottom - mm(6)
   const rowHeight = (rowTop - mm(95)) / content.clauses.length
   const titleDrop = content.typeTiers.substantivePt
@@ -78,4 +118,16 @@ export function drawPrimerA4(
     }
   })
   drawLedgerFoot(context, content, content.issuerLabel, content.signature)
+  // Rubber-stamp frame around the ink signature the foot just set.
+  pushKitRotation(page, -2.5, mm(107), mm(58))
+  page.drawRectangle({
+    x: mm(76),
+    y: mm(52.5),
+    width: mm(62),
+    height: mm(11),
+    borderColor: POSTER_PDF_COLOR.accent,
+    borderWidth: 1.6,
+    borderOpacity: 0.85,
+  })
+  popKitRotation(page)
 }

@@ -16,6 +16,80 @@ import {
 import { drawKitVenueStrip } from "./poster-pdf-kit-brand"
 import type { PosterPdfBaseContext } from "./poster-pdf-types"
 
+/** Print-shop proof furniture: crop marks, registration targets and the
+ * vermillion tint bar down the right margin. */
+function drawProofMarks(context: PosterPdfBaseContext): void {
+  const { page } = context
+  const ink = POSTER_PDF_COLOR.ink
+  for (const [x, y, flipX, flipY] of [
+    [3, 291, 1, 1],
+    [207, 291, -1, 1],
+    [3, 6, 1, -1],
+    [207, 6, -1, -1],
+  ]) {
+    page.drawRectangle({
+      x: flipX > 0 ? mm(x) : mm(x) - mm(5),
+      y: mm(y) - 0.5,
+      width: mm(5),
+      height: 1,
+      color: ink,
+      opacity: 0.55,
+    })
+    page.drawRectangle({
+      x: mm(x) - 0.5,
+      y: flipY > 0 ? mm(y) - mm(5) : mm(y),
+      width: 1,
+      height: mm(5),
+      color: ink,
+      opacity: 0.55,
+    })
+  }
+  for (const targetX of [6, 204]) {
+    page.drawCircle({
+      x: mm(targetX),
+      y: mm(200),
+      size: mm(1.8),
+      borderColor: ink,
+      borderWidth: 0.9,
+      borderOpacity: 0.55,
+    })
+    page.drawRectangle({
+      x: mm(targetX - 3),
+      y: mm(200) - 0.4,
+      width: mm(6),
+      height: 0.8,
+      color: ink,
+      opacity: 0.55,
+    })
+    page.drawRectangle({
+      x: mm(targetX) - 0.4,
+      y: mm(197),
+      width: 0.8,
+      height: mm(6),
+      color: ink,
+      opacity: 0.55,
+    })
+  }
+  const tints = [1, 0.7, 0.4, 0.15]
+  tints.forEach((tint, index) => {
+    page.drawRectangle({
+      x: mm(199),
+      y: mm(178 - index * 5),
+      width: mm(5),
+      height: mm(5),
+      color: POSTER_PDF_COLOR.accent,
+      opacity: tint,
+    })
+  })
+  page.drawRectangle({
+    x: mm(199),
+    y: mm(158),
+    width: mm(5),
+    height: mm(5),
+    color: ink,
+  })
+}
+
 export function drawDuotoneA4(
   context: PosterPdfBaseContext,
   content: DuotonePosterContent
@@ -139,4 +213,5 @@ export function drawDuotoneA4(
     color: paper,
     maxLines: 2,
   })
+  drawProofMarks(context)
 }

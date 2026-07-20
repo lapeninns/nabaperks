@@ -23,6 +23,10 @@ import {
   pushKitRotation,
 } from "./poster-pdf-kit-venue"
 import { drawKitCapsule } from "./poster-pdf-kit-capsule"
+import {
+  drawPinnedBoardNote,
+  drawPinnedTape,
+} from "./poster-pdf-a4-pinned-board"
 import type { PosterPdfBaseContext } from "./poster-pdf-types"
 
 const NOTE_CARD = rgb(251 / 255, 248 / 255, 241 / 255)
@@ -42,6 +46,7 @@ export function drawPinnedA4(
     height: mm(content.geometry.sheetHeightMm),
     color: POSTER_PDF_COLOR.paperDeep,
   })
+  drawPinnedBoardNote(context)
 
   const cardBottom = mm(40)
   const cardTop = mm(262)
@@ -80,6 +85,7 @@ export function drawPinnedA4(
     borderWidth: 1.7,
   })
   popKitRotation(page)
+  drawPinnedTape(context)
 
   const inset = left + mm(12)
   const innerWidth = width - mm(24)
