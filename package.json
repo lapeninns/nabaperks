@@ -78,6 +78,12 @@
   "packageManager": "pnpm@10.28.0",
   "pnpm": {
     "overrides": {
+      "@hono/node-server@1.19.14": "2.0.5",
+      "brace-expansion@1.1.15": "1.1.16",
+      "brace-expansion@5.0.6": "5.0.7",
+      "body-parser@1.20.5": "1.20.6",
+      "hono@4.12.25": "4.12.27",
+      "js-yaml@4.2.0": "4.3.0",
       "postcss": "8.5.15",
       "qs": "6.15.2",
       "tmp": "0.2.7",
