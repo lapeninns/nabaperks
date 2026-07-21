@@ -64,20 +64,23 @@ describe("contract-platform-merchant-digest-email source contract", () => {
     })
   })
 
-  it("dedupes successful digest sends before emailing and records the event after success", () => {
+  it("claims each merchant/week before sending with provider idempotency", () => {
     // Given
     const worker = readProjectFile("lib", "notifications", "merchant-digest.ts")
     const events = readProjectFile("lib", "analytics", "events.ts")
 
     // When
-    const dedupeIndex = worker.indexOf("await hasRecentMerchantWeeklyDigest")
+    const claimIndex = worker.indexOf("await claimMerchantWeeklyDigest")
     const sendIndex = worker.indexOf("await sendTransactionalEmail")
-    const recordIndex = worker.indexOf("await recordProductEvent")
+    const completeIndex = worker.indexOf("await completeMerchantWeeklyDigest")
 
     // Then
-    assert.ok(dedupeIndex >= 0)
-    assert.ok(sendIndex > dedupeIndex)
-    assert.ok(recordIndex > sendIndex)
+    assert.ok(claimIndex >= 0)
+    assert.ok(sendIndex > claimIndex)
+    assert.ok(completeIndex > sendIndex)
+    assert.match(worker, /claim_merchant_weekly_digest/)
+    assert.match(worker, /fail_merchant_weekly_digest/)
+    assert.match(worker, /idempotencyKey: `merchant-digest:/)
     assert.match(worker, /merchant_weekly_digest_sent/)
     assert.match(worker, /getMerchantDashboardData/)
     assert.match(worker, /status", \["trial", "active"\]/)
@@ -85,5 +88,16 @@ describe("contract-platform-merchant-digest-email source contract", () => {
     assert.doesNotMatch(worker, /Promise\.all/)
     assert.doesNotMatch(worker, /notification_events/)
     assert.match(events, /"merchant_weekly_digest_sent"/)
+
+    const migration = readProjectFile(
+      "supabase",
+      "migrations",
+      "20260721100000_deepsec_consistency_hardening.sql"
+    )
+    assert.match(migration, /primary key \(merchant_id, period_start\)/i)
+    assert.match(
+      migration,
+      /create or replace function public\.claim_merchant_weekly_digest/i
+    )
   })
 })

@@ -144,6 +144,52 @@ test("reward-pool RPCs create/update rewards and only provision join QR at three
   })
 })
 
+test("reward activation toggles preserve fields saved by another request", { skip }, async () => {
+  await inRolledBackTxn(async (tx) => {
+    const fixture = await createRewardPoolFixture(tx)
+    await actAsMerchantOwner(tx, fixture.ownerUserId)
+
+    const reward = await upsertRewardPoolItem(tx, fixture, {
+      rewardName: "Original reward",
+      rewardTerms: "Original terms.",
+      weight: 2,
+      displayOrder: 1,
+    })
+
+    await tx`
+      update public.reward_pool_items
+      set reward_name = 'Concurrent reward edit',
+          reward_terms = 'Concurrent terms.',
+          weight = 8,
+          display_order = 9
+      where id = ${reward.reward_pool_item_id}::uuid`
+
+    const [result] = await tx`
+      select *
+      from public.set_reward_pool_item_active(
+        ${fixture.merchantId}::uuid,
+        ${fixture.cardId}::uuid,
+        ${reward.reward_pool_item_id}::uuid,
+        false
+      )`
+
+    assert.equal(result.saved_action, "reward_pool_item_deactivated")
+
+    const [saved] = await tx`
+      select reward_name, reward_terms, weight, display_order, is_active
+      from public.reward_pool_items
+      where id = ${reward.reward_pool_item_id}::uuid`
+
+    assert.deepEqual(saved, {
+      reward_name: "Concurrent reward edit",
+      reward_terms: "Concurrent terms.",
+      weight: 8,
+      display_order: 9,
+      is_active: false,
+    })
+  })
+})
+
 test(
   "admin QR activation cannot bypass the three-active-reward launch invariant",
   { skip },

@@ -29,7 +29,6 @@ type PendingPhoneInput = {
   purpose: PendingPhonePurpose
   phone: string
   country: string
-  customerId?: string | null
 }
 
 type PendingEmailInput = {
@@ -47,12 +46,11 @@ export async function setPendingPhoneVerification(
 ): Promise<PendingPhonePayload> {
   const issuedAt = nowSeconds()
   const payload: PendingPhonePayload = {
-    version: 1,
+    version: 2,
     purpose: input.purpose,
     phone: input.phone,
     phoneHmac: customerPhoneHmac(input.phone),
     country: input.country,
-    customerId: input.customerId ?? null,
     issuedAt,
     expiresAt: issuedAt + pendingPhoneTtlSeconds,
   }

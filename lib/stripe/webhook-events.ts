@@ -74,6 +74,8 @@ type StripeWebhookProcessingErrorCode =
   | "lease_lost"
   | "processing_failed"
 
+const MAX_STRIPE_WEBHOOK_BODY_BYTES = 1_048_576
+
 export class StripeWebhookProcessingError extends Error {
   readonly code: StripeWebhookProcessingErrorCode
 
@@ -96,10 +98,17 @@ export async function handleStripeWebhookRequest(
   dependencies: StripeWebhookRouteDependencies
 ) {
   const signature = request.headers.get("stripe-signature")
-  const body = await request.text()
 
   if (!signature) {
     return Response.json({ error: "Missing Stripe signature" }, { status: 400 })
+  }
+
+  const body = await readBoundedWebhookBody(request)
+  if (body === null) {
+    return Response.json(
+      { error: "Stripe webhook body is too large" },
+      { status: 413 }
+    )
   }
 
   let event: Stripe.Event
@@ -170,6 +179,46 @@ export async function handleStripeWebhookRequest(
     received: true,
     ...(result.status === "stale" ? { stale: true } : {}),
   })
+}
+
+async function readBoundedWebhookBody(
+  request: Request
+): Promise<string | null> {
+  const contentLength = request.headers.get("content-length")
+  if (
+    contentLength !== null &&
+    /^\d+$/.test(contentLength) &&
+    Number(contentLength) > MAX_STRIPE_WEBHOOK_BODY_BYTES
+  ) {
+    return null
+  }
+
+  if (!request.body) return ""
+
+  const reader = request.body.getReader()
+  const chunks: Uint8Array[] = []
+  let byteLength = 0
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    byteLength += value.byteLength
+    if (byteLength > MAX_STRIPE_WEBHOOK_BODY_BYTES) {
+      await reader.cancel()
+      return null
+    }
+    chunks.push(value)
+  }
+
+  const body = new Uint8Array(byteLength)
+  let offset = 0
+  for (const chunk of chunks) {
+    body.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+
+  return new TextDecoder().decode(body)
 }
 
 export async function claimStripeWebhookEvent(

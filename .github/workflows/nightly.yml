@@ -35,11 +35,11 @@ jobs:
     name: Full cross-browser Playwright
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/setup
       - run: pnpm e2e:install
       - run: pnpm test:e2e -- --project=chromium --project=mobile-safari --project=desktop-firefox --project=desktop-safari --grep-invert @visual
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: ${{ !cancelled() && failure() }}
         with:
           name: nightly-playwright-report
@@ -52,10 +52,10 @@ jobs:
     name: Mutation testing
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/setup
       - run: pnpm mutation:check
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: ${{ !cancelled() }}
         with:
           name: stryker-report
@@ -66,9 +66,9 @@ jobs:
     name: k6 load checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/setup
-      - uses: grafana/setup-k6-action@v1
+      - uses: grafana/setup-k6-action@db07bd9765aac508ef18982e52ab937fe633a065 # v1
       - run: pnpm build
       - run: pnpm start > /tmp/nabaperks-k6.log 2>&1 &
       - run: |
@@ -83,8 +83,16 @@ jobs:
       - run: k6 run tests/load/public-routes.js
         env:
           BASE_URL: http://127.0.0.1:3000
-      - run: k6 run tests/load/stamp-redeem-race.js
-        if: ${{ vars.STAMP_RACE_URL != '' && vars.REDEEM_RACE_URL != '' }}
+
+  load-race:
+    name: Authenticated stamp and redeem race checks
+    if: ${{ vars.STAMP_RACE_URL != '' && vars.REDEEM_RACE_URL != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: grafana/setup-k6-action@db07bd9765aac508ef18982e52ab937fe633a065 # v1
+      - name: Run authenticated race check
+        run: k6 run tests/load/stamp-redeem-race.js
         env:
           STAMP_RACE_URL: ${{ vars.STAMP_RACE_URL }}
           REDEEM_RACE_URL: ${{ vars.REDEEM_RACE_URL }}
@@ -96,7 +104,7 @@ jobs:
     name: ZAP full scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/setup
       - run: pnpm build
       - run: pnpm start > /tmp/nabaperks-zap-full.log 2>&1 &
@@ -109,7 +117,7 @@ jobs:
           done
           cat /tmp/nabaperks-zap-full.log
           exit 1
-      - uses: zaproxy/action-full-scan@v0.13.0
+      - uses: zaproxy/action-full-scan@3c58388149901b9a03b7718852c5ba889646c27c # v0.13.0
         with:
           target: http://127.0.0.1:3000
           rules_file_name: .zap/rules.tsv

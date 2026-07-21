@@ -25,6 +25,7 @@ type BirthdayRewardSaveAction = (
   state: BirthdayRewardActionState,
   formData: FormData
 ) => Promise<BirthdayRewardActionState>
+type PendingBirthdaySave = readonly [boolean, string, string]
 
 export function BirthdayRewardForm({
   loyaltyCardId,
@@ -41,10 +42,7 @@ export function BirthdayRewardForm({
   template: BirthdayRewardTemplate
   saveAction?: BirthdayRewardSaveAction
 }) {
-  const [state, action, pending] = useActionState(
-    saveAction,
-    initialState
-  )
+  const [state, action, pending] = useActionState(saveAction, initialState)
   const [enabled, setEnabled] = useState(
     state.fields?.enabled ?? initialValues.enabled
   )
@@ -56,19 +54,42 @@ export function BirthdayRewardForm({
   )
   const [dirty, setDirty] = useState(false)
   const savedValues = useRef(initialValues)
+  const saveInFlight = useRef(false)
+  const queuedSave = useRef<PendingBirthdaySave | null>(null)
 
-  const save = useCallback(
+  const dispatchSave = useCallback(
     (nextEnabled: boolean, nextName: string, nextTerms: string) => {
       const formData = new FormData()
       formData.set("loyaltyCardId", loyaltyCardId)
       if (nextEnabled) formData.set("enabled", "on")
       formData.set("rewardName", nextName)
       formData.set("rewardTerms", nextTerms)
+      saveInFlight.current = true
       setDirty(false)
       startTransition(() => action(formData))
     },
     [action, loyaltyCardId]
   )
+
+  const save = useCallback(
+    (nextEnabled: boolean, nextName: string, nextTerms: string) => {
+      if (saveInFlight.current) {
+        queuedSave.current = [nextEnabled, nextName, nextTerms]
+        return
+      }
+      dispatchSave(nextEnabled, nextName, nextTerms)
+    },
+    [dispatchSave]
+  )
+
+  useEffect(() => {
+    if (pending || !saveInFlight.current) return
+
+    saveInFlight.current = false
+    const queued = queuedSave.current
+    queuedSave.current = null
+    if (queued) dispatchSave(...queued)
+  }, [dispatchSave, pending])
 
   useEffect(() => {
     if (!dirty || !enabled) return
@@ -157,6 +178,7 @@ export function BirthdayRewardForm({
             }}
             onBlur={() => save(enabled, rewardName, rewardTerms)}
             maxLength={100}
+            disabled={pending}
             error={state.errors?.rewardName}
           />
           <TextareaField
@@ -171,6 +193,7 @@ export function BirthdayRewardForm({
             }}
             onBlur={() => save(enabled, rewardName, rewardTerms)}
             maxLength={500}
+            disabled={pending}
             error={state.errors?.rewardTerms}
           />
         </div>

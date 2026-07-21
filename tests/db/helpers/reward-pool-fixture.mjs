@@ -15,9 +15,10 @@ export async function isRewardPoolDbReady() {
         'upsert_reward_pool_item',
         'delete_reward_pool_item',
         'create_or_get_join_qr',
-        'assert_reward_pool_launch_ready'
+        'assert_reward_pool_launch_ready',
+        'set_reward_pool_item_active'
       )`
-    return n >= 4
+    return n >= 5
   } catch {
     return false
   }

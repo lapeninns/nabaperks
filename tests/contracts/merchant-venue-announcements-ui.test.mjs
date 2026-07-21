@@ -24,6 +24,9 @@ describe("contract-merchant-venue-announcements-ui source contract", () => {
     )
 
     assert.match(route, /const merchant = await getCurrentMerchant\(\)/)
+    assert.match(route, /merchant\.status !== "active"/)
+    assert.match(route, /getLaunchBillingReadiness/)
+    assert.match(route, /isLaunchBillingReady\(billing\)/)
     assert.match(route, /validateVenueAnnouncementText/)
     assert.match(route, /venueAnnouncementDailyLimitKey/)
     assert.match(route, /businessDate: londonBusinessDate\(new Date\(\)\)/)

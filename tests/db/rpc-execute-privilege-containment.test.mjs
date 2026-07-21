@@ -35,6 +35,7 @@ const AUTHENTICATED_DIRECT_RPCS = [
   "admin_log_pilot_note",
   "save_loyalty_card",
   "upsert_reward_pool_item",
+  "set_reward_pool_item_active",
   "add_reward_pool_presets",
   "save_loyalty_card_birthday_reward",
   "delete_reward_pool_item",

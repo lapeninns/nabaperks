@@ -8,7 +8,8 @@ import {
 
 export async function destinationForReturningQrVisit(
   merchantSlug: string,
-  qrId: string
+  qrId: string,
+  scanRateLimitIdentity?: string
 ): Promise<string | null> {
   const customer = await getCurrentCustomer()
   if (!customer) return null
@@ -16,7 +17,11 @@ export async function destinationForReturningQrVisit(
   let context: Awaited<ReturnType<typeof getMerchantJoinContext>>
 
   try {
-    context = await getMerchantJoinContext(merchantSlug, qrId)
+    context = await getMerchantJoinContext(
+      merchantSlug,
+      qrId,
+      scanRateLimitIdentity
+    )
   } catch {
     return null
   }

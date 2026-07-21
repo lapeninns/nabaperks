@@ -103,6 +103,15 @@ export function londonBusinessDate(date: Date) {
   return `${part(parts, "year")}-${part(parts, "month")}-${part(parts, "day")}`
 }
 
+/** Monday date for the Europe/London week containing the given instant. */
+export function londonWeekStart(date: Date) {
+  const { year, month, day } = londonDateParts(date)
+  const londonDate = new Date(Date.UTC(year, month - 1, day))
+  const daysSinceMonday = (londonDate.getUTCDay() + 6) % 7
+  londonDate.setUTCDate(londonDate.getUTCDate() - daysSinceMonday)
+  return londonDate.toISOString().slice(0, 10)
+}
+
 /**
  * True when the instant falls within the customer's quiet-hours window in
  * Europe/London. The default 21:00→09:00 window wraps past midnight.
@@ -128,7 +137,13 @@ export function nextQuietHoursEnd(date: Date, quietHoursEnd = "09:00") {
   const end = timeToMinutes(quietHoursEnd)
   const hour = Math.floor(end / 60)
   const minute = end % 60
-  const next = londonWallClockToUtc(today.year, today.month, today.day, hour, minute)
+  const next = londonWallClockToUtc(
+    today.year,
+    today.month,
+    today.day,
+    hour,
+    minute
+  )
 
   if (next > date) return next
 
@@ -136,5 +151,11 @@ export function nextQuietHoursEnd(date: Date, quietHoursEnd = "09:00") {
     Date.UTC(today.year, today.month - 1, today.day + 1)
   )
   const tomorrow = londonDateParts(tomorrowSeed)
-  return londonWallClockToUtc(tomorrow.year, tomorrow.month, tomorrow.day, hour, minute)
+  return londonWallClockToUtc(
+    tomorrow.year,
+    tomorrow.month,
+    tomorrow.day,
+    hour,
+    minute
+  )
 }

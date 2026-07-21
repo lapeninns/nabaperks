@@ -5,6 +5,11 @@ import { after } from "next/server"
 import { recordProductEvent } from "@/lib/analytics/events"
 import { loyaltyAvailability } from "@/lib/customer/availability"
 import { getCurrentCustomer } from "@/lib/customer/identity"
+import {
+  isValidPublicQrId,
+  qrScanCodeRateLimitKey,
+  qrScanIdentityRateLimitKey,
+} from "@/lib/customer/qr-rate-limit-core"
 import { logger } from "@/lib/observability/logger"
 import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
@@ -90,9 +95,16 @@ export async function resolveQrForJoin(
     scanRateLimitIdentity = "anonymous",
   }: ResolveQrForJoinOptions = {}
 ) {
+  if (!isValidPublicQrId(qrId)) return null
+
   if (enforceScanRateLimit) {
     await enforceRateLimit({
-      key: `qr-scan:${qrId}:${scanRateLimitIdentity}`,
+      key: qrScanIdentityRateLimitKey(scanRateLimitIdentity),
+      limit: 120,
+      windowMs: 60_000,
+    })
+    await enforceRateLimit({
+      key: qrScanCodeRateLimitKey(qrId, scanRateLimitIdentity),
       limit: 60,
       windowMs: 60_000,
     })
@@ -168,15 +180,17 @@ export async function resolveQrForJoin(
 
 export async function getMerchantJoinContext(
   merchantSlug: string,
-  qrId?: string
+  qrId?: string,
+  scanRateLimitIdentity?: string
 ) {
   if (qrId) {
     let qrContext: Awaited<ReturnType<typeof resolveQrForJoin>>
 
     try {
       qrContext = await resolveQrForJoin(qrId, {
-        enforceScanRateLimit: false,
+        enforceScanRateLimit: Boolean(scanRateLimitIdentity),
         recordScan: false,
+        scanRateLimitIdentity,
       })
     } catch (error) {
       if (error instanceof RateLimitError) return null

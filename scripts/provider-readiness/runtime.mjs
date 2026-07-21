@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 
+import { parseEnvText } from "../env-file.mjs"
+
 export function loadProjectEnv(projectDir) {
   const env = {
     ...readEnvFile(join(projectDir, ".env")),
@@ -88,7 +90,10 @@ export function shouldRequireSsl(dbUrl) {
     const hostname = new URL(dbUrl).hostname.toLowerCase()
     const registrableDomain = hostname.split(".").slice(-2).join(".")
 
-    return registrableDomain === "supabase.com"
+    return (
+      registrableDomain === "supabase.com" ||
+      registrableDomain === "supabase.co"
+    )
   } catch {
     return false
   }
@@ -118,26 +123,7 @@ export function errorMessage(error) {
 
 function readEnvFile(path) {
   if (!existsSync(path)) return {}
-
-  const parsed = {}
-  for (const line of readFileSync(path, "utf8").split(/\r?\n/)) {
-    const trimmed = line.trim()
-    if (!trimmed || trimmed.startsWith("#")) continue
-
-    const equalsIndex = trimmed.indexOf("=")
-    if (equalsIndex === -1) continue
-
-    const key = trimmed.slice(0, equalsIndex).trim()
-    let envValue = trimmed.slice(equalsIndex + 1).trim()
-    if (
-      (envValue.startsWith('"') && envValue.endsWith('"')) ||
-      (envValue.startsWith("'") && envValue.endsWith("'"))
-    ) {
-      envValue = envValue.slice(1, -1)
-    }
-    parsed[key] = envValue
-  }
-  return parsed
+  return parseEnvText(readFileSync(path, "utf8"))
 }
 
 function errorName(error) {

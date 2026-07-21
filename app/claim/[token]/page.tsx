@@ -73,6 +73,22 @@ export default async function ClaimRewardPage({
     )
   }
 
+  if (sp.unsubscribe === "failed") {
+    return (
+      <ClaimShell title="We couldn't save that change">
+        <p className="text-sm leading-6 text-muted-foreground">
+          Please try again. Your email preference has not been changed yet.
+        </p>
+        <form action={unsubscribeRewardInviteAction}>
+          <input type="hidden" name="token" value={token} />
+          <Button type="submit" variant="secondary" className="w-full">
+            Try again
+          </Button>
+        </form>
+      </ClaimShell>
+    )
+  }
+
   if (sp.unsubscribe) {
     return (
       <ClaimShell title="Stop these emails?">

@@ -83,8 +83,6 @@ export async function requestCustomerLoginOtpAction(
     throw error
   }
 
-  const customer = await findCustomerByVerifiedPhone(normalized.phone)
-
   const verification = await startCustomerPhoneVerification(contact)
   if (verification.status === "unavailable") {
     return {
@@ -100,7 +98,6 @@ export async function requestCustomerLoginOtpAction(
       purpose: "wallet",
       phone: contact,
       country: normalized.phone.country,
-      customerId: customer?.id ?? null,
     })
   } catch (error) {
     logVerificationSendFailure("wallet", error)
@@ -184,7 +181,13 @@ export async function verifyCustomerLoginOtpAction(
     }
   }
 
-  if (!pending.customerId) {
+  const customer = await findCustomerByVerifiedPhone({
+    e164: pending.phone,
+    country: pending.country,
+    last4: pending.phone.slice(-4),
+  })
+
+  if (!customer) {
     await clearPendingPhoneVerification()
     return {
       fields: { contact },
@@ -193,7 +196,7 @@ export async function verifyCustomerLoginOtpAction(
     }
   }
 
-  await setCustomerSession(pending.customerId)
+  await setCustomerSession(customer.id)
   await clearPendingPhoneVerification()
   redirect(next)
 }

@@ -165,6 +165,48 @@ test("missing or invalid signatures are rejected before claim", async () => {
   assert.equal(claims, 0)
 })
 
+test("a missing signature is rejected without consuming the request body", async () => {
+  let bodyRead = false
+  const request = {
+    headers: new Headers(),
+    get body() {
+      bodyRead = true
+      throw new Error("body must not be read")
+    },
+  }
+
+  const response = await handleStripeWebhookRequest(
+    request,
+    routeDependencies()
+  )
+
+  assert.equal(response.status, 400)
+  assert.equal(bodyRead, false)
+})
+
+test("oversized Stripe webhook bodies are rejected before verification", async () => {
+  let verifies = 0
+  const response = await handleStripeWebhookRequest(
+    new Request("http://localhost/api/stripe/webhook", {
+      method: "POST",
+      headers: {
+        "stripe-signature": "signed",
+        "content-length": "1048577",
+      },
+      body: "small-body",
+    }),
+    routeDependencies({
+      constructEvent: () => {
+        verifies += 1
+        throw new Error("must not verify")
+      },
+    })
+  )
+
+  assert.equal(response.status, 413)
+  assert.equal(verifies, 0)
+})
+
 test("Checkout completion hydrates and atomically applies the exact current Subscription", async () => {
   let retrievedId = null
   let applied = null

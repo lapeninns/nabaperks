@@ -83,8 +83,8 @@ function SentRow({ reward }: { reward: SentReward }) {
           {reward.rewardName}
         </span>
         <span className="text-xs text-muted-foreground">
-          {reward.memberLabel} · {dateFormatter.format(new Date(reward.createdAt))}
-          {reward.kind === "invite" ? " · Invite" : ""}
+          {reward.memberLabel} ·{" "}
+          {dateFormatter.format(new Date(reward.createdAt))}
         </span>
       </div>
       <MonoTag tone={reward.statusTone}>{reward.statusLabel}</MonoTag>

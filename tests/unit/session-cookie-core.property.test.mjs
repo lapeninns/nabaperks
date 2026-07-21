@@ -23,12 +23,11 @@ const phoneArbitrary = fc
 const pendingPhonePayloadArbitrary = timestampArbitrary.chain((issuedAt) =>
   fc
     .record({
-      version: fc.constant(1),
+      version: fc.constant(2),
       purpose: fc.constantFrom("join", "wallet"),
       phone: phoneArbitrary,
       phoneHmac: fc.string({ minLength: 1, maxLength: 80 }),
       country: fc.constant("GB"),
-      customerId: fc.option(fc.uuid(), { nil: null }),
       issuedAt: fc.constant(issuedAt),
       expiresAt: fc.integer({ min: issuedAt + 1, max: issuedAt + 86_400 }),
     })

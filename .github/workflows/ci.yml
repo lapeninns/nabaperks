@@ -54,7 +54,7 @@ jobs:
       CUSTOMER_PHONE_HMAC_SECRET: "Q6!rF3@wM8#kT2$yP9^cD4&vL7*zN5?h"
       CUSTOMER_PHONE_ENCRYPTION_KEY: "V2!pK7@mR4#xH9$cF3^nQ8&wT5*zD6?j"
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
@@ -70,7 +70,7 @@ jobs:
       - run: pnpm test:contracts
       # The unit suite runs exactly once, with coverage thresholds enforced.
       - run: pnpm test:coverage
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: ${{ !cancelled() }}
         with:
           name: coverage
@@ -83,7 +83,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
@@ -101,13 +101,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/setup
       - run: pnpm build
       - run: pnpm bundle:check
       - run: pnpm jsonld:check
       - name: Share production bundle with Lighthouse and ZAP
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: next-build
           include-hidden-files: true
@@ -151,14 +151,14 @@ jobs:
       PLAYWRIGHT_WORKERS: "1"
       CUSTOMER_DEV_OTP_CODE: "424242"
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/setup
       - name: Install project browser
         uses: ./.github/actions/playwright
         with:
           project: ${{ matrix.project }}
       - run: pnpm test:e2e -- --project="${{ matrix.project }}" --grep-invert @visual --shard="${{ matrix.shard }}"
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: ${{ !cancelled() && failure() }}
         with:
           name: playwright-report-${{ matrix.project }}-${{ strategy.job-index }}
@@ -193,14 +193,14 @@ jobs:
       PLAYWRIGHT_WORKERS: "1"
       CUSTOMER_DEV_OTP_CODE: "424242"
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/setup
       - name: Install project browser
         uses: ./.github/actions/playwright
         with:
           project: ${{ matrix.project }}
       - run: pnpm test:a11y -- --project="${{ matrix.project }}" --shard="${{ matrix.shard }}"
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: ${{ !cancelled() && failure() }}
         with:
           name: a11y-playwright-report-${{ matrix.project }}-${{ strategy.job-index }}
@@ -237,14 +237,14 @@ jobs:
       PLAYWRIGHT_WORKERS: "1"
       CUSTOMER_DEV_OTP_CODE: "424242"
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/setup
       - name: Install project browser
         uses: ./.github/actions/playwright
         with:
           project: ${{ matrix.project }}
       - run: pnpm test:visual -- --project="${{ matrix.project }}" --shard="${{ matrix.shard }}"
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: ${{ !cancelled() && failure() }}
         with:
           name: visual-playwright-report-${{ matrix.project }}-${{ strategy.job-index }}
@@ -285,15 +285,15 @@ jobs:
     env:
       CUSTOMER_DEV_OTP_CODE: "424242"
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/setup
       - name: Reuse the production bundle
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: next-build
           path: .next
       - run: pnpm lighthouse -- --collect.url="${{ matrix.url }}"
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: ${{ !cancelled() }}
         with:
           name: lighthouse-report-${{ matrix.route }}
@@ -318,10 +318,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/setup
       - name: Reuse the production bundle
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: next-build
           path: .next
@@ -336,7 +336,7 @@ jobs:
           done
           cat /tmp/nabaperks-zap.log
           exit 1
-      - uses: zaproxy/action-baseline@v0.15.0
+      - uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
         with:
           target: http://127.0.0.1:3000
           rules_file_name: .zap/rules.tsv
@@ -351,9 +351,9 @@ jobs:
       SUPABASE_SEND_EMAIL_HOOK_URI: http://host.docker.internal:3147/api/auth/hooks/send-email
       SUPABASE_DB_URL: postgres://postgres:postgres@127.0.0.1:54322/postgres
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/setup
-      - uses: supabase/setup-cli@v3
+      - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3
         with:
           version: 2.106.0
       - name: Configure local auth-hook fixture
