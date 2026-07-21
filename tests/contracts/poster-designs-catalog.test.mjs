@@ -29,7 +29,7 @@ test("poster catalogue is a closed, organised eight-design A4 system", () => {
         "Portrait designs for tills, counters, windows and wall frames.",
       format: "a4-counter",
       sheet: "a4",
-      revision: 2,
+      revision: 3,
     },
   ])
   assert.deepEqual(
@@ -42,7 +42,7 @@ test("poster catalogue is a closed, organised eight-design A4 system", () => {
         collection === "counter" &&
         format === "a4-counter" &&
         sheet === "a4" &&
-        revision === 2
+        revision === 3
     )
   )
   assert.match(catalog.product.kitSummary, /Eight print-ready A4/)
