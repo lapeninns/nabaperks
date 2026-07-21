@@ -56,7 +56,7 @@ export async function proxy(request: NextRequest) {
       csp,
       nonce,
       joinJourney?.token,
-      customerDevice?.id
+      customerDevice?.isNew ? undefined : customerDevice?.id
     )
     const nextResponse = NextResponse.next({
       request: { headers: requestHeaders },
@@ -112,6 +112,7 @@ function forwardedRequestHeaders(
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set(REQUEST_ID_HEADER, requestId)
   requestHeaders.set(REQUEST_PATH_HEADER, requestPath)
+  requestHeaders.delete(CUSTOMER_DEVICE_HEADER)
   if (customerDeviceId) {
     requestHeaders.set(CUSTOMER_DEVICE_HEADER, customerDeviceId)
   }

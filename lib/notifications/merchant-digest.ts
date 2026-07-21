@@ -9,6 +9,7 @@ import { logger } from "@/lib/observability/logger"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 import { buildMerchantWeeklyDigestEmail } from "./merchant-digest-email"
+import { londonWeekStart } from "./london-time"
 import { sendTransactionalEmail } from "./resend"
 
 export type WeeklyDigestMerchant = MerchantDashboardMerchant & {
@@ -24,9 +25,11 @@ export type MerchantWeeklyDigestRunResult = {
 }
 
 const DIGEST_EVENT_NAME = "merchant_weekly_digest_sent"
-const DEDUPE_WINDOW_DAYS = 6
-const DEDUPE_WINDOW_MS = DEDUPE_WINDOW_DAYS * 24 * 60 * 60 * 1000
 const PAGE_SIZE = 100
+
+type MerchantDigestClaim =
+  | { readonly status: "claimed"; readonly leaseId: string }
+  | { readonly status: "sent" | "busy"; readonly leaseId: null }
 
 export async function listWeeklyDigestMerchants(): Promise<
   WeeklyDigestMerchant[]
@@ -46,7 +49,9 @@ export async function listWeeklyDigestMerchants(): Promise<
       .range(start, end)
 
     if (error) {
-      throw new Error(`Unable to list weekly digest merchants: ${error.message}`)
+      throw new Error(
+        `Unable to list weekly digest merchants: ${error.message}`
+      )
     }
 
     const rows = data ?? []
@@ -89,15 +94,23 @@ export async function runMerchantWeeklyDigest({
   }
 
   const merchants = await listWeeklyDigestMerchants()
+  const periodStart = londonWeekStart(now)
 
   for (const merchant of merchants) {
     result.attempted += 1
+    let leaseId: string | null = null
 
     try {
-      if (await hasRecentMerchantWeeklyDigest(merchant.id, now)) {
+      const claim = await claimMerchantWeeklyDigest(
+        merchant.id,
+        periodStart,
+        now
+      )
+      if (claim.status !== "claimed") {
         result.skipped += 1
         continue
       }
+      leaseId = claim.leaseId
 
       const dashboard = await getMerchantDashboardData(merchant)
       const email = buildMerchantWeeklyDigestEmail({
@@ -111,52 +124,110 @@ export async function runMerchantWeeklyDigest({
         subject: email.subject,
         text: email.text,
         html: email.html,
+        idempotencyKey: `merchant-digest:${merchant.id}:${periodStart}`,
       })
-      await recordProductEvent({
-        eventName: DIGEST_EVENT_NAME,
-        merchantId: merchant.id,
-        actorType: "system",
-        metadata: {
-          dedupeWindowDays: DEDUPE_WINDOW_DAYS,
-          source: "merchant_weekly_digest",
-        },
-      })
+      await completeMerchantWeeklyDigest(merchant.id, periodStart, leaseId, now)
 
       result.sent += 1
     } catch (error) {
+      if (leaseId) {
+        await failMerchantWeeklyDigest(
+          merchant.id,
+          periodStart,
+          leaseId,
+          "send_failed",
+          now
+        ).catch(() => undefined)
+      }
       result.failed += 1
       logger.warn("merchant_weekly_digest_send_failed", {
         merchantId: merchant.id,
-        reason:
-          error instanceof Error
-            ? error.message
-            : "Unknown merchant weekly digest error",
+        reason: error instanceof Error ? error.name : "unknown_error",
       })
+      continue
     }
+
+    await recordProductEvent({
+      eventName: DIGEST_EVENT_NAME,
+      merchantId: merchant.id,
+      actorType: "system",
+      metadata: { periodStart, source: "merchant_weekly_digest" },
+    }).catch(() =>
+      logger.warn("merchant_weekly_digest_event_failed", {
+        merchantId: merchant.id,
+      })
+    )
   }
 
   return result
 }
 
-export async function hasRecentMerchantWeeklyDigest(
+async function claimMerchantWeeklyDigest(
   merchantId: string,
+  periodStart: string,
   now = new Date()
-): Promise<boolean> {
+): Promise<MerchantDigestClaim> {
   const supabase = createSupabaseServiceRoleClient()
-  const since = new Date(now.getTime() - DEDUPE_WINDOW_MS).toISOString()
-  const { data, error } = await supabase
-    .from("product_events")
-    .select("id")
-    .eq("merchant_id", merchantId)
-    .eq("event_name", DIGEST_EVENT_NAME)
-    .gte("created_at", since)
-    .limit(1)
+  const { data, error } = await supabase.rpc("claim_merchant_weekly_digest", {
+    p_merchant_id: merchantId,
+    p_period_start: periodStart,
+    p_now: now.toISOString(),
+  })
 
   if (error) {
-    throw new Error(`Unable to check weekly digest dedupe: ${error.message}`)
+    throw new Error(`Unable to claim weekly digest: ${error.message}`)
   }
 
-  return (data ?? []).length > 0
+  const row = data?.[0]
+  if (
+    row?.claim_status === "claimed" &&
+    typeof row.claim_lease_id === "string"
+  ) {
+    return { status: "claimed", leaseId: row.claim_lease_id }
+  }
+  if (row?.claim_status === "sent" || row?.claim_status === "busy") {
+    return { status: row.claim_status, leaseId: null }
+  }
+  throw new Error("Weekly digest claim returned an invalid result")
+}
+
+async function completeMerchantWeeklyDigest(
+  merchantId: string,
+  periodStart: string,
+  leaseId: string,
+  now: Date
+) {
+  const supabase = createSupabaseServiceRoleClient()
+  const { data, error } = await supabase.rpc(
+    "complete_merchant_weekly_digest",
+    {
+      p_merchant_id: merchantId,
+      p_period_start: periodStart,
+      p_lease_id: leaseId,
+      p_now: now.toISOString(),
+    }
+  )
+  if (error || data !== true) {
+    throw new Error("Unable to complete weekly digest claim")
+  }
+}
+
+async function failMerchantWeeklyDigest(
+  merchantId: string,
+  periodStart: string,
+  leaseId: string,
+  errorCode: string,
+  now: Date
+) {
+  const supabase = createSupabaseServiceRoleClient()
+  const { error } = await supabase.rpc("fail_merchant_weekly_digest", {
+    p_merchant_id: merchantId,
+    p_period_start: periodStart,
+    p_lease_id: leaseId,
+    p_error_code: errorCode,
+    p_now: now.toISOString(),
+  })
+  if (error) throw new Error("Unable to fail weekly digest claim")
 }
 
 function isMerchantDigestEmailConfigured(): boolean {

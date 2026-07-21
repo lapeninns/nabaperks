@@ -12,6 +12,8 @@ import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import test from "node:test"
 
+import { serializeEnvValue } from "../../scripts/env-file.mjs"
+
 const projectDir = process.cwd()
 const checkEnvScript = resolve(projectDir, "scripts/check-env.mjs")
 const envContract = JSON.parse(
@@ -44,12 +46,11 @@ test("Given a complete production configuration When generated credentials are s
       PRODUCTION_MONITOR_SECRET: "P4@wS8#nC2!kV6$rJ9^tB3&yM7*zQ5?e",
       RESEND_FROM: "Nabaperks <hello@example.test>",
       STRIPE_GROWTH_ANNUAL_PRICE_ID: "price_annual_fixture",
-      SUPABASE_SEND_EMAIL_HOOK_SECRET:
-        [
-          "v1,wh",
-          "sec_",
-          "SDkhbVEyQHZSNyNjVDQkeUs4XnBEMyZ6RjYqd041P3g=",
-        ].join(""),
+      SUPABASE_SEND_EMAIL_HOOK_SECRET: [
+        "v1,wh",
+        "sec_",
+        "SDkhbVEyQHZSNyNjVDQkeUs4XnBEMyZ6RjYqd041P3g=",
+      ].join(""),
       ...validVapidEnvironment(),
     },
   })
@@ -87,7 +88,10 @@ for (const [name, malformed, message] of [
 
     assert.equal(result.status, 1)
     assert.match(result.stderr, new RegExp(message))
-    assert.doesNotMatch(result.stderr, new RegExp(malformed.replaceAll(".", "\\.")))
+    assert.doesNotMatch(
+      result.stderr,
+      new RegExp(malformed.replaceAll(".", "\\."))
+    )
   })
 }
 
@@ -100,7 +104,10 @@ test("Given hosted configuration When only part of the VAPID trio is configured 
   })
 
   assert.equal(result.status, 1)
-  assert.match(result.stderr, /Web Push VAPID values must be configured together/)
+  assert.match(
+    result.stderr,
+    /Web Push VAPID values must be configured together/
+  )
 })
 
 test("Given hosted configuration When the VAPID private key is an invalid exact-length scalar Then deployment fails", () => {
@@ -115,8 +122,14 @@ test("Given hosted configuration When the VAPID private key is an invalid exact-
   })
 
   assert.equal(result.status, 1)
-  assert.match(result.stderr, /WEB_PUSH_VAPID_PRIVATE_KEY must be a valid P-256 scalar/)
-  assert.doesNotMatch(result.stderr, new RegExp(escapeRegExp(invalidPrivateKey)))
+  assert.match(
+    result.stderr,
+    /WEB_PUSH_VAPID_PRIVATE_KEY must be a valid P-256 scalar/
+  )
+  assert.doesNotMatch(
+    result.stderr,
+    new RegExp(escapeRegExp(invalidPrivateKey))
+  )
 })
 
 test("Given hosted configuration When the VAPID public key is an invalid exact-length point Then deployment fails", () => {
@@ -133,7 +146,10 @@ test("Given hosted configuration When the VAPID public key is an invalid exact-l
   })
 
   assert.equal(result.status, 1)
-  assert.match(result.stderr, /WEB_PUSH_VAPID_PUBLIC_KEY must be a valid P-256 point/)
+  assert.match(
+    result.stderr,
+    /WEB_PUSH_VAPID_PUBLIC_KEY must be a valid P-256 point/
+  )
   assert.doesNotMatch(result.stderr, new RegExp(escapeRegExp(invalidPublicKey)))
 })
 
@@ -250,10 +266,7 @@ test("Given hosted configuration When a protected secret repeats a structured se
 })
 
 for (const [encoding, secret] of [
-  [
-    "hex",
-    "b9cc0956add0fb3222e43218ec49113d65b8167f96446300486009602ba3a7f5",
-  ],
+  ["hex", "b9cc0956add0fb3222e43218ec49113d65b8167f96446300486009602ba3a7f5"],
   ["base64url", "YPiBzVAZkKxuPz-9CSqFcTZvdb6Rl9vtLf40-dGL1pw"],
 ]) {
   test(`Given hosted configuration When a protected secret uses secure ${encoding} encoding Then the environment accepts it`, () => {
@@ -272,8 +285,7 @@ test("Given hosted configuration When an auth-hook secret is not Standard Webhoo
   const result = runEnvCheck({
     args: ["--profile=default"],
     environment: {
-      SUPABASE_SEND_EMAIL_HOOK_SECRET:
-        "H9!mQ2@vR7#cT4$yK8^pD3&zF6*wN5?x",
+      SUPABASE_SEND_EMAIL_HOOK_SECRET: "H9!mQ2@vR7#cT4$yK8^pD3&zF6*wN5?x",
     },
     vercelEnv: "production",
   })
@@ -350,7 +362,11 @@ test("Given the CI build job When VAPID fixtures are configured Then a generator
   const envCheckIndex = ci.indexOf("- run: pnpm env:check:production")
 
   assert.doesNotMatch(ci, /ci-vapid-(?:public|private)-key/)
-  assert.notEqual(generatorIndex, -1, "CI must generate an ephemeral VAPID pair")
+  assert.notEqual(
+    generatorIndex,
+    -1,
+    "CI must generate an ephemeral VAPID pair"
+  )
   assert.ok(
     generatorIndex < envCheckIndex,
     "CI must generate VAPID values before production validation"
@@ -389,9 +405,8 @@ test("Given the CI VAPID generator When its output is validated Then it emits on
 })
 
 test("Given a 31-byte private scalar When CI fixture padding is applied Then its value is preserved at 32 bytes", async () => {
-  const { leftPadPrivateKey: padCiPrivateKey } = await import(
-    "../../scripts/generate-ci-vapid-env.mjs"
-  )
+  const { leftPadPrivateKey: padCiPrivateKey } =
+    await import("../../scripts/generate-ci-vapid-env.mjs")
   const scalar = Buffer.alloc(31, 7)
   const padded = padCiPrivateKey(scalar)
 
@@ -409,7 +424,10 @@ test("Given scheduled production monitoring When a rollback is active Then probe
   assert.doesNotMatch(workflow, /GITHUB_SHA/)
   assert.match(workflow, /expected_revision:/)
   assert.match(workflow, /EXPECTED_REVISION:/)
-  assert.match(workflow, /\$revision == "" or \.revision == \(\$revision\[0:12\]\)/)
+  assert.match(
+    workflow,
+    /\$revision == "" or \.revision == \(\$revision\[0:12\]\)/
+  )
 })
 
 test("Given final provider acceptance When the production runbook is inspected Then Stripe and recovery proof are executable", () => {
@@ -417,10 +435,7 @@ test("Given final provider acceptance When the production runbook is inspected T
     "docs/operations/production-runbook.md",
     "utf8"
   )
-  const incident = readFileSync(
-    "docs/operations/incident-response.md",
-    "utf8"
-  )
+  const incident = readFileSync("docs/operations/incident-response.md", "utf8")
 
   assert.match(production, /live product and both active price IDs/i)
   assert.match(production, /Customer Portal session/i)
@@ -458,9 +473,9 @@ function runEnvCheck({ args = [], environment = {}, vercelEnv }) {
 function baseEnvironmentFile() {
   const values = envContract
     .filter((entry) => !entry.optional)
-    .map((entry) => `${entry.name}=${testValue(entry)}`)
+    .map((entry) => `${entry.name}=${serializeEnvValue(testValue(entry))}`)
 
-  values.push("TWILIO_AUTH_TOKEN=test-auth-token")
+  values.push(`TWILIO_AUTH_TOKEN=${serializeEnvValue("test-auth-token")}`)
   return `${values.join("\n")}\n`
 }
 

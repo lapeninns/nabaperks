@@ -4,6 +4,7 @@ import * as Sentry from "@sentry/nextjs"
 import { isFeatureEnabled } from "@/lib/feature-flags"
 import { REQUEST_ID_HEADER } from "@/lib/observability/request-id"
 import { logger } from "@/lib/observability/logger"
+import { sanitizeTelemetryUrl } from "@/lib/observability/safe-telemetry-url"
 
 // Runs once per server instance. Provider-agnostic by design: it emits a
 // structured startup record useful for deploy
@@ -41,27 +42,34 @@ export const onRequestError: Instrumentation.onRequestError = async (
     typeof err === "object" && err !== null && "digest" in err
       ? String(err.digest)
       : null
+  const requestId = headerValue(request.headers?.[REQUEST_ID_HEADER])
+  const safeRoutePath = sanitizeTelemetryUrl(context.routePath)
 
   if (isFeatureEnabled("platform_error_reporting")) {
     Sentry.withScope((scope) => {
-      scope.setTag(
-        "request.id",
-        headerValue(request.headers?.[REQUEST_ID_HEADER]) ?? "missing"
-      )
+      scope.setTag("request.id", requestId ?? "missing")
       scope.setTag("next.router_kind", context.routerKind)
-      scope.setTag("next.route_path", context.routePath)
+      scope.setTag("next.route_path", safeRoutePath)
       scope.setTag("next.route_type", context.routeType)
-      Sentry.captureRequestError(err, request, context)
+      Sentry.captureRequestError(
+        err,
+        {
+          method: request.method,
+          path: safeRoutePath,
+          headers: requestId ? { [REQUEST_ID_HEADER]: requestId } : {},
+        },
+        { ...context, routePath: safeRoutePath }
+      )
     })
   }
 
   logger.error("request.error", {
     errorName,
     digest,
-    requestId: headerValue(request.headers?.[REQUEST_ID_HEADER]) ?? null,
+    requestId: requestId ?? null,
     method: request.method,
     routerKind: context.routerKind,
-    routePath: context.routePath,
+    routePath: safeRoutePath,
     routeType: context.routeType,
   })
 }

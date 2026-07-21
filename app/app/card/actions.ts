@@ -539,9 +539,7 @@ export async function saveBirthdayRewardAction(
   return {
     fields,
     saved: true,
-    message: enabled
-      ? "Birthday treat saved."
-      : "Birthday treat switched off.",
+    message: enabled ? "Birthday treat saved." : "Birthday treat switched off.",
   }
 }
 
@@ -561,27 +559,11 @@ export async function toggleRewardPoolItemActiveAction(formData: FormData) {
   }
 
   const supabase = await createSupabaseServerClient()
-  const { data: item, error: fetchError } = await supabase
-    .from("reward_pool_items")
-    .select("id, reward_name, reward_terms, weight, display_order")
-    .eq("id", rewardPoolItemId)
-    .eq("merchant_id", merchant.id)
-    .eq("loyalty_card_id", loyaltyCardId)
-    .maybeSingle()
-
-  if (fetchError || !item) {
-    return { error: REWARD_UPDATE_ERROR }
-  }
-
-  const { error } = await supabase.rpc("upsert_reward_pool_item", {
+  const { error } = await supabase.rpc("set_reward_pool_item_active", {
     p_merchant_id: merchant.id,
     p_loyalty_card_id: loyaltyCardId,
     p_reward_pool_item_id: rewardPoolItemId,
-    p_reward_name: item.reward_name,
-    p_reward_terms: item.reward_terms,
-    p_weight: item.weight,
     p_is_active: nextActive,
-    p_display_order: item.display_order,
   })
 
   if (error) {

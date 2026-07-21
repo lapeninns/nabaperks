@@ -18,6 +18,7 @@ import {
   resolveSupabaseDbUrl,
 } from "../../scripts/provider-readiness/runtime.mjs"
 import { runReadinessChecks } from "../../scripts/provider-readiness/checks.mjs"
+import { serializeEnvValue } from "../../scripts/env-file.mjs"
 import {
   diffMigrationVersions,
   parseRemoteMigrationVersions,
@@ -429,7 +430,7 @@ function runProductionEnvCheck(projectDir, values) {
   writeFileSync(
     join(projectDir, ".env"),
     `${Object.entries(values)
-      .map(([name, value]) => `${name}=${value}`)
+      .map(([name, value]) => `${name}=${serializeEnvValue(value)}`)
       .join("\n")}\n`
   )
 

@@ -2,6 +2,8 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { spawnSync } from "node:child_process"
 
+import { parseEnvText, serializeEnvValue } from "./env-file.mjs"
+
 const projectDir = process.cwd()
 const contract = JSON.parse(
   readFileSync(join(projectDir, "config/env-contract.json"), "utf8")
@@ -155,7 +157,9 @@ function writeLocalEnv() {
 
   for (const entry of contract) {
     lines.push(`# ${entry.description}`)
-    lines.push(`${entry.name}=${process.env[entry.name] ?? ""}`)
+    lines.push(
+      `${entry.name}=${serializeEnvValue(process.env[entry.name] ?? "")}`
+    )
     lines.push("")
   }
 
@@ -432,12 +436,12 @@ function mergeLocalEnv(updates) {
 
   for (const entry of contract) {
     lines.push(`# ${entry.description}`)
-    lines.push(`${entry.name}=${merged[entry.name] ?? ""}`)
+    lines.push(`${entry.name}=${serializeEnvValue(merged[entry.name] ?? "")}`)
     lines.push("")
   }
 
   for (const name of extraNames.sort()) {
-    lines.push(`${name}=${merged[name]}`)
+    lines.push(`${name}=${serializeEnvValue(merged[name])}`)
   }
 
   writeFileSync(target, `${lines.join("\n").trimEnd()}\n`, { mode: 0o600 })
@@ -510,39 +514,7 @@ function isSafePostHogHost(value) {
 }
 
 function parseEnvFile(path) {
-  const parsed = {}
-  const content = readFileSync(path, "utf8")
-
-  for (const line of content.split(/\r?\n/)) {
-    const trimmed = line.trim()
-
-    if (!trimmed || trimmed.startsWith("#")) continue
-
-    const equalsIndex = trimmed.indexOf("=")
-
-    if (equalsIndex === -1) continue
-
-    parsed[trimmed.slice(0, equalsIndex)] = unquoteEnvValue(
-      trimmed.slice(equalsIndex + 1)
-    )
-  }
-
-  return parsed
-}
-
-// Strip a single layer of matching surrounding quotes, mirroring how dotenv
-// (and Next.js) load .env files. Without this, quoted values are pushed to
-// Vercel with literal quote characters, corrupting secrets like API keys.
-function unquoteEnvValue(value) {
-  if (value.length < 2) return value
-
-  const first = value[0]
-
-  if ((first === '"' || first === "'") && value[value.length - 1] === first) {
-    return value.slice(1, -1)
-  }
-
-  return value
+  return parseEnvText(readFileSync(path, "utf8"))
 }
 
 function parseVercelEnvironment() {
@@ -582,8 +554,8 @@ function readVercelEnvNames(environment) {
 
 function addVercelEnv(name, value, environment) {
   const result = runVercel(
-    ["env", "add", name, environment, "--value", value, "--yes"],
-    ""
+    ["env", "add", name, environment, "--yes"],
+    `${value}\n`
   )
 
   if (result.status !== 0) {

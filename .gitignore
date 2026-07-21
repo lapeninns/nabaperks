@@ -36,6 +36,7 @@
 supabase/.temp/
 
 # local agent/tooling output
+.deepsec/
 .omo/
 Goal/
 artifacts/

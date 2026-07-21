@@ -1,9 +1,7 @@
 "use server"
 
 import { getCurrentMerchant, getCurrentUser } from "@/lib/auth/session"
-import {
-  revalidateMerchantOnboardingCache,
-} from "@/lib/cache/tags"
+import { revalidateMerchantOnboardingCache } from "@/lib/cache/tags"
 import { revalidateMerchantLaunchSurfaces } from "@/lib/merchant/revalidate-launch-surfaces"
 import {
   parseVenueLocationSubmission,
@@ -17,6 +15,10 @@ import type {
   VenueAddressFormFields,
 } from "@/lib/merchant/venue-address"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit"
+
+const VENUE_GEOCODE_DAILY_LIMIT = 20
+const VENUE_GEOCODE_DAILY_WINDOW_MS = 24 * 60 * 60 * 1_000
 
 export type VenueLocationActionState = {
   fields?: VenueAddressFormFields & {
@@ -58,6 +60,26 @@ export async function saveVenueLocationAction(
     softGeofenceTriggerStamp === null
   ) {
     return { fields, errors }
+  }
+
+  if (submission.addressSource !== "provider_lookup") {
+    try {
+      await enforceRateLimit({
+        key: `venue-geocode:${merchant.id}`,
+        limit: VENUE_GEOCODE_DAILY_LIMIT,
+        windowMs: VENUE_GEOCODE_DAILY_WINDOW_MS,
+      })
+    } catch (error) {
+      if (error instanceof RateLimitError) {
+        return {
+          fields,
+          errors: {
+            form: "Too many address lookups today. Try again tomorrow.",
+          },
+        }
+      }
+      throw error
+    }
   }
 
   const resolved = await resolveVenueLocationWritePayload(submission, {

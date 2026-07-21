@@ -29,6 +29,7 @@ test("R-1/R-4/R-6: the send action rate-limits, calls the RPC, and stays uniform
   assert.match(action, /enforceRateLimit/)
   assert.match(action, /issue_merchant_direct_reward/)
   assert.match(action, /SEND_REWARD_SUCCESS/)
+  assert.match(action, /if \(contactEntered\) \{[\s\S]*SEND_REWARD_SUCCESS/)
   // Unmatched contact returns the uniform success with nothing recorded.
   assert.match(action, /matchMerchantMembershipForContact/)
 })
@@ -38,6 +39,11 @@ test("R-7: the sent-list loader reads masked merchant_direct rewards", () => {
   assert.match(loader, /export async function getMerchantSentRewards/)
   assert.match(loader, /'merchant_direct'|"merchant_direct"/)
   assert.match(loader, /customers_masked/)
+  assert.match(loader, /function inviteStatus\(\)/)
+  assert.match(loader, /statusLabel: "Sent"/)
+
+  const page = read("app", "app", "customers", "send-reward", "page.tsx")
+  assert.doesNotMatch(page, /reward\.kind === "invite"/)
 })
 
 test("the members page and rows link to the send flow", () => {

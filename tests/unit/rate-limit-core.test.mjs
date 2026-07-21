@@ -17,13 +17,13 @@ test("Given a Vercel forwarded IP When identity is derived Then it is the truste
   assert.equal(trustedClientIp(headers), "203.0.113.10")
 })
 
-test("Given only x-forwarded-for When identity is derived Then the nearest proxy hop wins", () => {
+test("Given only unverified forwarded headers When identity is derived Then it fails closed", () => {
   const headers = new Headers({
     "x-forwarded-for": "198.51.100.20, 198.51.100.21",
     "x-real-ip": "198.51.100.99",
   })
 
-  assert.equal(trustedClientIp(headers), "198.51.100.21")
+  assert.equal(trustedClientIp(headers), "unknown")
 })
 
 test("Given only spoofable raw IP headers When identity is derived Then the bucket falls back to unknown", () => {
@@ -64,6 +64,23 @@ test("Given different trusted inputs When identity hashes are derived Then the b
   assert.notEqual(first, second)
 })
 
+test("merchant buckets ignore attacker-controlled user-agent rotation", () => {
+  const first = rateLimitIdentityFromHeaders(
+    new Headers({
+      "x-vercel-forwarded-for": "203.0.113.10",
+      "user-agent": "rotated-a",
+    })
+  )
+  const second = rateLimitIdentityFromHeaders(
+    new Headers({
+      "x-vercel-forwarded-for": "203.0.113.10",
+      "user-agent": "rotated-b",
+    })
+  )
+
+  assert.equal(first, second)
+})
+
 test("customer buckets separate devices behind one venue IP and ignore user-agent rotation", () => {
   const base = {
     "x-vercel-forwarded-for": "203.0.113.10",
@@ -85,4 +102,21 @@ test("customer buckets separate devices behind one venue IP and ignore user-agen
 
   assert.equal(first, rotatedAgent)
   assert.notEqual(first, secondDevice)
+})
+
+test("customer buckets without a verified device ignore user-agent rotation", () => {
+  const first = customerRateLimitIdentityFromHeaders(
+    new Headers({
+      "x-vercel-forwarded-for": "203.0.113.10",
+      "user-agent": "rotated-a",
+    })
+  )
+  const second = customerRateLimitIdentityFromHeaders(
+    new Headers({
+      "x-vercel-forwarded-for": "203.0.113.10",
+      "user-agent": "rotated-b",
+    })
+  )
+
+  assert.equal(first, second)
 })

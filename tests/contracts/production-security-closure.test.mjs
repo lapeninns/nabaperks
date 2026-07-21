@@ -10,14 +10,17 @@ function read(...parts) {
 }
 
 test("Supabase-host classification rejects suffix lookalikes", async () => {
-  const { shouldRequireSsl } = await import(
-    "../../scripts/provider-readiness/runtime.mjs"
-  )
+  const { shouldRequireSsl } =
+    await import("../../scripts/provider-readiness/runtime.mjs")
 
   assert.equal(shouldRequireSsl("https://example.supabase.com/path"), true)
   assert.equal(shouldRequireSsl("https://supabase.com/path"), true)
+  assert.equal(shouldRequireSsl("postgres://db.project.supabase.co/db"), true)
   assert.equal(shouldRequireSsl("https://evilsupabase.com/path"), false)
-  assert.equal(shouldRequireSsl("https://supabase.com.evil.example/path"), false)
+  assert.equal(
+    shouldRequireSsl("https://supabase.com.evil.example/path"),
+    false
+  )
   assert.equal(
     shouldRequireSsl("https://evil.example/supabase.com?next=supabase.com"),
     false
@@ -28,7 +31,10 @@ test("production dependency policy pins a patched PostCSS", () => {
   const packageJson = JSON.parse(read("package.json"))
   const pinnedPostcss = packageJson.pnpm?.overrides?.postcss
 
-  assert.match(pinnedPostcss ?? "", /^8\.(?:[6-9]|[1-9]\d)\.|^8\.5\.(?:1\d|[2-9]\d)$/)
+  assert.match(
+    pinnedPostcss ?? "",
+    /^8\.(?:[6-9]|[1-9]\d)\.|^8\.5\.(?:1\d|[2-9]\d)$/
+  )
 })
 
 test("build tooling transitive dependencies are pinned past active advisories", () => {

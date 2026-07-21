@@ -114,7 +114,11 @@ export async function requestCustomerIdentityAction(
 
   let joinContext: Awaited<ReturnType<typeof getMerchantJoinContext>>
   try {
-    joinContext = await getMerchantJoinContext(merchantSlug, qrId || undefined)
+    joinContext = await getMerchantJoinContext(
+      merchantSlug,
+      qrId || undefined,
+      requestIdentity
+    )
   } catch {
     logger.error("customer_join_otp_context_failed", {
       operation: "validate_before_otp_send",
@@ -291,7 +295,11 @@ export async function verifyCustomerOtpAction(
   })
 
   if (qrId) {
-    const destination = await destinationForReturningQrVisit(merchantSlug, qrId)
+    const destination = await destinationForReturningQrVisit(
+      merchantSlug,
+      qrId,
+      requestIdentity
+    )
     if (destination) redirect(destination)
   }
 

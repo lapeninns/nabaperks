@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server"
 
 import { getCurrentMerchant } from "@/lib/auth/session"
+import { getLaunchBillingReadiness } from "@/lib/merchant/launch-readiness"
+import { isLaunchBillingReady } from "@/lib/merchant/launch-readiness-core"
 import { londonBusinessDate } from "@/lib/notifications/london-time"
 import {
   VENUE_ANNOUNCEMENT_DAILY_LIMIT,
@@ -19,6 +21,18 @@ export const dynamic = "force-dynamic"
 export async function POST(request: NextRequest) {
   const merchant = await getCurrentMerchant()
   if (!merchant) return json({ error: "unauthenticated" }, 401)
+
+  if (merchant.status !== "active" && merchant.status !== "trial") {
+    return json({ error: "venue_unavailable" }, 403)
+  }
+
+  const billing = await getLaunchBillingReadiness(
+    merchant.id,
+    merchant.requires_billing !== false
+  )
+  if (!isLaunchBillingReady(billing)) {
+    return json({ error: "billing_required" }, 403)
+  }
 
   const body = await request.json().catch(() => null)
   const validated = validateVenueAnnouncementText({

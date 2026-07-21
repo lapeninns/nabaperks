@@ -9,6 +9,7 @@ export type TransactionalEmailInput = {
   readonly text: string
   readonly html: string
   readonly attachments?: readonly TransactionalEmailAttachment[]
+  readonly idempotencyKey?: string
 }
 
 export function buildTransactionalEmailPayload(
