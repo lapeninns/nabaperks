@@ -16,23 +16,36 @@ test("environment contract + .env.example declare the new secrets", () => {
   const contract = read("config/env-contract.json")
   assert.match(contract, /CUSTOMER_EMAIL_ENCRYPTION_KEY/)
   assert.match(contract, /RESEND_WEBHOOK_SECRET/)
-  assert.match(contract, /NABAPERKS_FEATURE_BULK_LOYALTY_INVITATIONS/)
 
   const example = read(".env.example")
   assert.match(example, /CUSTOMER_EMAIL_ENCRYPTION_KEY=/)
   assert.match(example, /RESEND_WEBHOOK_SECRET=/)
-  assert.match(example, /NABAPERKS_FEATURE_BULK_LOYALTY_INVITATIONS=/)
 })
 
-test("the feature flag is registered in both required places, default-off", () => {
-  const json = read("config/feature-flags.json")
-  assert.match(json, /"key": "bulk_loyalty_invitations"/)
-  assert.match(json, /"defaultEnabled": false/)
-  const ts = read("lib/feature-flags.ts")
-  assert.match(ts, /bulk_loyalty_invitations/)
-  const access = read("lib/loyalty-invites/access.ts")
-  assert.match(access, /isFeatureEnabled\("bulk_loyalty_invitations"\)/)
-  assert.match(access, /merchantAllowlisted/)
+test("the feature is default-on for every merchant — no flag, no allowlist", () => {
+  // No feature flag anywhere.
+  assert.doesNotMatch(
+    read("config/feature-flags.json"),
+    /bulk_loyalty_invitations/
+  )
+  assert.doesNotMatch(read("lib/feature-flags.ts"), /bulk_loyalty_invitations/)
+  assert.doesNotMatch(
+    read("config/env-contract.json"),
+    /NABAPERKS_FEATURE_BULK_LOYALTY_INVITATIONS/
+  )
+  // The per-merchant allowlist column, its admin toggle and its gate are gone.
+  const migration = read(
+    "supabase/migrations/20260722100400_loyalty_invite_default_on.sql"
+  )
+  assert.match(migration, /drop column if exists loyalty_invites_enabled/)
+  assert.match(
+    migration,
+    /drop function if exists public\.admin_set_merchant_loyalty_invites/
+  )
+  assert.doesNotMatch(
+    read("app/app/customers/invite/actions.ts"),
+    /isLoyaltyInvitesEnabled|loyalty_invites_enabled/
+  )
 })
 
 test("email is stored encrypted + hashed, never raw, and scrubbed", () => {
@@ -113,12 +126,12 @@ test("the join flow consumes the invite cookie at terms acceptance", () => {
   assert.match(startAction, /setInviteCookie/)
 })
 
-test("the merchant UI adds an Invite customers entry point behind the gate", () => {
+test("the merchant UI exposes Invite customers to every merchant", () => {
   const members = read("app/app/customers/page.tsx")
   assert.match(members, /Invite customers/)
-  assert.match(members, /isLoyaltyInvitesEnabled/)
+  assert.doesNotMatch(members, /isLoyaltyInvitesEnabled/)
   const page = read("app/app/customers/invite/page.tsx")
-  assert.match(page, /isLoyaltyInvitesEnabled/)
+  assert.doesNotMatch(page, /isLoyaltyInvitesEnabled/)
   assert.match(page, /InviteCustomersForm/)
 })
 
