@@ -150,6 +150,7 @@ export default async function LaunchHarnessPage({
       business_type: "pub",
       email: "owner@example.test",
       requires_billing: true,
+      loyalty_invites_enabled: false,
     },
     location: HARNESS_LOCATION,
     activeCard: HARNESS_ACTIVE_CARD,

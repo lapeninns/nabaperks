@@ -279,6 +279,17 @@ export async function logDataRequestAction(
   }
 
   const supabase = await createSupabaseServerClient()
+
+  // For a deletion, scrub bulk loyalty invitation data BEFORE the erasure below
+  // nulls the customer's email HMAC — the companion RPC matches unclaimed
+  // invitations (which still hold ciphertext, tokens and queue state) by that
+  // HMAC, so it must run while the HMAC is still present.
+  if (requestType === "deletion") {
+    await supabase.rpc("admin_erase_loyalty_invitations_for_customer", {
+      p_customer_id: customerId,
+    })
+  }
+
   const { data, error } = await supabase.rpc("admin_log_data_request", {
     p_customer_id: customerId,
     p_merchant_id: merchantId,
@@ -296,10 +307,26 @@ export async function logDataRequestAction(
   revalidatePath("/admin/privacy")
   revalidatePath("/admin/audit")
 
+  // Extend the subject-access export to cover bulk two-stamp loyalty invitation
+  // data, which the monolithic customer export RPC does not touch. (The deletion
+  // companion runs above, before the HMAC is erased.)
+  let exportPayload: unknown = data
+  if (requestType === "export" && data && typeof data === "object") {
+    const { data: invitations } = await supabase.rpc(
+      "loyalty_invitations_export_for_customer",
+      { p_customer_id: customerId }
+    )
+    exportPayload = {
+      ...(data as Record<string, unknown>),
+      loyalty_invitations: invitations ?? [],
+    }
+  }
+
   // An `export` request returns the customer's data export payload; deliver it
   // to the admin as a download instead of discarding it, so a GDPR subject-
   // access request actually produces the data (db privacy lifecycle).
-  const download = requestType === "export" ? buildExportDownload(data) : null
+  const download =
+    requestType === "export" ? buildExportDownload(exportPayload) : null
   if (download) {
     return adminActionSuccess(
       "Subject-access export ready. Download the customer's data below.",

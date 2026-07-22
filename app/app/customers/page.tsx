@@ -8,6 +8,7 @@ import { CustomerReadbackTable } from "@/components/merchant/customer-readback-t
 import { MerchantCustomersTableSkeleton } from "@/components/merchant/loading-skeletons"
 import { Button } from "@/components/ui/button"
 import { getCurrentMerchant } from "@/lib/auth/session"
+import { isLoyaltyInvitesEnabled } from "@/lib/loyalty-invites/access"
 import {
   getMerchantCustomers,
   getMerchantCustomerCount,
@@ -56,9 +57,18 @@ export default async function MerchantCustomersPage({
         title="Loyalty members"
         description="Stamp progress and reward status for everyone who has joined your card."
         actions={
-          <Button asChild variant="secondary">
-            <Link href="/app/customers/send-reward">Send a reward</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {isLoyaltyInvitesEnabled(
+              Boolean(merchant.loyalty_invites_enabled)
+            ) ? (
+              <Button asChild variant="secondary">
+                <Link href="/app/customers/invite">Invite customers</Link>
+              </Button>
+            ) : null}
+            <Button asChild variant="secondary">
+              <Link href="/app/customers/send-reward">Send a reward</Link>
+            </Button>
+          </div>
         }
       />
 
