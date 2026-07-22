@@ -3,10 +3,6 @@ const FEATURE_FLAGS = {
     environmentVariable: "NABAPERKS_FEATURE_PLATFORM_ERROR_REPORTING",
     defaultEnabled: true,
   },
-  bulk_loyalty_invitations: {
-    environmentVariable: "NABAPERKS_FEATURE_BULK_LOYALTY_INVITATIONS",
-    defaultEnabled: false,
-  },
 } as const
 
 export type FeatureFlagName = keyof typeof FEATURE_FLAGS

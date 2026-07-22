@@ -40,8 +40,9 @@ function hex64() {
   return (randomUUID() + randomUUID()).replace(/-/g, "")
 }
 
-async function enableInvites(tx, merchantId) {
-  await tx`update public.merchants set loyalty_invites_enabled = true where id = ${merchantId}::uuid`
+async function enableInvites() {
+  // Bulk invitations are default-on for every merchant, so there is no allowlist
+  // to set; kept as a no-op so the existing call sites read unchanged.
 }
 
 async function freshPhoneCustomer(tx) {

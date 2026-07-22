@@ -7,7 +7,6 @@ import { revalidatePath } from "next/cache"
 import { getCurrentMerchant, getCurrentUser } from "@/lib/auth/session"
 import { encryptCustomerEmail } from "@/lib/customer/email-encryption-core"
 import { customerEmailHmac, maskEmail } from "@/lib/customer/email-pii-core"
-import { isLoyaltyInvitesEnabled } from "@/lib/loyalty-invites/access"
 import { LOYALTY_INVITE_LINK_TTL_DAYS } from "@/lib/loyalty-invites/constants"
 import { parseInviteEmailInput } from "@/lib/loyalty-invites/import-core"
 import { inviteTokenSet } from "@/lib/loyalty-invites/tokens"
@@ -39,18 +38,12 @@ function value(formData: FormData, key: string): string {
   return typeof raw === "string" ? raw.trim() : ""
 }
 
-async function requireEnabledMerchant() {
+async function requireMerchant() {
   const [merchant, user] = await Promise.all([
     getCurrentMerchant(),
     getCurrentUser(),
   ])
   if (!merchant) return { error: "Sign in to invite customers." as const }
-  if (!isLoyaltyInvitesEnabled(Boolean(merchant.loyalty_invites_enabled))) {
-    return {
-      error:
-        "Customer invitations aren't available for your venue yet." as const,
-    }
-  }
   return { merchant, actorUserId: user?.id ?? null }
 }
 
@@ -58,7 +51,7 @@ export async function previewLoyaltyInviteAction(
   _previousState: LoyaltyInviteState,
   formData: FormData
 ): Promise<LoyaltyInviteState> {
-  const gate = await requireEnabledMerchant()
+  const gate = await requireMerchant()
   if ("error" in gate) return { step: "input", errors: { form: gate.error } }
 
   const recipients = value(formData, "recipients")
@@ -148,7 +141,7 @@ export async function sendLoyaltyInviteAction(
   _previousState: LoyaltyInviteState,
   formData: FormData
 ): Promise<LoyaltyInviteState> {
-  const gate = await requireEnabledMerchant()
+  const gate = await requireMerchant()
   if ("error" in gate) return { errors: { form: gate.error } }
 
   const campaignId = value(formData, "campaignId")
@@ -187,7 +180,7 @@ export async function cancelLoyaltyInviteAction(
   _previousState: LoyaltyInviteState,
   formData: FormData
 ): Promise<LoyaltyInviteState> {
-  const gate = await requireEnabledMerchant()
+  const gate = await requireMerchant()
   if ("error" in gate) return { errors: { form: gate.error } }
 
   const campaignId = value(formData, "campaignId")
