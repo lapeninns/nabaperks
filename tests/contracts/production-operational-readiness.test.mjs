@@ -11,9 +11,11 @@ function read(...parts) {
 }
 
 function smokeFilters(workflow) {
-  return [...workflow.matchAll(/jq -e --arg revision "\$EXPECTED_REVISION" '([^']+)' <<<"\$body"/g)].map(
-    ([, filter]) => filter
-  )
+  return [
+    ...workflow.matchAll(
+      /jq -e --arg revision "\$EXPECTED_REVISION" '([^']+)' <<<"\$body"/g
+    ),
+  ].map(([, filter]) => filter)
 }
 
 function runSmokeFilter(filter, body, revision = "abcdef123456") {
@@ -64,6 +66,11 @@ test("global request-error capture omits raw request and exception detail", () =
   assert.match(instrumentation, /Instrumentation\.onRequestError/)
   assert.match(instrumentation, /context\.routePath/)
   assert.match(instrumentation, /request\.method/)
+  assert.match(instrumentation, /sanitizeTelemetryUrl\(context\.routePath\)/)
+  assert.match(
+    instrumentation,
+    /headers: requestId \? \{ \[REQUEST_ID_HEADER\]: requestId \} : \{\}/
+  )
   assert.doesNotMatch(instrumentation, /request\.path/)
   assert.doesNotMatch(instrumentation, /err\.message|error\.message|stack/)
 })
@@ -80,7 +87,10 @@ test("scheduled production smoke validates both JSON probe contracts", () => {
   assert.match(workflow, /expected_revision:/)
   assert.match(workflow, /EXPECTED_REVISION:/)
   assert.match(workflow, /\.environment == "production"/)
-  assert.match(workflow, /\$revision == "" or \.revision == \(\$revision\[0:12\]\)/)
+  assert.match(
+    workflow,
+    /\$revision == "" or \.revision == \(\$revision\[0:12\]\)/
+  )
   assert.match(workflow, /\.service == "nabaperks"/)
   assert.match(workflow, /fromdateiso8601/)
   assert.match(workflow, /\.status == "ok" and \.scope == "liveness"/)
@@ -119,7 +129,8 @@ test("scheduled production smoke validates both JSON probe contracts", () => {
     0
   )
   assert.notEqual(
-    runSmokeFilter(healthFilter, { ...health, time: "2026-99-99Tgarbage" }).status,
+    runSmokeFilter(healthFilter, { ...health, time: "2026-99-99Tgarbage" })
+      .status,
     0
   )
   assert.notEqual(

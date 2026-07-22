@@ -56,9 +56,14 @@ export default async function MerchantCustomersPage({
         title="Loyalty members"
         description="Stamp progress and reward status for everyone who has joined your card."
         actions={
-          <Button asChild variant="secondary">
-            <Link href="/app/customers/send-reward">Send a reward</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="secondary">
+              <Link href="/app/customers/invite">Invite customers</Link>
+            </Button>
+            <Button asChild variant="secondary">
+              <Link href="/app/customers/send-reward">Send a reward</Link>
+            </Button>
+          </div>
         }
       />
 

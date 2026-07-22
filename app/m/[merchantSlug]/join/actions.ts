@@ -5,6 +5,12 @@ import { redirect } from "next/navigation"
 import { after } from "next/server"
 
 import { attachRewardInvitesForCustomer } from "@/lib/customer/reward-invites"
+import { decryptCustomerEmail } from "@/lib/customer/email-encryption-core"
+import { customerEmailHmac } from "@/lib/customer/email-pii-core"
+import {
+  clearInviteCookie,
+  readInviteCookie,
+} from "@/lib/loyalty-invites/invite-cookie"
 import { triggerBirthdayIssuanceForCustomer } from "@/lib/rewards/issue-birthday"
 import {
   getCurrentCustomer,
@@ -114,7 +120,11 @@ export async function requestCustomerIdentityAction(
 
   let joinContext: Awaited<ReturnType<typeof getMerchantJoinContext>>
   try {
-    joinContext = await getMerchantJoinContext(merchantSlug, qrId || undefined)
+    joinContext = await getMerchantJoinContext(
+      merchantSlug,
+      qrId || undefined,
+      requestIdentity
+    )
   } catch {
     logger.error("customer_join_otp_context_failed", {
       operation: "validate_before_otp_send",
@@ -291,7 +301,11 @@ export async function verifyCustomerOtpAction(
   })
 
   if (qrId) {
-    const destination = await destinationForReturningQrVisit(merchantSlug, qrId)
+    const destination = await destinationForReturningQrVisit(
+      merchantSlug,
+      qrId,
+      requestIdentity
+    )
     if (destination) redirect(destination)
   }
 
@@ -302,6 +316,98 @@ export async function verifyCustomerOtpAction(
       step: "terms",
     })
   )
+}
+
+/**
+ * Consume a bulk two-stamp loyalty invitation for this venue, if the encrypted
+ * cookie set by /invite/[token] is present. Returns null when there is no
+ * invitation for this merchant (so the caller does a normal join); redirects to
+ * the card on a claim or existing membership; otherwise returns an error state.
+ */
+async function claimLoyaltyInviteIfPresent(
+  customerId: string,
+  merchantSlug: string,
+  marketingOptIn: boolean
+): Promise<CustomerJoinState | null> {
+  const cookie = await readInviteCookie()
+  if (!cookie || cookie.merchantSlug !== merchantSlug) return null
+
+  const supabase = createSupabaseServiceRoleClient()
+  const { data: recipient } = await supabase
+    .from("loyalty_invite_recipients")
+    .select("email_ciphertext")
+    .eq("claim_token_hash", cookie.claimTokenHash)
+    .maybeSingle()
+
+  if (!recipient?.email_ciphertext) {
+    await clearInviteCookie()
+    return null
+  }
+
+  let invitedEmail: string
+  let invitedHmac: string
+  try {
+    invitedEmail = decryptCustomerEmail(recipient.email_ciphertext)
+    invitedHmac = customerEmailHmac(invitedEmail)
+  } catch {
+    await clearInviteCookie()
+    return null
+  }
+
+  const { data, error } = await supabase.rpc("claim_loyalty_invite", {
+    p_customer_id: customerId,
+    p_claim_token_hash: cookie.claimTokenHash,
+    p_policy_version: policyVersion,
+    p_marketing_opt_in: marketingOptIn,
+    p_verified_email: invitedEmail,
+    p_verified_email_hmac: invitedHmac,
+  })
+  await clearInviteCookie()
+
+  if (error) {
+    return {
+      errors: {
+        form: "We couldn't add your welcome stamps. Try again or ask the venue.",
+      },
+    }
+  }
+
+  const row = Array.isArray(data) ? data[0] : data
+  const status = row?.status as string | undefined
+  const membershipId = row?.membership_id as string | undefined
+
+  if (status === "claimed" && membershipId) {
+    after(() => triggerBirthdayIssuanceForCustomer(customerId))
+    after(() => attachRewardInvitesForCustomer(customerId))
+    redirect(`/card/${membershipId}?welcome=1&invite=1`)
+  }
+  if (status === "already_member" && membershipId) {
+    redirect(`/card/${membershipId}?membership=existing`)
+  }
+  if (status === "email_conflict") {
+    return {
+      errors: {
+        form: "This invitation was sent to a different email than your account uses, so no welcome stamps were added.",
+      },
+    }
+  }
+  if (status === "expired") {
+    return {
+      errors: {
+        form: "This invitation has expired, so no welcome stamps were added.",
+      },
+    }
+  }
+  if (status === "card_too_short" || status === "unavailable") {
+    return {
+      errors: {
+        form: "This venue's loyalty card isn't available right now, so no welcome stamps were added.",
+      },
+    }
+  }
+
+  // 'invalid' / consumed elsewhere — fall through to a normal join.
+  return null
 }
 
 export async function joinRewardsAction(
@@ -322,6 +428,18 @@ export async function joinRewardsAction(
   if (!acceptedTerms) {
     return { errors: { loyaltyTerms: "Accept the loyalty terms to join." } }
   }
+
+  // Bulk two-stamp loyalty invitation: if this join carries a validated
+  // invitation cookie for THIS venue, consume it in one atomic transaction
+  // (membership + immutable terms + exactly two welcome stamps) instead of the
+  // normal QR-first-stamp join. Redirects on success; returns an error state on
+  // a non-award outcome; falls through to a normal join only if there is none.
+  const inviteState = await claimLoyaltyInviteIfPresent(
+    customer.id,
+    merchantSlug,
+    marketingOptIn
+  )
+  if (inviteState) return inviteState
 
   const supabase = createSupabaseServiceRoleClient()
   // Omit p_ref unless a referral code is actually present, so the call still

@@ -111,6 +111,7 @@ export async function sendTransactionalEmail({
   text,
   html,
   attachments,
+  idempotencyKey,
 }: TransactionalEmailInput) {
   const { apiKey, from } = readEmailOtpConfig()
 
@@ -119,6 +120,7 @@ export async function sendTransactionalEmail({
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
+      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
     },
     body: JSON.stringify(
       buildTransactionalEmailPayload(from, {

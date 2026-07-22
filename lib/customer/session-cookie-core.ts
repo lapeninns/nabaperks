@@ -8,12 +8,11 @@ import {
 export type PendingPhonePurpose = "join" | "wallet"
 
 export type PendingPhonePayload = {
-  readonly version: 1
+  readonly version: 2
   readonly purpose: PendingPhonePurpose
   readonly phone: string
   readonly phoneHmac: string
   readonly country: string
-  readonly customerId: string | null
   readonly issuedAt: number
   readonly expiresAt: number
 }
@@ -170,16 +169,14 @@ function parsePendingPhonePayload(value: unknown): PendingPhonePayload | null {
   const phone = value.phone
   const phoneHmac = value.phoneHmac
   const country = value.country
-  const customerId = value.customerId
   const issuedAt = value.issuedAt
   const expiresAt = value.expiresAt
 
-  if (version !== 1) return null
+  if (version !== 2) return null
   if (purpose !== "join" && purpose !== "wallet") return null
   if (typeof phone !== "string") return null
   if (typeof phoneHmac !== "string") return null
   if (typeof country !== "string") return null
-  if (customerId !== null && typeof customerId !== "string") return null
   if (typeof issuedAt !== "number") return null
   if (typeof expiresAt !== "number") return null
 
@@ -189,7 +186,6 @@ function parsePendingPhonePayload(value: unknown): PendingPhonePayload | null {
     phone,
     phoneHmac,
     country,
-    customerId,
     issuedAt,
     expiresAt,
   }

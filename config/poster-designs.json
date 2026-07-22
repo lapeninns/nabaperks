@@ -15,7 +15,7 @@
       "description": "Portrait designs for tills, counters, windows and wall frames.",
       "format": "a4-counter",
       "sheet": "a4",
-      "revision": 2
+      "revision": 3
     }
   ],
   "shared": {
@@ -51,7 +51,7 @@
       "join": "One text. No password.",
       "marketing": "Marketing optional"
     },
-    "memberTag": "Nab a Perks · Member venue",
+    "memberTag": "Nab a Perks · Partner venue",
     "placeholders": {
       "stamps": "Validated venue stampsRequired as a base-10 integer string.",
       "StampsWord": "The same 1–6 stampsRequired value via shared.numberWords, first letter capitalised."
@@ -91,7 +91,7 @@
       "id": "primer",
       "collection": "counter",
       "format": "a4-counter",
-      "revision": 2,
+      "revision": 3,
       "rollout": "production",
       "name": "Primer",
       "description": "Ledger statement — the fair deal set out in writing.",
@@ -120,7 +120,7 @@
       "copy": {
         "ledgerLabel": "Loyalty · Statement of terms",
         "edition": "Nº 06",
-        "headline": "Fair deal. In writing.",
+        "headline": "The fair deal starts today.",
         "clauseOneTitle": "Scan the QR below",
         "clauseOneDetail": "No app — opens in your browser. One text. No password. Marketing optional.",
         "clauseTwoTitle": "Today counts as stamp one",
@@ -128,8 +128,8 @@
         "clauseThreeTitle": "One stamp per UK date",
         "clauseThreeDetail": "A visit today can only be stamped today — tomorrow gets its own.",
         "clauseFourTitle": "Reward: sealed until stamp {stamps}",
-        "clauseFourDetail": "This venue keeps it sealed until your card is full — you'll find out what's under the wax when you get there.",
-        "qrCaption": "Scan — today counts as stamp one",
+        "clauseFourDetail": "Fill your card to have the reward picked and revealed — until then, it stays under the wax.",
+        "qrCaption": "Scan to sign — today counts as stamp one",
         "issuerLabel": "Issued by",
         "signature": "Signed in ink · Nab a Perks"
       }
@@ -138,7 +138,7 @@
       "id": "window",
       "collection": "counter",
       "format": "a4-counter",
-      "revision": 2,
+      "revision": 3,
       "rollout": "production",
       "name": "Window",
       "description": "Vermillion duotone that reads from the street.",
@@ -160,7 +160,7 @@
       "anatomy": [
         "Proof-sheet crop marks, registration targets and vermillion tint bar",
         "Vermillion street masthead with edition number",
-        "Tight oversized invitation headline",
+        "Tight oversized street-tease headline",
         "Perforated vermillion dot strip",
         "Full-width vermillion panel with QR action and friction list",
         "Venue strip and eligibility footer inside the panel"
@@ -168,18 +168,18 @@
       "copy": {
         "eyebrow": "Read from the street",
         "edition": "Nº 08",
-        "headline": "Worth stepping in.",
-        "lede": "There's a stamp card in here that starts the moment you do — today's visit counts as stamp one.",
-        "sealedOne": "The reward stays sealed — this venue keeps it that way until your card is full. Come in and start finding out.",
-        "sealedMany": "The reward stays sealed — this venue keeps it that way until your card is full at {stamps} stamps. Come in and start finding out.",
-        "qrCaption": "Scan — today's visit counts as stamp one"
+        "headline": "The secret's in here.",
+        "lede": "It's a sealed reward at the end of a stamp card. Step in, scan, and today counts as stamp one.",
+        "sealedOne": "The reward's real — this venue just won't say what it is until your card is full. One way to find out.",
+        "sealedMany": "The reward's real — this venue just won't say what it is until your card is full at {stamps} stamps. One way to find out.",
+        "qrCaption": "Scan, step in — today counts as stamp one"
       }
     },
     {
       "id": "pinned",
       "collection": "counter",
       "format": "a4-counter",
-      "revision": 2,
+      "revision": 3,
       "rollout": "production",
       "name": "Pinned",
       "description": "Overprinted notice-board card for regulars.",
@@ -208,10 +208,10 @@
       "copy": {
         "eyebrow": "A note for regulars",
         "edition": "Nab a Perks · Nº 09",
-        "headline": "You're here often enough.",
-        "ledeOne": "So make it count for something. Join at this QR and today's visit counts as stamp one — that first stamp fills the card, and this venue keeps the reward sealed until it's full.",
-        "ledeMany": "So make it count for something. Join at this QR and today's visit counts as stamp one — {stamps} stamps fills the card, and this venue keeps the reward sealed until it's full.",
-        "qrCaption": "Scan — today counts as stamp one",
+        "headline": "You again? Good.",
+        "ledeOne": "First time or fiftieth, today can count for something. Join at this QR and today's visit counts as stamp one — one stamp fills the card, and this venue keeps the reward sealed until it's full.",
+        "ledeMany": "First time or fiftieth, today can count for something. Join at this QR and today's visit counts as stamp one — {stamps} stamps fill the card, and this venue keeps the reward sealed until it's full.",
+        "qrCaption": "Scan — make today count",
         "stubTop": "Stamp one",
         "stubBottom": "today"
       }
@@ -220,7 +220,7 @@
       "id": "seal",
       "collection": "counter",
       "format": "a4-counter",
-      "revision": 2,
+      "revision": 3,
       "rollout": "production",
       "name": "Seal",
       "description": "Redacted reward manifest — contents undisclosed.",
@@ -258,9 +258,9 @@
         "keptLabel": "Kept by",
         "keptValue": "This venue — it won't say what's under the wax",
         "startsLabel": "Starts",
-        "startsValue": "Today — join at the QR, today counts as stamp one",
+        "startsValue": "Today — one scan and today counts as stamp one",
         "frictionLine": "No app — opens in your browser. One text. No password. Marketing optional. Stamps go one per UK date.",
-        "qrCaption": "Scan to join — today counts as stamp one",
+        "qrCaption": "Scan to open the file — today counts as stamp one",
         "issuerLabel": "Sealed by",
         "signature": "Wax intact · Nab a Perks"
       }
@@ -269,7 +269,7 @@
       "id": "tally",
       "collection": "counter",
       "format": "a4-counter",
-      "revision": 2,
+      "revision": 3,
       "rollout": "production",
       "name": "Tally",
       "description": "Oversized loyalty card with today's circle open.",
@@ -296,24 +296,24 @@
         "QR action beside the starred friction list and venue block"
       ],
       "copy": {
-        "eyebrow": "Your card, actual size-ish",
+        "eyebrow": "Card on the table",
         "edition": "Nab a Perks · Nº 11",
         "headlineOne": "One circle. One secret.",
         "headlineMany": "{StampsWord} circles. One secret.",
         "cardLabel": "Card Nº ——",
         "cardCount": "0 of {stamps}",
         "todayLabel": "Today",
-        "explainerOne": "Today's circle is the only one — join at the QR below and today's visit counts as stamp one. The reward stays sealed: this venue won't say what it is until your card is full.",
-        "explainerMany": "The first circle is today's — join at the QR below and today's visit counts as stamp one. The amber one stays sealed: this venue won't say what's in it until your card is full.",
+        "explainerOne": "Today's circle is the only one — join at the QR below and today's visit counts as stamp one. The reward's real; this venue just won't say what it is until your card is full.",
+        "explainerMany": "The first circle is today's — join at the QR below and today's visit counts as stamp one. The amber one holds something real; this venue won't say what it is until your card is full.",
         "dateRule": "One stamp per UK date",
-        "qrCaption": "Scan — today counts as stamp one"
+        "qrCaption": "Scan — today inks circle one"
       }
     },
     {
       "id": "lastcall",
       "collection": "counter",
       "format": "a4-counter",
-      "revision": 2,
+      "revision": 3,
       "rollout": "production",
       "name": "Last call",
       "description": "Night print with an honest daily deadline.",
@@ -356,7 +356,7 @@
       "id": "receipt",
       "collection": "counter",
       "format": "a4-counter",
-      "revision": 2,
+      "revision": 3,
       "rollout": "production",
       "name": "Receipt",
       "description": "Till docket — today's visit rung through as stamp one.",
@@ -385,18 +385,18 @@
       "copy": {
         "orderLabel": "Order Nº ——",
         "edition": "Nab a Perks · Nº 14",
-        "hook": "Proof you were here.",
+        "hook": "Put it on the card.",
         "merchantLabel": "Merchant",
         "cardLine": "Loyalty card · 0 of {stamps}",
         "todayItem": "Today's visit",
         "todayValue": "Stamp 1",
         "rewardItem": "Mystery reward",
         "rewardValue": "Sealed",
-        "rewardNoteOne": "Kept sealed by this venue — one stamp fills the card, then you find out.",
-        "rewardNoteMany": "Kept sealed by this venue until stamp {stamps} — full card, then you find out.",
+        "rewardNoteOne": "Real, chosen by this venue, kept sealed — one stamp fills the card, then you find out.",
+        "rewardNoteMany": "Real, chosen by this venue, kept sealed until stamp {stamps} — full card, then you find out.",
         "totalLabel": "Total today",
         "totalValue": "One visit · stamp one",
-        "qrCaption": "Scan — today counts as stamp one",
+        "qrCaption": "Scan — today rings through as stamp one",
         "footLine": "Reprinted daily · Nab a Perks"
       }
     },
@@ -404,10 +404,10 @@
       "id": "chalk",
       "collection": "counter",
       "format": "a4-counter",
-      "revision": 2,
+      "revision": 3,
       "rollout": "production",
       "name": "Chalk",
-      "description": "Specials board with today's circle chalked open.",
+      "description": "Specials board that keeps the day's special sealed.",
       "sheet": "a4",
       "sheetSize": "210×297 mm",
       "qrOuterMm": 54,
@@ -432,15 +432,15 @@
         "Eligibility footer between the 18+ roundel and padlock doodles"
       ],
       "copy": {
-        "eyebrow": "Today's board",
+        "eyebrow": "Specials, sort of",
         "edition": "Nab a Perks · Nº 15",
-        "headlineLead": "On the board",
-        "headlineAccent": "today.",
-        "ledeOne": "Join at the QR and today's visit counts as stamp one — one stamp fills the card.",
-        "ledeMany": "Join at the QR and today's visit counts as stamp one — {stamps} stamps fills the card.",
-        "sealedOne": "The reward? Chalked up as a mystery — this venue won't say what it is until your card's full. One stamp and you find out.",
-        "sealedMany": "The reward? Chalked up as a mystery — this venue won't say what it is until your card's full. {stamps} stamps and you find out.",
-        "qrCaption": "Scan — today counts as stamp one",
+        "headlineLead": "The special",
+        "headlineAccent": "is sealed.",
+        "ledeOne": "Join at the QR — today counts as stamp one, and one stamp fills the card.",
+        "ledeMany": "Join at the QR — today counts as stamp one, and {stamps} stamps fill the card.",
+        "sealedOne": "The special's real — chalked up as a mystery, and this venue won't say what it is until your card's full. One stamp and you find out.",
+        "sealedMany": "The special's real — chalked up as a mystery, and this venue won't say what it is until your card's full. {stamps} stamps and you find out.",
+        "qrCaption": "Scan — chalk up today as stamp one",
         "stubTop": "Stamp one",
         "stubBottom": "today"
       }

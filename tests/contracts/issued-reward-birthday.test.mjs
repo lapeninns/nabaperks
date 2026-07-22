@@ -26,7 +26,10 @@ test("R-9: the pure birthday window helpers are exported", () => {
 
 test("R-7: the issuance helper calls the RPC and both hooks fire it", () => {
   const helper = read("lib", "rewards", "issue-birthday.ts")
-  assert.match(helper, /export async function triggerBirthdayIssuanceForCustomer/)
+  assert.match(
+    helper,
+    /export async function triggerBirthdayIssuanceForCustomer/
+  )
   assert.match(helper, /issue_birthday_rewards/)
 
   const profile = read("app", "home", "(authed)", "profile", "actions.ts")
@@ -42,6 +45,21 @@ test("R-5: the config action is registered and owner-scoped via the RPC", () => 
   const actions = read("app", "app", "card", "actions.ts")
   assert.match(actions, /export async function saveBirthdayRewardAction/)
   assert.match(actions, /save_loyalty_card_birthday_reward/)
+})
+
+test("birthday autosave serializes requests and disables fields while saving", () => {
+  const form = read(
+    "components",
+    "merchant",
+    "launch",
+    "birthday-reward-form.tsx"
+  )
+
+  assert.match(form, /const saveInFlight = useRef\(false\)/)
+  assert.match(form, /const queuedSave = useRef/)
+  assert.match(form, /if \(saveInFlight\.current\)/)
+  assert.match(form, /if \(queued\) dispatchSave\(\.\.\.queued\)/)
+  assert.match(form, /disabled=\{pending\}/)
 })
 
 test("R-6: the dashboard renders the prompt only when a DOB is missing", () => {

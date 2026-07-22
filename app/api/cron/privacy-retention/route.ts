@@ -55,6 +55,16 @@ export async function GET(request: NextRequest) {
     })
   }
 
+  // Expire lapsed loyalty invitations, scrub their contact, purge abandoned
+  // drafts (24h) and hard-delete contact-free terminal recipients (365d).
+  const { data: expiredLoyaltyInvites, error: loyaltyInviteError } =
+    await supabase.rpc("expire_and_purge_loyalty_invites")
+  if (loyaltyInviteError) {
+    logger.warn("privacy_retention_loyalty_invite_purge_failed", {
+      reason: loyaltyInviteError.message,
+    })
+  }
+
   // Drop rate-limit buckets whose window ended over 24h ago — per-IP/email
   // keys otherwise accumulate forever (db integrity hardening).
   const { data: purgedBuckets, error: bucketError } = await supabase.rpc(
@@ -89,6 +99,8 @@ export async function GET(request: NextRequest) {
       purgedCount: typeof data === "number" ? data : 0,
       expiredInviteCount:
         typeof expiredInvites === "number" ? expiredInvites : 0,
+      expiredLoyaltyInviteCount:
+        typeof expiredLoyaltyInvites === "number" ? expiredLoyaltyInvites : 0,
       purgedRateLimitBuckets:
         typeof purgedBuckets === "number" ? purgedBuckets : 0,
       webVitalCutoff,

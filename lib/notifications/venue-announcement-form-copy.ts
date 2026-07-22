@@ -32,6 +32,16 @@ const ERROR_COPY: Record<string, VenueAnnouncementFormErrorCopy> = {
     body: "Sign in again before sending this announcement.",
     tone: "error",
   },
+  venue_unavailable: {
+    title: "Venue unavailable",
+    body: "Reactivate your venue before sending announcements.",
+    tone: "warning",
+  },
+  billing_required: {
+    title: "Activate billing",
+    body: "Activate billing before sending announcements.",
+    tone: "warning",
+  },
 } as const
 
 const DEFAULT_ERROR_COPY: VenueAnnouncementFormErrorCopy = {

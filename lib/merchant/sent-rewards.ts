@@ -18,8 +18,8 @@ export type SentReward = {
 
 /**
  * A merchant's own sent rewards + pending invites, newest first, with the
- * recipient masked. Invite statuses are collapsed (pending+matched → "Invited")
- * so the merchant can't learn a contact is already a Nabaperks customer.
+ * recipient masked. Invite statuses are collapsed to the same label as a
+ * direct send so the merchant cannot use this list to probe membership.
  */
 export async function getMerchantSentRewards(
   merchantId: string,
@@ -41,17 +41,21 @@ export async function getMerchantSentRewards(
       .limit(limit),
     supabase
       .from("pending_reward_invites")
-      .select("id, reward_name, status, created_at, email_masked, phone_last4")
+      .select("id, reward_name, created_at, email_masked, phone_last4")
       .eq("merchant_id", merchantId)
       .order("created_at", { ascending: false })
       .limit(limit),
   ])
 
   if (rewardsResult.error) {
-    throw new Error(`Unable to load sent rewards: ${rewardsResult.error.message}`)
+    throw new Error(
+      `Unable to load sent rewards: ${rewardsResult.error.message}`
+    )
   }
   if (invitesResult.error) {
-    throw new Error(`Unable to load reward invites: ${invitesResult.error.message}`)
+    throw new Error(
+      `Unable to load reward invites: ${invitesResult.error.message}`
+    )
   }
 
   const rewardRows = rewardsResult.data ?? []
@@ -81,7 +85,7 @@ export async function getMerchantSentRewards(
       (row.email_masked as string | null) ??
       (row.phone_last4 ? `Phone ending ${row.phone_last4}` : "New contact"),
     rewardName: row.reward_name as string,
-    ...inviteStatus(row.status as string),
+    ...inviteStatus(),
     createdAt: row.created_at as string,
     kind: "invite" as const,
   }))
@@ -107,21 +111,11 @@ function rewardStatus(status: string): {
   }
 }
 
-function inviteStatus(status: string): {
+function inviteStatus(): {
   statusLabel: string
   statusTone: SentRewardTone
 } {
-  switch (status) {
-    case "attached":
-      return { statusLabel: "Delivered", statusTone: "leaf" }
-    case "expired":
-      return { statusLabel: "Expired", statusTone: "plain" }
-    case "cancelled":
-      return { statusLabel: "Cancelled", statusTone: "plain" }
-    default:
-      // pending + matched collapse to a single "Invited" (anti-enumeration).
-      return { statusLabel: "Invited", statusTone: "sun" }
-  }
+  return { statusLabel: "Sent", statusTone: "sun" }
 }
 
 async function loadMaskedCustomers(ids: string[]) {
@@ -135,7 +129,9 @@ async function loadMaskedCustomers(ids: string[]) {
     .in("id", ids)
 
   if (error) {
-    throw new Error(`Unable to load masked sent-reward members: ${error.message}`)
+    throw new Error(
+      `Unable to load masked sent-reward members: ${error.message}`
+    )
   }
 
   for (const customer of (data ?? []) as Array<{

@@ -285,5 +285,19 @@
     "kind": "string",
     "description": "Legacy Standard Webhooks signing secret for the Supabase Send SMS auth hook. Customer OTP does not use this hook.",
     "optional": true
+  },
+  {
+    "name": "CUSTOMER_EMAIL_ENCRYPTION_KEY",
+    "visibility": "server",
+    "kind": "string",
+    "description": "High-entropy key material used to derive the AES-GCM key for bulk loyalty-invitation recipient email ciphertext at rest. Optional at the env level so the app boots without it; required only to run invitation campaigns, enforced at call time in lib/customer/email-encryption-core.ts.",
+    "optional": true
+  },
+  {
+    "name": "RESEND_WEBHOOK_SECRET",
+    "visibility": "server",
+    "kind": "string",
+    "description": "Svix/Standard-Webhooks signing secret (whsec_...) for the Resend delivery webhook (delivered/bounced/complained/failed). Optional at the env level; the webhook fails closed at call time when unset.",
+    "optional": true
   }
 ]

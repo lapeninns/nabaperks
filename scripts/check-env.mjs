@@ -2,6 +2,8 @@ import { createECDH, timingSafeEqual } from "node:crypto"
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 
+import { parseEnvText } from "./env-file.mjs"
+
 const projectDir = process.cwd()
 const nodeEnv = process.env.NODE_ENV || "development"
 const checkProfile = parseCheckProfile(
@@ -35,7 +37,9 @@ const highEntropySecretEnvNames = new Set([
   "CUSTOMER_PHONE_HMAC_SECRET",
   "CUSTOMER_PHONE_ENCRYPTION_KEY",
   "CUSTOMER_EMAIL_HMAC_SECRET",
+  "CUSTOMER_EMAIL_ENCRYPTION_KEY",
   "MERCHANT_OTP_ALIAS_TOKEN_ENCRYPTION_KEY",
+  "RESEND_WEBHOOK_SECRET",
   "SUPABASE_SEND_EMAIL_HOOK_SECRET",
   "SUPABASE_SEND_SMS_HOOK_SECRET",
 ])
@@ -52,32 +56,7 @@ const envFiles = [
 ].filter(Boolean)
 
 function parseEnvFile(path) {
-  const parsed = {}
-  const content = readFileSync(path, "utf8")
-
-  for (const line of content.split(/\r?\n/)) {
-    const trimmed = line.trim()
-
-    if (!trimmed || trimmed.startsWith("#")) continue
-
-    const equalsIndex = trimmed.indexOf("=")
-
-    if (equalsIndex === -1) continue
-
-    const key = trimmed.slice(0, equalsIndex).trim()
-    let value = trimmed.slice(equalsIndex + 1).trim()
-
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1)
-    }
-
-    parsed[key] = value
-  }
-
-  return parsed
+  return parseEnvText(readFileSync(path, "utf8"))
 }
 
 const values = {}
@@ -398,8 +377,7 @@ function hasVapidKeyShape(value, decodedBytes) {
   try {
     const decoded = Buffer.from(value, "base64url")
     return (
-      decoded.length === decodedBytes &&
-      decoded.toString("base64url") === value
+      decoded.length === decodedBytes && decoded.toString("base64url") === value
     )
   } catch {
     return false

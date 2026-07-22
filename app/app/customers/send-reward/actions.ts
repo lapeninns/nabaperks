@@ -129,7 +129,12 @@ async function isInviteEmailSuppressed(emailHmac: string): Promise<boolean> {
  */
 async function createRewardInviteForUnmatchedContact(
   merchant: { id: string; business_name?: string | null },
-  input: { contact: string; rewardName: string; rewardTerms: string; message: string },
+  input: {
+    contact: string
+    rewardName: string
+    rewardTerms: string
+    message: string
+  },
   expiresInDays: number
 ): Promise<RewardInviteCreateResult> {
   const raw = input.contact.trim()
@@ -252,6 +257,7 @@ export async function sendMerchantRewardAction(
     message: value(formData, "message"),
   }
   const fields = { ...input }
+  const contactEntered = !input.membershipId
 
   const { errors, expiresInDays } = validateSendRewardFields(input)
   if (hasSendRewardErrors(errors) || expiresInDays === null) {
@@ -313,6 +319,9 @@ export async function sendMerchantRewardAction(
   })
 
   if (error) {
+    if (contactEntered) {
+      return { message: SEND_REWARD_SUCCESS }
+    }
     return { fields, errors: { form: sendRewardError(error.message) } }
   }
 

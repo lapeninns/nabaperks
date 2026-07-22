@@ -9,6 +9,7 @@ import {
 } from "@/lib/customer/join"
 import { getPendingPhoneVerification } from "@/lib/customer/session"
 import { getMerchantStampLocationRequirement } from "@/lib/customer/stamp"
+import { customerRateLimitIdentityFromHeaders } from "@/lib/security/rate-limit"
 import { logger } from "@/lib/observability/logger"
 import {
   normalizeRequestId,
@@ -34,12 +35,16 @@ export async function loadJoinExperienceContext(
   searchParams: JoinSearchParams
 ): Promise<JoinContext> {
   let context: Awaited<ReturnType<typeof getMerchantJoinContext>>
+  const requestHeaders = await headers()
 
   try {
-    context = await getMerchantJoinContext(merchantSlug, searchParams.qr)
+    context = await getMerchantJoinContext(
+      merchantSlug,
+      searchParams.qr,
+      customerRateLimitIdentityFromHeaders(requestHeaders)
+    )
   } catch (error) {
     if (!(error instanceof Error)) throw error
-    const requestHeaders = await headers()
     logger.error("customer_join_context_failed", {
       requestId:
         normalizeRequestId(requestHeaders.get(REQUEST_ID_HEADER)) ??

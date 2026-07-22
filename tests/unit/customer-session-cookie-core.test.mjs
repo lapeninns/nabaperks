@@ -12,12 +12,11 @@ const SECRET = "unit-test-customer-session-secret"
 
 test("Given a pending phone cookie When it is read before expiry Then the payload is accepted", () => {
   const payload = {
-    version: 1,
+    version: 2,
     purpose: "join",
     phone: "+447700900123",
     phoneHmac: "phone-hmac",
     country: "GB",
-    customerId: null,
     issuedAt: 100,
     expiresAt: 700,
   }
@@ -30,12 +29,11 @@ test("Given a pending phone cookie When it is read before expiry Then the payloa
 
 test("Given a pending phone cookie When it is read at expiry Then it is rejected", () => {
   const payload = {
-    version: 1,
+    version: 2,
     purpose: "join",
     phone: "+447700900123",
     phoneHmac: "phone-hmac",
     country: "GB",
-    customerId: null,
     issuedAt: 100,
     expiresAt: 700,
   }
@@ -48,12 +46,11 @@ test("Given a pending phone cookie When it is read at expiry Then it is rejected
 
 test("Given pending contact state When it is written Then its plaintext and base64 encoding are absent", () => {
   const payload = {
-    version: 1,
+    version: 2,
     purpose: "join",
     phone: "+447700900123",
     phoneHmac: "phone-hmac",
     country: "GB",
-    customerId: null,
     issuedAt: 100,
     expiresAt: 700,
   }
@@ -70,12 +67,11 @@ test("Given pending contact state When it is written Then its plaintext and base
 
 test("Given the same pending phone state When it is written twice Then fresh nonces produce distinct values", () => {
   const payload = {
-    version: 1,
+    version: 2,
     purpose: "join",
     phone: "+447700900123",
     phoneHmac: "phone-hmac",
     country: "GB",
-    customerId: null,
     issuedAt: 100,
     expiresAt: 700,
   }
@@ -88,12 +84,11 @@ test("Given the same pending phone state When it is written twice Then fresh non
 
 test("Given an encrypted phone cookie When the email context reads it Then it is rejected", () => {
   const payload = {
-    version: 1,
+    version: 2,
     purpose: "wallet",
     phone: "+447700900123",
     phoneHmac: "phone-hmac",
     country: "GB",
-    customerId: null,
     issuedAt: 100,
     expiresAt: 700,
   }
