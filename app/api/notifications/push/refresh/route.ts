@@ -1,6 +1,7 @@
-import { NextResponse, type NextRequest } from "next/server"
+import { type NextRequest } from "next/server"
 
 import { getCurrentCustomer } from "@/lib/customer/identity"
+import { noStoreJson as json } from "@/lib/http/no-store-json"
 import {
   disableCustomerPushSubscription,
   normalizePermissionState,
@@ -63,13 +64,6 @@ function oldEndpointBody(value: unknown) {
 
 function newSubscriptionBody(value: unknown) {
   return isRecord(value) && "subscription" in value ? value.subscription : value
-}
-
-function json(body: unknown, status: number) {
-  return NextResponse.json(body, {
-    status,
-    headers: { "cache-control": "no-store, max-age=0" },
-  })
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

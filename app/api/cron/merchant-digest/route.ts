@@ -1,5 +1,6 @@
-import { NextResponse, type NextRequest } from "next/server"
+import { type NextRequest } from "next/server"
 
+import { noStoreJson } from "@/lib/http/no-store-json"
 import { runMerchantWeeklyDigest } from "@/lib/notifications/merchant-digest"
 import { isAuthorizedCronRequest } from "@/lib/security/cron-auth"
 
@@ -9,16 +10,10 @@ export const maxDuration = 300
 
 export async function GET(request: NextRequest) {
   if (!isAuthorizedCronRequest(request)) {
-    return NextResponse.json(
-      { error: "unauthorized" },
-      { status: 401, headers: { "cache-control": "no-store, max-age=0" } }
-    )
+    return noStoreJson({ error: "unauthorized" }, 401)
   }
 
   const result = await runMerchantWeeklyDigest()
 
-  return NextResponse.json(
-    { ok: true, result },
-    { headers: { "cache-control": "no-store, max-age=0" } }
-  )
+  return noStoreJson({ ok: true, result })
 }

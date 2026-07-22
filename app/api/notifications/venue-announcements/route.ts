@@ -1,6 +1,7 @@
-import { NextResponse, type NextRequest } from "next/server"
+import { type NextRequest } from "next/server"
 
 import { getCurrentMerchant } from "@/lib/auth/session"
+import { noStoreJson as json } from "@/lib/http/no-store-json"
 import { getLaunchBillingReadiness } from "@/lib/merchant/launch-readiness"
 import { isLaunchBillingReady } from "@/lib/merchant/launch-readiness-core"
 import { londonBusinessDate } from "@/lib/notifications/london-time"
@@ -66,13 +67,6 @@ export async function POST(request: NextRequest) {
   })
 
   return json({ ok: true, ...result }, 200)
-}
-
-function json(body: unknown, status: number) {
-  return NextResponse.json(body, {
-    status,
-    headers: { "cache-control": "no-store, max-age=0" },
-  })
 }
 
 function readString(value: unknown, key: string) {

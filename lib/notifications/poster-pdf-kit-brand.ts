@@ -18,7 +18,7 @@ import {
 import type { PdfFonts } from "./poster-pdf-types"
 
 /**
- * Shared brand anatomy from counter-kit React pieces: PosterWordmark,
+ * Shared brand anatomy from the counter-kit pieces: the print wordmark,
  * KitBrandMark roundel, and the duotone/lastcall venue strip.
  */
 

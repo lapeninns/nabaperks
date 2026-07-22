@@ -1,5 +1,6 @@
-import { NextResponse, type NextRequest } from "next/server"
+import { type NextRequest } from "next/server"
 
+import { noStoreJson } from "@/lib/http/no-store-json"
 import { logger } from "@/lib/observability/logger"
 import { isAuthorizedCronRequest } from "@/lib/security/cron-auth"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
@@ -14,10 +15,7 @@ const DAY_MS = 24 * 60 * 60 * 1000
 
 export async function GET(request: NextRequest) {
   if (!isAuthorizedCronRequest(request)) {
-    return NextResponse.json(
-      { error: "unauthorized" },
-      { status: 401, headers: { "cache-control": "no-store, max-age=0" } }
-    )
+    return noStoreJson({ error: "unauthorized" }, 401)
   }
 
   const cutoff = new Date(
@@ -35,10 +33,7 @@ export async function GET(request: NextRequest) {
     logger.warn("privacy_abandoned_identity_purge_failed", {
       reason: "database_rejected",
     })
-    return NextResponse.json(
-      { error: "abandoned_identity_purge_failed" },
-      { status: 500, headers: { "cache-control": "no-store, max-age=0" } }
-    )
+    return noStoreJson({ error: "abandoned_identity_purge_failed" }, 500)
   }
   const { data, error } = await supabase.rpc("admin_purge_stale_customer_pii", {
     p_cutoff: cutoff,
@@ -46,10 +41,7 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     logger.warn("privacy_retention_purge_failed", { reason: error.message })
-    return NextResponse.json(
-      { error: "purge_failed" },
-      { status: 500, headers: { "cache-control": "no-store, max-age=0" } }
-    )
+    return noStoreJson({ error: "purge_failed" }, 500)
   }
 
   // Expire + scrub lapsed reward invites, and hard-delete old terminal ones. A
@@ -97,26 +89,23 @@ export async function GET(request: NextRequest) {
     })
   }
 
-  return NextResponse.json(
-    {
-      ok: true,
-      result: {
-        cutoff,
-        abandonedCutoff,
-        abandonedIdentityPurgedCount:
-          typeof abandonedData === "number" ? abandonedData : 0,
-        purgedCount: typeof data === "number" ? data : 0,
-        expiredInviteCount:
-          typeof expiredInvites === "number" ? expiredInvites : 0,
-        expiredLoyaltyInviteCount:
-          typeof expiredLoyaltyInvites === "number" ? expiredLoyaltyInvites : 0,
-        purgedRateLimitBuckets:
-          typeof purgedBuckets === "number" ? purgedBuckets : 0,
-        webVitalCutoff,
-        purgedWebVitalSamples:
-          typeof purgedWebVitals === "number" ? purgedWebVitals : 0,
-      },
+  return noStoreJson({
+    ok: true,
+    result: {
+      cutoff,
+      abandonedCutoff,
+      abandonedIdentityPurgedCount:
+        typeof abandonedData === "number" ? abandonedData : 0,
+      purgedCount: typeof data === "number" ? data : 0,
+      expiredInviteCount:
+        typeof expiredInvites === "number" ? expiredInvites : 0,
+      expiredLoyaltyInviteCount:
+        typeof expiredLoyaltyInvites === "number" ? expiredLoyaltyInvites : 0,
+      purgedRateLimitBuckets:
+        typeof purgedBuckets === "number" ? purgedBuckets : 0,
+      webVitalCutoff,
+      purgedWebVitalSamples:
+        typeof purgedWebVitals === "number" ? purgedWebVitals : 0,
     },
-    { headers: { "cache-control": "no-store, max-age=0" } }
-  )
+  })
 }

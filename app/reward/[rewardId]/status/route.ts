@@ -1,13 +1,10 @@
-import { NextResponse } from "next/server"
-
 import { getCustomerRewardStatus } from "@/lib/customer/reward"
+// The live reward page polls this while it waits for the merchant scan, so every
+// response must be revalidated — never served from a cache, proxy, or bfcache.
+import { noStoreJson as json } from "@/lib/http/no-store-json"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
-
-// The live reward page polls this while it waits for the merchant scan, so every
-// response must be revalidated — never served from a cache, proxy, or bfcache.
-const NO_STORE = "no-store, max-age=0"
 
 type RewardStatusRouteContext = {
   params: Promise<{
@@ -47,11 +44,4 @@ export async function GET(
     },
     200
   )
-}
-
-function json(body: unknown, status: number) {
-  return NextResponse.json(body, {
-    status,
-    headers: { "cache-control": NO_STORE },
-  })
 }

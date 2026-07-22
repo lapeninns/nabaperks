@@ -1,58 +1,14 @@
-import { NextResponse, type NextRequest } from "next/server"
-
-import { getCurrentCustomer } from "@/lib/customer/identity"
-import {
-  disableCustomerPushSubscription,
-  validatePushEndpoint,
-} from "@/lib/notifications/push-subscriptions"
-import { RateLimitError, enforceRateLimit } from "@/lib/security/rate-limit"
+import { createDisablePushSubscriptionHandler } from "@/app/api/notifications/push/disable-subscription-handler"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-export async function POST(request: NextRequest) {
-  const customer = await getCurrentCustomer()
-  if (!customer) return json({ error: "unauthenticated" }, 401)
-
-  try {
-    await enforceRateLimit({
-      key: `push-unsubscribe:${customer.id}`,
-      limit: 12,
-      windowMs: 60_000,
-    })
-  } catch (error) {
-    if (error instanceof RateLimitError) {
-      return json({ error: "rate_limited" }, 429)
-    }
-    throw error
-  }
-
-  const body = await request.json().catch(() => null)
-  const endpoint = validatePushEndpoint(endpointBody(body))
-  if (!endpoint) return json({ error: "invalid_subscription" }, 400)
-
-  await disableCustomerPushSubscription({
-    customerId: customer.id,
-    endpoint,
-    reason: "customer_disabled",
-  })
-
-  return json({ ok: true }, 200)
-}
-
-function endpointBody(value: unknown) {
-  if (!isRecord(value)) return null
-  if (typeof value.endpoint === "string") return value.endpoint
-  return isRecord(value.subscription) ? value.subscription.endpoint : null
-}
-
-function json(body: unknown, status: number) {
-  return NextResponse.json(body, {
-    status,
-    headers: { "cache-control": "no-store, max-age=0" },
-  })
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-}
+/**
+ * Customer-initiated opt-out from the notification settings UI, audited as
+ * `customer_disabled` in the subscription ledger.
+ */
+export const POST = createDisablePushSubscriptionHandler({
+  rateLimitKeyPrefix: "push-unsubscribe",
+  rateLimitPerMinute: 12,
+  reason: "customer_disabled",
+})

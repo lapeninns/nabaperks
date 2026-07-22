@@ -97,7 +97,11 @@ test("Given a public funnel capture request When the route contract is inspected
   assert.match(route, /enforceRateLimit/)
   assert.match(route, /trustedClientIp\(request\.headers\)/)
   assert.doesNotMatch(route, /rateLimitIdentityFromHeaders/)
-  assert.match(route, /cache-control[\s\S]{0,80}no-store/i)
+  assert.match(route, /from "@\/lib\/http\/no-store-json"/)
+  assert.match(
+    readProjectFile("lib", "http", "no-store-json.ts"),
+    /cache-control[\s\S]{0,80}no-store/i
+  )
   assert.match(contract, /merchant_marketing_viewed/)
   assert.match(contract, /merchant_signup_clicked/)
   assert.match(contract, /merchant_signup_started/)

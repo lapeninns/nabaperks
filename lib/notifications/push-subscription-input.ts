@@ -63,6 +63,16 @@ export function validatePushEndpoint(value: unknown) {
   return isValidEndpoint(endpoint) ? endpoint : null
 }
 
+/**
+ * Endpoint from the disable/unsubscribe request bodies, which send either a
+ * bare `{ endpoint }` or a full `{ subscription: { endpoint } }` payload.
+ */
+export function pushEndpointFromBody(value: unknown): unknown {
+  if (!isRecord(value)) return null
+  if (typeof value.endpoint === "string") return value.endpoint
+  return isRecord(value.subscription) ? value.subscription.endpoint : null
+}
+
 export function isAllowedWebPushEndpoint(value: string) {
   try {
     const url = new URL(value)

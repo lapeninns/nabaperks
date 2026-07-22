@@ -1,5 +1,6 @@
-import { NextResponse, type NextRequest } from "next/server"
+import { type NextRequest } from "next/server"
 
+import { noStoreJson } from "@/lib/http/no-store-json"
 import { isAuthorizedCronRequest } from "@/lib/security/cron-auth"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
@@ -13,24 +14,15 @@ export const dynamic = "force-dynamic"
  */
 export async function GET(request: NextRequest) {
   if (!isAuthorizedCronRequest(request)) {
-    return NextResponse.json(
-      { error: "unauthorized" },
-      { status: 401, headers: { "cache-control": "no-store, max-age=0" } }
-    )
+    return noStoreJson({ error: "unauthorized" }, 401)
   }
 
   const supabase = createSupabaseServiceRoleClient()
   const { data, error } = await supabase.rpc("issue_birthday_rewards")
 
   if (error) {
-    return NextResponse.json(
-      { ok: false, error: error.message },
-      { status: 500, headers: { "cache-control": "no-store, max-age=0" } }
-    )
+    return noStoreJson({ ok: false, error: error.message }, 500)
   }
 
-  return NextResponse.json(
-    { ok: true, issued: data ?? 0 },
-    { headers: { "cache-control": "no-store, max-age=0" } }
-  )
+  return noStoreJson({ ok: true, issued: data ?? 0 })
 }
