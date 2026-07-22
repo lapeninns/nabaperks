@@ -73,6 +73,28 @@
           }
         }
       }
+    },
+    "/api/resend/webhook": {
+      "post": {
+        "summary": "Receive Resend delivery events for loyalty invitations",
+        "operationId": "postResendLoyaltyInviteWebhook",
+        "description": "Signed, replay-safe Resend delivery webhook (Standard Webhooks / Svix scheme). Delivered/bounced/complained/failed events are applied to invitation recipients by provider message id; bounces and complaints suppress the address globally. The raw request body is required for signature verification.",
+        "x-source": "app/api/resend/webhook/route.ts",
+        "responses": {
+          "200": {
+            "description": "The event was accepted, or ignored as an unhandled event type."
+          },
+          "400": {
+            "description": "The request body was not valid JSON."
+          },
+          "401": {
+            "description": "The Standard Webhooks signature was missing or invalid."
+          },
+          "503": {
+            "description": "RESEND_WEBHOOK_SECRET is not configured; the webhook fails closed."
+          }
+        }
+      }
     }
   },
   "components": {

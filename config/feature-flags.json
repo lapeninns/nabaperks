@@ -9,6 +9,15 @@
       "createdOn": "2026-07-15",
       "expiresOn": "2027-01-15",
       "description": "Allows server-side Sentry capture to be disabled independently during an incident."
+    },
+    {
+      "key": "bulk_loyalty_invitations",
+      "environmentVariable": "NABAPERKS_FEATURE_BULK_LOYALTY_INVITATIONS",
+      "defaultEnabled": false,
+      "owner": "area: loyalty",
+      "createdOn": "2026-07-22",
+      "expiresOn": "2027-01-22",
+      "description": "Enables bulk two-stamp loyalty invitation campaigns for allowlisted merchants; default-disabled during phased rollout."
     }
   ]
 }
