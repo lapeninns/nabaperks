@@ -16,13 +16,16 @@ export default async function InviteCustomersPage() {
   const activeCampaign = await getActiveLoyaltyInviteCampaign(merchant.id)
 
   return (
-    <div className="grid max-w-2xl min-w-0 gap-6">
+    <div className="grid max-w-5xl min-w-0 gap-6">
       <PageTitle
         eyebrow="Members"
         title="Invite customers"
         description="Email your customers a one-off invitation worth two welcome stamps. Only import lists you have a lawful basis to email — never bought, scraped or third-party addresses."
       />
-      <InviteCustomersForm activeCampaign={activeCampaign} />
+      <InviteCustomersForm
+        activeCampaign={activeCampaign}
+        merchantName={merchant.business_name ?? ""}
+      />
     </div>
   )
 }
