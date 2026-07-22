@@ -227,6 +227,26 @@ test("only one active campaign per merchant is allowed", { skip }, async () => {
 })
 
 test(
+  "a completed campaign does not block creating a new one",
+  { skip },
+  async () => {
+    await inRolledBackTxn(async (tx) => {
+      const fx = await createRewardPoolFixture(tx)
+      const d1 = await draft(tx, fx.merchantId, hex64(), hex64(), hex64())
+      await tx`select public.confirm_loyalty_invite_campaign(${fx.merchantId}::uuid, ${d1.campaign_id}::uuid, 'venue_email_consent', 30)`
+      // Simulate the queue draining to completion with an unclaimed sent link.
+      await tx`update public.loyalty_invite_recipients set status = 'sent', sent_at = now() where campaign_id = ${d1.campaign_id}::uuid`
+      await tx`update public.loyalty_invite_campaigns set status = 'completed', completed_at = now() where id = ${d1.campaign_id}::uuid`
+
+      // A brand-new campaign is allowed — only a 'sending' campaign blocks.
+      const d2 = await draft(tx, fx.merchantId, hex64(), hex64(), hex64())
+      assert.equal(d2.eligible_count, 1)
+      assert.notEqual(d2.campaign_id, d1.campaign_id)
+    })
+  }
+)
+
+test(
   "a completed campaign with unclaimed links stays revocable",
   { skip },
   async () => {

@@ -41,11 +41,11 @@ export function InviteCustomersForm({
     )
   }
 
-  if (
-    activeCampaign &&
-    (activeCampaign.status === "sending" ||
-      activeCampaign.status === "completed")
-  ) {
+  // Only a campaign that is still actively sending blocks starting another one
+  // (one in flight at a time). A completed campaign no longer occupies the whole
+  // view — its revoke card is shown ALONGSIDE the import form below, so a
+  // merchant can send a fresh batch without first cancelling the previous one.
+  if (activeCampaign?.status === "sending") {
     return (
       <InProgressCard
         campaign={activeCampaign}
@@ -58,38 +58,44 @@ export function InviteCustomersForm({
   const preview = state.preview
 
   return (
-    <form action={action} className="grid gap-6">
+    <div className="grid gap-6">
       {state.errors?.form ? (
         <StatusBanner tone="error" title="Something went wrong.">
           {state.errors.form}
         </StatusBanner>
       ) : null}
 
-      <TextareaField
-        id="recipients"
-        label="Email addresses"
-        name="recipients"
-        rows={8}
-        defaultValue={state.fields?.recipients}
-        placeholder={"alex@example.com\njordan@example.com"}
-        hint="Paste up to 2,000 addresses, one per line or comma-separated, or a CSV with an 'email' column. Each invitation offers two welcome stamps and expires after 30 days."
-        error={state.errors?.recipients}
-      />
+      {activeCampaign?.status === "completed" ? (
+        <InProgressCard campaign={activeCampaign} action={action} />
+      ) : null}
 
-      {preview ? (
-        <PreviewPanel
-          preview={preview}
-          legalError={state.errors?.legalBasis}
-          attestationError={state.errors?.attestation}
+      <form action={action} className="grid gap-6">
+        <TextareaField
+          id="recipients"
+          label="Email addresses"
+          name="recipients"
+          rows={8}
+          defaultValue={state.fields?.recipients}
+          placeholder={"alex@example.com\njordan@example.com"}
+          hint="Paste up to 2,000 addresses, one per line or comma-separated, or a CSV with an 'email' column. Each invitation offers two welcome stamps and expires after 30 days."
+          error={state.errors?.recipients}
         />
-      ) : (
-        <div>
-          <SubmitButton name="intent" value="preview">
-            Check list
-          </SubmitButton>
-        </div>
-      )}
-    </form>
+
+        {preview ? (
+          <PreviewPanel
+            preview={preview}
+            legalError={state.errors?.legalBasis}
+            attestationError={state.errors?.attestation}
+          />
+        ) : (
+          <div>
+            <SubmitButton name="intent" value="preview">
+              Check list
+            </SubmitButton>
+          </div>
+        )}
+      </form>
+    </div>
   )
 }
 
