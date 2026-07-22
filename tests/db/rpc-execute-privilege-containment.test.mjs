@@ -32,6 +32,8 @@ const AUTHENTICATED_DIRECT_RPCS = [
   "admin_regenerate_qr_code",
   "admin_record_consent_opt_out",
   "admin_log_data_request",
+  "admin_erase_loyalty_invitations_for_customer",
+  "loyalty_invitations_export_for_customer",
   "admin_log_pilot_note",
   "save_loyalty_card",
   "upsert_reward_pool_item",
